@@ -208,5 +208,10 @@ describe("contract", () => {
 		expects("tickets.list", ["INVALID_CURSOR"]);
 		expects("pullRequests.link", ["INVALID_PR_URL", "GH_UNAVAILABLE"]);
 		expects("attachments.upload", ["PAYLOAD_TOO_LARGE"]);
+		expects("agentRuns.start", ["CONCURRENCY_LIMIT"]);
+		expects("agentRuns.resume", ["CONCURRENCY_LIMIT"]);
+		expects("agentRuns.setModel", ["CONCURRENCY_LIMIT"]);
+		expects("system.backup", ["BACKUP_FAILED"]);
+		expects("search.query", ["SEARCH_REPLACED"]);
 	});
 });

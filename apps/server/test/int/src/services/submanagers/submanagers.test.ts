@@ -14,7 +14,7 @@ import { release } from "../../../../../src/services/submanagers/retire.ts";
 import { seedActors, seedChild, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../fixtures/tickets.ts";
 import { controllerSession, workingSession } from "../../../../helpers/controllerSession.ts";
-import { type Harness, NOW, secondsAfter, serviceHarness } from "../../../../helpers/services.ts";
+import { expectErrorData, type Harness, NOW, secondsAfter, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
 let h: Harness;
@@ -87,11 +87,14 @@ test("the dedicated capacity covers workers across the whole delegated subtree",
 	});
 	const sessions = [workingSession(worker.run.terminalId!)];
 	expect(await h.read((tx) => capacityAvailable(tx, { projectId: leaf, sessions }))).toBe(false);
-	await expect(
-		h.run((ctx, tx) => reserve(ctx, tx, { ticket: otherTicket, personaId: "builder" }, [], { sessions }), {
-			actor: { kind: "agent", name: run.id },
-		}),
-	).rejects.toThrow();
+	// The leaf project permits 3 concurrent worker turns and runs none. The
+	// budget of the delegation stops this start, so the refusal states that
+	// budget and the worker turns of the whole subtree.
+	const refused = h.run(
+		(ctx, tx) => reserve(ctx, tx, { ticket: otherTicket, personaId: "builder" }, [], { sessions }),
+		{ actor: { kind: "agent", name: run.id } },
+	);
+	expect(await expectErrorData(refused, "CONCURRENCY_LIMIT")).toEqual({ limit: 1, running: 1 });
 	await h.run((ctx, tx) => resize(ctx, tx, { id: run.id, capacity: 2, sessions }), parent);
 	expect(await h.read((tx) => capacityAvailable(tx, { projectId: leaf, sessions }))).toBe(true);
 });

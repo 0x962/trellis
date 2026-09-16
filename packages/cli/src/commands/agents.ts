@@ -109,7 +109,12 @@ const resume = defineCommand({
 			}),
 		);
 		printRecord(ctx.out, ctx.format, result, agentRecord);
-		return result.state === "running" ? 0 : 6;
+		// A resume answers a row in any state, like a start. Only `running`
+		// means the terminal is up, so every other state prints the reason and
+		// exits 6.
+		if (result.state === "running") return 0;
+		ctx.err.write(`warning: the agent is ${result.state}: ${result.error ?? "no error text"}\n`);
+		return 6;
 	},
 });
 

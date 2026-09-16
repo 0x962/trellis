@@ -5,9 +5,17 @@ export const PersonaKindSchema = z.enum(["builder", "reviewer", "manager"]);
 export type PersonaKind = z.infer<typeof PersonaKindSchema>;
 
 export const PersonaCreateInputSchema = z.strictObject({
-	name: z.string().trim().min(1).max(120),
+	name: z
+		.string()
+		.trim()
+		.min(1, "Enter a persona name of 1 to 120 characters.")
+		.max(120, "Enter a persona name of 1 to 120 characters."),
 	kind: PersonaKindSchema.optional(),
-	instruction: z.string().trim().min(1).max(200_000),
+	instruction: z
+		.string()
+		.trim()
+		.min(1, "Enter an instruction of 1 to 200,000 characters.")
+		.max(200_000, "Enter an instruction of 1 to 200,000 characters."),
 });
 export type PersonaCreateInput = z.input<typeof PersonaCreateInputSchema>;
 

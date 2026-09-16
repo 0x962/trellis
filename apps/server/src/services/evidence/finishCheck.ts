@@ -3,6 +3,7 @@ import type { RuntimeSession } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { nativeClient } from "../../agents/native/connection.ts";
 import { rows } from "../../db/queries/support.ts";
+import { unconfirmedCheck } from "../deliveries/sentences.ts";
 import { checkOutput } from "./checkOutput.ts";
 import { revision } from "./revision.ts";
 import type { EvidenceCtx } from "./types.ts";
@@ -40,7 +41,7 @@ export const finishCheck = async (
 					? "passed"
 					: "failed";
 			finishedFingerprint = (await revision(workspace)).fingerprint;
-		} else error ??= session?.error ?? "The check process is unavailable. Run a new check explicitly.";
+		} else error ??= session?.error ?? unconfirmedCheck;
 	} catch (cause) {
 		state = "unknown";
 		error = cause instanceof Error ? cause.message : String(cause);

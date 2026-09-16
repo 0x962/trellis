@@ -9,7 +9,7 @@ import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
 import { upsert } from "../actors.ts";
 import { reserveAttempt } from "../assignments/attempts.ts";
-import { capacityAvailable } from "../assignments/capacity.ts";
+import { capacityCounts } from "../assignments/capacity.ts";
 import type { CapacityObservation } from "../assignments/occupiesSlot/index.ts";
 import { recordRequest, replayRequest } from "../assignments/requests.ts";
 import { assignment } from "../controller/nextActions/assignment.ts";
@@ -90,8 +90,8 @@ export const reserve = async (
 			sql`SELECT id FROM agent_runs WHERE ticket_id=${ticket.id} AND persona_id=${persona.id} AND runtime='native' AND closed_at IS NULL LIMIT 1`,
 		);
 		if (assigned.length > 0) throw fail("DUPLICATE", { field: "active persona assignment on this ticket" });
-		if (!(await capacityAvailable(tx, { projectId: project.id, sessions: options?.sessions })))
-			throw fail("DUPLICATE", { field: "project concurrency limit" });
+		const capacity = await capacityCounts(tx, { projectId: project.id, sessions: options?.sessions });
+		if (!capacity.available) throw fail("CONCURRENCY_LIMIT", { limit: capacity.limit, running: capacity.running });
 	}
 	const projectPath = pathOf(ctx.cache, project.id);
 	const ids = chainOf(ctx.cache, project.id).map((item) => item.id);

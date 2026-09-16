@@ -22,19 +22,28 @@ export const HarnessAccountSchema = z.object({
 });
 export type HarnessAccount = z.infer<typeof HarnessAccountSchema>;
 export const HarnessAccountCreateSchema = z.strictObject({
-	name: z.string().trim().min(1).max(120),
+	name: z
+		.string()
+		.trim()
+		.min(1, "Enter an account name of 1 to 120 characters.")
+		.max(120, "Enter an account name of 1 to 120 characters."),
 	harness: AccountHarnessSchema,
 	profilePath: z
 		.string()
 		.trim()
-		.min(1)
+		.min(1, "Enter a profile directory path, or omit it.")
 		.optional()
 		.describe("Existing profile directory. Omit to create a separate login profile."),
 });
 export type HarnessAccountCreate = z.infer<typeof HarnessAccountCreateSchema>;
 export const HarnessAccountUpdateSchema = z.strictObject({
 	id: UlidSchema,
-	name: z.string().trim().min(1).max(120).optional(),
+	name: z
+		.string()
+		.trim()
+		.min(1, "Enter an account name of 1 to 120 characters.")
+		.max(120, "Enter an account name of 1 to 120 characters.")
+		.optional(),
 	enabled: z.boolean().optional(),
 	isDefault: z.boolean().optional(),
 });

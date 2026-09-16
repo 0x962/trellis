@@ -24,7 +24,10 @@ export const DEFAULT_CHAT_CHANNELS = [
 	{ name: "manager", aiOnly: false, direct: true },
 ] as const;
 
-const BodySchema = z.string().min(1).max(20_000);
+const BodySchema = z
+	.string()
+	.min(1, "Enter a message of 1 to 20,000 characters.")
+	.max(20_000, "Enter a message of 1 to 20,000 characters.");
 
 export const ChatNotificationSchema = z.object({
 	runId: z.string(),
@@ -84,7 +87,12 @@ export const ChatListInputSchema = z.strictObject({
 	project: ProjectRefStringSchema,
 	channel: ChatChannelRefSchema,
 	after: UlidSchema.optional(),
-	limit: z.coerce.number().int().min(1).max(200).default(50),
+	limit: z.coerce
+		.number()
+		.int("Enter a whole number for the limit.")
+		.min(1, "Enter a limit of 1 to 200.")
+		.max(200, "Enter a limit of 1 to 200.")
+		.default(50),
 });
 export type ChatListInput = z.input<typeof ChatListInputSchema>;
 

@@ -2,7 +2,7 @@ import { implement, ORPCError, ValidationError } from "@orpc/server";
 import { ActorHeaderSchema, type ActorRef, actorHeaderGrammar, contract } from "@trellis/api";
 import type { RequestContext } from "../context.ts";
 import type { ServiceTransport } from "../db/transport.ts";
-import { fail, invalidInput } from "../errors.ts";
+import { fail, type InputIssue, invalidInput, invalidIssues } from "../errors.ts";
 import type { GhAccess } from "../ghState.ts";
 import type { DbTiming } from "../serverTiming.ts";
 import type { ServiceName } from "../services/registry.ts";
@@ -49,7 +49,7 @@ const declaredValidation = base.middleware(async ({ next }) => {
 		return await next();
 	} catch (error) {
 		if (error instanceof ORPCError && error.code === "BAD_REQUEST" && error.cause instanceof ValidationError) {
-			throw fail("INPUT_VALIDATION_FAILED", { issues: error.cause.issues as { message: string; path?: [] }[] });
+			throw invalidIssues(error.cause.issues as InputIssue[]);
 		}
 		throw error;
 	}

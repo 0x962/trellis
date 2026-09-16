@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import type { ORPCError } from "@orpc/server";
 import { sql } from "drizzle-orm";
 import { backup } from "../../../../src/services/system.ts";
 import { blobPath } from "../../../../src/storage/blobs.ts";
@@ -104,21 +105,33 @@ describe("system.backup", () => {
 	});
 
 	// tar exits nonzero when the disk fills or the process gets a signal. The
-	// backup then fails, and the snapshot and the half-written archive go.
-	test("a backup whose tar fails removes its snapshot and writes no archive", async () => {
+	// backup then fails, and the snapshot and the half-written archive go. tar
+	// is a program outside the server, so the person who asked for the backup
+	// reads the exit line of tar and not a server failure.
+	test("a backup whose tar fails removes its snapshot and refuses with the tar line", async () => {
 		const originalSpawn = Bun.spawn;
 		const patched = Bun as { spawn: typeof Bun.spawn };
 		patched.spawn = ((command: string[], options?: unknown) => {
-			const failing = command[0] === "tar" ? ["sh", "-c", `touch "${command[2]}"; exit 2`] : command;
+			const failing =
+				command[0] === "tar" ? ["sh", "-c", `touch "${command[2]}"; echo "no space left" >&2; exit 2`] : command;
 			return originalSpawn(failing, options as never);
 		}) as typeof Bun.spawn;
 
+		let failure: ORPCError<string, unknown> | null = null;
 		try {
-			await expect(runBackup()).rejects.toThrow(/tar exited 2/);
+			failure = await runBackup().then(
+				() => null,
+				(thrown: unknown) => thrown as ORPCError<string, unknown>,
+			);
 		} finally {
 			patched.spawn = originalSpawn;
 		}
 
+		expect(failure?.code).toBe("BACKUP_FAILED");
+		expect(failure?.status).toBe(500);
+		expect(failure?.defined).toBe(true);
+		expect(failure?.message).toBe("tar exited 2: no space left");
+		expect(failure?.data).toEqual({ command: "tar", code: 2, stderr: "no space left" });
 		expect(archives()).toEqual([]);
 	});
 

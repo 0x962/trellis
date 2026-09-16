@@ -1,4 +1,4 @@
-export const RUNTIME_PROTOCOL_VERSION = 9;
+export const RUNTIME_PROTOCOL_VERSION = 10;
 export type HarnessTool = {
 	id: string;
 	name: string;
@@ -128,6 +128,17 @@ export interface RuntimeNativeDelivery {
 	claimed: boolean;
 	status: "unknown" | "acknowledged";
 }
+// The answer to "did this message reach this session?". `delivered` is true
+// when the session wrote the bytes or the agent confirmed the message.
+// `status` is the status of the session that holds the answer, so a caller
+// tells a message that is still on its way from a message that can never
+// arrive. A session the runtime has no record of produces no answer: the
+// call fails with SESSION_NOT_FOUND.
+export interface RuntimeMessageState {
+	messageId: string;
+	delivered: boolean;
+	status: SessionStatus;
+}
 export interface RuntimeMethods {
 	registerNativeDelivery: {
 		params: {
@@ -154,6 +165,7 @@ export interface RuntimeMethods {
 		result: RuntimeProcessStatus;
 	};
 	inspect: { params: { id: string }; result: RuntimeProcessStatus };
+	hasMessage: { params: { id: string; messageId: string }; result: RuntimeMessageState };
 	subscribe: {
 		params: { id: string; offset: number; stream?: RuntimeStream; output?: boolean };
 		result: RuntimeOutputEvent;

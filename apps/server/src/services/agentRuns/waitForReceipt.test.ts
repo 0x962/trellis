@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { unconfirmedDelivery } from "../deliveries/sentences.ts";
 import { waitForReceipt } from "./waitForReceipt.ts";
 
 test("receipt waits stop at their deadline and report an unconfirmed message", async () => {
@@ -16,7 +17,5 @@ test("receipt waits stop at their deadline and report an unconfirmed message", a
 			"message",
 			5,
 		),
-	).rejects.toThrow(
-		"The agent did not acknowledge this message within 0.005 seconds. Inspect its terminal before a resend.",
-	);
+	).rejects.toThrow(unconfirmedDelivery);
 });
