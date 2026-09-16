@@ -224,10 +224,12 @@ test("each assigned agent has a stable tab with its current work state", async (
 		},
 	] satisfies AgentRun[];
 	let includeSecondRun = false;
+	let failRunList = false;
 	await page.route("**/rpc/**", async (route) => {
 		const request = route.request();
 		if (!request.url().includes("agentRuns/list") && !request.postData()?.includes("agentRuns/list"))
 			return route.continue();
+		if (failRunList) return route.abort("failed");
 		const visibleRuns = includeSecondRun ? runs : runs.slice(0, 1);
 		if (!request.url().includes("__batch__")) return route.fulfill({ json: { json: visibleRuns } });
 		const calls = JSON.parse(request.postData()!) as { url: string }[];
@@ -261,4 +263,8 @@ test("each assigned agent has a stable tab with its current work state", async (
 	await page.keyboard.press("ArrowLeft");
 	await expect(first).toHaveAttribute("aria-selected", "true");
 	await expect(work.getByRole("link", { name: "Open workspace" })).toHaveAttribute("href", "https://example.test/one");
+
+	failRunList = true;
+	await expect(work.getByRole("alert")).toContainText("Failed to fetch");
+	await expect(first).toBeVisible();
 });

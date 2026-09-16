@@ -59,6 +59,11 @@ export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity:
 	);
 	return (
 		<section aria-label="Ticket work area" className="min-w-0">
+			{runs.isError && agentTabs.length > 0 && (
+				<p role="alert" className="mb-3 text-sm text-danger">
+					{runs.error.message}
+				</p>
+			)}
 			<Tabs
 				value={tab}
 				onValueChange={setTab}
