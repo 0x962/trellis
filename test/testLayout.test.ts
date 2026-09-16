@@ -1,16 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
-import {
-	createSourceFile,
-	forEachChild,
-	isCallExpression,
-	isIdentifier,
-	isNewExpression,
-	isPropertyAccessExpression,
-	ScriptTarget,
-	type Node,
-} from "typescript";
 
 // A test that builds real infrastructure belongs under `<workspace>/test/int/`.
 // `bun run test` skips that directory and `bun run test:int` runs only it, so an
@@ -37,29 +27,104 @@ const BUILDERS = [
 ];
 
 const transpiler = new Bun.Transpiler({ loader: "tsx" });
-const INFRASTRUCTURE_CALLS = new Set(["diskDb", "execFileSync", "openDb", "spawnSync"]);
-const BUN_INFRASTRUCTURE_CALLS = new Set(["serve", "spawn"]);
+const STARTS_PROCESS = /\bBun\s*\.\s*(?:serve|spawn)\b|\b(?:execFileSync|spawnSync)\b/;
+const OPENS_DATABASE = /\b(?:diskDb|openDb)\s*\(|\bnew\s+PGlite\b/;
+const REGEX_PREFIX = /[([{,:;=!?&|+*%^~<>-]/;
+const REGEX_KEYWORD =
+	/\b(?:await|case|delete|do|else|in|instanceof|new|of|return|throw|typeof|void|yield)$/;
 
-const callsInfrastructure = (file: string, source: string) => {
-	let answer = false;
-	const visit = (node: Node) => {
-		if (isCallExpression(node)) {
-			const callee = node.expression;
-			if (isIdentifier(callee) && INFRASTRUCTURE_CALLS.has(callee.text)) answer = true;
-			if (
-				isPropertyAccessExpression(callee) &&
-				isIdentifier(callee.expression) &&
-				callee.expression.text === "Bun" &&
-				BUN_INFRASTRUCTURE_CALLS.has(callee.name.text)
-			) {
-				answer = true;
+const sourceWithoutText = (source: string) => {
+	const code = source.split("");
+	const hide = (start: number, end: number) => {
+		for (let index = start; index < end; index += 1) {
+			if (code[index] !== "\n") code[index] = " ";
+		}
+	};
+	const regexStartsAt = (index: number) => {
+		const prefix = code.slice(0, index).join("").trimEnd();
+		if (prefix.length === 0) return true;
+		return REGEX_PREFIX.test(prefix.at(-1)!) || REGEX_KEYWORD.test(prefix);
+	};
+	const scanQuoted = (start: number, quote: "'" | '"') => {
+		let index = start + 1;
+		while (index < source.length) {
+			if (source[index] === "\\") index += 2;
+			else if (source[index++] === quote) break;
+		}
+		hide(start, index);
+		return index;
+	};
+	const scanRegex = (start: number) => {
+		let index = start + 1;
+		let inClass = false;
+		while (index < source.length) {
+			if (source[index] === "\\") index += 2;
+			else if (source[index] === "[") {
+				inClass = true;
+				index += 1;
+			} else if (source[index] === "]") {
+				inClass = false;
+				index += 1;
+			} else if (source[index] === "/" && !inClass) {
+				index += 1;
+				while (/\w/.test(source[index] ?? "")) index += 1;
+				break;
+			} else index += 1;
+		}
+		hide(start, index);
+		return index;
+	};
+	const scanCode = (start: number, templateExpression = false): number => {
+		let index = start;
+		let braces = templateExpression ? 1 : 0;
+		while (index < source.length) {
+			const char = source[index]!;
+			const next = source[index + 1];
+			if (char === "'" || char === '"') index = scanQuoted(index, char);
+			else if (char === "`") index = scanTemplate(index);
+			else if (char === "/" && next === "/") {
+				const end = source.indexOf("\n", index + 2);
+				hide(index, end === -1 ? source.length : end);
+				index = end === -1 ? source.length : end;
+			} else if (char === "/" && next === "*") {
+				const commentStart = index;
+				const end = source.indexOf("*/", index + 2);
+				index = end === -1 ? source.length : end + 2;
+				hide(commentStart, index);
+			} else if (char === "/" && regexStartsAt(index)) index = scanRegex(index);
+			else if (templateExpression && char === "{") {
+				braces += 1;
+				index += 1;
+			} else if (templateExpression && char === "}") {
+				braces -= 1;
+				index += 1;
+				if (braces === 0) return index;
+			} else index += 1;
+		}
+		return index;
+	};
+	const scanTemplate = (start: number) => {
+		let index = start + 1;
+		hide(start, index);
+		while (index < source.length) {
+			if (source[index] === "\\") {
+				hide(index, index + 2);
+				index += 2;
+			} else if (source[index] === "`") {
+				hide(index, index + 1);
+				return index + 1;
+			} else if (source[index] === "$" && source[index + 1] === "{") {
+				hide(index, index + 2);
+				index = scanCode(index + 2, true);
+			} else {
+				hide(index, index + 1);
+				index += 1;
 			}
 		}
-		if (isNewExpression(node) && isIdentifier(node.expression) && node.expression.text === "PGlite") answer = true;
-		if (!answer) forEachChild(node, visit);
+		return index;
 	};
-	visit(createSourceFile(file, source, ScriptTarget.Latest));
-	return answer;
+	scanCode(0);
+	return code.join("");
 };
 
 // The file a relative specifier names. Bun resolves a bare directory to its
@@ -84,7 +149,8 @@ const buildsInfrastructure = (file: string, visiting: Set<string> = new Set()): 
 
 	const source = readFileSync(file, "utf8");
 	const imports = transpiler.scanImports(source);
-	if (callsInfrastructure(file, source)) return true;
+	const executable = sourceWithoutText(source);
+	if (STARTS_PROCESS.test(executable) || OPENS_DATABASE.test(executable)) return true;
 	if (imports.some(({ path }) => path === "node:child_process")) return true;
 
 	let answer = false;
@@ -110,6 +176,24 @@ const testFiles = [...new Bun.Glob("**/*.test.{ts,tsx}").scanSync({ cwd: root, a
 const inIntegrationDir = (file: string) => relative(root, file).includes("test/int/");
 
 describe("test layout", () => {
+	test("the source scan keeps executable calls and ignores source text", () => {
+		const textOnly = `
+			// Bun.spawn(["false"]);
+			const command = "spawnSync('false')";
+			const pattern = /Bun\\.serve/;
+			const generated = \`import { spawn } from "node:child_process"; Bun.spawn([]);\`;
+		`;
+		expect(STARTS_PROCESS.test(sourceWithoutText(textOnly))).toBe(false);
+		expect(transpiler.scanImports(textOnly)).toEqual([]);
+		expect(STARTS_PROCESS.test(sourceWithoutText("Bun.serve({ fetch() {} });"))).toBe(true);
+		expect(STARTS_PROCESS.test(sourceWithoutText("const server = `${Bun.serve({ fetch() {} })}`;"))).toBe(true);
+	});
+
+	test("the import scan ignores type-only imports", () => {
+		const imports = transpiler.scanImports('import type { Process } from "./process.ts";');
+		expect(imports).toEqual([]);
+	});
+
 	test("the repository holds test files to check", () => {
 		expect(testFiles.length).toBeGreaterThan(400);
 	});
