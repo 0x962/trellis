@@ -73,9 +73,32 @@ The authenticated Claude test confirms delayed discovery and prompt acknowledgme
 The real missing-discovery test passes. The provider limit prevents the real tool-call and exact-resume assertions from completion.
 Evidence: `/tmp/trellis-manager-ready-live-green.log`, `/tmp/trellis-startup-combined-desktop.log`, and `/tmp/trellis-startup-combined-server-green.log`.
 
+The merged startup progress screen passes eight desktop checks with 58 assertions.
+These checks require the main window to appear only after readiness and the progress screen's completion step.
+A startup failure shows the error without a main window.
+
 A provider turn failure after confirmed resume remains visible on the agent. It does not block the desktop from opening.
 Process ownership errors and absent prompt receipts still block restoration. The regression first fails with `rate_limit` at the restart gate.
 All 26 restart service tests pass after the fix. Evidence: `/tmp/trellis-provider-startup-red.log` and `/tmp/trellis-provider-startup-green.log`.
+The final combined restart, tool, and prompt-hook checks pass: 41 tests and 187 assertions.
+Evidence: `/tmp/trellis-final-startup-services.log`.
+
+## Codex managers
+
+Codex 0.154.0 supports managers through its native engine and interactive terminal.
+The engine receives the saved role instructions and authenticated Trellis tools. Each turn has an empty native environment list.
+The terminal connection preserves that policy on typed turns and resume. It rejects requests for another conversation.
+Managers require Codex 0.154.0 or later. Workers retain their existing native tool access.
+
+The combined native engine and service checks pass: 44 tests and 486 assertions.
+Local provider fixtures exercise Sol and Astra through initial, sent, and typed turns, exact-session resume, tool calls, and normal terminal exit.
+A forced shell-tool call returns an error and creates no file.
+An authenticated Sol session calls the local Trellis fixture, stops, resumes its exact provider conversation, and recalls a random prior marker.
+That separate test passes with eight assertions. Both native terminal attachments render the response.
+Evidence: `/tmp/trellis-codex-final-combined.log` and `/tmp/trl-hhost-EQecZV`.
+
+All nine workspace typechecks pass. Scoped Biome checks pass.
+The [host guide](host-testing.md#codex-manager-checks) records the native and authenticated commands.
 
 ## Default models
 

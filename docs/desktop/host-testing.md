@@ -59,6 +59,31 @@ Native events must distinguish temporary errors from final failures through `wil
 The suite also verifies that terminal exit stops the owned engine.
 The acceptance record distinguishes these source checks from installed desktop and manager acceptance.
 
+## Codex manager checks
+
+Codex managers require version 0.154.0 or later. Build the host adapters before the native tests:
+
+```sh
+cd apps/server
+bun run build:harnesses
+TRELLIS_REAL_HARNESS_ACCEPTANCE=1 \
+bun test test/int/src/agents/harnessHost/codexManager.real.test.ts
+```
+
+The installed engine uses a local provider fixture for Sol and Astra.
+The cases cover terminal input, authenticated Trellis tool calls, exact-session resume, updated role instructions, and normal terminal exit.
+They also check the restricted tool catalog and reject a forced shell call without a file change.
+
+Run the authenticated Sol case with the directory that contains the CLI's `auth.json`:
+
+```sh
+TRELLIS_CODEX_ACCEPTANCE_AUTH_HOME="$HOME/.codex" \
+bun test test/int/src/agents/harnessHost/codexManager.authenticated.test.ts
+```
+
+This case calls a local Trellis fixture through the real model and recalls a random marker after exact-session resume.
+It uses a temporary CLI home, removes its copied credentials, and stops its owned processes.
+
 ## Manager tool readiness
 
 Run the interactive Claude manager tests with an authenticated home and an available model:
