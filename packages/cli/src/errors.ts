@@ -109,7 +109,16 @@ const detail = (code: string, message: string, data: Data): string => {
 			return `${message} ${data.running} of ${data.limit} builders are running.`;
 		case "INPUT_VALIDATION_FAILED": {
 			const issues = data.issues as Array<{ path?: Array<string | number>; message: string }>;
-			return `${message} ${issues.map((issue) => `${(issue.path ?? []).join(".")}: ${issue.message}`).join("; ")}`;
+			// The server writes the same sentences into the top-level message.
+			// An issue whose text the message already holds would print twice,
+			// so only an issue that adds words reaches the line.
+			const extra = issues
+				.filter((issue) => !message.includes(issue.message))
+				.map((issue) => {
+					const path = issue.path ?? [];
+					return path.length === 0 ? issue.message : `${path.join(".")}: ${issue.message}`;
+				});
+			return extra.length === 0 ? message : `${message} ${extra.join("; ")}`;
 		}
 		default:
 			return message;

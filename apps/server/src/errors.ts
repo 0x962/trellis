@@ -22,3 +22,28 @@ export const invalidInput = (path: string, message: string) =>
 		data: { issues: [{ message, path: [path] }] },
 		defined: true,
 	});
+
+// One issue of INPUT_VALIDATION_FAILED. `path` locates the field the issue
+// is about, from the root of the input, for example ["nodes", 2, "minutes"].
+export type InputIssue = { message: string; path?: (string | number)[] };
+
+// The issues as one line of sentences. An issue that names a field starts
+// with that field, for example "title: Expected a title.".
+const issueLine = (issues: InputIssue[]) =>
+	issues
+		.map((issue) => {
+			const path = issue.path ?? [];
+			return path.length === 0 ? issue.message : `${path.join(".")}: ${issue.message}`;
+		})
+		.join(" ");
+
+// INPUT_VALIDATION_FAILED for the issues a zod schema reports. The message
+// holds every issue sentence, because the web and the mobile app show
+// `message` and never read `data.issues`.
+export const invalidIssues = (issues: InputIssue[]) =>
+	new ORPCError("INPUT_VALIDATION_FAILED", {
+		status: errors.INPUT_VALIDATION_FAILED.status,
+		message: issueLine(issues),
+		data: { issues },
+		defined: true,
+	});
