@@ -7,6 +7,7 @@ import { hitArea } from "../../utils/hitArea";
 export type TabItem<Value extends string> = {
 	value: Value;
 	label: string;
+	icon?: ReactNode;
 	content: ReactNode;
 	disabled?: boolean;
 };
@@ -52,15 +53,16 @@ export function Tabs<Value extends string>({ items, value, onValueChange, classN
 	};
 	return (
 		<BaseTabs.Root value={value} onValueChange={(next) => onValueChange(next as Value)} className={className}>
-			<BaseTabs.List onKeyDown={onKeyDown} className="flex gap-4 border-b border-border">
+			<BaseTabs.List onKeyDown={onKeyDown} className="flex min-w-0 gap-4 overflow-x-auto border-b border-border">
 				{items.map((item) => (
 					<BaseTabs.Tab
 						key={item.value}
 						value={item.value}
+						aria-label={item.label}
 						disabled={item.disabled}
 						className={(state) =>
 							cx(
-								"-mb-px flex h-8 items-center border-b-2 px-0.5 text-sm font-medium whitespace-nowrap select-none transition-colors duration-hover ease-out",
+								"-mb-px flex h-8 items-center gap-1.5 border-b-2 px-0.5 text-sm font-medium whitespace-nowrap select-none transition-colors duration-hover ease-out",
 								hitArea.tab32,
 								"focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 focus-visible:rounded-sm",
 								state.active ? "border-accent text-fg" : "border-transparent text-fg-muted hover:text-fg",
@@ -68,6 +70,7 @@ export function Tabs<Value extends string>({ items, value, onValueChange, classN
 							)
 						}
 					>
+						{item.icon !== undefined && <span aria-hidden="true">{item.icon}</span>}
 						{item.label}
 					</BaseTabs.Tab>
 				))}
