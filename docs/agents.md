@@ -314,7 +314,7 @@ A human response prompts the manager to read the answer. It does not grant appro
 These conditions notify the manager even when worker capacity is full. A worker assignment still requires a free slot.
 Each saved wait survives a restart and appears through `trellis manager actions` and `trellis_controller_actions`.
 The manager receives its `waitFor` details in `nextActions`. Reuse its `assignmentRequestId` for the resulting worker assignment.
-An outstanding condition blocks `agentRuns.start` even with a different request ID. Cancel the wait to withdraw that prerequisite.
+A wait never blocks `agentRuns.start`. A start during a wait assigns the waiting action to the new worker and retires the wait.
 
 If the condition changes, record the new `waitFor` in a later dispatch that includes the action.
 Trellis cancels the previous action and gives the replacement a new assignment identifier.

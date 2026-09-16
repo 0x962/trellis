@@ -10,7 +10,6 @@ import { upsert } from "../actors.ts";
 import { reserveAttempt } from "../assignments/attempts.ts";
 import { capacityAvailable } from "../assignments/capacity.ts";
 import { recordRequest, replayRequest } from "../assignments/requests.ts";
-import { assertTicketReady } from "../controller/nextActions/assertTicketReady.ts";
 import { assignment } from "../controller/nextActions/assignment.ts";
 import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { activeNotes } from "../notes/notes.ts";
@@ -84,7 +83,6 @@ export const reserve = async (
 	await assertNativeWorkEnabled(tx);
 	if (ticket !== null) {
 		await assertAssignmentOwner(ctx, tx, project.id);
-		await assertTicketReady(ctx, tx, { ticketId: ticket.id, projectId: project.id });
 		const assigned = await rows(
 			tx,
 			sql`SELECT id FROM agent_runs WHERE ticket_id=${ticket.id} AND persona_id=${persona.id} AND runtime='native' AND closed_at IS NULL LIMIT 1`,

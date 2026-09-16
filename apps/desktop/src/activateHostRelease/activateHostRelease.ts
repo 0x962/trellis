@@ -68,19 +68,15 @@ export const activateHostRelease = async (
 		return host;
 	}
 	if (status.state === "blocked" && status.runtimeProtocol === null) throw new Error(status.detail);
-	const pending = await readRestartPlan(home);
-	if (
-		pending &&
-		(pending.sourceReleaseId !== status.active.manifest.id || pending.sessions.some((session) => session.done))
-	) {
+	// A plan left by an earlier package gets one more resume pass with the
+	// host that runs now. An agent that still fails stays in the plan with
+	// its reason, and the capture below carries it into the next plan, so
+	// the restart status keeps showing it.
+	if (await readRestartPlan(home)) {
 		await report("Wait for background host");
 		const host = await actions.adopt();
-		const previous = await readUpdateStatus(home, status.active);
-		if (previous.state !== "current" || previous.active?.manifest.id !== status.active.manifest.id)
-			throw new Error("Finish the pending agent restart with its active host before another package update.");
 		await report("Restore agent sessions");
 		await actions.resume(host, true);
-		if (restartPending(home)) throw new Error("Finish the pending agent restart before another package update.");
 	}
 	await report("Stop background host");
 	await actions.unregister();

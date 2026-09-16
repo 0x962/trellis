@@ -69,9 +69,13 @@ async function resumeEntry(
 	if (next === undefined) {
 		const previous = processes.find((p) => p.id === entry.previousAttemptId);
 		if (previous?.status !== "exited")
-			throw new Error(`Confirm that restart attempt ${entry.previousAttemptId} stopped before resume.`);
+			throw new Error(
+				`The previous process of this agent (attempt ${entry.previousAttemptId}) is still ${previous?.status ?? "unknown"}, not stopped. Trellis did not start a second one. Stop it, then retry.`,
+			);
 		if (previous.agent?.sessionId !== entry.providerSessionId)
-			throw new Error("The provider session does not match the saved restart plan.");
+			throw new Error(
+				`The saved conversation ${entry.providerSessionId} is not the one the previous process reports (${previous.agent?.sessionId ?? "none"}). Trellis did not resume it, so the agent does not continue a wrong conversation.`,
+			);
 		const snapshot = await readNativeHarness(
 			ctx,
 			{ runtime: "native", terminalId: entry.previousAttemptId, sessionId: entry.providerSessionId },
@@ -86,7 +90,9 @@ async function resumeEntry(
 		if (existsSync(join(ctx.home, "harness-attempts", entry.attempt.id, "launch.json"))) {
 			const timeoutMs = reservation.deadlineAt === undefined ? undefined : reservation.deadlineAt - Date.now();
 			if (timeoutMs !== undefined && timeoutMs <= 0)
-				throw new Error("The flow group deadline elapsed before restart launch.");
+				throw new Error(
+					`The flow group deadline ${new Date(reservation.deadlineAt!).toISOString()} passed before Trellis could launch this agent again.`,
+				);
 			await host.startPrepared(entry.attempt.id, timeoutMs);
 		} else {
 			await deps.start(ctx, {
@@ -124,14 +130,18 @@ async function resumeEntry(
 	}
 	const acknowledged = (p: RuntimeProcessStatus) =>
 		p.agent?.sessionId === entry.providerSessionId && p.acknowledgedMessageIds.includes(entry.attempt.id);
+	const noReceipt = (p: RuntimeProcessStatus) =>
+		`The new process (attempt ${entry.attempt.id}) did not confirm the resume message. Its status is ${p.status}${p.agent?.sessionId ? ` and its conversation is ${p.agent.sessionId}` : ""}. Inspect it on the agent page, then retry.`;
 	if (!acknowledged(next)) {
-		if (next.status !== "running")
-			throw new Error(`Restart attempt ${entry.attempt.id} has no confirmed prompt receipt.`);
+		if (next.status !== "running") throw new Error(noReceipt(next));
 		({ process: next } = await host.startPrepared(entry.attempt.id));
 	}
-	if (!acknowledged(next)) throw new Error(`Restart attempt ${entry.attempt.id} has no confirmed prompt receipt.`);
+	if (!acknowledged(next)) throw new Error(noReceipt(next));
 	if (next.status === "unknown" || next.error)
-		throw new Error(next.error ?? `Restart attempt ${entry.attempt.id} has unknown process ownership.`);
+		throw new Error(
+			next.error ??
+				`Trellis cannot tell which process owns the new attempt ${entry.attempt.id}. Inspect it on the agent page, then retry.`,
+		);
 	ctx.emit({ type: "agent-runs.changed", id: entry.runId });
 	return "resumed";
 }
@@ -199,6 +209,8 @@ const startResume = (ctx: Ctx, deps: Dependencies) => {
 	return pending;
 };
 
+// The resume runs the plan on disk, whatever `restartId` the caller
+// remembers, and the answer names the plan it ran.
 export async function prepareResumeRestart(
 	ctx: Ctx,
 	input: { restartId: string; wait?: boolean },
@@ -211,7 +223,6 @@ export async function prepareResumeRestart(
 		if (started === null) return { restartId: input.restartId, finished: true, resumed: 0, skipped: 0, failed: 0 };
 		progress = started;
 	}
-	if (progress.id !== input.restartId) throw new Error("The requested restart does not match the saved restart plan.");
 	if (input.wait) await progress.task;
 	return summary(progress);
 }

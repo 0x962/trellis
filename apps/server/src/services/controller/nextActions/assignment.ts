@@ -5,11 +5,10 @@ import { rows } from "../../../db/queries/support.ts";
 import type { Tx } from "../../../db/tx.ts";
 import { invalidInput } from "../../../errors.ts";
 import { getRun } from "../../agentRuns/queries.ts";
-import { conditionMet } from "./condition.ts";
 import { assertOwner, columns, enabled, ticketState } from "./queries.ts";
 
 type Input = { requestId?: string; ticketId: string | null; personaId: string; accountId?: string };
-export const assignment = async (ctx: Pick<RequestContext, "actor" | "now">, tx: Tx, input: Input) => {
+export const assignment = async (ctx: Pick<RequestContext, "actor">, tx: Tx, input: Input) => {
 	if (input.requestId === undefined) return undefined;
 	const [action] = await rows<ManagerNextAction & { status_id: string }>(
 		tx,
@@ -33,7 +32,7 @@ export const assignment = async (ctx: Pick<RequestContext, "actor" | "now">, tx:
 		);
 	if (!(await enabled(tx, { projectId: action.projectId, ticketProjectId: ticket.projectId })))
 		throw invalidInput("requestId", "This next action is paused. Resume work before its assignment.");
-	if (action.waitFor && !(await conditionMet(tx, { waitFor: action.waitFor, ticketId: action.ticketId, now: ctx.now })))
-		throw invalidInput("requestId", "This next action still waits for its wake condition.");
+	// A wait condition never stops a start. A manager that starts the worker
+	// early takes the action as assigned, and the wait retires with it.
 	return undefined;
 };
