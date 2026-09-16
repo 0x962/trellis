@@ -131,6 +131,6 @@ describe("service modules", () => {
 				settings: Object.keys(await settings.get(ctx, tx)).length,
 			};
 		});
-		expect(reads).toEqual({ project: "CDE", actors: 3, settings: 2 });
+		expect(reads).toEqual({ project: "CDE", actors: 3, settings: 1 });
 	});
 });
