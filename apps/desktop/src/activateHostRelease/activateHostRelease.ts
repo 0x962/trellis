@@ -18,6 +18,7 @@ type Actions = {
 	register: () => Promise<void>;
 	resume: (host: HostConnection, wait?: boolean) => Promise<void>;
 };
+type ActivationMode = "activate" | "restart";
 
 export const activateHostRelease = async (
 	home: string,
@@ -25,6 +26,7 @@ export const activateHostRelease = async (
 	available: PinnedRelease,
 	overrides: Partial<Actions> = {},
 	report: (stage: string) => Promise<void> = async () => {},
+	mode: ActivationMode = "activate",
 ): Promise<HostConnection> => {
 	const actions: Actions = {
 		ensureService: async () => {
@@ -53,7 +55,8 @@ export const activateHostRelease = async (
 	assertManagedHome(home);
 	await report("Check host compatibility");
 	const status = await readUpdateStatus(home, available);
-	if (!status.active || status.state === "current") {
+	if (mode === "restart" && status.state === "blocked") throw new Error(status.detail);
+	if (!status.active || (status.state === "current" && mode === "activate")) {
 		await report("Start background host");
 		await actions.ensureService();
 		await report("Wait for background host");
@@ -93,6 +96,6 @@ export const activateHostRelease = async (
 	if (activated.state !== "current" || activated.active?.manifest.id !== available.manifest.id)
 		throw new Error("The background service did not start the expected release. Inspect the local host log.");
 	await report("Restore agent sessions");
-	await actions.resume(host);
+	await actions.resume(host, mode === "restart" ? true : undefined);
 	return host;
 };
