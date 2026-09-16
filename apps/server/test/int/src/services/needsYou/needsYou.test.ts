@@ -4,7 +4,7 @@ import * as comments from "../../../../../src/services/comments.ts";
 import * as inbox from "../../../../../src/services/needsYou/needsYou.ts";
 import * as tickets from "../../../../../src/services/tickets.ts";
 import { dana, seedProject, seedTicket } from "../../../../fixtures";
-import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
+import { type Harness, secondsAfter, serviceHarness } from "../../../../helpers/services.ts";
 
 let h: Harness;
 beforeAll(async () => {
@@ -134,6 +134,70 @@ test("reply mentions follow root resolution and deletion", async () => {
 	expect((await read({ section: "mentioned" })).items).toHaveLength(1);
 	await h.run((ctx, tx) => comments.delete(ctx, tx, { id: reply.id }));
 	expect((await read({ section: "mentioned" })).items).toHaveLength(0);
+});
+
+test("done clears older mentions permanently and permits newer replies on completed tickets", async () => {
+	const { ticket } = await seed();
+	const root = await h.run((ctx, tx) => comments.create(ctx, tx, { ticket, body: "@dana initial question" }));
+	await h.run((ctx, tx) => tickets.move(ctx, tx, { ticket, status: "done" }), { now: secondsAfter(1) });
+	expect((await read({ section: "mentioned" }, secondsAfter(1))).items).toEqual([]);
+	const reply = await h.run(
+		(ctx, tx) => comments.create(ctx, tx, { ticket, parentId: root.id, body: "@dana follow-up question" }),
+		{ now: secondsAfter(2) },
+	);
+	expect((await read({ section: "mentioned" }, secondsAfter(2))).items.map((item) => item.comment?.id)).toEqual([
+		reply.id,
+	]);
+	await h.run((ctx, tx) => tickets.update(ctx, tx, { ticket, status: "in-progress" }), { now: secondsAfter(3) });
+	expect((await read({ section: "mentioned" }, secondsAfter(3))).items.map((item) => item.comment?.id)).toEqual([
+		reply.id,
+	]);
+	await h.run((ctx, tx) => comments.resolve(ctx, tx, { id: root.id, resolved: true }), { now: secondsAfter(4) });
+	expect((await read({ section: "mentioned" }, secondsAfter(4))).items).toEqual([]);
+	await h.run((ctx, tx) => comments.resolve(ctx, tx, { id: root.id, resolved: false }), { now: secondsAfter(5) });
+	expect((await read({ section: "mentioned" }, secondsAfter(5))).items.map((item) => item.comment?.id)).toEqual([
+		reply.id,
+	]);
+	await h.run((ctx, tx) => tickets.updateMany(ctx, tx, { tickets: [ticket], status: "done" }), {
+		now: secondsAfter(6),
+	});
+	expect((await read({ section: "mentioned" }, secondsAfter(6))).items).toEqual([]);
+});
+
+test("older mentions leave snoozed and ignored views after done and do not return after reopen", async () => {
+	const { ticket } = await seed();
+	await h.run((ctx, tx) => comments.create(ctx, tx, { ticket, body: "@dana snoozed question" }));
+	await h.run((ctx, tx) => comments.create(ctx, tx, { ticket, body: "@dana ignored question" }));
+	const [snoozed, ignored] = (await read({ section: "mentioned" })).items;
+	await h.run((ctx, tx) =>
+		inbox.update(ctx, tx, { id: snoozed!.id, action: "snooze", until: secondsAfter(60).toISOString() }),
+	);
+	await h.run((ctx, tx) => inbox.update(ctx, tx, { id: ignored!.id, action: "ignore" }));
+	await h.run((ctx, tx) => tickets.move(ctx, tx, { ticket, status: "done" }), { now: secondsAfter(1) });
+	await h.run((ctx, tx) => tickets.move(ctx, tx, { ticket, status: "in-progress" }), { now: secondsAfter(2) });
+	for (const visibility of ["active", "snoozed", "ignored"]) {
+		expect((await read({ section: "mentioned", visibility }, secondsAfter(2))).items).toEqual([]);
+	}
+	expect((await read({ section: "mentioned" }, secondsAfter(60))).items).toEqual([]);
+	const summary = await h.run((ctx, tx) => inbox.summary(ctx, tx, {}), { now: secondsAfter(60) });
+	expect(summary).toEqual({ active: 0, review: 0, mentioned: 0, snoozed: 0, ignored: 0, nextWakeAt: null });
+});
+
+test("only comments strictly before a done transition are cleared by completion", async () => {
+	const { ticket } = await seed();
+	const comment = await h.run((ctx, tx) => comments.create(ctx, tx, { ticket, body: "@dana question" }));
+	await h.run((ctx, tx) => tickets.move(ctx, tx, { ticket, status: "canceled" }), { now: secondsAfter(1) });
+	expect((await read({ section: "mentioned" }, secondsAfter(1))).items.map((item) => item.comment?.id)).toEqual([
+		comment.id,
+	]);
+	await h.run((ctx, tx) => tickets.move(ctx, tx, { ticket, status: "done" }), { now: secondsAfter(2) });
+	const sameTime = await h.run(
+		(ctx, tx) => comments.create(ctx, tx, { ticket, body: "@dana question at completion" }),
+		{ now: secondsAfter(2) },
+	);
+	expect((await read({ section: "mentioned" }, secondsAfter(2))).items.map((item) => item.comment?.id)).toEqual([
+		sameTime.id,
+	]);
 });
 
 test("a cursor cannot cross sort orders, sections, or actors", async () => {

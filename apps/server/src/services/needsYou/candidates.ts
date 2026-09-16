@@ -32,11 +32,16 @@ export const candidates = async (tx: Tx, actor: string): Promise<Candidate[]> =>
 			UNION ALL
 			SELECT 'mentioned:' || c.id, 'mentioned', t.id, c.created_at,
 				jsonb_build_object('id', c.id, 'threadId', COALESCE(c.parent_id,c.id), 'body',c.body,'actorName',COALESCE(run.persona_name,c.actor_name))
-			FROM comments c JOIN tickets t ON t.id=c.ticket_id JOIN statuses s ON s.id=t.status_id
+			FROM comments c JOIN tickets t ON t.id=c.ticket_id
 			JOIN comments root ON root.id=COALESCE(c.parent_id,c.id)
 			LEFT JOIN agent_runs run ON c.actor_kind='agent' AND run.id=c.actor_name
-			WHERE s.category NOT IN ('done','canceled') AND root.resolved_at IS NULL
+			WHERE c.resolved_at IS NULL AND root.resolved_at IS NULL
 				AND strpos(lower(c.body), ${`@${actor.toLowerCase()}`}) > 0
+				AND NOT EXISTS (
+					SELECT 1 FROM activity completed
+					WHERE completed.ticket_id=t.id AND completed.field='status'
+						AND completed.meta->>'toCategory'='done' AND completed.created_at > c.created_at
+				)
 		)
 		SELECT e.id, e.section, e.ticket_id AS "ticketId", ${iso(sql`e.received_at`)} AS "receivedAt", e.comment,
 			${iso(sql`state.snoozed_until`)} AS "snoozedUntil", COALESCE(state.ignored,false) AS ignored,

@@ -51,7 +51,7 @@ export function InboxSection({
 						visibility === "active"
 							? section === "review"
 								? "Tickets in human review appear here."
-								: "Comments that mention you appear here until their thread is resolved or their ticket is complete."
+								: "Mentions clear when the comment or thread is resolved, or the ticket is marked Done after the comment."
 							: undefined
 					}
 				/>

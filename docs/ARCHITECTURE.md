@@ -304,7 +304,9 @@ A durable receipt can confirm the original delivery. An explicit resend uses a n
 The web Needs you page lists tickets in review statuses with a human reviewer across every project.
 The list includes inherited and custom statuses, with or without a linked pull request.
 The Mentioned section lists comments that name the current human actor outside code.
-A resolved thread or a completed ticket removes its mentions. A mention opens its thread on the ticket page.
+A resolved comment or thread removes its mentions. A Done transition clears comments created before that transition, even if the ticket reopens.
+Comments created after that transition remain eligible, including comments on Done tickets. Canceled transitions do not clear mentions.
+A mention opens its thread on the ticket page.
 Each person can snooze or ignore individual items. The database stores these choices in `needs_you_states`.
 A new comment or a new review cycle creates a separate item. Completed work leaves all inbox views.
 The default order is highest priority, then oldest ticket. Other orders use age, update time, or title.
