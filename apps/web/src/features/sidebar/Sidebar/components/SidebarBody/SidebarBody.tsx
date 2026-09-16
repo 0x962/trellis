@@ -170,7 +170,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 				<ProjectTree />
 				<ArchivedProjects />
 			</div>
-			<NewSessionDialog open={newSession} onOpenChange={setNewSession} />
+			{newSession && <NewSessionDialog onClose={() => setNewSession(false)} />}
 			<div className="mt-auto shrink-0">
 				<ConnectionPanel status={status} />
 				<ActorFooter collapsed={collapsed} />
