@@ -1,13 +1,6 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import {
-	createFileRoute,
-	type ErrorComponentProps,
-	Link,
-	redirect,
-	useNavigate,
-	useParams,
-} from "@tanstack/react-router";
+import { createFileRoute, type ErrorComponentProps, redirect, useNavigate, useParams } from "@tanstack/react-router";
 import type { Status } from "@trellis/api";
 import { lazy, Suspense } from "react";
 import { Board, boardSortLabel } from "../../../features/board";
@@ -18,6 +11,7 @@ import { ListFooter } from "../../../features/shell/ListFooter";
 import { NewTicketButton } from "../../../features/shell/NewTicketButton";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
 import { PageTitle } from "../../../features/shell/PageTitle";
+import { ProjectBreadcrumb } from "../../../features/shell/ProjectBreadcrumb";
 import { Topbar } from "../../../features/shell/Topbar";
 import { type ListView, ViewSwitch } from "../../../features/shell/ViewSwitch";
 import { DisplayPopover } from "../../../features/table/DisplayPopover";
@@ -137,13 +131,7 @@ function ProjectPage() {
 		<>
 			<Topbar actions={<NewTicketButton />}>
 				<PageTitle
-					parent={
-						project.ancestors.length > 0 ? (
-							<Link to="/p/$" params={{ _splat: projectSlashPath(project.ancestors.at(-1)!.path) }} search={{}}>
-								{project.ancestors.at(-1)!.name}
-							</Link>
-						) : undefined
-					}
+					parent={project.ancestors.length > 0 ? <ProjectBreadcrumb project={project.ancestors.at(-1)!} /> : undefined}
 					title={project.name}
 				/>
 				<FilterBar

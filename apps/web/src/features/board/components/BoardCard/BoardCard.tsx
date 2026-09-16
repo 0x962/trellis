@@ -1,7 +1,8 @@
 import type { TicketSummary } from "@trellis/api";
-import { cx } from "@trellis/ui";
+import { cx, TicketGlimmer } from "@trellis/ui";
 import { type KeyboardEvent, useCallback, useRef } from "react";
 import { useArchivedProjects } from "../../../../hooks/useArchivedProjects";
+import { useWorkingAgents } from "../../../agents/useWorkingAgents";
 import { useCardDnd } from "../../hooks/useBoardDnd";
 import { CardContent } from "../CardContent";
 import { DragIndicator } from "../DragIndicator";
@@ -35,6 +36,8 @@ export function BoardCard({
 	showStatus = false,
 	dropBefore = false,
 }: BoardCardProps) {
+	const { ticketIds } = useWorkingAgents();
+	const working = ticketIds.includes(ticket.id);
 	const ref = useRef<HTMLLIElement>(null);
 	const pickup = useCallback((message: string) => announce(message), [announce]);
 	const readOnly = useArchivedProjects().isArchived(ticket.project.path);
@@ -60,7 +63,9 @@ export function BoardCard({
 			// biome-ignore lint/a11y/noNoninteractiveTabindex: A focused ticket list item receives the board keyboard shortcuts.
 			tabIndex={0}
 			aria-label={`${ticket.identifier} ${ticket.title}`}
+			aria-description={working ? "Agent working" : undefined}
 			data-card=""
+			data-working={working || undefined}
 			data-ticket-id={ticket.id}
 			data-dragging={dragging ? "true" : undefined}
 			onClick={onOpen}
@@ -72,6 +77,7 @@ export function BoardCard({
 				dragging ? "border-dashed border-border-strong opacity-40" : "border-border",
 			)}
 		>
+			<TicketGlimmer active={working} />
 			{dropBefore && <DragIndicator />}
 			<CardContent ticket={ticket} showStatus={showStatus} />
 		</li>

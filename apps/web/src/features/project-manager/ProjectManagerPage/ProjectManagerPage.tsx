@@ -1,15 +1,14 @@
 import { ArrowClockwise, Play, Stop } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { DEFAULT_PROJECT_MANAGER_CONFIG, type Project } from "@trellis/api";
 import { Avatar, ConfirmDialog, EmptyState, IconButton, Tooltip, toast } from "@trellis/ui";
 import { useCallback, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
-import { projectSlashPath } from "../../../lib/projectPath";
 import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
 import { isAgentWorking } from "../../agents/isAgentWorking";
 import { NativeTerminal } from "../../agents/NativeTerminal";
 import { PageTitle } from "../../shell/PageTitle";
+import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar } from "../../shell/Topbar";
 import { managerResumes } from "./managerResumes";
 import { restartManager } from "./restartManager";
@@ -84,14 +83,7 @@ export function ProjectManagerPage({ project }: { project: Project }) {
 					</>
 				}
 			>
-				<PageTitle
-					parent={
-						<Link to="/p/$" params={{ _splat: projectSlashPath(project.path) }} search={{}}>
-							{project.name}
-						</Link>
-					}
-					title="Manager"
-				/>
+				<PageTitle parent={<ProjectBreadcrumb project={project} />} title="Manager" />
 				{manager && (
 					<span className="inline-flex min-w-0 items-center gap-2 text-sm text-fg-muted">
 						<Avatar

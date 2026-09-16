@@ -1,13 +1,13 @@
 import { ArrowLeft, Copy, GitBranch } from "@phosphor-icons/react";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Link, useRouter } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
 import { IconButton, Tooltip, useHotkey, useMediaQuery } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 import { copyText } from "../../../lib/clipboard";
 import { lastListHref } from "../../../lib/lastList";
-import { projectSlashPath } from "../../../lib/projectPath";
 import { PageTitle } from "../../shell/PageTitle";
+import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar } from "../../shell/Topbar";
 import { branchName, titleSlug } from "../PropertiesRail/utils/branchName";
 import { BriefCopy } from "./components/BriefCopy";
@@ -87,19 +87,7 @@ export function Header({ ticket }: HeaderProps) {
 				</>
 			}
 		>
-			<PageTitle
-				parent={
-					<Link
-						className="block max-w-48 truncate max-sm:max-w-20"
-						to="/p/$"
-						params={{ _splat: projectSlashPath(ticket.project.path) }}
-						search={{}}
-					>
-						{project.name}
-					</Link>
-				}
-				title={ticket.identifier}
-			/>
+			<PageTitle parent={<ProjectBreadcrumb project={project} />} title={ticket.identifier} />
 		</Topbar>
 	);
 }

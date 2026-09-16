@@ -3,7 +3,7 @@ import type { ProjectSummary } from "@trellis/api";
 import { cx } from "@trellis/ui";
 import { projectRefOfPathname, projectSlashPath } from "../../../../lib/projectPath";
 
-const indent = ["pl-2", "pl-5", "pl-8", "pl-11", "pl-14"] as const;
+const indent = ["pl-8", "pl-8", "pl-11", "pl-14", "pl-17"] as const;
 
 export function ProjectPages({
 	project,
