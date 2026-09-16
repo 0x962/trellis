@@ -70,7 +70,7 @@ The selection resolves to an absolute path and persists across restarts.
 Its Swift helper registers through `SMAppService` and starts the bundled host through launchd.
 The host keeps its port across restarts, so the renderer retains its origin.
 Close or quit detaches the window. The background host and agent processes continue.
-The explicit Stop local work action pauses native dispatch, stops owned processes, and unregisters the helper.
+The explicit Quit Trellis Completely action pauses native dispatch, stops owned processes, and unregisters the helper.
 An unconfirmed process prevents a successful stop.
 
 The Bun host owns PGlite and the manager queue. A separate Node runtime owns agent PTYs.
