@@ -5,7 +5,7 @@ import { originDir } from "../../../../../../test/originDir.ts";
 
 const root = resolve(originDir(import.meta.dir), "../..");
 
-test("native progress works without a host, updates its timer, and closes on failure", async () => {
+test("native progress shows steps and estimates, resumes after relaunch, and honors reduced motion", async () => {
 	const temporary = await mkdtemp("/tmp/trl-progress-");
 	try {
 		const build = await Bun.build({
@@ -18,7 +18,7 @@ test("native progress works without a host, updates its timer, and closes on fai
 		});
 		expect(build.success).toBe(true);
 		const electron = resolve(root, "../../node_modules/electron/dist/Electron.app/Contents/MacOS/Electron");
-		const child = Bun.spawn([electron, join(temporary, "probe.cjs"), join(root, "dist/startup.html")], {
+		const child = Bun.spawn([electron, join(temporary, "probe.cjs"), join(root, "dist/startup.html"), temporary], {
 			stdout: "pipe",
 			stderr: "pipe",
 		});
@@ -29,23 +29,26 @@ test("native progress works without a host, updates its timer, and closes on fai
 		]);
 		expect({ code, failure: stderr.includes("Uncaught") }).toEqual({ code: 0, failure: false });
 		const result = JSON.parse(stdout.trim());
-		expect(result.initial).toEqual({
-			stage: "Wait for background host",
-			elapsed: "Elapsed: 0:00",
+		expect(result.initial).toMatchObject({
+			phase: "Prepare restart",
+			steps: "Step 1/6",
+			progress: "0",
+			elapsed: null,
+			opacity: "1",
+			motion: "0.16s, 0.16s",
 			require: "undefined",
 			process: "undefined",
 			live: "polite",
 		});
-		expect(result.restored.stage).toBe("Restore agent sessions");
-		expect(result.restored.elapsed).not.toBe("Elapsed: 0:00");
-		expect(result).toMatchObject({
-			visible: true,
-			count: 1,
-			closed: 0,
-			afterError: 0,
-			errors: ["Host failed"],
-			enabled: true,
-		});
+		expect(result.initial.remaining).toMatch(/^About .+ remaining$/);
+		expect(result.titleBar).toBeNull();
+		expect(result.host).toMatchObject({ steps: "Step 2/6", progress: "17" });
+		expect(result.handoff).toEqual({ windows: 0, saved: true });
+		expect(result.resume).toMatchObject({ steps: "Step 4/6", progress: "50" });
+		expect(result.last).toMatchObject({ steps: "Step 6/6", progress: "83" });
+		expect(result.reduced.motion).toBe("0s");
+		expect(result.finished).toEqual({ windows: 0, saved: false, history: true, revealAboveMain: true });
+		expect(result).toMatchObject({ afterError: 0, errors: ["Host failed"], enabled: true });
 	} finally {
 		await rm(temporary, { recursive: true, force: true });
 	}
