@@ -124,6 +124,9 @@ export const UsageAccountSchema = z.object({
 	harness: AccountHarnessSchema,
 	profilePath: z.string(),
 	isDefault: z.boolean(),
+	// The shell command that signs the profile in again. The card shows it
+	// when the quota reports an expired or missing sign-in.
+	loginCommand: z.string().nullable(),
 	quota: z.object({
 		status: z.enum(["ok", "signed_out", "expired", "unavailable", "unsupported"]),
 		email: z.string().nullable(),

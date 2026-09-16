@@ -45,6 +45,8 @@ test("the default login of a quota harness joins the list unless an account alre
 		["default:claude", "claude", false],
 	]);
 	expect(logins[2]!.profilePath).toBe(join(home, ".claude"));
+	expect(logins[2]!.loginCommand).toBe(`CLAUDE_CONFIG_DIR='${join(home, ".claude")}' claude auth login`);
+	expect(logins[1]!.loginCommand).toBe(`CODEX_HOME='${join(home, ".codex")}' codex login`);
 });
 
 test("a harness with no account and no profile directory adds no login", async () => {
