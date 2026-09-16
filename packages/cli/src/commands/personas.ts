@@ -5,6 +5,7 @@ import type { CliContext } from "../context.ts";
 import { contextOf } from "../context.ts";
 import { notFound, usageError } from "../errors.ts";
 import { cell, type ListSpec, printList, printRecord, type RecordSpec } from "../output.ts";
+import { localDateTime } from "../time.ts";
 
 export const kinds: PersonaKind[] = ["builder", "reviewer", "manager"];
 
@@ -24,8 +25,8 @@ const personaRecord: RecordSpec<Persona> = {
 		{ name: "id", value: (row) => row.id },
 		{ name: "name", value: (row) => cell(row.name) },
 		{ name: "kind", value: (row) => row.kind },
-		{ name: "created", value: (row) => row.createdAt },
-		{ name: "updated", value: (row) => row.updatedAt },
+		{ name: "created", value: (row) => localDateTime(row.createdAt) },
+		{ name: "updated", value: (row) => localDateTime(row.updatedAt) },
 	],
 	identifier: (row) => row.id,
 };
