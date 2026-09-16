@@ -271,8 +271,8 @@ test("a stopped open assignment must acquire capacity before its next turn", asy
 	await new Promise((resolve) => setTimeout(resolve, 10_010));
 
 	await expect(prepareResume(ctx(), request(), start)).rejects.toMatchObject({
-		code: "INPUT_VALIDATION_FAILED",
-		data: { issues: [{ path: ["id"], message: "The project has no available worker capacity." }] },
+		code: "CONCURRENCY_LIMIT",
+		data: { limit: 1, running: 1 },
 	});
 	expect((await h.read((tx) => getRun(tx, runId))).terminalId).toBe(attemptId);
 }, 30_000);

@@ -81,10 +81,11 @@ describe("agents start", () => {
 
 		const busy = await runCli(["agents", "start", personaId, "--ticket", "CDE-42"], {
 			"personas.get": persona(),
-			"agentRuns.start": rpcError("DUPLICATE", { field: "project concurrency limit" }),
+			"agentRuns.start": rpcError("CONCURRENCY_LIMIT", { limit: 3, running: 3 }),
 		});
 		expect(busy.code).toBe(4);
-		expect(busy.stderr).toEndWith(" (DUPLICATE)\n");
+		expect(busy.stderr).toContain("3 of 3 builders are running.");
+		expect(busy.stderr).toEndWith(" (CONCURRENCY_LIMIT)\n");
 	});
 });
 
