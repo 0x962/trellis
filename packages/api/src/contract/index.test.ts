@@ -61,7 +61,6 @@ describe("contract", () => {
 			"controller.list GET /manager-dispatches",
 			"controller.resolveUnknown POST /manager-dispatches/{id}/received",
 			"controller.retry POST /manager-dispatches/{id}/retry",
-			"evidence.check POST /agent-runs/{runId}/checks",
 			"evidence.file GET /agent-runs/{runId}/workspace/file",
 			"evidence.list GET /agent-runs/{runId}/evidence",
 			"evidence.register POST /agent-runs/{runId}/artifacts",

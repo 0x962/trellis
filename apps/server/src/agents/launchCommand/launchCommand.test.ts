@@ -28,7 +28,7 @@ const run: AgentRun = {
 };
 const url = "http://127.0.0.1:4521";
 
-test("worker assignments explain CLI discovery and current workspace evidence", () => {
+test("worker assignments require direct checks and exact result reports", () => {
 	const launch = launchCommand({
 		run: { ...run, kind: "builder" },
 		url,
@@ -37,8 +37,11 @@ test("worker assignments explain CLI discovery and current workspace evidence", 
 	});
 	expect(launch.prompt).toContain("trellis --help");
 	expect(launch.prompt).toContain('trellis evidence register "$TRELLIS_RUN_ID" --path');
-	expect(launch.prompt).toContain('trellis evidence check "$TRELLIS_RUN_ID" --request-id');
-	expect(launch.prompt).toContain("readyForReview");
+	expect(launch.prompt).toContain("Run each repository command directly in the workspace.");
+	expect(launch.prompt).toContain("Report the exact command, revision, exit result, and each required check that you did not run.");
+	expect(launch.prompt).toContain("A failed or unrun required check blocks Agent Review.");
+	expect(launch.prompt).not.toContain("trellis evidence check");
+	expect(launch.prompt).not.toContain("readyForReview");
 	expect(launch.prompt).toContain("Follow the project review policy");
 });
 

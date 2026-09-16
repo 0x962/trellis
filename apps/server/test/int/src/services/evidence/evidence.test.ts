@@ -80,7 +80,10 @@ test("current artifacts and checks permit review, then same-HEAD changes invalid
 	const input = command('process.stdout.write("verified")');
 	const passed = await check(ctx, input);
 	expect(passed).toMatchObject({ state: "passed", output: "verified", current: true });
-	expect((await list(ctx, { runId })).readyForReview).toBe(true);
+	const history = await list(ctx, { runId });
+	expect(history).not.toHaveProperty("readyForReview");
+	expect(history.checks[0]).toMatchObject({ historical: true, state: "passed", output: "verified" });
+	expect(history.checks[0]).not.toHaveProperty("current");
 	await writeFile(join(workspace, "code.ts"), "export const value = 2;\n");
 	const stale = await list(ctx, { runId });
 	expect(stale.head).toBe(passed.head);
