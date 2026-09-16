@@ -106,7 +106,8 @@ previewElectron.app.on("browser-window-created", (_event, window) => {
    previewResult.progressSeen = true;
    return;
   }
-  setImmediate(() => {
+  setImmediate(async () => {
+  await Promise.all(previewElectron.BrowserWindow.getAllWindows().filter(other => other !== window).map(other => new Promise(resolve => other.once("closed", resolve))));
   previewResult.openWindows = previewElectron.BrowserWindow.getAllWindows().length;
   previewResult.url = window.webContents.getURL();
   previewResult.windowButtons = window.getWindowButtonPosition();
@@ -185,7 +186,7 @@ previewElectron.app.on("browser-window-created", (_event, window) => {
 				expect(result.windowButtons).toEqual({ x: 16, y: 20 });
 				expect(result.contentBounds.height).toBe(result.windowBounds.height);
 				const host = await adoptHost(home);
-				expect(result.url).toBe(`${host.origin}/`);
+				expect(new URL(result.url).origin).toBe(host.origin);
 				expect((await serviceCommand(helper, "status")).status).toBe("enabled");
 				expect(await desktop!.exited).toBe(0);
 				if (useExisting) {

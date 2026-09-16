@@ -39,7 +39,6 @@ const developmentHostOptions = () => ({
 const openWindow = async () => {
 	if (window) {
 		showMaximizedWindow(window);
-		progress.close();
 		return;
 	}
 	window = new BrowserWindow({
@@ -61,8 +60,7 @@ const openWindow = async () => {
 	});
 	const createdWindow = window;
 	window.once("ready-to-show", () => {
-		showMaximizedWindow(createdWindow);
-		progress.close();
+		void progress.finish(() => showMaximizedWindow(createdWindow));
 	});
 	window.on("closed", () => {
 		window = undefined;
@@ -295,7 +293,7 @@ else {
 			await openWindow();
 		})
 		.catch(async (error: Error) => {
-			progress.close();
+			await progress.close();
 			await showStartupError(error);
 		});
 }

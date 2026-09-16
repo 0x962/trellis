@@ -15,7 +15,12 @@ test("Restart waits for the host before it relaunches and quits the desktop", as
 			show: async (stage) => {
 				calls.push(stage);
 			},
-			close: () => calls.push("close progress"),
+			close: async () => {
+				calls.push("close progress");
+			},
+			handoff: async () => {
+				calls.push("fade out");
+			},
 		},
 	);
 	const nativeItem = { enabled: true };
@@ -28,7 +33,7 @@ test("Restart waits for the host before it relaunches and quits the desktop", as
 	expect(calls).toEqual(["Prepare restart", "restart host"]);
 	ready.resolve();
 	await pending;
-	expect(calls).toEqual(["Prepare restart", "restart host", "Relaunch desktop", "relaunch", "quit"]);
+	expect(calls).toEqual(["Prepare restart", "restart host", "Relaunch desktop", "fade out", "relaunch", "quit"]);
 });
 
 test("a failed host restart leaves the desktop open and reports the error", async () => {
@@ -43,7 +48,12 @@ test("a failed host restart leaves the desktop open and reports the error", asyn
 			show: async (stage) => {
 				calls.push(stage);
 			},
-			close: () => calls.push("close progress"),
+			close: async () => {
+				calls.push("close progress");
+			},
+			handoff: async () => {
+				calls.push("fade out");
+			},
 		},
 	);
 	const nativeItem = { enabled: true };

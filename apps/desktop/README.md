@@ -26,7 +26,7 @@ Close a window to detach its view. Quit Trellis to close the desktop process. Bo
 
 Use **Trellis > Restart** to restart the host and desktop from the installed package. Compatible agents keep their processes and terminal output. If the packaged app detects an incompatible or unknown runtime, it blocks the restart and shows the reason.
 
-A local progress window shows restart and startup stages with elapsed time. It stays available while the host is offline and until the main window opens.
+A local progress window shows a progress bar, numbered steps, and estimated time remaining. Estimates use the durations of previous runs. The step count continues across the desktop relaunch. The window fades out when the main window opens.
 
 The packaged app enables its background service at startup. `SMAppService` registers the bundled LaunchAgent. macOS starts it at login and restarts it after a crash. If macOS requires approval, Trellis opens Login Items. The separate Open Trellis at login option controls the desktop window.
 
