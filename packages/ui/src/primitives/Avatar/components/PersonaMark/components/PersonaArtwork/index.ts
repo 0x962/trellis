@@ -1,0 +1,1 @@
+export { PersonaArtwork } from "./PersonaArtwork";

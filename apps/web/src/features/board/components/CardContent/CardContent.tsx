@@ -1,7 +1,8 @@
 import { Paperclip } from "@phosphor-icons/react";
 import type { TicketSummary } from "@trellis/api";
-import { Avatar, PriorityIcon, StatusIcon } from "@trellis/ui";
+import { PriorityIcon, StatusIcon } from "@trellis/ui";
 import { gap, ticketTrail } from "../../../../lib/ticketTrail";
+import { ActorAvatar } from "../../../agents/ActorAvatar";
 
 export type CardContentProps = {
 	ticket: TicketSummary;
@@ -47,7 +48,7 @@ export function CardContent({ ticket, showStatus = false }: CardContentProps) {
 				{showStatus && <span className="truncate">{ticket.status.name}</span>}
 				{ticket.lastActor !== null && ticket.lastActor.kind !== "system" && (
 					<span className="ml-auto shrink-0">
-						<Avatar kind={ticket.lastActor.kind} name={ticket.lastActor.displayName ?? ticket.lastActor.name} />
+						<ActorAvatar actor={ticket.lastActor} ticketId={ticket.id} />
 					</span>
 				)}
 			</div>
