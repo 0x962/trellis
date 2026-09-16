@@ -41,7 +41,24 @@ export const createConfig = (env: Record<string, string | undefined>): UserConfi
 		resolve: {
 			// cmdk pulls a whole second overlay library for a dialog this app
 			// never renders. See src/lib/emptyRadixDialog.ts.
-			alias: { "@radix-ui/react-dialog": fileURLToPath(new URL("./src/lib/emptyRadixDialog.ts", import.meta.url)) },
+			alias: [
+				{
+					find: "@pierre/theming/themes",
+					replacement: fileURLToPath(new URL("./src/lib/pierreThemes.ts", import.meta.url)),
+				},
+				{
+					find: /^shiki\/wasm$/,
+					replacement: fileURLToPath(new URL("./src/lib/shikiWasm.ts", import.meta.url)),
+				},
+				{
+					find: /^shiki$/,
+					replacement: fileURLToPath(new URL("./src/lib/shikiBundle.ts", import.meta.url)),
+				},
+				{
+					find: "@radix-ui/react-dialog",
+					replacement: fileURLToPath(new URL("./src/lib/emptyRadixDialog.ts", import.meta.url)),
+				},
+			],
 		},
 		server: {
 			// One address for the browser, the proxy, and Playwright.

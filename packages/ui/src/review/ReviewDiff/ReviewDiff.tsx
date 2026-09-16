@@ -1,11 +1,6 @@
 import { Plus } from "@phosphor-icons/react";
-import { type CodeViewItem, type FileDiffContentsLoader, parsePatchFiles } from "@pierre/diffs";
-import {
-	CodeView,
-	type CodeViewHandle,
-	type CodeViewReactOptions,
-	WorkerPoolContextProvider,
-} from "@pierre/diffs/react";
+import { type CodeViewItem, type FileDiffContentsLoader } from "@pierre/diffs";
+import { CodeView, type CodeViewHandle, type CodeViewReactOptions } from "@pierre/diffs/react";
 import { type ReactNode, useEffect, useMemo, useRef } from "react";
 import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
@@ -13,10 +8,10 @@ import { Tooltip } from "../../primitives/Tooltip";
 import { commentInteractions } from "./commentInteractions";
 import { expandControls } from "./expandControls";
 import { lineAnnotations } from "./lineAnnotations";
+import { parseReviewFiles } from "./parseReviewFiles";
 export type DiffAnchor = { path: string; side: "old" | "new"; line: number; startLine: number };
 export type DiffThread = DiffAnchor & { id: string; version: number; updatedAt: string; revisionId: string | null };
 type Props = {
-	workerFactory: () => Worker;
 	patch: string;
 	revisionId: string;
 	threads: DiffThread[];
@@ -32,7 +27,6 @@ type Props = {
 	onFiles: (files: { path: string; type: string; additions: number; deletions: number }[]) => void;
 };
 export function ReviewDiff({
-	workerFactory,
 	patch,
 	revisionId,
 	threads,
@@ -48,7 +42,7 @@ export function ReviewDiff({
 	loadFile,
 }: Props) {
 	const viewer = useRef<CodeViewHandle<ReactNode, undefined>>(null);
-	const files = useMemo(() => parsePatchFiles(patch).flatMap((patch) => patch.files), [patch]);
+	const files = useMemo(() => parseReviewFiles(patch), [patch]);
 	useEffect(() => {
 		onFiles(
 			files.map((f) => ({
@@ -82,8 +76,8 @@ export function ReviewDiff({
 						const oldName = file.prevName ?? file.name;
 						const [oldContent, newContent] = await Promise.all([loadFile(oldName, "old"), loadFile(file.name, "new")]);
 						return {
-							oldFile: { name: oldName, contents: oldContent },
-							newFile: { name: file.name, contents: newContent },
+							oldFile: { name: oldName, contents: oldContent, lang: "text" },
+							newFile: { name: file.name, contents: newContent, lang: "text" },
 						};
 					}
 				: undefined,
@@ -120,40 +114,32 @@ export function ReviewDiff({
 			</div>
 		);
 	return (
-		<WorkerPoolContextProvider
-			highlighterOptions={{ theme: { light: "pierre-light", dark: "pierre-dark" }, preferredHighlighter: "shiki-js" }}
-			poolOptions={{
-				poolSize: 2,
-				workerFactory,
-			}}
-		>
-			<CodeView
-				renderGutterUtility={(hover, item) => (
-					<Tooltip content="Add line comment">
-						<IconButton
-							label="Add line comment"
-							icon={<Plus />}
-							onClick={(event) => {
-								event.stopPropagation();
-								if (item.type !== "diff") return;
-								const line = hover();
-								if (!line || !("side" in line)) return;
-								onSelect({
-									path: item.fileDiff.name,
-									side: line.side === "deletions" ? "old" : "new",
-									startLine: line.lineNumber,
-									line: line.lineNumber,
-								});
-							}}
-						/>
-					</Tooltip>
-				)}
-				ref={viewer}
-				className="review-code"
-				items={items}
-				options={options}
-				renderAnnotation={(annotation) => annotation.metadata}
-			/>
-		</WorkerPoolContextProvider>
+		<CodeView
+			renderGutterUtility={(hover, item) => (
+				<Tooltip content="Add line comment">
+					<IconButton
+						label="Add line comment"
+						icon={<Plus />}
+						onClick={(event) => {
+							event.stopPropagation();
+							if (item.type !== "diff") return;
+							const line = hover();
+							if (!line || !("side" in line)) return;
+							onSelect({
+								path: item.fileDiff.name,
+								side: line.side === "deletions" ? "old" : "new",
+								startLine: line.lineNumber,
+								line: line.lineNumber,
+							});
+						}}
+					/>
+				</Tooltip>
+			)}
+			ref={viewer}
+			className="review-code"
+			items={items}
+			options={options}
+			renderAnnotation={(annotation) => annotation.metadata}
+		/>
 	);
 }

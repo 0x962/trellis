@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { blocks, findBlock, parseCss, readSource, statements } from "../test/css";
+import { blocks, findBlock, parseCss, readSource } from "../test/css";
 
 const fonts = async () => parseCss(await readSource("fonts.css"));
 
@@ -13,19 +13,18 @@ describe("fonts.css", () => {
 	// The mono stack carries the ticket identifiers and the code blocks. A
 	// bold heading that holds inline code asks for 600, so the stylesheet
 	// declares 400, 500, and 600.
-	test("fonts.css imports the latin JetBrains Mono files for weights 400, 500, and 600", async () => {
+	test("fonts.css declares the latin JetBrains Mono WOFF2 files for weights 400, 500, and 600", async () => {
 		const pieces = await fonts();
-		const imports = statements(pieces)
-			.filter((piece) => piece.prelude.startsWith("@import"))
-			.map((piece) => piece.prelude.match(/["']([^"']+)["']/)![1]!);
-		const fontsource = imports.filter((specifier) => specifier.includes("fontsource"));
-		expect(fontsource.sort()).toEqual(
-			[
-				"@fontsource/jetbrains-mono/latin-400.css",
-				"@fontsource/jetbrains-mono/latin-500.css",
-				"@fontsource/jetbrains-mono/latin-600.css",
-			].sort(),
-		);
+		const mono = blocks(pieces)
+			.filter((piece) => piece.prelude === "@font-face")
+			.map((piece) => piece.declarations)
+			.filter((face) => face["font-family"] === '"JetBrains Mono"');
+		expect(mono.map((face) => face["font-weight"])).toEqual(["400", "500", "600"]);
+		for (const face of mono) {
+			expect(face.src).toContain("@fontsource/jetbrains-mono/files/jetbrains-mono-latin-");
+			expect(face.src).toEndWith('.woff2") format("woff2")');
+			expect(face.src).not.toContain('.woff")');
+		}
 	});
 
 	// Inter is a variable font, so one file covers weight 100 to 900.
@@ -48,7 +47,16 @@ describe("fonts.css", () => {
 			.filter((piece) => piece.prelude === "@font-face")
 			.map((piece) => piece.declarations["font-family"]);
 		expect(families).not.toContain('"BerkeleyMono"');
-		expect(families.sort()).toEqual(['"Inter Fallback"', '"Inter Variable"', '"JetBrains Mono Fallback"'].sort());
+		expect(families.sort()).toEqual(
+			[
+				'"Inter Fallback"',
+				'"Inter Variable"',
+				'"JetBrains Mono"',
+				'"JetBrains Mono"',
+				'"JetBrains Mono"',
+				'"JetBrains Mono Fallback"',
+			].sort(),
+		);
 	});
 
 	test("body sets the sans stack and the two Inter features", async () => {

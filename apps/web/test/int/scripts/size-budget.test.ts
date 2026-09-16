@@ -139,8 +139,8 @@ describe("bun run build", () => {
 		}
 	});
 
-	// WS-14. The build budgets: initial JS 240 KB gz, fonts 160 KB, and a
-	// 3600 KB total that includes every lazy review syntax grammar.
+	// WS-14. The plan's budget table: initial JS 220 KB gz, fonts 160 KB,
+	// total 900 KB. The script prints one line per budget and the total.
 	test("the size budget passes on the built shell and reports every budget line", () => {
 		expect(build.exitCode).toBe(0);
 		const result = run(["run", "size-budget", dist]);
@@ -149,9 +149,9 @@ describe("bun run build", () => {
 		expect(result.output).toMatch(/initial js.*\d+(\.\d+)? kb/i);
 		expect(result.output).toMatch(/fonts.*\d+(\.\d+)? kb/i);
 		expect(result.output).toMatch(/total.*\d+(\.\d+)? kb/i);
-		expect(budgets.initialJs).toBe(240 * 1024);
+		expect(budgets.initialJs).toBe(220 * 1024);
 		expect(budgets.fonts).toBe(160 * 1024);
-		expect(budgets.total).toBe(3600 * 1024);
+		expect(budgets.total).toBe(900 * 1024);
 	});
 
 	// Outcome 113. Runs on the build above.
@@ -207,12 +207,12 @@ describe("bun run build", () => {
 	});
 });
 
-// A dist whose entry chunk is 250 KB of random bytes. Random bytes do not
-// compress, so the gzip size is about 250 KB, over the 240 KB budget.
+// A dist whose entry chunk is 230 KB of random bytes. Random bytes do not
+// compress, so the gzip size is about 230 KB, over the 220 KB budget.
 const fixtureDist = () => {
 	const dir = join(process.env.TRELLIS_HOME!, "size-budget-fixture");
 	mkdirSync(join(dir, "assets"), { recursive: true });
-	const bytes = new Uint8Array(250 * 1024);
+	const bytes = new Uint8Array(230 * 1024);
 	crypto.getRandomValues(bytes);
 	writeFileSync(join(dir, "assets", "index-abc123.js"), bytes);
 	writeFileSync(
@@ -224,7 +224,7 @@ const fixtureDist = () => {
 
 describe("size-budget measure", () => {
 	// WS-15
-	test("the size budget fails with exit 1 when initial JS exceeds 240 KB gz", () => {
+	test("the size budget fails with exit 1 when initial JS exceeds 220 KB gz", () => {
 		const dir = fixtureDist();
 		const report = measure(dir);
 		expect(report.initialJs).toBeGreaterThan(budgets.initialJs);
