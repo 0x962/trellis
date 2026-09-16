@@ -67,14 +67,15 @@ describe("ticket queries", () => {
 
 	// TRL-15. The TRL set: Deploy Queue sits between Human Review and Done.
 	test("the approve input moves the ticket to a status between Human Review and Done", async () => {
-		const ticket = await app.client.tickets.get({ ticket: data.ticket });
+		const before = await app.client.tickets.get({ ticket: data.ticket });
 		await app.client.statuses.create({
-			project: ticket.project.id,
+			project: before.project.id,
 			name: "Deploy Queue",
 			category: "review",
 			reviewer: "agent",
 			position: 4,
 		});
+		const ticket = await app.client.tickets.get({ ticket: data.ticket });
 		const result = await approve(app.client, ticket, await statusesOf(ticket.project.id));
 		expect(result.status.name).toBe("Deploy Queue");
 		expect(result.completedAt).toBeNull();
