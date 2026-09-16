@@ -1,8 +1,9 @@
-import type { AccountHarness, UsageMetric } from "@trellis/api";
-import type { UsageChartTone } from "@trellis/ui";
+import type { AccountHarness, UsageGroupBy, UsageGroupRow, UsageMetric } from "@trellis/api";
+import { type ChartTone, otherTone, rankedTones } from "@trellis/ui";
 
 // "$19,211", "$46.20", "$0.85", "<$0.01". Whole dollars from $100 up.
 export function formatUsd(usd: number): string {
+	if (usd === 0) return "$0";
 	if (usd > 0 && usd < 0.005) return "<$0.01";
 	return usd.toLocaleString("en-US", {
 		style: "currency",
@@ -57,10 +58,22 @@ export const harnessLabel: Record<AccountHarness, string> = {
 	pi: "Pi",
 };
 
-// Each harness keeps one palette tone on every chart.
-export const harnessTone: Record<AccountHarness, UsageChartTone> = {
+// Each harness keeps one tone on every chart, so Claude Code is purple on
+// the harness split, on the model list, and on the quota cards.
+export const harnessTone: Record<AccountHarness, ChartTone> = {
 	claude: "agent",
-	codex: "accent",
+	codex: "fg",
 	opencode: "success",
 	pi: "warning",
 };
+
+// The tone of a breakdown row. Under the harness grouping a row keeps its
+// harness tone. Under every other grouping a row takes the tone of its
+// rank, and every row past the ranked tones takes the quiet tone of
+// "everything else".
+export const rowTone = (row: UsageGroupRow, rank: number, group: UsageGroupBy): ChartTone =>
+	group === "harness" && row.harness ? harnessTone[row.harness] : (rankedTones[rank] ?? otherTone);
+
+// How many rows a chart draws as their own series before the rest fold
+// into one "Other" series.
+export const CHART_TOP_ROWS = 5;
