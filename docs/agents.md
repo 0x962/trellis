@@ -211,8 +211,8 @@ The comment shows whether the notification is queued, delivered, failed, or unce
 ## Manager capacity waits
 
 Record each notification outcome with `trellis manager handle` or the `trellis_controller_handle` tool.
-For a ticket, `queued` saves an action that waits for worker capacity. Put the intended next step in `reason`.
-Use `blocked` for a prerequisite such as human approval; it does not create a capacity wait.
+For a ticket, `queued` without `waitFor` saves an action that waits for worker capacity. Put the intended next step in `reason`.
+Use `blocked` with `waitFor` for the conditions below. A `blocked` outcome without `waitFor` records a receipt only.
 
 When capacity opens, the manager receives the ticket in `workItems` and the saved action in `nextActions`.
 Use its `assignmentRequestId` when you start the worker. That identifier retains the assignment across retries and manager replacement.
@@ -227,3 +227,30 @@ The list accepts `--before ACTION_ID` for the next page.
 A canceled action cannot start a worker. A new ticket decision can create a new action.
 An assigned action identifies the reserved worker; inspect that worker to verify launch and task progress.
 Existing historical `queued` outcomes remain receipts. The migration does not infer pending work from those records.
+
+## Manager waits for time, dependencies, and responses
+
+Add `waitFor` to a ticket's `blocked` or `queued` outcome:
+
+| Condition | `waitFor` | Wake condition |
+|---|---|---|
+| Time | `{"type":"time","at":"2030-01-01T10:00:00-05:00"}` | The supplied time arrives. Use an explicit timezone. |
+| Dependency | `{"type":"dependency","ticketId":"<ticket-id>"}` | The named ticket reaches a Done status. Canceled does not count as Done. |
+| Human response | `{"type":"human_response","commentId":"<question-id>"}` | A human replies to the named root question on this ticket. |
+
+For a quota wait, record the reset time from the provider in `at`. Put the provider, account, and intended action in `reason`.
+The manager records this condition explicitly. Trellis does not infer reset times from provider error text.
+Choose a dependency in the manager's scope. A ticket cannot depend on itself.
+Create a root question for each human decision. Agent replies and comments on other threads do not satisfy this wait.
+A reply that arrives before the manager records the wait still satisfies the question.
+A human response prompts the manager to read the answer. It does not grant approval or change the ticket's status.
+
+These conditions notify the manager even when worker capacity is full. A worker assignment still requires a free slot.
+Each saved wait survives a restart and appears through `trellis manager actions` and `trellis_controller_actions`.
+The manager receives its `waitFor` details in `nextActions`. Reuse its `assignmentRequestId` for the resulting worker assignment.
+An outstanding condition blocks `agentRuns.start` even with a different request ID. Cancel the wait to withdraw that prerequisite.
+
+If the condition changes, record the new `waitFor` in a later dispatch that includes the action.
+Trellis cancels the previous action and gives the replacement a new assignment identifier.
+A repeated outcome cannot change a handled dispatch. An unchanged condition does not send another notification on each controller tick.
+Pause states hold the wait. Completed tickets, changed statuses, and changes to manager scope retire obsolete actions.
