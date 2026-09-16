@@ -44,7 +44,7 @@ type Progress = {
 	plan: RestartPlan;
 	startedAt: string;
 	finishedAt: string | null;
-	current: string | null;
+	resuming: Set<string>;
 	error: string | null;
 	counts: { resumed: number; skipped: number; failed: number };
 	task: Promise<void>;
@@ -138,12 +138,19 @@ async function resumeEntry(
 
 // Every entry gets one try per run. A failed entry keeps its error in the
 // plan, so the plan stays on disk and a later resume tries that entry again.
+// The entries of one wave resume at the same time; the next wave starts when
+// the whole wave has an outcome. Plan writes queue up, so two entries that
+// finish together never write the file at the same time.
 async function resumeAll(ctx: Ctx, deps: Dependencies, progress: Progress) {
 	const { plan } = progress;
 	const host = await deps.host(ctx.home);
-	for (const entry of await ctx.newTx((tx) => orderRestartSessions(tx, plan.sessions))) {
-		if (entry.done) continue;
-		progress.current = entry.runId;
+	let writing = Promise.resolve();
+	const persist = () => {
+		writing = writing.then(() => writeRestartPlan(ctx.home, plan));
+		return writing;
+	};
+	const resumeOne = async (entry: RestartSession) => {
+		progress.resuming.add(entry.runId);
 		try {
 			const outcome = await resumeEntry(ctx, plan, entry, host, deps);
 			entry.done = true;
@@ -154,9 +161,11 @@ async function resumeAll(ctx: Ctx, deps: Dependencies, progress: Progress) {
 			entry.error = error instanceof Error ? error.message : String(error);
 			progress.counts.failed++;
 		}
-		progress.current = null;
-		await writeRestartPlan(ctx.home, plan);
-	}
+		progress.resuming.delete(entry.runId);
+		await persist();
+	};
+	for (const wave of await ctx.newTx((tx) => orderRestartSessions(tx, plan.sessions)))
+		await Promise.all(wave.filter((entry) => !entry.done).map(resumeOne));
 	if (plan.sessions.every((entry) => entry.done)) await removeRestartPlan(ctx.home);
 }
 
@@ -179,7 +188,7 @@ const startResume = (ctx: Ctx, deps: Dependencies) => {
 				plan,
 				startedAt: new Date().toISOString(),
 				finishedAt: null,
-				current: null,
+				resuming: new Set(),
 				error: null,
 				counts: { resumed: 0, skipped: 0, failed: 0 },
 				task: Promise.resolve(),
@@ -250,7 +259,7 @@ export async function restartStatus(ctx: Ctx): Promise<RestartStatus | null> {
 				projectPath: run?.project_path ?? null,
 				state: entry.done
 					? (entry.outcome ?? "resumed")
-					: live?.current === entry.runId
+					: live?.resuming.has(entry.runId)
 						? "resuming"
 						: entry.error !== undefined
 							? "failed"
