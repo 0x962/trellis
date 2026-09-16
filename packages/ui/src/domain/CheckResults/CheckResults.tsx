@@ -11,7 +11,7 @@ type Group = { id: string; title: string; error: string | null; checks: Check[] 
 const labels = { pass: "Passed", fail: "Failed", pending: "Pending", skipping: "Skipped", cancel: "Canceled" };
 
 export function CheckResults({ groups }: { groups: Group[] }) {
-	if (!groups.some((group) => group.checks.length || group.error))
+	if (groups.length === 0)
 		return (
 			<EmptyState
 				title="No pull request checks"
@@ -28,38 +28,45 @@ export function CheckResults({ groups }: { groups: Group[] }) {
 							The last read failed. {group.error}
 						</p>
 					)}
-					<ul className="flex flex-col gap-2">
-						{group.checks.map((check) => (
-							<li
-								key={`${check.workflow ?? ""}-${check.name}-${check.link ?? ""}`}
-								className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-sm"
-							>
-								{check.link ? (
-									<a
-										href={check.link}
-										target="_blank"
-										rel="noreferrer"
-										className="min-w-0 break-words underline decoration-border-strong underline-offset-2"
-									>
-										{check.name}
-									</a>
-								) : (
-									<span className="min-w-0 break-words">{check.name}</span>
-								)}
-								<Badge
-									tone={
-										check.bucket === "pass"
-											? "ok"
-											: check.bucket === "fail" || check.bucket === "cancel"
-												? "bad"
-												: "neutral"
-									}
+					{group.checks.length === 0 ? (
+						<EmptyState
+							title="No checks reported"
+							description="GitHub has not reported checks for this pull request."
+						/>
+					) : (
+						<ul className="flex flex-col gap-2">
+							{group.checks.map((check) => (
+								<li
+									key={`${check.workflow ?? ""}-${check.name}-${check.link ?? ""}`}
+									className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-sm"
 								>
-									{labels[check.bucket]}
-								</Badge>
-							</li>
-						))}
-					</ul>
+									{check.link ? (
+										<a
+											href={check.link}
+											target="_blank"
+											rel="noreferrer"
+											className="min-w-0 break-words underline decoration-border-strong underline-offset-2"
+										>
+											{check.name}
+										</a>
+									) : (
+										<span className="min-w-0 break-words">{check.name}</span>
+									)}
+									<Badge
+										tone={
+											check.bucket === "pass"
+												? "ok"
+												: check.bucket === "fail" || check.bucket === "cancel"
+													? "bad"
+													: "neutral"
+										}
+									>
+										{labels[check.bucket]}
+									</Badge>
+								</li>
+							))}
+						</ul>
+					)}
 				</section>
 			))}
 		</div>
