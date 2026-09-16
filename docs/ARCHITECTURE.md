@@ -124,7 +124,12 @@ The manager records an assignment, queue entry, blocker, or reason for no action
 A handled dispatch does not prove that a worker completed the ticket.
 For a ticket, a `queued` outcome also saves a capacity wait in `manager_next_actions` in the same transaction.
 The controller presents eligible waits as ticket work when capacity opens. It uses the assignment service's capacity rule.
+An explicit `waitFor` on a `queued` or `blocked` outcome saves a time, dependency, or human-response condition.
+Time waits use an absolute timestamp. Dependency waits require the named ticket to reach Done.
+Human-response waits require a human reply to a root question on the deferred ticket. A reply prompts review and does not grant approval.
+These conditions can notify the manager at full worker capacity. Worker starts still enforce capacity and the current wait condition.
 Each wait retains its assignment identifier across dispatches and manager replacement.
+Changing a wait condition cancels that action and creates a replacement with a new assignment identifier.
 An assignment reserves the worker and records the action's assigned state in one transaction.
 Pause and archive states prevent new assignments from saved actions. Ticket completion, a changed status, or a changed manager scope retires obsolete waits.
 The manager can inspect waits through `controller.actions` and cancel one through `controller.cancelAction`.

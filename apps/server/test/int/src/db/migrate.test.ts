@@ -5,6 +5,8 @@ import { sql } from "drizzle-orm";
 import { originDir } from "../../../../../../test/originDir.ts";
 import { openDb } from "../../../../src/db/client.ts";
 import { migrate } from "../../../../src/db/migrate.ts";
+import { seedRoot, seedStatus } from "../../../fixtures/projects.ts";
+import { seedTicket } from "../../../fixtures/tickets.ts";
 
 const drizzleDir = join(originDir(import.meta.dir), "../../drizzle");
 
@@ -94,6 +96,35 @@ describe("migrations on disk", () => {
 });
 
 describe("migrate", () => {
+	test("the wait-condition migration preserves existing capacity actions", async () => {
+		const temp = mkdtempSync(join(process.env.TRELLIS_HOME as string, "migrate-"));
+		cpSync(drizzleDir, temp, { recursive: true });
+		const journal = readJournal(temp);
+		journal.entries = journal.entries.filter((entry) => entry.idx <= 43);
+		writeFileSync(join(temp, "meta/_journal.json"), JSON.stringify(journal));
+		const db = await openDb(":memory:");
+		closers.push(() => db.$client.close());
+		await migrate(db, temp);
+		await db.transaction(async (tx) => {
+			const projectId = await seedRoot(tx, "OLD");
+			const statusId = await seedStatus(tx, {
+				projectId,
+				name: "Todo",
+				category: "todo",
+				position: 0,
+				isDefault: true,
+			});
+			const ticketId = await seedTicket(tx, { projectId, rootId: projectId, statusId });
+			await tx.execute(sql`INSERT INTO manager_next_actions (id,project_id,ticket_id,status_id,assignment_request_id,reason,created_at)
+				VALUES ('saved',${projectId},${ticketId},${statusId},'original-request','Assign a worker.',now())`);
+		});
+		await migrate(db);
+		const saved = await db.execute(sql`SELECT id,assignment_request_id,state,wait_for FROM manager_next_actions`);
+		expect(saved.rows).toEqual([
+			{ id: "saved", assignment_request_id: "original-request", state: "waiting", wait_for: null },
+		]);
+	});
+
 	test("an upgrade adds capacity waits after a later migration already ran", async () => {
 		const temp = mkdtempSync(join(process.env.TRELLIS_HOME as string, "migrate-"));
 		cpSync(drizzleDir, temp, { recursive: true });
