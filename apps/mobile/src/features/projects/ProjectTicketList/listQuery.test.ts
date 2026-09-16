@@ -24,9 +24,10 @@ describe("the ticket list query", () => {
 		const input = listQueryInput({ project: "CDE.web", segment: "review", sort: "priority", cursor: "page-2" });
 
 		expect(ListQuerySchema.parse(input)).toBeDefined();
-		expect(Object.keys(input).sort()).toEqual(["category", "cursor", "limit", "project", "sort"]);
+		expect(Object.keys(input).sort()).toEqual(["category", "cursor", "limit", "project", "sort", "subprojects"]);
 		expect(input).toEqual({
 			project: "CDE.web",
+			subprojects: false,
 			category: ["review"],
 			sort: "priority",
 			limit: pageLimit,

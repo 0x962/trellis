@@ -7,7 +7,7 @@ import { parseSearch, toListQuery } from "./grammar";
 const view = parseSearch({ status: "in-progress,agent-review", parent: "none", ci: "fail", sort: "-updatedAt" });
 const query = { project: "CDE", ...toListQuery(view) };
 const command =
-	"trellis list --project CDE --status in-progress,agent-review --parent none --ci fail --sort -updatedAt";
+	"trellis list --project CDE --status in-progress,agent-review --parent none --ci fail --sort -updatedAt --no-subprojects";
 
 describe("features/filters/cli", () => {
 	// Outcome 73

@@ -54,6 +54,21 @@ describe("projects.list", () => {
 		expect(response.body.map((item: { path: string }) => item.path)).toEqual(["CDE", "CDE.web"]);
 	});
 
+	test("projects.list counts open tickets assigned directly to each project", async () => {
+		await t.seedProject("CDE");
+		await createSub("CDE", "Web");
+		await t.client.tickets.create({ project: "CDE", title: "Root ticket" });
+		await t.client.tickets.create({ project: "CDE.web", title: "Web ticket" });
+
+		const response = await t.api("/api/projects");
+
+		expect(response.status).toBe(200);
+		expect(response.body.map((item: { path: string; openCount: number }) => [item.path, item.openCount])).toEqual([
+			["CDE", 1],
+			["CDE.web", 1],
+		]);
+	});
+
 	test("projects.list filters on the archived flag", async () => {
 		await t.seedProject("CDE");
 		await t.seedProject("OLD", "Old");
