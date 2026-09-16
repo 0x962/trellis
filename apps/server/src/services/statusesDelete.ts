@@ -8,7 +8,6 @@ import { fail } from "../errors.ts";
 import { resolveMutableProject, resolveStatus } from "./refs.ts";
 import { emitTicketUpdates, moveTicketStatus, remapScope, ticketsOn } from "./statusRemap.ts";
 import { emitStatusesChanged, renumber, statusActivity } from "./statusSet.ts";
-import { assertAgentMayComplete } from "./tickets/rules.ts";
 
 type StatusDeleteOutput = z.infer<typeof StatusDeleteOutputSchema>;
 type StatusClearOutput = z.infer<typeof StatusClearOutputSchema>;
@@ -18,9 +17,7 @@ export type StatusDeleteInput = { project: string; status: string; moveTo?: stri
 // Deletes one status of the owner's set. Its tickets move to `moveTo`, a
 // status of the same set; without it a status with tickets stays. The set
 // keeps at least one status. When the default goes, the lowest-position
-// survivor becomes the default. The rows are renumbered without a gap. The
-// move follows the agent rule of a ticket move: an agent needs `force` to
-// move tickets into a done status.
+// survivor becomes the default. The rows are renumbered without a gap.
 const remove = async (ctx: ServiceCtx, tx: Tx, input: StatusDeleteInput): Promise<StatusDeleteOutput> => {
 	const project = await resolveMutableProject(ctx, tx, input.project);
 	const effective = ctx.cache.effectiveStatuses(project.id);
@@ -31,7 +28,6 @@ const remove = async (ctx: ServiceCtx, tx: Tx, input: StatusDeleteInput): Promis
 	const tickets = await ticketsOn(tx, sql`t.status_id = ${status.id}`);
 	const moveTo = target === null || target.id === status.id ? null : target;
 	if (tickets.length > 0 && moveTo === null) throw fail("STATUS_IN_USE", { count: tickets.length });
-	if (tickets.length > 0) assertAgentMayComplete(ctx, moveTo as NonNullable<typeof moveTo>, input.force);
 	const batchId = ulid();
 	for (const ticket of tickets) {
 		await moveTicketStatus(ctx, tx, {

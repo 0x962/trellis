@@ -8,6 +8,7 @@ import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 import { readNativeWork } from "../agentRuns/nativeControl.ts";
 import { reserve } from "../agentRuns/reserve.ts";
+import { capacityAvailable } from "../assignments/capacity.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { readExecution } from "./queries.ts";
 import { saveState } from "./saveState.ts";
@@ -22,11 +23,7 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 	if (config.dispatchPaused) return null;
 	if (config.ade !== "native" || config.harness.preset === "custom")
 		throw invalidInput("project", "The flow requires a built-in harness.");
-	const [active] = await rows<{ count: number }>(
-		tx,
-		sql`SELECT count(*)::int AS count FROM agent_runs WHERE project_id=${execution.project_id} AND kind<>'manager' AND closed_at IS NULL`,
-	);
-	if (active!.count >= config.concurrency) return null;
+	if (!(await capacityAvailable(tx, { projectId: execution.project_id }))) return null;
 	const assigned = await rows<{ personaId: string | null }>(
 		tx,
 		sql`SELECT persona_id AS "personaId" FROM agent_runs

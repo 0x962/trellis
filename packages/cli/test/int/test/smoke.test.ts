@@ -110,9 +110,13 @@ describe("the live CLI", () => {
 			await ok(url, ["projects", "create", "--key", "CDE", "--name", "Code"], env);
 			await ok(url, ["create", "-p", "CDE", "-t", "First"], env);
 
-			const refused = await runProcess(["move", "CDE-1", "Done", "--url", url, "--as", "agent:smoke"], env);
+			const completed = await runProcess(["move", "CDE-1", "Done", "--url", url, "--as", "agent:smoke"], env);
+			expect(completed.code).toBe(0);
+			expect(JSON.parse(completed.stdout).status.category).toBe("done");
+
+			const refused = await runProcess(["delete", "CDE-1", "--yes", "--url", url, "--as", "agent:smoke"], env);
 			expect(refused.code).toBe(4);
-			expect(refused.stderr).toContain("(AGENT_CANNOT_COMPLETE)");
+			expect(refused.stderr).toContain("(AGENT_CANNOT_DELETE)");
 
 			const unknown = await cli(url, ["show", "CDE-404"], env);
 			expect(unknown.code).toBe(3);

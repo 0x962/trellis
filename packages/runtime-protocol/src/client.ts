@@ -43,10 +43,6 @@ export class RuntimeClient {
 			);
 			socket.on("data", (chunk) => {
 				buffer += chunk;
-				if (buffer.length > 3_000_000) {
-					fail(new Error("Runtime response exceeds the byte limit"));
-					return;
-				}
 				const end = buffer.indexOf("\n");
 				if (end < 0) return;
 				let reply: RuntimeResponse;

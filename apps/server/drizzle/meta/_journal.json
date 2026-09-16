@@ -302,6 +302,48 @@
       "when": 1789566940875,
       "tag": "0045_remove_repository_approval",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1789566940876,
+      "tag": "0046_chat_rooms",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1789566940877,
+      "tag": "0047_persona_chat_instructions",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1789568754886,
+      "tag": "0048_harness_accounts",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1789571941305,
+      "tag": "0049_manager_delegations",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1789575520000,
+      "tag": "0050_manager_disk_hygiene",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1789575520001,
+      "tag": "0051_chat_direct_mentions",
+      "breakpoints": true
     }
   ]
 }

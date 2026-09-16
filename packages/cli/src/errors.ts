@@ -9,7 +9,6 @@ const exitCodes: Record<ErrorCode, number> = {
 	ACTOR_INVALID: 4,
 	INVALID_CURSOR: 4,
 	INVALID_PR_URL: 4,
-	AGENT_CANNOT_COMPLETE: 4,
 	AGENT_CANNOT_DELETE: 4,
 	NOT_FOUND: 3,
 	DUPLICATE: 4,

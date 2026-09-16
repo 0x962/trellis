@@ -5,7 +5,15 @@ import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 import { getRun } from "../agentRuns/queries.ts";
 
-type Target = { personaId: string; projectId: string; ticketId: string | null; newSession: boolean };
+type Target = {
+	personaId: string;
+	projectId: string;
+	ticketId: string | null;
+	newSession: boolean;
+	accountId?: string | null;
+	resumeRunId?: string;
+	previousAttemptId?: string;
+};
 type Request = { requestId: string | undefined; target: Target };
 
 export const replayRequest = async (ctx: ServiceCtx, tx: Tx, input: Request) => {
@@ -20,7 +28,10 @@ export const replayRequest = async (ctx: ServiceCtx, tx: Tx, input: Request) => 
 		request.target.personaId !== input.target.personaId ||
 		request.target.projectId !== input.target.projectId ||
 		request.target.ticketId !== input.target.ticketId ||
-		request.target.newSession !== input.target.newSession
+		request.target.newSession !== input.target.newSession ||
+		(request.target.accountId ?? null) !== (input.target.accountId ?? null) ||
+		request.target.resumeRunId !== input.target.resumeRunId ||
+		request.target.previousAttemptId !== input.target.previousAttemptId
 	)
 		throw invalidInput("requestId", "This request ID already belongs to a different assignment.");
 	return getRun(tx, request.run_id);

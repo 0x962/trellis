@@ -11,10 +11,9 @@ The name uses printable ASCII, contains no colon, and has 1 to 64 characters.
 An agent cannot use `system`. trellis reserves `system:trellis` for its own writes.
 If an agent run has a session identifier, send it in `x-trellis-session`.
 
-## Never Done
+## Ticket completion
 
-An agent moves finished work to `human-review`. An agent never moves a ticket to Done.
-A human reviews the result and decides when the ticket moves to Done.
+Agents and managers can move completed tickets to Done.
 An agent never deletes tickets.
 
 ## Instructions for another repository
@@ -34,12 +33,17 @@ Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, set `T
 6. Ask a question:   trellis comment TRL-42 --body "..." and then wait for the reply: trellis watch --ticket TRL-42
 7. Finish coding:    trellis move TRL-42 agent-review
 8. When CI is green and the self-review is done: trellis move TRL-42 human-review
-Never move a ticket to Done; a human does that. Never delete tickets.
+Never delete tickets.
 
 Read a comment thread: trellis thread show <comment-id>
 Reply in that thread: trellis comment TRL-42 --reply-to <comment-id> --body "..."
 Resolve a thread: trellis thread resolve <comment-id>
 Reopen a thread: trellis thread reopen <comment-id>
+
+Chat room: every project tree has one, with channels. #ai and #general exist in every room. Every live agent receives each post; @<run id>, @<persona name>, or @manager sends a post to that agent only and interrupts its turn.
+Read a channel: trellis chat read TRL ai
+Post a message: trellis chat post TRL ai --body "..."
+List channels:  trellis chat channels TRL
 
 PR review comments live in Trellis. Read them before work: trellis review list <pr-url>
 Post a finding: trellis review add <pr-url> --path <file> --line <n> --body "..."
@@ -79,7 +83,7 @@ name, an instruction, and one kind.
 | reviewer | one ticket | the same picker |
 | manager | one project | the Manager page of the project |
 
-Open the Personas page from the AI section of the sidebar, at `/ai/personas`.
+Open the Personas page from the Personas link of the sidebar, at `/ai/personas`.
 The cards group by kind. A slideout creates, edits, and deletes a record.
 
 A name holds 1 to 120 characters and an instruction holds 1 to 200,000
@@ -194,6 +198,31 @@ A manager prompt holds the status descriptions of the project, so
 
 CAUTION: The template is a shell command that the server runs as your account.
 The server has no sign-in, so anyone who reaches the API sets that template.
+
+## Chat rooms
+
+Every root project owns one chat room. Every project of the tree shares it, so a
+manager at the root and a builder in a sub-project read the same channels.
+`#ai` and `#general` exist in every room. A post to a new channel name creates the channel.
+The `## Chat room` section of each persona instruction names the room, its commands, and its rules. The migration `0047_persona_chat_instructions` adds it to every saved persona, and the persona docs under `docs/personas/` carry it for new ones.
+
+```sh
+trellis chat channels TRL
+trellis chat read TRL ai
+trellis chat read TRL ai --after <message-id>
+trellis chat post TRL ai --body "@Builder the migration on main is merged."
+trellis chat create TRL release
+```
+
+Write the channel name without the `#` in a shell, or quote it: a bare `#ai` starts a shell comment.
+Every live agent of the tree receives each post, except its author.
+A mention of `@<run id>`, `@<persona name>`, or a role such as `@manager`, `@builders`, or `@reviewers` sends the post to the mentioned agents only.
+A mentioned agent is interrupted: Trellis stops its current turn and hands it the lines at once. An unmentioned agent reads the lines when its current turn ends.
+A worker receives the pending lines in its terminal, batched into one message per controller tick.
+A manager receives a `trellis.chat.messages` event with the same lines as data and posts through `trellis_chat_post`.
+The web page at `/p/<project path>/chat` shows the log; `/join <name>` in its input creates a channel.
+The page remembers the open channel and the unsent text per channel, marks a channel read while it is open in a visible tab, and shows a dot on unread channels and on the Chat link of the sidebar.
+A new message from someone else plays a tone. Settings > Account > Chat sound switches it off for that browser.
 
 ## Persona identity and mentions
 

@@ -19,14 +19,15 @@ const seed = async (n = 1) => {
 };
 
 describe("agent policy", () => {
-	test("an agent move to a done status throws AGENT_CANNOT_COMPLETE", async () => {
+	test("an agent moves a ticket to done without force", async () => {
 		const { statuses, id } = await seed();
-		const data = await expectErrorData(move(claude, { ticket: id, status: "done" }), "AGENT_CANNOT_COMPLETE");
-		expect(data.status.id).toBe(statuses.done);
-		expect((await ticketRow(h.db, id))!.status_id).toBe(statuses.started);
+		await move(claude, { ticket: id, status: "done" });
+		const row = (await ticketRow(h.db, id))!;
+		expect(row.status_id).toBe(statuses.done);
+		expect(row.completed_at).not.toBeNull();
 	});
 
-	test("force lets an agent move a ticket to a done status", async () => {
+	test("an agent move accepts the legacy force flag", async () => {
 		const { statuses, id } = await seed();
 		const before = Date.now();
 		await move(claude, { ticket: id, status: "done", force: true });
@@ -37,26 +38,22 @@ describe("agent policy", () => {
 		expect(statusRow).toMatchObject({ actor_name: "claude", actor_kind: "agent" });
 	});
 
-	test("an agent update to a done status throws AGENT_CANNOT_COMPLETE", async () => {
+	test("an agent updates a ticket to done without force", async () => {
 		const { statuses, id } = await seed();
-		await expectErrorData(
-			h.as(claude)((ctx, tx) => tickets.update(ctx, tx, { ticket: id, status: "done" })),
-			"AGENT_CANNOT_COMPLETE",
-		);
-		expect((await ticketRow(h.db, id))!.status_id).toBe(statuses.started);
+		await h.as(claude)((ctx, tx) => tickets.update(ctx, tx, { ticket: id, status: "done" }));
+		expect((await ticketRow(h.db, id))!.status_id).toBe(statuses.done);
 	});
 
-	test("an agent create in a done status throws AGENT_CANNOT_COMPLETE and writes no ticket", async () => {
+	test("an agent creates a ticket in done without force", async () => {
 		const { statuses } = await seedProject(h.db);
-		const data = await expectErrorData(
-			h.as(claude)((ctx, tx) => tickets.create(ctx, tx, { project: "CDE", title: "Done at once", status: "done" })),
-			"AGENT_CANNOT_COMPLETE",
+		const { result: ticket } = await h.as(claude)((ctx, tx) =>
+			tickets.create(ctx, tx, { project: "CDE", title: "Done at once", status: "done" }),
 		);
-		expect(data.status.id).toBe(statuses.done);
-		expect(await count(h.db, "tickets")).toBe(0);
+		expect(ticket.status.id).toBe(statuses.done);
+		expect(ticket.completedAt).not.toBeNull();
 	});
 
-	test("force lets an agent create a ticket in a done status", async () => {
+	test("an agent create accepts the legacy force flag", async () => {
 		const { statuses } = await seedProject(h.db);
 		const { result: ticket } = await h.as(claude)((ctx, tx) =>
 			tickets.create(ctx, tx, { project: "CDE", title: "Done at once", status: "done", force: true }),
@@ -107,13 +104,10 @@ describe("agent policy", () => {
 		expect(traces[0]).toMatchObject({ action: "ticket.deleted", actor_name: "claude", actor_kind: "agent" });
 	});
 
-	test("an agent updateMany to a done status throws AGENT_CANNOT_COMPLETE", async () => {
+	test("an agent completes multiple tickets without force", async () => {
 		const { statuses, ids } = await seed(3);
-		await expectErrorData(
-			h.as(claude)((ctx, tx) => tickets.updateMany(ctx, tx, { tickets: ids, status: "done" })),
-			"AGENT_CANNOT_COMPLETE",
-		);
-		for (const id of ids) expect((await ticketRow(h.db, id))!.status_id).toBe(statuses.started);
+		await h.as(claude)((ctx, tx) => tickets.updateMany(ctx, tx, { tickets: ids, status: "done" }));
+		for (const id of ids) expect((await ticketRow(h.db, id))!.status_id).toBe(statuses.done);
 	});
 
 	test("an agent deleteMany throws AGENT_CANNOT_DELETE", async () => {

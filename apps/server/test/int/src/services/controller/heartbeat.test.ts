@@ -191,10 +191,8 @@ test("a closed assignment never receives a heartbeat even if its process remains
 	expect(await batches()).toHaveLength(0);
 });
 
-test("a queued heartbeat waits when the runtime starts a turn before claim", async () => {
+test("a queued heartbeat reaches a manager that starts a turn before claim", async () => {
 	await gather(60);
 	observation("working", 60);
-	expect(await take(61)).toBeNull();
-	observation("idle", 62);
-	expect((await take(62))?.events).toEqual([]);
+	expect((await take(61))?.events).toEqual([]);
 });

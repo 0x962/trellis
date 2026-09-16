@@ -89,7 +89,7 @@ trellis list --project TRL --json
 ### The pages
 
 `/` sends you to Needs you. The sidebar holds Needs you, Search, All tickets,
-the project tree, and the AI section with the Personas page.
+Pull requests, Personas, Flows, and the project tree.
 
 | Path | Page |
 |---|---|
@@ -253,7 +253,7 @@ Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, set `T
 6. Ask a question:   trellis comment TRL-42 --body "..." and then wait for the reply: trellis watch --ticket TRL-42
 7. Finish coding:    trellis move TRL-42 agent-review
 8. When CI is green and the self-review is done: trellis move TRL-42 human-review
-Never move a ticket to Done; a human does that. Never delete tickets.
+Never delete tickets.
 
 Read a comment thread: trellis thread show <comment-id>
 Reply in that thread: trellis comment TRL-42 --reply-to <comment-id> --body "..."

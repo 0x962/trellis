@@ -29,12 +29,14 @@ for (const project of [
 		const pages = sidebar.getByRole("navigation", { name: `${project.name} pages` });
 		const tickets = pages.getByRole("link", { name: "Tickets", exact: true });
 		const settings = pages.getByRole("link", { name: "Settings", exact: true });
+		const chat = pages.getByRole("link", { name: "Chat", exact: true });
 		const base = `/p/${project.path}`;
 
 		await expect(projectLink).toHaveAttribute("href", `${base}/settings/manager`);
 		await expect(sidebar.getByRole("link", { name: "Manager", exact: true })).toHaveCount(0);
-		await expect(pages.getByRole("link")).toHaveText(["Tickets", "Settings"]);
+		await expect(pages.getByRole("link")).toHaveText(["Tickets", "Chat", "Settings"]);
 		await expect(tickets).toHaveAttribute("href", base);
+		await expect(chat).toHaveAttribute("href", `${base}/chat`);
 		await expect(settings).toHaveAttribute("href", `${base}/settings`);
 
 		await projectLink.click();

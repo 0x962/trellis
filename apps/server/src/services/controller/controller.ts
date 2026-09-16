@@ -1,6 +1,8 @@
 import { sql } from "drizzle-orm";
+import type { RequestContext } from "../../context.ts";
 import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
+import { isManaged } from "../submanagers/scope.ts";
 import { notFound } from "../support.ts";
 import { pending, refresh } from "./nextActions/queries.ts";
 import { liveSession } from "./readySession.ts";
@@ -10,13 +12,14 @@ export const dispatchColumns = sql`id, project_id AS "projectId", run_id AS "run
 const columns = dispatchColumns;
 
 export const list = (
-	_ctx: ControllerCtx,
+	ctx: ControllerCtx & Partial<Pick<RequestContext, "actor">>,
 	tx: Tx,
 	input: { projectId?: string; unhandled?: boolean; before?: string },
 ) =>
 	rows<Dispatch>(
 		tx,
 		sql`SELECT ${columns} FROM manager_dispatches WHERE ${input.projectId ? sql`project_id = ${input.projectId}` : sql`true`}
+		AND ${ctx.actor?.kind !== "agent" ? sql`NOT EXISTS (SELECT 1 FROM manager_delegations d WHERE d.run_id=manager_dispatches.run_id OR (d.project_id=manager_dispatches.project_id AND d.retired_at IS NULL))` : sql`true`}
 		AND ${input.unhandled ? sql`work_state = 'open'` : sql`true`}
 		AND ${input.before ? sql`id < ${input.before}` : sql`true`} ORDER BY id DESC LIMIT 100`,
 	);
@@ -37,7 +40,7 @@ export const claim = async (ctx: ControllerCtx, tx: Tx, input: ControllerInput):
 			FROM manager_dispatches d JOIN projects p ON p.id = d.project_id
 			JOIN agent_runs r ON r.project_id = p.id AND r.kind = 'manager' AND r.closed_at IS NULL
 			WHERE d.state = 'pending' AND d.due_at <= ${ctx.now} AND r.terminal_id IS NOT NULL
-			AND p.manager_config->>'personaId' IS NOT NULL AND p.archived_at IS NULL
+			AND ${isManaged(sql`p`)} AND p.archived_at IS NULL
 			AND p.manager_config->>'dispatchPaused' IS DISTINCT FROM 'true'
 			AND NOT EXISTS (SELECT 1 FROM settings WHERE key='nativeWorkPaused' AND value='true'::jsonb)
 			AND r.runtime = 'native' AND r.terminal_id IN (${sql.join(
@@ -45,9 +48,9 @@ export const claim = async (ctx: ControllerCtx, tx: Tx, input: ControllerInput):
 				sql`,`,
 			)})
 			AND NOT EXISTS (WITH RECURSIVE ancestors AS (
-				SELECT id, parent_id, archived_at FROM projects WHERE id = p.id
-				UNION ALL SELECT parent.id, parent.parent_id, parent.archived_at FROM projects parent JOIN ancestors child ON parent.id = child.parent_id
-			) SELECT 1 FROM ancestors WHERE archived_at IS NOT NULL)
+				SELECT id, parent_id, archived_at, manager_config FROM projects WHERE id = p.id
+				UNION ALL SELECT parent.id, parent.parent_id, parent.archived_at, parent.manager_config FROM projects parent JOIN ancestors child ON parent.id = child.parent_id
+			) SELECT 1 FROM ancestors WHERE archived_at IS NOT NULL OR manager_config->>'dispatchPaused'='true')
 			ORDER BY d.due_at, d.id LIMIT 1`,
 	);
 	if (!next) return null;
@@ -84,6 +87,9 @@ export const recover = async (ctx: ControllerCtx, tx: Tx, _input: Record<string,
 	await tx.execute(sql`UPDATE manager_controller_cursors SET generation = generation + 1`);
 	await tx.execute(
 		sql`UPDATE comment_deliveries SET state='unknown',error='The server stopped before it recorded the delivery result.' WHERE state='sending'`,
+	);
+	await tx.execute(
+		sql`UPDATE chat_deliveries SET state='unknown',error='The server stopped before it recorded the delivery result.' WHERE state='sending'`,
 	);
 	await tx.execute(
 		sql`UPDATE manager_dispatches SET state = 'unknown', error = 'The host stopped before it recorded the send result. Confirm the agent received the message before a resend.', updated_at = ${ctx.now} WHERE state = 'sending'`,

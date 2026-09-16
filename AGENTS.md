@@ -14,6 +14,14 @@ trellis is a local ticket tracker for agent-driven work. `docs/ARCHITECTURE.md` 
 - Every pull request description states what broke, what changed, and one verification sentence. No headers, no tables, no checklists.
 - Pin exact versions when you add a dependency. Prefer the current release on npm.
 
+Create a scratch checkout or a temporary directory only under `$TMPDIR`, with the `trellis-` prefix. Remove it, and stop every server you started, before you report the ticket as done. A directory that nobody removes stays until the disk is full.
+
+## Prompts
+
+- Every instruction an agent reads lives in the database, in `personas.instruction`. Code never composes, hardcodes, or injects prompt text.
+- A change to what an agent is told is a data migration on `personas.instruction`, plus the same text in the matching `docs/personas/*.md` file that a person pastes from.
+- A migration appends a titled section and skips a persona that already holds that title, so a rerun and a hand edit stay safe.
+
 ## Desktop install
 
 The Trellis SRE persona owns production releases for TRL. Route approved Deploy Queue tickets to one SRE through the project manager. Group eligible tickets into one merge, test, build, install, and restart cycle. Other workers hand off release work instead of deploying independently. Read [the SRE instructions](docs/personas/trellis-sre.md) before a deployment assignment.
@@ -23,6 +31,8 @@ Production builds require a clean `main` checkout at the current `origin/main` c
 Run `bun run desktop:install` from the `main` checkout. The command builds and verifies a fresh package, then copies it to `~/Applications/Trellis.app`. The copy leaves Trellis open. Restart Trellis to activate the package. A changed package stops active agents and resumes their saved sessions on the new runtime. Manually stopped agents stay stopped. See [the desktop guide](apps/desktop/README.md#production-install) for candidate builds and verification.
 
 Preserve the manager conversation during prompt updates and deployment. Resume a stopped manager with `trellis agents start` and its existing persona and project. The `--new-session` flag resets the conversation and requires an explicit human reset. Keep the observed provider session ID before and after a resume to verify continuity.
+
+Check `df -h /System/Volumes/Data` before a production build. A build needs at least 3 GB of free space and writes its files under `$TMPDIR/trellis-production-*`. A failed build keeps that directory for inspection. Remove it after you inspect it. The installer keeps every earlier release under `~/Library/Application Support/Trellis/releases`. After a verified restart, remove each release that is neither active nor installed. On 2026-09-16, 4408 build and test directories under `$TMPDIR` and 43 old releases filled the disk, and Trellis stopped for every agent.
 
 ## Repository access
 
@@ -87,6 +97,8 @@ A test is an integration test when it opens a PGlite database, boots the Hono ap
 `apps/web` holds no component test. A page that renders is covered by the Playwright specs in `apps/web/e2e`, which drive a real browser against a real server. A component on its own is covered in `packages/ui`, which mounts it with no server and no database. `apps/web/test/server` builds the real Hono app of `apps/server` over an in-memory PGlite for the few tests that need it.
 
 An integration test that reads a file by path calls `originDir(import.meta.dir)` from `test/originDir.ts`, because its own directory sits under `test/int/` and holds no source. Every service test ends with `assertStatusInvariant(tx)`. `test/preload.ts` gives a test run a fresh `TRELLIS_HOME`, so a test never touches `~/.trellis`. Bun reads `bunfig.toml` from the current directory only. So every workspace has a `bunfig.toml` with `[test]` and `preload = ["../../test/preload.ts"]`. A root test checks this for every directory under `apps/` and `packages/` that has a `package.json`.
+
+A test creates every temporary directory under the run root from `test/runRoot.ts`, so `sweepDeadRoots` removes it when the owner process is gone. A test that creates a directory elsewhere removes it in `afterAll`. A test that spawns a server or a tmux session stops it in `afterAll`. On 2026-09-16, 7274 abandoned `trellis-*` directories and 50 tmux sessions from test runs held more than 100 GB.
 
 ## Review
 
