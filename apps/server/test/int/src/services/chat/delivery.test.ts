@@ -30,8 +30,10 @@ beforeEach(async () => {
 	await h.run((ctx, tx) => seedDefaultChannels(ctx, tx, rootId));
 });
 const ctx = () => testCtx({ db: h.db, home: "/unused" }).ctx;
+// A post in #release reaches every live agent; #general without a mention
+// reaches the manager alone.
 const say = (body: string, actor: { kind: "human" | "agent"; name: string } = { kind: "human", name: "dana" }) =>
-	h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "general", body }), { actor });
+	h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "release", body }), { actor });
 const states = async () =>
 	(
 		await h.rows<{ run_id: string; state: string }>(sql`SELECT run_id, state FROM chat_deliveries ORDER BY run_id, id`)
@@ -66,8 +68,8 @@ test("one agent receives all of its pending lines in one send", async () => {
 	});
 	const text = send.mock.calls[0]![1].text;
 	expect(text).toContain("2 new messages in the CDE room");
-	expect(text).toContain("#general 12:00:00 <dana> first");
-	expect(text).toContain("#general 12:00:00 <dana> second");
+	expect(text).toContain("#release 12:00:00 <dana> first");
+	expect(text).toContain("#release 12:00:00 <dana> second");
 	expect(text).toContain("trellis chat post CDE <channel> --body");
 	expect(await states()).toEqual(["builder:sent", "builder:sent", "manager:pending", "manager:pending"]);
 	await dispatchChat(ctx(), [controllerSession("terminal")], send);
@@ -84,7 +86,7 @@ test("an agent line names the persona and the run id, so a reader can mention it
 		messages: [
 			{
 				id: expect.any(String),
-				channel: "general",
+				channel: "release",
 				body: "done with TRL-1",
 				createdAt: "2026-09-09T12:00:00.000Z",
 				actor: { kind: "agent", name: "builder", displayName: "Builder" },
@@ -92,9 +94,26 @@ test("an agent line names the persona and the run id, so a reader can mention it
 			},
 		],
 		mentioned: false,
+		context: [],
 		recipient: { runId: "manager", personaName: "Trellis" },
 	});
 	expect(await states()).toEqual(["manager:sent"]);
+});
+
+test("a delivery carries the recent lines of its channel as context", async () => {
+	await say("first question");
+	await dispatchChat(ctx(), [controllerSession("terminal")], sent());
+	await say("second question");
+	const send = sent();
+	await dispatchChat(ctx(), [controllerSession("terminal")], send);
+	const text = send.mock.calls[0]![1].text;
+	expect(text.split("\n").slice(0, 5)).toEqual([
+		"trellis chat: 1 new message in the CDE room.",
+		"Earlier, for context:",
+		"#release 12:00:00 <dana> first question",
+		"New:",
+		"#release 12:00:00 <dana> second question",
+	]);
 });
 
 test("a mention interrupts the mentioned agent, and only that agent", async () => {
