@@ -105,6 +105,7 @@ export const agentRuns = {
 		.input(AgentRunListInputSchema)
 		.output(z.array(AgentRunSchema)),
 	ticketMetrics: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
 		.route({ method: "GET", path: "/tickets/{ticket}/metrics", summary: "Read ticket work metrics" })
 		.input(TicketGetInputSchema)
 		.output(TicketMetricsSchema),

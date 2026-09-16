@@ -1,3 +1,5 @@
+import { durationBucketMs } from "../../../../../lib/format";
+
 export type MetricRequestState = "pending" | "error" | "success";
 
 export const metricText = (state: MetricRequestState, value: number | null, format: (value: number) => string) => {
@@ -7,12 +9,7 @@ export const metricText = (state: MetricRequestState, value: number | null, form
 	return format(value);
 };
 
-const second = 1000;
-const minute = 60 * second;
-const hour = 60 * minute;
-const day = 24 * hour;
-
 export const ageRefreshDelay = (ageMs: number) => {
-	const bucket = ageMs < minute ? second : ageMs < hour ? minute : ageMs < day ? hour : day;
-	return bucket - (ageMs % bucket);
+	const bucketMs = durationBucketMs(ageMs);
+	return bucketMs - (ageMs % bucketMs);
 };

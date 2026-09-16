@@ -3,23 +3,26 @@ import { useEffect, useMemo, useState } from "react";
 import { ageRefreshDelay } from "./metricPresentation";
 
 export const useLiveAge = (serverAgeMs: number | null, scheduler: Scheduler) => {
-	const sample = useMemo(() => ({ ageMs: serverAgeMs, receivedAt: scheduler.now() }), [scheduler, serverAgeMs]);
-	const [now, setNow] = useState(sample.receivedAt);
+	const serverAgeSample = useMemo(
+		() => ({ ageMs: serverAgeMs, receivedAt: scheduler.now() }),
+		[scheduler, serverAgeMs],
+	);
+	const [refreshTimeMs, setRefreshTimeMs] = useState(serverAgeSample.receivedAt);
 
 	useEffect(() => {
-		const baseAgeMs = sample.ageMs;
+		const baseAgeMs = serverAgeSample.ageMs;
 		if (baseAgeMs === null) return;
 		let timer: unknown;
 		const update = () => {
-			const currentNow = scheduler.now();
-			const currentAgeMs = baseAgeMs + currentNow - sample.receivedAt;
-			setNow(currentNow);
+			const currentTimeMs = scheduler.now();
+			const currentAgeMs = baseAgeMs + currentTimeMs - serverAgeSample.receivedAt;
+			setRefreshTimeMs(currentTimeMs);
 			timer = scheduler.setTimeout(update, ageRefreshDelay(currentAgeMs));
 		};
 		timer = scheduler.setTimeout(update, ageRefreshDelay(baseAgeMs));
 		return () => scheduler.clearTimeout(timer);
-	}, [sample, scheduler]);
+	}, [serverAgeSample, scheduler]);
 
-	if (sample.ageMs === null) return null;
-	return sample.ageMs + Math.max(0, now - sample.receivedAt);
+	if (serverAgeSample.ageMs === null) return null;
+	return serverAgeSample.ageMs + Math.max(0, refreshTimeMs - serverAgeSample.receivedAt);
 };

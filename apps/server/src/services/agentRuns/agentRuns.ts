@@ -1,4 +1,5 @@
 import type { AgentRun, AgentRunListInput, AgentRunStartInput, TicketGetInputSchema } from "@trellis/api";
+import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { ServiceCtx as CoreCtx } from "../../context.ts";
@@ -7,8 +8,9 @@ import type { Tx } from "../../db/tx.ts";
 import { listExecutionAttempts } from "../assignments.ts";
 import { resolveProject, resolveTicket } from "../refs.ts";
 import type { ServiceCtx } from "../support.ts";
+import { resolveTicketAge } from "../tickets.ts";
 import { closeExitedAssignments } from "./closeExitedAssignments.ts";
-import { observeRuns } from "./liveState.ts";
+import { indexRuntimeSessions, observeRuns, observeTicketMetrics, projectRun } from "./liveState.ts";
 import { startNative } from "./nativeStart.ts";
 import { columns, getRun, type StoredRun } from "./queries.ts";
 import { reserve } from "./reserve.ts";
@@ -16,15 +18,35 @@ import { aggregateTicketMetrics } from "./ticketMetrics.ts";
 
 type Ctx = ServiceCtx & { core: CoreCtx; localUrl: string };
 
+// Every ticket-scoped run query, so the run list and the metrics route
+// share one statement instead of repeating its columns and order.
+const ticketRuns = (tx: Tx, ticketId: string, projectId: string | null) =>
+	rows<StoredRun>(
+		tx,
+		sql`SELECT ${columns} FROM agent_runs WHERE ticket_id = ${ticketId} AND
+		${projectId === null ? sql`true` : sql`project_id = ${projectId}`} ORDER BY created_at DESC, id DESC`,
+	);
+
 export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 	const ticket = input.ticket === undefined ? null : await resolveTicket(ctx, tx, input.ticket);
 	const project = input.project === undefined ? null : await resolveProject(ctx, tx, input.project);
+	if (ticket !== null) return ticketRuns(tx, ticket.id, project?.id ?? null);
 	return rows<StoredRun>(
 		tx,
 		sql`SELECT ${columns} FROM agent_runs WHERE
-		${ticket === null ? sql`true` : sql`ticket_id = ${ticket.id}`} AND
 		${project === null ? sql`true` : sql`project_id = ${project.id}`} ORDER BY created_at DESC, id DESC`,
 	);
+};
+
+// The interrupted and failed attempts for diagnostics, from plain session
+// data. Diagnostics reads this entry point instead of the projection
+// modules, so an agentRuns change keeps one public caller.
+export const projectUnresolvedAttempts = (runs: StoredRun[], sessions: RuntimeProcessStatus[]) => {
+	const runtimeSessions = indexRuntimeSessions(sessions);
+	return runs
+		.map((run) => projectRun(run, runtimeSessions))
+		.filter((run) => ["interrupted", "failed"].includes(run.state))
+		.map(({ id, state, error }) => ({ id, state, error }));
 };
 
 export const prepareList = async (ctx: Ctx, input: AgentRunListInput) => {
@@ -50,14 +72,11 @@ export const observeResult = async (ctx: Ctx, input: { id: string }) => {
 };
 
 export const prepareTicketMetrics = async (ctx: Ctx, input: z.infer<typeof TicketGetInputSchema>) => {
-	const { ticket, runs, attempts } = await ctx.newTx(async (tx) => {
-		const ticket = await resolveTicket(ctx.core, tx, input.ticket);
-		const runs = await rows<StoredRun>(
-			tx,
-			sql`SELECT ${columns} FROM agent_runs WHERE ticket_id = ${ticket.id} ORDER BY created_at DESC, id DESC`,
-		);
+	const { scope, runs, attempts } = await ctx.newTx(async (tx) => {
+		const scope = await resolveTicketAge(ctx.core, tx, input.ticket);
+		const runs = await ticketRuns(tx, scope.id, null);
 		return {
-			ticket,
+			scope,
 			runs,
 			attempts: await listExecutionAttempts(
 				tx,
@@ -65,11 +84,7 @@ export const prepareTicketMetrics = async (ctx: Ctx, input: z.infer<typeof Ticke
 			),
 		};
 	});
-	const observedRuns = await observeRuns(ctx, runs, attempts);
-	return aggregateTicketMetrics(
-		observedRuns.map((run) => run.metrics),
-		Math.max(0, ctx.now().getTime() - Date.parse(ticket.createdAt)),
-	);
+	return aggregateTicketMetrics(await observeTicketMetrics(ctx, runs, attempts), scope.ageMs);
 };
 
 export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {

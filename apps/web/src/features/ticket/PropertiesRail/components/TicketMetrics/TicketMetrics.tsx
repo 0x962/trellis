@@ -10,6 +10,7 @@ export function TicketMetrics({ ticket }: { ticket: Ticket }) {
 	const { orpc, scheduler } = useApp();
 	const query = useQuery({
 		...orpc.agentRuns.ticketMetrics.queryOptions({ input: { ticket: ticket.identifier }, retry: false }),
+		refetchInterval: 2000,
 	});
 	const state: MetricRequestState = query.isPending ? "pending" : query.isError ? "error" : "success";
 	const ageMs = useLiveAge(state === "success" ? (query.data?.ageMs ?? null) : null, scheduler);

@@ -1,11 +1,12 @@
-import type { AgentRun } from "@trellis/api";
+import { ORPCError } from "@orpc/server";
+import { type AgentRun, errors, type TicketMetrics } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { ExecutionAttemptRecord } from "../assignments.ts";
 import type { ServiceCtx } from "../support.ts";
 import type { StoredRun } from "./queries.ts";
 
-export type RuntimeSessionIndex = ReadonlyMap<string, RuntimeProcessStatus>;
+type RuntimeSessionIndex = ReadonlyMap<string, RuntimeProcessStatus>;
 
 export const indexRuntimeSessions = (sessions: RuntimeProcessStatus[]): RuntimeSessionIndex =>
 	new Map(sessions.map((session) => [session.id, session]));
@@ -18,6 +19,34 @@ export async function readRuntimeSessions(home: string): Promise<RuntimeProcessS
 		throw error;
 	}
 }
+
+// The same read without the stopped-runtime fallback. A metrics request
+// with attempts and no reachable runtime throws, so the request fails
+// instead of reporting the missing data as unavailable.
+export async function readRuntimeSessionsRequired(home: string): Promise<RuntimeProcessStatus[]> {
+	try {
+		return await nativeHost(home).list();
+	} catch (error) {
+		throw new ORPCError("RUNNER_UNAVAILABLE", {
+			defined: true,
+			status: errors.RUNNER_UNAVAILABLE.status,
+			message: error instanceof Error ? error.message : String(error),
+			data: { reason: (error as NodeJS.ErrnoException).code === "ENOENT" ? "missing" : "error" },
+		});
+	}
+}
+
+// Every attempt id of each run, so the run list and the metrics route
+// share one grouping instead of scanning the attempts per run.
+export const groupAttemptIdsByRun = (attempts: ExecutionAttemptRecord[]): Map<string, string[]> => {
+	const attemptIdsByRun = new Map<string, string[]>();
+	for (const attempt of attempts) {
+		const runAttemptIds = attemptIdsByRun.get(attempt.runId) ?? [];
+		runAttemptIds.push(attempt.id);
+		attemptIdsByRun.set(attempt.runId, runAttemptIds);
+	}
+	return attemptIdsByRun;
+};
 
 export function executionMetrics(attemptIds: string[], sessions: RuntimeSessionIndex) {
 	if (attemptIds.length === 0) return { durationMs: null, tokenCount: null };
@@ -94,14 +123,31 @@ export async function observeRuns(
 ): Promise<AgentRun[]> {
 	if (runs.length === 0) return [];
 	const sessions = indexRuntimeSessions(await readRuntimeSessions(ctx.home));
-	const attemptIdsByRun = new Map<string, string[]>();
-	for (const attempt of attempts) {
-		const runAttemptIds = attemptIdsByRun.get(attempt.runId) ?? [];
-		runAttemptIds.push(attempt.id);
-		attemptIdsByRun.set(attempt.runId, runAttemptIds);
-	}
+	const attemptIdsByRun = groupAttemptIdsByRun(attempts);
 	return runs.map((run) => {
 		const attemptIds = attemptIdsByRun.get(run.id);
 		return projectRun(run, sessions, attemptIds === undefined ? undefined : attemptIds);
+	});
+}
+
+type RunWork = Pick<TicketMetrics, "durationMs" | "tokenCount">;
+
+// The aggregate fields of each run without the full run projection. The
+// ticket metrics route reads this, so one agent event never projects the
+// same runs once for the list and again for the metrics.
+export async function observeTicketMetrics(
+	ctx: Pick<ServiceCtx, "home">,
+	runs: StoredRun[],
+	attempts: ExecutionAttemptRecord[] = [],
+): Promise<RunWork[]> {
+	if (runs.length === 0) return [];
+	const sessions = indexRuntimeSessions(await readRuntimeSessionsRequired(ctx.home));
+	const attemptIdsByRun = groupAttemptIdsByRun(attempts);
+	return runs.map((run) => {
+		const attemptIds = attemptIdsByRun.get(run.id);
+		return executionMetrics(
+			attemptIds === undefined ? ([run.terminalId].filter(String) as string[]) : attemptIds,
+			sessions,
+		);
 	});
 }

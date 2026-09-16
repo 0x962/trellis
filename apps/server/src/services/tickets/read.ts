@@ -132,3 +132,10 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<T
 	const row = await resolveTicket(ctx, tx, input.ticket);
 	return ticketGet(tx, row.id);
 };
+
+// The row id and the age of one ticket ref. The metrics route reads this,
+// so the ticket lookup and the age rule keep one owner in this service.
+export const resolveTicketAge = async (ctx: ServiceCtx, tx: Tx, ref: string) => {
+	const row = await resolveTicket(ctx, tx, ref);
+	return { id: row.id, ageMs: Math.max(0, ctx.now.getTime() - Date.parse(row.createdAt)) };
+};
