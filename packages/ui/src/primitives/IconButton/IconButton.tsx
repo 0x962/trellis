@@ -1,5 +1,5 @@
 import { Button as BaseButton } from "@base-ui/react/button";
-import type { ComponentProps, ReactElement } from "react";
+import { type ComponentProps, cloneElement, type ReactElement } from "react";
 import { cx } from "../../utils/cx";
 import { hitArea } from "../../utils/hitArea";
 import { buttonVariants, disabledLook, pressedLook } from "../Button/variants";
@@ -55,7 +55,7 @@ export function IconButton({
 			{...props}
 		>
 			<span aria-hidden="true" className="inline-flex size-3.5 shrink-0 *:size-full">
-				{icon}
+				{cloneElement(icon as ReactElement<{ "aria-hidden"?: boolean }>, { "aria-hidden": true })}
 			</span>
 		</BaseButton>
 	);
