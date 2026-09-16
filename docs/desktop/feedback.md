@@ -1,7 +1,7 @@
 # Desktop feedback
 
-Owner: lead agent. Integration branch: `trellis-readiness-audit`.
-Last update: 2026-09-15.
+Owner: lead agent. Production source: `main`.
+Last update: 2026-09-16.
 
 The user tests the installed UI. The production app lives at `~/Applications/Trellis.app`.
 The production verification at 22:17 UTC uses source `49e4191e` and release `b78b2dc3`.
@@ -19,6 +19,18 @@ The installed server returns 200 for all 54 previously failed terminal streams. 
 A fresh terminal passes input, output, resize, and Stop checks on release `c2826d27`. The final runtime list contains zero active sessions.
 The installed route asset contains only the Needs you heading and an empty body. The browser regression is not run; the user tests the UI.
 Evidence: `/tmp/trellis-terminal-recovery-acceptance.json`, `/tmp/trellis-installed-runtime-check.json`, and `/tmp/trellis-needs-you-production-install.log`.
+
+## Production source
+
+At 13:31 UTC on September 16, release source `7b805959` rejects a Codex manager during session restoration.
+That source omits the Codex manager support from `trellis-readiness-audit`. The failed restore returns a generic HTTP 500.
+Later source `13a69d47` includes Codex manager support but still omits the project navigation change in `b64e9919`.
+
+Production builds require a clean `main` checkout at the current, freshly fetched `origin/main` commit.
+The requirement applies to installed packages and `--prepare` candidates.
+The installer verifies that the candidate includes the installed source before the build and before publication.
+A macOS advisory lock permits one publication at a time. Publication also verifies that `origin/main` still contains the candidate.
+All 21 installer checks pass with 53 assertions. A direct branch install command rejects `trellis-readiness-audit` before the build starts.
 
 ## Project navigation
 
