@@ -1,14 +1,25 @@
 import { ArrowClockwise } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import type { AccountHarness, UsageDays, UsageGroupBy, UsageMetric } from "@trellis/api";
-import { Button, EmptyState, IconButton, SectionHeader, Segmented, Skeleton, Tooltip, UsageChart } from "@trellis/ui";
+import type { UsageDays, UsageGroupBy, UsageGroupRow, UsageMetric } from "@trellis/api";
+import {
+	Button,
+	EmptyState,
+	IconButton,
+	otherTone,
+	SectionHeader,
+	Segmented,
+	Skeleton,
+	Tooltip,
+	UsageChart,
+	type UsageChartSeries,
+} from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
-import { formatDayLabel, formatMetric, harnessLabel, harnessTone, localDayKey } from "../formatUsage";
+import { CHART_TOP_ROWS, formatDayLabel, formatMetric, localDayKey, rowTone } from "../formatUsage";
+import { UsageAccounts } from "./components/UsageAccounts";
 import { UsageGroups } from "./components/UsageGroups";
-import { UsageQuota } from "./components/UsageQuota";
 import { UsageSessions } from "./components/UsageSessions";
 import { UsageTotals } from "./components/UsageTotals";
 
@@ -23,12 +34,47 @@ const metricOptions = [
 	{ value: "tokens", label: "Tokens" },
 ] as const;
 
-const HARNESSES: readonly AccountHarness[] = ["claude", "codex", "opencode", "pi"];
+export const groupLabel: Record<UsageGroupBy, string> = {
+	ticket: "ticket",
+	persona: "persona",
+	project: "project",
+	kind: "agent kind",
+	account: "account",
+	model: "model",
+	harness: "harness",
+};
+
+// The day series of the chart. A selected row is one series. Otherwise the
+// top rows of the grouping are one series each, and the rest of the range
+// folds into "Other", so the stack of a day is the day total.
+function chartSeries(
+	days: readonly string[],
+	dayTotals: readonly number[],
+	rows: readonly UsageGroupRow[],
+	selected: UsageGroupRow | null,
+	metric: UsageMetric,
+	group: UsageGroupBy,
+): UsageChartSeries[] {
+	const seriesOf = (row: UsageGroupRow, rank: number): UsageChartSeries => ({
+		key: row.key,
+		label: row.label,
+		tone: rowTone(row, rank, group),
+		values: days.map((day) => row.days.find((slice) => slice.day === day)?.[metric] ?? 0),
+	});
+	if (selected) return [seriesOf(selected, rows.indexOf(selected))];
+	const top = rows.slice(0, CHART_TOP_ROWS).map(seriesOf);
+	if (rows.length <= CHART_TOP_ROWS) return top;
+	const other = days.map((_, index) =>
+		Math.max(0, (dayTotals[index] ?? 0) - top.reduce((sum, series) => sum + (series.values[index] ?? 0), 0)),
+	);
+	return [...top, { key: "other", label: `Other (${rows.length - CHART_TOP_ROWS})`, tone: otherTone, values: other }];
+}
 
 // What every agent on this machine consumed: the subscription quota of each
-// account, then the token cost of the range from the transcripts, sliced by
-// ticket, persona, project, agent kind, account, model, or harness. A
-// selected row filters the chart and the session list to that slice.
+// account, then the cost of the range from the transcripts, sliced by
+// ticket, persona, project, agent kind, account, model, or harness. The
+// grouping drives the chart, the ranked list, and the session list. A
+// selected row narrows all three to that slice.
 export function UsagePage() {
 	const { orpc, client, queryClient } = useApp();
 	const search = useSearch({ from: "/usage" });
@@ -46,27 +92,11 @@ export function UsagePage() {
 		mutationFn: () => client.usage.report({ days, refresh: true }),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.usage.report.key() }),
 	});
-	const data = report.data;
-	const rows = data?.groups[group] ?? [];
+	const rows = report.data?.groups[group] ?? [];
 	const row = selectedRow === null ? null : (rows.find((candidate) => candidate.key === selectedRow) ?? null);
-	const chartDays = data?.buckets.map((bucket) => bucket.day) ?? [];
-	const series = row
-		? [
-				{
-					key: row.key,
-					label: row.label,
-					tone: row.harness ? harnessTone[row.harness] : ("agent" as const),
-					values: chartDays.map((day) => row.days.find((slice) => slice.day === day)?.[metric] ?? 0),
-				},
-			]
-		: HARNESSES.filter((harness) => data?.buckets.some((bucket) => bucket.harnesses[harness])).map((harness) => ({
-				key: harness,
-				label: harnessLabel[harness],
-				tone: harnessTone[harness],
-				values: chartDays.map(
-					(day) => data?.buckets.find((bucket) => bucket.day === day)?.harnesses[harness]?.[metric] ?? 0,
-				),
-			}));
+	const chartDays = report.data?.buckets.map((bucket) => bucket.day) ?? [];
+	const dayTotals = report.data?.buckets.map((bucket) => bucket[metric]) ?? [];
+	const series = chartSeries(chartDays, dayTotals, rows, row, metric, group);
 
 	return (
 		<>
@@ -94,12 +124,18 @@ export function UsagePage() {
 			</Topbar>
 			<div className="page-card flex-1 overflow-y-auto px-8 py-6 max-md:px-4">
 				<div className="flex max-w-7xl flex-col gap-8">
-					<UsageQuota />
+					<UsageAccounts
+						rows={report.data?.groups.account ?? []}
+						metric={metric}
+						total={report.data?.totals[metric] ?? 0}
+						pending={report.isPending}
+					/>
 					{report.isPending ? (
 						<div role="status" aria-label="Load usage" className="flex flex-col gap-3">
 							<span className="sr-only">Load usage</span>
-							<Skeleton className="h-48 w-full" />
-							<Skeleton className="h-24 w-full" />
+							<Skeleton height="h-24" />
+							<Skeleton height="h-48" />
+							<Skeleton height="h-64" />
 						</div>
 					) : report.isError ? (
 						<div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-border p-4">
@@ -115,10 +151,15 @@ export function UsagePage() {
 						/>
 					) : (
 						<>
-							<section aria-label="Token cost" className="flex flex-col gap-4">
+							<UsageTotals totals={report.data.totals} pricingTableUpdated={report.data.pricingTableUpdated} />
+							<section aria-label="Per day" className="flex flex-col gap-4">
 								<SectionHeader
-									title="Token cost"
-									count={`${formatMetric(metric, row ? row[metric] : report.data.totals[metric])}${metric === "usd" ? " at API rates" : ""}`}
+									title={
+										row
+											? `${row.label} per day`
+											: `${metric === "usd" ? "Cost" : "Tokens"} per day by ${groupLabel[group]}`
+									}
+									count={formatMetric(metric, row ? row[metric] : report.data.totals[metric])}
 									actions={
 										<Segmented
 											label="Metric"
@@ -129,7 +170,11 @@ export function UsagePage() {
 									}
 								/>
 								<UsageChart
-									label={row ? `${row.label} per day` : `${metric === "usd" ? "Cost" : "Tokens"} per day by harness`}
+									label={
+										row
+											? `${row.label} per day`
+											: `${metric === "usd" ? "Cost" : "Tokens"} per day by ${groupLabel[group]}`
+									}
 									days={chartDays}
 									series={series}
 									format={(value) => formatMetric(metric, value)}
@@ -137,13 +182,13 @@ export function UsagePage() {
 									selectedDay={selectedDay}
 									onSelectDay={(day) => setSearch({ day: day ?? undefined })}
 								/>
-								<UsageTotals totals={report.data.totals} pricingTableUpdated={report.data.pricingTableUpdated} />
 							</section>
 							<UsageGroups
 								group={group}
 								rows={rows}
 								metric={metric}
 								total={report.data.totals[metric]}
+								days={chartDays}
 								selectedRow={selectedRow}
 								onGroupChange={(value) => setSearch({ group: value, row: undefined })}
 								onSelectRow={(key) => setSearch({ row: key ?? undefined })}

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { AccountHarnessSchema } from "./harnessAccount.ts";
-import { IsoDateTimeSchema } from "./primitives.ts";
+import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 // The usage report reads the transcript files that each harness CLI writes
 // on this machine, prices every turn at the API list rate, and joins each
@@ -112,3 +112,32 @@ export const UsageReportInputSchema = z.strictObject({
 	refresh: z.boolean().optional().describe("Scan the transcripts again instead of the cached report."),
 });
 export type UsageReportInput = z.infer<typeof UsageReportInputSchema>;
+
+// One login on this machine with its subscription quota: a configured
+// account, or the default login of a harness that no account names.
+// `key` is the row key of the account grouping in the usage report, so a
+// card joins its cost from `groups.account`.
+export const UsageAccountSchema = z.object({
+	key: z.string(),
+	id: UlidSchema.nullable(),
+	name: z.string(),
+	harness: AccountHarnessSchema,
+	profilePath: z.string(),
+	isDefault: z.boolean(),
+	quota: z.object({
+		status: z.enum(["ok", "signed_out", "expired", "unavailable", "unsupported"]),
+		email: z.string().nullable(),
+		plan: z.string().nullable(),
+		detail: z.string().nullable(),
+		windows: z.array(
+			z.object({ id: z.string(), label: z.string(), usedPercent: z.number(), resetsAt: IsoDateTimeSchema.nullable() }),
+		),
+		fetchedAt: IsoDateTimeSchema,
+	}),
+});
+export type UsageAccount = z.infer<typeof UsageAccountSchema>;
+
+export const UsageAccountsInputSchema = z.strictObject({
+	refresh: z.boolean().optional().describe("Ask the providers again instead of the cached quota."),
+});
+export type UsageAccountsInput = z.infer<typeof UsageAccountsInputSchema>;

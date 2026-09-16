@@ -1,4 +1,5 @@
 export {
+	CHART_TOP_ROWS,
 	formatDayLabel,
 	formatMetric,
 	formatShare,
@@ -7,4 +8,5 @@ export {
 	harnessLabel,
 	harnessTone,
 	localDayKey,
+	rowTone,
 } from "./formatUsage";

@@ -234,11 +234,15 @@ either attachment table names.
 
 `chat_messages` holds one row per post with its actor. `chat_deliveries`
 holds one row per post and live native agent of the room's project, except
-the author.
+the author. A post in `general` with no mention writes rows for the live
+managers only.
 A post that mentions a live agent by run id, by persona name, or by role
 (`@manager`, `@builders`, `@reviewers`) reaches only the mentioned agents,
 and each of those rows is `direct`. The controller tick sends every pending
-row of one agent in one message, so a busy room costs an agent one turn. A
+row of one agent in one message, so a busy room costs an agent one turn.
+The message carries, per channel, the messages before the first new line as
+context: at most `CONTEXT_LIMIT` of them from the `CONTEXT_WINDOW_MINUTES`
+before it. A
 batch with a direct row interrupts the agent's current turn first; a custom
 terminal has no interrupt and receives the lines as typed input. A manager
 receives a `trellis.chat.messages` JSON document; a worker receives IRC style
@@ -438,6 +442,7 @@ The scan runs in the `prepare` step, outside every database transaction, and its
 Every turn is priced at the API list rate in `services/usage/pricing.ts`. A harness that records its own cost, such as Pi or OpenCode, keeps that cost. A model outside the table takes the cheapest rate of its harness and marks the row approximate.
 A session joins the agent run whose `session_id` it carries. A session whose cwd is inside `agents/<run id>/work` joins that run. A session whose cwd is inside a project directory joins that project. Every other session is outside Trellis.
 The report holds the day series by harness, the totals, one row list per grouping (ticket, persona, project, kind, account, model, harness), and the top 200 sessions with one key per grouping.
+`usage.accounts` lists every configured account and the default login of each harness that no account names, each with its quota. The page joins each login to its cost through the account grouping of the report.
 The page keeps the range, the metric, the grouping, the selected row, and the selected day in the URL.
 
 `agentRuns.start` accepts an optional `accountId`. A new assignment otherwise selects its harness default account.
@@ -742,6 +747,7 @@ returns one canonical spelling.
 | harnessAccounts.list, create, update, remove | GET, POST /api/harness-accounts; PATCH, DELETE /api/harness-accounts/{id} | account metadata and profile selection |
 | harnessAccounts.quota | GET /api/harness-accounts/{id}/quota | cached usage windows and reset times |
 | usage.report | GET /api/usage | token cost from the harness transcripts, joined to runs, tickets, personas, projects, and accounts; cached for five minutes |
+| usage.accounts | GET /api/usage/accounts | every configured account and each default login with its subscription quota; cached for five minutes |
 | agentRuns.output | GET /api/agent-runs/{id}/output | the terminal text as `{text}` |
 | sessions.list, get | GET /api/sessions, /api/sessions/{id} | newest first; get carries the observed run |
 | sessions.create | POST /api/sessions | 201 and `Location`; a prompt, an optional name, an optional harness and account |

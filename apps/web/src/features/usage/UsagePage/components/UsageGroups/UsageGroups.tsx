@@ -1,7 +1,8 @@
+import { ArrowSquareOut } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { UsageGroupBy, UsageGroupRow, UsageMetric } from "@trellis/api";
-import { cx, SectionHeader, Segmented } from "@trellis/ui";
-import { formatMetric, formatShare } from "../../../formatUsage";
+import { IconButton, RankedBars, SectionHeader, Segmented, Tooltip } from "@trellis/ui";
+import { formatMetric, rowTone } from "../../../formatUsage";
 
 const groupOptions = [
 	{ value: "ticket", label: "Ticket" },
@@ -18,33 +19,55 @@ export type UsageGroupsProps = {
 	rows: readonly UsageGroupRow[];
 	metric: UsageMetric;
 	total: number;
+	// The days of the range, for the sparkline of each row.
+	days: readonly string[];
 	selectedRow: string | null;
 	onGroupChange: (group: UsageGroupBy) => void;
 	onSelectRow: (key: string | null) => void;
 };
 
-// The link of a row: a ticket opens its page, a project opens its board.
-function RowLink({ href, children }: { href: string; children: string }) {
-	const className = "truncate text-fg-muted hover:text-fg hover:underline";
-	if (href.startsWith("/t/")) {
+// The link at the end of a row: a ticket row opens the ticket, a project
+// row opens the board.
+function RowLink({ row }: { row: UsageGroupRow }) {
+	if (row.href?.startsWith("/t/")) {
+		const identifier = row.href.slice(3);
 		return (
-			<Link to="/t/$identifier" params={{ identifier: href.slice(3) }} className={className}>
-				{children}
-			</Link>
+			<Tooltip content={`Open ${identifier}`}>
+				<IconButton
+					label={`Open ${identifier}`}
+					icon={<ArrowSquareOut />}
+					render={<Link to="/t/$identifier" params={{ identifier }} />}
+				/>
+			</Tooltip>
 		);
 	}
-	return (
-		<Link to="/p/$" params={{ _splat: href.slice(3) }} className={className}>
-			{children}
-		</Link>
-	);
+	if (row.href?.startsWith("/p/")) {
+		return (
+			<Tooltip content={`Open ${row.label}`}>
+				<IconButton
+					label={`Open ${row.label}`}
+					icon={<ArrowSquareOut />}
+					render={<Link to="/p/$" params={{ _splat: row.href.slice(3) }} />}
+				/>
+			</Tooltip>
+		);
+	}
+	return null;
 }
 
-// The range sliced one way at a time. The row with the largest share is
-// first, and its bar is the full width. A pressed row is the selected
-// slice: the chart and the session list above and below follow it.
-export function UsageGroups({ group, rows, metric, total, selectedRow, onGroupChange, onSelectRow }: UsageGroupsProps) {
-	const max = rows[0]?.[metric] ?? 0;
+// The range sliced one way at a time, as ranked bars. The bar of a row is
+// its share of the largest row, the sparkline is its days, and a pressed
+// row is the selected slice that the chart and the session list follow.
+export function UsageGroups({
+	group,
+	rows,
+	metric,
+	total,
+	days,
+	selectedRow,
+	onGroupChange,
+	onSelectRow,
+}: UsageGroupsProps) {
 	return (
 		<section aria-label="Breakdown" className="flex flex-col gap-3">
 			<SectionHeader
@@ -52,79 +75,22 @@ export function UsageGroups({ group, rows, metric, total, selectedRow, onGroupCh
 				count={rows.length}
 				actions={<Segmented label="Group by" options={groupOptions} value={group} onValueChange={onGroupChange} />}
 			/>
-			<table className="w-full border-collapse text-sm">
-				<thead>
-					<tr className="border-b border-border text-left text-xs text-fg-faint">
-						<th scope="col" className="h-8 pr-3 font-medium">
-							{groupOptions.find((option) => option.value === group)?.label}
-						</th>
-						<th scope="col" className="h-8 pr-3 font-medium max-md:hidden" />
-						<th scope="col" className="h-8 w-20 pr-3 text-right font-medium">
-							Sessions
-						</th>
-						<th scope="col" className="h-8 w-16 pr-3 text-right font-medium max-md:hidden">
-							Runs
-						</th>
-						<th scope="col" className="h-8 w-24 pr-3 text-right font-medium">
-							{metric === "usd" ? "Cost" : "Tokens"}
-						</th>
-						<th scope="col" className="h-8 w-14 pr-3 text-right font-medium">
-							Share
-						</th>
-						<th scope="col" className="h-8 w-40 font-medium max-sm:hidden">
-							<span className="sr-only">Bar</span>
-						</th>
-					</tr>
-				</thead>
-				<tbody>
-					{rows.map((row) => {
-						const selected = row.key === selectedRow;
-						const value = row[metric];
-						return (
-							<tr
-								key={row.key}
-								aria-selected={selected}
-								className={cx("border-b border-border", selected ? "bg-accent-soft" : "hover:bg-elevated")}
-							>
-								<td className="max-w-0 py-1.5 pr-3">
-									<button
-										type="button"
-										aria-pressed={selected}
-										onClick={() => onSelectRow(selected ? null : row.key)}
-										className="block max-w-full truncate text-left font-medium text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
-									>
-										{row.label}
-									</button>
-								</td>
-								<td className="max-w-0 py-1.5 pr-3 text-fg-muted max-md:hidden">
-									{row.detail === null ? null : row.href ? (
-										<RowLink href={row.href}>{row.detail}</RowLink>
-									) : (
-										<span className="block truncate">{row.detail}</span>
-									)}
-								</td>
-								<td className="py-1.5 pr-3 text-right text-fg-muted tabular">{row.sessions.toLocaleString("en-US")}</td>
-								<td className="py-1.5 pr-3 text-right text-fg-muted tabular max-md:hidden">
-									{row.runs > 0 ? row.runs.toLocaleString("en-US") : ""}
-								</td>
-								<td className="py-1.5 pr-3 text-right text-fg tabular">
-									{row.approximate && metric === "usd" ? "~" : ""}
-									{formatMetric(metric, value)}
-								</td>
-								<td className="py-1.5 pr-3 text-right text-fg-muted tabular">{formatShare(value, total)}</td>
-								<td className="py-1.5 max-sm:hidden">
-									<div aria-hidden="true" className="h-2 w-full rounded-hairline bg-elevated">
-										<div
-											className="h-2 rounded-hairline bg-accent"
-											style={{ width: `${max > 0 ? Math.max(1, Math.round((100 * value) / max)) : 0}%` }}
-										/>
-									</div>
-								</td>
-							</tr>
-						);
-					})}
-				</tbody>
-			</table>
+			<RankedBars
+				label={`By ${groupOptions.find((option) => option.value === group)?.label.toLowerCase()}`}
+				rows={rows.map((row, rank) => ({
+					key: row.key,
+					label: row.label,
+					detail: row.detail ?? undefined,
+					value: row[metric],
+					valueLabel: `${row.approximate && metric === "usd" ? "~" : ""}${formatMetric(metric, row[metric])}`,
+					share: total > 0 ? row[metric] / total : 0,
+					tone: rowTone(row, rank, group),
+					spark: days.map((day) => row.days.find((slice) => slice.day === day)?.[metric] ?? 0),
+					action: <RowLink row={row} />,
+				}))}
+				selected={selectedRow}
+				onSelect={onSelectRow}
+			/>
 		</section>
 	);
 }

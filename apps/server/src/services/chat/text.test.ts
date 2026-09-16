@@ -33,6 +33,36 @@ test("a worker batch holds every line and the two commands", () => {
 	]);
 });
 
+test("context lines come before the new lines, for a worker and for a manager", () => {
+	const earlier = {
+		...line({ body: "who owns the migration?", actorKind: "human", actorName: "dana", actorDisplayName: null }),
+		direct: undefined,
+	} as unknown as PendingLine;
+	const worker = chatBatchText(
+		{ runId: "r", personaName: "Builder", kind: "builder", projectPath: "TRL" },
+		[line()],
+		[earlier],
+	);
+	expect(worker.split("\n").slice(0, 4)).toEqual([
+		"trellis chat: 1 new message in the TRL room.",
+		"Earlier, for context:",
+		"#ai 12:34:56 <dana> who owns the migration?",
+		"New:",
+	]);
+	const manager = JSON.parse(
+		chatBatchText({ runId: "m", personaName: "Trellis", kind: "manager", projectPath: "TRL" }, [line()], [earlier]),
+	);
+	expect(manager.context).toEqual([
+		{
+			id: "01J8Z6X4Q3M2K1H0G9F8E7D6M1",
+			channel: "ai",
+			body: "who owns the migration?",
+			createdAt: "2026-09-09T12:34:56.000Z",
+			actor: { kind: "human", name: "dana" },
+		},
+	]);
+});
+
 test("a manager batch is one JSON document", () => {
 	const text = chatBatchText({ runId: "m", personaName: "Trellis", kind: "manager", projectPath: "TRL" }, [line()]);
 	expect(JSON.parse(text)).toEqual({
@@ -49,6 +79,7 @@ test("a manager batch is one JSON document", () => {
 			},
 		],
 		mentioned: false,
+		context: [],
 		recipient: { runId: "m", personaName: "Trellis" },
 	});
 });
