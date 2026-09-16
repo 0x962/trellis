@@ -80,6 +80,27 @@
 }
 
 /*
+ * A 6 px unread mark in silver with a still film of the shimmer colors. The
+ * face and the top light match the metal control, and the film never moves,
+ * so the mark reads the same with motion off.
+ */
+@utility dot-metal {
+	overflow: hidden;
+	border: 1px solid var(--metal-edge);
+	background-image: linear-gradient(180deg, var(--metal-top) 0%, var(--metal-bottom) 100%);
+	box-shadow: inset 0 1px 0 var(--metal-sheen);
+
+	&::before {
+		position: absolute;
+		inset: 0;
+		background: var(--film-gradient);
+		content: "";
+		opacity: 0.2;
+		pointer-events: none;
+	}
+}
+
+/*
  * Text that catches the light now and then: a band of the bright text color
  * sweeps across muted text once every seven seconds. A person who turns
  * motion off sees the muted text, still.
