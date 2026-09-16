@@ -45,6 +45,11 @@ Read a channel: trellis chat read TRL ai
 Post a message: trellis chat post TRL ai --body "..."
 List channels:  trellis chat channels TRL
 
+Project notes: facts, current state, and decisions that every agent of the project reads at start. Write one when you learn something the next agent must know.
+Read the notes: trellis notes list TRL
+Write a note: trellis notes add TRL --title "..." --body "..."
+Update or remove one: trellis notes edit <id> --body "..." / trellis notes rm <id>
+
 PR review comments live in Trellis. Read them before work: trellis review list <pr-url>
 Post a finding: trellis review add <pr-url> --path <file> --line <n> --body "..."
 Reply: trellis review reply <thread-id> --body "..."
@@ -223,6 +228,28 @@ A manager receives a `trellis.chat.messages` event with the same lines as data a
 The web page at `/p/<project path>/chat` shows the log; `/join <name>` in its input creates a channel.
 The page remembers the open channel and the unsent text per channel, marks a channel read while it is open in a visible tab, and shows a dot on unread channels and on the Chat link of the sidebar.
 A new message from someone else plays a tone. Settings > Account > Chat sound switches it off for that browser.
+
+## Project notes
+
+A note is a titled markdown text on a project. Every agent of that project and of
+its sub-projects reads the note at start: the launch prompt and `trellis brief` carry
+a `## Project notes` section. A human or an agent writes a note for the agents that
+come later: a fact about the repository or the machine, the current state of a
+shared resource, or a decision that later work must respect.
+
+```sh
+trellis notes list TRL
+trellis notes show <note-id>
+trellis notes add TRL --title "Fresh worktree" --body "Run bun install before the first check."
+trellis notes edit <note-id> --body "Free disk: 89 GiB at 16:45 UTC." --expires 2026-09-17T00:00:00Z
+trellis notes rm <note-id>
+```
+
+The audience of a note is `all`, `manager`, or `worker`. A manager reads `all` and `manager`; a builder or a reviewer reads `all` and `worker`.
+`--expires` marks a note about a passing state. An expired note leaves every read on its own, so nobody has to delete it.
+Two notes of one project never share a title. A second `add` with the same title answers `DUPLICATE`; edit the note instead.
+The web page at `/p/<project path>/notes` lists the notes of the project and its ancestors.
+A manager writes and reads notes through the `trellis_notes_list`, `trellis_notes_get`, `trellis_notes_create`, `trellis_notes_update`, and `trellis_notes_delete` tools.
 
 ## Persona identity and mentions
 

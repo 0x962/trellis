@@ -11,6 +11,7 @@ import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
 import { needsYou } from "./needsYou.ts";
+import { notes } from "./notes.ts";
 import { personas } from "./personas.ts";
 import { projects } from "./projects.ts";
 import { pullRequests } from "./pullRequests.ts";
@@ -43,6 +44,7 @@ export const contract = {
 	timeline: oc.tag("timeline").router(timeline),
 	comments: oc.tag("comments").router(comments),
 	chat: oc.tag("chat").router(chat),
+	notes: oc.tag("notes").router(notes),
 	attachments: oc.tag("attachments").router(attachments),
 	pullRequests: oc.tag("pull requests").router(pullRequests),
 	search: oc.tag("search").router(search),

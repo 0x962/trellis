@@ -13,6 +13,8 @@ import { recordRequest, replayRequest } from "../assignments/requests.ts";
 import { assertTicketReady } from "../controller/nextActions/assertTicketReady.ts";
 import { assignment } from "../controller/nextActions/assignment.ts";
 import { selectAccount } from "../harnessAccounts/selectAccount.ts";
+import { activeNotes } from "../notes/notes.ts";
+import { notesLines } from "../notes/text.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive, chainOf, pathOf, resolveMutableProject, resolveTicket } from "../refs.ts";
 import { assertAssignmentOwner } from "../submanagers/access.ts";
@@ -160,6 +162,12 @@ export const reserve = async (
 		ticket === null
 			? `Project: ${projectPath}\nEffective statuses:\n${JSON.stringify(ctx.cache.effectiveStatuses(project.id).statuses)}`
 			: `Ticket: ${ticket.identifier}: ${ticket.title}\nProject: ${projectPath}\n\n${ticket.description}\n\nRead the current ticket, comments, and linked pull requests before you act.\nUse trellis brief ${ticket.identifier} for the full task context.`;
+	// The notes of the project chain for this kind of agent, so the agent
+	// starts with what earlier agents and people wrote for it.
+	const notes = notesLines(
+		await activeNotes(ctx, tx, { projectId: project.id, audience: ticket === null ? "manager" : "worker" }),
+		projectPath,
+	);
 	return {
 		replay: false as const,
 		run,
@@ -169,6 +177,6 @@ export const reserve = async (
 		resume,
 		previousAttemptId,
 		previousAccountId: existing?.accountId ?? null,
-		context: `${context}\nConcurrency limit: ${config.concurrency} active ticket agents in this project.\nProject directory: ${config.directory || (ticket === null ? "Not configured" : "Use the agent workspace.")}\nRepositories: ${repos.map((repo) => `https://github.com/${repo.owner}/${repo.repo}`).join(", ")}`,
+		context: `${context}\nConcurrency limit: ${config.concurrency} active ticket agents in this project.\nProject directory: ${config.directory || (ticket === null ? "Not configured" : "Use the agent workspace.")}\nRepositories: ${repos.map((repo) => `https://github.com/${repo.owner}/${repo.repo}`).join(", ")}${notes.length === 0 ? "" : `\n\n${notes.join("\n")}`}`,
 	};
 };
