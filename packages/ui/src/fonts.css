@@ -9,9 +9,8 @@
  * machine, so this repo ships no file for it and declares no face. A machine
  * with the font installed picks it up from the stack. Every other machine
  * falls through to JetBrains Mono from fontsource. Only the latin subset of
- * each font is declared, and only the three mono weights the components ask
- * for: 400, 500 through font-medium, and 600 through font-semibold. A bold
- * heading that holds inline code asks for 600. The Inter
+ * each font is declared. JetBrains Mono uses one file for the 400, 500, and
+ * 600 faces, so the browser synthesizes the two heavier faces. The Inter
  * face below is the latin entry of @fontsource-variable/inter/wght.css, with
  * its unicode-range. Each fallback face is metric-matched to its web font, so
  * text set before that font arrives occupies the same lines and nothing
@@ -30,7 +29,7 @@
 	font-style: normal;
 	font-display: swap;
 	font-weight: 500;
-	src: url("@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff2") format("woff2");
+	src: url("@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2") format("woff2");
 }
 
 @font-face {
@@ -38,7 +37,7 @@
 	font-style: normal;
 	font-display: swap;
 	font-weight: 600;
-	src: url("@fontsource/jetbrains-mono/files/jetbrains-mono-latin-600-normal.woff2") format("woff2");
+	src: url("@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2") format("woff2");
 }
 
 @font-face {

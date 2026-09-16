@@ -16,6 +16,10 @@ export const routerPluginOptions = {
 // The @trellis/ui modules the shell loads before the first route.
 const shellUi = /packages\/ui\/src\/(utils\/cx|primitives\/(Button|IconButton|Kbd))\//;
 
+export const assetChunk = (id: string): string | undefined => {
+	if (shellUi.test(id)) return "ui-core";
+};
+
 // The API the dev server proxies to. The server listens on 4521.
 const defaultApiUrl = "http://127.0.0.1:4521";
 
@@ -26,6 +30,11 @@ export const createConfig = (env: Record<string, string | undefined>): UserConfi
 	return {
 		plugins: [tanstackRouter(routerPluginOptions), react(), tailwindcss(), fontPreloads()],
 		build: {
+			minify: "terser",
+			terserOptions: {
+				compress: { passes: 2 },
+				format: { comments: false },
+			},
 			rollupOptions: {
 				output: {
 					// The shell draws a Button with a key cap and an IconButton
@@ -34,31 +43,14 @@ export const createConfig = (env: Record<string, string | undefined>): UserConfi
 					// because each is reachable from a different set of routes,
 					// and a chunk of a few hundred bytes costs more in its own
 					// gzip header and its own request than the code in it.
-					manualChunks: (id: string) => (shellUi.test(id) ? "ui-core" : undefined),
+					manualChunks: assetChunk,
 				},
 			},
 		},
 		resolve: {
 			// cmdk pulls a whole second overlay library for a dialog this app
 			// never renders. See src/lib/emptyRadixDialog.ts.
-			alias: [
-				{
-					find: "@pierre/theming/themes",
-					replacement: fileURLToPath(new URL("./src/lib/pierreThemes.ts", import.meta.url)),
-				},
-				{
-					find: /^shiki\/wasm$/,
-					replacement: fileURLToPath(new URL("./src/lib/shikiWasm.ts", import.meta.url)),
-				},
-				{
-					find: /^shiki$/,
-					replacement: fileURLToPath(new URL("./src/lib/shikiBundle.ts", import.meta.url)),
-				},
-				{
-					find: "@radix-ui/react-dialog",
-					replacement: fileURLToPath(new URL("./src/lib/emptyRadixDialog.ts", import.meta.url)),
-				},
-			],
+			alias: { "@radix-ui/react-dialog": fileURLToPath(new URL("./src/lib/emptyRadixDialog.ts", import.meta.url)) },
 		},
 		server: {
 			// One address for the browser, the proxy, and Playwright.

@@ -105,6 +105,7 @@
 	justify-content: flex-end;
 }
 .review-code {
+	display: block;
 	height: 100%;
 	overflow: auto;
 	--diffs-font-family: var(--font-mono);
@@ -113,6 +114,89 @@
 	--diffs-addition-color-override: var(--success);
 	--diffs-deletion-color-override: var(--danger);
 	--diffs-selection-color-override: var(--accent);
+}
+.review-diff-file {
+	margin: 16px;
+	border: 0.5px solid var(--border);
+	border-radius: var(--radius-md);
+	overflow: hidden;
+}
+.review-diff-file > header {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	padding: 8px 12px;
+	border-bottom: 0.5px solid var(--border);
+	background: var(--surface);
+	font-family: var(--font-mono);
+	font-size: 12px;
+	font-weight: 500;
+}
+.review-diff-hunk-header {
+	padding: 4px 52px;
+	border-block: 0.5px solid var(--border);
+	background: var(--surface);
+	color: var(--fg-muted);
+	font-family: var(--font-mono);
+	font-size: 11px;
+}
+.review-diff-hunk:first-of-type .review-diff-hunk-header {
+	border-top: 0;
+}
+.review-diff-line {
+	display: grid;
+	grid-template-columns: 44px minmax(0, 1fr) 32px;
+	min-height: 24px;
+	align-items: stretch;
+	font-family: var(--font-mono);
+	font-size: 12px;
+	line-height: 20px;
+	cursor: pointer;
+}
+.review-diff-line[data-line-type="change-addition"] {
+	background: color-mix(in srgb, var(--success) 10%, transparent);
+}
+.review-diff-line[data-line-type="change-deletion"] {
+	background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+.review-diff-line:is(:hover, :focus-visible) {
+	background: var(--surface);
+	outline: 0;
+}
+.review-diff-line-empty {
+	cursor: default;
+	background: var(--surface);
+}
+.review-diff-number {
+	padding: 2px 8px;
+	border-right: 0.5px solid var(--border);
+	color: var(--fg-faint);
+	text-align: end;
+	font-variant-numeric: tabular-nums;
+	user-select: none;
+}
+.review-diff-line code {
+	min-width: 0;
+	padding: 2px 8px;
+	overflow-x: auto;
+	white-space: pre;
+}
+.review-diff-line > button {
+	opacity: 0;
+}
+.review-diff-line:is(:hover, :focus-within) > button {
+	opacity: 1;
+}
+.review-diff-split-row {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.review-diff-split-row > div:first-child {
+	border-right: 0.5px solid var(--border);
+}
+.review-diff-annotation {
+	padding: 8px 12px 8px 52px;
+	background: var(--surface);
 }
 .review-scroll {
 	flex: 1;

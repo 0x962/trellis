@@ -13,13 +13,14 @@ describe("fonts.css", () => {
 	// The mono stack carries the ticket identifiers and the code blocks. A
 	// bold heading that holds inline code asks for 600, so the stylesheet
 	// declares 400, 500, and 600.
-	test("fonts.css declares the latin JetBrains Mono WOFF2 files for weights 400, 500, and 600", async () => {
+	test("fonts.css reuses one latin JetBrains Mono WOFF2 file for weights 400, 500, and 600", async () => {
 		const pieces = await fonts();
 		const mono = blocks(pieces)
 			.filter((piece) => piece.prelude === "@font-face")
 			.map((piece) => piece.declarations)
 			.filter((face) => face["font-family"] === '"JetBrains Mono"');
 		expect(mono.map((face) => face["font-weight"])).toEqual(["400", "500", "600"]);
+		expect(new Set(mono.map((face) => face.src)).size).toBe(1);
 		for (const face of mono) {
 			expect(face.src).toContain("@fontsource/jetbrains-mono/files/jetbrains-mono-latin-");
 			expect(face.src).toEndWith('.woff2") format("woff2")');

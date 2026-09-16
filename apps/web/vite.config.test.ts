@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { PluginOption } from "vite";
-import config, { createConfig, routerPluginOptions } from "./vite.config";
+import config, { assetChunk, createConfig, routerPluginOptions } from "./vite.config";
 
 type Named = { name: string };
 
@@ -14,10 +14,8 @@ const pluginNames = (plugins: PluginOption[] | undefined): string[] =>
 	});
 
 type Proxy = Record<string, { target: string; changeOrigin?: boolean }>;
-type Alias = { find: string | RegExp; replacement: string };
 
 const proxyOf = (value: { server?: { proxy?: unknown } }) => value.server!.proxy as Proxy;
-const aliasesOf = (value: { resolve?: { alias?: unknown } }) => value.resolve!.alias as Alias[];
 
 describe("vite.config", () => {
 	// WS-10. The dev server proxies the API so the page and the server share
@@ -51,10 +49,9 @@ describe("vite.config", () => {
 		expect(proxy["/rpc"]!.target).toBe("http://127.0.0.1:4599");
 	});
 
-	test("the web bundle uses the plain text review highlighter without bundled themes, languages, or WebAssembly", () => {
-		const aliases = aliasesOf(createConfig({}));
-		expect(aliases.some((alias) => String(alias.find) === String(/^shiki$/))).toBe(true);
-		expect(aliases.some((alias) => String(alias.find) === String(/^shiki\/wasm$/))).toBe(true);
-		expect(aliases.some((alias) => alias.find === "@pierre/theming/themes")).toBe(true);
+	test("the production bundle uses terser and keeps the shell modules together", () => {
+		expect(createConfig({}).build?.minify).toBe("terser");
+		expect(assetChunk("/repo/packages/ui/src/primitives/Button/Button.tsx")).toBe("ui-core");
+		expect(assetChunk("/repo/node_modules/react/index.js")).toBeUndefined();
 	});
 });
