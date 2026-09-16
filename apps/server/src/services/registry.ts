@@ -31,6 +31,7 @@ import { get as getFlowExecution } from "./flowExecutions/queries.ts";
 import { start as startFlowExecution } from "./flowExecutions/start.ts";
 import * as flows from "./flows/flows.ts";
 import * as flowSave from "./flows/save.ts";
+import * as needsYou from "./needsYou/needsYou.ts";
 import * as personas from "./personas.ts";
 import * as projects from "./projects.ts";
 import * as pullRequests from "./pullRequests.ts";
@@ -195,6 +196,9 @@ export const services = {
 	"tickets.deleteMany": core("mutation", tickets.deleteMany),
 	"tickets.delete": core("mutation", tickets.delete),
 	"timeline.list": core("read", timeline.list),
+	"needsYou.list": core("read", needsYou.list),
+	"needsYou.summary": core("read", needsYou.summary),
+	"needsYou.update": core("mutation", needsYou.update),
 	"comments.thread": core("read", comments.thread),
 	"comments.resolve": core("mutation", comments.resolve),
 	"comments.create": core("mutation", comments.create),

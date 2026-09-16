@@ -275,3 +275,5 @@ export * from "./tables/flowExecutions.ts";
 export * from "./tables/flowExecutionTasks.ts";
 export * from "./tables/managerNextActions.ts";
 export * from "./tables/nativeMigrations.ts";
+
+export * from "./tables/needsYouStates.ts";

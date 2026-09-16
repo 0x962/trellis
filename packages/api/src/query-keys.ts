@@ -145,6 +145,7 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 	// refetches on every change but a delete, which drops the ticket page.
 	const applyChange = (change: HeldChange) => {
 		const { summary, fields } = change;
+		enqueue([family("needsYou")]);
 		if (change.deleted) {
 			tombstones.add(summary.id);
 			dropTicketQueries(queryClient, summary);
@@ -182,6 +183,7 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "comment.created":
 			case "comment.updated":
 			case "comment.deleted": {
+				enqueue([family("needsYou")]);
 				const threads = queryClient
 					.getQueryCache()
 					.findAll({ queryKey: [["comments", "thread"]] })
@@ -223,7 +225,10 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "project.updated":
 			case "project.deleted":
 			case "project.moved":
-				enqueue([family("statuses"), family("projects"), family("tickets"), family("search")]);
+				enqueue([family("statuses"), family("projects"), family("tickets"), family("search"), family("needsYou")]);
+				return;
+			case "needs-you.changed":
+				enqueue([family("needsYou")]);
 				return;
 			case "gh.status":
 				enqueue([family("system", "gh")]);

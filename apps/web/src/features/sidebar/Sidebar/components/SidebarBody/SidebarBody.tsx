@@ -9,10 +9,11 @@ import {
 	Tray,
 } from "@phosphor-icons/react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { cx, IconButton, Kbd, Tooltip } from "@trellis/ui";
+import { ActivityDot, cx, IconButton, Kbd, Tooltip } from "@trellis/ui";
 import type { ReactElement, ReactNode } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
+import { useNeedsYouSummary } from "../../../../needs-you/useNeedsYou";
 import { ActorFooter } from "../../../ActorFooter";
 import { ArchivedProjects } from "../../../ArchivedProjects";
 import { ProjectTree } from "../../../ProjectTree";
@@ -23,9 +24,16 @@ const rowClass =
 
 type NavTarget = "/reviews" | "/needs-you" | "/search" | "/all" | "/ai/personas" | "/ai/flows";
 
-type NavRowProps = { to: NavTarget; icon: ReactElement; label: string; active: boolean; trailing?: ReactNode };
+type NavRowProps = {
+	to: NavTarget;
+	icon: ReactElement;
+	label: string;
+	active: boolean;
+	trailing?: ReactNode;
+	hasItems?: boolean;
+};
 
-function NavRow({ to, icon, label, active, trailing }: NavRowProps) {
+function NavRow({ to, icon, label, active, trailing, hasItems }: NavRowProps) {
 	return (
 		<Link
 			to={to}
@@ -33,8 +41,11 @@ function NavRow({ to, icon, label, active, trailing }: NavRowProps) {
 			className={cx(rowClass, active && "sidebar-selected font-medium")}
 		>
 			<span data-slot="leading" className="sidebar-leading">
-				<span aria-hidden="true" className="inline-flex size-4 shrink-0 *:size-full">
-					{icon}
+				<span className="relative inline-flex">
+					<span aria-hidden="true" className="inline-flex size-4 shrink-0 *:size-full">
+						{icon}
+					</span>
+					{hasItems && <ActivityDot label="Needs you has items" />}
 				</span>
 			</span>
 			<span data-slot="label" className="sidebar-label">
@@ -74,6 +85,7 @@ export type SidebarBodyProps = {
 // highlight moves when the page does.
 export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps) {
 	const { live } = useApp();
+	const inbox = useNeedsYouSummary();
 	const status = useLiveStatus(live);
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
@@ -105,7 +117,13 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 				</div>
 			)}
 			<nav aria-label="Workspace" className="flex flex-col gap-0.5">
-				<NavRow to="/needs-you" icon={<Tray />} label="Needs you" active={isActive(pathname, "/needs-you")} />
+				<NavRow
+					to="/needs-you"
+					hasItems={(inbox.data?.active ?? 0) > 0}
+					icon={<Tray />}
+					label="Needs you"
+					active={isActive(pathname, "/needs-you")}
+				/>
 				<NavRow
 					to="/search"
 					icon={<MagnifyingGlass />}

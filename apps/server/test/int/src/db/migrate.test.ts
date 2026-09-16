@@ -23,6 +23,7 @@ const tables = [
 	"manager_dispatches",
 	"manager_next_actions",
 	"native_migrations",
+	"needs_you_states",
 	"flow_edges",
 	"flow_nodes",
 	"flows",
