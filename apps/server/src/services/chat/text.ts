@@ -1,5 +1,7 @@
 export type PendingLine = {
 	messageId: string;
+	// True when the message mentioned the receiving agent.
+	direct: boolean;
 	channel: string;
 	body: string;
 	actorName: string;
@@ -25,15 +27,18 @@ export const chatLine = (line: PendingLine) =>
 // only, so it receives one JSON document. A worker receives the lines and
 // the two commands it needs.
 export const chatBatchText = (recipient: Recipient, lines: PendingLine[]) => {
+	const mentioned = lines.some((line) => line.direct);
 	if (recipient.kind === "manager")
 		return JSON.stringify({
 			type: "trellis.chat.messages",
 			project: recipient.projectPath,
+			mentioned,
 			messages: lines.map((line) => ({
 				id: line.messageId,
 				channel: line.channel,
 				body: line.body,
 				createdAt: line.createdAt,
+				mention: line.direct,
 				actor: {
 					kind: line.actorKind,
 					name: line.actorName,
@@ -44,7 +49,7 @@ export const chatBatchText = (recipient: Recipient, lines: PendingLine[]) => {
 		});
 	const project = recipient.projectPath;
 	return [
-		`trellis chat: ${lines.length} new message${lines.length === 1 ? "" : "s"} in the ${project} room.`,
+		`trellis chat: ${lines.length} new message${lines.length === 1 ? "" : "s"} in the ${project} room.${mentioned ? " One mentions you. Answer it now." : ""}`,
 		...lines.map(chatLine),
 		`Reply: trellis chat post ${project} <channel> --body "..." Read more: trellis chat read ${project} <channel>`,
 	].join("\n");

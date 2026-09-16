@@ -26,6 +26,8 @@ export const ChatNotificationSchema = z.object({
 	personaName: z.string(),
 	state: z.enum(["pending", "sending", "sent", "failed", "unknown"]),
 	error: z.string().nullable(),
+	// True when the message mentioned this agent. The send interrupts its turn.
+	direct: z.boolean(),
 });
 export type ChatNotification = z.infer<typeof ChatNotificationSchema>;
 
@@ -33,6 +35,9 @@ export const ChatChannelSchema = z.object({
 	projectId: UlidSchema,
 	name: z.string(),
 	messageCount: z.number().int().nonnegative(),
+	// The id and the time of the newest message, or null for an empty channel.
+	// A reader compares `latestId` with the last id it saw to know what is unread.
+	latestId: UlidSchema.nullable(),
 	lastMessageAt: IsoDateTimeSchema.nullable(),
 	createdAt: IsoDateTimeSchema,
 });

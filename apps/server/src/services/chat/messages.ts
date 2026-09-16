@@ -58,6 +58,6 @@ export const post = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 			VALUES (${id}, ${root.id}, ${name}, ${input.body}, ${actor.name}, ${actor.kind}, ${ctx.now})`,
 	);
 	await enqueue(tx, { messageId: id, rootId: root.id, body: input.body, actor });
-	ctx.emit({ type: "chat.message", id, projectId: root.id, channel: name });
+	ctx.emit({ type: "chat.message", id, projectId: root.id, channel: name, actor });
 	return messageById(tx, id);
 };

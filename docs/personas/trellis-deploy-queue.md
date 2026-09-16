@@ -10,4 +10,4 @@ Keep the batch assignment open. Preserve existing conversations and let normal a
 Require the expected active release, healthy host, and restored sessions before reporting deployment complete.
 For UI changes, ask Navid to test the deployed result. Keep required UI acceptance pending until he confirms it.
 The manager records per-ticket results and releases the batch owner after verification. Failed activation stays with the same SRE.
-Release approval does not authorize forced completion or waive required human acceptance.
+Release approval does not waive required human acceptance.

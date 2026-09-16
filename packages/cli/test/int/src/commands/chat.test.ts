@@ -18,6 +18,7 @@ const channel = (name: string, messageCount = 0) => ({
 	projectId,
 	name,
 	messageCount,
+	latestId: null,
 	lastMessageAt: null,
 	createdAt: "2026-09-09T10:00:00.000Z",
 });

@@ -1,11 +1,14 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { type ChatMessage, chatChannelName, chatChannelPattern, type Project } from "@trellis/api";
-import { cx, EmptyState, Input, toast } from "@trellis/ui";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { EmptyState, Input, toast } from "@trellis/ui";
+import { type FormEvent, type ReactNode, useEffect, useRef } from "react";
 import { useApp } from "../../../lib/appContext";
+import { useChatStore } from "../../../stores/chatStore";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar } from "../../shell/Topbar";
+import { useChatUnread } from "../useChatUnread";
+import { ChannelList } from "./components/ChannelList";
 import { ChatLine } from "./components/ChatLine";
 
 // The log holds the newest messages of the channel. The server caps a read
@@ -22,15 +25,42 @@ const parseInput = (text: string): { kind: "join"; channel: string } | { kind: "
 	return { kind: "post", body: text.trimEnd() };
 };
 
+const day = (iso: string) => iso.slice(0, 10);
+
+// The lines of the log, with a dated rule before the first message of each
+// day, so a reader scanning across days sees where one ended.
+const withDayRules = (items: ChatMessage[], onMention: (text: string) => void): ReactNode[] =>
+	items.flatMap((message, index) => {
+		const line = <ChatLine key={message.id} message={message} onMention={onMention} />;
+		if (index > 0 && day(items[index - 1]!.createdAt) === day(message.createdAt)) return [line];
+		return [
+			<li
+				key={`${message.id}.day`}
+				aria-hidden="true"
+				className="flex items-center gap-2 px-3 py-1 font-mono text-xs text-fg-faint tabular"
+			>
+				<span className="h-px flex-1 bg-border" />
+				{day(message.createdAt)}
+				<span className="h-px flex-1 bg-border" />
+			</li>,
+			line,
+		];
+	});
+
 // The chat page of a project tree: the channels of its room on the left, the
-// log of the open channel on the right, one input line below the log.
+// log of the open channel on the right, one input line below the log. The
+// open channel, the unsent text of each channel, and the read position come
+// back on the next visit from the chat store.
 export function ChatPage({ project }: { project: Project }) {
 	const { client, orpc, queryClient } = useApp();
-	const [channel, setChannel] = useState("ai");
-	const [draft, setDraft] = useState("");
+	const rootId = project.rootId;
+	const channel = useChatStore((state) => state.openChannel[rootId] ?? "ai");
+	const draft = useChatStore((state) => state.drafts[`${rootId}:${channel}`] ?? "");
+	const { setOpenChannel, setDraft, markRead } = useChatStore.getState();
 	const log = useRef<HTMLOListElement>(null);
+	const input = useRef<HTMLInputElement>(null);
 	const readOnly = project.archivedAt !== null;
-	const channels = useQuery(orpc.chat.channels.queryOptions({ input: { project: project.path } }));
+	const { channels, unread } = useChatUnread(rootId);
 	const messages = useQuery(
 		orpc.chat.list.queryOptions({ input: { project: project.path, channel, limit: LOG_LIMIT } }),
 	);
@@ -39,7 +69,7 @@ export function ChatPage({ project }: { project: Project }) {
 	const post = useMutation({
 		mutationFn: (body: string) => client.chat.post({ project: project.path, channel, body }),
 		onSuccess: () => {
-			setDraft("");
+			setDraft(rootId, channel, "");
 			void invalidate();
 		},
 		onError: (error) => toast.error("Could not post the message", { description: error.message }),
@@ -47,15 +77,15 @@ export function ChatPage({ project }: { project: Project }) {
 	const join = useMutation({
 		mutationFn: (name: string) => client.chat.createChannel({ project: project.path, channel: name }),
 		onSuccess: (created) => {
-			setDraft("");
-			setChannel(created.name);
+			setDraft(rootId, channel, "");
+			setOpenChannel(rootId, created.name);
 			void invalidate();
 		},
 		onError: (error, name) => {
 			// A join of a channel that exists opens it, as on IRC.
 			if (channels.data?.some((existing) => existing.name === chatChannelName(name))) {
-				setDraft("");
-				setChannel(chatChannelName(name));
+				setDraft(rootId, channel, "");
+				setOpenChannel(rootId, chatChannelName(name));
 				return;
 			}
 			toast.error(`Could not create #${chatChannelName(name)}`, { description: error.message });
@@ -75,6 +105,24 @@ export function ChatPage({ project }: { project: Project }) {
 		if (switched || nearEnd) element.scrollTop = element.scrollHeight;
 		scrolledChannel.current = data.channel;
 	}, [messages.data]);
+
+	// The open channel counts as read while the tab is visible. A tab in the
+	// background keeps its unread dot until the reader comes back.
+	useEffect(() => {
+		const latest = messages.data?.latestId;
+		if (latest === undefined || latest === null) return;
+		const mark = () => {
+			if (document.visibilityState === "visible") markRead(rootId, messages.data!.channel, latest);
+		};
+		mark();
+		document.addEventListener("visibilitychange", mark);
+		return () => document.removeEventListener("visibilitychange", mark);
+	}, [messages.data, rootId, markRead]);
+
+	const mention = (text: string) => {
+		setDraft(rootId, channel, `${draft}${draft === "" || draft.endsWith(" ") ? "" : " "}${text}`);
+		input.current?.focus();
+	};
 
 	const submit = (event: FormEvent) => {
 		event.preventDefault();
@@ -98,35 +146,14 @@ export function ChatPage({ project }: { project: Project }) {
 				<span className="font-mono text-sm text-fg-muted">#{channel}</span>
 			</Topbar>
 			<div className="page-card flex flex-1 overflow-hidden">
-				<nav
-					aria-label="Channels"
-					className="flex w-44 shrink-0 flex-col overflow-y-auto border-r border-border py-2 max-md:w-28"
-				>
-					{channels.isPending && <p className="px-3 py-1 font-mono text-sm text-fg-muted">…</p>}
-					{channels.isError && (
-						<p role="alert" className="px-3 py-1 font-mono text-sm text-danger">
-							{channels.error.message}
-						</p>
-					)}
-					<ul className="flex flex-col">
-						{(channels.data ?? []).map((row) => (
-							<li key={row.name}>
-								<button
-									type="button"
-									aria-current={row.name === channel ? "page" : undefined}
-									onClick={() => setChannel(row.name)}
-									className={cx(
-										"flex h-7 w-full items-center gap-2 px-3 font-mono text-sm hover:bg-elevated focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11",
-										row.name === channel ? "bg-elevated font-medium text-fg" : "text-fg-muted",
-									)}
-								>
-									<span className="min-w-0 flex-1 truncate text-left">#{row.name}</span>
-									<span className="text-xs text-fg-faint tabular">{row.messageCount}</span>
-								</button>
-							</li>
-						))}
-					</ul>
-				</nav>
+				<ChannelList
+					channels={channels.data ?? []}
+					open={channel}
+					unread={unread}
+					pending={channels.isPending}
+					error={channels.isError ? channels.error.message : null}
+					onOpen={(name) => setOpenChannel(rootId, name)}
+				/>
 				<section aria-label={`#${channel} log`} className="flex min-w-0 flex-1 flex-col">
 					<ol ref={log} className="flex min-h-0 flex-1 flex-col overflow-y-auto py-2">
 						{messages.isPending && <li className="px-3 font-mono text-sm text-fg-muted">Load #{channel}…</li>}
@@ -144,24 +171,27 @@ export function ChatPage({ project }: { project: Project }) {
 								/>
 							</li>
 						)}
-						{items.map((message) => (
-							<ChatLine key={message.id} message={message} />
-						))}
+						{withDayRules(items, mention)}
 					</ol>
 					<form onSubmit={submit} className="flex items-center gap-2 border-t border-border px-3 py-2">
-						<span aria-hidden="true" className="shrink-0 font-mono text-sm text-fg-muted">
+						<span aria-hidden="true" className="w-16 shrink-0 truncate font-mono text-sm text-fg-muted">
 							#{channel}
 						</span>
 						<div className="min-w-0 flex-1">
 							<Input
+								ref={input}
 								label={`Message #${channel}`}
 								hideLabel
 								value={draft}
 								disabled={readOnly}
-								placeholder={readOnly ? "The project is archived." : "Message, or /join <channel>"}
+								placeholder={
+									readOnly
+										? "The project is archived."
+										: "Message, @manager to interrupt the manager, or /join <channel>"
+								}
 								autoComplete="off"
 								className="font-mono"
-								onChange={(event) => setDraft(event.target.value)}
+								onChange={(event) => setDraft(rootId, channel, event.target.value)}
 							/>
 						</div>
 					</form>

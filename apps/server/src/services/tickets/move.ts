@@ -9,7 +9,7 @@ import { fail } from "../../errors.ts";
 import { type Change, record } from "../activity.ts";
 import { assertProjectActive, resolveStatus, resolveTicket, type TicketRow } from "../refs.ts";
 import { type Anchor, type Anchors, placeBetween, renumberColumn } from "./position.ts";
-import { assertAgentMayComplete, assertVersion, stampColumns } from "./rules.ts";
+import { assertVersion, stampColumns } from "./rules.ts";
 
 // An anchor sits in the target column and is not the moved ticket itself.
 const resolveAnchor = async (ctx: ServiceCtx, tx: Tx, row: TicketRow, statusId: string, ref: string | undefined) => {
@@ -29,7 +29,6 @@ export const move = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 	await assertVersion(tx, row, input.expectedVersion);
 	const next = await resolveStatus(ctx, tx, { projectId: row.projectId, status: input.status });
 	const statusChanged = next.id !== row.statusId;
-	if (statusChanged) assertAgentMayComplete(ctx, next, input.force);
 	const anchors: Anchors = {
 		after: await resolveAnchor(ctx, tx, row, next.id, input.after),
 		before: await resolveAnchor(ctx, tx, row, next.id, input.before),
