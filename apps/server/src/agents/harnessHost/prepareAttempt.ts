@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { link, mkdir, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkCodexManagerVersion } from "./checkCodexManagerVersion/checkCodexManagerVersion.ts";
 import { checkOpenCodeVersion } from "./checkOpenCodeVersion.ts";
 import { claudeTrust } from "./claudeTrust.ts";
 import { providers } from "./providers.ts";
@@ -45,6 +46,7 @@ export async function prepareAttempt(
 		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
 	}
 	const executable = await resolveExecutable(input.harness, env.PATH ?? "");
+	if (input.harness === "codex" && input.kind === "manager") await checkCodexManagerVersion(executable, input.cwd, env);
 	if (input.harness === "opencode") await checkOpenCodeVersion(executable, input.cwd, env);
 	await mkdir(directory, { recursive: true, mode: 0o700 });
 	const hookCommand = `${quote(options.bun)} ${quote(fileURLToPath(new URL("./hook.ts", import.meta.url)))}`;

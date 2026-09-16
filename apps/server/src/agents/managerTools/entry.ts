@@ -1,9 +1,8 @@
 import { createInterface } from "node:readline";
-import { createTrellisClient } from "@trellis/api/client";
 import { z } from "zod";
+import { authenticatedManagerTools } from "./authenticatedManagerTools/authenticatedManagerTools.ts";
 import { managerProtocol } from "./managerProtocol";
 import { managerReadiness } from "./managerReadiness.ts";
-import { managerTools } from "./managerTools";
 
 const env = z
 	.object({
@@ -15,15 +14,7 @@ const env = z
 		TRELLIS_MANAGER_TOOLS_READY: z.string().optional(),
 	})
 	.parse(process.env);
-const client = createTrellisClient(env.TRELLIS_URL, env.TRELLIS_ACTOR, (request, init) => {
-	if (env.TRELLIS_AUTH_TOKEN) request.headers.set("authorization", `Bearer ${env.TRELLIS_AUTH_TOKEN}`);
-	request.headers.set("x-trellis-attempt", env.TRELLIS_ATTEMPT_TOKEN);
-	return fetch(request, init);
-}) as unknown as Record<string, Record<string, (input: unknown) => Promise<unknown>>>;
-const tools = managerTools((operation, input) => {
-	const [group, action] = operation.split(".") as [string, string];
-	return client[group]![action]!(input);
-});
+const tools = authenticatedManagerTools(env);
 const handle = managerProtocol(tools);
 const pending = new Set<Promise<void>>();
 for await (const line of createInterface({ input: process.stdin, crlfDelay: Infinity })) {
