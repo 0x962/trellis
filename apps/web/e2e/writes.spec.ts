@@ -80,6 +80,61 @@ test("writes > a label group and label persist in project settings", async ({ pa
 	await expect(page.getByRole("region", { name: "Type" }).getByText("Bug", { exact: true })).toBeVisible();
 });
 
+test("writes > label forms preserve focus after validation and cancel", async ({ page }) => {
+	await signIn(page, "/p/LBL/settings#labels");
+	const addGroup = page.getByRole("button", { name: "Add label group" });
+	await addGroup.click();
+
+	const groupName = page.getByRole("textbox", { name: "Group name" });
+	const createGroup = page.getByRole("button", { name: "Create group" });
+	await createGroup.focus();
+	await page.keyboard.press("Enter");
+	await expect(page.getByText("Enter a group name.")).toBeVisible();
+	await expect(groupName).toBeFocused();
+	await groupName.fill("Kind");
+	await createGroup.focus();
+	await page.keyboard.press("Enter");
+
+	const group = page.getByRole("region", { name: "Kind" });
+	const addLabel = group.getByRole("button", { name: "Add a label to Kind" });
+	await expect(addLabel).toBeFocused();
+
+	await addGroup.click();
+	const duplicateGroupName = page.getByRole("textbox", { name: "Group name" });
+	await duplicateGroupName.fill("Kind");
+	await createGroup.focus();
+	await page.keyboard.press("Enter");
+	await expect(page.getByText("Use a different group name.")).toBeVisible();
+	await expect(duplicateGroupName).toBeFocused();
+	await page.getByRole("button", { name: "Cancel" }).focus();
+	await page.keyboard.press("Enter");
+	await expect(addGroup).toBeFocused();
+
+	await addLabel.click();
+	const labelName = group.getByRole("textbox", { name: "Label name" });
+	const createLabel = group.getByRole("button", { name: "Create label" });
+	await createLabel.focus();
+	await page.keyboard.press("Enter");
+	await expect(group.getByText("Enter a label name.")).toBeVisible();
+	await expect(labelName).toBeFocused();
+	await labelName.fill("Task");
+	await createLabel.focus();
+	await page.keyboard.press("Enter");
+	await expect(group.getByText("Task", { exact: true })).toBeVisible();
+	await expect(addLabel).toBeFocused();
+
+	await addLabel.click();
+	const duplicateLabelName = group.getByRole("textbox", { name: "Label name" });
+	await duplicateLabelName.fill("Task");
+	await createLabel.focus();
+	await page.keyboard.press("Enter");
+	await expect(group.getByText("Use a different label name in this group.")).toBeVisible();
+	await expect(duplicateLabelName).toBeFocused();
+	await group.getByRole("button", { name: "Cancel" }).focus();
+	await page.keyboard.press("Enter");
+	await expect(addLabel).toBeFocused();
+});
+
 test("writes > the search page finds a ticket by a word of its title", async ({ page }) => {
 	await signIn(page, "/search?q=kestrel");
 	const results = page.getByRole("grid", { name: "Search results" });
