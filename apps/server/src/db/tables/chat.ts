@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, foreignKey, index, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
+import { bigint, boolean, check, foreignKey, index, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
 import { actorColumns, actorFk, at } from "./actors.ts";
 import { agentRuns } from "./agentRuns.ts";
 import { projects } from "./projects.ts";
@@ -15,6 +15,8 @@ export const chatChannels = pgTable(
 			.notNull()
 			.references(() => projects.id, { onDelete: "cascade" }),
 		name: text().notNull(),
+		// Only agents post in such a channel. `ai` is one.
+		aiOnly: boolean("ai_only").notNull().default(false),
 		...actorColumns(),
 		createdAt: at("created_at").notNull(),
 	},
@@ -75,5 +77,35 @@ export const chatDeliveries = pgTable(
 		unique("chat_deliveries_recipient").on(t.messageId, t.runId),
 		index("chat_deliveries_state_idx").on(t.state),
 		index("chat_deliveries_run_id_idx").on(t.runId),
+	],
+);
+
+// A file posted in a room. The blob on disk is named by `sha256` and shared
+// with ticket attachments of the same bytes; the boot sweep keeps every hash
+// a row of either table names.
+export const chatAttachments = pgTable(
+	"chat_attachments",
+	{
+		id: text().primaryKey(),
+		projectId: text("project_id")
+			.notNull()
+			.references(() => projects.id, { onDelete: "cascade" }),
+		filename: text().notNull(),
+		mime: text().notNull(),
+		size: bigint({ mode: "number" }).notNull(),
+		sha256: text().notNull(),
+		...actorColumns(),
+		createdAt: at("created_at").notNull(),
+	},
+	(t) => [
+		actorFk("chat_attachments_actor_fk", t),
+		check(
+			"chat_attachments_filename_check",
+			sql`length(${t.filename}) BETWEEN 1 AND 255 AND position('/' IN ${t.filename}) = 0`,
+		),
+		check("chat_attachments_size_check", sql`${t.size} > 0`),
+		check("chat_attachments_sha256_check", sql`${t.sha256} ~ '^[0-9a-f]{64}$'`),
+		index("chat_attachments_project_id_idx").on(t.projectId),
+		index("chat_attachments_sha256_idx").on(t.sha256),
 	],
 );

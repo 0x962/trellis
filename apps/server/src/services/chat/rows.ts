@@ -6,13 +6,14 @@ import type { Tx } from "../../db/tx.ts";
 export type RawChannel = {
 	project_id: string;
 	name: string;
+	ai_only: boolean;
 	message_count: number;
 	latest_id: string | null;
 	last_message_at: string | null;
 	created_at: string;
 };
 
-export const channelSelect = sql`SELECT c.project_id, c.name,
+export const channelSelect = sql`SELECT c.project_id, c.name, c.ai_only,
 	(SELECT count(*)::int FROM chat_messages m WHERE m.project_id = c.project_id AND m.channel = c.name) AS message_count,
 	(SELECT max(m.id) FROM chat_messages m WHERE m.project_id = c.project_id AND m.channel = c.name) AS latest_id,
 	(SELECT ${iso(sql`max(m.created_at)`)} FROM chat_messages m WHERE m.project_id = c.project_id AND m.channel = c.name) AS last_message_at,
@@ -21,6 +22,7 @@ export const channelSelect = sql`SELECT c.project_id, c.name,
 export const toChannel = (row: RawChannel): ChatChannel => ({
 	projectId: row.project_id,
 	name: row.name,
+	aiOnly: row.ai_only,
 	messageCount: row.message_count,
 	latestId: row.latest_id,
 	lastMessageAt: row.last_message_at,

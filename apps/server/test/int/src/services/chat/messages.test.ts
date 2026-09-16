@@ -41,6 +41,7 @@ const deliveries = () =>
 test("every root has #ai and #general, and a new root gets them at create", async () => {
 	const channels = await h.run((ctx, tx) => listChannels(ctx, tx, { project: "CDE" }));
 	expect(channels.map((channel) => channel.name)).toEqual(["ai", "general"]);
+	expect(channels.map((channel) => channel.aiOnly)).toEqual([true, false]);
 	expect(channels[0]).toMatchObject({ projectId: rootId, messageCount: 0, latestId: null, lastMessageAt: null });
 	await h.run((ctx, tx) => createProject(ctx, tx, { key: "NEW", name: "New" }));
 	const fresh = await h.run((ctx, tx) => listChannels(ctx, tx, { project: "NEW" }));
@@ -48,23 +49,43 @@ test("every root has #ai and #general, and a new root gets them at create", asyn
 });
 
 test("a sub-project shares the room of its root", async () => {
-	const posted = await h.run((ctx, tx) => post(ctx, tx, { project: "CDE.web", channel: "#AI", body: "hello" }));
+	const posted = await h.run((ctx, tx) => post(ctx, tx, { project: "CDE.web", channel: "#General", body: "hello" }));
 	expect(posted).toMatchObject({
 		projectId: rootId,
-		channel: "ai",
+		channel: "general",
 		body: "hello",
 		actor: { name: "dana", kind: "human" },
 	});
-	const page = await h.run((ctx, tx) => list(ctx, tx, { project: "CDE", channel: "ai" }));
+	const page = await h.run((ctx, tx) => list(ctx, tx, { project: "CDE", channel: "general" }));
 	expect(page.items.map((message) => message.id)).toEqual([posted.id]);
 	expect(page.latestId).toBe(posted.id);
 	expect(h.flushed).toContainEqual({
 		type: "chat.message",
 		id: posted.id,
 		projectId: rootId,
-		channel: "ai",
+		channel: "general",
+		aiOnly: false,
 		actor: { name: "dana", kind: "human" },
 	});
+});
+
+test("a person cannot post in a channel for agents only, and an agent can", async () => {
+	await expectError(
+		h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "ai", body: "hi agents" })),
+		"CHAT_AI_ONLY",
+	);
+	const posted = await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "ai", body: "plan" }), {
+		actor: { kind: "agent", name: "builder" },
+	});
+	expect(h.flushed).toContainEqual(expect.objectContaining({ type: "chat.message", id: posted.id, aiOnly: true }));
+	const created = await h.run((ctx, tx) => createChannel(ctx, tx, { project: "CDE", channel: "plans", aiOnly: true }), {
+		actor: { kind: "agent", name: "builder" },
+	});
+	expect(created.aiOnly).toBe(true);
+	await expectError(
+		h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "plans", body: "me too" })),
+		"CHAT_AI_ONLY",
+	);
 });
 
 test("a post reaches every live agent of the tree except its author", async () => {
@@ -76,27 +97,27 @@ test("a post reaches every live agent of the tree except its author", async () =
 });
 
 test("a mention by run id, persona name, or role restricts the recipients and marks them direct", async () => {
-	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "ai", body: "@builder rebase first" }));
+	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "general", body: "@builder rebase first" }));
 	expect((await deliveries()).map((row) => row.run_id)).toEqual(["builder"]);
 	expect(await h.rows(sql`SELECT direct FROM chat_deliveries`)).toEqual([{ direct: true }]);
 	await h.rows(sql`DELETE FROM chat_deliveries`);
-	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "ai", body: "@manager where are we?" }));
+	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "general", body: "@manager where are we?" }));
 	expect((await deliveries()).map((row) => row.run_id)).toEqual(["manager"]);
 	await h.rows(sql`DELETE FROM chat_deliveries`);
-	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "ai", body: "@Careful Reviewer take TRL-1" }));
+	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "general", body: "@Careful Reviewer take TRL-1" }));
 	expect((await deliveries()).map((row) => row.run_id)).toEqual(["reviewer"]);
 	await h.rows(sql`DELETE FROM chat_deliveries`);
-	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "ai", body: "@nobody is here" }));
+	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "general", body: "@nobody is here" }));
 	expect((await deliveries()).map((row) => row.run_id)).toEqual(["builder", "manager", "reviewer"]);
 	expect(await h.rows(sql`SELECT DISTINCT direct FROM chat_deliveries`)).toEqual([{ direct: false }]);
 });
 
 test("a message shows the delivery state of each recipient", async () => {
-	const posted = await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "ai", body: "@Trellis ping" }));
+	const posted = await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "general", body: "@Trellis ping" }));
 	expect(posted.notifications).toEqual([
 		{ runId: "manager", personaName: "Trellis", state: "pending", error: null, direct: true },
 	]);
-	const page = await h.run((ctx, tx) => list(ctx, tx, { project: "CDE", channel: "ai" }));
+	const page = await h.run((ctx, tx) => list(ctx, tx, { project: "CDE", channel: "general" }));
 	expect(page.items[0]!.actor).toEqual({ name: "dana", kind: "human" });
 });
 
@@ -128,11 +149,11 @@ test("a channel create refuses a duplicate name", async () => {
 test("after reads only what follows one id, and the default read is the newest page", async () => {
 	const ids: string[] = [];
 	for (const body of ["one", "two", "three"]) {
-		ids.push((await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "ai", body }))).id);
+		ids.push((await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "general", body }))).id);
 	}
-	const tail = await h.run((ctx, tx) => list(ctx, tx, { project: "CDE", channel: "ai", after: ids[0] }));
+	const tail = await h.run((ctx, tx) => list(ctx, tx, { project: "CDE", channel: "general", after: ids[0] }));
 	expect(tail.items.map((message) => message.body)).toEqual(["two", "three"]);
-	const newest = await h.run((ctx, tx) => list(ctx, tx, { project: "CDE", channel: "ai", limit: 2 }));
+	const newest = await h.run((ctx, tx) => list(ctx, tx, { project: "CDE", channel: "general", limit: 2 }));
 	expect(newest.items.map((message) => message.body)).toEqual(["two", "three"]);
 	expect(newest.latestId).toBe(ids[2]!);
 });
@@ -141,7 +162,7 @@ test("an archived root refuses a post and a channel", async () => {
 	await h.rows(sql`UPDATE projects SET archived_at = now() WHERE id = ${rootId}`);
 	await h.rebuild();
 	await expectError(
-		h.run((ctx, tx) => post(ctx, tx, { project: "CDE.web", channel: "ai", body: "x" })),
+		h.run((ctx, tx) => post(ctx, tx, { project: "CDE.web", channel: "general", body: "x" })),
 		"PROJECT_ARCHIVED",
 	);
 	await expectError(
@@ -151,7 +172,7 @@ test("an archived root refuses a post and a channel", async () => {
 });
 
 test("a project delete removes its room", async () => {
-	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "ai", body: "bye" }));
+	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "general", body: "bye" }));
 	await h.rows(sql`DELETE FROM agent_runs`);
 	await h.rows(sql`DELETE FROM tickets`);
 	await h.rows(sql`DELETE FROM projects WHERE id = ${childId}`);

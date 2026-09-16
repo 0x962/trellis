@@ -18,6 +18,7 @@ test("a chat message invalidates the chat queries and nothing else", () => {
 		id: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
 		projectId: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
 		channel: "ai",
+		aiOnly: true,
 		actor: { name: "dana", kind: "human" },
 	});
 	advanceTo(1000);

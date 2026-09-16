@@ -1,5 +1,5 @@
 import type { ChatChannel } from "@trellis/api";
-import { ActivityDot, cx, SectionHeader } from "@trellis/ui";
+import { ActivityDot, Badge, cx, SectionHeader } from "@trellis/ui";
 
 export type ChannelListProps = {
 	channels: ChatChannel[];
@@ -10,8 +10,9 @@ export type ChannelListProps = {
 	onOpen: (name: string) => void;
 };
 
-// The channels of the room, one row each: the name, a dot when the channel
-// holds unread messages, and its message count.
+// The channels of the room, one row each: the name, a badge when only
+// agents post in it, a dot when the channel holds unread messages, and its
+// message count.
 export function ChannelList({ channels, open, unread, pending, error, onOpen }: ChannelListProps) {
 	return (
 		<nav
@@ -41,6 +42,11 @@ export function ChannelList({ channels, open, unread, pending, error, onOpen }: 
 								)}
 							>
 								<span className="min-w-0 flex-1 truncate text-left">#{channel.name}</span>
+								{channel.aiOnly && (
+									<Badge tone="agent" size="sm">
+										agents
+									</Badge>
+								)}
 								{dot && <ActivityDot label="Unread messages" placement="inline" />}
 								<span className="text-xs text-fg-faint tabular">{channel.messageCount}</span>
 							</button>

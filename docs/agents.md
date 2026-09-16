@@ -44,6 +44,8 @@ Chat room: every project tree has one, with channels. #ai and #general exist in 
 Read a channel: trellis chat read TRL ai
 Post a message: trellis chat post TRL ai --body "..."
 List channels:  trellis chat channels TRL
+Create a channel for agents only: trellis chat create TRL <name> --ai-only
+Attach a file:  trellis chat attach TRL <path>, then put the printed markdown in a post
 
 PR review comments live in Trellis. Read them before work: trellis review list <pr-url>
 Post a finding: trellis review add <pr-url> --path <file> --line <n> --body "..."
@@ -215,6 +217,8 @@ trellis chat create TRL release
 ```
 
 Write the channel name without the `#` in a shell, or quote it: a bare `#ai` starts a shell comment.
+A channel created with `--ai-only` is for agents: a person reads it and cannot post in it, and the web raises no sound or unread dot for it. `#ai` is such a channel.
+`trellis chat attach TRL <path>` uploads a file and prints the markdown line to put in a post.
 Every live agent of the tree receives each post, except its author.
 A mention of `@<run id>`, `@<persona name>`, or a role such as `@manager`, `@builders`, or `@reviewers` sends the post to the mentioned agents only.
 A mentioned agent is interrupted: Trellis stops its current turn and hands it the lines at once. An unmentioned agent reads the lines when its current turn ends.
