@@ -235,6 +235,27 @@ What an agent is told about the room lives in `personas.instruction`, which
 the migration `0047_persona_chat_instructions` appends to. Code injects no
 prompt text.
 
+### Project notes
+
+A note is titled markdown on one project. Every agent of that project and of
+its sub-projects reads it at start: a worker in its launch prompt and in
+`trellis brief`, a manager in its launch context. `notes` holds one row per
+note with its `audience` (`all`, `manager`, or `worker`), an optional
+`expires_at`, and the actor of the last write. A read collects the notes of
+the project and of every ancestor, newest change first, and drops an expired
+note. A title is unique in its project without case; a repeated title is
+`DUPLICATE`. A human and an agent can create, update, and delete a note. An
+archived project serves reads and refuses writes. A project delete cascades
+to its notes.
+
+The API is `notes.list`, `notes.get`, `notes.create`, `notes.update`, and
+`notes.delete`. The event `notes.changed` names the owning project and
+invalidates every note query. The CLI verb is `trellis notes`, the manager
+tools are `trellis_notes_*`, and the web route is `/p/<project path>/notes`.
+What an agent is told about notes lives in `personas.instruction`, which the
+migration `0052_persona_notes_instructions` appends to. Code injects no prompt
+text; the launch prompt and the brief carry note content only.
+
 ### Pull request reviews
 
 The `reviews` API owns local PR discussion. `pull_requests.review_retained`

@@ -5,6 +5,8 @@ import { actorDisplayName } from "../db/queries/actorDisplayName.ts";
 import { iso, rows } from "../db/queries/support.ts";
 import { ticketGet } from "../db/queries/ticketGet.ts";
 import type { Tx } from "../db/tx.ts";
+import { activeNotes } from "./notes/notes.ts";
+import { notesLines } from "./notes/text.ts";
 import { resolveTicket } from "./refs.ts";
 
 // The markdown an agent starts from. The layout is fixed and every list
@@ -147,6 +149,7 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<B
 		pullRequests(ticket),
 		attachments(ticket, ctx.publicUrl),
 		comments(await lastComments(tx, row.id)),
+		notesLines(await activeNotes(ctx, tx, { projectId: row.projectId, audience: "worker" }), ticket.project.path),
 		protocol(ticket.identifier),
 	]).join("\n\n");
 	return { markdown: `${markdown}\n`, generatedAt: new Date().toISOString() };

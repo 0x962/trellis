@@ -23,6 +23,11 @@ Read a channel: trellis chat read KEY ai
 Post a message: trellis chat post KEY ai --body "..."
 List channels:  trellis chat channels KEY
 
+Project notes: facts, current state, and decisions that every agent of the project reads at start. Write one when you learn something the next agent must know.
+Read the notes: trellis notes list KEY
+Write a note: trellis notes add KEY --title "..." --body "..."
+Update or remove one: trellis notes edit <id> --body "..." / trellis notes rm <id>
+
 PR review comments live in Trellis. Read them before work: trellis review list <pr-url>
 Post a finding: trellis review add <pr-url> --path <file> --line <n> --body "..."
 Reply: trellis review reply <thread-id> --body "..."

@@ -209,6 +209,11 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "chat.channels":
 				enqueue([family("chat")]);
 				return;
+			// A sub-project lists the notes of its ancestors too, so every note
+			// list refetches.
+			case "notes.changed":
+				enqueue([family("notes")]);
+				return;
 			case "pr.linked":
 			case "pr.unlinked":
 			case "pr.updated":

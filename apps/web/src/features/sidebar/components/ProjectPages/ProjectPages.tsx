@@ -18,13 +18,15 @@ export function ProjectPages({
 	const manager = pathname.endsWith("/settings/manager");
 	const settings = pathname.endsWith("/settings");
 	const chat = pathname.endsWith("/chat");
+	const notes = pathname.endsWith("/notes");
 	return (
 		<li>
 			<nav aria-label={`${project.name} pages`}>
 				<ul className="flex flex-col">
 					{[
-						{ label: "Tickets", suffix: "", active: current && !settings && !manager && !chat },
+						{ label: "Tickets", suffix: "", active: current && !settings && !manager && !chat && !notes },
 						{ label: "Chat", suffix: "/chat", active: current && chat },
+						{ label: "Notes", suffix: "/notes", active: current && notes },
 						{ label: "Settings", suffix: "/settings", active: current && settings },
 					].map(({ label, suffix, active }) => (
 						<li key={label}>

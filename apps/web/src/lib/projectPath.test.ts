@@ -26,6 +26,8 @@ describe("lib/projectPath", () => {
 		expect(parseProjectSplat("CDE/settings")).toEqual({ ref: "CDE", view: "settings" });
 		expect(parseProjectSplat("CDE/web/chat")).toEqual({ ref: "CDE.web", view: "chat" });
 		expect(projectHref("CDE.web", "chat")).toBe("/p/CDE/web/chat");
+		expect(parseProjectSplat("CDE/notes")).toEqual({ ref: "CDE", view: "notes" });
+		expect(projectHref("CDE", "notes")).toBe("/p/CDE/notes");
 	});
 
 	// WS-39. The URL keeps slashes; the API ref joins with dots. The
