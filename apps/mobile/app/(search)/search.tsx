@@ -7,8 +7,9 @@ import { Field } from "../../src/components/Field";
 import { pushRecent, readRecents, recentSearchesKey, replaceRecent } from "../../src/features/search/recentSearches";
 import { SearchResults } from "../../src/features/search/SearchResults";
 import { identifierOf, isSearchable, searchLimit } from "../../src/features/search/searchQuery";
+import { describeError } from "../../src/lib/describeError";
 import { getQueries } from "../../src/lib/orpc";
-import { store } from "../../src/lib/store";
+import { keys, store } from "../../src/lib/store";
 import { useDebouncedValue } from "../../src/lib/useDebouncedValue";
 import { useStoredString } from "../../src/lib/useStoredString";
 import { tokens } from "../../src/theme/tokens";
@@ -91,7 +92,7 @@ export default function SearchScreen() {
 					</View>
 				)
 			) : search.isPending ? null : search.isError ? (
-				<EmptyState title="Search failed" hint="Check the server and try again." />
+				<EmptyState title="Search failed" hint={describeError(search.error, store.getString(keys.serverUrl)!).detail} />
 			) : search.data.tickets.length === 0 ? (
 				<EmptyState title={`No results for “${query}”`} />
 			) : (
