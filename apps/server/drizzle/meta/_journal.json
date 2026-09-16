@@ -288,6 +288,13 @@
       "when": 1789565921144,
       "tag": "0043_restore_manager_next_actions",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1789565921145,
+      "tag": "0044_remove_repository_approval",
+      "breakpoints": true
     }
   ]
 }

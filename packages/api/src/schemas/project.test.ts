@@ -3,9 +3,9 @@ import { DEFAULT_PROJECT_MANAGER_CONFIG, ProjectManagerConfigSchema } from "./pr
 
 const base = { personaId: null, concurrency: 3, directory: "" };
 
-test("new projects use the local runtime and require repository trust", () => {
+test("new projects use the local runtime without a repository approval flag", () => {
 	expect(DEFAULT_PROJECT_MANAGER_CONFIG.ade).toBe("native");
-	expect(DEFAULT_PROJECT_MANAGER_CONFIG.trustedDirectory).toBe(false);
+	expect(DEFAULT_PROJECT_MANAGER_CONFIG).not.toHaveProperty("trustedDirectory");
 	expect(DEFAULT_PROJECT_MANAGER_CONFIG.harness.preset).toBe("claude");
 });
 
@@ -27,9 +27,8 @@ test("a custom harness preserves its start and resume commands", () => {
 	expect(ProjectManagerConfigSchema.parse({ ...base, harness }).harness).toEqual(harness);
 });
 
-test("directory trust requires an explicit project choice", () => {
-	expect(ProjectManagerConfigSchema.parse(base).trustedDirectory).toBe(false);
-	expect(ProjectManagerConfigSchema.parse({ ...base, trustedDirectory: true }).trustedDirectory).toBe(true);
+test("the project schema rejects the removed repository approval field", () => {
+	expect(ProjectManagerConfigSchema.safeParse({ ...base, trustedDirectory: true }).success).toBe(false);
 });
 
 test("tool permissions default to allowed and preserve an explicit opt out", () => {

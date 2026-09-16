@@ -35,7 +35,7 @@ beforeEach(async () => {
 		ticket = await seedTicket(tx, { projectId: project, rootId: project, statusId: status });
 		persona = ulid();
 		await tx.execute(
-			sql`UPDATE projects SET manager_config='{"personaId":null,"concurrency":3,"ade":"native","directory":"/tmp","trustedDirectory":true}'::jsonb WHERE id=${project}`,
+			sql`UPDATE projects SET manager_config='{"personaId":null,"concurrency":3,"ade":"native","directory":"/tmp"}'::jsonb WHERE id=${project}`,
 		);
 		await tx.execute(
 			sql`INSERT INTO personas (id,name,kind,instruction,created_at,updated_at) VALUES (${persona},'Flow worker','builder','Frozen persona',now(),now())`,

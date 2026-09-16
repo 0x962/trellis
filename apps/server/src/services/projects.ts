@@ -48,8 +48,6 @@ export const DEFAULT_TICKET_TEMPLATE = "## Context\n\n## Acceptance criteria\n- 
 
 export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput): Promise<Project> => {
 	requireActor(ctx);
-	if (ctx.actor?.kind !== "human" && input.managerConfig?.trustedDirectory)
-		throw invalidInput("managerConfig.trustedDirectory", "A person must trust the repository before an agent uses it.");
 	if (input.managerConfig?.personaId != null) {
 		const [persona] = await rows<{ kind: string }>(
 			tx,
@@ -98,12 +96,6 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 		!managerConfigOf(row).allowAllPermissions
 	)
 		throw invalidInput("managerConfig.allowAllPermissions", "A person must enable automatic tool permissions.");
-	if (
-		ctx.actor?.kind !== "human" &&
-		input.managerConfig?.trustedDirectory &&
-		(!managerConfigOf(row).trustedDirectory || managerConfigOf(row).directory !== input.managerConfig.directory)
-	)
-		throw invalidInput("managerConfig.trustedDirectory", "A person must trust the repository before an agent uses it.");
 	if (input.managerConfig?.personaId != null) {
 		const [persona] = await rows<{ kind: string }>(
 			tx,

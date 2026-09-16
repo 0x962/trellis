@@ -8,7 +8,7 @@ import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 import { readNativeWork } from "../agentRuns/nativeControl.ts";
 import { reserve } from "../agentRuns/reserve.ts";
-import { managerConfigOf, projectRow } from "../projectRows.ts";
+import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { readExecution } from "./queries.ts";
 import { saveState } from "./saveState.ts";
 export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) {
@@ -18,10 +18,10 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 	const actions = pendingFlowActions(execution.doc, state).filter((action) => action.type === "agent");
 	if (actions.length === 0 || (await readNativeWork(tx)).paused) return null;
 	await tx.execute(sql`SELECT id FROM projects WHERE id=${execution.project_id} FOR UPDATE`);
-	const config = managerConfigOf(await projectRow(tx, execution.project_id));
+	const config = await projectLaunchConfig(tx, { projectId: execution.project_id });
 	if (config.dispatchPaused) return null;
-	if (config.ade !== "native" || config.harness.preset === "custom" || !config.trustedDirectory)
-		throw invalidInput("project", "The flow requires a trusted project with a built-in harness.");
+	if (config.ade !== "native" || config.harness.preset === "custom")
+		throw invalidInput("project", "The flow requires a built-in harness.");
 	const [active] = await rows<{ count: number }>(
 		tx,
 		sql`SELECT count(*)::int AS count FROM agent_runs WHERE project_id=${execution.project_id} AND kind<>'manager' AND closed_at IS NULL`,

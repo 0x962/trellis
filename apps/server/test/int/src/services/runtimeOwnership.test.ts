@@ -8,20 +8,19 @@ afterEach(async () => {
 	await t.close();
 });
 
-test("new projects persist explicit native settings and require human repository trust", async () => {
+test("people and agents create native projects without repository approval", async () => {
 	t = await createTestApp();
 	const managerConfig = { personaId: null, concurrency: 3, directory: "/tmp", ade: "native" as const };
 	const project = await t.client.projects.create({ key: "NEW", name: "Native project", managerConfig });
-	expect(project.managerConfig).toMatchObject({ ade: "native", trustedDirectory: false });
-	await expect(
-		t.as("agent:fixture").projects.create({
-			key: "BAD",
-			name: "Unapproved trust",
-			managerConfig: { ...managerConfig, trustedDirectory: true },
-		}),
-	).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
+	expect(project.managerConfig).not.toHaveProperty("trustedDirectory");
+	const created = await t.as("agent:fixture").projects.create({ key: "AGT", name: "Agent project", managerConfig });
+	expect(created.managerConfig!.directory).toBe("/tmp");
+	const updated = await t
+		.as("agent:fixture")
+		.projects.update({ project: "AGT", managerConfig: { ...created.managerConfig!, directory: "/tmp/other" } });
+	expect(updated.managerConfig!.directory).toBe("/tmp/other");
 	const defaults = await t.client.projects.create({ key: "OLD", name: "Default project" });
-	expect(defaults.managerConfig?.ade).toBe("native");
+	expect(defaults.managerConfig!.ade).toBe("native");
 });
 
 test("a person can change tool permissions but an agent cannot enable them", async () => {

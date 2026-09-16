@@ -60,7 +60,6 @@ test.each(["custom", "codex"] as const)(
 					personaId: null,
 					concurrency: 1,
 					directory: "/tmp",
-					trustedDirectory: true,
 					harness: { preset, startCommand: "/bin/true", resumeCommand: "/bin/true" },
 				}),
 				resume: false,
@@ -97,7 +96,6 @@ test.each([
 		concurrency: 1,
 		directory: "/tmp",
 		ade: "native",
-		trustedDirectory: true,
 	});
 	const replacement = kind === "replaced" ? randomUUID() : attemptId;
 	const retire = () =>
@@ -144,7 +142,6 @@ test.each(["workspace", "environment"])(
 					personaId: null,
 					concurrency: 1,
 					directory: "/missing",
-					trustedDirectory: true,
 				}),
 				resume: false,
 				context: "Fixture",
@@ -205,7 +202,6 @@ test("an uncertain launch reply keeps the assignment open for process inspection
 						personaId: null,
 						concurrency: 1,
 						directory: "/tmp",
-						trustedDirectory: true,
 					}),
 					resume: false,
 					context: "Fixture",
@@ -268,7 +264,6 @@ test.each(["acknowledged", "unknown"])("a Claude start waits for its initial pro
 					personaId: null,
 					concurrency: 1,
 					directory: "/tmp",
-					trustedDirectory: true,
 				}),
 				resume: false,
 				context: "Fixture",
@@ -294,4 +289,29 @@ test.each(["acknowledged", "unknown"])("a Claude start waits for its initial pro
 	} finally {
 		await new Promise<void>((resolve) => server.close(() => resolve()));
 	}
+});
+
+test("an empty root directory reports a configuration error before runtime launch", async () => {
+	let runtimeCalled = false;
+	await startNative(
+		context(),
+		{
+			run: await h.read((tx) => getRun(tx, id)),
+			config: ProjectManagerConfigSchema.parse({ personaId: null, concurrency: 3, directory: "" }),
+			resume: false,
+			context: "Fixture",
+			attempt: { id: attemptId, generation: 1, token: "fixture-token" },
+		},
+		{
+			env: {},
+			runtime: async () => {
+				runtimeCalled = true;
+				throw new Error("Unexpected runtime start");
+			},
+		},
+	);
+	expect(runtimeCalled).toBe(false);
+	expect((await h.read((tx) => getRun(tx, id))).error).toBe(
+		"Select the local repository directory before you start a native agent.",
+	);
 });

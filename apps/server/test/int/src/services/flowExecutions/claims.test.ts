@@ -5,7 +5,7 @@ import { ulid } from "ulid";
 import { start } from "../../../../../src/services/flowExecutions/start.ts";
 import * as flows from "../../../../../src/services/flows/flows.ts";
 import { save } from "../../../../../src/services/flows/save.ts";
-import { seedActors, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
+import { seedActors, seedChild, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../fixtures/tickets.ts";
 import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
@@ -35,7 +35,7 @@ beforeEach(async () => {
 		ticket = await seedTicket(tx, { projectId: project, rootId: project, statusId: status });
 		persona = ulid();
 		await tx.execute(
-			sql`UPDATE projects SET manager_config='{"personaId":null,"concurrency":3,"ade":"native","directory":"/tmp","trustedDirectory":true}'::jsonb WHERE id=${project}`,
+			sql`UPDATE projects SET manager_config='{"personaId":null,"concurrency":3,"ade":"native","directory":"/tmp"}'::jsonb WHERE id=${project}`,
 		);
 		await tx.execute(
 			sql`INSERT INTO personas (id,name,kind,instruction,created_at,updated_at) VALUES (${persona},'Flow worker','builder','Frozen persona',now(),now())`,
@@ -69,6 +69,18 @@ beforeEach(async () => {
 	);
 });
 const input = () => ({ flow, ticket, defaultPersonaId: persona, expectedVersion: 2, requestId: randomUUID() });
+test("a child flow starts and claims an agent with its inherited directory", async () => {
+	const child = await h.read((tx) => seedChild(tx, project, project, "child"));
+	await h.rows(sql`UPDATE tickets SET project_id=${child} WHERE id=${ticket}`);
+	await h.rebuild();
+	await h.rows(sql`UPDATE flow_nodes SET kind='agent' WHERE flow_id=${flow}`);
+	const execution = await h.run((ctx, tx) => start(ctx, tx, input()));
+	const { claimNext } = await import("../../../../../src/services/flowExecutions/claimNext.ts");
+	const claim = await h.run((ctx, tx) => claimNext(ctx, tx, { id: execution.id }));
+	expect(claim?.attempt.id).toBeTruthy();
+	expect(claim?.config.directory).toBe("/tmp");
+});
+
 test("a claimed flow task binds one ordinary attempt across concurrent claims", async () => {
 	await h.rows(sql`UPDATE flow_nodes SET kind='agent' WHERE flow_id=${flow}`);
 	const execution = await h.run((ctx, tx) => start(ctx, tx, input()));
@@ -236,7 +248,7 @@ test("a changed project configuration records a visible flow failure", async () 
 	await h.rows(sql`UPDATE flow_nodes SET kind='agent' WHERE flow_id=${flow}`);
 	const execution = await h.run((ctx, tx) => start(ctx, tx, input()));
 	await h.rows(
-		sql`UPDATE projects SET manager_config=jsonb_set(manager_config,'{trustedDirectory}','false') WHERE id=${project}`,
+		sql`UPDATE projects SET manager_config=jsonb_set(manager_config,'{harness}','{"preset":"custom","startCommand":"/bin/true","resumeCommand":"/bin/true"}'::jsonb) WHERE id=${project}`,
 	);
 	const { prepareFlowReconcile } = await import("../../../../../src/services/flowExecutions/prepareFlowReconcile.ts");
 	const { get } = await import("../../../../../src/services/flowExecutions/queries.ts");
@@ -262,7 +274,7 @@ test("a changed project configuration records a visible flow failure", async () 
 	);
 	const result = await h.run((ctx, tx) => get(ctx, tx, { id: execution.id }));
 	expect(result.state.status).toBe("failed");
-	expect(result.state.error).toContain("trusted");
+	expect(result.state.error).toContain("built-in harness");
 });
 
 test("a flow waits until its persona assignment closes", async () => {
