@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { QueryClient } from "@tanstack/react-query";
-import { errors, type Ticket } from "@trellis/api";
+import type { Ticket } from "@trellis/api";
 import { ticketDetailKey } from "../../../../../src/ticket/ticketQueries";
 import { runTicketUpdate, updateMessage } from "../../../../../src/ticket/ticketUpdate/ticketUpdate";
 import { createMobileApp, type MobileApp } from "../../../../testApp";
@@ -46,7 +46,7 @@ describe("runTicketUpdate", () => {
 		);
 		const error = await attempt.catch((rejection: unknown) => rejection);
 		expect(error).toMatchObject({ code: "VERSION_CONFLICT" });
-		expect(updateMessage(error)).toBe(errors.VERSION_CONFLICT.message);
+		expect(updateMessage(error)).toBe(`${identifier} changed first. The row shows the other version.`);
 		const cached = queryClient.getQueryData<Ticket>(key)!;
 		expect(cached.priority).toBe("high");
 		expect(cached.version).toBe(retitled.version);

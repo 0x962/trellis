@@ -1,4 +1,5 @@
-import type { Priority, TrellisClient } from "@trellis/api";
+import type { Priority, Ticket, TrellisClient } from "@trellis/api";
+import { conflictCurrent, conflictMessage } from "../../lib/conflict";
 
 // Every palette action. Each one takes the page's own context, so the
 // actor header of the page reaches the server and the effects stay
@@ -16,6 +17,8 @@ export type ActionContext = {
 	copy: (text: string) => Promise<void>;
 	confirm: (message: string) => Promise<boolean>;
 	notify: (message: string, options?: NotifyOptions) => void;
+	// Puts a row the server sent into every cached list and detail entry.
+	applyCurrent: (current: Ticket) => void;
 	// Opens a URL outside the app.
 	openUrl: (url: string) => void;
 	navigate: (to: string) => void;
@@ -26,10 +29,19 @@ export type ActionTicket = { identifier: string; title: string };
 
 // The server is a boundary. A refused write says so and offers the same
 // call again, so nothing is lost between the palette and the database.
+// A 412 is the exception: another actor wrote the ticket first, that
+// version goes into the cache, and the person gets no retry, because a
+// retry would write over it before the person reads it.
 const write = async (context: ActionContext, message: string, call: () => Promise<unknown>): Promise<void> => {
 	try {
 		await call();
-	} catch {
+	} catch (error) {
+		const current = conflictCurrent(error);
+		if (current !== null) {
+			context.applyCurrent(current);
+			context.notify(conflictMessage(current.identifier));
+			return;
+		}
 		context.notify(message, { retry: () => void write(context, message, call) });
 	}
 };
