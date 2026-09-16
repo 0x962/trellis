@@ -158,6 +158,7 @@ describe("invalidation", () => {
 	const attachmentsKey = (id: string) => queryKey(["attachments", "list"], { ticket: id });
 	const timelineKey = (id: string) => queryKey(["timeline", "list"], { ticket: id });
 	const statusesKey = queryKey(["statuses", "list"], { project: "CDE" });
+	const labelGroupsKey = queryKey(["labelGroups", "list"], { project: "CDE" });
 	const projectsListKey = queryKey(["projects", "list"]);
 	const projectKey = queryKey(["projects", "get"], { project: "CDE" });
 	const ghKey = queryKey(["system", "gh"]);
@@ -180,6 +181,7 @@ describe("invalidation", () => {
 			queryClient.setQueryData(timelineKey(id), { items: [], nextCursor: null });
 		}
 		queryClient.setQueryData(statusesKey, { statuses: [], inheritedFrom: null });
+		queryClient.setQueryData(labelGroupsKey, { groups: [] });
 		queryClient.setQueryData(projectsListKey, []);
 		queryClient.setQueryData(projectKey, { id: projectId });
 		queryClient.setQueryData(ghKey, { ok: true });
@@ -222,6 +224,11 @@ describe("invalidation", () => {
 			},
 			// A status rename or a reviewer change alters the `status` inside
 			// every cached summary without a ticket row change. So every query that holds a summary refetches.
+			{
+				event: { type: "labels.changed" as const, projectId },
+				invalidated: [labelGroupsKey],
+				untouched: [statusesKey, projectsListKey, projectKey, listKey, detailKey, searchKey, ghKey, healthKey],
+			},
 			{
 				event: { type: "statuses.changed" as const, projectId },
 				invalidated: [statusesKey, projectsListKey, projectKey, listKey, detailKey, searchKey],

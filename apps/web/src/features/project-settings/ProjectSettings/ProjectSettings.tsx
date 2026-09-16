@@ -1,6 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import type { Project } from "@trellis/api";
 import { projectSlashPath } from "../../../lib/projectPath";
+import { LabelSettings } from "../LabelSettings";
 import { ManagerSettings } from "../ManagerSettings";
 import { ProjectDetailsForm } from "../ProjectDetailsForm";
 import { ProjectLifecycle } from "../ProjectLifecycle";
@@ -15,6 +16,7 @@ const sections = [
 	{ id: "", label: "General", component: ProjectDetailsForm },
 	{ id: "template", label: "Ticket template", component: TicketTemplateSettings },
 	{ id: "statuses", label: "Statuses", component: StatusSettings },
+	{ id: "labels", label: "Labels", component: LabelSettings },
 	{ id: "repositories", label: "Repositories", component: RepoSettings },
 	{ id: "manager", label: "Copilot", component: null },
 	{ id: "harness", label: "Harness", component: null },

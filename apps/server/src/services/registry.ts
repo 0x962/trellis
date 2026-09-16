@@ -38,6 +38,7 @@ import * as flows from "./flows/flows.ts";
 import * as flowSave from "./flows/save.ts";
 import * as harnessAccounts from "./harnessAccounts/harnessAccounts.ts";
 import { prepareQuota } from "./harnessAccounts/quota.ts";
+import * as labelGroups from "./labelGroups.ts";
 import * as needsYou from "./needsYou/needsYou.ts";
 import * as notes from "./notes/notes.ts";
 import * as personas from "./personas.ts";
@@ -213,6 +214,9 @@ export const services = {
 	"flows.update": core("mutation", flows.update),
 	"flows.save": core("mutation", flowSave.save),
 	"flows.delete": core("mutation", flows.remove),
+	"labelGroups.list": core("read", labelGroups.list),
+	"labelGroups.create": core("mutation", labelGroups.create),
+	"labelGroups.createLabel": core("mutation", labelGroups.createLabel),
 	"projects.list": core("read", projects.list),
 	"projects.get": core("read", projects.get),
 	"projects.create": core("mutation", projects.create),

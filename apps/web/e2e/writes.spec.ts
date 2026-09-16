@@ -16,6 +16,7 @@ test.beforeAll(() => {
 	createTicket("WRT", "Ship the kestrel export");
 	createTicket("WRT", "Write the export docs", ["--parent", "WRT-1"]);
 	ensureProject("STS", "Statuses");
+	ensureProject("LBL", "Labels");
 });
 
 // Add opens the create dialog with this ticket as the parent, so a
@@ -59,6 +60,24 @@ test("writes > a status added in project settings shows in the status list", asy
 	await expect(page.getByRole("listitem").filter({ hasText: "Security Review" })).toBeVisible();
 	await page.reload();
 	await expect(page.getByRole("listitem").filter({ hasText: "Security Review" })).toBeVisible();
+});
+
+test("writes > a label group and label persist in project settings", async ({ page }) => {
+	await signIn(page, "/p/LBL/settings#labels");
+	await page.getByRole("button", { name: "Add label group" }).click();
+	await page.getByRole("textbox", { name: "Group name" }).fill("Type");
+	await page.getByRole("button", { name: "Create group" }).click();
+	const group = page.getByRole("region", { name: "Type" });
+	await expect(group).toBeVisible();
+	const addLabel = group.getByRole("button", { name: "Add a label to Type" });
+	await expect(addLabel).toBeFocused();
+	await addLabel.click();
+	await group.getByRole("textbox", { name: "Label name" }).fill("Bug");
+	await group.getByRole("button", { name: "Create label" }).click();
+	await expect(group.getByText("Bug", { exact: true })).toBeVisible();
+	await expect(addLabel).toBeFocused();
+	await page.reload();
+	await expect(page.getByRole("region", { name: "Type" }).getByText("Bug", { exact: true })).toBeVisible();
 });
 
 test("writes > the search page finds a ticket by a word of its title", async ({ page }) => {
