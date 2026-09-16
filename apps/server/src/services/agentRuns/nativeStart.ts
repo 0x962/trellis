@@ -110,7 +110,9 @@ export const startNative = async (
 				id: terminalId,
 				...(run.kind === "manager"
 					? { kind: "manager", managerId: run.id, managerSystemPrompt: run.instruction }
-					: { kind: run.kind }),
+					: run.kind === "session"
+						? {}
+						: { kind: run.kind }),
 				harness: config.harness.preset,
 				cwd: workspaceId,
 				prompt: input.resumePrompt ?? launchPrompt({ run, url: ctx.localUrl, context }),
