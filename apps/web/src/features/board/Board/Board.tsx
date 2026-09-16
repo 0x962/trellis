@@ -1,4 +1,3 @@
-import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
 import {
 	type BoardOutput,
@@ -13,6 +12,7 @@ import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState }
 import { flushSync } from "react-dom";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
+import { conflictCurrent, conflictMessage, errorMessage } from "../../../lib/conflict";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { useCommandContext } from "../../command/hooks/useCommandContext";
 import { composerActions } from "../../composer/composerStore";
@@ -111,18 +111,25 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 				});
 				applier.endMutation(move.ticket.id, result);
 			} catch (error) {
-				applier.endMutation(move.ticket.id);
+				// The board snapshot goes back before the applier writes. The
+				// other order puts the snapshot over the row the server holds,
+				// and the card keeps the version this page sent.
 				context.queryClient.setQueryData(boardOptions.queryKey, snapshot);
-				const failed = `${move.ticket.identifier} did not move to ${move.column.name}.`;
-				if (error instanceof ORPCError && error.code === "VERSION_CONFLICT") {
-					const message = `${failed} Another actor changed the ticket first.`;
+				const conflict = conflictCurrent(error);
+				applier.endMutation(move.ticket.id, conflict ?? undefined);
+				// The card now holds the other actor's version. A retry would
+				// write over that version before the person reads it, so the
+				// toast offers none.
+				if (conflict !== null) {
+					const message = conflictMessage(move.ticket.identifier);
 					announce(message);
 					toast.error(message);
 					return;
 				}
+				const failed = `${move.ticket.identifier} did not move to ${move.column.name}.`;
 				announce(failed);
 				toast.error(failed, {
-					description: error instanceof Error ? error.message : String(error),
+					description: errorMessage(error),
 					action: { label: "Retry", onClick: () => void runMove(move, chosen) },
 				});
 			}

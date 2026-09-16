@@ -3,7 +3,7 @@ import { toast } from "@trellis/ui";
 import { useMemo } from "react";
 import { useArchivedProjects } from "../../../../hooks/useArchivedProjects";
 import { useApp } from "../../../../lib/appContext";
-import { conflictCurrent } from "../../../../lib/conflict";
+import { conflictCurrent, conflictMessage } from "../../../../lib/conflict";
 import { failToast } from "../../../../lib/failToast";
 import { patchRows, readRow } from "../../utils/cacheRows";
 
@@ -83,7 +83,15 @@ export const useTicketMutations = (): TicketMutations => {
 				applier.endMutation(current.id, result);
 			} catch (error) {
 				revert([current]);
-				applier.endMutation(current.id, conflictCurrent(error) ?? undefined);
+				const conflict = conflictCurrent(error);
+				applier.endMutation(current.id, conflict ?? undefined);
+				// The row now holds the other actor's version. A retry would
+				// write over it before the person reads it, so the toast
+				// offers none.
+				if (conflict !== null) {
+					toast.error(conflictMessage(current.identifier), { duration: 6000 });
+					return;
+				}
 				failToast(verb(current.identifier), error, () => void update(current, fields, patch, verb));
 			}
 		};
