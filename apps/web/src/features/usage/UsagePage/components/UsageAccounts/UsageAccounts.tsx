@@ -86,7 +86,7 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 								<h3 className="truncate text-md font-medium text-fg">{account.name}</h3>
 								<span className="shrink-0 text-xs text-fg-faint">
 									{harnessLabel[account.harness]}
-									{account.isDefault ? " · Default" : ""}
+									{account.isDefault ? ` · Default${account.defaultSource === "superset" ? " via SuperSet" : ""}` : ""}
 								</span>
 							</div>
 							{account.quota.email && (

@@ -131,6 +131,9 @@ export const UsageAccountSchema = z.object({
 	harness: AccountHarnessSchema,
 	profilePath: z.string(),
 	isDefault: z.boolean(),
+	// Where the default comes from: the SuperSet pointer file, the Trellis
+	// default flag, or the plain login of the harness. Null when not default.
+	defaultSource: z.enum(["superset", "trellis", "system"]).nullable(),
 	// The shell command that signs the profile in again. The card shows it
 	// when the quota reports an expired or missing sign-in.
 	loginCommand: z.string().nullable(),

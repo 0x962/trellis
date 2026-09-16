@@ -37,12 +37,13 @@ test("the default login of a quota harness joins the list unless an account alre
 		isDefault: false,
 	});
 	const logins = await usageLogins([work, named], { HOME: home });
-	expect(logins.map((login) => [login.key, login.harness, login.isDefault])).toEqual([
-		["account:Work", "claude", true],
-		["account:Home", "codex", false],
-		// The default Claude login is not an account, so it joins with a
-		// default flag of false, because Work is the Claude default.
-		["default:claude", "claude", false],
+	expect(logins.map((login) => [login.key, login.harness, login.isDefault, login.defaultSource])).toEqual([
+		["account:Work", "claude", true, "trellis"],
+		// No Codex account holds the flag, so the plain Codex login is the
+		// default, and Home is the account that names that directory.
+		["account:Home", "codex", true, "system"],
+		// The default Claude login is not an account, and Work holds the flag.
+		["default:claude", "claude", false, null],
 	]);
 	expect(logins[2]!.profilePath).toBe(join(home, ".claude"));
 	expect(logins.map((login) => login.sharedWith)).toEqual([[], [], []]);
@@ -55,7 +56,7 @@ test("a harness with no account and no profile directory adds no login", async (
 	dirs.push(home);
 	await mkdir(join(home, ".claude"), { recursive: true });
 	const logins = await usageLogins([], { HOME: home });
-	expect(logins.map((login) => [login.key, login.name, login.isDefault])).toEqual([
-		["default:claude", "Default login", true],
+	expect(logins.map((login) => [login.key, login.name, login.isDefault, login.defaultSource])).toEqual([
+		["default:claude", "Default login", true, "system"],
 	]);
 });
