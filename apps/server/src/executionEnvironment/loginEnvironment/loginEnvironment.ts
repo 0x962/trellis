@@ -24,10 +24,17 @@ const executeLoginShell = (shell: string, env: NodeJS.ProcessEnv, timeoutMs: num
 		let stdoutBytes = 0;
 		let failure: LoginShellFailure | undefined;
 		let timer: ReturnType<typeof setTimeout> | undefined;
+		const rejectAfterCleanup = (error: LoginShellFailure) => {
+			failure = error;
+			if (timer) clearTimeout(timer);
+			killProcessGroup(child.pid!);
+			child.stdout.destroy();
+			child.stderr.destroy();
+			reject(error);
+		};
 		child.once("spawn", () => {
 			timer = setTimeout(() => {
-				failure = { killed: true };
-				killProcessGroup(child.pid!);
+				rejectAfterCleanup({ killed: true });
 			}, timeoutMs);
 		});
 		child.once("error", (error) => {
@@ -37,8 +44,7 @@ const executeLoginShell = (shell: string, env: NodeJS.ProcessEnv, timeoutMs: num
 		child.stdout.on("data", (chunk: Buffer) => {
 			stdoutBytes += chunk.length;
 			if (stdoutBytes > maxBufferBytes) {
-				failure = { code: "ERR_CHILD_PROCESS_STDIO_MAXBUFFER" };
-				killProcessGroup(child.pid!);
+				rejectAfterCleanup({ code: "ERR_CHILD_PROCESS_STDIO_MAXBUFFER" });
 				return;
 			}
 			stdout.push(chunk);
@@ -54,9 +60,6 @@ const executeLoginShell = (shell: string, env: NodeJS.ProcessEnv, timeoutMs: num
 
 // A loaded host runs the interactive startup files in 6 s or more. The limit
 // leaves room for that load and still ends a shell that hangs in a startup file.
-// A startup file can start a background process that keeps stdout open. Then a
-// successful read waits for the full limit, because execute settles only when
-// every process closes stdout or the limit destroys the pipe.
 const loginShellTimeoutMs = 30000;
 
 export const loginEnvironment = async (

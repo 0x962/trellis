@@ -1,9 +1,19 @@
-import { expect, test } from "bun:test";
+import { expect, mock, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { originDir } from "../../../../../../../test/originDir.ts";
+import { createExecutionEnvironment } from "../../../../../src/executionEnvironment/executionEnvironment.ts";
 import { loginEnvironment } from "../../../../../src/executionEnvironment/loginEnvironment/loginEnvironment.ts";
+
+const killProcessGroup = (pid: number) => {
+	try {
+		process.kill(-pid, "SIGKILL");
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
+	}
+};
 
 test("a login shell supplies the agent PATH while bundled executables stay first", async () => {
 	const home = await mkdtemp(join(tmpdir(), "trellis-login-env-"));
@@ -60,6 +70,49 @@ test("an interactive zsh that hangs in a startup file ends at the limit", async 
 		expect(childState.status === 0 || childState.status === 1).toBe(true);
 		expect(childState.stdout.trim() === "" || childState.stdout.trim().startsWith("Z")).toBe(true);
 	} finally {
+		await rm(home, { recursive: true, force: true });
+	}
+});
+
+test("a detached startup child cannot hold the login environment after the limit", async () => {
+	const home = await mkdtemp(join(tmpdir(), "trellis-login-detached-"));
+	const pidFile = join(home, "detached-child-pid");
+	const fixture = join(
+		originDir(import.meta.dir),
+		"..",
+		"..",
+		"..",
+		"test",
+		"fixtures",
+		"loginEnvironment",
+		"detachedChild.mjs",
+	);
+	let detachedPid: number | undefined;
+	try {
+		const resolve = mock((shell: string, bundledBin: string, env: NodeJS.ProcessEnv) =>
+			loginEnvironment(shell, bundledBin, env, 1000),
+		);
+		const get = createExecutionEnvironment(
+			{
+				HOME: home,
+				PATH: process.env.PATH,
+				TRELLIS_DETACHED_CHILD_PID_FILE: pidFile,
+				TRELLIS_EXECUTION_BIN: "/bundled/bin",
+				TRELLIS_EXECUTION_SHELL: fixture,
+			},
+			resolve,
+		);
+
+		const startedAt = performance.now();
+		await expect(get()).rejects.toThrow("Login shell exceeded 1000 ms.");
+		expect(performance.now() - startedAt).toBeLessThan(3000);
+		detachedPid = Number(await readFile(pidFile, "utf8"));
+		expect(() => process.kill(detachedPid!, 0)).not.toThrow();
+
+		await expect(get()).resolves.toMatchObject({ TRELLIS_LOGIN_RETRY: "ready" });
+		expect(resolve).toHaveBeenCalledTimes(2);
+	} finally {
+		if (detachedPid) killProcessGroup(detachedPid);
 		await rm(home, { recursive: true, force: true });
 	}
 });
