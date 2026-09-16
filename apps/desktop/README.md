@@ -84,6 +84,10 @@ The test copies the app and uses a unique service label. It redirects the produc
 
 ## Production install
 
+The [Trellis SRE persona](../../docs/personas/trellis-sre.md) owns release batches for the TRL project.
+The manager assigns one SRE to all eligible Deploy Queue tickets, with one build, install, and restart for the batch.
+The SRE saves a release checkpoint before restart and verifies restored sessions afterward.
+
 Merge the source changes into `main`. Push `main` to `origin`. Run this command from a clean `main` checkout at the current `origin/main` commit:
 
 ```sh

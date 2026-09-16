@@ -16,6 +16,8 @@ trellis is a local ticket tracker for agent-driven work. `docs/ARCHITECTURE.md` 
 
 ## Desktop install
 
+The Trellis SRE persona owns production releases for TRL. Route approved Deploy Queue tickets to one SRE through the project manager. Group eligible tickets into one merge, test, build, install, and restart cycle. Other workers hand off release work instead of deploying independently. Read [the SRE instructions](docs/personas/trellis-sre.md) before a deployment assignment.
+
 Production builds require a clean `main` checkout at the current `origin/main` commit. Merge each feature branch into `main` and push it before a production build. Never build a production app from a feature branch or a detached commit. This rule also applies to `--prepare` candidates. Do not bypass the production installer.
 
 Run `bun run desktop:install` from the `main` checkout. The command builds and verifies a fresh package, then copies it to `~/Applications/Trellis.app`. The copy leaves Trellis open. Restart Trellis to activate the package. A changed package stops active agents and resumes their saved sessions on the new runtime. Manually stopped agents stay stopped. See [the desktop guide](apps/desktop/README.md#production-install) for candidate builds and verification.
