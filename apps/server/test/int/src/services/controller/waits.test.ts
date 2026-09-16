@@ -85,7 +85,7 @@ test("a saved assignment identifier starts its worker before the wait deadline",
 		{ now: secondsAfter(9) },
 	);
 	expect(await h.rows(sql`SELECT id FROM agent_runs WHERE ticket_id=${ticketId}`)).toEqual([{ id: started.run.id }]);
-	expect(await h.one(sql`SELECT state FROM manager_next_actions`)).toEqual({ state: "assigned" });
+	expect(await h.one<{ state: string }>(sql`SELECT state FROM manager_next_actions`)).toEqual({ state: "assigned" });
 });
 
 test("a dependency wait wakes when its ticket reaches Done and rechecks a reopened dependency", async () => {
@@ -106,7 +106,7 @@ test("a dependency wait wakes when its ticket reaches Done and rechecks a reopen
 		}),
 	);
 	expect(started.run.ticketId).toBe(ticketId);
-	expect(await h.one(sql`SELECT state FROM manager_next_actions`)).toEqual({ state: "assigned" });
+	expect(await h.one<{ state: string }>(sql`SELECT state FROM manager_next_actions`)).toEqual({ state: "assigned" });
 });
 
 test("a canceled dependency does not count as successful completion", async () => {
