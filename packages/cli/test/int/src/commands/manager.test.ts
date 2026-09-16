@@ -32,3 +32,23 @@ test("manager handle reports invalid JSON before an API call", async () => {
 	expect(result.code).toBe(2);
 	expect(result.calls).toEqual([]);
 });
+
+test("manager actions supports project, state, and pagination", async () => {
+	const result = await runCli(["manager", "actions", "--project", "CDE", "--state", "waiting", "--before", "action"], {
+		"projects.get": project(),
+		"controller.actions": [],
+	});
+	expect(result.code).toBe(0);
+	expect(result.calls[1]).toMatchObject({
+		path: "controller.actions",
+		input: { projectId, state: "waiting", before: "action" },
+	});
+});
+
+test("manager cancel-action sends the saved action identifier", async () => {
+	const result = await runCli(["manager", "cancel-action", "action"], {
+		"controller.cancelAction": { id: "action", state: "canceled" },
+	});
+	expect(result.code).toBe(0);
+	expect(result.calls[0]).toMatchObject({ path: "controller.cancelAction", input: { id: "action" } });
+});

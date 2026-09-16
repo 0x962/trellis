@@ -2,10 +2,11 @@ import { sql } from "drizzle-orm";
 import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { notFound } from "../support.ts";
+import { pending, refresh } from "./nextActions/queries.ts";
 import { readySession } from "./readySession.ts";
 import type { ControllerCtx, ControllerInput, Dispatch } from "./types.ts";
 
-export const dispatchColumns = sql`id, project_id AS "projectId", run_id AS "runId", terminal_id AS "terminalId", session_id AS "sessionId", generation, state, work_state AS "workState", outcomes, ${iso(sql`handled_at`)} AS "handledAt", events, ${iso(sql`due_at`)} AS "dueAt", error`;
+export const dispatchColumns = sql`id, project_id AS "projectId", run_id AS "runId", terminal_id AS "terminalId", session_id AS "sessionId", generation, state, work_state AS "workState", outcomes, next_actions AS "nextActions", ${iso(sql`handled_at`)} AS "handledAt", events, ${iso(sql`due_at`)} AS "dueAt", error`;
 const columns = dispatchColumns;
 
 export const list = (
@@ -29,9 +30,10 @@ export const claim = async (ctx: ControllerCtx, tx: Tx, input: ControllerInput):
 		run_id: string;
 		terminal_id: string;
 		session_id: string | null;
+		events: Dispatch["events"];
 	}>(
 		tx,
-		sql`SELECT d.id, d.project_id, r.id AS run_id, r.terminal_id, r.session_id
+		sql`SELECT d.id, d.project_id, d.events, r.id AS run_id, r.terminal_id, r.session_id
 			FROM manager_dispatches d JOIN projects p ON p.id = d.project_id
 			JOIN agent_runs r ON r.project_id = p.id AND r.kind = 'manager' AND r.closed_at IS NULL
 			WHERE d.state = 'pending' AND d.due_at <= ${ctx.now} AND r.terminal_id IS NOT NULL
@@ -53,9 +55,15 @@ export const claim = async (ctx: ControllerCtx, tx: Tx, input: ControllerInput):
 		tx,
 		sql`UPDATE manager_controller_cursors SET generation = generation + 1 WHERE project_id = ${next.project_id} RETURNING generation`,
 	);
+	await refresh(tx, { now: ctx.now, projectId: next.project_id });
+	const nextActions = (await pending(tx, { projectId: next.project_id }))
+		.filter((action) => action.eligibleAt !== null || next.events.some((event) => event.ticketId === action.ticketId))
+		.slice(0, 100);
+	for (const action of nextActions.filter((action) => action.eligibleAt !== null))
+		await tx.execute(sql`UPDATE manager_next_actions SET notified_at=${ctx.now} WHERE id=${action.id}`);
 	const [delivery] = await rows<Dispatch>(
 		tx,
-		sql`UPDATE manager_dispatches SET state = 'sending', generation = ${cursor!.generation}, run_id = ${next.run_id}, terminal_id = ${next.terminal_id}, session_id = ${next.session_id}, updated_at = ${ctx.now}
+		sql`UPDATE manager_dispatches SET state = 'sending', next_actions=${JSON.stringify(nextActions)}::jsonb, generation = ${cursor!.generation}, run_id = ${next.run_id}, terminal_id = ${next.terminal_id}, session_id = ${next.session_id}, updated_at = ${ctx.now}
 		WHERE id = ${next.id} AND state = 'pending' RETURNING ${columns}`,
 	);
 	return delivery!;

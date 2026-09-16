@@ -36,3 +36,24 @@ test("manager outcomes pass through REST and RPC and reject invalid boundary inp
 	expect(result.body.outcomes).toEqual(input.outcomes);
 	expect(await t.client.controller.list({ projectId: project.id, unhandled: true })).toEqual([]);
 });
+
+test("a queued outcome creates a next action through RPC and REST can cancel it", async () => {
+	const project = await t.client.projects.create({ key: "NXT", name: "Next actions" });
+	const ticket = await t.client.tickets.create({ project: project.id, title: "Capacity wait" });
+	await t.editServerTx(async (tx) => {
+		await tx.execute(sql`INSERT INTO manager_dispatches (id,project_id,generation,state,events,due_at,created_at,updated_at)
+			VALUES ('capacity',${project.id},1,'sent',${JSON.stringify([{ id: 1, ticketId: ticket.id, action: "ticket.created", actor: { name: "dana", kind: "human" }, createdAt: new Date().toISOString() }])}::jsonb,now(),now(),now())`);
+	});
+	await t.client.controller.handle({
+		id: "capacity",
+		generation: 1,
+		outcomes: [{ ticketId: ticket.id, status: "queued", reason: "Wait for a worker." }],
+	});
+	const actions = await t.client.controller.actions({ projectId: project.id, state: "waiting" });
+	expect(actions).toHaveLength(1);
+	expect(actions[0]).toMatchObject({ ticketId: ticket.id, state: "waiting", runId: null });
+	const canceled = await t.api(`/api/manager-actions/${actions[0]!.id}/cancel`, { method: "POST", body: {} });
+	expect(canceled.status).toBe(200);
+	expect(canceled.body.state).toBe("canceled");
+	expect(await t.client.controller.actions({ projectId: project.id, state: "waiting" })).toEqual([]);
+});

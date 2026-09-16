@@ -1,3 +1,4 @@
+import type { ManagerNextAction } from "@trellis/api/contract";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import type { RequestContext } from "../../context.ts";
 
@@ -26,6 +27,7 @@ export type Dispatch = {
 	state: "pending" | "sending" | "sent" | "unknown";
 	workState: "untracked" | "open" | "handled";
 	outcomes: WorkOutcome[];
+	nextActions: ManagerNextAction[];
 	handledAt: string | null;
 	events: ControllerEvent[];
 	dueAt: string;

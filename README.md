@@ -14,6 +14,8 @@ Agents use the `trellis` CLI or the HTTP API. Each write records the name of the
 
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) describes the stack, the domain rules, the schema, and the API.
 
+The [persistent agent research](docs/research/persistent-agents.md) compares public designs and links to the proposed first improvement for the manager.
+
 ## macOS desktop preview
 
 The desktop includes Bun, Node, a local host, and a separate execution runtime. Native ticket work uses Git and the selected agent executable.
