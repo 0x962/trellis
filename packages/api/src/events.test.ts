@@ -30,6 +30,7 @@ describe("events", () => {
 			"ready",
 			"reset",
 			"reviews.changed",
+			"sessions.changed",
 			"statuses.changed",
 			"ticket.created",
 			"ticket.deleted",

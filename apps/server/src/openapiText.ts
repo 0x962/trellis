@@ -18,6 +18,7 @@ export const TAGS = [
 	{ name: "controller", description: "Durable manager messages and uncertain delivery decisions." },
 	{ name: "flow executions", description: "Saved flow versions, local worker attempts, and human decisions." },
 	{ name: "reviews", description: "Local PR reviews, diff revisions, comments, submissions, and agent notifications." },
+	{ name: "sessions", description: "Scratch sessions: a git repository with one agent, outside every project." },
 	{ name: "personas", description: "Saved personas. Each persona has a name and an instruction." },
 	{
 		name: "flows",
@@ -270,5 +271,6 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 		defaultActorName: "dana",
 	},
 	"POST /agent-runs": { personaId: "01J9Z0000000000000000000A1", ticket: "CDE-42" },
+	"POST /sessions": { prompt: "Prototype a rate limiter in Go.", harness: { preset: "claude" } },
 	"POST /agent-runs/{id}/send": { text: "The CI run is red. Read the failing step and fix it." },
 };

@@ -18,6 +18,7 @@ import { projects } from "./projects.ts";
 import { pullRequests } from "./pullRequests.ts";
 import { reviews } from "./reviews";
 import { search } from "./search.ts";
+import { sessions } from "./sessions.ts";
 import { settings } from "./settings.ts";
 import { statuses } from "./statuses.ts";
 import { submanagers } from "./submanagers.ts";
@@ -51,6 +52,7 @@ export const contract = {
 	notes: oc.tag("notes").router(notes),
 	attachments: oc.tag("attachments").router(attachments),
 	pullRequests: oc.tag("pull requests").router(pullRequests),
+	sessions: oc.tag("sessions").router(sessions),
 	search: oc.tag("search").router(search),
 	brief: oc.tag("brief").router(brief),
 	actors: oc.tag("actors").router(actors),

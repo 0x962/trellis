@@ -3,18 +3,18 @@ import { type SQL, sql } from "drizzle-orm";
 
 export type CapacityObservation = { sessions?: RuntimeProcessStatus[] };
 
-// A reserved attempt can lack a runtime record or an initial prompt receipt.
-// Unknown attempts retain capacity until the runtime confirms that work stopped.
+// Short turns do not consume the worker budget. Each runtime observation measures continuous work at its own check time.
 export const occupiesSlot = (terminalId: SQL, { sessions = [] }: CapacityObservation) => {
-	const inactive = sessions
+	const active = sessions
 		.filter(
 			(session) =>
-				session.status === "exited" ||
-				(session.status === "running" &&
-					session.controllable &&
-					((session.activity?.state === "idle" && session.acknowledgedMessageIds.includes(session.id)) ||
-						session.agent?.outcome != null)),
+				session.status === "running" &&
+				session.controllable &&
+				session.agent?.outcome == null &&
+				session.activity?.state === "working" &&
+				session.activity.workingSince !== undefined &&
+				Date.parse(session.checkedAt) - Date.parse(session.activity.workingSince) >= 10_000,
 		)
 		.map((session) => session.id);
-	return sql`(${terminalId} IS NULL OR ${terminalId} NOT IN (SELECT jsonb_array_elements_text(${JSON.stringify(inactive)}::jsonb)))`;
+	return sql`${terminalId} IN (SELECT jsonb_array_elements_text(${JSON.stringify(active)}::jsonb))`;
 };

@@ -11,13 +11,15 @@ import {
 } from "@phosphor-icons/react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ActivityDot, cx, IconButton, Kbd, Tooltip } from "@trellis/ui";
-import type { ReactElement, ReactNode } from "react";
+import { type ReactElement, type ReactNode, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
 import { useNeedsYouSummary } from "../../../../needs-you/useNeedsYou";
 import { ActorFooter } from "../../../ActorFooter";
 import { ArchivedProjects } from "../../../ArchivedProjects";
+import { NewSessionDialog } from "../../../NewSessionDialog";
 import { ProjectTree } from "../../../ProjectTree";
+import { SessionList } from "../../../SessionList";
 import { ConnectionPanel } from "../ConnectionPanel";
 
 const rowClass =
@@ -73,13 +75,13 @@ export type SidebarBodyProps = {
 };
 
 // What the sidebar holds: the collapse button, the seven fixed destinations,
-// the project tree, and the actor footer. The desktop aside and the phone
-// sheet both draw it. The phone sheet closes in its own way, so it has no
-// collapse button.
+// the sessions, the project tree, and the actor footer. The desktop aside
+// and the phone sheet both draw it. The phone sheet closes in its own way,
+// so it has no collapse button.
 //
-// The project tree is the one region that scrolls and takes the spare
-// height. Every fixed destination sits above it, so none of them moves when
-// the tree grows.
+// The sessions and the project tree share the one region that scrolls and
+// takes the spare height. Every fixed destination sits above it, so none of
+// them moves when the region grows.
 //
 // The highlight follows the page the outlet shows. A navigation changes the
 // URL at once but keeps the old page until the new one loads, so the
@@ -91,6 +93,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const toggleLabel = collapsed ? "Expand sidebar" : "Collapse sidebar";
+	const [newSession, setNewSession] = useState(false);
 
 	return (
 		<>
@@ -140,6 +143,19 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 			</nav>
 			<div hidden={collapsed} className="mt-3 min-h-0 flex-1 overflow-y-auto pb-2">
 				<div className="sidebar-section">
+					<h2>Sessions</h2>
+					<Tooltip content="New session">
+						<IconButton
+							size="xs"
+							className="pointer-coarse:size-11 pointer-coarse:before:inset-0"
+							label="New session"
+							icon={<Plus />}
+							onClick={() => setNewSession(true)}
+						/>
+					</Tooltip>
+				</div>
+				<SessionList />
+				<div className="sidebar-section mt-3">
 					<h2>Projects</h2>
 					<Tooltip content="New project">
 						<IconButton
@@ -154,6 +170,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 				<ProjectTree />
 				<ArchivedProjects />
 			</div>
+			<NewSessionDialog open={newSession} onOpenChange={setNewSession} />
 			<div className="mt-auto shrink-0">
 				<ConnectionPanel status={status} />
 				<ActorFooter collapsed={collapsed} />

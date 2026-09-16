@@ -16,6 +16,7 @@ import { projects } from "./projects.ts";
 import { pullRequests } from "./pullRequests.ts";
 import { actors, brief, search, settings, timeline } from "./reads.ts";
 import { reviews } from "./reviews";
+import { sessions } from "./sessions.ts";
 import { statuses } from "./statuses.ts";
 import { submanagers } from "./submanagers.ts";
 import { system } from "./system.ts";
@@ -35,6 +36,7 @@ export const router = os.router({
 	controller,
 	reviews,
 	agentRuns,
+	sessions,
 	personas,
 	flows,
 	flowExecutions,

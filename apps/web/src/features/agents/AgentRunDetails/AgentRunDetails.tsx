@@ -7,6 +7,7 @@ import { useApp } from "../../../lib/appContext";
 import { hasAssignedProcess } from "../hasAssignedProcess";
 import { isAgentWorking } from "../isAgentWorking";
 import { NativeTerminal } from "../NativeTerminal";
+import { personaKindOf } from "../personaKindOf";
 
 export type AgentRunDetailsProps = {
 	run: AgentRun;
@@ -41,7 +42,7 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 						<Avatar
 							kind="agent"
 							name={run.personaName}
-							personaKind={run.kind}
+							personaKind={personaKindOf(run.kind)}
 							state={isAgentWorking(run) ? "working" : "static"}
 						/>
 						<div className="min-w-0">

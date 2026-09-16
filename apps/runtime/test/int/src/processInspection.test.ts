@@ -124,12 +124,18 @@ test("automatic delivery writes during a turn and repeats no message", async () 
 	const outcomes = await Promise.all([client.deliver(id, "first", bytes), client.deliver(id, "second", bytes)]);
 	expect(outcomes.map((outcome) => outcome.status)).toEqual(["written", "written"]);
 	await client.turn(id, "idle-token", "UserPromptSubmit", "first");
-	expect((await client.inspect(id)).activity?.state).toBe("working");
+	const working = (await client.inspect(id)).activity!;
+	expect(working.state).toBe("working");
+	expect(working.workingSince).toBe(working.updatedAt);
+	await client.turn(id, "idle-token", "UserPromptSubmit", "second");
+	expect((await client.inspect(id)).activity?.workingSince).toBe(working.workingSince);
 	expect((await client.deliver(id, "third", bytes)).status).toBe("written");
 	expect((await client.deliver(id, "first", bytes)).status).toBe("written");
 	await expect(client.deliver(id, "first", Buffer.from("two\n").toString("base64"))).rejects.toThrow(
 		"already has different bytes",
 	);
+	await client.turn(id, "idle-token", "Stop");
+	expect((await client.inspect(id)).activity).not.toHaveProperty("workingSince");
 	await client.stop(id);
 });
 
