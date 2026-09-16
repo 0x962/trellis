@@ -177,12 +177,12 @@ Read the [implementation status](desktop/implementation-status.md), [desktop pla
 ## Domain rules
 
 Personas are local records shared across projects. Each persona has a name and
-an instruction, and a kind: builder, reviewer, or manager. The AI section of the
-sidebar opens the Personas page at `/ai/personas`, with cards grouped by kind and
+an instruction, and a kind: builder, reviewer, or manager. The Personas link of
+the sidebar opens the Personas page at `/ai/personas`, with cards grouped by kind and
 a slideout to create, edit, and delete these records. The API exposes
-`personas.list`, `personas.create`, `personas.update`, and `personas.delete`.
-There is no route that reads one persona, so a client reads the list and matches
-on the id or the name. `personas.list` sorts by name, then id. The
+`personas.list`, `personas.get`, `personas.create`, `personas.update`, and
+`personas.delete`. `personas.get` reads one persona by id. A client with a name
+reads the list and matches on the name. `personas.list` sorts by name, then id. The
 `personas.changed` event invalidates the cached persona list after a committed
 mutation. A persona name holds 120 characters and an instruction holds 200,000
 characters. Both fields are required and neither may be blank. A persona that
@@ -362,7 +362,7 @@ Suffix `m` means minutes; prefix `m` means months. Past times require a future d
 ### Flows
 
 A flow is a graph of agent steps that trellis runs against a target, such as a
-pull request. Flows are local records shared across projects. The AI section of
+pull request. Flows are local records shared across projects. The Flows link of
 the sidebar opens the Flows page at `/ai/flows`, and each flow opens in a canvas
 editor at `/ai/flows/<slug>`. The slug comes from the name at create time, and
 a collision takes the next free suffix: `review`, `review-2`.
@@ -464,10 +464,10 @@ time. The first section of each page carries no hash.
 The Manager page holds the manager persona, repository directory, dispatch state, concurrency limit, and harness commands.
 It writes `projects.managerConfig` through `projects.update`.
 
-The sidebar holds the workspace row, Needs you, Search, All tickets, the project
-tree, the AI section with the Personas and Flows links, and the actor footer. The
-project tree is the one region that scrolls, so the AI links keep their place at
-any tree height.
+The sidebar holds the workspace row, Needs you, Search, All tickets, Pull
+requests, Personas, Flows, the project tree, and the actor footer. The project
+tree is the one region that scrolls, so the fixed links keep their place at any
+tree height.
 Each project row shows the Trellis mark and opens the manager terminal at
 `/p/<path>/settings/manager`. Tickets and Settings appear below it.
 The selected state follows the current page for root, nested, and archived projects.
@@ -571,7 +571,7 @@ returns one canonical spelling.
 | attachments.list, upload, get, delete | GET, POST /api/tickets/{ticket}/attachments; GET, DELETE /api/attachments/{id} | the bytes come from GET /api/attachments/{id}/file |
 | pullRequests.list, link, unlink, refresh | GET, POST /api/tickets/{ticket}/prs; DELETE /api/tickets/{ticket}/prs/{id}; POST /api/prs/{id}/refresh | a link is idempotent |
 | pullRequests.diff | GET /api/prs/{id}/diff | `gh pr diff`, cut at 1 MB, cached for 60 s |
-| personas.list, create, update, delete | GET, POST /api/personas; PATCH, DELETE /api/personas/{id} | no route reads one persona |
+| personas.list, get, create, update, delete | GET, POST /api/personas; GET, PATCH, DELETE /api/personas/{id} | the manager tool list omits instructions; get reads one |
 | flows.list, get, create, update, save, delete | GET, POST /api/flows; GET, PATCH, DELETE /api/flows/{flow}; PUT /api/flows/{flow}/graph | `{flow}` is a ULID or a slug; save replaces every node and edge |
 | agentRuns.list, start | GET, POST /api/agent-runs | start answers 201 with the row in any state |
 | agentRuns.stop, refresh, send | POST /api/agent-runs/{id}/stop, /refresh, /send | send takes 1 to 20000 characters |

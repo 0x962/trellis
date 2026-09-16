@@ -84,7 +84,7 @@ name, an instruction, and one kind.
 | reviewer | one ticket | the same picker |
 | manager | one project | the Manager page of the project |
 
-Open the Personas page from the AI section of the sidebar, at `/ai/personas`.
+Open the Personas page from the Personas link of the sidebar, at `/ai/personas`.
 The cards group by kind. A slideout creates, edits, and deletes a record.
 
 A name holds 1 to 120 characters and an instruction holds 1 to 200,000

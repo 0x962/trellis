@@ -165,6 +165,7 @@ export const services = {
 	"agentRuns.stop": agentMutation(agentLifecycle.prepareStop),
 	"agentRuns.refresh": agentMutation(agentLifecycle.prepareRefresh),
 	"personas.list": core("read", personas.list),
+	"personas.get": core("read", personas.get),
 	"personas.create": core("mutation", personas.create),
 	"personas.update": core("mutation", personas.update),
 	"personas.delete": core("mutation", personas.remove),

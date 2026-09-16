@@ -71,7 +71,7 @@ export type SidebarBodyProps = {
 	onCollapse?: () => void;
 };
 
-// What the sidebar holds: the collapse button, the four fixed destinations,
+// What the sidebar holds: the collapse button, the six fixed destinations,
 // the project tree, and the actor footer. The desktop aside and the phone
 // sheet both draw it. The phone sheet closes in its own way, so it has no
 // collapse button.
@@ -133,9 +133,6 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 				/>
 				<NavRow to="/all" icon={<Ticket />} label="All tickets" active={isActive(pathname, "/all")} />
 				<NavRow to="/reviews" icon={<GitPullRequest />} label="Pull requests" active={isActive(pathname, "/reviews")} />
-			</nav>
-			<nav aria-label="AI" hidden={collapsed} className="mt-3 shrink-0">
-				<h2 className="sidebar-section">AI</h2>
 				<NavRow to="/ai/personas" icon={<Sparkle />} label="Personas" active={isActive(pathname, "/ai/personas")} />
 				<NavRow to="/ai/flows" icon={<FlowArrow />} label="Flows" active={isActive(pathname, "/ai/flows")} />
 			</nav>

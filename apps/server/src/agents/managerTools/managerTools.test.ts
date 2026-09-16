@@ -55,6 +55,22 @@ test.each([
 	expect(original.instruction).toBe("Historical manager persona and personal UI policy");
 });
 
+test("manager personas list omits instructions and personas get returns one full persona", async () => {
+	const persona = {
+		id: "01M277VFQA2HAWB58T9NTW4MX5",
+		name: "Trellis",
+		kind: "manager",
+		instruction: "A".repeat(90_000),
+		createdAt: "2026-09-11T03:23:20.679Z",
+		updatedAt: "2026-09-16T14:11:23.810Z",
+	};
+	const tools = managerTools(async (operation) => (operation === "personas.list" ? [persona] : persona));
+	const { instruction, ...summary } = persona;
+	expect(await tools.call("trellis_personas_list", {})).toEqual([summary]);
+	expect(await tools.call("trellis_personas_get", { id: persona.id })).toEqual(persona);
+	expect(instruction).toHaveLength(90_000);
+});
+
 test("manager tools expose record and assignment operations without terminal or repository operations", () => {
 	const tools = managerTools(async () => ({}));
 	const names = tools.list().map((tool) => tool.name);

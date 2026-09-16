@@ -109,7 +109,7 @@ test("authenticated completion retains the result after the process exits", asyn
 	expect((await client.inspect(session.id)).result).toEqual(completed.result);
 });
 
-test("automatic delivery claims an idle turn before it writes any bytes", async () => {
+test("automatic delivery writes during a turn and repeats no message", async () => {
 	const id = "idle-delivery";
 	await client.start({
 		id,
@@ -121,19 +121,15 @@ test("automatic delivery claims an idle turn before it writes any bytes", async 
 	});
 	await client.turn(id, "idle-token", "SessionStart");
 	const bytes = Buffer.from("one\n").toString("base64");
-	const outcomes = await Promise.allSettled([
-		client.deliver(id, "first", bytes, true),
-		client.deliver(id, "second", bytes, true),
-	]);
-	expect(outcomes.map((outcome) => outcome.status).sort()).toEqual(["fulfilled", "rejected"]);
-	const rejected = outcomes.find((outcome) => outcome.status === "rejected") as PromiseRejectedResult;
-	expect(rejected.reason.code).toBe("RUNTIME_BUSY");
-	const second = outcomes[1]!.status === "rejected" ? "second" : "first";
-	await client.turn(id, "idle-token", "Stop");
-	expect((await client.deliver(id, second, bytes, true)).status).toBe("written");
-	await client.turn(id, "idle-token", "Stop");
-	await client.input(id, Buffer.from("typed without submit").toString("base64"), true);
-	await expect(client.deliver(id, "third", bytes, true)).rejects.toMatchObject({ code: "RUNTIME_BUSY" });
+	const outcomes = await Promise.all([client.deliver(id, "first", bytes), client.deliver(id, "second", bytes)]);
+	expect(outcomes.map((outcome) => outcome.status)).toEqual(["written", "written"]);
+	await client.turn(id, "idle-token", "UserPromptSubmit", "first");
+	expect((await client.inspect(id)).activity?.state).toBe("working");
+	expect((await client.deliver(id, "third", bytes)).status).toBe("written");
+	expect((await client.deliver(id, "first", bytes)).status).toBe("written");
+	await expect(client.deliver(id, "first", Buffer.from("two\n").toString("base64"))).rejects.toThrow(
+		"already has different bytes",
+	);
 	await client.stop(id);
 });
 
@@ -154,7 +150,7 @@ test("the authenticated initial prompt acknowledges only its own attempt ID", as
 	await client.stop(id);
 });
 
-test("terminal replies preserve idle activity while explicit drafts block automatic input", async () => {
+test("terminal replies and drafts preserve idle activity", async () => {
 	const id = "terminal-replies";
 	await client.start({
 		id,
@@ -175,13 +171,7 @@ test("terminal replies preserve idle activity while explicit drafts block automa
 	expect((await client.inspect(id)).activity).toEqual(idle);
 	await client.input(id, Buffer.from("draft").toString("base64"), true);
 	expect((await client.inspect(id)).activity).toEqual(idle);
-	await expect(
-		client.deliver(id, "blocked", Buffer.from("automatic\n").toString("base64"), true),
-	).rejects.toMatchObject({ code: "RUNTIME_BUSY" });
-	await client.input(id, Buffer.from("\x03").toString("base64"), true);
-	expect((await client.deliver(id, "accepted", Buffer.from("automatic\n").toString("base64"), true)).status).toBe(
-		"written",
-	);
+	expect((await client.deliver(id, "accepted", Buffer.from("automatic\n").toString("base64"))).status).toBe("written");
 	expect((await client.inspect(id)).activity).toEqual(idle);
 	await client.turn(id, "reply-token", "UserPromptSubmit", "accepted");
 	expect((await client.inspect(id)).activity?.state).toBe("working");

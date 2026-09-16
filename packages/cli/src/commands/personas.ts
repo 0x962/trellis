@@ -30,14 +30,14 @@ const personaRecord: RecordSpec<Persona> = {
 	identifier: (row) => row.id,
 };
 
-// A persona matches its ref by id or by name. The server has no route that
-// reads one persona, so every caller reads the list and matches here.
-const matches = (persona: Persona, ref: string) =>
-	persona.id === ref.toUpperCase() || persona.name.toLowerCase() === ref.toLowerCase();
+// A persona ref is an id or a name. An id reads one persona; a name reads
+// the list and matches without regard to letter case.
+const ulid = /^[0-9A-HJKMNP-TV-Z]{26}$/;
 
 export const resolvePersona = async (ctx: CliContext, ref: string): Promise<Persona> => {
+	if (ulid.test(ref.toUpperCase())) return clientOf(ctx).personas.get({ id: ref.toUpperCase() });
 	const personas = await clientOf(ctx).personas.list({});
-	const persona = personas.find((row) => matches(row, ref));
+	const persona = personas.find((row) => row.name.toLowerCase() === ref.toLowerCase());
 	if (persona === undefined) throw notFound("persona", ref);
 	return persona;
 };

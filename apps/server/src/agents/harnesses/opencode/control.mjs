@@ -24,7 +24,7 @@ export async function openCodeControl({ socket, token, current, abort, prompt })
 				if (typeof input.sessionId !== "string" || typeof input.prompt !== "string")
 					return reply(400, { error: "Session ID and prompt are required" });
 				if (input.sessionId !== active.sessionId) return reply(409, { error: "STALE_SESSION" });
-				if (active.working || pending) return reply(409, { error: "SESSION_BUSY" });
+				if (pending) return reply(409, { error: "CONTROL_PENDING" });
 				const result = await prompt(input.sessionId, input.prompt);
 				if (result.error || result.response.status !== 204)
 					return reply(502, { error: JSON.stringify(result.error ?? "OpenCode did not acknowledge prompt") });

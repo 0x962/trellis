@@ -29,6 +29,17 @@ describe("personas", () => {
 		await h.read(assertStatusInvariant);
 	});
 
+	test("get reads one persona by id and reports a missing id", async () => {
+		const created = await h.run((ctx, tx) => personas.create(ctx, tx, { name: "Reviewer", instruction: "Read." }));
+		expect(await h.run((ctx, tx) => personas.get(ctx, tx, { id: created.id }))).toEqual(created);
+		const data = await expectErrorData(
+			h.run((ctx, tx) => personas.get(ctx, tx, { id: "01J9Z000000000000000000009" })),
+			"NOT_FOUND",
+		);
+		expect(data).toEqual({ kind: "persona", ref: "01J9Z000000000000000000009" });
+		await h.read(assertStatusInvariant);
+	});
+
 	test("multiple personas keep separate ids and instructions", async () => {
 		const reviewer = await h.run((ctx, tx) =>
 			personas.create(ctx, tx, { name: "Reviewer", instruction: "Report defects." }),

@@ -1,9 +1,7 @@
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
-import { nativePreset } from "../../agents/native/harnessHost.ts";
 import { rows } from "../../db/queries/support.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
-import { readySession } from "../controller/readySession.ts";
 import { sendDeadline } from "../controller/sendDeadline.ts";
 import type { ServiceCtx } from "../support.ts";
 
@@ -20,12 +18,7 @@ type Delivery = {
 	kind: string;
 };
 
-export const dispatchMentions = async (
-	ctx: ServiceCtx,
-	sessions: RuntimeProcessStatus[],
-	send = prepareSend,
-	preset = nativePreset,
-) => {
+export const dispatchMentions = async (ctx: ServiceCtx, sessions: RuntimeProcessStatus[], send = prepareSend) => {
 	await ctx.newTx((tx) =>
 		tx.execute(sql`UPDATE comment_deliveries d SET session_id=r.session_id FROM agent_runs r
 		WHERE d.run_id=r.id AND d.state='pending' AND d.session_id IS NULL AND r.session_id IS NOT NULL
@@ -64,8 +57,6 @@ export const dispatchMentions = async (
 		),
 	);
 	for (const delivery of pending) {
-		const custom = (await preset(ctx.home, delivery.terminalId)) === "custom";
-		if (!custom && !readySession(sessions.find((session) => session.id === delivery.terminalId)!)) continue;
 		const claimed = await ctx.newTx((tx) =>
 			rows(
 				tx,
@@ -91,13 +82,12 @@ export const dispatchMentions = async (
 								})
 							: `trellis: @${delivery.personaName} has a ticket comment. Read: trellis thread show ${delivery.parentId ?? delivery.commentId}\nRespond to the comment on your assigned ticket.`,
 					messageId: delivery.id,
-					requireIdle: !custom,
 					expectedTerminalId: delivery.terminalId,
 					expectedSessionId: delivery.sessionId,
 				}),
 			);
 		} catch (cause) {
-			state = (cause as { code?: string }).code === "RUNTIME_BUSY" ? "pending" : "unknown";
+			state = "unknown";
 			error = cause instanceof Error ? cause.message : String(cause);
 		}
 		await ctx.newTx((tx) =>
