@@ -74,7 +74,7 @@ The explicit Stop local work action pauses native dispatch, stops owned processe
 An unconfirmed process prevents a successful stop.
 
 The Bun host owns PGlite and the manager queue. A separate Node runtime owns agent PTYs.
-Its private Unix socket uses protocol 7. A lifetime file lock permits one runtime owner.
+Its private Unix socket uses protocol 8. A lifetime file lock permits one runtime owner.
 Each attempt has one immutable identifier, a token hash, retained terminal output, and a process record.
 Output readers receive bounded chunks with byte offsets.
 The runtime preserves delivery identifiers before it writes input. An uncertain write remains unknown until an agent receipt confirms it.
