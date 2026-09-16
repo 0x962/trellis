@@ -67,3 +67,4 @@ export { Textarea, type TextareaProps } from "./primitives/Textarea";
 export { Toaster, type ToasterProps, toast } from "./primitives/Toast";
 export { Tooltip, type TooltipProps } from "./primitives/Tooltip";
 export { cx } from "./utils/cx";
+export { nameHue } from "./utils/nameHue";

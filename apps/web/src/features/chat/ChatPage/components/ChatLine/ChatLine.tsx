@@ -1,12 +1,7 @@
 import type { ChatMessage } from "@trellis/api";
-import { cx } from "@trellis/ui";
+import { nameHue } from "@trellis/ui";
+import type { CSSProperties } from "react";
 import { ReadOnlyMarkdown } from "../../../../../components/ReadOnlyMarkdown";
-
-const nickTone = {
-	agent: "text-accent",
-	human: "text-fg",
-	system: "text-fg-muted",
-} as const;
 
 // The name a reader sees: the persona name of an agent, or the name of a
 // person. The run id stays in the tooltip and in the mention the name inserts.
@@ -23,15 +18,20 @@ const clock = (iso: string) => iso.slice(11, 19);
 const troubled = (message: ChatMessage) =>
 	(message.notifications ?? []).filter((notification) => ["failed", "unknown"].includes(notification.state));
 
+// The name takes a hue from the actor's id: the run id of an agent, the
+// name of a person. Two runs of one persona get two colors.
+const tint = (message: ChatMessage): CSSProperties =>
+	({ "--name-hue": nameHue(`${message.actor.kind}:${message.actor.name}`) }) as CSSProperties;
+
 export type ChatLineProps = {
 	message: ChatMessage;
 	render: (markdown: string) => string;
 	onMention: (text: string) => void;
 };
 
-// One message: a header line with the UTC clock and the full name, then the
-// body as markdown under it, indented to the name column. The name is a
-// button that inserts a mention.
+// One message: a header line with the UTC clock and the full name in the
+// actor's own color, then the body as markdown under it, indented to the
+// name column. The name is a button that inserts a mention.
 export function ChatLine({ message, render, onMention }: ChatLineProps) {
 	const trouble = troubled(message);
 	return (
@@ -42,24 +42,21 @@ export function ChatLine({ message, render, onMention }: ChatLineProps) {
 				</time>
 				<button
 					type="button"
+					style={tint(message)}
 					title={`${message.actor.kind}:${message.actor.name}. Click to mention.`}
 					onClick={() => onMention(chatMention(message))}
-					className={cx(
-						"-my-1 min-w-0 truncate py-1 font-medium hover:underline focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
-						nickTone[message.actor.kind],
-					)}
+					className="name-tint -my-1 min-w-0 truncate py-1 font-medium hover:underline focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
 				>
 					{chatNick(message)}
 				</button>
-				{message.actor.kind === "agent" && <span className="text-xs text-fg-faint">agent</span>}
 				{trouble.length > 0 && (
 					<span
-						className="text-xs text-danger"
+						className="truncate text-xs text-danger"
 						title={trouble
 							.map((notification) => `${notification.personaName}: ${notification.error ?? notification.state}`)
 							.join("\n")}
 					>
-						{trouble.length} undelivered
+						not delivered to {trouble.map((notification) => notification.personaName).join(", ")}
 					</span>
 				)}
 			</div>
