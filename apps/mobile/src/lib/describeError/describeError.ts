@@ -45,7 +45,11 @@ export const describeError = (error: unknown, serverUrl: string): ErrorDescripti
 	}
 	if (error instanceof ORPCError && error.defined && error.code === "VERSION_CONFLICT") {
 		const current = errors.VERSION_CONFLICT.data.parse(error.data).current;
-		return { title: "Another actor changed the ticket", detail: conflictDetail(current.identifier), unreachable: false };
+		return {
+			title: "Another actor changed the ticket",
+			detail: conflictDetail(current.identifier),
+			unreachable: false,
+		};
 	}
 	if (error instanceof ORPCError && error.defined && error.code === "INPUT_VALIDATION_FAILED") {
 		return { title: serverTitle, detail: issueMessages(error.data), unreachable: false };

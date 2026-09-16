@@ -3,7 +3,7 @@ import type { Attachment } from "@trellis/api";
 import { Dialog, EmptyState, SectionHeader } from "@trellis/ui";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
-import { failToast } from "../../ticket/utils/failToast";
+import { failToast } from "../../../lib/failToast";
 import { AttachmentBox } from "../AttachmentBox";
 import { DropTarget } from "../DropTarget";
 import { type Uploads, useUploads } from "../hooks/useUploads";

@@ -50,7 +50,9 @@ describe("runTicketUpdate", () => {
 		);
 		const error = await attempt.catch((rejection: unknown) => rejection);
 		expect(error).toMatchObject({ code: "VERSION_CONFLICT" });
-		expect(describeError(error, serverUrl).detail).toBe(`${identifier} changed first. The row shows the other version.`);
+		expect(describeError(error, serverUrl).detail).toBe(
+			`${identifier} changed first. The row shows the other version.`,
+		);
 		const cached = queryClient.getQueryData<Ticket>(key)!;
 		expect(cached.priority).toBe("high");
 		expect(cached.version).toBe(retitled.version);
