@@ -1,5 +1,6 @@
 import { call, os } from "./base.ts";
 export const agentRuns = os.agentRuns.router({
+	resume: os.agentRuns.resume.handler(({ context, input }) => call(context, "agentRuns.resume", input)),
 	session: os.agentRuns.session.handler(({ context, input }) => call(context, "agentRuns.session", input)),
 	terminalOutput: os.agentRuns.terminalOutput.handler(({ context, input }) =>
 		call(context, "agentRuns.terminalOutput", input),

@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
+import { isManaged, managerScope } from "../submanagers/scope.ts";
 import { readySession } from "./readySession.ts";
 import type { ControllerCtx, ControllerInput } from "./types.ts";
 
@@ -18,21 +19,17 @@ export const collectHeartbeats = async (ctx: ControllerCtx, tx: Tx, input: Contr
 		JOIN manager_controller_cursors cursor ON cursor.project_id=p.id
 		JOIN agent_runs r ON r.project_id=p.id AND r.kind='manager' AND r.runtime='native' AND r.closed_at IS NULL
 		JOIN jsonb_to_recordset(${JSON.stringify(ready)}::jsonb) AS live(id text, "idleAt" timestamptz) ON live.id=r.terminal_id
-		WHERE p.manager_config->>'personaId' IS NOT NULL AND p.archived_at IS NULL
+		WHERE ${isManaged(sql`p`)} AND p.archived_at IS NULL
 		AND p.manager_config->>'dispatchPaused' IS DISTINCT FROM 'true'
 		AND NOT EXISTS (SELECT 1 FROM settings WHERE key='nativeWorkPaused' AND value='true'::jsonb)
 		AND GREATEST(r.created_at, live."idleAt",
 			(SELECT max(updated_at) FROM manager_dispatches WHERE project_id=p.id AND state='sent')) <= ${quietBefore}
 		AND NOT EXISTS (SELECT 1 FROM manager_dispatches WHERE project_id=p.id AND state IN ('pending','sending','unknown'))
 		AND NOT EXISTS (WITH RECURSIVE ancestors AS (
-			SELECT id,parent_id,archived_at FROM projects WHERE id=p.id
-			UNION ALL SELECT parent.id,parent.parent_id,parent.archived_at FROM projects parent JOIN ancestors child ON parent.id=child.parent_id
-		) SELECT 1 FROM ancestors WHERE archived_at IS NOT NULL)
-		AND NOT EXISTS (WITH RECURSIVE scope AS (
-			SELECT id FROM projects WHERE id=p.id
-			UNION ALL SELECT child.id FROM projects child JOIN scope parent ON child.parent_id=parent.id
-			WHERE child.manager_config->>'personaId' IS NULL AND child.archived_at IS NULL
-		) SELECT 1 FROM activity a WHERE a.project_id IN (SELECT id FROM scope) AND a.id>cursor.activity_id
+			SELECT id,parent_id,archived_at,manager_config FROM projects WHERE id=p.id
+			UNION ALL SELECT parent.id,parent.parent_id,parent.archived_at,parent.manager_config FROM projects parent JOIN ancestors child ON parent.id=child.parent_id
+		) SELECT 1 FROM ancestors WHERE archived_at IS NOT NULL OR manager_config->>'dispatchPaused'='true')
+		AND NOT EXISTS ( SELECT 1 FROM activity a WHERE a.project_id IN (${managerScope(sql`p.id`)}) AND a.id>cursor.activity_id
 			AND a.ticket_id IS NOT NULL AND NOT EXISTS (
 				SELECT 1 FROM agent_runs manager WHERE manager.id=a.actor_name AND manager.kind='manager'
 				AND manager.project_id=p.id AND a.actor_kind='agent'

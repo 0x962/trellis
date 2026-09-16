@@ -58,11 +58,6 @@ export const errors = {
 		message: "The URL is not a GitHub pull request URL.",
 		data: z.undefined(),
 	},
-	AGENT_CANNOT_COMPLETE: {
-		status: 403,
-		message: "An agent cannot move a ticket to a done status. A human does that, or pass force.",
-		data: z.object({ status: StatusSummarySchema }),
-	},
 	AGENT_CANNOT_DELETE: {
 		status: 403,
 		message: "An agent cannot delete a ticket or a project without force.",

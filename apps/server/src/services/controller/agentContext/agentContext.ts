@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { rows } from "../../../db/queries/support.ts";
 import type { Tx } from "../../../db/tx.ts";
+import { managerScope } from "../../submanagers/scope.ts";
 import type { ControllerCtx, ControllerInput } from "../types.ts";
 
 type Assignment = {
@@ -22,15 +23,11 @@ export const agentContext = async (
 	const liveIds = input.sessions.filter((session) => session.status === "running").map((session) => session.id);
 	const assignments = await rows<Assignment>(
 		tx,
-		sql`WITH RECURSIVE scope AS (
-			SELECT id FROM projects WHERE id=${input.projectId}
-			UNION ALL SELECT p.id FROM projects p JOIN scope s ON p.parent_id=s.id
-			WHERE p.manager_config->>'personaId' IS NULL AND p.archived_at IS NULL
-		) SELECT r.id AS "runId", r.persona_name AS name, r.kind, r.ticket_id AS "ticketId",
+		sql` SELECT r.id AS "runId", r.persona_name AS name, r.kind, r.ticket_id AS "ticketId",
 			r.ticket_identifier AS "ticketIdentifier", r.terminal_id AS "attemptId", r.error
-		FROM agent_runs r WHERE r.project_id IN (SELECT id FROM scope)
+		FROM agent_runs r WHERE (r.project_id IN (${managerScope(input.projectId)}) OR r.id IN (SELECT run_id FROM manager_delegations WHERE parent_run_id=${input.runId} AND retired_at IS NULL))
 		AND r.id<>${input.runId} AND r.runtime='native'
-		AND (r.closed_at IS NULL OR r.terminal_id IN (
+		AND (r.id IN (SELECT run_id FROM manager_delegations WHERE parent_run_id=${input.runId} AND retired_at IS NULL) OR r.closed_at IS NULL OR r.terminal_id IN (
 			SELECT jsonb_array_elements_text(${JSON.stringify(liveIds)}::jsonb)
 		)) ORDER BY r.created_at,r.id`,
 	);

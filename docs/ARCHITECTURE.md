@@ -97,7 +97,7 @@ Clock and clarification tools remain available. The native terminal sends reques
 Claude hooks, the OpenCode plugin, and the Pi extension report provider identity, prompt receipts, tools, results, and errors.
 Codex runs one private app-server per attempt. Its native terminal and Trellis event client connect to that engine.
 The Codex adapter maps native thread, turn, tool, result, and error events into the runtime journal.
-Every built-in start waits for the initial native prompt receipt. Each follow-up requires an idle process and its own receipt.
+Every built-in start waits for the initial native prompt receipt. Each follow-up requires its own receipt. Busy providers queue follow-ups for their next turn.
 The desktop starts HTTP before it resolves the login environment. Git, GitHub, and new agent launches await the cached environment in their server thread.
 A failed login shell returns a tool error. Existing agent controls use their saved launch environment.
 Each launch selects the active host release on PATH, including when the runtime predates that host.
@@ -115,7 +115,7 @@ The runtime inspects the OS process before it reports status or permits input.
 The host uses these observations for manager dispatch and flow completion.
 
 The controller stores ticket events in `manager_dispatches` with a fixed coalescing deadline.
-It sends a native manager one batch after the initial prompt receipt, when the runtime reports a controllable process with idle turn activity.
+It sends a native manager one batch after the initial prompt receipt, when the runtime reports a live controllable process.
 An exact durable receipt can resolve an unknown delivery without another send.
 Stable assignment request identifiers prevent repeated worker starts from producing duplicate attempts.
 Each dispatch tracks delivery separately from its per-ticket coordination outcomes.
@@ -202,7 +202,7 @@ takes builder. A delete keeps the snapshots of the runs that used the persona.
 - Every non-GET request sends the header `x-trellis-actor: <human|agent>:<name>`. The name is printable ASCII without a colon, 1 to 64 characters.
 - A missing header is `ACTOR_REQUIRED` and a malformed one is `ACTOR_INVALID`. A GET ignores the header. The header rejects the kind `system`, which trellis reserves for `system:trellis`.
 - The optional header `x-trellis-session` is stored in `activity.meta.session`. trellis stores the name and the kind of an actor, and nothing else.
-- The service enforces the agent policy, so curl obeys it too. An agent cannot move a ticket to a done status (`AGENT_CANNOT_COMPLETE`, 403) and cannot delete a ticket or a project (`AGENT_CANNOT_DELETE`, 403) without `force`.
+- The service enforces the agent policy, so curl obeys it too. Agents and managers can move tickets to Done. An agent cannot delete a ticket or a project (`AGENT_CANNOT_DELETE`, 403) without `force`.
 - An archived project serves reads. Every mutation on it fails with `PROJECT_ARCHIVED`.
 - `tickets.version` rises on every row change. `update` and `move` accept `expectedVersion` or the header `If-Match`. A mismatch is `VERSION_CONFLICT` (412) with the current row.
 - `updated_at` moves only on user-visible activity: a ticket field, a comment, an attachment, or a pull request link. A reorder, a remap, and a poller CI change raise `version` only.
@@ -290,7 +290,7 @@ An agent run copies its persona name, kind, and instruction at launch. Later per
 A builder or reviewer names one ticket. A manager names one project.
 The row retains the project path and ticket identifier so its history remains readable.
 
-`agentRuns` exposes start, stop, refresh, send, output, session inspection, terminal input, and terminal resize operations.
+`agentRuns` exposes start, resume, stop, refresh, send, output, session inspection, terminal input, and terminal resize operations.
 `GET /api/agent-runs/:id/terminal/stream` pushes terminal bytes and inspected process status through an authenticated SSE connection.
 The runtime owns each process through a distinct execution attempt. Each attempt has an identifier, generation, and token hash.
 A stable start request identifier returns its existing run before the concurrency check.
@@ -320,13 +320,57 @@ The concurrency limit counts ticket assignments with `closed_at IS NULL`. It exc
 A confirmed process exit closes its assignment before the next claim.
 The limit runs from 1 to 64 and defaults to 3. A partial unique index permits one active manager per project.
 
+### Manager delegation
+
+A manager delegates a child project subtree through `submanagers.start` with a brief, worker capacity, and stable request identifier.
+The submanager uses the parent's persona and supports an explicit harness account. Its assignment preserves the parent identifier and delegated scope.
+`manager_delegations` stores the assignment, parent, project, capacity, brief, and retirement time.
+The project configuration remains unchanged. A configured manager or active delegation marks a scope boundary.
+
+Each submanager receives its own controller queue and heartbeats. Parent heartbeat context includes its direct submanagers and their process state.
+Normal human agent lists omit submanager assignments. The `submanagers` API retains inspection and control for diagnosis.
+`submanagers.list` gives a manager its own delegation and direct children. `resize` changes a child's budget.
+The aggregate budget counts ticket workers across the delegated scope. Existing per-project limits also apply.
+Nested delegations reserve part of their parent's budget. Direct workers cannot consume those reserved slots.
+Independent managers allocate separate subtree budgets. These budgets do not change provider limits or project concurrency settings.
+Worker starts, resumes, flow steps, and capacity waits use the same budget rule.
+
+Only the current scope owner can assign workers inside a delegation. A parent can resume, resize, or retire its direct submanagers.
+`submanagers.retire` confirms process exit before it returns scope ownership and waits to the parent.
+Ticket workers remain assigned. Wait handoff retains each assignment request identifier. Retired deliveries retain their history with a canceled send state when needed.
+An unexpected manager exit retains its delegation. The parent sees that exit and can resume the saved conversation.
+Migration `0049_manager_delegations` extends saved manager instructions without a conversation reset.
+The source instructions live in [manager-delegation.md](personas/manager-delegation.md).
+
+### Harness accounts
+
+The main Settings page stores several accounts per harness at `/settings#agent-accounts`.
+An account names an existing profile directory or a managed profile under `accounts/<id>/profile` in the data home.
+Each managed profile keeps separate credentials. Shared directories retain sessions and skills. The provider CLI owns sign-in and token renewal.
+Claude uses `CLAUDE_CONFIG_DIR`; Codex uses `CODEX_HOME`; Pi uses `PI_CODING_AGENT_DIR`; OpenCode uses `XDG_DATA_HOME`.
+Removal archives the account record and retains its files.
+
+`harnessAccounts.list` returns account metadata, login commands, and capabilities. Account mutation requires a human actor.
+`harnessAccounts.quota` reads Claude or Codex subscription usage outside database transactions and caches results for five minutes.
+A manual refresh has a ten-second minimum interval. OpenCode and Pi return `unsupported` quota.
+An unavailable quota result contains no allowance estimate. Credentials stay on the host and do not enter API responses.
+
+`agentRuns.start` accepts an optional `accountId`. A new assignment otherwise selects its harness default account.
+The assignment retains its account across process restarts. An explicit account also selects its harness for a new assignment.
+`agentRuns.resume` requires the stopped attempt identifier and a stable request identifier.
+A resume retains the assignment, workspace, and provider conversation. Its target account must use the same harness.
+Claude, Codex, and Pi transfer the selected session file. OpenCode exports and imports that session through its CLI.
+The runtime checks the resumed provider session identifier before it accepts the process.
+Existing manager personas receive the account instructions in migration `0048_harness_accounts`.
+The source instructions live in [manager-harness-accounts.md](personas/manager-harness-accounts.md).
+
 ### Manager controller
 
 `manager_controller_cursors` records the last collected activity identifier for each project.
 `manager_dispatches` retains event batches and their send state. The first event fixes the batch deadline at ten seconds.
 The collector continues while dispatch pauses. It excludes the manager's own activity and respects child projects with their own manager.
 
-The controller sends a batch only to the current native attempt with a matching conversation and ready or idle runtime activity.
+The controller sends a batch only to the current native attempt with a matching conversation and a live controllable process.
 After one minute without manager activity or a successful dispatch, the controller queues a heartbeat for an idle manager.
 A heartbeat uses the same durable queue and receipt checks as ticket events. Its event list is empty.
 Ticket events take precedence. The queue holds at most one pending or unresolved message per project.
@@ -507,7 +551,8 @@ are no triggers. Every rule is a constraint or a service function that takes
 | flows | id PK, slug (UNIQUE, CHECK slug regex, 64 at most), name (1 to 120), description (CHECK <= 2000), briefing (CHECK <= 200000), version (CHECK > 0), created_at, updated_at. |
 | flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title (0 to 120), persona_id (FK personas SET NULL), instruction (CHECK <= 200000), parallel (boolean, group only), minutes (optional, group only, 1 to 1440), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Indexes (flow_id) and (persona_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
-| agent_runs | id PK, name, runtime (default `native`), persona_id (FK personas SET NULL), persona_name, kind (CHECK the three persona kinds), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial index (ticket_id) WHERE `closed_at IS NULL`. Partial UNIQUE (project_id) WHERE `kind = 'manager'` AND `closed_at IS NULL`. Index (created_at). |
+| harness_accounts | id PK, name, harness, profile_path, is_default, enabled, archived_at, created_at, updated_at. Partial UNIQUE (harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. |
+| agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), persona_id (FK personas SET NULL), persona_name, kind (CHECK the three persona kinds), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial index (ticket_id) WHERE `closed_at IS NULL`. Partial UNIQUE (project_id) WHERE `kind = 'manager'` AND `closed_at IS NULL`. Index (created_at). |
 | agent_sessions (stored history) | id PK, project_id (CASCADE), ticket_id (CASCADE), role (CHECK manager, builder, reviewer), runner (CHECK superset), state (CHECK starting, running, waiting, exited, stopped, failed), workspace_id, terminal_id, claude_session_id, name (1 to 40), title (1 to 120), open_url, last_woken_at, error, created_at, updated_at. CHECK `(role = 'manager') = (ticket_id IS NULL)`. Indexes (project_id, role, state) and (ticket_id). Partial UNIQUE (project_id) WHERE the role is manager and the state is live. Partial UNIQUE (workspace_id, terminal_id) WHERE both are set. |
 | agent_cursors | project_id PK (CASCADE), activity_id bigint, updated_at. Stored activity cursor from earlier data homes. |
 
@@ -583,6 +628,9 @@ returns one canonical spelling.
 | flows.list, get, create, update, save, delete | GET, POST /api/flows; GET, PATCH, DELETE /api/flows/{flow}; PUT /api/flows/{flow}/graph | `{flow}` is a ULID or a slug; save replaces every node and edge |
 | agentRuns.list, start | GET, POST /api/agent-runs | start answers 201 with the row in any state |
 | agentRuns.stop, refresh, send | POST /api/agent-runs/{id}/stop, /refresh, /send | send takes 1 to 20000 characters |
+| agentRuns.resume | POST /api/agent-runs/{id}/resume | existing assignment, accountId, expectedTerminalId, requestId |
+| harnessAccounts.list, create, update, remove | GET, POST /api/harness-accounts; PATCH, DELETE /api/harness-accounts/{id} | account metadata and profile selection |
+| harnessAccounts.quota | GET /api/harness-accounts/{id}/quota | cached usage windows and reset times |
 | agentRuns.output | GET /api/agent-runs/{id}/output | the terminal text as `{text}` |
 | search.query | GET /api/search | tickets and projects |
 | brief.get | GET /api/tickets/{ticket}/brief | the markdown brief an agent starts from |
@@ -627,7 +675,7 @@ trellis list --project CDE --status in-progress,agent-review --parent none --ci 
 The contract declares every error as `{defined, code, status, message, data}`.
 The map lives in `packages/api/src/errors.ts`: INPUT_VALIDATION_FAILED 400,
 ACTOR_REQUIRED 400, ACTOR_INVALID 400, INVALID_CURSOR 400, INVALID_PR_URL 400,
-AGENT_CANNOT_COMPLETE 403, AGENT_CANNOT_DELETE 403, NOT_FOUND 404, DUPLICATE
+AGENT_CANNOT_DELETE 403, NOT_FOUND 404, DUPLICATE
 409, KEY_LOCKED 409, STATUS_NOT_IN_PROJECT 409, STATUS_IN_USE 409, LAST_STATUS
 409, ROOT_STATUSES 409, STATUS_CATEGORY_IMMUTABLE 409, CROSS_ROOT_MOVE 409,
 PARENT_CYCLE 409, PROJECT_NOT_EMPTY 409, PROJECT_ARCHIVED 409,

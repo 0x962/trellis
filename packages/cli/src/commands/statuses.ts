@@ -162,7 +162,7 @@ const rm = defineCommand({
 		project: { type: "positional", required: true, description: "Project ref" },
 		status: { type: "positional", required: true, description: "Status ref" },
 		"move-to": { type: "string", description: "Status ref that takes the tickets" },
-		force: { type: "boolean", description: "Let an agent move the tickets into a done status" },
+		force: { type: "boolean", description: "Accepted for compatibility; completion does not require force" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);

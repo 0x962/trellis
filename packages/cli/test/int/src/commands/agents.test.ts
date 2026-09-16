@@ -36,22 +36,20 @@ describe("agents start", () => {
 		const result = await runCli(
 			["agents", "start", personaId, "--ticket", "CDE-42", "--request-id", "CDE-42:builder"],
 			{
-				"personas.list": [persona()],
+				"personas.get": persona(),
 				"agentRuns.start": agentRun(),
 			},
 		);
 		expect(result.code).toBe(0);
 		expect(result.calls[1]!.input).toEqual({ personaId, ticket: "CDE-42", requestId: "CDE-42:builder" });
 	});
-	// CLI-125: the start route takes a persona id, so the verb reads the
-	// persona list and matches the ref there first.
 	test("agents start resolves the persona by id and by name", async () => {
 		const byId = await runCli(["agents", "start", personaId, "--ticket", "CDE-42"], {
-			"personas.list": [persona()],
+			"personas.get": persona(),
 			"agentRuns.start": agentRun(),
 		});
 		expect(byId.code).toBe(0);
-		expect(byId.calls.map((call) => call.path)).toEqual(["personas.list", "agentRuns.start"]);
+		expect(byId.calls.map((call) => call.path)).toEqual(["personas.get", "agentRuns.start"]);
 		expect(byId.calls[1]!.input).toEqual({ personaId, ticket: "CDE-42" });
 
 		const byName = await runCli(["agents", "start", "Trellis Manager", "--project", "CDE"], {
@@ -73,7 +71,7 @@ describe("agents start", () => {
 		const row = agentRun({ state: "failed", error: "no Superset project matches the repositories", url: null });
 		const result = await runCli(
 			["agents", "start", personaId, "--ticket", "CDE-42"],
-			{ "personas.list": [persona()], "agentRuns.start": row },
+			{ "personas.get": persona(), "agentRuns.start": row },
 			{ tty: true },
 		);
 		expect(result.code).toBe(6);
@@ -82,7 +80,7 @@ describe("agents start", () => {
 		expect(result.stderr).toContain("no Superset project matches the repositories");
 
 		const busy = await runCli(["agents", "start", personaId, "--ticket", "CDE-42"], {
-			"personas.list": [persona()],
+			"personas.get": persona(),
 			"agentRuns.start": rpcError("DUPLICATE", { field: "project concurrency limit" }),
 		});
 		expect(busy.code).toBe(4);

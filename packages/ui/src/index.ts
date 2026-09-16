@@ -8,6 +8,8 @@ export { FilterPopover, type FilterPopoverProps } from "./domain/FilterPopover";
 export { FlowDecisionContext } from "./domain/FlowDecisionContext";
 export { FlowProgress } from "./domain/FlowProgress";
 export { GroupHeader, type GroupHeaderProps, groupHeaderHeight, phoneGroupHeaderHeight } from "./domain/GroupHeader";
+export * from "./domain/HarnessAccountCard";
+export * from "./domain/HarnessAccountForm";
 export { InboxRow, type InboxRowProps } from "./domain/InboxRow";
 export { LocalEvidence } from "./domain/LocalEvidence";
 export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/PriorityIcon";

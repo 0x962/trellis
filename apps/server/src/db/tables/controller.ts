@@ -34,7 +34,7 @@ export const managerDispatches = pgTable(
 		updatedAt: at("updated_at").notNull(),
 	},
 	(t) => [
-		check("manager_dispatches_state_check", sql`${t.state} IN ('pending', 'sending', 'sent', 'unknown')`),
+		check("manager_dispatches_state_check", sql`${t.state} IN ('pending', 'sending', 'sent', 'unknown', 'canceled')`),
 		check("manager_dispatches_work_state_check", sql`${t.workState} IN ('untracked', 'open', 'handled')`),
 		index("manager_dispatches_open_work_idx").on(t.projectId, t.createdAt).where(sql`${t.workState} = 'open'`),
 		uniqueIndex("manager_dispatches_active_project_idx")

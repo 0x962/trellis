@@ -13,7 +13,7 @@ Inside Claude Code, every command runs as \`agent:claude-code\`. Elsewhere, set 
 6. Ask a question:   trellis comment ${key}-42 --body "..." and then wait for the reply: trellis watch --ticket ${key}-42
 7. Finish coding:    trellis move ${key}-42 agent-review
 8. When CI is green and the self-review is done: trellis move ${key}-42 human-review
-Never move a ticket to Done; a human does that. Never delete tickets.
+Never delete tickets.
 
 Read a comment thread: trellis thread show <comment-id>
 Reply in that thread: trellis comment ${key}-42 --reply-to <comment-id> --body "..."

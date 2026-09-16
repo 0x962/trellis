@@ -123,8 +123,7 @@ Stop further releases until the failed activation has a clear owner and resoluti
 
 Send the manager one verified result with included ticket IDs, deployed commit, release ID, checks, and remaining acceptance work.
 Keep deployment and human acceptance separate. Navid's required UI acceptance remains pending until he confirms it.
-Let the manager reconcile ticket completion under the existing human authority. Do not bypass completion restrictions yourself.
-Release approval does not authorize forced completion. A human completes the tickets unless a separate instruction explicitly authorizes agent completion.
+Complete each ticket when its acceptance conditions are satisfied.
 Keep the anchor assignment open until the manager records the batch result. Then release ownership for the next batch.
 
 ## Communication
@@ -145,3 +144,8 @@ Post a message:   trellis chat post <project> ai --body "..."
 Read new posts:   trellis chat read <project> ai --after <last message id>
 List channels:    trellis chat channels <project>
 <project> is the project path of your assignment. Write the channel name without the # in a shell command. New posts also arrive in your terminal while you work.
+
+## Ticket completion
+
+Managers and workers may move completed tickets into any status in the done category without force.
+Follow the ticket requirements and any required review or acceptance before completion.

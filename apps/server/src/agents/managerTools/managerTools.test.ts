@@ -228,3 +228,29 @@ test("session and list agree when an assignment never launched a process", async
 		error: "Executable not found",
 	});
 });
+
+test("managers can inspect accounts and select one without account administration", async () => {
+	const calls: { operation: string; input: unknown }[] = [];
+	const tools = managerTools(async (operation, input) => {
+		calls.push({ operation, input });
+		return {};
+	});
+	const names = tools.list().map((tool) => tool.name);
+	expect(names).toContain("trellis_harnessAccounts_list");
+	expect(names).toContain("trellis_harnessAccounts_quota");
+	expect(names).not.toContain("trellis_harnessAccounts_create");
+	expect(names).not.toContain("trellis_harnessAccounts_update");
+	expect(names).not.toContain("trellis_harnessAccounts_remove");
+	const accountId = "01M277VFQA2HAWB58T9NTW4MX5";
+	await tools.call("trellis_agentRuns_start", { personaId: accountId, ticket: "TRL-42", accountId });
+	await tools.call("trellis_agentRuns_resume", {
+		id: accountId,
+		accountId,
+		expectedTerminalId: "old-attempt",
+		requestId: "switch",
+	});
+	expect(calls.map((call) => call.input)).toEqual([
+		{ personaId: accountId, ticket: "TRL-42", accountId },
+		{ id: accountId, accountId, expectedTerminalId: "old-attempt", requestId: "switch" },
+	]);
+});

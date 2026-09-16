@@ -102,3 +102,9 @@
 		animation: none;
 	}
 }
+
+.harness-account-meter {
+	width: 100%;
+	height: calc(var(--spacing) * 2);
+	accent-color: var(--accent);
+}

@@ -10,7 +10,6 @@ describe("errors", () => {
 		expect(pairs).toEqual([
 			["ACTOR_INVALID", 400],
 			["ACTOR_REQUIRED", 400],
-			["AGENT_CANNOT_COMPLETE", 403],
 			["AGENT_CANNOT_DELETE", 403],
 			["COMMENT_HAS_REPLIES", 409],
 			["COMMENT_PARENT_MISMATCH", 409],
