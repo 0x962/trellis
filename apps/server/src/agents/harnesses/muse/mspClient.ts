@@ -65,13 +65,16 @@ export class MspClient {
 	private write(message: unknown) {
 		this.child.stdin!.write(`${JSON.stringify(message)}\n`);
 	}
+	// Returns the Muse home of the host: the data directory that holds its
+	// sessions.
 	async initialize() {
 		const result = z
-			.looseObject({ schema: z.looseObject({ version: z.number() }) })
+			.looseObject({ schema: z.looseObject({ version: z.number() }), museHome: z.string() })
 			.parse(await this.request("initialize", { clientInfo: { name: "trellis_host", version: "1" } }));
 		if (result.schema.version !== 1)
 			throw new Error(`Muse speaks session protocol schema ${result.schema.version}; this host speaks 1`);
 		this.notify("initialized", {});
+		return { museHome: result.museHome };
 	}
 	request(method: string, params: unknown): Promise<unknown> {
 		const id = ++this.nextId;

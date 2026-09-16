@@ -1,12 +1,15 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import type { ChildProcess } from "node:child_process";
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { HARNESS_DEFAULT_MODELS, toHarnessModel } from "@trellis/api";
 import type { RuntimeClient } from "@trellis/runtime-protocol/client";
+import { MUSE_USAGE_FILE, readMuseUsage } from "../../../../../src/agents/harnesses/muse/museUsage.ts";
 import { HarnessHost } from "../../../../../src/agents/harnessHost/harnessHost.ts";
 import { providers } from "../../../../../src/agents/harnessHost/providers.ts";
+import { fetchAccountQuota } from "../../../../../src/services/harnessAccounts/fetchQuota.ts";
 import { harnessHostFixture } from "../../../../helpers/harnessHostFixture.ts";
 
 let home: string, daemon: ChildProcess, client: RuntimeClient, host: HarnessHost;
@@ -305,4 +308,39 @@ test("empty OpenCode version output fails without launch artifacts", async () =>
 	);
 	expect(await client.list()).toEqual([]);
 	await expect(readdir(join(home, "attempts"))).rejects.toMatchObject({ code: "ENOENT" });
+});
+
+test("a Muse turn saves the usage windows of its login where the account card reads them", async () => {
+	const museHome = join(home, "muse");
+	await mkdir(museHome);
+	host = new HarnessHost({
+		runtime: client,
+		directory: join(home, "attempts"),
+		env: { ...process.env, PATH: join(home, "bin"), HARNESS_FIXTURE_MUSE_HOME: museHome },
+		bun: process.execPath,
+		observationTimeoutMs: 1500,
+	});
+	await host.start({ id: "usage", harness: "muse", cwd: home, prompt: "hello" });
+	await host.waitFor("usage", (state) => state.activity?.state === "idle");
+	const deadline = Date.now() + 2000;
+	while (!existsSync(join(museHome, MUSE_USAGE_FILE)) && Date.now() < deadline) await Bun.sleep(25);
+	const usage = await readMuseUsage(museHome);
+	expect(usage?.window?.usedPercent).toBe(12);
+	const quota = await fetchAccountQuota(
+		{
+			id: "01M00000000000000000000000",
+			name: "Muse",
+			harness: "muse",
+			profilePath: home,
+			enabled: true,
+			isDefault: false,
+			createdAt: "",
+			updatedAt: "",
+		},
+		fetch,
+		async () => ({ token: null, email: "work@example.com", plan: "oauth" }),
+	);
+	expect(quota.status).toBe("ok");
+	expect(quota.windows.map((window) => window.id)).toEqual(["window", "weekly"]);
+	await host.stop("usage");
 });

@@ -60,7 +60,7 @@ Inspection date: 2026-09-16. Muse Code 1.3.0 exports its wire schema with `muse 
 The session host speaks line-delimited JSON-RPC over stdio and accepts one client. Every command carries a UUIDv7 `commandId`. A session directory copied into another XDG data home resumes there.
 Muse has no terminal client that attaches to a session host, and its plugin hooks did not run under `exec` or the TUI in this inspection. The bridge prints the transcript and reads typed input in raw mode.
 The session protocol has no field for a system prompt or a tool allowlist. A manager gets its persona through `AGENTS.md` in its private workspace, and the host flags remove shell and file writes. Muse keeps its base instructions and its read tools.
-`usage/read` returns no window until a turn runs in the same host, so a Muse profile reports `signed_out` or `unsupported` quota.
+`usage/read` returns no window until a turn runs in the same host, and `usage/changed` follows each model call with a 5-hour window and a weekly window. The bridge saves that announcement to `muse/trellis-usage.json`, and the account card reads it.
 The macOS Keychain holds the token of a Muse login. A managed Muse profile keeps its own `auth.json`, settings, and trust file; whether two profiles keep separate Keychain tokens is not verified.
 
 | Check | Result | Evidence |

@@ -9,6 +9,7 @@ Type a message into that terminal and press Enter to send it. Press Ctrl+C to in
 A Muse worker runs with the Muse sandbox disabled and every approval granted. A Muse manager runs without shell and file writes, and reaches Trellis through the Trellis tool server only.
 A Muse manager reads its persona from `AGENTS.md` in its private workspace. Muse keeps its own base instructions in front of that file.
 Trellis sets `MUSE_NO_AUTO_UPDATE=1` for every launch, so the Muse launcher does not replace its binary during a run. Update Muse by hand.
+Muse reports the session and weekly windows of its login after each model call. Every Muse agent run saves the latest report, and the Usage page shows it on the Muse account card. A card with no run yet asks for one.
 
 ## Project settings
 

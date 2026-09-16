@@ -10,6 +10,7 @@ import { MspClient } from "./mspClient.ts";
 import { MuseSessionEvents } from "./mspEvents.ts";
 import { museControl } from "./museControl.ts";
 import { museTerminalHint, museTranscriptLine } from "./museTerminal.ts";
+import { writeMuseUsage } from "./museUsage.ts";
 import { uuid7 } from "./uuid7.ts";
 
 // The Muse bridge owns one `muse serve` session host and one session in
@@ -179,16 +180,24 @@ function readTerminal() {
 }
 async function start() {
 	let parser: MuseSessionEvents | undefined;
+	let museHome: string | undefined;
 	client = new MspClient(
 		host,
 		(notification) => {
-			if (!parser || !acceptingEvents) return;
+			if (!acceptingEvents) return;
+			// The subscription usage of the login arrives after each model
+			// call. The account card reads the saved copy.
+			if (notification.method === "usage/changed" && museHome !== undefined) {
+				void writeMuseUsage(museHome, notification.params).catch(reportFailure);
+				return;
+			}
+			if (!parser) return;
 			for (const event of parser.parse(notification)) record(event);
 		},
 		answerRequest,
 	);
 	client.closed.catch(reportFailure);
-	await client.initialize();
+	({ museHome } = await client.initialize());
 	const config = manager
 		? {
 				mcpServers: {

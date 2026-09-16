@@ -25,6 +25,17 @@ const complete = (terminal: string) => {
 			item: item({ itemId: `answer-${turn}`, kind: "agentMessage", text: "fixture response" }),
 		});
 	notify("turn/completed", { turnId: activeTurn, terminal, viewCursor: `v:${turn}` });
+	if (terminal === "completed")
+		write({
+			jsonrpc: "2.0",
+			method: "usage/changed",
+			params: {
+				observedAtMs: Date.now(),
+				tier: "fixture",
+				window: { usedPercent: 12, windowDurationMins: 300, resetsAtMs: Date.now() + 3600_000 },
+				weekly: { usedPercent: 3, resetsAtMs: Date.now() + 86400_000 },
+			},
+		});
 };
 const lines = createInterface({ input: process.stdin, crlfDelay: Infinity });
 lines.on("line", (line) => {
@@ -36,7 +47,7 @@ lines.on("line", (line) => {
 			return reply({
 				serverInfo: { name: "muse", version: "1.3.0" },
 				schema: { version: 1, fingerprint: "sha256:fixture" },
-				museHome: "/tmp/muse-fixture",
+				museHome: process.env.HARNESS_FIXTURE_MUSE_HOME ?? "/tmp/muse-fixture",
 				grantedCapabilities: [],
 				experimentalApi: false,
 			});
