@@ -225,12 +225,14 @@ test("each assigned agent has a stable tab with its current work state", async (
 	] satisfies AgentRun[];
 	let includeSecondRun = false;
 	let failRunList = false;
+	let runListResponse = 0;
 	await page.route("**/rpc/**", async (route) => {
 		const request = route.request();
 		if (!request.url().includes("agentRuns/list") && !request.postData()?.includes("agentRuns/list"))
 			return route.continue();
 		if (failRunList) return route.abort("failed");
-		const visibleRuns = includeSecondRun ? runs : runs.slice(0, 1);
+		const updatedAt = new Date(Date.parse(base.updatedAt) + runListResponse++).toISOString();
+		const visibleRuns = (includeSecondRun ? runs : runs.slice(0, 1)).map((run) => ({ ...run, updatedAt }));
 		if (!request.url().includes("__batch__")) return route.fulfill({ json: { json: visibleRuns } });
 		const calls = JSON.parse(request.postData()!) as { url: string }[];
 		const indexes = new Set(calls.flatMap((call, index) => (call.url.includes("agentRuns/list") ? [index] : [])));
@@ -246,10 +248,11 @@ test("each assigned agent has a stable tab with its current work state", async (
 	await signIn(page, "/t/TKT-1#attempt-two");
 
 	const work = page.getByRole("region", { name: "Ticket work area" });
-	const first = work.getByRole("tab", { name: "Senior Software Engineer 1", exact: true });
+	const first = work.getByRole("tab", { name: "Senior Software Engineer 1, Working", exact: true });
 	const second = work.getByRole("tab", { name: "Senior Software Engineer 2", exact: true });
 	await expect(first).toBeVisible();
 	await expect(first).toHaveAttribute("aria-selected", "true");
+	await expect(first).toHaveAccessibleName("Senior Software Engineer 1, Working");
 	await expect(second).toHaveCount(0);
 	includeSecondRun = true;
 	await expect(second).toHaveAttribute("aria-selected", "true");
@@ -263,6 +266,26 @@ test("each assigned agent has a stable tab with its current work state", async (
 	await page.keyboard.press("ArrowLeft");
 	await expect(first).toHaveAttribute("aria-selected", "true");
 	await expect(work.getByRole("link", { name: "Open workspace" })).toHaveAttribute("href", "https://example.test/one");
+
+	await page.evaluate(() => {
+		window.location.hash = "attempt-old";
+	});
+	await expect(page).toHaveURL(/#attempt-old$/);
+	await page.waitForResponse(
+		(response) =>
+			response.request().url().includes("agentRuns/list") ||
+			(response.request().postData()?.includes("agentRuns/list") ?? false),
+	);
+	await expect(first).toHaveAttribute("aria-selected", "true");
+	const nextPoll = page.waitForResponse(
+		(response) =>
+			response.request().url().includes("agentRuns/list") ||
+			(response.request().postData()?.includes("agentRuns/list") ?? false),
+	);
+	const changes = work.getByRole("tab", { name: "Changes", exact: true });
+	await changes.click();
+	await nextPoll;
+	await expect(changes).toHaveAttribute("aria-selected", "true");
 
 	failRunList = true;
 	await expect(work.getByRole("alert")).toContainText("Failed to fetch");

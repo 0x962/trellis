@@ -21,7 +21,7 @@ export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity:
 		refetchInterval: 2000,
 	});
 	const agentTabs = useMemo(() => assignedAgentTabs(runs.data ?? []), [runs.data]);
-	const handledHash = useRef("");
+	const hashSelection = useRef({ hash: "", matched: false });
 	useEffect(() => {
 		if (tab === "agent" && agentTabs.length > 0) setTab(agentTabs[0]!.value);
 		else if (tab.startsWith("agent:") && !agentTabs.some((item) => item.value === tab))
@@ -29,13 +29,19 @@ export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity:
 	}, [agentTabs, tab]);
 	useEffect(() => {
 		if (!hash.startsWith("attempt-")) {
-			handledHash.current = "";
+			hashSelection.current = { hash: "", matched: false };
 			return;
 		}
-		if (runs.isPending || handledHash.current === hash) return;
+		if (runs.isPending || (hashSelection.current.hash === hash && hashSelection.current.matched)) return;
 		const matching = agentTabs.find((item) => item.run.terminalId === hash);
-		setTab(matching?.value ?? agentTabs[0]?.value ?? "agent");
-		if (matching) handledHash.current = hash;
+		if (matching) {
+			setTab(matching.value);
+			hashSelection.current = { hash, matched: true };
+			return;
+		}
+		if (hashSelection.current.hash === hash) return;
+		setTab(agentTabs[0]?.value ?? "agent");
+		hashSelection.current = { hash, matched: false };
 	}, [agentTabs, hash, runs.isPending]);
 	const prs = useQuery({
 		...orpc.pullRequests.list.queryOptions({ input: { ticket: ticket.id } }),
@@ -71,19 +77,23 @@ export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity:
 					{ value: "activity", label: "Activity", content: activity },
 					...(agentTabs.length === 0
 						? [{ value: "agent", label: "Agent", content: execution }]
-						: agentTabs.map((item) => ({
-								value: item.value,
-								label: item.label,
-								icon: (
-									<Avatar
-										kind="agent"
-										name={item.run.personaName}
-										personaKind={item.run.kind}
-										state={isAgentWorking(item.run) ? "working" : "static"}
-									/>
-								),
-								content: <AgentRunDetails key={item.run.id} run={item.run} />,
-							}))),
+						: agentTabs.map((item) => {
+								const working = isAgentWorking(item.run);
+								return {
+									value: item.value,
+									label: item.label,
+									status: working ? "Working" : undefined,
+									icon: (
+										<Avatar
+											kind="agent"
+											name={item.run.personaName}
+											personaKind={item.run.kind}
+											state={working ? "working" : "static"}
+										/>
+									),
+									content: <AgentRunDetails key={item.run.id} run={item.run} />,
+								};
+							})),
 					{
 						value: "changes",
 						label: "Changes",

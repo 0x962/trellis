@@ -7,6 +7,7 @@ import { hitArea } from "../../utils/hitArea";
 export type TabItem<Value extends string> = {
 	value: Value;
 	label: string;
+	status?: string;
 	icon?: ReactNode;
 	content: ReactNode;
 	disabled?: boolean;
@@ -58,7 +59,7 @@ export function Tabs<Value extends string>({ items, value, onValueChange, classN
 					<BaseTabs.Tab
 						key={item.value}
 						value={item.value}
-						aria-label={item.label}
+						aria-label={item.status ? `${item.label}, ${item.status}` : item.label}
 						disabled={item.disabled}
 						className={(state) =>
 							cx(

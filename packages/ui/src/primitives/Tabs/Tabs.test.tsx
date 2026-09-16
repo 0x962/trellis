@@ -6,7 +6,7 @@ import { expectClasses, expectFocusRing, expectHitArea } from "../../../test/cla
 import { Tabs } from "./Tabs";
 
 const items = [
-	{ value: "All", label: "All", icon: <span data-testid="all-icon" />, content: <p>Everything</p> },
+	{ value: "All", label: "All", status: "Working", icon: <span data-testid="all-icon" />, content: <p>Everything</p> },
 	{ value: "Activity", label: "Activity", disabled: true, content: <p>Moves</p> },
 	{ value: "Comments", label: "Comments", content: <p>Only comments</p> },
 ];
@@ -25,9 +25,9 @@ describe("Tabs", () => {
 		const tabs = screen.getAllByRole("tab");
 		expect(tabs).toHaveLength(2);
 		expect(screen.getAllByRole("tabpanel")).toHaveLength(1);
-		const all = screen.getByRole("tab", { name: "All" });
+		const all = screen.getByRole("tab", { name: "All, Working" });
 		expect(all.getAttribute("aria-selected")).toBe("true");
-		expect(all.getAttribute("aria-label")).toBe("All");
+		expect(all.getAttribute("aria-label")).toBe("All, Working");
 		expect(screen.getByTestId("all-icon")).toBeDefined();
 		expectClasses(all, "gap-1.5 text-fg border-b-2 border-accent");
 		expectFocusRing(all);
@@ -58,7 +58,7 @@ describe("Tabs", () => {
 		const user = userEvent.setup();
 		render(<Controlled />);
 		expect(screen.getByRole("tab", { name: "Activity" }).getAttribute("aria-disabled")).toBe("true");
-		screen.getByRole("tab", { name: "All" }).focus();
+		screen.getByRole("tab", { name: "All, Working" }).focus();
 		await user.keyboard("{ArrowRight}");
 		await waitFor(() => expect(selected().textContent).toBe("Comments"));
 		await user.keyboard("{ArrowLeft}");
