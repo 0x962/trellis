@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { spawnSync } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -53,7 +54,11 @@ test("an interactive zsh that hangs in a startup file ends at the limit", async 
 		);
 		expect(performance.now() - startedAt).toBeLessThan(2000);
 		const childPid = Number(await readFile(join(home, "child-pid"), "utf8"));
-		expect(() => process.kill(childPid, 0)).toThrow();
+		const childState = spawnSync("/bin/ps", ["-o", "stat=", "-p", String(childPid)], {
+			encoding: "utf8",
+		});
+		expect(childState.status === 0 || childState.status === 1).toBe(true);
+		expect(childState.stdout.trim() === "" || childState.stdout.trim().startsWith("Z")).toBe(true);
 	} finally {
 		await rm(home, { recursive: true, force: true });
 	}
