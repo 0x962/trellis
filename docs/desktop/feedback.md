@@ -27,6 +27,10 @@ Tickets and Settings remain below the project name. The project row shows the se
 Root, nested, and archived projects use this navigation.
 All three navigation browser tests first fail on the old project destination and pass after the change.
 Web typecheck and scoped Biome checks pass. The user tests the installed appearance.
+Production source `be3f016a` passes all 13 packaged smoke checks and signature verification.
+At 00:40:18 UTC on September 16, the verified ditto copy updates `~/Applications/Trellis.app` to release `94f2db73`.
+The desktop, HTTP host, runtime, and all five active agent processes keep their identities. The host returns HTTP 200.
+Restart Trellis to activate the sidebar update. Evidence: `/tmp/trellis-project-navigation-install.json`.
 
 ## Automatic background service
 
