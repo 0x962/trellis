@@ -68,36 +68,24 @@ test("one agent receives all of its pending lines in one send", async () => {
 	});
 	const text = send.mock.calls[0]![1].text;
 	expect(text).toContain("2 new messages in the CDE room");
-	expect(text).toContain("#release 12:00:00 <dana> first");
-	expect(text).toContain("#release 12:00:00 <dana> second");
+	expect(text).toContain("#release Sep 09, 2026 at 12:00:00 PM UTC <dana> first");
+	expect(text).toContain("#release Sep 09, 2026 at 12:00:00 PM UTC <dana> second");
 	expect(text).toContain("trellis chat post CDE <channel> --body");
 	expect(await states()).toEqual(["builder:sent", "builder:sent", "manager:pending", "manager:pending"]);
 	await dispatchChat(ctx(), [controllerSession("terminal")], send);
 	expect(send).toHaveBeenCalledTimes(1);
 });
 
-test("an agent line names the persona and the run id, so a reader can mention it", async () => {
-	await say("done with TRL-1", { kind: "agent", name: "builder" });
+test("queued worker messages do not reach the copilot", async () => {
+	const message = await say("done with TRL-1", { kind: "agent", name: "builder" });
+	await h.rows(sql`INSERT INTO chat_deliveries (id,message_id,run_id,persona_name,terminal_id,session_id,direct)
+		VALUES ('old-delivery',${message.id},'manager','Trellis','manager-terminal','manager-conversation',true)
+		ON CONFLICT (message_id,run_id) DO NOTHING`);
 	const send = sent();
 	await dispatchChat(ctx(), [managerSession()], send);
-	expect(JSON.parse(send.mock.calls[0]![1].text)).toEqual({
-		type: "trellis.chat.messages",
-		project: "CDE",
-		messages: [
-			{
-				id: expect.any(String),
-				channel: "release",
-				body: "done with TRL-1",
-				createdAt: "2026-09-09T12:00:00.000Z",
-				actor: { kind: "agent", name: "builder", displayName: "Builder" },
-				mention: false,
-			},
-		],
-		mentioned: false,
-		context: [],
-		recipient: { runId: "manager", personaName: "Trellis" },
-	});
-	expect(await states()).toEqual(["manager:sent"]);
+	expect(send).not.toHaveBeenCalled();
+	expect(await states()).toEqual([]);
+	expect(await h.rows(sql`SELECT id FROM chat_messages WHERE id=${message.id}`)).toHaveLength(1);
 });
 
 test("a delivery carries the recent lines of its channel as context", async () => {
@@ -110,9 +98,9 @@ test("a delivery carries the recent lines of its channel as context", async () =
 	expect(text.split("\n").slice(0, 5)).toEqual([
 		"trellis chat: 1 new message in the CDE room.",
 		"Earlier, for context:",
-		"#release 12:00:00 <dana> first question",
+		"#release Sep 09, 2026 at 12:00:00 PM UTC <dana> first question",
 		"New:",
-		"#release 12:00:00 <dana> second question",
+		"#release Sep 09, 2026 at 12:00:00 PM UTC <dana> second question",
 	]);
 });
 
@@ -168,13 +156,13 @@ test("a replaced session fails its lines and a restart marks an interrupted send
 	expect(await states()).toContain("manager:unknown");
 });
 
-test("the global pause holds every line", async () => {
+test("a saved local pause does not hold chat delivery", async () => {
 	await say("later");
 	await h.rows(sql`INSERT INTO settings (key,value,updated_at) VALUES ('nativeWorkPaused','true',now())`);
 	const send = sent();
 	await dispatchChat(ctx(), [controllerSession("terminal"), managerSession()], send);
-	expect(send).not.toHaveBeenCalled();
-	expect(await states()).toEqual(["builder:pending", "manager:pending"]);
+	expect(send).toHaveBeenCalledTimes(2);
+	expect(await states()).toEqual(["builder:sent", "manager:sent"]);
 });
 
 test("a terminal without activity observations receives the lines", async () => {

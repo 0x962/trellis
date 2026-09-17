@@ -2,12 +2,11 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:te
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { createServer, type Server } from "node:net";
 import { join } from "node:path";
-import type { RestartSession } from "@trellis/runtime-protocol/restart-plan";
 import { sql } from "drizzle-orm";
 import { buildRuntime } from "../../../../../../runtime/test/runtimeBuild.ts";
 import { nativeClient } from "../../../../../src/agents/native/connection.ts";
 import { prepareStop } from "../../../../../src/services/agentRuns/lifecycle.ts";
-import { reserveRestart } from "../../../../../src/services/restartAgents/reserveRestart.ts";
+import { reserveResume } from "../../../../../src/services/agentRuns/reserveResume.ts";
 import { seedActors, seedRoot } from "../../../../fixtures/projects.ts";
 import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
@@ -19,13 +18,12 @@ let reached: Promise<void>;
 let release: () => void;
 let processes: Map<string, "running" | "exited" | "unknown">;
 let stopFails: boolean;
-const entry: RestartSession = {
+const entry: Parameters<typeof reserveResume>[2] = {
 	runId: "assignment",
 	previousAttemptId: "previous",
 	providerSessionId: "provider-session",
 	harness: "codex",
 	workspace: "/tmp/work",
-	processIdentity: "saved-identity",
 	attempt: { id: "replacement", token: "new-token" },
 };
 beforeAll(async () => {
@@ -40,7 +38,7 @@ beforeEach(async () => {
 		await seedActors(tx);
 		const project = await seedRoot(tx, "STOP");
 		await tx.execute(
-			sql`UPDATE projects SET manager_config='{"personaId":null,"concurrency":3,"directory":"/tmp/work"}'::jsonb WHERE id=${project}`,
+			sql`UPDATE projects SET manager_config='{"personaId":null,"directory":"/tmp/work"}'::jsonb WHERE id=${project}`,
 		);
 		await tx.execute(
 			sql`INSERT INTO agent_runs (id,name,runtime,persona_name,kind,instruction,project_id,project_path,terminal_id,session_id,workspace_id,created_at,updated_at) VALUES ('assignment','Worker','native','Builder','builder','Task',${project},'STOP','previous','provider-session','/tmp/work',now(),now())`,
@@ -90,7 +88,7 @@ const context = () =>
 	({ ...h.ctx(() => {}), newTx: h.read, home, now: () => new Date() }) as unknown as Parameters<typeof prepareStop>[0];
 const reserve = () =>
 	h.read((tx) =>
-		reserveRestart(
+		reserveResume(
 			h.ctx(() => {}),
 			tx,
 			entry,

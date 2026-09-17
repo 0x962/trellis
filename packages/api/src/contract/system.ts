@@ -1,13 +1,7 @@
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
 import { DiagnosticsSchema } from "../schemas/diagnostics.ts";
-import {
-	BackupOutputSchema,
-	GhStatusSchema,
-	HealthSchema,
-	RestartResumeOutputSchema,
-	RestartStatusSchema,
-} from "../schemas/system.ts";
+import { BackupOutputSchema, GhStatusSchema, HealthSchema } from "../schemas/system.ts";
 import { base } from "./base.ts";
 
 export const system = {
@@ -15,29 +9,6 @@ export const system = {
 		.route({ method: "GET", path: "/doctor", summary: "Inspect the local host and execution service" })
 		.input(z.object({}))
 		.output(DiagnosticsSchema),
-	nativeWork: base
-		.route({ method: "GET", path: "/native-work", summary: "Read the local work setting" })
-		.input(z.object({}))
-		.output(z.object({ paused: z.boolean() })),
-	resumeNativeWork: base
-		.route({ method: "POST", path: "/native-work/resume", summary: "Allow new local work" })
-		.input(z.object({}))
-		.output(z.object({ paused: z.boolean() })),
-	resumeRestart: base
-		.errors(pickErrors(["RESTART_FAILED"]))
-		.route({ method: "POST", path: "/native-work/restart/resume", summary: "Resume agents after a desktop restart" })
-		// The host resumes the agents in the background and answers at once.
-		// `wait` holds the answer until every agent of the plan has an outcome.
-		.input(z.object({ restartId: z.string().min(1), wait: z.boolean().optional() }).strict())
-		.output(RestartResumeOutputSchema),
-	restartStatus: base
-		.route({
-			method: "GET",
-			path: "/native-work/restart",
-			summary: "Read the agent resume of the last desktop restart",
-		})
-		.input(z.object({}))
-		.output(RestartStatusSchema.nullable()),
 	stopNativeWork: base
 		.route({ method: "POST", path: "/native-work/stop", summary: "Stop local work and its execution service" })
 		.input(z.object({}))

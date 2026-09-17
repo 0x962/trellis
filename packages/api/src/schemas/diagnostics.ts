@@ -9,7 +9,6 @@ export const DiagnosticsSchema = z.object({
 		expectedProtocol: z.number(),
 		error: z.string().nullable(),
 	}),
-	paused: z.boolean(),
 	queue: z.object({
 		pending: z.number(),
 		sending: z.number(),

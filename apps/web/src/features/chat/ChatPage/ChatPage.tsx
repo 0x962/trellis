@@ -3,6 +3,7 @@ import { type ChatMessage, chatChannelName, chatChannelPattern, type Project } f
 import { EmptyState, toast } from "@trellis/ui";
 import { type ReactNode, useEffect, useMemo, useRef } from "react";
 import { useApp } from "../../../lib/appContext";
+import { localDate } from "../../../lib/format";
 import { createMarkdownRenderer } from "../../../lib/markdown";
 import { useChatStore } from "../../../stores/chatStore";
 import { PageTitle } from "../../shell/PageTitle";
@@ -28,18 +29,20 @@ const parseInput = (text: string): { kind: "join"; channel: string } | { kind: "
 	return { kind: "post", body: text.trimEnd() };
 };
 
-const day = (iso: string) => iso.slice(0, 10);
-
 // The lines of the log, with a dated rule before the first message of each
 // day, so a reader scanning across days sees where one ended.
 const withDayRules = (
 	items: ChatMessage[],
 	render: (markdown: string) => string,
 	onMention: (text: string) => void,
-): ReactNode[] =>
-	items.flatMap((message, index) => {
+): ReactNode[] => {
+	let previousDate: string | null = null;
+	return items.flatMap((message) => {
+		const messageDate = localDate(message.createdAt);
+		const startsDate = messageDate !== previousDate;
+		previousDate = messageDate;
 		const line = <ChatLine key={message.id} message={message} render={render} onMention={onMention} />;
-		if (index > 0 && day(items[index - 1]!.createdAt) === day(message.createdAt)) return [line];
+		if (!startsDate) return [line];
 		return [
 			<li
 				key={`${message.id}.day`}
@@ -47,12 +50,13 @@ const withDayRules = (
 				className="flex items-center gap-2 px-3 py-1 font-mono text-xs text-fg-faint tabular"
 			>
 				<span className="h-px flex-1 bg-border" />
-				{day(message.createdAt)}
+				{messageDate}
 				<span className="h-px flex-1 bg-border" />
 			</li>,
 			line,
 		];
 	});
+};
 
 // The chat page of a project tree: the channels of its room on the left, the
 // log of the open channel on the right, the composer below the log. The
@@ -80,7 +84,7 @@ export function ChatPage({ project }: { project: Project }) {
 	// The manager of the project names the direct message channel. A project
 	// with no manager yet shows the default name.
 	const managerName =
-		(agents.data ?? []).find((run) => run.projectId === project.id && run.kind === "manager")?.personaName ?? "Manager";
+		(agents.data ?? []).find((run) => run.projectId === project.id && run.kind === "manager")?.personaName ?? "Copilot";
 	const items: ChatMessage[] = messages.data?.items ?? [];
 
 	// The names a mention in a body can address: the live agents by persona

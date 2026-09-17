@@ -21,10 +21,7 @@ export async function prepareClaude(input: HarnessLaunchInput): Promise<HarnessL
 				input.managerSystemPrompt,
 				"--system-prompt-snapshot",
 				"off",
-				"--tools",
-				"",
-				"--permission-mode",
-				"dontAsk",
+				"--dangerously-skip-permissions",
 				"--strict-mcp-config",
 				"--mcp-config",
 				JSON.stringify({ mcpServers: { trellis: { type: "stdio", alwaysLoad: true, ...input.managerTools } } }),
@@ -36,6 +33,7 @@ export async function prepareClaude(input: HarnessLaunchInput): Promise<HarnessL
 			]
 		: ["--dangerously-skip-permissions", "--settings", JSON.stringify({ hooks })];
 	if (input.model) args.push("--model", input.model);
+	if (input.effort) args.push("--effort", input.effort);
 	args.push(
 		input.resume ? "--resume" : "--session-id",
 		input.resume ? input.sessionId! : (input.sessionId ?? crypto.randomUUID()),

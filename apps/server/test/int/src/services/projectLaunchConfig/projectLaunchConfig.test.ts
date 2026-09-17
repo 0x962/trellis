@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import { reserve } from "../../../../../src/services/agentRuns/reserve.ts";
-import { reserveRestart } from "../../../../../src/services/restartAgents/reserveRestart.ts";
+import { reserveResume } from "../../../../../src/services/agentRuns/reserveResume.ts";
 import { seedActors, seedChild, seedRoot, seedStatuses } from "../../../../fixtures/projects.ts";
 import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
@@ -20,7 +20,7 @@ beforeEach(async () => {
 	await h.read(async (tx) => {
 		await seedActors(tx);
 		root = await seedRoot(tx, "ROOT", {
-			manager_config: { personaId: null, concurrency: 9, directory: "/tmp/root", harness: { preset: "codex" } },
+			manager_config: { personaId: null, directory: "/tmp/root", harness: { preset: "codex" } },
 		});
 		await seedStatuses(tx, root);
 		child = await seedChild(tx, root, root, "child");
@@ -40,7 +40,7 @@ test("a child launch uses the nearest current ancestor directory without inherit
 	const first = await reservation(child);
 	if (first.replay) throw new Error("Expected a new launch");
 	expect(first.config.directory).toBe("/tmp/changed-root");
-	expect(first.config.concurrency).toBe(3);
+	expect(first.config).not.toHaveProperty("concurrency");
 	expect(first.config.personaId).toBeNull();
 	expect(first.config.harness.preset).toBe("claude");
 	expect(first.context).toContain("Project directory: /tmp/changed-root");
@@ -68,7 +68,7 @@ test("restart preparation resolves the inherited directory and keeps the saved s
 		sql`UPDATE projects SET manager_config=jsonb_set(manager_config,'{directory}','"/tmp/restart-root"') WHERE id=${root}`,
 	);
 	const result = await h.run((ctx, tx) =>
-		reserveRestart(
+		reserveResume(
 			ctx,
 			tx,
 			{
@@ -78,7 +78,6 @@ test("restart preparation resolves the inherited directory and keeps the saved s
 				harness: "claude",
 				model: "anthropic/claude-sonnet-5",
 				workspace: "/tmp/saved-workspace",
-				processIdentity: "identity",
 				attempt: { id: "restart-attempt", token: "restart-token" },
 			},
 			false,

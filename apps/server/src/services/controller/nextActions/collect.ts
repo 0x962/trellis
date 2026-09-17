@@ -2,12 +2,11 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { rows } from "../../../db/queries/support.ts";
 import type { Tx } from "../../../db/tx.ts";
-import type { CapacityObservation } from "../../assignments/occupiesSlot/index.ts";
 import type { ControllerCtx } from "../types.ts";
 import { refresh } from "./queries.ts";
 
-export const collect = async (ctx: ControllerCtx, tx: Tx, input: CapacityObservation = {}) => {
-	await refresh(tx, { now: ctx.now, ...input });
+export const collect = async (ctx: ControllerCtx, tx: Tx) => {
+	await refresh(tx, { now: ctx.now });
 	const projects = await rows<{ project_id: string }>(
 		tx,
 		sql`SELECT DISTINCT project_id FROM manager_next_actions a

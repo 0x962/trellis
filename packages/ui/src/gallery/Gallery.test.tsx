@@ -33,15 +33,7 @@ const primitives = [
 	"Command",
 ];
 
-const domain = [
-	"AgentCapacityBadge",
-	"StatusIcon",
-	"PriorityIcon",
-	"CheckRibbon",
-	"ActorChip",
-	"TicketId",
-	"TrellisMark",
-];
+const domain = ["StatusIcon", "PriorityIcon", "CheckRibbon", "ActorChip", "TicketId", "TrellisMark"];
 
 // The section a heading introduces: its closest `section` ancestor.
 const section = (name: string) => screen.getByRole("heading", { name }).closest("section")!;

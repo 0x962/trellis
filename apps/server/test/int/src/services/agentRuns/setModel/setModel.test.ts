@@ -28,7 +28,7 @@ beforeEach(async () => {
 		await seedActors(tx);
 		const projectId = await seedRoot(tx, "MODEL");
 		const statuses = await seedStatuses(tx, projectId);
-		ticket = await seedTicket(tx, { projectId, rootId: projectId, statusId: statuses.todo });
+		ticket = await seedTicket(tx, { projectId, rootId: projectId, statusId: statuses.started });
 		await tx.execute(sql`INSERT INTO personas (id,name,kind,instruction,created_at,updated_at)
 		VALUES ('builder','Builder','builder','Build',now(),now())`);
 	});

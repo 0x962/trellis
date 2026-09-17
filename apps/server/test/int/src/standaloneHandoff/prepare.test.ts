@@ -42,9 +42,7 @@ test("handoff backs up original settings and preserves unresolved external runs 
 		const live = await openDatabase(join(home, "db"));
 		const saved = await openDatabase(join(backupPath, "db"));
 		try {
-			expect((await live.db.execute(sql`SELECT value FROM settings WHERE key='nativeWorkPaused'`)).rows[0]!.value).toBe(
-				true,
-			);
+			expect((await live.db.execute(sql`SELECT value FROM settings WHERE key='nativeWorkPaused'`)).rows).toEqual([]);
 			expect((await live.db.execute(sql`SELECT value FROM settings WHERE key='agents'`)).rows[0]!.value).toMatchObject({
 				enabled: false,
 			});

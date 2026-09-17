@@ -16,6 +16,8 @@ import { ticketGet, ticketSummary } from "../../db/queries/ticketGet.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { record } from "../activity.ts";
+import { assertStatusRoom } from "../manager/admitTicket.ts";
+import { retireColumnWorker } from "../manager/retireColumnWorker.ts";
 import { assertProjectActive, pathOf, resolveProject, resolveStatus, resolveTicket, type TicketRow } from "../refs.ts";
 import { assertVersion, outsideRoot, remapStatus, stampColumns } from "./rules.ts";
 
@@ -90,6 +92,9 @@ const projectAndStatusChanges = async (ctx: ServiceCtx, tx: Tx, row: TicketRow, 
 		const target = await effectiveStatuses(tx, projectId);
 		if (!target.some((status) => status.id === current.id)) next = remapStatus(target, current);
 	}
+	if (next.id !== current.id || projectId !== row.projectId) {
+		await assertStatusRoom(ctx, tx, next.id, projectId, row.id);
+	}
 	if (next.id !== current.id) {
 		changes.push({
 			field: "status",
@@ -150,6 +155,13 @@ export const applyChanges = async (ctx: ServiceCtx, tx: Tx, batchId: string, row
 		changes: changes.map(({ field, from, to, meta }) => ({ field, from, to, meta })),
 	});
 	const summary = await ticketSummary(tx, row.id);
+	if (changes.some((change) => change.field === "status")) {
+		await retireColumnWorker(ctx, tx, {
+			ticketId: row.id,
+			projectId: summary.project.id,
+			category: summary.status.category,
+		});
+	}
 	ctx.emit({ type: "ticket.updated", summary, fields: changes.map((change) => change.field), batchId });
 	return summary;
 };

@@ -30,7 +30,6 @@ describe("contract", () => {
 		expect(table).toEqual([
 			"actors.default GET /actors/default",
 			"actors.list GET /actors",
-			"agentRuns.capacity GET /agent-runs/capacity",
 			"agentRuns.interrupt POST /agent-runs/{id}/interrupt",
 			"agentRuns.list GET /agent-runs",
 			"agentRuns.output GET /agent-runs/{id}/output",
@@ -153,7 +152,6 @@ describe("contract", () => {
 			"statuses.reorder PUT /projects/{project}/statuses/order",
 			"statuses.update PATCH /projects/{project}/statuses/{status}",
 			"submanagers.list GET /submanagers",
-			"submanagers.resize PATCH /submanagers/{id}",
 			"submanagers.retire POST /submanagers/{id}/retire",
 			"submanagers.start POST /submanagers",
 			"system.backup POST /backup",
@@ -162,10 +160,6 @@ describe("contract", () => {
 			"system.doctor GET /doctor",
 			"system.gh GET /gh",
 			"system.health GET /health",
-			"system.nativeWork GET /native-work",
-			"system.restartStatus GET /native-work/restart",
-			"system.resumeNativeWork POST /native-work/resume",
-			"system.resumeRestart POST /native-work/restart/resume",
 			"system.stopNativeWork POST /native-work/stop",
 			"tickets.board GET /tickets/board",
 			"tickets.counts GET /tickets/counts",
@@ -181,7 +175,7 @@ describe("contract", () => {
 			"usage.accounts GET /usage/accounts",
 			"usage.report GET /usage",
 		]);
-		expect(table).toHaveLength(152);
+		expect(table).toHaveLength(146);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has
@@ -209,9 +203,8 @@ describe("contract", () => {
 		expects("tickets.list", ["INVALID_CURSOR"]);
 		expects("pullRequests.link", ["INVALID_PR_URL", "GH_UNAVAILABLE"]);
 		expects("attachments.upload", ["PAYLOAD_TOO_LARGE"]);
-		expects("agentRuns.start", ["CONCURRENCY_LIMIT"]);
-		expects("agentRuns.resume", ["CONCURRENCY_LIMIT"]);
-		expects("agentRuns.setModel", ["CONCURRENCY_LIMIT"]);
+		expects("tickets.update", ["STATUS_FULL"]);
+		expects("tickets.updateMany", ["STATUS_FULL"]);
 		expects("system.backup", ["BACKUP_FAILED"]);
 		expects("search.query", ["SEARCH_REPLACED"]);
 	});

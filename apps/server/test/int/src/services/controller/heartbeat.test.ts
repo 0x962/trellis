@@ -38,10 +38,6 @@ const batches = () => h.rows(sql`SELECT * FROM manager_dispatches ORDER BY creat
 const observation = (state: "ready" | "working" | "idle", seconds = 0) => {
 	sessions[0]!.activity = { state, updatedAt: secondsAfter(seconds).toISOString() };
 };
-const pause = (paused: boolean) =>
-	h.rows(
-		sql`INSERT INTO settings(key,value,updated_at) VALUES ('nativeWorkPaused',${JSON.stringify(paused)}::jsonb,${NOW}) ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value`,
-	);
 const event = (seconds: number) =>
 	h.read((tx) => seedActivity(tx, { projectId, rootId: projectId, ticketId, createdAt: secondsAfter(seconds) }));
 
@@ -126,17 +122,7 @@ test("project pause suppresses heartbeats until dispatch resumes", async () => {
 	await gather(601);
 	expect((await take(601))?.events).toEqual([]);
 });
-test("global pause blocks both heartbeat creation and a previously queued heartbeat", async () => {
-	await pause(true);
-	await gather(600);
-	expect(await batches()).toHaveLength(0);
-	await pause(false);
-	await gather(601);
-	await pause(true);
-	expect(await take(602)).toBeNull();
-	await pause(false);
-	expect((await take(603))?.events).toEqual([]);
-});
+
 test("an unknown send blocks further heartbeats across recovery", async () => {
 	await gather(121);
 	const first = (await take(121))!;

@@ -72,6 +72,28 @@ test("Muse reports interrupted, failed, and retried turns without a result", () 
 	).toEqual([{ kind: "tool-end", sessionId, turnId, tool: { id: "t2", name: "bash" }, error: "exit 1" }]);
 });
 
+test("a turn that carries several held prompts yields one receipt per prompt", () => {
+	const events = new MuseSessionEvents(sessionId);
+	events.expectBatch("cmd-1", ["trellis-message:a\nfirst", "trellis-message:b\nsecond"]);
+	const item = {
+		itemId: "u2",
+		kind: "userMessage",
+		status: "completed",
+		turnId,
+		commandId: "cmd-1",
+		text: "trellis-message:a\nfirst\n\ntrellis-message:b\nsecond",
+	};
+	expect(events.parse(notify("item/completed", { item }))).toEqual([
+		{ kind: "prompt", sessionId, turnId, prompt: "trellis-message:a\nfirst" },
+		{ kind: "prompt", sessionId, turnId, prompt: "trellis-message:b\nsecond" },
+	]);
+	expect(events.parse(notify("item/started", { item }))).toEqual([]);
+	const own = { itemId: "u3", kind: "userMessage", status: "completed", turnId, commandId: "cmd-2", text: "typed" };
+	expect(events.parse(notify("item/completed", { item: own }))).toEqual([
+		{ kind: "prompt", sessionId, turnId, prompt: "typed" },
+	]);
+});
+
 test("Muse ignores other sessions, reasoning items, and reports model changes", () => {
 	const events = new MuseSessionEvents(sessionId);
 	expect(events.parse({ method: "turn/started", params: { sessionId: "other", turnId } })).toEqual([]);

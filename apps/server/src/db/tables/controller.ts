@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { bigint, check, index, integer, jsonb, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { at } from "./actors.ts";
+import { agentRuns } from "./agentRuns.ts";
 import { projects } from "./projects.ts";
 
 export const managerControllerCursors = pgTable("manager_controller_cursors", {
@@ -45,3 +46,12 @@ export const managerDispatches = pgTable(
 			.where(sql`${t.state} IN ('pending', 'sending', 'unknown')`),
 	],
 );
+
+// The last builder heartbeat per run. A heartbeat goes to a builder on an
+// in-progress ticket whose session is idle, at most one per quiet window.
+export const builderHeartbeats = pgTable("builder_heartbeats", {
+	runId: text("run_id")
+		.primaryKey()
+		.references(() => agentRuns.id, { onDelete: "cascade" }),
+	sentAt: at("sent_at").notNull(),
+});

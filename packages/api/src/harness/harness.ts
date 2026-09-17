@@ -2,6 +2,7 @@ import { z } from "zod";
 import { AgentCommandSchema } from "../agentCommand/agentCommand.ts";
 import { DEFAULT_AGENT_RESUME_COMMAND, DEFAULT_AGENT_START_COMMAND } from "../agentLaunch/agentLaunch.ts";
 import { ModelIdSchema, supportsModel } from "../models/models.ts";
+import { effortForHarness, HarnessEffortSchema } from "./effort/effort.ts";
 
 export const HARNESS_DEFAULT_MODELS = {
 	claude: "anthropic/claude-opus-5",
@@ -38,10 +39,20 @@ export const HarnessSchema = z
 	.strictObject({
 		preset: HarnessPresetSchema,
 		model: ModelIdSchema.optional(),
+		effort: HarnessEffortSchema.optional(),
 		startCommand: AgentCommandSchema.optional(),
 		resumeCommand: AgentCommandSchema.optional(),
 	})
 	.superRefine((value, ctx) => {
+		if (value.effort !== undefined) {
+			const model = value.model ?? (value.preset === "custom" ? "" : HARNESS_DEFAULT_MODELS[value.preset]);
+			if (!effortForHarness(value.preset, model)?.options.some(({ value: effort }) => effort === value.effort))
+				ctx.addIssue({
+					code: "custom",
+					path: ["effort"],
+					message: "Select an effort supported by this harness and model.",
+				});
+		}
 		if (value.model && !supportsModel(value.preset, value.model))
 			ctx.addIssue({ code: "custom", path: ["model"], message: `Select a model supported by ${value.preset}.` });
 		if (value.preset !== "custom") return;
@@ -52,6 +63,7 @@ export const HarnessSchema = z
 	.transform((value) => ({
 		preset: value.preset,
 		...(value.model === undefined ? {} : { model: value.model }),
+		...(value.effort === undefined ? {} : { effort: value.effort }),
 		startCommand: value.startCommand ?? HARNESS_PRESETS[value.preset as keyof typeof HARNESS_PRESETS].startCommand,
 		resumeCommand: value.resumeCommand ?? HARNESS_PRESETS[value.preset as keyof typeof HARNESS_PRESETS].resumeCommand,
 	}));

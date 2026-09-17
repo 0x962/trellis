@@ -11,7 +11,7 @@ export const ACTOR_HEADER_EXAMPLE = "agent:claude-code";
 export const SERVERS = [{ url: "http://127.0.0.1:4521/api", description: "The local server" }];
 
 export const TAGS = [
-	{ name: "submanagers", description: "Delegated project scopes and reserved worker capacity." },
+	{ name: "submanagers", description: "Delegated project scopes." },
 	{ name: "harness accounts", description: "Configured account profiles and provider quota." },
 	{ name: "needs you", description: "Work that requires a human decision." },
 	{ name: "evidence", description: "Workspace files, retained checks, and artifacts for a native attempt." },
@@ -97,11 +97,9 @@ Every response carries \`x-trellis-api-version\`. Every error is JSON with \`cod
 export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /submanagers": {
 		project: "CDE.web",
-		capacity: 2,
 		brief: "Complete the web tickets and prepare them for review.",
 		requestId: "CDE.web:manager",
 	},
-	"PATCH /submanagers/{id}": { capacity: 3 },
 	"POST /submanagers/{id}/retire": {},
 	"POST /harness-accounts": { name: "Work", harness: "claude" },
 	"PATCH /harness-accounts/{id}": { isDefault: true },
@@ -128,7 +126,6 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 			{ ticketId: "01J9Z0000000000000000000A1", status: "queued", reason: "An active worker owns this ticket." },
 		],
 	},
-	"POST /native-work/resume": {},
 	"POST /native-work/stop": {},
 	"POST /flow-executions": {
 		flow: "review",
