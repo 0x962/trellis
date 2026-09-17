@@ -71,6 +71,39 @@ describe("comment attachments", () => {
 		for (const row of await attachmentRows(ticket)) expect(row.comment_id).toBe(comment.id);
 	});
 
+	test("the same deduplication key and the same files return the first comment", async () => {
+		const ticket = await seedOneTicket();
+		const { result: first } = await upload(dana, { ticket, file: png("first") });
+		const { result: second } = await upload(dana, { ticket, file: png("second") });
+		const input = {
+			ticket,
+			body: "Two screens.",
+			attachmentIds: [first.attachment.id, second.attachment.id],
+			dedupeKey: "release:revision-1",
+		};
+		const { result: created } = await as(dana)((ctx, tx) => comments.create(ctx, tx, input));
+		// The retry names the same files in the other order. Both id lists sort
+		// before they are compared, so the repeat answers with the first comment.
+		const { result: repeated } = await as(dana)((ctx, tx) =>
+			comments.create(ctx, tx, { ...input, attachmentIds: [second.attachment.id, first.attachment.id] }),
+		);
+		expect(repeated.id).toBe(created.id);
+		expect(repeated.attachments?.map((file) => file.id).sort()).toEqual(
+			[first.attachment.id, second.attachment.id].sort(),
+		);
+	});
+
+	test("the same deduplication key with different files throws", async () => {
+		const ticket = await seedOneTicket();
+		const { result: first } = await upload(dana, { ticket, file: png("first") });
+		const { result: second } = await upload(dana, { ticket, file: png("second") });
+		const input = { ticket, body: "One screen.", dedupeKey: "release:revision-2" };
+		await as(dana)((ctx, tx) => comments.create(ctx, tx, { ...input, attachmentIds: [first.attachment.id] }));
+		await expect(
+			as(dana)((ctx, tx) => comments.create(ctx, tx, { ...input, attachmentIds: [second.attachment.id] })),
+		).rejects.toThrow();
+	});
+
 	test("comments.create with an attachment of another ticket throws", async () => {
 		const ticket = await seedOneTicket();
 		const { rootId, statuses } = await seedProject(h.db, "SEC");

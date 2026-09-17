@@ -156,15 +156,15 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 			AND c.dedupe_key=${input.dedupeKey}`,
 		);
 		if (existing) {
-			if (existing.body !== input.body || existing.parent_id !== parentId)
-				throw invalidInput(
-					"dedupeKey",
-					"This key already identifies another comment. Update that comment or use a new revision key.",
-				);
 			const linked = (
-				await rows<{ id: string }>(tx, sql`SELECT id FROM attachments WHERE comment_id = ${existing.id}`)
+				await rows<{ id: string }>(tx, sql`SELECT id FROM attachments WHERE comment_id = ${existing.id} ORDER BY id`)
 			).map((attachment) => attachment.id);
-			if (linked.join() !== [...new Set(input.attachmentIds ?? [])].sort().join())
+			// A repeat of one key must describe the same comment, so the body,
+			// the thread, and the files all have to match. Both id lists are
+			// sorted, so the order the database returns the rows in never
+			// decides the answer.
+			const asked = [...new Set(input.attachmentIds ?? [])].sort();
+			if (existing.body !== input.body || existing.parent_id !== parentId || linked.join() !== asked.join())
 				throw invalidInput(
 					"dedupeKey",
 					"This key already identifies another comment. Update that comment or use a new revision key.",
