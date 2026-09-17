@@ -43,6 +43,7 @@ export function ReviewLiveActions({
 					<IconButton
 						label={actionLabels["live-create"]}
 						icon={<RocketLaunch />}
+						variant="default"
 						disabled={mutation.isPending}
 						onClick={() => run("live-create")}
 					/>
@@ -51,6 +52,7 @@ export function ReviewLiveActions({
 					<IconButton
 						label={actionLabels["live-deploy"]}
 						icon={<ArrowClockwise />}
+						variant="default"
 						disabled={mutation.isPending}
 						onClick={() => run("live-deploy")}
 					/>
@@ -59,7 +61,7 @@ export function ReviewLiveActions({
 					<IconButton
 						label={actionLabels["live-delete"]}
 						icon={<Trash />}
-						variant="danger"
+						variant="danger-soft"
 						disabled={mutation.isPending}
 						onClick={() => setDeleteOpen(true)}
 					/>

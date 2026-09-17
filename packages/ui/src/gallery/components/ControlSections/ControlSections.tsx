@@ -74,13 +74,17 @@ export function ControlSections() {
 					/>
 				</span>
 			</Section>
-			<Section name="IconButton" note="primary, default, quiet, danger; xs 24 px, sm 28 px, md 32 px; disabled">
+			<Section
+				name="IconButton"
+				note="primary, default, quiet, danger, danger-soft; xs 24 px, sm 28 px, md 32 px; disabled"
+			>
 				{iconSizes.map((size) => (
 					<div key={size} className="flex items-center gap-2">
 						<IconButton label="Refresh" icon={<ArrowsClockwise />} size={size} variant="primary" />
 						<IconButton label="Refresh" icon={<ArrowsClockwise />} size={size} variant="default" />
 						<IconButton label="Refresh" icon={<ArrowsClockwise />} size={size} />
 						<IconButton label="Delete" icon={<Trash />} size={size} variant="danger" />
+						<IconButton label="Delete" icon={<Trash />} size={size} variant="danger-soft" />
 						<IconButton label="Refresh" icon={<ArrowsClockwise />} size={size} disabled />
 					</div>
 				))}
