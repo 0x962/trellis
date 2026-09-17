@@ -48,7 +48,7 @@ export async function readMuseUsage(museHome: string): Promise<MuseUsage | null>
 		readSnapshot(join(museHome, MUSE_USAGE_FILE), MuseUsageSchema),
 		readSnapshot(join(museHome, MUSE_QUOTA_FILE), MuseQuotaSchema),
 	]);
-	if (quota === null) return usage;
+	if (quota === null || (usage !== null && usage.observedAtMs > quota.observedAtMs)) return usage;
 	return {
 		...usage,
 		observedAtMs: Math.max(usage?.observedAtMs ?? 0, quota.observedAtMs),

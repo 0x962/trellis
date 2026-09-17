@@ -423,6 +423,7 @@ Muse returns `signed_out` for a profile without `muse/auth.json`, unless a saved
 Muse announces its subscription windows to its session client after each model call. The Muse bridge saves the latest announcement to `muse/trellis-usage.json`.
 The bridge saves the reset time from a subscription quota error to `muse/trellis-quota.json`.
 The separate file keeps a late usage announcement from another bridge process from removing the error. An active exhausted window reads `ok` at 100 percent.
+A normal snapshot with a later observation time supersedes an older quota error.
 Before the first run, or after every saved window has reset, the account is `unavailable` with a sentence that asks for a run.
 An unavailable quota result contains no allowance estimate. Credentials stay on the host and do not enter API responses.
 
