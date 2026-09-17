@@ -1,4 +1,5 @@
 import type { AgentRun, AgentRunListInput, AgentRunStartInput, TicketGetInputSchema } from "@trellis/api";
+import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { ServiceCtx as CoreCtx } from "../../context.ts";
@@ -9,7 +10,7 @@ import { resolveProject, resolveTicket } from "../refs.ts";
 import type { ServiceCtx } from "../support.ts";
 import { resolveTicketAge } from "../tickets.ts";
 import { closeExitedAssignments } from "./closeExitedAssignments.ts";
-import { observeRuns, observeTicketMetrics } from "./liveState.ts";
+import { observeRuns, observeTicketMetrics, projectRun } from "./liveState.ts";
 import { startNative } from "./nativeStart.ts";
 import { columns, getRun, type StoredRun } from "./queries.ts";
 import { reserve } from "./reserve.ts";
@@ -38,6 +39,12 @@ export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 		${project === null ? sql`true` : sql`project_id = ${project.id}`} ORDER BY created_at DESC, id DESC`,
 	);
 };
+
+export const projectUnresolvedAttempts = (runs: StoredRun[], sessions: RuntimeProcessStatus[]) =>
+	runs
+		.map((run) => projectRun(run, sessions))
+		.filter((run) => ["interrupted", "failed"].includes(run.state))
+		.map(({ id, state, error }) => ({ id, state, error }));
 
 export const prepareList = async (ctx: Ctx, input: AgentRunListInput) =>
 	observeRuns(ctx, await ctx.newTx((tx) => list(ctx.core, tx, input)));
