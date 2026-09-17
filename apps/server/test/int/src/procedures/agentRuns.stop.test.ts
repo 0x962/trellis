@@ -16,7 +16,7 @@ afterEach(async () => {
 	await t.close();
 });
 
-test("stop reports failed process cleanup as a runtime error and keeps the assignment open", async () => {
+test("stop reports failed process cleanup and retains the stop intent", async () => {
 	t = await createTestApp();
 	const project = await t.seedProject("STP");
 	const id = ulid();
@@ -50,18 +50,18 @@ test("stop reports failed process cleanup as a runtime error and keeps the assig
 	await expect(t.client.agentRuns.stop({ id })).rejects.toMatchObject({
 		code: "RUNNER_UNAVAILABLE",
 		status: 503,
-		message: `Could not stop Hana. ${error}`,
+		message: `Could not stop Manager. ${error}`,
 		data: { reason: "error" },
 	});
 	stopFails = true;
 	await expect(t.client.agentRuns.stop({ id })).rejects.toMatchObject({
 		code: "RUNNER_UNAVAILABLE",
 		status: 503,
-		message: `Could not stop Hana. ${error}`,
+		message: `Could not stop Manager. ${error}`,
 		data: { reason: "error" },
 	});
 	const row = await t.editServerTx(async (tx) =>
 		(await tx.execute(sql`SELECT closed_at FROM agent_runs WHERE id=${id}`)).rows.at(0),
 	);
-	expect(row?.closed_at).toBeNull();
+	expect(row?.closed_at).not.toBeNull();
 });

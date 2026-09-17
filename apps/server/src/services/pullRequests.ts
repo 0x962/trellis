@@ -1,15 +1,20 @@
-import type { Check, CiState, LinkedPullRequest, PrState, PullRequest, PullRequestDiffOutput } from "@trellis/api";
+import type { LinkedPullRequest, PullRequest, PullRequestDiffOutput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { actorDisplayName } from "../db/queries/actorDisplayName.ts";
 import { iso, rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
-import { fetchPullRequests, type PullRequestRef, type PullRequestResult, type PullRequestRow } from "../gh/graphql.ts";
+import {
+	fetchPullRequests,
+	type PullRequestRef,
+	type PullRequestResult,
+	type PullRequestRow as GraphqlPullRequestRow,
+} from "../gh/graphql.ts";
 import { parsePullRequestUrl } from "../gh/parse.ts";
 import type { PreparedDiff } from "./pullRequestDiff.ts";
+import { findPullRequestRow, type LinkedPullRequestRow, type PullRequestRow, pullRequestColumns, toLinkedPullRequest, toPullRequest } from "./pullRequestRows.ts";
 import { linkScope } from "./pullRequestScope.ts";
 import {
-	type ActorRef,
 	assertProjectActive,
 	fail,
 	notFound,
@@ -35,85 +40,9 @@ import {
 export { prepareDiff } from "./pullRequestDiff.ts";
 export { parsePullRequestUrl };
 
-type PrRow = {
-	id: string;
-	owner: string;
-	repo: string;
-	number: number;
-	url: string;
-	title: string;
-	state: PrState;
-	is_draft: boolean;
-	head_ref: string;
-	base_ref: string;
-	review_state: PullRequest["reviewState"];
-	merged_at: string | null;
-	closed_at: string | null;
-	checks: Check[];
-	ci_state: CiState;
-	content_hash: string | null;
-	fetched_at: string | null;
-	fetch_error: string | null;
-	created_at: string;
-	updated_at: string;
-};
-
-type LinkRow = PrRow & {
-	source: LinkedPullRequest["source"];
-	actor_name: string;
-	actor_display_name: string | null;
-	actor_kind: ActorRef["kind"];
-};
-
-const prColumns = sql`
-	p.id, p.owner, p.repo, p.number, p.url, p.title, p.state, p.is_draft, p.head_ref, p.base_ref, p.review_state,
-	${iso(sql`p.merged_at`)} AS merged_at, ${iso(sql`p.closed_at`)} AS closed_at, p.checks, p.ci_state,
-	p.content_hash, ${iso(sql`p.fetched_at`)} AS fetched_at, p.fetch_error,
-	${iso(sql`p.created_at`)} AS created_at, ${iso(sql`p.updated_at`)} AS updated_at
-`;
-
-const toPullRequest = (row: PrRow): PullRequest => ({
-	id: row.id,
-	owner: row.owner,
-	repo: row.repo,
-	number: row.number,
-	url: row.url,
-	title: row.title,
-	state: row.state,
-	isDraft: row.is_draft,
-	headRef: row.head_ref,
-	baseRef: row.base_ref,
-	reviewState: row.review_state,
-	mergedAt: row.merged_at,
-	closedAt: row.closed_at,
-	checks: row.checks,
-	ciState: row.ci_state,
-	fetchedAt: row.fetched_at,
-	fetchError: row.fetch_error,
-	createdAt: row.created_at,
-	updatedAt: row.updated_at,
-});
-
-const toLinked = (row: LinkRow, linkedAt: string): LinkedPullRequest => ({
-	...toPullRequest(row),
-	source: row.source,
-	linkedBy: {
-		name: row.actor_name,
-		kind: row.actor_kind,
-		...(row.actor_display_name === null ? {} : { displayName: row.actor_display_name }),
-	},
-	linkedAt,
-});
-
-const findRow = async (tx: Tx, id: string): Promise<PrRow> => {
-	const [row] = await rows<PrRow>(tx, sql`SELECT ${prColumns} FROM pull_requests p WHERE p.id = ${id}`);
-	if (row === undefined) throw notFound("pullRequest", id);
-	return row;
-};
-
 // The fields gh returned, or the message it printed. A message is stored on
 // the row, so the web shows why the fields are stale.
-type Fetched = { row: PullRequestRow } | { error: string };
+type Fetched = { row: GraphqlPullRequestRow } | { error: string };
 
 const fetchOne = async (ctx: PrepareCtx, ref: PullRequestRef): Promise<Fetched> => {
 	const result = await fetchPullRequests(ctx.gh, [ref], "interactive");
@@ -124,7 +53,7 @@ const fetchOne = async (ctx: PrepareCtx, ref: PullRequestRef): Promise<Fetched> 
 
 // A row whose content hash matches the fetch is left as it is, so a second
 // link of one URL answers the same row, stamps included.
-const writeFetched = (tx: Tx, at: Date, row: PullRequestRow) =>
+const writeFetched = (tx: Tx, at: Date, row: GraphqlPullRequestRow) =>
 	tx.execute(sql`
 	INSERT INTO pull_requests (
 		id, owner, repo, number, url, title, state, is_draft, head_ref, base_ref, review_state,
@@ -174,9 +103,9 @@ export const link = async (ctx: ServiceCtx, tx: Tx, input: PreparedLink): Promis
 	const at = ctx.now();
 	if ("row" in fetched) await writeFetched(tx, at, fetched.row);
 	else await writeUnfetched(tx, at, ref, input.url, fetched.error);
-	const [stored] = await rows<PrRow>(
+	const [stored] = await rows<PullRequestRow>(
 		tx,
-		sql`SELECT ${prColumns} FROM pull_requests p WHERE p.owner = ${ref.owner} AND p.repo = ${ref.repo} AND p.number = ${ref.number}`,
+		sql`SELECT ${pullRequestColumns} FROM pull_requests p WHERE p.owner = ${ref.owner} AND p.repo = ${ref.repo} AND p.number = ${ref.number}`,
 	);
 	const source = input.source ?? "manual";
 	await touchActor(tx, ctx.actor, at);
@@ -187,18 +116,18 @@ export const link = async (ctx: ServiceCtx, tx: Tx, input: PreparedLink): Promis
 		RETURNING ${iso(sql`created_at`)} AS linked_at
 	`);
 	if (created.rows.length > 0) await announceLink(ctx, tx, { ticket, row: stored!, at });
-	const [linked] = await rows<LinkRow & { linked_at: string }>(
+	const [linked] = await rows<LinkedPullRequestRow & { linked_at: string }>(
 		tx,
 		sql`
-			SELECT ${prColumns}, l.source, l.actor_name, l.actor_kind, ${actorDisplayName(sql`l.actor_name`, sql`l.actor_kind`)} AS actor_display_name, ${iso(sql`l.created_at`)} AS linked_at
+			SELECT ${pullRequestColumns}, l.source, l.actor_name, l.actor_kind, ${actorDisplayName(sql`l.actor_name`, sql`l.actor_kind`)} AS actor_display_name, ${iso(sql`l.created_at`)} AS linked_at
 			FROM ticket_pull_requests l JOIN pull_requests p ON p.id = l.pull_request_id
 			WHERE l.ticket_id = ${ticket.id} AND l.pull_request_id = ${stored!.id}
 		`,
 	);
-	return toLinked(linked!, linked!.linked_at);
+	return toLinkedPullRequest(linked!, linked!.linked_at);
 };
 
-const announceLink = async (ctx: ServiceCtx, tx: Tx, input: { ticket: TicketRow; row: PrRow; at: Date }) => {
+const announceLink = async (ctx: ServiceCtx, tx: Tx, input: { ticket: TicketRow; row: PullRequestRow; at: Date }) => {
 	await touchTicket(tx, { id: input.ticket.id, at: input.at, versionStep: 0 });
 	await writeActivity(ctx, tx, {
 		ticket: input.ticket,
@@ -220,7 +149,7 @@ export type UnlinkInput = { ticket: string; id: string };
 export const unlink = async (ctx: ServiceCtx, tx: Tx, input: UnlinkInput) => {
 	const ticket = await resolveTicket(tx, input.ticket);
 	assertProjectActive(ticket);
-	const row = await findRow(tx, input.id);
+	const row = await findPullRequestRow(tx, input.id);
 	const dropped = await tx.execute(sql`
 		DELETE FROM ticket_pull_requests WHERE ticket_id = ${ticket.id} AND pull_request_id = ${row.id} RETURNING ticket_id
 	`);
@@ -249,7 +178,7 @@ export type IdInput = { id: string };
 export type PreparedRefresh = { id: string; first: PullRequestResult };
 
 export const prepareRefresh = async (ctx: PrepareCtx, input: IdInput): Promise<PreparedRefresh> => {
-	const row = await ctx.newTx((tx) => findRow(tx, input.id));
+	const row = await ctx.newTx((tx) => findPullRequestRow(tx, input.id));
 	const ref = { owner: row.owner, repo: row.repo, number: row.number };
 	const result = await fetchPullRequests(ctx.gh, [ref], "interactive");
 	if (!result.ok) throw fail("GH_UNAVAILABLE", { reason: result.reason });
@@ -257,21 +186,21 @@ export const prepareRefresh = async (ctx: PrepareCtx, input: IdInput): Promise<P
 };
 
 export const refresh = async (ctx: ServiceCtx, tx: Tx, input: PreparedRefresh): Promise<PullRequest> => {
-	const row = await findRow(tx, input.id);
+	const row = await findPullRequestRow(tx, input.id);
 	const { first } = input;
 	const at = ctx.now();
 	if (!("row" in first)) {
 		await tx.execute(
 			sql`UPDATE pull_requests SET fetch_error = ${first.error}, fetched_at = ${at} WHERE id = ${row.id}`,
 		);
-		return toPullRequest(await findRow(tx, row.id));
+		return toPullRequest(await findPullRequestRow(tx, row.id));
 	}
 	if (first.row.contentHash === row.content_hash) {
 		await tx.execute(sql`UPDATE pull_requests SET fetched_at = ${at}, fetch_error = NULL WHERE id = ${row.id}`);
-		return toPullRequest(await findRow(tx, row.id));
+		return toPullRequest(await findPullRequestRow(tx, row.id));
 	}
 	await writeFetched(tx, at, first.row);
-	const fresh = await findRow(tx, row.id);
+	const fresh = await findPullRequestRow(tx, row.id);
 	ctx.emit({
 		type: "pr.updated",
 		id: fresh.id,
@@ -285,7 +214,7 @@ export const refresh = async (ctx: ServiceCtx, tx: Tx, input: PreparedRefresh): 
 // prepareDiff read the diff from gh. The row is read again, so a pull
 // request that went while gh ran is NOT_FOUND.
 export const diff = async (ctx: ServiceCtx, tx: Tx, input: PreparedDiff): Promise<PullRequestDiffOutput> => {
-	await findRow(tx, input.id);
+	await findPullRequestRow(tx, input.id);
 	return input.value;
 };
 
@@ -293,14 +222,14 @@ export type ListInput = { ticket: string };
 
 export const list = async (ctx: ServiceCtx, tx: Tx, input: ListInput): Promise<LinkedPullRequest[]> => {
 	const ticket = await resolveTicket(tx, input.ticket);
-	const found = await rows<LinkRow & { linked_at: string }>(
+	const found = await rows<LinkedPullRequestRow & { linked_at: string }>(
 		tx,
 		sql`
-			SELECT ${prColumns}, l.source, l.actor_name, l.actor_kind, ${actorDisplayName(sql`l.actor_name`, sql`l.actor_kind`)} AS actor_display_name, ${iso(sql`l.created_at`)} AS linked_at
+			SELECT ${pullRequestColumns}, l.source, l.actor_name, l.actor_kind, ${actorDisplayName(sql`l.actor_name`, sql`l.actor_kind`)} AS actor_display_name, ${iso(sql`l.created_at`)} AS linked_at
 			FROM ticket_pull_requests l JOIN pull_requests p ON p.id = l.pull_request_id
 			WHERE l.ticket_id = ${ticket.id}
 			ORDER BY l.created_at DESC, p.id DESC
 		`,
 	);
-	return found.map((row) => toLinked(row, row.linked_at));
+	return found.map((row) => toLinkedPullRequest(row, row.linked_at));
 };

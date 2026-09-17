@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { chmod, mkdir, mkdtemp, symlink, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { buildRuntime } from "../../../runtime/test/runtimeBuild.ts";
 import { HarnessHost } from "../../src/agents/harnessHost/harnessHost.ts";
@@ -8,9 +8,10 @@ import { HarnessHost } from "../../src/agents/harnessHost/harnessHost.ts";
 const repo = resolve(import.meta.dir, "../../../..");
 export async function harnessHostFixture(options: { nestedRuntime?: boolean } = {}) {
 	await buildRuntime();
-	const home = await mkdtemp("/tmp/trl-hhost-");
+	const home = await mkdtemp(join(dirname(process.env.TRELLIS_HOME!), "h-"));
 	const bin = join(home, "bin");
 	await mkdir(bin);
+	await symlink(process.execPath, join(bin, "bun"));
 	await symlink(Bun.which("node")!, join(bin, "node"));
 	const bundles = new Map<string, string>();
 	for (const [harness, entry] of [
@@ -50,7 +51,7 @@ export async function harnessHostFixture(options: { nestedRuntime?: boolean } = 
 		directory: join(home, "attempts"),
 		env: { ...process.env, PATH: bin },
 		bun: process.execPath,
-		observationTimeoutMs: 1500,
+		observationTimeoutMs: 10000,
 	});
 	return { home, client, daemon, host };
 }

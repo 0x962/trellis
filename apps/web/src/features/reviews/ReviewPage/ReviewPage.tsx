@@ -1,4 +1,3 @@
-import ReviewWorker from "@pierre/diffs/worker/worker.js?worker";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ReviewRevision, ReviewThread } from "@trellis/api";
 import { Sheet } from "@trellis/ui";
@@ -21,7 +20,6 @@ import { ReviewSummary } from "../ReviewSummary/ReviewSummary";
 import { DiffToolbar } from "./components/DiffToolbar/DiffToolbar";
 import "@trellis/ui/review.css";
 
-const workerFactory = () => new ReviewWorker();
 type FileRow = { path: string; type: string; additions: number; deletions: number };
 export function ReviewPage({ pr }: { pr: string }) {
 	const { client, orpc, queryClient } = useApp();
@@ -196,7 +194,6 @@ export function ReviewPage({ pr }: { pr: string }) {
 								{revision ? (
 									<ReviewDiff
 										filter={fileFilter}
-										workerFactory={workerFactory}
 										patch={revision.patch}
 										loadFile={loadFile}
 										revisionId={revision.id}

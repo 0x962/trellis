@@ -71,7 +71,7 @@ describe("settings", () => {
 		await h.db.execute(sql`UPDATE settings SET updated_at = ${minutesAgo(30)}`);
 		await set({ ...written, defaultActorName: "other" });
 		const rows = await settingRows();
-		expect(rows).toHaveLength(2);
+		expect(rows).toHaveLength(1);
 		for (const row of rows) expect(row.updated_at, row.key).toBe(NOW.toISOString());
 		expect(await count(h.db, "activity")).toBe(0);
 		expect(h.flushed).toEqual([]);

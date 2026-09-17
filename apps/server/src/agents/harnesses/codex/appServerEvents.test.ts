@@ -1,6 +1,14 @@
 import { expect, test } from "bun:test";
 import { CodexAppServerEvents } from "./appServerEvents.ts";
 
+function progress(threadId = "s", turnId = "t") {
+	return {
+		target: "codex_api::sse::responses",
+		fields: { message: 'unhandled responses event: "response.compaction.compacting"' },
+		spans: [{ name: "turn", "thread.id": threadId, "turn.id": turnId }],
+	};
+}
+
 test("Codex reports an assistant message before the turn completes", () => {
 	const events = new CodexAppServerEvents("s");
 	expect(
@@ -114,4 +122,44 @@ test("Codex tracks native model changes without a new turn", () => {
 			params: { threadId: "s", turnId: "t", fromModel: "selected-model", toModel: "effective-model" },
 		}),
 	).toEqual([{ kind: "session", sessionId: "s", turnId: "t", model: "openai/effective-model" }]);
+});
+
+test("Codex compaction start, provider progress, and completion count as work", () => {
+	const events = new CodexAppServerEvents("s");
+	const params = { threadId: "s", turnId: "t", item: { id: "compact-1", type: "contextCompaction" } };
+	expect(events.parse({ method: "item/started", params })).toEqual([
+		{
+			kind: "tool-start",
+			sessionId: "s",
+			turnId: "t",
+			tool: { id: "compact-1", name: "contextCompaction", input: params.item },
+		},
+	]);
+	expect(events.compactionProgress(progress())).toEqual([
+		{ kind: "tool-update", sessionId: "s", turnId: "t", tool: { id: "compact-1", name: "contextCompaction" } },
+	]);
+	expect(events.compactionProgress("connection alive")).toEqual([]);
+	expect(events.parse({ method: "item/completed", params })[0]?.kind).toBe("tool-end");
+	expect(events.compactionProgress(progress())).toEqual([]);
+});
+
+test("pre-turn compaction progress requires the current provider thread and turn", () => {
+	const events = new CodexAppServerEvents("s");
+	events.parse({ method: "turn/started", params: { threadId: "s", turn: { id: "t" } } });
+	const line = progress();
+	expect(events.compactionProgress(line)[0]).toMatchObject({
+		kind: "tool-update",
+		tool: { id: "compaction:t", name: "contextCompaction" },
+	});
+	expect(events.compactionProgress(progress("child"))).toEqual([]);
+	expect(events.compactionProgress(progress("s-other"))).toEqual([]);
+	expect(
+		events.compactionProgress({
+			target: "codex_api::sse::responses",
+			fields: { message: 'unhandled responses event: "response.compaction.compacting"' },
+		}),
+	).toEqual([]);
+	expect(events.compactionProgress(progress("s", "old"))).toEqual([]);
+	events.parse({ method: "turn/completed", params: { threadId: "s", turn: { id: "t", status: "completed" } } });
+	expect(events.compactionProgress(line)).toEqual([]);
 });

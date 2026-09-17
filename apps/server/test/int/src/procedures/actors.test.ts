@@ -20,7 +20,7 @@ describe("actors", () => {
 
 		expect(list.status).toBe(200);
 		const seen = list.body.map((actor: { name: string; kind: string }) => `${actor.kind}:${actor.name}`).sort();
-		expect(seen).toEqual(["agent:claude-code", "human:dana"]);
+		expect(seen).toEqual(["agent:claude-code", "human:dana", "system:trellis"]);
 		for (const actor of list.body) {
 			expect(Object.keys(actor).sort()).toEqual(["firstSeenAt", "kind", "lastSeenAt", "name"]);
 			expect(Date.parse(actor.firstSeenAt)).toBeGreaterThan(0);

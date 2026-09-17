@@ -8,7 +8,6 @@ import "../terminal.css";
 import type { TerminalFrame } from "./terminalChunk.ts";
 import { terminalInputSource } from "./terminalInputSource.ts";
 import { terminalOutput } from "./terminalOutput";
-import { terminalWebgl } from "./terminalWebgl";
 
 export type TerminalSurfaceProps = {
 	layout?: "panel" | "fill";
@@ -50,10 +49,9 @@ export function TerminalSurface({
 		let dispose = () => {};
 		let connection: AbortController;
 		const start = async () => {
-			const [{ Terminal }, { FitAddon }, { WebglAddon }] = await Promise.all([
+			const [{ Terminal }, { FitAddon }] = await Promise.all([
 				import("@xterm/xterm"),
 				import("@xterm/addon-fit"),
-				import("@xterm/addon-webgl"),
 			]);
 			if (disposed) return;
 			const styles = getComputedStyle(container.current!.parentElement!);
@@ -68,7 +66,6 @@ export function TerminalSurface({
 			const fit = new FitAddon();
 			terminal.loadAddon(fit);
 			terminal.open(container.current!);
-			const disposeWebgl = terminalWebgl(terminal, () => new WebglAddon());
 			terminal.textarea?.setAttribute("aria-label", label);
 			terminal.attachCustomKeyEventHandler((event) => {
 				event.stopPropagation();
@@ -126,7 +123,6 @@ export function TerminalSurface({
 				data.dispose();
 				source.dispose();
 				output.dispose();
-				disposeWebgl();
 				terminal.dispose();
 			};
 			connect();

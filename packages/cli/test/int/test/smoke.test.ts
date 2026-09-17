@@ -12,7 +12,7 @@ import {
 import { join } from "node:path";
 import { graphqlReply } from "../../../../../apps/server/test/fixtures/graphql.ts";
 import { type SpawnedServer, spawnServer, stopServer } from "../../../../../apps/server/test/helpers/server.ts";
-import { cliEntry, followLog, repoRoot, runProcess, startCliServer, watchOne } from "../../process.ts";
+import { cliEntry, followLog, repoRoot, runProcess, serverHeaders, startCliServer, watchOne } from "../../process.ts";
 
 const servers: SpawnedServer[] = [];
 
@@ -134,7 +134,7 @@ describe("the live CLI", () => {
 		async () => {
 			const home = tempDir("serve-home");
 			const server = await startCliServer(home, ghEnvironment(home));
-			const health = await fetch(`${server.url}/api/health`);
+			const health = await fetch(`${server.url}/api/health`, { headers: serverHeaders() });
 			expect(health.ok).toBe(true);
 			const stopped = await server.stop();
 			expect(stopped.code).toBe(0);
@@ -201,7 +201,7 @@ describe("the live CLI", () => {
 			expect(result.stderr).toContain("(HOME_LOCKED)");
 			expect(statSync(dbDir).mtimeMs).toBe(mtime);
 			expect(readdirSync(dbDir).sort()).toEqual(entries);
-			expect((await fetch(`${started.url}/api/health`)).status).toBe(200);
+			expect((await fetch(`${started.url}/api/health`, { headers: serverHeaders() })).status).toBe(200);
 		},
 		SMOKE_TIMEOUT_MS,
 	);

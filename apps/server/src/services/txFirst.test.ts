@@ -56,7 +56,7 @@ const exportedFunctions = (source: string): Exported[] => {
 const entryPoints: Record<string, string[]> = {
 	"services/attachments.ts": ["upload", "remove", "list", "get"],
 	"services/pullRequests.ts": ["link", "unlink", "refresh", "diff", "list"],
-	"services/system.ts": ["health", "gh", "backup", "exportNdjson"],
+	"services/system.ts": ["health", "backup", "exportNdjson"],
 };
 
 describe("tx first", () => {

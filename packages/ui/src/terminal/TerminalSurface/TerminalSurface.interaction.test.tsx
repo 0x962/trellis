@@ -37,17 +37,6 @@ mock.module("@xterm/addon-fit", () => ({
 		fit() {}
 	},
 }));
-mock.module("@xterm/addon-webgl", () => ({
-	WebglAddon: class {
-		onContextLoss() {
-			return { dispose() {} };
-		}
-		onAddTextureAtlasCanvas() {
-			return { dispose() {} };
-		}
-		dispose() {}
-	},
-}));
 
 test("terminal input resumes after the session callback changes", async () => {
 	const sent: string[] = [];
