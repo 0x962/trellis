@@ -18,7 +18,7 @@ const archived = pickErrors(["PROJECT_ARCHIVED"]);
 
 export const chat = {
 	channels: base
-		.route({ method: "GET", path: "/projects/{project}/chat", summary: "List the chat channels of a project" })
+		.route({ method: "GET", path: "/projects/{project}/chat", summary: "Find chat channels in a project" })
 		.input(ChatProjectInputSchema)
 		.output(ChatChannelSchema.array()),
 	createChannel: base
@@ -35,7 +35,7 @@ export const chat = {
 		.route({
 			method: "GET",
 			path: "/projects/{project}/chat/{channel}/messages",
-			summary: "Read the messages of a chat channel",
+			summary: "List, filter, sort, and search the messages of a chat channel",
 		})
 		.input(ChatListInputSchema)
 		.output(ChatListSchema),

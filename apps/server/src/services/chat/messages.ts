@@ -5,7 +5,7 @@ import {
 	ChatPostInputSchema,
 	chatChannelName,
 } from "@trellis/api";
-import { sql } from "drizzle-orm";
+import { type SQL, sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { requireActor, type ServiceCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
@@ -25,19 +25,26 @@ export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 	const root = await resolveRoom(ctx, tx, input.project);
 	const name = chatChannelName(input.channel);
 	if (!(await channelExists(tx, root.id, name))) throw fail("NOT_FOUND", { kind: "channel", ref: `#${name}` });
-	const scope = sql`m.project_id = ${root.id} AND m.channel = ${name}`;
-	const found =
-		input.after === undefined
-			? (
-					await rows<RawMessage>(tx, sql`${messageSelect} WHERE ${scope} ORDER BY m.id DESC LIMIT ${input.limit}`)
-				).reverse()
-			: await rows<RawMessage>(
-					tx,
-					sql`${messageSelect} WHERE ${scope} AND m.id > ${input.after} ORDER BY m.id LIMIT ${input.limit}`,
-				);
+	const filters: SQL[] = [sql`m.project_id = ${root.id}`, sql`m.channel = ${name}`];
+	if (input.after !== undefined) filters.push(sql`m.id > ${input.after}`);
+	if (input.actor !== undefined) filters.push(sql`m.actor_name = ${input.actor}`);
+	if (input.actorKind !== undefined) filters.push(sql`m.actor_kind = ${input.actorKind}`);
+	if (input.q !== undefined) {
+		const pattern = `%${input.q.replace(/[\\%_]/g, (character) => `\\${character}`)}%`;
+		filters.push(sql`m.body ILIKE ${pattern}`);
+	}
+	if (input.createdAfter !== undefined) filters.push(sql`m.created_at > ${input.createdAfter}`);
+	if (input.createdBefore !== undefined) filters.push(sql`m.created_at < ${input.createdBefore}`);
+	const scope = sql.join(filters, sql` AND `);
+	const newestFirst = input.sort === "-createdAt" || (input.sort === undefined && input.after === undefined);
+	const found = await rows<RawMessage>(
+		tx,
+		sql`${messageSelect} WHERE ${scope} ORDER BY m.id ${newestFirst ? sql`DESC` : sql`ASC`} LIMIT ${input.limit}`,
+	);
+	if (input.sort === undefined && input.after === undefined) found.reverse();
 	const [latest] = await rows<{ id: string | null }>(
 		tx,
-		sql`SELECT max(m.id) AS id FROM chat_messages m WHERE ${scope}`,
+		sql`SELECT max(m.id) AS id FROM chat_messages m WHERE m.project_id = ${root.id} AND m.channel = ${name}`,
 	);
 	return { channel: name, items: found.map(toMessage), latestId: latest!.id };
 };

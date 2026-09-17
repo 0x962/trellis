@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { ProjectRefStringSchema } from "../refs.ts";
 import { ActorRefSchema } from "./actor.ts";
-import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
+import { StoredActorKindSchema } from "./enums.ts";
+import { booleanString, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 // A channel name on the wire: an optional `#`, then 1 to 32 characters of
 // lower or upper case letters, digits, `_`, and `-`. The service stores the
@@ -72,6 +73,16 @@ export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 
 export const ChatProjectInputSchema = z.strictObject({
 	project: ProjectRefStringSchema,
+	q: z.string().trim().min(1).max(200).optional(),
+	aiOnly: booleanString.optional(),
+	direct: booleanString.optional(),
+	sort: z.enum(["name", "-name", "lastMessageAt", "-lastMessageAt", "messageCount", "-messageCount"]).default("name"),
+	limit: z.coerce
+		.number()
+		.int("Enter a whole number for the limit.")
+		.min(1, "Enter a limit of 1 to 200.")
+		.max(200, "Enter a limit of 1 to 200.")
+		.optional(),
 });
 
 export const ChatChannelCreateInputSchema = z.strictObject({
@@ -81,12 +92,19 @@ export const ChatChannelCreateInputSchema = z.strictObject({
 });
 export type ChatChannelCreateInput = z.input<typeof ChatChannelCreateInputSchema>;
 
-// `after` reads the messages that follow one id, oldest first. Without it,
-// the list holds the newest `limit` messages, still oldest first.
+// Without `sort`, `after` reads the following messages oldest first. A read
+// without `after` returns the newest `limit` messages oldest first.
+// `createdAt` starts with the oldest message. `-createdAt` starts with the newest.
 export const ChatListInputSchema = z.strictObject({
 	project: ProjectRefStringSchema,
 	channel: ChatChannelRefSchema,
 	after: UlidSchema.optional(),
+	actor: z.string().min(1).max(64).optional(),
+	actorKind: StoredActorKindSchema.optional(),
+	q: z.string().trim().min(1).max(200).optional(),
+	createdAfter: IsoDateTimeSchema.optional(),
+	createdBefore: IsoDateTimeSchema.optional(),
+	sort: z.enum(["createdAt", "-createdAt"]).optional(),
 	limit: z.coerce
 		.number()
 		.int("Enter a whole number for the limit.")
