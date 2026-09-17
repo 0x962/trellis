@@ -344,8 +344,9 @@ section into the URL hash, and Account carries no hash.
 
 | Hash | Section | Contents |
 |---|---|---|
-| none | Account | Your name and the theme |
-| `#integrations` | Integrations | The gh state, the diff URL template, and Pair a phone |
+| none | Account | Your name, the theme, and chat sound |
+| `#agent-accounts` | Agent accounts | Harness logins, account selection, and quota |
+| `#desktop` | Desktop | The data directory, background service, update, and local work actions |
 
 A setting that belongs to one project lives on that project's pages.
 
@@ -389,11 +390,10 @@ trellis install --allow-host my-laptop.tail1a2b3c.ts.net
 To pair the phone:
 
 1. In the app, open Settings, then tap the Server row.
-2. Tap Scan QR code.
-3. Scan the code under Pair a phone in the Integrations section of the web app settings. The app fills in the server URL and tests the connection.
-4. Type your name and tap Save.
+2. Type the server URL and tap Test connection.
+3. Type your name and tap Save.
 
-To pair without the QR code, type the server URL and tap Test connection. The app shows the server version, the ticket count, and the name the server gives you.
+The app shows the server version, the ticket count, and the name the server gives you.
 
 ## Security model
 
