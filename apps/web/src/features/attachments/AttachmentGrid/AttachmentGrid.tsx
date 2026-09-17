@@ -113,10 +113,16 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 				<SectionHeader
 					title="Attachments"
 					count={list.length > 0 ? list.length : undefined}
-					actions={<AttachmentBox ticket={ticket} uploads={uploadManager} />}
+					actions={<AttachmentBox uploads={uploadManager} />}
 				/>
 				{uploadManager.uploads.map((upload) => (
-					<UploadProgress key={upload.id} upload={upload} showName={false} onDismiss={uploadManager.dismiss} />
+					<UploadProgress
+						key={upload.id}
+						upload={upload}
+						showName={false}
+						onDismiss={uploadManager.dismiss}
+						onRetry={(id) => void uploadManager.retry(id, ticket)}
+					/>
 				))}
 				{attachments.length === 0 && uploadManager.uploads.length === 0 && (
 					<EmptyState description="Add a file or drop it anywhere on this ticket." />
@@ -181,7 +187,7 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 		);
 	}
 	return (
-		<DropTarget identifier={ticket} onFiles={uploadManager.start}>
+		<DropTarget identifier={ticket} onFiles={uploadManager.addFiles}>
 			{body}
 		</DropTarget>
 	);

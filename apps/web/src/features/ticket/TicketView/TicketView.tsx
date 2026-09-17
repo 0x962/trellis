@@ -34,7 +34,7 @@ export function TicketView({ identifier, thread, onReturnToList }: TicketViewPro
 	const query = useQuery(orpc.tickets.get.queryOptions({ input: { ticket: identifier } }));
 	const uploads = useUploads(identifier);
 	const parentSummary = useParentSummary(query.data?.parent?.identifier ?? null);
-	const drop = useDropOverlay(uploads.start);
+	const drop = useDropOverlay(uploads.addFiles);
 	const narrow = useMediaQuery("(max-width: 767px)");
 	const { isArchived, notice } = useArchivedProjects();
 	const [workAreaTab, setWorkAreaTab] = useState("activity");
@@ -116,7 +116,7 @@ export function TicketView({ identifier, thread, onReturnToList }: TicketViewPro
 					<SubTickets ticket={ticket} />
 					<PullRequests ticket={ticket} initialPrs={ticket.prs} onOpen={setPullRequest} title="Pull requests" />
 					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
-					<Timeline thread={thread} ticket={ticket} onAttachFiles={uploads.start} />
+					<Timeline thread={thread} ticket={ticket} onAttachFiles={uploads.addFiles} />
 				</div>
 			</div>
 		</article>
