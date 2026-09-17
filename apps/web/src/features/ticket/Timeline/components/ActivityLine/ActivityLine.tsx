@@ -1,7 +1,6 @@
-import type { Activity } from "@trellis/api";
+import { type Activity, fullZonedDateTime } from "@trellis/api";
 import { ActorChip, type StatusCategory, StatusIcon } from "@trellis/ui";
 import { compactRelativeTime } from "../../../../../lib/format";
-import { absoluteTime } from "../../utils/absoluteTime";
 import { describeActivity } from "../../utils/describeActivity";
 
 export type ActivityLineProps = {
@@ -68,7 +67,7 @@ export function ActivityLine({ item, reviewer = humanReviewer }: ActivityLinePro
 			)}
 			<time
 				dateTime={item.createdAt}
-				title={absoluteTime(item.createdAt)}
+				title={fullZonedDateTime(item.createdAt)}
 				className="ml-auto shrink-0 text-fg-faint tabular"
 			>
 				{compactRelativeTime(item.createdAt)}

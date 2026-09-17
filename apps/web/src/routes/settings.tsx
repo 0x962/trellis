@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { ActorNameField } from "../features/settings/ActorNameField";
 import { ChatSoundField } from "../features/settings/ChatSoundField";
 import { DesktopSettings } from "../features/settings/DesktopSettings";
-import { Diagnostics } from "../features/settings/Diagnostics";
 import { DraftTransfer } from "../features/settings/DraftTransfer";
 import { GhBanner } from "../features/settings/GhBanner";
 import { HarnessAccounts } from "../features/settings/HarnessAccounts";
@@ -47,12 +46,6 @@ const sections: SettingsSection[] = [
 		title: "Agent accounts",
 		hint: "Manage harness logins, account selection, and quota on this machine.",
 		rows: <HarnessAccounts />,
-	},
-	{
-		id: "diagnostics",
-		title: "Diagnostics",
-		hint: "Inspect the local execution service, manager queue, and unresolved attempts.",
-		rows: <Diagnostics />,
 	},
 	{
 		id: "account",
