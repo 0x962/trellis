@@ -65,6 +65,7 @@ export const ghReplies = {
 		stderr: "",
 		exitCode: 0,
 	},
+	"pr review": { stdout: "", stderr: "", exitCode: 0 },
 	"api repos/acme/web/compare/base...head": {
 		stdout: JSON.stringify({ merge_base_commit: { sha: "base" } }),
 		stderr: "",

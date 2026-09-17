@@ -25,7 +25,9 @@ test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
 		await client.observe("attempt", "secret", { kind: "error", error: "Previous turn failed", outcome: "failed" });
 		const before = await host.status("attempt");
 		await host.send("attempt", "next request", "next");
-		const received = await host.waitFor("attempt", (state) => state.acknowledgedMessageIds.includes("next"));
+		const received = await host.waitFor("attempt", (state) => state.acknowledgedMessageIds.includes("next"), {
+			rejectAgentError: false,
+		});
 		expect(received.agent?.error).toBeNull();
 		expect(received.pid).toBe(before.pid);
 	},

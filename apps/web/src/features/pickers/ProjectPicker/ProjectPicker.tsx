@@ -5,6 +5,22 @@ import { projectSlashPath } from "../../../lib/projectPath";
 
 const byPosition = (a: ProjectSummary, b: ProjectSummary) => a.position - b.position;
 
+// `archivedAt` reports only the project row. The server also refuses writes
+// under an archived ancestor, so each archived path removes its full subtree.
+export const selectableProjects = (
+	projects: readonly ProjectSummary[],
+	ticketRootIds?: readonly string[],
+): ProjectSummary[] => {
+	if (ticketRootIds !== undefined && ticketRootIds.length !== 1) return [];
+	const rootId = ticketRootIds?.[0];
+	const archivedPaths = projects.filter((project) => project.archivedAt !== null).map((project) => project.path);
+	return projects.filter(
+		(project) =>
+			(rootId === undefined || project.rootId === rootId) &&
+			!archivedPaths.some((path) => project.path === path || project.path.startsWith(`${path}.`)),
+	);
+};
+
 // The projects in tree order: roots by position, then each root's subtree
 // depth first. The option id is the dotted ref; the hint is the slash path.
 export const projectItems = (projects: readonly ProjectSummary[], current?: string): CommandItem[] => {
@@ -35,9 +51,12 @@ export const projectItems = (projects: readonly ProjectSummary[], current?: stri
 
 export type ProjectPickerProps = {
 	projects: readonly ProjectSummary[];
-	// The current project ref.
+	// A move is valid only when all selected tickets have one root. An empty
+	// set shows no target. An omitted set permits all roots for ticket create.
+	ticketRootIds?: readonly string[];
+	// The current project path.
 	value?: string;
-	onPick: (ref: string) => void;
+	onPick: (path: string) => void;
 	trigger: ReactElement;
 	open?: boolean;
 	onOpenChange?: (open: boolean) => void;
@@ -53,6 +72,7 @@ export type ProjectPickerProps = {
 // The project popover: the tree by depth, searchable by path.
 export function ProjectPicker({
 	projects,
+	ticketRootIds,
 	value,
 	onPick,
 	trigger,
@@ -85,10 +105,10 @@ export function ProjectPicker({
 				inputRef={input}
 				label="Search projects"
 				placeholder="Move to project"
-				items={projectItems(projects, value)}
-				onSelect={(id) => {
+				items={projectItems(selectableProjects(projects, ticketRootIds), value)}
+				onSelect={(path) => {
 					if (!keepOpenOnPick) setOpen(false);
-					onPick(id);
+					onPick(path);
 				}}
 			/>
 			{error !== undefined && error !== null && (

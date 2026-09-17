@@ -61,6 +61,7 @@ const env = () => ({
 	PATH: join(fixture.home, "bin"),
 	TRELLIS_URL: "http://127.0.0.1:4521",
 	TRELLIS_ACTOR: `agent:${runId}`,
+	TRELLIS_RUN_ID: runId,
 });
 const deps = () => ({ env: env(), workspace: async () => fixture.home, runtime: async () => fixture.client });
 test.each([false, true])("a manager starts without approval after legacy migration=%s", async (legacy) => {

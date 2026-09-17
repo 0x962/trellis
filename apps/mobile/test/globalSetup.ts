@@ -51,11 +51,14 @@ export default async () => {
 	const home = mkdtempSync(join(tmpdir(), "trellis-mobile-"));
 	const replies = join(home, "gh-replies.json");
 	writeFileSync(replies, JSON.stringify({ "auth status": signedOut }));
+	const serverEnv = { ...process.env };
+	delete serverEnv.TRELLIS_AUTH_TOKEN;
+	delete serverEnv.TRELLIS_ATTEMPT_TOKEN;
 	const child = spawn("bun", ["src/index.ts"], {
 		cwd: serverDir,
 		stdio: ["ignore", "pipe", "pipe"],
 		env: {
-			...process.env,
+			...serverEnv,
 			NODE_ENV: "production",
 			TRELLIS_HOME: home,
 			TRELLIS_PORT: "0",

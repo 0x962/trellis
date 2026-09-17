@@ -1,17 +1,14 @@
-import ReviewWorker from "@pierre/diffs/worker/worker.js?worker";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ReviewRevision, ReviewThread } from "@trellis/api";
 import { Sheet } from "@trellis/ui";
 import { type DiffAnchor, ReviewDiff, ReviewFiles, ReviewTabs } from "@trellis/ui/review";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useActor } from "../../../lib/actor";
 import { useApp } from "../../../lib/appContext";
 import { useTheme } from "../../../lib/theme";
 import { ReviewChecks } from "../ReviewChecks/ReviewChecks";
 import { ReviewComment } from "../ReviewComment/ReviewComment";
-import { type DraftFinding, ReviewComposer } from "../ReviewComposer/ReviewComposer";
+import { type ReviewCommentInput, ReviewComposer } from "../ReviewComposer/ReviewComposer";
 import { ReviewDiscussion } from "../ReviewDiscussion/ReviewDiscussion";
-import { ReviewDraft } from "../ReviewDraft/ReviewDraft";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
 import { ReviewLive } from "../ReviewLive/ReviewLive";
 import { ReviewRuns } from "../ReviewRuns/ReviewRuns";
@@ -21,11 +18,9 @@ import { ReviewSummary } from "../ReviewSummary/ReviewSummary";
 import { DiffToolbar } from "./components/DiffToolbar/DiffToolbar";
 import "@trellis/ui/review.css";
 
-const workerFactory = () => new ReviewWorker();
 type FileRow = { path: string; type: string; additions: number; deletions: number };
 export function ReviewPage({ pr }: { pr: string }) {
 	const { client, orpc, queryClient } = useApp();
-	const actor = useActor();
 	const { resolved: theme } = useTheme();
 	const status = useQuery({ ...orpc.reviews.status.queryOptions({ input: { pr } }), refetchInterval: 45000 });
 	const latest = useQuery(orpc.reviews.revision.queryOptions({ input: { pr } }));
@@ -41,12 +36,6 @@ export function ReviewPage({ pr }: { pr: string }) {
 	const [fileSheet, setFileSheet] = useState(false);
 	const [composer, setComposer] = useState<DiffAnchor | null>(null);
 	const [submitOpen, setSubmitOpen] = useState(false);
-	const storageKey = `trellis.review.drafts:${actor?.name}:${pr}`;
-	const [drafts, setDrafts] = useState<DraftFinding[]>(() => JSON.parse(localStorage.getItem(storageKey) ?? "[]"));
-	const saveDrafts = (next: DraftFinding[]) => {
-		setDrafts(next);
-		localStorage.setItem(storageKey, JSON.stringify(next));
-	};
 	const threads = useQuery({
 		...orpc.reviews.list.queryOptions({ input: { pr, all: true } }),
 		queryFn: async () => {
@@ -63,7 +52,17 @@ export function ReviewPage({ pr }: { pr: string }) {
 			return { items, total, open };
 		},
 	});
-	const submissions = useQuery(orpc.reviews.history.queryOptions({ input: { pr } }));
+	const addThread = useMutation({
+		mutationFn: (comment: ReviewCommentInput) => client.reviews.add({ pr, ...comment }),
+		onSuccess: () => {
+			if (composer)
+				localStorage.removeItem(
+					`trellis.review.comment:${pr}:${composer.path}:${composer.side}:${composer.startLine}:${composer.line}`,
+				);
+			setComposer(null);
+			void queryClient.invalidateQueries({ queryKey: orpc.reviews.key() });
+		},
+	});
 	const refresh = useMutation({
 		mutationFn: () => client.reviews.refresh({ pr }),
 		onSuccess: (data) => {
@@ -93,17 +92,6 @@ export function ReviewPage({ pr }: { pr: string }) {
 	const invalid = () => queryClient.invalidateQueries({ queryKey: orpc.reviews.key() });
 	const allThreads = (threads.data?.items ?? []).filter((thread) => thread.revisionId === revision?.id);
 	const renderThread = (id: string) => {
-		const draft = drafts.find((draft) => draft.id === id);
-		if (draft)
-			return (
-				<ReviewDraft
-					key={draft.id}
-					draft={draft}
-					storageKey={`${storageKey}:edit:${draft.id}`}
-					onSave={(next) => saveDrafts(drafts.map((item) => (item.id === next.id ? next : item)))}
-					onDiscard={() => saveDrafts(drafts.filter((item) => item.id !== draft.id))}
-				/>
-			);
 		const t = allThreads.find((t) => t.id === id)!;
 		return <ReviewComment key={t.id} thread={t} />;
 	};
@@ -114,11 +102,7 @@ export function ReviewPage({ pr }: { pr: string }) {
 			files={files}
 			selected={file}
 			counts={Object.fromEntries(
-				files.map((f) => [
-					f.path,
-					allThreads.filter((t) => t.path === f.path && t.status === "open").length +
-						drafts.filter((d) => d.path === f.path).length,
-				]),
+				files.map((f) => [f.path, allThreads.filter((t) => t.path === f.path && t.status === "open").length]),
 			)}
 			onSelect={(path) => {
 				setFile(path);
@@ -132,7 +116,6 @@ export function ReviewPage({ pr }: { pr: string }) {
 			<ReviewHeader
 				pr={pr}
 				revision={displayRevision}
-				draftCount={drafts.length}
 				refreshing={refresh.isPending || composer !== null}
 				onRefresh={() => refresh.mutate()}
 				onSubmit={() => setSubmitOpen(true)}
@@ -142,7 +125,6 @@ export function ReviewPage({ pr }: { pr: string }) {
 					pr={pr}
 					revision={displayRevision}
 					openCount={allThreads.filter((thread) => thread.status === "open").length}
-					draftCount={drafts.length}
 				/>
 				<ReviewStack pr={pr} />
 				{status.isError && (
@@ -160,7 +142,7 @@ export function ReviewPage({ pr }: { pr: string }) {
 				<ReviewTabs
 					value={tab}
 					onValueChange={changeTab}
-					count={allThreads.length + drafts.length}
+					count={allThreads.length}
 					live={pr.includes("/canary-technologies-corp/canary/")}
 				>
 					{refresh.isError && (
@@ -196,11 +178,10 @@ export function ReviewPage({ pr }: { pr: string }) {
 								{revision ? (
 									<ReviewDiff
 										filter={fileFilter}
-										workerFactory={workerFactory}
 										patch={revision.patch}
 										loadFile={loadFile}
 										revisionId={revision.id}
-										threads={[...allThreads, ...drafts.map((d) => ({ ...d, version: 1, updatedAt: d.id }))]}
+										threads={allThreads}
 										mode={mode}
 										theme={theme}
 										selectedFile={file}
@@ -212,13 +193,21 @@ export function ReviewPage({ pr }: { pr: string }) {
 													key={`${revision.id}:${composer.path}:${composer.side}:${composer.startLine}:${composer.line}`}
 													anchor={composer}
 													revisionId={revision.id}
-													storageKey={`${storageKey}:compose:${composer.path}:${composer.side}:${composer.startLine}:${composer.line}`}
-													onClose={() => setComposer(null)}
-													onSave={(d) => saveDrafts([...drafts, d])}
+													storageKey={`trellis.review.comment:${pr}:${composer.path}:${composer.side}:${composer.startLine}:${composer.line}`}
+													onClose={() => {
+														addThread.reset();
+														setComposer(null);
+													}}
+													onSave={(comment) => addThread.mutate(comment)}
+													pending={addThread.isPending}
+													error={addThread.error?.message ?? null}
 												/>
 											)
 										}
-										onSelect={setComposer}
+										onSelect={(anchor) => {
+											addThread.reset();
+											setComposer(anchor);
+										}}
 										onFiles={setFiles}
 									/>
 								) : (
@@ -229,10 +218,8 @@ export function ReviewPage({ pr }: { pr: string }) {
 					)}
 					{tab === "discussion" && (
 						<ReviewDiscussion
-							drafts={drafts}
 							threads={allThreads}
 							revision={displayRevision}
-							submissions={submissions.data ?? []}
 							renderThread={renderThread}
 							onJump={(thread) => {
 								void (async () => {
@@ -265,14 +252,12 @@ export function ReviewPage({ pr }: { pr: string }) {
 			{submitOpen && (
 				<ReviewSubmit
 					pr={pr}
-					revisionId={revision?.id ?? null}
-					drafts={drafts}
-					threads={allThreads}
+					headSha={revision!.headSha}
 					onClose={() => setSubmitOpen(false)}
 					onSubmitted={() => {
-						saveDrafts([]);
 						setSubmitOpen(false);
 						void invalid();
+						void status.refetch();
 					}}
 				/>
 			)}

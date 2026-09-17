@@ -7,7 +7,6 @@ import { useApp } from "../../../lib/appContext";
 
 type Action = Parameters<TrellisClient["reviews"]["action"]>[0]["action"];
 const labels: Record<Action, string> = {
-	approve: "Approve on GitHub",
 	merge: "Squash and merge",
 	"admin-merge": "Merge with administrator override",
 	automerge: "Enable auto-merge",
@@ -40,7 +39,7 @@ export function ReviewActions({
 }) {
 	const { client, orpc } = useApp();
 	const [open, setOpen] = useState(false);
-	const [action, setAction] = useState<Action>(live ? "live-create" : "approve");
+	const [action, setAction] = useState<Action>(live ? "live-create" : "merge");
 	const extra = useQuery({ ...orpc.reviews.metadata.queryOptions({ input: { pr } }), enabled: !live });
 	const mutation = useMutation({
 		mutationFn: () => client.reviews.action({ pr, headSha: revision.headSha, action }),
@@ -56,9 +55,9 @@ export function ReviewActions({
 		.map(([value, label]) => ({ value: value as Action, label }));
 	return (
 		<>
-			<Tooltip content={live ? "Live Branch actions" : "GitHub actions"}>
+			<Tooltip content={live ? "Live Branch actions" : "Pull request actions"}>
 				<IconButton
-					label={live ? "Live Branch actions" : "GitHub actions"}
+					label={live ? "Live Branch actions" : "Pull request actions"}
 					icon={live ? <GitMerge /> : <DotsThree />}
 					onClick={() => setOpen(true)}
 				/>
@@ -68,7 +67,7 @@ export function ReviewActions({
 					width="var(--review-sheet-width)"
 					titleClassName="font-medium text-base"
 					open
-					title={live ? "Live Branch action" : "GitHub action"}
+					title={live ? "Live Branch action" : "Pull request action"}
 					onOpenChange={(value) => !value && !mutation.isPending && setOpen(false)}
 				>
 					<form
@@ -79,9 +78,8 @@ export function ReviewActions({
 						}}
 					>
 						<Select label="Action" value={action} onValueChange={setAction} items={items} />
-						<p className="review-form-hint">This action changes the pull request on GitHub.</p>
 						<a className="review-meta" href={pr} target="_blank" rel="noreferrer">
-							Open pull request on GitHub
+							Open pull request
 						</a>
 						{action === "admin-merge" && <p role="alert">This action bypasses branch protection.</p>}
 						{action === "live-delete" && <p role="alert">This action deletes the PR environment.</p>}
@@ -95,7 +93,7 @@ export function ReviewActions({
 							<Button type="button" disabled={mutation.isPending} onClick={() => setOpen(false)}>
 								Cancel
 							</Button>
-							<Button type="submit" disabled={mutation.isPending}>
+							<Button type="submit" processing={mutation.isPending}>
 								{labels[action]}
 							</Button>
 						</div>

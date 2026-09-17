@@ -38,14 +38,12 @@ import * as notes from "./notes/notes.ts";
 import * as personas from "./personas.ts";
 import * as projects from "./projects.ts";
 import * as pullRequests from "./pullRequests.ts";
-import * as reviewDelivery from "./reviews/delivery";
 import * as reviewImage from "./reviews/image";
 import * as reviewMessages from "./reviews/messages";
 import * as reviewPrs from "./reviews/prs";
 import * as reviewRemote from "./reviews/remote";
 import * as reviewRevision from "./reviews/revision";
 import * as reviewRuns from "./reviews/runs";
-import * as reviewSubmissions from "./reviews/submissions";
 import * as reviewThreads from "./reviews/threads";
 import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
@@ -146,7 +144,7 @@ export const services = {
 	"reviews.image": prepared("read", reviewImage.image, reviewRemote.result),
 	"reviews.status": prepared("read", reviewRevision.status, reviewRemote.result),
 	"reviews.runs": prepared("mutation", reviewRuns.runs, reviewRemote.result),
-	"reviews.action": prepared("mutation", reviewRemote.action, reviewRemote.result),
+	"reviews.action": prepared("mutation", reviewRemote.action, reviewRemote.actionResult),
 	"reviews.metadata": prepared("read", reviewRemote.metadata, reviewRemote.result),
 	"reviews.mine": prepared("read", reviewRemote.mine, reviewRemote.result),
 	"reviews.importMargin": io("mutation", reviewTransfers.importMargin),
@@ -163,13 +161,7 @@ export const services = {
 	"reviews.resolve": io("mutation", reviewThreads.resolve),
 	"reviews.edit": io("mutation", reviewMessages.edit),
 	"reviews.reaction": io("mutation", reviewMessages.reaction),
-	"reviews.submit": io("mutation", reviewSubmissions.submit),
-	"reviews.show": io("read", reviewSubmissions.show),
-	"reviews.history": io("read", reviewSubmissions.history),
-	"reviews.inbox": io("read", reviewSubmissions.inbox),
-	"reviews.read": io("mutation", reviewSubmissions.read),
-	"reviews.resend": io("mutation", reviewDelivery.resend),
-	"reviews.deliverPending": prepared("mutation", reviewDelivery.preparePending, reviewDelivery.finished),
+	"reviews.submit": prepared("mutation", reviewRemote.submit, reviewRemote.actionResult),
 
 	"agentRuns.send": agentMutation(agentCommunication.prepareSend),
 	"controller.collect": prepared("mutation", controllerPrepare.prepare, controllerPrepare.collect),

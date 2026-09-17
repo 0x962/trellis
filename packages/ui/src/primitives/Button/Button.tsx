@@ -1,5 +1,5 @@
 import { Button as BaseButton } from "@base-ui/react/button";
-import { type ComponentProps, type ReactElement, type ReactNode, useId } from "react";
+import { type ComponentProps, cloneElement, type ReactElement, type ReactNode, useId } from "react";
 import { cx } from "../../utils/cx";
 import { hitArea } from "../../utils/hitArea";
 import { Kbd } from "../Kbd";
@@ -94,7 +94,7 @@ export function Button({
 				) : (
 					icon && (
 						<span aria-hidden="true" className="inline-flex size-3.5 shrink-0 *:size-full">
-							{icon}
+							{cloneElement(icon as ReactElement<{ "aria-hidden"?: boolean }>, { "aria-hidden": true })}
 						</span>
 					)
 				)}

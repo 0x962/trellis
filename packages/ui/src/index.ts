@@ -36,6 +36,7 @@ export { Badge, type BadgeProps, type BadgeTone } from "./primitives/Badge";
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from "./primitives/Button";
 export { Checkbox, type CheckboxProps } from "./primitives/Checkbox";
 export { Chip, type ChipProps } from "./primitives/Chip";
+export { ChoiceGroup, type ChoiceGroupOption, type ChoiceGroupProps } from "./primitives/ChoiceGroup";
 export {
 	Command,
 	type CommandFieldProps,

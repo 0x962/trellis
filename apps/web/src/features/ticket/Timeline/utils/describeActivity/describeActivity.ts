@@ -10,6 +10,33 @@ const prShort = (url: string) => {
 
 const metaText = (item: Activity, key: string) => String(item.meta[key] ?? "");
 
+const reviewWords: Record<string, string> = {
+	comment: "commented on",
+	approve: "approved",
+	request_changes: "requested changes on",
+};
+
+const prActionWords: Record<string, (pr: string) => string> = {
+	merge: (pr) => `merged the PR ${pr}`,
+	"admin-merge": (pr) => `merged the PR ${pr}`,
+	automerge: (pr) => `enabled auto-merge for the PR ${pr}`,
+	"disable-automerge": (pr) => `disabled auto-merge for the PR ${pr}`,
+	queue: (pr) => `added the PR ${pr} to the merge queue`,
+	dequeue: (pr) => `removed the PR ${pr} from the merge queue`,
+	close: (pr) => `closed the PR ${pr}`,
+	ready: (pr) => `marked the PR ${pr} ready for review`,
+	"update-branch": (pr) => `updated the branch for the PR ${pr}`,
+	"deploy-on": (pr) => `enabled deploy on merge for the PR ${pr}`,
+	"deploy-off": (pr) => `disabled deploy on merge for the PR ${pr}`,
+	"live-create": (pr) => `requested a Live Branch for the PR ${pr}`,
+	"live-deploy": (pr) => `requested a Live Branch deploy for the PR ${pr}`,
+	"live-delete": (pr) => `requested Live Branch removal for the PR ${pr}`,
+	"live-enable": (pr) => `enabled Live Branch on push for the PR ${pr}`,
+	"live-disable": (pr) => `disabled Live Branch on push for the PR ${pr}`,
+	"live-persist": (pr) => `kept the Live Branch after merge for the PR ${pr}`,
+	"live-unpersist": (pr) => `removed Live Branch persistence for the PR ${pr}`,
+};
+
 // The poller writes a pull request row as "<state>/<ci state>", such as
 // "open/pending". A row moves either the state or the checks, so the line
 // names whichever one moved.
@@ -31,6 +58,12 @@ const byAction: Record<string, (item: Activity) => string> = {
 	[activityActions.created]: () => "created the ticket",
 	"pr.linked": (item) => `linked the PR ${prShort(metaText(item, "url"))}`,
 	"pr.unlinked": (item) => `removed the PR ${prShort(metaText(item, "url"))}`,
+	"pr.reviewed": (item) =>
+		`${reviewWords[metaText(item, "action")] ?? "reviewed"} the PR ${prShort(metaText(item, "url"))}`,
+	"pr.actioned": (item) => {
+		const pr = prShort(metaText(item, "url"));
+		return (prActionWords[metaText(item, "action")] ?? ((value) => `updated the PR ${value}`))(pr);
+	},
 	"pr.state_changed": (item) => {
 		const [fromState] = metaText(item, "from").split("/");
 		const [toState, toChecks] = metaText(item, "to").split("/");

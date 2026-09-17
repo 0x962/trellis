@@ -57,7 +57,7 @@ const run = async (status: string, registered = "enabled", launches = 1) => {
 	await writeFile(commands, "");
 	await writeFile(
 		helper,
-		`#!${process.execPath}
+		`#!/usr/bin/env bun
 import {readFileSync, writeFileSync, appendFileSync} from "node:fs";
 const command = process.argv[2];
 appendFileSync(${JSON.stringify(commands)}, command + "\\n");

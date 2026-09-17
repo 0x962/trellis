@@ -13,7 +13,7 @@ afterAll(async () => {
 	await db.$client.close();
 });
 
-test("existing personas become reviewers without a change to their instructions", async () => {
+test("existing personas become reviewers and receive the chat instructions", async () => {
 	const temp = mkdtempSync(join(process.env.TRELLIS_HOME!, "persona-migration-"));
 	cpSync(join(originDir(import.meta.dir), "../../drizzle"), temp, { recursive: true });
 	const file = join(temp, "meta/_journal.json");
@@ -25,14 +25,15 @@ test("existing personas become reviewers without a change to their instructions"
 	await db.execute(sql`INSERT INTO personas (id, name, instruction, created_at, updated_at)
 		VALUES ('reviewer-1', 'Code Comment Clarity', 'Read the diff.\nKeep every instruction.', now(), now())`);
 	await migrate(db);
-	expect((await db.execute(sql`SELECT id, name, kind, instruction FROM personas`)).rows).toEqual([
-		{
-			id: "reviewer-1",
-			name: "Code Comment Clarity",
-			kind: "reviewer",
-			instruction: "Read the diff.\nKeep every instruction.",
-		},
-	]);
+	const [persona] = (await db.execute(sql`SELECT id, name, kind, instruction FROM personas`)).rows as Array<{
+		id: string;
+		name: string;
+		kind: string;
+		instruction: string;
+	}>;
+	expect(persona).toMatchObject({ id: "reviewer-1", name: "Code Comment Clarity", kind: "reviewer" });
+	expect(persona!.instruction).toStartWith("Read the diff.\nKeep every instruction.\n\n## Chat room\n");
+	expect(persona!.instruction.split("## Chat room")).toHaveLength(2);
 	await expect(db.execute(sql`UPDATE personas SET kind = 'supervisor'`)).rejects.toThrow();
 	await db.transaction(assertStatusInvariant);
 });

@@ -1,22 +1,30 @@
-import { Plus } from "@phosphor-icons/react";
-import { type CodeViewItem, type FileDiffContentsLoader, parsePatchFiles } from "@pierre/diffs";
+import { ArrowsInLineVertical, ArrowsOutLineVertical } from "@phosphor-icons/react";
 import {
-	CodeView,
-	type CodeViewHandle,
-	type CodeViewReactOptions,
-	WorkerPoolContextProvider,
-} from "@pierre/diffs/react";
-import { type ReactNode, useEffect, useMemo, useRef } from "react";
+	type ReactNode,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
-import { commentInteractions } from "./commentInteractions";
-import { expandControls } from "./expandControls";
-import { lineAnnotations } from "./lineAnnotations";
+import { DiffLine } from "./DiffLine";
+import { loadReviewFileContents } from "./loadReviewFileContents";
+import { parseReviewFiles, type ReviewFile } from "./parseReviewFiles";
+import {
+	buildReviewRows,
+	type ExpandedFile,
+	type ReviewRow,
+} from "./reviewRows";
+import { VirtualDiffRows } from "./VirtualDiffRows";
+import "./ReviewDiff.css";
+
 export type DiffAnchor = { path: string; side: "old" | "new"; line: number; startLine: number };
 export type DiffThread = DiffAnchor & { id: string; version: number; updatedAt: string; revisionId: string | null };
+
 type Props = {
-	workerFactory: () => Worker;
 	patch: string;
 	revisionId: string;
 	threads: DiffThread[];
@@ -31,8 +39,19 @@ type Props = {
 	loadFile?: (path: string, side: "old" | "new") => Promise<string>;
 	onFiles: (files: { path: string; type: string; additions: number; deletions: number }[]) => void;
 };
+
+type SelectLine = (anchor: DiffAnchor, extend?: boolean) => void;
+
+const orderedAnchor = (start: DiffAnchor, end: DiffAnchor): DiffAnchor => ({
+	path: start.path,
+	side: start.side,
+	startLine: Math.min(start.line, end.line),
+	line: Math.max(start.line, end.line),
+});
+
+const fileLabel = (file: ReviewFile) => (file.prevName ? `${file.prevName} → ${file.name}` : file.name);
+
 export function ReviewDiff({
-	workerFactory,
 	patch,
 	revisionId,
 	threads,
@@ -47,68 +66,145 @@ export function ReviewDiff({
 	onFiles,
 	loadFile,
 }: Props) {
-	const viewer = useRef<CodeViewHandle<ReactNode, undefined>>(null);
-	const files = useMemo(() => parsePatchFiles(patch).flatMap((patch) => patch.files), [patch]);
-	useEffect(() => {
-		onFiles(
-			files.map((f) => ({
-				path: f.name,
-				type: f.type,
-				additions: f.hunks.reduce((n, h) => n + h.additionLines, 0),
-				deletions: f.hunks.reduce((n, h) => n + h.deletionLines, 0),
-			})),
-		);
-	}, [files, onFiles]);
-	useEffect(() => {
-		if (selectedFile) viewer.current?.scrollTo({ type: "item", id: selectedFile, align: "start" });
-	}, [selectedFile]);
-	const version = useRef(0);
-	const items = useMemo<CodeViewItem<ReactNode>[]>(() => {
-		version.current += 1;
-		return files
-			.filter((file) => file.name.toLowerCase().includes(filter.toLowerCase()))
-			.map((file) => {
-				const annotations = lineAnnotations(file, threads, revisionId, composer).map((annotation) => ({
-					...annotation,
-					metadata: annotation.metadata === "composer" ? renderComposer?.() : renderThread(annotation.metadata),
-				}));
-				return { id: file.name, type: "diff", fileDiff: file, annotations, version: version.current };
-			});
-	}, [files, threads, revisionId, filter, composer, renderThread, renderComposer]);
-	const loadDiffFiles = useMemo<FileDiffContentsLoader | undefined>(
+	const files = useMemo(() => parseReviewFiles(patch), [patch]);
+	const metadata = useMemo(
 		() =>
-			loadFile
-				? async (file) => {
-						const oldName = file.prevName ?? file.name;
-						const [oldContent, newContent] = await Promise.all([loadFile(oldName, "old"), loadFile(file.name, "new")]);
-						return {
-							oldFile: { name: oldName, contents: oldContent },
-							newFile: { name: file.name, contents: newContent },
-						};
-					}
-				: undefined,
-		[loadFile],
+			files.map((file) => ({
+				path: file.name,
+				type: file.type,
+				additions: file.hunks.reduce((total, hunk) => total + hunk.additionLines, 0),
+				deletions: file.hunks.reduce((total, hunk) => total + hunk.deletionLines, 0),
+			})),
+		[files],
 	);
-	const options = useMemo<CodeViewReactOptions<ReactNode, undefined>>(
-		() => ({
-			...commentInteractions<ReactNode>((anchor) => {
+	useEffect(() => onFiles(metadata), [metadata, onFiles]);
+	const shown = useMemo(() => {
+		const query = filter.toLowerCase();
+		return files.filter((file) => file.name.toLowerCase().includes(query));
+	}, [files, filter]);
+	const [expanded, setExpanded] = useState<ReadonlyMap<string, ExpandedFile>>(() => new Map());
+	const rows = useMemo(
+		() => buildReviewRows(shown, mode, threads, revisionId, composer, expanded),
+		[shown, mode, threads, revisionId, composer, expanded],
+	);
+	const selection = useRef<DiffAnchor | undefined>(undefined);
+	const pointer = useRef<DiffAnchor | undefined>(undefined);
+	const skipClick = useRef(false);
+	const select = useCallback<SelectLine>(
+		(anchor, extend = false) => {
+			const start = selection.current;
+			if (extend && start?.path === anchor.path && start.side === anchor.side) onSelect(orderedAnchor(start, anchor));
+			else {
+				selection.current = anchor;
 				onSelect(anchor);
-				viewer.current?.clearSelectedLines();
-			}),
-			theme: { light: "pierre-light", dark: "pierre-dark" },
-			themeType: theme,
-			diffStyle: mode,
-			stickyHeaders: true,
-			unsafeCSS:
-				"[data-file-info] { border-block-width: .5px; } [data-additions], [data-additions] [data-gutter] { border-left-width: .5px; } [data-deletions], [data-deletions] [data-content] { border-right-width: .5px; }",
-			onPostRender: expandControls,
-			loadDiffFiles,
-			enableLineSelection: true,
-			enableGutterUtility: true,
-		}),
-		[mode, theme, loadDiffFiles, onSelect],
+			}
+		},
+		[onSelect],
 	);
-	if (items.length === 0)
+	const startPointer = (anchor: DiffAnchor) => {
+		pointer.current = anchor;
+	};
+	const endPointer = (anchor: DiffAnchor) => {
+		const start = pointer.current;
+		pointer.current = undefined;
+		if (!start || start.path !== anchor.path || start.side !== anchor.side || start.line === anchor.line) return;
+		selection.current = start;
+		skipClick.current = true;
+		onSelect(orderedAnchor(start, anchor));
+	};
+	const clickSelect = useCallback<SelectLine>(
+		(anchor, extend) => {
+			if (skipClick.current) {
+				skipClick.current = false;
+				return;
+			}
+			select(anchor, extend);
+		},
+		[select],
+	);
+	const toggleFile = async (file: ReviewFile) => {
+		if (expanded.has(file.name)) {
+			setExpanded((current) => {
+				const next = new Map(current);
+				next.delete(file.name);
+				return next;
+			});
+			return;
+		}
+		const contents = await loadReviewFileContents(loadFile!, file);
+		setExpanded((current) => new Map(current).set(file.name, contents));
+	};
+	const annotation = (metadata: string) => (
+		<div className="review-diff-annotation" key={metadata}>
+			{metadata === "composer" ? renderComposer?.() : renderThread(metadata)}
+		</div>
+	);
+	const renderRow = (row: ReviewRow) => {
+		if (row.kind === "file") {
+			const isExpanded = expanded.has(row.file.name);
+			return (
+				<header className="review-diff-file-header" data-file-path={row.file.name}>
+					<span>{fileLabel(row.file)}</span>
+					{loadFile && row.file.hunks.length > 0 ? (
+						<Tooltip content={isExpanded ? "Show patch only" : "Show full file"}>
+							<IconButton
+								label={isExpanded ? "Show patch only" : "Show full file"}
+								icon={isExpanded ? <ArrowsInLineVertical /> : <ArrowsOutLineVertical />}
+								onClick={() => void toggleFile(row.file)}
+							/>
+						</Tooltip>
+					) : null}
+				</header>
+			);
+		}
+		if (row.kind === "hunk") return <div className="review-diff-hunk-header">{row.specs}</div>;
+		if (row.kind === "annotation") return <>{row.annotations.map(annotation)}</>;
+		if (row.kind === "end") return <div className="review-diff-file-end" />;
+		if (row.kind === "split")
+			return (
+				<div className="review-diff-split-row">
+					<div>
+						<DiffLine
+							file={row.file.name}
+							line={row.oldLine}
+							side="old"
+							index={`${row.key}:old`}
+							select={clickSelect}
+							startPointer={startPointer}
+							endPointer={endPointer}
+						/>
+						{row.oldAnnotations.map(annotation)}
+					</div>
+					<div>
+						<DiffLine
+							file={row.file.name}
+							line={row.newLine}
+							side="new"
+							index={`${row.key}:new`}
+							select={clickSelect}
+							startPointer={startPointer}
+							endPointer={endPointer}
+						/>
+						{row.newAnnotations.map(annotation)}
+					</div>
+				</div>
+			);
+		return (
+			<div>
+				<DiffLine
+					file={row.file.name}
+					line={row.line}
+					side={row.line.type === "deletion" ? "old" : "new"}
+					index={row.key}
+					select={clickSelect}
+					startPointer={startPointer}
+					endPointer={endPointer}
+				/>
+				{row.annotations.map(annotation)}
+			</div>
+		);
+	};
+	if (shown.length === 0)
 		return (
 			<div className="review-diff-empty">
 				<EmptyState
@@ -119,41 +215,5 @@ export function ReviewDiff({
 				/>
 			</div>
 		);
-	return (
-		<WorkerPoolContextProvider
-			highlighterOptions={{ theme: { light: "pierre-light", dark: "pierre-dark" }, preferredHighlighter: "shiki-js" }}
-			poolOptions={{
-				poolSize: 2,
-				workerFactory,
-			}}
-		>
-			<CodeView
-				renderGutterUtility={(hover, item) => (
-					<Tooltip content="Add line comment">
-						<IconButton
-							label="Add line comment"
-							icon={<Plus />}
-							onClick={(event) => {
-								event.stopPropagation();
-								if (item.type !== "diff") return;
-								const line = hover();
-								if (!line || !("side" in line)) return;
-								onSelect({
-									path: item.fileDiff.name,
-									side: line.side === "deletions" ? "old" : "new",
-									startLine: line.lineNumber,
-									line: line.lineNumber,
-								});
-							}}
-						/>
-					</Tooltip>
-				)}
-				ref={viewer}
-				className="review-code"
-				items={items}
-				options={options}
-				renderAnnotation={(annotation) => annotation.metadata}
-			/>
-		</WorkerPoolContextProvider>
-	);
+	return <VirtualDiffRows rows={rows} mode={mode} theme={theme} selectedFile={selectedFile} renderRow={renderRow} />;
 }
