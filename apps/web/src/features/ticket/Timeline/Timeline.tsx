@@ -1,5 +1,5 @@
 import type { Comment, Ticket, TimelineItem } from "@trellis/api";
-import { Button, SectionHeader } from "@trellis/ui";
+import { Button, EmptyState, SectionHeader } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { useStatuses } from "../hooks/useStatuses";
@@ -89,7 +89,7 @@ export function Timeline({ ticket, onAttachFiles, thread }: TimelineProps) {
 			<section aria-label="Comments" className="flex flex-col gap-1">
 				<SectionHeader title="Comments" count={threads.size} />
 				{threads.size === 0 ? (
-					<p className="py-1 text-sm text-fg-muted">No comments yet.</p>
+					<EmptyState description="Add a comment to ask a question or record a decision." />
 				) : (
 					<ul aria-label="Comments" className="flex flex-col gap-5">
 						{[...threads].map(([id, comments]) => (
