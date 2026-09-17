@@ -1,1 +1,1 @@
-export { ActivityDot } from "./ActivityDot";
+export { ActivityDot, type ActivityDotProps } from "./ActivityDot";

@@ -2,6 +2,7 @@ import { ORPCError } from "@orpc/server";
 import type { GhStatus, TrellisEvent } from "@trellis/api";
 import type { Config } from "../config.ts";
 import type { RequestContext } from "../context.ts";
+import { fail } from "../errors.ts";
 import { createBus } from "../events/bus.ts";
 import type { GhResult, GhRunner, GhSlot } from "../gh/run.ts";
 import { createDbTiming, type DbTiming } from "../serverTiming.ts";
@@ -108,7 +109,10 @@ const errorOf = (error: unknown): SerializedError => {
 	return { name: typed.name, message: typed.message };
 };
 
-const superseded = (): SerializedError => ({ name: "AbortError", message: "A newer search replaced this search." });
+// The answer a search gets when a newer search of the same client takes its
+// place in the queue. It is a declared error, so the page that sent it reads
+// the code, waits for the newer search, and shows no failure.
+const superseded = (): SerializedError => errorOf(fail("SEARCH_REPLACED"));
 
 const startHost = () => {
 	const queue = new ServiceQueue();

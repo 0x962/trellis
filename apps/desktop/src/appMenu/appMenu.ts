@@ -10,9 +10,9 @@ export type AppMenuActions = {
 	quit: () => void;
 };
 
-// The Help items work when the host cannot load the Settings page. Stop local
-// work also stays here because an older active host can serve an older page
-// without the Desktop section after an application upgrade.
+// The Help items work when the host cannot load the Settings page. Quit Trellis
+// Completely also stays here because an older active host can serve an older
+// page without the Desktop section after an application upgrade.
 export const appMenu = (actions: AppMenuActions): MenuItemConstructorOptions[] => [
 	{
 		label: "Trellis",
@@ -25,9 +25,10 @@ export const appMenu = (actions: AppMenuActions): MenuItemConstructorOptions[] =
 			{ role: "hideOthers" },
 			{ role: "unhide" },
 			{ type: "separator" },
-			{ label: "Stop local work and background service", click: actions.stopLocalWork },
 			actions.restart,
-			{ label: "Quit Trellis (keep agents running)", accelerator: "Cmd+Q", click: actions.quit },
+			{ type: "separator" },
+			{ label: "Quit Trellis Completely", click: actions.stopLocalWork },
+			{ label: "Quit Trellis", accelerator: "Cmd+Q", click: actions.quit },
 		],
 	},
 	{

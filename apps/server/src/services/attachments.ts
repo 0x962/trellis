@@ -111,7 +111,7 @@ const markdownFor = (attachment: Attachment) =>
 // parts of 1 MB, so a 50 MB upload never sits in memory. The file then moves
 // to the path of its hash. The name of the temp file is marked live, so a
 // boot sweep in another process leaves the upload alone.
-const storeFile = async (home: string, file: File) => {
+export const storeFile = async (home: string, file: File) => {
 	const name = ulid();
 	const release = markLiveTempFile(name);
 	const hasher = new Bun.CryptoHasher("sha256");
@@ -139,7 +139,7 @@ const storeFile = async (home: string, file: File) => {
 // `application/octet-stream`, which downloads.
 const MIME_PATTERN = /^[\w.+-]+\/[\w.+-]+$/;
 
-const storedMime = (type: string) => {
+export const storedMime = (type: string) => {
 	const essence = type.split(";")[0]!.trim().toLowerCase();
 	return MIME_PATTERN.test(essence) ? essence : "application/octet-stream";
 };
@@ -188,16 +188,17 @@ const findAttachment = async (tx: Tx, id: string): Promise<AttachmentRow> => {
 	return row;
 };
 
-// True while any attachment row still names this hash. The check runs under
-// the file lock, so an upload of the same hash that is between its move and
-// its row is counted.
+// True while any attachment row, of a ticket or of a chat room, still names
+// this hash. The check runs under the file lock, so an upload of the same
+// hash that is between its move and its row is counted.
 type BlobCtx = Pick<ServiceCtx, "home" | "newTx">;
 
 const holdsSha = (ctx: BlobCtx, sha256: string) => () =>
 	ctx.newTx(async (tx) => {
 		const [row] = await rows<{ n: number }>(
 			tx,
-			sql`SELECT count(*)::int AS n FROM attachments WHERE sha256 = ${sha256}`,
+			sql`SELECT (SELECT count(*) FROM attachments WHERE sha256 = ${sha256})::int
+				+ (SELECT count(*) FROM chat_attachments WHERE sha256 = ${sha256})::int AS n`,
 		);
 		return row!.n > 0;
 	});

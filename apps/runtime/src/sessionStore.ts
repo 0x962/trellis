@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
-import { mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type {
 	LaunchSpec,
 	RuntimeExpectedTurn,
 	RuntimeListInput,
+	RuntimeMessageState,
 	RuntimeMethods,
 	RuntimeProcessStatus,
 	RuntimeSession,
@@ -21,13 +22,22 @@ import { observeLegacyTurn } from "./observeLegacyTurn.ts";
 import { ProcessExitWatcher } from "./processExitWatcher.ts";
 import { createProcessHandle } from "./processHandle.ts";
 import { registerNativeDelivery } from "./registerNativeDelivery.ts";
+import { sessionFileSuffixes, sessionFiles } from "./sessionFiles.ts";
 import type { SessionRecord as Record } from "./sessionRecord.ts";
 import { sessionResources } from "./sessionResources.ts";
 import { stopAttempt } from "./stopAttempt.ts";
 import { watchRecoveredSession } from "./watchRecoveredSession.ts";
+
+// A host reads the output of an exited session after the exit, for example
+// when it stores the transcript of a stopped agent. The record and its files
+// stay for this long after the exit, and then the runtime removes them.
+const retentionMs = 7 * 24 * 60 * 60 * 1000;
+const sweepIntervalMs = 60 * 60 * 1000;
+
 export class SessionStore {
 	private readonly records = new Map<string, Record>();
 	private readonly exits = new ProcessExitWatcher();
+	private readonly sweeper: ReturnType<typeof setInterval>;
 	constructor(
 		private readonly home: string,
 		private readonly daemonId: string,
@@ -57,6 +67,33 @@ export class SessionStore {
 			this.records.set(saved.session.id, record);
 			this.save(record);
 			watchRecoveredSession(record, this.exits);
+		}
+		this.sweep();
+		this.removeOrphanFiles();
+		this.sweeper = setInterval(() => this.sweep(), sweepIntervalMs);
+		this.sweeper.unref();
+	}
+	// Removes each exited session whose exit is older than retentionMs. A record
+	// recovered from a crash has no endedAt, so its startedAt sets its age.
+	private sweep(now = Date.now()) {
+		for (const record of this.records.values()) {
+			if (record.process !== undefined || record.listeners.size > 0) continue;
+			if (inspectSessionRecord(record).status !== "exited") continue;
+			const endedAt = record.session.endedAt ?? record.session.startedAt;
+			if (now - Date.parse(endedAt) < retentionMs) continue;
+			this.records.delete(record.session.id);
+			for (const path of Object.values(sessionFiles(this.home, record.session.id))) rmSync(path, { force: true });
+		}
+	}
+	// A session file without a session record belongs to a session that a
+	// sweep removed before the runtime wrote the file, or to a removed record
+	// whose file removal did not complete.
+	private removeOrphanFiles() {
+		for (const file of readdirSync(this.home)) {
+			const suffix = sessionFileSuffixes.find((candidate) => file.endsWith(candidate));
+			if (suffix === undefined) continue;
+			if (this.records.has(file.slice(0, -suffix.length))) continue;
+			rmSync(join(this.home, file), { force: true });
 		}
 	}
 	private save(record: Record) {
@@ -88,6 +125,10 @@ export class SessionStore {
 	}
 	inspect(id: string): RuntimeProcessStatus {
 		return inspectSessionRecord(this.get(id));
+	}
+	hasMessage({ id, messageId }: RuntimeMethods["hasMessage"]["params"]): RuntimeMessageState {
+		const record = this.get(id);
+		return { messageId, delivered: record.ledger.delivered(messageId), status: this.inspect(id).status };
 	}
 	registerNativeDelivery(input: RuntimeMethods["registerNativeDelivery"]["params"]) {
 		return registerNativeDelivery(this.get(input.id), input);
@@ -213,8 +254,9 @@ export class SessionStore {
 		await record.process.input(bytes);
 		return null;
 	}
-	deliver(id: string, messageId: string, data: string) {
+	deliver(id: string, messageId: string, data: string, expected?: RuntimeExpectedTurn) {
 		const record = this.get(id);
+		if (!record.ledger.has(messageId)) assertExpectedTurn(record, expected);
 		return record.ledger.deliver(messageId, data, () => this.input(id, data));
 	}
 	resize(id: string, cols: number, rows: number) {
@@ -272,6 +314,7 @@ export class SessionStore {
 		return record.process === undefined && record.watchedPids.size === 0;
 	}
 	closeWatchers() {
+		clearInterval(this.sweeper);
 		this.exits.close();
 	}
 	async stopAll() {

@@ -1,3 +1,5 @@
+import { localDateTime } from "./time.ts";
+
 // `table` is the aligned text a TTY gets. `json` is the procedure output;
 // a list is one array across every page. `jsonl` is one object per line.
 // `quiet` is one identifier per line and wins over every other flag.
@@ -132,7 +134,7 @@ export const ticketList: ListSpec<TicketRow> = {
 		{ name: "status", value: (row) => row.status.slug },
 		{ name: "priority", value: (row) => row.priority },
 		{ name: "title", value: (row) => cell(row.title) },
-		{ name: "updated", value: (row) => row.updatedAt },
+		{ name: "updated", value: (row) => localDateTime(row.updatedAt) },
 	],
 	identifier: (row) => row.identifier,
 };
@@ -172,9 +174,9 @@ export const ticketRecord: RecordSpec<TicketFields> = {
 			value: (row) => (row.lastActor === null ? "-" : `${row.lastActor.kind}:${row.lastActor.name}`),
 		},
 		{ name: "version", value: (row) => String(row.version) },
-		{ name: "created", value: (row) => row.createdAt },
-		{ name: "updated", value: (row) => row.updatedAt },
-		{ name: "completed", value: (row) => cell(row.completedAt) },
+		{ name: "created", value: (row) => localDateTime(row.createdAt) },
+		{ name: "updated", value: (row) => localDateTime(row.updatedAt) },
+		{ name: "completed", value: (row) => (row.completedAt === null ? "-" : localDateTime(row.completedAt)) },
 	],
 	identifier: (row) => row.identifier,
 };

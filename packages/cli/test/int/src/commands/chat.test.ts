@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { localDateTime } from "../../../../src/time.ts";
 import { runCli } from "../../../deps.ts";
 import { actor, agentRunId, projectId } from "../../../fixtures.ts";
 
@@ -17,7 +18,10 @@ const message = (overrides: Record<string, unknown> = {}) => ({
 const channel = (name: string, messageCount = 0) => ({
 	projectId,
 	name,
+	aiOnly: name === "ai",
+	direct: false,
 	messageCount,
+	latestId: null,
 	lastMessageAt: null,
 	createdAt: "2026-09-09T10:00:00.000Z",
 });
@@ -50,9 +54,10 @@ describe("chat", () => {
 		);
 		expect(tty.code).toBe(0);
 		expect(tty.calls[0]!.input).toEqual({ project: "TRL", channel: "ai", after: messageId, limit: 10 });
-		expect(tty.stdout).toBe(`#ai 12:34:56 <Builder ${agentRunId}> rebase on main\n`);
+		expect(tty.stdout).toBe(`#ai ${localDateTime(message().createdAt)} <Builder ${agentRunId}> rebase on main\n`);
 		const piped = await runCli(["chat", "read", "TRL", "ai"], { "chat.list": page });
 		expect(JSON.parse(piped.stdout)).toEqual(page);
+		expect(JSON.parse(piped.stdout).items[0].createdAt).toBe("2026-09-09T12:34:56.000Z");
 		const empty = await runCli(
 			["chat", "read", "TRL", "ai"],
 			{ "chat.list": { ...page, items: [], latestId: null } },
@@ -75,5 +80,9 @@ describe("chat", () => {
 		});
 		expect(created.calls[0]!.input).toEqual({ project: "TRL", channel: "release" });
 		expect(created.stdout).toBe("release\n");
+		const agentsOnly = await runCli(["chat", "create", "TRL", "plans", "--ai-only", "--quiet"], {
+			"chat.createChannel": { ...channel("plans"), aiOnly: true },
+		});
+		expect(agentsOnly.calls[0]!.input).toEqual({ project: "TRL", channel: "plans", aiOnly: true });
 	});
 });

@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTable } from "@tanstack/react-table";
 import type { StatusSummary, TicketSummary } from "@trellis/api";
+import { ConfirmDialog } from "@trellis/ui";
 import { type MouseEvent, type ReactNode, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { useScopeStatuses } from "../../../hooks/useScopeStatuses";
 import { useStableCallback } from "../../../hooks/useStableCallback";
 import { useApp } from "../../../lib/appContext";

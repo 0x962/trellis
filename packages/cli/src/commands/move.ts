@@ -10,7 +10,7 @@ export default defineCommand({
 		status: { type: "positional", required: true, description: "Status ref: slug, name, or category:<category>" },
 		after: { type: "string", description: "Place after this ticket in the column" },
 		before: { type: "string", description: "Place before this ticket in the column" },
-		force: { type: "boolean", description: "Let an agent move a ticket to a done status" },
+		force: { type: "boolean", description: "Accepted for compatibility; completion does not require force" },
 		"expect-version": { type: "string", description: "Fail unless the ticket is at this version" },
 	},
 	async run(context) {

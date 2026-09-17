@@ -60,7 +60,7 @@ for (const status of [401, 400, 429, 503, "dropped-stream", "retry"] as const)
 					id: "fault",
 					harness: "codex",
 					cwd: fixture.home,
-					model: "test-model",
+					model: "openai/gpt-5.6-sol",
 					prompt: "Reply hello.",
 				});
 				if (status === "retry") {

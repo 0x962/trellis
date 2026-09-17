@@ -1,12 +1,16 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { QueryClient } from "@tanstack/react-query";
-import { errors, type Ticket } from "@trellis/api";
+import type { Ticket } from "@trellis/api";
+import { describeError } from "../../../../../src/lib/describeError";
 import { ticketDetailKey } from "../../../../../src/ticket/ticketQueries";
-import { runTicketUpdate, updateMessage } from "../../../../../src/ticket/ticketUpdate/ticketUpdate";
+import { runTicketUpdate } from "../../../../../src/ticket/ticketUpdate/ticketUpdate";
 import { createMobileApp, type MobileApp } from "../../../../testApp";
 import { seedTicketScreen } from "../../../../ticket";
 
 let app: MobileApp;
+
+// The stored server the screen describes a rejection against.
+const serverUrl = "http://192.168.1.20:4521";
 
 beforeAll(async () => {
 	app = await createMobileApp();
@@ -46,7 +50,9 @@ describe("runTicketUpdate", () => {
 		);
 		const error = await attempt.catch((rejection: unknown) => rejection);
 		expect(error).toMatchObject({ code: "VERSION_CONFLICT" });
-		expect(updateMessage(error)).toBe(errors.VERSION_CONFLICT.message);
+		expect(describeError(error, serverUrl).detail).toBe(
+			`${identifier} changed first. The row shows the other version.`,
+		);
 		const cached = queryClient.getQueryData<Ticket>(key)!;
 		expect(cached.priority).toBe("high");
 		expect(cached.version).toBe(retitled.version);
@@ -60,7 +66,10 @@ describe("runTicketUpdate", () => {
 		);
 		const error = await attempt.catch((rejection: unknown) => rejection);
 		expect(error).toBeInstanceOf(TypeError);
-		expect(updateMessage(error)).toBe("fetch failed");
+		expect(describeError(error, serverUrl)).toMatchObject({
+			title: "Cannot reach the server",
+			detail: "192.168.1.20:4521 does not answer.",
+		});
 		expect(queryClient.getQueryData<Ticket>(key)).toEqual(ticket);
 	});
 });

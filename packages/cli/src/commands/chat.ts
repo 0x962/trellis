@@ -1,8 +1,12 @@
-import type { ChatChannel, ChatMessage } from "@trellis/api";
+import { readFileSync } from "node:fs";
+import { basename } from "node:path";
+import type { ChatChannel, ChatMessage, ChatUploadOutput } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, readText, toNumber } from "../context.ts";
+import { fileNotFound, fileUnreadable } from "../errors.ts";
 import { cell, json, type ListSpec, printList, printRecord, type RecordSpec } from "../output.ts";
+import { localDateTime } from "../time.ts";
 
 const projectArg = { type: "positional" as const, required: true as const, description: "Project ref, such as TRL" };
 const channelArg = {
@@ -16,17 +20,15 @@ const sender = (message: ChatMessage) =>
 		? `${message.actor.displayName} ${message.actor.name}`
 		: message.actor.name;
 
-// `#ai 12:00:01 <Builder 01J...> body`: the IRC form a terminal reader
-// scans. Every other mode prints the message records.
 export const renderChatLine = (message: ChatMessage) =>
-	`#${message.channel} ${message.createdAt.slice(11, 19)} <${sender(message)}> ${message.body}\n`;
+	`#${message.channel} ${localDateTime(message.createdAt)} <${sender(message)}> ${message.body}\n`;
 
 const messageRecord: RecordSpec<ChatMessage> = {
 	fields: [
 		{ name: "id", value: (row) => row.id },
 		{ name: "channel", value: (row) => `#${row.channel}` },
 		{ name: "actor", value: (row) => `${row.actor.kind}:${sender(row)}` },
-		{ name: "created", value: (row) => row.createdAt },
+		{ name: "created", value: (row) => localDateTime(row.createdAt) },
 		{ name: "body", value: (row) => cell(row.body) },
 	],
 	identifier: (row) => row.id,
@@ -35,8 +37,9 @@ const messageRecord: RecordSpec<ChatMessage> = {
 const channelList: ListSpec<ChatChannel> = {
 	columns: [
 		{ name: "channel", value: (row) => `#${row.name}` },
+		{ name: "agents-only", value: (row) => (row.aiOnly ? "yes" : "-") },
 		{ name: "messages", value: (row) => String(row.messageCount) },
-		{ name: "last", value: (row) => cell(row.lastMessageAt) },
+		{ name: "last", value: (row) => (row.lastMessageAt === null ? "-" : localDateTime(row.lastMessageAt)) },
 	],
 	identifier: (row) => row.name,
 };
@@ -53,14 +56,66 @@ const channels = defineCommand({
 
 const create = defineCommand({
 	meta: { name: "create", description: "Create a channel in the project room" },
-	args: { project: projectArg, channel: channelArg },
+	args: {
+		project: projectArg,
+		channel: channelArg,
+		"ai-only": { type: "boolean", description: "Only agents post in the channel. A person reads it." },
+	},
 	async run(context) {
 		const ctx = contextOf(context);
-		const channel = await clientOf(ctx).chat.createChannel({
-			project: context.args.project,
-			channel: context.args.channel,
-		});
+		const channel = await clientOf(ctx).chat.createChannel(
+			compact({
+				project: context.args.project,
+				channel: context.args.channel,
+				aiOnly: context.args["ai-only"] ? true : undefined,
+			}),
+		);
 		printList(ctx.out, ctx.format, [channel], channelList);
+	},
+});
+
+// The file the command line names. The file system is a boundary: a path
+// the process cannot open ends the run with one line and no request.
+const fileAt = (path: string): File => {
+	try {
+		return new File([readFileSync(path)], basename(path));
+	} catch (error) {
+		const failure = error as NodeJS.ErrnoException;
+		if (failure.code === "ENOENT") throw fileNotFound(path);
+		throw fileUnreadable(path, failure.message);
+	}
+};
+
+const kilobytes = (bytes: number) => `${(bytes / 1024).toFixed(1)} KB`;
+
+const renderUpload = (result: ChatUploadOutput) =>
+	`Uploaded ${result.attachment.filename} (${kilobytes(result.attachment.size)}) -> ${result.url}\n${result.markdown}\n`;
+
+const attach = defineCommand({
+	meta: { name: "attach", description: "Upload a file for a message; put the printed markdown in the body" },
+	args: {
+		project: projectArg,
+		path: { type: "positional", required: true, description: "File path" },
+		name: { type: "string", description: "Filename to store instead of the file's own" },
+	},
+	async run(context) {
+		const ctx = contextOf(context);
+		const { args } = context;
+		const result = await clientOf(ctx).chat.upload(
+			compact({ project: args.project, file: fileAt(args.path), name: args.name }),
+		);
+		switch (ctx.format.mode) {
+			case "quiet":
+				ctx.out.write(`${result.attachment.id}\n`);
+				return;
+			case "json":
+			case "jsonl":
+				ctx.out.write(json(result));
+				return;
+			case "table":
+				ctx.out.write(renderUpload(result));
+				return;
+		}
 	},
 });
 
@@ -117,5 +172,5 @@ const post = defineCommand({
 
 export default defineCommand({
 	meta: { name: "chat", description: "Read and post in the chat room of a project" },
-	subCommands: { channels, create, read, post },
+	subCommands: { channels, create, read, post, attach },
 });

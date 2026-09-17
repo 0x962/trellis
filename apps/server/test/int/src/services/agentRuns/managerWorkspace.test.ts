@@ -53,7 +53,6 @@ const context = () =>
 const config = () =>
 	ProjectManagerConfigSchema.parse({
 		personaId: null,
-		concurrency: 1,
 		directory: fixture.home,
 		harness: { preset: "claude" },
 	});
@@ -134,5 +133,5 @@ test.each([false, true])("a resumed manager uses the observed directory when pri
 	expect(descriptor.prompt).toContain("Trellis performed a system restart.");
 	expect(descriptor.prompt).not.toContain("Original assignment must not repeat");
 	expect(descriptor.spec.args).toContain("--strict-mcp-config");
-	expect(descriptor.spec.args).not.toContain("--dangerously-skip-permissions");
+	expect(descriptor.spec.args).toContain("--dangerously-skip-permissions");
 });

@@ -14,6 +14,10 @@ export type ConfirmDialogProps = {
 	// its ring and takes no second click, and the dialog stays open until
 	// the caller closes it.
 	processing?: boolean;
+	// False lets the page behind the scrim keep its focus and its scroll. Set
+	// it when this dialog opens on top of another dialog, because two focus
+	// traps on one screen take the keyboard from each other.
+	modal?: boolean | "trap-focus";
 	children?: ReactNode;
 	onConfirm: () => void;
 	onCancel: () => void;
@@ -29,12 +33,19 @@ export function ConfirmDialog({
 	confirmLabel,
 	danger = false,
 	processing = false,
+	modal = true,
 	children,
 	onConfirm,
 	onCancel,
 }: ConfirmDialogProps) {
 	return (
-		<Dialog open={open} onOpenChange={(next) => !next && onCancel()} title={title} description={description}>
+		<Dialog
+			open={open}
+			modal={modal}
+			onOpenChange={(next) => !next && onCancel()}
+			title={title}
+			description={description}
+		>
 			{children}
 			<div className="flex justify-end gap-2">
 				<Button disabled={processing} onClick={onCancel}>

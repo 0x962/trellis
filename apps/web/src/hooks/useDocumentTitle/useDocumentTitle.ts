@@ -18,10 +18,11 @@ const pageName = (pathname: string): string | null => {
 	return null;
 };
 
-// The tab title of a page: "All tickets · trellis". A ticket page sets its
-// own title from the ticket it reads, so it gets null here.
+// The tab title of a page: "All tickets · trellis". A ticket page and a
+// session page set their own titles from the record they read, so they get
+// null here.
 export const documentTitle = (pathname: string): string | null => {
-	if (pathname.startsWith("/t/")) return null;
+	if (pathname.startsWith("/t/") || pathname.startsWith("/sessions/")) return null;
 	const name = pageName(pathname);
 	return name === null ? "trellis" : `${name} · trellis`;
 };

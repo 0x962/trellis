@@ -46,7 +46,7 @@ Restart Trellis to activate this package. Evidence: `/tmp/trellis-main-productio
 ## Trellis SRE persona
 
 The live Trellis SRE persona is `01M2N80YVHB63B85798BJPT4G4`, with kind `builder`.
-Its instructions live in [trellis-sre.md](../personas/trellis-sre.md).
+Its instructions live in the Trellis SRE persona.
 The TRL manager persona and Deploy Queue description route eligible tickets to one SRE batch owner.
 The SRE merges and tests the combined batch, builds from published main, installs once, and coordinates one restart with the manager.
 It retains a durable release record and a checkpoint comment that the manager can read.
@@ -65,7 +65,7 @@ The Workbench manager could not launch WO-1 because its child project had an emp
 The Workbench parent already specified `/Users/navidkhan/projects/workbench`.
 The lead applies Navid's automatic-trust authorization to live project settings and supplies the existing parent directory to that child.
 At 14:14 UTC on September 16, worker `01M2N91KAYSS4YAVG0SQN2YX2W` runs with a confirmed provider session and no error.
-The shared manager persona includes [the automatic repository access policy](../personas/automatic-repository-access.md).
+The shared manager persona includes the automatic repository access policy.
 
 Project settings have no repository approval field. A database migration removes the saved repository approval flag and the unused tool permission flag.
 An agent can update its project directory without a separate human approval. Native harnesses apply permission bypass at launch.

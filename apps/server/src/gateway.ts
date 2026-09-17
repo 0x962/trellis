@@ -16,6 +16,10 @@ const server = Bun.serve({
 		const routes = existsSync(path) ? (JSON.parse(readFileSync(path, "utf8")) as Record<string, number>) : {};
 		const target = gatewayTarget(request.url, { ...defaults, ...routes });
 		if (!target) return new Response("No local route matches this hostname.", { status: 404 });
+		// A person writes the routes file. A value in it that is no TCP port
+		// leaves the gateway with no upstream to call, so the answer is 502
+		// and its text names the entry that holds the bad value.
+		if (target.kind === "invalid") return new Response(target.message, { status: 502 });
 		if (target.kind === "redirect") return Response.redirect(target.url, 302);
 		return fetch(target.url, {
 			method: request.method,

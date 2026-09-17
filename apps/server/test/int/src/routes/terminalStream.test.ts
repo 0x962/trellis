@@ -20,6 +20,9 @@ const path = `/api/agent-runs/${runId}/terminal/stream?attemptId=attempt&session
 const headers = { authorization: `Bearer ${token}` };
 const session = { id: "attempt", mode: "pty", status: "running", controllable: true };
 const send = (socket: Socket, id: string, result: unknown) => socket.write(`${JSON.stringify({ id, result })}\n`);
+// What the runtime process answers to `hello`. A test sets it to an empty
+// list to act as a runtime binary that is too old to send terminal output.
+let capabilities: string[];
 
 beforeAll(async () => {
 	h = await freshDb();
@@ -27,6 +30,7 @@ beforeAll(async () => {
 afterAll(() => h.close());
 beforeEach(async () => {
 	await h.reset();
+	capabilities = ["terminal-stream"];
 	t = await createTestApp({ db: h, authToken: token });
 	await t.editServerTx(async (tx) => {
 		await tx.execute(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_path,terminal_id,session_id,created_at,updated_at)
@@ -43,7 +47,7 @@ beforeEach(async () => {
 			if (!buffer.includes("\n")) return;
 			const request = JSON.parse(buffer.split("\n")[0]!);
 			if (request.method === "hello") {
-				send(socket, request.id, { capabilities: ["terminal-stream"] });
+				send(socket, request.id, { capabilities });
 				socket.end();
 			} else {
 				subscription = socket;
@@ -94,6 +98,22 @@ test("terminal stream requires host authentication and the current attempt", asy
 	).toBe(400);
 	expect((await t.app.request(`http://trellis.test${path}&offset=-1`, { headers })).status).toBe(400);
 	expect(sockets.size).toBe(0);
+});
+
+// The request holds a correct attempt and a correct offset. The runtime
+// binary on this machine is the part that cannot serve, so the answer is
+// the 503 of the runner and not the 400 of the input.
+test("terminal stream answers 503 when the runtime cannot send terminal output", async () => {
+	capabilities = [];
+	const response = await t.app.request(`http://trellis.test${path}`, { headers });
+	expect(response.status).toBe(503);
+	expect(await response.json()).toEqual({
+		defined: true,
+		code: "RUNNER_UNAVAILABLE",
+		status: 503,
+		message: "The execution service requires an update before it can stream this terminal.",
+		data: { reason: "outdated" },
+	});
 });
 
 test("terminal stream replays from an offset, pushes live bytes, and closes after exit", async () => {

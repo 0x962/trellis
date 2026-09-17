@@ -14,8 +14,11 @@ TRELLIS_NATIVE_CLAUDE_MODEL=claude-opus-5 \
 TRELLIS_NATIVE_CODEX_MODEL=gpt-5.6-sol \
 TRELLIS_NATIVE_PI_MODEL=vercel-ai-gateway/openai/gpt-5.6-sol \
 TRELLIS_NATIVE_OPENCODE_MODEL=vercel/anthropic/claude-opus-5 \
+TRELLIS_NATIVE_MUSE_MODEL=meta/muse-spark-1.3 \
 bun run test:host:real
 ```
+
+The Muse case needs Muse Code 1.3.0 or later and a Meta login in the authenticated home. It runs one session through `muse serve` on the Meta subscription of that login.
 
 The examples use Opus 5 for Anthropic and Sol for OpenAI. Select models available to each authenticated CLI.
 `TRELLIS_NATIVE_OPENCODE_BIN` selects an explicit OpenCode executable for its real tests.
