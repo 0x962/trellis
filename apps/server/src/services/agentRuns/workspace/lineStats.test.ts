@@ -88,7 +88,37 @@ describe("workspace line stats", () => {
 		const workspace = await nativeWorkspace(join(root, "home"), run, source);
 		await writeFile(join(workspace, "source.txt"), "one\ntwo\nthree\nfour\nfive\n");
 
+		expect(await git(workspace, ["symbolic-ref", workspaceBaseRef])).toBe("refs/heads/source");
 		expect(await git(workspace, ["rev-parse", workspaceBaseRef])).toBe(sourceHead);
+		expect(await countWorkspace(workspace)).toEqual({ additions: 1, deletions: 0 });
+	});
+
+	test("excludes source branch changes that the workspace merges", async () => {
+		const { repository, workspace } = await createWorkspace();
+		await writeFile(join(repository, "upstream.txt"), "upstream\n");
+		await git(repository, ["add", "upstream.txt"]);
+		await git(repository, [
+			"-c",
+			"user.name=Trellis Test",
+			"-c",
+			"user.email=trellis@example.com",
+			"commit",
+			"-m",
+			"upstream change",
+		]);
+		await git(workspace, ["merge", "--no-edit", "main"]);
+		await writeFile(join(workspace, "agent.txt"), "agent\n");
+		await git(workspace, ["add", "agent.txt"]);
+		await git(workspace, [
+			"-c",
+			"user.name=Trellis Test",
+			"-c",
+			"user.email=trellis@example.com",
+			"commit",
+			"-m",
+			"agent change",
+		]);
+
 		expect(await countWorkspace(workspace)).toEqual({ additions: 1, deletions: 0 });
 	});
 
@@ -100,6 +130,7 @@ describe("workspace line stats", () => {
 		const resumed = await nativeWorkspace(join(root, "home"), { ...run, workspaceId: workspace }, repository);
 
 		expect(resumed).toBe(workspace);
+		expect(await git(workspace, ["symbolic-ref", workspaceBaseRef])).toBe("refs/heads/main");
 		expect(await countWorkspace(workspace)).toEqual({ additions: 1, deletions: 0 });
 	});
 
