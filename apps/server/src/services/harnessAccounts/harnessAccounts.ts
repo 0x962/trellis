@@ -10,7 +10,7 @@ import { invalidateUsageAccounts } from "../usage/accounts.ts";
 import { invalidateUsageReports } from "../usage/usage.ts";
 import { resolveHostDefault, writeHostDefault } from "./hostDefault.ts";
 import { presentAccount } from "./presentation.ts";
-import { provisionProfile } from "./profiles.ts";
+import { provisionProfile, removeManagedProfile } from "./profiles.ts";
 import { type AccountRow, accountColumns, getAccount } from "./queries.ts";
 
 const requirePerson = (ctx: IoCtx) => {
@@ -23,12 +23,16 @@ const invalidateUsage = (ctx: IoCtx) =>
 		invalidateUsageReports(ctx.home);
 	});
 
-const requireUniqueName = async (tx: Tx, account: { id: string; name: string }) => {
+const nameIsUsed = async (tx: Tx, account: { id: string; name: string }) => {
 	const duplicates = await rows(
 		tx,
 		sql`SELECT id FROM harness_accounts WHERE name=${account.name} AND id<>${account.id} LIMIT 1`,
 	);
-	if (duplicates.length) throw invalidInput("name", "This account name is already in use.");
+	return duplicates.length > 0;
+};
+
+const requireUniqueName = async (tx: Tx, account: { id: string; name: string }) => {
+	if (await nameIsUsed(tx, account)) throw invalidInput("name", "This account name is already in use.");
 };
 
 // The default flag of each row prints as hostDefault.ts resolves it, so
@@ -52,12 +56,24 @@ export const prepareCreate = async (ctx: IoCtx, input: HarnessAccountCreate) => 
 	const id = ulid();
 	await ctx.newTx((tx) => requireUniqueName(tx, { id, name: input.name }));
 	const env = await executionEnvironment();
-	return { ...input, id, profilePath: await provisionProfile(ctx.home, id, input, env) };
+	return {
+		...input,
+		id,
+		profilePath: await provisionProfile(ctx.home, id, input, env),
+		managedProfile: input.profilePath === undefined,
+	};
 };
-export const create = async (ctx: IoCtx, tx: Tx, input: HarnessAccountCreate & { id: string; profilePath: string }) => {
+export const create = async (
+	ctx: IoCtx,
+	tx: Tx,
+	input: HarnessAccountCreate & { id: string; profilePath: string; managedProfile: boolean },
+) => {
 	requirePerson(ctx);
 	await tx.execute(sql`LOCK TABLE harness_accounts IN SHARE ROW EXCLUSIVE MODE`);
-	await requireUniqueName(tx, input);
+	if (await nameIsUsed(tx, input)) {
+		if (input.managedProfile) await removeManagedProfile(ctx.home, input.id);
+		throw invalidInput("name", "This account name is already in use.");
+	}
 	const duplicates = await rows(
 		tx,
 		sql`SELECT id FROM harness_accounts WHERE harness=${input.harness} AND profile_path=${input.profilePath} AND archived_at IS NULL`,

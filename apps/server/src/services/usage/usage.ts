@@ -2,10 +2,10 @@ import type { UsageHarness, UsageReport, UsageReportInput } from "@trellis/api";
 import { executionEnvironment } from "../../executionEnvironment";
 import { resolveHostDefault } from "../harnessAccounts/hostDefault.ts";
 import type { IoCtx } from "../support.ts";
-import { computeUsageReport, rangeStart } from "./aggregate.ts";
-import { collectUsageEntries } from "./entries.ts";
+import { rangeStart } from "./aggregate.ts";
 import { claudeSessionOwners } from "./owners.ts";
 import { listUsageAccounts, listUsageProjects, listUsageRuns } from "./queries.ts";
+import { computeUsageReportInWorker } from "./reportWorker";
 import { usageRoots } from "./roots.ts";
 
 const CACHE_MS = 5 * 60 * 1000;
@@ -17,11 +17,10 @@ export const invalidateUsageReports = (home: string) => {
 	for (const key of cache.keys()) if (key.startsWith(`${home}:`)) cache.delete(key);
 };
 
-// Builds the report outside every database transaction: the transcript
-// scan reads gigabytes on a heavy machine, and the database lock must stay
-// free while it runs. The three short reads of accounts, runs, and projects
-// open their own transactions. A report is cached for five minutes per
-// range, and a refresh is served from the cache for ten seconds.
+// Builds the report outside every database transaction. The account, run,
+// and project reads use one short transaction. The transcript scan runs on
+// a separate worker. A report stays in the cache for five minutes per range.
+// A refresh uses a result from the last ten seconds.
 export const prepareReport = async (
 	ctx: IoCtx,
 	input: UsageReportInput,
@@ -47,9 +46,8 @@ export const prepareReport = async (
 			const resolved = await resolveHostDefault(harness, accounts, env);
 			if (resolved.account) defaultAccounts[harness] = resolved.account.name;
 		}
-		const collected = await collectUsageEntries(roots, days, cutoffMs);
-		return computeUsageReport({
-			...collected,
+		return computeUsageReportInWorker({
+			roots,
 			runs,
 			projects,
 			sessionAccounts,
@@ -60,8 +58,13 @@ export const prepareReport = async (
 		});
 	})();
 	cache.set(key, { at: now, result });
-	result.catch(() => {
-		if (cache.get(key)?.result === result) cache.delete(key);
-	});
+	void result.then(
+		() => {
+			if (cache.get(key)?.result === result) cache.set(key, { at: deps.now(), result });
+		},
+		() => {
+			if (cache.get(key)?.result === result) cache.delete(key);
+		},
+	);
 	return result;
 };
