@@ -77,3 +77,8 @@ test("overlapping beats share each pending launch", async () => {
 	await Promise.all([first, second]);
 	expect(calls.filter((call) => call === "worker")).toHaveLength(1);
 });
+test("a saved local pause cannot prevent workers and copilots from starting", async () => {
+	await h.rows(sql`INSERT INTO settings(key,value,updated_at) VALUES ('nativeWorkPaused','true'::jsonb,now())`);
+	await dispatchColumns(ctx(), [], deps());
+	expect(calls).toEqual(["worker", "copilot"]);
+});

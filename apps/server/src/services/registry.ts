@@ -3,7 +3,6 @@ import * as actors from "./actors.ts";
 import * as agentRuns from "./agentRuns/agentRuns.ts";
 import * as agentCommunication from "./agentRuns/communication.ts";
 import * as agentLifecycle from "./agentRuns/lifecycle.ts";
-import { readNativeWork, setNativeWork } from "./agentRuns/nativeControl.ts";
 import { prepareResume } from "./agentRuns/resume.ts";
 import { prepareSetModel } from "./agentRuns/setModel/setModel.ts";
 import { stopNativeWork } from "./agentRuns/stopNativeWork.ts";
@@ -141,8 +140,6 @@ export const services = {
 	"flowExecutions.cancel": prepared("mutation", prepareFlowCancel, agentTerminal.result),
 	"flowExecutions.reconcile": prepared("mutation", prepareFlowReconcile, agentTerminal.result),
 	"system.doctor": prepared("read", diagnostics, agentTerminal.result),
-	"system.nativeWork": core("read", (_ctx, tx) => readNativeWork(tx)),
-	"system.resumeNativeWork": core("mutation", (ctx, tx) => setNativeWork(ctx, tx, { paused: false })),
 	"system.resumeRestart": prepared("mutation", prepareResumeRestart, agentTerminal.result),
 	"system.restartStatus": prepared("read", restartStatus, agentTerminal.result),
 	"system.stopNativeWork": prepared("mutation", stopNativeWork, agentTerminal.result),
