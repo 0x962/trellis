@@ -30,13 +30,45 @@ export const HealthSchema = z.object({
 });
 export type Health = z.infer<typeof HealthSchema>;
 
-const LoadPercentSchema = z.number().int().min(0).max(100);
+const PercentSchema = z.number().min(0).max(100);
 
-export const SystemLoadSchema = z.object({
-	cpuPercent: LoadPercentSchema,
-	memoryPercent: LoadPercentSchema,
+export const SystemUsageSampleSchema = z.object({
+	at: IsoDateTimeSchema,
+	cpuPercent: PercentSchema,
+	memoryPercent: PercentSchema,
 });
-export type SystemLoad = z.infer<typeof SystemLoadSchema>;
+export type SystemUsageSample = z.infer<typeof SystemUsageSampleSchema>;
+
+export const SystemProcessSchema = z.object({
+	pid: CountSchema,
+	parentPid: CountSchema,
+	user: z.string(),
+	cpuPercent: z.number().nonnegative(),
+	memoryBytes: CountSchema,
+	memoryPercent: PercentSchema,
+	elapsedSeconds: CountSchema,
+	state: z.string(),
+	command: z.string(),
+});
+export type SystemProcess = z.infer<typeof SystemProcessSchema>;
+
+export const SystemUsageSchema = z.object({
+	sampledAt: IsoDateTimeSchema,
+	hostname: z.string(),
+	platform: z.string(),
+	cpuModel: z.string(),
+	cpuCount: CountSchema,
+	cpuPercent: PercentSchema,
+	memoryPercent: PercentSchema,
+	memoryUsedBytes: CountSchema,
+	memoryTotalBytes: CountSchema,
+	loadAverage: z.tuple([z.number().nonnegative(), z.number().nonnegative(), z.number().nonnegative()]),
+	uptimeSeconds: CountSchema,
+	processCount: CountSchema,
+	history: z.array(SystemUsageSampleSchema),
+	processes: z.array(SystemProcessSchema),
+});
+export type SystemUsage = z.infer<typeof SystemUsageSchema>;
 
 export const BackupOutputSchema = z.object({
 	path: z.string().min(1),

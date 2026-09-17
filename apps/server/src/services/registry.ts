@@ -60,6 +60,7 @@ import { prepareStart as startSubmanager } from "./submanagers/prepareStart.ts";
 import { prepareRetire as retireSubmanager } from "./submanagers/retire.ts";
 import type { IoCtx, PrepareCtx } from "./support.ts";
 import * as system from "./system.ts";
+import { prepareSystemUsage } from "./systemUsage";
 import * as tickets from "./tickets.ts";
 import * as timeline from "./timeline.ts";
 import { prepareAccounts as prepareUsageAccounts } from "./usage/accounts.ts";
@@ -262,7 +263,7 @@ export const services = {
 	"loops.control": io("mutation", loops.control),
 	"loops.update": io("mutation", loops.update),
 	"system.health": io("read", system.health),
-	"system.load": prepared("read", system.prepareLoad, agentTerminal.result),
+	"system.usage": prepared("read", prepareSystemUsage, agentTerminal.result),
 	"system.snapshot": io("mutation", system.snapshot),
 	"system.export": { family: "io", kind: "read", stream: system.exportNdjson } as ServiceEntry,
 } satisfies Record<string, ServiceEntry>;

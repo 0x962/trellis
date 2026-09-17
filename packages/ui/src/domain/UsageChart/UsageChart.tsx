@@ -22,6 +22,8 @@ export type UsageChartProps = {
 	formatDay: (day: string) => string;
 	selectedDay: string | null;
 	onSelectDay: (day: string | null) => void;
+	// A percentage chart uses 100 so a small value does not fill the plot.
+	max?: number;
 	className?: string;
 };
 
@@ -53,12 +55,13 @@ export function UsageChart({
 	formatDay,
 	selectedDay,
 	onSelectDay,
+	max,
 	className,
 }: UsageChartProps) {
 	const [hoverDay, setHoverDay] = useState<string | null>(null);
 	const count = days.length;
 	const dayTotal = (index: number) => series.reduce((sum, row) => sum + (row.values[index] ?? 0), 0);
-	const top = niceMax(Math.max(0, ...days.map((_, index) => dayTotal(index))));
+	const top = max ?? niceMax(Math.max(0, ...days.map((_, index) => dayTotal(index))));
 	const captionDay = hoverDay ?? selectedDay;
 	const captionIndex = captionDay === null ? -1 : days.indexOf(captionDay);
 	const ticks = count >= 3 ? [0, Math.floor(count / 2), count - 1] : days.map((_, index) => index);
