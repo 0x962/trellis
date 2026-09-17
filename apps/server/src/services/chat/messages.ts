@@ -67,7 +67,7 @@ export const post = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 		sql`INSERT INTO chat_messages (id, project_id, channel, body, actor_name, actor_kind, created_at)
 			VALUES (${id}, ${root.id}, ${name}, ${input.body}, ${actor.name}, ${actor.kind}, ${ctx.now})`,
 	);
-	await enqueue(tx, { messageId: id, rootId: root.id, channel: name, body: input.body, actor, toManager: direct });
+	await enqueue(tx, { messageId: id, rootId: root.id, body: input.body, actor, toManager: direct });
 	ctx.emit({ type: "chat.message", id, projectId: root.id, channel: name, aiOnly, actor });
 	return messageById(tx, id);
 };
