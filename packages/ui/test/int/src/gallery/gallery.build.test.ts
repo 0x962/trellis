@@ -32,8 +32,10 @@ describe("gallery", () => {
 		expect(css).toMatch(/--bg:\s*#fff\b/i);
 		expect(css).toMatch(/--bg:\s*#070707\b/i);
 		expect(css).toContain("--color-bg");
+		// fonts.css declares the 400 face alone, so the build carries that one
+		// file and no other JetBrains Mono weight.
 		expect(css).toContain("jetbrains-mono-latin-400-normal");
-		expect(css).toContain("jetbrains-mono-latin-600-normal");
+		expect(css).not.toMatch(/jetbrains-mono-latin-(?!400)\d{3}-normal/);
 		expect(css).not.toContain("jetbrains-mono-cyrillic");
 		expect(css).not.toContain("jetbrains-mono-latin-ext");
 	}, 120_000);

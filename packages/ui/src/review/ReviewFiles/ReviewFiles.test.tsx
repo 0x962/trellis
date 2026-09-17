@@ -77,7 +77,7 @@ test("a coarse pointer scrolls by 44 px rows instead of 28 px rows", () => {
 			media: query,
 			addEventListener: () => {},
 			removeEventListener: () => {},
-		})) as typeof window.matchMedia;
+		})) as unknown as typeof window.matchMedia;
 	};
 	try {
 		coarse(false);
