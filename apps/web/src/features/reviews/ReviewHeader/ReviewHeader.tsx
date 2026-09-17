@@ -10,12 +10,11 @@ import { ReviewActions } from "../ReviewActions/ReviewActions";
 type Props = {
 	pr: string;
 	revision: ReviewRevision | null;
-	draftCount: number;
 	refreshing: boolean;
 	onRefresh: () => void;
 	onSubmit: () => void;
 };
-export function ReviewHeader({ pr, revision, draftCount, refreshing, onRefresh, onSubmit }: Props) {
+export function ReviewHeader({ pr, revision, refreshing, onRefresh, onSubmit }: Props) {
 	const ref = reviewRef(pr);
 	const meta = revision?.meta as
 		| {
@@ -50,9 +49,11 @@ export function ReviewHeader({ pr, revision, draftCount, refreshing, onRefresh, 
 						/>
 					</Tooltip>
 					{revision && <ReviewActions pr={pr} revision={revision} onDone={onRefresh} />}
-					<Tooltip content={draftCount ? `Submit review · ${draftCount} drafts` : "Submit review"}>
-						<IconButton label="Submit review" icon={<PaperPlaneTilt />} variant="primary" onClick={onSubmit} />
-					</Tooltip>
+					{revision && (
+						<Tooltip content="Review changes">
+							<IconButton label="Submit review" icon={<PaperPlaneTilt />} variant="primary" onClick={onSubmit} />
+						</Tooltip>
+					)}
 				</>
 			}
 		>

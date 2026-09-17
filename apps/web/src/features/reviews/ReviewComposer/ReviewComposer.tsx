@@ -1,28 +1,32 @@
 import { type DiffAnchor, ReviewCommentEditor } from "@trellis/ui/review";
 import { useState } from "react";
 import { ReviewMarkdown } from "../ReviewPage/ReviewMarkdown";
-export type DraftFinding = DiffAnchor & { id: string; body: string; revisionId: string | null };
+export type ReviewCommentInput = DiffAnchor & { body: string; revisionId: string | null };
 export function ReviewComposer({
 	anchor,
 	revisionId,
 	storageKey,
-	draft,
 	onSave,
 	onClose,
+	pending,
+	error,
 }: {
 	anchor: DiffAnchor;
 	revisionId: string | null;
 	storageKey: string;
-	draft?: DraftFinding;
-	onSave: (draft: DraftFinding) => void;
+	onSave: (comment: ReviewCommentInput) => void;
 	onClose: () => void;
+	pending: boolean;
+	error: string | null;
 }) {
-	const [body, setBody] = useState(() => localStorage.getItem(storageKey) ?? draft?.body ?? "");
+	const [body, setBody] = useState(() => localStorage.getItem(storageKey) ?? "");
 	return (
 		<ReviewCommentEditor
 			body={body}
 			location={anchor.startLine === anchor.line ? `Line ${anchor.line}` : `Lines ${anchor.startLine}–${anchor.line}`}
-			saveLabel={draft ? "Save comment" : "Add to review"}
+			saveLabel="Add comment"
+			pending={pending}
+			error={error}
 			renderPreview={(text) => <ReviewMarkdown body={text} />}
 			onChange={(text) => {
 				setBody(text);
@@ -30,9 +34,7 @@ export function ReviewComposer({
 			}}
 			onCancel={onClose}
 			onSave={() => {
-				onSave({ ...anchor, body, id: draft?.id ?? crypto.randomUUID(), revisionId });
-				localStorage.removeItem(storageKey);
-				onClose();
+				onSave({ ...anchor, body, revisionId });
 			}}
 		/>
 	);

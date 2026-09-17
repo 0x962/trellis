@@ -7,11 +7,9 @@
 	"sideEffects": false,
 	"exports": {
 		".": "./src/index.ts",
-		"./client": "./src/client.ts",
-		"./restart-plan": "./src/restartPlan.ts"
+		"./client": "./src/client.ts"
 	},
 	"scripts": {
-		"test:int": "bun test test/int",
 		"typecheck": "tsc --noEmit -p tsconfig.json"
 	}
 }

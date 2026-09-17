@@ -6,8 +6,6 @@
 	"license": "Apache-2.0",
 	"scripts": {
 		"build": "bun build src/index.ts --target=node --format=esm --external=node-pty --external=fs-ext --external=koffi --outfile=dist/index.js",
-		"test": "bun test --path-ignore-patterns '**/test/int/**'",
-		"test:int": "bun test test/int",
 		"typecheck": "tsc --noEmit -p tsconfig.json"
 	},
 	"dependencies": {

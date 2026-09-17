@@ -12,7 +12,7 @@ export { GroupHeader, type GroupHeaderProps, groupHeaderHeight, phoneGroupHeader
 export * from "./domain/HarnessAccountCard";
 export * from "./domain/HarnessAccountForm";
 export { InboxRow, type InboxRowProps } from "./domain/InboxRow";
-export { LocalEvidence } from "./domain/LocalEvidence";
+export { LoopStatus, type LoopStatusProps } from "./domain/LoopStatus";
 export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/PriorityIcon";
 export { type ModelProvider, ProviderIcon, type ProviderIconProps } from "./domain/ProviderIcon";
 export { type QuotaWindow, QuotaWindows, type QuotaWindowsProps, quotaFillClass } from "./domain/QuotaWindows";
@@ -36,6 +36,7 @@ export { Badge, type BadgeProps, type BadgeTone } from "./primitives/Badge";
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from "./primitives/Button";
 export { Checkbox, type CheckboxProps } from "./primitives/Checkbox";
 export { Chip, type ChipProps } from "./primitives/Chip";
+export { ChoiceGroup, type ChoiceGroupOption, type ChoiceGroupProps } from "./primitives/ChoiceGroup";
 export {
 	Command,
 	type CommandFieldProps,
@@ -73,4 +74,5 @@ export { Textarea, type TextareaProps } from "./primitives/Textarea";
 export { Toaster, type ToasterProps, toast } from "./primitives/Toast";
 export { Tooltip, type TooltipProps } from "./primitives/Tooltip";
 export { cx } from "./utils/cx";
+export { isTextEntry } from "./utils/isTextEntry";
 export { nameHue } from "./utils/nameHue";

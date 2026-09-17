@@ -50,7 +50,7 @@ export const collect = async (ctx: ControllerCtx, tx: Tx, input: ControllerInput
 		);
 		if (found.length === 0) continue;
 		const events: ControllerEvent[] = found
-			.filter((event) => (event.ticket_id !== null || projectActions.includes(event.action)) && !event.manager)
+			.filter((event) => projectActions.includes(event.action) && !event.manager)
 			.map((event) => ({
 				id: event.id,
 				ticketId: event.ticket_id,

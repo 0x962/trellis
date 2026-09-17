@@ -105,7 +105,8 @@ export const errors = {
 	},
 	CROSS_ROOT_MOVE: {
 		status: 409,
-		message: "A ticket, a parent, or a project cannot move to another root.",
+		message:
+			"A ticket, a parent, or a project cannot move to another root. Create the ticket or project again in the other root.",
 		data: z.undefined(),
 	},
 	PARENT_CYCLE: {

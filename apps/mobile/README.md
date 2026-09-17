@@ -47,8 +47,6 @@ The app keeps the URL, the name, the theme, and the query cache in
 
 | command | proves |
 |---|---|
-| `bun run test` | the bun suite, against a real server in process |
-| `bun run test:native` | the jest-expo component suite |
 | `bun run typecheck` | the types |
 | `bunx expo export --platform ios` | Metro bundles the app for iOS |
 | `bunx expo install --check` | every dependency matches the SDK |

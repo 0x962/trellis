@@ -37,8 +37,7 @@ export const stepNames = [
 
 // The name grammar of `x-trellis-actor`: printable ASCII without the colon,
 // 1 to 64 characters. It equals `actorHeaderPattern` in
-// packages/api/src/refs.ts; actor.test.ts parses every result with the api
-// schema, so the two cannot drift.
+// packages/api/src/refs.ts.
 const namePattern = /^[\x20-\x39\x3B-\x7E]{1,64}$/;
 
 export const actorGrammar =

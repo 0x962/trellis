@@ -2,19 +2,48 @@ import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig, type UserConfig } from "vite";
+import { defineConfig, type Plugin, type UserConfig } from "vite";
 import { fontPreloads } from "./scripts/fontPreloads";
 
-// Route files live beside their tests. The pattern keeps a `*.test.tsx`
-// out of the route tree, and every route becomes its own chunk.
+// Each route becomes its own chunk. Component folders do not define routes.
 export const routerPluginOptions = {
 	target: "react",
 	autoCodeSplitting: true,
-	routeFileIgnorePattern: "\\.test\\.|^components$",
+	routeFileIgnorePattern: "^components$",
 } as const;
 
-// The @trellis/ui modules the shell loads before the first route.
-const shellUi = /packages\/ui\/src\/(utils\/cx|primitives\/(Button|IconButton|Kbd))\//;
+export const phosphorSpecialWeights: Record<string, readonly string[]> = {
+	Check: ["bold"],
+	CheckCircle: ["fill"],
+	CircleDashed: ["duotone"],
+	CircleNotch: ["bold"],
+	ExclamationMark: ["bold"],
+	LockSimple: ["fill"],
+	Minus: ["bold"],
+	Play: ["fill"],
+	Robot: ["bold"],
+	Star: ["fill"],
+	Stop: ["fill"],
+};
+
+const phosphorWeightBlock = /\n  \[\n    "(bold|duotone|fill|light|regular|thin)",[\s\S]*?\n  \],?/g;
+const phosphorDefinition = /\/@phosphor-icons\/react\/dist\/defs\/([^/]+)\.es\.js(?:\?|$)/;
+
+export const stripPhosphorWeights = (code: string, id: string) => {
+	const icon = phosphorDefinition.exec(id)?.[1];
+	if (icon === undefined) return code;
+	const retained = new Set(["regular", ...(phosphorSpecialWeights[icon] ?? [])]);
+	return code.replace(phosphorWeightBlock, (block, weight: string) => (retained.has(weight) ? block : ""));
+};
+
+const phosphorWeights = (): Plugin => ({
+	name: "phosphor-weights",
+	enforce: "pre",
+	transform(code, id) {
+		const transformed = stripPhosphorWeights(code, id);
+		return transformed === code ? null : transformed;
+	},
+});
 
 // The API the dev server proxies to. The server listens on 4521.
 const defaultApiUrl = "http://127.0.0.1:4521";
@@ -24,27 +53,22 @@ const defaultApiUrl = "http://127.0.0.1:4521";
 export const createConfig = (env: Record<string, string | undefined>): UserConfig => {
 	const target = env.TRELLIS_API_URL ?? defaultApiUrl;
 	return {
-		plugins: [tanstackRouter(routerPluginOptions), react(), tailwindcss(), fontPreloads()],
+		plugins: [tanstackRouter(routerPluginOptions), react(), tailwindcss(), fontPreloads(), phosphorWeights()],
 		build: {
-			rollupOptions: {
-				output: {
-					// The shell draws a Button with a key cap and an IconButton
-					// before the first route opens, so these four modules always
-					// load together. Rollup would give each one its own chunk,
-					// because each is reachable from a different set of routes,
-					// and a chunk of a few hundred bytes costs more in its own
-					// gzip header and its own request than the code in it.
-					manualChunks: (id: string) => (shellUi.test(id) ? "ui-core" : undefined),
-				},
+			minify: "terser",
+			terserOptions: {
+				compress: { passes: 2 },
+				format: { comments: false },
 			},
 		},
 		resolve: {
+			dedupe: ["marked"],
 			// cmdk pulls a whole second overlay library for a dialog this app
 			// never renders. See src/lib/emptyRadixDialog.ts.
 			alias: { "@radix-ui/react-dialog": fileURLToPath(new URL("./src/lib/emptyRadixDialog.ts", import.meta.url)) },
 		},
 		server: {
-			// One address for the browser, the proxy, and Playwright.
+			// One address for the browser and the proxy.
 			host: "127.0.0.1",
 			port: 5173,
 			strictPort: true,

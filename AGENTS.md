@@ -5,10 +5,7 @@ trellis is a local ticket tracker for agent-driven work. `docs/ARCHITECTURE.md` 
 ## Work
 
 - Assess the risk of each change. Balance speed with the cost of an error.
-- Start each change with a failing test. A behavior change without a test does not merge.
-- Choose tests and checks that cover the changed behavior and affected code. Use broader checks when the risk warrants them.
-- Treat the full `bun run check` command as optional. Performance tests are optional for handoffs, pull requests, and merges.
-- Decide whether a browser check adds useful evidence for the change.
+- Run the linters and type checks that cover the changed code.
 - Report the checks you ran, their results, and any relevant gaps.
 - A commit message carries no session trailer. Add no trailer and no URL that points at an agent session.
 - Every pull request description states what broke, what changed, and one verification sentence. No headers, no tables, no checklists.
@@ -19,18 +16,19 @@ Create a scratch checkout or a temporary directory only under `$TMPDIR`, with th
 ## Prompts
 
 - Every instruction an agent reads lives in the database, in `personas.instruction`. Code never composes, hardcodes, or injects prompt text.
-- A change to what an agent is told is a data migration on `personas.instruction`. `docs/personas.json` is a dump of the table; refresh it with `trellis personas list --json` after a change.
-- A migration appends a titled section and skips a persona that already holds that title, so a rerun and a hand edit stay safe.
+- Edit live persona instructions directly through the personas API. Refresh `docs/personas.json` with `trellis personas list --json` after a change.
+- Each column worker completes its assigned work, records the result, and moves its ticket to the appropriate next status.
+- Trellis code starts and recovers workers. The copilot acts on human requests.
 
 ## Desktop install
 
-The Trellis SRE persona owns production releases for TRL. Route approved Deploy Queue tickets to one SRE through the project manager. Group eligible tickets into one merge, test, build, install, and restart cycle. Other workers hand off release work instead of deploying independently. Read the SRE instructions with `trellis personas show "Trellis SRE"` before a deployment assignment.
+The Trellis SRE persona owns production releases for TRL. The Deploy Queue column assigns release workers through its persona settings. Release workers coordinate directly so one SRE owns each shared release cycle. Group eligible tickets into one merge, check, build, install, and restart cycle. Read the SRE instructions with `trellis personas show "Trellis SRE"` before a deployment assignment.
 
 Production builds require a clean `main` checkout at the current `origin/main` commit. Merge each feature branch into `main` and push it before a production build. Never build a production app from a feature branch or a detached commit. This rule also applies to `--prepare` candidates. Do not bypass the production installer.
 
-Run `bun run desktop:install` from the `main` checkout. The command builds and verifies a fresh package, then copies it to `~/Applications/Trellis.app`. The copy leaves Trellis open. Restart Trellis to activate the package. A changed package stops active agents and resumes their saved sessions on the new runtime. Manually stopped agents stay stopped. See [the desktop guide](apps/desktop/README.md#production-install) for candidate builds and verification.
+Run `bun run desktop:install` from the `main` checkout. The command builds and verifies a fresh package, then copies it to `~/Applications/Trellis.app`. The copy leaves Trellis open. Restart Trellis to activate the package. Activation stops the previous runtime and starts the host. Trellis code recovers column workers and project copilots from their current settings. See [the desktop guide](apps/desktop/README.md#production-install) for candidate builds and verification.
 
-Preserve the manager conversation during prompt updates and deployment. Resume a stopped manager with `trellis agents start` and its existing persona and project. The `--new-session` flag resets the conversation and requires an explicit human reset. Keep the observed provider session ID before and after a resume to verify continuity.
+Preserve provider conversations and workspaces during prompt updates and deployment. Trellis resumes compatible conversations at the next automatic start. The `--new-session` flag resets a conversation and requires an explicit human reset.
 
 Check `df -h /System/Volumes/Data` before a production build. A build needs at least 3 GB of free space and writes its files under `$TMPDIR/trellis-production-*`. A failed build keeps that directory for inspection. Remove it after you inspect it. The installer keeps every earlier release under `~/Library/Application Support/Trellis/releases`. After a verified restart, remove each release that is neither active nor installed. On 2026-09-16, 4408 build and test directories under `$TMPDIR` and 43 old releases filled the disk, and Trellis stopped for every agent.
 
@@ -50,9 +48,8 @@ Trellis automatically trusts configured project repositories and directories req
 - Keep error handling for the system boundaries: user input, the gh binary, and the network.
 - `tx` first: every query takes `(tx, input)`, and every service takes `(ctx, tx, input)`. A function that touches the database receives `tx` and never imports a module-level `db`. Only `db/client.ts` and `db/tx.ts` hold a module-level `db`. A nested query inside a PGlite transaction deadlocks the server. Biome fails `lint` on an import of `db/client` from outside `db/`.
 - Layers import downward only. Server, web, mobile, and cli import `api`. Only web imports `ui`. Packages export TypeScript source and have no side effects.
-- One folder per module or component: `Name/Name.ts(x)`, `Name/Name.test.ts(x)`, `Name/index.ts`. If one module uses it, nest it under that module's `components/`. If two use it, move it to the highest shared parent.
+- One folder per module or component: `Name/Name.ts(x)`, `Name/index.ts`. If one module uses it, nest it under that module's `components/`. If two use it, move it to the highest shared parent.
 - One exported component or service per file. Split a file over 300 lines.
-- A unit test sits beside the code it tests. An integration test sits under `<workspace>/test/int/`, at the path it would have beside that code. Fixtures and helpers live in `test/` at the workspace root. Perf and e2e suites are directories.
 - Names: `camelCase` files for modules, `PascalCase` folders for React components, `kebab-case` for routes and CLI commands. Schema `TicketSummarySchema`, type `TicketSummary`, table `tickets`, service `tickets.ts`, procedure file `tickets.ts`, CLI command `list.ts`.
 - Tabs for indentation. Biome formats and lints. `bun run lint:fix` applies the fixes.
 
@@ -78,28 +75,6 @@ Trellis automatically trusts configured project repositories and directories req
   - reduced motion
   - empty, loading, and error states
 
-## Tests
-
-`bun run test` runs the unit tests and takes seconds. `bun run test:int` runs the integration tests and takes minutes. Run `test:int` before a pull request, and when your change touches the database, the app wiring, or the CLI.
-
-A test is an integration test when it opens a PGlite database, boots the Hono app, or spawns a process. Those cost about half a second each, every time a file asks for one. `test/testLayout.test.ts` reads every test file, follows its imports, and fails when a file of that kind sits outside `test/int/`.
-
-| kind | where | runs in |
-|---|---|---|
-| unit | beside the module, `*.test.ts` | `bun run test`, no database, no process |
-| integration | `<workspace>/test/int/`, mirroring the source path | `bun run test:int`, in-memory PGlite, the app, spawned servers |
-| contract | `apps/server/test/int/src/procedures/` | `bun run test:int`, oRPC client over `app.request` |
-| component | `packages/ui`, beside the component | `bun run test`, Testing Library, happy-dom, no server |
-| CLI smoke | `packages/cli/test/int/` | `bun run test:int`, spawned server on a random port |
-| perf | `apps/server/test/perf/`, `apps/web/scripts/size-budget.ts` | optional `perf:10k` at 10k rows, `perf` at 50k rows |
-| e2e | `apps/web/e2e/` | Playwright with a temp `TRELLIS_HOME` |
-
-`apps/web` holds no component test. A page that renders is covered by the Playwright specs in `apps/web/e2e`, which drive a real browser against a real server. A component on its own is covered in `packages/ui`, which mounts it with no server and no database. `apps/web/test/server` builds the real Hono app of `apps/server` over an in-memory PGlite for the few tests that need it.
-
-An integration test that reads a file by path calls `originDir(import.meta.dir)` from `test/originDir.ts`, because its own directory sits under `test/int/` and holds no source. Every service test ends with `assertStatusInvariant(tx)`. `test/preload.ts` gives a test run a fresh `TRELLIS_HOME`, so a test never touches `~/.trellis`. Bun reads `bunfig.toml` from the current directory only. So every workspace has a `bunfig.toml` with `[test]` and `preload = ["../../test/preload.ts"]`. A root test checks this for every directory under `apps/` and `packages/` that has a `package.json`.
-
-A test creates every temporary directory under the run root from `test/runRoot.ts`, so `sweepDeadRoots` removes it when the owner process is gone. A test that creates a directory elsewhere removes it in `afterAll`. A test that spawns a server or a tmux session stops it in `afterAll`. On 2026-09-16, 7274 abandoned `trellis-*` directories and 50 tmux sessions from test runs held more than 100 GB.
-
 ## Review
 
-Read the full diff before you open a pull request. Remove every change that is not part of the work. Try to refute your own change first. State each finding with a file, a line, a claim, and evidence. Turn a missing case into a failing test before you fix it.
+Read the full diff before you open a pull request. Remove every change that is not part of the work. Try to refute your own change first. State each finding with a file, a line, a claim, and evidence.

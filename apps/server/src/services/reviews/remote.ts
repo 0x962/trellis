@@ -1,10 +1,12 @@
+import type { ReviewSubmit } from "@trellis/api";
 import type { Tx } from "../../db/tx";
 import { invalidInput } from "../../errors";
-import type { PrepareCtx, ServiceCtx } from "../support";
+import { fetchPullRequests, type PullRequestRow } from "../../gh/graphql";
+import { recordAction } from "../pullRequestAction";
+import { fail, type PrepareCtx, type ServiceCtx } from "../support";
 import { parseRef } from "./queries";
 import { gh } from "./revision";
 export const actionNames = [
-	"approve",
 	"merge",
 	"admin-merge",
 	"automerge",
@@ -25,6 +27,25 @@ export const actionNames = [
 	"live-unpersist",
 ] as const;
 export type Action = (typeof actionNames)[number];
+type PreparedAction = { action: Action | ReviewSubmit["verdict"]; row: PullRequestRow };
+
+const current = async (ctx: PrepareCtx, pr: string, action: PreparedAction["action"]): Promise<PreparedAction> => {
+	const ref = parseRef(pr);
+	const result = await fetchPullRequests(ctx.gh, [ref], "interactive");
+	if (!result.ok) {
+		const error = fail("GH_UNAVAILABLE", { reason: result.reason });
+		error.message = result.message;
+		throw error;
+	}
+	const first = result.results[0]!;
+	if (!("row" in first)) {
+		const error = fail("GH_UNAVAILABLE", { reason: "error" });
+		error.message = first.error;
+		throw error;
+	}
+	return { action, row: first.row };
+};
+
 export async function action(ctx: PrepareCtx, input: { pr: string; action: Action; headSha: string }) {
 	const ref = parseRef(input.pr);
 	const meta = JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", "id,headRefOid,state,headRefName"])) as {
@@ -54,7 +75,6 @@ export async function action(ctx: PrepareCtx, input: { pr: string; action: Actio
 		]);
 	} else {
 		const args: Record<Exclude<Action, "queue" | "dequeue">, string[]> = {
-			approve: ["review", "--approve"],
 			merge: ["merge", "--squash", "--match-head-commit", input.headSha],
 			"admin-merge": ["merge", "--squash", "--admin", "--match-head-commit", input.headSha],
 			automerge: ["merge", "--squash", "--auto", "--match-head-commit", input.headSha],
@@ -75,8 +95,26 @@ export async function action(ctx: PrepareCtx, input: { pr: string; action: Actio
 		const [verb, ...flags] = args[a];
 		await gh(ctx, ["pr", verb!, ref.url, ...flags]);
 	}
-	return { ok: true as const };
+	return current(ctx, input.pr, input.action);
 }
+
+export async function submit(ctx: PrepareCtx, input: ReviewSubmit) {
+	const ref = parseRef(input.pr);
+	const meta = JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", "headRefOid"])) as {
+		headRefOid: string;
+	};
+	if (meta.headRefOid !== input.headSha)
+		throw invalidInput("headSha", "The PR head changed. Refresh before this review.");
+	const flag = {
+		comment: "--comment",
+		approve: "--approve",
+		request_changes: "--request-changes",
+	}[input.verdict];
+	await gh(ctx, ["pr", "review", ref.url, flag, "--body", input.body]);
+	return current(ctx, input.pr, input.verdict);
+}
+
+export const actionResult = (ctx: ServiceCtx, tx: Tx, input: PreparedAction) => recordAction(ctx, tx, input);
 export async function mine(ctx: PrepareCtx) {
 	const raw = await gh(ctx, [
 		"search",

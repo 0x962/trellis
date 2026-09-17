@@ -12,7 +12,7 @@ Inside Claude Code, every command runs as \`agent:claude-code\`. Elsewhere, set 
 5. Split work:       trellis sub ${key}-42 -t "Write tests"
 6. Ask a question:   trellis comment ${key}-42 --body "..." and then wait for the reply: trellis watch --ticket ${key}-42
 7. Finish coding:    trellis move ${key}-42 agent-review
-8. When CI is green and the self-review is done: trellis move ${key}-42 human-review
+8. When the agent review passes: trellis move ${key}-42 human-review
 Never delete tickets.
 
 Read a comment thread: trellis thread show <comment-id>
@@ -36,8 +36,7 @@ PR review comments live in Trellis. Read them before work: trellis review list <
 Post a finding: trellis review add <pr-url> --path <file> --line <n> --body "..."
 Reply: trellis review reply <thread-id> --body "..."
 Resolve an addressed finding: trellis review resolve <thread-id>
-Submit and notify selected agents: trellis review submit <pr-url> --threads <ids> --notify <agent-run-ids>
-Use --no-notify when no agent needs a notification. Read unread reviews: trellis review inbox
+Submit a GitHub review: trellis review submit <pr-url> --verdict <comment|approve|request_changes> --body "..."
 Never post review findings as GitHub comments.
 
 Without the CLI, use the HTTP API. It has the same actions. This call creates a ticket:

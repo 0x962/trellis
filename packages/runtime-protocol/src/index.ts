@@ -76,6 +76,7 @@ export interface RuntimeProcessMetadata {
 	executable: string;
 }
 export interface RuntimeListInput {
+	ids?: string[];
 	status?: SessionStatus;
 	activity?: "ready" | "working" | "idle";
 	hasError?: boolean;

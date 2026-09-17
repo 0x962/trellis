@@ -82,10 +82,23 @@ export class HarnessHost {
 		matches: (session: RuntimeProcessStatus) => boolean,
 		options: { rejectAgentError?: boolean } = {},
 	): Promise<RuntimeProcessStatus> {
-		const signal = AbortSignal.timeout(this.options.observationTimeoutMs ?? 15000);
+		const timeoutMs = this.options.observationTimeoutMs ?? 15000;
+		const controller = new AbortController();
+		const signal = controller.signal;
+		let lastProgressAt = Date.now();
+		let timer = setTimeout(() => controller.abort(), timeoutMs);
 		try {
 			for await (const event of this.options.runtime.subscribeSession(id, signal)) {
 				if (event.type !== "session") continue;
+				const progressAt = Math.max(
+					event.session.agent?.lastTool ? Date.parse(event.session.agent.lastTool.updatedAt) : 0,
+					event.session.agent?.lastMessage ? Date.parse(event.session.agent.lastMessage.at) : 0,
+				);
+				if (progressAt > lastProgressAt) {
+					lastProgressAt = progressAt;
+					clearTimeout(timer);
+					timer = setTimeout(() => controller.abort(), timeoutMs);
+				}
 				if (matches(event.session)) return event.session;
 				if (
 					event.session.status === "exited" ||
@@ -100,10 +113,12 @@ export class HarnessHost {
 			if (!signal.aborted) throw error;
 			throw Object.assign(
 				new Error(
-					`Harness attempt ${id} did not report the requested provider observation within ${this.options.observationTimeoutMs ?? 15000} ms. Open its terminal: the program may wait on a login or a first-run question. Stop the attempt before you send again.`,
+					`Harness attempt ${id} made no observed progress for ${timeoutMs} ms while waiting for provider confirmation. Inspect its terminal and provider events. Stop the attempt before you send again.`,
 				),
 				{ code: "HARNESS_OBSERVATION_TIMEOUT" },
 			);
+		} finally {
+			clearTimeout(timer);
 		}
 		throw new Error(`Harness attempt ${id} closed before the requested provider observation`);
 	}
@@ -173,9 +188,11 @@ export class HarnessHost {
 			);
 		return this.status(id);
 	}
-	async interrupt(id: string) {
+	async interrupt(id: string, { waitForIdle = true } = {}) {
 		const descriptor = await this.descriptor(id);
-		const result = await interruptHarness(this.options, descriptor, await this.status(id));
+		const before = await this.status(id);
+		const result = await interruptHarness(this.options, descriptor, before, waitForIdle);
+		if (!waitForIdle) return before;
 		return (
 			result ?? this.waitFor(id, (state) => state.activity?.state === "idle" && state.agent?.outcome === "interrupted")
 		);

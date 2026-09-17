@@ -8,9 +8,11 @@ import { rows } from "../../db/queries/support.ts";
 import { stopNative } from "../agentRuns/nativeLifecycle.ts";
 import { startNative } from "../agentRuns/nativeStart.ts";
 import { managerRowOf, reserve } from "../agentRuns/reserve.ts";
+import { loopRuntimes } from "../loops/runtime.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { managerConfigOf } from "../projectRows.ts";
 import type { IoCtx } from "../support.ts";
+import { reportLaunch } from "./reportLaunch.ts";
 import { workerAction } from "./workerAction.ts";
 
 const defaults = {
@@ -32,7 +34,7 @@ export async function reconcileCopilot(
 	if (previous?.terminalId && !session)
 		session = (await deps.list(ctx.home)).find((item) => item.id === previous.terminalId);
 	if (session?.status === "unknown") throw new Error(`Cannot confirm process ownership for ${previous!.id}`);
-	if (session && workerAction(session) !== "restart") return;
+	if (session && workerAction(session, ctx.now(), { allowIdle: true }) !== "restart") return;
 	if (previous && session?.status === "running") await deps.stop(ctx, previous);
 	const config = await ctx.newTx(async (tx) => {
 		const base = await projectLaunchConfig(tx, { projectId });
@@ -90,6 +92,8 @@ export async function reconcileCopilot(
 		);
 	});
 	if (!claim || claim.replay) return;
+	loopRuntimes.get(ctx.home)?.record(`${resume ? "Resume" : "Start"} copilot for ${claim.run.projectPath}.`);
 	await deps.start(ctx, { ...claim, resume });
+	await ctx.newTx((tx) => reportLaunch(ctx, tx, { id: claim.run.id }));
 	ctx.emit({ type: "agent-runs.changed", id: claim.run.id });
 }

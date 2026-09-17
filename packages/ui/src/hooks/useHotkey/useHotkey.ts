@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { isTextEntry } from "../../utils/isTextEntry";
 
 // A hotkey is a key name with "mod+", "alt+", and "shift+" before it as
 // needed: "p", "shift+p", "mod+k", "alt+a", "mod+shift+enter". `mod` is
@@ -9,13 +10,6 @@ export type Hotkey = string;
 export type HotkeyOptions = {
 	allowInInput?: boolean;
 };
-
-const editable = (target: EventTarget | null) =>
-	target instanceof HTMLElement &&
-	(target.isContentEditable ||
-		target.tagName === "INPUT" ||
-		target.tagName === "TEXTAREA" ||
-		target.tagName === "SELECT");
 
 // A single Latin letter, in either case.
 const latin = (value: string) => /^[a-z]$/i.test(value);
@@ -54,7 +48,7 @@ export function useHotkey(hotkey: Hotkey, handler: (event: KeyboardEvent) => voi
 			if (alt && !event.altKey) return;
 			if (!alt && !punctuation && event.altKey) return;
 			if (!punctuation && event.shiftKey !== shift) return;
-			if (!mod && !options.allowInInput && editable(event.target)) return;
+			if (!mod && !options.allowInInput && isTextEntry(event.target)) return;
 			handler(event);
 		};
 		document.addEventListener("keydown", onKeyDown, { capture: true });

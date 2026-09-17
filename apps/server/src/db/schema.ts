@@ -274,7 +274,6 @@ export * from "./tables/builderStartRequests.ts";
 export * from "./tables/chat.ts";
 export * from "./tables/columnWorkers.ts";
 export * from "./tables/commentDeliveries.ts";
-export * from "./tables/evidence.ts";
 export * from "./tables/flowExecutions.ts";
 export * from "./tables/flowExecutionTasks.ts";
 export * from "./tables/harnessAccounts.ts";
