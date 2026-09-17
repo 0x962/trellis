@@ -1,6 +1,5 @@
 export { DesktopChrome } from "./desktop/DesktopChrome/index.ts";
 export { ActorChip, type ActorChipProps } from "./domain/ActorChip";
-export { CheckResults } from "./domain/CheckResults";
 export { type Check, type CheckBucket, CheckRibbon, type CheckRibbonProps } from "./domain/CheckRibbon";
 export { type ChartTone, otherTone, rankedTones } from "./domain/chartTones";
 export { DisplayPopover, type DisplayPopoverProps, type DisplaySortField } from "./domain/DisplayPopover";

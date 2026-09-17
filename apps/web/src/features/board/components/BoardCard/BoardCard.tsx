@@ -72,7 +72,7 @@ export function BoardCard({
 			onFocus={onFocus}
 			onKeyDown={onKeyDown}
 			className={cx(
-				"relative flex min-h-19 shrink-0 cursor-grab flex-col gap-1.5 rounded-md border bg-surface p-3 text-base shadow-none transition-[box-shadow,border-color] duration-hover ease-out hover:shadow-sm active:cursor-grabbing",
+				"relative flex min-h-19 shrink-0 cursor-grab flex-col gap-1.5 rounded-md border-x border-b bg-surface p-3 text-base shadow-none transition-[box-shadow,border-color] duration-hover ease-out hover:shadow-kanban-hover active:cursor-grabbing",
 				"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset",
 				dragging ? "border-dashed border-border-strong opacity-40" : "border-border",
 			)}
