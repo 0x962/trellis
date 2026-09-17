@@ -6,7 +6,6 @@ import { ProjectDetailsForm } from "../ProjectDetailsForm";
 import { ProjectLifecycle } from "../ProjectLifecycle";
 import { RepoSettings } from "../RepoSettings";
 import { StatusSettings } from "../StatusSettings";
-import { SubprojectSettings } from "../SubprojectSettings";
 import { TicketTemplateSettings } from "../TicketTemplateSettings";
 
 export type ProjectSettingsProps = { project: Project };
@@ -18,7 +17,6 @@ const sections = [
 	{ id: "repositories", label: "Repositories", component: RepoSettings },
 	{ id: "manager", label: "Copilot", component: null },
 	{ id: "harness", label: "Harness", component: null },
-	{ id: "subprojects", label: "Subprojects", component: SubprojectSettings },
 	{ id: "archive", label: "Danger Zone", component: ProjectLifecycle },
 ];
 

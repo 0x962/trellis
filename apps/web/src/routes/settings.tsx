@@ -3,32 +3,17 @@ import type { ReactNode } from "react";
 import { ActorNameField } from "../features/settings/ActorNameField";
 import { ChatSoundField } from "../features/settings/ChatSoundField";
 import { DesktopSettings } from "../features/settings/DesktopSettings";
-import { Diagnostics } from "../features/settings/Diagnostics";
-import { DraftTransfer } from "../features/settings/DraftTransfer";
-import { GhBanner } from "../features/settings/GhBanner";
-import { PairPhone } from "../features/settings/PairPhone";
 import { ThemeField } from "../features/settings/ThemeField";
 import { PageTitle } from "../features/shell/PageTitle";
 import { Topbar } from "../features/shell/Topbar";
 import { readActor, useActor } from "../lib/actor";
 import { canOpenDesktopSettingsBeforeSetup, type DesktopBridge, desktopSettingsBridge } from "../lib/desktopBridge";
 
-// Who you are, how the app looks, whether gh is available, and how a phone
-// reaches the server. Inside the macOS app, the Desktop section also holds
-// the data directory, the background service, the update status, and the
-// local work actions.
-// Each setting here holds for the whole machine. A setting that belongs to one
-// project, such as its manager persona, its Superset host, and its agent
-// switch, lives on that project's Manager page.
 export const Route = createFileRoute("/settings")({
 	loader: ({ context, location }) => {
 		const desktop = (window as Window & { trellisDesktop?: Partial<DesktopBridge> }).trellisDesktop;
 		if (readActor() === null && canOpenDesktopSettingsBeforeSetup(desktop, location.pathname, location.hash)) return;
-		return Promise.all([
-			context.queryClient.ensureQueryData(context.orpc.settings.get.queryOptions({})),
-			context.queryClient.ensureQueryData(context.orpc.system.gh.queryOptions({})),
-			context.queryClient.ensureQueryData(context.orpc.system.health.queryOptions({})),
-		]);
+		return context.queryClient.ensureQueryData(context.orpc.settings.get.queryOptions({}));
 	},
 	component: SettingsPage,
 });
@@ -42,12 +27,6 @@ type SettingsSection = {
 
 const sections: SettingsSection[] = [
 	{
-		id: "diagnostics",
-		title: "Diagnostics",
-		hint: "Inspect the local execution service, manager queue, and unresolved attempts.",
-		rows: <Diagnostics />,
-	},
-	{
 		id: "account",
 		title: "Account",
 		hint: "Set your name, choose how trellis looks, and choose whether chat makes a sound.",
@@ -56,23 +35,6 @@ const sections: SettingsSection[] = [
 				<ActorNameField />
 				<ThemeField />
 				<ChatSoundField />
-			</>
-		),
-	},
-	{
-		id: "drafts",
-		title: "Drafts",
-		hint: "Move unsaved edits between this browser and the desktop app.",
-		rows: <DraftTransfer />,
-	},
-	{
-		id: "integrations",
-		title: "Integrations",
-		hint: "Connect trellis to GitHub and the mobile app.",
-		rows: (
-			<>
-				<GhBanner />
-				<PairPhone />
 			</>
 		),
 	},

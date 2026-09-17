@@ -35,8 +35,8 @@ const styles = StyleSheet.create({
 });
 
 // Where the server is and who the person is. The URL comes from the field,
-// from a scan of the QR code on the web settings page, or from the pair link
-// as the `url` parameter. A scan and a pair link fill the field and probe it.
+// a QR code that contains a server URL, or the pair link's `url` parameter.
+// A scan and a pair link fill the field and probe it.
 // Save needs a probe that succeeded for the URL in the field and a name the
 // actor header grammar takes. After Save the screen returns to where it was
 // opened from, or to the first tab on a fresh install.
@@ -143,7 +143,7 @@ export default function SetupScreen() {
 				keyboardType="url"
 				autoCapitalize="none"
 				autoCorrect={false}
-				note="Scan the code under Pair a phone in the web settings, or type the address the server prints at start."
+				note="Scan a QR code that contains the server address, or type the address that the server prints at start."
 			/>
 			{scanning ? (
 				<QrScanner onScan={scanned} onCancel={() => setScanning(false)} />

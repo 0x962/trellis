@@ -2,6 +2,7 @@ import { ActorChip } from "../../../domain/ActorChip";
 import { type Check, CheckRibbon } from "../../../domain/CheckRibbon";
 import { type Priority, PriorityIcon } from "../../../domain/PriorityIcon";
 import { StatusIcon } from "../../../domain/StatusIcon";
+import { TicketGlimmer } from "../../../domain/TicketGlimmer";
 import { TicketId } from "../../../domain/TicketId";
 import { TrellisMark } from "../../../domain/TrellisMark";
 import { Section } from "../Section";
@@ -97,6 +98,18 @@ export function DomainSections() {
 			<Section name="TicketId" note="md in a row; sm on a card">
 				<TicketId id="CDE-43" />
 				<TicketId id="TRL-9" size="sm" />
+			</Section>
+			<Section name="TicketGlimmer" note="active work; moving soap-film layers">
+				<div className="relative min-h-19 w-72 rounded-md border border-border bg-surface p-3 text-sm">
+					<TicketGlimmer active />
+					<span>TRL-132</span>
+					<p className="mt-1.5 text-fg-muted">Agent work with an oil-film glimmer</p>
+				</div>
+				<div className="relative min-h-19 w-72 rounded-md border border-border bg-surface p-3 text-sm">
+					<TicketGlimmer active />
+					<span>TRL-86</span>
+					<p className="mt-1.5 text-fg-muted">Each active card has a different pattern</p>
+				</div>
 			</Section>
 			<Section name="TrellisMark" note="16 px in the sidebar; 32 px on the setup card; the favicon drawing">
 				<TrellisMark />
