@@ -7,22 +7,86 @@
 }
 .ticket-glimmer-film {
 	position: absolute;
-	inset: 0;
-	opacity: 0.12;
-	transform: translateX(-110%);
-	background: linear-gradient(
-		110deg,
-		transparent 15%,
-		var(--film-pink) 32%,
-		var(--film-violet) 42%,
-		var(--film-blue) 50%,
-		var(--film-mint) 58%,
-		var(--film-gold) 68%,
-		transparent 85%
-	);
+	transform: translate3d(0, 0, 0);
+	transform-origin: center;
 }
-@media (prefers-reduced-motion: reduce) {
-	.ticket-glimmer-film {
-		display: none;
-	}
+.ticket-glimmer-film[data-layer="wash"] {
+	inset: -55%;
+	opacity: 0.11;
+	background:
+		radial-gradient(
+			ellipse 34% 42% at 18% 24%,
+			transparent 35%,
+			var(--film-pink) 46%,
+			var(--film-violet) 54%,
+			transparent 67%
+		),
+		radial-gradient(
+			ellipse 38% 28% at 78% 30%,
+			transparent 31%,
+			var(--film-gold) 44%,
+			var(--film-mint) 54%,
+			transparent 68%
+		),
+		radial-gradient(
+			ellipse 42% 36% at 57% 79%,
+			transparent 36%,
+			var(--film-blue) 48%,
+			var(--film-pink) 58%,
+			transparent 70%
+		),
+		conic-gradient(
+			from 212deg at 52% 48%,
+			transparent 0 12%,
+			var(--film-violet) 20%,
+			transparent 31% 48%,
+			var(--film-mint) 57%,
+			transparent 68% 83%,
+			var(--film-gold) 91%,
+			transparent
+		);
+	filter: blur(9px) saturate(1.35);
+}
+.ticket-glimmer-film[data-layer="bubble"] {
+	inset: -72% -42%;
+	opacity: 0.16;
+	border-radius: 43% 57% 68% 32% / 61% 36% 64% 39%;
+	background: radial-gradient(
+		ellipse 54% 42% at 48% 51%,
+		transparent 0 38%,
+		var(--film-pink) 44%,
+		var(--film-violet) 49%,
+		var(--film-blue) 55%,
+		var(--film-mint) 61%,
+		var(--film-gold) 66%,
+		transparent 73%
+	);
+	filter: blur(5px) saturate(1.45);
+}
+.ticket-glimmer-film[data-layer="ripple"] {
+	inset: -48%;
+	opacity: 0.13;
+	background:
+		radial-gradient(
+			ellipse 27% 44% at 28% 51%,
+			transparent 27%,
+			var(--film-mint) 39%,
+			var(--film-blue) 48%,
+			transparent 62%
+		),
+		radial-gradient(
+			ellipse 24% 36% at 70% 28%,
+			transparent 29%,
+			var(--film-gold) 41%,
+			var(--film-pink) 52%,
+			transparent 64%
+		),
+		radial-gradient(
+			ellipse 31% 24% at 68% 76%,
+			transparent 30%,
+			var(--film-violet) 43%,
+			var(--film-blue) 53%,
+			transparent 66%
+		);
+	filter: blur(7px) saturate(1.4);
 }
