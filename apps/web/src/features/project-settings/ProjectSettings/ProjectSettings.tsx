@@ -1,6 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import type { Project } from "@trellis/api";
 import { projectSlashPath } from "../../../lib/projectPath";
+import { LabelSettings } from "../LabelSettings";
 import { useProjectManagerConfig } from "../hooks/useProjectManagerConfig";
 import { ManagerSettings } from "../ManagerSettings";
 import { ProjectGeneralSettings } from "../ProjectGeneralSettings";
@@ -21,6 +22,7 @@ function ProjectSettingsContent({ project }: ProjectSettingsProps) {
 		{ id: "", label: "General", content: <ProjectGeneralSettings project={project} manager={manager} /> },
 		{ id: "template", label: "Ticket template", content: <TicketTemplateSettings project={project} /> },
 		{ id: "statuses", label: "Statuses", content: <StatusSettings project={project} /> },
+		{ id: "labels", label: "Labels", content: <LabelSettings project={project} /> },
 		{ id: "manager", label: "Copilot", content: null },
 		{ id: "harness", label: "Harness", content: null },
 		{ id: "archive", label: "Danger Zone", content: <ProjectLifecycle project={project} /> },

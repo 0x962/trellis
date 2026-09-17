@@ -7,6 +7,7 @@ import type { BoardColumnModel } from "../../types";
 import { BoardCard } from "../BoardCard";
 import { DragIndicator } from "../DragIndicator";
 import { WipBadge } from "../WipBadge";
+import { ColumnAgentBadge } from "./components/ColumnAgentBadge";
 
 export type BoardColumnProps = {
 	column: BoardColumnModel;
@@ -87,6 +88,7 @@ export function BoardColumn({
 	const dropIndex = over === null ? null : workingGroupInsertIndex(visible, over.ticketId, workingTicketIds);
 	const exceeded = column.wipLimit !== null && column.count > column.wipLimit;
 	const reviewer = column.statuses[0]?.reviewer ?? undefined;
+	const agentConfig = singleStatus?.agentConfig ?? null;
 
 	if (collapsed) {
 		return (
@@ -104,6 +106,7 @@ export function BoardColumn({
 				<li role="none" className="contents">
 					<IconButton label={`Expand ${column.name}`} icon={<CaretRight />} size="xs" onClick={onToggle} />
 					<StatusIcon category={column.category} reviewer={reviewer} />
+					{agentConfig && <ColumnAgentBadge columnName={column.name} config={agentConfig} />}
 					<span className="mt-2 [writing-mode:vertical-rl] text-sm font-medium text-fg-muted">
 						{column.name} <span className="tabular">{count}</span>
 					</span>
@@ -128,7 +131,8 @@ export function BoardColumn({
 				)}
 			>
 				<StatusIcon category={column.category} reviewer={reviewer} />
-				<h2 className="truncate text-base font-medium">{column.name}</h2>
+				<h2 className="min-w-0 truncate text-base font-medium">{column.name}</h2>
+				{agentConfig && <ColumnAgentBadge columnName={column.name} config={agentConfig} />}
 				<span className="text-sm text-fg-faint tabular">{count}</span>
 				{limitDraft !== null ? (
 					<Input
