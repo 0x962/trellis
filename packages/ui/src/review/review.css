@@ -64,11 +64,6 @@
 	font-size: 12px;
 	font-variant-numeric: tabular-nums;
 }
-.review-draft-count {
-	color: var(--accent);
-	font-weight: 500;
-	font-variant-numeric: tabular-nums;
-}
 .review-tabs-layout > [role="tablist"] {
 	flex-shrink: 0;
 	align-items: end;

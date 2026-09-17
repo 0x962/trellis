@@ -11,6 +11,8 @@ type Props = {
 	renderPreview: (body: string) => ReactNode;
 	saveLabel?: string;
 	location?: string;
+	pending?: boolean;
+	error?: string | null;
 };
 export function ReviewCommentEditor({
 	body,
@@ -20,6 +22,8 @@ export function ReviewCommentEditor({
 	renderPreview,
 	saveLabel = "Add to review",
 	location,
+	pending = false,
+	error = null,
 }: Props) {
 	const [tab, setTab] = useState("write");
 	return (
@@ -69,12 +73,16 @@ export function ReviewCommentEditor({
 				]}
 			/>
 			<div className="review-editor-footer">
-				<p className="review-meta">Reviews stay local in Trellis.</p>
+				{error && (
+					<p className="review-error" role="alert">
+						{error}
+					</p>
+				)}
 				<div className="review-form-actions">
-					<Button type="button" onClick={onCancel}>
+					<Button type="button" disabled={pending} onClick={onCancel}>
 						Cancel
 					</Button>
-					<Button type="submit" variant="primary" disabled={!body.trim()}>
+					<Button type="submit" variant="primary" processing={pending} disabled={!body.trim()}>
 						{saveLabel}
 					</Button>
 				</div>

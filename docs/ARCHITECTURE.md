@@ -288,19 +288,14 @@ A second head/base read detects a PR change during a diff fetch.
 `review_threads` holds one JSON document per root thread. The document contains
 its anchor, author, session, replies, reactions, and resolution state.
 Message edits require the expected version. The database serializes writes.
-`review_submissions` holds fixed copies of selected findings and a local verdict.
-A request identifier makes repeated submissions idempotent for one actor and PR.
-
-`review_deliveries` records one notification per submission and recipient run.
-The submission transaction creates the deliveries. A background task claims
-pending records and calls the saved agent transport outside the transaction.
-Failed sends remain unread. An interrupted send becomes unknown at startup
-and requires an explicit resend. Agent acknowledgement sets `read_at`.
+Review comments remain local. The review form submits its comment, approval, or
+change request to GitHub. The same request refreshes the stored pull request and
+writes activity for every linked ticket.
 
 `review_imports` maps Margin identifiers to canonical message identifiers and
 stores each source hash. A repeated import skips unchanged roots and reports
 changed roots as conflicts. Imported anchors retain an unknown revision.
-Backups and NDJSON exports include all five review tables.
+Backups and NDJSON exports include the review tables.
 
 The web route `/reviews/$owner/$repo/$number` uses the Trellis shell.
 `@trellis/ui/review` wraps `@pierre/diffs` 1.4.2 with virtual scroll, workers,

@@ -16,6 +16,33 @@ const prShort = (url: string) => {
 
 const metaText = (item: Activity, key: string) => String(item.meta[key] ?? "");
 
+const reviewWords: Record<string, string> = {
+	comment: "commented on",
+	approve: "approved",
+	request_changes: "requested changes on",
+};
+
+const prActionWords: Record<string, (pr: string) => string> = {
+	merge: (pr) => `merged PR ${pr}`,
+	"admin-merge": (pr) => `merged PR ${pr}`,
+	automerge: (pr) => `enabled auto-merge for PR ${pr}`,
+	"disable-automerge": (pr) => `disabled auto-merge for PR ${pr}`,
+	queue: (pr) => `added PR ${pr} to the merge queue`,
+	dequeue: (pr) => `removed PR ${pr} from the merge queue`,
+	close: (pr) => `closed PR ${pr}`,
+	ready: (pr) => `marked PR ${pr} ready for review`,
+	"update-branch": (pr) => `updated the branch for PR ${pr}`,
+	"deploy-on": (pr) => `enabled deploy on merge for PR ${pr}`,
+	"deploy-off": (pr) => `disabled deploy on merge for PR ${pr}`,
+	"live-create": (pr) => `requested a Live Branch for PR ${pr}`,
+	"live-deploy": (pr) => `requested a Live Branch deploy for PR ${pr}`,
+	"live-delete": (pr) => `requested Live Branch removal for PR ${pr}`,
+	"live-enable": (pr) => `enabled Live Branch on push for PR ${pr}`,
+	"live-disable": (pr) => `disabled Live Branch on push for PR ${pr}`,
+	"live-persist": (pr) => `kept the Live Branch after merge for PR ${pr}`,
+	"live-unpersist": (pr) => `removed Live Branch persistence for PR ${pr}`,
+};
+
 // A comment, an attachment, and a pull request row carry no field. The
 // action names what happened, and `meta` holds the URL, the file name, or
 // the two states. The map keys are the action names the server writes.
@@ -23,6 +50,12 @@ const byAction: Record<string, (item: Activity) => string> = {
 	[activityActions.created]: () => "created the ticket",
 	"pr.linked": (item) => `linked PR ${prShort(metaText(item, "url"))}`,
 	"pr.unlinked": (item) => `unlinked PR ${prShort(metaText(item, "url"))}`,
+	"pr.reviewed": (item) =>
+		`${reviewWords[metaText(item, "action")] ?? "reviewed"} PR ${prShort(metaText(item, "url"))}`,
+	"pr.actioned": (item) => {
+		const pr = prShort(metaText(item, "url"));
+		return (prActionWords[metaText(item, "action")] ?? ((value) => `updated PR ${value}`))(pr);
+	},
 	"pr.state_changed": (item) => `PR ${metaText(item, "from")} → ${metaText(item, "to")}`,
 	"attachment.created": (item) => `attached ${metaText(item, "filename")}`,
 	"attachment.deleted": (item) => `removed ${metaText(item, "filename")}`,

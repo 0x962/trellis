@@ -4,7 +4,7 @@ import { signIn } from "./support";
 
 test.beforeAll(() => ensureProject("RVW", "Local reviews"));
 
-test("reviews > a local draft becomes a persistent thread and keeps replies", async ({ page }) => {
+test("reviews > a local comment persists and the review form matches GitHub", async ({ page }) => {
 	const errors: string[] = [];
 	page.on("pageerror", (error) => errors.push(error.message));
 	await signIn(page, "/reviews/acme/web/7");
@@ -15,13 +15,20 @@ test("reviews > a local draft becomes a persistent thread and keeps replies", as
 	const composer = page.getByRole("form", { name: "Add review comment" });
 	await expect(page.getByRole("dialog")).toHaveCount(0);
 	await composer.getByRole("textbox", { name: "Comment", exact: true }).fill("Keep the value within the transaction.");
-	await composer.getByRole("button", { name: "Add to review" }).click();
-	await expect(page.getByRole("article", { name: "Draft comment" })).toContainText("Keep the value");
+	await composer.getByRole("button", { name: "Add comment" }).click();
+	await expect(page.getByRole("article", { name: "Thread by dana" }).last()).toContainText("Keep the value");
+	await page.reload();
+	await expect(page.getByRole("article", { name: "Thread by dana" }).last()).toContainText("Keep the value");
 	await page.getByRole("button", { name: "Submit review", exact: true }).click();
-	const submit = page.getByRole("dialog", { name: "Submit local review" });
-	await submit.getByRole("checkbox", { name: "Submit without a notification" }).check();
-	await submit.getByRole("button", { name: "Submit review", exact: true }).click();
-	await expect(page.getByRole("tab", { name: "Changes", exact: true })).toHaveAttribute("aria-selected", "true");
+	const submit = page.getByRole("dialog", { name: "Review changes" });
+	await expect(submit.getByRole("radio", { name: /^Comment/ })).toBeChecked();
+	await expect(submit.getByRole("radio", { name: /^Approve/ })).toBeVisible();
+	await expect(submit.getByRole("radio", { name: /^Request changes/ })).toBeVisible();
+	await expect(submit.getByText("Notify agents")).toHaveCount(0);
+	await submit.getByRole("radio", { name: /^Approve/ }).check();
+	await submit.getByRole("textbox", { name: "Review summary" }).fill("The change is ready.");
+	await submit.getByRole("button", { name: "Submit review" }).click();
+	await expect(submit).toHaveCount(0);
 	const thread = page.getByRole("article", { name: "Thread by dana" }).last();
 	await thread.getByRole("textbox", { name: "Reply" }).fill("Fixed and verified.");
 	await thread.getByRole("button", { name: "Post reply" }).click();
