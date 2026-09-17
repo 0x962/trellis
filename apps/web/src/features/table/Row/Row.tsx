@@ -96,6 +96,8 @@ export const Row = memo(function Row({
 }: RowProps) {
 	const element = useRef<HTMLDivElement>(null);
 	const { identifier, lastActor } = ticket;
+	const ticketRootId = projects.find((project) => project.id === ticket.project.id)?.rootId;
+	const ticketRootIds = ticketRootId === undefined ? [] : [ticketRootId];
 	const editingChange = (field: EditField) => (open: boolean) => onEditingChange?.(ticket.id, open ? field : null);
 	const change = (value: RowChange) => onChange?.(ticket, value);
 
@@ -137,6 +139,7 @@ export const Row = memo(function Row({
 				path={ticket.project.path}
 				viewedProject={viewedProject}
 				projects={projects}
+				ticketRootIds={ticketRootIds}
 				open={editing === "project"}
 				onOpenChange={editingChange("project")}
 				onPick={(project) => change({ project })}
@@ -240,6 +243,7 @@ export const Row = memo(function Row({
 			{editing === "project" && !columns.includes("project") && (
 				<ProjectPicker
 					projects={projects}
+					ticketRootIds={ticketRootIds}
 					value={ticket.project.path}
 					open
 					onOpenChange={editingChange("project")}

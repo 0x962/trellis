@@ -77,4 +77,10 @@ describe("errors", () => {
 	test("the invalid anchor sentence fits a ticket move and a project reorder", () => {
 		expect(errors.INVALID_ANCHOR.message).toBe("The after or before item is not in the target list.");
 	});
+
+	test("the cross-root sentence gives one action for every refused move", () => {
+		expect(errors.CROSS_ROOT_MOVE.message).toBe(
+			"A ticket, a parent, or a project cannot move to another root. Create the ticket or project again in the other root.",
+		);
+	});
 });
