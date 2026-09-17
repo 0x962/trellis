@@ -49,7 +49,7 @@ lines.on("line", (line) => {
 			return reply({
 				serverInfo: { name: "muse", version: "1.3.0" },
 				schema: { version: 1, fingerprint: "sha256:fixture" },
-				museHome: process.env.HARNESS_FIXTURE_MUSE_HOME ?? "/tmp/muse-fixture",
+				museHome: process.env.HARNESS_FIXTURE_MUSE_HOME ?? process.cwd(),
 				grantedCapabilities: (request.params.capabilities?.requestedCapabilities ?? []).filter(
 					(name: string) => name === "sessionMcp",
 				),

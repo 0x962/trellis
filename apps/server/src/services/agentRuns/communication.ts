@@ -60,7 +60,6 @@ export const prepareSend = async (
 						idleBefore,
 					};
 		const messageId = input.messageId ?? randomUUID();
-		if (input.interrupt && session.activity?.state === "working") await host.interrupt(run.terminalId);
 		if (preset === "custom") {
 			const data = Buffer.from(`\x1b[200~${input.text}\x1b[201~\r`).toString("base64");
 			const sent = await client.deliver(run.terminalId, messageId, data, expected);
@@ -69,6 +68,7 @@ export const prepareSend = async (
 		} else {
 			if (!session.acknowledgedMessageIds.includes(run.terminalId))
 				await waitForReceipt(client, run.terminalId, run.terminalId, 60_000);
+			if (input.interrupt) await host.interrupt(run.terminalId, { waitForIdle: false });
 			await host.send(run.terminalId, input.text, messageId, expected);
 		}
 	} catch (cause) {

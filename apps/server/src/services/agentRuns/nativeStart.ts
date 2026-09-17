@@ -19,8 +19,8 @@ import { profileDefault, profileEnvironment } from "../harnessAccounts/profiles.
 import { getAccount } from "../harnessAccounts/queries.ts";
 import { transferSession } from "../harnessAccounts/transferSession.ts";
 import type { ServiceCtx } from "../support.ts";
+import { hostIsShuttingDown } from "./hostShutdown.ts";
 import { launchAllowed } from "./launchAllowed.ts";
-import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import type { StoredRun } from "./queries.ts";
 
 class MissingNativeSessionIdentity extends Error {}
@@ -106,8 +106,7 @@ export const startNative = async (
 				sql`UPDATE agent_runs SET workspace_id=${workspaceId} WHERE id=${run.id} AND terminal_id=${terminalId} AND closed_at IS NULL RETURNING id`,
 			);
 		});
-		if (owned.length === 0) return { id: run.id };
-		await ctx.newTx(assertNativeWorkEnabled);
+		if (owned.length === 0 || hostIsShuttingDown(ctx.home)) return { id: run.id };
 		const env = {
 			...baseEnv,
 			TRELLIS_URL: ctx.localUrl,
@@ -150,6 +149,7 @@ export const startNative = async (
 				))
 			)
 				return { id: run.id };
+			if (hostIsShuttingDown(ctx.home)) return { id: run.id };
 			launchSubmitted = true;
 			await client.start(spec);
 			session = await client.inspect(terminalId);
@@ -215,6 +215,7 @@ export const startNative = async (
 				))
 			)
 				return { id: run.id };
+			if (hostIsShuttingDown(ctx.home)) return { id: run.id };
 			launchSubmitted = true;
 			({ process: session } =
 				sessionId === undefined ? await host.start(launch) : await host.resume({ ...launch, sessionId }));

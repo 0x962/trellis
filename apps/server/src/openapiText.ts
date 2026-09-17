@@ -126,7 +126,6 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 			{ ticketId: "01J9Z0000000000000000000A1", status: "queued", reason: "An active worker owns this ticket." },
 		],
 	},
-	"POST /native-work/resume": {},
 	"POST /native-work/stop": {},
 	"POST /flow-executions": {
 		flow: "review",

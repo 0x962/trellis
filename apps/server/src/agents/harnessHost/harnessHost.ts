@@ -173,9 +173,11 @@ export class HarnessHost {
 			);
 		return this.status(id);
 	}
-	async interrupt(id: string) {
+	async interrupt(id: string, { waitForIdle = true } = {}) {
 		const descriptor = await this.descriptor(id);
-		const result = await interruptHarness(this.options, descriptor, await this.status(id));
+		const before = await this.status(id);
+		const result = await interruptHarness(this.options, descriptor, before, waitForIdle);
+		if (!waitForIdle) return before;
 		return (
 			result ?? this.waitFor(id, (state) => state.activity?.state === "idle" && state.agent?.outcome === "interrupted")
 		);
