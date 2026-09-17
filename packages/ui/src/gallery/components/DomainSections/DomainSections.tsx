@@ -1,6 +1,7 @@
 import { ActorChip } from "../../../domain/ActorChip";
 import { type Check, CheckRibbon } from "../../../domain/CheckRibbon";
 import { type Priority, PriorityIcon } from "../../../domain/PriorityIcon";
+import { type PullRequestReviewStatus, ReviewStatusSummary } from "../../../domain/ReviewStatusSummary";
 import { StatusIcon } from "../../../domain/StatusIcon";
 import { TicketGlimmer } from "../../../domain/TicketGlimmer";
 import { TicketId } from "../../../domain/TicketId";
@@ -19,6 +20,21 @@ const skipped = ribbon(["pass", "pass", "skipping", "pass"]);
 const crowded = ribbon(Array.from({ length: 40 }, (_, index) => (index === 19 ? "fail" : "pass")));
 // 80 checks with one failure: more checks than px, so the ribbon draws runs.
 const packed = ribbon(Array.from({ length: 80 }, (_, index) => (index === 39 ? "fail" : "pass")));
+
+const reviews: PullRequestReviewStatus[] = (
+	[
+		{ reviewState: "none", isDraft: false },
+		{ reviewState: "review_required", isDraft: false },
+		{ reviewState: "changes_requested", isDraft: false },
+		{ reviewState: "approved", isDraft: false },
+		{ reviewState: "approved", isDraft: false },
+		{ reviewState: "approved", isDraft: false },
+		{ reviewState: "review_required", isDraft: false },
+		{ reviewState: "changes_requested", isDraft: false },
+		{ reviewState: "none", isDraft: true },
+		{ reviewState: "approved", isDraft: false },
+	] as const
+).map((review, index) => ({ ...review, owner: "0x962", repo: "trellis", number: 100 + index }));
 
 // The trellis-specific marks in every variant.
 export function DomainSections() {
@@ -59,6 +75,10 @@ export function DomainSections() {
 						<PriorityIcon priority={priority} /> {priority}
 					</span>
 				))}
+			</Section>
+			<Section name="ReviewStatusSummary" note="five approval icons; five more behind a hover card">
+				<ReviewStatusSummary reviews={reviews.slice(0, 5)} />
+				<ReviewStatusSummary reviews={reviews} />
 			</Section>
 			<Section name="CheckRibbon" note="full and mini; passed, failed, pending, skipped; 40 and 80 checks">
 				<span className="inline-flex items-center gap-2 text-sm text-fg-muted">
