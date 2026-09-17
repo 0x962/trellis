@@ -1,43 +1,16 @@
 import { describe, expect, test } from "bun:test";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const root = join(import.meta.dir, "..");
 const text = (path: string) => readFileSync(join(root, path), "utf8");
 
-type Step = { uses?: string; run?: string; "working-directory"?: string };
-type Job = { "runs-on": string; if?: string; env?: Record<string, string>; steps: Step[] };
-
-const jobs = () => (Bun.YAML.parse(text(".github/workflows/ci.yml")) as { jobs: Record<string, Job> }).jobs;
-
-describe("ci.yml", () => {
-	test("the e2e job installs Chromium on macOS and runs the Playwright suite", () => {
-		const e2e = jobs().e2e!;
-		expect(e2e["runs-on"]).toBe("macos-latest");
-		expect(e2e).not.toHaveProperty("if");
-		const runs = e2e.steps.map((step) => step.run ?? "");
-		expect(e2e.steps.some((step) => step.uses?.startsWith("oven-sh/setup-bun"))).toBe(true);
-		expect(runs).toContain("bun install --frozen-lockfile");
-		expect(runs.some((run) => run.includes("playwright install") && run.includes("chromium"))).toBe(true);
-		expect(runs).toContain("bun run e2e");
-	});
-
-	test("the check job runs functional checks without a performance requirement", () => {
-		const check = jobs().check!;
-		expect(check.env?.TRELLIS_PERF_FACTOR).toBeUndefined();
-		expect(check.steps.map((step) => step.run ?? "")).toContain("bun run check");
-	});
-
-	// ARCHITECTURE.md, Database schema: CI fails when `drizzle-kit generate` leaves a
-	// change under apps/server/drizzle/. `test -z` exits 1 on any output.
-	test("the drizzle-diff job runs on every push and fails on a generated change", () => {
-		const drizzle = jobs()["drizzle-diff"]!;
-		expect(drizzle).not.toHaveProperty("if");
-		const runs = drizzle.steps.map((step) => step.run ?? "");
-		expect(runs).toContain("bun run db:generate");
-		expect(runs).toContain('test -z "$(git status --porcelain apps/server/drizzle/)"');
-		expect(runs.indexOf("bun run db:generate")).toBeLessThan(runs.findIndex((run) => run.startsWith("test -z")));
-	});
+test("the repository defines no GitHub Actions workflows", () => {
+	const directory = join(root, ".github", "workflows");
+	const workflows = existsSync(directory)
+		? readdirSync(directory).filter((file) => file.endsWith(".yml") || file.endsWith(".yaml"))
+		: [];
+	expect(workflows).toEqual([]);
 });
 
 // Every workspace is at 0.0.0 and `.changeset/config.json` puts them in one
