@@ -8,7 +8,7 @@ import { type Recipient, recipientsOf } from "./recipients.ts";
 // Copilots receive human messages. Workers receive room broadcasts and direct mentions.
 export const enqueue = async (
 	tx: Tx,
-	input: { messageId: string; rootId: string; channel: string; body: string; actor: ActorRef; toManager: boolean },
+	input: { messageId: string; rootId: string; body: string; actor: ActorRef; toManager: boolean },
 ) => {
 	const live = await rows<Recipient>(
 		tx,
@@ -16,14 +16,11 @@ export const enqueue = async (
 		FROM agent_runs r WHERE r.runtime = 'native' AND r.closed_at IS NULL AND r.project_id = ${input.rootId}`,
 	);
 	const everyone = recipientsOf(live, input.body, input.actor);
-	const mentioned = everyone.some((entry) => entry.direct);
 	const addressed = input.toManager
 		? live
 				.filter((run) => run.kind === "manager" && !(input.actor.kind === "agent" && input.actor.name === run.id))
 				.map((run) => ({ run, direct: true }))
-		: input.channel === "general" && !mentioned
-			? everyone.filter((entry) => entry.run.kind === "manager")
-			: everyone;
+		: everyone;
 	for (const { run, direct } of addressed) {
 		if (run.kind === "manager" && input.actor.kind !== "human") continue;
 		await tx.execute(sql`INSERT INTO chat_deliveries (id, message_id, run_id, persona_name, terminal_id, session_id, direct)

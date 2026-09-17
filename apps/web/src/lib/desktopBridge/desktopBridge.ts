@@ -37,16 +37,15 @@ export type DesktopBridge = {
 	onNavigate?: (listener: (path: string) => void) => () => void;
 };
 
-// The host serves the web app from its own release, and the macOS app supplies
-// the bridge. The Desktop section appears only when the app supplies each call
-// that the section uses.
-export function desktopSettingsBridge(bridge: Partial<DesktopBridge> | undefined): DesktopBridge | undefined {
+export type DesktopSettingsBridge = Pick<DesktopBridge, "status" | "setOpenAtLogin" | "run">;
+
+// desktopSettingsBridge requires `status`, `setOpenAtLogin`, and `run` because
+// those calls supply and change every value in the Desktop section.
+export function desktopSettingsBridge(bridge: Partial<DesktopBridge> | undefined): DesktopSettingsBridge | undefined {
 	return typeof bridge?.status === "function" &&
-		typeof bridge.serviceStatus === "function" &&
-		typeof bridge.updateStatus === "function" &&
 		typeof bridge.setOpenAtLogin === "function" &&
 		typeof bridge.run === "function"
-		? (bridge as DesktopBridge)
+		? (bridge as DesktopSettingsBridge)
 		: undefined;
 }
 

@@ -10,9 +10,8 @@ export type AppMenuActions = {
 	quit: () => void;
 };
 
-// The Help items work when the host cannot load the Settings page. Quit Trellis
-// Completely also stays here because an older active host can serve an older
-// page without the Desktop section after an application upgrade.
+// The native menu works when the renderer cannot load. Keep reconnectHost,
+// stopLocalWork, and quit here so a renderer failure cannot hide these actions.
 export const appMenu = (actions: AppMenuActions): MenuItemConstructorOptions[] => [
 	{
 		label: "Trellis",

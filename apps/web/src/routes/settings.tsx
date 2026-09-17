@@ -7,7 +7,12 @@ import { ThemeField } from "../features/settings/ThemeField";
 import { PageTitle } from "../features/shell/PageTitle";
 import { Topbar } from "../features/shell/Topbar";
 import { readActor, useActor } from "../lib/actor";
-import { canOpenDesktopSettingsBeforeSetup, type DesktopBridge, desktopSettingsBridge } from "../lib/desktopBridge";
+import {
+	canOpenDesktopSettingsBeforeSetup,
+	type DesktopBridge,
+	type DesktopSettingsBridge,
+	desktopSettingsBridge,
+} from "../lib/desktopBridge";
 
 export const Route = createFileRoute("/settings")({
 	loader: ({ context, location }) => {
@@ -40,10 +45,10 @@ const sections: SettingsSection[] = [
 	},
 ];
 
-const desktopSection = (bridge: DesktopBridge): SettingsSection => ({
+const desktopSection = (bridge: DesktopSettingsBridge): SettingsSection => ({
 	id: "desktop",
 	title: "Desktop",
-	hint: "Choose the data directory, check the background service and the update, and stop or resume local work.",
+	hint: "Choose the data directory and whether Trellis opens at login.",
 	rows: <DesktopSettings bridge={bridge} />,
 });
 
