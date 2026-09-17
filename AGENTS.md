@@ -19,18 +19,19 @@ Create a scratch checkout or a temporary directory only under `$TMPDIR`, with th
 ## Prompts
 
 - Every instruction an agent reads lives in the database, in `personas.instruction`. Code never composes, hardcodes, or injects prompt text.
-- A change to what an agent is told is a data migration on `personas.instruction`. `docs/personas.json` is a dump of the table; refresh it with `trellis personas list --json` after a change.
-- A migration appends a titled section and skips a persona that already holds that title, so a rerun and a hand edit stay safe.
+- Edit live persona instructions directly through the personas API. Refresh `docs/personas.json` with `trellis personas list --json` after a change.
+- Each column worker completes its assigned work, records the result, and moves its ticket to the appropriate next status.
+- Trellis code starts and recovers workers. The copilot acts on human requests.
 
 ## Desktop install
 
-The Trellis SRE persona owns production releases for TRL. Route approved Deploy Queue tickets to one SRE through the project manager. Group eligible tickets into one merge, test, build, install, and restart cycle. Other workers hand off release work instead of deploying independently. Read the SRE instructions with `trellis personas show "Trellis SRE"` before a deployment assignment.
+The Trellis SRE persona owns production releases for TRL. The Deploy Queue column assigns release workers through its persona settings. Release workers coordinate directly so one SRE owns each shared release cycle. Group eligible tickets into one merge, test, build, install, and restart cycle. Read the SRE instructions with `trellis personas show "Trellis SRE"` before a deployment assignment.
 
 Production builds require a clean `main` checkout at the current `origin/main` commit. Merge each feature branch into `main` and push it before a production build. Never build a production app from a feature branch or a detached commit. This rule also applies to `--prepare` candidates. Do not bypass the production installer.
 
-Run `bun run desktop:install` from the `main` checkout. The command builds and verifies a fresh package, then copies it to `~/Applications/Trellis.app`. The copy leaves Trellis open. Restart Trellis to activate the package. A changed package stops active agents and resumes their saved sessions on the new runtime. Manually stopped agents stay stopped. See [the desktop guide](apps/desktop/README.md#production-install) for candidate builds and verification.
+Run `bun run desktop:install` from the `main` checkout. The command builds and verifies a fresh package, then copies it to `~/Applications/Trellis.app`. The copy leaves Trellis open. Restart Trellis to activate the package. Activation stops the previous runtime and starts the host. Trellis code recovers column workers and project copilots from their current settings. See [the desktop guide](apps/desktop/README.md#production-install) for candidate builds and verification.
 
-Preserve the manager conversation during prompt updates and deployment. Resume a stopped manager with `trellis agents start` and its existing persona and project. The `--new-session` flag resets the conversation and requires an explicit human reset. Keep the observed provider session ID before and after a resume to verify continuity.
+Preserve provider conversations and workspaces during prompt updates and deployment. Trellis resumes compatible conversations at the next automatic start. The `--new-session` flag resets a conversation and requires an explicit human reset.
 
 Check `df -h /System/Volumes/Data` before a production build. A build needs at least 3 GB of free space and writes its files under `$TMPDIR/trellis-production-*`. A failed build keeps that directory for inspection. Remove it after you inspect it. The installer keeps every earlier release under `~/Library/Application Support/Trellis/releases`. After a verified restart, remove each release that is neither active nor installed. On 2026-09-16, 4408 build and test directories under `$TMPDIR` and 43 old releases filled the disk, and Trellis stopped for every agent.
 

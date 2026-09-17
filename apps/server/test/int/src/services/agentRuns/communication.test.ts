@@ -103,13 +103,14 @@ test("a preinitialization send waits for the initial receipt before it reaches t
 	expect(writes).toBe(1);
 });
 
-test("an interrupt send stops a working turn before the message and skips an idle one", async () => {
+test("a direct message interrupts before the send without an idle confirmation", async () => {
 	const calls: string[] = [];
 	const deps = dependencies(async (_id, text) => {
 		calls.push(`send:${text}`);
 		return session();
 	});
-	deps.host.interrupt = async () => {
+	deps.host.interrupt = async (_id, options) => {
+		expect(options).toEqual({ waitForIdle: false });
 		calls.push("interrupt");
 		return session();
 	};
@@ -119,8 +120,10 @@ test("an interrupt send stops a working turn before the message and skips an idl
 	deps.client.inspect = async () =>
 		session({ acknowledgedMessageIds: ["attempt"], activity: { state: "idle", updatedAt: "now" } });
 	await prepareSend(context(), { id: "run", text: "Read this", interrupt: true }, deps);
+	deps.client.inspect = async () =>
+		session({ acknowledgedMessageIds: ["attempt"], activity: { state: "working", updatedAt: "now" } });
 	await prepareSend(context(), { id: "run", text: "Plain", interrupt: false }, deps);
-	expect(calls).toEqual(["interrupt", "send:Stop and read this", "send:Read this", "send:Plain"]);
+	expect(calls).toEqual(["interrupt", "send:Stop and read this", "interrupt", "send:Read this", "send:Plain"]);
 });
 
 test("an unconfirmed host delivery cannot return success", async () => {

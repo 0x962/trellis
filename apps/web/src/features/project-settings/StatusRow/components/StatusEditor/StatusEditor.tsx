@@ -25,6 +25,7 @@ type StatusEditorProps = Pick<StatusRowProps, "project" | "status" | "onChanged"
 
 export function StatusEditor({ project, status, onChanged, onCancel }: StatusEditorProps) {
 	const { client } = useApp();
+	const canConfigureWorker = status.category !== "done" && status.category !== "canceled";
 	const [agentConfig, setAgentConfig] = useState(status.agentConfig);
 	const [name, setName] = useState(status.name);
 	const [description, setDescription] = useState(status.description);
@@ -45,7 +46,7 @@ export function StatusEditor({ project, status, onChanged, onCancel }: StatusEdi
 				project,
 				status: status.id,
 				name: name.trim(),
-				agentConfig,
+				agentConfig: canConfigureWorker ? agentConfig : null,
 				description,
 				color,
 				...(status.category === "review" ? { reviewer } : {}),
@@ -105,7 +106,7 @@ export function StatusEditor({ project, status, onChanged, onCancel }: StatusEdi
 					onChange={(event) => setWipLimit(event.target.value)}
 				/>
 			</div>
-			<ColumnAgentFields value={agentConfig} onChange={setAgentConfig} />
+			{canConfigureWorker && <ColumnAgentFields value={agentConfig} onChange={setAgentConfig} />}
 			<p className="text-sm text-fg-muted">
 				The limit blocks new tickets. Every ticket already in this column keeps its worker.
 			</p>

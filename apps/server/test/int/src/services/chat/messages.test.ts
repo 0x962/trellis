@@ -42,31 +42,31 @@ const deliveries = () =>
 		sql`SELECT run_id, message_id, state FROM chat_deliveries ORDER BY run_id`,
 	);
 
-test("every project has #ai and #general, and a new project gets them at create", async () => {
+test("every project starts with agent, general, and copilot channels", async () => {
 	const channels = await h.run((ctx, tx) => listChannels(ctx, tx, { project: "CDE" }));
-	expect(channels.map((channel) => channel.name)).toEqual(["ai", "general"]);
-	expect(channels.map((channel) => channel.aiOnly)).toEqual([true, false]);
+	expect(channels.map((channel) => channel.name)).toEqual(["ai", "general", "manager"]);
+	expect(channels.map((channel) => channel.aiOnly)).toEqual([true, false, false]);
 	expect(channels[0]).toMatchObject({ projectId: rootId, messageCount: 0, latestId: null, lastMessageAt: null });
 	await h.run((ctx, tx) => createProject(ctx, tx, { key: "NEW", name: "New" }));
 	const fresh = await h.run((ctx, tx) => listChannels(ctx, tx, { project: "NEW" }));
-	expect(fresh.map((channel) => channel.name)).toEqual(["ai", "general"]);
+	expect(fresh.map((channel) => channel.name)).toEqual(["ai", "general", "manager"]);
 	await h.run((ctx, tx) => createProject(ctx, tx, { parent: "NEW", slug: "api", name: "API" }));
 	const sub = await h.run((ctx, tx) => listChannels(ctx, tx, { project: "NEW.api" }));
-	expect(sub.map((channel) => channel.name)).toEqual(["ai", "general"]);
+	expect(sub.map((channel) => channel.name)).toEqual(["ai", "general", "manager"]);
 });
 
 test("a sub-project has its own room, and its post reaches its own agents only", async () => {
-	const posted = await h.run((ctx, tx) => post(ctx, tx, { project: "CDE.web", channel: "#General", body: "hello" }));
+	const posted = await h.run((ctx, tx) => post(ctx, tx, { project: "CDE.web", channel: "#Release", body: "hello" }));
 	expect(posted).toMatchObject({
 		projectId: childId,
-		channel: "general",
+		channel: "release",
 		body: "hello",
 		actor: { name: "dana", kind: "human" },
 	});
 	const child = await h.run((ctx, tx) => list(ctx, tx, { project: "CDE.web", channel: "release" }));
 	expect(child.items.map((message) => message.id)).toEqual([posted.id]);
 	expect(child.latestId).toBe(posted.id);
-	const root = await h.run((ctx, tx) => list(ctx, tx, { project: "CDE", channel: "release" }));
+	const root = await h.run((ctx, tx) => list(ctx, tx, { project: "CDE", channel: "general" }));
 	expect(root.items).toEqual([]);
 	expect((await deliveries()).map((row) => row.run_id)).toEqual(["web-builder", "web-reviewer"]);
 	expect(h.flushed).toContainEqual({
@@ -124,13 +124,23 @@ test("a post in #general with no mention reaches the manager only, and one with 
 	expect((await deliveries()).map((row) => row.run_id)).toEqual(["builder"]);
 });
 
-test("a post reaches every live agent of the project except its author", async () => {
+test("a worker broadcast reaches other workers without notifying the copilot", async () => {
 	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "ai", body: "who owns the migration?" }), {
 		actor: { kind: "agent", name: "builder" },
 	});
-	expect((await deliveries()).map((row) => row.run_id)).toEqual(["manager", "reviewer"]);
+	expect((await deliveries()).map((row) => row.run_id)).toEqual(["reviewer"]);
 	expect((await deliveries()).every((row) => row.state === "pending")).toBe(true);
 });
+
+test.each(["@manager please coordinate", "@Trellis please coordinate", "status update"])(
+	"a worker message does not notify the copilot: %s",
+	async (body) => {
+		await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "general", body }), {
+			actor: { kind: "agent", name: "builder" },
+		});
+		expect(await deliveries()).toEqual([]);
+	},
+);
 
 test("a mention by run id, persona name, or role restricts the recipients and marks them direct", async () => {
 	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "general", body: "@builder rebase first" }));
@@ -160,8 +170,8 @@ test("a message shows the delivery state of each recipient", async () => {
 test("a post to an unknown channel creates it, and a read of one does not", async () => {
 	await h.run((ctx, tx) => post(ctx, tx, { project: "CDE", channel: "release", body: "cut 1.2" }));
 	const channels = await h.run((ctx, tx) => listChannels(ctx, tx, { project: "CDE" }));
-	expect(channels.map((channel) => channel.name)).toEqual(["ai", "general", "release"]);
-	expect(channels[2]).toMatchObject({
+	expect(channels.map((channel) => channel.name)).toEqual(["ai", "general", "manager", "release"]);
+	expect(channels[3]).toMatchObject({
 		messageCount: 1,
 		latestId: expect.any(String),
 		lastMessageAt: "2026-09-09T12:00:00.000Z",

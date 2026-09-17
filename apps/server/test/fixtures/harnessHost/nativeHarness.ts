@@ -139,7 +139,7 @@ let input = "";
 process.stdin.on("data", (chunk: Buffer) => {
 	input += chunk.toString().replaceAll("\x1b[200~", "").replaceAll("\x1b[201~", "");
 	if (input.includes("\x03") || input.includes("\x1b")) {
-		input = "";
+		input = input.replaceAll("\x03", "").replaceAll("\x1b", "");
 		if (harness === "claude")
 			writeFileSync(statusFile, JSON.stringify([{ pid: process.pid, sessionId, status: "idle" }]));
 		else
@@ -147,7 +147,8 @@ process.stdin.on("data", (chunk: Buffer) => {
 				outcome = process.env.HARNESS_FIXTURE_BEHAVIOR === "normal-interrupt" ? "completed" : "interrupted";
 				return hook("idle");
 			});
-	} else if (input.endsWith("\r")) {
+	}
+	if (input.endsWith("\r")) {
 		const submitted = input.slice(0, -1);
 		input = "";
 		sequence = sequence.then(async () => {

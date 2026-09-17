@@ -121,6 +121,20 @@ test("the next beat restarts a failed attempt with unchanged settings", async ()
 	await reconcileColumn(ctx(), await state(), [failed(starts[1]!)], deps());
 	expect(starts).toHaveLength(3);
 });
+test("a resumed conversation receives the current persona and assignment context", async () => {
+	const launched = await start();
+	const instruction = "Complete the review and move the ticket yourself.";
+	await h.rows(sql`UPDATE personas SET instruction=${instruction} WHERE id=${personaId}`);
+	await reconcileColumn(ctx(), await state(), [sessionFor(launched, { status: "exited" })], deps());
+	const restarted = starts[1]!;
+	expect(restarted.resume).toBe(true);
+	expect(JSON.parse(restarted.resumePrompt!)).toMatchObject({
+		type: "trellis.column.restarted",
+		persona: { id: personaId, instruction },
+		context: expect.stringContaining(launched.run.ticketIdentifier!),
+	});
+	expect(restarted.run.instruction).toBe(instruction);
+});
 test("a healthy worker keeps its settings after the column changes", async () => {
 	const launched = await start();
 	await h.rows(
@@ -136,6 +150,30 @@ test("a restart uses the latest harness and preserves the workspace", async () =
 		sql`UPDATE statuses SET agent_config=jsonb_set(agent_config,'{harness}',${JSON.stringify(HarnessSchema.parse({ preset: "codex", model: "openai/gpt-5.6-sol", effort: "high" }))}::jsonb) WHERE id=${status}`,
 	);
 	await reconcileColumn(ctx(), await state(), [sessionFor(launched, { status: "exited" })], deps());
+	expect(starts[1]!.config.harness).toMatchObject({ preset: "codex", model: "openai/gpt-5.6-sol", effort: "high" });
+	expect(starts[1]!.run.workspaceId).toBe("/saved/work");
+	expect(starts[1]!.resume).toBe(false);
+});
+test("a silent live worker restarts with the current column settings", async () => {
+	const launched = await start();
+	await h.rows(sql`UPDATE agent_runs SET workspace_id='/saved/work' WHERE id=${launched.run.id}`);
+	await h.rows(
+		sql`UPDATE statuses SET agent_config=jsonb_set(agent_config,'{harness}',${JSON.stringify(HarnessSchema.parse({ preset: "codex", model: "openai/gpt-5.6-sol", effort: "high" }))}::jsonb) WHERE id=${status}`,
+	);
+	calls = [];
+	await reconcileColumn(
+		ctx(),
+		await state(),
+		[
+			sessionFor(launched, {
+				startedAt: new Date(NOW.getTime() - 60_000).toISOString(),
+				agent: null,
+				activity: { state: "ready", updatedAt: NOW.toISOString() },
+			}),
+		],
+		deps(),
+	);
+	expect(calls).toEqual(["stop", "start"]);
 	expect(starts[1]!.config.harness).toMatchObject({ preset: "codex", model: "openai/gpt-5.6-sol", effort: "high" });
 	expect(starts[1]!.run.workspaceId).toBe("/saved/work");
 	expect(starts[1]!.resume).toBe(false);
@@ -179,14 +217,36 @@ test("a ticket can leave and return to the same automated column", async () => {
 	await reconcileColumn(ctx(), await state(), [sessionFor(launched, { status: "exited" })], deps());
 	expect(starts).toHaveLength(2);
 });
-test.each(["todo", "done"])("a configured %s column starts its worker", async (category) => {
+test.each(["todo", "started"])("a configured %s column starts its worker", async (category) => {
 	await h.rows(
 		sql`UPDATE statuses SET agent_config=(SELECT agent_config FROM statuses WHERE id=${status}) WHERE project_id=${project} AND category=${category}`,
 	);
 	await h.rows(
-		sql`UPDATE tickets SET status_id=(SELECT id FROM statuses WHERE project_id=${project} AND category=${category}),completed_at=${category === "done" ? NOW : null} WHERE id=${ticket}`,
+		sql`UPDATE tickets SET status_id=(SELECT id FROM statuses WHERE project_id=${project} AND category=${category}) WHERE id=${ticket}`,
 	);
 	await reconcileColumn(ctx(), await state(), [], deps());
+	expect(starts).toHaveLength(1);
+});
+test.each(["done", "canceled"])("a configured %s column does not start a worker", async (category) => {
+	await h.rows(
+		sql`UPDATE statuses SET agent_config=(SELECT agent_config FROM statuses WHERE id=${status}) WHERE project_id=${project} AND category=${category}`,
+	);
+	await h.rows(
+		sql`UPDATE tickets SET status_id=(SELECT id FROM statuses WHERE project_id=${project} AND category=${category}),completed_at=${NOW} WHERE id=${ticket}`,
+	);
+	await reconcileColumn(ctx(), await state(), [], deps());
+	expect(starts).toHaveLength(0);
+});
+test.each(["done", "canceled"])("a move to configured %s stops the worker", async (category) => {
+	const launched = await start();
+	await h.rows(
+		sql`UPDATE statuses SET agent_config=(SELECT agent_config FROM statuses WHERE id=${status}) WHERE project_id=${project} AND category=${category}`,
+	);
+	const { move } = await import("../../../../../src/services/tickets/move.ts");
+	await h.run((core, tx) => move(core, tx, { ticket, status: category }));
+	calls = [];
+	await reconcileColumn(ctx(), await state(), [sessionFor(launched)], deps());
+	expect(calls).toEqual(["stop"]);
 	expect(starts).toHaveLength(1);
 });
 test("a stopped worker from before column management keeps its workspace", async () => {

@@ -35,7 +35,7 @@ app.whenReady().then(async () => {
 	const resumed = startupProgress(process.argv[2]!, profile);
 	await resumed.show("Prepare Trellis");
 	const resume = await snapshot();
-	await resumed.show("Restore agent sessions");
+	await resumed.show("Wait for background host");
 	await resumed.show("Open Trellis");
 	const last = await snapshot();
 	const window = BrowserWindow.getAllWindows()[0]!;
