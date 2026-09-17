@@ -475,6 +475,9 @@ Column workers must report a tool event or assistant message within 60 seconds o
 The first interval starts when the process starts. The next manager beat stops and replaces a worker whose interval expires.
 The replacement uses the current column settings and retains the workspace.
 Tool start, update, and completion events reset the interval. Process checks and prompt receipts do not reset it.
+Codex compaction start, provider progress, and completion update the `contextCompaction` tool record.
+The bridge forwards compaction progress from the engine log only for its current thread and turn.
+Provider confirmation waits reset their timeout on fresh tool or assistant-message progress.
 Copilots can remain idle while they wait for user instructions.
 
 An idle column worker receives a data-only continuation at most once every 30 seconds.

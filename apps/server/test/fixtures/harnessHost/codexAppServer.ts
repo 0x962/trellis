@@ -73,6 +73,28 @@ if (args.includes("--stdio")) {
 				reply({ turn: { id: activeTurn } });
 				if (behavior === "silent") return;
 				notify("turn/started", { turn: { id: activeTurn } });
+				if (behavior === "compaction" || behavior === "compaction-stalled") {
+					const progress = (threadId = "provider-codex") =>
+						process.stderr.write(
+							`${JSON.stringify({
+								target: "codex_api::sse::responses",
+								fields: { message: 'unhandled responses event: "response.compaction.compacting"' },
+								spans: [{ name: "turn", "thread.id": threadId, "turn.id": activeTurn }],
+							})}\n`,
+						);
+					progress();
+					const timer = setInterval(() => progress(behavior === "compaction" ? "provider-codex" : "child"), 200);
+					if (behavior === "compaction")
+						setTimeout(() => {
+							clearInterval(timer);
+							notify("item/started", {
+								turnId: activeTurn,
+								item: { id: `user-${turn}`, type: "userMessage", content: request.params.input },
+							});
+							complete("completed");
+						}, 6500);
+					return;
+				}
 				notify("item/started", {
 					turnId: activeTurn,
 					item: { id: `user-${turn}`, type: "userMessage", content: request.params.input },
