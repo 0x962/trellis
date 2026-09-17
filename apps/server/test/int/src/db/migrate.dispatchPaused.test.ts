@@ -34,13 +34,13 @@ test("the migration removes the stored dispatch pause and keeps every other mana
 	await migrate(db, journalUnder(68));
 	const stored = { personaId: null, directory: "/tmp/project", harness: { preset: "codex" } };
 	await seedRoot(db, "PAU", { manager_config: { ...stored, dispatchPaused: true } });
-	await seedRoot(db, "NUL", { manager_config: null });
+	await seedRoot(db, "KEP", { manager_config: stored });
 
 	expect(await migrate(db, journalUnder(69))).toBe(1);
 	const configs = await db.execute(sql`SELECT key, manager_config FROM projects ORDER BY key`);
 	expect(configs.rows).toEqual([
-		{ key: "NUL", manager_config: null },
+		{ key: "KEP", manager_config: stored },
 		{ key: "PAU", manager_config: stored },
 	]);
-	expect(ProjectManagerConfigSchema.safeParse(configs.rows[1]!.manager_config).success).toBe(true);
+	for (const row of configs.rows) expect(ProjectManagerConfigSchema.safeParse(row.manager_config).success).toBe(true);
 });
