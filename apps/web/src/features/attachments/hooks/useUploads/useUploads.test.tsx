@@ -119,6 +119,19 @@ describe("features/attachments/hooks/useUploads", () => {
 		);
 	});
 
+	test("a server error code that no branch names reads as a plain upload failure", async () => {
+		const { hook, calls, settles } = setup();
+		act(() => hook.result.current.addFiles([fileNamed("later.txt")]));
+		act(() => void hook.result.current.uploadPending("CRT-1"));
+		await waitFor(() => expect(calls).toHaveLength(1));
+		// A code the contract adds after this file was written.
+		await act(async () => {
+			settles[0]!.fail(new ORPCError("QUOTA_EXCEEDED", { defined: true }));
+			await Promise.resolve();
+		});
+		await waitFor(() => expect(hook.result.current.uploads[0]!.error).toEqual({ code: "UPLOAD_FAILED" }));
+	});
+
 	test("a hook with a ticket uploads each added file at once", async () => {
 		const { hook, calls } = setup("CRT-9");
 		act(() => hook.result.current.addFiles([fileNamed("one.txt"), fileNamed("two.txt")]));
