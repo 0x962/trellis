@@ -11,12 +11,12 @@ import { recordRequest, replayRequest } from "../assignments/requests.ts";
 import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive } from "../refs.ts";
-import { reserveRestart } from "../restartAgents/reserveRestart.ts";
 import { assertResume } from "../submanagers/assertResume.ts";
 import type { IoCtx } from "../support.ts";
 import { assertResumeTicket } from "./assertResumeTicket.ts";
 import { startNative } from "./nativeStart.ts";
 import { getRun } from "./queries.ts";
+import { reserveResume } from "./reserveResume.ts";
 
 type Input = {
 	id: string;
@@ -74,7 +74,7 @@ export async function prepareResume(
 		if (previous.status !== "running" || !previous.controllable)
 			throw invalidInput("id", "The runtime cannot control this agent. Inspect its current session.");
 		const eligible = await ctx.newTx((tx) =>
-			reserveRestart(
+			reserveResume(
 				ctx.core,
 				tx,
 				{
@@ -86,7 +86,6 @@ export async function prepareResume(
 					harness: descriptor.harness,
 					effort: input.model === undefined ? descriptor.effort : undefined,
 					model,
-					done: false,
 				},
 				false,
 			),
@@ -129,7 +128,7 @@ export async function prepareResume(
 		if (selected.config.harness.preset !== descriptor.harness)
 			throw invalidInput("accountId", "A saved conversation requires an account for the same harness.");
 		await tx.execute(sql`UPDATE agent_runs SET closed_at=NULL,account_id=${selected.accountId} WHERE id=${run.id}`);
-		const reserved = await reserveRestart(
+		const reserved = await reserveResume(
 			ctx.core,
 			tx,
 			{
@@ -141,7 +140,6 @@ export async function prepareResume(
 				harness: descriptor.harness,
 				effort: input.model === undefined ? descriptor.effort : undefined,
 				model,
-				done: false,
 			},
 			true,
 		);

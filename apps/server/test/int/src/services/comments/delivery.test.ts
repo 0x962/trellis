@@ -106,6 +106,17 @@ test("a working assignment receives its mention at once", async () => {
 	expect(send).toHaveBeenCalledTimes(1);
 });
 
+test("queued worker mentions do not reach the copilot", async () => {
+	await h.rows(sql`UPDATE agent_runs SET kind='manager',ticket_id=NULL WHERE id='537'`);
+	await h.rows(sql`INSERT INTO actors (name,kind,first_seen_at,last_seen_at) VALUES ('537','agent',now(),now())`);
+	await h.rows(sql`UPDATE comments SET actor_kind='agent',actor_name='537' WHERE id=${commentId}`);
+	const send = sent();
+	await dispatchMentions(ctx(), [controllerSession("terminal")], send);
+	expect(send).not.toHaveBeenCalled();
+	expect(await h.rows(sql`SELECT id FROM comment_deliveries`)).toEqual([]);
+	expect(await h.rows(sql`SELECT id FROM comments WHERE id=${commentId}`)).toHaveLength(1);
+});
+
 test("a failed send records an uncertain receipt", async () => {
 	await dispatchMentions(ctx(), [controllerSession("terminal")], async () => {
 		throw new Error("The connection closed");

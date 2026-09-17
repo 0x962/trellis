@@ -76,9 +76,9 @@ test("a saved builder restart cannot bypass Todo", async () => {
 	await h.rows(
 		sql`UPDATE tickets SET status_id=(SELECT id FROM statuses WHERE project_id=${root} AND category='todo') WHERE id=${ticket}`,
 	);
-	const { reserveRestart } = await import("../../../../../src/services/restartAgents/reserveRestart.ts");
+	const { reserveResume } = await import("../../../../../src/services/agentRuns/reserveResume.ts");
 	const restart = await h.run((ctx, tx) =>
-		reserveRestart(
+		reserveResume(
 			ctx,
 			tx,
 			{
@@ -108,9 +108,9 @@ test("a model override clears the effort selected for another model", async () =
 test("a restart preserves the saved worker effort instead of manager defaults", async () => {
 	const run = await h.run((ctx, tx) => reserve(ctx, tx, { ticket, personaId }));
 	if (run.replay) throw new Error("Expected a new reservation");
-	const { reserveRestart } = await import("../../../../../src/services/restartAgents/reserveRestart.ts");
+	const { reserveResume } = await import("../../../../../src/services/agentRuns/reserveResume.ts");
 	const restart = await h.run((ctx, tx) =>
-		reserveRestart(
+		reserveResume(
 			ctx,
 			tx,
 			{

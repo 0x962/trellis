@@ -46,7 +46,7 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: StatusCreateInput):
 		await tx.execute(sql`UPDATE statuses SET is_default = false WHERE project_id = ${project.id} AND is_default`);
 	}
 	const agentConfig = input.agentConfig ? StatusAgentConfigSchema.parse(input.agentConfig) : input.agentConfig;
-	await validateColumnConfig(tx, agentConfig);
+	await validateColumnConfig(tx, input.category, agentConfig);
 	const id = ulid();
 	await insertStatus(ctx, tx, {
 		id,
@@ -85,7 +85,7 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: StatusUpdateInput):
 		throw invalidInput("reviewer", "Only a review status carries a reviewer.");
 	}
 	const agentConfig = input.agentConfig ? StatusAgentConfigSchema.parse(input.agentConfig) : input.agentConfig;
-	await validateColumnConfig(tx, agentConfig);
+	await validateColumnConfig(tx, status.category, agentConfig);
 	if (status.category === "started" && agentConfig === null) {
 		const occupied = await rows(tx, sql`SELECT id FROM tickets WHERE status_id=${status.id} LIMIT 1`);
 		if (occupied.length) throw invalidInput("agentConfig", "Keep a worker persona while this column contains tickets.");

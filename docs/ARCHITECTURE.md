@@ -115,7 +115,9 @@ The host uses these observations for manager dispatch and flow completion.
 The deterministic manager owns column workers and project copilots.
 It inspects runtime processes on each beat and retries failed, stopped, and crashed assignments.
 Database reservations and runtime attempt identifiers prevent duplicate starts.
-Copilots wait for user instructions. The host sends them user chat and explicit mentions.
+Copilots wait for user instructions. The host sends them human chat messages and human comment mentions.
+Worker broadcasts and mentions reach other workers.
+Desktop activation stops the previous runtime and starts the host. The deterministic manager restarts column workers and project copilots.
 A partial database index permits one active copilot per project.
 
 Native ticket agents use Git worktrees under `agents/<run id>/work`.
@@ -217,7 +219,7 @@ either attachment table names.
 `chat_messages` holds one row per post with its actor. `chat_deliveries`
 holds one row per post and live native agent of the room's project, except
 the author. A post in `general` with no mention writes rows for the live
-managers only.
+copilots only when the author is human. Copilots receive messages only from humans.
 A post that mentions a live agent by run id, by persona name, or by role
 (`@manager`, `@builders`, `@reviewers`) reaches only the mentioned agents,
 and each of those rows is `direct`. The controller tick sends every pending
@@ -351,8 +353,8 @@ The first manager persona supplies the copilot when the project has no selected 
 A project without a repository uses a private copilot directory under the Trellis home.
 Healthy copilots keep their process. A restart uses current settings and preserves a compatible conversation.
 
-Each status stores `agentConfig` with its worker persona, harness, model, effort, and account.
-A null configuration leaves the column under human control.
+Each nonterminal status can store `agentConfig` with its worker persona, harness, model, effort, and account.
+A null configuration leaves the column under human control. Done and canceled statuses reject a worker configuration.
 In Progress requires a worker configuration before a ticket can enter it.
 The deterministic manager starts a worker for each ticket in an automated column.
 An active flow owns its ticket agents and prevents an automatic column assignment.
@@ -461,6 +463,12 @@ The controller schedules the next beat one second after the current beat complet
 Independent tickets and copilots launch concurrently. A failed launch does not prevent the other jobs.
 An unknown runtime process requires confirmation before replacement.
 Archived projects suppress new starts. Each host process starts with automatic dispatch enabled.
+
+Column workers must report a tool event or assistant message within 60 seconds of their latest activity.
+The first interval starts when the process starts. The next manager beat stops and replaces a worker whose interval expires.
+The replacement uses the current column settings and retains the workspace.
+Tool start, update, and completion events reset the interval. Process checks and prompt receipts do not reset it.
+Copilots can remain idle while they wait for user instructions.
 
 An idle column worker receives a data-only continuation at most once every 30 seconds.
 The continuation includes the ticket, column occupancy and limit, and recent comments.
