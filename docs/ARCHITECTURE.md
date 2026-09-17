@@ -602,8 +602,8 @@ time. The first section of each page carries no hash.
 
 `/settings` holds the actor name, theme, GitHub state, phone pair code, drafts, and runtime diagnostics.
 Project settings hold the copilot persona, repository directory, and harness settings.
-`system.harnessModels` fills the model picker of the Harness section.
 It writes `projects.managerConfig` through `projects.update`.
+`system.harnessModels` fills the model picker of the Harness section.
 
 The sidebar holds the workspace row, Needs you, Search, All tickets, Pull
 requests, Personas, Flows, Usage, the sessions, the project tree, and the actor footer.
