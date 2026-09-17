@@ -7,7 +7,7 @@ export function ShellSidebar() {
 		<aside
 			aria-label="Sidebar"
 			aria-busy="true"
-			className="relative flex h-full w-60 shrink-0 flex-col gap-0.5 border-r border-border bg-surface px-2 pb-2 text-sm max-md:hidden"
+			className="relative flex h-full w-60 shrink-0 flex-col gap-0.5 bg-surface px-2 pb-2 text-sm max-md:hidden"
 		>
 			{/* SidebarBody puts its collapse button in a row of this height. */}
 			<div className="mb-1 h-13 shrink-0" />
