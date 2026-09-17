@@ -24,8 +24,17 @@ const TitleSchema = z
 
 const IdentifierSchema = z.string().regex(/^[A-Z][A-Z0-9]{1,9}-[1-9][0-9]*$/);
 
+const PrReviewSchema = z.object({
+	owner: z.string().min(1),
+	repo: z.string().min(1),
+	number: z.number().int().positive(),
+	reviewState: ReviewStateSchema,
+	isDraft: z.boolean(),
+});
+
 // The PR badge on a row: the pull request and review states that need the
-// most work, plus the check counts behind the ribbon.
+// most work, the check counts behind the ribbon, and the approval state of
+// each linked pull request.
 const PrBadgeSchema = z.object({
 	state: PrStateSchema,
 	ciState: CiStateSchema,
@@ -33,6 +42,7 @@ const PrBadgeSchema = z.object({
 	pass: CountSchema,
 	fail: CountSchema,
 	pending: CountSchema,
+	reviews: z.array(PrReviewSchema),
 });
 
 const LastActorSchema = ActorRefSchema.extend({
