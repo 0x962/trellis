@@ -75,8 +75,8 @@ let reportFailure!: (error: unknown) => void;
 const observationFailed = new Promise<never>((_, reject) => {
 	reportFailure = reject;
 });
-// `usageQueue` keeps the write order of `usage/changed` and `turn/completed`.
-// The last write becomes the account state.
+// `usageQueue` runs usage writes in notification order for this bridge.
+// `observedAtMs` lets `museUsage.ts` compare writes from other bridge processes.
 let usageQueue = Promise.resolve();
 function queueUsage(write: () => Promise<unknown>) {
 	usageQueue = usageQueue
