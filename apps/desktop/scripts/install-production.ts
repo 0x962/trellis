@@ -71,13 +71,13 @@ await mkdir(join(homedir(), "Applications"), { recursive: true });
 await withInstallationLock(join(homedir(), "Applications/.trellis-install.lock"), async () => {
 	await installApplication(application, destination, async (staged) => {
 		await execute("/usr/bin/codesign", ["--verify", "--deep", "--strict", staged]);
+		if (!values.prepare) await pinResources(join(staged, "Contents/Resources/host"), defaultDesktopUserData());
 		await assertProductionSource(repo, { phase: "publish", commit });
 		await assertAncestry();
 	});
 });
 await run(["/usr/bin/codesign", "--verify", "--deep", "--strict", destination]);
 const installedResources = join(destination, "Contents/Resources/host");
-if (!values.prepare) await pinResources(installedResources, defaultDesktopUserData());
 console.log(
 	JSON.stringify(
 		{
