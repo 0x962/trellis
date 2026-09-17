@@ -19,6 +19,7 @@ export { type RankedBarRow, RankedBars, type RankedBarsProps } from "./domain/Ra
 export { RuntimeDiagnostics } from "./domain/RuntimeDiagnostics";
 export { StackedBar, type StackedBarProps, type StackedBarSegment } from "./domain/StackedBar";
 export { type StatusCategory, StatusIcon, type StatusIconProps } from "./domain/StatusIcon";
+export { SystemLoad, type SystemLoadProps } from "./domain/SystemLoad";
 export { TicketGlimmer } from "./domain/TicketGlimmer";
 export { TicketId, type TicketIdProps } from "./domain/TicketId";
 export { TrellisMark, type TrellisMarkProps } from "./domain/TrellisMark";
