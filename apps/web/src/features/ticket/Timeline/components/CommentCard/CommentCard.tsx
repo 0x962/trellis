@@ -45,7 +45,6 @@ export function CommentCard({
 		const revealBlocks = () => {
 			for (const element of hiddenBlocks.current) {
 				element.inert = false;
-				element.removeAttribute("aria-hidden");
 			}
 			hiddenBlocks.current = [];
 		};
@@ -65,7 +64,6 @@ export function CommentCard({
 				const element = child as HTMLElement;
 				if (element.getBoundingClientRect().bottom <= bottom) continue;
 				element.inert = true;
-				element.setAttribute("aria-hidden", "true");
 				hiddenBlocks.current.push(element);
 			}
 		};
