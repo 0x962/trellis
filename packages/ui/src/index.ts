@@ -29,6 +29,7 @@ export {
 } from "./domain/ReviewStatusSummary";
 export { StackedBar, type StackedBarProps, type StackedBarSegment } from "./domain/StackedBar";
 export { type StatusCategory, StatusIcon, type StatusIconProps } from "./domain/StatusIcon";
+export { SystemLoad, type SystemLoadProps } from "./domain/SystemLoad";
 export { TicketGlimmer } from "./domain/TicketGlimmer";
 export { TicketId, type TicketIdProps } from "./domain/TicketId";
 export { TrellisMark, type TrellisMarkProps } from "./domain/TrellisMark";
@@ -85,3 +86,4 @@ export { Tooltip, type TooltipProps } from "./primitives/Tooltip";
 export { cx } from "./utils/cx";
 export { isTextEntry } from "./utils/isTextEntry";
 export { nameHue } from "./utils/nameHue";
+export { readRowMotion } from "./utils/readRowMotion";

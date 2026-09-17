@@ -1,6 +1,6 @@
 import type { Priority, Ticket, TicketSummary } from "@trellis/api";
-import { Button, ConfirmDialog, Dialog, SectionHeader, Switch, useHotkey } from "@trellis/ui";
-import { useRef, useState } from "react";
+import { Button, ConfirmDialog, Dialog, Kbd, SectionHeader, Switch, useHotkey } from "@trellis/ui";
+import { useId, useRef, useState } from "react";
 import { failToast } from "../../../lib/failToast";
 import { AttachmentBox } from "../../attachments/AttachmentBox";
 import { DropTarget } from "../../attachments/DropTarget";
@@ -15,8 +15,8 @@ import { ComposerHeader } from "./components/ComposerHeader";
 import { DescriptionField } from "./components/DescriptionField";
 import { composerCloseAction } from "./composerCloseAction";
 
-// The quick composer keeps its text and selected files until create or
-// discard. It uploads the files only after the server creates the ticket.
+// The quick composer keeps its text and selected files until a create or a
+// confirmed discard. It uploads files only after the server creates the ticket.
 export function CreateTicketDialog() {
 	const options = useComposerStore((state) => state.options);
 	const { draft, setDraft, clearDraft } = useComposerDraft();
@@ -29,6 +29,7 @@ export function CreateTicketDialog() {
 	const [priority, setPriority] = useState<Priority | undefined>();
 	const [parent, setParent] = useState<TicketSummary | null | undefined>();
 	const [editing, setEditing] = useState(draft.description !== "");
+	const [titleMissing, setTitleMissing] = useState(false);
 	const [projectMissing, setProjectMissing] = useState(false);
 	const [asking, setAsking] = useState(false);
 	const [editorKey, setEditorKey] = useState(0);
@@ -40,6 +41,8 @@ export function CreateTicketDialog() {
 	const uploads = useUploads(undefined, false);
 	const inFlight = useRef(false);
 	const titleRef = useRef<HTMLInputElement>(null);
+	const titleId = useId();
+	const titleErrorId = useId();
 
 	const chosenProject = project ?? defaults.project;
 	const bySlug = (slug: string | undefined) => defaults.statuses.find((entry) => entry.slug === slug);
@@ -62,6 +65,7 @@ export function CreateTicketDialog() {
 		}
 		setEditing(false);
 		setEditorKey((key) => key + 1);
+		titleRef.current?.focus();
 	};
 
 	// inFlight blocks a second hotkey event that arrives before `creating`
@@ -69,17 +73,24 @@ export function CreateTicketDialog() {
 	// so the next attempt sends the same files and creates no second ticket.
 	const create = async (stay: boolean) => {
 		const title = draft.title.trim();
-		if ((createdTicket === null && title === "") || inFlight.current) return;
+		if (title === "") {
+			setTitleMissing(true);
+			titleRef.current?.focus();
+			return;
+		}
+		if (chosenProject === undefined) {
+			setProjectMissing(true);
+			return;
+		}
+		if (inFlight.current) return;
+		setTitleMissing(false);
+		setProjectMissing(false);
 		const parentRef = parent === undefined ? defaults.parent : (parent?.identifier ?? undefined);
 		inFlight.current = true;
 		setCreating(true);
 		try {
 			let ticket = createdTicket;
 			if (ticket === null) {
-				if (chosenProject === undefined) {
-					setProjectMissing(true);
-					return;
-				}
 				try {
 					ticket = await createTicket({
 						project: chosenProject,
@@ -127,22 +138,30 @@ export function CreateTicketDialog() {
 			className="gap-0 bg-surface p-0"
 		>
 			<DropTarget identifier={createdTicket?.identifier ?? "new ticket"} onFiles={uploads.addFiles}>
-				<div className="flex min-h-0 flex-col">
-					<div className="border-b border-border p-4">
-						<ComposerHeader project={chosenProject} closeDisabled={creating} onClose={requestClose} />
-					</div>
-					<div className="flex flex-1 flex-col gap-4 p-6 max-md:p-4">
+				<div className="flex min-h-0 flex-col gap-2 p-3">
+					<ComposerHeader closeDisabled={creating} onClose={requestClose} />
+					<div className="flex flex-col rounded-lg border border-border bg-elevated">
 						<fieldset disabled={createdTicket !== null} className="contents">
+							<label htmlFor={titleId} className="sr-only">
+								Title
+							</label>
 							<input
+								id={titleId}
 								ref={titleRef}
-								aria-label="Title"
+								aria-invalid={(titleMissing && draft.title.trim() === "") || undefined}
+								aria-describedby={titleMissing && draft.title.trim() === "" ? titleErrorId : undefined}
 								autoComplete="off"
 								maxLength={500}
 								placeholder="Ticket title"
 								value={draft.title}
 								onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-								className="h-7 w-full bg-transparent text-xl font-semibold text-fg outline-none placeholder:text-fg-faint"
+								className="h-10 w-full rounded-sm bg-transparent px-3 pt-1 text-xl font-semibold text-fg outline-none placeholder:text-fg-faint focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
 							/>
+							{titleMissing && draft.title.trim() === "" && (
+								<p id={titleErrorId} role="alert" className="px-3 text-xs text-danger">
+									Add a ticket title.
+								</p>
+							)}
 							<DescriptionField
 								key={editorKey}
 								markdown={description}
@@ -158,33 +177,41 @@ export function CreateTicketDialog() {
 								priority={chosenPriority}
 								parent={parent ?? null}
 								parentRef={parent === undefined ? defaults.parent : undefined}
-								onProject={setProject}
+								onProject={(next) => {
+									setProject(next);
+									setProjectMissing(false);
+								}}
 								onStatus={(next) => setStatus(next.slug)}
 								onPriority={setPriority}
 								onParent={setParent}
 							/>
 						</fieldset>
-						<div className="flex flex-col gap-2">
-							<SectionHeader
-								title="Attachments"
-								count={uploads.uploads.length > 0 ? uploads.uploads.length : undefined}
-								actions={<AttachmentBox uploads={uploads} />}
-							/>
-							{uploads.uploads.map((upload) => (
-								<UploadProgress key={upload.id} upload={upload} onDismiss={uploads.dismiss} />
-							))}
-						</div>
 					</div>
-					<div className="sticky bottom-0 flex items-center justify-end gap-3 border-t border-border bg-surface p-4">
+					<div className="flex flex-col gap-2 px-1 pt-1">
+						<SectionHeader
+							title="Attachments"
+							count={uploads.uploads.length > 0 ? uploads.uploads.length : undefined}
+							actions={<AttachmentBox uploads={uploads} />}
+						/>
+						{uploads.uploads.map((upload) => (
+							<UploadProgress key={upload.id} upload={upload} onDismiss={uploads.dismiss} />
+						))}
+					</div>
+					<div className="flex flex-wrap items-center gap-2 px-1 pt-1">
 						<Switch
-							label="Create more"
+							label="Keep open after create"
 							checked={createMore}
 							onCheckedChange={setCreateMore}
 							className="text-xs text-fg-muted"
 						/>
-						<Button variant="primary" size="md" disabled={creating} onClick={() => void create(createMore)} kbd="⌘↩">
-							{createdTicket === null ? "Create" : needsUpload ? "Retry attachments" : "Finish"}
-						</Button>
+						<div className="ml-auto flex items-center gap-2">
+							<span className="hidden items-center gap-1 text-xs text-fg-muted sm:inline-flex">
+								<Kbd>⌘↩</Kbd> to create
+							</span>
+							<Button variant="primary" size="md" processing={creating} onClick={() => void create(createMore)}>
+								{createdTicket === null ? "Create ticket" : needsUpload ? "Retry attachments" : "Finish"}
+							</Button>
+						</div>
 					</div>
 				</div>
 			</DropTarget>

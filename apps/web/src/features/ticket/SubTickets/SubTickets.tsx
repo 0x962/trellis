@@ -1,16 +1,8 @@
 import { GitPullRequest, Plus } from "@phosphor-icons/react";
 import type { Ticket, TicketSummary } from "@trellis/api";
-import {
-	Avatar,
-	Button,
-	CheckRibbon,
-	EmptyState,
-	PriorityIcon,
-	SectionHeader,
-	StatusIcon,
-	TicketId,
-} from "@trellis/ui";
+import { Button, CheckRibbon, EmptyState, PriorityIcon, SectionHeader, StatusIcon, TicketId } from "@trellis/ui";
 import { compactRelativeTime } from "../../../lib/format";
+import { ActorAvatar } from "../../agents/ActorAvatar";
 import { composerActions } from "../../composer";
 import { useOpenTicket } from "../hooks/useOpenTicket";
 
@@ -108,9 +100,7 @@ function ChildRow({ child, onOpen }: { child: TicketSummary; onOpen: () => void 
 				)}
 			</span>
 			<span className="flex w-5 shrink-0 justify-center">
-				{lastActor !== null && lastActor.kind !== "system" && (
-					<Avatar kind={lastActor.kind} name={lastActor.displayName ?? lastActor.name} />
-				)}
+				{lastActor !== null && <ActorAvatar actor={lastActor} ticketId={child.id} />}
 			</span>
 			<time dateTime={child.updatedAt} className="w-8 shrink-0 text-right text-sm text-fg-muted tabular">
 				{compactRelativeTime(child.updatedAt)}

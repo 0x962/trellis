@@ -21,6 +21,24 @@ const itemsByStatus = (data: BoardOutput) => {
 	return result;
 };
 
+export const workingFirst = (columns: BoardColumnModel[], workingTicketIds: ReadonlySet<string>): BoardColumnModel[] =>
+	columns.map((column) => ({
+		...column,
+		items: [
+			...column.items.filter((ticket) => workingTicketIds.has(ticket.id)),
+			...column.items.filter((ticket) => !workingTicketIds.has(ticket.id)),
+		],
+	}));
+
+export const workingGroupInsertIndex = (
+	items: TicketSummary[],
+	ticketId: string,
+	workingTicketIds: ReadonlySet<string>,
+) =>
+	workingTicketIds.has(ticketId)
+		? 0
+		: items.filter((ticket) => ticket.id !== ticketId && workingTicketIds.has(ticket.id)).length;
+
 export const projectColumns = (data: BoardOutput, project: Project): BoardColumnModel[] => {
 	const items = itemsByStatus(data);
 	const source = new Map(data.columns.map((column) => [column.statusId, column]));
