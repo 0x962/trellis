@@ -65,7 +65,6 @@ export const prepareStandaloneHandoff = async (input: {
 				await tx.execute(
 					sql`UPDATE settings SET value=jsonb_set(value,'{enabled}','false'::jsonb),updated_at=now() WHERE key='agents'`,
 				);
-				await tx.execute(sql`UPDATE projects SET manager_config=manager_config || '{"dispatchPaused":true}'::jsonb`);
 			});
 		} finally {
 			await database.close();
