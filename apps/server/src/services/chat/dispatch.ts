@@ -97,7 +97,6 @@ export const dispatchChat = async (
 			ready.map((id) => sql`${id}`),
 			sql`,`,
 		)})
-		AND NOT EXISTS (SELECT 1 FROM settings WHERE key='nativeWorkPaused' AND value='true'::jsonb)
 		AND NOT EXISTS (SELECT 1 FROM projects WHERE id=m.project_id AND archived_at IS NOT NULL)
 		ORDER BY d.run_id LIMIT 20`,
 		),

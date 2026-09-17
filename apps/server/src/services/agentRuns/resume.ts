@@ -15,7 +15,6 @@ import { reserveRestart } from "../restartAgents/reserveRestart.ts";
 import { assertResume } from "../submanagers/assertResume.ts";
 import type { IoCtx } from "../support.ts";
 import { assertResumeTicket } from "./assertResumeTicket.ts";
-import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import { startNative } from "./nativeStart.ts";
 import { getRun } from "./queries.ts";
 
@@ -102,7 +101,6 @@ export async function prepareResume(
 		await tx.execute(sql`SELECT id FROM projects WHERE id=${run.projectId} FOR UPDATE`);
 		const replay = await replayRequest(ctx.core, tx, request);
 		if (replay) return { replay: true as const, run: replay };
-		await assertNativeWorkEnabled(tx);
 		assertProjectActive(ctx.core, run.projectId!);
 		const current = await getRun(tx, input.id);
 		await assertResume(ctx.core, tx, current);

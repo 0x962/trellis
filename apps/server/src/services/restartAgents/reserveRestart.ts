@@ -6,7 +6,6 @@ import type { ServiceCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
-import { readNativeWork } from "../agentRuns/nativeControl.ts";
 import { columns, type StoredRun } from "../agentRuns/queries.ts";
 import { type ExecutionAttempt, reserveAttempt } from "../assignments/attempts.ts";
 import type { StoredExecution } from "../flowExecutions/types.ts";
@@ -33,7 +32,6 @@ export async function reserveRestart(
 		![session.previousAttemptId, session.attempt.id].includes(run.terminalId!)
 	)
 		return null;
-	if ((await readNativeWork(tx)).paused) return null;
 	const project = await projectRow(tx, run.projectId);
 	const config = await projectLaunchConfig(tx, { projectId: run.projectId });
 	if (project.archived_at !== null) return null;

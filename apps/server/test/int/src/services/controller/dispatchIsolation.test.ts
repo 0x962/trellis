@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test";
+import { beginHostShutdown } from "../../../../../src/services/agentRuns/hostShutdown.ts";
 import { dispatch } from "../../../../../src/services/controller/dispatch.ts";
 
-const context = { newTx: async () => ({ paused: false }) } as unknown as Parameters<typeof dispatch>[0];
+const context = { home: "/dispatch-active" } as unknown as Parameters<typeof dispatch>[0];
 const done = async () => {};
 
 test("a slow builder launch does not delay user chat", async () => {
@@ -58,9 +59,10 @@ test("a failed heartbeat still dispatches user chat and reports its error", asyn
 	expect(managers).toBe(1);
 });
 
-test("the global work pause prevents runtime recovery", async () => {
+test("host shutdown prevents runtime recovery", async () => {
 	let reads = 0;
-	const paused = { newTx: async () => ({ paused: true }) } as unknown as Parameters<typeof dispatch>[0];
+	beginHostShutdown("/dispatch-shutdown");
+	const paused = { home: "/dispatch-shutdown" } as unknown as Parameters<typeof dispatch>[0];
 	await dispatch(
 		paused,
 		{},
