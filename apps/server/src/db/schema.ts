@@ -139,6 +139,7 @@ export const comments = pgTable(
 );
 
 // The blob path is a function of sha256, so two rows may share one blob.
+// A row names the comment it illustrates, or nothing for a ticket file.
 export const attachments = pgTable(
 	"attachments",
 	{
@@ -146,6 +147,7 @@ export const attachments = pgTable(
 		ticketId: text("ticket_id")
 			.notNull()
 			.references(() => tickets.id, { onDelete: "cascade" }),
+		commentId: text("comment_id"),
 		filename: text().notNull(),
 		mime: text().notNull(),
 		size: bigint({ mode: "number" }).notNull(),
@@ -161,7 +163,16 @@ export const attachments = pgTable(
 		),
 		check("attachments_size_check", sql`${t.size} > 0`),
 		check("attachments_sha256_check", sql`${t.sha256} ~ '^[0-9a-f]{64}$'`),
+		// The pair names the comment, so a link never crosses tickets. A
+		// null comment keeps a ticket file, and a deleted comment takes its
+		// rows with it.
+		foreignKey({
+			name: "attachments_comment_fk",
+			columns: [t.commentId, t.ticketId],
+			foreignColumns: [comments.id, comments.ticketId],
+		}).onDelete("cascade"),
 		index("attachments_ticket_id_idx").on(t.ticketId),
+		index("attachments_comment_id_idx").on(t.commentId),
 		index("attachments_sha256_idx").on(t.sha256),
 	],
 );

@@ -83,11 +83,7 @@ export function TicketView({ identifier, thread }: TicketViewProps) {
 				<div className="mt-8 flex flex-col gap-8">
 					<SubTickets ticket={ticket} />
 					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
-					<TicketWorkArea
-						key={ticket.id}
-						ticket={ticket}
-						activity={<Timeline thread={thread} ticket={ticket} onAttachFiles={uploads.start} />}
-					/>
+					<TicketWorkArea key={ticket.id} ticket={ticket} activity={<Timeline thread={thread} ticket={ticket} />} />
 				</div>
 			</div>
 		</article>

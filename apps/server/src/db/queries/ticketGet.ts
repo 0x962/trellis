@@ -96,6 +96,7 @@ export const linkedPullRequests = async (tx: Tx, ticketId: string): Promise<Link
 type RawAttachment = {
 	id: string;
 	ticket_id: string;
+	comment_id: string | null;
 	filename: string;
 	mime: string;
 	size: number;
@@ -113,13 +114,14 @@ export const attachmentUrl = (id: string) => `/api/attachments/${id}/file`;
 export const attachmentsOf = async (tx: Tx, ticketId: string): Promise<Attachment[]> => {
 	const found = await rows<RawAttachment>(
 		tx,
-		sql`SELECT a.id, a.ticket_id, a.filename, a.mime, a.size, a.sha256, a.actor_name, a.actor_kind, ${actorDisplayName(sql`a.actor_name`, sql`a.actor_kind`)} AS actor_display_name,
+		sql`SELECT a.id, a.ticket_id, a.comment_id, a.filename, a.mime, a.size, a.sha256, a.actor_name, a.actor_kind, ${actorDisplayName(sql`a.actor_name`, sql`a.actor_kind`)} AS actor_display_name,
 			${iso(sql`a.created_at`)} AS created_at
 		FROM attachments a WHERE a.ticket_id = ${ticketId} ORDER BY a.created_at, a.id`,
 	);
 	return found.map((row) => ({
 		id: row.id,
 		ticketId: row.ticket_id,
+		commentId: row.comment_id,
 		filename: row.filename,
 		mime: row.mime,
 		size: row.size,

@@ -185,6 +185,7 @@ export const pullRequest = (overrides: Partial<LinkedPullRequest> = {}): LinkedP
 export const attachment = (overrides: Partial<Attachment> = {}): Attachment => ({
 	id: id("A1"),
 	ticketId,
+	commentId: null,
 	filename: "settings-pages.png",
 	mime: "image/png",
 	size: 184_320,

@@ -36,8 +36,16 @@ const fileAt = (path: string): File => {
 // stores in place of the multipart filename.
 const CUT_BY_MULTIPART = /["\r\n]/;
 
-const renderUpload = (result: AttachmentUploadOutput) =>
+export const renderUpload = (result: AttachmentUploadOutput) =>
 	`Attached ${result.attachment.filename} (${kilobytes(result.attachment.size)}) -> ${result.url}\n${result.markdown}\n`;
+
+// The file at a path with the name the server stores. `comment --attach`
+// shares it, so one flag uploads the same way in both commands.
+export const fileForUpload = (path: string, name?: string): { file: File; name?: string } => {
+	const file = fileAt(path);
+	const stored = name ?? (CUT_BY_MULTIPART.test(file.name) ? file.name : undefined);
+	return compact({ file, name: stored });
+};
 
 export default defineCommand({
 	meta: { name: "attach", description: "Upload a file to a ticket" },
@@ -45,13 +53,16 @@ export default defineCommand({
 		ticket: { type: "positional", required: true, description: "Ticket ref" },
 		path: { type: "positional", required: true, description: "File path" },
 		name: { type: "string", description: "Filename to store instead of the file's own" },
+		comment: { type: "string", description: "Comment ID to link the upload to" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);
 		const { args } = context;
-		const file = fileAt(args.path);
-		const name = args.name ?? (CUT_BY_MULTIPART.test(file.name) ? file.name : undefined);
-		const result = await clientOf(ctx).attachments.upload(compact({ ticket: args.ticket, file, name }));
+		const result = await clientOf(ctx).attachments.upload({
+			ticket: args.ticket,
+			...fileForUpload(args.path, args.name),
+			...(args.comment === undefined ? {} : { commentId: args.comment }),
+		});
 		switch (ctx.format.mode) {
 			case "quiet":
 				ctx.out.write(`${result.attachment.id}\n`);

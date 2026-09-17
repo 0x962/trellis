@@ -10,8 +10,6 @@ import { MentionedThread } from "./components/MentionedThread";
 import { prependTimeline, updateTimeline } from "./utils/timelineCache";
 
 export type TimelineProps = {
-	// Uploads files the composer picks to the ticket.
-	onAttachFiles?: (files: File[]) => void;
 	ticket: Ticket;
 	thread?: string;
 };
@@ -21,7 +19,7 @@ export type TimelineProps = {
 const shownInStream = (item: TimelineItem) => item.kind === "comment" || item.action !== "comment.created";
 
 // Each section shows its items oldest first. The API pages newest first.
-export function Timeline({ ticket, onAttachFiles, thread }: TimelineProps) {
+export function Timeline({ ticket, thread }: TimelineProps) {
 	const { orpc, queryClient } = useApp();
 	const key = timelineOptions(orpc, ticket.identifier).queryKey;
 	const timeline = useTimeline(ticket.identifier);
@@ -86,7 +84,7 @@ export function Timeline({ ticket, onAttachFiles, thread }: TimelineProps) {
 					</ul>
 				</li>
 			</ul>
-			<Composer ticket={ticket} onAttachFiles={onAttachFiles} />
+			<Composer ticket={ticket} />
 		</section>
 	);
 }

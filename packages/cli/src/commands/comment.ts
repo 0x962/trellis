@@ -4,6 +4,7 @@ import { clientOf } from "../client.ts";
 import { compact, contextOf, readText, toNumber } from "../context.ts";
 import { cell, printList, printRecord, type RecordSpec } from "../output.ts";
 import { type CommentItem, commentItems, commentList, renderComments } from "../timeline.ts";
+import { fileForUpload, renderUpload } from "./attach.ts";
 
 export const commentRecord: RecordSpec<Comment> = {
 	fields: [
@@ -25,19 +26,29 @@ export default defineCommand({
 		body: { type: "string", required: true, description: "Comment text, or - for stdin" },
 		"reply-to": { type: "string", description: "Comment ID of the thread to reply to" },
 		"dedupe-key": { type: "string", description: "Stable key for this comment subject and revision" },
+		attach: { type: "string", description: "File path to upload and link to the comment" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);
 		const { args } = context;
-		const comment = await clientOf(ctx).comments.create(
+		const client = clientOf(ctx);
+		// The file goes first, so the comment claims the upload in one call.
+		// A path the process cannot open ends the run before any request.
+		const uploaded =
+			args.attach === undefined
+				? undefined
+				: await client.attachments.upload({ ticket: args.ticket, ...fileForUpload(args.attach) });
+		const comment = await client.comments.create(
 			compact({
 				ticket: args.ticket,
 				body: await readText(ctx, args.body),
 				parentId: args["reply-to"],
 				dedupeKey: args["dedupe-key"],
+				attachmentIds: uploaded === undefined ? undefined : [uploaded.attachment.id],
 			}),
 		);
 		printRecord(ctx.out, ctx.format, comment, commentRecord);
+		if (uploaded !== undefined && ctx.format.mode === "table") ctx.out.write(renderUpload(uploaded));
 	},
 });
 

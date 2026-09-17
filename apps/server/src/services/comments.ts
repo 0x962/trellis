@@ -13,6 +13,7 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { z } from "zod";
 import { requireActor, type ServiceCtx } from "../context.ts";
+import { commentAttachments, toCommentAttachments } from "../db/queries/commentAttachments.ts";
 import { commentNotifications } from "../db/queries/commentNotifications.ts";
 import { iso, rows } from "../db/queries/support.ts";
 import { ticketSummary } from "../db/queries/ticketGet.ts";
@@ -29,6 +30,7 @@ type RawComment = {
 	parent_id: string | null;
 	resolved_at: string | null;
 	body: string;
+	attachments: unknown;
 	notifications: CommentNotification[];
 	actor_name: string;
 	actor_kind: StoredActorKind;
@@ -37,9 +39,13 @@ type RawComment = {
 	updated_at: string;
 };
 
-const commentSelect = sql`SELECT c.id, c.ticket_id, c.parent_id, ${iso(sql`c.resolved_at`)} AS resolved_at, c.body, ${commentNotifications(sql`c.id`)} AS notifications, c.actor_name, c.actor_kind, r.persona_name AS actor_display_name,
+const commentSelect = sql`SELECT c.id, c.ticket_id, c.parent_id, ${iso(sql`c.resolved_at`)} AS resolved_at, c.body, ${commentAttachments(sql`c.id`)} AS attachments, ${commentNotifications(sql`c.id`)} AS notifications, c.actor_name, c.actor_kind, r.persona_name AS actor_display_name,
 	${iso(sql`c.created_at`)} AS created_at, ${iso(sql`c.updated_at`)} AS updated_at FROM comments c
 	LEFT JOIN agent_runs r ON c.actor_kind = 'agent' AND r.id = c.actor_name`;
+
+// A comment carries its attachments when it has any, as it carries its
+// notifications. An empty list stays out of the shape.
+const attachedFiles = (row: RawComment) => toCommentAttachments(row.attachments);
 
 const toComment = (row: RawComment): Comment => ({
 	id: row.id,
@@ -47,6 +53,7 @@ const toComment = (row: RawComment): Comment => ({
 	parentId: row.parent_id,
 	resolvedAt: row.resolved_at,
 	body: row.body,
+	...(attachedFiles(row).length === 0 ? {} : { attachments: attachedFiles(row) }),
 	...(row.notifications.length === 0 ? {} : { notifications: row.notifications }),
 	actor: {
 		name: row.actor_name,
@@ -105,6 +112,33 @@ const activityFor = (
 	],
 });
 
+// An upload joins a comment when it belongs to the ticket and names no
+// comment yet. A missing row reads as a missing attachment; any other state
+// reads as a mismatch.
+const claimAttachments = async (tx: Tx, ticketId: string, commentId: string, ids: string[] | undefined) => {
+	if (ids === undefined || ids.length === 0) return;
+	const unique = [...new Set(ids)].sort();
+	const found = await rows<{ id: string; ticket_id: string; comment_id: string | null }>(
+		tx,
+		sql`SELECT id, ticket_id, comment_id FROM attachments WHERE id IN (${sql.join(
+			unique.map((id) => sql`${id}`),
+			sql`, `,
+		)})`,
+	);
+	const byId = new Map(found.map((row) => [row.id, row]));
+	for (const id of unique) {
+		const row = byId.get(id);
+		if (row === undefined) throw fail("NOT_FOUND", { kind: "attachment", ref: id });
+		if (row.ticket_id !== ticketId || row.comment_id !== null) throw fail("COMMENT_ATTACHMENT_MISMATCH");
+	}
+	await tx.execute(
+		sql`UPDATE attachments SET comment_id = ${commentId} WHERE id IN (${sql.join(
+			unique.map((id) => sql`${id}`),
+			sql`, `,
+		)})`,
+	);
+};
+
 export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<Comment> => {
 	const input = CommentCreateInputSchema.parse(rawInput);
 	const row = await resolveTicket(ctx, tx, input.ticket);
@@ -127,6 +161,14 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 					"dedupeKey",
 					"This key already identifies another comment. Update that comment or use a new revision key.",
 				);
+			const linked = (
+				await rows<{ id: string }>(tx, sql`SELECT id FROM attachments WHERE comment_id = ${existing.id}`)
+			).map((attachment) => attachment.id);
+			if (linked.join() !== [...new Set(input.attachmentIds ?? [])].sort().join())
+				throw invalidInput(
+					"dedupeKey",
+					"This key already identifies another comment. Update that comment or use a new revision key.",
+				);
 			return toComment(existing);
 		}
 	}
@@ -139,6 +181,7 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 		sql`INSERT INTO comments (id, ticket_id, parent_id, body, dedupe_key, actor_name, actor_kind, created_at, updated_at)
 			VALUES (${id}, ${row.id}, ${parentId}, ${input.body}, ${input.dedupeKey ?? null}, ${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now})`,
 	);
+	await claimAttachments(tx, row.id, id, input.attachmentIds);
 	await enqueue(tx, { commentId: id, ticketId: row.id, projectId: row.projectId, body: input.body });
 	await record(ctx, tx, activityFor(row, "comment.created", batchId, id, parentId));
 	ctx.emit({
@@ -189,6 +232,16 @@ const remove = async (
 	const batchId = ulid();
 	const replies = await rows(tx, sql`SELECT id FROM comments WHERE parent_id = ${comment.id} LIMIT 1`);
 	if (replies.length > 0) throw fail("COMMENT_HAS_REPLIES");
+	// The rows go explicitly, and their blobs queue for removal after the
+	// commit. A delete that cascades them would leave the files behind.
+	const linked = await rows<{ sha256: string }>(
+		tx,
+		sql`SELECT sha256 FROM attachments WHERE comment_id = ${comment.id}`,
+	);
+	if (linked.length > 0) {
+		await tx.execute(sql`DELETE FROM attachments WHERE comment_id = ${comment.id}`);
+		ctx.dropBlobs(linked.map((attachment) => attachment.sha256));
+	}
 	await tx.execute(sql`DELETE FROM comments WHERE id = ${comment.id}`);
 	await record(ctx, tx, activityFor(row, "comment.deleted", batchId, comment.id, comment.parentId));
 	ctx.emit({

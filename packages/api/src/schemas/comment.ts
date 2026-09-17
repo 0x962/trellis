@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TicketRefStringSchema } from "../refs.ts";
 import { ActorRefSchema } from "./actor.ts";
+import { AttachmentSchema } from "./attachment.ts";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 export const CommentNotificationSchema = z.object({
@@ -22,6 +23,7 @@ export const CommentSchema = z.object({
 	parentId: UlidSchema.nullable().default(null),
 	resolvedAt: IsoDateTimeSchema.nullable().default(null),
 	body: BodySchema,
+	attachments: z.array(AttachmentSchema).optional(),
 	notifications: z.array(CommentNotificationSchema).optional(),
 	actor: ActorRefSchema,
 	createdAt: IsoDateTimeSchema,
@@ -33,6 +35,7 @@ export const CommentCreateInputSchema = z.strictObject({
 	ticket: TicketRefStringSchema,
 	parentId: UlidSchema.optional(),
 	body: BodySchema,
+	attachmentIds: z.array(UlidSchema).max(20).optional(),
 	dedupeKey: z.string().trim().min(1).max(200).optional(),
 });
 export type CommentCreateInput = z.input<typeof CommentCreateInputSchema>;

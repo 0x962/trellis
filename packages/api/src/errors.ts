@@ -128,6 +128,11 @@ export const errors = {
 		message: "The parent comment belongs to another ticket.",
 		data: z.undefined(),
 	},
+	COMMENT_ATTACHMENT_MISMATCH: {
+		status: 409,
+		message: "The attachment belongs to another ticket or comment.",
+		data: z.undefined(),
+	},
 	CHAT_AI_ONLY: {
 		status: 403,
 		message: "This channel is for agents only. A person reads it and does not post in it.",

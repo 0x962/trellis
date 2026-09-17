@@ -1,6 +1,7 @@
 import type { CommentNotification, StoredActorKind, TimelineItem, TimelineListOutput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { Tx } from "../tx.ts";
+import { commentAttachments, toCommentAttachments } from "./commentAttachments.ts";
 import { commentNotifications } from "./commentNotifications.ts";
 import { decodeCursor, encodeCursor, InvalidCursorError, isIsoTimestamp, iso, rows } from "./support.ts";
 
@@ -15,6 +16,7 @@ type RawItem = {
 	id: string;
 	ticket_id: string;
 	body: string | null;
+	attachments: unknown;
 	notifications: CommentNotification[];
 	parent_id: string | null;
 	resolved_at: string | null;
@@ -79,11 +81,13 @@ const toItem = (row: RawItem): TimelineItem => {
 		...(row.actor_display_name === null ? {} : { displayName: row.actor_display_name }),
 	};
 	if (row.kind === "comment") {
+		const attached = toCommentAttachments(row.attachments);
 		return {
 			kind: "comment",
 			id: row.id,
 			ticketId: row.ticket_id,
 			body: row.body as string,
+			...(attached.length === 0 ? {} : { attachments: attached }),
 			...(row.notifications.length === 0 ? {} : { notifications: row.notifications }),
 			parentId: row.parent_id,
 			resolvedAt: row.resolved_at,
@@ -116,7 +120,7 @@ export const timeline = async (tx: Tx, input: TimelineInput): Promise<TimelineLi
 	const start = input.before === undefined ? sql`true` : afterCursor(readCursor(input.before));
 	const found = await rows<RawItem>(
 		tx,
-		sql`SELECT kind, kind_rank, sort_key, id, ticket_id, body, CASE WHEN kind = 'comment' THEN ${commentNotifications(sql`stream.id`)} ELSE '[]'::jsonb END AS notifications, parent_id, ${iso(sql`resolved_at`)} AS resolved_at, actor_name, actor_kind, actor_display_name,
+		sql`SELECT kind, kind_rank, sort_key, id, ticket_id, body, CASE WHEN kind = 'comment' THEN ${commentAttachments(sql`stream.id`)} ELSE '[]'::jsonb END AS attachments, CASE WHEN kind = 'comment' THEN ${commentNotifications(sql`stream.id`)} ELSE '[]'::jsonb END AS notifications, parent_id, ${iso(sql`resolved_at`)} AS resolved_at, actor_name, actor_kind, actor_display_name,
 			${iso(sql`created_at`)} AS created_at, ${iso(sql`updated_at`)} AS updated_at,
 			batch_id, root_id, project_id, action, field, from_value, to_value, meta
 		FROM (${stream(input.ticketId)}) stream

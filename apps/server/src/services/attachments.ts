@@ -69,6 +69,7 @@ export const fileUrl = (id: string) => `/api/attachments/${id}/file`;
 type AttachmentRow = {
 	id: string;
 	ticket_id: string;
+	comment_id: string | null;
 	filename: string;
 	mime: string;
 	size: number;
@@ -82,13 +83,14 @@ type AttachmentRow = {
 type ActorKind = Attachment["actor"]["kind"];
 
 const columns = sql`
-	a.id, a.ticket_id, a.filename, a.mime, a.size, a.sha256, a.actor_name, a.actor_kind, ${actorDisplayName(sql`a.actor_name`, sql`a.actor_kind`)} AS actor_display_name,
+	a.id, a.ticket_id, a.comment_id, a.filename, a.mime, a.size, a.sha256, a.actor_name, a.actor_kind, ${actorDisplayName(sql`a.actor_name`, sql`a.actor_kind`)} AS actor_display_name,
 	${iso(sql`a.created_at`)} AS created_at
 `;
 
 const toAttachment = (row: AttachmentRow): Attachment => ({
 	id: row.id,
 	ticketId: row.ticket_id,
+	commentId: row.comment_id,
 	filename: row.filename,
 	mime: row.mime,
 	size: row.size,
@@ -155,12 +157,23 @@ const emitCount = async (ctx: ServiceCtx, tx: Tx, ticketId: string) =>
 		batchId: ulid(),
 	});
 
-export type UploadInput = { ticket: string; file: File; name?: string };
+export type UploadInput = { ticket: string; file: File; name?: string; commentId?: string };
+
+// The comment the upload names. An unknown id reads as a missing comment;
+// a comment of another ticket reads as a mismatch, as a parent does.
+const commentOfTicket = async (tx: Tx, ticketId: string, commentId: string | undefined) => {
+	if (commentId === undefined) return null;
+	const [found] = await rows<{ ticket_id: string }>(tx, sql`SELECT ticket_id FROM comments WHERE id = ${commentId}`);
+	if (found === undefined) throw notFound("comment", commentId);
+	if (found.ticket_id !== ticketId) throw fail("COMMENT_ATTACHMENT_MISMATCH");
+	return commentId;
+};
 
 export const upload = async (ctx: ServiceCtx, tx: Tx, input: UploadInput): Promise<AttachmentUploadOutput> => {
 	const ticket = await resolveTicket(tx, input.ticket);
 	assertProjectActive(ticket);
 	if (input.file.size > ctx.maxUploadBytes) throw fail("PAYLOAD_TOO_LARGE", { maxBytes: ctx.maxUploadBytes });
+	const commentId = await commentOfTicket(tx, ticket.id, input.commentId);
 	const stored = await storeFile(ctx.home, input.file);
 	const at = ctx.now();
 	const id = ulid();
@@ -168,9 +181,9 @@ export const upload = async (ctx: ServiceCtx, tx: Tx, input: UploadInput): Promi
 	const mime = storedMime(input.file.type);
 	await touchActor(tx, ctx.actor, at);
 	await tx.execute(sql`
-		INSERT INTO attachments (id, ticket_id, filename, mime, size, sha256, actor_name, actor_kind, created_at)
+		INSERT INTO attachments (id, ticket_id, comment_id, filename, mime, size, sha256, actor_name, actor_kind, created_at)
 		VALUES (
-			${id}, ${ticket.id}, ${filename}, ${mime}, ${stored.size}, ${stored.sha256},
+			${id}, ${ticket.id}, ${commentId}, ${filename}, ${mime}, ${stored.size}, ${stored.sha256},
 			${ctx.actor.name}, ${ctx.actor.kind}, ${at}
 		)
 	`);

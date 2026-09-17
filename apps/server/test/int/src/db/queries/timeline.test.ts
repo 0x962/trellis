@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { InvalidCursorError } from "../../../../../src/db/queries/support.ts";
 import { timeline } from "../../../../../src/db/queries/timeline.ts";
-import { seedActivity, seedComment, seedProject, seedTicket } from "../../../../fixtures";
+import { seedActivity, seedAttachment, seedComment, seedProject, seedTicket } from "../../../../fixtures";
 import { freshDb, type TestDb } from "../../../../helpers/db.ts";
 
 let h: TestDb;
@@ -65,6 +65,22 @@ describe("timeline", () => {
 		} while (before);
 		expect(pages.map((page) => page.length)).toEqual([100, 100, 50]);
 		expect(pages.flat().sort()).toEqual([...all].sort());
+	});
+
+	test("timeline comments carry their attachments and activity rows carry none", async () => {
+		const { ticket } = await seedOneTicket();
+		const plain = await seedComment(h.db, ticket, "plain");
+		const illustrated = await seedComment(h.db, ticket, "illustrated");
+		const file = await seedAttachment(h.db, ticket, { comment_id: illustrated, filename: "board.png" });
+		const { items } = await run({ ticketId: ticket });
+		expect(items).toHaveLength(2);
+		const [first, second] = items;
+		expect(first).toMatchObject({ kind: "comment", id: illustrated });
+		expect(second).toMatchObject({ kind: "comment", id: plain });
+		if (first?.kind !== "comment" || second?.kind !== "comment") throw new Error("Expected two comments.");
+		expect(first.attachments?.map((attachment) => attachment.id)).toEqual([file]);
+		expect(first.attachments?.[0]).toMatchObject({ filename: "board.png", commentId: illustrated });
+		expect(second.attachments).toBeUndefined();
 	});
 
 	test("timeline holds only the requested ticket's rows", async () => {

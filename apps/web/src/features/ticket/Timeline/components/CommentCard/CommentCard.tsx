@@ -6,6 +6,7 @@ import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
 import { failToast } from "../../../../../lib/failToast";
 import { compactRelativeTime } from "../../../../../lib/format";
+import { AttachmentRow } from "../../../../attachments/AttachmentGrid/components/AttachmentRow";
 import { absoluteTime } from "../../utils/absoluteTime";
 
 export type CommentCardProps = {
@@ -79,6 +80,15 @@ export function CommentCard({
 	) : (
 		<div className="text-base">
 			<ReadOnlyMarkdown markdown={comment.body} formatClassName={formatClassName} />
+			{comment.attachments !== undefined && comment.attachments.length > 0 && (
+				<ul aria-label="Attachments" className="mt-2 flex flex-col gap-2">
+					{comment.attachments.map((file) => (
+						<li key={file.id}>
+							<AttachmentRow attachment={file} />
+						</li>
+					))}
+				</ul>
+			)}
 			{comment.notifications?.map((notification) => (
 				<p key={notification.runId} className="mt-2 text-xs text-fg-muted" title={notification.error ?? undefined}>
 					@{notification.personaName}:{" "}

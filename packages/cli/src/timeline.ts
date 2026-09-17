@@ -11,14 +11,16 @@ export const activityItems = (items: TimelineItem[]): ActivityItem[] =>
 	items.filter((item): item is ActivityItem => item.kind === "activity");
 
 // A thread reads oldest first, so the comment blocks print in reverse of
-// the wire order. Each block names its comment and parent for a CLI reply.
+// the wire order. Each block names its comment and parent for a CLI reply,
+// then the files the comment illustrates.
 export const renderComments = (comments: CommentItem[]): string =>
 	[...comments]
 		.reverse()
 		.map((comment) => {
 			const state = comment.resolvedAt ? " [resolved]" : "";
 			const parent = comment.parentId ? ` reply to ${comment.parentId}` : "";
-			return `${comment.id}${state}${parent}\n${comment.actor.kind}:${comment.actor.displayName ?? comment.actor.name}  ${comment.createdAt}\n${comment.body}\n\n`;
+			const files = (comment.attachments ?? []).map((file) => `  ${file.filename} -> ${file.url}`).join("\n");
+			return `${comment.id}${state}${parent}\n${comment.actor.kind}:${comment.actor.displayName ?? comment.actor.name}  ${comment.createdAt}\n${comment.body}\n${files === "" ? "" : `${files}\n`}\n`;
 		})
 		.join("");
 

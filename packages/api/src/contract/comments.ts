@@ -23,7 +23,7 @@ export const comments = {
 		.input(CommentResolveInputSchema)
 		.output(CommentSchema),
 	create: base
-		.errors({ ...archived, ...pickErrors(["COMMENT_PARENT_MISMATCH"]) })
+		.errors({ ...archived, ...pickErrors(["COMMENT_PARENT_MISMATCH", "COMMENT_ATTACHMENT_MISMATCH"]) })
 		.route({ method: "POST", path: "/tickets/{ticket}/comments", successStatus: 201, summary: "Add a comment" })
 		.input(CommentCreateInputSchema)
 		.output(CommentSchema),

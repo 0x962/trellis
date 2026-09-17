@@ -8,6 +8,7 @@ import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 export const AttachmentSchema = z.object({
 	id: UlidSchema,
 	ticketId: UlidSchema,
+	commentId: UlidSchema.nullable().default(null),
 	filename: z.string().min(1).max(255),
 	mime: z.string().min(1),
 	size: z.number().int().positive(),
@@ -22,11 +23,13 @@ export const AttachmentListInputSchema = z.strictObject({
 	ticket: TicketRefStringSchema,
 });
 
-// `name` replaces the file's own name when set.
+// `name` replaces the file's own name when set. `commentId` links the
+// upload to a comment of the same ticket.
 export const AttachmentUploadInputSchema = z.strictObject({
 	ticket: TicketRefStringSchema,
 	file: z.file(),
 	name: z.string().min(1).max(255).optional(),
+	commentId: UlidSchema.optional(),
 });
 export type AttachmentUploadInput = z.input<typeof AttachmentUploadInputSchema>;
 

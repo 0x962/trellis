@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { lines, runCli } from "../../../deps.ts";
-import { attachment, attachmentId } from "../../../fixtures.ts";
+import { attachment, attachmentId, commentId } from "../../../fixtures.ts";
 
 const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 1, 2, 3]);
 
@@ -73,6 +73,18 @@ describe("attach", () => {
 		expect(lines(result.stderr)).toHaveLength(1);
 		expect(result.stderr).toContain(missing);
 		expect(result.calls).toEqual([]);
+	});
+
+	test("attach --comment links the upload to the comment", async () => {
+		const path = tempFile();
+		const result = await runCli(["attach", "CDE-42", path, "--comment", commentId], {
+			"attachments.upload": upload(),
+		});
+		expect(result.code).toBe(0);
+		const input = result.calls[0]!.input as UploadInput & { commentId?: string };
+		expect(input.ticket).toBe("CDE-42");
+		expect(input.commentId).toBe(commentId);
+		expect(input.file).toBeInstanceOf(File);
 	});
 
 	test("attach sends a filename with a double quote in the name field", async () => {
