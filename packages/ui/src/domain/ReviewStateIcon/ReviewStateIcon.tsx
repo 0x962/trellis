@@ -1,34 +1,35 @@
 import { Checks, Circle, X } from "@phosphor-icons/react";
-import type { ReviewState } from "@trellis/api";
-import { cx } from "@trellis/ui";
 import type { ComponentType } from "react";
+import { cx } from "../../utils/cx";
+
+export type PullRequestReviewState = "none" | "review_required" | "approved" | "changes_requested";
 
 export type ReviewStateIconProps = {
-	reviewState: ReviewState;
+	reviewState: PullRequestReviewState;
 	isDraft: boolean;
 };
 
 type Look = { label: string; tone: string; Icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }> };
 
-const looks: Record<"approved" | "waiting" | "changes" | "idle", Look> = {
+const looks = {
 	approved: { label: "Approved", tone: "text-success", Icon: Checks },
 	waiting: { label: "Review requested", tone: "text-warning", Icon: Circle },
 	changes: { label: "Changes requested", tone: "text-danger", Icon: X },
 	idle: { label: "No review requested", tone: "text-fg-muted", Icon: Circle },
-};
+} as const satisfies Record<"approved" | "waiting" | "changes" | "idle", Look>;
 
-const keys: Record<ReviewState, "approved" | "waiting" | "changes" | "idle"> = {
+const keys: Record<PullRequestReviewState, keyof typeof looks> = {
 	approved: "approved",
 	review_required: "waiting",
 	changes_requested: "changes",
 	none: "idle",
 };
 
-// The review state of one pull request as one icon. A draft draws the idle
-// icon whatever gh reports, because a draft accepts no review. Every state
-// draws an icon, so a row with a review is the same width as a row without
-// one. The color carries the state and the sr-only text names it, so color
-// is never the only signal.
+export const reviewStateLabel = (reviewState: PullRequestReviewState, isDraft: boolean) =>
+	looks[isDraft ? "idle" : keys[reviewState]].label;
+
+// The review state of one pull request uses a distinct icon and color. A
+// draft uses the idle icon because it does not accept a review.
 export function ReviewStateIcon({ reviewState, isDraft }: ReviewStateIconProps) {
 	const key = isDraft ? "idle" : keys[reviewState];
 	const { label, tone, Icon } = looks[key];

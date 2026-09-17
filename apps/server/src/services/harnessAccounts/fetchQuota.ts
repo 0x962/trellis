@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import type { HarnessAccount, HarnessAccountQuota } from "@trellis/api";
-import { museUsageWindows, readMuseUsage } from "../../agents/harnesses/muse/museUsage.ts";
+import { museQuotaExhausted, museUsageWindows, readMuseUsage } from "../../agents/harnesses/muse/museUsage.ts";
 import { claudeWindows, codexUsage } from "./quotaWindows.ts";
 
 type Account = Omit<HarnessAccount, "loginCommand" | "capabilities">;
@@ -27,14 +27,14 @@ export async function fetchAccountQuota(
 		fetchedAt: new Date(now).toISOString(),
 	};
 	if (account.harness === "muse") {
-		// Meta exposes no quota endpoint. The windows come from the snapshot
-		// that the last Muse agent run of this profile saved. A profile
-		// without `muse/auth.json` is signed out.
+		// Meta exposes no quota endpoint. `bridgeEntry.ts` saves normal usage
+		// and quota failures under `account.profilePath` during a Muse run.
+		const usage = await readMuseUsage(join(account.profilePath, "muse"));
+		const exhausted = usage !== null && museQuotaExhausted(usage, now);
 		const auth = await read(account);
-		if (auth.email === null && auth.plan === null)
+		if (!exhausted && auth.email === null && auth.plan === null)
 			return { ...base, status: "signed_out", detail: "Sign in with the account's login command." };
 		const result = { ...base, email: auth.email, plan: null };
-		const usage = await readMuseUsage(join(account.profilePath, "muse"));
 		const windows = usage === null ? [] : museUsageWindows(usage, now);
 		if (windows.length)
 			return { ...result, status: "ok", windows, fetchedAt: new Date(usage!.observedAtMs).toISOString() };

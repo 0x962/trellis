@@ -29,7 +29,7 @@ export const tokens = {
 	},
 	dark: {
 		bg: "#070707",
-		surface: "#151516",
+		surface: "#111112",
 		elevated: "#1C1C1E",
 		border: "#242425",
 		borderStrong: "#323234",

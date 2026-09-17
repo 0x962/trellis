@@ -37,6 +37,9 @@
 @utility project-settings-fields {
 	@apply flex min-w-0 flex-col gap-5;
 }
+@utility project-settings-groups {
+	@apply flex min-w-0 flex-col gap-10;
+}
 @utility project-settings-group {
 	@apply flex min-w-0 flex-col gap-4;
 }
