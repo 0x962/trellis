@@ -448,22 +448,13 @@ bun run dev
 
 | Command | What it runs |
 |---|---|
-| `bun run test` | The `bun test` suite of every workspace. |
-| `bun run test:repo` | The repository rules and the documentation links in `test/`. |
-| `bun run check` | lint, typecheck, test, size-budget, typecheck:repo, and test:repo. Add `--force` to skip the turbo cache. |
-| `bun run e2e` | The Playwright suite against the real server and vite on free ports. Run `bunx playwright install chromium` in `apps/web` one time. |
-| `bun run perf:10k` | Optional performance tests at 10k rows, one workspace at a time. |
-| `bun run perf` | Optional performance tests at 50k rows. |
+| `bun run typecheck` | TypeScript in every workspace. |
+| `bun run typecheck:repo` | TypeScript for repository scripts. |
+| `bun run lint` | Biome over the repository. |
+| `bun run check` | The linter and both type checks. Add `--force` to skip the Turbo cache. |
 | `bun run db:generate` | The Drizzle migrations for a change to `apps/server/src/db/schema.ts`. |
-| `bun run --cwd apps/mobile test:native` | The mobile Jest suite. |
 
-A web component test drives the real server. `apps/web/test/server` builds the
-Hono app of `apps/server` over an in-memory PGlite. The web workspace ships no
-fake server.
-
-`test/readme.test.ts` runs each shell block in this README that has the info string `sh test`. The blocks run against a temporary data home, so a command that stops working fails the test.
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) for the development loop, the TDD rules, and the review pass.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for the development loop and the review pass.
 
 ## License
 

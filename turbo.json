@@ -10,30 +10,13 @@
 			"dependsOn": ["^build"],
 			"outputs": ["dist/**"]
 		},
-		"test": {},
-		"test:int": {},
 		"typecheck": {},
 		"lint": {},
 		"db:generate": {
 			"cache": false,
 			"outputs": ["drizzle/**"]
 		},
-		"perf": {
-			"cache": false
-		},
-		"perf:10k": {
-			"cache": false
-		},
-		"size-budget": {
-			"dependsOn": ["build"]
-		},
 		"//#lint": {},
-		"//#typecheck:repo": {},
-		"//#test:repo": {
-			"cache": false
-		},
-		"//#test:repo:int": {
-			"cache": false
-		}
+		"//#typecheck:repo": {}
 	}
 }

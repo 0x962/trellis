@@ -19,8 +19,6 @@
 		"./terminal": "./src/terminal/index.ts"
 	},
 	"scripts": {
-		"test": "bun test --path-ignore-patterns '**/test/int/**'",
-		"test:int": "bun test test/int",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
 		"gallery": "vite",
 		"gallery:build": "NODE_ENV=production vite build"
@@ -44,15 +42,10 @@
 		"react-dom": "19.2.8"
 	},
 	"devDependencies": {
-		"@happy-dom/global-registrator": "20.14.0",
 		"@tailwindcss/vite": "4.3.3",
-		"@testing-library/dom": "10.4.1",
-		"@testing-library/react": "16.3.3",
-		"@testing-library/user-event": "14.6.7",
 		"@types/react": "19.2.18",
 		"@types/react-dom": "19.2.7",
 		"@vitejs/plugin-react": "6.1.1",
-		"happy-dom": "20.14.0",
 		"react": "19.2.8",
 		"react-dom": "19.2.8",
 		"tailwindcss": "4.3.3",

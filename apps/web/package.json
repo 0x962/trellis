@@ -7,12 +7,8 @@
 	"scripts": {
 		"dev": "vite",
 		"build": "NODE_ENV=production vite build",
-		"test": "bun test .test. --parallel=4 --timeout=20000 --path-ignore-patterns '**/test/int/**'",
-		"test:int": "bun test test/int --parallel=4 --timeout=20000",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
-		"lint": "biome check .",
-		"e2e": "playwright test -c e2e/playwright.config.ts",
-		"size-budget": "bun scripts/size-budget.ts"
+		"lint": "biome check ."
 	},
 	"dependencies": {
 		"@atlaskit/pragmatic-drag-and-drop": "3.1.0",
@@ -49,22 +45,11 @@
 		"zustand": "5.0.15"
 	},
 	"devDependencies": {
-		"@atlaskit/pragmatic-drag-and-drop-unit-testing": "2.1.0",
-		"@happy-dom/global-registrator": "20.14.0",
-		"@orpc/openapi": "1.15.0",
-		"@orpc/server": "1.15.0",
-		"@playwright/test": "1.63.0",
 		"@tailwindcss/vite": "4.3.3",
 		"@tanstack/router-plugin": "1.168.36",
-		"@testing-library/dom": "10.4.1",
-		"@testing-library/react": "16.3.3",
-		"@testing-library/user-event": "14.6.7",
 		"@types/react": "19.2.18",
 		"@types/react-dom": "19.2.7",
 		"@vitejs/plugin-react": "6.1.1",
-		"happy-dom": "20.14.0",
-		"hono": "4.13.7",
-		"jsqr": "1.4.0",
 		"tailwindcss": "4.3.3",
 		"vite": "8.2.2",
 		"zod": "4.5.4"

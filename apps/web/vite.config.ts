@@ -5,12 +5,11 @@ import react from "@vitejs/plugin-react";
 import { defineConfig, type UserConfig } from "vite";
 import { fontPreloads } from "./scripts/fontPreloads";
 
-// Route files live beside their tests. The pattern keeps a `*.test.tsx`
-// out of the route tree, and every route becomes its own chunk.
+// Each route becomes its own chunk. Component folders do not define routes.
 export const routerPluginOptions = {
 	target: "react",
 	autoCodeSplitting: true,
-	routeFileIgnorePattern: "\\.test\\.|^components$",
+	routeFileIgnorePattern: "^components$",
 } as const;
 
 // The @trellis/ui modules the shell loads before the first route.
@@ -44,7 +43,7 @@ export const createConfig = (env: Record<string, string | undefined>): UserConfi
 			alias: { "@radix-ui/react-dialog": fileURLToPath(new URL("./src/lib/emptyRadixDialog.ts", import.meta.url)) },
 		},
 		server: {
-			// One address for the browser, the proxy, and Playwright.
+			// One address for the browser and the proxy.
 			host: "127.0.0.1",
 			port: 5173,
 			strictPort: true,
