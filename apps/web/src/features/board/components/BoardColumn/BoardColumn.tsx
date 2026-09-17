@@ -216,16 +216,6 @@ export function BoardColumn({
 						</Button>
 					</li>
 				)}
-				<li role="none">
-					<button
-						type="button"
-						onClick={onNewTicket}
-						className="flex h-8 w-full items-center gap-1.5 rounded-md border border-dashed border-border px-2.5 text-base text-fg-faint transition-colors duration-hover ease-out hover:border-border-strong hover:text-fg-muted focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
-					>
-						<Plus aria-hidden="true" className="size-3.5" />
-						New ticket
-					</button>
-				</li>
 			</ul>
 		</section>
 	);

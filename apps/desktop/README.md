@@ -116,4 +116,4 @@ The detached development host has no crash supervisor. The packaged app requires
 
 The build machine has Apple Development identities but no Developer ID Application identity. Signed distribution and notarization remain unverified. The current package target is the build machine's architecture. Cross-architecture native module builds remain unverified.
 
-Existing browser drafts require an explicit export and import through Settings. The current host must release its database lock before a directory handoff.
+The current host must release its database lock before a directory handoff.

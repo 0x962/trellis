@@ -16,13 +16,12 @@ The first package target is Apple Silicon.
 | Harness | Interactive CLI presets, permission bypass flags, automatic repository trust, Claude turn hooks, exact message receipts, and retained results |
 | Evidence | Worktree diff and files, command results, artifact hashes, revision checks, and confirmed check exit recovery |
 | Flows | Frozen graph and persona versions, agent attempts, YES/NO gates, human decisions, joins, deadlines, and cancellation |
-| Work area | Activity first, assigned-agent terminal, local changes, flow decisions, and diagnostics |
-| Drafts | Browser export/import, independent recovery copies, collision preservation, and save acknowledgement |
+| Work area | Activity first, assigned-agent terminal, local changes, and flow decisions |
 | Data directory | New data or an existing home, confirmed service handoff, database backup, and paused automation |
 | App replacement | Retained host resources and protocol checks before activation |
 
 The Manager page has Operation, General, and Harness sections.
-Operation separates automatic dispatch from the manager process. General holds the repository directory, persona, and concurrency limit.
+Operation shows the manager process. General holds the repository directory, persona, and concurrency limit.
 Harness selects the agent executable and commands.
 
 ## Current verification
@@ -67,9 +66,6 @@ Use Settings > Desktop > Choose data directory to open an existing home in place
 The confirmation shows both directories, the backup path, and the service changes.
 The handoff verifies the standalone service PID and configured home before it disables that service.
 It backs up the database before schema changes and pauses automation. Both directories retain their files.
-
-Export browser drafts under Settings, Drafts. Import that file in the desktop app.
-Review each recovery copy before removal. Flow copies clear only after the host confirms the selected graph.
 
 ## Release checks
 

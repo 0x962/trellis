@@ -192,7 +192,7 @@ A builder run and a reviewer run name one ticket. A manager run names one
 project. A project runs one manager at a time.
 
 The Manager page at `/p/<project path>/settings/manager` controls the project's local work.
-Operation shows the manager process, output, and durable event queue. Its switch pauses automatic dispatch while queued events remain stored.
+Operation shows the manager process, output, and durable event queue. Trellis sends each queued event to a running manager.
 General selects the manager persona, repository directory, trust, and concurrency limit. Harness selects the agent preset and commands.
 The concurrency limit runs from 1 to 64, defaults to 3, and excludes the manager.
 
@@ -344,8 +344,9 @@ section into the URL hash, and Account carries no hash.
 
 | Hash | Section | Contents |
 |---|---|---|
-| none | Account | Your name and the theme |
-| `#integrations` | Integrations | The gh state, the diff URL template, and Pair a phone |
+| none | Account | Your name, the theme, and chat sound |
+| `#agent-accounts` | Agent accounts | Harness logins, account selection, and quota |
+| `#desktop` | Desktop | The data directory, background service, update, and local work actions |
 
 A setting that belongs to one project lives on that project's pages.
 
@@ -354,7 +355,7 @@ A setting that belongs to one project lives on that project's pages.
 | `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#subprojects`, `#archive` |
 | `/p/<path>/settings/manager` | Operation (no hash), `#settings`, `#harness` |
 
-The Manager page separates automatic dispatch from the manager process. The top control starts, resumes, or stops the process.
+The top control of the Manager page starts, resumes, or stops the manager process.
 
 ## Mobile
 
@@ -389,11 +390,10 @@ trellis install --allow-host my-laptop.tail1a2b3c.ts.net
 To pair the phone:
 
 1. In the app, open Settings, then tap the Server row.
-2. Tap Scan QR code.
-3. Scan the code under Pair a phone in the Integrations section of the web app settings. The app fills in the server URL and tests the connection.
-4. Type your name and tap Save.
+2. Type the server URL and tap Test connection.
+3. Type your name and tap Save.
 
-To pair without the QR code, type the server URL and tap Test connection. The app shows the server version, the ticket count, and the name the server gives you.
+The app shows the server version, the ticket count, and the name the server gives you.
 
 ## Security model
 
