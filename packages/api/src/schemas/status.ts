@@ -1,9 +1,20 @@
 import { z } from "zod";
+import { HarnessSchema } from "../harness/harness.ts";
 import { ProjectRefStringSchema, StatusRefStringSchema } from "../refs.ts";
 import { ColorTokenSchema, ReviewerSchema, StatusCategorySchema } from "./enums.ts";
 import { CountSchema, IsoDateTimeSchema, slugPattern, UlidSchema } from "./primitives.ts";
 
-const StatusNameSchema = z.string().min(1).max(40);
+export const StatusAgentConfigSchema = z.strictObject({
+	personaId: UlidSchema,
+	harness: HarnessSchema,
+	accountId: UlidSchema.nullable().default(null),
+});
+export type StatusAgentConfig = z.infer<typeof StatusAgentConfigSchema>;
+
+const StatusNameSchema = z
+	.string()
+	.min(1, "Enter a status name of 1 to 40 characters.")
+	.max(40, "Enter a status name of 1 to 40 characters.");
 
 // A status slug is the name in slug form. The reserved project slugs (`board`,
 // `settings`) are web routes under a project path. A status is never a route
@@ -18,7 +29,13 @@ const ColorSchema = ColorTokenSchema;
 // Markdown that tells the manager agent what to do with a ticket in this
 // status. The manager reads every description of the set at start and on
 // `statuses.changed`, so a new status needs no code change.
-const StatusDescriptionSchema = z.string().max(2000);
+const StatusDescriptionSchema = z.string().max(2000, "Enter a status description of 2000 characters or less.");
+
+// The most tickets a status holds at one time. Null means no limit.
+const WipLimitSchema = z
+	.number()
+	.int("Enter a whole number for the WIP limit.")
+	.positive("Enter a WIP limit of 1 or more.");
 
 // The status fields every ticket row carries.
 export const StatusSummarySchema = z.object({
@@ -33,9 +50,10 @@ export type StatusSummary = z.infer<typeof StatusSummarySchema>;
 
 export const StatusSchema = StatusSummarySchema.extend({
 	projectId: UlidSchema,
+	agentConfig: StatusAgentConfigSchema.nullable().default(null),
 	description: StatusDescriptionSchema.default(""),
 	position: z.number().int(),
-	wipLimit: z.number().int().positive().nullable(),
+	wipLimit: WipLimitSchema.nullable(),
 	isDefault: z.boolean(),
 	createdAt: IsoDateTimeSchema,
 	updatedAt: IsoDateTimeSchema,
@@ -67,7 +85,8 @@ export const StatusCreateInputSchema = z
 		description: StatusDescriptionSchema.optional(),
 		color: ColorSchema.optional(),
 		position: z.number().int().optional(),
-		wipLimit: z.number().int().positive().optional(),
+		wipLimit: WipLimitSchema.optional(),
+		agentConfig: StatusAgentConfigSchema.nullable().optional(),
 		isDefault: z.boolean().optional(),
 	})
 	.refine(reviewerMatchesCategory, "A review status needs a reviewer; another category cannot carry one.");
@@ -81,7 +100,8 @@ export const StatusUpdateInputSchema = z.strictObject({
 	description: StatusDescriptionSchema.optional(),
 	color: ColorSchema.optional(),
 	reviewer: ReviewerSchema.optional(),
-	wipLimit: z.number().int().positive().nullable().optional(),
+	wipLimit: WipLimitSchema.nullable().optional(),
+	agentConfig: StatusAgentConfigSchema.nullable().optional(),
 	isDefault: z.boolean().optional(),
 });
 export type StatusUpdateInput = z.input<typeof StatusUpdateInputSchema>;

@@ -9,8 +9,9 @@ export type RestartSession = {
 	providerSessionId: string;
 	// `custom` marks an agent the capture could not save; such an entry is
 	// always `done` with the outcome `failed`.
-	harness: "claude" | "codex" | "opencode" | "pi" | "custom";
+	harness: "claude" | "codex" | "opencode" | "pi" | "muse" | "custom";
 	model?: string;
+	effort?: string;
 	workspace: string;
 	processIdentity: string;
 	attempt: { id: string; token: string };

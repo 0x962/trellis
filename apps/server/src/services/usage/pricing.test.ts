@@ -13,6 +13,14 @@ test("an unknown model takes the cheapest rate of its harness and is approximate
 	expect(rate.inputPerM).toBe(0.2);
 });
 
+test("a Muse model counts its tokens at no cost and stays approximate", () => {
+	const rate = matchModelRate("muse", "muse-spark-1.3-contributor");
+	expect(rate).toMatchObject({ inputPerM: 0, outputPerM: 0, approximate: true });
+	expect(costUsd(rate, { uncachedInput: 1e6, cachedInput: 1e6, cacheWrite5m: 0, cacheWrite1h: 0, output: 1e6 })).toBe(
+		0,
+	);
+});
+
 test("a long prompt on a model with a long-context rate takes that rate", () => {
 	expect(matchModelRate("opencode", "google/gemini-2.5-pro", 250_000)).toMatchObject({ inputPerM: 2.5 });
 	expect(matchModelRate("opencode", "google/gemini-2.5-pro", 1_000)).toMatchObject({ inputPerM: 1.25 });

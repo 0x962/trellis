@@ -151,7 +151,6 @@ describe("contract", () => {
 			"statuses.reorder PUT /projects/{project}/statuses/order",
 			"statuses.update PATCH /projects/{project}/statuses/{status}",
 			"submanagers.list GET /submanagers",
-			"submanagers.resize PATCH /submanagers/{id}",
 			"submanagers.retire POST /submanagers/{id}/retire",
 			"submanagers.start POST /submanagers",
 			"system.backup POST /backup",
@@ -207,5 +206,9 @@ describe("contract", () => {
 		expects("tickets.list", ["INVALID_CURSOR"]);
 		expects("pullRequests.link", ["INVALID_PR_URL", "GH_UNAVAILABLE"]);
 		expects("attachments.upload", ["PAYLOAD_TOO_LARGE"]);
+		expects("tickets.update", ["STATUS_FULL"]);
+		expects("tickets.updateMany", ["STATUS_FULL"]);
+		expects("system.backup", ["BACKUP_FAILED"]);
+		expects("search.query", ["SEARCH_REPLACED"]);
 	});
 });

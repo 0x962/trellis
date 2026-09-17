@@ -31,7 +31,7 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 	});
 	const historical = run.runtime !== "native";
 	const active = hasAssignedProcess(run);
-	const canStop = controls && active;
+	const canStop = controls && active && run.kind !== "manager";
 	const workspaceUrl = historical ? null : run.url;
 
 	return (

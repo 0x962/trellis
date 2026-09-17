@@ -83,6 +83,12 @@ describe("the chain", () => {
 		expect(resolve({ env: { CODEX_THREAD_ID: "t1" } }).actor).toBe("agent:codex");
 	});
 
+	test("the Muse tool shell variables mark an agent named muse", () => {
+		expect(resolve({ env: { MUSE_CURRENT_SESSION_LOG: "/tmp/session.jsonl" } }).actor).toBe("agent:muse");
+		expect(resolve({ env: { MUSE_TOOL_USE_ID: "call_1" } }).actor).toBe("agent:muse");
+		expect(resolve({ env: { MUSE_NO_AUTO_UPDATE: "1" }, gitUserName: () => "Dana" }).actor).toBe("human:Dana");
+	});
+
 	// CLI-23
 	test("unlisted variables never mark an agent", () => {
 		const result = resolve({

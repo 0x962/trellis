@@ -7,7 +7,6 @@ import type { HarnessDescriptor } from "../../agents/harnessHost/types.ts";
 import { nativeHost } from "../../agents/native/harnessHost.ts";
 import { rows } from "../../db/queries/support.ts";
 import { invalidInput } from "../../errors.ts";
-import { capacityAvailable } from "../assignments/capacity.ts";
 import { recordRequest, replayRequest } from "../assignments/requests.ts";
 import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
@@ -15,12 +14,19 @@ import { assertProjectActive } from "../refs.ts";
 import { reserveRestart } from "../restartAgents/reserveRestart.ts";
 import { assertResume } from "../submanagers/assertResume.ts";
 import type { IoCtx } from "../support.ts";
-import { readRuntimeSessions } from "./liveState.ts";
+import { assertResumeTicket } from "./assertResumeTicket.ts";
 import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import { startNative } from "./nativeStart.ts";
 import { getRun } from "./queries.ts";
 
-type Input = { id: string; accountId?: string; model?: string; expectedTerminalId: string; requestId: string };
+type Input = {
+	id: string;
+	accountId?: string;
+	model?: string;
+	expectedTerminalId: string;
+	requestId: string;
+	automatic?: boolean;
+};
 export async function prepareResume(
 	ctx: IoCtx,
 	input: Input,
@@ -28,7 +34,10 @@ export async function prepareResume(
 	switchRunning = false,
 ) {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
-	await ctx.newTx((tx) => assertResume(ctx.core, tx, run));
+	await ctx.newTx(async (tx) => {
+		await assertResume(ctx.core, tx, run);
+		await assertResumeTicket(tx, run, input.automatic);
+	});
 	if (run.runtime !== "native" || !run.projectId || !run.personaId)
 		throw invalidInput("id", "This assignment has no resumable native session.");
 	const target = {
@@ -65,13 +74,6 @@ export async function prepareResume(
 		assertProjectActive(ctx.core, run.projectId);
 		if (previous.status !== "running" || !previous.controllable)
 			throw invalidInput("id", "The runtime cannot control this agent. Inspect its current session.");
-		if (run.ticketId) {
-			const sessions = await readRuntimeSessions(ctx.home);
-			if (
-				!(await ctx.newTx((tx) => capacityAvailable(tx, { projectId: run.projectId!, excludeRunId: run.id, sessions })))
-			)
-				throw invalidInput("id", "The project has no available worker capacity.");
-		}
 		const eligible = await ctx.newTx((tx) =>
 			reserveRestart(
 				ctx.core,
@@ -83,6 +85,7 @@ export async function prepareResume(
 					providerSessionId: previous.agent!.sessionId!,
 					workspace: previous.launch!.cwd,
 					harness: descriptor.harness,
+					effort: input.model === undefined ? descriptor.effort : undefined,
 					model,
 					done: false,
 				},
@@ -95,7 +98,6 @@ export async function prepareResume(
 		previous = await host.status(input.expectedTerminalId);
 		if (previous.status !== "exited") throw invalidInput("id", "The previous process has not stopped.");
 	}
-	const sessions = await readRuntimeSessions(ctx.home);
 	const reservation = await ctx.newTx(async (tx) => {
 		await tx.execute(sql`SELECT id FROM projects WHERE id=${run.projectId} FOR UPDATE`);
 		const replay = await replayRequest(ctx.core, tx, request);
@@ -104,6 +106,7 @@ export async function prepareResume(
 		assertProjectActive(ctx.core, run.projectId!);
 		const current = await getRun(tx, input.id);
 		await assertResume(ctx.core, tx, current);
+		await assertResumeTicket(tx, current, input.automatic);
 		if (current.terminalId !== input.expectedTerminalId)
 			throw invalidInput("expectedTerminalId", "Another call already replaced this attempt.");
 		if (current.ticketId) {
@@ -112,8 +115,6 @@ export async function prepareResume(
 				sql`SELECT id FROM agent_runs WHERE ticket_id=${current.ticketId} AND persona_id=${current.personaId} AND id<>${current.id} AND closed_at IS NULL`,
 			);
 			if (duplicates.length) throw invalidInput("id", "Another agent already owns this ticket and persona.");
-			if (!(await capacityAvailable(tx, { projectId: current.projectId!, excludeRunId: current.id, sessions })))
-				throw invalidInput("id", "The project has no available worker capacity.");
 		}
 		const config = await projectLaunchConfig(tx, { projectId: run.projectId! });
 		const selected = await selectAccount(tx, {
@@ -140,6 +141,7 @@ export async function prepareResume(
 				providerSessionId: previous.agent!.sessionId!,
 				workspace: previous.launch!.cwd,
 				harness: descriptor.harness,
+				effort: input.model === undefined ? descriptor.effort : undefined,
 				model,
 				done: false,
 			},
@@ -157,8 +159,13 @@ export async function prepareResume(
 		resume: true,
 		previousAttemptId: input.expectedTerminalId,
 		previousAccountId: run.accountId ?? null,
+		requiredTicketCategory: input.automatic ? "started" : undefined,
 		context: "",
-		resumePrompt:
-			"Continue this assignment in the same conversation and workspace. Check any interrupted operation before you repeat it.",
+		resumePrompt: JSON.stringify({
+			type: "trellis.assignment.resumed",
+			runId: run.id,
+			previousAttemptId: input.expectedTerminalId,
+			automatic: input.automatic ?? false,
+		}),
 	});
 }

@@ -10,6 +10,7 @@ import { type Jobs, type JobsLog, scaledClock, startJobs as startBackgroundJobs 
 import { type DbTiming, LONG_TRANSACTION_MS } from "../serverTiming.ts";
 import { assertCurrentAttempt } from "../services/assignments/attempts.ts";
 import { gcAttachmentBlobs } from "../services/attachments.ts";
+import { unconfirmedDelivery } from "../services/deliveries/sentences.ts";
 import { type ServiceEntry, type ServiceName, services } from "../services/registry.ts";
 import { createCache } from "./cache.ts";
 import type { Db } from "./client.ts";
@@ -208,7 +209,7 @@ export const createInlineTransport = ({
 		if (options !== undefined) {
 			await db.transaction((tx) =>
 				tx.execute(
-					sql`UPDATE review_deliveries SET state = 'unknown', error = 'Trellis stopped before delivery confirmation.' WHERE state = 'sending'`,
+					sql`UPDATE review_deliveries SET state = 'unknown', error = ${unconfirmedDelivery} WHERE state = 'sending'`,
 				),
 			);
 			reviewTimer = setInterval(() => {

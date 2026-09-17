@@ -19,6 +19,15 @@ export class InputLedger {
 	has(messageId: string) {
 		return this.entries.has(messageId);
 	}
+	// True when the bytes of this message reached the session: the write to
+	// the terminal finished, or the harness hook reported that the message
+	// started a turn. An entry that only reserves the identifier, which is
+	// what a started but unfinished write leaves, is not proof, so it counts
+	// as not delivered.
+	delivered(messageId: string) {
+		const entry = this.entries.get(messageId);
+		return entry !== undefined && (entry.acknowledged === true || entry.status === "written");
+	}
 	acknowledge(messageId: string, initial = false) {
 		if (initial && !this.entries.has(messageId))
 			this.entries.set(messageId, { messageId, hash: `initial:${messageId}`, status: "written" });

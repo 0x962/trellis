@@ -3,6 +3,7 @@ import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf } from "../context.ts";
 import { cell, type ListSpec, printList, printRecord, type RecordSpec } from "../output.ts";
+import { localDateTime } from "../time.ts";
 
 const accountList: ListSpec<HarnessAccount> = {
 	columns: [
@@ -25,11 +26,14 @@ const quotaRecord: RecordSpec<HarnessAccountQuota> = {
 			name: "quota",
 			value: (row) =>
 				row.windows
-					.map((window) => `${window.label}: ${window.usedPercent}% used, resets ${window.resetsAt ?? "unknown"}`)
+					.map(
+						(window) =>
+							`${window.label}: ${window.usedPercent}% used, resets ${window.resetsAt === null ? "unknown" : localDateTime(window.resetsAt)}`,
+					)
 					.join("; "),
 		},
 		{ name: "detail", value: (row) => cell(row.detail) },
-		{ name: "checked", value: (row) => row.fetchedAt },
+		{ name: "checked", value: (row) => localDateTime(row.fetchedAt) },
 	],
 	identifier: (row) => row.accountId,
 };

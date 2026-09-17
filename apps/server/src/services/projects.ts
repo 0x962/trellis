@@ -48,15 +48,35 @@ const nextPosition = async (tx: Tx, parentId: string | null) => {
 // starts with an empty template.
 export const DEFAULT_TICKET_TEMPLATE = "## Context\n\n## Acceptance criteria\n- [ ]\n\n## Out of scope\n";
 
-export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput): Promise<Project> => {
-	requireActor(ctx);
-	if (input.managerConfig?.personaId != null) {
-		const [persona] = await rows<{ kind: string }>(
-			tx,
-			sql`SELECT kind FROM personas WHERE id = ${input.managerConfig.personaId}`,
-		);
+// The persona of a manager config is a manager persona, and its account is
+// an enabled account of the harness the config selects.
+const assertManagerConfig = async (tx: Tx, config: ProjectCreateInput["managerConfig"]) => {
+	if (config?.personaId != null) {
+		const [persona] = await rows<{ kind: string }>(tx, sql`SELECT kind FROM personas WHERE id = ${config.personaId}`);
 		if (persona?.kind !== "manager") throw invalidInput("managerConfig.personaId", "Select a manager persona.");
 	}
+	if (config?.builder?.personaId != null) {
+		const [persona] = await rows<{ kind: string }>(
+			tx,
+			sql`SELECT kind FROM personas WHERE id = ${config.builder.personaId}`,
+		);
+		if (persona?.kind !== "builder") throw invalidInput("managerConfig.builder.personaId", "Select a builder persona.");
+	}
+	if (config?.accountId != null) {
+		const [account] = await rows<{ harness: string; enabled: boolean }>(
+			tx,
+			sql`SELECT harness, enabled FROM harness_accounts WHERE id = ${config.accountId} AND archived_at IS NULL`,
+		);
+		if (account === undefined) throw invalidInput("managerConfig.accountId", "Select an account from Settings.");
+		if (!account.enabled) throw invalidInput("managerConfig.accountId", "Select an enabled account.");
+		const preset = config.harness?.preset ?? "claude";
+		if (account.harness !== preset) throw invalidInput("managerConfig.accountId", `Select a ${preset} account.`);
+	}
+};
+
+export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput): Promise<Project> => {
+	requireActor(ctx);
+	await assertManagerConfig(tx, input.managerConfig);
 	const id = ulid();
 	const parent = input.parent === undefined ? null : await resolveProject(ctx, tx, input.parent);
 	if (parent !== null) assertProjectActive(ctx, parent.id);
@@ -99,13 +119,7 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 	const project = await resolveProject(ctx, tx, input.project);
 	if (input.archived !== false) assertProjectActive(ctx, project.id);
 	const row = await projectRow(tx, project.id);
-	if (input.managerConfig?.personaId != null) {
-		const [persona] = await rows<{ kind: string }>(
-			tx,
-			sql`SELECT kind FROM personas WHERE id = ${input.managerConfig.personaId}`,
-		);
-		if (persona?.kind !== "manager") throw invalidInput("managerConfig.personaId", "Select a manager persona.");
-	}
+	await assertManagerConfig(tx, input.managerConfig);
 	const renamed = input.name !== undefined && input.name !== row.name;
 	const restored = input.archived === false && row.archived_at !== null;
 	if (project.parentId === null && (renamed || restored))

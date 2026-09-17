@@ -10,7 +10,7 @@ const outcome = z
 		status: z
 			.enum(["assigned", "queued", "blocked", "no_action"])
 			.describe(
-				"queued saves a capacity wait. Add waitFor to queued or blocked to wait for a time, a Done ticket, or a human reply. A reply prompts review and does not grant approval. Use the next action assignmentRequestId to start its worker.",
+				"queued saves the ticket for the next dispatch. Add waitFor to queued or blocked to wait for a time, a Done ticket, or a human reply. A reply prompts review and does not grant approval. Use the next action assignmentRequestId to start its worker.",
 			),
 		reference: z.string().min(1).max(2000).optional(),
 		reason: z.string().trim().min(1).max(2000),
@@ -31,7 +31,7 @@ const dispatch = z.object({
 	terminalId: z.string().nullable(),
 	sessionId: z.string().nullable(),
 	generation: z.number(),
-	state: z.enum(["pending", "sending", "sent", "unknown", "canceled"]),
+	state: z.enum(["pending", "sending", "sent", "unknown", "canceled", "failed"]),
 	workState: z.enum(["untracked", "open", "handled"]),
 	outcomes: z.array(outcome),
 	nextActions: z.array(managerNextAction),

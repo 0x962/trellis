@@ -1,7 +1,7 @@
 import { z } from "zod";
-import catalog from "./catalog.json";
+import catalog from "./catalog.json" with { type: "json" };
 
-type Harness = "claude" | "codex" | "pi" | "opencode" | "custom";
+type Harness = "claude" | "codex" | "pi" | "opencode" | "muse" | "custom";
 const claudeNames: Record<string, string> = {
 	"anthropic/claude-3-haiku": "claude-3-haiku-20240307",
 	"anthropic/claude-fable-5": "claude-fable-5",
@@ -32,6 +32,10 @@ const nativeCodex = (id: string) =>
 	/^(gpt-5(?:\.[123])?-codex(?:-(?:max|mini))?|gpt-5\.[456](?:-(?:sol|terra|luna|mini|nano))?|gpt-6-astra)$/.test(
 		id.slice(7),
 	);
+// Muse Code serves the Muse Spark models of its Meta account under their
+// bare names, such as `muse-spark-1.3`. The canonical id carries the
+// `meta/` vendor prefix.
+const nativeMuse = (id: string) => id.startsWith("meta/muse-spark-");
 
 export const MODEL_CATALOG = catalog;
 export const ModelIdSchema = z
@@ -48,7 +52,8 @@ export const modelsForHarness = (harness?: Harness) =>
 			harness === "pi" ||
 			harness === "opencode" ||
 			(harness === "claude" && id in claudeNames) ||
-			(harness === "codex" && nativeCodex(id)),
+			(harness === "codex" && nativeCodex(id)) ||
+			(harness === "muse" && nativeMuse(id)),
 	);
 export const supportsModel = (harness: Harness, id: string) =>
 	modelsForHarness(harness).some((model) => model.id === id);
@@ -57,6 +62,7 @@ export function toHarnessModel(harness: Exclude<Harness, "custom">, id: string):
 		throw new Error(`Model ${id} is not supported by ${harness}. Select a model from models.list.`);
 	if (harness === "claude") return nativeClaude(id);
 	if (harness === "codex") return id.slice("openai/".length);
+	if (harness === "muse") return id.slice("meta/".length);
 	return `${harness === "pi" ? "vercel-ai-gateway" : "vercel"}/${id}`;
 }
 export function fromHarnessModel(harness: Exclude<Harness, "custom">, name: string): string {
@@ -72,6 +78,7 @@ export function fromHarnessModel(harness: Exclude<Harness, "custom">, name: stri
 	if (harness === "claude")
 		return aliases[id] ?? `anthropic/${id.replace(/-(\d+)-(\d+)(?=-|$)/, "-$1.$2").replace(/-\d{8}$/, "")}`;
 	if (harness === "codex") return `openai/${id}`;
+	if (harness === "muse") return `meta/${id}`;
 	if (id.includes("/")) return id;
 	const model = catalog.find((model) => model.id.slice(model.id.indexOf("/") + 1) === id);
 	if (!model) throw new Error(`Unrecognized ${harness} model: ${name}`);

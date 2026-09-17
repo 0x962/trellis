@@ -47,7 +47,12 @@ export type TimelineItem = z.infer<typeof TimelineItemSchema>;
 export const TimelineListInputSchema = z.strictObject({
 	ticket: TicketRefStringSchema,
 	before: z.string().optional(),
-	limit: z.coerce.number().int().min(1).max(100).default(100),
+	limit: z.coerce
+		.number()
+		.int("Enter a whole number for the limit.")
+		.min(1, "Enter a limit of 1 to 100.")
+		.max(100, "Enter a limit of 1 to 100.")
+		.default(100),
 });
 export type TimelineListInput = z.input<typeof TimelineListInputSchema>;
 

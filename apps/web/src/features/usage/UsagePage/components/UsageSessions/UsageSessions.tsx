@@ -18,11 +18,11 @@ const PAGE = 10;
 const formatWhen = (iso: string) =>
 	new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
-const kindLabel: Record<string, string> = { builder: "Builder", reviewer: "Reviewer", manager: "Manager" };
+const kindLabel: Record<string, string> = { builder: "Builder", reviewer: "Reviewer", manager: "Copilot" };
 
 // The most expensive sessions of the range. A session that Trellis started
 // names its ticket, persona, and kind. The session id copies for
-// `claude --resume` or `codex resume`.
+// `claude --resume`, `codex resume`, or `muse resume`.
 export function UsageSessions({ sessions, metric, filtered }: UsageSessionsProps) {
 	const [shown, setShown] = useState(PAGE);
 	const visible = sessions.slice(0, shown);

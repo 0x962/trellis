@@ -65,7 +65,7 @@ const update = (input: Parameters<typeof projects.update>[2]) => h.run((ctx, tx)
 describe("projects.update manager scope", () => {
 	const persona = "01M2GHTTXSHPZDFTJQW1MC28N2";
 	const other = "01M2GJ634MAAPPB8JDZVDYWX3B";
-	const config = (personaId: string | null) => ({ personaId, concurrency: 3, directory: "" });
+	const config = (personaId: string | null) => ({ personaId, directory: "" });
 	beforeEach(() =>
 		h.db.execute(
 			sql`INSERT INTO personas (id, name, kind, instruction, created_at, updated_at)
@@ -236,5 +236,58 @@ describe("projects.update archived", () => {
 		expect(restored.archivedAt).toBeNull();
 		expect((await projectRow(web)).archived_at).toBeNull();
 		expect(eventsOfType(h.flushed, "project.updated")).toHaveLength(2);
+	});
+});
+
+describe("the account of a project", () => {
+	const seedAccount = async (id: string, harness: string, enabled = true) => {
+		await h.rows(
+			sql`INSERT INTO harness_accounts (id, name, harness, profile_path, enabled, created_at, updated_at)
+			VALUES (${id}, ${`Account ${id}`}, ${harness}, ${`/tmp/trellis-${id}`}, ${enabled}, now(), now())`,
+		);
+	};
+	const claudeAccount = "01M00000000000000000000A01";
+	const codexAccount = "01M00000000000000000000A02";
+	const disabledAccount = "01M00000000000000000000A03";
+	const config = (accountId: string | null, preset: "claude" | "codex" = "claude") => ({
+		personaId: null,
+		directory: "",
+		dispatchPaused: false,
+		ade: "native" as const,
+		harness: { preset },
+		accountId,
+	});
+
+	test("an update keeps an enabled account of the selected harness", async () => {
+		const { cde } = await seedTree();
+		await seedAccount(claudeAccount, "claude");
+		const updated = await h.run((ctx, tx) =>
+			projects.update(ctx, tx, { project: "CDE", managerConfig: config(claudeAccount) }),
+		);
+		expect(updated.managerConfig?.accountId).toBe(claudeAccount);
+		const stored = await h.one<{ manager_config: { accountId: string } }>(
+			sql`SELECT manager_config FROM projects WHERE id = ${cde}`,
+		);
+		expect(stored.manager_config.accountId).toBe(claudeAccount);
+	});
+
+	test("an update refuses an account of another harness, a disabled account, and an unknown account", async () => {
+		await seedTree();
+		await seedAccount(codexAccount, "codex");
+		await seedAccount(disabledAccount, "claude", false);
+		await expectError(
+			h.run((ctx, tx) => projects.update(ctx, tx, { project: "CDE", managerConfig: config(codexAccount) })),
+			"INPUT_VALIDATION_FAILED",
+		);
+		await expectError(
+			h.run((ctx, tx) => projects.update(ctx, tx, { project: "CDE", managerConfig: config(disabledAccount) })),
+			"INPUT_VALIDATION_FAILED",
+		);
+		await expectError(
+			h.run((ctx, tx) =>
+				projects.update(ctx, tx, { project: "CDE", managerConfig: config("01M00000000000000000000A09") }),
+			),
+			"INPUT_VALIDATION_FAILED",
+		);
 	});
 });

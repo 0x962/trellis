@@ -237,6 +237,25 @@ describe("shutdown", () => {
 		expect(exits).toEqual([0]);
 	});
 
+	// The config throws before the logger exists, so the boot builds a logger
+	// on the stdout sink to write the sentence. A stack trace would hide the
+	// name of the variable the person mistyped.
+	test("a variable the config rejects writes one line and exits 1", async () => {
+		const records: Array<{ level: string; msg: string }> = [];
+		const exits: number[] = [];
+
+		await boot({
+			env: { TRELLIS_HOME: freshHome(), TRELLIS_PORT: "not-a-port" },
+			exit: (code) => void exits.push(code),
+			sink: { isTTY: false, write: (line: string) => void records.push(JSON.parse(line)) },
+		});
+
+		expect(exits).toEqual([1]);
+		expect(records).toEqual([
+			{ ...records[0], level: "error", msg: 'TRELLIS_PORT must be a number. The value is "not-a-port".' },
+		]);
+	});
+
 	test("a second signal exits immediately", async () => {
 		const home = freshHome();
 		const exits: number[] = [];

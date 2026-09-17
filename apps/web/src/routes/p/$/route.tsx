@@ -29,10 +29,6 @@ const ProjectSettingsPage = lazy(async () => ({
 	default: (await import("./components/ProjectSettingsPage")).ProjectSettingsPage,
 }));
 
-const ProjectManagerPage = lazy(async () => ({
-	default: (await import("../../../features/project-manager/ProjectManagerPage")).ProjectManagerPage,
-}));
-
 const ChatPage = lazy(async () => ({
 	default: (await import("../../../features/chat/ChatPage")).ChatPage,
 }));
@@ -108,7 +104,7 @@ function ProjectPage() {
 				fallback={
 					<div className="flex min-h-0 flex-1 items-center justify-center text-sm text-fg-muted">
 						{view === "manager"
-							? "Load manager…"
+							? "Load settings…"
 							: view === "chat"
 								? "Load chat…"
 								: view === "notes"
@@ -118,7 +114,7 @@ function ProjectPage() {
 				}
 			>
 				{view === "manager" ? (
-					<ProjectManagerPage key={project.id} project={project} />
+					<ProjectSettingsPage project={project} />
 				) : view === "chat" ? (
 					<ChatPage key={project.id} project={project} />
 				) : view === "notes" ? (

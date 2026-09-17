@@ -6,7 +6,7 @@ import { sessionDetails, sessionInput } from "./sessionDetails.ts";
 
 const operations = {
 	models: ["list"],
-	submanagers: ["list", "start", "resize", "retire"],
+	submanagers: ["list", "start", "retire"],
 	projects: ["list", "get"],
 	harnessAccounts: ["list", "quota"],
 	statuses: ["list"],

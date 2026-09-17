@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import { lines, runCli } from "../../../deps.ts";
-import { rpcError } from "../../../fakeServer.ts";
 import { agentRun, agentRunId, persona, personaId, personaId2 } from "../../../fixtures.ts";
 
 describe("agents list", () => {
@@ -78,13 +77,6 @@ describe("agents start", () => {
 		expect(result.stdout).toContain("failed");
 		expect(lines(result.stderr)).toHaveLength(1);
 		expect(result.stderr).toContain("no Superset project matches the repositories");
-
-		const busy = await runCli(["agents", "start", personaId, "--ticket", "CDE-42"], {
-			"personas.get": persona(),
-			"agentRuns.start": rpcError("DUPLICATE", { field: "project concurrency limit" }),
-		});
-		expect(busy.code).toBe(4);
-		expect(busy.stderr).toEndWith(" (DUPLICATE)\n");
 	});
 });
 
@@ -174,6 +166,24 @@ test("agents start and resume pass their model overrides", async () => {
 		expectedTerminalId: "attempt",
 		requestId: "model-switch",
 	});
+});
+
+// A resume answers a row in any state, like a start. Exit code 6 alone left
+// the person to read the JSON row for the reason.
+test("agents resume exits 6 and names the state and the reason", async () => {
+	const result = await runCli(
+		["agents", "resume", agentRunId, "--expected-terminal-id", "attempt", "--request-id", "resume-1"],
+		{ "agentRuns.resume": agentRun({ state: "failed", error: "the harness has no account for this persona" }) },
+	);
+	expect(result.code).toBe(6);
+	expect(lines(result.stderr)).toEqual(["warning: the agent is failed: the harness has no account for this persona"]);
+
+	const silent = await runCli(
+		["agents", "resume", agentRunId, "--expected-terminal-id", "attempt", "--request-id", "resume-2"],
+		{ "agentRuns.resume": agentRun({ state: "stopped", error: null }) },
+	);
+	expect(silent.code).toBe(6);
+	expect(lines(silent.stderr)).toEqual(["warning: the agent is stopped: no error text"]);
 });
 
 test("agents model changes a running agent", async () => {

@@ -70,7 +70,7 @@ export function UsageTotals({ totals, pricingTableUpdated }: { totals: Totals; p
 			/>
 			<p className="text-xs text-fg-faint">
 				Priced at the API list rate of {pricingTableUpdated}. A subscription does not bill per token; a ~ marks a model
-				priced with a fallback rate.
+				priced with a fallback rate or with no published price, such as Muse.
 			</p>
 		</section>
 	);

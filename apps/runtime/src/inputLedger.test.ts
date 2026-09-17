@@ -104,3 +104,26 @@ test("native reservations retain uncertainty across reload and reject a transpor
 		rmSync(home, { recursive: true, force: true });
 	}
 });
+
+test("a message is delivered after the write finishes or after the agent confirms it", async () => {
+	const home = mkdtempSync("/tmp/trl-ledger-");
+	try {
+		const path = join(home, "input.json");
+		const ledger = new InputLedger(path);
+		expect(ledger.delivered("absent")).toBe(false);
+		const completion = Promise.withResolvers<void>();
+		const pending = ledger.deliver("written", "bytes", () => completion.promise);
+		expect(ledger.delivered("written")).toBe(false);
+		completion.resolve();
+		await pending;
+		expect(ledger.delivered("written")).toBe(true);
+		expect(new InputLedger(path).delivered("written")).toBe(true);
+		ledger.registerNative("native", "digest", () => {});
+		expect(ledger.delivered("native")).toBe(false);
+		ledger.acknowledge("native");
+		expect(ledger.delivered("native")).toBe(true);
+		expect(new InputLedger(path).delivered("native")).toBe(true);
+	} finally {
+		rmSync(home, { recursive: true, force: true });
+	}
+});

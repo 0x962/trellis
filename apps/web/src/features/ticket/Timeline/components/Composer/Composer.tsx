@@ -4,8 +4,8 @@ import { Button, cx, IconButton, Kbd, Tooltip, useHotkey } from "@trellis/ui";
 import { type ChangeEvent, type FocusEvent, type KeyboardEvent, useRef, useState } from "react";
 import { readActor } from "../../../../../lib/actor";
 import { useApp } from "../../../../../lib/appContext";
+import { failToast } from "../../../../../lib/failToast";
 import { timelineOptions } from "../../../hooks/useTimeline";
-import { failToast } from "../../../utils/failToast";
 import { prependTimeline, updateTimeline } from "../../utils/timelineCache";
 
 export type ComposerProps = {

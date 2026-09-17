@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { localDateTime } from "../../../../src/time.ts";
 import { lines, runCli } from "../../../deps.ts";
 import { rpcError } from "../../../fakeServer.ts";
 import { linkedPullRequest, prId } from "../../../fixtures.ts";
@@ -33,6 +34,7 @@ describe("pr add", () => {
 		const result = await runCli(["pr", "add", "CDE-42", url], { "pullRequests.link": row }, { tty: true });
 		expect(result.code).toBe(6);
 		expect(result.stdout).toContain(url);
+		expect(result.stdout).toMatch(/fetched:\s+-/);
 		expect(lines(result.stderr)).toHaveLength(1);
 		expect(result.stderr).toContain("gh");
 		expect(result.stderr).toContain("gh: not logged in");
@@ -66,6 +68,12 @@ describe("pr list, rm, refresh", () => {
 		expect(refresh.code).toBe(0);
 		expect(refresh.calls[0]).toMatchObject({ path: "pullRequests.refresh" });
 		expect(refresh.calls[0]!.input).toEqual({ id: prId });
+		const ttyRefresh = await runCli(
+			["pr", "refresh", prId],
+			{ "pullRequests.refresh": linkedPullRequest() },
+			{ tty: true },
+		);
+		expect(ttyRefresh.stdout).toContain(localDateTime(linkedPullRequest().fetchedAt));
 	});
 });
 

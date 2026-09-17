@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { HarnessSchema } from "../harness/harness.ts";
 import { ModelIdSchema } from "../models/models.ts";
 import { PersonaKindSchema } from "./persona.ts";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
@@ -50,6 +51,7 @@ export type AgentRun = z.infer<typeof AgentRunSchema>;
 export const AgentRunStartInputSchema = z
 	.strictObject({
 		personaId: UlidSchema,
+		harness: HarnessSchema.optional(),
 		model: ModelIdSchema.optional().describe(
 			"Canonical model ID from models.list for this assignment. Defaults to the project's harness model.",
 		),

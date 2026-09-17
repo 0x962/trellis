@@ -6,8 +6,7 @@ import * as notes from "../../../../../src/services/notes/notes.ts";
 import * as personas from "../../../../../src/services/personas.ts";
 import { seedActors, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../fixtures/tickets.ts";
-import { workingSession } from "../../../../helpers/controllerSession.ts";
-import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
+import { expectError, type Harness, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
 let h: Harness;
@@ -24,14 +23,20 @@ beforeEach(async () => {
 	await h.read(async (tx) => {
 		await seedActors(tx);
 		project = await seedRoot(tx, "ASG", {
-			manager_config: { ade: "native", personaId: null, concurrency: 1, directory: "/tmp" },
+			manager_config: { ade: "native", personaId: null, directory: "/tmp" },
 		});
-		const statusId = await seedStatus(tx, {
+		await seedStatus(tx, {
 			projectId: project,
 			name: "Todo",
 			category: "todo",
 			position: 0,
 			isDefault: true,
+		});
+		const statusId = await seedStatus(tx, {
+			projectId: project,
+			name: "In Progress",
+			category: "started",
+			position: 1,
 		});
 		ticket = await seedTicket(tx, { projectId: project, rootId: project, statusId });
 	});
@@ -42,17 +47,29 @@ beforeEach(async () => {
 });
 const start = (requestId: string) => h.run((ctx, tx) => reserve(ctx, tx, { personaId, ticket, requestId }));
 
-test("one request returns its reserved run again even when the project is at capacity", async () => {
+test("one request returns its reserved run again while another worker runs", async () => {
 	const first = await start("ASG-1:builder");
-	const second = await h.run((ctx, tx) =>
-		reserve(ctx, tx, { personaId, ticket, requestId: "ASG-1:builder" }, [], {
-			sessions: [workingSession(first.run.terminalId!)],
-		}),
-	);
+	const second = await h.run((ctx, tx) => reserve(ctx, tx, { personaId, ticket, requestId: "ASG-1:builder" }));
 	expect(second.run.id).toBe(first.run.id);
 	expect(second.replay).toBe(true);
 	expect(await h.rows(sql`SELECT id FROM agent_runs`)).toHaveLength(1);
 	expect(await h.rows(sql`SELECT id FROM agent_execution_attempts`)).toHaveLength(1);
+});
+
+// No agent starts on a todo ticket. The ticket enters in-progress first,
+// which the WIP limit of its status gates.
+test("a start on a todo ticket fails until the ticket leaves todo", async () => {
+	const todo = await h.read(async (tx) => {
+		const [status] = (await tx.execute(sql`SELECT id FROM statuses WHERE category='todo'`)).rows;
+		return seedTicket(tx, { projectId: project, rootId: project, statusId: status!.id as string });
+	});
+	const refused = h.run((ctx, tx) => reserve(ctx, tx, { personaId, ticket: todo, requestId: "builder:todo" }));
+	const error = await expectError(refused, "INPUT_VALIDATION_FAILED");
+	expect(error.message).toContain("Move the ticket out of Todo before you assign an agent.");
+	const [started] = await h.rows<{ id: string }>(sql`SELECT id FROM statuses WHERE category='started'`);
+	await h.rows(sql`UPDATE tickets SET status_id=${started!.id} WHERE id=${todo}`);
+	const assigned = await h.run((ctx, tx) => reserve(ctx, tx, { personaId, ticket: todo, requestId: "builder:todo" }));
+	expect(assigned.replay).toBe(false);
 });
 
 test("a request cannot change its persona or target", async () => {
@@ -73,7 +90,6 @@ test("a request cannot change its persona or target", async () => {
 });
 
 test("one ticket permits only one active assignment per persona", async () => {
-	await h.rows(sql`UPDATE projects SET manager_config = manager_config || '{"concurrency":3}'::jsonb`);
 	const first = await start("builder:part-one");
 	expect(first.run.name).toBe("Builder");
 	await expect(start("builder:part-two")).rejects.toMatchObject({ code: "DUPLICATE" });
@@ -134,7 +150,7 @@ test("human and untracked external agent sessions do not need an attempt token",
 	);
 });
 
-test("historical external manager metadata does not reserve a native manager slot", async () => {
+test("historical external manager metadata does not block a native manager", async () => {
 	const managerId = (
 		await h.run((ctx, tx) => personas.create(ctx, tx, { name: "Manager", kind: "manager", instruction: "Manage." }))
 	).id;
@@ -177,23 +193,14 @@ test("the launch context carries the project notes for the agent's audience", as
 	expect(manager.context).not.toContain("Fresh worktree");
 });
 
-test("starts enforce the capacity target after ten seconds of observed work", async () => {
+test("two workers start on two in-progress tickets with no worker limit", async () => {
 	const first = await start("first");
-	const reviewer = await h.run((ctx, tx) =>
-		personas.create(ctx, tx, { name: "Reviewer", kind: "reviewer", instruction: "Review." }),
-	);
-	const input = { personaId: reviewer.id, ticket, requestId: "review" };
-	await expect(
-		h.run((ctx, tx) =>
-			reserve(ctx, tx, input, [], {
-				sessions: [workingSession(first.run.terminalId!)],
-			}),
-		),
-	).rejects.toMatchObject({ code: "DUPLICATE", data: { field: "project concurrency limit" } });
-	const started = await h.run((ctx, tx) =>
-		reserve(ctx, tx, input, [], {
-			sessions: [workingSession(first.run.terminalId!, 9_999)],
-		}),
-	);
-	expect(started.run.personaId).toBe(reviewer.id);
+	const nextTicket = await h.read(async (tx) => {
+		const [status] = (await tx.execute(sql`SELECT id FROM statuses WHERE category='started'`)).rows;
+		return seedTicket(tx, { projectId: project, rootId: project, statusId: status!.id as string });
+	});
+	const second = await h.run((ctx, tx) => reserve(ctx, tx, { personaId, ticket: nextTicket, requestId: "second" }));
+	expect(second.replay).toBe(false);
+	expect(second.run.id).not.toBe(first.run.id);
+	expect(await h.rows(sql`SELECT id FROM agent_runs WHERE closed_at IS NULL`)).toHaveLength(2);
 });

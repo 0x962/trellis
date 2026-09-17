@@ -3,6 +3,7 @@ import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, readText, wantsJson } from "../context.ts";
 import { cell, json, type ListSpec, printList, printRecord, type RecordSpec } from "../output.ts";
+import { localDateTime } from "../time.ts";
 import { resolvePersona } from "./personas.ts";
 
 const agentList: ListSpec<AgentRun> = {
@@ -12,7 +13,7 @@ const agentList: ListSpec<AgentRun> = {
 		{ name: "persona", value: (row) => cell(row.personaName) },
 		{ name: "state", value: (row) => row.state },
 		{ name: "ticket", value: (row) => cell(row.ticketIdentifier) },
-		{ name: "updated", value: (row) => row.updatedAt },
+		{ name: "updated", value: (row) => localDateTime(row.updatedAt) },
 	],
 	identifier: (row) => row.id,
 };
@@ -29,8 +30,8 @@ const agentRecord: RecordSpec<AgentRun> = {
 		{ name: "ticket", value: (row) => cell(row.ticketIdentifier) },
 		{ name: "url", value: (row) => cell(row.url) },
 		{ name: "error", value: (row) => cell(row.error) },
-		{ name: "created", value: (row) => row.createdAt },
-		{ name: "updated", value: (row) => row.updatedAt },
+		{ name: "created", value: (row) => localDateTime(row.createdAt) },
+		{ name: "updated", value: (row) => localDateTime(row.updatedAt) },
 	],
 	identifier: (row) => row.id,
 };
@@ -109,7 +110,12 @@ const resume = defineCommand({
 			}),
 		);
 		printRecord(ctx.out, ctx.format, result, agentRecord);
-		return result.state === "running" ? 0 : 6;
+		// A resume answers a row in any state, like a start. Only `running`
+		// means the terminal is up, so every other state prints the reason and
+		// exits 6.
+		if (result.state === "running") return 0;
+		ctx.err.write(`warning: the agent is ${result.state}: ${result.error ?? "no error text"}\n`);
+		return 6;
 	},
 });
 

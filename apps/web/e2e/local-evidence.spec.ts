@@ -23,7 +23,6 @@ test("checks show GitHub sections without a local evidence request", async ({ pa
 		await patch("/projects/EVC", {
 			managerConfig: {
 				personaId: null,
-				concurrency: 3,
 				directory: repo,
 				ade: "native",
 				dispatchPaused: true,

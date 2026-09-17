@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { z } from "zod";
 import type { Credential } from "./fetchQuota.ts";
+import { museConfigDefault, profileDefault } from "./profiles.ts";
 import type { AccountRow } from "./queries.ts";
 
 const exec = promisify(execFile);
@@ -17,6 +18,13 @@ const credential = z.object({
 const codex = z.object({
 	OPENAI_API_KEY: z.string().nullish(),
 	tokens: z.object({ access_token: z.string(), account_id: z.string().optional() }).optional(),
+});
+// Muse keeps the token of its login in the macOS Keychain. Its `auth.json`
+// holds the identity of the login and the name of the storage only.
+const muse = z.object({
+	providers: z
+		.object({ meta: z.object({ user_email: z.string().optional(), mechanism: z.string().optional() }).optional() })
+		.optional(),
 });
 export async function readOptionalJson(path: string): Promise<unknown | null> {
 	try {
@@ -49,6 +57,20 @@ export async function readCredential(account: Pick<AccountRow, "harness" | "prof
 			token: parsed.tokens?.access_token ?? null,
 			accountId: parsed.tokens?.account_id,
 			apiKey: !!parsed.OPENAI_API_KEY,
+		};
+	}
+	if (account.harness === "muse") {
+		const configHome =
+			account.profilePath === profileDefault("muse", process.env)
+				? museConfigDefault(process.env)
+				: account.profilePath;
+		const data = await readOptionalJson(join(configHome, "muse", "auth.json"));
+		if (!data) return empty;
+		const parsed = muse.parse(data);
+		return {
+			...empty,
+			email: parsed.providers?.meta?.user_email ?? null,
+			plan: parsed.providers?.meta?.mechanism ?? null,
 		};
 	}
 	if (account.harness !== "claude") return empty;

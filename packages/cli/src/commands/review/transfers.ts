@@ -5,9 +5,20 @@ import { MarginFileSchema } from "@trellis/api/client";
 import { defineCommand } from "citty";
 import { clientOf } from "../../client";
 import { contextOf } from "../../context";
-import { usageError } from "../../errors";
+import { fileNotFound, usageError } from "../../errors";
 import { json } from "../../output";
 import { marginExport } from "./marginExport";
+
+// Margin writes one JSON file per review comment. The person points --from
+// at that directory, so a wrong path and a file of another shape are both
+// user input, and each one names the path it failed on.
+const marginFileOf = (path: string, data: unknown) => {
+	const parsed = MarginFileSchema.safeParse(data);
+	if (parsed.success) return parsed.data;
+	const issue = parsed.error.issues[0]!;
+	throw usageError(`${path} is not a margin comment file. ${(issue.path ?? []).join(".")}: ${issue.message}`);
+};
+
 export const transfers = {
 	"import-margin": defineCommand({
 		args: {
@@ -17,9 +28,16 @@ export const transfers = {
 		async run(c) {
 			const ctx = contextOf(c);
 			const source = resolve(c.args.from ?? `${ctx.deps.env.MARGIN_HOME ?? `${homedir()}/.margin`}/comments`);
-			const names = (await readdir(source)).filter((name) => name.endsWith(".json")).sort();
+			const entries = await readdir(source).catch((error: NodeJS.ErrnoException) => {
+				if (error.code === "ENOENT") throw fileNotFound(source);
+				throw error;
+			});
+			const names = entries.filter((name) => name.endsWith(".json")).sort();
 			const files = await Promise.all(
-				names.map(async (name) => MarginFileSchema.parse(await Bun.file(resolve(source, name)).json())),
+				names.map(async (name) => {
+					const path = resolve(source, name);
+					return marginFileOf(path, await Bun.file(path).json());
+				}),
 			);
 			ctx.out.write(json(await clientOf(ctx).reviews.importMargin({ source, dryRun: !c.args.apply, files })));
 		},

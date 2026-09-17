@@ -20,7 +20,7 @@ beforeEach(async () => {
 	await h.read(async (tx) => {
 		await seedActors(tx);
 		root = await seedRoot(tx, "ROOT", {
-			manager_config: { personaId: null, concurrency: 9, directory: "/tmp/root", harness: { preset: "codex" } },
+			manager_config: { personaId: null, directory: "/tmp/root", harness: { preset: "codex" } },
 		});
 		await seedStatuses(tx, root);
 		child = await seedChild(tx, root, root, "child");
@@ -40,7 +40,7 @@ test("a child launch uses the nearest current ancestor directory without inherit
 	const first = await reservation(child);
 	if (first.replay) throw new Error("Expected a new launch");
 	expect(first.config.directory).toBe("/tmp/changed-root");
-	expect(first.config.concurrency).toBe(3);
+	expect(first.config).not.toHaveProperty("concurrency");
 	expect(first.config.personaId).toBeNull();
 	expect(first.config.harness.preset).toBe("claude");
 	expect(first.context).toContain("Project directory: /tmp/changed-root");
@@ -86,4 +86,19 @@ test("restart preparation resolves the inherited directory and keeps the saved s
 	);
 	expect(result?.config.directory).toBe("/tmp/restart-root");
 	expect(result?.config.harness.model).toBe("anthropic/claude-sonnet-5");
+});
+
+test("a child launch uses the nearest ancestor account, and a manager restart moves to the project account", async () => {
+	const account = "01M00000000000000000000A11";
+	await h.rows(
+		sql`INSERT INTO harness_accounts (id, name, harness, profile_path, enabled, created_at, updated_at)
+		VALUES (${account}, 'Root account', 'codex', '/tmp/trellis-root-account', true, now(), now())`,
+	);
+	await h.rows(
+		sql`UPDATE projects SET manager_config=jsonb_set(manager_config,'{accountId}',${JSON.stringify(account)}::jsonb) WHERE id=${root}`,
+	);
+	const child_ = await reservation(grandchild);
+	expect(child_.run.accountId).toBe(account);
+	const own = await reservation(root);
+	expect(own.run.accountId).toBe(account);
 });

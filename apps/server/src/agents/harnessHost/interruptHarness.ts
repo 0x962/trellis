@@ -1,6 +1,7 @@
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { readClaudeStatus } from "../harnesses/claude/readClaudeStatus.ts";
 import { requestCodex } from "../harnesses/codex/requestCodex.ts";
+import { requestMuse } from "../harnesses/muse/requestMuse.ts";
 import { interruptOpenCode } from "../harnesses/opencode/interruptOpenCode.ts";
 import { providers } from "./providers.ts";
 import type { HarnessDescriptor, HarnessHostOptions } from "./types.ts";
@@ -20,6 +21,17 @@ export async function interruptHarness(
 		await requestCodex(
 			descriptor.spec.env!.TRELLIS_CODEX_CONTROL_SOCKET!,
 			descriptor.spec.env!.TRELLIS_CODEX_CONTROL_TOKEN!,
+			"/interrupt",
+			{ sessionId: before.agent.sessionId, turnId: before.agent.turnId },
+		);
+		return null;
+	}
+	if (descriptor.harness === "muse") {
+		if (before.agent.sessionId === null || before.agent.turnId === null)
+			throw new Error(`Harness attempt ${before.id} has no active provider turn identity`);
+		await requestMuse(
+			descriptor.spec.env!.TRELLIS_MUSE_CONTROL_SOCKET!,
+			descriptor.spec.env!.TRELLIS_MUSE_CONTROL_TOKEN!,
 			"/interrupt",
 			{ sessionId: before.agent.sessionId, turnId: before.agent.turnId },
 		);

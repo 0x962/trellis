@@ -17,7 +17,7 @@ const identifier = z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/);
 const launchInput = z
 	.object({
 		id: identifier,
-		harness: z.enum(["claude", "codex", "pi", "opencode"]),
+		harness: z.enum(["claude", "codex", "pi", "opencode", "muse"]),
 		managerId: identifier.optional(),
 		cwd: z.string().startsWith("/"),
 		prompt: z.string().min(1),
@@ -100,7 +100,7 @@ export class HarnessHost {
 			if (!signal.aborted) throw error;
 			throw Object.assign(
 				new Error(
-					`Harness attempt ${id} did not confirm the requested provider observation within ${this.options.observationTimeoutMs ?? 15000} ms; inspect or stop this attempt before resending`,
+					`Harness attempt ${id} did not report the requested provider observation within ${this.options.observationTimeoutMs ?? 15000} ms. Open its terminal: the program may wait on a login or a first-run question. Stop the attempt before you send again.`,
 				),
 				{ code: "HARNESS_OBSERVATION_TIMEOUT" },
 			);
@@ -143,7 +143,7 @@ export class HarnessHost {
 		identifier.parse(messageId);
 		const descriptor = await this.descriptor(id);
 		let status: "unknown" | "written" | "acknowledged";
-		if (descriptor.harness === "opencode" || descriptor.harness === "codex") {
+		if (descriptor.harness === "opencode" || descriptor.harness === "codex" || descriptor.harness === "muse") {
 			const sessionId = (await this.status(id)).agent?.sessionId;
 			if (sessionId == null) throw new Error(`Harness attempt ${id} has no provider session identity`);
 			const reservation = await sendNativePrompt(

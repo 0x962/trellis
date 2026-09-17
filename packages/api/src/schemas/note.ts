@@ -19,8 +19,16 @@ export const NOTE_BODY_MAX = 4000;
 
 // Two notes of one project never share a title, compared without case, so a
 // writer that repeats a title gets DUPLICATE and updates the note instead.
-export const NoteTitleSchema = z.string().trim().min(1).max(NOTE_TITLE_MAX);
-export const NoteBodySchema = z.string().trim().min(1).max(NOTE_BODY_MAX);
+export const NoteTitleSchema = z
+	.string()
+	.trim()
+	.min(1, `Enter a note title of 1 to ${NOTE_TITLE_MAX} characters.`)
+	.max(NOTE_TITLE_MAX, `Enter a note title of 1 to ${NOTE_TITLE_MAX} characters.`);
+export const NoteBodySchema = z
+	.string()
+	.trim()
+	.min(1, `Enter a note body of 1 to ${NOTE_BODY_MAX} characters.`)
+	.max(NOTE_BODY_MAX, `Enter a note body of 1 to ${NOTE_BODY_MAX} characters.`);
 
 // `expiresAt` marks a note about a passing state, such as free disk or an
 // active release. An expired note leaves every list and every launch

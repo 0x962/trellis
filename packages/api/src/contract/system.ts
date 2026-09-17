@@ -52,6 +52,7 @@ export const system = {
 		.input(z.object({}))
 		.output(GhStatusSchema),
 	backup: base
+		.errors(pickErrors(["BACKUP_FAILED"]))
 		.route({ method: "POST", path: "/backup", summary: "Write a backup archive under the data home" })
 		.output(BackupOutputSchema),
 };

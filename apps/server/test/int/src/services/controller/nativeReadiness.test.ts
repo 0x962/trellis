@@ -25,7 +25,7 @@ beforeEach(async () => {
 	sessions = [];
 	await h.run(async (ctx, tx) => {
 		projectId = await seedRoot(tx, "NRD", {
-			manager_config: { personaId: "persona", concurrency: 1, ade: "native", harness: { preset: "claude" } },
+			manager_config: { personaId: "persona", ade: "native", harness: { preset: "claude" } },
 		});
 		const statusId = await seedStatus(tx, { projectId, name: "Todo", category: "todo", position: 0, isDefault: true });
 		const ticketId = await seedTicket(tx, { projectId, rootId: projectId, statusId });
