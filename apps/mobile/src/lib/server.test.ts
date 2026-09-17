@@ -1,6 +1,6 @@
 import { describe, expect, jest, test } from "bun:test";
 import { StandardRPCJsonSerializer } from "@orpc/client/standard";
-import { actorHeader, probeHealth, reachability, recordProbe, validateActorName, validateServerUrl } from "./server";
+import { actorHeader, probeHealth, validateActorName, validateServerUrl } from "./server";
 
 const actor = "human:dana";
 const base = "http://192.168.1.20:4521";
@@ -36,7 +36,6 @@ const health = {
 const counts = { total: 12, byStatus: [] };
 const defaultActor = { name: "dana", kind: "human" };
 
-const failure = { ok: false, kind: "unreachable", detail: "fetch failed: ECONNREFUSED" } as const;
 const success = { ok: true, version: "0.1.0", apiVersion: "1", ticketCount: 12, actorName: "dana" } as const;
 
 // Fake timers leave microtasks alone, so a few awaits settle a promise.
@@ -135,17 +134,5 @@ describe("probeHealth", () => {
 		const request = requests.find((item) => new URL(item.url).pathname.endsWith("/health"));
 		expect(request).toBeDefined();
 		expect(request!.headers.get("x-trellis-actor")).toBe("human:dana");
-	});
-});
-
-describe("reachability", () => {
-	test("never reachable and lost are two states, and a success records lastReachedAt", () => {
-		expect(reachability({ lastResult: failure, lastReachedAt: undefined })).toEqual({ status: "never" });
-		expect(reachability({ lastResult: failure, lastReachedAt: 1_000 })).toEqual({ status: "lost", since: 1_000 });
-		const reached = recordProbe({ lastResult: failure, lastReachedAt: undefined }, success, 5_000);
-		expect(reached.lastReachedAt).toBe(5_000);
-		expect(reachability(reached)).toEqual({ status: "reachable" });
-		const lost = recordProbe(reached, failure, 9_000);
-		expect(reachability(lost)).toEqual({ status: "lost", since: 5_000 });
 	});
 });

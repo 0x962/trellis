@@ -1,10 +1,12 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { sql } from "drizzle-orm";
+import { seedDefaultBuilder } from "../../../fixtures/projects.ts";
 import { CLAUDE, createTestApp, type TestApp } from "../../../helpers/app.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 
 // The ticket writes over /api: create with its Location, update with
-// expectedVersion and If-Match, move, the batches, delete, and the two
-// agent rules. The reads live in tickets.read.test.ts.
+// expectedVersion and If-Match, move, the batches, delete, and the agent
+// deletion rule. The reads live in tickets.read.test.ts.
 
 let h: TestDb;
 let t: TestApp;
@@ -14,7 +16,8 @@ beforeAll(async () => {
 beforeEach(async () => {
 	await h.reset();
 	t = await createTestApp({ db: h });
-	await t.seedProject("CDE");
+	const project = await t.seedProject("CDE");
+	await seedDefaultBuilder(h.db, project.id);
 });
 afterAll(() => h.close());
 afterEach(() => t.close());
@@ -161,19 +164,19 @@ describe("tickets.delete and the agent rules", () => {
 		expect((await t.api("/api/tickets/CDE-42")).status).toBe(404);
 	});
 
-	test("an agent moving a ticket to done answers AGENT_CANNOT_COMPLETE", async () => {
+	test.each([CLAUDE, "agent:manager"])("%s moves a ticket to done without force", async (actor) => {
 		await t.createTicket({ project: "CDE", title: "Started", status: "in-progress" });
 
 		const response = await t.api("/api/tickets/CDE-1/move", {
 			method: "POST",
 			body: { status: "done" },
-			actor: CLAUDE,
+			actor,
 		});
 
-		expect(response.status).toBe(403);
-		expect(response.body.code).toBe("AGENT_CANNOT_COMPLETE");
-		expect(response.body.data.status).toMatchObject({ slug: "done", category: "done" });
-		expect((await t.api("/api/tickets/CDE-1")).body.status.slug).toBe("in-progress");
+		expect(response.status).toBe(200);
+		expect(response.body.status).toMatchObject({ slug: "done", category: "done" });
+		expect(response.body.completedAt).not.toBeNull();
+		expect((await t.api("/api/tickets/CDE-1")).body.status.slug).toBe("done");
 	});
 
 	test("an agent deleting a ticket answers AGENT_CANNOT_DELETE", async () => {
@@ -185,4 +188,21 @@ describe("tickets.delete and the agent rules", () => {
 		expect(response.body.code).toBe("AGENT_CANNOT_DELETE");
 		expect((await t.api("/api/tickets/CDE-1")).status).toBe(200);
 	});
+});
+
+test.each(["create", "move"])("an agent %s returns STATUS_FULL when In Progress is full", async (operation) => {
+	await t.createTicket({ project: "CDE", title: "Current work", status: "in-progress" });
+	await t.createTicket({ project: "CDE", title: "Waiting work" });
+	await h.db.execute(sql`UPDATE statuses SET wip_limit=1 WHERE category='started'`);
+	const response =
+		operation === "create"
+			? await t.api("/api/tickets", {
+					method: "POST",
+					actor: CLAUDE,
+					body: { project: "CDE", title: "Extra work", status: "in-progress" },
+				})
+			: await t.api("/api/tickets/CDE-2/move", { method: "POST", actor: CLAUDE, body: { status: "in-progress" } });
+	expect(response.status).toBe(409);
+	expect(response.body.code).toBe("STATUS_FULL");
+	expect(response.body.data).toMatchObject({ limit: 1, count: 1 });
 });

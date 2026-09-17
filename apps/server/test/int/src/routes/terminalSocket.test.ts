@@ -25,6 +25,9 @@ const runId = "01M2HGY58VB4J2AYRVGDFHHB3P";
 const path = `/api/agent-runs/${runId}/terminal/socket?attemptId=attempt&sessionId=conversation`;
 const session = { id: "attempt", mode: "pty", status: "running", controllable: true };
 const send = (socket: Socket, id: string, result: unknown) => socket.write(`${JSON.stringify({ id, result })}\n`);
+// What the runtime process answers to `hello`. A test sets it to an empty
+// list to act as a runtime binary that is too old to send terminal output.
+let capabilities: string[];
 
 beforeAll(async () => {
 	h = await freshDb();
@@ -33,6 +36,7 @@ afterAll(() => h.close());
 beforeEach(async () => {
 	await h.reset();
 	forbidDatabase = false;
+	capabilities = ["terminal-stream"];
 	calls = [];
 	commands = [];
 	t = await createTestApp({
@@ -62,7 +66,7 @@ beforeEach(async () => {
 			if (!buffer.includes("\n")) return;
 			const request = JSON.parse(buffer.split("\n")[0]!);
 			if (request.method === "hello") {
-				send(socket, request.id, { capabilities: ["terminal-stream"] });
+				send(socket, request.id, { capabilities });
 				socket.end();
 			} else if (request.method === "subscribe") {
 				subscription = socket;
@@ -127,6 +131,23 @@ test("socket rejects unauthenticated, foreign-origin, and obsolete attempts befo
 	expect((await fetch(base + path.replace("sessionId=conversation", "sessionId=old"), { headers })).status).toBe(400);
 	expect((await fetch(`${base}${path}&offset=-1`, { headers })).status).toBe(400);
 	expect(sockets.size).toBe(0);
+});
+
+// The socket route and the stream route read the same runtime output, so
+// both answer the same 503 when the runtime binary is too old to send it.
+test("socket answers 503 when the runtime cannot send terminal output", async () => {
+	capabilities = [];
+	const response = await fetch(`http://127.0.0.1:${http.port}${path}`, {
+		headers: { authorization: `Bearer ${token}` },
+	});
+	expect(response.status).toBe(503);
+	expect(await response.json()).toEqual({
+		defined: true,
+		code: "RUNNER_UNAVAILABLE",
+		status: 503,
+		message: "The execution service requires an update before it can stream this terminal.",
+		data: { reason: "outdated" },
+	});
 });
 
 test("WebSocket upgrades reject missing credentials and an obsolete attempt", async () => {

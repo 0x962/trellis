@@ -17,6 +17,7 @@ export type SelectProps<Value extends string> = {
 	value: Value;
 	onValueChange: (value: Value) => void;
 	disabled?: boolean;
+	alignItemWithTrigger?: boolean;
 	className?: string;
 };
 
@@ -30,6 +31,7 @@ export function Select<Value extends string>({
 	value,
 	onValueChange,
 	disabled = false,
+	alignItemWithTrigger = true,
 	className,
 }: SelectProps<Value>) {
 	return (
@@ -57,7 +59,11 @@ export function Select<Value extends string>({
 				</BaseSelect.Icon>
 			</BaseSelect.Trigger>
 			<BaseSelect.Portal>
-				<BaseSelect.Positioner sideOffset={4} className="z-50 outline-none select-none">
+				<BaseSelect.Positioner
+					alignItemWithTrigger={alignItemWithTrigger}
+					sideOffset={4}
+					className="z-50 outline-none select-none"
+				>
 					<BaseSelect.Popup
 						className={cx(
 							"min-w-(--anchor-width) max-w-(--available-width) origin-(--transform-origin) rounded-lg border border-border bg-elevated p-1 shadow-md outline-none",

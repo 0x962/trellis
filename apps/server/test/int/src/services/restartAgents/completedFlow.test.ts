@@ -47,16 +47,11 @@ beforeEach(async () => {
 	await h.read(async (tx) => {
 		await seedActors(tx);
 		project = await seedRoot(tx, "FLOW");
-		const status = await seedStatus(tx, {
-			projectId: project,
-			name: "Todo",
-			category: "todo",
-			position: 0,
-			isDefault: true,
-		});
+		await seedStatus(tx, { projectId: project, name: "Todo", category: "todo", position: 0, isDefault: true });
+		const status = await seedStatus(tx, { projectId: project, name: "In Progress", category: "started", position: 1 });
 		ticket = await seedTicket(tx, { projectId: project, rootId: project, statusId: status });
 		await tx.execute(
-			sql`UPDATE projects SET manager_config='{"personaId":null,"concurrency":3,"directory":"/tmp/work"}'::jsonb WHERE id=${project}`,
+			sql`UPDATE projects SET manager_config='{"personaId":null,"directory":"/tmp/work"}'::jsonb WHERE id=${project}`,
 		);
 		await tx.execute(
 			sql`INSERT INTO agent_runs (id,name,runtime,persona_name,kind,instruction,project_id,project_path,ticket_id,terminal_id,session_id,workspace_id,created_at,updated_at) VALUES (${runId},'Worker','native','Builder','builder','Task',${project},'FLOW',${ticket},'previous','provider-session',${home},now(),now())`,
@@ -107,7 +102,7 @@ const resume = (onStart?: (runId: string) => void) => {
 	);
 	return prepareResumeRestart(
 		context(),
-		{ restartId: plan.id },
+		{ restartId: plan.id, wait: true },
 		{
 			host: () => ({
 				list: async () => processes,
@@ -201,7 +196,7 @@ test.each(["gate", "agent"] as const)(
 	async (kind) => {
 		const flow = await seedFlow(kind);
 		if (kind === "agent") previous.result!.text = "Completed implementation and validation";
-		expect(await resume()).toEqual({ resumed: 0, skipped: 1 });
+		expect(await resume()).toMatchObject({ resumed: 0, skipped: 1, failed: 0 });
 		expect(launches).toBe(0);
 		const [task] = await h.rows(sql`SELECT attempt_id,result_id FROM flow_execution_tasks`);
 		expect(task).toEqual({ attempt_id: "previous", result_id: "original-result" });
@@ -217,7 +212,7 @@ test("work interrupted by runtime shutdown still resumes", async () => {
 	const flow = await seedFlow();
 	previous.agent!.outcome = "interrupted";
 	previous.activity!.state = "working";
-	expect(await resume()).toEqual({ resumed: 1, skipped: 0 });
+	expect(await resume()).toMatchObject({ resumed: 1, skipped: 0, failed: 0 });
 	expect((await h.rows(sql`SELECT state FROM flow_executions WHERE id=${flow.id}`))[0]!.state).toEqual(flow.state);
 	expect((await h.rows(sql`SELECT attempt_id,result_id FROM flow_execution_tasks`))[0]).toEqual({
 		attempt_id: "next",
@@ -225,20 +220,20 @@ test("work interrupted by runtime shutdown still resumes", async () => {
 	});
 });
 test("a completed non-flow agent still resumes its saved session", async () => {
-	expect(await resume()).toEqual({ resumed: 1, skipped: 0 });
+	expect(await resume()).toMatchObject({ resumed: 1, skipped: 0, failed: 0 });
 	expect(launches).toBe(1);
 });
 test("an old result without the current attempt receipt cannot complete a flow", async () => {
 	const flow = await seedFlow();
 	previous.acknowledgedMessageIds = [];
-	expect(await resume()).toEqual({ resumed: 1, skipped: 0 });
+	expect(await resume()).toMatchObject({ resumed: 1, skipped: 0, failed: 0 });
 	expect((await h.rows(sql`SELECT state FROM flow_executions WHERE id=${flow.id}`))[0]!.state).toEqual(flow.state);
 	expect((await h.rows(sql`SELECT result_id FROM flow_execution_tasks`))[0]!.result_id).toBeNull();
 });
 test("manual stop remains authoritative when a completed result exists", async () => {
 	const flow = await seedFlow();
 	await h.rows(sql`UPDATE agent_runs SET closed_at=now()`);
-	expect(await resume()).toEqual({ resumed: 0, skipped: 1 });
+	expect(await resume()).toMatchObject({ resumed: 0, skipped: 1, failed: 0 });
 	expect(launches).toBe(0);
 	expect((await h.rows(sql`SELECT state FROM flow_executions WHERE id=${flow.id}`))[0]!.state).toEqual(flow.state);
 });
@@ -264,6 +259,6 @@ test("workers resume before a manager captured first", async () => {
 	plan.sessions.push(worker);
 	await writeRestartPlan(home, plan);
 	const order: string[] = [];
-	expect(await resume((id) => order.push(id))).toEqual({ resumed: 2, skipped: 0 });
+	expect(await resume((id) => order.push(id))).toMatchObject({ resumed: 2, skipped: 0, failed: 0 });
 	expect(order).toEqual([worker.runId, manager.runId]);
 });

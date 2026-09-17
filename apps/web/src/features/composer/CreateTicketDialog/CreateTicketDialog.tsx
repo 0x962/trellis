@@ -1,11 +1,10 @@
 import { useRouter } from "@tanstack/react-router";
 import type { Priority, Ticket, TicketSummary } from "@trellis/api";
-import { Button, Dialog, Switch, toast, useHotkey } from "@trellis/ui";
+import { Button, ConfirmDialog, Dialog, Switch, toast, useHotkey } from "@trellis/ui";
 import { useRef, useState } from "react";
-import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { useApp } from "../../../lib/appContext";
+import { failToast } from "../../../lib/failToast";
 import { insertRow } from "../../table/utils/cacheRows";
-import { failToast } from "../../ticket/utils/failToast";
 import { composerActions, useComposerStore } from "../composerStore";
 import { defaultStatus, useComposerDefaults } from "../hooks/useComposerDefaults";
 import { useComposerDraft } from "../hooks/useComposerDraft";

@@ -90,9 +90,9 @@ test("desktop settings show the app state and run each desktop action", async ({
 		["Show data directory", "showDataDirectory"],
 		["Choose data directory", "chooseDataDirectory"],
 		["Open Login Items in System Settings", "openServiceSettings"],
-		["Stop local work and background service", "stopLocalWork"],
 		["Reconnect host", "reconnectHost"],
-		["Quit Trellis (keep agents running)", "quit"],
+		["Quit Trellis", "quit"],
+		["Quit Trellis Completely", "stopLocalWork"],
 	];
 	for (const [label] of actions) await section.getByRole("button", { name: label, exact: true }).click();
 	await expect
@@ -127,9 +127,7 @@ test("a service status error keeps the desktop actions available", async ({ page
 	await expect(section.getByText("The background service did not answer.", { exact: true })).toBeVisible();
 	await expect(section.getByText("Restart required", { exact: true })).toBeVisible();
 	await expect(section.getByRole("button", { name: "Show data directory", exact: true })).toBeEnabled();
-	await expect(
-		section.getByRole("button", { name: "Stop local work and background service", exact: true }),
-	).toBeEnabled();
+	await expect(section.getByRole("button", { name: "Quit Trellis Completely", exact: true })).toBeEnabled();
 });
 
 test("desktop navigation changes the route without a page load", async ({ page }) => {

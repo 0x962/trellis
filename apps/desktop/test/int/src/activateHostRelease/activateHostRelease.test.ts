@@ -280,14 +280,22 @@ test("a further package completes its prior resume before a fresh capture", asyn
 	}
 });
 
-test("an interrupted attempt start also completes before another package switch", async () => {
+test("an unfinished resume from a previous package does not stop the next package", async () => {
 	const f = await fixture();
 	try {
 		await writeFile(join(f.home, "restart-plan.json"), JSON.stringify({ sourceReleaseId: "previous", sessions: [{}] }));
-		await expect(activateHostRelease(f.home, "helper", f.next, f.actions)).rejects.toThrow(
-			"Finish the pending agent restart",
-		);
-		expect(f.calls).toEqual(["adopt", "resume"]);
+		await activateHostRelease(f.home, "helper", f.next, f.actions);
+		expect(f.calls).toEqual([
+			"adopt",
+			"resume",
+			"unregister",
+			"wait",
+			"capture",
+			"shutdown",
+			"register",
+			"adopt",
+			"resume",
+		]);
 	} finally {
 		await rm(f.directory, { recursive: true, force: true });
 	}

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { formatCount } from "../../../lib/format";
 
 export type ListFooterProps = {
@@ -5,6 +6,7 @@ export type ListFooterProps = {
 	total: number | undefined;
 	// The active sort, as text: "Sorted by updated".
 	sort: string;
+	status?: ReactNode;
 };
 
 // The 28 px bar under a list. Its height never changes, so the count
@@ -13,12 +15,13 @@ export type ListFooterProps = {
 // TRL-36. The board's bar is the table's bar, so it takes the same rule:
 // neither span may wrap inside a fixed height, and the sort label leaves the
 // bar below 640 px.
-export function ListFooter({ total, sort }: ListFooterProps) {
+export function ListFooter({ total, sort, status }: ListFooterProps) {
 	return (
 		<div data-list-footer="" className="flex h-7 shrink-0 items-center gap-4 px-5 text-xs text-fg-muted tabular">
 			<span className="whitespace-nowrap">
 				{total === undefined ? "" : `${formatCount(total)} ${total === 1 ? "ticket" : "tickets"}`}
 			</span>
+			{status}
 			<span className="ml-auto hidden whitespace-nowrap sm:block">{sort}</span>
 		</div>
 	);

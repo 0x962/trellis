@@ -1,18 +1,37 @@
 import { expect, test } from "@playwright/test";
+import { patch, post } from "./api";
 import { createTicket, ensureProject, moveTicket, trellis } from "./cli";
 import { failingPrUrl } from "./ghReplies";
 import { cardOf, columnOf, signIn } from "./support";
 
 // Sixteen Todo cards are taller than a 900 px board, so Todo overflows and
 // the other columns do not.
-test.beforeAll(() => {
+test.beforeAll(async () => {
+	await post("/native-work/stop", {});
 	if (!ensureProject("BRD", "Board layout")) return;
+	const builder = await post<{ id: string }>("/personas", {
+		name: "Board layout builder",
+		kind: "builder",
+		instruction: "Work on the ticket.",
+	});
+	await patch("/projects/BRD", {
+		managerConfig: {
+			personaId: null,
+			directory: "",
+			builder: { personaId: builder.id, harness: { preset: "claude" } },
+		},
+	});
 	for (let n = 1; n <= 16; n++) createTicket("BRD", `Fill the Todo column past the board height ${n}`);
 	createTicket("BRD", "Keep one ticket in progress");
 	moveTicket("BRD-17", "in-progress");
 	createTicket("BRD", "Keep the card border consistent when checks fail");
 	trellis(["pr", "add", "BRD-18", failingPrUrl]);
 	createTicket("BRD", "Show the drag preview without a top edge");
+});
+
+test.afterAll(async () => {
+	moveTicket("BRD-17", "todo");
+	await post("/native-work/resume", {});
 });
 
 test("board card states omit the top edge and keep the other edges", async ({ page }) => {

@@ -23,7 +23,6 @@ test("the assigned agent opens an interactive terminal and receives live output"
 		await patch("/projects/PTY", {
 			managerConfig: {
 				personaId: null,
-				concurrency: 3,
 				directory: repo,
 				ade: "native",
 				dispatchPaused: true,

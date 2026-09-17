@@ -11,6 +11,7 @@ import { rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import { fail, invalidInput } from "../errors.ts";
 import { changeSet } from "./changeSet.ts";
+import { seedDefaultChannels } from "./chat/channels.ts";
 import {
 	assertKeyFree,
 	assertRootNameFree,
@@ -20,6 +21,7 @@ import {
 	projectRow,
 	projectView,
 } from "./projectRows.ts";
+import { recordManagerScopeChange } from "./projectsManagerScope.ts";
 import { assertProjectActive, pathOf, resolveProject } from "./refs.ts";
 import { deriveSlug } from "./slug.ts";
 import { seedRootStatuses } from "./statusSet.ts";
@@ -46,15 +48,35 @@ const nextPosition = async (tx: Tx, parentId: string | null) => {
 // starts with an empty template.
 export const DEFAULT_TICKET_TEMPLATE = "## Context\n\n## Acceptance criteria\n- [ ]\n\n## Out of scope\n";
 
-export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput): Promise<Project> => {
-	requireActor(ctx);
-	if (input.managerConfig?.personaId != null) {
-		const [persona] = await rows<{ kind: string }>(
-			tx,
-			sql`SELECT kind FROM personas WHERE id = ${input.managerConfig.personaId}`,
-		);
+// The persona of a manager config is a manager persona, and its account is
+// an enabled account of the harness the config selects.
+const assertManagerConfig = async (tx: Tx, config: ProjectCreateInput["managerConfig"]) => {
+	if (config?.personaId != null) {
+		const [persona] = await rows<{ kind: string }>(tx, sql`SELECT kind FROM personas WHERE id = ${config.personaId}`);
 		if (persona?.kind !== "manager") throw invalidInput("managerConfig.personaId", "Select a manager persona.");
 	}
+	if (config?.builder?.personaId != null) {
+		const [persona] = await rows<{ kind: string }>(
+			tx,
+			sql`SELECT kind FROM personas WHERE id = ${config.builder.personaId}`,
+		);
+		if (persona?.kind !== "builder") throw invalidInput("managerConfig.builder.personaId", "Select a builder persona.");
+	}
+	if (config?.accountId != null) {
+		const [account] = await rows<{ harness: string; enabled: boolean }>(
+			tx,
+			sql`SELECT harness, enabled FROM harness_accounts WHERE id = ${config.accountId} AND archived_at IS NULL`,
+		);
+		if (account === undefined) throw invalidInput("managerConfig.accountId", "Select an account from Settings.");
+		if (!account.enabled) throw invalidInput("managerConfig.accountId", "Select an enabled account.");
+		const preset = config.harness?.preset ?? "claude";
+		if (account.harness !== preset) throw invalidInput("managerConfig.accountId", `Select a ${preset} account.`);
+	}
+};
+
+export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput): Promise<Project> => {
+	requireActor(ctx);
+	await assertManagerConfig(tx, input.managerConfig);
 	const id = ulid();
 	const parent = input.parent === undefined ? null : await resolveProject(ctx, tx, input.parent);
 	if (parent !== null) assertProjectActive(ctx, parent.id);
@@ -72,10 +94,17 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput)
 				${input.description ?? ""}, ${template}, 0, ${position}, NULL, ${ctx.now}, ${ctx.now}, ${JSON.stringify(input.managerConfig ?? DEFAULT_PROJECT_MANAGER_CONFIG)}::jsonb)`,
 	);
 	if (parent === null) await seedRootStatuses(ctx, tx, id);
+	await seedDefaultChannels(ctx, tx, id);
 	await ctx.cache.rebuild(tx);
 	await projectActivity(ctx, tx, id, "project.created", [
 		{ field: null, from: null, to: input.name, meta: { path: pathOf(ctx.cache, id) } },
 	]);
+	await recordManagerScopeChange(ctx, tx, {
+		projectId: id,
+		parentId: parent?.id ?? null,
+		before: null,
+		after: input.managerConfig?.personaId ?? null,
+	});
 	ctx.emit({ type: "project.created", id });
 	return projectView(ctx, tx, id);
 };
@@ -90,13 +119,7 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 	const project = await resolveProject(ctx, tx, input.project);
 	if (input.archived !== false) assertProjectActive(ctx, project.id);
 	const row = await projectRow(tx, project.id);
-	if (input.managerConfig?.personaId != null) {
-		const [persona] = await rows<{ kind: string }>(
-			tx,
-			sql`SELECT kind FROM personas WHERE id = ${input.managerConfig.personaId}`,
-		);
-		if (persona?.kind !== "manager") throw invalidInput("managerConfig.personaId", "Select a manager persona.");
-	}
+	await assertManagerConfig(tx, input.managerConfig);
 	const renamed = input.name !== undefined && input.name !== row.name;
 	const restored = input.archived === false && row.archived_at !== null;
 	if (project.parentId === null && (renamed || restored))
@@ -135,6 +158,13 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 	);
 	await projectActivity(ctx, tx, project.id, "project.updated", changes);
 	await ctx.cache.rebuild(tx);
+	if (input.managerConfig !== undefined)
+		await recordManagerScopeChange(ctx, tx, {
+			projectId: project.id,
+			parentId: project.parentId,
+			before: managerConfigOf(row).personaId,
+			after: input.managerConfig.personaId,
+		});
 	ctx.emit({ type: "project.updated", id: project.id });
 	return projectView(ctx, tx, project.id);
 };

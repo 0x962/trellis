@@ -124,9 +124,7 @@ test("kanban > a rejected move puts the card back and shows a toast", async ({ p
 	await expect(cardOf(columnOf(page, "Todo"), id)).toBeVisible();
 	trellis(["edit", id, "--title", `Reject the drop of a stale card ${Date.now()}`]);
 	await cardOf(page, id).dragTo(columnOf(page, "In Progress"));
-	await expect(
-		toastOf(page, `${id} did not move to In Progress. Another actor changed the ticket first.`),
-	).toBeVisible();
+	await expect(toastOf(page, `${id} changed first. The row shows the other version.`)).toBeVisible();
 	await expect(cardOf(columnOf(page, "Todo"), id)).toBeVisible();
 	await expect(cardOf(columnOf(page, "In Progress"), id)).toHaveCount(0);
 	expect(await statusOf(id)).toBe("Todo");

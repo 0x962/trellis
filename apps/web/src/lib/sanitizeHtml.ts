@@ -18,6 +18,7 @@ const allowed: Record<string, readonly string[]> = {
 	img: ["src", "alt", "title"],
 	input: ["type", "checked", "disabled"],
 	li: [],
+	mark: ["class"],
 	ol: ["start"],
 	p: [],
 	pre: [],
@@ -54,7 +55,7 @@ const dropped: ReadonlySet<string> = new Set([
 // point at the web or at the file of one attachment on this server, which
 // is the URL the attachment's markdown line names.
 const safeHref = (value: string) => /^(https?:|mailto:)/i.test(value.trim()) || /^[/#]/.test(value.trim());
-const attachmentFile = /^\/api\/attachments\/[0-9A-Z]{26}\/file$/;
+const attachmentFile = /^\/api\/(attachments|chat\/attachments)\/[0-9A-Z]{26}\/file$/;
 const safeSrc = (value: string) => /^https?:/i.test(value.trim()) || attachmentFile.test(value.trim());
 
 const sanitizeElement = (element: Element) => {
@@ -75,7 +76,7 @@ const sanitizeElement = (element: Element) => {
 			attributes.includes(name) &&
 			(name !== "href" || safeHref(value)) &&
 			(name !== "src" || safeSrc(value)) &&
-			(name !== "class" || /^language-[\w-]+$/.test(value)) &&
+			(name !== "class" || /^(language-[\w-]+|mention)$/.test(value)) &&
 			(name !== "type" || value === "checkbox");
 		if (!keep) element.removeAttribute(name);
 	}
