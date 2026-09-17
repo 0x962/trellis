@@ -2,8 +2,7 @@ import type { LinkedPullRequest, PullRequest } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { contextOf, wantsJson } from "../context.ts";
-import { cell, json, printList, printRecord, type RecordSpec } from "../output.ts";
-import { localDateTime } from "../time.ts";
+import { cell, json, printList, printRecord, type RecordSpec, timeCell } from "../output.ts";
 import { deletedRecord } from "./delete.ts";
 import { prList } from "./show.ts";
 
@@ -16,7 +15,7 @@ const prRecord: RecordSpec<PullRequest> = {
 		{ name: "ciState", value: (row) => row.ciState },
 		{ name: "reviewState", value: (row) => row.reviewState },
 		{ name: "head", value: (row) => `${row.headRef} -> ${row.baseRef}` },
-		{ name: "fetched", value: (row) => (row.fetchedAt === null ? "-" : localDateTime(row.fetchedAt)) },
+		{ name: "fetched", value: (row) => timeCell(row.fetchedAt) },
 		{ name: "fetchError", value: (row) => cell(row.fetchError) },
 	],
 	identifier: (row) => row.id,
