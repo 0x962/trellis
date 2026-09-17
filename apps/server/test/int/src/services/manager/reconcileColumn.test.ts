@@ -199,6 +199,18 @@ test.each(["done", "canceled"])("a configured %s column does not start a worker"
 	await reconcileColumn(ctx(), await state(), [], deps());
 	expect(starts).toHaveLength(0);
 });
+test.each(["done", "canceled"])("a move to configured %s stops the worker", async (category) => {
+	const launched = await start();
+	await h.rows(
+		sql`UPDATE statuses SET agent_config=(SELECT agent_config FROM statuses WHERE id=${status}) WHERE project_id=${project} AND category=${category}`,
+	);
+	const { move } = await import("../../../../../src/services/tickets/move.ts");
+	await h.run((core, tx) => move(core, tx, { ticket, status: category }));
+	calls = [];
+	await reconcileColumn(ctx(), await state(), [sessionFor(launched)], deps());
+	expect(calls).toEqual(["stop"]);
+	expect(starts).toHaveLength(1);
+});
 test("a stopped worker from before column management keeps its workspace", async () => {
 	const first = await start();
 	await h.rows(sql`DELETE FROM column_workers WHERE ticket_id=${ticket}`);
