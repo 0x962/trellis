@@ -30,7 +30,7 @@ export const prepareOpenCode = async (input: HarnessLaunchInput): Promise<Harnes
 	await copyFile(fileURLToPath(new URL("./plugin.mjs", import.meta.url)), plugin);
 	await copyFile(fileURLToPath(new URL("./control.mjs", import.meta.url)), join(input.configDirectory, "control.mjs"));
 	const args: string[] = input.managerTools ? ["--agent", "trellis-manager"] : [];
-	const permission = input.managerTools ? { "*": "deny", "trellis_trellis_*": "allow" } : { "*": "allow" };
+	const permission = { "*": "allow" };
 	if (input.model !== undefined) args.push("--model", input.model);
 	if (input.resume) {
 		args.push("--session", input.sessionId);

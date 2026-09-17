@@ -8,7 +8,7 @@ import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { type Change, record } from "../activity.ts";
 import { assertStatusRoom } from "../manager/admitTicket.ts";
-import { queueBuilderStart } from "../manager/builderStarts/queue.ts";
+import { retireColumnWorker } from "../manager/retireColumnWorker.ts";
 import { assertProjectActive, resolveStatus, resolveTicket, type TicketRow } from "../refs.ts";
 import { type Anchor, type Anchors, placeBetween, renumberColumn } from "./position.ts";
 import { assertVersion, stampColumns } from "./rules.ts";
@@ -71,7 +71,7 @@ export const move = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 		changes,
 	});
 	if (statusChanged)
-		await queueBuilderStart(ctx, tx, { ticketId: row.id, projectId: row.projectId, category: next.category });
+		await retireColumnWorker(ctx, tx, { ticketId: row.id, projectId: row.projectId, category: next.category });
 	ctx.emit({ type: "ticket.updated", summary: await ticketSummary(tx, row.id), fields, batchId });
 	return ticketGet(tx, row.id);
 };

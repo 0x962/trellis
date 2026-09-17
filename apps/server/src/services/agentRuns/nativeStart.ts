@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ORPCError } from "@orpc/server";
-import type { ProjectManagerConfig } from "@trellis/api";
+import type { ProjectManagerConfig, StatusAgentConfig } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import type { HarnessDescriptor, HarnessStartInput } from "../../agents/harnessHost/types.ts";
@@ -19,6 +19,7 @@ import { profileDefault, profileEnvironment } from "../harnessAccounts/profiles.
 import { getAccount } from "../harnessAccounts/queries.ts";
 import { transferSession } from "../harnessAccounts/transferSession.ts";
 import type { ServiceCtx } from "../support.ts";
+import { launchAllowed } from "./launchAllowed.ts";
 import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import type { StoredRun } from "./queries.ts";
 
@@ -56,6 +57,8 @@ export const startNative = async (
 		resumePrompt?: string;
 		preserveAssignmentOnFailure?: boolean;
 		requiredTicketCategory?: "started";
+		requiredStatusId?: string;
+		requiredAgentConfig?: StatusAgentConfig;
 	},
 	deps: Partial<Dependencies> = {},
 ) => {
@@ -66,7 +69,7 @@ export const startNative = async (
 	try {
 		if (run.kind === "manager" && config.harness.preset === "custom")
 			throw new Error(
-				`The ${config.harness.preset} harness cannot enforce the manager tool boundary. Select Claude, Codex, OpenCode, Pi, or Muse for managers. Workers can use any harness.`,
+				`The ${config.harness.preset} harness does not support copilot chat. Select Claude, Codex, OpenCode, Pi, or Muse.`,
 			);
 		if (input.deadlineAt !== undefined && input.deadlineAt <= Date.now())
 			throw new Error("The flow group deadline elapsed before launch");
@@ -82,13 +85,14 @@ export const startNative = async (
 		const workspaceId = await (deps.workspace ?? nativeWorkspace)(ctx.home, run, config.directory);
 		const owned = await ctx.newTx(async (tx) => {
 			if (run.ticketId !== null) {
-				const [ticket] = await rows<{ category: string }>(
+				const [ticket] = await rows<{ category: string; id: string; configMatches: boolean }>(
 					tx,
-					sql`SELECT s.category FROM tickets t JOIN statuses s ON s.id=t.status_id WHERE t.id=${run.ticketId}`,
+					sql`SELECT s.id,s.category,(s.agent_config=${JSON.stringify(input.requiredAgentConfig ?? null)}::jsonb) AS "configMatches" FROM tickets t JOIN statuses s ON s.id=t.status_id WHERE t.id=${run.ticketId}`,
 				);
 				if (
 					!ticket ||
-					ticket.category === "todo" ||
+					(ticket.category === "todo" && !input.requiredStatusId) ||
+					(input.requiredStatusId && (ticket.id !== input.requiredStatusId || !ticket.configMatches)) ||
 					(input.requiredTicketCategory && ticket.category !== input.requiredTicketCategory)
 				) {
 					await tx.execute(
@@ -135,6 +139,17 @@ export const startNative = async (
 				env,
 				timeoutMs,
 			});
+			if (
+				!(await ctx.newTx((tx) =>
+					launchAllowed(tx, {
+						runId: run.id,
+						terminalId,
+						requiredStatusId: input.requiredStatusId,
+						requiredAgentConfig: input.requiredAgentConfig,
+					}),
+				))
+			)
+				return { id: run.id };
 			launchSubmitted = true;
 			await client.start(spec);
 			session = await client.inspect(terminalId);
@@ -189,6 +204,17 @@ export const startNative = async (
 			}
 			const descriptor = await host.prepare(launch, sessionId);
 			launchWorkspace = descriptor.spec.cwd;
+			if (
+				!(await ctx.newTx((tx) =>
+					launchAllowed(tx, {
+						runId: run.id,
+						terminalId,
+						requiredStatusId: input.requiredStatusId,
+						requiredAgentConfig: input.requiredAgentConfig,
+					}),
+				))
+			)
+				return { id: run.id };
 			launchSubmitted = true;
 			({ process: session } =
 				sessionId === undefined ? await host.start(launch) : await host.resume({ ...launch, sessionId }));

@@ -32,6 +32,7 @@ describe("tickets.update project", () => {
 	test("a project move remaps the status by name and category", async () => {
 		const { webId, id } = await seed();
 		const web = await seedStatuses(h.db, webId);
+		await seedDefaultBuilder(h.db, webId);
 		const { result: ticket } = await moveTo(id, "CDE.web");
 		expect(ticket.project.id).toBe(webId);
 		expect(ticket.status.id).toBe(web.started);
@@ -44,6 +45,7 @@ describe("tickets.update project", () => {
 		await seedStatus(h.db, { projectId: webId, name: "Todo", category: "todo", position: 0, isDefault: true });
 		const doing = await seedStatus(h.db, { projectId: webId, name: "Doing", category: "started", position: 1 });
 		await seedStatus(h.db, { projectId: webId, name: "Working", category: "started", position: 2 });
+		await seedDefaultBuilder(h.db, webId);
 		const { result: ticket } = await moveTo(id, "CDE.web");
 		expect(ticket.status.id).toBe(doing);
 	});
@@ -72,6 +74,7 @@ describe("tickets.update project", () => {
 	test("a project move writes the project row and the remap row in one batch", async () => {
 		const { webId, id } = await seed();
 		await seedStatuses(h.db, webId);
+		await seedDefaultBuilder(h.db, webId);
 		await moveTo(id, "CDE.web");
 		const rows = await activityOf(h.db, id);
 		expect(rows).toHaveLength(2);

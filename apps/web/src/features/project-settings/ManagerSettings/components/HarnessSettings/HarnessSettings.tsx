@@ -11,7 +11,6 @@ import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { SettingsSection } from "../../../SettingsSection";
 import { AgentCommandField } from "../AgentCommandField";
-import { BuilderSettings } from "../BuilderSettings";
 
 const presets = [
 	{ value: "claude", label: "Claude" },
@@ -79,9 +78,7 @@ export function HarnessSettings({
 								commit({ ...draft, harness: { ...draft.harness, model: model === "default" ? undefined : model } })
 							}
 						/>
-						<p className="manager-settings-hint">
-							A resume keeps its saved model unless you select another model for that resume.
-						</p>
+						<p className="manager-settings-hint">Changes apply at the next start or restart.</p>
 						<Select
 							label="Account"
 							items={accountItems}
@@ -89,13 +86,11 @@ export function HarnessSettings({
 							onValueChange={(value) => commit({ ...draft, accountId: value === "default" ? null : value })}
 						/>
 						<p className="manager-settings-hint">
-							The login the manager and the workers of this project launch with. A running manager keeps its login until
-							you restart it. Add and sign in accounts in Settings.
+							The copilot uses this account at its next start or restart. Add accounts in Settings.
 						</p>
 					</>
 				)}
 			</SettingsSection>
-			<BuilderSettings draft={draft} commit={commit} />
 			{draft.harness.preset === "custom" && (
 				<SettingsSection
 					title="Agent commands"

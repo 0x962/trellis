@@ -48,18 +48,18 @@ test("Claude resumes the supplied vendor ID with bypass and model", async () => 
 	expect(launch.args).toContain("sonnet");
 });
 
-test("Claude managers expose only the Trellis bridge and remove native execution tools on start and resume", async () => {
+test("Claude copilots retain native tools and the exact saved persona on start and resume", async () => {
 	const managerSystemPrompt = `Database persona ${crypto.randomUUID()}`;
 	const managerTools = { command: "/bin/bun", args: ["/app/manager.ts"] };
 	for (const resume of [false, true] as const) {
 		const launch = await prepareClaude({ ...input, managerTools, managerSystemPrompt, resume });
 		expect(launch.args[launch.args.indexOf("--system-prompt") + 1]).toBe(managerSystemPrompt);
 		expect(launch.args[launch.args.indexOf("--system-prompt-snapshot") + 1]).toBe("off");
-		expect(launch.args).not.toContain("--dangerously-skip-permissions");
+		expect(launch.args).toContain("--dangerously-skip-permissions");
 		expect(launch.args).toContain("--strict-mcp-config");
 		expect(launch.env.TRELLIS_MANAGER_TOOLS_READY).toBe("/tmp/attempt/manager-tools-ready.json");
-		expect(launch.args[launch.args.indexOf("--tools") + 1]).toBe("");
-		expect(launch.args[launch.args.indexOf("--permission-mode") + 1]).toBe("dontAsk");
+		expect(launch.args).not.toContain("--tools");
+		expect(launch.args).not.toContain("--permission-mode");
 		expect(JSON.parse(launch.args[launch.args.indexOf("--mcp-config") + 1]!)).toEqual({
 			mcpServers: { trellis: { type: "stdio", alwaysLoad: true, ...managerTools } },
 		});

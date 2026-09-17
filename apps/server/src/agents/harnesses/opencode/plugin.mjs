@@ -68,11 +68,11 @@ export const TrellisPlugin = async ({ client }) => {
 				output.system = [process.env.TRELLIS_MANAGER_SYSTEM_PROMPT];
 		},
 		config: async (config) => {
-			const permission = managerTools ? { "*": "deny", "trellis_trellis_*": "allow" } : { "*": "allow" };
+			const permission = { "*": "allow" };
 			config.permission = permission;
 			for (const agent of Object.values(config.agent ?? {})) agent.permission = permission;
 			if (managerTools) {
-				config.tools = { "*": false, "trellis_trellis_*": true };
+				config.tools = { "*": true };
 				config.mcp = {
 					trellis: { type: "local", command: [managerTools.command, ...managerTools.args], enabled: true },
 				};
@@ -111,8 +111,6 @@ export const TrellisPlugin = async ({ client }) => {
 				await send({ event: "session", sessionId, turnId, model: `${input.provider.id}/${input.model.id}` });
 		},
 		"tool.execute.before": async (input, output) => {
-			if (managerTools && !input.tool.startsWith("trellis_trellis_"))
-				throw new Error("This tool is unavailable in the manager tool catalog.");
 			if (matches(input.sessionID))
 				await send({
 					event: "tool-start",

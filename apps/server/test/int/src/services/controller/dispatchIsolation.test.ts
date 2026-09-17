@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test";
 import { dispatch } from "../../../../../src/services/controller/dispatch.ts";
 
-const context = {} as Parameters<typeof dispatch>[0];
+const context = { newTx: async () => ({ paused: false }) } as unknown as Parameters<typeof dispatch>[0];
 const done = async () => {};
 
-test("a slow builder launch does not delay manager dispatch", async () => {
+test("a slow builder launch does not delay user chat", async () => {
 	let finishLaunch!: () => void;
 	const launch = new Promise<void>((resolve) => {
 		finishLaunch = resolve;
@@ -20,8 +20,7 @@ test("a slow builder launch does not delay manager dispatch", async () => {
 			readSessions: async () => [],
 			manage: () => launch,
 			mentions: done,
-			chat: done,
-			managers: async () => {
+			chat: async () => {
 				sawManager();
 			},
 		},
@@ -38,7 +37,7 @@ test("a slow builder launch does not delay manager dispatch", async () => {
 	expect(observed).toBe("manager");
 });
 
-test("a failed heartbeat still dispatches managers and reports its error", async () => {
+test("a failed heartbeat still dispatches user chat and reports its error", async () => {
 	let managers = 0;
 	await expect(
 		dispatch(
@@ -47,15 +46,33 @@ test("a failed heartbeat still dispatches managers and reports its error", async
 			{
 				readSessions: async () => [],
 				mentions: done,
-				chat: done,
 				manage: async () => {
 					throw new Error("Failed heartbeat");
 				},
-				managers: async () => {
+				chat: async () => {
 					managers++;
 				},
 			},
 		),
 	).rejects.toThrow("Failed heartbeat");
 	expect(managers).toBe(1);
+});
+
+test("the global work pause prevents runtime recovery", async () => {
+	let reads = 0;
+	const paused = { newTx: async () => ({ paused: true }) } as unknown as Parameters<typeof dispatch>[0];
+	await dispatch(
+		paused,
+		{},
+		{
+			readSessions: async () => {
+				reads++;
+				return [];
+			},
+			manage: done,
+			mentions: done,
+			chat: done,
+		},
+	);
+	expect(reads).toBe(0);
 });

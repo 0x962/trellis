@@ -12,7 +12,6 @@ import type { Tx } from "../db/tx.ts";
 import { fail, invalidInput } from "../errors.ts";
 import { changeSet } from "./changeSet.ts";
 import { seedDefaultChannels } from "./chat/channels.ts";
-import { assertBuilderDefaults } from "./projectLaunchConfig/assertBuilderDefaults.ts";
 import {
 	assertKeyFree,
 	assertRootNameFree,
@@ -157,11 +156,6 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 	await tx.execute(
 		sql`UPDATE projects SET ${sql.join(sets, sql`, `)}, updated_at = ${ctx.now} WHERE id = ${project.id}`,
 	);
-	if (
-		input.managerConfig !== undefined &&
-		JSON.stringify(input.managerConfig.builder ?? null) !== JSON.stringify(managerConfigOf(row).builder)
-	)
-		await assertBuilderDefaults(tx, { projectId: project.id });
 	await projectActivity(ctx, tx, project.id, "project.updated", changes);
 	await ctx.cache.rebuild(tx);
 	if (input.managerConfig !== undefined)

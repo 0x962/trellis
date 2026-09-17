@@ -90,6 +90,7 @@ export const statuses = pgTable(
 		color: text().notNull(),
 		position: integer().notNull(),
 		wipLimit: integer("wip_limit"),
+		agentConfig: jsonb("agent_config"),
 		isDefault: boolean("is_default").notNull().default(false),
 		createdAt: at("created_at").notNull(),
 		updatedAt: at("updated_at").notNull(),

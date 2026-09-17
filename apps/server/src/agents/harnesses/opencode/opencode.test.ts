@@ -67,18 +67,18 @@ test("OpenCode exposes native IDs, exact prompt, model, tool calls and idle resu
 	).toMatchObject({ kind: "idle", result: "Done", outcome: "completed" });
 });
 
-test("OpenCode managers use only the Trellis bridge and deny native tools", async () => {
+test("OpenCode copilots receive Trellis and native tools", async () => {
 	const options = await input();
 	const managerSystemPrompt = `Database persona ${crypto.randomUUID()}`;
 	const managerTools = { command: "/bin/trellis-host", args: ["manager-tools"] };
 	const launch = await prepareOpenCode({ ...options, managerTools, managerSystemPrompt });
-	expect(JSON.parse(launch.env.OPENCODE_PERMISSION!)).toEqual({ "*": "deny", "trellis_trellis_*": "allow" });
+	expect(JSON.parse(launch.env.OPENCODE_PERMISSION!)).toEqual({ "*": "allow" });
 	expect(JSON.parse(launch.env.TRELLIS_MANAGER_TOOLS!)).toEqual(managerTools);
 	const config = JSON.parse(launch.env.OPENCODE_CONFIG_CONTENT!);
 	expect(config.mcp).toEqual({
 		trellis: { type: "local", command: [managerTools.command, ...managerTools.args], enabled: true },
 	});
-	expect(config.agent["trellis-manager"].permission).toEqual({ "*": "deny", "trellis_trellis_*": "allow" });
+	expect(config.agent["trellis-manager"].permission).toEqual({ "*": "allow" });
 	expect(config.agent["trellis-manager"].prompt).toBe(managerSystemPrompt);
 	expect(launch.args).toContain("--agent");
 	expect(launch.args[launch.args.indexOf("--agent") + 1]).toBe("trellis-manager");

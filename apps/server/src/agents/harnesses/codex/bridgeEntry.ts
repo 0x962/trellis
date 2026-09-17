@@ -120,27 +120,13 @@ async function start() {
 	);
 	client.closed.catch(reportFailure);
 	await client.initialize();
-	const inherited = manager
-		? z
-				.object({
-					config: z.looseObject({ mcp_servers: z.record(z.string(), z.record(z.string(), z.unknown())).optional() }),
-				})
-				.parse(await client.request("config/read", { cwd: launch.cwd, includeLayers: false }))
-		: undefined;
-	const config = manager
-		? {
-				...managerPolicy.config,
-				mcp_servers: Object.fromEntries(
-					Object.keys(inherited!.config.mcp_servers ?? {}).map((name) => [name, { enabled: false }]),
-				),
-			}
-		: undefined;
+	const config = manager ? managerPolicy.config : undefined;
 	const result = z
 		.looseObject({
 			thread: z.looseObject({ id: z.string() }),
 			model: z.string(),
 			approvalPolicy: z.literal("never"),
-			sandbox: z.looseObject({ type: z.literal(manager ? "readOnly" : "dangerFullAccess") }),
+			sandbox: z.looseObject({ type: z.literal("dangerFullAccess") }),
 		})
 		.parse(
 			await client.request(launch.sessionId ? "thread/resume" : "thread/start", {
@@ -148,13 +134,13 @@ async function start() {
 				cwd: launch.cwd,
 				model: launch.model,
 				approvalPolicy: "never",
-				sandbox: manager ? "read-only" : "danger-full-access",
+				sandbox: "danger-full-access",
 				...(manager
 					? {
 							baseInstructions: launch.managerSystemPrompt,
 							developerInstructions: "",
 							config,
-							...(!launch.sessionId ? { environments: [], dynamicTools: adapter!.tools } : {}),
+							...(!launch.sessionId ? { dynamicTools: adapter!.tools } : {}),
 						}
 					: {}),
 			}),

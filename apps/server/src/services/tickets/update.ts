@@ -17,7 +17,7 @@ import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { record } from "../activity.ts";
 import { assertStatusRoom } from "../manager/admitTicket.ts";
-import { queueBuilderStart } from "../manager/builderStarts/queue.ts";
+import { retireColumnWorker } from "../manager/retireColumnWorker.ts";
 import { assertProjectActive, pathOf, resolveProject, resolveStatus, resolveTicket, type TicketRow } from "../refs.ts";
 import { assertVersion, outsideRoot, remapStatus, stampColumns } from "./rules.ts";
 
@@ -151,7 +151,7 @@ export const applyChanges = async (ctx: ServiceCtx, tx: Tx, batchId: string, row
 	});
 	const summary = await ticketSummary(tx, row.id);
 	if (changes.some((change) => change.field === "status")) {
-		await queueBuilderStart(ctx, tx, {
+		await retireColumnWorker(ctx, tx, {
 			ticketId: row.id,
 			projectId: summary.project.id,
 			category: summary.status.category,

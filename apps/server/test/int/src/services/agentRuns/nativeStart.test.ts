@@ -47,42 +47,39 @@ beforeEach(async () => {
 		);
 	});
 });
-test.each(["custom", "codex"] as const)(
-	"a %s manager reaches preparation only when the harness enforces its tool boundary",
-	async (preset) => {
-		let prepared = false;
-		const run = await h.read((tx) => getRun(tx, id));
-		const ctx = context();
-		await startNative(
-			ctx,
-			{
-				run,
-				config: ProjectManagerConfigSchema.parse({
-					personaId: null,
-					directory: "/tmp",
-					harness: { preset, startCommand: "/bin/true", resumeCommand: "/bin/true" },
-				}),
-				resume: false,
-				context: "Fixture",
-				attempt: { id: attemptId, generation: 1, token: "fixture-token" },
+test.each(["custom", "codex"] as const)("a %s copilot requires a harness with chat support", async (preset) => {
+	let prepared = false;
+	const run = await h.read((tx) => getRun(tx, id));
+	const ctx = context();
+	await startNative(
+		ctx,
+		{
+			run,
+			config: ProjectManagerConfigSchema.parse({
+				personaId: null,
+				directory: "/tmp",
+				harness: { preset, startCommand: "/bin/true", resumeCommand: "/bin/true" },
+			}),
+			resume: false,
+			context: "Fixture",
+			attempt: { id: attemptId, generation: 1, token: "fixture-token" },
+		},
+		{
+			environment: async () => {
+				prepared = true;
+				throw new Error("Unexpected environment lookup");
 			},
-			{
-				environment: async () => {
-					prepared = true;
-					throw new Error("Unexpected environment lookup");
-				},
-			},
-		);
-		const after = await h.read((tx) => getRun(tx, id));
-		expect(after.error).toBe(
-			preset === "codex"
-				? "Unexpected environment lookup"
-				: `The ${preset} harness cannot enforce the manager tool boundary. Select Claude, Codex, OpenCode, Pi, or Muse for managers. Workers can use any harness.`,
-		);
-		expect(after.closedAt).not.toBeNull();
-		expect(prepared).toBe(preset === "codex");
-	},
-);
+		},
+	);
+	const after = await h.read((tx) => getRun(tx, id));
+	expect(after.error).toBe(
+		preset === "codex"
+			? "Unexpected environment lookup"
+			: `The ${preset} harness does not support copilot chat. Select Claude, Codex, OpenCode, Pi, or Muse.`,
+	);
+	expect(after.closedAt).not.toBeNull();
+	expect(prepared).toBe(preset === "codex");
+});
 test.each([
 	["stopped", "workspace"],
 	["replaced", "workspace"],

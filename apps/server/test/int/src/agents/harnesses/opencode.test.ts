@@ -136,7 +136,7 @@ test("OpenCode preserves prompt receipts, tool progress, response text and inter
 	]);
 });
 
-test("OpenCode manager hooks replace inherited tools and block non-Trellis calls", async () => {
+test("OpenCode copilot hooks permit native and Trellis tools", async () => {
 	const home = await mkdtemp(join(tmpdir(), "trellis-opencode-manager-"));
 	homes.push(home);
 	const managerTools = { command: "/bin/trellis-host", args: ["manager-tools"] };
@@ -189,10 +189,10 @@ console.log(JSON.stringify({config,denied,system,auxiliary,sent,status:response.
 	expect(result.auxiliary.system).toEqual(["Create a session title."]);
 	expect(result.status).toBe(200);
 	expect(result.sent.body.agent).toBe("trellis-manager");
-	expect(result.denied).toEqual(["bash", "read", "edit", "other_mcp_read"]);
-	expect(result.config.permission).toEqual({ "*": "deny", "trellis_trellis_*": "allow" });
+	expect(result.denied).toEqual([]);
+	expect(result.config.permission).toEqual({ "*": "allow" });
 	expect(result.config.agent.build.permission).toEqual(result.config.permission);
-	expect(result.config.tools).toEqual({ "*": false, "trellis_trellis_*": true });
+	expect(result.config.tools).toEqual({ "*": true });
 	expect(result.config.mcp).toEqual({
 		trellis: { type: "local", command: [managerTools.command, ...managerTools.args], enabled: true },
 	});

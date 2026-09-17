@@ -21,11 +21,11 @@ import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import { columns, type StoredRun } from "./queries.ts";
 
 // The newest manager row is the current assignment; older rows retain their history.
-export const managerRowOf = async (tx: Tx, projectId: string, delegated = false) =>
+export const managerRowOf = async (tx: Tx, projectId: string, delegated: boolean | null = false) =>
 	(
 		await rows<StoredRun>(
 			tx,
-			sql`SELECT ${columns} FROM agent_runs WHERE project_id = ${projectId} AND kind = 'manager' AND ${delegated ? sql`EXISTS (SELECT 1 FROM manager_delegations d WHERE d.run_id=agent_runs.id AND d.retired_at IS NULL)` : sql`NOT EXISTS (SELECT 1 FROM manager_delegations d WHERE d.run_id=agent_runs.id)`} ORDER BY created_at DESC, id DESC LIMIT 1`,
+			sql`SELECT ${columns} FROM agent_runs WHERE project_id = ${projectId} AND kind = 'manager' AND ${delegated === null ? sql`true` : delegated ? sql`EXISTS (SELECT 1 FROM manager_delegations d WHERE d.run_id=agent_runs.id AND d.retired_at IS NULL)` : sql`NOT EXISTS (SELECT 1 FROM manager_delegations d WHERE d.run_id=agent_runs.id)`} ORDER BY created_at DESC, id DESC LIMIT 1`,
 		)
 	).at(0);
 
@@ -34,7 +34,12 @@ export const reserve = async (
 	tx: Tx,
 	input: AgentRunStartInput,
 	confirmedExited: string[] = [],
-	options?: { delegated?: boolean; config?: Awaited<ReturnType<typeof projectLaunchConfig>> },
+	options?: {
+		copilot?: boolean;
+		column?: boolean;
+		delegated?: boolean;
+		config?: Awaited<ReturnType<typeof projectLaunchConfig>>;
+	},
 ) => {
 	const actor = requireActor(ctx);
 	if (input.project && actor.kind === "agent" && !options?.delegated) {
@@ -50,7 +55,7 @@ export const reserve = async (
 		throw invalidInput("personaId", "Select a manager for a project, or a builder or reviewer for a ticket.");
 	const ticket = input.ticket === undefined ? null : await resolveTicket(ctx, tx, input.ticket);
 	const project = await resolveMutableProject(ctx, tx, ticket?.projectId ?? input.project!);
-	if (ticket === null && !options?.delegated) {
+	if (ticket === null && !options?.delegated && !options?.copilot) {
 		const delegated = await rows(
 			tx,
 			sql`SELECT run_id FROM manager_delegations WHERE project_id=${project.id} AND retired_at IS NULL`,
@@ -78,10 +83,21 @@ export const reserve = async (
 		})) ?? (await replayRequest(ctx, tx, request));
 	if (replay) return { replay: true as const, run: replay };
 	assertProjectActive(ctx, project.id);
-	if (ticket?.completedAt != null) throw invalidInput("ticket", "Reopen the ticket before you assign an agent.");
+	if (ticket?.completedAt != null && !options?.column)
+		throw invalidInput("ticket", "Reopen the ticket before you assign an agent.");
 	let config = options?.config ?? (await projectLaunchConfig(tx, { projectId: project.id }));
-	if (persona.kind === "builder" && config.builder)
-		config = { ...config, harness: config.builder.harness, accountId: null };
+	if (ticket) {
+		const [status] = await rows<{ agentConfig: import("@trellis/api").StatusAgentConfig | null }>(
+			tx,
+			sql`SELECT agent_config AS "agentConfig" FROM statuses WHERE id=${ticket.statusId}`,
+		);
+		if (status?.agentConfig)
+			config = {
+				...config,
+				harness: HarnessSchema.parse(status.agentConfig.harness),
+				accountId: status.agentConfig.accountId ?? null,
+			};
+	}
 	if (input.harness) config = { ...config, harness: HarnessSchema.parse(input.harness), accountId: null };
 	await assertNativeWorkEnabled(tx);
 	if (ticket !== null) {
@@ -95,7 +111,7 @@ export const reserve = async (
 			tx,
 			sql`SELECT category FROM statuses WHERE id=${ticket.statusId}`,
 		);
-		if (status?.category === "todo")
+		if (status?.category === "todo" && !options?.column)
 			throw invalidInput("ticket", "Move the ticket out of Todo before you assign an agent.");
 	}
 	const projectPath = pathOf(ctx.cache, project.id);
@@ -108,11 +124,14 @@ export const reserve = async (
 		)})`,
 	);
 	await upsert(ctx, tx, actor);
-	let existing = persona.kind === "manager" ? await managerRowOf(tx, project.id, options?.delegated) : undefined;
+	let existing =
+		persona.kind === "manager"
+			? await managerRowOf(tx, project.id, options?.copilot ? null : options?.delegated)
+			: undefined;
 	if (existing !== undefined && existing.runtime === "native" && existing.closedAt === null)
 		throw fail("DUPLICATE", { field: "active agent" });
 	if (existing && existing.runtime !== "native") existing = undefined;
-	if (existing !== undefined && input.newSession === true && actor.kind !== "human")
+	if (existing !== undefined && input.newSession === true && actor.kind !== "human" && !options?.copilot)
 		throw invalidInput(
 			"newSession",
 			"Only a person can reset an existing manager conversation. Resume it without newSession to preserve its context.",
