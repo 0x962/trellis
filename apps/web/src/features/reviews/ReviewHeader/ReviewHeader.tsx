@@ -2,7 +2,7 @@ import { ArrowsClockwise, PaperPlaneTilt } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { type ReviewRevision, reviewRef } from "@trellis/api";
 import { IconButton, Tooltip } from "@trellis/ui";
-import { useEffect } from "react";
+import { type ReactNode, useEffect } from "react";
 import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
 import { ReviewActions } from "../ReviewActions/ReviewActions";
@@ -13,8 +13,9 @@ type Props = {
 	refreshing: boolean;
 	onRefresh: () => void;
 	onSubmit: () => void;
+	parent?: ReactNode;
 };
-export function ReviewHeader({ pr, revision, refreshing, onRefresh, onSubmit }: Props) {
+export function ReviewHeader({ pr, revision, refreshing, onRefresh, onSubmit, parent }: Props) {
 	const ref = reviewRef(pr);
 	const meta = revision?.meta as
 		| {
@@ -57,7 +58,7 @@ export function ReviewHeader({ pr, revision, refreshing, onRefresh, onSubmit }: 
 				</>
 			}
 		>
-			<PageTitle parent={<Link to="/reviews">Pull requests</Link>} title={`${ref.repo} #${ref.number}`} />
+			<PageTitle parent={parent ?? <Link to="/reviews">Pull requests</Link>} title={`${ref.repo} #${ref.number}`} />
 		</Topbar>
 	);
 }

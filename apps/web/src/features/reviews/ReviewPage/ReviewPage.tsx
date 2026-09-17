@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ReviewRevision, ReviewThread } from "@trellis/api";
 import { Sheet } from "@trellis/ui";
 import { type DiffAnchor, ReviewDiff, ReviewFiles, ReviewTabs } from "@trellis/ui/review";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { useTheme } from "../../../lib/theme";
 import { ReviewChecks } from "../ReviewChecks/ReviewChecks";
@@ -19,14 +19,14 @@ import { DiffToolbar } from "./components/DiffToolbar/DiffToolbar";
 import "@trellis/ui/review.css";
 
 type FileRow = { path: string; type: string; additions: number; deletions: number };
-export function ReviewPage({ pr }: { pr: string }) {
+export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent?: ReactNode; syncHash?: boolean }) {
 	const { client, orpc, queryClient } = useApp();
 	const { resolved: theme } = useTheme();
 	const status = useQuery({ ...orpc.reviews.status.queryOptions({ input: { pr } }), refetchInterval: 45000 });
 	const latest = useQuery(orpc.reviews.revision.queryOptions({ input: { pr } }));
 	const [revision, setRevision] = useState<ReviewRevision | null>(null);
 	const booted = useRef(false);
-	const [tab, setTab] = useState(() => location.hash.slice(1).split("?")[0] || "changes");
+	const [tab, setTab] = useState(() => (syncHash ? location.hash.slice(1).split("?")[0] || "changes" : "changes"));
 	const [mode, setMode] = useState<"split" | "unified">(() =>
 		localStorage.getItem("trellis.review.mode") === "split" ? "split" : "unified",
 	);
@@ -80,7 +80,7 @@ export function ReviewPage({ pr }: { pr: string }) {
 	}, [latest.isSuccess, latest.data, refresh.mutate]);
 	const changeTab = (value: string) => {
 		setTab(value);
-		history.replaceState(null, "", `#${value}`);
+		if (syncHash) history.replaceState(null, "", `#${value}`);
 	};
 	const loadFile = useCallback(
 		async (path: string, side: "old" | "new") => {
@@ -115,6 +115,7 @@ export function ReviewPage({ pr }: { pr: string }) {
 		<div className="review-page">
 			<ReviewHeader
 				pr={pr}
+				parent={parent}
 				revision={displayRevision}
 				refreshing={refresh.isPending || composer !== null}
 				onRefresh={() => refresh.mutate()}

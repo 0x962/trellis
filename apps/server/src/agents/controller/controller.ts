@@ -5,7 +5,11 @@ export type ControllerOptions = {
 	call: (name: "controller.dispatch", input: { manage: boolean }) => Promise<unknown>;
 	clock: JobsClock;
 	log: JobsLog;
+	waitSeconds: number;
 };
+
+const waitDescription = (seconds: number) =>
+	`Wait ${seconds} ${seconds === 1 ? "second" : "seconds"} before the next pass, or until you resume the loop.`;
 
 export const createController = (options: ControllerOptions) => {
 	let timer: number | null = null;
@@ -21,11 +25,12 @@ export const createController = (options: ControllerOptions) => {
 		paused: false,
 		working: false,
 		step: "Wait",
+		waitSeconds: options.waitSeconds,
 		steps: [
 			{
 				id: "wait",
 				title: "Wait",
-				description: "Wait one second before the next pass, or until you resume the loop.",
+				description: waitDescription(options.waitSeconds),
 				active: true,
 				detail: "",
 			},
@@ -85,7 +90,7 @@ export const createController = (options: ControllerOptions) => {
 		timer = null;
 		state.nextRunAt = null;
 	};
-	const schedule = (delay = 1000) => {
+	const schedule = (delay = state.waitSeconds * 1000) => {
 		if (stopped) return;
 		state.nextRunAt = state.paused ? null : new Date(options.clock.now().getTime() + delay).toISOString();
 		timer = options.clock.setTimer(() => {
@@ -133,7 +138,7 @@ export const createController = (options: ControllerOptions) => {
 					for (const step of state.steps) step.active = step.id === "wait";
 				}
 				running = null;
-				schedule(requested ? 0 : 1000);
+				schedule(requested ? 0 : state.waitSeconds * 1000);
 			});
 	};
 	return {
@@ -165,6 +170,14 @@ export const createController = (options: ControllerOptions) => {
 		clear: () => {
 			state.output = [];
 			state.errors = [];
+		},
+		setWaitSeconds: (seconds: number) => {
+			state.waitSeconds = seconds;
+			state.steps.find((step) => step.id === "wait")!.description = waitDescription(seconds);
+			record(`Wait period set to ${seconds} ${seconds === 1 ? "second" : "seconds"}.`, "info", "wait");
+			if (running || stopped) return;
+			cancelTimer();
+			schedule();
 		},
 		start: async () => {
 			if (!stopped) return;
