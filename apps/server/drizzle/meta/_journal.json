@@ -442,6 +442,13 @@
       "when": 1789599000004,
       "tag": "0065_column_workers",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1789605311846,
+      "tag": "0066_comment_attachments",
+      "breakpoints": true
     }
   ]
 }

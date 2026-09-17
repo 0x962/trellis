@@ -140,6 +140,8 @@ export const comment = (overrides: Overrides = {}) => ({
 	kind: "comment",
 	id: commentId,
 	ticketId,
+	parentId: null,
+	resolvedAt: null,
 	body: "Body A",
 	actor,
 	createdAt: "2026-09-09T10:00:00.000Z",
