@@ -22,3 +22,9 @@
 		@apply hidden;
 	}
 }
+
+@utility ticket-tabs-layout-flush {
+	& > [role="tabpanel"] {
+		@apply pt-0;
+	}
+}
