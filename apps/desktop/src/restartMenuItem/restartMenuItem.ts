@@ -1,6 +1,9 @@
-import type { App } from "electron";
+type RestartApp = {
+	relaunch: () => void;
+	exit: (exitCode?: number) => void;
+};
 
-export const restartMenuItem = (app: Pick<App, "exit" | "relaunch">) => ({
+export const restartMenuItem = (app: RestartApp) => ({
 	label: "Restart",
 	click: () => {
 		app.relaunch();
