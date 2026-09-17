@@ -42,7 +42,7 @@ The preload bridge exposes `trellisDesktop.chooseDirectory()`, the Settings call
 
 `trellis://open/t/KEY-1` opens a ticket. External HTTP and HTTPS links open in the system browser.
 
-Use **Trellis > Restart** to load the installed package. A changed package stops active agent processes and resumes their saved provider conversations. An unchanged package keeps those processes. An agent the update cannot save keeps running until the runtime stops, and the restart status shows the reason beside its name.
+Use **Trellis > Restart** to load the installed package. A changed package stops the previous runtime. The deterministic manager starts column workers and project copilots with their current settings. Compatible conversations and workspaces persist.
 
 ## Package and verification
 
@@ -106,11 +106,7 @@ The command signs the local package and runs the packaged smoke checks. It copie
 
 Use this command for each production install. Keep the installed bundle in place until the verified copy is complete. Run service commands through `~/Applications/Trellis.app/Contents/MacOS/TrellisHost`. The helper requires the LaunchAgent plist inside its app bundle.
 
-Restart Trellis to activate the installed build. For a changed package, Trellis saves the confirmed active agent sessions before it stops the previous runtime. After the new host starts, Trellis resumes those provider sessions in their saved workspaces. The deterministic manager restarts copilots and workers in configured columns. Other stopped agents stay stopped. An unchanged package keeps the existing processes.
-
-Trellis stores pending resumes in `restart-plan.json` inside the selected data directory. A failed activation preserves this plan for the next app launch. Each saved attempt has one resume identity, which prevents duplicate processes and restart messages. A later package gives a partial resume one more pass, then merges the entries that still failed into its own plan, so the restart status keeps their reasons.
-
-A custom agent, an agent without a confirmed provider session, or a terminal whose process the app cannot confirm is recorded in the plan as not saved, with the reason. The update continues. Agent starts, the manager controller, and review delivery keep running while a resume is in progress.
+Restart Trellis to activate the installed build. A changed package stops the previous runtime and starts the new host. The deterministic manager starts configured column workers and project copilots on its next beat. It resumes compatible conversations in their saved workspaces. An unchanged package keeps existing processes.
 
 To prepare a verified candidate without a production install:
 

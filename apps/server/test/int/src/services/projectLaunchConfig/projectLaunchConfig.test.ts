@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import { reserve } from "../../../../../src/services/agentRuns/reserve.ts";
-import { reserveRestart } from "../../../../../src/services/restartAgents/reserveRestart.ts";
+import { reserveResume } from "../../../../../src/services/agentRuns/reserveResume.ts";
 import { seedActors, seedChild, seedRoot, seedStatuses } from "../../../../fixtures/projects.ts";
 import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
@@ -68,7 +68,7 @@ test("restart preparation resolves the inherited directory and keeps the saved s
 		sql`UPDATE projects SET manager_config=jsonb_set(manager_config,'{directory}','"/tmp/restart-root"') WHERE id=${root}`,
 	);
 	const result = await h.run((ctx, tx) =>
-		reserveRestart(
+		reserveResume(
 			ctx,
 			tx,
 			{
@@ -78,7 +78,6 @@ test("restart preparation resolves the inherited directory and keeps the saved s
 				harness: "claude",
 				model: "anthropic/claude-sonnet-5",
 				workspace: "/tmp/saved-workspace",
-				processIdentity: "identity",
 				attempt: { id: "restart-attempt", token: "restart-token" },
 			},
 			false,

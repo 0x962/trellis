@@ -115,7 +115,9 @@ The host uses these observations for manager dispatch and flow completion.
 The deterministic manager owns column workers and project copilots.
 It inspects runtime processes on each beat and retries failed, stopped, and crashed assignments.
 Database reservations and runtime attempt identifiers prevent duplicate starts.
-Copilots wait for user instructions. The host sends them user chat and explicit mentions.
+Copilots wait for user instructions. The host sends them human chat messages and human comment mentions.
+Worker broadcasts and mentions reach other workers.
+Desktop activation stops the previous runtime and starts the host. The deterministic manager restarts column workers and project copilots.
 A partial database index permits one active copilot per project.
 
 Native ticket agents use Git worktrees under `agents/<run id>/work`.
@@ -217,7 +219,7 @@ either attachment table names.
 `chat_messages` holds one row per post with its actor. `chat_deliveries`
 holds one row per post and live native agent of the room's project, except
 the author. A post in `general` with no mention writes rows for the live
-managers only.
+copilots only when the author is human. Copilots receive messages only from humans.
 A post that mentions a live agent by run id, by persona name, or by role
 (`@manager`, `@builders`, `@reviewers`) reaches only the mentioned agents,
 and each of those rows is `direct`. The controller tick sends every pending

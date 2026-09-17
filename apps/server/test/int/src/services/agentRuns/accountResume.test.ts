@@ -8,9 +8,9 @@ import { prepareStop } from "../../../../../src/services/agentRuns/lifecycle.ts"
 import { startNative } from "../../../../../src/services/agentRuns/nativeStart.ts";
 import { getRun } from "../../../../../src/services/agentRuns/queries.ts";
 import { reserve } from "../../../../../src/services/agentRuns/reserve.ts";
+import { reserveResume } from "../../../../../src/services/agentRuns/reserveResume.ts";
 import { prepareResume } from "../../../../../src/services/agentRuns/resume.ts";
 import { prepareSetModel } from "../../../../../src/services/agentRuns/setModel/setModel.ts";
-import { reserveRestart } from "../../../../../src/services/restartAgents/reserveRestart.ts";
 import type { IoCtx } from "../../../../../src/services/support.ts";
 import { create } from "../../../../../src/services/tickets.ts";
 import { seedActors, seedDefaultBuilder, seedRoot, seedStatuses } from "../../../../fixtures/projects.ts";
@@ -162,7 +162,7 @@ test("a system restart retains the assigned account after the default changes", 
 	await fixture.client.stop(attemptId);
 	await h.read((tx) => tx.execute(sql`UPDATE harness_accounts SET is_default=true WHERE id='two'`));
 	const reserved = await h.run((core, tx) =>
-		reserveRestart(
+		reserveResume(
 			core,
 			tx,
 			{
@@ -172,7 +172,6 @@ test("a system restart retains the assigned account after the default changes", 
 				providerSessionId: sessionId,
 				workspace: fixture.home,
 				harness: "claude",
-				done: false,
 			},
 			true,
 		),
