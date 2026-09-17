@@ -55,7 +55,7 @@ export const claim = async (ctx: ControllerCtx, tx: Tx, input: ControllerInput):
 			ORDER BY d.due_at, d.id LIMIT 1`,
 	);
 	if (!next) return null;
-	await refresh(tx, { now: ctx.now, projectId: next.project_id, sessions: input.sessions });
+	await refresh(tx, { now: ctx.now, projectId: next.project_id });
 	const nextActions = (await pending(tx, { projectId: next.project_id }))
 		.filter((action) => action.eligibleAt !== null || next.events.some((event) => event.ticketId === action.ticketId))
 		.slice(0, 100);

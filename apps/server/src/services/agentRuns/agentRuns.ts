@@ -1,13 +1,12 @@
-import type { AgentCapacityInput, AgentRun, AgentRunListInput, AgentRunStartInput } from "@trellis/api";
+import type { AgentRun, AgentRunListInput, AgentRunStartInput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { ServiceCtx as CoreCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
-import { capacityOf } from "../assignments/capacity.ts";
 import { resolveProject, resolveTicket } from "../refs.ts";
 import type { ServiceCtx } from "../support.ts";
 import { closeExitedAssignments } from "./closeExitedAssignments.ts";
-import { observeRuns, readRuntimeSessions } from "./liveState.ts";
+import { observeRuns } from "./liveState.ts";
 import { startNative } from "./nativeStart.ts";
 import { columns, getRun, type StoredRun } from "./queries.ts";
 import { reserve } from "./reserve.ts";
@@ -26,14 +25,6 @@ export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 	);
 };
 
-export const prepareCapacity = async (ctx: Ctx, input: AgentCapacityInput) => {
-	const sessions = await readRuntimeSessions(ctx.home);
-	return ctx.newTx(async (tx) => {
-		const project = await resolveProject(ctx.core, tx, input.project);
-		return capacityOf(tx, { projectId: project.id, sessions });
-	});
-};
-
 export const prepareList = async (ctx: Ctx, input: AgentRunListInput) =>
 	observeRuns(ctx, await ctx.newTx((tx) => list(ctx.core, tx, input)));
 
@@ -43,7 +34,7 @@ export const observeResult = async (ctx: Ctx, input: { id: string }) =>
 export const prepareStart = async (ctx: Ctx, input: AgentRunStartInput) => {
 	const sessions = await closeExitedAssignments(ctx);
 	const exited = sessions.filter((session) => session.status === "exited").map((session) => session.id);
-	const reservation = await ctx.newTx((tx) => reserve(ctx.core, tx, input, exited, { sessions }));
+	const reservation = await ctx.newTx((tx) => reserve(ctx.core, tx, input, exited));
 	if (reservation.replay) return { id: reservation.run.id };
 	const { run, context, config, resume, attempt, previousAttemptId, previousAccountId } = reservation;
 	ctx.emit({ type: "agent-runs.changed", id: run.id });

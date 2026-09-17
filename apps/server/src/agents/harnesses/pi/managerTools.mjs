@@ -64,11 +64,7 @@ export async function registerManagerTools(pi, launch) {
 					return { content: result.content, details: {} };
 				},
 			});
-		pi.on("session_start", () => pi.setActiveTools(names));
-		pi.on("tool_call", (event) => {
-			if (!names.includes(event.toolName))
-				return { block: true, reason: "This tool is unavailable in the manager tool catalog." };
-		});
+		pi.on("session_start", () => pi.setActiveTools([...new Set([...pi.getActiveTools(), ...names])]));
 		pi.on("session_shutdown", close);
 	} catch (error) {
 		close();

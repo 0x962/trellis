@@ -32,7 +32,7 @@ const exitCodes: Record<ErrorCode, number> = {
 	FLOW_VERSION_CONFLICT: 4,
 	PAYLOAD_TOO_LARGE: 4,
 	GH_UNAVAILABLE: 6,
-	CONCURRENCY_LIMIT: 4,
+	STATUS_FULL: 4,
 	RUNNER_UNAVAILABLE: 6,
 	RESTART_FAILED: 6,
 	BACKUP_FAILED: 1,
@@ -107,8 +107,8 @@ const detail = (code: string, message: string, data: Data): string => {
 		case "GH_UNAVAILABLE":
 		case "RUNNER_UNAVAILABLE":
 			return `${message} Reason: ${data.reason}.`;
-		case "CONCURRENCY_LIMIT":
-			return `${message} ${data.running} of ${data.limit} builders are running.`;
+		case "STATUS_FULL":
+			return `${message} ${data.count} of ${data.limit} places are taken.`;
 		case "INPUT_VALIDATION_FAILED": {
 			const issues = data.issues as Array<{ path?: Array<string | number>; message: string }>;
 			// The server writes the same sentences into the top-level message.

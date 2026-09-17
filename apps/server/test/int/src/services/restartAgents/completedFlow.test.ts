@@ -47,16 +47,11 @@ beforeEach(async () => {
 	await h.read(async (tx) => {
 		await seedActors(tx);
 		project = await seedRoot(tx, "FLOW");
-		const status = await seedStatus(tx, {
-			projectId: project,
-			name: "Todo",
-			category: "todo",
-			position: 0,
-			isDefault: true,
-		});
+		await seedStatus(tx, { projectId: project, name: "Todo", category: "todo", position: 0, isDefault: true });
+		const status = await seedStatus(tx, { projectId: project, name: "In Progress", category: "started", position: 1 });
 		ticket = await seedTicket(tx, { projectId: project, rootId: project, statusId: status });
 		await tx.execute(
-			sql`UPDATE projects SET manager_config='{"personaId":null,"concurrency":3,"directory":"/tmp/work"}'::jsonb WHERE id=${project}`,
+			sql`UPDATE projects SET manager_config='{"personaId":null,"directory":"/tmp/work"}'::jsonb WHERE id=${project}`,
 		);
 		await tx.execute(
 			sql`INSERT INTO agent_runs (id,name,runtime,persona_name,kind,instruction,project_id,project_path,ticket_id,terminal_id,session_id,workspace_id,created_at,updated_at) VALUES (${runId},'Worker','native','Builder','builder','Task',${project},'FLOW',${ticket},'previous','provider-session',${home},now(),now())`,

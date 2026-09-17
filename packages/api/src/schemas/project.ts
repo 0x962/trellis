@@ -48,13 +48,15 @@ const AncestorSchema = ProjectLinkSchema.extend({
 export const AdeSchema = z.literal("native");
 export type Ade = z.infer<typeof AdeSchema>;
 
+export const ProjectBuilderConfigSchema = z.strictObject({
+	personaId: UlidSchema,
+	harness: HarnessSchema,
+});
+export type ProjectBuilderConfig = z.infer<typeof ProjectBuilderConfigSchema>;
+
 export const ProjectManagerConfigSchema = z.strictObject({
+	builder: ProjectBuilderConfigSchema.nullable().default(null),
 	personaId: UlidSchema.nullable(),
-	concurrency: z
-		.number()
-		.int("Enter a whole number for the concurrency.")
-		.min(1, "Enter a concurrency of 1 to 64.")
-		.max(64, "Enter a concurrency of 1 to 64."),
 	directory: z
 		.string()
 		.trim()
@@ -71,7 +73,6 @@ export const ProjectManagerConfigSchema = z.strictObject({
 export type ProjectManagerConfig = z.infer<typeof ProjectManagerConfigSchema>;
 export const DEFAULT_PROJECT_MANAGER_CONFIG = ProjectManagerConfigSchema.parse({
 	personaId: null,
-	concurrency: 3,
 	directory: "",
 });
 
