@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, expect, mock, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import type { prepareSend } from "../../../../../src/services/agentRuns/communication.ts";
-import { dispatchMentions } from "../../../../../src/services/commentMentions/dispatch.ts";
+import { dispatchMentions as dispatch } from "../../../../../src/services/commentMentions/dispatch.ts";
 import { create } from "../../../../../src/services/comments.ts";
 import { recover } from "../../../../../src/services/controller/controller.ts";
 import { seedProject, seedTicket } from "../../../../fixtures";
@@ -9,6 +9,9 @@ import { controllerSession } from "../../../../helpers/controllerSession.ts";
 import { testCtx } from "../../../../helpers/ctx.ts";
 import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
+
+const dispatchMentions = (...args: Parameters<typeof dispatch>) =>
+	dispatch(args[0], args[1], args[2], async () => "claude");
 
 let h: Harness;
 let commentId: string;
@@ -37,6 +40,7 @@ test("a mention delivers once to its captured assignment and session", async () 
 	expect(await state()).toBe("sent");
 	expect(send.mock.calls[0]![1]).toMatchObject({
 		id: "537",
+		interrupt: true,
 		expectedTerminalId: "terminal",
 		expectedSessionId: "conversation",
 	});
