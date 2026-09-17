@@ -1,10 +1,10 @@
 import type { Note, NoteAudience } from "@trellis/api";
+import { shortZonedDateTime } from "@trellis/api/time";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, noneToNull, readText } from "../context.ts";
 import { usageError } from "../errors.ts";
-import { cell, type ListSpec, printList, printRecord, type RecordSpec } from "../output.ts";
-import { localDateTime } from "../time.ts";
+import { cell, type ListSpec, printList, printRecord, type RecordSpec, timeCell } from "../output.ts";
 
 const audiences: NoteAudience[] = ["all", "manager", "worker"];
 
@@ -31,8 +31,8 @@ const noteList: ListSpec<Note> = {
 		{ name: "title", value: (row) => cell(row.title) },
 		{ name: "audience", value: (row) => row.audience },
 		{ name: "project", value: (row) => row.projectPath },
-		{ name: "updated", value: (row) => localDateTime(row.updatedAt) },
-		{ name: "expires", value: (row) => (row.expiresAt === null ? "-" : localDateTime(row.expiresAt)) },
+		{ name: "updated", value: (row) => shortZonedDateTime(row.updatedAt) },
+		{ name: "expires", value: (row) => timeCell(row.expiresAt) },
 	],
 	identifier: (row) => row.id,
 };
@@ -43,9 +43,9 @@ const noteRecord: RecordSpec<Note> = {
 		{ name: "project", value: (row) => row.projectPath },
 		{ name: "title", value: (row) => cell(row.title) },
 		{ name: "audience", value: (row) => row.audience },
-		{ name: "expires", value: (row) => (row.expiresAt === null ? "-" : localDateTime(row.expiresAt)) },
+		{ name: "expires", value: (row) => timeCell(row.expiresAt) },
 		{ name: "actor", value: writer },
-		{ name: "updated", value: (row) => localDateTime(row.updatedAt) },
+		{ name: "updated", value: (row) => shortZonedDateTime(row.updatedAt) },
 		{ name: "body", value: (row) => cell(row.body) },
 	],
 	identifier: (row) => row.id,

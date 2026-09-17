@@ -122,7 +122,7 @@ Flows shows local flow runs.
 The authenticated terminal stream replays retained bytes and then pushes output and process observations.
 The terminal WebSocket carries ordered input and binary output outside the database request path after attachment. See [terminal transport](terminal-transport.md).
 The terminal sends keyboard input and resize events to the runtime. An explicit reconnect resumes from the last displayed byte.
-Settings includes runtime diagnostics. `trellis doctor --json` reads the same report without starting the runtime.
+`trellis doctor --json` reads runtime diagnostics without starting the runtime.
 
 Native flows freeze the saved graph and persona instructions for each execution.
 Each node occurrence binds to an ordinary agent attempt or a versioned human decision.
@@ -614,7 +614,7 @@ time. The first section of each page carries no hash.
 | `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#subprojects`, `#archive` |
 | `/p/<path>/settings/manager` | Operation (no hash), `#settings`, `#harness` |
 
-`/settings` holds the actor name, theme, GitHub state, phone pair code, drafts, and runtime diagnostics.
+`/settings` holds the actor name, theme, GitHub state, phone pair code, and drafts.
 Project settings hold the copilot persona, repository directory, and harness settings.
 It writes `projects.managerConfig` through `projects.update`.
 

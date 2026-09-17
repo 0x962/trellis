@@ -1,8 +1,7 @@
-import type { ChatMessage } from "@trellis/api";
+import { type ChatMessage, fullZonedDateTime, localClock } from "@trellis/api";
 import { nameHue } from "@trellis/ui";
-import type { CSSProperties } from "react";
+import { type CSSProperties, memo } from "react";
 import { ReadOnlyMarkdown } from "../../../../../components/ReadOnlyMarkdown";
-import { localClock, localDateTime } from "../../../../../lib/format";
 
 // The name a reader sees: the persona name of an agent, or the name of a
 // person. The run id stays in the tooltip and in the mention the name inserts.
@@ -28,14 +27,22 @@ export type ChatLineProps = {
 	onMention: (text: string) => void;
 };
 
-export function ChatLine({ message, render, onMention }: ChatLineProps) {
+// One message: a header line with the local clock and the full name in the
+// actor's own color, then the body as markdown under it, indented to the
+// name column. The name is a button that inserts a mention.
+//
+// The clock and its title each cost an Intl format call, and the whole log
+// draws again on every keystroke in the composer. memo keeps a row that did
+// not change out of that work, so `render` and `onMention` must hold their
+// identity between two draws of ChatPage.
+export const ChatLine = memo(function ChatLine({ message, render, onMention }: ChatLineProps) {
 	const trouble = troubled(message);
 	return (
 		<li className="px-3 py-1 hover:bg-elevated">
 			<div className="flex items-baseline gap-2 font-mono text-sm leading-5">
 				<time
 					dateTime={message.createdAt}
-					title={localDateTime(message.createdAt)}
+					title={fullZonedDateTime(message.createdAt)}
 					className="w-16 shrink-0 text-fg-faint tabular"
 				>
 					{localClock(message.createdAt)}
@@ -68,4 +75,4 @@ export function ChatLine({ message, render, onMention }: ChatLineProps) {
 			/>
 		</li>
 	);
-}
+});
