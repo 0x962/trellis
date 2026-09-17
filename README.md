@@ -345,8 +345,9 @@ section into the URL hash, and Account carries no hash.
 | Hash | Section | Contents |
 |---|---|---|
 | none | Account | Your name, the theme, and chat sound |
-| `#agent-accounts` | Agent accounts | Harness logins, account selection, and quota |
 | `#desktop` | Desktop | The data directory, background service, update, and local work actions |
+
+Manage harness logins, account selection, and quota on `/usage`.
 
 A setting that belongs to one project lives on that project's pages.
 

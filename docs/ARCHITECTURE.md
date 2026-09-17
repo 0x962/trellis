@@ -410,7 +410,7 @@ The instructions live in the `## Autonomous project delegation` section of the m
 
 ### Harness accounts
 
-The main Settings page stores several accounts per harness at `/settings#agent-accounts`.
+The Usage page stores several accounts per harness at `/usage`.
 An account names an existing profile directory or a managed profile under `accounts/<id>/profile` in the data home.
 Each managed profile keeps separate credentials. Shared directories retain sessions and skills. The provider CLI owns sign-in and token renewal.
 Claude uses `CLAUDE_CONFIG_DIR`; Codex uses `CODEX_HOME`; Pi uses `PI_CODING_AGENT_DIR`; OpenCode uses `XDG_DATA_HOME`; Muse uses one directory as `XDG_CONFIG_HOME` and `XDG_DATA_HOME`, so `muse/auth.json` and `muse/sessions` sit under the profile.
@@ -613,11 +613,11 @@ time. The first section of each page carries no hash.
 
 | page | sections |
 |---|---|
-| `/settings` | Account (no hash), `#agent-accounts`, `#desktop` in the macOS app |
+| `/settings` | Account (no hash), `#desktop` in the macOS app |
 | `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#archive` |
 | `/p/<path>/settings/manager` | Operation (no hash), `#settings`, `#harness` |
 
-`/settings` holds the actor name, theme, chat sound, harness accounts, and desktop controls.
+`/settings` holds the actor name, theme, chat sound, and desktop controls.
 Project settings hold the copilot persona, repository directory, and harness settings.
 It writes `projects.managerConfig` through `projects.update`.
 

@@ -13,6 +13,10 @@ const REFRESH_FLOOR_MS = 10 * 1000;
 
 const cache = new Map<string, { at: number; result: Promise<UsageReport> }>();
 
+export const invalidateUsageReports = (home: string) => {
+	for (const key of cache.keys()) if (key.startsWith(`${home}:`)) cache.delete(key);
+};
+
 // Builds the report outside every database transaction. The account, run,
 // and project reads use one short transaction. The transcript scan runs on
 // a separate worker. A report stays in the cache for five minutes per range.

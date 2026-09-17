@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { ActorNameField } from "../features/settings/ActorNameField";
 import { ChatSoundField } from "../features/settings/ChatSoundField";
 import { DesktopSettings } from "../features/settings/DesktopSettings";
-import { HarnessAccounts } from "../features/settings/HarnessAccounts";
 import { ThemeField } from "../features/settings/ThemeField";
 import { PageTitle } from "../features/shell/PageTitle";
 import { Topbar } from "../features/shell/Topbar";
@@ -32,12 +31,6 @@ type SettingsSection = {
 };
 
 const sections: SettingsSection[] = [
-	{
-		id: "agent-accounts",
-		title: "Agent accounts",
-		hint: "Manage harness logins, account selection, and quota on this machine.",
-		rows: <HarnessAccounts />,
-	},
 	{
 		id: "account",
 		title: "Account",
