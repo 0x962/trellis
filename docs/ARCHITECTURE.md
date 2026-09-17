@@ -146,7 +146,6 @@ External agent records retain their states. External clients need the desktop be
 An incomplete handoff marker blocks startup until the retained backup and operation state receive review.
 The previous desktop home retains its files when the selected home changes.
 
-Settings exports browser drafts and imports them as separate recovery copies.
 A flow recovery copy remains until the host acknowledges its saved graph.
 
 Read the [implementation status](desktop/implementation-status.md), [desktop plan](desktop/trellis-desktop-plan.md), and [real acceptance report](desktop/acceptance/2026-09-14-native-real/report.md) for scope and measured results.

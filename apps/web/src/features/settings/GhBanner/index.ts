@@ -1,1 +1,0 @@
-export { GhBanner } from "./GhBanner";
