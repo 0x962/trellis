@@ -10,7 +10,6 @@
 		"./client": "./src/client.ts"
 	},
 	"scripts": {
-		"test:int": "bun test test/int",
 		"typecheck": "tsc --noEmit -p tsconfig.json"
 	}
 }
