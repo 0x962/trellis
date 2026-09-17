@@ -12,7 +12,7 @@ import type { HarnessEvent } from "../types.ts";
 import { CodexAppServerClient } from "./appServerClient.ts";
 import { CodexAppServerEvents } from "./appServerEvents.ts";
 import { codexControl } from "./codexControl.ts";
-import { inspectCodexHooks } from "./inspectCodexHooks.ts";
+import { engineOptions } from "./engineOptions.ts";
 import { managerAdapter } from "./managerAdapter/managerAdapter.ts";
 import { managerPolicy } from "./managerPolicy/managerPolicy.ts";
 import { startManagerTerminalProxy } from "./managerTerminalProxy/managerTerminalProxy.ts";
@@ -41,10 +41,6 @@ const launch = z
 const manager = launch.managerSystemPrompt !== undefined;
 let managerThreadId: string | undefined;
 const adapter = manager ? managerAdapter(authenticatedManagerTools(process.env), () => managerThreadId) : undefined;
-const engineConfig = manager
-	? Object.entries(managerPolicy.config).map(([key, value]) => `${key}=${JSON.stringify(value)}`)
-	: [await inspectCodexHooks(env.TRELLIS_CODEX_EXECUTABLE, launch.cwd)];
-if (launch.effort) engineConfig.push(`model_reasoning_effort=${JSON.stringify(launch.effort)}`);
 const runtime = new RuntimeClient(env.TRELLIS_HARNESS_SOCKET);
 const directory = dirname(env.TRELLIS_CODEX_ENGINE_SOCKET);
 await mkdir(directory, { mode: 0o700 });
@@ -70,8 +66,7 @@ const engine = spawn(
 	env.TRELLIS_CODEX_EXECUTABLE,
 	[
 		"app-server",
-		...(manager ? ["--strict-config"] : []),
-		...engineConfig.flatMap((value) => ["-c", value]),
+		...engineOptions(manager, managerPolicy.config, launch.effort),
 		"--listen",
 		`unix://${env.TRELLIS_CODEX_ENGINE_SOCKET}`,
 		"-c",
