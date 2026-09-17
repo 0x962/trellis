@@ -20,10 +20,6 @@ The first package target is Apple Silicon.
 | Data directory | New data or an existing home, confirmed service handoff, database backup, and paused automation |
 | App replacement | Retained host resources and protocol checks before activation |
 
-The Manager page has Operation, General, and Harness sections.
-Operation shows the manager process. General holds the repository directory, instruction, and concurrency limit.
-Harness selects the agent executable and commands.
-
 ## Current verification
 
 The [native execution report](acceptance/2026-09-14-native-only/report.md) records the current integration and package results.
@@ -72,7 +68,7 @@ It backs up the database before schema changes and pauses automation. Both direc
 The local preview uses an ad-hoc signature. Developer ID distribution and notarization remain unverified.
 Clean-machine installation, Intel packaging, logout/login, sleep/wake, and System Settings approval changes remain release checks.
 VoiceOver, 200% zoom, and a full keyboard accessibility pass remain release checks.
-The 24-hour unattended soak and a real PR with CI and Margin feedback remain unverified.
+The 24-hour unattended soak and a real PR with CI feedback remain unverified.
 
 Git and the selected agent executable remain local prerequisites. Model access follows the agent's account requirements.
 Replace the installed package, then use Trellis > Restart to load it.

@@ -15,7 +15,6 @@ export function ProjectPages({
 	pathname: string;
 }) {
 	const current = projectRefOfPathname(pathname) === project.path;
-	const manager = pathname.endsWith("/settings/manager");
 	const settings = pathname.endsWith("/settings") || pathname.endsWith("/notes");
 	const sessions = pathname.startsWith("/sessions/project/");
 	return (
@@ -26,7 +25,7 @@ export function ProjectPages({
 						{
 							label: "Tickets",
 							suffix: "",
-							active: current && !settings && !manager && !sessions,
+							active: current && !settings && !sessions,
 						},
 						{ label: "Sessions", suffix: "/sessions", active: current && sessions },
 						{ label: "Settings", suffix: "/settings", active: current && settings },

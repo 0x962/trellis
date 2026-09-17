@@ -102,7 +102,6 @@ The New session button in the sidebar starts one from a prompt.
 | `/p/TRL/table` | The table of the same project |
 | `/p/TRL/web/auth` | The board of the sub-project `auth` under `web` |
 | `/p/TRL/settings` | The settings of a project |
-| `/p/TRL/settings/manager` | The manager agent of a project |
 | `/t/TRL-42` | One ticket |
 | `/sessions/<id>` | One session: the terminal of its agent and the process controls |
 | `/search` | Search |
@@ -134,7 +133,7 @@ If the title, the branch, or the body of a pull request contains the ticket iden
 
 Each pull request carries a Show diff control that opens its native Trellis review page. The Reviews sidebar entry also accepts a GitHub PR URL. The page supports split and unified diffs, local threads, replies, reactions, and review submissions with agent notifications.
 
-Read [Local pull request reviews](docs/reviews.md) for the CLI, Margin import, and gateway cutover.
+Read [Local pull request reviews](docs/reviews.md) for the CLI and review workflow.
 
 ### Keyboard map
 
@@ -181,13 +180,8 @@ A ticket has zero or one assigned agent. An assignment selects its harness,
 model, and effort. The assignment stays with the ticket across status changes
 and process exits. A person removes it before another agent can take the ticket.
 
-A manager run names one project. A project runs one manager at a time. Project
-settings store the manager instruction directly.
-
-The Manager page at `/p/<project path>/settings/manager` controls the project's local work.
-Operation shows the manager process, output, and durable event queue. Trellis sends each queued event to a running manager.
-General sets the manager instruction, repository directory, trust, and concurrency limit. Harness selects the agent preset and commands.
-The concurrency limit runs from 1 to 64, defaults to 3, and excludes the manager.
+A manager run names one project. A project runs one manager at a time.
+Trellis sends each queued event to a running manager.
 
 The Agent section of the ticket rail shows the assigned agent. Its dialog selects the harness, model, and effort.
 The model picker searches the catalog and groups models by family.
@@ -216,7 +210,7 @@ reason to stderr.
 Trellis reserves an execution attempt and creates a Git worktree for each ticket run.
 The local runtime owns the process and retains its output across a host restart.
 The Claude preset uses structured messages and explicit tool permissions. Other harness presets run through the native terminal.
-Trust the repository on the Manager page before the structured harness starts.
+Trust the repository in project settings before the structured harness starts.
 
 The manager receives queued ticket events when its harness reports ready or idle.
 An uncertain delivery stays in the queue for inspection. Confirm receipt or request a resend only after you inspect the manager output.
@@ -337,10 +331,7 @@ A setting that belongs to one project lives on that project's pages.
 
 | Page | Sections |
 |---|---|
-| `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#subprojects`, `#archive` |
-| `/p/<path>/settings/manager` | Operation (no hash), `#settings`, `#harness` |
-
-The top control of the Manager page starts, resumes, or stops the manager process.
+| `/p/<path>/settings` | General (no hash), `#notes`, `#template`, `#statuses`, `#labels`, `#archive` |
 
 ## Mobile
 

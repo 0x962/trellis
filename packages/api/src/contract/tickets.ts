@@ -21,13 +21,7 @@ import {
 import { base } from "./base.ts";
 
 // The codes a write to one or many tickets can raise.
-const writeErrors = pickErrors([
-	"PROJECT_ARCHIVED",
-	"STATUS_NOT_IN_PROJECT",
-	"CROSS_ROOT_MOVE",
-	"PARENT_CYCLE",
-	"STATUS_FULL",
-]);
+const writeErrors = pickErrors(["PROJECT_ARCHIVED", "STATUS_NOT_IN_PROJECT", "CROSS_ROOT_MOVE", "PARENT_CYCLE"]);
 
 export const tickets = {
 	list: base
@@ -63,9 +57,7 @@ export const tickets = {
 		.input(TicketUpdateInputSchema)
 		.output(TicketSchema),
 	move: base
-		.errors(
-			pickErrors(["INVALID_ANCHOR", "VERSION_CONFLICT", "PROJECT_ARCHIVED", "STATUS_NOT_IN_PROJECT", "STATUS_FULL"]),
-		)
+		.errors(pickErrors(["INVALID_ANCHOR", "VERSION_CONFLICT", "PROJECT_ARCHIVED", "STATUS_NOT_IN_PROJECT"]))
 		.route({ method: "POST", path: "/tickets/{ticket}/move", summary: "Move a ticket to a status and a position" })
 		.input(TicketMoveInputSchema)
 		.output(TicketSchema),

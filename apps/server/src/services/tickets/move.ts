@@ -7,7 +7,6 @@ import { ticketGet, ticketSummary } from "../../db/queries/ticketGet.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { type Change, record } from "../activity.ts";
-import { assertStatusRoom } from "../manager/admitTicket.ts";
 import { assertProjectActive, resolveStatus, resolveTicket, type TicketRow } from "../refs.ts";
 import { type Anchor, type Anchors, placeBetween, renumberColumn } from "./position.ts";
 import { assertVersion, stampColumns } from "./rules.ts";
@@ -30,7 +29,6 @@ export const move = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 	await assertVersion(tx, row, input.expectedVersion);
 	const next = await resolveStatus(ctx, tx, { projectId: row.projectId, status: input.status });
 	const statusChanged = next.id !== row.statusId;
-	if (statusChanged) await assertStatusRoom(ctx, tx, next.id, row.projectId);
 	const anchors: Anchors = {
 		after: await resolveAnchor(ctx, tx, row, next.id, input.after),
 		before: await resolveAnchor(ctx, tx, row, next.id, input.before),

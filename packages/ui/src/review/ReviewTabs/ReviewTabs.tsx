@@ -52,7 +52,6 @@ export function ReviewTabs({
 		{ value: "changes", label: "Changes" },
 		{ value: "discussion", label: count ? `Conversation ${count}` : "Conversation" },
 		{ value: "checks", label: <TabLabel label="Checks" status={checksStatus} /> },
-		{ value: "runs", label: "Runs" },
 		...(live ? [{ value: "live", label: <TabLabel label="Live Branch" status={liveStatus} /> }] : []),
 	];
 	return (

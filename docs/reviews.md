@@ -25,7 +25,7 @@ The Checks tab shows GitHub checks and their log links.
 GitHub status refreshes every 45 seconds.
 The displayed diff stays on its saved revision until you select **Refresh from GitHub**.
 A changed head or base produces a notice.
-Older threads retain their original revision. Imported Margin threads have an unknown revision.
+Older threads retain their original revision.
 
 **Review changes** matches the GitHub review choices: Comment, Approve, and Request changes.
 The server checks the reviewed head before it submits the review to GitHub.
@@ -71,64 +71,15 @@ They reply to findings and resolve only addressed threads.
 Review findings never become GitHub comments.
 Generated Trellis instructions include this workflow.
 
-The Runs tab uses the Dots review graph through a server adapter.
-Set `TRELLIS_REVIEW_EXECUTOR_URL` to its base URL; the default is `http://dots.localhost`.
-The panel lists runs, shows node output, and supports start, resume, retry, approve, and reject.
-Each action checks that the run belongs to the selected PR.
-The Dots executor remains a separate service.
-
-## Margin import
-
-The importer reads a directory of Margin comment files.
-It preserves bodies, authors, sessions, timestamps, sides, ranges, replies, and resolution metadata.
-It records old identifiers as aliases and assigns canonical Trellis identifiers.
-Legacy ranges remain exact, including reversed ranges in existing files.
-New comments require an ordered range.
-
-```sh
-trellis review import-margin --from /absolute/path/to/margin-snapshot/comments
-trellis review import-margin --from /absolute/path/to/margin-snapshot/comments --apply
-```
-
-The first command previews the import.
-The second command writes it in one transaction.
-The default directory is `$MARGIN_HOME/comments`, or `~/.margin/comments`.
-Use the same absolute source path for repeated imports.
-An unchanged record is skipped. A changed source record is reported as a conflict.
-The importer does not overwrite a record that Trellis already imported.
-An ambiguous old identifier requires the canonical Trellis identifier.
-
-Exports support the full Trellis format and the Margin comment format:
+Export a complete local review or back up all server data:
 
 ```sh
 trellis review export owner/repo#123 > review.json
-trellis review export owner/repo#123 --format margin > owner__repo__123.json
 trellis backup
 ```
 
-The full export includes revisions, threads, reactions, and import aliases.
-The Margin export includes the current comments and replies, with old identifiers where available.
-Margin cannot represent reactions or revision hashes.
-Keep a Trellis backup before a rollback.
+The review export includes revisions, threads, reactions, and submissions.
 The normal server backup and NDJSON export include all review tables.
-
-## Local service cutover
-
-The repository supplies the gateway and compatibility command.
-The feature installation does not import live Margin data or stop its services.
-Perform the cutover after the source snapshot and new review workflow pass your checks.
-
-1. Stop review producers that write to Margin.
-2. Back up Trellis and copy the Margin data directory to a fixed snapshot path.
-3. Install this Trellis checkout with `bun packages/cli/src/index.ts install`.
-4. Preview and apply the import from that snapshot.
-5. Compare PR, thread, reply, resolved, session, and range counts.
-6. Repeat the import and verify that it adds no records.
-7. Change agent instructions and Dots review prompts to `trellis review`.
-8. For older producers, install `scripts/compat/margin` as their `margin` command.
-9. Transfer gateway ownership with the commands below.
-10. Verify the Trellis and Dots hostnames and an old Margin review link.
-11. Stop `com.margin.server` after a local review and CLI reply pass.
 
 Generate a gateway service file without loading it:
 
@@ -138,53 +89,10 @@ plutil -lint "$HOME/Library/LaunchAgents/com.trellis.gateway.plist"
 ```
 
 The gateway reads `~/.config/localhost-gateway/routes.json` on each request.
-It preserves configured routes and supplies the Trellis and Dots defaults.
+It preserves configured routes and supplies the Trellis default.
 `GATEWAY_ROUTES_FILE` selects another route file.
-`margin.localhost` redirects to the native Trellis review route.
 The gateway accepts requests from loopback addresses and defaults to port 80.
 For low ports on macOS, it uses a wildcard bind. The request handler refuses clients outside loopback.
 Use `trellis gateway --port 8080` for a foreground rehearsal.
-
-After the generated plist passes inspection, transfer port 80:
-
-```sh
-launchctl bootout "gui/$(id -u)/com.margin.gateway"
-launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/com.trellis.gateway.plist"
-```
-
-Trellis and Dots share this gateway.
 To remove the gateway, unload `com.trellis.gateway` and remove its plist.
-The normal `trellis uninstall` command removes the Trellis server and its route; it leaves the shared gateway available for Dots.
-
-Before Trellis accepts new review writes, rollback can use the original Margin snapshot.
-After new writes, export every changed PR in Margin format before you restore Margin as the writer.
-Retain the full Trellis backup for fields that Margin cannot store.
-
-## Verification record
-
-The source inventory is in [the integration plan](margin-integration-plan.md).
-A temporary import rehearsal used the local Margin files on 2026-09-12.
-It imported 68 PRs, 821 threads, and 926 replies with no conflicts.
-The export matched 735 resolved threads, 527 root sessions, and 294 ranges.
-A repeated import added zero records and skipped all 821 threads.
-The rehearsal did not write to either live data store.
-
-The final checks passed lint and type checks across all six workspaces.
-The API suite passed 195 tests; web unit tests passed 219; CLI integration tests passed 216.
-The server integration run passed 1,046 tests.
-Its failures came from the existing manager-start test, including the worker suite that contains it.
-That failure also reproduced on clean `main`.
-Three existing Button and IconButton tests also failed on clean `main`.
-The repository suite retained its existing self-exclusion failure for the session-trailer check.
-The focused review and Popover component suite passed all eight tests.
-
-Aside verified the local review workflow, cold reloads, workers, keyboard expansion, replies, reactions, and desktop and 390 px layouts.
-The browser pass used an isolated server with GitHub fixtures.
-The new Playwright review spec has not run through the Playwright runner.
-GitHub merge and environment actions were not executed.
-
-The bundle-size gate remains above its limit.
-Initial JavaScript measures 235.0 KB gzip, compared with 227.9 KB on clean `main` and a 220 KB limit.
-Total assets measure 3,255.7 KB, compared with 921.1 KB on clean `main` and a 900 KB limit.
-The review route, workers, and syntax assets load separately from the initial shell.
-The implementation keeps the existing limits unchanged.
+The normal `trellis uninstall` command removes the Trellis server and its route.

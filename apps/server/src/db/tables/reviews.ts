@@ -58,19 +58,3 @@ export const reviewDeliveries = pgTable(
 	},
 	(t) => [unique("review_deliveries_recipient").on(t.reviewId, t.runId)],
 );
-export const reviewImports = pgTable(
-	"review_imports",
-	{
-		id: text().primaryKey(),
-		source: text().notNull(),
-		legacyId: text("legacy_id").notNull(),
-		prId: text("pr_id")
-			.notNull()
-			.references(() => pullRequests.id),
-		threadId: text("thread_id")
-			.notNull()
-			.references(() => reviewThreads.id),
-		hash: text().notNull(),
-	},
-	(t) => [unique("review_imports_source").on(t.source, t.prId, t.legacyId)],
-);

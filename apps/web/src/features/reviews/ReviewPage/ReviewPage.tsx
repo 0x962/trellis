@@ -13,7 +13,6 @@ import { ReviewDiscussion } from "../ReviewDiscussion/ReviewDiscussion";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
 import { type LiveBranchMeta, liveBranchState } from "../ReviewLive/liveBranch";
 import { ReviewLive } from "../ReviewLive/ReviewLive";
-import { ReviewRuns } from "../ReviewRuns/ReviewRuns";
 import { ReviewStack } from "../ReviewStack/ReviewStack";
 import { ReviewSummary } from "../ReviewSummary/ReviewSummary";
 import { DiffToolbar } from "./components/DiffToolbar/DiffToolbar";
@@ -174,6 +173,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 					pr={pr}
 					revision={displayRevision}
 					openCount={allThreads.filter((thread) => thread.status === "open").length}
+					showReview={tab === "changes"}
 					onAction={() => void status.refetch()}
 				/>
 				{revision && <ReviewStack pr={pr} />}
@@ -276,7 +276,6 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						/>
 					)}
 					{tab === "checks" && <ReviewChecks revision={displayRevision} />}
-					{tab === "runs" && <ReviewRuns pr={pr} />}
 					{tab === "live" && displayRevision && (
 						<ReviewLive pr={pr} revision={displayRevision} loading={status.isPending} onRefresh={refreshAll} />
 					)}

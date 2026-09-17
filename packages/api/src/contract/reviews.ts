@@ -15,7 +15,6 @@ import {
 	ReviewSubmitSchema,
 	ReviewThreadSchema,
 } from "../schemas/review";
-import { ReviewImportResultSchema, ReviewImportSchema } from "../schemas/reviewImport";
 import { base } from "./base";
 
 const id = z.object({ id: z.string().min(1) });
@@ -37,25 +36,6 @@ export const reviews = {
 		.route({ method: "POST", path: "/reviews/reviewer", summary: "Change a GitHub review request" })
 		.input(pr.extend({ reviewer, remove: z.boolean() }))
 		.output(z.object({ reviewer, removed: z.boolean() })),
-	runs: base
-		.route({ method: "POST", path: "/reviews/runs", summary: "Control review graph runs" })
-		.input(
-			pr.extend({
-				action: z.enum(["list", "start", "show", "node", "resume", "retry", "answer"]),
-				runId: z
-					.string()
-					.regex(/^[\w-]+$/)
-					.optional(),
-				nodeId: z
-					.string()
-					.regex(/^[\w-]+$/)
-					.optional(),
-				cwd: z.string().optional(),
-				approve: z.boolean().optional(),
-				note: z.string().optional(),
-			}),
-		)
-		.output(z.record(z.string(), z.unknown())),
 	action: base
 		.errors(pickErrors(["GH_UNAVAILABLE"]))
 		.route({ method: "POST", path: "/reviews/action", summary: "Run an explicit GitHub action" })
@@ -105,10 +85,6 @@ export const reviews = {
 		.route({ method: "POST", path: "/reviews/metadata", summary: "Read stack, queue, and deployment options" })
 		.input(pr)
 		.output(z.record(z.string(), z.unknown())),
-	importMargin: base
-		.route({ method: "POST", path: "/reviews/import-margin", summary: "Import local Margin comments" })
-		.input(ReviewImportSchema)
-		.output(ReviewImportResultSchema),
 	export: base
 		.route({ method: "GET", path: "/reviews/export", summary: "Export a complete local review" })
 		.input(pr)
@@ -119,7 +95,6 @@ export const reviews = {
 				threads: z.array(ReviewThreadSchema),
 				revisions: z.array(ReviewRevisionSchema),
 				submissions: z.array(ReviewSubmissionSchema),
-				imports: z.array(z.record(z.string(), z.unknown())),
 			}),
 		),
 	refresh: base

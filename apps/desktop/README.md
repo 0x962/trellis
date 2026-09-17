@@ -106,7 +106,7 @@ Runtime files stay outside the host database directory, so a database export doe
 ### Project copilots
 
 Trellis keeps one copilot available for each active project. A copilot acts on user instructions.
-Project settings store its manager instruction and harness. New starts and restarts read the saved settings.
+A compatible restart reads the saved project configuration.
 A compatible restart preserves the copilot conversation.
 
 ## Release limits

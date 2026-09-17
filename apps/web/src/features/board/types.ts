@@ -7,7 +7,6 @@ export type BoardColumnModel = {
 	statuses: Status[];
 	items: TicketSummary[];
 	count: number;
-	wipLimit: number | null;
 };
 
 // One board move: the card and the column it lands in. A column has no

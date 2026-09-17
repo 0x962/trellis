@@ -4,7 +4,7 @@ import { usageError } from "./errors.ts";
 const camel = (name: string) => name.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
 
 // The spellings a flag answers to: its name, its aliases, and the camelCase
-// form citty accepts for a kebab-case name (`--wip-limit`, `--wipLimit`).
+// form citty accepts for a kebab-case name (`--dry-run`, `--dryRun`).
 const spellingsOf = (name: string, alias: string | string[] | undefined): string[] => {
 	const aliases = alias === undefined ? [] : Array.isArray(alias) ? alias : [alias];
 	return [name, camel(name), ...aliases];

@@ -7,7 +7,7 @@ import { type CliContext, contextOf, readText } from "../../context";
 import { usageError } from "../../errors";
 import { emitReview as emit } from "./output";
 import { submissions } from "./submissions";
-import { transfers } from "./transfers";
+import { transfer } from "./transfers";
 
 const ref = { type: "positional", required: true, description: "GitHub PR URL or owner/repo#123" } as const;
 const id = { type: "positional", required: true, description: "Review thread or message identifier" } as const;
@@ -157,6 +157,6 @@ export default defineCommand({
 			},
 		}),
 		...submissions,
-		...transfers,
+		export: transfer,
 	},
 });

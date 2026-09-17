@@ -5,7 +5,7 @@ import { gatewayHost, isLocalAddress } from "./gateway/listener";
 import { gatewayTarget } from "./gateway/target";
 
 const path = process.env.GATEWAY_ROUTES_FILE ?? join(homedir(), ".config/localhost-gateway/routes.json");
-const defaults = { trellis: Number(process.env.TRELLIS_PORT ?? 4521), dots: Number(process.env.DOTS_PORT ?? 4517) };
+const defaults = { trellis: Number(process.env.TRELLIS_PORT ?? 4521) };
 const port = Number(process.env.GATEWAY_PORT ?? 80);
 const server = Bun.serve({
 	hostname: gatewayHost(process.platform, port),
@@ -20,7 +20,6 @@ const server = Bun.serve({
 		// leaves the gateway with no upstream to call, so the answer is 502
 		// and its text names the entry that holds the bad value.
 		if (target.kind === "invalid") return new Response(target.message, { status: 502 });
-		if (target.kind === "redirect") return Response.redirect(target.url, 302);
 		return fetch(target.url, {
 			method: request.method,
 			headers: request.headers,
