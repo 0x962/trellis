@@ -13,6 +13,7 @@ export type LoopStatusProps = {
 	paused: boolean;
 	working: boolean;
 	step: string;
+	waitSeconds: number;
 	steps: { id: string; title: string; description: string; active: boolean; detail: string }[];
 	runCount: number;
 	lastStartedAt: string | null;
@@ -23,6 +24,7 @@ export type LoopStatusProps = {
 	errors: Entry[];
 	busy: boolean;
 	onAction: (action: "pause" | "resume" | "run" | "clear") => void;
+	onWaitSecondsChange: (seconds: number) => void;
 };
 const timestamp = (at: string | null) => (at === null ? "None" : new Date(at).toLocaleString());
 
@@ -71,10 +73,18 @@ export function LoopStatus(props: LoopStatusProps) {
 			</div>
 			<p className="text-sm text-fg-muted text-pretty">{description}</p>
 			<p className="text-sm text-fg-muted text-pretty">
-				Checks repeat one second after each pass. Pause lets the current pass finish; agents and message delivery
-				continue. Run now performs one pass. Automatic checks resume when Trellis restarts.
+				Checks repeat after the wait period. Pause lets the current pass finish; agents and message delivery continue.
+				Run now performs one pass. Automatic checks resume when Trellis restarts.
 			</p>
-			<LoopSteps steps={props.steps} errors={errors} paused={paused} nextRunAt={props.nextRunAt} />
+			<LoopSteps
+				steps={props.steps}
+				errors={errors}
+				paused={paused}
+				nextRunAt={props.nextRunAt}
+				waitSeconds={props.waitSeconds}
+				busy={busy}
+				onWaitSecondsChange={props.onWaitSecondsChange}
+			/>
 			<dl className="grid grid-cols-2 gap-3 text-sm tabular-nums">
 				<dt className="text-fg-muted">Passes</dt>
 				<dd>{props.runCount}</dd>
