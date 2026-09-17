@@ -5,6 +5,7 @@ import type { Tx } from "../../db/tx.ts";
 import { hostIsShuttingDown } from "../agentRuns/hostShutdown.ts";
 import { dispatchChat } from "../chat/dispatch.ts";
 import { dispatchMentions } from "../commentMentions/dispatch.ts";
+import { loopRuntimes } from "../loops/runtime.ts";
 import { manage } from "../manager/manager.ts";
 import type { IoCtx } from "../support.ts";
 
@@ -20,11 +21,14 @@ const defaults: Dependencies = {
 	mentions: dispatchMentions,
 	chat: dispatchChat,
 };
-export const dispatch = async (ctx: IoCtx, _input: Record<string, never> = {}, deps: Dependencies = defaults) => {
+export const dispatch = async (ctx: IoCtx, input: { manage?: boolean } = {}, deps: Dependencies = defaults) => {
 	if (hostIsShuttingDown(ctx.home)) return {};
+	const loop = loopRuntimes.get(ctx.home);
+	loop?.report("Read runtime");
 	const sessions = await deps.readSessions(ctx.home);
+	loop?.report("Check assignments and deliver messages", `Read ${sessions.length} runtime processes.`);
 	const results = await Promise.allSettled([
-		deps.manage(ctx, { sessions }),
+		input.manage === false ? Promise.resolve() : deps.manage(ctx, { sessions }),
 		deps.mentions(ctx, sessions),
 		deps.chat(ctx, sessions),
 	]);
