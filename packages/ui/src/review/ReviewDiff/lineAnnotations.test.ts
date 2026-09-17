@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test";
-import { parsePatchFiles } from "@pierre/diffs";
 import { lineAnnotations } from "./lineAnnotations";
+import { parseReviewFiles } from "./parseReviewFiles";
 
-const file = parsePatchFiles(
+const file = parseReviewFiles(
 	"diff --git a/a.ts b/a.ts\n--- a/a.ts\n+++ b/a.ts\n@@ -1,2 +1,2 @@\n-old\n+new\n same\n",
-)[0]!.files[0]!;
+)[0]!;
 const anchor = { path: "a.ts", side: "new" as const, startLine: 1, line: 2 };
 const thread = { ...anchor, id: "thread", version: 1, updatedAt: "today", revisionId: "current" };
 

@@ -88,7 +88,7 @@ describe("system", () => {
 		const names: string[] = [];
 		const app = await createTestApp({ gh: signedInAs("erin"), wrapTransport: recordNames(names) });
 
-		const response = await app.api("/api/gh/check", { method: "POST" });
+		const response = await app.api("/api/gh/check", { method: "POST", body: {} });
 		await app.close();
 
 		expect(response.status).toBe(200);

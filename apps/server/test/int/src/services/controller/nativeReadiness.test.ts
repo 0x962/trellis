@@ -72,7 +72,7 @@ test("dispatch requires a live controllable PTY with its initial prompt receipt"
 		sessions = [controllerSession(attemptId, overrides)];
 		expect(await take()).toBeNull();
 	}
-	observation("idle");
+	observation("working");
 	expect(await take()).toMatchObject({ state: "sending", terminalId: attemptId });
 });
 

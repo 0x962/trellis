@@ -19,7 +19,7 @@ model.
 | Web | React, Vite, TanStack Router, Query, Table, Virtual | 19, 8, current |
 | UI primitives | Base UI, Tailwind, own tokens in `packages/ui` | 1.8, 4.3 |
 | Editor, palette, drag and drop, motion, toasts, icons | Tiptap, cmdk, pragmatic-drag-and-drop, `motion/mini`, sonner, lucide-react | current |
-| Flow canvas, flow layout | @xyflow/react, @dagrejs/dagre | 12.11, 3.1 |
+| Flow canvas, flow layout | @xyflow/react, local rank layout | 12.11 |
 | Fonts | BerkeleyMono, then JetBrains Mono from fontsource | 5.3 |
 | Mobile | Expo, expo-router, React Native, NativeWind, FlashList, `expo-sqlite/kv-store`, `react-native-sse` | 57, 0.86, current |
 | Desktop | Electron, macOS SMAppService | 44.3.0 |

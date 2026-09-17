@@ -14,6 +14,11 @@ export const processEnv = (values: Record<string, string | undefined> = {}) => (
 	...values,
 });
 
+export const serverHeaders = (headers: Record<string, string> = {}) => {
+	const token = process.env.TRELLIS_AUTH_TOKEN;
+	return token === undefined ? headers : { ...headers, authorization: `Bearer ${token}` };
+};
+
 export const runProcess = async (
 	args: string[],
 	env: Record<string, string | undefined> = {},

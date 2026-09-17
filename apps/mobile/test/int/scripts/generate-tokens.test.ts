@@ -14,12 +14,16 @@ const colorKeys = [
 	"bg",
 	"border",
 	"borderStrong",
+	"control",
+	"controlActive",
+	"controlHover",
 	"danger",
 	"dangerSoft",
 	"elevated",
 	"fg",
 	"fgFaint",
 	"fgMuted",
+	"onAccent",
 	"scrim",
 	"success",
 	"successSoft",
@@ -49,10 +53,9 @@ describe("generate-tokens", () => {
 		expect(Object.keys(tokens.dark).sort()).toEqual(colorKeys);
 		expect(tokens.light.bg).toBe("#FFFFFF");
 		expect(tokens.dark.bg).toBe("#070707");
-		expect(tokens.light.accent).toBe("#009FFF");
-		expect(tokens.dark.accent).toBe("#009FFF");
-		expect(tokens.radius).toMatchObject({ sm: 0, md: 0, lg: 0, xl: 0 });
-		expect(Object.values(tokens.radius).every((radius) => radius === 0)).toBe(true);
+		expect(tokens.light.accent).toBe("#6E6E73");
+		expect(tokens.dark.accent).toBe("#C4C4C4");
+		expect(tokens.radius).toEqual({ hairline: 3, sm: 6, md: 8, lg: 12, xl: 16, round: 999 });
 		expect(tokens.hairline).toBe(1);
 		expect(Object.values(tokens.text)).toEqual([11, 12, 13, 14, 16, 20, 24]);
 		expect(typeof tokens.font.sans).toBe("string");
