@@ -339,7 +339,6 @@ Five window tests, eight terminal UI tests, and the typechecks pass. The user re
 - Test live terminal input, output replay, resize, disconnection, and process exit.
 - Confirm heartbeat delivery with the interactive CLI.
 - Confirm that process status comes from live process inspection.
-- Run the focused tests and required integration checks for each change.
 - Review and merge the complete diff.
 - Rebuild, sign, reinstall, open, and verify the installed app.
 

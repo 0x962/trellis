@@ -16,7 +16,7 @@
 			[
 				"expo-camera",
 				{
-					"cameraPermission": "trellis uses the camera to scan the pairing QR code on the web settings page.",
+					"cameraPermission": "trellis uses the camera to scan a server pairing QR code.",
 					"microphonePermission": false,
 					"recordAudioAndroid": false
 				}
