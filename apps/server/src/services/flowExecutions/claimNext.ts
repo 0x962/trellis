@@ -6,7 +6,6 @@ import type { ServiceCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
-import { readNativeWork } from "../agentRuns/nativeControl.ts";
 import { reserve } from "../agentRuns/reserve.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { readExecution } from "./queries.ts";
@@ -16,7 +15,7 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 	const state = advanceFlow(execution.doc, execution.state, { type: "tick" }, ctx.now.getTime());
 	await saveState(ctx, tx, execution, state);
 	const actions = pendingFlowActions(execution.doc, state).filter((action) => action.type === "agent");
-	if (actions.length === 0 || (await readNativeWork(tx)).paused) return null;
+	if (actions.length === 0) return null;
 	await tx.execute(sql`SELECT id FROM projects WHERE id=${execution.project_id} FOR UPDATE`);
 	const config = await projectLaunchConfig(tx, { projectId: execution.project_id });
 	if (config.dispatchPaused) return null;

@@ -117,7 +117,7 @@ test("a replacement manager replays the saved assignment without another worker"
 	).rejects.toThrow();
 });
 
-for (const mode of ["project", "global", "archive"] as const) {
+for (const mode of ["project", "archive"] as const) {
 	test(`${mode} pause preserves a queued wait and blocks an already delivered assignment`, async () => {
 		await queue();
 		await h.rows(sql`UPDATE agent_runs SET closed_at=${NOW} WHERE id='busy'`);
@@ -125,8 +125,6 @@ for (const mode of ["project", "global", "archive"] as const) {
 		const action = (await take(1))!.nextActions[0]!;
 		if (mode === "project")
 			await h.rows(sql`UPDATE projects SET manager_config=manager_config || '{"dispatchPaused":true}'::jsonb`);
-		if (mode === "global")
-			await h.rows(sql`INSERT INTO settings(key,value,updated_at) VALUES ('nativeWorkPaused','true'::jsonb,${NOW})`);
 		if (mode === "archive") await h.rows(sql`UPDATE projects SET archived_at=${NOW}`);
 		await gather(2);
 		expect(await h.one(sql`SELECT state,eligible_at FROM manager_next_actions`)).toMatchObject({
@@ -141,7 +139,6 @@ for (const mode of ["project", "global", "archive"] as const) {
 		await h.rows(
 			sql`UPDATE projects SET archived_at=NULL,manager_config=manager_config || '{"dispatchPaused":false}'::jsonb`,
 		);
-		await h.rows(sql`DELETE FROM settings WHERE key='nativeWorkPaused'`);
 		await h.rebuild();
 		await gather(3);
 		expect((await h.one(sql`SELECT eligible_at FROM manager_next_actions`)).eligible_at).not.toBeNull();

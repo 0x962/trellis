@@ -168,13 +168,13 @@ test("a replaced session fails its lines and a restart marks an interrupted send
 	expect(await states()).toContain("manager:unknown");
 });
 
-test("the global pause holds every line", async () => {
+test("a saved local pause does not hold chat delivery", async () => {
 	await say("later");
 	await h.rows(sql`INSERT INTO settings (key,value,updated_at) VALUES ('nativeWorkPaused','true',now())`);
 	const send = sent();
 	await dispatchChat(ctx(), [controllerSession("terminal"), managerSession()], send);
-	expect(send).not.toHaveBeenCalled();
-	expect(await states()).toEqual(["builder:pending", "manager:pending"]);
+	expect(send).toHaveBeenCalledTimes(2);
+	expect(await states()).toEqual(["builder:sent", "manager:sent"]);
 });
 
 test("a terminal without activity observations receives the lines", async () => {

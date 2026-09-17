@@ -128,12 +128,12 @@ test("a restart retains an uncertain receipt without a second send", async () =>
 	expect(send).not.toHaveBeenCalled();
 });
 
-test("the global pause prevents automatic mention delivery", async () => {
+test("a saved local pause does not prevent mention delivery", async () => {
 	await h.rows(sql`INSERT INTO settings (key,value,updated_at) VALUES ('nativeWorkPaused','true',now())`);
 	const send = sent();
 	await dispatchMentions(ctx(), [controllerSession("terminal")], send);
-	expect(await state()).toBe("pending");
-	expect(send).not.toHaveBeenCalled();
+	expect(await state()).toBe("sent");
+	expect(send).toHaveBeenCalledTimes(1);
 });
 
 test("a terminal without activity observations receives the mention", async () => {

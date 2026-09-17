@@ -5,7 +5,6 @@ import { sql } from "drizzle-orm";
 import { nativeClient } from "../agents/native/connection.ts";
 import { rows } from "../db/queries/support.ts";
 import { projectRun } from "./agentRuns/liveState.ts";
-import { readNativeWork } from "./agentRuns/nativeControl.ts";
 import { columns, type StoredRun } from "./agentRuns/queries.ts";
 import type { ServiceCtx } from "./support.ts";
 
@@ -53,7 +52,6 @@ export const diagnostics = async (ctx: ServiceCtx): Promise<Diagnostics> => {
 		return {
 			host: { bootId: ctx.bootId, version: ctx.version, home: ctx.home },
 			runtime,
-			...(await readNativeWork(tx)),
 			queue: queue!,
 			lastObservationAt:
 				sessions
