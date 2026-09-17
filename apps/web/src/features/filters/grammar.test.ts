@@ -10,12 +10,22 @@ const dayMs = 24 * 60 * 60 * 1000;
 const defaults = {
 	sort: "-updatedAt",
 	group: "status",
-	scope: "subprojects",
+	scope: "self",
 	density: "comfortable",
 	limit: 50,
 } satisfies Partial<View>;
 
 describe("features/filters/grammar", () => {
+	test("project views default to direct tickets and keep recursive scope explicit", () => {
+		const direct = parseSearch({});
+		expect(direct.scope).toBe("self");
+		expect(toListQuery(direct, { now }).subprojects).toBe(false);
+
+		const recursive = parseSearch({ scope: "subprojects" });
+		expect(serializeSearch(recursive)).toBe("scope=subprojects");
+		expect(toListQuery(recursive, { now })).not.toHaveProperty("subprojects");
+	});
+
 	// WS-42. The URL grammar is the API grammar: comma lists become arrays
 	// and single values pass through.
 	test("parseSearch reads comma lists and single values of the shared grammar", () => {
@@ -42,6 +52,7 @@ describe("features/filters/grammar", () => {
 			parent: "none",
 			ci: ["fail"],
 			sort: "-updatedAt",
+			subprojects: false,
 		});
 		expect(parseSearch(Object.fromEntries(new URLSearchParams(serializeSearch(view))))).toEqual(view);
 	});
@@ -59,7 +70,7 @@ describe("features/filters/grammar", () => {
 		expect(serializeSearch(parseSearch({}))).toBe("");
 		expect(
 			serializeSearch(
-				parseSearch({ sort: "-updatedAt", group: "status", scope: "subprojects", density: "comfortable", limit: "50" }),
+				parseSearch({ sort: "-updatedAt", group: "status", scope: "self", density: "comfortable", limit: "50" }),
 			),
 		).toBe("");
 	});
@@ -71,7 +82,7 @@ describe("features/filters/grammar", () => {
 		expect(view.scope).toBe("self");
 		expect(view.density).toBe("compact");
 		expect(toListQuery(view, { now }).subprojects).toBe(false);
-		expect(serializeSearch(view)).toBe("group=priority&scope=self&density=compact");
+		expect(serializeSearch(view)).toBe("group=priority&density=compact");
 	});
 
 	// WS-46. The URL keeps the short form a person types; the API takes an
@@ -121,6 +132,7 @@ describe("features/filters/grammar: the table's filter grammar", () => {
 			parent: "none",
 			ci: ["fail"],
 			sort: "-updatedAt",
+			subprojects: false,
 		});
 	});
 
