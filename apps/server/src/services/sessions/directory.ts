@@ -6,7 +6,7 @@ import { executionEnvironment } from "../../executionEnvironment";
 
 const exec = promisify(execFile);
 
-// Every session directory sits under `sessions/` in the data home.
+// Scratch session repositories sit under `sessions/` in the data home.
 export const sessionsRoot = (home: string) => join(home, "sessions");
 
 // The names of the session directories on disk. A directory can outlive

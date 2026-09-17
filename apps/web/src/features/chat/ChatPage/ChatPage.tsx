@@ -1,10 +1,12 @@
+import { Plus } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { type ChatMessage, chatChannelName, chatChannelPattern, type Project } from "@trellis/api";
-import { EmptyState, Separator, toast } from "@trellis/ui";
+import { EmptyState, IconButton, Separator, Tooltip, toast } from "@trellis/ui";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import { useApp } from "../../../lib/appContext";
 import { createMarkdownRenderer } from "../../../lib/markdown";
 import { useChatStore } from "../../../stores/chatStore";
+import { sessionComposerActions } from "../../sessions/sessionComposerStore";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar } from "../../shell/Topbar";
@@ -197,7 +199,18 @@ export function ChatPage({ project }: { project: Project }) {
 
 	return (
 		<>
-			<Topbar>
+			<Topbar
+				actions={
+					<Tooltip content="New session">
+						<IconButton
+							label="New session"
+							icon={<Plus />}
+							disabled={readOnly}
+							onClick={() => sessionComposerActions.open(project.path)}
+						/>
+					</Tooltip>
+				}
+			>
 				<PageTitle parent={<ProjectBreadcrumb project={project} />} title="Chat" />
 				<span className="font-mono text-sm text-fg-muted">{open?.direct ? managerName : `#${channel}`}</span>
 				<span className="w-20 shrink-0 font-mono text-xs text-fg-faint tabular">{memberLabel}</span>

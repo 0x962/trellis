@@ -5,8 +5,8 @@ import { cx, EmptyState, Tabs } from "@trellis/ui";
 import { type ReactNode, useEffect } from "react";
 import { useApp } from "../../../lib/appContext";
 import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
-import { NativeTerminal } from "../../agents/NativeTerminal";
 import { PullRequests } from "../../prs";
+import { SessionConversation } from "../../sessions/SessionConversation";
 import { FlowRuns } from "./components/FlowRuns";
 
 export function TicketWorkArea({
@@ -34,7 +34,7 @@ export function TicketWorkArea({
 	});
 	const assigned = runs.data?.find(hasAssignedProcess);
 	const execution = assigned ? (
-		<NativeTerminal key={assigned.id} run={assigned} layout="fill" />
+		<SessionConversation key={assigned.id} run={assigned} />
 	) : (
 		<section aria-label="Execution" className="flex min-h-0 flex-1 flex-col px-5 py-4 max-md:px-4">
 			{runs.isError ? (

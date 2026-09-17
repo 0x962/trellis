@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { mkdir, realpath, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { promisify } from "node:util";
 import type { AgentRun } from "@trellis/api";
 import { executionEnvironment } from "../../executionEnvironment";
@@ -44,13 +44,13 @@ export const nativeWorkspace = async (home: string, run: WorkspaceRun, directory
 	if (!(await stat(source)).isDirectory()) throw new Error(`Not a directory: ${source}`);
 	if (run.workspaceId !== null && run.runtime === "native") {
 		await stat(run.workspaceId);
-		if (run.kind !== "manager") {
+		if (run.workspaceId !== source) {
 			const env = { NODE_ENV: process.env.NODE_ENV, ...(await executionEnvironment()) };
 			await setWorkspaceBase(run.workspaceId, await sourceBase(source, env), env, true);
 		}
 		return run.workspaceId;
 	}
-	if (run.kind === "manager") return source;
+	if (run.kind === "manager" && source.startsWith(join(home, "copilots") + sep)) return source;
 	const destination = join(home, "agents", run.id, "work");
 	await mkdir(join(home, "agents", run.id), { recursive: true, mode: 0o700 });
 	const env = { NODE_ENV: process.env.NODE_ENV, ...(await executionEnvironment()) };

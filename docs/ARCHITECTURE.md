@@ -54,7 +54,7 @@ exports TypeScript source and has no side effects.
 
 The standalone data home is `~/.trellis`, and `TRELLIS_HOME` overrides it.
 It holds `db/`, `attachments/`, `backups/`, `agents/`, `runtime/`, and `server.log`.
-Ticket worktrees live under `agents/<run id>/work`. The runtime retains process records and output under `runtime/`.
+Project agent worktrees live under `agents/<run id>/work`. The runtime retains process records and output under `runtime/`.
 The server log rotates at 10 MB and keeps five files.
 The standalone port is 4521 (`TRELLIS_PORT`) and the host is `127.0.0.1` (`TRELLIS_HOST`).
 
@@ -115,7 +115,7 @@ Worker broadcasts and mentions reach other workers.
 Desktop activation restarts the host. It keeps a runtime with a compatible protocol. The deterministic manager restarts project copilots after an incompatible runtime stops.
 A partial database index permits one active copilot per project.
 
-Native ticket agents use Git worktrees under `agents/<run id>/work`.
+Native project agents use Git worktrees under `agents/<run id>/work`.
 The ticket page opens Activity first and puts its top-level tabs below the page header.
 Activity shows the centered ticket details, properties, attachments, timeline, and comments.
 The Agent, Changes, and Flows tabs use the page width for the terminal, pull request changes, and local flow runs.
@@ -333,7 +333,8 @@ An agent restart preserves the workspace and resumes a compatible provider conve
 Every preset runs its command through a local PTY. Claude hooks identify ready, active, and completed turns.
 `launchCommand.ts` combines the saved instruction with the project or ticket context.
 The launch supplies the server URL, actor, run identifier, and attempt token through environment variables.
-A manager uses the configured repository. A ticket agent uses a Git worktree under its run directory.
+Each new agent in a configured repository uses a Git worktree under its run directory. This includes sessions, ticket agents, flow agents, and managers.
+An existing manager keeps its saved workspace and conversation. A manager without a configured repository uses its private copilot directory.
 
 A stopped manager can resume its conversation. An explicit new session gets a new conversation identifier.
 An interrupted manager requires reconciliation before another start.
@@ -354,18 +355,25 @@ Age is the current time minus `tickets.created_at`.
 
 ### Sessions
 
-A session is a scratch git repository with one agent, outside every project and ticket.
-It answers the same need as a session in Superset: a place to try something with an agent and no ticket.
-The directory is `sessions/<name>` in the data home, a repository on `main` with one empty commit.
-The name is the directory name: lowercase letters, digits, and dashes, at most 40 characters.
-A typed name takes that form; an omitted name takes a generated `<adjective>-<noun>`. A taken name gets a numeric suffix.
-The `sessions` row keeps the name, the directory, the harness, and the run.
-The run has the kind `session`, no project, and no ticket. Its name is the session name and its instruction is the prompt.
-The agent receives the prompt as its first message and nothing else. It runs with the worker permission settings of its harness.
-A session counts against no WIP limit and receives no comment or chat delivery.
-`sessions.start` resumes the saved conversation when the previous process confirmed one for the same harness, and otherwise starts the agent again from the prompt in the same directory.
-A compatible desktop restart preserves a session agent. A protocol change stops the agent and does not resume it; Start on the session page resumes it.
-`sessions.delete` stops the agent, removes the directory, and deletes the row. The run stays as history with its retained output.
+A session holds an agent conversation, its workspace, and its saved harness settings.
+A project session uses the same reservation, native launch, and Git worktree functions as a ticket agent.
+The worktree lives under `agents/<run id>/work` in the data home and starts from the configured repository HEAD.
+A session without a project uses `sessions/<name>`, a Git repository on `main` with one empty commit.
+The session name contains lowercase letters, digits, and dashes, at most 40 characters.
+An omitted name takes a generated `<adjective>-<noun>`. A taken name gets a numeric suffix.
+The `sessions` row keeps the name, directory, harness, and run. The run holds the project, conversation, and process attempts.
+The launch accepts a harness, model, effort, account, prompt, and files. Project sessions also receive project context and notes.
+Files live under `agents/<run id>/attachments/<content hash>/`. The agent receives their absolute paths.
+A create request ID binds to the project, launch settings, prompt, and file bytes. A repeated request returns the same session.
+A session counts against no ticket WIP limit.
+`sessions.send` uses the shared message delivery service with a stable message ID and the expected process attempt.
+`sessions.start` resumes a confirmed conversation with the saved harness settings and workspace.
+When the previous process has no confirmed conversation, it starts from the original prompt in the same workspace.
+Concurrent start and delete requests cannot change the same session. An unconfirmed process blocks a new start or deletion.
+A compatible desktop restart preserves a session agent. After a protocol change, the user can start a stopped session again.
+`sessions.delete` confirms process exit and removes the directory before it deletes the row. The run retains its output as history.
+Project Sessions lists session, ticket, flow, and manager runs. Ticket runs use their ticket identifier as the visible name.
+The ticket Agent tab and session pages share the conversation view, process controls, and file composer.
 
 ### Manager delegation
 
@@ -541,6 +549,7 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 | `/all/table` | `all_.table.tsx` | every ticket as a table |
 | `/p/$` | `p/$/route.tsx` | a project as a board, a table, its settings, or its manager |
 | `/t/$identifier` | `t/$identifier/route.tsx` | one ticket |
+| `/sessions/project/$project` | `sessions.project.$project.tsx` | project sessions and ticket agents in a secondary sidebar |
 | `/sessions/$id` | `sessions.$id.tsx` | one session: the terminal of its agent and the process controls |
 | `/search` | `search.tsx` | search |
 | `/ai/flows` | `ai.flows.tsx` | the flows |
@@ -591,11 +600,11 @@ The sidebar holds the workspace row, Needs you, Search, All tickets, Pull
 requests, Flows, Usage, the sessions, the project tree, and the actor footer.
 The sessions and the project tree share the one region that scrolls, so the fixed
 links keep their place at any height.
-The Sessions section sits above the Projects section. Its New session button opens
-a sheet with the prompt, an optional name, and the harness. Each session row shows
-the avatar of its agent with the work state and opens `/sessions/<id>`. Its row
-menu deletes the session.
-Each project row shows the Trellis mark and project name. Tickets and Settings appear below it.
+The global Sessions section lists sessions without a project. Its New session button opens a dialog with project, harness, model, effort, and account choices.
+The dialog accepts a prompt, files, and an optional name. A project also has a Sessions page with a secondary sidebar for all its agents.
+The project Chat page can open the same session dialog. Unsent text and files stay available when the user changes sessions.
+Each session row opens its conversation. The conversation controls can stop, resume, or delete the session.
+Each project row shows the Trellis mark and project name. Tickets, Sessions, Chat, and Settings appear below it.
 The selected state follows the current page for root, nested, and archived projects.
 
 ## Database schema
@@ -628,7 +637,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), kind (CHECK agent, manager, flow, or session), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial UNIQUE (ticket_id) WHERE `kind = 'agent'` and `closed_at IS NULL`. Partial UNIQUE (project_id) WHERE `kind = 'manager'`, `runtime = 'native'`, and `closed_at IS NULL`. Index (created_at). |
 | agent_sessions (stored history) | id PK, project_id (CASCADE), ticket_id (CASCADE), role (CHECK manager, builder, reviewer), runner (CHECK superset), state (CHECK starting, running, waiting, exited, stopped, failed), workspace_id, terminal_id, claude_session_id, name (1 to 40), title (1 to 120), open_url, last_woken_at, error, created_at, updated_at. CHECK `(role = 'manager') = (ticket_id IS NULL)`. Indexes (project_id, role, state) and (ticket_id). Partial UNIQUE (project_id) WHERE the role is manager and the state is live. Partial UNIQUE (workspace_id, terminal_id) WHERE both are set. |
 | agent_cursors | project_id PK (CASCADE), activity_id bigint, updated_at. Stored activity cursor from earlier data homes. |
-| sessions | id PK, name (UNIQUE, CHECK lowercase letters, digits, and dashes, 1 to 40), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), created_at, updated_at. The run has the kind `session`, no project, and no ticket. |
+| sessions | id PK, name (UNIQUE, CHECK lowercase letters, digits, and dashes, 1 to 40), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), created_at, updated_at. The run has the kind `session`, an optional project, and no ticket. |
 
 The `id` column of `activity` is the cursor and the sort key of every activity
 feed. A description row carries `meta.deltaChars` and no text. A status row
@@ -708,7 +717,8 @@ returns one canonical spelling.
 | usage.accounts | GET /api/usage/accounts | every configured account and each default login with its subscription quota; cached for five minutes |
 | agentRuns.output | GET /api/agent-runs/{id}/output | the terminal text as `{text}` |
 | sessions.list, get | GET /api/sessions, /api/sessions/{id} | newest first; get carries the observed run |
-| sessions.create | POST /api/sessions | 201 and `Location`; a prompt, an optional name, an optional harness and account |
+| sessions.create | POST /api/sessions | 201 and `Location`; a prompt or files, optional project, name, harness, account, and request ID |
+| sessions.send | POST /api/sessions/send | message and files for the expected agent attempt; stable message ID |
 | sessions.start | POST /api/sessions/{id}/start | resumes the saved conversation, or starts again from the prompt |
 | sessions.delete | DELETE /api/sessions/{id} | stops the agent and removes the directory; the run stays as history |
 | search.query | GET /api/search | tickets and projects |

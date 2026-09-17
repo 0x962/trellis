@@ -158,9 +158,22 @@ The audit also found a manager row that retained `running` after refresh reporte
 
 No active duplicate manager appeared in the scratch test. A second manager start failed with `DUPLICATE`. Multiple workers on one ticket remain intentional supported behavior. The new design must prevent repeated assignments without prohibiting deliberate parallel work.[^19]
 
+## 9. Session launch inspection, September 17, 2026
+
+The session inspection uses the same pinned source snapshot. Superset separates the workspace, provider conversation, and terminal process attempt.
+Its standalone session creates an empty Git repository. Its project workspace path creates a linked worktree from the selected base.
+Both paths pass agent launches through `dispatchSugarAgents`. The shared input accepts agent type, model, effort, prompt, and attachment IDs.[^21]
+The agent router validates the model and effort, resolves attachment paths, and uses the common native launch function.[^22]
+The chat runtime also keeps a command journal and session registry. A command ID can identify a repeated request.[^23]
+
+Trellis project sessions use `reserve`, `startNative`, and `nativeWorkspace`, which also serve ticket agents.
+The saved session settings include the selected harness, model, and effort. Each project session has a separate Git worktree.
+Create requests bind their IDs to the prompt, launch settings, and file content hashes. Resume keeps the workspace and confirmed provider conversation.
+The session composer sends files through the shared delivery service. The project session list reads agent runs, so ticket agents appear without duplicate session records.
+
 ## Sources
 
-All source links below pin the inspected snapshot. Source access and installed observations occurred on September 14, 2026. Official documentation describes platform behavior at access time.
+All source links below pin the inspected snapshot. Sections 1 through 8 use source access and installed observations from September 14, 2026. Section 9 uses source access from September 17, 2026. Official documentation describes platform behavior at access time.
 
 [^1]: Superset, [desktop package](https://github.com/superset-sh/superset/blob/1019540c0be5069eb5ff3ebb22e5707a42e0999d/apps/desktop/package.json). Installed version: `CFBundleShortVersionString` and `CFBundleVersion` in `/Users/navidkhan/superset-official-backup-20260902/Superset.app/Contents/Info.plist`, both `1.25.1`.
 [^2]: Superset, [board state derivation](https://github.com/superset-sh/superset/blob/1019540c0be5069eb5ff3ebb22e5707a42e0999d/apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/deriveBoardColumn/deriveBoardColumn.ts#L10). Installed UI observations: `#/new-workspace` and `#/v2-workspaces`, including the visible column labels and prompt controls.
@@ -182,3 +195,7 @@ All source links below pin the inspected snapshot. Source access and installed o
 [^18]: Superset, [root license](https://github.com/superset-sh/superset/blob/1019540c0be5069eb5ff3ebb22e5707a42e0999d/LICENSE.md).
 [^19]: Trellis readiness audit, local evidence directory `/tmp/trellis-readiness-20260914/`: `readiness-report.md`, `ticket-created.json`, `after-idle.json`, `host-events.jsonl`, `result.json`, and `agents-final.json`. RDT-1 is a scratch ticket, not a production reliability benchmark.
 [^20]: Trellis, [manager host](../../apps/server/src/agents/host.ts#L81), [dispatcher](../../apps/server/src/agents/dispatcher.ts#L76), and [refresh state](../../apps/server/src/services/agentRuns/adeRefresh.ts#L27), at the snapshot in source 14.
+
+[^21]: Superset, [standalone session creation](https://github.com/superset-sh/superset/blob/1019540c0be5069eb5ff3ebb22e5707a42e0999d/packages/host-service/src/trpc/router/workspace-creation/procedures/create-session.ts), [shared agent dispatch](https://github.com/superset-sh/superset/blob/1019540c0be5069eb5ff3ebb22e5707a42e0999d/packages/host-service/src/trpc/router/workspace-creation/shared/dispatch-agents.ts), and [project workspaces](https://github.com/superset-sh/superset/blob/1019540c0be5069eb5ff3ebb22e5707a42e0999d/packages/host-service/src/trpc/router/workspaces/workspaces.ts).
+[^22]: Superset, [agent launch router](https://github.com/superset-sh/superset/blob/1019540c0be5069eb5ff3ebb22e5707a42e0999d/packages/host-service/src/trpc/router/agents/agents.ts).
+[^23]: Superset, [chat commands](https://github.com/superset-sh/superset/blob/1019540c0be5069eb5ff3ebb22e5707a42e0999d/packages/chat-runtime/src/commands/commands/commands.ts), [session registry](https://github.com/superset-sh/superset/blob/1019540c0be5069eb5ff3ebb22e5707a42e0999d/packages/chat-runtime/src/sessions/registry/registry.ts), and [chat database schema](https://github.com/superset-sh/superset/blob/1019540c0be5069eb5ff3ebb22e5707a42e0999d/packages/chat-runtime/src/db/schema/schema.ts).

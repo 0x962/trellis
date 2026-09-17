@@ -1,4 +1,5 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import { join } from "node:path";
 import { DEFAULT_PROJECT_MANAGER_CONFIG, HarnessSchema, type Session, type SessionCreateInput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
@@ -8,25 +9,50 @@ import { upsert } from "../actors.ts";
 import { startNative } from "../agentRuns/nativeStart.ts";
 import { columns, type StoredRun } from "../agentRuns/queries.ts";
 import { reserveAttempt } from "../assignments/attempts.ts";
+import { recordRequest, replayRequest } from "../assignments/requests.ts";
 import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import type { IoCtx } from "../support.ts";
+import { attachmentPrompt, prepareFiles } from "./attachments.ts";
+import { createProjectSession } from "./createProject.ts";
 import { createSessionRepository, sessionDirectoryNames } from "./directory.ts";
+import { sessionOperation } from "./operation.ts";
 import { sessionColumns, sessionNames } from "./queries.ts";
 import { friendlySessionName, sessionSlug, uniqueSessionName } from "./sessionName.ts";
 
-// Creates the directory, the run, and the session row, then launches the
-// agent with the prompt as its first message. The run has the kind
-// `session`, no project, and no ticket. Its name and its
-// instruction are the session name and the prompt, so the terminal, the
-// usage report, and the run history show them.
-export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput) => {
+export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput, start: typeof startNative = startNative) => {
 	const typed = input.name === undefined ? null : sessionSlug(input.name);
 	if (typed === "") throw invalidInput("name", "Use at least one letter or digit in the name.");
-	const taken = new Set([...(await sessionDirectoryNames(ctx.home)), ...(await ctx.newTx(sessionNames))]);
-	const name = uniqueSessionName(typed ?? friendlySessionName(), taken);
+	const files = await prepareFiles(ctx, input.files);
+	const fingerprint = createHash("sha256")
+		.update(
+			JSON.stringify({
+				name: input.name,
+				prompt: input.prompt,
+				harness: input.harness,
+				accountId: input.accountId,
+				files: files.map(({ name, sha }) => ({ name, sha })),
+			}),
+		)
+		.digest("hex");
+	if (input.project) return createProjectSession(ctx, input, typed ?? friendlySessionName(), fingerprint, files, start);
+	const request = {
+		requestId: input.requestId,
+		target: { projectId: "", ticketId: null, newSession: true, sessionFingerprint: fingerprint },
+	};
+	const diskNames = await sessionDirectoryNames(ctx.home);
 	const harness = input.harness ?? HarnessSchema.parse({ preset: "claude" });
-	const directory = await createSessionRepository(ctx.home, name);
 	const reservation = await ctx.newTx(async (tx) => {
+		const replay = await replayRequest(ctx.core, tx, request);
+		if (replay) {
+			const [session] = await rows<Session>(tx, sql`SELECT ${sessionColumns} FROM sessions WHERE run_id=${replay.id}`);
+			if (!session) throw invalidInput("requestId", "This request created a deleted session. Use a new request ID.");
+			return { replay: true as const, session };
+		}
+		const name = uniqueSessionName(
+			typed ?? friendlySessionName(),
+			new Set([...diskNames, ...(await sessionNames(tx))]),
+		);
+		const directory = join(ctx.home, "sessions", name);
 		await upsert(ctx.core, tx, ctx.actor);
 		const selected = await selectAccount(tx, {
 			accountId: input.accountId ?? null,
@@ -34,10 +60,12 @@ export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput) => {
 			useDefault: true,
 		});
 		const runId = ulid();
+		const instruction = await attachmentPrompt(ctx.home, runId, input.prompt, files);
+		await createSessionRepository(ctx.home, name);
 		const [run] = await rows<StoredRun>(
 			tx,
 			sql`INSERT INTO agent_runs (id, name, account_id, runtime, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, workspace_id, session_id, created_at, updated_at)
-			VALUES (${runId}, ${name}, ${selected.accountId}, 'native', 'session', ${input.prompt}, NULL, '', NULL, NULL, ${directory}, ${selected.config.harness.preset === "custom" ? randomUUID() : null}, ${ctx.now()}, ${ctx.now()})
+			VALUES (${runId}, ${name}, ${selected.accountId}, 'native', 'session', ${instruction}, NULL, '', NULL, NULL, ${directory}, ${selected.config.harness.preset === "custom" ? randomUUID() : null}, ${ctx.now()}, ${ctx.now()})
 			RETURNING ${columns}`,
 		);
 		const attempt = await reserveAttempt(ctx.core, tx, { runId });
@@ -48,16 +76,26 @@ export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput) => {
 			VALUES (${ulid()}, ${name}, ${directory}, ${JSON.stringify(selected.config.harness)}::jsonb, ${runId}, ${ctx.now()}, ${ctx.now()})
 			RETURNING ${sessionColumns}`,
 		);
-		return { session: session!, run: { ...run!, terminalId: attempt.id }, config: selected.config, attempt };
+		await recordRequest(ctx.core, tx, { ...request, runId });
+		return {
+			replay: false as const,
+			session: session!,
+			run: { ...run!, terminalId: attempt.id },
+			config: selected.config,
+			attempt,
+		};
 	});
-	ctx.emit({ type: "sessions.changed", id: reservation.session.id });
-	ctx.emit({ type: "agent-runs.changed", id: reservation.run.id });
-	await startNative(ctx, {
-		run: reservation.run,
-		config: reservation.config,
-		resume: false,
-		context: "",
-		attempt: reservation.attempt,
+	if (reservation.replay) return { id: reservation.session.id };
+	return sessionOperation(ctx.home, reservation.run.id, async () => {
+		ctx.emit({ type: "sessions.changed", id: reservation.session.id });
+		ctx.emit({ type: "agent-runs.changed", id: reservation.run.id });
+		await start(ctx, {
+			run: reservation.run,
+			config: reservation.config,
+			resume: false,
+			context: "",
+			attempt: reservation.attempt,
+		});
+		return { id: reservation.session.id };
 	});
-	return { id: reservation.session.id };
 };

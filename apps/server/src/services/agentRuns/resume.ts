@@ -32,6 +32,7 @@ export async function prepareResume(
 	switchRunning = false,
 ) {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
+	if (run.kind === "session") throw invalidInput("id", "Use sessions.start to resume this session.");
 	await ctx.newTx(async (tx) => {
 		await assertResume(ctx.core, tx, run);
 		await assertResumeTicket(tx, run);

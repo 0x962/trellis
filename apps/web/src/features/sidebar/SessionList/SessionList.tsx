@@ -19,14 +19,16 @@ export function SessionList() {
 	return (
 		<nav aria-label="Sessions" data-session-list="">
 			<ul className="flex flex-col gap-0.5">
-				{data.map((session) => (
-					<SessionRow
-						key={session.id}
-						session={session}
-						working={runIds.includes(session.runId)}
-						active={pathname === `/sessions/${session.id}`}
-					/>
-				))}
+				{data
+					.filter((session) => session.projectId === null)
+					.map((session) => (
+						<SessionRow
+							key={session.id}
+							session={session}
+							working={runIds.includes(session.runId)}
+							active={pathname === `/sessions/${session.id}`}
+						/>
+					))}
 			</ul>
 		</nav>
 	);

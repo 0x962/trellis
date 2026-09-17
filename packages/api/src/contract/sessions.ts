@@ -5,10 +5,16 @@ import {
 	SessionDetailSchema,
 	SessionIdInputSchema,
 	SessionSchema,
+	SessionSendInputSchema,
 } from "../schemas/session.ts";
 import { base } from "./base.ts";
 
 export const sessions = {
+	send: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE", "PAYLOAD_TOO_LARGE"]))
+		.route({ method: "POST", path: "/sessions/send", summary: "Send a message and files to an agent" })
+		.input(SessionSendInputSchema)
+		.output(z.object({ id: z.string() })),
 	list: base
 		.route({ method: "GET", path: "/sessions", summary: "List sessions, newest first" })
 		.input(z.strictObject({}))
@@ -18,12 +24,12 @@ export const sessions = {
 		.input(SessionIdInputSchema)
 		.output(SessionDetailSchema),
 	create: base
-		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.errors(pickErrors(["RUNNER_UNAVAILABLE", "PAYLOAD_TOO_LARGE"]))
 		.route({
 			method: "POST",
 			path: "/sessions",
 			successStatus: 201,
-			summary: "Create a session: a scratch git repository with an agent that starts from the prompt",
+			summary: "Create an agent session in a project worktree or a scratch repository",
 		})
 		.input(SessionCreateInputSchema)
 		.output(SessionDetailSchema),

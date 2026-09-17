@@ -38,6 +38,10 @@ export const projectSlashPath = (ref: string) => ref.split(".").join("/");
 // project route or holds an invalid segment. The sidebar marks the active
 // row with it, so a bad URL never crashes the sidebar.
 export const projectRefOfPathname = (pathname: string): string | null => {
+	if (pathname.startsWith("/sessions/project/")) {
+		const ref = ProjectRefStringSchema.safeParse(pathname.slice("/sessions/project/".length));
+		return ref.success ? ref.data : null;
+	}
 	if (!pathname.startsWith("/p/")) return null;
 	const segments = pathname
 		.slice(3)

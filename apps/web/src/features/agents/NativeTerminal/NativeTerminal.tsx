@@ -11,10 +11,12 @@ const TerminalSurface = lazy(async () => ({ default: (await import("@trellis/ui/
 export function NativeTerminal({
 	run,
 	layout = "panel",
+	readOnly = false,
 	onLeave,
 }: {
 	run: AgentRun;
 	layout?: TerminalSurfaceProps["layout"];
+	readOnly?: boolean;
 	onLeave?: () => void;
 }) {
 	const transport = useRef<ReturnType<typeof createTerminalSocket> | null>(null);
@@ -89,7 +91,7 @@ export function NativeTerminal({
 				<TerminalSurface
 					layout={layout}
 					label={`Terminal input for ${run.name}`}
-					connected={connection === "open" && session?.controllable === true}
+					connected={!readOnly && connection === "open" && session?.controllable === true}
 					stopped={run.processStatus === "exited" || session?.status === "exited"}
 					unavailableReason={terminalUnavailable(session)}
 					follow={follow}

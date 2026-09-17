@@ -18,6 +18,7 @@ export function ProjectPages({
 	const current = projectRefOfPathname(pathname) === project.path;
 	const manager = pathname.endsWith("/settings/manager");
 	const settings = pathname.endsWith("/settings") || pathname.endsWith("/notes");
+	const sessions = pathname.startsWith("/sessions/project/");
 	const chat = pathname.endsWith("/chat");
 	const { unread } = useChatUnread(project.id);
 	return (
@@ -28,17 +29,22 @@ export function ProjectPages({
 						{
 							label: "Tickets",
 							suffix: "",
-							active: current && !settings && !manager && !chat,
+							active: current && !settings && !manager && !chat && !sessions,
 							dot: false,
 						},
+						{ label: "Sessions", suffix: "/sessions", active: current && sessions, dot: false },
 						{ label: "Chat", suffix: "/chat", active: current && chat, dot: unread.size > 0 },
 						{ label: "Settings", suffix: "/settings", active: current && settings, dot: false },
 					].map(({ label, suffix, active, dot }) => (
 						<li key={label}>
 							<Link
 								data-project-page=""
-								to="/p/$"
-								params={{ _splat: `${projectSlashPath(project.path)}${suffix}` }}
+								to={suffix === "/sessions" ? "/sessions/project/$project" : "/p/$"}
+								params={
+									suffix === "/sessions"
+										? { project: project.path }
+										: { _splat: `${projectSlashPath(project.path)}${suffix}` }
+								}
 								activeOptions={{ exact: true, includeSearch: false }}
 								aria-current={active ? "page" : undefined}
 								className={cx(

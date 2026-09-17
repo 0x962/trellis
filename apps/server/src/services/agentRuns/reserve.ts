@@ -37,19 +37,20 @@ export const reserve = async (
 		copilot?: boolean;
 		delegated?: boolean;
 		flow?: { name: string; instruction: string };
+		session?: { name: string; instruction: string; fingerprint: string };
 		config?: Awaited<ReturnType<typeof projectLaunchConfig>>;
 	},
 ) => {
 	const actor = requireActor(ctx);
-	if (input.project && actor.kind === "agent" && !options?.delegated) {
+	if (input.project && actor.kind === "agent" && !options?.delegated && !options?.session) {
 		const manager = await rows(tx, sql`SELECT id FROM agent_runs WHERE id=${actor.name} AND kind='manager'`);
 		if (manager.length) throw invalidInput("project", "Use submanagers.start to delegate a project subtree.");
 	}
 	const ticket = input.ticket === undefined ? null : await resolveTicket(ctx, tx, input.ticket);
 	const project = await resolveMutableProject(ctx, tx, ticket?.projectId ?? input.project!);
-	const kind = ticket === null ? "manager" : options?.flow ? "flow" : "agent";
-	const name = options?.flow?.name ?? (kind === "manager" ? "Manager" : "Agent");
-	if (ticket === null && !options?.delegated && !options?.copilot) {
+	const kind = options?.session ? "session" : ticket === null ? "manager" : options?.flow ? "flow" : "agent";
+	const name = options?.session?.name ?? options?.flow?.name ?? (kind === "manager" ? "Manager" : "Agent");
+	if (kind === "manager" && !options?.delegated && !options?.copilot) {
 		const delegated = await rows(
 			tx,
 			sql`SELECT run_id FROM manager_delegations WHERE project_id=${project.id} AND retired_at IS NULL`,
@@ -65,6 +66,7 @@ export const reserve = async (
 			ticketId: ticket?.id ?? null,
 			newSession: input.newSession === true,
 			accountId: input.accountId ?? null,
+			sessionFingerprint: options?.session?.fingerprint,
 		},
 	};
 	const replay =
@@ -135,7 +137,7 @@ export const reserve = async (
 			? await rows<StoredRun>(
 					tx,
 					sql`INSERT INTO agent_runs (id, name, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, runtime, closed_at, session_id, created_at, updated_at)
-		VALUES (${ulid()}, ${name}, ${kind}, ${options?.flow?.instruction ?? (kind === "manager" ? config.instruction : "")}, ${project.id}, ${projectPath}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'native', NULL, ${sessionId}, ${ctx.now}, ${ctx.now})
+		VALUES (${ulid()}, ${name}, ${kind}, ${options?.session?.instruction ?? options?.flow?.instruction ?? (kind === "manager" ? config.instruction : "")}, ${project.id}, ${projectPath}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'native', NULL, ${sessionId}, ${ctx.now}, ${ctx.now})
 		ON CONFLICT DO NOTHING RETURNING ${columns}`,
 				)
 			: // The current project instruction applies when a manager starts again.

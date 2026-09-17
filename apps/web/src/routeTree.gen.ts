@@ -25,6 +25,7 @@ import { Route as PSplatRouteRouteImport } from './routes/p/$/route'
 import { Route as SessionsIdRouteImport } from './routes/sessions.$id'
 import { Route as TIdentifierRouteRouteImport } from './routes/t/$identifier/route'
 import { Route as AiFlowsSlugRouteImport } from './routes/ai.flows_.$slug'
+import { Route as SessionsProjectProjectRouteImport } from './routes/sessions.project.$project'
 import { Route as ReviewsOwnerRepoNumberRouteImport } from './routes/reviews_.$owner.$repo.$number'
 
 const IndexRoute = IndexRouteImport.update({
@@ -107,6 +108,11 @@ const AiFlowsSlugRoute = AiFlowsSlugRouteImport.update({
   path: '/ai/flows/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SessionsProjectProjectRoute = SessionsProjectProjectRouteImport.update({
+  id: '/sessions/project/$project',
+  path: '/sessions/project/$project',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReviewsOwnerRepoNumberRoute = ReviewsOwnerRepoNumberRouteImport.update({
   id: '/reviews_/$owner/$repo/$number',
   path: '/reviews/$owner/$repo/$number',
@@ -130,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/all/table': typeof AllTableRoute
   '/sessions/$id': typeof SessionsIdRoute
   '/ai/flows/$slug': typeof AiFlowsSlugRoute
+  '/sessions/project/$project': typeof SessionsProjectProjectRoute
   '/reviews/$owner/$repo/$number': typeof ReviewsOwnerRepoNumberRoute
 }
 export interface FileRoutesByTo {
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/all/table': typeof AllTableRoute
   '/sessions/$id': typeof SessionsIdRoute
   '/ai/flows/$slug': typeof AiFlowsSlugRoute
+  '/sessions/project/$project': typeof SessionsProjectProjectRoute
   '/reviews/$owner/$repo/$number': typeof ReviewsOwnerRepoNumberRoute
 }
 export interface FileRoutesById {
@@ -169,6 +177,7 @@ export interface FileRoutesById {
   '/all_/table': typeof AllTableRoute
   '/sessions/$id': typeof SessionsIdRoute
   '/ai/flows_/$slug': typeof AiFlowsSlugRoute
+  '/sessions/project/$project': typeof SessionsProjectProjectRoute
   '/reviews_/$owner/$repo/$number': typeof ReviewsOwnerRepoNumberRoute
 }
 export interface FileRouteTypes {
@@ -190,6 +199,7 @@ export interface FileRouteTypes {
     | '/all/table'
     | '/sessions/$id'
     | '/ai/flows/$slug'
+    | '/sessions/project/$project'
     | '/reviews/$owner/$repo/$number'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -209,6 +219,7 @@ export interface FileRouteTypes {
     | '/all/table'
     | '/sessions/$id'
     | '/ai/flows/$slug'
+    | '/sessions/project/$project'
     | '/reviews/$owner/$repo/$number'
   id:
     | '__root__'
@@ -228,6 +239,7 @@ export interface FileRouteTypes {
     | '/all_/table'
     | '/sessions/$id'
     | '/ai/flows_/$slug'
+    | '/sessions/project/$project'
     | '/reviews_/$owner/$repo/$number'
   fileRoutesById: FileRoutesById
 }
@@ -248,6 +260,7 @@ export interface RootRouteChildren {
   AllTableRoute: typeof AllTableRoute
   SessionsIdRoute: typeof SessionsIdRoute
   AiFlowsSlugRoute: typeof AiFlowsSlugRoute
+  SessionsProjectProjectRoute: typeof SessionsProjectProjectRoute
   ReviewsOwnerRepoNumberRoute: typeof ReviewsOwnerRepoNumberRoute
 }
 
@@ -365,6 +378,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AiFlowsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sessions/project/$project': {
+      id: '/sessions/project/$project'
+      path: '/sessions/project/$project'
+      fullPath: '/sessions/project/$project'
+      preLoaderRoute: typeof SessionsProjectProjectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reviews_/$owner/$repo/$number': {
       id: '/reviews_/$owner/$repo/$number'
       path: '/reviews/$owner/$repo/$number'
@@ -392,6 +412,7 @@ const rootRouteChildren: RootRouteChildren = {
   AllTableRoute: AllTableRoute,
   SessionsIdRoute: SessionsIdRoute,
   AiFlowsSlugRoute: AiFlowsSlugRoute,
+  SessionsProjectProjectRoute: SessionsProjectProjectRoute,
   ReviewsOwnerRepoNumberRoute: ReviewsOwnerRepoNumberRoute,
 }
 export const routeTree = rootRouteImport

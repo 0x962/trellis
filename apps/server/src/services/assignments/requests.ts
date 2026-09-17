@@ -12,6 +12,7 @@ type Target = {
 	accountId?: string | null;
 	resumeRunId?: string;
 	previousAttemptId?: string;
+	sessionFingerprint?: string;
 };
 type Request = { requestId: string | undefined; target: Target };
 
@@ -29,7 +30,8 @@ export const replayRequest = async (ctx: ServiceCtx, tx: Tx, input: Request) => 
 		request.target.newSession !== input.target.newSession ||
 		(request.target.accountId ?? null) !== (input.target.accountId ?? null) ||
 		request.target.resumeRunId !== input.target.resumeRunId ||
-		request.target.previousAttemptId !== input.target.previousAttemptId
+		request.target.previousAttemptId !== input.target.previousAttemptId ||
+		request.target.sessionFingerprint !== input.target.sessionFingerprint
 	)
 		throw invalidInput("requestId", "This request ID already belongs to a different assignment.");
 	return getRun(tx, request.run_id);
