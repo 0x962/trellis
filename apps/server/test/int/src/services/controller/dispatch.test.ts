@@ -15,6 +15,7 @@ import { assertStatusInvariant } from "../../../../invariants.ts";
 
 let h: Harness;
 let home: string;
+let ticketId: string;
 let server: Server;
 let session = controllerSession();
 let workers: ReturnType<typeof controllerSession>[];
@@ -42,6 +43,14 @@ beforeEach(async () => {
 			const project = await seedRoot(tx, "DSP", { manager_config: { personaId: "persona" } });
 			await tx.execute(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,terminal_id,session_id,created_at,updated_at)
 			VALUES ('manager','Hana','Manager','manager','Manage',${project},'DSP','attempt','conversation',${NOW},${NOW})`);
+			const statusId = await seedStatus(tx, {
+				projectId: project,
+				name: "Todo",
+				category: "todo",
+				position: 0,
+				isDefault: true,
+			});
+			ticketId = await seedTicket(tx, { projectId: project, rootId: project, statusId });
 			await collect(ctx, tx, { sessions: [session] });
 		},
 		{ now: secondsAfter(60) },
@@ -147,11 +156,7 @@ test("a heartbeat reports the current worker turn after the heartbeat enters the
 
 test("a timed wait reaches the native manager with its wake condition and assignment identity", async () => {
 	const waitFor = { type: "time" as const, at: secondsAfter(60).toISOString() };
-	const ticketId = await h.run(async (ctx, tx) => {
-		const manager = await tx.execute(sql`SELECT project_id FROM agent_runs WHERE id='manager'`);
-		const projectId = manager.rows[0]!.project_id as string;
-		const statusId = await seedStatus(tx, { projectId, name: "Todo", category: "todo", position: 0, isDefault: true });
-		const ticketId = await seedTicket(tx, { projectId, rootId: projectId, statusId });
+	await h.run(async (ctx, tx) => {
 		await tx.execute(sql`UPDATE manager_dispatches SET state='sent',events=${JSON.stringify([{ ticketId }])}::jsonb`);
 		const result = await tx.execute(sql`SELECT id FROM manager_dispatches`);
 		await handle(ctx, tx, {
@@ -159,7 +164,6 @@ test("a timed wait reaches the native manager with its wake condition and assign
 			generation: 0,
 			outcomes: [{ ticketId, status: "blocked", reason: "Resume after the reset.", waitFor }],
 		});
-		return ticketId;
 	});
 	await h.run((ctx, tx) => collect(ctx, tx, { sessions: [session] }), { now: secondsAfter(61) });
 	await send();
