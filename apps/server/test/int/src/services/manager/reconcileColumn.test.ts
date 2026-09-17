@@ -203,14 +203,36 @@ test("a ticket can leave and return to the same automated column", async () => {
 	await reconcileColumn(ctx(), await state(), [sessionFor(launched, { status: "exited" })], deps());
 	expect(starts).toHaveLength(2);
 });
-test.each(["todo", "done"])("a configured %s column starts its worker", async (category) => {
+test.each(["todo", "started"])("a configured %s column starts its worker", async (category) => {
 	await h.rows(
 		sql`UPDATE statuses SET agent_config=(SELECT agent_config FROM statuses WHERE id=${status}) WHERE project_id=${project} AND category=${category}`,
 	);
 	await h.rows(
-		sql`UPDATE tickets SET status_id=(SELECT id FROM statuses WHERE project_id=${project} AND category=${category}),completed_at=${category === "done" ? NOW : null} WHERE id=${ticket}`,
+		sql`UPDATE tickets SET status_id=(SELECT id FROM statuses WHERE project_id=${project} AND category=${category}) WHERE id=${ticket}`,
 	);
 	await reconcileColumn(ctx(), await state(), [], deps());
+	expect(starts).toHaveLength(1);
+});
+test.each(["done", "canceled"])("a configured %s column does not start a worker", async (category) => {
+	await h.rows(
+		sql`UPDATE statuses SET agent_config=(SELECT agent_config FROM statuses WHERE id=${status}) WHERE project_id=${project} AND category=${category}`,
+	);
+	await h.rows(
+		sql`UPDATE tickets SET status_id=(SELECT id FROM statuses WHERE project_id=${project} AND category=${category}),completed_at=${NOW} WHERE id=${ticket}`,
+	);
+	await reconcileColumn(ctx(), await state(), [], deps());
+	expect(starts).toHaveLength(0);
+});
+test.each(["done", "canceled"])("a move to configured %s stops the worker", async (category) => {
+	const launched = await start();
+	await h.rows(
+		sql`UPDATE statuses SET agent_config=(SELECT agent_config FROM statuses WHERE id=${status}) WHERE project_id=${project} AND category=${category}`,
+	);
+	const { move } = await import("../../../../../src/services/tickets/move.ts");
+	await h.run((core, tx) => move(core, tx, { ticket, status: category }));
+	calls = [];
+	await reconcileColumn(ctx(), await state(), [sessionFor(launched)], deps());
+	expect(calls).toEqual(["stop"]);
 	expect(starts).toHaveLength(1);
 });
 test("a stopped worker from before column management keeps its workspace", async () => {

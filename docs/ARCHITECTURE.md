@@ -351,8 +351,8 @@ The first manager persona supplies the copilot when the project has no selected 
 A project without a repository uses a private copilot directory under the Trellis home.
 Healthy copilots keep their process. A restart uses current settings and preserves a compatible conversation.
 
-Each status stores `agentConfig` with its worker persona, harness, model, effort, and account.
-A null configuration leaves the column under human control.
+Each nonterminal status can store `agentConfig` with its worker persona, harness, model, effort, and account.
+A null configuration leaves the column under human control. Done and canceled statuses reject a worker configuration.
 In Progress requires a worker configuration before a ticket can enter it.
 The deterministic manager starts a worker for each ticket in an automated column.
 An active flow owns its ticket agents and prevents an automatic column assignment.
