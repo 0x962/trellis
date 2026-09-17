@@ -10,6 +10,7 @@ import { nativeClient } from "../../../../../src/agents/native/connection.ts";
 import { reserveAttempt } from "../../../../../src/services/assignments/attempts.ts";
 import { check } from "../../../../../src/services/evidence/check.ts";
 import { file } from "../../../../../src/services/evidence/file.ts";
+import { history } from "../../../../../src/services/evidence/history.ts";
 import { list } from "../../../../../src/services/evidence/list.ts";
 import { recover } from "../../../../../src/services/evidence/recover.ts";
 import { register } from "../../../../../src/services/evidence/register.ts";
@@ -178,6 +179,26 @@ test("the display limit cannot hide a failed check from review readiness", async
 	const evidence = await list(ctx, { runId });
 	expect(evidence.checks).toHaveLength(100);
 	expect(evidence.readyForReview).toBe(false);
+});
+
+test("history pages keep every stored check readable without the workspace", async () => {
+	const passed = await check(ctx, command('process.stdout.write("retained output")'));
+	await h.read((tx) =>
+		tx.execute(
+			sql`INSERT INTO evidence_checks (id, run_id, attempt_id, document, created_at, finished_at) SELECT 'history-' || n, run_id, attempt_id, document || jsonb_build_object('id', 'history-' || n), created_at - n * interval '1 second', finished_at FROM evidence_checks CROSS JOIN generate_series(1, 101) n WHERE id=${passed.id}`,
+		),
+	);
+	await rm(workspace, { recursive: true, force: true });
+	const first = await h.run((core, tx) => history(core, tx, { runId, limit: 100 }));
+	expect(first.items).toHaveLength(100);
+	expect(first.nextCursor).not.toBeNull();
+	const second = await h.run((core, tx) =>
+		history(core, tx, { runId, limit: 100, before: first.nextCursor as string }),
+	);
+	expect(second.items).toHaveLength(2);
+	expect(second.nextCursor).toBeNull();
+	expect([...first.items, ...second.items].every((item) => item.kind === "check")).toBe(true);
+	expect(JSON.stringify([...first.items, ...second.items])).toContain("retained output");
 });
 
 test("a check that changes workspace contents cannot provide current passing evidence", async () => {

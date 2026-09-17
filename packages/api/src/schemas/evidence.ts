@@ -2,6 +2,10 @@ import { z } from "zod";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 export const EvidenceRunInputSchema = z.object({ runId: UlidSchema });
+export const EvidenceHistoryInputSchema = EvidenceRunInputSchema.extend({
+	before: z.string().min(1).optional(),
+	limit: z.number().int().min(1).max(100).default(100),
+});
 export const EvidenceFileInputSchema = EvidenceRunInputSchema.extend({ path: z.string().min(1).max(4096) });
 export const EvidenceCheckInputSchema = EvidenceRunInputSchema.extend({
 	requestId: z.uuid().optional(),
@@ -64,6 +68,16 @@ export const EvidenceArtifactSchema = EvidenceRevisionSchema.extend({
 	createdAt: IsoDateTimeSchema,
 	current: z.boolean(),
 });
+export const EvidenceStoredCheckSchema = EvidenceCheckSchema.omit({ current: true });
+export const EvidenceStoredArtifactSchema = EvidenceArtifactSchema.omit({ current: true });
+export const EvidenceHistoryItemSchema = z.discriminatedUnion("kind", [
+	z.object({ kind: z.literal("check"), check: EvidenceStoredCheckSchema }),
+	z.object({ kind: z.literal("artifact"), artifact: EvidenceStoredArtifactSchema }),
+]);
+export const EvidenceHistorySchema = z.object({
+	items: z.array(EvidenceHistoryItemSchema),
+	nextCursor: z.string().nullable(),
+});
 export const EvidenceListSchema = EvidenceRevisionSchema.extend({
 	checks: z.array(EvidenceCheckSchema),
 	artifacts: z.array(EvidenceArtifactSchema),
@@ -72,3 +86,8 @@ export const EvidenceListSchema = EvidenceRevisionSchema.extend({
 export type EvidenceCheckInput = z.infer<typeof EvidenceCheckInputSchema>;
 export type EvidenceCheck = z.infer<typeof EvidenceCheckSchema>;
 export type EvidenceArtifact = z.infer<typeof EvidenceArtifactSchema>;
+export type EvidenceStoredCheck = z.infer<typeof EvidenceStoredCheckSchema>;
+export type EvidenceStoredArtifact = z.infer<typeof EvidenceStoredArtifactSchema>;
+export type EvidenceHistoryInput = z.infer<typeof EvidenceHistoryInputSchema>;
+export type EvidenceHistoryItem = z.infer<typeof EvidenceHistoryItemSchema>;
+export type EvidenceHistory = z.infer<typeof EvidenceHistorySchema>;

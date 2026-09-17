@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
 import { CheckResults, EmptyState, Tabs } from "@trellis/ui";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { AgentRunDetails } from "../../agents/AgentRunDetails";
 import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
@@ -26,6 +26,16 @@ export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity:
 		...orpc.pullRequests.list.queryOptions({ input: { ticket: ticket.id } }),
 		initialData: ticket.prs,
 	});
+	const pullRequestChecks = useMemo(
+		() =>
+			(prs.data ?? []).map((pr) => ({
+				id: pr.id,
+				pullRequestName: `${pr.owner}/${pr.repo} #${pr.number}`,
+				checks: pr.checks,
+				error: pr.fetchError,
+			})),
+		[prs.data],
+	);
 	const run = runs.data?.[0];
 	const assigned = runs.data?.find(hasAssignedProcess);
 	const execution = (
@@ -44,6 +54,13 @@ export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity:
 				<EmptyState title="No assigned agent" description="Choose an agent in the ticket properties to start work." />
 			)}
 		</section>
+	);
+	const checks = prs.isPending ? (
+		<CheckResults status="pending" />
+	) : prs.isError ? (
+		<CheckResults status="error" error={prs.error.message} pullRequests={pullRequestChecks} />
+	) : (
+		<CheckResults status="ready" pullRequests={pullRequestChecks} />
 	);
 	return (
 		<section aria-label="Ticket work area" className="min-w-0">
@@ -66,16 +83,7 @@ export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity:
 					{
 						value: "checks",
 						label: "Checks",
-						content: (
-							<CheckResults
-								groups={(prs.data ?? []).map((pr) => ({
-									id: pr.id,
-									title: `${pr.owner}/${pr.repo} #${pr.number}`,
-									checks: pr.checks,
-									error: pr.fetchError,
-								}))}
-							/>
-						),
+						content: checks,
 					},
 					{ value: "flows", label: "Flows", content: <FlowRuns ticket={ticket.identifier} /> },
 				]}

@@ -67,6 +67,7 @@ describe("contract", () => {
 			"controller.retry POST /manager-dispatches/{id}/retry",
 			"evidence.check POST /agent-runs/{runId}/checks",
 			"evidence.file GET /agent-runs/{runId}/workspace/file",
+			"evidence.history GET /agent-runs/{runId}/evidence/history",
 			"evidence.list GET /agent-runs/{runId}/evidence",
 			"evidence.register POST /agent-runs/{runId}/artifacts",
 			"evidence.workspace GET /agent-runs/{runId}/workspace",
@@ -175,7 +176,7 @@ describe("contract", () => {
 			"usage.accounts GET /usage/accounts",
 			"usage.report GET /usage",
 		]);
-		expect(table).toHaveLength(146);
+		expect(table).toHaveLength(147);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has

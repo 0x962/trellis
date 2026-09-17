@@ -1,17 +1,31 @@
+import type { EvidenceHistoryItem } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
-import { contextOf } from "../context.ts";
+import { compact, contextOf } from "../context.ts";
 import { usageError } from "../errors.ts";
 import { json } from "../output.ts";
 
 const run = { type: "positional", required: true, description: "Native agent run ID" } as const;
 const path = { type: "string", required: true, description: "File path relative to the agent workspace" } as const;
 const list = defineCommand({
-	meta: { description: "List checks, artifacts, and current review readiness" },
+	meta: { description: "List retained checks and artifacts" },
 	args: { run },
 	async run(context) {
 		const ctx = contextOf(context);
-		ctx.out.write(json(await clientOf(ctx).evidence.list({ runId: context.args.run })));
+		const client = clientOf(ctx);
+		const items: EvidenceHistoryItem[] = [];
+		let before: string | undefined;
+		do {
+			const page = await client.evidence.history(compact({ runId: context.args.run, before }));
+			items.push(...page.items);
+			before = page.nextCursor ?? undefined;
+		} while (before !== undefined);
+		ctx.out.write(
+			json({
+				checks: items.flatMap((item) => (item.kind === "check" ? [item.check] : [])),
+				artifacts: items.flatMap((item) => (item.kind === "artifact" ? [item.artifact] : [])),
+			}),
+		);
 	},
 });
 const workspace = defineCommand({

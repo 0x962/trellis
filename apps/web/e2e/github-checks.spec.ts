@@ -24,8 +24,6 @@ test("checks show GitHub sections without a local evidence request", async ({ pa
 			managerConfig: {
 				personaId: null,
 				directory: repo,
-				ade: "native",
-				dispatchPaused: true,
 				harness: { preset: "custom", startCommand: "/bin/cat", resumeCommand: "/bin/cat" },
 			},
 		});
@@ -39,7 +37,9 @@ test("checks show GitHub sections without a local evidence request", async ({ pa
 		await post(`/tickets/${ticket.identifier}/prs`, { url: failingPrUrl });
 		const evidenceRequests: string[] = [];
 		page.on("request", (request) => {
-			if (/\/api\/agent-runs\/[^/]+\/evidence$/.test(request.url())) evidenceRequests.push(request.url());
+			const callsEvidenceList =
+				request.url().includes("/evidence/list") || request.postData()?.includes("/evidence/list");
+			if (callsEvidenceList) evidenceRequests.push(request.url());
 		});
 
 		await signIn(page, `/t/${ticket.identifier}`);
@@ -50,10 +50,7 @@ test("checks show GitHub sections without a local evidence request", async ({ pa
 		await expect(page.getByRole("region", { name: "Local evidence", exact: true })).toHaveCount(0);
 		expect(evidenceRequests).toEqual([]);
 	} finally {
-		if (run?.id) {
-			await post("/native-work/stop", {});
-			await post("/native-work/resume", {});
-		}
+		if (run?.id) await post(`/agent-runs/${run.id}/stop`, {});
 		await rm(repo, { recursive: true, force: true });
 	}
 });

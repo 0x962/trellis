@@ -23,6 +23,7 @@ import * as controllerWork from "./controller/work.ts";
 import { diagnostics } from "./diagnostics.ts";
 import { check as evidenceCheck } from "./evidence/check.ts";
 import { file as evidenceFile } from "./evidence/file.ts";
+import { history as evidenceHistory } from "./evidence/history.ts";
 import { list as evidenceList } from "./evidence/list.ts";
 import { recover as evidenceRecover } from "./evidence/recover.ts";
 import { register as evidenceRegister } from "./evidence/register.ts";
@@ -142,6 +143,7 @@ export const services = {
 	"system.stopNativeWork": prepared("mutation", stopNativeWork, agentTerminal.result),
 	"evidence.workspace": prepared("read", evidenceWorkspace, evidenceResult),
 	"evidence.file": prepared("read", evidenceFile, evidenceResult),
+	"evidence.history": core("read", evidenceHistory),
 	"evidence.list": prepared("read", evidenceList, evidenceResult),
 	"evidence.check": prepared("mutation", evidenceCheck, evidenceResult),
 	"evidence.register": prepared("mutation", evidenceRegister, evidenceResult),

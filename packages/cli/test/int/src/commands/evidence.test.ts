@@ -68,9 +68,52 @@ test("evidence commands preserve workspace-relative paths", async () => {
 		expect(result.code).toBe(0);
 		expect(result.calls[0]!.input).toEqual({ runId: agentRunId, path: "docs/result with spaces.txt" });
 	}
-	for (const operation of ["list", "workspace"]) {
-		const result = await runCli(["evidence", operation, agentRunId], { [`evidence.${operation}`]: {} });
-		expect(result.code).toBe(0);
-		expect(result.calls[0]!.input).toEqual({ runId: agentRunId });
-	}
+	const result = await runCli(["evidence", "workspace", agentRunId], { "evidence.workspace": {} });
+	expect(result.code).toBe(0);
+	expect(result.calls[0]!.input).toEqual({ runId: agentRunId });
+});
+
+test("evidence list reads every history page", async () => {
+	const storedCheck = {
+		id: "check-1",
+		runId: agentRunId,
+		attemptId: "attempt-1",
+		command: "bun",
+		args: ["run", "test"],
+		timeoutMs: 60000,
+		state: "passed",
+		exitCode: 0,
+		output: "4 pass",
+		truncated: false,
+		error: null,
+		head: "abc123",
+		fingerprint: "fingerprint-1",
+		finishedFingerprint: "fingerprint-1",
+		createdAt: "2026-09-16T12:00:00.000Z",
+		finishedAt: "2026-09-16T12:00:01.000Z",
+	};
+	const storedArtifact = {
+		id: "01ARZ3NDEKTSV4RRFFQ69G5FA1",
+		runId: agentRunId,
+		attemptId: "attempt-1",
+		path: "result.txt",
+		sha256: "sha256",
+		bytes: 6,
+		head: "abc123",
+		fingerprint: "fingerprint-1",
+		createdAt: "2026-09-16T11:59:00.000Z",
+	};
+	const result = await runCli(["evidence", "list", agentRunId], {
+		"evidence.history": (input: { before?: string }) =>
+			input.before
+				? { items: [{ kind: "artifact", artifact: storedArtifact }], nextCursor: null }
+				: { items: [{ kind: "check", check: storedCheck }], nextCursor: "page-2" },
+	});
+	expect(result.code).toBe(0);
+	expect(result.calls.map((call) => call.path)).toEqual(["evidence.history", "evidence.history"]);
+	expect(result.calls.map((call) => call.input)).toEqual([
+		{ runId: agentRunId },
+		{ runId: agentRunId, before: "page-2" },
+	]);
+	expect(JSON.parse(result.stdout)).toEqual({ checks: [storedCheck], artifacts: [storedArtifact] });
 });

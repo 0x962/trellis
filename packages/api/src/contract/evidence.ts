@@ -1,9 +1,12 @@
+import { pickErrors } from "../errors.ts";
 import {
 	EvidenceArtifactSchema,
 	EvidenceCheckInputSchema,
 	EvidenceCheckSchema,
 	EvidenceFileInputSchema,
 	EvidenceFileSchema,
+	EvidenceHistoryInputSchema,
+	EvidenceHistorySchema,
 	EvidenceListSchema,
 	EvidenceRunInputSchema,
 	EvidenceWorkspaceSchema,
@@ -27,6 +30,15 @@ export const evidence = {
 		.route({ method: "POST", path: "/agent-runs/{runId}/artifacts", summary: "Register a workspace artifact" })
 		.input(EvidenceFileInputSchema)
 		.output(EvidenceArtifactSchema),
+	history: base
+		.errors(pickErrors(["INVALID_CURSOR"]))
+		.route({
+			method: "GET",
+			path: "/agent-runs/{runId}/evidence/history",
+			summary: "Read retained checks and artifacts without a workspace",
+		})
+		.input(EvidenceHistoryInputSchema)
+		.output(EvidenceHistorySchema),
 	list: base
 		.route({
 			method: "GET",
