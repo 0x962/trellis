@@ -458,7 +458,7 @@ Run now shares the scheduled pass and cannot overlap it. A paused loop permits o
 Each host starts with management enabled. The host retains 200 output entries and 20 errors until it restarts.
 Independent tickets and copilots launch concurrently. A failed launch does not prevent the other jobs.
 An unknown runtime process requires confirmation before replacement.
-Archived projects suppress new starts. Each host process starts with automatic dispatch enabled.
+Archived projects suppress new starts. Trellis dispatches agent work for every active project.
 
 Column workers must report a tool event or assistant message within 60 seconds of their latest activity.
 The first interval starts when the process starts. The next manager beat stops and replaces a worker whose interval expires.
