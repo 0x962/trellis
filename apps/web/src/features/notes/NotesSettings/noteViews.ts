@@ -11,6 +11,7 @@ type NoteView = {
 
 type NoteGroup = {
 	projectPath: string;
+	count: number;
 	notes: NoteView[];
 };
 
@@ -47,10 +48,15 @@ export const buildNotePage = (orderedNotes: Note[], now: number, requestedPage: 
 	const pageCount = Math.ceil(orderedNotes.length / NOTE_PAGE_SIZE);
 	const index = Math.min(requestedPage, Math.max(pageCount - 1, 0));
 	const start = index * NOTE_PAGE_SIZE;
+	const noteCountByProject = new Map<string, number>();
+	for (const note of orderedNotes) {
+		noteCountByProject.set(note.projectPath, (noteCountByProject.get(note.projectPath) ?? 0) + 1);
+	}
 	const visible = orderedNotes.slice(start, start + NOTE_PAGE_SIZE);
 	const groups: NoteGroup[] = groupByProjectFromChildToRoot(visible.map((note) => toNoteView(note, now))).map(
 		([projectPath, members]) => ({
 			projectPath,
+			count: noteCountByProject.get(projectPath)!,
 			notes: members,
 		}),
 	);

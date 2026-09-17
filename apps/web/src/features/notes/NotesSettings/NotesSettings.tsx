@@ -66,7 +66,7 @@ export function NotesSettings({ project }: { project: Project }) {
 					/>
 				) : (
 					<div className="flex flex-col gap-8">
-						{notePage.groups.map(({ projectPath, notes: members }) => {
+						{notePage.groups.map(({ projectPath, count, notes: members }) => {
 							const expanded = !collapsedGroups.has(projectPath);
 							const controls = `notes-${project.id}-${encodeURIComponent(projectPath)}`;
 							return (
@@ -74,7 +74,7 @@ export function NotesSettings({ project }: { project: Project }) {
 									<GroupHeader
 										group={projectPath}
 										label={projectPath}
-										count={members.length}
+										count={count}
 										expanded={expanded}
 										controls={controls}
 										onToggle={() =>
