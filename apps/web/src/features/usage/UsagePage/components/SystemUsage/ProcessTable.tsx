@@ -57,21 +57,18 @@ export function ProcessTable({ processes }: { processes: readonly SystemProcess[
 				<h2 id="processes-title" className="mr-auto text-base font-medium text-fg">
 					Processes <span className="text-sm font-normal text-fg-faint tabular">({visible.length})</span>
 				</h2>
-				<FilterBar
-					filters={
-						<Input
-							label="Search processes"
-							hideLabel
-							value={query}
-							placeholder="Search processes"
-							className="w-56 max-sm:w-44"
-							onChange={(event) => {
-								setQuery(event.target.value);
-								setShown(PAGE_SIZE);
-							}}
-						/>
-					}
-				>
+				<FilterBar>
+					<Input
+						label="Search processes"
+						hideLabel
+						value={query}
+						placeholder="Search processes"
+						className="w-56 max-sm:w-44"
+						onChange={(event) => {
+							setQuery(event.target.value);
+							setShown(PAGE_SIZE);
+						}}
+					/>
 					<DisplayPopover
 						fields={sortFields}
 						field={sort}
