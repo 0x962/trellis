@@ -59,7 +59,7 @@ The [directory report](acceptance/2026-09-14-directory/report.md) records the se
 
 Read [the desktop guide](../../apps/desktop/README.md) for build and package commands.
 Close or quit detaches the window and leaves background work active.
-Use Quit Trellis Completely in the Trellis menu or Settings > Desktop to pause dispatch, stop owned processes, and remove the background service.
+Use Quit Trellis Completely in the Trellis menu to stop the host, its agents, and the background service.
 An unconfirmed process prevents a successful stop.
 
 Use Settings > Desktop > Choose data directory to open an existing home in place.
@@ -75,4 +75,4 @@ VoiceOver, 200% zoom, and a full keyboard accessibility pass remain release chec
 The 24-hour unattended soak and a real PR with CI and Margin feedback remain unverified.
 
 Git and the selected agent executable remain local prerequisites. Model access follows the agent's account requirements.
-The app provides a manual replacement path through the update status in Settings > Desktop.
+Replace the installed package, then use Trellis > Restart to load it.
