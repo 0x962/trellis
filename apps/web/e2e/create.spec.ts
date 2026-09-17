@@ -24,3 +24,20 @@ test("the composer creates a ticket with Cmd+Enter and the row joins the table",
 	expect(created.identifier).toMatch(/^CRT-\d+$/);
 	await expect(rowOf(page, created.identifier)).toContainText(title);
 });
+
+// The composer takes the focus into the title box while the browser still
+// holds the same `c` press. The hotkey handler cancels that press, so the
+// browser writes no character. The test types after the composer opens,
+// because a stray `c` lands in front of the typed text.
+test("the c that opens the composer stays out of the title", async ({ page }) => {
+	await signIn(page, "/p/CRT/table");
+	await expect(page.getByRole("heading", { name: "Create", level: 1 })).toBeVisible();
+	await page.keyboard.press("c");
+	const composer = page.getByRole("dialog", { name: "New ticket" });
+	await expect(composer).toBeVisible();
+	const title = composer.getByRole("textbox", { name: "Title" });
+	await expect(title).toBeFocused();
+	await expect(title).toHaveValue("");
+	await page.keyboard.type("Check the invoice export");
+	await expect(title).toHaveValue("Check the invoice export");
+});
