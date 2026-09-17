@@ -1,6 +1,7 @@
 import { type Activity, fullZonedDateTime } from "@trellis/api";
-import { ActorChip, type StatusCategory, StatusIcon } from "@trellis/ui";
+import { type StatusCategory, StatusIcon } from "@trellis/ui";
 import { compactRelativeTime } from "../../../../../lib/format";
+import { ActorChip } from "../../../../agents/ActorChip";
 import { describeActivity } from "../../utils/describeActivity";
 
 export type ActivityLineProps = {
@@ -57,9 +58,7 @@ export function ActivityLine({ item, reviewer = humanReviewer }: ActivityLinePro
 			data-stream-entry="activity"
 			className="relative flex h-8 items-center gap-2 text-sm text-fg-muted"
 		>
-			{actor.kind !== "system" && (
-				<ActorChip compact className="gap-2.5" name={actor.displayName ?? actor.name} kind={actor.kind} />
-			)}
+			<ActorChip compact className="gap-2.5" actor={actor} />
 			{statusMove ? (
 				<StatusMove item={item} reviewer={reviewer} />
 			) : (
