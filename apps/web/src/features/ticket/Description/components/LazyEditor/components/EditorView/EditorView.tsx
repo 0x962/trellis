@@ -3,7 +3,7 @@ import { Placeholder } from "@tiptap/extensions";
 import { Markdown } from "@tiptap/markdown";
 import { Editor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { useEffect } from "react";
+import { type ClipboardEvent, useEffect } from "react";
 import { SlashMenu, SlashMenuList } from "../SlashMenu";
 
 export const descriptionPlaceholder = "Describe the work. Agents read this verbatim.";
@@ -20,6 +20,7 @@ export type EditorViewProps = {
 	onChange: (markdown: string) => void;
 	onBlur: () => void;
 	onReady: (handle: EditorHandle) => void;
+	onAttachFiles: (files: File[]) => void;
 };
 
 let shared: Editor | null = null;
@@ -68,8 +69,15 @@ const handleOf = (editor: Editor): EditorHandle => ({
 
 // The shared editor mounted on one description. It takes the ticket's
 // markdown, focuses, and reports every change as markdown.
-export function EditorView({ markdown, contentKey, onChange, onBlur, onReady }: EditorViewProps) {
+export function EditorView({ markdown, contentKey, onChange, onBlur, onReady, onAttachFiles }: EditorViewProps) {
 	const editor = getEditor();
+	const onPasteCapture = (event: ClipboardEvent<HTMLDivElement>) => {
+		const files = [...event.clipboardData.files];
+		if (files.length === 0) return;
+		event.preventDefault();
+		event.stopPropagation();
+		onAttachFiles(files);
+	};
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: the content loads once per ticket
 	useEffect(() => {
@@ -90,7 +98,7 @@ export function EditorView({ markdown, contentKey, onChange, onBlur, onReady }: 
 	}, [editor, onChange, onBlur]);
 
 	return (
-		<div className="relative">
+		<div className="relative" onPasteCapture={onPasteCapture}>
 			<EditorContent editor={editor} />
 			<SlashMenuList />
 		</div>
