@@ -43,7 +43,6 @@ export const claim = async (ctx: ControllerCtx, tx: Tx, input: ControllerInput):
 			WHERE d.state = 'pending' AND d.due_at <= ${ctx.now} AND r.terminal_id IS NOT NULL
 			AND ${isManaged(sql`p`)} AND p.archived_at IS NULL
 			AND p.manager_config->>'dispatchPaused' IS DISTINCT FROM 'true'
-			AND NOT EXISTS (SELECT 1 FROM settings WHERE key='nativeWorkPaused' AND value='true'::jsonb)
 			AND r.runtime = 'native' AND r.terminal_id IN (${sql.join(
 				ready.map((id) => sql`${id}`),
 				sql`,`,

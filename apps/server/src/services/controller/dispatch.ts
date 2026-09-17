@@ -2,7 +2,7 @@ import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { ensureNativeRuntime } from "../../agents/native/connection.ts";
 import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { Tx } from "../../db/tx.ts";
-import { readNativeWork } from "../agentRuns/nativeControl.ts";
+import { hostIsShuttingDown } from "../agentRuns/hostShutdown.ts";
 import { dispatchChat } from "../chat/dispatch.ts";
 import { dispatchMentions } from "../commentMentions/dispatch.ts";
 import { manage } from "../manager/manager.ts";
@@ -21,7 +21,7 @@ const defaults: Dependencies = {
 	chat: dispatchChat,
 };
 export const dispatch = async (ctx: IoCtx, _input: Record<string, never> = {}, deps: Dependencies = defaults) => {
-	if ((await ctx.newTx(readNativeWork)).paused) return {};
+	if (hostIsShuttingDown(ctx.home)) return {};
 	const sessions = await deps.readSessions(ctx.home);
 	const results = await Promise.allSettled([
 		deps.manage(ctx, { sessions }),
