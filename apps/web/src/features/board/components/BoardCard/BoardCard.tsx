@@ -96,6 +96,8 @@ export function BoardCard({
 						positionRef={positionRef}
 						surfaceRef={surfaceRef}
 						showStatus={showStatus}
+						lineChanges={showLineStats ? (lineStats.values.get(ticket.id) ?? null) : undefined}
+						lineChangesPending={showLineStats && lineStats.pendingIds.has(ticket.id)}
 					/>,
 					document.body,
 				)}
