@@ -1,10 +1,11 @@
-import { Plus } from "@phosphor-icons/react";
+import { CaretDown, CaretRight, Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import type { Project } from "@trellis/api";
+import type { AgentRun, Project } from "@trellis/api";
 import { Avatar, cx, EmptyState, IconButton, Tooltip } from "@trellis/ui";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { formatCount } from "../../../lib/format";
 import { agentKindOf } from "../../agents/agentKindOf";
 import { agentProfileOf } from "../../agents/agentProfileOf";
 import { isAgentWorking } from "../../agents/isAgentWorking";
@@ -13,6 +14,51 @@ import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar } from "../../shell/Topbar";
 import { SessionConversation } from "../SessionConversation";
 import { sessionComposerActions } from "../sessionComposerStore";
+import { sessionGroups } from "./sessionGroups";
+
+function SessionRunRow({
+	run,
+	selected,
+	archived = false,
+	onOpen,
+}: {
+	run: AgentRun;
+	selected: boolean;
+	archived?: boolean;
+	onOpen: (id: string) => void;
+}) {
+	return (
+		<li>
+			<button
+				type="button"
+				title={`${run.ticketIdentifier ?? run.name} · ${run.state} · ${run.createdAt}`}
+				aria-current={selected ? "page" : undefined}
+				className={cx(
+					"sidebar-row w-full pl-2 text-left text-sm hover:bg-elevated focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
+					archived && "pl-5",
+					selected && "sidebar-selected",
+				)}
+				onClick={() => onOpen(run.id)}
+			>
+				<span aria-hidden="true" className="sidebar-leading">
+					<Avatar
+						kind="agent"
+						name={run.ticketIdentifier ?? run.name}
+						agentKind={agentKindOf(run.kind)}
+						agentProfile={agentProfileOf(run.harness)}
+						state={isAgentWorking(run) ? "working" : "static"}
+						className="size-5"
+					/>
+				</span>
+				{isAgentWorking(run) && <span className="sr-only">Agent working: </span>}
+				<span data-slot="label" className="sidebar-label tabular">
+					{run.ticketIdentifier ?? run.name}
+				</span>
+				<span data-slot="trailing" className="sidebar-trailing" aria-hidden="true" />
+			</button>
+		</li>
+	);
+}
 
 export function ProjectSessionsPage({ project }: { project: Project }) {
 	const { orpc } = useApp();
@@ -29,7 +75,13 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	const items = (runs.data ?? []).filter(
 		(run) => run.kind !== "session" || sessions.data?.some((session) => session.runId === run.id),
 	);
-	const selected = hash ? items.find((run) => run.id === hash) : items[0];
+	const { current, archived } = sessionGroups(items);
+	const selected = hash ? items.find((run) => run.id === hash) : (current[0] ?? archived[0]);
+	const selectedArchived = selected !== undefined && archived.some((run) => run.id === selected.id);
+	const [archivedOpen, setArchivedOpen] = useState(false);
+	useEffect(() => {
+		if (selectedArchived) setArchivedOpen(true);
+	}, [selectedArchived]);
 	const open = (id: string) =>
 		navigate({ to: "/sessions/project/$project", params: { project: project.path }, hash: id });
 	return (
@@ -51,7 +103,7 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 			<div className="page-card flex min-h-0 flex-1 overflow-hidden">
 				<nav
 					aria-label="Project sessions"
-					className="flex w-48 shrink-0 flex-col overflow-y-auto border-r border-border py-2 max-md:w-32"
+					className="flex w-48 shrink-0 flex-col overflow-y-auto border-r border-border px-2 py-2 max-md:w-32"
 				>
 					{(runs.isPending || sessions.isPending) && (
 						<p role="status" className="px-3 text-sm text-fg-muted">
@@ -63,31 +115,40 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 							{runs.error?.message ?? sessions.error?.message}
 						</p>
 					)}
-					<ul className="flex flex-col">
-						{items.map((run) => (
-							<li key={run.id}>
+					<ul className="flex flex-col gap-0.5">
+						{current.map((run) => (
+							<SessionRunRow key={run.id} run={run} selected={selected?.id === run.id} onOpen={(id) => void open(id)} />
+						))}
+						{archived.length > 0 && (
+							<li className={cx(current.length > 0 && "mt-1")}>
 								<button
 									type="button"
-									title={`${run.ticketIdentifier ?? run.name} · ${run.state} · ${run.createdAt}`}
-									aria-current={selected?.id === run.id ? "page" : undefined}
-									className={cx(
-										"sidebar-row w-full text-left text-sm hover:bg-elevated focus-visible:outline-2 focus-visible:outline-accent",
-										selected?.id === run.id && "sidebar-selected",
-									)}
-									onClick={() => void open(run.id)}
+									aria-expanded={archivedOpen}
+									aria-controls="archived-project-sessions"
+									onClick={() => setArchivedOpen(!archivedOpen)}
+									className="sidebar-row w-full pl-2 text-left text-sm text-fg-muted hover:bg-elevated hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
 								>
-									<Avatar
-										kind="agent"
-										name={run.ticketIdentifier ?? run.name}
-										agentKind={agentKindOf(run.kind)}
-										agentProfile={agentProfileOf(run.harness)}
-										state={isAgentWorking(run) ? "working" : "static"}
-										className="size-5 shrink-0"
-									/>
-									<span className="sidebar-label tabular">{run.ticketIdentifier ?? run.name}</span>
+									<span aria-hidden="true" className="sidebar-leading text-fg-faint *:size-3">
+										{archivedOpen ? <CaretDown /> : <CaretRight />}
+									</span>
+									<span className="sidebar-label">Archived</span>
+									<span className="sidebar-trailing text-fg-faint">{formatCount(archived.length)}</span>
 								</button>
+								{archivedOpen && (
+									<ul id="archived-project-sessions" className="flex flex-col gap-0.5">
+										{archived.map((run) => (
+											<SessionRunRow
+												key={run.id}
+												run={run}
+												archived
+												selected={selected?.id === run.id}
+												onOpen={(id) => void open(id)}
+											/>
+										))}
+									</ul>
+								)}
 							</li>
-						))}
+						)}
 					</ul>
 				</nav>
 				{selected ? (

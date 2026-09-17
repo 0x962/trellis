@@ -2,7 +2,6 @@ import type { SessionDetail } from "@trellis/api";
 import { call, os, setLocation } from "./base.ts";
 
 export const sessions = os.sessions.router({
-	send: os.sessions.send.handler(({ context, input }) => call(context, "sessions.send", input)),
 	list: os.sessions.list.handler(({ context, input }) => call(context, "sessions.list", input)),
 	get: os.sessions.get.handler(({ context, input }) => call(context, "sessions.get", input)),
 	create: os.sessions.create.handler(async ({ context, input }) => {

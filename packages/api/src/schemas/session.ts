@@ -53,14 +53,3 @@ export type SessionCreateInput = z.infer<typeof SessionCreateInputSchema>;
 
 export const SessionIdInputSchema = z.strictObject({ id: UlidSchema });
 export type SessionIdInput = z.infer<typeof SessionIdInputSchema>;
-
-export const SessionSendInputSchema = z
-	.strictObject({
-		runId: UlidSchema,
-		expectedTerminalId: z.string().uuid(),
-		messageId: z.string().uuid(),
-		text: z.string().trim().max(20000),
-		files: z.array(z.file()).max(20).optional(),
-	})
-	.refine((input) => input.text.length > 0 || (input.files?.length ?? 0) > 0, "Enter a message or attach a file.");
-export type SessionSendInput = z.infer<typeof SessionSendInputSchema>;

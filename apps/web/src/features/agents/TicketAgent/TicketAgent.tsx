@@ -6,6 +6,7 @@ import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../agentKindOf";
 import { agentProfileOf } from "../agentProfileOf";
 import { isAgentWorking } from "../isAgentWorking";
+import { modelFamily } from "../ModelPicker";
 import { AgentAssignmentDialog } from "./components/AgentAssignmentDialog";
 
 export function TicketAgent({ ticket, disabled = false }: { ticket: string; disabled?: boolean }) {
@@ -17,6 +18,8 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 	const [confirmUnassign, setConfirmUnassign] = useState(false);
 	const runs = query.data ?? [];
 	const assigned = runs.find((run) => run.kind === "agent" && run.assigned) ?? null;
+	const profile = agentProfileOf(assigned?.harness);
+	const label = profile ? modelFamily(profile.model) : (assigned?.name ?? "Agent");
 	const unassign = useMutation({
 		mutationFn: () => client.agentRuns.stop({ id: assigned!.id }),
 		onSuccess: async () => {
@@ -28,7 +31,6 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 	});
 	return (
 		<section aria-label="Agent assignment" className="flex flex-col border-t border-border pt-3 pb-1">
-			<h3 className="mb-1 text-xs font-medium text-fg-faint">Agent</h3>
 			{query.isPending ? (
 				<p role="status" className="text-sm text-fg-faint">
 					Load agents…
@@ -40,33 +42,33 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 						Retry
 					</Button>
 				</p>
+			) : assigned ? (
+				<div className="flex min-w-0 items-center gap-2 py-1">
+					<h3 className="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium text-fg">
+						<Avatar
+							kind="agent"
+							name={assigned.name}
+							agentKind={agentKindOf(assigned.kind)}
+							agentProfile={profile}
+							state={isAgentWorking(assigned) ? "working-mild" : "static"}
+						/>
+						<span className="truncate">{label}</span>
+						{assigned.state === "failed" && <span className="text-xs text-danger">failed</span>}
+					</h3>
+					<Tooltip content="Unassign agent">
+						<IconButton
+							label="Unassign agent"
+							icon={<X />}
+							disabled={disabled || unassign.isPending}
+							onClick={() => setConfirmUnassign(true)}
+						/>
+					</Tooltip>
+				</div>
 			) : (
-				<>
-					{assigned && (
-						<div className="flex min-w-0 items-center gap-2 py-1">
-							<span className="flex min-w-0 flex-1 items-center gap-2">
-								<Avatar
-									kind="agent"
-									name={assigned.name}
-									agentKind={agentKindOf(assigned.kind)}
-									agentProfile={agentProfileOf(assigned.harness)}
-									state={isAgentWorking(assigned) ? "working-mild" : "static"}
-								/>
-								<span className="truncate text-fg">{assigned.name}</span>
-								{assigned.state === "failed" && <span className="text-xs text-danger">failed</span>}
-							</span>
-							<Tooltip content="Unassign agent">
-								<IconButton
-									label="Unassign agent"
-									icon={<X />}
-									disabled={disabled || unassign.isPending}
-									onClick={() => setConfirmUnassign(true)}
-								/>
-							</Tooltip>
-						</div>
-					)}
-					{!assigned && <AgentAssignmentDialog ticket={ticket} disabled={disabled} />}
-				</>
+				<div className="flex items-center justify-between gap-2 py-1">
+					<h3 className="text-xs font-medium text-fg-faint">Agent</h3>
+					<AgentAssignmentDialog ticket={ticket} disabled={disabled} />
+				</div>
 			)}
 			<ConfirmDialog
 				open={confirmUnassign && assigned !== null}

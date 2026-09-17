@@ -1,10 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
-import { cx, EmptyState, Tabs } from "@trellis/ui";
+import { Avatar, cx, EmptyState, Tabs } from "@trellis/ui";
 import { type ReactNode, useEffect } from "react";
 import { useApp } from "../../../lib/appContext";
+import { agentKindOf } from "../../agents/agentKindOf";
+import { agentProfileOf } from "../../agents/agentProfileOf";
 import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
+import { isAgentWorking } from "../../agents/isAgentWorking";
+import { modelFamily } from "../../agents/ModelPicker";
 import { PullRequests } from "../../prs";
 import { SessionConversation } from "../../sessions/SessionConversation";
 import { FlowRuns } from "./components/FlowRuns";
@@ -33,6 +37,21 @@ export function TicketWorkArea({
 		...orpc.agentRuns.list.queryOptions({ input: { ticket: ticket.identifier } }),
 	});
 	const assigned = runs.data?.find(hasAssignedProcess);
+	const agentProfile = agentProfileOf(assigned?.harness);
+	const agentLabel = assigned ? (
+		<span className="inline-flex items-center gap-1.5">
+			<Avatar
+				kind="agent"
+				name={assigned.name}
+				agentKind={agentKindOf(assigned.kind)}
+				agentProfile={agentProfile}
+				state={isAgentWorking(assigned) ? "working-mild" : "static"}
+			/>
+			<span>{agentProfile ? modelFamily(agentProfile.model) : assigned.name}</span>
+		</span>
+	) : (
+		"Agent"
+	);
 	const execution = assigned ? (
 		<SessionConversation key={assigned.id} run={assigned} />
 	) : (
@@ -60,7 +79,7 @@ export function TicketWorkArea({
 					{ value: "activity", label: "Activity", content: activity },
 					{
 						value: "agent",
-						label: "Agent",
+						label: agentLabel,
 						content: execution,
 					},
 					{

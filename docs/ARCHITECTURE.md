@@ -299,14 +299,13 @@ The launch accepts a harness, model, effort, account, prompt, and files. Project
 Files live under `agents/<run id>/attachments/<content hash>/`. The agent receives their absolute paths.
 A create request ID binds to the project, launch settings, prompt, and file bytes. A repeated request returns the same session.
 A session counts against no ticket WIP limit.
-`sessions.send` uses the shared message delivery service with a stable message ID and the expected process attempt.
 `sessions.start` resumes a confirmed conversation with the saved harness settings and workspace.
 When the previous process has no confirmed conversation, it starts from the original prompt in the same workspace.
 Concurrent start and delete requests cannot change the same session. An unconfirmed process blocks a new start or deletion.
 A compatible desktop restart preserves a session agent. After a protocol change, the user can start a stopped session again.
 `sessions.delete` confirms process exit and removes the directory before it deletes the row. The run retains its output as history.
-Project Sessions lists session, ticket, flow, and manager runs. Ticket runs use their ticket identifier as the visible name.
-The ticket Agent tab and session pages share the conversation view, process controls, and file composer.
+Project Sessions lists session, ticket, flow, and manager runs. A ticket row uses its identifier, and its terminal header uses the ticket title.
+The ticket Agent tab and session pages share the terminal and process controls.
 
 ### Manager delegation
 
@@ -648,7 +647,6 @@ returns one canonical spelling.
 | agentRuns.output | GET /api/agent-runs/{id}/output | the terminal text as `{text}` |
 | sessions.list, get | GET /api/sessions, /api/sessions/{id} | newest first; get carries the observed run |
 | sessions.create | POST /api/sessions | 201 and `Location`; a prompt or files, optional project, name, harness, account, and request ID |
-| sessions.send | POST /api/sessions/send | message and files for the expected agent attempt; stable message ID |
 | sessions.start | POST /api/sessions/{id}/start | resumes the saved conversation, or starts again from the prompt |
 | sessions.delete | DELETE /api/sessions/{id} | stops the agent and removes the directory; the run stays as history |
 | search.query | GET /api/search | tickets and projects |

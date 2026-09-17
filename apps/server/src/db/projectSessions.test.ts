@@ -32,7 +32,12 @@ test("project sessions and ticket agents use the same isolated workspace primiti
 	await start(ctx, ticket);
 	expect(ticket.run.ticketIdentifier).toBe("TST-1");
 	expect(await git(repo, "worktree", "list", "--porcelain")).toContain(join(home, "agents", ticket.run.id, "work"));
-	expect(await db.transaction((tx) => getRun(tx, ticket.run.id))).toMatchObject({ projectId, ticketId });
+	expect(await db.transaction((tx) => getRun(tx, ticket.run.id))).toMatchObject({
+		projectId,
+		ticketId,
+		ticketTitle: "Task",
+		ticketStatusCategory: "todo",
+	});
 });
 
 test("concurrent create requests launch once and bind the request to file bytes", async () => {

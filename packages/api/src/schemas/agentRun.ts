@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { HarnessSchema } from "../harness/harness.ts";
 import { ModelIdSchema } from "../models/models.ts";
+import { StatusCategorySchema } from "./enums.ts";
 import { CountSchema, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 export const AgentRunKindSchema = z.enum(["agent", "manager", "flow", "session"]);
@@ -17,6 +18,8 @@ export const AgentRunSchema = z.object({
 	projectPath: z.string(),
 	ticketId: UlidSchema.nullable(),
 	ticketIdentifier: z.string().nullable(),
+	ticketTitle: z.string().nullable(),
+	ticketStatusCategory: StatusCategorySchema.nullable(),
 	assigned: z.boolean(),
 	state: z.enum(["starting", "interrupted", "running", "failed", "stopped", "exited"]),
 	processStatus: z.enum(["running", "exited", "unknown"]).nullable(),

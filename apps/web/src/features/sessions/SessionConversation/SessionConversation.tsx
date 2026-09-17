@@ -10,8 +10,6 @@ import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
 import { isAgentWorking } from "../../agents/isAgentWorking";
 import { NativeTerminal } from "../../agents/NativeTerminal";
 import { DeleteSessionDialog } from "../DeleteSessionDialog";
-import { SessionPrompt } from "../SessionPrompt";
-import { changeSessionMessage, useSessionMessageStore } from "../sessionMessageStore";
 
 export function SessionConversation({
 	run,
@@ -25,16 +23,10 @@ export function SessionConversation({
 	onDeleted?: () => void;
 }) {
 	const { client, orpc, queryClient } = useApp();
-	const draft = useSessionMessageStore((state) => state[run.id]);
-	const files = draft?.files ?? [];
 	const [confirmStop, setConfirmStop] = useState(false);
 	const [confirmDelete, setConfirmDelete] = useState(false);
 	const control = useRef<HTMLButtonElement>(null);
 	const leaveTerminal = useCallback(() => control.current?.focus(), []);
-	const text = draft?.text ?? "";
-	const setText = (text: string) => {
-		changeSessionMessage(run.id, { text });
-	};
 	const active = hasAssignedProcess(run);
 	const refresh = () =>
 		Promise.all([
@@ -58,23 +50,9 @@ export function SessionConversation({
 		onSuccess: () => setConfirmStop(false),
 		onSettled: refresh,
 	});
-	const send = useMutation({
-		mutationFn: () =>
-			client.sessions.send({
-				runId: run.id,
-				expectedTerminalId: run.terminalId!,
-				text,
-				files,
-				messageId: useSessionMessageStore.getState()[run.id]!.messageId,
-			}),
-		onSuccess: () => {
-			changeSessionMessage(run.id, { text: "", files: [] });
-		},
-		onSettled: refresh,
-	});
-	const busy = start.isPending || stop.isPending || send.isPending;
-	const error = start.error ?? stop.error ?? send.error;
-	const name = run.ticketIdentifier ?? run.name;
+	const busy = start.isPending || stop.isPending;
+	const error = start.error ?? stop.error;
+	const name = run.ticketTitle ?? run.name;
 	return (
 		<section aria-label={`${name} conversation`} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 			<div className="flex min-h-11 shrink-0 items-center gap-2 border-b border-border px-3">
@@ -128,21 +106,6 @@ export function SessionConversation({
 				) : (
 					<EmptyState variant="page" title="No session process" description="Start the session to open the agent." />
 				)}
-			</div>
-			<div className="shrink-0 border-t border-border">
-				<SessionPrompt
-					text={text}
-					files={files}
-					onText={setText}
-					onFiles={(files) => changeSessionMessage(run.id, { files })}
-					disabled={readOnly || busy || !active || run.observation?.controllable !== true}
-					onSubmit={() => {
-						if (!busy && active && (text.trim() || files.length)) {
-							if (!draft) changeSessionMessage(run.id);
-							send.mutate();
-						}
-					}}
-				/>
 			</div>
 			<ConfirmDialog
 				open={confirmStop}

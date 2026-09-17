@@ -47,7 +47,6 @@ import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
 import { prepareCreate as createSession } from "./sessions/create.ts";
 import { prepareDelete as deleteSession } from "./sessions/remove.ts";
-import { send as sendSessionMessage } from "./sessions/send.ts";
 import * as sessions from "./sessions/sessions.ts";
 import { prepareStart as startSession } from "./sessions/start.ts";
 import * as settings from "./settings.ts";
@@ -110,7 +109,6 @@ const sessionMutation = (prepare: Prepare) =>
 	);
 
 export const services = {
-	"sessions.send": prepared("mutation", sendSessionMessage, agentTerminal.result),
 	"sessions.list": core("read", sessions.list),
 	"sessions.get": prepared("read", sessions.observe, agentTerminal.result),
 	"sessions.create": sessionMutation(createSession),

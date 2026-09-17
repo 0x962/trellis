@@ -8,6 +8,8 @@ export type StoredRun = Omit<AgentRun, "assigned" | "state" | "processStatus" | 
 };
 export const columns = sql`id, account_id AS "accountId", name, runtime, harness, kind, instruction,
 	project_id AS "projectId", project_path AS "projectPath", ticket_id AS "ticketId", ticket_identifier AS "ticketIdentifier", ${iso(sql`closed_at`)} AS "closedAt",
+	(SELECT title FROM tickets WHERE tickets.id=agent_runs.ticket_id) AS "ticketTitle",
+	(SELECT statuses.category FROM tickets JOIN statuses ON statuses.id=tickets.status_id WHERE tickets.id=agent_runs.ticket_id) AS "ticketStatusCategory",
 	workspace_id AS "workspaceId", terminal_id AS "terminalId", url, error,
 	session_id AS "sessionId", session_lost AS "sessionLost",
 	${iso(sql`created_at`)} AS "createdAt", ${iso(sql`updated_at`)} AS "updatedAt"`;
