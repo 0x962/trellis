@@ -24,7 +24,10 @@ const shownInStream = (item: TimelineItem) => item.kind === "comment" || item.ac
 // A collapsed activity section keeps this many recent rows.
 const collapsedActivityRows = 3;
 
-// Activity reads oldest first, so the collapsed section keeps the tail.
+// Activity reads oldest first, so the collapsed section keeps the tail: the
+// newest rows. The tab that holds this section is named Activity, so no
+// heading here repeats that word. The line down the left joins the avatars,
+// and it stops at the first and the last one.
 function ActivitySection({
 	activities,
 	reviewer,
@@ -33,22 +36,21 @@ function ActivitySection({
 	reviewer: (name: string) => "human" | "agent";
 }) {
 	const [open, setOpen] = useState(false);
-	const shown =
-		open || activities.length <= collapsedActivityRows ? activities : activities.slice(-collapsedActivityRows);
+	const foldable = activities.length > collapsedActivityRows;
+	const shown = foldable && !open ? activities.slice(-collapsedActivityRows) : activities;
 	return (
 		<section aria-label="Activity" className="flex flex-col gap-1">
-			<SectionHeader
-				title="Activity"
-				count={activities.length}
-				actions={
-					activities.length > collapsedActivityRows ? (
-						<Button size="sm" variant="quiet" onClick={() => setOpen(!open)} aria-expanded={open}>
-							{open ? "Show less" : "Show all activity"}
-						</Button>
-					) : undefined
-				}
-			/>
-			<ul aria-label="Activity" className="flex flex-col">
+			{foldable && (
+				<div className="flex h-7 items-center">
+					<Button size="sm" variant="quiet" aria-expanded={open} onClick={() => setOpen(!open)}>
+						{open ? "Show less" : `Show all activity (${activities.length})`}
+					</Button>
+				</div>
+			)}
+			<ul
+				aria-label="Activity"
+				className="relative flex flex-col before:absolute before:top-4 before:bottom-4 before:left-2 before:w-px before:bg-border"
+			>
 				{shown.map((item) => (
 					<ActivityLine key={item.id} item={item} reviewer={reviewer} />
 				))}

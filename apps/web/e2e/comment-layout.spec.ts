@@ -37,6 +37,9 @@ test("activity collapses to the last few rows with an expander", async ({ page }
 	await expect(rows).toHaveCount(103);
 	await page.getByRole("button", { name: "Show less" }).click();
 	await expect(rows).toHaveCount(3);
+	// The tab that holds this section is named Activity, so a heading with
+	// that word repeats the tab name.
+	await expect(page.getByRole("heading", { name: "Activity" })).toHaveCount(0);
 });
 
 test("comments render after the activity section without cards", async ({ page }) => {
