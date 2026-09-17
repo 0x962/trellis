@@ -37,7 +37,6 @@ import * as labelGroups from "./labelGroups.ts";
 import * as loops from "./loops/loops.ts";
 import * as needsYou from "./needsYou/needsYou.ts";
 import * as notes from "./notes/notes.ts";
-import * as personas from "./personas.ts";
 import * as projects from "./projects.ts";
 import * as pullRequests from "./pullRequests.ts";
 import * as reviewImage from "./reviews/image";
@@ -187,11 +186,6 @@ export const services = {
 	"agentRuns.setModel": agentMutation(prepareSetModel),
 	"agentRuns.stop": agentMutation(agentLifecycle.prepareStop),
 	"agentRuns.refresh": agentMutation(agentLifecycle.prepareRefresh),
-	"personas.list": core("read", personas.list),
-	"personas.get": core("read", personas.get),
-	"personas.create": core("mutation", personas.create),
-	"personas.update": core("mutation", personas.update),
-	"personas.delete": core("mutation", personas.remove),
 	"flows.list": core("read", flows.list),
 	"flows.get": core("read", flows.get),
 	"flows.create": core("mutation", flows.create),

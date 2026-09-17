@@ -15,18 +15,18 @@ Create a scratch checkout or a temporary directory only under `$TMPDIR`, with th
 
 ## Prompts
 
-- Every instruction an agent reads lives in the database, in `personas.instruction`. Code never composes, hardcodes, or injects prompt text.
-- Edit live persona instructions directly through the personas API. Refresh `docs/personas.json` with `trellis personas list --json` after a change.
-- Each column worker completes its assigned work, records the result, and moves its ticket to the appropriate next status.
-- Trellis code starts and recovers workers. The copilot acts on human requests.
+- Project settings store the manager instruction. Flow nodes store their instructions directly.
+- A ticket assignment receives its task from the ticket and repository context.
+- Each ticket agent completes its assigned work and records the result.
+- A ticket agent keeps its assignment until a person removes it. The copilot acts on human requests.
 
 ## Desktop install
 
-The Trellis SRE persona owns production releases for TRL. The Deploy Queue column assigns release workers through its persona settings. Release workers coordinate directly so one SRE owns each shared release cycle. Group eligible tickets into one merge, check, build, install, and restart cycle. Read the SRE instructions with `trellis personas show "Trellis SRE"` before a deployment assignment.
+The Trellis SRE manager owns production releases for TRL. Release workers coordinate directly so one SRE owns each shared release cycle. Group eligible tickets into one merge, check, build, install, and restart cycle. Read the saved manager instruction before a deployment assignment.
 
 Production builds require a clean `main` checkout at the current `origin/main` commit. Merge each feature branch into `main` and push it before a production build. Never build a production app from a feature branch or a detached commit. This rule also applies to `--prepare` candidates. Do not bypass the production installer.
 
-Run `bun run desktop:install` from the `main` checkout. The command builds and verifies a fresh package, then copies it to `~/Applications/Trellis.app`. The copy leaves Trellis open. Restart Trellis to activate the package. Activation stops the previous runtime and starts the host. Trellis code recovers column workers and project copilots from their current settings. See [the desktop guide](apps/desktop/README.md#production-install) for candidate builds and verification.
+Run `bun run desktop:install` from the `main` checkout. The command builds and verifies a fresh package, then copies it to `~/Applications/Trellis.app`. The copy leaves Trellis open. Restart Trellis to activate the package. Activation stops the previous runtime and starts the host. Trellis preserves ticket assignments and restarts project copilots from their current settings. See [the desktop guide](apps/desktop/README.md#production-install) for candidate builds and verification.
 
 Preserve provider conversations and workspaces during prompt updates and deployment. Trellis resumes compatible conversations at the next automatic start. The `--new-session` flag resets a conversation and requires an explicit human reset.
 

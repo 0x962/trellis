@@ -18,10 +18,15 @@ const PAGE = 10;
 const formatWhen = (iso: string) =>
 	new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
-const kindLabel: Record<string, string> = { builder: "Builder", reviewer: "Reviewer", manager: "Copilot" };
+const kindLabel: Record<string, string> = {
+	agent: "Agent",
+	manager: "Copilot",
+	flow: "Flow",
+	session: "Session",
+};
 
 // The most expensive sessions of the range. A session that Trellis started
-// names its ticket, persona, and kind. The session id copies for
+// names its ticket, agent, and kind. The session id copies for
 // `claude --resume`, `codex resume`, or `muse resume`.
 export function UsageSessions({ sessions, metric, filtered }: UsageSessionsProps) {
 	const [shown, setShown] = useState(PAGE);
@@ -93,7 +98,7 @@ export function UsageSessions({ sessions, metric, filtered }: UsageSessionsProps
 									<td className="max-w-0 pr-3 text-fg-muted max-md:hidden">
 										<span className="block truncate">
 											{session.run
-												? `${session.run.persona} · ${kindLabel[session.run.kind] ?? session.run.kind}`
+												? `${session.run.name} · ${kindLabel[session.run.kind] ?? session.run.kind}`
 												: harnessLabel[session.harness]}
 										</span>
 									</td>

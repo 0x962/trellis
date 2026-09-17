@@ -8,7 +8,7 @@ export const resumeText =
 	"trellis: your session resumed after a pause. Read the project, its tickets, and its agents again before you act.";
 
 export const launchCommand = (input: {
-	run: Omit<AgentRun, "state" | "processStatus" | "observation">;
+	run: Omit<AgentRun, "assigned" | "state" | "processStatus" | "observation">;
 	url: string;
 	context: string;
 	directory?: string;
@@ -21,7 +21,7 @@ export const launchCommand = (input: {
 	const prefix = input.messageId ? `trellis-message:${input.messageId}\n` : "";
 	const prompt = launchPrompt(input);
 	const agent = expandLaunchTemplate(input.template, {
-		name: run.personaName,
+		name: run.name,
 		id: run.id,
 		workspaceId: run.workspaceId ?? "",
 		terminalId: run.terminalId ?? "",

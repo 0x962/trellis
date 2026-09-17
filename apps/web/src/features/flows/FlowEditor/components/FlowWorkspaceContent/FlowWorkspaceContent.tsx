@@ -1,6 +1,6 @@
 import { Archive, ArrowClockwise, SlidersHorizontal } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
-import type { FlowDoc, Persona } from "@trellis/api";
+import type { FlowDoc } from "@trellis/api";
 import { ConfirmDialog, IconButton, Tooltip } from "@trellis/ui";
 import { useEdgesState, useNodesState, useReactFlow } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -23,7 +23,7 @@ import { FlowCanvas } from "../FlowCanvas";
 import { FlowSettingsSheet } from "../FlowSettingsSheet";
 import { NodeInspector } from "../NodeInspector";
 
-type FlowWorkspaceProps = { doc: FlowDoc; personas: Persona[]; onReload: () => void };
+type FlowWorkspaceProps = { doc: FlowDoc; onReload: () => void };
 
 const saveText = (status: AutosaveStatus) =>
 	({
@@ -37,7 +37,6 @@ const saveText = (status: AutosaveStatus) =>
 
 export function FlowWorkspaceContent({
 	doc,
-	personas,
 	onReload,
 	recovery,
 	onRecover,
@@ -80,7 +79,6 @@ export function FlowWorkspaceContent({
 	const shownEdges = useMemo(() => edgesWithIssues(edges, issues.byRow), [edges, issues]);
 	const editor = useMemo(
 		() => ({
-			personas: new Map(personas.map((persona) => [persona.id, persona])),
 			issues: issues.byRow,
 			unconnected: new Set(
 				nodes
@@ -89,7 +87,7 @@ export function FlowWorkspaceContent({
 			),
 			...boxEnds(graph),
 		}),
-		[personas, issues, graph, nodes],
+		[issues, graph, nodes],
 	);
 	const selected = selectedId === null ? undefined : nodes.find((node) => node.id === selectedId);
 	const closeInspector = useCallback(() => {
@@ -178,7 +176,6 @@ export function FlowWorkspaceContent({
 						key={selected.id}
 						fields={selected.data.fields}
 						issue={autosave.status === "error" || autosave.status === "conflict" ? autosave.message : undefined}
-						personas={personas}
 						validate={(fields) => {
 							const canvas = editCanvas(fields);
 							const result = draftIssues(flow.id, fromCanvas(canvas.nodes, canvas.edges));

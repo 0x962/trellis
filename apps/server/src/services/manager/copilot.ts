@@ -10,7 +10,6 @@ import { startNative } from "../agentRuns/nativeStart.ts";
 import { managerRowOf, reserve } from "../agentRuns/reserve.ts";
 import { loopRuntimes } from "../loops/runtime.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
-import { managerConfigOf } from "../projectRows.ts";
 import type { IoCtx } from "../support.ts";
 import { reportLaunch } from "./reportLaunch.ts";
 import { workerAction } from "./workerAction.ts";
@@ -38,28 +37,13 @@ export async function reconcileCopilot(
 	if (previous && session?.status === "running") await deps.stop(ctx, previous);
 	const config = await ctx.newTx(async (tx) => {
 		const base = await projectLaunchConfig(tx, { projectId });
-		const chain = await rows<{ manager_config: unknown }>(
-			tx,
-			sql`WITH RECURSIVE ancestors AS (
-			SELECT id,parent_id,manager_config,0 AS depth FROM projects WHERE id=${projectId}
-			UNION ALL SELECT p.id,p.parent_id,p.manager_config,a.depth+1 FROM projects p JOIN ancestors a ON p.id=a.parent_id
-		) SELECT manager_config FROM ancestors WHERE manager_config->>'personaId' IS NOT NULL ORDER BY depth LIMIT 1`,
-		);
-		const selected = { ...base, personaId: chain.length ? managerConfigOf(chain[0]!).personaId : null };
-		const [persona] = selected.personaId
-			? [{ id: selected.personaId }]
-			: await rows<{ id: string }>(
-					tx,
-					sql`SELECT id FROM personas WHERE kind='manager' ORDER BY created_at,id LIMIT 1`,
-				);
 		return {
-			...selected,
-			personaId: persona?.id ?? null,
+			...base,
 			directory: base.directory || join(ctx.home, "copilots", projectId),
 			privateDirectory: !base.directory,
 		};
 	});
-	if (!config.personaId) throw new Error(`Select a copilot persona for project ${projectId}`);
+	if (!config.instruction) return;
 	if (config.privateDirectory) await deps.mkdir(config.directory, { recursive: true });
 	const resume = !!(
 		session?.agent?.sessionId &&
@@ -83,7 +67,6 @@ export async function reconcileCopilot(
 			tx,
 			{
 				project: projectId,
-				personaId: config.personaId!,
 				newSession: !!previous && !resume,
 				requestId: `copilot:${projectId}:${lastAttempt?.id ?? previous?.terminalId ?? "initial"}`,
 			},

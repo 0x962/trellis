@@ -29,7 +29,7 @@ Native harness mappings remain explicit application code.
 Navid supplied these preference orders on 2026-09-16.
 The [Artificial Analysis leaderboard](https://artificialanalysis.ai/leaderboards/models) provides supporting benchmark data.
 Reasoning levels remain separate from model IDs.
-This guide does not change the manager persona or set a harness's reasoning level.
+This guide does not change the manager instruction or set a harness's reasoning level.
 
 | Intelligence preference | Canonical ID | Reasoning |
 | --- | --- | --- |

@@ -32,21 +32,20 @@ export const completeMention = (text: string, start: number, caret: number, inse
 // The roles a mention can name instead of one agent.
 export const roleCandidates: readonly MentionCandidate[] = [
 	{ id: "role:manager", label: "manager", insert: "@manager", hint: "the manager of the tree" },
-	{ id: "role:builders", label: "builders", insert: "@builders", hint: "every live builder" },
-	{ id: "role:reviewers", label: "reviewers", insert: "@reviewers", hint: "every live reviewer" },
+	{ id: "role:agents", label: "agents", insert: "@agents", hint: "every live ticket agent" },
 ];
 
-type LiveAgent = { id: string; personaName: string; kind: string };
+type LiveAgent = { id: string; name: string; kind: string };
 
-// One candidate per live agent. A persona name that two live agents share
-// inserts the run id, so the mention reaches one agent.
+// One candidate per live agent. A shared name inserts the run id, so the
+// mention reaches one agent.
 export const agentCandidates = (agents: readonly LiveAgent[]): MentionCandidate[] => {
 	const count = new Map<string, number>();
-	for (const agent of agents) count.set(agent.personaName, (count.get(agent.personaName) ?? 0) + 1);
+	for (const agent of agents) count.set(agent.name, (count.get(agent.name) ?? 0) + 1);
 	return agents.map((agent) => ({
 		id: agent.id,
-		label: agent.personaName,
-		insert: `@${(count.get(agent.personaName) ?? 0) > 1 ? agent.id : agent.personaName}`,
+		label: agent.name,
+		insert: `@${(count.get(agent.name) ?? 0) > 1 ? agent.id : agent.name}`,
 		hint: `${agent.kind} ${agent.id}`,
 	}));
 };

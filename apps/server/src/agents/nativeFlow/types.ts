@@ -52,6 +52,5 @@ export interface FlowAction {
 	nodeId: string;
 	purpose: "step" | "gate" | "loop-condition";
 	instruction: string;
-	personaId: string | null;
 	inputs: FlowInput[];
 }

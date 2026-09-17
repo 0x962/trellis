@@ -1,4 +1,4 @@
-import type { FlowDoc, Persona } from "@trellis/api";
+import type { FlowDoc } from "@trellis/api";
 import type { FlowExecution } from "../../agents/nativeFlow/types.ts";
 import type { ServiceCtx as CoreCtx } from "../../context.ts";
 import type { ServiceCtx } from "../support.ts";
@@ -8,9 +8,7 @@ export interface StoredExecution {
 	flow_id: string;
 	ticket_id: string;
 	project_id: string;
-	default_persona_id: string;
 	doc: FlowDoc;
-	personas: Record<string, Persona>;
 	state: FlowExecution;
 	revision: number;
 	request: unknown;

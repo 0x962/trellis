@@ -64,14 +64,11 @@ export const lineStats = async (ctx: WorkspaceCtx, input: { ticketIds: string[] 
 				SELECT DISTINCT ON (r.ticket_id)
 					r.ticket_id AS "ticketId", r.workspace_id AS workspace
 				FROM agent_runs r
-				JOIN tickets t ON t.id = r.ticket_id
-				JOIN statuses s ON s.id = t.status_id
 				WHERE r.ticket_id = ANY(${textArray(input.ticketIds)})
-					AND r.kind = 'builder'
+					AND r.kind = 'agent'
 					AND r.runtime = 'native'
 					AND r.workspace_id IS NOT NULL
 					AND r.closed_at IS NULL
-					AND s.category = 'started'
 				ORDER BY r.ticket_id, r.created_at DESC, r.id DESC
 			`,
 		),

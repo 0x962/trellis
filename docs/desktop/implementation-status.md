@@ -15,13 +15,13 @@ The first package target is Apple Silicon.
 | Controller | Durable event batches, fixed deadlines, runtime turn activity, assignment deduplication, attempt tokens, and durable receipts |
 | Harness | Interactive CLI presets, permission bypass flags, automatic repository trust, Claude turn hooks, exact message receipts, and retained results |
 | Evidence | Worktree diff and files, command results, artifact hashes, revision checks, and confirmed check exit recovery |
-| Flows | Frozen graph and persona versions, agent attempts, YES/NO gates, human decisions, joins, deadlines, and cancellation |
+| Flows | Frozen graph prompts, agent attempts, YES/NO gates, human decisions, joins, deadlines, and cancellation |
 | Work area | Activity first, assigned-agent terminal, local changes, and flow decisions |
 | Data directory | New data or an existing home, confirmed service handoff, database backup, and paused automation |
 | App replacement | Retained host resources and protocol checks before activation |
 
 The Manager page has Operation, General, and Harness sections.
-Operation shows the manager process. General holds the repository directory, persona, and concurrency limit.
+Operation shows the manager process. General holds the repository directory, instruction, and concurrency limit.
 Harness selects the agent executable and commands.
 
 ## Current verification

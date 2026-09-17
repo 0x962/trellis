@@ -4,10 +4,10 @@ import type { AgentRun } from "@trellis/api";
 import { Avatar, ConfirmDialog, IconButton, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { agentKindOf } from "../agentKindOf";
 import { hasAssignedProcess } from "../hasAssignedProcess";
 import { isAgentWorking } from "../isAgentWorking";
 import { NativeTerminal } from "../NativeTerminal";
-import { personaKindOf } from "../personaKindOf";
 
 export type AgentRunDetailsProps = {
 	run: AgentRun;
@@ -25,13 +25,14 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 		onSuccess: async () => {
 			setConfirmStop(false);
 			await queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
-			toast.success(`${run.personaName} stops now`);
+			toast.success(run.kind === "agent" ? "Assignment removed" : `${run.name} stops now`);
 		},
-		onError: (error) => toast.error("Could not stop the agent", { description: error.message }),
+		onError: (error) => toast.error(error.message),
 	});
 	const historical = run.runtime !== "native";
 	const active = hasAssignedProcess(run);
-	const canStop = controls && active && run.kind !== "manager";
+	const canStop = controls && run.kind !== "manager" && (active || (run.kind === "agent" && run.assigned));
+	const stopLabel = run.kind === "agent" ? "Remove assignment" : "Stop agent";
 	const workspaceUrl = historical ? null : run.url;
 
 	return (
@@ -41,12 +42,12 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 					<div className="flex min-w-0 items-center gap-3">
 						<Avatar
 							kind="agent"
-							name={run.personaName}
-							personaKind={personaKindOf(run.kind)}
+							name={run.name}
+							agentKind={agentKindOf(run.kind)}
 							state={isAgentWorking(run) ? "working" : "static"}
 						/>
 						<div className="min-w-0">
-							<h2 className="truncate text-xl font-semibold text-fg">{run.personaName}</h2>
+							<h2 className="truncate text-xl font-semibold text-fg">{run.name}</h2>
 							<p className="mt-1 truncate text-sm text-fg-muted">{run.ticketIdentifier ?? run.projectPath}</p>
 						</div>
 					</div>
@@ -56,9 +57,9 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 			{(canStop || workspaceUrl) && (
 				<div className="flex flex-wrap items-center gap-2">
 					{canStop && (
-						<Tooltip content="Stop agent">
+						<Tooltip content={stopLabel}>
 							<IconButton
-								label="Stop agent"
+								label={stopLabel}
 								icon={<Stop />}
 								disabled={run.state === "starting" || stop.isPending}
 								onClick={() => setConfirmStop(true)}
@@ -73,10 +74,10 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 				</div>
 			)}
 			<ConfirmDialog
-				open={confirmStop && active}
-				title={`Stop ${run.personaName}?`}
+				open={confirmStop && canStop}
+				title={run.kind === "agent" ? "Remove this assignment?" : `Stop ${run.name}?`}
 				description="The workspace and its files stay available."
-				confirmLabel="Stop agent"
+				confirmLabel={stopLabel}
 				danger
 				processing={stop.isPending}
 				onConfirm={() => stop.mutate()}

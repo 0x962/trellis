@@ -7,7 +7,7 @@ import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 // The `action` of an activity row, as the server writes it. A client that
 // finds the create row of a ticket compares against `created`. The two
 // `subprojectManager` rows sit on a parent project with a null ticket: a
-// sub-project of that parent set or cleared its own manager persona, and
+// sub-project of that parent set or cleared its own manager instruction, and
 // `meta.projectId` and `to_value` name that sub-project.
 export const activityActions = {
 	created: "ticket.created",

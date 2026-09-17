@@ -16,10 +16,9 @@ export type RawNote = {
 	updated_at: string;
 };
 
-// An agent actor is `agent:<run id>`, and the run names the persona, which
-// is the name a reader knows the agent by.
+// An agent actor is `agent:<run id>`. The run name is its display name.
 export const noteSelect = sql`SELECT n.id, n.project_id, n.title, n.body, n.audience, ${iso(sql`n.expires_at`)} AS expires_at,
-	n.actor_name, n.actor_kind, r.persona_name AS actor_display_name,
+	n.actor_name, n.actor_kind, r.name AS actor_display_name,
 	${iso(sql`n.created_at`)} AS created_at, ${iso(sql`n.updated_at`)} AS updated_at
 	FROM notes n LEFT JOIN agent_runs r ON n.actor_kind = 'agent' AND r.id = n.actor_name`;
 

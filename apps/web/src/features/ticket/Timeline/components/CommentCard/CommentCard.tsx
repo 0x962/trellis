@@ -81,7 +81,7 @@ export function CommentCard({
 			<ReadOnlyMarkdown markdown={comment.body} formatClassName={formatClassName} />
 			{comment.notifications?.map((notification) => (
 				<p key={notification.runId} className="mt-2 text-xs text-fg-muted" title={notification.error ?? undefined}>
-					@{notification.personaName}:{" "}
+					@{notification.agentName}:{" "}
 					{notification.state === "sent"
 						? "Notified"
 						: notification.state === "failed"

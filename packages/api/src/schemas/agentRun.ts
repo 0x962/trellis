@@ -1,27 +1,22 @@
 import { z } from "zod";
 import { HarnessSchema } from "../harness/harness.ts";
 import { ModelIdSchema } from "../models/models.ts";
-import { PersonaKindSchema } from "./persona.ts";
 import { CountSchema, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
-// The kinds of an agent run: the three persona kinds, and `session` for the
-// agent of a scratch session, which has no persona, no project, and no
-// ticket.
-export const AgentRunKindSchema = z.enum([...PersonaKindSchema.options, "session"]);
+export const AgentRunKindSchema = z.enum(["agent", "manager", "flow", "session"]);
 export type AgentRunKind = z.infer<typeof AgentRunKindSchema>;
 export const AgentRunSchema = z.object({
 	id: UlidSchema,
 	name: z.string(),
 	accountId: UlidSchema.nullish(),
 	runtime: z.enum(["native", "superset", "tmux", "commands"]),
-	personaId: UlidSchema.nullable(),
-	personaName: z.string(),
 	kind: AgentRunKindSchema,
 	instruction: z.string(),
 	projectId: UlidSchema.nullable(),
 	projectPath: z.string(),
 	ticketId: UlidSchema.nullable(),
 	ticketIdentifier: z.string().nullable(),
+	assigned: z.boolean(),
 	state: z.enum(["starting", "interrupted", "running", "failed", "stopped", "exited"]),
 	processStatus: z.enum(["running", "exited", "unknown"]).nullable(),
 	observation: z
@@ -56,7 +51,6 @@ export const TicketMetricsSchema = z.object({
 export type TicketMetrics = z.infer<typeof TicketMetricsSchema>;
 export const AgentRunStartInputSchema = z
 	.strictObject({
-		personaId: UlidSchema,
 		harness: HarnessSchema.optional(),
 		model: ModelIdSchema.optional().describe(
 			"Canonical model ID from models.list for this assignment. Defaults to the project's harness model.",
@@ -76,7 +70,11 @@ export const AgentRunStartInputSchema = z
 		// holds. A person sends it after a resume lost the session.
 		newSession: z.boolean().optional(),
 	})
-	.refine((input) => (input.ticket === undefined) !== (input.project === undefined), "Select one ticket or project.");
+	.refine((input) => (input.ticket === undefined) !== (input.project === undefined), "Select one ticket or project.")
+	.refine(
+		(input) => input.ticket === undefined || input.harness !== undefined,
+		"Select a harness for the ticket agent.",
+	);
 export type AgentRunStartInput = z.infer<typeof AgentRunStartInputSchema>;
 export const AgentRunListInputSchema = z.strictObject({
 	ticket: z.string().optional(),

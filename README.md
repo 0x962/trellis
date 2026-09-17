@@ -89,7 +89,7 @@ trellis list --project TRL --json
 ### The pages
 
 `/` sends you to Needs you. The sidebar holds Needs you, Search, All tickets,
-Pull requests, Personas, Flows, Usage, the sessions, and the project tree.
+Pull requests, Flows, Usage, the sessions, and the project tree.
 A session is a scratch git repository with one agent, outside every project.
 The New session button in the sidebar starts one from a prompt.
 
@@ -106,8 +106,7 @@ The New session button in the sidebar starts one from a prompt.
 | `/t/TRL-42` | One ticket |
 | `/sessions/<id>` | One session: the terminal of its agent and the process controls |
 | `/search` | Search |
-| `/ai/personas` | The personas |
-| `/usage` | Subscription quota, token cost per day, and a breakdown by ticket, persona, project, kind, account, model, or harness |
+| `/usage` | Subscription quota, token cost per day, and a breakdown by ticket, agent, project, kind, account, model, or harness |
 | `/settings` | The settings |
 | `/setup` | The first visit, and the new project step |
 
@@ -176,29 +175,21 @@ Run `trellis instructions --project TRL` to print the workflow block below. Past
 
 Every write sends the header `x-trellis-actor: <human|agent>:<name>`. The CLI sets the header. Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, `TRELLIS_ACTOR` or `--as` sets the actor. `trellis whoami` prints how the CLI chose the actor.
 
-### Personas and agent runs
+### Agent runs
 
-A persona is a local record that trellis shares across every project. It holds a
-name, an instruction, and one kind: builder, reviewer, or manager. The Personas
-page at `/ai/personas` groups the cards by kind and opens a slideout to create,
-edit, and delete a record.
+A ticket has zero or one assigned agent. An assignment selects its harness,
+model, and effort. The assignment stays with the ticket across status changes
+and process exits. A person removes it before another agent can take the ticket.
 
-An agent run is one agent that trellis started from a persona. The run copies
-the name, the kind, and the instruction of the persona at launch, so a later
-edit of the persona changes only the runs after it. A delete of the persona
-keeps the copies.
-
-A builder run and a reviewer run name one ticket. A manager run names one
-project. A project runs one manager at a time.
+A manager run names one project. A project runs one manager at a time. Project
+settings store the manager instruction directly.
 
 The Manager page at `/p/<project path>/settings/manager` controls the project's local work.
 Operation shows the manager process, output, and durable event queue. Trellis sends each queued event to a running manager.
-General selects the manager persona, repository directory, trust, and concurrency limit. Harness selects the agent preset and commands.
+General sets the manager instruction, repository directory, trust, and concurrency limit. Harness selects the agent preset and commands.
 The concurrency limit runs from 1 to 64, defaults to 3, and excludes the manager.
 
-The Agent section of the ticket rail lists the runs of the ticket and opens a
-searchable persona picker. The picker puts the five personas the project used
-most at the top and hides the manager kind.
+The Agent section of the ticket rail shows the assigned agent. Its dialog selects the harness, model, and effort.
 
 A run carries one state: `starting`, `running`, `interrupted`, `failed`,
 `stopped`, or `exited`. A failed launch stays visible with its error. A stop
@@ -206,23 +197,16 @@ closes the terminal, and keeps the workspace, the history, and the final output.
 
 ### The agent CLI
 
-```sh test
-trellis personas list
-```
-
 | Command | Purpose |
 |---|---|
-| `trellis personas list` | List the personas. `--kind` keeps one kind. |
-| `trellis personas show <persona>` | Show one persona and its instruction. |
 | `trellis agents list` | List the runs. `--ticket` and `--project` narrow the list. |
-| `trellis agents start <persona>` | Start a run. `--ticket` for a builder or a reviewer, `--project` for a manager. |
+| `trellis agents start --ticket <ticket> --harness <preset>` | Assign a ticket agent. `--model` and `--effort` select its configuration. |
 | `trellis agents refresh <id>` | Read the terminal and update the state. |
 | `trellis agents stop <id>` | Stop the terminal and keep the workspace and the output. |
 | `trellis agents send <id> --text "..."` | Send a follow-up. `--text -` reads stdin. |
 | `trellis agents output <id>` | Print the terminal output of a run. |
 
-A persona argument takes the persona id or its name. `trellis agents start`
-exits 6 when the run answers in a state other than `running`, and writes the
+`trellis agents start` exits 6 when the run answers in a state other than `running`, and writes the
 reason to stderr.
 
 ### How trellis starts an agent
@@ -294,10 +278,8 @@ Global flags: `--json`, `--jsonl`, `--quiet`, `--as`, `--url`, and `--no-color`.
 | `trellis statuses edit` | Edit a status. |
 | `trellis statuses rm` | Remove a status. |
 | `trellis statuses clear` | Clear inherited statuses. |
-| `trellis personas list` | List personas. |
-| `trellis personas show` | Show one persona and its instruction. |
 | `trellis agents list` | List agent runs. |
-| `trellis agents start` | Start an agent from a persona. |
+| `trellis agents start` | Assign a ticket agent or start a project manager. |
 | `trellis agents refresh` | Read the terminal and update the state. |
 | `trellis agents stop` | Stop an agent. |
 | `trellis agents send` | Send an agent a follow-up. |

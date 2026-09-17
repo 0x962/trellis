@@ -38,14 +38,14 @@ type RawItem = {
 // The activity id is zero-padded so its text order equals its number order.
 const stream = (ticketId: string) => sql`
 	SELECT 'comment' AS kind, 1 AS kind_rank, c.id AS sort_key, c.id, c.ticket_id, c.body, c.parent_id, c.resolved_at,
-		c.actor_name, c.actor_kind, r.persona_name AS actor_display_name, c.created_at, c.updated_at,
+		c.actor_name, c.actor_kind, r.name AS actor_display_name, c.created_at, c.updated_at,
 		NULL AS batch_id, NULL AS root_id, NULL AS project_id, NULL AS action, NULL AS field,
 		NULL AS from_value, NULL AS to_value, NULL::jsonb AS meta
 	FROM comments c LEFT JOIN agent_runs r ON c.actor_kind = 'agent' AND r.id = c.actor_name
 	WHERE c.ticket_id = ${ticketId}
 	UNION ALL
 	SELECT 'activity', 0, lpad(a.id::text, 19, '0'), a.id::text, a.ticket_id, NULL, NULL, NULL,
-		a.actor_name, a.actor_kind, r.persona_name, a.created_at, NULL,
+		a.actor_name, a.actor_kind, r.name, a.created_at, NULL,
 		a.batch_id, a.root_id, a.project_id, a.action, a.field, a.from_value, a.to_value, a.meta
 	FROM activity a LEFT JOIN agent_runs r ON a.actor_kind = 'agent' AND r.id = a.actor_name
 	WHERE a.ticket_id = ${ticketId}

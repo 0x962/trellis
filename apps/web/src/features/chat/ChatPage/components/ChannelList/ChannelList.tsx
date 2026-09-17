@@ -4,7 +4,7 @@ import { ActivityDot, Avatar, cx, SectionHeader } from "@trellis/ui";
 
 export type ChannelListProps = {
 	channels: ChatChannel[];
-	// The persona name of the manager of the project, which labels the
+	// The manager name labels the
 	// direct message channel.
 	managerName: string;
 	open: string;
@@ -34,13 +34,7 @@ export function ChannelList({ channels, managerName, open, unread, pending, erro
 				>
 					<span className="flex min-w-0 flex-1 items-center gap-1 text-left">
 						{channel.direct ? (
-							<Avatar
-								kind="agent"
-								name={managerName}
-								personaKind="manager"
-								state="static"
-								className="size-4 shrink-0"
-							/>
+							<Avatar kind="agent" name={managerName} agentKind="manager" state="static" className="size-4 shrink-0" />
 						) : channel.aiOnly ? (
 							<LockSimple aria-label="agents only" weight="fill" className="size-3 shrink-0" />
 						) : (

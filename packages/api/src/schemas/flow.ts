@@ -27,7 +27,7 @@ export type FlowNodeKind = z.infer<typeof FlowNodeKindSchema>;
 
 export const flowGroupKinds: ReadonlySet<FlowNodeKind> = new Set(["group", "loop"]);
 
-// The kinds that run an agent, and so take a persona or an instruction.
+// The kinds that run an agent and need an instruction.
 export const flowAgentKinds: ReadonlySet<FlowNodeKind> = new Set(["agent", "gate", "loop"]);
 
 // The output of a node that an edge leaves from. A gate has `yes` and `no`.
@@ -61,7 +61,6 @@ export const FlowNodeInputSchema = z
 		parentId: UlidSchema.nullable(),
 		kind: FlowNodeKindSchema,
 		title: z.string().max(120, "Enter a step title of 120 characters or less."),
-		personaId: UlidSchema.nullable(),
 		instruction: z.string().max(200_000, "Enter a step instruction of 200,000 characters or less."),
 		parallel: z.boolean().default(false),
 		minutes: z.number().int().min(1).max(FLOW_MAX_MINUTES).nullable(),
@@ -87,7 +86,6 @@ export const FlowNodeSchema = z.object({
 	parentId: UlidSchema.nullable(),
 	kind: FlowNodeKindSchema,
 	title: z.string(),
-	personaId: UlidSchema.nullable(),
 	instruction: z.string(),
 	parallel: z.boolean(),
 	minutes: z.number().int().nullable(),

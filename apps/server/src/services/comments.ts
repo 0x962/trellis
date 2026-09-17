@@ -37,7 +37,7 @@ type RawComment = {
 	updated_at: string;
 };
 
-const commentSelect = sql`SELECT c.id, c.ticket_id, c.parent_id, ${iso(sql`c.resolved_at`)} AS resolved_at, c.body, ${commentNotifications(sql`c.id`)} AS notifications, c.actor_name, c.actor_kind, r.persona_name AS actor_display_name,
+const commentSelect = sql`SELECT c.id, c.ticket_id, c.parent_id, ${iso(sql`c.resolved_at`)} AS resolved_at, c.body, ${commentNotifications(sql`c.id`)} AS notifications, c.actor_name, c.actor_kind, r.name AS actor_display_name,
 	${iso(sql`c.created_at`)} AS created_at, ${iso(sql`c.updated_at`)} AS updated_at FROM comments c
 	LEFT JOIN agent_runs r ON c.actor_kind = 'agent' AND r.id = c.actor_name`;
 

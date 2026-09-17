@@ -1,18 +1,10 @@
-import type { FlowDoc, Persona } from "@trellis/api";
+import type { FlowDoc } from "@trellis/api";
 import { useState } from "react";
 import { createDraftRecovery } from "../../draftRecovery";
 import { FlowDraftPicker } from "../FlowDraftPicker";
 import { FlowWorkspaceContent } from "../FlowWorkspaceContent";
 
-export function FlowWorkspace({
-	doc,
-	personas,
-	onReload,
-}: {
-	doc: FlowDoc;
-	personas: Persona[];
-	onReload: () => void;
-}) {
+export function FlowWorkspace({ doc, onReload }: { doc: FlowDoc; onReload: () => void }) {
 	const [recovery] = useState(() => {
 		let tab = sessionStorage.getItem("trellis.flow-tab");
 		if (tab === null) {
@@ -30,7 +22,6 @@ export function FlowWorkspace({
 			<FlowWorkspaceContent
 				key={generation}
 				doc={doc}
-				personas={personas}
 				onReload={onReload}
 				recovery={recovery}
 				paused={open}

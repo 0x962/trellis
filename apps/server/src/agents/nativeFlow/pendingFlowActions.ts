@@ -13,7 +13,6 @@ export function pendingFlowActions(doc: FlowDoc, state: FlowExecution): FlowActi
 				nodeId: node.id,
 				purpose: step.phase === "condition" ? "loop-condition" : node.kind === "gate" ? "gate" : "step",
 				instruction: node.instruction,
-				personaId: node.personaId,
 				inputs: flowInputs(doc, state, step),
 			};
 		});

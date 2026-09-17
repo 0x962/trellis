@@ -1,6 +1,5 @@
 import { cx } from "../../utils/cx";
-import { PersonaMark } from "../PersonaMark";
-import type { PersonaKind, PersonaState } from "../PersonaMark/personaAppearance";
+import { AgentMark, type AgentMarkKind, type AgentMarkState } from "../AgentMark";
 
 export type ActorKind = "human" | "agent";
 
@@ -8,8 +7,8 @@ export type AvatarProps = {
 	kind: ActorKind;
 	name: string;
 	className?: string;
-	personaKind?: PersonaKind;
-	state?: PersonaState;
+	agentKind?: AgentMarkKind;
+	state?: AgentMarkState;
 };
 
 // "Dana Lee" gives DL; "dana" gives D.
@@ -20,7 +19,7 @@ const initials = (name: string) =>
 		.map((word) => word.charAt(0).toUpperCase())
 		.join("");
 
-export function Avatar({ kind, name, className, personaKind, state = "static" }: AvatarProps) {
+export function Avatar({ kind, name, className, agentKind, state = "static" }: AvatarProps) {
 	// The initials use a span because `profile-metal` paints a film and lifts
 	// only its child span above the film.
 	return (
@@ -33,7 +32,7 @@ export function Avatar({ kind, name, className, personaKind, state = "static" }:
 				className,
 			)}
 		>
-			{kind === "agent" ? <PersonaMark name={name} kind={personaKind} state={state} /> : <span>{initials(name)}</span>}
+			{kind === "agent" ? <AgentMark name={name} kind={agentKind} state={state} /> : <span>{initials(name)}</span>}
 		</span>
 	);
 }

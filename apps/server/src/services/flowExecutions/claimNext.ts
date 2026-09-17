@@ -3,7 +3,6 @@ import { sql } from "drizzle-orm";
 import { advanceFlow } from "../../agents/nativeFlow/advanceFlow.ts";
 import { pendingFlowActions } from "../../agents/nativeFlow/pendingFlowActions.ts";
 import type { ServiceCtx } from "../../context.ts";
-import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 import { reserve } from "../agentRuns/reserve.ts";
@@ -20,26 +19,8 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 	const config = await projectLaunchConfig(tx, { projectId: execution.project_id });
 	if (config.ade !== "native" || config.harness.preset === "custom")
 		throw invalidInput("project", "The flow requires a built-in harness.");
-	const assigned = await rows<{ personaId: string | null }>(
-		tx,
-		sql`SELECT persona_id AS "personaId" FROM agent_runs
-		WHERE ticket_id=${execution.ticket_id} AND runtime='native' AND closed_at IS NULL`,
-	);
-	const action = actions.find(
-		(action) => !assigned.some((run) => run.personaId === (action.personaId ?? execution.default_persona_id)),
-	);
-	if (!action) return null;
-	const personaId = action.personaId ?? execution.default_persona_id;
-	const reservation = await reserve(ctx, tx, {
-		ticket: execution.ticket_id,
-		personaId,
-		requestId: createHash("sha256").update(`${execution.id}:${action.key}`).digest("hex"),
-	});
-	if (reservation.replay || reservation.attempt === null)
-		throw new Error("A flow claim must reserve a new native attempt");
-	const persona = execution.personas[personaId]!;
+	const action = actions[0]!;
 	const instruction = [
-		persona.instruction,
 		execution.doc.flow.briefing,
 		`Flow step: ${action.nodeId}`,
 		action.instruction,
@@ -48,12 +29,20 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 	]
 		.filter(Boolean)
 		.join("\n\n");
-	await tx.execute(
-		sql`UPDATE agent_runs SET instruction=${instruction},name=${persona.name},persona_name=${persona.name} WHERE id=${reservation.run.id}`,
+	const node = execution.doc.nodes.find((item) => item.id === action.nodeId)!;
+	const reservation = await reserve(
+		ctx,
+		tx,
+		{
+			ticket: execution.ticket_id,
+			harness: config.harness,
+			requestId: createHash("sha256").update(`${execution.id}:${action.key}`).digest("hex"),
+		},
+		[],
+		{ config, flow: { name: node.title, instruction } },
 	);
-	reservation.run.instruction = instruction;
-	reservation.run.personaName = persona.name;
-	reservation.run.name = persona.name;
+	if (reservation.replay || reservation.attempt === null)
+		throw new Error("A flow claim must reserve a new native attempt");
 	await tx.execute(
 		sql`INSERT INTO flow_execution_tasks (execution_id,key,run_id,attempt_id,created_at) VALUES (${execution.id},${action.key},${reservation.run.id},${reservation.attempt.id},${ctx.now})`,
 	);

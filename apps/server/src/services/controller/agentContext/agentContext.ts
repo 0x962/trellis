@@ -22,7 +22,7 @@ export const agentContext = async (
 	const liveIds = input.sessions.filter((session) => session.status === "running").map((session) => session.id);
 	const assignments = await rows<Assignment>(
 		tx,
-		sql` SELECT r.id AS "runId", r.persona_name AS name, r.kind, r.ticket_id AS "ticketId",
+		sql` SELECT r.id AS "runId", r.name, r.kind, r.ticket_id AS "ticketId",
 			r.ticket_identifier AS "ticketIdentifier", r.terminal_id AS "attemptId"
 		FROM agent_runs r WHERE (r.project_id IN (${managerScope(input.projectId)}) OR r.id IN (SELECT run_id FROM manager_delegations WHERE parent_run_id=${input.runId} AND retired_at IS NULL))
 		AND r.id<>${input.runId} AND r.runtime='native'

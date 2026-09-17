@@ -13,7 +13,7 @@ export const usage = {
 			method: "GET",
 			path: "/usage",
 			summary:
-				"Read token usage and API-rate cost from the harness transcripts on this machine, joined to agent runs, tickets, personas, projects, and accounts. The report is cached for five minutes.",
+				"Read token usage and API-rate cost from the harness transcripts on this machine, joined to agent runs, tickets, projects, and accounts. The report is cached for five minutes.",
 		})
 		.input(UsageReportInputSchema)
 		.output(UsageReportSchema),

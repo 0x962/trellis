@@ -14,7 +14,6 @@ export * from "./label.ts";
 export * from "./loop.ts";
 export * from "./needsYou.ts";
 export * from "./note.ts";
-export * from "./persona.ts";
 export * from "./primitives.ts";
 export * from "./project.ts";
 export * from "./pullRequest.ts";

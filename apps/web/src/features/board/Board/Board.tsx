@@ -5,7 +5,6 @@ import {
 	eventApplierFor,
 	type ListOutput,
 	type Status,
-	type StatusAgentConfig,
 	type StatusSummary,
 } from "@trellis/api";
 import { toast, useMediaQuery, useTheme } from "@trellis/ui";
@@ -175,30 +174,6 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 	);
 	useBoardMonitor(columns, (move) => void runMove(move), chooseOrMove, announce, recordDropOrigin);
 
-	const updateSettings = useCallback(
-		async (statusId: string, settings: { agentConfig: StatusAgentConfig | null; wipLimit: number | null }) => {
-			if (projectRef === undefined) return;
-			try {
-				await context.client.statuses.update({ project: projectRef, status: statusId, ...settings });
-				await context.queryClient.invalidateQueries({ queryKey: boardOptions.queryKey });
-				await context.queryClient.invalidateQueries({ queryKey: projectOptions.queryKey });
-			} catch (error) {
-				const message = errorMessage(error);
-				announce(message);
-				toast.error(message);
-				throw error;
-			}
-		},
-		[
-			announce,
-			boardOptions.queryKey,
-			context.client.statuses,
-			context.queryClient,
-			projectOptions.queryKey,
-			projectRef,
-		],
-	);
-
 	const showMore = async (column: BoardColumnModel) => {
 		const input = {
 			...filters,
@@ -292,7 +267,6 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 						onFocusTicket={setFocusedCard}
 						onCardKeyDown={keyDown}
 						onAnnounce={announce}
-						onUpdateSettings={updateSettings}
 					/>
 				))}
 			</div>

@@ -34,7 +34,7 @@ const metricOptions = [
 
 export const groupLabel: Record<UsageGroupBy, string> = {
 	ticket: "ticket",
-	persona: "persona",
+	agent: "agent",
 	project: "project",
 	kind: "agent kind",
 	account: "account",

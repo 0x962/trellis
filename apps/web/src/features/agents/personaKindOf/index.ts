@@ -1,1 +1,0 @@
-export { personaKindOf } from "./personaKindOf";

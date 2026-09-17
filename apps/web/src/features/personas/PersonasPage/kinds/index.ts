@@ -1,1 +1,0 @@
-export { personaKinds } from "./kinds";

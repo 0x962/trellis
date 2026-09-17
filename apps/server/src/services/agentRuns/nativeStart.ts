@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ORPCError } from "@orpc/server";
-import type { ProjectManagerConfig, StatusAgentConfig } from "@trellis/api";
+import type { ProjectManagerConfig } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import type { HarnessDescriptor, HarnessStartInput } from "../../agents/harnessHost/types.ts";
@@ -56,9 +56,6 @@ export const startNative = async (
 		deadlineAt?: number;
 		resumePrompt?: string;
 		preserveAssignmentOnFailure?: boolean;
-		requiredTicketCategory?: "started";
-		requiredStatusId?: string;
-		requiredAgentConfig?: StatusAgentConfig;
 	},
 	deps: Partial<Dependencies> = {},
 ) => {
@@ -85,18 +82,10 @@ export const startNative = async (
 		const workspaceId = await (deps.workspace ?? nativeWorkspace)(ctx.home, run, config.directory);
 		const owned = await ctx.newTx(async (tx) => {
 			if (run.ticketId !== null) {
-				const [ticket] = await rows<{ category: string; id: string; configMatches: boolean }>(
-					tx,
-					sql`SELECT s.id,s.category,(s.agent_config=${JSON.stringify(input.requiredAgentConfig ?? null)}::jsonb) AS "configMatches" FROM tickets t JOIN statuses s ON s.id=t.status_id WHERE t.id=${run.ticketId}`,
-				);
-				if (
-					!ticket ||
-					(ticket.category === "todo" && !input.requiredStatusId) ||
-					(input.requiredStatusId && (ticket.id !== input.requiredStatusId || !ticket.configMatches)) ||
-					(input.requiredTicketCategory && ticket.category !== input.requiredTicketCategory)
-				) {
+				const [ticket] = await rows<{ id: string }>(tx, sql`SELECT id FROM tickets WHERE id=${run.ticketId}`);
+				if (!ticket) {
 					await tx.execute(
-						sql`UPDATE agent_runs SET closed_at=${ctx.now()},error='The ticket status does not permit this agent start.' WHERE id=${run.id} AND terminal_id=${terminalId} AND closed_at IS NULL`,
+						sql`UPDATE agent_runs SET closed_at=${ctx.now()},error='The ticket no longer exists.' WHERE id=${run.id} AND terminal_id=${terminalId} AND closed_at IS NULL`,
 					);
 					return [];
 				}
@@ -143,8 +132,6 @@ export const startNative = async (
 					launchAllowed(tx, {
 						runId: run.id,
 						terminalId,
-						requiredStatusId: input.requiredStatusId,
-						requiredAgentConfig: input.requiredAgentConfig,
 					}),
 				))
 			)
@@ -161,7 +148,7 @@ export const startNative = async (
 					? { kind: "manager", managerId: run.id, managerSystemPrompt: run.instruction }
 					: run.kind === "session"
 						? {}
-						: { kind: run.kind }),
+						: { kind: "builder" }),
 				harness: config.harness.preset,
 				cwd: workspaceId,
 				prompt: input.resumePrompt ?? launchPrompt({ run, url: ctx.localUrl, context }),
@@ -209,8 +196,6 @@ export const startNative = async (
 					launchAllowed(tx, {
 						runId: run.id,
 						terminalId,
-						requiredStatusId: input.requiredStatusId,
-						requiredAgentConfig: input.requiredAgentConfig,
 					}),
 				))
 			)
@@ -222,7 +207,7 @@ export const startNative = async (
 		}
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET workspace_id = ${launchWorkspace}, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = CASE WHEN ${session.status === "exited"} AND NOT (kind='builder' AND EXISTS (SELECT 1 FROM tickets t JOIN statuses s ON s.id=t.status_id WHERE t.id=agent_runs.ticket_id AND s.category='started') AND NOT EXISTS (SELECT 1 FROM flow_execution_tasks task WHERE task.run_id=agent_runs.id)) THEN ${ctx.now()}::timestamptz ELSE NULL END, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
+				sql`UPDATE agent_runs SET workspace_id = ${launchWorkspace}, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = CASE WHEN ${session.status === "exited"} AND kind<>'agent' THEN ${ctx.now()}::timestamptz ELSE NULL END, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
 	} catch (error) {

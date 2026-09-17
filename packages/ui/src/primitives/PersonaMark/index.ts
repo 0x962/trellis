@@ -1,1 +1,0 @@
-export { PersonaMark } from "./PersonaMark";

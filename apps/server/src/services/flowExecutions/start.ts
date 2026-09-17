@@ -1,10 +1,10 @@
 import { isDeepStrictEqual } from "node:util";
-import { type FlowExecutionStartInput, type Persona, validateFlowGraph } from "@trellis/api";
+import { type FlowExecutionStartInput, validateFlowGraph } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { createFlowExecution } from "../../agents/nativeFlow/createFlowExecution.ts";
 import { requireActor, type ServiceCtx } from "../../context.ts";
-import { rows, textArray } from "../../db/queries/support.ts";
+import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 import { assertVersion, readDoc, resolveFlow } from "../flows/queries.ts";
@@ -40,23 +40,11 @@ export async function start(ctx: ServiceCtx, tx: Tx, input: FlowExecutionStartIn
 	const doc = await readDoc(tx, flow);
 	const issues = validateFlowGraph(doc, "run");
 	if (issues.length > 0) throw invalidInput("flow", issues.map((issue) => issue.message).join("\n"));
-	const ids = [
-		...new Set([
-			input.defaultPersonaId,
-			...doc.nodes.flatMap((node) => (node.personaId === null ? [] : [node.personaId])),
-		]),
-	];
-	const personas = await rows<Persona>(
-		tx,
-		sql`SELECT id,name,kind,instruction FROM personas WHERE id=ANY(${textArray(ids)})`,
-	);
-	if (personas.length !== ids.length || personas.some((persona) => persona.kind === "manager"))
-		throw invalidInput("defaultPersonaId", "Flow steps require existing builder or reviewer personas.");
 	const state = createFlowExecution(doc, ctx.now.getTime());
 	const [created] = await rows<{ id: string }>(
 		tx,
-		sql`INSERT INTO flow_executions (id,flow_id,ticket_id,project_id,default_persona_id,actor_kind,actor_name,request_id,request,doc,personas,state,revision,created_at,updated_at)
- VALUES (${ulid()},${flow.id},${ticket.id},${ticket.projectId},${input.defaultPersonaId},${actor.kind},${actor.name},${input.requestId},${JSON.stringify(input)}::jsonb,${JSON.stringify(doc)}::jsonb,${JSON.stringify(Object.fromEntries(personas.map((persona) => [persona.id, persona])))}::jsonb,${JSON.stringify(state)}::jsonb,1,${ctx.now},${ctx.now}) ON CONFLICT (actor_kind,actor_name,request_id) DO NOTHING RETURNING id`,
+		sql`INSERT INTO flow_executions (id,flow_id,ticket_id,project_id,actor_kind,actor_name,request_id,request,doc,state,revision,created_at,updated_at)
+	VALUES (${ulid()},${flow.id},${ticket.id},${ticket.projectId},${actor.kind},${actor.name},${input.requestId},${JSON.stringify(input)}::jsonb,${JSON.stringify(doc)}::jsonb,${JSON.stringify(state)}::jsonb,1,${ctx.now},${ctx.now}) ON CONFLICT (actor_kind,actor_name,request_id) DO NOTHING RETURNING id`,
 	);
 	if (!created) return replay((await lookup())[0]!);
 	ctx.emit({ type: "flows.changed", id: flow.id });

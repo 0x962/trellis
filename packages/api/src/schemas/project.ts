@@ -48,30 +48,22 @@ const AncestorSchema = ProjectLinkSchema.extend({
 export const AdeSchema = z.literal("native");
 export type Ade = z.infer<typeof AdeSchema>;
 
-export const ProjectBuilderConfigSchema = z.strictObject({
-	personaId: UlidSchema,
-	harness: HarnessSchema,
-});
-export type ProjectBuilderConfig = z.infer<typeof ProjectBuilderConfigSchema>;
-
 export const ProjectManagerConfigSchema = z.strictObject({
-	builder: ProjectBuilderConfigSchema.nullable().default(null),
-	personaId: UlidSchema.nullable(),
+	instruction: z.string().max(200_000).default(""),
 	directory: z
 		.string()
 		.trim()
 		.refine((value) => value === "" || value.startsWith("/"), "Use an absolute directory path."),
 	ade: AdeSchema.default("native"),
 	harness: HarnessSchema.default(HarnessSchema.parse({ preset: "claude" })),
-	// The account the manager and the workers of this project launch with
-	// when no one names another. Null means the default login of the
-	// harness. A sub-project with null uses the nearest ancestor that names
+	// The default account for agents of this project. Null means the default login of the harness.
+	// A sub-project with null uses the nearest ancestor that names
 	// one, the way it uses the ancestor directory.
 	accountId: UlidSchema.nullable().default(null),
 });
 export type ProjectManagerConfig = z.infer<typeof ProjectManagerConfigSchema>;
 export const DEFAULT_PROJECT_MANAGER_CONFIG = ProjectManagerConfigSchema.parse({
-	personaId: null,
+	instruction: "",
 	directory: "",
 });
 

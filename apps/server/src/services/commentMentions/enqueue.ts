@@ -4,7 +4,7 @@ import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { mentionedNames } from "./mentioned.ts";
 
-type Recipient = { id: string; personaName: string; terminalId: string | null; sessionId: string | null };
+type Recipient = { id: string; agentName: string; terminalId: string | null; sessionId: string | null };
 
 export const enqueue = async (
 	tx: Tx,
@@ -19,19 +19,19 @@ export const enqueue = async (
 	if (!input.body.includes("@")) return;
 	const recipients = await rows<Recipient>(
 		tx,
-		sql`SELECT id, persona_name AS "personaName", terminal_id AS "terminalId", session_id AS "sessionId"
+		sql`SELECT id, name AS "agentName", terminal_id AS "terminalId", session_id AS "sessionId"
 		FROM agent_runs WHERE runtime='native' AND closed_at IS NULL
 		AND (kind<>'manager' OR EXISTS (SELECT 1 FROM comments WHERE id=${input.commentId} AND actor_kind='human'))
 		AND (ticket_id=${input.ticketId} OR (project_id=${input.projectId} AND kind='manager'))`,
 	);
-	const names = recipients.map((run) => run.personaName);
+	const names = recipients.map((run) => run.agentName);
 	const current = mentionedNames(input.body, names);
 	const previous = mentionedNames(input.previousBody ?? "", names);
 	for (const run of recipients) {
-		const name = run.personaName.toLowerCase();
+		const name = run.agentName.toLowerCase();
 		if (!current.has(name) || previous.has(name)) continue;
-		await tx.execute(sql`INSERT INTO comment_deliveries (id,comment_id,run_id,persona_name,terminal_id,session_id)
-			VALUES (${ulid()},${input.commentId},${run.id},${run.personaName},${run.terminalId},${run.sessionId})
+		await tx.execute(sql`INSERT INTO comment_deliveries (id,comment_id,run_id,agent_name,terminal_id,session_id)
+			VALUES (${ulid()},${input.commentId},${run.id},${run.agentName},${run.terminalId},${run.sessionId})
 			ON CONFLICT (comment_id,run_id) DO NOTHING`);
 	}
 };

@@ -21,6 +21,27 @@ import { ReviewPageSkeleton } from "./components/ReviewPageSkeleton";
 import "@trellis/ui/review.css";
 
 type FileRow = { path: string; type: string; additions: number; deletions: number };
+
+const checkStatus = (revision: ReviewRevision | null) => {
+	const checks = revision?.meta.statusCheckRollup as
+		| { name?: string; context?: string; conclusion?: string; state?: string }[]
+		| undefined;
+	const latest = new Map(checks?.map((check) => [check.name ?? check.context, check]));
+	const states = [...latest.values()].map((check) => check.conclusion || check.state || "PENDING");
+	if (states.some((state) => ["FAILURE", "ERROR", "TIMED_OUT", "CANCELLED"].includes(state)))
+		return { label: "Checks failed", tone: "danger" as const };
+	if (states.some((state) => !["SUCCESS", "NEUTRAL", "SKIPPED"].includes(state)))
+		return { label: "Checks pending", tone: "warning" as const };
+	if (states.length > 0) return { label: "Checks passed", tone: "success" as const };
+	return { label: "No checks", tone: "neutral" as const };
+};
+
+const liveStatusTone = (label: ReturnType<typeof liveBranchState>["label"]) => {
+	if (label === "Ready" || label === "Available") return "success" as const;
+	if (label === "Update available" || label === "Enabled") return "warning" as const;
+	return "neutral" as const;
+};
+
 export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent?: ReactNode; syncHash?: boolean }) {
 	const { client, orpc, queryClient } = useApp();
 	const { resolved: theme } = useTheme();
@@ -163,7 +184,8 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 					onValueChange={changeTab}
 					count={allThreads.length}
 					live={pr.includes("/canary-technologies-corp/canary/")}
-					liveStatus={liveStatus}
+					checksStatus={checkStatus(displayRevision)}
+					liveStatus={liveStatus ? { label: liveStatus, tone: liveStatusTone(liveStatus) } : undefined}
 				>
 					{refresh.isError && (
 						<p className="review-error" role="alert">

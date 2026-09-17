@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { requireActor, type ServiceCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
-import { fail, invalidInput } from "../../errors.ts";
+import { fail } from "../../errors.ts";
 
 export const assertStatusRoom = async (
 	ctx: ServiceCtx,
@@ -12,12 +12,10 @@ export const assertStatusRoom = async (
 	ticketId?: string,
 ) => {
 	requireActor(ctx);
-	const [status] = await rows<{ wipLimit: number | null; category: string; agentConfig: unknown }>(
+	const [status] = await rows<{ wipLimit: number | null }>(
 		tx,
-		sql`SELECT wip_limit AS "wipLimit", category, agent_config AS "agentConfig" FROM statuses WHERE id=${statusId}`,
+		sql`SELECT wip_limit AS "wipLimit" FROM statuses WHERE id=${statusId}`,
 	);
-	if (status!.category === "started" && !status!.agentConfig)
-		throw invalidInput("status", "Select a worker persona in the column settings before you use In Progress.");
 	if (status!.wipLimit === null) return;
 	const [count] = await rows<{ count: number }>(
 		tx,

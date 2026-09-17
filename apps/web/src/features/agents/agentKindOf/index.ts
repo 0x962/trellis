@@ -1,0 +1,1 @@
+export { agentKindOf } from "./agentKindOf";

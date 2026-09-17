@@ -42,7 +42,7 @@ const createRepository = async () => {
 
 const run = {
 	id: "01M2PT14NJDS107B4TGK6PNFDA",
-	kind: "builder",
+	kind: "agent",
 	runtime: "native",
 	ticketIdentifier: "TRL-115",
 	workspaceId: null,

@@ -34,7 +34,7 @@ export function SessionRow({ session, working, active }: SessionRowProps) {
 					<Avatar
 						kind="agent"
 						name={session.name}
-						personaKind="builder"
+						agentKind="agent"
 						state={working ? "working-mild" : "static"}
 						className="size-5"
 					/>

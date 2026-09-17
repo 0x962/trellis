@@ -10,7 +10,6 @@ const operations = {
 	projects: ["list", "get"],
 	harnessAccounts: ["list", "quota"],
 	statuses: ["list"],
-	personas: ["list", "get"],
 	tickets: ["list", "counts", "get", "create", "update", "move", "updateMany"],
 	comments: ["thread", "create", "update", "resolve"],
 	chat: ["channels", "createChannel", "list", "post", "attachment"],
@@ -88,10 +87,6 @@ export const managerTools = (invoke: Invoke) => {
 				tool.operation,
 				tool.operation === "agentRuns.session" ? { id: (parsed as { id: string }).id } : parsed,
 			);
-			// The full instruction of every persona is too long for one tool
-			// result, so the list carries names only and personas.get reads one.
-			if (tool.operation === "personas.list")
-				return (result as { instruction: string }[]).map(({ instruction: _instruction, ...persona }) => persona);
 			if (
 				[
 					"submanagers.start",

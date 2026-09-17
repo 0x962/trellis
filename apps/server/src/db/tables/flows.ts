@@ -12,7 +12,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { checkIn, FLOW_BRANCHES, FLOW_NODE_KINDS } from "../enums.ts";
 import { at } from "./actors.ts";
-import { personas } from "./personas.ts";
 
 // A flow is a graph of agent steps. `version` rises on every change to the
 // flow row or to any of its nodes and edges, so a client that saves with an
@@ -43,8 +42,7 @@ export const flows = pgTable(
 // `parent_id`. The composite foreign key keeps the group inside the same
 // flow, and the delete of a group deletes every node inside it. The service
 // checks that the parent is a group kind, because a CHECK cannot read the
-// kind of another row. A persona delete sets `persona_id` to NULL and keeps
-// the node. `x` and `y` are relative to the group that holds the node. `width`
+// kind of another row. `x` and `y` are relative to the group that holds the node. `width`
 // and `height` are the drawn size of a group box, and NULL for a card.
 export const flowNodes = pgTable(
 	"flow_nodes",
@@ -56,7 +54,6 @@ export const flowNodes = pgTable(
 		parentId: text("parent_id"),
 		kind: text().notNull(),
 		title: text().notNull(),
-		personaId: text("persona_id").references(() => personas.id, { onDelete: "set null" }),
 		instruction: text().notNull().default(""),
 		parallel: boolean().notNull().default(false),
 		minutes: integer(),
@@ -91,7 +88,6 @@ export const flowNodes = pgTable(
 			sql`(${t.width} IS NULL OR ${t.width} >= 40) AND (${t.height} IS NULL OR ${t.height} >= 40)`,
 		),
 		index("flow_nodes_flow_id_idx").on(t.flowId),
-		index("flow_nodes_persona_id_idx").on(t.personaId),
 	],
 );
 

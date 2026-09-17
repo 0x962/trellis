@@ -1,7 +1,6 @@
-import { DotsThree } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ReviewRevision, TrellisClient } from "@trellis/api";
-import { Button, IconButton, Select, Sheet, Tooltip } from "@trellis/ui";
+import { Button, Select, Sheet } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 
@@ -26,64 +25,68 @@ const labels: Record<Action, string> = {
 	"live-persist": "Keep Live Branch after merge",
 	"live-unpersist": "Remove Live Branch persistence",
 };
-export function ReviewActions({ pr, revision, onDone }: { pr: string; revision: ReviewRevision; onDone: () => void }) {
+export function ReviewActions({
+	pr,
+	revision,
+	open,
+	onOpenChange,
+	onDone,
+}: {
+	pr: string;
+	revision: ReviewRevision;
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	onDone: () => void;
+}) {
 	const { client, orpc } = useApp();
-	const [open, setOpen] = useState(false);
 	const [action, setAction] = useState<Action>("merge");
 	const extra = useQuery(orpc.reviews.metadata.queryOptions({ input: { pr } }));
 	const mutation = useMutation({
 		mutationFn: () => client.reviews.action({ pr, headSha: revision.headSha, action }),
 		onSuccess: () => {
-			setOpen(false);
+			onOpenChange(false);
 			onDone();
 		},
 	});
 	const items = Object.entries(labels)
 		.filter(([key]) => !key.startsWith("live-") && (!key.startsWith("deploy-") || extra.data?.autoDeployAvailable))
 		.map(([value, label]) => ({ value: value as Action, label }));
-	return (
-		<>
-			<Tooltip content="Pull request actions">
-				<IconButton label="Pull request actions" icon={<DotsThree />} onClick={() => setOpen(true)} />
-			</Tooltip>
-			{open && (
-				<Sheet
-					width="var(--review-sheet-width)"
-					titleClassName="font-medium text-base"
-					open
-					title="Pull request action"
-					onOpenChange={(value) => !value && !mutation.isPending && setOpen(false)}
-				>
-					<form
-						className="review-form"
-						onSubmit={(event) => {
-							event.preventDefault();
-							mutation.mutate();
-						}}
-					>
-						<Select label="Action" value={action} onValueChange={setAction} items={items} />
-						<a className="review-meta" href={pr} target="_blank" rel="noreferrer">
-							Open pull request
-						</a>
-						{action === "admin-merge" && <p role="alert">This action bypasses branch protection.</p>}
-						{action === "live-delete" && <p role="alert">This action deletes the PR environment.</p>}
-						<p className="review-meta">Reviewed head: {revision.headSha.slice(0, 12)}</p>
-						{mutation.isError && (
-							<p role="alert" className="review-error">
-								{mutation.error.message}
-							</p>
-						)}
-						<div className="review-form-actions">
-							<Button type="button" disabled={mutation.isPending} onClick={() => setOpen(false)}>
-								Cancel
-							</Button>
-							<Button type="submit" processing={mutation.isPending}>
-								{labels[action]}
-							</Button>
-						</div>
-					</form>
-				</Sheet>
-			)}
-		</>
-	);
+	return open ? (
+		<Sheet
+			width="var(--review-sheet-width)"
+			titleClassName="font-medium text-base"
+			open
+			title="Pull request action"
+			onOpenChange={(value) => !value && !mutation.isPending && onOpenChange(false)}
+		>
+			<form
+				className="review-form"
+				onSubmit={(event) => {
+					event.preventDefault();
+					mutation.mutate();
+				}}
+			>
+				<Select label="Action" value={action} onValueChange={setAction} items={items} />
+				<a className="review-meta" href={pr} target="_blank" rel="noreferrer">
+					Open pull request
+				</a>
+				{action === "admin-merge" && <p role="alert">This action bypasses branch protection.</p>}
+				{action === "live-delete" && <p role="alert">This action deletes the PR environment.</p>}
+				<p className="review-meta">Reviewed head: {revision.headSha.slice(0, 12)}</p>
+				{mutation.isError && (
+					<p role="alert" className="review-error">
+						{mutation.error.message}
+					</p>
+				)}
+				<div className="review-form-actions">
+					<Button type="button" disabled={mutation.isPending} onClick={() => onOpenChange(false)}>
+						Cancel
+					</Button>
+					<Button type="submit" variant={action === "close" ? "danger" : "primary"} processing={mutation.isPending}>
+						{labels[action]}
+					</Button>
+				</div>
+			</form>
+		</Sheet>
+	) : null;
 }

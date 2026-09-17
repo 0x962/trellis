@@ -6,7 +6,7 @@ import type { HarnessLaunch, HarnessLaunchInput } from "../types.ts";
 
 // Muse reads `AGENTS.md` of a trusted workspace as its project rules. A
 // manager works in a private empty workspace, so that file holds the
-// persona instruction of the manager and nothing else. Muse keeps its own
+// manager instruction and nothing else. Muse keeps its own
 // base instructions in front of it.
 export const MUSE_MANAGER_RULES_FILE = "AGENTS.md";
 

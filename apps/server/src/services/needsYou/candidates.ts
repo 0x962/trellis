@@ -31,7 +31,7 @@ export const candidates = async (tx: Tx, actor: string): Promise<Candidate[]> =>
 			WHERE s.category='review' AND s.reviewer='human'
 			UNION ALL
 			SELECT 'mentioned:' || c.id, 'mentioned', t.id, c.created_at,
-				jsonb_build_object('id', c.id, 'threadId', COALESCE(c.parent_id,c.id), 'body',c.body,'actorName',COALESCE(run.persona_name,c.actor_name))
+				jsonb_build_object('id', c.id, 'threadId', COALESCE(c.parent_id,c.id), 'body',c.body,'actorName',COALESCE(run.name,c.actor_name))
 			FROM comments c JOIN tickets t ON t.id=c.ticket_id
 			JOIN comments root ON root.id=COALESCE(c.parent_id,c.id)
 			LEFT JOIN agent_runs run ON c.actor_kind='agent' AND run.id=c.actor_name

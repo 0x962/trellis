@@ -24,7 +24,6 @@ type Input = {
 	model?: string;
 	expectedTerminalId: string;
 	requestId: string;
-	automatic?: boolean;
 };
 export async function prepareResume(
 	ctx: IoCtx,
@@ -35,12 +34,11 @@ export async function prepareResume(
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
 	await ctx.newTx(async (tx) => {
 		await assertResume(ctx.core, tx, run);
-		await assertResumeTicket(tx, run, input.automatic);
+		await assertResumeTicket(tx, run);
 	});
-	if (run.runtime !== "native" || !run.projectId || !run.personaId)
+	if (run.runtime !== "native" || !run.projectId)
 		throw invalidInput("id", "This assignment has no resumable native session.");
 	const target = {
-		personaId: run.personaId,
 		projectId: run.projectId,
 		ticketId: run.ticketId,
 		newSession: false,
@@ -103,15 +101,15 @@ export async function prepareResume(
 		assertProjectActive(ctx.core, run.projectId!);
 		const current = await getRun(tx, input.id);
 		await assertResume(ctx.core, tx, current);
-		await assertResumeTicket(tx, current, input.automatic);
+		await assertResumeTicket(tx, current);
 		if (current.terminalId !== input.expectedTerminalId)
 			throw invalidInput("expectedTerminalId", "Another call already replaced this attempt.");
-		if (current.ticketId) {
+		if (current.ticketId && current.kind === "agent") {
 			const duplicates = await rows(
 				tx,
-				sql`SELECT id FROM agent_runs WHERE ticket_id=${current.ticketId} AND persona_id=${current.personaId} AND id<>${current.id} AND closed_at IS NULL`,
+				sql`SELECT id FROM agent_runs WHERE ticket_id=${current.ticketId} AND kind='agent' AND id<>${current.id} AND closed_at IS NULL`,
 			);
-			if (duplicates.length) throw invalidInput("id", "Another agent already owns this ticket and persona.");
+			if (duplicates.length) throw invalidInput("id", "Another agent already owns this ticket.");
 		}
 		const config = await projectLaunchConfig(tx, { projectId: run.projectId! });
 		const selected = await selectAccount(tx, {
@@ -155,13 +153,11 @@ export async function prepareResume(
 		resume: true,
 		previousAttemptId: input.expectedTerminalId,
 		previousAccountId: run.accountId ?? null,
-		requiredTicketCategory: input.automatic ? "started" : undefined,
 		context: "",
 		resumePrompt: JSON.stringify({
 			type: "trellis.assignment.resumed",
 			runId: run.id,
 			previousAttemptId: input.expectedTerminalId,
-			automatic: input.automatic ?? false,
 		}),
 	});
 }

@@ -32,7 +32,7 @@ const BodySchema = z
 
 export const ChatNotificationSchema = z.object({
 	runId: z.string(),
-	personaName: z.string(),
+	agentName: z.string(),
 	state: z.enum(["pending", "sending", "sent", "failed", "unknown"]),
 	error: z.string().nullable(),
 	// True when the message mentioned this agent. The send interrupts its turn.

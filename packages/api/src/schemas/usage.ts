@@ -20,7 +20,7 @@ export type UsageMetric = z.infer<typeof UsageMetricSchema>;
 
 // The seven ways the page slices the report. Every session carries one key
 // per grouping, so the client filters the session list by the selected row.
-export const UsageGroupBySchema = z.enum(["ticket", "persona", "project", "kind", "account", "model", "harness"]);
+export const UsageGroupBySchema = z.enum(["ticket", "agent", "project", "kind", "account", "model", "harness"]);
 export type UsageGroupBy = z.infer<typeof UsageGroupBySchema>;
 
 export const UsageSliceSchema = z.object({ usd: z.number(), tokens: z.number() });
@@ -70,7 +70,7 @@ export const UsageSessionSchema = z.object({
 		.object({
 			id: z.string(),
 			kind: z.string(),
-			persona: z.string(),
+			name: z.string(),
 			ticketIdentifier: z.string().nullable(),
 			ticketTitle: z.string().nullable(),
 			projectPath: z.string(),

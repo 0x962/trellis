@@ -2,7 +2,6 @@ import type { ColorToken, Reviewer } from "@trellis/api";
 import { Button, Checkbox, Input, Select, Textarea } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
-import { ColumnAgentFields } from "../../../../agents/ColumnAgentFields";
 import type { StatusRowProps } from "../../StatusRow";
 
 const colors: { value: ColorToken; label: string }[] = [
@@ -25,8 +24,6 @@ type StatusEditorProps = Pick<StatusRowProps, "project" | "status" | "onChanged"
 
 export function StatusEditor({ project, status, onChanged, onCancel }: StatusEditorProps) {
 	const { client } = useApp();
-	const canConfigureWorker = status.category !== "done" && status.category !== "canceled";
-	const [agentConfig, setAgentConfig] = useState(status.agentConfig);
 	const [name, setName] = useState(status.name);
 	const [description, setDescription] = useState(status.description);
 	const [color, setColor] = useState<ColorToken>(status.color);
@@ -46,7 +43,6 @@ export function StatusEditor({ project, status, onChanged, onCancel }: StatusEdi
 				project,
 				status: status.id,
 				name: name.trim(),
-				agentConfig: canConfigureWorker ? agentConfig : null,
 				description,
 				color,
 				...(status.category === "review" ? { reviewer } : {}),
@@ -106,9 +102,8 @@ export function StatusEditor({ project, status, onChanged, onCancel }: StatusEdi
 					onChange={(event) => setWipLimit(event.target.value)}
 				/>
 			</div>
-			{canConfigureWorker && <ColumnAgentFields value={agentConfig} onChange={setAgentConfig} />}
 			<p className="text-sm text-fg-muted">
-				The limit blocks new tickets. Every ticket already in this column keeps its worker.
+				The limit blocks new tickets. Tickets that are already in this column stay in it.
 			</p>
 			<Textarea
 				label="Description"

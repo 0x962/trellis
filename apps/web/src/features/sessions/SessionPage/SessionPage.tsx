@@ -84,7 +84,7 @@ export function SessionPage({ id }: { id: string }) {
 					<Avatar
 						kind="agent"
 						name={session.name}
-						personaKind="builder"
+						agentKind="agent"
 						state={isAgentWorking(run) ? "working" : "static"}
 						className="size-7"
 					/>

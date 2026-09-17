@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { AgentRunStartInput, Persona } from "@trellis/api";
+import type { AgentRunStartInput } from "@trellis/api";
 import { HarnessSchema, supportsModel } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
@@ -35,8 +35,8 @@ export const reserve = async (
 	confirmedExited: string[] = [],
 	options?: {
 		copilot?: boolean;
-		column?: boolean;
 		delegated?: boolean;
+		flow?: { name: string; instruction: string };
 		config?: Awaited<ReturnType<typeof projectLaunchConfig>>;
 	},
 ) => {
@@ -45,15 +45,10 @@ export const reserve = async (
 		const manager = await rows(tx, sql`SELECT id FROM agent_runs WHERE id=${actor.name} AND kind='manager'`);
 		if (manager.length) throw invalidInput("project", "Use submanagers.start to delegate a project subtree.");
 	}
-	const [persona] = await rows<Persona>(
-		tx,
-		sql`SELECT id, name, kind, instruction FROM personas WHERE id = ${input.personaId}`,
-	);
-	if (persona === undefined) throw fail("NOT_FOUND", { kind: "persona", ref: input.personaId });
-	if ((persona.kind === "manager") !== (input.project !== undefined))
-		throw invalidInput("personaId", "Select a manager for a project, or a builder or reviewer for a ticket.");
 	const ticket = input.ticket === undefined ? null : await resolveTicket(ctx, tx, input.ticket);
 	const project = await resolveMutableProject(ctx, tx, ticket?.projectId ?? input.project!);
+	const kind = ticket === null ? "manager" : options?.flow ? "flow" : "agent";
+	const name = options?.flow?.name ?? (kind === "manager" ? "Manager" : "Agent");
 	if (ticket === null && !options?.delegated && !options?.copilot) {
 		const delegated = await rows(
 			tx,
@@ -66,7 +61,6 @@ export const reserve = async (
 	const request = {
 		requestId: input.requestId,
 		target: {
-			personaId: persona.id,
 			projectId: project.id,
 			ticketId: ticket?.id ?? null,
 			newSession: input.newSession === true,
@@ -77,40 +71,19 @@ export const reserve = async (
 		(await assignment(ctx, tx, {
 			requestId: input.requestId,
 			ticketId: ticket?.id ?? null,
-			personaId: persona.id,
 			accountId: input.accountId,
 		})) ?? (await replayRequest(ctx, tx, request));
 	if (replay) return { replay: true as const, run: replay };
 	assertProjectActive(ctx, project.id);
-	if (ticket?.completedAt != null && !options?.column)
-		throw invalidInput("ticket", "Reopen the ticket before you assign an agent.");
 	let config = options?.config ?? (await projectLaunchConfig(tx, { projectId: project.id }));
-	if (ticket) {
-		const [status] = await rows<{ agentConfig: import("@trellis/api").StatusAgentConfig | null }>(
-			tx,
-			sql`SELECT agent_config AS "agentConfig" FROM statuses WHERE id=${ticket.statusId}`,
-		);
-		if (status?.agentConfig)
-			config = {
-				...config,
-				harness: HarnessSchema.parse(status.agentConfig.harness),
-				accountId: status.agentConfig.accountId ?? null,
-			};
-	}
 	if (input.harness) config = { ...config, harness: HarnessSchema.parse(input.harness), accountId: null };
-	if (ticket !== null) {
+	if (kind === "agent") {
 		await assertAssignmentOwner(ctx, tx, project.id);
 		const assigned = await rows(
 			tx,
-			sql`SELECT id FROM agent_runs WHERE ticket_id=${ticket.id} AND persona_id=${persona.id} AND runtime='native' AND closed_at IS NULL LIMIT 1`,
+			sql`SELECT id FROM agent_runs WHERE ticket_id=${ticket!.id} AND kind='agent' AND closed_at IS NULL LIMIT 1`,
 		);
-		if (assigned.length > 0) throw fail("DUPLICATE", { field: "active persona assignment on this ticket" });
-		const [status] = await rows<{ category: string }>(
-			tx,
-			sql`SELECT category FROM statuses WHERE id=${ticket.statusId}`,
-		);
-		if (status?.category === "todo" && !options?.column)
-			throw invalidInput("ticket", "Move the ticket out of Todo before you assign an agent.");
+		if (assigned.length > 0) throw fail("DUPLICATE", { field: "active agent assignment on this ticket" });
 	}
 	const projectPath = pathOf(ctx.cache, project.id);
 	const ids = chainOf(ctx.cache, project.id).map((item) => item.id);
@@ -123,9 +96,7 @@ export const reserve = async (
 	);
 	await upsert(ctx, tx, actor);
 	let existing =
-		persona.kind === "manager"
-			? await managerRowOf(tx, project.id, options?.copilot ? null : options?.delegated)
-			: undefined;
+		kind === "manager" ? await managerRowOf(tx, project.id, options?.copilot ? null : options?.delegated) : undefined;
 	if (existing !== undefined && existing.runtime === "native" && existing.closedAt === null)
 		throw fail("DUPLICATE", { field: "active agent" });
 	if (existing && existing.runtime !== "native") existing = undefined;
@@ -163,17 +134,15 @@ export const reserve = async (
 		existing === undefined
 			? await rows<StoredRun>(
 					tx,
-					sql`INSERT INTO agent_runs (id, name, persona_id, persona_name, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, runtime, closed_at, session_id, created_at, updated_at)
-		VALUES (${ulid()}, ${persona.name}, ${persona.id}, ${persona.name}, ${persona.kind}, ${persona.instruction}, ${project.id}, ${projectPath}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'native', NULL, ${sessionId}, ${ctx.now}, ${ctx.now})
+					sql`INSERT INTO agent_runs (id, name, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, runtime, closed_at, session_id, created_at, updated_at)
+		VALUES (${ulid()}, ${name}, ${kind}, ${options?.flow?.instruction ?? (kind === "manager" ? config.instruction : "")}, ${project.id}, ${projectPath}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'native', NULL, ${sessionId}, ${ctx.now}, ${ctx.now})
 		ON CONFLICT DO NOTHING RETURNING ${columns}`,
 				)
-			: // A person can change the persona between two starts, so the row
-				// takes the current persona and its instruction. The error of the
-				// last start goes.
+			: // The current project instruction applies when a manager starts again.
 				await rows<StoredRun>(
 					tx,
 					sql`UPDATE agent_runs SET closed_at = NULL, error = NULL, session_lost = false, session_id = ${sessionId},
-			name = ${persona.name}, persona_id = ${persona.id}, persona_name = ${persona.name}, instruction = ${persona.instruction}, updated_at = ${ctx.now}
+			name = ${name}, instruction = ${config.instruction}, updated_at = ${ctx.now}
 			WHERE id = ${existing.id} RETURNING ${columns}`,
 				);
 	if (run === undefined) throw fail("DUPLICATE", { field: "active agent" });
@@ -185,9 +154,9 @@ export const reserve = async (
 	run.runtime = "native";
 	run.terminalId = attempt.id;
 	await recordRequest(ctx, tx, { ...request, runId: run.id });
-	if (ticket !== null)
+	if (kind === "agent")
 		await tx.execute(sql`UPDATE manager_next_actions a SET state='assigned',run_id=${run.id},assigned_at=${ctx.now}
- WHERE ticket_id=${ticket.id} AND state='waiting' AND status_id=${ticket.statusId}
+ WHERE ticket_id=${ticket!.id} AND state='waiting' AND status_id=${ticket!.statusId}
  AND (${actor.kind === "human"} OR EXISTS (SELECT 1 FROM agent_runs manager WHERE manager.id=${actor.name}
  AND manager.kind='manager' AND manager.project_id=a.project_id AND manager.closed_at IS NULL))`);
 	const context =
@@ -197,7 +166,7 @@ export const reserve = async (
 	// The notes of the project chain for this kind of agent, so the agent
 	// starts with what earlier agents and people wrote for it.
 	const notes = notesLines(
-		await activeNotes(ctx, tx, { projectId: project.id, audience: ticket === null ? "manager" : "worker" }),
+		await activeNotes(ctx, tx, { projectId: project.id, audience: kind === "manager" ? "manager" : "worker" }),
 		projectPath,
 	);
 	return {

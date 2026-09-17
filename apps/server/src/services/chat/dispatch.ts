@@ -29,7 +29,7 @@ const contextFor = async (ctx: ServiceCtx, projectId: string, claimed: PendingLi
 			rows<ContextLine>(
 				tx,
 				sql`SELECT m.id AS "messageId", m.channel, m.body, m.actor_name AS "actorName", m.actor_kind AS "actorKind",
-				author.persona_name AS "actorDisplayName",
+				author.name AS "actorDisplayName",
 				to_char(m.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "createdAt"
 				FROM chat_messages m LEFT JOIN agent_runs author ON m.actor_kind='agent' AND author.id=m.actor_name
 				WHERE m.project_id=${projectId} AND m.channel=${channel} AND m.id < ${first.messageId}
@@ -48,7 +48,7 @@ type Recipient = {
 	runId: string;
 	terminalId: string;
 	sessionId: string | null;
-	personaName: string;
+	agentName: string;
 	kind: string;
 	projectPath: string;
 };
@@ -96,7 +96,7 @@ export const dispatchChat = async (
 		rows<Recipient>(
 			tx,
 			sql`SELECT DISTINCT d.run_id AS "runId", d.terminal_id AS "terminalId", d.session_id AS "sessionId",
-			d.persona_name AS "personaName", r.kind, r.project_path AS "projectPath"
+			d.agent_name AS "agentName", r.kind, r.project_path AS "projectPath"
 			FROM chat_deliveries d JOIN chat_messages m ON m.id=d.message_id JOIN agent_runs r ON r.id=d.run_id
 		WHERE d.state='pending' AND d.terminal_id IN (${sql.join(
 			ready.map((id) => sql`${id}`),
@@ -114,7 +114,7 @@ export const dispatchChat = async (
 				LEFT JOIN agent_runs author ON m.actor_kind='agent' AND author.id=m.actor_name
 				WHERE d.message_id=m.id AND d.run_id=${recipient.runId} AND d.state='pending'
 				RETURNING d.id, d.direct, m.id AS "messageId", m.project_id AS "projectId", m.channel, m.body,
-				m.actor_name AS "actorName", m.actor_kind AS "actorKind", author.persona_name AS "actorDisplayName",
+				m.actor_name AS "actorName", m.actor_kind AS "actorKind", author.name AS "actorDisplayName",
 				to_char(m.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "createdAt"`,
 			),
 		);

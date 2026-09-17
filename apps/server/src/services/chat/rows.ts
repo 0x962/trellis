@@ -44,13 +44,12 @@ export type RawMessage = {
 };
 
 const notifications = (id: SQL) => sql`COALESCE((SELECT jsonb_agg(jsonb_build_object(
-	'runId',d.run_id,'personaName',d.persona_name,'state',d.state,'error',d.error,'direct',d.direct) ORDER BY d.id)
+	'runId',d.run_id,'agentName',d.agent_name,'state',d.state,'error',d.error,'direct',d.direct) ORDER BY d.id)
 	FROM chat_deliveries d WHERE d.message_id=${id}), '[]'::jsonb)`;
 
-// An agent actor is `agent:<run id>`, and the run names the persona, which
-// is the name a reader knows the agent by.
+// An agent actor is `agent:<run id>`. The run name is its display name.
 export const messageSelect = sql`SELECT m.id, m.project_id, m.channel, m.body, ${notifications(sql`m.id`)} AS notifications,
-	m.actor_name, m.actor_kind, r.persona_name AS actor_display_name, ${iso(sql`m.created_at`)} AS created_at
+	m.actor_name, m.actor_kind, r.name AS actor_display_name, ${iso(sql`m.created_at`)} AS created_at
 	FROM chat_messages m LEFT JOIN agent_runs r ON m.actor_kind = 'agent' AND r.id = m.actor_name`;
 
 export const toMessage = (row: RawMessage): ChatMessage => ({

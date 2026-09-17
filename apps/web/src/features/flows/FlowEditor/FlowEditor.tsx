@@ -11,7 +11,6 @@ import { FlowWorkspace } from "./components/FlowWorkspace";
 export function FlowEditor({ slug }: { slug: string }) {
 	const { orpc } = useApp();
 	const doc = useQuery(orpc.flows.get.queryOptions({ input: { flow: slug }, retry: false }));
-	const personas = useQuery(orpc.personas.list.queryOptions({ input: {}, retry: false }));
 	const [generation, setGeneration] = useState(0);
 
 	if (doc.isError) {
@@ -25,7 +24,7 @@ export function FlowEditor({ slug }: { slug: string }) {
 			/>
 		);
 	}
-	if (doc.isPending || personas.isPending)
+	if (doc.isPending)
 		return (
 			<div role="status" aria-label="Load the flow" className="page-card flex flex-1 flex-col gap-3 p-6">
 				<span className="sr-only">Load the flow</span>
@@ -38,7 +37,6 @@ export function FlowEditor({ slug }: { slug: string }) {
 			<FlowWorkspace
 				key={`${doc.data.flow.id}.${generation}`}
 				doc={doc.data}
-				personas={personas.data ?? []}
 				onReload={() => void doc.refetch().then(() => setGeneration((value) => value + 1))}
 			/>
 		</ReactFlowProvider>

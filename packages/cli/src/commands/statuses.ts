@@ -1,5 +1,4 @@
 import type { ColorToken, Reviewer, Status, StatusCategory } from "@trellis/api";
-import { StatusAgentConfigSchema } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { type CliContext, compact, contextOf, readText, toNumber } from "../context.ts";
@@ -68,7 +67,6 @@ const add = defineCommand({
 		description: descriptionFlag,
 		color: { type: "string", description: "Color token" },
 		position: { type: "string", description: "Position in the column order" },
-		"agent-config": { type: "string", description: "Worker configuration as JSON; null makes the column manual" },
 		"wip-limit": { type: "string", description: "Work in progress limit" },
 		default: { type: "boolean", description: "Make it the default status of new tickets" },
 	},
@@ -85,10 +83,6 @@ const add = defineCommand({
 				color: args.color as ColorToken | undefined,
 				position: toNumber(args.position),
 				wipLimit: toNumber(args["wip-limit"]),
-				agentConfig:
-					args["agent-config"] === undefined
-						? undefined
-						: StatusAgentConfigSchema.nullable().parse(JSON.parse(args["agent-config"])),
 				isDefault: args.default === true ? true : undefined,
 			}),
 		);
@@ -117,7 +111,6 @@ const edit = defineCommand({
 		description: descriptionFlag,
 		color: { type: "string", description: "New color token" },
 		reviewer: { type: "enum", options: ["human", "agent"], description: "New reviewer" },
-		"agent-config": { type: "string", description: "Worker configuration as JSON; null makes the column manual" },
 		"wip-limit": { type: "string", description: "New work in progress limit" },
 		position: { type: "string", description: "New position in the column order" },
 		default: { type: "boolean", description: "Make it the default status" },
@@ -137,10 +130,6 @@ const edit = defineCommand({
 			color: args.color as ColorToken | undefined,
 			reviewer: args.reviewer as Reviewer | undefined,
 			wipLimit: toNumber(args["wip-limit"]),
-			agentConfig:
-				args["agent-config"] === undefined
-					? undefined
-					: StatusAgentConfigSchema.nullable().parse(JSON.parse(args["agent-config"])),
 			isDefault: args.default === true ? true : undefined,
 		});
 		const updated =

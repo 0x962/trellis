@@ -1,4 +1,4 @@
-import { PersonaMark } from "../../primitives/PersonaMark";
+import { AgentMark } from "../../primitives/AgentMark";
 
 export type TrellisMarkProps = {
 	label?: string;
@@ -9,7 +9,7 @@ export type TrellisMarkProps = {
 
 export function TrellisMark({ label, className = "size-4", background = true, working = false }: TrellisMarkProps) {
 	return (
-		<PersonaMark
+		<AgentMark
 			name="Trellis"
 			kind="manager"
 			label={label}

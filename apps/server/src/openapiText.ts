@@ -18,7 +18,6 @@ export const TAGS = [
 	{ name: "flow executions", description: "Saved flow versions, local worker attempts, and human decisions." },
 	{ name: "reviews", description: "Pull request diffs, local comments, and GitHub review actions." },
 	{ name: "sessions", description: "Scratch sessions: a git repository with one agent, outside every project." },
-	{ name: "personas", description: "Saved personas. Each persona has a name and an instruction." },
 	{
 		name: "flows",
 		description: "Flows: graphs of agent steps. A save replaces every node and edge of a flow at once.",
@@ -45,7 +44,7 @@ export const TAGS = [
 	{ name: "system", description: "Health, the gh state, and backups." },
 	{
 		name: "agent runs",
-		description: "The agents a persona starts on a ticket or a project, their output, and their follow-ups.",
+		description: "Ticket agents, project managers, flow agents, their output, and their follow-ups.",
 	},
 ];
 
@@ -135,7 +134,6 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /flow-executions": {
 		flow: "review",
 		ticket: "CDE-1",
-		defaultPersonaId: "01J9Z0000000000000000000A1",
 		expectedVersion: 1,
 		requestId: "5178cacf-d5b1-4223-8e2f-4fb3fb3f7710",
 	},
@@ -176,11 +174,6 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /reviews/import-margin": { source: "/Users/me/.margin/comments", dryRun: true, files: [] },
 	"POST /reviews/action": { pr: "acme/web#12", headSha: "0123456789abcdef", action: "ready" },
 	"POST /reviews/runs": { pr: "acme/web#12", action: "list" },
-	"POST /personas": { name: "Reviewer", instruction: "Read the diff. Report concrete defects." },
-	"PATCH /personas/{id}": {
-		name: "Code reviewer",
-		instruction: "Read each changed file. Report concrete defects.",
-	},
 	"POST /flows": { name: "PR review", description: "Review a pull request with parallel checkers." },
 	"PATCH /flows/{flow}": { briefing: "Review the pull request at {TARGET}.", expectedVersion: 2 },
 	"PUT /flows/{flow}/graph": {
@@ -190,7 +183,6 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 				parentId: null,
 				kind: "agent",
 				title: "Summarize the change",
-				personaId: null,
 				instruction: "Summarize the diff in five lines.",
 				minutes: null,
 				maxRounds: null,
@@ -204,7 +196,6 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 				parentId: null,
 				kind: "gate",
 				title: "Backend relevant?",
-				personaId: null,
 				instruction: "Does the change touch the server?",
 				minutes: null,
 				maxRounds: null,
@@ -268,7 +259,10 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"PUT /settings": {
 		defaultActorName: "dana",
 	},
-	"POST /agent-runs": { personaId: "01J9Z0000000000000000000A1", ticket: "CDE-42" },
+	"POST /agent-runs": {
+		ticket: "CDE-42",
+		harness: { preset: "codex", model: "openai/gpt-5.6-sol", effort: "high" },
+	},
 	"POST /sessions": { prompt: "Prototype a rate limiter in Go.", harness: { preset: "claude" } },
 	"POST /agent-runs/{id}/send": { text: "The CI run is red. Read the failing step and fix it." },
 };

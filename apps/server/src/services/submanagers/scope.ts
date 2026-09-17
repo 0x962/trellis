@@ -2,7 +2,7 @@ import { type SQL, sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 
-export const isManaged = (project: SQL) => sql`(${project}.manager_config->>'personaId' IS NOT NULL OR EXISTS (
+export const isManaged = (project: SQL) => sql`(coalesce(${project}.manager_config->>'instruction','') <> '' OR EXISTS (
 	SELECT 1 FROM manager_delegations delegation WHERE delegation.project_id=${project}.id AND delegation.retired_at IS NULL))`;
 
 export const managerScope = (projectId: string | SQL, includeArchived = false) => sql`WITH RECURSIVE scope AS (

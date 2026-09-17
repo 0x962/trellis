@@ -30,7 +30,6 @@ export const reserveSubmanager = async (ctx: ServiceCtx, tx: Tx, input: Input, e
 			brief: string;
 			accountId?: string | null;
 			requestedAccountId?: string | null;
-			personaId: string;
 		};
 		run_id: string;
 	}>(
@@ -67,7 +66,6 @@ export const reserveSubmanager = async (ctx: ServiceCtx, tx: Tx, input: Input, e
 		tx,
 		{
 			project: project.id,
-			personaId: request?.target.personaId ?? parent.personaId,
 			requestId: input.requestId,
 			accountId: request
 				? (request.target.accountId ?? undefined)

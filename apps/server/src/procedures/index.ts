@@ -12,7 +12,6 @@ import { loops } from "./loops.ts";
 import { models } from "./models.ts";
 import { needsYou } from "./needsYou.ts";
 import { notes } from "./notes.ts";
-import { personas } from "./personas.ts";
 import { projects } from "./projects.ts";
 import { pullRequests } from "./pullRequests.ts";
 import { actors, brief, search, settings, timeline } from "./reads.ts";
@@ -38,7 +37,6 @@ export const router = os.router({
 	reviews,
 	agentRuns,
 	sessions,
-	personas,
 	flows,
 	flowExecutions,
 	labelGroups,

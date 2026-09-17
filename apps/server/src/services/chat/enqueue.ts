@@ -12,7 +12,7 @@ export const enqueue = async (
 ) => {
 	const live = await rows<Recipient>(
 		tx,
-		sql`SELECT r.id, r.persona_name AS "personaName", r.kind, r.terminal_id AS "terminalId", r.session_id AS "sessionId"
+		sql`SELECT r.id, r.name, r.kind, r.terminal_id AS "terminalId", r.session_id AS "sessionId"
 		FROM agent_runs r WHERE r.runtime = 'native' AND r.closed_at IS NULL AND r.project_id = ${input.rootId}`,
 	);
 	const everyone = recipientsOf(live, input.body, input.actor);
@@ -23,8 +23,8 @@ export const enqueue = async (
 		: everyone;
 	for (const { run, direct } of addressed) {
 		if (run.kind === "manager" && input.actor.kind !== "human") continue;
-		await tx.execute(sql`INSERT INTO chat_deliveries (id, message_id, run_id, persona_name, terminal_id, session_id, direct)
-			VALUES (${ulid()}, ${input.messageId}, ${run.id}, ${run.personaName}, ${run.terminalId}, ${run.sessionId}, ${direct})
+		await tx.execute(sql`INSERT INTO chat_deliveries (id, message_id, run_id, agent_name, terminal_id, session_id, direct)
+			VALUES (${ulid()}, ${input.messageId}, ${run.id}, ${run.name}, ${run.terminalId}, ${run.sessionId}, ${direct})
 			ON CONFLICT (message_id, run_id) DO NOTHING`);
 	}
 };

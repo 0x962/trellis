@@ -34,15 +34,13 @@ export const assertFreeName = (others: Status[], name: string, slug: string) => 
 	if (others.some((status) => status.slug === slug)) throw fail("DUPLICATE", { field: "slug" });
 };
 
-export type StatusInsert = Omit<Status, "createdAt" | "updatedAt" | "agentConfig"> & {
-	agentConfig?: Status["agentConfig"];
-};
+export type StatusInsert = Omit<Status, "createdAt" | "updatedAt">;
 
 export const insertStatus = (ctx: ServiceCtx, tx: Tx, status: StatusInsert) =>
 	tx.execute(
-		sql`INSERT INTO statuses (id, project_id, name, description, slug, category, reviewer, color, position, wip_limit, agent_config, is_default, created_at, updated_at)
+		sql`INSERT INTO statuses (id, project_id, name, description, slug, category, reviewer, color, position, wip_limit, is_default, created_at, updated_at)
 			VALUES (${status.id}, ${status.projectId}, ${status.name}, ${status.description}, ${status.slug}, ${status.category},
-				${status.reviewer}, ${status.color}, ${status.position}, ${status.wipLimit}, ${JSON.stringify(status.agentConfig ?? null)}::jsonb, ${status.isDefault}, ${ctx.now}, ${ctx.now})`,
+				${status.reviewer}, ${status.color}, ${status.position}, ${status.wipLimit}, ${status.isDefault}, ${ctx.now}, ${ctx.now})`,
 	);
 
 // Gives an inheriting project its own copy of the effective set: new ids,
@@ -65,7 +63,7 @@ export const materialize = async (ctx: ServiceCtx, tx: Tx, projectId: string) =>
 const ROOT_SEED: Array<Pick<Status, "name" | "description" | "category" | "reviewer" | "color" | "isDefault">> = [
 	{
 		name: "Todo",
-		description: "New work. Read it, ask in a comment when it is unclear, then start a builder.",
+		description: "Work has not started.",
 		category: "todo",
 		reviewer: null,
 		color: "fg-muted",
@@ -73,7 +71,7 @@ const ROOT_SEED: Array<Pick<Status, "name" | "description" | "category" | "revie
 	},
 	{
 		name: "In Progress",
-		description: "A builder works on this ticket. Forward each new comment to the builder.",
+		description: "Work is in progress.",
 		category: "started",
 		reviewer: null,
 		color: "accent",
@@ -81,7 +79,7 @@ const ROOT_SEED: Array<Pick<Status, "name" | "description" | "category" | "revie
 	},
 	{
 		name: "Agent Review",
-		description: "A builder opened a PR. Run a reviewer.",
+		description: "An agent reviews the work.",
 		category: "review",
 		reviewer: "agent",
 		color: "agent",
@@ -89,7 +87,7 @@ const ROOT_SEED: Array<Pick<Status, "name" | "description" | "category" | "revie
 	},
 	{
 		name: "Human Review",
-		description: "Waiting for the human reviewer. Do nothing unless they comment.",
+		description: "A person reviews the work.",
 		category: "review",
 		reviewer: "human",
 		color: "warning",
@@ -97,7 +95,7 @@ const ROOT_SEED: Array<Pick<Status, "name" | "description" | "category" | "revie
 	},
 	{
 		name: "Done",
-		description: "The work is complete. Close the builder's workspace.",
+		description: "Work is complete.",
 		category: "done",
 		reviewer: null,
 		color: "success",
@@ -105,7 +103,7 @@ const ROOT_SEED: Array<Pick<Status, "name" | "description" | "category" | "revie
 	},
 	{
 		name: "Canceled",
-		description: "Nobody works on this ticket. Stop its builder and close its workspace.",
+		description: "Work will not continue.",
 		category: "canceled",
 		reviewer: null,
 		color: "fg-faint",

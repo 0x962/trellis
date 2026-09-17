@@ -18,8 +18,7 @@ const checkAudience = (value: string | undefined) => {
 	return value as NoteAudience | undefined;
 };
 
-// An agent actor is `agent:<run id>`; its persona name comes first so a
-// reader knows the agent by name.
+// An agent actor is `agent:<run id>`. Its display name comes first.
 const writer = (note: Note) =>
 	note.actor.kind === "agent" && note.actor.displayName !== undefined
 		? `${note.actor.kind}:${note.actor.displayName} ${note.actor.name}`

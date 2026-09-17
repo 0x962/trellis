@@ -69,7 +69,7 @@ This local preview disables hardened runtime through `codesign --options 0`. Ad-
 
 ## Production install
 
-The Trellis SRE persona owns release batches for the TRL project.
+The Trellis SRE manager owns release batches for the TRL project.
 The manager assigns one SRE to all eligible Deploy Queue tickets, with one build, install, and restart for the batch.
 The SRE saves a release checkpoint before restart and verifies restored sessions afterward.
 
@@ -89,7 +89,7 @@ The command signs the local package. It copies the app with `ditto` into a tempo
 
 Use this command for each production install. Keep the installed bundle in place until the verified copy is complete. Run service commands through `~/Applications/Trellis.app/Contents/MacOS/TrellisHost`. The helper requires the LaunchAgent plist inside its app bundle.
 
-Restart Trellis to activate the installed build. A changed package restarts the host and keeps a compatible runtime active. A runtime protocol change stops the runtime. The deterministic manager restarts configured column workers and project copilots after an incompatible runtime stops.
+Restart Trellis to activate the installed build. A changed package restarts the host and keeps a compatible runtime active. A runtime protocol change stops the runtime. Trellis preserves ticket assignments and restarts project copilots after an incompatible runtime stops.
 
 To prepare a verified candidate without a production install:
 
@@ -106,9 +106,8 @@ Runtime files stay outside the host database directory, so a database export doe
 ### Project copilots
 
 Trellis keeps one copilot available for each active project. A copilot acts on user instructions.
-Project settings select its persona and harness. New starts and restarts read the saved settings.
+Project settings store its manager instruction and harness. New starts and restarts read the saved settings.
 A compatible restart preserves the copilot conversation.
-Column settings control automatic ticket workers, including recovery after a stop or failure.
 
 ## Release limits
 

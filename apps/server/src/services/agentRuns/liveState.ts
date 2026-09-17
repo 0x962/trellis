@@ -80,6 +80,7 @@ export function projectRun(run: StoredRun, sessions: RuntimeProcessStatus[]): Ag
 	if (!process)
 		return {
 			...metadata,
+			assigned: run.closedAt === null,
 			state: "interrupted",
 			processStatus: null,
 			observation: null,
@@ -97,6 +98,7 @@ export function projectRun(run: StoredRun, sessions: RuntimeProcessStatus[]): Ag
 						: "exited";
 	return {
 		...metadata,
+		assigned: run.closedAt === null,
 		state,
 		processStatus: process.status,
 		observation: {

@@ -1,15 +1,7 @@
 import { z } from "zod";
-import { HarnessSchema } from "../harness/harness.ts";
 import { ProjectRefStringSchema, StatusRefStringSchema } from "../refs.ts";
 import { ColorTokenSchema, ReviewerSchema, StatusCategorySchema } from "./enums.ts";
 import { CountSchema, IsoDateTimeSchema, slugPattern, UlidSchema } from "./primitives.ts";
-
-export const StatusAgentConfigSchema = z.strictObject({
-	personaId: UlidSchema,
-	harness: HarnessSchema,
-	accountId: UlidSchema.nullable().default(null),
-});
-export type StatusAgentConfig = z.infer<typeof StatusAgentConfigSchema>;
 
 const StatusNameSchema = z
 	.string()
@@ -50,7 +42,6 @@ export type StatusSummary = z.infer<typeof StatusSummarySchema>;
 
 export const StatusSchema = StatusSummarySchema.extend({
 	projectId: UlidSchema,
-	agentConfig: StatusAgentConfigSchema.nullable().default(null),
 	description: StatusDescriptionSchema.default(""),
 	position: z.number().int(),
 	wipLimit: WipLimitSchema.nullable(),
@@ -86,7 +77,6 @@ export const StatusCreateInputSchema = z
 		color: ColorSchema.optional(),
 		position: z.number().int().optional(),
 		wipLimit: WipLimitSchema.optional(),
-		agentConfig: StatusAgentConfigSchema.nullable().optional(),
 		isDefault: z.boolean().optional(),
 	})
 	.refine(reviewerMatchesCategory, "A review status needs a reviewer; another category cannot carry one.");
@@ -101,7 +91,6 @@ export const StatusUpdateInputSchema = z.strictObject({
 	color: ColorSchema.optional(),
 	reviewer: ReviewerSchema.optional(),
 	wipLimit: WipLimitSchema.nullable().optional(),
-	agentConfig: StatusAgentConfigSchema.nullable().optional(),
 	isDefault: z.boolean().optional(),
 });
 export type StatusUpdateInput = z.input<typeof StatusUpdateInputSchema>;

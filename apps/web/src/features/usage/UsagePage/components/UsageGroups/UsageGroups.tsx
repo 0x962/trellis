@@ -6,7 +6,7 @@ import { formatMetric, harnessProvider, modelProvider, rowTone } from "../../../
 
 const groupOptions = [
 	{ value: "ticket", label: "Ticket" },
-	{ value: "persona", label: "Persona" },
+	{ value: "agent", label: "Agent" },
 	{ value: "project", label: "Project" },
 	{ value: "kind", label: "Kind" },
 	{ value: "account", label: "Account" },

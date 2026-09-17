@@ -3,10 +3,7 @@ import { type FlowEdgeInput, type FlowNodeInput, flowAgentKinds, flowGroupKinds 
 // `validateFlowGraph` checks parent links and edges before a save. The run
 // check also requires titles, instructions, and connected steps inside each
 // connected group. The editor shows these incomplete steps as draft issues.
-export type FlowGraphNode = Pick<
-	FlowNodeInput,
-	"id" | "parentId" | "kind" | "personaId" | "instruction" | "parallel" | "title"
->;
+export type FlowGraphNode = Pick<FlowNodeInput, "id" | "parentId" | "kind" | "instruction" | "parallel" | "title">;
 export type FlowGraphEdge = Pick<FlowEdgeInput, "id" | "fromNodeId" | "toNodeId" | "branch">;
 export type FlowGraph = { nodes: FlowGraphNode[]; edges: FlowGraphEdge[] };
 
@@ -119,8 +116,8 @@ export const validateFlowGraph = (graph: FlowGraph, purpose: "save" | "run" = "r
 		const blank = node.instruction.trim() === "";
 		if (node.kind === "human" && blank) {
 			issues.push({ code: "empty-prompt", nodeId: node.id, message: "Write what the person must decide." });
-		} else if (flowAgentKinds.has(node.kind) && blank && node.personaId === null) {
-			issues.push({ code: "empty-prompt", nodeId: node.id, message: "Select a persona or write an instruction." });
+		} else if (flowAgentKinds.has(node.kind) && blank) {
+			issues.push({ code: "empty-prompt", nodeId: node.id, message: "Write an instruction." });
 		}
 	}
 

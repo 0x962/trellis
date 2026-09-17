@@ -1,5 +1,4 @@
 import { CaretRight, Infinity as InfinityIcon } from "@phosphor-icons/react";
-import type { StatusAgentConfig } from "@trellis/api";
 import { Button, cx, IconButton, StatusIcon } from "@trellis/ui";
 import { type KeyboardEvent, useCallback, useRef } from "react";
 import { workingGroupInsertIndex } from "../../columns";
@@ -8,7 +7,6 @@ import type { BoardColumnModel } from "../../types";
 import { BoardCard } from "../BoardCard";
 import { DragIndicator } from "../DragIndicator";
 import { capacityLabel } from "./capacityLabel";
-import { ColumnAgentSettings } from "./components/ColumnAgentSettings";
 
 export type BoardColumnProps = {
 	column: BoardColumnModel;
@@ -28,10 +26,6 @@ export type BoardColumnProps = {
 	onFocusTicket: (identifier: string) => void;
 	onCardKeyDown: (event: KeyboardEvent<HTMLElement>, column: BoardColumnModel, index: number) => void;
 	onAnnounce: (message: string) => void;
-	onUpdateSettings: (
-		statusId: string,
-		settings: { agentConfig: StatusAgentConfig | null; wipLimit: number | null },
-	) => Promise<void>;
 };
 
 const cutoff = () => Date.now() - 30 * 86_400_000;
@@ -53,7 +47,6 @@ export function BoardColumn({
 	onFocusTicket,
 	onCardKeyDown,
 	onAnnounce,
-	onUpdateSettings,
 }: BoardColumnProps) {
 	const target = useRef<HTMLElement>(null);
 	const list = useRef<HTMLUListElement>(null);
@@ -62,7 +55,6 @@ export function BoardColumn({
 	}, [collapsed, onToggle]);
 	const over = useColumnDnd(target, column, collapsed, expand);
 	useBoardAutoScroll(list, !collapsed);
-	const singleStatus = column.statuses.length === 1 ? column.statuses[0]! : undefined;
 	const visible =
 		column.category === "done" && !showAllDone
 			? column.items.filter((ticket) => ticket.completedAt !== null && Date.parse(ticket.completedAt) >= cutoff())
@@ -92,13 +84,6 @@ export function BoardColumn({
 						{column.name}{" "}
 						<span className="tabular">{column.wipLimit === null ? `${count}/∞` : `${count}/${column.wipLimit}`}</span>
 					</span>
-					{singleStatus?.agentConfig && (
-						<ColumnAgentSettings
-							columnName={column.name}
-							status={singleStatus}
-							onSave={(settings) => onUpdateSettings(singleStatus.id, settings)}
-						/>
-					)}
 				</li>
 			</ul>
 		);
@@ -120,15 +105,6 @@ export function BoardColumn({
 						{count}/{column.wipLimit === null ? <InfinityIcon className="size-3.5" /> : column.wipLimit}
 					</span>
 				</span>
-				{singleStatus?.agentConfig && (
-					<span className="ml-auto">
-						<ColumnAgentSettings
-							columnName={column.name}
-							status={singleStatus}
-							onSave={(settings) => onUpdateSettings(singleStatus.id, settings)}
-						/>
-					</span>
-				)}
 			</header>
 			<ul
 				ref={list}

@@ -12,7 +12,7 @@ export const commentDeliveries = pgTable(
 		runId: text("run_id")
 			.notNull()
 			.references(() => agentRuns.id, { onDelete: "cascade" }),
-		personaName: text("persona_name").notNull(),
+		agentName: text("agent_name").notNull(),
 		terminalId: text("terminal_id"),
 		sessionId: text("session_id"),
 		state: text().notNull().default("pending"),

@@ -10,11 +10,11 @@ import { ownerProject } from "./scope.ts";
 export const requireManager = async (ctx: ServiceCtx, tx: Tx) => {
 	if (ctx.actor?.kind !== "agent") throw invalidInput("actor", "Use the current manager to delegate project work.");
 	const run = await getRun(tx, ctx.actor.name);
-	if (run.kind !== "manager" || run.closedAt !== null || run.projectId === null || run.personaId === null)
-		throw invalidInput("actor", "Use an active manager with a current project and persona.");
+	if (run.kind !== "manager" || run.closedAt !== null || run.projectId === null)
+		throw invalidInput("actor", "Use an active manager with a current project.");
 	const delegation = await getDelegation(tx, run.id);
 	if (delegation?.retiredAt) throw invalidInput("actor", "This delegation has retired.");
-	return run as typeof run & { projectId: string; personaId: string };
+	return run as typeof run & { projectId: string };
 };
 
 export const requireParent = async (ctx: ServiceCtx, tx: Tx, id: string) => {

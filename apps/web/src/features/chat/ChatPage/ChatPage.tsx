@@ -87,7 +87,7 @@ export function ChatPage({ project }: { project: Project }) {
 	// The manager of the project names the direct message channel. A project
 	// with no manager yet shows the default name.
 	const managerName =
-		(agents.data ?? []).find((run) => run.projectId === project.id && run.kind === "manager")?.personaName ?? "Copilot";
+		(agents.data ?? []).find((run) => run.projectId === project.id && run.kind === "manager")?.name ?? "Copilot";
 	const memberCount = open?.direct ? live.filter((run) => run.kind === "manager").length : live.length;
 	const memberLabel = agents.isPending
 		? "… members"
@@ -96,12 +96,12 @@ export function ChatPage({ project }: { project: Project }) {
 			: `${memberCount} ${memberCount === 1 ? "member" : "members"}`;
 	const items: ChatMessage[] = useMemo(() => messages.data?.items ?? [], [messages.data]);
 
-	// The names a mention in a body can address: the live agents by persona
+	// The names a mention in a body can address: the live agents by agent
 	// name and run id, the roles, and every author in the loaded log.
 	const render = useMemo(() => {
 		const names = new Set<string>(roleCandidates.map((role) => role.label));
 		for (const run of live) {
-			names.add(run.personaName);
+			names.add(run.name);
 			names.add(run.id);
 		}
 		for (const message of items) {

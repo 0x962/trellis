@@ -30,7 +30,6 @@ export const eventNames = [
 	"project.moved",
 	"gh.status",
 	"labels.changed",
-	"personas.changed",
 	"flows.changed",
 	"reviews.changed",
 	"agent-runs.changed",
@@ -130,7 +129,7 @@ export const ProjectEventPayloadSchema = z.object({
 	id: UlidSchema,
 });
 
-export const PersonasChangedPayloadSchema = z.object({
+export const AgentChangedPayloadSchema = z.object({
 	id: UlidSchema,
 });
 
@@ -191,14 +190,13 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("project.deleted", ProjectEventPayloadSchema),
 	typed("project.moved", ProjectEventPayloadSchema),
 	typed("gh.status", GhStatusPayloadSchema),
-	typed("personas.changed", PersonasChangedPayloadSchema),
 	typed("flows.changed", FlowsChangedPayloadSchema),
 	typed(
 		"reviews.changed",
 		z.object({ id: UlidSchema, ticketIds: z.array(UlidSchema), projectIds: z.array(UlidSchema) }),
 	),
-	typed("agent-runs.changed", PersonasChangedPayloadSchema),
-	typed("sessions.changed", PersonasChangedPayloadSchema),
+	typed("agent-runs.changed", AgentChangedPayloadSchema),
+	typed("sessions.changed", AgentChangedPayloadSchema),
 	typed("needs-you.changed", z.object({ actorName: z.string() })),
 	typed("reset", ResetPayloadSchema),
 	typed("ready", ReadyPayloadSchema),

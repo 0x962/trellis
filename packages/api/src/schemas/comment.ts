@@ -5,7 +5,7 @@ import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 export const CommentNotificationSchema = z.object({
 	runId: z.string(),
-	personaName: z.string(),
+	agentName: z.string(),
 	state: z.enum(["pending", "sending", "sent", "failed", "unknown"]),
 	error: z.string().nullable(),
 });

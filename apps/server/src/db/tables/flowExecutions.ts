@@ -13,13 +13,11 @@ export const flowExecutions = pgTable(
 		projectId: text("project_id")
 			.notNull()
 			.references(() => projects.id, { onDelete: "cascade" }),
-		defaultPersonaId: text("default_persona_id").notNull(),
 		actorKind: text("actor_kind").notNull(),
 		actorName: text("actor_name").notNull(),
 		requestId: text("request_id").notNull(),
 		request: jsonb().notNull(),
 		doc: jsonb().notNull(),
-		personas: jsonb().notNull(),
 		state: jsonb().notNull(),
 		revision: integer().notNull(),
 		createdAt: at("created_at").notNull(),

@@ -18,7 +18,7 @@ import { cacheSavingsUsd, costUsd, matchModelRate, PRICING_TABLE_UPDATED } from 
 export type UsageRun = {
 	id: string;
 	kind: string;
-	personaName: string;
+	name: string;
 	ticketIdentifier: string | null;
 	ticketTitle: string | null;
 	projectPath: string;
@@ -51,7 +51,7 @@ export type UsageReportInputs = {
 	now: Date;
 };
 
-const GROUPINGS: readonly UsageGroupBy[] = ["ticket", "persona", "project", "kind", "account", "model", "harness"];
+const GROUPINGS: readonly UsageGroupBy[] = ["ticket", "agent", "project", "kind", "account", "model", "harness"];
 const MAX_GROUP_ROWS = 100;
 const MAX_SESSIONS = 200;
 const OUTSIDE = "outside";
@@ -64,7 +64,12 @@ const HARNESS_LABELS: Record<UsageHarness, string> = {
 	muse: "Muse",
 };
 
-const KIND_LABELS: Record<string, string> = { builder: "Builders", reviewer: "Reviewers", manager: "Managers" };
+const KIND_LABELS: Record<string, string> = {
+	agent: "Ticket agents",
+	flow: "Flow agents",
+	manager: "Managers",
+	session: "Sessions",
+};
 
 // The local calendar day, as the clock of the machine prints it.
 export function dayKey(timestampMs: number): string {
@@ -143,8 +148,8 @@ function groupKeys(
 		: run
 			? { key: `kind:${run.kind}`, label: plain(`${KIND_LABELS[run.kind] ?? run.kind} without a ticket`) }
 			: { key: OUTSIDE, label: outside };
-	const persona = run
-		? { key: `persona:${run.personaName}`, label: plain(run.personaName) }
+	const agent = run
+		? { key: `agent:${run.id}`, label: plain(run.name, run.ticketIdentifier) }
 		: { key: OUTSIDE, label: outside };
 	const projectRow = project
 		? {
@@ -181,7 +186,7 @@ function groupKeys(
 		key: entry.harness,
 		label: { label: HARNESS_LABELS[entry.harness], detail: null, href: null, harness: entry.harness },
 	};
-	return { ticket, persona, project: projectRow, kind, account, model, harness };
+	return { ticket, agent, project: projectRow, kind, account, model, harness };
 }
 
 type GroupAccumulator = {
@@ -301,7 +306,7 @@ export function computeUsageReport(input: UsageReportInputs): UsageReport {
 				run: attribution.run,
 				groupKeys: {
 					ticket: keys.ticket.key,
-					persona: keys.persona.key,
+					agent: keys.agent.key,
 					project: keys.project.key,
 					kind: keys.kind.key,
 					account: keys.account.key,
@@ -389,7 +394,7 @@ export function computeUsageReport(input: UsageReportInputs): UsageReport {
 				? {
 						id: session.run.id,
 						kind: session.run.kind,
-						persona: session.run.personaName,
+						name: session.run.name,
 						ticketIdentifier: session.run.ticketIdentifier,
 						ticketTitle: session.run.ticketTitle,
 						projectPath: session.run.projectPath,

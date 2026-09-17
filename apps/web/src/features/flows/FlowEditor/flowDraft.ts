@@ -53,7 +53,6 @@ export const newFields = (kind: FlowNodeKind): StepFields => ({
 	id: ulid(),
 	kind,
 	title: titles[kind],
-	personaId: null,
 	instruction: "",
 	parallel: false,
 	minutes: null,

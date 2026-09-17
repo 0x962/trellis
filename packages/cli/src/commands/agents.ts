@@ -1,16 +1,15 @@
-import type { AgentRun } from "@trellis/api";
+import { type AgentRun, HarnessSchema } from "@trellis/api";
 import { shortZonedDateTime } from "@trellis/api/time";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, readText, wantsJson } from "../context.ts";
 import { cell, json, type ListSpec, printList, printRecord, type RecordSpec } from "../output.ts";
-import { resolvePersona } from "./personas.ts";
 
 const agentList: ListSpec<AgentRun> = {
 	columns: [
 		{ name: "id", value: (row) => row.id },
 		{ name: "kind", value: (row) => row.kind },
-		{ name: "persona", value: (row) => cell(row.personaName) },
+		{ name: "name", value: (row) => cell(row.name) },
 		{ name: "state", value: (row) => row.state },
 		{ name: "ticket", value: (row) => cell(row.ticketIdentifier) },
 		{ name: "updated", value: (row) => shortZonedDateTime(row.updatedAt) },
@@ -22,7 +21,7 @@ const agentRecord: RecordSpec<AgentRun> = {
 	fields: [
 		{ name: "id", value: (row) => row.id },
 		{ name: "kind", value: (row) => row.kind },
-		{ name: "persona", value: (row) => cell(row.personaName) },
+		{ name: "name", value: (row) => cell(row.name) },
 		{ name: "state", value: (row) => row.state },
 		{ name: "account", value: (row) => cell(row.accountId) },
 		{ name: "runtime", value: (row) => row.runtime },
@@ -51,14 +50,15 @@ const list = defineCommand({
 });
 
 const start = defineCommand({
-	meta: { name: "start", description: "Start an agent from a persona" },
+	meta: { name: "start", description: "Assign an agent to a ticket or start a project manager" },
 	args: {
-		persona: { type: "positional", required: true, description: "Persona id or name" },
-		ticket: { type: "string", description: "Ticket ref, for a builder or a reviewer" },
-		project: { type: "string", description: "Project ref, for a manager" },
+		ticket: { type: "string", description: "Ticket ref" },
+		project: { type: "string", description: "Project ref for a manager" },
+		harness: { type: "string", description: "Harness preset for a ticket agent" },
 		"request-id": { type: "string", description: "Stable assignment ID to prevent a duplicate start" },
 		account: { type: "string", description: "Account ID from trellis accounts list" },
 		model: { type: "string", description: "Canonical model ID from trellis models list for this assignment" },
+		effort: { type: "string", description: "Reasoning effort for this assignment" },
 		"new-session": {
 			type: "boolean",
 			description: "Give a manager a new agent session in place of the one it keeps",
@@ -67,11 +67,12 @@ const start = defineCommand({
 	async run(context) {
 		const ctx = contextOf(context);
 		const { args } = context;
-		const persona = await resolvePersona(ctx, args.persona);
+		const harness = args.harness
+			? HarnessSchema.parse({ preset: args.harness, model: args.model, effort: args.effort })
+			: undefined;
 		const run = await clientOf(ctx).agentRuns.start(
 			compact({
-				personaId: persona.id,
-				model: args.model,
+				harness,
 				accountId: args.account,
 				requestId: args["request-id"],
 				ticket: args.ticket,

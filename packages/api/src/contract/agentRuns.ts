@@ -176,7 +176,7 @@ export const agentRuns = {
 		.input(TicketGetInputSchema)
 		.output(TicketMetricsSchema),
 	start: base
-		.route({ method: "POST", path: "/agent-runs", successStatus: 201, summary: "Start an agent from a persona" })
+		.route({ method: "POST", path: "/agent-runs", successStatus: 201, summary: "Assign an agent to a ticket" })
 		.input(AgentRunStartInputSchema)
 		.output(AgentRunSchema),
 	stop: base

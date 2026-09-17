@@ -7,7 +7,7 @@ import { invalidInput } from "../../../errors.ts";
 import { getRun } from "../../agentRuns/queries.ts";
 import { assertOwner, columns, enabled, ticketState } from "./queries.ts";
 
-type Input = { requestId?: string; ticketId: string | null; personaId: string; accountId?: string };
+type Input = { requestId?: string; ticketId: string | null; accountId?: string };
 export const assignment = async (ctx: Pick<RequestContext, "actor">, tx: Tx, input: Input) => {
 	if (input.requestId === undefined) return undefined;
 	const [action] = await rows<ManagerNextAction & { status_id: string }>(
@@ -20,8 +20,8 @@ export const assignment = async (ctx: Pick<RequestContext, "actor">, tx: Tx, inp
 	if (action.ticketId !== input.ticketId) throw invalidInput("requestId", "This action belongs to another ticket.");
 	if (action.state === "assigned") {
 		const run = await getRun(tx, action.runId!);
-		if (run.personaId !== input.personaId || (input.accountId !== undefined && run.accountId !== input.accountId))
-			throw invalidInput("requestId", "This action already has another persona assignment.");
+		if (input.accountId !== undefined && run.accountId !== input.accountId)
+			throw invalidInput("requestId", "This action already has another agent assignment.");
 		return run;
 	}
 	const ticket = await ticketState(tx, action);

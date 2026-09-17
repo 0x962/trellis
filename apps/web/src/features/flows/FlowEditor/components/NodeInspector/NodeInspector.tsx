@@ -1,14 +1,12 @@
-import { type FlowNodeKind, flowAgentKinds, type Persona } from "@trellis/api";
+import type { FlowNodeKind } from "@trellis/api";
 import { Button, Input, Sheet, SheetBody, SheetFooter, SheetSection, Switch, Textarea } from "@trellis/ui";
 import { useState } from "react";
 import { flowKinds } from "../../../kinds";
 import type { StepFields } from "../../flowDraft";
-import { PersonaSelect } from "../PersonaSelect";
 
 type NodeInspectorProps = {
 	fields: StepFields;
 	issue: string | undefined;
-	personas: Persona[];
 	validate: (fields: StepFields) => { canSave: boolean; issue: string | undefined };
 	onDelete: () => void;
 	onClose: () => void;
@@ -29,7 +27,6 @@ const promptLabels: Record<FlowNodeKind, string | null> = {
 export function NodeInspector({
 	fields: initialFields,
 	issue,
-	personas,
 	validate,
 	onDelete,
 	onClose,
@@ -42,7 +39,6 @@ export function NodeInspector({
 	const validation = validate(fields);
 	const shownIssue = issue ?? validation.issue;
 	const meta = flowKinds[fields.kind];
-	const runsAgent = flowAgentKinds.has(fields.kind);
 	const promptLabel = promptLabels[fields.kind];
 	return (
 		<Sheet
@@ -72,16 +68,6 @@ export function NodeInspector({
 								value={fields.title}
 								onChange={(event) => onChange({ title: event.target.value })}
 							/>
-							{runsAgent && (
-								<div className="flex flex-col gap-2">
-									<span className="text-sm text-fg-muted">Persona</span>
-									<PersonaSelect
-										personas={personas}
-										value={fields.personaId}
-										onChange={(personaId) => onChange({ personaId })}
-									/>
-								</div>
-							)}
 						</SheetSection>
 						{promptLabel !== null && (
 							<SheetSection title="Instructions" divided>
@@ -91,11 +77,7 @@ export function NodeInspector({
 									maxLength={200000}
 									value={fields.instruction}
 									onChange={(event) => onChange({ instruction: event.target.value })}
-									placeholder={
-										runsAgent && fields.personaId !== null
-											? "Optional. The agent reads this text after the persona instruction."
-											: "Write what this step does."
-									}
+									placeholder="Write what this step does."
 								/>
 							</SheetSection>
 						)}

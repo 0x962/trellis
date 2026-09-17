@@ -42,7 +42,7 @@ export function DisplaySections() {
 				<Chip icon={<Funnel />} label="Priority" op="is" value="High" onRemove={() => {}} />
 				<Chip label="Actor" op="is" value="claude-code" />
 			</Section>
-			<Section name="Avatar" note="Human initials and persona states">
+			<Section name="Avatar" note="Human initials and agent states">
 				<Avatar kind="human" name="Dana Lee" />
 				{(["static", "working-mild", "working"] as const).map((state) => (
 					<div key={state} className="flex flex-col gap-3 p-3">

@@ -50,7 +50,6 @@ export const FlowExecutionSchema = z.object({
 	flowId: UlidSchema,
 	ticketId: UlidSchema,
 	projectId: UlidSchema,
-	defaultPersonaId: UlidSchema,
 	revision: z.number().int().positive(),
 	doc: FlowDocSchema,
 	state: FlowExecutionStateSchema,
@@ -61,7 +60,6 @@ export const FlowExecutionSchema = z.object({
 export const FlowExecutionStartInputSchema = z.strictObject({
 	flow: FlowRefSchema,
 	ticket: z.string().min(1),
-	defaultPersonaId: UlidSchema,
 	requestId: z.uuid(),
 	expectedVersion: z.number().int().positive(),
 });

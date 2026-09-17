@@ -22,13 +22,13 @@ trellis brief TRL-71
 
 The brief holds the description, the status, the branch, and the protocol for the agent.
 
-## Start a builder with a stable request ID
+## Assign a ticket agent with a stable request ID
 
 ```sh
-trellis agents start "Feature Builder" --ticket TRL-71 --request-id 5f0c2d1e-7a44-4a8e-9b1f-3c6d2e8a9b10
+trellis agents start --ticket TRL-71 --harness claude --model claude-sonnet-4-5 --effort high --request-id 5f0c2d1e-7a44-4a8e-9b1f-3c6d2e8a9b10
 ```
 
-The persona argument takes a persona id or a name. A builder and a reviewer take `--ticket`. A manager takes `--project`.
+The ticket assignment selects a harness, a model, and an effort. A project manager takes `--project` and uses the project settings.
 
 Use one request ID for one assignment. Keep the request ID after an uncertain response, and start again with the same ID. The server returns the first agent and does not start a second one. Use a new request ID only for an intentional new assignment.
 

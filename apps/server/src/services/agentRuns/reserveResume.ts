@@ -38,11 +38,8 @@ export async function reserveResume(ctx: ServiceCtx, tx: Tx, session: ResumeSess
 	const config = await projectLaunchConfig(tx, { projectId: run.projectId });
 	if (project.archived_at !== null) return null;
 	if (run.ticketId !== null) {
-		const [ticket] = await rows<{ completed_at: string | null; category: string }>(
-			tx,
-			sql`SELECT t.completed_at,s.category FROM tickets t JOIN statuses s ON s.id=t.status_id WHERE t.id=${run.ticketId}`,
-		);
-		if (!ticket || ticket.completed_at !== null || ticket.category === "todo") return null;
+		const ticket = await rows(tx, sql`SELECT id FROM tickets WHERE id=${run.ticketId}`);
+		if (ticket.length === 0) return null;
 	}
 	const tasks = await rows<{ execution_id: string; key: string; attempt_id: string; result_id: string | null }>(
 		tx,
@@ -78,14 +75,8 @@ export async function reserveResume(ctx: ServiceCtx, tx: Tx, session: ResumeSess
 	let attempt: ExecutionAttempt | undefined;
 	if (reserve && run.terminalId === session.previousAttemptId) {
 		if (run.kind === "manager") {
-			if (run.personaId === null)
-				throw invalidInput("personaId", "Select a current manager persona before you restart this assignment.");
-			const [persona] = await rows<{ name: string; instruction: string }>(
-				tx,
-				sql`UPDATE agent_runs AS r SET persona_name=p.name,instruction=p.instruction FROM personas AS p WHERE r.id=${run.id} AND p.id=r.persona_id RETURNING p.name,p.instruction`,
-			);
-			run.personaName = persona!.name;
-			run.instruction = persona!.instruction;
+			run.instruction = config.instruction;
+			await tx.execute(sql`UPDATE agent_runs SET instruction=${config.instruction} WHERE id=${run.id}`);
 		}
 		attempt = await reserveAttempt(ctx, tx, { runId: run.id, attempt: session.attempt });
 		await tx.execute(

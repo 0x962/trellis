@@ -20,7 +20,7 @@ Reply in that thread: trellis comment ${key}-42 --reply-to <comment-id> --body "
 Resolve a thread: trellis thread resolve <comment-id>
 Reopen a thread: trellis thread reopen <comment-id>
 
-Chat room: every project has its own, with channels. #ai and #general exist in every room. In #general and other shared channels, a human post without a mention reaches every live agent. An agent post without a mention reaches every live worker except its author. @<run id>, @<persona name>, or @manager sends a post to that agent only and interrupts its turn.
+Chat room: every project has its own, with channels. #ai and #general exist in every room. In #general and other shared channels, a human post without a mention reaches every live agent. An agent post without a mention reaches every live worker except its author. @<run id>, @<agent name>, or @manager sends a post to that agent only and interrupts its turn.
 Read a channel: trellis chat read ${key} ai
 Post a message: trellis chat post ${key} ai --body "..."
 List channels:  trellis chat channels ${key}

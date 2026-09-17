@@ -14,7 +14,6 @@ import { loops } from "./loops.ts";
 import { models } from "./models.ts";
 import { needsYou } from "./needsYou.ts";
 import { notes } from "./notes.ts";
-import { personas } from "./personas.ts";
 import { projects } from "./projects.ts";
 import { pullRequests } from "./pullRequests.ts";
 import { reviews } from "./reviews";
@@ -41,7 +40,6 @@ export const contract = {
 	controller: oc.tag("controller").router(controller),
 	reviews: oc.tag("reviews").router(reviews),
 	agentRuns: oc.tag("agent runs").router(agentRuns),
-	personas: oc.tag("personas").router(personas),
 	flows: oc.tag("flows").router(flows),
 	flowExecutions: oc.tag("flow executions").router(flowExecutions),
 	labelGroups: oc.tag("label groups").router(labelGroups),

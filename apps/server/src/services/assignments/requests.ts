@@ -6,7 +6,6 @@ import { invalidInput } from "../../errors.ts";
 import { getRun } from "../agentRuns/queries.ts";
 
 type Target = {
-	personaId: string;
 	projectId: string;
 	ticketId: string | null;
 	newSession: boolean;
@@ -25,7 +24,6 @@ export const replayRequest = async (ctx: ServiceCtx, tx: Tx, input: Request) => 
 	);
 	if (!request) return undefined;
 	if (
-		request.target.personaId !== input.target.personaId ||
 		request.target.projectId !== input.target.projectId ||
 		request.target.ticketId !== input.target.ticketId ||
 		request.target.newSession !== input.target.newSession ||

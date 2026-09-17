@@ -100,7 +100,7 @@ export function Composer({ ticket, onAttachFiles }: ComposerProps) {
 				<textarea
 					ref={field}
 					aria-label="Comment"
-					placeholder="Write a comment. Use @persona to notify an assigned agent."
+					placeholder="Write a comment. Use @agent to notify the assigned agent."
 					rows={1}
 					value={text}
 					onChange={(event) => setText(event.target.value)}

@@ -78,7 +78,6 @@ export const categoryColumns = (data: BoardOutput): BoardColumnModel[] => {
 				description: "",
 				position,
 				wipLimit: null,
-				agentConfig: null,
 				isDefault: false,
 				createdAt: items[0]!.createdAt,
 				updatedAt: items[0]!.updatedAt,

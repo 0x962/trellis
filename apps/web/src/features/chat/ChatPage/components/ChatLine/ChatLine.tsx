@@ -3,12 +3,12 @@ import { nameHue } from "@trellis/ui";
 import { type CSSProperties, memo } from "react";
 import { ReadOnlyMarkdown } from "../../../../../components/ReadOnlyMarkdown";
 
-// The name a reader sees: the persona name of an agent, or the name of a
+// The name a reader sees: the run name of an agent, or the name of a
 // person. The run id stays in the tooltip and in the mention the name inserts.
 export const chatNick = (message: ChatMessage) => message.actor.displayName ?? message.actor.name;
 
 // What a click on the name inserts into the input: the run id for an agent,
-// because a mention by id reaches one agent even when two share a persona.
+// because a mention by id reaches one agent even when two share a name.
 export const chatMention = (message: ChatMessage) => `@${message.actor.name} `;
 
 // A delivery that failed or has no receipt is the one fact a reader of the
@@ -17,7 +17,7 @@ const troubled = (message: ChatMessage) =>
 	(message.notifications ?? []).filter((notification) => ["failed", "unknown"].includes(notification.state));
 
 // The name takes a hue from the actor's id: the run id of an agent, the
-// name of a person. Two runs of one persona get two colors.
+// name of a person. Two runs with one name get two colors.
 const tint = (message: ChatMessage): CSSProperties =>
 	({ "--name-hue": nameHue(`${message.actor.kind}:${message.actor.name}`) }) as CSSProperties;
 
@@ -60,10 +60,10 @@ export const ChatLine = memo(function ChatLine({ message, render, onMention }: C
 					<span
 						className="truncate text-xs text-danger"
 						title={trouble
-							.map((notification) => `${notification.personaName}: ${notification.error ?? notification.state}`)
+							.map((notification) => `${notification.agentName}: ${notification.error ?? notification.state}`)
 							.join("\n")}
 					>
-						not delivered to {trouble.map((notification) => notification.personaName).join(", ")}
+						not delivered to {trouble.map((notification) => notification.agentName).join(", ")}
 					</span>
 				)}
 			</div>

@@ -8,13 +8,13 @@ Muse runs through its session protocol. The Trellis bridge starts one `muse serv
 Type a message into that terminal and press Enter to send it. Press Ctrl+C to interrupt the turn.
 A message that arrives during a Muse turn waits in the bridge. When the turn ends, the next turn carries every waiting message at once, and each message gets its own receipt.
 A Muse worker runs with the Muse sandbox disabled and every approval granted. A Muse manager runs without shell and file writes, and reaches Trellis through the Trellis tool server only.
-A Muse manager reads its persona from `AGENTS.md` in its private workspace. Muse keeps its own base instructions in front of that file.
+A Muse manager reads its instruction from `AGENTS.md` in its private workspace. Muse keeps its own base instructions in front of that file.
 Trellis sets `MUSE_NO_AUTO_UPDATE=1` for every launch, so the Muse launcher does not replace its binary during a run. Update Muse by hand.
 Muse reports the session and weekly windows of its login after each model call. Every Muse agent run saves the latest report, and the Usage page shows it on the Muse account card. A card with no run yet asks for one.
 
 ## Project settings
 
-Open **Project → Manager → General** to select the repository directory and persona.
+Open **Project → Manager → General** to set the repository directory and manager instruction.
 Set the limit for concurrent active worker turns in the project. Idle workers keep their assignments without occupying slots.
 A child project with an empty directory uses the nearest parent with a configured directory.
 Trellis trusts configured directories and agent workspaces.

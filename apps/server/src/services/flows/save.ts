@@ -30,19 +30,6 @@ export const save = async (ctx: ServiceCtx, tx: Tx, input: FlowSaveInput): Promi
 			issues: issues.map((issue) => ({ message: issue.message, path: pathOf(input, issue), code: issue.code })),
 		});
 
-	const personaIds = [...new Set(input.nodes.flatMap((node) => (node.personaId === null ? [] : [node.personaId])))];
-	const known = new Set(
-		(await rows<{ id: string }>(tx, sql`SELECT id FROM personas WHERE id = ANY(${textArray(personaIds)})`)).map(
-			(row) => row.id,
-		),
-	);
-	const missing = input.nodes.flatMap((node, index) =>
-		node.personaId !== null && !known.has(node.personaId)
-			? [{ message: "The persona does not exist.", path: ["nodes", index, "personaId"] }]
-			: [],
-	);
-	if (missing.length > 0) throw fail("INPUT_VALIDATION_FAILED", { issues: missing });
-
 	// Node and edge ids are global primary keys. An id another flow holds would
 	// fail the INSERT, so it is refused here with a code the client can read.
 	const ids = textArray([...input.nodes.map((node) => node.id), ...input.edges.map((edge) => edge.id)]);
@@ -57,11 +44,11 @@ export const save = async (ctx: ServiceCtx, tx: Tx, input: FlowSaveInput): Promi
 	await tx.execute(sql`DELETE FROM flow_nodes WHERE flow_id = ${current.id}`);
 	if (input.nodes.length > 0)
 		await tx.execute(
-			sql`INSERT INTO flow_nodes (id, flow_id, parent_id, kind, title, persona_id, instruction, parallel, minutes, max_rounds, x, y, width, height)
+			sql`INSERT INTO flow_nodes (id, flow_id, parent_id, kind, title, instruction, parallel, minutes, max_rounds, x, y, width, height)
 				VALUES ${sql.join(
 					input.nodes.map(
 						(node) =>
-							sql`(${node.id}, ${current.id}, ${node.parentId}, ${node.kind}, ${node.title}, ${node.personaId}, ${node.instruction},
+							sql`(${node.id}, ${current.id}, ${node.parentId}, ${node.kind}, ${node.title}, ${node.instruction},
 							${node.parallel ?? false}, ${node.minutes}, ${node.maxRounds}, ${node.x}, ${node.y}, ${node.width}, ${node.height})`,
 					),
 					sql`, `,

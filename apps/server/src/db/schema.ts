@@ -23,7 +23,6 @@ export * from "./tables/agents.ts";
 export * from "./tables/controller.ts";
 export * from "./tables/flows.ts";
 export * from "./tables/labels.ts";
-export * from "./tables/personas.ts";
 export * from "./tables/projects.ts";
 export * from "./tables/reviews.ts";
 export * from "./tables/sessions.ts";
@@ -271,9 +270,7 @@ export const activity = pgTable(
 );
 
 export * from "./tables/assignments.ts";
-export * from "./tables/builderStartRequests.ts";
 export * from "./tables/chat.ts";
-export * from "./tables/columnWorkers.ts";
 export * from "./tables/commentDeliveries.ts";
 export * from "./tables/flowExecutions.ts";
 export * from "./tables/flowExecutionTasks.ts";

@@ -20,7 +20,7 @@ type RunRow = Omit<UsageRun, "workDir">;
 export const listUsageRuns = async (tx: Tx, home: string, cutoff: Date): Promise<UsageRun[]> => {
 	const result = await rows<RunRow>(
 		tx,
-		sql`SELECT r.id, r.kind, r.persona_name AS "personaName", r.ticket_identifier AS "ticketIdentifier",
+		sql`SELECT r.id, r.kind, r.name, r.ticket_identifier AS "ticketIdentifier",
 			t.title AS "ticketTitle", r.project_path AS "projectPath", coalesce(p.name, r.project_path) AS "projectName",
 			a.name AS "accountName", r.session_id AS "sessionId"
 		FROM agent_runs r

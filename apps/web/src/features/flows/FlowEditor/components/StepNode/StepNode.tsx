@@ -11,21 +11,16 @@ const sides = [Position.Top, Position.Right, Position.Bottom, Position.Left] as 
 // from its YES and NO handles, on its right and bottom sides. Its top and
 // left handles only end a wire.
 export function StepNode({ id, data, selected }: NodeProps<CanvasNode>) {
-	const { personas, issues, unconnected } = useFlowEditor();
+	const { issues, unconnected } = useFlowEditor();
 	const { fields } = data;
 	const meta = flowKinds[fields.kind];
 	const issue = issues.get(id);
-	const persona = fields.personaId === null ? undefined : personas.get(fields.personaId);
 	const detail =
 		fields.kind === "human"
 			? "A person decides"
-			: persona !== undefined
-				? persona.name
-				: fields.personaId !== null
-					? "Missing persona"
-					: fields.instruction.trim() === ""
-						? "No instruction"
-						: "Custom instruction";
+			: fields.instruction.trim() === ""
+				? "No instruction"
+				: "Instruction ready";
 	return (
 		<div
 			title={issue}
@@ -40,14 +35,7 @@ export function StepNode({ id, data, selected }: NodeProps<CanvasNode>) {
 			</span>
 			<div className="min-w-0 flex-1">
 				<p className="truncate text-sm font-medium text-fg">{fields.title}</p>
-				<p
-					className={cx(
-						"truncate text-xs",
-						persona === undefined && fields.personaId !== null ? "text-danger" : "text-fg-faint",
-					)}
-				>
-					{detail}
-				</p>
+				<p className="truncate text-xs text-fg-faint">{detail}</p>
 			</div>
 			{!unconnected.has(id) &&
 				(fields.kind === "gate" ? (

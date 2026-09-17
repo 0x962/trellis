@@ -15,7 +15,7 @@ export type PendingLine = ContextLine & {
 	direct: boolean;
 };
 
-type Recipient = { runId: string; personaName: string; kind: string; projectPath: string };
+type Recipient = { runId: string; agentName: string; kind: string; projectPath: string };
 
 // The zone a test names for its expected text. The product leaves it empty,
 // so every clock below reads the zone of the host that runs the server.
@@ -63,7 +63,7 @@ export const chatBatchText = (
 			mentioned,
 			context: context.map(asData),
 			messages: lines.map((line) => ({ ...asData(line), mention: line.direct })),
-			recipient: { runId: recipient.runId, personaName: recipient.personaName },
+			recipient: { runId: recipient.runId, agentName: recipient.agentName },
 		});
 	const project = recipient.projectPath;
 	return [

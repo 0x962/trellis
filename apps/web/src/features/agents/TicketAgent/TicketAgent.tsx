@@ -3,10 +3,9 @@ import { Avatar, Button } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { AgentRunSheet } from "../AgentRunSheet";
-import { hasAssignedProcess } from "../hasAssignedProcess";
+import { agentKindOf } from "../agentKindOf";
 import { isAgentWorking } from "../isAgentWorking";
-import { personaKindOf } from "../personaKindOf";
-import { PersonaPicker } from "./components/PersonaPicker";
+import { AgentAssignmentDialog } from "./components/AgentAssignmentDialog";
 
 export function TicketAgent({ ticket, disabled = false }: { ticket: string; disabled?: boolean }) {
 	const { orpc } = useApp();
@@ -16,7 +15,7 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 	});
 	const [openId, setOpenId] = useState<string | null>(null);
 	const runs = query.data ?? [];
-	const shown = runs.filter(hasAssignedProcess);
+	const assigned = runs.find((run) => run.kind === "agent" && run.assigned) ?? null;
 	const open = runs.find((run) => run.id === openId) ?? null;
 	return (
 		<section aria-label="Agent assignment" className="flex flex-col border-t border-border pt-3 pb-1">
@@ -34,28 +33,27 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 				</p>
 			) : (
 				<>
-					{shown.map((run) => (
+					{assigned && (
 						<Button
-							key={run.id}
 							variant="quiet"
 							align="start"
-							aria-label={run.personaName}
+							aria-label={assigned.name}
 							className="-ml-2.5 justify-start"
-							onClick={() => setOpenId(run.id)}
+							onClick={() => setOpenId(assigned.id)}
 						>
 							<span className="flex min-w-0 items-center gap-2">
 								<Avatar
 									kind="agent"
-									name={run.personaName}
-									personaKind={personaKindOf(run.kind)}
-									state={isAgentWorking(run) ? "working-mild" : "static"}
+									name={assigned.name}
+									agentKind={agentKindOf(assigned.kind)}
+									state={isAgentWorking(assigned) ? "working-mild" : "static"}
 								/>
-								<span className="truncate text-fg">{run.personaName}</span>
-								{run.state === "failed" && <span className="text-xs text-danger">failed</span>}
+								<span className="truncate text-fg">{assigned.name}</span>
+								{assigned.state === "failed" && <span className="text-xs text-danger">failed</span>}
 							</span>
 						</Button>
-					))}
-					<PersonaPicker ticket={ticket} disabled={disabled} />
+					)}
+					{!assigned && <AgentAssignmentDialog ticket={ticket} disabled={disabled} />}
 				</>
 			)}
 			{open && <AgentRunSheet run={open} onClose={() => setOpenId(null)} />}

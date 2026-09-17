@@ -16,7 +16,7 @@ import { friendlySessionName, sessionSlug, uniqueSessionName } from "./sessionNa
 
 // Creates the directory, the run, and the session row, then launches the
 // agent with the prompt as its first message. The run has the kind
-// `session`, no persona, no project, and no ticket. Its name and its
+// `session`, no project, and no ticket. Its name and its
 // instruction are the session name and the prompt, so the terminal, the
 // usage report, and the run history show them.
 export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput) => {
@@ -36,8 +36,8 @@ export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput) => {
 		const runId = ulid();
 		const [run] = await rows<StoredRun>(
 			tx,
-			sql`INSERT INTO agent_runs (id, name, account_id, runtime, persona_id, persona_name, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, workspace_id, session_id, created_at, updated_at)
-			VALUES (${runId}, ${name}, ${selected.accountId}, 'native', NULL, ${name}, 'session', ${input.prompt}, NULL, '', NULL, NULL, ${directory}, ${selected.config.harness.preset === "custom" ? randomUUID() : null}, ${ctx.now()}, ${ctx.now()})
+			sql`INSERT INTO agent_runs (id, name, account_id, runtime, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, workspace_id, session_id, created_at, updated_at)
+			VALUES (${runId}, ${name}, ${selected.accountId}, 'native', 'session', ${input.prompt}, NULL, '', NULL, NULL, ${directory}, ${selected.config.harness.preset === "custom" ? randomUUID() : null}, ${ctx.now()}, ${ctx.now()})
 			RETURNING ${columns}`,
 		);
 		const attempt = await reserveAttempt(ctx.core, tx, { runId });

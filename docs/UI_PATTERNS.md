@@ -68,7 +68,7 @@ Use the existing ticket table widths for identity, project, actor, and time colu
 Truncate long titles and project paths within their columns. Use tabular numbers for identifiers, counts, and times.
 Keep secondary text, such as a mention excerpt, below the title. Do not repeat a full status label in every review row.
 
-Use `ActorAvatar` when a row represents the last actor. It includes the persona icon and the current work state.
+Use `ActorAvatar` when a row represents the last actor. It includes the agent icon and the current work state.
 Keep status and priority indicators distinct from the row's action menu.
 Use one circular action menu at the far right. Reserve its width even when its trigger is hidden.
 Show the trigger on row hover, keyboard focus, an open menu, and touch screens.

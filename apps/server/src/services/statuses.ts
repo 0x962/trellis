@@ -1,13 +1,10 @@
 import type { Status, StatusCreateInput, StatusListOutput, StatusUpdateInput } from "@trellis/api";
-import { StatusAgentConfigSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { ServiceCtx } from "../context.ts";
-import { rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import { fail, invalidInput } from "../errors.ts";
 import { changeSet } from "./changeSet.ts";
-import { validateColumnConfig } from "./manager/validateColumnConfig.ts";
 import { resolveMutableProject, resolveProject, resolveStatus, toSummary } from "./refs.ts";
 import { deriveSlug } from "./slug.ts";
 import {
@@ -45,8 +42,6 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: StatusCreateInput):
 	if (isDefault) {
 		await tx.execute(sql`UPDATE statuses SET is_default = false WHERE project_id = ${project.id} AND is_default`);
 	}
-	const agentConfig = input.agentConfig ? StatusAgentConfigSchema.parse(input.agentConfig) : input.agentConfig;
-	await validateColumnConfig(tx, input.category, agentConfig);
 	const id = ulid();
 	await insertStatus(ctx, tx, {
 		id,
@@ -59,7 +54,6 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: StatusCreateInput):
 		color: input.color ?? "fg",
 		position: own.length,
 		wipLimit: input.wipLimit ?? null,
-		agentConfig: agentConfig ?? null,
 		isDefault,
 	});
 	if (input.position !== undefined) {
@@ -84,12 +78,6 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: StatusUpdateInput):
 	if (input.reviewer !== undefined && status.category !== "review") {
 		throw invalidInput("reviewer", "Only a review status carries a reviewer.");
 	}
-	const agentConfig = input.agentConfig ? StatusAgentConfigSchema.parse(input.agentConfig) : input.agentConfig;
-	await validateColumnConfig(tx, status.category, agentConfig);
-	if (status.category === "started" && agentConfig === null) {
-		const occupied = await rows(tx, sql`SELECT id FROM tickets WHERE status_id=${status.id} LIMIT 1`);
-		if (occupied.length) throw invalidInput("agentConfig", "Keep a worker persona while this column contains tickets.");
-	}
 	const owner = status.projectId;
 	const { sets, changes, field } = changeSet();
 	if (input.name !== undefined && input.name !== status.name) {
@@ -106,10 +94,6 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: StatusUpdateInput):
 	if (input.isDefault === true && !status.isDefault) {
 		await tx.execute(sql`UPDATE statuses SET is_default = false WHERE project_id = ${owner} AND is_default`);
 		field("isDefault", false, true, sql`is_default = true`);
-	}
-	if (agentConfig !== undefined && JSON.stringify(agentConfig) !== JSON.stringify(status.agentConfig)) {
-		sets.push(sql`agent_config = ${JSON.stringify(agentConfig)}::jsonb`);
-		changes.push({ field: "agentConfig", from: JSON.stringify(status.agentConfig), to: JSON.stringify(agentConfig) });
 	}
 	if (changes.length === 0) return status;
 	await tx.execute(
