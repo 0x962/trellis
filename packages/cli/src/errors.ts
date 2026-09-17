@@ -1,5 +1,5 @@
 import type { ORPCError } from "@orpc/client";
-import type { ErrorCode, GhReason } from "@trellis/api";
+import { type ErrorCode, type GhReason, ghCopy } from "@trellis/api";
 
 // The process exit code for every error the contract declares. A code the
 // contract adds without a row here fails errors.test.ts.
@@ -9,11 +9,12 @@ const exitCodes: Record<ErrorCode, number> = {
 	ACTOR_INVALID: 4,
 	INVALID_CURSOR: 4,
 	INVALID_PR_URL: 4,
-	AGENT_CANNOT_COMPLETE: 4,
 	AGENT_CANNOT_DELETE: 4,
 	NOT_FOUND: 3,
 	DUPLICATE: 4,
 	COMMENT_HAS_REPLIES: 4,
+	CHAT_AI_ONLY: 4,
+	CHAT_DIRECT: 4,
 	COMMENT_PARENT_MISMATCH: 4,
 	KEY_LOCKED: 4,
 	STATUS_NOT_IN_PROJECT: 4,
@@ -31,8 +32,11 @@ const exitCodes: Record<ErrorCode, number> = {
 	FLOW_VERSION_CONFLICT: 4,
 	PAYLOAD_TOO_LARGE: 4,
 	GH_UNAVAILABLE: 6,
-	CONCURRENCY_LIMIT: 4,
+	STATUS_FULL: 4,
 	RUNNER_UNAVAILABLE: 6,
+	RESTART_FAILED: 6,
+	BACKUP_FAILED: 1,
+	SEARCH_REPLACED: 4,
 	HARNESS_MODELS_FAILED: 6,
 };
 
@@ -106,11 +110,20 @@ const detail = (code: string, message: string, data: Data): string => {
 			return `${message} Reason: ${data.reason}.`;
 		case "HARNESS_MODELS_FAILED":
 			return `${message} ${data.message}`;
-		case "CONCURRENCY_LIMIT":
-			return `${message} ${data.running} of ${data.limit} builders are running.`;
+		case "STATUS_FULL":
+			return `${message} ${data.count} of ${data.limit} places are taken.`;
 		case "INPUT_VALIDATION_FAILED": {
 			const issues = data.issues as Array<{ path?: Array<string | number>; message: string }>;
-			return `${message} ${issues.map((issue) => `${(issue.path ?? []).join(".")}: ${issue.message}`).join("; ")}`;
+			// The server writes the same sentences into the top-level message.
+			// An issue whose text the message already holds would print twice,
+			// so only an issue that adds words reaches the line.
+			const extra = issues
+				.filter((issue) => !message.includes(issue.message))
+				.map((issue) => {
+					const path = issue.path ?? [];
+					return path.length === 0 ? issue.message : `${path.join(".")}: ${issue.message}`;
+				});
+			return extra.length === 0 ? message : `${message} ${extra.join("; ")}`;
 		}
 		default:
 			return message;
@@ -124,9 +137,10 @@ export const formatError = (error: ORPCError<string, unknown>): string => {
 
 export const formatFailure = (failure: CliFailure): string => `error: ${oneLine(failure.message)} (${failure.code})`;
 
-// The line the web shows for a gh outage, so a person knows what to run.
+// The line the web shows for a gh outage, so a person knows what to run. A
+// reason with no command in `ghCopy` carries the server's own message
+// instead.
 export const ghBanner = (gh: { reason: GhReason | null; message: string | null }): string => {
-	if (gh.reason === "unauthenticated") return "GitHub CLI not authenticated: run gh auth login in a terminal";
-	if (gh.reason === "missing") return "gh not found: brew install gh";
-	return `gh error: ${gh.message ?? "unknown"}`;
+	const { line, command } = ghCopy[gh.reason ?? "error"];
+	return command === null ? `${line} ${gh.message ?? "unknown"}` : `${line} Run ${command}.`;
 };

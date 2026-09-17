@@ -1,3 +1,4 @@
+import { fromHarnessModel } from "@trellis/api/models";
 import { z } from "zod";
 import type { HarnessEvent } from "../types.ts";
 
@@ -29,10 +30,11 @@ export class CodexAppServerEvents {
 				{
 					kind: "session",
 					...identity,
-					model: z.looseObject({ model: z.string() }).parse(params.threadSettings).model,
+					model: fromHarnessModel("codex", z.looseObject({ model: z.string() }).parse(params.threadSettings).model),
 				},
 			];
-		if (method === "model/rerouted") return [{ kind: "session", ...identity, model: z.string().parse(params.toModel) }];
+		if (method === "model/rerouted")
+			return [{ kind: "session", ...identity, model: fromHarnessModel("codex", z.string().parse(params.toModel)) }];
 		if (method === "turn/started") {
 			const turn = z.looseObject({ id: z.string() }).parse(params.turn);
 			return [{ kind: "working", ...identity, turnId: turn.id }];

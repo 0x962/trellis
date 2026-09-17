@@ -2,11 +2,14 @@ import { chmod } from "node:fs/promises";
 import { createServer } from "node:http";
 import { z } from "zod";
 import type { CodexAppServerClient } from "./appServerClient.ts";
+import { managerPolicy } from "./managerPolicy/managerPolicy.ts";
 
 export async function codexControl(input: {
 	socket: string;
 	token: string;
 	sessionId: string;
+	manager?: boolean;
+	effort?: string;
 	client: CodexAppServerClient;
 	current: () => { turnId: string | null; working: boolean };
 }) {
@@ -41,15 +44,16 @@ export async function codexControl(input: {
 				interrupted = value.turnId!;
 				await input.client.request("turn/interrupt", { threadId: input.sessionId, turnId: value.turnId });
 			} else {
-				if (current.working) return reply(409, { error: "SESSION_BUSY" });
 				const prompt = z.string().min(1).parse(value.prompt);
 				pending = true;
 				ownsPending = true;
 				await input.client.request("turn/start", {
 					threadId: input.sessionId,
 					input: [{ type: "text", text: prompt }],
+					effort: input.effort,
 					approvalPolicy: "never",
 					sandboxPolicy: { type: "dangerFullAccess" },
+					...(input.manager ? managerPolicy.turn : {}),
 				});
 			}
 			reply(200, { accepted: true, sessionId: input.sessionId });

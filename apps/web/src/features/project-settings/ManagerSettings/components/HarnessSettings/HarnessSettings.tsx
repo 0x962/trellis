@@ -1,6 +1,8 @@
+import { useQuery } from "@tanstack/react-query";
 import { HARNESS_PRESETS, type HarnessPreset, type ProjectManagerConfig } from "@trellis/api";
 import { Select } from "@trellis/ui";
 import { useState } from "react";
+import { useApp } from "../../../../../lib/appContext";
 import { SettingsSection } from "../../../SettingsSection";
 import { AgentCommandField } from "../AgentCommandField";
 import { ModelSelect } from "./components/ModelSelect";
@@ -10,6 +12,7 @@ const presets = [
 	{ value: "codex", label: "Codex" },
 	{ value: "opencode", label: "OpenCode" },
 	{ value: "pi", label: "pi" },
+	{ value: "muse", label: "Muse" },
 	{ value: "custom", label: "Custom" },
 ];
 export function HarnessSettings({
@@ -26,6 +29,19 @@ export function HarnessSettings({
 	readOnly: boolean;
 }) {
 	const [revision, setRevision] = useState(0);
+	const { orpc } = useApp();
+	const accounts = useQuery(orpc.harnessAccounts.list.queryOptions({ input: {} }));
+	// The accounts a project can name: the enabled ones of the selected
+	// preset. The saved account stays in the list while it is disabled, so
+	// the field shows what the project holds instead of a blank.
+	const accountItems = [
+		{ value: "default", label: "Harness default" },
+		...(accounts.data ?? [])
+			.filter(
+				(account) => account.harness === draft.harness.preset && (account.enabled || account.id === draft.accountId),
+			)
+			.map((account) => ({ value: account.id, label: account.enabled ? account.name : `${account.name} (disabled)` })),
+	];
 	return (
 		<fieldset disabled={readOnly} className="manager-settings-groups">
 			<SettingsSection title="Harness" hint="The agent program that does the work.">
@@ -38,16 +54,28 @@ export function HarnessSettings({
 						setRevision(revision + 1);
 						commit({
 							...draft,
-							harness: { ...(preset === "custom" ? draft.harness : HARNESS_PRESETS[preset]), preset },
+							harness: { ...(preset === "custom" ? draft.harness : HARNESS_PRESETS[preset]), preset, model: undefined },
+							accountId: null,
 						});
 					}}
 				/>
 				{draft.harness.preset !== "custom" && (
-					<ModelSelect
-						harness={draft.harness.preset}
-						value={draft.harness.model}
-						onChange={(model) => commit({ ...draft, harness: { ...draft.harness, model } })}
-					/>
+					<>
+						<ModelSelect
+							harness={draft.harness.preset}
+							value={draft.harness.model}
+							onChange={(model) => commit({ ...draft, harness: { ...draft.harness, model } })}
+						/>
+						<Select
+							label="Account"
+							items={accountItems}
+							value={draft.accountId ?? "default"}
+							onValueChange={(value) => commit({ ...draft, accountId: value === "default" ? null : value })}
+						/>
+						<p className="manager-settings-hint">
+							The copilot uses this account at its next start or restart. Add accounts in Settings.
+						</p>
+					</>
 				)}
 			</SettingsSection>
 			{draft.harness.preset === "custom" && (

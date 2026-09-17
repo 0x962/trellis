@@ -16,10 +16,8 @@ test.beforeAll(async () => {
 		name: "Local flow controls",
 		managerConfig: {
 			personaId: null,
-			concurrency: 3,
 			directory,
 			ade: "native",
-			trustedDirectory: true,
 			dispatchPaused: true,
 		},
 	});

@@ -9,6 +9,8 @@ import {
 	resolveUnknown,
 	retry,
 } from "../../../../../src/services/controller/controller.ts";
+import { handle } from "../../../../../src/services/controller/work.ts";
+import * as projects from "../../../../../src/services/projects.ts";
 import { seedActor, seedActors, seedChild, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedActivity, seedTicket } from "../../../../fixtures/tickets.ts";
 import { controllerSession } from "../../../../helpers/controllerSession.ts";
@@ -29,7 +31,7 @@ beforeEach(async () => {
 	sessions = [controllerSession("terminal-1")];
 	await h.read(async (tx) => {
 		projectId = await seedRoot(tx, "CTL", {
-			manager_config: { personaId: "01M2GHTTXSHPZDFTJQW1MC28N2", concurrency: 3, directory: "" },
+			manager_config: { personaId: "01M2GHTTXSHPZDFTJQW1MC28N2", directory: "" },
 		});
 		const statusId = await seedStatus(tx, { projectId, name: "Todo", category: "todo", position: 0, isDefault: true });
 		ticketId = await seedTicket(tx, { projectId, rootId: projectId, statusId });
@@ -158,6 +160,44 @@ test("a child with its own manager owns its ticket events", async () => {
 	await gather();
 	expect(await take()).toBeNull();
 	expect(await h.rows(sql`SELECT project_id FROM manager_dispatches`)).toEqual([{ project_id: childId }]);
+});
+
+test("a sub-project that turns on its manager notifies the parent manager once", async () => {
+	const childId = await h.read((tx) => seedChild(tx, projectId, projectId, "child"));
+	await h.rebuild();
+	await h.db.execute(
+		sql`INSERT INTO personas (id, name, kind, instruction, created_at, updated_at) VALUES ('01M2GK00000000000000000CHD', 'Child', 'manager', 'Manage.', now(), now())`,
+	);
+	await h.run((ctx, tx) =>
+		projects.update(ctx, tx, {
+			project: "CTL.child",
+			managerConfig: { personaId: "01M2GK00000000000000000CHD", directory: "" },
+		}),
+	);
+	await gather();
+	const delivery = await take();
+	expect(delivery).toMatchObject({ projectId, runId: "manager-run" });
+	expect(delivery!.events).toEqual([
+		{
+			id: expect.any(Number),
+			ticketId: null,
+			action: "project.subproject_manager_enabled",
+			actor: { name: "dana", kind: "human" },
+			createdAt: NOW.toISOString(),
+			project: { id: childId, path: "CTL.child" },
+		},
+	]);
+	expect(await h.rows(sql`SELECT project_id FROM manager_dispatches`)).toEqual([{ project_id: projectId }]);
+	const handled = await h.run((ctx, tx) =>
+		handle(ctx, tx, {
+			id: delivery!.id,
+			generation: delivery!.generation,
+			outcomes: [{ ticketId: null, status: "no_action", reason: "The sub-project has its own manager." }],
+		}),
+	);
+	expect(handled.workState).toBe("handled");
+	await gather(11);
+	expect(await take(22)).toBeNull();
 });
 
 test("explicit confirmation unblocks the next batch without a resend", async () => {

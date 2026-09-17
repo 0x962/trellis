@@ -70,17 +70,19 @@ describe("system", () => {
 			wrapTransport: recordNames(names),
 			harnessModels: async (harness) => {
 				asked.push(harness);
-				return [{ value: "sonnet", label: "Sonnet" }];
+				return [{ value: "anthropic/claude-sonnet-5", label: "Sonnet" }];
 			},
 		});
 
 		const response = await app.api("/api/harnesses/claude/models", { actor: null });
+		const muse = await app.api("/api/harnesses/muse/models", { actor: null });
 		const unknown = await app.api("/api/harnesses/custom/models", { actor: null });
 		await app.close();
 
 		expect(response.status).toBe(200);
-		expect(response.body).toEqual([{ value: "sonnet", label: "Sonnet" }]);
-		expect(asked).toEqual(["claude"]);
+		expect(response.body).toEqual([{ value: "anthropic/claude-sonnet-5", label: "Sonnet" }]);
+		expect(muse.status).toBe(200);
+		expect(asked).toEqual(["claude", "muse"]);
 		expect(names).toEqual([]);
 		expect(unknown.status).toBe(400);
 		expect(unknown.body.code).toBe("INPUT_VALIDATION_FAILED");

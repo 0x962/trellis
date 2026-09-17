@@ -2,10 +2,11 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:te
 import { sql } from "drizzle-orm";
 import { reserve } from "../../../../../src/services/agentRuns/reserve.ts";
 import { assertCurrentAttempt } from "../../../../../src/services/assignments/attempts.ts";
+import * as notes from "../../../../../src/services/notes/notes.ts";
 import * as personas from "../../../../../src/services/personas.ts";
 import { seedActors, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../fixtures/tickets.ts";
-import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
+import { expectError, type Harness, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
 let h: Harness;
@@ -22,14 +23,20 @@ beforeEach(async () => {
 	await h.read(async (tx) => {
 		await seedActors(tx);
 		project = await seedRoot(tx, "ASG", {
-			manager_config: { ade: "native", personaId: null, concurrency: 1, directory: "/tmp" },
+			manager_config: { ade: "native", personaId: null, directory: "/tmp" },
 		});
-		const statusId = await seedStatus(tx, {
+		await seedStatus(tx, {
 			projectId: project,
 			name: "Todo",
 			category: "todo",
 			position: 0,
 			isDefault: true,
+		});
+		const statusId = await seedStatus(tx, {
+			projectId: project,
+			name: "In Progress",
+			category: "started",
+			position: 1,
 		});
 		ticket = await seedTicket(tx, { projectId: project, rootId: project, statusId });
 	});
@@ -40,13 +47,29 @@ beforeEach(async () => {
 });
 const start = (requestId: string) => h.run((ctx, tx) => reserve(ctx, tx, { personaId, ticket, requestId }));
 
-test("one request returns its reserved run again even when the project is at capacity", async () => {
+test("one request returns its reserved run again while another worker runs", async () => {
 	const first = await start("ASG-1:builder");
-	const second = await start("ASG-1:builder");
+	const second = await h.run((ctx, tx) => reserve(ctx, tx, { personaId, ticket, requestId: "ASG-1:builder" }));
 	expect(second.run.id).toBe(first.run.id);
 	expect(second.replay).toBe(true);
 	expect(await h.rows(sql`SELECT id FROM agent_runs`)).toHaveLength(1);
 	expect(await h.rows(sql`SELECT id FROM agent_execution_attempts`)).toHaveLength(1);
+});
+
+// No agent starts on a todo ticket. The ticket enters in-progress first,
+// which the WIP limit of its status gates.
+test("a start on a todo ticket fails until the ticket leaves todo", async () => {
+	const todo = await h.read(async (tx) => {
+		const [status] = (await tx.execute(sql`SELECT id FROM statuses WHERE category='todo'`)).rows;
+		return seedTicket(tx, { projectId: project, rootId: project, statusId: status!.id as string });
+	});
+	const refused = h.run((ctx, tx) => reserve(ctx, tx, { personaId, ticket: todo, requestId: "builder:todo" }));
+	const error = await expectError(refused, "INPUT_VALIDATION_FAILED");
+	expect(error.message).toContain("Move the ticket out of Todo before you assign an agent.");
+	const [started] = await h.rows<{ id: string }>(sql`SELECT id FROM statuses WHERE category='started'`);
+	await h.rows(sql`UPDATE tickets SET status_id=${started!.id} WHERE id=${todo}`);
+	const assigned = await h.run((ctx, tx) => reserve(ctx, tx, { personaId, ticket: todo, requestId: "builder:todo" }));
+	expect(assigned.replay).toBe(false);
 });
 
 test("a request cannot change its persona or target", async () => {
@@ -67,7 +90,6 @@ test("a request cannot change its persona or target", async () => {
 });
 
 test("one ticket permits only one active assignment per persona", async () => {
-	await h.rows(sql`UPDATE projects SET manager_config = manager_config || '{"concurrency":3}'::jsonb`);
 	const first = await start("builder:part-one");
 	expect(first.run.name).toBe("Builder");
 	await expect(start("builder:part-two")).rejects.toMatchObject({ code: "DUPLICATE" });
@@ -128,7 +150,7 @@ test("human and untracked external agent sessions do not need an attempt token",
 	);
 });
 
-test("historical external manager metadata does not reserve a native manager slot", async () => {
+test("historical external manager metadata does not block a native manager", async () => {
 	const managerId = (
 		await h.run((ctx, tx) => personas.create(ctx, tx, { name: "Manager", kind: "manager", instruction: "Manage." }))
 	).id;
@@ -140,4 +162,45 @@ test("historical external manager metadata does not reserve a native manager slo
 	);
 	expect(current.run.runtime).toBe("native");
 	expect(current.run.id).not.toBe("external");
+});
+
+// The launch context ends with the notes of the project for the kind of
+// agent that starts: the worker audience for a ticket agent, the manager
+// audience for a manager. A note for the other audience stays out.
+test("the launch context carries the project notes for the agent's audience", async () => {
+	const write = (input: Record<string, unknown>) => h.run((ctx, tx) => notes.create(ctx, tx, input));
+	await write({ project: "ASG", title: "Fresh worktree", body: "Run bun install first.", audience: "worker" });
+	await write({ project: "ASG", title: "Release policy", body: "One SRE owns the queue.", audience: "manager" });
+	await write({ project: "ASG", title: "CI", body: "GitHub Actions runs no job: billing hold." });
+	const worker = await start("notes:worker");
+	if (worker.replay) throw new Error("Expected a new assignment");
+	expect(worker.context).toContain("## Project notes");
+	expect(worker.context).toContain("- Fresh worktree (ASG, dana, updated ");
+	expect(worker.context).toContain("  Run bun install first.");
+	expect(worker.context).toContain("- CI (ASG, dana, updated ");
+	expect(worker.context).not.toContain("Release policy");
+	expect(worker.context.indexOf("Repositories:")).toBeLessThan(worker.context.indexOf("## Project notes"));
+
+	const managerId = (
+		await h.run((ctx, tx) => personas.create(ctx, tx, { name: "Manager", kind: "manager", instruction: "Manage." }))
+	).id;
+	const manager = await h.run((ctx, tx) =>
+		reserve(ctx, tx, { personaId: managerId, project, requestId: "notes:manager" }),
+	);
+	if (manager.replay) throw new Error("Expected a new assignment");
+	expect(manager.context).toContain("- Release policy (ASG, dana, updated ");
+	expect(manager.context).toContain("- CI (ASG, dana, updated ");
+	expect(manager.context).not.toContain("Fresh worktree");
+});
+
+test("two workers start on two in-progress tickets with no worker limit", async () => {
+	const first = await start("first");
+	const nextTicket = await h.read(async (tx) => {
+		const [status] = (await tx.execute(sql`SELECT id FROM statuses WHERE category='started'`)).rows;
+		return seedTicket(tx, { projectId: project, rootId: project, statusId: status!.id as string });
+	});
+	const second = await h.run((ctx, tx) => reserve(ctx, tx, { personaId, ticket: nextTicket, requestId: "second" }));
+	expect(second.replay).toBe(false);
+	expect(second.run.id).not.toBe(first.run.id);
+	expect(await h.rows(sql`SELECT id FROM agent_runs WHERE closed_at IS NULL`)).toHaveLength(2);
 });

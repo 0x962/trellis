@@ -61,15 +61,13 @@ const dependencies = () => ({
 const reserveResume = () =>
 	h.run((ctx, tx) => reserve(ctx, tx, { project: "RESUME", personaId: "persona" }, [first.id]));
 
-test.each(["trust", "workspace", "missing harness"] as const)(
+test.each(["workspace", "missing harness"] as const)(
 	"a %s failure before resume preserves the previous conversation for a corrected start",
 	async (failure) => {
 		const ctx = context();
 		const config = ProjectManagerConfigSchema.parse({
 			personaId: null,
-			concurrency: 1,
 			directory: fixture.home,
-			trustedDirectory: true,
 			harness: { preset: "claude", startCommand: "/bin/false", resumeCommand: "/bin/false" },
 		});
 		await startNative(
@@ -98,7 +96,7 @@ test.each(["trust", "workspace", "missing harness"] as const)(
 			deps.env.PATH = join(fixture.home, "empty-bin");
 			await mkdir(deps.env.PATH);
 		}
-		await startNative(ctx, { ...reserved, config: { ...config, trustedDirectory: failure !== "trust" } }, deps);
+		await startNative(ctx, { ...reserved, config }, deps);
 		const failed = await h.read((tx) => getRun(tx, "manager"));
 		expect(failed.terminalId).toBe(first.id);
 		expect(failed.sessionId).toBe(previous.agent!.sessionId);

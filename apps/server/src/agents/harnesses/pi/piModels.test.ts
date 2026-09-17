@@ -10,8 +10,8 @@ const table = [
 
 test("each row of the pi table is a provider/model flag value", () => {
 	expect(parsePiModels(table)).toEqual([
-		{ value: "anthropic/claude-sonnet-5", label: "anthropic/claude-sonnet-5" },
-		{ value: "vercel-ai-gateway/anthropic/claude-fable-5", label: "vercel-ai-gateway/anthropic/claude-fable-5" },
+		{ name: "anthropic/claude-sonnet-5", label: "anthropic/claude-sonnet-5" },
+		{ name: "vercel-ai-gateway/anthropic/claude-fable-5", label: "vercel-ai-gateway/anthropic/claude-fable-5" },
 	]);
 });
 

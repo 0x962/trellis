@@ -37,6 +37,7 @@ test("the manager bridge preserves API identity and refuses technical tools with
 			TRELLIS_ACTOR: "agent:manager-1",
 			TRELLIS_AUTH_TOKEN: "test-host-token",
 			TRELLIS_ATTEMPT_TOKEN: "test-attempt-token",
+			TRELLIS_ATTEMPT_ID: "test-attempt",
 		},
 		stdin: new Blob([`${messages.map((message) => JSON.stringify(message)).join("\n")}\n`]),
 		stdout: "pipe",

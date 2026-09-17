@@ -1,5 +1,5 @@
-import type { HarnessModel } from "@trellis/api";
 import { z } from "zod";
+import type { ListedModel } from "../types.ts";
 
 // `codex app-server` speaks JSON-RPC over stdio, one message per line. It
 // exits when stdin closes, so the caller keeps stdin open until the
@@ -31,7 +31,7 @@ const answer = z.looseObject({
 // The models of the `model/list` answer, or null when `text` is any other
 // message. A hidden model stays out of the codex picker, so it stays out
 // of this list.
-export const parseCodexModelsLine = (text: string): HarnessModel[] | null => {
+export const parseCodexModelsLine = (text: string): ListedModel[] | null => {
 	if (!text.startsWith("{")) return null;
 	const message = JSON.parse(text);
 	if (envelope.parse(message).id !== LIST_ID) return null;
@@ -39,5 +39,5 @@ export const parseCodexModelsLine = (text: string): HarnessModel[] | null => {
 	if (parsed.error !== undefined) throw new Error(`codex did not list its models: ${JSON.stringify(parsed.error)}`);
 	return parsed
 		.result!.data.filter((model) => model.hidden !== true)
-		.map((model) => ({ value: model.id, label: model.displayName }));
+		.map((model) => ({ name: model.id, label: model.displayName }));
 };

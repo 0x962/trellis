@@ -2,9 +2,9 @@ import type { Ticket } from "@trellis/api";
 import { cx } from "@trellis/ui";
 import { type ClipboardEvent, type KeyboardEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { conflictCurrent } from "../../../lib/conflict";
+import { failToast } from "../../../lib/failToast";
 import { ConflictNotice } from "../components/ConflictNotice";
 import { useTicketWrite } from "../hooks/useTicketWrite";
-import { failToast } from "../utils/failToast";
 
 export type TitleProps = {
 	ticket: Ticket;

@@ -1,7 +1,7 @@
 import { Copy, FunnelSimple, Link, ShareFat } from "@phosphor-icons/react";
 import { useRouterState } from "@tanstack/react-router";
 import type { StatusSummary } from "@trellis/api";
-import { IconButton, Menu, toast, useHotkey } from "@trellis/ui";
+import { FilterBar as FilterToolbar, IconButton, Menu, toast, useHotkey } from "@trellis/ui";
 import { type ReactNode, useState } from "react";
 import { toCli } from "../cli";
 import { FilterChip } from "../FilterChip";
@@ -74,8 +74,8 @@ export function FilterBar({ project, search, onSearchChange, statuses, actions, 
 	};
 
 	return (
-		<div data-filter-bar="" className="contents">
-			{active.map((field: FilterField) => (
+		<FilterToolbar
+			filters={active.map((field: FilterField) => (
 				<FilterChip
 					key={field}
 					field={field}
@@ -85,29 +85,28 @@ export function FilterBar({ project, search, onSearchChange, statuses, actions, 
 					onEdit={(target) => openAt({ kind: "values", field: target })}
 				/>
 			))}
-			<div className="ml-auto flex shrink-0 items-center gap-1.5">
-				{lead}
-				<FilterPicker
-					view={view}
-					statuses={statuses}
-					project={project}
-					onChange={change}
-					open={open}
-					onOpenChange={onOpenChange}
-					stage={stage}
-					onStageChange={setStage}
-					trigger={<IconButton label="Filter" icon={<FunnelSimple />} variant="default" data-filter-button="" />}
-				/>
-				{actions}
-				<Menu
-					label="Share"
-					trigger={<IconButton label="Share" icon={<ShareFat />} variant="default" />}
-					items={[
-						{ label: "Copy as CLI", icon: <Copy />, onSelect: () => void copyCli() },
-						{ label: "Copy link", icon: <Link />, onSelect: () => void copyLink() },
-					]}
-				/>
-			</div>
-		</div>
+		>
+			{lead}
+			<FilterPicker
+				view={view}
+				statuses={statuses}
+				project={project}
+				onChange={change}
+				open={open}
+				onOpenChange={onOpenChange}
+				stage={stage}
+				onStageChange={setStage}
+				trigger={<IconButton label="Filter" icon={<FunnelSimple />} variant="default" data-filter-button="" />}
+			/>
+			{actions}
+			<Menu
+				label="Share"
+				trigger={<IconButton label="Share" icon={<ShareFat />} variant="default" />}
+				items={[
+					{ label: "Copy as CLI", icon: <Copy />, onSelect: () => void copyCli() },
+					{ label: "Copy link", icon: <Link />, onSelect: () => void copyLink() },
+				]}
+			/>
+		</FilterToolbar>
 	);
 }

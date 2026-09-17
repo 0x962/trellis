@@ -24,8 +24,8 @@ test("the model list answer becomes flag values with labels, without hidden mode
 		{ id: "gpt-5.3-lab", model: "gpt-5.3-lab", displayName: "GPT-5.3-Lab", hidden: true },
 	];
 	expect(parseCodexModelsLine(JSON.stringify({ id: 2, result: { data, nextCursor: null } }))).toEqual([
-		{ value: "gpt-6-astra", label: "GPT-6-Astra" },
-		{ value: "gpt-5.6-sol", label: "GPT-5.6-Sol" },
+		{ name: "gpt-6-astra", label: "GPT-6-Astra" },
+		{ name: "gpt-5.6-sol", label: "GPT-5.6-Sol" },
 	]);
 });
 

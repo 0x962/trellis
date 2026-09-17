@@ -16,7 +16,7 @@ export const useProjectActions = () => {
 		try {
 			await client.projects.update({ project: project.path, archived });
 		} catch (error) {
-			toast.error(`Couldn't ${archived ? "archive" : "unarchive"} ${project.name}`, {
+			toast.error(`Could not ${archived ? "archive" : "unarchive"} ${project.name}`, {
 				description: (error as Error).message,
 			});
 			return;
@@ -31,7 +31,7 @@ export const useProjectActions = () => {
 		try {
 			await client.projects.delete(force ? { project: project.path, force: true } : { project: project.path });
 		} catch (error) {
-			toast.error(`Couldn't delete ${project.name}`, { description: (error as Error).message });
+			toast.error(`Could not delete ${project.name}`, { description: (error as Error).message });
 			return false;
 		}
 		await navigate({ to: "/all" });

@@ -16,6 +16,5 @@ export function observeHarness(record: SessionRecord, event: HarnessEvent) {
 	)
 		record.completion.append(event.result);
 	record.activity = record.observations.activity;
-	if (event.kind !== "session" && event.kind !== "message") record.inputPending = false;
 	for (const listener of record.listeners) listener();
 }

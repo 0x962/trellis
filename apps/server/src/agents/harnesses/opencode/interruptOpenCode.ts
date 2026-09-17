@@ -1,4 +1,5 @@
 import { request } from "node:http";
+import { controlReplyText } from "../controlReplyText/controlReplyText.ts";
 
 export function interruptOpenCode(socket: string, token: string, sessionId: string, turnId: string) {
 	return requestOpenCode(socket, token, "/interrupt", { sessionId, turnId }) as Promise<{
@@ -30,7 +31,10 @@ function requestOpenCode(socket: string, token: string, path: string, body: unkn
 				});
 				response.on("error", reject);
 				response.on("end", () => {
-					if (response.statusCode !== 200) return reject(new Error(`OpenCode control failed: ${body}`));
+					if (response.statusCode !== 200) {
+						const reply = controlReplyText("opencode", response.statusCode!, body);
+						return reject(Object.assign(new Error(reply.message), { code: reply.code }));
+					}
 					try {
 						resolve(JSON.parse(body));
 					} catch (error) {

@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
 import { mkdir, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
-import { ProjectManagerConfigSchema } from "@trellis/api";
+import { HARNESS_DEFAULT_MODELS, ProjectManagerConfigSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { nativeHost } from "../../../../../src/agents/native/harnessHost.ts";
 import { prepareSend } from "../../../../../src/services/agentRuns/communication.ts";
@@ -54,16 +54,19 @@ const dependencies = () => ({
 	runtime: async () => fixture.client,
 	env: { ...process.env, PATH: join(fixture.home, "bin"), TRELLIS_AUTH_TOKEN: "fixture-host-token" },
 });
-const configFor = (harness: "claude" | "codex" | "pi" | "opencode") =>
+const configFor = (harness: "claude" | "codex" | "pi" | "opencode" | "muse") =>
 	ProjectManagerConfigSchema.parse({
 		personaId: null,
-		concurrency: 1,
 		directory: fixture.home,
-		trustedDirectory: true,
-		harness: { preset: harness, model: "explicit-model", startCommand: "/bin/false", resumeCommand: "/bin/false" },
+		harness: {
+			preset: harness,
+			model: HARNESS_DEFAULT_MODELS[harness],
+			startCommand: "/bin/false",
+			resumeCommand: "/bin/false",
+		},
 	});
 
-test.each(["claude", "codex", "pi", "opencode"] as const)(
+test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
 	"production %s start, send, terminal output, stop, and exact resume use the host",
 	async (harness) => {
 		if (harness === "codex") await h.rows(sql`UPDATE agent_runs SET kind='builder' WHERE id='assignment'`);
@@ -84,7 +87,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 		);
 		const host = nativeHost(fixture.home, dependencies().env, fixture.client);
 		const idle = await host.waitFor(first.id, (state) => state.activity?.state === "idle");
-		expect(idle.agent?.model).toBe("explicit-model");
+		expect(idle.agent?.model).toBe(HARNESS_DEFAULT_MODELS[harness]);
 		expect(idle.acknowledgedMessageIds).toContain(first.id);
 		const stored = await h.read((tx) => getRun(tx, "assignment"));
 		expect(stored.sessionId).toBe(idle.agent!.sessionId);
@@ -101,7 +104,10 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 		);
 		await terminal.input(ctx, { id: "assignment", text: "", userInput: false });
 		await prepareSend(ctx, { id: "assignment", text: "Follow up", messageId: "followup" });
-		await host.waitFor(first.id, (state) => state.activity?.state === "idle");
+		await host.waitFor(
+			first.id,
+			(state) => state.activity?.state === "idle" && state.acknowledgedMessageIds.includes("followup"),
+		);
 		expect((await terminal.session(ctx, { id: "assignment" }))?.acknowledgedMessageIds).toContain("followup");
 		let visible = "";
 		for await (const event of host.subscribe(first.id, 0, AbortSignal.timeout(1500))) {
@@ -191,7 +197,7 @@ test("the assignment token remains the runtime authentication token", async () =
 	expect((await fixture.client.inspect(attempt.id)).agent?.model).toBe("observed-model");
 });
 
-test.each(["claude", "codex", "pi", "opencode"] as const)(
+test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
 	"production %s interrupt preserves the process and confirms native interruption",
 	async (harness) => {
 		if (harness === "codex") await h.rows(sql`UPDATE agent_runs SET kind='builder' WHERE id='assignment'`);

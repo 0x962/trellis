@@ -4,11 +4,16 @@ import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { AgentRunSheet } from "../AgentRunSheet";
 import { hasAssignedProcess } from "../hasAssignedProcess";
+import { isAgentWorking } from "../isAgentWorking";
+import { personaKindOf } from "../personaKindOf";
 import { PersonaPicker } from "./components/PersonaPicker";
 
 export function TicketAgent({ ticket, disabled = false }: { ticket: string; disabled?: boolean }) {
 	const { orpc } = useApp();
-	const query = useQuery(orpc.agentRuns.list.queryOptions({ input: { ticket }, retry: false }));
+	const query = useQuery({
+		...orpc.agentRuns.list.queryOptions({ input: { ticket }, retry: false }),
+		refetchInterval: 2000,
+	});
 	const [openId, setOpenId] = useState<string | null>(null);
 	const runs = query.data ?? [];
 	const shown = runs.filter(hasAssignedProcess);
@@ -39,7 +44,12 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 							onClick={() => setOpenId(run.id)}
 						>
 							<span className="flex min-w-0 items-center gap-2">
-								<Avatar kind="agent" name={run.personaName} />
+								<Avatar
+									kind="agent"
+									name={run.personaName}
+									personaKind={personaKindOf(run.kind)}
+									state={isAgentWorking(run) ? "working-mild" : "static"}
+								/>
 								<span className="truncate text-fg">{run.personaName}</span>
 								{run.state === "failed" && <span className="text-xs text-danger">failed</span>}
 							</span>

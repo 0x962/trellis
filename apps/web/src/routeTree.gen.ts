@@ -17,10 +17,12 @@ import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SetupRouteImport } from './routes/setup'
+import { Route as UsageRouteImport } from './routes/usage'
 import { Route as AiFlowsRouteImport } from './routes/ai.flows'
 import { Route as AiPersonasRouteImport } from './routes/ai.personas'
 import { Route as AllTableRouteImport } from './routes/all_.table'
 import { Route as PSplatRouteRouteImport } from './routes/p/$/route'
+import { Route as SessionsIdRouteImport } from './routes/sessions.$id'
 import { Route as TIdentifierRouteRouteImport } from './routes/t/$identifier/route'
 import { Route as AiFlowsSlugRouteImport } from './routes/ai.flows_.$slug'
 import { Route as ReviewsOwnerRepoNumberRouteImport } from './routes/reviews_.$owner.$repo.$number'
@@ -65,6 +67,11 @@ const SetupRoute = SetupRouteImport.update({
   path: '/setup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UsageRoute = UsageRouteImport.update({
+  id: '/usage',
+  path: '/usage',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AiFlowsRoute = AiFlowsRouteImport.update({
   id: '/ai/flows',
   path: '/ai/flows',
@@ -83,6 +90,11 @@ const AllTableRoute = AllTableRouteImport.update({
 const PSplatRouteRoute = PSplatRouteRouteImport.update({
   id: '/p/$',
   path: '/p/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SessionsIdRoute = SessionsIdRouteImport.update({
+  id: '/sessions/$id',
+  path: '/sessions/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TIdentifierRouteRoute = TIdentifierRouteRouteImport.update({
@@ -110,11 +122,13 @@ export interface FileRoutesByFullPath {
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
+  '/usage': typeof UsageRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
   '/ai/flows': typeof AiFlowsRoute
   '/ai/personas': typeof AiPersonasRoute
   '/all/table': typeof AllTableRoute
+  '/sessions/$id': typeof SessionsIdRoute
   '/ai/flows/$slug': typeof AiFlowsSlugRoute
   '/reviews/$owner/$repo/$number': typeof ReviewsOwnerRepoNumberRoute
 }
@@ -127,11 +141,13 @@ export interface FileRoutesByTo {
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
+  '/usage': typeof UsageRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
   '/ai/flows': typeof AiFlowsRoute
   '/ai/personas': typeof AiPersonasRoute
   '/all/table': typeof AllTableRoute
+  '/sessions/$id': typeof SessionsIdRoute
   '/ai/flows/$slug': typeof AiFlowsSlugRoute
   '/reviews/$owner/$repo/$number': typeof ReviewsOwnerRepoNumberRoute
 }
@@ -145,11 +161,13 @@ export interface FileRoutesById {
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
+  '/usage': typeof UsageRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
   '/ai/flows': typeof AiFlowsRoute
   '/ai/personas': typeof AiPersonasRoute
   '/all_/table': typeof AllTableRoute
+  '/sessions/$id': typeof SessionsIdRoute
   '/ai/flows_/$slug': typeof AiFlowsSlugRoute
   '/reviews_/$owner/$repo/$number': typeof ReviewsOwnerRepoNumberRoute
 }
@@ -164,11 +182,13 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/setup'
+    | '/usage'
     | '/p/$'
     | '/t/$identifier'
     | '/ai/flows'
     | '/ai/personas'
     | '/all/table'
+    | '/sessions/$id'
     | '/ai/flows/$slug'
     | '/reviews/$owner/$repo/$number'
   fileRoutesByTo: FileRoutesByTo
@@ -181,11 +201,13 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/setup'
+    | '/usage'
     | '/p/$'
     | '/t/$identifier'
     | '/ai/flows'
     | '/ai/personas'
     | '/all/table'
+    | '/sessions/$id'
     | '/ai/flows/$slug'
     | '/reviews/$owner/$repo/$number'
   id:
@@ -198,11 +220,13 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/setup'
+    | '/usage'
     | '/p/$'
     | '/t/$identifier'
     | '/ai/flows'
     | '/ai/personas'
     | '/all_/table'
+    | '/sessions/$id'
     | '/ai/flows_/$slug'
     | '/reviews_/$owner/$repo/$number'
   fileRoutesById: FileRoutesById
@@ -216,11 +240,13 @@ export interface RootRouteChildren {
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   SetupRoute: typeof SetupRoute
+  UsageRoute: typeof UsageRoute
   PSplatRouteRoute: typeof PSplatRouteRoute
   TIdentifierRouteRoute: typeof TIdentifierRouteRoute
   AiFlowsRoute: typeof AiFlowsRoute
   AiPersonasRoute: typeof AiPersonasRoute
   AllTableRoute: typeof AllTableRoute
+  SessionsIdRoute: typeof SessionsIdRoute
   AiFlowsSlugRoute: typeof AiFlowsSlugRoute
   ReviewsOwnerRepoNumberRoute: typeof ReviewsOwnerRepoNumberRoute
 }
@@ -283,6 +309,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SetupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/usage': {
+      id: '/usage'
+      path: '/usage'
+      fullPath: '/usage'
+      preLoaderRoute: typeof UsageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ai/flows': {
       id: '/ai/flows'
       path: '/ai/flows'
@@ -309,6 +342,13 @@ declare module '@tanstack/react-router' {
       path: '/p/$'
       fullPath: '/p/$'
       preLoaderRoute: typeof PSplatRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sessions/$id': {
+      id: '/sessions/$id'
+      path: '/sessions/$id'
+      fullPath: '/sessions/$id'
+      preLoaderRoute: typeof SessionsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/t/$identifier': {
@@ -344,11 +384,13 @@ const rootRouteChildren: RootRouteChildren = {
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   SetupRoute: SetupRoute,
+  UsageRoute: UsageRoute,
   PSplatRouteRoute: PSplatRouteRoute,
   TIdentifierRouteRoute: TIdentifierRouteRoute,
   AiFlowsRoute: AiFlowsRoute,
   AiPersonasRoute: AiPersonasRoute,
   AllTableRoute: AllTableRoute,
+  SessionsIdRoute: SessionsIdRoute,
   AiFlowsSlugRoute: AiFlowsSlugRoute,
   ReviewsOwnerRepoNumberRoute: ReviewsOwnerRepoNumberRoute,
 }

@@ -9,7 +9,7 @@ import {
 } from "@trellis/api";
 import type { RequestContext } from "../context.ts";
 import type { ServiceTransport } from "../db/transport.ts";
-import { fail, invalidInput } from "../errors.ts";
+import { fail, type InputIssue, invalidInput, invalidIssues } from "../errors.ts";
 import type { GhAccess } from "../ghState.ts";
 import type { DbTiming } from "../serverTiming.ts";
 import type { ServiceName } from "../services/registry.ts";
@@ -58,7 +58,7 @@ const declaredValidation = base.middleware(async ({ next }) => {
 		return await next();
 	} catch (error) {
 		if (error instanceof ORPCError && error.code === "BAD_REQUEST" && error.cause instanceof ValidationError) {
-			throw fail("INPUT_VALIDATION_FAILED", { issues: error.cause.issues as { message: string; path?: [] }[] });
+			throw invalidIssues(error.cause.issues as InputIssue[]);
 		}
 		throw error;
 	}
@@ -70,8 +70,11 @@ export const os = base.use(declaredValidation).use(requireActor);
 
 // Runs one service through the transport with the context of this request.
 export const call = <T>(context: ProcedureContext, name: ServiceName, input: unknown): Promise<T> => {
+	const readActor = ["submanagers.list", "agentRuns.list", "controller.list"].includes(name)
+		? ActorHeaderSchema.safeParse(context.headers.get("x-trellis-actor"))
+		: null;
 	const ctx: RequestContext = {
-		actor: context.actor,
+		actor: context.actor ?? (readActor?.success ? readActor.data : null),
 		session: context.headers.get("x-trellis-session"),
 		attemptToken: context.headers.get("x-trellis-attempt"),
 		reqId: context.reqId,

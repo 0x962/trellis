@@ -13,7 +13,7 @@ The first package target is Apple Silicon.
 | Package | Bundled Bun, Node, CLI, renderer, PGlite assets, database worker, schema migrations, and native terminal modules |
 | Runtime | Protocol 5, one owner lock, durable process identifiers, PTYs, streamed output, live process inspection, keyed input, deadlines, and confirmed stop |
 | Controller | Durable event batches, fixed deadlines, runtime turn activity, assignment deduplication, attempt tokens, and durable receipts |
-| Harness | Interactive CLI presets, permission bypass flags, repository trust, Claude turn hooks, exact message receipts, and retained results |
+| Harness | Interactive CLI presets, permission bypass flags, automatic repository trust, Claude turn hooks, exact message receipts, and retained results |
 | Evidence | Worktree diff and files, command results, artifact hashes, revision checks, and confirmed check exit recovery |
 | Flows | Frozen graph and persona versions, agent attempts, YES/NO gates, human decisions, joins, deadlines, and cancellation |
 | Work area | Activity first, assigned-agent terminal, local changes, checks, flow decisions, and diagnostics |
@@ -22,7 +22,7 @@ The first package target is Apple Silicon.
 | App replacement | Retained host resources and protocol checks before activation |
 
 The Manager page has Operation, General, and Harness sections.
-Operation separates automatic dispatch from the manager process. General holds the repository directory, trust, persona, and concurrency limit.
+Operation separates automatic dispatch from the manager process. General holds the repository directory, persona, and concurrency limit.
 Harness selects the agent executable and commands.
 
 ## Current verification
@@ -60,10 +60,10 @@ The [directory report](acceptance/2026-09-14-directory/report.md) records the se
 
 Read [the desktop guide](../../apps/desktop/README.md) for build and package commands.
 Close or quit detaches the window and leaves background work active.
-Use the native stop action to pause dispatch, stop owned processes, and remove the background service.
+Use Quit Trellis Completely in the Trellis menu or Settings > Desktop to pause dispatch, stop owned processes, and remove the background service.
 An unconfirmed process prevents a successful stop.
 
-Use File > Choose data directory to open an existing home in place.
+Use Settings > Desktop > Choose data directory to open an existing home in place.
 The confirmation shows both directories, the backup path, and the service changes.
 The handoff verifies the standalone service PID and configured home before it disables that service.
 It backs up the database before schema changes and pauses automation. Both directories retain their files.
@@ -79,4 +79,4 @@ VoiceOver, 200% zoom, and a full keyboard accessibility pass remain release chec
 The 24-hour unattended soak and a real PR with CI and Margin feedback remain unverified.
 
 Git and the selected agent executable remain local prerequisites. Model access follows the agent's account requirements.
-The app provides a manual replacement path through its Update status menu.
+The app provides a manual replacement path through the update status in Settings > Desktop.

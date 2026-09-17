@@ -1,6 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import * as tickets from "../../../../src/services/tickets.ts";
-import { type ActorRef, claude, dana, seedActivity, seedProject, seedTicket, type TicketSeed } from "../../../fixtures";
+import {
+	type ActorRef,
+	claude,
+	dana,
+	seedActivity,
+	seedDefaultBuilder,
+	seedProject,
+	seedTicket,
+	type TicketSeed,
+} from "../../../fixtures";
 import { activityOf, distinct, millis, ticketHarness, ticketRow } from "../../../helpers/services.ts";
 
 const h = ticketHarness();
@@ -12,6 +21,7 @@ const update = (actor: ActorRef, input: Record<string, unknown>) =>
 const seed = async (extra: Partial<TicketSeed> = {}) => {
 	const project = await seedProject(h.db);
 	const { rootId, statuses } = project;
+	await seedDefaultBuilder(h.db, rootId);
 	const id = await seedTicket(h.db, { projectId: rootId, rootId, statusId: statuses.todo, title: "Alpha", ...extra });
 	return { ...project, id };
 };

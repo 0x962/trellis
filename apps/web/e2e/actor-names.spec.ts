@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { createTicket, ensureProject, moveTicket, trellis } from "./cli";
-import { cardOf, signIn } from "./support";
+import { mapRpcResponse } from "./mapRpcResponse";
+import { cardOf, rowOf, signIn } from "./support";
 
 const runId = "01M2HGY58VB4J2AYRVGDFHHB3P";
 
@@ -10,13 +11,11 @@ test("ticket activity and comments show the agent name instead of its identity",
 		trellis(["edit", "ANM-1", "--title", "Show the manager name"], `agent:${runId}`);
 		trellis(["comment", "ANM-1", "--body", "A result for the human."], `agent:${runId}`);
 	}
-	await page.route("**/rpc/**", async (route) => {
-		const response = await route.fetch();
-		const json = JSON.parse(await response.text(), (key, value) =>
+	await page.route(/\/rpc\/(__batch__|tickets|timeline|comments|search)/, (route) =>
+		mapRpcResponse(route, (key, value) =>
 			key === "actor" && value?.name === runId ? { ...value, displayName: "Hana" } : value,
-		);
-		await route.fulfill({ response, json });
-	});
+		),
+	);
 	await signIn(page, "/t/ANM-1");
 	await page.getByRole("tab", { name: "Activity", exact: true }).click();
 	await expect(page.locator('[data-kind="activity"]').getByText("Hana", { exact: true }).first()).toBeVisible();
@@ -30,17 +29,15 @@ test("ticket rows use the agent display name in Needs you and the board", async 
 	const ticket = createTicket("ANR", "Named last actor");
 	moveTicket(ticket.identifier, "human-review");
 	trellis(["comment", ticket.identifier, "--body", "Ready for the human."], `agent:${runId}`);
-	await page.route("**/rpc/**", async (route) => {
-		const response = await route.fetch();
-		const json = JSON.parse(await response.text(), (key, value) =>
+	await page.route(/\/rpc\/(__batch__|tickets|timeline|comments|search)/, (route) =>
+		mapRpcResponse(route, (key, value) =>
 			(key === "lastActor" || value?.kind === "agent") && value?.name === runId
 				? { ...value, displayName: "Hana" }
 				: value,
-		);
-		await route.fulfill({ response, json });
-	});
+		),
+	);
 	await signIn(page, "/needs-you");
-	const inbox = page.locator(`[data-inbox-row="${ticket.identifier}"]`);
+	const inbox = rowOf(page, ticket.identifier);
 	await expect(inbox.getByRole("img", { name: "Hana · agent" })).toBeVisible();
 	await page.goto(`/p/ANR/board?actor=${encodeURIComponent(`agent:${runId}`)}`);
 	await expect(page.locator('[data-filter-chip="actor"]').getByText("Hana", { exact: true })).toBeVisible();

@@ -8,11 +8,15 @@ export const managerMessage = (
 	agents: Awaited<ReturnType<typeof agentContext>>,
 ) =>
 	JSON.stringify({
-		type: delivery.events.length === 0 ? "trellis.manager.heartbeat" : "trellis.manager.dispatch",
+		type:
+			delivery.events.length === 0 && delivery.nextActions.length === 0
+				? "trellis.manager.heartbeat"
+				: "trellis.manager.dispatch",
 		id: delivery.id,
 		projectId: delivery.projectId,
 		generation: delivery.generation,
 		events: delivery.events,
+		nextActions: delivery.nextActions,
 		workItems: workItems(delivery),
 		...context,
 		agentContext: agents,

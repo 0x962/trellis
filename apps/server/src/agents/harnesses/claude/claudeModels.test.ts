@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { CLAUDE_MODELS_REQUEST, parseClaudeModels } from "./claudeModels.ts";
 
+// `value` is what the claude picker sends on the wire for each model.
 const models = [
 	{ value: "default", resolvedModel: "claude-opus-5[1m]", displayName: "Default (recommended)" },
 	{ value: "opus[1m]", resolvedModel: "claude-opus-5[1m]", displayName: "Opus (1M context)" },
@@ -21,11 +22,11 @@ test("the initialize request carries a stable request id", () => {
 	});
 });
 
-test("the model picker of claude becomes flag values with labels, without the default entry", () => {
+test("the model picker of claude becomes model names with labels, without the default entry", () => {
 	const stdout = answer({ subtype: "success", request_id: "trellis-models", response: { models, commands: [] } });
 	expect(parseClaudeModels(stdout)).toEqual([
-		{ value: "opus[1m]", label: "Opus (1M context)" },
-		{ value: "sonnet", label: "Sonnet" },
+		{ name: "opus[1m]", label: "Opus (1M context)" },
+		{ name: "sonnet", label: "Sonnet" },
 	]);
 });
 

@@ -3,7 +3,8 @@ import { sql } from "drizzle-orm";
 import { list, recover } from "../../../../../src/services/controller/controller.ts";
 import { coordination } from "../../../../../src/services/controller/coordination.ts";
 import { handle } from "../../../../../src/services/controller/work.ts";
-import { seedRoot } from "../../../../fixtures/projects.ts";
+import { seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
+import { seedTicket } from "../../../../fixtures/tickets.ts";
 import { type Harness, NOW, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
@@ -123,4 +124,23 @@ test("a delayed acknowledgement cannot replace a recorded ticket outcome", async
 		),
 	).rejects.toThrow();
 	expect((await record([outcome("one")])).outcomes).toEqual([outcome("one")]);
+});
+
+test("an older dispatch cannot cancel a queued wait it never presented", async () => {
+	const ticketId = await h.read(async (tx) => {
+		const statusId = await seedStatus(tx, { projectId, name: "Todo", category: "todo", position: 0, isDefault: true });
+		return seedTicket(tx, { projectId, rootId: projectId, statusId });
+	});
+	await h.rows(sql`UPDATE manager_dispatches SET events=${JSON.stringify([{ ticketId }])}::jsonb`);
+	await h.rows(sql`INSERT INTO manager_dispatches (id,project_id,generation,state,events,due_at,created_at,updated_at)
+		VALUES ('newer',${projectId},5,'sent',${JSON.stringify([{ ticketId }])}::jsonb,${NOW},${NOW},${NOW})`);
+	await h.run((ctx, tx) =>
+		handle(ctx, tx, {
+			id: "newer",
+			generation: 5,
+			outcomes: [{ ticketId, status: "queued", reason: "Start a worker for this ticket." }],
+		}),
+	);
+	await record([outcome(ticketId)]);
+	expect(await h.rows(sql`SELECT id FROM manager_next_actions WHERE state='waiting'`)).toHaveLength(1);
 });

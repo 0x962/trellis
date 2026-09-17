@@ -1,5 +1,5 @@
-import type { HarnessModel } from "@trellis/api";
 import { z } from "zod";
+import type { ListedModel } from "../types.ts";
 
 // `claude -p` in stream-json mode takes control requests on stdin. The
 // `initialize` request answers with the model picker of the account.
@@ -34,7 +34,7 @@ const line = z.looseObject({
 
 // The `default` entry stands for the model claude picks on its own. A blank
 // trellis model setting means the same thing, so the list leaves it out.
-export const parseClaudeModels = (stdout: string): HarnessModel[] => {
+export const parseClaudeModels = (stdout: string): ListedModel[] => {
 	for (const text of stdout.split("\n")) {
 		if (!text.startsWith("{")) continue;
 		const parsed = line.parse(JSON.parse(text));
@@ -43,7 +43,7 @@ export const parseClaudeModels = (stdout: string): HarnessModel[] => {
 			throw new Error(`claude did not list its models: ${parsed.response.error}`);
 		return parsed.response
 			.response!.models.filter((model) => model.value !== "default")
-			.map((model) => ({ value: model.value, label: model.displayName }));
+			.map((model) => ({ name: model.value, label: model.displayName }));
 	}
 	throw new Error(`claude did not answer the initialize request: ${stdout.trim()}`);
 };

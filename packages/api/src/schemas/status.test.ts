@@ -54,3 +54,16 @@ test("a status color is a palette token name, never a raw color", () => {
 		expect(StatusSummarySchema.safeParse(statusSummary({ color })).success, color).toBe(false);
 	}
 });
+
+// A person types the name, the description, and the WIP limit in the status
+// dialog, so each bound reads as a sentence.
+test("a status field out of bounds reads as a sentence", () => {
+	const create = { project: "CDE", name: "QA", category: "todo" };
+	const message = (input: Record<string, unknown>) =>
+		StatusCreateInputSchema.safeParse({ ...create, ...input }).error!.issues[0]!.message;
+	expect(message({ name: "" })).toBe("Enter a status name of 1 to 40 characters.");
+	expect(message({ name: "n".repeat(41) })).toBe("Enter a status name of 1 to 40 characters.");
+	expect(message({ description: "d".repeat(2001) })).toBe("Enter a status description of 2000 characters or less.");
+	expect(message({ wipLimit: 0 })).toBe("Enter a WIP limit of 1 or more.");
+	expect(message({ wipLimit: 1.5 })).toBe("Enter a whole number for the WIP limit.");
+});

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ActorRefSchema } from "./schemas/actor.ts";
 import { CiStateSchema, GhReasonSchema, PrStateSchema } from "./schemas/enums.ts";
 import { UlidSchema } from "./schemas/primitives.ts";
 import { TicketSummarySchema } from "./schemas/ticket.ts";
@@ -6,6 +7,7 @@ import { TicketSummarySchema } from "./schemas/ticket.ts";
 // Every SSE event name. `types=` on the events route takes these and
 // `prefix.*` forms.
 export const eventNames = [
+	"needs-you.changed",
 	"ticket.created",
 	"ticket.updated",
 	"ticket.deleted",
@@ -15,6 +17,10 @@ export const eventNames = [
 	"comment.created",
 	"comment.updated",
 	"comment.deleted",
+	"chat.message",
+	"chat.delivery",
+	"chat.channels",
+	"notes.changed",
 	"attachment.created",
 	"attachment.deleted",
 	"statuses.changed",
@@ -27,6 +33,7 @@ export const eventNames = [
 	"flows.changed",
 	"reviews.changed",
 	"agent-runs.changed",
+	"sessions.changed",
 	"reset",
 	"ready",
 	"bye",
@@ -82,7 +89,39 @@ export const CommentEventPayloadSchema = TicketChildEventPayloadSchema.extend({
 	resolved: z.boolean().optional(),
 });
 
+// A new post. `id` is the message, `channel` is the stored channel name
+// without `#`, and `actor` is its author, so a client knows whether the
+// post is its own.
+export const ChatMessageEventPayloadSchema = z.object({
+	id: UlidSchema,
+	projectId: UlidSchema,
+	channel: z.string(),
+	// True for a channel that only agents post in; a client raises no sound
+	// or unread dot for such a message.
+	aiOnly: z.boolean(),
+	actor: ActorRefSchema,
+});
+
+// The delivery state of one message to an agent changed.
+export const ChatDeliveryEventPayloadSchema = z.object({
+	id: UlidSchema,
+	projectId: UlidSchema,
+	channel: z.string(),
+});
+
+// The channel list of `projectId` changed.
+export const ChatChannelsEventPayloadSchema = z.object({
+	projectId: UlidSchema,
+});
+
 export const StatusesChangedPayloadSchema = z.object({
+	projectId: UlidSchema,
+});
+
+// `projectId` is the project that owns the created, changed, or deleted note.
+// Every project below it reads that note too, so a client refetches every
+// note list.
+export const NotesChangedPayloadSchema = z.object({
 	projectId: UlidSchema,
 });
 
@@ -138,6 +177,10 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("comment.created", CommentEventPayloadSchema),
 	typed("comment.updated", CommentEventPayloadSchema),
 	typed("comment.deleted", CommentEventPayloadSchema),
+	typed("chat.message", ChatMessageEventPayloadSchema),
+	typed("chat.delivery", ChatDeliveryEventPayloadSchema),
+	typed("chat.channels", ChatChannelsEventPayloadSchema),
+	typed("notes.changed", NotesChangedPayloadSchema),
 	typed("attachment.created", TicketChildEventPayloadSchema),
 	typed("attachment.deleted", TicketChildEventPayloadSchema),
 	typed("statuses.changed", StatusesChangedPayloadSchema),
@@ -153,6 +196,8 @@ export const EventSchema = z.discriminatedUnion("type", [
 		z.object({ id: UlidSchema, ticketIds: z.array(UlidSchema), projectIds: z.array(UlidSchema) }),
 	),
 	typed("agent-runs.changed", PersonasChangedPayloadSchema),
+	typed("sessions.changed", PersonasChangedPayloadSchema),
+	typed("needs-you.changed", z.object({ actorName: z.string() })),
 	typed("reset", ResetPayloadSchema),
 	typed("ready", ReadyPayloadSchema),
 	typed("bye", ByePayloadSchema),

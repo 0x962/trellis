@@ -7,6 +7,7 @@ export const system = os.system.router({
 	nativeWork: os.system.nativeWork.handler(({ context }) => call(context, "system.nativeWork", {})),
 	resumeNativeWork: os.system.resumeNativeWork.handler(({ context }) => call(context, "system.resumeNativeWork", {})),
 	resumeRestart: os.system.resumeRestart.handler(({ context, input }) => call(context, "system.resumeRestart", input)),
+	restartStatus: os.system.restartStatus.handler(({ context }) => call(context, "system.restartStatus", {})),
 	stopNativeWork: os.system.stopNativeWork.handler(({ context }) => call(context, "system.stopNativeWork", {})),
 
 	chooseDirectory: os.system.chooseDirectory.handler(({ context }) => context.chooseDirectory()),

@@ -1,8 +1,12 @@
-import type { BuiltInHarness, HarnessModel } from "@trellis/api";
+import { spawn } from "node:child_process";
+import { type BuiltInHarness, catalogModelFor, type HarnessModel } from "@trellis/api";
 import { CLAUDE_MODELS_ARGS, CLAUDE_MODELS_REQUEST, parseClaudeModels } from "../harnesses/claude/claudeModels.ts";
 import { CODEX_MODELS_ARGS, CODEX_MODELS_REQUESTS, parseCodexModelsLine } from "../harnesses/codex/codexModels.ts";
+import { MspClient } from "../harnesses/muse/mspClient.ts";
+import { MUSE_MODELS_ARGS, parseMuseModels } from "../harnesses/muse/museModels.ts";
 import { OPENCODE_MODELS_ARGS, parseOpenCodeModels } from "../harnesses/opencode/opencodeModels.ts";
 import { PI_MODELS_ARGS, parsePiModels } from "../harnesses/pi/piModels.ts";
+import type { ListedModel } from "../harnesses/types.ts";
 import { resolveExecutable } from "../harnessHost/resolveExecutable.ts";
 
 // The models a built-in harness offers, asked from the harness program on
@@ -11,6 +15,12 @@ import { resolveExecutable } from "../harnessHost/resolveExecutable.ts";
 // output fails the parse. The claude query starts a session, and a claude
 // session runs the SessionStart hooks of its working directory. Every
 // program runs in `cwd`, the data home, so no hook of a project runs.
+//
+// A program names its models the way its own model flag takes them.
+// `projects.managerConfig` stores a canonical trellis model id instead, so
+// `catalogModelFor` turns each name into that id. A model the program
+// offers and `catalog.json` does not hold leaves the list, because a
+// project cannot store it and `toHarnessModel` cannot launch it.
 
 const TIMEOUT_MS = 30000;
 
@@ -35,7 +45,7 @@ const capture = async (command: string[], { cwd, env }: Spawn, stdin?: string) =
 
 // Reads stdout line by line until `parse` returns the models, then closes
 // stdin so the app server exits.
-const listCodex = async (executable: string, { cwd, env }: Spawn): Promise<HarnessModel[]> => {
+const listCodex = async (executable: string, { cwd, env }: Spawn): Promise<ListedModel[]> => {
 	const proc = Bun.spawn([executable, ...CODEX_MODELS_ARGS], {
 		cwd,
 		env,
@@ -64,7 +74,24 @@ const listCodex = async (executable: string, { cwd, env }: Spawn): Promise<Harne
 	throw new Error(`codex exited ${proc.exitCode} before it listed its models: ${(await stderr).trim()}`);
 };
 
-const listers: Record<BuiltInHarness, (executable: string, spawn: Spawn) => Promise<HarnessModel[]>> = {
+// Asks one `muse serve` session host for the catalog of its account, then
+// closes it. Nothing here waits for that host to exit, and `closed` rejects
+// on the exit, so this takes the rejection to keep it off the server.
+const listMuse = async (executable: string, { cwd, env }: Spawn): Promise<ListedModel[]> => {
+	const child = spawn(executable, MUSE_MODELS_ARGS, { cwd, env, stdio: ["pipe", "pipe", "pipe"] });
+	const timer = setTimeout(() => child.kill("SIGKILL"), TIMEOUT_MS);
+	const client = new MspClient(child, () => {});
+	client.closed.catch(() => {});
+	try {
+		await client.initialize();
+		return parseMuseModels(await client.request("model/list", {}));
+	} finally {
+		clearTimeout(timer);
+		client.close();
+	}
+};
+
+const listers: Record<BuiltInHarness, (executable: string, spawn: Spawn) => Promise<ListedModel[]>> = {
 	claude: async (executable, spawn) =>
 		parseClaudeModels((await capture([executable, ...CLAUDE_MODELS_ARGS], spawn, CLAUDE_MODELS_REQUEST)).stdout),
 	codex: listCodex,
@@ -75,7 +102,20 @@ const listers: Record<BuiltInHarness, (executable: string, spawn: Spawn) => Prom
 		const output = await capture([executable, ...PI_MODELS_ARGS], spawn);
 		return parsePiModels(`${output.stdout}\n${output.stderr}`);
 	},
+	muse: listMuse,
+};
+
+// Two names a program lists can carry one canonical id, such as the claude
+// alias `sonnet` and the full `claude-sonnet-5`. The picker holds one row
+// per id, and the first name the program listed names it.
+const catalogued = (harness: BuiltInHarness, listed: ListedModel[]): HarnessModel[] => {
+	const models = new Map<string, HarnessModel>();
+	for (const model of listed) {
+		const value = catalogModelFor(harness, model.name);
+		if (value !== undefined && !models.has(value)) models.set(value, { value, label: model.label });
+	}
+	return [...models.values()];
 };
 
 export const listHarnessModels = async (harness: BuiltInHarness, spawn: Spawn): Promise<HarnessModel[]> =>
-	listers[harness](await resolveExecutable(harness, spawn.env.PATH ?? ""), spawn);
+	catalogued(harness, await listers[harness](await resolveExecutable(harness, spawn.env.PATH ?? ""), spawn));

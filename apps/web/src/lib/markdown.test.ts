@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { renderMarkdown } from "./markdown";
+import { createMarkdownRenderer, renderMarkdown } from "./markdown";
 
 const parse = (html: string) => new DOMParser().parseFromString(html, "text/html").body;
 
@@ -57,5 +57,27 @@ describe("lib/markdown", () => {
 		const ticket = body.querySelector('a[href="/t/CDE-42"]');
 		expect(ticket).not.toBeNull();
 		expect(ticket!.textContent).toBe("CDE-42");
+	});
+
+	// A chat body names agents, people, and roles with `@`. The chat renderer
+	// marks a known name and leaves an unknown one, a mail address, and a
+	// code span alone.
+	test("createMarkdownRenderer marks the mentions it knows", () => {
+		const render = createMarkdownRenderer({ mentions: ["Careful reviewer", "Careful", "manager", "dana"] });
+		const body = parse(render("@Careful reviewer and @manager: see `@dana` or mail a@b.c, not @nobody"));
+		expect([...body.querySelectorAll("mark.mention")].map((mark) => mark.textContent)).toEqual([
+			"@Careful reviewer",
+			"@manager",
+		]);
+		expect(body.querySelector("code")?.textContent).toBe("@dana");
+		expect(body.textContent).toContain("@nobody");
+	});
+
+	test("the chat renderer keeps line breaks and a chat attachment image", () => {
+		const render = createMarkdownRenderer({ mentions: [] });
+		const id = "01J9ZK3Q8V2M4N6P7R8S9T0V1W";
+		const body = parse(render(`one\ntwo\n\n![shot.png](/api/chat/attachments/${id}/file)`));
+		expect(body.querySelector("br")).not.toBeNull();
+		expect(body.querySelector("img")?.getAttribute("src")).toBe(`/api/chat/attachments/${id}/file`);
 	});
 });

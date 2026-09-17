@@ -1,15 +1,9 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import {
-	createFileRoute,
-	type ErrorComponentProps,
-	Link,
-	redirect,
-	useNavigate,
-	useParams,
-} from "@tanstack/react-router";
+import { createFileRoute, type ErrorComponentProps, redirect, useNavigate, useParams } from "@tanstack/react-router";
 import type { Status } from "@trellis/api";
 import { lazy, Suspense } from "react";
+import { RestartStatus } from "../../../features/agents/RestartStatus";
 import { Board, boardSortLabel } from "../../../features/board";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { FilterBar } from "../../../features/filters/FilterBar";
@@ -18,6 +12,7 @@ import { ListFooter } from "../../../features/shell/ListFooter";
 import { NewTicketButton } from "../../../features/shell/NewTicketButton";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
 import { PageTitle } from "../../../features/shell/PageTitle";
+import { ProjectBreadcrumb } from "../../../features/shell/ProjectBreadcrumb";
 import { Topbar } from "../../../features/shell/Topbar";
 import { type ListView, ViewSwitch } from "../../../features/shell/ViewSwitch";
 import { DisplayPopover } from "../../../features/table/DisplayPopover";
@@ -34,8 +29,12 @@ const ProjectSettingsPage = lazy(async () => ({
 	default: (await import("./components/ProjectSettingsPage")).ProjectSettingsPage,
 }));
 
-const ProjectManagerPage = lazy(async () => ({
-	default: (await import("../../../features/project-manager/ProjectManagerPage")).ProjectManagerPage,
+const ChatPage = lazy(async () => ({
+	default: (await import("../../../features/chat/ChatPage")).ChatPage,
+}));
+
+const NotesPage = lazy(async () => ({
+	default: (await import("../../../features/notes/NotesPage")).NotesPage,
 }));
 
 const projectOptions = (context: AppContext, ref: string) =>
@@ -48,7 +47,7 @@ const countsOptions = (context: AppContext, ref: string, search: Partial<View>, 
 		input: { project: ref, ...toCountsQuery(viewOf(search), { statuses }) },
 	});
 
-// `/p/CDE`, `/p/CDE/board`, `/p/CDE/web/auth`, `/p/CDE/settings`. The splat
+// `/p/CDE`, `/p/CDE/board`, `/p/CDE/web/auth`, `/p/CDE/settings`, `/p/CDE/chat`, `/p/CDE/notes`. The splat
 // is `[key, ...slugs, view?]`; the URL keeps slashes and the API ref joins
 // with dots. The URL carries the view state with no default written.
 export const Route = createFileRoute("/p/$")({
@@ -69,7 +68,7 @@ export const Route = createFileRoute("/p/$")({
 	loader: async ({ context, params, deps }) => {
 		const { ref, view } = parseProjectSplat(params._splat ?? "");
 		const project = await context.queryClient.ensureQueryData(projectOptions(context, ref));
-		if (view === "manager") {
+		if (view === "manager" || view === "chat" || view === "notes") {
 			return;
 		}
 		if (view !== "settings") {
@@ -99,17 +98,27 @@ function ProjectPage() {
 	// The loader fills this cache entry, so the board footer reads it on the first paint.
 	const counts = useQuery(countsOptions(context, ref, search, project.statuses)).data;
 
-	if (view === "settings" || view === "manager") {
+	if (view === "settings" || view === "manager" || view === "chat" || view === "notes") {
 		return (
 			<Suspense
 				fallback={
 					<div className="flex min-h-0 flex-1 items-center justify-center text-sm text-fg-muted">
-						{view === "manager" ? "Load manager…" : "Load settings…"}
+						{view === "manager"
+							? "Load settings…"
+							: view === "chat"
+								? "Load chat…"
+								: view === "notes"
+									? "Load notes…"
+									: "Load settings…"}
 					</div>
 				}
 			>
 				{view === "manager" ? (
-					<ProjectManagerPage key={project.id} project={project} />
+					<ProjectSettingsPage project={project} />
+				) : view === "chat" ? (
+					<ChatPage key={project.id} project={project} />
+				) : view === "notes" ? (
+					<NotesPage key={project.id} project={project} />
 				) : (
 					<ProjectSettingsPage project={project} />
 				)}
@@ -137,13 +146,7 @@ function ProjectPage() {
 		<>
 			<Topbar actions={<NewTicketButton />}>
 				<PageTitle
-					parent={
-						project.ancestors.length > 0 ? (
-							<Link to="/p/$" params={{ _splat: projectSlashPath(project.ancestors.at(-1)!.path) }} search={{}}>
-								{project.ancestors.at(-1)!.name}
-							</Link>
-						) : undefined
-					}
+					parent={project.ancestors.length > 0 ? <ProjectBreadcrumb project={project.ancestors.at(-1)!} /> : undefined}
 					title={project.name}
 				/>
 				<FilterBar
@@ -167,6 +170,7 @@ function ProjectPage() {
 			</Topbar>
 			<div className="page-card flex flex-1 flex-col overflow-hidden">
 				{archived && <ArchivedBanner project={project} />}
+				<RestartStatus project={project} />
 				<fieldset disabled={archived} className="contents">
 					{view === "board" ? (
 						<>

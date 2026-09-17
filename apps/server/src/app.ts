@@ -1,7 +1,8 @@
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
-import { ORPCError } from "@orpc/server";
+import { ORPCError, onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { BatchHandlerPlugin, ResponseHeadersPlugin } from "@orpc/server/plugins";
+import type { StandardHandlerOptions } from "@orpc/server/standard";
 import { type BuiltInHarness, errors, type HarnessModel, reviewHref } from "@trellis/api";
 import { type Context, Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
@@ -166,21 +167,39 @@ export const createApp = ({
 	// handler runs, so it writes that shape itself; without it the client
 	// reads an undefined error and never sees the cap it must report.
 	app.use(
-		"/rpc/attachments/upload",
-		bodyLimit({
-			maxSize: maxBytes,
-			onError: (c) => c.json({ json: errorBody("PAYLOAD_TOO_LARGE", { maxBytes }) }, 413),
-		}),
+		"/api/projects/:project/chat/attachments",
+		bodyLimit({ maxSize: maxBytes, onError: (c) => c.json(errorBody("PAYLOAD_TOO_LARGE", { maxBytes }), 413) }),
 	);
+	for (const path of ["/rpc/attachments/upload", "/rpc/chat/upload"]) {
+		app.use(
+			path,
+			bodyLimit({
+				maxSize: maxBytes,
+				onError: (c) => c.json({ json: errorBody("PAYLOAD_TOO_LARGE", { maxBytes }) }, 413),
+			}),
+		);
+	}
 
+	const interceptors: StandardHandlerOptions<ProcedureContext>["interceptors"] = [
+		onError((error, { context, request }) => {
+			if (error instanceof ORPCError && error.status < 500) return;
+			log.error("procedure failed", {
+				reqId: context.reqId,
+				path: request.url.pathname,
+				message: error instanceof Error ? error.message : String(error),
+				stack: error instanceof Error ? error.stack : undefined,
+			});
+		}),
+	];
 	const plugins = [new ResponseHeadersPlugin<ProcedureContext>()];
 	// The web app sends the calls of one tick as a single POST to
 	// /rpc/__batch__. Without BatchHandlerPlugin that path has no route and
 	// every page that reads two queries at once fails with a 404.
 	const rpc = new RPCHandler<ProcedureContext>(router, {
 		plugins: [new BatchHandlerPlugin<ProcedureContext>(), ...plugins],
+		interceptors,
 	});
-	const api = new OpenAPIHandler<ProcedureContext>(router, { plugins });
+	const api = new OpenAPIHandler<ProcedureContext>(router, { plugins, interceptors });
 	const contextOf = (c: Context): ProcedureContext => {
 		const timing = createDbTiming();
 		timings.set(c.req.raw, timing);
@@ -219,6 +238,7 @@ export const createApp = ({
 	app.get("/api/agent-runs/:id/terminal/stream", terminalStreamRoute(config, transport));
 	app.get("/api/agent-runs/:id/terminal/socket", terminalSocketRoute(config, transport));
 	app.get("/api/attachments/:id/file", filesRoute({ config, transport }));
+	app.get("/api/chat/attachments/:id/file", filesRoute({ config, transport, service: "chat.attachment" }));
 	app.get("/api/export", exportRoute({ transport }));
 	app.get("/api/openapi.json", docs.spec);
 	app.get("/api/docs", docs.docs);

@@ -1,14 +1,22 @@
+import { activityActions } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
+import { isManaged, managerScope } from "../submanagers/scope.ts";
 import { collectHeartbeats } from "./collectHeartbeats.ts";
+import { collect as collectNextActions } from "./nextActions/collect.ts";
 import type { ControllerCtx, ControllerEvent, ControllerInput } from "./types.ts";
+
+// The only activity rows without a ticket that reach a manager. Each sits on
+// a parent project and reports that a sub-project set or cleared its own
+// manager persona, which moves that sub-project out of or into this scope.
+const projectActions: string[] = [activityActions.subprojectManagerEnabled, activityActions.subprojectManagerDisabled];
 
 export const collect = async (ctx: ControllerCtx, tx: Tx, input: ControllerInput) => {
 	const projects = await rows<{ id: string }>(
 		tx,
-		sql`SELECT id FROM projects WHERE manager_config->>'personaId' IS NOT NULL AND archived_at IS NULL`,
+		sql`SELECT p.id FROM projects p WHERE ${isManaged(sql`p`)} AND p.archived_at IS NULL`,
 	);
 	for (const project of projects) {
 		const [active] = await rows<{ id: string; state: string; events: ControllerEvent[] }>(
@@ -30,27 +38,26 @@ export const collect = async (ctx: ControllerCtx, tx: Tx, input: ControllerInput
 			actor_name: string;
 			actor_kind: string;
 			created_at: string;
+			to_value: string | null;
+			meta: { projectId?: string };
 			manager: boolean;
 		}>(
 			tx,
-			sql`WITH RECURSIVE scope AS (
-				SELECT id FROM projects WHERE id = ${project.id}
-				UNION ALL SELECT p.id FROM projects p JOIN scope s ON p.parent_id = s.id
-				WHERE p.manager_config->>'personaId' IS NULL AND p.archived_at IS NULL
-			) SELECT a.id, a.ticket_id, a.action, a.actor_name, a.actor_kind, ${iso(sql`a.created_at`)} AS created_at,
+			sql` SELECT a.id, a.ticket_id, a.action, a.actor_name, a.actor_kind, ${iso(sql`a.created_at`)} AS created_at, a.to_value, a.meta,
 				EXISTS (SELECT 1 FROM agent_runs r WHERE r.id = a.actor_name AND r.kind = 'manager' AND r.project_id = ${project.id} AND a.actor_kind = 'agent') AS manager
-			FROM activity a WHERE a.project_id IN (SELECT id FROM scope) AND a.id > ${cursor!.activity_id}
+			FROM activity a WHERE a.project_id IN (${managerScope(project.id)}) AND a.id > ${cursor!.activity_id}
 			ORDER BY a.id LIMIT ${100 - (active?.events.length ?? 0)}`,
 		);
 		if (found.length === 0) continue;
 		const events: ControllerEvent[] = found
-			.filter((event) => event.ticket_id !== null && !event.manager)
+			.filter((event) => (event.ticket_id !== null || projectActions.includes(event.action)) && !event.manager)
 			.map((event) => ({
 				id: event.id,
-				ticketId: event.ticket_id!,
+				ticketId: event.ticket_id,
 				action: event.action,
 				actor: { name: event.actor_name, kind: event.actor_kind },
 				createdAt: event.created_at,
+				...(event.ticket_id === null ? { project: { id: event.meta.projectId!, path: event.to_value! } } : {}),
 			}));
 		if (events.length > 0) {
 			if (active)
@@ -65,6 +72,7 @@ export const collect = async (ctx: ControllerCtx, tx: Tx, input: ControllerInput
 			sql`UPDATE manager_controller_cursors SET activity_id = ${found.at(-1)!.id} WHERE project_id = ${project.id}`,
 		);
 	}
+	await collectNextActions(ctx, tx);
 	await collectHeartbeats(ctx, tx, input);
 	return {};
 };

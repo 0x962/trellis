@@ -49,6 +49,8 @@ export async function startRuntime(home: string) {
 				return store.list(request.params as RuntimeMethods["list"]["params"]);
 			case "inspect":
 				return store.inspect((request.params as RuntimeMethods["inspect"]["params"]).id);
+			case "hasMessage":
+				return store.hasMessage(request.params as RuntimeMethods["hasMessage"]["params"]);
 			case "registerNativeDelivery":
 				return store.registerNativeDelivery(request.params as RuntimeMethods["registerNativeDelivery"]["params"]);
 			case "observe":
@@ -59,11 +61,11 @@ export async function startRuntime(home: string) {
 				return store.start(request.params as RuntimeMethods["start"]["params"]);
 			case "input": {
 				const p = request.params as RuntimeMethods["input"]["params"];
-				return store.input(p.id, p.data, p.userInput, p.expected);
+				return store.input(p.id, p.data, p.expected);
 			}
 			case "deliver": {
 				const p = request.params as RuntimeMethods["deliver"]["params"];
-				return store.deliver(p.id, p.messageId, p.data, p.requireIdle);
+				return store.deliver(p.id, p.messageId, p.data, p.expected);
 			}
 			case "resize": {
 				const p = request.params as RuntimeMethods["resize"]["params"];
