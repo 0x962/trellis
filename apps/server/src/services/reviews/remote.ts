@@ -142,8 +142,8 @@ export async function metadata(ctx: PrepareCtx, input: { pr: string }) {
 	const ref = parseRef(input.pr);
 	const query =
 		"query($owner:String!,$repo:String!,$num:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$num){mergeQueueEntry{position enqueuedAt} stack{entries(first:50){nodes{position pullRequest{number title state url isDraft}}}}}}}";
-	const graph = JSON.parse(
-		await gh(ctx, [
+	const [graphRaw, rawLabels] = await Promise.all([
+		gh(ctx, [
 			"api",
 			"graphql",
 			"-f",
@@ -155,19 +155,20 @@ export async function metadata(ctx: PrepareCtx, input: { pr: string }) {
 			"-F",
 			`num=${ref.number}`,
 		]),
-	);
-	const rawLabels = await gh(ctx, [
-		"label",
-		"list",
-		"-R",
-		`${ref.owner}/${ref.repo}`,
-		"--search",
-		"00_AUTO_DEPLOY",
-		"--limit",
-		"20",
-		"--json",
-		"name",
+		gh(ctx, [
+			"label",
+			"list",
+			"-R",
+			`${ref.owner}/${ref.repo}`,
+			"--search",
+			"00_AUTO_DEPLOY",
+			"--limit",
+			"20",
+			"--json",
+			"name",
+		]),
 	]);
+	const graph = JSON.parse(graphRaw);
 	const labels = (rawLabels.trim() === "" ? [] : JSON.parse(rawLabels)) as { name: string }[];
 	return {
 		...graph.data.repository.pullRequest,

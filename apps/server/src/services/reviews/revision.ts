@@ -31,11 +31,12 @@ export async function prepare(ctx: PrepareCtx, input: { pr: string }) {
 		title: string;
 		state: string;
 	};
-	const comparison = JSON.parse(
-		await gh(ctx, ["api", `repos/${ref.owner}/${ref.repo}/compare/${meta.baseRefOid}...${meta.headRefOid}`]),
-	) as { merge_base_commit: { sha: string } };
+	const [comparisonRaw, patch] = await Promise.all([
+		gh(ctx, ["api", `repos/${ref.owner}/${ref.repo}/compare/${meta.baseRefOid}...${meta.headRefOid}`]),
+		gh(ctx, ["pr", "diff", ref.url]),
+	]);
+	const comparison = JSON.parse(comparisonRaw) as { merge_base_commit: { sha: string } };
 	meta.comparisonBaseSha = comparison.merge_base_commit.sha;
-	const patch = await gh(ctx, ["pr", "diff", ref.url]);
 	const current = JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", "headRefOid,baseRefOid"])) as {
 		headRefOid: string;
 		baseRefOid: string;

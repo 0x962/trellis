@@ -28,11 +28,12 @@ export type MenuProps = {
 	triggerTooltip?: string;
 	align?: "start" | "center" | "end";
 	className?: string;
+	onOpenChange?: (open: boolean) => void;
 };
 
 // A list of actions under a button. Arrow keys move between items, Enter runs
 // one, Escape closes and returns focus to the trigger.
-export function Menu({ label, items, trigger, triggerTooltip, align = "end", className }: MenuProps) {
+export function Menu({ label, items, trigger, triggerTooltip, align = "end", className, onOpenChange }: MenuProps) {
 	const button = (
 		<BaseMenu.Trigger
 			aria-label={label}
@@ -57,7 +58,7 @@ export function Menu({ label, items, trigger, triggerTooltip, align = "end", cla
 		</BaseMenu.Trigger>
 	);
 	return (
-		<BaseMenu.Root>
+		<BaseMenu.Root onOpenChange={onOpenChange}>
 			{triggerTooltip ? <Tooltip content={triggerTooltip}>{button}</Tooltip> : button}
 			<BaseMenu.Portal>
 				<BaseMenu.Positioner align={align} sideOffset={4} className="z-50 outline-none">
