@@ -5,7 +5,7 @@ import {
 	chatChannelName,
 	DEFAULT_CHAT_CHANNELS,
 } from "@trellis/api";
-import { sql } from "drizzle-orm";
+import { type SQL, sql } from "drizzle-orm";
 import { requireActor, type ServiceCtx, SYSTEM_ACTOR } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
@@ -54,7 +54,26 @@ export const ensureChannel = async (ctx: ServiceCtx, tx: Tx, rootId: string, nam
 export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<ChatChannel[]> => {
 	const input = ChatProjectInputSchema.parse(rawInput);
 	const root = await resolveRoom(ctx, tx, input.project);
-	const found = await rows<RawChannel>(tx, sql`${channelSelect} WHERE c.project_id = ${root.id} ORDER BY c.name`);
+	const filters: SQL[] = [sql`c.project_id = ${root.id}`];
+	if (input.q !== undefined) {
+		const pattern = `%${input.q.replace(/[\\%_]/g, (character) => `\\${character}`)}%`;
+		filters.push(sql`c.name ILIKE ${pattern}`);
+	}
+	if (input.aiOnly !== undefined) filters.push(sql`c.ai_only = ${input.aiOnly}`);
+	if (input.direct !== undefined) filters.push(sql`c.direct = ${input.direct}`);
+	const order = {
+		name: sql`c.name`,
+		"-name": sql`c.name DESC`,
+		lastMessageAt: sql`last_message_at NULLS LAST, c.name`,
+		"-lastMessageAt": sql`last_message_at DESC NULLS LAST, c.name`,
+		messageCount: sql`message_count, c.name`,
+		"-messageCount": sql`message_count DESC, c.name`,
+	}[input.sort];
+	const limit = input.limit === undefined ? sql`` : sql`LIMIT ${input.limit}`;
+	const found = await rows<RawChannel>(
+		tx,
+		sql`${channelSelect} WHERE ${sql.join(filters, sql` AND `)} ORDER BY ${order} ${limit}`,
+	);
 	return found.map(toChannel);
 };
 
