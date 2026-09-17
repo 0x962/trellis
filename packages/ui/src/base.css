@@ -80,22 +80,20 @@
 }
 
 /*
- * A 6 px unread mark in silver with a still film of the shimmer colors. The
- * face and the top light match the metal control, and the film never moves,
- * so the mark reads the same with motion off.
+ * `ActivityDot` combines `dot-metal` with `metal`, `rounded-round`, and a
+ * non-static position. The position anchors `dot-metal::before` to the disc.
+ * `rounded-round` makes `overflow: hidden` clip the film to a circle.
  */
 @utility dot-metal {
 	overflow: hidden;
-	border: 1px solid var(--metal-edge);
-	background-image: linear-gradient(180deg, var(--metal-top) 0%, var(--metal-bottom) 100%);
-	box-shadow: inset 0 1px 0 var(--metal-sheen);
+	border-width: var(--border-width-hairline);
 
 	&::before {
 		position: absolute;
 		inset: 0;
 		background: var(--film-gradient);
 		content: "";
-		opacity: 0.2;
+		opacity: var(--film-opacity-static);
 		pointer-events: none;
 	}
 }
