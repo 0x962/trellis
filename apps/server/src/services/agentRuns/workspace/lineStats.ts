@@ -11,11 +11,14 @@ type Target = { ticketId: string; workspace: string };
 const numstat = (text: string) => {
 	let additions = 0;
 	let deletions = 0;
-	for (const record of text.split("\0")) {
+	const records = text.split("\0");
+	for (let index = 0; index < records.length; index += 1) {
+		const record = records[index]!;
 		if (record === "") continue;
-		const [added, deleted] = record.split("\t", 2);
+		const [added, deleted, path] = record.split("\t", 3);
 		if (added !== "-") additions += Number(added);
 		if (deleted !== "-") deletions += Number(deleted);
+		if (path === "") index += 2;
 	}
 	return { additions, deletions };
 };
@@ -39,9 +42,15 @@ const lineCount = async (path: string) => {
 	return bytes === 0 ? 0 : lines + (last === 10 ? 0 : 1);
 };
 
-const countWorkspace = async (workspace: string) => {
+const repositoryHead = async (workspace: string) => {
+	const commonDirectory = (await git(workspace, ["rev-parse", "--path-format=absolute", "--git-common-dir"])).trim();
+	return (await git(workspace, [`--git-dir=${commonDirectory}`, "rev-parse", "HEAD"])).trim();
+};
+
+export const countWorkspace = async (workspace: string) => {
+	const base = await repositoryHead(workspace);
 	const tracked = numstat(
-		await git(workspace, ["diff", "--merge-base", "--numstat", "-z", "--no-renames", "refs/remotes/origin/HEAD", "--"]),
+		await git(workspace, ["diff", "--merge-base", "--numstat", "-z", "--find-renames", base, "--"]),
 	);
 	const untracked = (await git(workspace, ["ls-files", "--others", "--exclude-standard", "-z"]))
 		.split("\0")
