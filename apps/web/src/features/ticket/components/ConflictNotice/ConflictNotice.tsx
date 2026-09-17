@@ -1,9 +1,10 @@
 import { Warning } from "@phosphor-icons/react";
 import type { Ticket } from "@trellis/api";
-import { ActorChip, Button, Popover } from "@trellis/ui";
+import { Button, Popover } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../lib/appContext";
 import { relativeTime } from "../../../../lib/format";
+import { ActorChip } from "../../../agents/ActorChip";
 
 export type ConflictNoticeProps = {
 	// The row as the server holds it, from the 412's payload.
@@ -22,10 +23,7 @@ export function ConflictNotice({ current, onOverwrite, onClose }: ConflictNotice
 	const { orpc, queryClient } = useApp();
 	const [confirming, setConfirming] = useState(false);
 	const last = current.lastActor;
-	const actor =
-		last !== null && last.kind !== "system"
-			? { name: last.displayName ?? last.name, kind: last.kind, at: last.at }
-			: null;
+	const actor = last !== null && last.kind !== "system" ? last : null;
 	const reload = () => {
 		queryClient.setQueryData(orpc.tickets.get.queryKey({ input: { ticket: current.identifier } }), current);
 		onClose();
@@ -45,7 +43,7 @@ export function ConflictNotice({ current, onOverwrite, onClose }: ConflictNotice
 					<span>Another actor changed this ticket. Your edit is not saved.</span>
 				) : (
 					<>
-						<ActorChip name={actor.name} kind={actor.kind} compact />
+						<ActorChip actor={actor} compact />
 						<span>changed this ticket {relativeTime(actor.at)}. Your edit is not saved.</span>
 					</>
 				)}
@@ -65,7 +63,9 @@ export function ConflictNotice({ current, onOverwrite, onClose }: ConflictNotice
 					</Button>
 				}
 			>
-				<p className="text-sm text-fg">Replace {actor === null ? "the other" : `${actor.name}'s`} edit?</p>
+				<p className="text-sm text-fg">
+					Replace {actor === null ? "the other" : `${actor.displayName ?? actor.name}'s`} edit?
+				</p>
 				<div className="flex justify-end gap-2">
 					<Button size="sm" variant="quiet" onClick={() => setConfirming(false)}>
 						Cancel

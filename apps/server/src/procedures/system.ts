@@ -7,6 +7,7 @@ export const system = os.system.router({
 
 	chooseDirectory: os.system.chooseDirectory.handler(({ context }) => context.chooseDirectory()),
 	health: os.system.health.handler(({ context }) => call(context, "system.health", {})),
+	load: os.system.load.handler(({ context }) => call(context, "system.load", {})),
 	gh: os.system.gh.handler(({ context }) => context.gh.read()),
 	checkGh: os.system.checkGh.handler(({ context }) => context.gh.check()),
 	// The snapshot holds the database worker for a CHECKPOINT and a copy. The
