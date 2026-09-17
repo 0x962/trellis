@@ -146,7 +146,6 @@ External agent records retain their states. External clients need the desktop be
 An incomplete handoff marker blocks startup until the retained backup and operation state receive review.
 The previous desktop home retains its files when the selected home changes.
 
-Settings exports browser drafts and imports them as separate recovery copies.
 A flow recovery copy remains until the host acknowledges its saved graph.
 
 Read the [implementation status](desktop/implementation-status.md), [desktop plan](desktop/trellis-desktop-plan.md), and [real acceptance report](desktop/acceptance/2026-09-14-native-real/report.md) for scope and measured results.
@@ -603,11 +602,11 @@ time. The first section of each page carries no hash.
 
 | page | sections |
 |---|---|
-| `/settings` | Account (no hash), `#integrations` |
-| `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#subprojects`, `#archive` |
+| `/settings` | Account (no hash), `#agent-accounts`, `#desktop` in the macOS app |
+| `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#archive` |
 | `/p/<path>/settings/manager` | Operation (no hash), `#settings`, `#harness` |
 
-`/settings` holds the actor name, theme, GitHub state, phone pair code, and drafts.
+`/settings` holds the actor name, theme, chat sound, harness accounts, and desktop controls.
 Project settings hold the copilot persona, repository directory, and harness settings.
 It writes `projects.managerConfig` through `projects.update`.
 
