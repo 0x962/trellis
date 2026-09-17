@@ -1,7 +1,7 @@
 import type { TicketSummary } from "@trellis/api";
 import type { RefObject } from "react";
 import type { DragPreviewFrame } from "../../dragPreview";
-import { CardContent } from "../CardContent";
+import { CardContent, type CardContentProps } from "../CardContent";
 
 export type CardPreviewProps = {
 	ticket: TicketSummary;
@@ -9,11 +9,21 @@ export type CardPreviewProps = {
 	positionRef: RefObject<HTMLDivElement | null>;
 	surfaceRef: RefObject<HTMLDivElement | null>;
 	showStatus?: boolean;
+	lineChanges?: CardContentProps["lineChanges"];
+	lineChangesPending?: boolean;
 };
 
 // The outer transform follows the pointer. The inner transform rotates around
 // the grabbed point, so that point stays under the pointer during a swing.
-export function CardPreview({ ticket, frame, positionRef, surfaceRef, showStatus }: CardPreviewProps) {
+export function CardPreview({
+	ticket,
+	frame,
+	positionRef,
+	surfaceRef,
+	showStatus,
+	lineChanges,
+	lineChangesPending,
+}: CardPreviewProps) {
 	return (
 		<div
 			ref={positionRef}
@@ -27,7 +37,12 @@ export function CardPreview({ ticket, frame, positionRef, surfaceRef, showStatus
 				style={{ transformOrigin: `${frame.offsetX}px ${frame.offsetY}px` }}
 				className="flex min-h-19 flex-col gap-1.5 rounded-md border-x border-b border-border-strong bg-elevated p-3 shadow-kanban-drag transition-transform duration-row ease-out motion-reduce:transition-none"
 			>
-				<CardContent ticket={ticket} showStatus={showStatus} />
+				<CardContent
+					ticket={ticket}
+					showStatus={showStatus}
+					lineChanges={lineChanges}
+					lineChangesPending={lineChangesPending}
+				/>
 			</div>
 		</div>
 	);

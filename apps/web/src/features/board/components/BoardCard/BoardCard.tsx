@@ -1,8 +1,9 @@
 import type { TicketSummary } from "@trellis/api";
 import { cx, TicketGlimmer } from "@trellis/ui";
-import { type KeyboardEvent, useCallback, useRef } from "react";
+import { type KeyboardEvent, useCallback, useContext, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useArchivedProjects } from "../../../../hooks/useArchivedProjects";
+import { BoardLineStatsContext } from "../../BoardLineStatsContext";
 import { useCardDnd } from "../../hooks/useBoardDnd";
 import { CardContent } from "../CardContent";
 import { CardPreview } from "../CardPreview";
@@ -39,6 +40,8 @@ export function BoardCard({
 	showStatus = false,
 	dropBefore = false,
 }: BoardCardProps) {
+	const lineStats = useContext(BoardLineStatsContext)!;
+	const showLineStats = ticket.status.category === "started";
 	const ref = useRef<HTMLLIElement>(null);
 	const pickup = useCallback((message: string) => announce(message), [announce]);
 	const readOnly = useArchivedProjects().isArchived(ticket.project.path);
@@ -79,7 +82,12 @@ export function BoardCard({
 		>
 			<TicketGlimmer active={working} />
 			{dropBefore && <DragIndicator />}
-			<CardContent ticket={ticket} showStatus={showStatus} />
+			<CardContent
+				ticket={ticket}
+				showStatus={showStatus}
+				lineChanges={showLineStats ? (lineStats.values.get(ticket.id) ?? null) : undefined}
+				lineChangesPending={showLineStats && lineStats.pendingIds.has(ticket.id)}
+			/>
 			{previewFrame !== null &&
 				createPortal(
 					<CardPreview
@@ -88,6 +96,8 @@ export function BoardCard({
 						positionRef={positionRef}
 						surfaceRef={surfaceRef}
 						showStatus={showStatus}
+						lineChanges={showLineStats ? (lineStats.values.get(ticket.id) ?? null) : undefined}
+						lineChangesPending={showLineStats && lineStats.pendingIds.has(ticket.id)}
 					/>,
 					document.body,
 				)}

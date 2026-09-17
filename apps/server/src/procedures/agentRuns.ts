@@ -1,5 +1,8 @@
 import { call, os } from "./base.ts";
 export const agentRuns = os.agentRuns.router({
+	workspaceLineStats: os.agentRuns.workspaceLineStats.handler(({ context, input }) =>
+		call(context, "agentRuns.workspaceLineStats", input),
+	),
 	workspace: os.agentRuns.workspace.handler(({ context, input }) => call(context, "agentRuns.workspace", input)),
 	file: os.agentRuns.file.handler(({ context, input }) => call(context, "agentRuns.file", input)),
 	setModel: os.agentRuns.setModel.handler(({ context, input }) => call(context, "agentRuns.setModel", input)),
