@@ -97,12 +97,32 @@
 		inset: 0;
 		background: var(--film-gradient);
 		content: "";
-		opacity: 0.2;
+		opacity: var(--film-opacity-static);
 		pointer-events: none;
 	}
 
 	& > span {
 		position: relative;
+	}
+}
+
+/*
+ * `ActivityDot` uses `metal` for the silver face. `dot-metal::before` paints
+ * the shared `--film-gradient` without animation. The non-static position from
+ * `ActivityDot` anchors the pseudo-element to the dot. `rounded-round` clips
+ * the film to the circular dot.
+ */
+@utility dot-metal {
+	overflow: hidden;
+	border-width: var(--border-width-hairline);
+
+	&::before {
+		position: absolute;
+		inset: 0;
+		background: var(--film-gradient);
+		content: "";
+		opacity: var(--film-opacity-static);
+		pointer-events: none;
 	}
 }
 
