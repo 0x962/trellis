@@ -170,10 +170,10 @@ test("needs-you > the dot clears when empty and returns at snooze expiry", async
 	let ticket: ReturnType<typeof createTicket> | undefined;
 	try {
 		while (true) {
-			const list = await get<{ items: { id: string }[] }>("/needs-you?limit=200");
+			const list = await post<{ items: { id: string }[] }>("/needs-you/list", { limit: 200 });
 			if (list.items.length === 0) break;
 			for (const item of list.items) {
-				await patch(`/needs-you/${encodeURIComponent(item.id)}`, { action: "ignore" });
+				await post("/needs-you/update", { id: item.id, action: "ignore" });
 				hidden.push(item.id);
 			}
 		}
@@ -182,8 +182,9 @@ test("needs-you > the dot clears when empty and returns at snooze expiry", async
 		ensureProject("NYW", "Snooze wake");
 		ticket = createTicket("NYW", "Wake automatically", ["--status", "human-review"]);
 		await expect(page.getByLabel("Needs you has items")).toBeVisible();
-		const list = await get<{ items: { id: string }[] }>(`/needs-you?ticket=${ticket.identifier}`);
-		await patch(`/needs-you/${encodeURIComponent(list.items[0]!.id)}`, {
+		const list = await post<{ items: { id: string }[] }>("/needs-you/list", { ticket: ticket.identifier });
+		await post("/needs-you/update", {
+			id: list.items[0]!.id,
 			action: "snooze",
 			until: new Date(Date.now() + 4000).toISOString(),
 		});
@@ -200,7 +201,7 @@ test("needs-you > the dot clears when empty and returns at snooze expiry", async
 		await expect(rowOf(page, ticket.identifier)).toHaveCount(0);
 		await expect(page.getByLabel("Needs you has items")).toHaveCount(0);
 	} finally {
-		for (const id of hidden) await patch(`/needs-you/${encodeURIComponent(id)}`, { action: "restore" });
+		for (const id of hidden) await post("/needs-you/update", { id, action: "restore" });
 		if (ticket) moveTicket(ticket.identifier, "done", "human:dana");
 	}
 });
@@ -221,7 +222,7 @@ test("needs-you > shared controls, group counts, and row columns work at desktop
 	await expect(topbar.getByRole("combobox")).toHaveCount(0);
 	const review = page.getByRole("region", { name: "Needs review", exact: true });
 	const group = review.getByRole("button", { name: "Needs review", exact: true });
-	const total = await get<{ total: number }>("/needs-you?section=review");
+	const total = await post<{ total: number }>("/needs-you/list", { section: "review" });
 	await expect(review.locator("[data-count]")).toHaveText(String(total.total));
 	await group.click();
 	await expect(group).toHaveAttribute("aria-expanded", "false");

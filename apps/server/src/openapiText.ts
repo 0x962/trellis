@@ -2,7 +2,7 @@
 // so an agent that reads /api/openapi.json alone can work.
 
 export const ACTOR_HEADER_DESCRIPTION =
-	"Who acts, as <human|agent>:<name>. The name is 1 to 64 printable ASCII characters without a colon. Required for every mutation and every personal Needs you read.";
+	"Who acts, as <human|agent>:<name>. The name is 1 to 64 printable ASCII characters without a colon. Required on every request whose method is not GET.";
 
 export const ACTOR_HEADER_EXAMPLE = "agent:claude-code";
 
@@ -53,7 +53,7 @@ The desktop host requires an Authorization bearer token. Native agents receive T
 
 ## The actor header
 
-Every mutation needs the header \`x-trellis-actor: <human|agent>:<name>\`. The personal \`GET /needs-you\` and \`GET /needs-you/summary\` routes also require it. Every Needs you route requires a human actor. Other GET requests ignore the header. A request without it answers 400 ACTOR_REQUIRED; a malformed one answers 400 ACTOR_INVALID. The optional header \`x-trellis-session: <id>\` is stored with the activity a request writes.
+Every non-GET request needs the header \`x-trellis-actor: <human|agent>:<name>\`. A GET request ignores the header. A request without it answers 400 ACTOR_REQUIRED; a malformed one answers 400 ACTOR_INVALID. The optional header \`x-trellis-session: <id>\` is stored with the activity a request writes.
 
 ## Refs
 
@@ -127,7 +127,9 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /native-work/resume": {},
 	"POST /native-work/restart/resume": {},
 	"POST /native-work/stop": {},
-	"PATCH /needs-you/{id}": { action: "ignore" },
+	"POST /needs-you/list": {},
+	"POST /needs-you/summary": {},
+	"POST /needs-you/update": { id: "mention:01J9Z0000000000000000000A1", action: "ignore" },
 	"POST /gh/check": {},
 	"POST /flow-executions": {
 		flow: "review",

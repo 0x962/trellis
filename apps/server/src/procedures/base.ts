@@ -30,8 +30,8 @@ export type ProcedureContext = {
 
 const base = implement(contract).$context<ProcedureContext>();
 
-// A mutation needs the actor header. Most reads ignore it. A service can parse
-// the header in call() when its result belongs to one actor.
+// A read ignores the header, so a malformed one on a GET is not an error.
+// A mutation needs it: missing is ACTOR_REQUIRED, malformed is ACTOR_INVALID.
 const requireActor = base.middleware(async ({ context, next, procedure }) => {
 	const method = procedure["~orpc"].route.method ?? "POST";
 	if (method === "GET") return next();
@@ -61,17 +61,9 @@ export const os = base.use(declaredValidation).use(requireActor);
 
 // Runs one service through the transport with the context of this request.
 export const call = <T>(context: ProcedureContext, name: ServiceName, input: unknown): Promise<T> => {
-	const actorReads: ServiceName[] = [
-		"submanagers.list",
-		"agentRuns.list",
-		"controller.list",
-		"needsYou.list",
-		"needsYou.summary",
-	];
-	const actorHeader = context.headers.get("x-trellis-actor");
-	const readActor = actorReads.includes(name) ? ActorHeaderSchema.safeParse(actorHeader) : null;
-	if (name.startsWith("needsYou.") && actorHeader !== null && readActor !== null && !readActor.success)
-		throw fail("ACTOR_INVALID", { grammar: actorHeaderGrammar });
+	const readActor = ["submanagers.list", "agentRuns.list", "controller.list"].includes(name)
+		? ActorHeaderSchema.safeParse(context.headers.get("x-trellis-actor"))
+		: null;
 	const ctx: RequestContext = {
 		actor: context.actor ?? (readActor?.success ? readActor.data : null),
 		session: context.headers.get("x-trellis-session"),
