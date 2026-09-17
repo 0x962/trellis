@@ -1,7 +1,7 @@
 import { FolderOpen, FolderUser } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { IconButton, Switch, Tooltip, toast } from "@trellis/ui";
-import type { ReactElement } from "react";
+import { type ReactElement, useCallback, useEffect } from "react";
 import { type DesktopAction, type DesktopSettingsBridge, desktopErrorMessage } from "../../../lib/desktopBridge";
 import { SettingsRow } from "../SettingsRow";
 
@@ -14,7 +14,12 @@ export function DesktopSettings({ bridge }: { bridge: DesktopSettingsBridge }) {
 		queryFn: () => bridge.status(),
 		refetchOnWindowFocus: "always",
 	});
-	const refresh = () => queryClient.invalidateQueries({ queryKey: statusKey });
+	const refresh = useCallback(() => queryClient.invalidateQueries({ queryKey: statusKey }), [queryClient]);
+	useEffect(() => {
+		const onFocus = () => void refresh();
+		window.addEventListener("focus", onFocus);
+		return () => window.removeEventListener("focus", onFocus);
+	}, [refresh]);
 	const onError = (error: Error) =>
 		toast.error("The desktop action failed", { description: desktopErrorMessage(error) });
 	const action = useMutation({ mutationFn: (name: DesktopAction) => bridge.run(name), onSettled: refresh, onError });
