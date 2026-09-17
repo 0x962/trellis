@@ -44,3 +44,23 @@ export const cardOrder = (column: Locator) =>
 // A toast with `text`. The board's live region announces the same text,
 // so the locator names the toast element itself.
 export const toastOf = (page: Page, text: string) => page.locator("[data-sonner-toast]").filter({ hasText: text });
+
+// One file of a drag. `base64` carries binary bytes, `text` carries a
+// string, and exactly one of the two is set.
+export type DroppedFile = { name: string; type: string; base64?: string; text?: string };
+
+// Drops `files` on `target`. A drag from the desktop sends dragenter,
+// dragover, and drop in that order, and each event carries the same
+// DataTransfer.
+export const dropFiles = async (page: Page, target: Locator, files: DroppedFile[]) => {
+	const dataTransfer = await page.evaluateHandle((entries: DroppedFile[]) => {
+		const transfer = new DataTransfer();
+		for (const entry of entries) {
+			const body =
+				entry.base64 === undefined ? entry.text! : Uint8Array.from(atob(entry.base64), (char) => char.charCodeAt(0));
+			transfer.items.add(new File([body], entry.name, { type: entry.type }));
+		}
+		return transfer;
+	}, files);
+	for (const type of ["dragenter", "dragover", "drop"]) await target.dispatchEvent(type, { dataTransfer });
+};

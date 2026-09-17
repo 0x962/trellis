@@ -165,7 +165,7 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 		);
 	}
 	return (
-		<DropTarget identifier={ticket} onFiles={uploadManager.start}>
+		<DropTarget identifier={ticket} onFiles={uploadManager.addFiles}>
 			{body}
 		</DropTarget>
 	);

@@ -1,34 +1,26 @@
-import { useRouter } from "@tanstack/react-router";
 import type { Priority, Ticket, TicketSummary } from "@trellis/api";
-import { Button, Dialog, SectionHeader, Switch, toast, useHotkey } from "@trellis/ui";
+import { Button, Dialog, SectionHeader, Switch, useHotkey } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
-import { useApp } from "../../../lib/appContext";
 import { AttachmentBox } from "../../attachments/AttachmentBox";
 import { DropTarget } from "../../attachments/DropTarget";
 import { useUploads } from "../../attachments/hooks/useUploads";
 import { UploadProgress } from "../../attachments/UploadProgress";
-import { insertRow } from "../../table/utils/cacheRows";
 import { failToast } from "../../ticket/utils/failToast";
 import { composerActions, useComposerStore } from "../composerStore";
 import { defaultStatus, useComposerDefaults } from "../hooks/useComposerDefaults";
 import { useComposerDraft } from "../hooks/useComposerDraft";
+import { useCreateTicket } from "../hooks/useCreateTicket";
 import { ChipRow } from "./components/ChipRow";
 import { ComposerHeader } from "./components/ComposerHeader";
 import { DescriptionField } from "./components/DescriptionField";
-
-const summaryOf = (ticket: Ticket): TicketSummary => {
-	const { description, children, prs, attachments, ...summary } = ticket;
-	return summary;
-};
 
 // The quick composer keeps its text and selected files until create or
 // discard. It uploads the files only after the server creates the ticket.
 export function CreateTicketDialog() {
 	const options = useComposerStore((state) => state.options);
-	const { client, queryClient, orpc } = useApp();
-	const router = useRouter();
 	const { draft, setDraft, clearDraft } = useComposerDraft();
+	const createTicket = useCreateTicket();
 	const [project, setProject] = useState<string | undefined>();
 	const defaults = useComposerDefaults(options, project);
 	// A status slug. A project change keeps it, so the ticket stays in a
@@ -42,7 +34,9 @@ export function CreateTicketDialog() {
 	const [editorKey, setEditorKey] = useState(0);
 	const [creating, setCreating] = useState(false);
 	const [createMore, setCreateMore] = useState(false);
-	const [created, setCreated] = useState<Ticket | null>(null);
+	// The ticket the server already created. While it is set, the form
+	// fields stay disabled and only the attachments still need a request.
+	const [createdTicket, setCreatedTicket] = useState<Ticket | null>(null);
 	const uploads = useUploads(undefined, false);
 	const inFlight = useRef(false);
 	const titleRef = useRef<HTMLInputElement>(null);
@@ -58,12 +52,10 @@ export function CreateTicketDialog() {
 		uploads.uploads.length > 0;
 	const needsUpload = uploads.uploads.some((upload) => upload.status !== "complete");
 
-	const openTicket = (identifier: string) => void router.navigate({ href: `/t/${identifier}` });
-
 	const finish = (stay: boolean) => {
 		clearDraft();
 		uploads.clear();
-		setCreated(null);
+		setCreatedTicket(null);
 		if (!stay) {
 			composerActions.close();
 			return;
@@ -72,23 +64,24 @@ export function CreateTicketDialog() {
 		setEditorKey((key) => key + 1);
 	};
 
-	// The ref blocks two hotkey events that arrive before `creating` renders.
-	// A failed ticket create leaves each selected file pending on this form.
+	// inFlight blocks a second hotkey event that arrives before `creating`
+	// renders. A failed ticket create leaves each selected file on this form,
+	// so the next attempt sends the same files and creates no second ticket.
 	const create = async (stay: boolean) => {
 		const title = draft.title.trim();
-		if ((created === null && title === "") || inFlight.current) return;
+		if ((createdTicket === null && title === "") || inFlight.current) return;
 		const parentRef = parent === undefined ? defaults.parent : (parent?.identifier ?? undefined);
 		inFlight.current = true;
 		setCreating(true);
 		try {
-			let ticket = created;
+			let ticket = createdTicket;
 			if (ticket === null) {
 				if (chosenProject === undefined) {
 					setProjectMissing(true);
 					return;
 				}
 				try {
-					ticket = await client.tickets.create({
+					ticket = await createTicket({
 						project: chosenProject,
 						title,
 						status: chosenStatus?.slug,
@@ -100,14 +93,7 @@ export function CreateTicketDialog() {
 					failToast("The ticket did not save.", error, () => void create(stay));
 					return;
 				}
-				insertRow(queryClient, summaryOf(ticket));
-				void queryClient.invalidateQueries({ queryKey: orpc.tickets.counts.key() });
-				void queryClient.invalidateQueries({ queryKey: orpc.projects.key() });
-				const identifier = ticket.identifier;
-				toast.success(`Created ${identifier}`, {
-					action: { label: "Open", onClick: () => openTicket(identifier) },
-				});
-				setCreated(ticket);
+				setCreatedTicket(ticket);
 			}
 			if (await uploads.uploadPending(ticket.identifier)) finish(stay);
 		} finally {
@@ -137,13 +123,13 @@ export function CreateTicketDialog() {
 			initialFocus={titleRef}
 			className="gap-0 bg-surface p-0"
 		>
-			<DropTarget identifier={created?.identifier ?? "new ticket"} onFiles={uploads.start}>
+			<DropTarget identifier={createdTicket?.identifier ?? "new ticket"} onFiles={uploads.addFiles}>
 				<div className="flex min-h-0 flex-col">
 					<div className="border-b border-border p-4">
 						<ComposerHeader project={chosenProject} onClose={requestClose} />
 					</div>
 					<div className="flex flex-1 flex-col gap-4 p-6 max-md:p-4">
-						<fieldset disabled={created !== null} className="contents">
+						<fieldset disabled={createdTicket !== null} className="contents">
 							<input
 								ref={titleRef}
 								aria-label="Title"
@@ -194,7 +180,7 @@ export function CreateTicketDialog() {
 							className="text-xs text-fg-muted"
 						/>
 						<Button variant="primary" size="md" disabled={creating} onClick={() => void create(createMore)} kbd="⌘↩">
-							{created === null ? "Create" : needsUpload ? "Retry attachments" : "Finish"}
+							{createdTicket === null ? "Create" : needsUpload ? "Retry attachments" : "Finish"}
 						</Button>
 					</div>
 				</div>
@@ -202,11 +188,11 @@ export function CreateTicketDialog() {
 			<ConfirmDialog
 				open={asking}
 				modal={false}
-				title={created === null ? "Discard the draft?" : "Discard selected attachments?"}
+				title={createdTicket === null ? "Discard the draft?" : "Discard selected attachments?"}
 				description={
-					created === null
+					createdTicket === null
 						? "Trellis deletes the title, the description, and the selected attachments."
-						: `Trellis keeps ${created.identifier} and removes files that are not attached.`
+						: `Trellis keeps ${createdTicket.identifier} and removes files that are not attached.`
 				}
 				confirmLabel="Discard"
 				danger

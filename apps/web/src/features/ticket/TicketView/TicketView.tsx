@@ -30,7 +30,7 @@ export function TicketView({ identifier, thread }: TicketViewProps) {
 	const query = useQuery(orpc.tickets.get.queryOptions({ input: { ticket: identifier } }));
 	const uploads = useUploads(identifier);
 	const parentSummary = useParentSummary(query.data?.parent?.identifier ?? null);
-	const drop = useDropOverlay(uploads.start);
+	const drop = useDropOverlay(uploads.addFiles);
 	const narrow = useMediaQuery("(max-width: 767px)");
 	const { isArchived, notice } = useArchivedProjects();
 
@@ -86,7 +86,7 @@ export function TicketView({ identifier, thread }: TicketViewProps) {
 					<TicketWorkArea
 						key={ticket.id}
 						ticket={ticket}
-						activity={<Timeline thread={thread} ticket={ticket} onAttachFiles={uploads.start} />}
+						activity={<Timeline thread={thread} ticket={ticket} onAttachFiles={uploads.addFiles} />}
 					/>
 				</div>
 			</div>

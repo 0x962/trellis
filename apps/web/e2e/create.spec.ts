@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { get } from "./api";
 import { ensureProject } from "./cli";
-import { rowOf, signIn, toastOf } from "./support";
+import { dropFiles, rowOf, signIn, toastOf } from "./support";
 
 test.beforeAll(() => {
 	ensureProject("CRT", "Create");
@@ -49,12 +49,7 @@ test("the composer accepts a dropped attachment", async ({ page }) => {
 	await page.keyboard.press("c");
 	const composer = page.getByRole("dialog", { name: "New ticket" });
 	const target = composer.getByRole("region", { name: "Attachments for new ticket" });
-	const dataTransfer = await page.evaluateHandle(() => {
-		const transfer = new DataTransfer();
-		transfer.items.add(new File(["drop body"], "drop.txt", { type: "text/plain" }));
-		return transfer;
-	});
-	for (const type of ["dragenter", "dragover", "drop"]) await target.dispatchEvent(type, { dataTransfer });
+	await dropFiles(page, target, [{ name: "drop.txt", type: "text/plain", text: "drop body" }]);
 	await expect(composer.getByText("drop.txt", { exact: true })).toBeVisible();
 	const title = `Keep the dropped file ${Date.now()}`;
 	await composer.getByRole("textbox", { name: "Title" }).fill(title);
