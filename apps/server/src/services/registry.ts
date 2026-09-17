@@ -180,6 +180,7 @@ export const services = {
 	"controller.dispatch": prepared("mutation", controllerDispatch.dispatch, controllerDispatch.finished),
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
 	"agentRuns.list": prepared("read", agentRuns.prepareList, agentTerminal.result),
+	"agentRuns.ticketMetrics": prepared("read", agentRuns.prepareTicketMetrics, agentTerminal.result),
 	"agentRuns.start": agentMutation(agentRuns.prepareStart),
 	"agentRuns.resume": agentMutation(prepareResume),
 	"agentRuns.setModel": agentMutation(prepareSetModel),

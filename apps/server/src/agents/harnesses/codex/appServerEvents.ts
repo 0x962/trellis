@@ -65,6 +65,12 @@ export class CodexAppServerEvents {
 			];
 		if (method === "model/rerouted")
 			return [{ kind: "session", ...identity, model: fromHarnessModel("codex", z.string().parse(params.toModel)) }];
+		if (method === "thread/tokenUsage/updated") {
+			const tokenUsage = z
+				.looseObject({ total: z.looseObject({ totalTokens: z.number().int().nonnegative() }) })
+				.parse(params.tokenUsage);
+			return [{ kind: "session", ...identity, tokenUsage: { totalTokens: tokenUsage.total.totalTokens } }];
+		}
 		if (method === "turn/started") {
 			const turn = z.looseObject({ id: z.string() }).parse(params.turn);
 			this.progressTurnId = turn.id;

@@ -14,6 +14,14 @@ export function validateHarnessEvent(value: unknown): asserts value is HarnessEv
 			throw new Error(`Provider ${field} must be a string of at most 200000 characters`);
 	if (event.willRetry !== undefined && typeof event.willRetry !== "boolean")
 		throw new Error("Provider willRetry must be a boolean");
+	if (
+		event.tokenUsage !== undefined &&
+		(typeof event.tokenUsage !== "object" ||
+			event.tokenUsage === null ||
+			!Number.isSafeInteger((event.tokenUsage as Record<string, unknown>).totalTokens) ||
+			((event.tokenUsage as Record<string, number>).totalTokens ?? -1) < 0)
+	)
+		throw new Error("Provider token usage requires a nonnegative safe integer total");
 	if (event.outcome !== undefined && !["completed", "interrupted", "failed"].includes(event.outcome as string))
 		throw new Error("Unknown provider turn outcome");
 	if (event.kind === "prompt" && typeof event.prompt !== "string") throw new Error("A provider prompt is required");

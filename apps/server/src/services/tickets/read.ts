@@ -132,3 +132,9 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<T
 	const row = await resolveTicket(ctx, tx, input.ticket);
 	return ticketGet(tx, row.id);
 };
+
+// Ticket age starts at tickets.created_at and cannot be negative.
+export const resolveTicketAge = async (ctx: ServiceCtx, tx: Tx, ref: string) => {
+	const row = await resolveTicket(ctx, tx, ref);
+	return { id: row.id, ageMs: Math.max(0, ctx.now.getTime() - Date.parse(row.createdAt)) };
+};

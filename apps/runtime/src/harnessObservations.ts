@@ -47,6 +47,7 @@ export class HarnessObservations {
 			tool: null,
 			lastTool: null,
 			lastMessage: null,
+			tokenUsage: null,
 			error: null,
 			outcome: null,
 		};
@@ -66,6 +67,7 @@ export class HarnessObservations {
 		if (event.kind === "prompt") agent.turnId = null;
 		if (event.sessionId !== undefined) agent.sessionId = event.sessionId;
 		if (event.model !== undefined) agent.model = event.model;
+		if (event.tokenUsage !== undefined) agent.tokenUsage = event.tokenUsage;
 		if (event.turnId !== undefined) agent.turnId = event.turnId;
 		if (event.outcome !== undefined) agent.outcome = event.outcome;
 		if (
