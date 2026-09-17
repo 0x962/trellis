@@ -1,10 +1,9 @@
 import { ArrowSquareOut, Warning } from "@phosphor-icons/react";
 import type { LinkedPullRequest, TicketSummary } from "@trellis/api";
-import { cx, IconButton } from "@trellis/ui";
+import { cx, IconButton, ReviewStateIcon } from "@trellis/ui";
 import { tabularClass } from "../../../../../lib/format";
 import { OpenReviewButton } from "./components/OpenReviewButton";
 import { PrStateIcon } from "./components/PrStateIcon";
-import { ReviewStateIcon } from "./components/ReviewStateIcon";
 import { UnlinkButton } from "./components/UnlinkButton";
 
 export type PullRequestRowProps = {

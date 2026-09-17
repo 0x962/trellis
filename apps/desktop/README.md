@@ -24,15 +24,15 @@ The host keeps its selected port across restarts. This preserves the renderer or
 
 Close a window to detach its view. Quit Trellis to close the desktop process. Both actions keep the host and agents active. Use the Help menu to reconnect to the host or open its logs.
 
-The Desktop section of the Settings page holds the data directory, Open Trellis at login, the background service status, the update status, and the host controls. **Trellis > Settings…** (Command-comma) opens that section. The menus keep Open Trellis, Quit Trellis, Quit Trellis Completely, and the Help items. Quit Trellis Completely and the Help items work when the Settings page cannot load.
+The Desktop section of the Settings page holds the data directory and Open Trellis at login. **Trellis > Settings…** (Command-comma) opens that section. The menus keep Open Trellis, Quit Trellis, Quit Trellis Completely, and the Help items. Quit Trellis Completely and the Help items work when the Settings page cannot load.
 
 Use **Trellis > Restart** to restart the host and desktop from the installed package. Compatible agents keep their processes and terminal output. If the packaged app detects an incompatible or unknown runtime, it blocks the restart and shows the reason.
 
 A local progress window shows a progress bar, numbered steps, and estimated time remaining. Estimates use the durations of previous runs. The step count continues across the desktop relaunch. The window fades out when the main window opens.
 
-The packaged app enables its background service at startup. `SMAppService` registers the bundled LaunchAgent. macOS starts it at login and restarts it after a crash. Settings > Desktop shows its status and opens Login Items when approval is required. The separate Open Trellis at login switch controls the desktop window.
+The packaged app enables its background service at startup. `SMAppService` registers the bundled LaunchAgent. macOS starts it at login and restarts it after a crash. System Settings controls its permission to run at login. The separate Open Trellis at login switch controls the desktop window.
 
-In Settings > Desktop, Quit Trellis Completely stops known local processes and unregisters the helper. An unknown process prevents the stop. The app waits for the host to exit before it closes. Open Trellis to start the helper and deterministic manager.
+Quit Trellis Completely in the Trellis menu stops known local processes and unregisters the helper. An unknown process prevents the stop. The app waits for the host to exit before it closes. Open Trellis to start the helper and deterministic manager.
 
 Project settings select the repository directory. A blank child directory uses the nearest ancestor with a configured directory. Trellis trusts configured repositories and agent workspaces.
 

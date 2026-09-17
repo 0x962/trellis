@@ -51,19 +51,40 @@ export function TicketWorkArea({
 		</section>
 	);
 	return (
-		<section aria-label="Ticket work area" className="min-w-0">
+		<section aria-label="Ticket pages" className="flex min-h-0 min-w-0 flex-1 flex-col">
 			<Tabs
+				className="ticket-tabs-layout"
 				value={tab}
 				onValueChange={onTabChange}
 				items={[
 					{ value: "activity", label: "Activity", content: activity },
-					{ value: "agent", label: "Agent", content: execution },
+					{
+						value: "agent",
+						label: "Agent",
+						content: (
+							<div className="page-card flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-4 max-md:px-4">
+								{execution}
+							</div>
+						),
+					},
 					{
 						value: "changes",
 						label: "Changes",
-						content: <PullRequests ticket={ticket} initialPrs={ticket.prs} onOpen={onOpenPullRequest} />,
+						content: (
+							<div className="page-card flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-4 max-md:px-4">
+								<PullRequests ticket={ticket} initialPrs={ticket.prs} onOpen={onOpenPullRequest} />
+							</div>
+						),
 					},
-					{ value: "flows", label: "Flows", content: <FlowRuns ticket={ticket.identifier} /> },
+					{
+						value: "flows",
+						label: "Flows",
+						content: (
+							<div className="page-card min-h-0 flex-1 overflow-y-auto px-5 py-4 max-md:px-4">
+								<FlowRuns ticket={ticket.identifier} />
+							</div>
+						),
+					},
 				]}
 			/>
 		</section>

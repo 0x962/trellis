@@ -86,7 +86,7 @@ export function TicketView({ identifier, thread }: TicketViewProps) {
 
 	// The server refuses every write to a ticket under an archived project.
 	// The disabled fieldset and the edit keys enforce `readOnly`.
-	const main = (
+	const activity = (
 		<article className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto page-card">
 			<div
 				data-ticket-content=""
@@ -107,17 +107,18 @@ export function TicketView({ identifier, thread }: TicketViewProps) {
 				<div className="mt-8 flex flex-col gap-8">
 					<SubTickets ticket={ticket} />
 					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
-					<TicketWorkArea
-						key={ticket.id}
-						ticket={ticket}
-						tab={workAreaTab}
-						onTabChange={setWorkAreaTab}
-						onOpenPullRequest={setPullRequest}
-						activity={<Timeline thread={thread} ticket={ticket} onAttachFiles={uploads.start} />}
-					/>
+					<Timeline thread={thread} ticket={ticket} onAttachFiles={uploads.start} />
 				</div>
 			</div>
 		</article>
+	);
+	const activityPage = inlineRail ? (
+		activity
+	) : (
+		<div data-ticket-columns="" className="flex min-h-0 flex-1">
+			{activity}
+			<PropertiesRail ticket={ticket} variant="page" />
+		</div>
 	);
 
 	return (
@@ -129,14 +130,14 @@ export function TicketView({ identifier, thread }: TicketViewProps) {
 						{notice(ticket.project.path)}
 					</p>
 				)}
-				{inlineRail ? (
-					main
-				) : (
-					<div data-ticket-columns="" className="flex min-h-0 flex-1">
-						{main}
-						<PropertiesRail ticket={ticket} variant="page" />
-					</div>
-				)}
+				<TicketWorkArea
+					key={ticket.id}
+					ticket={ticket}
+					tab={workAreaTab}
+					onTabChange={setWorkAreaTab}
+					onOpenPullRequest={setPullRequest}
+					activity={activityPage}
+				/>
 				{drop.over && <DropOverlay identifier={ticket.identifier} />}
 			</div>
 		</fieldset>
