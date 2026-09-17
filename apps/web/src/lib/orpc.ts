@@ -37,7 +37,6 @@ const unbatched = new Set([
 	"reviews.file",
 	"reviews.metadata",
 	"reviews.mine",
-	"reviews.runs",
 ]);
 
 // The typed client, the TanStack Query utils over it, and a QueryClient.

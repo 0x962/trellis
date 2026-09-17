@@ -491,6 +491,13 @@
       "when": 1789671587937,
       "tag": "0072_sticky_mockingbird",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1789671975812,
+      "tag": "0073_curly_fixer",
+      "breakpoints": true
     }
   ]
 }

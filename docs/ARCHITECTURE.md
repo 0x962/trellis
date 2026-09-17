@@ -84,7 +84,7 @@ A descendant that leaves its session and loses its parent before inspection requ
 
 Built-in harnesses launch through `HarnessHost` with an interactive CLI in a PTY.
 Ticket and flow agents use native permission bypass settings.
-Copilots use the manager instruction from project settings as their exact system prompt.
+Copilots use the saved manager instruction as their exact system prompt.
 They have native tools and the Trellis tools for user requests.
 Claude, Codex, OpenCode, Pi, and Muse support copilot conversations.
 The assignment message carries identity and project facts.
@@ -214,11 +214,6 @@ Review comments remain local. The review form submits its comment, approval, or
 change request to GitHub. The same request refreshes the stored pull request and
 writes activity for every linked ticket.
 
-`review_imports` maps Margin identifiers to canonical message identifiers and
-stores each source hash. A repeated import skips unchanged roots and reports
-changed roots as conflicts. Imported anchors retain an unknown revision.
-Backups and NDJSON exports include the review tables.
-
 The web route `/reviews/$owner/$repo/$number` uses the Trellis shell.
 `@trellis/ui/review` wraps `@pierre/diffs` 1.4.2 with virtual scroll, workers,
 line selection, and thread annotations. Review styles live in `packages/ui`.
@@ -226,10 +221,9 @@ Drafts persist in browser storage until the user submits them.
 The `reviews.changed` event invalidates local review queries after commit.
 Current GitHub status polls separately from the saved diff revision.
 
-The Dots adapter exposes only its review graph and checks the PR target before
-a run action. `apps/server/src/gateway.ts` owns the optional localhost gateway.
-It reads the shared route file and redirects old Margin links to Trellis.
-Read [the review guide](reviews.md) for commands and the service cutover.
+`apps/server/src/gateway.ts` owns the optional localhost gateway.
+It reads the shared route file and forwards configured local hostnames.
+Read [the review guide](reviews.md) for commands and review behavior.
 
 ### Agent runs
 
@@ -282,8 +276,6 @@ API run states come from inspected runtime processes. The database records assig
 A missing runtime record produces `interrupted`; an observed process exit produces `exited` or `failed` from its exit code.
 A failed launch retains its error. A stop retains the workspace and output after the runtime confirms process exit.
 
-Per-status limits gate ticket creation and entry for all actors.
-A request into a full status fails with `STATUS_FULL`. Tickets already in the column can reorder.
 A partial unique index permits one active copilot per project.
 
 The ticket page uses three separate metric definitions. Tokens burned sums the latest provider-recorded cumulative total for each agent session.
@@ -504,9 +496,7 @@ API ref joins the same segments with dots, so `/p/CDE/web/auth` reads
 `settings`, so a sub-project never takes one of those names.
 
 The board uses the bare project URL. An older link
-that ends in `/board` redirects to the same path with the segment dropped. The
-manager page is the two segments `settings/manager`. `parseProjectSplat` and
-`projectHref` in `apps/web/src/lib/projectPath.ts` hold both directions.
+that ends in `/board` redirects to the same path with the segment dropped.
 
 A card in a status with the human reviewer shows up to five linked PR approval marks.
 An overflow pill opens a tooltip that lists every linked PR and its approval state.
@@ -521,12 +511,11 @@ time. The first section of each page carries no hash.
 | page | sections |
 |---|---|
 | `/settings` | Account (no hash), `#desktop` in the macOS app |
-| `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#archive` |
-| `/p/<path>/settings/manager` | Operation (no hash), `#settings`, `#harness` |
+| `/p/<path>/settings` | General (no hash), `#notes`, `#template`, `#statuses`, `#labels`, `#archive` |
 
 `/settings` holds the actor name, theme, and desktop controls.
-Project settings hold the copilot instruction, repository directory, and harness settings.
-It writes `projects.managerConfig` through `projects.update`.
+Project settings hold the repository directory and repository selection.
+They write `projects.managerConfig.directory` and the project repositories.
 
 The sidebar holds the workspace row, Needs you, Search, All tickets, Pull
 requests, Flows, Usage, the sessions, the project tree, and the actor footer.
@@ -553,7 +542,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 |---|---|
 | projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, manager_config jsonb (`instruction`, `directory`, `ade: native`, `harness` (`preset`, `model`, `effort`, `startCommand`, `resumeCommand`), `accountId`), ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
 | repos | id PK, project_id (CASCADE), owner, repo (both CHECK lowercase). UNIQUE (project_id, owner, repo). The effective repos of a project are its own plus those of its ancestors. |
-| statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), reviewer (CHECK `(category = 'review') = (reviewer IS NOT NULL)`), color, position, wip_limit (CHECK > 0), is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
+| statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), reviewer (CHECK `(category = 'review') = (reviewer IS NOT NULL)`), color, position, is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
 | tickets | id PK, project_id, root_id, number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (root_id, number) and (id, root_id). FK (project_id, root_id) RESTRICT and FK (parent_id, root_id) RESTRICT. Indexes (project_id, status_id, position), (status_id, position, id, project_id, root_id), (parent_id), partial (root_id, updated_at DESC) WHERE completed_at IS NULL, partial (root_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
 | comments | id PK, ticket_id (CASCADE), body (1 to 200000), parent_id, resolved_at, actor_name, actor_kind, search tsvector GENERATED (body C), created_at, updated_at. FK to actors. UNIQUE (id, ticket_id). FK (parent_id, ticket_id) CASCADE, so a reply stays on the ticket of its root. CHECK `parent_id <> id` and `parent_id IS NULL OR resolved_at IS NULL`, so only a root carries the resolved mark. Index (ticket_id, created_at) and (parent_id). GIN (search). |
 | attachments | id PK, ticket_id (CASCADE), filename (1 to 255, no `/`), mime, size (CHECK > 0), sha256 (CHECK hex 64), actor_name, actor_kind, created_at. FK to actors. Index (ticket_id) and (sha256). |
@@ -700,7 +689,7 @@ AGENT_CANNOT_DELETE 403, NOT_FOUND 404, DUPLICATE
 409, ROOT_STATUSES 409, STATUS_CATEGORY_IMMUTABLE 409, CROSS_ROOT_MOVE 409,
 PARENT_CYCLE 409, PROJECT_NOT_EMPTY 409, PROJECT_ARCHIVED 409,
 COMMENT_PARENT_MISMATCH 409, COMMENT_HAS_REPLIES 409, INVALID_ANCHOR 409,
-STATUS_FULL 409, VERSION_CONFLICT 412, FLOW_VERSION_CONFLICT 412, PAYLOAD_TOO_LARGE 413,
+VERSION_CONFLICT 412, FLOW_VERSION_CONFLICT 412, PAYLOAD_TOO_LARGE 413,
 GH_UNAVAILABLE 503, RUNNER_UNAVAILABLE 503.
 
 The API carries no version prefix. `apiVersion` appears in health and in

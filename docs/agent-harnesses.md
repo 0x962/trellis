@@ -19,7 +19,7 @@ Set the limit for concurrent active worker turns in the project. Idle workers ke
 A child project with an empty directory uses the nearest parent with a configured directory.
 Trellis trusts configured directories and agent workspaces.
 
-Open **Project → Manager → Harness** to select the harness and model.
+Select the harness, model, and effort when you assign an agent to a ticket.
 Leave **Model** blank to use the harness default.
 OpenCode and pi accept a `provider/model` identifier.
 Muse accepts the Muse Spark models of the catalog, such as `meta/muse-spark-1.3`.

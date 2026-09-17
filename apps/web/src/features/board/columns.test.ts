@@ -12,7 +12,6 @@ const column = (id: string, ticketIds: string[]): BoardColumnModel => ({
 	statuses: [],
 	items: ticketIds.map(ticket),
 	count: ticketIds.length,
-	wipLimit: null,
 });
 
 const ids = (value: BoardColumnModel) => value.items.map((item) => item.id);

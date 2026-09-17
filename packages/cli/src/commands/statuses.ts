@@ -26,7 +26,6 @@ const statusRecord: RecordSpec<Status> = {
 		{ name: "reviewer", value: (row) => cell(row.reviewer) },
 		{ name: "color", value: (row) => row.color },
 		{ name: "position", value: (row) => String(row.position) },
-		{ name: "wipLimit", value: (row) => cell(row.wipLimit) },
 		{ name: "default", value: (row) => (row.isDefault ? "yes" : "no") },
 		{ name: "description", value: (row) => cell(row.description) },
 	],
@@ -67,7 +66,6 @@ const add = defineCommand({
 		description: descriptionFlag,
 		color: { type: "string", description: "Color token" },
 		position: { type: "string", description: "Position in the column order" },
-		"wip-limit": { type: "string", description: "Work in progress limit" },
 		default: { type: "boolean", description: "Make it the default status of new tickets" },
 	},
 	async run(context) {
@@ -82,7 +80,6 @@ const add = defineCommand({
 				description: await descriptionOf(ctx, args.description),
 				color: args.color as ColorToken | undefined,
 				position: toNumber(args.position),
-				wipLimit: toNumber(args["wip-limit"]),
 				isDefault: args.default === true ? true : undefined,
 			}),
 		);
@@ -111,7 +108,6 @@ const edit = defineCommand({
 		description: descriptionFlag,
 		color: { type: "string", description: "New color token" },
 		reviewer: { type: "enum", options: ["human", "agent"], description: "New reviewer" },
-		"wip-limit": { type: "string", description: "New work in progress limit" },
 		position: { type: "string", description: "New position in the column order" },
 		default: { type: "boolean", description: "Make it the default status" },
 		category: { type: "string", description: "Refused: the category is immutable" },
@@ -129,7 +125,6 @@ const edit = defineCommand({
 			description: await descriptionOf(ctx, args.description),
 			color: args.color as ColorToken | undefined,
 			reviewer: args.reviewer as Reviewer | undefined,
-			wipLimit: toNumber(args["wip-limit"]),
 			isDefault: args.default === true ? true : undefined,
 		});
 		const updated =

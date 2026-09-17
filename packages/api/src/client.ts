@@ -72,4 +72,3 @@ export const createTrellisClient = (
 };
 
 export { reviewHref, reviewRef } from "./reviewRef";
-export { MarginFileSchema } from "./schemas/reviewImport";

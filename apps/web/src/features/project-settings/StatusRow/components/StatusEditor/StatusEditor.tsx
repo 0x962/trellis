@@ -28,7 +28,6 @@ export function StatusEditor({ project, status, onChanged, onCancel }: StatusEdi
 	const [description, setDescription] = useState(status.description);
 	const [color, setColor] = useState<ColorToken>(status.color);
 	const [reviewer, setReviewer] = useState<Reviewer>(status.reviewer ?? "agent");
-	const [wipLimit, setWipLimit] = useState(status.wipLimit?.toString() ?? "");
 	const [isDefault, setIsDefault] = useState(status.isDefault);
 	const [message, setMessage] = useState<string | null>(null);
 
@@ -46,7 +45,6 @@ export function StatusEditor({ project, status, onChanged, onCancel }: StatusEdi
 				description,
 				color,
 				...(status.category === "review" ? { reviewer } : {}),
-				wipLimit: wipLimit === "" ? null : Number(wipLimit),
 				isDefault,
 			});
 			setMessage(null);
@@ -93,18 +91,7 @@ export function StatusEditor({ project, status, onChanged, onCancel }: StatusEdi
 						/>
 					</div>
 				)}
-				<Input
-					label="Column limit"
-					aria-label={`WIP limit for ${status.name}`}
-					type="number"
-					min={1}
-					value={wipLimit}
-					onChange={(event) => setWipLimit(event.target.value)}
-				/>
 			</div>
-			<p className="text-sm text-fg-muted">
-				The limit blocks new tickets. Tickets that are already in this column stay in it.
-			</p>
 			<Textarea
 				label="Description"
 				aria-label={`Description for ${status.name}`}

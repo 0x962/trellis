@@ -1,7 +1,7 @@
 export function reviewRef(input: string) {
 	const value = decodeURIComponent(input.trim()).replace(/\/$/, "");
 	const embedded =
-		/^(?:https?:\/\/(?:margin(?:\.localhost)?|localhost|127\.0\.0\.1)(?::\d+)?\/)?(?:https?:\/\/)?github\.com\/([\w.-]+)\/([\w.-]+)\/pull\/(\d+)(?:[/?#].*)?$/.exec(
+		/^(?:https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/)?(?:https?:\/\/)?github\.com\/([\w.-]+)\/([\w.-]+)\/pull\/(\d+)(?:[/?#].*)?$/.exec(
 			value,
 		);
 	const native =
