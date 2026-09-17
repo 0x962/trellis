@@ -1,11 +1,12 @@
 import { expect, test } from "bun:test";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { activateHostRelease } from "../../../../src/activateHostRelease/activateHostRelease.ts";
 import { recordActiveRelease } from "../../../../src/updateStatus/updateStatus.ts";
 
 const fixture = async () => {
-	const directory = await mkdtemp("/tmp/trl-activate-");
+	const directory = await mkdtemp(join(tmpdir(), `trellis-activate-${process.pid}-`));
 	const home = join(directory, "home");
 	await mkdir(home);
 	const release = async (id: string, protocol = 6) => {
@@ -58,7 +59,7 @@ test("app startup replaces a different host release and keeps its connection", a
 		await mkdir(join(f.home, "runtime"));
 		await writeFile(join(f.home, "runtime/manifest.json"), JSON.stringify({ pid: process.pid, version: 6 }));
 		expect(await activateHostRelease(f.home, "helper", f.next, f.actions)).toEqual(f.host);
-		expect(f.calls).toEqual(["unregister", "wait", "capture", "shutdown", "register", "adopt", "resume"]);
+		expect(f.calls).toEqual(["unregister", "wait", "shutdown", "register", "adopt"]);
 	} finally {
 		await rm(f.directory, { recursive: true, force: true });
 	}
@@ -68,7 +69,7 @@ test("app startup adopts a current host without a service restart", async () => 
 	const f = await fixture();
 	try {
 		await activateHostRelease(f.home, "helper", f.old, f.actions);
-		expect(f.calls).toEqual(["ensure", "adopt", "resume"]);
+		expect(f.calls).toEqual(["ensure", "adopt"]);
 	} finally {
 		await rm(f.directory, { recursive: true, force: true });
 	}
@@ -80,7 +81,7 @@ test("app startup stops the old runtime before an incompatible package activates
 		await mkdir(join(f.home, "runtime"));
 		await writeFile(join(f.home, "runtime/manifest.json"), JSON.stringify({ pid: process.pid, version: 5 }));
 		await activateHostRelease(f.home, "helper", f.next, f.actions);
-		expect(f.calls).toEqual(["unregister", "wait", "capture", "shutdown", "register", "adopt", "resume"]);
+		expect(f.calls).toEqual(["unregister", "wait", "shutdown", "register", "adopt"]);
 	} finally {
 		await rm(f.directory, { recursive: true, force: true });
 	}
@@ -119,7 +120,7 @@ test("a failed runtime stop prevents registration of the new package", async () 
 			throw new Error("Unknown process owner");
 		};
 		await expect(activateHostRelease(f.home, "helper", f.next, f.actions)).rejects.toThrow("Unknown process owner");
-		expect(f.calls).toEqual(["unregister", "wait", "capture"]);
+		expect(f.calls).toEqual(["unregister", "wait"]);
 	} finally {
 		await rm(f.directory, { recursive: true, force: true });
 	}
@@ -147,7 +148,7 @@ test("a fresh app completes service registration before it adopts the host", asy
 	try {
 		await rm(join(f.home, "desktop-active-release.json"));
 		await activateHostRelease(f.home, "helper", f.next, f.actions);
-		expect(f.calls).toEqual(["ensure", "adopt", "resume"]);
+		expect(f.calls).toEqual(["ensure", "adopt"]);
 	} finally {
 		await rm(f.directory, { recursive: true, force: true });
 	}
@@ -167,135 +168,18 @@ test("macOS approval prevents host adoption until service preparation succeeds",
 	}
 });
 
-test("a failed capture leaves active processes untouched", async () => {
+test("an unfinished agent resume cannot block package activation", async () => {
 	const f = await fixture();
 	try {
+		await writeFile(join(f.home, "restart-plan.json"), "obsolete restart plan");
 		f.actions.capture = async () => {
-			throw new Error("Provider session is unknown");
+			throw new Error("Desktop must not capture agents");
 		};
-		await expect(activateHostRelease(f.home, "helper", f.next, f.actions)).rejects.toThrow("Provider session");
-		expect(f.calls).toEqual(["unregister", "wait"]);
-	} finally {
-		await rm(f.directory, { recursive: true, force: true });
-	}
-});
-
-for (const failure of ["shutdown", "register", "adopt", "resume"] as const)
-	test(`the saved restart intent survives a ${failure} failure`, async () => {
-		const f = await fixture();
-		try {
-			const path = join(f.home, "restart-plan.json");
-			f.actions.capture = async () => {
-				await writeFile(path, JSON.stringify({ id: "durable-intent" }));
-			};
-			const shutdown = f.actions.shutdown;
-			f.actions.shutdown = async () => {
-				expect(JSON.parse(await readFile(path, "utf8"))).toEqual({ id: "durable-intent" });
-				await shutdown();
-			};
-			f.actions[failure] = async () => {
-				throw new Error(`Failed ${failure}`);
-			};
-			await expect(activateHostRelease(f.home, "helper", f.next, f.actions)).rejects.toThrow(`Failed ${failure}`);
-			expect(JSON.parse(await readFile(path, "utf8"))).toEqual({ id: "durable-intent" });
-		} finally {
-			await rm(f.directory, { recursive: true, force: true });
-		}
-	});
-
-test("a current host consumes intent after an earlier app launch failed", async () => {
-	const f = await fixture();
-	try {
-		await recordActiveRelease(f.home, f.next);
-		await writeFile(join(f.home, "restart-plan.json"), JSON.stringify({ id: "saved-intent" }));
-		await activateHostRelease(f.home, "helper", f.next, f.actions);
-		expect(f.calls).toEqual(["ensure", "adopt", "resume"]);
-	} finally {
-		await rm(f.directory, { recursive: true, force: true });
-	}
-});
-
-test("pending intent waits for macOS approval and the expected active release", async () => {
-	const f = await fixture();
-	try {
-		await recordActiveRelease(f.home, f.next);
-		await writeFile(join(f.home, "restart-plan.json"), JSON.stringify({ id: "saved-intent" }));
-		f.actions.ensureService = async () => {
-			throw new Error("requiresApproval");
-		};
-		await expect(activateHostRelease(f.home, "helper", f.next, f.actions)).rejects.toThrow("requiresApproval");
-		expect(f.calls).toEqual([]);
-		f.actions.ensureService = async () => {
-			await recordActiveRelease(f.home, f.old);
-		};
-		await expect(activateHostRelease(f.home, "helper", f.next, f.actions)).rejects.toThrow("expected release");
-		expect(f.calls).toEqual(["adopt"]);
-	} finally {
-		await rm(f.directory, { recursive: true, force: true });
-	}
-});
-
-test("a further package switch cannot stop agents from an unfinished resume", async () => {
-	const f = await fixture();
-	try {
-		await writeFile(
-			join(f.home, "restart-plan.json"),
-			JSON.stringify({ sourceReleaseId: "previous", sessions: [{ done: true }] }),
-		);
 		f.actions.resume = async () => {
-			throw new Error("Resume is incomplete");
+			throw new Error("Desktop must not resume agents");
 		};
-		await expect(activateHostRelease(f.home, "helper", f.next, f.actions)).rejects.toThrow("Resume is incomplete");
-		expect(f.calls).toEqual(["adopt"]);
-	} finally {
-		await rm(f.directory, { recursive: true, force: true });
-	}
-});
-
-test("a further package completes its prior resume before a fresh capture", async () => {
-	const f = await fixture();
-	try {
-		await writeFile(
-			join(f.home, "restart-plan.json"),
-			JSON.stringify({ sourceReleaseId: "previous", sessions: [{ done: true }] }),
-		);
-		f.actions.resume = async () => {
-			f.calls.push("resume");
-			await rm(join(f.home, "restart-plan.json"), { force: true });
-		};
-		await activateHostRelease(f.home, "helper", f.next, f.actions);
-		expect(f.calls).toEqual([
-			"adopt",
-			"resume",
-			"unregister",
-			"wait",
-			"capture",
-			"shutdown",
-			"register",
-			"adopt",
-			"resume",
-		]);
-	} finally {
-		await rm(f.directory, { recursive: true, force: true });
-	}
-});
-
-test("an unfinished resume from a previous package does not stop the next package", async () => {
-	const f = await fixture();
-	try {
-		await writeFile(join(f.home, "restart-plan.json"), JSON.stringify({ sourceReleaseId: "previous", sessions: [{}] }));
-		await activateHostRelease(f.home, "helper", f.next, f.actions);
-		expect(f.calls).toEqual([
-			"adopt",
-			"resume",
-			"unregister",
-			"wait",
-			"capture",
-			"shutdown",
-			"register",
-			"adopt",
-			"resume",
-		]);
+		expect(await activateHostRelease(f.home, "helper", f.next, f.actions)).toEqual(f.host);
+		expect(f.calls).toEqual(["unregister", "wait", "shutdown", "register", "adopt"]);
 	} finally {
 		await rm(f.directory, { recursive: true, force: true });
 	}
@@ -312,16 +196,12 @@ test("release activation reports each stage before its work starts", async () =>
 			"Stop background host",
 			"unregister",
 			"wait",
-			"Save agent sessions",
-			"capture",
 			"Restart agent runtime",
 			"shutdown",
 			"Start background host",
 			"register",
 			"Wait for background host",
 			"adopt",
-			"Restore agent sessions",
-			"resume",
 		]);
 	} finally {
 		await rm(f.directory, { recursive: true, force: true });

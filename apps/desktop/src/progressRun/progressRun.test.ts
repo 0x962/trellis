@@ -10,7 +10,7 @@ test("a restart keeps one six-step plan across the desktop relaunch", () => {
 	const resumed = progressRun({ checkpoint: JSON.parse(JSON.stringify(run.state)) });
 	resumed.report("Prepare Trellis", 4000);
 	expect(resumed.view(4000)).toMatchObject({ step: 4, total: 6, progress: 3 / 6 });
-	resumed.report("Restore agent sessions", 5000);
+	resumed.report("Wait for background host", 5000);
 	resumed.report("Check host compatibility", 5500);
 	expect(resumed.view(5500).step).toBe(5);
 	resumed.report("Open Trellis", 6000);

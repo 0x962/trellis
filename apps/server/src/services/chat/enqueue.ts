@@ -5,11 +5,7 @@ import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { type Recipient, recipientsOf } from "./recipients.ts";
 
-// `toManager` is the direct message channel: the live manager of the
-// project is the one recipient, and the delivery interrupts it. A post in
-// #general that mentions nobody reaches the live managers only, so the
-// workers read the room when they want and not on every human remark. A
-// post in any other channel with no mention reaches every live agent.
+// Copilots receive human messages. Workers receive room broadcasts and direct mentions.
 export const enqueue = async (
 	tx: Tx,
 	input: { messageId: string; rootId: string; channel: string; body: string; actor: ActorRef; toManager: boolean },
@@ -29,6 +25,7 @@ export const enqueue = async (
 			? everyone.filter((entry) => entry.run.kind === "manager")
 			: everyone;
 	for (const { run, direct } of addressed) {
+		if (run.kind === "manager" && input.actor.kind !== "human") continue;
 		await tx.execute(sql`INSERT INTO chat_deliveries (id, message_id, run_id, persona_name, terminal_id, session_id, direct)
 			VALUES (${ulid()}, ${input.messageId}, ${run.id}, ${run.personaName}, ${run.terminalId}, ${run.sessionId}, ${direct})
 			ON CONFLICT (message_id, run_id) DO NOTHING`);

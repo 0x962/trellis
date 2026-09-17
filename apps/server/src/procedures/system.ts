@@ -3,8 +3,6 @@ import { call, os } from "./base.ts";
 
 export const system = os.system.router({
 	doctor: os.system.doctor.handler(({ context }) => call(context, "system.doctor", {})),
-	resumeRestart: os.system.resumeRestart.handler(({ context, input }) => call(context, "system.resumeRestart", input)),
-	restartStatus: os.system.restartStatus.handler(({ context }) => call(context, "system.restartStatus", {})),
 	stopNativeWork: os.system.stopNativeWork.handler(({ context }) => call(context, "system.stopNativeWork", {})),
 
 	chooseDirectory: os.system.chooseDirectory.handler(({ context }) => context.chooseDirectory()),
