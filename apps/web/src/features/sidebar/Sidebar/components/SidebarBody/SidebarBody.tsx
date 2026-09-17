@@ -1,10 +1,10 @@
 import { Plus, SidebarSimple } from "@phosphor-icons/react";
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { ActivityDot, cx, IconButton, Kbd, Tooltip } from "@trellis/ui";
-import type { ReactElement, ReactNode } from "react";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { ActivityDot, IconButton, Kbd, Tooltip, TrellisMark } from "@trellis/ui";
 import { useApp } from "../../../../../lib/appContext";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
 import { uiActions } from "../../../../../stores/uiStore";
+import { useWorkingAgents } from "../../../../agents/useWorkingAgents";
 import { type NavTarget, navRows } from "../../../../navRows";
 import { useNeedsYouSummary } from "../../../../needs-you/useNeedsYou";
 import { sessionComposerActions } from "../../../../sessions/sessionComposerStore";
@@ -12,44 +12,9 @@ import { ActorFooter } from "../../../ActorFooter";
 import { ArchivedProjects } from "../../../ArchivedProjects";
 import { ProjectTree } from "../../../ProjectTree";
 import { SessionList } from "../../../SessionList";
+import { SystemLoad } from "../../../SystemLoad";
 import { ConnectionPanel } from "../ConnectionPanel";
-
-const rowClass =
-	"sidebar-row pl-2 text-sm text-fg-muted hover:bg-elevated hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
-
-type NavRowProps = {
-	to: NavTarget;
-	icon: ReactElement;
-	label: string;
-	active: boolean;
-	trailing?: ReactNode;
-	hasItems?: boolean;
-};
-
-function NavRow({ to, icon, label, active, trailing, hasItems }: NavRowProps) {
-	return (
-		<Link
-			to={to}
-			aria-current={active ? "page" : undefined}
-			className={cx(rowClass, active && "sidebar-selected font-medium")}
-		>
-			<span data-slot="leading" className="sidebar-leading">
-				<span className="relative inline-flex">
-					<span aria-hidden="true" className="inline-flex size-4 shrink-0 *:size-full">
-						{icon}
-					</span>
-					{hasItems && <ActivityDot label="Needs you has items" />}
-				</span>
-			</span>
-			<span data-slot="label" className="sidebar-label">
-				{label}
-			</span>
-			<span data-slot="trailing" className="sidebar-trailing">
-				{trailing}
-			</span>
-		</Link>
-	);
-}
+import { NavRow } from "./components/NavRow";
 
 // A nav row is active on its own page and on every page under it: All
 // tickets stays marked on the All tickets board.
@@ -64,10 +29,10 @@ export type SidebarBodyProps = {
 	onCollapse?: () => void;
 };
 
-// What the sidebar holds: the collapse button, the fixed destinations,
-// the sessions, the project tree, and the actor footer. The desktop aside
-// and the phone sheet both draw it. The phone sheet closes in its own way,
-// so it has no collapse button.
+// The sidebar holds the Trellis title, an optional collapse button, the fixed
+// destinations, the sessions, the project tree, and the actor footer. The
+// desktop aside and the phone sheet both draw it. The phone sheet closes in
+// its own way, so it has no collapse button.
 //
 // The sessions and the project tree share the one region that scrolls and
 // takes the spare height. Every fixed destination sits above it, so none of
@@ -78,16 +43,30 @@ export type SidebarBodyProps = {
 // highlight moves when the page does.
 export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps) {
 	const { live } = useApp();
+	const { runIds } = useWorkingAgents();
 	const inbox = useNeedsYouSummary();
 	const status = useLiveStatus(live);
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const toggleLabel = collapsed ? "Expand sidebar" : "Collapse sidebar";
+	const needsYouActive = (inbox.data?.active ?? 0) > 0;
+	const needsYouMark = needsYouActive ? (
+		<ActivityDot label="Needs you has items" placement={collapsed ? "corner" : "inline"} tone="metal" />
+	) : undefined;
+	const workActive = runIds.length > 0;
 
 	return (
 		<>
-			{onCollapse && (
-				<div data-sidebar-toolbar="" className="mb-1 flex h-13 shrink-0 items-center">
+			<div data-sidebar-toolbar="" className="mb-1 flex h-13 shrink-0 items-center">
+				{!collapsed && (
+					<div className="flex min-w-0 flex-1 items-center gap-2 pl-0.5">
+						<TrellisMark className="size-7" working={workActive} />
+						{workActive && <span className="sr-only">Work active: </span>}
+						<span className="truncate text-lg font-semibold text-fg">Trellis</span>
+					</div>
+				)}
+				{onCollapse && !collapsed && <SystemLoad />}
+				{onCollapse && (
 					<Tooltip
 						side="right"
 						content={
@@ -107,18 +86,25 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 							onClick={onCollapse}
 						/>
 					</Tooltip>
-				</div>
-			)}
+				)}
+			</div>
 			<nav aria-label="Workspace" className="flex flex-col gap-0.5">
 				{navRows.map((row) => (
 					<NavRow
 						key={row.to}
 						to={row.to}
-						hasItems={row.to === "/needs-you" ? (inbox.data?.active ?? 0) > 0 : undefined}
+						iconMark={row.to === "/needs-you" && collapsed ? needsYouMark : undefined}
 						icon={row.icon}
 						label={row.label}
+						accessibleLabel={collapsed ? row.label : undefined}
 						active={isActive(pathname, row.to)}
-						trailing={row.to === "/search" && !collapsed ? <Kbd>/</Kbd> : undefined}
+						trailing={
+							row.to === "/search" && !collapsed ? (
+								<Kbd>/</Kbd>
+							) : row.to === "/needs-you" && !collapsed ? (
+								needsYouMark
+							) : undefined
+						}
 					/>
 				))}
 			</nav>
