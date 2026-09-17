@@ -25,7 +25,7 @@ if (args.includes("--stdio")) {
 	});
 	let turn = 0;
 	let activeTurn = "";
-	let model = "fixture-default";
+	let model = "gpt-5.6-sol";
 	const notify = (method: string, params: object) => {
 		for (const client of sockets.clients)
 			client.send(JSON.stringify({ method, params: { threadId: "provider-codex", ...params } }));

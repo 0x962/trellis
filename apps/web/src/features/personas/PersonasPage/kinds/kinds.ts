@@ -18,8 +18,8 @@ export const personaKinds = [
 	},
 	{
 		value: "manager",
-		label: "Manager",
-		plural: "Managers",
+		label: "Copilot",
+		plural: "Copilots",
 		description: "Coordinate agents and move work forward.",
 		icon: Briefcase,
 	},

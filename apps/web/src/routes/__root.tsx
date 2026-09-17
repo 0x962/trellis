@@ -3,6 +3,7 @@ import { EmptyState, Toaster } from "@trellis/ui";
 import { useEffect } from "react";
 import { CommandPalette } from "../features/command/CommandPalette";
 import { ComposerHost } from "../features/composer/ComposerHost";
+import { NewSessionHost } from "../features/sessions/NewSessionHost";
 import { GlobalHotkeys } from "../features/shell/GlobalHotkeys";
 import { linkButtonClass } from "../features/shell/linkButtonClass";
 import { RouteError } from "../features/shell/RouteError";
@@ -99,6 +100,7 @@ function RootComponent() {
 			<GlobalHotkeys />
 			<CommandPalette />
 			<ComposerHost />
+			<NewSessionHost />
 			<Toaster />
 		</div>
 	);

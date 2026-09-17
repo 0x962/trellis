@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import { sendDeadline } from "../controller/sendDeadline.ts";
+import { unconfirmedDelivery } from "../deliveries/sentences.ts";
 import type { ServiceCtx } from "../support.ts";
 
 type Delivery = {
@@ -86,9 +87,9 @@ export const dispatchMentions = async (ctx: ServiceCtx, sessions: RuntimeProcess
 					expectedSessionId: delivery.sessionId,
 				}),
 			);
-		} catch (cause) {
+		} catch {
 			state = "unknown";
-			error = cause instanceof Error ? cause.message : String(cause);
+			error = unconfirmedDelivery;
 		}
 		await ctx.newTx((tx) =>
 			tx.execute(sql`UPDATE comment_deliveries SET state=${state},error=${error} WHERE id=${delivery.id}`),

@@ -113,7 +113,13 @@ export class HarnessObservations {
 					: event.kind === "idle" || (event.kind === "error" && !event.willRetry)
 						? "idle"
 						: "working";
-			this.activity = { state, updatedAt: observedAt };
+			this.activity = {
+				state,
+				updatedAt: observedAt,
+				...(state === "working"
+					? { workingSince: this.activity?.state === "working" ? this.activity.workingSince : observedAt }
+					: {}),
+			};
 		}
 		return true;
 	}

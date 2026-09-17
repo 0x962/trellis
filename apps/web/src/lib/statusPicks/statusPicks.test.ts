@@ -13,6 +13,7 @@ const status = (name: string, category: Status["category"], position: number): S
 	description: "",
 	position,
 	wipLimit: null,
+	agentConfig: null,
 	isDefault: position === 0,
 	createdAt: "2026-09-09T10:00:00.000Z",
 	updatedAt: "2026-09-09T10:00:00.000Z",

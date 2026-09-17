@@ -1,5 +1,6 @@
 import { claudeInterruptData, prepareClaude } from "../harnesses/claude/index.ts";
 import { prepareCodex } from "../harnesses/codex/index.ts";
+import { prepareMuse } from "../harnesses/muse/index.ts";
 import { prepareOpenCode } from "../harnesses/opencode/opencode.ts";
 import { preparePi } from "../harnesses/pi/pi.ts";
 
@@ -8,4 +9,5 @@ export const providers = {
 	codex: { prepare: prepareCodex, interrupt: null },
 	pi: { prepare: preparePi, interrupt: "\u001b" },
 	opencode: { prepare: prepareOpenCode, interrupt: null },
+	muse: { prepare: prepareMuse, interrupt: null },
 };

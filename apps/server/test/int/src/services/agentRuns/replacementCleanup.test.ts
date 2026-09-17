@@ -66,7 +66,6 @@ test.each(["harness", "workspace"] as const)(
 				run: await h.read((tx) => getRun(tx, "manager")),
 				config: ProjectManagerConfigSchema.parse({
 					personaId: null,
-					concurrency: 1,
 					directory: "/tmp",
 					harness: {
 						preset: failure === "harness" ? "custom" : "claude",

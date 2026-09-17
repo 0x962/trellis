@@ -63,13 +63,18 @@ export const stopNative = async (ctx: ServiceCtx, run: StoredRun) => {
 	return { id: run.id };
 };
 
-export const refreshNative = async (ctx: ServiceCtx, run: StoredRun) => {
+export const refreshNative = async (
+	ctx: ServiceCtx,
+	run: StoredRun,
+	inspect = (id: string) => nativeHost(ctx.home).status(id),
+) => {
 	if (run.terminalId !== null) {
-		const process = await nativeHost(ctx.home).status(run.terminalId);
+		const process = await inspect(run.terminalId);
 		if (process.status === "exited")
 			await ctx.newTx((tx) =>
 				tx.execute(
-					sql`UPDATE agent_runs SET closed_at = coalesce(closed_at, ${ctx.now()}) WHERE id = ${run.id} AND terminal_id = ${run.terminalId}`,
+					sql`UPDATE agent_runs SET closed_at = coalesce(closed_at, ${ctx.now()}) WHERE id = ${run.id} AND terminal_id = ${run.terminalId}
+					AND NOT (kind='builder' AND EXISTS (SELECT 1 FROM tickets t JOIN statuses s ON s.id=t.status_id WHERE t.id=agent_runs.ticket_id AND s.category='started') AND NOT EXISTS (SELECT 1 FROM flow_execution_tasks task WHERE task.run_id=agent_runs.id))`,
 				),
 			);
 	}

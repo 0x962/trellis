@@ -16,7 +16,7 @@ afterEach(async () => {
 	await rm(fixture.home, { recursive: true, force: true });
 });
 
-test.each(["claude", "codex", "pi", "opencode"] as const)(
+test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
 	"a prior %s turn failure cannot reject a new message before its receipt",
 	async (harness) => {
 		const { host, client, home } = fixture;

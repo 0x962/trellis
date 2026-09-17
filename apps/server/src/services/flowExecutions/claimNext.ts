@@ -22,11 +22,6 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 	if (config.dispatchPaused) return null;
 	if (config.ade !== "native" || config.harness.preset === "custom")
 		throw invalidInput("project", "The flow requires a built-in harness.");
-	const [active] = await rows<{ count: number }>(
-		tx,
-		sql`SELECT count(*)::int AS count FROM agent_runs WHERE project_id=${execution.project_id} AND kind<>'manager' AND closed_at IS NULL`,
-	);
-	if (active!.count >= config.concurrency) return null;
 	const assigned = await rows<{ personaId: string | null }>(
 		tx,
 		sql`SELECT persona_id AS "personaId" FROM agent_runs

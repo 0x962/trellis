@@ -3,6 +3,7 @@ import type { ActorRef } from "@trellis/api";
 import { Avatar } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 import { isAgentWorking } from "../isAgentWorking";
+import { personaKindOf } from "../personaKindOf";
 
 export function ActorAvatar({ actor, ticketId }: { actor: ActorRef; ticketId: string }) {
 	const { orpc } = useApp();
@@ -18,7 +19,7 @@ export function ActorAvatar({ actor, ticketId }: { actor: ActorRef; ticketId: st
 		<Avatar
 			kind={actor.kind}
 			name={actor.displayName ?? actor.name}
-			personaKind={run?.kind}
+			personaKind={run === undefined ? undefined : personaKindOf(run.kind)}
 			state={working ? "working-mild" : "static"}
 		/>
 	);

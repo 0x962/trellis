@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import * as comments from "../../../../../src/services/comments.ts";
 import * as inbox from "../../../../../src/services/needsYou/needsYou.ts";
 import * as tickets from "../../../../../src/services/tickets.ts";
-import { dana, seedProject, seedTicket } from "../../../../fixtures";
+import { dana, seedDefaultBuilder, seedProject, seedTicket } from "../../../../fixtures";
 import { type Harness, secondsAfter, serviceHarness } from "../../../../helpers/services.ts";
 
 let h: Harness;
@@ -16,6 +16,7 @@ const now = new Date("2026-09-09T12:00:00Z");
 const read = (input = {}, at = now, actor = dana) => h.run((ctx, tx) => inbox.list(ctx, tx, input), { now: at, actor });
 const seed = async () => {
 	const { rootId, statuses } = await seedProject(h.db);
+	await seedDefaultBuilder(h.db, rootId);
 	const ticket = await seedTicket(h.db, { rootId, projectId: rootId, statusId: statuses.humanReview });
 	await h.rebuild();
 	return { ticket, statuses, rootId };
@@ -89,6 +90,7 @@ test("completion while snoozed does not return an item when its timer expires", 
 
 test("all sort orders apply before pagination and use stable ties", async () => {
 	const { rootId, statuses } = await seedProject(h.db);
+	await seedDefaultBuilder(h.db, rootId);
 	const values = [
 		{ title: "Zebra", priority: "low", createdAt: new Date("2026-01-01"), updatedAt: new Date("2026-08-01") },
 		{ title: "Alpha", priority: "urgent", createdAt: new Date("2026-03-01"), updatedAt: new Date("2026-07-01") },

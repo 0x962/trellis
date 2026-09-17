@@ -5,6 +5,7 @@ import { rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
 import { prepareSend } from "../agentRuns/communication";
 import { notFound, type ServiceCtx } from "../support";
+import { deliveryMessageId } from "./deliveryMessageId";
 import { changed } from "./queries";
 import { show } from "./submissions";
 
@@ -15,9 +16,9 @@ export async function preparePending(ctx: Ctx) {
 	);
 	for (const { id } of ids) {
 		const [delivery] = await ctx.newTx((tx) =>
-			rows<{ review_id: string; run_id: string }>(
+			rows<{ review_id: string; run_id: string; attempt: number }>(
 				tx,
-				sql`UPDATE review_deliveries SET state = 'sending', attempt = attempt + 1 WHERE id = ${id} AND state = 'pending' RETURNING review_id, run_id`,
+				sql`UPDATE review_deliveries SET state = 'sending', attempt = attempt + 1 WHERE id = ${id} AND state = 'pending' RETURNING review_id, run_id, attempt`,
 			),
 		);
 		if (!delivery) continue;
@@ -26,7 +27,11 @@ export async function preparePending(ctx: Ctx) {
 		let state = "sent";
 		let error: string | null = null;
 		try {
-			await prepareSend(ctx, { id: delivery.run_id, text });
+			await prepareSend(ctx, {
+				id: delivery.run_id,
+				text,
+				messageId: deliveryMessageId({ id, attempt: delivery.attempt }),
+			});
 		} catch (cause) {
 			state = "failed";
 			error =

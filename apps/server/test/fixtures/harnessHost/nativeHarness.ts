@@ -15,7 +15,11 @@ if (process.argv[2] === "agents") {
 }
 const harness = process.env.TRELLIS_HARNESS!;
 const args = process.argv.slice(2);
-const model = args.includes("--model") ? args[args.indexOf("--model") + 1] : "fixture-default";
+const model = args.includes("--model")
+	? args[args.indexOf("--model") + 1]
+	: process.env.TRELLIS_HARNESS === "claude"
+		? "claude-opus-5"
+		: "openai/gpt-5.6-sol";
 const sessionFlag = {
 	claude: "--resume",
 	codex: "resume",

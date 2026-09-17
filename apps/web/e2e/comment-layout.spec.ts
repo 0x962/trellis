@@ -18,6 +18,10 @@ test.beforeAll(async () => {
 	for (let index = 0; index < 100; index += 1) {
 		await patch(`/tickets/CMT-3`, { title: `Show every activity item after edit ${index + 3}` });
 	}
+	createTicket("CMT", "Delete one comment");
+	trellis(["comment", "CMT-4", "--body", "This comment goes away."], "human:dana");
+	createTicket("CMT", "Align a resolved thread");
+	trellis(["comment", "CMT-5", "--body", "This thread can close."], "human:dana");
 });
 
 test("a long comment renders its full body", async ({ page }) => {
@@ -47,7 +51,43 @@ test("timeline actor names align with the comment surface", async ({ page }) => 
 	expect(activityNameBox!.x).toBeCloseTo(surfaceBox!.x, 0);
 });
 
+test("a resolved thread control aligns with its open surface", async ({ page }) => {
+	await signIn(page, "/t/CMT-5");
+	const comment = page.getByRole("article", { name: "Comment by dana" });
+	const surfaceBox = await comment.locator("[data-thread-surface]").boundingBox();
+	expect(surfaceBox).not.toBeNull();
+
+	await comment.getByRole("button", { name: "Comment actions" }).click();
+	await page.getByRole("menuitem", { name: "Resolve thread" }).click();
+	const resolvedBox = await page.getByRole("button", { name: /Resolved thread/ }).boundingBox();
+	expect(resolvedBox).not.toBeNull();
+	expect(resolvedBox!.x).toBeCloseTo(surfaceBox!.x, 0);
+});
+
 test("every activity item renders as its own timeline row", async ({ page }) => {
 	await signIn(page, "/t/CMT-3");
 	await expect(page.locator('[data-stream-entry="activity"]')).toHaveCount(103);
+});
+
+// A delete is permanent, so the comment menu asks first. Cancel keeps the
+// comment.
+test("a comment delete asks for a confirm, and the confirm removes the comment", async ({ page }) => {
+	await signIn(page, "/t/CMT-4");
+	const comment = page.getByRole("article", { name: "Comment by dana" });
+	await expect(comment).toBeVisible();
+
+	await comment.getByRole("button", { name: "Comment actions" }).click();
+	await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
+	const dialog = page.getByRole("dialog", { name: "Delete this comment?" });
+	await expect(dialog).toContainText("trellis cannot restore a deleted comment.");
+	await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+	await expect(comment).toBeVisible();
+
+	await comment.getByRole("button", { name: "Comment actions" }).click();
+	await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
+	await page
+		.getByRole("dialog", { name: "Delete this comment?" })
+		.getByRole("button", { name: "Delete", exact: true })
+		.click();
+	await expect(comment).toHaveCount(0);
 });
