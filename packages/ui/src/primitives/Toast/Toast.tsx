@@ -11,12 +11,24 @@ export type ToasterProps = {
 // the reader has to take in a cause.
 export const toastDurations = { plain: 3000, success: 3000, error: 6000 } as const;
 
+type ToastKeyDownEvent = {
+	key: string;
+	currentTarget: Pick<HTMLElement, "querySelector">;
+	preventDefault: () => void;
+};
+
+export const consumeExpandedToastEscape = (event: ToastKeyDownEvent) => {
+	if (event.key !== "Escape") return;
+	if (event.currentTarget.querySelector('[data-sonner-toast][data-expanded="true"]') === null) return;
+	event.preventDefault();
+};
+
 // The toast outlet. Mount it once, near the root. It is a status region, so
 // every toast is announced without stealing focus. The stack sits 44 px
 // above the bottom edge, clear of the 28 px list footer.
 export function Toaster({ position = "bottom-right", className }: ToasterProps) {
 	return (
-		<div role="status" className={className}>
+		<div role="status" className={className} onKeyDown={consumeExpandedToastEscape}>
 			<SonnerToaster
 				position={position}
 				gap={8}
