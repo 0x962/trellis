@@ -83,39 +83,43 @@ export function Timeline({ ticket, onAttachFiles, thread }: TimelineProps) {
 	return (
 		<section aria-label="Timeline" className="flex flex-col gap-6">
 			{thread && <MentionedThread key={thread} id={thread} ticket={ticket} />}
-			<ActivitySection activities={activities} reviewer={reviewer} />
-			<section aria-label="Comments" className="flex flex-col gap-1">
-				<SectionHeader title="Comments" count={timeline.isPending || timeline.isError ? undefined : threads.size} />
-				{timeline.isPending ? (
-					<p role="status" className="py-3 text-sm text-fg-muted">
-						Load comments…
-					</p>
-				) : timeline.isError ? (
-					<EmptyState title="The comments did not load." description={timeline.error.message} />
-				) : threads.size === 0 ? (
-					<EmptyState description="Add a comment to ask a question or record a decision." />
-				) : (
-					<ul aria-label="Comments" className="flex flex-col gap-5">
-						{threadEntries.map(([id, comments], index) => {
-							const previousEntry = threadEntries[index - 1];
-							const previousRoot = previousEntry?.[1].find((comment) => comment.id === previousEntry[0]);
-							const previousComment = previousRoot?.resolvedAt === null ? previousEntry?.[1].at(-1) : undefined;
-							return (
-								<CommentThread
-									key={id}
-									id={id}
-									identifier={ticket.identifier}
-									comments={comments}
-									previousComment={previousComment}
-									onEdited={onEdited}
-									onDeleted={onDeleted}
-									onCreated={(comment) => prependTimeline(queryClient, key, { kind: "comment", ...comment })}
-								/>
-							);
-						})}
-					</ul>
-				)}
-			</section>
+			{timeline.isPending ? (
+				<p role="status" className="py-3 text-sm text-fg-muted">
+					Load timeline…
+				</p>
+			) : timeline.isError ? (
+				<EmptyState title="The timeline did not load." description={timeline.error.message} />
+			) : (
+				<>
+					<ActivitySection activities={activities} reviewer={reviewer} />
+					<section aria-label="Comments" className="flex flex-col gap-1">
+						<SectionHeader title="Comments" count={threads.size} />
+						{threads.size === 0 ? (
+							<EmptyState description="Add a comment to ask a question or record a decision." />
+						) : (
+							<ul aria-label="Comments" className="flex flex-col gap-5">
+								{threadEntries.map(([id, comments], index) => {
+									const previousEntry = threadEntries[index - 1];
+									const previousRoot = previousEntry?.[1].find((comment) => comment.id === previousEntry[0]);
+									const previousComment = previousRoot?.resolvedAt === null ? previousEntry?.[1].at(-1) : undefined;
+									return (
+										<CommentThread
+											key={id}
+											id={id}
+											identifier={ticket.identifier}
+											comments={comments}
+											previousComment={previousComment}
+											onEdited={onEdited}
+											onDeleted={onDeleted}
+											onCreated={(comment) => prependTimeline(queryClient, key, { kind: "comment", ...comment })}
+										/>
+									);
+								})}
+							</ul>
+						)}
+					</section>
+				</>
+			)}
 			<Composer ticket={ticket} onAttachFiles={onAttachFiles} />
 		</section>
 	);

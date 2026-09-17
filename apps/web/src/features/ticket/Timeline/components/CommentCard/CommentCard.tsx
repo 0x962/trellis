@@ -1,6 +1,6 @@
 import type { Comment } from "@trellis/api";
 import { ActorChip, Button, ConfirmDialog, cx, Menu, type MenuItem, Textarea } from "@trellis/ui";
-import { useCallback, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { ReadOnlyMarkdown } from "../../../../../components/ReadOnlyMarkdown";
 import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
@@ -35,12 +35,48 @@ export function CommentCard({
 	const [draft, setDraft] = useState(comment.body);
 	const [expanded, setExpanded] = useState(false);
 	const [foldable, setFoldable] = useState(false);
-	// max-h-60 limits the body. scrollHeight exceeds clientHeight when the
-	// limit hides text. The comment body key remounts the element after an
-	// edit and measures the new text.
-	const measureBody = useCallback((element: HTMLDivElement | null) => {
-		if (element !== null) setFoldable(element.scrollHeight > element.clientHeight);
-	}, []);
+	const bodyElement = useRef<HTMLDivElement>(null);
+	const contentElement = useRef<HTMLDivElement>(null);
+	const hiddenBlocks = useRef<HTMLElement[]>([]);
+
+	// bodyElement stays at max-h-60 while it is closed. ResizeObserver watches
+	// the Markdown in contentElement. A new line wrap or loaded image calls measure again.
+	useLayoutEffect(() => {
+		const revealBlocks = () => {
+			for (const element of hiddenBlocks.current) {
+				element.inert = false;
+				element.removeAttribute("aria-hidden");
+			}
+			hiddenBlocks.current = [];
+		};
+		revealBlocks();
+		if (editing || expanded) return;
+
+		const body = bodyElement.current!;
+		const markdown = contentElement.current!.firstElementChild as HTMLElement;
+		const measure = () => {
+			revealBlocks();
+			const nextFoldable = comment.body.length > 0 && body.scrollHeight > body.clientHeight;
+			setFoldable(nextFoldable);
+			if (!nextFoldable) return;
+
+			const bottom = body.getBoundingClientRect().bottom;
+			for (const child of markdown.children) {
+				const element = child as HTMLElement;
+				if (element.getBoundingClientRect().bottom <= bottom) continue;
+				element.inert = true;
+				element.setAttribute("aria-hidden", "true");
+				hiddenBlocks.current.push(element);
+			}
+		};
+		measure();
+		const observer = new ResizeObserver(measure);
+		observer.observe(markdown);
+		return () => {
+			observer.disconnect();
+			revealBlocks();
+		};
+	}, [comment.body, editing, expanded]);
 
 	const save = async () => {
 		try {
@@ -85,11 +121,13 @@ export function CommentCard({
 		<div className="flex flex-col items-start gap-1">
 			<div
 				key={comment.body}
-				ref={measureBody}
+				ref={bodyElement}
 				data-comment-body=""
 				className={cx("w-full text-base", !expanded && "max-h-60 overflow-hidden")}
 			>
-				<ReadOnlyMarkdown markdown={comment.body} formatClassName={formatClassName} />
+				<div ref={contentElement}>
+					<ReadOnlyMarkdown markdown={comment.body} formatClassName={formatClassName} />
+				</div>
 			</div>
 			{foldable && (
 				<Button size="sm" variant="quiet" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>

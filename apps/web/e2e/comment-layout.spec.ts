@@ -5,6 +5,8 @@ import { signIn } from "./support";
 
 const shortRenderedComment = `[Short link](https://example.com/${"a".repeat(750)})`;
 const longRenderedComment = Array.from({ length: 12 }, (_, index) => `Paragraph ${index + 1}`).join("\n\n");
+const responsiveRenderedComment = Array.from({ length: 60 }, () => "responsive").join(" ");
+const linkedRenderedComment = `${longRenderedComment}\n\n[Hidden link](https://example.com/hidden)`;
 
 type CliComment = { id: string; parentId: string | null };
 
@@ -33,9 +35,13 @@ test.beforeAll(async () => {
 	createTicket("CMT", "Group adjacent comments from one person");
 	trellis(["comment", "CMT-9", "--body", "The first note."], "human:dana");
 	trellis(["comment", "CMT-9", "--body", "The second note."], "human:dana");
+	createTicket("CMT", "Recheck a comment after its width changes");
+	trellis(["comment", "CMT-10", "--body", responsiveRenderedComment], "human:dana");
+	createTicket("CMT", "Hide folded links from assistive technology");
+	trellis(["comment", "CMT-11", "--body", linkedRenderedComment], "human:dana");
 });
 
-test("the comment list shows its pending state before its empty state", async ({ page }) => {
+test("the timeline shows its pending state before either section", async ({ page }) => {
 	let releaseTimeline!: () => void;
 	const timelineResponse = new Promise<void>((resolve) => {
 		releaseTimeline = resolve;
@@ -47,20 +53,24 @@ test("the comment list shows its pending state before its empty state", async ({
 		await route.continue();
 	});
 	await signIn(page, "/t/CMT-7");
-	await expect(page.getByRole("status").filter({ hasText: "Load comments…" })).toBeVisible();
+	await expect(page.getByRole("status").filter({ hasText: "Load timeline…" })).toBeVisible();
+	await expect(page.getByRole("region", { name: "Activity" })).toHaveCount(0);
+	await expect(page.getByRole("region", { name: "Comments" })).toHaveCount(0);
 	await expect(page.getByText("Add a comment to ask a question or record a decision.")).toHaveCount(0);
 	releaseTimeline();
 	await expect(page.getByText("Add a comment to ask a question or record a decision.")).toBeVisible();
 });
 
-test("the comment list shows a failed request instead of its empty state", async ({ page }) => {
+test("the timeline shows a failed request instead of empty sections", async ({ page }) => {
 	await page.route("**/rpc/**", (route) => {
 		const request = route.request();
 		const isTimeline = request.url().includes("/timeline/list") || request.postData()?.includes("/timeline/list");
 		return isTimeline ? route.abort("failed") : route.continue();
 	});
 	await signIn(page, "/t/CMT-7");
-	await expect(page.getByRole("heading", { name: "The comments did not load." })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "The timeline did not load." })).toBeVisible();
+	await expect(page.getByRole("region", { name: "Activity" })).toHaveCount(0);
+	await expect(page.getByRole("region", { name: "Comments" })).toHaveCount(0);
 	await expect(page.getByText("Add a comment to ask a question or record a decision.")).toHaveCount(0);
 });
 
@@ -117,6 +127,23 @@ test("an edited long comment returns to its folded state", async ({ page }) => {
 	await page.getByRole("textbox", { name: "Edit comment" }).fill(`${longRenderedComment}\n\nEdited paragraph`);
 	await page.getByRole("button", { name: "Save", exact: true }).click();
 	await expect(comment.getByRole("button", { name: "Show more" })).toBeVisible();
+});
+
+test("a width change can make a comment foldable", async ({ page }) => {
+	await signIn(page, "/t/CMT-10");
+	const comment = page.getByRole("article", { name: "Comment by dana" });
+	await expect(comment.getByRole("button", { name: "Show more" })).toHaveCount(0);
+	await page.setViewportSize({ width: 390, height: 844 });
+	await expect(comment.getByRole("button", { name: "Show more" })).toBeVisible();
+});
+
+test("a folded comment hides clipped links from the accessibility tree", async ({ page }) => {
+	await signIn(page, "/t/CMT-11");
+	const comment = page.getByRole("article", { name: "Comment by dana" });
+	await expect(comment.getByRole("button", { name: "Show more" })).toBeVisible();
+	await expect(comment.getByRole("link", { name: "Hidden link" })).toHaveCount(0);
+	await comment.getByRole("button", { name: "Show more" }).click();
+	await expect(comment.getByRole("link", { name: "Hidden link" })).toBeVisible();
 });
 
 test("the timeline line ends at the center of the last actor profile picture", async ({ page }) => {
