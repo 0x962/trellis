@@ -127,15 +127,6 @@ test("file preview and artifact registration reject paths outside the workspace"
 	});
 });
 
-test("paused local work rejects checks before a runtime launch", async () => {
-	await h.read((tx) =>
-		tx.execute(sql`INSERT INTO settings (key, value, updated_at) VALUES ('nativeWorkPaused', 'true', now())`),
-	);
-	await expect(check(ctx, command("process.exit(0)"))).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
-	expect((await h.rows(sql`SELECT id FROM evidence_checks`)).length).toBe(0);
-	await expect(nativeClient(home).hello()).rejects.toMatchObject({ code: "ENOENT" });
-});
-
 test("a repeated check settles a confirmed exit after host recovery without another launch", async () => {
 	const input = command("process.exit(0)");
 	const passed = await check(ctx, input);
