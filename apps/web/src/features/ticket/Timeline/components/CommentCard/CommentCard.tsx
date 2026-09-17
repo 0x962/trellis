@@ -1,6 +1,6 @@
 import type { Comment } from "@trellis/api";
 import { ActorChip, Button, ConfirmDialog, cx, Menu, type MenuItem, Textarea } from "@trellis/ui";
-import { type ReactNode, useState } from "react";
+import { useCallback, useState } from "react";
 import { ReadOnlyMarkdown } from "../../../../../components/ReadOnlyMarkdown";
 import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
@@ -10,7 +10,6 @@ import { absoluteTime } from "../../utils/absoluteTime";
 
 export type CommentCardProps = {
 	comment: Comment;
-	showActor?: boolean;
 	// The identifier of the comment's ticket, for the timeline cache.
 	identifier?: string;
 	onEdited?: (comment: Comment) => void;
@@ -18,26 +17,31 @@ export type CommentCardProps = {
 	formatClassName?: "markdown" | "comment-markdown";
 	actions?: readonly MenuItem[];
 	className?: string;
-	threadSurface?: boolean;
-	children?: ReactNode;
 };
 
-// The timestamp exposes the absolute time in its title.
+// A folded body keeps this much height before the show-more control.
+const foldedBodyHeight = 240;
+
+// One flat row: the actor, the time, and the menu on one line, then the
+// body. A long body folds behind a show-more control.
 export function CommentCard({
 	comment,
-	showActor = true,
 	onEdited,
 	onDeleted,
 	formatClassName,
 	actions = [],
 	className,
-	threadSurface = false,
-	children,
 }: CommentCardProps) {
 	const { client } = useApp();
 	const [editing, setEditing] = useState(false);
 	const [confirming, setConfirming] = useState(false);
 	const [draft, setDraft] = useState(comment.body);
+	const [expanded, setExpanded] = useState(false);
+	const [foldable, setFoldable] = useState(false);
+	// A new body remounts the measured node, so the fold remeasures.
+	const measureBody = useCallback((element: HTMLDivElement | null) => {
+		if (element !== null) setFoldable(element.scrollHeight > foldedBodyHeight + 8);
+	}, []);
 
 	const save = async () => {
 		try {
@@ -58,6 +62,7 @@ export function CommentCard({
 		}
 	};
 
+	const folded = foldable && !expanded;
 	const body = editing ? (
 		<div className="flex flex-col gap-2 pb-3">
 			<Textarea
@@ -77,10 +82,22 @@ export function CommentCard({
 			</div>
 		</div>
 	) : (
-		<div className="text-base">
-			<ReadOnlyMarkdown markdown={comment.body} formatClassName={formatClassName} />
+		<div className="flex flex-col items-start gap-1">
+			<div
+				key={comment.body}
+				ref={measureBody}
+				data-comment-body=""
+				className={cx("w-full text-base", folded && "max-h-60 overflow-hidden")}
+			>
+				<ReadOnlyMarkdown markdown={comment.body} formatClassName={formatClassName} />
+			</div>
+			{foldable && (
+				<Button size="sm" variant="quiet" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+					{expanded ? "Show less" : "Show more"}
+				</Button>
+			)}
 			{comment.notifications?.map((notification) => (
-				<p key={notification.runId} className="mt-2 text-xs text-fg-muted" title={notification.error ?? undefined}>
+				<p key={notification.runId} className="text-xs text-fg-muted" title={notification.error ?? undefined}>
 					@{notification.personaName}:{" "}
 					{notification.state === "sent"
 						? "Notified"
@@ -99,16 +116,11 @@ export function CommentCard({
 			<article
 				aria-label={`Comment by ${comment.actor.displayName ?? comment.actor.name}`}
 				data-kind="comment"
-				className={cx("relative", !threadSurface && "py-3", className)}
+				className={cx("relative", className)}
 			>
 				<header className="relative flex h-8 items-center gap-2 text-sm">
-					{showActor && comment.actor.kind !== "system" && (
-						<ActorChip
-							compact
-							className="gap-2.5"
-							name={comment.actor.displayName ?? comment.actor.name}
-							kind={comment.actor.kind}
-						/>
+					{comment.actor.kind !== "system" && (
+						<ActorChip compact name={comment.actor.displayName ?? comment.actor.name} kind={comment.actor.kind} />
 					)}
 					<time dateTime={comment.createdAt} title={absoluteTime(comment.createdAt)} className="text-fg-muted tabular">
 						{compactRelativeTime(comment.createdAt)}
@@ -125,16 +137,7 @@ export function CommentCard({
 						/>
 					</div>
 				</header>
-				{threadSurface ? (
-					<div data-thread-surface="" className="relative ml-7">
-						<div className="overflow-hidden rounded-md border border-border bg-surface shadow-sm">
-							<div className="px-4 pt-3 pb-4">{body}</div>
-							{children}
-						</div>
-					</div>
-				) : (
-					body
-				)}
+				{body}
 				<ConfirmDialog
 					open={confirming}
 					title="Delete this comment?"

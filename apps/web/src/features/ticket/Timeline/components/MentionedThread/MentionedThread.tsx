@@ -17,7 +17,7 @@ export function MentionedThread({ id, ticket }: { id: string; ticket: Ticket }) 
 		void queryClient.invalidateQueries({ queryKey: orpc.comments.thread.key({ input: { id } }) });
 	};
 	return (
-		<section ref={element} aria-label="Mentioned comment" className="mb-4 rounded-lg border border-border p-3">
+		<section ref={element} aria-label="Mentioned comment" className="flex flex-col gap-1">
 			<SectionHeader title="Mentioned comment" />
 			{query.isPending && (
 				<p role="status" className="py-3 text-sm text-fg-muted">

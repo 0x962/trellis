@@ -60,7 +60,7 @@ export function CommentThread({ id, identifier, comments, onEdited, onDeleted, o
 
 	if (root === undefined)
 		return (
-			<li data-stream-entry="comment" className="py-3 text-sm text-fg-muted">
+			<li data-stream-entry="comment" className="py-1 text-sm text-fg-muted">
 				{thread.isError ? "The thread could not load." : "Loading thread…"}
 			</li>
 		);
@@ -102,7 +102,6 @@ export function CommentThread({ id, identifier, comments, onEdited, onDeleted, o
 					size="sm"
 					variant="default"
 					icon={<CheckCircle />}
-					className="ml-7"
 					aria-expanded={expandedResolved}
 					onClick={() => setExpandedResolved(!expandedResolved)}
 				>
@@ -111,68 +110,63 @@ export function CommentThread({ id, identifier, comments, onEdited, onDeleted, o
 			)}
 			{(!resolved || expandedResolved) && (
 				<fieldset aria-label={`Thread started by ${root.actor.displayName ?? root.actor.name}`} className="contents">
-					<ul aria-label="Thread comment">
-						<CommentCard
-							comment={root}
-							threadSurface
-							formatClassName="comment-markdown"
-							onEdited={edit}
-							onDeleted={remove}
-							actions={[
-								{
-									label: resolved ? "Reopen thread" : "Resolve thread",
-									disabled: resolving,
-									onSelect: () => void resolve(),
-								},
-							]}
-						>
-							{replies.length > 0 && (
-								<ul aria-label="Replies" className="divide-y divide-border border-t border-border">
-									{replies.map((reply) => (
-										<CommentCard
-											key={reply.id}
-											comment={reply}
-											formatClassName="comment-markdown"
-											onEdited={edit}
-											onDeleted={remove}
-											className="px-4 pt-2 pb-4"
-										/>
-									))}
-								</ul>
-							)}
-							<form
-								aria-label="Leave a reply"
-								className="flex min-h-11 items-start gap-2 border-t border-border bg-bg px-4 py-2 focus-within:bg-surface"
-								onSubmit={(event) => {
+					<CommentCard
+						comment={root}
+						formatClassName="comment-markdown"
+						onEdited={edit}
+						onDeleted={remove}
+						actions={[
+							{
+								label: resolved ? "Reopen thread" : "Resolve thread",
+								disabled: resolving,
+								onSelect: () => void resolve(),
+							},
+						]}
+					/>
+					{replies.length > 0 && (
+						<ul aria-label="Replies" className="mt-1 ml-2 border-l border-border pl-5">
+							{replies.map((reply) => (
+								<CommentCard
+									key={reply.id}
+									comment={reply}
+									formatClassName="comment-markdown"
+									onEdited={edit}
+									onDeleted={remove}
+								/>
+							))}
+						</ul>
+					)}
+					<form
+						aria-label="Leave a reply"
+						className="mt-1 flex min-h-11 items-start gap-2 py-2 focus-within:bg-surface"
+						onSubmit={(event) => {
+							event.preventDefault();
+							if (draft.trim() !== "" && !posting) void post();
+						}}
+					>
+						<Avatar name={actor.name} kind={actor.kind} className="mt-1.5" />
+						<textarea
+							aria-label="Reply"
+							placeholder="Reply. Use @persona to notify an assigned agent."
+							value={draft}
+							onChange={(event) => setDraft(event.target.value)}
+							rows={1}
+							className="min-h-7 max-h-40 min-w-0 flex-1 resize-none bg-transparent py-1 text-base leading-5 text-fg outline-none placeholder:text-fg-faint [field-sizing:content] focus-visible:outline-2 focus-visible:outline-accent"
+							onKeyDown={(event) => {
+								if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && draft.trim() !== "" && !posting) {
 									event.preventDefault();
-									if (draft.trim() !== "" && !posting) void post();
-								}}
-							>
-								<Avatar name={actor.name} kind={actor.kind} className="mt-1.5" />
-								<textarea
-									aria-label="Reply"
-									placeholder="Reply. Use @persona to notify an assigned agent."
-									value={draft}
-									onChange={(event) => setDraft(event.target.value)}
-									rows={1}
-									className="min-h-7 max-h-40 min-w-0 flex-1 resize-none bg-transparent py-1 text-base leading-5 text-fg outline-none placeholder:text-fg-faint [field-sizing:content] focus-visible:outline-2 focus-visible:outline-accent"
-									onKeyDown={(event) => {
-										if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && draft.trim() !== "" && !posting) {
-											event.preventDefault();
-											void post();
-										}
-									}}
-								/>
-								<IconButton
-									label="Post reply"
-									icon={<ArrowUp />}
-									variant="primary"
-									disabled={posting || draft.trim() === ""}
-									type="submit"
-								/>
-							</form>
-						</CommentCard>
-					</ul>
+									void post();
+								}
+							}}
+						/>
+						<IconButton
+							label="Post reply"
+							icon={<ArrowUp />}
+							variant="primary"
+							disabled={posting || draft.trim() === ""}
+							type="submit"
+						/>
+					</form>
 				</fieldset>
 			)}
 		</li>
