@@ -174,6 +174,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 					pr={pr}
 					revision={displayRevision}
 					openCount={allThreads.filter((thread) => thread.status === "open").length}
+					showReview={tab === "changes"}
 					onAction={() => void status.refetch()}
 				/>
 				{revision && <ReviewStack pr={pr} />}

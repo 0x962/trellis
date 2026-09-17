@@ -28,11 +28,19 @@
 }
 .review-heading-title {
 	display: flex;
-	align-items: flex-start;
+	align-items: center;
 	justify-content: space-between;
 	gap: 16px;
 }
 .review-heading-title h2 {
+	min-width: 0;
+}
+.review-header-actions {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	flex-wrap: wrap;
+	gap: 6px;
 	min-width: 0;
 }
 .review-heading h2 {
@@ -257,6 +265,9 @@ button.review-notice:hover {
 	.review-heading-title {
 		align-items: stretch;
 		flex-direction: column;
+	}
+	.review-header-actions {
+		justify-content: flex-start;
 	}
 	.review-heading-meta {
 		gap: 8px 12px;
