@@ -73,7 +73,7 @@ export async function reconcileColumn(
 				id: run!.id,
 				expectedTerminalId: session.id,
 				expectedSessionId: session.agent?.sessionId ?? null,
-				messageId: `column:${session.id}:${session.activity!.updatedAt}`,
+				messageId: `column-${session.id}-${Date.parse(session.activity!.updatedAt)}`,
 				text: JSON.stringify({ type: "trellis.column.continue", ...context }),
 				idleForMs: 1000,
 			});
