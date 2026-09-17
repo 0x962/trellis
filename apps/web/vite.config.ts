@@ -5,27 +5,12 @@ import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin, type UserConfig } from "vite";
 import { fontPreloads } from "./scripts/fontPreloads";
 
-// Route files live beside their tests. The pattern keeps a `*.test.tsx`
-// out of the route tree, and every route becomes its own chunk.
+// Each route becomes its own chunk. Component folders do not define routes.
 export const routerPluginOptions = {
 	target: "react",
 	autoCodeSplitting: true,
-	routeFileIgnorePattern: "\\.test\\.|^components$",
+	routeFileIgnorePattern: "^components$",
 } as const;
-
-export const chunkGroups = [
-	{
-		name: "initial",
-		test: () => true,
-		tags: ["$initial" as const],
-	},
-	{
-		name: "app",
-		test: () => true,
-		entriesAware: true,
-		entriesAwareMergeThreshold: 32 * 1024,
-	},
-];
 
 export const phosphorSpecialWeights: Record<string, readonly string[]> = {
 	Check: ["bold"],
@@ -75,11 +60,6 @@ export const createConfig = (env: Record<string, string | undefined>): UserConfi
 				compress: { passes: 2 },
 				format: { comments: false },
 			},
-			rollupOptions: {
-				output: {
-					codeSplitting: { groups: chunkGroups },
-				},
-			},
 		},
 		resolve: {
 			dedupe: ["marked"],
@@ -88,7 +68,7 @@ export const createConfig = (env: Record<string, string | undefined>): UserConfi
 			alias: { "@radix-ui/react-dialog": fileURLToPath(new URL("./src/lib/emptyRadixDialog.ts", import.meta.url)) },
 		},
 		server: {
-			// One address for the browser, the proxy, and Playwright.
+			// One address for the browser and the proxy.
 			host: "127.0.0.1",
 			port: 5173,
 			strictPort: true,

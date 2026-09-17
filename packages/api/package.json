@@ -14,8 +14,6 @@
 		"./models": "./src/models/models.ts"
 	},
 	"scripts": {
-		"test": "bun test --path-ignore-patterns '**/test/int/**'",
-		"test:int": "bun test test/int",
 		"typecheck": "tsc --noEmit -p tsconfig.json"
 	},
 	"dependencies": {

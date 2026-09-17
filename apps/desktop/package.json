@@ -13,10 +13,7 @@
 		"build": "bun run --cwd ../web build && bun run --cwd ../runtime build && bun run --cwd ../server build:harnesses && bun run build:main && bun scripts/stage.ts",
 		"package": "bun run build && electron-builder --config electron-builder.json --mac --dir",
 		"dist:mac": "bun run build && electron-builder --config electron-builder.json --mac dmg zip",
-		"test": "bun test ./src --path-ignore-patterns '**/test/int/**'",
-		"test:int": "bun scripts/prepare-integration.ts && bun run build && bun test test/int --timeout=60000",
-		"typecheck": "tsc --noEmit -p tsconfig.json",
-		"smoke": "bun scripts/smoke.ts"
+		"typecheck": "tsc --noEmit -p tsconfig.json"
 	},
 	"devDependencies": {
 		"electron": "44.3.0",

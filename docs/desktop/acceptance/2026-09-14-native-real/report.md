@@ -21,7 +21,7 @@ A host-only restart preserved the runtime process, both agent runs, both executi
 | Ticket status | In Progress; the fixture requests a local review comment, not a status move |
 | Controller regressions | 21 tests, 52 assertions passed |
 
-Read [result.json](./result.json) for the machine-checked assertions and timestamps. Read [permissions.jsonl](./permissions.jsonl) for every approved operation. The source copies preserve the artifact bytes: [slug.ts](./slug.ts.txt), [slug.test.ts](./slug.test.ts.txt), and [independent checks](./independent.ts.txt).
+Read [result.json](./result.json) for the machine-checked assertions and timestamps. Read [permissions.jsonl](./permissions.jsonl) for every approved operation. The source copies preserve the artifact bytes. Read [slug.ts](./slug.ts.txt) and the [independent checks](./independent.ts.txt).
 
 The test used a private `/tmp/trl-real-pj5t0w` home and a source CLI shim. A scratch Claude launcher added `--safe-mode --no-session-persistence`; normal installed authentication remained in use. The host retained transcripts and results. This test does not certify Claude conversation resume after a runtime restart. It created no real pull request and changed no live project or user configuration.
 

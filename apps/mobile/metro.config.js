@@ -1,13 +1,6 @@
 const { getDefaultConfig } = require("expo/metro-config");
 const { withNativeWind } = require("nativewind/metro");
-const path = require("node:path");
 
 const config = getDefaultConfig(__dirname);
-
-// expo-router turns every .tsx file under app/ into a route, and a file
-// named `_layout.test.tsx` even counts as a layout. The route tests sit
-// beside the routes they test, so the file crawler never sees them.
-const appDir = path.join(__dirname, "app").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-config.resolver.blockList = [...config.resolver.blockList, new RegExp(`^${appDir}/.*\\.test\\.[jt]sx?$`)];
 
 module.exports = withNativeWind(config, { input: "./global.css" });

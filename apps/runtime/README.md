@@ -9,7 +9,7 @@ bun run --cwd apps/runtime build
 node apps/runtime/dist/index.js --home /absolute/path/to/trellis/runtime
 ```
 
-The desktop package supplies Node and the native `node-pty`, `fs-ext`, and `koffi` modules. The native modules must match that Node runtime. `TRELLIS_RUNTIME_NODE` selects the Node executable for integration tests.
+The desktop package supplies Node and the native `node-pty`, `fs-ext`, and `koffi` modules. The native modules must match that Node runtime.
 
 The runtime acquires a kernel file lock before it opens state. A second daemon cannot change the first daemon's manifest or session records. After a crash, socket cleanup requires a refused connection and proof that the recorded PID no longer exists. A live or reused PID requires inspection.
 

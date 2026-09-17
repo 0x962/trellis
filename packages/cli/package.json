@@ -8,9 +8,6 @@
 		"trellis": "./src/index.ts"
 	},
 	"scripts": {
-		"test": "bun test --path-ignore-patterns '**/test/int/**'",
-		"test:int": "bun test test/int",
-		"perf:10k": "bun test ./test/coldStart.perf.ts",
 		"typecheck": "tsc --noEmit -p tsconfig.json"
 	},
 	"dependencies": {

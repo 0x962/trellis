@@ -1,8 +1,8 @@
 import type { ORPCError } from "@orpc/client";
 import { type ErrorCode, type GhReason, ghCopy } from "@trellis/api";
 
-// The process exit code for every error the contract declares. A code the
-// contract adds without a row here fails errors.test.ts.
+// The process exit code for every error the contract declares. The Record
+// type requires one row for each ErrorCode value.
 const exitCodes: Record<ErrorCode, number> = {
 	INPUT_VALIDATION_FAILED: 4,
 	ACTOR_REQUIRED: 4,
