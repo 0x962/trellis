@@ -8,6 +8,7 @@ import { ActivityLine } from "./components/ActivityLine";
 import { CommentThread } from "./components/CommentThread";
 import { Composer } from "./components/Composer";
 import { MentionedThread } from "./components/MentionedThread";
+import { groupThreads } from "./utils/groupThreads";
 import { prependTimeline, updateTimeline } from "./utils/timelineCache";
 
 export type TimelineProps = {
@@ -70,18 +71,7 @@ export function Timeline({ ticket, onAttachFiles, thread }: TimelineProps) {
 		.reverse()
 		.filter(shownInStream);
 	const activities = items.filter((item) => item.kind === "activity");
-	const threads = new Map<string, Comment[]>();
-	for (const item of items) {
-		if (item.kind !== "comment") continue;
-		const rootId = item.parentId ?? item.id;
-		// `thread` names the comment the reader followed from an inbox link.
-		// `MentionedThread` draws that whole thread above, so this section
-		// skips it and the reader reads the comment one time.
-		if (rootId === thread) continue;
-		const group = threads.get(rootId);
-		if (group === undefined) threads.set(rootId, [item]);
-		else group.push(item);
-	}
+	const threads = groupThreads(items, thread);
 	const reviewer = (name: string) =>
 		statuses.find((status) => status.name === name)?.reviewer === "agent" ? ("agent" as const) : ("human" as const);
 
