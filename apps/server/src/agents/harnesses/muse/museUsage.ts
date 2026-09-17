@@ -3,10 +3,11 @@ import { readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
 
-// `writeMuseUsage` saves normal usage, and `writeMuseQuotaError` saves the
-// reset time from a subscription quota error. Both functions write
-// `MUSE_USAGE_FILE` next to the Muse sessions. `fetchAccountQuota` reads it.
+// Muse can send normal usage from several bridge processes for one account.
+// A separate quota file keeps a late normal snapshot from removing an active
+// quota error. `fetchAccountQuota` reads and combines both files.
 export const MUSE_USAGE_FILE = "trellis-usage.json";
+export const MUSE_QUOTA_FILE = "trellis-quota.json";
 
 const window = z.object({ usedPercent: z.number(), resetsAtMs: z.number() });
 export const MuseUsageSchema = z.object({
@@ -18,24 +19,41 @@ export const MuseUsageSchema = z.object({
 });
 export type MuseUsage = z.infer<typeof MuseUsageSchema>;
 
+const MuseQuotaSchema = z.object({ observedAtMs: z.number(), resetsAtMs: z.number() });
 const quotaReset = /Subscription quota exhausted\. Your usage window resets at ([0-9T:.-]+Z)\.? \(rate_limit_error\)/;
 
-export async function writeMuseUsage(museHome: string, usage: unknown) {
-	const snapshot = MuseUsageSchema.parse(usage);
-	const path = join(museHome, MUSE_USAGE_FILE);
+async function writeSnapshot(path: string, snapshot: unknown) {
 	const temporary = `${path}.${randomUUID()}.tmp`;
 	await writeFile(temporary, JSON.stringify(snapshot), { mode: 0o600 });
 	await rename(temporary, path);
+}
+
+export async function writeMuseUsage(museHome: string, usage: unknown) {
+	const snapshot = MuseUsageSchema.parse(usage);
+	await writeSnapshot(join(museHome, MUSE_USAGE_FILE), snapshot);
 	return snapshot;
 }
 
-export async function readMuseUsage(museHome: string): Promise<MuseUsage | null> {
+async function readSnapshot<T>(path: string, schema: z.ZodType<T>): Promise<T | null> {
 	try {
-		return MuseUsageSchema.parse(JSON.parse(await readFile(join(museHome, MUSE_USAGE_FILE), "utf8")));
+		return schema.parse(JSON.parse(await readFile(path, "utf8")));
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
 		throw error;
 	}
+}
+
+export async function readMuseUsage(museHome: string): Promise<MuseUsage | null> {
+	const [usage, quota] = await Promise.all([
+		readSnapshot(join(museHome, MUSE_USAGE_FILE), MuseUsageSchema),
+		readSnapshot(join(museHome, MUSE_QUOTA_FILE), MuseQuotaSchema),
+	]);
+	if (quota === null) return usage;
+	return {
+		...usage,
+		observedAtMs: Math.max(usage?.observedAtMs ?? 0, quota.observedAtMs),
+		exhausted: { resetsAtMs: quota.resetsAtMs },
+	};
 }
 
 export async function writeMuseQuotaError(museHome: string, message: string, observedAtMs = Date.now()) {
@@ -43,8 +61,7 @@ export async function writeMuseQuotaError(museHome: string, message: string, obs
 	if (resetsAt === undefined) return false;
 	const resetsAtMs = Date.parse(resetsAt);
 	if (!Number.isFinite(resetsAtMs)) return false;
-	const usage = await readMuseUsage(museHome);
-	await writeMuseUsage(museHome, { ...usage, observedAtMs, exhausted: { resetsAtMs } });
+	await writeSnapshot(join(museHome, MUSE_QUOTA_FILE), { observedAtMs, resetsAtMs });
 	return true;
 }
 
