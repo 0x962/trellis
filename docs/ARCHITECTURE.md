@@ -359,6 +359,7 @@ An active flow owns its ticket agents and prevents an automatic column assignmen
 A ticket transition retires its previous column assignment.
 Each new start reads current column settings. Healthy workers retain their current settings.
 A restart preserves the workspace and resumes a compatible provider conversation.
+If the saved directory is missing, Trellis creates a replacement worktree and supplies the previous assignment and transcript path.
 A harness change starts a new conversation with the previous transcript path in its context.
 Launch checks reject an obsolete assignment, changed column configuration, or archived project.
 
