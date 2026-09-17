@@ -2,6 +2,7 @@ import { FolderOpen } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import type { Project } from "@trellis/api";
 import { IconButton, Input, Tooltip, toast } from "@trellis/ui";
+import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import type { ProjectManagerConfigController } from "../hooks/useProjectManagerConfig";
 
@@ -12,6 +13,7 @@ export type ProjectDirectorySettingsProps = {
 
 export function ProjectDirectorySettings({ project, manager }: ProjectDirectorySettingsProps) {
 	const { client } = useApp();
+	const [directory, setDirectory] = useState(manager.draft.directory);
 	const folder = useMutation({
 		mutationFn: () => {
 			const desktop = (window as Window & { trellisDesktop?: { chooseDirectory: () => Promise<string | null> } })
@@ -19,11 +21,16 @@ export function ProjectDirectorySettings({ project, manager }: ProjectDirectoryS
 			return desktop ? desktop.chooseDirectory() : client.system.chooseDirectory();
 		},
 		onSuccess: (directory) => {
-			if (directory !== null) manager.commit({ ...manager.draft, directory });
+			if (directory !== null) {
+				setDirectory(directory);
+				manager.commit({ ...manager.draft, directory });
+			}
 		},
 		onError: (error) => toast.error("Could not open the folder selector", { description: error.message }),
 	});
-	const invalidDirectory = manager.draft.directory !== "" && !manager.draft.directory.startsWith("/");
+	const invalidDirectory = directory !== "" && !directory.startsWith("/");
+	const status =
+		directory === manager.draft.directory ? manager.status : { role: "status" as const, message: "Unsaved changes" };
 	return (
 		<section className="project-settings-group">
 			<div className="flex flex-col gap-1">
@@ -39,10 +46,12 @@ export function ProjectDirectorySettings({ project, manager }: ProjectDirectoryS
 					<Input
 						label="Local path"
 						placeholder="Choose a local repository"
-						value={manager.draft.directory}
-						onChange={(event) => manager.setDraft({ ...manager.draft, directory: event.target.value })}
+						value={directory}
+						onChange={(event) => setDirectory(event.target.value)}
 						onBlur={() => {
-							if (manager.draft.directory !== manager.saved.directory) manager.commit(manager.draft);
+							if (!invalidDirectory && directory !== manager.saved.directory) {
+								manager.commit({ ...manager.draft, directory });
+							}
 						}}
 						invalid={invalidDirectory}
 					/>
@@ -60,8 +69,8 @@ export function ProjectDirectorySettings({ project, manager }: ProjectDirectoryS
 						Use an absolute directory path.
 					</p>
 				)}
-				<p role={manager.status.role} className="min-h-5 text-sm text-fg-muted">
-					{manager.status.message}
+				<p role={status.role} className="min-h-5 text-sm text-fg-muted">
+					{status.message}
 				</p>
 			</div>
 		</section>
