@@ -604,7 +604,7 @@ time. The first section of each page carries no hash.
 | page | sections |
 |---|---|
 | `/settings` | Account (no hash), `#integrations` |
-| `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#subprojects`, `#archive` |
+| `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#archive` |
 | `/p/<path>/settings/manager` | Operation (no hash), `#settings`, `#harness` |
 
 `/settings` holds the actor name, theme, GitHub state, phone pair code, drafts, and runtime diagnostics.
