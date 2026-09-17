@@ -116,9 +116,9 @@ Desktop activation stops the previous runtime and starts the host. The determini
 A partial database index permits one active copilot per project.
 
 Native ticket agents use Git worktrees under `agents/<run id>/work`.
-The ticket page centers its content and opens Activity first. Shared ticket details stay above the tabs.
-The Agent tab shows the assigned agent's interactive terminal. Changes shows workspace and pull request changes.
-Flows shows local flow runs.
+The ticket page opens Activity first and puts its top-level tabs below the page header.
+Activity shows the centered ticket details, properties, attachments, timeline, and comments.
+The Agent, Changes, and Flows tabs use the page width for the terminal, pull request changes, and local flow runs.
 The authenticated terminal stream replays retained bytes and then pushes output and process observations.
 The terminal WebSocket carries ordered input and binary output outside the database request path after attachment. See [terminal transport](terminal-transport.md).
 The terminal sends keyboard input and resize events to the runtime. An explicit reconnect resumes from the last displayed byte.
