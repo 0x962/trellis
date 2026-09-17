@@ -601,6 +601,9 @@ that ends in `/board` redirects to the same path with the segment dropped. The
 manager page is the two segments `settings/manager`. `parseProjectSplat` and
 `projectHref` in `apps/web/src/lib/projectPath.ts` hold both directions.
 
+A card in a status with the human reviewer shows up to five linked PR approval marks.
+An overflow pill opens a tooltip that lists every linked PR and its approval state.
+
 The URL carries the whole view state in the shared filter grammar, with no
 default written. `beforeLoad` redirects a non-canonical search string to its
 canonical spelling, so one view has one URL.
@@ -758,8 +761,8 @@ returns one canonical spelling.
 `TicketSummary` is the shape that list, board, and events carry. It holds the
 identifier, the title, the priority, the status, the project, the parent, the
 child counts, the comment and attachment counts, the pull request rollup, the
-last actor, the position, the version, and the timestamps. It is about 300
-bytes. Only `tickets.get` returns the description.
+approval state of each linked pull request, the last actor, the position, the
+version, and the timestamps. Only `tickets.get` returns the description.
 
 The filter grammar is identical in the API, the web URL, and the CLI flags.
 
@@ -1019,7 +1022,7 @@ Reuse these elements across pages. Ask the user for advice before adding a new U
 - Never animate a re-sort, a text change, a counter, a skeleton swap, or the theme switch. Use `motion/mini` and CSS transitions only.
 - Focus uses a 2 px accent outline on `:focus-visible`. A row or a card uses an inset left bar.
 - The primitives are Avatar, Badge, Button, Checkbox, Chip, Command, ConfirmDialog, Dialog, EmptyState, EntityCard, IconButton, Input, Kbd, Menu, Popover, ScrollArea, SectionHeader, Segmented, Select, Separator, Sheet, Skeleton, Spinner, Switch, Tabs, Textarea, Toast, and Tooltip.
-- Domain visuals include StatusIcon, PriorityIcon, CheckRibbon, ActorChip, TicketId, TrellisMark, InboxRow, FilterBar, FilterPopover, DisplayPopover, and GroupHeader.
+- Domain visuals include StatusIcon, PriorityIcon, CheckRibbon, ReviewStateIcon, ReviewStatusSummary, ActorChip, TicketId, TrellisMark, InboxRow, FilterBar, FilterPopover, DisplayPopover, and GroupHeader.
 - The route `/_gallery` renders every primitive in every state, in both themes.
 - No raw color or spacing literal appears outside `packages/ui`. The Tailwind theme clears `--color-*`, so a utility such as `bg-red-500` does not exist. A Biome rule and a test enforce the tokens.
 
