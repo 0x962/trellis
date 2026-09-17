@@ -121,6 +121,20 @@ test("the next beat restarts a failed attempt with unchanged settings", async ()
 	await reconcileColumn(ctx(), await state(), [failed(starts[1]!)], deps());
 	expect(starts).toHaveLength(3);
 });
+test("a resumed conversation receives the current persona and assignment context", async () => {
+	const launched = await start();
+	const instruction = "Complete the review and move the ticket yourself.";
+	await h.rows(sql`UPDATE personas SET instruction=${instruction} WHERE id=${personaId}`);
+	await reconcileColumn(ctx(), await state(), [sessionFor(launched, { status: "exited" })], deps());
+	const restarted = starts[1]!;
+	expect(restarted.resume).toBe(true);
+	expect(JSON.parse(restarted.resumePrompt!)).toMatchObject({
+		type: "trellis.column.restarted",
+		persona: { id: personaId, instruction },
+		context: expect.stringContaining(launched.run.ticketIdentifier!),
+	});
+	expect(restarted.run.instruction).toBe(instruction);
+});
 test("a healthy worker keeps its settings after the column changes", async () => {
 	const launched = await start();
 	await h.rows(
