@@ -6,14 +6,22 @@ import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 import { executionEnvironment } from "../../executionEnvironment";
 import type { IoCtx } from "../support.ts";
+import { invalidateUsageAccounts } from "../usage/accounts.ts";
+import { invalidateUsageReports } from "../usage/usage.ts";
 import { resolveHostDefault, writeHostDefault } from "./hostDefault.ts";
 import { presentAccount } from "./presentation.ts";
 import { provisionProfile } from "./profiles.ts";
 import { type AccountRow, accountColumns, getAccount } from "./queries.ts";
 
 const requirePerson = (ctx: IoCtx) => {
-	if (ctx.actor.kind !== "human") throw invalidInput("actor", "A person manages the accounts in Settings.");
+	if (ctx.actor.kind !== "human") throw invalidInput("actor", "Only a person can manage accounts.");
 };
+
+const invalidateUsage = (ctx: IoCtx) =>
+	ctx.afterCommit(async () => {
+		invalidateUsageAccounts(ctx.home);
+		invalidateUsageReports(ctx.home);
+	});
 // The default flag of each row prints as hostDefault.ts resolves it, so
 // the list agrees with the account a launch uses when the SuperSet pointer
 // names another profile than the Trellis flag.
@@ -47,6 +55,7 @@ export const create = async (ctx: IoCtx, tx: Tx, input: HarnessAccountCreate & {
 		tx,
 		sql`INSERT INTO harness_accounts (id,name,harness,profile_path,created_at,updated_at) VALUES (${input.id},${input.name},${input.harness},${input.profilePath},${ctx.now()},${ctx.now()}) RETURNING ${accountColumns}`,
 	);
+	invalidateUsage(ctx);
 	return presentAccount(account!);
 };
 export const update = async (ctx: IoCtx, tx: Tx, input: HarnessAccountUpdate) => {
@@ -68,6 +77,7 @@ export const update = async (ctx: IoCtx, tx: Tx, input: HarnessAccountUpdate) =>
 	// the SuperSet pointer, once the transaction holds.
 	if (input.isDefault === true)
 		ctx.afterCommit(async () => writeHostDefault(account.harness, account.profilePath, await executionEnvironment()));
+	invalidateUsage(ctx);
 	return presentAccount(updated!);
 };
 export const remove = async (ctx: IoCtx, tx: Tx, input: { id: string }) => {
@@ -81,5 +91,6 @@ export const remove = async (ctx: IoCtx, tx: Tx, input: { id: string }) => {
 	await tx.execute(
 		sql`UPDATE harness_accounts SET archived_at=${ctx.now()},is_default=false,enabled=false,updated_at=${ctx.now()} WHERE id=${input.id}`,
 	);
+	invalidateUsage(ctx);
 	return input;
 };

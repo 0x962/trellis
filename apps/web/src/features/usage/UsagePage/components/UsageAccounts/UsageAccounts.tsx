@@ -1,155 +1,201 @@
-import { Copy } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
-import type { UsageGroupRow, UsageMetric } from "@trellis/api";
-import { IconButton, ProviderIcon, QuotaWindows, SectionHeader, Skeleton, Tooltip, toast } from "@trellis/ui";
+import { Plus } from "@phosphor-icons/react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import type {
+	HarnessAccount,
+	HarnessAccountCreate,
+	HarnessAccountUpdate,
+	UsageGroupRow,
+	UsageMetric,
+} from "@trellis/api";
+import {
+	ConfirmDialog,
+	HarnessAccountForm,
+	HarnessAccountNameForm,
+	IconButton,
+	SectionHeader,
+	Skeleton,
+	Tooltip,
+} from "@trellis/ui";
+import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
-import { formatMetric, formatShare, harnessLabel, harnessProvider } from "../../../formatUsage";
+import { accountError } from "./accountError";
+import { UsageAccountCard } from "./components/UsageAccountCard";
 
 export type UsageAccountsProps = {
-	// The account rows of the report, which give each login its cost.
 	rows: readonly UsageGroupRow[];
 	metric: UsageMetric;
 	total: number;
-	// True while the report loads, so the cost of a card waits with it.
 	pending: boolean;
 };
 
-const statusLabel: Record<string, string> = {
-	signed_out: "Sign in required",
-	expired: "Sign-in expired",
-	unavailable: "Quota unavailable",
-};
-
-// The statuses a new sign-in fixes. The card prints the login command for
-// them, so the person runs it without a trip to Settings.
-const needsLogin = new Set(["signed_out", "expired"]);
-
-const copy = async (text: string) => {
-	try {
-		await navigator.clipboard.writeText(text);
-		toast("Login command copied");
-	} catch (error) {
-		toast(error instanceof Error ? error.message : "Could not copy the command.");
-	}
-};
-
-// One card per login on this machine: its subscription quota windows from
-// the provider, and its cost in the range from the report. Settings holds
-// the account actions.
 export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsProps) {
-	const { orpc } = useApp();
-	const accounts = useQuery({ ...orpc.usage.accounts.queryOptions({ input: {} }), refetchInterval: 300_000 });
-	if (accounts.isPending) {
-		return (
-			<div role="status" aria-label="Load accounts">
-				<span className="sr-only">Load accounts</span>
-				<Skeleton height="h-32" />
-			</div>
-		);
-	}
-	if (accounts.isError) {
-		return (
-			<p role="alert" className="text-sm text-danger">
-				Could not read the accounts. {accounts.error.message}
-			</p>
-		);
-	}
-	if (accounts.data.length === 0) return null;
+	const { orpc, client, queryClient } = useApp();
+	const accountOptions = orpc.usage.accounts.queryOptions({ input: {} });
+	const accounts = useQuery({ ...accountOptions, refetchInterval: 300_000 });
+	const configured = useQuery({
+		...orpc.harnessAccounts.list.queryOptions({ input: {} }),
+		refetchInterval: 30_000,
+	});
+	const values = accounts.data ?? [];
+	const [addOpen, setAddOpen] = useState(false);
+	const [edit, setEdit] = useState<HarnessAccount | null>(null);
+	const [remove, setRemove] = useState<HarnessAccount | null>(null);
+	const [error, setError] = useState<string>();
+	const invalidate = () =>
+		Promise.all([
+			queryClient.invalidateQueries({ queryKey: orpc.harnessAccounts.list.key() }),
+			queryClient.invalidateQueries({ queryKey: orpc.usage.accounts.key() }),
+			queryClient.invalidateQueries({ queryKey: orpc.usage.report.key() }),
+		]);
+	const create = useMutation({
+		mutationFn: (input: HarnessAccountCreate) => client.harnessAccounts.create(input),
+		onSuccess: async () => {
+			setAddOpen(false);
+			await invalidate();
+		},
+	});
+	const update = useMutation({
+		mutationFn: (input: HarnessAccountUpdate) => client.harnessAccounts.update(input),
+		onSuccess: async () => {
+			setEdit(null);
+			await invalidate();
+		},
+		onError: (nextError) => setError(accountError(nextError)),
+	});
+	const deleting = useMutation({
+		mutationFn: (input: { id: string }) => client.harnessAccounts.remove(input),
+		onSuccess: async () => {
+			setRemove(null);
+			await invalidate();
+		},
+	});
+	const refresh = useMutation({
+		mutationFn: () => client.usage.accounts({ refresh: true }),
+		onSuccess: (next) => {
+			setError(undefined);
+			queryClient.setQueryData(accountOptions.queryKey, next);
+		},
+		onError: (nextError) => setError(accountError(nextError)),
+	});
+	const busy = create.isPending || update.isPending || deleting.isPending;
+
 	return (
 		<section aria-label="Accounts" className="flex flex-col gap-3">
 			<SectionHeader
 				title="Accounts"
-				count={accounts.data.length}
+				count={accounts.data ? values.length : undefined}
 				actions={
-					<Link to="/settings" hash="agent-accounts" className="hover:text-fg hover:underline">
-						Manage accounts
-					</Link>
+					<Tooltip content="Add account">
+						<IconButton
+							label="Add agent account"
+							disabled={busy}
+							onClick={() => {
+								setError(undefined);
+								create.reset();
+								setAddOpen(true);
+							}}
+							icon={<Plus />}
+						/>
+					</Tooltip>
 				}
 			/>
-			<div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-				{accounts.data.map((account) => {
-					const row = rows.find((candidate) => candidate.key === account.key);
-					const value = row?.[metric] ?? 0;
-					const shared = account.sharedWith.length
-						? rows.find((candidate) => candidate.key === `shared:${account.harness}`)
-						: undefined;
-					const sharedValue = shared?.[metric] ?? 0;
-					return (
-						<article
-							key={account.key}
-							aria-label={account.name}
-							className="flex min-w-0 flex-col gap-3 rounded-lg border border-border p-4"
-						>
-							<div className="flex items-center justify-between gap-2">
-								<h3 className="flex min-w-0 items-center gap-2 text-md font-medium text-fg">
-									{harnessProvider[account.harness] && (
-										<ProviderIcon provider={harnessProvider[account.harness]!} className="text-fg-muted" />
-									)}
-									<span className="truncate">{account.name}</span>
-								</h3>
-								<span className="shrink-0 text-xs text-fg-faint">
-									{harnessLabel[account.harness]}
-									{account.isDefault ? ` · Default${account.defaultSource === "superset" ? " via SuperSet" : ""}` : ""}
-								</span>
-							</div>
-							{account.quota.email && (
-								<p className="truncate text-sm text-fg-muted">
-									{account.quota.email}
-									{account.quota.plan ? ` · ${account.quota.plan}` : ""}
-								</p>
-							)}
-							<div className="flex items-baseline justify-between gap-2">
-								<span className="text-xs text-fg-faint">{metric === "usd" ? "Cost in range" : "Tokens in range"}</span>
-								{pending ? (
-									<Skeleton width="w-16" height="h-4" />
-								) : (
-									<span className="text-md font-medium text-fg tabular">
-										{formatMetric(metric, value)}
-										<span className="ml-1 text-xs font-normal text-fg-faint">{formatShare(value, total)}</span>
-									</span>
-								)}
-							</div>
-							{shared && sharedValue > 0 && (
-								<p className="text-xs text-fg-faint text-pretty">
-									{formatMetric(metric, sharedValue)} more is in a transcript directory this login shares with{" "}
-									{account.sharedWith.join(", ")}, so it cannot be split between them.
-								</p>
-							)}
-							{account.quota.status === "ok" ? (
-								<QuotaWindows name={account.name} windows={account.quota.windows} />
-							) : account.quota.status === "unlimited" ? (
-								<p role="status" className="text-sm text-success">
-									Unlimited{account.quota.detail ? ` · ${account.quota.detail}` : ""}
-								</p>
-							) : needsLogin.has(account.quota.status) && account.loginCommand ? (
-								<div className="flex flex-col gap-2">
-									<p role="status" className="text-sm text-warning">
-										{statusLabel[account.quota.status]}. Run this in a terminal on this machine, then refresh.
-									</p>
-									<div className="flex min-w-0 items-start gap-2">
-										<code className="min-w-0 flex-1 whitespace-pre-wrap break-all rounded-sm bg-elevated px-2 py-1 font-mono text-xs text-fg">
-											{account.loginCommand}
-										</code>
-										<Tooltip content="Copy login command">
-											<IconButton
-												label={`Copy the login command of ${account.name}`}
-												icon={<Copy />}
-												onClick={() => void copy(account.loginCommand!)}
-											/>
-										</Tooltip>
-									</div>
-								</div>
-							) : (
-								<p role="status" className="text-sm text-fg-muted">
-									{statusLabel[account.quota.status]}
-									{account.quota.detail ? ` · ${account.quota.detail}` : ""}
-								</p>
-							)}
-						</article>
-					);
-				})}
-			</div>
+			<p className="text-sm text-fg-muted">
+				Add and manage the logins that agents can use. Select one default account for each harness.
+			</p>
+			{(error || accounts.isError || configured.isError) && (
+				<p role="alert" className="text-sm text-danger">
+					{error ?? accountError(accounts.error) ?? accountError(configured.error)}
+				</p>
+			)}
+			{accounts.isPending || configured.isPending ? (
+				<div role="status" aria-label="Load accounts">
+					<span className="sr-only">Load accounts</span>
+					<Skeleton height="h-32" />
+				</div>
+			) : values.length === 0 ? (
+				<p className="text-sm text-fg-muted">No agent accounts. Add an account for agent assignments.</p>
+			) : (
+				<div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+					{values.map((account) => {
+						const managed = configured.data?.find((candidate) => candidate.id === account.id);
+						const shared = account.sharedWith.length
+							? rows.find((candidate) => candidate.key === `shared:${account.harness}`)
+							: undefined;
+						return (
+							<UsageAccountCard
+								key={account.key}
+								account={account}
+								managed={managed}
+								row={rows.find((candidate) => candidate.key === account.key)}
+								shared={shared}
+								metric={metric}
+								total={total}
+								pending={pending}
+								busy={busy}
+								refreshing={refresh.isPending}
+								onDefault={() => {
+									setError(undefined);
+									update.mutate({ id: managed!.id, isDefault: true });
+								}}
+								onEnabled={(enabled) => {
+									setError(undefined);
+									update.mutate({ id: managed!.id, enabled, ...(!enabled ? { isDefault: false } : {}) });
+								}}
+								onRename={() => {
+									setError(undefined);
+									update.reset();
+									setEdit(managed!);
+								}}
+								onRemove={() => {
+									setError(undefined);
+									deleting.reset();
+									setRemove(managed!);
+								}}
+								onRefresh={() => {
+									setError(undefined);
+									refresh.mutate();
+								}}
+							/>
+						);
+					})}
+				</div>
+			)}
+			{addOpen && (
+				<HarnessAccountForm
+					open={addOpen}
+					onClose={() => setAddOpen(false)}
+					busy={create.isPending}
+					error={accountError(create.error)}
+					onSubmit={(input) => create.mutate(input)}
+				/>
+			)}
+			{edit && (
+				<HarnessAccountNameForm
+					key={edit.id}
+					open
+					name={edit.name}
+					busy={update.isPending}
+					error={accountError(update.error)}
+					onClose={() => setEdit(null)}
+					onSubmit={(name) => update.mutate({ id: edit.id, name })}
+				/>
+			)}
+			<ConfirmDialog
+				open={remove !== null}
+				title={`Remove ${remove?.name ?? "account"}?`}
+				description="This removes the account from Trellis. Its profile, credentials, and saved conversations remain on disk."
+				confirmLabel="Remove account"
+				danger
+				processing={deleting.isPending}
+				onCancel={() => setRemove(null)}
+				onConfirm={() => remove && deleting.mutate({ id: remove.id })}
+			>
+				{deleting.error && (
+					<p role="alert" className="text-sm text-danger">
+						{accountError(deleting.error)}
+					</p>
+				)}
+			</ConfirmDialog>
 		</section>
 	);
 }

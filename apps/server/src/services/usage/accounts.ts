@@ -103,6 +103,10 @@ export async function usageLogins(accounts: readonly AccountRow[], env: NodeJS.P
 
 const cache = new Map<string, { at: number; result: Promise<UsageAccount[]> }>();
 
+export const invalidateUsageAccounts = (home: string) => {
+	cache.delete(home);
+};
+
 // Reads the quota of every login outside every database transaction, and
 // caches the list for five minutes per data home. A refresh is served from
 // the cache for ten seconds.

@@ -13,6 +13,10 @@ const REFRESH_FLOOR_MS = 10 * 1000;
 
 const cache = new Map<string, { at: number; result: Promise<UsageReport> }>();
 
+export const invalidateUsageReports = (home: string) => {
+	for (const key of cache.keys()) if (key.startsWith(`${home}:`)) cache.delete(key);
+};
+
 // Builds the report outside every database transaction: the transcript
 // scan reads gigabytes on a heavy machine, and the database lock must stay
 // free while it runs. The three short reads of accounts, runs, and projects
