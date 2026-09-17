@@ -19,9 +19,6 @@ export type CommentCardProps = {
 	className?: string;
 };
 
-// A folded body keeps this much height before the show-more control.
-const foldedBodyHeight = 240;
-
 // One flat row: the actor, the time, and the menu on one line, then the
 // body. A long body folds behind a show-more control.
 export function CommentCard({
@@ -38,9 +35,13 @@ export function CommentCard({
 	const [draft, setDraft] = useState(comment.body);
 	const [expanded, setExpanded] = useState(false);
 	const [foldable, setFoldable] = useState(false);
-	// A new body remounts the measured node, so the fold remeasures.
+	// The body carries max-h-60 until the reader opens it, so a body taller
+	// than that height overflows the box. scrollHeight is the height the text
+	// wants and clientHeight is the height the box gives it, so the two differ
+	// only when text is hidden. A new body remounts this node, so it measures
+	// again after an edit.
 	const measureBody = useCallback((element: HTMLDivElement | null) => {
-		if (element !== null) setFoldable(element.scrollHeight > foldedBodyHeight + 8);
+		if (element !== null) setFoldable(element.scrollHeight > element.clientHeight);
 	}, []);
 
 	const save = async () => {
@@ -62,7 +63,6 @@ export function CommentCard({
 		}
 	};
 
-	const folded = foldable && !expanded;
 	const body = editing ? (
 		<div className="flex flex-col gap-2 pb-3">
 			<Textarea
@@ -87,7 +87,7 @@ export function CommentCard({
 				key={comment.body}
 				ref={measureBody}
 				data-comment-body=""
-				className={cx("w-full text-base", folded && "max-h-60 overflow-hidden")}
+				className={cx("w-full text-base", !expanded && "max-h-60 overflow-hidden")}
 			>
 				<ReadOnlyMarkdown markdown={comment.body} formatClassName={formatClassName} />
 			</div>
