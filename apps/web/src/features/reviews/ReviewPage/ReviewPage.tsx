@@ -15,7 +15,6 @@ import { type LiveBranchMeta, liveBranchState } from "../ReviewLive/liveBranch";
 import { ReviewLive } from "../ReviewLive/ReviewLive";
 import { ReviewRuns } from "../ReviewRuns/ReviewRuns";
 import { ReviewStack } from "../ReviewStack/ReviewStack";
-import { ReviewSubmit } from "../ReviewSubmit/ReviewSubmit";
 import { ReviewSummary } from "../ReviewSummary/ReviewSummary";
 import { DiffToolbar } from "./components/DiffToolbar/DiffToolbar";
 import { ReviewPageSkeleton } from "./components/ReviewPageSkeleton";
@@ -42,7 +41,6 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	const [fileFilter, setFileFilter] = useState("");
 	const [fileSheet, setFileSheet] = useState(false);
 	const [composer, setComposer] = useState<DiffAnchor | null>(null);
-	const [submitOpen, setSubmitOpen] = useState(false);
 	const threads = useQuery({
 		...orpc.reviews.list.queryOptions({ input: { pr, all: true } }),
 		queryFn: async () => {
@@ -95,7 +93,6 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		},
 		[client, pr, revision],
 	);
-	const invalid = () => queryClient.invalidateQueries({ queryKey: orpc.reviews.key() });
 	const allThreads = useMemo(
 		() => (threads.data?.items ?? []).filter((thread) => thread.revisionId === revision?.id),
 		[threads.data?.items, revision?.id],
@@ -156,14 +153,13 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 				revision={displayRevision}
 				refreshing={refresh.isPending || composer !== null}
 				onRefresh={refreshAll}
-				onSubmit={() => setSubmitOpen(true)}
 			/>
 			<div className="page-card review-workspace">
 				<ReviewSummary
 					pr={pr}
 					revision={displayRevision}
 					openCount={allThreads.filter((thread) => thread.status === "open").length}
-					onAction={refreshAll}
+					onAction={() => void status.refetch()}
 				/>
 				{revision && <ReviewStack pr={pr} />}
 				{status.isError && (
@@ -281,18 +277,6 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 				>
 					<div className="review-file-sheet">{fileNav}</div>
 				</Sheet>
-			)}
-			{submitOpen && (
-				<ReviewSubmit
-					pr={pr}
-					headSha={revision!.headSha}
-					onClose={() => setSubmitOpen(false)}
-					onSubmitted={() => {
-						setSubmitOpen(false);
-						void invalid();
-						void status.refetch();
-					}}
-				/>
 			)}
 		</div>
 	);

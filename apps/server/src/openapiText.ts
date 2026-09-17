@@ -148,6 +148,8 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /flow-executions/{id}/cancel": { expectedRevision: 1 },
 	"POST /reviews/open": { pr: "acme/web#12" },
 	"POST /reviews/status": { pr: "acme/web#12" },
+	"POST /reviews/reviewers": { pr: "acme/web#12" },
+	"POST /reviews/reviewer": { pr: "acme/web#12", reviewer: "octocat", remove: false },
 	"POST /reviews/refresh": { pr: "acme/web#12" },
 	"POST /reviews/metadata": { pr: "acme/web#12" },
 	"POST /reviews/mine": {},
