@@ -75,7 +75,10 @@ describe("tickets.update project", () => {
 		const { id } = await seed();
 		await seedRootWithStatuses(h.db, "OPS");
 		const error = await expectError(moveTo(id, "OPS"), "CROSS_ROOT_MOVE");
-		expect(error.message).toContain("Create the ticket again in the other root.");
+		expect(error.message).toBe(
+			"A ticket, a parent, or a project cannot move to another root. Create the ticket or project again in the other root.",
+		);
+		await h.db.transaction((tx) => assertStatusInvariant(tx));
 	});
 
 	test("a project move writes the project row and the remap row in one batch", async () => {
