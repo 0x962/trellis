@@ -10,14 +10,25 @@ export function TicketSkeleton() {
 		</div>
 	);
 	return (
-		<div className="mt-13 flex min-h-0 flex-1">
-			<div className="min-w-0 flex-1 page-card">{main}</div>
-			<div className="flex min-h-0 w-70 shrink-0 flex-col page-card border-l border-border px-4 py-3 max-md:hidden">
-				<Skeleton lines={4} width="w-40" height="h-4" className="gap-3.5" />
-				<div aria-hidden="true" className="my-2 h-px bg-border" />
-				<Skeleton lines={2} width="w-40" height="h-4" className="gap-3.5" />
-				<div aria-hidden="true" className="my-2 h-px bg-border" />
-				<Skeleton lines={2} width="w-40" height="h-4" className="gap-3.5" />
+		<div className="mt-13 flex min-h-0 flex-1 flex-col">
+			<div
+				aria-hidden="true"
+				className="flex h-10 shrink-0 items-end gap-4 border-b border-border px-5 pb-2 max-md:px-4"
+			>
+				<Skeleton width="w-12" height="h-4" />
+				<Skeleton width="w-10" height="h-4" />
+				<Skeleton width="w-14" height="h-4" />
+				<Skeleton width="w-10" height="h-4" />
+			</div>
+			<div className="mt-3 flex min-h-0 flex-1">
+				<div className="min-w-0 flex-1 page-card">{main}</div>
+				<div className="flex min-h-0 w-70 shrink-0 flex-col page-card border-l border-border px-4 py-3 max-md:hidden">
+					<Skeleton lines={4} width="w-40" height="h-4" className="gap-3.5" />
+					<div aria-hidden="true" className="my-2 h-px bg-border" />
+					<Skeleton lines={2} width="w-40" height="h-4" className="gap-3.5" />
+					<div aria-hidden="true" className="my-2 h-px bg-border" />
+					<Skeleton lines={2} width="w-40" height="h-4" className="gap-3.5" />
+				</div>
 			</div>
 		</div>
 	);

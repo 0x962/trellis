@@ -1,8 +1,9 @@
 import { Paperclip } from "@phosphor-icons/react";
 import type { TicketSummary } from "@trellis/api";
-import { PriorityIcon, StatusIcon } from "@trellis/ui";
+import { PriorityIcon, ReviewStatusSummary, StatusIcon } from "@trellis/ui";
 import { gap, ticketTrail } from "../../../../lib/ticketTrail";
 import { ActorAvatar } from "../../../agents/ActorAvatar";
+import { ReviewStatusBadge } from "./components/ReviewStatusBadge";
 
 export type CardContentProps = {
 	ticket: TicketSummary;
@@ -32,7 +33,8 @@ export function CardContent({ ticket, showStatus = false }: CardContentProps) {
 				{ticket.priority !== "none" && <PriorityIcon priority={ticket.priority} />}
 			</div>
 			<p className="line-clamp-3 text-base font-medium text-fg">{ticket.title}</p>
-			<div className="mt-auto flex h-4 min-w-0 items-center gap-1.5 text-xs text-fg-faint tabular">
+			<div className="mt-auto flex min-h-4 min-w-0 items-center gap-1.5 text-xs text-fg-faint tabular">
+				{ticket.status.category === "review" && <ReviewStatusBadge reviewState={ticket.pr?.reviewState ?? null} />}
 				{ticket.childCount > 0 && (
 					<span className="inline-flex items-center gap-1">
 						<StatusIcon category="started" progress={progress} label="Sub-ticket progress" />
@@ -46,6 +48,9 @@ export function CardContent({ ticket, showStatus = false }: CardContentProps) {
 					</span>
 				)}
 				{showStatus && <span className="truncate">{ticket.status.name}</span>}
+				{ticket.status.reviewer === "human" && ticket.pr !== null && (
+					<ReviewStatusSummary reviews={ticket.pr.reviews} />
+				)}
 				{ticket.lastActor !== null && ticket.lastActor.kind !== "system" && (
 					<span className="ml-auto shrink-0">
 						<ActorAvatar actor={ticket.lastActor} ticketId={ticket.id} />
