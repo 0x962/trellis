@@ -123,8 +123,8 @@ test("an active direct submanager keeps the parent heartbeat active", async () =
 	const child = await h.read((tx) => seedChild(tx, projectId, projectId, "child"));
 	await h.rows(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,runtime,terminal_id,session_id,created_at,updated_at)
 		VALUES ('submanager','Manager','Manager','manager','Manage',${child},'HBT.child','native','sub-attempt','sub-session',${NOW},${NOW})`);
-	await h.rows(sql`INSERT INTO manager_delegations (run_id,parent_run_id,project_id,capacity,brief,created_at)
-		VALUES ('submanager','manager',${child},1,'Own the child scope.',${NOW})`);
+	await h.rows(sql`INSERT INTO manager_delegations (run_id,parent_run_id,project_id,brief,created_at)
+		VALUES ('submanager','manager',${child},'Own the child scope.',${NOW})`);
 	await gather(600);
 	expect((await take(600))?.events).toEqual([]);
 });
