@@ -4,7 +4,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { preparePi } from "../../../../../src/agents/harnesses/pi/pi.ts";
 
-
 test("Pi manager launches replace the coding system prompt on start and resume", async () => {
 	const managerSystemPrompt = `Database persona ${crypto.randomUUID()}`;
 	const directory = await mkdtemp(join(tmpdir(), "trellis-pi-system-"));

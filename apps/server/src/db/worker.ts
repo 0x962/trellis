@@ -1,7 +1,5 @@
 import { ORPCError } from "@orpc/server";
-import type { GhStatus, TrellisEvent } from "@trellis/api";
-import type { Config } from "../config.ts";
-import type { RequestContext } from "../context.ts";
+import type { GhStatus } from "@trellis/api";
 import { fail } from "../errors.ts";
 import { createBus } from "../events/bus.ts";
 import type { GhResult, GhRunner, GhSlot } from "../gh/run.ts";
