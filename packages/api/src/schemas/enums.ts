@@ -68,9 +68,10 @@ export type AgentState = z.infer<typeof AgentStateSchema>;
 // settings is off. `unmapped`: no runner project matches the trellis
 // project. `branch`: the repository holds no branch with the name of the
 // project's base branch. `host`: the Superset host the project names is
-// offline, or no host carries that id. `error`: a runner command exited
-// nonzero.
-export const RunnerReasonSchema = z.enum(["missing", "disabled", "unmapped", "branch", "host", "error"]);
+// offline, or no host carries that id. `outdated`: the installed runner
+// binary is too old, and it cannot do what the request asks for. `error`:
+// a runner command exited nonzero.
+export const RunnerReasonSchema = z.enum(["missing", "disabled", "unmapped", "branch", "host", "outdated", "error"]);
 export type RunnerReason = z.infer<typeof RunnerReasonSchema>;
 
 // The palette token names a status may take as its color. The web resolves

@@ -73,6 +73,7 @@ export const status = (overrides: Partial<Status> = {}): Status => ({
 	description: "",
 	position: 100,
 	wipLimit: null,
+	agentConfig: null,
 	isDefault: false,
 	createdAt: "2026-09-01T10:00:00.000Z",
 	updatedAt: "2026-09-01T10:00:00.000Z",

@@ -5,8 +5,13 @@ export const EvidenceRunInputSchema = z.object({ runId: UlidSchema });
 export const EvidenceFileInputSchema = EvidenceRunInputSchema.extend({ path: z.string().min(1).max(4096) });
 export const EvidenceCheckInputSchema = EvidenceRunInputSchema.extend({
 	requestId: z.uuid().optional(),
-	command: z.string().min(1).max(4096),
-	args: z.array(z.string().max(20000)).max(100),
+	command: z
+		.string()
+		.min(1, "Enter a command of 1 to 4096 characters.")
+		.max(4096, "Enter a command of 1 to 4096 characters."),
+	args: z
+		.array(z.string().max(20000, "Enter an argument of 20,000 characters or less."))
+		.max(100, "Enter 100 arguments or less."),
 	timeoutMs: z.number().int().min(100).max(600000),
 });
 export const EvidenceRevisionSchema = z.object({ head: z.string(), fingerprint: z.string() });

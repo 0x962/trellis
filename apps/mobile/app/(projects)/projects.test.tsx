@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { fireEvent, screen, waitFor } from "@testing-library/react-native";
 import { type BrowseData, seedBrowse, seeder } from "../../test/browse";
 import { connect } from "../../test/connect";
-import type { Recorder } from "../../test/record";
+import { failureMessage, type Recorder } from "../../test/record";
 import { renderRoute } from "../../test/renderRoute";
 import { reset } from "../../test/seed";
 import { human } from "../../test/server";
@@ -46,6 +46,16 @@ describe("the Projects tab", () => {
 		await waitFor(() => expect(screen.getByText("No projects yet")).toBeOnTheScreen());
 		expect(net.inputsTo("projects.list")).toEqual([{}]);
 		expect(rows()).toEqual([]);
+	});
+
+	test("a refused list shows the reason the server sent", async () => {
+		const restore = net.fail("projects.list");
+		await openTab();
+
+		expect(await screen.findByText("Can't load projects")).toBeOnTheScreen();
+		expect(screen.getByText(failureMessage)).toBeOnTheScreen();
+		expect(rows()).toEqual([]);
+		restore();
 	});
 
 	test("a tap on a project opens that project's ticket list", async () => {

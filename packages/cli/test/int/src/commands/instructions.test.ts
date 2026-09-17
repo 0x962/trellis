@@ -19,7 +19,7 @@ describe("instructions", () => {
 			"sub CDE-42",
 			"comment CDE-42",
 			"watch --ticket CDE-42",
-			"Never move a ticket to Done; a human does that. Never delete tickets.",
+			"Never delete tickets.",
 		]) {
 			expect(result.stdout, fragment).toContain(fragment);
 		}

@@ -21,7 +21,13 @@ import {
 import { base } from "./base.ts";
 
 // The codes a write to one or many tickets can raise.
-const writeErrors = pickErrors(["PROJECT_ARCHIVED", "STATUS_NOT_IN_PROJECT", "CROSS_ROOT_MOVE", "PARENT_CYCLE"]);
+const writeErrors = pickErrors([
+	"PROJECT_ARCHIVED",
+	"STATUS_NOT_IN_PROJECT",
+	"CROSS_ROOT_MOVE",
+	"PARENT_CYCLE",
+	"STATUS_FULL",
+]);
 
 export const tickets = {
 	list: base
@@ -52,26 +58,19 @@ export const tickets = {
 		.output(TicketSchema),
 	update: base
 		.errors(writeErrors)
-		.errors(pickErrors(["VERSION_CONFLICT", "AGENT_CANNOT_COMPLETE"]))
+		.errors(pickErrors(["VERSION_CONFLICT"]))
 		.route({ method: "PATCH", path: "/tickets/{ticket}", summary: "Change ticket fields" })
 		.input(TicketUpdateInputSchema)
 		.output(TicketSchema),
 	move: base
 		.errors(
-			pickErrors([
-				"AGENT_CANNOT_COMPLETE",
-				"INVALID_ANCHOR",
-				"VERSION_CONFLICT",
-				"PROJECT_ARCHIVED",
-				"STATUS_NOT_IN_PROJECT",
-			]),
+			pickErrors(["INVALID_ANCHOR", "VERSION_CONFLICT", "PROJECT_ARCHIVED", "STATUS_NOT_IN_PROJECT", "STATUS_FULL"]),
 		)
 		.route({ method: "POST", path: "/tickets/{ticket}/move", summary: "Move a ticket to a status and a position" })
 		.input(TicketMoveInputSchema)
 		.output(TicketSchema),
 	updateMany: base
 		.errors(writeErrors)
-		.errors(pickErrors(["AGENT_CANNOT_COMPLETE"]))
 		.route({ method: "POST", path: "/tickets/update-many", summary: "Change up to 200 tickets in one transaction" })
 		.input(TicketUpdateManyInputSchema)
 		.output(TicketUpdateManyOutputSchema),

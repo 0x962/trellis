@@ -31,3 +31,23 @@ test("Pi manager launches replace the coding system prompt on start and resume",
 		await rm(directory, { recursive: true, force: true });
 	}
 });
+
+test("Pi uses its native thinking flag on start and resume", async () => {
+	const directory = await mkdtemp(join(tmpdir(), "trellis-pi-effort-"));
+	try {
+		for (const resume of [false, true] as const) {
+			const launch = await preparePi({
+				cwd: directory,
+				configDirectory: directory,
+				prompt: "Task",
+				hookCommand: "true",
+				sessionId: "session",
+				...(resume ? { resume: true as const } : { resume: false as const }),
+				effort: "high",
+			});
+			expect(launch.args[launch.args.indexOf("--thinking") + 1]).toBe("high");
+		}
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+});

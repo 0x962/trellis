@@ -26,10 +26,10 @@ const runtimeUnavailable = (cause: unknown) =>
 
 export const prepareSend = async (
 	ctx: ServiceCtx,
-	input: { id: string; text: string; messageId?: string; requireIdle?: boolean } & SendTarget,
+	input: { id: string; text: string; messageId?: string; interrupt?: boolean; idleForMs?: number } & SendTarget,
 	deps: {
 		client: Pick<RuntimeClient, "inspect" | "deliver" | "subscribeSession">;
-		host: Pick<HarnessHost, "send">;
+		host: Pick<HarnessHost, "send" | "interrupt">;
 		preset: (id: string) => Promise<HarnessPreset>;
 	} = { client: nativeClient(ctx.home), host: nativeHost(ctx.home), preset: (id) => nativePreset(ctx.home, id) },
 ) => {
@@ -40,29 +40,40 @@ export const prepareSend = async (
 	if (run.runtime !== "native") throw invalidInput("id", "This historical assignment cannot receive new messages.");
 	if (!run.terminalId) throw invalidInput("id", "The agent has no terminal yet.");
 	const { client, host } = deps;
+	const preset = await deps.preset(run.terminalId);
+	if (input.interrupt && preset === "custom")
+		throw invalidInput("interrupt", "Use the custom terminal controls to interrupt its process.");
 	try {
-		const preset = await deps.preset(run.terminalId);
 		const session = await client.inspect(run.terminalId);
 		if (session.status !== "running" || !session.controllable)
 			throw new Error("The execution service cannot control this agent process.");
+		const idleBefore =
+			input.idleForMs === undefined ? undefined : new Date(ctx.now().getTime() - input.idleForMs).toISOString();
+		if (idleBefore !== undefined && (session.activity?.state !== "idle" || session.activity.updatedAt >= idleBefore))
+			return { id: run.id, skipped: true };
+		const expected =
+			idleBefore === undefined
+				? undefined
+				: {
+						turnId: session.agent?.turnId ?? null,
+						activityAt: session.activity!.updatedAt,
+						idleBefore,
+					};
 		const messageId = input.messageId ?? randomUUID();
+		if (input.interrupt && session.activity?.state === "working") await host.interrupt(run.terminalId);
 		if (preset === "custom") {
-			if (input.requireIdle)
-				throw new Error("A custom terminal has no native idle observations for automatic dispatch.");
 			const data = Buffer.from(`\x1b[200~${input.text}\x1b[201~\r`).toString("base64");
-			const sent = await client.deliver(run.terminalId, messageId, data, false);
+			const sent = await client.deliver(run.terminalId, messageId, data, expected);
 			if (sent.status === "unknown")
 				throw new Error("Terminal input delivery is uncertain. Inspect the terminal before a resend.");
 		} else {
 			if (!session.acknowledgedMessageIds.includes(run.terminalId))
 				await waitForReceipt(client, run.terminalId, run.terminalId, 60_000);
-			await host.send(run.terminalId, input.text, messageId);
+			await host.send(run.terminalId, input.text, messageId, expected);
 		}
 	} catch (cause) {
-		if (cause instanceof Error && "code" in cause && cause.code === "RUNTIME_BUSY") {
-			if (input.requireIdle) throw cause;
-			throw runtimeUnavailable(new Error("Agent is busy. No message was sent. Wait for the current turn to finish."));
-		}
+		if (input.idleForMs !== undefined && (cause as { code?: string }).code === "RUNTIME_TURN_CHANGED")
+			return { id: run.id, skipped: true };
 		throw runtimeUnavailable(cause);
 	}
 	return { id: run.id };

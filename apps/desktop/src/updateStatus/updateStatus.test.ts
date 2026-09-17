@@ -47,7 +47,7 @@ test("an unknown execution service blocks activation without an older host", asy
 		const status = await readUpdateStatus(home, available);
 		expect(status.state).toBe("blocked");
 		expect(status.detail).toContain("unknown");
-		await expect(chooseHostRelease(home, available)).rejects.toThrow("Stop local work");
+		await expect(chooseHostRelease(home, available)).rejects.toThrow("Quit Trellis Completely");
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}

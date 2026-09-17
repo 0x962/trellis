@@ -25,7 +25,7 @@ beforeEach(async () => {
 	sessions = [];
 	await h.run(async (ctx, tx) => {
 		projectId = await seedRoot(tx, "NRD", {
-			manager_config: { personaId: "persona", concurrency: 1, ade: "native", harness: { preset: "claude" } },
+			manager_config: { personaId: "persona", ade: "native", harness: { preset: "claude" } },
 		});
 		const statusId = await seedStatus(tx, { projectId, name: "Todo", category: "todo", position: 0, isDefault: true });
 		const ticketId = await seedTicket(tx, { projectId, rootId: projectId, statusId });
@@ -59,15 +59,12 @@ const receipt = (messageId: string, id = attemptId) => {
 	session.acknowledgedMessageIds.push(messageId);
 };
 
-test("dispatch requires a live controllable PTY with a ready or idle runtime turn", async () => {
-	expect(await take()).toBeNull();
-	observation("working");
+test("dispatch requires a live controllable PTY with its initial prompt receipt", async () => {
 	expect(await take()).toBeNull();
 	for (const overrides of [
 		{ status: "exited" as const },
 		{ status: "unknown" as const },
 		{ controllable: false },
-		{ activity: null },
 		{ acknowledgedMessageIds: [] },
 		{ mode: "stdio" as const },
 		{ id: "another-attempt" },
@@ -76,6 +73,11 @@ test("dispatch requires a live controllable PTY with a ready or idle runtime tur
 		expect(await take()).toBeNull();
 	}
 	observation("idle");
+	expect(await take()).toMatchObject({ state: "sending", terminalId: attemptId });
+});
+
+test.each(["ready", "working", "idle", null] as const)("dispatch accepts runtime activity %s", async (state) => {
+	sessions = [controllerSession(attemptId, { activity: state ? { state, updatedAt: NOW.toISOString() } : null })];
 	expect(await take()).toMatchObject({ state: "sending", terminalId: attemptId });
 });
 

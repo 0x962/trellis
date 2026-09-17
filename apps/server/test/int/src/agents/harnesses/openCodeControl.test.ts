@@ -24,20 +24,22 @@ test("OpenCode control authenticates and fences the exact active turn", async ()
 	});
 	try {
 		expect((await stat(socket)).mode & 0o777).toBe(0o600);
-		await expect(interruptOpenCode(socket, "wrong", "ses_1", "turn_1")).rejects.toThrow("Unauthorized");
-		await expect(interruptOpenCode(socket, "secret", "ses_2", "turn_1")).rejects.toThrow("STALE_TURN");
-		await expect(interruptOpenCode(socket, "secret", "ses_1", "old")).rejects.toThrow("STALE_TURN");
+		await expect(interruptOpenCode(socket, "wrong", "ses_1", "turn_1")).rejects.toMatchObject({ code: "Unauthorized" });
+		await expect(interruptOpenCode(socket, "secret", "ses_2", "turn_1")).rejects.toMatchObject({ code: "STALE_TURN" });
+		await expect(interruptOpenCode(socket, "secret", "ses_1", "old")).rejects.toMatchObject({ code: "STALE_TURN" });
 		const aborted = interruptOpenCode(socket, "secret", "ses_1", "turn_1");
 		await entered.promise;
 		const transition = control.beforePrompt().then(() => {
 			current = { sessionId: "ses_1", turnId: "turn_2", working: true };
 		});
 		expect(current.turnId).toBe("turn_1");
-		await expect(interruptOpenCode(socket, "secret", "ses_1", "turn_1")).rejects.toThrow("INTERRUPT_PENDING");
+		await expect(interruptOpenCode(socket, "secret", "ses_1", "turn_1")).rejects.toMatchObject({
+			code: "INTERRUPT_PENDING",
+		});
 		gate.resolve();
 		await expect(aborted).resolves.toEqual({ accepted: true, sessionId: "ses_1", turnId: "turn_1" });
 		await transition;
-		await expect(interruptOpenCode(socket, "secret", "ses_1", "turn_1")).rejects.toThrow("STALE_TURN");
+		await expect(interruptOpenCode(socket, "secret", "ses_1", "turn_1")).rejects.toMatchObject({ code: "STALE_TURN" });
 		expect(calls).toEqual(["ses_1"]);
 	} finally {
 		gate.resolve();
@@ -74,7 +76,9 @@ test("OpenCode control rejects a repeated interrupt before the idle event arrive
 	});
 	try {
 		await interruptOpenCode(socket, "secret", "s", "t");
-		await expect(interruptOpenCode(socket, "secret", "s", "t")).rejects.toThrow("INTERRUPT_ALREADY_REQUESTED");
+		await expect(interruptOpenCode(socket, "secret", "s", "t")).rejects.toMatchObject({
+			code: "INTERRUPT_ALREADY_REQUESTED",
+		});
 		expect(calls).toBe(1);
 	} finally {
 		await control.close();
@@ -101,14 +105,16 @@ test("OpenCode interrupt crosses the authenticated socket boundary in a separate
 			sessionId: "session",
 			turnId: "turn",
 		});
-		await expect(interruptOpenCode(socket, "foreign", "session", "turn")).rejects.toThrow("Unauthorized");
+		await expect(interruptOpenCode(socket, "foreign", "session", "turn")).rejects.toMatchObject({
+			code: "Unauthorized",
+		});
 	} finally {
 		child.stdin.end();
 		expect(await child.exited).toBe(0);
 	}
 });
 
-test("OpenCode prompt API accepts only the selected idle session and waits for native acknowledgement", async () => {
+test("OpenCode prompt API accepts only the selected session and hands a prompt to a working session", async () => {
 	const socket = `/tmp/trellis-oc-test-${randomUUID()}.sock`;
 	const prompts: string[] = [];
 	let working = false;
@@ -124,13 +130,13 @@ test("OpenCode prompt API accepts only the selected idle session and waits for n
 		},
 	});
 	try {
-		await expect(sendOpenCode(socket, "secret", "wrong", "text")).rejects.toThrow("STALE_SESSION");
+		await expect(sendOpenCode(socket, "secret", "wrong", "text")).rejects.toMatchObject({ code: "STALE_SESSION" });
 		await expect(sendOpenCode(socket, "secret", "s", "exact prompt")).resolves.toEqual({
 			accepted: true,
 			sessionId: "s",
 		});
-		await expect(sendOpenCode(socket, "secret", "s", "second")).rejects.toThrow("SESSION_BUSY");
-		expect(prompts).toEqual(["s:exact prompt"]);
+		await expect(sendOpenCode(socket, "secret", "s", "second")).resolves.toEqual({ accepted: true, sessionId: "s" });
+		expect(prompts).toEqual(["s:exact prompt", "s:second"]);
 	} finally {
 		await control.close();
 	}

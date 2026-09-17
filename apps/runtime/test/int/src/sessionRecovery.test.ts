@@ -153,7 +153,7 @@ test("a recovered PID with another kernel identity does not claim or watch the r
 					pid: replacement.pid,
 					mode: "stdio",
 					status: "running",
-					startedAt: "2000-01-01T00:00:00Z",
+					startedAt: new Date().toISOString(),
 					endedAt: null,
 					exitCode: null,
 					error: null,

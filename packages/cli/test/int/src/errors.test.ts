@@ -15,7 +15,6 @@ const expected: Record<string, number> = {
 	ACTOR_INVALID: 4,
 	INVALID_CURSOR: 4,
 	INVALID_PR_URL: 4,
-	AGENT_CANNOT_COMPLETE: 4,
 	AGENT_CANNOT_DELETE: 4,
 	NOT_FOUND: 3,
 	DUPLICATE: 4,
@@ -37,8 +36,9 @@ const expected: Record<string, number> = {
 	FLOW_VERSION_CONFLICT: 4,
 	PAYLOAD_TOO_LARGE: 4,
 	GH_UNAVAILABLE: 6,
-	CONCURRENCY_LIMIT: 4,
+	STATUS_FULL: 4,
 	RUNNER_UNAVAILABLE: 6,
+	RESTART_FAILED: 6,
 };
 
 const declared = (code: keyof typeof errors, data?: unknown, message = errors[code].message) =>
@@ -61,6 +61,24 @@ describe("exit codes", () => {
 });
 
 describe("the stderr line", () => {
+	test("a restart failure keeps its cause and uses the execution-service exit code", () => {
+		const error = declared(
+			"RESTART_FAILED",
+			{
+				restartId: "restart-fixture",
+				runId: "manager-fixture",
+				attemptId: "attempt-fixture",
+				requestId: "request-fixture",
+			},
+			"The manager session could not resume: Codex executable not found.",
+		);
+		expect(exitCodeFor(error.code)).toBe(6);
+		expect(exitCodeFor(error.code)).toBe(exitCodeFor("RUNNER_UNAVAILABLE"));
+		expect(formatError(error)).toBe(
+			"error: The manager session could not resume: Codex executable not found. (RESTART_FAILED)",
+		);
+	});
+
 	// CLI-52
 	test("an error prints as one stderr line with the code in parentheses", () => {
 		const line = formatError(declared("NOT_FOUND", { kind: "ticket", ref: "CDE-9" }));

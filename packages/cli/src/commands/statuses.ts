@@ -1,4 +1,5 @@
 import type { ColorToken, Reviewer, Status, StatusCategory } from "@trellis/api";
+import { StatusAgentConfigSchema } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { type CliContext, compact, contextOf, readText, toNumber } from "../context.ts";
@@ -33,12 +34,9 @@ const statusRecord: RecordSpec<Status> = {
 	identifier: (row) => row.slug,
 };
 
-// The manager agent reads the description as its rule for the tickets in
-// the status. `-` reads the whole standard input, so a long markdown rule
-// comes from a file.
 const descriptionFlag = {
 	type: "string",
-	description: "The rule for the manager agent, in markdown; - reads standard input",
+	description: "The column description in markdown; - reads standard input",
 } as const;
 
 const descriptionOf = (ctx: CliContext, value: string | undefined): Promise<string | undefined> =>
@@ -70,6 +68,7 @@ const add = defineCommand({
 		description: descriptionFlag,
 		color: { type: "string", description: "Color token" },
 		position: { type: "string", description: "Position in the column order" },
+		"agent-config": { type: "string", description: "Worker configuration as JSON; null makes the column manual" },
 		"wip-limit": { type: "string", description: "Work in progress limit" },
 		default: { type: "boolean", description: "Make it the default status of new tickets" },
 	},
@@ -86,6 +85,10 @@ const add = defineCommand({
 				color: args.color as ColorToken | undefined,
 				position: toNumber(args.position),
 				wipLimit: toNumber(args["wip-limit"]),
+				agentConfig:
+					args["agent-config"] === undefined
+						? undefined
+						: StatusAgentConfigSchema.nullable().parse(JSON.parse(args["agent-config"])),
 				isDefault: args.default === true ? true : undefined,
 			}),
 		);
@@ -114,6 +117,7 @@ const edit = defineCommand({
 		description: descriptionFlag,
 		color: { type: "string", description: "New color token" },
 		reviewer: { type: "enum", options: ["human", "agent"], description: "New reviewer" },
+		"agent-config": { type: "string", description: "Worker configuration as JSON; null makes the column manual" },
 		"wip-limit": { type: "string", description: "New work in progress limit" },
 		position: { type: "string", description: "New position in the column order" },
 		default: { type: "boolean", description: "Make it the default status" },
@@ -133,6 +137,10 @@ const edit = defineCommand({
 			color: args.color as ColorToken | undefined,
 			reviewer: args.reviewer as Reviewer | undefined,
 			wipLimit: toNumber(args["wip-limit"]),
+			agentConfig:
+				args["agent-config"] === undefined
+					? undefined
+					: StatusAgentConfigSchema.nullable().parse(JSON.parse(args["agent-config"])),
 			isDefault: args.default === true ? true : undefined,
 		});
 		const updated =
@@ -162,7 +170,7 @@ const rm = defineCommand({
 		project: { type: "positional", required: true, description: "Project ref" },
 		status: { type: "positional", required: true, description: "Status ref" },
 		"move-to": { type: "string", description: "Status ref that takes the tickets" },
-		force: { type: "boolean", description: "Let an agent move the tickets into a done status" },
+		force: { type: "boolean", description: "Accepted for compatibility; completion does not require force" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);
