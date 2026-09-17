@@ -2,6 +2,7 @@ import { createReadStream } from "node:fs";
 import { lstat } from "node:fs/promises";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
+import { workspaceBaseRef } from "../../../agents/native/workspaceBase.ts";
 import { rows, textArray } from "../../../db/queries/support.ts";
 import { git } from "./git.ts";
 import type { WorkspaceCtx } from "./types.ts";
@@ -26,6 +27,7 @@ const numstat = (text: string) => {
 const lineCount = async (path: string) => {
 	const info = await lstat(path);
 	if (info.isSymbolicLink()) return 1;
+	if (!info.isFile()) return 0;
 	let bytes = 0;
 	let lines = 0;
 	let last = 0;
@@ -41,14 +43,8 @@ const lineCount = async (path: string) => {
 	}
 	return bytes === 0 ? 0 : lines + (last === 10 ? 0 : 1);
 };
-
-const repositoryHead = async (workspace: string) => {
-	const commonDirectory = (await git(workspace, ["rev-parse", "--path-format=absolute", "--git-common-dir"])).trim();
-	return (await git(workspace, [`--git-dir=${commonDirectory}`, "rev-parse", "HEAD"])).trim();
-};
-
 export const countWorkspace = async (workspace: string) => {
-	const base = await repositoryHead(workspace);
+	const base = (await git(workspace, ["rev-parse", "--verify", workspaceBaseRef])).trim();
 	const tracked = numstat(
 		await git(workspace, ["diff", "--merge-base", "--numstat", "-z", "--find-renames", base, "--"]),
 	);
@@ -81,6 +77,9 @@ export const lineStats = async (ctx: WorkspaceCtx, input: { ticketIds: string[] 
 		),
 	);
 	const result: { ticketId: string; additions: number; deletions: number }[] = [];
-	for (const target of targets) result.push({ ticketId: target.ticketId, ...(await countWorkspace(target.workspace)) });
+	for (const target of targets) {
+		const stat = await countWorkspace(target.workspace).catch(() => null);
+		if (stat !== null) result.push({ ticketId: target.ticketId, ...stat });
+	}
 	return result;
 };
