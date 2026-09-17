@@ -5,6 +5,7 @@ import { type DiffAnchor, ReviewDiff, ReviewFiles, ReviewTabs } from "@trellis/u
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { useTheme } from "../../../lib/theme";
+import { checkTabStatus, type ReviewCheck } from "../ReviewChecks/checkGroups";
 import { ReviewChecks } from "../ReviewChecks/ReviewChecks";
 import { ReviewComment } from "../ReviewComment/ReviewComment";
 import { type ReviewCommentInput, ReviewComposer } from "../ReviewComposer/ReviewComposer";
@@ -128,7 +129,25 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		/>
 	);
 	const displayRevision = revision ? { ...revision, meta: status.data ?? revision.meta } : null;
+	const displayMeta = displayRevision?.meta as
+		| {
+				statusCheckRollup?: ReviewCheck[];
+				mergeable?: string;
+				mergeStateStatus?: string;
+				reviewDecision?: string | null;
+		  }
+		| undefined;
+	const checksStatus = checkTabStatus(
+		displayMeta?.statusCheckRollup ?? [],
+		displayMeta?.mergeable === "CONFLICTING" ||
+			displayMeta?.mergeStateStatus === "BLOCKED" ||
+			displayMeta?.reviewDecision === "CHANGES_REQUESTED",
+	);
 	const liveStatus = status.data ? liveBranchState(status.data as LiveBranchMeta).label : undefined;
+	const refreshAll = () => {
+		refresh.mutate();
+		void status.refetch();
+	};
 	return (
 		<div className="review-page">
 			<ReviewHeader
@@ -136,7 +155,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 				parent={parent}
 				revision={displayRevision}
 				refreshing={refresh.isPending || composer !== null}
-				onRefresh={() => refresh.mutate()}
+				onRefresh={refreshAll}
 				onSubmit={() => setSubmitOpen(true)}
 			/>
 			<div className="page-card review-workspace">
@@ -144,6 +163,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 					pr={pr}
 					revision={displayRevision}
 					openCount={allThreads.filter((thread) => thread.status === "open").length}
+					onAction={refreshAll}
 				/>
 				{revision && <ReviewStack pr={pr} />}
 				{status.isError && (
@@ -163,6 +183,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 					onValueChange={changeTab}
 					count={allThreads.length}
 					live={pr.includes("/canary-technologies-corp/canary/")}
+					checkStatus={checksStatus}
 					liveStatus={liveStatus}
 				>
 					{refresh.isError && (
@@ -246,12 +267,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 					{tab === "checks" && <ReviewChecks revision={displayRevision} />}
 					{tab === "runs" && <ReviewRuns pr={pr} />}
 					{tab === "live" && displayRevision && (
-						<ReviewLive
-							pr={pr}
-							revision={displayRevision}
-							loading={status.isPending}
-							onRefresh={() => refresh.mutate()}
-						/>
+						<ReviewLive pr={pr} revision={displayRevision} loading={status.isPending} onRefresh={refreshAll} />
 					)}
 				</ReviewTabs>
 			</div>

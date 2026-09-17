@@ -6,7 +6,7 @@ import { hitArea } from "../../utils/hitArea";
 
 export type TabItem<Value extends string> = {
 	value: Value;
-	label: string;
+	label: ReactNode;
 	content: ReactNode;
 	disabled?: boolean;
 };
