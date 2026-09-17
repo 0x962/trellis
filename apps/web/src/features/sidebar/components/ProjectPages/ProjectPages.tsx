@@ -17,9 +17,8 @@ export function ProjectPages({
 }) {
 	const current = projectRefOfPathname(pathname) === project.path;
 	const manager = pathname.endsWith("/settings/manager");
-	const settings = pathname.endsWith("/settings");
+	const settings = pathname.endsWith("/settings") || pathname.endsWith("/notes");
 	const chat = pathname.endsWith("/chat");
-	const notes = pathname.endsWith("/notes");
 	const { unread } = useChatUnread(project.id);
 	return (
 		<li>
@@ -29,11 +28,10 @@ export function ProjectPages({
 						{
 							label: "Tickets",
 							suffix: "",
-							active: current && !settings && !manager && !chat && !notes,
+							active: current && !settings && !manager && !chat,
 							dot: false,
 						},
 						{ label: "Chat", suffix: "/chat", active: current && chat, dot: unread.size > 0 },
-						{ label: "Notes", suffix: "/notes", active: current && notes, dot: false },
 						{ label: "Settings", suffix: "/settings", active: current && settings, dot: false },
 					].map(({ label, suffix, active, dot }) => (
 						<li key={label}>

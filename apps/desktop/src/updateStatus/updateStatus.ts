@@ -28,18 +28,18 @@ const readActiveRelease = async (home: string, releases: string): Promise<Pinned
 	return { root, manifest: await readBundleManifest(root) };
 };
 
-const runtimeOwner = async (home: string): Promise<{ protocol: number; releaseId?: string } | null> => {
+const runtimeProtocol = async (home: string): Promise<number | null> => {
 	const path = join(home, "runtime/manifest.json");
 	if (!existsSync(path)) {
 		if (existsSync(join(home, "runtime/runtime.sock"))) throw new Error("The execution service has no owner record.");
 		return null;
 	}
-	const { pid, version, releaseId } = JSON.parse(await readFile(path, "utf8"));
+	const { pid, version } = JSON.parse(await readFile(path, "utf8"));
 	if (!Number.isInteger(pid) || pid <= 0 || !Number.isInteger(version) || version <= 0)
 		throw new Error("The execution service owner record is invalid.");
 	try {
 		process.kill(pid, 0);
-		return { protocol: version, releaseId };
+		return version;
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code === "ESRCH") return null;
 		throw error;
@@ -49,11 +49,8 @@ const runtimeOwner = async (home: string): Promise<{ protocol: number; releaseId
 export const readUpdateStatus = async (home: string, available: PinnedRelease): Promise<UpdateStatus> => {
 	const active = await readActiveRelease(home, dirname(available.root));
 	let protocol: number | null;
-	let runtimeReleaseId: string | undefined;
 	try {
-		const owner = await runtimeOwner(home);
-		protocol = owner?.protocol ?? null;
-		runtimeReleaseId = owner?.releaseId;
+		protocol = await runtimeProtocol(home);
 	} catch (error) {
 		return {
 			state: "blocked",
@@ -71,17 +68,15 @@ export const readUpdateStatus = async (home: string, available: PinnedRelease): 
 			runtimeProtocol: protocol,
 			detail: `The active execution service uses protocol ${protocol}. This package requires protocol ${available.manifest.protocol}. Quit and reopen Trellis to activate this package. The deterministic manager starts column workers and copilots after the new host starts.`,
 		};
-	const current =
-		(active === null || active.manifest.id === available.manifest.id) &&
-		(protocol === null || runtimeReleaseId === available.manifest.id);
+	const current = active === null || active.manifest.id === available.manifest.id;
 	return {
 		state: current ? "current" : "restart-required",
 		available,
 		active,
 		runtimeProtocol: protocol,
 		detail: current
-			? "The host uses this package. You can replace Trellis.app while it runs, then quit and reopen Trellis to activate the new host. The deterministic manager starts column workers and copilots after the new host starts."
-			: "The host or execution service uses a previous package. Quit and reopen Trellis to activate this package. The deterministic manager starts column workers and copilots after the new host starts.",
+			? "The host uses this package. You can replace Trellis.app while it runs, then restart Trellis to activate the new host. A compatible execution service stays active."
+			: "The host uses a previous package. Restart Trellis to activate this package. A compatible execution service stays active.",
 	};
 };
 
