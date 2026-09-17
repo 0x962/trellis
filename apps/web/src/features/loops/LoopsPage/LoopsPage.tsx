@@ -15,6 +15,11 @@ export function LoopsPage() {
 		onSuccess: (loop) => queryClient.setQueryData(options.queryKey, [loop]),
 		onSettled: () => queryClient.invalidateQueries({ queryKey: options.queryKey }),
 	});
+	const update = useMutation({
+		mutationFn: (input: { id: "deterministic-manager"; waitSeconds: number }) => client.loops.update(input),
+		onSuccess: (loop) => queryClient.setQueryData(options.queryKey, [loop]),
+		onSettled: () => queryClient.invalidateQueries({ queryKey: options.queryKey }),
+	});
 	return (
 		<>
 			<Topbar
@@ -33,9 +38,9 @@ export function LoopsPage() {
 			</Topbar>
 			<div className="page-card flex-1 overflow-y-auto px-8 py-6 max-md:px-4">
 				<div className="mx-auto flex max-w-4xl flex-col gap-6">
-					{control.isError && (
+					{(control.isError || update.isError) && (
 						<p role="alert" className="text-sm text-danger">
-							{control.error.message}
+							{control.error?.message ?? update.error?.message}
 						</p>
 					)}
 					{loops.isError && (
@@ -54,8 +59,9 @@ export function LoopsPage() {
 							<LoopStatus
 								key={loop.id}
 								{...loop}
-								busy={control.isPending || loops.isError}
+								busy={control.isPending || update.isPending || loops.isError}
 								onAction={(action) => control.mutate({ id: loop.id, action })}
+								onWaitSecondsChange={(waitSeconds) => update.mutate({ id: loop.id, waitSeconds })}
 							/>
 						))
 					)}

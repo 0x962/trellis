@@ -3,6 +3,8 @@ import { IsoDateTimeSchema } from "./primitives.ts";
 
 export const LoopActionSchema = z.enum(["pause", "resume", "run", "clear"]);
 export type LoopAction = z.infer<typeof LoopActionSchema>;
+export const LoopWaitSecondsSchema = z.number().int().min(1).max(3600);
+export type LoopWaitSeconds = z.infer<typeof LoopWaitSecondsSchema>;
 export const LoopStepIdSchema = z.enum(["wait", "runtime", "workers", "messages"]);
 export type LoopStepId = z.infer<typeof LoopStepIdSchema>;
 const LoopEntrySchema = z.object({
@@ -19,6 +21,7 @@ export const LoopStatusSchema = z.object({
 	paused: z.boolean(),
 	working: z.boolean(),
 	step: z.string(),
+	waitSeconds: LoopWaitSecondsSchema,
 	steps: z.array(
 		z.object({
 			id: LoopStepIdSchema,

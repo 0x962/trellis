@@ -1,14 +1,13 @@
 import { existsSync } from "node:fs";
-import { readFile, rm, writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { app, BrowserWindow } from "electron";
-import { type ProgressState, progressRun } from "../progressRun/index.ts";
+import { progressRun } from "../progressRun/index.ts";
 
 export const startupProgress = (page: string, profile = () => app.getPath("userData")) => {
 	let window: BrowserWindow | undefined;
 	let rendererReady = false;
 	let run: ReturnType<typeof progressRun> | undefined;
-	const checkpointPath = () => join(profile(), "restart-progress.json");
 	const historyPath = () => join(profile(), "startup-timings.json");
 	const render = () =>
 		window!.webContents.executeJavaScript(`window.trellisProgress.update(${JSON.stringify(run!.view(Date.now()))})`);
@@ -23,10 +22,7 @@ export const startupProgress = (page: string, profile = () => app.getPath("userD
 	};
 	const saveHistory = () => writeFile(historyPath(), JSON.stringify(run!.state.history));
 	const close = async () => {
-		if (run) {
-			await saveHistory();
-			await rm(checkpointPath(), { force: true });
-		}
+		if (run) await saveHistory();
 		await dismiss();
 		run = undefined;
 	};
@@ -39,15 +35,9 @@ export const startupProgress = (page: string, profile = () => app.getPath("userD
 			return { phase: view.phase, stage: view.stage };
 		},
 		show: async (stage: string) => {
-			if (!run || stage === "Prepare restart") {
-				const checkpoint =
-					stage === "Prepare Trellis" && existsSync(checkpointPath())
-						? (JSON.parse(await readFile(checkpointPath(), "utf8")) as ProgressState)
-						: undefined;
+			if (!run) {
 				const history = existsSync(historyPath()) ? JSON.parse(await readFile(historyPath(), "utf8")) : {};
-				run = checkpoint
-					? progressRun({ checkpoint })
-					: progressRun({ mode: stage === "Prepare restart" ? "restart" : "startup", now: Date.now(), history });
+				run = progressRun({ now: Date.now(), history });
 			}
 			run.report(stage, Date.now());
 			const opening = !window;
@@ -88,12 +78,6 @@ export const startupProgress = (page: string, profile = () => app.getPath("userD
 				await window.webContents.executeJavaScript("window.trellisProgress.settle()");
 			}
 			await close();
-		},
-		handoff: async () => {
-			await writeFile(checkpointPath(), JSON.stringify(run!.state));
-			await saveHistory();
-			await dismiss();
-			run = undefined;
 		},
 		close,
 	};

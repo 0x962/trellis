@@ -3,6 +3,7 @@ import {
 	AgentRunnerSchema,
 	AgentStateSchema,
 	CiStateSchema,
+	ColorTokenSchema,
 	FlowBranchSchema,
 	FlowNodeKindSchema,
 	NoteAudienceSchema,
@@ -25,6 +26,7 @@ export const REVIEWERS = ReviewerSchema.options;
 export const STORED_ACTOR_KINDS = StoredActorKindSchema.options;
 export const PR_STATES = PrStateSchema.options;
 export const CI_STATES = CiStateSchema.options;
+export const COLOR_TOKENS = ColorTokenSchema.options;
 export const REVIEW_STATES = ReviewStateSchema.options;
 export const PR_LINK_SOURCES = PrLinkSourceSchema.options;
 export const AGENT_ROLES = AgentRoleSchema.options;

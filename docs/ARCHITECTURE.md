@@ -112,7 +112,7 @@ It inspects runtime processes on each beat and retries failed, stopped, and cras
 Database reservations and runtime attempt identifiers prevent duplicate starts.
 Copilots wait for user instructions. The host sends them human chat messages and human comment mentions.
 Worker broadcasts and mentions reach other workers.
-Desktop activation stops the previous runtime and starts the host. The deterministic manager restarts column workers and project copilots.
+Desktop activation restarts the host. It keeps a runtime with a compatible protocol. The deterministic manager restarts column workers and project copilots after an incompatible runtime stops.
 A partial database index permits one active copilot per project.
 
 Native ticket agents use Git worktrees under `agents/<run id>/work`.
@@ -175,7 +175,7 @@ takes builder. A delete keeps the snapshots of the runs that used the persona.
 - Every status-to-status move is legal when the target status has room under its WIP limit. The limit applies to every actor.
   The `category` of a status is immutable after creation.
 - `started_at` is set once, when a ticket leaves todo. `completed_at` is set when a ticket enters done or canceled, and cleared when it leaves.
-- Priority is none, urgent, high, medium, or low. There are no labels. A project limits concurrent active worker turns. Idle assignments retain their ticket ownership.
+- Priority is none, urgent, high, medium, or low. Projects own label groups, and each label belongs to one group. A sub-project does not inherit groups or labels. Tickets do not yet use labels. A project limits concurrent active worker turns. Idle assignments retain their ticket ownership.
 - Every non-GET request sends the header `x-trellis-actor: <human|agent>:<name>`. The name is printable ASCII without a colon, 1 to 64 characters.
 - A missing header is `ACTOR_REQUIRED` and a malformed one is `ACTOR_INVALID`. A GET ignores the header. The header rejects the kind `system`, which trellis reserves for `system:trellis`.
 - The optional header `x-trellis-session` is stored in `activity.meta.session`. trellis stores the name and the kind of an actor, and nothing else.
@@ -385,7 +385,7 @@ The run has the kind `session`, no persona, no project, and no ticket. Its name 
 The agent receives the prompt as its first message and nothing else. It runs with the worker permission settings of its harness.
 A session counts against no WIP limit and receives no comment or chat delivery.
 `sessions.start` resumes the saved conversation when the previous process confirmed one for the same harness, and otherwise starts the agent again from the prompt in the same directory.
-A desktop restart stops a session agent with the other native agents and does not resume it; Start on the session page resumes it.
+A compatible desktop restart preserves a session agent. A protocol change stops the agent and does not resume it; Start on the session page resumes it.
 `sessions.delete` stops the agent, removes the directory, and deletes the row. The run stays as history with its retained output.
 
 ### Manager delegation
@@ -433,7 +433,7 @@ An unavailable quota result contains no allowance estimate. Credentials stay on 
 The Usage page at `/usage` shows what every agent on the machine consumed.
 `usage.report` reads the transcript files that each harness CLI writes: `projects/` of a Claude profile, `sessions/` of a Codex or Pi profile, `opencode/storage/` of an OpenCode data home, and `muse/sessions/` of a Muse data home, the default XDG data home or a Muse account profile.
 The scan covers the default profile of each harness and the profile of every account, resolved to real paths, so a shared directory counts once.
-The scan runs in the `prepare` step, outside every database transaction, and its result is cached for five minutes per range. A refresh is served from the cache for ten seconds.
+The scan runs in the `prepare` step, outside every database transaction. A child worker parses the transcripts and builds the report. Database calls continue during the scan. The server caches each range for five minutes. A refresh uses a cached result for ten seconds.
 Every turn is priced at the API list rate in `services/usage/pricing.ts`. A harness that records its own cost, such as Pi or OpenCode, keeps that cost. Muse Spark has no list price, so a Muse turn counts its tokens at zero dollars. A model outside the table takes the cheapest rate of its harness and marks the row approximate.
 A session joins the agent run whose `session_id` it carries. A session whose cwd is inside `agents/<run id>/work` joins that run. A session whose cwd is inside a project directory joins that project. Every other session is outside Trellis.
 The report holds the day series by harness, the totals, one row list per grouping (ticket, persona, project, kind, account, model, harness), and the top 200 sessions with one key per grouping.

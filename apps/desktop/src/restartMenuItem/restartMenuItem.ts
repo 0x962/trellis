@@ -1,25 +1,26 @@
-import type { App, MenuItem } from "electron";
+type RestartApp = {
+	relaunch: () => void;
+	exit: (exitCode?: number) => void;
+};
 
-export const restartMenuItem = (
-	app: Pick<App, "relaunch" | "quit">,
-	restart: () => Promise<unknown>,
-	showError: (error: Error) => void,
-	progress: { show: (stage: string) => Promise<void>; close: () => Promise<void>; handoff: () => Promise<void> },
-) => ({
-	label: "Restart",
-	click: async (item: Pick<MenuItem, "enabled">) => {
-		item.enabled = false;
-		try {
-			await progress.show("Prepare restart");
-			await restart();
-			await progress.show("Relaunch desktop");
-			await progress.handoff();
-			app.relaunch();
-			app.quit();
-		} catch (error) {
-			await progress.close();
-			item.enabled = true;
-			showError(error as Error);
-		}
-	},
-});
+type RestartHost = {
+	restart: () => Promise<void>;
+	showError: (error: Error) => void;
+};
+
+export const restartMenuItem = (app: RestartApp, host?: RestartHost) => {
+	const relaunch = () => {
+		app.relaunch();
+		app.exit(0);
+	};
+	return {
+		label: "Restart",
+		click: () => {
+			if (!host) {
+				relaunch();
+				return;
+			}
+			return host.restart().then(relaunch).catch(host.showError);
+		},
+	};
+};

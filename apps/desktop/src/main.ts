@@ -293,22 +293,14 @@ else {
 						stopLocalWork: menuAction("stopLocalWork", "Local work"),
 						restart: restartMenuItem(
 							app,
-							async () => {
-								host = await restartHost(
-									app.isPackaged
-										? {
-												mode: "packaged",
-												home: desktopHome(),
-												helper: paths().helper,
-												resources: paths().hostRoot,
-												userData: app.getPath("userData"),
-											}
-										: { mode: "development", options: developmentHostOptions() },
-									progress.show,
-								);
-							},
-							(error) => dialog.showErrorBox("Trellis did not restart", error.message),
-							progress,
+							app.isPackaged
+								? undefined
+								: {
+										restart: async () => {
+											host = await restartHost(developmentHostOptions());
+										},
+										showError: (error) => dialog.showErrorBox("Trellis did not restart", error.message),
+									},
 						),
 						quit: menuAction("quit", "Quit Trellis"),
 					}),

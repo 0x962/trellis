@@ -37,16 +37,20 @@ export async function usageRoots(accounts: readonly UsageAccountRow[], env: Node
 			account: account.name,
 		});
 	}
+	const resolved = await Promise.all(
+		candidates.map(async (candidate) => {
+			try {
+				return { ...candidate, real: await realpath(candidate.dir) };
+			} catch {
+				return null;
+			}
+		}),
+	);
 	const roots = new Map<string, UsageRoot>();
-	for (const candidate of candidates) {
-		let real: string;
-		try {
-			real = await realpath(candidate.dir);
-		} catch {
-			continue;
-		}
-		const key = `${candidate.harness}:${real}`;
-		const root = roots.get(key) ?? { harness: candidate.harness, path: real, accounts: [] };
+	for (const candidate of resolved) {
+		if (candidate === null) continue;
+		const key = `${candidate.harness}:${candidate.real}`;
+		const root = roots.get(key) ?? { harness: candidate.harness, path: candidate.real, accounts: [] };
 		if (candidate.account !== null && !root.accounts.includes(candidate.account)) root.accounts.push(candidate.account);
 		roots.set(key, root);
 	}

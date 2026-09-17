@@ -7,6 +7,7 @@ import { controller } from "./controller.ts";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
+import { labelGroups } from "./labelGroups.ts";
 import { loops } from "./loops.ts";
 import { models } from "./models.ts";
 import { needsYou } from "./needsYou.ts";
@@ -40,6 +41,7 @@ export const router = os.router({
 	personas,
 	flows,
 	flowExecutions,
+	labelGroups,
 	projects,
 	statuses,
 	tickets,
