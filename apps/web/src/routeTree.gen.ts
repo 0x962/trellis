@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GalleryRouteImport } from './routes/[_]gallery'
 import { Route as AllRouteRouteImport } from './routes/all/route'
+import { Route as LoopsRouteImport } from './routes/loops'
 import { Route as NeedsYouRouteRouteImport } from './routes/needs-you/route'
 import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as SearchRouteImport } from './routes/search'
@@ -40,6 +41,11 @@ const GalleryRoute = GalleryRouteImport.update({
 const AllRouteRoute = AllRouteRouteImport.update({
   id: '/all',
   path: '/all',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoopsRoute = LoopsRouteImport.update({
+  id: '/loops',
+  path: '/loops',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NeedsYouRouteRoute = NeedsYouRouteRouteImport.update({
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/all': typeof AllRouteRoute
   '/needs-you': typeof NeedsYouRouteRoute
   '/_gallery': typeof GalleryRoute
+  '/loops': typeof LoopsRoute
   '/reviews': typeof ReviewsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
@@ -137,6 +144,7 @@ export interface FileRoutesByTo {
   '/all': typeof AllRouteRoute
   '/needs-you': typeof NeedsYouRouteRoute
   '/_gallery': typeof GalleryRoute
+  '/loops': typeof LoopsRoute
   '/reviews': typeof ReviewsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/all': typeof AllRouteRoute
   '/needs-you': typeof NeedsYouRouteRoute
   '/_gallery': typeof GalleryRoute
+  '/loops': typeof LoopsRoute
   '/reviews': typeof ReviewsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
@@ -178,6 +187,7 @@ export interface FileRouteTypes {
     | '/all'
     | '/needs-you'
     | '/_gallery'
+    | '/loops'
     | '/reviews'
     | '/search'
     | '/settings'
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/all'
     | '/needs-you'
     | '/_gallery'
+    | '/loops'
     | '/reviews'
     | '/search'
     | '/settings'
@@ -216,6 +227,7 @@ export interface FileRouteTypes {
     | '/all'
     | '/needs-you'
     | '/_gallery'
+    | '/loops'
     | '/reviews'
     | '/search'
     | '/settings'
@@ -236,6 +248,7 @@ export interface RootRouteChildren {
   AllRouteRoute: typeof AllRouteRoute
   NeedsYouRouteRoute: typeof NeedsYouRouteRoute
   GalleryRoute: typeof GalleryRoute
+  LoopsRoute: typeof LoopsRoute
   ReviewsRoute: typeof ReviewsRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
@@ -272,6 +285,13 @@ declare module '@tanstack/react-router' {
       path: '/all'
       fullPath: '/all'
       preLoaderRoute: typeof AllRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/loops': {
+      id: '/loops'
+      path: '/loops'
+      fullPath: '/loops'
+      preLoaderRoute: typeof LoopsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/needs-you': {
@@ -380,6 +400,7 @@ const rootRouteChildren: RootRouteChildren = {
   AllRouteRoute: AllRouteRoute,
   NeedsYouRouteRoute: NeedsYouRouteRoute,
   GalleryRoute: GalleryRoute,
+  LoopsRoute: LoopsRoute,
   ReviewsRoute: ReviewsRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,

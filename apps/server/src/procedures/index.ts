@@ -8,6 +8,7 @@ import { evidence } from "./evidence.ts";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
+import { loops } from "./loops.ts";
 import { models } from "./models.ts";
 import { needsYou } from "./needsYou.ts";
 import { notes } from "./notes.ts";
@@ -27,6 +28,7 @@ export type { ProcedureContext } from "./base.ts";
 
 // The whole contract, implemented. Both HTTP handlers serve this one router.
 export const router = os.router({
+	loops,
 	models,
 	submanagers,
 	harnessAccounts,

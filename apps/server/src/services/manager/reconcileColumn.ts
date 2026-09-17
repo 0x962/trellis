@@ -7,9 +7,11 @@ import { prepareSend } from "../agentRuns/communication.ts";
 import { stopNative } from "../agentRuns/nativeLifecycle.ts";
 import { startNative } from "../agentRuns/nativeStart.ts";
 import { getRun } from "../agentRuns/queries.ts";
+import { loopRuntimes } from "../loops/runtime.ts";
 import type { IoCtx } from "../support.ts";
 import { columnContext } from "./columnContext.ts";
 import { type ColumnState, columnStates } from "./columnState.ts";
+import { reportLaunch } from "./reportLaunch.ts";
 import { reserveColumnWorker } from "./reserveColumnWorker.ts";
 import { workerAction } from "./workerAction.ts";
 import { workspaceExists } from "./workspaceExists.ts";
@@ -100,6 +102,9 @@ export async function reconcileColumn(
 		run.accountId === claim.run.accountId &&
 		(await deps.preset(ctx.home, session.id)) === claim.config.harness.preset
 	);
+	loopRuntimes
+		.get(ctx.home)
+		?.record(`${resume ? "Resume" : "Start"} ${claim.run.personaName} for ${claim.run.ticketIdentifier}.`);
 	await deps.start(ctx, {
 		...claim,
 		resume,
@@ -121,5 +126,6 @@ export async function reconcileColumn(
 				})
 			: undefined,
 	});
+	await ctx.newTx((tx) => reportLaunch(ctx, tx, { id: claim.run.id }));
 	ctx.emit({ type: "agent-runs.changed", id: claim.run.id });
 }

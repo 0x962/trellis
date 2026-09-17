@@ -38,6 +38,7 @@ import * as flows from "./flows/flows.ts";
 import * as flowSave from "./flows/save.ts";
 import * as harnessAccounts from "./harnessAccounts/harnessAccounts.ts";
 import { prepareQuota } from "./harnessAccounts/quota.ts";
+import * as loops from "./loops/loops.ts";
 import * as needsYou from "./needsYou/needsYou.ts";
 import * as notes from "./notes/notes.ts";
 import * as personas from "./personas.ts";
@@ -268,6 +269,8 @@ export const services = {
 	"actors.default": core("read", actors.default),
 	"settings.get": core("read", settings.get),
 	"settings.set": core("mutation", settings.set),
+	"loops.list": io("read", loops.list),
+	"loops.control": io("mutation", loops.control),
 	"system.health": io("read", system.health),
 	"system.snapshot": io("mutation", system.snapshot),
 	"system.export": { family: "io", kind: "read", stream: system.exportNdjson } as ServiceEntry,

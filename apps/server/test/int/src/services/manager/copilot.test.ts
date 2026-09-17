@@ -2,6 +2,8 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:te
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import { createController } from "../../../../../src/agents/controller/controller.ts";
+import { loopRuntimes } from "../../../../../src/services/loops/runtime.ts";
 import { reconcileCopilot } from "../../../../../src/services/manager/copilot.ts";
 import type { IoCtx } from "../../../../../src/services/support.ts";
 import { seedActors, seedRoot, seedStatuses } from "../../../../fixtures/projects.ts";
@@ -39,7 +41,10 @@ beforeAll(async () => {
 	h = await serviceHarness();
 });
 afterAll(() => h.close());
-afterEach(() => h.read(assertStatusInvariant));
+afterEach(async () => {
+	loopRuntimes.delete("/unused");
+	await h.read(assertStatusInvariant);
+});
 beforeEach(async () => {
 	await h.reset();
 	calls = [];
@@ -123,4 +128,21 @@ test("a project inherits the copilot persona and uses its own harness", async ()
 	await reconcileCopilot(ctx(), child, [], deps());
 	expect(starts[0]!.config.harness.preset).toBe("codex");
 	expect(starts[0]!.run.personaName).toBe("Copilot");
+});
+
+test("a saved launch failure appears in loop errors", async () => {
+	const loop = createController({
+		clock: { now: () => NOW, setTimer: () => 1, clearTimer: () => {} },
+		log: () => {},
+		call: async () => {},
+	});
+	loopRuntimes.set("/unused", loop);
+	await reconcileCopilot(ctx(), project, [], {
+		...deps(),
+		start: async (_ctx, input) => {
+			await h.rows(sql`UPDATE agent_runs SET error='Account quota exceeded' WHERE id=${input.run.id}`);
+			return { id: input.run.id };
+		},
+	});
+	expect(loop.read().errors[0]?.message).toContain("Account quota exceeded");
 });
