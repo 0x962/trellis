@@ -1,3 +1,5 @@
+import { shortZonedDateTime } from "@trellis/api";
+
 export type ContextLine = {
 	messageId: string;
 	channel: string;
@@ -14,27 +16,10 @@ export type PendingLine = ContextLine & {
 };
 
 type Recipient = { runId: string; personaName: string; kind: string; projectPath: string };
-type LocalTimeOptions = { locale?: string; timeZone?: string };
-const formatters = new Map<string, Intl.DateTimeFormat>();
 
-const localDateTime = (iso: string, options: LocalTimeOptions = {}) => {
-	const key = `${options.locale ?? ""}\0${options.timeZone ?? ""}`;
-	let formatter = formatters.get(key);
-	if (formatter === undefined) {
-		formatter = new Intl.DateTimeFormat(options.locale, {
-			year: "numeric",
-			month: "short",
-			day: "2-digit",
-			hour: "2-digit",
-			minute: "2-digit",
-			second: "2-digit",
-			timeZoneName: "short",
-			...(options.timeZone === undefined ? {} : { timeZone: options.timeZone }),
-		});
-		formatters.set(key, formatter);
-	}
-	return formatter.format(new Date(iso));
-};
+// The zone a test names for its expected text. The product leaves it empty,
+// so every clock below reads the zone of the host that runs the server.
+type ZoneRequest = { locale?: string; timeZone?: string };
 
 // `<Builder 01J...>` for an agent, `<dana>` for a person. The run id is in
 // the label because a mention can name it.
@@ -45,8 +30,8 @@ export const chatSender = (line: Pick<PendingLine, "actorName" | "actorKind" | "
 
 // One IRC style line per message, with the clock in the host time zone.
 // A body with several lines keeps them.
-export const chatLine = (line: ContextLine, options: LocalTimeOptions = {}) =>
-	`#${line.channel} ${localDateTime(line.createdAt, options)} <${chatSender(line)}> ${line.body}`;
+export const chatLine = (line: ContextLine, request: ZoneRequest = {}) =>
+	`#${line.channel} ${shortZonedDateTime(line.createdAt, request)} <${chatSender(line)}> ${line.body}`;
 
 const asData = (line: ContextLine) => ({
 	id: line.messageId,
@@ -68,7 +53,7 @@ export const chatBatchText = (
 	recipient: Recipient,
 	lines: PendingLine[],
 	context: ContextLine[] = [],
-	options: LocalTimeOptions = {},
+	request: ZoneRequest = {},
 ) => {
 	const mentioned = lines.some((line) => line.direct);
 	if (recipient.kind === "manager")
@@ -83,9 +68,9 @@ export const chatBatchText = (
 	const project = recipient.projectPath;
 	return [
 		`trellis chat: ${lines.length} new message${lines.length === 1 ? "" : "s"} in the ${project} room.${mentioned ? " One mentions you. Answer it now." : ""}`,
-		...(context.length === 0 ? [] : ["Earlier, for context:", ...context.map((line) => chatLine(line, options))]),
+		...(context.length === 0 ? [] : ["Earlier, for context:", ...context.map((line) => chatLine(line, request))]),
 		...(context.length === 0 ? [] : ["New:"]),
-		...lines.map((line) => chatLine(line, options)),
+		...lines.map((line) => chatLine(line, request)),
 		`Reply: trellis chat post ${project} <channel> --body "..." Read more: trellis chat read ${project} <channel>`,
 	].join("\n");
 };
