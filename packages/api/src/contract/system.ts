@@ -16,14 +16,6 @@ export const system = {
 		.route({ method: "GET", path: "/doctor", summary: "Inspect the local host and execution service" })
 		.input(z.object({}))
 		.output(DiagnosticsSchema),
-	nativeWork: base
-		.route({ method: "GET", path: "/native-work", summary: "Read the local work setting" })
-		.input(z.object({}))
-		.output(z.object({ paused: z.boolean() })),
-	resumeNativeWork: base
-		.route({ method: "POST", path: "/native-work/resume", summary: "Allow new local work" })
-		.input(z.object({}))
-		.output(z.object({ paused: z.boolean() })),
 	resumeRestart: base
 		.errors(pickErrors(["RESTART_FAILED"]))
 		.route({ method: "POST", path: "/native-work/restart/resume", summary: "Resume agents after a desktop restart" })

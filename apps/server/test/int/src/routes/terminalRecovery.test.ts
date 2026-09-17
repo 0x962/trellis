@@ -43,7 +43,6 @@ beforeEach(async () => {
 	);
 	await t.client.system.stopNativeWork({});
 	await until(absent);
-	expect(await t.client.system.nativeWork({})).toEqual({ paused: true });
 });
 afterEach(async () => {
 	if (!absent()) {
@@ -57,10 +56,9 @@ const assertNoAgents = async () => {
 	const sessions = await nativeClient(t.home).list();
 	expect(sessions).toHaveLength(1);
 	expect(sessions[0]).toMatchObject({ id: attempt, status: "exited" });
-	expect(await t.client.system.nativeWork({})).toEqual({ paused: true });
 };
 
-test("SSE replays a stopped terminal after the runtime stops while local work is paused", async () => {
+test("SSE replays a stopped terminal after the runtime stops during host shutdown", async () => {
 	const response = await t.app.request(`http://trellis.test${path}/stream?attemptId=${attempt}`);
 	expect(response.status).toBe(200);
 	const body = await response.text();

@@ -5,7 +5,6 @@ import { nativePreset } from "../../agents/native/harnessHost.ts";
 import { rows } from "../../db/queries/support.ts";
 import { invalidInput } from "../../errors.ts";
 import { upsert } from "../actors.ts";
-import { assertNativeWorkEnabled } from "../agentRuns/nativeControl.ts";
 import { startNative } from "../agentRuns/nativeStart.ts";
 import { columns, getRun, type StoredRun } from "../agentRuns/queries.ts";
 import { reserveAttempt } from "../assignments/attempts.ts";
@@ -34,7 +33,6 @@ export const prepareStart = async (ctx: IoCtx, input: { id: string }) => {
 		session.harness.preset !== "custom" &&
 		(await nativePreset(ctx.home, run.terminalId!)) === session.harness.preset;
 	const reservation = await ctx.newTx(async (tx) => {
-		await assertNativeWorkEnabled(tx);
 		await upsert(ctx.core, tx, ctx.actor);
 		const selected = await selectAccount(tx, {
 			accountId: run.accountId,
