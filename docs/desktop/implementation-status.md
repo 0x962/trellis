@@ -16,13 +16,13 @@ The first package target is Apple Silicon.
 | Harness | Interactive CLI presets, permission bypass flags, automatic repository trust, Claude turn hooks, exact message receipts, and retained results |
 | Evidence | Worktree diff and files, command results, artifact hashes, revision checks, and confirmed check exit recovery |
 | Flows | Frozen graph and persona versions, agent attempts, YES/NO gates, human decisions, joins, deadlines, and cancellation |
-| Work area | Activity first, assigned-agent terminal, local changes, checks, flow decisions, and diagnostics |
+| Work area | Activity first, assigned-agent terminal, local changes, flow decisions, and diagnostics |
 | Drafts | Browser export/import, independent recovery copies, collision preservation, and save acknowledgement |
 | Data directory | New data or an existing home, confirmed service handoff, database backup, and paused automation |
 | App replacement | Retained host resources and protocol checks before activation |
 
 The Manager page has Operation, General, and Harness sections.
-Operation separates automatic dispatch from the manager process. General holds the repository directory, persona, and concurrency limit.
+Operation shows the manager process. General holds the repository directory, persona, and concurrency limit.
 Harness selects the agent executable and commands.
 
 ## Current verification
@@ -60,7 +60,7 @@ The [directory report](acceptance/2026-09-14-directory/report.md) records the se
 
 Read [the desktop guide](../../apps/desktop/README.md) for build and package commands.
 Close or quit detaches the window and leaves background work active.
-Use Stop local work in the Trellis menu or Settings > Desktop to pause dispatch, stop owned processes, and remove the background service.
+Use Quit Trellis Completely in the Trellis menu or Settings > Desktop to pause dispatch, stop owned processes, and remove the background service.
 An unconfirmed process prevents a successful stop.
 
 Use Settings > Desktop > Choose data directory to open an existing home in place.

@@ -316,6 +316,146 @@
       "when": 1789566940877,
       "tag": "0047_persona_chat_instructions",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1789568754886,
+      "tag": "0048_harness_accounts",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1789571941305,
+      "tag": "0049_manager_delegations",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1789575520000,
+      "tag": "0050_manager_disk_hygiene",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1789575520001,
+      "tag": "0051_chat_direct_mentions",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1789582895293,
+      "tag": "0052_project_notes",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1789582900000,
+      "tag": "0053_persona_notes_instructions",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1789582900001,
+      "tag": "0054_chat_ai_only_attachments",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1789582900002,
+      "tag": "0055_chat_per_project",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1789582900003,
+      "tag": "0056_chat_direct_manager",
+      "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1789582900004,
+      "tag": "0057_chat_general_to_manager",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1789591029159,
+      "tag": "0058_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1789592545315,
+      "tag": "0059_manager_dispatch_failed_state",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1789596395596,
+      "tag": "0060_muse_harness",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1789597863735,
+      "tag": "0061_muse_quota_windows",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1789599000000,
+      "tag": "0062_remove_slot_capacity",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1789599000001,
+      "tag": "0063_builder_heartbeats",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1789599000003,
+      "tag": "0064_builder_start_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1789599000004,
+      "tag": "0065_column_workers",
+      "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1789616603566,
+      "tag": "0066_remove_evidence",
+      "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1789616603568,
+      "tag": "0068_remove_dispatch_paused",
+      "breakpoints": true
     }
   ]
 }

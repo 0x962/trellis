@@ -1,6 +1,6 @@
 import { DotsThree } from "@phosphor-icons/react";
 import type { Attachment } from "@trellis/api";
-import { IconButton, Input, Menu } from "@trellis/ui";
+import { ConfirmDialog, IconButton, Input, Menu } from "@trellis/ui";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { attachmentMarkdown } from "../../../utils/attachmentMarkdown";
 
@@ -15,6 +15,7 @@ export function AttachmentActions({ attachment, onDelete, onRename, triggerClass
 	const trigger = useRef<HTMLButtonElement>(null);
 	const field = useRef<HTMLInputElement>(null);
 	const [renaming, setRenaming] = useState(false);
+	const [confirming, setConfirming] = useState(false);
 	const [name, setName] = useState(attachment.filename);
 
 	useEffect(() => {
@@ -69,8 +70,20 @@ export function AttachmentActions({ attachment, onDelete, onRename, triggerClass
 						onSelect: () => void navigator.clipboard.writeText(attachmentMarkdown(attachment)),
 					},
 					{ label: "Rename", onSelect: () => setRenaming(true) },
-					{ label: "Delete", danger: true, onSelect: () => void onDelete() },
+					{ label: "Delete", danger: true, onSelect: () => setConfirming(true) },
 				]}
+			/>
+			<ConfirmDialog
+				open={confirming}
+				title={`Delete ${attachment.filename}?`}
+				description="trellis cannot restore a deleted file."
+				confirmLabel="Delete"
+				danger
+				onConfirm={() => {
+					setConfirming(false);
+					void onDelete();
+				}}
+				onCancel={() => setConfirming(false)}
 			/>
 		</div>
 	);

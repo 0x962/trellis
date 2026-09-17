@@ -1,14 +1,13 @@
 import { createRootRouteWithContext, Link, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 import { EmptyState, Toaster } from "@trellis/ui";
-import { useEffect } from "react";
-import { CommandPalette } from "../features/command/CommandPalette";
-import { ComposerHost } from "../features/composer/ComposerHost";
+import { lazy, Suspense, useEffect } from "react";
+import { NewSessionHost } from "../features/sessions/NewSessionHost";
 import { GlobalHotkeys } from "../features/shell/GlobalHotkeys";
 import { linkButtonClass } from "../features/shell/linkButtonClass";
 import { RouteError } from "../features/shell/RouteError";
 import { RouteProgress } from "../features/shell/RouteProgress";
-import { ShellFrame } from "../features/shell/ShellFrame";
-import { Sidebar } from "../features/sidebar/Sidebar";
+import { ShellFrame, ShellSidebar } from "../features/shell/ShellFrame";
+import { ShellOverlays } from "../features/shell/ShellOverlays";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { useActor } from "../lib/actor";
 import type { RouterContext } from "../lib/appContext";
@@ -20,6 +19,8 @@ import { parseProjectSplat } from "../lib/projectPath";
 // The two pages that render without the shell: the first run and the
 // design gallery.
 const bare = (pathname: string) => pathname === "/setup" || pathname.startsWith("/_gallery");
+
+const Sidebar = lazy(async () => ({ default: (await import("../features/sidebar/Sidebar")).Sidebar }));
 
 // Every page but the bare two needs an identity and a project. The server
 // holds the identity, so only a server with no stored name and no project
@@ -88,7 +89,9 @@ function RootComponent() {
 
 	return (
 		<div className="flex h-full bg-bg text-fg">
-			<Sidebar />
+			<Suspense fallback={<ShellSidebar />}>
+				<Sidebar />
+			</Suspense>
 			<div className="relative flex min-w-0 flex-1 flex-col">
 				<RouteProgress />
 				<main className="page-inset flex min-h-0 min-w-0 flex-1 flex-col bg-pane">
@@ -97,8 +100,8 @@ function RootComponent() {
 			</div>
 			<div data-command-palette="" hidden />
 			<GlobalHotkeys />
-			<CommandPalette />
-			<ComposerHost />
+			<ShellOverlays />
+			<NewSessionHost />
 			<Toaster />
 		</div>
 	);

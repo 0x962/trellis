@@ -16,6 +16,17 @@ const identity = {
 	author: { type: "string", description: "Author name" },
 	session: { type: "string", description: "Agent session identifier" },
 } as const;
+// reviewHref throws a plain Error for a reference it cannot read, because
+// the web catches it and shows the sentence. The CLI has no catch around a
+// verb, so it turns the same sentence into the one-line usage failure.
+const hrefOf = (pr: string) => {
+	try {
+		return reviewHref(pr);
+	} catch (error) {
+		throw usageError((error as Error).message);
+	}
+};
+
 const client = (ctx: CliContext, args: { author?: string; session?: string }) =>
 	createClient({
 		...clientOptions(ctx),
@@ -31,7 +42,7 @@ export default defineCommand({
 			async run(c) {
 				const ctx = contextOf(c);
 				await clientOf(ctx).reviews.open({ pr: c.args.pr });
-				const url = `${ctx.publicUrl}${reviewHref(c.args.pr)}`;
+				const url = `${ctx.publicUrl}${hrefOf(c.args.pr)}`;
 				ctx.out.write(`${url}\n`);
 				if (c.args.browser) ctx.deps.open(url);
 			},

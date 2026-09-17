@@ -30,6 +30,11 @@ Each page supplies its data and available actions. It does not choose new contro
 | Ticket identity and state | `TicketId`, `PriorityIcon`, `StatusIcon` | `packages/ui/src/domain/` |
 | Last actor and agent work state | `ActorAvatar` with the shared `Avatar` | `apps/web/src/features/agents/ActorAvatar/ActorAvatar.tsx` |
 | Row actions | `Menu`, `IconButton`, `Tooltip` | `packages/ui/src/primitives/Menu/Menu.tsx` |
+| Usage per day | `UsageChart` | `packages/ui/src/domain/UsageChart/UsageChart.tsx` |
+| Ranked slices of a whole | `RankedBars` | `packages/ui/src/domain/RankedBars/RankedBars.tsx` |
+| Composition of one total | `StackedBar` | `packages/ui/src/domain/StackedBar/StackedBar.tsx` |
+| Company mark of a model | `ProviderIcon` | `packages/ui/src/domain/ProviderIcon/ProviderIcon.tsx` |
+| Subscription quota meters | `QuotaWindows` | `packages/ui/src/domain/QuotaWindows/QuotaWindows.tsx` |
 
 ## Filters and display options
 
@@ -83,4 +88,4 @@ Use these as references for data hierarchy. Trellis components and tokens govern
 Check populated, empty, loading, and error states. Check long titles and rows with and without an actor.
 Verify the layout in both themes at desktop and phone widths.
 Check keyboard access, focus return, filter removal, group collapse, sort direction, and URL persistence.
-Run the relevant component tests and browser tests for each page that uses a changed shared element.
+Run the linter and type checks for each page that uses a changed shared element.

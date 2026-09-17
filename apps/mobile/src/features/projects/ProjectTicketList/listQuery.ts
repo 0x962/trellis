@@ -37,6 +37,7 @@ export type ListQueryArgs = {
 // one spelling the server prints.
 export const listQueryInput = ({ project, segment, sort, cursor }: ListQueryArgs): ListQueryInput => ({
 	project: ProjectRefSchema.canonicalize(project),
+	subprojects: false,
 	category: categoryOf(segment),
 	sort: sortOf(sort),
 	limit: pageLimit,

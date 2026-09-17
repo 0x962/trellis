@@ -1,28 +1,21 @@
-import {
-	FlowArrow,
-	GitPullRequest,
-	MagnifyingGlass,
-	Plus,
-	SidebarSimple,
-	Sparkle,
-	Ticket,
-	Tray,
-} from "@phosphor-icons/react";
+import { Plus, SidebarSimple } from "@phosphor-icons/react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ActivityDot, cx, IconButton, Kbd, Tooltip } from "@trellis/ui";
 import type { ReactElement, ReactNode } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
+import { uiActions } from "../../../../../stores/uiStore";
+import { type NavTarget, navRows } from "../../../../navRows";
 import { useNeedsYouSummary } from "../../../../needs-you/useNeedsYou";
+import { sessionComposerActions } from "../../../../sessions/sessionComposerStore";
 import { ActorFooter } from "../../../ActorFooter";
 import { ArchivedProjects } from "../../../ArchivedProjects";
 import { ProjectTree } from "../../../ProjectTree";
+import { SessionList } from "../../../SessionList";
 import { ConnectionPanel } from "../ConnectionPanel";
 
 const rowClass =
 	"sidebar-row pl-2 text-sm text-fg-muted hover:bg-elevated hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
-
-type NavTarget = "/reviews" | "/needs-you" | "/search" | "/all" | "/ai/personas" | "/ai/flows";
 
 type NavRowProps = {
 	to: NavTarget;
@@ -71,14 +64,14 @@ export type SidebarBodyProps = {
 	onCollapse?: () => void;
 };
 
-// What the sidebar holds: the collapse button, the six fixed destinations,
-// the project tree, and the actor footer. The desktop aside and the phone
-// sheet both draw it. The phone sheet closes in its own way, so it has no
-// collapse button.
+// What the sidebar holds: the collapse button, the fixed destinations,
+// the sessions, the project tree, and the actor footer. The desktop aside
+// and the phone sheet both draw it. The phone sheet closes in its own way,
+// so it has no collapse button.
 //
-// The project tree is the one region that scrolls and takes the spare
-// height. Every fixed destination sits above it, so none of them moves when
-// the tree grows.
+// The sessions and the project tree share the one region that scrolls and
+// takes the spare height. Every fixed destination sits above it, so none of
+// them moves when the region grows.
 //
 // The highlight follows the page the outlet shows. A navigation changes the
 // URL at once but keeps the old page until the new one loads, so the
@@ -117,27 +110,38 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 				</div>
 			)}
 			<nav aria-label="Workspace" className="flex flex-col gap-0.5">
-				<NavRow
-					to="/needs-you"
-					hasItems={(inbox.data?.active ?? 0) > 0}
-					icon={<Tray />}
-					label="Needs you"
-					active={isActive(pathname, "/needs-you")}
-				/>
-				<NavRow
-					to="/search"
-					icon={<MagnifyingGlass />}
-					label="Search"
-					active={isActive(pathname, "/search")}
-					trailing={collapsed ? undefined : <Kbd>/</Kbd>}
-				/>
-				<NavRow to="/all" icon={<Ticket />} label="All tickets" active={isActive(pathname, "/all")} />
-				<NavRow to="/reviews" icon={<GitPullRequest />} label="Pull requests" active={isActive(pathname, "/reviews")} />
-				<NavRow to="/ai/personas" icon={<Sparkle />} label="Personas" active={isActive(pathname, "/ai/personas")} />
-				<NavRow to="/ai/flows" icon={<FlowArrow />} label="Flows" active={isActive(pathname, "/ai/flows")} />
+				{navRows.map((row) => (
+					<NavRow
+						key={row.to}
+						to={row.to}
+						hasItems={row.to === "/needs-you" ? (inbox.data?.active ?? 0) > 0 : undefined}
+						icon={row.icon}
+						label={row.label}
+						active={isActive(pathname, row.to)}
+						trailing={row.to === "/search" && !collapsed ? <Kbd>/</Kbd> : undefined}
+					/>
+				))}
 			</nav>
 			<div hidden={collapsed} className="mt-3 min-h-0 flex-1 overflow-y-auto pb-2">
 				<div className="sidebar-section">
+					<h2>Sessions</h2>
+					<Tooltip content="New session">
+						<IconButton
+							size="xs"
+							className="pointer-coarse:size-11 pointer-coarse:before:inset-0"
+							label="New session"
+							icon={<Plus />}
+							onClick={() => {
+								// The dialog mounts from the root shell. The phone sheet
+								// closes first, so no second modal sits under the dialog.
+								uiActions.setMobileSidebarOpen(false);
+								sessionComposerActions.open();
+							}}
+						/>
+					</Tooltip>
+				</div>
+				<SessionList />
+				<div className="sidebar-section mt-3">
 					<h2>Projects</h2>
 					<Tooltip content="New project">
 						<IconButton

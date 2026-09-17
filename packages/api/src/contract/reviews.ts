@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { pickErrors } from "../errors";
 import { UlidSchema } from "../schemas/primitives";
+import { PullRequestSchema } from "../schemas/pullRequest";
 import {
 	ReactionKeySchema,
 	ReviewBodySchema,
@@ -50,7 +51,6 @@ export const reviews = {
 		.input(
 			pr.extend({
 				action: z.enum([
-					"approve",
 					"merge",
 					"admin-merge",
 					"automerge",
@@ -73,7 +73,7 @@ export const reviews = {
 				headSha: z.string().min(1),
 			}),
 		)
-		.output(z.object({ ok: z.literal(true) })),
+		.output(PullRequestSchema),
 	mine: base
 		.errors(pickErrors(["GH_UNAVAILABLE"]))
 		.route({ method: "POST", path: "/reviews/mine", summary: "List the signed-in user's open PRs" })
@@ -167,27 +167,8 @@ export const reviews = {
 		.input(id.extend({ reaction: ReactionKeySchema, remove: z.boolean().default(false) }))
 		.output(ReviewThreadSchema),
 	submit: base
-		.route({ method: "POST", path: "/reviews/submit", summary: "Submit a local review and notify its agents" })
+		.errors(pickErrors(["GH_UNAVAILABLE"]))
+		.route({ method: "POST", path: "/reviews/submit", summary: "Submit a pull request review" })
 		.input(ReviewSubmitSchema)
-		.output(ReviewSubmissionSchema),
-	show: base
-		.route({ method: "GET", path: "/reviews/submissions/{id}", summary: "Read a submitted review snapshot" })
-		.input(id)
-		.output(ReviewSubmissionSchema),
-	history: base
-		.route({ method: "GET", path: "/reviews/submissions", summary: "Read local review submissions" })
-		.input(pr)
-		.output(z.array(ReviewSubmissionSchema)),
-	inbox: base
-		.route({ method: "POST", path: "/reviews/inbox", summary: "Read unread agent reviews" })
-		.input(z.object({ runId: UlidSchema.optional() }))
-		.output(z.array(ReviewSubmissionSchema)),
-	read: base
-		.route({ method: "POST", path: "/reviews/submissions/{id}/read", summary: "Acknowledge a review" })
-		.input(id.extend({ runId: UlidSchema }))
-		.output(ReviewSubmissionSchema),
-	resend: base
-		.route({ method: "POST", path: "/reviews/deliveries/{id}/resend", summary: "Resend a failed review notification" })
-		.input(id)
-		.output(ReviewSubmissionSchema),
+		.output(PullRequestSchema),
 };

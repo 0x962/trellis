@@ -2,12 +2,15 @@ import { type ChildProcess, spawn } from "node:child_process";
 import { watch } from "node:fs";
 import { chmod, mkdir, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { createInterface } from "node:readline";
+import { fromHarnessModel } from "@trellis/api/models";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { z } from "zod";
 import { authenticatedManagerTools } from "../../managerTools/authenticatedManagerTools/authenticatedManagerTools.ts";
+import { applyTurnActivity } from "../turnActivity/turnActivity.ts";
+import type { HarnessEvent } from "../types.ts";
 import { CodexAppServerClient } from "./appServerClient.ts";
 import { CodexAppServerEvents } from "./appServerEvents.ts";
-import { applyCodexActivity } from "./codexActivity.ts";
 import { codexControl } from "./codexControl.ts";
 import { inspectCodexHooks } from "./inspectCodexHooks.ts";
 import { managerAdapter } from "./managerAdapter/managerAdapter.ts";
@@ -30,6 +33,7 @@ const launch = z
 		cwd: z.string(),
 		prompt: z.string(),
 		model: z.string().optional(),
+		effort: z.string().optional(),
 		sessionId: z.string().optional(),
 		managerSystemPrompt: z.string().optional(),
 	})
@@ -40,6 +44,7 @@ const adapter = manager ? managerAdapter(authenticatedManagerTools(process.env),
 const engineConfig = manager
 	? Object.entries(managerPolicy.config).map(([key, value]) => `${key}=${JSON.stringify(value)}`)
 	: [await inspectCodexHooks(env.TRELLIS_CODEX_EXECUTABLE, launch.cwd)];
+if (launch.effort) engineConfig.push(`model_reasoning_effort=${JSON.stringify(launch.effort)}`);
 const runtime = new RuntimeClient(env.TRELLIS_HARNESS_SOCKET);
 const directory = dirname(env.TRELLIS_CODEX_ENGINE_SOCKET);
 await mkdir(directory, { mode: 0o700 });
@@ -74,7 +79,15 @@ const engine = spawn(
 		"-c",
 		`sandbox_mode="${manager ? "read-only" : "danger-full-access"}"`,
 	],
-	{ cwd: launch.cwd, env: process.env, stdio: ["pipe", "ignore", "inherit"] },
+	{
+		cwd: launch.cwd,
+		env: {
+			...process.env,
+			LOG_FORMAT: "json",
+			RUST_LOG: `${process.env.RUST_LOG ?? "error"},codex_core::tasks=info,codex_api::endpoint::responses_websocket=info,codex_api::sse::responses=debug`,
+		},
+		stdio: ["pipe", "ignore", "pipe"],
+	},
 );
 const engineFailed = new Promise<never>((_, reject) => {
 	engine.once("error", reject);
@@ -100,44 +113,48 @@ async function start() {
 	const firstPrompt = new Promise<void>((resolve) => {
 		submitted = resolve;
 	});
+	const observe = (events: HarnessEvent[]) => {
+		if (!acceptingEvents) return;
+		for (const event of events) {
+			applyTurnActivity(current, event);
+			eventQueue = eventQueue.then(async () => {
+				await runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, event);
+				if (event.kind === "prompt") submitted();
+			});
+			eventQueue.catch(reportFailure);
+		}
+	};
 	client = new CodexAppServerClient(
 		env.TRELLIS_CODEX_ENGINE_SOCKET,
 		(notification) => {
-			if (!parser || !acceptingEvents) return;
-			for (const event of parser.parse(notification)) {
-				applyCodexActivity(current, event);
-				eventQueue = eventQueue.then(async () => {
-					await runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, event);
-					if (event.kind === "prompt") submitted();
-				});
-				eventQueue.catch(reportFailure);
-			}
+			if (parser) observe(parser.parse(notification));
 		},
 		adapter?.request,
 	);
+	const engineLines = createInterface({ input: engine.stderr! });
+	engineLines.on("line", (line) => {
+		if (line.startsWith("{")) {
+			const entry = JSON.parse(line);
+			if (parser) observe(parser.compactionProgress(entry));
+			if (
+				["codex_core::tasks", "codex_api::endpoint::responses_websocket", "codex_api::sse::responses"].includes(
+					entry.target,
+				) &&
+				["INFO", "DEBUG", "TRACE"].includes(entry.level)
+			)
+				return;
+		}
+		process.stderr.write(`${line}\n`);
+	});
 	client.closed.catch(reportFailure);
 	await client.initialize();
-	const inherited = manager
-		? z
-				.object({
-					config: z.looseObject({ mcp_servers: z.record(z.string(), z.record(z.string(), z.unknown())).optional() }),
-				})
-				.parse(await client.request("config/read", { cwd: launch.cwd, includeLayers: false }))
-		: undefined;
-	const config = manager
-		? {
-				...managerPolicy.config,
-				mcp_servers: Object.fromEntries(
-					Object.keys(inherited!.config.mcp_servers ?? {}).map((name) => [name, { enabled: false }]),
-				),
-			}
-		: undefined;
+	const config = manager ? managerPolicy.config : undefined;
 	const result = z
 		.looseObject({
 			thread: z.looseObject({ id: z.string() }),
 			model: z.string(),
 			approvalPolicy: z.literal("never"),
-			sandbox: z.looseObject({ type: z.literal(manager ? "readOnly" : "dangerFullAccess") }),
+			sandbox: z.looseObject({ type: z.literal("dangerFullAccess") }),
 		})
 		.parse(
 			await client.request(launch.sessionId ? "thread/resume" : "thread/start", {
@@ -145,13 +162,13 @@ async function start() {
 				cwd: launch.cwd,
 				model: launch.model,
 				approvalPolicy: "never",
-				sandbox: manager ? "read-only" : "danger-full-access",
+				sandbox: "danger-full-access",
 				...(manager
 					? {
 							baseInstructions: launch.managerSystemPrompt,
 							developerInstructions: "",
 							config,
-							...(!launch.sessionId ? { environments: [], dynamicTools: adapter!.tools } : {}),
+							...(!launch.sessionId ? { dynamicTools: adapter!.tools } : {}),
 						}
 					: {}),
 			}),
@@ -162,7 +179,7 @@ async function start() {
 	await runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, {
 		kind: "session",
 		sessionId: result.thread.id,
-		model: result.model,
+		model: fromHarnessModel("codex", result.model),
 	});
 	control = await codexControl({
 		socket: env.TRELLIS_CODEX_CONTROL_SOCKET,
@@ -170,11 +187,13 @@ async function start() {
 		sessionId: result.thread.id,
 		client,
 		manager,
+		effort: launch.effort,
 		current: () => current,
 	});
 	await client.request("turn/start", {
 		threadId: result.thread.id,
 		input: [{ type: "text", text: launch.prompt }],
+		effort: launch.effort,
 		approvalPolicy: "never",
 		sandboxPolicy: { type: "dangerFullAccess" },
 		...(manager ? managerPolicy.turn : {}),

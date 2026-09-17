@@ -10,11 +10,10 @@
 		"./client": "./src/client.ts",
 		"./query-keys": "./src/query-keys.ts",
 		"./contract": "./src/contract/index.ts",
-		"./schemas": "./src/schemas/index.ts"
+		"./schemas": "./src/schemas/index.ts",
+		"./models": "./src/models/models.ts"
 	},
 	"scripts": {
-		"test": "bun test --path-ignore-patterns '**/test/int/**'",
-		"test:int": "bun test test/int",
 		"typecheck": "tsc --noEmit -p tsconfig.json"
 	},
 	"dependencies": {

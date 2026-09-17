@@ -30,14 +30,14 @@ export const stepNames = [
 	"CLAUDE_CODE_SESSION_ID",
 	"CLAUDE_SESSION_ID",
 	"CODEX_*",
+	"MUSE_*",
 	"git config user.name",
 	"OS user",
 ] as const;
 
 // The name grammar of `x-trellis-actor`: printable ASCII without the colon,
 // 1 to 64 characters. It equals `actorHeaderPattern` in
-// packages/api/src/refs.ts; actor.test.ts parses every result with the api
-// schema, so the two cannot drift.
+// packages/api/src/refs.ts.
 const namePattern = /^[\x20-\x39\x3B-\x7E]{1,64}$/;
 
 export const actorGrammar =
@@ -86,10 +86,24 @@ export const resolveActor = (input: ActorInput): ActorResolution => {
 	const session = codeSession ?? plainSession;
 	const trellisActor = present(env.TRELLIS_ACTOR);
 	const codexKey = Object.keys(env).find((key) => key.startsWith("CODEX_") && present(env[key]) !== undefined);
+	// Muse exports MUSE_CURRENT_SESSION_LOG and MUSE_TOOL_USE_ID to the shell
+	// of a tool call. A person sets the launcher variables of Muse, such as
+	// MUSE_NO_AUTO_UPDATE, so those mark nothing.
+	const museKey = Object.keys(env).find(
+		(key) => (key === "MUSE_CURRENT_SESSION_LOG" || key === "MUSE_TOOL_USE_ID") && present(env[key]) !== undefined,
+	);
 	const inferredKind: ActorKind =
-		claudeCode !== undefined || session !== undefined || codexKey !== undefined ? "agent" : "human";
+		claudeCode !== undefined || session !== undefined || codexKey !== undefined || museKey !== undefined
+			? "agent"
+			: "human";
 	const agentName =
-		claudeCode !== undefined || session !== undefined ? "claude-code" : codexKey !== undefined ? "codex" : "agent";
+		claudeCode !== undefined || session !== undefined
+			? "claude-code"
+			: codexKey !== undefined
+				? "codex"
+				: museKey !== undefined
+					? "muse"
+					: "agent";
 
 	const values: Record<string, string | null> = {
 		"--as": input.as ?? null,
@@ -98,6 +112,7 @@ export const resolveActor = (input: ActorInput): ActorResolution => {
 		CLAUDE_CODE_SESSION_ID: codeSession ?? null,
 		CLAUDE_SESSION_ID: plainSession ?? null,
 		"CODEX_*": codexKey ?? null,
+		"MUSE_*": museKey ?? null,
 		"git config user.name": null,
 		"OS user": null,
 	};
@@ -116,6 +131,7 @@ export const resolveActor = (input: ActorInput): ActorResolution => {
 	else if (codeSession !== undefined) take("CLAUDE_CODE_SESSION_ID", { kind: "agent", name: "claude-code" });
 	else if (plainSession !== undefined) take("CLAUDE_SESSION_ID", { kind: "agent", name: "claude-code" });
 	else if (codexKey !== undefined) take("CODEX_*", { kind: "agent", name: "codex" });
+	else if (museKey !== undefined) take("MUSE_*", { kind: "agent", name: "muse" });
 
 	kind ??= inferredKind;
 	if (name === undefined && kind === "agent") name = agentName;

@@ -5,16 +5,29 @@ import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { type Recipient, recipientsOf } from "./recipients.ts";
 
-export const enqueue = async (tx: Tx, input: { messageId: string; rootId: string; body: string; actor: ActorRef }) => {
+// Copilots receive human messages. Workers receive room broadcasts and direct mentions.
+export const enqueue = async (
+	tx: Tx,
+	input: { messageId: string; rootId: string; channel: string; body: string; actor: ActorRef; toManager: boolean },
+) => {
 	const live = await rows<Recipient>(
 		tx,
-		sql`SELECT r.id, r.persona_name AS "personaName", r.terminal_id AS "terminalId", r.session_id AS "sessionId"
-		FROM agent_runs r JOIN projects p ON p.id = r.project_id
-		WHERE r.runtime = 'native' AND r.closed_at IS NULL AND p.root_id = ${input.rootId}`,
+		sql`SELECT r.id, r.persona_name AS "personaName", r.kind, r.terminal_id AS "terminalId", r.session_id AS "sessionId"
+		FROM agent_runs r WHERE r.runtime = 'native' AND r.closed_at IS NULL AND r.project_id = ${input.rootId}`,
 	);
-	for (const run of recipientsOf(live, input.body, input.actor)) {
-		await tx.execute(sql`INSERT INTO chat_deliveries (id, message_id, run_id, persona_name, terminal_id, session_id)
-			VALUES (${ulid()}, ${input.messageId}, ${run.id}, ${run.personaName}, ${run.terminalId}, ${run.sessionId})
+	const everyone = recipientsOf(live, input.body, input.actor);
+	const mentioned = everyone.some((entry) => entry.direct);
+	const addressed = input.toManager
+		? live
+				.filter((run) => run.kind === "manager" && !(input.actor.kind === "agent" && input.actor.name === run.id))
+				.map((run) => ({ run, direct: true }))
+		: input.channel === "general" && !mentioned
+			? everyone.filter((entry) => entry.run.kind === "manager")
+			: everyone;
+	for (const { run, direct } of addressed) {
+		if (run.kind === "manager" && input.actor.kind !== "human") continue;
+		await tx.execute(sql`INSERT INTO chat_deliveries (id, message_id, run_id, persona_name, terminal_id, session_id, direct)
+			VALUES (${ulid()}, ${input.messageId}, ${run.id}, ${run.personaName}, ${run.terminalId}, ${run.sessionId}, ${direct})
 			ON CONFLICT (message_id, run_id) DO NOTHING`);
 	}
 };

@@ -4,6 +4,7 @@ import type { BackupOutput, GhStatus, Health } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
+import { fail } from "../errors.ts";
 import { executionEnvironment } from "../executionEnvironment";
 import type { GhRunner } from "../gh/run.ts";
 import { PARTIAL_SUFFIX, SNAPSHOT_PREFIX } from "../storage/backups.ts";
@@ -70,12 +71,17 @@ const pruneArchives = (dir: string) => {
 // archive gets.
 export type Snapshot = { staging: string; path: string };
 
-// Runs a copy or an archive command and throws with its stderr when it
-// exits nonzero.
+// Runs a copy or an archive command. `cp` and `tar` are outside the server,
+// so a nonzero exit is a boundary failure and gets a declared error. The
+// message names the tool, its exit status, and its stderr, so a person who
+// calls system.backup reads why the backup stopped.
 const run = async (command: string[]) => {
 	const proc = Bun.spawn(command, { env: await executionEnvironment(), stdout: "ignore", stderr: "pipe" });
 	const [code, stderr] = await Promise.all([proc.exited, new Response(proc.stderr).text()]);
-	if (code !== 0) throw new Error(`${command[0]} exited ${code}: ${stderr.trim()}`);
+	if (code !== 0) {
+		const text = stderr.trim();
+		throw fail("BACKUP_FAILED", { command: command[0]!, code, stderr: text }, `${command[0]} exited ${code}: ${text}`);
+	}
 };
 
 // APFS and btrfs copy a file by reference, so a snapshot at 50k tickets

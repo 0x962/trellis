@@ -31,6 +31,13 @@ export const startupProgress = (page: string, profile = () => app.getPath("userD
 		run = undefined;
 	};
 	return {
+		// The phase and the stage of the last report. `close` drops them, so a
+		// failed startup reads them before it closes the window.
+		step: () => {
+			if (!run) return undefined;
+			const view = run.view(Date.now());
+			return { phase: view.phase, stage: view.stage };
+		},
 		show: async (stage: string) => {
 			if (!run || stage === "Prepare restart") {
 				const checkpoint =

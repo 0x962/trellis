@@ -1,8 +1,5 @@
-import { readRestartPlan, restartPending } from "@trellis/runtime-protocol/restart-plan";
-import { captureRestartPlan } from "../captureRestartPlan/captureRestartPlan.ts";
 import { adoptHost, assertManagedHome, type HostConnection, waitForHostExit } from "../host/host.ts";
 import type { PinnedRelease } from "../pinnedResources/pinnedResources.ts";
-import { resumeRestartPlan } from "../resumeRestartPlan/resumeRestartPlan.ts";
 import { serviceCommand } from "../service/service.ts";
 import { serviceNeedsRegistration } from "../serviceRegistration/serviceRegistration.ts";
 import { stopReleaseRuntime } from "../stopReleaseRuntime/stopReleaseRuntime.ts";
@@ -13,10 +10,8 @@ type Actions = {
 	adopt: () => Promise<HostConnection>;
 	unregister: () => Promise<void>;
 	wait: () => Promise<void>;
-	capture: (release: PinnedRelease) => Promise<void>;
 	shutdown: (release: PinnedRelease) => Promise<void>;
 	register: () => Promise<void>;
-	resume: (host: HostConnection) => Promise<void>;
 };
 
 export const activateHostRelease = async (
@@ -41,9 +36,7 @@ export const activateHostRelease = async (
 			await serviceCommand(helper, "unregister");
 		},
 		wait: () => waitForHostExit(home),
-		capture: (release) => captureRestartPlan(home, release, available),
 		shutdown: (release) => stopReleaseRuntime(home, release),
-		resume: (host) => resumeRestartPlan(home, host),
 		register: async () => {
 			const state = await serviceCommand(helper, "register");
 			if (state.status !== "enabled") throw new Error(`Background service status: ${state.status}.`);
@@ -58,35 +51,12 @@ export const activateHostRelease = async (
 		await actions.ensureService();
 		await report("Wait for background host");
 		const host = await actions.adopt();
-		if (restartPending(home)) {
-			const adopted = await readUpdateStatus(home, available);
-			if (adopted.state !== "current" || adopted.active?.manifest.id !== available.manifest.id)
-				throw new Error("The background service did not start the expected release. Inspect the local host log.");
-		}
-		await report("Restore agent sessions");
-		await actions.resume(host);
 		return host;
 	}
 	if (status.state === "blocked" && status.runtimeProtocol === null) throw new Error(status.detail);
-	const pending = await readRestartPlan(home);
-	if (
-		pending &&
-		(pending.sourceReleaseId !== status.active.manifest.id || pending.sessions.some((session) => session.done))
-	) {
-		await report("Wait for background host");
-		const host = await actions.adopt();
-		const previous = await readUpdateStatus(home, status.active);
-		if (previous.state !== "current" || previous.active?.manifest.id !== status.active.manifest.id)
-			throw new Error("Finish the pending agent restart with its active host before another package update.");
-		await report("Restore agent sessions");
-		await actions.resume(host);
-		if (restartPending(home)) throw new Error("Finish the pending agent restart before another package update.");
-	}
 	await report("Stop background host");
 	await actions.unregister();
 	await actions.wait();
-	await report("Save agent sessions");
-	await actions.capture(status.active);
 	await report("Restart agent runtime");
 	await actions.shutdown(status.active);
 	await report("Start background host");
@@ -96,7 +66,5 @@ export const activateHostRelease = async (
 	const activated = await readUpdateStatus(home, available);
 	if (activated.state !== "current" || activated.active?.manifest.id !== available.manifest.id)
 		throw new Error("The background service did not start the expected release. Inspect the local host log.");
-	await report("Restore agent sessions");
-	await actions.resume(host);
 	return host;
 };

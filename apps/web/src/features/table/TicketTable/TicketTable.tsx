@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTable } from "@tanstack/react-table";
 import type { StatusSummary, TicketSummary } from "@trellis/api";
+import { ConfirmDialog } from "@trellis/ui";
 import { type MouseEvent, type ReactNode, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { useScopeStatuses } from "../../../hooks/useScopeStatuses";
 import { useStableCallback } from "../../../hooks/useStableCallback";
 import { useApp } from "../../../lib/appContext";
@@ -118,6 +118,14 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 	const applyChange = useApplyChange(mutations, projects);
 
 	const selectedTickets = () => selection.selected.map((id) => byId.get(id)!);
+	const projectRootIds = new Map(projects.map((project) => [project.id, project.rootId]));
+	const ticketRootIds = [
+		...new Set(
+			selectedTickets()
+				.map((ticket) => projectRootIds.get(ticket.project.id))
+				.filter((id): id is string => id !== undefined),
+		),
+	];
 
 	const onRowChange = useStableCallback((ticket: TicketSummary, change: RowChange) => {
 		void applyChange(selection.isSelected(ticket.id) ? selectedTickets() : [ticket], change);
@@ -232,6 +240,7 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 				count={selection.count}
 				statuses={data.statuses}
 				projects={projects}
+				ticketRootIds={ticketRootIds}
 				project={project}
 				onStatus={(status) => void applyChange(selectedTickets(), { status })}
 				onPriority={(priority) => void applyChange(selectedTickets(), { priority })}

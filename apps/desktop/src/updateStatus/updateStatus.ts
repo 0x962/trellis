@@ -60,7 +60,7 @@ export const readUpdateStatus = async (home: string, available: PinnedRelease): 
 			available,
 			active,
 			runtimeProtocol: null,
-			detail: `The execution service state is unknown. ${(error as Error).message} Use Stop local work and background service before you activate this package.`,
+			detail: `The execution service state is unknown. ${(error as Error).message} Use Quit Trellis Completely before you activate this package.`,
 		};
 	}
 	if (protocol !== null && protocol !== available.manifest.protocol)
@@ -69,7 +69,7 @@ export const readUpdateStatus = async (home: string, available: PinnedRelease): 
 			available,
 			active,
 			runtimeProtocol: protocol,
-			detail: `The active execution service uses protocol ${protocol}. This package requires protocol ${available.manifest.protocol}. Quit and reopen Trellis to activate this package. Trellis saves active agent sessions before runtime shutdown, then resumes them after the new host starts.`,
+			detail: `The active execution service uses protocol ${protocol}. This package requires protocol ${available.manifest.protocol}. Quit and reopen Trellis to activate this package. The deterministic manager starts column workers and copilots after the new host starts.`,
 		};
 	const current =
 		(active === null || active.manifest.id === available.manifest.id) &&
@@ -80,8 +80,8 @@ export const readUpdateStatus = async (home: string, available: PinnedRelease): 
 		active,
 		runtimeProtocol: protocol,
 		detail: current
-			? "The host uses this package. You can replace Trellis.app while it runs, then quit and reopen Trellis to activate the new host. A changed package resumes active agent sessions after the new host starts."
-			: "The host or execution service uses a previous package. Quit and reopen Trellis to activate this package. Trellis saves active agent sessions before runtime shutdown, then resumes them after the new host starts. Manually stopped agents stay stopped.",
+			? "The host uses this package. You can replace Trellis.app while it runs, then quit and reopen Trellis to activate the new host. The deterministic manager starts column workers and copilots after the new host starts."
+			: "The host or execution service uses a previous package. Quit and reopen Trellis to activate this package. The deterministic manager starts column workers and copilots after the new host starts.",
 	};
 };
 

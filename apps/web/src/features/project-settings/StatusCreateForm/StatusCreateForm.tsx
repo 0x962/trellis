@@ -1,7 +1,8 @@
-import type { Reviewer, StatusCategory } from "@trellis/api";
+import type { Reviewer, StatusAgentConfig, StatusCategory } from "@trellis/api";
 import { Button, Input, Select } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { ColumnAgentFields } from "../StatusRow/components/ColumnAgentFields";
 
 export type StatusCreateFormProps = {
 	project: string;
@@ -28,7 +29,9 @@ export function StatusCreateForm({ project, initialCategory = "todo", onCreated,
 	const [name, setName] = useState("");
 	const [category, setCategory] = useState<StatusCategory>(initialCategory);
 	const [reviewer, setReviewer] = useState<Reviewer>("agent");
+	const [agentConfig, setAgentConfig] = useState<StatusAgentConfig | null>(null);
 	const [message, setMessage] = useState<string | null>(null);
+	const canConfigureWorker = category !== "done" && category !== "canceled";
 
 	const submit = async (event: FormEvent) => {
 		event.preventDefault();
@@ -41,6 +44,7 @@ export function StatusCreateForm({ project, initialCategory = "todo", onCreated,
 				project,
 				name: name.trim(),
 				category,
+				agentConfig: canConfigureWorker ? agentConfig : null,
 				...(category === "review" ? { reviewer } : {}),
 			});
 			await onCreated();
@@ -58,6 +62,7 @@ export function StatusCreateForm({ project, initialCategory = "todo", onCreated,
 			{category === "review" && (
 				<Select label="Reviewer" items={reviewers} value={reviewer} onValueChange={setReviewer} />
 			)}
+			{canConfigureWorker && <ColumnAgentFields value={agentConfig} onChange={setAgentConfig} />}
 			{message !== null && (
 				<p role="alert" className="text-sm text-danger">
 					{message}

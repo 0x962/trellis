@@ -1,5 +1,5 @@
 import type { Comment, Ticket, TimelineItem } from "@trellis/api";
-import { SectionHeader } from "@trellis/ui";
+import { cx, SectionHeader } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 import { useStatuses } from "../hooks/useStatuses";
 import { timelineOptions, useTimeline } from "../hooks/useTimeline";
@@ -64,7 +64,10 @@ export function Timeline({ ticket, onAttachFiles, thread }: TimelineProps) {
 					<SectionHeader title="Activity" />
 					<ul
 						aria-label="Activity"
-						className="relative flex flex-col gap-3 before:absolute before:top-4 before:bottom-4 before:left-2 before:w-px before:bg-border"
+						className={cx(
+							"relative flex flex-col gap-3 before:absolute before:top-4 before:left-2 before:w-px before:bg-border",
+							streamItems.at(-1)?.kind === "comment" ? "before:bottom-5.5" : "before:bottom-4",
+						)}
 					>
 						{streamItems.map((item) => {
 							if (item.kind === "activity") {

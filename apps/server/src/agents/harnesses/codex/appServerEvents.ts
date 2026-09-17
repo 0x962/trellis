@@ -1,7 +1,15 @@
+import { fromHarnessModel } from "@trellis/api/models";
 import { z } from "zod";
 import type { HarnessEvent } from "../types.ts";
 
 const notification = z.object({ method: z.string(), params: z.record(z.string(), z.unknown()) });
+const compactionLog = z.object({
+	target: z.literal("codex_api::sse::responses"),
+	fields: z.object({ message: z.literal('unhandled responses event: "response.compaction.compacting"') }),
+	spans: z.array(
+		z.looseObject({ name: z.string(), "thread.id": z.string().optional(), "turn.id": z.string().optional() }),
+	),
+});
 const itemSchema = z.looseObject({ id: z.string(), type: z.string() });
 const tools = new Set([
 	"commandExecution",
@@ -12,11 +20,34 @@ const tools = new Set([
 	"imageView",
 	"imageGeneration",
 	"collabAgentToolCall",
+	"contextCompaction",
 ]);
 export class CodexAppServerEvents {
 	private readonly answers = new Map<string, Map<string, string>>();
+	private compactionId: string | null = null;
+	private progressTurnId: string | null = null;
 	private readonly prompts = new Set<string>();
 	constructor(private readonly sessionId: string) {}
+	compactionProgress(payload: unknown): HarnessEvent[] {
+		if (this.progressTurnId === null) return [];
+		const entry = compactionLog.safeParse(payload);
+		if (
+			!entry.success ||
+			!entry.data.spans.some(
+				(span) =>
+					span.name === "turn" && span["thread.id"] === this.sessionId && span["turn.id"] === this.progressTurnId,
+			)
+		)
+			return [];
+		return [
+			{
+				kind: "tool-update",
+				sessionId: this.sessionId,
+				turnId: this.progressTurnId,
+				tool: { id: this.compactionId ?? `compaction:${this.progressTurnId}`, name: "contextCompaction" },
+			},
+		];
+	}
 	parse(payload: unknown): HarnessEvent[] {
 		const { method, params } = notification.parse(payload);
 		if (params.threadId !== this.sessionId) return [];
@@ -29,10 +60,11 @@ export class CodexAppServerEvents {
 				{
 					kind: "session",
 					...identity,
-					model: z.looseObject({ model: z.string() }).parse(params.threadSettings).model,
+					model: fromHarnessModel("codex", z.looseObject({ model: z.string() }).parse(params.threadSettings).model),
 				},
 			];
-		if (method === "model/rerouted") return [{ kind: "session", ...identity, model: z.string().parse(params.toModel) }];
+		if (method === "model/rerouted")
+			return [{ kind: "session", ...identity, model: fromHarnessModel("codex", z.string().parse(params.toModel)) }];
 		if (method === "thread/tokenUsage/updated") {
 			const tokenUsage = z
 				.looseObject({ total: z.looseObject({ totalTokens: z.number().int().nonnegative() }) })
@@ -41,6 +73,8 @@ export class CodexAppServerEvents {
 		}
 		if (method === "turn/started") {
 			const turn = z.looseObject({ id: z.string() }).parse(params.turn);
+			this.progressTurnId = turn.id;
+			this.compactionId = null;
 			return [{ kind: "working", ...identity, turnId: turn.id }];
 		}
 		if (method === "error") {
@@ -48,6 +82,8 @@ export class CodexAppServerEvents {
 			return [{ kind: "error", ...identity, error: error.message, willRetry: z.boolean().parse(params.willRetry) }];
 		}
 		if (method === "turn/completed") {
+			this.progressTurnId = null;
+			this.compactionId = null;
 			const turn = z
 				.looseObject({
 					id: z.string(),
@@ -72,6 +108,10 @@ export class CodexAppServerEvents {
 		}
 		if (method === "item/started" || method === "item/completed") {
 			const item = itemSchema.parse(params.item);
+			if (item.type === "contextCompaction") {
+				this.progressTurnId = method === "item/started" ? z.string().parse(params.turnId) : null;
+				this.compactionId = this.progressTurnId === null ? null : item.id;
+			}
 			if (item.type === "userMessage") {
 				if (this.prompts.has(item.id)) return [];
 				this.prompts.add(item.id);

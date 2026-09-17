@@ -34,7 +34,3 @@ export const runTicketUpdate = async (
 		throw error;
 	}
 };
-
-// The text the screen shows for a rejected write: the server's message for
-// a declared error, else the runtime's own.
-export const updateMessage = (error: unknown): string => (error instanceof Error ? error.message : String(error));

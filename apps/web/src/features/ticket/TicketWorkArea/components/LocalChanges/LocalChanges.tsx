@@ -8,11 +8,11 @@ export function LocalChanges({ run }: { run: AgentRun }) {
 	const { orpc } = useApp();
 	const [selected, setSelected] = useState("");
 	const workspace = useQuery({
-		...orpc.evidence.workspace.queryOptions({ input: { runId: run.id } }),
+		...orpc.agentRuns.workspace.queryOptions({ input: { runId: run.id } }),
 		refetchInterval: 10000,
 	});
 	const file = useQuery({
-		...orpc.evidence.file.queryOptions({ input: { runId: run.id, path: selected } }),
+		...orpc.agentRuns.file.queryOptions({ input: { runId: run.id, path: selected } }),
 		enabled: selected !== "",
 		refetchInterval: selected === "" ? false : 10000,
 	});

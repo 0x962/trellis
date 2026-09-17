@@ -1,10 +1,15 @@
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
+import { ModelIdSchema } from "../models/models.ts";
 import {
 	AgentRunListInputSchema,
 	AgentRunSchema,
 	AgentRunStartInputSchema,
 	TicketMetricsSchema,
+	AgentWorkspaceFileInputSchema,
+	AgentWorkspaceFileSchema,
+	AgentWorkspaceInputSchema,
+	AgentWorkspaceSchema,
 } from "../schemas/agentRun.ts";
 import { UlidSchema } from "../schemas/primitives.ts";
 import { TicketGetInputSchema } from "../schemas/ticket.ts";
@@ -32,6 +37,19 @@ const sessionSchema = z.object({
 			tool: z
 				.object({ id: z.string(), name: z.string(), input: z.unknown().optional(), output: z.unknown().optional() })
 				.nullable(),
+			lastTool: z
+				.object({
+					id: z.string(),
+					name: z.string(),
+					input: z.unknown().optional(),
+					output: z.unknown().optional(),
+					startedAt: z.string().nullable(),
+					updatedAt: z.string(),
+					status: z.enum(["running", "completed", "failed"]),
+					error: z.string().nullable(),
+				})
+				.nullable(),
+			lastMessage: z.object({ text: z.string(), at: z.string() }).nullable(),
 			error: z.string().nullable(),
 			outcome: z.enum(["completed", "interrupted", "failed"]).nullable(),
 		})
@@ -53,6 +71,48 @@ const sessionSchema = z.object({
 	result: z.object({ id: z.string(), text: z.string() }).nullable(),
 });
 export const agentRuns = {
+	workspace: base
+		.route({ method: "GET", path: "/agent-runs/{runId}/workspace", summary: "Inspect the agent workspace" })
+		.input(AgentWorkspaceInputSchema)
+		.output(AgentWorkspaceSchema),
+	file: base
+		.route({ method: "GET", path: "/agent-runs/{runId}/workspace/file", summary: "Read a workspace file" })
+		.input(AgentWorkspaceFileInputSchema)
+		.output(AgentWorkspaceFileSchema),
+	setModel: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.route({
+			method: "POST",
+			path: "/agent-runs/{id}/model",
+			summary: "Change an agent's model, interrupt its active turn, and resume the same conversation and workspace.",
+		})
+		.input(
+			idInput.extend({
+				model: ModelIdSchema,
+				expectedTerminalId: z.string().min(1),
+				requestId: z.string().min(1).max(200),
+			}),
+		)
+		.output(AgentRunSchema),
+	resume: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.route({
+			method: "POST",
+			path: "/agent-runs/{id}/resume",
+			summary:
+				"Resume a stopped assignment with its exact conversation and workspace, optionally with another account of the same harness. Stop and inspect the prior attempt first.",
+		})
+		.input(
+			idInput.extend({
+				accountId: UlidSchema.optional(),
+				model: ModelIdSchema.optional().describe(
+					"Canonical model ID from models.list for this resume. Defaults to the previous attempt's model.",
+				),
+				expectedTerminalId: z.string().min(1),
+				requestId: z.string().min(1).max(200),
+			}),
+		)
+		.output(AgentRunSchema),
 	interrupt: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
 		.route({ method: "POST", path: "/agent-runs/{id}/interrupt", summary: "Interrupt the current agent turn" })

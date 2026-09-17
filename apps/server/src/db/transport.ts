@@ -4,19 +4,18 @@ import { createController } from "../agents/controller/controller.ts";
 import { startNativeReconcile } from "../agents/nativeReconcile/host.ts";
 import type { Config } from "../config.ts";
 import { API_VERSION, type RequestContext, SYSTEM_ACTOR, systemContext } from "../context.ts";
-import { invalidInput } from "../errors.ts";
 import type { Bus } from "../events/bus.ts";
 import type { GhRunner } from "../gh/run.ts";
 import { type Jobs, type JobsLog, scaledClock, startJobs as startBackgroundJobs } from "../jobs.ts";
 import { type DbTiming, LONG_TRANSACTION_MS } from "../serverTiming.ts";
 import { assertCurrentAttempt } from "../services/assignments/attempts.ts";
 import { gcAttachmentBlobs } from "../services/attachments.ts";
+import { loopRuntimes } from "../services/loops/runtime.ts";
 import { type ServiceEntry, type ServiceName, services } from "../services/registry.ts";
 import { createCache } from "./cache.ts";
 import type { Db } from "./client.ts";
 import { createMaintenance } from "./maintenance.ts";
 import { pullStream } from "./pullStream.ts";
-import { restartBlocks } from "./restartGate/restartGate.ts";
 import { type Emit, type Tx, withTx } from "./tx.ts";
 import { warmWrites } from "./warmWrites.ts";
 
@@ -144,12 +143,6 @@ export const createInlineTransport = ({
 	// name, because every other call waited for it.
 	const run = async (name: ServiceName, ctx: RequestContext, rawInput: unknown, span: Span) => {
 		const entry: ServiceEntry = services[name];
-		if (restartBlocks(config.home, name))
-			throw invalidInput(
-				"restart",
-				"Trellis is restoring agent sessions after a restart. Wait for the restart to finish.",
-			);
-
 		const tasks: Array<() => Promise<void>> = [];
 		const early: TrellisEvent[] = [];
 		try {
@@ -202,38 +195,28 @@ export const createInlineTransport = ({
 		return promise;
 	};
 
-	const backgroundCall = (name: ServiceName, input: unknown) =>
-		restartBlocks(config.home, name) ? Promise.resolve() : call(name, systemContext(), input);
+	const backgroundCall = (name: ServiceName, input: unknown) => call(name, systemContext(), input);
 
 	let jobs: Jobs | null = null;
 	let controller: ReturnType<typeof createController> | null = null;
 	let flowReconcile: ReturnType<typeof startNativeReconcile> | null = null;
-	let reviewTimer: ReturnType<typeof setInterval> | undefined;
 	const start = async (options?: JobsStart) => {
+		controller = createController({
+			clock: scaledClock(options?.clockRate ?? 1),
+			log: options?.log ?? log,
+			call: (name, input) => backgroundCall(name, input),
+		});
+		loopRuntimes.set(config.home, controller);
 		await db.transaction((tx) => cache.rebuild(tx));
-		await call("evidence.recover", systemContext(), {});
 		await warmWrites(db, cache);
-		const found = await db.execute(sql`SELECT DISTINCT sha256 FROM attachments`);
+		const found = await db.execute(sql`SELECT sha256 FROM attachments UNION SELECT sha256 FROM chat_attachments`);
 		if (options !== undefined) {
-			await db.transaction((tx) =>
-				tx.execute(
-					sql`UPDATE review_deliveries SET state = 'unknown', error = 'Trellis stopped before delivery confirmation.' WHERE state = 'sending'`,
-				),
-			);
-			reviewTimer = setInterval(() => {
-				void backgroundCall("reviews.deliverPending", {});
-			}, 3000);
 			const clock = scaledClock(options.clockRate);
 			flowReconcile = startNativeReconcile({
 				tick: () => backgroundCall("flowExecutions.reconcile", {}),
 				setTimer: clock.setTimer,
 				clearTimer: clock.clearTimer,
 				log: options.log,
-			});
-			controller = createController({
-				clock,
-				log: options.log,
-				call: (name, input) => backgroundCall(name, input),
 			});
 			await controller.start();
 			jobs = startBackgroundJobs({ db, gh: runtime.gh, bus, log: options.log, clock });
@@ -242,8 +225,8 @@ export const createInlineTransport = ({
 	};
 
 	const close = async () => {
-		clearInterval(reviewTimer);
 		await controller?.stop();
+		loopRuntimes.delete(config.home);
 		await flowReconcile?.stop();
 		if (jobs !== null) await jobs.stop();
 		await Promise.allSettled([...inFlight]);

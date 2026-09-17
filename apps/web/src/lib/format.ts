@@ -7,6 +7,38 @@ const minute = 60 * second;
 const hour = 60 * minute;
 const day = 24 * hour;
 
+export type LocalTimeOptions = { locale?: string; timeZone?: string };
+
+const timeZoneOption = (timeZone: string | undefined) => (timeZone === undefined ? {} : { timeZone });
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+const formatter = (name: string, options: LocalTimeOptions, format: Intl.DateTimeFormatOptions) => {
+	const key = `${name}\0${options.locale ?? ""}\0${options.timeZone ?? ""}`;
+	let cached = formatters.get(key);
+	if (cached === undefined) {
+		cached = new Intl.DateTimeFormat(options.locale, { ...format, ...timeZoneOption(options.timeZone) });
+		formatters.set(key, cached);
+	}
+	return cached;
+};
+
+export const localClock = (iso: string, options: LocalTimeOptions = {}) =>
+	formatter("clock", options, {
+		hour: "2-digit",
+		minute: "2-digit",
+		second: "2-digit",
+		hourCycle: "h23",
+	}).format(new Date(iso));
+
+export const localDateTime = (iso: string, options: LocalTimeOptions = {}) =>
+	formatter("date-time", options, {
+		dateStyle: "full",
+		timeStyle: "long",
+	}).format(new Date(iso));
+
+export const localDate = (iso: string, options: LocalTimeOptions = {}) =>
+	formatter("date", options, { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso));
+
 const shortDate = (iso: string) =>
 	new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(new Date(iso));
 

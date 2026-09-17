@@ -1,8 +1,10 @@
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
+import { nativePreset } from "../../agents/native/harnessHost.ts";
 import { rows } from "../../db/queries/support.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import { sendDeadline } from "../controller/sendDeadline.ts";
+import { unconfirmedDelivery } from "../deliveries/sentences.ts";
 import type { ServiceCtx } from "../support.ts";
 
 type Delivery = {
@@ -18,7 +20,17 @@ type Delivery = {
 	kind: string;
 };
 
-export const dispatchMentions = async (ctx: ServiceCtx, sessions: RuntimeProcessStatus[], send = prepareSend) => {
+export const dispatchMentions = async (
+	ctx: ServiceCtx,
+	sessions: RuntimeProcessStatus[],
+	send = prepareSend,
+	preset = nativePreset,
+) => {
+	await ctx.newTx((tx) =>
+		tx.execute(sql`DELETE FROM comment_deliveries d USING comments c,agent_runs r
+		WHERE d.comment_id=c.id AND d.run_id=r.id AND d.state='pending'
+		AND r.kind='manager' AND c.actor_kind<>'human'`),
+	);
 	await ctx.newTx((tx) =>
 		tx.execute(sql`UPDATE comment_deliveries d SET session_id=r.session_id FROM agent_runs r
 		WHERE d.run_id=r.id AND d.state='pending' AND d.session_id IS NULL AND r.session_id IS NOT NULL
@@ -48,7 +60,6 @@ export const dispatchMentions = async (ctx: ServiceCtx, sessions: RuntimeProcess
 			ready.map((id) => sql`${id}`),
 			sql`,`,
 		)})
-		AND NOT EXISTS (SELECT 1 FROM settings WHERE key='nativeWorkPaused' AND value='true'::jsonb)
 		AND NOT EXISTS (WITH RECURSIVE ancestors AS (
 			SELECT id,parent_id,archived_at FROM projects WHERE id=t.project_id
 			UNION ALL SELECT p.id,p.parent_id,p.archived_at FROM projects p JOIN ancestors a ON p.id=a.parent_id
@@ -70,6 +81,7 @@ export const dispatchMentions = async (ctx: ServiceCtx, sessions: RuntimeProcess
 			await sendDeadline(
 				send(ctx, {
 					id: delivery.runId,
+					interrupt: (await preset(ctx.home, delivery.terminalId)) !== "custom",
 					text:
 						delivery.kind === "manager"
 							? JSON.stringify({
@@ -86,9 +98,9 @@ export const dispatchMentions = async (ctx: ServiceCtx, sessions: RuntimeProcess
 					expectedSessionId: delivery.sessionId,
 				}),
 			);
-		} catch (cause) {
+		} catch {
 			state = "unknown";
-			error = cause instanceof Error ? cause.message : String(cause);
+			error = unconfirmedDelivery;
 		}
 		await ctx.newTx((tx) =>
 			tx.execute(sql`UPDATE comment_deliveries SET state=${state},error=${error} WHERE id=${delivery.id}`),

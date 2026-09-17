@@ -14,6 +14,7 @@ export function validateRequest(value: unknown): RuntimeRequest {
 		[
 			"start",
 			"inspect",
+			"hasMessage",
 			"registerNativeDelivery",
 			"observe",
 			"turn",
@@ -34,7 +35,9 @@ export function validateRequest(value: unknown): RuntimeRequest {
 			!expected ||
 			typeof expected !== "object" ||
 			(expected.turnId !== null && typeof expected.turnId !== "string") ||
-			typeof expected.activityAt !== "string"
+			typeof expected.activityAt !== "string" ||
+			(expected.idleBefore !== undefined &&
+				(typeof expected.idleBefore !== "string" || !Number.isFinite(Date.parse(expected.idleBefore))))
 		)
 			throw new Error("An expected provider turn requires turnId and activityAt");
 	}
@@ -45,12 +48,22 @@ export function validateRequest(value: unknown): RuntimeRequest {
 		case "stop":
 			break;
 		case "list":
+			if (
+				params.ids !== undefined &&
+				(!Array.isArray(params.ids) ||
+					!params.ids.every((id) => typeof id === "string" && /^[a-zA-Z0-9_-]{1,128}$/.test(id)))
+			)
+				throw new Error("Session identifiers must contain letters, numbers, underscores, or hyphens");
 			if (params.status !== undefined && !["running", "exited", "unknown"].includes(params.status as string))
 				throw new Error("Unknown process status filter");
 			if (params.activity !== undefined && !["ready", "working", "idle"].includes(params.activity as string))
 				throw new Error("Unknown process activity filter");
 			if (params.hasError !== undefined && typeof params.hasError !== "boolean")
 				throw new Error("The process error filter must be a boolean");
+			break;
+		case "hasMessage":
+			if (typeof params.messageId !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.messageId))
+				throw new Error("Message identifier must contain letters, numbers, underscores, or hyphens");
 			break;
 		case "registerNativeDelivery":
 			if (typeof params.token !== "string" || !params.token || params.token.length > 1024)

@@ -58,11 +58,6 @@ export const errors = {
 		message: "The URL is not a GitHub pull request URL.",
 		data: z.undefined(),
 	},
-	AGENT_CANNOT_COMPLETE: {
-		status: 403,
-		message: "An agent cannot move a ticket to a done status. A human does that, or pass force.",
-		data: z.object({ status: StatusSummarySchema }),
-	},
 	AGENT_CANNOT_DELETE: {
 		status: 403,
 		message: "An agent cannot delete a ticket or a project without force.",
@@ -110,7 +105,8 @@ export const errors = {
 	},
 	CROSS_ROOT_MOVE: {
 		status: 409,
-		message: "A ticket, a parent, or a project cannot move to another root.",
+		message:
+			"A ticket, a parent, or a project cannot move to another root. Create the ticket or project again in the other root.",
 		data: z.undefined(),
 	},
 	PARENT_CYCLE: {
@@ -133,6 +129,16 @@ export const errors = {
 		message: "The parent comment belongs to another ticket.",
 		data: z.undefined(),
 	},
+	CHAT_AI_ONLY: {
+		status: 403,
+		message: "This channel is for agents only. A person reads it and does not post in it.",
+		data: z.undefined(),
+	},
+	CHAT_DIRECT: {
+		status: 403,
+		message: "This channel is a direct message between a person and the manager. Other agents post elsewhere.",
+		data: z.undefined(),
+	},
 	COMMENT_HAS_REPLIES: {
 		status: 409,
 		message: "This comment has replies. Delete its replies before you delete the comment.",
@@ -140,13 +146,13 @@ export const errors = {
 	},
 	INVALID_ANCHOR: {
 		status: 409,
-		message: "The after or before ticket is not in the target column.",
+		message: "The after or before item is not in the target list.",
 		data: z.undefined(),
 	},
-	CONCURRENCY_LIMIT: {
+	STATUS_FULL: {
 		status: 409,
-		message: "The project runs its maximum number of builders. Start this one when a builder finishes.",
-		data: z.object({ limit: z.number().int().positive(), running: CountSchema }),
+		message: "The status holds its maximum number of tickets. Move a ticket out before you move one in.",
+		data: z.object({ statusId: z.string().min(1), limit: z.number().int().positive(), count: CountSchema }),
 	},
 	VERSION_CONFLICT: {
 		status: 412,
@@ -159,6 +165,23 @@ export const errors = {
 		status: 412,
 		message: "The flow changed since the version you sent. Read the flow again before you save.",
 		data: z.object({ version: z.number().int().positive() }),
+	},
+	// The database runs one search of a client at a time. A search that
+	// arrives while an earlier search of the same client still waits takes its
+	// place, and the earlier call ends with this code. The newer search is
+	// already running, so the client waits for it and reports no failure.
+	SEARCH_REPLACED: {
+		status: 409,
+		message: "A newer search replaced this search.",
+		data: z.undefined(),
+	},
+	// `command` is the tool the backup ran, `code` its exit status, and
+	// `stderr` the text it wrote. The message states all three, so a person
+	// reads why the copy or the archive stopped.
+	BACKUP_FAILED: {
+		status: 500,
+		message: "The backup command failed.",
+		data: z.object({ command: z.string().min(1), code: z.number().int(), stderr: z.string() }),
 	},
 	PAYLOAD_TOO_LARGE: {
 		status: 413,

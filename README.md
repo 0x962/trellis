@@ -89,7 +89,9 @@ trellis list --project TRL --json
 ### The pages
 
 `/` sends you to Needs you. The sidebar holds Needs you, Search, All tickets,
-Pull requests, Personas, Flows, and the project tree.
+Pull requests, Personas, Flows, Usage, the sessions, and the project tree.
+A session is a scratch git repository with one agent, outside every project.
+The New session button in the sidebar starts one from a prompt.
 
 | Path | Page |
 |---|---|
@@ -102,8 +104,10 @@ Pull requests, Personas, Flows, and the project tree.
 | `/p/TRL/settings` | The settings of a project |
 | `/p/TRL/settings/manager` | The manager agent of a project |
 | `/t/TRL-42` | One ticket |
+| `/sessions/<id>` | One session: the terminal of its agent and the process controls |
 | `/search` | Search |
 | `/ai/personas` | The personas |
+| `/usage` | Subscription quota, token cost per day, and a breakdown by ticket, persona, project, kind, account, model, or harness |
 | `/settings` | The settings |
 | `/setup` | The first visit, and the new project step |
 
@@ -188,7 +192,7 @@ A builder run and a reviewer run name one ticket. A manager run names one
 project. A project runs one manager at a time.
 
 The Manager page at `/p/<project path>/settings/manager` controls the project's local work.
-Operation shows the manager process, output, and durable event queue. Its switch pauses automatic dispatch while queued events remain stored.
+Operation shows the manager process, output, and durable event queue. Trellis sends each queued event to a running manager.
 General selects the manager persona, repository directory, trust, and concurrency limit. Harness selects the agent preset and commands.
 The concurrency limit runs from 1 to 64, defaults to 3, and excludes the manager.
 
@@ -235,11 +239,6 @@ Use the same `--request-id` if a worker start has an uncertain result. Use a new
 The launch supplies `TRELLIS_URL`, `TRELLIS_ACTOR`, `TRELLIS_RUN_ID`, and `TRELLIS_ATTEMPT_TOKEN` to the agent.
 The actor is `agent:<run id>`. The attempt token prevents an old execution from changing the current run.
 
-Use `trellis evidence workspace <run>` to inspect its files and changes.
-Use `trellis evidence check <run> --command <executable> --request-id <uuid>` to retain a command result.
-Use `trellis evidence register <run> --path <relative-path>` to record an artifact.
-Each check and artifact records the attempt and workspace revision. A later file change makes earlier evidence outdated.
-
 ## Ticket workflow (trellis)
 
 Tickets live in trellis, a local tracker at http://127.0.0.1:4521. Use the `trellis` CLI. When you pipe its output, it prints JSON.
@@ -252,8 +251,8 @@ Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, set `T
 5. Split work:       trellis sub TRL-42 -t "Write tests"
 6. Ask a question:   trellis comment TRL-42 --body "..." and then wait for the reply: trellis watch --ticket TRL-42
 7. Finish coding:    trellis move TRL-42 agent-review
-8. When CI is green and the self-review is done: trellis move TRL-42 human-review
-Never move a ticket to Done; a human does that. Never delete tickets.
+8. When the agent review passes: trellis move TRL-42 human-review
+Never delete tickets.
 
 Read a comment thread: trellis thread show <comment-id>
 Reply in that thread: trellis comment TRL-42 --reply-to <comment-id> --body "..."
@@ -355,7 +354,7 @@ A setting that belongs to one project lives on that project's pages.
 | `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#subprojects`, `#archive` |
 | `/p/<path>/settings/manager` | Operation (no hash), `#settings`, `#harness` |
 
-The Manager page separates automatic dispatch from the manager process. The top control starts, resumes, or stops the process.
+The top control of the Manager page starts, resumes, or stops the manager process.
 
 ## Mobile
 
@@ -444,22 +443,13 @@ bun run dev
 
 | Command | What it runs |
 |---|---|
-| `bun run test` | The `bun test` suite of every workspace. |
-| `bun run test:repo` | The repository rules and the documentation links in `test/`. |
-| `bun run check` | lint, typecheck, test, size-budget, typecheck:repo, and test:repo. Add `--force` to skip the turbo cache. |
-| `bun run e2e` | The Playwright suite against the real server and vite on free ports. Run `bunx playwright install chromium` in `apps/web` one time. |
-| `bun run perf:10k` | Optional performance tests at 10k rows, one workspace at a time. |
-| `bun run perf` | Optional performance tests at 50k rows. |
+| `bun run typecheck` | TypeScript in every workspace. |
+| `bun run typecheck:repo` | TypeScript for repository scripts. |
+| `bun run lint` | Biome over the repository. |
+| `bun run check` | The linter and both type checks. Add `--force` to skip the Turbo cache. |
 | `bun run db:generate` | The Drizzle migrations for a change to `apps/server/src/db/schema.ts`. |
-| `bun run --cwd apps/mobile test:native` | The mobile Jest suite. |
 
-A web component test drives the real server. `apps/web/test/server` builds the
-Hono app of `apps/server` over an in-memory PGlite. The web workspace ships no
-fake server.
-
-`test/readme.test.ts` runs each shell block in this README that has the info string `sh test`. The blocks run against a temporary data home, so a command that stops working fails the test.
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) for the development loop, the TDD rules, and the review pass.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for the development loop and the review pass.
 
 ## License
 

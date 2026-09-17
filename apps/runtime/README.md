@@ -9,7 +9,7 @@ bun run --cwd apps/runtime build
 node apps/runtime/dist/index.js --home /absolute/path/to/trellis/runtime
 ```
 
-The desktop package supplies Node and the native `node-pty`, `fs-ext`, and `koffi` modules. The native modules must match that Node runtime. `TRELLIS_RUNTIME_NODE` selects the Node executable for integration tests.
+The desktop package supplies Node and the native `node-pty`, `fs-ext`, and `koffi` modules. The native modules must match that Node runtime.
 
 The runtime acquires a kernel file lock before it opens state. A second daemon cannot change the first daemon's manifest or session records. After a crash, socket cleanup requires a refused connection and proof that the recorded PID no longer exists. A live or reused PID requires inspection.
 
@@ -23,7 +23,7 @@ Import `RuntimeClient` from `@trellis/runtime-protocol/client`. Each call opens 
 | --- | --- | --- |
 | `hello` | None | Runtime identity |
 | `shutdown` | None | Null after managed processes stop |
-| `list` | None | All recorded sessions |
+| `list` | None | Every retained session |
 | `start` | Launch specification | Session |
 | `input` | Session identifier, base64 bytes | Null |
 | `deliver` | Session identifier, message identifier, base64 bytes | Written or unknown |
@@ -42,6 +42,8 @@ Standard-stream writes await the stream callback before they record `written`. P
 A child can close standard input while it remains active. A failed write returns its error and retains an unknown keyed delivery. The runtime records the input error without changing process ownership or status. The process remains available for `stop`, and its deadline remains active.
 
 Input calls have no automatic resend. The host must preserve an unknown input result until its harness can establish receipt.
+
+The runtime retains the record and the output files of an exited session for 7 days after the exit, and then removes them. A `list` result omits a removed session. An `inspect` or `output` call for a removed session returns `SESSION_NOT_FOUND`.
 
 `running` describes a process. It does not establish agent readiness, a current turn, or useful output. After a runtime crash, prior active sessions become `unknown`. Their recorded identifiers cannot create replacement processes.
 

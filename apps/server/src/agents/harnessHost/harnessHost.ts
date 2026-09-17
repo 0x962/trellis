@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { RuntimeListInput, RuntimeProcessStatus, RuntimeStream } from "@trellis/runtime-protocol";
+import type {
+	RuntimeExpectedTurn,
+	RuntimeListInput,
+	RuntimeProcessStatus,
+	RuntimeStream,
+} from "@trellis/runtime-protocol";
 import { z } from "zod";
 import { interruptHarness } from "./interruptHarness.ts";
 import { prepareAttempt } from "./prepareAttempt.ts";
@@ -12,7 +17,7 @@ const identifier = z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/);
 const launchInput = z
 	.object({
 		id: identifier,
-		harness: z.enum(["claude", "codex", "pi", "opencode"]),
+		harness: z.enum(["claude", "codex", "pi", "opencode", "muse"]),
 		managerId: identifier.optional(),
 		cwd: z.string().startsWith("/"),
 		prompt: z.string().min(1),
@@ -77,10 +82,23 @@ export class HarnessHost {
 		matches: (session: RuntimeProcessStatus) => boolean,
 		options: { rejectAgentError?: boolean } = {},
 	): Promise<RuntimeProcessStatus> {
-		const signal = AbortSignal.timeout(this.options.observationTimeoutMs ?? 15000);
+		const timeoutMs = this.options.observationTimeoutMs ?? 15000;
+		const controller = new AbortController();
+		const signal = controller.signal;
+		let lastProgressAt = Date.now();
+		let timer = setTimeout(() => controller.abort(), timeoutMs);
 		try {
 			for await (const event of this.options.runtime.subscribeSession(id, signal)) {
 				if (event.type !== "session") continue;
+				const progressAt = Math.max(
+					event.session.agent?.lastTool ? Date.parse(event.session.agent.lastTool.updatedAt) : 0,
+					event.session.agent?.lastMessage ? Date.parse(event.session.agent.lastMessage.at) : 0,
+				);
+				if (progressAt > lastProgressAt) {
+					lastProgressAt = progressAt;
+					clearTimeout(timer);
+					timer = setTimeout(() => controller.abort(), timeoutMs);
+				}
 				if (matches(event.session)) return event.session;
 				if (
 					event.session.status === "exited" ||
@@ -95,10 +113,12 @@ export class HarnessHost {
 			if (!signal.aborted) throw error;
 			throw Object.assign(
 				new Error(
-					`Harness attempt ${id} did not confirm the requested provider observation within ${this.options.observationTimeoutMs ?? 15000} ms; inspect or stop this attempt before resending`,
+					`Harness attempt ${id} made no observed progress for ${timeoutMs} ms while waiting for provider confirmation. Inspect its terminal and provider events. Stop the attempt before you send again.`,
 				),
 				{ code: "HARNESS_OBSERVATION_TIMEOUT" },
 			);
+		} finally {
+			clearTimeout(timer);
 		}
 		throw new Error(`Harness attempt ${id} closed before the requested provider observation`);
 	}
@@ -134,11 +154,11 @@ export class HarnessHost {
 	// message id that an earlier send registered without a confirmed write
 	// stays uncertain: the text may already be in the queue, so send refuses
 	// to hand it over again.
-	async send(id: string, text: string, messageId: string = randomUUID()) {
+	async send(id: string, text: string, messageId: string = randomUUID(), expected?: RuntimeExpectedTurn) {
 		identifier.parse(messageId);
 		const descriptor = await this.descriptor(id);
 		let status: "unknown" | "written" | "acknowledged";
-		if (descriptor.harness === "opencode" || descriptor.harness === "codex") {
+		if (descriptor.harness === "opencode" || descriptor.harness === "codex" || descriptor.harness === "muse") {
 			const sessionId = (await this.status(id)).agent?.sessionId;
 			if (sessionId == null) throw new Error(`Harness attempt ${id} has no provider session identity`);
 			const reservation = await sendNativePrompt(
@@ -147,6 +167,7 @@ export class HarnessHost {
 				sessionId,
 				messageId,
 				`trellis-message:${messageId}\n${text}`,
+				expected,
 			);
 			status = reservation.claimed ? "written" : reservation.status;
 		} else {
@@ -154,6 +175,7 @@ export class HarnessHost {
 				id,
 				messageId,
 				Buffer.from(`\u001b[200~trellis-message:${messageId}\n${text}\u001b[201~\r`).toString("base64"),
+				expected,
 			);
 			status = delivery.status;
 		}
@@ -166,9 +188,11 @@ export class HarnessHost {
 			);
 		return this.status(id);
 	}
-	async interrupt(id: string) {
+	async interrupt(id: string, { waitForIdle = true } = {}) {
 		const descriptor = await this.descriptor(id);
-		const result = await interruptHarness(this.options, descriptor, await this.status(id));
+		const before = await this.status(id);
+		const result = await interruptHarness(this.options, descriptor, before, waitForIdle);
+		if (!waitForIdle) return before;
 		return (
 			result ?? this.waitFor(id, (state) => state.activity?.state === "idle" && state.agent?.outcome === "interrupted")
 		);

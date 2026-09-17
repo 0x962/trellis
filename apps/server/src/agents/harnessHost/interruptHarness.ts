@@ -1,6 +1,7 @@
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { readClaudeStatus } from "../harnesses/claude/readClaudeStatus.ts";
 import { requestCodex } from "../harnesses/codex/requestCodex.ts";
+import { requestMuse } from "../harnesses/muse/requestMuse.ts";
 import { interruptOpenCode } from "../harnesses/opencode/interruptOpenCode.ts";
 import { providers } from "./providers.ts";
 import type { HarnessDescriptor, HarnessHostOptions } from "./types.ts";
@@ -9,8 +10,13 @@ export async function interruptHarness(
 	options: HarnessHostOptions,
 	descriptor: HarnessDescriptor,
 	before: RuntimeProcessStatus,
+	waitForIdle = true,
 ) {
 	const provider = providers[descriptor.harness];
+	if (!waitForIdle && provider.interrupt !== null) {
+		await options.runtime.input(before.id, Buffer.from(provider.interrupt).toString("base64"), false);
+		return before;
+	}
 	if (before.status !== "running" || !before.controllable || before.activity === null || before.agent === null)
 		throw new Error(`Harness attempt ${before.id} has no controllable observed turn`);
 	if (before.activity.state === "idle") return before;
@@ -20,6 +26,17 @@ export async function interruptHarness(
 		await requestCodex(
 			descriptor.spec.env!.TRELLIS_CODEX_CONTROL_SOCKET!,
 			descriptor.spec.env!.TRELLIS_CODEX_CONTROL_TOKEN!,
+			"/interrupt",
+			{ sessionId: before.agent.sessionId, turnId: before.agent.turnId },
+		);
+		return null;
+	}
+	if (descriptor.harness === "muse") {
+		if (before.agent.sessionId === null || before.agent.turnId === null)
+			throw new Error(`Harness attempt ${before.id} has no active provider turn identity`);
+		await requestMuse(
+			descriptor.spec.env!.TRELLIS_MUSE_CONTROL_SOCKET!,
+			descriptor.spec.env!.TRELLIS_MUSE_CONTROL_TOKEN!,
 			"/interrupt",
 			{ sessionId: before.agent.sessionId, turnId: before.agent.turnId },
 		);

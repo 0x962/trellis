@@ -1,31 +1,36 @@
 import { ORPCError } from "@orpc/server";
 import { type AgentRun, errors, type TicketMetrics } from "@trellis/api";
-import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
+import type { RuntimeListInput, RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { ExecutionAttemptRecord } from "../assignments.ts";
 import type { ServiceCtx } from "../support.ts";
 import type { StoredRun } from "./queries.ts";
 
 type RuntimeSessionIndex = ReadonlyMap<string, RuntimeProcessStatus>;
+type ReadRuntimeSessions = (home: string, input: RuntimeListInput) => Promise<RuntimeProcessStatus[]>;
 
 export const indexRuntimeSessions = (sessions: RuntimeProcessStatus[]): RuntimeSessionIndex =>
 	new Map(sessions.map((session) => [session.id, session]));
 
-export async function readRuntimeSessions(home: string): Promise<RuntimeProcessStatus[]> {
+export async function readRuntimeSessions(
+	home: string,
+	input: RuntimeListInput = {},
+): Promise<RuntimeProcessStatus[]> {
 	try {
-		return await nativeHost(home).list();
+		return await nativeHost(home).list(input);
 	} catch (error) {
 		if (["ENOENT", "ECONNREFUSED"].includes((error as NodeJS.ErrnoException).code ?? "")) return [];
 		throw error;
 	}
 }
 
-// The same read without the stopped-runtime fallback. A metrics request
-// with attempts and no reachable runtime throws, so the request fails
-// instead of reporting the missing data as unavailable.
-export async function readRuntimeSessionsRequired(home: string): Promise<RuntimeProcessStatus[]> {
+// A runtime failure differs from a provider that did not record a metric.
+export async function readRuntimeSessionsRequired(
+	home: string,
+	input: RuntimeListInput,
+): Promise<RuntimeProcessStatus[]> {
 	try {
-		return await nativeHost(home).list();
+		return await nativeHost(home).list(input);
 	} catch (error) {
 		throw new ORPCError("RUNNER_UNAVAILABLE", {
 			defined: true,
@@ -36,8 +41,7 @@ export async function readRuntimeSessionsRequired(home: string): Promise<Runtime
 	}
 }
 
-// Every attempt id of each run, so the run list and the metrics route
-// share one grouping instead of scanning the attempts per run.
+// Each run maps to its execution attempts for one runtime read.
 export const groupAttemptIdsByRun = (attempts: ExecutionAttemptRecord[]): Map<string, string[]> => {
 	const attemptIdsByRun = new Map<string, string[]>();
 	for (const attempt of attempts) {
@@ -116,14 +120,20 @@ export function projectRun(
 	};
 }
 
+const runtimeIds = (runs: StoredRun[], attemptIdsByRun: ReadonlyMap<string, string[]>) => [
+	...new Set(runs.flatMap((run) => attemptIdsByRun.get(run.id) ?? ([run.terminalId].filter(String) as string[]))),
+];
+
 export async function observeRuns(
 	ctx: Pick<ServiceCtx, "home">,
 	runs: StoredRun[],
 	attempts: ExecutionAttemptRecord[] = [],
+	readSessions: ReadRuntimeSessions = readRuntimeSessions,
 ): Promise<AgentRun[]> {
 	if (runs.length === 0) return [];
-	const sessions = indexRuntimeSessions(await readRuntimeSessions(ctx.home));
 	const attemptIdsByRun = groupAttemptIdsByRun(attempts);
+	const ids = runtimeIds(runs, attemptIdsByRun);
+	const sessions = indexRuntimeSessions(ids.length === 0 ? [] : await readSessions(ctx.home, { ids }));
 	return runs.map((run) => {
 		const attemptIds = attemptIdsByRun.get(run.id);
 		return projectRun(run, sessions, attemptIds === undefined ? undefined : attemptIds);
@@ -132,17 +142,15 @@ export async function observeRuns(
 
 type RunWork = Pick<TicketMetrics, "durationMs" | "tokenCount">;
 
-// The aggregate fields of each run without the full run projection. The
-// ticket metrics route reads this, so one agent event never projects the
-// same runs once for the list and again for the metrics.
 export async function observeTicketMetrics(
 	ctx: Pick<ServiceCtx, "home">,
 	runs: StoredRun[],
 	attempts: ExecutionAttemptRecord[] = [],
 ): Promise<RunWork[]> {
 	if (runs.length === 0) return [];
-	const sessions = indexRuntimeSessions(await readRuntimeSessionsRequired(ctx.home));
 	const attemptIdsByRun = groupAttemptIdsByRun(attempts);
+	const ids = runtimeIds(runs, attemptIdsByRun);
+	const sessions = indexRuntimeSessions(ids.length === 0 ? [] : await readRuntimeSessionsRequired(ctx.home, { ids }));
 	return runs.map((run) => {
 		const attemptIds = attemptIdsByRun.get(run.id);
 		return executionMetrics(

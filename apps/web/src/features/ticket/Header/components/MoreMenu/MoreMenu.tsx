@@ -5,10 +5,10 @@ import { Button, Dialog, IconButton, Menu, Tooltip } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
+import { failToast } from "../../../../../lib/failToast";
 import { lastListHref } from "../../../../../lib/lastList";
 import { branchName, titleSlug } from "../../../PropertiesRail/utils/branchName";
 import { openPicker } from "../../../stores/pickerStore";
-import { failToast } from "../../../utils/failToast";
 import { useCopyBrief } from "../BriefCopy";
 
 export type MoreMenuProps = {
