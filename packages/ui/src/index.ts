@@ -12,7 +12,6 @@ export { GroupHeader, type GroupHeaderProps, groupHeaderHeight, phoneGroupHeader
 export * from "./domain/HarnessAccountCard";
 export * from "./domain/HarnessAccountForm";
 export { InboxRow, type InboxRowProps } from "./domain/InboxRow";
-export { LocalEvidence } from "./domain/LocalEvidence";
 export { LoopStatus, type LoopStatusProps } from "./domain/LoopStatus";
 export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/PriorityIcon";
 export { type ModelProvider, ProviderIcon, type ProviderIconProps } from "./domain/ProviderIcon";

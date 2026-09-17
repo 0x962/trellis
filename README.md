@@ -239,11 +239,6 @@ Use the same `--request-id` if a worker start has an uncertain result. Use a new
 The launch supplies `TRELLIS_URL`, `TRELLIS_ACTOR`, `TRELLIS_RUN_ID`, and `TRELLIS_ATTEMPT_TOKEN` to the agent.
 The actor is `agent:<run id>`. The attempt token prevents an old execution from changing the current run.
 
-Use `trellis evidence workspace <run>` to inspect its files and changes.
-Use `trellis evidence check <run> --command <executable> --request-id <uuid>` to retain a command result.
-Use `trellis evidence register <run> --path <relative-path>` to record an artifact.
-Each check and artifact records the attempt and workspace revision. A later file change makes earlier evidence outdated.
-
 ## Ticket workflow (trellis)
 
 Tickets live in trellis, a local tracker at http://127.0.0.1:4521. Use the `trellis` CLI. When you pipe its output, it prints JSON.

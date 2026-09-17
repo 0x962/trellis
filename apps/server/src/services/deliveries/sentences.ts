@@ -9,8 +9,3 @@ export const unconfirmedDelivery =
 // ended, and the input ledger of that session holds no record of the
 // message. A new send needs a running agent.
 export const lostDelivery = "The agent session ended without this message. Resend it to a running agent.";
-
-// The same rule for an evidence check. A check carries no message to an
-// agent, so it names the check and the next step a person can take.
-export const unconfirmedCheck =
-	"Trellis could not confirm the result of this check. Inspect the agent's terminal before a new check.";

@@ -208,7 +208,6 @@ export const createInlineTransport = ({
 		});
 		loopRuntimes.set(config.home, controller);
 		await db.transaction((tx) => cache.rebuild(tx));
-		await call("evidence.recover", systemContext(), {});
 		await warmWrites(db, cache);
 		const found = await db.execute(sql`SELECT sha256 FROM attachments UNION SELECT sha256 FROM chat_attachments`);
 		if (options !== undefined) {

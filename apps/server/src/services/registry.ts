@@ -7,8 +7,9 @@ import { prepareResume } from "./agentRuns/resume.ts";
 import { prepareSetModel } from "./agentRuns/setModel/setModel.ts";
 import { stopNativeWork } from "./agentRuns/stopNativeWork.ts";
 import * as agentTerminal from "./agentRuns/terminal.ts";
+import { file as workspaceFile } from "./agentRuns/workspace/file.ts";
+import { workspace } from "./agentRuns/workspace/workspace.ts";
 import * as attachments from "./attachments.ts";
-
 import * as brief from "./brief.ts";
 import * as chatAttachments from "./chat/attachments.ts";
 import * as chatChannels from "./chat/channels.ts";
@@ -21,13 +22,6 @@ import { list as listManagerActions } from "./controller/nextActions/list.ts";
 import * as controllerPrepare from "./controller/prepare.ts";
 import * as controllerWork from "./controller/work.ts";
 import { diagnostics } from "./diagnostics.ts";
-import { check as evidenceCheck } from "./evidence/check.ts";
-import { file as evidenceFile } from "./evidence/file.ts";
-import { list as evidenceList } from "./evidence/list.ts";
-import { recover as evidenceRecover } from "./evidence/recover.ts";
-import { register as evidenceRegister } from "./evidence/register.ts";
-import { result as evidenceResult } from "./evidence/result.ts";
-import { workspace as evidenceWorkspace } from "./evidence/workspace.ts";
 import { decide as decideFlowExecution } from "./flowExecutions/decide.ts";
 import { list as listFlowExecutions } from "./flowExecutions/list.ts";
 import { prepareFlowCancel } from "./flowExecutions/prepareFlowCancel.ts";
@@ -139,12 +133,8 @@ export const services = {
 	"flowExecutions.reconcile": prepared("mutation", prepareFlowReconcile, agentTerminal.result),
 	"system.doctor": prepared("read", diagnostics, agentTerminal.result),
 	"system.stopNativeWork": prepared("mutation", stopNativeWork, agentTerminal.result),
-	"evidence.workspace": prepared("read", evidenceWorkspace, evidenceResult),
-	"evidence.file": prepared("read", evidenceFile, evidenceResult),
-	"evidence.list": prepared("read", evidenceList, evidenceResult),
-	"evidence.check": prepared("mutation", evidenceCheck, evidenceResult),
-	"evidence.register": prepared("mutation", evidenceRegister, evidenceResult),
-	"evidence.recover": core("mutation", evidenceRecover),
+	"agentRuns.workspace": prepared("read", workspace, agentTerminal.result),
+	"agentRuns.file": prepared("read", workspaceFile, agentTerminal.result),
 	"agentRuns.session": prepared("read", agentTerminal.session, agentTerminal.result),
 	"agentRuns.terminalTarget": core("read", agentTerminal.streamTarget),
 	"agentRuns.terminalOutput": prepared("read", agentTerminal.output, agentTerminal.result),

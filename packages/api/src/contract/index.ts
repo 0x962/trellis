@@ -6,7 +6,6 @@ import { brief } from "./brief.ts";
 import { chat } from "./chat.ts";
 import { comments } from "./comments.ts";
 import { controller } from "./controller.ts";
-import { evidence } from "./evidence.ts";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
@@ -38,7 +37,6 @@ export const contract = {
 	harnessAccounts: oc.tag("harness accounts").router(harnessAccounts),
 	usage: oc.tag("usage").router(usage),
 	needsYou: oc.tag("needs you").router(needsYou),
-	evidence: oc.tag("evidence").router(evidence),
 	controller: oc.tag("controller").router(controller),
 	reviews: oc.tag("reviews").router(reviews),
 	agentRuns: oc.tag("agent runs").router(agentRuns),

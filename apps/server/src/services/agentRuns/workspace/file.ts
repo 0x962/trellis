@@ -1,13 +1,12 @@
 import { constants } from "node:fs";
 import { open } from "node:fs/promises";
-import { invalidInput } from "../../errors.ts";
-import { hashFile } from "./hashFile.ts";
+import { invalidInput } from "../../../errors.ts";
 import { safeFile } from "./safeFile.ts";
 import { target } from "./target.ts";
-import type { EvidenceCtx } from "./types.ts";
+import type { WorkspaceCtx } from "./types.ts";
 
-export const file = async (ctx: EvidenceCtx, input: { runId: string; path: string }) => {
-	const { workspace } = await ctx.newTx((tx) => target(ctx.core, tx, input));
+export const file = async (ctx: WorkspaceCtx, input: { runId: string; path: string }) => {
+	const { workspace } = await ctx.newTx((tx) => target(tx, input));
 	const path = await safeFile(workspace, input.path);
 	const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
 	try {
@@ -20,7 +19,6 @@ export const file = async (ctx: EvidenceCtx, input: { runId: string; path: strin
 		return {
 			path: input.path,
 			text: binary ? null : data.toString("utf8"),
-			sha256: await hashFile(handle),
 			bytes: info.size,
 			truncated: info.size > bytesRead,
 			binary,

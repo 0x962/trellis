@@ -77,3 +77,26 @@ export const AgentRunListInputSchema = z.strictObject({
 	project: z.string().optional(),
 });
 export type AgentRunListInput = z.infer<typeof AgentRunListInputSchema>;
+
+export const AgentWorkspaceInputSchema = z.object({ runId: UlidSchema });
+export const AgentWorkspaceFileInputSchema = AgentWorkspaceInputSchema.extend({
+	path: z.string().min(1).max(4096),
+});
+export const AgentWorkspaceSchema = z.object({
+	runId: UlidSchema,
+	files: z.array(
+		z.object({
+			path: z.string(),
+			status: z.string(),
+		}),
+	),
+	diff: z.string(),
+	truncated: z.boolean(),
+});
+export const AgentWorkspaceFileSchema = z.object({
+	path: z.string(),
+	text: z.string().nullable(),
+	bytes: z.number(),
+	truncated: z.boolean(),
+	binary: z.boolean(),
+});
