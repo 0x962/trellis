@@ -1,13 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { lock } from "proper-lockfile";
 import { z } from "zod";
 
-// Muse can send normal usage from several bridge processes for one account.
-// A separate quota file keeps a late normal snapshot from removing an active
-// quota error. `fetchAccountQuota` reads and combines both files.
+// Several Muse bridge processes can write usage for one account. The lock
+// makes each file keep the event with the newest `observedAtMs` value.
+// `fetchAccountQuota` reads and combines the normal usage and quota files.
 export const MUSE_USAGE_FILE = "trellis-usage.json";
 export const MUSE_QUOTA_FILE = "trellis-quota.json";
+const MUSE_USAGE_LOCK_FILE = "trellis-usage.lock";
 
 const window = z.object({ usedPercent: z.number(), resetsAtMs: z.number() });
 export const MuseUsageSchema = z.object({
@@ -28,12 +30,6 @@ async function writeSnapshot(path: string, snapshot: unknown) {
 	await rename(temporary, path);
 }
 
-export async function writeMuseUsage(museHome: string, usage: unknown) {
-	const snapshot = MuseUsageSchema.parse(usage);
-	await writeSnapshot(join(museHome, MUSE_USAGE_FILE), snapshot);
-	return snapshot;
-}
-
 async function readSnapshot<T>(path: string, schema: z.ZodType<T>): Promise<T | null> {
 	try {
 		return schema.parse(JSON.parse(await readFile(path, "utf8")));
@@ -41,6 +37,33 @@ async function readSnapshot<T>(path: string, schema: z.ZodType<T>): Promise<T | 
 		if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
 		throw error;
 	}
+}
+
+async function writeLatestSnapshot<T extends { observedAtMs: number }>(
+	museHome: string,
+	file: string,
+	schema: z.ZodType<T>,
+	snapshot: T,
+) {
+	const release = await lock(museHome, {
+		lockfilePath: join(museHome, MUSE_USAGE_LOCK_FILE),
+		realpath: false,
+		retries: { retries: 80, minTimeout: 25, maxTimeout: 250 },
+	});
+	try {
+		const path = join(museHome, file);
+		const saved = await readSnapshot(path, schema);
+		if (saved !== null && saved.observedAtMs > snapshot.observedAtMs) return saved;
+		await writeSnapshot(path, snapshot);
+		return snapshot;
+	} finally {
+		await release();
+	}
+}
+
+export async function writeMuseUsage(museHome: string, usage: unknown) {
+	const snapshot = MuseUsageSchema.parse(usage);
+	return writeLatestSnapshot(museHome, MUSE_USAGE_FILE, MuseUsageSchema, snapshot);
 }
 
 export async function readMuseUsage(museHome: string): Promise<MuseUsage | null> {
@@ -61,7 +84,7 @@ export async function writeMuseQuotaError(museHome: string, message: string, obs
 	if (resetsAt === undefined) return false;
 	const resetsAtMs = Date.parse(resetsAt);
 	if (!Number.isFinite(resetsAtMs)) return false;
-	await writeSnapshot(join(museHome, MUSE_QUOTA_FILE), { observedAtMs, resetsAtMs });
+	await writeLatestSnapshot(museHome, MUSE_QUOTA_FILE, MuseQuotaSchema, { observedAtMs, resetsAtMs });
 	return true;
 }
 
