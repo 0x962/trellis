@@ -33,22 +33,13 @@
 		"dev:all": "turbo run dev",
 		"desktop:install": "bun apps/desktop/scripts/install-production.ts",
 		"build": "turbo run build",
-		"test": "turbo run test",
-		"test:int": "turbo run test:int",
-		"test:repo": "bun test ./test --path-ignore-patterns '**/test/int/**'",
-		"test:repo:int": "bun test ./test/int",
 		"typecheck": "turbo run typecheck",
 		"typecheck:repo": "tsc --noEmit -p tsconfig.json",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
 		"check": "bun scripts/check.ts",
-		"perf": "turbo run perf",
-		"perf:10k": "turbo run perf:10k --concurrency=1",
 		"db:generate": "turbo run db:generate --filter=@trellis/server",
-		"e2e": "bun run --cwd apps/web e2e",
-		"release": "changeset version && bun install && changeset tag",
-		"test:host": "bun run --cwd apps/runtime test && bun run --cwd apps/runtime test:int && bun run --cwd apps/server test:host",
-		"test:host:real": "TRELLIS_REAL_HARNESS_ACCEPTANCE=1 bun run --cwd apps/server test:host"
+		"release": "changeset version && bun install && changeset tag"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.12",

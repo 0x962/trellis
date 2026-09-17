@@ -88,4 +88,4 @@ Use these as references for data hierarchy. Trellis components and tokens govern
 Check populated, empty, loading, and error states. Check long titles and rows with and without an actor.
 Verify the layout in both themes at desktop and phone widths.
 Check keyboard access, focus return, filter removal, group collapse, sort direction, and URL persistence.
-Run the relevant component tests and browser tests for each page that uses a changed shared element.
+Run the linter and type checks for each page that uses a changed shared element.

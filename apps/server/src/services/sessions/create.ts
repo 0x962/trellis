@@ -5,7 +5,6 @@ import { ulid } from "ulid";
 import { rows } from "../../db/queries/support.ts";
 import { invalidInput } from "../../errors.ts";
 import { upsert } from "../actors.ts";
-import { assertNativeWorkEnabled } from "../agentRuns/nativeControl.ts";
 import { startNative } from "../agentRuns/nativeStart.ts";
 import { columns, type StoredRun } from "../agentRuns/queries.ts";
 import { reserveAttempt } from "../assignments/attempts.ts";
@@ -26,7 +25,6 @@ export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput) => {
 	const taken = new Set([...(await sessionDirectoryNames(ctx.home)), ...(await ctx.newTx(sessionNames))]);
 	const name = uniqueSessionName(typed ?? friendlySessionName(), taken);
 	const harness = input.harness ?? HarnessSchema.parse({ preset: "claude" });
-	await ctx.newTx(assertNativeWorkEnabled);
 	const directory = await createSessionRepository(ctx.home, name);
 	const reservation = await ctx.newTx(async (tx) => {
 		await upsert(ctx.core, tx, ctx.actor);

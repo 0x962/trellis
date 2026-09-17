@@ -10,7 +10,7 @@ import { type Jobs, type JobsLog, scaledClock, startJobs as startBackgroundJobs 
 import { type DbTiming, LONG_TRANSACTION_MS } from "../serverTiming.ts";
 import { assertCurrentAttempt } from "../services/assignments/attempts.ts";
 import { gcAttachmentBlobs } from "../services/attachments.ts";
-import { unconfirmedDelivery } from "../services/deliveries/sentences.ts";
+import { loopRuntimes } from "../services/loops/runtime.ts";
 import { type ServiceEntry, type ServiceName, services } from "../services/registry.ts";
 import { createCache } from "./cache.ts";
 import type { Db } from "./client.ts";
@@ -200,32 +200,24 @@ export const createInlineTransport = ({
 	let jobs: Jobs | null = null;
 	let controller: ReturnType<typeof createController> | null = null;
 	let flowReconcile: ReturnType<typeof startNativeReconcile> | null = null;
-	let reviewTimer: ReturnType<typeof setInterval> | undefined;
 	const start = async (options?: JobsStart) => {
+		controller = createController({
+			clock: scaledClock(options?.clockRate ?? 1),
+			log: options?.log ?? log,
+			call: (name, input) => backgroundCall(name, input),
+		});
+		loopRuntimes.set(config.home, controller);
 		await db.transaction((tx) => cache.rebuild(tx));
 		await call("evidence.recover", systemContext(), {});
 		await warmWrites(db, cache);
 		const found = await db.execute(sql`SELECT sha256 FROM attachments UNION SELECT sha256 FROM chat_attachments`);
 		if (options !== undefined) {
-			await db.transaction((tx) =>
-				tx.execute(
-					sql`UPDATE review_deliveries SET state = 'unknown', error = ${unconfirmedDelivery} WHERE state = 'sending'`,
-				),
-			);
-			reviewTimer = setInterval(() => {
-				void backgroundCall("reviews.deliverPending", {});
-			}, 3000);
 			const clock = scaledClock(options.clockRate);
 			flowReconcile = startNativeReconcile({
 				tick: () => backgroundCall("flowExecutions.reconcile", {}),
 				setTimer: clock.setTimer,
 				clearTimer: clock.clearTimer,
 				log: options.log,
-			});
-			controller = createController({
-				clock,
-				log: options.log,
-				call: (name, input) => backgroundCall(name, input),
 			});
 			await controller.start();
 			jobs = startBackgroundJobs({ db, gh: runtime.gh, bus, log: options.log, clock });
@@ -234,8 +226,8 @@ export const createInlineTransport = ({
 	};
 
 	const close = async () => {
-		clearInterval(reviewTimer);
 		await controller?.stop();
+		loopRuntimes.delete(config.home);
 		await flowReconcile?.stop();
 		if (jobs !== null) await jobs.stop();
 		await Promise.allSettled([...inFlight]);

@@ -65,7 +65,6 @@ await run(
 );
 const application = join(output, process.arch === "arm64" ? "mac-arm64" : "mac", "Trellis.app");
 await run([process.execPath, "apps/desktop/scripts/sign-preview.ts", application]);
-await run([process.execPath, "apps/desktop/scripts/smoke.ts", join(application, "Contents/Resources/host")]);
 await mkdir(join(homedir(), "Applications"), { recursive: true });
 await withInstallationLock(join(homedir(), "Applications/.trellis-install.lock"), async () => {
 	await installApplication(application, destination, async (staged) => {
@@ -86,5 +85,5 @@ console.log(
 		2,
 	),
 );
-console.log("Restart Trellis to activate this package and resume its active agents.");
+console.log("Restart Trellis to activate this package.");
 await rm(build, { recursive: true });

@@ -69,6 +69,11 @@ export const dispatchChat = async (
 	preset = nativePreset,
 ) => {
 	await ctx.newTx((tx) =>
+		tx.execute(sql`DELETE FROM chat_deliveries d USING chat_messages m,agent_runs r
+		WHERE d.message_id=m.id AND d.run_id=r.id AND d.state='pending'
+		AND r.kind='manager' AND m.actor_kind<>'human'`),
+	);
+	await ctx.newTx((tx) =>
 		tx.execute(sql`UPDATE chat_deliveries d SET session_id=r.session_id FROM agent_runs r
 		WHERE d.run_id=r.id AND d.state='pending' AND d.session_id IS NULL AND r.session_id IS NOT NULL
 		AND d.terminal_id=r.terminal_id AND r.closed_at IS NULL`),
@@ -97,7 +102,6 @@ export const dispatchChat = async (
 			ready.map((id) => sql`${id}`),
 			sql`,`,
 		)})
-		AND NOT EXISTS (SELECT 1 FROM settings WHERE key='nativeWorkPaused' AND value='true'::jsonb)
 		AND NOT EXISTS (SELECT 1 FROM projects WHERE id=m.project_id AND archived_at IS NOT NULL)
 		ORDER BY d.run_id LIMIT 20`,
 		),

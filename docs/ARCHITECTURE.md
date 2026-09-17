@@ -10,7 +10,7 @@ model.
 
 | Layer | Choice | Version |
 |---|---|---|
-| Runtime, package manager, test runner | Bun | 1.3 |
+| Runtime, package manager | Bun | 1.3 |
 | Monorepo | Bun workspaces, Turborepo | turbo 2.10 |
 | Language, lint, format | TypeScript, Biome | 7.0, 2.5 |
 | Server | Hono | 4.13 |
@@ -19,14 +19,13 @@ model.
 | Web | React, Vite, TanStack Router, Query, Table, Virtual | 19, 8, current |
 | UI primitives | Base UI, Tailwind, own tokens in `packages/ui` | 1.8, 4.3 |
 | Editor, palette, drag and drop, motion, toasts, icons | Tiptap, cmdk, pragmatic-drag-and-drop, `motion/mini`, sonner, lucide-react | current |
-| Flow canvas, flow layout | @xyflow/react, @dagrejs/dagre | 12.11, 3.1 |
+| Flow canvas, flow layout | @xyflow/react, local rank layout | 12.11 |
 | Fonts | BerkeleyMono, then JetBrains Mono from fontsource | 5.3 |
 | Mobile | Expo, expo-router, React Native, NativeWind, FlashList, `expo-sqlite/kv-store`, `react-native-sse` | 57, 0.86, current |
 | Desktop | Electron, macOS SMAppService | 44.3.0 |
 | Native execution | Node, node-pty, fs-ext, Koffi | 26.8.2, 1.2.0-beta.15, 2.1.1, 3.3.0 |
 | CLI | citty | 0.2 |
-| End to end, perf | Playwright with Chromium, a seeded perf suite | current |
-| Releases | changesets, GitHub Actions | |
+| Releases | changesets | |
 
 PGlite ships `pg_trgm` as a loadable contrib module. `tsvector` is core.
 
@@ -46,8 +45,7 @@ trellis/
 │   ├── runtime-protocol/          private socket protocol and client
 │   └── cli/      @trellis/cli      the `trellis` command, HTTP only
 ├── docs/                           this reference, the agent setup guide, the diagram
-├── scripts/                        the `bun run check` runner
-└── test/                           the repository rules and the documentation links
+└── scripts/                        the `bun run check` runner
 ```
 
 The dependency graph is a star. Server, web, mobile, and CLI import `api`. The
@@ -70,7 +68,8 @@ The selection resolves to an absolute path and persists across restarts.
 Its Swift helper registers through `SMAppService` and starts the bundled host through launchd.
 The host keeps its port across restarts, so the renderer retains its origin.
 Close or quit detaches the window. The background host and agent processes continue.
-The explicit Quit Trellis Completely action pauses native dispatch, stops owned processes, and unregisters the helper.
+The explicit Quit Trellis Completely action stops owned processes and unregisters the helper.
+The host stops new launches during shutdown. Open Trellis to start the helper and deterministic manager.
 An unconfirmed process prevents a successful stop.
 
 The Bun host owns PGlite and the manager queue. A separate Node runtime owns agent PTYs.
@@ -105,16 +104,15 @@ Current observations include the process check time, control availability, turn 
 Manager tools report `working` only for a controllable process with an active turn and no final outcome.
 They permit replacement after confirmed cleanup or proof that the prior attempt never launched.
 An exact prompt receipt confirms delivery. A provider turn and its observed activity time protect interrupt requests.
-`bun run test:host` tests this module and the runtime with isolated processes.
-`bun run test:host:real` also runs authenticated native CLI tests with explicit models and a configured credential home.
-
 The runtime inspects the OS process before it reports status or permits input.
 The host uses these observations for manager dispatch and flow completion.
 
 The deterministic manager owns column workers and project copilots.
 It inspects runtime processes on each beat and retries failed, stopped, and crashed assignments.
 Database reservations and runtime attempt identifiers prevent duplicate starts.
-Copilots wait for user instructions. The host sends them user chat and explicit mentions.
+Copilots wait for user instructions. The host sends them human chat messages and human comment mentions.
+Worker broadcasts and mentions reach other workers.
+Desktop activation stops the previous runtime and starts the host. The deterministic manager restarts column workers and project copilots.
 A partial database index permits one active copilot per project.
 
 Native ticket agents use Git worktrees under `agents/<run id>/work`.
@@ -216,7 +214,7 @@ either attachment table names.
 `chat_messages` holds one row per post with its actor. `chat_deliveries`
 holds one row per post and live native agent of the room's project, except
 the author. A post in `general` with no mention writes rows for the live
-managers only.
+copilots only when the author is human. Copilots receive messages only from humans.
 A post that mentions a live agent by run id, by persona name, or by role
 (`@manager`, `@builders`, `@reviewers`) reaches only the mentioned agents,
 and each of those rows is `direct`. The controller tick sends every pending
@@ -285,19 +283,14 @@ A second head/base read detects a PR change during a diff fetch.
 `review_threads` holds one JSON document per root thread. The document contains
 its anchor, author, session, replies, reactions, and resolution state.
 Message edits require the expected version. The database serializes writes.
-`review_submissions` holds fixed copies of selected findings and a local verdict.
-A request identifier makes repeated submissions idempotent for one actor and PR.
-
-`review_deliveries` records one notification per submission and recipient run.
-The submission transaction creates the deliveries. A background task claims
-pending records and calls the saved agent transport outside the transaction.
-Failed sends remain unread. An interrupted send becomes unknown at startup
-and requires an explicit resend. Agent acknowledgement sets `read_at`.
+Review comments remain local. The review form submits its comment, approval, or
+change request to GitHub. The same request refreshes the stored pull request and
+writes activity for every linked ticket.
 
 `review_imports` maps Margin identifiers to canonical message identifiers and
 stores each source hash. A repeated import skips unchanged roots and reports
 changed roots as conflicts. Imported anchors retain an unknown revision.
-Backups and NDJSON exports include all five review tables.
+Backups and NDJSON exports include the review tables.
 
 The web route `/reviews/$owner/$repo/$number` uses the Trellis shell.
 `@trellis/ui/review` wraps `@pierre/diffs` 1.4.2 with virtual scroll, workers,
@@ -350,8 +343,8 @@ The first manager persona supplies the copilot when the project has no selected 
 A project without a repository uses a private copilot directory under the Trellis home.
 Healthy copilots keep their process. A restart uses current settings and preserves a compatible conversation.
 
-Each status stores `agentConfig` with its worker persona, harness, model, effort, and account.
-A null configuration leaves the column under human control.
+Each nonterminal status can store `agentConfig` with its worker persona, harness, model, effort, and account.
+A null configuration leaves the column under human control. Done and canceled statuses reject a worker configuration.
 In Progress requires a worker configuration before a ticket can enter it.
 The deterministic manager starts a worker for each ticket in an automated column.
 An active flow owns its ticket agents and prevents an automatic column assignment.
@@ -457,9 +450,25 @@ Migration `0060_muse_harness` adds the `## Muse harness` section, which names th
 
 `services/manager` reconciles column assignments and project copilots on each controller beat.
 The controller schedules the next beat one second after the current beat completes.
+The Loops page at `/loops` shows step cards, recent output, errors, and pass times.
+Wait is the first step. Runtime inspection precedes parallel worker checks and message delivery.
+Each active card has a highlight. Errors retain their source step across subsequent passes.
+`loops.list` reads this process state. Human callers use `loops.control` to pause, resume, run one pass, or clear the history.
+Pause suppresses worker and copilot reconciliation after the current pass; chat and mention delivery continue.
+Run now shares the scheduled pass and cannot overlap it. A paused loop permits one manual pass.
+Each host starts with management enabled. The host retains 200 output entries and 20 errors until it restarts.
 Independent tickets and copilots launch concurrently. A failed launch does not prevent the other jobs.
 An unknown runtime process requires confirmation before replacement.
-The global work pause and archived projects suppress new starts.
+Archived projects suppress new starts. Each host process starts with automatic dispatch enabled.
+
+Column workers must report a tool event or assistant message within 60 seconds of their latest activity.
+The first interval starts when the process starts. The next manager beat stops and replaces a worker whose interval expires.
+The replacement uses the current column settings and retains the workspace.
+Tool start, update, and completion events reset the interval. Process checks and prompt receipts do not reset it.
+Codex compaction start, provider progress, and completion update the `contextCompaction` tool record.
+The bridge forwards compaction progress from the engine log only for its current thread and turn.
+Provider confirmation waits reset their timeout on fresh tool or assistant-message progress.
+Copilots can remain idle while they wait for user instructions.
 
 An idle column worker receives a data-only continuation at most once every 30 seconds.
 The continuation includes the ticket, column occupancy and limit, and recent comments.
@@ -905,36 +914,9 @@ page. The query dedupes, limits to 20 rows, and runs under a 200 ms statement
 timeout. The client debounces by 120 ms, keeps one search in flight, and drops a
 superseded one on both sides.
 
-## Performance budgets
+## Performance design
 
-The budgets are for the reference machine against a deterministic seed in
-`apps/server/test/perf/seed.ts`. The seed writes N tickets across 3 roots and 8
-projects per root, with 10 activity rows and 2 comments per ticket, 2 KB
-descriptions, and 40 open pull requests. `bun run perf:10k` runs the 10k seed, and
-`bun run perf` runs the 50k seed. Performance tests are optional.
-
-| metric | target | test |
-|---|---|---|
-| Cold boot to `/api/health` 200 | 1.5 s warm data home, 3.5 s first run | perf/boot |
-| `tickets.list` p95, default table query | 5 ms at 1k, 10 ms at 10k, 20 ms at 50k; 40 ms with `q` | perf/list |
-| `tickets.board` and `tickets.counts` at 50k | 30 ms each | perf/list |
-| `search.query` p95 at 50k | 40 ms; 3 ms for `KEY-n` | perf/search |
-| SSE commit to repaint | 100 ms on the patch path; 500 ms on the invalidation path | e2e/live |
-| Kanban drop | optimistic paint in 16 ms | e2e/kanban |
-| Web bundle | 220 KB gzip initial JS; 200 KB lazy Tiptap; 900 KB total; 160 KB fonts | scripts/size-budget |
-| First paint | 300 ms FCP; rows in 600 ms cold and 150 ms warm | e2e/paint |
-| Server RSS at 50k | 350 MB idle, 550 MB peak | perf/memory |
-| Poller | 1 gh process per 50 due pull requests per tick; 250 ms CPU per tick | perf/poller |
-| Upload | 50 MB in 1 s; event loop stall 50 ms; serve 50 MB in 300 ms | perf/attachments |
-| CLI | `--help` under 300 ms from source | cli/coldStart |
-| Mutations under 5 concurrent agents | 15 ms server time p99 each and 30 ms max, and list p95 still in budget | perf/concurrency |
-| Backup at 50k | 1.5 s hold, 15 s total | perf/backup |
-
-`TRELLIS_PERF_FACTOR` scales every number in this table and defaults to 1. The
-CI workflow runs `check`, the Playwright suite, the mobile Jest suite, and the
-migration diff. It runs no performance test.
-
-These budgets shape the design. The database worker keeps the synchronous WASM
+The database worker keeps the synchronous WASM
 execution of PGlite off the thread that serves HTTP, SSE, gh pipes, and uploads.
 PGlite has one lock, so one slow transaction makes every other call wait. A
 service runs gh only in its `prepare` step, before its transaction opens. The
@@ -953,10 +935,9 @@ partial. An in-memory cache holds the project tree.
 
 Conventions shared by every workspace:
 
-- One folder per module or component: `Name/Name.ts(x)`, `Name/Name.test.ts(x)`, `Name/index.ts`.
+- One folder per module or component: `Name/Name.ts(x)`, `Name/index.ts`.
 - Co-locate by usage. One user nests it under that user's `components/`. Two users promote it to the highest shared parent.
 - One exported component or service per file. Split a file over 300 lines.
-- Tests sit beside the code they test. Fixtures and helpers live in `test/` at the workspace root. Perf and end-to-end suites are directories.
 - Layers import downward only. A Biome `noRestrictedImports` rule enforces the arrows, and a violation fails `lint`.
 - Names: `camelCase` files for modules, `PascalCase` folders for React components, `kebab-case` for routes and CLI commands.
 
@@ -979,7 +960,7 @@ every matching SSE stream.
 The `tx`-first rule holds everywhere. Every query takes `(tx, input)` and every
 service takes `(ctx, tx, input)`. Only `db/client.ts` and `db/tx.ts` hold a
 module-level `db`. A nested query inside a PGlite transaction deadlocks the
-server, so a Biome rule and a test with a 2 second timeout enforce the rule.
+server. A Biome import rule enforces the `tx`-first boundary.
 
 Shutdown stops the listener, sends `bye` on every stream, drains the poller for
 up to 5 seconds, closes the worker, and exits 0.
@@ -995,8 +976,7 @@ NDJSON per table in keyset pages of 1000 rows.
 `apps/web` holds `routes/` (TanStack Router file routes), `features/` (agents,
 attachments, board, command, composer, filters, needs-you, personas, pickers,
 project-actions, project-manager, project-settings, prs, search, settings, setup,
-shell, sidebar, table, ticket), `components/`, `hooks/`, `lib/`, and `stores/`. The end-to-end suite is in `apps/web/e2e/`, the test server is in
-`apps/web/test/server/`, and the size budget script is in `apps/web/scripts/`.
+shell, sidebar, table, ticket), `components/`, `hooks/`, `lib/`, and `stores/`.
 
 `apps/mobile` holds the expo-router `app/` tree and `src/` with `features/`,
 `components/`, `lib/`, and `theme/tokens.ts`. A script generates
@@ -1011,40 +991,6 @@ each with a lazy import), `actor.ts`, `client.ts`, `context.ts`, `output.ts`,
 `instructions.md`, and `commands/` with one file per verb. A verb loads its
 module on dispatch, so `--help` loads no command module. A new verb needs both a
 file under `commands/` and a row in `verbs.ts`.
-
-| kind | where | runs in |
-|---|---|---|
-| unit | beside the module, `*.test.ts` | `bun test`, in-memory PGlite, inline transport |
-| contract | `apps/server/src/procedures/*.test.ts` | `bun test`, an oRPC client over `app.request` |
-| component | beside the component, `*.test.tsx` | `bun test`, Testing Library, happy-dom, the real server in process |
-| CLI smoke | `packages/cli/test/` | `bun test`, a spawned server on a random port |
-| repository | `test/` at the root | `bun run test:repo`, the repository rules and the documentation links |
-| perf | `apps/server/test/perf/`, `apps/web/scripts/size-budget.ts` | optional `perf:10k` at 10k rows, `perf` at 50k rows |
-| end to end | `apps/web/e2e/` | Playwright with a temporary `TRELLIS_HOME` |
-
-Every service test ends with `assertStatusInvariant(tx)`. `test/preload.ts`
-gives a test run a fresh `TRELLIS_HOME`, so no test touches `~/.trellis`.
-
-The web workspace ships no fake server. `apps/web/test/server` builds the Hono
-app of `apps/server` over an in-memory PGlite and hands the page that app's
-`fetch`, which is what `createOrpc` takes. A page test therefore exercises the
-real procedures, the real services, and the real queries.
-
-The harness keeps three costs down. One in-memory PGlite serves every test of one
-file, because an instance takes about half a second to open. The seed runs through
-the real services once and its rows go to a JSON snapshot under
-`apps/web/.cache/seed`; the cache key hashes the seed sources and the migration
-files, so a change to either builds a new snapshot. Each test restores that
-snapshot into the shared database. `apps/web` runs its test files on four
-workers, because the preload gives each process its own `TRELLIS_HOME`.
-
-The harness wraps the service transport, so a test reads the input and the actor
-of every service call, holds a call until it releases it, and makes a declared
-error take the place of a service. `gh auth status` answers from the state the
-test set, and every other gh call reaches the gh stub. Native execution tests use isolated runtime processes and fixture harnesses.
-
-The end-to-end suite covers the agent failure page, the dispatch path, and the
-pair link, beside the ticket, board, table, and live paths.
 
 ## UI system
 

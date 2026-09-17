@@ -1,13 +1,7 @@
+import { isTextEntry } from "@trellis/ui";
 import { useEffect } from "react";
 import { useCommandStore } from "../../commandStore";
 import { paletteTypeahead } from "../../typeahead";
-
-const editable = (target: EventTarget | null) =>
-	target instanceof HTMLElement &&
-	(target.isContentEditable ||
-		target.tagName === "INPUT" ||
-		target.tagName === "TEXTAREA" ||
-		target.tagName === "SELECT");
 
 // While the palette is open, a printable key or Backspace from outside a
 // text field goes to the palette query. The listener is on window in the
@@ -17,7 +11,7 @@ const editable = (target: EventTarget | null) =>
 export const usePaletteTypeahead = () => {
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
-			if (!useCommandStore.getState().open || editable(event.target)) return;
+			if (!useCommandStore.getState().open || isTextEntry(event.target)) return;
 			if (event.metaKey || event.ctrlKey || event.altKey) return;
 			if (event.key.length !== 1 && event.key !== "Backspace") return;
 			event.preventDefault();

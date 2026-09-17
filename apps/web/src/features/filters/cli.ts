@@ -1,6 +1,6 @@
 import type { ListQueryInput } from "@trellis/api";
 
-type Flag = { key: keyof ListQueryInput; flag: string; list?: boolean };
+type Flag = { key: keyof ListQueryInput; flag: string; list?: boolean; boolean?: boolean };
 
 // One flag per list field, in the order the command prints them. A list
 // field is a comma list on the command line, as in the URL.
@@ -20,9 +20,8 @@ const flags: readonly Flag[] = [
 	{ key: "completed", flag: "--completed" },
 	{ key: "sort", flag: "--sort" },
 	{ key: "limit", flag: "--limit" },
+	{ key: "subprojects", flag: "--subprojects", boolean: true },
 ];
-
-const noSubprojects = "--no-subprojects";
 
 const quote = (value: string) => (/[\s"]/.test(value) ? `"${value.replace(/"/g, '\\"')}"` : value);
 
@@ -35,7 +34,6 @@ export const toCli = (query: ListQueryInput): string => {
 		const text = list && Array.isArray(value) ? value.join(",") : String(value);
 		parts.push(flag, quote(text));
 	}
-	if (query.subprojects === false) parts.push(noSubprojects);
 	return parts.join(" ");
 };
 
@@ -51,14 +49,16 @@ export const parseCli = (command: string): ListQueryInput => {
 	const tokens = words(command).slice(2);
 	for (let index = 0; index < tokens.length; index += 1) {
 		const token = tokens[index]!;
-		if (token === noSubprojects) {
-			query.subprojects = false;
-			continue;
-		}
 		const entry = flags.find((flag) => flag.flag === token)!;
 		index += 1;
 		const value = tokens[index]!;
-		query[entry.key] = entry.list ? value.split(",") : entry.key === "limit" ? Number(value) : value;
+		query[entry.key] = entry.boolean
+			? value !== "false"
+			: entry.list
+				? value.split(",")
+				: entry.key === "limit"
+					? Number(value)
+					: value;
 	}
 	return query as ListQueryInput;
 };

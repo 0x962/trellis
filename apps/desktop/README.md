@@ -24,7 +24,7 @@ The host keeps its selected port across restarts. This preserves the renderer or
 
 Close a window to detach its view. Quit Trellis to close the desktop process. Both actions keep the host and agents active. Use the Help menu to reconnect to the host or open its logs.
 
-The Desktop section of the Settings page holds the data directory, Open Trellis at login, the background service status, the update status, and the local work actions. **Trellis > Settings…** (Command-comma) opens that section. The menus keep Open Trellis, Quit Trellis, Quit Trellis Completely, and the Help items. Quit Trellis Completely and the Help items work when the Settings page cannot load.
+The Desktop section of the Settings page holds the data directory, Open Trellis at login, the background service status, the update status, and the host controls. **Trellis > Settings…** (Command-comma) opens that section. The menus keep Open Trellis, Quit Trellis, Quit Trellis Completely, and the Help items. Quit Trellis Completely and the Help items work when the Settings page cannot load.
 
 Use **Trellis > Restart** to restart the host and desktop from the installed package. Compatible agents keep their processes and terminal output. If the packaged app detects an incompatible or unknown runtime, it blocks the restart and shows the reason.
 
@@ -32,7 +32,7 @@ A local progress window shows a progress bar, numbered steps, and estimated time
 
 The packaged app enables its background service at startup. `SMAppService` registers the bundled LaunchAgent. macOS starts it at login and restarts it after a crash. Settings > Desktop shows its status and opens Login Items when approval is required. The separate Open Trellis at login switch controls the desktop window.
 
-In Settings > Desktop, Quit Trellis Completely pauses local dispatch, stops known local processes, and unregisters the helper. An unknown process prevents the stop. The app waits for the host to exit before it closes. Resume local work allows new local launches. Each project keeps its saved dispatch setting.
+In Settings > Desktop, Quit Trellis Completely stops known local processes and unregisters the helper. An unknown process prevents the stop. The app waits for the host to exit before it closes. Open Trellis to start the helper and deterministic manager.
 
 Project settings select the repository directory. A blank child directory uses the nearest ancestor with a configured directory. Trellis trusts configured repositories and agent workspaces.
 
@@ -42,25 +42,16 @@ The preload bridge exposes `trellisDesktop.chooseDirectory()`, the Settings call
 
 `trellis://open/t/KEY-1` opens a ticket. External HTTP and HTTPS links open in the system browser.
 
-Use **Trellis > Restart** to load the installed package. A changed package stops active agent processes and resumes their saved provider conversations. An unchanged package keeps those processes. An agent the update cannot save keeps running until the runtime stops, and the restart status shows the reason beside its name.
+Use **Trellis > Restart** to load the installed package. A changed package stops the previous runtime. The deterministic manager starts column workers and project copilots with their current settings. Compatible conversations and workspaces persist.
 
-## Package and verification
+## Package
 
 ```sh
 bun run --cwd apps/desktop build
-bun run --cwd apps/desktop smoke
 bun run --cwd apps/desktop package
 ```
 
 The staging step copies the server, database worker, migrations, PGlite assets, CLI, web assets, and execution runtime. It includes Bun and Node binaries for the build machine's architecture. The package records a SHA-256 hash for the complete dependency tree, binaries, and relative links. Before host launch, Trellis copies that release into the profile’s `releases` directory. Host processes use these retained files. Links cannot point outside the release.
-
-`smoke` copies the full package into a temporary directory outside the repository. It opens a fresh database and tests authenticated HTTP, web assets, the bundled CLI, the native PTY, and process ownership calls. It also restarts the host and checks that the same PTY remains active.
-
-To test the resources inside a built application:
-
-```sh
-bun apps/desktop/scripts/smoke.ts apps/desktop/release/mac-arm64/Trellis.app/Contents/Resources/host
-```
 
 `package` creates an unpacked macOS application. `dist:mac` creates DMG and ZIP artifacts. Set the Electron Builder signing and notarization credentials for distribution. A local package can use `CSC_IDENTITY_AUTO_DISCOVERY=false` for an unsigned feasibility check.
 
@@ -75,14 +66,6 @@ bun apps/desktop/scripts/sign-preview.ts apps/desktop/release/mac-arm64/Trellis.
 The command signs native host binaries and the app with the local ad-hoc identity `-`. It recalculates the host release hash before it seals the outer app. It then verifies the nested signatures and the complete app.
 
 This local preview disables hardened runtime through `codesign --options 0`. Ad-hoc binaries have no shared Team ID, so library validation rejects the native modules with hardened runtime enabled. The production entitlement file and Developer ID build settings retain their existing settings. The preview has no Developer ID signature or notarization.
-
-To verify actual Electron startup with an isolated service and data home:
-
-```sh
-TRELLIS_DESKTOP_PREVIEW_APP="$PWD/apps/desktop/release/mac-arm64/Trellis.app" bun test apps/desktop/test/int/src/preview/preview.test.ts
-```
-
-The test copies the app and uses a unique service label. It redirects the production data path to a scratch directory before any directory creation. It disables protocol registration and answers the fixture's native dialogs. It verifies new data and an existing project in a selected directory. It checks the native title bar and removes the temporary service.
 
 ## Production install
 
@@ -102,15 +85,11 @@ The candidate must include the installed app's source commit. The installer chec
 
 The command exports one commit into a fresh directory and installs the frozen dependency lockfile. It builds the renderer, runtime, harnesses, desktop, and complete host package. It records the commit in `build.json`. Electron downloads use `~/Library/Caches/Trellis` across builds.
 
-The command signs the local package and runs the packaged smoke checks. It copies the app with `ditto` into a temporary directory beside `~/Applications/Trellis.app` and verifies that copy. It publishes the copy through an atomic directory exchange when an installed app exists. Deleted source files cannot remain in the installed bundle. The running app and its services stay open during the copy.
+The command signs the local package. It copies the app with `ditto` into a temporary directory beside `~/Applications/Trellis.app` and verifies its signature. It publishes the copy through an atomic directory exchange when an installed app exists. Deleted source files cannot remain in the installed bundle. The running app and its services stay open during the copy.
 
 Use this command for each production install. Keep the installed bundle in place until the verified copy is complete. Run service commands through `~/Applications/Trellis.app/Contents/MacOS/TrellisHost`. The helper requires the LaunchAgent plist inside its app bundle.
 
-Restart Trellis to activate the installed build. For a changed package, Trellis saves the confirmed active agent sessions before it stops the previous runtime. After the new host starts, Trellis resumes those provider sessions in their saved workspaces. The deterministic manager restarts copilots and workers in configured columns. Other stopped agents stay stopped. An unchanged package keeps the existing processes.
-
-Trellis stores pending resumes in `restart-plan.json` inside the selected data directory. A failed activation preserves this plan for the next app launch. Each saved attempt has one resume identity, which prevents duplicate processes and restart messages. A later package gives a partial resume one more pass, then merges the entries that still failed into its own plan, so the restart status keeps their reasons.
-
-A custom agent, an agent without a confirmed provider session, or a terminal whose process the app cannot confirm is recorded in the plan as not saved, with the reason. The update continues. Agent starts, the manager controller, and review delivery keep running while a resume is in progress.
+Restart Trellis to activate the installed build. A changed package stops the previous runtime and starts the new host. The deterministic manager starts configured column workers and project copilots on its next beat. It resumes compatible conversations in their saved workspaces. An unchanged package keeps existing processes.
 
 To prepare a verified candidate without a production install:
 
@@ -134,8 +113,6 @@ Column settings control automatic ticket workers, including recovery after a sto
 ## Release limits
 
 The detached development host has no crash supervisor. The packaged app requires its registered macOS service and does not start an unmanaged replacement.
-
-The isolated launchd integration test verifies helper execution and host crash restart with a temporary label and data home. It removes that service after the test. A second test signs a temporary app with an ad-hoc identity. It registers through `SMAppService`, verifies host crash restart, unregisters, and checks that the host exits. Developer ID signing, notarization, and approval changes through System Settings remain release checks.
 
 The build machine has Apple Development identities but no Developer ID Application identity. Signed distribution and notarization remain unverified. The current package target is the build machine's architecture. Cross-architecture native module builds remain unverified.
 

@@ -96,16 +96,17 @@ export const ReviewRevisionSchema = z.object({
 	fetchedAt: IsoDateTimeSchema,
 });
 export type ReviewRevision = z.infer<typeof ReviewRevisionSchema>;
-export const ReviewSubmitSchema = z.object({
-	pr: ReviewRefSchema,
-	requestId: z.string().min(1).max(128),
-	verdict: z.enum(["commented", "changes_requested", "approved"]),
-	body: z.string().max(200_000).default(""),
-	revisionId: UlidSchema.nullable().optional(),
-	threadIds: z.array(z.string()).max(500).default([]),
-	drafts: z.array(ReviewAnchorSchema).max(100).default([]),
-	recipients: z.array(UlidSchema).max(20),
-});
+export const ReviewSubmitSchema = z
+	.strictObject({
+		pr: ReviewRefSchema,
+		headSha: z.string().min(1),
+		verdict: z.enum(["comment", "approve", "request_changes"]),
+		body: z.string().trim().max(200_000).default(""),
+	})
+	.refine((value) => value.verdict === "approve" || value.body.length > 0, {
+		path: ["body"],
+		message: "Enter a review summary before you submit this review.",
+	});
 export type ReviewSubmit = z.output<typeof ReviewSubmitSchema>;
 export const ReviewDeliverySchema = z.object({
 	id: UlidSchema,

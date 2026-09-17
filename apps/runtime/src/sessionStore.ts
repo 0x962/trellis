@@ -119,8 +119,12 @@ export class SessionStore {
 		return record;
 	}
 	list(input: RuntimeListInput = {}) {
-		return [...this.records.keys()]
-			.map((id) => this.inspect(id))
+		const ids = input.ids ?? [...this.records.keys()];
+		return ids
+			.flatMap((id) => {
+				const record = this.records.get(id);
+				return record === undefined ? [] : [inspectSessionRecord(record)];
+			})
 			.filter((session) => matchesProcessFilters(session, input));
 	}
 	inspect(id: string): RuntimeProcessStatus {
