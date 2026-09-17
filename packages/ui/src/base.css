@@ -80,9 +80,10 @@
 }
 
 /*
- * `ActivityDot` combines `dot-metal` with `metal`, `rounded-round`, and a
- * non-static position. The position anchors `dot-metal::before` to the disc.
- * `rounded-round` makes `overflow: hidden` clip the film to a circle.
+ * `ActivityDot` uses `metal` for the silver face. `dot-metal::before` paints
+ * the shared `--film-gradient` without animation. The non-static position from
+ * `ActivityDot` anchors the pseudo-element to the dot. `rounded-round` clips
+ * the film to the circular dot.
  */
 @utility dot-metal {
 	overflow: hidden;
