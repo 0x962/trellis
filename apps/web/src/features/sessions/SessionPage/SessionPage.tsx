@@ -79,17 +79,15 @@ export function SessionPage({ id }: { id: string }) {
 					</>
 				}
 			>
+				<Avatar
+					kind="agent"
+					name={session.name}
+					personaKind="builder"
+					state={isAgentWorking(run) ? "working" : "static"}
+					className="size-7"
+				/>
 				<PageTitle title={session.name} />
-				<span className="inline-flex min-w-0 items-center gap-2 text-sm text-fg-muted">
-					<Avatar
-						kind="agent"
-						name={session.name}
-						personaKind="builder"
-						state={isAgentWorking(run) ? "working" : "static"}
-						className="size-7"
-					/>
-					<span className="truncate">{harnessLabel(session.harness.preset)}</span>
-				</span>
+				<span className="min-w-0 truncate text-sm text-fg-muted">{harnessLabel(session.harness.preset)}</span>
 			</Topbar>
 			<section aria-label="Session terminal" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 				{run.terminalId !== null ? (
