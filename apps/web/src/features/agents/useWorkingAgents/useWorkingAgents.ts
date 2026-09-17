@@ -14,6 +14,6 @@ export function useWorkingAgents() {
 	}, [query.data]);
 	// A failed reload keeps the last work set, so active cards keep their
 	// glimmer and column position.
-	if (query.error !== null) return { ...held, failed: true };
+	if (query.error !== null) return { ...(query.data ?? held), failed: true };
 	return { ...(query.data ?? empty), failed: false };
 }
