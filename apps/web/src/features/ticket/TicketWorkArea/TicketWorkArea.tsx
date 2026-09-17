@@ -8,7 +8,6 @@ import { AgentRunDetails } from "../../agents/AgentRunDetails";
 import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
 import { PullRequests } from "../../prs";
 import { FlowRuns } from "./components/FlowRuns";
-import { LocalChanges } from "./components/LocalChanges";
 
 export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity: ReactNode }) {
 	const { orpc } = useApp();
@@ -22,7 +21,6 @@ export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity:
 	const runs = useQuery({
 		...orpc.agentRuns.list.queryOptions({ input: { ticket: ticket.identifier } }),
 	});
-	const run = runs.data?.[0];
 	const assigned = runs.data?.find(hasAssignedProcess);
 	const execution = (
 		<section aria-label="Execution" className="flex flex-col gap-3">
@@ -52,12 +50,7 @@ export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity:
 					{
 						value: "changes",
 						label: "Changes",
-						content: (
-							<div className="flex flex-col gap-8">
-								{run?.runtime === "native" && run.workspaceId && <LocalChanges key={run.terminalId} run={run} />}
-								<PullRequests ticket={ticket} initialPrs={ticket.prs} />
-							</div>
-						),
+						content: <PullRequests ticket={ticket} initialPrs={ticket.prs} />,
 					},
 					{ value: "flows", label: "Flows", content: <FlowRuns ticket={ticket.identifier} /> },
 				]}
