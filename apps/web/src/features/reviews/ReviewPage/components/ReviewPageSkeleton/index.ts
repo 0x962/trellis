@@ -1,0 +1,1 @@
+export { ReviewPageSkeleton } from "./ReviewPageSkeleton";

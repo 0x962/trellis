@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ReviewRevision, ReviewThread } from "@trellis/api";
 import { Sheet } from "@trellis/ui";
 import { type DiffAnchor, ReviewDiff, ReviewFiles, ReviewTabs } from "@trellis/ui/review";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { useTheme } from "../../../lib/theme";
 import { ReviewChecks } from "../ReviewChecks/ReviewChecks";
@@ -16,15 +16,20 @@ import { ReviewStack } from "../ReviewStack/ReviewStack";
 import { ReviewSubmit } from "../ReviewSubmit/ReviewSubmit";
 import { ReviewSummary } from "../ReviewSummary/ReviewSummary";
 import { DiffToolbar } from "./components/DiffToolbar/DiffToolbar";
+import { ReviewPageSkeleton } from "./components/ReviewPageSkeleton";
 import "@trellis/ui/review.css";
 
 type FileRow = { path: string; type: string; additions: number; deletions: number };
 export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent?: ReactNode; syncHash?: boolean }) {
 	const { client, orpc, queryClient } = useApp();
 	const { resolved: theme } = useTheme();
-	const status = useQuery({ ...orpc.reviews.status.queryOptions({ input: { pr } }), refetchInterval: 45000 });
 	const latest = useQuery(orpc.reviews.revision.queryOptions({ input: { pr } }));
 	const [revision, setRevision] = useState<ReviewRevision | null>(null);
+	const status = useQuery({
+		...orpc.reviews.status.queryOptions({ input: { pr } }),
+		enabled: revision !== null,
+		refetchInterval: 45000,
+	});
 	const booted = useRef(false);
 	const [tab, setTab] = useState(() => (syncHash ? location.hash.slice(1).split("?")[0] || "changes" : "changes"));
 	const [mode, setMode] = useState<"split" | "unified">(() =>
@@ -68,7 +73,6 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		onSuccess: (data) => {
 			setRevision(data);
 			void queryClient.invalidateQueries({ queryKey: orpc.reviews.metadata.key() });
-			void status.refetch();
 			queryClient.setQueryData(orpc.reviews.revision.queryKey({ input: { pr } }), data);
 		},
 	});
@@ -90,20 +94,32 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		[client, pr, revision],
 	);
 	const invalid = () => queryClient.invalidateQueries({ queryKey: orpc.reviews.key() });
-	const allThreads = (threads.data?.items ?? []).filter((thread) => thread.revisionId === revision?.id);
-	const renderThread = (id: string) => {
-		const t = allThreads.find((t) => t.id === id)!;
-		return <ReviewComment key={t.id} thread={t} />;
-	};
+	const allThreads = useMemo(
+		() => (threads.data?.items ?? []).filter((thread) => thread.revisionId === revision?.id),
+		[threads.data?.items, revision?.id],
+	);
+	const threadsById = useMemo(() => new Map(allThreads.map((thread) => [thread.id, thread])), [allThreads]);
+	const openCounts = useMemo(() => {
+		const counts: Record<string, number> = {};
+		for (const thread of allThreads) {
+			if (thread.status === "open") counts[thread.path] = (counts[thread.path] ?? 0) + 1;
+		}
+		return counts;
+	}, [allThreads]);
+	const renderThread = useCallback(
+		(id: string) => {
+			const thread = threadsById.get(id)!;
+			return <ReviewComment key={thread.id} thread={thread} />;
+		},
+		[threadsById],
+	);
 	const fileNav = (
 		<ReviewFiles
 			search={fileFilter}
 			onSearch={setFileFilter}
 			files={files}
 			selected={file}
-			counts={Object.fromEntries(
-				files.map((f) => [f.path, allThreads.filter((t) => t.path === f.path && t.status === "open").length]),
-			)}
+			counts={openCounts}
 			onSelect={(path) => {
 				setFile(path);
 				setFileSheet(false);
@@ -127,7 +143,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 					revision={displayRevision}
 					openCount={allThreads.filter((thread) => thread.status === "open").length}
 				/>
-				<ReviewStack pr={pr} />
+				{revision && <ReviewStack pr={pr} />}
 				{status.isError && (
 					<p role="alert" className="review-notice">
 						GitHub status: {status.error.message}
@@ -151,17 +167,13 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 							{refresh.error.message}. Local comments remain available.
 						</p>
 					)}
-					{refresh.isPending && (
-						<p className="review-notice" role="status">
-							Fetch the PR revision…
-						</p>
-					)}
 					{threads.isError && (
 						<p role="alert" className="review-error">
 							{threads.error.message}
 						</p>
 					)}
-					{tab === "changes" && (
+					{tab === "changes" && revision === null && !refresh.isError && <ReviewPageSkeleton />}
+					{tab === "changes" && revision !== null && (
 						<div className="review-main">
 							<aside className="review-files" aria-label="Changed files">
 								{fileNav}
@@ -176,44 +188,40 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 									}}
 								/>
 
-								{revision ? (
-									<ReviewDiff
-										filter={fileFilter}
-										patch={revision.patch}
-										loadFile={loadFile}
-										revisionId={revision.id}
-										threads={allThreads}
-										mode={mode}
-										theme={theme}
-										selectedFile={file}
-										renderThread={renderThread}
-										composer={composer}
-										renderComposer={() =>
-											composer && (
-												<ReviewComposer
-													key={`${revision.id}:${composer.path}:${composer.side}:${composer.startLine}:${composer.line}`}
-													anchor={composer}
-													revisionId={revision.id}
-													storageKey={`trellis.review.comment:${pr}:${composer.path}:${composer.side}:${composer.startLine}:${composer.line}`}
-													onClose={() => {
-														addThread.reset();
-														setComposer(null);
-													}}
-													onSave={(comment) => addThread.mutate(comment)}
-													pending={addThread.isPending}
-													error={addThread.error?.message ?? null}
-												/>
-											)
-										}
-										onSelect={(anchor) => {
-											addThread.reset();
-											setComposer(anchor);
-										}}
-										onFiles={setFiles}
-									/>
-								) : (
-									<p className="review-scroll">Refresh from GitHub to load the diff.</p>
-								)}
+								<ReviewDiff
+									filter={fileFilter}
+									patch={revision.patch}
+									loadFile={loadFile}
+									revisionId={revision.id}
+									threads={allThreads}
+									mode={mode}
+									theme={theme}
+									selectedFile={file}
+									renderThread={renderThread}
+									composer={composer}
+									renderComposer={() =>
+										composer && (
+											<ReviewComposer
+												key={`${revision.id}:${composer.path}:${composer.side}:${composer.startLine}:${composer.line}`}
+												anchor={composer}
+												revisionId={revision.id}
+												storageKey={`trellis.review.comment:${pr}:${composer.path}:${composer.side}:${composer.startLine}:${composer.line}`}
+												onClose={() => {
+													addThread.reset();
+													setComposer(null);
+												}}
+												onSave={(comment) => addThread.mutate(comment)}
+												pending={addThread.isPending}
+												error={addThread.error?.message ?? null}
+											/>
+										)
+									}
+									onSelect={(anchor) => {
+										addThread.reset();
+										setComposer(anchor);
+									}}
+									onFiles={setFiles}
+								/>
 							</div>
 						</div>
 					)}
