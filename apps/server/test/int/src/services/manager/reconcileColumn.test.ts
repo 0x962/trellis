@@ -216,3 +216,19 @@ test("a missing workspace starts a replacement with its previous history", async
 	expect(starts[1]!.resume).toBe(false);
 	expect(starts[1]!.context).toContain('"previousWorkspaceMissing":true');
 });
+test("an idle worker receives a valid continuation once per interval", async () => {
+	const first = await start();
+	const idle = sessionFor(first, { activity: { state: "idle", updatedAt: NOW.toISOString() } });
+	const messages: string[] = [];
+	const transport = {
+		...deps(),
+		send: async (_ctx: unknown, input: { messageId?: string }) => {
+			expect(input.messageId).toMatch(/^[a-zA-Z0-9_-]{1,128}$/);
+			messages.push(input.messageId!);
+			return { id: first.run.id };
+		},
+	};
+	await reconcileColumn(ctx(), await state(), [idle], transport);
+	await reconcileColumn(ctx(), await state(), [idle], transport);
+	expect(messages).toHaveLength(1);
+});
