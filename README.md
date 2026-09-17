@@ -192,7 +192,7 @@ A builder run and a reviewer run name one ticket. A manager run names one
 project. A project runs one manager at a time.
 
 The Manager page at `/p/<project path>/settings/manager` controls the project's local work.
-Operation shows the manager process, output, and durable event queue. Its switch pauses automatic dispatch while queued events remain stored.
+Operation shows the manager process, output, and durable event queue. Trellis sends each queued event to a running manager.
 General selects the manager persona, repository directory, trust, and concurrency limit. Harness selects the agent preset and commands.
 The concurrency limit runs from 1 to 64, defaults to 3, and excludes the manager.
 
@@ -354,7 +354,7 @@ A setting that belongs to one project lives on that project's pages.
 | `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#subprojects`, `#archive` |
 | `/p/<path>/settings/manager` | Operation (no hash), `#settings`, `#harness` |
 
-The Manager page separates automatic dispatch from the manager process. The top control starts, resumes, or stops the process.
+The top control of the Manager page starts, resumes, or stops the manager process.
 
 ## Mobile
 
