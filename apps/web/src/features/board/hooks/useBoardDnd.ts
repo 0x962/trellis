@@ -109,17 +109,14 @@ export const useCardDnd = (
 	return { dragging };
 };
 
-// `over` is true while a card from another column hangs over this column.
-// The card lands at the top of the column, so the column marks that one
-// place. A column refuses a card it already holds, so a drag inside a
-// column marks nothing.
 export const useColumnDnd = (
 	ref: RefObject<HTMLElement | null>,
 	column: BoardColumnModel,
 	collapsed: boolean,
 	expand: () => void,
 ) => {
-	const [over, setOver] = useState(false);
+	// BoardColumn uses the dragged ticket to mark its active or inactive group boundary.
+	const [over, setOver] = useState<TicketData | null>(null);
 	useEffect(() => {
 		const element = ref.current!;
 		let timer: ReturnType<typeof setTimeout> | undefined;
@@ -127,16 +124,16 @@ export const useColumnDnd = (
 			element,
 			canDrop: ({ source }) => isTicketData(source.data) && source.data.columnId !== column.id,
 			getData: () => ({ type: "column", columnId: column.id }),
-			onDragEnter: () => {
-				setOver(true);
+			onDragEnter: ({ source }) => {
+				setOver(source.data as TicketData);
 				if (collapsed) timer = setTimeout(expand, 400);
 			},
 			onDragLeave: () => {
-				setOver(false);
+				setOver(null);
 				if (timer !== undefined) clearTimeout(timer);
 			},
 			onDrop: () => {
-				setOver(false);
+				setOver(null);
 				if (timer !== undefined) clearTimeout(timer);
 			},
 		});
@@ -149,8 +146,8 @@ export const useBoardMonitor = (
 	onMove: (move: BoardMove) => void,
 	onChooseStatus: (move: BoardMove) => void,
 	announce: (message: string) => void,
-	// Receives the dragged card's box before the move, for the drop motion.
-	onDropped: (ticketId: string, from: DOMRect) => void,
+	// useCardPositionMotion needs this box before runMove changes the card's column.
+	onDropped: (ticketId: string, priorBox: DOMRect) => void,
 ) => {
 	useEffect(
 		() =>
