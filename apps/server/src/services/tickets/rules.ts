@@ -4,17 +4,9 @@ import { requireActor, type ServiceCtx } from "../../context.ts";
 import { ticketGet } from "../../db/queries/ticketGet.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
-import { type TicketRow, toSummary } from "../refs.ts";
+import type { TicketRow } from "../refs.ts";
 
 // The domain rules a ticket write checks before it touches a row.
-
-// An agent never marks work done on its own. `force` is the human's
-// explicit override, passed through the CLI flag or the API field.
-export const assertAgentMayComplete = (ctx: ServiceCtx, status: Status, force: boolean | undefined) => {
-	if (requireActor(ctx).kind === "agent" && status.category === "done" && force !== true) {
-		throw fail("AGENT_CANNOT_COMPLETE", { status: toSummary(status) });
-	}
-};
 
 export const assertAgentMayDelete = (ctx: ServiceCtx, force: boolean | undefined) => {
 	if (requireActor(ctx).kind === "agent" && force !== true) throw fail("AGENT_CANNOT_DELETE");

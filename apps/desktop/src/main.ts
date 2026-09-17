@@ -27,7 +27,7 @@ import { restartHost } from "./restartHost/index.ts";
 import { restartMenuItem } from "./restartMenuItem/index.ts";
 import { readSelectedHome } from "./selectedHome/selectedHome.ts";
 import { openServiceSettings, serviceCommand } from "./service/service.ts";
-import { requireService, resumeLocalWork, stopLocalWork } from "./serviceActions/serviceActions.ts";
+import { requireService, stopLocalWork } from "./serviceActions/serviceActions.ts";
 import { showMaximizedWindow } from "./showMaximizedWindow/showMaximizedWindow.ts";
 import { showStartupError } from "./showStartupError/index.ts";
 import { startupProgress } from "./startupProgress/index.ts";
@@ -40,7 +40,13 @@ let host: HostConnection;
 let availableRelease: PinnedRelease | undefined;
 const rendererNavigation = createRendererNavigation((path) => window?.webContents.send("trellis:navigate", path));
 const progress = startupProgress(join(app.getAppPath(), "dist/startup.html"));
-const desktopHome = () => process.env.TRELLIS_DESKTOP_HOME ?? readSelectedHome(app.getPath("userData"));
+// readSelectedHome throws when the selection file names no directory, so the
+// startup dialog can name only a directory that this function already returned.
+let lastHome: string | undefined;
+const desktopHome = () => {
+	lastHome = process.env.TRELLIS_DESKTOP_HOME ?? readSelectedHome(app.getPath("userData"));
+	return lastHome;
+};
 const paths = () => desktopPaths(app.getAppPath(), process.resourcesPath, app.isPackaged);
 const developmentHostOptions = () => ({
 	home: desktopHome(),
@@ -204,7 +210,6 @@ const desktopActions: Record<DesktopAction, () => Promise<unknown>> = {
 	stopLocalWork: async () => {
 		if (await stopLocalWork(host, desktopHome(), app.isPackaged ? paths().helper : undefined)) app.quit();
 	},
-	resumeLocalWork: () => resumeLocalWork(host),
 	reconnectHost: async () => {
 		const path = window ? rendererPath(window.webContents.getURL()) : "/";
 		await connect();
@@ -313,7 +318,11 @@ else {
 			await openWindow();
 		})
 		.catch(async (error: Error) => {
+			const step = progress.step();
 			await progress.close();
-			await showStartupError(error);
+			await showStartupError(
+				{ message: (options) => dialog.showMessageBox(options), quit: () => app.quit() },
+				{ error, step, home: lastHome },
+			);
 		});
 }

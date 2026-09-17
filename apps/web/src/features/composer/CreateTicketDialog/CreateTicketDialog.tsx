@@ -1,12 +1,11 @@
 import type { Priority, Ticket, TicketSummary } from "@trellis/api";
-import { Button, Dialog, SectionHeader, Switch, useHotkey } from "@trellis/ui";
+import { Button, ConfirmDialog, Dialog, SectionHeader, Switch, useHotkey } from "@trellis/ui";
 import { useRef, useState } from "react";
-import { ConfirmDialog } from "../../../components/ConfirmDialog";
+import { failToast } from "../../../lib/failToast";
 import { AttachmentBox } from "../../attachments/AttachmentBox";
 import { DropTarget } from "../../attachments/DropTarget";
 import { useUploads } from "../../attachments/hooks/useUploads";
 import { UploadProgress } from "../../attachments/UploadProgress";
-import { failToast } from "../../ticket/utils/failToast";
 import { composerActions, useComposerStore } from "../composerStore";
 import { defaultStatus, useComposerDefaults } from "../hooks/useComposerDefaults";
 import { useComposerDraft } from "../hooks/useComposerDraft";

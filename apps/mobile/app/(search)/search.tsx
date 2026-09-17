@@ -1,3 +1,4 @@
+import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -7,8 +8,9 @@ import { Field } from "../../src/components/Field";
 import { pushRecent, readRecents, recentSearchesKey, replaceRecent } from "../../src/features/search/recentSearches";
 import { SearchResults } from "../../src/features/search/SearchResults";
 import { identifierOf, isSearchable, searchLimit } from "../../src/features/search/searchQuery";
+import { describeError } from "../../src/lib/describeError";
 import { getQueries } from "../../src/lib/orpc";
-import { store } from "../../src/lib/store";
+import { keys, store } from "../../src/lib/store";
 import { useDebouncedValue } from "../../src/lib/useDebouncedValue";
 import { useStoredString } from "../../src/lib/useStoredString";
 import { tokens } from "../../src/theme/tokens";
@@ -32,6 +34,11 @@ export default function SearchScreen() {
 		...getQueries().search.query.queryOptions({ input: { q: query, limit: searchLimit } }),
 		enabled,
 	});
+	// The server runs one search of this phone at a time. A letter typed while
+	// a search still waits replaces that search, and the replaced call ends
+	// with SEARCH_REPLACED. The search for the newer text is already running,
+	// so the screen waits for it instead of reporting a failed search.
+	const replaced = search.error instanceof ORPCError && search.error.code === "SEARCH_REPLACED";
 	const [storedRecents] = useStoredString(recentSearchesKey);
 	const recents = storedRecents === undefined ? [] : readRecents(store);
 	// The recent search the current typing session stored. The field searches
@@ -90,8 +97,8 @@ export default function SearchScreen() {
 						))}
 					</View>
 				)
-			) : search.isPending ? null : search.isError ? (
-				<EmptyState title="Search failed" hint="Check the server and try again." />
+			) : search.isPending || replaced ? null : search.isError ? (
+				<EmptyState title="Search failed" hint={describeError(search.error, store.getString(keys.serverUrl)!).detail} />
 			) : search.data.tickets.length === 0 ? (
 				<EmptyState title={`No results for “${query}”`} />
 			) : (

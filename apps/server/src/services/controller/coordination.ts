@@ -26,7 +26,7 @@ export const coordination = async (tx: Tx, dispatch: Pick<Dispatch, "id" | "proj
 	const [policy] = await rows<{ personaId: string; updatedAt: string }>(
 		tx,
 		sql`SELECT persona.id AS "personaId", ${iso(sql`persona.updated_at`)} AS "updatedAt"
-		FROM projects project JOIN personas persona ON persona.id=project.manager_config->>'personaId' WHERE project.id=${dispatch.projectId}`,
+		FROM projects project JOIN personas persona ON persona.id=COALESCE((SELECT r.persona_id FROM manager_delegations d JOIN agent_runs r ON r.id=d.run_id WHERE d.project_id=project.id AND d.retired_at IS NULL),project.manager_config->>'personaId') WHERE project.id=${dispatch.projectId}`,
 	);
 	const unfinished = await rows<Pick<Dispatch, "id" | "generation" | "events" | "outcomes" | "nextActions">>(
 		tx,

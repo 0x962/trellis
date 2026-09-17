@@ -61,7 +61,7 @@ test("setup creates the actor and the first project", async ({ page }) => {
 	await page.getByRole("button", { name: "Create" }).click();
 	await expect(page).toHaveURL(/\/p\/DO$/);
 	const sidebar = page.getByRole("complementary", { name: "Sidebar" });
-	const docRow = sidebar.getByRole("link", { name: /Docs/ });
+	const docRow = sidebar.locator('[data-slot="label"]').filter({ hasText: /^Docs$/ });
 	await expect(docRow).toBeVisible();
 	await expect(sidebar).toContainText("dana");
 	const projects = await get<{ key: string; name: string }[]>("/projects");

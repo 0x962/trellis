@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
-import { errors } from "@trellis/api";
 import { fireEvent, screen, waitFor, within } from "expo-router/testing-library";
 import { connect } from "../../../test/connect";
 import type { Recorder } from "../../../test/record";
@@ -68,7 +67,7 @@ describe("the priority sheet", () => {
 		await human.tickets.update({ ticket: data.ticket, title: "Retitled from the web" });
 		const sheet = await openSheet();
 		await fireEvent.press(within(sheet).getByRole("radio", { name: "Urgent" }));
-		expect(await screen.findByText(errors.VERSION_CONFLICT.message)).toBeOnTheScreen();
+		expect(await screen.findByText(`${data.ticket} changed first. The row shows the other version.`)).toBeOnTheScreen();
 		await waitFor(() => expect(within(priorityRow()).getByText("High")).toBeOnTheScreen());
 		expect(within(priorityRow()).queryByText("Urgent")).toBeNull();
 	});

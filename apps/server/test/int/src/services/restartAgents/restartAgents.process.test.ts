@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { HARNESS_DEFAULT_MODELS } from "@trellis/api";
 import { type RestartPlan, readRestartPlan, writeRestartPlan } from "@trellis/runtime-protocol/restart-plan";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
@@ -33,7 +34,7 @@ afterEach(async () => {
 	await rm(fixture.home, { recursive: true, force: true });
 });
 
-test.each(["claude", "codex", "opencode", "pi"] as const)(
+test.each(["claude", "codex", "opencode", "pi", "muse"] as const)(
 	"%s assignment resumes on a new runtime with one restart notice",
 	async (harness) => {
 		const { home, client } = fixture;
@@ -47,7 +48,7 @@ test.each(["claude", "codex", "opencode", "pi"] as const)(
 				harness,
 				cwd: home,
 				prompt: "Work on the assignment.",
-				model: "saved-model",
+				model: HARNESS_DEFAULT_MODELS[harness],
 				token: "previous-token",
 			})
 		).process;
@@ -55,7 +56,7 @@ test.each(["claude", "codex", "opencode", "pi"] as const)(
 			await seedActors(tx);
 			const project = await seedRoot(tx, "RST");
 			await tx.execute(
-				sql`UPDATE projects SET manager_config=${JSON.stringify({ personaId: null, concurrency: 3, directory: home })}::jsonb WHERE id=${project}`,
+				sql`UPDATE projects SET manager_config=${JSON.stringify({ personaId: null, directory: home })}::jsonb WHERE id=${project}`,
 			);
 			await tx.execute(
 				sql`INSERT INTO agent_runs (id,name,runtime,persona_name,kind,instruction,project_id,project_path,terminal_id,session_id,workspace_id,created_at,updated_at) VALUES (${runId},'Worker','native','Builder','builder','Continue the assignment',${project},'RST',${previousAttemptId},${previous.agent!.sessionId},${home},now(),now())`,
@@ -73,7 +74,7 @@ test.each(["claude", "codex", "opencode", "pi"] as const)(
 					previousAttemptId,
 					providerSessionId: previous.agent!.sessionId!,
 					harness,
-					model: "saved-model",
+					model: HARNESS_DEFAULT_MODELS[harness],
 					workspace: home,
 					processIdentity: previous.process!.identity,
 					attempt: { id: randomUUID(), token: "restart-token" },
@@ -103,12 +104,16 @@ test.each(["claude", "codex", "opencode", "pi"] as const)(
 			start: (c: Parameters<typeof startNative>[0], input: Parameters<typeof startNative>[1]) =>
 				startNative(c, input, { env, runtime: async () => client, workspace: async () => home }),
 		};
-		expect(await prepareResumeRestart(ctx, { restartId: plan.id }, deps)).toEqual({ resumed: 1, skipped: 0 });
+		expect(await prepareResumeRestart(ctx, { restartId: plan.id, wait: true }, deps)).toMatchObject({
+			resumed: 1,
+			skipped: 0,
+			failed: 0,
+		});
 		const sessions = await client.list({ status: "running" });
 		expect(sessions).toHaveLength(1);
 		expect(sessions[0]!.pid).not.toBe(previous.pid);
 		expect(sessions[0]!.agent?.sessionId).toBe(previous.agent!.sessionId);
-		expect(sessions[0]!.agent?.model).toBe("saved-model");
+		expect(sessions[0]!.agent?.model).toBe(HARNESS_DEFAULT_MODELS[harness]);
 		expect(sessions[0]!.launch!.cwd).toBe(home);
 		expect(sessions[0]!.acknowledgedMessageIds).toEqual([plan.sessions[0]!.attempt.id]);
 		const descriptor = JSON.parse(
@@ -118,7 +123,11 @@ test.each(["claude", "codex", "opencode", "pi"] as const)(
 		expect(descriptor.spec.env.TRELLIS_RUN_ID).toBe(runId);
 		expect(descriptor.spec.env.TRELLIS_ATTEMPT_TOKEN).toBe("restart-token");
 		expect(await readRestartPlan(home)).toBeNull();
-		expect(await prepareResumeRestart(ctx, { restartId: plan.id }, deps)).toEqual({ resumed: 0, skipped: 0 });
+		expect(await prepareResumeRestart(ctx, { restartId: plan.id, wait: true }, deps)).toMatchObject({
+			resumed: 0,
+			skipped: 0,
+			failed: 0,
+		});
 		expect((await client.list({ status: "running" }))[0]!.pid).toBe(sessions[0]!.pid);
 	},
 	20000,

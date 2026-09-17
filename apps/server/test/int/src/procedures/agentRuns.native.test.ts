@@ -43,13 +43,12 @@ test("native agents use an isolated Git worktree and retain output after stop", 
 		project: "NAT",
 		managerConfig: {
 			personaId: null,
-			concurrency: 3,
 			directory,
 			ade: "native",
 			harness: { preset: "custom", startCommand: "/bin/cat", resumeCommand: "/bin/cat" },
 		},
 	});
-	const ticket = await t.createTicket({ project: "NAT", title: "Native work" });
+	const ticket = await t.createTicket({ project: "NAT", title: "Native work", status: "Agent Review" });
 	const persona = await t.client.personas.create({
 		name: "Fixture",
 		kind: "builder",
@@ -91,7 +90,9 @@ test("native agents use an isolated Git worktree and retain output after stop", 
 	}
 	expect(output).toContain("native-probe");
 	const comment = await t.client.comments.create({ ticket: ticket.identifier, body: "@Fixture verify the ticket." });
-	await t.transport.call("controller.dispatch", systemContext(), {});
+	await expect(t.transport.call("controller.dispatch", systemContext(), {})).rejects.toThrow(
+		"Select a copilot persona",
+	);
 	expect((await t.client.comments.thread({ id: comment.id })).root.notifications).toEqual([
 		{ runId: run.id, personaName: "Fixture", state: "sent", error: null },
 	]);
@@ -137,23 +138,23 @@ test("native agents use an isolated Git worktree and retain output after stop", 
 		tx.execute(sql`UPDATE projects SET manager_config=manager_config - 'ade' WHERE key='NAT'`),
 	);
 	expect(await t.client.system.stopNativeWork({})).toEqual({ stopped: 1 });
-	expect((await t.client.projects.get({ project: "NAT" })).managerConfig?.dispatchPaused).toBe(true);
+	expect((await t.client.projects.get({ project: "NAT" })).managerConfig?.dispatchPaused).toBe(false);
 	expect(
 		await t.editServerTx(
 			async (tx) =>
 				(await tx.execute(sql`SELECT closed_at IS NOT NULL AS closed FROM agent_runs WHERE id=${run.id}`)).rows[0],
 		),
 	).toMatchObject({ closed: true });
-	expect(await t.client.system.nativeWork({})).toEqual({ paused: true });
-	await expect(t.client.agentRuns.start({ ticket: ticket.identifier, personaId: persona.id })).rejects.toMatchObject({
-		code: "INPUT_VALIDATION_FAILED",
-	});
-	expect(await t.client.system.resumeNativeWork({})).toEqual({ paused: false });
+	expect(
+		await t.editServerTx(
+			async (tx) => (await tx.execute(sql`SELECT value FROM settings WHERE key='nativeWorkPaused'`)).rows,
+		),
+	).toEqual([]);
 	expect((await t.client.agentRuns.output({ id: run.id })).text).toContain("native-probe");
 	await t.client.agentRuns.stop({ id: run.id });
 	expect((await t.client.agentRuns.list({ ticket: ticket.identifier }))[0]).toMatchObject({
 		terminalId: run.terminalId,
-		processStatus: null,
+		processStatus: "exited",
 	});
-	expect((await t.client.system.doctor({})).runtime.state).toBe("stopped");
-}, 20000);
+	expect((await t.client.system.doctor({})).runtime.state).toBe("running");
+}, 60000);

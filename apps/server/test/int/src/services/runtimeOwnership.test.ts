@@ -14,7 +14,7 @@ afterEach(async () => {
 
 test("people and agents create native projects without repository approval", async () => {
 	t = await createTestApp();
-	const managerConfig = { personaId: null, concurrency: 3, directory: "/tmp", ade: "native" as const };
+	const managerConfig = { personaId: null, directory: "/tmp", ade: "native" as const };
 	const project = await t.client.projects.create({ key: "NEW", name: "Native project", managerConfig });
 	expect(project.managerConfig).not.toHaveProperty("trustedDirectory");
 	const created = await t.as("agent:fixture").projects.create({ key: "AGT", name: "Agent project", managerConfig });
@@ -42,8 +42,8 @@ test("an agent updates a migrated project with legacy false permissions without 
 	});
 	const updated = await t
 		.as("agent:fixture")
-		.projects.update({ project: "PER", managerConfig: { personaId: null, concurrency: 7, directory: "/tmp/moved" } });
+		.projects.update({ project: "PER", managerConfig: { personaId: null, directory: "/tmp/moved" } });
 	expect(updated.managerConfig).not.toHaveProperty("allowAllPermissions");
 	expect(updated.managerConfig).not.toHaveProperty("trustedDirectory");
-	expect(updated.managerConfig).toMatchObject({ directory: "/tmp/moved", concurrency: 7 });
+	expect(updated.managerConfig).toMatchObject({ directory: "/tmp/moved" });
 });

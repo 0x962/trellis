@@ -16,7 +16,7 @@ const sections = [
 	{ id: "template", label: "Ticket template", component: TicketTemplateSettings },
 	{ id: "statuses", label: "Statuses", component: StatusSettings },
 	{ id: "repositories", label: "Repositories", component: RepoSettings },
-	{ id: "manager", label: "Manager", component: null },
+	{ id: "manager", label: "Copilot", component: null },
 	{ id: "harness", label: "Harness", component: null },
 	{ id: "subprojects", label: "Subprojects", component: SubprojectSettings },
 	{ id: "archive", label: "Danger Zone", component: ProjectLifecycle },

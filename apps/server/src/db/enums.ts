@@ -5,6 +5,7 @@ import {
 	CiStateSchema,
 	FlowBranchSchema,
 	FlowNodeKindSchema,
+	NoteAudienceSchema,
 	PrioritySchema,
 	PrLinkSourceSchema,
 	PrStateSchema,
@@ -31,6 +32,7 @@ export const AGENT_RUNNERS = AgentRunnerSchema.options;
 export const AGENT_STATES = AgentStateSchema.options;
 export const FLOW_NODE_KINDS = FlowNodeKindSchema.options;
 export const FLOW_BRANCHES = FlowBranchSchema.options;
+export const NOTE_AUDIENCES = NoteAudienceSchema.options;
 
 // A CHECK named `<table>_<column>_check` that keeps a column inside a closed
 // set. The options are inline literals: drizzle-kit copies the rendered SQL

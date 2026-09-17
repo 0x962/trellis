@@ -34,13 +34,15 @@ export const assertFreeName = (others: Status[], name: string, slug: string) => 
 	if (others.some((status) => status.slug === slug)) throw fail("DUPLICATE", { field: "slug" });
 };
 
-export type StatusInsert = Omit<Status, "createdAt" | "updatedAt">;
+export type StatusInsert = Omit<Status, "createdAt" | "updatedAt" | "agentConfig"> & {
+	agentConfig?: Status["agentConfig"];
+};
 
 export const insertStatus = (ctx: ServiceCtx, tx: Tx, status: StatusInsert) =>
 	tx.execute(
-		sql`INSERT INTO statuses (id, project_id, name, description, slug, category, reviewer, color, position, wip_limit, is_default, created_at, updated_at)
+		sql`INSERT INTO statuses (id, project_id, name, description, slug, category, reviewer, color, position, wip_limit, agent_config, is_default, created_at, updated_at)
 			VALUES (${status.id}, ${status.projectId}, ${status.name}, ${status.description}, ${status.slug}, ${status.category},
-				${status.reviewer}, ${status.color}, ${status.position}, ${status.wipLimit}, ${status.isDefault}, ${ctx.now}, ${ctx.now})`,
+				${status.reviewer}, ${status.color}, ${status.position}, ${status.wipLimit}, ${JSON.stringify(status.agentConfig ?? null)}::jsonb, ${status.isDefault}, ${ctx.now}, ${ctx.now})`,
 	);
 
 // Gives an inheriting project its own copy of the effective set: new ids,
@@ -119,7 +121,7 @@ export const seedRootStatuses = async (ctx: ServiceCtx, tx: Tx, projectId: strin
 			projectId,
 			slug: seed.name.toLowerCase().replace(/ /g, "-"),
 			position,
-			wipLimit: null,
+			wipLimit: seed.category === "started" ? 9 : null,
 		});
 	}
 };

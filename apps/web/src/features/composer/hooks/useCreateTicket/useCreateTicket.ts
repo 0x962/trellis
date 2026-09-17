@@ -1,14 +1,10 @@
 import { useRouter } from "@tanstack/react-router";
-import type { Ticket, TicketCreateInput, TicketSummary } from "@trellis/api";
+import type { Ticket, TicketCreateInput } from "@trellis/api";
 import { toast } from "@trellis/ui";
 import { useCallback } from "react";
 import { useApp } from "../../../../lib/appContext";
 import { insertRow } from "../../../table/utils/cacheRows";
-
-const summaryOf = (ticket: Ticket): TicketSummary => {
-	const { description, children, prs, attachments, ...summary } = ticket;
-	return summary;
-};
+import { summaryOf } from "../../../ticket/utils/summaryOf";
 
 // Creates one ticket and tells every surface that lists tickets about it:
 // the table rows, the status counts, and the project list. It then shows the

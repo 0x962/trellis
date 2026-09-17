@@ -1,1 +1,0 @@
-export { managerResumes } from "./managerResumes";

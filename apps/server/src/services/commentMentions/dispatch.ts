@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import { sendDeadline } from "../controller/sendDeadline.ts";
+import { unconfirmedDelivery } from "../deliveries/sentences.ts";
 import type { ServiceCtx } from "../support.ts";
 
 type Delivery = {
@@ -48,7 +49,6 @@ export const dispatchMentions = async (ctx: ServiceCtx, sessions: RuntimeProcess
 			ready.map((id) => sql`${id}`),
 			sql`,`,
 		)})
-		AND NOT EXISTS (SELECT 1 FROM settings WHERE key='nativeWorkPaused' AND value='true'::jsonb)
 		AND NOT EXISTS (WITH RECURSIVE ancestors AS (
 			SELECT id,parent_id,archived_at FROM projects WHERE id=t.project_id
 			UNION ALL SELECT p.id,p.parent_id,p.archived_at FROM projects p JOIN ancestors a ON p.id=a.parent_id
@@ -86,9 +86,9 @@ export const dispatchMentions = async (ctx: ServiceCtx, sessions: RuntimeProcess
 					expectedSessionId: delivery.sessionId,
 				}),
 			);
-		} catch (cause) {
+		} catch {
 			state = "unknown";
-			error = cause instanceof Error ? cause.message : String(cause);
+			error = unconfirmedDelivery;
 		}
 		await ctx.newTx((tx) =>
 			tx.execute(sql`UPDATE comment_deliveries SET state=${state},error=${error} WHERE id=${delivery.id}`),

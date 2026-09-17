@@ -105,6 +105,37 @@ describe("the Search tab requests", () => {
 		expect(screen.queryByTestId(`ticket-row-${data.oauth[0]}`)).toBeNull();
 	});
 
+	// The server runs one search of this phone at a time, so the next letter
+	// replaces a search that still waits. The search for the newer text is
+	// already running, so the screen waits for it and reports no failure.
+	test("a search the server replaced shows no failed search", async () => {
+		const inner = globalThis.fetch;
+		const replaced = () =>
+			new Response(
+				JSON.stringify({
+					json: {
+						defined: true,
+						code: "SEARCH_REPLACED",
+						status: 409,
+						message: "A newer search replaced this search.",
+					},
+					meta: [],
+				}),
+				{ status: 409, headers: { "content-type": "application/json" } },
+			);
+		globalThis.fetch = (async (request: Request, init: RequestInit) => {
+			const response = await inner(request, init);
+			return new URL(request.url).pathname.endsWith("/rpc/search/query") ? replaced() : response;
+		}) as unknown as typeof fetch;
+
+		await openSearch();
+		await fireEvent.changeText(field(), "oauth");
+		await waitFor(() => expect(queries()).toHaveLength(1));
+		await act(async () => {});
+
+		expect(screen.queryByText("Search failed")).toBeNull();
+	});
+
 	test("clearing the field sends no request", async () => {
 		jest.useFakeTimers();
 		await openSearchOnFakeClock();
