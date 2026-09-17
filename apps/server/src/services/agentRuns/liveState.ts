@@ -12,10 +12,7 @@ type ReadRuntimeSessions = (home: string, input: RuntimeListInput) => Promise<Ru
 const indexRuntimeSessions = (sessions: RuntimeProcessStatus[]): RuntimeSessionIndex =>
 	new Map(sessions.map((session) => [session.id, session]));
 
-export async function readRuntimeSessions(
-	home: string,
-	input: RuntimeListInput = {},
-): Promise<RuntimeProcessStatus[]> {
+export async function readRuntimeSessions(home: string, input: RuntimeListInput = {}): Promise<RuntimeProcessStatus[]> {
 	try {
 		return await nativeHost(home).list(input);
 	} catch (error) {
