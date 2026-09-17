@@ -1,3 +1,4 @@
+import { GithubLogo } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ReviewRevision, TrellisClient } from "@trellis/api";
 import { Button, Select, Sheet } from "@trellis/ui";
@@ -39,7 +40,7 @@ export function ReviewActions({
 	onDone: () => void;
 }) {
 	const { client, orpc } = useApp();
-	const [action, setAction] = useState<Action>("merge");
+	const [action, setAction] = useState<Action>("automerge");
 	const extra = useQuery(orpc.reviews.metadata.queryOptions({ input: { pr } }));
 	const mutation = useMutation({
 		mutationFn: () => client.reviews.action({ pr, headSha: revision.headSha, action }),
@@ -49,7 +50,12 @@ export function ReviewActions({
 		},
 	});
 	const items = Object.entries(labels)
-		.filter(([key]) => !key.startsWith("live-") && (!key.startsWith("deploy-") || extra.data?.autoDeployAvailable))
+		.filter(
+			([key]) =>
+				!["merge", "admin-merge", "ready"].includes(key) &&
+				!key.startsWith("live-") &&
+				(!key.startsWith("deploy-") || extra.data?.autoDeployAvailable),
+		)
 		.map(([value, label]) => ({ value: value as Action, label }));
 	return open ? (
 		<Sheet
@@ -67,10 +73,10 @@ export function ReviewActions({
 				}}
 			>
 				<Select label="Action" value={action} onValueChange={setAction} items={items} />
-				<a className="review-meta" href={pr} target="_blank" rel="noreferrer">
-					Open pull request
+				<a className="review-meta inline-flex items-center gap-1.5" href={pr} target="_blank" rel="noreferrer">
+					<GithubLogo aria-hidden="true" className="size-3.5" />
+					Open pull request on GitHub
 				</a>
-				{action === "admin-merge" && <p role="alert">This action bypasses branch protection.</p>}
 				{action === "live-delete" && <p role="alert">This action deletes the PR environment.</p>}
 				<p className="review-meta">Reviewed head: {revision.headSha.slice(0, 12)}</p>
 				{mutation.isError && (

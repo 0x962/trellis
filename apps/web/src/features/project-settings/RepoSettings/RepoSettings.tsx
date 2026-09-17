@@ -1,4 +1,4 @@
-import { Plus, Trash } from "@phosphor-icons/react";
+import { GithubLogo, Plus, Trash } from "@phosphor-icons/react";
 import type { Project } from "@trellis/api";
 import { Button, IconButton, Input } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
@@ -62,9 +62,12 @@ export function RepoSettings({ project }: RepoSettingsProps) {
 								href={`https://github.com/${repo.owner}/${repo.repo}`}
 								target="_blank"
 								rel="noreferrer"
-								className="min-w-0 flex-1 truncate text-sm text-accent underline"
+								className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-accent underline"
 							>
-								{repo.owner}/{repo.repo}
+								<GithubLogo aria-hidden="true" className="size-3.5 shrink-0" />
+								<span className="truncate">
+									{repo.owner}/{repo.repo}
+								</span>
 							</a>
 							<IconButton
 								size="xs"

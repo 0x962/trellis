@@ -5,6 +5,7 @@ import { type DiffAnchor, ReviewDiff, ReviewFiles, ReviewTabs } from "@trellis/u
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { useTheme } from "../../../lib/theme";
+import { type CheckTabStatus, checkTabStatus, type ReviewCheck } from "../ReviewChecks/checkGroups";
 import { ReviewChecks } from "../ReviewChecks/ReviewChecks";
 import { ReviewComment } from "../ReviewComment/ReviewComment";
 import { type ReviewCommentInput, ReviewComposer } from "../ReviewComposer/ReviewComposer";
@@ -22,18 +23,12 @@ import "@trellis/ui/review.css";
 
 type FileRow = { path: string; type: string; additions: number; deletions: number };
 
-const checkStatus = (revision: ReviewRevision | null) => {
-	const checks = revision?.meta.statusCheckRollup as
-		| { name?: string; context?: string; conclusion?: string; state?: string }[]
-		| undefined;
-	const latest = new Map(checks?.map((check) => [check.name ?? check.context, check]));
-	const states = [...latest.values()].map((check) => check.conclusion || check.state || "PENDING");
-	if (states.some((state) => ["FAILURE", "ERROR", "TIMED_OUT", "CANCELLED"].includes(state)))
-		return { label: "Checks failed", tone: "danger" as const };
-	if (states.some((state) => !["SUCCESS", "NEUTRAL", "SKIPPED"].includes(state)))
-		return { label: "Checks pending", tone: "warning" as const };
-	if (states.length > 0) return { label: "Checks passed", tone: "success" as const };
-	return { label: "No checks", tone: "neutral" as const };
+const checkStatusIndicator = (status: CheckTabStatus) => {
+	if (status === "failed") return { label: "Checks failed", tone: "danger" as const };
+	if (status === "blocked") return { label: "Checks blocked", tone: "danger" as const };
+	if (status === "running") return { label: "Checks running", tone: "warning" as const };
+	if (status === "done") return { label: "Checks passed", tone: "success" as const };
+	return undefined;
 };
 
 const liveStatusTone = (label: ReturnType<typeof liveBranchState>["label"]) => {
@@ -149,7 +144,25 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		/>
 	);
 	const displayRevision = revision ? { ...revision, meta: status.data ?? revision.meta } : null;
+	const displayMeta = displayRevision?.meta as
+		| {
+				statusCheckRollup?: ReviewCheck[];
+				mergeable?: string;
+				mergeStateStatus?: string;
+				reviewDecision?: string | null;
+		  }
+		| undefined;
+	const checksStatus = checkTabStatus(
+		displayMeta?.statusCheckRollup ?? [],
+		displayMeta?.mergeable === "CONFLICTING" ||
+			displayMeta?.mergeStateStatus === "BLOCKED" ||
+			displayMeta?.reviewDecision === "CHANGES_REQUESTED",
+	);
 	const liveStatus = status.data ? liveBranchState(status.data as LiveBranchMeta).label : undefined;
+	const refreshAll = () => {
+		refresh.mutate();
+		void status.refetch();
+	};
 	return (
 		<div className="review-page">
 			<ReviewHeader
@@ -157,7 +170,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 				parent={parent}
 				revision={displayRevision}
 				refreshing={refresh.isPending || composer !== null}
-				onRefresh={() => refresh.mutate()}
+				onRefresh={refreshAll}
 				onSubmit={() => setSubmitOpen(true)}
 			/>
 			<div className="page-card review-workspace">
@@ -165,6 +178,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 					pr={pr}
 					revision={displayRevision}
 					openCount={allThreads.filter((thread) => thread.status === "open").length}
+					onAction={refreshAll}
 				/>
 				{revision && <ReviewStack pr={pr} />}
 				{status.isError && (
@@ -184,7 +198,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 					onValueChange={changeTab}
 					count={allThreads.length}
 					live={pr.includes("/canary-technologies-corp/canary/")}
-					checksStatus={checkStatus(displayRevision)}
+					checksStatus={checkStatusIndicator(checksStatus)}
 					liveStatus={liveStatus ? { label: liveStatus, tone: liveStatusTone(liveStatus) } : undefined}
 				>
 					{refresh.isError && (
@@ -268,12 +282,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 					{tab === "checks" && <ReviewChecks revision={displayRevision} />}
 					{tab === "runs" && <ReviewRuns pr={pr} />}
 					{tab === "live" && displayRevision && (
-						<ReviewLive
-							pr={pr}
-							revision={displayRevision}
-							loading={status.isPending}
-							onRefresh={() => refresh.mutate()}
-						/>
+						<ReviewLive pr={pr} revision={displayRevision} loading={status.isPending} onRefresh={refreshAll} />
 					)}
 				</ReviewTabs>
 			</div>
