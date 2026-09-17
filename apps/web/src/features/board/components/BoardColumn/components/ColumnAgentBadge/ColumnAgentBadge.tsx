@@ -24,8 +24,11 @@ const modelFor = (config: StatusAgentConfig) =>
 
 const providerFor = (model: string) => model.slice(0, model.indexOf("/")) as ModelProvider;
 
-const quotaText = (account: UsageAccount | undefined, preset: HarnessPreset) => {
-	if (account === undefined) return preset === "opencode" || preset === "pi" ? "Unlimited" : "Unavailable";
+const quotaText = (account: UsageAccount | undefined, preset: HarnessPreset, accountId: string | null) => {
+	if (account === undefined) {
+		if (accountId !== null) return "Unavailable";
+		return preset === "opencode" || preset === "pi" ? "Unlimited" : "Unavailable";
+	}
 	if (account.quota.status === "ok")
 		return account.quota.windows.map((window) => `${window.label}: ${window.usedPercent}% used`).join(" · ");
 	if (account.quota.status === "unlimited") return "Unlimited";
@@ -54,7 +57,7 @@ export function ColumnAgentBadge({ columnName, config }: { columnName: string; c
 		? "Loading…"
 		: accounts.isError
 			? "Unavailable"
-			: quotaText(account, config.harness.preset);
+			: quotaText(account, config.harness.preset, config.accountId);
 
 	return (
 		<Tooltip
