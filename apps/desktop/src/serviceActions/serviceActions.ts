@@ -1,6 +1,5 @@
 import { dialog } from "electron";
 import { assertManagedHome, ensureHostToken, type HostConnection, waitForHostExit } from "../host/host.ts";
-import { hostError } from "../hostError/hostError.ts";
 import { openServiceSettings, serviceCommand } from "../service/service.ts";
 import { serviceNeedsRegistration } from "../serviceRegistration/serviceRegistration.ts";
 import { stopHostWork } from "../stopHostWork/stopHostWork.ts";
@@ -26,8 +25,7 @@ export const stopLocalWork = async (host: HostConnection, home: string, helper?:
 	const { response } = await dialog.showMessageBox({
 		type: "warning",
 		message: "Quit Trellis completely?",
-		detail:
-			"Trellis pauses new local work, stops the known processes of local projects, and disables its background service. Superset and other external sessions remain active.",
+		detail: "Trellis stops its local agents and background service. Open Trellis to start them again.",
 		buttons: ["Cancel", "Quit Completely"],
 		defaultId: 0,
 		cancelId: 0,
@@ -39,22 +37,4 @@ export const stopLocalWork = async (host: HostConnection, home: string, helper?:
 		await waitForHostExit(home);
 	});
 	return true;
-};
-
-export const resumeLocalWork = async (host: HostConnection) => {
-	const result = await fetch(`${host.origin}/api/native-work/resume`, {
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${host.token}`,
-			"content-type": "application/json",
-			"x-trellis-actor": "human:desktop",
-		},
-		body: "{}",
-	});
-	if (!result.ok) throw await hostError(result);
-	await dialog.showMessageBox({
-		message: "Local work is enabled",
-		detail: "You can start local agents. Trellis sends queued ticket events to each running manager again.",
-		buttons: ["Done"],
-	});
 };

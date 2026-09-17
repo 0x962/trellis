@@ -63,9 +63,6 @@ export const prepareStandaloneHandoff = async (input: {
 		try {
 			await database.db.transaction(async (tx) => {
 				await tx.execute(
-					sql`INSERT INTO settings (key,value,updated_at) VALUES ('nativeWorkPaused','true'::jsonb,now()) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value,updated_at=EXCLUDED.updated_at`,
-				);
-				await tx.execute(
 					sql`UPDATE settings SET value=jsonb_set(value,'{enabled}','false'::jsonb),updated_at=now() WHERE key='agents'`,
 				);
 			});

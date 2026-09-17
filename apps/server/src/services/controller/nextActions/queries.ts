@@ -43,8 +43,7 @@ export const enabled = async (tx: Tx, input: { projectId: string; ticketProjectI
  SELECT id,parent_id,archived_at FROM projects WHERE id=${input.ticketProjectId}
  UNION ALL SELECT p.id,p.parent_id,p.archived_at FROM projects p JOIN ancestors a ON p.id=a.parent_id
  ) SELECT NOT EXISTS (SELECT 1 FROM ancestors WHERE archived_at IS NOT NULL)
- AND EXISTS (SELECT 1 FROM projects p WHERE p.id=${input.projectId} AND ${isManaged(sql`p`)})
- AND NOT EXISTS (SELECT 1 FROM settings WHERE key='nativeWorkPaused' AND value='true'::jsonb) AS allowed`,
+ AND EXISTS (SELECT 1 FROM projects p WHERE p.id=${input.projectId} AND ${isManaged(sql`p`)}) AS allowed`,
 	);
 	return state!.allowed;
 };

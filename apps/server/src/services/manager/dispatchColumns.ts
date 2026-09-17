@@ -1,7 +1,7 @@
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support.ts";
-import { readNativeWork } from "../agentRuns/nativeControl.ts";
+import { hostIsShuttingDown } from "../agentRuns/hostShutdown.ts";
 import type { IoCtx } from "../support.ts";
 import { columnStates } from "./columnState.ts";
 import { reconcileCopilot } from "./copilot.ts";
@@ -11,7 +11,7 @@ const active = new Map<string, Promise<unknown>>();
 const defaults = { column: reconcileColumn, copilot: reconcileCopilot };
 
 export async function dispatchColumns(ctx: IoCtx, sessions: RuntimeProcessStatus[], deps = defaults) {
-	if ((await ctx.newTx(readNativeWork)).paused) return;
+	if (hostIsShuttingDown(ctx.home)) return;
 	const columns = await ctx.newTx((tx) => columnStates(tx));
 	const projects = await ctx.newTx((tx) =>
 		rows<{ id: string }>(

@@ -49,7 +49,6 @@ export const dispatchMentions = async (ctx: ServiceCtx, sessions: RuntimeProcess
 			ready.map((id) => sql`${id}`),
 			sql`,`,
 		)})
-		AND NOT EXISTS (SELECT 1 FROM settings WHERE key='nativeWorkPaused' AND value='true'::jsonb)
 		AND NOT EXISTS (WITH RECURSIVE ancestors AS (
 			SELECT id,parent_id,archived_at FROM projects WHERE id=t.project_id
 			UNION ALL SELECT p.id,p.parent_id,p.archived_at FROM projects p JOIN ancestors a ON p.id=a.parent_id

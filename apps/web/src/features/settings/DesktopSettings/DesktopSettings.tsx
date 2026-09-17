@@ -1,4 +1,4 @@
-import { ArrowsClockwise, FolderOpen, FolderUser, GearSix, Play, Power, StopCircle } from "@phosphor-icons/react";
+import { ArrowsClockwise, FolderOpen, FolderUser, GearSix, Power, StopCircle } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge, type BadgeTone, IconButton, Switch, Tooltip, toast } from "@trellis/ui";
 import { type ReactElement, useCallback, useEffect } from "react";
@@ -159,15 +159,12 @@ export function DesktopSettings({ bridge }: { bridge: DesktopBridge }) {
 					<p className="text-sm text-fg-muted">The development app has no package.</p>
 				)}
 			</SettingsRow>
-			<SettingsRow label="Local work" hint="Resume allows new local launches after a complete quit.">
-				<div className="flex items-center gap-2">{button("Resume local work", "resumeLocalWork", <Play />)}</div>
-			</SettingsRow>
 			<SettingsRow label="Host connection" hint="Connect to the local host again and reload this window.">
 				<div className="flex items-center gap-2">{button("Reconnect host", "reconnectHost", <ArrowsClockwise />)}</div>
 			</SettingsRow>
 			<SettingsRow
 				label="Quit"
-				hint="Quit Trellis closes the app; the host and its agents keep running. Quit Trellis Completely pauses local dispatch, stops the local agent processes, disables the background service, and quits."
+				hint="Quit Trellis closes the app; the host and its agents keep running. Quit Trellis Completely stops the host and its agents. Open Trellis to start them again."
 			>
 				<div className="flex items-center gap-2">
 					{button("Quit Trellis", "quit", <Power />)}

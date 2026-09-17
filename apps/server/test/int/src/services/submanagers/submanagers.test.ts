@@ -210,9 +210,9 @@ test("a stopped submanager resumes its assignment and conversation", async () =>
 	expect(resumed.run.terminalId).not.toBe(run.terminalId);
 });
 
-test("a global pause prevents submanager heartbeats", async () => {
+test("an archived ancestor prevents submanager heartbeats", async () => {
 	const { run } = await delegate();
-	await h.rows(sql`INSERT INTO settings(key,value,updated_at) VALUES ('nativeWorkPaused','true'::jsonb,${NOW})`);
+	await h.rows(sql`UPDATE projects SET archived_at=${NOW} WHERE id=${root}`);
 	const sessions = [controllerSession(run.terminalId!)];
 	await h.run((ctx, tx) => collect(ctx, tx, { sessions }), { now: secondsAfter(121) });
 	expect(await h.run((ctx, tx) => claim(ctx, tx, { sessions }), { now: secondsAfter(121) })).toBeNull();
@@ -263,8 +263,8 @@ test("a repeated delegation start retains the chosen account", async () => {
 	expect(repeated.run.accountId).toBe("01ARZ3NDEKTSV4RRFFQ69G5FAW");
 });
 
-test("a parent cannot start another delegation while local work is paused", async () => {
-	await h.rows(sql`INSERT INTO settings(key,value,updated_at) VALUES ('nativeWorkPaused','true'::jsonb,${NOW})`);
+test("a parent cannot start another delegation while an ancestor is archived", async () => {
+	await h.rows(sql`UPDATE projects SET archived_at=${NOW} WHERE id=${root}`);
 	await expect(delegate()).rejects.toThrow();
 });
 

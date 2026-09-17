@@ -27,7 +27,7 @@ import { restartHost } from "./restartHost/index.ts";
 import { restartMenuItem } from "./restartMenuItem/index.ts";
 import { readSelectedHome } from "./selectedHome/selectedHome.ts";
 import { openServiceSettings, serviceCommand } from "./service/service.ts";
-import { requireService, resumeLocalWork, stopLocalWork } from "./serviceActions/serviceActions.ts";
+import { requireService, stopLocalWork } from "./serviceActions/serviceActions.ts";
 import { showMaximizedWindow } from "./showMaximizedWindow/showMaximizedWindow.ts";
 import { showStartupError } from "./showStartupError/index.ts";
 import { startupProgress } from "./startupProgress/index.ts";
@@ -210,7 +210,6 @@ const desktopActions: Record<DesktopAction, () => Promise<unknown>> = {
 	stopLocalWork: async () => {
 		if (await stopLocalWork(host, desktopHome(), app.isPackaged ? paths().helper : undefined)) app.quit();
 	},
-	resumeLocalWork: () => resumeLocalWork(host),
 	reconnectHost: async () => {
 		const path = window ? rendererPath(window.webContents.getURL()) : "/";
 		await connect();

@@ -165,12 +165,13 @@ test("a due wait wakes the manager and its ticket reserves on a started status",
 	expect(await h.one<{ state: string }>(sql`SELECT state FROM manager_next_actions`)).toEqual({ state: "assigned" });
 });
 
-test("a pause holds a timed wait past its deadline and resume makes it eligible", async () => {
+test("an archive holds a timed wait past its deadline and a return makes it eligible", async () => {
 	await wait({ type: "time", at: secondsAfter(1).toISOString() });
-	await h.rows(sql`INSERT INTO settings(key,value,updated_at) VALUES ('nativeWorkPaused','true'::jsonb,${NOW})`);
+	await h.rows(sql`UPDATE projects SET archived_at=${NOW}`);
 	await gather(2);
 	expect(await take(2)).toBeNull();
-	await h.rows(sql`DELETE FROM settings WHERE key='nativeWorkPaused'`);
+	await h.rows(sql`UPDATE projects SET archived_at=NULL`);
+	await h.rebuild();
 	await gather(3);
 	expect((await take(3))?.nextActions).toHaveLength(1);
 });

@@ -117,32 +117,27 @@ test("a replacement manager replays the saved assignment without another worker"
 	).rejects.toThrow();
 });
 
-for (const mode of ["global", "archive"] as const) {
-	test(`${mode} pause preserves a queued wait and blocks an already delivered assignment`, async () => {
-		await queue();
-		await h.rows(sql`UPDATE agent_runs SET closed_at=${NOW} WHERE id='busy'`);
-		await gather(1);
-		const action = (await take(1))!.nextActions[0]!;
-		if (mode === "global")
-			await h.rows(sql`INSERT INTO settings(key,value,updated_at) VALUES ('nativeWorkPaused','true'::jsonb,${NOW})`);
-		if (mode === "archive") await h.rows(sql`UPDATE projects SET archived_at=${NOW}`);
-		await gather(2);
-		expect(await h.one(sql`SELECT state,eligible_at FROM manager_next_actions`)).toMatchObject({
-			state: "waiting",
-			eligible_at: null,
-		});
-		await expect(
-			h.run((ctx, tx) =>
-				reserve(ctx, tx, { personaId: "builder", ticket: ticketId, requestId: action.assignmentRequestId }),
-			),
-		).rejects.toThrow();
-		await h.rows(sql`UPDATE projects SET archived_at=NULL`);
-		await h.rows(sql`DELETE FROM settings WHERE key='nativeWorkPaused'`);
-		await h.rebuild();
-		await gather(3);
-		expect((await h.one(sql`SELECT eligible_at FROM manager_next_actions`)).eligible_at).not.toBeNull();
+test("an archive preserves a queued wait and blocks an already delivered assignment", async () => {
+	await queue();
+	await h.rows(sql`UPDATE agent_runs SET closed_at=${NOW} WHERE id='busy'`);
+	await gather(1);
+	const action = (await take(1))!.nextActions[0]!;
+	await h.rows(sql`UPDATE projects SET archived_at=${NOW}`);
+	await gather(2);
+	expect(await h.one(sql`SELECT state,eligible_at FROM manager_next_actions`)).toMatchObject({
+		state: "waiting",
+		eligible_at: null,
 	});
-}
+	await expect(
+		h.run((ctx, tx) =>
+			reserve(ctx, tx, { personaId: "builder", ticket: ticketId, requestId: action.assignmentRequestId }),
+		),
+	).rejects.toThrow();
+	await h.rows(sql`UPDATE projects SET archived_at=NULL`);
+	await h.rebuild();
+	await gather(3);
+	expect((await h.one(sql`SELECT eligible_at FROM manager_next_actions`)).eligible_at).not.toBeNull();
+});
 
 test("cancel prevents an old action from starting work", async () => {
 	await queue();
