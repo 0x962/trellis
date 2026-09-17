@@ -65,7 +65,7 @@ export function TicketWorkArea({
 					},
 					{
 						value: "changes",
-						label: "Changes",
+						label: "Diffs",
 						content: (
 							<div className="page-card flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-4 max-md:px-4">
 								<PullRequests ticket={ticket} initialPrs={ticket.prs} onOpen={onOpenPullRequest} />
