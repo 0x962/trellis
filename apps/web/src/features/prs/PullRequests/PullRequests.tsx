@@ -1,7 +1,7 @@
 import { Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import type { LinkedPullRequest, TicketSummary } from "@trellis/api";
-import { Button, EmptyState, SectionHeader, Skeleton } from "@trellis/ui";
+import { Button, EmptyState, Skeleton } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { GhBanner } from "./components/GhBanner";
@@ -15,10 +15,11 @@ export type PullRequestsProps = {
 	initialPrs?: LinkedPullRequest[];
 };
 
-// Every PR linked to one ticket. The header row holds the count and the plus
-// button that opens the Link PR modal. The gh notice shows only above a PR,
-// because checks exist only on a linked PR. The ticket page mounts this and
-// nothing else.
+// Every PR linked to one ticket, as a list of cards. The Changes tab of the
+// ticket names this content, so the section prints no title and no count.
+// The Add button above the cards is the only control that opens the Link PR
+// modal. The gh notice shows only above a PR, because checks exist only on a
+// linked PR. The ticket page mounts this and nothing else.
 //
 // The server polls GitHub and puts every change on the event stream. The
 // list follows a `pr.updated` event on its own, so the rows stay current
@@ -33,16 +34,13 @@ export function PullRequests({ ticket, initialPrs }: PullRequestsProps) {
 
 	return (
 		<section aria-label="PRs" className="flex flex-col gap-2">
-			<div data-prs-header="">
-				<SectionHeader
-					title="PRs"
-					count={prs !== undefined && prs.length > 0 ? prs.length : undefined}
-					actions={
-						<Button variant="quiet" size="sm" icon={<Plus />} onClick={() => setLinking(true)}>
-							Add
-						</Button>
-					}
-				/>
+			{/* The row is 28 px tall, the height of a ticket section header, so
+			    the cards start at the same height as the rows of every other
+			    section on the ticket. */}
+			<div className="flex h-7 items-center justify-end">
+				<Button variant="quiet" size="sm" icon={<Plus />} onClick={() => setLinking(true)}>
+					Add
+				</Button>
 			</div>
 			<LinkPrDialog ticket={ticket} open={linking} onOpenChange={setLinking} />
 			{prs === undefined ? (
