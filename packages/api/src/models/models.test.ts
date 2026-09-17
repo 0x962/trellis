@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { HarnessSchema } from "../harness/harness.ts";
+import { BuiltInHarnessSchema, HarnessSchema } from "../harness/harness.ts";
 import { catalogModelFor, fromHarnessModel, ModelIdSchema, modelsForHarness, toHarnessModel } from "./models.ts";
 
 test("model choices use gateway IDs from all four providers", () => {
@@ -57,4 +57,21 @@ test("a listed harness model reaches the catalog only when this build can launch
 	expect(catalogModelFor("codex", "meta/llama-4-scout")).toBeUndefined();
 	// `fromHarnessModel` throws on this name, and no model comes back.
 	expect(catalogModelFor("pi", "not-a-model")).toBeUndefined();
+});
+
+// The model picker writes its choice straight into `projects.managerConfig`.
+// A choice that `HarnessSchema` rejects would fail the save, so every value
+// `catalogModelFor` answers has to survive that parse for its own harness.
+test("every model the picker can offer is a model the harness settings accept", () => {
+	for (const harness of BuiltInHarnessSchema.options) {
+		const offered = modelsForHarness(harness).map(({ id }) => id);
+		expect(offered.length).toBeGreaterThan(0);
+		for (const id of offered) {
+			// A harness program names this model the way its own flag takes it,
+			// and that name is what reaches `catalogModelFor`.
+			const native = toHarnessModel(harness, id);
+			expect(catalogModelFor(harness, native), `${harness} ${native}`).toBe(id);
+			expect(HarnessSchema.safeParse({ preset: harness, model: id }).success, `${harness} ${id}`).toBe(true);
+		}
+	}
 });
