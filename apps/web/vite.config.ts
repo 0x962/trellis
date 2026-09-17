@@ -12,20 +12,6 @@ export const routerPluginOptions = {
 	routeFileIgnorePattern: "^components$",
 } as const;
 
-export const chunkGroups = [
-	{
-		name: "initial",
-		test: () => true,
-		tags: ["$initial" as const],
-	},
-	{
-		name: "app",
-		test: () => true,
-		entriesAware: true,
-		entriesAwareMergeThreshold: 32 * 1024,
-	},
-];
-
 export const phosphorSpecialWeights: Record<string, readonly string[]> = {
 	Check: ["bold"],
 	CheckCircle: ["fill"],
@@ -73,11 +59,6 @@ export const createConfig = (env: Record<string, string | undefined>): UserConfi
 			terserOptions: {
 				compress: { passes: 2 },
 				format: { comments: false },
-			},
-			rollupOptions: {
-				output: {
-					codeSplitting: { groups: chunkGroups },
-				},
 			},
 		},
 		resolve: {
