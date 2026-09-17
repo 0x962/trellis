@@ -6,6 +6,7 @@ import { Avatar, cx, EmptyState, IconButton, Tooltip } from "@trellis/ui";
 import { useEffect } from "react";
 import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../../agents/agentKindOf";
+import { agentProfileOf } from "../../agents/agentProfileOf";
 import { isAgentWorking } from "../../agents/isAgentWorking";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
@@ -79,6 +80,7 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 										kind="agent"
 										name={run.ticketIdentifier ?? run.name}
 										agentKind={agentKindOf(run.kind)}
+										agentProfile={agentProfileOf(run.harness)}
 										state={isAgentWorking(run) ? "working" : "static"}
 										className="size-5 shrink-0"
 									/>

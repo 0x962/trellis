@@ -136,15 +136,15 @@ export const reserve = async (
 		existing === undefined
 			? await rows<StoredRun>(
 					tx,
-					sql`INSERT INTO agent_runs (id, name, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, runtime, closed_at, session_id, created_at, updated_at)
-		VALUES (${ulid()}, ${name}, ${kind}, ${options?.session?.instruction ?? options?.flow?.instruction ?? (kind === "manager" ? config.instruction : "")}, ${project.id}, ${projectPath}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'native', NULL, ${sessionId}, ${ctx.now}, ${ctx.now})
+					sql`INSERT INTO agent_runs (id, name, harness, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, runtime, closed_at, session_id, created_at, updated_at)
+		VALUES (${ulid()}, ${name}, ${JSON.stringify(config.harness)}::jsonb, ${kind}, ${options?.session?.instruction ?? options?.flow?.instruction ?? (kind === "manager" ? config.instruction : "")}, ${project.id}, ${projectPath}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'native', NULL, ${sessionId}, ${ctx.now}, ${ctx.now})
 		ON CONFLICT DO NOTHING RETURNING ${columns}`,
 				)
 			: // The current project instruction applies when a manager starts again.
 				await rows<StoredRun>(
 					tx,
 					sql`UPDATE agent_runs SET closed_at = NULL, error = NULL, session_lost = false, session_id = ${sessionId},
-			name = ${name}, instruction = ${config.instruction}, updated_at = ${ctx.now}
+			name = ${name}, harness = ${JSON.stringify(config.harness)}::jsonb, instruction = ${config.instruction}, updated_at = ${ctx.now}
 			WHERE id = ${existing.id} RETURNING ${columns}`,
 				);
 	if (run === undefined) throw fail("DUPLICATE", { field: "active agent" });

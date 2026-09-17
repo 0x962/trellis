@@ -11,7 +11,6 @@ import { rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import { fail, invalidInput } from "../errors.ts";
 import { changeSet } from "./changeSet.ts";
-import { seedDefaultChannels } from "./chat/channels.ts";
 import {
 	assertKeyFree,
 	assertRootNameFree,
@@ -81,7 +80,6 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput)
 				${input.description ?? ""}, ${template}, 0, ${position}, NULL, ${ctx.now}, ${ctx.now}, ${JSON.stringify(input.managerConfig ?? DEFAULT_PROJECT_MANAGER_CONFIG)}::jsonb)`,
 	);
 	if (parent === null) await seedRootStatuses(ctx, tx, id);
-	await seedDefaultChannels(ctx, tx, id);
 	await ctx.cache.rebuild(tx);
 	await projectActivity(ctx, tx, id, "project.created", [
 		{ field: null, from: null, to: input.name, meta: { path: pathOf(ctx.cache, id) } },

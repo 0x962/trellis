@@ -5,9 +5,8 @@ import { renderMarkdown } from "../../lib/markdown";
 export type ReadOnlyMarkdownProps = {
 	markdown: string;
 	className?: string;
-	formatClassName?: "markdown" | "comment-markdown" | "chat-markdown";
-	// The renderer, when a surface needs more than `renderMarkdown`, such as
-	// the chat log with its mention marks. It must sanitize what it returns.
+	formatClassName?: "markdown" | "comment-markdown";
+	// `render` overrides `renderMarkdown` and must sanitize its output.
 	render?: (markdown: string) => string;
 };
 

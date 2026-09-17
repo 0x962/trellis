@@ -12,7 +12,6 @@ const operations = {
 	statuses: ["list"],
 	tickets: ["list", "counts", "get", "create", "update", "move", "updateMany"],
 	comments: ["thread", "create", "update", "resolve"],
-	chat: ["channels", "createChannel", "list", "post", "attachment"],
 	notes: ["list", "get", "create", "update", "delete"],
 	timeline: ["list"],
 	brief: ["get"],

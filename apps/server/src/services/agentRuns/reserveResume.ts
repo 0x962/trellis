@@ -72,6 +72,12 @@ export async function reserveResume(ctx: ServiceCtx, tx: Tx, session: ResumeSess
 		if (!account.enabled || account.harness !== session.harness)
 			throw invalidInput("accountId", "The saved account is disabled or belongs to another harness.");
 	}
+	const harness = {
+		...config.harness,
+		preset: session.harness,
+		model: session.model ? fromHarnessModel(session.harness, session.model) : undefined,
+		effort: session.effort === undefined ? undefined : HarnessEffortSchema.parse(session.effort),
+	};
 	let attempt: ExecutionAttempt | undefined;
 	if (reserve && run.terminalId === session.previousAttemptId) {
 		if (run.kind === "manager") {
@@ -80,7 +86,7 @@ export async function reserveResume(ctx: ServiceCtx, tx: Tx, session: ResumeSess
 		}
 		attempt = await reserveAttempt(ctx, tx, { runId: run.id, attempt: session.attempt });
 		await tx.execute(
-			sql`UPDATE agent_runs SET terminal_id=${attempt.id},session_id=${session.providerSessionId},workspace_id=${session.workspace},error=NULL,session_lost=false,updated_at=${ctx.now} WHERE id=${run.id}`,
+			sql`UPDATE agent_runs SET terminal_id=${attempt.id},session_id=${session.providerSessionId},workspace_id=${session.workspace},harness=${JSON.stringify(harness)}::jsonb,error=NULL,session_lost=false,updated_at=${ctx.now} WHERE id=${run.id}`,
 		);
 		await tx.execute(
 			sql`UPDATE flow_execution_tasks SET attempt_id=${attempt.id} WHERE run_id=${run.id} AND attempt_id=${session.previousAttemptId} AND result_id IS NULL`,
@@ -99,12 +105,7 @@ export async function reserveResume(ctx: ServiceCtx, tx: Tx, session: ResumeSess
 		run,
 		config: {
 			...config,
-			harness: {
-				...config.harness,
-				preset: session.harness,
-				model: session.model ? fromHarnessModel(session.harness, session.model) : undefined,
-				effort: session.effort === undefined ? undefined : HarnessEffortSchema.parse(session.effort),
-			},
+			harness,
 		},
 		attempt,
 		deadlineAt,

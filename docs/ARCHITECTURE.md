@@ -86,7 +86,7 @@ Built-in harnesses launch through `HarnessHost` with an interactive CLI in a PTY
 Ticket and flow agents use native permission bypass settings.
 Copilots use the manager instruction from project settings as their exact system prompt.
 They have native tools and the Trellis tools for user requests.
-Claude, Codex, OpenCode, Pi, and Muse support copilot chat.
+Claude, Codex, OpenCode, Pi, and Muse support copilot conversations.
 The assignment message carries identity and project facts.
 Each restart reads the current manager instruction.
 Claude hooks, the OpenCode plugin, and the Pi extension report provider identity, prompt receipts, tools, results, and errors.
@@ -110,8 +110,7 @@ The host uses these observations for manager dispatch and flow completion.
 The deterministic manager owns project copilots.
 It inspects runtime processes on each beat and restarts copilots when required.
 Database reservations and runtime attempt identifiers prevent duplicate starts.
-Copilots wait for user instructions. The host sends them human chat messages and human comment mentions.
-Worker broadcasts and mentions reach other workers.
+Copilots wait for user instructions. The host sends them human comment mentions.
 Desktop activation restarts the host. It keeps a runtime with a compatible protocol. The deterministic manager restarts project copilots after an incompatible runtime stops.
 A partial database index permits one active copilot per project.
 
@@ -176,64 +175,6 @@ before another agent can take the ticket.
 - `updated_at` moves only on user-visible activity: a ticket field, a comment, an attachment, or a pull request link. A reorder, a remap, and a poller CI change raise `version` only.
 - A delete is a hard delete. A ticket delete nulls the `parent_id` of its children, then cascades comments, attachments, pull request links, and activity. The blob collector then removes unused files.
 - A project delete needs an empty subtree or `force`.
-
-### Chat rooms
-
-Every project, a root or a sub-project, owns one chat room, and a
-sub-project shares nothing with its parent. The room holds named channels.
-`ai` and `general` exist in every room; the project create and the
-migration insert them. A post to a channel the
-room lacks creates the channel. A channel has no id: the API and the CLI
-address it by its project and its lower-case name, with an optional `#`.
-A channel can be for agents only (`aiOnly`); `ai` is one, and an agent can
-create more with `trellis chat create <project> <name> --ai-only`. The
-`manager` channel is `direct`: a direct message between a person and the
-manager of the project. A post there reaches the live manager alone and
-interrupts it; an agent other than that manager gets `CHAT_DIRECT`. The web
-lists it under Direct messages with the manager name. A person
-who posts in such a channel gets `CHAT_AI_ONLY`. The web shows no composer,
-no unread dot, and plays no sound for it.
-
-`chat_attachments` holds one row per file posted in a room. The upload
-stores the blob as a ticket attachment does, shares the blob of equal
-bytes, and returns the markdown line the message carries. The bytes serve at
-`/api/chat/attachments/{id}/file`. The boot sweep keeps every hash a row of
-either attachment table names.
-
-`chat_messages` holds one row per post with its actor. `chat_deliveries`
-holds one row per post and live native agent of the room's project, except
-the author. Outside the direct `manager` channel, a human post without a
-mention reaches every live agent. An agent post without a mention reaches
-every live worker except its author. Copilots receive messages only from humans.
-A post that mentions a live agent by run id, by agent name, or by role
-(`@manager`, `@agents`) reaches only the mentioned agents,
-and each of those rows is `direct`. The controller tick sends every pending
-row of one agent in one message, so a busy room costs an agent one turn.
-The message carries, per channel, the messages before the first new line as
-context: at most `CONTEXT_LIMIT` of them from the `CONTEXT_WINDOW_MINUTES`
-before it. A
-batch with a direct row interrupts the agent's current turn first; a custom
-terminal has no interrupt and receives the lines as typed input. A manager
-receives a `trellis.chat.messages` JSON document; a worker receives IRC style
-lines and the two CLI commands. The states and the session pinning are the
-states and the pinning of a comment mention.
-
-The web route `/p/<project path>/chat` shows the room of the project as a log:
-the clock and the full name on one line, the body as markdown under it,
-with a dated rule where the day changes. A known `@name` renders as a mark.
-A click on a name inserts a mention. The composer takes several lines, a
-dropped, pasted, or picked file, and completes `@` from the live agents and
-the roles. `/join <name>` in it creates a channel. The browser keeps the open channel, the unsent text of
-each channel, and the read position of each channel in localStorage under
-`trellis-chat`. A channel whose newest message id is above the read position
-shows a dot, and so does the Chat link of every project in the tree. A new
-message from someone else plays a short tone; Settings > Account switches it
-off for that browser. The API is `chat.channels`, `chat.createChannel`,
-`chat.list`, and `chat.post`. The events `chat.message`, `chat.delivery`,
-and `chat.channels` invalidate the chat queries; `chat.message` carries the
-actor, so a client knows its own posts. The CLI verb is `trellis chat`, and
-the manager tools are `trellis_chat_*`.
-Repository instructions describe chat behavior. Launch context supplies the room facts.
 
 ### Project notes
 
@@ -446,7 +387,7 @@ The Loops page at `/loops` shows step cards, recent output, errors, and pass tim
 Wait is the first step. Runtime inspection precedes parallel worker checks and message delivery.
 Each active card has a highlight. Errors retain their source step across subsequent passes.
 `loops.list` reads this process state. Human callers use `loops.control` to pause, resume, run one pass, or clear the history.
-Pause suppresses copilot reconciliation after the current pass; chat and mention delivery continue.
+Pause suppresses copilot reconciliation after the current pass. Comment mention delivery continues.
 Run now shares the scheduled pass and cannot overlap it. A paused loop permits one manual pass.
 Each host starts with management enabled. The host retains 200 output entries and 20 errors until it restarts.
 Project copilots launch independently. A failed launch does not prevent another project job.
@@ -592,7 +533,7 @@ time. The first section of each page carries no hash.
 | `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#archive` |
 | `/p/<path>/settings/manager` | Operation (no hash), `#settings`, `#harness` |
 
-`/settings` holds the actor name, theme, chat sound, and desktop controls.
+`/settings` holds the actor name, theme, and desktop controls.
 Project settings hold the copilot instruction, repository directory, and harness settings.
 It writes `projects.managerConfig` through `projects.update`.
 
@@ -602,9 +543,9 @@ The sessions and the project tree share the one region that scrolls, so the fixe
 links keep their place at any height.
 The global Sessions section lists sessions without a project. Its New session button opens a dialog with project, harness, model, effort, and account choices.
 The dialog accepts a prompt, files, and an optional name. A project also has a Sessions page with a secondary sidebar for all its agents.
-The project Chat page can open the same session dialog. Unsent text and files stay available when the user changes sessions.
+Unsent text and files stay available when the user changes sessions.
 Each session row opens its conversation. The conversation controls can stop, resume, or delete the session.
-Each project row shows the Trellis mark and project name. Tickets, Sessions, Chat, and Settings appear below it.
+Each project row shows the Trellis mark and project name. Tickets, Sessions, and Settings appear below it.
 The selected state follows the current page for root, nested, and archived projects.
 
 ## Database schema
@@ -634,7 +575,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title (0 to 120), instruction (CHECK <= 200000), parallel (boolean, group only), minutes (optional, group only, 1 to 1440), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Index (flow_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
 | harness_accounts | id PK, name, harness, profile_path, is_default, enabled, archived_at, created_at, updated_at. Partial UNIQUE (harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. |
-| agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), kind (CHECK agent, manager, flow, or session), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial UNIQUE (ticket_id) WHERE `kind = 'agent'` and `closed_at IS NULL`. Partial UNIQUE (project_id) WHERE `kind = 'manager'`, `runtime = 'native'`, and `closed_at IS NULL`. Index (created_at). |
+| agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), harness jsonb, kind (CHECK agent, manager, flow, or session), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial UNIQUE (ticket_id) WHERE `kind = 'agent'` and `closed_at IS NULL`. Partial UNIQUE (project_id) WHERE `kind = 'manager'`, `runtime = 'native'`, and `closed_at IS NULL`. Index (created_at). |
 | agent_sessions (stored history) | id PK, project_id (CASCADE), ticket_id (CASCADE), role (CHECK manager, builder, reviewer), runner (CHECK superset), state (CHECK starting, running, waiting, exited, stopped, failed), workspace_id, terminal_id, claude_session_id, name (1 to 40), title (1 to 120), open_url, last_woken_at, error, created_at, updated_at. CHECK `(role = 'manager') = (ticket_id IS NULL)`. Indexes (project_id, role, state) and (ticket_id). Partial UNIQUE (project_id) WHERE the role is manager and the state is live. Partial UNIQUE (workspace_id, terminal_id) WHERE both are set. |
 | agent_cursors | project_id PK (CASCADE), activity_id bigint, updated_at. Stored activity cursor from earlier data homes. |
 | sessions | id PK, name (UNIQUE, CHECK lowercase letters, digits, and dashes, 1 to 40), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), created_at, updated_at. The run has the kind `session`, an optional project, and no ticket. |
@@ -653,7 +594,7 @@ The kanban position of a new card is the maximum plus 1024. A move takes the
 midpoint of its neighbors. The column renumbers in steps of 1024 when the gap
 falls below 1. A list sorts and pages by `(position, id)`.
 
-The schema migrations live in `apps/server/drizzle/`, through `0037_agent_assignment_closure`.
+The schema migrations live in `apps/server/drizzle/`, through `0072_sticky_mockingbird`.
 `meta/_journal.json` defines their order. Applied migrations preserve upgrades for existing data homes.
 The migrator applies schema changes at boot in one transaction, then runs `ANALYZE` and sets `pg_trgm.word_similarity_threshold`.
 The schema drift check requires `drizzle-kit generate` to leave the migration directory unchanged.

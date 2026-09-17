@@ -35,18 +35,6 @@
 .review-heading-title h2 {
 	min-width: 0;
 }
-.review-heading-actions {
-	display: flex;
-	flex-shrink: 0;
-	align-items: center;
-	gap: 8px;
-}
-.review-heading-action-area {
-	display: flex;
-	flex-shrink: 0;
-	align-items: flex-end;
-	flex-direction: column;
-}
 .review-heading h2 {
 	font-size: 20px;
 	line-height: 28px;
@@ -214,11 +202,6 @@
 	line-height: 20px;
 	padding: 12px 16px;
 }
-.review-heading-action-area .review-error {
-	max-width: 320px;
-	padding-inline: 0;
-	text-align: end;
-}
 .review-notice {
 	margin: 8px 28px;
 	padding: 10px 12px;
@@ -274,15 +257,6 @@ button.review-notice:hover {
 	.review-heading-title {
 		align-items: stretch;
 		flex-direction: column;
-	}
-	.review-heading-actions {
-		align-self: flex-start;
-	}
-	.review-heading-action-area {
-		align-items: flex-start;
-	}
-	.review-heading-action-area .review-error {
-		text-align: start;
 	}
 	.review-heading-meta {
 		gap: 8px 12px;

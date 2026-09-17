@@ -1,12 +1,19 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
-type Draft = { files: File[]; messageId: string };
+type Draft = { text: string; files: File[]; messageId: string };
 
-export const useSessionMessageStore = create<Record<string, Draft>>(() => ({}));
+export const useSessionMessageStore = create<Record<string, Draft>>()(
+	persist((): Record<string, Draft> => ({}), {
+		name: "trellis-session-messages",
+		partialize: (drafts) =>
+			Object.fromEntries(Object.entries(drafts).map(([id, draft]) => [id, { ...draft, files: [] }])),
+	}),
+);
 
-export function changeSessionMessage(runId: string, files?: File[]) {
+export function changeSessionMessage(runId: string, changes: Partial<Pick<Draft, "text" | "files">> = {}) {
 	const previous = useSessionMessageStore.getState()[runId];
 	useSessionMessageStore.setState({
-		[runId]: { files: files ?? previous?.files ?? [], messageId: crypto.randomUUID() },
+		[runId]: { text: previous?.text ?? "", files: previous?.files ?? [], ...changes, messageId: crypto.randomUUID() },
 	});
 }

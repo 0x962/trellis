@@ -1,6 +1,7 @@
 import type { ActorRef } from "@trellis/api";
 import { Avatar } from "@trellis/ui";
 import { agentKindOf } from "../agentKindOf";
+import { agentProfileOf } from "../agentProfileOf";
 import { isAgentWorking } from "../isAgentWorking";
 import { useActorRun } from "../useActorRun";
 
@@ -13,6 +14,7 @@ export function ActorAvatar({ actor, ticketId }: { actor: ActorRef; ticketId: st
 			kind={actor.kind}
 			name={actor.displayName ?? actor.name}
 			agentKind={run === undefined ? undefined : agentKindOf(run.kind)}
+			agentProfile={agentProfileOf(run?.harness)}
 			state={working ? "working-mild" : "static"}
 		/>
 	);

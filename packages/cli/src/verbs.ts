@@ -75,10 +75,6 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 		description: "Show, resolve, or reopen a comment thread",
 		load: () => import("./commands/thread.ts").then((m) => command(m.default)),
 	},
-	chat: {
-		description: "Read and post in the chat room of a project",
-		load: () => import("./commands/chat.ts").then((m) => command(m.default)),
-	},
 	notes: {
 		description: "Read and write the notes of a project",
 		load: () => import("./commands/notes.ts").then((m) => command(m.default)),

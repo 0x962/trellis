@@ -1,22 +1,31 @@
-import { useQuery } from "@tanstack/react-query";
-import { Avatar, Button } from "@trellis/ui";
+import { X } from "@phosphor-icons/react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Avatar, Button, ConfirmDialog, IconButton, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
-import { AgentRunSheet } from "../AgentRunSheet";
 import { agentKindOf } from "../agentKindOf";
+import { agentProfileOf } from "../agentProfileOf";
 import { isAgentWorking } from "../isAgentWorking";
 import { AgentAssignmentDialog } from "./components/AgentAssignmentDialog";
 
 export function TicketAgent({ ticket, disabled = false }: { ticket: string; disabled?: boolean }) {
-	const { orpc } = useApp();
+	const { client, orpc, queryClient } = useApp();
 	const query = useQuery({
 		...orpc.agentRuns.list.queryOptions({ input: { ticket }, retry: false }),
 		refetchInterval: 2000,
 	});
-	const [openId, setOpenId] = useState<string | null>(null);
+	const [confirmUnassign, setConfirmUnassign] = useState(false);
 	const runs = query.data ?? [];
 	const assigned = runs.find((run) => run.kind === "agent" && run.assigned) ?? null;
-	const open = runs.find((run) => run.id === openId) ?? null;
+	const unassign = useMutation({
+		mutationFn: () => client.agentRuns.stop({ id: assigned!.id }),
+		onSuccess: async () => {
+			setConfirmUnassign(false);
+			await queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
+			toast.success("Agent unassigned");
+		},
+		onError: (error) => toast.error(error.message),
+	});
 	return (
 		<section aria-label="Agent assignment" className="flex flex-col border-t border-border pt-3 pb-1">
 			<h3 className="mb-1 text-xs font-medium text-fg-faint">Agent</h3>
@@ -34,29 +43,41 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 			) : (
 				<>
 					{assigned && (
-						<Button
-							variant="quiet"
-							align="start"
-							aria-label={assigned.name}
-							className="-ml-2.5 justify-start"
-							onClick={() => setOpenId(assigned.id)}
-						>
-							<span className="flex min-w-0 items-center gap-2">
+						<div className="flex min-w-0 items-center gap-2 py-1">
+							<span className="flex min-w-0 flex-1 items-center gap-2">
 								<Avatar
 									kind="agent"
 									name={assigned.name}
 									agentKind={agentKindOf(assigned.kind)}
+									agentProfile={agentProfileOf(assigned.harness)}
 									state={isAgentWorking(assigned) ? "working-mild" : "static"}
 								/>
 								<span className="truncate text-fg">{assigned.name}</span>
 								{assigned.state === "failed" && <span className="text-xs text-danger">failed</span>}
 							</span>
-						</Button>
+							<Tooltip content="Unassign agent">
+								<IconButton
+									label="Unassign agent"
+									icon={<X />}
+									disabled={disabled || unassign.isPending}
+									onClick={() => setConfirmUnassign(true)}
+								/>
+							</Tooltip>
+						</div>
 					)}
 					{!assigned && <AgentAssignmentDialog ticket={ticket} disabled={disabled} />}
 				</>
 			)}
-			{open && <AgentRunSheet run={open} onClose={() => setOpenId(null)} />}
+			<ConfirmDialog
+				open={confirmUnassign && assigned !== null}
+				title="Unassign this agent?"
+				description="This stops the agent. The workspace and session history stay available."
+				confirmLabel="Unassign agent"
+				danger
+				processing={unassign.isPending}
+				onConfirm={() => unassign.mutate()}
+				onCancel={() => setConfirmUnassign(false)}
+			/>
 		</section>
 	);
 }

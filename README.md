@@ -190,6 +190,8 @@ General sets the manager instruction, repository directory, trust, and concurren
 The concurrency limit runs from 1 to 64, defaults to 3, and excludes the manager.
 
 The Agent section of the ticket rail shows the assigned agent. Its dialog selects the harness, model, and effort.
+The model picker searches the catalog and groups models by family.
+The agent profile mark uses the model provider icon. Hover over the mark to see the model and effort.
 
 A run carries one state: `starting`, `running`, `interrupted`, `failed`,
 `stopped`, or `exited`. A failed launch stays visible with its error. A stop
@@ -326,7 +328,7 @@ section into the URL hash, and Account carries no hash.
 
 | Hash | Section | Contents |
 |---|---|---|
-| none | Account | Your name, the theme, and chat sound |
+| none | Account | Your name and the theme |
 | `#desktop` | Desktop | The data directory, background service, update, and local work actions |
 
 Manage harness logins, account selection, and quota on `/usage`.

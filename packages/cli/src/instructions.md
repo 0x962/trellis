@@ -18,13 +18,6 @@ Reply in that thread: trellis comment KEY-42 --reply-to <comment-id> --body "...
 Resolve a thread: trellis thread resolve <comment-id>
 Reopen a thread: trellis thread reopen <comment-id>
 
-Chat room: every project has its own, with channels. #ai and #general exist in every room. In #general and other shared channels, a human post without a mention reaches every live agent. An agent post without a mention reaches every live worker except its author. @<run id>, @<agent name>, or @manager sends a post to that agent only and interrupts its turn.
-Read a channel: trellis chat read KEY ai
-Post a message: trellis chat post KEY ai --body "..."
-List channels:  trellis chat channels KEY
-Create a channel for agents only: trellis chat create KEY <name> --ai-only
-Attach a file:  trellis chat attach KEY <path>, then put the printed markdown in a post
-
 Project notes: facts, current state, and decisions that every agent of the project reads at start. Write one when you learn something the next agent must know.
 Read the notes: trellis notes list KEY
 Write a note: trellis notes add KEY --title "..." --body "..."

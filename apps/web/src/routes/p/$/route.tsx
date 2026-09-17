@@ -28,10 +28,6 @@ const ProjectSettingsPage = lazy(async () => ({
 	default: (await import("./components/ProjectSettingsPage")).ProjectSettingsPage,
 }));
 
-const ChatPage = lazy(async () => ({
-	default: (await import("../../../features/chat/ChatPage")).ChatPage,
-}));
-
 const projectOptions = (context: AppContext, ref: string) =>
 	context.orpc.projects.get.queryOptions({ input: { project: ref } });
 
@@ -42,9 +38,9 @@ const countsOptions = (context: AppContext, ref: string, search: Partial<View>, 
 		input: { project: ref, ...toCountsQuery(viewOf(search), { statuses }) },
 	});
 
-// `/p/CDE`, `/p/CDE/board`, `/p/CDE/web/auth`, `/p/CDE/settings`, `/p/CDE/chat`, `/p/CDE/notes`. The splat
-// is `[key, ...slugs, view?]`; the URL keeps slashes and the API ref joins
-// with dots. The URL carries the view state with no default written.
+// `/p/CDE`, `/p/CDE/board`, `/p/CDE/web/auth`, `/p/CDE/settings`, and
+// `/p/CDE/notes`. The splat is `[key, ...slugs, view?]`. The URL keeps
+// slashes, and the API ref joins with dots. The URL omits the default view.
 export const Route = createFileRoute("/p/$")({
 	validateSearch: (search: Record<string, unknown>) => stripDefaults(parseSearch(search)),
 	beforeLoad: ({ location, params, search }) => {
@@ -63,7 +59,7 @@ export const Route = createFileRoute("/p/$")({
 	loader: async ({ context, params, deps }) => {
 		const { ref, view } = parseProjectSplat(params._splat ?? "");
 		const project = await context.queryClient.ensureQueryData(projectOptions(context, ref));
-		if (view === "manager" || view === "chat" || view === "notes") {
+		if (view === "manager" || view === "notes") {
 			return;
 		}
 		if (view !== "settings") {
@@ -93,25 +89,17 @@ function ProjectPage() {
 	// The loader fills this cache entry, so the board footer reads it on the first paint.
 	const counts = useQuery(countsOptions(context, ref, search, project.statuses)).data;
 
-	if (view === "settings" || view === "manager" || view === "chat" || view === "notes") {
+	if (view === "settings" || view === "manager" || view === "notes") {
 		return (
 			<Suspense
 				fallback={
 					<div className="flex min-h-0 flex-1 items-center justify-center text-sm text-fg-muted">
-						{view === "manager"
-							? "Load settings…"
-							: view === "chat"
-								? "Load chat…"
-								: view === "notes"
-									? "Load notes…"
-									: "Load settings…"}
+						{view === "notes" ? "Load notes…" : "Load settings…"}
 					</div>
 				}
 			>
 				{view === "manager" ? (
 					<ProjectSettingsPage project={project} />
-				) : view === "chat" ? (
-					<ChatPage key={project.id} project={project} />
 				) : (
 					<ProjectSettingsPage project={project} section={view === "notes" ? "notes" : undefined} />
 				)}

@@ -28,10 +28,6 @@ export const TAGS = [
 	{ name: "timeline", description: "Comments and activity of one ticket, newest first." },
 	{ name: "comments", description: "Comments on a ticket." },
 	{
-		name: "chat",
-		description: "The chat room of a project tree: its channels and their messages. Live agents receive every post.",
-	},
-	{
 		name: "notes",
 		description: "Project notes: titled markdown that every agent of the project and its sub-projects reads at start.",
 	},
@@ -146,6 +142,8 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /flow-executions/{id}/cancel": { expectedRevision: 1 },
 	"POST /reviews/open": { pr: "acme/web#12" },
 	"POST /reviews/status": { pr: "acme/web#12" },
+	"POST /reviews/reviewers": { pr: "acme/web#12" },
+	"POST /reviews/reviewer": { pr: "acme/web#12", reviewer: "octocat", remove: false },
 	"POST /reviews/refresh": { pr: "acme/web#12" },
 	"POST /reviews/metadata": { pr: "acme/web#12" },
 	"POST /reviews/mine": {},
@@ -236,14 +234,6 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /tickets/delete-many": { tickets: ["CDE-1", "CDE-2"] },
 	"POST /tickets/{ticket}/comments": { body: "Tests pass. Ready for review." },
 	"POST /comments/{id}/resolve": { resolved: true },
-	"POST /projects/{project}/chat": { channel: "#release", aiOnly: false },
-	"POST /projects/{project}/chat/attachments": {
-		file: "<the file bytes as one multipart part named file>",
-		name: "shot.png",
-	},
-	"POST /projects/{project}/chat/{channel}/messages": {
-		body: "@Builder the migration on main is merged. Rebase before you push.",
-	},
 	"PATCH /comments/{id}": { body: "Tests pass. Ready for a human review." },
 	"POST /projects/{project}/notes": {
 		title: "Fresh worktree",

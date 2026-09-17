@@ -1,11 +1,13 @@
 import { Play, Stop, Trash } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import type { AgentRun, Session } from "@trellis/api";
-import { ConfirmDialog, EmptyState, IconButton, Tooltip } from "@trellis/ui";
+import { Avatar, ConfirmDialog, EmptyState, IconButton, Tooltip } from "@trellis/ui";
 import { useCallback, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
-import { useChatStore } from "../../../stores/chatStore";
+import { agentKindOf } from "../../agents/agentKindOf";
+import { agentProfileOf } from "../../agents/agentProfileOf";
 import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
+import { isAgentWorking } from "../../agents/isAgentWorking";
 import { NativeTerminal } from "../../agents/NativeTerminal";
 import { DeleteSessionDialog } from "../DeleteSessionDialog";
 import { SessionPrompt } from "../SessionPrompt";
@@ -29,10 +31,9 @@ export function SessionConversation({
 	const [confirmDelete, setConfirmDelete] = useState(false);
 	const control = useRef<HTMLButtonElement>(null);
 	const leaveTerminal = useCallback(() => control.current?.focus(), []);
-	const text = useChatStore((state) => state.drafts[`sessions:${run.id}`] ?? "");
+	const text = draft?.text ?? "";
 	const setText = (text: string) => {
-		useChatStore.getState().setDraft("sessions", run.id, text);
-		changeSessionMessage(run.id);
+		changeSessionMessage(run.id, { text });
 	};
 	const active = hasAssignedProcess(run);
 	const refresh = () =>
@@ -67,8 +68,7 @@ export function SessionConversation({
 				messageId: useSessionMessageStore.getState()[run.id]!.messageId,
 			}),
 		onSuccess: () => {
-			setText("");
-			changeSessionMessage(run.id, []);
+			changeSessionMessage(run.id, { text: "", files: [] });
 		},
 		onSettled: refresh,
 	});
@@ -78,6 +78,14 @@ export function SessionConversation({
 	return (
 		<section aria-label={`${name} conversation`} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 			<div className="flex min-h-11 shrink-0 items-center gap-2 border-b border-border px-3">
+				<Avatar
+					kind="agent"
+					name={name}
+					agentKind={agentKindOf(run.kind)}
+					agentProfile={agentProfileOf(run.harness)}
+					state={isAgentWorking(run) ? "working" : "static"}
+					className="size-7 shrink-0"
+				/>
 				<span className="min-w-0 flex-1 truncate text-sm font-medium tabular">{name}</span>
 				<span className="text-xs text-fg-muted">{run.state}</span>
 				<Tooltip content={active ? (run.kind === "agent" ? "Remove assignment" : "Stop session") : "Resume session"}>
@@ -126,7 +134,7 @@ export function SessionConversation({
 					text={text}
 					files={files}
 					onText={setText}
-					onFiles={(files) => changeSessionMessage(run.id, files)}
+					onFiles={(files) => changeSessionMessage(run.id, { files })}
 					disabled={readOnly || busy || !active || run.observation?.controllable !== true}
 					onSubmit={() => {
 						if (!busy && active && (text.trim() || files.length)) {

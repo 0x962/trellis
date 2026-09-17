@@ -18,7 +18,7 @@ export async function gh(ctx: PrepareCtx, args: string[]) {
 	return result.stdout;
 }
 const fields =
-	"title,state,isDraft,author,headRepository,headRefName,baseRefName,headRefOid,baseRefOid,additions,deletions,changedFiles,mergeable,mergeStateStatus,reviewDecision,autoMergeRequest,body,comments,reviews,statusCheckRollup,labels,commits";
+	"title,state,isDraft,author,headRepository,headRefName,baseRefName,headRefOid,baseRefOid,additions,deletions,changedFiles,mergeable,mergeStateStatus,reviewDecision,reviewRequests,autoMergeRequest,body,comments,reviews,statusCheckRollup,labels,commits";
 export async function status(ctx: PrepareCtx, input: { pr: string }) {
 	const ref = parseRef(input.pr);
 	return JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", fields])) as Record<string, unknown>;

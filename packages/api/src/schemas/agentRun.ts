@@ -10,6 +10,7 @@ export const AgentRunSchema = z.object({
 	name: z.string(),
 	accountId: UlidSchema.nullish(),
 	runtime: z.enum(["native", "superset", "tmux", "commands"]),
+	harness: HarnessSchema.nullable(),
 	kind: AgentRunKindSchema,
 	instruction: z.string(),
 	projectId: UlidSchema.nullable(),

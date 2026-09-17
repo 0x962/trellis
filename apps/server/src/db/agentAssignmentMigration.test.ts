@@ -6,7 +6,7 @@ import { openDb } from "./client.ts";
 
 const migrationsDir = join(import.meta.dir, "../../drizzle");
 
-test("the agent assignment migration preserves prompts and one ticket assignment", async () => {
+test("the agent assignment migrations preserve prompts and one ticket assignment", async () => {
 	const db = await openDb(":memory:");
 	try {
 		const oldMigrations = readdirSync(migrationsDir)
@@ -86,6 +86,68 @@ test("the agent assignment migration preserves prompts and one ticket assignment
 			],
 		});
 
+		await db.$client.exec(`
+			UPDATE projects SET manager_config = jsonb_set(
+				manager_config,
+				'{instruction}',
+				to_jsonb($prompt$Manage this project.
+
+## Chat room
+
+Retired project messages.
+
+## Project notes
+
+Keep project notes.$prompt$::text)
+			);
+			UPDATE agent_runs SET instruction = $prompt$Complete the ticket.
+
+## Chat room
+
+Retired assignment messages.
+
+## Project notes
+
+Keep assignment notes.$prompt$;
+			UPDATE flow_nodes SET instruction = $prompt$Write the draft.
+
+## Chat room
+
+Retired flow messages.
+
+## Project notes
+
+Keep flow notes.$prompt$;
+			UPDATE flow_executions SET doc = jsonb_set(
+				doc,
+				'{nodes,0,instruction}',
+				to_jsonb($prompt$Frozen node prompt.
+
+## Chat room
+
+Retired frozen messages.
+
+## Project notes
+
+Keep frozen notes.$prompt$::text)
+			);
+		`);
+		await db.$client.exec(readFileSync(join(migrationsDir, "0071_striped_stranger.sql"), "utf8"));
+
+		const cleaned = await db.execute(sql`
+			SELECT
+				(SELECT manager_config->>'instruction' FROM projects WHERE id = 'project') AS project,
+				(SELECT instruction FROM agent_runs WHERE id = 'newer-agent') AS agent,
+				(SELECT instruction FROM flow_nodes WHERE id = 'node') AS node,
+				(SELECT doc->'nodes'->0->>'instruction' FROM flow_executions WHERE id = 'execution') AS execution
+		`);
+		expect(cleaned.rows[0]).toEqual({
+			project: "Manage this project.\n\n## Project notes\n\nKeep project notes.",
+			agent: "Complete the ticket.\n\n## Project notes\n\nKeep assignment notes.",
+			node: "Write the draft.\n\n## Project notes\n\nKeep flow notes.",
+			execution: "Frozen node prompt.\n\n## Project notes\n\nKeep frozen notes.",
+		});
+
 		const assignments = await db.execute(
 			sql`SELECT id, kind, closed_at FROM agent_runs WHERE ticket_id = 'ticket' ORDER BY created_at`,
 		);
@@ -106,9 +168,15 @@ test("the agent assignment migration preserves prompts and one ticket assignment
 			SELECT
 				to_regclass('personas') AS personas,
 				to_regclass('column_workers') AS column_workers,
-				to_regclass('builder_start_requests') AS builder_start_requests
+				to_regclass('builder_start_requests') AS builder_start_requests,
+				to_regclass('chat_channels') AS chat_channels
 		`);
-		expect(removed.rows[0]).toEqual({ personas: null, column_workers: null, builder_start_requests: null });
+		expect(removed.rows[0]).toEqual({
+			personas: null,
+			column_workers: null,
+			builder_start_requests: null,
+			chat_channels: null,
+		});
 	} finally {
 		await db.$client.close();
 	}

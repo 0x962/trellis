@@ -1,8 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
-import { ActivityDot, cx } from "@trellis/ui";
+import { cx } from "@trellis/ui";
 import { projectRefOfPathname, projectSlashPath } from "../../../../lib/projectPath";
-import { useChatUnread } from "../../../chat/useChatUnread";
 
 const indent = ["pl-8", "pl-8", "pl-11", "pl-14", "pl-17"] as const;
 
@@ -19,8 +18,6 @@ export function ProjectPages({
 	const manager = pathname.endsWith("/settings/manager");
 	const settings = pathname.endsWith("/settings") || pathname.endsWith("/notes");
 	const sessions = pathname.startsWith("/sessions/project/");
-	const chat = pathname.endsWith("/chat");
-	const { unread } = useChatUnread(project.id);
 	return (
 		<li>
 			<nav aria-label={`${project.name} pages`}>
@@ -29,13 +26,11 @@ export function ProjectPages({
 						{
 							label: "Tickets",
 							suffix: "",
-							active: current && !settings && !manager && !chat && !sessions,
-							dot: false,
+							active: current && !settings && !manager && !sessions,
 						},
-						{ label: "Sessions", suffix: "/sessions", active: current && sessions, dot: false },
-						{ label: "Chat", suffix: "/chat", active: current && chat, dot: unread.size > 0 },
-						{ label: "Settings", suffix: "/settings", active: current && settings, dot: false },
-					].map(({ label, suffix, active, dot }) => (
+						{ label: "Sessions", suffix: "/sessions", active: current && sessions },
+						{ label: "Settings", suffix: "/settings", active: current && settings },
+					].map(({ label, suffix, active }) => (
 						<li key={label}>
 							<Link
 								data-project-page=""
@@ -54,11 +49,6 @@ export function ProjectPages({
 								)}
 							>
 								<span className="sidebar-label">{label}</span>
-								{dot && (
-									<span data-slot="trailing" className="sidebar-trailing">
-										<ActivityDot label="Unread chat messages" placement="inline" />
-									</span>
-								)}
 							</Link>
 						</li>
 					))}

@@ -22,6 +22,7 @@ test("project sessions and ticket agents use the same isolated workspace primiti
 	expect(session.projectPath).toBe("TST");
 	expect(run.kind).toBe("session");
 	expect(session.harness).toEqual(harness);
+	expect(run.harness).toEqual(harness);
 	expect(run.workspaceId).toBe(join(home, "agents", run.id, "work"));
 	expect(await readFile(join(run.workspaceId!, "source.txt"), "utf8")).toBe("original\n");
 	await writeFile(join(run.workspaceId!, "source.txt"), "changed\n");
@@ -93,6 +94,7 @@ test("resume races keep one attempt, the workspace, effort, and conversation", a
 	expect(after.terminalId).not.toBe(before.terminalId);
 	expect(after.workspaceId).toBe(before.workspaceId);
 	expect(after.sessionId).toBe(before.sessionId);
+	expect(after.harness).toEqual(harness);
 	expect(launches.at(-1)!.config.harness).toEqual(harness);
 	expect(launches.at(-1)!.resume).toBe(true);
 	expect(await readFile(join(after.workspaceId!, "source.txt"), "utf8")).toBe("changed\n");
@@ -180,6 +182,7 @@ test("scratch session retries retain one repository and one launch", async () =>
 	expect(launches.length - count).toBe(1);
 	const session = await db.transaction((tx) => getSession(tx, one.id));
 	expect(session.projectId).toBeNull();
+	expect((await db.transaction((tx) => getRun(tx, session.runId))).harness).toEqual(harness);
 	expect(await git(session.directory, "rev-parse", "--abbrev-ref", "HEAD")).toBe("main");
 });
 
