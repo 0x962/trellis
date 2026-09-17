@@ -41,6 +41,10 @@ export function ModelSelect({
 		<div className="manager-settings-field">
 			<Select
 				label="Model"
+				// A harness can list dozens of models. Base UI puts the selected
+				// item on the trigger by default, which lifts a long menu above
+				// the top of the window, so the menu opens below the trigger.
+				alignItemWithTrigger={false}
 				placeholder={models.isPending ? "Loading models" : "Harness default"}
 				items={items}
 				value={value ?? ""}

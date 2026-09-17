@@ -129,13 +129,15 @@ test("the harness default stays valid after a model is chosen and cleared", asyn
 	const model = page.getByRole("combobox", { name: "Model", exact: true });
 	await expect(page.getByRole("textbox", { name: "Model", exact: true })).toHaveCount(0);
 	await model.click();
-	const menu = await page.getByRole("listbox").boundingBox();
-	expect(menu!.y).toBeGreaterThanOrEqual(0);
 	await page.getByRole("option", { name: "Sonnet", exact: true }).click();
 	await expect
 		.poll(async () => (await get<Project>("/projects/MDF")).managerConfig?.harness.model)
 		.toBe("anthropic/claude-sonnet-5");
 	await model.click();
+	// The menu opens below the trigger, so a selected model does not lift it
+	// above the top of the window.
+	const menu = await page.getByRole("listbox").boundingBox();
+	expect(menu!.y).toBeGreaterThanOrEqual(0);
 	await page.getByRole("option", { name: "Harness default", exact: true }).click();
 	await expect(model).toHaveText("Harness default");
 	await expect(page.getByRole("main").getByRole("status")).toHaveText("All changes saved");
