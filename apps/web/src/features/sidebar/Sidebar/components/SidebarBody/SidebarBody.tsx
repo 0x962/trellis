@@ -1,10 +1,9 @@
 import { Plus, SidebarSimple } from "@phosphor-icons/react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { ActivityDot, IconButton, Kbd, Tooltip, TrellisMark } from "@trellis/ui";
+import { ActivityDot, IconButton, Kbd, Tooltip } from "@trellis/ui";
 import { useApp } from "../../../../../lib/appContext";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
 import { uiActions } from "../../../../../stores/uiStore";
-import { useWorkingAgents } from "../../../../agents/useWorkingAgents";
 import { type NavTarget, navRows } from "../../../../navRows";
 import { useNeedsYouSummary } from "../../../../needs-you/useNeedsYou";
 import { sessionComposerActions } from "../../../../sessions/sessionComposerStore";
@@ -12,7 +11,6 @@ import { ActorFooter } from "../../../ActorFooter";
 import { ArchivedProjects } from "../../../ArchivedProjects";
 import { ProjectTree } from "../../../ProjectTree";
 import { SessionList } from "../../../SessionList";
-import { SystemLoad } from "../../../SystemLoad";
 import { ConnectionPanel } from "../ConnectionPanel";
 import { NavRow } from "./components/NavRow";
 
@@ -43,7 +41,6 @@ export type SidebarBodyProps = {
 // highlight moves when the page does.
 export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps) {
 	const { live } = useApp();
-	const { runIds } = useWorkingAgents();
 	const inbox = useNeedsYouSummary();
 	const status = useLiveStatus(live);
 	const navigate = useNavigate();
@@ -53,19 +50,15 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 	const needsYouMark = needsYouActive ? (
 		<ActivityDot label="Needs you has items" placement={collapsed ? "corner" : "inline"} tone="metal" />
 	) : undefined;
-	const workActive = runIds.length > 0;
 
 	return (
 		<>
 			<div data-sidebar-toolbar="" className="mb-1 flex h-13 shrink-0 items-center">
 				{!collapsed && (
-					<div className="flex min-w-0 flex-1 items-center gap-2 pl-0.5">
-						<TrellisMark className="size-7" working={workActive} />
-						{workActive && <span className="sr-only">Work active: </span>}
+					<div className="flex min-w-0 flex-1 items-center pl-0.5">
 						<span className="truncate text-lg font-semibold text-fg">Trellis</span>
 					</div>
 				)}
-				{onCollapse && !collapsed && <SystemLoad />}
 				{onCollapse && (
 					<Tooltip
 						side="right"
