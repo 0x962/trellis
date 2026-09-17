@@ -18,7 +18,6 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 	if (actions.length === 0) return null;
 	await tx.execute(sql`SELECT id FROM projects WHERE id=${execution.project_id} FOR UPDATE`);
 	const config = await projectLaunchConfig(tx, { projectId: execution.project_id });
-	if (config.dispatchPaused) return null;
 	if (config.ade !== "native" || config.harness.preset === "custom")
 		throw invalidInput("project", "The flow requires a built-in harness.");
 	const assigned = await rows<{ personaId: string | null }>(

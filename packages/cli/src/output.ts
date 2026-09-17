@@ -1,4 +1,4 @@
-import { localDateTime } from "./time.ts";
+import { shortZonedDateTime } from "@trellis/api/time";
 
 // `table` is the aligned text a TTY gets. `json` is the procedure output;
 // a list is one array across every page. `jsonl` is one object per line.
@@ -34,6 +34,10 @@ export const cell = (value: unknown): string => {
 	if (value === null || value === undefined || value === "") return "-";
 	return String(value).replace(/\s+/g, " ");
 };
+
+// A time cell. A row with no time shows the same dash as every other empty
+// cell, so one table never states an absent value in two ways.
+export const timeCell = (iso: string | null): string => (iso === null ? "-" : shortZonedDateTime(iso));
 
 // Columns are padded to the widest cell and separated by two spaces. The
 // last column is not padded, so no line ends in spaces.
@@ -134,7 +138,7 @@ export const ticketList: ListSpec<TicketRow> = {
 		{ name: "status", value: (row) => row.status.slug },
 		{ name: "priority", value: (row) => row.priority },
 		{ name: "title", value: (row) => cell(row.title) },
-		{ name: "updated", value: (row) => localDateTime(row.updatedAt) },
+		{ name: "updated", value: (row) => shortZonedDateTime(row.updatedAt) },
 	],
 	identifier: (row) => row.identifier,
 };
@@ -174,9 +178,9 @@ export const ticketRecord: RecordSpec<TicketFields> = {
 			value: (row) => (row.lastActor === null ? "-" : `${row.lastActor.kind}:${row.lastActor.name}`),
 		},
 		{ name: "version", value: (row) => String(row.version) },
-		{ name: "created", value: (row) => localDateTime(row.createdAt) },
-		{ name: "updated", value: (row) => localDateTime(row.updatedAt) },
-		{ name: "completed", value: (row) => (row.completedAt === null ? "-" : localDateTime(row.completedAt)) },
+		{ name: "created", value: (row) => shortZonedDateTime(row.createdAt) },
+		{ name: "updated", value: (row) => shortZonedDateTime(row.updatedAt) },
+		{ name: "completed", value: (row) => timeCell(row.completedAt) },
 	],
 	identifier: (row) => row.identifier,
 };

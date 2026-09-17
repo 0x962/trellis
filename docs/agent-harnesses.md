@@ -61,7 +61,7 @@ Its `trellis` command targets the same host as the desktop app.
 
 Select **Custom** to edit the start and resume commands directly.
 Custom commands run in a local terminal.
-Automatic dispatch and native flow tasks require a built-in harness with native session observations.
+A manager dispatch and a native flow task require a built-in harness with native session observations.
 
 Command fields accept the variables from the [agent command contract](../packages/api/src/agentCommand/agentCommand.ts).
 The Muse preset resumes with `muse --yolo resume --last`, because `muse resume` takes no prompt argument. Type the next instruction into the terminal after a custom Muse resume.
