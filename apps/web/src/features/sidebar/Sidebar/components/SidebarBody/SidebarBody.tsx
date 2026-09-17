@@ -86,11 +86,11 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 						label={row.label}
 						active={isActive(pathname, row.to)}
 						trailing={
-							row.to === "/search" && !collapsed
-								? <Kbd>/</Kbd>
-								: row.to === "/needs-you" && !collapsed
-									? needsYouMark
-									: undefined
+							row.to === "/search" && !collapsed ? (
+								<Kbd>/</Kbd>
+							) : row.to === "/needs-you" && !collapsed ? (
+								needsYouMark
+							) : undefined
 						}
 					/>
 				))}
