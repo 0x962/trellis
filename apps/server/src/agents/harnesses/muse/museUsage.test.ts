@@ -145,4 +145,31 @@ describe("Muse usage", () => {
 			},
 		]);
 	});
+
+	test("rejects a delayed quota error observed before a newer normal snapshot", async () => {
+		const museHome = await mkdtemp(join(tmpdir(), "trellis-muse-usage-"));
+		directories.push(museHome);
+		const reset = Date.parse("2026-09-17T02:30:15Z");
+		const delayedQuotaWrite = () =>
+			writeMuseQuotaError(
+				museHome,
+				"Subscription quota exhausted. Your usage window resets at 2026-09-17T02:30:15Z. (rate_limit_error)",
+				100,
+			);
+
+		await writeMuseUsage(museHome, {
+			observedAtMs: 101,
+			tier: "team",
+			window: { usedPercent: 1, resetsAtMs: reset + 18_000_000, windowDurationMins: 300 },
+			weekly: { usedPercent: 25, resetsAtMs: reset + 604_800_000 },
+		});
+		expect(await delayedQuotaWrite()).toBe(true);
+
+		expect(await readMuseUsage(museHome)).toEqual({
+			observedAtMs: 101,
+			tier: "team",
+			window: { usedPercent: 1, resetsAtMs: reset + 18_000_000, windowDurationMins: 300 },
+			weekly: { usedPercent: 25, resetsAtMs: reset + 604_800_000 },
+		});
+	});
 });

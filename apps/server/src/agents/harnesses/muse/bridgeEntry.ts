@@ -233,8 +233,9 @@ async function start() {
 				return;
 			}
 			if (notification.method === "turn/completed" && usageHome !== undefined) {
+				const observedAtMs = Date.now();
 				const failure = failedTurn.safeParse(notification.params);
-				if (failure.success) queueUsage(() => writeMuseQuotaError(usageHome, failure.data.error.message));
+				if (failure.success) queueUsage(() => writeMuseQuotaError(usageHome, failure.data.error.message, observedAtMs));
 			}
 			if (!parser) return;
 			for (const event of parser.parse(notification)) record(event);
@@ -310,10 +311,11 @@ async function start() {
 try {
 	await Promise.race([start().then(() => terminated), observationFailed]);
 } catch (error) {
+	const observedAtMs = Date.now();
 	acceptingEvents = false;
 	await eventQueue;
 	const usageHome = museHome;
-	if (usageHome !== undefined) queueUsage(() => writeMuseQuotaError(usageHome, (error as Error).message));
+	if (usageHome !== undefined) queueUsage(() => writeMuseQuotaError(usageHome, (error as Error).message, observedAtMs));
 	await usageQueue;
 	await runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, {
 		kind: "error",

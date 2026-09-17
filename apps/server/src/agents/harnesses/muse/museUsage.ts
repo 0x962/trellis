@@ -79,7 +79,7 @@ export async function readMuseUsage(museHome: string): Promise<MuseUsage | null>
 	};
 }
 
-export async function writeMuseQuotaError(museHome: string, message: string, observedAtMs = Date.now()) {
+export async function writeMuseQuotaError(museHome: string, message: string, observedAtMs: number) {
 	const resetsAt = quotaReset.exec(message)?.[1];
 	if (resetsAt === undefined) return false;
 	const resetsAtMs = Date.parse(resetsAt);
