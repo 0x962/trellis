@@ -30,6 +30,7 @@ export type SummaryRow = {
 	pr_pass: number | null;
 	pr_fail: number | null;
 	pr_pending: number | null;
+	pr_reviews: NonNullable<TicketSummary["pr"]>["reviews"] | null;
 	last_actor_name: string | null;
 	last_actor_display_name: string | null;
 	last_actor_kind: StoredActorKind | null;
@@ -65,6 +66,7 @@ export const summaryColumns = sql`
 	(SELECT count(*)::int FROM comments c WHERE c.ticket_id = t.id) AS comment_count,
 	(SELECT count(*)::int FROM attachments a WHERE a.ticket_id = t.id) AS attachment_count,
 	pr.state AS pr_state, pr.ci_state AS pr_ci_state, pr.pass AS pr_pass, pr.fail AS pr_fail, pr.pending AS pr_pending,
+	pr.reviews AS pr_reviews,
 	${actorDisplayName(sql`la.actor_name`, sql`la.actor_kind`)} AS last_actor_display_name,
 	la.actor_name AS last_actor_name, la.actor_kind AS last_actor_kind, ${iso(sql`la.created_at`)} AS last_actor_at,
 	t.position, t.version,
@@ -85,7 +87,17 @@ export const summaryJoins = sql`
 			(array_agg(p.ci_state ORDER BY ${ciRank(sql`p.ci_state`)}))[1] AS ci_state,
 			${bucketCount(sql`c->>'bucket' = 'pass'`)} AS pass,
 			${bucketCount(sql`c->>'bucket' IN ('fail', 'cancel')`)} AS fail,
-			${bucketCount(sql`c->>'bucket' = 'pending'`)} AS pending
+			${bucketCount(sql`c->>'bucket' = 'pending'`)} AS pending,
+			jsonb_agg(
+				jsonb_build_object(
+					'owner', p.owner,
+					'repo', p.repo,
+					'number', p.number,
+					'reviewState', p.review_state,
+					'isDraft', p.is_draft
+				)
+				ORDER BY l.created_at, p.id
+			) AS reviews
 		FROM ticket_pull_requests l JOIN pull_requests p ON p.id = l.pull_request_id
 		WHERE l.ticket_id = t.id
 	) pr ON true
@@ -138,6 +150,7 @@ export const toSummary = (row: SummaryRow): TicketSummary => ({
 					pass: row.pr_pass as number,
 					fail: row.pr_fail as number,
 					pending: row.pr_pending as number,
+					reviews: row.pr_reviews as NonNullable<TicketSummary["pr"]>["reviews"],
 				},
 	lastActor:
 		row.last_actor_name === null
