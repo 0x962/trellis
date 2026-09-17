@@ -80,6 +80,26 @@
 }
 
 /*
+ * `ActivityDot` uses `metal` for the silver face. `dot-metal::before` paints
+ * the shared `--film-gradient` without animation. The non-static position from
+ * `ActivityDot` anchors the pseudo-element to the dot. `rounded-round` clips
+ * the film to the circular dot.
+ */
+@utility dot-metal {
+	overflow: hidden;
+	border-width: var(--border-width-hairline);
+
+	&::before {
+		position: absolute;
+		inset: 0;
+		background: var(--film-gradient);
+		content: "";
+		opacity: var(--film-opacity-static);
+		pointer-events: none;
+	}
+}
+
+/*
  * Text that catches the light now and then: a band of the bright text color
  * sweeps across muted text once every seven seconds. A person who turns
  * motion off sees the muted text, still.
