@@ -8,6 +8,7 @@ export type UsageChartSeries = {
 	key: string;
 	label: string;
 	tone: ChartTone;
+	tones?: readonly ChartTone[];
 	// One value per day of `days`, in the same order.
 	values: readonly number[];
 };
@@ -24,6 +25,7 @@ export type UsageChartProps = {
 	onSelectDay: (day: string | null) => void;
 	// A percentage chart uses 100 so a small value does not fill the plot.
 	max?: number;
+	variant?: "bar" | "line";
 	className?: string;
 };
 
@@ -40,13 +42,8 @@ const niceMax = (max: number) => {
 	return step * power;
 };
 
-// The stacked bar chart of the usage page: one bar per day, one segment per
-// series, bottom to top in series order. A stack is right for a sum such as
-// cost or tokens, because the top of the bar is the day total and each
-// segment is its share. The bars sit in an SVG that stretches to the box,
-// and the axis labels are HTML, so they never stretch. One button per day
-// covers the chart, so a keyboard and a screen reader reach every day, and
-// a click selects a day for the caption below the chart.
+// Each sample has a button, so a keyboard and a screen reader can inspect
+// the value and select it for the caption below the chart.
 export function UsageChart({
 	label,
 	days,
@@ -56,6 +53,7 @@ export function UsageChart({
 	selectedDay,
 	onSelectDay,
 	max,
+	variant = "bar",
 	className,
 }: UsageChartProps) {
 	const [hoverDay, setHoverDay] = useState<string | null>(null);
@@ -68,6 +66,10 @@ export function UsageChart({
 	// A bar takes 70% of its day slot, so a short range keeps a gap between bars.
 	const slot = 100 / Math.max(1, count);
 	const barWidth = slot * 0.7;
+	const point = (index: number, value: number) => ({
+		x: count <= 1 ? 50 : (index / (count - 1)) * 100,
+		y: 100 - (value / top) * 100,
+	});
 
 	return (
 		<figure className={cx("flex min-w-0 flex-col gap-2", className)}>
@@ -92,31 +94,71 @@ export function UsageChart({
 						preserveAspectRatio="none"
 						className="absolute inset-0 size-full"
 					>
-						{days.map((day, index) => {
-							let stacked = 0;
-							const dim = captionIndex >= 0 && captionIndex !== index;
-							return (
-								<g key={day} data-day={day} className={cx(dim && "opacity-60")}>
-									{series.map((row) => {
-										const value = row.values[index] ?? 0;
-										if (value <= 0) return null;
-										const height = (value / top) * 100;
-										stacked += height;
-										return (
-											<rect
-												key={row.key}
-												data-series={row.key}
-												x={index * slot + (slot - barWidth) / 2}
-												y={100 - stacked}
-												width={barWidth}
-												height={height}
-												className={chartFillClass[row.tone]}
-											/>
-										);
-									})}
-								</g>
-							);
-						})}
+						{variant === "bar"
+							? days.map((day, index) => {
+									let stacked = 0;
+									const dim = captionIndex >= 0 && captionIndex !== index;
+									return (
+										<g key={day} data-day={day} className={cx(dim && "opacity-60")}>
+											{series.map((row) => {
+												const value = row.values[index] ?? 0;
+												if (value <= 0) return null;
+												const height = (value / top) * 100;
+												stacked += height;
+												return (
+													<rect
+														key={row.key}
+														data-series={row.key}
+														x={index * slot + (slot - barWidth) / 2}
+														y={100 - stacked}
+														width={barWidth}
+														height={height}
+														className={chartFillClass[row.tone]}
+													/>
+												);
+											})}
+										</g>
+									);
+								})
+							: series.map((row) =>
+									row.values.length === 1 ? (
+										<line
+											key={row.key}
+											data-series={row.key}
+											x1="49.5"
+											y1={point(0, row.values[0] ?? 0).y}
+											x2="50.5"
+											y2={point(0, row.values[0] ?? 0).y}
+											stroke="currentColor"
+											strokeWidth="2"
+											strokeLinecap="round"
+											vectorEffect="non-scaling-stroke"
+											className={chartToneClass[row.tones?.[0] ?? row.tone]}
+										/>
+									) : (
+										<g key={row.key} data-series={row.key}>
+											{row.values.slice(1).map((value, index) => {
+												const from = point(index, row.values[index] ?? 0);
+												const to = point(index + 1, value);
+												return (
+													<line
+														key={days[index + 1]}
+														x1={from.x}
+														y1={from.y}
+														x2={to.x}
+														y2={to.y}
+														stroke="currentColor"
+														strokeWidth="2"
+														strokeLinecap="round"
+														strokeLinejoin="round"
+														vectorEffect="non-scaling-stroke"
+														className={chartToneClass[row.tones?.[index + 1] ?? row.tone]}
+													/>
+												);
+											})}
+										</g>
+									),
+								)}
 					</svg>
 					<div className="absolute inset-0 flex">
 						{days.map((day, index) => (

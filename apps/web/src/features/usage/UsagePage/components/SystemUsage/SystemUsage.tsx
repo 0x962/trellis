@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, SectionHeader, Skeleton, UsageChart } from "@trellis/ui";
+import { Button, cx, SectionHeader, Skeleton, UsageChart } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { formatBytes, formatPercent, formatSampleTime, formatUptime } from "./formatSystemUsage";
+import { memoryPressureLevel } from "./memoryPressure";
 import { ProcessTable } from "./ProcessTable";
 
 export function SystemUsage() {
@@ -37,6 +38,7 @@ export function SystemUsage() {
 
 	const data = usage.data;
 	const times = data.history.map((sample) => sample.at);
+	const memoryPressure = memoryPressureLevel(data.memoryPercent);
 	return (
 		<div className="flex max-w-7xl flex-col gap-8 pt-5">
 			<section
@@ -50,8 +52,11 @@ export function SystemUsage() {
 				</dl>
 				<dl className="rounded-lg border border-border p-4">
 					<dt className="text-sm text-fg-muted">Memory pressure</dt>
-					<dd className="mt-1 text-2xl font-semibold text-fg tabular">{formatPercent(data.memoryPercent)}</dd>
+					<dd className={cx("mt-1 text-2xl font-semibold tabular", memoryPressure.textClass)}>
+						{formatPercent(data.memoryPercent)}
+					</dd>
 					<dd className="mt-1 text-xs text-fg-faint tabular">
+						<span className={memoryPressure.textClass}>{memoryPressure.label}</span> ·{" "}
 						{formatBytes(data.memoryUsedBytes)} of {formatBytes(data.memoryTotalBytes)} used
 					</dd>
 				</dl>
@@ -89,6 +94,7 @@ export function SystemUsage() {
 							selectedDay={selectedSample}
 							onSelectDay={setSelectedSample}
 							max={100}
+							variant="line"
 						/>
 					</div>
 					<div className="rounded-lg border border-border p-4">
@@ -100,7 +106,8 @@ export function SystemUsage() {
 								{
 									key: "memory",
 									label: "Memory pressure",
-									tone: "success",
+									tone: memoryPressure.tone,
+									tones: data.history.map((sample) => memoryPressureLevel(sample.memoryPercent).tone),
 									values: data.history.map((sample) => sample.memoryPercent),
 								},
 							]}
@@ -109,6 +116,7 @@ export function SystemUsage() {
 							selectedDay={selectedSample}
 							onSelectDay={setSelectedSample}
 							max={100}
+							variant="line"
 						/>
 					</div>
 				</div>

@@ -9,6 +9,7 @@ import { useTicketWrite } from "../hooks/useTicketWrite";
 export type TitleProps = {
 	ticket: Ticket;
 	className?: string;
+	onAttachFiles: (files: File[]) => void;
 };
 
 type Conflict = { current: Ticket; title: string };
@@ -29,7 +30,7 @@ const fitHeight = (element: HTMLTextAreaElement) => {
 // stored title back; an empty field saves nothing. The field draws no
 // border and no ring in any state, so the caret is the focus signal. A 412
 // shows the conflict notice with the actor who won.
-export function Title({ ticket, className }: TitleProps) {
+export function Title({ ticket, className, onAttachFiles }: TitleProps) {
 	const { write } = useTicketWrite(ticket.identifier);
 	const [text, setText] = useState(ticket.title);
 	const [conflict, setConflict] = useState<Conflict | null>(null);
@@ -111,6 +112,14 @@ export function Title({ ticket, className }: TitleProps) {
 		setText(next);
 	};
 
+	const onPasteCapture = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+		const files = [...event.clipboardData.files];
+		if (files.length === 0) return;
+		event.preventDefault();
+		event.stopPropagation();
+		onAttachFiles(files);
+	};
+
 	return (
 		<div className={cx("flex flex-col gap-2", className)}>
 			<textarea
@@ -120,6 +129,7 @@ export function Title({ ticket, className }: TitleProps) {
 				value={text}
 				onChange={(event) => setText(oneLine(event.target.value))}
 				onKeyDown={onKeyDown}
+				onPasteCapture={onPasteCapture}
 				onPaste={onPaste}
 				onBlur={commit}
 				// One line of 24 px text is 32 px tall, so a coarse pointer gets
