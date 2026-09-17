@@ -31,12 +31,12 @@ const journalUnder = (max: number) => {
 test("the migration removes the stored dispatch pause and keeps every other manager setting", async () => {
 	const db = await openDb(":memory:");
 	closers.push(() => db.$client.close());
-	await migrate(db, journalUnder(66));
+	await migrate(db, journalUnder(68));
 	const stored = { personaId: null, directory: "/tmp/project", harness: { preset: "codex" } };
 	await seedRoot(db, "PAU", { manager_config: { ...stored, dispatchPaused: true } });
 	await seedRoot(db, "NUL", { manager_config: null });
 
-	expect(await migrate(db, journalUnder(67))).toBe(1);
+	expect(await migrate(db, journalUnder(69))).toBe(1);
 	const configs = await db.execute(sql`SELECT key, manager_config FROM projects ORDER BY key`);
 	expect(configs.rows).toEqual([
 		{ key: "NUL", manager_config: null },
