@@ -30,6 +30,14 @@ export const HealthSchema = z.object({
 });
 export type Health = z.infer<typeof HealthSchema>;
 
+const LoadPercentSchema = z.number().int().min(0).max(100);
+
+export const SystemLoadSchema = z.object({
+	cpuPercent: LoadPercentSchema,
+	memoryPercent: LoadPercentSchema,
+});
+export type SystemLoad = z.infer<typeof SystemLoadSchema>;
+
 export const BackupOutputSchema = z.object({
 	path: z.string().min(1),
 	bytes: CountSchema,
