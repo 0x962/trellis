@@ -12,6 +12,7 @@ import { ActorFooter } from "../../../ActorFooter";
 import { ArchivedProjects } from "../../../ArchivedProjects";
 import { ProjectTree } from "../../../ProjectTree";
 import { SessionList } from "../../../SessionList";
+import { SystemLoad } from "../../../SystemLoad";
 import { ConnectionPanel } from "../ConnectionPanel";
 import { NavRow } from "./components/NavRow";
 
@@ -64,6 +65,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 						<span className="truncate text-lg font-semibold text-fg">Trellis</span>
 					</div>
 				)}
+				{onCollapse && !collapsed && <SystemLoad />}
 				{onCollapse && (
 					<Tooltip
 						side="right"

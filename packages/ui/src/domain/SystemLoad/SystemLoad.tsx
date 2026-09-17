@@ -18,7 +18,7 @@ const toneOf: Record<LoadLevel, string> = {
 function LoadValue({ label, name, percent }: { label: string; name: string; percent: number | null }) {
 	const level = percent === null ? null : levelOf(percent);
 	return (
-		<span className="flex items-center justify-between gap-1">
+		<span className="flex items-center justify-between gap-0.5">
 			{percent === null ? (
 				<span className="sr-only">{name} load unavailable</span>
 			) : (
@@ -43,7 +43,7 @@ function LoadValue({ label, name, percent }: { label: string; name: string; perc
 
 export function SystemLoad({ cpuPercent, memoryPercent }: SystemLoadProps) {
 	return (
-		<div className="flex w-16 shrink-0 flex-col text-xs leading-tight">
+		<div className="flex w-14.5 shrink-0 flex-col text-xs leading-tight">
 			<LoadValue label="CPU" name="CPU" percent={cpuPercent} />
 			<LoadValue label="MEM" name="Memory" percent={memoryPercent} />
 		</div>
