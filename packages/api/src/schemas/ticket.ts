@@ -9,7 +9,11 @@ import { LinkedPullRequestSchema } from "./pullRequest.ts";
 import { StatusSummarySchema } from "./status.ts";
 
 // A title is stored trimmed. The limit keeps a row under the summary budget.
-const TitleSchema = z.string().trim().min(1).max(500);
+const TitleSchema = z
+	.string()
+	.trim()
+	.min(1, "Enter a title of 1 to 500 characters.")
+	.max(500, "Enter a title of 1 to 500 characters.");
 
 const IdentifierSchema = z.string().regex(/^[A-Z][A-Z0-9]{1,9}-[1-9][0-9]*$/);
 
@@ -112,7 +116,12 @@ export const ListQuerySchema = z.strictObject({
 	completed: IsoDateTimeSchema.optional(),
 	sort: SortSchema.default("-updatedAt"),
 	cursor: z.string().optional(),
-	limit: z.coerce.number().int().min(1).max(200).default(50),
+	limit: z.coerce
+		.number()
+		.int("Enter a whole number for the limit.")
+		.min(1, "Enter a limit of 1 to 200.")
+		.max(200, "Enter a limit of 1 to 200.")
+		.default(50),
 });
 export type ListQuery = z.infer<typeof ListQuerySchema>;
 export type ListQueryInput = z.input<typeof ListQuerySchema>;
@@ -182,8 +191,7 @@ export const TicketUpdateInputSchema = z.strictObject({
 });
 export type TicketUpdateInput = z.input<typeof TicketUpdateInputSchema>;
 
-// `after` and `before` must sit in the target column. `force` lets an agent
-// move a ticket to a done status.
+// `after` and `before` must sit in the target column.
 export const TicketMoveInputSchema = z.strictObject({
 	ticket: TicketRefStringSchema,
 	status: StatusRefStringSchema,

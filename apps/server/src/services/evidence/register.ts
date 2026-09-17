@@ -5,10 +5,10 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { invalidInput } from "../../errors.ts";
 import { hashFile } from "./hashFile.ts";
-import { revision } from "./revision.ts";
 import { safeFile } from "./safeFile.ts";
 import { target } from "./target.ts";
 import type { EvidenceCtx } from "./types.ts";
+import { workspaceRevision } from "./workspaceRevision.ts";
 
 export const register = async (ctx: EvidenceCtx, input: { runId: string; path: string }) => {
 	const selected = await ctx.newTx((tx) => target(ctx.core, tx, { ...input, mutation: true }));
@@ -16,7 +16,7 @@ export const register = async (ctx: EvidenceCtx, input: { runId: string; path: s
 	const info = await stat(absolute);
 	if (!info.isFile()) throw invalidInput("path", "Register a file in the agent workspace.");
 	const path = relative(await realpath(selected.workspace), absolute);
-	const state = await revision(selected.workspace);
+	const state = await workspaceRevision(selected.workspace);
 	const sha256 = await hashFile(absolute);
 	if (!state.files.some((file) => file.path === path && file.kind === "file" && file.sha256 === sha256))
 		throw invalidInput("path", "Register a stable file that Git tracks or does not ignore.");
@@ -39,6 +39,6 @@ export const register = async (ctx: EvidenceCtx, input: { runId: string; path: s
 			sql`INSERT INTO evidence_artifacts (id, run_id, attempt_id, path, document, created_at) VALUES (${document.id}, ${input.runId}, ${selected.attemptId}, ${path}, ${JSON.stringify(document)}::jsonb, ${document.createdAt})`,
 		);
 	});
-	const after = await revision(selected.workspace);
+	const after = await workspaceRevision(selected.workspace);
 	return { ...document, current: after.fingerprint === state.fingerprint };
 };

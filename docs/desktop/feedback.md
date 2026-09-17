@@ -46,7 +46,7 @@ Restart Trellis to activate this package. Evidence: `/tmp/trellis-main-productio
 ## Trellis SRE persona
 
 The live Trellis SRE persona is `01M2N80YVHB63B85798BJPT4G4`, with kind `builder`.
-Its instructions live in [trellis-sre.md](../personas/trellis-sre.md).
+Its instructions live in the Trellis SRE persona.
 The TRL manager persona and Deploy Queue description route eligible tickets to one SRE batch owner.
 The SRE merges and tests the combined batch, builds from published main, installs once, and coordinates one restart with the manager.
 It retains a durable release record and a checkpoint comment that the manager can read.
@@ -58,6 +58,37 @@ The running manager receives the coordination policy without a context reset.
 Six documentation checks and both API input schemas pass. Two Astra agents review the workflow and role boundaries.
 The quit-and-reopen command passes shell syntax and disabled AppleScript checks. This configuration task does not execute a deployment or restart.
 Evidence: `/tmp/trellis-sre-config-proof.json` and `/tmp/trellis-sre-docs-check.log`.
+
+## Automatic repository access
+
+The Workbench manager could not launch WO-1 because its child project had an empty directory and `trustedDirectory: false`.
+The Workbench parent already specified `/Users/navidkhan/projects/workbench`.
+The lead applies Navid's automatic-trust authorization to live project settings and supplies the existing parent directory to that child.
+At 14:14 UTC on September 16, worker `01M2N91KAYSS4YAVG0SQN2YX2W` runs with a confirmed provider session and no error.
+The shared manager persona includes the automatic repository access policy.
+
+Project settings have no repository approval field. A database migration removes the saved repository approval flag and the unused tool permission flag.
+An agent can update its project directory without a separate human approval. Native harnesses apply permission bypass at launch.
+Agent and flow launches use the nearest configured ancestor directory when a subproject has no directory.
+An explicit child directory takes precedence. Other launch settings remain specific to the child project.
+Settings show the inheritance rule beside the directory field for subprojects.
+Native harness startup applies the repository trust and permission flags before execution.
+
+Nine focused browser tests pass. All 26 native trust and permission tests pass with 109 assertions.
+The affected backend passes 102 integration tests with 515 assertions. Five API schema tests and all nine workspace typechecks also pass.
+The separate flow-terminal browser fixture still expects SSE, although the terminal uses a WebSocket.
+Five other flow browser cases pass. The user checks the installed appearance.
+The existing Trellis SRE owns the coordinated production release after the source reaches tested main.
+Evidence: `/tmp/trellis-trust-live-proof.json`, `/tmp/trellis-trust-child-after.json`, and `/tmp/trellis-auto-trust-harness-checks.log`.
+The backend verification record is `/tmp/trellis-auto-trust-backend-validation.txt`.
+The combined source retains the manager-wait migration as `0044` and applies the approval removal as `0045`.
+All nine browser cases pass again on the combined source. The CLI now classifies `RESTART_FAILED` as a runtime failure with exit code 6.
+All eight CLI error tests pass with 83 assertions. All nine workspace typechecks pass after the merge corrections.
+Logs: `/tmp/trellis-auto-trust-merged-ui.log`, `/tmp/trellis-auto-trust-merged-typecheck.log`, and `/tmp/trellis-auto-trust-cli-errors-green.log`.
+The final migration and launch checks pass 52 cases with 175 assertions after both obsolete flags are removed.
+Those checks include all four saved flag combinations and an agent directory update after migration.
+Five final API tests pass. The independent review reports no remaining findings.
+Evidence: `/tmp/trellis-auto-trust-and-permissions-final.log` and `/tmp/trellis-auto-trust-api-final.log`.
 
 ## Project navigation
 

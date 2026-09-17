@@ -7,12 +7,22 @@ export type RestartSession = {
 	runId: string;
 	previousAttemptId: string;
 	providerSessionId: string;
-	harness: "claude" | "codex" | "opencode" | "pi";
+	// `custom` marks an agent the capture could not save; such an entry is
+	// always `done` with the outcome `failed`.
+	harness: "claude" | "codex" | "opencode" | "pi" | "muse" | "custom";
 	model?: string;
+	effort?: string;
 	workspace: string;
 	processIdentity: string;
 	attempt: { id: string; token: string };
+	// `done` with an `outcome` records a finished entry. A resume that failed
+	// keeps `done` unset and carries the failure in `error`, so a later resume
+	// tries it again. A capture that could not save the agent writes `done`
+	// with the outcome `failed` and the reason in `error`; a resume never
+	// touches that entry, and the restart status shows the reason.
 	done?: boolean;
+	outcome?: "resumed" | "skipped" | "failed";
+	error?: string;
 };
 
 export type RestartPlan = {

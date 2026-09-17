@@ -14,7 +14,7 @@ test("a durable local stop prevents new agent reservations until a person resume
 	await t.seedProject("PAU");
 	await t.client.projects.update({
 		project: "PAU",
-		managerConfig: { personaId: null, concurrency: 3, directory: "/tmp", ade: "native" },
+		managerConfig: { personaId: null, directory: "/tmp", ade: "native" },
 	});
 	const ticket = await t.createTicket({ project: "PAU", title: "Paused work" });
 	const persona = await t.client.personas.create({ name: "Paused fixture", kind: "builder", instruction: "Wait." });

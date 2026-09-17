@@ -14,6 +14,7 @@ export function validateRequest(value: unknown): RuntimeRequest {
 		[
 			"start",
 			"inspect",
+			"hasMessage",
 			"registerNativeDelivery",
 			"observe",
 			"turn",
@@ -34,7 +35,9 @@ export function validateRequest(value: unknown): RuntimeRequest {
 			!expected ||
 			typeof expected !== "object" ||
 			(expected.turnId !== null && typeof expected.turnId !== "string") ||
-			typeof expected.activityAt !== "string"
+			typeof expected.activityAt !== "string" ||
+			(expected.idleBefore !== undefined &&
+				(typeof expected.idleBefore !== "string" || !Number.isFinite(Date.parse(expected.idleBefore))))
 		)
 			throw new Error("An expected provider turn requires turnId and activityAt");
 	}
@@ -52,6 +55,10 @@ export function validateRequest(value: unknown): RuntimeRequest {
 			if (params.hasError !== undefined && typeof params.hasError !== "boolean")
 				throw new Error("The process error filter must be a boolean");
 			break;
+		case "hasMessage":
+			if (typeof params.messageId !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.messageId))
+				throw new Error("Message identifier must contain letters, numbers, underscores, or hyphens");
+			break;
 		case "registerNativeDelivery":
 			if (typeof params.token !== "string" || !params.token || params.token.length > 1024)
 				throw new Error("An attempt token is required");
@@ -59,7 +66,6 @@ export function validateRequest(value: unknown): RuntimeRequest {
 				throw new Error("A message identifier is required");
 			if (typeof params.promptDigest !== "string" || !/^[a-f0-9]{64}$/.test(params.promptDigest))
 				throw new Error("A SHA256 prompt digest is required");
-			if (typeof params.requireIdle !== "boolean") throw new Error("The idle requirement must be a boolean");
 			break;
 		case "observe":
 			if (typeof params.token !== "string" || !params.token || params.token.length > 1024)
@@ -115,8 +121,6 @@ export function validateRequest(value: unknown): RuntimeRequest {
 		case "input":
 			if (params.userInput !== undefined && typeof params.userInput !== "boolean")
 				throw new Error("The user input flag must be a boolean");
-			if (params.requireIdle !== undefined && typeof params.requireIdle !== "boolean")
-				throw new Error("The idle requirement must be a boolean");
 			if (
 				request.method === "deliver" &&
 				(typeof params.messageId !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.messageId))

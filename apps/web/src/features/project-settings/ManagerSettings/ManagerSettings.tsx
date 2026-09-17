@@ -24,7 +24,7 @@ export function ManagerSettings({ project, section }: { project: Project; sectio
 		onSuccess: async () => {
 			await queryClient.invalidateQueries({ queryKey: orpc.projects.get.key() });
 		},
-		onError: (error) => toast.error("Could not save the manager settings", { description: error.message }),
+		onError: (error) => toast.error("Could not save the copilot settings", { description: error.message }),
 	});
 	const commit = (next: ProjectManagerConfig) => {
 		setDraft(next);
@@ -37,8 +37,8 @@ export function ManagerSettings({ project, section }: { project: Project; sectio
 		<>
 			<div hidden={section !== "manager"} className="project-settings-page">
 				<GeneralSettings
+					hasParent={project.parentId !== null}
 					readOnly={readOnly}
-					saving={save.isPending}
 					draft={draft}
 					saved={saved}
 					commit={commit}

@@ -43,13 +43,12 @@ test("native agents use an isolated Git worktree and retain output after stop", 
 		project: "NAT",
 		managerConfig: {
 			personaId: null,
-			concurrency: 3,
 			directory,
 			ade: "native",
 			harness: { preset: "custom", startCommand: "/bin/cat", resumeCommand: "/bin/cat" },
 		},
 	});
-	const ticket = await t.createTicket({ project: "NAT", title: "Native work" });
+	const ticket = await t.createTicket({ project: "NAT", title: "Native work", status: "In Progress" });
 	const persona = await t.client.personas.create({
 		name: "Fixture",
 		kind: "builder",

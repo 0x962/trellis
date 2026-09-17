@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import { sql } from "drizzle-orm";
 import type { RequestContext } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
@@ -43,7 +44,8 @@ export const handle = async (
 			previous &&
 			(previous.status !== outcome.status ||
 				previous.reason !== outcome.reason ||
-				previous.reference !== outcome.reference)
+				previous.reference !== outcome.reference ||
+				!isDeepStrictEqual(previous.waitFor, outcome.waitFor))
 		)
 			throw invalidInput("outcomes", "This ticket already has a recorded outcome for this dispatch.");
 		if (!previous) await record(ctx, tx, { dispatch, outcome });

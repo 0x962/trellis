@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/server";
-import { errors } from "@trellis/api";
+import { errors, fromHarnessModel } from "@trellis/api";
 import { ensureNativeRuntime } from "../../agents/native/connection.ts";
 import { nativeHost, nativePreset } from "../../agents/native/harnessHost.ts";
 import type { Tx } from "../../db/tx.ts";
@@ -20,7 +20,12 @@ export const session = async (ctx: ServiceCtx, input: { id: string }) => {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
 	if (run.runtime !== "native" || !run.terminalId) return null;
 	try {
-		return await (await terminalHost(ctx.home)).status(run.terminalId);
+		const session = await (await terminalHost(ctx.home)).status(run.terminalId);
+		if (session.agent?.model) {
+			const harness = await nativePreset(ctx.home, run.terminalId);
+			if (harness !== "custom") session.agent.model = fromHarnessModel(harness, session.agent.model);
+		}
+		return session;
 	} catch (error) {
 		if ((error as { code?: string }).code === "SESSION_NOT_FOUND") return null;
 		throw error;

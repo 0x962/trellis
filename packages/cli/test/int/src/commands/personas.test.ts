@@ -41,18 +41,20 @@ describe("personas list", () => {
 
 describe("personas show", () => {
 	// CLI-122
-	test("personas show matches an id or a name and prints the instruction", async () => {
+	test("personas show reads one persona by id and matches a name in the list", async () => {
 		const byName = await runCli(["personas", "show", "trellis manager"], { "personas.list": set() }, { tty: true });
 		expect(byName.code).toBe(0);
+		expect(byName.calls[0]).toMatchObject({ path: "personas.list" });
 		expect(byName.stdout).toContain(personaId2);
 		expect(byName.stdout).toContain("Run the board.");
 
-		const byId = await runCli(["personas", "show", personaId], { "personas.list": set() }, { tty: true });
+		const byId = await runCli(["personas", "show", personaId], { "personas.get": persona() }, { tty: true });
 		expect(byId.code).toBe(0);
+		expect(byId.calls[0]).toMatchObject({ path: "personas.get", input: { id: personaId } });
 		expect(byId.stdout).toContain("Open a pull request.");
 
 		// A pipe answers the row, so the instruction travels as one JSON field.
-		const piped = await runCli(["personas", "show", personaId], { "personas.list": set() });
+		const piped = await runCli(["personas", "show", personaId], { "personas.get": persona() });
 		expect(JSON.parse(piped.stdout)).toMatchObject({ id: personaId, instruction: persona().instruction });
 	});
 

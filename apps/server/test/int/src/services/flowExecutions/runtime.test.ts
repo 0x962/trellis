@@ -68,10 +68,9 @@ test("a real runtime completes a flow through a gate and human decision", async 
 		project: "FLOW",
 		managerConfig: {
 			personaId: null,
-			concurrency: 2,
 			directory,
 			ade: "native",
-			trustedDirectory: true,
+
 			harness: {
 				preset: "claude",
 				startCommand: "unused",
@@ -79,7 +78,7 @@ test("a real runtime completes a flow through a gate and human decision", async 
 			},
 		},
 	});
-	const ticket = await app.createTicket({ project: "FLOW", title: "Native flow" });
+	const ticket = await app.createTicket({ project: "FLOW", title: "Native flow", status: "In Progress" });
 	const persona = await app.client.personas.create({
 		name: "Flow fixture",
 		kind: "builder",
@@ -183,10 +182,9 @@ test("cancel stops a claimed native flow without another launch", async () => {
 		project: "CANCEL",
 		managerConfig: {
 			personaId: null,
-			concurrency: 2,
 			directory,
 			ade: "native",
-			trustedDirectory: true,
+
 			harness: {
 				preset: "claude",
 				startCommand: "unused",
@@ -194,7 +192,7 @@ test("cancel stops a claimed native flow without another launch", async () => {
 			},
 		},
 	});
-	const ticket = await app.createTicket({ project: "CANCEL", title: "Cancel native flow" });
+	const ticket = await app.createTicket({ project: "CANCEL", title: "Cancel native flow", status: "In Progress" });
 	const persona = await app.client.personas.create({
 		name: "Cancel fixture",
 		kind: "builder",

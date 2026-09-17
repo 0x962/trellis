@@ -10,6 +10,8 @@ export const launchPrompt = (input: {
 	const { run, url, context } = input;
 	const actor = `agent:${run.id}`;
 	const prefix = input.messageId ? `trellis-message:${input.messageId}\n` : "";
+	// A session agent receives the prompt the person typed, and nothing else.
+	if (run.kind === "session") return `${prefix}${run.instruction}`;
 	if (run.kind === "manager")
 		return `${prefix}${JSON.stringify({
 			agent: { id: run.id, name: run.personaName },

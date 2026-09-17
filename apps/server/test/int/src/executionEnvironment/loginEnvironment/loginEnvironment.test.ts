@@ -30,13 +30,13 @@ test("shell startup errors do not expose environment values in the execution err
 	}
 });
 
-test("a shell timeout returns a sanitized failure", async () => {
+test("a shell that never answers gets a second run and returns a sanitized failure", async () => {
 	const home = await mkdtemp(join(tmpdir(), "trellis-login-timeout-"));
 	const shell = join(home, "shell");
 	try {
 		await writeFile(shell, "#!/bin/sh\nprintf secret-from-startup >&2\nexec /bin/sleep 60\n", { mode: 0o700 });
 		await expect(loginEnvironment(shell, "/bundled/bin", { HOME: home }, 50)).rejects.toThrow(
-			"Login shell exceeded 50 ms.",
+			"The login shell did not answer within 100 ms. Check the shell startup files, then retry.",
 		);
 	} finally {
 		await rm(home, { recursive: true, force: true });

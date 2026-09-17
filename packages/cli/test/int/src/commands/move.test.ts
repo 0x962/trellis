@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import { runCli } from "../../../deps.ts";
-import { rpcError } from "../../../fakeServer.ts";
 import { statusSummary, ticket } from "../../../fixtures.ts";
 
 describe("move", () => {
@@ -25,12 +24,11 @@ describe("move", () => {
 	});
 
 	// CLI-94
-	test("move done as an agent exits 4", async () => {
-		const message = "An agent cannot move a ticket to a done status. A human does that, or pass force.";
-		const result = await runCli(["move", "CDE-1", "done"], {
-			"tickets.move": rpcError("AGENT_CANNOT_COMPLETE", { status: statusSummary({ slug: "done", category: "done" }) }),
+	test("move done as an agent succeeds without force", async () => {
+		const result = await runCli(["move", "CDE-1", "done", "--as", "agent:manager"], {
+			"tickets.move": ticket({ status: statusSummary({ slug: "done", category: "done" }) }),
 		});
-		expect(result.code).toBe(4);
-		expect(result.stderr).toBe(`error: ${message} (AGENT_CANNOT_COMPLETE)\n`);
+		expect(result.code).toBe(0);
+		expect(result.calls[0]!.input).toEqual({ ticket: "CDE-1", status: "done" });
 	});
 });

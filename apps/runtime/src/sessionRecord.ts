@@ -14,7 +14,6 @@ export type SessionRecord = {
 	watchedPids: Set<number>;
 	tokenHash: Buffer | null;
 	activity: RuntimeProcessStatus["activity"];
-	inputPending: boolean;
 	log: SessionLog;
 	stderr: SessionLog;
 	ledger: InputLedger;

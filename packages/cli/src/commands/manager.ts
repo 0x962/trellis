@@ -32,7 +32,8 @@ const handle = defineCommand({
 		outcomes: {
 			type: "string",
 			required: true,
-			description: "JSON array: ticketId (null for empty heartbeat), status, reason, optional reference",
+			description:
+				"JSON array: ticketId, status, reason, optional reference and waitFor (time, dependency, human_response)",
 		},
 	},
 	async run(context) {
@@ -57,7 +58,7 @@ const handle = defineCommand({
 	},
 });
 const actions = defineCommand({
-	meta: { description: "Read saved capacity waits" },
+	meta: { description: "Read saved waits and their wake conditions" },
 	args: {
 		project: { type: "string", description: "Manager project ref" },
 		before: { type: "string", description: "Read the next page before this action ID" },
@@ -84,7 +85,7 @@ const actions = defineCommand({
 	},
 });
 const cancelAction = defineCommand({
-	meta: { description: "Cancel a pending capacity wait" },
+	meta: { description: "Cancel a pending wait" },
 	args: { id: { type: "positional", required: true, description: "Next action ID" } },
 	async run(context) {
 		const ctx = contextOf(context);

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HarnessObservations } from "./harnessObservations.ts";
 
@@ -7,12 +8,31 @@ let home: string;
 let path: string;
 let observations: HarnessObservations;
 beforeEach(() => {
-	home = mkdtempSync("/tmp/trl-observation-errors-");
+	home = mkdtempSync(join(tmpdir(), "trellis-observation-errors-"));
 	path = join(home, "events");
 	observations = new HarnessObservations(path);
 	observations.append({ kind: "prompt", turnId: "turn", prompt: "Run the task" }, "now");
 });
 afterEach(() => rmSync(home, { recursive: true, force: true }));
+
+test("continuous work keeps its start time through tool activity and journal replay", () => {
+	observations.append({ kind: "idle" }, "2026-09-15T12:00:00.000Z");
+	observations.append({ kind: "prompt", prompt: "Continue" }, "2026-09-15T12:00:01.000Z");
+	observations.append({ kind: "working", turnId: "next" }, "2026-09-15T12:00:02.000Z");
+	observations.append({ kind: "tool-start", tool: { id: "tool", name: "Bash" } }, "2026-09-15T12:00:05.000Z");
+	observations.append({ kind: "message", message: { text: "The tests are active." } }, "2026-09-15T12:00:09.000Z");
+	observations.append({ kind: "error", error: "Retry", willRetry: true }, "2026-09-15T12:00:10.000Z");
+	for (const current of [observations, new HarnessObservations(path)])
+		expect(current.activity).toMatchObject({
+			state: "working",
+			workingSince: "2026-09-15T12:00:01.000Z",
+			updatedAt: "2026-09-15T12:00:10.000Z",
+		});
+	observations.append({ kind: "idle", outcome: "completed" }, "2026-09-15T12:00:11.000Z");
+	expect(observations.activity).not.toHaveProperty("workingSince");
+	observations.append({ kind: "prompt", prompt: "Next task" }, "2026-09-15T12:00:12.000Z");
+	expect(observations.activity).toMatchObject({ workingSince: "2026-09-15T12:00:12.000Z" });
+});
 
 test("the last tool retains its input, output, and times after the turn ends and the journal reopens", () => {
 	observations.append(

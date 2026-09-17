@@ -1,14 +1,16 @@
-import { afterAll, afterEach, beforeAll, expect, test } from "bun:test";
+import { afterEach, beforeEach, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import { createTestApp, type TestApp } from "../../../helpers/app.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
 
 let t: TestApp;
-beforeAll(async () => {
+beforeEach(async () => {
 	t = await createTestApp();
 });
-afterAll(() => t.close());
-afterEach(() => t.serverTx(assertStatusInvariant));
+afterEach(async () => {
+	await t.serverTx(assertStatusInvariant);
+	await t.close();
+});
 
 test("manager outcomes pass through REST and RPC and reject invalid boundary input", async () => {
 	const project = await t.client.projects.create({ key: "ACK", name: "Acknowledgments" });

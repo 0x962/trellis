@@ -56,9 +56,7 @@ const context = () =>
 const config = () =>
 	ProjectManagerConfigSchema.parse({
 		personaId: null,
-		concurrency: 2,
 		directory: fixture.home,
-		trustedDirectory: true,
 		harness: { preset: "claude" },
 	});
 const dependencies = () => ({

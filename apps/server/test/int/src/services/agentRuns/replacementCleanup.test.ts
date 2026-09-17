@@ -49,7 +49,7 @@ test.each([false, true])("confirmed cleanup permits a manager reservation with n
 	expect(result.run.terminalId).not.toBe("previous");
 });
 
-test.each(["trust", "harness", "workspace"] as const)(
+test.each(["harness", "workspace"] as const)(
 	"a known %s failure before launch permits a corrected manager assignment",
 	async (failure) => {
 		await h.rows(sql`UPDATE agent_runs SET closed_at=NULL WHERE id='manager'`);
@@ -66,8 +66,6 @@ test.each(["trust", "harness", "workspace"] as const)(
 				run: await h.read((tx) => getRun(tx, "manager")),
 				config: ProjectManagerConfigSchema.parse({
 					personaId: null,
-					concurrency: 1,
-					trustedDirectory: failure !== "trust",
 					directory: "/tmp",
 					harness: {
 						preset: failure === "harness" ? "custom" : "claude",

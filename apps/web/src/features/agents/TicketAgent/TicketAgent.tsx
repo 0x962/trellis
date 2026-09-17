@@ -5,6 +5,7 @@ import { useApp } from "../../../lib/appContext";
 import { AgentRunSheet } from "../AgentRunSheet";
 import { hasAssignedProcess } from "../hasAssignedProcess";
 import { isAgentWorking } from "../isAgentWorking";
+import { personaKindOf } from "../personaKindOf";
 import { PersonaPicker } from "./components/PersonaPicker";
 
 export function TicketAgent({ ticket, disabled = false }: { ticket: string; disabled?: boolean }) {
@@ -46,7 +47,7 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 								<Avatar
 									kind="agent"
 									name={run.personaName}
-									personaKind={run.kind}
+									personaKind={personaKindOf(run.kind)}
 									state={isAgentWorking(run) ? "working-mild" : "static"}
 								/>
 								<span className="truncate text-fg">{run.personaName}</span>
