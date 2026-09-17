@@ -4,13 +4,16 @@ import { IconButton } from "../../primitives/IconButton";
 import { SectionHeader } from "../../primitives/SectionHeader";
 import { Tooltip } from "../../primitives/Tooltip";
 
-type Entry = { id: number; at: string; message: string; level: "info" | "error" };
+import { LoopSteps } from "./components/LoopSteps";
+
+type Entry = { stepId: string; id: number; at: string; message: string; level: "info" | "error" };
 export type LoopStatusProps = {
 	name: string;
 	description: string;
 	paused: boolean;
 	working: boolean;
 	step: string;
+	steps: { id: string; title: string; description: string; active: boolean; detail: string }[];
 	runCount: number;
 	lastStartedAt: string | null;
 	lastFinishedAt: string | null;
@@ -24,7 +27,7 @@ export type LoopStatusProps = {
 const timestamp = (at: string | null) => (at === null ? "None" : new Date(at).toLocaleString());
 
 export function LoopStatus(props: LoopStatusProps) {
-	const { name, description, paused, working, step, lastError, output, errors, busy, onAction } = props;
+	const { name, description, paused, working, lastError, output, errors, busy, onAction } = props;
 	const state = working
 		? paused
 			? "Paused after current pass"
@@ -71,9 +74,8 @@ export function LoopStatus(props: LoopStatusProps) {
 				Checks repeat one second after each pass. Pause lets the current pass finish; agents and message delivery
 				continue. Run now performs one pass. Automatic checks resume when Trellis restarts.
 			</p>
+			<LoopSteps steps={props.steps} errors={errors} paused={paused} nextRunAt={props.nextRunAt} />
 			<dl className="grid grid-cols-2 gap-3 text-sm tabular-nums">
-				<dt className="text-fg-muted">Current step</dt>
-				<dd className="break-words">{step}</dd>
 				<dt className="text-fg-muted">Passes</dt>
 				<dd>{props.runCount}</dd>
 				<dt className="text-fg-muted">Last start</dt>
@@ -83,28 +85,6 @@ export function LoopStatus(props: LoopStatusProps) {
 				<dt className="text-fg-muted">Next pass</dt>
 				<dd>{paused ? "Paused" : working ? "After this pass" : timestamp(props.nextRunAt)}</dd>
 			</dl>
-			{lastError && (
-				<p role="alert" className="whitespace-pre-wrap break-words text-sm text-danger">
-					{lastError}
-				</p>
-			)}
-			<div>
-				<SectionHeader title="Errors" count={errors.length} level={3} />
-				{errors.length === 0 ? (
-					<p className="py-2 text-sm text-fg-muted">No errors recorded.</p>
-				) : (
-					<ul aria-label="Loop errors" className="max-h-48 overflow-y-auto divide-y divide-border">
-						{errors.toReversed().map((entry) => (
-							<li key={entry.id} className="py-2 text-sm">
-								<time dateTime={entry.at} className="text-xs text-fg-muted tabular-nums">
-									{timestamp(entry.at)}
-								</time>
-								<p className="whitespace-pre-wrap break-words text-danger">{entry.message}</p>
-							</li>
-						))}
-					</ul>
-				)}
-			</div>
 			<div>
 				<SectionHeader title="Recent output" count={output.length} level={3} />
 				<div

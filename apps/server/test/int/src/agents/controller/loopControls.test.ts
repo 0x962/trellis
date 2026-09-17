@@ -94,3 +94,34 @@ test("errors remain visible after recovery and output stays bounded", async () =
 	expect(f.loop.read().errors).toEqual([]);
 	await f.loop.stop();
 });
+
+test("step cards start at Wait, track parallel work, and retain errors on their source step", async () => {
+	const f = fixture();
+	expect(f.loop.read().steps[0]).toMatchObject({ id: "wait", active: true });
+	const workers = Promise.withResolvers<void>();
+	const messages = Promise.withResolvers<void>();
+	const work = f.loop.runStep("workers", () => workers.promise);
+	const delivery = f.loop.runStep("messages", () => messages.promise);
+	expect(
+		f.loop
+			.read()
+			.steps.filter((step) => step.active)
+			.map((step) => step.id),
+	).toEqual(["workers", "messages"]);
+	messages.reject(new Error("Message delivery failed"));
+	await expect(delivery).rejects.toThrow("Message delivery failed");
+	expect(f.loop.read().errors[0]).toMatchObject({ stepId: "messages", message: "Message delivery failed" });
+	expect(f.loop.read().steps.find((step) => step.id === "workers")?.active).toBe(true);
+	workers.resolve();
+	await work;
+	await f.loop.start();
+	await f.fire();
+	expect(
+		f.loop
+			.read()
+			.steps.filter((step) => step.active)
+			.map((step) => step.id),
+	).toEqual(["wait"]);
+	expect(f.loop.read().errors[0]?.stepId).toBe("messages");
+	await f.loop.stop();
+});

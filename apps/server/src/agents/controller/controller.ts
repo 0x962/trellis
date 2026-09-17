@@ -1,4 +1,4 @@
-import type { LoopStatus } from "@trellis/api";
+import type { LoopStatus, LoopStepId } from "@trellis/api";
 import type { JobsClock, JobsLog } from "../../jobs.ts";
 
 export type ControllerOptions = {
@@ -20,7 +20,37 @@ export const createController = (options: ControllerOptions) => {
 			"Keeps a worker on each ticket in an automated column and a copilot available for each active project. Restarts failed or inactive workers with the current column settings.",
 		paused: false,
 		working: false,
-		step: "Not started",
+		step: "Wait",
+		steps: [
+			{
+				id: "wait",
+				title: "Wait",
+				description: "Wait one second before the next pass, or until you resume the loop.",
+				active: true,
+				detail: "",
+			},
+			{
+				id: "runtime",
+				title: "Read runtime",
+				description: "Read the current agent processes and their activity.",
+				active: false,
+				detail: "",
+			},
+			{
+				id: "workers",
+				title: "Check workers and copilots",
+				description: "Read assignments. Start or recover agents with the current project and column settings.",
+				active: false,
+				detail: "",
+			},
+			{
+				id: "messages",
+				title: "Deliver messages",
+				description: "Deliver chat messages and direct mentions to agents.",
+				active: false,
+				detail: "",
+			},
+		],
 		runCount: 0,
 		lastStartedAt: null,
 		lastFinishedAt: null,
@@ -29,10 +59,26 @@ export const createController = (options: ControllerOptions) => {
 		output: [],
 		errors: [],
 	};
-	const record = (message: string, level: "info" | "error" = "info") => {
-		const entry = { id: ++sequence, at: options.clock.now().toISOString(), message, level };
+	const record = (message: string, level: "info" | "error" = "info", stepId: LoopStepId = "workers") => {
+		const entry = { id: ++sequence, at: options.clock.now().toISOString(), message, level, stepId };
 		state.output = [...state.output.slice(-199), entry];
 		if (level === "error") state.errors = [...state.errors.slice(-19), entry];
+	};
+	const runStep = async <T>(id: LoopStepId, work: () => Promise<T>): Promise<T> => {
+		const step = state.steps.find((item) => item.id === id)!;
+		state.steps[0]!.active = false;
+		step.active = true;
+		step.detail = "";
+		const before = sequence;
+		return work()
+			.catch((cause: unknown) => {
+				if (!state.errors.some((entry) => entry.id > before && entry.stepId === id))
+					record(cause instanceof Error ? cause.message : String(cause), "error", id);
+				throw cause;
+			})
+			.finally(() => {
+				step.active = false;
+			});
 	};
 	const cancelTimer = () => {
 		if (timer !== null) options.clock.clearTimer(timer);
@@ -50,11 +96,16 @@ export const createController = (options: ControllerOptions) => {
 	const tick = () => {
 		if (running) return;
 		cancelTimer();
+		const before = sequence;
 		const manage = !state.paused || requested;
 		requested = false;
 		if (manage) {
 			state.working = true;
 			state.step = "Read runtime";
+			for (const step of state.steps) {
+				step.active = step.id === "runtime";
+				step.detail = "";
+			}
 			state.lastStartedAt = options.clock.now().toISOString();
 			state.runCount++;
 		}
@@ -71,13 +122,15 @@ export const createController = (options: ControllerOptions) => {
 				options.log("controller tick failed", { error });
 				if (manage) {
 					state.lastError = error;
-					record(`${state.step}: ${error}`, "error");
+					if (!state.errors.some((entry) => entry.id > before)) record(error, "error", "runtime");
 				}
 			})
 			.finally(() => {
 				if (manage) {
 					state.working = false;
 					state.lastFinishedAt = options.clock.now().toISOString();
+					state.step = "Wait";
+					for (const step of state.steps) step.active = step.id === "wait";
 				}
 				running = null;
 				schedule(requested ? 0 : 1000);
@@ -86,20 +139,22 @@ export const createController = (options: ControllerOptions) => {
 	return {
 		read: (): LoopStatus => structuredClone(state),
 		record,
+		runStep,
 		report: (step: string, message?: string) => {
 			if (!state.working) return;
 			state.step = step;
+			state.steps.find((item) => item.id === "workers")!.detail = step;
 			if (message) record(message);
 		},
 		pause: () => {
 			state.paused = true;
 			state.nextRunAt = null;
 			requested = false;
-			record("Automatic management paused. Current work can finish.");
+			record("Automatic management paused. Current work can finish.", "info", "wait");
 		},
 		resume: () => {
 			state.paused = false;
-			record("Automatic management resumed.");
+			record("Automatic management resumed.", "info", "wait");
 			if (!running) tick();
 		},
 		runNow: () => {
