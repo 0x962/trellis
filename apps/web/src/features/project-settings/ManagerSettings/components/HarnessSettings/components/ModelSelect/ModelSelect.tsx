@@ -52,7 +52,9 @@ export function ModelSelect({
 					Could not list the models of {harness}: {errorLine(models.error)}
 				</p>
 			) : (
-				<p className="manager-settings-hint">Harness default lets the harness choose its own model.</p>
+				<p className="manager-settings-hint">
+					Harness default lets the harness choose its own model. A change applies at the next start or restart.
+				</p>
 			)}
 		</div>
 	);

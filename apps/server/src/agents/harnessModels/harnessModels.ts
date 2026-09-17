@@ -74,9 +74,11 @@ const listCodex = async (executable: string, { cwd, env }: Spawn): Promise<Liste
 	throw new Error(`codex exited ${proc.exitCode} before it listed its models: ${(await stderr).trim()}`);
 };
 
-// Asks one `muse serve` session host for the catalog of its account, then
-// closes it. Nothing here waits for that host to exit, and `closed` rejects
-// on the exit, so this takes the rejection to keep it off the server.
+// Asks one `muse serve` session host for the catalog of its account. The
+// host exits when its stdin closes, so `client.close()` ends the process.
+// `MspClient` rejects its `closed` promise when the host exits, and a
+// rejected promise that nobody reads stops the server, so this reads it
+// and does nothing with it.
 const listMuse = async (executable: string, { cwd, env }: Spawn): Promise<ListedModel[]> => {
 	const child = spawn(executable, MUSE_MODELS_ARGS, { cwd, env, stdio: ["pipe", "pipe", "pipe"] });
 	const timer = setTimeout(() => child.kill("SIGKILL"), TIMEOUT_MS);
