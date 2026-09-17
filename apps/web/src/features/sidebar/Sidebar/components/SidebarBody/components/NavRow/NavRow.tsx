@@ -10,15 +10,17 @@ type NavRowProps = {
 	to: NavTarget;
 	icon: ReactElement;
 	label: string;
+	accessibleLabel?: string;
 	active: boolean;
 	trailing?: ReactNode;
 	iconMark?: ReactNode;
 };
 
-export function NavRow({ to, icon, label, active, trailing, iconMark }: NavRowProps) {
+export function NavRow({ to, icon, label, accessibleLabel, active, trailing, iconMark }: NavRowProps) {
 	return (
 		<Link
 			to={to}
+			aria-label={accessibleLabel}
 			aria-current={active ? "page" : undefined}
 			className={cx(rowClass, active && "sidebar-selected font-medium")}
 		>
