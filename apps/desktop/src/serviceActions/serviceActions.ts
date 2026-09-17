@@ -1,5 +1,6 @@
 import { dialog } from "electron";
 import { assertManagedHome, ensureHostToken, type HostConnection, waitForHostExit } from "../host/host.ts";
+import { hostError } from "../hostError/hostError.ts";
 import { openServiceSettings, serviceCommand } from "../service/service.ts";
 import { serviceNeedsRegistration } from "../serviceRegistration/serviceRegistration.ts";
 import { stopHostWork } from "../stopHostWork/stopHostWork.ts";
@@ -8,20 +9,7 @@ export const requireService = async (helper: string, home: string) => {
 	ensureHostToken(home);
 	assertManagedHome(home);
 	let state = await serviceCommand(helper, "status");
-	if (serviceNeedsRegistration(state.status)) {
-		const { response } = await dialog.showMessageBox({
-			type: "info",
-			message: "Enable Trellis background work?",
-			detail:
-				"The local host starts at login and keeps agents active after you close Trellis. macOS restarts the host after a crash. Use the Trellis menu to stop local work and disable the service.",
-			buttons: ["Cancel", "Enable background work"],
-			defaultId: 1,
-			cancelId: 0,
-		});
-		if (response !== 1)
-			throw new Error("Trellis needs its local background service. Enable it when you reopen the app.");
-		state = await serviceCommand(helper, "register");
-	}
+	if (serviceNeedsRegistration(state.status)) state = await serviceCommand(helper, "register");
 	if (state.status === "requiresApproval") {
 		await dialog.showMessageBox({
 			type: "info",
@@ -34,28 +22,13 @@ export const requireService = async (helper: string, home: string) => {
 	if (state.status !== "enabled") throw new Error(`Background service status: ${state.status}.`);
 };
 
-export const showServiceStatus = async (helper: string) => {
-	try {
-		const state = await serviceCommand(helper, "status");
-		const { response } = await dialog.showMessageBox({
-			message: `Background service: ${state.status}`,
-			detail:
-				"The service keeps local agents active when Trellis closes. System Settings controls its permission to run at login.",
-			buttons: ["Done", "Open System Settings"],
-		});
-		if (response === 1) await openServiceSettings(helper);
-	} catch (error) {
-		dialog.showErrorBox("Background service status", (error as Error).message);
-	}
-};
-
 export const stopLocalWork = async (host: HostConnection, home: string, helper?: string): Promise<boolean> => {
 	const { response } = await dialog.showMessageBox({
 		type: "warning",
-		message: "Stop local work and the background service?",
+		message: "Quit Trellis completely?",
 		detail:
 			"Trellis pauses new local work, stops the known processes of local projects, and disables its background service. Superset and other external sessions remain active.",
-		buttons: ["Cancel", "Stop local work"],
+		buttons: ["Cancel", "Quit Completely"],
 		defaultId: 0,
 		cancelId: 0,
 	});
@@ -78,7 +51,7 @@ export const resumeLocalWork = async (host: HostConnection) => {
 		},
 		body: "{}",
 	});
-	if (!result.ok) throw new Error(await result.text());
+	if (!result.ok) throw await hostError(result);
 	await dialog.showMessageBox({
 		message: "Local work is enabled",
 		detail: "You can start local agents. Trellis sends queued ticket events to each running manager again.",

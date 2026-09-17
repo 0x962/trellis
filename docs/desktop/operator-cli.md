@@ -59,11 +59,11 @@ trellis agents send <id> --text "Add a section on stop behavior."
 printf 'Add a section on stop behavior.\n' | trellis agents send <id> --text -
 ```
 
-`--text -` reads the follow-up from stdin.
+`--text -` reads the follow-up from stdin. `--interrupt` stops the current turn first, so the agent reads the message before it continues.
 
-A send to a busy harness agent fails before any text reaches the terminal. The error states "Agent is busy. No message was sent." Wait for the current turn to finish, then send again. A `custom` terminal preset has no busy check: the text goes in at once, even during a turn.
+A send during a turn goes to the harness at once. The harness queues the text and starts the next turn with it when the current turn ends. `trellis agents session <id>` lists the message in `acknowledgedMessageIds` once that turn starts.
 
-A send can also end with an uncertain response: a timeout, a lost connection, or, for a `custom` terminal preset, the error "Terminal input delivery is uncertain." Treat the delivery as unknown. The runtime can write the text before the connection fails, and each send uses a new message ID. Another send can therefore duplicate the work. Run `trellis agents output <id>` to inspect the terminal, but do not treat missing text as proof of non-delivery. Send again only after a confirmed rejection, such as the busy error. If the delivery stays unknown, keep the attempt and ask a person to inspect it.
+A send can end with an uncertain response: a timeout, a lost connection, or, for a `custom` terminal preset, the error "Terminal input delivery is uncertain." Treat the delivery as unknown. The runtime can write the text before the connection fails, and each send uses a new message ID. Another send can therefore duplicate the work. Run `trellis agents output <id>` to inspect the terminal, but do not treat missing text as proof of non-delivery. If the delivery stays unknown, keep the attempt and ask a person to inspect it.
 
 ## Interrupt the current turn
 

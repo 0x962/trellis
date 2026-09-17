@@ -58,7 +58,12 @@ const dependencies = (
 		},
 		...overrides,
 	},
-	host: { send },
+	host: {
+		send,
+		interrupt: async () => {
+			throw new Error("This test expects no interrupt");
+		},
+	},
 	preset: async () => "claude",
 });
 
@@ -98,21 +103,24 @@ test("a preinitialization send waits for the initial receipt before it reaches t
 	expect(writes).toBe(1);
 });
 
-test.each([false, true])("a busy native host reports not sent with controller=%s", async (controller) => {
-	const busy = Object.assign(new Error("busy"), { code: "RUNTIME_BUSY" });
-	const send = prepareSend(
-		context(),
-		{ id: "run", text: "Follow up", requireIdle: controller },
-		dependencies(async () => {
-			throw busy;
-		}),
-	);
-	if (controller) await expect(send).rejects.toMatchObject({ code: "RUNTIME_BUSY" });
-	else
-		await expect(send).rejects.toMatchObject({
-			code: "RUNNER_UNAVAILABLE",
-			message: "Agent is busy. No message was sent. Wait for the current turn to finish.",
-		});
+test("an interrupt send stops a working turn before the message and skips an idle one", async () => {
+	const calls: string[] = [];
+	const deps = dependencies(async (_id, text) => {
+		calls.push(`send:${text}`);
+		return session();
+	});
+	deps.host.interrupt = async () => {
+		calls.push("interrupt");
+		return session();
+	};
+	deps.client.inspect = async () =>
+		session({ acknowledgedMessageIds: ["attempt"], activity: { state: "working", updatedAt: "now" } });
+	await prepareSend(context(), { id: "run", text: "Stop and read this", interrupt: true }, deps);
+	deps.client.inspect = async () =>
+		session({ acknowledgedMessageIds: ["attempt"], activity: { state: "idle", updatedAt: "now" } });
+	await prepareSend(context(), { id: "run", text: "Read this", interrupt: true }, deps);
+	await prepareSend(context(), { id: "run", text: "Plain", interrupt: false }, deps);
+	expect(calls).toEqual(["interrupt", "send:Stop and read this", "send:Read this", "send:Plain"]);
 });
 
 test("an unconfirmed host delivery cannot return success", async () => {
@@ -136,9 +144,8 @@ test("an explicit custom PTY sends raw input without a hook receipt", async () =
 			throw new Error("A custom terminal has no native host adapter");
 		},
 		{
-			deliver: async (_id, messageId, data, requireIdle) => {
+			deliver: async (_id, messageId, data) => {
 				writes++;
-				expect(requireIdle).toBe(false);
 				expect(Buffer.from(data, "base64").toString()).toBe("\x1b[200~Input\x1b[201~\r");
 				return { status: "written", messageId };
 			},
@@ -146,10 +153,6 @@ test("an explicit custom PTY sends raw input without a hook receipt", async () =
 	);
 	deps.preset = async () => "custom";
 	await prepareSend(context(), { id: "run", text: "Input" }, deps);
-	expect(writes).toBe(1);
-	await expect(
-		prepareSend(context(), { id: "run", text: "Automatic input", requireIdle: true }, deps),
-	).rejects.toMatchObject({ code: "RUNNER_UNAVAILABLE" });
 	expect(writes).toBe(1);
 });
 

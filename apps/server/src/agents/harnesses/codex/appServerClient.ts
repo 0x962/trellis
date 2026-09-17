@@ -11,14 +11,19 @@ export class CodexAppServerClient {
 	private readonly socket: WebSocket;
 	readonly opened: Promise<void>;
 	readonly closed: Promise<never>;
-	constructor(path: string, notify: (message: unknown) => void) {
+	constructor(
+		path: string,
+		notify: (message: unknown) => void,
+		handleRequest?: (message: { id: string | number; method: string; params?: unknown }) => Promise<unknown>,
+	) {
 		this.socket = new WebSocket(`ws+unix://${path}:/`, { perMessageDeflate: false, maxPayload: 16 * 1024 * 1024 });
 		this.opened = new Promise((resolve, reject) => {
 			this.socket.once("open", resolve);
 			this.socket.once("error", reject);
 		});
+		let fail!: (error: Error) => void;
 		this.closed = new Promise((_, reject) => {
-			const fail = (error: Error) => {
+			fail = (error: Error) => {
 				for (const request of this.pending.values()) {
 					clearTimeout(request.timer);
 					request.reject(error);
@@ -40,8 +45,16 @@ export class CodexAppServerClient {
 					request.reject(new Error(`Codex request failed: ${JSON.stringify(message.error)}`));
 				else request.resolve(message.result);
 			} else if (message.id === undefined && message.method !== undefined) {
-				// The native terminal answers app-server requests sent to the thread's subscribers.
 				notify(message);
+			} else if (message.id !== undefined && message.method !== undefined && handleRequest) {
+				void handleRequest({ id: message.id, method: message.method, params: message.params })
+					.then((result) => {
+						if (result !== undefined) this.socket.send(JSON.stringify({ id: message.id, result }));
+					})
+					.catch((error) => {
+						fail(error instanceof Error ? error : new Error(String(error)));
+						this.socket.terminate();
+					});
 			}
 		});
 	}

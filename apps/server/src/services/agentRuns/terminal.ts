@@ -1,5 +1,6 @@
 import { ORPCError } from "@orpc/server";
-import { errors } from "@trellis/api";
+import { errors, fromHarnessModel } from "@trellis/api";
+import { ensureNativeRuntime } from "../../agents/native/connection.ts";
 import { nativeHost, nativePreset } from "../../agents/native/harnessHost.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
@@ -10,14 +11,21 @@ import { assertSendTarget, type SendTarget } from "./sendTarget.ts";
 const target = async (ctx: ServiceCtx, id: string) => {
 	const run = await ctx.newTx((tx) => getRun(tx, id));
 	if (run.runtime !== "native" || !run.terminalId) throw invalidInput("id", "This agent has no local terminal.");
-	return { run, client: nativeHost(ctx.home) };
+	return run;
 };
+
+const terminalHost = async (home: string) => nativeHost(home, process.env, await ensureNativeRuntime(home));
 
 export const session = async (ctx: ServiceCtx, input: { id: string }) => {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
 	if (run.runtime !== "native" || !run.terminalId) return null;
 	try {
-		return await nativeHost(ctx.home).status(run.terminalId);
+		const session = await (await terminalHost(ctx.home)).status(run.terminalId);
+		if (session.agent?.model) {
+			const harness = await nativePreset(ctx.home, run.terminalId);
+			if (harness !== "custom") session.agent.model = fromHarnessModel(harness, session.agent.model);
+		}
+		return session;
 	} catch (error) {
 		if ((error as { code?: string }).code === "SESSION_NOT_FOUND") return null;
 		throw error;
@@ -25,13 +33,15 @@ export const session = async (ctx: ServiceCtx, input: { id: string }) => {
 };
 
 export const output = async (ctx: ServiceCtx, input: { id: string; offset?: number }) => {
-	const { run, client } = await target(ctx, input.id);
+	const run = await target(ctx, input.id);
+	const client = await terminalHost(ctx.home);
 	return client.output(run.terminalId!, input.offset ?? 0);
 };
 
 export const input = async (ctx: ServiceCtx, input: { id: string; text: string; userInput?: boolean } & SendTarget) => {
-	const { run, client } = await target(ctx, input.id);
+	const run = await target(ctx, input.id);
 	assertSendTarget(run, input);
+	const client = await terminalHost(ctx.home);
 	const process = await client.status(run.terminalId!);
 	if (process?.mode !== "pty" || process.status !== "running")
 		throw invalidInput("id", "This agent does not have a running interactive terminal.");
@@ -40,10 +50,11 @@ export const input = async (ctx: ServiceCtx, input: { id: string; text: string; 
 };
 
 export const interrupt = async (ctx: ServiceCtx, input: { id: string } & SendTarget) => {
-	const { run, client } = await target(ctx, input.id);
+	const run = await target(ctx, input.id);
 	assertSendTarget(run, input);
 	if ((await nativePreset(ctx.home, run.terminalId!)) === "custom")
 		throw invalidInput("id", "Use the custom terminal controls to interrupt its process.");
+	const client = await terminalHost(ctx.home);
 	try {
 		await client.interrupt(run.terminalId!);
 	} catch (cause) {
@@ -58,8 +69,9 @@ export const interrupt = async (ctx: ServiceCtx, input: { id: string } & SendTar
 };
 
 export const resize = async (ctx: ServiceCtx, input: { id: string; cols: number; rows: number } & SendTarget) => {
-	const { run, client } = await target(ctx, input.id);
+	const run = await target(ctx, input.id);
 	assertSendTarget(run, input);
+	const client = await terminalHost(ctx.home);
 	await client.resize(run.terminalId!, input.cols, input.rows);
 	return {};
 };

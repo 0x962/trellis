@@ -36,7 +36,6 @@ const start = () =>
 		mode: "pty",
 		env: { TRELLIS_ATTEMPT_TOKEN: "secret" },
 	});
-
 test("provider observations require the actual attempt token and acknowledge only observed prompts", async () => {
 	await start();
 	await expect(client.observe("attempt", "wrong", { kind: "session", sessionId: "provider-session" })).rejects.toThrow(
@@ -58,7 +57,6 @@ test("provider observations require the actual attempt token and acknowledge onl
 	await client.stop("attempt");
 	await expect(client.observe("attempt", "secret", { kind: "idle" })).rejects.toThrow("controllable");
 });
-
 test("provider metadata and errors stay distinct from actual process status", async () => {
 	await start();
 	await client.observe("attempt", "secret", { kind: "session", sessionId: "provider-session", model: "model-one" });
@@ -104,6 +102,14 @@ test("provider metadata and errors stay distinct from actual process status", as
 	expect(await client.list({ hasError: true })).toEqual([]);
 	await client.observe("attempt", "secret", { kind: "idle", result: "finished", outcome: "completed" });
 	expect((await client.inspect("attempt")).result?.text).toBe("finished");
+	await client.observe("attempt", "secret", { kind: "message", message: { text: "Ready for review." } });
+	expect(await client.inspect("attempt")).toMatchObject({
+		activity: { state: "idle" },
+		agent: {
+			lastTool: { input: { path: "file" }, status: "failed", error: "File not found" },
+			lastMessage: { text: "Ready for review.", at: expect.any(String) },
+		},
+	});
 });
 
 test("provider events stream complete JSONL history and resume from byte offsets", async () => {
@@ -144,7 +150,7 @@ test("provider events stream complete JSONL history and resume from byte offsets
 	});
 	await new Promise<void>((done) => daemon.stdout!.once("data", () => done()));
 	expect(await client.inspect("attempt")).toMatchObject({
-		activity: null,
+		activity: { state: "idle", updatedAt: lines[150].observedAt },
 		agent: { sessionId: "retained-session", model: "retained-model" },
 		result: { text: "all done" },
 	});
@@ -196,13 +202,13 @@ test("an old turn completion stays in history without ending the current turn", 
 	expect((await client.inspect("attempt")).result?.text).toBe("current");
 });
 
-test("a provider model update preserves active work and an unsubmitted terminal draft", async () => {
+test("a provider model update preserves active work and accepts automatic input", async () => {
 	await start();
 	await client.observe("attempt", "secret", { kind: "session", sessionId: "provider", model: "first" });
 	await client.input("attempt", Buffer.from("draft").toString("base64"), true);
 	await client.observe("attempt", "secret", { kind: "session", model: "second" });
-	await expect(client.deliver("attempt", "automatic", Buffer.from("message").toString("base64"), true)).rejects.toThrow(
-		"idle",
+	expect((await client.deliver("attempt", "automatic", Buffer.from("message").toString("base64"))).status).toBe(
+		"written",
 	);
 	await client.observe("attempt", "secret", { kind: "working", turnId: "turn" });
 	await client.observe("attempt", "secret", { kind: "session", model: "third" });
@@ -247,26 +253,23 @@ test("native API delivery reserves once and only a provider prompt confirms rece
 	await start();
 	await client.observe("attempt", "secret", { kind: "session", sessionId: "provider" });
 	const digest = "a".repeat(64);
-	await expect(client.registerNativeDelivery("attempt", "secret", "before-first-prompt", digest, true)).rejects.toThrow(
-		"idle",
-	);
+	expect((await client.registerNativeDelivery("attempt", "secret", "before-first-prompt", digest)).claimed).toBe(true);
 	await client.observe("attempt", "secret", { kind: "idle", outcome: "completed" });
 	const reservations = await Promise.all(
-		Array.from({ length: 12 }, () => client.registerNativeDelivery("attempt", "secret", "native", digest, true)),
+		Array.from({ length: 12 }, () => client.registerNativeDelivery("attempt", "secret", "native", digest)),
 	);
 	expect(reservations.filter((result) => result.claimed)).toHaveLength(1);
 	expect(reservations.every((result) => result.status === "unknown")).toBe(true);
 	expect((await client.inspect("attempt")).acknowledgedMessageIds).toEqual([]);
-	await expect(client.registerNativeDelivery("attempt", "secret", "native", "b".repeat(64), true)).rejects.toThrow(
+	await expect(client.registerNativeDelivery("attempt", "secret", "native", "b".repeat(64))).rejects.toThrow(
 		"different",
 	);
-	await expect(client.registerNativeDelivery("attempt", "secret", "other", digest, true)).rejects.toThrow("idle");
 	await client.observe("attempt", "secret", { kind: "prompt", prompt: "trellis-message:native\nhello" });
-	expect(await client.registerNativeDelivery("attempt", "secret", "native", digest, true)).toMatchObject({
+	expect(await client.registerNativeDelivery("attempt", "secret", "native", digest)).toMatchObject({
 		claimed: false,
 		status: "acknowledged",
 	});
-	await expect(client.registerNativeDelivery("attempt", "wrong", "bad", digest, false)).rejects.toThrow("token");
+	await expect(client.registerNativeDelivery("attempt", "wrong", "bad", digest)).rejects.toThrow("token");
 });
 
 test("a retryable native error retains active work until a final outcome", async () => {

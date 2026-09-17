@@ -17,6 +17,7 @@ test("Claude starts its native TUI with exact arguments and per-attempt hooks", 
 	const launch = await prepareClaude(input);
 	expect(launch.executable).toBe("claude");
 	expect(launch.args).toContain("--dangerously-skip-permissions");
+	expect(launch.args).not.toContain("--system-prompt");
 	expect(launch.args.slice(launch.args.indexOf("--model"), launch.args.indexOf("--model") + 2)).toEqual([
 		"--model",
 		"sonnet",
@@ -47,10 +48,32 @@ test("Claude resumes the supplied vendor ID with bypass and model", async () => 
 	expect(launch.args).toContain("sonnet");
 });
 
+test("Claude copilots retain native tools and the exact saved persona on start and resume", async () => {
+	const managerSystemPrompt = `Database persona ${crypto.randomUUID()}`;
+	const managerTools = { command: "/bin/bun", args: ["/app/manager.ts"] };
+	for (const resume of [false, true] as const) {
+		const launch = await prepareClaude({ ...input, managerTools, managerSystemPrompt, resume });
+		expect(launch.args[launch.args.indexOf("--system-prompt") + 1]).toBe(managerSystemPrompt);
+		expect(launch.args[launch.args.indexOf("--system-prompt-snapshot") + 1]).toBe("off");
+		expect(launch.args).toContain("--dangerously-skip-permissions");
+		expect(launch.args).toContain("--strict-mcp-config");
+		expect(launch.env.TRELLIS_MANAGER_TOOLS_READY).toBe("/tmp/attempt/manager-tools-ready.json");
+		expect(launch.args).not.toContain("--tools");
+		expect(launch.args).not.toContain("--permission-mode");
+		expect(JSON.parse(launch.args[launch.args.indexOf("--mcp-config") + 1]!)).toEqual({
+			mcpServers: { trellis: { type: "stdio", alwaysLoad: true, ...managerTools } },
+		});
+		const settings = JSON.parse(launch.args[launch.args.indexOf("--settings") + 1]!);
+		expect(settings.permissions.allow).toEqual(["mcp__trellis__*"]);
+		expect(launch.args).toContain("--disable-slash-commands");
+		expect(launch.args[launch.args.indexOf("--setting-sources") + 1]).toBe("");
+	}
+});
+
 test("Claude events preserve native identity, prompt, tool data, and final response", () => {
 	const base = { session_id: input.sessionId, model: "sonnet" };
 	expect(parseClaudeEvent({ ...base, hook_event_name: "SessionStart" })).toEqual([
-		{ kind: "session", sessionId: input.sessionId, model: "sonnet" },
+		{ kind: "session", sessionId: input.sessionId, model: "anthropic/claude-sonnet-5" },
 	]);
 	expect(
 		parseClaudeEvent({ ...base, hook_event_name: "UserPromptSubmit", prompt: "trellis-message:id\nhello" })[0],
@@ -132,7 +155,7 @@ test("Claude model changes update metadata without a turn transition", () => {
 			to_model: "claude-sonnet-5",
 			source: "resume",
 		}),
-	).toEqual([{ kind: "session", sessionId: "s", model: "claude-sonnet-5" }]);
+	).toEqual([{ kind: "session", sessionId: "s", model: "anthropic/claude-sonnet-5" }]);
 });
 
 test("Claude associates the first tool with its current native prompt ID", () => {
@@ -152,4 +175,15 @@ test("Claude associates the first tool with its current native prompt ID", () =>
 	})[0]!;
 	expect(receipt.turnId).toBeUndefined();
 	expect(tool.turnId).toBe("current-prompt");
+});
+
+test("Claude forwards effort on start and resume", async () => {
+	for (const resume of [false, true] as const) {
+		const launch = await prepareClaude({
+			...input,
+			...(resume ? { resume: true as const } : { resume: false as const }),
+			effort: "max",
+		});
+		expect(launch.args[launch.args.indexOf("--effort") + 1]).toBe("max");
+	}
 });

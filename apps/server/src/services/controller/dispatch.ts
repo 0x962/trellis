@@ -1,66 +1,35 @@
+import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
+import { ensureNativeRuntime } from "../../agents/native/connection.ts";
 import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { Tx } from "../../db/tx.ts";
-import { prepareSend } from "../agentRuns/communication.ts";
-import { readRuntimeSessions } from "../agentRuns/liveState.ts";
-import type { ServiceCtx } from "../support.ts";
-import { claim, complete, defer } from "./controller.ts";
-import { managerMessage } from "./message.ts";
-import { dispatchMessageId } from "./messageId.ts";
-import { readySession } from "./readySession.ts";
-import { reconcile } from "./reconcile.ts";
-import { sendDeadline } from "./sendDeadline.ts";
-import type { Dispatch } from "./types.ts";
+import { readNativeWork } from "../agentRuns/nativeControl.ts";
+import { dispatchChat } from "../chat/dispatch.ts";
+import { dispatchMentions } from "../commentMentions/dispatch.ts";
+import { manage } from "../manager/manager.ts";
+import type { IoCtx } from "../support.ts";
 
-type Ctx = ServiceCtx & { publicUrl: string };
-
-export const dispatch = async (ctx: Ctx) => {
-	const sessions = await readRuntimeSessions(ctx.home);
-	await ctx.newTx((tx) => reconcile({ now: ctx.now() }, tx, { sessions }));
-	const deliveries: Dispatch[] = [];
-	for (let i = 0; i < 20; i++) {
-		const delivery = await ctx.newTx((tx) => claim({ now: ctx.now() }, tx, { sessions }));
-		if (!delivery) break;
-		deliveries.push(delivery);
-	}
-	await Promise.all(
-		deliveries.map(async (delivery) => {
-			let state: "sent" | "unknown" = "sent";
-			let attempted = false;
-			let error: string | null = null;
-			try {
-				if (!readySession(await nativeHost(ctx.home).status(delivery.terminalId!))) {
-					await ctx.newTx((tx) =>
-						defer({ now: ctx.now() }, tx, { id: delivery.id, generation: delivery.generation, error: null }),
-					);
-					return;
-				}
-				attempted = true;
-				await sendDeadline(
-					prepareSend(ctx, {
-						id: delivery.runId!,
-						text: managerMessage(delivery),
-						messageId: dispatchMessageId(delivery),
-						requireIdle: true,
-						expectedTerminalId: delivery.terminalId!,
-						expectedSessionId: delivery.sessionId,
-					}),
-				);
-			} catch (cause) {
-				state = "unknown";
-				error = cause instanceof Error ? cause.message : String(cause);
-				if (!attempted || (cause as { code?: string }).code === "RUNTIME_BUSY") {
-					await ctx.newTx((tx) =>
-						defer({ now: ctx.now() }, tx, { id: delivery.id, generation: delivery.generation, error }),
-					);
-					return;
-				}
-			}
-			await ctx.newTx((tx) =>
-				complete({ now: ctx.now() }, tx, { id: delivery.id, generation: delivery.generation, state, error }),
-			);
-		}),
-	);
+type Dependencies = {
+	readSessions: (home: string) => Promise<RuntimeProcessStatus[]>;
+	manage: typeof manage;
+	mentions: typeof dispatchMentions;
+	chat: typeof dispatchChat;
+};
+const defaults: Dependencies = {
+	readSessions: async (home) => nativeHost(home, undefined, await ensureNativeRuntime(home)).list(),
+	manage,
+	mentions: dispatchMentions,
+	chat: dispatchChat,
+};
+export const dispatch = async (ctx: IoCtx, _input: Record<string, never> = {}, deps: Dependencies = defaults) => {
+	if ((await ctx.newTx(readNativeWork)).paused) return {};
+	const sessions = await deps.readSessions(ctx.home);
+	const results = await Promise.allSettled([
+		deps.manage(ctx, { sessions }),
+		deps.mentions(ctx, sessions),
+		deps.chat(ctx, sessions),
+	]);
+	const errors = results.flatMap((result) => (result.status === "rejected" ? [result.reason] : []));
+	if (errors.length) throw new AggregateError(errors, errors.map((error) => String(error)).join("\n"));
 	return {};
 };
-
-export const finished = (_ctx: Ctx, _tx: Tx, input: Record<string, never>) => Promise.resolve(input);
+export const finished = (_ctx: IoCtx, _tx: Tx, input: Record<string, never>) => Promise.resolve(input);

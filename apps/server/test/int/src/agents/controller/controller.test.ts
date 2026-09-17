@@ -24,7 +24,7 @@ const clock = () => {
 	};
 };
 
-test("the host collects after startup and on its timer without browser events", async () => {
+test("the host dispatches on its timer without automatic copilot messages", async () => {
 	const time = clock();
 	const calls: string[] = [];
 	const host = createController({
@@ -36,16 +36,12 @@ test("the host collects after startup and on its timer without browser events", 
 	});
 	await host.start();
 	await host.start();
-	expect(calls).toEqual(["controller.recover", "controller.collect", "controller.dispatch"]);
+	expect(calls).toEqual([]);
+	await time.fire();
+	expect(calls).toEqual(["controller.dispatch"]);
 	await time.fire();
 	await host.stop();
-	expect(calls).toEqual([
-		"controller.recover",
-		"controller.collect",
-		"controller.dispatch",
-		"controller.collect",
-		"controller.dispatch",
-	]);
+	expect(calls).toEqual(["controller.dispatch", "controller.dispatch"]);
 	expect(time.timers.size).toBe(0);
 });
 
@@ -65,6 +61,7 @@ test("a tick waits for its send before the next timer", async () => {
 	});
 	await host.start();
 	await time.fire();
+	await time.fire();
 	expect(time.timers.size).toBe(0);
 	finish();
 	await host.stop();
@@ -75,7 +72,7 @@ test("a tick waits for its send before the next timer", async () => {
 test("a failed first tick logs its error and preserves the next scheduled tick", async () => {
 	const time = clock();
 	const errors: unknown[] = [];
-	let collections = 0;
+	let attempts = 0;
 	let dispatches = 0;
 	const host = createController({
 		clock: time,
@@ -83,16 +80,47 @@ test("a failed first tick logs its error and preserves the next scheduled tick",
 			errors.push(data);
 		},
 		call: async (name) => {
-			if (name === "controller.collect" && ++collections === 1) throw new Error("Runtime socket unavailable");
+			if (name === "controller.dispatch" && ++attempts === 1) throw new Error("Runtime socket unavailable");
 			if (name === "controller.dispatch") dispatches++;
 		},
 	});
 	await host.start();
+	await time.fire();
 	expect(errors).toEqual([{ error: "Runtime socket unavailable" }]);
 	expect(time.timers.size).toBe(1);
 	await time.fire();
 	await host.stop();
-	expect(collections).toBe(2);
+	expect(attempts).toBe(2);
 	expect(dispatches).toBe(1);
+	expect(time.timers.size).toBe(0);
+});
+
+test("startup completes before a blocked initial dispatch and shutdown waits for that dispatch", async () => {
+	const time = clock();
+	const dispatch = Promise.withResolvers<void>();
+	let dispatches = 0;
+	const host = createController({
+		clock: time,
+		log: () => {},
+		call: async (name) => {
+			if (name === "controller.dispatch") {
+				dispatches++;
+				await dispatch.promise;
+			}
+		},
+	});
+	await host.start();
+	expect(dispatches).toBe(0);
+	await time.fire();
+	expect(dispatches).toBe(1);
+	let stopped = false;
+	const stopping = host.stop().then(() => {
+		stopped = true;
+	});
+	await Promise.resolve();
+	expect(stopped).toBe(false);
+	dispatch.resolve();
+	await stopping;
+	expect(stopped).toBe(true);
 	expect(time.timers.size).toBe(0);
 });

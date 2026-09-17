@@ -10,14 +10,17 @@ The tests use temporary directories and separate runtime processes. Native CLI t
 
 ```sh
 TRELLIS_NATIVE_ACCEPTANCE_HOME="$HOME" \
-TRELLIS_NATIVE_CLAUDE_MODEL=claude-sonnet-5 \
+TRELLIS_NATIVE_CLAUDE_MODEL=claude-opus-5 \
 TRELLIS_NATIVE_CODEX_MODEL=gpt-5.6-sol \
-TRELLIS_NATIVE_PI_MODEL=vercel-ai-gateway/openai/gpt-4.1-mini \
-TRELLIS_NATIVE_OPENCODE_MODEL=vercel/anthropic/claude-sonnet-4.6 \
+TRELLIS_NATIVE_PI_MODEL=vercel-ai-gateway/openai/gpt-5.6-sol \
+TRELLIS_NATIVE_OPENCODE_MODEL=vercel/anthropic/claude-opus-5 \
+TRELLIS_NATIVE_MUSE_MODEL=meta/muse-spark-1.3 \
 bun run test:host:real
 ```
 
-These model names match the recorded acceptance runs. Select models available to each authenticated CLI.
+The Muse case needs Muse Code 1.3.0 or later and a Meta login in the authenticated home. It runs one session through `muse serve` on the Meta subscription of that login.
+
+The examples use Opus 5 for Anthropic and Sol for OpenAI. Select models available to each authenticated CLI.
 `TRELLIS_NATIVE_OPENCODE_BIN` selects an explicit OpenCode executable for its real tests.
 OpenCode 1.18.31 passes the complete native host sequence.
 Native tests create provider sessions and use the provider account. Each test stops its owned processes.
@@ -58,3 +61,44 @@ It tests HTTP 400, 401, 429, and 503 responses, dropped response streams, and in
 Native events must distinguish temporary errors from final failures through `willRetry`.
 The suite also verifies that terminal exit stops the owned engine.
 The acceptance record distinguishes these source checks from installed desktop and manager acceptance.
+
+## Codex manager checks
+
+Codex managers require version 0.154.0 or later. Build the host adapters before the native tests:
+
+```sh
+cd apps/server
+bun run build:harnesses
+TRELLIS_REAL_HARNESS_ACCEPTANCE=1 \
+bun test test/int/src/agents/harnessHost/codexManager.real.test.ts
+```
+
+The installed engine uses a local provider fixture for Sol and Astra.
+The cases cover terminal input, authenticated Trellis tool calls, exact-session resume, updated role instructions, and normal terminal exit.
+They also check the restricted tool catalog and reject a forced shell call without a file change.
+
+Run the authenticated Sol case with the directory that contains the CLI's `auth.json`:
+
+```sh
+TRELLIS_CODEX_ACCEPTANCE_AUTH_HOME="$HOME/.codex" \
+bun test test/int/src/agents/harnessHost/codexManager.authenticated.test.ts
+```
+
+This case calls a local Trellis fixture through the real model and recalls a random marker after exact-session resume.
+It uses a temporary CLI home, removes its copied credentials, and stops its owned processes.
+
+## Manager tool readiness
+
+Run the interactive Claude manager tests with an authenticated home and an available model:
+
+```sh
+cd apps/server
+TRELLIS_REAL_MANAGER_READY=1 \
+TRELLIS_NATIVE_ACCEPTANCE_HOME="$HOME" \
+TRELLIS_NATIVE_CLAUDE_MODEL=claude-opus-5 \
+bun test test/int/src/agents/harnessHost/managerReady.real.test.ts
+```
+
+The first case delays tool discovery, calls the project tool, and repeats the call after exact-session resume.
+The second case delays discovery beyond the startup deadline. It requires a failed start, no prompt receipt, and no project call.
+Both cases use isolated runtimes and a temporary HTTP fixture. The first case requires provider inference.

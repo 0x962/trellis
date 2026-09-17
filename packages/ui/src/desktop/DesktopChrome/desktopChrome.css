@@ -1,9 +1,35 @@
-[data-desktop-chrome] > .desktop-title-strip {
+[data-desktop-chrome] :is([data-page-topbar], [data-sidebar-toolbar]) {
 	-webkit-app-region: drag;
 	app-region: drag;
 }
 
-[data-desktop-content] {
+[data-desktop-chrome] :is(button, a, input, select, textarea, [role="button"]) {
 	-webkit-app-region: no-drag;
 	app-region: no-drag;
+}
+
+[data-desktop-chrome] [data-sidebar-toolbar] {
+	padding-left: calc(var(--spacing) * 24);
+}
+
+[data-desktop-chrome] aside[data-collapsed] [data-sidebar-toolbar] {
+	visibility: hidden;
+}
+
+[data-desktop-sidebar-toggle] {
+	display: none;
+}
+
+[data-desktop-chrome] [data-desktop-sidebar-toggle] {
+	display: inline-flex;
+}
+
+[data-desktop-chrome]:has(aside[data-collapsed]) [data-page-topbar] {
+	padding-left: calc(var(--spacing) * 13);
+}
+
+@media (max-width: 767px) {
+	[data-desktop-chrome] [data-page-topbar] {
+		padding-left: calc(var(--spacing) * 26);
+	}
 }

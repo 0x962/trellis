@@ -25,6 +25,7 @@ export * from "./tables/flows.ts";
 export * from "./tables/personas.ts";
 export * from "./tables/projects.ts";
 export * from "./tables/reviews.ts";
+export * from "./tables/sessions.ts";
 
 // drizzle-kit reads this file and every table it exports. Each table is
 // text plus a named CHECK where the wire has a closed set. The migration
@@ -113,6 +114,7 @@ export const comments = pgTable(
 			.notNull()
 			.references(() => tickets.id, { onDelete: "cascade" }),
 		body: text().notNull(),
+		dedupeKey: text("dedupe_key"),
 		parentId: text("parent_id"),
 		resolvedAt: at("resolved_at"),
 		...actorColumns(),
@@ -122,6 +124,7 @@ export const comments = pgTable(
 	(t) => [
 		actorFk("comments_actor_fk", t),
 		unique("comments_id_ticket_id_unique").on(t.id, t.ticketId),
+		unique("comments_dedupe_unique").on(t.ticketId, t.actorKind, t.actorName, t.dedupeKey),
 		foreignKey({
 			name: "comments_parent_fk",
 			columns: [t.parentId, t.ticketId],
@@ -267,7 +270,16 @@ export const activity = pgTable(
 );
 
 export * from "./tables/assignments.ts";
+export * from "./tables/builderStartRequests.ts";
+export * from "./tables/chat.ts";
+export * from "./tables/columnWorkers.ts";
+export * from "./tables/commentDeliveries.ts";
 export * from "./tables/evidence.ts";
 export * from "./tables/flowExecutions.ts";
 export * from "./tables/flowExecutionTasks.ts";
+export * from "./tables/harnessAccounts.ts";
+export * from "./tables/managerDelegations.ts";
+export * from "./tables/managerNextActions.ts";
 export * from "./tables/nativeMigrations.ts";
+export * from "./tables/needsYouStates.ts";
+export * from "./tables/notes.ts";

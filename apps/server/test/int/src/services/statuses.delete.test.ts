@@ -66,16 +66,15 @@ describe("statuses.delete agent policy", () => {
 	const removeAs = (actor: ActorRef, input: { project: string; status: string; moveTo: string; force?: boolean }) =>
 		h.run((ctx, tx) => statuses.delete(ctx, tx, input), { actor });
 
-	test("an agent delete that moves tickets into a done status throws AGENT_CANNOT_COMPLETE", async () => {
-		const { blocked } = await seedOnBlocked(2);
-
-		await expectError(removeAs(claude, { project: "CDE", status: "blocked", moveTo: "done" }), "AGENT_CANNOT_COMPLETE");
-
-		expect((await ticketStatuses()).map((row) => row.status_id)).toEqual([blocked, blocked]);
-		expect(await statusIds((await h.one<{ id: string }>(sql`SELECT id FROM projects`)).id)).toContain(blocked);
+	test("an agent removes a status and moves its tickets to done without force", async () => {
+		const { cde, s, blocked } = await seedOnBlocked(2);
+		await removeAs(claude, { project: "CDE", status: "blocked", moveTo: "done" });
+		expect((await ticketStatuses()).map((row) => row.status_id)).toEqual([s.done, s.done]);
+		expect(await statusIds(cde)).not.toContain(blocked);
+		await h.read(assertStatusInvariant);
 	});
 
-	test("force lets an agent move the tickets into a done status", async () => {
+	test("status removal accepts the legacy force flag", async () => {
 		const { s } = await seedOnBlocked(2);
 
 		const result = await removeAs(claude, { project: "CDE", status: "blocked", moveTo: "done", force: true });

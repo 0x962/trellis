@@ -4,7 +4,7 @@ export function validateHarnessEvent(value: unknown): asserts value is HarnessEv
 	if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("A provider event is required");
 	const event = value as Record<string, unknown>;
 	if (
-		!["session", "prompt", "working", "idle", "tool-start", "tool-update", "tool-end", "error"].includes(
+		!["session", "prompt", "working", "idle", "message", "tool-start", "tool-update", "tool-end", "error"].includes(
 			event.kind as string,
 		)
 	)
@@ -18,6 +18,13 @@ export function validateHarnessEvent(value: unknown): asserts value is HarnessEv
 		throw new Error("Unknown provider turn outcome");
 	if (event.kind === "prompt" && typeof event.prompt !== "string") throw new Error("A provider prompt is required");
 	if (event.kind === "error" && typeof event.error !== "string") throw new Error("A provider error is required");
+	if (event.kind === "message" || event.message !== undefined) {
+		const message = event.message as Record<string, unknown> | undefined;
+		if (!message || typeof message.text !== "string" || message.text.length > 200000)
+			throw new Error("A provider message requires text of at most 200000 characters");
+		if (message.at !== undefined && (typeof message.at !== "string" || !Number.isFinite(Date.parse(message.at))))
+			throw new Error("A provider message timestamp must be a date string");
+	}
 	if (event.tool !== undefined || (event.kind as string).startsWith("tool-")) {
 		const tool = event.tool as Record<string, unknown> | undefined;
 		if (

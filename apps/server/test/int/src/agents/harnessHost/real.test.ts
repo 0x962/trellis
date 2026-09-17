@@ -26,7 +26,7 @@ async function readAll(host: HarnessHost, id: string, stream: RuntimeStream) {
 	}
 }
 
-for (const harness of ["claude", "codex", "pi", "opencode"] as const) {
+for (const harness of ["claude", "codex", "pi", "opencode", "muse"] as const) {
 	test.skipIf(!enabled)(
 		`${harness} host accepts real native receipts, tools, interrupt, follow-up, stop, and exact resume`,
 		async () => {
@@ -68,11 +68,13 @@ for (const harness of ["claude", "codex", "pi", "opencode"] as const) {
 					CODEX_THREAD_ID: undefined,
 				},
 			});
-			const cwd = harness === "codex" ? repo : harness === "claude" ? join(home, "repo") : home;
-			if (harness === "claude") {
+			const cwd = harness === "codex" ? repo : harness === "claude" || harness === "muse" ? join(home, "repo") : home;
+			if (harness === "claude" || harness === "muse") {
 				await mkdir(cwd);
 				const git = spawnSync("git", ["init", "--quiet", cwd], { env: process.env });
 				if (git.status !== 0) throw new Error(git.stderr.toString());
+			}
+			if (harness === "claude") {
 				const stateFile = join(process.env.CLAUDE_CONFIG_DIR || authHome, ".claude.json");
 				const state = JSON.parse(await readFile(stateFile, "utf8"));
 				expect(state.projects?.[await realpath(cwd)]?.hasTrustDialogAccepted).not.toBe(true);

@@ -128,7 +128,7 @@ If an adapter cannot establish acknowledgement, classify it as interactive-only.
 
 Install hooks at a supported scope. Preserve unrelated account configuration and existing integrations. Bind hook events to a specific attempt with a scoped token or verified launch identity. Ignore stale events from an earlier generation.
 
-Expose folder trust, missing executable, expired authentication, unsupported version, and missing conversation as separate setup or run states. Use the harness's supported approval interface. Do not dismiss trust prompts through blind terminal keystrokes.
+Trust configured repository directories and agent workspaces through each harness's supported configuration. Expose missing executable, expired authentication, unsupported version, and missing conversation as separate setup or run states.
 
 ## 5. Durable coordination
 
@@ -173,7 +173,7 @@ One active controller generation owns a project. One manager identity belongs to
 
 An assignment identity includes the ticket, role, scope, and input revision. A repeated request returns the existing assignment. Deliberate parallel work uses different scopes or roles. Two reviewers or a builder and reviewer remain possible when the policy permits them.
 
-The controller counts all live attempts for concurrency. An unresolved old attempt consumes its slot until reconciliation proves its state. Manager capacity is separate from worker capacity.
+The controller counts active worker turns for concurrency. Confirmed idle workers retain their assignments without occupying slots. An unresolved attempt reserves capacity until reconciliation proves its state. Manager capacity is separate from worker capacity.
 
 Reject Trellis mutations from a stale generation. This protects the database, but it cannot revoke arbitrary filesystem writes from a surviving process. Therefore, a replacement writable attempt requires confirmed termination or a separate workspace with explicit reconciliation.
 
@@ -369,7 +369,7 @@ Use signed and notarized macOS distribution. Test the background helper's identi
 | Deliberate builder and reviewer scopes | Both allowed within project capacity |
 | Old generation posts a mutation | Host rejects it; current state remains unchanged |
 | Runtime dies with descendants | Replacement waits for confirmed termination or explicit reconciliation |
-| Folder trust or authentication blocks launch | Needs you shows the cause; Working does not appear |
+| Authentication blocks launch | Needs you shows the cause; Working does not appear |
 | Turn stops without required output | Ticket does not advance to Ready for review |
 | Agent produces repetitive output | UI separates activity from evidence and exposes the elapsed condition |
 | Source changes after tests pass | Check evidence becomes stale |

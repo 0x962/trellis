@@ -1,3 +1,4 @@
+import { fromHarnessModel } from "@trellis/api/models";
 import { z } from "zod";
 import type { HarnessEvent } from "../types.ts";
 
@@ -13,11 +14,11 @@ export function parseClaudeEvent(payload: unknown): HarnessEvent[] {
 	const identity = {
 		sessionId: event.session_id,
 		...(event.prompt_id ? { turnId: event.prompt_id } : {}),
-		...(event.model ? { model: event.model } : {}),
+		...(event.model ? { model: fromHarnessModel("claude", event.model) } : {}),
 	};
 	switch (event.hook_event_name) {
 		case "PostModelSwitch":
-			return [{ kind: "session", ...identity, model: z.string().parse(event.to_model) }];
+			return [{ kind: "session", ...identity, model: fromHarnessModel("claude", z.string().parse(event.to_model)) }];
 		case "SessionStart":
 			return [{ kind: "session", ...identity }];
 		case "UserPromptSubmit":
@@ -25,7 +26,7 @@ export function parseClaudeEvent(payload: unknown): HarnessEvent[] {
 				{
 					kind: "prompt",
 					sessionId: event.session_id,
-					...(event.model ? { model: event.model } : {}),
+					...(event.model ? { model: fromHarnessModel("claude", event.model) } : {}),
 					prompt: z.string().parse(event.prompt),
 				},
 			];

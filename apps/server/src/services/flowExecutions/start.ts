@@ -9,8 +9,9 @@ import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 import { assertNativeWorkEnabled } from "../agentRuns/nativeControl.ts";
 import { assertVersion, readDoc, resolveFlow } from "../flows/queries.ts";
-import { managerConfigOf, projectRow } from "../projectRows.ts";
+import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive, resolveTicket } from "../refs.ts";
+import { assertAssignmentOwner } from "../submanagers/access.ts";
 import { get } from "./queries.ts";
 export async function start(ctx: ServiceCtx, tx: Tx, input: FlowExecutionStartInput) {
 	const actor = requireActor(ctx);
@@ -29,11 +30,11 @@ export async function start(ctx: ServiceCtx, tx: Tx, input: FlowExecutionStartIn
 	await assertNativeWorkEnabled(tx);
 	const ticket = await resolveTicket(ctx, tx, input.ticket);
 	assertProjectActive(ctx, ticket.projectId);
+	await assertAssignmentOwner(ctx, tx, ticket.projectId);
 	if (ticket.completedAt !== null) throw invalidInput("ticket", "Reopen the ticket before a flow starts.");
-	const config = managerConfigOf(await projectRow(tx, ticket.projectId));
+	const config = await projectLaunchConfig(tx, { projectId: ticket.projectId });
 	if (config.ade !== "native" || config.harness.preset === "custom")
 		throw invalidInput("project", "Native flows require a built-in harness with native session events.");
-	if (!config.trustedDirectory) throw invalidInput("project", "Trust the project directory before a flow starts.");
 	const resolved = await resolveFlow(tx, input.flow);
 	await tx.execute(sql`SELECT id FROM flows WHERE id=${resolved.id} FOR SHARE`);
 	const flow = await resolveFlow(tx, resolved.id);

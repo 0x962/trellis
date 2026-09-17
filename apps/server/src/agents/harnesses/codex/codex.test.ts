@@ -20,3 +20,27 @@ test("Codex owns an isolated engine and resumes the exact native thread", async 
 	const resumed = await prepareCodex({ ...input, resume: true });
 	expect(JSON.parse(resumed.args[1]!).sessionId).toBe(input.sessionId);
 });
+
+test("Codex passes the exact manager persona to its restricted engine", async () => {
+	const managerSystemPrompt = "Database persona\nKeep exact spacing. ";
+	for (const resume of [false, true]) {
+		const launch = await prepareCodex({
+			...input,
+			resume,
+			managerSystemPrompt,
+			managerTools: { command: "bun", args: ["manager.ts"] },
+		});
+		expect(JSON.parse(launch.args[1]!)).toMatchObject({ managerSystemPrompt, cwd: input.cwd, prompt: input.prompt });
+	}
+});
+
+test("Codex retains reasoning effort in its bridge launch", async () => {
+	for (const resume of [false, true] as const) {
+		const launch = await prepareCodex({
+			...input,
+			...(resume ? { resume: true as const } : { resume: false as const }),
+			effort: "xhigh",
+		});
+		expect(JSON.parse(launch.args[1]!).effort).toBe("xhigh");
+	}
+});

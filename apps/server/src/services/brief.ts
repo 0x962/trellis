@@ -1,9 +1,12 @@
 import { type Brief, BriefGetInputSchema, type StoredActorKind, type Ticket } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { ServiceCtx } from "../context.ts";
+import { actorDisplayName } from "../db/queries/actorDisplayName.ts";
 import { iso, rows } from "../db/queries/support.ts";
 import { ticketGet } from "../db/queries/ticketGet.ts";
 import type { Tx } from "../db/tx.ts";
+import { activeNotes } from "./notes/notes.ts";
+import { notesLines } from "./notes/text.ts";
 import { resolveTicket } from "./refs.ts";
 
 // The markdown an agent starts from. The layout is fixed and every list
@@ -23,6 +26,7 @@ type BriefComment = {
 	body: string;
 	actor_name: string;
 	actor_kind: StoredActorKind;
+	actor_display_name: string | null;
 	created_at: string;
 };
 
@@ -33,7 +37,7 @@ const lastComments = async (tx: Tx, ticketId: string) => {
 		sql`WITH recent AS (
 			SELECT * FROM comments WHERE ticket_id = ${ticketId} ORDER BY created_at DESC, id DESC LIMIT ${BRIEF_COMMENT_LIMIT}
 		)
-		SELECT id, parent_id, ${iso(sql`resolved_at`)} AS resolved_at, body, actor_name, actor_kind, ${iso(sql`created_at`)} AS created_at
+		SELECT id, parent_id, ${iso(sql`resolved_at`)} AS resolved_at, body, actor_name, actor_kind, ${actorDisplayName(sql`comments.actor_name`, sql`comments.actor_kind`)} AS actor_display_name, ${iso(sql`created_at`)} AS created_at
 		FROM comments WHERE id IN (SELECT id FROM recent UNION SELECT parent_id FROM recent WHERE parent_id IS NOT NULL)
 		ORDER BY created_at, id`,
 	);
@@ -102,7 +106,9 @@ const comments = (list: BriefComment[]) => {
 					? "open thread"
 					: "resolved thread"
 				: `reply to ${comment.parent_id}`;
-		lines.push(`- ${comment.id}, ${context}, ${comment.actor_name} (${comment.actor_kind}) at ${comment.created_at}:`);
+		lines.push(
+			`- ${comment.id}, ${context}, ${comment.actor_display_name ?? comment.actor_name} (${comment.actor_kind}) at ${comment.created_at}:`,
+		);
 		for (const line of comment.body.split("\n")) lines.push(`  ${line}`);
 	}
 	return lines;
@@ -119,7 +125,6 @@ const protocol = (identifier: string) => [
 	`- Split the work: trellis sub ${identifier} -t "..."`,
 	"",
 	`When your work is ready for review, run: trellis move ${identifier} agent-review`,
-	"Never move the ticket to done. A human does that after the review.",
 ];
 
 const sections = (parts: string[][]) => parts.filter((part) => part.length > 0).map((part) => part.join("\n"));
@@ -143,6 +148,7 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<B
 		pullRequests(ticket),
 		attachments(ticket, ctx.publicUrl),
 		comments(await lastComments(tx, row.id)),
+		notesLines(await activeNotes(ctx, tx, { projectId: row.projectId, audience: "worker" }), ticket.project.path),
 		protocol(ticket.identifier),
 	]).join("\n\n");
 	return { markdown: `${markdown}\n`, generatedAt: new Date().toISOString() };

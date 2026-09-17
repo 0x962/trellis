@@ -37,11 +37,14 @@ try {
 		stderr: "pipe",
 	});
 	assert.equal(await cli.exited, 0, await new Response(cli.stderr).text());
-	const codexBridge = Bun.spawn(
-		[join(staged, "bin/node"), "--check", join(staged, "apps/server/dist/codex-bridge.js")],
-		{ cwd: home, stdout: "pipe", stderr: "pipe" },
-	);
-	assert.equal(await codexBridge.exited, 0, await new Response(codexBridge.stderr).text());
+	for (const bridge of ["codex-bridge.js", "muse-bridge.js"]) {
+		const check = Bun.spawn([join(staged, "bin/node"), "--check", join(staged, "apps/server/dist", bridge)], {
+			cwd: home,
+			stdout: "pipe",
+			stderr: "pipe",
+		});
+		assert.equal(await check.exited, 0, await new Response(check.stderr).text());
+	}
 	const node = Bun.spawn(
 		[
 			join(staged, "bin/node"),
@@ -116,6 +119,7 @@ try {
 				rendererAssets: "pass",
 				bundledCli: "pass",
 				bundledCodexBridge: "pass",
+				bundledMuseBridge: "pass",
 				bundledPty: "pass",
 				bundledProcessOwnership: "pass",
 				concurrentStartDeduplication: "pass",

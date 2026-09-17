@@ -66,3 +66,45 @@ test("OpenCode exposes native IDs, exact prompt, model, tool calls and idle resu
 		parseOpenCodeEvent({ event: "idle", sessionId: "ses_1", turnId: "msg_1", result: "Done", outcome: "completed" })[0],
 	).toMatchObject({ kind: "idle", result: "Done", outcome: "completed" });
 });
+
+test("OpenCode copilots receive Trellis and native tools", async () => {
+	const options = await input();
+	const managerSystemPrompt = `Database persona ${crypto.randomUUID()}`;
+	const managerTools = { command: "/bin/trellis-host", args: ["manager-tools"] };
+	const launch = await prepareOpenCode({ ...options, managerTools, managerSystemPrompt });
+	expect(JSON.parse(launch.env.OPENCODE_PERMISSION!)).toEqual({ "*": "allow" });
+	expect(JSON.parse(launch.env.TRELLIS_MANAGER_TOOLS!)).toEqual(managerTools);
+	const config = JSON.parse(launch.env.OPENCODE_CONFIG_CONTENT!);
+	expect(config.mcp).toEqual({
+		trellis: { type: "local", command: [managerTools.command, ...managerTools.args], enabled: true },
+	});
+	expect(config.agent["trellis-manager"].permission).toEqual({ "*": "allow" });
+	expect(config.agent["trellis-manager"].prompt).toBe(managerSystemPrompt);
+	expect(launch.args).toContain("--agent");
+	expect(launch.args[launch.args.indexOf("--agent") + 1]).toBe("trellis-manager");
+});
+
+test("OpenCode resumed managers receive the current database persona", async () => {
+	const managerSystemPrompt = `Updated persona ${crypto.randomUUID()}`;
+	const launch = await prepareOpenCode({
+		...(await input()),
+		resume: true,
+		managerSystemPrompt,
+		managerTools: { command: "/bin/trellis-host", args: ["manager-tools"] },
+	});
+	expect(JSON.parse(launch.env.OPENCODE_CONFIG_CONTENT!).agent["trellis-manager"].prompt).toBe(managerSystemPrompt);
+});
+
+test("OpenCode sets the selected variant for initial and follow-up prompts", async () => {
+	const options = await input();
+	for (const resume of [false, true] as const) {
+		const launch = await prepareOpenCode({
+			...options,
+			...(resume ? { resume: true as const } : { resume: false as const }),
+			effort: "high",
+		});
+		const config = JSON.parse(launch.env.OPENCODE_CONFIG_CONTENT!);
+		expect(config.agent.build).toMatchObject({ model: options.model, variant: "high" });
+		expect(launch.env.TRELLIS_OPENCODE_VARIANT).toBe("high");
+	}
+});

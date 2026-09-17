@@ -1,5 +1,6 @@
 import { cx } from "../../utils/cx";
-import { agentGradient } from "./agentGradient";
+import { PersonaMark } from "../PersonaMark";
+import type { PersonaKind, PersonaState } from "../PersonaMark/personaAppearance";
 
 export type ActorKind = "human" | "agent";
 
@@ -7,6 +8,8 @@ export type AvatarProps = {
 	kind: ActorKind;
 	name: string;
 	className?: string;
+	personaKind?: PersonaKind;
+	state?: PersonaState;
 };
 
 // "Dana Lee" gives DL; "dana" gives D.
@@ -17,21 +20,18 @@ const initials = (name: string) =>
 		.map((word) => word.charAt(0).toUpperCase())
 		.join("");
 
-// An 18 px actor mark. A human is a circle with initials. An agent is a
-// circle filled with the soft color its name picks. See agentGradient.
-export function Avatar({ kind, name, className }: AvatarProps) {
+export function Avatar({ kind, name, className, personaKind, state = "static" }: AvatarProps) {
 	return (
 		<span
 			role="img"
-			aria-label={kind === "agent" ? `${name} · agent` : name}
-			style={kind === "agent" ? agentGradient(name) : undefined}
+			aria-label={kind === "agent" ? `${name} · agent${state === "static" ? "" : " · working"}` : name}
 			className={cx(
 				"relative inline-grid size-4.5 shrink-0 place-items-center rounded-round select-none",
 				kind === "human" && "bg-fg-muted text-surface text-initials font-semibold",
 				className,
 			)}
 		>
-			{kind === "agent" ? null : initials(name)}
+			{kind === "agent" ? <PersonaMark name={name} kind={personaKind} state={state} /> : initials(name)}
 		</span>
 	);
 }

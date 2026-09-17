@@ -48,11 +48,12 @@ const styles = StyleSheet.create({
 		paddingTop: tokens.space[2],
 	},
 	message: {
-		fontSize: tokens.text.base,
-		lineHeight: tokens.leading.base,
+		gap: tokens.space.half,
 		paddingHorizontal: tokens.space[4],
 		paddingVertical: tokens.space[2],
 	},
+	messageTitle: { fontSize: tokens.text.base, lineHeight: tokens.leading.base, fontWeight: "500" },
+	messageDetail: { fontSize: tokens.text.sm, lineHeight: tokens.leading.sm },
 	earlier: { paddingHorizontal: tokens.space[4], paddingTop: tokens.space[2] },
 });
 
@@ -77,7 +78,7 @@ export function TicketView({ ticket }: TicketViewProps) {
 		...ticketDetailQuery(client, ticket.parent?.identifier ?? ""),
 		enabled: ticket.parent !== null,
 	});
-	const { run, message } = useTicketUpdate(identifier);
+	const { run, failure } = useTicketUpdate(identifier);
 	const [statusOpen, setStatusOpen] = useState(false);
 	const [priorityOpen, setPriorityOpen] = useState(false);
 
@@ -134,8 +135,11 @@ export function TicketView({ ticket }: TicketViewProps) {
 			keyboardVerticalOffset={top + layout.header}
 			style={styles.screen}
 		>
-			{message !== undefined && (
-				<Text style={[styles.message, { color: palette.danger, backgroundColor: palette.dangerSoft }]}>{message}</Text>
+			{failure !== undefined && (
+				<View style={[styles.message, { backgroundColor: palette.dangerSoft }]}>
+					<Text style={[styles.messageTitle, { color: palette.danger }]}>{failure.title}</Text>
+					<Text style={[styles.messageDetail, { color: palette.fgMuted }]}>{failure.detail}</Text>
+				</View>
 			)}
 			<Timeline rows={timelineRows(items)} header={header} footer={footer} />
 			<Composer ticket={identifier} />

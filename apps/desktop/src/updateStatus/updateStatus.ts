@@ -28,18 +28,18 @@ const readActiveRelease = async (home: string, releases: string): Promise<Pinned
 	return { root, manifest: await readBundleManifest(root) };
 };
 
-const runtimeProtocol = async (home: string): Promise<number | null> => {
+const runtimeOwner = async (home: string): Promise<{ protocol: number; releaseId?: string } | null> => {
 	const path = join(home, "runtime/manifest.json");
 	if (!existsSync(path)) {
 		if (existsSync(join(home, "runtime/runtime.sock"))) throw new Error("The execution service has no owner record.");
 		return null;
 	}
-	const { pid, version } = JSON.parse(await readFile(path, "utf8"));
+	const { pid, version, releaseId } = JSON.parse(await readFile(path, "utf8"));
 	if (!Number.isInteger(pid) || pid <= 0 || !Number.isInteger(version) || version <= 0)
 		throw new Error("The execution service owner record is invalid.");
 	try {
 		process.kill(pid, 0);
-		return version;
+		return { protocol: version, releaseId };
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code === "ESRCH") return null;
 		throw error;
@@ -49,15 +49,18 @@ const runtimeProtocol = async (home: string): Promise<number | null> => {
 export const readUpdateStatus = async (home: string, available: PinnedRelease): Promise<UpdateStatus> => {
 	const active = await readActiveRelease(home, dirname(available.root));
 	let protocol: number | null;
+	let runtimeReleaseId: string | undefined;
 	try {
-		protocol = await runtimeProtocol(home);
+		const owner = await runtimeOwner(home);
+		protocol = owner?.protocol ?? null;
+		runtimeReleaseId = owner?.releaseId;
 	} catch (error) {
 		return {
 			state: "blocked",
 			available,
 			active,
 			runtimeProtocol: null,
-			detail: `The execution service state is unknown. ${(error as Error).message} Use Stop local work and background service before you activate this package.`,
+			detail: `The execution service state is unknown. ${(error as Error).message} Use Quit Trellis Completely before you activate this package.`,
 		};
 	}
 	if (protocol !== null && protocol !== available.manifest.protocol)
@@ -66,17 +69,19 @@ export const readUpdateStatus = async (home: string, available: PinnedRelease): 
 			available,
 			active,
 			runtimeProtocol: protocol,
-			detail: `The active execution service uses protocol ${protocol}. This package requires protocol ${available.manifest.protocol}. Trellis retains the previous host. Use Stop local work and background service, then reopen Trellis to activate this package.`,
+			detail: `The active execution service uses protocol ${protocol}. This package requires protocol ${available.manifest.protocol}. Quit and reopen Trellis to activate this package. Trellis saves active agent sessions before runtime shutdown, then resumes them after the new host starts.`,
 		};
-	const current = active === null || active.manifest.id === available.manifest.id;
+	const current =
+		(active === null || active.manifest.id === available.manifest.id) &&
+		(protocol === null || runtimeReleaseId === available.manifest.id);
 	return {
 		state: current ? "current" : "restart-required",
 		available,
 		active,
 		runtimeProtocol: protocol,
 		detail: current
-			? "The host uses this package. To replace the app manually, stop local work and the background service, replace Trellis.app, then reopen it. Saved files stay in the selected data directory. Prior runtime versions stay in the application data directory."
-			: "The previous host still runs. Use Stop local work and background service, then reopen Trellis to activate this package. Saved files stay in the selected data directory. Prior runtime versions stay in the application data directory.",
+			? "The host uses this package. You can replace Trellis.app while it runs, then quit and reopen Trellis to activate the new host. A changed package resumes active agent sessions after the new host starts."
+			: "The host or execution service uses a previous package. Quit and reopen Trellis to activate this package. Trellis saves active agent sessions before runtime shutdown, then resumes them after the new host starts. Manually stopped agents stay stopped.",
 	};
 };
 

@@ -1,4 +1,5 @@
-import { mkdir } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dir, "..");
@@ -14,6 +15,16 @@ for (const name of ["main", "preload", "host-service"]) {
 	});
 	if (!result.success) throw new AggregateError(result.logs, `Could not build ${name}.`);
 }
+
+const template = await readFile(resolve(root, "../../packages/ui/src/desktopStartup/desktopStartup.html"), "utf8");
+const tokens = await readFile(resolve(root, "../../packages/ui/src/tokens.css"), "utf8");
+const script = template.match(/<script>([\s\S]*?)<\/script>/)![1]!;
+await writeFile(
+	resolve(root, "dist/startup.html"),
+	template
+		.replace("/* __TOKENS__ */", tokens)
+		.replace("__SCRIPT_HASH__", createHash("sha256").update(script).digest("base64")),
+);
 
 const swift = Bun.spawn(
 	[

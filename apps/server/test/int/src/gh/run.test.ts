@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createGhRunner } from "../../../../src/gh/run.ts";
 import { ghStub } from "../../../helpers/gh-stub.ts";
@@ -21,6 +21,37 @@ const stub = (replies: Parameters<typeof ghStub>[1]) => {
 const notLoggedIn = "You are not logged into any GitHub hosts. To log in, run: gh auth login";
 
 describe("runGh", () => {
+	test("waits for the execution environment and passes its credentials to gh", async () => {
+		const directory = scratch();
+		const binary = join(directory, "gh");
+		writeFileSync(binary, '#!/bin/sh\nprintf "%s" "$GH_TOKEN"\n', { mode: 0o700 });
+		const saved = process.env.TRELLIS_GH_BIN;
+		delete process.env.TRELLIS_GH_BIN;
+		restores.push(() => {
+			if (saved !== undefined) process.env.TRELLIS_GH_BIN = saved;
+		});
+		const pending = Promise.withResolvers<NodeJS.ProcessEnv>();
+		const run = createGhRunner({ environment: () => pending.promise });
+		const result = run("interactive", ["auth", "status"]);
+		pending.resolve({ PATH: directory, GH_TOKEN: "fixture-shell-token" });
+		expect(await result).toEqual({ ok: true, code: 0, stdout: "fixture-shell-token", stderr: "" });
+	});
+
+	test("reports a shell failure without a gh launch", async () => {
+		const handle = stub({});
+		const run = createGhRunner({
+			environment: async () => {
+				throw new Error("Login shell failed (exit 42).");
+			},
+		});
+		expect(await run("interactive", ["auth", "status"])).toMatchObject({
+			ok: false,
+			reason: "error",
+			message: "Login shell failed (exit 42).",
+		});
+		expect(handle.spawns()).toEqual([]);
+	});
+
 	test("runs TRELLIS_GH_BIN with the given args and returns code, stdout, stderr", async () => {
 		const handle = stub({ "api graphql": { stdout: "{}", stderr: "", exitCode: 0 } });
 		const runGh = createGhRunner();

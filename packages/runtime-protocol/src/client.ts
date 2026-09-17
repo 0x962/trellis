@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { createConnection } from "node:net";
+import { Socket } from "node:net";
 import {
 	type HarnessEvent,
 	type LaunchSpec,
@@ -20,7 +20,7 @@ export class RuntimeClient {
 	) {}
 	call<M extends RuntimeMethod>(method: M, params: RuntimeMethods[M]["params"]): Promise<RuntimeMethods[M]["result"]> {
 		return new Promise((resolve, reject) => {
-			const socket = createConnection(this.socketPath);
+			const socket = new Socket();
 			const id = randomUUID();
 			let buffer = "";
 			let settled = false;
@@ -43,10 +43,6 @@ export class RuntimeClient {
 			);
 			socket.on("data", (chunk) => {
 				buffer += chunk;
-				if (buffer.length > 3_000_000) {
-					fail(new Error("Runtime response exceeds the byte limit"));
-					return;
-				}
 				const end = buffer.indexOf("\n");
 				if (end < 0) return;
 				let reply: RuntimeResponse;
@@ -65,6 +61,7 @@ export class RuntimeClient {
 				if ("error" in reply) reject(Object.assign(new Error(reply.error.message), { code: reply.error.code }));
 				else resolve(reply.result as RuntimeMethods[M]["result"]);
 			});
+			socket.connect(this.socketPath);
 		});
 	}
 	subscribe(id: string, offset = 0, signal?: AbortSignal, stream: RuntimeStream = "stdout") {
@@ -78,10 +75,9 @@ export class RuntimeClient {
 		token: string,
 		messageId: string,
 		promptDigest: string,
-		requireIdle = true,
 		expected?: RuntimeExpectedTurn,
 	) {
-		return this.call("registerNativeDelivery", { id, token, messageId, promptDigest, requireIdle, expected });
+		return this.call("registerNativeDelivery", { id, token, messageId, promptDigest, expected });
 	}
 	observe(id: string, token: string, event: HarnessEvent, expected?: RuntimeExpectedTurn) {
 		return this.call("observe", { id, token, event, expected });
@@ -98,6 +94,9 @@ export class RuntimeClient {
 	inspect(id: string) {
 		return this.call("inspect", { id });
 	}
+	hasMessage(id: string, messageId: string) {
+		return this.call("hasMessage", { id, messageId });
+	}
 	shutdown() {
 		return this.call("shutdown", {});
 	}
@@ -113,8 +112,8 @@ export class RuntimeClient {
 	input(id: string, data: string, userInput?: boolean, expected?: RuntimeExpectedTurn) {
 		return this.call("input", { id, data, userInput, expected });
 	}
-	deliver(id: string, messageId: string, data: string, requireIdle?: boolean) {
-		return this.call("deliver", { id, messageId, data, requireIdle });
+	deliver(id: string, messageId: string, data: string, expected?: RuntimeExpectedTurn) {
+		return this.call("deliver", { id, messageId, data, expected });
 	}
 	resize(id: string, cols: number, rows: number) {
 		return this.call("resize", { id, cols, rows });

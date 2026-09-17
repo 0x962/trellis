@@ -4,8 +4,8 @@ import { Button, cx, IconButton, Kbd, Tooltip, useHotkey } from "@trellis/ui";
 import { type ChangeEvent, type FocusEvent, type KeyboardEvent, useRef, useState } from "react";
 import { readActor } from "../../../../../lib/actor";
 import { useApp } from "../../../../../lib/appContext";
+import { failToast } from "../../../../../lib/failToast";
 import { timelineOptions } from "../../../hooks/useTimeline";
-import { failToast } from "../../../utils/failToast";
 import { prependTimeline, updateTimeline } from "../../utils/timelineCache";
 
 export type ComposerProps = {
@@ -100,7 +100,7 @@ export function Composer({ ticket, onAttachFiles }: ComposerProps) {
 				<textarea
 					ref={field}
 					aria-label="Comment"
-					placeholder="Write a comment…"
+					placeholder="Write a comment. Use @persona to notify an assigned agent."
 					rows={1}
 					value={text}
 					onChange={(event) => setText(event.target.value)}

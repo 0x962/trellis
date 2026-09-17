@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { RuntimeListInput, RuntimeProcessStatus, RuntimeStream } from "@trellis/runtime-protocol";
+import type {
+	RuntimeExpectedTurn,
+	RuntimeListInput,
+	RuntimeProcessStatus,
+	RuntimeStream,
+} from "@trellis/runtime-protocol";
 import { z } from "zod";
 import { interruptHarness } from "./interruptHarness.ts";
 import { prepareAttempt } from "./prepareAttempt.ts";
@@ -9,15 +14,23 @@ import { sendNativePrompt } from "./sendNativePrompt.ts";
 import type { HarnessDescriptor, HarnessHostOptions, HarnessStarted, HarnessStartInput } from "./types.ts";
 
 const identifier = z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/);
-const launchInput = z.object({
-	id: identifier,
-	harness: z.enum(["claude", "codex", "pi", "opencode"]),
-	cwd: z.string().startsWith("/"),
-	prompt: z.string().min(1),
-	model: z.string().min(1).optional(),
-	token: z.string().min(1).optional(),
-	timeoutMs: z.number().positive().optional(),
-});
+const launchInput = z
+	.object({
+		id: identifier,
+		harness: z.enum(["claude", "codex", "pi", "opencode", "muse"]),
+		managerId: identifier.optional(),
+		cwd: z.string().startsWith("/"),
+		prompt: z.string().min(1),
+		model: z.string().min(1).optional(),
+		token: z.string().min(1).optional(),
+		timeoutMs: z.number().positive().optional(),
+	})
+	.and(
+		z.union([
+			z.object({ kind: z.literal("manager"), managerSystemPrompt: z.string().min(1) }),
+			z.object({ kind: z.enum(["builder", "reviewer"]).optional() }),
+		]),
+	);
 export class HarnessHost {
 	constructor(private readonly options: HarnessHostOptions) {}
 	prepare(input: HarnessStartInput, sessionId?: string): Promise<HarnessDescriptor> {
@@ -34,28 +47,36 @@ export class HarnessHost {
 	}
 	private async launch(input: HarnessStartInput, sessionId?: string): Promise<HarnessStarted> {
 		const descriptor = await this.prepare(input, sessionId);
-		await this.options.runtime.start(descriptor.spec);
-		if (input.harness === "opencode" && sessionId !== undefined) {
-			const current = await this.waitFor(input.id, (state) => state.agent?.sessionId === sessionId);
-			if (!current.acknowledgedMessageIds.includes(input.id))
-				await sendNativePrompt(
-					this.options,
-					descriptor,
-					sessionId,
-					input.id,
-					`trellis-message:${input.id}\n${input.prompt}`,
-				);
+		return this.launchDescriptor({ ...descriptor, prompt: input.prompt, sessionId });
+	}
+	async startPrepared(id: string, timeoutMs?: number): Promise<HarnessStarted> {
+		const descriptor = await this.descriptor(id);
+		const exists = (await this.options.runtime.list()).some((process) => process.id === id);
+		return this.launchDescriptor(descriptor, timeoutMs, !exists);
+	}
+	private async launchDescriptor(
+		descriptor: HarnessDescriptor,
+		timeoutMs?: number,
+		start = true,
+	): Promise<HarnessStarted> {
+		const { spec, harness, sessionId, prompt } = descriptor;
+		if (start) await this.options.runtime.start(timeoutMs === undefined ? spec : { ...spec, timeoutMs });
+		if (harness === "opencode" && sessionId !== undefined) {
+			const current = await this.waitFor(spec.id, (state) => state.agent?.sessionId === sessionId);
+			if (!current.acknowledgedMessageIds.includes(spec.id))
+				await sendNativePrompt(this.options, descriptor, sessionId, spec.id, `trellis-message:${spec.id}\n${prompt}`);
 		}
 		const process = await this.waitFor(
-			input.id,
-			(state) => state.agent?.sessionId != null && state.acknowledgedMessageIds.includes(input.id),
+			spec.id,
+			(state) => state.agent?.sessionId != null && state.acknowledgedMessageIds.includes(spec.id),
 		);
 		if (sessionId !== undefined && process.agent?.sessionId !== sessionId)
 			throw new Error(
-				`Harness attempt ${input.id} resumed provider session ${process.agent?.sessionId}, expected ${sessionId}`,
+				`Harness attempt ${spec.id} resumed provider session ${process.agent?.sessionId}, expected ${sessionId}`,
 			);
 		return { process };
 	}
+
 	async waitFor(
 		id: string,
 		matches: (session: RuntimeProcessStatus) => boolean,
@@ -79,7 +100,7 @@ export class HarnessHost {
 			if (!signal.aborted) throw error;
 			throw Object.assign(
 				new Error(
-					`Harness attempt ${id} did not confirm the requested provider observation within ${this.options.observationTimeoutMs ?? 15000} ms; inspect or stop this attempt before resending`,
+					`Harness attempt ${id} did not report the requested provider observation within ${this.options.observationTimeoutMs ?? 15000} ms. Open its terminal: the program may wait on a login or a first-run question. Stop the attempt before you send again.`,
 				),
 				{ code: "HARNESS_OBSERVATION_TIMEOUT" },
 			);
@@ -111,22 +132,46 @@ export class HarnessHost {
 		identifier.parse(id);
 		return JSON.parse(await readFile(join(this.options.directory, id, "launch.json"), "utf8"));
 	}
-	async send(id: string, text: string, messageId: string = randomUUID()) {
+	// A message that arrives during a turn waits in the harness's own input
+	// queue. The harness hook acknowledges the message id when that message
+	// starts a turn, so `acknowledgedMessageIds` proves a started turn. A
+	// return from send proves only that the harness accepted the text. A
+	// message id that an earlier send registered without a confirmed write
+	// stays uncertain: the text may already be in the queue, so send refuses
+	// to hand it over again.
+	async send(id: string, text: string, messageId: string = randomUUID(), expected?: RuntimeExpectedTurn) {
 		identifier.parse(messageId);
 		const descriptor = await this.descriptor(id);
-		if (descriptor.harness === "opencode" || descriptor.harness === "codex") {
+		let status: "unknown" | "written" | "acknowledged";
+		if (descriptor.harness === "opencode" || descriptor.harness === "codex" || descriptor.harness === "muse") {
 			const sessionId = (await this.status(id)).agent?.sessionId;
 			if (sessionId == null) throw new Error(`Harness attempt ${id} has no provider session identity`);
-			await sendNativePrompt(this.options, descriptor, sessionId, messageId, `trellis-message:${messageId}\n${text}`);
+			const reservation = await sendNativePrompt(
+				this.options,
+				descriptor,
+				sessionId,
+				messageId,
+				`trellis-message:${messageId}\n${text}`,
+				expected,
+			);
+			status = reservation.claimed ? "written" : reservation.status;
 		} else {
-			await this.options.runtime.deliver(
+			const delivery = await this.options.runtime.deliver(
 				id,
 				messageId,
 				Buffer.from(`\u001b[200~trellis-message:${messageId}\n${text}\u001b[201~\r`).toString("base64"),
-				true,
+				expected,
 			);
+			status = delivery.status;
 		}
-		return this.waitFor(id, (state) => state.acknowledgedMessageIds.includes(messageId), { rejectAgentError: false });
+		if (status === "unknown")
+			throw Object.assign(
+				new Error(
+					`Harness attempt ${id} message ${messageId} has an unconfirmed earlier delivery; inspect the agent before a resend`,
+				),
+				{ code: "HARNESS_DELIVERY_UNKNOWN" },
+			);
+		return this.status(id);
 	}
 	async interrupt(id: string) {
 		const descriptor = await this.descriptor(id);

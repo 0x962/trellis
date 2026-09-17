@@ -3,12 +3,14 @@ import { mkdir, realpath, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import type { AgentRun } from "@trellis/api";
+import { executionEnvironment } from "../../executionEnvironment";
 import { runBranch } from "../launchCommand/branch.ts";
+import { workspaceErrorText } from "./workspaceError/workspaceError.ts";
 
 const exec = promisify(execFile);
 export const nativeWorkspace = async (
 	home: string,
-	run: Omit<AgentRun, "state" | "processStatus">,
+	run: Omit<AgentRun, "state" | "processStatus" | "observation">,
 	directory: string,
 ) => {
 	if (directory === "") throw new Error("Select the local repository directory before you start a native agent.");
@@ -21,6 +23,10 @@ export const nativeWorkspace = async (
 	if (run.kind === "manager") return source;
 	const destination = join(home, "agents", run.id, "work");
 	await mkdir(join(home, "agents", run.id), { recursive: true, mode: 0o700 });
-	await exec("git", ["-C", source, "worktree", "add", "-b", runBranch(run), destination, "HEAD"]);
+	await exec("git", ["-C", source, "worktree", "add", "-b", runBranch(run), destination, "HEAD"], {
+		env: { NODE_ENV: process.env.NODE_ENV, ...(await executionEnvironment()) },
+	}).catch((error: { stderr?: string }) => {
+		throw new Error(workspaceErrorText(error.stderr ?? ""), { cause: error });
+	});
 	return destination;
 };

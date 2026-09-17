@@ -20,8 +20,6 @@ const run = (args: string[], cwd = web) => {
 // chunk must hold none of them, and some lazy chunk must hold each.
 const routeMarkers = ["Enter your name", "Pair a phone", "No personas yet"];
 
-const needsYouMarkers = ["Needs you did not load"];
-
 // The bulk bar's copy action is text only the table module carries. The
 // editor mounts on focus, so its code is a lazy chunk; ProseMirror's class
 // names are the marker every Tiptap build carries.
@@ -240,17 +238,12 @@ describe("size-budget measure", () => {
 describe("size-budget", () => {
 	beforeAll(buildOnce, 180_000);
 
-	// BUILD-01. Needs you and Settings each arrive as their own chunk, so
-	// neither one weighs on the first paint.
-	test("needs-you and settings stay inside the initial JS budget", async () => {
+	test("settings stay inside the initial JS budget", async () => {
 		expect(buildOnce().exitCode).toBe(0);
 		const initial = await initialSource();
 		expect(initial.source).not.toContain("Pair a phone");
-		const needsYou = await chunksWith(needsYouMarkers, initial.names);
 		const settings = await chunkWith("Pair a phone", initial.names);
-		expect(needsYou).toHaveLength(1);
 		expect(settings).toHaveLength(1);
-		expect(needsYou[0]).not.toBe(settings[0]);
 		const report = measure(dist);
 		expect(report.initialJs).toBeLessThanOrEqual(budgets.initialJs);
 	});

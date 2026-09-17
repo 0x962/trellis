@@ -16,6 +16,7 @@ const byPosition = (a: ProjectSummary, b: ProjectSummary) => a.position - b.posi
 // navigation that is still loading, so the highlight and the page match.
 export function ProjectTree() {
 	const { orpc } = useApp();
+	useQuery({ ...orpc.agentRuns.list.queryOptions({ input: {} }), refetchInterval: 2000 });
 	const { data } = useQuery(orpc.projects.list.queryOptions({ input: { archived: false } }));
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	if (data === undefined) return <nav aria-label="Projects" data-project-tree="" />;
@@ -43,7 +44,7 @@ export function ProjectTree() {
 
 	return (
 		<nav aria-label="Projects" data-project-tree="">
-			<ul className="flex flex-col gap-0.5">{level(null, 0)}</ul>
+			<ul className="sidebar-project-tree flex flex-col gap-0.5">{level(null, 0)}</ul>
 		</nav>
 	);
 }

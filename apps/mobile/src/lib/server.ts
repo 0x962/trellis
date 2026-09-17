@@ -95,25 +95,3 @@ export const probeHealth = async (
 	clearTimeout(timer);
 	return result;
 };
-
-// What the app knows about the server: the last probe and the last time a
-// probe succeeded.
-export type ServerState = {
-	lastResult: ProbeResult | undefined;
-	lastReachedAt: number | undefined;
-};
-
-// `never` is a server no probe has reached, which points at a typo in the
-// URL. `lost` is a server that answered before, which points at the network.
-export type Reachability = { status: "reachable" } | { status: "never" } | { status: "lost"; since: number };
-
-export const recordProbe = (state: ServerState, result: ProbeResult, now: number): ServerState => ({
-	lastResult: result,
-	lastReachedAt: result.ok ? now : state.lastReachedAt,
-});
-
-export const reachability = (state: ServerState): Reachability => {
-	if (state.lastResult?.ok) return { status: "reachable" };
-	if (state.lastReachedAt === undefined) return { status: "never" };
-	return { status: "lost", since: state.lastReachedAt };
-};

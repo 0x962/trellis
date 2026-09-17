@@ -1,7 +1,8 @@
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
-import { ORPCError } from "@orpc/server";
+import { ORPCError, onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { BatchHandlerPlugin, ResponseHeadersPlugin } from "@orpc/server/plugins";
+import type { StandardHandlerOptions } from "@orpc/server/standard";
 import { errors, reviewHref } from "@trellis/api";
 import { type Context, Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
@@ -24,6 +25,7 @@ import { exportRoute } from "./routes/export.ts";
 import { filesRoute } from "./routes/files.ts";
 import { reviewImageRoute } from "./routes/reviewImage";
 import { staticRoute } from "./routes/static.ts";
+import { terminalSocketRoute } from "./routes/terminalSocket/terminalSocket.ts";
 import { terminalStreamRoute } from "./routes/terminalStream.ts";
 import { createDbTiming, type DbTiming, serverTimingHeader } from "./serverTiming.ts";
 import { checkGh } from "./services/system.ts";
@@ -119,8 +121,10 @@ export const createApp = ({
 	app.use(async (c, next) => {
 		const started = performance.now();
 		await next();
-		c.res.headers.set("x-request-id", c.get("requestId"));
-		c.res.headers.set("x-trellis-api-version", API_VERSION);
+		if (c.req.header("upgrade")?.toLowerCase() !== "websocket") {
+			c.res.headers.set("x-request-id", c.get("requestId"));
+			c.res.headers.set("x-trellis-api-version", API_VERSION);
+		}
 		const line = {
 			reqId: c.get("requestId"),
 			method: c.req.method,
@@ -145,7 +149,8 @@ export const createApp = ({
 	});
 
 	app.use(hostAuth(config.authToken));
-	app.use(cors({ origin: (origin) => (DEV_ORIGINS.includes(origin) ? origin : null) }));
+	const corsMiddleware = cors({ origin: (origin) => (DEV_ORIGINS.includes(origin) ? origin : null) });
+	app.use((c, next) => (c.req.header("upgrade")?.toLowerCase() === "websocket" ? next() : corsMiddleware(c, next)));
 
 	const maxBytes = config.maxUploadMb * MB;
 	app.use(
@@ -156,21 +161,39 @@ export const createApp = ({
 	// handler runs, so it writes that shape itself; without it the client
 	// reads an undefined error and never sees the cap it must report.
 	app.use(
-		"/rpc/attachments/upload",
-		bodyLimit({
-			maxSize: maxBytes,
-			onError: (c) => c.json({ json: errorBody("PAYLOAD_TOO_LARGE", { maxBytes }) }, 413),
-		}),
+		"/api/projects/:project/chat/attachments",
+		bodyLimit({ maxSize: maxBytes, onError: (c) => c.json(errorBody("PAYLOAD_TOO_LARGE", { maxBytes }), 413) }),
 	);
+	for (const path of ["/rpc/attachments/upload", "/rpc/chat/upload"]) {
+		app.use(
+			path,
+			bodyLimit({
+				maxSize: maxBytes,
+				onError: (c) => c.json({ json: errorBody("PAYLOAD_TOO_LARGE", { maxBytes }) }, 413),
+			}),
+		);
+	}
 
+	const interceptors: StandardHandlerOptions<ProcedureContext>["interceptors"] = [
+		onError((error, { context, request }) => {
+			if (error instanceof ORPCError && error.status < 500) return;
+			log.error("procedure failed", {
+				reqId: context.reqId,
+				path: request.url.pathname,
+				message: error instanceof Error ? error.message : String(error),
+				stack: error instanceof Error ? error.stack : undefined,
+			});
+		}),
+	];
 	const plugins = [new ResponseHeadersPlugin<ProcedureContext>()];
 	// The web app sends the calls of one tick as a single POST to
 	// /rpc/__batch__. Without BatchHandlerPlugin that path has no route and
 	// every page that reads two queries at once fails with a 404.
 	const rpc = new RPCHandler<ProcedureContext>(router, {
 		plugins: [new BatchHandlerPlugin<ProcedureContext>(), ...plugins],
+		interceptors,
 	});
-	const api = new OpenAPIHandler<ProcedureContext>(router, { plugins });
+	const api = new OpenAPIHandler<ProcedureContext>(router, { plugins, interceptors });
 	const contextOf = (c: Context): ProcedureContext => {
 		const timing = createDbTiming();
 		timings.set(c.req.raw, timing);
@@ -206,7 +229,9 @@ export const createApp = ({
 	app.get("/api/review-image", reviewImageRoute(transport));
 	app.get("/api/events", events.handler);
 	app.get("/api/agent-runs/:id/terminal/stream", terminalStreamRoute(config, transport));
+	app.get("/api/agent-runs/:id/terminal/socket", terminalSocketRoute(config, transport));
 	app.get("/api/attachments/:id/file", filesRoute({ config, transport }));
+	app.get("/api/chat/attachments/:id/file", filesRoute({ config, transport, service: "chat.attachment" }));
 	app.get("/api/export", exportRoute({ transport }));
 	app.get("/api/openapi.json", docs.spec);
 	app.get("/api/docs", docs.docs);

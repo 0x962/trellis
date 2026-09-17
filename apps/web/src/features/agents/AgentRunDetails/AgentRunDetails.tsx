@@ -5,7 +5,9 @@ import { Avatar, ConfirmDialog, IconButton, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { hasAssignedProcess } from "../hasAssignedProcess";
+import { isAgentWorking } from "../isAgentWorking";
 import { NativeTerminal } from "../NativeTerminal";
+import { personaKindOf } from "../personaKindOf";
 
 export type AgentRunDetailsProps = {
 	run: AgentRun;
@@ -15,7 +17,7 @@ export type AgentRunDetailsProps = {
 
 export function AgentRunDetails({ run: initial, heading = false, controls = true }: AgentRunDetailsProps) {
 	const { client, orpc, queryClient } = useApp();
-	const query = useQuery(orpc.agentRuns.list.queryOptions({ input: {} }));
+	const query = useQuery({ ...orpc.agentRuns.list.queryOptions({ input: {} }), refetchInterval: 2000 });
 	const run = query.data?.find((item) => item.id === initial.id) ?? initial;
 	const [confirmStop, setConfirmStop] = useState(false);
 	const stop = useMutation({
@@ -23,13 +25,13 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 		onSuccess: async () => {
 			setConfirmStop(false);
 			await queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
-			toast.success(`${run.name} stops now`);
+			toast.success(`${run.personaName} stops now`);
 		},
 		onError: (error) => toast.error("Could not stop the agent", { description: error.message }),
 	});
 	const historical = run.runtime !== "native";
 	const active = hasAssignedProcess(run);
-	const canStop = controls && active;
+	const canStop = controls && active && run.kind !== "manager";
 	const workspaceUrl = historical ? null : run.url;
 
 	return (
@@ -37,12 +39,15 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 			{heading && (
 				<header className="project-settings-heading">
 					<div className="flex min-w-0 items-center gap-3">
-						<Avatar kind="agent" name={run.name} />
+						<Avatar
+							kind="agent"
+							name={run.personaName}
+							personaKind={personaKindOf(run.kind)}
+							state={isAgentWorking(run) ? "working" : "static"}
+						/>
 						<div className="min-w-0">
-							<h2 className="truncate text-xl font-semibold text-fg">{run.name}</h2>
-							<p className="mt-1 truncate text-sm text-fg-muted">
-								{run.personaName} · {run.ticketIdentifier ?? run.projectPath}
-							</p>
+							<h2 className="truncate text-xl font-semibold text-fg">{run.personaName}</h2>
+							<p className="mt-1 truncate text-sm text-fg-muted">{run.ticketIdentifier ?? run.projectPath}</p>
 						</div>
 					</div>
 				</header>
@@ -69,7 +74,7 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 			)}
 			<ConfirmDialog
 				open={confirmStop && active}
-				title={`Stop ${run.name}?`}
+				title={`Stop ${run.personaName}?`}
 				description="The workspace and its files stay available."
 				confirmLabel="Stop agent"
 				danger

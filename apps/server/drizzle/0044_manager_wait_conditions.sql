@@ -1,0 +1,1 @@
+ALTER TABLE "manager_next_actions" ADD COLUMN "wait_for" jsonb;

@@ -21,7 +21,6 @@ const configure = (managerConfig: unknown) => t.api("/api/projects/RUN", { metho
 test("project manager settings persist the local directory and harness", async () => {
 	const config = {
 		personaId: manager,
-		concurrency: 2,
 		directory: "/tmp/project",
 		harness: {
 			preset: "custom",
@@ -39,10 +38,10 @@ test("project manager settings persist the local directory and harness", async (
 
 test("the project rejects a non-manager persona and invalid configuration", async () => {
 	for (const config of [
-		{ personaId: builder, concurrency: 2, directory: "/tmp/project" },
-		{ personaId: manager, concurrency: 0, directory: "/tmp/project" },
-		{ personaId: manager, concurrency: 2, directory: "relative/path" },
-		{ personaId: manager, concurrency: 2, directory: "/tmp/project", dispatchPaused: true },
+		{ personaId: builder, directory: "/tmp/project" },
+		{ personaId: manager, directory: "/tmp/project", concurrency: 3 },
+		{ personaId: manager, directory: "relative/path" },
+		{ personaId: manager, directory: "/tmp/project", dispatchPaused: true },
 	])
 		expect((await configure(config)).status).toBe(400);
 });

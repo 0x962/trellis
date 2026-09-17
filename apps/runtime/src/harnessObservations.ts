@@ -1,10 +1,18 @@
 import { StringDecoder } from "node:string_decoder";
-import type { HarnessEvent, RuntimeAgentMetadata, RuntimeHarnessObservation } from "@trellis/runtime-protocol";
+import type {
+	HarnessEvent,
+	RuntimeAgentMetadata,
+	RuntimeHarnessObservation,
+	RuntimeProcessStatus,
+} from "@trellis/runtime-protocol";
 import { SessionLog } from "./sessionLog.ts";
 
 export class HarnessObservations {
 	readonly log: SessionLog;
 	agent: RuntimeAgentMetadata | null = null;
+	activity: RuntimeProcessStatus["activity"] = null;
+	private readonly tools = new Map<string, NonNullable<RuntimeAgentMetadata["lastTool"]>>();
+	private hasMessageInTurn = false;
 	constructor(path: string) {
 		this.log = new SessionLog(path);
 		let offset = 0;
@@ -17,7 +25,8 @@ export class HarnessObservations {
 			pending += decoder.write(Buffer.from(chunk.data, "base64"));
 			let end = pending.indexOf("\n");
 			while (end >= 0) {
-				this.apply((JSON.parse(pending.slice(0, end)) as RuntimeHarnessObservation).event);
+				const observation = JSON.parse(pending.slice(0, end)) as RuntimeHarnessObservation;
+				this.apply(observation.event, observation.observedAt);
 				pending = pending.slice(end + 1);
 				end = pending.indexOf("\n");
 			}
@@ -26,16 +35,18 @@ export class HarnessObservations {
 		if (pending !== "") throw new Error("The provider event log has an incomplete record");
 	}
 	append(event: HarnessEvent, observedAt: string): boolean {
-		const accepted = this.apply(event);
+		const accepted = this.apply(event, observedAt);
 		this.log.append(Buffer.from(`${JSON.stringify({ observedAt, event })}\n`));
 		return accepted;
 	}
-	private apply(event: HarnessEvent): boolean {
+	private apply(event: HarnessEvent, observedAt: string): boolean {
 		this.agent ??= {
 			sessionId: null,
 			model: null,
 			turnId: null,
 			tool: null,
+			lastTool: null,
+			lastMessage: null,
 			error: null,
 			outcome: null,
 		};
@@ -46,6 +57,8 @@ export class HarnessObservations {
 			event.kind === "prompt" ||
 			(event.kind === "working" && event.turnId !== undefined && event.turnId !== agent.turnId)
 		) {
+			this.hasMessageInTurn = false;
+			this.tools.clear();
 			agent.error = null;
 			agent.outcome = null;
 			agent.tool = null;
@@ -64,6 +77,50 @@ export class HarnessObservations {
 		if (event.kind === "tool-start" || event.kind === "tool-update") agent.tool = event.tool!;
 		if (event.kind === "idle" || (event.kind === "error" && !event.willRetry)) agent.tool = null;
 		if (event.kind === "tool-end" && agent.tool?.id === event.tool!.id) agent.tool = null;
+		if (event.kind === "tool-start" || event.kind === "tool-update" || event.kind === "tool-end") {
+			const tool = event.tool!;
+			const previous = this.tools.get(tool.id);
+			const last = {
+				...previous,
+				...tool,
+				startedAt: event.kind === "tool-start" ? observedAt : (previous?.startedAt ?? null),
+				updatedAt: observedAt,
+				status:
+					event.kind === "tool-end"
+						? event.error
+							? ("failed" as const)
+							: ("completed" as const)
+						: ("running" as const),
+				error: event.error ?? null,
+			};
+			agent.lastTool = last;
+			if (event.kind === "tool-end") this.tools.delete(tool.id);
+			else this.tools.set(tool.id, last);
+		}
+		if (event.message !== undefined) {
+			const message = { text: event.message.text, at: event.message.at ?? observedAt };
+			if (agent.lastMessage === null || message.at >= agent.lastMessage.at) agent.lastMessage = message;
+			this.hasMessageInTurn = true;
+		} else if (event.kind === "idle" && event.result && !this.hasMessageInTurn) {
+			agent.lastMessage = { text: event.result, at: observedAt };
+		}
+		if (event.kind === "message") {
+			if (this.activity !== null) this.activity = { ...this.activity, updatedAt: observedAt };
+		} else if (event.kind !== "session" || this.activity === null) {
+			const state =
+				event.kind === "session"
+					? "ready"
+					: event.kind === "idle" || (event.kind === "error" && !event.willRetry)
+						? "idle"
+						: "working";
+			this.activity = {
+				state,
+				updatedAt: observedAt,
+				...(state === "working"
+					? { workingSince: this.activity?.state === "working" ? this.activity.workingSince : observedAt }
+					: {}),
+			};
+		}
 		return true;
 	}
 }

@@ -1,9 +1,10 @@
 import { mkdirSync } from "node:fs";
 import { networkInterfaces } from "node:os";
+import { websocket } from "hono/bun";
 import { ulid } from "ulid";
 import pkg from "../package.json";
 import { createApp } from "./app.ts";
-import { type Env, loadConfig } from "./config.ts";
+import { type Config, type Env, loadConfig } from "./config.ts";
 import { openDatabase } from "./db/open.ts";
 import { createInlineTransport, createWorkerTransport } from "./db/transport.ts";
 import { createBus } from "./events/bus.ts";
@@ -40,7 +41,7 @@ const SHUTDOWN_GRACE_MS = 100;
 // A request in flight when the listener closes gets this long to finish.
 const SHUTDOWN_DEADLINE_MS = 4000;
 
-type Fetch = (request: Request) => Response | Promise<Response>;
+type Fetch = ReturnType<typeof createApp>["app"]["fetch"];
 
 // Boot: config, the data home lock, the port, the data home directories,
 // the gh check off the boot path, the database and its migrations with the
@@ -56,7 +57,21 @@ type Fetch = (request: Request) => Response | Promise<Response>;
 // database, and exits 0. A second signal exits at once. A boot failure logs
 // one line and exits 1.
 export const boot = async ({ env = process.env, hooks = [], exit = process.exit, sink }: BootOptions = {}) => {
-	const config = loadConfig(env);
+	// A TRELLIS_* variable with a value the config cannot read is a typo in a
+	// shell profile or a launchd plist. The config names the variable and the
+	// value, and the boot writes that sentence on the same one-line form as
+	// every other boot failure. The rotating log lives under `config.home`,
+	// which no config gives yet, so this line goes to the stdout sink alone.
+	let config: Config;
+	try {
+		config = loadConfig(env);
+	} catch (error) {
+		const log = createLogger({ level: "error", sink: sink ?? stdoutSink(), env });
+		log.error((error as Error).message);
+		log.close();
+		exit(1);
+		return;
+	}
 	mkdirSync(config.home, { recursive: true });
 	const log = createLogger({
 		level: config.logLevel,
@@ -77,7 +92,13 @@ export const boot = async ({ env = process.env, hooks = [], exit = process.exit,
 			port: config.port,
 			hostname: config.host,
 			idleTimeout: 0,
-			fetch: (request) => handler(request),
+			fetch: (request, server) => handler(request, server),
+			websocket: {
+				...websocket,
+				maxPayloadLength: 1024 * 1024,
+				backpressureLimit: 8 * 1024 * 1024,
+				closeOnBackpressureLimit: true,
+			},
 		});
 		lock.setPort(server.port!);
 		Object.assign(config, loadConfig({ ...env, TRELLIS_PORT: String(server.port) }));

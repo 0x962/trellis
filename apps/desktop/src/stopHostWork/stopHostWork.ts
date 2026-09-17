@@ -1,4 +1,5 @@
 import type { HostConnection } from "../host/host.ts";
+import { hostError } from "../hostError/hostError.ts";
 
 export const stopHostWork = async (host: HostConnection, stopService: () => Promise<unknown>) => {
 	const result = await fetch(`${host.origin}/api/native-work/stop`, {
@@ -10,6 +11,6 @@ export const stopHostWork = async (host: HostConnection, stopService: () => Prom
 		},
 		body: "{}",
 	});
-	if (!result.ok) throw new Error(await result.text());
+	if (!result.ok) throw await hostError(result);
 	await stopService();
 };

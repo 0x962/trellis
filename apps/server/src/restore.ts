@@ -2,6 +2,7 @@ import { mkdirSync, readdirSync, renameSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { createMaintenance } from "./db/maintenance.ts";
 import { openDatabase } from "./db/open.ts";
+import { executionEnvironment } from "./executionEnvironment";
 import { HomeLockedError, LOCK_FILE, lockHome } from "./homeLock.ts";
 
 // `trellis restore` runs this script: `bun restore.ts <home> <archive>`. The
@@ -33,7 +34,12 @@ export const restoreHome = async (home: string, archive: string, now = new Date(
 	const staged = `${home}.restore-${stampOf(now)}`;
 	const previous = `${home}.previous-${stampOf(now)}`;
 	mkdirSync(staged, { recursive: true });
-	const tar = Bun.spawn(["tar", "-xzf", archive, "-C", staged], { stdin: "ignore", stdout: "ignore", stderr: "pipe" });
+	const tar = Bun.spawn(["tar", "-xzf", archive, "-C", staged], {
+		env: await executionEnvironment(),
+		stdin: "ignore",
+		stdout: "ignore",
+		stderr: "pipe",
+	});
 	const code = await tar.exited;
 	if (code !== 0)
 		throw new Error(

@@ -1,6 +1,20 @@
 import { expect, test } from "bun:test";
 import { CodexAppServerEvents } from "./appServerEvents.ts";
 
+test("Codex reports an assistant message before the turn completes", () => {
+	const events = new CodexAppServerEvents("s");
+	expect(
+		events.parse({
+			method: "item/completed",
+			params: {
+				threadId: "s",
+				turnId: "t",
+				item: { type: "agentMessage", id: "a", phase: "commentary", text: "I will run the tests." },
+			},
+		}),
+	).toEqual([{ kind: "message", sessionId: "s", turnId: "t", message: { text: "I will run the tests." } }]);
+});
+
 test("Codex maps exact native prompt, hosted tool, response, and failure identities", () => {
 	const events = new CodexAppServerEvents("s");
 	expect(
@@ -93,11 +107,11 @@ test("Codex tracks native model changes without a new turn", () => {
 			method: "thread/settings/updated",
 			params: { threadId: "s", threadSettings: { model: "selected-model" } },
 		}),
-	).toEqual([{ kind: "session", sessionId: "s", model: "selected-model" }]);
+	).toEqual([{ kind: "session", sessionId: "s", model: "openai/selected-model" }]);
 	expect(
 		events.parse({
 			method: "model/rerouted",
 			params: { threadId: "s", turnId: "t", fromModel: "selected-model", toModel: "effective-model" },
 		}),
-	).toEqual([{ kind: "session", sessionId: "s", turnId: "t", model: "effective-model" }]);
+	).toEqual([{ kind: "session", sessionId: "s", turnId: "t", model: "openai/effective-model" }]);
 });

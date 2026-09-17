@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { boolean, check, index, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { tickets } from "../schema.ts";
 import { at } from "./actors.ts";
+import { harnessAccounts } from "./harnessAccounts.ts";
 import { personas } from "./personas.ts";
 import { projects } from "./projects.ts";
 export const agentRuns = pgTable(
@@ -9,6 +10,7 @@ export const agentRuns = pgTable(
 	{
 		id: text().primaryKey(),
 		name: text().notNull(),
+		accountId: text("account_id").references(() => harnessAccounts.id),
 		runtime: text().notNull().default("native"),
 		personaId: text("persona_id").references(() => personas.id, { onDelete: "set null" }),
 		personaName: text("persona_name").notNull(),
@@ -33,9 +35,9 @@ export const agentRuns = pgTable(
 		updatedAt: at("updated_at").notNull(),
 	},
 	(t) => [
-		check("agent_runs_kind_check", sql`${t.kind} IN ('builder', 'reviewer', 'manager')`),
-		// A ticket carries as many agents at once as the project concurrency
-		// limit allows, which agentRuns.reserve counts before every insert.
+		check("agent_runs_kind_check", sql`${t.kind} IN ('builder', 'reviewer', 'manager', 'session')`),
+		// One active row per ticket and persona; agentRuns.reserve refuses a
+		// second start while the first is open.
 		index("agent_runs_active_ticket_idx").on(t.ticketId).where(sql`${t.runtime} = 'native' AND ${t.closedAt} IS NULL`),
 		uniqueIndex("agent_runs_active_manager_idx")
 			.on(t.projectId)

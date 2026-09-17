@@ -10,6 +10,7 @@ import { type Jobs, type JobsLog, scaledClock, startJobs as startBackgroundJobs 
 import { type DbTiming, LONG_TRANSACTION_MS } from "../serverTiming.ts";
 import { assertCurrentAttempt } from "../services/assignments/attempts.ts";
 import { gcAttachmentBlobs } from "../services/attachments.ts";
+import { unconfirmedDelivery } from "../services/deliveries/sentences.ts";
 import { type ServiceEntry, type ServiceName, services } from "../services/registry.ts";
 import { createCache } from "./cache.ts";
 import type { Db } from "./client.ts";
@@ -194,6 +195,8 @@ export const createInlineTransport = ({
 		return promise;
 	};
 
+	const backgroundCall = (name: ServiceName, input: unknown) => call(name, systemContext(), input);
+
 	let jobs: Jobs | null = null;
 	let controller: ReturnType<typeof createController> | null = null;
 	let flowReconcile: ReturnType<typeof startNativeReconcile> | null = null;
@@ -202,19 +205,19 @@ export const createInlineTransport = ({
 		await db.transaction((tx) => cache.rebuild(tx));
 		await call("evidence.recover", systemContext(), {});
 		await warmWrites(db, cache);
-		const found = await db.execute(sql`SELECT DISTINCT sha256 FROM attachments`);
+		const found = await db.execute(sql`SELECT sha256 FROM attachments UNION SELECT sha256 FROM chat_attachments`);
 		if (options !== undefined) {
 			await db.transaction((tx) =>
 				tx.execute(
-					sql`UPDATE review_deliveries SET state = 'unknown', error = 'Trellis stopped before delivery confirmation.' WHERE state = 'sending'`,
+					sql`UPDATE review_deliveries SET state = 'unknown', error = ${unconfirmedDelivery} WHERE state = 'sending'`,
 				),
 			);
 			reviewTimer = setInterval(() => {
-				void call("reviews.deliverPending", systemContext(), {});
+				void backgroundCall("reviews.deliverPending", {});
 			}, 3000);
 			const clock = scaledClock(options.clockRate);
 			flowReconcile = startNativeReconcile({
-				tick: () => call("flowExecutions.reconcile", systemContext(), {}),
+				tick: () => backgroundCall("flowExecutions.reconcile", {}),
 				setTimer: clock.setTimer,
 				clearTimer: clock.clearTimer,
 				log: options.log,
@@ -222,7 +225,7 @@ export const createInlineTransport = ({
 			controller = createController({
 				clock,
 				log: options.log,
-				call: (name, input) => call(name, systemContext(), input),
+				call: (name, input) => backgroundCall(name, input),
 			});
 			await controller.start();
 			jobs = startBackgroundJobs({ db, gh: runtime.gh, bus, log: options.log, clock });

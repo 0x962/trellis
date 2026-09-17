@@ -4,7 +4,7 @@
 	"directories": {
 		"output": "release"
 	},
-	"files": ["dist/*.cjs", "package.json"],
+	"files": ["dist/*.cjs", "dist/*.html", "package.json"],
 	"extraResources": [
 		{
 			"from": "dist/host",

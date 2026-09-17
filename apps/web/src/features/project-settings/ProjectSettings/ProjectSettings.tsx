@@ -1,6 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import type { Project } from "@trellis/api";
 import { projectSlashPath } from "../../../lib/projectPath";
+import { ManagerSettings } from "../ManagerSettings";
 import { ProjectDetailsForm } from "../ProjectDetailsForm";
 import { ProjectLifecycle } from "../ProjectLifecycle";
 import { RepoSettings } from "../RepoSettings";
@@ -15,6 +16,8 @@ const sections = [
 	{ id: "template", label: "Ticket template", component: TicketTemplateSettings },
 	{ id: "statuses", label: "Statuses", component: StatusSettings },
 	{ id: "repositories", label: "Repositories", component: RepoSettings },
+	{ id: "manager", label: "Copilot", component: null },
+	{ id: "harness", label: "Harness", component: null },
 	{ id: "subprojects", label: "Subprojects", component: SubprojectSettings },
 	{ id: "archive", label: "Danger Zone", component: ProjectLifecycle },
 ];
@@ -46,13 +49,17 @@ export function ProjectSettings({ project }: ProjectSettingsProps) {
 				</ul>
 			</nav>
 			<div className="project-settings-content" key={project.id}>
-				{sections.map(({ id, component: Component }) => (
-					<div key={id} hidden={selected !== id} className="project-settings-page">
-						<fieldset disabled={id !== "archive" && project.archivedAt !== null} className="min-w-0">
-							<Component project={project} />
-						</fieldset>
-					</div>
-				))}
+				{sections.map(
+					({ id, component: Component }) =>
+						Component !== null && (
+							<div key={id} hidden={selected !== id} className="project-settings-page">
+								<fieldset disabled={id !== "archive" && project.archivedAt !== null} className="min-w-0">
+									<Component project={project} />
+								</fieldset>
+							</div>
+						),
+				)}
+				<ManagerSettings project={project} section={selected} />
 			</div>
 		</div>
 	);

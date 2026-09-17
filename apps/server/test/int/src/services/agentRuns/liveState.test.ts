@@ -65,6 +65,8 @@ test("a failed provider turn retains its live process status and attempt identit
 		turnId: "failed-turn",
 		model: "fixture-model",
 		tool: null,
+		lastTool: null,
+		lastMessage: null,
 		error: "Provider request failed.",
 		outcome: "failed" as const,
 	};
@@ -87,4 +89,19 @@ test("a missing process retains the specific launch failure", () => {
 		state: "interrupted",
 		error: "Repository directory /missing does not exist",
 	});
+});
+
+test.each(["ready", "working", "idle"] as const)(
+	"assignment reports include the observed %s turn separately from the process",
+	(state) => {
+		const activity = { state, updatedAt: run.updatedAt };
+		expect(projectRun(run, [{ ...process, activity }])).toMatchObject({
+			processStatus: "running",
+			observation: { checkedAt: process.checkedAt, controllable: true, activity, outcome: null, turnId: null },
+		});
+	},
+);
+
+test("missing attempts have no current observation, even with a saved session and old error", () => {
+	expect(projectRun(run, [])).toMatchObject({ processStatus: null, observation: null });
 });

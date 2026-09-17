@@ -1,14 +1,22 @@
 import { z } from "zod";
+import { HarnessSchema } from "../harness/harness.ts";
+import { ModelIdSchema } from "../models/models.ts";
 import { PersonaKindSchema } from "./persona.ts";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
+// The kinds of an agent run: the three persona kinds, and `session` for the
+// agent of a scratch session, which has no persona, no project, and no
+// ticket.
+export const AgentRunKindSchema = z.enum([...PersonaKindSchema.options, "session"]);
+export type AgentRunKind = z.infer<typeof AgentRunKindSchema>;
 export const AgentRunSchema = z.object({
 	id: UlidSchema,
 	name: z.string(),
+	accountId: UlidSchema.nullish(),
 	runtime: z.enum(["native", "superset", "tmux", "commands"]),
 	personaId: UlidSchema.nullable(),
 	personaName: z.string(),
-	kind: PersonaKindSchema,
+	kind: AgentRunKindSchema,
 	instruction: z.string(),
 	projectId: UlidSchema.nullable(),
 	projectPath: z.string(),
@@ -16,6 +24,15 @@ export const AgentRunSchema = z.object({
 	ticketIdentifier: z.string().nullable(),
 	state: z.enum(["starting", "interrupted", "running", "failed", "stopped", "exited"]),
 	processStatus: z.enum(["running", "exited", "unknown"]).nullable(),
+	observation: z
+		.object({
+			checkedAt: z.string(),
+			controllable: z.boolean(),
+			activity: z.object({ state: z.enum(["ready", "working", "idle"]), updatedAt: z.string() }).nullable(),
+			outcome: z.enum(["completed", "interrupted", "failed"]).nullable(),
+			turnId: z.string().nullable(),
+		})
+		.nullable(),
 	workspaceId: z.string().nullable(),
 	terminalId: z.string().nullable(),
 	url: z.string().nullable(),
@@ -34,6 +51,13 @@ export type AgentRun = z.infer<typeof AgentRunSchema>;
 export const AgentRunStartInputSchema = z
 	.strictObject({
 		personaId: UlidSchema,
+		harness: HarnessSchema.optional(),
+		model: ModelIdSchema.optional().describe(
+			"Canonical model ID from models.list for this assignment. Defaults to the project's harness model.",
+		),
+		accountId: UlidSchema.optional().describe(
+			"Configured harness account. Select an enabled account from harnessAccounts.list.",
+		),
 		requestId: z
 			.string()
 			.min(1)

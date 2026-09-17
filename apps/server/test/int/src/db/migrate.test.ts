@@ -5,6 +5,8 @@ import { sql } from "drizzle-orm";
 import { originDir } from "../../../../../../test/originDir.ts";
 import { openDb } from "../../../../src/db/client.ts";
 import { migrate } from "../../../../src/db/migrate.ts";
+import { seedRoot, seedStatus } from "../../../fixtures/projects.ts";
+import { seedTicket } from "../../../fixtures/tickets.ts";
 
 const drizzleDir = join(originDir(import.meta.dir), "../../drizzle");
 
@@ -13,6 +15,13 @@ type Journal = { entries: Array<{ idx: number; version: string; when: number; ta
 const readJournal = (dir: string) => JSON.parse(readFileSync(join(dir, "meta/_journal.json"), "utf8")) as Journal;
 
 const tables = [
+	"builder_heartbeats",
+	"builder_start_requests",
+	"chat_channels",
+	"chat_messages",
+	"chat_deliveries",
+	"manager_delegations",
+	"harness_accounts",
 	"agent_execution_attempts",
 	"agent_start_requests",
 	"evidence_artifacts",
@@ -21,7 +30,9 @@ const tables = [
 	"flow_executions",
 	"manager_controller_cursors",
 	"manager_dispatches",
+	"manager_next_actions",
 	"native_migrations",
+	"needs_you_states",
 	"flow_edges",
 	"flow_nodes",
 	"flows",
@@ -36,6 +47,7 @@ const tables = [
 	"statuses",
 	"tickets",
 	"comments",
+	"comment_deliveries",
 	"attachments",
 	"pull_requests",
 	"ticket_pull_requests",
@@ -91,6 +103,53 @@ describe("migrations on disk", () => {
 });
 
 describe("migrate", () => {
+	test("the wait-condition migration preserves existing capacity actions", async () => {
+		const temp = mkdtempSync(join(process.env.TRELLIS_HOME as string, "migrate-"));
+		cpSync(drizzleDir, temp, { recursive: true });
+		const journal = readJournal(temp);
+		journal.entries = journal.entries.filter((entry) => entry.idx <= 43);
+		writeFileSync(join(temp, "meta/_journal.json"), JSON.stringify(journal));
+		const db = await openDb(":memory:");
+		closers.push(() => db.$client.close());
+		await migrate(db, temp);
+		await db.transaction(async (tx) => {
+			const projectId = await seedRoot(tx, "OLD");
+			const statusId = await seedStatus(tx, {
+				projectId,
+				name: "Todo",
+				category: "todo",
+				position: 0,
+				isDefault: true,
+			});
+			const ticketId = await seedTicket(tx, { projectId, rootId: projectId, statusId });
+			await tx.execute(sql`INSERT INTO manager_next_actions (id,project_id,ticket_id,status_id,assignment_request_id,reason,created_at)
+				VALUES ('saved',${projectId},${ticketId},${statusId},'original-request','Assign a worker.',now())`);
+		});
+		await migrate(db);
+		const saved = await db.execute(sql`SELECT id,assignment_request_id,state,wait_for FROM manager_next_actions`);
+		expect(saved.rows).toEqual([
+			{ id: "saved", assignment_request_id: "original-request", state: "waiting", wait_for: null },
+		]);
+	});
+
+	test("an upgrade adds capacity waits after a later migration already ran", async () => {
+		const temp = mkdtempSync(join(process.env.TRELLIS_HOME as string, "migrate-"));
+		cpSync(drizzleDir, temp, { recursive: true });
+		const journal = readJournal(temp);
+		journal.entries = journal.entries.filter((entry) => entry.idx <= 42 && entry.tag !== "0041_manager_next_actions");
+		writeFileSync(join(temp, "meta/_journal.json"), JSON.stringify(journal));
+		const db = await openDb(":memory:");
+		closers.push(() => db.$client.close());
+		await migrate(db, temp);
+		expect(await tableNames(db)).not.toContain("manager_next_actions");
+
+		await migrate(db);
+		expect(await tableNames(db)).toEqual([...tables].sort());
+		const dispatches = await db.execute(sql`SELECT next_actions FROM manager_dispatches`);
+		expect(dispatches.rows).toEqual([]);
+		expect(await migrate(db)).toBe(0);
+	});
+
 	test("migrate creates every table on an empty database", async () => {
 		const db = await openMigrated();
 		expect(await tableNames(db)).toEqual([...tables].sort());

@@ -10,7 +10,12 @@ export const deepLinkPath = (url: string) => {
 	if (!URL.canParse(url)) return null;
 	const parsed = new URL(url);
 	if (parsed.protocol !== "trellis:" || parsed.host !== "open" || parsed.username || parsed.password) return null;
-	if (!/^\/(?:t\/[^/]+|p\/[^/]+(?:\/[^/]+)*|reviews(?:\/[^/]+)*|flows(?:\/[^/]+)*|)$/.test(parsed.pathname))
+	if (!/^\/(?:t\/[^/]+|p\/[^/]+(?:\/[^/]+)*|reviews(?:\/[^/]+)*|flows(?:\/[^/]+)*|settings|)$/.test(parsed.pathname))
 		return null;
+	return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+};
+
+export const rendererPath = (url: string) => {
+	const parsed = new URL(url);
 	return `${parsed.pathname}${parsed.search}${parsed.hash}`;
 };

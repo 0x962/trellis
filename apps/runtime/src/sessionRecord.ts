@@ -14,7 +14,6 @@ export type SessionRecord = {
 	watchedPids: Set<number>;
 	tokenHash: Buffer | null;
 	activity: RuntimeProcessStatus["activity"];
-	inputPending: boolean;
 	log: SessionLog;
 	stderr: SessionLog;
 	ledger: InputLedger;
@@ -22,6 +21,6 @@ export type SessionRecord = {
 	completion: CompletionStore;
 	process?: ProcessHandle;
 	timer?: ReturnType<typeof setTimeout>;
-	stopped: Promise<void>;
-	resolveStop: () => void;
+	stopped: Promise<Error | undefined>;
+	resolveStop: (error?: Error) => void;
 };

@@ -4,7 +4,7 @@ import { buildOpenApiDocument } from "./openapi.ts";
 
 // The generated document is post-processed so an agent that reads
 // /api/openapi.json alone can work: the actor header on every mutation, the
-// ref grammars, the list grammar, the never-Done rule, both curl forms, a
+// ref grammars, the list grammar, the deletion rule, both curl forms, a
 // described tag per router, one example per request body, and the two
 // server URLs.
 
@@ -91,17 +91,15 @@ describe("info description", () => {
 		expect(description).toMatch(/comma/i);
 	});
 
-	test("the info description carries the never-Done rule", () => {
+	test("the info description carries the deletion rule", () => {
 		const description = document.info.description ?? "";
-		expect(description).toMatch(/agent[^.\n]*never[^.\n]*done/i);
+		expect(description).not.toMatch(/agent[^.\n]*never[^.\n]*done/i);
 		expect(description).toMatch(/never[^.\n]*delete/i);
 	});
 
-	// errors.ts lets an agent pass force past both rules. The text states the
-	// rule the server enforces, force included.
-	test("the agent rules name force for the done move and for the delete", () => {
+	// The delete API accepts an explicit force flag from an agent.
+	test("the agent rules name force for deletion", () => {
 		const description = document.info.description ?? "";
-		expect(description).toMatch(/agent never moves a ticket to a done status without `force`/i);
 		expect(description).toMatch(/agent never deletes a ticket or a project without `force`/i);
 	});
 

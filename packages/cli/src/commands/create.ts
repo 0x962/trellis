@@ -15,7 +15,7 @@ export default defineCommand({
 		priority: { type: "enum", options: [...priorities], description: "Priority" },
 		status: { type: "string", description: "Status ref; the project default when absent" },
 		parent: { type: "string", description: "Parent ticket ref" },
-		force: { type: "boolean", description: "Let an agent create a ticket in a done status" },
+		force: { type: "boolean", description: "Accepted for compatibility; completion does not require force" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);

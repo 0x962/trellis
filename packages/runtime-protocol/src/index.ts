@@ -1,4 +1,4 @@
-export const RUNTIME_PROTOCOL_VERSION = 6;
+export const RUNTIME_PROTOCOL_VERSION = 10;
 export type HarnessTool = {
 	id: string;
 	name: string;
@@ -10,7 +10,8 @@ export type HarnessEvent = {
 	willRetry?: boolean;
 	turnId?: string;
 	outcome?: "completed" | "interrupted" | "failed";
-	kind: "session" | "prompt" | "working" | "idle" | "tool-start" | "tool-update" | "tool-end" | "error";
+	kind: "session" | "prompt" | "working" | "idle" | "message" | "tool-start" | "tool-update" | "tool-end" | "error";
+	message?: { text: string; at?: string };
 	sessionId?: string;
 	model?: string;
 	prompt?: string;
@@ -29,6 +30,15 @@ export interface RuntimeAgentMetadata {
 	model: string | null;
 	turnId: string | null;
 	tool: HarnessTool | null;
+	lastTool:
+		| (HarnessTool & {
+				startedAt: string | null;
+				updatedAt: string;
+				status: "running" | "completed" | "failed";
+				error: string | null;
+		  })
+		| null;
+	lastMessage: { text: string; at: string } | null;
 	error: string | null;
 	outcome: NonNullable<HarnessEvent["outcome"]> | null;
 }
@@ -75,7 +85,12 @@ export interface RuntimeProcessStatus extends RuntimeSession {
 	agent: RuntimeAgentMetadata | null;
 	result: { id: string; text: string } | null;
 	acknowledgedMessageIds: string[];
-	activity: { state: "ready" | "working" | "idle"; updatedAt: string } | null;
+	activity: {
+		state: "ready" | "working" | "idle";
+		updatedAt: string;
+		// The start of continuous work. Tool and message events preserve this time.
+		workingSince?: string;
+	} | null;
 	checkedAt: string;
 	controllable: boolean;
 	process: RuntimeProcessMetadata | null;
@@ -106,11 +121,23 @@ export interface RuntimeDelivery {
 export interface RuntimeExpectedTurn {
 	turnId: string | null;
 	activityAt: string;
+	idleBefore?: string;
 }
 export interface RuntimeNativeDelivery {
 	messageId: string;
 	claimed: boolean;
 	status: "unknown" | "acknowledged";
+}
+// The answer to "did this message reach this session?". `delivered` is true
+// when the session wrote the bytes or the agent confirmed the message.
+// `status` is the status of the session that holds the answer, so a caller
+// tells a message that is still on its way from a message that can never
+// arrive. A session the runtime has no record of produces no answer: the
+// call fails with SESSION_NOT_FOUND.
+export interface RuntimeMessageState {
+	messageId: string;
+	delivered: boolean;
+	status: SessionStatus;
 }
 export interface RuntimeMethods {
 	registerNativeDelivery: {
@@ -119,7 +146,6 @@ export interface RuntimeMethods {
 			token: string;
 			messageId: string;
 			promptDigest: string;
-			requireIdle: boolean;
 			expected?: RuntimeExpectedTurn;
 		};
 		result: RuntimeNativeDelivery;
@@ -139,12 +165,16 @@ export interface RuntimeMethods {
 		result: RuntimeProcessStatus;
 	};
 	inspect: { params: { id: string }; result: RuntimeProcessStatus };
+	hasMessage: { params: { id: string; messageId: string }; result: RuntimeMessageState };
 	subscribe: {
 		params: { id: string; offset: number; stream?: RuntimeStream; output?: boolean };
 		result: RuntimeOutputEvent;
 	};
 	shutdown: { params: Record<string, never>; result: null };
-	deliver: { params: { id: string; messageId: string; data: string; requireIdle?: boolean }; result: RuntimeDelivery };
+	deliver: {
+		params: { id: string; messageId: string; data: string; expected?: RuntimeExpectedTurn };
+		result: RuntimeDelivery;
+	};
 	hello: { params: Record<string, never>; result: RuntimeHello };
 	list: { params: RuntimeListInput; result: RuntimeProcessStatus[] };
 	start: { params: LaunchSpec; result: RuntimeSession };
