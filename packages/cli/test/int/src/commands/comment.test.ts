@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runCli } from "../../../deps.ts";
 import { activity, attachment, attachmentId, comment, commentId, timeline } from "../../../fixtures.ts";
@@ -8,7 +7,7 @@ import { activity, attachment, attachmentId, comment, commentId, timeline } from
 const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 1, 2, 3]);
 
 const tempFile = () => {
-	const dir = mkdtempSync(join(tmpdir(), "trellis-comment-attach-"));
+	const dir = mkdtempSync(join(process.env.TRELLIS_HOME!, "comment-attach-"));
 	const path = join(dir, "shot.png");
 	writeFileSync(path, bytes);
 	return path;

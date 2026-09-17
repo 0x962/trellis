@@ -8,6 +8,7 @@ import { failToast } from "../../../../../lib/failToast";
 import { formatBytes } from "../../../../attachments/utils/formatBytes";
 import { timelineOptions } from "../../../hooks/useTimeline";
 import { prependTimeline, updateTimeline } from "../../utils/timelineCache";
+import { type PendingCommentAttachment, postComment } from "./postComment";
 
 export type ComposerProps = {
 	ticket: Ticket;
@@ -17,14 +18,16 @@ export type ComposerProps = {
 // control. With text, it also shows Comment. The Paperclip stages files for
 // the comment; Comment uploads them and posts the text with their ids in one
 // call. Cmd+Enter posts; the card shows at once and takes the server's row
-// when it lands. A failed post removes the card and keeps the words. Files
-// an upload already sent stay on the ticket. Shift+C focuses the box.
+// when it lands. A failed post removes the card and keeps the words and files.
+// Each staged file keeps its attachment id, so Retry never uploads it twice.
+// Each submit keeps one deduplication key, so a lost response cannot make a
+// second comment. Shift+C focuses the box.
 export function Composer({ ticket }: ComposerProps) {
 	const { client, orpc, queryClient } = useApp();
 	const key = timelineOptions(orpc, ticket.identifier).queryKey;
 	const [text, setText] = useState("");
 	const [focused, setFocused] = useState(false);
-	const [staged, setStaged] = useState<File[]>([]);
+	const [staged, setStaged] = useState<(PendingCommentAttachment & { key: string })[]>([]);
 	const [posting, setPosting] = useState(false);
 	const field = useRef<HTMLTextAreaElement>(null);
 	const picker = useRef<HTMLInputElement>(null);
@@ -36,7 +39,7 @@ export function Composer({ ticket }: ComposerProps) {
 		field.current?.scrollIntoView({ block: "nearest" });
 	});
 
-	const post = async (body: string, files: File[]) => {
+	const post = async (body: string, dedupeKey: string, files: (PendingCommentAttachment & { key: string })[]) => {
 		const actor = readActor()!;
 		const now = new Date().toISOString();
 		const temp: Comment & { kind: "comment" } = {
@@ -52,21 +55,8 @@ export function Composer({ ticket }: ComposerProps) {
 		};
 		prependTimeline(queryClient, key, temp);
 		setPosting(true);
-		// Files an upload already sent before the failure stay on the ticket.
-		// They leave the staged list, so a retry sends each file once.
-		const landed: File[] = [];
 		try {
-			const attachmentIds: string[] = [];
-			for (const file of files) {
-				const uploaded = await client.attachments.upload({ ticket: ticket.identifier, file });
-				attachmentIds.push(uploaded.attachment.id);
-				landed.push(file);
-			}
-			const created = await client.comments.create({
-				ticket: ticket.identifier,
-				body,
-				...(attachmentIds.length === 0 ? {} : { attachmentIds }),
-			});
+			const created = await postComment(client, ticket.identifier, body, dedupeKey, files);
 			setStaged((current) => current.filter((staged) => !files.includes(staged)));
 			setText("");
 			updateTimeline(queryClient, key, (items) =>
@@ -74,9 +64,7 @@ export function Composer({ ticket }: ComposerProps) {
 			);
 		} catch (error) {
 			updateTimeline(queryClient, key, (items) => items.filter((item) => item.id !== temp.id));
-			setStaged((current) => current.filter((staged) => !landed.includes(staged)));
-			const rest = files.filter((file) => !landed.includes(file));
-			failToast(`The comment on ${ticket.identifier} is not saved.`, error, () => void post(body, rest));
+			failToast(`The comment on ${ticket.identifier} is not saved.`, error, () => void post(body, dedupeKey, files));
 		}
 		setPosting(false);
 	};
@@ -84,7 +72,7 @@ export function Composer({ ticket }: ComposerProps) {
 	const submit = () => {
 		const body = text.trim();
 		if (body === "" || posting) return;
-		void post(body, staged);
+		void post(body, crypto.randomUUID(), staged);
 	};
 
 	const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -101,11 +89,14 @@ export function Composer({ ticket }: ComposerProps) {
 	};
 
 	const picked = (event: ChangeEvent<HTMLInputElement>) => {
-		setStaged((current) => [...current, ...event.target.files!]);
+		setStaged((current) => [
+			...current,
+			...[...event.target.files!].map((file) => ({ key: crypto.randomUUID(), file })),
+		]);
 		event.target.value = "";
 	};
 
-	const unstage = (file: File) => setStaged((current) => current.filter((staged) => staged !== file));
+	const unstage = (key: string) => setStaged((current) => current.filter((staged) => staged.key !== key));
 
 	return (
 		<div>
@@ -133,15 +124,12 @@ export function Composer({ ticket }: ComposerProps) {
 				/>
 				{staged.length > 0 && (
 					<ul aria-label="Files for this comment" className="flex flex-col gap-1">
-						{staged.map((file) => (
-							<li
-								key={`${file.name}-${file.size}-${file.lastModified}`}
-								className="flex h-7 items-center gap-2 text-sm"
-							>
+						{staged.map(({ key, file }) => (
+							<li key={key} className="flex h-7 items-center gap-2 text-sm">
 								<Paperclip aria-hidden="true" className="size-3.5 shrink-0 text-fg-muted" />
 								<span className="min-w-0 flex-1 truncate text-fg">{file.name}</span>
 								<span className="shrink-0 text-fg-muted tabular">{formatBytes(file.size)}</span>
-								<IconButton label={`Remove ${file.name}`} size="sm" icon={<X />} onClick={() => unstage(file)} />
+								<IconButton label={`Remove ${file.name}`} size="sm" icon={<X />} onClick={() => unstage(key)} />
 							</li>
 						))}
 					</ul>
