@@ -1,0 +1,1 @@
+export { isTextEntry } from "./isTextEntry";
