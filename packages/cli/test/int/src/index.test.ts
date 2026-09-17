@@ -25,6 +25,7 @@ const verbs = [
 	"comment",
 	"comments",
 	"thread",
+	"chat",
 	"attach",
 	"attachments",
 	"pr",

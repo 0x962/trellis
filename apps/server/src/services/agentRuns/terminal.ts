@@ -54,8 +54,8 @@ export const interrupt = async (ctx: ServiceCtx, input: { id: string } & SendTar
 	assertSendTarget(run, input);
 	if ((await nativePreset(ctx.home, run.terminalId!)) === "custom")
 		throw invalidInput("id", "Use the custom terminal controls to interrupt its process.");
-	const client = await terminalHost(ctx.home);
 	try {
+		const client = await terminalHost(ctx.home);
 		await client.interrupt(run.terminalId!);
 	} catch (cause) {
 		throw new ORPCError("RUNNER_UNAVAILABLE", {

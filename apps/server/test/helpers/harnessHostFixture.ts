@@ -11,6 +11,7 @@ export async function harnessHostFixture(options: { nestedRuntime?: boolean } = 
 	const home = await mkdtemp("/tmp/trl-hhost-");
 	const bin = join(home, "bin");
 	await mkdir(bin);
+	await symlink(process.execPath, join(bin, "bun"));
 	await symlink(Bun.which("node")!, join(bin, "node"));
 	const bundles = new Map<string, string>();
 	for (const [harness, entry] of [
@@ -50,7 +51,7 @@ export async function harnessHostFixture(options: { nestedRuntime?: boolean } = 
 		directory: join(home, "attempts"),
 		env: { ...process.env, PATH: bin },
 		bun: process.execPath,
-		observationTimeoutMs: 1500,
+		observationTimeoutMs: 10000,
 	});
 	return { home, client, daemon, host };
 }

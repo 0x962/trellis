@@ -13,7 +13,6 @@ import { type Format, type Mode, stripAnsi } from "./output.ts";
 import { verbs } from "./verbs.ts";
 
 export type Stream = { write(text: string): void; isTTY: boolean };
-
 // Every effect of a run goes through here, so a test injects the server,
 // the streams, the environment, the clock, and the git and OS lookups.
 export type Deps = {
@@ -269,7 +268,6 @@ const report = (error: unknown, err: Stream, color: boolean): number => {
 	}
 	throw error;
 };
-
 if (import.meta.main) {
 	const controller = new AbortController();
 	process.once("SIGINT", () => controller.abort());

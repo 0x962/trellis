@@ -116,6 +116,7 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	},
 	"POST /agent-runs/{runId}/artifacts": { path: "src/result.ts" },
 	"POST /agent-runs/{id}/permission": { requestId: "tool-request-1", behavior: "deny" },
+	"POST /agent-runs/{id}/interrupt": {},
 	"POST /agent-runs/{id}/terminal/input": { text: "pwd\r" },
 	"POST /agent-runs/{id}/terminal/resize": { cols: 100, rows: 32 },
 	"POST /manager-dispatches/{id}/retry": {},
@@ -126,7 +127,12 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 			{ ticketId: "01J9Z0000000000000000000A1", status: "queued", reason: "An active worker owns this ticket." },
 		],
 	},
+
 	"POST /native-work/stop": {},
+	"POST /needs-you/list": {},
+	"POST /needs-you/summary": {},
+	"POST /needs-you/update": { id: "mention:01J9Z0000000000000000000A1", action: "ignore" },
+	"POST /gh/check": {},
 	"POST /flow-executions": {
 		flow: "review",
 		ticket: "CDE-1",

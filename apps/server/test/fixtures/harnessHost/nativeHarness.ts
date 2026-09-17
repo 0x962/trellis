@@ -14,6 +14,11 @@ if (process.argv[2] === "agents") {
 	process.exit(0);
 }
 const harness = process.env.TRELLIS_HARNESS!;
+if (process.env.TRELLIS_MANAGER_TOOLS_READY)
+	writeFileSync(
+		process.env.TRELLIS_MANAGER_TOOLS_READY,
+		JSON.stringify({ attemptId: process.env.TRELLIS_ATTEMPT_ID, token: process.env.TRELLIS_ATTEMPT_TOKEN }),
+	);
 const args = process.argv.slice(2);
 const model = args.includes("--model")
 	? args[args.indexOf("--model") + 1]

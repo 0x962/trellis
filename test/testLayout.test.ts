@@ -10,7 +10,7 @@ import { dirname, join, relative, resolve } from "node:path";
 // or more every time a file asks for one:
 //   - a PGlite database (test/helpers/db.ts, or a direct openDb call)
 //   - the Hono app (test/helpers/app.ts, apps/web/test/server)
-//   - a spawned process (Bun.spawn, node:child_process)
+//   - a local server or spawned process (Bun.serve, Bun.spawn, node:child_process)
 //
 // This test reads every test file, follows its relative imports, and checks that
 // a file which reaches one of those sits under test/int/, and that a file which
@@ -18,7 +18,7 @@ import { dirname, join, relative, resolve } from "node:path";
 
 const root = resolve(import.meta.dir, "..");
 
-// A file that opens a database, boots the app, or starts a server process.
+// A file that opens a database, boots the app, or starts a server.
 const BUILDERS = [
 	"apps/server/test/helpers/db.ts",
 	"apps/server/test/helpers/app.ts",
@@ -26,7 +26,7 @@ const BUILDERS = [
 	"apps/web/test/server/index.ts",
 ];
 
-const SPAWNS = /Bun\.spawn|spawnSync|execFileSync|node:child_process/;
+const STARTS_PROCESS_OR_SERVER = /Bun\.(?:spawn|serve)|spawnSync|execFileSync|node:child_process/;
 // A test can also open a database without a helper, by calling the same
 // function the server calls at boot.
 const OPENS_DATABASE = /\bopenDb\(|\bdiskDb\(|new PGlite\b/;
@@ -53,7 +53,7 @@ const buildsInfrastructure = (file: string, visiting: Set<string> = new Set()): 
 	if (BUILDERS.includes(path)) return true;
 
 	const source = readFileSync(file, "utf8");
-	if (SPAWNS.test(source) || OPENS_DATABASE.test(source)) return true;
+	if (STARTS_PROCESS_OR_SERVER.test(source) || OPENS_DATABASE.test(source)) return true;
 
 	let answer = false;
 	for (const match of source.matchAll(SPECIFIER)) {
