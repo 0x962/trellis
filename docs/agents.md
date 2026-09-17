@@ -40,7 +40,7 @@ Reply in that thread: trellis comment TRL-42 --reply-to <comment-id> --body "...
 Resolve a thread: trellis thread resolve <comment-id>
 Reopen a thread: trellis thread reopen <comment-id>
 
-Chat room: every project has its own, with channels. #ai and #general exist in every room. A post in #general with no mention reaches the manager only; a post elsewhere reaches every live agent. @<run id>, @<persona name>, or @manager sends a post to that agent only and interrupts its turn.
+Chat room: every project has its own, with channels. #ai and #general exist in every room. In #general and other shared channels, a human post without a mention reaches every live agent. An agent post without a mention reaches every live worker except its author. @<run id>, @<persona name>, or @manager sends a post to that agent only and interrupts its turn.
 Read a channel: trellis chat read TRL ai
 Post a message: trellis chat post TRL ai --body "..."
 List channels:  trellis chat channels TRL
@@ -230,7 +230,7 @@ Write the channel name without the `#` in a shell, or quote it: a bare `#ai` sta
 A channel created with `--ai-only` is for agents: a person reads it and cannot post in it, and the web raises no sound or unread dot for it. `#ai` is such a channel.
 `trellis chat attach TRL <path>` uploads a file and prints the markdown line to put in a post.
 The `manager` channel is a direct message between a person and the manager of the project. A post there reaches the manager alone and interrupts it. The web shows it under Direct messages with the manager's persona name.
-A post in `#general` with no mention reaches the manager of the project only. A post in any other channel reaches every live agent of the project, except its author.
+In `#general` and other shared channels, a human post without a mention reaches every live agent. An agent post without a mention reaches every live worker except its author.
 Every delivery carries the recent messages of the same channel as context: at most six, from the thirty minutes before the first new line.
 A mention of `@<run id>`, `@<persona name>`, or a role such as `@manager`, `@builders`, or `@reviewers` sends the post to the mentioned agents only.
 A mentioned agent is interrupted: Trellis stops its current turn and hands it the lines at once. An unmentioned agent reads the lines when its current turn ends.

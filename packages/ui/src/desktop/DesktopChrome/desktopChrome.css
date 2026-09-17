@@ -3,7 +3,7 @@
 	app-region: drag;
 }
 
-[data-desktop-chrome] :is(button, a, input, select, textarea, [role="button"]) {
+[data-desktop-chrome] :is(button, a, input, select, textarea, [role="button"], [role="radio"]) {
 	-webkit-app-region: no-drag;
 	app-region: no-drag;
 }
