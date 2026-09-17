@@ -1,12 +1,12 @@
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import type { ChatChannel, ChatMessage, ChatUploadOutput } from "@trellis/api";
+import { shortZonedDateTime } from "@trellis/api/time";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, readText, toNumber } from "../context.ts";
 import { fileNotFound, fileUnreadable } from "../errors.ts";
-import { cell, json, type ListSpec, printList, printRecord, type RecordSpec } from "../output.ts";
-import { localDateTime } from "../time.ts";
+import { cell, json, type ListSpec, printList, printRecord, type RecordSpec, timeCell } from "../output.ts";
 
 const projectArg = { type: "positional" as const, required: true as const, description: "Project ref, such as TRL" };
 const channelArg = {
@@ -20,15 +20,17 @@ const sender = (message: ChatMessage) =>
 		? `${message.actor.displayName} ${message.actor.name}`
 		: message.actor.name;
 
+// `#ai Sep 09, 2026 at 08:34:56 AM EDT <Builder 01J...> body`: the IRC form
+// a terminal reader scans. Every other mode prints the message records.
 export const renderChatLine = (message: ChatMessage) =>
-	`#${message.channel} ${localDateTime(message.createdAt)} <${sender(message)}> ${message.body}\n`;
+	`#${message.channel} ${shortZonedDateTime(message.createdAt)} <${sender(message)}> ${message.body}\n`;
 
 const messageRecord: RecordSpec<ChatMessage> = {
 	fields: [
 		{ name: "id", value: (row) => row.id },
 		{ name: "channel", value: (row) => `#${row.channel}` },
 		{ name: "actor", value: (row) => `${row.actor.kind}:${sender(row)}` },
-		{ name: "created", value: (row) => localDateTime(row.createdAt) },
+		{ name: "created", value: (row) => shortZonedDateTime(row.createdAt) },
 		{ name: "body", value: (row) => cell(row.body) },
 	],
 	identifier: (row) => row.id,
@@ -39,7 +41,7 @@ const channelList: ListSpec<ChatChannel> = {
 		{ name: "channel", value: (row) => `#${row.name}` },
 		{ name: "agents-only", value: (row) => (row.aiOnly ? "yes" : "-") },
 		{ name: "messages", value: (row) => String(row.messageCount) },
-		{ name: "last", value: (row) => (row.lastMessageAt === null ? "-" : localDateTime(row.lastMessageAt)) },
+		{ name: "last", value: (row) => timeCell(row.lastMessageAt) },
 	],
 	identifier: (row) => row.name,
 };
