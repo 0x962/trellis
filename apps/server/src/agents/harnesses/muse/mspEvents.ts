@@ -8,6 +8,7 @@ const item = z.looseObject({
 	kind: z.string(),
 	status: z.string(),
 	turnId: z.string().nullish(),
+	commandId: z.string().optional(),
 	text: z.string().optional(),
 	tool: z.string().optional(),
 	args: z.string().optional(),
@@ -32,12 +33,19 @@ const toolInput = (args: string | undefined) => {
 // the same host maps to nothing.
 //
 // A user message item arrives as `item/completed` right after the turn
-// starts, and it is the prompt receipt. The text of the last completed agent
+// starts, and it is the prompt receipt. A turn the bridge started with
+// several held prompts carries them as one user message; the bridge
+// registers the prompts under the command id of that turn, and the item
+// yields one receipt per prompt. The text of the last completed agent
 // message of a turn is the result of that turn.
 export class MuseSessionEvents {
 	private readonly answers = new Map<string, string>();
 	private readonly prompts = new Set<string>();
+	private readonly batches = new Map<string, string[]>();
 	constructor(private readonly sessionId: string) {}
+	expectBatch(commandId: string, prompts: string[]) {
+		this.batches.set(commandId, prompts);
+	}
 	parse(payload: unknown): HarnessEvent[] {
 		const { method, params } = notification.parse(payload);
 		if (params.sessionId !== this.sessionId) return [];
@@ -82,7 +90,14 @@ export class MuseSessionEvents {
 			if (value.kind === "userMessage") {
 				if (this.prompts.has(value.itemId)) return [];
 				this.prompts.add(value.itemId);
-				return [{ kind: "prompt", sessionId: this.sessionId, ...turn, prompt: value.text ?? "" }];
+				const batch = value.commandId === undefined ? undefined : this.batches.get(value.commandId);
+				if (value.commandId !== undefined) this.batches.delete(value.commandId);
+				return (batch ?? [value.text ?? ""]).map((prompt) => ({
+					kind: "prompt" as const,
+					sessionId: this.sessionId,
+					...turn,
+					prompt,
+				}));
 			}
 			if (value.kind === "agentMessage") {
 				if (method !== "item/completed" || !value.text) return [];

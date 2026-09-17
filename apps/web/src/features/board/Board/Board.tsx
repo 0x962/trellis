@@ -32,7 +32,6 @@ export type BoardProps = {
 	storageKey: string;
 	// The concurrency slots of the project. The first started column shows
 	// them, because its tickets are the ones agents work on.
-	capacity?: { used: number; limit: number };
 	onOpenTicket: (identifier: string) => void;
 };
 
@@ -48,7 +47,7 @@ const closedCategories = ["done", "canceled"];
 // stays empty on it.
 const noSelection: string[] = [];
 
-export function Board({ projectRef, filters = {}, storageKey, capacity, onOpenTicket }: BoardProps) {
+export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: BoardProps) {
 	const context = useApp();
 	const boardRef = useRef<HTMLDivElement>(null);
 	const [announcement, setAnnouncement] = useState("");
@@ -155,6 +154,30 @@ export function Board({ projectRef, filters = {}, storageKey, capacity, onOpenTi
 	const onDropped = useDropMotion(columns);
 	useBoardMonitor(columns, (move) => void runMove(move), chooseOrMove, announce, onDropped);
 
+	const setWipLimit = useCallback(
+		async (statusId: string, limit: number | null) => {
+			if (projectRef === undefined) return;
+			try {
+				await context.client.statuses.update({ project: projectRef, status: statusId, wipLimit: limit });
+				await context.queryClient.invalidateQueries({ queryKey: boardOptions.queryKey });
+				await context.queryClient.invalidateQueries({ queryKey: projectOptions.queryKey });
+			} catch (error) {
+				const message = errorMessage(error);
+				announce(message);
+				toast.error(message);
+				throw error;
+			}
+		},
+		[
+			announce,
+			boardOptions.queryKey,
+			context.client.statuses,
+			context.queryClient,
+			projectOptions.queryKey,
+			projectRef,
+		],
+	);
+
 	const openComposer = (column: BoardColumnModel) => {
 		const status = column.statuses[0];
 		composerActions.open(
@@ -235,8 +258,6 @@ export function Board({ projectRef, filters = {}, storageKey, capacity, onOpenTi
 		? "85vw"
 		: columnWidth(columns.length, columns.filter((column) => collapsed.includes(column.id)).length);
 
-	const capacityColumn = columns.find((column) => column.category === "started")?.id;
-
 	return (
 		<>
 			<div ref={boardRef} data-board="" className="flex min-h-0 flex-1 snap-x gap-3 overflow-x-auto px-5 py-4">
@@ -249,7 +270,6 @@ export function Board({ projectRef, filters = {}, storageKey, capacity, onOpenTi
 						categoryMode={projectRef === undefined}
 						width={width}
 						well={well}
-						capacity={column.id === capacityColumn ? capacity : undefined}
 						onToggle={() => uiActions.setGroupCollapsed(storageKey, column.id, !collapsed.includes(column.id))}
 						onShowAllDone={() => setShowAllDone(true)}
 						onNewTicket={() => openComposer(column)}
@@ -258,6 +278,7 @@ export function Board({ projectRef, filters = {}, storageKey, capacity, onOpenTi
 						onFocusTicket={setFocusedCard}
 						onCardKeyDown={keyDown}
 						onAnnounce={announce}
+						onSetWipLimit={setWipLimit}
 					/>
 				))}
 			</div>

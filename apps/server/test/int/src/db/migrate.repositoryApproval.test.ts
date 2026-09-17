@@ -28,7 +28,6 @@ test("migration removes repository approval from saved settings without changing
 			await seedRoot(db, `OLD${Number(trustedDirectory)}${Number(allowAllPermissions)}`, {
 				manager_config: {
 					personaId: null,
-					concurrency: 7,
 					directory: "/tmp/project",
 					trustedDirectory,
 					allowAllPermissions,
@@ -43,7 +42,6 @@ test("migration removes repository approval from saved settings without changing
 			expect(row.manager_config).not.toHaveProperty("allowAllPermissions");
 			expect(managerConfigOf(row as { manager_config: unknown })).toMatchObject({
 				directory: "/tmp/project",
-				concurrency: 7,
 				dispatchPaused: true,
 				harness: { preset: "codex" },
 			});

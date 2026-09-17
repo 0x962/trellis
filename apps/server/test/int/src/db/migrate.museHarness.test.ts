@@ -29,9 +29,12 @@ test("Muse harness instructions extend manager personas once and leave workers a
 	expect(result.rows[0]!.instruction).toContain("Keep this policy.\n\n## Muse harness");
 	expect(result.rows[0]!.instruction).toContain("meta/muse-spark-1.3");
 	expect(result.rows[0]!.instruction).toContain("agentRuns.send");
-	expect((await db.execute(sql`SELECT instruction FROM personas WHERE id='builder'`)).rows[0]!.instruction).toBe(
+	expect((await db.execute(sql`SELECT instruction FROM personas WHERE id='builder'`)).rows[0]!.instruction).toStartWith(
 		"Build.",
 	);
+	expect(
+		(await db.execute(sql`SELECT instruction FROM personas WHERE id='builder'`)).rows[0]!.instruction,
+	).not.toContain("## Muse harness");
 	await migrate(db);
 	expect((await db.execute(sql`SELECT instruction FROM personas WHERE id='manager'`)).rows).toEqual(result.rows);
 	await db.transaction(assertStatusInvariant);

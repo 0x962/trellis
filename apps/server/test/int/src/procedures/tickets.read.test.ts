@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { TicketSchema, TicketSummarySchema } from "@trellis/api";
+import { seedDefaultBuilder } from "../../../fixtures/projects.ts";
 import { createTestApp, statusIds, type TestApp } from "../../../helpers/app.ts";
 import { freshDb, type TestDb } from "../../../helpers/db.ts";
 
@@ -24,6 +25,7 @@ const identifiers = (items: Array<{ identifier: string }>) => items.map((item) =
 // child in agent review, one done.
 const seedFour = async () => {
 	const project = await t.seedProject("CDE");
+	await seedDefaultBuilder(h.db, project.id);
 	const a = await t.createTicket({ project: "CDE", title: "Dark mode", status: "in-progress" });
 	const b = await t.createTicket({ project: "CDE", title: "Login", status: "in-progress" });
 	await t.createTicket({ project: "CDE", title: "Child", status: "agent-review", parent: "CDE-1" });

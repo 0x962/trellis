@@ -1,5 +1,5 @@
 import { z } from "zod";
-import catalog from "./catalog.json";
+import catalog from "./catalog.json" with { type: "json" };
 
 type Harness = "claude" | "codex" | "pi" | "opencode" | "muse" | "custom";
 const claudeNames: Record<string, string> = {

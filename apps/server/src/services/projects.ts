@@ -50,13 +50,17 @@ export const DEFAULT_TICKET_TEMPLATE = "## Context\n\n## Acceptance criteria\n- 
 
 // The persona of a manager config is a manager persona, and its account is
 // an enabled account of the harness the config selects.
-const assertManagerConfig = async (
-	tx: Tx,
-	config: { personaId?: string | null; accountId?: string | null; harness?: { preset: string } } | undefined,
-) => {
+const assertManagerConfig = async (tx: Tx, config: ProjectCreateInput["managerConfig"]) => {
 	if (config?.personaId != null) {
 		const [persona] = await rows<{ kind: string }>(tx, sql`SELECT kind FROM personas WHERE id = ${config.personaId}`);
 		if (persona?.kind !== "manager") throw invalidInput("managerConfig.personaId", "Select a manager persona.");
+	}
+	if (config?.builder?.personaId != null) {
+		const [persona] = await rows<{ kind: string }>(
+			tx,
+			sql`SELECT kind FROM personas WHERE id = ${config.builder.personaId}`,
+		);
+		if (persona?.kind !== "builder") throw invalidInput("managerConfig.builder.personaId", "Select a builder persona.");
 	}
 	if (config?.accountId != null) {
 		const [account] = await rows<{ harness: string; enabled: boolean }>(

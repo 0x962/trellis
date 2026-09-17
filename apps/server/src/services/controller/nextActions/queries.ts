@@ -4,12 +4,10 @@ import type { RequestContext } from "../../../context.ts";
 import { iso, rows } from "../../../db/queries/support.ts";
 import type { Tx } from "../../../db/tx.ts";
 import { invalidInput } from "../../../errors.ts";
-import { capacityAvailable } from "../../assignments/capacity.ts";
-import type { CapacityObservation } from "../../assignments/occupiesSlot/index.ts";
 import { isManaged, managerScope } from "../../submanagers/scope.ts";
 import { conditionMet } from "./condition.ts";
 
-export const columns = sql`id,project_id AS "projectId",ticket_id AS "ticketId",assignment_request_id AS "assignmentRequestId",COALESCE(wait_for->>'type','capacity') AS "wakeCondition",wait_for AS "waitFor",
+export const columns = sql`id,project_id AS "projectId",ticket_id AS "ticketId",assignment_request_id AS "assignmentRequestId",COALESCE(wait_for->>'type','ready') AS "wakeCondition",wait_for AS "waitFor",
  reason,state,run_id AS "runId",${iso(sql`created_at`)} AS "createdAt",${iso(sql`eligible_at`)} AS "eligibleAt",${iso(sql`assigned_at`)} AS "assignedAt"`;
 export const pending = (tx: Tx, input: { projectId?: string }) =>
 	rows<ManagerNextAction & { statusId: string }>(
@@ -51,8 +49,7 @@ export const enabled = async (tx: Tx, input: { projectId: string; ticketProjectI
 	return state!.allowed;
 };
 
-export const refresh = async (tx: Tx, input: { now: Date; projectId?: string } & CapacityObservation) => {
-	const capacity = new Map<string, boolean>();
+export const refresh = async (tx: Tx, input: { now: Date; projectId?: string }) => {
 	const permissions = new Map<string, boolean>();
 	for (const action of await pending(tx, input)) {
 		const ticket = await ticketState(tx, action);
@@ -63,16 +60,10 @@ export const refresh = async (tx: Tx, input: { now: Date; projectId?: string } &
 		const scope = `${action.projectId}:${ticket.projectId}`;
 		if (!permissions.has(scope))
 			permissions.set(scope, await enabled(tx, { projectId: action.projectId, ticketProjectId: ticket.projectId }));
-		if (permissions.get(scope) && !action.waitFor && !capacity.has(ticket.projectId))
-			capacity.set(
-				ticket.projectId,
-				await capacityAvailable(tx, { projectId: ticket.projectId, sessions: input.sessions }),
-			);
 		const ready =
 			permissions.get(scope) &&
-			(action.waitFor
-				? await conditionMet(tx, { waitFor: action.waitFor, ticketId: action.ticketId, now: input.now })
-				: capacity.get(ticket.projectId));
+			(!action.waitFor ||
+				(await conditionMet(tx, { waitFor: action.waitFor, ticketId: action.ticketId, now: input.now })));
 		const eligibleAt = ready ? sql`COALESCE(eligible_at,${input.now})` : sql`NULL`;
 		await tx.execute(
 			sql`UPDATE manager_next_actions SET eligible_at=${eligibleAt} WHERE id=${action.id} AND eligible_at IS DISTINCT FROM ${eligibleAt}`,

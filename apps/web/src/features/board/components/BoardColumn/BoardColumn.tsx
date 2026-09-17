@@ -1,6 +1,6 @@
 import { CaretRight, DotsThree, Plus } from "@phosphor-icons/react";
-import { AgentCapacityBadge, Button, cx, IconButton, Menu, StatusIcon } from "@trellis/ui";
-import { type KeyboardEvent, useCallback, useRef } from "react";
+import { Button, cx, IconButton, Input, Menu, StatusIcon } from "@trellis/ui";
+import { type KeyboardEvent, useCallback, useRef, useState } from "react";
 import { useBoardAutoScroll, useColumnDnd } from "../../hooks/useBoardDnd";
 import type { BoardColumnModel } from "../../types";
 import { BoardCard } from "../BoardCard";
@@ -17,9 +17,6 @@ export type BoardColumnProps = {
 	width: string;
 	// True in the light theme: the column is a grey well that holds white cards.
 	well: boolean;
-	// The concurrency slots of the project, shown in the header of the column
-	// whose tickets occupy them.
-	capacity?: { used: number; limit: number };
 	onToggle: () => void;
 	onShowAllDone: () => void;
 	// Opens the New ticket form with the project and the column's status.
@@ -29,6 +26,9 @@ export type BoardColumnProps = {
 	onFocusTicket: (identifier: string) => void;
 	onCardKeyDown: (event: KeyboardEvent<HTMLElement>, column: BoardColumnModel, index: number) => void;
 	onAnnounce: (message: string) => void;
+	// Writes the WIP limit of the column's single status. Category columns
+	// group several statuses and never offer the edit.
+	onSetWipLimit: (statusId: string, limit: number | null) => Promise<void>;
 };
 
 const cutoff = () => Date.now() - 30 * 86_400_000;
@@ -47,7 +47,6 @@ export function BoardColumn({
 	categoryMode,
 	width,
 	well,
-	capacity,
 	onToggle,
 	onShowAllDone,
 	onNewTicket,
@@ -56,6 +55,7 @@ export function BoardColumn({
 	onFocusTicket,
 	onCardKeyDown,
 	onAnnounce,
+	onSetWipLimit,
 }: BoardColumnProps) {
 	const target = useRef<HTMLElement>(null);
 	const list = useRef<HTMLUListElement>(null);
@@ -64,6 +64,18 @@ export function BoardColumn({
 	}, [collapsed, onToggle]);
 	const over = useColumnDnd(target, column, collapsed, expand);
 	useBoardAutoScroll(list, !collapsed);
+	// The draft limit while the header editor is open. Null means the
+	// editor is closed; an empty string clears the limit on commit.
+	const [limitDraft, setLimitDraft] = useState<string | null>(null);
+	const singleStatus = column.statuses.length === 1 ? column.statuses[0]! : undefined;
+	const commitLimit = () => {
+		if (limitDraft === null || singleStatus === undefined) return;
+		const limit = limitDraft === "" ? null : Number(limitDraft);
+		setLimitDraft(null);
+		if (limitDraft !== "" && (!Number.isInteger(limit) || (limit as number) < 1)) return;
+		if ((limit ?? null) === column.wipLimit) return;
+		void onSetWipLimit(singleStatus.id, limit).catch(() => setLimitDraft(limitDraft));
+	};
 	const visible =
 		column.category === "done" && !showAllDone
 			? column.items.filter((ticket) => ticket.completedAt !== null && Date.parse(ticket.completedAt) >= cutoff())
@@ -114,8 +126,26 @@ export function BoardColumn({
 				<StatusIcon category={column.category} reviewer={reviewer} />
 				<h2 className="truncate text-base font-medium">{column.name}</h2>
 				<span className="text-sm text-fg-faint tabular">{count}</span>
-				{column.wipLimit !== null && <WipBadge count={column.count} limit={column.wipLimit} />}
-				{capacity !== undefined && <AgentCapacityBadge used={capacity.used} limit={capacity.limit} />}
+				{limitDraft !== null ? (
+					<Input
+						label={`WIP limit for ${column.name}`}
+						hideLabel
+						type="number"
+						min={1}
+						step={1}
+						autoFocus
+						value={limitDraft}
+						onChange={(event) => setLimitDraft(event.target.value)}
+						onBlur={commitLimit}
+						onKeyDown={(event) => {
+							if (event.key === "Enter") commitLimit();
+							if (event.key === "Escape") setLimitDraft(null);
+						}}
+						className="w-16"
+					/>
+				) : (
+					column.wipLimit !== null && <WipBadge count={column.count} limit={column.wipLimit} />
+				)}
 				<span className={cx("ml-auto flex items-center gap-0.5", revealed)}>
 					<IconButton
 						label={`New ticket in ${column.name}`}
@@ -127,7 +157,17 @@ export function BoardColumn({
 					<Menu
 						label={`${column.name} actions`}
 						trigger={<IconButton label={`${column.name} actions`} icon={<DotsThree />} size="xs" />}
-						items={[{ label: "Collapse", onSelect: onToggle }]}
+						items={[
+							...(singleStatus === undefined
+								? []
+								: [
+										{
+											label: "Set WIP limit",
+											onSelect: () => setLimitDraft(column.wipLimit?.toString() ?? ""),
+										},
+									]),
+							{ label: "Collapse", onSelect: onToggle },
+						]}
 					/>
 				</span>
 			</header>

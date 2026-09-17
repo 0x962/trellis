@@ -7,6 +7,7 @@ import {
 	dana,
 	seedActors,
 	seedChild,
+	seedDefaultBuilder,
 	seedProject,
 	seedRoot,
 	seedRootWithStatuses,
@@ -76,6 +77,7 @@ describe("tickets.create", () => {
 
 	test("create accepts a status ref from the effective set", async () => {
 		const { rootId, statuses } = await seedProject(h.db);
+		await seedDefaultBuilder(h.db, rootId);
 		await seedChild(h.db, rootId, rootId, "web");
 		const { result: ticket } = await create({ project: "CDE.web", status: "in-progress" });
 		expect(ticket.status.id).toBe(statuses.started);
@@ -126,7 +128,8 @@ describe("tickets.create", () => {
 	});
 
 	test("create into a started status sets started_at", async () => {
-		await seedProject(h.db);
+		const { rootId } = await seedProject(h.db);
+		await seedDefaultBuilder(h.db, rootId);
 		const before = Date.now();
 		const { result: ticket } = await create({ status: "in-progress" });
 		const row = (await ticketRow(h.db, ticket.id))!;

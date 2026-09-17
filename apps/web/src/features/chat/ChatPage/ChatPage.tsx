@@ -84,7 +84,7 @@ export function ChatPage({ project }: { project: Project }) {
 	// The manager of the project names the direct message channel. A project
 	// with no manager yet shows the default name.
 	const managerName =
-		(agents.data ?? []).find((run) => run.projectId === project.id && run.kind === "manager")?.personaName ?? "Manager";
+		(agents.data ?? []).find((run) => run.projectId === project.id && run.kind === "manager")?.personaName ?? "Copilot";
 	const items: ChatMessage[] = messages.data?.items ?? [];
 
 	// The names a mention in a body can address: the live agents by persona

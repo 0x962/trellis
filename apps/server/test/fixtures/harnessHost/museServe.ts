@@ -2,7 +2,7 @@
 // `serve` speaks enough of the Muse Session Protocol over stdio for the host
 // tests: one session, turns with one tool call and one answer, interrupts,
 // resume, and model changes. HARNESS_FIXTURE_BEHAVIOR selects a failure.
-import { writeFileSync } from "node:fs";
+import { appendFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
 
@@ -88,6 +88,11 @@ lines.on("line", (line) => {
 			return complete(behavior === "normal-interrupt" ? "completed" : "cancelled");
 		case "turn/start": {
 			activeTurn = `turn-${++turn}`;
+			if (process.env.HARNESS_FIXTURE_MUSE_HOME)
+				appendFileSync(
+					join(process.env.HARNESS_FIXTURE_MUSE_HOME, "turns.jsonl"),
+					`${JSON.stringify(request.params)}\n`,
+				);
 			reply({
 				commandId: request.params.commandId,
 				status: "accepted",
@@ -98,7 +103,12 @@ lines.on("line", (line) => {
 			if (behavior === "silent") return;
 			notify("turn/started", { turnId: activeTurn, commandId: request.params.commandId });
 			notify("item/completed", {
-				item: item({ itemId: `user-${turn}`, kind: "userMessage", text: request.params.input[0].text }),
+				item: item({
+					itemId: `user-${turn}`,
+					kind: "userMessage",
+					commandId: request.params.commandId,
+					text: request.params.input.map((part: { text: string }) => part.text).join("\n\n"),
+				}),
 			});
 			notify("item/started", {
 				item: item({

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { AgentRunStartInput, Persona } from "@trellis/api";
-import { supportsModel } from "@trellis/api";
+import { HarnessSchema, supportsModel } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { type ServiceCtx as CoreCtx, requireActor } from "../../context.ts";
@@ -9,8 +9,6 @@ import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
 import { upsert } from "../actors.ts";
 import { reserveAttempt } from "../assignments/attempts.ts";
-import { capacityCounts } from "../assignments/capacity.ts";
-import type { CapacityObservation } from "../assignments/occupiesSlot/index.ts";
 import { recordRequest, replayRequest } from "../assignments/requests.ts";
 import { assignment } from "../controller/nextActions/assignment.ts";
 import { selectAccount } from "../harnessAccounts/selectAccount.ts";
@@ -23,11 +21,11 @@ import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import { columns, type StoredRun } from "./queries.ts";
 
 // The newest manager row is the current assignment; older rows retain their history.
-export const managerRowOf = async (tx: Tx, projectId: string, delegated = false) =>
+export const managerRowOf = async (tx: Tx, projectId: string, delegated: boolean | null = false) =>
 	(
 		await rows<StoredRun>(
 			tx,
-			sql`SELECT ${columns} FROM agent_runs WHERE project_id = ${projectId} AND kind = 'manager' AND ${delegated ? sql`EXISTS (SELECT 1 FROM manager_delegations d WHERE d.run_id=agent_runs.id AND d.retired_at IS NULL)` : sql`NOT EXISTS (SELECT 1 FROM manager_delegations d WHERE d.run_id=agent_runs.id)`} ORDER BY created_at DESC, id DESC LIMIT 1`,
+			sql`SELECT ${columns} FROM agent_runs WHERE project_id = ${projectId} AND kind = 'manager' AND ${delegated === null ? sql`true` : delegated ? sql`EXISTS (SELECT 1 FROM manager_delegations d WHERE d.run_id=agent_runs.id AND d.retired_at IS NULL)` : sql`NOT EXISTS (SELECT 1 FROM manager_delegations d WHERE d.run_id=agent_runs.id)`} ORDER BY created_at DESC, id DESC LIMIT 1`,
 		)
 	).at(0);
 
@@ -36,7 +34,12 @@ export const reserve = async (
 	tx: Tx,
 	input: AgentRunStartInput,
 	confirmedExited: string[] = [],
-	options?: { delegated?: boolean; config?: Awaited<ReturnType<typeof projectLaunchConfig>> } & CapacityObservation,
+	options?: {
+		copilot?: boolean;
+		column?: boolean;
+		delegated?: boolean;
+		config?: Awaited<ReturnType<typeof projectLaunchConfig>>;
+	},
 ) => {
 	const actor = requireActor(ctx);
 	if (input.project && actor.kind === "agent" && !options?.delegated) {
@@ -52,7 +55,7 @@ export const reserve = async (
 		throw invalidInput("personaId", "Select a manager for a project, or a builder or reviewer for a ticket.");
 	const ticket = input.ticket === undefined ? null : await resolveTicket(ctx, tx, input.ticket);
 	const project = await resolveMutableProject(ctx, tx, ticket?.projectId ?? input.project!);
-	if (ticket === null && !options?.delegated) {
+	if (ticket === null && !options?.delegated && !options?.copilot) {
 		const delegated = await rows(
 			tx,
 			sql`SELECT run_id FROM manager_delegations WHERE project_id=${project.id} AND retired_at IS NULL`,
@@ -80,8 +83,22 @@ export const reserve = async (
 		})) ?? (await replayRequest(ctx, tx, request));
 	if (replay) return { replay: true as const, run: replay };
 	assertProjectActive(ctx, project.id);
-	if (ticket?.completedAt != null) throw invalidInput("ticket", "Reopen the ticket before you assign an agent.");
+	if (ticket?.completedAt != null && !options?.column)
+		throw invalidInput("ticket", "Reopen the ticket before you assign an agent.");
 	let config = options?.config ?? (await projectLaunchConfig(tx, { projectId: project.id }));
+	if (ticket) {
+		const [status] = await rows<{ agentConfig: import("@trellis/api").StatusAgentConfig | null }>(
+			tx,
+			sql`SELECT agent_config AS "agentConfig" FROM statuses WHERE id=${ticket.statusId}`,
+		);
+		if (status?.agentConfig)
+			config = {
+				...config,
+				harness: HarnessSchema.parse(status.agentConfig.harness),
+				accountId: status.agentConfig.accountId ?? null,
+			};
+	}
+	if (input.harness) config = { ...config, harness: HarnessSchema.parse(input.harness), accountId: null };
 	await assertNativeWorkEnabled(tx);
 	if (ticket !== null) {
 		await assertAssignmentOwner(ctx, tx, project.id);
@@ -90,8 +107,12 @@ export const reserve = async (
 			sql`SELECT id FROM agent_runs WHERE ticket_id=${ticket.id} AND persona_id=${persona.id} AND runtime='native' AND closed_at IS NULL LIMIT 1`,
 		);
 		if (assigned.length > 0) throw fail("DUPLICATE", { field: "active persona assignment on this ticket" });
-		const capacity = await capacityCounts(tx, { projectId: project.id, sessions: options?.sessions });
-		if (!capacity.available) throw fail("CONCURRENCY_LIMIT", { limit: capacity.limit, running: capacity.running });
+		const [status] = await rows<{ category: string }>(
+			tx,
+			sql`SELECT category FROM statuses WHERE id=${ticket.statusId}`,
+		);
+		if (status?.category === "todo" && !options?.column)
+			throw invalidInput("ticket", "Move the ticket out of Todo before you assign an agent.");
 	}
 	const projectPath = pathOf(ctx.cache, project.id);
 	const ids = chainOf(ctx.cache, project.id).map((item) => item.id);
@@ -103,11 +124,14 @@ export const reserve = async (
 		)})`,
 	);
 	await upsert(ctx, tx, actor);
-	let existing = persona.kind === "manager" ? await managerRowOf(tx, project.id, options?.delegated) : undefined;
+	let existing =
+		persona.kind === "manager"
+			? await managerRowOf(tx, project.id, options?.copilot ? null : options?.delegated)
+			: undefined;
 	if (existing !== undefined && existing.runtime === "native" && existing.closedAt === null)
 		throw fail("DUPLICATE", { field: "active agent" });
 	if (existing && existing.runtime !== "native") existing = undefined;
-	if (existing !== undefined && input.newSession === true && actor.kind !== "human")
+	if (existing !== undefined && input.newSession === true && actor.kind !== "human" && !options?.copilot)
 		throw invalidInput(
 			"newSession",
 			"Only a person can reset an existing manager conversation. Resume it without newSession to preserve its context.",
@@ -133,7 +157,7 @@ export const reserve = async (
 			throw invalidInput("model", "A custom command does not support a model override. Select a native harness.");
 		if (!supportsModel(config.harness.preset, input.model))
 			throw invalidInput("model", `Select a model supported by ${config.harness.preset} from models.list.`);
-		config = { ...config, harness: { ...config.harness, model: input.model } };
+		config = { ...config, harness: { ...config.harness, model: input.model, effort: undefined } };
 	}
 	const previousAttemptId = existing?.terminalId ?? null;
 	const sessionId = resume ? existing!.sessionId! : config.harness.preset === "custom" ? randomUUID() : null;
@@ -187,6 +211,6 @@ export const reserve = async (
 		resume,
 		previousAttemptId,
 		previousAccountId: existing?.accountId ?? null,
-		context: `${context}\nConcurrency limit: ${config.concurrency} concurrent active worker turns in this project.\nProject directory: ${config.directory || (ticket === null ? "Not configured" : "Use the agent workspace.")}\nRepositories: ${repos.map((repo) => `https://github.com/${repo.owner}/${repo.repo}`).join(", ")}${notes.length === 0 ? "" : `\n\n${notes.join("\n")}`}`,
+		context: `${context}\nProject directory: ${config.directory || (ticket === null ? "Not configured" : "Use the agent workspace.")}\nRepositories: ${repos.map((repo) => `https://github.com/${repo.owner}/${repo.repo}`).join(", ")}${notes.length === 0 ? "" : `\n\n${notes.join("\n")}`}`,
 	};
 };

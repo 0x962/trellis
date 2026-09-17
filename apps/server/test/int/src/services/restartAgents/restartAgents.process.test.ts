@@ -56,7 +56,7 @@ test.each(["claude", "codex", "opencode", "pi", "muse"] as const)(
 			await seedActors(tx);
 			const project = await seedRoot(tx, "RST");
 			await tx.execute(
-				sql`UPDATE projects SET manager_config=${JSON.stringify({ personaId: null, concurrency: 3, directory: home })}::jsonb WHERE id=${project}`,
+				sql`UPDATE projects SET manager_config=${JSON.stringify({ personaId: null, directory: home })}::jsonb WHERE id=${project}`,
 			);
 			await tx.execute(
 				sql`INSERT INTO agent_runs (id,name,runtime,persona_name,kind,instruction,project_id,project_path,terminal_id,session_id,workspace_id,created_at,updated_at) VALUES (${runId},'Worker','native','Builder','builder','Continue the assignment',${project},'RST',${previousAttemptId},${previous.agent!.sessionId},${home},now(),now())`,

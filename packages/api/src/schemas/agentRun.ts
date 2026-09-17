@@ -1,19 +1,8 @@
 import { z } from "zod";
+import { HarnessSchema } from "../harness/harness.ts";
 import { ModelIdSchema } from "../models/models.ts";
-import { ProjectRefStringSchema } from "../refs.ts";
 import { PersonaKindSchema } from "./persona.ts";
-import { CountSchema, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
-
-export const AgentCapacitySchema = z.object({
-	used: CountSchema,
-	limit: CountSchema,
-});
-export type AgentCapacity = z.infer<typeof AgentCapacitySchema>;
-
-export const AgentCapacityInputSchema = z.strictObject({
-	project: ProjectRefStringSchema,
-});
-export type AgentCapacityInput = z.input<typeof AgentCapacityInputSchema>;
+import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 // The kinds of an agent run: the three persona kinds, and `session` for the
 // agent of a scratch session, which has no persona, no project, and no
@@ -62,6 +51,7 @@ export type AgentRun = z.infer<typeof AgentRunSchema>;
 export const AgentRunStartInputSchema = z
 	.strictObject({
 		personaId: UlidSchema,
+		harness: HarnessSchema.optional(),
 		model: ModelIdSchema.optional().describe(
 			"Canonical model ID from models.list for this assignment. Defaults to the project's harness model.",
 		),
