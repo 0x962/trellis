@@ -1,5 +1,6 @@
 import { isDefinedError, safe } from "@orpc/client";
 import { useCallback, useRef, useState } from "react";
+import { ulid } from "ulid";
 import { useApp } from "../../../../lib/appContext";
 
 // Why the server did not store one file. `maxBytes` is the size cap the
@@ -74,7 +75,7 @@ export const useUploads = (ticket?: string, removeCompleted = true): Uploads => 
 			const controller = new AbortController();
 			running.current.set(entry.id, controller);
 			const { error } = await safe(
-				client.attachments.upload({ ticket: target, file: entry.file }, { signal: controller.signal }),
+				client.attachments.upload({ id: entry.id, ticket: target, file: entry.file }, { signal: controller.signal }),
 			);
 			running.current.delete(entry.id);
 			// An aborted request belongs to an entry that `clear` removed.
@@ -115,7 +116,7 @@ export const useUploads = (ticket?: string, removeCompleted = true): Uploads => 
 	const addFiles = useCallback(
 		(files: File[]) => {
 			const entries: Upload[] = files.map((file) => ({
-				id: crypto.randomUUID(),
+				id: ulid(),
 				file,
 				percent: 0,
 				status: ticket === undefined ? "pending" : "uploading",
