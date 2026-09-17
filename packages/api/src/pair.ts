@@ -1,7 +1,6 @@
 // The pair link is `trellis://pair?url=<server URL>`, with the server URL as
-// one encoded query value. The web settings page draws it as a QR code, and
-// the phone app opens it. Hermes ships no URL class, so the parts are
-// patterns.
+// one encoded query value. A QR code or another app can carry the link to the
+// phone app. Hermes ships no URL class, so the parts are patterns.
 
 const PAIR_PREFIX = /^trellis:\/\/pair\?/i;
 const SERVER_URL = /^https?:\/\/[^\s/?#]+/i;
