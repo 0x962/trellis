@@ -7,7 +7,7 @@ export const managerNextAction = z.object({
 	ticketId: z.string(),
 	assignmentRequestId: z.string(),
 	reason: z.string(),
-	wakeCondition: z.enum(["capacity", "time", "dependency", "human_response"]),
+	wakeCondition: z.enum(["ready", "time", "dependency", "human_response"]),
 	waitFor: managerWait.nullish(),
 	state: z.enum(["waiting", "assigned", "canceled"]),
 	runId: z.string().nullable(),

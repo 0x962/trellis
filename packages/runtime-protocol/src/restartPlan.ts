@@ -11,6 +11,7 @@ export type RestartSession = {
 	// always `done` with the outcome `failed`.
 	harness: "claude" | "codex" | "opencode" | "pi" | "muse" | "custom";
 	model?: string;
+	effort?: string;
 	workspace: string;
 	processIdentity: string;
 	attempt: { id: string; token: string };

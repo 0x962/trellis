@@ -148,10 +148,10 @@ export const errors = {
 		message: "The after or before item is not in the target list.",
 		data: z.undefined(),
 	},
-	CONCURRENCY_LIMIT: {
+	STATUS_FULL: {
 		status: 409,
-		message: "The project runs its maximum number of builders. Start this one when a builder finishes.",
-		data: z.object({ limit: z.number().int().positive(), running: CountSchema }),
+		message: "The status holds its maximum number of tickets. Move a ticket out before you move one in.",
+		data: z.object({ statusId: z.string().min(1), limit: z.number().int().positive(), count: CountSchema }),
 	},
 	VERSION_CONFLICT: {
 		status: 412,

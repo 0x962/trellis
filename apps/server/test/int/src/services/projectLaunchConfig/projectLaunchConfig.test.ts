@@ -20,7 +20,7 @@ beforeEach(async () => {
 	await h.read(async (tx) => {
 		await seedActors(tx);
 		root = await seedRoot(tx, "ROOT", {
-			manager_config: { personaId: null, concurrency: 9, directory: "/tmp/root", harness: { preset: "codex" } },
+			manager_config: { personaId: null, directory: "/tmp/root", harness: { preset: "codex" } },
 		});
 		await seedStatuses(tx, root);
 		child = await seedChild(tx, root, root, "child");
@@ -40,7 +40,7 @@ test("a child launch uses the nearest current ancestor directory without inherit
 	const first = await reservation(child);
 	if (first.replay) throw new Error("Expected a new launch");
 	expect(first.config.directory).toBe("/tmp/changed-root");
-	expect(first.config.concurrency).toBe(3);
+	expect(first.config).not.toHaveProperty("concurrency");
 	expect(first.config.personaId).toBeNull();
 	expect(first.config.harness.preset).toBe("claude");
 	expect(first.context).toContain("Project directory: /tmp/changed-root");

@@ -13,7 +13,7 @@ import { prepareSetModel } from "../../../../../src/services/agentRuns/setModel/
 import { reserveRestart } from "../../../../../src/services/restartAgents/reserveRestart.ts";
 import type { IoCtx } from "../../../../../src/services/support.ts";
 import { create } from "../../../../../src/services/tickets.ts";
-import { seedActors, seedRoot, seedStatuses } from "../../../../fixtures/projects.ts";
+import { seedActors, seedDefaultBuilder, seedRoot, seedStatuses } from "../../../../fixtures/projects.ts";
 import { harnessHostFixture } from "../../../../helpers/harnessHostFixture.ts";
 import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
@@ -58,6 +58,7 @@ beforeEach(async () => {
 		await seedActors(tx);
 		const project = await seedRoot(tx, "SWITCH");
 		await seedStatuses(tx, project);
+		await seedDefaultBuilder(tx, project);
 		await tx.execute(
 			sql`INSERT INTO personas(id,name,kind,instruction,created_at,updated_at) VALUES ('builder','Builder','builder','Build.',now(),now())`,
 		);
@@ -66,7 +67,9 @@ beforeEach(async () => {
 		);
 	});
 	await h.rebuild();
-	const ticket = await h.run((context, tx) => create(context, tx, { project: "SWITCH", title: "Continue this work" }));
+	const ticket = await h.run((context, tx) =>
+		create(context, tx, { project: "SWITCH", title: "Continue this work", status: "In Progress" }),
+	);
 	const reserved = await h.run((context, tx) =>
 		reserve(context, tx, {
 			ticket: ticket.id,
@@ -78,6 +81,7 @@ beforeEach(async () => {
 	if (reserved.replay) throw new Error("Expected a new assignment");
 	runId = reserved.run.id;
 	attemptId = reserved.attempt.id;
+	reserved.config.harness.effort = "high";
 	await start(ctx(), reserved);
 	const previous = await nativeHost(fixture.home, deps().env, fixture.client).waitFor(
 		attemptId,
@@ -105,6 +109,7 @@ test("a stopped worker changes accounts with the same assignment, workspace, and
 	const launch = JSON.parse(
 		await readFile(join(fixture.home, "harness-attempts", resumed.terminalId!, "launch.json"), "utf8"),
 	);
+	expect(launch.effort).toBe("high");
 	expect(launch.spec.env.CLAUDE_CONFIG_DIR).toBe(to);
 	expect(launch.spec.args).toContain(sessionId);
 	expect(await readFile(join(to, "projects", "work", `${sessionId}.jsonl`), "utf8")).toBe("existing conversation\n");
@@ -251,12 +256,9 @@ test("a running worker changes models without a manual stop and retains its assi
 	await prepareStop(ctx(), { id: runId });
 }, 15000);
 
-test("a stopped open assignment must acquire capacity before its next turn", async () => {
+test("a stopped open assignment resumes while another worker runs", async () => {
 	const run = await h.read((tx) => getRun(tx, runId));
 	await nativeHost(fixture.home).stop(attemptId);
-	await h.rows(
-		sql`UPDATE projects SET manager_config=manager_config || '{"concurrency":1}'::jsonb WHERE id=${run.projectId}`,
-	);
 	await h.rows(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,runtime,terminal_id,created_at,updated_at)
 		VALUES ('other','Builder','Builder','builder','Work',${run.projectId},'SWITCH','native','other-attempt',now(),now())`);
 	await fixture.client.start({
@@ -268,11 +270,9 @@ test("a stopped open assignment must acquire capacity before its next turn", asy
 		env: { TRELLIS_ATTEMPT_TOKEN: "other-token" },
 	});
 	await fixture.client.observe("other-attempt", "other-token", { kind: "prompt", prompt: "Work" });
-	await new Promise((resolve) => setTimeout(resolve, 10_010));
-
-	await expect(prepareResume(ctx(), request(), start)).rejects.toMatchObject({
-		code: "CONCURRENCY_LIMIT",
-		data: { limit: 1, running: 1 },
-	});
-	expect((await h.read((tx) => getRun(tx, runId))).terminalId).toBe(attemptId);
+	await prepareResume(ctx(), request(), start);
+	const resumed = await h.read((tx) => getRun(tx, runId));
+	expect(resumed.terminalId).not.toBe(attemptId);
+	expect(resumed.sessionId).toBe(sessionId);
+	await prepareStop(ctx(), { id: runId });
 }, 30_000);

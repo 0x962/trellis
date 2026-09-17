@@ -32,7 +32,11 @@ test("the desktop restart endpoint requires an actor and permits a repeated comp
 test("a pending restart blocks new assignments and leaves its intent intact", async () => {
 	app = await createTestApp();
 	await app.seedProject("RST");
-	const ticket = await app.createTicket({ project: "RST", title: "Resume the existing session" });
+	const ticket = await app.createTicket({
+		project: "RST",
+		title: "Resume the existing session",
+		status: "In Progress",
+	});
 	const persona = await app.client.personas.create({ name: "Builder", kind: "builder", instruction: "Do the work." });
 	await writeRestartPlan(app.home, {
 		version: 1,

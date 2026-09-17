@@ -90,15 +90,15 @@ describe("projects.create on a root", () => {
 	test("a root is seeded with the six statuses in order", async () => {
 		const created = await h.run((ctx, tx) => projects.create(ctx, tx, { key: "CDE", name: "Code" }));
 		const seeded = await h.rows(
-			sql`SELECT name, category, reviewer, is_default, position FROM statuses WHERE project_id = ${created.id} ORDER BY position`,
+			sql`SELECT name, category, reviewer, is_default, position, wip_limit FROM statuses WHERE project_id = ${created.id} ORDER BY position`,
 		);
 		expect(seeded).toEqual([
-			{ name: "Todo", category: "todo", reviewer: null, is_default: true, position: 0 },
-			{ name: "In Progress", category: "started", reviewer: null, is_default: false, position: 1 },
-			{ name: "Agent Review", category: "review", reviewer: "agent", is_default: false, position: 2 },
-			{ name: "Human Review", category: "review", reviewer: "human", is_default: false, position: 3 },
-			{ name: "Done", category: "done", reviewer: null, is_default: false, position: 4 },
-			{ name: "Canceled", category: "canceled", reviewer: null, is_default: false, position: 5 },
+			{ name: "Todo", category: "todo", reviewer: null, is_default: true, position: 0, wip_limit: null },
+			{ name: "In Progress", category: "started", reviewer: null, is_default: false, position: 1, wip_limit: 9 },
+			{ name: "Agent Review", category: "review", reviewer: "agent", is_default: false, position: 2, wip_limit: null },
+			{ name: "Human Review", category: "review", reviewer: "human", is_default: false, position: 3, wip_limit: null },
+			{ name: "Done", category: "done", reviewer: null, is_default: false, position: 4, wip_limit: null },
+			{ name: "Canceled", category: "canceled", reviewer: null, is_default: false, position: 5, wip_limit: null },
 		]);
 		expect(created.statuses.map((status) => status.name)).toEqual(seeded.map((status) => status.name));
 		expect(created.statusesInheritedFrom).toBeNull();

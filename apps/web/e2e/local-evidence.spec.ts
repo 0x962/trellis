@@ -22,7 +22,6 @@ test("local files return to the diff and changed output invalidates passed evide
 		await patch("/projects/EVD", {
 			managerConfig: {
 				personaId: null,
-				concurrency: 3,
 				directory: repo,
 				ade: "native",
 				dispatchPaused: true,

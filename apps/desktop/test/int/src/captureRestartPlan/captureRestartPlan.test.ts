@@ -26,6 +26,7 @@ const descriptor = async (id: string, harness = "codex", runId: string | undefin
 		join(path, "launch.json"),
 		JSON.stringify({
 			harness,
+			effort: "ultra",
 			fingerprint: JSON.stringify([harness, "/saved/work", "prompt", "configured-model"]),
 			spec: { id, cwd: "/saved/work", env: { TRELLIS_RUN_ID: runId } },
 		}),
@@ -70,6 +71,7 @@ test("capture saves only OS-confirmed active agents and fresh resume identities"
 		providerSessionId: "provider-active",
 		harness: "codex",
 		model: "observed-model",
+		effort: "ultra",
 		workspace: "/saved/work",
 		processIdentity: "kernel-active",
 	});
@@ -101,6 +103,7 @@ test("large active launch arguments and retired metadata preserve only the activ
 		providerSessionId: "provider-active",
 		harness: "codex",
 		model: "observed-model",
+		effort: "ultra",
 		workspace: "/saved/work",
 		processIdentity: "kernel-active",
 	});

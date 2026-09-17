@@ -26,7 +26,6 @@ async function managerFixture(key: string) {
 		name: `${key} manager terminal`,
 		managerConfig: {
 			personaId: persona.id,
-			concurrency: 1,
 			directory: repo,
 			ade: "native",
 			dispatchPaused: true,
