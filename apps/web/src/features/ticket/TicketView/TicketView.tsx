@@ -1,5 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { reviewRef } from "@trellis/api";
 import { cx, EmptyState, useMediaQuery } from "@trellis/ui";
 import { useEffect, useState } from "react";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
@@ -26,11 +28,21 @@ export type TicketViewProps = {
 	// The canonical identifier, `CDE-42`.
 	identifier: string;
 	thread?: string;
+	embedded?: boolean;
 	onReturnToList: () => void;
 };
 
-export function TicketView({ identifier, thread, onReturnToList }: TicketViewProps) {
+export function TicketView({ identifier, thread, onReturnToList, embedded = false }: TicketViewProps) {
 	const { orpc } = useApp();
+	const navigate = useNavigate();
+	const openPullRequest = (url: string) => {
+		if (!embedded) {
+			setPullRequest(url);
+			return;
+		}
+		const { owner, repo, number } = reviewRef(url);
+		void navigate({ to: "/reviews/$owner/$repo/$number", params: { owner, repo, number: String(number) } });
+	};
 	const query = useQuery(orpc.tickets.get.queryOptions({ input: { ticket: identifier } }));
 	const uploads = useUploads(identifier);
 	const parentSummary = useParentSummary(query.data?.parent?.identifier ?? null);
@@ -39,19 +51,22 @@ export function TicketView({ identifier, thread, onReturnToList }: TicketViewPro
 	const { isArchived, notice } = useArchivedProjects();
 	const [workAreaTab, setWorkAreaTab] = useState("activity");
 	const [pullRequest, setPullRequest] = useState<string | null>(null);
-	useTicketEscape({
-		reviewOpen: pullRequest !== null,
-		closeReview: () => setPullRequest(null),
-		returnToList: onReturnToList,
-	});
+	useTicketEscape(
+		{
+			reviewOpen: pullRequest !== null,
+			closeReview: () => setPullRequest(null),
+			returnToList: onReturnToList,
+		},
+		!embedded,
+	);
 
 	useEffect(() => {
-		if (query.data === undefined || pullRequest !== null) return;
+		if (embedded || query.data === undefined || pullRequest !== null) return;
 		document.title = `${query.data.identifier} · ${query.data.title}`;
 		return () => {
 			document.title = "trellis";
 		};
-	}, [pullRequest, query.data]);
+	}, [embedded, pullRequest, query.data]);
 
 	if (query.error !== null) {
 		if (query.error instanceof ORPCError && query.error.code === "NOT_FOUND") {
@@ -68,9 +83,9 @@ export function TicketView({ identifier, thread, onReturnToList }: TicketViewPro
 	}
 	if (query.data === undefined) return <TicketSkeleton />;
 	const ticket = query.data;
-	const inlineRail = narrow;
+	const inlineRail = embedded || narrow;
 	const readOnly = isArchived(ticket.project.path);
-	if (pullRequest !== null) {
+	if (pullRequest !== null && !embedded) {
 		return (
 			<ReviewPage
 				key={pullRequest}
@@ -114,7 +129,7 @@ export function TicketView({ identifier, thread, onReturnToList }: TicketViewPro
 				</div>
 				<div className="mt-8 flex flex-col gap-8">
 					<SubTickets ticket={ticket} />
-					<PullRequests ticket={ticket} initialPrs={ticket.prs} onOpen={setPullRequest} title="Pull requests" />
+					<PullRequests ticket={ticket} initialPrs={ticket.prs} onOpen={openPullRequest} title="Pull requests" />
 					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
 					<Timeline thread={thread} ticket={ticket} onAttachFiles={uploads.addFiles} />
 				</div>
@@ -133,20 +148,24 @@ export function TicketView({ identifier, thread, onReturnToList }: TicketViewPro
 	return (
 		<fieldset disabled={readOnly} className="contents">
 			<div {...drop.handlers} className="relative flex h-full min-h-0 flex-1 flex-col">
-				<Header ticket={ticket} />
+				{!embedded && <Header ticket={ticket} />}
 				{readOnly && (
 					<p className="flex h-9 shrink-0 items-center bg-warning-soft px-5 text-sm font-medium text-warning max-md:px-4">
 						{notice(ticket.project.path)}
 					</p>
 				)}
-				<TicketWorkArea
-					key={ticket.id}
-					ticket={ticket}
-					tab={workAreaTab}
-					onTabChange={setWorkAreaTab}
-					onOpenPullRequest={setPullRequest}
-					activity={activityPage}
-				/>
+				{embedded ? (
+					activityPage
+				) : (
+					<TicketWorkArea
+						key={ticket.id}
+						ticket={ticket}
+						tab={workAreaTab}
+						onTabChange={setWorkAreaTab}
+						onOpenPullRequest={setPullRequest}
+						activity={activityPage}
+					/>
+				)}
 				{drop.over && <DropOverlay identifier={ticket.identifier} />}
 			</div>
 		</fieldset>

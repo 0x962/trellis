@@ -6,7 +6,7 @@ export type AgentProfile = {
 	effort?: string;
 };
 
-export function AgentProfileMark({ profile, working }: { profile: AgentProfile; working: boolean }) {
+export function AgentProfileMark({ profile }: { profile: AgentProfile }) {
 	return (
 		<span
 			aria-hidden="true"
@@ -14,7 +14,6 @@ export function AgentProfileMark({ profile, working }: { profile: AgentProfile; 
 		>
 			<span className="relative grid aspect-square h-full shrink-0 place-items-center">
 				<ProviderIcon provider={profile.provider} decorative className="size-[55%]" />
-				{working && <span className="absolute top-0 right-0 size-1.5 rounded-round border border-surface bg-accent" />}
 			</span>
 			<span className="flex max-w-0 min-w-0 -translate-x-1 items-center overflow-hidden pr-0 opacity-0 transition-[max-width,translate,opacity,padding] duration-hover ease-out group-hover/avatar:max-w-52 group-hover/avatar:translate-x-0 group-hover/avatar:pr-2 group-hover/avatar:opacity-100 motion-reduce:transition-none">
 				<span className="truncate text-xs leading-none font-medium">{profile.model}</span>

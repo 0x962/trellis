@@ -1,4 +1,4 @@
-import { Play, Stop, Trash } from "@phosphor-icons/react";
+import { Play, Stop, Ticket, Trash } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import type { AgentRun, Session } from "@trellis/api";
 import { Avatar, ConfirmDialog, EmptyState, IconButton, Tooltip } from "@trellis/ui";
@@ -16,11 +16,13 @@ export function SessionConversation({
 	session,
 	readOnly = false,
 	onDeleted,
+	onOpenTicket,
 }: {
 	run: AgentRun;
 	session?: Session;
 	readOnly?: boolean;
 	onDeleted?: () => void;
+	onOpenTicket?: () => void;
 }) {
 	const { client, orpc, queryClient } = useApp();
 	const [confirmStop, setConfirmStop] = useState(false);
@@ -66,6 +68,11 @@ export function SessionConversation({
 				/>
 				<span className="min-w-0 flex-1 truncate text-sm font-medium tabular">{name}</span>
 				<span className="text-xs text-fg-muted">{run.state}</span>
+				{onOpenTicket && run.ticketIdentifier && (
+					<Tooltip content={`Open ${run.ticketIdentifier}`}>
+						<IconButton label={`Open ${run.ticketIdentifier}`} icon={<Ticket />} onClick={onOpenTicket} />
+					</Tooltip>
+				)}
 				<Tooltip content={active ? (run.kind === "agent" ? "Remove assignment" : "Stop session") : "Resume session"}>
 					<IconButton
 						ref={control}

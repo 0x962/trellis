@@ -1,6 +1,6 @@
 import { ArrowUp, Paperclip } from "@phosphor-icons/react";
-import { IconButton, Textarea, Tooltip } from "@trellis/ui";
-import { useRef } from "react";
+import { cx, IconButton, Textarea, Tooltip } from "@trellis/ui";
+import { type ReactNode, type Ref, useRef } from "react";
 import { useDropTarget } from "../../attachments/hooks/useDropTarget";
 import { UploadProgress } from "../../attachments/UploadProgress";
 
@@ -12,6 +12,9 @@ export function SessionPrompt({
 	onSubmit,
 	disabled = false,
 	label = "Message",
+	compact = false,
+	tools,
+	inputRef,
 }: {
 	text: string;
 	files: File[];
@@ -20,6 +23,9 @@ export function SessionPrompt({
 	onSubmit: () => void;
 	disabled?: boolean;
 	label?: string;
+	compact?: boolean;
+	tools?: ReactNode;
+	inputRef?: Ref<HTMLTextAreaElement>;
 }) {
 	const fileIds = useRef(new WeakMap<File, string>());
 	const fileId = (file: File) => {
@@ -35,7 +41,10 @@ export function SessionPrompt({
 	return (
 		<section
 			aria-label={label}
-			className="relative flex flex-col gap-2 p-3"
+			className={cx(
+				"relative flex flex-col gap-2 p-3",
+				compact && "rounded-lg border border-border bg-elevated focus-within:border-accent",
+			)}
 			onDragOver={drop.onDragOver}
 			onDragLeave={drop.onDragLeave}
 			onDrop={drop.onDrop}
@@ -50,6 +59,9 @@ export function SessionPrompt({
 				/>
 			))}
 			<Textarea
+				ref={inputRef}
+				variant={compact ? "composer" : "default"}
+				className={compact ? "min-h-20 max-h-60" : undefined}
 				label={label}
 				hideLabel
 				value={text}
@@ -71,25 +83,28 @@ export function SessionPrompt({
 					}
 				}}
 			/>
-			<div className="flex items-center justify-between gap-2">
-				<Tooltip content="Attach files">
-					<IconButton
-						label="Attach files"
-						icon={<Paperclip />}
-						disabled={disabled}
-						onClick={() => picker.current?.click()}
-					/>
-				</Tooltip>
-				<span className="text-xs text-fg-faint">⌘/Ctrl+Enter to send</span>
-				<Tooltip content="Send message">
-					<IconButton
-						label="Send message"
-						icon={<ArrowUp />}
-						variant="primary"
-						disabled={disabled || (!text.trim() && files.length === 0)}
-						onClick={onSubmit}
-					/>
-				</Tooltip>
+			<div className="flex flex-wrap items-center justify-between gap-2">
+				{tools && <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">{tools}</div>}
+				<div className={cx("flex items-center gap-2", !tools && "w-full justify-between", !!tools && "ml-auto")}>
+					<Tooltip content="Attach files">
+						<IconButton
+							label="Attach files"
+							icon={<Paperclip />}
+							disabled={disabled}
+							onClick={() => picker.current?.click()}
+						/>
+					</Tooltip>
+					{!compact && <span className="text-xs text-fg-faint">⌘/Ctrl+Enter to send</span>}
+					<Tooltip content={compact ? "Start session" : "Send message"}>
+						<IconButton
+							label={compact ? "Start session" : "Send message"}
+							icon={<ArrowUp />}
+							variant="primary"
+							disabled={disabled || (!text.trim() && files.length === 0)}
+							onClick={onSubmit}
+						/>
+					</Tooltip>
+				</div>
 			</div>
 			<input
 				ref={picker}

@@ -6,7 +6,7 @@ import { IconButton } from "../IconButton";
 
 export type SheetProps = {
 	open: boolean;
-	onOpenChange: (open: boolean) => void;
+	onOpenChange: NonNullable<ComponentProps<typeof BaseDialog.Root>["onOpenChange"]>;
 	// The accessible name, shown in the header.
 	title: string;
 	side?: "left" | "right";
@@ -65,7 +65,7 @@ export function Sheet({
 	return (
 		<BaseDialog.Root
 			open={open}
-			onOpenChange={(next) => onOpenChange(next)}
+			onOpenChange={onOpenChange}
 			modal={modal}
 			disablePointerDismissal={!modal && !dismissOnOutside}
 		>

@@ -30,12 +30,12 @@ export const runTicketEscape = (focused: TicketEscapeElement | null, actions: Ti
 	actions.returnToList();
 };
 
-export function useTicketEscape(actions: TicketEscapeActions) {
+export function useTicketEscape(actions: TicketEscapeActions, enabled = true) {
 	const latestActions = useRef(actions);
 	latestActions.current = actions;
 	const onEscape = useCallback(() => {
 		const focused = document.activeElement;
 		runTicketEscape(focused instanceof HTMLElement ? focused : null, latestActions.current);
 	}, []);
-	useEscapeLayer("ticket", true, onEscape);
+	useEscapeLayer("ticket", enabled, onEscape);
 }
