@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
-import { CheckResults, EmptyState, Tabs } from "@trellis/ui";
+import { EmptyState, Tabs } from "@trellis/ui";
 import { type ReactNode, useEffect, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { AgentRunDetails } from "../../agents/AgentRunDetails";
@@ -21,10 +21,6 @@ export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity:
 	}, [hash]);
 	const runs = useQuery({
 		...orpc.agentRuns.list.queryOptions({ input: { ticket: ticket.identifier } }),
-	});
-	const prs = useQuery({
-		...orpc.pullRequests.list.queryOptions({ input: { ticket: ticket.id } }),
-		initialData: ticket.prs,
 	});
 	const run = runs.data?.[0];
 	const assigned = runs.data?.find(hasAssignedProcess);
@@ -61,20 +57,6 @@ export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity:
 								{run?.runtime === "native" && run.workspaceId && <LocalChanges key={run.terminalId} run={run} />}
 								<PullRequests ticket={ticket} initialPrs={ticket.prs} />
 							</div>
-						),
-					},
-					{
-						value: "checks",
-						label: "Checks",
-						content: (
-							<CheckResults
-								groups={(prs.data ?? []).map((pr) => ({
-									id: pr.id,
-									title: `${pr.owner}/${pr.repo} #${pr.number}`,
-									checks: pr.checks,
-									error: pr.fetchError,
-								}))}
-							/>
 						),
 					},
 					{ value: "flows", label: "Flows", content: <FlowRuns ticket={ticket.identifier} /> },
