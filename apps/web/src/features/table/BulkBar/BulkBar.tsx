@@ -15,11 +15,12 @@ export type BulkBarProps = {
 	count: number;
 	statuses: readonly StatusSummary[];
 	projects: readonly ProjectSummary[];
+	ticketRootIds: readonly string[];
 	// The project ref the parent search stays inside.
 	project?: string;
 	onStatus: (status: StatusSummary) => void;
 	onPriority: (priority: Priority) => void;
-	onProject: (ref: string) => void;
+	onProject: (path: string) => void;
 	onParent: (ticket: TicketSummary | null) => void;
 	onCopyIds: () => void;
 	onDelete: () => void;
@@ -54,6 +55,7 @@ export function BulkBar({
 	count,
 	statuses,
 	projects,
+	ticketRootIds,
 	project,
 	onStatus,
 	onPriority,
@@ -112,6 +114,7 @@ export function BulkBar({
 				"m",
 				<ProjectPicker
 					projects={projects}
+					ticketRootIds={ticketRootIds}
 					onPick={onProject}
 					side="top"
 					trigger={<Button size="sm">Move to project</Button>}
