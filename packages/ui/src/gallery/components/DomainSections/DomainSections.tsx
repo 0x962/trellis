@@ -1,3 +1,5 @@
+import { Paperclip } from "@phosphor-icons/react";
+import { useState } from "react";
 import { ActorChip } from "../../../domain/ActorChip";
 import { type Check, CheckRibbon } from "../../../domain/CheckRibbon";
 import { type Priority, PriorityIcon } from "../../../domain/PriorityIcon";
@@ -6,6 +8,8 @@ import { StatusIcon } from "../../../domain/StatusIcon";
 import { TicketGlimmer } from "../../../domain/TicketGlimmer";
 import { TicketId } from "../../../domain/TicketId";
 import { TrellisMark } from "../../../domain/TrellisMark";
+import { Avatar } from "../../../primitives/Avatar";
+import { Switch } from "../../../primitives/Switch";
 import { Section } from "../Section";
 
 const priorities: Priority[] = ["none", "low", "medium", "high", "urgent"];
@@ -38,6 +42,7 @@ const reviews: PullRequestReviewStatus[] = (
 
 // The trellis-specific marks in every variant.
 export function DomainSections() {
+	const [glimmerActive, setGlimmerActive] = useState(true);
 	return (
 		<>
 			<Section name="StatusIcon" note="by category; review by reviewer; started by progress">
@@ -120,15 +125,42 @@ export function DomainSections() {
 				<TicketId id="TRL-9" size="sm" />
 			</Section>
 			<Section name="TicketGlimmer" note="active work; moving soap-film layers">
-				<div className="relative min-h-19 w-72 rounded-md border border-border bg-surface p-3 text-sm">
-					<TicketGlimmer active />
-					<span>TRL-132</span>
-					<p className="mt-1.5 text-fg-muted">Agent work with an oil-film glimmer</p>
+				<Switch label="Agent working" checked={glimmerActive} onCheckedChange={setGlimmerActive} />
+				<div className="relative flex min-h-28 w-75 flex-col gap-1.5 rounded-md border-x border-b border-border bg-surface p-3 text-base [&_.ticket-glimmer-flow]:opacity-50">
+					<TicketGlimmer active={glimmerActive} />
+					<div className="flex h-4 items-center justify-between gap-1.5">
+						<span className="font-mono text-xs text-fg-faint tabular">TRL-139</span>
+						<PriorityIcon priority="high" />
+					</div>
+					<p className="line-clamp-3 font-medium text-fg">We need to improve the working glimmer animation</p>
+					<div className="mt-auto flex min-h-4 items-center gap-1.5 text-xs text-fg-faint tabular">
+						<span className="inline-flex items-center gap-1">
+							<StatusIcon category="started" progress={0.5} label="Sub-ticket progress" />
+							1/2
+						</span>
+						<span className="inline-flex items-center gap-1">
+							<Paperclip aria-hidden="true" className="size-3" />2
+						</span>
+						<Avatar kind="human" name="Navid Khan" className="ml-auto" />
+					</div>
 				</div>
-				<div className="relative min-h-19 w-72 rounded-md border border-border bg-surface p-3 text-sm">
-					<TicketGlimmer active />
-					<span>TRL-86</span>
-					<p className="mt-1.5 text-fg-muted">Each active card has a different pattern</p>
+				<div className="relative flex min-h-28 w-75 flex-col gap-1.5 rounded-md border-x border-b border-border bg-surface p-3 text-base [&_.ticket-glimmer-flow]:opacity-50">
+					<TicketGlimmer active={glimmerActive} />
+					<div className="flex h-4 items-center justify-between gap-1.5">
+						<span className="font-mono text-xs text-fg-faint tabular">TRL-24 → TRL-86</span>
+						<PriorityIcon priority="medium" />
+					</div>
+					<p className="line-clamp-3 font-medium text-fg">Keep working tickets visible at the top of each column</p>
+					<div className="mt-auto flex min-h-4 items-center gap-1.5 text-xs text-fg-faint tabular">
+						<span className="inline-flex items-center gap-1">
+							<StatusIcon category="started" progress={0.75} label="Sub-ticket progress" />
+							3/4
+						</span>
+						<span className="inline-flex items-center gap-1">
+							<Paperclip aria-hidden="true" className="size-3" />1
+						</span>
+						<Avatar kind="agent" name="claude-code" className="ml-auto" />
+					</div>
 				</div>
 			</Section>
 			<Section name="TrellisMark" note="16 px in the sidebar; 32 px on the setup card; the favicon drawing">
