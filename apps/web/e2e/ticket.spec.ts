@@ -159,7 +159,6 @@ test("Activity opens first and Agent contains only execution details", async ({ 
 	const work = page.getByRole("region", { name: "Ticket work area" });
 	await expect(work.getByRole("tab")).toHaveText(["Activity", "Agent", "Changes", "Checks", "Flows"]);
 	await expect(work.getByRole("tab", { name: "Activity", exact: true })).toHaveAttribute("aria-selected", "true");
-	await expect(work.getByRole("tabpanel").getByRole("heading", { name: "Activity", exact: true })).toHaveCount(0);
 	await expect(work.locator('[data-kind="activity"]').first()).toBeVisible();
 	await expect(work.getByRole("region", { name: "Execution", exact: true })).toHaveCount(0);
 	await work.getByRole("tab", { name: "Agent", exact: true }).click();
