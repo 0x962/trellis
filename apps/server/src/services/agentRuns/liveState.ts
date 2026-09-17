@@ -1,17 +1,19 @@
 import type { AgentRun } from "@trellis/api";
-import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
+import type { RuntimeListInput, RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { ServiceCtx } from "../support.ts";
 import type { StoredRun } from "./queries.ts";
 
-export async function readRuntimeSessions(home: string): Promise<RuntimeProcessStatus[]> {
+export async function readRuntimeSessions(home: string, input: RuntimeListInput = {}): Promise<RuntimeProcessStatus[]> {
 	try {
-		return await nativeHost(home).list();
+		return await nativeHost(home).list(input);
 	} catch (error) {
 		if (["ENOENT", "ECONNREFUSED"].includes((error as NodeJS.ErrnoException).code ?? "")) return [];
 		throw error;
 	}
 }
+
+type ReadRuntimeSessions = (home: string, input: RuntimeListInput) => Promise<RuntimeProcessStatus[]>;
 
 export function projectRun(run: StoredRun, sessions: RuntimeProcessStatus[]): AgentRun {
 	const process = sessions.find((session) => session.id === run.terminalId);
@@ -49,8 +51,14 @@ export function projectRun(run: StoredRun, sessions: RuntimeProcessStatus[]): Ag
 	};
 }
 
-export async function observeRuns(ctx: Pick<ServiceCtx, "home">, runs: StoredRun[]): Promise<AgentRun[]> {
+export async function observeRuns(
+	ctx: Pick<ServiceCtx, "home">,
+	runs: StoredRun[],
+	readSessions: ReadRuntimeSessions = readRuntimeSessions,
+): Promise<AgentRun[]> {
 	if (runs.length === 0) return [];
-	const sessions = await readRuntimeSessions(ctx.home);
+	const ids = [...new Set(runs.flatMap((run) => (run.terminalId === null ? [] : [run.terminalId])))];
+	if (ids.length === 0) return runs.map((run) => projectRun(run, []));
+	const sessions = await readSessions(ctx.home, { ids });
 	return runs.map((run) => projectRun(run, sessions));
 }

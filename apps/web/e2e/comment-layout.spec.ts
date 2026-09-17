@@ -119,6 +119,32 @@ test("an edited long comment returns to its folded state", async ({ page }) => {
 	await expect(comment.getByRole("button", { name: "Show more" })).toBeVisible();
 });
 
+test("the timeline line ends at the center of the last actor profile picture", async ({ page }) => {
+	await signIn(page, "/t/CMT-1");
+	const expectLineAtLastAvatar = async () => {
+		const activity = page.getByRole("list", { name: "Activity" });
+		const lastAvatar = activity.getByRole("img").last();
+		const [activityBox, lastAvatarBox, connectorStyle] = await Promise.all([
+			activity.boundingBox(),
+			lastAvatar.boundingBox(),
+			activity.evaluate((element) => {
+				const style = getComputedStyle(element, "::before");
+				return { height: style.height, top: style.top };
+			}),
+		]);
+		expect(activityBox).not.toBeNull();
+		expect(lastAvatarBox).not.toBeNull();
+		const lineEnd = activityBox!.y + Number.parseFloat(connectorStyle.top) + Number.parseFloat(connectorStyle.height);
+		const lastAvatarCenter = lastAvatarBox!.y + lastAvatarBox!.height / 2;
+		expect(lineEnd).toBeCloseTo(lastAvatarCenter, 0);
+	};
+	await expectLineAtLastAvatar();
+	await page.goto("/t/CMT-3");
+	await page.getByRole("button", { name: "Show all activity" }).click();
+	await expect(page.locator('[data-stream-entry="activity"]')).toHaveCount(103);
+	await expectLineAtLastAvatar();
+});
+
 test("a resolved thread control aligns with its thread", async ({ page }) => {
 	await signIn(page, "/t/CMT-5");
 	const comment = page.getByRole("article", { name: "Comment by dana" });

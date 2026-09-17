@@ -10,7 +10,7 @@ Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, set `T
 5. Split work:       trellis sub KEY-42 -t "Write tests"
 6. Ask a question:   trellis comment KEY-42 --body "..." and then wait for the reply: trellis watch --ticket KEY-42
 7. Finish coding:    trellis move KEY-42 agent-review
-8. When CI is green and the self-review is done: trellis move KEY-42 human-review
+8. When the agent review passes: trellis move KEY-42 human-review
 Never delete tickets.
 
 Read a comment thread: trellis thread show <comment-id>

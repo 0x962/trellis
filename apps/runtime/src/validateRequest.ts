@@ -48,6 +48,12 @@ export function validateRequest(value: unknown): RuntimeRequest {
 		case "stop":
 			break;
 		case "list":
+			if (
+				params.ids !== undefined &&
+				(!Array.isArray(params.ids) ||
+					!params.ids.every((id) => typeof id === "string" && /^[a-zA-Z0-9_-]{1,128}$/.test(id)))
+			)
+				throw new Error("Session identifiers must contain letters, numbers, underscores, or hyphens");
 			if (params.status !== undefined && !["running", "exited", "unknown"].includes(params.status as string))
 				throw new Error("Unknown process status filter");
 			if (params.activity !== undefined && !["ready", "working", "idle"].includes(params.activity as string))

@@ -26,7 +26,7 @@ model.
 | Native execution | Node, node-pty, fs-ext, Koffi | 26.8.2, 1.2.0-beta.15, 2.1.1, 3.3.0 |
 | CLI | citty | 0.2 |
 | End to end, perf | Playwright with Chromium, a seeded perf suite | current |
-| Releases | changesets, GitHub Actions | |
+| Releases | changesets | |
 
 PGlite ships `pg_trgm` as a loadable contrib module. `tsvector` is core.
 
@@ -460,7 +460,9 @@ Migration `0060_muse_harness` adds the `## Muse harness` section, which names th
 
 `services/manager` reconciles column assignments and project copilots on each controller beat.
 The controller schedules the next beat one second after the current beat completes.
-The Loops page at `/loops` reports the current step, recent output, errors, and pass times.
+The Loops page at `/loops` shows step cards, recent output, errors, and pass times.
+Wait is the first step. Runtime inspection precedes parallel worker checks and message delivery.
+Each active card has a highlight. Errors retain their source step across subsequent passes.
 `loops.list` reads this process state. Human callers use `loops.control` to pause, resume, run one pass, or clear the history.
 Pause suppresses worker and copilot reconciliation after the current pass; chat and mention delivery continue.
 Run now shares the scheduled pass and cannot overlap it. A paused loop permits one manual pass.
@@ -944,9 +946,9 @@ descriptions, and 40 open pull requests. `bun run perf:10k` runs the 10k seed, a
 | Mutations under 5 concurrent agents | 15 ms server time p99 each and 30 ms max, and list p95 still in budget | perf/concurrency |
 | Backup at 50k | 1.5 s hold, 15 s total | perf/backup |
 
-`TRELLIS_PERF_FACTOR` scales every number in this table and defaults to 1. The
-CI workflow runs `check`, the Playwright suite, the mobile Jest suite, and the
-migration diff. It runs no performance test.
+`TRELLIS_PERF_FACTOR` scales every number in this table and defaults to 1.
+Run `check`, the Playwright suite, the mobile Jest suite, and the migration
+diff locally. Performance tests remain optional.
 
 These budgets shape the design. The database worker keeps the synchronous WASM
 execution of PGlite off the thread that serves HTTP, SSE, gh pipes, and uploads.
