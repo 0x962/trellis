@@ -1,10 +1,12 @@
 import type { TicketSummary } from "@trellis/api";
 import { cx, TicketGlimmer } from "@trellis/ui";
 import { type KeyboardEvent, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useArchivedProjects } from "../../../../hooks/useArchivedProjects";
 import { useWorkingAgents } from "../../../agents/useWorkingAgents";
 import { useCardDnd } from "../../hooks/useBoardDnd";
 import { CardContent } from "../CardContent";
+import { CardPreview } from "../CardPreview";
 import { DragIndicator } from "../DragIndicator";
 
 export type BoardCardProps = {
@@ -41,7 +43,7 @@ export function BoardCard({
 	const ref = useRef<HTMLLIElement>(null);
 	const pickup = useCallback((message: string) => announce(message), [announce]);
 	const readOnly = useArchivedProjects().isArchived(ticket.project.path);
-	const { dragging } = useCardDnd(
+	const { dragging, previewFrame, positionRef, surfaceRef } = useCardDnd(
 		ref,
 		{
 			ticketId: ticket.id,
@@ -53,7 +55,6 @@ export function BoardCard({
 			columnCount,
 		},
 		pickup,
-		{ ticket, showStatus },
 		readOnly,
 	);
 
@@ -80,6 +81,17 @@ export function BoardCard({
 			<TicketGlimmer active={working} />
 			{dropBefore && <DragIndicator />}
 			<CardContent ticket={ticket} showStatus={showStatus} />
+			{previewFrame !== null &&
+				createPortal(
+					<CardPreview
+						ticket={ticket}
+						frame={previewFrame}
+						positionRef={positionRef}
+						surfaceRef={surfaceRef}
+						showStatus={showStatus}
+					/>,
+					document.body,
+				)}
 		</li>
 	);
 }
