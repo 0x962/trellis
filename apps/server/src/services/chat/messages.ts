@@ -37,10 +37,11 @@ export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 	if (input.createdBefore !== undefined) filters.push(sql`m.created_at < ${input.createdBefore}`);
 	const scope = sql.join(filters, sql` AND `);
 	const newestFirst = input.sort === "-createdAt" || (input.sort === undefined && input.after === undefined);
-	const found = await rows<RawMessage>(
-		tx,
-		sql`${messageSelect} WHERE ${scope} ORDER BY m.id ${newestFirst ? sql`DESC` : sql`ASC`} LIMIT ${input.limit}`,
-	);
+	const order =
+		input.sort === undefined
+			? sql`m.id ${newestFirst ? sql`DESC` : sql`ASC`}`
+			: sql`m.created_at ${newestFirst ? sql`DESC` : sql`ASC`}, m.id ${newestFirst ? sql`DESC` : sql`ASC`}`;
+	const found = await rows<RawMessage>(tx, sql`${messageSelect} WHERE ${scope} ORDER BY ${order} LIMIT ${input.limit}`);
 	if (input.sort === undefined && input.after === undefined) found.reverse();
 	const [latest] = await rows<{ id: string | null }>(
 		tx,
