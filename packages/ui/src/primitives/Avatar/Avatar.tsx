@@ -37,7 +37,7 @@ export function Avatar({ kind, name, className, agentKind, agentProfile, state =
 		>
 			{kind === "agent" ? (
 				agentProfile ? (
-					<AgentProfileMark profile={agentProfile} working={state !== "static"} />
+					<AgentProfileMark profile={agentProfile} />
 				) : (
 					<AgentMark name={name} kind={agentKind} state={state} />
 				)

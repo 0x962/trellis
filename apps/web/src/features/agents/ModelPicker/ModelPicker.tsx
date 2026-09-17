@@ -13,12 +13,14 @@ export function ModelPicker({
 	onValueChange,
 	disabled = false,
 	className,
+	compact = false,
 }: {
 	harness: Exclude<HarnessPreset, "custom">;
 	value?: string;
 	onValueChange: (value: string | undefined) => void;
 	disabled?: boolean;
 	className?: string;
+	compact?: boolean;
 }) {
 	const [open, setOpen] = useState(false);
 	const input = useRef<HTMLInputElement>(null);
@@ -33,12 +35,20 @@ export function ModelPicker({
 	return (
 		<Popover
 			trigger={
-				<PickerButton label="Model" disabled={disabled} className={className}>
+				<PickerButton
+					label="Model"
+					size={compact ? "sm" : "md"}
+					title={value === undefined ? `Default · ${selected.name}` : selected.name}
+					disabled={disabled}
+					className={className}
+				>
 					<span className="inline-flex min-w-0 items-center gap-2">
 						{modelProviderOf(selectedId) && (
 							<ProviderIcon provider={modelProviderOf(selectedId)!} decorative className="size-3.5" />
 						)}
-						<span className="truncate">{value === undefined ? `Default · ${selected.name}` : selected.name}</span>
+						<span className="truncate">
+							{value === undefined && !compact ? `Default · ${selected.name}` : selected.name}
+						</span>
 					</span>
 				</PickerButton>
 			}
