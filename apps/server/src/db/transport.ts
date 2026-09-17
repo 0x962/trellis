@@ -11,6 +11,7 @@ import { type DbTiming, LONG_TRANSACTION_MS } from "../serverTiming.ts";
 import { assertCurrentAttempt } from "../services/assignments/attempts.ts";
 import { gcAttachmentBlobs } from "../services/attachments.ts";
 import { loopRuntimes } from "../services/loops/runtime.ts";
+import { readWaitSeconds } from "../services/loops/wait.ts";
 import { type ServiceEntry, type ServiceName, services } from "../services/registry.ts";
 import { createCache } from "./cache.ts";
 import type { Db } from "./client.ts";
@@ -201,10 +202,12 @@ export const createInlineTransport = ({
 	let controller: ReturnType<typeof createController> | null = null;
 	let flowReconcile: ReturnType<typeof startNativeReconcile> | null = null;
 	const start = async (options?: JobsStart) => {
+		const waitSeconds = await db.transaction((tx) => readWaitSeconds(tx));
 		controller = createController({
 			clock: scaledClock(options?.clockRate ?? 1),
 			log: options?.log ?? log,
 			call: (name, input) => backgroundCall(name, input),
+			waitSeconds,
 		});
 		loopRuntimes.set(config.home, controller);
 		await db.transaction((tx) => cache.rebuild(tx));

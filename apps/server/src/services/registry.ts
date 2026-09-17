@@ -259,6 +259,7 @@ export const services = {
 	"settings.set": core("mutation", settings.set),
 	"loops.list": io("read", loops.list),
 	"loops.control": io("mutation", loops.control),
+	"loops.update": io("mutation", loops.update),
 	"system.health": io("read", system.health),
 	"system.load": prepared("read", system.prepareLoad, agentTerminal.result),
 	"system.snapshot": io("mutation", system.snapshot),

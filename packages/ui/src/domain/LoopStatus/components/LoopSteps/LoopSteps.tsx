@@ -1,13 +1,20 @@
 import { ArrowDown, ArrowUUpLeft } from "@phosphor-icons/react";
 import { Badge } from "../../../../primitives/Badge";
 import type { LoopStatusProps } from "../../LoopStatus";
+import { WaitPeriodField } from "../WaitPeriodField";
 
 export function LoopSteps({
 	steps,
 	errors,
 	paused,
 	nextRunAt,
-}: Pick<LoopStatusProps, "steps" | "errors" | "paused" | "nextRunAt">) {
+	waitSeconds,
+	busy,
+	onWaitSecondsChange,
+}: Pick<
+	LoopStatusProps,
+	"steps" | "errors" | "paused" | "nextRunAt" | "waitSeconds" | "busy" | "onWaitSecondsChange"
+>) {
 	return (
 		<section aria-label="Loop steps" className="relative pl-6">
 			<div
@@ -35,13 +42,16 @@ export function LoopSteps({
 								</div>
 								<p className="text-sm text-fg-muted text-pretty">{step.description}</p>
 								{step.id === "wait" && (
-									<p className="text-xs text-fg-muted tabular-nums">
-										{paused
-											? "Automatic passes paused. Run now performs one pass."
-											: nextRunAt
-												? `Next pass: ${new Date(nextRunAt).toLocaleTimeString()}`
-												: "The next wait starts after both tasks finish."}
-									</p>
+									<>
+										<WaitPeriodField seconds={waitSeconds} busy={busy} onChange={onWaitSecondsChange} />
+										<p className="text-xs text-fg-muted tabular-nums">
+											{paused
+												? "Automatic passes paused. Run now performs one pass."
+												: nextRunAt
+													? `Next pass: ${new Date(nextRunAt).toLocaleTimeString()}`
+													: "The next wait starts after both tasks finish."}
+										</p>
+									</>
 								)}
 								{step.detail && <p className="text-xs text-fg tabular-nums">{step.detail}</p>}
 								{failures.length > 0 && (
