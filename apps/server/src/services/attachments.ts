@@ -133,6 +133,16 @@ export const storeFile = async (home: string, file: File) => {
 	return { sha256, size };
 };
 
+const fileSha256 = async (file: File) => {
+	const hasher = new Bun.CryptoHasher("sha256");
+	for await (const chunk of file.stream()) {
+		for (let offset = 0; offset < chunk.byteLength; offset += HASH_CHUNK_BYTES) {
+			hasher.update(chunk.subarray(offset, offset + HASH_CHUNK_BYTES));
+		}
+	}
+	return hasher.digest("hex");
+};
+
 // The mime the row keeps: the type and the subtype, without parameters, as
 // in `text/plain`. The file route sets the charset itself. The multipart
 // parser gives an empty type to a part whose filename has no known
@@ -173,7 +183,8 @@ export const upload = async (ctx: ServiceCtx, tx: Tx, input: UploadInput): Promi
 				existing.mime !== mime ||
 				existing.size !== input.file.size ||
 				existing.actor_name !== ctx.actor.name ||
-				existing.actor_kind !== ctx.actor.kind
+				existing.actor_kind !== ctx.actor.kind ||
+				existing.sha256 !== (await fileSha256(input.file))
 			)
 				throw invalidInput("id", "This id already identifies another attachment.");
 			const attachment = toAttachment(existing);
