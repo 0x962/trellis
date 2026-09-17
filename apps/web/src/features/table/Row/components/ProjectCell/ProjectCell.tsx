@@ -12,9 +12,10 @@ export type ProjectCellProps = {
 	// The viewed project ref, or undefined on /all.
 	viewedProject?: string;
 	projects: readonly ProjectSummary[];
+	ticketRootIds: readonly string[];
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onPick: (ref: string) => void;
+	onPick: (path: string) => void;
 	finalFocus: RefObject<HTMLElement | null>;
 };
 
@@ -26,6 +27,7 @@ export function ProjectCell({
 	path,
 	viewedProject,
 	projects,
+	ticketRootIds,
 	open,
 	onOpenChange,
 	onPick,
@@ -39,6 +41,7 @@ export function ProjectCell({
 			<span className="inline-flex max-w-full min-w-0">
 				<ProjectPicker
 					projects={projects}
+					ticketRootIds={ticketRootIds}
 					value={path}
 					open={open}
 					onOpenChange={onOpenChange}

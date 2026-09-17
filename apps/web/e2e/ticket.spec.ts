@@ -4,6 +4,7 @@ import { cardOf, rowOf, signIn } from "./support";
 
 // TKT-1 is the parent, TKT-2 its child; both are In Progress.
 test.beforeAll(() => {
+	ensureProject("OXR", "Other root");
 	if (!ensureProject("TKT", "Ticket")) return;
 	createTicket("TKT", "Merge upstream 1.27 and keep every marked site", ["--status", "in-progress"]);
 	createTicket("TKT", "Restore the fork pages after the merge", ["--status", "in-progress", "--parent", "TKT-1"]);
@@ -64,6 +65,14 @@ test("a search result opens a ticket and preserves the search", async ({ page })
 	await expect(page).toHaveURL(/\/t\/TKT-1$/);
 	await page.getByRole("link", { name: "Back to list" }).click();
 	await expect(page).toHaveURL(/\/search\?q=Merge%20upstream$/);
+});
+
+test("the ticket project picker lists only its root", async ({ page }) => {
+	await signIn(page, "/t/TKT-1");
+	await page.getByRole("complementary", { name: "Properties" }).getByRole("button", { name: "TKT" }).click();
+	await expect(page.getByPlaceholder("Move to project")).toBeVisible();
+	await expect(page.getByRole("option", { name: "TKT", exact: true })).toBeVisible();
+	await expect(page.getByRole("option", { name: "OXR", exact: true })).toHaveCount(0);
 });
 
 test("the ticket sections use the same Add button", async ({ page }) => {
