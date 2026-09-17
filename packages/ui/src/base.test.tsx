@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, test } from "bun:test";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { readSource } from "../test/css";
+import { findBlock, parseCss, readSource } from "../test/css";
 import { Button } from "./primitives/Button";
 import { Checkbox } from "./primitives/Checkbox";
 import { IconButton } from "./primitives/IconButton";
@@ -85,5 +85,41 @@ describe("base.css", () => {
 		expect(cursor(byId("plain"))).not.toBe("pointer");
 		expect(cursor(byId("card"))).toBe("pointer");
 		host.remove();
+	});
+});
+
+// A human avatar has no picture, so `profile-metal` draws its disc: the same
+// silver face as the `metal` utility, with one still band of color over it.
+// That band is `--film-gradient`, the gradient the ticket glimmer sweeps
+// across a card. The disc holds the band in place, so it reads as a film on
+// the metal and never draws the eye.
+describe("profile-metal", () => {
+	test("the initials disc paints the film gradient of the glimmer and never moves it", async () => {
+		const base = parseCss(await readSource("base.css"));
+		const disc = findBlock(base, "@utility profile-metal");
+		const film = findBlock(disc.children, "&::before");
+		const glimmer = findBlock(parseCss(await readSource("ticket-glimmer.css")), ".ticket-glimmer-film");
+
+		expect(film.declarations.background).toBe("var(--film-gradient)");
+		expect(glimmer.declarations.background).toBe("var(--film-gradient)");
+		expect(film.declarations.animation).toBeUndefined();
+		expect(film.declarations.transform).toBeUndefined();
+	});
+
+	test("the disc wears the metal tokens, so the initials keep the contrast of every other metal face", async () => {
+		const base = parseCss(await readSource("base.css"));
+		const disc = findBlock(base, "@utility profile-metal");
+		const metal = findBlock(base, "@utility metal");
+
+		expect(disc.declarations["background-image"]).toBe(metal.declarations["background-image"]);
+		expect(disc.declarations.color).toBe(metal.declarations.color);
+		expect(disc.declarations.border).toBe(`1px solid ${metal.declarations["border-color"]}`);
+	});
+
+	test("one stylesheet defines the film gradient", async () => {
+		const personaMark = parseCss(await readSource("persona-mark.css"));
+		expect(findBlock(personaMark, ":root").declarations["--film-gradient"]).toContain("linear-gradient(");
+		expect(await readSource("base.css")).not.toContain("--film-gradient:");
+		expect(await readSource("ticket-glimmer.css")).not.toContain("--film-gradient:");
 	});
 });
