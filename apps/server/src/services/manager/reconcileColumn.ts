@@ -116,6 +116,8 @@ export async function reconcileColumn(
 					ticketId: state.ticketId,
 					runId: claim.run.id,
 					previousRunId: run!.id,
+					persona: { id: claim.run.personaId, name: claim.run.personaName, instruction: claim.run.instruction },
+					context: claim.context,
 				})
 			: undefined,
 	});
