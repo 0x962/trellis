@@ -18,8 +18,9 @@
  * same values. The media block serves the system preference, and the
  * data-theme block serves an explicit choice. Each block has to win on its
  * own.
- * Dark mode has no visible shadow, so each shadow starts with a 1 px
- * strong-border ring.
+ * Dark mode has no visible shadow, so each elevation shadow starts with a
+ * 1 px strong-border ring. The Kanban shadows replace that ring with right,
+ * bottom, and left lines because a Kanban card has no top border.
  *
  * Biome does not format this file, so it preserves the palette source values.
  */
@@ -59,6 +60,8 @@
 	--shadow-sm: 0 1px 2px rgba(0,0,0,.06);
 	--shadow-md: 0 4px 12px rgba(0,0,0,.10);
 	--shadow-lg: 0 12px 32px rgba(0,0,0,.16);
+	--shadow-kanban-hover: 0 1px 2px rgba(0,0,0,.06);
+	--shadow-kanban-drag: 0 12px 32px rgba(0,0,0,.16);
 	/* Text on a saturated fill, such as a danger button or a selected row.
 	   The light accent is dark enough to carry white; the dark accent is the
 	   bright silver, so there it flips. */
@@ -100,6 +103,8 @@
 		--shadow-sm: 0 0 0 1px var(--border-strong);
 		--shadow-md: 0 0 0 1px var(--border-strong), 0 4px 12px rgba(0,0,0,.4);
 		--shadow-lg: 0 0 0 1px var(--border-strong), 0 12px 32px rgba(0,0,0,.5);
+		--shadow-kanban-hover: 1px 0 0 var(--border-strong), 0 1px 0 var(--border-strong), -1px 0 0 var(--border-strong);
+		--shadow-kanban-drag: 1px 0 0 var(--border-strong), 0 1px 0 var(--border-strong), -1px 0 0 var(--border-strong), 0 12px 32px rgba(0,0,0,.5);
 		--on-accent: #0A0A0A;
 		color-scheme: dark;
 	}
@@ -136,6 +141,8 @@
 	--shadow-sm: 0 0 0 1px var(--border-strong);
 	--shadow-md: 0 0 0 1px var(--border-strong), 0 4px 12px rgba(0,0,0,.4);
 	--shadow-lg: 0 0 0 1px var(--border-strong), 0 12px 32px rgba(0,0,0,.5);
+	--shadow-kanban-hover: 1px 0 0 var(--border-strong), 0 1px 0 var(--border-strong), -1px 0 0 var(--border-strong);
+	--shadow-kanban-drag: 1px 0 0 var(--border-strong), 0 1px 0 var(--border-strong), -1px 0 0 var(--border-strong), 0 12px 32px rgba(0,0,0,.5);
 	--on-accent: #0A0A0A;
 	color-scheme: dark;
 }
@@ -193,6 +200,8 @@
 	--shadow-sm: var(--shadow-sm);
 	--shadow-md: var(--shadow-md);
 	--shadow-lg: var(--shadow-lg);
+	--shadow-kanban-hover: var(--shadow-kanban-hover);
+	--shadow-kanban-drag: var(--shadow-kanban-drag);
 }
 
 /*

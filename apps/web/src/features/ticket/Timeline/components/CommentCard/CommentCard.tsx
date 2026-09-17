@@ -1,4 +1,4 @@
-import type { Comment } from "@trellis/api";
+import { type Comment, fullZonedDateTime } from "@trellis/api";
 import { ActorChip, Button, ConfirmDialog, cx, Menu, type MenuItem, Textarea } from "@trellis/ui";
 import { type ReactNode, useState } from "react";
 import { ReadOnlyMarkdown } from "../../../../../components/ReadOnlyMarkdown";
@@ -6,7 +6,6 @@ import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
 import { failToast } from "../../../../../lib/failToast";
 import { compactRelativeTime } from "../../../../../lib/format";
-import { absoluteTime } from "../../utils/absoluteTime";
 
 export type CommentCardProps = {
 	comment: Comment;
@@ -110,7 +109,11 @@ export function CommentCard({
 							kind={comment.actor.kind}
 						/>
 					)}
-					<time dateTime={comment.createdAt} title={absoluteTime(comment.createdAt)} className="text-fg-muted tabular">
+					<time
+						dateTime={comment.createdAt}
+						title={fullZonedDateTime(comment.createdAt)}
+						className="text-fg-muted tabular"
+					>
 						{compactRelativeTime(comment.createdAt)}
 					</time>
 					<div className="ml-auto">
