@@ -13,7 +13,7 @@ import { useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { noteAudiences } from "./audiences";
 
-type NoteSheetProps = { project: Project; note?: Note; onClose: () => void };
+type NoteSheetProps = { project: Project; note?: Note; readOnly?: boolean; onClose: () => void };
 
 // The `datetime-local` control reads and writes `YYYY-MM-DDTHH:mm` in the
 // local zone. The API carries an ISO instant, so the two forms convert here.
@@ -25,7 +25,7 @@ const toLocalInput = (iso: string | null) => {
 };
 const toIso = (local: string) => (local === "" ? null : new Date(local).toISOString());
 
-export function NoteSheet({ project, note, onClose }: NoteSheetProps) {
+export function NoteSheet({ project, note, readOnly = false, onClose }: NoteSheetProps) {
 	const { client, orpc, queryClient } = useApp();
 	const titleRef = useRef<HTMLInputElement>(null);
 	const [title, setTitle] = useState(note?.title ?? "");
@@ -66,7 +66,7 @@ export function NoteSheet({ project, note, onClose }: NoteSheetProps) {
 	return (
 		<Sheet
 			open
-			title={note === undefined ? "New note" : "Edit note"}
+			title={note === undefined ? "New note" : readOnly ? "Note" : "Edit note"}
 			initialFocus={titleRef}
 			titleClassName="text-md font-medium"
 			onOpenChange={(open) => !open && !pending && onClose()}
@@ -75,7 +75,7 @@ export function NoteSheet({ project, note, onClose }: NoteSheetProps) {
 				className="flex min-h-full flex-col"
 				onSubmit={(event) => {
 					event.preventDefault();
-					if (input.success && !pending) save.mutate(input.data);
+					if (input.success && !pending && !readOnly) save.mutate(input.data);
 				}}
 			>
 				<SheetBody>
@@ -88,7 +88,7 @@ export function NoteSheet({ project, note, onClose }: NoteSheetProps) {
 						required
 						autoComplete="off"
 						maxLength={NOTE_TITLE_MAX}
-						disabled={pending}
+						disabled={readOnly || pending}
 						value={title}
 						onChange={(event) => setTitle(event.target.value)}
 						className="pointer-coarse:h-11"
@@ -100,7 +100,7 @@ export function NoteSheet({ project, note, onClose }: NoteSheetProps) {
 							items={noteAudiences}
 							value={audience}
 							onValueChange={setAudience}
-							disabled={pending}
+							disabled={readOnly || pending}
 							className="w-full pointer-coarse:h-11"
 						/>
 						<p className="text-xs text-fg-faint">
@@ -112,7 +112,7 @@ export function NoteSheet({ project, note, onClose }: NoteSheetProps) {
 						required
 						rows={12}
 						maxLength={NOTE_BODY_MAX}
-						disabled={pending}
+						disabled={readOnly || pending}
 						value={body}
 						onChange={(event) => setBody(event.target.value)}
 						placeholder="State the fact, the current state, or the decision that later agents must know."
@@ -120,7 +120,7 @@ export function NoteSheet({ project, note, onClose }: NoteSheetProps) {
 					<Input
 						label="Expires"
 						type="datetime-local"
-						disabled={pending}
+						disabled={readOnly || pending}
 						value={expires}
 						onChange={(event) => setExpires(event.target.value)}
 						className="pointer-coarse:h-11"
@@ -141,6 +141,7 @@ export function NoteSheet({ project, note, onClose }: NoteSheetProps) {
 				</SheetBody>
 				<SheetFooter
 					confirmation={
+						!readOnly &&
 						confirmDelete && (
 							<fieldset
 								className="flex flex-wrap items-center gap-2 border border-danger p-3"
@@ -158,6 +159,7 @@ export function NoteSheet({ project, note, onClose }: NoteSheetProps) {
 						)
 					}
 					leading={
+						!readOnly &&
 						note !== undefined && (
 							<Button
 								type="button"
@@ -170,17 +172,25 @@ export function NoteSheet({ project, note, onClose }: NoteSheetProps) {
 						)
 					}
 				>
-					<Button type="button" variant="quiet" disabled={pending} onClick={onClose}>
-						Cancel
-					</Button>
-					<Button
-						type="submit"
-						variant="primary"
-						disabled={!input.success || pending || confirmDelete || (note !== undefined && !dirty)}
-						aria-busy={save.isPending}
-					>
-						{note === undefined ? "Create note" : "Save changes"}
-					</Button>
+					{readOnly ? (
+						<Button type="button" variant="primary" onClick={onClose}>
+							Close
+						</Button>
+					) : (
+						<>
+							<Button type="button" variant="quiet" disabled={pending} onClick={onClose}>
+								Cancel
+							</Button>
+							<Button
+								type="submit"
+								variant="primary"
+								disabled={!input.success || pending || confirmDelete || (note !== undefined && !dirty)}
+								aria-busy={save.isPending}
+							>
+								{note === undefined ? "Create note" : "Save changes"}
+							</Button>
+						</>
+					)}
 				</SheetFooter>
 			</form>
 		</Sheet>

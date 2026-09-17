@@ -1,6 +1,8 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import type { Project } from "@trellis/api";
+import type { ReactNode } from "react";
 import { projectSlashPath } from "../../../lib/projectPath";
+import { NotesSettings } from "../../notes/NotesSettings";
 import { LabelSettings } from "../LabelSettings";
 import { useProjectManagerConfig } from "../hooks/useProjectManagerConfig";
 import { ManagerSettings } from "../ManagerSettings";
@@ -9,31 +11,57 @@ import { ProjectLifecycle } from "../ProjectLifecycle";
 import { StatusSettings } from "../StatusSettings";
 import { TicketTemplateSettings } from "../TicketTemplateSettings";
 
-export type ProjectSettingsProps = { project: Project };
+const sections = [
+	{ id: "", label: "General" },
+	{ id: "notes", label: "Notes" },
+	{ id: "template", label: "Ticket template" },
+	{ id: "statuses", label: "Statuses" },
+	{ id: "labels", label: "Labels" },
+	{ id: "manager", label: "Copilot" },
+	{ id: "harness", label: "Harness" },
+	{ id: "archive", label: "Danger Zone" },
+] as const;
 
-export function ProjectSettings({ project }: ProjectSettingsProps) {
-	return <ProjectSettingsContent key={project.id} project={project} />;
+export type ProjectSettingsSectionId = (typeof sections)[number]["id"];
+export type ProjectSettingsProps = { project: Project; section?: ProjectSettingsSectionId };
+
+const isProjectSettingsSection = (value: string): value is ProjectSettingsSectionId =>
+	sections.some((section) => section.id === value);
+
+export function ProjectSettings({ project, section }: ProjectSettingsProps) {
+	return <ProjectSettingsContent key={project.id} project={project} section={section} />;
 }
 
-function ProjectSettingsContent({ project }: ProjectSettingsProps) {
+function ProjectSettingsContent({ project, section }: ProjectSettingsProps) {
 	const hash = useLocation({ select: (location) => location.hash });
+	const selected = section ?? (isProjectSettingsSection(hash) ? hash : "");
 	const manager = useProjectManagerConfig(project);
-	const pages = [
-		{ id: "", label: "General", content: <ProjectGeneralSettings project={project} manager={manager} /> },
-		{ id: "template", label: "Ticket template", content: <TicketTemplateSettings project={project} /> },
-		{ id: "statuses", label: "Statuses", content: <StatusSettings project={project} /> },
-		{ id: "labels", label: "Labels", content: <LabelSettings project={project} /> },
-		{ id: "manager", label: "Copilot", content: null },
-		{ id: "harness", label: "Harness", content: null },
-		{ id: "archive", label: "Danger Zone", content: <ProjectLifecycle project={project} /> },
-	];
-	const selected = pages.some((page) => page.id === hash) ? hash : "";
+
+	const contentFor = (id: ProjectSettingsSectionId): ReactNode => {
+		switch (id) {
+			case "":
+				return <ProjectGeneralSettings project={project} manager={manager} />;
+			case "notes":
+				return selected === "notes" ? <NotesSettings project={project} /> : null;
+			case "template":
+				return <TicketTemplateSettings project={project} />;
+			case "statuses":
+				return <StatusSettings project={project} />;
+			case "labels":
+				return <LabelSettings project={project} />;
+			case "manager":
+			case "harness":
+				return null;
+			case "archive":
+				return <ProjectLifecycle project={project} />;
+		}
+	};
 	return (
 		<div className="project-settings-layout">
 			<nav aria-label="Project settings" className="project-settings-nav">
 				<p className="project-settings-nav-title">Project settings</p>
 				<ul className="project-settings-nav-list">
-					{pages.map(({ id, label }) => (
+					{sections.map(({ id, label }) => (
 						<li key={id}>
 							<Link
 								to="/p/$"
@@ -52,16 +80,20 @@ function ProjectSettingsContent({ project }: ProjectSettingsProps) {
 				</ul>
 			</nav>
 			<div className="project-settings-content">
-				{pages.map(
-					({ id, content }) =>
-						content !== null && (
-							<div key={id} hidden={selected !== id} className="project-settings-page">
-								<fieldset disabled={id !== "archive" && project.archivedAt !== null} className="min-w-0">
-									{content}
-								</fieldset>
-							</div>
-						),
-				)}
+				{sections.map(({ id }) => {
+					const content = contentFor(id);
+					if (content === null) return null;
+					return (
+						<div key={id} hidden={selected !== id} className="project-settings-page">
+							<fieldset
+								disabled={id !== "archive" && id !== "notes" && project.archivedAt !== null}
+								className="min-w-0"
+							>
+								{content}
+							</fieldset>
+						</div>
+					);
+				})}
 				<ManagerSettings project={project} section={selected} manager={manager} />
 			</div>
 		</div>

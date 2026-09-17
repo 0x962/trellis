@@ -26,9 +26,9 @@ Close a window to detach its view. Quit Trellis to close the desktop process. Bo
 
 The Desktop section of the Settings page holds the data directory and Open Trellis at login. **Trellis > Settings…** (Command-comma) opens that section. The menus keep Open Trellis, Quit Trellis, Quit Trellis Completely, and the Help items. Quit Trellis Completely and the Help items work when the Settings page cannot load.
 
-Use **Trellis > Restart** to restart the host and desktop from the installed package. Compatible agents keep their processes and terminal output. If the packaged app detects an incompatible or unknown runtime, it blocks the restart and shows the reason.
+Use **Trellis > Restart** to relaunch the desktop from the installed package. The new desktop activates the installed host. Compatible agents keep their processes and terminal output. An incompatible runtime stops before the new host starts.
 
-A local progress window shows a progress bar, numbered steps, and estimated time remaining. Estimates use the durations of previous runs. The step count continues across the desktop relaunch. The window fades out when the main window opens.
+A local progress window shows startup progress and estimated time remaining. Estimates use the durations of previous runs. The window fades out when the main window opens.
 
 The packaged app enables its background service at startup. `SMAppService` registers the bundled LaunchAgent. macOS starts it at login and restarts it after a crash. System Settings controls its permission to run at login. The separate Open Trellis at login switch controls the desktop window.
 
@@ -42,7 +42,7 @@ The preload bridge exposes `trellisDesktop.chooseDirectory()`, the Settings call
 
 `trellis://open/t/KEY-1` opens a ticket. External HTTP and HTTPS links open in the system browser.
 
-Use **Trellis > Restart** to load the installed package. A changed package stops the previous runtime. The deterministic manager starts column workers and project copilots with their current settings. Compatible conversations and workspaces persist.
+Use **Trellis > Restart** to load the installed package. A changed package restarts the host. It keeps a runtime that uses the same protocol. A protocol change stops the runtime before the new host starts.
 
 ## Package
 
@@ -85,11 +85,11 @@ The candidate must include the installed app's source commit. The installer chec
 
 The command exports one commit into a fresh directory and installs the frozen dependency lockfile. It builds the renderer, runtime, harnesses, desktop, and complete host package. It records the commit in `build.json`. Electron downloads use `~/Library/Caches/Trellis` across builds.
 
-The command signs the local package. It copies the app with `ditto` into a temporary directory beside `~/Applications/Trellis.app` and verifies its signature. It publishes the copy through an atomic directory exchange when an installed app exists. Deleted source files cannot remain in the installed bundle. The running app and its services stay open during the copy.
+The command signs the local package. It copies the app with `ditto` into a temporary directory beside `~/Applications/Trellis.app` and verifies its signature. It publishes the copy through an atomic directory exchange when an installed app exists. It verifies and stages the host release before a restart. Deleted source files cannot remain in the installed bundle. The running app and its services stay open during the copy.
 
 Use this command for each production install. Keep the installed bundle in place until the verified copy is complete. Run service commands through `~/Applications/Trellis.app/Contents/MacOS/TrellisHost`. The helper requires the LaunchAgent plist inside its app bundle.
 
-Restart Trellis to activate the installed build. A changed package stops the previous runtime and starts the new host. The deterministic manager starts configured column workers and project copilots on its next beat. It resumes compatible conversations in their saved workspaces. An unchanged package keeps existing processes.
+Restart Trellis to activate the installed build. A changed package restarts the host and keeps a compatible runtime active. A runtime protocol change stops the runtime. The deterministic manager restarts configured column workers and project copilots after an incompatible runtime stops.
 
 To prepare a verified candidate without a production install:
 
