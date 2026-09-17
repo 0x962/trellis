@@ -6,13 +6,20 @@ import { iso, rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import {
 	fetchPullRequests,
+	type PullRequestRow as GraphqlPullRequestRow,
 	type PullRequestRef,
 	type PullRequestResult,
-	type PullRequestRow as GraphqlPullRequestRow,
 } from "../gh/graphql.ts";
 import { parsePullRequestUrl } from "../gh/parse.ts";
 import type { PreparedDiff } from "./pullRequestDiff.ts";
-import { findPullRequestRow, type LinkedPullRequestRow, type PullRequestRow, pullRequestColumns, toLinkedPullRequest, toPullRequest } from "./pullRequestRows.ts";
+import {
+	findPullRequestRow,
+	type LinkedPullRequestRow,
+	type PullRequestRow,
+	pullRequestColumns,
+	toLinkedPullRequest,
+	toPullRequest,
+} from "./pullRequestRows.ts";
 import { linkScope } from "./pullRequestScope.ts";
 import {
 	assertProjectActive,
@@ -28,7 +35,7 @@ import {
 } from "./support.ts";
 
 // One pull request is one row, whatever number of tickets link it. The link
-// row carries who linked it and whether a person or the poller did.
+// row carries the actor who linked it.
 // pull_requests.review_retained keeps the PR after its last ticket link leaves.
 //
 // prepareLink and prepareRefresh read one pull request through the same gh
@@ -81,7 +88,7 @@ const writeUnfetched = (tx: Tx, at: Date, ref: PullRequestRef, url: string, erro
 	ON CONFLICT (owner, repo, number) DO UPDATE SET fetch_error = EXCLUDED.fetch_error
 `);
 
-export type LinkInput = { ticket: string; url: string; source?: LinkedPullRequest["source"] };
+export type LinkInput = { ticket: string; url: string };
 
 // The link input with the ref its URL names and what gh returned for it.
 export type PreparedLink = LinkInput & { ref: PullRequestRef; fetched: Fetched };
@@ -107,11 +114,10 @@ export const link = async (ctx: ServiceCtx, tx: Tx, input: PreparedLink): Promis
 		tx,
 		sql`SELECT ${pullRequestColumns} FROM pull_requests p WHERE p.owner = ${ref.owner} AND p.repo = ${ref.repo} AND p.number = ${ref.number}`,
 	);
-	const source = input.source ?? "manual";
 	await touchActor(tx, ctx.actor, at);
 	const created = await tx.execute(sql`
 		INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
-		VALUES (${ticket.id}, ${stored!.id}, ${source}, ${ctx.actor.name}, ${ctx.actor.kind}, ${at})
+		VALUES (${ticket.id}, ${stored!.id}, 'manual', ${ctx.actor.name}, ${ctx.actor.kind}, ${at})
 		ON CONFLICT DO NOTHING
 		RETURNING ${iso(sql`created_at`)} AS linked_at
 	`);

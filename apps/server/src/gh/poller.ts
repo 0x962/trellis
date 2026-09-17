@@ -1,6 +1,5 @@
 import type { GhReason, TrellisEvent } from "@trellis/api";
 import { withTx } from "../db/tx.ts";
-import { run as detect } from "./detect.ts";
 import { fetchPullRequests } from "./graphql.ts";
 import { type DueRow, isDue, refOf, selectCandidates } from "./pollerDue.ts";
 import { type Polled, type PolledFailure, storeFetchErrors, writePolled } from "./pollerWrite.ts";
@@ -10,7 +9,7 @@ import type { GhRunner } from "./run.ts";
 // The poller is one setTimeout chain. A tick runs every 10 s, one tick runs
 // at a time, and the next timer is armed when the running tick settles. Each
 // tick reads the gh state, reads the rate limit budget, fetches the pull
-// requests that are due, and runs auto-detection on its own interval.
+// requests that are due.
 //
 // gh that is missing or signed out is a state, not a crash: the tick then
 // does nothing but recheck once a minute, and one event and one log line
@@ -36,7 +35,6 @@ export type PollerHandle = { tick: () => Promise<void>; stop: () => Promise<void
 export const TICK_MS = 10_000;
 export const AUTH_RECHECK_MS = 60_000;
 export const RATE_LIMIT_MS = 300_000;
-export const DETECT_MS = 120_000;
 
 // Each request includes up to 100 check contexts per pull request.
 // Ten pull requests limit the work in each nested check query.
@@ -57,9 +55,7 @@ type PollerState = {
 	multiplier: number;
 	lowBudget: boolean;
 	rateShapeLogged: boolean;
-	detectAt: number | null;
 	lastFetch: Map<string, number>;
-	failingRepos: Map<string, string>;
 };
 
 // One gh.status event and one log line per change. A state that holds writes
@@ -157,21 +153,12 @@ const pollDue = async (hook: PollerHook, state: PollerState, at: Date) => {
 	}
 };
 
-// Auto-detection runs on the first tick and then every 120 s. A low budget
-// stretches that interval as it stretches the poll intervals.
-const detectDue = async (hook: PollerHook, state: PollerState, atMs: number) => {
-	if (state.detectAt !== null && atMs - state.detectAt < DETECT_MS * state.multiplier) return;
-	state.detectAt = atMs;
-	await detect(hook, state.failingRepos);
-};
-
 const tick = async (hook: PollerHook, state: PollerState) => {
 	const at = hook.now();
 	const atMs = at.getTime();
 	if (!(await checkGh(hook, state, atMs))) return;
 	await readBudget(hook, state, atMs);
 	await pollDue(hook, state, at);
-	await detectDue(hook, state, atMs);
 };
 
 export const start = (hook: PollerHook): PollerHandle => {
@@ -183,9 +170,7 @@ export const start = (hook: PollerHook): PollerHandle => {
 		multiplier: 1,
 		lowBudget: false,
 		rateShapeLogged: false,
-		detectAt: null,
 		lastFetch: new Map(),
-		failingRepos: new Map(),
 	};
 	let running: Promise<void> | null = null;
 	let timer: number | null = null;

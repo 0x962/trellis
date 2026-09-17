@@ -37,9 +37,8 @@ export type CheckBucket = z.infer<typeof CheckBucketSchema>;
 export const ReviewStateSchema = z.enum(["none", "review_required", "approved", "changes_requested"]);
 export type ReviewState = z.infer<typeof ReviewStateSchema>;
 
-// How a pull request got onto a ticket. `manual`: a person or an agent
-// linked it. `auto`: the auto-link scan found the ticket identifier in the PR.
-export const PrLinkSourceSchema = z.enum(["manual", "auto"]);
+// A person or an agent explicitly links each pull request to a ticket.
+export const PrLinkSourceSchema = z.enum(["manual"]);
 export type PrLinkSource = z.infer<typeof PrLinkSourceSchema>;
 
 // Why gh cannot serve a request.
