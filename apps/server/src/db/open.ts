@@ -11,7 +11,7 @@ export const openDatabase = async (dataDir: string) => {
 	const db = await openDb(dataDir);
 	const applied = await migrate(db);
 	const liveShas = async () => {
-		const found = await db.execute(sql`SELECT sha256 FROM attachments UNION SELECT sha256 FROM chat_attachments`);
+		const found = await db.execute(sql`SELECT sha256 FROM attachments`);
 		return found.rows.map((row) => row.sha256 as string);
 	};
 	return { db, applied, liveShas, close: () => db.$client.close() };

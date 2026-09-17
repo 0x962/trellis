@@ -328,7 +328,7 @@ section into the URL hash, and Account carries no hash.
 
 | Hash | Section | Contents |
 |---|---|---|
-| none | Account | Your name, the theme, and chat sound |
+| none | Account | Your name and the theme |
 | `#desktop` | Desktop | The data directory, background service, update, and local work actions |
 
 Manage harness logins, account selection, and quota on `/usage`.

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mergeAction, primaryReviewAction } from "./reviewPrimaryAction";
+import { mergeAction, namedReviewRequests, primaryReviewAction } from "./reviewControl";
 
 describe("primaryReviewAction", () => {
 	test("offers ready for review on an open draft", () => {
@@ -18,8 +18,18 @@ describe("primaryReviewAction", () => {
 });
 
 describe("mergeAction", () => {
-	test("uses the administrator action only when selected", () => {
+	test("uses administrator privileges only when selected", () => {
 		expect(mergeAction(false)).toBe("merge");
 		expect(mergeAction(true)).toBe("admin-merge");
+	});
+});
+
+describe("namedReviewRequests", () => {
+	test("reads user and team review requests", () => {
+		expect(namedReviewRequests([{ login: "ada" }, { slug: "platform" }, { name: "Release team" }, {}])).toEqual([
+			{ name: "ada", kind: "user" },
+			{ name: "platform", kind: "team" },
+			{ name: "Release team", kind: "team" },
+		]);
 	});
 });

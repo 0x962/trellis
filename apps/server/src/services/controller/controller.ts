@@ -98,7 +98,6 @@ export const recover = async (ctx: ControllerCtx, tx: Tx, _input: Record<string,
 	await tx.execute(
 		sql`UPDATE comment_deliveries SET state='unknown',error=${unconfirmedDelivery} WHERE state='sending'`,
 	);
-	await tx.execute(sql`UPDATE chat_deliveries SET state='unknown',error=${unconfirmedDelivery} WHERE state='sending'`);
 	await tx.execute(
 		sql`UPDATE manager_dispatches SET state = 'unknown', error = ${unconfirmedDelivery}, updated_at = ${ctx.now} WHERE state = 'sending'`,
 	);

@@ -12,9 +12,6 @@ import { lineStats as workspaceLineStats } from "./agentRuns/workspace/lineStats
 import { workspace } from "./agentRuns/workspace/workspace.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
-import * as chatAttachments from "./chat/attachments.ts";
-import * as chatChannels from "./chat/channels.ts";
-import * as chatMessages from "./chat/messages.ts";
 import * as comments from "./comments.ts";
 import * as controller from "./controller/controller.ts";
 import * as controllerDispatch from "./controller/dispatch.ts";
@@ -43,6 +40,7 @@ import * as reviewImage from "./reviews/image";
 import * as reviewMessages from "./reviews/messages";
 import * as reviewPrs from "./reviews/prs";
 import * as reviewRemote from "./reviews/remote";
+import * as reviewReviewers from "./reviews/reviewers";
 import * as reviewRevision from "./reviews/revision";
 import * as reviewRuns from "./reviews/runs";
 import * as reviewThreads from "./reviews/threads";
@@ -146,6 +144,8 @@ export const services = {
 	"agentRuns.resize": prepared("mutation", agentTerminal.resize, agentTerminal.result),
 	"reviews.image": prepared("read", reviewImage.image, reviewRemote.result),
 	"reviews.status": prepared("read", reviewRevision.status, reviewRemote.result),
+	"reviews.reviewers": prepared("read", reviewReviewers.reviewers, reviewReviewers.result),
+	"reviews.reviewer": prepared("mutation", reviewReviewers.reviewer, reviewReviewers.result),
 	"reviews.runs": prepared("mutation", reviewRuns.runs, reviewRemote.result),
 	"reviews.action": prepared("mutation", reviewRemote.action, reviewRemote.actionResult),
 	"reviews.metadata": prepared("read", reviewRemote.metadata, reviewRemote.result),
@@ -227,12 +227,6 @@ export const services = {
 	"comments.create": core("mutation", comments.create),
 	"comments.update": core("mutation", comments.update),
 	"comments.delete": core("mutation", comments.delete),
-	"chat.channels": core("read", chatChannels.list),
-	"chat.createChannel": core("mutation", chatChannels.create),
-	"chat.list": core("read", chatMessages.list),
-	"chat.post": core("mutation", chatMessages.post),
-	"chat.upload": io("mutation", chatAttachments.upload),
-	"chat.attachment": io("read", chatAttachments.get),
 	"notes.list": core("read", notes.list),
 	"notes.get": core("read", notes.get),
 	"notes.create": core("mutation", notes.create),

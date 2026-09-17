@@ -3,7 +3,6 @@ import { actors } from "./actors.ts";
 import { agentRuns } from "./agentRuns.ts";
 import { attachments } from "./attachments.ts";
 import { brief } from "./brief.ts";
-import { chat } from "./chat.ts";
 import { comments } from "./comments.ts";
 import { controller } from "./controller.ts";
 import { flowExecutions } from "./flowExecutions.ts";
@@ -48,7 +47,6 @@ export const contract = {
 	tickets: oc.tag("tickets").router(tickets),
 	timeline: oc.tag("timeline").router(timeline),
 	comments: oc.tag("comments").router(comments),
-	chat: oc.tag("chat").router(chat),
 	notes: oc.tag("notes").router(notes),
 	attachments: oc.tag("attachments").router(attachments),
 	pullRequests: oc.tag("pull requests").router(pullRequests),

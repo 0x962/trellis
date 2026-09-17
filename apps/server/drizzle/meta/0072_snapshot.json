@@ -1,6 +1,6 @@
 {
-  "id": "ca1a91b9-1211-4ad7-8f67-3139f8312d09",
-  "prevId": "48127161-b856-4cb9-b80d-91e13d2ea181",
+  "id": "b76e7f2a-0648-4f8b-9a03-5a1f627dec7d",
+  "prevId": "ca1a91b9-1211-4ad7-8f67-3139f8312d09",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1389,6 +1389,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'native'"
+        },
+        "harness": {
+          "name": "harness",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
         },
         "kind": {
           "name": "kind",

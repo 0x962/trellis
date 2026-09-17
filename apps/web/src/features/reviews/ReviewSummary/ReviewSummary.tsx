@@ -1,7 +1,7 @@
 import { GithubLogo } from "@phosphor-icons/react";
 import { type ReviewRevision, reviewRef } from "@trellis/api";
 import { Badge, Tooltip } from "@trellis/ui";
-import { ReviewPrimaryActions } from "./components/ReviewPrimaryActions";
+import { ReviewControls } from "./components/ReviewControls";
 export function ReviewSummary({
 	pr,
 	revision,
@@ -32,7 +32,7 @@ export function ReviewSummary({
 		<div className="review-heading">
 			<div className="review-heading-title">
 				<h2>{meta?.title ?? `${ref.owner}/${ref.repo} #${ref.number}`}</h2>
-				{revision && <ReviewPrimaryActions pr={pr} revision={revision} onDone={onAction} />}
+				{revision && <ReviewControls pr={pr} revision={revision} onDone={onAction} />}
 			</div>
 			<div className="review-heading-meta">
 				<Badge tone={meta?.state === "MERGED" ? "agent" : meta?.state === "OPEN" && !meta.isDraft ? "ok" : "neutral"}>

@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowsClockwise, ChatCircle, Plus } from "@phosphor-icons/react";
+import { ArrowRight, ArrowsClockwise, Plus, TextAlignLeft } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { reviewRef } from "@trellis/api";
@@ -134,7 +134,7 @@ export function ReviewsPage() {
 													className="review-row-count"
 													title={`${pr.open} open ${pr.open === 1 ? "thread" : "threads"}`}
 												>
-													<ChatCircle aria-hidden="true" />
+													<TextAlignLeft aria-hidden="true" />
 													{pr.open}
 												</span>
 											)}

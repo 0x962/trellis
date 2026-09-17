@@ -1,1 +1,0 @@
-export { nameHue } from "./nameHue";
