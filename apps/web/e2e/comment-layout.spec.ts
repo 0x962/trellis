@@ -6,7 +6,7 @@ import { signIn } from "./support";
 const shortRenderedComment = `[Short link](https://example.com/${"a".repeat(750)})`;
 const longRenderedComment = Array.from({ length: 12 }, (_, index) => `Paragraph ${index + 1}`).join("\n\n");
 
-type CliComment = { id: string };
+type CliComment = { id: string; parentId: string | null };
 
 test.beforeAll(async () => {
 	if (!ensureProject("CMT", "Comment layout")) return;
@@ -94,6 +94,17 @@ test("replies nest under their thread root", async ({ page }) => {
 	await expect(thread.getByText("The root question.")).toBeVisible();
 	await expect(thread.getByText("The nested answer.")).toBeVisible();
 	await expect(thread.getByRole("textbox", { name: "Reply" })).toBeVisible();
+});
+
+// The mentioned thread has its own section above the activity. The
+// comments section leaves that thread out, so the reader reads the comment
+// one time on the page.
+test("the comments section leaves out the mentioned thread", async ({ page }) => {
+	const comments = trellis<CliComment[]>(["comments", "CMT-6"], "human:dana");
+	const rootId = comments.find((comment) => comment.parentId === null)!.id;
+	await signIn(page, `/t/CMT-6?thread=${rootId}`);
+	await expect(page.getByRole("region", { name: "Mentioned comment" })).toContainText("The root question.");
+	await expect(page.locator('section[aria-label="Comments"]').getByText("The root question.")).toHaveCount(0);
 });
 
 test("timeline actor names align with the comment headers", async ({ page }) => {

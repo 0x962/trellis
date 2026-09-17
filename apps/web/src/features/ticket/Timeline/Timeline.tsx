@@ -33,7 +33,8 @@ function ActivitySection({
 	reviewer: (name: string) => "human" | "agent";
 }) {
 	const [open, setOpen] = useState(false);
-	const shown = open || activities.length <= collapsedActivityRows ? activities : activities.slice(-3);
+	const shown =
+		open || activities.length <= collapsedActivityRows ? activities : activities.slice(-collapsedActivityRows);
 	return (
 		<section aria-label="Activity" className="flex flex-col gap-1">
 			<SectionHeader
@@ -71,6 +72,10 @@ export function Timeline({ ticket, onAttachFiles, thread }: TimelineProps) {
 	for (const item of items) {
 		if (item.kind !== "comment") continue;
 		const rootId = item.parentId ?? item.id;
+		// `thread` names the comment the reader followed from an inbox link.
+		// `MentionedThread` draws that whole thread above, so this section
+		// skips it and the reader reads the comment one time.
+		if (rootId === thread) continue;
 		const group = threads.get(rootId);
 		if (group === undefined) threads.set(rootId, [item]);
 		else group.push(item);
