@@ -10,7 +10,7 @@ import { MspClient } from "./mspClient.ts";
 import { MuseSessionEvents } from "./mspEvents.ts";
 import { museControl } from "./museControl.ts";
 import { museTerminalHint, museTranscriptLine } from "./museTerminal.ts";
-import { writeMuseUsage } from "./museUsage.ts";
+import { writeMuseQuotaError, writeMuseUsage } from "./museUsage.ts";
 import { uuid7 } from "./uuid7.ts";
 
 // The Muse bridge owns one `muse serve` session host and one session in
@@ -56,6 +56,7 @@ const approval = z.looseObject({
 });
 const userInput = z.looseObject({ userInputId: z.string(), sessionId: z.string() });
 const turnStart = z.looseObject({ turnId: z.string(), disposition: z.string() });
+const failedTurn = z.looseObject({ terminal: z.literal("failed"), error: z.looseObject({ message: z.string() }) });
 
 const host: ChildProcess = spawn(env.TRELLIS_MUSE_EXECUTABLE, ["serve", "--trust-workspace", "--disable-sandbox"], {
 	cwd: launch.cwd,
@@ -74,11 +75,21 @@ let reportFailure!: (error: unknown) => void;
 const observationFailed = new Promise<never>((_, reject) => {
 	reportFailure = reject;
 });
+// `usageQueue` runs usage writes in notification order for this bridge.
+// `observedAtMs` lets `museUsage.ts` compare writes from other bridge processes.
+let usageQueue = Promise.resolve();
+function queueUsage(write: () => Promise<unknown>) {
+	usageQueue = usageQueue
+		.then(write)
+		.then(() => undefined)
+		.catch(reportFailure);
+}
 let client: MspClient | undefined;
 let control: Awaited<ReturnType<typeof museControl>> | undefined;
 let parser: MuseSessionEvents | undefined;
 const current = { turnId: null as string | null, working: false };
 let sessionId: string | undefined;
+let museHome: string | undefined;
 // Muse drains a message that arrives during a turn at a point of its own
 // choice, and that point can be the middle of a model step, which it then
 // cancels. The bridge therefore starts a turn only while the session is
@@ -212,16 +223,19 @@ function readTerminal() {
 	});
 }
 async function start() {
-	let museHome: string | undefined;
 	client = new MspClient(
 		host,
 		(notification) => {
 			if (!acceptingEvents) return;
-			// The subscription usage of the login arrives after each model
-			// call. The account card reads the saved copy.
-			if (notification.method === "usage/changed" && museHome !== undefined) {
-				void writeMuseUsage(museHome, notification.params).catch(reportFailure);
+			const usageHome = museHome;
+			if (notification.method === "usage/changed" && usageHome !== undefined) {
+				queueUsage(() => writeMuseUsage(usageHome, notification.params));
 				return;
+			}
+			if (notification.method === "turn/completed" && usageHome !== undefined) {
+				const observedAtMs = Date.now();
+				const failure = failedTurn.safeParse(notification.params);
+				if (failure.success) queueUsage(() => writeMuseQuotaError(usageHome, failure.data.error.message, observedAtMs));
 			}
 			if (!parser) return;
 			for (const event of parser.parse(notification)) record(event);
@@ -297,8 +311,12 @@ async function start() {
 try {
 	await Promise.race([start().then(() => terminated), observationFailed]);
 } catch (error) {
+	const observedAtMs = Date.now();
 	acceptingEvents = false;
 	await eventQueue;
+	const usageHome = museHome;
+	if (usageHome !== undefined) queueUsage(() => writeMuseQuotaError(usageHome, (error as Error).message, observedAtMs));
+	await usageQueue;
 	await runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, {
 		kind: "error",
 		outcome: "failed",
@@ -307,6 +325,7 @@ try {
 	process.exitCode = 1;
 } finally {
 	acceptingEvents = false;
+	await usageQueue;
 	if (host.exitCode === null && host.signalCode === null) {
 		const exited = new Promise<void>((resolve) => host.once("exit", () => resolve()));
 		client?.close();
