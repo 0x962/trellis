@@ -35,6 +35,7 @@ test("the native execution migration appends direct-check instructions once", as
 		const instruction = migratedInstructions.find((persona) => persona.name === name)!.instruction;
 		expect(instruction).toContain("## Local execution");
 		expect(instruction).toContain("Run each required repository command directly in the workspace.");
+		expect(instruction).toContain("trellis <command> --help");
 		expect(instruction).toContain("A failed or unrun required command blocks Agent Review.");
 		expect(instruction).toContain('trellis evidence register "$TRELLIS_RUN_ID" --path');
 		expect(instruction).not.toContain("trellis evidence check");
