@@ -80,6 +80,33 @@
 }
 
 /*
+ * `--film-gradient` is the shared ticket glimmer held still over the metal face.
+ * `Avatar.tsx` supplies `relative` for the positioned parent, `rounded-round`
+ * for the circular clip, and the child `span` that keeps the initials above
+ * `profile-metal::before`.
+ */
+@utility profile-metal {
+	overflow: hidden;
+	border: 1px solid var(--metal-edge);
+	background-image: linear-gradient(180deg, var(--metal-top) 0%, var(--metal-bottom) 100%);
+	color: var(--on-metal);
+	box-shadow: inset 0 1px 0 var(--metal-sheen);
+
+	&::before {
+		position: absolute;
+		inset: 0;
+		background: var(--film-gradient);
+		content: "";
+		opacity: var(--film-opacity-static);
+		pointer-events: none;
+	}
+
+	& > span {
+		position: relative;
+	}
+}
+
+/*
  * `ActivityDot` uses `metal` for the silver face. `dot-metal::before` paints
  * the shared `--film-gradient` without animation. The non-static position from
  * `ActivityDot` anchors the pseudo-element to the dot. `rounded-round` clips
