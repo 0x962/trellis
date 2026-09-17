@@ -1,6 +1,7 @@
 import { mkdirSync, readdirSync, renameSync, rmSync, statSync, unlinkSync } from "node:fs";
+import { availableParallelism, freemem, loadavg, totalmem } from "node:os";
 import { dirname, join } from "node:path";
-import type { BackupOutput, GhStatus, Health } from "@trellis/api";
+import type { BackupOutput, GhStatus, Health, SystemLoad } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
@@ -8,7 +9,7 @@ import { fail } from "../errors.ts";
 import { executionEnvironment } from "../executionEnvironment";
 import type { GhRunner } from "../gh/run.ts";
 import { PARTIAL_SUFFIX, SNAPSHOT_PREFIX } from "../storage/backups.ts";
-import type { ServiceCtx } from "./support.ts";
+import type { IoCtx, ServiceCtx } from "./support.ts";
 
 // The three answers a person needs about the running server: is it healthy,
 // can it reach GitHub, and is the data safe. A backup is one archive of the
@@ -38,6 +39,28 @@ export const health = async (ctx: ServiceCtx, tx: Tx, input: EmptyInput): Promis
 		addresses: await ctx.addresses(),
 		db: { ok: true, sizeBytes: Number(row!.bytes) },
 		gh: ctx.ghStatus(),
+	};
+};
+
+const percentOf = (value: number, total: number) => Math.round(Math.min(value / total, 1) * 100);
+
+const darwinMemoryLoad = async () => {
+	const proc = Bun.spawn(["/usr/bin/memory_pressure", "-Q"], { stdout: "pipe", stderr: "pipe" });
+	const [code, stdout, stderr] = await Promise.all([
+		proc.exited,
+		new Response(proc.stdout).text(),
+		new Response(proc.stderr).text(),
+	]);
+	if (code !== 0) throw new Error(`/usr/bin/memory_pressure exited ${code}: ${stderr.trim()}`);
+	const freePercent = Number(/System-wide memory free percentage: (\d+)%/.exec(stdout)![1]);
+	return 100 - freePercent;
+};
+
+export const prepareLoad = async (_ctx: IoCtx, _input: EmptyInput): Promise<SystemLoad> => {
+	const memory = totalmem();
+	return {
+		cpuPercent: percentOf(loadavg()[0]!, availableParallelism()),
+		memoryPercent: process.platform === "darwin" ? await darwinMemoryLoad() : percentOf(memory - freemem(), memory),
 	};
 };
 
