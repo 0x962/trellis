@@ -14,10 +14,11 @@ import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
 import { conflictCurrent, conflictMessage, errorMessage } from "../../../lib/conflict";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
+import { useWorkingAgents } from "../../agents/useWorkingAgents";
 import { useCommandContext } from "../../command/hooks/useCommandContext";
 import { composerActions } from "../../composer/composerStore";
 import { BoardLineStatsContext } from "../BoardLineStatsContext";
-import { categoryColumns, moveInBoard, projectColumns } from "../columns";
+import { categoryColumns, moveInBoard, projectColumns, workingFirst, workingGroupInsertIndex } from "../columns";
 import { BoardColumn } from "../components/BoardColumn";
 import { BoardSkeleton } from "../components/BoardSkeleton";
 import { StatusChoice } from "../components/StatusChoice";
@@ -25,7 +26,7 @@ import { useBoardAutoScroll, useBoardMonitor } from "../hooks/useBoardDnd";
 import type { BoardColumnModel, BoardMove } from "../types";
 import { boardSort } from "./constants";
 import { useBoardLineStats } from "./hooks/useBoardLineStats";
-import { useDropMotion } from "./hooks/useDropMotion";
+import { useCardPositionMotion } from "./hooks/useCardPositionMotion";
 import { columnWidth } from "./utils/columnWidth";
 
 export type BoardProps = {
@@ -62,6 +63,8 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 	const projectOptions = context.orpc.projects.get.queryOptions({ input: { project: projectRef ?? "CDE" } });
 	const boardQuery = useQuery(boardOptions);
 	const projectQuery = useQuery({ ...projectOptions, enabled: projectRef !== undefined });
+	const { ticketIds: workingTicketIds } = useWorkingAgents();
+	const workingTickets = useMemo(() => new Set(workingTicketIds), [workingTicketIds]);
 	const collapsed = useUiStore((state) => state.collapsedGroups[storageKey] ?? noCollapsedColumns);
 	const well = useTheme().resolved === "light";
 	const phone = useMediaQuery("(max-width: 767px)");
@@ -69,12 +72,13 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 	const [focusedCard, setFocusedCard] = useState<string | null>(null);
 	useCommandContext(focusedCard, noSelection);
 
-	const columns = useMemo(() => {
+	const sourceColumns = useMemo(() => {
 		if (boardQuery.data === undefined) return [];
 		if (projectRef === undefined) return categoryColumns(boardQuery.data);
 		if (projectQuery.data === undefined) return [];
 		return projectColumns(boardQuery.data, projectQuery.data);
 	}, [boardQuery.data, projectQuery.data, projectRef]);
+	const columns = useMemo(() => workingFirst(sourceColumns, workingTickets), [sourceColumns, workingTickets]);
 	const startedTicketIds = useMemo(
 		() =>
 			columns
@@ -112,7 +116,9 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 			};
 			const snapshot = context.queryClient.getQueryData<BoardOutput>(boardOptions.queryKey)!;
 			context.queryClient.setQueryData(boardOptions.queryKey, moveInBoard(snapshot, move.ticket, summary));
-			announce(`Moved to ${move.column.name}, position 1 of ${move.column.items.length + 1}`);
+			const targetItems = move.column.items.filter((ticket) => ticket.id !== move.ticket.id);
+			const position = workingGroupInsertIndex(targetItems, move.ticket.id, workingTickets);
+			announce(`Moved to ${move.column.name}, position ${position + 1} of ${targetItems.length + 1}`);
 			const applier = eventApplierFor(context.queryClient);
 			applier.beginMutation(move.ticket.id);
 			try {
@@ -146,7 +152,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 				});
 			}
 		},
-		[announce, boardOptions.queryKey, context.client.tickets, context.queryClient, isArchived, notice],
+		[announce, boardOptions.queryKey, context.client.tickets, context.queryClient, isArchived, notice, workingTickets],
 	);
 
 	const chooseOrMove = useCallback(
@@ -161,8 +167,13 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 
 	const ready = boardQuery.data !== undefined && (projectRef === undefined || projectQuery.data !== undefined);
 	useBoardAutoScroll(boardRef, ready);
-	const onDropped = useDropMotion(columns);
-	useBoardMonitor(columns, (move) => void runMove(move), chooseOrMove, announce, onDropped);
+	const { recordDropOrigin, clearDropOrigin } = useCardPositionMotion(
+		boardRef,
+		columns,
+		`${collapsed.join(",")}:${showAllDone}`,
+		ready,
+	);
+	useBoardMonitor(columns, (move) => void runMove(move), chooseOrMove, announce, recordDropOrigin);
 
 	const setWipLimit = useCallback(
 		async (statusId: string, limit: number | null) => {
@@ -280,6 +291,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 						categoryMode={projectRef === undefined}
 						width={width}
 						well={well}
+						workingTicketIds={workingTickets}
 						onToggle={() => uiActions.setGroupCollapsed(storageKey, column.id, !collapsed.includes(column.id))}
 						onShowAllDone={() => setShowAllDone(true)}
 						onNewTicket={() => openComposer(column)}
@@ -303,7 +315,10 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 						void runMove({ ...pendingChoice, column: target ?? pendingChoice.column }, status);
 						setPendingChoice(null);
 					}}
-					onCancel={() => setPendingChoice(null)}
+					onCancel={() => {
+						clearDropOrigin();
+						setPendingChoice(null);
+					}}
 				/>
 			)}
 		</BoardLineStatsContext.Provider>
