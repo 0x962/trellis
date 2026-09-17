@@ -62,9 +62,6 @@ const rowsOf = (section: "create" | "goto" | "view", runs: Record<string, () => 
 			run: runs[item.id]!,
 		}));
 
-// The project form of the first run is the one place a project is made,
-// and a project's own settings page holds its sub-projects, so New
-// sub-project needs a project route. New sub-ticket lives in This ticket.
 export const createRows = (deps: RowDeps): PaletteRow[] => {
 	const defaults = routeDefaults(deps.pathname, deps.search);
 	const runs: Record<string, () => void> = {
