@@ -247,7 +247,7 @@ Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, set `T
 1. Pick work:        trellis list --project TRL --status todo
 2. Read the ticket:  trellis show TRL-42 --comments
 3. Start:            trellis move TRL-42 in-progress
-4. Put the identifier in the branch name, for example TRL-42-dark-mode. If the title, branch, or body of a PR contains TRL-42, trellis links the PR. To link a PR by hand: trellis pr add TRL-42 <url>
+4. Put the identifier in the branch name, for example TRL-42-dark-mode. Link the PR to the ticket: trellis pr add TRL-42 <url>
 5. Split work:       trellis sub TRL-42 -t "Write tests"
 6. Ask a question:   trellis comment TRL-42 --body "..." and then wait for the reply: trellis watch --ticket TRL-42
 7. Finish coding:    trellis move TRL-42 agent-review

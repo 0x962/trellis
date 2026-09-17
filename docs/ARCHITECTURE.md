@@ -658,7 +658,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | comments | id PK, ticket_id (CASCADE), body (1 to 200000), parent_id, resolved_at, actor_name, actor_kind, search tsvector GENERATED (body C), created_at, updated_at. FK to actors. UNIQUE (id, ticket_id). FK (parent_id, ticket_id) CASCADE, so a reply stays on the ticket of its root. CHECK `parent_id <> id` and `parent_id IS NULL OR resolved_at IS NULL`, so only a root carries the resolved mark. Index (ticket_id, created_at) and (parent_id). GIN (search). |
 | attachments | id PK, ticket_id (CASCADE), filename (1 to 255, no `/`), mime, size (CHECK > 0), sha256 (CHECK hex 64), actor_name, actor_kind, created_at. FK to actors. Index (ticket_id) and (sha256). |
 | pull_requests | id PK, owner, repo (CHECK lowercase), number (CHECK > 0), url, title, state, is_draft, head_ref, base_ref, review_state, merged_at, closed_at, checks jsonb (CHECK array), ci_state, content_hash, fetched_at, fetch_error, created_at, updated_at. UNIQUE (owner, repo, number). Index (state, ci_state). |
-| ticket_pull_requests | ticket_id (CASCADE), pull_request_id (CASCADE), source (manual or auto), actor_name, actor_kind, created_at. PK (ticket_id, pull_request_id). Index (pull_request_id). |
+| ticket_pull_requests | ticket_id (CASCADE), pull_request_id (CASCADE), source (manual), actor_name, actor_kind, created_at. PK (ticket_id, pull_request_id). Index (pull_request_id). |
 | activity | id bigint IDENTITY PK, batch_id, root_id (CASCADE), project_id (CASCADE), ticket_id (CASCADE), actor_name, actor_kind, action, field, from_value, to_value, meta jsonb, created_at. FK to actors. CHECK `field <> 'description' OR (from_value IS NULL AND to_value IS NULL)`. Indexes (ticket_id, id), (ticket_id, created_at DESC, id DESC), (root_id, id), (project_id, id), (created_at). |
 | actors | name (CHECK 1 to 64, no `:`), kind (human, agent, or system), first_seen_at, last_seen_at. PK (name, kind). |
 | settings | key PK, value jsonb, updated_at. |
@@ -881,10 +881,6 @@ remaining it multiplies every interval by 4 and emits a `gh.status` event. The
 gh runner shares 2 poller slots and 1 interactive slot for diff, refresh, and
 link. When gh is missing or signed out, the poller rechecks every 60 seconds,
 logs one line per state change, and shows a banner in the web app.
-
-Auto-link runs every 120 seconds. It runs one `gh pr list` per declared repo,
-then matches `\b([a-z][a-z0-9]{1,9})-(\d+)\b` over the title, the branch, and
-the body. It links as `system:trellis` with the source `auto`.
 
 `deriveCiState(checks)` returns fail on any fail or cancel, else pending on any
 pending, else pass on any pass, else none.

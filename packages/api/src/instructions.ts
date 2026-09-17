@@ -8,7 +8,7 @@ Inside Claude Code, every command runs as \`agent:claude-code\`. Elsewhere, set 
 1. Pick work:        trellis list --project ${key} --status todo
 2. Read the ticket:  trellis show ${key}-42 --comments
 3. Start:            trellis move ${key}-42 in-progress
-4. Put the identifier in the branch name, for example ${key}-42-dark-mode. If the title, branch, or body of a PR contains ${key}-42, trellis links the PR. To link a PR by hand: trellis pr add ${key}-42 <url>
+4. Put the identifier in the branch name, for example ${key}-42-dark-mode. Link the PR to the ticket: trellis pr add ${key}-42 <url>
 5. Split work:       trellis sub ${key}-42 -t "Write tests"
 6. Ask a question:   trellis comment ${key}-42 --body "..." and then wait for the reply: trellis watch --ticket ${key}-42
 7. Finish coding:    trellis move ${key}-42 agent-review
