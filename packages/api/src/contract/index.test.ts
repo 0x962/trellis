@@ -180,7 +180,7 @@ describe("contract", () => {
 			"usage.accounts GET /usage/accounts",
 			"usage.report GET /usage",
 		]);
-		expect(table).toHaveLength(153);
+		expect(table).toHaveLength(151);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has
