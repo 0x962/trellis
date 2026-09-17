@@ -16,6 +16,7 @@ import { conflictCurrent, conflictMessage, errorMessage } from "../../../lib/con
 import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { useCommandContext } from "../../command/hooks/useCommandContext";
 import { composerActions } from "../../composer/composerStore";
+import { BoardLineStatsContext } from "../BoardLineStatsContext";
 import { categoryColumns, moveInBoard, projectColumns } from "../columns";
 import { BoardColumn } from "../components/BoardColumn";
 import { BoardSkeleton } from "../components/BoardSkeleton";
@@ -23,6 +24,7 @@ import { StatusChoice } from "../components/StatusChoice";
 import { useBoardAutoScroll, useBoardMonitor } from "../hooks/useBoardDnd";
 import type { BoardColumnModel, BoardMove } from "../types";
 import { boardSort } from "./constants";
+import { useBoardLineStats } from "./hooks/useBoardLineStats";
 import { useDropMotion } from "./hooks/useDropMotion";
 import { columnWidth } from "./utils/columnWidth";
 
@@ -73,6 +75,14 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 		if (projectQuery.data === undefined) return [];
 		return projectColumns(boardQuery.data, projectQuery.data);
 	}, [boardQuery.data, projectQuery.data, projectRef]);
+	const startedTicketIds = useMemo(
+		() =>
+			columns
+				.filter((column) => column.category === "started")
+				.flatMap((column) => column.items.map((ticket) => ticket.id)),
+		[columns],
+	);
+	const lineStats = useBoardLineStats(startedTicketIds);
 
 	useEffect(() => {
 		if (useUiStore.getState().collapsedGroups[storageKey] !== undefined) return;
@@ -259,7 +269,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 		: columnWidth(columns.length, columns.filter((column) => collapsed.includes(column.id)).length);
 
 	return (
-		<>
+		<BoardLineStatsContext.Provider value={lineStats}>
 			<div ref={boardRef} data-board="" className="flex min-h-0 flex-1 snap-x gap-3 overflow-x-auto px-5 py-4">
 				{columns.map((column) => (
 					<BoardColumn
@@ -296,6 +306,6 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 					onCancel={() => setPendingChoice(null)}
 				/>
 			)}
-		</>
+		</BoardLineStatsContext.Provider>
 	);
 }

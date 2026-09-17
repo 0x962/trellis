@@ -1,8 +1,9 @@
 import type { TicketSummary } from "@trellis/api";
 import { cx, TicketGlimmer } from "@trellis/ui";
-import { type KeyboardEvent, useCallback, useRef } from "react";
+import { type KeyboardEvent, useCallback, useContext, useRef } from "react";
 import { useArchivedProjects } from "../../../../hooks/useArchivedProjects";
 import { useWorkingAgents } from "../../../agents/useWorkingAgents";
+import { BoardLineStatsContext } from "../../BoardLineStatsContext";
 import { useCardDnd } from "../../hooks/useBoardDnd";
 import { CardContent } from "../CardContent";
 import { DragIndicator } from "../DragIndicator";
@@ -38,6 +39,8 @@ export function BoardCard({
 }: BoardCardProps) {
 	const { ticketIds } = useWorkingAgents();
 	const working = ticketIds.includes(ticket.id);
+	const lineStats = useContext(BoardLineStatsContext)!;
+	const showLineStats = ticket.status.category === "started";
 	const ref = useRef<HTMLLIElement>(null);
 	const pickup = useCallback((message: string) => announce(message), [announce]);
 	const readOnly = useArchivedProjects().isArchived(ticket.project.path);
@@ -79,7 +82,12 @@ export function BoardCard({
 		>
 			<TicketGlimmer active={working} />
 			{dropBefore && <DragIndicator />}
-			<CardContent ticket={ticket} showStatus={showStatus} />
+			<CardContent
+				ticket={ticket}
+				showStatus={showStatus}
+				lineChanges={showLineStats ? (lineStats.values.get(ticket.id) ?? null) : undefined}
+				lineChangesPending={showLineStats && lineStats.pendingIds.has(ticket.id)}
+			/>
 		</li>
 	);
 }

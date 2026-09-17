@@ -8,6 +8,7 @@ import { prepareSetModel } from "./agentRuns/setModel/setModel.ts";
 import { stopNativeWork } from "./agentRuns/stopNativeWork.ts";
 import * as agentTerminal from "./agentRuns/terminal.ts";
 import { file as workspaceFile } from "./agentRuns/workspace/file.ts";
+import { lineStats as workspaceLineStats } from "./agentRuns/workspace/lineStats.ts";
 import { workspace } from "./agentRuns/workspace/workspace.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
@@ -133,6 +134,7 @@ export const services = {
 	"flowExecutions.reconcile": prepared("mutation", prepareFlowReconcile, agentTerminal.result),
 	"system.doctor": prepared("read", diagnostics, agentTerminal.result),
 	"system.stopNativeWork": prepared("mutation", stopNativeWork, agentTerminal.result),
+	"agentRuns.workspaceLineStats": prepared("read", workspaceLineStats, agentTerminal.result),
 	"agentRuns.workspace": prepared("read", workspace, agentTerminal.result),
 	"agentRuns.file": prepared("read", workspaceFile, agentTerminal.result),
 	"agentRuns.session": prepared("read", agentTerminal.session, agentTerminal.result),

@@ -3,6 +3,7 @@ import type { TicketSummary } from "@trellis/api";
 import { PriorityIcon, StatusIcon } from "@trellis/ui";
 import { gap, ticketTrail } from "../../../../lib/ticketTrail";
 import { ActorAvatar } from "../../../agents/ActorAvatar";
+import { LineChanges, type LineChangesValue } from "./components/LineChanges";
 import { ReviewStatusBadge } from "./components/ReviewStatusBadge";
 
 export type CardContentProps = {
@@ -10,13 +11,15 @@ export type CardContentProps = {
 	// On the all-tickets board a column holds several statuses, so the card
 	// names its own.
 	showStatus?: boolean;
+	lineChanges?: LineChangesValue | null;
+	lineChangesPending?: boolean;
 };
 
 // The three rows of a board card: the trail of identifiers with the
 // priority, the title, and the meta row. The card on the board and the drag
 // preview both draw it, so the preview looks like the card under the
 // pointer.
-export function CardContent({ ticket, showStatus = false }: CardContentProps) {
+export function CardContent({ ticket, showStatus = false, lineChanges, lineChangesPending = false }: CardContentProps) {
 	const progress = ticket.childCount === 0 ? 0 : ticket.childDoneCount / ticket.childCount;
 	const trail = ticketTrail(ticket.ancestors, ticket.identifier);
 	return (
@@ -48,9 +51,12 @@ export function CardContent({ ticket, showStatus = false }: CardContentProps) {
 					</span>
 				)}
 				{showStatus && <span className="truncate">{ticket.status.name}</span>}
-				{ticket.lastActor !== null && ticket.lastActor.kind !== "system" && (
-					<span className="ml-auto shrink-0">
-						<ActorAvatar actor={ticket.lastActor} ticketId={ticket.id} />
+				{(lineChanges !== undefined || (ticket.lastActor !== null && ticket.lastActor.kind !== "system")) && (
+					<span className="ml-auto flex shrink-0 items-center gap-1.5">
+						{lineChanges !== undefined && <LineChanges value={lineChanges} pending={lineChangesPending} />}
+						{ticket.lastActor !== null && ticket.lastActor.kind !== "system" && (
+							<ActorAvatar actor={ticket.lastActor} ticketId={ticket.id} />
+						)}
 					</span>
 				)}
 			</div>

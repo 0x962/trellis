@@ -2,7 +2,7 @@ import { z } from "zod";
 import { HarnessSchema } from "../harness/harness.ts";
 import { ModelIdSchema } from "../models/models.ts";
 import { PersonaKindSchema } from "./persona.ts";
-import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
+import { CountSchema, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 // The kinds of an agent run: the three persona kinds, and `session` for the
 // agent of a scratch session, which has no persona, no project, and no
@@ -79,6 +79,14 @@ export const AgentRunListInputSchema = z.strictObject({
 export type AgentRunListInput = z.infer<typeof AgentRunListInputSchema>;
 
 export const AgentWorkspaceInputSchema = z.object({ runId: UlidSchema });
+export const AgentWorkspaceLineStatsInputSchema = z.strictObject({
+	ticketIds: z.array(UlidSchema).min(1).max(200),
+});
+export const AgentWorkspaceLineStatSchema = z.object({
+	ticketId: UlidSchema,
+	additions: CountSchema,
+	deletions: CountSchema,
+});
 export const AgentWorkspaceFileInputSchema = AgentWorkspaceInputSchema.extend({
 	path: z.string().min(1).max(4096),
 });

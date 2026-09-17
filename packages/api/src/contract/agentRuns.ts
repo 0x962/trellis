@@ -8,6 +8,8 @@ import {
 	AgentWorkspaceFileInputSchema,
 	AgentWorkspaceFileSchema,
 	AgentWorkspaceInputSchema,
+	AgentWorkspaceLineStatSchema,
+	AgentWorkspaceLineStatsInputSchema,
 	AgentWorkspaceSchema,
 } from "../schemas/agentRun.ts";
 import { UlidSchema } from "../schemas/primitives.ts";
@@ -68,6 +70,10 @@ const sessionSchema = z.object({
 	result: z.object({ id: z.string(), text: z.string() }).nullable(),
 });
 export const agentRuns = {
+	workspaceLineStats: base
+		.route({ method: "GET", path: "/agent-runs/workspaces/line-stats", summary: "Read workspace line changes" })
+		.input(AgentWorkspaceLineStatsInputSchema)
+		.output(z.array(AgentWorkspaceLineStatSchema)),
 	workspace: base
 		.route({ method: "GET", path: "/agent-runs/{runId}/workspace", summary: "Inspect the agent workspace" })
 		.input(AgentWorkspaceInputSchema)
