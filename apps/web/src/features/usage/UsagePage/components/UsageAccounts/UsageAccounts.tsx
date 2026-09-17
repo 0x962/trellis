@@ -4,6 +4,7 @@ import type {
 	HarnessAccount,
 	HarnessAccountCreate,
 	HarnessAccountUpdate,
+	UsageAccount,
 	UsageGroupRow,
 	UsageMetric,
 } from "@trellis/api";
@@ -28,6 +29,27 @@ export type UsageAccountsProps = {
 	pending: boolean;
 };
 
+export const unavailableUsageAccounts = (accounts: readonly HarnessAccount[]): UsageAccount[] =>
+	accounts.map((account) => ({
+		key: `account:${account.name}`,
+		id: account.id,
+		name: account.name,
+		harness: account.harness,
+		profilePath: account.profilePath,
+		isDefault: account.isDefault,
+		defaultSource: null,
+		loginCommand: account.loginCommand,
+		sharedWith: [],
+		quota: {
+			status: "unavailable",
+			email: null,
+			plan: null,
+			detail: null,
+			windows: [],
+			fetchedAt: account.updatedAt,
+		},
+	}));
+
 export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsProps) {
 	const { orpc, client, queryClient } = useApp();
 	const accountOptions = orpc.usage.accounts.queryOptions({ input: {} });
@@ -36,7 +58,12 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 		...orpc.harnessAccounts.list.queryOptions({ input: {} }),
 		refetchInterval: 30_000,
 	});
-	const values = accounts.data ?? [];
+	const values = accounts.isError ? unavailableUsageAccounts(configured.data ?? []) : (accounts.data ?? []);
+	const readError = accounts.isError
+		? "Could not read account quotas. Select Refresh quota to try again."
+		: configured.isError
+			? "Could not read the configured accounts. Refresh the page to try again."
+			: undefined;
 	const [addOpen, setAddOpen] = useState(false);
 	const [edit, setEdit] = useState<HarnessAccount | null>(null);
 	const [remove, setRemove] = useState<HarnessAccount | null>(null);
@@ -83,7 +110,7 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 		<section aria-label="Accounts" className="flex flex-col gap-3">
 			<SectionHeader
 				title="Accounts"
-				count={accounts.data ? values.length : undefined}
+				count={accounts.isPending || configured.isPending ? undefined : values.length}
 				actions={
 					<Tooltip content="Add account">
 						<IconButton
@@ -104,7 +131,7 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 			</p>
 			{(error || accounts.isError || configured.isError) && (
 				<p role="alert" className="text-sm text-danger">
-					{error ?? accountError(accounts.error) ?? accountError(configured.error)}
+					{error ?? readError}
 				</p>
 			)}
 			{accounts.isPending || configured.isPending ? (

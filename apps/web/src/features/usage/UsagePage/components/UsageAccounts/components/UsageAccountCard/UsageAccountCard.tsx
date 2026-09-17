@@ -65,7 +65,7 @@ export function UsageAccountCard({
 						{harnessProvider[account.harness] && (
 							<ProviderIcon provider={harnessProvider[account.harness]!} className="text-fg-muted" />
 						)}
-						<span className="truncate">{account.name}</span>
+						<span className="break-words">{account.name}</span>
 					</h3>
 					<p className="mt-1 text-xs text-fg-faint">
 						{harnessLabel[account.harness]}
