@@ -42,6 +42,13 @@
 	--warning-soft: #FBF4DA;
 	--danger: #C92432;
 	--danger-soft: #FFE6E8;
+	--film-pink: #CF729D;
+	--film-violet: #9270CB;
+	--film-blue: #5B9BCA;
+	--film-mint: #5CB5A4;
+	--film-gold: #BF9E53;
+	--film-gradient: linear-gradient(110deg, transparent 15%, var(--film-pink) 32%, var(--film-violet) 42%, var(--film-blue) 50%, var(--film-mint) 58%, var(--film-gold) 68%, transparent 85%);
+	--film-opacity-static: 0.2;
 	/* The ground of a default button, a danger-soft button, and a Select
 	   trigger, then its hover and pressed steps. Each step moves toward the
 	   text color: darker in light, lighter in dark. */
@@ -81,6 +88,11 @@
 		--warning-soft: #332B0C;
 		--danger: #FF6762;
 		--danger-soft: #3A1517;
+		--film-pink: #EFB2D0;
+		--film-violet: #B7A4F1;
+		--film-blue: #9BCDEC;
+		--film-mint: #A5E5D2;
+		--film-gold: #EFDB9F;
 		--control: #1C1C1E;
 		--control-hover: #252527;
 		--control-active: #2E2E30;
@@ -112,6 +124,11 @@
 	--warning-soft: #332B0C;
 	--danger: #FF6762;
 	--danger-soft: #3A1517;
+	--film-pink: #EFB2D0;
+	--film-violet: #B7A4F1;
+	--film-blue: #9BCDEC;
+	--film-mint: #A5E5D2;
+	--film-gold: #EFDB9F;
 	--control: #1C1C1E;
 	--control-hover: #252527;
 	--control-active: #2E2E30;

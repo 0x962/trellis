@@ -3,32 +3,12 @@
 	--persona-builder-ink: #6b557f;
 	--persona-reviewer: #9dbfae;
 	--persona-reviewer-ink: #416552;
-	--film-pink: #cf729d;
-	--film-violet: #9270cb;
-	--film-blue: #5b9bca;
-	--film-mint: #5cb5a4;
-	--film-gold: #bf9e53;
-	--film-gradient: linear-gradient(
-		110deg,
-		transparent 15%,
-		var(--film-pink) 32%,
-		var(--film-violet) 42%,
-		var(--film-blue) 50%,
-		var(--film-mint) 58%,
-		var(--film-gold) 68%,
-		transparent 85%
-	);
 }
 :root[data-theme="dark"] {
 	--persona-builder: #c7b8de;
 	--persona-builder-ink: #c7b8de;
 	--persona-reviewer: #b7d1c3;
 	--persona-reviewer-ink: #b7d1c3;
-	--film-pink: #efb2d0;
-	--film-violet: #b7a4f1;
-	--film-blue: #9bcdec;
-	--film-mint: #a5e5d2;
-	--film-gold: #efdb9f;
 }
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme="light"]) {
@@ -36,11 +16,6 @@
 		--persona-builder-ink: #c7b8de;
 		--persona-reviewer: #b7d1c3;
 		--persona-reviewer-ink: #b7d1c3;
-		--film-pink: #efb2d0;
-		--film-violet: #b7a4f1;
-		--film-blue: #9bcdec;
-		--film-mint: #a5e5d2;
-		--film-gold: #efdb9f;
 	}
 }
 .persona-mark {

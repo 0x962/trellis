@@ -23,10 +23,10 @@ type NavRowProps = {
 	label: string;
 	active: boolean;
 	trailing?: ReactNode;
-	hasItems?: boolean;
+	iconMark?: ReactNode;
 };
 
-function NavRow({ to, icon, label, active, trailing, hasItems }: NavRowProps) {
+function NavRow({ to, icon, label, active, trailing, iconMark }: NavRowProps) {
 	return (
 		<Link
 			to={to}
@@ -38,7 +38,7 @@ function NavRow({ to, icon, label, active, trailing, hasItems }: NavRowProps) {
 					<span aria-hidden="true" className="inline-flex size-4 shrink-0 *:size-full">
 						{icon}
 					</span>
-					{hasItems && <ActivityDot label="Needs you has items" />}
+					{iconMark}
 				</span>
 			</span>
 			<span data-slot="label" className="sidebar-label">
@@ -83,7 +83,10 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const toggleLabel = collapsed ? "Expand sidebar" : "Collapse sidebar";
-	const needsYouUnread = (inbox.data?.active ?? 0) > 0;
+	const needsYouActive = (inbox.data?.active ?? 0) > 0;
+	const needsYouMark = needsYouActive ? (
+		<ActivityDot label="Needs you has items" placement={collapsed ? "corner" : "inline"} tone="metal" />
+	) : undefined;
 
 	return (
 		<>
@@ -111,23 +114,20 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 				</div>
 			)}
 			<nav aria-label="Workspace" className="flex flex-col gap-0.5">
-				{/* The rail clips the trailing slot, so a collapsed sidebar keeps
-				    the mark on the icon. An open sidebar carries it at the right
-				    edge, where the Search row carries its slash. */}
 				{navRows.map((row) => (
 					<NavRow
 						key={row.to}
 						to={row.to}
-						hasItems={row.to === "/needs-you" && collapsed && needsYouUnread ? true : undefined}
+						iconMark={row.to === "/needs-you" && collapsed ? needsYouMark : undefined}
 						icon={row.icon}
 						label={row.label}
 						active={isActive(pathname, row.to)}
 						trailing={
-							row.to === "/search" && !collapsed ? (
-								<Kbd>/</Kbd>
-							) : row.to === "/needs-you" && !collapsed && needsYouUnread ? (
-								<ActivityDot label="Needs you has items" placement="inline" tone="metal" />
-							) : undefined
+							row.to === "/search" && !collapsed
+								? <Kbd>/</Kbd>
+								: row.to === "/needs-you" && !collapsed
+									? needsYouMark
+									: undefined
 						}
 					/>
 				))}
