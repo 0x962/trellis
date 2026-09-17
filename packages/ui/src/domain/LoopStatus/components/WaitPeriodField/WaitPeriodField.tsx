@@ -14,9 +14,10 @@ export function WaitPeriodField({ seconds, busy, onChange }: WaitPeriodFieldProp
 	const errorId = useId();
 
 	useEffect(() => {
+		if (busy) return;
 		setDraft(String(seconds));
 		setError(null);
-	}, [seconds]);
+	}, [busy, seconds]);
 
 	const commit = () => {
 		const value = Number(draft);
