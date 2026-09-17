@@ -170,7 +170,7 @@ test("a pending persona mention starts an assignment from the saved delivery", a
 			VALUES ('started','Release Builder',${personaId},'Release Builder','builder','Ship the change.',${target.project_id},'APP',${target.ticket_id},'started-terminal','started-session',now(),now())`);
 		return { id: "started" };
 	});
-	await dispatchMentions(ctx(), [], sent(), async () => "claude", start);
+	await dispatch(ctx(), [], sent(), async () => "claude", start);
 	expect(start).toHaveBeenCalledTimes(1);
 	expect(start.mock.calls[0]![1]).toMatchObject({
 		personaId,
@@ -204,7 +204,7 @@ test("a pending manager mention starts a project assignment", async () => {
 			VALUES ('started-manager','Release Manager',${personaId},'Release Manager','manager','Manage releases.',${target.project_id},'APP','manager-terminal','manager-session',now(),now())`);
 		return { id: "started-manager" };
 	});
-	await dispatchMentions(ctx(), [], sent(), async () => "claude", start);
+	await dispatch(ctx(), [], sent(), async () => "claude", start);
 	expect(start.mock.calls[0]![1]).toMatchObject({
 		personaId,
 		project: target.project_id,
@@ -229,7 +229,7 @@ test("a start that closes before dispatch saves the run error", async () => {
 			VALUES ('closed-start','Release Builder',${personaId},'Release Builder','builder','Ship the change.',${target.project_id},'APP',${target.ticket_id},'closed-terminal',now(),'The start command failed.',now(),now())`);
 		return { id: "closed-start" };
 	});
-	await dispatchMentions(ctx(), [], sent(), async () => "claude", start);
+	await dispatch(ctx(), [], sent(), async () => "claude", start);
 	expect(
 		await h.one<{ run_id: string | null; state: string; error: string | null }>(
 			sql`SELECT run_id,state,error FROM comment_deliveries WHERE comment_id=${comment.id}`,
@@ -259,7 +259,7 @@ test("a refused persona start saves the specific reason", async () => {
 			data: { field: "project concurrency limit" },
 		});
 	});
-	await dispatchMentions(ctx(), [], sent(), async () => "claude", start);
+	await dispatch(ctx(), [], sent(), async () => "claude", start);
 	expect(
 		await h.one<{ run_id: string | null; state: string; error: string | null }>(
 			sql`SELECT run_id,state,error FROM comment_deliveries WHERE comment_id=${comment.id}`,
@@ -280,7 +280,7 @@ test("persona deletion leaves a failed delivery instead of blocking the delete",
 		create(ctx, tx, { ticket: target.ticket_id, body: "@Release Builder ship this." }),
 	);
 	await h.rows(sql`DELETE FROM personas WHERE id=${personaId}`);
-	await dispatchMentions(ctx(), [], sent(), async () => "claude");
+	await dispatch(ctx(), [], sent(), async () => "claude");
 	expect(
 		await h.one<{ run_id: string | null; state: string; error: string | null }>(
 			sql`SELECT run_id,state,error FROM comment_deliveries WHERE comment_id=${comment.id}`,
