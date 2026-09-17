@@ -38,7 +38,13 @@ describe("the ticket list requests", () => {
 		await waitForRows();
 
 		expect(listInputs()).toEqual([
-			{ project: data.root, category: ["todo", "started"], sort: "-updatedAt", limit: pageLimit },
+			{
+				project: data.root,
+				subprojects: false,
+				category: ["todo", "started"],
+				sort: "-updatedAt",
+				limit: pageLimit,
+			},
 		]);
 	});
 
@@ -72,8 +78,8 @@ describe("the ticket list requests", () => {
 	});
 
 	test("the end of the list asks for the next page by cursor", async () => {
-		// The root holds 28 active tickets, so the first page of 25 leaves a
-		// cursor.
+		// The root holds 26 direct active tickets, so the first page of 25
+		// leaves a cursor.
 		renderWithClient(<ProjectTicketList project={data.root} />);
 		await waitForRows();
 
@@ -83,6 +89,7 @@ describe("the ticket list requests", () => {
 		expect(lastInput().category).toEqual(["todo", "started"]);
 		expect(lastInput().sort).toBe("-updatedAt");
 		expect(lastInput().project).toBe(data.root);
+		expect(lastInput().subprojects).toBe(false);
 	});
 
 	test("a null cursor stops the paging", async () => {

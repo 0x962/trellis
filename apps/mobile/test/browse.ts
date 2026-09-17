@@ -23,9 +23,9 @@ export const oauthTitles = [
 export const terminalTitle = "Keep the terminal scrollback on a session handoff";
 export const namedTitle = "Write the code review checklist for the release";
 
-// The first page of a ticket list holds 25 rows, so the root needs more
-// active tickets than that for a second page to exist.
-const fillers = 24;
+// The first page of a ticket list holds 25 rows. The root has one named
+// ticket and these fillers, so its direct ticket list has a second page.
+const fillers = 25;
 
 export type BrowseData = {
 	root: string;
@@ -61,7 +61,7 @@ export const seedBrowse = async (): Promise<BrowseData> => {
 	}
 	for (let index = 0; index < fillers; index += 1) {
 		await seedTicket(seeder, {
-			project: index % 2 === 0 ? rootKey : webPath,
+			project: rootKey,
 			title: `Split the settings screen, step ${index + 1}`,
 		});
 	}
