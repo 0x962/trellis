@@ -50,7 +50,8 @@ export async function reconcileColumn(
 	const changedColumn = state.retired || state.assignedStatusId !== state.statusId;
 	const enabled = state.allowed && state.agentConfig !== null;
 	if (session?.status === "unknown") throw new Error(`Cannot confirm process ownership for ${run!.id}`);
-	if (run && session && (changedColumn || !enabled || workerAction(session) === "restart")) {
+	const action = session ? workerAction(session, ctx.now()) : null;
+	if (run && session && (changedColumn || !enabled || action === "restart")) {
 		if (session.status !== "exited") await deps.stop(ctx, run);
 	}
 	if (!enabled) {
@@ -63,9 +64,9 @@ export async function reconcileColumn(
 			});
 		return;
 	}
-	if (session && !changedColumn && workerAction(session) !== "restart") {
+	if (session && !changedColumn && action !== "restart") {
 		if (
-			workerAction(session) === "continue" &&
+			action === "continue" &&
 			(!state.heartbeatAt || ctx.now().getTime() - new Date(state.heartbeatAt).getTime() >= 30_000)
 		) {
 			const context = await ctx.newTx((tx) => columnContext(tx, { ticketId: state.ticketId }));

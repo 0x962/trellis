@@ -32,7 +32,7 @@ export async function reconcileCopilot(
 	if (previous?.terminalId && !session)
 		session = (await deps.list(ctx.home)).find((item) => item.id === previous.terminalId);
 	if (session?.status === "unknown") throw new Error(`Cannot confirm process ownership for ${previous!.id}`);
-	if (session && workerAction(session) !== "restart") return;
+	if (session && workerAction(session, ctx.now(), { allowIdle: true }) !== "restart") return;
 	if (previous && session?.status === "running") await deps.stop(ctx, previous);
 	const config = await ctx.newTx(async (tx) => {
 		const base = await projectLaunchConfig(tx, { projectId });
