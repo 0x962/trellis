@@ -1,1 +1,0 @@
-export { PairPhone } from "./PairPhone";

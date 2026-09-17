@@ -343,7 +343,7 @@ Stage 0 must precede broad UI work. Its output resolves the largest package risk
 
 Stage 2 can first use a deterministic fake harness. Stage 3 then proves the real harness boundary. The two stages must not confuse reliable queue behavior with reliable model behavior.
 
-Use small draft PRs within each stage. Keep terminal protocol, controller schema, harness adapter, and UI changes independently reviewable. Record the detailed test evidence in the repository or local review tool. Keep PR descriptions short.
+Use small draft PRs within each stage. Keep terminal protocol, controller schema, harness adapter, and UI changes independently reviewable. Keep PR descriptions short.
 
 ### Version and update policy
 
