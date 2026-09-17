@@ -1,4 +1,4 @@
-import { CaretRight, Infinity as InfinityIcon } from "@phosphor-icons/react";
+import { CaretRight } from "@phosphor-icons/react";
 import { Button, cx, IconButton, StatusIcon } from "@trellis/ui";
 import { type KeyboardEvent, useCallback, useRef } from "react";
 import { workingGroupInsertIndex } from "../../columns";
@@ -6,7 +6,6 @@ import { useBoardAutoScroll, useColumnDnd } from "../../hooks/useBoardDnd";
 import type { BoardColumnModel } from "../../types";
 import { BoardCard } from "../BoardCard";
 import { DragIndicator } from "../DragIndicator";
-import { capacityLabel } from "./capacityLabel";
 
 export type BoardColumnProps = {
 	column: BoardColumnModel;
@@ -61,7 +60,6 @@ export function BoardColumn({
 			: column.items;
 	const count = column.category === "done" && !showAllDone ? visible.length : column.count;
 	const dropIndex = over === null ? null : workingGroupInsertIndex(visible, over.ticketId, workingTicketIds);
-	const exceeded = column.wipLimit !== null && column.count > column.wipLimit;
 	const reviewer = column.statuses[0]?.reviewer ?? undefined;
 
 	if (collapsed) {
@@ -81,8 +79,7 @@ export function BoardColumn({
 					<IconButton label={`Expand ${column.name}`} icon={<CaretRight />} size="xs" onClick={onToggle} />
 					<StatusIcon category={column.category} reviewer={reviewer} />
 					<span className="mt-2 [writing-mode:vertical-rl] text-sm font-medium text-fg-muted">
-						{column.name}{" "}
-						<span className="tabular">{column.wipLimit === null ? `${count}/∞` : `${count}/${column.wipLimit}`}</span>
+						{column.name} <span className="tabular">{count}</span>
 					</span>
 				</li>
 			</ul>
@@ -99,12 +96,7 @@ export function BoardColumn({
 			<header className="flex h-9 shrink-0 items-center gap-2 px-2 text-fg pointer-coarse:h-12">
 				<StatusIcon category={column.category} reviewer={reviewer} />
 				<h2 className="min-w-0 truncate text-base font-medium">{column.name}</h2>
-				<span className={cx("inline-flex items-center text-sm tabular", exceeded ? "text-warning" : "text-fg-faint")}>
-					<span className="sr-only">{capacityLabel(count, column.wipLimit)}</span>
-					<span aria-hidden="true" className="inline-flex items-center">
-						{count}/{column.wipLimit === null ? <InfinityIcon className="size-3.5" /> : column.wipLimit}
-					</span>
-				</span>
+				<span className="text-sm tabular text-fg-faint">{count}</span>
 			</header>
 			<ul
 				ref={list}

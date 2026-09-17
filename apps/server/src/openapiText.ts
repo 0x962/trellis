@@ -169,9 +169,7 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 		verdict: "comment",
 		body: "Review complete.",
 	},
-	"POST /reviews/import-margin": { source: "/Users/me/.margin/comments", dryRun: true, files: [] },
 	"POST /reviews/action": { pr: "acme/web#12", headSha: "0123456789abcdef", action: "ready" },
-	"POST /reviews/runs": { pr: "acme/web#12", action: "list" },
 	"POST /flows": { name: "PR review", description: "Review a pull request with parallel checkers." },
 	"PATCH /flows/{flow}": { briefing: "Review the pull request at {TARGET}.", expectedVersion: 2 },
 	"PUT /flows/{flow}/graph": {

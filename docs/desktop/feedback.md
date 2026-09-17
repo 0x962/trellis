@@ -308,9 +308,6 @@ Five window tests, eight terminal UI tests, and the typechecks pass. The user re
 | Make Activity the first and default ticket tab. | Installed | Layout agent | Browser test passes. |
 | Rename Overview to Agent. Show only agent content in Agent. | Installed | Layout agent | Browser test passes; shared ticket details remain above the tabs. |
 | Remove red bars from ticket cards. | Installed | Card agent | Bars indicated failing CI. Two board browser tests pass after removal. |
-| Show a full interactive CLI, like Superset, wherever agent output appears. | Installed; external reviews show results | Lead and UI agent | Tickets, managers, and native flow tasks open interactive terminals. Dots owns separate processes; its review page links to the external run. |
-| Remove output polls and the last-30-message view. | Installed | Transport and UI agents | Native terminals use push streams. Dots results refresh on explicit action and do not expose a polled output panel. |
-| Remove the manager queue from the manager page. | Installed | UI agent | Manager page browser test passes. Durable dispatch stays in the host. |
 | Use the actual process as the authority for agent status and metadata. Remove database state used to track process status. | Installed | Runtime agent and lead | Migration 37 removes the state column and harness snapshots. API and page status uses live process inspection. |
 | Remove the agent-attempt dropdown. Show the CLI of the agent assigned to the ticket. | Installed | UI agent | The assigned-agent browser test passes. |
 | Remove green dots next to agent avatars. | Installed | UI agent | Shared avatar components and consumers updated. Component and browser checks pass. |
@@ -423,7 +420,6 @@ Evidence: `/tmp/trellis-tool-errors-native-faults-final.log`. The [acceptance re
 | Remove the unsupported harness entirely. | Installed | The supported list contains Claude, Codex, OpenCode, and Pi. |
 | Use the updated OpenCode executable. | Installed executable and complete host sequence verified | Version 1.18.31 passes 27 assertions, including file edit, shell tools, interruption, and resume. |
 | Show native flow tasks through their own terminal. | Installed | Six flow browser tests pass, including exact attempt selection and refusal to attach a replaced attempt. |
-| Remove the polled Dots output panel. | Installed | The browser test verifies retained results, explicit refresh, the external Dots link, and no output polling. |
 | Verify the saved manager and builder prompt rules. | Live read verified | Both prompts prohibit name prefixes, routine logs, repeated blockers, and questions about adjacent scope. |
 | Preserve the user's current manager choice. | Restored | Hana runs as PID 13113 after the host update. Evidence: `/tmp/trellis-final-reliability-restored.json`. |
 
@@ -442,7 +438,7 @@ The final three-case run verifies terminal identity, focus, and explicit review 
 
 TRL-71 completes the installed workflow with [PR 30](https://github.com/0x962/trellis/pull/30). Wren approves the final changes at commit `349dd33b`.
 Esme writes the guide, links the PR, registers evidence, and receives follow-up instructions through the installed CLI.
-Wren reviews the guide, posts two Margin findings, and approves the fixes after a second review. Both findings are resolved.
+Wren reviews the guide, posts two findings, and approves the fixes after a second review. Both findings are resolved.
 The CLI stops both agents and retains their worktrees, provider IDs, and all 520,531 bytes of builder output.
 Evidence: `/tmp/trellis-host-live-rereview-result.json` and `/tmp/trellis-host-live-stop-evidence.json`.
 

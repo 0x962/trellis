@@ -58,7 +58,6 @@ export const projectColumns = (data: BoardOutput, project: Project): BoardColumn
 				statuses: [status],
 				items: current,
 				count: current.length + unloaded,
-				wipLimit: status.wipLimit,
 			};
 		});
 };
@@ -77,14 +76,12 @@ export const categoryColumns = (data: BoardOutput): BoardColumnModel[] => {
 				projectId: items.find((ticket) => ticket.status.id === status.id)!.project.id,
 				description: "",
 				position,
-				wipLimit: null,
 				isDefault: false,
 				createdAt: items[0]!.createdAt,
 				updatedAt: items[0]!.updatedAt,
 			})),
 			items,
 			count: items.length,
-			wipLimit: null,
 		};
 	});
 };

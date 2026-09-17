@@ -23,12 +23,6 @@ const ColorSchema = ColorTokenSchema;
 // `statuses.changed`, so a new status needs no code change.
 const StatusDescriptionSchema = z.string().max(2000, "Enter a status description of 2000 characters or less.");
 
-// The most tickets a status holds at one time. Null means no limit.
-const WipLimitSchema = z
-	.number()
-	.int("Enter a whole number for the WIP limit.")
-	.positive("Enter a WIP limit of 1 or more.");
-
 // The status fields every ticket row carries.
 export const StatusSummarySchema = z.object({
 	id: UlidSchema,
@@ -44,7 +38,6 @@ export const StatusSchema = StatusSummarySchema.extend({
 	projectId: UlidSchema,
 	description: StatusDescriptionSchema.default(""),
 	position: z.number().int(),
-	wipLimit: WipLimitSchema.nullable(),
 	isDefault: z.boolean(),
 	createdAt: IsoDateTimeSchema,
 	updatedAt: IsoDateTimeSchema,
@@ -76,7 +69,6 @@ export const StatusCreateInputSchema = z
 		description: StatusDescriptionSchema.optional(),
 		color: ColorSchema.optional(),
 		position: z.number().int().optional(),
-		wipLimit: WipLimitSchema.optional(),
 		isDefault: z.boolean().optional(),
 	})
 	.refine(reviewerMatchesCategory, "A review status needs a reviewer; another category cannot carry one.");
@@ -90,7 +82,6 @@ export const StatusUpdateInputSchema = z.strictObject({
 	description: StatusDescriptionSchema.optional(),
 	color: ColorSchema.optional(),
 	reviewer: ReviewerSchema.optional(),
-	wipLimit: WipLimitSchema.nullable().optional(),
 	isDefault: z.boolean().optional(),
 });
 export type StatusUpdateInput = z.input<typeof StatusUpdateInputSchema>;

@@ -15,7 +15,6 @@ export function ProjectPages({
 	pathname: string;
 }) {
 	const current = projectRefOfPathname(pathname) === project.path;
-	const manager = pathname.endsWith("/settings/manager");
 	const settings = pathname.endsWith("/settings") || pathname.endsWith("/notes");
 	return (
 		<li>
@@ -25,7 +24,7 @@ export function ProjectPages({
 						{
 							label: "Tickets",
 							suffix: "",
-							active: current && !settings && !manager,
+							active: current && !settings,
 						},
 						{ label: "Settings", suffix: "/settings", active: current && settings },
 					].map(({ label, suffix, active }) => (

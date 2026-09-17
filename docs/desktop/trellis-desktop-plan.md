@@ -24,8 +24,6 @@ The first release does not require Superset, tmux, a browser gateway, or a Trell
 | Agent executable and model account | Detect an existing installation and its capabilities | Local-model adapter required for fully offline agents |
 | Git | Explicit local prerequisite | Bundle only after a separate distribution decision |
 | GitHub and `gh` | Optional PR and CI support | Local files, Git changes, and local review work offline |
-| Margin | Existing local review interface during transition | Compatible CLI backed by one canonical local store |
-| Dots | Optional existing review-flow adapter | Native flow execution in a later parity phase |
 
 The initial desktop release is independent for core ticket execution. Complete feature independence also requires the native flow phase and the review cutover. A desktop wrapper alone satisfies neither boundary.
 
@@ -256,7 +254,7 @@ General settings select the manager persona, worker policy, concurrency, and app
 
 ### Reviews and flows
 
-Keep local review threads, revision anchors, verdicts, and delivery acknowledgements. Keep current Margin commands valid during the transition. Select one canonical store before the cutover. Do not post agent findings to GitHub comments.[^7]
+Keep local review threads, revision anchors, verdicts, and delivery acknowledgements. Select one canonical store. Do not post agent findings to GitHub comments.[^7]
 
 Reuse the existing flow editor and its draft behavior. A later native flow executor submits ordinary assignments. It must not create another manager scheduler or a separate worker pool. Flow gates consume recorded outcomes and revision-specific evidence.
 
@@ -337,7 +335,7 @@ Each behavior change starts with a failing test. Database, app, and CLI changes 
 | 5. Desktop work area | Needs you, ticket work area, manager queue, terminal dock, draft storage | A person can resolve a block and review output without Superset |
 | 6. Controlled migration | Import map, legacy drain, service cutover, rollback path | One scratch project and then one selected real project pass the full workflow |
 | 7. Installed release | Signed package, background service, updates, diagnostics, CLI bundle | Clean-machine, restart, sleep/wake, and update gates pass |
-| 8. Full feature independence | Native flow execution and canonical review cutover | Review flow completes with Superset, Dots, and Margin servers stopped in a test environment |
+| 8. Full feature independence | Native flow execution and canonical review storage | The review flow completes without another local review service |
 
 Stage 0 must precede broad UI work. Its output resolves the largest package risks: PGlite assets, Bun workers, native PTY ABI, helper registration, and runtime survival. If this package fails, revise the runtime choice before the controller expands. Stage 0 must also verify the existing signing identity and background-item requirements.
 
@@ -409,6 +407,6 @@ Native flow execution and review-store cutover determine the full independence d
 [^4]: [Superset study, terminal runtime](superset-research.md#2-how-terminals-run). Microsoft, [node-pty](https://github.com/microsoft/node-pty), including platform support and execution permissions.
 [^5]: Apple, [SMAppService](https://developer.apple.com/documentation/servicemanagement/smappservice). The helper lifecycle and package integration remain Stage 0 verification work.
 [^6]: Trellis, [ticket page](../../apps/web/src/features/ticket/TicketView/TicketView.tsx) and [manager page](../../apps/web/src/features/project-manager/ProjectManagerPage/ProjectManagerPage.tsx). Proposed layout: [screen concepts](wireframes.svg).
-[^7]: Trellis, [local review architecture](../ARCHITECTURE.md#pull-request-reviews), [review guide](../reviews.md), and [delivery service](../../apps/server/src/services/reviews/delivery.ts). Existing local review rules retain Margin as the review interface until an explicit cutover.
+[^7]: Trellis, [local review architecture](../ARCHITECTURE.md#pull-request-reviews), [review guide](../reviews.md), and [delivery service](../../apps/server/src/services/reviews/delivery.ts).
 [^8]: Electron, [Security](https://www.electronjs.org/docs/latest/tutorial/security) and [Process Sandboxing](https://www.electronjs.org/docs/latest/tutorial/sandbox).
 [^9]: Electron, [Native Node Modules](https://www.electronjs.org/docs/latest/tutorial/using-native-node-modules) and [Updating Applications](https://www.electronjs.org/docs/latest/tutorial/updates). [Superset study, packaging](superset-research.md#6-packaging-and-updates).

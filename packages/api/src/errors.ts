@@ -139,11 +139,6 @@ export const errors = {
 		message: "The after or before item is not in the target list.",
 		data: z.undefined(),
 	},
-	STATUS_FULL: {
-		status: 409,
-		message: "The status holds its maximum number of tickets. Move a ticket out before you move one in.",
-		data: z.object({ statusId: z.string().min(1), limit: z.number().int().positive(), count: CountSchema }),
-	},
 	VERSION_CONFLICT: {
 		status: 412,
 		message: "The ticket changed since the version you sent.",

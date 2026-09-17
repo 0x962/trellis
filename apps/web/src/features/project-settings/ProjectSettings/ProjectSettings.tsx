@@ -3,9 +3,8 @@ import type { Project } from "@trellis/api";
 import type { ReactNode } from "react";
 import { projectSlashPath } from "../../../lib/projectPath";
 import { NotesSettings } from "../../notes/NotesSettings";
-import { LabelSettings } from "../LabelSettings";
 import { useProjectManagerConfig } from "../hooks/useProjectManagerConfig";
-import { ManagerSettings } from "../ManagerSettings";
+import { LabelSettings } from "../LabelSettings";
 import { ProjectGeneralSettings } from "../ProjectGeneralSettings";
 import { ProjectLifecycle } from "../ProjectLifecycle";
 import { StatusSettings } from "../StatusSettings";
@@ -17,8 +16,6 @@ const sections = [
 	{ id: "template", label: "Ticket template" },
 	{ id: "statuses", label: "Statuses" },
 	{ id: "labels", label: "Labels" },
-	{ id: "manager", label: "Copilot" },
-	{ id: "harness", label: "Harness" },
 	{ id: "archive", label: "Danger Zone" },
 ] as const;
 
@@ -49,9 +46,6 @@ function ProjectSettingsContent({ project, section }: ProjectSettingsProps) {
 				return <StatusSettings project={project} />;
 			case "labels":
 				return <LabelSettings project={project} />;
-			case "manager":
-			case "harness":
-				return null;
 			case "archive":
 				return <ProjectLifecycle project={project} />;
 		}
@@ -94,7 +88,6 @@ function ProjectSettingsContent({ project, section }: ProjectSettingsProps) {
 						</div>
 					);
 				})}
-				<ManagerSettings project={project} section={selected} manager={manager} />
 			</div>
 		</div>
 	);

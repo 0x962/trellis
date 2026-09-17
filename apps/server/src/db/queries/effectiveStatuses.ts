@@ -15,14 +15,13 @@ type RawStatus = {
 	reviewer: Status["reviewer"];
 	color: Status["color"];
 	position: number;
-	wip_limit: number | null;
 	is_default: boolean;
 	created_at: string;
 	updated_at: string;
 };
 
 export const statusColumns = sql`s.id, s.project_id, s.slug, s.name, s.description, s.category, s.reviewer, s.color,
-	s.position, s.wip_limit, s.is_default, ${iso(sql`s.created_at`)} AS created_at, ${iso(sql`s.updated_at`)} AS updated_at`;
+	s.position, s.is_default, ${iso(sql`s.created_at`)} AS created_at, ${iso(sql`s.updated_at`)} AS updated_at`;
 
 export const toStatus = (row: RawStatus): StatusRow => ({
 	id: row.id,
@@ -34,7 +33,6 @@ export const toStatus = (row: RawStatus): StatusRow => ({
 	reviewer: row.reviewer,
 	color: row.color,
 	position: row.position,
-	wipLimit: row.wip_limit,
 	isDefault: row.is_default,
 	createdAt: row.created_at,
 	updatedAt: row.updated_at,

@@ -35,15 +35,7 @@ export async function findPr(tx: Tx, input: string) {
 	return pr;
 }
 export async function readThread(tx: Tx, id: string): Promise<ReviewThread> {
-	const found = await rows<{ document: ReviewThread }>(
-		tx,
-		sql`
-		SELECT document FROM review_threads WHERE id = ${id}
-		OR id IN (SELECT thread_id FROM review_imports WHERE legacy_id = ${id})
-	`,
-	);
-	if (found.length > 1)
-		throw invalidInput("id", "The legacy identifier matches several threads. Use a Trellis identifier.");
+	const found = await rows<{ document: ReviewThread }>(tx, sql`SELECT document FROM review_threads WHERE id = ${id}`);
 	if (!found[0]) throw notFound("reviewThread", id);
 	return found[0].document;
 }

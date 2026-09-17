@@ -53,7 +53,6 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: StatusCreateInput):
 		reviewer: input.reviewer ?? null,
 		color: input.color ?? "fg",
 		position: own.length,
-		wipLimit: input.wipLimit ?? null,
 		isDefault,
 	});
 	if (input.position !== undefined) {
@@ -90,7 +89,6 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: StatusUpdateInput):
 	field("description", status.description, input.description, sql`description = ${input.description}`);
 	field("color", status.color, input.color, sql`color = ${input.color}`);
 	field("reviewer", status.reviewer, input.reviewer, sql`reviewer = ${input.reviewer}`);
-	field("wipLimit", status.wipLimit, input.wipLimit, sql`wip_limit = ${input.wipLimit}`);
 	if (input.isDefault === true && !status.isDefault) {
 		await tx.execute(sql`UPDATE statuses SET is_default = false WHERE project_id = ${owner} AND is_default`);
 		field("isDefault", false, true, sql`is_default = true`);

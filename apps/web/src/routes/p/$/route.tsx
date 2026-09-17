@@ -59,7 +59,7 @@ export const Route = createFileRoute("/p/$")({
 	loader: async ({ context, params, deps }) => {
 		const { ref, view } = parseProjectSplat(params._splat ?? "");
 		const project = await context.queryClient.ensureQueryData(projectOptions(context, ref));
-		if (view === "manager" || view === "notes") {
+		if (view === "notes") {
 			return;
 		}
 		if (view !== "settings") {
@@ -89,7 +89,7 @@ function ProjectPage() {
 	// The loader fills this cache entry, so the board footer reads it on the first paint.
 	const counts = useQuery(countsOptions(context, ref, search, project.statuses)).data;
 
-	if (view === "settings" || view === "manager" || view === "notes") {
+	if (view === "settings" || view === "notes") {
 		return (
 			<Suspense
 				fallback={
@@ -98,11 +98,7 @@ function ProjectPage() {
 					</div>
 				}
 			>
-				{view === "manager" ? (
-					<ProjectSettingsPage project={project} />
-				) : (
-					<ProjectSettingsPage project={project} section={view === "notes" ? "notes" : undefined} />
-				)}
+				<ProjectSettingsPage project={project} section={view === "notes" ? "notes" : undefined} />
 			</Suspense>
 		);
 	}

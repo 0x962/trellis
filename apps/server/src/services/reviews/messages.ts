@@ -2,16 +2,12 @@ import type { ReviewThread } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
-import { fail, invalidInput } from "../../errors";
+import { fail } from "../../errors";
 import type { ServiceCtx } from "../support";
 import { notFound } from "../support";
 import { changed, writeThread } from "./queries";
 
 async function locate(tx: Tx, id: string) {
-	const aliases = await rows<{ id: string }>(tx, sql`SELECT id FROM review_imports WHERE legacy_id = ${id}`);
-	if (aliases.length > 1)
-		throw invalidInput("id", "The legacy identifier matches several messages. Use a Trellis identifier.");
-	id = aliases[0]?.id ?? id;
 	const [row] = await rows<{ document: ReviewThread }>(
 		tx,
 		sql`SELECT document FROM review_threads WHERE id = ${id} OR document->'replies' @> ${JSON.stringify([{ id }])}::jsonb`,
