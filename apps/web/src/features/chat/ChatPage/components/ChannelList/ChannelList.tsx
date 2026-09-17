@@ -1,12 +1,13 @@
 import { LockSimple } from "@phosphor-icons/react";
 import type { ChatChannel } from "@trellis/api";
-import { ActivityDot, Avatar, cx, SectionHeader } from "@trellis/ui";
+import { ActivityDot, type AgentProfile, Avatar, cx, SectionHeader } from "@trellis/ui";
 
 export type ChannelListProps = {
 	channels: ChatChannel[];
 	// The manager name labels the
 	// direct message channel.
 	managerName: string;
+	managerProfile?: AgentProfile;
 	open: string;
 	unread: ReadonlySet<string>;
 	pending: boolean;
@@ -14,7 +15,16 @@ export type ChannelListProps = {
 	onOpen: (name: string) => void;
 };
 
-export function ChannelList({ channels, managerName, open, unread, pending, error, onOpen }: ChannelListProps) {
+export function ChannelList({
+	channels,
+	managerName,
+	managerProfile,
+	open,
+	unread,
+	pending,
+	error,
+	onOpen,
+}: ChannelListProps) {
 	const shared = channels.filter((channel) => !channel.aiOnly && !channel.direct);
 	const directs = channels.filter((channel) => channel.direct);
 	const agents = channels.filter((channel) => channel.aiOnly && !channel.direct);
@@ -34,7 +44,14 @@ export function ChannelList({ channels, managerName, open, unread, pending, erro
 				>
 					<span className="flex min-w-0 flex-1 items-center gap-1 text-left">
 						{channel.direct ? (
-							<Avatar kind="agent" name={managerName} agentKind="manager" state="static" className="size-4 shrink-0" />
+							<Avatar
+								kind="agent"
+								name={managerName}
+								agentKind="manager"
+								agentProfile={managerProfile}
+								state="static"
+								className="size-4 shrink-0"
+							/>
 						) : channel.aiOnly ? (
 							<LockSimple aria-label="agents only" weight="fill" className="size-3 shrink-0" />
 						) : (

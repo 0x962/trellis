@@ -21,6 +21,7 @@ Each page supplies its data and available actions. It does not choose new contro
 | Page title and actions | `Topbar`, `PageTitle` | `apps/web/src/features/shell/Topbar/Topbar.tsx` |
 | Filter chips and controls | `FilterBar`, `Chip` | `packages/ui/src/domain/FilterBar/FilterBar.tsx` |
 | Searchable filter choices | `FilterPopover`, `Command` | `packages/ui/src/domain/FilterPopover/FilterPopover.tsx` |
+| Searchable model choices | `ModelPicker` | `apps/web/src/features/agents/ModelPicker/ModelPicker.tsx` |
 | Sort field and direction | `DisplayPopover` | `packages/ui/src/domain/DisplayPopover/DisplayPopover.tsx` |
 | Table display preferences | Web `DisplayPopover` with the shared popover | `apps/web/src/features/table/DisplayPopover/DisplayPopover.tsx` |
 | Collapsible data groups | `GroupHeader` | `packages/ui/src/domain/GroupHeader/GroupHeader.tsx` |
@@ -28,7 +29,7 @@ Each page supplies its data and available actions. It does not choose new contro
 | Ticket table rows | `Row`, with `columns` and `rowHeights` | `apps/web/src/features/table/Row/Row.tsx` |
 | Review and mention rows | `InboxRow` | `packages/ui/src/domain/InboxRow/InboxRow.tsx` |
 | Ticket identity and state | `TicketId`, `PriorityIcon`, `StatusIcon` | `packages/ui/src/domain/` |
-| Last actor and agent work state | `ActorAvatar` with the shared `Avatar` | `apps/web/src/features/agents/ActorAvatar/ActorAvatar.tsx` |
+| Last actor, provider, and agent work state | `ActorAvatar` with the shared `Avatar` | `apps/web/src/features/agents/ActorAvatar/ActorAvatar.tsx` |
 | Row actions | `Menu`, `IconButton`, `Tooltip` | `packages/ui/src/primitives/Menu/Menu.tsx` |
 | Usage per day | `UsageChart` | `packages/ui/src/domain/UsageChart/UsageChart.tsx` |
 | Ranked slices of a whole | `RankedBars` | `packages/ui/src/domain/RankedBars/RankedBars.tsx` |
@@ -42,6 +43,8 @@ Place filter chips beside the page title. Align Filter and Display at the right 
 Filter uses the funnel icon. Display uses the sliders icon. Both use circular `IconButton` triggers with tooltips.
 The filter picker uses `FilterPopover` and `Command`. Selected filters use `Chip`, with an edit action and a remove action.
 The `f` shortcut opens the filter picker.
+
+Use `ModelPicker` for each model field. It groups models by family and shows the provider mark.
 
 Put the sort field and direction inside `DisplayPopover`. Use one option per field and a separate direction button.
 The direction button shows the current direction through its icon and tooltip.
@@ -68,7 +71,8 @@ Use the existing ticket table widths for identity, project, actor, and time colu
 Truncate long titles and project paths within their columns. Use tabular numbers for identifiers, counts, and times.
 Keep secondary text, such as a mention excerpt, below the title. Do not repeat a full status label in every review row.
 
-Use `ActorAvatar` when a row represents the last actor. It includes the agent icon and the current work state.
+Use `ActorAvatar` when a row represents the last actor. It includes the provider mark and the current work state.
+When run data supplies a harness, hover over the provider mark to see the model and effort.
 Keep status and priority indicators distinct from the row's action menu.
 Use one circular action menu at the far right. Reserve its width even when its trigger is hidden.
 Show the trigger on row hover, keyboard focus, an open menu, and touch screens.

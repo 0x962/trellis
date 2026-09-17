@@ -1,0 +1,1 @@
+export { modelProviderOf } from "./modelProviderOf";

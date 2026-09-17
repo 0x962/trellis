@@ -5,6 +5,7 @@ import { type ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import { useApp } from "../../../lib/appContext";
 import { createMarkdownRenderer } from "../../../lib/markdown";
 import { useChatStore } from "../../../stores/chatStore";
+import { agentProfileOf } from "../../agents/agentProfileOf";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar } from "../../shell/Topbar";
@@ -86,8 +87,8 @@ export function ChatPage({ project }: { project: Project }) {
 	);
 	// The manager of the project names the direct message channel. A project
 	// with no manager yet shows the default name.
-	const managerName =
-		(agents.data ?? []).find((run) => run.projectId === project.id && run.kind === "manager")?.name ?? "Copilot";
+	const manager = (agents.data ?? []).find((run) => run.projectId === project.id && run.kind === "manager");
+	const managerName = manager?.name ?? "Copilot";
 	const memberCount = open?.direct ? live.filter((run) => run.kind === "manager").length : live.length;
 	const memberLabel = agents.isPending
 		? "… members"
@@ -206,6 +207,7 @@ export function ChatPage({ project }: { project: Project }) {
 				<ChannelList
 					channels={channels.data ?? []}
 					managerName={managerName}
+					managerProfile={agentProfileOf(manager?.harness)}
 					open={channel}
 					unread={unread}
 					pending={channels.isPending}

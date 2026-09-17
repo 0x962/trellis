@@ -25,17 +25,19 @@ const marks: Record<ModelProvider, { title: string; path: string }> = {
 
 export type ProviderIconProps = {
 	provider: ModelProvider;
+	decorative?: boolean;
 	// A Tailwind size class. The default is 16 px.
 	className?: string;
 };
 
 // The mark of the company behind a model, drawn in the current text color.
-export function ProviderIcon({ provider, className }: ProviderIconProps) {
+export function ProviderIcon({ provider, decorative = false, className }: ProviderIconProps) {
 	const mark = marks[provider];
 	return (
 		<svg
-			role="img"
-			aria-label={mark.title}
+			role={decorative ? undefined : "img"}
+			aria-label={decorative ? undefined : mark.title}
+			aria-hidden={decorative || undefined}
 			viewBox="0 0 24 24"
 			className={cx("inline-block size-4 shrink-0 fill-current", className)}
 			data-provider={provider}

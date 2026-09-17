@@ -1,14 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import {
-	HARNESS_DEFAULT_MODELS,
-	HARNESS_PRESETS,
-	type HarnessPreset,
-	modelsForHarness,
-	type ProjectManagerConfig,
-} from "@trellis/api";
+import { HARNESS_PRESETS, type HarnessPreset, type ProjectManagerConfig } from "@trellis/api";
 import { Select } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
+import { ModelPicker } from "../../../../agents/ModelPicker";
 import { SettingsSection } from "../../../SettingsSection";
 import { AgentCommandField } from "../AgentCommandField";
 
@@ -66,17 +61,10 @@ export function HarnessSettings({
 				/>
 				{draft.harness.preset !== "custom" && (
 					<>
-						<Select
-							label="Model"
-							alignItemWithTrigger={false}
-							items={[
-								{ value: "default", label: `Default (${HARNESS_DEFAULT_MODELS[draft.harness.preset]})` },
-								...modelsForHarness(draft.harness.preset).map(({ id }) => ({ value: id, label: id })),
-							]}
-							value={draft.harness.model ?? "default"}
-							onValueChange={(model) =>
-								commit({ ...draft, harness: { ...draft.harness, model: model === "default" ? undefined : model } })
-							}
+						<ModelPicker
+							harness={draft.harness.preset}
+							value={draft.harness.model}
+							onValueChange={(model) => commit({ ...draft, harness: { ...draft.harness, model, effort: undefined } })}
 						/>
 						<p className="manager-settings-hint">Changes apply at the next start or restart.</p>
 						<Select

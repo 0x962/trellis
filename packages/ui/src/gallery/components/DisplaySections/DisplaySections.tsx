@@ -44,6 +44,32 @@ export function DisplaySections() {
 			</Section>
 			<Section name="Avatar" note="Human initials and agent states">
 				<Avatar kind="human" name="Dana Lee" />
+				<div className="flex items-center gap-6 p-3">
+					<Avatar
+						kind="agent"
+						name="Claude agent"
+						agentProfile={{ provider: "anthropic", model: "Claude Opus 5", effort: "Max" }}
+						className="size-8"
+					/>
+					<Avatar
+						kind="agent"
+						name="Codex agent"
+						agentProfile={{ provider: "openai", model: "GPT-6 Astra", effort: "High" }}
+						className="size-8"
+					/>
+					<Avatar
+						kind="agent"
+						name="Gemini agent"
+						agentProfile={{ provider: "google", model: "Gemini 3 Pro", effort: "Default" }}
+						className="size-8"
+					/>
+					<Avatar
+						kind="agent"
+						name="Muse agent"
+						agentProfile={{ provider: "meta", model: "Muse Spark 1.3" }}
+						className="size-8"
+					/>
+				</div>
 				{(["static", "working-mild", "working"] as const).map((state) => (
 					<div key={state} className="flex flex-col gap-3 p-3">
 						<span className="text-xs text-fg-muted">{state}</span>

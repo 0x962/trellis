@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Avatar, EmptyState, IconButton, Tooltip, toast } from "@trellis/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { agentProfileOf } from "../../agents/agentProfileOf";
 import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
 import { isAgentWorking } from "../../agents/isAgentWorking";
 import { NativeTerminal } from "../../agents/NativeTerminal";
@@ -85,6 +86,7 @@ export function SessionPage({ id }: { id: string }) {
 						kind="agent"
 						name={session.name}
 						agentKind="agent"
+						agentProfile={agentProfileOf(session.harness)}
 						state={isAgentWorking(run) ? "working" : "static"}
 						className="size-7"
 					/>

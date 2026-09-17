@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import type { Session } from "@trellis/api";
 import { Avatar, cx } from "@trellis/ui";
 import { lazy, Suspense } from "react";
+import { agentProfileOf } from "../../../agents/agentProfileOf";
 
 const SessionRowActions = lazy(async () => ({ default: (await import("../../SessionRowActions")).SessionRowActions }));
 
@@ -35,6 +36,7 @@ export function SessionRow({ session, working, active }: SessionRowProps) {
 						kind="agent"
 						name={session.name}
 						agentKind="agent"
+						agentProfile={agentProfileOf(session.harness)}
 						state={working ? "working-mild" : "static"}
 						className="size-5"
 					/>

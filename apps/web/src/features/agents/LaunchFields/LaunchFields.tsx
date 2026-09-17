@@ -1,11 +1,6 @@
-import {
-	effortForHarness,
-	HARNESS_DEFAULT_MODELS,
-	HARNESS_PRESETS,
-	type Harness,
-	modelsForHarness,
-} from "@trellis/api";
+import { effortForHarness, HARNESS_DEFAULT_MODELS, HARNESS_PRESETS, type Harness } from "@trellis/api";
 import { Select } from "@trellis/ui";
+import { ModelPicker } from "../ModelPicker";
 
 const presets = [
 	{ value: "claude", label: "Claude" },
@@ -43,21 +38,11 @@ export function LaunchFields({
 			{harness.preset !== "custom" && (
 				<div className="flex min-w-0 flex-col gap-2">
 					<span className="text-sm text-fg-muted">Model</span>
-					<Select
-						label="Model"
-						value={harness.model ?? "default"}
+					<ModelPicker
+						harness={harness.preset}
+						value={harness.model}
 						disabled={disabled}
-						alignItemWithTrigger={false}
-						items={[
-							{
-								value: "default",
-								label: `Default (${HARNESS_DEFAULT_MODELS[harness.preset]})`,
-							},
-							...modelsForHarness(harness.preset).map(({ id }) => ({ value: id, label: id })),
-						]}
-						onValueChange={(value) =>
-							onChange({ ...harness, model: value === "default" ? undefined : value, effort: undefined })
-						}
+						onValueChange={(model) => onChange({ ...harness, model, effort: undefined })}
 					/>
 				</div>
 			)}

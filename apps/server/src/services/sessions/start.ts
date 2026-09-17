@@ -42,7 +42,7 @@ export const prepareStart = async (ctx: IoCtx, input: { id: string }) => {
 		const attempt = await reserveAttempt(ctx.core, tx, { runId: run.id });
 		const [updated] = await rows<StoredRun>(
 			tx,
-			sql`UPDATE agent_runs SET closed_at = NULL, error = NULL, session_lost = false, terminal_id = ${attempt.id}, account_id = ${selected.accountId},
+			sql`UPDATE agent_runs SET closed_at = NULL, error = NULL, session_lost = false, terminal_id = ${attempt.id}, account_id = ${selected.accountId}, harness = ${JSON.stringify(selected.config.harness)}::jsonb,
 			session_id = ${resume ? run.sessionId : session.harness.preset === "custom" ? randomUUID() : null}, updated_at = ${ctx.now()}
 			WHERE id = ${run.id} RETURNING ${columns}`,
 		);

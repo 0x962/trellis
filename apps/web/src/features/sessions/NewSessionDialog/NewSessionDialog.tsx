@@ -1,10 +1,10 @@
 import { ArrowUp, FolderOpen } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { HARNESS_DEFAULT_MODELS, MODEL_CATALOG, modelsForHarness } from "@trellis/api";
 import { Dialog, IconButton, Kbd, Select, Tooltip, toast, useHotkey } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { ModelPicker } from "../../agents/ModelPicker";
 import { type SessionHarness, sessionHarnesses } from "../harnessLabel";
 
 export type NewSessionDialogProps = {
@@ -13,8 +13,6 @@ export type NewSessionDialogProps = {
 
 // The value of the model pill for the default model of the harness.
 const DEFAULT_MODEL = "default";
-
-const modelName = (id: string) => MODEL_CATALOG.find((model) => model.id === id)?.name ?? id;
 
 // The composer behind the New session button, in the shape of the Superset
 // one: an optional name on top, the prompt box with the harness and model
@@ -30,10 +28,6 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 	const [name, setName] = useState("");
 	const [harness, setHarness] = useState<SessionHarness>("claude");
 	const [model, setModel] = useState(DEFAULT_MODEL);
-	const models = [
-		{ value: DEFAULT_MODEL, label: `Default · ${modelName(HARNESS_DEFAULT_MODELS[harness])}` },
-		...modelsForHarness(harness).map(({ id, name }) => ({ value: id, label: name })),
-	];
 	const create = useMutation({
 		mutationFn: () =>
 			client.sessions.create({
@@ -106,12 +100,10 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 								}}
 								disabled={create.isPending}
 							/>
-							<Select
-								label="Model"
-								items={models}
-								value={model}
-								onValueChange={setModel}
-								alignItemWithTrigger={false}
+							<ModelPicker
+								harness={harness}
+								value={model === DEFAULT_MODEL ? undefined : model}
+								onValueChange={(next) => setModel(next ?? DEFAULT_MODEL)}
 								disabled={create.isPending}
 								className="max-w-56"
 							/>

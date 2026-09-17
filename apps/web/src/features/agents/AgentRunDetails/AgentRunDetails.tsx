@@ -5,6 +5,7 @@ import { Avatar, ConfirmDialog, IconButton, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../agentKindOf";
+import { agentProfileOf } from "../agentProfileOf";
 import { hasAssignedProcess } from "../hasAssignedProcess";
 import { isAgentWorking } from "../isAgentWorking";
 import { NativeTerminal } from "../NativeTerminal";
@@ -44,6 +45,7 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 							kind="agent"
 							name={run.name}
 							agentKind={agentKindOf(run.kind)}
+							agentProfile={agentProfileOf(run.harness)}
 							state={isAgentWorking(run) ? "working" : "static"}
 						/>
 						<div className="min-w-0">

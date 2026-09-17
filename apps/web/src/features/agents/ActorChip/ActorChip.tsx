@@ -1,6 +1,7 @@
 import type { ActorRef } from "@trellis/api";
 import { ActorChip as ActorChipView } from "@trellis/ui";
 import { agentKindOf } from "../agentKindOf";
+import { agentProfileOf } from "../agentProfileOf";
 import { useActorRun } from "../useActorRun";
 
 export function ActorChip({
@@ -19,6 +20,7 @@ export function ActorChip({
 			name={actor.displayName ?? actor.name}
 			kind={actor.kind}
 			agentKind={run === undefined ? undefined : agentKindOf(run.kind)}
+			agentProfile={agentProfileOf(run?.harness)}
 			compact={compact}
 			className={className}
 		/>

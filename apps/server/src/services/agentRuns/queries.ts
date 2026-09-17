@@ -6,7 +6,7 @@ import { fail } from "../../errors.ts";
 export type StoredRun = Omit<AgentRun, "assigned" | "state" | "processStatus" | "observation"> & {
 	closedAt: string | null;
 };
-export const columns = sql`id, account_id AS "accountId", name, runtime, kind, instruction,
+export const columns = sql`id, account_id AS "accountId", name, runtime, harness, kind, instruction,
 	project_id AS "projectId", project_path AS "projectPath", ticket_id AS "ticketId", ticket_identifier AS "ticketIdentifier", ${iso(sql`closed_at`)} AS "closedAt",
 	workspace_id AS "workspaceId", terminal_id AS "terminalId", url, error,
 	session_id AS "sessionId", session_lost AS "sessionLost",
