@@ -232,6 +232,9 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			// follows. A project rename alters
 			// `project.path` the same way. So every query that holds a summary
 			// refetches.
+			case "labels.changed":
+				enqueue([family("labelGroups")]);
+				return;
 			case "statuses.changed":
 			case "project.created":
 			case "project.updated":
