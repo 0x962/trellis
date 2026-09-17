@@ -1,7 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import * as tickets from "../../../../src/services/tickets.ts";
-import { dana, hoursAgo, seedActors, seedProject, seedRoot, seedStatuses, seedTicket } from "../../../fixtures";
+import {
+	dana,
+	hoursAgo,
+	seedActors,
+	seedDefaultBuilder,
+	seedProject,
+	seedRoot,
+	seedStatuses,
+	seedTicket,
+} from "../../../fixtures";
 import { activityOf, expectErrorData, millis, query, ticketHarness, ticketRow } from "../../../helpers/services.ts";
 
 const h = ticketHarness();
@@ -18,6 +27,7 @@ const seed = async (
 	xColumns: Record<string, unknown> = {},
 ) => {
 	const { rootId, statuses } = await seedProject(h.db);
+	await seedDefaultBuilder(h.db, rootId);
 	const base = { projectId: rootId, rootId };
 	const column: string[] = [];
 	for (const position of positions) {

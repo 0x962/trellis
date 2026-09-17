@@ -1,5 +1,6 @@
 import type { Activity, Comment, TimelineItem } from "@trellis/api";
 import { cell, type ListSpec, renderTable } from "./output.ts";
+import { localDateTime } from "./time.ts";
 
 export type CommentItem = Comment & { kind: "comment" };
 export type ActivityItem = Activity & { kind: "activity" };
@@ -20,7 +21,7 @@ export const renderComments = (comments: CommentItem[]): string =>
 			const state = comment.resolvedAt ? " [resolved]" : "";
 			const parent = comment.parentId ? ` reply to ${comment.parentId}` : "";
 			const files = (comment.attachments ?? []).map((file) => `  ${file.filename} -> ${file.url}`).join("\n");
-			return `${comment.id}${state}${parent}\n${comment.actor.kind}:${comment.actor.displayName ?? comment.actor.name}  ${comment.createdAt}\n${comment.body}\n${files === "" ? "" : `${files}\n`}\n`;
+			return `${comment.id}${state}${parent}\n${comment.actor.kind}:${comment.actor.displayName ?? comment.actor.name}  ${localDateTime(comment.createdAt)}\n${comment.body}\n${files === "" ? "" : `${files}\n`}\n`;
 		})
 		.join("");
 
@@ -28,7 +29,7 @@ export const commentList: ListSpec<CommentItem> = {
 	columns: [
 		{ name: "id", value: (row) => row.id },
 		{ name: "actor", value: (row) => `${row.actor.kind}:${row.actor.displayName ?? row.actor.name}` },
-		{ name: "created", value: (row) => row.createdAt },
+		{ name: "created", value: (row) => localDateTime(row.createdAt) },
 		{ name: "body", value: (row) => cell(row.body) },
 	],
 	identifier: (row) => row.id,
@@ -37,7 +38,7 @@ export const commentList: ListSpec<CommentItem> = {
 // Activity keeps the wire order: newest first.
 export const activityList: ListSpec<ActivityItem> = {
 	columns: [
-		{ name: "at", value: (row) => row.createdAt },
+		{ name: "at", value: (row) => localDateTime(row.createdAt) },
 		{ name: "actor", value: (row) => `${row.actor.kind}:${row.actor.displayName ?? row.actor.name}` },
 		{ name: "action", value: (row) => row.action },
 		{ name: "field", value: (row) => cell(row.field) },

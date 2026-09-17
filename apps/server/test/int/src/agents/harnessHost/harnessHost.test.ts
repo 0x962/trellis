@@ -382,3 +382,40 @@ test("a Muse manager starts its session with the Trellis tool server and the gra
 	expect(started.approvalMode).toBe("allowAll");
 	await host.stop("muse-manager");
 });
+
+test("Muse holds prompts that arrive during a turn and starts one turn with all of them after it", async () => {
+	const museHome = join(home, "muse");
+	await mkdir(museHome);
+	host = new HarnessHost({
+		runtime: client,
+		directory: join(home, "attempts"),
+		env: {
+			...process.env,
+			PATH: join(home, "bin"),
+			HARNESS_FIXTURE_BEHAVIOR: "busy",
+			HARNESS_FIXTURE_MUSE_HOME: museHome,
+		},
+		bun: process.execPath,
+		observationTimeoutMs: 1500,
+	});
+	await host.start({ id: "held", harness: "muse", cwd: home, prompt: "hello" });
+	await host.send("held", "first", "first");
+	await host.send("held", "second", "second");
+	expect((await host.status("held")).acknowledgedMessageIds).not.toContain("first");
+	expect((await readFile(join(museHome, "turns.jsonl"), "utf8")).trim().split("\n")).toHaveLength(1);
+	await host.interrupt("held");
+	await host.waitFor(
+		"held",
+		(state) => state.acknowledgedMessageIds.includes("first") && state.acknowledgedMessageIds.includes("second"),
+	);
+	const turns = (await readFile(join(museHome, "turns.jsonl"), "utf8"))
+		.trim()
+		.split("\n")
+		.map((line) => JSON.parse(line));
+	expect(turns).toHaveLength(2);
+	expect(turns[1].input.map((part: { text: string }) => part.text)).toEqual([
+		"trellis-message:first\nfirst",
+		"trellis-message:second\nsecond",
+	]);
+	await host.stop("held");
+});

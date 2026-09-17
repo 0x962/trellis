@@ -14,7 +14,6 @@ describe("errors", () => {
 			["COMMENT_ATTACHMENT_MISMATCH", 409],
 			["COMMENT_HAS_REPLIES", 409],
 			["COMMENT_PARENT_MISMATCH", 409],
-			["CONCURRENCY_LIMIT", 409],
 			["CROSS_ROOT_MOVE", 409],
 			["DUPLICATE", 409],
 			["FLOW_VERSION_CONFLICT", 412],
@@ -35,6 +34,7 @@ describe("errors", () => {
 			["ROOT_STATUSES", 409],
 			["RUNNER_UNAVAILABLE", 503],
 			["STATUS_CATEGORY_IMMUTABLE", 409],
+			["STATUS_FULL", 409],
 			["STATUS_IN_USE", 409],
 			["STATUS_NOT_IN_PROJECT", 409],
 			["VERSION_CONFLICT", 412],
@@ -60,17 +60,16 @@ describe("errors", () => {
 		}
 	});
 
-	// The manager reads `reason` to decide between a retry, a comment, and a
-	// wait. `running` against `limit` is what the queued comment quotes.
-	test("the runner errors carry a closed reason and the limit with the running count", () => {
+	// STATUS_FULL reports the destination status and its ticket count.
+	test("runner errors identify the failure and status limits report the ticket count", () => {
 		for (const reason of ["missing", "disabled", "unmapped", "outdated", "error"]) {
 			expect(errors.RUNNER_UNAVAILABLE.data.safeParse({ reason }).success, reason).toBe(true);
 		}
 		expect(errors.RUNNER_UNAVAILABLE.data.safeParse({ reason: "busy" }).success).toBe(false);
 		expect(errors.RUNNER_UNAVAILABLE.data.safeParse({}).success).toBe(false);
-		expect(errors.CONCURRENCY_LIMIT.data.safeParse({ limit: 3, running: 3 }).success).toBe(true);
-		expect(errors.CONCURRENCY_LIMIT.data.safeParse({ limit: 0, running: 0 }).success).toBe(false);
-		expect(errors.CONCURRENCY_LIMIT.data.safeParse({ limit: 3 }).success).toBe(false);
+		expect(errors.STATUS_FULL.data.safeParse({ statusId: "s1", limit: 9, count: 9 }).success).toBe(true);
+		expect(errors.STATUS_FULL.data.safeParse({ statusId: "s1", limit: 0, count: 0 }).success).toBe(false);
+		expect(errors.STATUS_FULL.data.safeParse({ statusId: "s1", limit: 9 }).success).toBe(false);
 	});
 
 	// Two services throw INVALID_ANCHOR: a ticket move, and a project

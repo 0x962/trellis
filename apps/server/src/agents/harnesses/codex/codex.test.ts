@@ -33,3 +33,14 @@ test("Codex passes the exact manager persona to its restricted engine", async ()
 		expect(JSON.parse(launch.args[1]!)).toMatchObject({ managerSystemPrompt, cwd: input.cwd, prompt: input.prompt });
 	}
 });
+
+test("Codex retains reasoning effort in its bridge launch", async () => {
+	for (const resume of [false, true] as const) {
+		const launch = await prepareCodex({
+			...input,
+			...(resume ? { resume: true as const } : { resume: false as const }),
+			effort: "xhigh",
+		});
+		expect(JSON.parse(launch.args[1]!).effort).toBe("xhigh");
+	}
+});

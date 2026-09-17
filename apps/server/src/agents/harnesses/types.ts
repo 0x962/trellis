@@ -1,3 +1,5 @@
+import type { HarnessEffort } from "@trellis/api";
+
 export type { HarnessEvent, HarnessTool } from "@trellis/runtime-protocol";
 
 export type BuiltInHarness = "claude" | "codex" | "opencode" | "pi" | "muse";
@@ -6,6 +8,7 @@ export type HarnessLaunchInput = {
 	cwd: string;
 	prompt: string;
 	model?: string;
+	effort?: HarnessEffort;
 	hookCommand: string;
 	configDirectory: string;
 	env?: Record<string, string>;

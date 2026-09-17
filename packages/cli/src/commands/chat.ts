@@ -6,6 +6,7 @@ import { clientOf } from "../client.ts";
 import { compact, contextOf, readText, toNumber } from "../context.ts";
 import { fileNotFound, fileUnreadable } from "../errors.ts";
 import { cell, json, type ListSpec, printList, printRecord, type RecordSpec } from "../output.ts";
+import { localDateTime } from "../time.ts";
 
 const projectArg = { type: "positional" as const, required: true as const, description: "Project ref, such as TRL" };
 const channelArg = {
@@ -19,17 +20,15 @@ const sender = (message: ChatMessage) =>
 		? `${message.actor.displayName} ${message.actor.name}`
 		: message.actor.name;
 
-// `#ai 12:00:01 <Builder 01J...> body`: the IRC form a terminal reader
-// scans. Every other mode prints the message records.
 export const renderChatLine = (message: ChatMessage) =>
-	`#${message.channel} ${message.createdAt.slice(11, 19)} <${sender(message)}> ${message.body}\n`;
+	`#${message.channel} ${localDateTime(message.createdAt)} <${sender(message)}> ${message.body}\n`;
 
 const messageRecord: RecordSpec<ChatMessage> = {
 	fields: [
 		{ name: "id", value: (row) => row.id },
 		{ name: "channel", value: (row) => `#${row.channel}` },
 		{ name: "actor", value: (row) => `${row.actor.kind}:${sender(row)}` },
-		{ name: "created", value: (row) => row.createdAt },
+		{ name: "created", value: (row) => localDateTime(row.createdAt) },
 		{ name: "body", value: (row) => cell(row.body) },
 	],
 	identifier: (row) => row.id,
@@ -40,7 +39,7 @@ const channelList: ListSpec<ChatChannel> = {
 		{ name: "channel", value: (row) => `#${row.name}` },
 		{ name: "agents-only", value: (row) => (row.aiOnly ? "yes" : "-") },
 		{ name: "messages", value: (row) => String(row.messageCount) },
-		{ name: "last", value: (row) => cell(row.lastMessageAt) },
+		{ name: "last", value: (row) => (row.lastMessageAt === null ? "-" : localDateTime(row.lastMessageAt)) },
 	],
 	identifier: (row) => row.name,
 };

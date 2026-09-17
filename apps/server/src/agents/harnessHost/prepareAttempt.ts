@@ -29,6 +29,7 @@ export async function prepareAttempt(
 		input.cwd,
 		input.prompt,
 		model ?? null,
+		...(input.effort === undefined ? [] : [{ effort: input.effort }]),
 		input.token ?? null,
 		input.timeoutMs ?? null,
 		...(input.kind === "manager" ? ["manager-tools-v1", input.managerId ?? input.id, input.managerSystemPrompt] : []),
@@ -66,6 +67,7 @@ export async function prepareAttempt(
 		cwd,
 		prompt: `trellis-message:${input.id}\n${input.prompt}`,
 		model: model === undefined ? undefined : toHarnessModel(input.harness, model),
+		effort: input.effort,
 		configDirectory,
 		hookCommand,
 		...(input.kind === "manager"
@@ -86,6 +88,7 @@ export async function prepareAttempt(
 		prompt: input.prompt,
 		sessionId,
 		fingerprint,
+		...(input.effort === undefined ? {} : { effort: input.effort }),
 		spec: {
 			id: input.id,
 			command:

@@ -57,7 +57,6 @@ const dependencies = () => ({
 const configFor = (harness: "claude" | "codex" | "pi" | "opencode" | "muse") =>
 	ProjectManagerConfigSchema.parse({
 		personaId: null,
-		concurrency: 1,
 		directory: fixture.home,
 		harness: {
 			preset: harness,

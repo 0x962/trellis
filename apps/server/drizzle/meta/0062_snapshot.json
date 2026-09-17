@@ -1,5 +1,5 @@
 {
-  "id": "34d305ad-b557-49c2-9bc1-53ef9b74a23f",
+  "id": "d9e4bfc0-3d28-40d4-b0a0-cd81d3de58ee",
   "prevId": "131b49e2-1edb-4834-8e4e-9ef416ced9a7",
   "version": "7",
   "dialect": "postgresql",
@@ -289,12 +289,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "comment_id": {
-          "name": "comment_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "filename": {
           "name": "filename",
           "type": "text",
@@ -354,21 +348,6 @@
           "method": "btree",
           "with": {}
         },
-        "attachments_comment_id_idx": {
-          "name": "attachments_comment_id_idx",
-          "columns": [
-            {
-              "expression": "comment_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "attachments_sha256_idx": {
           "name": "attachments_sha256_idx",
           "columns": [
@@ -412,21 +391,6 @@
             "kind"
           ],
           "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "attachments_comment_fk": {
-          "name": "attachments_comment_fk",
-          "tableFrom": "attachments",
-          "tableTo": "comments",
-          "columnsFrom": [
-            "comment_id",
-            "ticket_id"
-          ],
-          "columnsTo": [
-            "id",
-            "ticket_id"
-          ],
-          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -2715,7 +2679,7 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true,
-          "default": "'{\"personaId\":null,\"concurrency\":3,\"directory\":\"\"}'::jsonb"
+          "default": "'{\"personaId\":null,\"directory\":\"\"}'::jsonb"
         },
         "ticket_template": {
           "name": "ticket_template",
@@ -4870,12 +4834,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "capacity": {
-          "name": "capacity",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
         "brief": {
           "name": "brief",
           "type": "text",
@@ -4957,12 +4915,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {
-        "manager_delegations_capacity_check": {
-          "name": "manager_delegations_capacity_check",
-          "value": "\"manager_delegations\".\"capacity\" BETWEEN 1 AND 64"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.manager_next_actions": {
