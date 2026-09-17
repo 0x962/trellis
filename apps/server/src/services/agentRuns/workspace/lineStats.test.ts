@@ -126,6 +126,7 @@ describe("workspace line stats", () => {
 		const { repository, root } = await createRepository();
 		const workspace = join(root, "workspace");
 		await git(repository, ["worktree", "add", "-b", "agent", workspace, "HEAD"]);
+		await git(workspace, ["update-ref", workspaceBaseRef, "HEAD"]);
 		await writeFile(join(workspace, "source.txt"), "one\ntwo\nthree\nfour\n");
 		const resumed = await nativeWorkspace(join(root, "home"), { ...run, workspaceId: workspace }, repository);
 
