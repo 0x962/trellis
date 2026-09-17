@@ -24,17 +24,10 @@ export function ReviewStatusSummary({ reviews, className }: ReviewStatusSummaryP
 	const visible = reviews.slice(0, visibleLimit);
 	const hidden = reviews.length - visible.length;
 	return (
-		<span
-			role="group"
-			aria-label={`${reviews.length} pull request approval statuses`}
-			className={cx("inline-flex shrink-0 items-center gap-0.5", className)}
-		>
+		<span className={cx("inline-flex shrink-0 items-center gap-0.5", className)}>
+			<span className="sr-only">{reviews.length} pull request approval statuses</span>
 			{visible.map((review) => (
-				<ReviewStateIcon
-					key={reference(review)}
-					reviewState={review.reviewState}
-					isDraft={review.isDraft}
-				/>
+				<ReviewStateIcon key={reference(review)} reviewState={review.reviewState} isDraft={review.isDraft} />
 			))}
 			{hidden > 0 && (
 				<Tooltip
