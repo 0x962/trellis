@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import { sql } from "drizzle-orm";
 import type { RequestContext } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
@@ -5,6 +6,7 @@ import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 import { notFound } from "../support.ts";
 import { dispatchColumns } from "./controller.ts";
+import { record } from "./nextActions/record.ts";
 import type { Dispatch, WorkOutcome } from "./types.ts";
 
 export const handle = async (
@@ -29,7 +31,10 @@ export const handle = async (
 		throw invalidInput("generation", "Read the current dispatch generation before recording its outcome.");
 	if (!["sending", "sent", "unknown"].includes(dispatch.state))
 		throw invalidInput("id", "The manager has not received this dispatch.");
-	const tickets = new Set<string | null>(dispatch.events.map((event) => event.ticketId));
+	const tickets = new Set<string | null>([
+		...dispatch.events.map((event) => event.ticketId),
+		...dispatch.nextActions.map((action) => action.ticketId),
+	]);
 	if (!tickets.size) tickets.add(null);
 	const outcomes = new Map(dispatch.outcomes.map((outcome) => [outcome.ticketId, outcome]));
 	for (const outcome of input.outcomes) {
@@ -39,9 +44,11 @@ export const handle = async (
 			previous &&
 			(previous.status !== outcome.status ||
 				previous.reason !== outcome.reason ||
-				previous.reference !== outcome.reference)
+				previous.reference !== outcome.reference ||
+				!isDeepStrictEqual(previous.waitFor, outcome.waitFor))
 		)
 			throw invalidInput("outcomes", "This ticket already has a recorded outcome for this dispatch.");
+		if (!previous) await record(ctx, tx, { dispatch, outcome });
 		outcomes.set(outcome.ticketId, outcome);
 	}
 	const handled = [...tickets].every((ticketId) => outcomes.has(ticketId));

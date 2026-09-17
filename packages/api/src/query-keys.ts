@@ -145,6 +145,7 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 	// refetches on every change but a delete, which drops the ticket page.
 	const applyChange = (change: HeldChange) => {
 		const { summary, fields } = change;
+		enqueue([family("needsYou")]);
 		if (change.deleted) {
 			tombstones.add(summary.id);
 			dropTicketQueries(queryClient, summary);
@@ -182,6 +183,7 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "comment.created":
 			case "comment.updated":
 			case "comment.deleted": {
+				enqueue([family("needsYou")]);
 				const threads = queryClient
 					.getQueryCache()
 					.findAll({ queryKey: [["comments", "thread"]] })
@@ -200,6 +202,18 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "attachment.created":
 			case "attachment.deleted":
 				enqueue([forTicket(["attachments", "list"], event.ticketId), ...ticketDetail(event.ticketId)]);
+				return;
+			// A message changes the count and the last time of its channel, so
+			// the channel list refetches with the message list.
+			case "chat.message":
+			case "chat.delivery":
+			case "chat.channels":
+				enqueue([family("chat")]);
+				return;
+			// A sub-project lists the notes of its ancestors too, so every note
+			// list refetches.
+			case "notes.changed":
+				enqueue([family("notes")]);
 				return;
 			case "pr.linked":
 			case "pr.unlinked":
@@ -223,13 +237,21 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "project.updated":
 			case "project.deleted":
 			case "project.moved":
-				enqueue([family("statuses"), family("projects"), family("tickets"), family("search")]);
+				enqueue([family("statuses"), family("projects"), family("tickets"), family("search"), family("needsYou")]);
+				return;
+			case "needs-you.changed":
+				enqueue([family("needsYou")]);
 				return;
 			case "gh.status":
 				enqueue([family("system", "gh")]);
 				return;
+			// A session detail carries the state of its run, so a run change
+			// refetches the sessions with the runs.
 			case "agent-runs.changed":
-				enqueue([family("agentRuns")]);
+				enqueue([family("agentRuns"), family("sessions")]);
+				return;
+			case "sessions.changed":
+				enqueue([family("sessions")]);
 				return;
 			case "personas.changed":
 				enqueue([family("personas", "list")]);

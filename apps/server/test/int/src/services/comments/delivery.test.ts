@@ -3,7 +3,7 @@ import { ORPCError } from "@orpc/server";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { prepareSend } from "../../../../../src/services/agentRuns/communication.ts";
-import { dispatchMentions as dispatch } from "../../../../../src/services/commentMentions/dispatch.ts";
+import { dispatchMentions } from "../../../../../src/services/commentMentions/dispatch.ts";
 import { create } from "../../../../../src/services/comments.ts";
 import { recover } from "../../../../../src/services/controller/controller.ts";
 import { seedProject, seedTicket } from "../../../../fixtures";
@@ -12,8 +12,6 @@ import { testCtx } from "../../../../helpers/ctx.ts";
 import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
 
-const dispatchMentions = (...args: Parameters<typeof dispatch>) =>
-	dispatch(args[0], args[1], args[2], async () => "claude");
 let h: Harness;
 let commentId: string;
 beforeAll(async () => {
@@ -43,7 +41,6 @@ test("a mention delivers once to its captured assignment and session", async () 
 		id: "537",
 		expectedTerminalId: "terminal",
 		expectedSessionId: "conversation",
-		requireIdle: true,
 	});
 	expect(send.mock.calls[0]![1].text).toContain(`trellis thread show ${commentId}`);
 	await dispatchMentions(ctx(), [controllerSession("terminal")], send);
@@ -96,22 +93,22 @@ test.each([false, true])("a manager mention carries only event data with reply=%
 	});
 });
 
-test("a busy assignment retains its pending mention", async () => {
+test("a working assignment receives its mention at once", async () => {
 	const send = sent();
 	await dispatchMentions(
 		ctx(),
 		[controllerSession("terminal", { activity: { state: "working", updatedAt: new Date().toISOString() } })],
 		send,
 	);
-	expect(await state()).toBe("pending");
-	expect(send).not.toHaveBeenCalled();
+	expect(await state()).toBe("sent");
+	expect(send).toHaveBeenCalledTimes(1);
 });
 
-test("an atomic busy rejection retains the pending mention", async () => {
+test("a failed send records an uncertain receipt", async () => {
 	await dispatchMentions(ctx(), [controllerSession("terminal")], async () => {
-		throw Object.assign(new Error("Busy"), { code: "RUNTIME_BUSY" });
+		throw new Error("The connection closed");
 	});
-	expect(await state()).toBe("pending");
+	expect(await state()).toBe("unknown");
 });
 
 test("a replaced session cannot receive an old mention", async () => {
@@ -139,11 +136,11 @@ test("the global pause prevents automatic mention delivery", async () => {
 	expect(send).not.toHaveBeenCalled();
 });
 
-test("a custom terminal receives the mention without native activity observations", async () => {
+test("a terminal without activity observations receives the mention", async () => {
 	const send = sent();
-	await dispatch(ctx(), [controllerSession("terminal", { activity: null })], send, async () => "custom");
+	await dispatchMentions(ctx(), [controllerSession("terminal", { activity: null })], send);
 	expect(await state()).toBe("sent");
-	expect(send.mock.calls[0]![1].requireIdle).toBe(false);
+	expect(send).toHaveBeenCalledTimes(1);
 });
 
 test("a mention during startup binds the conversation of the same terminal attempt", async () => {

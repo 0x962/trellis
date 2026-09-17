@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTable } from "@tanstack/react-table";
 import type { StatusSummary, TicketSummary } from "@trellis/api";
-import { type MouseEvent, useMemo, useRef, useState } from "react";
+import { ConfirmDialog } from "@trellis/ui";
+import { type MouseEvent, type ReactNode, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { useScopeStatuses } from "../../../hooks/useScopeStatuses";
 import { useStableCallback } from "../../../hooks/useStableCallback";
 import { useApp } from "../../../lib/appContext";
@@ -38,6 +38,7 @@ export type TicketTableProps = {
 	routeKey: string;
 	search: Partial<View>;
 	onOpenPage: (identifier: string) => void;
+	emptyState?: ReactNode;
 };
 
 export type Editing = { id: string; field: EditField } | null;
@@ -48,9 +49,8 @@ const focusFilter = () => document.querySelector<HTMLElement>("[data-filter-bar]
 // The ticket table of a list route: the active rows grouped client-side,
 // the closed groups on demand, the roving focus, the id-keyed selection,
 // the inline pickers, and the bulk bar.
-export function TicketTable({ project, routeKey, search, onOpenPage }: TicketTableProps) {
+export function TicketTable({ project, routeKey, search, onOpenPage, emptyState }: TicketTableProps) {
 	const { orpc } = useApp();
-	useQuery({ ...orpc.agentRuns.list.queryOptions({ input: {} }), refetchInterval: 2000 });
 	const view = viewOf(search);
 	const storedDensity = useUiStore((state) => state.density);
 	const density = search.density ?? storedDensity;
@@ -182,7 +182,9 @@ export function TicketTable({ project, routeKey, search, onOpenPage }: TicketTab
 
 	if (data.error !== null) return <TableError error={data.error} onRetry={data.retry} />;
 	if (data.total === 0 && (project === undefined || projectQuery.data?.parentId === null)) {
-		return <TableEmpty project={project} filtered={hasFilters(search)} q={view.q} onCreate={() => openNew()} />;
+		return (
+			emptyState ?? <TableEmpty project={project} filtered={hasFilters(search)} q={view.q} onCreate={() => openNew()} />
+		);
 	}
 
 	const closedVisible = data.closed !== null && view.group === "status" && view.closed !== "hide";

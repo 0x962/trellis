@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { discoverManagerTools } from "./discoverManagerTools.ts";
 
 if (process.argv[2] === "--version") {
 	appendFileSync(join(dirname(process.argv[1]!), "version-reads.txt"), "version\n");
@@ -14,7 +15,11 @@ if (process.argv[2] === "agents") {
 }
 const harness = process.env.TRELLIS_HARNESS!;
 const args = process.argv.slice(2);
-const model = args.includes("--model") ? args[args.indexOf("--model") + 1] : "fixture-default";
+const model = args.includes("--model")
+	? args[args.indexOf("--model") + 1]
+	: process.env.TRELLIS_HARNESS === "claude"
+		? "claude-opus-5"
+		: "openai/gpt-5.6-sol";
 const sessionFlag = {
 	claude: "--resume",
 	codex: "resume",
@@ -120,6 +125,8 @@ if (harness === "opencode")
 	});
 process.stdin.setRawMode(true);
 await hook("session");
+if (harness === "claude" && args.includes("--mcp-config"))
+	await discoverManagerTools(args[args.indexOf("--mcp-config") + 1]!);
 const prompt = harness === "opencode" ? args[args.indexOf("--prompt") + 1]! : args.at(-1)!;
 if (harness !== "opencode" || !resumed) await hook("prompt", prompt);
 if (

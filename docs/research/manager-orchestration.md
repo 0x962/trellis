@@ -1,5 +1,23 @@
 # Manager orchestration review
 
+## Delegation follow-up, 2026-09-16
+
+Status: planned. The user requested this correction after a review of the TRL manager logs from 09:46 to 13:09 Toronto time.
+The manager repeatedly coordinated disk cleanup and reconciled installed and active release versions.
+Those tasks consumed manager turns and context that could serve ticket assignments and review decisions.
+
+- Create a ticket for disk cleanup and assign a worker. Let that worker own diagnosis, cleanup, checks, and the result.
+- Delegate release version reconciliation to the SRE or another suitable worker. Require a concise result with evidence and any decision needed.
+- Keep PR reviewer assignments, priorities, ownership, and dependencies with the manager.
+- Give each delegated task an outcome, scope, acceptance conditions, and escalation conditions. Let its worker choose and coordinate the technical steps.
+- Reuse the existing owner when a task already has one. Read results or changed blockers instead of repeatedly supervising technical steps.
+
+Verify this change with the disk cleanup and release reconciliation scenarios.
+The manager should create or reuse an assignment, record a wait, and continue other work until a result or blocker needs its decision.
+Measure repeated status reads and manager turns per delegated task.
+
+## Prior review
+
 Reviewed on 2026-09-15 against Claude Code 2.1.273 and the live Trellis Manager persona.
 The installed binary contains the workflow reference at byte 189212964.
 The inspection covers that reference and Anthropic's current documentation, not a third-party skill with the same name.

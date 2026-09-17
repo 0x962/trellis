@@ -1,5 +1,6 @@
 import { dialog } from "electron";
 import { assertManagedHome, ensureHostToken, type HostConnection, waitForHostExit } from "../host/host.ts";
+import { hostError } from "../hostError/hostError.ts";
 import { openServiceSettings, serviceCommand } from "../service/service.ts";
 import { serviceNeedsRegistration } from "../serviceRegistration/serviceRegistration.ts";
 import { stopHostWork } from "../stopHostWork/stopHostWork.ts";
@@ -21,28 +22,13 @@ export const requireService = async (helper: string, home: string) => {
 	if (state.status !== "enabled") throw new Error(`Background service status: ${state.status}.`);
 };
 
-export const showServiceStatus = async (helper: string) => {
-	try {
-		const state = await serviceCommand(helper, "status");
-		const { response } = await dialog.showMessageBox({
-			message: `Background service: ${state.status}`,
-			detail:
-				"The service keeps local agents active when Trellis closes. System Settings controls its permission to run at login.",
-			buttons: ["Done", "Open System Settings"],
-		});
-		if (response === 1) await openServiceSettings(helper);
-	} catch (error) {
-		dialog.showErrorBox("Background service status", (error as Error).message);
-	}
-};
-
 export const stopLocalWork = async (host: HostConnection, home: string, helper?: string): Promise<boolean> => {
 	const { response } = await dialog.showMessageBox({
 		type: "warning",
-		message: "Stop local work and the background service?",
+		message: "Quit Trellis completely?",
 		detail:
 			"Trellis pauses automatic dispatch for local projects, stops their known processes, and disables its background service. Superset and other external sessions remain active.",
-		buttons: ["Cancel", "Stop local work"],
+		buttons: ["Cancel", "Quit Completely"],
 		defaultId: 0,
 		cancelId: 0,
 	});
@@ -65,7 +51,7 @@ export const resumeLocalWork = async (host: HostConnection) => {
 		},
 		body: "{}",
 	});
-	if (!result.ok) throw new Error(await result.text());
+	if (!result.ok) throw await hostError(result);
 	await dialog.showMessageBox({
 		message: "Local work is enabled",
 		detail: "You can start local agents. Each project's Automatic dispatch switch keeps its saved setting.",

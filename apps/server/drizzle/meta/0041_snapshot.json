@@ -1,5 +1,5 @@
 {
-  "id": "989fc57f-79a4-437b-81ab-a143b77eb10a",
+  "id": "07968db0-bed3-43f0-8a92-133375fd7715",
   "prevId": "9077a5f2-532c-4def-a936-5995c0125c13",
   "version": "7",
   "dialect": "postgresql",
@@ -1986,6 +1986,13 @@
           "notNull": true,
           "default": "'[]'::jsonb"
         },
+        "next_actions": {
+          "name": "next_actions",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
         "handled_at": {
           "name": "handled_at",
           "type": "timestamp (3) with time zone",
@@ -2561,20 +2568,6 @@
           "notNull": true,
           "default": "'reviewer'"
         },
-        "color": {
-          "name": "color",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'accent'"
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "''"
-        },
         "instruction": {
           "name": "instruction",
           "type": "text",
@@ -2607,14 +2600,6 @@
         "personas_name_check": {
           "name": "personas_name_check",
           "value": "length(\"personas\".\"name\") BETWEEN 1 AND 120 AND \"personas\".\"name\" ~ '[^[:space:]]'"
-        },
-        "personas_color_check": {
-          "name": "personas_color_check",
-          "value": "\"personas\".\"color\" IN ('fg', 'fg-muted', 'fg-faint', 'accent', 'agent', 'success', 'warning', 'danger')"
-        },
-        "personas_description_check": {
-          "name": "personas_description_check",
-          "value": "length(\"personas\".\"description\") <= 2000"
         },
         "personas_instruction_check": {
           "name": "personas_instruction_check",
@@ -3596,17 +3581,11 @@
           "primaryKey": false,
           "notNull": true
         },
-        "persona_id": {
-          "name": "persona_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "run_id": {
           "name": "run_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "persona_name": {
           "name": "persona_name",
@@ -3641,50 +3620,6 @@
         }
       },
       "indexes": {
-        "comment_deliveries_persona_recipient": {
-          "name": "comment_deliveries_persona_recipient",
-          "columns": [
-            {
-              "expression": "comment_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "persona_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"comment_deliveries\".\"persona_id\" IS NOT NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "comment_deliveries_run_recipient": {
-          "name": "comment_deliveries_run_recipient",
-          "columns": [
-            {
-              "expression": "comment_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "run_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"comment_deliveries\".\"run_id\" IS NOT NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "comment_deliveries_state_idx": {
           "name": "comment_deliveries_state_idx",
           "columns": [
@@ -3730,14 +3665,18 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "comment_deliveries_recipient_check": {
-          "name": "comment_deliveries_recipient_check",
-          "value": "\"comment_deliveries\".\"persona_id\" IS NOT NULL OR \"comment_deliveries\".\"run_id\" IS NOT NULL"
+      "uniqueConstraints": {
+        "comment_deliveries_recipient": {
+          "name": "comment_deliveries_recipient",
+          "nullsNotDistinct": false,
+          "columns": [
+            "comment_id",
+            "run_id"
+          ]
         }
       },
+      "policies": {},
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.evidence_artifacts": {
@@ -4161,6 +4100,168 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.manager_next_actions": {
+      "name": "manager_next_actions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ticket_id": {
+          "name": "ticket_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status_id": {
+          "name": "status_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "assignment_request_id": {
+          "name": "assignment_request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'waiting'"
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "eligible_at": {
+          "name": "eligible_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notified_at": {
+          "name": "notified_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assigned_at": {
+          "name": "assigned_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "manager_next_actions_waiting_ticket_idx": {
+          "name": "manager_next_actions_waiting_ticket_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ticket_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"manager_next_actions\".\"state\"='waiting'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "manager_next_actions_project_id_projects_id_fk": {
+          "name": "manager_next_actions_project_id_projects_id_fk",
+          "tableFrom": "manager_next_actions",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "manager_next_actions_ticket_id_tickets_id_fk": {
+          "name": "manager_next_actions_ticket_id_tickets_id_fk",
+          "tableFrom": "manager_next_actions",
+          "tableTo": "tickets",
+          "columnsFrom": [
+            "ticket_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "manager_next_actions_run_id_agent_runs_id_fk": {
+          "name": "manager_next_actions_run_id_agent_runs_id_fk",
+          "tableFrom": "manager_next_actions",
+          "tableTo": "agent_runs",
+          "columnsFrom": [
+            "run_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "manager_next_actions_assignment_request_id_unique": {
+          "name": "manager_next_actions_assignment_request_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "assignment_request_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "manager_next_actions_state_check": {
+          "name": "manager_next_actions_state_check",
+          "value": "\"manager_next_actions\".\"state\" IN ('waiting','assigned','canceled')"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.native_migrations": {

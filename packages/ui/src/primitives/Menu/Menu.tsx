@@ -5,6 +5,7 @@ import { cx } from "../../utils/cx";
 import { hitArea } from "../../utils/hitArea";
 import { popupMotion } from "../../utils/popupMotion";
 import { Kbd } from "../Kbd";
+import { Tooltip } from "../Tooltip";
 
 export type MenuItem = {
 	label: string;
@@ -24,36 +25,40 @@ export type MenuProps = {
 	items: readonly MenuItem[];
 	// The element that opens the menu. The default is a quiet "more" button.
 	trigger?: ReactElement;
+	triggerTooltip?: string;
 	align?: "start" | "center" | "end";
 	className?: string;
 };
 
 // A list of actions under a button. Arrow keys move between items, Enter runs
 // one, Escape closes and returns focus to the trigger.
-export function Menu({ label, items, trigger, align = "end", className }: MenuProps) {
+export function Menu({ label, items, trigger, triggerTooltip, align = "end", className }: MenuProps) {
+	const button = (
+		<BaseMenu.Trigger
+			aria-label={label}
+			render={trigger}
+			className={
+				trigger
+					? undefined
+					: cx(
+							"inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-transparent text-fg-muted transition duration-hover ease-out",
+							hitArea.box28Bordered,
+							"hover:bg-fg/6 hover:text-fg active:bg-fg/10 data-popup-open:bg-fg/10 data-popup-open:text-fg",
+							"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
+							"disabled:text-fg-faint disabled:pointer-events-none",
+						)
+			}
+		>
+			{trigger ? undefined : (
+				<span aria-hidden="true" className="inline-flex size-3.5 *:size-full">
+					<DotsThree />
+				</span>
+			)}
+		</BaseMenu.Trigger>
+	);
 	return (
 		<BaseMenu.Root>
-			<BaseMenu.Trigger
-				aria-label={label}
-				render={trigger}
-				className={
-					trigger
-						? undefined
-						: cx(
-								"inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-transparent text-fg-muted transition duration-hover ease-out",
-								hitArea.box28Bordered,
-								"hover:bg-fg/6 hover:text-fg active:bg-fg/10 data-popup-open:bg-fg/10 data-popup-open:text-fg",
-								"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
-								"disabled:text-fg-faint disabled:pointer-events-none",
-							)
-				}
-			>
-				{trigger ? undefined : (
-					<span aria-hidden="true" className="inline-flex size-3.5 *:size-full">
-						<DotsThree />
-					</span>
-				)}
-			</BaseMenu.Trigger>
+			{triggerTooltip ? <Tooltip content={triggerTooltip}>{button}</Tooltip> : button}
 			<BaseMenu.Portal>
 				<BaseMenu.Positioner align={align} sideOffset={4} className="z-50 outline-none">
 					<BaseMenu.Popup

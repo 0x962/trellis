@@ -47,7 +47,11 @@ test("the authenticated host consumes a pending plan once", async () => {
 	await resume();
 	await resume();
 	expect(requests).toEqual([
-		{ body: { restartId: "restart" }, authorization: "Bearer desktop-token", path: "/api/native-work/restart/resume" },
+		{
+			body: { restartId: "restart", wait: false },
+			authorization: "Bearer desktop-token",
+			path: "/api/native-work/restart/resume",
+		},
 	]);
 });
 test("a failed resume retains the plan for the next app launch", async () => {

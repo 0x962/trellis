@@ -1,7 +1,7 @@
 # Desktop feedback
 
-Owner: lead agent. Integration branch: `trellis-readiness-audit`.
-Last update: 2026-09-15.
+Owner: lead agent. Production source: `main`.
+Last update: 2026-09-16.
 
 The user tests the installed UI. The production app lives at `~/Applications/Trellis.app`.
 The production verification at 22:17 UTC uses source `49e4191e` and release `b78b2dc3`.
@@ -19,6 +19,88 @@ The installed server returns 200 for all 54 previously failed terminal streams. 
 A fresh terminal passes input, output, resize, and Stop checks on release `c2826d27`. The final runtime list contains zero active sessions.
 The installed route asset contains only the Needs you heading and an empty body. The browser regression is not run; the user tests the UI.
 Evidence: `/tmp/trellis-terminal-recovery-acceptance.json`, `/tmp/trellis-installed-runtime-check.json`, and `/tmp/trellis-needs-you-production-install.log`.
+
+## Production source
+
+At 13:31 UTC on September 16, release source `7b805959` rejects a Codex manager during session restoration.
+That source omits the Codex manager support from `trellis-readiness-audit`. The failed restore returns a generic HTTP 500.
+Later source `13a69d47` includes Codex manager support but still omits the project navigation change in `b64e9919`.
+
+Production builds require a clean `main` checkout at the current, freshly fetched `origin/main` commit.
+The requirement applies to installed packages and `--prepare` candidates.
+The installer verifies that the candidate includes the installed source before the build and before publication.
+A macOS advisory lock permits one publication at a time. Publication also verifies that `origin/main` still contains the candidate.
+All 21 installer checks pass with 53 assertions. A direct branch install command rejects `trellis-readiness-audit` before the build starts.
+
+A failed native launch during restoration returns `RESTART_FAILED` with its cause and request ID.
+Both API transports log failed procedures with the same request ID. Unexpected errors retain their private details in the server log.
+The combined source passes 78 server integration tests, five API contract tests, and all nine workspace typechecks.
+All three project navigation tests pass after integration with the installed source.
+
+At 13:45 UTC on September 16, the production installer publishes source `c6e7542c` from clean, published `main`.
+The installed release is `d9df9d36`. Signature verification and all 13 packaged smoke checks pass.
+The HTTP host, runtime, and five active agent processes retain their IDs during the copy. Their provider session IDs also remain unchanged.
+The host returns HTTP 200. A separate check process exits with code zero during the build.
+Restart Trellis to activate this package. Evidence: `/tmp/trellis-main-production-install.log` and `/tmp/trellis-main-install-evidence.json`.
+
+## Trellis SRE persona
+
+The live Trellis SRE persona is `01M2N80YVHB63B85798BJPT4G4`, with kind `builder`.
+Its instructions live in the Trellis SRE persona.
+The TRL manager persona and Deploy Queue description route eligible tickets to one SRE batch owner.
+The SRE merges and tests the combined batch, builds from published main, installs once, and coordinates one restart with the manager.
+It retains a durable release record and a checkpoint comment that the manager can read.
+After resume, it verifies the active release, health, and saved provider conversations before a deployment result.
+Required human acceptance stays separate from release completion.
+
+The persona, manager instructions, and status description pass exact API readback on September 16 at 13:55 UTC.
+The running manager receives the coordination policy without a context reset.
+Six documentation checks and both API input schemas pass. Two Astra agents review the workflow and role boundaries.
+The quit-and-reopen command passes shell syntax and disabled AppleScript checks. This configuration task does not execute a deployment or restart.
+Evidence: `/tmp/trellis-sre-config-proof.json` and `/tmp/trellis-sre-docs-check.log`.
+
+## Automatic repository access
+
+The Workbench manager could not launch WO-1 because its child project had an empty directory and `trustedDirectory: false`.
+The Workbench parent already specified `/Users/navidkhan/projects/workbench`.
+The lead applies Navid's automatic-trust authorization to live project settings and supplies the existing parent directory to that child.
+At 14:14 UTC on September 16, worker `01M2N91KAYSS4YAVG0SQN2YX2W` runs with a confirmed provider session and no error.
+The shared manager persona includes the automatic repository access policy.
+
+Project settings have no repository approval field. A database migration removes the saved repository approval flag and the unused tool permission flag.
+An agent can update its project directory without a separate human approval. Native harnesses apply permission bypass at launch.
+Agent and flow launches use the nearest configured ancestor directory when a subproject has no directory.
+An explicit child directory takes precedence. Other launch settings remain specific to the child project.
+Settings show the inheritance rule beside the directory field for subprojects.
+Native harness startup applies the repository trust and permission flags before execution.
+
+Nine focused browser tests pass. All 26 native trust and permission tests pass with 109 assertions.
+The affected backend passes 102 integration tests with 515 assertions. Five API schema tests and all nine workspace typechecks also pass.
+The separate flow-terminal browser fixture still expects SSE, although the terminal uses a WebSocket.
+Five other flow browser cases pass. The user checks the installed appearance.
+The existing Trellis SRE owns the coordinated production release after the source reaches tested main.
+Evidence: `/tmp/trellis-trust-live-proof.json`, `/tmp/trellis-trust-child-after.json`, and `/tmp/trellis-auto-trust-harness-checks.log`.
+The backend verification record is `/tmp/trellis-auto-trust-backend-validation.txt`.
+The combined source retains the manager-wait migration as `0044` and applies the approval removal as `0045`.
+All nine browser cases pass again on the combined source. The CLI now classifies `RESTART_FAILED` as a runtime failure with exit code 6.
+All eight CLI error tests pass with 83 assertions. All nine workspace typechecks pass after the merge corrections.
+Logs: `/tmp/trellis-auto-trust-merged-ui.log`, `/tmp/trellis-auto-trust-merged-typecheck.log`, and `/tmp/trellis-auto-trust-cli-errors-green.log`.
+The final migration and launch checks pass 52 cases with 175 assertions after both obsolete flags are removed.
+Those checks include all four saved flag combinations and an agent directory update after migration.
+Five final API tests pass. The independent review reports no remaining findings.
+Evidence: `/tmp/trellis-auto-trust-and-permissions-final.log` and `/tmp/trellis-auto-trust-api-final.log`.
+
+## Project navigation
+
+The project name opens its manager terminal. Each project row uses the Trellis mark.
+Tickets and Settings remain below the project name. The project row shows the selected state on its manager page.
+Root, nested, and archived projects use this navigation.
+All three navigation browser tests first fail on the old project destination and pass after the change.
+Web typecheck and scoped Biome checks pass. The user tests the installed appearance.
+Production source `be3f016a` passes all 13 packaged smoke checks and signature verification.
+At 00:40:18 UTC on September 16, the verified ditto copy updates `~/Applications/Trellis.app` to release `94f2db73`.
+The desktop, HTTP host, runtime, and all five active agent processes keep their identities. The host returns HTTP 200.
+Restart Trellis to activate the sidebar update. Evidence: `/tmp/trellis-project-navigation-install.json`.
 
 ## Automatic background service
 
@@ -51,6 +133,76 @@ It still rejects unknown processes and sessions without a confirmed provider ide
 The focused capture and activation suites pass: 31 tests and 61 assertions. Desktop typecheck and scoped Biome checks pass.
 A read-only check against the live runtime saves all five sessions to a scratch plan of 2,561 bytes.
 Provider identifiers and process identities remain unchanged. Evidence: `/tmp/trellis-startup-maxbuffer-after.json`.
+
+## Startup readiness
+
+At 23:45:17 UTC, the manager accepts its restart prompt while its transcript lists `trellis` under `pendingMcpServers`.
+At 23:45:26 UTC, it says that the tools still connect. The HTTP server already accepts requests.
+The startup completion signal confirms a received prompt but does not confirm tool discovery.
+
+Each Claude manager loads the Trellis tool catalog before it accepts a prompt.
+The bridge publishes a discovery receipt for the exact attempt. The prompt hook requires that receipt and a successful runtime acknowledgment.
+A failed connection or acknowledgment blocks the prompt and reports the cause. One eight-second deadline covers both operations.
+The desktop publishes its connected host after agent restoration, CLI setup, and update checks complete.
+Early activate, second-instance, and deep-link events keep the startup window open until that sequence finishes.
+App startup owns this sequence. Each restored session confirms its tool connection before startup completes.
+The same session check also applies to a manager that a person starts or restarts after the app opens.
+
+The desktop readiness and output-capture tests pass: 19 tests and 54 assertions.
+All 20 release activation tests pass. The native startup progress test passes with six assertions after the desktop assets build.
+The restart and manager service checks pass: 34 tests and 190 assertions.
+The authenticated Claude test confirms delayed discovery and prompt acknowledgment. The account then returns its session usage limit.
+The real missing-discovery test passes. The provider limit prevents the real tool-call and exact-resume assertions from completion.
+Evidence: `/tmp/trellis-manager-ready-live-green.log`, `/tmp/trellis-startup-combined-desktop.log`, and `/tmp/trellis-startup-combined-server-green.log`.
+
+The merged startup progress screen passes eight desktop checks with 58 assertions.
+These checks require the main window to appear only after readiness and the progress screen's completion step.
+A startup failure shows the error without a main window.
+
+A provider turn failure after confirmed resume remains visible on the agent. It does not block the desktop from opening.
+Process ownership errors and absent prompt receipts still block restoration. The regression first fails with `rate_limit` at the restart gate.
+All 26 restart service tests pass after the fix. Evidence: `/tmp/trellis-provider-startup-red.log` and `/tmp/trellis-provider-startup-green.log`.
+The final combined restart, tool, and prompt-hook checks pass: 41 tests and 187 assertions.
+Evidence: `/tmp/trellis-final-startup-services.log`.
+
+## Codex managers
+
+Codex 0.154.0 supports managers through its native engine and interactive terminal.
+The engine receives the saved role instructions and authenticated Trellis tools. Each turn has an empty native environment list.
+The terminal connection preserves that policy on typed turns and resume. It rejects requests for another conversation.
+Managers require Codex 0.154.0 or later. Workers retain their existing native tool access.
+
+The combined native engine and service checks pass: 44 tests and 486 assertions.
+Local provider fixtures exercise Sol and Astra through initial, sent, and typed turns, exact-session resume, tool calls, and normal terminal exit.
+A forced shell-tool call returns an error and creates no file.
+An authenticated Sol session calls the local Trellis fixture, stops, resumes its exact provider conversation, and recalls a random prior marker.
+That separate test passes with eight assertions. Both native terminal attachments render the response.
+Evidence: `/tmp/trellis-codex-final-combined.log` and `/tmp/trl-hhost-EQecZV`.
+
+All nine workspace typechecks pass. Scoped Biome checks pass.
+The [host guide](host-testing.md#codex-manager-checks) records the native and authenticated commands.
+
+The production package uses source `4df843c6` and release `e447b219`.
+All 13 packaged smoke checks pass. The signed app starts an isolated macOS service and opens its renderer with 23 passing assertions.
+At 00:28:50 UTC on September 16, an atomic ditto install updates `~/Applications/Trellis.app`.
+The desktop, HTTP host, runtime, and all four active agent processes keep their identities during the copy. The host returns HTTP 200.
+The user can restart Trellis to activate the package. This verification does not restart the live app or reset its manager conversation.
+Evidence: `/tmp/trellis-codex-manager-production.log`, `/tmp/trellis-codex-manager-signed-startup.log`, and `/tmp/trellis-startup-repair-install.json`.
+
+## Default models
+
+New sessions with no model selection use explicit models:
+
+| Harness | Default model |
+| --- | --- |
+| Claude | `claude-opus-5` |
+| Codex | `gpt-5.6-sol` |
+| OpenCode | `vercel/anthropic/claude-opus-5` |
+| Pi | `vercel-ai-gateway/openai/gpt-5.6-sol` |
+
+Explicit selections and resumed sessions retain their models. The settings hint shows the default for the selected harness.
+Four process-fixture checks pass with 20 assertions. Seven API tests pass with 16 assertions.
+API, server, and web typechecks pass. Browser assertions for the settings hints are added; the user tests the installed UI.
 
 ## Automatic session resume
 

@@ -16,6 +16,7 @@ import { jumpRow, resultRows } from "../../../utils/resultRows";
 import { submenuHeadings } from "../../../utils/submenuRows";
 import { selectionRows, ticketRows } from "../../../utils/ticketRows";
 import { createRows, gotoProjectRows, gotoRows, viewRows } from "../../../utils/viewRows";
+import { SnoozeGroup } from "../SnoozeGroup";
 import { SubmenuGroup } from "../SubmenuGroup";
 
 export type PalettePanelProps = {
@@ -69,7 +70,8 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu }: Palette
 	const search = useRouterState({ select: (state) => state.location.search as Record<string, unknown> });
 	const action = useActionContext();
 	const projects = useSuspenseQuery(orpc.projects.list.queryOptions({ input: {} })).data;
-	const [query, setQuery] = useState("");
+	const [query, setQuery] = useState(() => useCommandStore.getState().initialQuery);
+	const snooze = mode === "commands" && /^snooze(?:\s|$)/i.test(query);
 	const [value, setValue] = useState("");
 
 	// The keys typed between Cmd+K and the focus of the field join the query.
@@ -77,7 +79,7 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu }: Palette
 
 	// A submenu and the project picker list their own values, so neither
 	// searches tickets.
-	const results = useCommandSearch(submenu === null && mode !== "projects" ? query : "");
+	const results = useCommandSearch(!snooze && submenu === null && mode !== "projects" ? query : "");
 	const typed = query.trim();
 
 	const deps: RowDeps = {
@@ -100,7 +102,12 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu }: Palette
 
 	const commands: PaletteGroup[] = [];
 	if (submenu === null && mode === "commands") {
-		if (identifier !== null) commands.push({ id: "ticket", heading: "This ticket", rows: ticketRows(deps) });
+		if (identifier !== null)
+			commands.push({
+				id: "ticket",
+				heading: "This ticket",
+				rows: [...ticketRows(deps), { value: "snooze", label: "Snooze", run: () => setQuery(`Snooze ${identifier} `) }],
+			});
 		if (selection.length > 0) {
 			commands.push({ id: "selection", heading: selectionHeading(selection.length), rows: selectionRows(deps) });
 		}
@@ -150,7 +157,7 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu }: Palette
 	}, [best]);
 
 	const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-		if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey)) return;
+		if (snooze || event.key !== "Enter" || !(event.metaKey || event.ctrlKey)) return;
 		event.preventDefault();
 		action.navigate(typed === "" ? "/search" : `/search?q=${encodeURIComponent(typed)}`);
 		commandActions.close();
@@ -173,31 +180,43 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu }: Palette
 				autoFocus
 			/>
 			<Command.List>
-				{results.jump !== null && drawRows([jumpRow(results.jump, deps)])}
-				{submenu !== null && <SubmenuGroup submenu={submenu} deps={deps} />}
-				{groups.map((group) => (
-					<Command.Group key={group.id} heading={group.heading}>
-						{drawRows(group.rows)}
-					</Command.Group>
-				))}
-				{nothing && <Command.Empty>No results</Command.Empty>}
+				{snooze ? (
+					<SnoozeGroup query={query} setQuery={setQuery} />
+				) : (
+					<>
+						{results.jump !== null && drawRows([jumpRow(results.jump, deps)])}
+						{submenu !== null && <SubmenuGroup submenu={submenu} deps={deps} />}
+						{groups.map((group) => (
+							<Command.Group key={group.id} heading={group.heading}>
+								{drawRows(group.rows)}
+							</Command.Group>
+						))}
+						{nothing && <Command.Empty>No results</Command.Empty>}
+					</>
+				)}
 			</Command.List>
 			<Command.Footer>
 				<span className="flex items-center gap-1.5">
 					<Kbd>↑↓</Kbd> move
 				</span>
 				<span className="flex items-center gap-1.5">
-					<Kbd>↵</Kbd> run
+					<Kbd>↵</Kbd> {snooze ? "confirm" : "run"}
 				</span>
-				<span className="flex items-center gap-1.5">
-					{formatShortcut("mod+enter", currentPlatform()).map((cap) => (
-						<Kbd key={cap}>{cap}</Kbd>
-					))}
-					open full search
-				</span>
-				<span className="ml-auto" title={`Type an ID such as ${hintKey}-12 to open the ticket`}>
-					Type an ID such as <span className="font-mono">{hintKey}-12</span> to open the ticket
-				</span>
+				{snooze ? (
+					<span className="ml-auto">5m · 1d · tomorrow · next week</span>
+				) : (
+					<>
+						<span className="flex items-center gap-1.5">
+							{formatShortcut("mod+enter", currentPlatform()).map((cap) => (
+								<Kbd key={cap}>{cap}</Kbd>
+							))}
+							open full search
+						</span>
+						<span className="ml-auto" title={`Type an ID such as ${hintKey}-12 to open the ticket`}>
+							Type an ID such as <span className="font-mono">{hintKey}-12</span> to open the ticket
+						</span>
+					</>
+				)}
 			</Command.Footer>
 		</Command.Root>
 	);

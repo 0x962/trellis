@@ -1,11 +1,15 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import type { ChildProcess } from "node:child_process";
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
+import { HARNESS_DEFAULT_MODELS, toHarnessModel } from "@trellis/api";
 import type { RuntimeClient } from "@trellis/runtime-protocol/client";
+import { MUSE_USAGE_FILE, readMuseUsage } from "../../../../../src/agents/harnesses/muse/museUsage.ts";
 import { HarnessHost } from "../../../../../src/agents/harnessHost/harnessHost.ts";
 import { providers } from "../../../../../src/agents/harnessHost/providers.ts";
+import { fetchAccountQuota } from "../../../../../src/services/harnessAccounts/fetchQuota.ts";
 import { harnessHostFixture } from "../../../../helpers/harnessHostFixture.ts";
 
 let home: string, daemon: ChildProcess, client: RuntimeClient, host: HarnessHost;
@@ -19,7 +23,7 @@ afterEach(async () => {
 });
 
 test("the host registers the supported native harnesses", () => {
-	expect(Object.keys(providers).sort()).toEqual(["claude", "codex", "opencode", "pi"]);
+	expect(Object.keys(providers).sort()).toEqual(["claude", "codex", "muse", "opencode", "pi"]);
 });
 test("the host preserves the assignment token and process deadline", async () => {
 	await host.start({
@@ -35,23 +39,31 @@ test("the host preserves the assignment token and process deadline", async () =>
 	expect(descriptor.spec.timeoutMs).toBe(60000);
 });
 
-test.each(["claude", "codex", "pi", "opencode"] as const)(
+test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
 	"%s host supports identity, model, input, output, events, lists, elapsed, resume, and stop",
 	async (harness) => {
-		const started = await host.start({ id: "attempt", harness, cwd: home, prompt: "initial", model: "explicit-model" });
+		const started = await host.start({
+			id: "attempt",
+			harness,
+			cwd: home,
+			prompt: "initial",
+			model: HARNESS_DEFAULT_MODELS[harness],
+		});
 		expect(started.process.agent?.sessionId).toBe(`provider-${harness}`);
-		expect(started.process.agent?.model).toBe("explicit-model");
+		expect(started.process.agent?.model).toBe(HARNESS_DEFAULT_MODELS[harness]);
 		expect(started.process.acknowledgedMessageIds).toContain("attempt");
 		expect(started.process.elapsedMs).toBeNumber();
 		const args = started.process.launch!.args;
 		if (harness === "claude") expect(args).toContain("--dangerously-skip-permissions");
-		if (harness === "codex") expect(JSON.parse(args[1]!).model).toBe("explicit-model");
+		if (harness === "codex" || harness === "muse")
+			expect(JSON.parse(args[1]!).model).toBe(toHarnessModel(harness, HARNESS_DEFAULT_MODELS[harness]));
 		if (harness === "pi") expect(args).toContain("read,bash,edit,write,grep,find,ls");
 		if (harness === "opencode") expect(args).toContain("--model");
 		await host.waitFor("attempt", (s) => s.activity?.state === "idle");
 		expect((await host.list({ status: "running" })).map((s) => s.id)).toEqual(["attempt"]);
 		expect((await host.list({ activity: "idle" })).map((s) => s.id)).toEqual(["attempt"]);
 		await host.send("attempt", "hello", "message");
+		await host.waitFor("attempt", (s) => s.acknowledgedMessageIds.includes("message"));
 		await host.waitFor("attempt", (s) => s.activity?.state === "idle");
 		let response = "";
 		for await (const event of host.subscribe("attempt", 0, AbortSignal.timeout(3000))) {
@@ -69,7 +81,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 			harness,
 			cwd: home,
 			prompt: "resume",
-			model: "explicit-model",
+			model: HARNESS_DEFAULT_MODELS[harness],
 			sessionId: `provider-${harness}`,
 		});
 		expect(resumed.process.agent?.sessionId).toBe(`provider-${harness}`);
@@ -78,7 +90,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 	10000,
 );
 
-test.each(["claude", "codex", "pi", "opencode"] as const)(
+test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
 	"missing %s executable fails before process launch with its name and PATH",
 	async (harness) => {
 		const empty = join(home, "empty");
@@ -109,7 +121,7 @@ test("silent native hooks time out with the retained attempt ID", async () => {
 	await host.stop("silent");
 });
 
-test.each(["claude", "codex", "pi", "opencode"] as const)(
+test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
 	"%s interrupt preserves the actual process and waits for a provider idle event",
 	async (harness) => {
 		host = new HarnessHost({
@@ -164,7 +176,7 @@ test("a new host instance reconnects to the same process and streams output from
 	await host.stop("retained");
 });
 
-test.each(["claude", "codex", "pi", "opencode"] as const)(
+test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
 	"twelve concurrent %s starts share one process and reject a conflicting request",
 	async (harness) => {
 		const second = new HarnessHost({
@@ -174,7 +186,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 			bun: process.execPath,
 			observationTimeoutMs: 1500,
 		});
-		const input = { id: "duplicate", harness, cwd: home, prompt: "once", model: "explicit-model" };
+		const input = { id: "duplicate", harness, cwd: home, prompt: "once", model: HARNESS_DEFAULT_MODELS[harness] };
 		const results = await Promise.all(
 			Array.from({ length: 12 }, (_, index) => (index % 2 ? host : second).start(input)),
 		);
@@ -192,7 +204,7 @@ test.each(["claude", "codex", "pi", "opencode"] as const)(
 	},
 );
 
-test.each(["codex", "pi", "opencode"] as const)(
+test.each(["codex", "pi", "opencode", "muse"] as const)(
 	"a normal %s completion does not confirm interruption",
 	async (harness) => {
 		host = new HarnessHost({
@@ -242,7 +254,6 @@ test("an uncertain native delivery is not sent again after host recreation", asy
 		descriptor.spec.env.TRELLIS_ATTEMPT_TOKEN,
 		"uncertain",
 		createHash("sha256").update(prompt).digest("hex"),
-		true,
 	);
 	host = new HarnessHost({
 		runtime: client,
@@ -252,7 +263,7 @@ test("an uncertain native delivery is not sent again after host recreation", asy
 		observationTimeoutMs: 100,
 	});
 	await expect(host.send("unknown-native", "next", "uncertain")).rejects.toMatchObject({
-		code: "HARNESS_OBSERVATION_TIMEOUT",
+		code: "HARNESS_DELIVERY_UNKNOWN",
 	});
 	expect(Buffer.from((await host.output("unknown-native")).data, "base64").toString()).not.toContain(
 		"native prompt accepted",
@@ -297,4 +308,114 @@ test("empty OpenCode version output fails without launch artifacts", async () =>
 	);
 	expect(await client.list()).toEqual([]);
 	await expect(readdir(join(home, "attempts"))).rejects.toMatchObject({ code: "ENOENT" });
+});
+
+test("a Muse turn saves the usage windows of its login where the account card reads them", async () => {
+	const museHome = join(home, "muse");
+	await mkdir(museHome);
+	host = new HarnessHost({
+		runtime: client,
+		directory: join(home, "attempts"),
+		env: { ...process.env, PATH: join(home, "bin"), HARNESS_FIXTURE_MUSE_HOME: museHome },
+		bun: process.execPath,
+		observationTimeoutMs: 1500,
+	});
+	await host.start({ id: "usage", harness: "muse", cwd: home, prompt: "hello" });
+	await host.waitFor("usage", (state) => state.activity?.state === "idle");
+	const deadline = Date.now() + 2000;
+	while (!existsSync(join(museHome, MUSE_USAGE_FILE)) && Date.now() < deadline) await Bun.sleep(25);
+	const usage = await readMuseUsage(museHome);
+	expect(usage?.window?.usedPercent).toBe(12);
+	const quota = await fetchAccountQuota(
+		{
+			id: "01M00000000000000000000000",
+			name: "Muse",
+			harness: "muse",
+			profilePath: home,
+			enabled: true,
+			isDefault: false,
+			createdAt: "",
+			updatedAt: "",
+		},
+		fetch,
+		async () => ({ token: null, email: "work@example.com", plan: "oauth" }),
+	);
+	expect(quota.status).toBe("ok");
+	expect(quota.windows.map((window) => window.id)).toEqual(["window", "weekly"]);
+	await host.stop("usage");
+});
+
+test("a Muse manager starts its session with the Trellis tool server and the granted MCP capability", async () => {
+	const museHome = join(home, "muse");
+	await mkdir(museHome);
+	host = new HarnessHost({
+		runtime: client,
+		directory: join(home, "attempts"),
+		env: {
+			...process.env,
+			PATH: join(home, "bin"),
+			HARNESS_FIXTURE_MUSE_HOME: museHome,
+			TRELLIS_URL: "http://127.0.0.1:1",
+		},
+		bun: process.execPath,
+		observationTimeoutMs: 1500,
+	});
+	await host.start({
+		id: "muse-manager",
+		managerId: "manager",
+		kind: "manager",
+		managerSystemPrompt: "Coordinate the project.",
+		harness: "muse",
+		cwd: home,
+		prompt: "Start",
+	});
+	await host.waitFor("muse-manager", (state) => state.activity?.state === "idle");
+	const started = JSON.parse(await readFile(join(museHome, "session-start.json"), "utf8"));
+	expect(started.config.mcpServers.trellis).toMatchObject({
+		transport: "stdio",
+		command: process.execPath,
+		framing: "lineDelimitedJson",
+		mode: "required",
+		env: { TRELLIS_URL: "http://127.0.0.1:1", TRELLIS_ATTEMPT_ID: "muse-manager" },
+	});
+	expect(started.config.mcpServers.trellis.args[0]).toEndWith("entry.ts");
+	expect(started.approvalMode).toBe("allowAll");
+	await host.stop("muse-manager");
+});
+
+test("Muse holds prompts that arrive during a turn and starts one turn with all of them after it", async () => {
+	const museHome = join(home, "muse");
+	await mkdir(museHome);
+	host = new HarnessHost({
+		runtime: client,
+		directory: join(home, "attempts"),
+		env: {
+			...process.env,
+			PATH: join(home, "bin"),
+			HARNESS_FIXTURE_BEHAVIOR: "busy",
+			HARNESS_FIXTURE_MUSE_HOME: museHome,
+		},
+		bun: process.execPath,
+		observationTimeoutMs: 1500,
+	});
+	await host.start({ id: "held", harness: "muse", cwd: home, prompt: "hello" });
+	await host.send("held", "first", "first");
+	await host.send("held", "second", "second");
+	expect((await host.status("held")).acknowledgedMessageIds).not.toContain("first");
+	expect((await readFile(join(museHome, "turns.jsonl"), "utf8")).trim().split("\n")).toHaveLength(1);
+	await host.interrupt("held");
+	await host.waitFor(
+		"held",
+		(state) => state.acknowledgedMessageIds.includes("first") && state.acknowledgedMessageIds.includes("second"),
+	);
+	const turns = (await readFile(join(museHome, "turns.jsonl"), "utf8"))
+		.trim()
+		.split("\n")
+		.map((line) => JSON.parse(line));
+	expect(turns).toHaveLength(2);
+	expect(turns[1].input.map((part: { text: string }) => part.text)).toEqual([
+		"trellis-message:first\nfirst",
+		"trellis-message:second\nsecond",
+	]);
+	await host.stop("held");
 });

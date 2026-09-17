@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import type { TrellisClient } from "@trellis/api";
+import { ORPCError } from "@orpc/client";
+import type { Ticket, TrellisClient } from "@trellis/api";
+import { ticket as ticketRow } from "../../../test/fixtures";
 import {
 	type ActionContext,
 	branchName,
@@ -43,6 +45,7 @@ const build = (answer = true) => {
 	const stub = stubClient();
 	const clipboard: string[] = [];
 	const notify = mock((_message: string, _options?: { retry?: () => void }) => {});
+	const applyCurrent = mock((_current: Ticket) => {});
 	const openUrl = mock((_url: string) => {});
 	const confirm = mock(async () => answer);
 	const context: ActionContext = {
@@ -53,10 +56,11 @@ const build = (answer = true) => {
 		},
 		confirm,
 		notify,
+		applyCurrent,
 		openUrl,
 		navigate: mock((_to: string) => {}),
 	};
-	return { ...stub, clipboard, notify, openUrl, confirm, context };
+	return { ...stub, clipboard, notify, applyCurrent, openUrl, confirm, context };
 };
 
 const ticket = { identifier: "CDE-42", title: "Restore the export pages!" };
@@ -169,7 +173,7 @@ describe("features/command/actions", () => {
 	test("a failed mutation notifies with a retry that repeats the call", async () => {
 		const failing = build();
 		failing.client.tickets.update = mock(async () => {
-			throw new Error("VERSION_CONFLICT");
+			throw new Error("The server is unreachable.");
 		});
 		failing.context.client = failing.client as unknown as TrellisClient;
 		await changeStatus(failing.context, "CDE-42", "in-progress");
@@ -202,5 +206,20 @@ describe("features/command/actions", () => {
 			"tickets.deleteMany",
 			"brief.get",
 		]);
+	});
+
+	// AC-18. Another actor wrote the ticket first. The palette puts that
+	// version in the cache and names it, and it offers no retry.
+	test("a rejected write with a version conflict applies the current row and offers no retry", async () => {
+		const failing = build();
+		const current = ticketRow({ version: 9 }) as unknown as Ticket;
+		failing.client.tickets.update = mock(async () => {
+			throw new ORPCError("VERSION_CONFLICT", { defined: true, status: 412, data: { current } });
+		});
+		failing.context.client = failing.client as unknown as TrellisClient;
+		await changeStatus(failing.context, "CDE-42", "in-progress");
+		expect(failing.applyCurrent.mock.calls).toEqual([[current]]);
+		expect(failing.notify.mock.calls).toEqual([["CDE-42 changed first. The row shows the other version."]]);
+		expect(failing.client.tickets.update).toHaveBeenCalledTimes(1);
 	});
 });

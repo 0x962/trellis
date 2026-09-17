@@ -1,8 +1,8 @@
 import { upgradeWebSocket } from "hono/bun";
-import { ensureNativeRuntime } from "../../agents/native/connection.ts";
 import type { Config } from "../../config.ts";
 import type { ServiceTransport } from "../../db/transport.ts";
 import { invalidInput } from "../../errors.ts";
+import { terminalStreamRuntime } from "../terminalRuntime.ts";
 import { terminalConnection } from "./terminalConnection.ts";
 
 export const terminalSocketRoute = (config: Config, transport: ServiceTransport) =>
@@ -31,5 +31,5 @@ export const terminalSocketRoute = (config: Config, transport: ServiceTransport)
 				expectedSessionId: c.req.query("sessionId"),
 			},
 		)) as { terminalId: string; sessionId: string | null };
-		return terminalConnection(await ensureNativeRuntime(config.home), target.terminalId, offset);
+		return terminalConnection(await terminalStreamRuntime(config.home), target.terminalId, offset);
 	});

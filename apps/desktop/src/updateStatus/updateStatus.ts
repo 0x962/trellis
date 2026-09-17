@@ -60,7 +60,7 @@ export const readUpdateStatus = async (home: string, available: PinnedRelease): 
 			available,
 			active,
 			runtimeProtocol: null,
-			detail: `The execution service state is unknown. ${(error as Error).message} Use Stop local work and background service before you activate this package.`,
+			detail: `The execution service state is unknown. ${(error as Error).message} Use Quit Trellis Completely before you activate this package.`,
 		};
 	}
 	if (protocol !== null && protocol !== available.manifest.protocol)

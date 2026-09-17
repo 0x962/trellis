@@ -59,6 +59,57 @@ const seedTree = async () => {
 
 const update = (input: Parameters<typeof projects.update>[2]) => h.run((ctx, tx) => projects.update(ctx, tx, input));
 
+// A sub-project that gains or loses its own manager persona leaves or
+// rejoins the scope of its parent's manager. The parent project gets one
+// activity row for that change, so the controller can tell its manager.
+describe("projects.update manager scope", () => {
+	const persona = "01M2GHTTXSHPZDFTJQW1MC28N2";
+	const other = "01M2GJ634MAAPPB8JDZVDYWX3B";
+	const config = (personaId: string | null) => ({ personaId, directory: "" });
+	beforeEach(() =>
+		h.db.execute(
+			sql`INSERT INTO personas (id, name, kind, instruction, created_at, updated_at)
+				VALUES (${persona}, 'Manager', 'manager', 'Manage.', now(), now()), (${other}, 'Other', 'manager', 'Manage.', now(), now())`,
+		),
+	);
+	const parentRows = async (parentId: string) =>
+		(await activityRows(h)).filter((activity) => activity.project_id === parentId);
+
+	test("a sub-project that gains a manager writes one row on its parent", async () => {
+		const { cde, web } = await seedTree();
+		await update({ project: "CDE.web", managerConfig: config(persona) });
+		expect(await parentRows(cde)).toMatchObject([
+			{
+				ticket_id: null,
+				action: "project.subproject_manager_enabled",
+				field: null,
+				to_value: "CDE.web",
+				meta: { projectId: web },
+			},
+		]);
+	});
+
+	test("a persona swap keeps the scope and a cleared persona returns it", async () => {
+		const { cde, web } = await seedTree();
+		await update({ project: "CDE.web", managerConfig: config(persona) });
+		await update({ project: "CDE.web", managerConfig: config(other) });
+		expect((await parentRows(cde)).map((activity) => activity.action)).toEqual(["project.subproject_manager_enabled"]);
+		await update({ project: "CDE.web", managerConfig: config(null) });
+		expect((await parentRows(cde)).map((activity) => activity.action)).toEqual([
+			"project.subproject_manager_enabled",
+			"project.subproject_manager_disabled",
+		]);
+		expect((await activityRows(h)).at(-1)).toMatchObject({ to_value: "CDE.web", meta: { projectId: web } });
+	});
+
+	test("a root manager change writes no scope row", async () => {
+		const { cde } = await seedTree();
+		await update({ project: "CDE", managerConfig: config(persona) });
+		expect((await activityRows(h)).map((activity) => activity.action)).toEqual(["project.updated"]);
+		expect((await activityRows(h))[0]!.project_id).toBe(cde);
+	});
+});
+
 describe("projects.update fields", () => {
 	test("an update writes one activity row per changed field", async () => {
 		const { web } = await seedTree();
@@ -185,5 +236,58 @@ describe("projects.update archived", () => {
 		expect(restored.archivedAt).toBeNull();
 		expect((await projectRow(web)).archived_at).toBeNull();
 		expect(eventsOfType(h.flushed, "project.updated")).toHaveLength(2);
+	});
+});
+
+describe("the account of a project", () => {
+	const seedAccount = async (id: string, harness: string, enabled = true) => {
+		await h.rows(
+			sql`INSERT INTO harness_accounts (id, name, harness, profile_path, enabled, created_at, updated_at)
+			VALUES (${id}, ${`Account ${id}`}, ${harness}, ${`/tmp/trellis-${id}`}, ${enabled}, now(), now())`,
+		);
+	};
+	const claudeAccount = "01M00000000000000000000A01";
+	const codexAccount = "01M00000000000000000000A02";
+	const disabledAccount = "01M00000000000000000000A03";
+	const config = (accountId: string | null, preset: "claude" | "codex" = "claude") => ({
+		personaId: null,
+		directory: "",
+		dispatchPaused: false,
+		ade: "native" as const,
+		harness: { preset },
+		accountId,
+	});
+
+	test("an update keeps an enabled account of the selected harness", async () => {
+		const { cde } = await seedTree();
+		await seedAccount(claudeAccount, "claude");
+		const updated = await h.run((ctx, tx) =>
+			projects.update(ctx, tx, { project: "CDE", managerConfig: config(claudeAccount) }),
+		);
+		expect(updated.managerConfig?.accountId).toBe(claudeAccount);
+		const stored = await h.one<{ manager_config: { accountId: string } }>(
+			sql`SELECT manager_config FROM projects WHERE id = ${cde}`,
+		);
+		expect(stored.manager_config.accountId).toBe(claudeAccount);
+	});
+
+	test("an update refuses an account of another harness, a disabled account, and an unknown account", async () => {
+		await seedTree();
+		await seedAccount(codexAccount, "codex");
+		await seedAccount(disabledAccount, "claude", false);
+		await expectError(
+			h.run((ctx, tx) => projects.update(ctx, tx, { project: "CDE", managerConfig: config(codexAccount) })),
+			"INPUT_VALIDATION_FAILED",
+		);
+		await expectError(
+			h.run((ctx, tx) => projects.update(ctx, tx, { project: "CDE", managerConfig: config(disabledAccount) })),
+			"INPUT_VALIDATION_FAILED",
+		);
+		await expectError(
+			h.run((ctx, tx) =>
+				projects.update(ctx, tx, { project: "CDE", managerConfig: config("01M00000000000000000000A09") }),
+			),
+			"INPUT_VALIDATION_FAILED",
+		);
 	});
 });

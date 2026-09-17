@@ -21,3 +21,11 @@ test("comment create accepts a parent id and rejects a malformed parent id", () 
 		false,
 	);
 });
+
+// A person types a comment body, so each bound reads as a sentence.
+test("a comment body out of bounds reads as a sentence", () => {
+	const message = (body: string) =>
+		CommentCreateInputSchema.safeParse({ ticket: "TRL-18", body }).error!.issues[0]!.message;
+	expect(message("")).toBe("Enter a comment of 1 to 200,000 characters.");
+	expect(message("b".repeat(200_001))).toBe("Enter a comment of 1 to 200,000 characters.");
+});

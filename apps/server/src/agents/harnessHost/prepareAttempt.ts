@@ -2,7 +2,9 @@ import { randomUUID } from "node:crypto";
 import { link, mkdir, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { HARNESS_DEFAULT_MODELS, toHarnessModel } from "@trellis/api";
 import { checkCodexManagerVersion } from "./checkCodexManagerVersion/checkCodexManagerVersion.ts";
+import { checkMuseVersion } from "./checkMuseVersion.ts";
 import { checkOpenCodeVersion } from "./checkOpenCodeVersion.ts";
 import { claudeTrust } from "./claudeTrust.ts";
 import { providers } from "./providers.ts";
@@ -16,6 +18,7 @@ export async function prepareAttempt(
 	sessionId?: string,
 ): Promise<HarnessDescriptor> {
 	const directory = join(options.directory, input.id);
+	const model = input.model ?? (sessionId === undefined ? HARNESS_DEFAULT_MODELS[input.harness] : undefined);
 	const env = Object.fromEntries(
 		Object.entries(options.env)
 			.filter((entry): entry is [string, string] => entry[1] !== undefined)
@@ -25,7 +28,8 @@ export async function prepareAttempt(
 		input.harness,
 		input.cwd,
 		input.prompt,
-		input.model ?? null,
+		model ?? null,
+		...(input.effort === undefined ? [] : [{ effort: input.effort }]),
 		input.token ?? null,
 		input.timeoutMs ?? null,
 		...(input.kind === "manager" ? ["manager-tools-v1", input.managerId ?? input.id, input.managerSystemPrompt] : []),
@@ -48,6 +52,7 @@ export async function prepareAttempt(
 	const executable = await resolveExecutable(input.harness, env.PATH ?? "");
 	if (input.harness === "codex" && input.kind === "manager") await checkCodexManagerVersion(executable, input.cwd, env);
 	if (input.harness === "opencode") await checkOpenCodeVersion(executable, input.cwd, env);
+	if (input.harness === "muse") await checkMuseVersion(executable, input.cwd, env);
 	await mkdir(directory, { recursive: true, mode: 0o700 });
 	const hookCommand = `${quote(options.bun)} ${quote(fileURLToPath(new URL("./hook.ts", import.meta.url)))}`;
 	const configDirectory = await mkdtemp(join(directory, "config-"));
@@ -61,7 +66,8 @@ export async function prepareAttempt(
 		env,
 		cwd,
 		prompt: `trellis-message:${input.id}\n${input.prompt}`,
-		model: input.model,
+		model: model === undefined ? undefined : toHarnessModel(input.harness, model),
+		effort: input.effort,
 		configDirectory,
 		hookCommand,
 		...(input.kind === "manager"
@@ -82,10 +88,11 @@ export async function prepareAttempt(
 		prompt: input.prompt,
 		sessionId,
 		fingerprint,
+		...(input.effort === undefined ? {} : { effort: input.effort }),
 		spec: {
 			id: input.id,
 			command:
-				input.harness === "codex"
+				input.harness === "codex" || input.harness === "muse"
 					? launch.executable.startsWith("/")
 						? launch.executable
 						: await resolveExecutable(launch.executable, env.PATH ?? "")
@@ -98,6 +105,7 @@ export async function prepareAttempt(
 				...env,
 				...launch.env,
 				...(input.harness === "codex" ? { TRELLIS_CODEX_EXECUTABLE: executable } : {}),
+				...(input.harness === "muse" ? { TRELLIS_MUSE_EXECUTABLE: executable } : {}),
 				TRELLIS_HARNESS: input.harness,
 				TRELLIS_HARNESS_SOCKET: options.runtime.socketPath,
 				TRELLIS_HARNESS_HOOK: hookCommand,

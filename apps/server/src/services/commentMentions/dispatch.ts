@@ -1,14 +1,13 @@
 import { ORPCError } from "@orpc/server";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
-import { nativePreset } from "../../agents/native/harnessHost.ts";
 import { rows } from "../../db/queries/support.ts";
 import { prepareStart } from "../agentRuns/agentRuns.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import { getRun } from "../agentRuns/queries.ts";
 import type { StartInput } from "../agentRuns/reserve.ts";
-import { readySession } from "../controller/readySession.ts";
 import { sendDeadline } from "../controller/sendDeadline.ts";
+import { unconfirmedDelivery } from "../deliveries/sentences.ts";
 import type { ServiceCtx } from "../support.ts";
 
 type EventDelivery = {
@@ -38,6 +37,9 @@ type Start = (ctx: ServiceCtx, input: StartInput) => Promise<{ id: string }>;
 const startAssignment: Start = (ctx, input) =>
 	prepareStart(ctx as unknown as Parameters<typeof prepareStart>[0], input);
 
+// A refused start carries its reason inside the oRPC error, and the comment
+// shows that sentence. A plain `cause.message` would read "Input validation
+// failed" and name nothing the reader can act on.
 const startError = (cause: unknown) => {
 	if (cause instanceof ORPCError) {
 		if (cause.code === "INPUT_VALIDATION_FAILED")
@@ -51,11 +53,10 @@ export const dispatchMentions = async (
 	ctx: ServiceCtx,
 	sessions: RuntimeProcessStatus[],
 	send = prepareSend,
-	preset = nativePreset,
 	start = startAssignment,
 ) => {
 	const deleted = await ctx.newTx((tx) =>
-		rows<Delivery>(
+		rows<EventDelivery>(
 			tx,
 			sql`UPDATE comment_deliveries d
 			SET state='failed',error='The persona was deleted before Trellis started the assignment.'
@@ -75,7 +76,6 @@ export const dispatchMentions = async (
 			FROM comment_deliveries d JOIN comments c ON c.id=d.comment_id JOIN tickets t ON t.id=c.ticket_id
 			JOIN personas p ON p.id=d.persona_id
 			WHERE d.state='pending' AND d.run_id IS NULL
-			AND NOT EXISTS (SELECT 1 FROM settings WHERE key='nativeWorkPaused' AND value='true'::jsonb)
 			AND NOT EXISTS (WITH RECURSIVE ancestors AS (
 				SELECT id,parent_id,archived_at FROM projects WHERE id=t.project_id
 				UNION ALL SELECT p.id,p.parent_id,p.archived_at FROM projects p JOIN ancestors a ON p.id=a.parent_id
@@ -98,6 +98,8 @@ export const dispatchMentions = async (
 				note: delivery.body.slice(0, 20_000),
 				requestId: `mention-${delivery.commentId}-${delivery.personaId}`,
 			});
+			// A start can close the assignment before its process runs. The saved
+			// error is the only account of that failure, so the comment shows it.
 			const run = await ctx.newTx((tx) => getRun(tx, id));
 			const failed = run.closedAt !== null && run.error !== null;
 			await ctx.newTx((tx) =>
@@ -143,7 +145,6 @@ export const dispatchMentions = async (
 			ready.map((id) => sql`${id}`),
 			sql`,`,
 		)})
-		AND NOT EXISTS (SELECT 1 FROM settings WHERE key='nativeWorkPaused' AND value='true'::jsonb)
 		AND NOT EXISTS (WITH RECURSIVE ancestors AS (
 			SELECT id,parent_id,archived_at FROM projects WHERE id=t.project_id
 			UNION ALL SELECT p.id,p.parent_id,p.archived_at FROM projects p JOIN ancestors a ON p.id=a.parent_id
@@ -152,8 +153,6 @@ export const dispatchMentions = async (
 		),
 	);
 	for (const delivery of pending) {
-		const custom = (await preset(ctx.home, delivery.terminalId)) === "custom";
-		if (!custom && !readySession(sessions.find((session) => session.id === delivery.terminalId)!)) continue;
 		const claimed = await ctx.newTx((tx) =>
 			rows(
 				tx,
@@ -179,14 +178,13 @@ export const dispatchMentions = async (
 								})
 							: `trellis: @${delivery.personaName} has a ticket comment. Read: trellis thread show ${delivery.parentId ?? delivery.commentId}\nRespond to the comment on your assigned ticket.`,
 					messageId: delivery.id,
-					requireIdle: !custom,
 					expectedTerminalId: delivery.terminalId,
 					expectedSessionId: delivery.sessionId,
 				}),
 			);
-		} catch (cause) {
-			state = (cause as { code?: string }).code === "RUNTIME_BUSY" ? "pending" : "unknown";
-			error = cause instanceof Error ? cause.message : String(cause);
+		} catch {
+			state = "unknown";
+			error = unconfirmedDelivery;
 		}
 		await ctx.newTx((tx) =>
 			tx.execute(sql`UPDATE comment_deliveries SET state=${state},error=${error} WHERE id=${delivery.id}`),

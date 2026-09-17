@@ -60,9 +60,9 @@ export const FlowNodeInputSchema = z
 		id: UlidSchema,
 		parentId: UlidSchema.nullable(),
 		kind: FlowNodeKindSchema,
-		title: z.string().max(120),
+		title: z.string().max(120, "Enter a step title of 120 characters or less."),
 		personaId: UlidSchema.nullable(),
-		instruction: z.string().max(200_000),
+		instruction: z.string().max(200_000, "Enter a step instruction of 200,000 characters or less."),
 		parallel: z.boolean().default(false),
 		minutes: z.number().int().min(1).max(FLOW_MAX_MINUTES).nullable(),
 		maxRounds: z.number().int().min(1).max(FLOW_MAX_ROUNDS).nullable(),
@@ -143,18 +143,26 @@ export const FlowSlugSchema = z
 // A flow ref is its ULID or its slug.
 export const FlowRefSchema = z.string().min(1).max(64);
 
+const FlowNameSchema = z
+	.string()
+	.trim()
+	.min(1, "Enter a flow name of 1 to 120 characters.")
+	.max(120, "Enter a flow name of 1 to 120 characters.");
+
+const FlowDescriptionSchema = z.string().trim().max(2000, "Enter a flow description of 2000 characters or less.");
+
 export const FlowCreateInputSchema = z.strictObject({
-	name: z.string().trim().min(1).max(120),
+	name: FlowNameSchema,
 	slug: FlowSlugSchema.optional(),
-	description: z.string().trim().max(2000).optional(),
+	description: FlowDescriptionSchema.optional(),
 });
 export type FlowCreateInput = z.input<typeof FlowCreateInputSchema>;
 
 export const FlowUpdateInputSchema = z.strictObject({
 	flow: FlowRefSchema,
-	name: z.string().trim().min(1).max(120).optional(),
+	name: FlowNameSchema.optional(),
 	slug: FlowSlugSchema.optional(),
-	description: z.string().trim().max(2000).optional(),
+	description: FlowDescriptionSchema.optional(),
 	briefing: z.string().max(200_000).optional(),
 	expectedVersion: z.number().int().positive().optional(),
 });

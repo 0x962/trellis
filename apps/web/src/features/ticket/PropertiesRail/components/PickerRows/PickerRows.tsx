@@ -5,6 +5,7 @@ import { Button, PriorityIcon, StatusIcon, TicketId, useHotkey } from "@trellis/
 import { useEffect, useState } from "react";
 import { useArchivedProjects } from "../../../../../hooks/useArchivedProjects";
 import { useApp } from "../../../../../lib/appContext";
+import { failToast } from "../../../../../lib/failToast";
 import { projectSlashPath } from "../../../../../lib/projectPath";
 import { PriorityPicker, priorityLabels } from "../../../../pickers/PriorityPicker";
 import { ProjectPicker } from "../../../../pickers/ProjectPicker";
@@ -14,7 +15,6 @@ import { ProjectKey } from "../../../../shell/ProjectKey";
 import { useStatuses } from "../../../hooks/useStatuses";
 import { useTicketWrite } from "../../../hooks/useTicketWrite";
 import { type PickerKind, usePickerStore } from "../../../stores/pickerStore";
-import { failToast } from "../../../utils/failToast";
 import { Row } from "../Row";
 
 export type PickerRowsProps = {

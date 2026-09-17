@@ -1,7 +1,9 @@
 import { describe, expect, mock, test } from "bun:test";
+import { DotsThree } from "@phosphor-icons/react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expectClasses, expectHitArea } from "../../../test/classes";
+import { IconButton } from "../IconButton";
 import { Menu } from "./Menu";
 
 const setup = () => {
@@ -23,6 +25,25 @@ const setup = () => {
 const focusedIndex = () => screen.getAllByRole("menuitem").indexOf(document.activeElement as HTMLElement);
 
 describe("Menu", () => {
+	test("a custom icon trigger keeps its tooltip and keyboard focus after dismissal", async () => {
+		const user = userEvent.setup();
+		render(
+			<Menu
+				label="Item options"
+				triggerTooltip="Item options"
+				trigger={<IconButton label="Item options" icon={<DotsThree />} />}
+				items={[{ label: "Snooze", onSelect: mock() }]}
+			/>,
+		);
+		const trigger = screen.getByRole("button", { name: "Item options" });
+		await user.hover(trigger);
+		await screen.findByRole("tooltip");
+		await user.click(trigger);
+		await screen.findByRole("menuitem", { name: "Snooze" });
+		await user.keyboard("{Escape}");
+		await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+		expect(document.activeElement).toBe(trigger);
+	});
 	test("opens a menu with menuitems and reflects a disabled item", async () => {
 		const { user, trigger } = setup();
 		expect(trigger.getAttribute("aria-haspopup")).toBe("menu");

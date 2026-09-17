@@ -20,8 +20,12 @@ export type Recorder = {
 	// The calls that change data. Every other call is a read.
 	writes: () => Call[];
 	hold: (procedure: string) => Hold;
-	// Answers the procedure with a 500 until the returned function runs.
+	// Answers the procedure with a 500 that carries `failureMessage`, until
+	// the returned function runs.
 	fail: (procedure: string) => () => void;
+	// Rejects the request the way a phone with no route to the server does,
+	// until the returned function runs.
+	reject: (procedure: string) => () => void;
 	restore: () => void;
 };
 
@@ -52,11 +56,20 @@ const inputOf = async (request: Request) => {
 	return ((await request.clone().json()) as { json?: unknown }).json;
 };
 
+// The reason the 500 of `fail` carries. The typed client reads it from the
+// body and puts it on the error it throws, so a screen shows this text.
+export const failureMessage = "boom";
+
 const failure = () =>
-	new Response(JSON.stringify({ json: { code: "INTERNAL_SERVER_ERROR", status: 500, message: "boom" } }), {
-		status: 500,
-		headers: { "content-type": "application/json" },
-	});
+	new Response(
+		JSON.stringify({
+			json: { defined: false, code: "INTERNAL_SERVER_ERROR", status: 500, message: failureMessage },
+		}),
+		{
+			status: 500,
+			headers: { "content-type": "application/json" },
+		},
+	);
 
 // `forward` answers every request the recorder passes on. `restore` puts back
 // the fetch the environment held before the call.
@@ -66,6 +79,7 @@ export const recordFetch = (forward: FetchFn): Recorder => {
 	const holds = new Map<string, Hold>();
 	const gates = new Map<string, Promise<void>>();
 	const failing = new Set<string>();
+	const rejecting = new Set<string>();
 
 	globalThis.fetch = (async (input: Request | string | URL, init?: RequestInit) => {
 		const request = input instanceof Request ? input : new Request(input, init);
@@ -77,6 +91,7 @@ export const recordFetch = (forward: FetchFn): Recorder => {
 			holds.get(procedure)!.state.held += 1;
 			await gate;
 		}
+		if (rejecting.has(procedure)) throw new TypeError("Network request failed");
 		if (failing.has(procedure)) return failure();
 		return forward(input as Request, init);
 	}) as typeof globalThis.fetch;
@@ -108,6 +123,10 @@ export const recordFetch = (forward: FetchFn): Recorder => {
 		fail: (procedure) => {
 			failing.add(procedure);
 			return () => void failing.delete(procedure);
+		},
+		reject: (procedure) => {
+			rejecting.add(procedure);
+			return () => void rejecting.delete(procedure);
 		},
 		restore: () => {
 			globalThis.fetch = previous;

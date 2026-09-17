@@ -11,7 +11,10 @@ export const CommentNotificationSchema = z.object({
 });
 export type CommentNotification = z.infer<typeof CommentNotificationSchema>;
 
-const BodySchema = z.string().min(1).max(200_000);
+const BodySchema = z
+	.string()
+	.min(1, "Enter a comment of 1 to 200,000 characters.")
+	.max(200_000, "Enter a comment of 1 to 200,000 characters.");
 
 export const CommentSchema = z.object({
 	id: UlidSchema,

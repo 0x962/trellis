@@ -4,13 +4,21 @@ import type { Tx } from "../../db/tx.ts";
 import { dispatchMessageId } from "./messageId.ts";
 import type { Dispatch } from "./types.ts";
 
-export const workItems = (dispatch: Pick<Dispatch, "id" | "events" | "outcomes">) => {
-	const tickets = dispatch.events.length ? [...new Set(dispatch.events.map((event) => event.ticketId))] : [null];
+export const workItems = (dispatch: Pick<Dispatch, "id" | "events" | "outcomes" | "nextActions">) => {
+	const tickets: (string | null)[] = [
+		...new Set([
+			...dispatch.events.map((event) => event.ticketId),
+			...dispatch.nextActions.map((action) => action.ticketId),
+		]),
+	];
+	if (!tickets.length) tickets.push(null);
 	return tickets
 		.filter((ticketId) => !dispatch.outcomes.some((outcome) => outcome.ticketId === ticketId))
 		.map((ticketId) => ({
 			ticketId,
-			assignmentRequestId: dispatchMessageId({ id: `${dispatch.id}:${ticketId ?? "project"}`, generation: 0 }),
+			assignmentRequestId:
+				dispatch.nextActions.find((action) => action.ticketId === ticketId)?.assignmentRequestId ??
+				dispatchMessageId({ id: `${dispatch.id}:${ticketId ?? "project"}`, generation: 0 }),
 		}));
 };
 
@@ -18,11 +26,11 @@ export const coordination = async (tx: Tx, dispatch: Pick<Dispatch, "id" | "proj
 	const [policy] = await rows<{ personaId: string; updatedAt: string }>(
 		tx,
 		sql`SELECT persona.id AS "personaId", ${iso(sql`persona.updated_at`)} AS "updatedAt"
-		FROM projects project JOIN personas persona ON persona.id=project.manager_config->>'personaId' WHERE project.id=${dispatch.projectId}`,
+		FROM projects project JOIN personas persona ON persona.id=COALESCE((SELECT r.persona_id FROM manager_delegations d JOIN agent_runs r ON r.id=d.run_id WHERE d.project_id=project.id AND d.retired_at IS NULL),project.manager_config->>'personaId') WHERE project.id=${dispatch.projectId}`,
 	);
-	const unfinished = await rows<Pick<Dispatch, "id" | "generation" | "events" | "outcomes">>(
+	const unfinished = await rows<Pick<Dispatch, "id" | "generation" | "events" | "outcomes" | "nextActions">>(
 		tx,
-		sql`SELECT id,generation,events,outcomes
+		sql`SELECT id,generation,events,outcomes,next_actions AS "nextActions"
 		FROM manager_dispatches WHERE project_id=${dispatch.projectId} AND id<>${dispatch.id} AND work_state='open'
 		AND state IN ('sent','unknown') ORDER BY id LIMIT 100`,
 	);

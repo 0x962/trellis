@@ -6,13 +6,21 @@ export const PersonaKindSchema = z.enum(["builder", "reviewer", "manager"]);
 export type PersonaKind = z.infer<typeof PersonaKindSchema>;
 
 export const PersonaCreateInputSchema = z.strictObject({
-	name: z.string().trim().min(1).max(120),
+	name: z
+		.string()
+		.trim()
+		.min(1, "Enter a persona name of 1 to 120 characters.")
+		.max(120, "Enter a persona name of 1 to 120 characters."),
 	kind: PersonaKindSchema.optional(),
 	// A palette token name, never a raw color value. A raw value has no dark
 	// variant, so the wire never carries one.
 	color: ColorTokenSchema.optional(),
-	description: z.string().trim().max(2000).optional(),
-	instruction: z.string().trim().min(1).max(200_000),
+	description: z.string().trim().max(2000, "Enter a description of 2,000 characters or less.").optional(),
+	instruction: z
+		.string()
+		.trim()
+		.min(1, "Enter an instruction of 1 to 200,000 characters.")
+		.max(200_000, "Enter an instruction of 1 to 200,000 characters."),
 });
 export type PersonaCreateInput = z.input<typeof PersonaCreateInputSchema>;
 
@@ -31,4 +39,5 @@ export const PersonaSchema = z.object({
 });
 export type Persona = z.infer<typeof PersonaSchema>;
 
-export const PersonaDeleteInputSchema = z.strictObject({ id: UlidSchema });
+export const PersonaIdInputSchema = z.strictObject({ id: UlidSchema });
+export const PersonaDeleteInputSchema = PersonaIdInputSchema;
