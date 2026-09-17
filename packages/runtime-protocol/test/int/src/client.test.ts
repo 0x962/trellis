@@ -1,6 +1,8 @@
 import { expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
+import { createServer } from "node:net";
 import { join } from "node:path";
+import { RuntimeClient } from "../../../src/client.ts";
 
 for (const method of ["hello", "subscribe"] as const) {
 	test(`an absent runtime rejects ${method} from an HTTP request without an uncaught socket error`, async () => {
@@ -26,3 +28,41 @@ for (const method of ["hello", "subscribe"] as const) {
 		}
 	});
 }
+
+test("a large runtime response avoids repeated copies of prior chunks", async () => {
+	const directory = await mkdtemp(join(process.env.TRELLIS_TEST_ROOT!, "runtime-client-"));
+	const socketPath = join(directory, "runtime.sock");
+	const server = createServer((socket) => {
+		let request = "";
+		socket.setEncoding("utf8");
+		socket.on("data", (chunk) => {
+			request += chunk;
+			const end = request.indexOf("\n");
+			if (end < 0) return;
+			socket.removeAllListeners("data");
+			const id = JSON.parse(request.slice(0, end)).id;
+			const response = `${JSON.stringify({ id, result: ["x".repeat(10_000_000)] })}\n`;
+			let offset = 0;
+			const writeChunk = () => {
+				if (offset === response.length) {
+					socket.end();
+					return;
+				}
+				socket.write(response.slice(offset, offset + 1024));
+				offset = Math.min(offset + 1024, response.length);
+				setImmediate(writeChunk);
+			};
+			writeChunk();
+		});
+	});
+	await new Promise<void>((resolve) => server.listen(socketPath, resolve));
+	try {
+		const startedAt = performance.now();
+		const result = (await new RuntimeClient(socketPath, 4000).call("list", {})) as unknown as string[];
+		expect(result[0]?.length).toBe(10_000_000);
+		expect(performance.now() - startedAt).toBeLessThan(750);
+	} finally {
+		await new Promise<void>((resolve) => server.close(() => resolve()));
+		await rm(directory, { recursive: true, force: true });
+	}
+});
