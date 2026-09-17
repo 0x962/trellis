@@ -88,6 +88,12 @@ export function ChatPage({ project }: { project: Project }) {
 	// with no manager yet shows the default name.
 	const managerName =
 		(agents.data ?? []).find((run) => run.projectId === project.id && run.kind === "manager")?.personaName ?? "Copilot";
+	const memberCount = open?.direct ? live.filter((run) => run.kind === "manager").length : live.length;
+	const memberLabel = agents.isPending
+		? "… members"
+		: agents.isError
+			? "? members"
+			: `${memberCount} ${memberCount === 1 ? "member" : "members"}`;
 	const items: ChatMessage[] = useMemo(() => messages.data?.items ?? [], [messages.data]);
 
 	// The names a mention in a body can address: the live agents by persona
@@ -194,6 +200,7 @@ export function ChatPage({ project }: { project: Project }) {
 			<Topbar>
 				<PageTitle parent={<ProjectBreadcrumb project={project} />} title="Chat" />
 				<span className="font-mono text-sm text-fg-muted">{open?.direct ? managerName : `#${channel}`}</span>
+				<span className="w-20 shrink-0 font-mono text-xs text-fg-faint tabular">{memberLabel}</span>
 			</Topbar>
 			<div className="page-card flex flex-1 overflow-hidden">
 				<ChannelList
