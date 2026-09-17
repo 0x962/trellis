@@ -70,7 +70,7 @@ export function TicketView({ identifier, thread }: TicketViewProps) {
 			>
 				<div className="flex flex-col gap-1">
 					{ticket.parent !== null && <ParentChip ancestors={ticket.ancestors} title={parentSummary?.title ?? ""} />}
-					<Title key={ticket.identifier} ticket={ticket} />
+					<Title key={ticket.identifier} ticket={ticket} onAttachFiles={uploads.addFiles} />
 				</div>
 				{inlineRail && (
 					<div className="mt-3">
@@ -78,7 +78,7 @@ export function TicketView({ identifier, thread }: TicketViewProps) {
 					</div>
 				)}
 				<div data-ticket-description="" className={cx("min-h-24", inlineRail ? "mt-4" : "mt-3")}>
-					<Description key={ticket.identifier} ticket={ticket} />
+					<Description key={ticket.identifier} ticket={ticket} onAttachFiles={uploads.addFiles} />
 				</div>
 				<div className="mt-8 flex flex-col gap-8">
 					<SubTickets ticket={ticket} />
