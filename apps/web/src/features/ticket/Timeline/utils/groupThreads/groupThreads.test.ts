@@ -55,8 +55,6 @@ describe("groupThreads", () => {
 		expect([...threads.keys()]).toEqual(["a"]);
 	});
 
-	// The ticket page draws the mentioned thread in its own section above, so
-	// the comments section leaves out the root and every reply of it.
 	test("leaves out the mentioned thread", () => {
 		const threads = groupThreads([comment("a"), comment("a1", "a"), comment("b")], "a");
 		expect([...threads.keys()]).toEqual(["b"]);

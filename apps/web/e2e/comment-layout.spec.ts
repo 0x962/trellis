@@ -72,8 +72,6 @@ test("activity collapses to the last few rows with an expander", async ({ page }
 	await expect(rows).toHaveCount(103);
 	await page.getByRole("button", { name: "Show less" }).click();
 	await expect(rows).toHaveCount(3);
-	// The tab that holds this section is named Activity, so a heading with
-	// that word repeats the tab name.
 	await expect(page.getByRole("heading", { name: "Activity" })).toHaveCount(0);
 });
 
@@ -157,9 +155,6 @@ test("adjacent comments from one actor show the actor name once", async ({ page 
 	await expect(comments.getByText("dana", { exact: true })).toHaveCount(1);
 });
 
-// The mentioned thread has its own section above the activity. The
-// comments section leaves that thread out, so the reader reads the comment
-// one time on the page.
 test("the comments section leaves out the mentioned thread", async ({ page }) => {
 	const comments = trellis<CliComment[]>(["comments", "CMT-6"], "human:dana");
 	const rootId = comments.find((comment) => comment.parentId === null)!.id;

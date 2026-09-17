@@ -20,8 +20,6 @@ export type CommentCardProps = {
 	showActor?: boolean;
 };
 
-// One flat row: the actor, the time, and the menu on one line, then the
-// body. A long body folds behind a show-more control.
 export function CommentCard({
 	comment,
 	onEdited,
@@ -37,11 +35,9 @@ export function CommentCard({
 	const [draft, setDraft] = useState(comment.body);
 	const [expanded, setExpanded] = useState(false);
 	const [foldable, setFoldable] = useState(false);
-	// The body carries max-h-60 until the reader opens it, so a body taller
-	// than that height overflows the box. scrollHeight is the height the text
-	// wants and clientHeight is the height the box gives it, so the two differ
-	// only when text is hidden. A new body remounts this node, so it measures
-	// again after an edit.
+	// max-h-60 limits the body. scrollHeight exceeds clientHeight when the
+	// limit hides text. The comment body key remounts the element after an
+	// edit and measures the new text.
 	const measureBody = useCallback((element: HTMLDivElement | null) => {
 		if (element !== null) setFoldable(element.scrollHeight > element.clientHeight);
 	}, []);

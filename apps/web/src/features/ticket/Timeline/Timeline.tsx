@@ -18,17 +18,14 @@ export type TimelineProps = {
 	thread?: string;
 };
 
-// The server writes a `comment.created` activity row for each comment. The
-// comment section shows that event, so the row draws no line.
+// A `comment.created` activity row and its comment describe the same event.
+// The comment owns that event in this layout.
 const shownInStream = (item: TimelineItem) => item.kind === "comment" || item.action !== "comment.created";
 
-// A collapsed activity section keeps this many recent rows.
 const collapsedActivityRows = 3;
 
 // Activity reads oldest first, so the collapsed section keeps the tail: the
-// newest rows. The tab that holds this section is named Activity, so no
-// heading here repeats that word. The line down the left joins the avatars,
-// and it stops at the first and the last one.
+// newest rows. The connector starts and ends at the avatar centers.
 function ActivitySection({
 	activities,
 	reviewer,

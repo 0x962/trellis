@@ -6,9 +6,8 @@ import type { Comment, TimelineItem } from "@trellis/api";
 // the id of its root, so both map to the same key. The caller draws one
 // `CommentThread` per key.
 //
-// `mentioned` is the comment a person followed from an inbox link. The
-// ticket page draws that whole thread in its own section above, so this
-// function leaves it out and the reader reads it one time.
+// `mentioned` identifies the thread that `MentionedThread` renders above
+// the timeline. This map contains the other threads.
 export function groupThreads(items: TimelineItem[], mentioned?: string): Map<string, Comment[]> {
 	const threads = new Map<string, Comment[]>();
 	for (const item of items) {
