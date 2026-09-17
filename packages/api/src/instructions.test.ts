@@ -14,6 +14,21 @@ describe("instructions", () => {
 		expect(curl).toContain("Content-Type: application/json");
 	});
 
+	test("instructions(key) reserves the human surfaces for human communication", () => {
+		const markdown = instructions("CDE");
+		const lines = markdown.split("\n");
+		expect(lines).toContain("Use #ai for technical coordination.");
+		expect(lines).toContain("Use ticket comments and non-AI chat channels only for useful human communication.");
+		expect(lines).toContain(
+			"Do not post routine state updates, action logs, acknowledgements, or agent coordination there.",
+		);
+		expect(lines).toContain("Do not repeat an unchanged blocker.");
+		expect(lines).toContain("When you own a human request, answer in the same human-facing surface.");
+		expect(lines).toContain(
+			"The project manager owns an unmentioned human post. A worker replies only after an exact run mention or a manager handoff.",
+		);
+	});
+
 	test("instructions(key) leaves no placeholder behind", () => {
 		const cde = instructions("CDE");
 		const trl = instructions("TRL");

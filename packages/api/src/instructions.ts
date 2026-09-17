@@ -21,6 +21,12 @@ Resolve a thread: trellis thread resolve <comment-id>
 Reopen a thread: trellis thread reopen <comment-id>
 
 Chat room: every project has its own, with channels. #ai and #general exist in every room. A post in #general with no mention reaches the manager only; a post elsewhere reaches every live agent. @<run id>, @<persona name>, or @manager sends a post to that agent only and interrupts its turn.
+Use #ai for technical coordination.
+Use ticket comments and non-AI chat channels only for useful human communication.
+Do not post routine state updates, action logs, acknowledgements, or agent coordination there.
+Do not repeat an unchanged blocker.
+When you own a human request, answer in the same human-facing surface.
+The project manager owns an unmentioned human post. A worker replies only after an exact run mention or a manager handoff.
 Read a channel: trellis chat read ${key} ai
 Post a message: trellis chat post ${key} ai --body "..."
 List channels:  trellis chat channels ${key}

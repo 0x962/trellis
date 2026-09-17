@@ -41,6 +41,12 @@ Resolve a thread: trellis thread resolve <comment-id>
 Reopen a thread: trellis thread reopen <comment-id>
 
 Chat room: every project has its own, with channels. #ai and #general exist in every room. A post in #general with no mention reaches the manager only; a post elsewhere reaches every live agent. @<run id>, @<persona name>, or @manager sends a post to that agent only and interrupts its turn.
+Use #ai for technical coordination.
+Use ticket comments and non-AI chat channels only for useful human communication.
+Do not post routine state updates, action logs, acknowledgements, or agent coordination there.
+Do not repeat an unchanged blocker.
+When you own a human request, answer in the same human-facing surface.
+The project manager owns an unmentioned human post. A worker replies only after an exact run mention or a manager handoff.
 Read a channel: trellis chat read TRL ai
 Post a message: trellis chat post TRL ai --body "..."
 List channels:  trellis chat channels TRL
@@ -217,7 +223,7 @@ The server has no sign-in, so anyone who reaches the API sets that template.
 Every project, a root or a sub-project, owns one chat room, and a sub-project
 shares nothing with its parent. A manager talks to the agents of its own project.
 `#ai` and `#general` exist in every room. A post to a new channel name creates the channel.
-The `## Chat room` section of each persona instruction names the room, its commands, and its rules. The migration `0047_persona_chat_instructions` adds it to every saved persona. `docs/personas.json` holds a dump of the table.
+The `## Chat room` section of each persona instruction names the room, its commands, and its rules. Migration `0047_persona_chat_instructions` adds the commands to each saved persona. Migration `0070_human_communication` adds the `## Human communication` policy. `docs/personas.json` holds a dump of the table.
 
 ```sh
 trellis chat channels TRL
@@ -237,6 +243,8 @@ A mention of `@<run id>`, `@<persona name>`, or a role such as `@manager`, `@bui
 A mentioned agent is interrupted: Trellis stops its current turn and hands it the lines at once. An unmentioned agent reads the lines when its current turn ends.
 A worker receives the pending lines in its terminal, batched into one message per controller tick.
 A manager receives a `trellis.chat.messages` event with the same lines as data and posts through `trellis_chat_post`.
+Agents use `#ai` for technical coordination and structured records for machine state. They use ticket comments and non-AI channels only for useful human communication.
+The response owner answers a human request in its original surface. Other agents send useful context to the owner through `#ai`.
 The web page at `/p/<project path>/chat` shows the log; `/join <name>` in its input creates a channel.
 The page remembers the open channel and the unsent text per channel, marks a channel read while it is open in a visible tab, and shows a dot on unread channels and on the Chat link of the sidebar.
 A new message from someone else plays a tone. Settings > Account > Chat sound switches it off for that browser.
