@@ -15,11 +15,9 @@ export type PullRequestsProps = {
 	initialPrs?: LinkedPullRequest[];
 };
 
-// Every PR linked to one ticket, as a list of cards. The Changes tab of the
-// ticket names this content, so the section prints no title and no count.
-// The Add button above the cards is the only control that opens the Link PR
-// modal. The gh notice shows only above a PR, because checks exist only on a
-// linked PR. The ticket page mounts this and nothing else.
+// The ticket Changes tab supplies the name for this list of PR cards. The Add
+// button above the cards is the only control that opens the Link PR modal. The
+// gh notice shows only above a PR, because checks exist only on a linked PR.
 //
 // The server polls GitHub and puts every change on the event stream. The
 // list follows a `pr.updated` event on its own, so the rows stay current
