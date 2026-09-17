@@ -16,7 +16,6 @@ export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/Pr
 export { type ModelProvider, ProviderIcon, type ProviderIconProps } from "./domain/ProviderIcon";
 export { type QuotaWindow, QuotaWindows, type QuotaWindowsProps, quotaFillClass } from "./domain/QuotaWindows";
 export { type RankedBarRow, RankedBars, type RankedBarsProps } from "./domain/RankedBars";
-export { RuntimeDiagnostics } from "./domain/RuntimeDiagnostics";
 export { StackedBar, type StackedBarProps, type StackedBarSegment } from "./domain/StackedBar";
 export { type StatusCategory, StatusIcon, type StatusIconProps } from "./domain/StatusIcon";
 export { TicketGlimmer } from "./domain/TicketGlimmer";
