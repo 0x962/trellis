@@ -4,12 +4,10 @@ export function ReviewSummary({
 	pr,
 	revision,
 	openCount,
-	draftCount,
 }: {
 	pr: string;
 	revision: ReviewRevision | null;
 	openCount: number;
-	draftCount: number;
 }) {
 	const ref = reviewRef(pr);
 	const meta = revision?.meta as
@@ -39,7 +37,7 @@ export function ReviewSummary({
 								? "Closed"
 								: meta?.state === "OPEN"
 									? "Open"
-									: "Local review"}
+									: "Not fetched"}
 				</Badge>
 				{meta?.mergeable === "CONFLICTING" && (
 					<Tooltip content="Open merge conflicts on GitHub">
@@ -63,11 +61,6 @@ export function ReviewSummary({
 				{openCount > 0 && (
 					<span>
 						{openCount} open {openCount === 1 ? "thread" : "threads"}
-					</span>
-				)}
-				{draftCount > 0 && (
-					<span role="status" className="review-draft-count">
-						{draftCount} {draftCount === 1 ? "draft" : "drafts"}
 					</span>
 				)}
 			</div>

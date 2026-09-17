@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
+import { graphqlResponse } from "../../../fixtures";
 import { createTestApp, type TestApp } from "../../../helpers/app";
 import { assertStatusInvariant } from "../../../invariants";
 
@@ -6,10 +7,12 @@ let t: TestApp;
 const calls: string[][] = [];
 let moved = false;
 let head = "head";
+let reviewDecision: "APPROVED" | "CHANGES_REQUESTED" | null = null;
 const patch = `diff --git a/a.txt b/a.txt\n--- a/a.txt\n+++ b/a.txt\n@@ -1 +1 @@\n-before\n+${"x".repeat(1_100_000)}\n`;
 beforeEach(async () => {
 	head = "head";
 	moved = false;
+	reviewDecision = null;
 	calls.length = 0;
 	t = await createTestApp({
 		gh: Object.assign(
@@ -33,6 +36,20 @@ beforeEach(async () => {
 					});
 				else if (args[1]?.includes("compare/")) stdout = JSON.stringify({ merge_base_commit: { sha: "merge-base" } });
 				else if (args[1]?.includes("contents/")) stdout = "original file";
+				else if (args[0] === "pr" && args[1] === "review") {
+					if (args.includes("--approve")) reviewDecision = "APPROVED";
+					if (args.includes("--request-changes")) reviewDecision = "CHANGES_REQUESTED";
+				} else if (args[1] === "graphql" && args.some((arg) => arg.includes("pr0: repository")))
+					stdout = JSON.stringify(
+						graphqlResponse([
+							{
+								number: 30,
+								title: "Test",
+								url: "https://github.com/owner/repo/pull/30",
+								reviewDecision,
+							},
+						]),
+					);
 				else if (args[1] === "graphql")
 					stdout = JSON.stringify({ data: { repository: { pullRequest: { stack: null, mergeQueueEntry: null } } } });
 				else if (args[0] === "label") stdout = "";
@@ -75,6 +92,12 @@ test("retains complete patches and reads old files at the merge base and new fil
 	expect((await post("/refresh", { pr })).status).toBe(400);
 });
 test("GitHub mutations require an explicit action and a matching head", async () => {
+	await t.seedProject("CDE");
+	await t.createTicket({ project: "CDE", title: "Act on this" });
+	await t.api("/api/tickets/CDE-1/prs", {
+		method: "POST",
+		body: { url: "https://github.com/owner/repo/pull/30" },
+	});
 	moved = false;
 	expect((await post("/action", { pr, action: "merge", headSha: "stale" })).status).toBe(400);
 	const result = await post("/action", { pr, action: "merge", headSha: "head" });
@@ -84,6 +107,52 @@ test("GitHub mutations require an explicit action and a matching head", async ()
 			(a) => a.join(" ") === "pr merge https://github.com/owner/repo/pull/30 --squash --match-head-commit head",
 		),
 	).toBe(true);
+	const linked = await t.api("/api/tickets/CDE-1/prs");
+	expect(linked.body[0].state).toBe("open");
+	const timeline = await t.api("/api/tickets/CDE-1/timeline");
+	expect(timeline.body.items).toContainEqual(
+		expect.objectContaining({
+			kind: "activity",
+			action: "pr.actioned",
+			meta: expect.objectContaining({ action: "merge", url: "https://github.com/owner/repo/pull/30" }),
+		}),
+	);
+});
+
+test("submits the review to GitHub, refreshes Trellis, and records ticket activity", async () => {
+	await t.seedProject("CDE");
+	await t.createTicket({ project: "CDE", title: "Review this" });
+	await t.api("/api/tickets/CDE-1/prs", {
+		method: "POST",
+		body: { url: "https://github.com/owner/repo/pull/30" },
+	});
+	calls.length = 0;
+
+	const result = await post("/submit", {
+		pr,
+		headSha: "head",
+		verdict: "approve",
+		body: "The change is ready.",
+	});
+
+	expect(result.status).toBe(200);
+	expect(result.body.reviewState).toBe("approved");
+	expect(
+		calls.some(
+			(args) =>
+				args.join(" ") === "pr review https://github.com/owner/repo/pull/30 --approve --body The change is ready.",
+		),
+	).toBe(true);
+	const linked = await t.api("/api/tickets/CDE-1/prs");
+	expect(linked.body[0].reviewState).toBe("approved");
+	const timeline = await t.api("/api/tickets/CDE-1/timeline");
+	expect(timeline.body.items).toContainEqual(
+		expect.objectContaining({
+			kind: "activity",
+			action: "pr.reviewed",
+			meta: expect.objectContaining({ action: "approve", url: "https://github.com/owner/repo/pull/30" }),
+		}),
+	);
 });
 
 test("a PR restored to an older commit pair selects its most recent refresh", async () => {

@@ -1,4 +1,4 @@
-import { type ComponentProps, useId } from "react";
+import { type ComponentProps, forwardRef, useId } from "react";
 import { cx } from "../../utils/cx";
 
 export type TextareaProps = Omit<ComponentProps<"textarea">, "id"> & {
@@ -10,7 +10,10 @@ export type TextareaProps = Omit<ComponentProps<"textarea">, "id"> & {
 
 // A multi-line text field. `rows` sets the height. The focus draws the
 // accent border and a soft ring outside it, as the Input does.
-export function Textarea({ label, hideLabel = false, invalid = false, className, ...props }: TextareaProps) {
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
+	{ label, hideLabel = false, invalid = false, className, ...props },
+	ref,
+) {
 	const id = useId();
 	return (
 		<div className="flex flex-col gap-1">
@@ -18,6 +21,7 @@ export function Textarea({ label, hideLabel = false, invalid = false, className,
 				{label}
 			</label>
 			<textarea
+				ref={ref}
 				id={id}
 				aria-invalid={invalid || undefined}
 				className={cx(
@@ -31,4 +35,4 @@ export function Textarea({ label, hideLabel = false, invalid = false, className,
 			/>
 		</div>
 	);
-}
+});

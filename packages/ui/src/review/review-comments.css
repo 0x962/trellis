@@ -114,19 +114,6 @@
 	padding-top: 20px;
 	border-top: 0.5px solid var(--border);
 }
-.review-form-hint {
-	color: var(--fg-muted);
-	font-size: 12px;
-	line-height: 18px;
-}
-.review-choice-list {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-	max-height: 220px;
-	overflow: auto;
-	padding: 4px;
-}
 .review-discussion-toolbar {
 	display: flex;
 	align-items: center;

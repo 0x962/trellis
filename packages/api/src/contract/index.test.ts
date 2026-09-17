@@ -120,23 +120,18 @@ describe("contract", () => {
 			"reviews.edit PATCH /reviews/messages/{id}",
 			"reviews.export GET /reviews/export",
 			"reviews.file POST /reviews/file",
-			"reviews.history GET /reviews/submissions",
 			"reviews.importMargin POST /reviews/import-margin",
-			"reviews.inbox POST /reviews/inbox",
 			"reviews.list GET /reviews/threads",
 			"reviews.metadata POST /reviews/metadata",
 			"reviews.mine POST /reviews/mine",
 			"reviews.open POST /reviews/open",
 			"reviews.prs GET /reviews/prs",
 			"reviews.reaction POST /reviews/messages/{id}/reaction",
-			"reviews.read POST /reviews/submissions/{id}/read",
 			"reviews.refresh POST /reviews/refresh",
 			"reviews.reply POST /reviews/threads/{id}/reply",
-			"reviews.resend POST /reviews/deliveries/{id}/resend",
 			"reviews.resolve POST /reviews/threads/{id}/resolve",
 			"reviews.revision GET /reviews/revision",
 			"reviews.runs POST /reviews/runs",
-			"reviews.show GET /reviews/submissions/{id}",
 			"reviews.status POST /reviews/status",
 			"reviews.submit POST /reviews/submit",
 			"reviews.thread GET /reviews/threads/{id}",
@@ -178,7 +173,7 @@ describe("contract", () => {
 			"usage.accounts GET /usage/accounts",
 			"usage.report GET /usage",
 		]);
-		expect(table).toHaveLength(149);
+		expect(table).toHaveLength(144);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has

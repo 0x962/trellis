@@ -55,6 +55,18 @@ describe("features/ticket/Timeline/utils/describeActivity", () => {
 	test("a PR, attachment, or comment row reads from its action", () => {
 		expect(describeActivity(linked)).toBe("linked the PR web #118");
 		expect(describeActivity({ ...linked, action: "pr.unlinked" })).toBe("removed the PR web #118");
+		expect(describeActivity({ ...linked, action: "pr.reviewed", meta: { ...linked.meta, action: "approve" } })).toBe(
+			"approved the PR web #118",
+		);
+		expect(describeActivity({ ...linked, action: "pr.reviewed", meta: { ...linked.meta, action: "comment" } })).toBe(
+			"commented on the PR web #118",
+		);
+		expect(
+			describeActivity({ ...linked, action: "pr.reviewed", meta: { ...linked.meta, action: "request_changes" } }),
+		).toBe("requested changes on the PR web #118");
+		expect(describeActivity({ ...linked, action: "pr.actioned", meta: { ...linked.meta, action: "merge" } })).toBe(
+			"merged the PR web #118",
+		);
 		expect(
 			describeActivity(row({ action: "attachment.created", meta: { filename: "trace.zip", attachmentId: "x" } })),
 		).toBe("attached trace.zip");

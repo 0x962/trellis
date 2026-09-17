@@ -21,9 +21,4 @@ export const reviews = os.reviews.router({
 	edit: os.reviews.edit.handler(({ context, input }) => call(context, "reviews.edit", input)),
 	reaction: os.reviews.reaction.handler(({ context, input }) => call(context, "reviews.reaction", input)),
 	submit: os.reviews.submit.handler(({ context, input }) => call(context, "reviews.submit", input)),
-	show: os.reviews.show.handler(({ context, input }) => call(context, "reviews.show", input)),
-	history: os.reviews.history.handler(({ context, input }) => call(context, "reviews.history", input)),
-	inbox: os.reviews.inbox.handler(({ context, input }) => call(context, "reviews.inbox", input)),
-	read: os.reviews.read.handler(({ context, input }) => call(context, "reviews.read", input)),
-	resend: os.reviews.resend.handler(({ context, input }) => call(context, "reviews.resend", input)),
 });

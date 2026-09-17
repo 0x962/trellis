@@ -44,15 +44,13 @@ test("review add sends stdin, range, side, and explicit identity", async () => {
 	expect(result.requests[0]?.headers.get("x-trellis-session")).toBe("review-session");
 	expect(result.requests[0]?.headers.get("x-trellis-actor")).toBe("agent:checker");
 });
-test("review submit requires an explicit notification choice", async () => {
-	const missing = await runCli(["review", "submit", pr], {});
-	expect(missing.code).not.toBe(0);
-	expect(missing.calls).toHaveLength(0);
-	const selected = await runCli(["review", "submit", pr, "--no-notify", "--threads", "one,two"], {
-		"reviews.submit": { id: "review" },
+test("review submit sends a GitHub review for the current head", async () => {
+	const selected = await runCli(["review", "submit", pr, "--verdict", "approve"], {
+		"reviews.status": { headRefOid: "abc123" },
+		"reviews.submit": { id: "pull-request" },
 	});
 	expect(selected.code).toBe(0);
-	expect(selected.calls[0]?.input).toMatchObject({ recipients: [], threadIds: ["one", "two"] });
+	expect(selected.calls[1]?.input).toEqual({ pr, headSha: "abc123", body: "", verdict: "approve" });
 });
 test("review list supports JSON lines", async () => {
 	const result = await runCli(["review", "list", pr, "--jsonl"], {

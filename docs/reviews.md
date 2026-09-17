@@ -1,4 +1,4 @@
-# Local pull request reviews
+# Pull request reviews
 
 Open **Reviews** in the sidebar, or select **Show diff** on a ticket's pull request.
 Select **Open review**, then paste a GitHub PR URL or `owner/repo#123`.
@@ -13,9 +13,9 @@ The layout choice persists in the browser.
 Click a code line or line number to add a comment.
 Drag across line numbers to comment on a range.
 The comment sheet shows the file, side, and range.
-Draft text persists in the browser. Added drafts appear inline and in Discussion.
+Draft text persists in the browser. Added comments appear inline and in Discussion.
 
-Discussion holds local threads, draft findings, submitted reviews, and read-only GitHub conversation.
+Discussion holds local threads and the read-only GitHub conversation.
 Threads support replies, edits, resolve, reopen, and eight reactions.
 A stale edit returns a version conflict.
 Thread links open Discussion at the selected thread.
@@ -27,13 +27,13 @@ The displayed diff stays on its saved revision until you select **Refresh from G
 A changed head or base produces a notice.
 Older threads retain their original revision. Imported Margin threads have an unknown revision.
 
-**Submit review** saves the verdict, summary, and selected findings in one transaction.
-The submitted findings form a fixed snapshot.
-Later replies, edits, or resolutions do not change that snapshot.
-Choose the exact agent recipients, or select **Submit without a notification**.
-Local approval does not approve the PR on GitHub.
+**Review changes** matches the GitHub review choices: Comment, Approve, and Request changes.
+The server checks the reviewed head before it submits the review to GitHub.
+The request then refreshes the pull request in Trellis.
+It writes one activity item for each linked ticket.
+Project managers receive that activity through the normal activity route.
 
-GitHub actions use a separate sheet.
+Merge and repository actions use a separate sheet.
 The server checks the reviewed head before an action.
 Merge commands also pass the head hash to GitHub.
 Live Branch controls appear for `canary-technologies-corp/canary`.
@@ -54,12 +54,9 @@ trellis review resolve <thread-id>
 trellis review reopen <thread-id>
 trellis review react <message-id> +1
 trellis review react <message-id> +1 --remove
-trellis review submit owner/repo#123 --threads <id1,id2> --notify <run-id> --body "Review complete."
-trellis review submit owner/repo#123 --threads <id1,id2> --no-notify
-trellis review show <review-id> --json
-trellis review inbox --run <run-id>
-trellis review read <review-id> --run <run-id>
-trellis review resend <delivery-id>
+trellis review submit owner/repo#123 --verdict comment --body "Review complete."
+trellis review submit owner/repo#123 --verdict approve
+trellis review submit owner/repo#123 --verdict request_changes --body "Fix the failing branch."
 ```
 
 Use `--body -` to read Markdown from stdin.
@@ -69,24 +66,10 @@ The existing `CLAUDE_SESSION_ID` integration still applies.
 Use `TRELLIS_ACTOR=agent:<name>` for a named agent.
 JSON output supports scripts. `list --jsonl` emits one thread per line.
 
-Agents read existing local comments before work.
+Agents read existing Trellis comments before work.
 They reply to findings and resolve only addressed threads.
 Review findings never become GitHub comments.
 Generated Trellis instructions include this workflow.
-
-## Agent notifications
-
-The submission transaction also writes one delivery per selected agent run.
-A background task claims pending deliveries every three seconds.
-It sends the review link through the run's saved command, tmux, or Superset transport.
-The notification tells the agent to read the fixed review snapshot and acknowledge it.
-
-A stopped agent keeps an unread inbox entry.
-A failed send displays its error and permits an explicit resend.
-After a restart, a delivery left in `sending` becomes `unknown`.
-Trellis does not resend an unknown delivery automatically.
-This avoids a duplicate message when the previous send succeeded before the server stopped.
-The inbox read state remains separate from the send state.
 
 The Runs tab uses the Dots review graph through a server adapter.
 Set `TRELLIS_REVIEW_EXECUTOR_URL` to its base URL; the default is `http://dots.localhost`.
@@ -123,9 +106,9 @@ trellis review export owner/repo#123 --format margin > owner__repo__123.json
 trellis backup
 ```
 
-The full export includes revisions, threads, reactions, submissions, deliveries, and import aliases.
+The full export includes revisions, threads, reactions, and import aliases.
 The Margin export includes the current comments and replies, with old identifiers where available.
-Margin cannot represent reactions, revision hashes, or submitted review snapshots.
+Margin cannot represent reactions or revision hashes.
 Keep a Trellis backup before a rollback.
 The normal server backup and NDJSON export include all review tables.
 
@@ -145,7 +128,7 @@ Perform the cutover after the source snapshot and new review workflow pass your 
 8. For older producers, install `scripts/compat/margin` as their `margin` command.
 9. Transfer gateway ownership with the commands below.
 10. Verify the Trellis and Dots hostnames and an old Margin review link.
-11. Stop `com.margin.server` after a local review, CLI reply, and agent notification pass.
+11. Stop `com.margin.server` after a local review and CLI reply pass.
 
 Generate a gateway service file without loading it:
 
@@ -198,7 +181,7 @@ The focused review and Popover component suite passed all eight tests.
 Aside verified the local review workflow, cold reloads, workers, keyboard expansion, replies, reactions, and desktop and 390 px layouts.
 The browser pass used an isolated server with GitHub fixtures.
 The new Playwright review spec has not run through the Playwright runner.
-GitHub merge, environment actions, and notifications to live agents were not executed.
+GitHub merge and environment actions were not executed.
 
 The bundle-size gate remains above its limit.
 Initial JavaScript measures 235.0 KB gzip, compared with 227.9 KB on clean `main` and a 220 KB limit.

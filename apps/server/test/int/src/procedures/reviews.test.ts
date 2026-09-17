@@ -55,32 +55,4 @@ describe("local PR review", () => {
 		const result = await post("/threads", { pr, path: "a.ts", line: 2, startLine: 3, body: "Wrong range." });
 		expect(result.status).toBe(400);
 	});
-
-	test("submits once and freezes the reviewed text", async () => {
-		const thread = await post("/threads", { pr, path: "b.ts", line: 1, body: "Original finding." });
-		expect(thread.status).toBe(201);
-		const input = {
-			pr,
-			requestId: "submit-once",
-			verdict: "changes_requested",
-			body: "Fix the branch.",
-			threadIds: [thread.body.id],
-			recipients: [],
-		};
-		const first = await post("/submit", input);
-		expect(first.status).toBe(200);
-		const again = await post("/submit", input);
-		expect(again.body.id).toBe(first.body.id);
-		await t.api(`/api/reviews/messages/${thread.body.id}`, {
-			method: "PATCH",
-			body: { body: "Edited finding.", expectedVersion: 1 },
-		});
-		const stored = await t.api(`/api/reviews/submissions/${first.body.id}`);
-		expect(stored.body.threads[0].body).toBe("Original finding.");
-		const conflict = await t.api(`/api/reviews/messages/${thread.body.id}`, {
-			method: "PATCH",
-			body: { body: "Lost write.", expectedVersion: 1 },
-		});
-		expect(conflict.status).toBe(412);
-	});
 });
