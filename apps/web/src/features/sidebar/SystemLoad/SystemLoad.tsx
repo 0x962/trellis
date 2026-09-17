@@ -8,6 +8,7 @@ export function SystemLoad() {
 		...orpc.system.load.queryOptions({}),
 		refetchInterval: 5_000,
 	});
+	const data = load.isError ? null : load.data;
 
-	return <SystemLoadView cpuPercent={load.data?.cpuPercent ?? null} memoryPercent={load.data?.memoryPercent ?? null} />;
+	return <SystemLoadView cpuPercent={data?.cpuPercent ?? null} memoryPercent={data?.memoryPercent ?? null} />;
 }
