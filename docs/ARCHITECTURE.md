@@ -460,7 +460,9 @@ Migration `0060_muse_harness` adds the `## Muse harness` section, which names th
 
 `services/manager` reconciles column assignments and project copilots on each controller beat.
 The controller schedules the next beat one second after the current beat completes.
-The Loops page at `/loops` reports the current step, recent output, errors, and pass times.
+The Loops page at `/loops` shows step cards, recent output, errors, and pass times.
+Wait is the first step. Runtime inspection precedes parallel worker checks and message delivery.
+Each active card has a highlight. Errors retain their source step across subsequent passes.
 `loops.list` reads this process state. Human callers use `loops.control` to pause, resume, run one pass, or clear the history.
 Pause suppresses worker and copilot reconciliation after the current pass; chat and mention delivery continue.
 Run now shares the scheduled pass and cannot overlap it. A paused loop permits one manual pass.
