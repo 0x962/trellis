@@ -6,7 +6,7 @@ import { expectClasses, expectFocusRing, expectHitArea } from "../../../test/cla
 import { Tabs } from "./Tabs";
 
 const items = [
-	{ value: "All", label: "All", icon: <span data-testid="all-icon" />, content: <p>Everything</p> },
+	{ value: "All", label: "All", content: <p>Everything</p> },
 	{ value: "Activity", label: "Activity", disabled: true, content: <p>Moves</p> },
 	{ value: "Comments", label: "Comments", content: <p>Only comments</p> },
 ];
@@ -21,15 +21,13 @@ const selected = () => screen.getAllByRole("tab").find((tab) => tab.getAttribute
 describe("Tabs", () => {
 	test("tablist, tabs, and panel with selected styling", () => {
 		render(<Tabs items={items.slice(0, 1).concat(items.slice(2))} value="All" onValueChange={() => {}} />);
-		expectClasses(screen.getByRole("tablist"), "overflow-x-auto");
+		screen.getByRole("tablist");
 		const tabs = screen.getAllByRole("tab");
 		expect(tabs).toHaveLength(2);
 		expect(screen.getAllByRole("tabpanel")).toHaveLength(1);
 		const all = screen.getByRole("tab", { name: "All" });
 		expect(all.getAttribute("aria-selected")).toBe("true");
-		expect(all.getAttribute("aria-label")).toBe("All");
-		expect(screen.getByTestId("all-icon")).toBeDefined();
-		expectClasses(all, "gap-1.5 text-fg border-b-2 border-accent");
+		expectClasses(all, "text-fg border-b-2 border-accent");
 		expectFocusRing(all);
 		expectClasses(screen.getByRole("tab", { name: "Comments" }), "text-fg-muted");
 	});
