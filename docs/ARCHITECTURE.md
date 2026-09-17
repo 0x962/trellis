@@ -112,7 +112,7 @@ It inspects runtime processes on each beat and retries failed, stopped, and cras
 Database reservations and runtime attempt identifiers prevent duplicate starts.
 Copilots wait for user instructions. The host sends them human chat messages and human comment mentions.
 Worker broadcasts and mentions reach other workers.
-Desktop activation stops the previous runtime and starts the host. The deterministic manager restarts column workers and project copilots.
+Desktop activation restarts the host. It keeps a runtime with a compatible protocol. The deterministic manager restarts column workers and project copilots after an incompatible runtime stops.
 A partial database index permits one active copilot per project.
 
 Native ticket agents use Git worktrees under `agents/<run id>/work`.
@@ -384,7 +384,7 @@ The run has the kind `session`, no persona, no project, and no ticket. Its name 
 The agent receives the prompt as its first message and nothing else. It runs with the worker permission settings of its harness.
 A session counts against no WIP limit and receives no comment or chat delivery.
 `sessions.start` resumes the saved conversation when the previous process confirmed one for the same harness, and otherwise starts the agent again from the prompt in the same directory.
-A desktop restart stops a session agent with the other native agents and does not resume it; Start on the session page resumes it.
+A compatible desktop restart preserves a session agent. A protocol change stops the agent and does not resume it; Start on the session page resumes it.
 `sessions.delete` stops the agent, removes the directory, and deletes the row. The run stays as history with its retained output.
 
 ### Manager delegation

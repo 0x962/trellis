@@ -6,8 +6,10 @@ import { parseArgs, promisify } from "node:util";
 import { installApplication } from "../src/installApplication/installApplication.ts";
 import { withInstallationLock } from "../src/installationLock/installationLock.ts";
 import { assertInstalledAncestry } from "../src/installedAncestry/installedAncestry.ts";
+import { pinResources } from "../src/pinnedResources/pinnedResources.ts";
 import { assertProductionSource } from "../src/productionSource/productionSource.ts";
 import { readBundleManifest, writeBundleManifest } from "../src/resourceBundle/resourceBundle.ts";
+import { defaultDesktopUserData } from "../src/selectedHome/selectedHome.ts";
 
 const { values } = parseArgs({ options: { prepare: { type: "string" } } });
 const repo = resolve(import.meta.dir, "../../..");
@@ -74,12 +76,14 @@ await withInstallationLock(join(homedir(), "Applications/.trellis-install.lock")
 	});
 });
 await run(["/usr/bin/codesign", "--verify", "--deep", "--strict", destination]);
+const installedResources = join(destination, "Contents/Resources/host");
+if (!values.prepare) await pinResources(installedResources, defaultDesktopUserData());
 console.log(
 	JSON.stringify(
 		{
 			application: destination,
 			commit,
-			release: await readBundleManifest(join(destination, "Contents/Resources/host")),
+			release: await readBundleManifest(installedResources),
 		},
 		null,
 		2,

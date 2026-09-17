@@ -23,7 +23,6 @@ import { deepLinkPath, externalUrl, rendererPath, sameOrigin } from "./navigatio
 import { type PinnedRelease, pinResources } from "./pinnedResources/pinnedResources.ts";
 import { prepareHome } from "./prepareHome/prepareHome.ts";
 import { createRendererNavigation } from "./rendererNavigation";
-import { restartHost } from "./restartHost/index.ts";
 import { restartMenuItem } from "./restartMenuItem/index.ts";
 import { readSelectedHome } from "./selectedHome/selectedHome.ts";
 import { openServiceSettings, serviceCommand } from "./service/service.ts";
@@ -291,25 +290,7 @@ else {
 						openLogs: menuAction("showDataDirectory", "Local logs"),
 						reconnectHost: menuAction("reconnectHost", "Trellis host"),
 						stopLocalWork: menuAction("stopLocalWork", "Local work"),
-						restart: restartMenuItem(
-							app,
-							async () => {
-								host = await restartHost(
-									app.isPackaged
-										? {
-												mode: "packaged",
-												home: desktopHome(),
-												helper: paths().helper,
-												resources: paths().hostRoot,
-												userData: app.getPath("userData"),
-											}
-										: { mode: "development", options: developmentHostOptions() },
-									progress.show,
-								);
-							},
-							(error) => dialog.showErrorBox("Trellis did not restart", error.message),
-							progress,
-						),
+						restart: restartMenuItem(app),
 						quit: menuAction("quit", "Quit Trellis"),
 					}),
 				),
