@@ -50,7 +50,7 @@ export function CommentCard({
 		try {
 			const updated = await client.comments.update({ id: comment.id, body: draft });
 			setExpanded(false);
-			setFoldable(false);
+			if (updated.body !== comment.body) setFoldable(false);
 			setEditing(false);
 			onEdited?.(updated);
 		} catch (error) {
