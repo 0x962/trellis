@@ -1,11 +1,12 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { cx, EmptyState, useMediaQuery } from "@trellis/ui";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
 import { AttachmentGrid } from "../../attachments/AttachmentGrid";
 import { useUploads } from "../../attachments/hooks/useUploads";
+import { ReviewPage } from "../../reviews/ReviewPage/ReviewPage";
 import { NotFoundState } from "../../shell/NotFoundState";
 import { Description } from "../Description";
 import { Header } from "../Header";
@@ -33,14 +34,16 @@ export function TicketView({ identifier, thread }: TicketViewProps) {
 	const drop = useDropOverlay(uploads.start);
 	const narrow = useMediaQuery("(max-width: 767px)");
 	const { isArchived, notice } = useArchivedProjects();
+	const [workAreaTab, setWorkAreaTab] = useState("activity");
+	const [pullRequest, setPullRequest] = useState<string | null>(null);
 
 	useEffect(() => {
-		if (query.data === undefined) return;
+		if (query.data === undefined || pullRequest !== null) return;
 		document.title = `${query.data.identifier} · ${query.data.title}`;
 		return () => {
 			document.title = "trellis";
 		};
-	}, [query.data]);
+	}, [pullRequest, query.data]);
 
 	if (query.error !== null) {
 		if (query.error instanceof ORPCError && query.error.code === "NOT_FOUND") {
@@ -59,6 +62,27 @@ export function TicketView({ identifier, thread }: TicketViewProps) {
 	const ticket = query.data;
 	const inlineRail = narrow;
 	const readOnly = isArchived(ticket.project.path);
+	if (pullRequest !== null) {
+		return (
+			<ReviewPage
+				key={pullRequest}
+				pr={pullRequest}
+				syncHash={false}
+				parent={
+					<a
+						href={`/t/${ticket.identifier}`}
+						aria-label={`Back to ${ticket.identifier}`}
+						onClick={(event) => {
+							event.preventDefault();
+							setPullRequest(null);
+						}}
+					>
+						{ticket.identifier}
+					</a>
+				}
+			/>
+		);
+	}
 
 	// The server refuses every write to a ticket under an archived project.
 	// The disabled fieldset and the edit keys enforce `readOnly`.
@@ -86,6 +110,9 @@ export function TicketView({ identifier, thread }: TicketViewProps) {
 					<TicketWorkArea
 						key={ticket.id}
 						ticket={ticket}
+						tab={workAreaTab}
+						onTabChange={setWorkAreaTab}
+						onOpenPullRequest={setPullRequest}
 						activity={<Timeline thread={thread} ticket={ticket} onAttachFiles={uploads.start} />}
 					/>
 				</div>

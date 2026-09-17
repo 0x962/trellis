@@ -25,7 +25,7 @@ export const Route = createFileRoute("/t/$identifier")({
 function TicketPage() {
 	const { identifier } = Route.useParams();
 	const { thread } = Route.useSearch();
-	return <TicketView identifier={TicketRefStringSchema.parse(identifier)} thread={thread} />;
+	return <TicketView key={identifier} identifier={TicketRefStringSchema.parse(identifier)} thread={thread} />;
 }
 
 function TicketError({ error }: ErrorComponentProps) {

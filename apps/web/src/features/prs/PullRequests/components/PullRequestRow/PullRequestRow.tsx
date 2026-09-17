@@ -2,7 +2,7 @@ import { ArrowSquareOut, Warning } from "@phosphor-icons/react";
 import type { LinkedPullRequest, TicketSummary } from "@trellis/api";
 import { cx, IconButton } from "@trellis/ui";
 import { tabularClass } from "../../../../../lib/format";
-import { DiffLink } from "./components/DiffLink";
+import { OpenReviewButton } from "./components/OpenReviewButton";
 import { PrStateIcon } from "./components/PrStateIcon";
 import { ReviewStateIcon } from "./components/ReviewStateIcon";
 import { UnlinkButton } from "./components/UnlinkButton";
@@ -10,15 +10,15 @@ import { UnlinkButton } from "./components/UnlinkButton";
 export type PullRequestRowProps = {
 	ticket: TicketSummary;
 	pr: LinkedPullRequest;
+	onOpen: (url: string) => void;
 };
 
 // One pull request is 56 px tall. The first line holds the title and number.
 // The second line holds the branch pair.
 //
-// The row is `relative` because the diff link stretches over it. Every other
-// control inside the row carries `relative`, so it takes the click
-// the stretched link would otherwise swallow.
-export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
+// The row is `relative` because the pull request title button stretches over
+// it. Every other control carries `relative`, so that control takes its click.
+export function PullRequestRow({ ticket, pr, onOpen }: PullRequestRowProps) {
 	return (
 		<div
 			data-pr-row={pr.id}
@@ -27,7 +27,7 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 			<PrStateIcon state={pr.state} isDraft={pr.isDraft} ciState={pr.ciState} />
 			<span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
 				<span className="flex min-w-0 items-center gap-2">
-					<DiffLink url={pr.url}>{pr.title}</DiffLink>
+					<OpenReviewButton onOpen={() => onOpen(pr.url)}>{pr.title}</OpenReviewButton>
 					<span className={cx("shrink-0 text-sm text-fg-muted", tabularClass)}>#{pr.number}</span>
 				</span>
 				<span className="flex min-w-0 items-center gap-1 text-sm text-fg-faint">
