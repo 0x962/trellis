@@ -7,7 +7,6 @@ export * from "./chat.ts";
 export * from "./comment.ts";
 export * from "./diagnostics.ts";
 export * from "./enums.ts";
-export * from "./evidence.ts";
 export * from "./flow.ts";
 export * from "./flowExecution.ts";
 export * from "./harnessAccount.ts";

@@ -9,14 +9,16 @@ import { comment, statusSummary, ticket, ticketSummary } from "../../fixtures.ts
 
 const verbs = [
 	"accounts",
+	"models",
 	"doctor",
-	"evidence",
 	"gateway",
 	"projects",
 	"statuses",
 	"personas",
 	"agents",
 	"manager",
+	"chat",
+	"notes",
 	"create",
 	"show",
 	"list",

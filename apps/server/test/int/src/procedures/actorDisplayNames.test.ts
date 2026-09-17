@@ -31,7 +31,7 @@ test.each<ActorRef>([
 	expect(created.lastActor).toMatchObject(actor);
 	expect(created.lastActor?.displayName).toBe(actor.displayName);
 	const form = new FormData();
-	form.set("file", new File(["evidence"], "evidence.txt", { type: "text/plain" }));
+	form.set("file", new File(["note"], "note.txt", { type: "text/plain" }));
 	const uploaded = await t.api(`/api/tickets/${created.identifier}/attachments`, {
 		method: "POST",
 		actor: header,

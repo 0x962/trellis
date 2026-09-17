@@ -1,7 +1,15 @@
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
 import { ModelIdSchema } from "../models/models.ts";
-import { AgentRunListInputSchema, AgentRunSchema, AgentRunStartInputSchema } from "../schemas/agentRun.ts";
+import {
+	AgentRunListInputSchema,
+	AgentRunSchema,
+	AgentRunStartInputSchema,
+	AgentWorkspaceFileInputSchema,
+	AgentWorkspaceFileSchema,
+	AgentWorkspaceInputSchema,
+	AgentWorkspaceSchema,
+} from "../schemas/agentRun.ts";
 import { UlidSchema } from "../schemas/primitives.ts";
 import { base } from "./base.ts";
 
@@ -60,6 +68,14 @@ const sessionSchema = z.object({
 	result: z.object({ id: z.string(), text: z.string() }).nullable(),
 });
 export const agentRuns = {
+	workspace: base
+		.route({ method: "GET", path: "/agent-runs/{runId}/workspace", summary: "Inspect the agent workspace" })
+		.input(AgentWorkspaceInputSchema)
+		.output(AgentWorkspaceSchema),
+	file: base
+		.route({ method: "GET", path: "/agent-runs/{runId}/workspace/file", summary: "Read a workspace file" })
+		.input(AgentWorkspaceFileInputSchema)
+		.output(AgentWorkspaceFileSchema),
 	setModel: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
 		.route({

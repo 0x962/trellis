@@ -59,7 +59,7 @@ const seedEveryTable = async () => {
 	await insertRow(h.db, "personas", {
 		id: ulid(),
 		name: "Reviewer",
-		instruction: "Read the diff.\nReport defects with evidence.",
+		instruction: "Read the diff.\nReport concrete defects.",
 		created_at: new Date(),
 		updated_at: new Date(),
 	});
@@ -153,7 +153,7 @@ describe("system.exportNdjson", () => {
 		expect(personas).toHaveLength(1);
 		expect(personas[0]!.row).toMatchObject({
 			name: "Reviewer",
-			instruction: "Read the diff.\nReport defects with evidence.",
+			instruction: "Read the diff.\nReport concrete defects.",
 		});
 	});
 

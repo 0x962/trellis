@@ -21,6 +21,12 @@ export const spawnCli = (argv: string[]) => {
 };
 
 const verbs = [
+	"models",
+	"accounts",
+	"manager",
+	"doctor",
+	"gateway",
+	"review",
 	"projects",
 	"statuses",
 	"personas",
@@ -32,6 +38,9 @@ const verbs = [
 	"move",
 	"comment",
 	"comments",
+	"thread",
+	"chat",
+	"notes",
 	"attach",
 	"attachments",
 	"pr",
@@ -60,6 +69,7 @@ const globalFlags = ["--json", "--jsonl", "--quiet", "--as", "--url", "--no-colo
 test("trellis --help lists every verb and every global flag", () => {
 	const { exitCode, stdout } = spawnCli(["--help"]);
 	expect(exitCode).toBe(0);
+	expect(stdout).not.toMatch(/(^|\s)evidence(\s|$)/m);
 	for (const verb of verbs) {
 		expect(stdout, verb).toMatch(new RegExp(`(^|\\s)${verb}(\\s|$)`, "m"));
 	}

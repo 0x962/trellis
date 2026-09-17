@@ -30,6 +30,7 @@ describe("contract", () => {
 		expect(table).toEqual([
 			"actors.default GET /actors/default",
 			"actors.list GET /actors",
+			"agentRuns.file GET /agent-runs/{runId}/workspace/file",
 			"agentRuns.interrupt POST /agent-runs/{id}/interrupt",
 			"agentRuns.list GET /agent-runs",
 			"agentRuns.output GET /agent-runs/{id}/output",
@@ -43,6 +44,7 @@ describe("contract", () => {
 			"agentRuns.stop POST /agent-runs/{id}/stop",
 			"agentRuns.terminalInput POST /agent-runs/{id}/terminal/input",
 			"agentRuns.terminalOutput GET /agent-runs/{id}/terminal/output",
+			"agentRuns.workspace GET /agent-runs/{runId}/workspace",
 			"attachments.delete DELETE /attachments/{id}",
 			"attachments.get GET /attachments/{id}",
 			"attachments.list GET /tickets/{ticket}/attachments",
@@ -65,11 +67,6 @@ describe("contract", () => {
 			"controller.list GET /manager-dispatches",
 			"controller.resolveUnknown POST /manager-dispatches/{id}/received",
 			"controller.retry POST /manager-dispatches/{id}/retry",
-			"evidence.check POST /agent-runs/{runId}/checks",
-			"evidence.file GET /agent-runs/{runId}/workspace/file",
-			"evidence.list GET /agent-runs/{runId}/evidence",
-			"evidence.register POST /agent-runs/{runId}/artifacts",
-			"evidence.workspace GET /agent-runs/{runId}/workspace",
 			"flowExecutions.cancel POST /flow-executions/{id}/cancel",
 			"flowExecutions.decide POST /flow-executions/{id}/decision",
 			"flowExecutions.get GET /flow-executions/{id}",
@@ -177,7 +174,7 @@ describe("contract", () => {
 			"usage.accounts GET /usage/accounts",
 			"usage.report GET /usage",
 		]);
-		expect(table).toHaveLength(148);
+		expect(table).toHaveLength(145);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has

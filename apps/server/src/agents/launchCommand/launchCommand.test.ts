@@ -28,7 +28,7 @@ const run: AgentRun = {
 };
 const url = "http://127.0.0.1:4521";
 
-test("worker assignments explain CLI discovery and current workspace evidence", () => {
+test("worker assignments explain CLI discovery without evidence commands", () => {
 	const launch = launchCommand({
 		run: { ...run, kind: "builder" },
 		url,
@@ -36,9 +36,7 @@ test("worker assignments explain CLI discovery and current workspace evidence", 
 		template: DEFAULT_AGENT_START_COMMAND,
 	});
 	expect(launch.prompt).toContain("trellis --help");
-	expect(launch.prompt).toContain('trellis evidence register "$TRELLIS_RUN_ID" --path');
-	expect(launch.prompt).toContain('trellis evidence check "$TRELLIS_RUN_ID" --request-id');
-	expect(launch.prompt).toContain("readyForReview");
+	expect(launch.prompt.toLowerCase()).not.toContain("evidence");
 	expect(launch.prompt).toContain("Follow the project review policy");
 });
 

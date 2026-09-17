@@ -19,7 +19,7 @@ describe("personas", () => {
 	});
 
 	test("create stores a persona and a later transaction reads its fields", async () => {
-		const input = { name: "Reviewer", instruction: "Read the diff.\nReport defects with evidence." };
+		const input = { name: "Reviewer", instruction: "Read the diff.\nReport concrete defects." };
 		const created = await h.run((ctx, tx) => personas.create(ctx, tx, input));
 		expect(created).toMatchObject({ ...input, createdAt: NOW.toISOString(), updatedAt: NOW.toISOString() });
 		expect(created.id).toMatch(ulidPattern);

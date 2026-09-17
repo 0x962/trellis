@@ -58,8 +58,7 @@ const ctx = (): RequestContext => ({
 const count = async (table: string) =>
 	(await h.db.execute(sql`SELECT count(*)::int AS n FROM ${sql.identifier(table)}`)).rows[0]!.n as number;
 
-// An inline transport that sends its log lines to `lines`. The start runs
-// `evidence.recover`, so the lines of the start are cleared.
+// An inline transport sends its log lines to `lines`.
 const loggingTransport = async (lines: Array<{ msg: string; fields?: Record<string, unknown> }>, limit?: number) => {
 	const logged = createInlineTransport({
 		db: h.db,

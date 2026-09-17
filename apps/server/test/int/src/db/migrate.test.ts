@@ -17,15 +17,15 @@ const readJournal = (dir: string) => JSON.parse(readFileSync(join(dir, "meta/_jo
 const tables = [
 	"builder_heartbeats",
 	"builder_start_requests",
+	"chat_attachments",
 	"chat_channels",
 	"chat_messages",
 	"chat_deliveries",
+	"column_workers",
 	"manager_delegations",
 	"harness_accounts",
 	"agent_execution_attempts",
 	"agent_start_requests",
-	"evidence_artifacts",
-	"evidence_checks",
 	"flow_execution_tasks",
 	"flow_executions",
 	"manager_controller_cursors",
@@ -33,6 +33,7 @@ const tables = [
 	"manager_next_actions",
 	"native_migrations",
 	"needs_you_states",
+	"notes",
 	"flow_edges",
 	"flow_nodes",
 	"flows",
@@ -41,6 +42,7 @@ const tables = [
 	"review_revisions",
 	"review_submissions",
 	"review_threads",
+	"sessions",
 	"agent_runs",
 	"projects",
 	"repos",
@@ -148,6 +150,35 @@ describe("migrate", () => {
 		const dispatches = await db.execute(sql`SELECT next_actions FROM manager_dispatches`);
 		expect(dispatches.rows).toEqual([]);
 		expect(await migrate(db)).toBe(0);
+	});
+
+	test("an upgrade drops stored checks and removes evidence text from persona instructions", async () => {
+		const temp = mkdtempSync(join(process.env.TRELLIS_HOME as string, "migrate-"));
+		cpSync(drizzleDir, temp, { recursive: true });
+		const journal = readJournal(temp);
+		journal.entries = journal.entries.filter((entry) => entry.idx <= 65);
+		writeFileSync(join(temp, "meta/_journal.json"), JSON.stringify(journal));
+		const db = await openDb(":memory:");
+		closers.push(() => db.$client.close());
+		await migrate(db, temp);
+		await db.execute(sql`INSERT INTO personas (id,name,kind,instruction,created_at,updated_at) VALUES (
+			'01J9Z0000000000000000000P1',
+			'Reviewer',
+			'reviewer',
+			'Keep each note short. Include evidence and the consequence for future work. Never include credentials.\nRecord the result and relevant evidence in a ticket comment.',
+			now(),
+			now()
+		)`);
+		expect(await tableNames(db)).toContain("evidence_checks");
+
+		await migrate(db);
+
+		expect(await tableNames(db)).not.toContain("evidence_checks");
+		expect(await tableNames(db)).not.toContain("evidence_artifacts");
+		const personas = await db.execute(sql`SELECT instruction FROM personas`);
+		expect(personas.rows[0]!.instruction).toBe(
+			"Keep each note short. Include the fact and the consequence for future work. Never include credentials.\nRecord the result in a ticket comment.",
+		);
 	});
 
 	test("migrate creates every table on an empty database", async () => {

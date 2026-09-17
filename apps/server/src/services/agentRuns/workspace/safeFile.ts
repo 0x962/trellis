@@ -1,6 +1,6 @@
 import { realpath } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
-import { invalidInput } from "../../errors.ts";
+import { invalidInput } from "../../../errors.ts";
 
 export const safeFile = async (workspace: string, path: string) => {
 	if (isAbsolute(path) || path.includes("\0") || path.split(/[\\/]/).includes(".."))

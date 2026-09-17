@@ -35,7 +35,7 @@ async function fixture(name: string) {
 				parentId: null,
 				kind: "human",
 				title: "Review the result",
-				instruction: "Read the evidence.",
+				instruction: "Read the result.",
 				personaId: null,
 				parallel: false,
 				minutes: null,
@@ -99,7 +99,7 @@ test("a lost start response reuses one flow and approval retains the frozen step
 	await run.getByRole("button", { name: "Decide Review the result", exact: true }).click();
 	const decision = page.getByRole("dialog", { name: "Decide the flow step", exact: true });
 	await expect(decision.getByRole("heading", { name: "Review the result", exact: true })).toBeVisible();
-	await expect(decision.getByText("Read the evidence.", { exact: true })).toBeVisible();
+	await expect(decision.getByText("Read the result.", { exact: true })).toBeVisible();
 	await decision
 		.getByRole("textbox", { name: "Decision notes", exact: true })
 		.fill("The output meets the acceptance criteria.");
@@ -160,7 +160,7 @@ for (const action of ["reject", "cancel"] as const) {
 
 test("a human decision shows completed output from the frozen execution", async ({ page }) => {
 	const { ticket, flow, doc } = await fixture("Decision context");
-	const preceding = { ...doc.nodes[0]!, id: ulid(), title: "Record the evidence" };
+	const preceding = { ...doc.nodes[0]!, id: ulid(), title: "Record the result" };
 	const saved = await put<FlowDoc>(`/flows/${flow.id}/graph`, {
 		nodes: [preceding, ...doc.nodes],
 		edges: [{ id: ulid(), fromNodeId: preceding.id, toNodeId: doc.nodes[0]!.id, branch: "out" }],
@@ -183,8 +183,8 @@ test("a human decision shows completed output from the frozen execution", async 
 	await page.getByRole("button", { name: "Decide Review the result", exact: true }).click();
 	const dialog = page.getByRole("dialog", { name: "Decide the flow step", exact: true });
 	await expect(dialog.getByRole("heading", { name: "Review the result", exact: true })).toBeVisible();
-	await expect(dialog.getByText("Read the evidence.", { exact: true })).toBeVisible();
-	await expect(dialog.getByText("Record the evidence", { exact: true })).toBeVisible();
+	await expect(dialog.getByText("Read the result.", { exact: true })).toBeVisible();
+	await expect(dialog.getByText("Record the result", { exact: true })).toBeVisible();
 	await expect(dialog.getByText("Five checks pass. The artifact matches the check.", { exact: true })).toBeVisible();
 	await dialog.getByRole("button", { name: "Approve step", exact: true }).click();
 	await expect(dialog).toHaveCount(0);

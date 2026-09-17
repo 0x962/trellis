@@ -1,4 +1,4 @@
-import { executionEnvironment } from "../../executionEnvironment";
+import { executionEnvironment } from "../../../executionEnvironment";
 
 const read = async (stream: ReadableStream<Uint8Array>, limit: number) => {
 	const chunks: Uint8Array[] = [];
@@ -23,6 +23,6 @@ export const git = async (workspace: string, args: string[], options = { limit: 
 	]);
 	if (code !== 0) throw new Error(stderr.text.trim());
 	if (!options.truncate && stdout.size > options.limit)
-		throw new Error("The Git file list exceeds the evidence byte limit.");
+		throw new Error("The Git file list exceeds the workspace byte limit.");
 	return stdout.text;
 };

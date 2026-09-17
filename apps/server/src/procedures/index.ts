@@ -4,7 +4,6 @@ import { os } from "./base.ts";
 import { chat } from "./chat.ts";
 import { comments } from "./comments.ts";
 import { controller } from "./controller.ts";
-import { evidence } from "./evidence.ts";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
@@ -34,7 +33,6 @@ export const router = os.router({
 	harnessAccounts,
 	usage,
 	needsYou,
-	evidence,
 	controller,
 	reviews,
 	agentRuns,
