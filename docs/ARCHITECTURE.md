@@ -211,8 +211,9 @@ either attachment table names.
 
 `chat_messages` holds one row per post with its actor. `chat_deliveries`
 holds one row per post and live native agent of the room's project, except
-the author. A post in `general` with no mention writes rows for the live
-copilots only when the author is human. Copilots receive messages only from humans.
+the author. Outside the direct `manager` channel, a human post without a
+mention reaches every live agent. An agent post without a mention reaches
+every live worker except its author. Copilots receive messages only from humans.
 A post that mentions a live agent by run id, by persona name, or by role
 (`@manager`, `@builders`, `@reviewers`) reaches only the mentioned agents,
 and each of those rows is `direct`. The controller tick sends every pending
