@@ -1,13 +1,14 @@
-import { CaretRight, DotsThree, Plus } from "@phosphor-icons/react";
-import { Button, cx, IconButton, Input, Menu, StatusIcon } from "@trellis/ui";
-import { type KeyboardEvent, useCallback, useRef, useState } from "react";
+import { CaretRight, Infinity as InfinityIcon } from "@phosphor-icons/react";
+import type { StatusAgentConfig } from "@trellis/api";
+import { Button, cx, IconButton, StatusIcon } from "@trellis/ui";
+import { type KeyboardEvent, useCallback, useRef } from "react";
 import { workingGroupInsertIndex } from "../../columns";
 import { useBoardAutoScroll, useColumnDnd } from "../../hooks/useBoardDnd";
 import type { BoardColumnModel } from "../../types";
 import { BoardCard } from "../BoardCard";
 import { DragIndicator } from "../DragIndicator";
-import { WipBadge } from "../WipBadge";
-import { ColumnAgentBadge } from "./components/ColumnAgentBadge";
+import { capacityLabel } from "./capacityLabel";
+import { ColumnAgentSettings } from "./components/ColumnAgentSettings";
 
 export type BoardColumnProps = {
 	column: BoardColumnModel;
@@ -22,24 +23,18 @@ export type BoardColumnProps = {
 	workingTicketIds: ReadonlySet<string>;
 	onToggle: () => void;
 	onShowAllDone: () => void;
-	// Opens the New ticket form with the project and the column's status.
-	onNewTicket: () => void;
 	onShowMore: () => Promise<void>;
 	onOpenTicket: (identifier: string) => void;
 	onFocusTicket: (identifier: string) => void;
 	onCardKeyDown: (event: KeyboardEvent<HTMLElement>, column: BoardColumnModel, index: number) => void;
 	onAnnounce: (message: string) => void;
-	// Writes the WIP limit of the column's single status. Category columns
-	// group several statuses and never offer the edit.
-	onSetWipLimit: (statusId: string, limit: number | null) => Promise<void>;
+	onUpdateSettings: (
+		statusId: string,
+		settings: { agentConfig: StatusAgentConfig | null; wipLimit: number | null },
+	) => Promise<void>;
 };
 
 const cutoff = () => Date.now() - 30 * 86_400_000;
-
-// The header buttons show on hover and on keyboard focus inside the header.
-// A touch screen has no hover, so there they always show.
-const revealed =
-	"opacity-0 transition-opacity duration-hover group-hover/header:opacity-100 group-focus-within/header:opacity-100 [@media(hover:none)]:opacity-100";
 
 // One board column: a fixed 36 px header and a list of cards that scrolls
 // under it. The header never scrolls, so every header stays at the same y.
@@ -53,13 +48,12 @@ export function BoardColumn({
 	workingTicketIds,
 	onToggle,
 	onShowAllDone,
-	onNewTicket,
 	onShowMore,
 	onOpenTicket,
 	onFocusTicket,
 	onCardKeyDown,
 	onAnnounce,
-	onSetWipLimit,
+	onUpdateSettings,
 }: BoardColumnProps) {
 	const target = useRef<HTMLElement>(null);
 	const list = useRef<HTMLUListElement>(null);
@@ -68,18 +62,7 @@ export function BoardColumn({
 	}, [collapsed, onToggle]);
 	const over = useColumnDnd(target, column, collapsed, expand);
 	useBoardAutoScroll(list, !collapsed);
-	// The draft limit while the header editor is open. Null means the
-	// editor is closed; an empty string clears the limit on commit.
-	const [limitDraft, setLimitDraft] = useState<string | null>(null);
 	const singleStatus = column.statuses.length === 1 ? column.statuses[0]! : undefined;
-	const commitLimit = () => {
-		if (limitDraft === null || singleStatus === undefined) return;
-		const limit = limitDraft === "" ? null : Number(limitDraft);
-		setLimitDraft(null);
-		if (limitDraft !== "" && (!Number.isInteger(limit) || (limit as number) < 1)) return;
-		if ((limit ?? null) === column.wipLimit) return;
-		void onSetWipLimit(singleStatus.id, limit).catch(() => setLimitDraft(limitDraft));
-	};
 	const visible =
 		column.category === "done" && !showAllDone
 			? column.items.filter((ticket) => ticket.completedAt !== null && Date.parse(ticket.completedAt) >= cutoff())
@@ -88,7 +71,6 @@ export function BoardColumn({
 	const dropIndex = over === null ? null : workingGroupInsertIndex(visible, over.ticketId, workingTicketIds);
 	const exceeded = column.wipLimit !== null && column.count > column.wipLimit;
 	const reviewer = column.statuses[0]?.reviewer ?? undefined;
-	const agentConfig = singleStatus?.agentConfig ?? null;
 
 	if (collapsed) {
 		return (
@@ -106,10 +88,17 @@ export function BoardColumn({
 				<li role="none" className="contents">
 					<IconButton label={`Expand ${column.name}`} icon={<CaretRight />} size="xs" onClick={onToggle} />
 					<StatusIcon category={column.category} reviewer={reviewer} />
-					{agentConfig && <ColumnAgentBadge columnName={column.name} config={agentConfig} />}
 					<span className="mt-2 [writing-mode:vertical-rl] text-sm font-medium text-fg-muted">
-						{column.name} <span className="tabular">{count}</span>
+						{column.name}{" "}
+						<span className="tabular">{column.wipLimit === null ? `${count}/∞` : `${count}/${column.wipLimit}`}</span>
 					</span>
+					{singleStatus?.agentConfig && (
+						<ColumnAgentSettings
+							columnName={column.name}
+							status={singleStatus}
+							onSave={(settings) => onUpdateSettings(singleStatus.id, settings)}
+						/>
+					)}
 				</li>
 			</ul>
 		);
@@ -122,62 +111,24 @@ export function BoardColumn({
 			style={{ width }}
 			className={cx("flex min-h-0 shrink-0 snap-start flex-col rounded-lg", well && "bg-band")}
 		>
-			<header
-				// The header is 48 px on a coarse pointer, so the 44 px plus and
-				// actions buttons stay inside it and never cover the first card.
-				className={cx(
-					"group/header flex h-9 shrink-0 items-center gap-2 px-2 pointer-coarse:h-12",
-					exceeded ? "text-warning" : "text-fg",
-				)}
-			>
+			<header className="flex h-9 shrink-0 items-center gap-2 px-2 text-fg pointer-coarse:h-12">
 				<StatusIcon category={column.category} reviewer={reviewer} />
 				<h2 className="min-w-0 truncate text-base font-medium">{column.name}</h2>
-				{agentConfig && <ColumnAgentBadge columnName={column.name} config={agentConfig} />}
-				<span className="text-sm text-fg-faint tabular">{count}</span>
-				{limitDraft !== null ? (
-					<Input
-						label={`WIP limit for ${column.name}`}
-						hideLabel
-						type="number"
-						min={1}
-						step={1}
-						autoFocus
-						value={limitDraft}
-						onChange={(event) => setLimitDraft(event.target.value)}
-						onBlur={commitLimit}
-						onKeyDown={(event) => {
-							if (event.key === "Enter") commitLimit();
-							if (event.key === "Escape") setLimitDraft(null);
-						}}
-						className="w-16"
-					/>
-				) : (
-					column.wipLimit !== null && <WipBadge count={column.count} limit={column.wipLimit} />
-				)}
-				<span className={cx("ml-auto flex items-center gap-0.5", revealed)}>
-					<IconButton
-						label={`New ticket in ${column.name}`}
-						icon={<Plus />}
-						size="xs"
-						variant="primary"
-						onClick={onNewTicket}
-					/>
-					<Menu
-						label={`${column.name} actions`}
-						trigger={<IconButton label={`${column.name} actions`} icon={<DotsThree />} size="xs" />}
-						items={[
-							...(singleStatus === undefined
-								? []
-								: [
-										{
-											label: "Set WIP limit",
-											onSelect: () => setLimitDraft(column.wipLimit?.toString() ?? ""),
-										},
-									]),
-							{ label: "Collapse", onSelect: onToggle },
-						]}
-					/>
+				<span className={cx("inline-flex items-center text-sm tabular", exceeded ? "text-warning" : "text-fg-faint")}>
+					<span className="sr-only">{capacityLabel(count, column.wipLimit)}</span>
+					<span aria-hidden="true" className="inline-flex items-center">
+						{count}/{column.wipLimit === null ? <InfinityIcon className="size-3.5" /> : column.wipLimit}
+					</span>
 				</span>
+				{singleStatus?.agentConfig && (
+					<span className="ml-auto">
+						<ColumnAgentSettings
+							columnName={column.name}
+							status={singleStatus}
+							onSave={(settings) => onUpdateSettings(singleStatus.id, settings)}
+						/>
+					</span>
+				)}
 			</header>
 			<ul
 				ref={list}

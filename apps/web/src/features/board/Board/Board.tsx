@@ -5,6 +5,7 @@ import {
 	eventApplierFor,
 	type ListOutput,
 	type Status,
+	type StatusAgentConfig,
 	type StatusSummary,
 } from "@trellis/api";
 import { toast, useMediaQuery, useTheme } from "@trellis/ui";
@@ -16,7 +17,6 @@ import { conflictCurrent, conflictMessage, errorMessage } from "../../../lib/con
 import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { useWorkingAgents } from "../../agents/useWorkingAgents";
 import { useCommandContext } from "../../command/hooks/useCommandContext";
-import { composerActions } from "../../composer/composerStore";
 import { BoardLineStatsContext } from "../BoardLineStatsContext";
 import { categoryColumns, moveInBoard, projectColumns, workingFirst, workingGroupInsertIndex } from "../columns";
 import { BoardColumn } from "../components/BoardColumn";
@@ -175,11 +175,11 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 	);
 	useBoardMonitor(columns, (move) => void runMove(move), chooseOrMove, announce, recordDropOrigin);
 
-	const setWipLimit = useCallback(
-		async (statusId: string, limit: number | null) => {
+	const updateSettings = useCallback(
+		async (statusId: string, settings: { agentConfig: StatusAgentConfig | null; wipLimit: number | null }) => {
 			if (projectRef === undefined) return;
 			try {
-				await context.client.statuses.update({ project: projectRef, status: statusId, wipLimit: limit });
+				await context.client.statuses.update({ project: projectRef, status: statusId, ...settings });
 				await context.queryClient.invalidateQueries({ queryKey: boardOptions.queryKey });
 				await context.queryClient.invalidateQueries({ queryKey: projectOptions.queryKey });
 			} catch (error) {
@@ -198,13 +198,6 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 			projectRef,
 		],
 	);
-
-	const openComposer = (column: BoardColumnModel) => {
-		const status = column.statuses[0];
-		composerActions.open(
-			projectRef === undefined || status === undefined ? {} : { project: projectRef, status: status.slug },
-		);
-	};
 
 	const showMore = async (column: BoardColumnModel) => {
 		const input = {
@@ -294,13 +287,12 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 						workingTicketIds={workingTickets}
 						onToggle={() => uiActions.setGroupCollapsed(storageKey, column.id, !collapsed.includes(column.id))}
 						onShowAllDone={() => setShowAllDone(true)}
-						onNewTicket={() => openComposer(column)}
 						onShowMore={() => showMore(column)}
 						onOpenTicket={onOpenTicket}
 						onFocusTicket={setFocusedCard}
 						onCardKeyDown={keyDown}
 						onAnnounce={announce}
-						onSetWipLimit={setWipLimit}
+						onUpdateSettings={updateSettings}
 					/>
 				))}
 			</div>

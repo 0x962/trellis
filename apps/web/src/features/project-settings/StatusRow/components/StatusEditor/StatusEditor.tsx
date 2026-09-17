@@ -2,8 +2,8 @@ import type { ColorToken, Reviewer } from "@trellis/api";
 import { Button, Checkbox, Input, Select, Textarea } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
+import { ColumnAgentFields } from "../../../../agents/ColumnAgentFields";
 import type { StatusRowProps } from "../../StatusRow";
-import { ColumnAgentFields } from "../ColumnAgentFields";
 
 const colors: { value: ColorToken; label: string }[] = [
 	{ value: "fg", label: "Foreground" },

@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { HarnessSchema, type StatusAgentConfig } from "@trellis/api";
 import { Select } from "@trellis/ui";
-import { useApp } from "../../../../../lib/appContext";
-import { LaunchFields } from "../../../../agents/LaunchFields";
+import { useApp } from "../../../lib/appContext";
+import { LaunchFields } from "../LaunchFields";
 
 export function ColumnAgentFields({
 	value,

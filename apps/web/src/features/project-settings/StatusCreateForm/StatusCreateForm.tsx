@@ -2,7 +2,7 @@ import type { Reviewer, StatusAgentConfig, StatusCategory } from "@trellis/api";
 import { Button, Input, Select } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
 import { useApp } from "../../../lib/appContext";
-import { ColumnAgentFields } from "../StatusRow/components/ColumnAgentFields";
+import { ColumnAgentFields } from "../../agents/ColumnAgentFields";
 
 export type StatusCreateFormProps = {
 	project: string;
