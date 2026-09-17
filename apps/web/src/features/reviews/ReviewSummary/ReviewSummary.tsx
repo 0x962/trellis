@@ -1,13 +1,17 @@
+import { GithubLogo } from "@phosphor-icons/react";
 import { type ReviewRevision, reviewRef } from "@trellis/api";
 import { Badge, Tooltip } from "@trellis/ui";
+import { ReviewPrimaryActions } from "./components/ReviewPrimaryActions";
 export function ReviewSummary({
 	pr,
 	revision,
 	openCount,
+	onAction,
 }: {
 	pr: string;
 	revision: ReviewRevision | null;
 	openCount: number;
+	onAction: () => void;
 }) {
 	const ref = reviewRef(pr);
 	const meta = revision?.meta as
@@ -26,7 +30,10 @@ export function ReviewSummary({
 		| undefined;
 	return (
 		<div className="review-heading">
-			<h2>{meta?.title ?? `${ref.owner}/${ref.repo} #${ref.number}`}</h2>
+			<div className="review-heading-title">
+				<h2>{meta?.title ?? `${ref.owner}/${ref.repo} #${ref.number}`}</h2>
+				{revision && <ReviewPrimaryActions pr={pr} revision={revision} onDone={onAction} />}
+			</div>
 			<div className="review-heading-meta">
 				<Badge tone={meta?.state === "MERGED" ? "agent" : meta?.state === "OPEN" && !meta.isDraft ? "ok" : "neutral"}>
 					{meta?.isDraft
@@ -41,7 +48,8 @@ export function ReviewSummary({
 				</Badge>
 				{meta?.mergeable === "CONFLICTING" && (
 					<Tooltip content="Open merge conflicts on GitHub">
-						<a href={`${pr}/conflicts`} target="_blank" rel="noreferrer">
+						<a className="inline-flex items-center gap-1.5" href={`${pr}/conflicts`} target="_blank" rel="noreferrer">
+							<GithubLogo aria-hidden="true" className="size-3.5" />
 							<Badge tone="wait">Merge conflicts</Badge>
 						</a>
 					</Tooltip>

@@ -1,4 +1,4 @@
-import { ArrowSquareOut, Warning } from "@phosphor-icons/react";
+import { GithubLogo, Warning } from "@phosphor-icons/react";
 import type { LinkedPullRequest, TicketSummary } from "@trellis/api";
 import { cx, IconButton, ReviewStateIcon } from "@trellis/ui";
 import { tabularClass } from "../../../../../lib/format";
@@ -43,7 +43,7 @@ export function PullRequestRow({ ticket, pr, onOpen }: PullRequestRowProps) {
 			)}
 			<IconButton
 				label="Open on GitHub"
-				icon={<ArrowSquareOut />}
+				icon={<GithubLogo />}
 				size="xs"
 				className="relative opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
 				onClick={() => window.open(pr.url, "_blank", "noopener")}
