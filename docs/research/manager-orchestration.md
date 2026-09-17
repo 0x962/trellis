@@ -7,7 +7,7 @@ The manager repeatedly coordinated disk cleanup and reconciled installed and act
 Those tasks consumed manager turns and context that could serve ticket assignments and review decisions.
 
 - Create a ticket for disk cleanup and assign a worker. Let that worker own diagnosis, cleanup, checks, and the result.
-- Delegate release version reconciliation to the SRE or another suitable worker. Require a concise result with evidence and any decision needed.
+- Delegate release version reconciliation to the SRE or another suitable worker. Require a concise result and any decision needed.
 - Keep PR reviewer assignments, priorities, ownership, and dependencies with the manager.
 - Give each delegated task an outcome, scope, acceptance conditions, and escalation conditions. Let its worker choose and coordinate the technical steps.
 - Reuse the existing owner when a task already has one. Read results or changed blockers instead of repeatedly supervising technical steps.

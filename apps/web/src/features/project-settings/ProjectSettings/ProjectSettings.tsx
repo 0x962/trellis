@@ -1,36 +1,61 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import type { Project } from "@trellis/api";
+import type { ReactNode } from "react";
 import { projectSlashPath } from "../../../lib/projectPath";
 import { NotesSettings } from "../../notes/NotesSettings";
+import { LabelSettings } from "../LabelSettings";
+import { useProjectManagerConfig } from "../hooks/useProjectManagerConfig";
 import { ManagerSettings } from "../ManagerSettings";
-import { ProjectDetailsForm } from "../ProjectDetailsForm";
+import { ProjectGeneralSettings } from "../ProjectGeneralSettings";
 import { ProjectLifecycle } from "../ProjectLifecycle";
-import { RepoSettings } from "../RepoSettings";
 import { StatusSettings } from "../StatusSettings";
-import { SubprojectSettings } from "../SubprojectSettings";
 import { TicketTemplateSettings } from "../TicketTemplateSettings";
 
 const sections = [
-	{ id: "", label: "General", component: ProjectDetailsForm },
-	{ id: "notes", label: "Notes", component: NotesSettings },
-	{ id: "template", label: "Ticket template", component: TicketTemplateSettings },
-	{ id: "statuses", label: "Statuses", component: StatusSettings },
-	{ id: "repositories", label: "Repositories", component: RepoSettings },
-	{ id: "manager", label: "Copilot", component: null },
-	{ id: "harness", label: "Harness", component: null },
-	{ id: "subprojects", label: "Subprojects", component: SubprojectSettings },
-	{ id: "archive", label: "Danger Zone", component: ProjectLifecycle },
+	{ id: "", label: "General" },
+	{ id: "notes", label: "Notes" },
+	{ id: "template", label: "Ticket template" },
+	{ id: "statuses", label: "Statuses" },
+	{ id: "labels", label: "Labels" },
+	{ id: "manager", label: "Copilot" },
+	{ id: "harness", label: "Harness" },
+	{ id: "archive", label: "Danger Zone" },
 ] as const;
 
 export type ProjectSettingsSectionId = (typeof sections)[number]["id"];
-type ProjectSettingsProps = { project: Project; section?: ProjectSettingsSectionId };
+export type ProjectSettingsProps = { project: Project; section?: ProjectSettingsSectionId };
 
 const isProjectSettingsSection = (value: string): value is ProjectSettingsSectionId =>
 	sections.some((section) => section.id === value);
 
 export function ProjectSettings({ project, section }: ProjectSettingsProps) {
+	return <ProjectSettingsContent key={project.id} project={project} section={section} />;
+}
+
+function ProjectSettingsContent({ project, section }: ProjectSettingsProps) {
 	const hash = useLocation({ select: (location) => location.hash });
 	const selected = section ?? (isProjectSettingsSection(hash) ? hash : "");
+	const manager = useProjectManagerConfig(project);
+
+	const contentFor = (id: ProjectSettingsSectionId): ReactNode => {
+		switch (id) {
+			case "":
+				return <ProjectGeneralSettings project={project} manager={manager} />;
+			case "notes":
+				return selected === "notes" ? <NotesSettings project={project} /> : null;
+			case "template":
+				return <TicketTemplateSettings project={project} />;
+			case "statuses":
+				return <StatusSettings project={project} />;
+			case "labels":
+				return <LabelSettings project={project} />;
+			case "manager":
+			case "harness":
+				return null;
+			case "archive":
+				return <ProjectLifecycle project={project} />;
+		}
+	};
 	return (
 		<div className="project-settings-layout">
 			<nav aria-label="Project settings" className="project-settings-nav">
@@ -54,21 +79,22 @@ export function ProjectSettings({ project, section }: ProjectSettingsProps) {
 					))}
 				</ul>
 			</nav>
-			<div className="project-settings-content" key={project.id}>
-				{sections.map(({ id, component: Component }) => {
-					if (Component === null || (id === "notes" && selected !== "notes")) return null;
+			<div className="project-settings-content">
+				{sections.map(({ id }) => {
+					const content = contentFor(id);
+					if (content === null) return null;
 					return (
 						<div key={id} hidden={selected !== id} className="project-settings-page">
 							<fieldset
 								disabled={id !== "archive" && id !== "notes" && project.archivedAt !== null}
 								className="min-w-0"
 							>
-								<Component project={project} />
+								{content}
 							</fieldset>
 						</div>
 					);
 				})}
-				<ManagerSettings project={project} section={selected} />
+				<ManagerSettings project={project} section={selected} manager={manager} />
 			</div>
 		</div>
 	);

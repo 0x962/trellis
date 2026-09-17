@@ -3,7 +3,6 @@ import type { Project } from "@trellis/api";
 import { Button, IconButton, Input } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
 import { useApp } from "../../../lib/appContext";
-import { SettingsSection } from "../SettingsSection";
 
 export type RepoSettingsProps = {
 	project: Project;
@@ -41,10 +40,13 @@ export function RepoSettings({ project }: RepoSettingsProps) {
 		save(project.repos.filter((entry) => entry.owner !== owner || entry.repo !== repo));
 
 	return (
-		<SettingsSection
-			title="Repositories"
-			hint="Connect GitHub repositories to find pull requests that reference project tickets."
-		>
+		<section className="project-settings-group">
+			<div className="flex flex-col gap-1">
+				<h3 className="project-settings-group-title">Repositories</h3>
+				<p className="text-sm leading-relaxed text-fg-muted">
+					Connect GitHub repositories to find pull requests that reference project tickets.
+				</p>
+			</div>
 			{project.repos.length === 0 ? (
 				<p className="text-sm text-fg-muted">
 					No repositories connected. Add a repository to link its pull requests to tickets.
@@ -91,6 +93,6 @@ export function RepoSettings({ project }: RepoSettingsProps) {
 					{message}
 				</p>
 			)}
-		</SettingsSection>
+		</section>
 	);
 }

@@ -32,6 +32,7 @@ import * as flows from "./flows/flows.ts";
 import * as flowSave from "./flows/save.ts";
 import * as harnessAccounts from "./harnessAccounts/harnessAccounts.ts";
 import { prepareQuota } from "./harnessAccounts/quota.ts";
+import * as labelGroups from "./labelGroups.ts";
 import * as loops from "./loops/loops.ts";
 import * as needsYou from "./needsYou/needsYou.ts";
 import * as notes from "./notes/notes.ts";
@@ -193,6 +194,9 @@ export const services = {
 	"flows.update": core("mutation", flows.update),
 	"flows.save": core("mutation", flowSave.save),
 	"flows.delete": core("mutation", flows.remove),
+	"labelGroups.list": core("read", labelGroups.list),
+	"labelGroups.create": core("mutation", labelGroups.create),
+	"labelGroups.createLabel": core("mutation", labelGroups.createLabel),
 	"projects.list": core("read", projects.list),
 	"projects.get": core("read", projects.get),
 	"projects.create": core("mutation", projects.create),
@@ -254,6 +258,7 @@ export const services = {
 	"loops.list": io("read", loops.list),
 	"loops.control": io("mutation", loops.control),
 	"system.health": io("read", system.health),
+	"system.load": prepared("read", system.prepareLoad, agentTerminal.result),
 	"system.snapshot": io("mutation", system.snapshot),
 	"system.export": { family: "io", kind: "read", stream: system.exportNdjson } as ServiceEntry,
 } satisfies Record<string, ServiceEntry>;

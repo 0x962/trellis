@@ -1,7 +1,9 @@
 import { ActorChip } from "../../../domain/ActorChip";
 import { type Check, CheckRibbon } from "../../../domain/CheckRibbon";
 import { type Priority, PriorityIcon } from "../../../domain/PriorityIcon";
+import { type PullRequestReviewStatus, ReviewStatusSummary } from "../../../domain/ReviewStatusSummary";
 import { StatusIcon } from "../../../domain/StatusIcon";
+import { TicketGlimmer } from "../../../domain/TicketGlimmer";
 import { TicketId } from "../../../domain/TicketId";
 import { TrellisMark } from "../../../domain/TrellisMark";
 import { Section } from "../Section";
@@ -18,6 +20,21 @@ const skipped = ribbon(["pass", "pass", "skipping", "pass"]);
 const crowded = ribbon(Array.from({ length: 40 }, (_, index) => (index === 19 ? "fail" : "pass")));
 // 80 checks with one failure: more checks than px, so the ribbon draws runs.
 const packed = ribbon(Array.from({ length: 80 }, (_, index) => (index === 39 ? "fail" : "pass")));
+
+const reviews: PullRequestReviewStatus[] = (
+	[
+		{ reviewState: "none", isDraft: false },
+		{ reviewState: "review_required", isDraft: false },
+		{ reviewState: "changes_requested", isDraft: false },
+		{ reviewState: "approved", isDraft: false },
+		{ reviewState: "approved", isDraft: false },
+		{ reviewState: "approved", isDraft: false },
+		{ reviewState: "review_required", isDraft: false },
+		{ reviewState: "changes_requested", isDraft: false },
+		{ reviewState: "none", isDraft: true },
+		{ reviewState: "approved", isDraft: false },
+	] as const
+).map((review, index) => ({ ...review, owner: "0x962", repo: "trellis", number: 100 + index }));
 
 // The trellis-specific marks in every variant.
 export function DomainSections() {
@@ -59,6 +76,10 @@ export function DomainSections() {
 					</span>
 				))}
 			</Section>
+			<Section name="ReviewStatusSummary" note="five approval icons; five more behind a hover card">
+				<ReviewStatusSummary reviews={reviews.slice(0, 5)} />
+				<ReviewStatusSummary reviews={reviews} />
+			</Section>
 			<Section name="CheckRibbon" note="full and mini; passed, failed, pending, skipped; 40 and 80 checks">
 				<span className="inline-flex items-center gap-2 text-sm text-fg-muted">
 					<CheckRibbon checks={passing} /> 6 passed
@@ -97,6 +118,18 @@ export function DomainSections() {
 			<Section name="TicketId" note="md in a row; sm on a card">
 				<TicketId id="CDE-43" />
 				<TicketId id="TRL-9" size="sm" />
+			</Section>
+			<Section name="TicketGlimmer" note="active work; moving soap-film layers">
+				<div className="relative min-h-19 w-72 rounded-md border border-border bg-surface p-3 text-sm">
+					<TicketGlimmer active />
+					<span>TRL-132</span>
+					<p className="mt-1.5 text-fg-muted">Agent work with an oil-film glimmer</p>
+				</div>
+				<div className="relative min-h-19 w-72 rounded-md border border-border bg-surface p-3 text-sm">
+					<TicketGlimmer active />
+					<span>TRL-86</span>
+					<p className="mt-1.5 text-fg-muted">Each active card has a different pattern</p>
+				</div>
 			</Section>
 			<Section name="TrellisMark" note="16 px in the sidebar; 32 px on the setup card; the favicon drawing">
 				<TrellisMark />

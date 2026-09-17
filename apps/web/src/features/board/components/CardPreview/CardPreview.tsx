@@ -1,24 +1,34 @@
 import type { TicketSummary } from "@trellis/api";
+import type { RefObject } from "react";
+import type { DragPreviewFrame } from "../../dragPreview";
 import { CardContent } from "../CardContent";
 
 export type CardPreviewProps = {
 	ticket: TicketSummary;
-	// The width of the card on the board, in px.
-	width: number;
+	frame: DragPreviewFrame;
+	positionRef: RefObject<HTMLDivElement | null>;
+	surfaceRef: RefObject<HTMLDivElement | null>;
 	showStatus?: boolean;
 };
 
-// The image under the pointer while a card drags. The browser takes one
-// snapshot of it, so it carries its own surface, border, and padding: the
-// drag library makes the container around it transparent.
-export function CardPreview({ ticket, width, showStatus }: CardPreviewProps) {
+// The outer transform follows the pointer. The inner transform rotates around
+// the grabbed point, so that point stays under the pointer during a swing.
+export function CardPreview({ ticket, frame, positionRef, surfaceRef, showStatus }: CardPreviewProps) {
 	return (
 		<div
+			ref={positionRef}
 			data-card-preview=""
-			style={{ width: `${width}px`, transform: "rotate(2deg)" }}
-			className="flex min-h-19 flex-col gap-1.5 rounded-md border-x border-b border-border-strong bg-elevated p-3 shadow-kanban-drag"
+			aria-hidden="true"
+			style={{ width: `${frame.width}px`, transform: `translate3d(${frame.left}px, ${frame.top}px, 0)` }}
+			className="pointer-events-none fixed top-0 left-0 z-50"
 		>
-			<CardContent ticket={ticket} showStatus={showStatus} />
+			<div
+				ref={surfaceRef}
+				style={{ transformOrigin: `${frame.offsetX}px ${frame.offsetY}px` }}
+				className="flex min-h-19 flex-col gap-1.5 rounded-md border-x border-b border-border-strong bg-elevated p-3 shadow-kanban-drag transition-transform duration-row ease-out motion-reduce:transition-none"
+			>
+				<CardContent ticket={ticket} showStatus={showStatus} />
+			</div>
 		</div>
 	);
 }

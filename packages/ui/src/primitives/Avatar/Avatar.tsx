@@ -21,17 +21,19 @@ const initials = (name: string) =>
 		.join("");
 
 export function Avatar({ kind, name, className, personaKind, state = "static" }: AvatarProps) {
+	// The initials use a span because `profile-metal` paints a film and lifts
+	// only its child span above the film.
 	return (
 		<span
 			role="img"
 			aria-label={kind === "agent" ? `${name} · agent${state === "static" ? "" : " · working"}` : name}
 			className={cx(
 				"relative inline-grid size-4.5 shrink-0 place-items-center rounded-round select-none",
-				kind === "human" && "bg-fg-muted text-surface text-initials font-semibold",
+				kind === "human" && "profile-metal text-initials font-semibold",
 				className,
 			)}
 		>
-			{kind === "agent" ? <PersonaMark name={name} kind={personaKind} state={state} /> : initials(name)}
+			{kind === "agent" ? <PersonaMark name={name} kind={personaKind} state={state} /> : <span>{initials(name)}</span>}
 		</span>
 	);
 }

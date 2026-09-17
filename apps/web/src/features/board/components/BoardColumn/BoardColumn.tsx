@@ -1,11 +1,13 @@
 import { CaretRight, DotsThree, Plus } from "@phosphor-icons/react";
 import { Button, cx, IconButton, Input, Menu, StatusIcon } from "@trellis/ui";
 import { type KeyboardEvent, useCallback, useRef, useState } from "react";
+import { workingGroupInsertIndex } from "../../columns";
 import { useBoardAutoScroll, useColumnDnd } from "../../hooks/useBoardDnd";
 import type { BoardColumnModel } from "../../types";
 import { BoardCard } from "../BoardCard";
 import { DragIndicator } from "../DragIndicator";
 import { WipBadge } from "../WipBadge";
+import { ColumnAgentBadge } from "./components/ColumnAgentBadge";
 
 export type BoardColumnProps = {
 	column: BoardColumnModel;
@@ -17,6 +19,7 @@ export type BoardColumnProps = {
 	width: string;
 	// True in the light theme: the column is a grey well that holds white cards.
 	well: boolean;
+	workingTicketIds: ReadonlySet<string>;
 	onToggle: () => void;
 	onShowAllDone: () => void;
 	// Opens the New ticket form with the project and the column's status.
@@ -47,6 +50,7 @@ export function BoardColumn({
 	categoryMode,
 	width,
 	well,
+	workingTicketIds,
 	onToggle,
 	onShowAllDone,
 	onNewTicket,
@@ -81,8 +85,10 @@ export function BoardColumn({
 			? column.items.filter((ticket) => ticket.completedAt !== null && Date.parse(ticket.completedAt) >= cutoff())
 			: column.items;
 	const count = column.category === "done" && !showAllDone ? visible.length : column.count;
+	const dropIndex = over === null ? null : workingGroupInsertIndex(visible, over.ticketId, workingTicketIds);
 	const exceeded = column.wipLimit !== null && column.count > column.wipLimit;
 	const reviewer = column.statuses[0]?.reviewer ?? undefined;
+	const agentConfig = singleStatus?.agentConfig ?? null;
 
 	if (collapsed) {
 		return (
@@ -94,12 +100,13 @@ export function BoardColumn({
 				data-category={column.category}
 				className={cx(
 					"flex w-10 shrink-0 snap-start flex-col items-center rounded-lg border bg-surface py-2 transition-colors duration-hover",
-					over ? "border-accent" : "border-border",
+					over !== null ? "border-accent" : "border-border",
 				)}
 			>
 				<li role="none" className="contents">
 					<IconButton label={`Expand ${column.name}`} icon={<CaretRight />} size="xs" onClick={onToggle} />
 					<StatusIcon category={column.category} reviewer={reviewer} />
+					{agentConfig && <ColumnAgentBadge columnName={column.name} config={agentConfig} />}
 					<span className="mt-2 [writing-mode:vertical-rl] text-sm font-medium text-fg-muted">
 						{column.name} <span className="tabular">{count}</span>
 					</span>
@@ -124,7 +131,8 @@ export function BoardColumn({
 				)}
 			>
 				<StatusIcon category={column.category} reviewer={reviewer} />
-				<h2 className="truncate text-base font-medium">{column.name}</h2>
+				<h2 className="min-w-0 truncate text-base font-medium">{column.name}</h2>
+				{agentConfig && <ColumnAgentBadge columnName={column.name} config={agentConfig} />}
 				<span className="text-sm text-fg-faint tabular">{count}</span>
 				{limitDraft !== null ? (
 					<Input
@@ -177,7 +185,7 @@ export function BoardColumn({
 				data-category={column.category}
 				className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-1"
 			>
-				{over && visible.length === 0 && (
+				{dropIndex === 0 && visible.length === 0 && (
 					<li role="none" className="relative h-0">
 						<DragIndicator />
 					</li>
@@ -190,14 +198,20 @@ export function BoardColumn({
 						columnId={column.id}
 						columnName={column.name}
 						columnCount={visible.length}
+						working={workingTicketIds.has(ticket.id)}
 						onOpen={() => onOpenTicket(ticket.identifier)}
 						onFocus={() => onFocusTicket(ticket.identifier)}
 						onKeyDown={(event) => onCardKeyDown(event, column, index)}
 						announce={onAnnounce}
 						showStatus={categoryMode}
-						dropBefore={over && index === 0}
+						dropBefore={dropIndex === index}
 					/>
 				))}
+				{dropIndex === visible.length && visible.length > 0 && (
+					<li role="none" className="relative h-0">
+						<DragIndicator />
+					</li>
+				)}
 				{visible.length < column.count && column.category !== "done" && (
 					<li role="none" className="self-start">
 						<Button variant="quiet" size="sm" onClick={() => void onShowMore()}>

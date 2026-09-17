@@ -1,4 +1,4 @@
-import { Gear } from "@phosphor-icons/react";
+import { GearSix } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ActorHeaderSchema } from "@trellis/api";
@@ -47,7 +47,7 @@ export function ActorFooter({ collapsed = false }: { collapsed?: boolean }) {
 	};
 
 	return (
-		<div className="flex shrink-0 items-center gap-1 border-t border-border pt-2">
+		<div data-sidebar-actor-footer="" className="flex shrink-0 items-center gap-1 pt-2">
 			<Popover
 				open={open}
 				onOpenChange={onOpenChange}
@@ -78,7 +78,7 @@ export function ActorFooter({ collapsed = false }: { collapsed?: boolean }) {
 						<IconButton
 							label="Settings"
 							role="link"
-							icon={<Gear />}
+							icon={<GearSix data-icon="gear-six" />}
 							nativeButton={false}
 							aria-describedby={ghWarning ? warningId : undefined}
 							render={<Link to="/settings" />}

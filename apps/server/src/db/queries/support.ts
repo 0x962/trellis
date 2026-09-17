@@ -1,4 +1,4 @@
-import { type PrioritySchema, StatusCategorySchema } from "@trellis/api";
+import { type PrioritySchema, type ReviewStateSchema, StatusCategorySchema } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import type { Tx } from "../tx.ts";
 
@@ -31,15 +31,23 @@ export const PRIORITY_ORDER = [
 
 export const priorityRank = (column: SQL) => sql`array_position(${literalArray(PRIORITY_ORDER)}, ${column})`;
 
-// The worst CI state across a set of pull requests is the one with the
-// highest rank; the worst pull request state is the one that still needs
-// work.
+// ticketSummary.ts sorts linked pull requests with these arrays. The first
+// value is the state that needs the most work.
 export const CI_WORST_FIRST = ["fail", "pending", "pass", "none"] as const;
 export const PR_STATE_WORST_FIRST = ["open", "closed", "merged"] as const;
+export const REVIEW_STATE_WORST_FIRST = [
+	"changes_requested",
+	"review_required",
+	"none",
+	"approved",
+] as const satisfies readonly (typeof ReviewStateSchema.options)[number][];
 
 export const ciRank = (column: SQL) => sql`array_position(${literalArray(CI_WORST_FIRST)}, ${column})`;
 
 export const prStateRank = (column: SQL) => sql`array_position(${literalArray(PR_STATE_WORST_FIRST)}, ${column})`;
+
+export const reviewStateRank = (column: SQL) =>
+	sql`array_position(${literalArray(REVIEW_STATE_WORST_FIRST)}, ${column})`;
 
 // The dotted path of every project (`CDE.web.auth`) and its depth. The tree
 // has no maximum depth. The schema refuses parent_id = id and nothing else,

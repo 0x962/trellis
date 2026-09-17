@@ -1,4 +1,6 @@
 @utility page-inset {
+	@apply m-1 overflow-hidden rounded-lg border border-border max-md:m-0 max-md:rounded-none max-md:border-0;
+
 	& > .page-card:first-child {
 		@apply mt-13;
 	}
@@ -6,4 +8,17 @@
 
 @utility page-card {
 	@apply min-h-0 min-w-0;
+}
+
+@utility ticket-tabs-layout {
+	@apply flex min-h-0 min-w-0 flex-1 flex-col;
+	& > [role="tablist"] {
+		@apply h-10 shrink-0 items-end px-5 max-md:px-4;
+	}
+	& > [role="tabpanel"] {
+		@apply flex min-h-0 flex-1 flex-col pt-3;
+	}
+	& > [role="tabpanel"][hidden] {
+		@apply hidden;
+	}
 }

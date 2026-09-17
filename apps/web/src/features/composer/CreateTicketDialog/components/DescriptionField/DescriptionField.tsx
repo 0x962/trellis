@@ -13,9 +13,9 @@ export type DescriptionFieldProps = {
 	onChange: (markdown: string) => void;
 };
 
-// The writing area: no box, at least 120 px tall, and at most half the
-// screen before it scrolls. The text starts at the top left.
-const area = "max-h-[50vh] min-h-30 w-full overflow-y-auto text-left text-base text-fg";
+// The writing area grows until it reaches half the screen. The text starts
+// at the top edge and the area scrolls after it reaches that limit.
+const area = "max-h-[50vh] min-h-20 w-full overflow-y-auto px-3 pb-2 text-left text-base text-fg";
 
 // The description: rendered read-only until it takes focus, then the
 // editor. The editor's chunk loads on that first focus.

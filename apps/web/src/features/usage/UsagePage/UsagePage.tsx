@@ -1,5 +1,5 @@
 import { ArrowClockwise } from "@phosphor-icons/react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import type { UsageDays, UsageGroupBy, UsageGroupRow, UsageMetric } from "@trellis/api";
 import {
@@ -87,7 +87,11 @@ export function UsagePage() {
 	const setSearch = (patch: Partial<typeof search>) =>
 		void navigate({ search: (previous) => ({ ...previous, ...patch }), replace: true });
 
-	const report = useQuery({ ...orpc.usage.report.queryOptions({ input: { days } }), staleTime: 60_000 });
+	const report = useQuery({
+		...orpc.usage.report.queryOptions({ input: { days } }),
+		staleTime: 5 * 60_000,
+		placeholderData: keepPreviousData,
+	});
 	const refresh = useMutation({
 		mutationFn: () => client.usage.report({ days, refresh: true }),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.usage.report.key() }),

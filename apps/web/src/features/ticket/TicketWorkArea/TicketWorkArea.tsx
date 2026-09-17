@@ -8,7 +8,6 @@ import { AgentRunDetails } from "../../agents/AgentRunDetails";
 import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
 import { PullRequests } from "../../prs";
 import { FlowRuns } from "./components/FlowRuns";
-import { LocalChanges } from "./components/LocalChanges";
 
 export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity: ReactNode }) {
 	const { orpc } = useApp();
@@ -22,7 +21,6 @@ export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity:
 	const runs = useQuery({
 		...orpc.agentRuns.list.queryOptions({ input: { ticket: ticket.identifier } }),
 	});
-	const run = runs.data?.[0];
 	const assigned = runs.data?.find(hasAssignedProcess);
 	const execution = (
 		<section aria-label="Execution" className="flex flex-col gap-3">
@@ -42,24 +40,40 @@ export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity:
 		</section>
 	);
 	return (
-		<section aria-label="Ticket work area" className="min-w-0">
+		<section aria-label="Ticket pages" className="flex min-h-0 min-w-0 flex-1 flex-col">
 			<Tabs
+				className="ticket-tabs-layout"
 				value={tab}
 				onValueChange={setTab}
 				items={[
 					{ value: "activity", label: "Activity", content: activity },
-					{ value: "agent", label: "Agent", content: execution },
+					{
+						value: "agent",
+						label: "Agent",
+						content: (
+							<div className="page-card flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-4 max-md:px-4">
+								{execution}
+							</div>
+						),
+					},
 					{
 						value: "changes",
 						label: "Changes",
 						content: (
-							<div className="flex flex-col gap-8">
-								{run?.runtime === "native" && run.workspaceId && <LocalChanges key={run.terminalId} run={run} />}
+							<div className="page-card flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-4 max-md:px-4">
 								<PullRequests ticket={ticket} initialPrs={ticket.prs} />
 							</div>
 						),
 					},
-					{ value: "flows", label: "Flows", content: <FlowRuns ticket={ticket.identifier} /> },
+					{
+						value: "flows",
+						label: "Flows",
+						content: (
+							<div className="page-card min-h-0 flex-1 overflow-y-auto px-5 py-4 max-md:px-4">
+								<FlowRuns ticket={ticket.identifier} />
+							</div>
+						),
+					},
 				]}
 			/>
 		</section>

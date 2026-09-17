@@ -17,7 +17,6 @@ The first package target is Apple Silicon.
 | Evidence | Worktree diff and files, command results, artifact hashes, revision checks, and confirmed check exit recovery |
 | Flows | Frozen graph and persona versions, agent attempts, YES/NO gates, human decisions, joins, deadlines, and cancellation |
 | Work area | Activity first, assigned-agent terminal, local changes, and flow decisions |
-| Drafts | Browser export/import, independent recovery copies, collision preservation, and save acknowledgement |
 | Data directory | New data or an existing home, confirmed service handoff, database backup, and paused automation |
 | App replacement | Retained host resources and protocol checks before activation |
 
@@ -60,16 +59,13 @@ The [directory report](acceptance/2026-09-14-directory/report.md) records the se
 
 Read [the desktop guide](../../apps/desktop/README.md) for build and package commands.
 Close or quit detaches the window and leaves background work active.
-Use Quit Trellis Completely in the Trellis menu or Settings > Desktop to pause dispatch, stop owned processes, and remove the background service.
+Use Quit Trellis Completely in the Trellis menu to stop the host, its agents, and the background service.
 An unconfirmed process prevents a successful stop.
 
 Use Settings > Desktop > Choose data directory to open an existing home in place.
 The confirmation shows both directories, the backup path, and the service changes.
 The handoff verifies the standalone service PID and configured home before it disables that service.
 It backs up the database before schema changes and pauses automation. Both directories retain their files.
-
-Export browser drafts under Settings, Drafts. Import that file in the desktop app.
-Review each recovery copy before removal. Flow copies clear only after the host confirms the selected graph.
 
 ## Release checks
 
@@ -79,4 +75,4 @@ VoiceOver, 200% zoom, and a full keyboard accessibility pass remain release chec
 The 24-hour unattended soak and a real PR with CI and Margin feedback remain unverified.
 
 Git and the selected agent executable remain local prerequisites. Model access follows the agent's account requirements.
-The app provides a manual replacement path through the update status in Settings > Desktop.
+Replace the installed package, then use Trellis > Restart to load it.

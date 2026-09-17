@@ -3,14 +3,18 @@ import {
 	dropTargetForElements,
 	monitorForElements,
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
-import { preserveOffsetOnSource } from "@atlaskit/pragmatic-drag-and-drop/element/preserve-offset-on-source";
-import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview";
+import { disableNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/element/disable-native-drag-preview";
 import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
-import type { TicketSummary } from "@trellis/api";
-import { createElement, type RefObject, useEffect, useState } from "react";
+import { useReducedMotion } from "@trellis/ui";
+import { type RefObject, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { createRoot } from "react-dom/client";
-import { CardPreview } from "../components/CardPreview";
+import {
+	type DragPointer,
+	type DragPreviewFrame,
+	dragPreviewFrame,
+	dragPreviewPosition,
+	dragPreviewRotation,
+} from "../dragPreview";
 import type { BoardColumnModel, BoardMove } from "../types";
 
 type TicketData = {
@@ -23,6 +27,7 @@ type TicketData = {
 	index: number;
 	columnName: string;
 	columnCount: number;
+	previewFrame: DragPreviewFrame;
 };
 
 const isTicketData = (data: Record<string | symbol, unknown>): data is TicketData => data.type === "ticket";
@@ -37,89 +42,93 @@ export const useBoardAutoScroll = (ref: RefObject<HTMLElement | null>, enabled: 
 };
 
 export type CardDndState = {
-	// True from the start of this card's drag to its drop.
 	dragging: boolean;
+	previewFrame: DragPreviewFrame | null;
+	positionRef: RefObject<HTMLDivElement | null>;
+	surfaceRef: RefObject<HTMLDivElement | null>;
 };
 
 export const useCardDnd = (
 	ref: RefObject<HTMLElement | null>,
-	input: Omit<TicketData, "type">,
+	input: Omit<TicketData, "type" | "previewFrame">,
 	announce: (message: string) => void,
-	preview: { ticket: TicketSummary; showStatus: boolean },
 	// True for a ticket under an archived project.
 	readOnly = false,
 ): CardDndState => {
-	const [dragging, setDragging] = useState(false);
+	const reducedMotion = useReducedMotion();
+	const [previewFrame, setPreviewFrame] = useState<DragPreviewFrame | null>(null);
+	const positionRef = useRef<HTMLDivElement>(null);
+	const surfaceRef = useRef<HTMLDivElement>(null);
 	const { ticketId, columnId, identifier, title, index, columnName, columnCount } = input;
-	const { ticket, showStatus } = preview;
 	useEffect(() => {
 		const element = ref.current!;
-		return draggable({
+		let frame: DragPreviewFrame;
+		let previous: DragPointer;
+		let settleTimer: ReturnType<typeof setTimeout> | undefined;
+
+		const rotate = (degrees: number) => {
+			surfaceRef.current!.style.transform = `rotate(${degrees}deg)`;
+		};
+
+		const movePreview = (pointer: DragPointer) => {
+			const position = dragPreviewPosition(frame, pointer);
+			positionRef.current!.style.transform = `translate3d(${position.left}px, ${position.top}px, 0)`;
+			if (reducedMotion) return;
+			rotate(dragPreviewRotation(frame, pointer, previous));
+			if (settleTimer !== undefined) clearTimeout(settleTimer);
+			settleTimer = setTimeout(() => rotate(dragPreviewRotation(frame, pointer, pointer)), 80);
+			previous = pointer;
+		};
+
+		const cleanup = draggable({
 			element,
 			// A ticket under an archived project takes no move, so no drag starts.
 			canDrag: () => !readOnly,
-			getInitialData: () => ({
-				type: "ticket",
-				ticketId,
-				columnId,
-				identifier,
-				title,
-				index,
-				columnName,
-				columnCount,
-			}),
-			// The drag library writes inline styles on `container` that clear
-			// its fill, border, and padding. The preview therefore draws its
-			// own card in a child element. The render is synchronous, because
-			// the browser takes the snapshot as soon as `render` returns.
-			onGenerateDragPreview: ({ nativeSetDragImage, location }) => {
-				setCustomNativeDragPreview({
-					nativeSetDragImage,
-					getOffset: preserveOffsetOnSource({ element, input: location.current.input }),
-					render: ({ container }) => {
-						const mount = document.createElement("div");
-						container.appendChild(mount);
-						const root = createRoot(mount);
-						const width = element.getBoundingClientRect().width;
-						flushSync(() => root.render(createElement(CardPreview, { ticket, width, showStatus })));
-						return () => root.unmount();
-					},
-				});
+			getInitialData: ({ input }) => {
+				frame = dragPreviewFrame(element.getBoundingClientRect(), input);
+				previous = input;
+				return {
+					type: "ticket",
+					ticketId,
+					columnId,
+					identifier,
+					title,
+					index,
+					columnName,
+					columnCount,
+					previewFrame: frame,
+				};
 			},
-			onDragStart: () => {
-				setDragging(true);
+			onGenerateDragPreview: ({ nativeSetDragImage }) => {
+				disableNativeDragPreview({ nativeSetDragImage });
+			},
+			onDragStart: ({ location }) => {
+				flushSync(() => setPreviewFrame(frame));
+				movePreview(location.current.input);
 				announce(`${identifier} picked up from ${columnName}, position ${index + 1} of ${columnCount}`);
 			},
-			onDrop: () => setDragging(false),
+			onDrag: ({ location }) => movePreview(location.current.input),
+			onDrop: () => {
+				if (settleTimer !== undefined) clearTimeout(settleTimer);
+				setPreviewFrame(null);
+			},
 		});
-	}, [
-		announce,
-		columnCount,
-		columnId,
-		columnName,
-		identifier,
-		index,
-		readOnly,
-		ref,
-		ticketId,
-		title,
-		ticket,
-		showStatus,
-	]);
-	return { dragging };
+		return () => {
+			cleanup();
+			if (settleTimer !== undefined) clearTimeout(settleTimer);
+		};
+	}, [announce, columnCount, columnId, columnName, identifier, index, readOnly, reducedMotion, ref, ticketId, title]);
+	return { dragging: previewFrame !== null, previewFrame, positionRef, surfaceRef };
 };
 
-// `over` is true while a card from another column hangs over this column.
-// The card lands at the top of the column, so the column marks that one
-// place. A column refuses a card it already holds, so a drag inside a
-// column marks nothing.
 export const useColumnDnd = (
 	ref: RefObject<HTMLElement | null>,
 	column: BoardColumnModel,
 	collapsed: boolean,
 	expand: () => void,
 ) => {
-	const [over, setOver] = useState(false);
+	// BoardColumn uses the dragged ticket to mark its active or inactive group boundary.
+	const [over, setOver] = useState<TicketData | null>(null);
 	useEffect(() => {
 		const element = ref.current!;
 		let timer: ReturnType<typeof setTimeout> | undefined;
@@ -127,16 +136,16 @@ export const useColumnDnd = (
 			element,
 			canDrop: ({ source }) => isTicketData(source.data) && source.data.columnId !== column.id,
 			getData: () => ({ type: "column", columnId: column.id }),
-			onDragEnter: () => {
-				setOver(true);
+			onDragEnter: ({ source }) => {
+				setOver(source.data as TicketData);
 				if (collapsed) timer = setTimeout(expand, 400);
 			},
 			onDragLeave: () => {
-				setOver(false);
+				setOver(null);
 				if (timer !== undefined) clearTimeout(timer);
 			},
 			onDrop: () => {
-				setOver(false);
+				setOver(null);
 				if (timer !== undefined) clearTimeout(timer);
 			},
 		});
@@ -149,8 +158,8 @@ export const useBoardMonitor = (
 	onMove: (move: BoardMove) => void,
 	onChooseStatus: (move: BoardMove) => void,
 	announce: (message: string) => void,
-	// Receives the dragged card's box before the move, for the drop motion.
-	onDropped: (ticketId: string, from: DOMRect) => void,
+	// useCardPositionMotion needs this box before runMove changes the card's column.
+	onDropped: (ticketId: string, priorBox: DOMRect) => void,
 ) => {
 	useEffect(
 		() =>
@@ -173,7 +182,11 @@ export const useBoardMonitor = (
 					}
 					const ticket = columns.flatMap((column) => column.items).find((item) => item.id === data.ticketId)!;
 					const column = columns.find((entry) => entry.id === target.data.columnId)!;
-					onDropped(ticket.id, source.element.getBoundingClientRect());
+					const position = dragPreviewPosition(data.previewFrame, location.current.input);
+					onDropped(
+						ticket.id,
+						new DOMRect(position.left, position.top, data.previewFrame.width, data.previewFrame.height),
+					);
 					const move: BoardMove = { ticket, column };
 					if (column.statuses.length > 1) {
 						onChooseStatus(move);
