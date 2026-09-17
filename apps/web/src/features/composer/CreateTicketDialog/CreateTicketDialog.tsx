@@ -13,6 +13,7 @@ import { useCreateTicket } from "../hooks/useCreateTicket";
 import { ChipRow } from "./components/ChipRow";
 import { ComposerHeader } from "./components/ComposerHeader";
 import { DescriptionField } from "./components/DescriptionField";
+import { composerCloseAction } from "./composerCloseAction";
 
 // The quick composer keeps its text and selected files until create or
 // discard. It uploads the files only after the server creates the ticket.
@@ -102,11 +103,14 @@ export function CreateTicketDialog() {
 	};
 
 	const requestClose = () => {
-		if (dirty) setAsking(true);
-		else {
-			clearDraft();
-			composerActions.close();
+		const action = composerCloseAction({ createPending: inFlight.current, dirty });
+		if (action === "block") return;
+		if (action === "confirm") {
+			setAsking(true);
+			return;
 		}
+		clearDraft();
+		composerActions.close();
 	};
 
 	useHotkey("mod+enter", () => void create(createMore));
@@ -125,7 +129,7 @@ export function CreateTicketDialog() {
 			<DropTarget identifier={createdTicket?.identifier ?? "new ticket"} onFiles={uploads.addFiles}>
 				<div className="flex min-h-0 flex-col">
 					<div className="border-b border-border p-4">
-						<ComposerHeader project={chosenProject} onClose={requestClose} />
+						<ComposerHeader project={chosenProject} closeDisabled={creating} onClose={requestClose} />
 					</div>
 					<div className="flex flex-1 flex-col gap-4 p-6 max-md:p-4">
 						<fieldset disabled={createdTicket !== null} className="contents">
@@ -195,13 +199,17 @@ export function CreateTicketDialog() {
 				}
 				confirmLabel="Discard"
 				danger
+				processing={creating}
 				onConfirm={() => {
+					if (composerCloseAction({ createPending: inFlight.current, dirty: false }) === "block") return;
 					setAsking(false);
 					clearDraft();
 					uploads.clear();
 					composerActions.close();
 				}}
-				onCancel={() => setAsking(false)}
+				onCancel={() => {
+					if (!inFlight.current) setAsking(false);
+				}}
 			/>
 		</Dialog>
 	);

@@ -6,13 +6,14 @@ import { ProjectKey } from "../../../../shell/ProjectKey";
 export type ComposerHeaderProps = {
 	// The chosen project ref, `CDE.web`. Undefined before a choice on /all.
 	project: string | undefined;
+	closeDisabled?: boolean;
 	onClose: () => void;
 };
 
 // The top row of the New ticket dialog: where the ticket goes, then the
 // dialog name, then a close button. The dialog keeps "New ticket" as its
 // accessible name.
-export function ComposerHeader({ project, onClose }: ComposerHeaderProps) {
+export function ComposerHeader({ project, closeDisabled = false, onClose }: ComposerHeaderProps) {
 	const [key, ...rest] = project === undefined ? [] : projectSlashPath(project).split("/");
 	return (
 		<div data-composer-header="" className="flex h-7 items-center gap-2">
@@ -28,7 +29,15 @@ export function ComposerHeader({ project, onClose }: ComposerHeaderProps) {
 				</span>
 			)}
 			<span className="text-sm text-fg-muted">New ticket</span>
-			<IconButton variant="quiet" size="sm" label="Close" icon={<X />} onClick={onClose} className="ml-auto" />
+			<IconButton
+				variant="quiet"
+				size="sm"
+				label="Close"
+				icon={<X />}
+				disabled={closeDisabled}
+				onClick={onClose}
+				className="ml-auto"
+			/>
 		</div>
 	);
 }
