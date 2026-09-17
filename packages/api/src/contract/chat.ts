@@ -1,5 +1,7 @@
 import { pickErrors } from "../errors.ts";
 import {
+	ChatAttachmentIdInputSchema,
+	ChatAttachmentSchema,
 	ChatChannelCreateInputSchema,
 	ChatChannelSchema,
 	ChatListInputSchema,
@@ -7,6 +9,8 @@ import {
 	ChatMessageSchema,
 	ChatPostInputSchema,
 	ChatProjectInputSchema,
+	ChatUploadInputSchema,
+	ChatUploadOutputSchema,
 } from "../schemas/chat.ts";
 import { base } from "./base.ts";
 
@@ -35,8 +39,22 @@ export const chat = {
 		})
 		.input(ChatListInputSchema)
 		.output(ChatListSchema),
+	upload: base
+		.errors({ ...archived, ...pickErrors(["PAYLOAD_TOO_LARGE"]) })
+		.route({
+			method: "POST",
+			path: "/projects/{project}/chat/attachments",
+			successStatus: 201,
+			summary: "Upload a file for a chat message as multipart form data",
+		})
+		.input(ChatUploadInputSchema)
+		.output(ChatUploadOutputSchema),
+	attachment: base
+		.route({ method: "GET", path: "/chat/attachments/{id}", summary: "Read chat attachment metadata" })
+		.input(ChatAttachmentIdInputSchema)
+		.output(ChatAttachmentSchema),
 	post: base
-		.errors(archived)
+		.errors({ ...archived, ...pickErrors(["CHAT_AI_ONLY", "CHAT_DIRECT"]) })
 		.route({
 			method: "POST",
 			path: "/projects/{project}/chat/{channel}/messages",

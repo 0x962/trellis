@@ -11,4 +11,4 @@ export const liveSession = (session: RuntimeProcessStatus) =>
 
 // A live manager process between turns. Heartbeats go only to these.
 export const readySession = (session: RuntimeProcessStatus) =>
-	liveSession(session) && (session.activity?.state === "ready" || session.activity?.state === "idle");
+	liveSession(session) && session.activity?.state === "idle";

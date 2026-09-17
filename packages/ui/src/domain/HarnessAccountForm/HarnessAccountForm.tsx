@@ -4,7 +4,7 @@ import { Dialog } from "../../primitives/Dialog";
 import { Input } from "../../primitives/Input";
 import { Select } from "../../primitives/Select";
 
-type Harness = "claude" | "codex" | "opencode" | "pi";
+type Harness = "claude" | "codex" | "opencode" | "pi" | "muse";
 export function HarnessAccountForm({
 	open,
 	busy,
@@ -55,6 +55,7 @@ export function HarnessAccountForm({
 							{ value: "codex", label: "Codex" },
 							{ value: "opencode", label: "OpenCode" },
 							{ value: "pi", label: "Pi" },
+							{ value: "muse", label: "Muse" },
 						]}
 					/>
 				</div>
@@ -66,7 +67,7 @@ export function HarnessAccountForm({
 				/>
 				<p className="text-xs text-fg-muted">
 					Use an absolute path. Claude uses its config directory; Codex uses CODEX_HOME; Pi uses its agent directory;
-					OpenCode uses XDG_DATA_HOME.
+					OpenCode uses XDG_DATA_HOME; Muse uses one directory as XDG_CONFIG_HOME and XDG_DATA_HOME.
 				</p>
 				{error && (
 					<p role="alert" className="text-sm text-danger">

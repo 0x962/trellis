@@ -45,20 +45,16 @@ const batches = () => h.rows(sql`SELECT * FROM manager_dispatches ORDER BY creat
 const observation = (state: "ready" | "working" | "idle", seconds = 0) => {
 	sessions[0]!.activity = { state, updatedAt: secondsAfter(seconds).toISOString() };
 };
-const pause = (paused: boolean) =>
-	h.rows(
-		sql`INSERT INTO settings(key,value,updated_at) VALUES ('nativeWorkPaused',${JSON.stringify(paused)}::jsonb,${NOW}) ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value`,
-	);
 const event = (seconds: number) =>
 	h.read((tx) => seedActivity(tx, { projectId, rootId: projectId, ticketId, createdAt: secondsAfter(seconds) }));
 
-test("a quiet manager receives one durable heartbeat after one minute without new activity", async () => {
-	await gather(59);
+test("a quiet manager receives one durable heartbeat after more than 120 idle seconds", async () => {
+	await gather(120);
 	expect(await batches()).toHaveLength(0);
-	await gather(60);
+	await gather(121);
 	const first = (await batches())[0]!;
 	expect(first).toMatchObject({ state: "pending", events: [] });
-	await h.run((ctx, tx) => recover(ctx, tx, {}), { now: secondsAfter(61) });
+	await h.run((ctx, tx) => recover(ctx, tx, {}), { now: secondsAfter(122) });
 	await Promise.all([gather(600), gather(600)]);
 	expect(await batches()).toHaveLength(1);
 	expect((await take(600))?.id).toBe(first.id);
@@ -149,28 +145,28 @@ test("heartbeat cadence starts from the last sent ticket batch", async () => {
 		(ctx, tx) => complete(ctx, tx, { id: delivery.id, generation: delivery.generation, state: "sent", error: null }),
 		{ now: secondsAfter(70) },
 	);
-	await gather(129);
+	await gather(190);
 	expect(await batches()).toHaveLength(1);
-	await gather(130);
+	await gather(191);
 	expect(await batches()).toHaveLength(2);
-	expect((await take(130))?.events).toEqual([]);
+	expect((await take(191))?.events).toEqual([]);
 });
 test("new ticket activity joins a pending heartbeat without moving its deadline", async () => {
-	await gather(60);
-	await event(60);
-	await gather(61);
+	await gather(121);
+	await event(121);
+	await gather(122);
 	expect(await batches()).toHaveLength(1);
-	expect((await take(61))?.events).toHaveLength(1);
+	expect((await take(122))?.events).toHaveLength(1);
 });
-test("a long turn gets a full quiet minute after its latest observation", async () => {
+test("a long turn gets a full 120 idle seconds after its latest observation", async () => {
 	await observation("working", 10);
 	await gather(1000);
 	expect(await batches()).toHaveLength(0);
 	await observation("idle", 1000);
-	await gather(1059);
+	await gather(1120);
 	expect(await batches()).toHaveLength(0);
-	await gather(1060);
-	expect((await take(1060))?.events).toEqual([]);
+	await gather(1121);
+	expect((await take(1121))?.events).toEqual([]);
 });
 test("a working manager receives no heartbeat", async () => {
 	observation("working");
@@ -208,21 +204,11 @@ test("project pause suppresses heartbeats until dispatch resumes", async () => {
 	await gather(601);
 	expect((await take(601))?.events).toEqual([]);
 });
-test("global pause blocks both heartbeat creation and a previously queued heartbeat", async () => {
-	await pause(true);
-	await gather(600);
-	expect(await batches()).toHaveLength(0);
-	await pause(false);
-	await gather(601);
-	await pause(true);
-	expect(await take(602)).toBeNull();
-	await pause(false);
-	expect((await take(603))?.events).toEqual([]);
-});
+
 test("an unknown send blocks further heartbeats across recovery", async () => {
-	await gather(60);
-	const first = (await take(60))!;
-	await h.run((ctx, tx) => recover(ctx, tx, {}), { now: secondsAfter(61) });
+	await gather(121);
+	const first = (await take(121))!;
+	await h.run((ctx, tx) => recover(ctx, tx, {}), { now: secondsAfter(122) });
 	await gather(3600);
 	expect(await batches()).toHaveLength(1);
 	expect((await batches())[0]).toMatchObject({ id: first.id, state: "unknown" });
@@ -247,12 +233,12 @@ test("a project without a configured manager and a non-native run receive no hea
 	expect(await batches()).toHaveLength(0);
 });
 
-test("a new manager waits one minute even when its runtime turn is older", async () => {
+test("a new manager waits more than 120 seconds even when its runtime turn is older", async () => {
 	await h.rows(sql`UPDATE agent_runs SET created_at=${secondsAfter(100)}`);
-	await gather(159);
+	await gather(220);
 	expect(await batches()).toHaveLength(0);
-	await gather(160);
-	expect((await take(160))?.events).toEqual([]);
+	await gather(221);
+	expect((await take(221))?.events).toEqual([]);
 });
 
 test("uncollected ticket work beyond a page of manager activity takes precedence", async () => {
@@ -261,10 +247,10 @@ test("uncollected ticket work beyond a page of manager activity takes precedence
 			await seedActivity(tx, { projectId, rootId: projectId, ticketId: null, createdAt: NOW });
 	});
 	await event(0);
-	await gather(60);
+	await gather(121);
 	expect(await batches()).toHaveLength(0);
-	await gather(61);
-	expect((await take(61))?.events).toHaveLength(1);
+	await gather(122);
+	expect((await take(122))?.events).toHaveLength(1);
 });
 
 test("a closed assignment never receives a heartbeat even if its process remains live", async () => {
@@ -273,8 +259,23 @@ test("a closed assignment never receives a heartbeat even if its process remains
 	expect(await batches()).toHaveLength(0);
 });
 
-test("a queued heartbeat reaches a manager that starts a turn before claim", async () => {
-	await gather(60);
-	observation("working", 60);
-	expect((await take(61))?.events).toEqual([]);
+test.each(["working", "idle", "ready"] as const)(
+	"a queued heartbeat is skipped after new %s activity",
+	async (state) => {
+		await gather(121);
+		observation(state, 121);
+		expect(await take(122)).toBeNull();
+		expect((await batches())[0]).toMatchObject({ state: "canceled", work_state: "handled" });
+		observation("idle", 123);
+		await gather(243);
+		expect(await batches()).toHaveLength(1);
+		await gather(244);
+		expect((await take(244))?.events).toEqual([]);
+	},
+);
+
+test("a ready process has not completed an idle turn", async () => {
+	observation("ready");
+	await gather(600);
+	expect(await batches()).toHaveLength(0);
 });

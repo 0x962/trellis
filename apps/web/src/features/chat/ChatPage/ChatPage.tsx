@@ -1,18 +1,25 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { type ChatMessage, chatChannelName, chatChannelPattern, type Project } from "@trellis/api";
-import { cx, EmptyState, Input, toast } from "@trellis/ui";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { EmptyState, toast } from "@trellis/ui";
+import { type ReactNode, useEffect, useMemo, useRef } from "react";
 import { useApp } from "../../../lib/appContext";
+import { localDate } from "../../../lib/format";
+import { createMarkdownRenderer } from "../../../lib/markdown";
+import { useChatStore } from "../../../stores/chatStore";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar } from "../../shell/Topbar";
+import { ChatComposer } from "../ChatComposer";
+import { agentCandidates, roleCandidates } from "../ChatComposer/mentionQuery";
+import { useChatUnread } from "../useChatUnread";
+import { ChannelList } from "./components/ChannelList";
 import { ChatLine } from "./components/ChatLine";
 
 // The log holds the newest messages of the channel. The server caps a read
 // at this many.
 const LOG_LIMIT = 200;
 
-// `/join name` creates a channel and opens it, as on IRC. Every other line
+// `/join name` creates a channel and opens it, as on IRC. Every other text
 // is a message to the open channel.
 const parseInput = (text: string): { kind: "join"; channel: string } | { kind: "post"; body: string } | null => {
 	const trimmed = text.trim();
@@ -22,24 +29,85 @@ const parseInput = (text: string): { kind: "join"; channel: string } | { kind: "
 	return { kind: "post", body: text.trimEnd() };
 };
 
+// The lines of the log, with a dated rule before the first message of each
+// day, so a reader scanning across days sees where one ended.
+const withDayRules = (
+	items: ChatMessage[],
+	render: (markdown: string) => string,
+	onMention: (text: string) => void,
+): ReactNode[] => {
+	let previousDate: string | null = null;
+	return items.flatMap((message) => {
+		const messageDate = localDate(message.createdAt);
+		const startsDate = messageDate !== previousDate;
+		previousDate = messageDate;
+		const line = <ChatLine key={message.id} message={message} render={render} onMention={onMention} />;
+		if (!startsDate) return [line];
+		return [
+			<li
+				key={`${message.id}.day`}
+				aria-hidden="true"
+				className="flex items-center gap-2 px-3 py-1 font-mono text-xs text-fg-faint tabular"
+			>
+				<span className="h-px flex-1 bg-border" />
+				{messageDate}
+				<span className="h-px flex-1 bg-border" />
+			</li>,
+			line,
+		];
+	});
+};
+
 // The chat page of a project tree: the channels of its room on the left, the
-// log of the open channel on the right, one input line below the log.
+// log of the open channel on the right, the composer below the log. The
+// open channel, the unsent text of each channel, and the read position come
+// back on the next visit from the chat store. A channel for agents only has
+// no composer: a person reads it.
 export function ChatPage({ project }: { project: Project }) {
 	const { client, orpc, queryClient } = useApp();
-	const [channel, setChannel] = useState("ai");
-	const [draft, setDraft] = useState("");
+	const rootId = project.id;
+	const channel = useChatStore((state) => state.openChannel[rootId] ?? "ai");
+	const draft = useChatStore((state) => state.drafts[`${rootId}:${channel}`] ?? "");
+	const { setOpenChannel, setDraft, markRead } = useChatStore.getState();
 	const log = useRef<HTMLOListElement>(null);
+	const textarea = useRef<HTMLTextAreaElement>(null);
 	const readOnly = project.archivedAt !== null;
-	const channels = useQuery(orpc.chat.channels.queryOptions({ input: { project: project.path } }));
+	const { channels, unread } = useChatUnread(rootId);
+	const open = channels.data?.find((row) => row.name === channel);
 	const messages = useQuery(
 		orpc.chat.list.queryOptions({ input: { project: project.path, channel, limit: LOG_LIMIT } }),
 	);
+	const agents = useQuery(orpc.agentRuns.list.queryOptions({ input: { project: project.path } }));
+	const live = (agents.data ?? []).filter(
+		(run) => run.projectId === project.id && (run.state === "running" || run.state === "starting"),
+	);
+	// The manager of the project names the direct message channel. A project
+	// with no manager yet shows the default name.
+	const managerName =
+		(agents.data ?? []).find((run) => run.projectId === project.id && run.kind === "manager")?.personaName ?? "Copilot";
 	const items: ChatMessage[] = messages.data?.items ?? [];
+
+	// The names a mention in a body can address: the live agents by persona
+	// name and run id, the roles, and every author in the loaded log.
+	const render = useMemo(() => {
+		const names = new Set<string>(roleCandidates.map((role) => role.label));
+		for (const run of live) {
+			names.add(run.personaName);
+			names.add(run.id);
+		}
+		for (const message of items) {
+			names.add(message.actor.displayName ?? message.actor.name);
+			names.add(message.actor.name);
+		}
+		return createMarkdownRenderer({ mentions: [...names] });
+	}, [live, items]);
+	const candidates = useMemo(() => [...agentCandidates(live), ...roleCandidates], [live]);
+
 	const invalidate = () => queryClient.invalidateQueries({ queryKey: orpc.chat.key() });
 	const post = useMutation({
 		mutationFn: (body: string) => client.chat.post({ project: project.path, channel, body }),
 		onSuccess: () => {
-			setDraft("");
+			setDraft(rootId, channel, "");
 			void invalidate();
 		},
 		onError: (error) => toast.error("Could not post the message", { description: error.message }),
@@ -47,15 +115,15 @@ export function ChatPage({ project }: { project: Project }) {
 	const join = useMutation({
 		mutationFn: (name: string) => client.chat.createChannel({ project: project.path, channel: name }),
 		onSuccess: (created) => {
-			setDraft("");
-			setChannel(created.name);
+			setDraft(rootId, channel, "");
+			setOpenChannel(rootId, created.name);
 			void invalidate();
 		},
 		onError: (error, name) => {
 			// A join of a channel that exists opens it, as on IRC.
 			if (channels.data?.some((existing) => existing.name === chatChannelName(name))) {
-				setDraft("");
-				setChannel(chatChannelName(name));
+				setDraft(rootId, channel, "");
+				setOpenChannel(rootId, chatChannelName(name));
 				return;
 			}
 			toast.error(`Could not create #${chatChannelName(name)}`, { description: error.message });
@@ -76,8 +144,26 @@ export function ChatPage({ project }: { project: Project }) {
 		scrolledChannel.current = data.channel;
 	}, [messages.data]);
 
-	const submit = (event: FormEvent) => {
-		event.preventDefault();
+	// The open channel counts as read while the tab is visible. A tab in the
+	// background keeps its unread dot until the reader comes back.
+	useEffect(() => {
+		const latest = messages.data?.latestId;
+		if (latest === undefined || latest === null) return;
+		const mark = () => {
+			if (document.visibilityState === "visible") markRead(rootId, messages.data!.channel, latest);
+		};
+		mark();
+		document.addEventListener("visibilitychange", mark);
+		return () => document.removeEventListener("visibilitychange", mark);
+	}, [messages.data, rootId, markRead]);
+
+	const mention = (text: string) => {
+		if (open?.aiOnly) return;
+		setDraft(rootId, channel, `${draft}${draft === "" || draft.endsWith(" ") ? "" : " "}${text}`);
+		textarea.current?.focus();
+	};
+
+	const submit = () => {
 		const parsed = parseInput(draft);
 		if (parsed === null || post.isPending || join.isPending) return;
 		if (parsed.kind === "join") {
@@ -95,38 +181,18 @@ export function ChatPage({ project }: { project: Project }) {
 		<>
 			<Topbar>
 				<PageTitle parent={<ProjectBreadcrumb project={project} />} title="Chat" />
-				<span className="font-mono text-sm text-fg-muted">#{channel}</span>
+				<span className="font-mono text-sm text-fg-muted">{open?.direct ? managerName : `#${channel}`}</span>
 			</Topbar>
 			<div className="page-card flex flex-1 overflow-hidden">
-				<nav
-					aria-label="Channels"
-					className="flex w-44 shrink-0 flex-col overflow-y-auto border-r border-border py-2 max-md:w-28"
-				>
-					{channels.isPending && <p className="px-3 py-1 font-mono text-sm text-fg-muted">…</p>}
-					{channels.isError && (
-						<p role="alert" className="px-3 py-1 font-mono text-sm text-danger">
-							{channels.error.message}
-						</p>
-					)}
-					<ul className="flex flex-col">
-						{(channels.data ?? []).map((row) => (
-							<li key={row.name}>
-								<button
-									type="button"
-									aria-current={row.name === channel ? "page" : undefined}
-									onClick={() => setChannel(row.name)}
-									className={cx(
-										"flex h-7 w-full items-center gap-2 px-3 font-mono text-sm hover:bg-elevated focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11",
-										row.name === channel ? "bg-elevated font-medium text-fg" : "text-fg-muted",
-									)}
-								>
-									<span className="min-w-0 flex-1 truncate text-left">#{row.name}</span>
-									<span className="text-xs text-fg-faint tabular">{row.messageCount}</span>
-								</button>
-							</li>
-						))}
-					</ul>
-				</nav>
+				<ChannelList
+					channels={channels.data ?? []}
+					managerName={managerName}
+					open={channel}
+					unread={unread}
+					pending={channels.isPending}
+					error={channels.isError ? channels.error.message : null}
+					onOpen={(name) => setOpenChannel(rootId, name)}
+				/>
 				<section aria-label={`#${channel} log`} className="flex min-w-0 flex-1 flex-col">
 					<ol ref={log} className="flex min-h-0 flex-1 flex-col overflow-y-auto py-2">
 						{messages.isPending && <li className="px-3 font-mono text-sm text-fg-muted">Load #{channel}…</li>}
@@ -140,31 +206,34 @@ export function ChatPage({ project }: { project: Project }) {
 								<EmptyState
 									variant="page"
 									title={`#${channel} is quiet`}
-									description="No message yet. Agents and people post here."
+									description={
+										open?.direct
+											? `No message yet. Write to ${managerName}; the message interrupts it.`
+											: open?.aiOnly
+												? "No message yet. Agents post here."
+												: "No message yet. Agents and people post here."
+									}
 								/>
 							</li>
 						)}
-						{items.map((message) => (
-							<ChatLine key={message.id} message={message} />
-						))}
+						{withDayRules(items, render, mention)}
 					</ol>
-					<form onSubmit={submit} className="flex items-center gap-2 border-t border-border px-3 py-2">
-						<span aria-hidden="true" className="shrink-0 font-mono text-sm text-fg-muted">
-							#{channel}
-						</span>
-						<div className="min-w-0 flex-1">
-							<Input
-								label={`Message #${channel}`}
-								hideLabel
-								value={draft}
-								disabled={readOnly}
-								placeholder={readOnly ? "The project is archived." : "Message, or /join <channel>"}
-								autoComplete="off"
-								className="font-mono"
-								onChange={(event) => setDraft(event.target.value)}
-							/>
-						</div>
-					</form>
+					{open?.aiOnly ? (
+						<p className="border-t border-border px-3 py-3 font-mono text-sm text-fg-muted">
+							#{channel} is for agents. You read it; agents post in it.
+						</p>
+					) : (
+						<ChatComposer
+							project={project.path}
+							channel={channel}
+							value={draft}
+							onChange={(value) => setDraft(rootId, channel, value)}
+							onSubmit={submit}
+							disabled={readOnly}
+							candidates={candidates}
+							textareaRef={textarea}
+						/>
+					)}
 				</section>
 			</div>
 		</>

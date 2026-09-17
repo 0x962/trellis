@@ -70,11 +70,12 @@ The selection resolves to an absolute path and persists across restarts.
 Its Swift helper registers through `SMAppService` and starts the bundled host through launchd.
 The host keeps its port across restarts, so the renderer retains its origin.
 Close or quit detaches the window. The background host and agent processes continue.
-The explicit Stop local work action pauses native dispatch, stops owned processes, and unregisters the helper.
+The explicit Quit Trellis Completely action stops owned processes and unregisters the helper.
+The host stops new launches during shutdown. Open Trellis to start the helper and deterministic manager.
 An unconfirmed process prevents a successful stop.
 
 The Bun host owns PGlite and the manager queue. A separate Node runtime owns agent PTYs.
-Its private Unix socket uses protocol 7. A lifetime file lock permits one runtime owner.
+Its private Unix socket uses protocol 9. A lifetime file lock permits one runtime owner.
 Each attempt has one immutable identifier, a token hash, retained terminal output, and a process record.
 Output readers receive bounded chunks with byte offsets.
 The runtime preserves delivery identifiers before it writes input. An uncertain write remains unknown until an agent receipt confirms it.
@@ -85,18 +86,15 @@ A descendant that leaves its session and loses its parent before inspection requ
 
 Built-in harnesses launch through `HarnessHost` with an interactive CLI in a PTY.
 Builders and reviewers use native permission bypass settings.
-Managers use a private workspace and a Trellis tool allowlist.
-Each supported manager harness uses the selected persona instruction from the database as its exact system prompt.
-The persona editor shows this instruction. Manager start and restart read the current saved persona.
+Copilots use the selected database persona as their exact system prompt.
+They have native tools and the Trellis tools for user requests.
+Claude, Codex, OpenCode, Pi, and Muse support copilot chat.
 The assignment message carries identity and project facts.
-The manager delegates technical work and records coordination outcomes through these tools.
-Claude, Codex, OpenCode, and Pi support this boundary. Custom manager launches return an explicit error.
-Codex managers require CLI version 0.154.0 or later and run with no selected environments.
-Their engine receives the shared Trellis allowlist as dynamic tools. Code-mode execution can call those tools without filesystem or shell access.
-Clock and clarification tools remain available. The native terminal sends requests through the host, which preserves the manager policy and provider thread.
+Each restart reads the current persona instruction.
 Claude hooks, the OpenCode plugin, and the Pi extension report provider identity, prompt receipts, tools, results, and errors.
 Codex runs one private app-server per attempt. Its native terminal and Trellis event client connect to that engine.
 The Codex adapter maps native thread, turn, tool, result, and error events into the runtime journal.
+Muse runs one private `muse serve` session host per attempt. The Muse bridge speaks the Muse Session Protocol over its stdio, maps session, turn, item, and result notifications into the runtime journal, and prints the transcript to the terminal.
 Every built-in start waits for the initial native prompt receipt. Each follow-up requires its own receipt. Busy providers queue follow-ups for their next turn.
 The desktop starts HTTP before it resolves the login environment. Git, GitHub, and new agent launches await the cached environment in their server thread.
 A failed login shell returns a tool error. Existing agent controls use their saved launch environment.
@@ -114,28 +112,11 @@ An exact prompt receipt confirms delivery. A provider turn and its observed acti
 The runtime inspects the OS process before it reports status or permits input.
 The host uses these observations for manager dispatch and flow completion.
 
-The controller stores ticket events in `manager_dispatches` with a fixed coalescing deadline.
-It sends a native manager one batch after the initial prompt receipt, when the runtime reports a live controllable process.
-An exact durable receipt can resolve an unknown delivery without another send.
-Stable assignment request identifiers prevent repeated worker starts from producing duplicate attempts.
-Each dispatch tracks delivery separately from its per-ticket coordination outcomes.
-Data-only envelopes include policy versions, stable assignment identifiers, and unfinished dispatches.
-The manager records an assignment, queue entry, blocker, or reason for no action for each affected ticket.
-A handled dispatch does not prove that a worker completed the ticket.
-For a ticket, a `queued` outcome also saves a capacity wait in `manager_next_actions` in the same transaction.
-The controller presents eligible waits as ticket work when capacity opens. It uses the assignment service's capacity rule.
-An explicit `waitFor` on a `queued` or `blocked` outcome saves a time, dependency, or human-response condition.
-Time waits use an absolute timestamp. Dependency waits require the named ticket to reach Done.
-Human-response waits require a human reply to a root question on the deferred ticket. A reply prompts review and does not grant approval.
-These conditions can notify the manager at full worker capacity. Worker starts still enforce capacity and the current wait condition.
-Each wait retains its assignment identifier across dispatches and manager replacement.
-Changing a wait condition cancels that action and creates a replacement with a new assignment identifier.
-An assignment reserves the worker and records the action's assigned state in one transaction.
-Pause and archive states prevent new assignments from saved actions. Ticket completion, a changed status, or a changed manager scope retires obsolete waits.
-The manager can inspect waits through `controller.actions` and cancel one through `controller.cancelAction`.
-The timestamps record creation, current eligibility, notification, and assignment. Historical outcomes remain receipts and do not create waits during migration.
-Optional comment keys suppress duplicate writes for the same ticket and actor without new activity events.
-A partial database index permits one active manager per project.
+The deterministic manager owns column workers and project copilots.
+It inspects runtime processes on each beat and retries failed, stopped, and crashed assignments.
+Database reservations and runtime attempt identifiers prevent duplicate starts.
+Copilots wait for user instructions. The host sends them user chat and explicit mentions.
+A partial database index permits one active copilot per project.
 
 Native ticket agents use Git worktrees under `agents/<run id>/work`.
 Workspace evidence binds checks and registered files to an attempt, HEAD, and a hash of the current file contents.
@@ -196,13 +177,14 @@ takes builder. A delete keeps the snapshots of the runs that used the persona.
 - A sub-project inherits the status set of the nearest ancestor until it creates its own set. The owner of a project is the nearest ancestor or self that owns statuses.
 - Invariant: `tickets.status_id` belongs to the owner of `tickets.project_id`. The function `remapScope` restores the invariant after a first-status create, a clear, a re-parent, and a project move.
 - The remap matches on name and category first, then on the lowest-position status of the same category, then on the default status of the owner.
-- Every status-to-status move is legal. A WIP limit is advisory. The `category` of a status is immutable after creation.
+- Every status-to-status move is legal when the target status has room under its WIP limit. The limit applies to every actor.
+  The `category` of a status is immutable after creation.
 - `started_at` is set once, when a ticket leaves todo. `completed_at` is set when a ticket enters done or canceled, and cleared when it leaves.
-- Priority is none, urgent, high, medium, or low. There are no labels. A ticket carries as many active agents as the concurrency limit of its project allows.
+- Priority is none, urgent, high, medium, or low. There are no labels. A project limits concurrent active worker turns. Idle assignments retain their ticket ownership.
 - Every non-GET request sends the header `x-trellis-actor: <human|agent>:<name>`. The name is printable ASCII without a colon, 1 to 64 characters.
 - A missing header is `ACTOR_REQUIRED` and a malformed one is `ACTOR_INVALID`. A GET ignores the header. The header rejects the kind `system`, which trellis reserves for `system:trellis`.
 - The optional header `x-trellis-session` is stored in `activity.meta.session`. trellis stores the name and the kind of an actor, and nothing else.
-- The service enforces the agent policy, so curl obeys it too. An agent cannot move a ticket to a done status (`AGENT_CANNOT_COMPLETE`, 403) and cannot delete a ticket or a project (`AGENT_CANNOT_DELETE`, 403) without `force`.
+- The service enforces the agent policy, so curl obeys it too. Agents and managers can move tickets to Done. An agent cannot delete a ticket or a project (`AGENT_CANNOT_DELETE`, 403) without `force`.
 - An archived project serves reads. Every mutation on it fails with `PROJECT_ARCHIVED`.
 - `tickets.version` rises on every row change. `update` and `move` accept `expectedVersion` or the header `If-Match`. A mismatch is `VERSION_CONFLICT` (412) with the current row.
 - `updated_at` moves only on user-visible activity: a ticket field, a comment, an attachment, or a pull request link. A reorder, a remap, and a poller CI change raise `version` only.
@@ -211,29 +193,83 @@ takes builder. A delete keeps the snapshots of the runs that used the persona.
 
 ### Chat rooms
 
-Every root project owns one chat room, and every project of the tree shares
-it. The room holds named channels. `ai` and `general` exist in every room;
-the project create and the migration insert them. A post to a channel the
+Every project, a root or a sub-project, owns one chat room, and a
+sub-project shares nothing with its parent. The room holds named channels.
+`ai` and `general` exist in every room; the project create and the
+migration insert them. A post to a channel the
 room lacks creates the channel. A channel has no id: the API and the CLI
 address it by its project and its lower-case name, with an optional `#`.
+A channel can be for agents only (`aiOnly`); `ai` is one, and an agent can
+create more with `trellis chat create <project> <name> --ai-only`. The
+`manager` channel is `direct`: a direct message between a person and the
+manager of the project. A post there reaches the live manager alone and
+interrupts it; an agent other than that manager gets `CHAT_DIRECT`. The web
+lists it under Direct messages with the manager's persona name. A person
+who posts in such a channel gets `CHAT_AI_ONLY`. The web shows no composer,
+no unread dot, and plays no sound for it.
+
+`chat_attachments` holds one row per file posted in a room. The upload
+stores the blob as a ticket attachment does, shares the blob of equal
+bytes, and returns the markdown line the message carries. The bytes serve at
+`/api/chat/attachments/{id}/file`. The boot sweep keeps every hash a row of
+either attachment table names.
 
 `chat_messages` holds one row per post with its actor. `chat_deliveries`
-holds one row per post and live native agent of the tree, except the author.
-A post that mentions a live agent by run id or by persona name reaches only
-the mentioned agents. The controller tick sends every pending row of one
-agent in one message, so a busy room costs an agent one turn. A manager
+holds one row per post and live native agent of the room's project, except
+the author. A post in `general` with no mention writes rows for the live
+managers only.
+A post that mentions a live agent by run id, by persona name, or by role
+(`@manager`, `@builders`, `@reviewers`) reaches only the mentioned agents,
+and each of those rows is `direct`. The controller tick sends every pending
+row of one agent in one message, so a busy room costs an agent one turn.
+The message carries, per channel, the messages before the first new line as
+context: at most `CONTEXT_LIMIT` of them from the `CONTEXT_WINDOW_MINUTES`
+before it. A
+batch with a direct row interrupts the agent's current turn first; a custom
+terminal has no interrupt and receives the lines as typed input. A manager
 receives a `trellis.chat.messages` JSON document; a worker receives IRC style
 lines and the two CLI commands. The states and the session pinning are the
 states and the pinning of a comment mention.
 
-The web route `/p/<project path>/chat` shows the room of the tree with an
-IRC style log. `/join <name>` in its input creates a channel. The API is
-`chat.channels`, `chat.createChannel`, `chat.list`, and `chat.post`. The
-events `chat.message` and `chat.channels` invalidate the chat queries. The
-CLI verb is `trellis chat`, and the manager tools are `trellis_chat_*`.
+The web route `/p/<project path>/chat` shows the room of the project as a log:
+the clock and the full name on one line, the body as markdown under it,
+with a dated rule where the day changes. A known `@name` renders as a mark.
+A click on a name inserts a mention. The composer takes several lines, a
+dropped, pasted, or picked file, and completes `@` from the live agents and
+the roles. `/join <name>` in it creates a channel. The browser keeps the open channel, the unsent text of
+each channel, and the read position of each channel in localStorage under
+`trellis-chat`. A channel whose newest message id is above the read position
+shows a dot, and so does the Chat link of every project in the tree. A new
+message from someone else plays a short tone; Settings > Account switches it
+off for that browser. The API is `chat.channels`, `chat.createChannel`,
+`chat.list`, and `chat.post`. The events `chat.message`, `chat.delivery`,
+and `chat.channels` invalidate the chat queries; `chat.message` carries the
+actor, so a client knows its own posts. The CLI verb is `trellis chat`, and
+the manager tools are `trellis_chat_*`.
 What an agent is told about the room lives in `personas.instruction`, which
 the migration `0047_persona_chat_instructions` appends to. Code injects no
 prompt text.
+
+### Project notes
+
+A note is titled markdown on one project. Every agent of that project and of
+its sub-projects reads it at start: a worker in its launch prompt and in
+`trellis brief`, a manager in its launch context. `notes` holds one row per
+note with its `audience` (`all`, `manager`, or `worker`), an optional
+`expires_at`, and the actor of the last write. A read collects the notes of
+the project and of every ancestor, newest change first, and drops an expired
+note. A title is unique in its project without case; a repeated title is
+`DUPLICATE`. A human and an agent can create, update, and delete a note. An
+archived project serves reads and refuses writes. A project delete cascades
+to its notes.
+
+The API is `notes.list`, `notes.get`, `notes.create`, `notes.update`, and
+`notes.delete`. The event `notes.changed` names the owning project and
+invalidates every note query. The CLI verb is `trellis notes`, the manager
+tools are `trellis_notes_*`, and the web route is `/p/<project path>/notes`.
+What an agent is told about notes lives in `personas.instruction`, which the
+migration `0053_persona_notes_instructions` appends to. Code injects no prompt
+text; the launch prompt and the brief carry note content only.
 
 ### Pull request reviews
 
@@ -285,17 +321,48 @@ The row retains the project path and ticket identifier so its history remains re
 `agentRuns` exposes start, resume, stop, refresh, send, output, session inspection, terminal input, and terminal resize operations.
 `GET /api/agent-runs/:id/terminal/stream` pushes terminal bytes and inspected process status through an authenticated SSE connection.
 The runtime owns each process through a distinct execution attempt. Each attempt has an identifier, generation, and token hash.
-A stable start request identifier returns its existing run before the concurrency check.
+A stable start request identifier returns its existing run instead of a new launch.
 A changed target or persona rejects reuse of that identifier.
 
-The Manager page at `/p/<project path>/settings/manager` shows the manager's interactive terminal and process controls.
-Project settings at `/p/<project path>/settings#manager` selects the persona, repository directory, concurrency limit, and automatic dispatch.
-The dispatch switch pauses automatic messages while events remain stored.
-The `#harness` section selects the preset, model, and custom start and resume commands.
-An empty child repository directory uses the nearest configured ancestor directory at launch.
-An explicit child directory takes precedence. Persona, harness, and concurrency settings remain local to each project.
-Trellis trusts configured repository directories and agent workspaces.
-Both settings sections share one draft and save status. `projects.managerConfig` stores these fields with `ade: native`.
+`agentRuns.start` accepts an optional harness configuration and a canonical model ID for the assignment.
+The harness configuration includes its preset, model, and optional effort. The API validates effort against the selected harness and model.
+An omitted model uses the configured default. Custom commands reject explicit model overrides.
+`agentRuns.resume` accepts a model override and otherwise retains the previous attempt's model and effort.
+
+The assignment plus button opens a dialog with Persona, Harness, Model, and the supported effort choices.
+The effort label follows the harness: Effort for Claude, Reasoning effort for Codex, Thinking level for Pi, and Variant for OpenCode.
+The dialog hides effort when the selected model has no supported options.
+
+Model IDs use Vercel AI Gateway names throughout Trellis. [The model catalog and guide](MODELS.md) describe the choices and harness mappings.
+
+`agentRuns.setModel` interrupts a running turn, stops its process, and resumes the same assignment with the selected model.
+The assignment retains its ticket, workspace, account, and provider conversation.
+The project and account defaults stay unchanged.
+
+Each model change requires the current attempt ID and a request ID. A repeated request returns the existing attempt.
+The CLI exposes `agents start --model`, `agents resume --model`, and `agents model <id> --model`.
+Managers can inspect the observed model through `trellis_agentRuns_session` with `include: ["model"]`.
+
+Project settings at `/p/<project path>/settings#manager` select the copilot persona and repository directory.
+The `#harness` section selects the copilot preset, model, account, and commands.
+The deterministic manager keeps one copilot available for each active project.
+A project can inherit its copilot persona and repository directory from its ancestors.
+The first manager persona supplies the copilot when the project has no selected persona.
+A project without a repository uses a private copilot directory under the Trellis home.
+Healthy copilots keep their process. A restart uses current settings and preserves a compatible conversation.
+
+Each status stores `agentConfig` with its worker persona, harness, model, effort, and account.
+A null configuration leaves the column under human control.
+In Progress requires a worker configuration before a ticket can enter it.
+The deterministic manager starts a worker for each ticket in an automated column.
+An active flow owns its ticket agents and prevents an automatic column assignment.
+`column_workers` retains the assignment, column, retirement state, and last continuation time for each ticket.
+A ticket transition retires its previous column assignment.
+Each new start reads current column settings. Healthy workers retain their current settings.
+A restart preserves the workspace and resumes a compatible provider conversation.
+If the saved directory is missing, Trellis creates a replacement worktree and supplies the previous assignment and transcript path.
+A harness change starts a new conversation with the previous transcript path in its context.
+Launch checks reject an obsolete assignment, changed column configuration, or archived project.
 
 Every preset runs its command through a local PTY. Claude hooks identify ready, active, and completed turns.
 `launchCommand.ts` combines the persona instruction with the project or ticket context.
@@ -308,78 +375,104 @@ API run states come from inspected runtime processes. The database records assig
 A missing runtime record produces `interrupted`; an observed process exit produces `exited` or `failed` from its exit code.
 A failed launch retains its error. A stop retains the workspace and output after the runtime confirms process exit.
 
-The concurrency limit counts ticket assignments with `closed_at IS NULL`. It excludes the manager.
-A confirmed process exit closes its assignment before the next claim.
-The limit runs from 1 to 64 and defaults to 3. A partial unique index permits one active manager per project.
+Per-status limits gate ticket creation and entry for all actors.
+A request into a full status fails with `STATUS_FULL`. Tickets already in the column can reorder.
+Every ticket already in an automated column receives a worker, even above its limit.
+A failed, stopped, or crashed worker retries on the next beat with current column settings.
+A move to a manual column stops its automatic worker.
+A partial unique index permits one active copilot per project.
+
+### Sessions
+
+A session is a scratch git repository with one agent, outside every project and ticket.
+It answers the same need as a session in Superset: a place to try something with an agent and no ticket.
+The directory is `sessions/<name>` in the data home, a repository on `main` with one empty commit.
+The name is the directory name: lowercase letters, digits, and dashes, at most 40 characters.
+A typed name takes that form; an omitted name takes a generated `<adjective>-<noun>`. A taken name gets a numeric suffix.
+The `sessions` row keeps the name, the directory, the harness, and the run.
+The run has the kind `session`, no persona, no project, and no ticket. Its name is the session name and its instruction is the prompt.
+The agent receives the prompt as its first message and nothing else. It runs with the worker permission settings of its harness.
+A session counts against no WIP limit and receives no comment or chat delivery.
+`sessions.start` resumes the saved conversation when the previous process confirmed one for the same harness, and otherwise starts the agent again from the prompt in the same directory.
+A desktop restart stops a session agent with the other native agents and does not resume it; Start on the session page resumes it.
+`sessions.delete` stops the agent, removes the directory, and deletes the row. The run stays as history with its retained output.
 
 ### Manager delegation
 
-A manager delegates a child project subtree through `submanagers.start` with a brief, worker capacity, and stable request identifier.
+A manager delegates a child project subtree through `submanagers.start` with a brief and stable request identifier.
 The submanager uses the parent's persona and supports an explicit harness account. Its assignment preserves the parent identifier and delegated scope.
-`manager_delegations` stores the assignment, parent, project, capacity, brief, and retirement time.
+`manager_delegations` stores the assignment, parent, project, brief, and retirement time.
 The project configuration remains unchanged. A configured manager or active delegation marks a scope boundary.
 
-Each submanager receives its own controller queue and heartbeats. Parent heartbeat context includes its direct submanagers and their process state.
+Each copilot has one project scope. Runtime inspection exposes its process state.
 Normal human agent lists omit submanager assignments. The `submanagers` API retains inspection and control for diagnosis.
-`submanagers.list` gives a manager its own delegation and direct children. `resize` changes a child's budget.
-The aggregate budget counts ticket workers across the delegated scope. Existing per-project limits also apply.
-Nested delegations reserve part of their parent's budget. Direct workers cannot consume those reserved slots.
-Independent managers allocate separate subtree budgets. These budgets do not change provider limits or project concurrency settings.
-Worker starts, resumes, flow steps, and capacity waits use the same budget rule.
+`submanagers.list` gives a manager its own delegation and direct children.
+Each delegation owns its project scope. Ticket moves inside it still enforce the status WIP limits.
+Independent managers own separate subtrees. Delegation does not change provider limits or status WIP limits.
 
 Only the current scope owner can assign workers inside a delegation. A parent can resume, resize, or retire its direct submanagers.
 `submanagers.retire` confirms process exit before it returns scope ownership and waits to the parent.
 Ticket workers remain assigned. Wait handoff retains each assignment request identifier. Retired deliveries retain their history with a canceled send state when needed.
 An unexpected manager exit retains its delegation. The parent sees that exit and can resume the saved conversation.
 Migration `0049_manager_delegations` extends saved manager instructions without a conversation reset.
-The source instructions live in [manager-delegation.md](personas/manager-delegation.md).
+The instructions live in the `## Autonomous project delegation` section of the manager persona.
 
 ### Harness accounts
 
 The main Settings page stores several accounts per harness at `/settings#agent-accounts`.
 An account names an existing profile directory or a managed profile under `accounts/<id>/profile` in the data home.
 Each managed profile keeps separate credentials. Shared directories retain sessions and skills. The provider CLI owns sign-in and token renewal.
-Claude uses `CLAUDE_CONFIG_DIR`; Codex uses `CODEX_HOME`; Pi uses `PI_CODING_AGENT_DIR`; OpenCode uses `XDG_DATA_HOME`.
+Claude uses `CLAUDE_CONFIG_DIR`; Codex uses `CODEX_HOME`; Pi uses `PI_CODING_AGENT_DIR`; OpenCode uses `XDG_DATA_HOME`; Muse uses one directory as `XDG_CONFIG_HOME` and `XDG_DATA_HOME`, so `muse/auth.json` and `muse/sessions` sit under the profile.
 Removal archives the account record and retains its files.
 
 `harnessAccounts.list` returns account metadata, login commands, and capabilities. Account mutation requires a human actor.
 `harnessAccounts.quota` reads Claude or Codex subscription usage outside database transactions and caches results for five minutes.
-A manual refresh has a ten-second minimum interval. OpenCode and Pi return `unsupported` quota.
+A manual refresh has a ten-second minimum interval. OpenCode and Pi return `unlimited` quota. Muse returns `signed_out` for a profile without `muse/auth.json`. Muse announces its subscription windows to its session client after each model call, so the Muse bridge saves the latest announcement to `muse/trellis-usage.json` in the Muse home of the run, and the account reads `ok` with the open windows from there. Before the first run, or after every saved window has reset, the account is `unavailable` with a sentence that asks for a run.
 An unavailable quota result contains no allowance estimate. Credentials stay on the host and do not enter API responses.
+
+### Usage
+
+The Usage page at `/usage` shows what every agent on the machine consumed.
+`usage.report` reads the transcript files that each harness CLI writes: `projects/` of a Claude profile, `sessions/` of a Codex or Pi profile, `opencode/storage/` of an OpenCode data home, and `muse/sessions/` of a Muse data home, the default XDG data home or a Muse account profile.
+The scan covers the default profile of each harness and the profile of every account, resolved to real paths, so a shared directory counts once.
+The scan runs in the `prepare` step, outside every database transaction, and its result is cached for five minutes per range. A refresh is served from the cache for ten seconds.
+Every turn is priced at the API list rate in `services/usage/pricing.ts`. A harness that records its own cost, such as Pi or OpenCode, keeps that cost. Muse Spark has no list price, so a Muse turn counts its tokens at zero dollars. A model outside the table takes the cheapest rate of its harness and marks the row approximate.
+A session joins the agent run whose `session_id` it carries. A session whose cwd is inside `agents/<run id>/work` joins that run. A session whose cwd is inside a project directory joins that project. Every other session is outside Trellis.
+The report holds the day series by harness, the totals, one row list per grouping (ticket, persona, project, kind, account, model, harness), and the top 200 sessions with one key per grouping.
+`usage.accounts` lists every configured account and the default login of each harness that no account names, each with its quota. A login whose provider reports no quota window is `unlimited`: an API key, a plan without limits, or a harness with no quota endpoint. The default Muse login comes from `muse/auth.json` under the XDG config home, and a Muse account profile holds its own `muse/auth.json`; its windows come from the `muse/trellis-usage.json` that the last Muse agent run saved. The page joins each login to its cost through the account grouping of the report.
+The page keeps the range, the metric, the grouping, the selected row, and the selected day in the URL.
+
+The default login of a harness resolves the way SuperSet resolves it. SuperSet keeps one pointer file per harness under `~/.superset/state/`: `default-claude-config-dir` and `default-codex-home`, each with the profile directory of the default, or nothing for the plain login. When the file exists it wins. Otherwise the account with the Trellis default flag wins. Otherwise the plain login of the harness is the default. A pointer whose directory is gone counts as the plain login. A default picked in Settings also writes the pointer, so both tools agree. A run with no account reads the pointer again at every launch, and a profile exported in the login shell wins over the pointer.
 
 `agentRuns.start` accepts an optional `accountId`. A new assignment otherwise selects its harness default account.
 The assignment retains its account across process restarts. An explicit account also selects its harness for a new assignment.
 `agentRuns.resume` requires the stopped attempt identifier and a stable request identifier.
 A resume retains the assignment, workspace, and provider conversation. Its target account must use the same harness.
-Claude, Codex, and Pi transfer the selected session file. OpenCode exports and imports that session through its CLI.
+Claude, Codex, and Pi transfer the selected session file. Muse copies the session directory. OpenCode exports and imports that session through its CLI.
 The runtime checks the resumed provider session identifier before it accepts the process.
 Existing manager personas receive the account instructions in migration `0048_harness_accounts`.
-The source instructions live in [manager-harness-accounts.md](personas/manager-harness-accounts.md).
+The instructions live in the `## Harness accounts` section of the manager persona.
+Migration `0060_muse_harness` adds the `## Muse harness` section, which names the Muse preset, its models, its quota states, and its manager limits.
 
-### Manager controller
+### Deterministic manager
 
-`manager_controller_cursors` records the last collected activity identifier for each project.
-`manager_dispatches` retains event batches and their send state. The first event fixes the batch deadline at ten seconds.
-The collector continues while dispatch pauses. It excludes the manager's own activity and respects child projects with their own manager.
+`services/manager` reconciles column assignments and project copilots on each controller beat.
+The controller schedules the next beat one second after the current beat completes.
+Independent tickets and copilots launch concurrently. A failed launch does not prevent the other jobs.
+An unknown runtime process requires confirmation before replacement.
+Archived projects suppress new starts. Each host process starts with automatic dispatch enabled.
 
-The controller sends a batch only to the current native attempt with a matching conversation and a live controllable process.
-After one minute without manager activity or a successful dispatch, the controller queues a heartbeat for an idle manager.
-A heartbeat uses the same durable queue and receipt checks as ticket events. Its event list is empty.
-The controller pauses heartbeats when a manager owns no unfinished ticket, open worker assignment, or direct delegation.
-Done and Canceled statuses are terminal for this check.
-Ticket events take precedence. The queue holds at most one pending or unresolved message per project.
-Heartbeats respect project dispatch pause, the global work pause, and archived projects.
-The heartbeat asks the manager to follow its current persona and status descriptions, inspect work, and avoid comments that only acknowledge the heartbeat.
+An idle column worker receives a data-only continuation at most once every 30 seconds.
+The continuation includes the ticket, column occupancy and limit, and recent comments.
+The worker persona defines how to act on that context.
+The runtime checks the attempt, provider session, and idle state before it accepts the continuation.
+Copilots receive work through explicit user requests.
 
-Each heartbeat and ticket dispatch includes `agentContext` from the runtime observations at dispatch time.
-The JSON envelope retains policy references, ticket events, and unfinished work. Agent names use the assigned persona.
-The context covers native assignments in the manager's project scope and excludes the recipient manager.
-It includes open assignments and closed assignments whose processes still run.
-Each entry carries assignment identifiers, process status, the process check time, harness activity, the last activity time, and `isWorking`.
-It also includes the turn identifier, current tool name and identifier, exit code, error, and up to 2,000 characters of the latest result.
-The latest tool record retains its input, output, start time, update time, and status after completion.
+`trellis_agentRuns_session` returns activity details by default.
+Its optional `include` list accepts `model`, `tool`, `lastTool`, `lastMessage`, `result`, `error`, and `process`.
+The tool fields include stored input and output. The `process` field includes process, attempt, session, and turn identifiers.
+For example, `{"id":"<runId>","include":["lastTool","error"]}` retrieves the latest tool record and agent error.
 
-The latest assistant message retains its text and timestamp. Each tool input, tool output, and message excerpt has a 2,000-character limit.
 The runtime restores tool records, messages, and native turn activity from its event journal after a restart.
 Codex, Pi, and OpenCode report completed assistant messages during a turn.
 Claude reads the latest assistant text and timestamp from its transcript at tool and stop hooks.
@@ -467,6 +560,7 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 | `/all/table` | `all_.table.tsx` | every ticket as a table |
 | `/p/$` | `p/$/route.tsx` | a project as a board, a table, its settings, or its manager |
 | `/t/$identifier` | `t/$identifier/route.tsx` | one ticket |
+| `/sessions/$id` | `sessions.$id.tsx` | one session: the terminal of its agent and the process controls |
 | `/search` | `search.tsx` | search |
 | `/ai/personas` | `ai.personas.tsx` | the personas |
 | `/ai/flows` | `ai.flows.tsx` | the flows |
@@ -507,15 +601,18 @@ time. The first section of each page carries no hash.
 | `/p/<path>/settings/manager` | Operation (no hash), `#settings`, `#harness` |
 
 `/settings` holds the actor name, theme, GitHub state, phone pair code, drafts, and runtime diagnostics.
-The Manager page holds the manager persona, repository directory, dispatch state, concurrency limit, and harness commands.
+Project settings hold the copilot persona, repository directory, and harness settings.
 It writes `projects.managerConfig` through `projects.update`.
 
 The sidebar holds the workspace row, Needs you, Search, All tickets, Pull
-requests, Personas, Flows, the project tree, and the actor footer. The project
-tree is the one region that scrolls, so the fixed links keep their place at any
-tree height.
-Each project row shows the Trellis mark and opens the manager terminal at
-`/p/<path>/settings/manager`. Tickets and Settings appear below it.
+requests, Personas, Flows, Usage, the sessions, the project tree, and the actor footer.
+The sessions and the project tree share the one region that scrolls, so the fixed
+links keep their place at any height.
+The Sessions section sits above the Projects section. Its New session button opens
+a sheet with the prompt, an optional name, and the harness. Each session row shows
+the avatar of its agent with the work state and opens `/sessions/<id>`. Its row
+menu deletes the session.
+Each project row shows the Trellis mark and project name. Tickets and Settings appear below it.
 The selected state follows the current page for root, nested, and archived projects.
 
 ## Database schema
@@ -530,7 +627,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 
 | table | columns and constraints |
 |---|---|
-| projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, manager_config jsonb (`personaId`, `concurrency`, `directory`, `dispatchPaused`, `ade: native`, `harness` (`preset`, `startCommand`, `resumeCommand`)), ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
+| projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, manager_config jsonb (`personaId`, `directory`, `dispatchPaused`, `ade: native`, `harness` (`preset`, `model`, `effort`, `startCommand`, `resumeCommand`), `builder` (nullable persona and harness configuration), `accountId`), ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
 | repos | id PK, project_id (CASCADE), owner, repo (both CHECK lowercase). UNIQUE (project_id, owner, repo). The effective repos of a project are its own plus those of its ancestors. |
 | statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), reviewer (CHECK `(category = 'review') = (reviewer IS NOT NULL)`), color, position, wip_limit (CHECK > 0), is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
 | tickets | id PK, project_id, root_id, number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (root_id, number) and (id, root_id). FK (project_id, root_id) RESTRICT and FK (parent_id, root_id) RESTRICT. Indexes (project_id, status_id, position), (status_id, position, id, project_id, root_id), (parent_id), partial (root_id, updated_at DESC) WHERE completed_at IS NULL, partial (root_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
@@ -546,9 +643,13 @@ are no triggers. Every rule is a constraint or a service function that takes
 | flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title (0 to 120), persona_id (FK personas SET NULL), instruction (CHECK <= 200000), parallel (boolean, group only), minutes (optional, group only, 1 to 1440), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Indexes (flow_id) and (persona_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
 | harness_accounts | id PK, name, harness, profile_path, is_default, enabled, archived_at, created_at, updated_at. Partial UNIQUE (harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. |
-| agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), persona_id (FK personas SET NULL), persona_name, kind (CHECK the three persona kinds), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial index (ticket_id) WHERE `closed_at IS NULL`. Partial UNIQUE (project_id) WHERE `kind = 'manager'` AND `closed_at IS NULL`. Index (created_at). |
+| agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), persona_id (FK personas SET NULL), persona_name, kind (CHECK the three persona kinds and `session`), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial index (ticket_id) WHERE `closed_at IS NULL`. Partial UNIQUE (project_id) WHERE `kind = 'manager'` AND `closed_at IS NULL`. Index (created_at). |
+| column_workers | ticket_id PK (FK tickets CASCADE), status_id (FK statuses SET NULL), run_id (FK agent_runs CASCADE), retired, heartbeat_at. |
+| builder_heartbeats | run_id PK (FK agent_runs CASCADE), sent_at. |
+| builder_start_requests | id PK, ticket_id (FK tickets CASCADE), state (pending, launching, assigned, canceled, failed), run_id (FK agent_runs SET NULL), error, retry_at, created_at. Partial UNIQUE (ticket_id) WHERE state = pending. |
 | agent_sessions (stored history) | id PK, project_id (CASCADE), ticket_id (CASCADE), role (CHECK manager, builder, reviewer), runner (CHECK superset), state (CHECK starting, running, waiting, exited, stopped, failed), workspace_id, terminal_id, claude_session_id, name (1 to 40), title (1 to 120), open_url, last_woken_at, error, created_at, updated_at. CHECK `(role = 'manager') = (ticket_id IS NULL)`. Indexes (project_id, role, state) and (ticket_id). Partial UNIQUE (project_id) WHERE the role is manager and the state is live. Partial UNIQUE (workspace_id, terminal_id) WHERE both are set. |
 | agent_cursors | project_id PK (CASCADE), activity_id bigint, updated_at. Stored activity cursor from earlier data homes. |
+| sessions | id PK, name (UNIQUE, CHECK lowercase letters, digits, and dashes, 1 to 40), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), created_at, updated_at. The run has the kind `session`, no persona, no project, and no ticket. |
 
 The `id` column of `activity` is the cursor and the sort key of every activity
 feed. A description row carries `meta.deltaChars` and no text. A status row
@@ -620,12 +721,18 @@ returns one canonical spelling.
 | pullRequests.diff | GET /api/prs/{id}/diff | `gh pr diff`, cut at 1 MB, cached for 60 s |
 | personas.list, get, create, update, delete | GET, POST /api/personas; GET, PATCH, DELETE /api/personas/{id} | the manager tool list omits instructions; get reads one |
 | flows.list, get, create, update, save, delete | GET, POST /api/flows; GET, PATCH, DELETE /api/flows/{flow}; PUT /api/flows/{flow}/graph | `{flow}` is a ULID or a slug; save replaces every node and edge |
-| agentRuns.list, start | GET, POST /api/agent-runs | start answers 201 with the row in any state |
+| agentRuns.list, start | GET and POST /api/agent-runs | start answers 201 with the row in any state |
 | agentRuns.stop, refresh, send | POST /api/agent-runs/{id}/stop, /refresh, /send | send takes 1 to 20000 characters |
 | agentRuns.resume | POST /api/agent-runs/{id}/resume | existing assignment, accountId, expectedTerminalId, requestId |
 | harnessAccounts.list, create, update, remove | GET, POST /api/harness-accounts; PATCH, DELETE /api/harness-accounts/{id} | account metadata and profile selection |
 | harnessAccounts.quota | GET /api/harness-accounts/{id}/quota | cached usage windows and reset times |
+| usage.report | GET /api/usage | token cost from the harness transcripts, joined to runs, tickets, personas, projects, and accounts; cached for five minutes |
+| usage.accounts | GET /api/usage/accounts | every configured account and each default login with its subscription quota; cached for five minutes |
 | agentRuns.output | GET /api/agent-runs/{id}/output | the terminal text as `{text}` |
+| sessions.list, get | GET /api/sessions, /api/sessions/{id} | newest first; get carries the observed run |
+| sessions.create | POST /api/sessions | 201 and `Location`; a prompt, an optional name, an optional harness and account |
+| sessions.start | POST /api/sessions/{id}/start | resumes the saved conversation, or starts again from the prompt |
+| sessions.delete | DELETE /api/sessions/{id} | stops the agent and removes the directory; the run stays as history |
 | search.query | GET /api/search | tickets and projects |
 | brief.get | GET /api/tickets/{ticket}/brief | the markdown brief an agent starts from |
 | actors.list, default | GET /api/actors, /api/actors/default | |
@@ -669,12 +776,12 @@ trellis list --project CDE --status in-progress,agent-review --parent none --ci 
 The contract declares every error as `{defined, code, status, message, data}`.
 The map lives in `packages/api/src/errors.ts`: INPUT_VALIDATION_FAILED 400,
 ACTOR_REQUIRED 400, ACTOR_INVALID 400, INVALID_CURSOR 400, INVALID_PR_URL 400,
-AGENT_CANNOT_COMPLETE 403, AGENT_CANNOT_DELETE 403, NOT_FOUND 404, DUPLICATE
+AGENT_CANNOT_DELETE 403, NOT_FOUND 404, DUPLICATE
 409, KEY_LOCKED 409, STATUS_NOT_IN_PROJECT 409, STATUS_IN_USE 409, LAST_STATUS
 409, ROOT_STATUSES 409, STATUS_CATEGORY_IMMUTABLE 409, CROSS_ROOT_MOVE 409,
 PARENT_CYCLE 409, PROJECT_NOT_EMPTY 409, PROJECT_ARCHIVED 409,
 COMMENT_PARENT_MISMATCH 409, COMMENT_HAS_REPLIES 409, INVALID_ANCHOR 409,
-CONCURRENCY_LIMIT 409, VERSION_CONFLICT 412, FLOW_VERSION_CONFLICT 412, PAYLOAD_TOO_LARGE 413,
+STATUS_FULL 409, VERSION_CONFLICT 412, FLOW_VERSION_CONFLICT 412, PAYLOAD_TOO_LARGE 413,
 GH_UNAVAILABLE 503, RUNNER_UNAVAILABLE 503.
 
 The API carries no version prefix. `apiVersion` appears in health and in
@@ -701,7 +808,7 @@ Payloads:
 `attachment.created | deleted {id, ticketId, projectId}`,
 `statuses.changed {projectId}`,
 `project.created | updated | deleted | moved {id}`, `gh.status {ok, reason}`,
-`personas.changed {id}`, `flows.changed {id}`, `agent-runs.changed {id}`, and `needs-you.changed {actorName}`.
+`personas.changed {id}`, `flows.changed {id}`, `agent-runs.changed {id}`, `sessions.changed {id}`, and `needs-you.changed {actorName}`.
 `packages/api/src/events.ts` holds the one list of names, and the `types=`
 parameter takes a name or a `prefix.*` form.
 

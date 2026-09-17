@@ -29,3 +29,15 @@ describe("persona input schemas", () => {
 		}
 	});
 });
+
+// A person types the name and the instruction in the persona editor, so each
+// bound reads as a sentence.
+test("a persona field out of bounds reads as a sentence", () => {
+	const message = (input: { name: string; instruction: string }) =>
+		PersonaCreateInputSchema.safeParse(input).error!.issues[0]!.message;
+	expect(message({ name: "", instruction: "Read the diff." })).toBe("Enter a persona name of 1 to 120 characters.");
+	expect(message({ name: "n".repeat(121), instruction: "Read the diff." })).toBe(
+		"Enter a persona name of 1 to 120 characters.",
+	);
+	expect(message({ name: "Reviewer", instruction: "" })).toBe("Enter an instruction of 1 to 200,000 characters.");
+});

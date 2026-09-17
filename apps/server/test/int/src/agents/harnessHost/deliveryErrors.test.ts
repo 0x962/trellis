@@ -16,7 +16,7 @@ afterEach(async () => {
 	await rm(fixture.home, { recursive: true, force: true });
 });
 
-test.each(["claude", "codex", "pi", "opencode"] as const)(
+test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
 	"a prior %s turn failure cannot reject a new message before its receipt",
 	async (harness) => {
 		const { host, client, home } = fixture;
@@ -55,3 +55,28 @@ test("a prior turn failure cannot turn uncertain delivery into a rejection", asy
 	expect((await host.status("attempt")).acknowledgedMessageIds).not.toContain("uncertain");
 	expect(Buffer.from((await host.output("attempt")).data, "base64").toString()).not.toContain("native prompt accepted");
 });
+
+test.each(["claude", "codex", "pi", "opencode", "muse"] as const)(
+	"a direct %s message follows an interrupt without a confirmed idle outcome",
+	async (harness) => {
+		const { client, home } = fixture;
+		const host = new HarnessHost({
+			runtime: client,
+			directory: join(home, "attempts"),
+			env: {
+				...process.env,
+				PATH: join(home, "bin"),
+				HARNESS_FIXTURE_BEHAVIOR: "normal-interrupt",
+				HARNESS_FIXTURE_MUSE_HOME: home,
+			},
+			bun: process.execPath,
+			observationTimeoutMs: 1500,
+		});
+		await host.start({ id: "attempt", harness, cwd: home, prompt: "initial", token: "secret" });
+		const pid = (await host.status("attempt")).pid;
+		await host.interrupt("attempt", { waitForIdle: false });
+		await host.send("attempt", "human request", "direct");
+		const received = await host.waitFor("attempt", (state) => state.acknowledgedMessageIds.includes("direct"));
+		expect(received.pid).toBe(pid);
+	},
+);

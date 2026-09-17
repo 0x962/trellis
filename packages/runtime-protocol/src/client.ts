@@ -94,6 +94,9 @@ export class RuntimeClient {
 	inspect(id: string) {
 		return this.call("inspect", { id });
 	}
+	hasMessage(id: string, messageId: string) {
+		return this.call("hasMessage", { id, messageId });
+	}
 	shutdown() {
 		return this.call("shutdown", {});
 	}
@@ -109,8 +112,8 @@ export class RuntimeClient {
 	input(id: string, data: string, userInput?: boolean, expected?: RuntimeExpectedTurn) {
 		return this.call("input", { id, data, userInput, expected });
 	}
-	deliver(id: string, messageId: string, data: string) {
-		return this.call("deliver", { id, messageId, data });
+	deliver(id: string, messageId: string, data: string, expected?: RuntimeExpectedTurn) {
+		return this.call("deliver", { id, messageId, data, expected });
 	}
 	resize(id: string, cols: number, rows: number) {
 		return this.call("resize", { id, cols, rows });

@@ -11,7 +11,7 @@ export const collectHeartbeats = async (ctx: ControllerCtx, tx: Tx, input: Contr
 		.filter(readySession)
 		.map((session) => ({ id: session.id, idleAt: session.activity!.updatedAt }));
 	if (ready.length === 0) return;
-	const quietBefore = new Date(ctx.now.getTime() - 60_000);
+	const quietBefore = new Date(ctx.now.getTime() - 120_000);
 	const projects = await rows<{ id: string }>(
 		tx,
 		sql`
@@ -21,7 +21,6 @@ export const collectHeartbeats = async (ctx: ControllerCtx, tx: Tx, input: Contr
 		JOIN jsonb_to_recordset(${JSON.stringify(ready)}::jsonb) AS live(id text, "idleAt" timestamptz) ON live.id=r.terminal_id
 		WHERE ${isManaged(sql`p`)} AND p.archived_at IS NULL
 		AND p.manager_config->>'dispatchPaused' IS DISTINCT FROM 'true'
-		AND NOT EXISTS (SELECT 1 FROM settings WHERE key='nativeWorkPaused' AND value='true'::jsonb)
 		AND (EXISTS (SELECT 1 FROM tickets t JOIN statuses s ON s.id=t.status_id
 			WHERE t.project_id IN (${managerScope(sql`p.id`)}) AND s.category NOT IN ('done','canceled'))
 			OR EXISTS (SELECT 1 FROM agent_runs worker WHERE worker.project_id IN (${managerScope(sql`p.id`)})
@@ -29,7 +28,7 @@ export const collectHeartbeats = async (ctx: ControllerCtx, tx: Tx, input: Contr
 			OR EXISTS (SELECT 1 FROM manager_delegations delegation
 				WHERE delegation.parent_run_id=r.id AND delegation.retired_at IS NULL))
 		AND GREATEST(r.created_at, live."idleAt",
-			(SELECT max(updated_at) FROM manager_dispatches WHERE project_id=p.id AND state='sent')) <= ${quietBefore}
+			(SELECT max(updated_at) FROM manager_dispatches WHERE project_id=p.id AND state='sent')) < ${quietBefore}
 		AND NOT EXISTS (SELECT 1 FROM manager_dispatches WHERE project_id=p.id AND state IN ('pending','sending','unknown'))
 		AND NOT EXISTS (WITH RECURSIVE ancestors AS (
 			SELECT id,parent_id,archived_at,manager_config FROM projects WHERE id=p.id

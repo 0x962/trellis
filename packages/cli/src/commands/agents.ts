@@ -3,6 +3,7 @@ import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, readText, wantsJson } from "../context.ts";
 import { cell, json, type ListSpec, printList, printRecord, type RecordSpec } from "../output.ts";
+import { localDateTime } from "../time.ts";
 import { resolvePersona } from "./personas.ts";
 
 const agentList: ListSpec<AgentRun> = {
@@ -12,7 +13,7 @@ const agentList: ListSpec<AgentRun> = {
 		{ name: "persona", value: (row) => cell(row.personaName) },
 		{ name: "state", value: (row) => row.state },
 		{ name: "ticket", value: (row) => cell(row.ticketIdentifier) },
-		{ name: "updated", value: (row) => row.updatedAt },
+		{ name: "updated", value: (row) => localDateTime(row.updatedAt) },
 	],
 	identifier: (row) => row.id,
 };
@@ -29,8 +30,8 @@ const agentRecord: RecordSpec<AgentRun> = {
 		{ name: "ticket", value: (row) => cell(row.ticketIdentifier) },
 		{ name: "url", value: (row) => cell(row.url) },
 		{ name: "error", value: (row) => cell(row.error) },
-		{ name: "created", value: (row) => row.createdAt },
-		{ name: "updated", value: (row) => row.updatedAt },
+		{ name: "created", value: (row) => localDateTime(row.createdAt) },
+		{ name: "updated", value: (row) => localDateTime(row.updatedAt) },
 	],
 	identifier: (row) => row.id,
 };
@@ -57,6 +58,7 @@ const start = defineCommand({
 		project: { type: "string", description: "Project ref, for a manager" },
 		"request-id": { type: "string", description: "Stable assignment ID to prevent a duplicate start" },
 		account: { type: "string", description: "Account ID from trellis accounts list" },
+		model: { type: "string", description: "Canonical model ID from trellis models list for this assignment" },
 		"new-session": {
 			type: "boolean",
 			description: "Give a manager a new agent session in place of the one it keeps",
@@ -69,6 +71,7 @@ const start = defineCommand({
 		const run = await clientOf(ctx).agentRuns.start(
 			compact({
 				personaId: persona.id,
+				model: args.model,
 				accountId: args.account,
 				requestId: args["request-id"],
 				ticket: args.ticket,
@@ -90,6 +93,7 @@ const resume = defineCommand({
 	args: {
 		id: { type: "positional", required: true, description: "Agent ID" },
 		account: { type: "string", description: "Account ID for the same harness" },
+		model: { type: "string", description: "Canonical model ID from trellis models list for this resume" },
 		"expected-terminal-id": { type: "string", required: true, description: "Stopped attempt ID from the agent record" },
 		"request-id": { type: "string", required: true, description: "Stable request ID for this resume" },
 	},
@@ -99,11 +103,39 @@ const resume = defineCommand({
 		const result = await clientOf(ctx).agentRuns.resume(
 			compact({
 				id: args.id,
+				model: args.model,
 				accountId: args.account,
 				expectedTerminalId: args["expected-terminal-id"],
 				requestId: args["request-id"],
 			}),
 		);
+		printRecord(ctx.out, ctx.format, result, agentRecord);
+		// A resume answers a row in any state, like a start. Only `running`
+		// means the terminal is up, so every other state prints the reason and
+		// exits 6.
+		if (result.state === "running") return 0;
+		ctx.err.write(`warning: the agent is ${result.state}: ${result.error ?? "no error text"}\n`);
+		return 6;
+	},
+});
+
+const model = defineCommand({
+	meta: { name: "model", description: "Change a running agent's model and continue its conversation" },
+	args: {
+		id: { type: "positional", required: true, description: "Agent ID" },
+		model: { type: "string", required: true, description: "Canonical model ID from trellis models list" },
+		"expected-terminal-id": { type: "string", required: true, description: "Current attempt ID from the agent record" },
+		"request-id": { type: "string", required: true, description: "Stable request ID for this model change" },
+	},
+	async run(context) {
+		const ctx = contextOf(context);
+		const { args } = context;
+		const result = await clientOf(ctx).agentRuns.setModel({
+			id: args.id,
+			model: args.model,
+			expectedTerminalId: args["expected-terminal-id"],
+			requestId: args["request-id"],
+		});
 		printRecord(ctx.out, ctx.format, result, agentRecord);
 		return result.state === "running" ? 0 : 6;
 	},
@@ -176,5 +208,5 @@ const output = defineCommand({
 
 export default defineCommand({
 	meta: { name: "agents", description: "List, start, refresh, interrupt, stop, or talk to agents" },
-	subCommands: { list, start, resume, refresh, interrupt, stop, send, output },
+	subCommands: { list, start, resume, model, refresh, interrupt, stop, send, output },
 });

@@ -1,5 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { compactRelativeTime, formatCount, relativeTime, tabularClass } from "./format";
+import {
+	compactRelativeTime,
+	formatCount,
+	localClock,
+	localDate,
+	localDateTime,
+	relativeTime,
+	tabularClass,
+} from "./format";
 
 const now = new Date("2026-09-09T12:00:00.000Z");
 
@@ -11,6 +19,16 @@ const hour = 60 * minute;
 const day = 24 * hour;
 
 describe("lib/format", () => {
+	test("local times cross date and daylight-saving boundaries", () => {
+		const options = { locale: "en-CA", timeZone: "America/Toronto" };
+		expect(localDate("2026-01-01T01:30:00.000Z", options)).toBe("2025-12-31");
+		expect(localDateTime("2026-01-01T01:30:00.000Z", options)).toBe("Wednesday, December 31, 2025 at 8:30:00 PM EST");
+		expect(localClock("2026-03-08T06:59:00.000Z", options)).toBe("01:59:00");
+		expect(localClock("2026-03-08T07:01:00.000Z", options)).toBe("03:01:00");
+		expect(localDateTime("2026-11-01T05:30:00.000Z", options)).toEndWith("1:30:00 AM EDT");
+		expect(localDateTime("2026-11-01T06:30:00.000Z", options)).toEndWith("1:30:00 AM EST");
+	});
+
 	// WS-32. Under 10 s is "just now"; then seconds, minutes, hours, and days
 	// up to 30 days; older stamps show the short date.
 	test("relativeTime and compactRelativeTime format every bucket", () => {

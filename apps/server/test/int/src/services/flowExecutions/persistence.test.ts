@@ -27,17 +27,12 @@ beforeEach(async () => {
 	await h.read(async (tx) => {
 		await seedActors(tx);
 		project = await seedRoot(tx, "FLW");
-		const status = await seedStatus(tx, {
-			projectId: project,
-			name: "Todo",
-			category: "todo",
-			position: 0,
-			isDefault: true,
-		});
+		await seedStatus(tx, { projectId: project, name: "Todo", category: "todo", position: 0, isDefault: true });
+		const status = await seedStatus(tx, { projectId: project, name: "In Progress", category: "started", position: 1 });
 		ticket = await seedTicket(tx, { projectId: project, rootId: project, statusId: status });
 		persona = ulid();
 		await tx.execute(
-			sql`UPDATE projects SET manager_config='{"personaId":null,"concurrency":3,"ade":"native","directory":"/tmp"}'::jsonb WHERE id=${project}`,
+			sql`UPDATE projects SET manager_config='{"personaId":null,"ade":"native","directory":"/tmp"}'::jsonb WHERE id=${project}`,
 		);
 		await tx.execute(
 			sql`INSERT INTO personas (id,name,kind,instruction,created_at,updated_at) VALUES (${persona},'Flow worker','builder','Frozen persona',now(),now())`,
@@ -87,15 +82,13 @@ test("concurrent identical starts create one frozen execution", async () => {
 		code: "INPUT_VALIDATION_FAILED",
 	});
 });
-test("new starts enforce flow version, worker persona, and pause", async () => {
+test("new starts enforce flow version and worker persona", async () => {
 	await expect(h.run((ctx, tx) => start(ctx, tx, { ...input(), expectedVersion: 1 }))).rejects.toMatchObject({
 		code: "FLOW_VERSION_CONFLICT",
 	});
 	await h.rows(sql`UPDATE personas SET kind='manager' WHERE id=${persona}`);
 	await expect(h.run((ctx, tx) => start(ctx, tx, input()))).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
 	await h.rows(sql`UPDATE personas SET kind='builder' WHERE id=${persona}`);
-	await h.rows(sql`INSERT INTO settings (key,value,updated_at) VALUES ('nativeWorkPaused','true'::jsonb,now())`);
-	await expect(h.run((ctx, tx) => start(ctx, tx, input()))).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
 });
 test("only a person can answer a current human step", async () => {
 	const record = await h.run((ctx, tx) => start(ctx, tx, input()));
@@ -127,11 +120,11 @@ test("a late launch error cannot replace a person's cancellation", async () => {
 test.each(["codex", "pi", "opencode"])("native flows can reserve a %s worker", async (preset) => {
 	await h.rows(sql`UPDATE flow_nodes SET kind='agent' WHERE flow_id=${flow}`);
 	await h.rows(
-		sql`UPDATE projects SET manager_config=jsonb_set(manager_config,'{harness}',${JSON.stringify({ preset, model: "explicit-model" })}::jsonb) WHERE id=${project}`,
+		sql`UPDATE projects SET manager_config=jsonb_set(manager_config,'{harness}',${JSON.stringify({ preset, model: "openai/gpt-5.6-sol" })}::jsonb) WHERE id=${project}`,
 	);
 	const record = await h.run((ctx, tx) => start(ctx, tx, input()));
 	const { claimNext } = await import("../../../../../src/services/flowExecutions/claimNext.ts");
 	const claim = await h.run((ctx, tx) => claimNext(ctx, tx, { id: record.id }));
 	expect(claim?.config.harness.preset).toBe(preset);
-	expect(claim?.config.harness.model).toBe("explicit-model");
+	expect(claim?.config.harness.model).toBe("openai/gpt-5.6-sol");
 });

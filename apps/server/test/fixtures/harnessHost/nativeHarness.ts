@@ -15,7 +15,11 @@ if (process.argv[2] === "agents") {
 }
 const harness = process.env.TRELLIS_HARNESS!;
 const args = process.argv.slice(2);
-const model = args.includes("--model") ? args[args.indexOf("--model") + 1] : "fixture-default";
+const model = args.includes("--model")
+	? args[args.indexOf("--model") + 1]
+	: process.env.TRELLIS_HARNESS === "claude"
+		? "claude-opus-5"
+		: "openai/gpt-5.6-sol";
 const sessionFlag = {
 	claude: "--resume",
 	codex: "resume",
@@ -135,7 +139,7 @@ let input = "";
 process.stdin.on("data", (chunk: Buffer) => {
 	input += chunk.toString().replaceAll("\x1b[200~", "").replaceAll("\x1b[201~", "");
 	if (input.includes("\x03") || input.includes("\x1b")) {
-		input = "";
+		input = input.replaceAll("\x03", "").replaceAll("\x1b", "");
 		if (harness === "claude")
 			writeFileSync(statusFile, JSON.stringify([{ pid: process.pid, sessionId, status: "idle" }]));
 		else
@@ -143,7 +147,8 @@ process.stdin.on("data", (chunk: Buffer) => {
 				outcome = process.env.HARNESS_FIXTURE_BEHAVIOR === "normal-interrupt" ? "completed" : "interrupted";
 				return hook("idle");
 			});
-	} else if (input.endsWith("\r")) {
+	}
+	if (input.endsWith("\r")) {
 		const submitted = input.slice(0, -1);
 		input = "";
 		sequence = sequence.then(async () => {

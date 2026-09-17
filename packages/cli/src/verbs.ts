@@ -10,6 +10,10 @@ const command = (loaded: unknown) => loaded as CommandDef;
 // dispatch, so `--help` and a stub load no command module. Every specifier
 // is a literal, so a bundle of this file carries every verb.
 export const verbs: Record<string, { description: string; load: Loader }> = {
+	models: {
+		description: "List canonical model IDs",
+		load: () => import("./commands/models/models.ts").then((m) => command(m.default)),
+	},
 	accounts: {
 		description: "List harness accounts and check quota",
 		load: () => import("./commands/accounts.ts").then((m) => command(m.default)),
@@ -82,6 +86,10 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 	chat: {
 		description: "Read and post in the chat room of a project",
 		load: () => import("./commands/chat.ts").then((m) => command(m.default)),
+	},
+	notes: {
+		description: "Read and write the notes of a project",
+		load: () => import("./commands/notes.ts").then((m) => command(m.default)),
 	},
 	attach: {
 		description: "Upload a file to a ticket",

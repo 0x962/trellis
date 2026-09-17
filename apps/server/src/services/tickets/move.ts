@@ -7,9 +7,11 @@ import { ticketGet, ticketSummary } from "../../db/queries/ticketGet.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { type Change, record } from "../activity.ts";
+import { assertStatusRoom } from "../manager/admitTicket.ts";
+import { retireColumnWorker } from "../manager/retireColumnWorker.ts";
 import { assertProjectActive, resolveStatus, resolveTicket, type TicketRow } from "../refs.ts";
 import { type Anchor, type Anchors, placeBetween, renumberColumn } from "./position.ts";
-import { assertAgentMayComplete, assertVersion, stampColumns } from "./rules.ts";
+import { assertVersion, stampColumns } from "./rules.ts";
 
 // An anchor sits in the target column and is not the moved ticket itself.
 const resolveAnchor = async (ctx: ServiceCtx, tx: Tx, row: TicketRow, statusId: string, ref: string | undefined) => {
@@ -29,7 +31,7 @@ export const move = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 	await assertVersion(tx, row, input.expectedVersion);
 	const next = await resolveStatus(ctx, tx, { projectId: row.projectId, status: input.status });
 	const statusChanged = next.id !== row.statusId;
-	if (statusChanged) assertAgentMayComplete(ctx, next, input.force);
+	if (statusChanged) await assertStatusRoom(ctx, tx, next.id, row.projectId);
 	const anchors: Anchors = {
 		after: await resolveAnchor(ctx, tx, row, next.id, input.after),
 		before: await resolveAnchor(ctx, tx, row, next.id, input.before),
@@ -68,6 +70,8 @@ export const move = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 		batchId,
 		changes,
 	});
+	if (statusChanged)
+		await retireColumnWorker(ctx, tx, { ticketId: row.id, projectId: row.projectId, category: next.category });
 	ctx.emit({ type: "ticket.updated", summary: await ticketSummary(tx, row.id), fields, batchId });
 	return ticketGet(tx, row.id);
 };

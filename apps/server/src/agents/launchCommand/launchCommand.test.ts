@@ -130,3 +130,12 @@ test("the persona labels the agent while its actor retains the assignment ID", (
 	expect(launch.prompt).toContain("Your persona is Trellis Manager.");
 	expect(launch.prompt).toContain(`Your Trellis actor is agent:${run.id}`);
 });
+
+test("a session agent receives the typed prompt alone, and a resume asks it to continue", () => {
+	const session = { ...run, kind: "session" as const, instruction: "Prototype a rate limiter in Go." };
+	const start = launchCommand({ run: session, url, context: "", template: "agent {{prompt}}" });
+	expect(start.prompt).toBe("Prototype a rate limiter in Go.");
+	expect(start.command).toContain("agent 'Prototype a rate limiter in Go.'");
+	const resume = launchCommand({ run: session, url, context: "", resume: true, template: "agent {{resumeText}}" });
+	expect(resume.command).toContain("agent 'Continue this session in the same conversation and workspace.'");
+});

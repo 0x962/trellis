@@ -12,18 +12,26 @@ export async function harnessHostFixture(options: { nestedRuntime?: boolean } = 
 	const bin = join(home, "bin");
 	await mkdir(bin);
 	await symlink(Bun.which("node")!, join(bin, "node"));
-	const codexBuild = await Bun.build({
-		entrypoints: [resolve(repo, "apps/server/test/fixtures/harnessHost/codexAppServer.ts")],
-		target: "node",
-		format: "esm",
-	});
-	if (!codexBuild.success) throw new AggregateError(codexBuild.logs, "Codex fixture build failed");
-	for (const harness of ["claude", "codex", "pi", "opencode"]) {
+	const bundles = new Map<string, string>();
+	for (const [harness, entry] of [
+		["codex", "codexAppServer.ts"],
+		["muse", "museServe.ts"],
+	] as const) {
+		const build = await Bun.build({
+			entrypoints: [resolve(repo, "apps/server/test/fixtures/harnessHost", entry)],
+			target: "node",
+			format: "esm",
+		});
+		if (!build.success) throw new AggregateError(build.logs, `${harness} fixture build failed`);
+		bundles.set(harness, await build.outputs[0]!.text());
+	}
+	for (const harness of ["claude", "codex", "pi", "opencode", "muse"]) {
 		const executable = join(bin, harness);
+		const bundle = bundles.get(harness);
 		await writeFile(
 			executable,
-			harness === "codex"
-				? `#!${Bun.which("node")}\n${await codexBuild.outputs[0]!.text()}`
+			bundle !== undefined
+				? `#!${Bun.which("node")}\n${bundle}`
 				: `#!${process.execPath}\nimport ${JSON.stringify(resolve(repo, "apps/server/test/fixtures/harnessHost/nativeHarness.ts"))};\n`,
 		);
 		await chmod(executable, 0o700);

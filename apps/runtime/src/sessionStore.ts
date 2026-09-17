@@ -5,6 +5,7 @@ import type {
 	LaunchSpec,
 	RuntimeExpectedTurn,
 	RuntimeListInput,
+	RuntimeMessageState,
 	RuntimeMethods,
 	RuntimeProcessStatus,
 	RuntimeSession,
@@ -124,6 +125,10 @@ export class SessionStore {
 	}
 	inspect(id: string): RuntimeProcessStatus {
 		return inspectSessionRecord(this.get(id));
+	}
+	hasMessage({ id, messageId }: RuntimeMethods["hasMessage"]["params"]): RuntimeMessageState {
+		const record = this.get(id);
+		return { messageId, delivered: record.ledger.delivered(messageId), status: this.inspect(id).status };
 	}
 	registerNativeDelivery(input: RuntimeMethods["registerNativeDelivery"]["params"]) {
 		return registerNativeDelivery(this.get(input.id), input);
@@ -249,8 +254,9 @@ export class SessionStore {
 		await record.process.input(bytes);
 		return null;
 	}
-	deliver(id: string, messageId: string, data: string) {
+	deliver(id: string, messageId: string, data: string, expected?: RuntimeExpectedTurn) {
 		const record = this.get(id);
+		if (!record.ledger.has(messageId)) assertExpectedTurn(record, expected);
 		return record.ledger.deliver(messageId, data, () => this.input(id, data));
 	}
 	resize(id: string, cols: number, rows: number) {

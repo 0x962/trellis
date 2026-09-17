@@ -18,14 +18,14 @@ afterAll(async () => {
 	for (const close of closers) await close();
 });
 
-for (const kind of ["capacity", "time", "dependency", "human_response"] as const) {
+for (const kind of ["time", "dependency", "human_response"] as const) {
 	test(`a saved ${kind} wait returns after the database closes and reopens`, async () => {
 		const directory = join(freshHome(), "db");
 		const first = await diskDb(directory);
 		const saved = await first.db.transaction(async (tx) => {
 			await seedActors(tx);
 			const projectId = await seedRoot(tx, "DSK", {
-				manager_config: { personaId: "01ARZ3NDEKTSV4RRFFQ69G5FAV", concurrency: 1, directory: "/tmp/trellis-test" },
+				manager_config: { personaId: "01ARZ3NDEKTSV4RRFFQ69G5FAV", directory: "/tmp/trellis-test" },
 			});
 			const statusId = await seedStatus(tx, {
 				projectId,
@@ -43,18 +43,16 @@ for (const kind of ["capacity", "time", "dependency", "human_response"] as const
 			const doneId = await seedStatus(tx, { projectId, name: "Done", category: "done", position: 1 });
 			await tx.execute(sql`INSERT INTO comments (id,ticket_id,body,actor_kind,actor_name,created_at,updated_at)
 			VALUES ('question',${ticketId},'Which option?', 'agent','claude',${NOW},${NOW})`);
-			const waitFor: ManagerWait | undefined =
+			const waitFor: ManagerWait =
 				kind === "time"
 					? { type: "time", at: secondsAfter(10).toISOString() }
 					: kind === "dependency"
 						? { type: "dependency", ticketId: dependencyId }
-						: kind === "human_response"
-							? { type: "human_response", commentId: "question" }
-							: undefined;
+						: { type: "human_response", commentId: "question" };
 			await handle({ actor: { kind: "human", name: "dana" }, now: NOW }, tx, {
 				id: "source",
 				generation: 1,
-				outcomes: [{ ticketId, status: "queued", reason: "Assign Builder.", ...(waitFor ? { waitFor } : {}) }],
+				outcomes: [{ ticketId, status: "queued", reason: "Assign Builder.", waitFor }],
 			});
 			await assertStatusInvariant(tx);
 			return { ticketId, dependencyId, doneId, waitFor };
@@ -64,10 +62,8 @@ for (const kind of ["capacity", "time", "dependency", "human_response"] as const
 		const reopened = await diskDb(directory);
 		closers.push(reopened.close);
 		await reopened.db.transaction(async (tx) => {
-			if (kind !== "capacity") {
-				await collect({ now: secondsAfter(1) }, tx, { sessions: [controllerSession()] });
-				expect(await claim({ now: secondsAfter(1) }, tx, { sessions: [controllerSession()] })).toBeNull();
-			}
+			await collect({ now: secondsAfter(1) }, tx, { sessions: [controllerSession()] });
+			expect(await claim({ now: secondsAfter(1) }, tx, { sessions: [controllerSession()] })).toBeNull();
 			await tx.execute(
 				sql`UPDATE tickets SET status_id=${saved.doneId},completed_at=${NOW} WHERE id=${saved.dependencyId}`,
 			);
@@ -85,3 +81,43 @@ for (const kind of ["capacity", "time", "dependency", "human_response"] as const
 		});
 	});
 }
+
+test("a saved action with no wait returns as ready after the database closes and reopens", async () => {
+	const directory = join(freshHome(), "db");
+	const first = await diskDb(directory);
+	await first.db.transaction(async (tx) => {
+		await seedActors(tx);
+		const projectId = await seedRoot(tx, "DSK", {
+			manager_config: { personaId: "01ARZ3NDEKTSV4RRFFQ69G5FAV", directory: "/tmp/trellis-test" },
+		});
+		const statusId = await seedStatus(tx, {
+			projectId,
+			name: "Todo",
+			category: "todo",
+			position: 0,
+			isDefault: true,
+		});
+		const ticketId = await seedTicket(tx, { projectId, rootId: projectId, statusId });
+		await tx.execute(sql`INSERT INTO agent_runs (id,name,persona_name,kind,instruction,project_id,project_path,runtime,terminal_id,session_id,created_at,updated_at)
+		VALUES ('manager','Manager','Manager','manager','Manage',${projectId},'DSK','native','attempt','session',${NOW},${NOW})`);
+		await tx.execute(sql`INSERT INTO manager_dispatches (id,project_id,generation,state,events,due_at,created_at,updated_at)
+		VALUES ('source',${projectId},1,'sent',${JSON.stringify([{ ticketId }])}::jsonb,${NOW},${NOW},${NOW})`);
+		await handle({ actor: { kind: "human", name: "dana" }, now: NOW }, tx, {
+			id: "source",
+			generation: 1,
+			outcomes: [{ ticketId, status: "queued", reason: "Assign Builder." }],
+		});
+		await assertStatusInvariant(tx);
+	});
+	await first.close();
+	const reopened = await diskDb(directory);
+	closers.push(reopened.close);
+	await reopened.db.transaction(async (tx) => {
+		await collect({ now: secondsAfter(1) }, tx, { sessions: [controllerSession()] });
+		const delivery = await claim({ now: secondsAfter(1) }, tx, { sessions: [controllerSession()] });
+		expect(delivery?.nextActions).toHaveLength(1);
+		expect(delivery?.nextActions[0]).toMatchObject({ wakeCondition: "ready" });
+		expect(delivery?.nextActions[0]?.waitFor ?? null).toBeNull();
+		await assertStatusInvariant(tx);
+	});
+});

@@ -11,13 +11,14 @@ export const ACTOR_HEADER_EXAMPLE = "agent:claude-code";
 export const SERVERS = [{ url: "http://127.0.0.1:4521/api", description: "The local server" }];
 
 export const TAGS = [
-	{ name: "submanagers", description: "Delegated project scopes and reserved worker capacity." },
+	{ name: "submanagers", description: "Delegated project scopes." },
 	{ name: "harness accounts", description: "Configured account profiles and provider quota." },
 	{ name: "needs you", description: "Work that requires a human decision." },
 	{ name: "evidence", description: "Workspace files, retained checks, and artifacts for a native attempt." },
 	{ name: "controller", description: "Durable manager messages and uncertain delivery decisions." },
 	{ name: "flow executions", description: "Saved flow versions, local worker attempts, and human decisions." },
 	{ name: "reviews", description: "Local PR reviews, diff revisions, comments, submissions, and agent notifications." },
+	{ name: "sessions", description: "Scratch sessions: a git repository with one agent, outside every project." },
 	{ name: "personas", description: "Saved personas. Each persona has a name and an instruction." },
 	{
 		name: "flows",
@@ -31,6 +32,10 @@ export const TAGS = [
 	{
 		name: "chat",
 		description: "The chat room of a project tree: its channels and their messages. Live agents receive every post.",
+	},
+	{
+		name: "notes",
+		description: "Project notes: titled markdown that every agent of the project and its sub-projects reads at start.",
 	},
 	{ name: "attachments", description: "Files on a ticket. The bytes are served at GET /api/attachments/{id}/file." },
 	{ name: "pull requests", description: "GitHub pull requests linked to a ticket, with their CI state." },
@@ -73,7 +78,7 @@ Example: \`GET /api/tickets?project=CDE&status=in-progress,agent-review&parent=n
 
 ## Rules for agents
 
-An agent never moves a ticket to a done status without \`force\`. A human does that. An agent never deletes a ticket or a project without \`force\`. The server enforces both rules: 403 AGENT_CANNOT_COMPLETE and 403 AGENT_CANNOT_DELETE.
+An agent never deletes a ticket or a project without \`force\`. The server enforces this rule with 403 AGENT_CANNOT_DELETE.
 
 ## Two calls
 
@@ -92,11 +97,9 @@ Every response carries \`x-trellis-api-version\`. Every error is JSON with \`cod
 export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /submanagers": {
 		project: "CDE.web",
-		capacity: 2,
 		brief: "Complete the web tickets and prepare them for review.",
 		requestId: "CDE.web:manager",
 	},
-	"PATCH /submanagers/{id}": { capacity: 3 },
 	"POST /submanagers/{id}/retire": {},
 	"POST /harness-accounts": { name: "Work", harness: "claude" },
 	"PATCH /harness-accounts/{id}": { isDefault: true },
@@ -123,7 +126,6 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 			{ ticketId: "01J9Z0000000000000000000A1", status: "queued", reason: "An active worker owns this ticket." },
 		],
 	},
-	"POST /native-work/resume": {},
 	"POST /native-work/stop": {},
 	"POST /flow-executions": {
 		flow: "review",
@@ -242,16 +244,30 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /tickets/delete-many": { tickets: ["CDE-1", "CDE-2"] },
 	"POST /tickets/{ticket}/comments": { body: "Tests pass. Ready for review." },
 	"POST /comments/{id}/resolve": { resolved: true },
-	"POST /projects/{project}/chat": { channel: "#release" },
+	"POST /projects/{project}/chat": { channel: "#release", aiOnly: false },
+	"POST /projects/{project}/chat/attachments": {
+		file: "<the file bytes as one multipart part named file>",
+		name: "shot.png",
+	},
 	"POST /projects/{project}/chat/{channel}/messages": {
 		body: "@Builder the migration on main is merged. Rebase before you push.",
 	},
 	"PATCH /comments/{id}": { body: "Tests pass. Ready for a human review." },
+	"POST /projects/{project}/notes": {
+		title: "Fresh worktree",
+		body: "A new worktree has no node_modules. Run bun install before the first check.",
+		audience: "worker",
+	},
+	"PATCH /notes/{id}": {
+		body: "Free disk: 89 GiB at 16:45 UTC. Large checks stay paused below 100 GiB.",
+		expiresAt: null,
+	},
 	"POST /tickets/{ticket}/attachments": { file: "<the file bytes as one multipart part named file>", name: "shot.png" },
 	"POST /tickets/{ticket}/prs": { url: "https://github.com/acme/web/pull/12" },
 	"PUT /settings": {
 		defaultActorName: "dana",
 	},
 	"POST /agent-runs": { personaId: "01J9Z0000000000000000000A1", ticket: "CDE-42" },
+	"POST /sessions": { prompt: "Prototype a rate limiter in Go.", harness: { preset: "claude" } },
 	"POST /agent-runs/{id}/send": { text: "The CI run is red. Read the failing step and fix it." },
 };

@@ -35,23 +35,23 @@ test("the application menu opens Settings and keeps the stop action available fo
 		"hide",
 		"hideOthers",
 		"unhide",
-		"Stop local work and background service",
 		"Restart",
-		"Quit Trellis (keep agents running)",
+		"Quit Trellis Completely",
+		"Quit Trellis",
 	]);
 	expect(names(submenu(menu, "File"))).toEqual(["Open Trellis", "close"]);
 	expect(names(submenu(menu, "Help"))).toEqual(["Open local logs", "Reconnect host"]);
 	const settings = trellis.find((item) => item.label === "Settings…");
 	expect(settings?.accelerator).toBe("Cmd+,");
-	expect(trellis.find((item) => item.label === "Quit Trellis (keep agents running)")?.accelerator).toBe("Cmd+Q");
+	expect(trellis.find((item) => item.label === "Quit Trellis")?.accelerator).toBe("Cmd+Q");
 	const labels = menu.flatMap((item) => names(Array.isArray(item.submenu) ? item.submenu : []));
 	for (const label of settingsPageItems) expect(labels).not.toContain(label);
 	click(settings);
 	click(submenu(menu, "File")[0]);
 	click(submenu(menu, "Help")[0]);
 	click(submenu(menu, "Help")[1]);
-	click(trellis.find((item) => item.label === "Stop local work and background service"));
 	click(trellis.find((item) => item.label === "Restart"));
+	click(trellis.find((item) => item.label === "Quit Trellis Completely"));
 	click(trellis.at(-1));
-	expect(calls).toEqual(["settings", "window", "logs", "reconnect", "stop", "restart", "quit"]);
+	expect(calls).toEqual(["settings", "window", "logs", "reconnect", "restart", "stop", "quit"]);
 });

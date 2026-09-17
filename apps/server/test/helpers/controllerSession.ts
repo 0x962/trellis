@@ -32,3 +32,12 @@ export const controllerSession = (
 	result: null,
 	...overrides,
 });
+
+export const workingSession = (id: string, durationMs = 10_000): RuntimeProcessStatus =>
+	controllerSession(id, {
+		activity: {
+			state: "working",
+			workingSince: new Date(NOW.getTime() - durationMs).toISOString(),
+			updatedAt: NOW.toISOString(),
+		},
+	});

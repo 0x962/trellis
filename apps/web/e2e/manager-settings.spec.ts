@@ -14,7 +14,7 @@ test("local manager settings save directories without approval and preserve mode
 	await post("/projects", {
 		key: "HAR",
 		name: "Harness settings",
-		managerConfig: { personaId: null, concurrency: 3, directory: "", ade: "native" },
+		managerConfig: { personaId: null, directory: "", ade: "native" },
 	});
 	await page.addInitScript(() =>
 		Object.defineProperty(window, "trellisDesktop", {
@@ -44,20 +44,22 @@ test("local manager settings save directories without approval and preserve mode
 	await navigation.getByRole("link", { name: "Harness", exact: true }).click();
 	await expect(page).toHaveURL(/\/p\/HAR\/settings#harness$/);
 	await expect(
-		page.getByText("Leave blank to use claude-opus-5 for a new session. Resume keeps its saved model."),
+		page.getByText("A resume keeps its saved model unless you select another model for that resume."),
 	).toBeVisible();
 	await page.getByRole("combobox", { name: "Harness preset" }).click();
 	await page.getByRole("option", { name: "Codex", exact: true }).click();
 	await expect(
-		page.getByText("Leave blank to use gpt-5.6-sol for a new session. Resume keeps its saved model."),
+		page.getByText("A resume keeps its saved model unless you select another model for that resume."),
 	).toBeVisible();
 	await expect(page.getByRole("textbox", { name: "Start command", exact: true })).toHaveCount(0);
-	await page.getByRole("textbox", { name: "Model", exact: true }).fill("gpt-5.6-sol");
-	await page.getByRole("textbox", { name: "Model", exact: true }).press("Tab");
-	await expect.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.harness.model).toBe("gpt-5.6-sol");
+	await page.getByRole("combobox", { name: "Model", exact: true }).click();
+	await page.getByRole("option", { name: "openai/gpt-5.6-sol", exact: true }).click();
+	await expect
+		.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.harness.model)
+		.toBe("openai/gpt-5.6-sol");
 	await expect.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.harness.preset).toBe("codex");
 	await page.reload();
-	await expect(page.getByRole("textbox", { name: "Model", exact: true })).toHaveValue("gpt-5.6-sol");
+	await expect(page.getByRole("combobox", { name: "Model", exact: true })).toContainText("openai/gpt-5.6-sol");
 	await page.getByRole("combobox", { name: "Harness preset" }).click();
 	await page.getByRole("option", { name: "Custom", exact: true }).click();
 	await expect(page.getByRole("textbox", { name: "Start command", exact: true })).toHaveValue(
@@ -77,9 +79,6 @@ test("local manager settings save directories without approval and preserve mode
 	await expect
 		.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.directory)
 		.toBe("/tmp/trellis-native-other");
-	await page.getByLabel("Concurrency", { exact: true }).fill("5");
-	await page.getByLabel("Concurrency", { exact: true }).press("Tab");
-	await expect.poll(async () => (await get<Project>("/projects/HAR")).managerConfig?.concurrency).toBe(5);
 	await expect(page.getByRole("main").getByRole("status")).toHaveText("All changes saved");
 	await navigation.getByRole("link", { name: "Harness", exact: true }).click();
 	await expect(page.getByRole("textbox", { name: "Start command", exact: true })).toHaveValue(
@@ -99,7 +98,6 @@ test("local manager settings save directories without approval and preserve mode
 	await expect(
 		page.getByRole("textbox", { name: /Project directory|Model|Start command|Resume command/, includeHidden: true }),
 	).toHaveCount(0);
-	await expect(page.getByLabel("Concurrency", { exact: true })).toHaveCount(0);
 	await expect(
 		page.getByRole("checkbox", { name: "Trust this repository", exact: true, includeHidden: true }),
 	).toHaveCount(0);
@@ -108,7 +106,7 @@ test("local manager settings save directories without approval and preserve mode
 	);
 });
 
-test("a blank default model remains valid after an edit", async ({ page }) => {
+test("the model selector can restore the harness default", async ({ page }) => {
 	const persona = await post<Persona>("/personas", {
 		name: "Model default fixture",
 		kind: "manager",
@@ -119,16 +117,23 @@ test("a blank default model remains valid after an edit", async ({ page }) => {
 		name: "Model default",
 		managerConfig: {
 			personaId: persona.id,
-			concurrency: 1,
 			directory: "/tmp",
 			dispatchPaused: true,
 		},
 	});
 	await signIn(page, "/p/MDF/settings#harness");
-	const model = page.getByRole("textbox", { name: "Model", exact: true });
-	await model.fill(" ");
-	await model.press("Tab");
-	await expect(model).toHaveValue("");
+	const model = page.getByRole("combobox", { name: "Model", exact: true });
+	await expect(page.getByRole("textbox", { name: "Model", exact: true })).toHaveCount(0);
+	await model.click();
+	await page.getByRole("option", { name: "anthropic/claude-sonnet-5", exact: true }).click();
+	await expect
+		.poll(async () => (await get<Project>("/projects/MDF")).managerConfig?.harness.model)
+		.toBe("anthropic/claude-sonnet-5");
+	await model.click();
+	const menu = await page.getByRole("listbox").boundingBox();
+	expect(menu!.y).toBeGreaterThanOrEqual(0);
+	await page.getByRole("option", { name: "Default (anthropic/claude-opus-5)", exact: true }).click();
+	await expect(model).toContainText("Default");
 	await expect(page.getByRole("main").getByRole("status")).toHaveText("All changes saved");
 	expect((await get<Project>("/projects/MDF")).managerConfig?.harness.model).toBeUndefined();
 	await page.goto("/p/MDF/settings/manager");
@@ -139,24 +144,25 @@ test("manager and harness settings retain one unsaved draft", async ({ page }) =
 	await post("/projects", {
 		key: "MSD",
 		name: "Shared manager draft",
-		managerConfig: { personaId: null, concurrency: 3, directory: "/tmp", dispatchPaused: true },
+		managerConfig: { personaId: null, directory: "/tmp", dispatchPaused: true },
 	});
 	await signIn(page, "/p/MSD/settings#manager");
 	const navigation = page.getByRole("navigation", { name: "Project settings", exact: true });
-	await page.getByLabel("Concurrency", { exact: true }).fill("0");
+	const directory = page.getByRole("textbox", { name: "Project directory", exact: true });
+	await directory.fill("relative-unsaved-draft");
 	await navigation.getByRole("link", { name: "Harness", exact: true }).click();
-	await page.getByRole("textbox", { name: "Model", exact: true }).fill("draft-model");
-	await page.getByRole("textbox", { name: "Model", exact: true }).press("Tab");
+	await page.getByRole("combobox", { name: "Model", exact: true }).click();
+	await page.getByRole("option", { name: "anthropic/claude-sonnet-5", exact: true }).click();
 	await expect(page.getByRole("main").getByRole("status")).toHaveText("Unsaved changes");
 	expect((await get<Project>("/projects/MSD")).managerConfig?.harness.model).toBeUndefined();
 	await navigation.getByRole("link", { name: "Manager", exact: true }).click();
-	await expect(page.getByLabel("Concurrency", { exact: true })).toHaveValue("");
-	await page.getByLabel("Concurrency", { exact: true }).fill("2");
-	await page.getByLabel("Concurrency", { exact: true }).press("Tab");
+	await expect(directory).toHaveValue("relative-unsaved-draft");
+	await directory.fill("/tmp/shared-draft");
+	await directory.press("Tab");
 	await expect(page.getByRole("main").getByRole("status")).toHaveText("All changes saved");
 	const project = await get<Project>("/projects/MSD");
-	expect(project.managerConfig?.concurrency).toBe(2);
-	expect(project.managerConfig?.harness.model).toBe("draft-model");
+	expect(project.managerConfig?.directory).toBe("/tmp/shared-draft");
+	expect(project.managerConfig?.harness.model).toBe("anthropic/claude-sonnet-5");
 });
 
 test("a saved directory lets the manager start without repository approval", async ({ page }) => {
@@ -168,7 +174,7 @@ test("a saved directory lets the manager start without repository approval", asy
 	const project = await post<Project>("/projects", {
 		key: "MTR",
 		name: "Manager directory",
-		managerConfig: { personaId: persona.id, concurrency: 1, directory: "", dispatchPaused: true },
+		managerConfig: { personaId: persona.id, directory: "", dispatchPaused: true },
 	});
 	let started: unknown;
 	let run: AgentRun | null = null;
@@ -215,17 +221,66 @@ test("a saved directory lets the manager start without repository approval", asy
 	await expect(page.getByRole("button", { name: "Stop manager", exact: true })).toBeEnabled();
 });
 
+test("a sub-project confirms its own manager and the parent manager gets one event", async ({ page }) => {
+	const persona = await post<Persona>("/personas", {
+		name: "Sub-project manager",
+		kind: "manager",
+		instruction: "Wait.",
+	});
+	const parent = await post<Project>("/projects", {
+		key: "SPM",
+		name: "Sub-project manager parent",
+		managerConfig: { personaId: persona.id, directory: "/tmp", dispatchPaused: true },
+	});
+	const child = await post<Project>("/projects", { parent: "SPM", name: "Managed child", slug: "child" });
+	await signIn(page, "/p/SPM/child/settings#manager");
+	const personaPicker = page.getByRole("combobox", { name: "Manager persona", exact: true });
+	const dialog = page.getByRole("dialog", { name: "Turn on a manager for this sub-project?" });
+	await personaPicker.click();
+	await page.getByRole("option", { name: persona.name, exact: true }).click();
+	await expect(dialog).toBeVisible();
+	await expect(dialog.getByText("The parent manager receives one event about this change.")).toBeVisible();
+	await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+	await expect(dialog).toBeHidden();
+	await expect(personaPicker).toContainText("Select a manager persona");
+	expect((await get<Project>(`/projects/${child.id}`)).managerConfig?.personaId).toBeNull();
+	await personaPicker.click();
+	await page.getByRole("option", { name: persona.name, exact: true }).click();
+	await dialog.getByRole("button", { name: "Turn on manager", exact: true }).click();
+	await expect(dialog).toBeHidden();
+	await expect
+		.poll(async () => (await get<Project>(`/projects/${child.id}`)).managerConfig?.personaId)
+		.toBe(persona.id);
+	await expect(page.getByRole("main").getByRole("status")).toHaveText("All changes saved");
+	await expect(personaPicker).toContainText(persona.name);
+	await expect
+		.poll(async () =>
+			(await get<{ events: unknown[] }[]>(`/manager-dispatches?projectId=${parent.id}`)).flatMap((row) => row.events),
+		)
+		.toEqual([
+			expect.objectContaining({
+				ticketId: null,
+				action: "project.subproject_manager_enabled",
+				project: { id: child.id, path: "SPM.child" },
+			}),
+		]);
+	expect(await get<unknown[]>(`/manager-dispatches?projectId=${child.id}`)).toEqual([]);
+	await personaPicker.click();
+	await page.getByRole("option", { name: persona.name, exact: true }).click();
+	await expect(dialog).toBeHidden();
+});
+
 test("a child can clear its directory to use its parent repository", async ({ page }) => {
 	await post("/projects", {
 		key: "MDP",
 		name: "Parent repository",
-		managerConfig: { personaId: null, concurrency: 3, directory: "/tmp/trellis-parent" },
+		managerConfig: { personaId: null, directory: "/tmp/trellis-parent" },
 	});
 	const child = await post<Project>("/projects", {
 		parent: "MDP",
 		name: "Child repository",
 		slug: "child",
-		managerConfig: { personaId: null, concurrency: 3, directory: "/tmp/trellis-child" },
+		managerConfig: { personaId: null, directory: "/tmp/trellis-child" },
 	});
 	await signIn(page, "/p/MDP/child/settings#manager");
 	const directory = page.getByRole("textbox", { name: "Project directory", exact: true });

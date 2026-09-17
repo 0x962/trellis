@@ -14,7 +14,6 @@ export const createController = (options: ControllerOptions) => {
 	let stopped = true;
 	let running: Promise<void> = Promise.resolve();
 	const tick = async () => {
-		await options.call("controller.collect", {});
 		await options.call("controller.dispatch", {});
 	};
 	const tickFailed = (cause: unknown) =>
@@ -32,7 +31,6 @@ export const createController = (options: ControllerOptions) => {
 		start: async () => {
 			if (!stopped) return;
 			stopped = false;
-			await options.call("controller.recover", {});
 			schedule(0);
 		},
 		stop: async () => {

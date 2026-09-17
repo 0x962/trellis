@@ -2,14 +2,12 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:te
 import { sql } from "drizzle-orm";
 import { list as listRuns } from "../../../../../src/services/agentRuns/agentRuns.ts";
 import { reserve } from "../../../../../src/services/agentRuns/reserve.ts";
-import { capacityAvailable } from "../../../../../src/services/assignments/capacity.ts";
 import { agentContext } from "../../../../../src/services/controller/agentContext/agentContext.ts";
 import { collect } from "../../../../../src/services/controller/collect.ts";
 import { claim } from "../../../../../src/services/controller/controller.ts";
 import { coordination } from "../../../../../src/services/controller/coordination.ts";
 import { refresh } from "../../../../../src/services/controller/nextActions/queries.ts";
 import { reserveSubmanager } from "../../../../../src/services/submanagers/reserveSubmanager.ts";
-import { resize } from "../../../../../src/services/submanagers/resize.ts";
 import { release } from "../../../../../src/services/submanagers/retire.ts";
 import { seedActors, seedChild, seedRoot, seedStatus } from "../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../fixtures/tickets.ts";
@@ -23,6 +21,7 @@ let child: string;
 let leaf: string;
 let ticket: string;
 let otherTicket: string;
+let todoStatus: string;
 const parent = { actor: { kind: "agent" as const, name: "manager" } };
 beforeAll(async () => {
 	h = await serviceHarness();
@@ -36,32 +35,38 @@ beforeEach(async () => {
 		await tx.execute(sql`INSERT INTO personas (id,name,kind,instruction,created_at,updated_at) VALUES
 		('01ARZ3NDEKTSV4RRFFQ69G5FAV','Manager','manager','Manage',${NOW},${NOW}),('builder','Builder','builder','Build',${NOW},${NOW})`);
 		root = await seedRoot(tx, "SUB", {
-			manager_config: { personaId: "01ARZ3NDEKTSV4RRFFQ69G5FAV", concurrency: 4, directory: "/tmp" },
+			manager_config: { personaId: "01ARZ3NDEKTSV4RRFFQ69G5FAV", directory: "/tmp" },
 		});
 		child = await seedChild(tx, root, root, "child");
 		leaf = await seedChild(tx, child, root, "leaf");
-		const statusId = await seedStatus(tx, {
+		todoStatus = await seedStatus(tx, {
 			projectId: root,
 			name: "Todo",
 			category: "todo",
 			position: 0,
 			isDefault: true,
 		});
-		ticket = await seedTicket(tx, { projectId: child, rootId: root, statusId });
-		otherTicket = await seedTicket(tx, { projectId: leaf, rootId: root, statusId });
+		const started = await seedStatus(tx, {
+			projectId: root,
+			name: "In Progress",
+			category: "started",
+			position: 1,
+		});
+		ticket = await seedTicket(tx, { projectId: child, rootId: root, statusId: started });
+		otherTicket = await seedTicket(tx, { projectId: leaf, rootId: root, statusId: started });
 		await tx.execute(sql`INSERT INTO agent_runs (id,name,persona_id,persona_name,kind,instruction,project_id,project_path,runtime,terminal_id,session_id,created_at,updated_at)
 		VALUES ('manager','Manager','01ARZ3NDEKTSV4RRFFQ69G5FAV','Manager','manager','Manage',${root},'SUB','native','attempt','session',${NOW},${NOW})`);
 	});
 	await h.rebuild();
 });
-const delegate = (capacity = 1) =>
+const delegate = (brief = "Finish the child projects.", requestId = "delegate-child", accountId?: string) =>
 	h.run(
 		(ctx, tx) =>
 			reserveSubmanager(ctx, tx, {
 				project: child,
-				capacity,
-				brief: "Finish the child projects.",
-				requestId: "delegate-child",
+				brief,
+				requestId,
+				...(accountId === undefined ? {} : { accountId }),
 			}),
 		parent,
 	);
@@ -80,25 +85,25 @@ test("a submanager receives its subtree events without a configured manager or p
 	expect(await h.rows(sql`SELECT id FROM manager_dispatches WHERE project_id=${root}`)).toHaveLength(0);
 });
 
-test("the dedicated capacity covers workers across the whole delegated subtree", async () => {
-	const { run } = await delegate();
-	await h.run((ctx, tx) => reserve(ctx, tx, { ticket, personaId: "builder" }), {
-		actor: { kind: "agent", name: run.id },
-	});
-	expect(await h.read((tx) => capacityAvailable(tx, { projectId: leaf }))).toBe(false);
+test("assigning an agent to a todo ticket fails validation", async () => {
+	const todoTicket = await h.read((tx) => seedTicket(tx, { projectId: child, rootId: root, statusId: todoStatus }));
 	await expect(
-		h.run((ctx, tx) => reserve(ctx, tx, { ticket: otherTicket, personaId: "builder" }), {
-			actor: { kind: "agent", name: run.id },
-		}),
-	).rejects.toThrow();
-	await h.run((ctx, tx) => resize(ctx, tx, { id: run.id, capacity: 2 }), parent);
-	expect(await h.read((tx) => capacityAvailable(tx, { projectId: leaf }))).toBe(true);
+		h.run((ctx, tx) => reserve(ctx, tx, { ticket: todoTicket, personaId: "builder" }), parent),
+	).rejects.toThrow("Move the ticket out of Todo before you assign an agent.");
+});
+
+test("workers start anywhere in the delegated subtree without a capacity budget", async () => {
+	const { run } = await delegate();
+	const actor = { kind: "agent" as const, name: run.id };
+	const first = await h.run((ctx, tx) => reserve(ctx, tx, { ticket, personaId: "builder" }), { actor });
+	const second = await h.run((ctx, tx) => reserve(ctx, tx, { ticket: otherTicket, personaId: "builder" }), { actor });
+	expect(first.run.id).not.toBe(second.run.id);
 });
 
 test("a repeated start preserves one submanager and rejects a changed request", async () => {
 	const first = await delegate();
 	expect((await delegate()).run.id).toBe(first.run.id);
-	await expect(delegate(2)).rejects.toThrow();
+	await expect(delegate("A different brief.")).rejects.toThrow();
 	expect(await h.rows(sql`SELECT * FROM manager_delegations`)).toHaveLength(1);
 });
 
@@ -111,10 +116,7 @@ test("a manager cannot delegate its own project or another root", async () => {
 	for (const project of [root, await h.read((tx) => seedRoot(tx, "OTHER"))]) {
 		await h.rebuild();
 		await expect(
-			h.run(
-				(ctx, tx) => reserveSubmanager(ctx, tx, { project, capacity: 1, brief: "Own this work.", requestId: project }),
-				parent,
-			),
+			h.run((ctx, tx) => reserveSubmanager(ctx, tx, { project, brief: "Own this work.", requestId: project }), parent),
 		).rejects.toThrow();
 	}
 });
@@ -122,8 +124,10 @@ test("a manager cannot delegate its own project or another root", async () => {
 test("an idle submanager gets its own heartbeat and appears in its parent's runtime context", async () => {
 	const { run } = await delegate();
 	const sessions = [controllerSession(run.terminalId!)];
-	await h.run((ctx, tx) => collect(ctx, tx, { sessions }), { now: secondsAfter(61) });
-	const heartbeat = await h.run((ctx, tx) => claim(ctx, tx, { sessions }), { now: secondsAfter(61) });
+	await h.run((ctx, tx) => collect(ctx, tx, { sessions }), { now: secondsAfter(120) });
+	expect(await h.run((ctx, tx) => claim(ctx, tx, { sessions }), { now: secondsAfter(120) })).toBeNull();
+	await h.run((ctx, tx) => collect(ctx, tx, { sessions }), { now: secondsAfter(121) });
+	const heartbeat = await h.run((ctx, tx) => claim(ctx, tx, { sessions }), { now: secondsAfter(121) });
 	expect(heartbeat?.runId).toBe(run.id);
 	expect(heartbeat?.events).toEqual([]);
 	const context = await h.run((ctx, tx) => agentContext(ctx, tx, { sessions, projectId: root, runId: "manager" }));
@@ -132,37 +136,31 @@ test("an idle submanager gets its own heartbeat and appears in its parent's runt
 	expect((await h.run((ctx, tx) => listRuns(ctx, tx, {}), parent)).map((item) => item.id)).toContain(run.id);
 });
 
-test("nested delegations reserve capacity that the parent cannot consume", async () => {
+test("a nested delegation inherits the parent harness config", async () => {
 	await h.rows(
-		sql`UPDATE projects SET manager_config=manager_config || '{"harness":{"preset":"codex","model":"test-model"}}'::jsonb WHERE id=${root}`,
+		sql`UPDATE projects SET manager_config=manager_config || '{"harness":{"preset":"codex","model":"openai/gpt-5.6-sol"}}'::jsonb WHERE id=${root}`,
 	);
-	const { run } = await delegate(2);
+	const { run } = await delegate();
 	const nested = await h.run(
 		(ctx, tx) =>
 			reserveSubmanager(ctx, tx, {
 				project: leaf,
-				capacity: 1,
 				brief: "Own the leaf.",
 				requestId: "nested",
 			}),
 		{ actor: { kind: "agent", name: run.id } },
 	);
-	await h.run((ctx, tx) => reserve(ctx, tx, { ticket, personaId: "builder" }), {
-		actor: { kind: "agent", name: run.id },
-	});
-	expect(await h.read((tx) => capacityAvailable(tx, { projectId: child }))).toBe(false);
-	if (!nested.replay) expect(nested.config.harness).toMatchObject({ preset: "codex", model: "test-model" });
-	expect(await h.read((tx) => capacityAvailable(tx, { projectId: leaf }))).toBe(true);
-	await expect(
-		h.run((ctx, tx) => resize(ctx, tx, { id: nested.run.id, capacity: 2 }), { actor: { kind: "agent", name: run.id } }),
-	).rejects.toThrow();
-	await expect(h.run((ctx, tx) => resize(ctx, tx, { id: run.id, capacity: 1 }), parent)).rejects.toThrow();
+	if (!nested.replay) expect(nested.config.harness).toMatchObject({ preset: "codex", model: "openai/gpt-5.6-sol" });
+	const actor = { kind: "agent" as const, name: run.id };
+	await h.run((ctx, tx) => reserve(ctx, tx, { ticket, personaId: "builder" }), { actor });
+	const nestedActor = { kind: "agent" as const, name: nested.run.id };
+	await h.run((ctx, tx) => reserve(ctx, tx, { ticket: otherTicket, personaId: "builder" }), { actor: nestedActor });
 });
 
 test("a handoff preserves a saved wait and its assignment request through delegation and retirement", async () => {
 	const { status_id } = await h.one<{ status_id: string }>(sql`SELECT status_id FROM tickets WHERE id=${ticket}`);
 	await h.rows(sql`INSERT INTO manager_next_actions (id,project_id,ticket_id,status_id,assignment_request_id,reason,created_at)
-		VALUES ('wait',${root},${ticket},${status_id},'stable-request','Wait for capacity.',${NOW})`);
+		VALUES ('wait',${root},${ticket},${status_id},'stable-request','Wait for handoff.',${NOW})`);
 	const { run } = await delegate();
 	await h.read((tx) => refresh(tx, { now: NOW }));
 	expect(await h.one(sql`SELECT project_id,state,assignment_request_id FROM manager_next_actions`)).toMatchObject({
@@ -197,7 +195,6 @@ test("a stopped submanager resumes its assignment and conversation", async () =>
 				tx,
 				{
 					project: child,
-					capacity: 1,
 					brief: "Finish the child projects.",
 					requestId: "resume-child",
 				},
@@ -219,8 +216,8 @@ test("a paused ancestor prevents submanager heartbeats", async () => {
 		sql`UPDATE projects SET manager_config=manager_config || '{"dispatchPaused":true}'::jsonb WHERE id=${root}`,
 	);
 	const sessions = [controllerSession(run.terminalId!)];
-	await h.run((ctx, tx) => collect(ctx, tx, { sessions }), { now: secondsAfter(61) });
-	expect(await h.run((ctx, tx) => claim(ctx, tx, { sessions }), { now: secondsAfter(61) })).toBeNull();
+	await h.run((ctx, tx) => collect(ctx, tx, { sessions }), { now: secondsAfter(121) });
+	expect(await h.run((ctx, tx) => claim(ctx, tx, { sessions }), { now: secondsAfter(121) })).toBeNull();
 });
 
 test("a retired delegation gets a new assignment on the next delegation", async () => {
@@ -231,7 +228,6 @@ test("a retired delegation gets a new assignment on the next delegation", async 
 		(ctx, tx) =>
 			reserveSubmanager(ctx, tx, {
 				project: child,
-				capacity: 1,
 				brief: "New task.",
 				requestId: "next-delegation",
 			}),
@@ -242,7 +238,7 @@ test("a retired delegation gets a new assignment on the next delegation", async 
 
 test("handoff removes transferred tickets from the parent's unfinished dispatch work", async () => {
 	await h.rows(sql`INSERT INTO manager_dispatches (id,project_id,generation,state,events,due_at,created_at,updated_at)
-		VALUES ('old',${root},1,'sent',${JSON.stringify([{ ticketId: ticket }])}::jsonb,${NOW},${NOW},${NOW})`);
+	VALUES ('old',${root},1,'sent',${JSON.stringify([{ ticketId: ticket }])}::jsonb,${NOW},${NOW},${NOW})`);
 	await delegate();
 	const context = await h.read((tx) => coordination(tx, { id: "next", projectId: root }));
 	expect(context.unfinished).toEqual([]);
@@ -251,7 +247,7 @@ test("handoff removes transferred tickets from the parent's unfinished dispatch 
 test("retirement cancels an unresolved delivery even after handoff handles its work", async () => {
 	const { run } = await delegate();
 	await h.rows(sql`INSERT INTO manager_dispatches (id,project_id,generation,state,events,due_at,created_at,updated_at)
-		VALUES ('uncertain',${child},1,'unknown',${JSON.stringify([{ ticketId: ticket }])}::jsonb,${NOW},${NOW},${NOW})`);
+	VALUES ('uncertain',${child},1,'unknown',${JSON.stringify([{ ticketId: ticket }])}::jsonb,${NOW},${NOW},${NOW})`);
 	await h.rows(sql`UPDATE agent_runs SET closed_at=${NOW} WHERE id=${run.id}`);
 	await h.run((ctx, tx) => release(ctx, tx, { id: run.id, terminalId: run.terminalId }), parent);
 	expect(await h.one(sql`SELECT state FROM manager_dispatches WHERE id='uncertain'`)).toMatchObject({
@@ -259,12 +255,14 @@ test("retirement cancels an unresolved delivery even after handoff handles its w
 	});
 });
 
-test("a repeated delegation start retains the chosen default account", async () => {
+test("a repeated delegation start retains the chosen account", async () => {
 	await h.rows(sql`INSERT INTO harness_accounts (id,name,harness,profile_path,is_default,enabled,created_at,updated_at)
-		VALUES ('01ARZ3NDEKTSV4RRFFQ69G5FAW','Default','claude','/tmp/account',true,true,${NOW},${NOW})`);
-	const first = await delegate();
+	VALUES ('01ARZ3NDEKTSV4RRFFQ69G5FAW','Default','claude','/tmp/account',true,true,${NOW},${NOW})`);
+	const first = await delegate("Finish the child projects.", "delegate-child", "01ARZ3NDEKTSV4RRFFQ69G5FAW");
 	expect(first.run.accountId).toBe("01ARZ3NDEKTSV4RRFFQ69G5FAW");
-	expect((await delegate()).run.id).toBe(first.run.id);
+	const repeated = await delegate("Finish the child projects.", "delegate-child", "01ARZ3NDEKTSV4RRFFQ69G5FAW");
+	expect(repeated.run.id).toBe(first.run.id);
+	expect(repeated.run.accountId).toBe("01ARZ3NDEKTSV4RRFFQ69G5FAW");
 });
 
 test("a parent cannot start another delegation while its dispatch is paused", async () => {
@@ -274,7 +272,7 @@ test("a parent cannot start another delegation while its dispatch is paused", as
 	await expect(delegate()).rejects.toThrow();
 });
 
-test("an archived descendant retains its wait and still consumes its reserved worker slot", async () => {
+test("an archived descendant retains its wait", async () => {
 	const { run } = await delegate();
 	await h.run((ctx, tx) => reserve(ctx, tx, { ticket: otherTicket, personaId: "builder" }), {
 		actor: { kind: "agent", name: run.id },
@@ -287,5 +285,4 @@ test("an archived descendant retains its wait and still consumes its reserved wo
 		state: "waiting",
 		eligible_at: null,
 	});
-	expect(await h.read((tx) => capacityAvailable(tx, { projectId: child }))).toBe(false);
 });
