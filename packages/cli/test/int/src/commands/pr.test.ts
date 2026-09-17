@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { localDateTime } from "../../../../src/time.ts";
+import { shortZonedDateTime } from "@trellis/api";
 import { lines, runCli } from "../../../deps.ts";
 import { rpcError } from "../../../fakeServer.ts";
 import { linkedPullRequest, prId } from "../../../fixtures.ts";
@@ -73,7 +73,7 @@ describe("pr list, rm, refresh", () => {
 			{ "pullRequests.refresh": linkedPullRequest() },
 			{ tty: true },
 		);
-		expect(ttyRefresh.stdout).toContain(localDateTime(linkedPullRequest().fetchedAt));
+		expect(ttyRefresh.stdout).toContain(shortZonedDateTime(linkedPullRequest().fetchedAt));
 	});
 });
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { localDateTime } from "../../../../src/time.ts";
+import { shortZonedDateTime } from "@trellis/api";
 import { runCli } from "../../../deps.ts";
 import { actor, agentRunId, projectId } from "../../../fixtures.ts";
 
@@ -35,7 +35,7 @@ describe("notes", () => {
 		expect(first).toContain("Fresh worktree");
 		expect(first).toContain("worker");
 		expect(first).toContain("TRL");
-		expect(first).toContain(localDateTime("2026-09-16T12:34:56.000Z"));
+		expect(first).toContain(shortZonedDateTime("2026-09-16T12:34:56.000Z"));
 		expect(first).toMatch(/-$/);
 		const bare = await runCli(["notes", "list", "TRL"], { "notes.list": [note()] });
 		expect(bare.calls[0]!.input).toEqual({ project: "TRL" });

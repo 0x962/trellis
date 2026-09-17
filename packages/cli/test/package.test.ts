@@ -72,6 +72,12 @@ const staticImportPattern = /^(?:import|export)\s+(type\s+)?[\s\S]*?\sfrom\s+["'
 const sideEffectImportPattern = /^import\s+["']([^"']+)["']/gm;
 const dynamicImportPattern = /import\(\s*["']([^"']+)["']\s*\)/g;
 
+// The workspace modules the CLI runs. Every other `@trellis` import it
+// writes must carry the `type` keyword, so it costs nothing at start.
+// `@trellis/api` itself builds every zod schema and the whole oRPC contract
+// when it loads, and `trellis --help` must not pay for that.
+const runtimeEntries = ["@trellis/api/client", "@trellis/api/time"];
+
 // CLI-02
 test("the CLI imports the contract as a type and never imports server code", () => {
 	const files = walk(src).filter((file) => file.endsWith(".ts") && !file.endsWith(".test.ts"));
@@ -88,9 +94,21 @@ test("the CLI imports the contract as a type and never imports server code", () 
 		for (const match of text.matchAll(dynamicImportPattern)) runtimeSpecifiers.push(match[1]!);
 		for (const specifier of runtimeSpecifiers) {
 			if (specifier.startsWith("@trellis/")) {
-				expect(specifier, `${where} imports ${specifier} at runtime`).toBe("@trellis/api/client");
+				expect(runtimeEntries, `${where} imports ${specifier} at runtime`).toContain(specifier);
 			}
 			expect(specifier, `${where} imports server code`).not.toMatch(/apps\/server|@trellis\/server/);
 		}
 	}
+});
+
+// `@trellis/api/time` holds the display formats that the web pages and the
+// chat notices of the server also read. It imports nothing, so the CLI pays
+// one file for it at start, and `trellis --help` still never loads the
+// contract.
+test("the time entry the CLI runs imports nothing", () => {
+	const api = join(root, "..", "api");
+	const manifest = JSON.parse(readFileSync(join(api, "package.json"), "utf8")) as { exports: Record<string, string> };
+	const target = manifest.exports["./time"]!;
+	const text = readFileSync(join(api, target), "utf8");
+	expect([...text.matchAll(staticImportPattern)].length, `${target} imports another file`).toBe(0);
 });

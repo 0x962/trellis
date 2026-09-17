@@ -1,9 +1,8 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { type ChatMessage, chatChannelName, chatChannelPattern, type Project } from "@trellis/api";
-import { EmptyState, toast } from "@trellis/ui";
-import { type ReactNode, useEffect, useMemo, useRef } from "react";
+import { type ChatMessage, chatChannelName, chatChannelPattern, localDay, type Project } from "@trellis/api";
+import { EmptyState, Separator, toast } from "@trellis/ui";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import { useApp } from "../../../lib/appContext";
-import { localDate } from "../../../lib/format";
 import { createMarkdownRenderer } from "../../../lib/markdown";
 import { useChatStore } from "../../../stores/chatStore";
 import { PageTitle } from "../../shell/PageTitle";
@@ -36,22 +35,22 @@ const withDayRules = (
 	render: (markdown: string) => string,
 	onMention: (text: string) => void,
 ): ReactNode[] => {
-	let previousDate: string | null = null;
+	let previousDay: string | null = null;
 	return items.flatMap((message) => {
-		const messageDate = localDate(message.createdAt);
-		const startsDate = messageDate !== previousDate;
-		previousDate = messageDate;
+		const messageDay = localDay(message.createdAt);
+		const isFirstOfDay = messageDay !== previousDay;
+		previousDay = messageDay;
 		const line = <ChatLine key={message.id} message={message} render={render} onMention={onMention} />;
-		if (!startsDate) return [line];
+		if (!isFirstOfDay) return [line];
 		return [
 			<li
 				key={`${message.id}.day`}
 				aria-hidden="true"
 				className="flex items-center gap-2 px-3 py-1 font-mono text-xs text-fg-faint tabular"
 			>
-				<span className="h-px flex-1 bg-border" />
-				{messageDate}
-				<span className="h-px flex-1 bg-border" />
+				<Separator className="flex-1" />
+				{messageDay}
+				<Separator className="flex-1" />
 			</li>,
 			line,
 		];
@@ -78,14 +77,21 @@ export function ChatPage({ project }: { project: Project }) {
 		orpc.chat.list.queryOptions({ input: { project: project.path, channel, limit: LOG_LIMIT } }),
 	);
 	const agents = useQuery(orpc.agentRuns.list.queryOptions({ input: { project: project.path } }));
-	const live = (agents.data ?? []).filter(
-		(run) => run.projectId === project.id && (run.state === "running" || run.state === "starting"),
+	// Every list below is a dependency of a memo, so it holds its identity
+	// while the query answer stays the same. A new array on each draw would
+	// rebuild the markdown renderer and reformat every clock of the log.
+	const live = useMemo(
+		() =>
+			(agents.data ?? []).filter(
+				(run) => run.projectId === project.id && (run.state === "running" || run.state === "starting"),
+			),
+		[agents.data, project.id],
 	);
 	// The manager of the project names the direct message channel. A project
 	// with no manager yet shows the default name.
 	const managerName =
 		(agents.data ?? []).find((run) => run.projectId === project.id && run.kind === "manager")?.personaName ?? "Copilot";
-	const items: ChatMessage[] = messages.data?.items ?? [];
+	const items: ChatMessage[] = useMemo(() => messages.data?.items ?? [], [messages.data]);
 
 	// The names a mention in a body can address: the live agents by persona
 	// name and run id, the roles, and every author in the loaded log.
@@ -157,11 +163,20 @@ export function ChatPage({ project }: { project: Project }) {
 		return () => document.removeEventListener("visibilitychange", mark);
 	}, [messages.data, rootId, markRead]);
 
-	const mention = (text: string) => {
-		if (open?.aiOnly) return;
-		setDraft(rootId, channel, `${draft}${draft === "" || draft.endsWith(" ") ? "" : " "}${text}`);
-		textarea.current?.focus();
-	};
+	// A click on a name appends the mention to the unsent text. The text
+	// comes from the store and not from the `draft` of this draw, so one
+	// keystroke does not give every line of the log a new onMention.
+	const aiOnly = open?.aiOnly === true;
+	const mention = useCallback(
+		(text: string) => {
+			if (aiOnly) return;
+			const unsent = useChatStore.getState().drafts[`${rootId}:${channel}`] ?? "";
+			setDraft(rootId, channel, `${unsent}${unsent === "" || unsent.endsWith(" ") ? "" : " "}${text}`);
+			textarea.current?.focus();
+		},
+		[aiOnly, rootId, channel, setDraft],
+	);
+	const lines = useMemo(() => withDayRules(items, render, mention), [items, render, mention]);
 
 	const submit = () => {
 		const parsed = parseInput(draft);
@@ -216,7 +231,7 @@ export function ChatPage({ project }: { project: Project }) {
 								/>
 							</li>
 						)}
-						{withDayRules(items, render, mention)}
+						{lines}
 					</ol>
 					{open?.aiOnly ? (
 						<p className="border-t border-border px-3 py-3 font-mono text-sm text-fg-muted">

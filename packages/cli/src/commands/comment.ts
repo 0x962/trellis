@@ -1,9 +1,9 @@
 import type { Comment } from "@trellis/api";
+import { shortZonedDateTime } from "@trellis/api/time";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, readText, toNumber } from "../context.ts";
-import { cell, printList, printRecord, type RecordSpec } from "../output.ts";
-import { localDateTime } from "../time.ts";
+import { cell, printList, printRecord, type RecordSpec, timeCell } from "../output.ts";
 import { type CommentItem, commentItems, commentList, renderComments } from "../timeline.ts";
 
 export const commentRecord: RecordSpec<Comment> = {
@@ -11,9 +11,9 @@ export const commentRecord: RecordSpec<Comment> = {
 		{ name: "id", value: (row) => row.id },
 		{ name: "ticketId", value: (row) => row.ticketId },
 		{ name: "parentId", value: (row) => cell(row.parentId) },
-		{ name: "resolved", value: (row) => (row.resolvedAt === null ? "-" : localDateTime(row.resolvedAt)) },
+		{ name: "resolved", value: (row) => timeCell(row.resolvedAt) },
 		{ name: "actor", value: (row) => `${row.actor.kind}:${row.actor.displayName ?? row.actor.name}` },
-		{ name: "created", value: (row) => localDateTime(row.createdAt) },
+		{ name: "created", value: (row) => shortZonedDateTime(row.createdAt) },
 		{ name: "body", value: (row) => cell(row.body) },
 	],
 	identifier: (row) => row.id,

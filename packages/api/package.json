@@ -11,7 +11,8 @@
 		"./query-keys": "./src/query-keys.ts",
 		"./contract": "./src/contract/index.ts",
 		"./schemas": "./src/schemas/index.ts",
-		"./models": "./src/models/models.ts"
+		"./models": "./src/models/models.ts",
+		"./time": "./src/time.ts"
 	},
 	"scripts": {
 		"test": "bun test --path-ignore-patterns '**/test/int/**'",

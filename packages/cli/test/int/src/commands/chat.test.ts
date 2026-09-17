@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { localDateTime } from "../../../../src/time.ts";
+import { shortZonedDateTime } from "@trellis/api";
 import { runCli } from "../../../deps.ts";
 import { actor, agentRunId, projectId } from "../../../fixtures.ts";
 
@@ -54,7 +54,7 @@ describe("chat", () => {
 		);
 		expect(tty.code).toBe(0);
 		expect(tty.calls[0]!.input).toEqual({ project: "TRL", channel: "ai", after: messageId, limit: 10 });
-		expect(tty.stdout).toBe(`#ai ${localDateTime(message().createdAt)} <Builder ${agentRunId}> rebase on main\n`);
+		expect(tty.stdout).toBe(`#ai ${shortZonedDateTime(message().createdAt)} <Builder ${agentRunId}> rebase on main\n`);
 		const piped = await runCli(["chat", "read", "TRL", "ai"], { "chat.list": page });
 		expect(JSON.parse(piped.stdout)).toEqual(page);
 		expect(JSON.parse(piped.stdout).items[0].createdAt).toBe("2026-09-09T12:34:56.000Z");

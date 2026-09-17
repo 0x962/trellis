@@ -19,7 +19,15 @@ test("the package declares only the allowed dependencies and exports TypeScript 
 	}
 	expect(pkg.sideEffects).toBe(false);
 	const exports = pkg.exports as Record<string, string>;
-	expect(Object.keys(exports).sort()).toEqual([".", "./client", "./contract", "./query-keys", "./schemas"]);
+	expect(Object.keys(exports).sort()).toEqual([
+		".",
+		"./client",
+		"./contract",
+		"./models",
+		"./query-keys",
+		"./schemas",
+		"./time",
+	]);
 	for (const [entry, target] of Object.entries(exports)) {
 		expect(target, entry).toMatch(/^\.\/src\/.*\.ts$/);
 		expect(existsSync(join(import.meta.dir, target)), `${entry} -> ${target}`).toBe(true);

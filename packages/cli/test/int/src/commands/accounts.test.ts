@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { localDateTime } from "../../../../src/time.ts";
+import { shortZonedDateTime } from "@trellis/api";
 import { runCli } from "../../../deps.ts";
 import { agentRun, agentRunId, persona, personaId } from "../../../fixtures.ts";
 
@@ -26,8 +26,8 @@ test("account commands list profiles and read quota without credential access", 
 	);
 	expect(quota.code).toBe(0);
 	expect(quota.calls[0]).toMatchObject({ path: "harnessAccounts.quota", input: { id: agentRunId, refresh: true } });
-	expect(quota.stdout).toContain(`resets ${localDateTime(resetsAt)}`);
-	expect(quota.stdout).toContain(localDateTime(fetchedAt));
+	expect(quota.stdout).toContain(`resets ${shortZonedDateTime(resetsAt)}`);
+	expect(quota.stdout).toContain(shortZonedDateTime(fetchedAt));
 });
 test("start and resume pass account choice and retain resume guards", async () => {
 	const started = await runCli(["agents", "start", personaId, "--ticket", "CDE-42", "--account", agentRunId], {
