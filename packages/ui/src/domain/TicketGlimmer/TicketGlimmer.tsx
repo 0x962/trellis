@@ -1,5 +1,5 @@
 import { animate } from "motion/mini";
-import { useEffect, useRef } from "react";
+import { type CSSProperties, useEffect, useId, useLayoutEffect, useRef } from "react";
 
 type MotionControl = ReturnType<typeof animate>;
 
@@ -9,36 +9,42 @@ type DriftControl = {
 	cancel: () => void;
 };
 
-type ImpactMotion = {
-	angle: number;
-	trailX: number;
-	trailY: number;
-	intensity: number;
-};
-
 export function TicketGlimmer({ active }: { active: boolean }) {
 	const ref = useRef<HTMLSpanElement>(null);
+	const id = useId();
+	useLayoutEffect(() => {
+		const node = ref.current!;
+		prepareTransition(node);
+		node.dataset.active = String(active);
+	}, [active]);
 	useEffect(() => {
 		if (!active) return;
 		const node = ref.current!;
 		const surface = node.parentElement!;
 		const media = matchMedia("(prefers-reduced-motion: reduce)");
 		let visible = false;
-		let pointerTrack: { x: number; y: number; time: number } | null = null;
+		const wake = node.querySelector<HTMLElement>(".ticket-glimmer-wake")!;
+		let settleTimer = 0;
 		let drifts: DriftControl[] = [];
 		let impacts: ReturnType<typeof createImpactBursts> | null = null;
 		const stopImpacts = () => {
 			impacts?.cancel();
 			impacts = null;
 		};
+		const settlePointer = () => {
+			window.clearTimeout(settleTimer);
+			wake.dataset.moving = "false";
+		};
 		const sync = () => {
 			if (media.matches) {
+				settlePointer();
 				for (const drift of drifts) drift.cancel();
 				drifts = [];
 				stopImpacts();
 				return;
 			}
 			if (!visible || document.hidden) {
+				settlePointer();
 				for (const drift of drifts) drift.pause();
 				stopImpacts();
 				return;
@@ -52,45 +58,23 @@ export function TicketGlimmer({ active }: { active: boolean }) {
 			sync();
 		});
 		const handlePointerMove = (event: PointerEvent) => {
-			const now = performance.now();
-			if (!impacts) return;
-			if (!pointerTrack) {
-				pointerTrack = { x: event.clientX, y: event.clientY, time: now };
-				return;
-			}
-			const elapsed = now - pointerTrack.time;
-			if (elapsed < 80) return;
-			const deltaX = event.clientX - pointerTrack.x;
-			const deltaY = event.clientY - pointerTrack.y;
-			const distance = Math.hypot(deltaX, deltaY);
-			if (distance === 0) return;
-			const speed = distance / elapsed;
-			const trailDistance = Math.min(42, 9 + speed * 22);
-			pointerTrack = { x: event.clientX, y: event.clientY, time: now };
+			if (!visible || document.hidden || media.matches || event.pointerType === "touch") return;
 			const bounds = node.getBoundingClientRect();
-			impacts.trigger(
-				((event.clientX - bounds.left) / bounds.width) * 100,
-				((event.clientY - bounds.top) / bounds.height) * 100,
-				{
-					angle: (Math.atan2(deltaY, deltaX) * 180) / Math.PI,
-					trailX: (deltaX / distance) * trailDistance,
-					trailY: (deltaY / distance) * trailDistance,
-					intensity: Math.min(1, 0.28 + speed * 0.55),
-				},
-			);
-		};
-		const handlePointerLeave = () => {
-			pointerTrack = null;
+			wake.style.transform = `translate3d(${event.clientX - bounds.left}px, ${event.clientY - bounds.top}px, 0) translate(-50%, -50%)`;
+			wake.dataset.moving = "true";
+			window.clearTimeout(settleTimer);
+			settleTimer = window.setTimeout(settlePointer, 700);
 		};
 		observer.observe(node);
 		surface.addEventListener("pointermove", handlePointerMove);
-		surface.addEventListener("pointerleave", handlePointerLeave);
+		surface.addEventListener("pointerenter", handlePointerMove);
 		media.addEventListener("change", sync);
 		document.addEventListener("visibilitychange", sync);
 		return () => {
 			observer.disconnect();
 			surface.removeEventListener("pointermove", handlePointerMove);
-			surface.removeEventListener("pointerleave", handlePointerLeave);
+			surface.removeEventListener("pointerenter", handlePointerMove);
+			settlePointer();
 			media.removeEventListener("change", sync);
 			document.removeEventListener("visibilitychange", sync);
 			for (const drift of drifts) drift.cancel();
@@ -99,21 +83,43 @@ export function TicketGlimmer({ active }: { active: boolean }) {
 	}, [active]);
 	return (
 		<>
-			<span ref={ref} aria-hidden="true" className="ticket-glimmer" data-active={active}>
+			<span ref={ref} aria-hidden="true" className="ticket-glimmer">
 				<span className="ticket-glimmer-flow">
-					<span className="ticket-glimmer-film" data-layer="wash" />
-					<span className="ticket-glimmer-film" data-layer="bubble" />
-					<span className="ticket-glimmer-film" data-layer="ripple" />
+					<span className="ticket-glimmer-film" data-layer="wash" style={filmStyle(id, 0)} />
+					<span className="ticket-glimmer-film" data-layer="bubble" style={filmStyle(id, 1)} />
+					<span className="ticket-glimmer-film" data-layer="ripple" style={filmStyle(id, 2)} />
 				</span>
 				<span className="ticket-glimmer-impact" />
-				<span className="ticket-glimmer-impact" />
-				<span className="ticket-glimmer-impact" />
-				<span className="ticket-glimmer-impact" />
-				<span className="ticket-glimmer-impact" />
+				<span className="ticket-glimmer-wake" />
 			</span>
 			{active && <span className="sr-only">Agent working</span>}
 		</>
 	);
+}
+
+function prepareTransition(node: HTMLSpanElement) {
+	const hidden = getComputedStyle(node).opacity === "0";
+	if (hidden) {
+		const patches = Array.from({ length: 18 + Math.floor(Math.random() * 15) }, (_, index) => {
+			const opacity = `var(--glimmer-vapor-${(index % 8) + 1})`;
+			const width = 12 + Math.random() * 36;
+			const height = 20 + Math.random() * 65;
+			const x = -10 + Math.random() * 120;
+			const y = -10 + Math.random() * 120;
+			const shoulder = 10 + Math.random() * 20;
+			const edge = 55 + Math.random() * 35;
+			return `radial-gradient(ellipse ${width}% ${height}% at ${x}% ${y}%, rgb(0 0 0 / ${opacity}) 0%, rgb(0 0 0 / calc(${opacity} * 0.65)) ${shoulder}%, transparent ${edge}%)`;
+		});
+		node.style.maskImage = patches.join(", ");
+	}
+	for (let index = 1; index <= 8; index++) {
+		node.style.setProperty(`--glimmer-speed-${index}`, String(1 + Math.random() * 0.65));
+		node.style.setProperty(`--glimmer-delay-${index}`, String(Math.random() * 0.3));
+		node.style.setProperty(
+			`--glimmer-ease-${index}`,
+			`cubic-bezier(${0.2 + Math.random() * 0.2}, 0, ${0.4 + Math.random() * 0.4}, 1)`,
+		);
+	}
 }
 
 function createDrifts(node: HTMLSpanElement): DriftControl[] {
@@ -154,64 +160,53 @@ function createDrifts(node: HTMLSpanElement): DriftControl[] {
 }
 
 function createImpactBursts(node: HTMLSpanElement) {
-	const impactNodes = Array.from(node.querySelectorAll<HTMLElement>(".ticket-glimmer-impact"));
-	const animations: (MotionControl | undefined)[] = [];
-	let active = true;
+	const impact = node.querySelector<HTMLElement>(".ticket-glimmer-impact")!;
+	let animation: MotionControl | null = null;
 	let timer = 0;
-	let previousIndex = Math.floor(Math.random() * impactNodes.length);
-	const trigger = (x: number, y: number, motion: ImpactMotion) => {
-		const index = (previousIndex + 1 + Math.floor(Math.random() * (impactNodes.length - 1))) % impactNodes.length;
-		previousIndex = index;
-		const impact = impactNodes[index]!;
-		const skew = Math.random() * 18 - 9;
-		const stretchX = 1.1 + motion.intensity * 1.25;
-		const stretchY = 0.72 - motion.intensity * 0.22;
-		const duration = 0.94 - motion.intensity * 0.26 + Math.random() * 0.18;
-		const peakOpacity = 0.6 + motion.intensity * 0.38;
-		impact.style.left = `${x}%`;
-		impact.style.top = `${y}%`;
-		impact.style.width = `${44 + motion.intensity * 46 + Math.random() * 10}%`;
-		impact.style.aspectRatio = `${1.3 + motion.intensity * 1.8 + Math.random() * 0.5}`;
-		impact.style.setProperty("--impact-hue", `${Math.random() * 80 - 40}deg`);
-		animations[index]?.cancel();
-		animations[index] = animate(
-			impact,
-			{
-				opacity: [0, peakOpacity, peakOpacity * 0.7, 0],
-				transform: [
-					`translate3d(-50%, -50%, 0) translate3d(${-motion.trailX * 0.55}px, ${-motion.trailY * 0.55}px, 0) rotate(${motion.angle}deg) skewX(${skew}deg) scale(${stretchX * 0.14}, ${stretchY * 0.16})`,
-					`translate3d(-50%, -50%, 0) translate3d(${-motion.trailX * 0.18}px, ${-motion.trailY * 0.18}px, 0) rotate(${motion.angle + 2}deg) skewX(${skew * 0.45}deg) scale(${stretchX * 0.52}, ${stretchY * 0.74})`,
-					`translate3d(-50%, -50%, 0) translate3d(${motion.trailX * 0.38}px, ${motion.trailY * 0.38}px, 0) rotate(${motion.angle + 5}deg) skewX(${-skew * 0.4}deg) scale(${stretchX}, ${stretchY})`,
-					`translate3d(-50%, -50%, 0) translate3d(${motion.trailX * 0.72}px, ${motion.trailY * 0.72}px, 0) rotate(${motion.angle + 9}deg) skewX(${-skew}deg) scale(${stretchX * 1.28}, ${stretchY * 1.18})`,
-				],
+	const schedule = () => {
+		timer = window.setTimeout(
+			() => {
+				impact.style.left = `${10 + Math.random() * 80}%`;
+				impact.style.top = `${10 + Math.random() * 80}%`;
+				impact.style.width = `${35 + Math.random() * 20}%`;
+				animation = animate(
+					impact,
+					{
+						opacity: [0, 0.3, 0.2, 0],
+						transform: [
+							"translate(-50%, -50%) scale(0.8)",
+							"translate(-50%, -50%) scale(0.95)",
+							"translate(-50%, -50%) scale(1.05)",
+							"translate(-50%, -50%) scale(1.2)",
+						],
+					},
+					{ duration: 12 + Math.random() * 4, times: [0, 0.4, 0.65, 1], ease: "easeInOut" },
+				);
+				schedule();
 			},
-			{ duration, times: [0, 0.12, 0.5, 1], ease: "easeOut" },
+			18000 + Math.random() * 27000,
 		);
 	};
-	const schedule = (initial: boolean) => {
-		const delay = initial ? 250 + Math.random() * 1200 : Math.min(7500, 260 - Math.log(1 - Math.random()) * 1900);
-		timer = window.setTimeout(() => {
-			if (!active) return;
-			const angle = Math.random() * 360;
-			const trailDistance = 10 + Math.random() * 12;
-			trigger(2 + Math.random() * 96, 4 + Math.random() * 92, {
-				angle,
-				trailX: Math.cos((angle * Math.PI) / 180) * trailDistance,
-				trailY: Math.sin((angle * Math.PI) / 180) * trailDistance,
-				intensity: 0.45 + Math.random() * 0.3,
-			});
-			schedule(false);
-		}, delay);
-	};
-	schedule(true);
+	schedule();
 	return {
-		trigger,
 		cancel: () => {
-			active = false;
 			window.clearTimeout(timer);
-			for (const animation of animations) animation?.cancel();
+			animation?.cancel();
 		},
 	};
+}
+
+function filmStyle(id: string, layer: number): CSSProperties {
+	let seed = 2166136261;
+	for (const char of `${id}:${layer}`) seed = Math.imul(seed ^ char.charCodeAt(0), 16777619);
+	seed ^= seed >>> 16;
+	seed = Math.imul(seed, 0x45d9f3b);
+	seed ^= seed >>> 16;
+	return {
+		"--film-x": `${(seed & 255) / 7 - 18}%`,
+		"--film-y": `${((seed >>> 8) & 255) / 7 - 18}%`,
+		scale: `${seed & 256 ? -1 : 1} ${seed & 512 ? -1 : 1}`,
+	} as CSSProperties;
 }
 
 function transformFrame(layer: number) {
