@@ -2,14 +2,12 @@ import { Badge } from "../../primitives/Badge";
 
 export function RuntimeDiagnostics({
 	runtime,
-	paused,
 	queue,
 	lastObservationAt,
 	unresolvedAttempts,
 	logs,
 }: {
 	runtime: { state: string; protocol: number | null; expectedProtocol: number; error: string | null };
-	paused: boolean;
 	queue: { pending: number; sending: number; unknown: number; oldestDueAt: string | null };
 	lastObservationAt: string | null;
 	unresolvedAttempts: { id: string; state: string; error: string | null }[];
@@ -18,7 +16,6 @@ export function RuntimeDiagnostics({
 	return (
 		<section aria-label="Runtime diagnostics" className="flex min-w-0 flex-col gap-4 py-4">
 			<Badge tone={runtime.state === "running" ? "ok" : "neutral"}>Execution service: {runtime.state}</Badge>
-			{paused && <p className="text-sm text-fg-muted">Local work is paused</p>}
 			{runtime.error && (
 				<p role="alert" className="text-sm text-danger">
 					{runtime.error}

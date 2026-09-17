@@ -5,7 +5,6 @@ import { ensureNativeRuntime } from "../../agents/native/connection.ts";
 import { rows } from "../../db/queries/support.ts";
 import { invalidInput } from "../../errors.ts";
 import { executionEnvironment } from "../../executionEnvironment";
-import { assertNativeWorkEnabled } from "../agentRuns/nativeControl.ts";
 import { currentCheck } from "./current.ts";
 import { finishCheck } from "./finishCheck.ts";
 import { reconcileCheck } from "./reconcileCheck.ts";
@@ -18,7 +17,6 @@ export const check = async (ctx: EvidenceCtx, input: EvidenceCheckInput) => {
 	const before = await revision(selected.workspace);
 	const id = input.requestId ?? randomUUID();
 	const reserved = await ctx.newTx(async (tx) => {
-		await assertNativeWorkEnabled(tx);
 		const [existing] = await rows<{ document: Omit<EvidenceCheck, "current"> }>(
 			tx,
 			sql`SELECT document FROM evidence_checks WHERE id = ${id}`,
@@ -69,7 +67,6 @@ export const check = async (ctx: EvidenceCtx, input: EvidenceCheckInput) => {
 	try {
 		const client = await ensureNativeRuntime(ctx.home);
 		await ctx.newTx(async (tx) => {
-			await assertNativeWorkEnabled(tx);
 			const latest = await target(ctx.core, tx, { ...input, mutation: true });
 			if (latest.attemptId !== selected.attemptId)
 				throw invalidInput("runId", "The agent attempt changed before this check started.");

@@ -50,3 +50,24 @@ describe("statuses --description", () => {
 		expect(line).toContain(rule);
 	});
 });
+
+test("statuses edit saves column worker settings", async () => {
+	const agentConfig = {
+		personaId: "01J8Z6X4Q3M2K1H0G9F8E7D6C5",
+		harness: { preset: "claude", model: "anthropic/claude-opus-5", effort: "high" },
+		accountId: null,
+	};
+	const result = await runCli(
+		["statuses", "edit", "CDE", "agent-review", "--agent-config", JSON.stringify(agentConfig)],
+		{ "statuses.update": status() },
+	);
+	expect(result.code).toBe(0);
+	expect(result.calls[0]!.input).toMatchObject({ project: "CDE", status: "agent-review", agentConfig });
+});
+test("statuses edit can make a column manual", async () => {
+	const result = await runCli(["statuses", "edit", "CDE", "agent-review", "--agent-config", "null"], {
+		"statuses.update": status(),
+	});
+	expect(result.code).toBe(0);
+	expect(result.calls[0]!.input).toMatchObject({ agentConfig: null });
+});

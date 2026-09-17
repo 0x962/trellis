@@ -1,12 +1,15 @@
 import { z } from "zod";
 import { AgentCommandSchema } from "../agentCommand/agentCommand.ts";
 import { DEFAULT_AGENT_RESUME_COMMAND, DEFAULT_AGENT_START_COMMAND } from "../agentLaunch/agentLaunch.ts";
+import { ModelIdSchema, supportsModel } from "../models/models.ts";
+import { effortForHarness, HarnessEffortSchema } from "./effort/effort.ts";
 
 export const HARNESS_DEFAULT_MODELS = {
-	claude: "claude-opus-5",
-	codex: "gpt-5.6-sol",
-	opencode: "vercel/anthropic/claude-opus-5",
-	pi: "vercel-ai-gateway/openai/gpt-5.6-sol",
+	claude: "anthropic/claude-opus-5",
+	codex: "openai/gpt-5.6-sol",
+	opencode: "anthropic/claude-opus-5",
+	pi: "openai/gpt-5.6-sol",
+	muse: "meta/muse-spark-1.3",
 } as const;
 
 export const HARNESS_PRESETS = {
@@ -23,17 +26,35 @@ export const HARNESS_PRESETS = {
 		startCommand: "pi --tools read,bash,edit,write,grep,find,ls {{prompt}}",
 		resumeCommand: "pi --tools read,bash,edit,write,grep,find,ls --continue {{resumeText}}",
 	},
+	// `muse resume` takes no prompt argument, so a custom Muse resume opens
+	// the last session and a person types the instruction.
+	muse: {
+		startCommand: "muse --yolo {{prompt}}",
+		resumeCommand: "muse --yolo resume --last",
+	},
 };
-export const HarnessPresetSchema = z.enum(["claude", "codex", "opencode", "pi", "custom"]);
+export const HarnessPresetSchema = z.enum(["claude", "codex", "opencode", "pi", "muse", "custom"]);
 export type HarnessPreset = z.infer<typeof HarnessPresetSchema>;
 export const HarnessSchema = z
 	.strictObject({
 		preset: HarnessPresetSchema,
-		model: z.string().trim().min(1).optional(),
+		model: ModelIdSchema.optional(),
+		effort: HarnessEffortSchema.optional(),
 		startCommand: AgentCommandSchema.optional(),
 		resumeCommand: AgentCommandSchema.optional(),
 	})
 	.superRefine((value, ctx) => {
+		if (value.effort !== undefined) {
+			const model = value.model ?? (value.preset === "custom" ? "" : HARNESS_DEFAULT_MODELS[value.preset]);
+			if (!effortForHarness(value.preset, model)?.options.some(({ value: effort }) => effort === value.effort))
+				ctx.addIssue({
+					code: "custom",
+					path: ["effort"],
+					message: "Select an effort supported by this harness and model.",
+				});
+		}
+		if (value.model && !supportsModel(value.preset, value.model))
+			ctx.addIssue({ code: "custom", path: ["model"], message: `Select a model supported by ${value.preset}.` });
 		if (value.preset !== "custom") return;
 		for (const key of ["startCommand", "resumeCommand"] as const) {
 			if (!value[key]) ctx.addIssue({ code: "custom", path: [key], message: "Enter the command." });
@@ -42,6 +63,7 @@ export const HarnessSchema = z
 	.transform((value) => ({
 		preset: value.preset,
 		...(value.model === undefined ? {} : { model: value.model }),
+		...(value.effort === undefined ? {} : { effort: value.effort }),
 		startCommand: value.startCommand ?? HARNESS_PRESETS[value.preset as keyof typeof HARNESS_PRESETS].startCommand,
 		resumeCommand: value.resumeCommand ?? HARNESS_PRESETS[value.preset as keyof typeof HARNESS_PRESETS].resumeCommand,
 	}));

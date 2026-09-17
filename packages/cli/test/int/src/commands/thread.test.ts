@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { localDateTime } from "../../../../src/time.ts";
 import { runCli } from "../../../deps.ts";
 import { comment, commentId } from "../../../fixtures.ts";
 
@@ -52,6 +53,7 @@ test("comments prints reply identifiers and resolved state for terminal readers"
 	expect(result.stdout).toContain(`${commentId} [resolved]`);
 	expect(result.stdout).toContain(`reply to ${commentId}`);
 	expect(result.stdout).toContain(reply.id);
+	expect(result.stdout).toContain(localDateTime(reply.createdAt));
 });
 
 test("instructions explain how agents read, reply to, and resolve a thread", async () => {

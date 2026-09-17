@@ -73,6 +73,23 @@ describe("config", () => {
 		expect(() => loadConfig({ TRELLIS_PORT: "not-a-port" })).toThrow(/not-a-port/);
 	});
 
+	// The boot writes this message on one line and exits 1, so the person who
+	// mistyped a variable in a shell profile reads the name and the value.
+	test("every rejected variable names itself and its value", () => {
+		expect(() => loadConfig({ TRELLIS_MAX_UPLOAD_MB: "big" })).toThrow(
+			'TRELLIS_MAX_UPLOAD_MB must be a number. The value is "big".',
+		);
+		expect(() => loadConfig({ TRELLIS_CLOCK_RATE: "fast" })).toThrow(
+			'TRELLIS_CLOCK_RATE must be a number. The value is "fast".',
+		);
+		expect(() => loadConfig({ TRELLIS_LOG_LEVEL: "loud" })).toThrow(
+			'TRELLIS_LOG_LEVEL must be one of debug, info, warn, error. The value is "loud".',
+		);
+		expect(() => loadConfig({ TRELLIS_ALLOWED_HOSTS: "a host" })).toThrow(
+			'TRELLIS_ALLOWED_HOSTS must list hostnames, got "a host".',
+		);
+	});
+
 	test("config derives the data home sub-paths", () => {
 		const config = loadConfig({ TRELLIS_HOME: "/var/data/trellis" });
 

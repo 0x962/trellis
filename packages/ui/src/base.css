@@ -122,3 +122,27 @@
 		animation: none;
 	}
 }
+
+.harness-account-meter {
+	width: 100%;
+	height: calc(var(--spacing) * 2);
+	accent-color: var(--accent);
+}
+
+/*
+ * A name tinted by its own hue, for the author of a chat message. The
+ * element sets --name-hue from nameHue(). The lightness follows the theme
+ * the way the tokens do: a deeper tone on the light ground, a pastel on
+ * the dark one, so every hue clears the text contrast on its ground.
+ */
+.name-tint {
+	color: oklch(0.5 0.13 var(--name-hue));
+}
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme="light"]) .name-tint {
+		color: oklch(0.83 0.1 var(--name-hue));
+	}
+}
+:root[data-theme="dark"] .name-tint {
+	color: oklch(0.83 0.1 var(--name-hue));
+}

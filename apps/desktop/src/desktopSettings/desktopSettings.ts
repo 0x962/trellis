@@ -8,7 +8,6 @@ export const desktopActions = [
 	"showDataDirectory",
 	"openServiceSettings",
 	"stopLocalWork",
-	"resumeLocalWork",
 	"reconnectHost",
 	"quit",
 ] as const;

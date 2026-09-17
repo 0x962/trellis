@@ -68,6 +68,29 @@ describe("worker transport", () => {
 		expect(typed.data).toEqual({ kind: "ticket", ref: "CDE-1" });
 	});
 
+	// The database runs one search of a client at a time. A search that
+	// arrives while an earlier search of the same client still waits takes its
+	// place in the queue. The earlier call gets a declared answer, so the page
+	// that sent it reads the code and shows no server failure.
+	test("a search that a newer search replaced answers SEARCH_REPLACED", async () => {
+		const transport = await startWorker();
+		const tab = (): RequestContext => ({ ...ctx(), session: "one-tab" });
+
+		const earlier = transport.call("search.query", tab(), { q: "alpha" }).then(
+			() => null,
+			(thrown: unknown) => thrown,
+		);
+		const newer = transport.call("search.query", tab(), { q: "beta" });
+
+		const failed = (await earlier) as ORPCError<string, unknown>;
+		expect(failed).toBeInstanceOf(ORPCError);
+		expect(failed.code).toBe("SEARCH_REPLACED");
+		expect(failed.status).toBe(409);
+		expect(failed.defined).toBe(true);
+		expect(failed.message).toBe("A newer search replaced this search.");
+		expect(await newer).toMatchObject({ tickets: [] });
+	});
+
 	// The second start reports the boot of its own worker, not the answer the
 	// first worker gave: the migrations already ran, so it applies none.
 	test("a closed transport starts again and answers on its new worker", async () => {

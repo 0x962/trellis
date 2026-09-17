@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import type { ORPCError } from "@orpc/server";
 import { chooseDirectory } from "../../../../../src/native/chooseDirectory/chooseDirectory";
 
 test("the folder selector returns the absolute path with spaces intact", async () => {
@@ -15,10 +16,20 @@ test("cancel returns null", async () => {
 	expect(await chooseDirectory(async () => ({ stdout: "\n" }))).toBeNull();
 });
 
-test("dialog errors reach the caller", async () => {
-	await expect(
-		chooseDirectory(async () => {
-			throw new Error("Dialog unavailable");
-		}),
-	).rejects.toThrow("Dialog unavailable");
+// osascript runs outside the server. A person who clicks Choose reads why no
+// dialog appeared, so the failure is a refusal and not a server failure.
+test("a dialog that does not open refuses the request with its reason", async () => {
+	const failed = await chooseDirectory(async () => {
+		throw new Error("Dialog unavailable");
+	}).then(
+		() => null,
+		(thrown: unknown) => thrown as ORPCError<string, { issues: { message: string; path: string[] }[] }>,
+	);
+
+	expect(failed?.code).toBe("INPUT_VALIDATION_FAILED");
+	expect(failed?.status).toBe(400);
+	expect(failed?.message).toBe("The folder picker did not open: Dialog unavailable");
+	expect(failed?.data.issues).toEqual([
+		{ message: "The folder picker did not open: Dialog unavailable", path: ["directory"] },
+	]);
 });

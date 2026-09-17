@@ -5,13 +5,14 @@ import { rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
 import { invalidInput } from "../../errors";
 import { fail, notFound, type PrepareCtx, type ServiceCtx } from "../support";
+import { ghUnavailableText } from "./ghUnavailableText/ghUnavailableText.ts";
 import { changed, ensurePr, parseRef } from "./queries";
 
 export async function gh(ctx: PrepareCtx, args: string[]) {
 	const result = await ctx.gh("interactive", args);
 	if (!result.ok) {
 		const error = fail("GH_UNAVAILABLE", { reason: result.reason });
-		error.message = result.message;
+		error.message = ghUnavailableText(result.message);
 		throw error;
 	}
 	return result.stdout;

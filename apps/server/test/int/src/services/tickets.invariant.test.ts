@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as tickets from "../../../../src/services/tickets.ts";
-import { dana, seedChild, seedProject, seedStatuses } from "../../../fixtures";
+import { dana, seedChild, seedDefaultBuilder, seedProject, seedStatuses } from "../../../fixtures";
 import { ticketHarness } from "../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../invariants.ts";
 
@@ -29,8 +29,10 @@ describe("status invariant across the service tests", () => {
 		// The moves that touch the invariant, run in sequence, leave every
 		// ticket on a status of owner(ticket.project).
 		const { rootId } = await seedProject(h.db);
+		await seedDefaultBuilder(h.db, rootId);
 		const webId = await seedChild(h.db, rootId, rootId, "web");
 		await seedStatuses(h.db, webId);
+		await seedDefaultBuilder(h.db, webId);
 		const { result: a } = await h.as(dana)((ctx, tx) =>
 			tickets.create(ctx, tx, { project: "CDE", title: "A", status: "in-progress" }),
 		);

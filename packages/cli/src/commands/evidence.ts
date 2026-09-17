@@ -73,7 +73,13 @@ const check = defineCommand({
 		};
 		const result = await clientOf(ctx).evidence.check(input);
 		ctx.out.write(json(result));
-		return result.state === "passed" && result.current ? 0 : 6;
+		// A check counts only while it stays current. A restart of the agent
+		// starts a new attempt and drops `current`, so a passed check of the
+		// previous attempt also prints the reason and exits 6.
+		if (result.state === "passed" && result.current) return 0;
+		const stale = result.current ? "" : " and not current";
+		ctx.err.write(`warning: the check is ${result.state}${stale}: ${result.error ?? "no error text"}\n`);
+		return 6;
 	},
 });
 

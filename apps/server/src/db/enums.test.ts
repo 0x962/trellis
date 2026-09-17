@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
 	CiStateSchema,
+	NoteAudienceSchema,
 	PrioritySchema,
 	PrLinkSourceSchema,
 	PrStateSchema,
@@ -13,6 +14,7 @@ import { PgDialect, pgTable, text } from "drizzle-orm/pg-core";
 import {
 	CI_STATES,
 	checkIn,
+	NOTE_AUDIENCES,
 	PR_LINK_SOURCES,
 	PR_STATES,
 	PRIORITIES,
@@ -32,6 +34,7 @@ describe("closed sets", () => {
 		expect(CI_STATES).toEqual(CiStateSchema.options);
 		expect(REVIEW_STATES).toEqual(ReviewStateSchema.options);
 		expect(PR_LINK_SOURCES).toEqual(PrLinkSourceSchema.options);
+		expect(NOTE_AUDIENCES).toEqual(NoteAudienceSchema.options);
 	});
 
 	// drizzle-kit copies the rendered SQL of a check into the migration, so

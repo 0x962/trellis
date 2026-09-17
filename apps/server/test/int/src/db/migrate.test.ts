@@ -15,6 +15,13 @@ type Journal = { entries: Array<{ idx: number; version: string; when: number; ta
 const readJournal = (dir: string) => JSON.parse(readFileSync(join(dir, "meta/_journal.json"), "utf8")) as Journal;
 
 const tables = [
+	"builder_heartbeats",
+	"builder_start_requests",
+	"chat_channels",
+	"chat_messages",
+	"chat_deliveries",
+	"manager_delegations",
+	"harness_accounts",
 	"agent_execution_attempts",
 	"agent_start_requests",
 	"evidence_artifacts",
