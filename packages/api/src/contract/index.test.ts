@@ -65,6 +65,7 @@ describe("contract", () => {
 			"controller.list GET /manager-dispatches",
 			"controller.resolveUnknown POST /manager-dispatches/{id}/received",
 			"controller.retry POST /manager-dispatches/{id}/retry",
+			"evidence.check POST /agent-runs/{runId}/checks",
 			"evidence.file GET /agent-runs/{runId}/workspace/file",
 			"evidence.list GET /agent-runs/{runId}/evidence",
 			"evidence.register POST /agent-runs/{runId}/artifacts",
@@ -159,10 +160,6 @@ describe("contract", () => {
 			"system.doctor GET /doctor",
 			"system.gh GET /gh",
 			"system.health GET /health",
-			"system.nativeWork GET /native-work",
-			"system.restartStatus GET /native-work/restart",
-			"system.resumeNativeWork POST /native-work/resume",
-			"system.resumeRestart POST /native-work/restart/resume",
 			"system.stopNativeWork POST /native-work/stop",
 			"tickets.board GET /tickets/board",
 			"tickets.counts GET /tickets/counts",
@@ -178,7 +175,7 @@ describe("contract", () => {
 			"usage.accounts GET /usage/accounts",
 			"usage.report GET /usage",
 		]);
-		expect(table).toHaveLength(149);
+		expect(table).toHaveLength(146);
 	});
 
 	// A client narrows on `error.code`, so a code that is not in `errors` has

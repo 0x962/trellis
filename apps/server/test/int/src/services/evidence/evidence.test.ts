@@ -6,9 +6,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import { nativeClient } from "../../../../../src/agents/native/connection.ts";
 import { reserveAttempt } from "../../../../../src/services/assignments/attempts.ts";
+import { check } from "../../../../../src/services/evidence/check.ts";
 import { file } from "../../../../../src/services/evidence/file.ts";
 import { list } from "../../../../../src/services/evidence/list.ts";
+import { recover } from "../../../../../src/services/evidence/recover.ts";
 import { register } from "../../../../../src/services/evidence/register.ts";
 import type { EvidenceCtx } from "../../../../../src/services/evidence/types.ts";
 import { seedRoot } from "../../../../fixtures/projects.ts";
@@ -21,11 +24,9 @@ let home: string;
 let workspace: string;
 let runId: string;
 let ctx: EvidenceCtx;
-
 beforeAll(async () => {
 	h = await serviceHarness();
 });
-
 beforeEach(async () => {
 	await h.reset();
 	home = await mkdtemp(join(tmpdir(), "trellis-evidence-service-"));
@@ -56,55 +57,55 @@ beforeEach(async () => {
 	await h.rebuild();
 	ctx = { ...testCtx({ db: h.db, home }).ctx, core: h.ctx(() => {}) };
 });
-
 afterEach(async () => {
 	await h.read(assertStatusInvariant);
+	const daemon = await nativeClient(home)
+		.hello()
+		.catch(() => null);
+	if (daemon) process.kill(daemon.pid, "SIGTERM");
+	await Bun.sleep(100);
 	await rm(home, { recursive: true, force: true });
 });
-
 afterAll(() => h.close());
-
-test("evidence lists historical checks and current artifacts without readiness", async () => {
-	const artifact = await register(ctx, { runId, path: "code.ts" });
-	const document = {
-		id: "historical-check",
-		runId,
-		attemptId: artifact.attemptId,
-		command: "bun",
-		args: ["test"],
-		timeoutMs: 60_000,
-		head: artifact.head,
-		fingerprint: artifact.fingerprint,
-		state: "passed" as const,
-		exitCode: 0,
-		output: "1 pass",
-		truncated: false,
-		error: null,
-		finishedFingerprint: artifact.fingerprint,
-		createdAt: new Date().toISOString(),
-		finishedAt: new Date().toISOString(),
-	};
-	await h.read((tx) =>
-		tx.execute(
-			sql`INSERT INTO evidence_checks (id, run_id, attempt_id, document, created_at, finished_at) VALUES (${document.id}, ${runId}, ${document.attemptId}, ${JSON.stringify(document)}::jsonb, ${document.createdAt}, ${document.finishedAt})`,
-		),
-	);
-
-	const evidence = await list(ctx, { runId });
-	expect(evidence).not.toHaveProperty("readyForReview");
-	expect(evidence.checks).toEqual([{ ...document, historical: true }]);
-	expect(evidence.checks[0]).not.toHaveProperty("current");
-	expect(evidence.artifacts[0]).toMatchObject({ id: artifact.id, current: true });
-
-	await writeFile(join(workspace, "code.ts"), "export const value = 2;\n");
-	const changed = await list(ctx, { runId });
-	expect(changed.checks[0]).toEqual({ ...document, historical: true });
-	expect(changed.artifacts[0]!.current).toBe(false);
+const command = (source: string, requestId = randomUUID()) => ({
+	runId,
+	requestId,
+	command: process.execPath,
+	args: ["-e", source],
+	timeoutMs: 3000,
 });
 
-test("a new agent run creates no check row", async () => {
+test("current artifacts and checks permit review, then same-HEAD changes invalidate both", async () => {
 	await register(ctx, { runId, path: "code.ts" });
-	expect(await h.rows(sql`SELECT id FROM evidence_checks WHERE run_id=${runId}`)).toEqual([]);
+	const input = command('process.stdout.write("verified")');
+	const passed = await check(ctx, input);
+	expect(passed).toMatchObject({ state: "passed", output: "verified", current: true });
+	expect((await list(ctx, { runId })).readyForReview).toBe(true);
+	await writeFile(join(workspace, "code.ts"), "export const value = 2;\n");
+	const stale = await list(ctx, { runId });
+	expect(stale.head).toBe(passed.head);
+	expect(stale.readyForReview).toBe(false);
+	expect(stale.artifacts[0]!.current).toBe(false);
+	expect(stale.checks[0]!.current).toBe(false);
+	const replay = await check(ctx, input);
+	expect(replay).toMatchObject({ id: passed.id, state: "passed", current: false, finishedAt: passed.finishedAt });
+	expect((await nativeClient(home).list()).length).toBe(1);
+	await expect(check(ctx, { ...input, args: ["-e", "process.exit(7)"] })).rejects.toMatchObject({
+		code: "INPUT_VALIDATION_FAILED",
+	});
+});
+
+test("check timeout and bounded output persist without a shell", async () => {
+	const failed = await check(ctx, command('process.stdout.write("x".repeat(300000) + "tail"); process.exitCode=3'));
+	expect(failed.state).toBe("failed");
+	expect(failed.exitCode).toBe(3);
+	expect(failed.output.length).toBe(262144);
+	expect(failed.output.endsWith("tail")).toBe(true);
+	expect(failed.truncated).toBe(true);
+	const timeout = await check(ctx, { ...command("setInterval(() => {}, 1000)"), timeoutMs: 100 });
+	expect(timeout.state).toBe("timed_out");
+	expect(timeout.error).toBe("Process timed out after 100 ms");
+	expect((await list(ctx, { runId })).readyForReview).toBe(false);
 });
 
 test("file preview and artifact registration reject paths outside the workspace", async () => {
@@ -126,7 +127,67 @@ test("file preview and artifact registration reject paths outside the workspace"
 	});
 });
 
-test("only the current native attempt can register an artifact as its agent", async () => {
+test("a repeated check settles a confirmed exit after host recovery without another launch", async () => {
+	const input = command("process.exit(0)");
+	const passed = await check(ctx, input);
+	await h.read((tx) =>
+		tx.execute(
+			sql`UPDATE evidence_checks SET finished_at=NULL, document=jsonb_set(jsonb_set(document, '{state}', '"starting"'), '{finishedAt}', 'null') WHERE id=${passed.id}`,
+		),
+	);
+	await h.run(recover);
+	const replay = await check(ctx, input);
+	expect(replay).toMatchObject({ state: "passed", id: passed.id, exitCode: 0, current: true });
+	expect((await nativeClient(home).list()).length).toBe(1);
+	expect((await list(ctx, { runId })).readyForReview).toBe(false);
+});
+
+test("evidence reads retain uncertainty until the runtime confirms the same check exited", async () => {
+	const passed = await check(ctx, command('process.stdout.write("confirmed result")'));
+	const missingId = randomUUID();
+	await h.read((tx) =>
+		tx.execute(
+			sql`UPDATE evidence_checks SET id=${missingId}, document=document || ${JSON.stringify({ id: missingId, state: "unknown", error: "Unconfirmed exit", output: "", exitCode: null, finishedFingerprint: null })}::jsonb WHERE id=${passed.id}`,
+		),
+	);
+	expect((await list(ctx, { runId })).checks[0]).toMatchObject({ state: "unknown", error: "Unconfirmed exit" });
+	await h.read((tx) =>
+		tx.execute(
+			sql`UPDATE evidence_checks SET id=${passed.id}, document=jsonb_set(document, '{id}', ${JSON.stringify(passed.id)}::jsonb) WHERE id=${missingId}`,
+		),
+	);
+	expect((await list(ctx, { runId })).checks[0]).toMatchObject({
+		state: "passed",
+		output: "confirmed result",
+		current: true,
+	});
+	expect((await nativeClient(home).list()).length).toBe(1);
+});
+
+test("the display limit cannot hide a failed check from review readiness", async () => {
+	await register(ctx, { runId, path: "code.ts" });
+	const passed = await check(ctx, command("process.exit(0)"));
+	await h.read(async (tx) => {
+		await tx.execute(
+			sql`INSERT INTO evidence_checks (id, run_id, attempt_id, document, created_at, finished_at) SELECT 'failed-hidden', run_id, attempt_id, document || '{"id":"failed-hidden","command":"required-check","state":"failed","exitCode":1}'::jsonb, created_at - interval '1 hour', finished_at FROM evidence_checks WHERE id=${passed.id}`,
+		);
+		await tx.execute(
+			sql`INSERT INTO evidence_checks (id, run_id, attempt_id, document, created_at, finished_at) SELECT 'extra-' || n, run_id, attempt_id, document || jsonb_build_object('id', 'extra-' || n), created_at, finished_at FROM evidence_checks CROSS JOIN generate_series(1, 101) n WHERE id=${passed.id}`,
+		);
+	});
+	const evidence = await list(ctx, { runId });
+	expect(evidence.checks).toHaveLength(100);
+	expect(evidence.readyForReview).toBe(false);
+});
+
+test("a check that changes workspace contents cannot provide current passing evidence", async () => {
+	const result = await check(ctx, command('await Bun.write("code.ts", "changed by check")'));
+	expect(result.state).toBe("passed");
+	expect(result.current).toBe(false);
+	expect(result.finishedFingerprint).not.toBe(result.fingerprint);
+});
+
+test("only the current native attempt can register evidence as its agent", async () => {
 	const first = await h.run((core, tx) => reserveAttempt(core, tx, { runId }));
 	await h.read((tx) => tx.execute(sql`UPDATE agent_runs SET terminal_id=${first.id} WHERE id=${runId}`));
 	const agent = {
@@ -137,4 +198,15 @@ test("only the current native attempt can register an artifact as its agent", as
 	const next = await h.run((core, tx) => reserveAttempt(core, tx, { runId }));
 	await h.read((tx) => tx.execute(sql`UPDATE agent_runs SET terminal_id=${next.id} WHERE id=${runId}`));
 	await expect(register(agent, { runId, path: "code.ts" })).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
+	await expect(check(agent, command("process.exit(0)"))).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
+	expect((await h.rows(sql`SELECT id FROM evidence_checks`)).length).toBe(0);
+});
+
+test("concurrent requests reserve one check and launch one process", async () => {
+	const input = command('await Bun.sleep(100); process.stdout.write("once")');
+	const results = await Promise.all([check(ctx, input), check(ctx, input)]);
+	expect(results[0]!.id).toBe(results[1]!.id);
+	expect(results.some((result) => result.state === "passed")).toBe(true);
+	expect((await nativeClient(home).list()).length).toBe(1);
+	expect((await h.rows(sql`SELECT id FROM evidence_checks`)).length).toBe(1);
 });

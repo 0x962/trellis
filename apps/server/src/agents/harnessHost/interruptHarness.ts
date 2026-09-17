@@ -10,8 +10,13 @@ export async function interruptHarness(
 	options: HarnessHostOptions,
 	descriptor: HarnessDescriptor,
 	before: RuntimeProcessStatus,
+	waitForIdle = true,
 ) {
 	const provider = providers[descriptor.harness];
+	if (!waitForIdle && provider.interrupt !== null) {
+		await options.runtime.input(before.id, Buffer.from(provider.interrupt).toString("base64"), false);
+		return before;
+	}
 	if (before.status !== "running" || !before.controllable || before.activity === null || before.agent === null)
 		throw new Error(`Harness attempt ${before.id} has no controllable observed turn`);
 	if (before.activity.state === "idle") return before;

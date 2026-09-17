@@ -82,15 +82,13 @@ test("concurrent identical starts create one frozen execution", async () => {
 		code: "INPUT_VALIDATION_FAILED",
 	});
 });
-test("new starts enforce flow version, worker persona, and pause", async () => {
+test("new starts enforce flow version and worker persona", async () => {
 	await expect(h.run((ctx, tx) => start(ctx, tx, { ...input(), expectedVersion: 1 }))).rejects.toMatchObject({
 		code: "FLOW_VERSION_CONFLICT",
 	});
 	await h.rows(sql`UPDATE personas SET kind='manager' WHERE id=${persona}`);
 	await expect(h.run((ctx, tx) => start(ctx, tx, input()))).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
 	await h.rows(sql`UPDATE personas SET kind='builder' WHERE id=${persona}`);
-	await h.rows(sql`INSERT INTO settings (key,value,updated_at) VALUES ('nativeWorkPaused','true'::jsonb,now())`);
-	await expect(h.run((ctx, tx) => start(ctx, tx, input()))).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
 });
 test("only a person can answer a current human step", async () => {
 	const record = await h.run((ctx, tx) => start(ctx, tx, input()));

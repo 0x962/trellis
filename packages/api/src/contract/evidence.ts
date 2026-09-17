@@ -1,5 +1,7 @@
 import {
 	EvidenceArtifactSchema,
+	EvidenceCheckInputSchema,
+	EvidenceCheckSchema,
 	EvidenceFileInputSchema,
 	EvidenceFileSchema,
 	EvidenceListSchema,
@@ -17,6 +19,10 @@ export const evidence = {
 		.route({ method: "GET", path: "/agent-runs/{runId}/workspace/file", summary: "Read a workspace file" })
 		.input(EvidenceFileInputSchema)
 		.output(EvidenceFileSchema),
+	check: base
+		.route({ method: "POST", path: "/agent-runs/{runId}/checks", summary: "Run and retain a workspace check" })
+		.input(EvidenceCheckInputSchema)
+		.output(EvidenceCheckSchema),
 	register: base
 		.route({ method: "POST", path: "/agent-runs/{runId}/artifacts", summary: "Register a workspace artifact" })
 		.input(EvidenceFileInputSchema)
@@ -25,7 +31,7 @@ export const evidence = {
 		.route({
 			method: "GET",
 			path: "/agent-runs/{runId}/evidence",
-			summary: "Inspect historical checks and current artifacts",
+			summary: "Inspect current check and artifact evidence",
 		})
 		.input(EvidenceRunInputSchema)
 		.output(EvidenceListSchema),

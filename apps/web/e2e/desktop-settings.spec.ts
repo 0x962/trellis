@@ -55,8 +55,6 @@ const installBridge = (
 				},
 				run: async (action: string) => {
 					calls.push(["run", action]);
-					if (action === "resumeLocalWork")
-						throw new Error("Error invoking remote method 'trellis:desktop-action': Error: Local work stays paused.");
 				},
 				onNavigate: (listener: (path: string) => void) => {
 					(window as unknown as { desktopNavigate: (path: string) => void }).desktopNavigate = listener;
@@ -70,7 +68,9 @@ const calls = (page: Page) => page.evaluate(() => (window as unknown as { deskto
 
 test("a browser shows no Desktop settings", async ({ page }) => {
 	await signIn(page, "/settings#desktop");
-	await expect(page.getByRole("navigation", { name: "Settings" }).getByRole("link", { name: "Account" })).toBeVisible();
+	await expect(
+		page.getByRole("navigation", { name: "Settings" }).getByRole("link", { name: "Account", exact: true }),
+	).toBeVisible();
 	await expect(page.getByRole("link", { name: "Desktop", exact: true })).toHaveCount(0);
 });
 
@@ -98,8 +98,7 @@ test("desktop settings show the app state and run each desktop action", async ({
 	await expect
 		.poll(() => calls(page))
 		.toEqual([["setOpenAtLogin", true], ...actions.map(([, action]) => ["run", action])]);
-	await section.getByRole("button", { name: "Resume local work", exact: true }).click();
-	await expect(page.getByText("Local work stays paused.", { exact: true })).toBeVisible();
+	await expect(section.getByRole("button", { name: "Resume local work", exact: true })).toHaveCount(0);
 });
 
 // The focus event models a return from System Settings after service approval.

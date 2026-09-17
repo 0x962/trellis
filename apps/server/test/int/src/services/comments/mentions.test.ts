@@ -66,3 +66,11 @@ test("email addresses, code, and longer names do not notify agents", async () =>
 	);
 	expect(await h.rows(sql`SELECT id FROM comment_deliveries`)).toHaveLength(0);
 });
+
+test("worker comments notify mentioned workers without notifying the copilot", async () => {
+	const ticket = await seed();
+	await h.run((ctx, tx) => create(ctx, tx, { ticket, body: "@Trellis coordinate. @Code separation review." }), {
+		actor: { kind: "agent", name: "537" },
+	});
+	expect(await h.rows(sql`SELECT run_id FROM comment_deliveries`)).toEqual([{ run_id: "541" }]);
+});

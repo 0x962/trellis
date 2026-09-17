@@ -1,28 +1,29 @@
 import { fromHarnessModel, HarnessEffortSchema } from "@trellis/api";
-import type { RestartSession } from "@trellis/runtime-protocol/restart-plan";
 import { sql } from "drizzle-orm";
 import { taskKey } from "../../agents/nativeFlow/taskKey.ts";
 import type { ServiceCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
-import { readNativeWork } from "../agentRuns/nativeControl.ts";
-import { columns, type StoredRun } from "../agentRuns/queries.ts";
 import { type ExecutionAttempt, reserveAttempt } from "../assignments/attempts.ts";
 import type { StoredExecution } from "../flowExecutions/types.ts";
 import { getAccount } from "../harnessAccounts/queries.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { projectRow } from "../projectRows.ts";
+import { columns, type StoredRun } from "./queries.ts";
 
-export async function reserveRestart(
-	ctx: ServiceCtx,
-	tx: Tx,
-	session: Omit<RestartSession, "processIdentity"> & { processIdentity?: string },
-	reserve: boolean,
-) {
-	// The capture writes a `custom` entry only as done and failed, and the
-	// resume never reserves a done entry. The check keeps the harness type
-	// narrow for the model lookup below.
+export type ResumeSession = {
+	runId: string;
+	previousAttemptId: string;
+	providerSessionId: string;
+	harness: "claude" | "codex" | "opencode" | "pi" | "muse" | "custom";
+	model?: string;
+	effort?: string;
+	workspace: string;
+	attempt: { id: string; token: string };
+};
+
+export async function reserveResume(ctx: ServiceCtx, tx: Tx, session: ResumeSession, reserve: boolean) {
 	if (session.harness === "custom") return null;
 	const [run] = await rows<StoredRun>(tx, sql`SELECT ${columns} FROM agent_runs WHERE id=${session.runId} FOR UPDATE`);
 	if (
@@ -33,7 +34,6 @@ export async function reserveRestart(
 		![session.previousAttemptId, session.attempt.id].includes(run.terminalId!)
 	)
 		return null;
-	if ((await readNativeWork(tx)).paused) return null;
 	const project = await projectRow(tx, run.projectId);
 	const config = await projectLaunchConfig(tx, { projectId: run.projectId });
 	if (project.archived_at !== null) return null;

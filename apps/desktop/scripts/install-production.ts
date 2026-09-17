@@ -86,5 +86,5 @@ console.log(
 		2,
 	),
 );
-console.log("Restart Trellis to activate this package and resume its active agents.");
+console.log("Restart Trellis to activate this package.");
 await rm(build, { recursive: true });

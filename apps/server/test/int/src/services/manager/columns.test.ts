@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:te
 import { StatusUpdateInputSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
-import { update as updateStatus } from "../../../../../src/services/statuses.ts";
+import { create as createStatus, update as updateStatus } from "../../../../../src/services/statuses.ts";
 import { move } from "../../../../../src/services/tickets/move.ts";
 import { seedActors, seedRoot, seedStatuses } from "../../../../fixtures/projects.ts";
 import { seedTicket } from "../../../../fixtures/tickets.ts";
@@ -74,5 +74,30 @@ test("an occupied In Progress column must retain a worker configuration", async 
 	await h.read((tx) => seedTicket(tx, { projectId: project, rootId: project, statusId: started.id }));
 	await expect(
 		h.run((ctx, tx) => updateStatus(ctx, tx, { project, status: started.id, agentConfig: null })),
+	).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
+});
+
+test.each(["done", "canceled"] as const)("a %s status rejects a worker configuration", async (category) => {
+	const terminal = await h.one<{ id: string }>(
+		sql`SELECT id FROM statuses WHERE project_id=${project} AND category=${category}`,
+	);
+	await expect(
+		h.run((ctx, tx) =>
+			createStatus(ctx, tx, {
+				project,
+				name: `Another ${category}`,
+				category,
+				agentConfig: { personaId, harness: { preset: "claude" }, accountId: null },
+			}),
+		),
+	).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
+	await expect(
+		h.run((ctx, tx) =>
+			updateStatus(ctx, tx, {
+				project,
+				status: terminal.id,
+				agentConfig: { personaId, harness: { preset: "claude" }, accountId: null },
+			}),
+		),
 	).rejects.toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
 });

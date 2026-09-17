@@ -6,7 +6,6 @@ export type DesktopAction =
 	| "showDataDirectory"
 	| "openServiceSettings"
 	| "stopLocalWork"
-	| "resumeLocalWork"
 	| "reconnectHost"
 	| "quit";
 

@@ -24,7 +24,7 @@ The host keeps its selected port across restarts. This preserves the renderer or
 
 Close a window to detach its view. Quit Trellis to close the desktop process. Both actions keep the host and agents active. Use the Help menu to reconnect to the host or open its logs.
 
-The Desktop section of the Settings page holds the data directory, Open Trellis at login, the background service status, the update status, and the local work actions. **Trellis > Settings…** (Command-comma) opens that section. The menus keep Open Trellis, Quit Trellis, Quit Trellis Completely, and the Help items. Quit Trellis Completely and the Help items work when the Settings page cannot load.
+The Desktop section of the Settings page holds the data directory, Open Trellis at login, the background service status, the update status, and the host controls. **Trellis > Settings…** (Command-comma) opens that section. The menus keep Open Trellis, Quit Trellis, Quit Trellis Completely, and the Help items. Quit Trellis Completely and the Help items work when the Settings page cannot load.
 
 Use **Trellis > Restart** to restart the host and desktop from the installed package. Compatible agents keep their processes and terminal output. If the packaged app detects an incompatible or unknown runtime, it blocks the restart and shows the reason.
 
@@ -32,7 +32,7 @@ A local progress window shows a progress bar, numbered steps, and estimated time
 
 The packaged app enables its background service at startup. `SMAppService` registers the bundled LaunchAgent. macOS starts it at login and restarts it after a crash. Settings > Desktop shows its status and opens Login Items when approval is required. The separate Open Trellis at login switch controls the desktop window.
 
-In Settings > Desktop, Quit Trellis Completely pauses local dispatch, stops known local processes, and unregisters the helper. An unknown process prevents the stop. The app waits for the host to exit before it closes. Resume local work allows new local launches. Each project keeps its saved dispatch setting.
+In Settings > Desktop, Quit Trellis Completely stops known local processes and unregisters the helper. An unknown process prevents the stop. The app waits for the host to exit before it closes. Open Trellis to start the helper and deterministic manager.
 
 Project settings select the repository directory. A blank child directory uses the nearest ancestor with a configured directory. Trellis trusts configured repositories and agent workspaces.
 
@@ -42,7 +42,7 @@ The preload bridge exposes `trellisDesktop.chooseDirectory()`, the Settings call
 
 `trellis://open/t/KEY-1` opens a ticket. External HTTP and HTTPS links open in the system browser.
 
-Use **Trellis > Restart** to load the installed package. A changed package stops active agent processes and resumes their saved provider conversations. An unchanged package keeps those processes. An agent the update cannot save keeps running until the runtime stops, and the restart status shows the reason beside its name.
+Use **Trellis > Restart** to load the installed package. A changed package stops the previous runtime. The deterministic manager starts column workers and project copilots with their current settings. Compatible conversations and workspaces persist.
 
 ## Package and verification
 
@@ -106,11 +106,7 @@ The command signs the local package and runs the packaged smoke checks. It copie
 
 Use this command for each production install. Keep the installed bundle in place until the verified copy is complete. Run service commands through `~/Applications/Trellis.app/Contents/MacOS/TrellisHost`. The helper requires the LaunchAgent plist inside its app bundle.
 
-Restart Trellis to activate the installed build. For a changed package, Trellis saves the confirmed active agent sessions before it stops the previous runtime. After the new host starts, Trellis resumes those provider sessions in their saved workspaces. The deterministic manager restarts copilots and workers in configured columns. Other stopped agents stay stopped. An unchanged package keeps the existing processes.
-
-Trellis stores pending resumes in `restart-plan.json` inside the selected data directory. A failed activation preserves this plan for the next app launch. Each saved attempt has one resume identity, which prevents duplicate processes and restart messages. A later package gives a partial resume one more pass, then merges the entries that still failed into its own plan, so the restart status keeps their reasons.
-
-A custom agent, an agent without a confirmed provider session, or a terminal whose process the app cannot confirm is recorded in the plan as not saved, with the reason. The update continues. Agent starts, the manager controller, and review delivery keep running while a resume is in progress.
+Restart Trellis to activate the installed build. A changed package stops the previous runtime and starts the new host. The deterministic manager starts configured column workers and project copilots on its next beat. It resumes compatible conversations in their saved workspaces. An unchanged package keeps existing processes.
 
 To prepare a verified candidate without a production install:
 
