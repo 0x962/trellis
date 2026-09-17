@@ -91,12 +91,6 @@ export function CreateTicketDialog() {
 			// submit cannot create the ticket twice.
 			const failed = await uploadPendingFiles((input) => client.attachments.upload(input), ticket.identifier, pending);
 			setPending([]);
-			if (failed.length > 0) {
-				await queryClient.invalidateQueries({
-					queryKey: orpc.attachments.list.queryKey({ input: { ticket: ticket.identifier } }),
-					refetchType: "all",
-				});
-			}
 			insertRow(queryClient, summaryOf(ticket));
 			void queryClient.invalidateQueries({ queryKey: orpc.tickets.counts.key() });
 			void queryClient.invalidateQueries({ queryKey: orpc.projects.key() });
