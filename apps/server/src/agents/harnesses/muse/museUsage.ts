@@ -3,11 +3,9 @@ import { readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
 
-// The subscription usage of a Muse login. Muse learns it from the response
-// of each model call and announces it to its session client, so the only
-// place Trellis can read it is a Muse session that Trellis runs. The bridge
-// saves the latest announcement next to the sessions of that Muse home, and
-// the account card reads it from there.
+// `writeMuseUsage` saves normal usage, and `writeMuseQuotaError` saves the
+// reset time from a subscription quota error. Both functions write
+// `MUSE_USAGE_FILE` next to the Muse sessions. `fetchAccountQuota` reads it.
 export const MUSE_USAGE_FILE = "trellis-usage.json";
 
 const window = z.object({ usedPercent: z.number(), resetsAtMs: z.number() });
@@ -16,8 +14,11 @@ export const MuseUsageSchema = z.object({
 	tier: z.string().optional(),
 	window: window.extend({ windowDurationMins: z.number() }).optional(),
 	weekly: window.optional(),
+	exhausted: z.object({ resetsAtMs: z.number() }).optional(),
 });
 export type MuseUsage = z.infer<typeof MuseUsageSchema>;
+
+const quotaReset = /Subscription quota exhausted\. Your usage window resets at ([0-9T:.-]+Z)\.? \(rate_limit_error\)/;
 
 export async function writeMuseUsage(museHome: string, usage: unknown) {
 	const snapshot = MuseUsageSchema.parse(usage);
@@ -37,12 +38,33 @@ export async function readMuseUsage(museHome: string): Promise<MuseUsage | null>
 	}
 }
 
+export async function writeMuseQuotaError(museHome: string, message: string, observedAtMs = Date.now()) {
+	const resetsAt = quotaReset.exec(message)?.[1];
+	if (resetsAt === undefined) return false;
+	const resetsAtMs = Date.parse(resetsAt);
+	if (!Number.isFinite(resetsAtMs)) return false;
+	const usage = await readMuseUsage(museHome);
+	await writeMuseUsage(museHome, { ...usage, observedAtMs, exhausted: { resetsAtMs } });
+	return true;
+}
+
+export const museQuotaExhausted = (usage: MuseUsage, now: number) =>
+	usage.exhausted !== undefined && usage.exhausted.resetsAtMs > now;
+
 // The quota windows of a snapshot that are still open at `now`. A window
 // whose reset time has passed holds a count that reset with it, so it is
 // left out.
 export function museUsageWindows(usage: MuseUsage, now: number) {
 	const windows: Array<{ id: string; label: string; usedPercent: number; resetsAt: string }> = [];
-	if (usage.window && usage.window.resetsAtMs > now)
+	const exhausted = usage.exhausted;
+	if (exhausted !== undefined && museQuotaExhausted(usage, now))
+		windows.push({
+			id: "window",
+			label: usage.window ? `Session (${Math.round(usage.window.windowDurationMins / 60)}h)` : "Usage window",
+			usedPercent: 100,
+			resetsAt: new Date(exhausted.resetsAtMs).toISOString(),
+		});
+	else if (usage.window && usage.window.resetsAtMs > now)
 		windows.push({
 			id: "window",
 			label: `Session (${Math.round(usage.window.windowDurationMins / 60)}h)`,
