@@ -48,7 +48,8 @@ export async function reconcileColumn(
 	let session = run ? sessions.find((item) => item.id === run.terminalId) : undefined;
 	if (run?.terminalId && !session) session = (await deps.list(ctx.home)).find((item) => item.id === run.terminalId);
 	const changedColumn = state.retired || state.assignedStatusId !== state.statusId;
-	const enabled = state.allowed && state.agentConfig !== null;
+	const enabled =
+		state.allowed && state.agentConfig !== null && state.category !== "done" && state.category !== "canceled";
 	if (session?.status === "unknown") throw new Error(`Cannot confirm process ownership for ${run!.id}`);
 	if (run && session && (changedColumn || !enabled || workerAction(session) === "restart")) {
 		if (session.status !== "exited") await deps.stop(ctx, run);

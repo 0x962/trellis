@@ -18,6 +18,8 @@ export async function reserveColumnWorker(
 	if (
 		!current?.allowed ||
 		!current.agentConfig ||
+		current.category === "done" ||
+		current.category === "canceled" ||
 		current.statusId !== expected.statusId ||
 		current.runId !== expected.runId
 	)

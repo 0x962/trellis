@@ -38,6 +38,20 @@ test("column worker defaults persist and project names have no chat action", asy
 	await page.getByRole("button", { name: "Edit Agent Review", exact: true }).click();
 	await expect(form.getByRole("combobox", { name: "Worker persona", exact: true })).toContainText(persona.name);
 	await expect(form.getByRole("combobox", { name: "Reasoning effort", exact: true })).toContainText("High");
+	for (const status of ["Done", "Canceled"]) {
+		await page.getByRole("button", { name: `Edit ${status}`, exact: true }).click();
+		const terminalForm = page.getByRole("form", { name: `Edit ${status}`, exact: true });
+		await expect(terminalForm.getByRole("combobox", { name: "Worker persona", exact: true })).toHaveCount(0);
+		await terminalForm.getByRole("button", { name: "Cancel", exact: true }).click();
+	}
+	await page.getByRole("button", { name: "Add a status to Todo", exact: true }).click();
+	const todoCreateForm = page.getByRole("region", { name: "Todo", exact: true }).locator(".status-create-form");
+	await expect(todoCreateForm.getByRole("combobox", { name: "Worker persona", exact: true })).toBeVisible();
+	await todoCreateForm.getByRole("button", { name: "Cancel", exact: true }).click();
+	await page.getByRole("button", { name: "Add a status to Done", exact: true }).click();
+	const doneCreateForm = page.getByRole("region", { name: "Done", exact: true }).locator(".status-create-form");
+	await expect(doneCreateForm.getByRole("combobox", { name: "Worker persona", exact: true })).toHaveCount(0);
+	await doneCreateForm.getByRole("button", { name: "Cancel", exact: true }).click();
 	const before = page.url();
 	await page
 		.locator('[data-slot="label"]')
