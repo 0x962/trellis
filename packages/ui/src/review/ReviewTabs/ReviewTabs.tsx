@@ -6,12 +6,14 @@ export function ReviewTabs({
 	onValueChange,
 	count,
 	live,
+	liveStatus,
 	children,
 }: {
 	value: string;
 	onValueChange: (value: string) => void;
 	count: number;
 	live: boolean;
+	liveStatus?: string;
 	children: ReactNode;
 }) {
 	const sections = [
@@ -19,7 +21,7 @@ export function ReviewTabs({
 		{ value: "discussion", label: count ? `Conversation ${count}` : "Conversation" },
 		{ value: "checks", label: "Checks" },
 		{ value: "runs", label: "Runs" },
-		...(live ? [{ value: "live", label: "Live Branch" }] : []),
+		...(live ? [{ value: "live", label: liveStatus ? `Live Branch · ${liveStatus}` : "Live Branch" }] : []),
 	];
 	return (
 		<Tabs

@@ -10,6 +10,7 @@ import { ReviewComment } from "../ReviewComment/ReviewComment";
 import { type ReviewCommentInput, ReviewComposer } from "../ReviewComposer/ReviewComposer";
 import { ReviewDiscussion } from "../ReviewDiscussion/ReviewDiscussion";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
+import { type LiveBranchMeta, liveBranchState } from "../ReviewLive/liveBranch";
 import { ReviewLive } from "../ReviewLive/ReviewLive";
 import { ReviewRuns } from "../ReviewRuns/ReviewRuns";
 import { ReviewStack } from "../ReviewStack/ReviewStack";
@@ -111,6 +112,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		/>
 	);
 	const displayRevision = revision ? { ...revision, meta: status.data ?? revision.meta } : null;
+	const liveStatus = status.data ? liveBranchState(status.data as LiveBranchMeta).label : undefined;
 	return (
 		<div className="review-page">
 			<ReviewHeader
@@ -145,6 +147,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 					onValueChange={changeTab}
 					count={allThreads.length}
 					live={pr.includes("/canary-technologies-corp/canary/")}
+					liveStatus={liveStatus}
 				>
 					{refresh.isError && (
 						<p className="review-error" role="alert">
@@ -235,7 +238,12 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 					{tab === "checks" && <ReviewChecks revision={displayRevision} />}
 					{tab === "runs" && <ReviewRuns pr={pr} />}
 					{tab === "live" && displayRevision && (
-						<ReviewLive pr={pr} revision={displayRevision} onRefresh={() => refresh.mutate()} />
+						<ReviewLive
+							pr={pr}
+							revision={displayRevision}
+							loading={status.isPending}
+							onRefresh={() => refresh.mutate()}
+						/>
 					)}
 				</ReviewTabs>
 			</div>
