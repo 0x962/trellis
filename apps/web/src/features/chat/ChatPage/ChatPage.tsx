@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { type ChatMessage, chatChannelName, chatChannelPattern, localDay, type Project } from "@trellis/api";
+import { type ChatMessage, chatChannelName, chatChannelPattern, type Project } from "@trellis/api";
 import { EmptyState, Separator, toast } from "@trellis/ui";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -13,6 +13,7 @@ import { agentCandidates, roleCandidates } from "../ChatComposer/mentionQuery";
 import { useChatUnread } from "../useChatUnread";
 import { ChannelList } from "./components/ChannelList";
 import { ChatLine } from "./components/ChatLine";
+import { dayRules } from "./utils/dayRules";
 
 // The log holds the newest messages of the channel. The server caps a read
 // at this many.
@@ -29,33 +30,29 @@ const parseInput = (text: string): { kind: "join"; channel: string } | { kind: "
 };
 
 // The lines of the log, with a dated rule before the first message of each
-// day, so a reader scanning across days sees where one ended.
+// day, so a reader scanning across days sees where one ended. dayRules picks
+// the days; this adds the markup.
 const withDayRules = (
 	items: ChatMessage[],
 	render: (markdown: string) => string,
 	onMention: (text: string) => void,
-): ReactNode[] => {
-	let previousDay: string | null = null;
-	return items.flatMap((message) => {
-		const messageDay = localDay(message.createdAt);
-		const isFirstOfDay = messageDay !== previousDay;
-		previousDay = messageDay;
-		const line = <ChatLine key={message.id} message={message} render={render} onMention={onMention} />;
-		if (!isFirstOfDay) return [line];
+): ReactNode[] =>
+	dayRules(items).flatMap(({ item, day, startsDay }) => {
+		const line = <ChatLine key={item.id} message={item} render={render} onMention={onMention} />;
+		if (!startsDay) return [line];
 		return [
 			<li
-				key={`${message.id}.day`}
+				key={`${item.id}.day`}
 				aria-hidden="true"
 				className="flex items-center gap-2 px-3 py-1 font-mono text-xs text-fg-faint tabular"
 			>
 				<Separator className="flex-1" />
-				{messageDay}
+				{day}
 				<Separator className="flex-1" />
 			</li>,
 			line,
 		];
 	});
-};
 
 // The chat page of a project tree: the channels of its room on the left, the
 // log of the open channel on the right, the composer below the log. The
