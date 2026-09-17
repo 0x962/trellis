@@ -39,7 +39,7 @@ export function CommentCard({
 	const contentElement = useRef<HTMLDivElement>(null);
 	const hiddenBlocks = useRef<HTMLElement[]>([]);
 
-	// bodyElement stays at max-h-60 while it is closed. ResizeObserver watches
+	// bodyElement uses max-h-60 when expanded is false. ResizeObserver watches
 	// the Markdown in contentElement. A new line wrap or loaded image calls measure again.
 	useLayoutEffect(() => {
 		const revealBlocks = () => {
