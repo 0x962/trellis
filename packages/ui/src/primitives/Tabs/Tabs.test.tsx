@@ -6,7 +6,13 @@ import { expectClasses, expectFocusRing, expectHitArea } from "../../../test/cla
 import { Tabs } from "./Tabs";
 
 const items = [
-	{ value: "All", label: "All", status: "Working", icon: <span data-testid="all-icon" />, content: <p>Everything</p> },
+	{
+		value: "All",
+		label: "All",
+		accessibleStatus: "Working",
+		icon: <span data-testid="all-icon" />,
+		content: <p>Everything</p>,
+	},
 	{ value: "Activity", label: "Activity", disabled: true, content: <p>Moves</p> },
 	{ value: "Comments", label: "Comments", content: <p>Only comments</p> },
 ];

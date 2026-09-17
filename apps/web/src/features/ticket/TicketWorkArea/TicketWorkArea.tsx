@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
 import { Avatar, CheckResults, EmptyState, Tabs } from "@trellis/ui";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useMemo } from "react";
 import { useApp } from "../../../lib/appContext";
 import { AgentRunDetails } from "../../agents/AgentRunDetails";
 import { isAgentWorking } from "../../agents/isAgentWorking";
@@ -10,45 +10,24 @@ import { PullRequests } from "../../prs";
 import { FlowRuns } from "./components/FlowRuns";
 import { LocalChanges } from "./components/LocalChanges";
 import { LocalChecks } from "./components/LocalChecks";
+import { useAgentTabSelection } from "./hooks/useAgentTabSelection";
 import { assignedAgentTabs } from "./utils/assignedAgentTabs";
 
 export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity: ReactNode }) {
 	const { orpc } = useApp();
-	const [tab, setTab] = useState("activity");
 	const hash = useLocation({ select: (location) => location.hash });
 	const runs = useQuery({
 		...orpc.agentRuns.list.queryOptions({ input: { ticket: ticket.identifier } }),
 		refetchInterval: 2000,
 	});
 	const agentTabs = useMemo(() => assignedAgentTabs(runs.data ?? []), [runs.data]);
-	const hashSelection = useRef({ hash: "", matched: false });
-	useEffect(() => {
-		if (tab === "agent" && agentTabs.length > 0) setTab(agentTabs[0]!.value);
-		else if (tab.startsWith("agent:") && !agentTabs.some((item) => item.value === tab))
-			setTab(agentTabs[0]?.value ?? "agent");
-	}, [agentTabs, tab]);
-	useEffect(() => {
-		if (!hash.startsWith("attempt-")) {
-			hashSelection.current = { hash: "", matched: false };
-			return;
-		}
-		if (runs.isPending || (hashSelection.current.hash === hash && hashSelection.current.matched)) return;
-		const matching = agentTabs.find((item) => item.run.terminalId === hash);
-		if (matching) {
-			setTab(matching.value);
-			hashSelection.current = { hash, matched: true };
-			return;
-		}
-		if (hashSelection.current.hash === hash) return;
-		setTab(agentTabs[0]?.value ?? "agent");
-		hashSelection.current = { hash, matched: false };
-	}, [agentTabs, hash, runs.isPending]);
+	const { tab, setTab } = useAgentTabSelection({ tabs: agentTabs, hash, pending: runs.isPending });
 	const prs = useQuery({
 		...orpc.pullRequests.list.queryOptions({ input: { ticket: ticket.id } }),
 		initialData: ticket.prs,
 	});
 	const run = runs.data?.[0];
-	const execution = (
+	const agentTabFallback = (
 		<section aria-label="Execution" className="flex flex-col gap-3">
 			{runs.isError ? (
 				<p role="alert" className="text-sm text-danger">
@@ -76,13 +55,13 @@ export function TicketWorkArea({ ticket, activity }: { ticket: Ticket; activity:
 				items={[
 					{ value: "activity", label: "Activity", content: activity },
 					...(agentTabs.length === 0
-						? [{ value: "agent", label: "Agent", content: execution }]
+						? [{ value: "agent", label: "Agent", content: agentTabFallback }]
 						: agentTabs.map((item) => {
 								const working = isAgentWorking(item.run);
 								return {
 									value: item.value,
 									label: item.label,
-									status: working ? "Working" : undefined,
+									accessibleStatus: working ? "Working" : undefined,
 									icon: (
 										<Avatar
 											kind="agent"

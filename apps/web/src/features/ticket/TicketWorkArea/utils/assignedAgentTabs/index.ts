@@ -1,1 +1,1 @@
-export { type AssignedAgentTab, assignedAgentTabs } from "./assignedAgentTabs";
+export { assignedAgentTabs } from "./assignedAgentTabs";
