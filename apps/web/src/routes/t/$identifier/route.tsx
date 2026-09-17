@@ -1,11 +1,13 @@
 import { ORPCError } from "@orpc/client";
-import { createFileRoute, type ErrorComponentProps } from "@tanstack/react-router";
+import { createFileRoute, type ErrorComponentProps, useRouter } from "@tanstack/react-router";
 import { TicketRefStringSchema, UlidSchema } from "@trellis/api";
 import { EmptyState } from "@trellis/ui";
 import { z } from "zod";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
+import { useTicketEscape } from "../../../features/ticket/hooks/useTicketEscape";
 import { TicketView } from "../../../features/ticket/TicketView";
 import type { AppContext } from "../../../lib/appContext";
+import { lastListHref } from "../../../lib/lastList";
 
 const ticketOptions = (context: AppContext, identifier: string) =>
 	context.orpc.tickets.get.queryOptions({ input: { ticket: TicketRefStringSchema.parse(identifier) } });
@@ -25,6 +27,8 @@ export const Route = createFileRoute("/t/$identifier")({
 function TicketPage() {
 	const { identifier } = Route.useParams();
 	const { thread } = Route.useSearch();
+	const router = useRouter();
+	useTicketEscape(() => void router.navigate({ href: lastListHref() }));
 	return <TicketView identifier={TicketRefStringSchema.parse(identifier)} thread={thread} />;
 }
 

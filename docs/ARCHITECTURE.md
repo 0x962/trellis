@@ -116,9 +116,9 @@ Desktop activation stops the previous runtime and starts the host. The determini
 A partial database index permits one active copilot per project.
 
 Native ticket agents use Git worktrees under `agents/<run id>/work`.
-The ticket page centers its content and opens Activity first. Shared ticket details stay above the tabs.
-The Agent tab shows the assigned agent's interactive terminal. Changes shows workspace and pull request changes.
-Flows shows local flow runs.
+The ticket page opens Activity first and puts its top-level tabs below the page header.
+Activity shows the centered ticket details, properties, attachments, timeline, and comments.
+The Agent, Changes, and Flows tabs use the page width for the terminal, pull request changes, and local flow runs.
 The authenticated terminal stream replays retained bytes and then pushes output and process observations.
 The terminal WebSocket carries ordered input and binary output outside the database request path after attachment. See [terminal transport](terminal-transport.md).
 The terminal sends keyboard input and resize events to the runtime. An explicit reconnect resumes from the last displayed byte.
@@ -211,8 +211,9 @@ either attachment table names.
 
 `chat_messages` holds one row per post with its actor. `chat_deliveries`
 holds one row per post and live native agent of the room's project, except
-the author. A post in `general` with no mention writes rows for the live
-copilots only when the author is human. Copilots receive messages only from humans.
+the author. Outside the direct `manager` channel, a human post without a
+mention reaches every live agent. An agent post without a mention reaches
+every live worker except its author. Copilots receive messages only from humans.
 A post that mentions a live agent by run id, by persona name, or by role
 (`@manager`, `@builders`, `@reviewers`) reaches only the mentioned agents,
 and each of those rows is `direct`. The controller tick sends every pending
@@ -417,7 +418,14 @@ Removal archives the account record and retains its files.
 
 `harnessAccounts.list` returns account metadata, login commands, and capabilities. Account mutation requires a human actor.
 `harnessAccounts.quota` reads Claude or Codex subscription usage outside database transactions and caches results for five minutes.
-A manual refresh has a ten-second minimum interval. OpenCode and Pi return `unlimited` quota. Muse returns `signed_out` for a profile without `muse/auth.json`. Muse announces its subscription windows to its session client after each model call, so the Muse bridge saves the latest announcement to `muse/trellis-usage.json` in the Muse home of the run, and the account reads `ok` with the open windows from there. Before the first run, or after every saved window has reset, the account is `unavailable` with a sentence that asks for a run.
+A manual refresh has a ten-second minimum interval. OpenCode and Pi return `unlimited` quota.
+Muse returns `signed_out` for a profile without `muse/auth.json`, unless a saved quota error has an active exhausted window.
+Muse announces its subscription windows to its session client after each model call. The Muse bridge saves the latest announcement to `muse/trellis-usage.json`.
+The bridge saves the reset time from a subscription quota error to `muse/trellis-quota.json`.
+The bridge serializes writes across processes and keeps the newest observation in each file.
+The separate quota file keeps a late usage announcement from removing an active error. An active exhausted window reads `ok` at 100 percent.
+A normal snapshot with a later observation time supersedes an older quota error.
+Before the first run, or after every saved window has reset, the account is `unavailable` with a sentence that asks for a run.
 An unavailable quota result contains no allowance estimate. Credentials stay on the host and do not enter API responses.
 
 ### Usage
@@ -429,7 +437,7 @@ The scan runs in the `prepare` step, outside every database transaction, and its
 Every turn is priced at the API list rate in `services/usage/pricing.ts`. A harness that records its own cost, such as Pi or OpenCode, keeps that cost. Muse Spark has no list price, so a Muse turn counts its tokens at zero dollars. A model outside the table takes the cheapest rate of its harness and marks the row approximate.
 A session joins the agent run whose `session_id` it carries. A session whose cwd is inside `agents/<run id>/work` joins that run. A session whose cwd is inside a project directory joins that project. Every other session is outside Trellis.
 The report holds the day series by harness, the totals, one row list per grouping (ticket, persona, project, kind, account, model, harness), and the top 200 sessions with one key per grouping.
-`usage.accounts` lists every configured account and the default login of each harness that no account names, each with its quota. A login whose provider reports no quota window is `unlimited`: an API key, a plan without limits, or a harness with no quota endpoint. The default Muse login comes from `muse/auth.json` under the XDG config home, and a Muse account profile holds its own `muse/auth.json`; its windows come from the `muse/trellis-usage.json` that the last Muse agent run saved. The page joins each login to its cost through the account grouping of the report.
+`usage.accounts` lists every configured account and the default login of each harness that no account names, each with its quota. A login whose provider reports no quota window is `unlimited`: an API key, a plan without limits, or a harness with no quota endpoint. The default Muse login comes from `muse/auth.json` under the XDG config home, and a Muse account profile holds its own `muse/auth.json`. Its windows come from the normal usage and quota files that Muse agent runs save. The page joins each login to its cost through the account grouping of the report.
 The page keeps the range, the metric, the grouping, the selected row, and the selected day in the URL.
 
 The default login of a harness resolves the way SuperSet resolves it. SuperSet keeps one pointer file per harness under `~/.superset/state/`: `default-claude-config-dir` and `default-codex-home`, each with the profile directory of the default, or nothing for the plain login. When the file exists it wins. Otherwise the account with the Trellis default flag wins. Otherwise the plain login of the harness is the default. A pointer whose directory is gone counts as the plain login. A default picked in Settings also writes the pointer, so both tools agree. A run with no account reads the pointer again at every launch, and a profile exported in the login shell wins over the pointer.
@@ -593,6 +601,9 @@ that ends in `/board` redirects to the same path with the segment dropped. The
 manager page is the two segments `settings/manager`. `parseProjectSplat` and
 `projectHref` in `apps/web/src/lib/projectPath.ts` hold both directions.
 
+A card in a status with the human reviewer shows up to five linked PR approval marks.
+An overflow pill opens a tooltip that lists every linked PR and its approval state.
+
 The URL carries the whole view state in the shared filter grammar, with no
 default written. `beforeLoad` redirects a non-canonical search string to its
 canonical spelling, so one view has one URL.
@@ -750,8 +761,8 @@ returns one canonical spelling.
 `TicketSummary` is the shape that list, board, and events carry. It holds the
 identifier, the title, the priority, the status, the project, the parent, the
 child counts, the comment and attachment counts, the pull request rollup, the
-last actor, the position, the version, and the timestamps. It is about 300
-bytes. Only `tickets.get` returns the description.
+approval state of each linked pull request, the last actor, the position, the
+version, and the timestamps. Only `tickets.get` returns the description.
 
 The filter grammar is identical in the API, the web URL, and the CLI flags.
 
@@ -1011,7 +1022,7 @@ Reuse these elements across pages. Ask the user for advice before adding a new U
 - Never animate a re-sort, a text change, a counter, a skeleton swap, or the theme switch. Use `motion/mini` and CSS transitions only.
 - Focus uses a 2 px accent outline on `:focus-visible`. A row or a card uses an inset left bar.
 - The primitives are Avatar, Badge, Button, Checkbox, Chip, Command, ConfirmDialog, Dialog, EmptyState, EntityCard, IconButton, Input, Kbd, Menu, Popover, ScrollArea, SectionHeader, Segmented, Select, Separator, Sheet, Skeleton, Spinner, Switch, Tabs, Textarea, Toast, and Tooltip.
-- Domain visuals include StatusIcon, PriorityIcon, CheckRibbon, ActorChip, TicketId, TrellisMark, InboxRow, FilterBar, FilterPopover, DisplayPopover, and GroupHeader.
+- Domain visuals include StatusIcon, PriorityIcon, CheckRibbon, ReviewStateIcon, ReviewStatusSummary, ActorChip, TicketId, TrellisMark, InboxRow, FilterBar, FilterPopover, DisplayPopover, and GroupHeader.
 - The route `/_gallery` renders every primitive in every state, in both themes.
 - No raw color or spacing literal appears outside `packages/ui`. The Tailwind theme clears `--color-*`, so a utility such as `bg-red-500` does not exist. A Biome rule and a test enforce the tokens.
 

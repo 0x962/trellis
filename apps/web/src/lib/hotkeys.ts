@@ -101,11 +101,19 @@ export const useHotkeyTarget = (scope: HotkeyTargetScope, handlers: HotkeyHandle
 };
 
 // Escape runs one layer per press, the closest one first.
-export type EscapeLayer = "popover" | "selection";
+export type EscapeLayer = "popover" | "selection" | "ticket";
 
-const escapeOrder: EscapeLayer[] = ["popover", "selection"];
+const escapeOrder: EscapeLayer[] = ["popover", "selection", "ticket"];
 
 const openLayers = new Set<EscapeLayer>();
+
+export const escapeLayerFor = (
+	event: Pick<KeyboardEvent, "key" | "defaultPrevented">,
+	layers: ReadonlySet<EscapeLayer>,
+) => {
+	if (event.key !== "Escape" || event.defaultPrevented) return null;
+	return escapeOrder.find((name) => layers.has(name)) ?? null;
+};
 
 // Registers `onEscape` while `active` is true.
 export const useEscapeLayer = (layer: EscapeLayer, active: boolean, onEscape: () => void) => {
@@ -113,16 +121,16 @@ export const useEscapeLayer = (layer: EscapeLayer, active: boolean, onEscape: ()
 		if (!active) return;
 		openLayers.add(layer);
 		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.key !== "Escape") return;
-			const closest = escapeOrder.find((name) => openLayers.has(name));
-			if (closest !== layer) return;
+			if (escapeLayerFor(event, openLayers) !== layer) return;
 			event.preventDefault();
 			onEscape();
 		};
-		document.addEventListener("keydown", onKeyDown);
+		// A control can prevent Escape on its element or on document. Window
+		// receives the event last, so this listener can read `defaultPrevented`.
+		window.addEventListener("keydown", onKeyDown);
 		return () => {
 			openLayers.delete(layer);
-			document.removeEventListener("keydown", onKeyDown);
+			window.removeEventListener("keydown", onKeyDown);
 		};
 	}, [layer, active, onEscape]);
 };
