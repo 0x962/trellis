@@ -74,6 +74,13 @@ test("list filters distinguish live activity, successful exits, and process erro
 	expect((await client.list({ status: "running", activity: "working" })).map((row) => row.id)).toEqual(["working"]);
 	expect((await client.list({ status: "exited", hasError: true })).map((row) => row.id)).toEqual(["failed"]);
 	expect((await client.list({ status: "exited", hasError: false })).map((row) => row.id)).toEqual(["succeeded"]);
+	expect((await client.list({ ids: ["working", "idle", "absent"] })).map((row) => row.id).sort()).toEqual([
+		"idle",
+		"working",
+	]);
+	expect((await client.list({ ids: ["working", "idle"], activity: "working" })).map((row) => row.id)).toEqual([
+		"working",
+	]);
 	await client.stop("idle");
 	expect(await client.list({ activity: "idle" })).toEqual([]);
 });
@@ -91,4 +98,5 @@ test("invalid process filters are rejected instead of ignored", async () => {
 	await expect(client.call("list", { status: "sleeping" } as never)).rejects.toThrow("status");
 	await expect(client.call("list", { activity: "asleep" } as never)).rejects.toThrow("activity");
 	await expect(client.call("list", { hasError: "yes" } as never)).rejects.toThrow("error");
+	await expect(client.call("list", { ids: ["../other"] } as never)).rejects.toThrow("identifier");
 });

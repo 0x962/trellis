@@ -22,7 +22,7 @@ export class RuntimeClient {
 		return new Promise((resolve, reject) => {
 			const socket = new Socket();
 			const id = randomUUID();
-			let buffer = "";
+			const chunks: string[] = [];
 			let settled = false;
 			const fail = (error: Error) => {
 				if (settled) return;
@@ -42,9 +42,11 @@ export class RuntimeClient {
 				socket.write(`${JSON.stringify({ id, version: RUNTIME_PROTOCOL_VERSION, method, params })}\n`),
 			);
 			socket.on("data", (chunk) => {
-				buffer += chunk;
+				const text = chunk.toString();
+				chunks.push(text);
+				if (!text.includes("\n")) return;
+				const buffer = chunks.join("");
 				const end = buffer.indexOf("\n");
-				if (end < 0) return;
 				let reply: RuntimeResponse;
 				try {
 					reply = JSON.parse(buffer.slice(0, end));
