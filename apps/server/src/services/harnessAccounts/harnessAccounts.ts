@@ -22,6 +22,15 @@ const invalidateUsage = (ctx: IoCtx) =>
 		invalidateUsageAccounts(ctx.home);
 		invalidateUsageReports(ctx.home);
 	});
+
+const requireUniqueName = async (tx: Tx, account: { id: string; name: string }) => {
+	const duplicates = await rows(
+		tx,
+		sql`SELECT id FROM harness_accounts WHERE name=${account.name} AND id<>${account.id} AND archived_at IS NULL LIMIT 1`,
+	);
+	if (duplicates.length) throw invalidInput("name", "This account name is already in use.");
+};
+
 // The default flag of each row prints as hostDefault.ts resolves it, so
 // the list agrees with the account a launch uses when the SuperSet pointer
 // names another profile than the Trellis flag.
@@ -46,6 +55,8 @@ export const prepareCreate = async (ctx: IoCtx, input: HarnessAccountCreate) => 
 };
 export const create = async (ctx: IoCtx, tx: Tx, input: HarnessAccountCreate & { id: string; profilePath: string }) => {
 	requirePerson(ctx);
+	await tx.execute(sql`LOCK TABLE harness_accounts IN SHARE ROW EXCLUSIVE MODE`);
+	await requireUniqueName(tx, input);
 	const duplicates = await rows(
 		tx,
 		sql`SELECT id FROM harness_accounts WHERE harness=${input.harness} AND profile_path=${input.profilePath} AND archived_at IS NULL`,
@@ -60,8 +71,9 @@ export const create = async (ctx: IoCtx, tx: Tx, input: HarnessAccountCreate & {
 };
 export const update = async (ctx: IoCtx, tx: Tx, input: HarnessAccountUpdate) => {
 	requirePerson(ctx);
-	await tx.execute(sql`LOCK TABLE harness_accounts IN ROW EXCLUSIVE MODE`);
+	await tx.execute(sql`LOCK TABLE harness_accounts IN SHARE ROW EXCLUSIVE MODE`);
 	const account = await getAccount(tx, input);
+	if (input.name) await requireUniqueName(tx, { id: account.id, name: input.name });
 	const enabled = input.enabled ?? account.enabled;
 	const isDefault = input.isDefault ?? account.isDefault;
 	if (isDefault && !enabled) throw invalidInput("enabled", "Clear the default before you disable this account.");
