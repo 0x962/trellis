@@ -4,7 +4,6 @@ import { TicketRefStringSchema, UlidSchema } from "@trellis/api";
 import { EmptyState } from "@trellis/ui";
 import { z } from "zod";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
-import { useTicketEscape } from "../../../features/ticket/hooks/useTicketEscape";
 import { TicketView } from "../../../features/ticket/TicketView";
 import type { AppContext } from "../../../lib/appContext";
 import { lastListHref } from "../../../lib/lastList";
@@ -28,8 +27,14 @@ function TicketPage() {
 	const { identifier } = Route.useParams();
 	const { thread } = Route.useSearch();
 	const router = useRouter();
-	useTicketEscape(() => void router.navigate({ href: lastListHref() }));
-	return <TicketView key={identifier} identifier={TicketRefStringSchema.parse(identifier)} thread={thread} />;
+	return (
+		<TicketView
+			key={identifier}
+			identifier={TicketRefStringSchema.parse(identifier)}
+			thread={thread}
+			onReturnToList={() => void router.navigate({ href: lastListHref() })}
+		/>
+	);
 }
 
 function TicketError({ error }: ErrorComponentProps) {

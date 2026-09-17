@@ -11,6 +11,7 @@ import { NotFoundState } from "../../shell/NotFoundState";
 import { Description } from "../Description";
 import { Header } from "../Header";
 import { useParentSummary } from "../hooks/useParentSummary";
+import { useTicketEscape } from "../hooks/useTicketEscape";
 import { PropertiesRail } from "../PropertiesRail";
 import { SubTickets } from "../SubTickets";
 import { TicketWorkArea } from "../TicketWorkArea";
@@ -24,9 +25,10 @@ export type TicketViewProps = {
 	// The canonical identifier, `CDE-42`.
 	identifier: string;
 	thread?: string;
+	onReturnToList: () => void;
 };
 
-export function TicketView({ identifier, thread }: TicketViewProps) {
+export function TicketView({ identifier, thread, onReturnToList }: TicketViewProps) {
 	const { orpc } = useApp();
 	const query = useQuery(orpc.tickets.get.queryOptions({ input: { ticket: identifier } }));
 	const uploads = useUploads(identifier);
@@ -36,6 +38,11 @@ export function TicketView({ identifier, thread }: TicketViewProps) {
 	const { isArchived, notice } = useArchivedProjects();
 	const [workAreaTab, setWorkAreaTab] = useState("activity");
 	const [pullRequest, setPullRequest] = useState<string | null>(null);
+	useTicketEscape({
+		reviewOpen: pullRequest !== null,
+		closeReview: () => setPullRequest(null),
+		returnToList: onReturnToList,
+	});
 
 	useEffect(() => {
 		if (query.data === undefined || pullRequest !== null) return;
