@@ -222,23 +222,106 @@
 	background: var(--surface);
 	border-radius: var(--radius-sm);
 }
-.review-status-grid {
+.review-live-control {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 4px;
+}
+.review-live-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+	padding: 0;
+	border: 0;
+}
+.review-live-control > .review-error {
+	padding: 0;
+}
+.review-live-section {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+.review-live-section > h3 {
+	font-size: 13px;
+	font-weight: 600;
+}
+.review-live-links {
 	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 24px;
-	padding: 20px 0;
-	border-block: 0.5px solid var(--border);
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 12px;
 }
-.review-status-grid dt {
+.review-live-links a {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 4px 12px;
+	min-height: 72px;
+	padding: 12px 14px;
+	border: 0.5px solid var(--border);
+	border-radius: var(--radius-md);
+	background: var(--surface);
+	transition-property: border-color, background-color;
+	transition-duration: var(--duration-hover);
+	transition-timing-function: ease-out;
+}
+.review-live-links a:hover {
+	border-color: var(--border-strong);
+	background: var(--bg);
+}
+.review-live-links a > span {
 	color: var(--fg-muted);
-	font-size: 12px;
-	margin-bottom: 8px;
+	font-size: 11px;
 }
-.review-status-grid dd {
-	font-size: 14px;
+.review-live-links a > strong {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 12px;
 	font-weight: 500;
 }
+.review-live-links a > svg {
+	grid-column: 2;
+	grid-row: 1 / 3;
+	size: 14px;
+	color: var(--fg-muted);
+}
+.review-live-details {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16px 24px;
+	padding: 16px;
+	border-radius: var(--radius-md);
+	background: var(--surface);
+}
+.review-live-details > div {
+	min-width: 0;
+}
+.review-live-details dt {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-bottom: 6px;
+	color: var(--fg-muted);
+	font-size: 11px;
+}
+.review-live-details dt svg {
+	size: 12px;
+}
+.review-live-details dd {
+	overflow-wrap: anywhere;
+	font-family: var(--font-mono);
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+}
 @media (max-width: 767px) {
+	.review-live-links,
+	.review-live-details {
+		grid-template-columns: 1fr;
+	}
 	.review-form {
 		padding: 20px 16px;
 	}
