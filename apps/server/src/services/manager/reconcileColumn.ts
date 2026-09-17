@@ -12,8 +12,10 @@ import { columnContext } from "./columnContext.ts";
 import { type ColumnState, columnStates } from "./columnState.ts";
 import { reserveColumnWorker } from "./reserveColumnWorker.ts";
 import { workerAction } from "./workerAction.ts";
+import { workspaceExists } from "./workspaceExists.ts";
 
 const defaults = {
+	workspaceExists,
 	stop: stopNative,
 	start: startNative,
 	send: prepareSend,
@@ -83,11 +85,13 @@ export async function reconcileColumn(
 		}
 		return;
 	}
+	const missingWorkspace = !!run?.workspaceId && !(await deps.workspaceExists(run.workspaceId));
 	const claim = await ctx.newTx((tx) =>
-		reserveColumnWorker({ ...ctx.core, now: ctx.now() }, tx, state, run?.terminalId),
+		reserveColumnWorker({ ...ctx.core, now: ctx.now() }, tx, state, run?.terminalId, !missingWorkspace),
 	);
 	if (!claim) return;
 	const resume = !!(
+		!missingWorkspace &&
 		session?.agent?.sessionId &&
 		!changedColumn &&
 		run?.personaId === claim.run.personaId &&
@@ -98,7 +102,12 @@ export async function reconcileColumn(
 		...claim,
 		resume,
 		previousAttemptId: session?.id,
-		context: `${claim.context}\n${JSON.stringify({ previousRunId: run?.id ?? null, previousTranscript: run ? join(ctx.home, "agents", run.id, "output.txt") : null })}`,
+		context: `${claim.context}\n${JSON.stringify({
+			previousRunId: run?.id ?? null,
+			previousWorkspace: run?.workspaceId ?? null,
+			previousWorkspaceMissing: missingWorkspace,
+			previousTranscript: run ? join(ctx.home, "agents", run.id, "output.txt") : null,
+		})}`,
 		resumePrompt: resume
 			? JSON.stringify({
 					type: "trellis.column.restarted",

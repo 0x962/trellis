@@ -11,6 +11,7 @@ export async function reserveColumnWorker(
 	tx: Tx,
 	expected: ColumnState,
 	expectedTerminalId?: string | null,
+	previousWorkspaceExists = true,
 ) {
 	await tx.execute(sql`SELECT id FROM tickets WHERE id=${expected.ticketId} FOR UPDATE`);
 	const [current] = await columnStates(tx, expected.ticketId);
@@ -39,7 +40,7 @@ export async function reserveColumnWorker(
 		{ column: true },
 	);
 	if (claim.replay) return null;
-	if (previous?.workspaceId) {
+	if (previous?.workspaceId && previousWorkspaceExists) {
 		claim.run.workspaceId = previous.workspaceId;
 		await tx.execute(sql`UPDATE agent_runs SET workspace_id=${previous.workspaceId} WHERE id=${claim.run.id}`);
 	}

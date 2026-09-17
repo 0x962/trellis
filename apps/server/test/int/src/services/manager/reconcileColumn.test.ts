@@ -31,6 +31,7 @@ const ctx = (): IoCtx => ({
 });
 const state = async () => (await h.read((tx) => columnStates(tx, ticket)))[0]!;
 const deps = () => ({
+	workspaceExists: async () => true,
 	stop: async (_ctx: unknown, run: { id: string }) => {
 		calls.push("stop");
 		return { id: run.id };
@@ -203,4 +204,15 @@ test("a transition stops an existing worker before the first manager beat", asyn
 	calls = [];
 	await reconcileColumn(ctx(), await state(), [sessionFor(first)], deps());
 	expect(calls).toEqual(["stop"]);
+});
+test("a missing workspace starts a replacement with its previous history", async () => {
+	const first = await start();
+	await h.rows(sql`UPDATE agent_runs SET workspace_id='/deleted/work' WHERE id=${first.run.id}`);
+	await reconcileColumn(ctx(), await state(), [sessionFor(first, { status: "exited" })], {
+		...deps(),
+		workspaceExists: async () => false,
+	});
+	expect(starts[1]!.run.workspaceId).toBeNull();
+	expect(starts[1]!.resume).toBe(false);
+	expect(starts[1]!.context).toContain('"previousWorkspaceMissing":true');
 });
