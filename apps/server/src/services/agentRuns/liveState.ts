@@ -9,7 +9,7 @@ import type { StoredRun } from "./queries.ts";
 type RuntimeSessionIndex = ReadonlyMap<string, RuntimeProcessStatus>;
 type ReadRuntimeSessions = (home: string, input: RuntimeListInput) => Promise<RuntimeProcessStatus[]>;
 
-export const indexRuntimeSessions = (sessions: RuntimeProcessStatus[]): RuntimeSessionIndex =>
+const indexRuntimeSessions = (sessions: RuntimeProcessStatus[]): RuntimeSessionIndex =>
 	new Map(sessions.map((session) => [session.id, session]));
 
 export async function readRuntimeSessions(
@@ -77,18 +77,12 @@ export function executionMetrics(attemptIds: string[], sessions: RuntimeSessionI
 	return { durationMs, tokenCount };
 }
 
-export function projectRun(
-	run: StoredRun,
-	sessions: RuntimeSessionIndex,
-	attemptIds = [run.terminalId].filter(String) as string[],
-): AgentRun {
-	const process = run.terminalId === null ? undefined : sessions.get(run.terminalId);
+export function projectRun(run: StoredRun, sessions: RuntimeProcessStatus[]): AgentRun {
+	const process = sessions.find((session) => session.id === run.terminalId);
 	const { closedAt: _closedAt, ...metadata } = run;
-	const metrics = executionMetrics(attemptIds, sessions);
 	if (!process)
 		return {
 			...metadata,
-			metrics,
 			state: "interrupted",
 			processStatus: null,
 			observation: null,
@@ -106,7 +100,6 @@ export function projectRun(
 						: "exited";
 	return {
 		...metadata,
-		metrics,
 		state,
 		processStatus: process.status,
 		observation: {
@@ -127,17 +120,13 @@ const runtimeIds = (runs: StoredRun[], attemptIdsByRun: ReadonlyMap<string, stri
 export async function observeRuns(
 	ctx: Pick<ServiceCtx, "home">,
 	runs: StoredRun[],
-	attempts: ExecutionAttemptRecord[] = [],
 	readSessions: ReadRuntimeSessions = readRuntimeSessions,
 ): Promise<AgentRun[]> {
 	if (runs.length === 0) return [];
-	const attemptIdsByRun = groupAttemptIdsByRun(attempts);
-	const ids = runtimeIds(runs, attemptIdsByRun);
-	const sessions = indexRuntimeSessions(ids.length === 0 ? [] : await readSessions(ctx.home, { ids }));
-	return runs.map((run) => {
-		const attemptIds = attemptIdsByRun.get(run.id);
-		return projectRun(run, sessions, attemptIds === undefined ? undefined : attemptIds);
-	});
+	const ids = [...new Set(runs.flatMap((run) => (run.terminalId === null ? [] : [run.terminalId])))];
+	if (ids.length === 0) return runs.map((run) => projectRun(run, []));
+	const sessions = await readSessions(ctx.home, { ids });
+	return runs.map((run) => projectRun(run, sessions));
 }
 
 type RunWork = Pick<TicketMetrics, "durationMs" | "tokenCount">;

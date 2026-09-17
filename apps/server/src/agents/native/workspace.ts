@@ -10,7 +10,7 @@ import { workspaceErrorText } from "./workspaceError/workspaceError.ts";
 const exec = promisify(execFile);
 export const nativeWorkspace = async (
 	home: string,
-	run: Omit<AgentRun, "state" | "processStatus" | "observation" | "metrics">,
+	run: Omit<AgentRun, "state" | "processStatus" | "observation">,
 	directory: string,
 ) => {
 	if (directory === "") throw new Error("Select the local repository directory before you start a native agent.");

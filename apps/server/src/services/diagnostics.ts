@@ -4,8 +4,8 @@ import { RUNTIME_PROTOCOL_VERSION, type RuntimeProcessStatus } from "@trellis/ru
 import { sql } from "drizzle-orm";
 import { nativeClient } from "../agents/native/connection.ts";
 import { rows } from "../db/queries/support.ts";
+import { projectRun } from "./agentRuns/liveState.ts";
 import { columns, type StoredRun } from "./agentRuns/queries.ts";
-import { projectUnresolvedAttempts } from "./agentRuns.ts";
 import type { ServiceCtx } from "./support.ts";
 
 export const diagnostics = async (ctx: ServiceCtx): Promise<Diagnostics> => {
@@ -45,7 +45,10 @@ export const diagnostics = async (ctx: ServiceCtx): Promise<Diagnostics> => {
 			tx,
 			sql`SELECT ${columns} FROM agent_runs WHERE runtime='native' ORDER BY updated_at DESC LIMIT 100`,
 		);
-		const unresolvedAttempts = projectUnresolvedAttempts(runs, sessions);
+		const unresolvedAttempts = runs
+			.map((run) => projectRun(run, sessions))
+			.filter((run) => ["interrupted", "failed"].includes(run.state))
+			.map(({ id, state, error }) => ({ id, state, error }));
 		return {
 			host: { bootId: ctx.bootId, version: ctx.version, home: ctx.home },
 			runtime,

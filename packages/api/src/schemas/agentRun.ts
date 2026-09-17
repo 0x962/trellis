@@ -33,10 +33,6 @@ export const AgentRunSchema = z.object({
 			turnId: z.string().nullable(),
 		})
 		.nullable(),
-	metrics: z.object({
-		durationMs: z.number().nonnegative().nullable(),
-		tokenCount: z.number().int().nonnegative().nullable(),
-	}),
 	workspaceId: z.string().nullable(),
 	terminalId: z.string().nullable(),
 	url: z.string().nullable(),

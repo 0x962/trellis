@@ -1,5 +1,4 @@
 import type { AgentRun, AgentRunListInput, AgentRunStartInput, TicketGetInputSchema } from "@trellis/api";
-import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { ServiceCtx as CoreCtx } from "../../context.ts";
@@ -10,7 +9,7 @@ import { resolveProject, resolveTicket } from "../refs.ts";
 import type { ServiceCtx } from "../support.ts";
 import { resolveTicketAge } from "../tickets.ts";
 import { closeExitedAssignments } from "./closeExitedAssignments.ts";
-import { indexRuntimeSessions, observeRuns, observeTicketMetrics, projectRun } from "./liveState.ts";
+import { observeRuns, observeTicketMetrics } from "./liveState.ts";
 import { startNative } from "./nativeStart.ts";
 import { columns, getRun, type StoredRun } from "./queries.ts";
 import { reserve } from "./reserve.ts";
@@ -40,35 +39,11 @@ export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 	);
 };
 
-export const projectUnresolvedAttempts = (runs: StoredRun[], sessions: RuntimeProcessStatus[]) => {
-	const runtimeSessions = indexRuntimeSessions(sessions);
-	return runs
-		.map((run) => projectRun(run, runtimeSessions))
-		.filter((run) => ["interrupted", "failed"].includes(run.state))
-		.map(({ id, state, error }) => ({ id, state, error }));
-};
+export const prepareList = async (ctx: Ctx, input: AgentRunListInput) =>
+	observeRuns(ctx, await ctx.newTx((tx) => list(ctx.core, tx, input)));
 
-export const prepareList = async (ctx: Ctx, input: AgentRunListInput) => {
-	const { runs, attempts } = await ctx.newTx(async (tx) => {
-		const runs = await list(ctx.core, tx, input);
-		return {
-			runs,
-			attempts: await listExecutionAttempts(
-				tx,
-				runs.map((run) => run.id),
-			),
-		};
-	});
-	return observeRuns(ctx, runs, attempts);
-};
-
-export const observeResult = async (ctx: Ctx, input: { id: string }) => {
-	const { run, attempts } = await ctx.newTx(async (tx) => {
-		const run = await getRun(tx, input.id);
-		return { run, attempts: await listExecutionAttempts(tx, [run.id]) };
-	});
-	return (await observeRuns(ctx, [run], attempts))[0]!;
-};
+export const observeResult = async (ctx: Ctx, input: { id: string }) =>
+	(await observeRuns(ctx, [await ctx.newTx((tx) => getRun(tx, input.id))]))[0]!;
 
 export const prepareTicketMetrics = async (ctx: Ctx, input: z.infer<typeof TicketGetInputSchema>) => {
 	const { scope, runs, attempts } = await ctx.newTx(async (tx) => {
