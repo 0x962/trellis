@@ -57,8 +57,10 @@ export const activateHostRelease = async (
 	await report("Stop background host");
 	await actions.unregister();
 	await actions.wait();
-	await report("Restart agent runtime");
-	await actions.shutdown(status.active);
+	if (status.runtimeProtocol !== null && status.runtimeProtocol !== available.manifest.protocol) {
+		await report("Restart agent runtime");
+		await actions.shutdown(status.active);
+	}
 	await report("Start background host");
 	await actions.register();
 	await report("Wait for background host");
