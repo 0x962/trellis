@@ -40,9 +40,9 @@ export const enabled = async (tx: Tx, input: { projectId: string; ticketProjectI
 	const [state] = await rows<{ allowed: boolean }>(
 		tx,
 		sql`WITH RECURSIVE ancestors AS (
- SELECT id,parent_id,archived_at,manager_config FROM projects WHERE id=${input.ticketProjectId}
- UNION ALL SELECT p.id,p.parent_id,p.archived_at,p.manager_config FROM projects p JOIN ancestors a ON p.id=a.parent_id
- ) SELECT NOT EXISTS (SELECT 1 FROM ancestors WHERE archived_at IS NOT NULL OR manager_config->>'dispatchPaused'='true')
+ SELECT id,parent_id,archived_at FROM projects WHERE id=${input.ticketProjectId}
+ UNION ALL SELECT p.id,p.parent_id,p.archived_at FROM projects p JOIN ancestors a ON p.id=a.parent_id
+ ) SELECT NOT EXISTS (SELECT 1 FROM ancestors WHERE archived_at IS NOT NULL)
  AND EXISTS (SELECT 1 FROM projects p WHERE p.id=${input.projectId} AND ${isManaged(sql`p`)}) AS allowed`,
 	);
 	return state!.allowed;
