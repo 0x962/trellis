@@ -2,14 +2,12 @@ import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { nativeClient } from "../../agents/native/connection.ts";
 import { rows } from "../../db/queries/support.ts";
-import type { Tx } from "../../db/tx.ts";
-import { chatBatchMessageId } from "../chat/batchMessageId.ts";
 import { dispatchMessageId } from "../controller/messageId.ts";
 import { deliveryMessageId } from "../reviews/deliveryMessageId.ts";
 import type { ServiceCtx } from "../support.ts";
 import { lostDelivery } from "./sentences.ts";
 
-type Kind = "chat" | "comment" | "dispatch" | "review";
+type Kind = "comment" | "dispatch" | "review";
 
 // One send that Trellis recorded with no result. `ids` names every delivery
 // row that the send covered, and `messageId` is what the input ledger of the
@@ -31,22 +29,6 @@ const askRuntime =
 	async (terminalId, messageId) =>
 		(await nativeClient(home).hasMessage(terminalId, messageId)).delivered;
 
-const chatGroups = async (tx: Tx): Promise<Group[]> => {
-	const pending = await rows<{ id: string; runId: string; terminalId: string }>(
-		tx,
-		sql`SELECT id, run_id AS "runId", terminal_id AS "terminalId" FROM chat_deliveries
-		WHERE state='unknown' AND terminal_id IS NOT NULL ORDER BY run_id, terminal_id, id`,
-	);
-	const byBatch = new Map<string, Group>();
-	for (const row of pending) {
-		const key = `${row.runId}:${row.terminalId}`;
-		const group = byBatch.get(key);
-		if (group) group.ids.push(row.id);
-		else byBatch.set(key, { kind: "chat", ids: [row.id], terminalId: row.terminalId, messageId: "", generation: null });
-	}
-	return [...byBatch.values()].map((group) => ({ ...group, messageId: chatBatchMessageId(group.ids) }));
-};
-
 const uncertainGroups = (ctx: ServiceCtx): Promise<Group[]> =>
 	ctx.newTx(async (tx) => {
 		const comments = await rows<{ id: string; terminalId: string }>(
@@ -63,7 +45,6 @@ const uncertainGroups = (ctx: ServiceCtx): Promise<Group[]> =>
 			WHERE d.state='unknown' AND r.terminal_id IS NOT NULL`,
 		);
 		return [
-			...(await chatGroups(tx)),
 			...comments.map((row) => ({
 				kind: "comment" as const,
 				ids: [row.id],
@@ -105,8 +86,6 @@ const statement = (ctx: ServiceCtx, group: Group, outcome: NonNullable<Outcome>)
 		sql`,`,
 	);
 	switch (group.kind) {
-		case "chat":
-			return sql`UPDATE chat_deliveries SET state=${outcome.state},error=${outcome.error} WHERE state='unknown' AND id IN (${ids})`;
 		case "comment":
 			return sql`UPDATE comment_deliveries SET state=${outcome.state},error=${outcome.error} WHERE state='unknown' AND id IN (${ids})`;
 		case "review":

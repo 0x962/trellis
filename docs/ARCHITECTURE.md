@@ -86,7 +86,7 @@ Built-in harnesses launch through `HarnessHost` with an interactive CLI in a PTY
 Ticket and flow agents use native permission bypass settings.
 Copilots use the manager instruction from project settings as their exact system prompt.
 They have native tools and the Trellis tools for user requests.
-Claude, Codex, OpenCode, Pi, and Muse support copilot chat.
+Claude, Codex, OpenCode, Pi, and Muse support copilot conversations.
 The assignment message carries identity and project facts.
 Each restart reads the current manager instruction.
 Claude hooks, the OpenCode plugin, and the Pi extension report provider identity, prompt receipts, tools, results, and errors.
@@ -110,8 +110,7 @@ The host uses these observations for manager dispatch and flow completion.
 The deterministic manager owns project copilots.
 It inspects runtime processes on each beat and restarts copilots when required.
 Database reservations and runtime attempt identifiers prevent duplicate starts.
-Copilots wait for user instructions. The host sends them human chat messages and human comment mentions.
-Worker broadcasts and mentions reach other workers.
+Copilots wait for user instructions. The host sends them human comment mentions.
 Desktop activation restarts the host. It keeps a runtime with a compatible protocol. The deterministic manager restarts project copilots after an incompatible runtime stops.
 A partial database index permits one active copilot per project.
 
@@ -176,64 +175,6 @@ before another agent can take the ticket.
 - `updated_at` moves only on user-visible activity: a ticket field, a comment, an attachment, or a pull request link. A reorder, a remap, and a poller CI change raise `version` only.
 - A delete is a hard delete. A ticket delete nulls the `parent_id` of its children, then cascades comments, attachments, pull request links, and activity. The blob collector then removes unused files.
 - A project delete needs an empty subtree or `force`.
-
-### Chat rooms
-
-Every project, a root or a sub-project, owns one chat room, and a
-sub-project shares nothing with its parent. The room holds named channels.
-`ai` and `general` exist in every room; the project create and the
-migration insert them. A post to a channel the
-room lacks creates the channel. A channel has no id: the API and the CLI
-address it by its project and its lower-case name, with an optional `#`.
-A channel can be for agents only (`aiOnly`); `ai` is one, and an agent can
-create more with `trellis chat create <project> <name> --ai-only`. The
-`manager` channel is `direct`: a direct message between a person and the
-manager of the project. A post there reaches the live manager alone and
-interrupts it; an agent other than that manager gets `CHAT_DIRECT`. The web
-lists it under Direct messages with the manager name. A person
-who posts in such a channel gets `CHAT_AI_ONLY`. The web shows no composer,
-no unread dot, and plays no sound for it.
-
-`chat_attachments` holds one row per file posted in a room. The upload
-stores the blob as a ticket attachment does, shares the blob of equal
-bytes, and returns the markdown line the message carries. The bytes serve at
-`/api/chat/attachments/{id}/file`. The boot sweep keeps every hash a row of
-either attachment table names.
-
-`chat_messages` holds one row per post with its actor. `chat_deliveries`
-holds one row per post and live native agent of the room's project, except
-the author. Outside the direct `manager` channel, a human post without a
-mention reaches every live agent. An agent post without a mention reaches
-every live worker except its author. Copilots receive messages only from humans.
-A post that mentions a live agent by run id, by agent name, or by role
-(`@manager`, `@agents`) reaches only the mentioned agents,
-and each of those rows is `direct`. The controller tick sends every pending
-row of one agent in one message, so a busy room costs an agent one turn.
-The message carries, per channel, the messages before the first new line as
-context: at most `CONTEXT_LIMIT` of them from the `CONTEXT_WINDOW_MINUTES`
-before it. A
-batch with a direct row interrupts the agent's current turn first; a custom
-terminal has no interrupt and receives the lines as typed input. A manager
-receives a `trellis.chat.messages` JSON document; a worker receives IRC style
-lines and the two CLI commands. The states and the session pinning are the
-states and the pinning of a comment mention.
-
-The web route `/p/<project path>/chat` shows the room of the project as a log:
-the clock and the full name on one line, the body as markdown under it,
-with a dated rule where the day changes. A known `@name` renders as a mark.
-A click on a name inserts a mention. The composer takes several lines, a
-dropped, pasted, or picked file, and completes `@` from the live agents and
-the roles. `/join <name>` in it creates a channel. The browser keeps the open channel, the unsent text of
-each channel, and the read position of each channel in localStorage under
-`trellis-chat`. A channel whose newest message id is above the read position
-shows a dot, and so does the Chat link of every project in the tree. A new
-message from someone else plays a short tone; Settings > Account switches it
-off for that browser. The API is `chat.channels`, `chat.createChannel`,
-`chat.list`, and `chat.post`. The events `chat.message`, `chat.delivery`,
-and `chat.channels` invalidate the chat queries; `chat.message` carries the
-actor, so a client knows its own posts. The CLI verb is `trellis chat`, and
-the manager tools are `trellis_chat_*`.
-Repository instructions describe chat behavior. Launch context supplies the room facts.
 
 ### Project notes
 
@@ -362,7 +303,7 @@ A typed name takes that form; an omitted name takes a generated `<adjective>-<no
 The `sessions` row keeps the name, the directory, the harness, and the run.
 The run has the kind `session`, no project, and no ticket. Its name is the session name and its instruction is the prompt.
 The agent receives the prompt as its first message and nothing else. It runs with the worker permission settings of its harness.
-A session counts against no WIP limit and receives no comment or chat delivery.
+A session counts against no WIP limit and receives no comment delivery.
 `sessions.start` resumes the saved conversation when the previous process confirmed one for the same harness, and otherwise starts the agent again from the prompt in the same directory.
 A compatible desktop restart preserves a session agent. A protocol change stops the agent and does not resume it; Start on the session page resumes it.
 `sessions.delete` stops the agent, removes the directory, and deletes the row. The run stays as history with its retained output.
@@ -438,7 +379,7 @@ The Loops page at `/loops` shows step cards, recent output, errors, and pass tim
 Wait is the first step. Runtime inspection precedes parallel worker checks and message delivery.
 Each active card has a highlight. Errors retain their source step across subsequent passes.
 `loops.list` reads this process state. Human callers use `loops.control` to pause, resume, run one pass, or clear the history.
-Pause suppresses copilot reconciliation after the current pass; chat and mention delivery continue.
+Pause suppresses copilot reconciliation after the current pass. Comment mention delivery continues.
 Run now shares the scheduled pass and cannot overlap it. A paused loop permits one manual pass.
 Each host starts with management enabled. The host retains 200 output entries and 20 errors until it restarts.
 Project copilots launch independently. A failed launch does not prevent another project job.
@@ -583,7 +524,7 @@ time. The first section of each page carries no hash.
 | `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#archive` |
 | `/p/<path>/settings/manager` | Operation (no hash), `#settings`, `#harness` |
 
-`/settings` holds the actor name, theme, chat sound, and desktop controls.
+`/settings` holds the actor name, theme, and desktop controls.
 Project settings hold the copilot instruction, repository directory, and harness settings.
 It writes `projects.managerConfig` through `projects.update`.
 

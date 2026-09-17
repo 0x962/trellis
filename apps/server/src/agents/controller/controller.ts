@@ -51,7 +51,7 @@ export const createController = (options: ControllerOptions) => {
 			{
 				id: "messages",
 				title: "Deliver messages",
-				description: "Deliver chat messages and direct mentions to agents.",
+				description: "Deliver comment mentions to agents.",
 				active: false,
 				detail: "",
 			},

@@ -161,18 +161,12 @@ export const createApp = ({
 	// handler runs, so it writes that shape itself; without it the client
 	// reads an undefined error and never sees the cap it must report.
 	app.use(
-		"/api/projects/:project/chat/attachments",
-		bodyLimit({ maxSize: maxBytes, onError: (c) => c.json(errorBody("PAYLOAD_TOO_LARGE", { maxBytes }), 413) }),
+		"/rpc/attachments/upload",
+		bodyLimit({
+			maxSize: maxBytes,
+			onError: (c) => c.json({ json: errorBody("PAYLOAD_TOO_LARGE", { maxBytes }) }, 413),
+		}),
 	);
-	for (const path of ["/rpc/attachments/upload", "/rpc/chat/upload"]) {
-		app.use(
-			path,
-			bodyLimit({
-				maxSize: maxBytes,
-				onError: (c) => c.json({ json: errorBody("PAYLOAD_TOO_LARGE", { maxBytes }) }, 413),
-			}),
-		);
-	}
 
 	const interceptors: StandardHandlerOptions<ProcedureContext>["interceptors"] = [
 		onError((error, { context, request }) => {
@@ -231,7 +225,6 @@ export const createApp = ({
 	app.get("/api/agent-runs/:id/terminal/stream", terminalStreamRoute(config, transport));
 	app.get("/api/agent-runs/:id/terminal/socket", terminalSocketRoute(config, transport));
 	app.get("/api/attachments/:id/file", filesRoute({ config, transport }));
-	app.get("/api/chat/attachments/:id/file", filesRoute({ config, transport, service: "chat.attachment" }));
 	app.get("/api/export", exportRoute({ transport }));
 	app.get("/api/openapi.json", docs.spec);
 	app.get("/api/docs", docs.docs);

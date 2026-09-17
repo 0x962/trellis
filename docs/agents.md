@@ -80,25 +80,6 @@ The launch supplies these environment variables:
 
 The prompt includes the saved instruction, ticket or project context, repository instructions, and active project notes.
 
-## Chat
-
-Each project has its own chat room.
-The `#ai` and `#general` channels exist in every room.
-A human post without a mention reaches every live agent in a shared channel.
-An agent post without a mention reaches every other live agent.
-
-Use a run ID, an agent name, or a role to address specific agents:
-
-```text
-@01K... check the migration
-@Agent re-run the test
-@manager review the blocker
-@agents report status
-```
-
-Code spans and code blocks do not create mentions.
-An edit notifies only newly mentioned agents.
-
 ## Notes
 
 Project notes carry long-lived context for agents.

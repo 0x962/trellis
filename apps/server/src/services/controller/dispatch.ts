@@ -3,7 +3,6 @@ import { ensureNativeRuntime } from "../../agents/native/connection.ts";
 import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { Tx } from "../../db/tx.ts";
 import { hostIsShuttingDown } from "../agentRuns/hostShutdown.ts";
-import { dispatchChat } from "../chat/dispatch.ts";
 import { dispatchMentions } from "../commentMentions/dispatch.ts";
 import { loopRuntimes } from "../loops/runtime.ts";
 import { manage } from "../manager/manager.ts";
@@ -13,13 +12,11 @@ type Dependencies = {
 	readSessions: (home: string) => Promise<RuntimeProcessStatus[]>;
 	manage: typeof manage;
 	mentions: typeof dispatchMentions;
-	chat: typeof dispatchChat;
 };
 const defaults: Dependencies = {
 	readSessions: async (home) => nativeHost(home, undefined, await ensureNativeRuntime(home)).list(),
 	manage,
 	mentions: dispatchMentions,
-	chat: dispatchChat,
 };
 export const dispatch = async (ctx: IoCtx, input: { manage?: boolean } = {}, deps: Dependencies = defaults) => {
 	if (hostIsShuttingDown(ctx.home)) return {};
@@ -30,11 +27,7 @@ export const dispatch = async (ctx: IoCtx, input: { manage?: boolean } = {}, dep
 	if (input.manage !== false) loop?.record(`Read ${sessions.length} runtime processes.`, "info", "runtime");
 	const results = await Promise.allSettled([
 		input.manage === false ? Promise.resolve() : track("workers", () => deps.manage(ctx, { sessions })),
-		track("messages", async () => {
-			const deliveries = await Promise.allSettled([deps.mentions(ctx, sessions), deps.chat(ctx, sessions)]);
-			const errors = deliveries.flatMap((result) => (result.status === "rejected" ? [result.reason] : []));
-			if (errors.length) throw new AggregateError(errors, errors.map(String).join("\n"));
-		}),
+		track("messages", () => deps.mentions(ctx, sessions)),
 	]);
 	const errors = results.flatMap((result) => (result.status === "rejected" ? [result.reason] : []));
 	if (errors.length) throw new AggregateError(errors, errors.map((error) => String(error)).join("\n"));

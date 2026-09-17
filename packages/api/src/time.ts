@@ -1,7 +1,6 @@
-// Every human-facing clock, date, and date-time of the product. The web
-// pages, the CLI, and the chat notices of the server read this one module,
-// so one instant reads the same way on every surface. Storage, the wire
-// schemas, and the JSON of the CLI keep the UTC string and never come here.
+// Every human-facing clock, date, and date-time of the product. The web pages
+// and the CLI read this module, so one instant reads the same way on every
+// surface. Storage, wire schemas, and CLI JSON keep the UTC string.
 
 // The locale and the zone the caller asks for. Both absent means the locale
 // and the zone of the device the reader uses. A test names both, so its
@@ -30,31 +29,13 @@ const formatterFor = (shape: string, request: ZoneRequest, fields: Intl.DateTime
 	return formatter;
 };
 
-// The clock alone: 08:30:00 in the zone of the reader. A 24 hour clock in
-// every locale, so a column of clocks keeps one width.
-export const localClock = (iso: string, request: ZoneRequest = {}) =>
-	formatterFor("clock", request, {
-		hour: "2-digit",
-		minute: "2-digit",
-		second: "2-digit",
-		hourCycle: "h23",
-	}).format(new Date(iso));
-
-// The calendar day of an instant in the zone of the reader: 2025-12-31. The
-// chat log compares this text between two messages to find where one day
-// ends and the next starts.
-export const localDay = (iso: string, request: ZoneRequest = {}) =>
-	formatterFor("day", request, { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso));
-
 // The month and the day alone: Jul 31. A relative time falls back to this
 // once the instant is too old for "3d ago" to tell a reader anything.
 export const shortDay = (iso: string, request: ZoneRequest = {}) =>
 	formatterFor("short-day", request, { month: "short", day: "numeric" }).format(new Date(iso));
 
-// One line of text, wide enough for a table cell or a chat notice:
-// Dec 31, 2025 at 08:30:00 PM EST. The zone label names the zone the clock
-// uses, because the reader of a CLI table or a chat notice can run on
-// another host than the writer.
+// One line of text for a table cell: Dec 31, 2025 at 08:30:00 PM EST. The zone
+// label names the clock zone because the CLI can run on another host.
 export const shortZonedDateTime = (iso: string, request: ZoneRequest = {}) =>
 	formatterFor("short-zoned", request, {
 		year: "numeric",

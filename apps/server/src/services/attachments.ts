@@ -221,17 +221,15 @@ const findAttachmentIfExists = async (tx: Tx, id: string): Promise<AttachmentRow
 	return row;
 };
 
-// True while any attachment row, of a ticket or of a chat room, still names
-// this hash. The check runs under the file lock, so an upload of the same
-// hash that is between its move and its row is counted.
+// True while an attachment row still names this hash. `gc` holds the blob
+// lock, so `holdsSha` counts an upload between its file move and row write.
 type BlobCtx = Pick<ServiceCtx, "home" | "newTx">;
 
 const holdsSha = (ctx: BlobCtx, sha256: string) => () =>
 	ctx.newTx(async (tx) => {
 		const [row] = await rows<{ n: number }>(
 			tx,
-			sql`SELECT (SELECT count(*) FROM attachments WHERE sha256 = ${sha256})::int
-				+ (SELECT count(*) FROM chat_attachments WHERE sha256 = ${sha256})::int AS n`,
+			sql`SELECT count(*)::int AS n FROM attachments WHERE sha256 = ${sha256}`,
 		);
 		return row!.n > 0;
 	});

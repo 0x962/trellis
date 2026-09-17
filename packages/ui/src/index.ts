@@ -84,5 +84,4 @@ export { Toaster, type ToasterProps, toast } from "./primitives/Toast";
 export { Tooltip, type TooltipProps } from "./primitives/Tooltip";
 export { cx } from "./utils/cx";
 export { isTextEntry } from "./utils/isTextEntry";
-export { nameHue } from "./utils/nameHue";
 export { readRowMotion } from "./utils/readRowMotion";
