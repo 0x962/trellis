@@ -33,7 +33,7 @@ for (const actor of [
 	{ kind: "system", name: "trellis" },
 ] as const) {
 	test.each(["create", "move", "update"])(
-		`${actor.kind} %s requires a project builder default for In Progress`,
+		`${actor.kind} %s requires a column worker persona for In Progress`,
 		async (method) => {
 			await expect(
 				h.run(
@@ -50,20 +50,3 @@ for (const actor of [
 		},
 	);
 }
-
-test("a project move cannot leave an In Progress ticket without a builder default", async () => {
-	const { seedChild } = await import("../../../fixtures/projects.ts");
-	const { ulid } = await import("ulid");
-	const child = await h.read((tx) =>
-		seedChild(tx, projectId, projectId, "configured", {
-			manager_config: { personaId: null, directory: "", builder: { personaId: ulid(), harness: { preset: "claude" } } },
-		}),
-	);
-	await h.rows(
-		sql`UPDATE tickets SET project_id=${child},status_id=(SELECT id FROM statuses WHERE project_id=${projectId} AND category='started') WHERE id=${ticket}`,
-	);
-	await h.rebuild();
-	await expect(h.run((ctx, tx) => update(ctx, tx, { ticket, project: projectId }))).rejects.toMatchObject({
-		code: "INPUT_VALIDATION_FAILED",
-	});
-});

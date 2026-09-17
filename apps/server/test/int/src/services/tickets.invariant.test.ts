@@ -32,6 +32,7 @@ describe("status invariant across the service tests", () => {
 		await seedDefaultBuilder(h.db, rootId);
 		const webId = await seedChild(h.db, rootId, rootId, "web");
 		await seedStatuses(h.db, webId);
+		await seedDefaultBuilder(h.db, webId);
 		const { result: a } = await h.as(dana)((ctx, tx) =>
 			tickets.create(ctx, tx, { project: "CDE", title: "A", status: "in-progress" }),
 		);

@@ -7,27 +7,16 @@ import { useApp } from "../../../../../lib/appContext";
 import { AssignmentForm } from "./components/AssignmentForm";
 
 export function PersonaPicker({ ticket, disabled }: { ticket: string; disabled: boolean }) {
-	const { client, orpc } = useApp();
+	const { orpc } = useApp();
 	const [open, setOpen] = useState(false);
 	const detail = useQuery({ ...orpc.tickets.get.queryOptions({ input: { ticket } }), enabled: open });
 	const project = useQuery({
 		...orpc.projects.get.queryOptions({ input: { project: detail.data?.project.path ?? "" } }),
 		enabled: open && detail.data !== undefined,
 	});
-	const ancestors = useQuery({
-		queryKey: ["assignment-defaults", project.data?.id, project.data?.updatedAt],
-		queryFn: async () => {
-			for (const ancestor of [...project.data!.ancestors].reverse()) {
-				const value = await client.projects.get({ project: ancestor.id });
-				if (value.managerConfig?.builder) return value.managerConfig.builder;
-			}
-			return null;
-		},
-		enabled: open && project.data !== undefined && !project.data.managerConfig?.builder,
-	});
-	const ready = project.data !== undefined && (project.data.managerConfig?.builder || ancestors.isSuccess);
-	const error = detail.error ?? project.error ?? ancestors.error;
-	const builder = project.data?.managerConfig?.builder ?? ancestors.data;
+	const ready = project.data !== undefined;
+	const error = detail.error ?? project.error;
+	const builder = project.data?.statuses.find((status) => status.id === detail.data?.status.id)?.agentConfig;
 	return (
 		<>
 			<Tooltip content="Add persona">

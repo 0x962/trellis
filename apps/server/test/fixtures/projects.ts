@@ -174,6 +174,9 @@ export const seedDefaultBuilder = async (tx: Executor, projectId: string) => {
 	await tx.execute(
 		sql`UPDATE projects SET manager_config = manager_config || jsonb_build_object('builder', ${JSON.stringify(builder)}::jsonb) WHERE id = ${projectId}`,
 	);
+	await tx.execute(
+		sql`UPDATE statuses SET agent_config=${JSON.stringify({ ...builder, accountId: null })}::jsonb WHERE project_id=${projectId} AND category='started'`,
+	);
 	return personaId;
 };
 

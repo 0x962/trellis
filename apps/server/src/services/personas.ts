@@ -31,21 +31,22 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: PersonaCreateInput)
 	return persona!;
 };
 
-const assertNotDefaultBuilder = async (tx: Tx, id: string) => {
+const assertNotConfigured = async (tx: Tx, id: string) => {
 	const configured = await rows(
 		tx,
-		sql`SELECT id FROM projects WHERE manager_config->'builder'->>'personaId'=${id} LIMIT 1`,
+		sql`SELECT id FROM statuses WHERE agent_config->>'personaId'=${id} UNION ALL SELECT id FROM projects WHERE manager_config->>'personaId'=${id} LIMIT 1`,
 	);
 	if (configured.length > 0)
 		throw invalidInput(
 			"id",
-			"Select another default builder in project settings before you delete this persona or change its kind.",
+			"Select another persona in the column or copilot settings before you delete this persona or change its kind.",
 		);
 };
 
 export const update = async (ctx: ServiceCtx, tx: Tx, input: PersonaUpdateInput): Promise<Persona> => {
 	const actor = requireActor(ctx);
-	if (input.kind !== undefined && input.kind !== "builder") await assertNotDefaultBuilder(tx, input.id);
+	if (input.kind !== undefined && input.kind !== (await get(ctx, tx, { id: input.id })).kind)
+		await assertNotConfigured(tx, input.id);
 	const [persona] = await rows<Persona>(
 		tx,
 		sql`UPDATE personas SET name = ${input.name}, kind = COALESCE(${input.kind ?? null}, kind), instruction = ${input.instruction}, updated_at = ${ctx.now}
@@ -59,7 +60,7 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: PersonaUpdateInput)
 
 export const remove = async (ctx: ServiceCtx, tx: Tx, input: { id: string }) => {
 	const actor = requireActor(ctx);
-	await assertNotDefaultBuilder(tx, input.id);
+	await assertNotConfigured(tx, input.id);
 	const [deleted] = await rows<{ id: string }>(tx, sql`DELETE FROM personas WHERE id = ${input.id} RETURNING id`);
 	if (deleted === undefined) throw fail("NOT_FOUND", { kind: "persona", ref: input.id });
 	await upsert(ctx, tx, actor);

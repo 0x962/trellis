@@ -13,7 +13,7 @@ export function AssignmentForm({
 	onClose,
 }: {
 	ticket: string;
-	defaults: { personaId: string | null; harness: Harness };
+	defaults: { personaId: string | null; harness: Harness; accountId?: string | null };
 	onClose: () => void;
 }) {
 	const { client, orpc, queryClient } = useApp();
@@ -24,7 +24,13 @@ export function AssignmentForm({
 	const assigned = new Set((history.data ?? []).filter(hasAssignedProcess).map((run) => run.personaId));
 	const choices = (personas.data ?? []).filter((persona) => persona.kind !== "manager" && !assigned.has(persona.id));
 	const start = useMutation({
-		mutationFn: () => client.agentRuns.start({ personaId, ticket, harness }),
+		mutationFn: () =>
+			client.agentRuns.start({
+				personaId,
+				ticket,
+				harness,
+				accountId: harness.preset === defaults.harness.preset ? (defaults.accountId ?? undefined) : undefined,
+			}),
 		onSuccess: async (run) => {
 			await queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
 			if (run.state === "running" || run.state === "interrupted") onClose();

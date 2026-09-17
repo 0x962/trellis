@@ -45,9 +45,12 @@ test("builder defaults keep their persona and harness separate from the manager"
 	expect(config.harness.preset).toBe("claude");
 });
 
-test("a builder uses the nearest ancestor defaults and a request can override the harness", async () => {
+test("a worker uses its column defaults and a request can override the harness", async () => {
 	await h.rows(
 		sql`UPDATE projects SET manager_config=manager_config || ${JSON.stringify({ builder: { personaId, harness: { preset: "codex", model: "openai/gpt-5.6-sol" } } })}::jsonb WHERE id=${root}`,
+	);
+	await h.rows(
+		sql`UPDATE statuses SET agent_config=${JSON.stringify({ personaId, harness: HarnessSchema.parse({ preset: "codex", model: "openai/gpt-5.6-sol" }), accountId: null })}::jsonb WHERE id=(SELECT status_id FROM tickets WHERE id=${ticket})`,
 	);
 	const inherited = await h.read((tx) => projectLaunchConfig(tx, { projectId: child }));
 	expect(inherited.builder?.personaId).toBe(personaId);

@@ -85,16 +85,11 @@ A descendant that leaves its session and loses its parent before inspection requ
 
 Built-in harnesses launch through `HarnessHost` with an interactive CLI in a PTY.
 Builders and reviewers use native permission bypass settings.
-Managers use a private workspace and a Trellis tool allowlist.
-Each supported manager harness uses the selected persona instruction from the database as its exact system prompt.
-The persona editor shows this instruction. Manager start and restart read the current saved persona.
+Copilots use the selected database persona as their exact system prompt.
+They have native tools and the Trellis tools for user requests.
+Claude, Codex, OpenCode, Pi, and Muse support copilot chat.
 The assignment message carries identity and project facts.
-The manager delegates technical work and records coordination outcomes through these tools.
-Claude, Codex, OpenCode, Pi, and Muse support this boundary. Custom manager launches return an explicit error.
-A Muse manager reads its persona from `AGENTS.md` in its private workspace, runs without shell and file writes, and reaches Trellis through the Trellis MCP server of its session.
-Codex managers require CLI version 0.154.0 or later and run with no selected environments.
-Their engine receives the shared Trellis allowlist as dynamic tools. Code-mode execution can call those tools without filesystem or shell access.
-Clock and clarification tools remain available. The native terminal sends requests through the host, which preserves the manager policy and provider thread.
+Each restart reads the current persona instruction.
 Claude hooks, the OpenCode plugin, and the Pi extension report provider identity, prompt receipts, tools, results, and errors.
 Codex runs one private app-server per attempt. Its native terminal and Trellis event client connect to that engine.
 The Codex adapter maps native thread, turn, tool, result, and error events into the runtime journal.
@@ -116,29 +111,11 @@ An exact prompt receipt confirms delivery. A provider turn and its observed acti
 The runtime inspects the OS process before it reports status or permits input.
 The host uses these observations for manager dispatch and flow completion.
 
-The controller stores ticket events in `manager_dispatches` with a fixed coalescing deadline.
-It sends a native manager one batch after the initial prompt receipt, when the runtime reports a live controllable process.
-An exact durable receipt can resolve an unknown delivery without another send.
-Stable assignment request identifiers prevent repeated worker starts from producing duplicate attempts.
-Each dispatch tracks delivery separately from its per-ticket coordination outcomes.
-Data-only envelopes include policy versions, stable assignment identifiers, and unfinished dispatches.
-The manager records an assignment, queue entry, blocker, or reason for no action for each affected ticket.
-A handled dispatch does not prove that a worker completed the ticket.
-For a ticket, a `queued` outcome also saves a wait in `manager_next_actions` in the same transaction.
-The controller presents eligible waits as ticket work when the project permits dispatch and the saved wait condition is met.
-An explicit `waitFor` on a `queued` or `blocked` outcome saves a time, dependency, or human-response condition.
-Time waits use an absolute timestamp. Dependency waits require the named ticket to reach Done.
-Human-response waits require a human reply to a root question on the deferred ticket. A reply prompts review and does not grant approval.
-These conditions can notify the manager while a status holds its WIP limit. Agent moves enforce the limit.
-A manager can start a worker before its saved wait condition is met; that assignment retires the wait.
-Each wait retains its assignment identifier across dispatches and manager replacement.
-Changing a wait condition cancels that action and creates a replacement with a new assignment identifier.
-An assignment reserves the worker and records the action's assigned state in one transaction.
-Pause and archive states prevent new assignments from saved actions. Ticket completion, a changed status, or a changed manager scope retires obsolete waits.
-The manager can inspect waits through `controller.actions` and cancel one through `controller.cancelAction`.
-The timestamps record creation, current eligibility, notification, and assignment. Historical outcomes remain receipts and do not create waits during migration.
-Optional comment keys suppress duplicate writes for the same ticket and actor without new activity events.
-A partial database index permits one active manager per project.
+The deterministic manager owns column workers and project copilots.
+It inspects runtime processes on each beat and retries failed, stopped, and crashed assignments.
+Database reservations and runtime attempt identifiers prevent duplicate starts.
+Copilots wait for user instructions. The host sends them user chat and explicit mentions.
+A partial database index permits one active copilot per project.
 
 Native ticket agents use Git worktrees under `agents/<run id>/work`.
 Workspace evidence binds checks and registered files to an attempt, HEAD, and a hash of the current file contents.
@@ -199,7 +176,7 @@ takes builder. A delete keeps the snapshots of the runs that used the persona.
 - A sub-project inherits the status set of the nearest ancestor until it creates its own set. The owner of a project is the nearest ancestor or self that owns statuses.
 - Invariant: `tickets.status_id` belongs to the owner of `tickets.project_id`. The function `remapScope` restores the invariant after a first-status create, a clear, a re-parent, and a project move.
 - The remap matches on name and category first, then on the lowest-position status of the same category, then on the default status of the owner.
-- Every status-to-status move is legal when the target status has room under its WIP limit. Human moves can exceed the limit.
+- Every status-to-status move is legal when the target status has room under its WIP limit. The limit applies to every actor.
   The `category` of a status is immutable after creation.
 - `started_at` is set once, when a ticket leaves todo. `completed_at` is set when a ticket enters done or canceled, and cleared when it leaves.
 - Priority is none, urgent, high, medium, or low. There are no labels. A project limits concurrent active worker turns. Idle assignments retain their ticket ownership.
@@ -365,31 +342,25 @@ Each model change requires the current attempt ID and a request ID. A repeated r
 The CLI exposes `agents start --model`, `agents resume --model`, and `agents model <id> --model`.
 Managers can inspect the observed model through `trellis_agentRuns_session` with `include: ["model"]`.
 
-The Manager page at `/p/<project path>/settings/manager` shows the manager's interactive terminal and process controls.
-Project settings at `/p/<project path>/settings#manager` selects the persona, repository directory, and automatic dispatch.
-The dispatch switch pauses automatic messages while events remain stored.
-The `#harness` section selects the preset, model, account, and custom start and resume commands.
-The account applies to the manager and workers that use the project harness.
-Builder defaults and explicit harness overrides use the chosen harness's default account unless the request names an account.
-A sub-project with no account uses the nearest ancestor that names one.
-A running manager keeps its login until its next restart; the restart transfers its session to the new profile.
-An empty child repository directory uses the nearest configured ancestor directory at launch.
-An explicit child directory takes precedence. Manager persona and harness settings remain local to each project.
-Trellis trusts configured repository directories and agent workspaces.
-Both settings sections share one draft and save status. `projects.managerConfig` stores these fields with `ade: native`.
+Project settings at `/p/<project path>/settings#manager` select the copilot persona and repository directory.
+The `#harness` section selects the copilot preset, model, account, and commands.
+The deterministic manager keeps one copilot available for each active project.
+A project can inherit its copilot persona and repository directory from its ancestors.
+The first manager persona supplies the copilot when the project has no selected persona.
+A project without a repository uses a private copilot directory under the Trellis home.
+Healthy copilots keep their process. A restart uses current settings and preserves a compatible conversation.
 
-The Harness section also stores automatic builder defaults in `managerConfig.builder`: a required persona and its harness configuration.
-A null builder configuration inherits the nearest ancestor configuration.
-A project needs an effective builder persona before a ticket can enter In Progress.
-A ticket creation or transition into In Progress saves a `builder_start_requests` row in the same transaction.
-After commit, the deterministic `services/manager` module reserves and starts the configured builder. It does not require an LLM manager.
-An existing builder or active flow prevents an automatic duplicate.
-Pending requests respect archives and the global work pause. A manager dispatch pause does not suspend the builder lifecycle.
-A move out of In Progress cancels a pending request. The launch checks the ticket category before it starts.
-A saved request and assignment identifier prevent duplicate starts after a host restart.
-A prepared launch resumes from its saved descriptor. A missing descriptor records a visible failure.
-A failed start or a process exit without a saved conversation sets `retry_at` two minutes ahead.
-The manager module creates a replacement request after that time if the ticket remains In Progress.
+Each status stores `agentConfig` with its worker persona, harness, model, effort, and account.
+A null configuration leaves the column under human control.
+In Progress requires a worker configuration before a ticket can enter it.
+The deterministic manager starts a worker for each ticket in an automated column.
+An active flow owns its ticket agents and prevents an automatic column assignment.
+`column_workers` retains the assignment, column, retirement state, and last continuation time for each ticket.
+A ticket transition retires its previous column assignment.
+Each new start reads current column settings. Healthy workers retain their current settings.
+A restart preserves the workspace and resumes a compatible provider conversation.
+A harness change starts a new conversation with the previous transcript path in its context.
+Launch checks reject an obsolete assignment, changed column configuration, or archived project.
 
 Every preset runs its command through a local PTY. Claude hooks identify ready, active, and completed turns.
 `launchCommand.ts` combines the persona instruction with the project or ticket context.
@@ -402,13 +373,12 @@ API run states come from inspected runtime processes. The database records assig
 A missing runtime record produces `interrupted`; an observed process exit produces `exited` or `failed` from its exit code.
 A failed launch retains its error. A stop retains the workspace and output after the runtime confirms process exit.
 
-Per-status WIP limits gate agent ticket creation and moves. An agent request into a full status fails with STATUS_FULL.
-A person moves past the limit, and the board shows the excess. In Progress seeds at 9.
-`reserve()` on todo tickets fails with INPUT_VALIDATION_FAILED.
-A confirmed process exit closes its assignment, except for a standalone builder whose ticket remains In Progress.
-That builder keeps its assignment for automatic recovery. A stopped process resumes while its ticket remains In Progress.
-Move the ticket out of In Progress to stop its automatic work.
-A partial unique index permits one active manager per project.
+Per-status limits gate ticket creation and entry for all actors.
+A request into a full status fails with `STATUS_FULL`. Tickets already in the column can reorder.
+Every ticket already in an automated column receives a worker, even above its limit.
+A failed, stopped, or crashed worker retries on the next beat with current column settings.
+A move to a manual column stops its automatic worker.
+A partial unique index permits one active copilot per project.
 
 ### Sessions
 
@@ -432,7 +402,7 @@ The submanager uses the parent's persona and supports an explicit harness accoun
 `manager_delegations` stores the assignment, parent, project, brief, and retirement time.
 The project configuration remains unchanged. A configured manager or active delegation marks a scope boundary.
 
-Each submanager receives its own controller queue and heartbeats. Parent heartbeat context includes its direct submanagers and their process state.
+Each copilot has one project scope. Runtime inspection exposes its process state.
 Normal human agent lists omit submanager assignments. The `submanagers` API retains inspection and control for diagnosis.
 `submanagers.list` gives a manager its own delegation and direct children.
 Each delegation owns its project scope. Ticket moves inside it still enforce the status WIP limits.
@@ -482,46 +452,20 @@ Existing manager personas receive the account instructions in migration `0048_ha
 The instructions live in the `## Harness accounts` section of the manager persona.
 Migration `0060_muse_harness` adds the `## Muse harness` section, which names the Muse preset, its models, its quota states, and its manager limits.
 
-### Manager controller
+### Deterministic manager
 
-`manager_controller_cursors` records the last collected activity identifier for each project.
-`manager_dispatches` retains event batches and their send state. The first event fixes the batch deadline at ten seconds.
-The collector continues while dispatch pauses. It excludes the manager's own activity and respects child projects with their own manager.
-A child project with its own manager persona is outside the scope of every manager above it. Its own manager receives its ticket events.
-The project settings of a child ask for confirmation before the first persona is saved.
-The change writes one activity row on the direct parent project: `project.subproject_manager_enabled` or `project.subproject_manager_disabled`, with a null ticket, the child path in `to_value`, and the child id in `meta.projectId`.
-The collector delivers that row to the nearest manager above as an event with a null `ticketId` and the child under `project`. The manager records its outcome under a null ticket.
+`services/manager` reconciles column assignments and project copilots on each controller beat.
+The controller schedules the next beat one second after the current beat completes.
+Independent tickets and copilots launch concurrently. A failed launch does not prevent the other jobs.
+An unknown runtime process requires confirmation before replacement.
+The global work pause and archived projects suppress new starts.
 
-The controller sends a batch only to the current native attempt with a matching conversation and a live controllable process.
-The controller queues a heartbeat after more than 120 seconds of idle time.
-The manager creation time and last successful dispatch must also be more than 120 seconds old.
-The controller skips a queued heartbeat if the manager becomes busy or reports new activity.
-The runtime checks the observed idle turn before it accepts heartbeat input.
-A heartbeat uses the same durable queue and receipt checks as ticket events. Its event list is empty.
-Ticket events take precedence. The queue holds at most one pending or unresolved message per project.
-Heartbeats respect project dispatch pause, the global work pause, and archived projects.
-The manager heartbeat carries data. The manager's saved persona instruction defines its response.
+An idle column worker receives a data-only continuation at most once every 30 seconds.
+The continuation includes the ticket, column occupancy and limit, and recent comments.
+The worker persona defines how to act on that context.
+The runtime checks the attempt, provider session, and idle state before it accepts the continuation.
+Copilots receive work through explicit user requests.
 
-The `services/manager` module sends an In Progress builder a heartbeat after 120 seconds of idle time.
-The data contains the ticket, the count and limit of its status, its latest five comments, and its observed activity.
-The count includes every ticket that shares that status, including tickets in child projects that inherit it.
-The saved builder persona instruction defines what the builder does with that data.
-The runtime checks the same attempt, provider session, and idle interval before it accepts the message.
-`builder_heartbeats` records the dispatch time and limits repeat delivery.
-Archives and the global work pause suppress builder heartbeats. A manager dispatch pause does not suspend builder heartbeats.
-
-A standalone builder with a confirmed process exit can resume after 120 seconds if its ticket remains In Progress.
-Recovery preserves its conversation, workspace, model, effort, and account through the ordinary resume path.
-A process stop does not stop the ticket's work. The manager module resumes or replaces its builder while the ticket remains In Progress.
-Move the ticket out of In Progress to stop automatic work.
-Flow executions own the recovery of their agent steps.
-
-Each manager heartbeat and ticket dispatch includes `agentContext` from the runtime observations at dispatch time.
-The JSON envelope retains policy references, ticket events, and unfinished work. Agent names use the assigned persona.
-The context covers native assignments in the manager's project scope and excludes the recipient manager.
-It includes open assignments and closed assignments whose processes still run.
-Each entry carries assignment identifiers, process status, the process check time, harness activity, the last activity time, and `isWorking`.
-Each entry also carries the current tool name when the agent reports active work.
 `trellis_agentRuns_session` returns activity details by default.
 Its optional `include` list accepts `model`, `tool`, `lastTool`, `lastMessage`, `result`, `error`, and `process`.
 The tool fields include stored input and output. The `process` field includes process, attempt, session, and turn identifiers.
@@ -655,7 +599,7 @@ time. The first section of each page carries no hash.
 | `/p/<path>/settings/manager` | Operation (no hash), `#settings`, `#harness` |
 
 `/settings` holds the actor name, theme, GitHub state, phone pair code, drafts, and runtime diagnostics.
-The Manager page holds the manager persona, repository directory, dispatch state, and harness commands.
+Project settings hold the copilot persona, repository directory, and harness settings.
 It writes `projects.managerConfig` through `projects.update`.
 
 The sidebar holds the workspace row, Needs you, Search, All tickets, Pull
@@ -666,8 +610,7 @@ The Sessions section sits above the Projects section. Its New session button ope
 a sheet with the prompt, an optional name, and the harness. Each session row shows
 the avatar of its agent with the work state and opens `/sessions/<id>`. Its row
 menu deletes the session.
-Each project row shows the Trellis mark and opens the manager terminal at
-`/p/<path>/settings/manager`. Tickets and Settings appear below it.
+Each project row shows the Trellis mark and project name. Tickets and Settings appear below it.
 The selected state follows the current page for root, nested, and archived projects.
 
 ## Database schema
@@ -699,6 +642,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
 | harness_accounts | id PK, name, harness, profile_path, is_default, enabled, archived_at, created_at, updated_at. Partial UNIQUE (harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. |
 | agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), persona_id (FK personas SET NULL), persona_name, kind (CHECK the three persona kinds and `session`), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial index (ticket_id) WHERE `closed_at IS NULL`. Partial UNIQUE (project_id) WHERE `kind = 'manager'` AND `closed_at IS NULL`. Index (created_at). |
+| column_workers | ticket_id PK (FK tickets CASCADE), status_id (FK statuses SET NULL), run_id (FK agent_runs CASCADE), retired, heartbeat_at. |
 | builder_heartbeats | run_id PK (FK agent_runs CASCADE), sent_at. |
 | builder_start_requests | id PK, ticket_id (FK tickets CASCADE), state (pending, launching, assigned, canceled, failed), run_id (FK agent_runs SET NULL), error, retry_at, created_at. Partial UNIQUE (ticket_id) WHERE state = pending. |
 | agent_sessions (stored history) | id PK, project_id (CASCADE), ticket_id (CASCADE), role (CHECK manager, builder, reviewer), runner (CHECK superset), state (CHECK starting, running, waiting, exited, stopped, failed), workspace_id, terminal_id, claude_session_id, name (1 to 40), title (1 to 120), open_url, last_woken_at, error, created_at, updated_at. CHECK `(role = 'manager') = (ticket_id IS NULL)`. Indexes (project_id, role, state) and (ticket_id). Partial UNIQUE (project_id) WHERE the role is manager and the state is live. Partial UNIQUE (workspace_id, terminal_id) WHERE both are set. |

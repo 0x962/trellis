@@ -78,6 +78,7 @@ describe("tickets.updateMany", () => {
 		const { rootId, ids } = await seed();
 		const webId = await seedChild(h.db, rootId, rootId, "web");
 		const web = await seedStatuses(h.db, webId);
+		await seedDefaultBuilder(h.db, webId);
 		const { result } = await h.as(dana)((ctx, tx) => tickets.updateMany(ctx, tx, { tickets: ids, project: "CDE.web" }));
 		const byId = new Map(result.items.map((item) => [item.id, item]));
 		expect(byId.get(ids[0]!)?.status.id).toBe(web.todo);

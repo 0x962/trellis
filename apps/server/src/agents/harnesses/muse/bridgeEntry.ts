@@ -57,14 +57,11 @@ const approval = z.looseObject({
 const userInput = z.looseObject({ userInputId: z.string(), sessionId: z.string() });
 const turnStart = z.looseObject({ turnId: z.string(), disposition: z.string() });
 
-// A manager runs with the workspace shell and file writes disabled by the
-// host, so its only way to act is the Trellis tool server. A worker runs
-// with the sandbox disabled and every approval granted.
-const host: ChildProcess = spawn(
-	env.TRELLIS_MUSE_EXECUTABLE,
-	["serve", "--trust-workspace", ...(manager ? ["--disable-shell", "--disable-write"] : ["--disable-sandbox"])],
-	{ cwd: launch.cwd, env: process.env, stdio: ["pipe", "pipe", "inherit"] },
-);
+const host: ChildProcess = spawn(env.TRELLIS_MUSE_EXECUTABLE, ["serve", "--trust-workspace", "--disable-sandbox"], {
+	cwd: launch.cwd,
+	env: process.env,
+	stdio: ["pipe", "pipe", "inherit"],
+});
 let stopNormally!: () => void;
 const terminated = new Promise<void>((resolve) => {
 	stopNormally = resolve;
