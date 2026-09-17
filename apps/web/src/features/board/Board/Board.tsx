@@ -157,8 +157,13 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 
 	const ready = boardQuery.data !== undefined && (projectRef === undefined || projectQuery.data !== undefined);
 	useBoardAutoScroll(boardRef, ready);
-	const onDropped = useCardPositionMotion(boardRef, columns, `${collapsed.join(",")}:${showAllDone}`, ready);
-	useBoardMonitor(columns, (move) => void runMove(move), chooseOrMove, announce, onDropped);
+	const { recordDropOrigin, clearDropOrigin } = useCardPositionMotion(
+		boardRef,
+		columns,
+		`${collapsed.join(",")}:${showAllDone}`,
+		ready,
+	);
+	useBoardMonitor(columns, (move) => void runMove(move), chooseOrMove, announce, recordDropOrigin);
 
 	const setWipLimit = useCallback(
 		async (statusId: string, limit: number | null) => {
@@ -300,7 +305,10 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 						void runMove({ ...pendingChoice, column: target ?? pendingChoice.column }, status);
 						setPendingChoice(null);
 					}}
-					onCancel={() => setPendingChoice(null)}
+					onCancel={() => {
+						clearDropOrigin();
+						setPendingChoice(null);
+					}}
 				/>
 			)}
 		</>

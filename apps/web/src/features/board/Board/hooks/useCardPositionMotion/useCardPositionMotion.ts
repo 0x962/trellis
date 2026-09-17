@@ -101,7 +101,11 @@ export const useCardPositionMotion = (
 		};
 	}, [boardRef, ready, refreshPositions]);
 
-	return useCallback((ticketId: string, priorBox: DOMRect) => {
+	const recordDropOrigin = useCallback((ticketId: string, priorBox: DOMRect) => {
 		dropOrigin.current = { ticketId, priorBox };
 	}, []);
+	const clearDropOrigin = useCallback(() => {
+		dropOrigin.current = null;
+	}, []);
+	return { recordDropOrigin, clearDropOrigin };
 };
