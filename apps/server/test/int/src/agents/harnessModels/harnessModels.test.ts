@@ -12,7 +12,7 @@ import { writeHarnessModelsBin } from "../../../../helpers/harnessModelsBin.ts";
 
 let home: string;
 let cwd: string;
-let spawn: { cwd: string; env: Record<string, string | undefined> };
+let spawn: { cwd: string; env: NodeJS.ProcessEnv };
 beforeAll(() => {
 	home = mkdtempSync(join(tmpdir(), "trl-models-"));
 	cwd = join(home, "data");
@@ -56,7 +56,7 @@ test("muse answers model/list on its session host", async () => {
 });
 
 test("a harness that is not on PATH fails with its name", async () => {
-	await expect(listHarnessModels("pi", { cwd, env: { PATH: join(home, "empty") } })).rejects.toThrow(
+	await expect(listHarnessModels("pi", { cwd, env: { ...process.env, PATH: join(home, "empty") } })).rejects.toThrow(
 		"Harness executable pi was not found on PATH",
 	);
 });

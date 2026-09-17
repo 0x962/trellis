@@ -24,9 +24,11 @@ import { resolveExecutable } from "../harnessHost/resolveExecutable.ts";
 
 const TIMEOUT_MS = 30000;
 
-type Env = Record<string, string | undefined>;
 // Where the harness program runs and what it reads from its environment.
-type Spawn = { cwd: string; env: Env };
+// `node:child_process` takes `ProcessEnv` and nothing narrower, and the muse
+// query spawns through it, so every caller passes an environment built from
+// `process.env`.
+type Spawn = { cwd: string; env: NodeJS.ProcessEnv };
 
 // Runs a program to its end and returns both output streams. `stdin` is
 // written whole and then closed.
