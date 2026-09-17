@@ -4,8 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { PendingFiles } from "./PendingFiles";
 
-// The picker is controlled: the surface owns the files, so the same picker
-// serves the create modal today and the comment box of TRL-20 next.
+// PendingFiles holds no state, so a test needs a parent that owns the list.
+// CreateTicketDialog owns it the same way.
 function Harness({ initial = [] as File[] }) {
 	const [files, setFiles] = useState<File[]>(initial);
 	return (

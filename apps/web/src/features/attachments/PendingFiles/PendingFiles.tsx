@@ -4,8 +4,8 @@ import { type ChangeEvent, useRef, useState } from "react";
 import { formatBytes } from "../utils/formatBytes";
 
 export type PendingFilesProps = {
-	// Files the surface holds in the browser. They reach the server only when
-	// the surface submits, because the ticket or the comment has no id yet.
+	// The files the caller holds in the browser. The caller uploads them
+	// itself once its create call answers with an id.
 	files: File[];
 	// Adds picked files to the end of the list.
 	onAdd: (files: File[]) => void;
@@ -13,9 +13,10 @@ export type PendingFilesProps = {
 	onRemove: (index: number) => void;
 };
 
-// The file picker of a composer without a ticket: an Add control and one row
-// per held file with its size and a remove action. The comment box of TRL-20
-// uses this same picker.
+// TRL-23. A file picker for a form that creates the row the files attach to:
+// an Add control, and one row per picked file with its size and a remove
+// action. The component holds no state of its own, so every caller keeps the
+// files in its own draft and uploads them after its create call answers.
 export function PendingFiles({ files, onAdd, onRemove }: PendingFilesProps) {
 	const picker = useRef<HTMLInputElement>(null);
 	// A stable key per held file. Two picks of one file are distinct objects,

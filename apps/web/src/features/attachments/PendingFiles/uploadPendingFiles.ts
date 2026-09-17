@@ -5,9 +5,10 @@ export type PendingUpload = (input: { ticket: string; file: File }) => Promise<u
 
 export type PendingUploadFailure = { name: string; error: UploadError };
 
-// Uploads files the composer held in the browser to a ticket that did not
-// exist when they were picked. Each refused file is reported by name, so the
-// caller names it in a toast; any other error throws.
+// Uploads files that a create form held in the browser to the ticket its
+// create call just made. The server refuses a file that is over its size
+// limit, and that file comes back by name so the caller can name it in a
+// toast. Every other error throws.
 export const uploadPendingFiles = async (
 	upload: PendingUpload,
 	ticket: string,
