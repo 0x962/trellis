@@ -68,19 +68,26 @@ describe("timeline", () => {
 	});
 
 	test("timeline comments carry their attachments and activity rows carry none", async () => {
-		const { ticket } = await seedOneTicket();
+		const { rootId, ticket } = await seedOneTicket();
 		const plain = await seedComment(h.db, ticket, "plain");
 		const illustrated = await seedComment(h.db, ticket, "illustrated");
 		const file = await seedAttachment(h.db, ticket, { comment_id: illustrated, filename: "board.png" });
+		await seedActivity(h.db, { rootId, projectId: rootId, ticketId: ticket });
 		const { items } = await run({ ticketId: ticket });
-		expect(items).toHaveLength(2);
-		const [first, second] = items;
-		expect(first).toMatchObject({ kind: "comment", id: illustrated });
-		expect(second).toMatchObject({ kind: "comment", id: plain });
-		if (first?.kind !== "comment" || second?.kind !== "comment") throw new Error("Expected two comments.");
-		expect(first.attachments?.map((attachment) => attachment.id)).toEqual([file]);
-		expect(first.attachments?.[0]).toMatchObject({ filename: "board.png", commentId: illustrated });
-		expect(second.attachments).toBeUndefined();
+		expect(items).toHaveLength(3);
+		// Two comments of one millisecond sort by their random id, so the test
+		// reads each row by its own id. "timeline orders equal timestamps
+		// deterministically" is the test that owns the order.
+		const byId = new Map(items.map((item) => [String(item.id), item]));
+		const withFile = byId.get(illustrated);
+		const withoutFile = byId.get(plain);
+		if (withFile?.kind !== "comment" || withoutFile?.kind !== "comment") throw new Error("Expected two comments.");
+		expect(withFile.attachments?.map((attachment) => attachment.id)).toEqual([file]);
+		expect(withFile.attachments?.[0]).toMatchObject({ filename: "board.png", commentId: illustrated });
+		expect(withoutFile.attachments).toBeUndefined();
+		const activity = items.find((item) => item.kind === "activity");
+		expect(activity).toBeDefined();
+		expect(activity).not.toHaveProperty("attachments");
 	});
 
 	test("timeline holds only the requested ticket's rows", async () => {
