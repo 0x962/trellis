@@ -128,6 +128,54 @@
 @utility status-create-form {
 	@apply flex flex-col gap-3 rounded-lg border border-border bg-surface p-4;
 }
+@utility label-row {
+	@apply grid min-h-12 min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b border-border bg-bg px-3 last:border-b-0;
+}
+@utility label-color {
+	@apply size-3 rounded-round bg-fg-muted;
+	&[data-color="fg"] {
+		@apply bg-fg;
+	}
+	&[data-color="fg-faint"] {
+		@apply bg-fg-faint;
+	}
+	&[data-color="accent"] {
+		@apply bg-accent;
+	}
+	&[data-color="agent"] {
+		@apply bg-agent;
+	}
+	&[data-color="success"] {
+		@apply bg-success;
+	}
+	&[data-color="warning"] {
+		@apply bg-warning;
+	}
+	&[data-color="danger"] {
+		@apply bg-danger;
+	}
+}
+@utility label-name {
+	@apply truncate text-md font-medium text-fg;
+}
+@utility label-group-empty {
+	@apply px-3 py-4;
+}
+@utility label-create-form {
+	@apply flex flex-col gap-3 border-t border-border bg-surface p-4;
+}
+@utility label-create-fields {
+	@apply grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto];
+}
+@utility label-color-field {
+	@apply flex flex-col gap-1;
+}
+@utility label-color-label {
+	@apply text-sm text-fg-muted;
+}
+@utility label-form-actions {
+	@apply flex justify-end gap-2;
+}
 
 @layer components {
 	@media (pointer: coarse) {

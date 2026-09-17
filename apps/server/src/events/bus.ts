@@ -43,6 +43,7 @@ const scopeOf = (event: TrellisEvent): Scope => {
 		case "chat.message":
 		case "chat.delivery":
 		case "chat.channels":
+		case "labels.changed":
 			return { projectIds: [event.projectId], ticketIds: [] };
 		case "project.created":
 		case "project.updated":

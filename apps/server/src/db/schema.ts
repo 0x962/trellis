@@ -22,6 +22,7 @@ export * from "./tables/agentRuns.ts";
 export * from "./tables/agents.ts";
 export * from "./tables/controller.ts";
 export * from "./tables/flows.ts";
+export * from "./tables/labels.ts";
 export * from "./tables/personas.ts";
 export * from "./tables/projects.ts";
 export * from "./tables/reviews.ts";
