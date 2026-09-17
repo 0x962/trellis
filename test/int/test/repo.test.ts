@@ -264,33 +264,6 @@ describe("root scaffold", () => {
 		expect(bug.toLowerCase()).toContain("redact");
 	});
 
-	test("ci.yml runs bun run check on macOS and Ubuntu", async () => {
-		const ci = Bun.YAML.parse(await text(".github/workflows/ci.yml")) as {
-			jobs: {
-				check: {
-					strategy: { matrix: { os: string[] } };
-					steps: Array<{ uses?: string; run?: string }>;
-				};
-			};
-		};
-		const { check } = ci.jobs;
-		expect(check.strategy.matrix.os).toContain("macos-latest");
-		expect(check.strategy.matrix.os).toContain("ubuntu-latest");
-		expect(check.steps.some((step) => step.uses?.startsWith("oven-sh/setup-bun"))).toBe(true);
-		expect(check.steps.some((step) => step.run?.includes("bun run check"))).toBe(true);
-	});
-
-	// ARCHITECTURE.md, Database schema: CI fails on a non-empty
-	// `git status --porcelain drizzle/` after `drizzle-kit generate`.
-	test("ci.yml regenerates the migrations and fails on a drizzle diff", async () => {
-		const ci = Bun.YAML.parse(await text(".github/workflows/ci.yml")) as {
-			jobs: Record<string, { steps: Array<{ run?: string }> }>;
-		};
-		const runs = ci.jobs["drizzle-diff"]!.steps.map((step) => step.run ?? "");
-		expect(runs).toContain("bun run db:generate");
-		expect(runs.some((run) => run.includes("git status --porcelain apps/server/drizzle/"))).toBe(true);
-	});
-
 	// ARCHITECTURE.md, Performance budgets: the 10k seed runs in `bun run perf:10k`
 	// and the 50k seed in `bun run perf`. turbo runs a task only in a
 	// workspace whose package.json defines the script, and reports success

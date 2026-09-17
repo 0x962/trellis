@@ -22,8 +22,9 @@ beforeAll(async () => {
 	root = seeded.roots[0] as PerfRoot;
 }, 600_000);
 
-// The default table query: the subtree of one root, its open categories,
-// newest first, one page of 50.
+// The heaviest table query: the subtree of one root, its open categories,
+// newest first, one page of 50. A project view asks for one project, so this
+// query reads more rows than any view sends.
 const table = () => ({
 	rootIds: [root.rootId],
 	projectIds: root.projectIds,

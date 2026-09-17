@@ -42,7 +42,13 @@ const waitForRows = async () => {
 
 // The first page the list requests: the Active segment, sorted by Updated.
 const firstPage = () =>
-	human.tickets.list({ project: data.root, category: ["todo", "started"], sort: "-updatedAt", limit: 25 });
+	human.tickets.list({
+		project: data.root,
+		subprojects: false,
+		category: ["todo", "started"],
+		sort: "-updatedAt",
+		limit: 25,
+	});
 
 // Scrolls the list past its last row, so FlashList draws the rows at the end.
 const scrollToEnd = () =>

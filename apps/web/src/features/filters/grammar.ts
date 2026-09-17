@@ -53,7 +53,7 @@ export type View = {
 export const viewDefaults = {
 	sort: "-updatedAt",
 	group: "status",
-	scope: "subprojects",
+	scope: "self",
 	density: "comfortable",
 	limit: 50,
 } as const satisfies Partial<View>;

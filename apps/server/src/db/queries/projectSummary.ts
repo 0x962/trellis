@@ -16,24 +16,14 @@ export type ProjectSummaryRow = {
 	archived_at: string | null;
 };
 
-// Every (ancestor, descendant) pair, a project paired with itself included,
-// so a count over a subtree is one join. The tree has no maximum depth; the
-// CYCLE clause ends the walk when a planted parent cycle repeats a project.
-const closureCte = sql`closure AS (
-	SELECT id AS anc, id AS des, 0 AS depth FROM projects
-	UNION ALL
-	SELECT closure.anc, p.id, closure.depth + 1
-	FROM projects p JOIN closure ON p.parent_id = closure.des
-) CYCLE des SET is_cycle USING cycle_path`;
+export const projectCtes = pathsCte;
 
-export const projectCtes = sql`${pathsCte}, ${closureCte}`;
-
-// The columns of ProjectSummary for the alias `p`. `openCount` is the open
-// tickets of the subtree.
+// The columns of ProjectSummary for the alias `p`. `openCount` includes open
+// tickets assigned directly to `p`.
 export const projectSummaryColumns = sql`
 	p.id, p.parent_id, p.root_id, root.key, p.slug, pp.path, p.name, pp.depth, p.position,
-	(SELECT count(*)::int FROM tickets t JOIN closure c ON c.des = t.project_id
-		WHERE c.anc = p.id AND t.completed_at IS NULL) AS open_count,
+	(SELECT count(*)::int FROM tickets t
+		WHERE t.project_id = p.id AND t.completed_at IS NULL) AS open_count,
 	${iso(sql`p.archived_at`)} AS archived_at`;
 
 export const projectSummaryJoins = sql`
