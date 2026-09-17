@@ -18,7 +18,7 @@ export function DescriptionEditor({ markdown, onChange }: DescriptionEditorProps
 		contentType: "markdown",
 		autofocus: "end",
 		onUpdate: ({ editor: instance }) => onChange(instance.getMarkdown()),
-		editorProps: { attributes: { class: "markdown min-h-30 outline-none", "aria-label": "Description" } },
+		editorProps: { attributes: { class: "markdown min-h-20 outline-none", "aria-label": "Description" } },
 	});
 	return <EditorContent editor={editor} />;
 }

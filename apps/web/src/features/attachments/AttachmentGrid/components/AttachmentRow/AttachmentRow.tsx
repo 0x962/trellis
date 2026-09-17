@@ -1,8 +1,8 @@
 import { Archive, DownloadSimple, File, FileText, FileXls } from "@phosphor-icons/react";
 import type { Attachment } from "@trellis/api";
-import { ActorChip } from "@trellis/ui";
 import type { ReactElement } from "react";
 import { relativeTime } from "../../../../../lib/format";
+import { ActorChip } from "../../../../agents/ActorChip";
 import { formatBytes } from "../../../utils/formatBytes";
 import { AttachmentActions } from "../AttachmentActions";
 
@@ -37,9 +37,7 @@ export function AttachmentRow({ attachment, onDelete, onRename }: AttachmentRowP
 			</span>
 			<span className="min-w-0 flex-1 truncate text-sm font-medium text-fg">{attachment.filename}</span>
 			<span className="text-sm text-fg-muted tabular">{formatBytes(attachment.size)}</span>
-			{attachment.actor.kind !== "system" && (
-				<ActorChip name={attachment.actor.displayName ?? attachment.actor.name} kind={attachment.actor.kind} />
-			)}
+			<ActorChip actor={attachment.actor} />
 			<time dateTime={attachment.createdAt} className="text-sm text-fg-muted tabular">
 				{relativeTime(attachment.createdAt)}
 			</time>
