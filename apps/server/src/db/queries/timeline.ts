@@ -48,7 +48,12 @@ const stream = (ticketId: string) => sql`
 		a.actor_name, a.actor_kind, r.persona_name, a.created_at, NULL,
 		a.batch_id, a.root_id, a.project_id, a.action, a.field, a.from_value, a.to_value, a.meta
 	FROM activity a LEFT JOIN agent_runs r ON a.actor_kind = 'agent' AND r.id = a.actor_name
-	WHERE a.ticket_id = ${ticketId}`;
+	WHERE a.ticket_id = ${ticketId}
+		AND a.field IS DISTINCT FROM 'position'
+		AND (
+			a.action <> 'pr.state_changed'
+			OR split_part(a.meta->>'from', '/', 1) IS DISTINCT FROM split_part(a.meta->>'to', '/', 1)
+		)`;
 
 // The last row of the previous page: its created_at as `iso` writes it, its
 // kind_rank (0 activity, 1 comment), and its sort_key.
