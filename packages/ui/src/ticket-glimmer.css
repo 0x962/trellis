@@ -51,96 +51,43 @@
 	inset: 0;
 	overflow: hidden;
 	border-radius: inherit;
-	mask-image:
-		radial-gradient(
-			circle at 5% 8%,
-			black 0 var(--glimmer-vapor-1),
-			rgb(0 0 0 / 0.72) calc(var(--glimmer-vapor-1) + 4%),
-			transparent calc(var(--glimmer-vapor-1) + 12%)
-		),
-		radial-gradient(
-			circle at 32% 15%,
-			black 0 var(--glimmer-vapor-2),
-			rgb(0 0 0 / 0.68) calc(var(--glimmer-vapor-2) + 5%),
-			transparent calc(var(--glimmer-vapor-2) + 13%)
-		),
-		radial-gradient(
-			circle at 65% 6%,
-			black 0 var(--glimmer-vapor-3),
-			rgb(0 0 0 / 0.76) calc(var(--glimmer-vapor-3) + 3%),
-			transparent calc(var(--glimmer-vapor-3) + 11%)
-		),
-		radial-gradient(
-			circle at 96% 20%,
-			black 0 var(--glimmer-vapor-4),
-			rgb(0 0 0 / 0.7) calc(var(--glimmer-vapor-4) + 6%),
-			transparent calc(var(--glimmer-vapor-4) + 14%)
-		),
-		radial-gradient(
-			circle at 88% 72%,
-			black 0 var(--glimmer-vapor-5),
-			rgb(0 0 0 / 0.74) calc(var(--glimmer-vapor-5) + 4%),
-			transparent calc(var(--glimmer-vapor-5) + 12%)
-		),
-		radial-gradient(
-			circle at 62% 92%,
-			black 0 var(--glimmer-vapor-6),
-			rgb(0 0 0 / 0.66) calc(var(--glimmer-vapor-6) + 5%),
-			transparent calc(var(--glimmer-vapor-6) + 14%)
-		),
-		radial-gradient(
-			circle at 28% 82%,
-			black 0 var(--glimmer-vapor-7),
-			rgb(0 0 0 / 0.73) calc(var(--glimmer-vapor-7) + 4%),
-			transparent calc(var(--glimmer-vapor-7) + 12%)
-		),
-		radial-gradient(
-			circle at 4% 60%,
-			black 0 var(--glimmer-vapor-8),
-			rgb(0 0 0 / 0.7) calc(var(--glimmer-vapor-8) + 5%),
-			transparent calc(var(--glimmer-vapor-8) + 13%)
-		);
 	filter: blur(12px) saturate(0.72);
 	opacity: 0;
 	pointer-events: none;
 	transition-property:
 		--glimmer-vapor-1, --glimmer-vapor-2, --glimmer-vapor-3, --glimmer-vapor-4, --glimmer-vapor-5, --glimmer-vapor-6,
 		--glimmer-vapor-7, --glimmer-vapor-8, filter, opacity;
+	--glimmer-duration: var(--duration-glimmer-exit);
+	--glimmer-opacity-duration: calc(var(--glimmer-duration) * 2);
 	transition-duration:
-		var(--duration-glimmer-exit), calc(var(--duration-glimmer-exit) + var(--duration-hover)),
-		calc(var(--duration-glimmer-exit) - var(--duration-sweep)),
-		calc(var(--duration-glimmer-exit) + var(--duration-sweep)), var(--duration-glimmer-exit),
-		calc(var(--duration-glimmer-exit) + var(--duration-hover)),
-		calc(var(--duration-glimmer-exit) - var(--duration-hover)),
-		calc(var(--duration-glimmer-exit) + var(--duration-sweep)), var(--duration-glimmer-exit),
-		var(--duration-glimmer-opacity);
+		calc(var(--glimmer-duration) * var(--glimmer-speed-1)), calc(var(--glimmer-duration) * var(--glimmer-speed-2)),
+		calc(var(--glimmer-duration) * var(--glimmer-speed-3)), calc(var(--glimmer-duration) * var(--glimmer-speed-4)),
+		calc(var(--glimmer-duration) * var(--glimmer-speed-5)), calc(var(--glimmer-duration) * var(--glimmer-speed-6)),
+		calc(var(--glimmer-duration) * var(--glimmer-speed-7)), calc(var(--glimmer-duration) * var(--glimmer-speed-8)),
+		var(--glimmer-duration), var(--glimmer-opacity-duration);
 	transition-delay:
-		0ms, var(--duration-hover), 0ms, var(--duration-sweep), var(--duration-hover), 0ms, var(--duration-sweep),
-		var(--duration-hover), 0ms, calc(var(--duration-glimmer-exit) - var(--duration-glimmer-opacity));
-	transition-timing-function: var(--ease-out);
+		calc(var(--glimmer-duration) * var(--glimmer-delay-1)), calc(var(--glimmer-duration) * var(--glimmer-delay-2)),
+		calc(var(--glimmer-duration) * var(--glimmer-delay-3)), calc(var(--glimmer-duration) * var(--glimmer-delay-4)),
+		calc(var(--glimmer-duration) * var(--glimmer-delay-5)), calc(var(--glimmer-duration) * var(--glimmer-delay-6)),
+		calc(var(--glimmer-duration) * var(--glimmer-delay-7)), calc(var(--glimmer-duration) * var(--glimmer-delay-8)), 0ms,
+		0ms;
+	transition-timing-function:
+		var(--glimmer-ease-1), var(--glimmer-ease-2), var(--glimmer-ease-3), var(--glimmer-ease-4), var(--glimmer-ease-5),
+		var(--glimmer-ease-6), var(--glimmer-ease-7), var(--glimmer-ease-8), var(--ease-in-out), var(--ease-in-out);
 }
 .ticket-glimmer[data-active="true"] {
-	--glimmer-vapor-1: 60%;
-	--glimmer-vapor-2: 66%;
-	--glimmer-vapor-3: 58%;
-	--glimmer-vapor-4: 64%;
-	--glimmer-vapor-5: 62%;
-	--glimmer-vapor-6: 68%;
-	--glimmer-vapor-7: 60%;
-	--glimmer-vapor-8: 66%;
+	--glimmer-vapor-1: 100%;
+	--glimmer-vapor-2: 100%;
+	--glimmer-vapor-3: 100%;
+	--glimmer-vapor-4: 100%;
+	--glimmer-vapor-5: 100%;
+	--glimmer-vapor-6: 100%;
+	--glimmer-vapor-7: 100%;
+	--glimmer-vapor-8: 100%;
 	filter: blur(0) saturate(1);
 	opacity: 1;
-	transition-duration:
-		var(--duration-glimmer-enter), calc(var(--duration-glimmer-enter) + var(--duration-hover)),
-		calc(var(--duration-glimmer-enter) - var(--duration-sweep)),
-		calc(var(--duration-glimmer-enter) + var(--duration-sweep)), var(--duration-glimmer-enter),
-		calc(var(--duration-glimmer-enter) - var(--duration-hover)),
-		calc(var(--duration-glimmer-enter) + var(--duration-hover)),
-		calc(var(--duration-glimmer-enter) - var(--duration-sweep)), var(--duration-glimmer-enter),
-		var(--duration-glimmer-opacity);
-	transition-delay:
-		0ms, 0ms, var(--duration-hover), 0ms, var(--duration-sweep), var(--duration-hover), 0ms, var(--duration-sweep), 0ms,
-		0ms;
+	--glimmer-duration: var(--duration-glimmer-enter);
+	--glimmer-opacity-duration: var(--duration-glimmer-opacity);
 }
 .ticket-glimmer-flow {
 	position: absolute;
@@ -156,28 +103,28 @@
 	opacity: 0.11;
 	background:
 		radial-gradient(
-			ellipse 34% 42% at 18% 24%,
+			ellipse 34% 42% at calc(18% + var(--film-x)) calc(24% + var(--film-y)),
 			transparent 35%,
 			var(--film-pink) 46%,
 			var(--film-violet) 54%,
 			transparent 67%
 		),
 		radial-gradient(
-			ellipse 38% 28% at 78% 30%,
+			ellipse 38% 28% at calc(78% + var(--film-x)) calc(30% + var(--film-y)),
 			transparent 31%,
 			var(--film-gold) 44%,
 			var(--film-mint) 54%,
 			transparent 68%
 		),
 		radial-gradient(
-			ellipse 42% 36% at 57% 79%,
+			ellipse 42% 36% at calc(57% + var(--film-x)) calc(79% + var(--film-y)),
 			transparent 36%,
 			var(--film-blue) 48%,
 			var(--film-pink) 58%,
 			transparent 70%
 		),
 		conic-gradient(
-			from 212deg at 52% 48%,
+			from 212deg at calc(52% + var(--film-x)) calc(48% + var(--film-y)),
 			transparent 0 12%,
 			var(--film-violet) 20%,
 			transparent 31% 48%,
@@ -193,7 +140,7 @@
 	opacity: 0.16;
 	border-radius: 43% 57% 68% 32% / 61% 36% 64% 39%;
 	background: radial-gradient(
-		ellipse 54% 42% at 48% 51%,
+		ellipse 54% 42% at calc(48% + var(--film-x)) calc(51% + var(--film-y)),
 		transparent 0 38%,
 		var(--film-pink) 44%,
 		var(--film-violet) 49%,
@@ -209,21 +156,21 @@
 	opacity: 0.13;
 	background:
 		radial-gradient(
-			ellipse 27% 44% at 28% 51%,
+			ellipse 27% 44% at calc(28% + var(--film-x)) calc(51% + var(--film-y)),
 			transparent 27%,
 			var(--film-mint) 39%,
 			var(--film-blue) 48%,
 			transparent 62%
 		),
 		radial-gradient(
-			ellipse 24% 36% at 70% 28%,
+			ellipse 24% 36% at calc(70% + var(--film-x)) calc(28% + var(--film-y)),
 			transparent 29%,
 			var(--film-gold) 41%,
 			var(--film-pink) 52%,
 			transparent 64%
 		),
 		radial-gradient(
-			ellipse 31% 24% at 68% 76%,
+			ellipse 31% 24% at calc(68% + var(--film-x)) calc(76% + var(--film-y)),
 			transparent 30%,
 			var(--film-violet) 43%,
 			var(--film-blue) 53%,
@@ -236,7 +183,7 @@
 	width: 72%;
 	aspect-ratio: 1.8;
 	opacity: 0;
-	backdrop-filter: blur(4px) saturate(2.6) contrast(1.24) brightness(1.12) hue-rotate(var(--impact-hue));
+	backdrop-filter: blur(3px) saturate(1.6) contrast(1.08);
 	mask-image:
 		radial-gradient(ellipse 68% 32% at 36% 44%, black 0 9%, rgb(0 0 0 / 0.62) 36%, transparent 76%),
 		radial-gradient(ellipse 38% 72% at 64% 48%, black 0 7%, rgb(0 0 0 / 0.48) 34%, transparent 72%),
@@ -244,7 +191,27 @@
 	transform: translate3d(-50%, -50%, 0) scale(0.15, 0.1);
 	transform-origin: center;
 }
+.ticket-glimmer-wake {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 65%;
+	aspect-ratio: 1.5;
+	opacity: 0;
+	backdrop-filter: blur(3px) saturate(1.8) contrast(1.08);
+	mask-image: radial-gradient(ellipse, black 0%, rgb(0 0 0 / 0.5) 30%, transparent 70%);
+	transition:
+		transform 900ms ease-out,
+		opacity 2500ms ease-out;
+}
+.ticket-glimmer-wake[data-moving="true"] {
+	opacity: 0.5;
+	transition-duration: 900ms, 400ms;
+}
 @media (prefers-reduced-motion: reduce) {
+	.ticket-glimmer-wake {
+		display: none;
+	}
 	.ticket-glimmer {
 		transition-duration: 0ms;
 		transition-delay: 0ms;

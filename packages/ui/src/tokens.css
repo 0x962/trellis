@@ -262,9 +262,9 @@
 	--duration-peek: 240ms;
 	--duration-row: 160ms;
 	--duration-sweep: 200ms;
-	--duration-glimmer-enter: 1500ms;
-	--duration-glimmer-exit: 1250ms;
-	--duration-glimmer-opacity: 350ms;
+	--duration-glimmer-enter: 15000ms;
+	--duration-glimmer-exit: 12500ms;
+	--duration-glimmer-opacity: 3500ms;
 	--ease-out: cubic-bezier(0, 0, 0.2, 1);
 	--ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
