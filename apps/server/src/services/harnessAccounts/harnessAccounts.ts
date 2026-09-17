@@ -26,7 +26,7 @@ const invalidateUsage = (ctx: IoCtx) =>
 const requireUniqueName = async (tx: Tx, account: { id: string; name: string }) => {
 	const duplicates = await rows(
 		tx,
-		sql`SELECT id FROM harness_accounts WHERE name=${account.name} AND id<>${account.id} AND archived_at IS NULL LIMIT 1`,
+		sql`SELECT id FROM harness_accounts WHERE name=${account.name} AND id<>${account.id} LIMIT 1`,
 	);
 	if (duplicates.length) throw invalidInput("name", "This account name is already in use.");
 };
@@ -50,6 +50,7 @@ export const list = async (_ctx: IoCtx, tx: Tx, _input: Record<string, never>) =
 export const prepareCreate = async (ctx: IoCtx, input: HarnessAccountCreate) => {
 	requirePerson(ctx);
 	const id = ulid();
+	await ctx.newTx((tx) => requireUniqueName(tx, { id, name: input.name }));
 	const env = await executionEnvironment();
 	return { ...input, id, profilePath: await provisionProfile(ctx.home, id, input, env) };
 };
