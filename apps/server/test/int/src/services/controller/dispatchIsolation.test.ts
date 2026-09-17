@@ -78,3 +78,24 @@ test("host shutdown prevents runtime recovery", async () => {
 	);
 	expect(reads).toBe(0);
 });
+
+test("a paused management loop still delivers chat and mentions", async () => {
+	const calls: string[] = [];
+	await dispatch(
+		context,
+		{ manage: false },
+		{
+			readSessions: async () => [],
+			manage: async () => {
+				calls.push("manage");
+			},
+			mentions: async () => {
+				calls.push("mentions");
+			},
+			chat: async () => {
+				calls.push("chat");
+			},
+		},
+	);
+	expect(calls).toEqual(["mentions", "chat"]);
+});

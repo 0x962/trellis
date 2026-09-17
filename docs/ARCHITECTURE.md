@@ -460,6 +460,11 @@ Migration `0060_muse_harness` adds the `## Muse harness` section, which names th
 
 `services/manager` reconciles column assignments and project copilots on each controller beat.
 The controller schedules the next beat one second after the current beat completes.
+The Loops page at `/loops` reports the current step, recent output, errors, and pass times.
+`loops.list` reads this process state. Human callers use `loops.control` to pause, resume, run one pass, or clear the history.
+Pause suppresses worker and copilot reconciliation after the current pass; chat and mention delivery continue.
+Run now shares the scheduled pass and cannot overlap it. A paused loop permits one manual pass.
+Each host starts with management enabled. The host retains 200 output entries and 20 errors until it restarts.
 Independent tickets and copilots launch concurrently. A failed launch does not prevent the other jobs.
 An unknown runtime process requires confirmation before replacement.
 Archived projects suppress new starts. Each host process starts with automatic dispatch enabled.
