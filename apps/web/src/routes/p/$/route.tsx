@@ -32,10 +32,6 @@ const ChatPage = lazy(async () => ({
 	default: (await import("../../../features/chat/ChatPage")).ChatPage,
 }));
 
-const NotesPage = lazy(async () => ({
-	default: (await import("../../../features/notes/NotesPage")).NotesPage,
-}));
-
 const projectOptions = (context: AppContext, ref: string) =>
 	context.orpc.projects.get.queryOptions({ input: { project: ref } });
 
@@ -116,10 +112,8 @@ function ProjectPage() {
 					<ProjectSettingsPage project={project} />
 				) : view === "chat" ? (
 					<ChatPage key={project.id} project={project} />
-				) : view === "notes" ? (
-					<NotesPage key={project.id} project={project} />
 				) : (
-					<ProjectSettingsPage project={project} />
+					<ProjectSettingsPage project={project} section={view === "notes" ? "notes" : undefined} />
 				)}
 			</Suspense>
 		);

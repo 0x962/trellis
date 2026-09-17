@@ -1,5 +1,5 @@
 import type { Project } from "@trellis/api";
-import { ProjectSettings } from "../../../../../features/project-settings";
+import { ProjectSettings, type ProjectSettingsSectionId } from "../../../../../features/project-settings";
 import { PageTitle } from "../../../../../features/shell/PageTitle";
 import { ProjectBreadcrumb } from "../../../../../features/shell/ProjectBreadcrumb";
 import { Topbar } from "../../../../../features/shell/Topbar";
@@ -7,11 +7,11 @@ import { ArchivedBanner } from "../ArchivedBanner";
 
 export type ProjectSettingsPageProps = {
 	project: Project;
+	section?: ProjectSettingsSectionId;
 };
 
-// The screen of `/p/<project path>/settings`: the topbar and the editable
-// project settings. The title names the project by its names, root first.
-export function ProjectSettingsPage({ project }: ProjectSettingsPageProps) {
+// ProjectSettingsPage uses section for direct routes that have no settings hash, such as /p/<project path>/notes.
+export function ProjectSettingsPage({ project, section }: ProjectSettingsPageProps) {
 	return (
 		<>
 			<Topbar>
@@ -19,7 +19,7 @@ export function ProjectSettingsPage({ project }: ProjectSettingsPageProps) {
 			</Topbar>
 			<div className="page-card flex flex-1 flex-col overflow-hidden">
 				{project.archivedAt !== null && <ArchivedBanner project={project} />}
-				<ProjectSettings project={project} />
+				<ProjectSettings project={project} section={section} />
 			</div>
 		</>
 	);
