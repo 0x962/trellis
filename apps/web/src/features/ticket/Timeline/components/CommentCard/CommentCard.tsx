@@ -1,11 +1,12 @@
 import { type Comment, fullZonedDateTime } from "@trellis/api";
-import { ActorChip, Button, ConfirmDialog, cx, Menu, type MenuItem, Textarea } from "@trellis/ui";
+import { Button, ConfirmDialog, cx, Menu, type MenuItem, Textarea } from "@trellis/ui";
 import { type ReactNode, useState } from "react";
 import { ReadOnlyMarkdown } from "../../../../../components/ReadOnlyMarkdown";
 import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
 import { failToast } from "../../../../../lib/failToast";
 import { compactRelativeTime } from "../../../../../lib/format";
+import { ActorChip } from "../../../../agents/ActorChip";
 
 export type CommentCardProps = {
 	comment: Comment;
@@ -101,14 +102,7 @@ export function CommentCard({
 				className={cx("relative", !threadSurface && "py-3", className)}
 			>
 				<header className="relative flex h-8 items-center gap-2 text-sm">
-					{showActor && comment.actor.kind !== "system" && (
-						<ActorChip
-							compact
-							className="gap-2.5"
-							name={comment.actor.displayName ?? comment.actor.name}
-							kind={comment.actor.kind}
-						/>
-					)}
+					{showActor && <ActorChip compact className="gap-2.5" actor={comment.actor} />}
 					<time
 						dateTime={comment.createdAt}
 						title={fullZonedDateTime(comment.createdAt)}
