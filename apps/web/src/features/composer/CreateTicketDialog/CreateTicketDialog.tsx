@@ -1,7 +1,7 @@
 import { useRouter } from "@tanstack/react-router";
 import type { Priority, Ticket, TicketSummary } from "@trellis/api";
-import { Button, ConfirmDialog, Dialog, Switch, toast, useHotkey } from "@trellis/ui";
-import { useRef, useState } from "react";
+import { Button, ConfirmDialog, Dialog, Kbd, Switch, toast, useHotkey } from "@trellis/ui";
+import { useId, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { failToast } from "../../../lib/failToast";
 import { insertRow } from "../../table/utils/cacheRows";
@@ -17,10 +17,9 @@ const summaryOf = (ticket: Ticket): TicketSummary => {
 	return summary;
 };
 
-// The quick composer: title, description from the
-// template, the chip row, Cmd+Enter to create, Cmd+Shift+Enter to create
-// and stay. With Create more on, every create stays. The draft survives an
-// Escape.
+// The quick composer keeps its text in sessionStorage until a create or a
+// confirmed discard. Cmd+Enter creates one ticket, and Cmd+Shift+Enter keeps
+// the composer open for another ticket.
 export function CreateTicketDialog() {
 	const options = useComposerStore((state) => state.options);
 	const { client, queryClient, orpc } = useApp();
@@ -34,6 +33,7 @@ export function CreateTicketDialog() {
 	const [priority, setPriority] = useState<Priority | undefined>();
 	const [parent, setParent] = useState<TicketSummary | null | undefined>();
 	const [editing, setEditing] = useState(draft.description !== "");
+	const [titleMissing, setTitleMissing] = useState(false);
 	const [projectMissing, setProjectMissing] = useState(false);
 	const [asking, setAsking] = useState(false);
 	const [editorKey, setEditorKey] = useState(0);
@@ -41,6 +41,8 @@ export function CreateTicketDialog() {
 	const [createMore, setCreateMore] = useState(false);
 	const inFlight = useRef(false);
 	const titleRef = useRef<HTMLInputElement>(null);
+	const titleId = useId();
+	const titleErrorId = useId();
 
 	const chosenProject = project ?? defaults.project;
 	const bySlug = (slug: string | undefined) => defaults.statuses.find((entry) => entry.slug === slug);
@@ -53,14 +55,21 @@ export function CreateTicketDialog() {
 
 	// One create at a time. Two hotkey presses can land in one tick, before
 	// `creating` renders, so the ref holds the guard and the state disables
-	// the buttons. A refused create keeps the draft and the dialog open.
+	// the button. A refused create keeps the draft and the dialog open.
 	const create = async (stay: boolean) => {
 		const title = draft.title.trim();
+		if (title === "") {
+			setTitleMissing(true);
+			titleRef.current?.focus();
+			return;
+		}
 		if (chosenProject === undefined) {
 			setProjectMissing(true);
 			return;
 		}
-		if (title === "" || inFlight.current) return;
+		if (inFlight.current) return;
+		setTitleMissing(false);
+		setProjectMissing(false);
 		const parentRef = parent === undefined ? defaults.parent : (parent?.identifier ?? undefined);
 		inFlight.current = true;
 		setCreating(true);
@@ -94,6 +103,7 @@ export function CreateTicketDialog() {
 		}
 		setEditing(false);
 		setEditorKey((key) => key + 1);
+		titleRef.current?.focus();
 	};
 
 	const requestClose = () => {
@@ -117,21 +127,29 @@ export function CreateTicketDialog() {
 			initialFocus={titleRef}
 			className="gap-0 bg-surface p-0"
 		>
-			<div className="flex min-h-0 flex-col">
-				<div className="border-b border-border p-4">
-					<ComposerHeader project={chosenProject} onClose={requestClose} />
-				</div>
-				<div className="flex flex-1 flex-col gap-4 p-6 max-md:p-4">
+			<div className="flex min-h-0 flex-col gap-2 p-3">
+				<ComposerHeader onClose={requestClose} />
+				<div className="flex flex-col rounded-lg border border-border bg-elevated">
+					<label htmlFor={titleId} className="sr-only">
+						Title
+					</label>
 					<input
+						id={titleId}
 						ref={titleRef}
-						aria-label="Title"
+						aria-invalid={(titleMissing && draft.title.trim() === "") || undefined}
+						aria-describedby={titleMissing && draft.title.trim() === "" ? titleErrorId : undefined}
 						autoComplete="off"
 						maxLength={500}
 						placeholder="Ticket title"
 						value={draft.title}
 						onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-						className="h-7 w-full bg-transparent text-xl font-semibold text-fg outline-none placeholder:text-fg-faint"
+						className="h-10 w-full rounded-sm bg-transparent px-3 pt-1 text-xl font-semibold text-fg outline-none placeholder:text-fg-faint focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
 					/>
+					{titleMissing && draft.title.trim() === "" && (
+						<p id={titleErrorId} role="alert" className="px-3 text-xs text-danger">
+							Add a ticket title.
+						</p>
+					)}
 					<DescriptionField
 						key={editorKey}
 						markdown={description}
@@ -147,22 +165,30 @@ export function CreateTicketDialog() {
 						priority={chosenPriority}
 						parent={parent ?? null}
 						parentRef={parent === undefined ? defaults.parent : undefined}
-						onProject={setProject}
+						onProject={(next) => {
+							setProject(next);
+							setProjectMissing(false);
+						}}
 						onStatus={(next) => setStatus(next.slug)}
 						onPriority={setPriority}
 						onParent={setParent}
 					/>
 				</div>
-				<div className="sticky bottom-0 flex items-center justify-end gap-3 border-t border-border bg-surface p-4">
+				<div className="flex flex-wrap items-center gap-2 px-1 pt-1">
 					<Switch
-						label="Create more"
+						label="Keep open after create"
 						checked={createMore}
 						onCheckedChange={setCreateMore}
 						className="text-xs text-fg-muted"
 					/>
-					<Button variant="primary" size="md" disabled={creating} onClick={() => void create(createMore)} kbd="⌘↩">
-						Create
-					</Button>
+					<div className="ml-auto flex items-center gap-2">
+						<span className="hidden items-center gap-1 text-xs text-fg-muted sm:inline-flex">
+							<Kbd>⌘↩</Kbd> to create
+						</span>
+						<Button variant="primary" size="md" processing={creating} onClick={() => void create(createMore)}>
+							Create ticket
+						</Button>
+					</div>
 				</div>
 			</div>
 			<ConfirmDialog

@@ -1,7 +1,4 @@
-// The line that shows where a dragged card lands: 2 px, with a 6 px dot at
-// its left end. A card lands at the top of the column it enters, so the
-// line draws on the top edge of the first card. Cards sit 8 px apart, so a
-// 5 px offset puts the line in the middle of the gap.
+// The negative offset centers the line in the gap between cards.
 export function DragIndicator() {
 	return (
 		<span
