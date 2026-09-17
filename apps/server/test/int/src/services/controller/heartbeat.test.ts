@@ -119,6 +119,7 @@ test("an archived project suppresses heartbeats until it returns to the board", 
 	await gather(600);
 	expect(await batches()).toHaveLength(0);
 	await h.rows(sql`UPDATE projects SET archived_at=NULL`);
+	await h.rebuild();
 	await gather(601);
 	expect((await take(601))?.events).toEqual([]);
 });
