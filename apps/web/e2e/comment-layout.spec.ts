@@ -27,6 +27,41 @@ test.beforeAll(async () => {
 	createTicket("CMT", "Nest a reply under its thread");
 	const root = trellis<CliComment>(["comment", "CMT-6", "--body", "The root question."], "human:dana");
 	trellis(["comment", "CMT-6", "--reply-to", root.id, "--body", "The nested answer."], "human:dana");
+	createTicket("CMT", "Load the comment list");
+	createTicket("CMT", "Fold an edited comment");
+	trellis(["comment", "CMT-8", "--body", longRenderedComment], "human:dana");
+	createTicket("CMT", "Group adjacent comments from one person");
+	trellis(["comment", "CMT-9", "--body", "The first note."], "human:dana");
+	trellis(["comment", "CMT-9", "--body", "The second note."], "human:dana");
+});
+
+test("the comment list shows its pending state before its empty state", async ({ page }) => {
+	let releaseTimeline!: () => void;
+	const timelineResponse = new Promise<void>((resolve) => {
+		releaseTimeline = resolve;
+	});
+	await page.route("**/rpc/**", async (route) => {
+		const request = route.request();
+		const isTimeline = request.url().includes("/timeline/list") || request.postData()?.includes("/timeline/list");
+		if (isTimeline) await timelineResponse;
+		await route.continue();
+	});
+	await signIn(page, "/t/CMT-7");
+	await expect(page.getByRole("status").filter({ hasText: "Load comments…" })).toBeVisible();
+	await expect(page.getByText("Add a comment to ask a question or record a decision.")).toHaveCount(0);
+	releaseTimeline();
+	await expect(page.getByText("Add a comment to ask a question or record a decision.")).toBeVisible();
+});
+
+test("the comment list shows a failed request instead of its empty state", async ({ page }) => {
+	await page.route("**/rpc/**", (route) => {
+		const request = route.request();
+		const isTimeline = request.url().includes("/timeline/list") || request.postData()?.includes("/timeline/list");
+		return isTimeline ? route.abort("failed") : route.continue();
+	});
+	await signIn(page, "/t/CMT-7");
+	await expect(page.getByRole("heading", { name: "The comments did not load." })).toBeVisible();
+	await expect(page.getByText("Add a comment to ask a question or record a decision.")).toHaveCount(0);
 });
 
 test("activity collapses to the last few rows with an expander", async ({ page }) => {
@@ -75,6 +110,17 @@ test("a long comment folds with a show-more control", async ({ page }) => {
 	expect(refolded).toBeLessThanOrEqual(280);
 });
 
+test("an edited long comment returns to its folded state", async ({ page }) => {
+	await signIn(page, "/t/CMT-8");
+	const comment = page.getByRole("article", { name: "Comment by dana" });
+	await comment.getByRole("button", { name: "Show more" }).click();
+	await comment.getByRole("button", { name: "Comment actions" }).click();
+	await page.getByRole("menuitem", { name: "Edit" }).click();
+	await page.getByRole("textbox", { name: "Edit comment" }).fill(`${longRenderedComment}\n\nEdited paragraph`);
+	await page.getByRole("button", { name: "Save", exact: true }).click();
+	await expect(comment.getByRole("button", { name: "Show more" })).toBeVisible();
+});
+
 test("a resolved thread control aligns with its thread", async ({ page }) => {
 	await signIn(page, "/t/CMT-5");
 	const comment = page.getByRole("article", { name: "Comment by dana" });
@@ -97,6 +143,18 @@ test("replies nest under their thread root", async ({ page }) => {
 	await expect(thread.getByText("The root question.")).toBeVisible();
 	await expect(thread.getByText("The nested answer.")).toBeVisible();
 	await expect(thread.getByRole("textbox", { name: "Reply" })).toBeVisible();
+	await expect(thread.getByText("dana", { exact: true })).toHaveCount(1);
+	const listParents = await thread
+		.getByRole("article")
+		.evaluateAll((articles) => articles.map((article) => article.parentElement?.parentElement?.tagName));
+	expect(listParents).toEqual(["UL", "UL"]);
+});
+
+test("adjacent comments from one actor show the actor name once", async ({ page }) => {
+	await signIn(page, "/t/CMT-9");
+	const comments = page.locator('section[aria-label="Comments"]');
+	await expect(comments.getByRole("article", { name: "Comment by dana" })).toHaveCount(2);
+	await expect(comments.getByText("dana", { exact: true })).toHaveCount(1);
 });
 
 // The mentioned thread has its own section above the activity. The

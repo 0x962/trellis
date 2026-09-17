@@ -12,14 +12,26 @@ type CommentThreadProps = {
 	id: string;
 	identifier: string;
 	comments: Comment[];
+	previousComment?: Comment;
 	onEdited: (comment: Comment) => void;
 	onDeleted: (id: string) => void;
 	onCreated: (comment: Comment) => void;
 };
 
+const sameActor = (left: Comment, right: Comment) =>
+	left.actor.kind === right.actor.kind && left.actor.name === right.actor.name;
+
 // A reply can appear on a newer timeline page than its root. The thread query
 // supplies the root and every reply until the loaded pages include the root.
-export function CommentThread({ id, identifier, comments, onEdited, onDeleted, onCreated }: CommentThreadProps) {
+export function CommentThread({
+	id,
+	identifier,
+	comments,
+	previousComment,
+	onEdited,
+	onDeleted,
+	onCreated,
+}: CommentThreadProps) {
 	const { client, orpc, queryClient } = useApp();
 	const loadedRoot = comments.find((comment) => comment.id === id);
 	const options = orpc.comments.thread.queryOptions({ input: { id } });
@@ -110,32 +122,41 @@ export function CommentThread({ id, identifier, comments, onEdited, onDeleted, o
 			)}
 			{(!resolved || expandedResolved) && (
 				<fieldset aria-label={`Thread started by ${root.actor.displayName ?? root.actor.name}`} className="contents">
-					<CommentCard
-						comment={root}
-						formatClassName="comment-markdown"
-						onEdited={edit}
-						onDeleted={remove}
-						actions={[
-							{
-								label: resolved ? "Reopen thread" : "Resolve thread",
-								disabled: resolving,
-								onSelect: () => void resolve(),
-							},
-						]}
-					/>
-					{replies.length > 0 && (
-						<ul aria-label="Replies" className="mt-1 ml-2 border-l border-border pl-5">
-							{replies.map((reply) => (
-								<CommentCard
-									key={reply.id}
-									comment={reply}
-									formatClassName="comment-markdown"
-									onEdited={edit}
-									onDeleted={remove}
-								/>
-							))}
-						</ul>
-					)}
+					<ul aria-label="Thread comments">
+						<li>
+							<CommentCard
+								comment={root}
+								formatClassName="comment-markdown"
+								showActor={previousComment === undefined || !sameActor(previousComment, root)}
+								onEdited={edit}
+								onDeleted={remove}
+								actions={[
+									{
+										label: resolved ? "Reopen thread" : "Resolve thread",
+										disabled: resolving,
+										onSelect: () => void resolve(),
+									},
+								]}
+							/>
+						</li>
+						{replies.length > 0 && (
+							<li className="mt-1 ml-2 border-l border-border pl-5">
+								<ul aria-label="Replies">
+									{replies.map((reply, index) => (
+										<li key={reply.id}>
+											<CommentCard
+												comment={reply}
+												formatClassName="comment-markdown"
+												onEdited={edit}
+												onDeleted={remove}
+												showActor={!sameActor(index === 0 ? root : replies[index - 1]!, reply)}
+											/>
+										</li>
+									))}
+								</ul>
+							</li>
+						)}
+					</ul>
 					<form
 						aria-label="Leave a reply"
 						className="mt-1 flex min-h-11 items-start gap-2 py-2 focus-within:bg-surface"

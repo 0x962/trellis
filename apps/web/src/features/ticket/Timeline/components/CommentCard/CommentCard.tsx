@@ -17,6 +17,7 @@ export type CommentCardProps = {
 	formatClassName?: "markdown" | "comment-markdown";
 	actions?: readonly MenuItem[];
 	className?: string;
+	showActor?: boolean;
 };
 
 // One flat row: the actor, the time, and the menu on one line, then the
@@ -28,6 +29,7 @@ export function CommentCard({
 	formatClassName,
 	actions = [],
 	className,
+	showActor = true,
 }: CommentCardProps) {
 	const { client } = useApp();
 	const [editing, setEditing] = useState(false);
@@ -47,6 +49,8 @@ export function CommentCard({
 	const save = async () => {
 		try {
 			const updated = await client.comments.update({ id: comment.id, body: draft });
+			setExpanded(false);
+			setFoldable(false);
 			setEditing(false);
 			onEdited?.(updated);
 		} catch (error) {
@@ -112,45 +116,43 @@ export function CommentCard({
 	);
 
 	return (
-		<li>
-			<article
-				aria-label={`Comment by ${comment.actor.displayName ?? comment.actor.name}`}
-				data-kind="comment"
-				className={cx("relative", className)}
-			>
-				<header className="relative flex h-8 items-center gap-2 text-sm">
-					{comment.actor.kind !== "system" && (
-						<ActorChip compact name={comment.actor.displayName ?? comment.actor.name} kind={comment.actor.kind} />
-					)}
-					<time dateTime={comment.createdAt} title={absoluteTime(comment.createdAt)} className="text-fg-muted tabular">
-						{compactRelativeTime(comment.createdAt)}
-					</time>
-					<div className="ml-auto">
-						<Menu
-							label="Comment actions"
-							items={[
-								...actions,
-								{ label: "Edit", onSelect: () => setEditing(true) },
-								{ label: "Copy markdown", onSelect: () => void copyText(comment.body, "Copied the comment") },
-								{ label: "Delete", onSelect: () => setConfirming(true), danger: true },
-							]}
-						/>
-					</div>
-				</header>
-				{body}
-				<ConfirmDialog
-					open={confirming}
-					title="Delete this comment?"
-					description="trellis cannot restore a deleted comment."
-					confirmLabel="Delete"
-					danger
-					onConfirm={() => {
-						setConfirming(false);
-						void remove();
-					}}
-					onCancel={() => setConfirming(false)}
-				/>
-			</article>
-		</li>
+		<article
+			aria-label={`Comment by ${comment.actor.displayName ?? comment.actor.name}`}
+			data-kind="comment"
+			className={cx("relative", className)}
+		>
+			<header className="relative flex h-8 items-center gap-2 text-sm">
+				{showActor && comment.actor.kind !== "system" && (
+					<ActorChip compact name={comment.actor.displayName ?? comment.actor.name} kind={comment.actor.kind} />
+				)}
+				<time dateTime={comment.createdAt} title={absoluteTime(comment.createdAt)} className="text-fg-muted tabular">
+					{compactRelativeTime(comment.createdAt)}
+				</time>
+				<div className="ml-auto">
+					<Menu
+						label="Comment actions"
+						items={[
+							...actions,
+							{ label: "Edit", onSelect: () => setEditing(true) },
+							{ label: "Copy markdown", onSelect: () => void copyText(comment.body, "Copied the comment") },
+							{ label: "Delete", onSelect: () => setConfirming(true), danger: true },
+						]}
+					/>
+				</div>
+			</header>
+			{body}
+			<ConfirmDialog
+				open={confirming}
+				title="Delete this comment?"
+				description="trellis cannot restore a deleted comment."
+				confirmLabel="Delete"
+				danger
+				onConfirm={() => {
+					setConfirming(false);
+					void remove();
+				}}
+				onCancel={() => setConfirming(false)}
+			/>
+		</article>
 	);
 }
