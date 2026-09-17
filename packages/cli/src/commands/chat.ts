@@ -1,6 +1,12 @@
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
-import type { ChatChannel, ChatMessage, ChatUploadOutput } from "@trellis/api";
+import {
+	type ChatChannel,
+	ChatListInputSchema,
+	type ChatMessage,
+	ChatProjectInputSchema,
+	type ChatUploadOutput,
+} from "@trellis/api";
 import { shortZonedDateTime } from "@trellis/api/time";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
@@ -47,11 +53,32 @@ const channelList: ListSpec<ChatChannel> = {
 };
 
 const channels = defineCommand({
-	meta: { name: "channels", description: "List the channels of the project room" },
-	args: { project: projectArg },
+	meta: { name: "channels", description: "Find channels in the project room" },
+	args: {
+		project: projectArg,
+		search: { type: "string", description: "Find channel names that contain this text" },
+		"ai-only": { type: "boolean", description: "Show only channels for agents" },
+		direct: { type: "boolean", description: "Show only direct channels" },
+		sort: {
+			type: "string",
+			description: "Sort by name, lastMessageAt, or messageCount. Add a leading - for descending order.",
+		},
+		limit: { type: "string", description: "Maximum channels to list, from 1 to 200" },
+	},
 	async run(context) {
 		const ctx = contextOf(context);
-		const found = await clientOf(ctx).chat.channels({ project: context.args.project });
+		const { args } = context;
+		const input = ChatProjectInputSchema.parse(
+			compact({
+				project: args.project,
+				q: args.search,
+				aiOnly: args["ai-only"] ? true : undefined,
+				direct: args.direct ? true : undefined,
+				sort: args.sort,
+				limit: toNumber(args.limit),
+			}),
+		);
+		const found = await clientOf(ctx).chat.channels(input);
 		printList(ctx.out, ctx.format, found, channelList);
 	},
 });
@@ -122,19 +149,37 @@ const attach = defineCommand({
 });
 
 const read = defineCommand({
-	meta: { name: "read", description: "Read the messages of a channel, oldest first" },
+	meta: { name: "read", description: "List messages in a channel" },
 	args: {
 		project: projectArg,
 		channel: channelArg,
 		after: { type: "string", description: "Read only the messages after this message id" },
+		actor: { type: "string", description: "Show messages from this actor name" },
+		"actor-kind": { type: "string", description: "Show messages from a human, agent, or system actor" },
+		search: { type: "string", description: "Find message bodies that contain this text" },
+		"created-after": { type: "string", description: "Show messages after this ISO 8601 time" },
+		"created-before": { type: "string", description: "Show messages before this ISO 8601 time" },
+		sort: { type: "string", description: "Use createdAt for oldest first or -createdAt for newest first" },
 		limit: { type: "string", description: "Messages to read, at most 200 (default 50)" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);
 		const { args } = context;
-		const page = await clientOf(ctx).chat.list(
-			compact({ project: args.project, channel: args.channel, after: args.after, limit: toNumber(args.limit) }),
+		const input = ChatListInputSchema.parse(
+			compact({
+				project: args.project,
+				channel: args.channel,
+				after: args.after,
+				actor: args.actor,
+				actorKind: args["actor-kind"],
+				q: args.search,
+				createdAfter: args["created-after"],
+				createdBefore: args["created-before"],
+				sort: args.sort,
+				limit: toNumber(args.limit),
+			}),
 		);
+		const page = await clientOf(ctx).chat.list(input);
 		if (ctx.format.mode === "table") {
 			ctx.out.write(
 				page.items.length === 0 ? `#${page.channel} has no messages.\n` : page.items.map(renderChatLine).join(""),

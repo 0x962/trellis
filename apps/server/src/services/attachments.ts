@@ -5,6 +5,7 @@ import { actorDisplayName } from "../db/queries/actorDisplayName.ts";
 import { iso, rows } from "../db/queries/support.ts";
 import { ticketSummary } from "../db/queries/ticketGet.ts";
 import type { Tx } from "../db/tx.ts";
+import { invalidInput } from "../errors.ts";
 import { finalize, gc, markLiveTempFile, tempPath } from "../storage/blobs.ts";
 import {
 	assertProjectActive,
@@ -132,6 +133,16 @@ export const storeFile = async (home: string, file: File) => {
 	return { sha256, size };
 };
 
+const fileSha256 = async (file: File) => {
+	const hasher = new Bun.CryptoHasher("sha256");
+	for await (const chunk of file.stream()) {
+		for (let offset = 0; offset < chunk.byteLength; offset += HASH_CHUNK_BYTES) {
+			hasher.update(chunk.subarray(offset, offset + HASH_CHUNK_BYTES));
+		}
+	}
+	return hasher.digest("hex");
+};
+
 // The mime the row keeps: the type and the subtype, without parameters, as
 // in `text/plain`. The file route sets the charset itself. The multipart
 // parser gives an empty type to a part whose filename has no known
@@ -155,17 +166,34 @@ const emitCount = async (ctx: ServiceCtx, tx: Tx, ticketId: string) =>
 		batchId: ulid(),
 	});
 
-export type UploadInput = { ticket: string; file: File; name?: string };
+export type UploadInput = { id?: string; ticket: string; file: File; name?: string };
 
 export const upload = async (ctx: ServiceCtx, tx: Tx, input: UploadInput): Promise<AttachmentUploadOutput> => {
 	const ticket = await resolveTicket(tx, input.ticket);
 	assertProjectActive(ticket);
 	if (input.file.size > ctx.maxUploadBytes) throw fail("PAYLOAD_TOO_LARGE", { maxBytes: ctx.maxUploadBytes });
-	const stored = await storeFile(ctx.home, input.file);
-	const at = ctx.now();
-	const id = ulid();
 	const filename = input.name ?? input.file.name;
 	const mime = storedMime(input.file.type);
+	if (input.id !== undefined) {
+		const existing = await findAttachmentIfExists(tx, input.id);
+		if (existing !== undefined) {
+			if (
+				existing.ticket_id !== ticket.id ||
+				existing.filename !== filename ||
+				existing.mime !== mime ||
+				existing.size !== input.file.size ||
+				existing.actor_name !== ctx.actor.name ||
+				existing.actor_kind !== ctx.actor.kind ||
+				existing.sha256 !== (await fileSha256(input.file))
+			)
+				throw invalidInput("id", "This id already identifies another attachment.");
+			const attachment = toAttachment(existing);
+			return { attachment, url: attachment.url, markdown: markdownFor(attachment) };
+		}
+	}
+	const stored = await storeFile(ctx.home, input.file);
+	const at = ctx.now();
+	const id = input.id ?? ulid();
 	await touchActor(tx, ctx.actor, at);
 	await tx.execute(sql`
 		INSERT INTO attachments (id, ticket_id, filename, mime, size, sha256, actor_name, actor_kind, created_at)
@@ -183,8 +211,13 @@ export const upload = async (ctx: ServiceCtx, tx: Tx, input: UploadInput): Promi
 };
 
 const findAttachment = async (tx: Tx, id: string): Promise<AttachmentRow> => {
-	const [row] = await rows<AttachmentRow>(tx, sql`SELECT ${columns} FROM attachments a WHERE a.id = ${id}`);
+	const row = await findAttachmentIfExists(tx, id);
 	if (row === undefined) throw notFound("attachment", id);
+	return row;
+};
+
+const findAttachmentIfExists = async (tx: Tx, id: string): Promise<AttachmentRow | undefined> => {
+	const [row] = await rows<AttachmentRow>(tx, sql`SELECT ${columns} FROM attachments a WHERE a.id = ${id}`);
 	return row;
 };
 

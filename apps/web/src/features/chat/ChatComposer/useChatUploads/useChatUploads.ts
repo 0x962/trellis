@@ -10,12 +10,11 @@ export const useChatUploads = (project: string, onUploaded: (markdown: string) =
 	const [uploads, setUploads] = useState<Upload[]>([]);
 	const start = useCallback(
 		(files: File[]) => {
-			const entries = files.map((file) => ({
+			const entries: Upload[] = files.map((file) => ({
 				id: crypto.randomUUID(),
-				name: file.name,
-				size: file.size,
-				sent: 0,
+				file,
 				percent: 0,
+				status: "uploading",
 				error: null,
 			}));
 			setUploads((current) => [...current, ...entries]);
@@ -28,7 +27,11 @@ export const useChatUploads = (project: string, onUploaded: (markdown: string) =
 						setUploads((current) =>
 							current.map((upload) =>
 								upload.id === entry.id
-									? { ...upload, error: { code: "PAYLOAD_TOO_LARGE", maxBytes: error.data.maxBytes } }
+									? {
+											...upload,
+											status: "pending" as const,
+											error: { code: "PAYLOAD_TOO_LARGE", maxBytes: error.data.maxBytes },
+										}
 									: upload,
 							),
 						);

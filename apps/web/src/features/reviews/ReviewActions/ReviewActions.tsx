@@ -1,4 +1,4 @@
-import { DotsThree, GitMerge } from "@phosphor-icons/react";
+import { DotsThree } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ReviewRevision, TrellisClient } from "@trellis/api";
 import { Button, IconButton, Select, Sheet, Tooltip } from "@trellis/ui";
@@ -26,21 +26,11 @@ const labels: Record<Action, string> = {
 	"live-persist": "Keep Live Branch after merge",
 	"live-unpersist": "Remove Live Branch persistence",
 };
-export function ReviewActions({
-	pr,
-	revision,
-	live = false,
-	onDone,
-}: {
-	pr: string;
-	revision: ReviewRevision;
-	live?: boolean;
-	onDone: () => void;
-}) {
+export function ReviewActions({ pr, revision, onDone }: { pr: string; revision: ReviewRevision; onDone: () => void }) {
 	const { client, orpc } = useApp();
 	const [open, setOpen] = useState(false);
-	const [action, setAction] = useState<Action>(live ? "live-create" : "merge");
-	const extra = useQuery({ ...orpc.reviews.metadata.queryOptions({ input: { pr } }), enabled: !live });
+	const [action, setAction] = useState<Action>("merge");
+	const extra = useQuery(orpc.reviews.metadata.queryOptions({ input: { pr } }));
 	const mutation = useMutation({
 		mutationFn: () => client.reviews.action({ pr, headSha: revision.headSha, action }),
 		onSuccess: () => {
@@ -49,25 +39,19 @@ export function ReviewActions({
 		},
 	});
 	const items = Object.entries(labels)
-		.filter(
-			([key]) => key.startsWith("live-") === live && (!key.startsWith("deploy-") || extra.data?.autoDeployAvailable),
-		)
+		.filter(([key]) => !key.startsWith("live-") && (!key.startsWith("deploy-") || extra.data?.autoDeployAvailable))
 		.map(([value, label]) => ({ value: value as Action, label }));
 	return (
 		<>
-			<Tooltip content={live ? "Live Branch actions" : "Pull request actions"}>
-				<IconButton
-					label={live ? "Live Branch actions" : "Pull request actions"}
-					icon={live ? <GitMerge /> : <DotsThree />}
-					onClick={() => setOpen(true)}
-				/>
+			<Tooltip content="Pull request actions">
+				<IconButton label="Pull request actions" icon={<DotsThree />} onClick={() => setOpen(true)} />
 			</Tooltip>
 			{open && (
 				<Sheet
 					width="var(--review-sheet-width)"
 					titleClassName="font-medium text-base"
 					open
-					title={live ? "Live Branch action" : "Pull request action"}
+					title="Pull request action"
 					onOpenChange={(value) => !value && !mutation.isPending && setOpen(false)}
 				>
 					<form

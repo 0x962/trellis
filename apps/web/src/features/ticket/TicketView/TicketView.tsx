@@ -6,6 +6,7 @@ import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
 import { AttachmentGrid } from "../../attachments/AttachmentGrid";
 import { useUploads } from "../../attachments/hooks/useUploads";
+import { PullRequests } from "../../prs";
 import { ReviewPage } from "../../reviews/ReviewPage/ReviewPage";
 import { NotFoundState } from "../../shell/NotFoundState";
 import { Description } from "../Description";
@@ -33,7 +34,7 @@ export function TicketView({ identifier, thread, onReturnToList }: TicketViewPro
 	const query = useQuery(orpc.tickets.get.queryOptions({ input: { ticket: identifier } }));
 	const uploads = useUploads(identifier);
 	const parentSummary = useParentSummary(query.data?.parent?.identifier ?? null);
-	const drop = useDropOverlay(uploads.start);
+	const drop = useDropOverlay(uploads.addFiles);
 	const narrow = useMediaQuery("(max-width: 767px)");
 	const { isArchived, notice } = useArchivedProjects();
 	const [workAreaTab, setWorkAreaTab] = useState("activity");
@@ -113,8 +114,9 @@ export function TicketView({ identifier, thread, onReturnToList }: TicketViewPro
 				</div>
 				<div className="mt-8 flex flex-col gap-8">
 					<SubTickets ticket={ticket} />
+					<PullRequests ticket={ticket} initialPrs={ticket.prs} onOpen={setPullRequest} title="Pull requests" />
 					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
-					<Timeline thread={thread} ticket={ticket} onAttachFiles={uploads.start} />
+					<Timeline thread={thread} ticket={ticket} onAttachFiles={uploads.addFiles} />
 				</div>
 			</div>
 		</article>

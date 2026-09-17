@@ -22,8 +22,10 @@ export const AttachmentListInputSchema = z.strictObject({
 	ticket: TicketRefStringSchema,
 });
 
+// `id` keeps one attachment identity when a client repeats an upload.
 // `name` replaces the file's own name when set.
 export const AttachmentUploadInputSchema = z.strictObject({
+	id: UlidSchema.optional(),
 	ticket: TicketRefStringSchema,
 	file: z.file(),
 	name: z.string().min(1).max(255).optional(),

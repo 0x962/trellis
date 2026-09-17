@@ -1,9 +1,150 @@
+@property --glimmer-vapor-1 {
+	syntax: "<percentage>";
+	inherits: false;
+	initial-value: 0%;
+}
+@property --glimmer-vapor-2 {
+	syntax: "<percentage>";
+	inherits: false;
+	initial-value: 0%;
+}
+@property --glimmer-vapor-3 {
+	syntax: "<percentage>";
+	inherits: false;
+	initial-value: 0%;
+}
+@property --glimmer-vapor-4 {
+	syntax: "<percentage>";
+	inherits: false;
+	initial-value: 0%;
+}
+@property --glimmer-vapor-5 {
+	syntax: "<percentage>";
+	inherits: false;
+	initial-value: 0%;
+}
+@property --glimmer-vapor-6 {
+	syntax: "<percentage>";
+	inherits: false;
+	initial-value: 0%;
+}
+@property --glimmer-vapor-7 {
+	syntax: "<percentage>";
+	inherits: false;
+	initial-value: 0%;
+}
+@property --glimmer-vapor-8 {
+	syntax: "<percentage>";
+	inherits: false;
+	initial-value: 0%;
+}
 .ticket-glimmer {
+	--glimmer-vapor-1: 0%;
+	--glimmer-vapor-2: 0%;
+	--glimmer-vapor-3: 0%;
+	--glimmer-vapor-4: 0%;
+	--glimmer-vapor-5: 0%;
+	--glimmer-vapor-6: 0%;
+	--glimmer-vapor-7: 0%;
+	--glimmer-vapor-8: 0%;
 	position: absolute;
 	inset: 0;
 	overflow: hidden;
 	border-radius: inherit;
+	mask-image:
+		radial-gradient(
+			circle at 5% 8%,
+			black 0 var(--glimmer-vapor-1),
+			rgb(0 0 0 / 0.72) calc(var(--glimmer-vapor-1) + 4%),
+			transparent calc(var(--glimmer-vapor-1) + 12%)
+		),
+		radial-gradient(
+			circle at 32% 15%,
+			black 0 var(--glimmer-vapor-2),
+			rgb(0 0 0 / 0.68) calc(var(--glimmer-vapor-2) + 5%),
+			transparent calc(var(--glimmer-vapor-2) + 13%)
+		),
+		radial-gradient(
+			circle at 65% 6%,
+			black 0 var(--glimmer-vapor-3),
+			rgb(0 0 0 / 0.76) calc(var(--glimmer-vapor-3) + 3%),
+			transparent calc(var(--glimmer-vapor-3) + 11%)
+		),
+		radial-gradient(
+			circle at 96% 20%,
+			black 0 var(--glimmer-vapor-4),
+			rgb(0 0 0 / 0.7) calc(var(--glimmer-vapor-4) + 6%),
+			transparent calc(var(--glimmer-vapor-4) + 14%)
+		),
+		radial-gradient(
+			circle at 88% 72%,
+			black 0 var(--glimmer-vapor-5),
+			rgb(0 0 0 / 0.74) calc(var(--glimmer-vapor-5) + 4%),
+			transparent calc(var(--glimmer-vapor-5) + 12%)
+		),
+		radial-gradient(
+			circle at 62% 92%,
+			black 0 var(--glimmer-vapor-6),
+			rgb(0 0 0 / 0.66) calc(var(--glimmer-vapor-6) + 5%),
+			transparent calc(var(--glimmer-vapor-6) + 14%)
+		),
+		radial-gradient(
+			circle at 28% 82%,
+			black 0 var(--glimmer-vapor-7),
+			rgb(0 0 0 / 0.73) calc(var(--glimmer-vapor-7) + 4%),
+			transparent calc(var(--glimmer-vapor-7) + 12%)
+		),
+		radial-gradient(
+			circle at 4% 60%,
+			black 0 var(--glimmer-vapor-8),
+			rgb(0 0 0 / 0.7) calc(var(--glimmer-vapor-8) + 5%),
+			transparent calc(var(--glimmer-vapor-8) + 13%)
+		);
+	filter: blur(12px) saturate(0.72);
+	opacity: 0;
 	pointer-events: none;
+	transition-property:
+		--glimmer-vapor-1, --glimmer-vapor-2, --glimmer-vapor-3, --glimmer-vapor-4, --glimmer-vapor-5, --glimmer-vapor-6,
+		--glimmer-vapor-7, --glimmer-vapor-8, filter, opacity;
+	transition-duration:
+		var(--duration-glimmer-exit), calc(var(--duration-glimmer-exit) + var(--duration-hover)),
+		calc(var(--duration-glimmer-exit) - var(--duration-sweep)),
+		calc(var(--duration-glimmer-exit) + var(--duration-sweep)), var(--duration-glimmer-exit),
+		calc(var(--duration-glimmer-exit) + var(--duration-hover)),
+		calc(var(--duration-glimmer-exit) - var(--duration-hover)),
+		calc(var(--duration-glimmer-exit) + var(--duration-sweep)), var(--duration-glimmer-exit),
+		var(--duration-glimmer-opacity);
+	transition-delay:
+		0ms, var(--duration-hover), 0ms, var(--duration-sweep), var(--duration-hover), 0ms, var(--duration-sweep),
+		var(--duration-hover), 0ms, calc(var(--duration-glimmer-exit) - var(--duration-glimmer-opacity));
+	transition-timing-function: var(--ease-out);
+}
+.ticket-glimmer[data-active="true"] {
+	--glimmer-vapor-1: 60%;
+	--glimmer-vapor-2: 66%;
+	--glimmer-vapor-3: 58%;
+	--glimmer-vapor-4: 64%;
+	--glimmer-vapor-5: 62%;
+	--glimmer-vapor-6: 68%;
+	--glimmer-vapor-7: 60%;
+	--glimmer-vapor-8: 66%;
+	filter: blur(0) saturate(1);
+	opacity: 1;
+	transition-duration:
+		var(--duration-glimmer-enter), calc(var(--duration-glimmer-enter) + var(--duration-hover)),
+		calc(var(--duration-glimmer-enter) - var(--duration-sweep)),
+		calc(var(--duration-glimmer-enter) + var(--duration-sweep)), var(--duration-glimmer-enter),
+		calc(var(--duration-glimmer-enter) - var(--duration-hover)),
+		calc(var(--duration-glimmer-enter) + var(--duration-hover)),
+		calc(var(--duration-glimmer-enter) - var(--duration-sweep)), var(--duration-glimmer-enter),
+		var(--duration-glimmer-opacity);
+	transition-delay:
+		0ms, 0ms, var(--duration-hover), 0ms, var(--duration-sweep), var(--duration-hover), 0ms, var(--duration-sweep), 0ms,
+		0ms;
+}
+.ticket-glimmer-flow {
+	position: absolute;
+	inset: 0;
 }
 .ticket-glimmer-film {
 	position: absolute;
@@ -89,4 +230,23 @@
 			transparent 66%
 		);
 	filter: blur(7px) saturate(1.4);
+}
+.ticket-glimmer-impact {
+	position: absolute;
+	width: 72%;
+	aspect-ratio: 1.8;
+	opacity: 0;
+	backdrop-filter: blur(4px) saturate(2.6) contrast(1.24) brightness(1.12) hue-rotate(var(--impact-hue));
+	mask-image:
+		radial-gradient(ellipse 68% 32% at 36% 44%, black 0 9%, rgb(0 0 0 / 0.62) 36%, transparent 76%),
+		radial-gradient(ellipse 38% 72% at 64% 48%, black 0 7%, rgb(0 0 0 / 0.48) 34%, transparent 72%),
+		radial-gradient(ellipse 52% 26% at 51% 69%, black 0 6%, rgb(0 0 0 / 0.36) 31%, transparent 68%);
+	transform: translate3d(-50%, -50%, 0) scale(0.15, 0.1);
+	transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+	.ticket-glimmer {
+		transition-duration: 0ms;
+		transition-delay: 0ms;
+	}
 }
