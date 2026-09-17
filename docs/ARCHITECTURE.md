@@ -462,6 +462,12 @@ Independent tickets and copilots launch concurrently. A failed launch does not p
 An unknown runtime process requires confirmation before replacement.
 Archived projects suppress new starts. Each host process starts with automatic dispatch enabled.
 
+Column workers must report a tool event or assistant message within 60 seconds of their latest activity.
+The first interval starts when the process starts. The next manager beat stops and replaces a worker whose interval expires.
+The replacement uses the current column settings and retains the workspace.
+Tool start, update, and completion events reset the interval. Process checks and prompt receipts do not reset it.
+Copilots can remain idle while they wait for user instructions.
+
 An idle column worker receives a data-only continuation at most once every 30 seconds.
 The continuation includes the ticket, column occupancy and limit, and recent comments.
 The worker persona defines how to act on that context.

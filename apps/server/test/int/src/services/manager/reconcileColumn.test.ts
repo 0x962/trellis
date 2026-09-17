@@ -140,6 +140,30 @@ test("a restart uses the latest harness and preserves the workspace", async () =
 	expect(starts[1]!.run.workspaceId).toBe("/saved/work");
 	expect(starts[1]!.resume).toBe(false);
 });
+test("a silent live worker restarts with the current column settings", async () => {
+	const launched = await start();
+	await h.rows(sql`UPDATE agent_runs SET workspace_id='/saved/work' WHERE id=${launched.run.id}`);
+	await h.rows(
+		sql`UPDATE statuses SET agent_config=jsonb_set(agent_config,'{harness}',${JSON.stringify(HarnessSchema.parse({ preset: "codex", model: "openai/gpt-5.6-sol", effort: "high" }))}::jsonb) WHERE id=${status}`,
+	);
+	calls = [];
+	await reconcileColumn(
+		ctx(),
+		await state(),
+		[
+			sessionFor(launched, {
+				startedAt: new Date(NOW.getTime() - 60_000).toISOString(),
+				agent: null,
+				activity: { state: "ready", updatedAt: NOW.toISOString() },
+			}),
+		],
+		deps(),
+	);
+	expect(calls).toEqual(["stop", "start"]);
+	expect(starts[1]!.config.harness).toMatchObject({ preset: "codex", model: "openai/gpt-5.6-sol", effort: "high" });
+	expect(starts[1]!.run.workspaceId).toBe("/saved/work");
+	expect(starts[1]!.resume).toBe(false);
+});
 test("unknown ownership never creates another worker", async () => {
 	const launched = await start();
 	await expect(
