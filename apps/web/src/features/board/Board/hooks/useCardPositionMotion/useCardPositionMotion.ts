@@ -27,6 +27,7 @@ export const useCardPositionMotion = (
 		(root?: HTMLElement) => {
 			for (const motion of activeMotions.current) motion.complete();
 			activeMotions.current = [];
+			dropOrigin.current = null;
 			const board = boardRef.current;
 			if (board === null) return;
 			const scope = root ?? board;
