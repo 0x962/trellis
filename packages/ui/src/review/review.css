@@ -4,6 +4,8 @@
 
 :root {
 	--review-sheet-width: min(100vw, 32rem);
+	--review-filter-width: 260px;
+	--review-row-icon-size: 14px;
 }
 .review-page,
 .review-workspace,

@@ -1,42 +1,16 @@
 /*
- * Two typefaces carry the interface. Inter carries every word of the
- * interface, ticket titles included. The mono stack carries the ticket
- * identifiers, which a component marks with the font-mono class, and the
- * code blocks and raw terminal output, whose spacing lines up only in a
- * monospace face.
- *
- * BerkeleyMono leads the mono stack in tokens.css and is licensed per
- * machine, so this repo ships no file for it and declares no face. A machine
- * with the font installed picks it up from the stack. Every other machine
- * falls through to JetBrains Mono from fontsource. Only the latin subset of
- * each font is declared. JetBrains Mono maps 400, 500, and 600 requests to
- * one file, so the browser downloads one mono face. The Inter
- * face below is the latin entry of @fontsource-variable/inter/wght.css, with
- * its unicode-range. Each fallback face is metric-matched to its web font, so
- * text set before that font arrives occupies the same lines and nothing
- * shifts when it swaps in.
+ * Berkeley Mono has a per-machine license, so this repository does not include it.
+ * The Inter range comes from @fontsource-variable/inter/wght.css.
+ * Metric-matched fallbacks prevent layout changes while the web fonts load.
+ * JetBrains Mono ships the 400 file alone. The 500 and 600 files add 42.7 KiB,
+ * and apps/web/scripts/size-budget.ts holds every asset to 900 KiB. A face that
+ * names a weight it does not carry hides that limit, so no such face exists here.
  */
 @font-face {
 	font-family: "JetBrains Mono";
 	font-style: normal;
 	font-display: swap;
 	font-weight: 400;
-	src: url("@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2") format("woff2");
-}
-
-@font-face {
-	font-family: "JetBrains Mono";
-	font-style: normal;
-	font-display: swap;
-	font-weight: 500;
-	src: url("@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2") format("woff2");
-}
-
-@font-face {
-	font-family: "JetBrains Mono";
-	font-style: normal;
-	font-display: swap;
-	font-weight: 600;
 	src: url("@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2") format("woff2");
 }
 

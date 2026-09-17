@@ -11,6 +11,7 @@ import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
 import { DiffLine } from "./DiffLine";
+import { loadReviewFileContents } from "./loadReviewFileContents";
 import { parseReviewFiles, type ReviewFile } from "./parseReviewFiles";
 import {
 	buildReviewRows,
@@ -47,12 +48,6 @@ const orderedAnchor = (start: DiffAnchor, end: DiffAnchor): DiffAnchor => ({
 	startLine: Math.min(start.line, end.line),
 	line: Math.max(start.line, end.line),
 });
-
-const splitContent = (content: string) => {
-	const lines = content.split(/\r?\n/);
-	if (lines.at(-1) === "") lines.pop();
-	return lines;
-};
 
 const fileLabel = (file: ReviewFile) => (file.prevName ? `${file.prevName} → ${file.name}` : file.name);
 
@@ -136,17 +131,8 @@ export function ReviewDiff({
 			});
 			return;
 		}
-		const oldName = file.prevName ?? file.name;
-		const [oldContent, newContent] = await Promise.all([
-			file.type === "new" ? undefined : loadFile!(oldName, "old"),
-			file.type === "deleted" ? undefined : loadFile!(file.name, "new"),
-		]);
-		setExpanded((current) =>
-			new Map(current).set(file.name, {
-				...(oldContent === undefined ? {} : { oldLines: splitContent(oldContent) }),
-				...(newContent === undefined ? {} : { newLines: splitContent(newContent) }),
-			}),
-		);
+		const contents = await loadReviewFileContents(loadFile!, file);
+		setExpanded((current) => new Map(current).set(file.name, contents));
 	};
 	const annotation = (metadata: string) => (
 		<div className="review-diff-annotation" key={metadata}>

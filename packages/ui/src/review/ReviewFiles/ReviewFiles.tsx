@@ -1,4 +1,5 @@
 import { type CSSProperties, type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { Input } from "../../primitives/Input";
 import { useVirtualRows } from "../useVirtualRows";
 
@@ -83,9 +84,16 @@ export function ReviewFiles({ files, selected, counts, onSelect, search, onSearc
 	const rows = useMemo(() => visibleRows(nodes, expanded, search), [nodes, expanded, search]);
 	const rowElements = useRef(new Map<string, HTMLElement>());
 	const treeRef = useRef<HTMLDivElement>(null);
-	const hasMatches = rows.some((row) => row.type === "file");
-	const focusPath = rows.some((row) => row.path === selected) ? selected : rows[0]?.path;
-	const sizes = useMemo(() => Array.from({ length: rows.length }, () => 28), [rows.length]);
+	// review-tree.css draws a 28 px row, and 44 px under a coarse pointer.
+	// The virtual list reads the same media query, so its row offsets match
+	// the rows a touch device draws.
+	const coarse = useMediaQuery("(pointer: coarse)");
+	const hasMatches = useMemo(() => rows.some((row) => row.type === "file"), [rows]);
+	const focusPath = useMemo(
+		() => (rows.some((row) => row.path === selected) ? selected : rows[0]?.path),
+		[rows, selected],
+	);
+	const sizes = useMemo(() => Array.from({ length: rows.length }, () => (coarse ? 44 : 28)), [rows.length, coarse]);
 	const virtual = useVirtualRows(treeRef, sizes);
 	useEffect(() => {
 		const index = rows.findIndex((row) => row.path === selected);

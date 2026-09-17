@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { ShellSidebar } from "../ShellSidebar";
 
 export type ShellFrameProps = {
-	// children holds the main pane content. An omitted value shows the loading placeholder.
 	children?: ReactNode;
 };
 

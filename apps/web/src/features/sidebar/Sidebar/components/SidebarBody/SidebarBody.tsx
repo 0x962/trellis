@@ -1,16 +1,8 @@
-import {
-	FlowArrow,
-	GitPullRequest,
-	MagnifyingGlass,
-	Plus,
-	SidebarSimple,
-	Sparkle,
-	Ticket,
-	Tray,
-} from "@phosphor-icons/react";
+import { Plus, SidebarSimple } from "@phosphor-icons/react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ActivityDot, cx, IconButton, Kbd, Tooltip } from "@trellis/ui";
 import type { ReactElement, ReactNode } from "react";
+import { navRows, type NavTarget } from "../../../../navRows";
 import { useApp } from "../../../../../lib/appContext";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
 import { useNeedsYouSummary } from "../../../../needs-you/useNeedsYou";
@@ -21,8 +13,6 @@ import { ConnectionPanel } from "../ConnectionPanel";
 
 const rowClass =
 	"sidebar-row pl-2 text-sm text-fg-muted hover:bg-elevated hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
-
-type NavTarget = "/reviews" | "/needs-you" | "/search" | "/all" | "/ai/personas" | "/ai/flows";
 
 type NavRowProps = {
 	to: NavTarget;
@@ -117,24 +107,17 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 				</div>
 			)}
 			<nav aria-label="Workspace" className="flex flex-col gap-0.5">
-				<NavRow
-					to="/needs-you"
-					hasItems={(inbox.data?.active ?? 0) > 0}
-					icon={<Tray />}
-					label="Needs you"
-					active={isActive(pathname, "/needs-you")}
-				/>
-				<NavRow
-					to="/search"
-					icon={<MagnifyingGlass />}
-					label="Search"
-					active={isActive(pathname, "/search")}
-					trailing={collapsed ? undefined : <Kbd>/</Kbd>}
-				/>
-				<NavRow to="/all" icon={<Ticket />} label="All tickets" active={isActive(pathname, "/all")} />
-				<NavRow to="/reviews" icon={<GitPullRequest />} label="Pull requests" active={isActive(pathname, "/reviews")} />
-				<NavRow to="/ai/personas" icon={<Sparkle />} label="Personas" active={isActive(pathname, "/ai/personas")} />
-				<NavRow to="/ai/flows" icon={<FlowArrow />} label="Flows" active={isActive(pathname, "/ai/flows")} />
+				{navRows.map((row) => (
+					<NavRow
+						key={row.to}
+						to={row.to}
+						hasItems={row.to === "/needs-you" ? (inbox.data?.active ?? 0) > 0 : undefined}
+						icon={row.icon}
+						label={row.label}
+						active={isActive(pathname, row.to)}
+						trailing={row.to === "/search" && !collapsed ? <Kbd>/</Kbd> : undefined}
+					/>
+				))}
 			</nav>
 			<div hidden={collapsed} className="mt-3 min-h-0 flex-1 overflow-y-auto pb-2">
 				<div className="sidebar-section">

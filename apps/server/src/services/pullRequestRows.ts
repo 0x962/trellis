@@ -5,7 +5,7 @@ import type { Tx } from "../db/tx.ts";
 import type { ActorRef } from "./support.ts";
 import { notFound } from "./support.ts";
 
-export type PrRow = {
+export type PullRequestRow = {
 	id: string;
 	owner: string;
 	repo: string;
@@ -28,21 +28,21 @@ export type PrRow = {
 	updated_at: string;
 };
 
-export type LinkRow = PrRow & {
+export type LinkedPullRequestRow = PullRequestRow & {
 	source: LinkedPullRequest["source"];
 	actor_name: string;
 	actor_display_name: string | null;
 	actor_kind: ActorRef["kind"];
 };
 
-export const prColumns = sql`
+export const pullRequestColumns = sql`
 	p.id, p.owner, p.repo, p.number, p.url, p.title, p.state, p.is_draft, p.head_ref, p.base_ref, p.review_state,
 	${iso(sql`p.merged_at`)} AS merged_at, ${iso(sql`p.closed_at`)} AS closed_at, p.checks, p.ci_state,
 	p.content_hash, ${iso(sql`p.fetched_at`)} AS fetched_at, p.fetch_error,
 	${iso(sql`p.created_at`)} AS created_at, ${iso(sql`p.updated_at`)} AS updated_at
 `;
 
-export const toPullRequest = (row: PrRow): PullRequest => ({
+export const toPullRequest = (row: PullRequestRow): PullRequest => ({
 	id: row.id,
 	owner: row.owner,
 	repo: row.repo,
@@ -64,7 +64,7 @@ export const toPullRequest = (row: PrRow): PullRequest => ({
 	updatedAt: row.updated_at,
 });
 
-export const toLinked = (row: LinkRow, linkedAt: string): LinkedPullRequest => ({
+export const toLinkedPullRequest = (row: LinkedPullRequestRow, linkedAt: string): LinkedPullRequest => ({
 	...toPullRequest(row),
 	source: row.source,
 	linkedBy: {
@@ -75,8 +75,8 @@ export const toLinked = (row: LinkRow, linkedAt: string): LinkedPullRequest => (
 	linkedAt,
 });
 
-export const findRow = async (tx: Tx, id: string): Promise<PrRow> => {
-	const [row] = await rows<PrRow>(tx, sql`SELECT ${prColumns} FROM pull_requests p WHERE p.id = ${id}`);
+export const findPullRequestRow = async (tx: Tx, id: string): Promise<PullRequestRow> => {
+	const [row] = await rows<PullRequestRow>(tx, sql`SELECT ${pullRequestColumns} FROM pull_requests p WHERE p.id = ${id}`);
 	if (row === undefined) throw notFound("pullRequest", id);
 	return row;
 };

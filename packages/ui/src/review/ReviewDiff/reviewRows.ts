@@ -2,7 +2,7 @@ import type { DiffAnchor, DiffThread } from "./ReviewDiff";
 import { lineAnnotations } from "./lineAnnotations";
 import type { ReviewFile, ReviewHunk } from "./parseReviewFiles";
 
-export type DiffLine = {
+export type ReviewDiffLine = {
 	type: "context" | "addition" | "deletion";
 	text: string;
 	oldLine?: number;
@@ -14,13 +14,13 @@ export type ExpandedFile = { oldLines?: string[]; newLines?: string[] };
 export type ReviewRow =
 	| { kind: "file"; key: string; file: ReviewFile }
 	| { kind: "hunk"; key: string; file: ReviewFile; specs: string }
-	| { kind: "unified"; key: string; file: ReviewFile; line: DiffLine; annotations: string[] }
+	| { kind: "unified"; key: string; file: ReviewFile; line: ReviewDiffLine; annotations: string[] }
 	| {
 			kind: "split";
 			key: string;
 			file: ReviewFile;
-			oldLine?: DiffLine;
-			newLine?: DiffLine;
+			oldLine?: ReviewDiffLine;
+			newLine?: ReviewDiffLine;
 			oldAnnotations: string[];
 			newAnnotations: string[];
 	  }
@@ -29,8 +29,8 @@ export type ReviewRow =
 
 const text = (value: string) => value.replace(/\r?\n$/, "");
 
-const hunkLines = (file: ReviewFile, hunk: ReviewHunk): DiffLine[] =>
-	hunk.hunkContent.flatMap<DiffLine>((content): DiffLine[] => {
+const hunkLines = (file: ReviewFile, hunk: ReviewHunk): ReviewDiffLine[] =>
+	hunk.hunkContent.flatMap<ReviewDiffLine>((content): ReviewDiffLine[] => {
 		if (content.type === "context")
 			return Array.from({ length: content.lines }, (_, index) => ({
 				type: "context" as const,
@@ -52,8 +52,8 @@ const hunkLines = (file: ReviewFile, hunk: ReviewHunk): DiffLine[] =>
 		];
 	});
 
-const splitLines = (lines: DiffLine[]): [DiffLine | undefined, DiffLine | undefined][] => {
-	const rows: [DiffLine | undefined, DiffLine | undefined][] = [];
+const splitLines = (lines: ReviewDiffLine[]): [ReviewDiffLine | undefined, ReviewDiffLine | undefined][] => {
+	const rows: [ReviewDiffLine | undefined, ReviewDiffLine | undefined][] = [];
 	for (let index = 0; index < lines.length; ) {
 		const line = lines[index]!;
 		if (line.type === "context") {
@@ -61,8 +61,8 @@ const splitLines = (lines: DiffLine[]): [DiffLine | undefined, DiffLine | undefi
 			index += 1;
 			continue;
 		}
-		const deletions: DiffLine[] = [];
-		const additions: DiffLine[] = [];
+		const deletions: ReviewDiffLine[] = [];
+		const additions: ReviewDiffLine[] = [];
 		while (lines[index]?.type === "deletion") deletions.push(lines[index++]!);
 		while (lines[index]?.type === "addition") additions.push(lines[index++]!);
 		const count = Math.max(deletions.length, additions.length);
@@ -79,7 +79,7 @@ const contextLines = (
 	newEnd: number,
 ) => {
 	const count = Math.max(oldEnd - oldStart, newEnd - newStart);
-	return Array.from({ length: count }, (_, index): DiffLine => {
+	return Array.from({ length: count }, (_, index): ReviewDiffLine => {
 		const oldLine = oldStart + index < oldEnd ? oldStart + index : undefined;
 		const newLine = newStart + index < newEnd ? newStart + index : undefined;
 		const oldText = oldLine === undefined ? undefined : contents.oldLines?.[oldLine - 1];
@@ -88,7 +88,7 @@ const contextLines = (
 	});
 };
 
-type Section = { specs?: string; lines: DiffLine[] };
+type Section = { specs?: string; lines: ReviewDiffLine[] };
 
 const sections = (file: ReviewFile, contents?: ExpandedFile): Section[] => {
 	if (!contents) return file.hunks.map((hunk) => ({ specs: hunk.hunkSpecs, lines: hunkLines(file, hunk) }));

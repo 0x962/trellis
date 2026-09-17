@@ -2,7 +2,7 @@ import { Plus } from "@phosphor-icons/react";
 import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
 import type { DiffAnchor } from "./ReviewDiff";
-import type { DiffLine as Line } from "./reviewRows";
+import type { ReviewDiffLine } from "./reviewRows";
 
 type SelectLine = (anchor: DiffAnchor, extend?: boolean) => void;
 
@@ -16,7 +16,7 @@ export function DiffLine({
 	endPointer,
 }: {
 	file: string;
-	line?: Line;
+	line?: ReviewDiffLine;
 	side: "old" | "new";
 	index: string;
 	select: SelectLine;

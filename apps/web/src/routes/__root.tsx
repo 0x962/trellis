@@ -2,7 +2,7 @@ import { createRootRouteWithContext, Link, Outlet, redirect, useRouterState } fr
 import { EmptyState, Toaster } from "@trellis/ui";
 import { lazy, Suspense, useEffect } from "react";
 import { GlobalHotkeys } from "../features/shell/GlobalHotkeys";
-import { GlobalSurfaces } from "../features/shell/GlobalSurfaces";
+import { ShellOverlays } from "../features/shell/ShellOverlays";
 import { linkButtonClass } from "../features/shell/linkButtonClass";
 import { RouteError } from "../features/shell/RouteError";
 import { RouteProgress } from "../features/shell/RouteProgress";
@@ -99,7 +99,7 @@ function RootComponent() {
 			</div>
 			<div data-command-palette="" hidden />
 			<GlobalHotkeys />
-			<GlobalSurfaces />
+			<ShellOverlays />
 			<Toaster />
 		</div>
 	);

@@ -11,8 +11,8 @@ declare global {
 // a valid request URL.
 // The same-origin policy is off, so a page reads a URL of another origin.
 GlobalRegistrator.register({ url: "http://trellis.local/", settings: { fetch: { disableSameOriginPolicy: true } } });
-// Happy DOM registers classic Node streams beside its Web Stream response body.
-// One Web Streams implementation keeps response decoding compatible.
+// Happy DOM mixes Node.js streams with the Web Streams API in its response body.
+// Use the `node:stream/web` classes for all stream globals so response decoding works.
 Object.assign(globalThis, { ReadableStream, WritableStream, TransformStream, TextDecoderStream, TextEncoderStream });
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 

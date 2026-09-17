@@ -1,14 +1,5 @@
-import { FlowArrow, GitPullRequest, ListBullets, MagnifyingGlass, Sparkle, Tray } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
-
-const rows = [
-	{ to: "/needs-you", label: "Needs you", icon: <Tray /> },
-	{ to: "/search", label: "Search", icon: <MagnifyingGlass /> },
-	{ to: "/all", label: "All tickets", icon: <ListBullets /> },
-	{ to: "/reviews", label: "Pull requests", icon: <GitPullRequest /> },
-	{ to: "/ai/personas", label: "Personas", icon: <Sparkle /> },
-	{ to: "/ai/flows", label: "Flows", icon: <FlowArrow /> },
-] as const;
+import { navRows } from "../../navRows";
 
 // ShellSidebar uses the static rows list, so the root route can paint it before route data arrives.
 export function ShellSidebar() {
@@ -20,7 +11,7 @@ export function ShellSidebar() {
 		>
 			{/* SidebarBody puts its collapse button in a row of this height. */}
 			<div className="mb-1 h-13 shrink-0" />
-			{rows.map((row) => (
+			{navRows.map((row) => (
 				<Link
 					key={row.to}
 					to={row.to}

@@ -29,8 +29,6 @@ export const buttonVariants: Record<ButtonVariant, string> = {
 // on every variant and the hover keeps the fill.
 export const pressedLook = "bg-accent-soft border-accent text-fg enabled:active:brightness-95";
 
-// Every disabled control has no hover. Quiet takes a faint label. A variant
-// with a ground takes the surface and the quiet border.
 export const disabledLook = (variant: ButtonVariant) =>
 	variant === "quiet"
 		? "disabled:text-fg-faint"

@@ -10,19 +10,18 @@ const monoHead = ['"BerkeleyMono"', '"JetBrains Mono"', '"JetBrains Mono Fallbac
 const sansHead = ['"Inter Variable"', '"Inter Fallback"'];
 
 describe("fonts.css", () => {
-	// The mono stack carries the ticket identifiers and the code blocks. A
-	// bold heading that holds inline code asks for 600, so the stylesheet
-	// declares 400, 500, and 600.
-	test("fonts.css reuses one latin JetBrains Mono WOFF2 file for weights 400, 500, and 600", async () => {
+	// Every JetBrains Mono face has to load the file of the weight it names.
+	// A face that names 500 or 600 and loads the 400 file renders mono text
+	// at regular weight and hides the missing file.
+	test("each JetBrains Mono face loads the file of its own weight", async () => {
 		const pieces = await fonts();
 		const mono = blocks(pieces)
 			.filter((piece) => piece.prelude === "@font-face")
 			.map((piece) => piece.declarations)
 			.filter((face) => face["font-family"] === '"JetBrains Mono"');
-		expect(mono.map((face) => face["font-weight"])).toEqual(["400", "500", "600"]);
-		expect(new Set(mono.map((face) => face.src)).size).toBe(1);
+		expect(mono.map((face) => face["font-weight"])).toEqual(["400"]);
 		for (const face of mono) {
-			expect(face.src).toContain("@fontsource/jetbrains-mono/files/jetbrains-mono-latin-");
+			expect(face.src).toContain(`@fontsource/jetbrains-mono/files/jetbrains-mono-latin-${face["font-weight"]}-normal`);
 			expect(face.src).toEndWith('.woff2") format("woff2")');
 			expect(face.src).not.toContain('.woff")');
 		}
@@ -49,14 +48,7 @@ describe("fonts.css", () => {
 			.map((piece) => piece.declarations["font-family"]);
 		expect(families).not.toContain('"BerkeleyMono"');
 		expect(families.sort()).toEqual(
-			[
-				'"Inter Fallback"',
-				'"Inter Variable"',
-				'"JetBrains Mono"',
-				'"JetBrains Mono"',
-				'"JetBrains Mono"',
-				'"JetBrains Mono Fallback"',
-			].sort(),
+			['"Inter Fallback"', '"Inter Variable"', '"JetBrains Mono"', '"JetBrains Mono Fallback"'].sort(),
 		);
 	});
 

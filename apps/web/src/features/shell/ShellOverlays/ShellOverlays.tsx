@@ -7,7 +7,7 @@ const ComposerHost = lazy(() =>
 	import("../../composer/ComposerHost").then((module) => ({ default: module.ComposerHost })),
 );
 
-export function GlobalSurfaces() {
+export function ShellOverlays() {
 	return (
 		<Suspense fallback={null}>
 			<CommandPalette />
