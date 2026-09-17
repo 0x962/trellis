@@ -2,7 +2,14 @@ import { z } from "zod";
 import { ProjectRefStringSchema, StatusRefStringSchema, TicketRefStringSchema } from "../refs.ts";
 import { ActorRefSchema } from "./actor.ts";
 import { AttachmentSchema } from "./attachment.ts";
-import { CiStateSchema, PrioritySchema, PrStateSchema, ReviewerSchema, StatusCategorySchema } from "./enums.ts";
+import {
+	CiStateSchema,
+	PrioritySchema,
+	PrStateSchema,
+	ReviewerSchema,
+	ReviewStateSchema,
+	StatusCategorySchema,
+} from "./enums.ts";
 import { booleanString, CountSchema, commaList, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 import { ProjectLinkSchema } from "./project.ts";
 import { LinkedPullRequestSchema } from "./pullRequest.ts";
@@ -17,11 +24,12 @@ const TitleSchema = z
 
 const IdentifierSchema = z.string().regex(/^[A-Z][A-Z0-9]{1,9}-[1-9][0-9]*$/);
 
-// The PR badge on a row: the worst state across the ticket's pull requests
-// and the check counts behind the ribbon.
+// The PR badge on a row: the pull request and review states that need the
+// most work, plus the check counts behind the ribbon.
 const PrBadgeSchema = z.object({
 	state: PrStateSchema,
 	ciState: CiStateSchema,
+	reviewState: ReviewStateSchema,
 	pass: CountSchema,
 	fail: CountSchema,
 	pending: CountSchema,
