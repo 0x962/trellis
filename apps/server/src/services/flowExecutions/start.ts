@@ -7,7 +7,6 @@ import { requireActor, type ServiceCtx } from "../../context.ts";
 import { rows, textArray } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
-import { assertNativeWorkEnabled } from "../agentRuns/nativeControl.ts";
 import { assertVersion, readDoc, resolveFlow } from "../flows/queries.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive, resolveTicket } from "../refs.ts";
@@ -27,7 +26,6 @@ export async function start(ctx: ServiceCtx, tx: Tx, input: FlowExecutionStartIn
 	};
 	const [previous] = await lookup();
 	if (previous) return replay(previous);
-	await assertNativeWorkEnabled(tx);
 	const ticket = await resolveTicket(ctx, tx, input.ticket);
 	assertProjectActive(ctx, ticket.projectId);
 	await assertAssignmentOwner(ctx, tx, ticket.projectId);

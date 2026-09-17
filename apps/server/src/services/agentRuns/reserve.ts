@@ -17,7 +17,6 @@ import { notesLines } from "../notes/text.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive, chainOf, pathOf, resolveMutableProject, resolveTicket } from "../refs.ts";
 import { assertAssignmentOwner } from "../submanagers/access.ts";
-import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import { columns, type StoredRun } from "./queries.ts";
 
 // The newest manager row is the current assignment; older rows retain their history.
@@ -99,7 +98,6 @@ export const reserve = async (
 			};
 	}
 	if (input.harness) config = { ...config, harness: HarnessSchema.parse(input.harness), accountId: null };
-	await assertNativeWorkEnabled(tx);
 	if (ticket !== null) {
 		await assertAssignmentOwner(ctx, tx, project.id);
 		const assigned = await rows(
