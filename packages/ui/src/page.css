@@ -1,4 +1,6 @@
 @utility page-inset {
+	@apply m-1 overflow-hidden rounded-lg border border-border max-md:m-0 max-md:rounded-none max-md:border-0;
+
 	& > .page-card:first-child {
 		@apply mt-13;
 	}

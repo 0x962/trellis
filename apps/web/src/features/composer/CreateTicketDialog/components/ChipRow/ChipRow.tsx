@@ -43,6 +43,8 @@ const chip = ({ label, icon, children, unset = false, invalid = false, disabled 
 	<button
 		type="button"
 		aria-label={label}
+		aria-invalid={invalid || undefined}
+		aria-describedby={invalid ? "new-ticket-project-error" : undefined}
 		disabled={disabled}
 		className={cx(
 			"inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border px-2 text-sm whitespace-nowrap transition-colors duration-hover ease-out",
@@ -85,54 +87,61 @@ export function ChipRow({
 	const projectName = project === undefined ? "Choose a project" : projectSlashPath(project);
 	const parentName = parent?.identifier ?? parentRef;
 	return (
-		<div className="flex flex-wrap items-center gap-1.5">
-			<ProjectPicker
-				projects={projects}
-				value={project}
-				onPick={onProject}
-				trigger={chip({
-					label: `Project: ${projectName}`,
-					icon: <FolderOpen />,
-					unset: project === undefined,
-					invalid: projectMissing,
-					children: projectName,
-				})}
-			/>
-			<StatusPicker
-				statuses={statuses}
-				value={status?.id}
-				onPick={onStatus}
-				trigger={chip({
-					label: `Status: ${status?.name ?? "None"}`,
-					icon:
-						status === undefined ? undefined : (
-							<StatusIcon category={status.category} reviewer={status.reviewer ?? undefined} />
-						),
-					disabled: statuses.length === 0,
-					children: status?.name ?? "Status",
-				})}
-			/>
-			<PriorityPicker
-				value={priority}
-				onPick={onPriority}
-				trigger={chip({
-					label: `Priority: ${priorityLabels[priority]}`,
-					icon: <PriorityIcon priority={priority} />,
-					unset: priority === "none",
-					children: priority === "none" ? "Priority" : priorityLabels[priority],
-				})}
-			/>
-			<TicketPicker
-				project={project}
-				value={parentName}
-				onPick={onParent}
-				trigger={chip({
-					label: `Parent: ${parentName ?? "None"}`,
-					icon: <ArrowElbowDownRight />,
-					unset: parentName === undefined,
-					children: parentName ?? "Parent",
-				})}
-			/>
+		<div className="flex flex-col gap-1 px-2 pb-2 pt-1">
+			<div className="flex flex-wrap items-center gap-1.5">
+				<ProjectPicker
+					projects={projects}
+					value={project}
+					onPick={onProject}
+					trigger={chip({
+						label: `Project: ${projectName}`,
+						icon: <FolderOpen />,
+						unset: project === undefined,
+						invalid: projectMissing,
+						children: projectName,
+					})}
+				/>
+				<StatusPicker
+					statuses={statuses}
+					value={status?.id}
+					onPick={onStatus}
+					trigger={chip({
+						label: `Status: ${status?.name ?? "None"}`,
+						icon:
+							status === undefined ? undefined : (
+								<StatusIcon category={status.category} reviewer={status.reviewer ?? undefined} />
+							),
+						disabled: statuses.length === 0,
+						children: status?.name ?? "Status",
+					})}
+				/>
+				<PriorityPicker
+					value={priority}
+					onPick={onPriority}
+					trigger={chip({
+						label: `Priority: ${priorityLabels[priority]}`,
+						icon: <PriorityIcon priority={priority} />,
+						unset: priority === "none",
+						children: priority === "none" ? "Priority" : priorityLabels[priority],
+					})}
+				/>
+				<TicketPicker
+					project={project}
+					value={parentName}
+					onPick={onParent}
+					trigger={chip({
+						label: `Parent: ${parentName ?? "None"}`,
+						icon: <ArrowElbowDownRight />,
+						unset: parentName === undefined,
+						children: parentName ?? "Parent",
+					})}
+				/>
+			</div>
+			{projectMissing && (
+				<p id="new-ticket-project-error" role="alert" className="text-xs text-danger">
+					Choose a project.
+				</p>
+			)}
 		</div>
 	);
 }

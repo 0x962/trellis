@@ -1,19 +1,26 @@
 import type { ActorRef } from "@trellis/api";
-import { Avatar } from "@trellis/ui";
-import { isAgentWorking } from "../isAgentWorking";
+import { ActorChip as ActorChipView } from "@trellis/ui";
 import { personaKindOf } from "../personaKindOf";
 import { useActorRun } from "../useActorRun";
 
-export function ActorAvatar({ actor, ticketId }: { actor: ActorRef; ticketId: string }) {
+export function ActorChip({
+	actor,
+	compact = false,
+	className,
+}: {
+	actor: ActorRef;
+	compact?: boolean;
+	className?: string;
+}) {
 	const run = useActorRun(actor);
 	if (actor.kind === "system") return null;
-	const working = run !== undefined && run.ticketId === ticketId && isAgentWorking(run);
 	return (
-		<Avatar
-			kind={actor.kind}
+		<ActorChipView
 			name={actor.displayName ?? actor.name}
+			kind={actor.kind}
 			personaKind={run === undefined ? undefined : personaKindOf(run.kind)}
-			state={working ? "working-mild" : "static"}
+			compact={compact}
+			className={className}
 		/>
 	);
 }
