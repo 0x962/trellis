@@ -14,12 +14,6 @@ export type ChannelListProps = {
 	onOpen: (name: string) => void;
 };
 
-// The channels of the room in three groups: the channels everyone posts in
-// first, with no heading, then Direct messages with the manager, then the
-// AI heading and the channels for agents only. A channel for agents carries
-// a lock in place of the `#`; the direct message carries the manager's mark
-// and name. A row shows a dot when the channel holds unread messages, and
-// its message count.
 export function ChannelList({ channels, managerName, open, unread, pending, error, onOpen }: ChannelListProps) {
 	const shared = channels.filter((channel) => !channel.aiOnly && !channel.direct);
 	const directs = channels.filter((channel) => channel.direct);
@@ -71,13 +65,13 @@ export function ChannelList({ channels, managerName, open, unread, pending, erro
 					{error}
 				</p>
 			)}
-			<ul className="flex flex-col">{shared.map(row)}</ul>
 			{directs.length > 0 && (
 				<>
-					<SectionHeader title="Direct messages" level={3} className="mt-3 px-3" />
+					<SectionHeader title="Direct messages" level={3} className="px-3" />
 					<ul className="flex flex-col">{directs.map(row)}</ul>
 				</>
 			)}
+			<ul className={cx("flex flex-col", directs.length > 0 && "mt-3")}>{shared.map(row)}</ul>
 			{agents.length > 0 && (
 				<>
 					<SectionHeader title="AI" level={3} className="mt-3 px-3" />
