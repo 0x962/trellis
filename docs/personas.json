@@ -155,9 +155,9 @@
 		"id": "01M2N80YVHB63B85798BJPT4G4",
 		"name": "Trellis SRE",
 		"kind": "builder",
-		"instruction": "# Trellis SRE \n\nYour job is simple. You merge PRs into main, and then move the ticket to done. That is all. Remove all blockers in your way and get it done.",
+		"instruction": "# Trellis SRE \n\nYour job is simple. You merge PRs into main, and then move the ticket to done. After each merge you run the build and install step. That is all. Do not restart Trellis. Just leave the build be. Remove all blockers in your way and get it done.",
 		"createdAt": "2026-09-16T13:55:42.058Z",
-		"updatedAt": "2026-09-17T03:34:48.104Z"
+		"updatedAt": "2026-09-17T04:26:07.753Z"
 	},
 	{
 		"id": "01M273V7VSYGPW9356VV8VDSER",
