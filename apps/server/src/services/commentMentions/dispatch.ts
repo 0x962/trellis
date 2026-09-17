@@ -1,6 +1,7 @@
 import { ORPCError } from "@orpc/server";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
+import { nativePreset } from "../../agents/native/harnessHost.ts";
 import { rows } from "../../db/queries/support.ts";
 import { prepareStart } from "../agentRuns/agentRuns.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
@@ -53,6 +54,7 @@ export const dispatchMentions = async (
 	ctx: ServiceCtx,
 	sessions: RuntimeProcessStatus[],
 	send = prepareSend,
+	preset = nativePreset,
 	start = startAssignment,
 ) => {
 	const deleted = await ctx.newTx((tx) =>
@@ -166,6 +168,7 @@ export const dispatchMentions = async (
 			await sendDeadline(
 				send(ctx, {
 					id: delivery.runId,
+					interrupt: (await preset(ctx.home, delivery.terminalId)) !== "custom",
 					text:
 						delivery.kind === "manager"
 							? JSON.stringify({

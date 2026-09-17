@@ -3,7 +3,7 @@ import { ORPCError } from "@orpc/server";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { prepareSend } from "../../../../../src/services/agentRuns/communication.ts";
-import { dispatchMentions } from "../../../../../src/services/commentMentions/dispatch.ts";
+import { dispatchMentions as dispatch } from "../../../../../src/services/commentMentions/dispatch.ts";
 import { create } from "../../../../../src/services/comments.ts";
 import { recover } from "../../../../../src/services/controller/controller.ts";
 import { seedProject, seedTicket } from "../../../../fixtures";
@@ -11,6 +11,9 @@ import { controllerSession } from "../../../../helpers/controllerSession.ts";
 import { testCtx } from "../../../../helpers/ctx.ts";
 import { type Harness, serviceHarness } from "../../../../helpers/services.ts";
 import { assertStatusInvariant } from "../../../../invariants.ts";
+
+const dispatchMentions = (...args: Parameters<typeof dispatch>) =>
+	dispatch(args[0], args[1], args[2], async () => "claude");
 
 let h: Harness;
 let commentId: string;
@@ -39,6 +42,7 @@ test("a mention delivers once to its captured assignment and session", async () 
 	expect(await state()).toBe("sent");
 	expect(send.mock.calls[0]![1]).toMatchObject({
 		id: "537",
+		interrupt: true,
 		expectedTerminalId: "terminal",
 		expectedSessionId: "conversation",
 	});
@@ -166,7 +170,7 @@ test("a pending persona mention starts an assignment from the saved delivery", a
 			VALUES ('started','Release Builder',${personaId},'Release Builder','builder','Ship the change.',${target.project_id},'APP',${target.ticket_id},'started-terminal','started-session',now(),now())`);
 		return { id: "started" };
 	});
-	await dispatchMentions(ctx(), [], sent(), start);
+	await dispatchMentions(ctx(), [], sent(), async () => "claude", start);
 	expect(start).toHaveBeenCalledTimes(1);
 	expect(start.mock.calls[0]![1]).toMatchObject({
 		personaId,
@@ -200,7 +204,7 @@ test("a pending manager mention starts a project assignment", async () => {
 			VALUES ('started-manager','Release Manager',${personaId},'Release Manager','manager','Manage releases.',${target.project_id},'APP','manager-terminal','manager-session',now(),now())`);
 		return { id: "started-manager" };
 	});
-	await dispatchMentions(ctx(), [], sent(), start);
+	await dispatchMentions(ctx(), [], sent(), async () => "claude", start);
 	expect(start.mock.calls[0]![1]).toMatchObject({
 		personaId,
 		project: target.project_id,
@@ -225,7 +229,7 @@ test("a start that closes before dispatch saves the run error", async () => {
 			VALUES ('closed-start','Release Builder',${personaId},'Release Builder','builder','Ship the change.',${target.project_id},'APP',${target.ticket_id},'closed-terminal',now(),'The start command failed.',now(),now())`);
 		return { id: "closed-start" };
 	});
-	await dispatchMentions(ctx(), [], sent(), start);
+	await dispatchMentions(ctx(), [], sent(), async () => "claude", start);
 	expect(
 		await h.one<{ run_id: string | null; state: string; error: string | null }>(
 			sql`SELECT run_id,state,error FROM comment_deliveries WHERE comment_id=${comment.id}`,
@@ -255,7 +259,7 @@ test("a refused persona start saves the specific reason", async () => {
 			data: { field: "project concurrency limit" },
 		});
 	});
-	await dispatchMentions(ctx(), [], sent(), start);
+	await dispatchMentions(ctx(), [], sent(), async () => "claude", start);
 	expect(
 		await h.one<{ run_id: string | null; state: string; error: string | null }>(
 			sql`SELECT run_id,state,error FROM comment_deliveries WHERE comment_id=${comment.id}`,
@@ -276,7 +280,7 @@ test("persona deletion leaves a failed delivery instead of blocking the delete",
 		create(ctx, tx, { ticket: target.ticket_id, body: "@Release Builder ship this." }),
 	);
 	await h.rows(sql`DELETE FROM personas WHERE id=${personaId}`);
-	await dispatchMentions(ctx(), [], sent());
+	await dispatchMentions(ctx(), [], sent(), async () => "claude");
 	expect(
 		await h.one<{ run_id: string | null; state: string; error: string | null }>(
 			sql`SELECT run_id,state,error FROM comment_deliveries WHERE comment_id=${comment.id}`,
