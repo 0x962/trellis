@@ -86,7 +86,7 @@ export function HarnessSettings({
 							onValueChange={(value) => commit({ ...draft, accountId: value === "default" ? null : value })}
 						/>
 						<p className="manager-settings-hint">
-							The copilot uses this account at its next start or restart. Add accounts in Settings.
+							The copilot uses this account at its next start or restart. Add accounts on the Usage page.
 						</p>
 					</>
 				)}

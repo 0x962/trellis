@@ -8,6 +8,7 @@ import { prepareSetModel } from "./agentRuns/setModel/setModel.ts";
 import { stopNativeWork } from "./agentRuns/stopNativeWork.ts";
 import * as agentTerminal from "./agentRuns/terminal.ts";
 import { file as workspaceFile } from "./agentRuns/workspace/file.ts";
+import { lineStats as workspaceLineStats } from "./agentRuns/workspace/lineStats.ts";
 import { workspace } from "./agentRuns/workspace/workspace.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
@@ -134,6 +135,7 @@ export const services = {
 	"flowExecutions.reconcile": prepared("mutation", prepareFlowReconcile, agentTerminal.result),
 	"system.doctor": prepared("read", diagnostics, agentTerminal.result),
 	"system.stopNativeWork": prepared("mutation", stopNativeWork, agentTerminal.result),
+	"agentRuns.workspaceLineStats": prepared("read", workspaceLineStats, agentTerminal.result),
 	"agentRuns.workspace": prepared("read", workspace, agentTerminal.result),
 	"agentRuns.file": prepared("read", workspaceFile, agentTerminal.result),
 	"agentRuns.session": prepared("read", agentTerminal.session, agentTerminal.result),
@@ -178,6 +180,7 @@ export const services = {
 	"controller.dispatch": prepared("mutation", controllerDispatch.dispatch, controllerDispatch.finished),
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
 	"agentRuns.list": prepared("read", agentRuns.prepareList, agentTerminal.result),
+	"agentRuns.ticketMetrics": prepared("read", agentRuns.prepareTicketMetrics, agentTerminal.result),
 	"agentRuns.start": agentMutation(agentRuns.prepareStart),
 	"agentRuns.resume": agentMutation(prepareResume),
 	"agentRuns.setModel": agentMutation(prepareSetModel),
@@ -257,6 +260,7 @@ export const services = {
 	"settings.set": core("mutation", settings.set),
 	"loops.list": io("read", loops.list),
 	"loops.control": io("mutation", loops.control),
+	"loops.update": io("mutation", loops.update),
 	"system.health": io("read", system.health),
 	"system.load": prepared("read", system.prepareLoad, agentTerminal.result),
 	"system.snapshot": io("mutation", system.snapshot),

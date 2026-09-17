@@ -6,14 +6,35 @@ import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 import { executionEnvironment } from "../../executionEnvironment";
 import type { IoCtx } from "../support.ts";
+import { invalidateUsageAccounts } from "../usage/accounts.ts";
+import { invalidateUsageReports } from "../usage/usage.ts";
 import { resolveHostDefault, writeHostDefault } from "./hostDefault.ts";
 import { presentAccount } from "./presentation.ts";
-import { provisionProfile } from "./profiles.ts";
+import { provisionProfile, removeManagedProfile } from "./profiles.ts";
 import { type AccountRow, accountColumns, getAccount } from "./queries.ts";
 
 const requirePerson = (ctx: IoCtx) => {
-	if (ctx.actor.kind !== "human") throw invalidInput("actor", "A person manages the accounts in Settings.");
+	if (ctx.actor.kind !== "human") throw invalidInput("actor", "Only a person can manage accounts.");
 };
+
+const invalidateUsage = (ctx: IoCtx) =>
+	ctx.afterCommit(async () => {
+		invalidateUsageAccounts(ctx.home);
+		invalidateUsageReports(ctx.home);
+	});
+
+const nameIsUsed = async (tx: Tx, account: { id: string; name: string }) => {
+	const duplicates = await rows(
+		tx,
+		sql`SELECT id FROM harness_accounts WHERE name=${account.name} AND id<>${account.id} LIMIT 1`,
+	);
+	return duplicates.length > 0;
+};
+
+const requireUniqueName = async (tx: Tx, account: { id: string; name: string }) => {
+	if (await nameIsUsed(tx, account)) throw invalidInput("name", "This account name is already in use.");
+};
+
 // The default flag of each row prints as hostDefault.ts resolves it, so
 // the list agrees with the account a launch uses when the SuperSet pointer
 // names another profile than the Trellis flag.
@@ -33,11 +54,26 @@ export const list = async (_ctx: IoCtx, tx: Tx, _input: Record<string, never>) =
 export const prepareCreate = async (ctx: IoCtx, input: HarnessAccountCreate) => {
 	requirePerson(ctx);
 	const id = ulid();
+	await ctx.newTx((tx) => requireUniqueName(tx, { id, name: input.name }));
 	const env = await executionEnvironment();
-	return { ...input, id, profilePath: await provisionProfile(ctx.home, id, input, env) };
+	return {
+		...input,
+		id,
+		profilePath: await provisionProfile(ctx.home, id, input, env),
+		managedProfile: input.profilePath === undefined,
+	};
 };
-export const create = async (ctx: IoCtx, tx: Tx, input: HarnessAccountCreate & { id: string; profilePath: string }) => {
+export const create = async (
+	ctx: IoCtx,
+	tx: Tx,
+	input: HarnessAccountCreate & { id: string; profilePath: string; managedProfile: boolean },
+) => {
 	requirePerson(ctx);
+	await tx.execute(sql`LOCK TABLE harness_accounts IN SHARE ROW EXCLUSIVE MODE`);
+	if (await nameIsUsed(tx, input)) {
+		if (input.managedProfile) await removeManagedProfile(ctx.home, input.id);
+		throw invalidInput("name", "This account name is already in use.");
+	}
 	const duplicates = await rows(
 		tx,
 		sql`SELECT id FROM harness_accounts WHERE harness=${input.harness} AND profile_path=${input.profilePath} AND archived_at IS NULL`,
@@ -47,12 +83,14 @@ export const create = async (ctx: IoCtx, tx: Tx, input: HarnessAccountCreate & {
 		tx,
 		sql`INSERT INTO harness_accounts (id,name,harness,profile_path,created_at,updated_at) VALUES (${input.id},${input.name},${input.harness},${input.profilePath},${ctx.now()},${ctx.now()}) RETURNING ${accountColumns}`,
 	);
+	invalidateUsage(ctx);
 	return presentAccount(account!);
 };
 export const update = async (ctx: IoCtx, tx: Tx, input: HarnessAccountUpdate) => {
 	requirePerson(ctx);
-	await tx.execute(sql`LOCK TABLE harness_accounts IN ROW EXCLUSIVE MODE`);
+	await tx.execute(sql`LOCK TABLE harness_accounts IN SHARE ROW EXCLUSIVE MODE`);
 	const account = await getAccount(tx, input);
+	if (input.name) await requireUniqueName(tx, { id: account.id, name: input.name });
 	const enabled = input.enabled ?? account.enabled;
 	const isDefault = input.isDefault ?? account.isDefault;
 	if (isDefault && !enabled) throw invalidInput("enabled", "Clear the default before you disable this account.");
@@ -68,6 +106,7 @@ export const update = async (ctx: IoCtx, tx: Tx, input: HarnessAccountUpdate) =>
 	// the SuperSet pointer, once the transaction holds.
 	if (input.isDefault === true)
 		ctx.afterCommit(async () => writeHostDefault(account.harness, account.profilePath, await executionEnvironment()));
+	invalidateUsage(ctx);
 	return presentAccount(updated!);
 };
 export const remove = async (ctx: IoCtx, tx: Tx, input: { id: string }) => {
@@ -81,5 +120,6 @@ export const remove = async (ctx: IoCtx, tx: Tx, input: { id: string }) => {
 	await tx.execute(
 		sql`UPDATE harness_accounts SET archived_at=${ctx.now()},is_default=false,enabled=false,updated_at=${ctx.now()} WHERE id=${input.id}`,
 	);
+	invalidateUsage(ctx);
 	return input;
 };

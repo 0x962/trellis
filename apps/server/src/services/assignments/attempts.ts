@@ -1,12 +1,21 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { sql } from "drizzle-orm";
 import type { RequestContext } from "../../context.ts";
-import { rows } from "../../db/queries/support.ts";
+import { rows, textArray } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 
 export type ExecutionAttempt = { id: string; generation: number; token: string };
+export type ExecutionAttemptRecord = { id: string; runId: string };
 const tokenHash = (token: string) => createHash("sha256").update(token).digest("hex");
+
+export const listExecutionAttempts = (tx: Tx, runIds: string[]) =>
+	runIds.length === 0
+		? Promise.resolve([] as ExecutionAttemptRecord[])
+		: rows<ExecutionAttemptRecord>(
+				tx,
+				sql`SELECT id, run_id AS "runId" FROM agent_execution_attempts WHERE run_id = ANY(${textArray(runIds)}) ORDER BY generation`,
+			);
 
 export const reserveAttempt = async (
 	ctx: Pick<RequestContext, "now">,

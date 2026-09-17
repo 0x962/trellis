@@ -9,13 +9,19 @@ const minute = 60 * second;
 const hour = 60 * minute;
 const day = 24 * hour;
 
+// The display bucket of one elapsed time: 1s under a minute, then 1m,
+// 1h, and 1d. The duration label and the age refresh timer share it, so
+// a bucket change moves both together.
+export const durationBucketMs = (elapsed: number) =>
+	elapsed < minute ? second : elapsed < hour ? minute : elapsed < day ? hour : day;
 // The bucket label without a suffix: 12s, 5m, 3h, 3d.
 const bucket = (elapsed: number) => {
-	if (elapsed < minute) return `${Math.floor(elapsed / second)}s`;
-	if (elapsed < hour) return `${Math.floor(elapsed / minute)}m`;
-	if (elapsed < day) return `${Math.floor(elapsed / hour)}h`;
-	return `${Math.floor(elapsed / day)}d`;
+	const bucketMs = durationBucketMs(elapsed);
+	const unit = bucketMs === second ? "s" : bucketMs === minute ? "m" : bucketMs === hour ? "h" : "d";
+	return `${Math.floor(elapsed / bucketMs)}${unit}`;
 };
+
+export const formatDuration = (elapsed: number) => bucket(elapsed);
 
 // "just now" under 10 s, then "12s ago" up to 30 days, then a short date.
 export const relativeTime = (iso: string, now = new Date()) => {

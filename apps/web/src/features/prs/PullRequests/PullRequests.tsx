@@ -6,6 +6,7 @@ import { PullRequestRow } from "./components/PullRequestRow";
 
 export type PullRequestsProps = {
 	ticket: TicketSummary;
+	onOpen: (url: string) => void;
 	// The rows a cached ticket detail already holds. With them, the section
 	// paints at once and shows no skeleton while `pullRequests.list` loads.
 	initialPrs?: LinkedPullRequest[];
@@ -14,7 +15,7 @@ export type PullRequestsProps = {
 // The server polls GitHub and puts every change on the event stream. The
 // list follows a `pr.updated` event on its own, so the rows stay current
 // without a click.
-export function PullRequests({ ticket, initialPrs }: PullRequestsProps) {
+export function PullRequests({ ticket, onOpen, initialPrs }: PullRequestsProps) {
 	const { orpc } = useApp();
 	const prs = useQuery({
 		...orpc.pullRequests.list.queryOptions({ input: { ticket: ticket.id } }),
@@ -33,7 +34,7 @@ export function PullRequests({ ticket, initialPrs }: PullRequestsProps) {
 				<ul className="overflow-hidden rounded-md border border-border">
 					{prs.map((pr) => (
 						<li key={pr.id} className="border-b border-border last:border-b-0">
-							<PullRequestRow ticket={ticket} pr={pr} />
+							<PullRequestRow ticket={ticket} pr={pr} onOpen={onOpen} />
 						</li>
 					))}
 				</ul>

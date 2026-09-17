@@ -8,9 +8,13 @@ import {
 	AgentWorkspaceFileInputSchema,
 	AgentWorkspaceFileSchema,
 	AgentWorkspaceInputSchema,
+	AgentWorkspaceLineStatSchema,
+	AgentWorkspaceLineStatsInputSchema,
 	AgentWorkspaceSchema,
+	TicketMetricsSchema,
 } from "../schemas/agentRun.ts";
 import { UlidSchema } from "../schemas/primitives.ts";
+import { TicketGetInputSchema } from "../schemas/ticket.ts";
 import { base } from "./base.ts";
 
 const idInput = z.strictObject({ id: UlidSchema });
@@ -30,6 +34,7 @@ const sessionSchema = z.object({
 		.object({
 			sessionId: z.string().nullable(),
 			model: z.string().nullable(),
+			tokenUsage: z.object({ totalTokens: z.number().int().nonnegative() }).nullable().optional(),
 			turnId: z.string().nullable(),
 			tool: z
 				.object({ id: z.string(), name: z.string(), input: z.unknown().optional(), output: z.unknown().optional() })
@@ -68,6 +73,10 @@ const sessionSchema = z.object({
 	result: z.object({ id: z.string(), text: z.string() }).nullable(),
 });
 export const agentRuns = {
+	workspaceLineStats: base
+		.route({ method: "GET", path: "/agent-runs/workspaces/line-stats", summary: "Read workspace line changes" })
+		.input(AgentWorkspaceLineStatsInputSchema)
+		.output(z.array(AgentWorkspaceLineStatSchema)),
 	workspace: base
 		.route({ method: "GET", path: "/agent-runs/{runId}/workspace", summary: "Inspect the agent workspace" })
 		.input(AgentWorkspaceInputSchema)
@@ -161,6 +170,11 @@ export const agentRuns = {
 		.route({ method: "GET", path: "/agent-runs", summary: "List agents" })
 		.input(AgentRunListInputSchema)
 		.output(z.array(AgentRunSchema)),
+	ticketMetrics: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.route({ method: "GET", path: "/tickets/{ticket}/metrics", summary: "Read ticket work metrics" })
+		.input(TicketGetInputSchema)
+		.output(TicketMetricsSchema),
 	start: base
 		.route({ method: "POST", path: "/agent-runs", successStatus: 201, summary: "Start an agent from a persona" })
 		.input(AgentRunStartInputSchema)

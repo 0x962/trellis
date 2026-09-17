@@ -112,7 +112,7 @@ It inspects runtime processes on each beat and retries failed, stopped, and cras
 Database reservations and runtime attempt identifiers prevent duplicate starts.
 Copilots wait for user instructions. The host sends them human chat messages and human comment mentions.
 Worker broadcasts and mentions reach other workers.
-Desktop activation stops the previous runtime and starts the host. The deterministic manager restarts column workers and project copilots.
+Desktop activation restarts the host. It keeps a runtime with a compatible protocol. The deterministic manager restarts column workers and project copilots after an incompatible runtime stops.
 A partial database index permits one active copilot per project.
 
 Native ticket agents use Git worktrees under `agents/<run id>/work`.
@@ -373,6 +373,13 @@ A failed, stopped, or crashed worker retries on the next beat with current colum
 A move to a manual column stops its automatic worker.
 A partial unique index permits one active copilot per project.
 
+The ticket page uses three separate metric definitions. Tokens burned sums the latest provider-recorded cumulative total for each agent session.
+Multiple execution attempts for one agent session contribute only the largest cumulative total. A ticket shows Unavailable when any agent run has no recorded total.
+A ticket with no agent run also shows Unavailable tokens, because no provider recorded a total for it.
+Time burned sums `elapsedMs` for every execution attempt on the ticket. It measures process time, not ticket age.
+A ticket with no agent run has zero time burned. An attempt without a runtime duration makes time burned unavailable.
+Age is the current time minus `tickets.created_at`.
+
 ### Sessions
 
 A session is a scratch git repository with one agent, outside every project and ticket.
@@ -385,7 +392,7 @@ The run has the kind `session`, no persona, no project, and no ticket. Its name 
 The agent receives the prompt as its first message and nothing else. It runs with the worker permission settings of its harness.
 A session counts against no WIP limit and receives no comment or chat delivery.
 `sessions.start` resumes the saved conversation when the previous process confirmed one for the same harness, and otherwise starts the agent again from the prompt in the same directory.
-A desktop restart stops a session agent with the other native agents and does not resume it; Start on the session page resumes it.
+A compatible desktop restart preserves a session agent. A protocol change stops the agent and does not resume it; Start on the session page resumes it.
 `sessions.delete` stops the agent, removes the directory, and deletes the row. The run stays as history with its retained output.
 
 ### Manager delegation
@@ -410,7 +417,7 @@ The instructions live in the `## Autonomous project delegation` section of the m
 
 ### Harness accounts
 
-The main Settings page stores several accounts per harness at `/settings#agent-accounts`.
+The Usage page stores several accounts per harness at `/usage`.
 An account names an existing profile directory or a managed profile under `accounts/<id>/profile` in the data home.
 Each managed profile keeps separate credentials. Shared directories retain sessions and skills. The provider CLI owns sign-in and token renewal.
 Claude uses `CLAUDE_CONFIG_DIR`; Codex uses `CODEX_HOME`; Pi uses `PI_CODING_AGENT_DIR`; OpenCode uses `XDG_DATA_HOME`; Muse uses one directory as `XDG_CONFIG_HOME` and `XDG_DATA_HOME`, so `muse/auth.json` and `muse/sessions` sit under the profile.
@@ -613,11 +620,11 @@ time. The first section of each page carries no hash.
 
 | page | sections |
 |---|---|
-| `/settings` | Account (no hash), `#agent-accounts`, `#desktop` in the macOS app |
+| `/settings` | Account (no hash), `#desktop` in the macOS app |
 | `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#archive` |
 | `/p/<path>/settings/manager` | Operation (no hash), `#settings`, `#harness` |
 
-`/settings` holds the actor name, theme, chat sound, harness accounts, and desktop controls.
+`/settings` holds the actor name, theme, chat sound, and desktop controls.
 Project settings hold the copilot persona, repository directory, and harness settings.
 It writes `projects.managerConfig` through `projects.update`.
 

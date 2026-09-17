@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { cp, mkdir, realpath, stat, symlink } from "node:fs/promises";
+import { cp, mkdir, realpath, rm, stat, symlink } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
 import type { AccountHarness, HarnessAccountCreate } from "@trellis/api";
@@ -62,6 +62,7 @@ export async function provisionProfile(home: string, id: string, input: HarnessA
 	}
 	return target;
 }
+export const removeManagedProfile = (home: string, id: string) => rm(join(home, "accounts", id), { recursive: true });
 const isDefaultClaudeDirectory = async (profilePath: string, env: NodeJS.ProcessEnv) => {
 	const defaultDirectory = join(env.HOME ?? homedir(), ".claude");
 	if (!existsSync(defaultDirectory)) return false;
