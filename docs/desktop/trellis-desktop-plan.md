@@ -226,7 +226,7 @@ For lack of progress, show the last turn event, last output byte, last artifact,
 
 Keep full-page tickets. Keep project and ticket identity in the topbar. Preserve Back navigation to the originating list and its filters. The desktop adds a work area to this structure rather than replacing the ticket with a terminal grid.[^6]
 
-The navigation contains Needs you, All tickets, Projects, Reviews, and Flows. Each project exposes Tickets, Manager, and Settings. A small runtime status control opens diagnostics. Runtime health must not dominate the normal work interface.
+The navigation contains Needs you, All tickets, Projects, Reviews, and Flows. Each project exposes Tickets, Manager, and Settings. Operators use `trellis doctor --json` for runtime status.
 
 ### Needs you
 
@@ -294,7 +294,7 @@ Keep the renderer sandboxed with context isolation and no Node integration. Expo
 
 Scope agent credentials to the relevant run and project where the API supports that scope. Keep authentication tokens out of logs, URLs, artifacts, and exported diagnostics. Do not treat process isolation or worktrees as protection from a malicious local agent.
 
-Provide a Diagnostics view and `trellis doctor --json`. Report host instance, runtime version, protocol compatibility, database owner, queue age, last reconciliation, hook health, and unresolved attempts. Every failure should link to the relevant local log and next action.
+Provide `trellis doctor --json`. Report host instance, runtime version, protocol compatibility, database owner, queue age, last reconciliation, hook health, and unresolved attempts. Every failure should link to the relevant local log and next action.
 
 An export should include bounded, redacted logs and a state summary. Include an explicit option for terminal content because it can contain private repository data. No diagnostic export should occur automatically.
 
