@@ -122,7 +122,7 @@ Flows shows local flow runs.
 The authenticated terminal stream replays retained bytes and then pushes output and process observations.
 The terminal WebSocket carries ordered input and binary output outside the database request path after attachment. See [terminal transport](terminal-transport.md).
 The terminal sends keyboard input and resize events to the runtime. An explicit reconnect resumes from the last displayed byte.
-Settings includes runtime diagnostics. `trellis doctor --json` reads the same report without starting the runtime.
+`trellis doctor --json` reads runtime diagnostics without starting the runtime.
 
 Native flows freeze the saved graph and persona instructions for each execution.
 Each node occurrence binds to an ordinary agent attempt or a versioned human decision.
@@ -458,7 +458,7 @@ Run now shares the scheduled pass and cannot overlap it. A paused loop permits o
 Each host starts with management enabled. The host retains 200 output entries and 20 errors until it restarts.
 Independent tickets and copilots launch concurrently. A failed launch does not prevent the other jobs.
 An unknown runtime process requires confirmation before replacement.
-Archived projects suppress new starts. Each host process starts with automatic dispatch enabled.
+Archived projects suppress new starts. Trellis dispatches agent work for every active project.
 
 Column workers must report a tool event or assistant message within 60 seconds of their latest activity.
 The first interval starts when the process starts. The next manager beat stops and replaces a worker whose interval expires.
@@ -607,7 +607,7 @@ time. The first section of each page carries no hash.
 | `/p/<path>/settings` | General (no hash), `#template`, `#statuses`, `#repositories`, `#subprojects`, `#archive` |
 | `/p/<path>/settings/manager` | Operation (no hash), `#settings`, `#harness` |
 
-`/settings` holds the actor name, theme, GitHub state, phone pair code, drafts, and runtime diagnostics.
+`/settings` holds the actor name, theme, GitHub state, phone pair code, and drafts.
 Project settings hold the copilot persona, repository directory, and harness settings.
 It writes `projects.managerConfig` through `projects.update`.
 
@@ -634,7 +634,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 
 | table | columns and constraints |
 |---|---|
-| projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, manager_config jsonb (`personaId`, `directory`, `dispatchPaused`, `ade: native`, `harness` (`preset`, `model`, `effort`, `startCommand`, `resumeCommand`), `builder` (nullable persona and harness configuration), `accountId`), ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
+| projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, manager_config jsonb (`personaId`, `directory`, `ade: native`, `harness` (`preset`, `model`, `effort`, `startCommand`, `resumeCommand`), `builder` (nullable persona and harness configuration), `accountId`), ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
 | repos | id PK, project_id (CASCADE), owner, repo (both CHECK lowercase). UNIQUE (project_id, owner, repo). The effective repos of a project are its own plus those of its ancestors. |
 | statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), reviewer (CHECK `(category = 'review') = (reviewer IS NOT NULL)`), color, position, wip_limit (CHECK > 0), is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
 | tickets | id PK, project_id, root_id, number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (root_id, number) and (id, root_id). FK (project_id, root_id) RESTRICT and FK (parent_id, root_id) RESTRICT. Indexes (project_id, status_id, position), (status_id, position, id, project_id, root_id), (parent_id), partial (root_id, updated_at DESC) WHERE completed_at IS NULL, partial (root_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |

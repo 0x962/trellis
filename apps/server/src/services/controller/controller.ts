@@ -42,15 +42,14 @@ export const claim = async (ctx: ControllerCtx, tx: Tx, input: ControllerInput):
 			JOIN agent_runs r ON r.project_id = p.id AND r.kind = 'manager' AND r.closed_at IS NULL
 			WHERE d.state = 'pending' AND d.due_at <= ${ctx.now} AND r.terminal_id IS NOT NULL
 			AND ${isManaged(sql`p`)} AND p.archived_at IS NULL
-			AND p.manager_config->>'dispatchPaused' IS DISTINCT FROM 'true'
 			AND r.runtime = 'native' AND r.terminal_id IN (${sql.join(
 				ready.map((id) => sql`${id}`),
 				sql`,`,
 			)})
 			AND NOT EXISTS (WITH RECURSIVE ancestors AS (
-				SELECT id, parent_id, archived_at, manager_config FROM projects WHERE id = p.id
-				UNION ALL SELECT parent.id, parent.parent_id, parent.archived_at, parent.manager_config FROM projects parent JOIN ancestors child ON parent.id = child.parent_id
-			) SELECT 1 FROM ancestors WHERE archived_at IS NOT NULL OR manager_config->>'dispatchPaused'='true')
+				SELECT id, parent_id, archived_at FROM projects WHERE id = p.id
+				UNION ALL SELECT parent.id, parent.parent_id, parent.archived_at FROM projects parent JOIN ancestors child ON parent.id = child.parent_id
+			) SELECT 1 FROM ancestors WHERE archived_at IS NOT NULL)
 			ORDER BY d.due_at, d.id LIMIT 1`,
 	);
 	if (!next) return null;
