@@ -15,6 +15,7 @@ import { useDescriptionAutosave } from "./hooks/useDescriptionAutosave";
 
 export type DescriptionProps = {
 	ticket: Ticket;
+	onAttachFiles: (files: File[]) => void;
 };
 
 type Conflict = { current: Ticket; markdown: string };
@@ -47,7 +48,7 @@ const writerName = (row: Ticket) =>
 // stays until the person reloads or overwrites, also after a refetch
 // clears the stale mark. A 412 keeps the typed text and shows the conflict
 // notice above it.
-export function Description({ ticket }: DescriptionProps) {
+export function Description({ ticket, onAttachFiles }: DescriptionProps) {
 	const { queryClient, scheduler } = useApp();
 	const { key, write } = useTicketWrite(ticket.identifier);
 	const setStatus = useSaveStatusStore((state) => state.set);
@@ -184,6 +185,7 @@ export function Description({ ticket }: DescriptionProps) {
 					onChange={autosave.onChange}
 					onBlur={autosave.onBlur}
 					onReady={onReady}
+					onAttachFiles={onAttachFiles}
 				/>
 			) : (
 				// biome-ignore lint/a11y/noStaticElementInteractions: the `e` key is the keyboard route to the editor
