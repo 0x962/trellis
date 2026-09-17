@@ -25,9 +25,10 @@ beforeEach(async () => {
 	await h.read(async (tx) => {
 		await seedActors(tx);
 		projectId = await seedRoot(tx, "NXT", {
-			manager_config: { personaId: "01ARZ3NDEKTSV4RRFFQ69G5FAV", directory: "/tmp/trellis-test", concurrency: 1 },
+			manager_config: { personaId: "01ARZ3NDEKTSV4RRFFQ69G5FAV", directory: "/tmp/trellis-test" },
 		});
-		const statusId = await seedStatus(tx, { projectId, name: "Todo", category: "todo", position: 0, isDefault: true });
+		await seedStatus(tx, { projectId, name: "Todo", category: "todo", position: 0, isDefault: true });
+		const statusId = await seedStatus(tx, { projectId, name: "In Progress", category: "started", position: 1 });
 		ticketId = await seedTicket(tx, { projectId, rootId: projectId, statusId });
 		await tx.execute(sql`INSERT INTO personas (id,name,kind,instruction,created_at,updated_at)
 			VALUES ('builder','Builder','builder','Build',${NOW},${NOW})`);
@@ -45,22 +46,19 @@ const queue = () =>
 			handle(ctx, tx, {
 				id: "original",
 				generation: 1,
-				outcomes: [{ ticketId, status: "queued", reason: "Start Builder when capacity opens." }],
+				outcomes: [{ ticketId, status: "queued", reason: "Start Builder on the next dispatch." }],
 			}),
 		{ actor: { kind: "agent", name: "manager" } },
 	);
 const gather = (n: number) => h.run((ctx, tx) => collect(ctx, tx, { sessions }), { now: secondsAfter(n) });
 const take = (n: number) => h.run((ctx, tx) => claim(ctx, tx, { sessions }), { now: secondsAfter(n) });
 
-test("a capacity wait survives recovery and produces one assignment after capacity opens", async () => {
+test("a queued wait survives recovery and produces one assignment", async () => {
 	expect((await queue()).workState).toBe("handled");
 	expect(await h.rows(sql`SELECT * FROM manager_next_actions WHERE state='waiting'`)).toHaveLength(1);
 	await h.run((ctx, tx) => recover(ctx, tx, {}));
 	await gather(1);
-	expect(await take(1)).toBeNull();
-	await h.rows(sql`UPDATE agent_runs SET closed_at=${NOW} WHERE id='busy'`);
-	await gather(2);
-	const delivery = (await take(2))!;
+	const delivery = (await take(1))!;
 	expect(delivery.nextActions).toHaveLength(1);
 	const action = delivery.nextActions[0]!;
 	expect(action.ticketId).toBe(ticketId);
@@ -93,7 +91,7 @@ test("a repeated queued outcome keeps one action and its assignment identifier",
 		handle(ctx, tx, {
 			id: "second",
 			generation: 2,
-			outcomes: [{ ticketId, status: "queued", reason: "Still at capacity." }],
+			outcomes: [{ ticketId, status: "queued", reason: "The prerequisite remains unmet." }],
 		}),
 	);
 	expect(await h.rows(sql`SELECT id,assignment_request_id FROM manager_next_actions`)).toEqual([
@@ -120,7 +118,7 @@ test("a replacement manager replays the saved assignment without another worker"
 });
 
 for (const mode of ["project", "global", "archive"] as const) {
-	test(`${mode} pause preserves a capacity wait and blocks an already delivered assignment`, async () => {
+	test(`${mode} pause preserves a queued wait and blocks an already delivered assignment`, async () => {
 		await queue();
 		await h.rows(sql`UPDATE agent_runs SET closed_at=${NOW} WHERE id='busy'`);
 		await gather(1);
@@ -167,7 +165,7 @@ test("cancel prevents an old action from starting work", async () => {
 	).rejects.toThrow();
 });
 
-test("an assignment from a newer ticket event retires the original capacity wait", async () => {
+test("an assignment from a newer ticket event retires the original queued wait", async () => {
 	await queue();
 	await h.rows(sql`UPDATE agent_runs SET closed_at=${NOW} WHERE id='busy'`);
 	const first = await h.run(
@@ -203,7 +201,7 @@ test("completed tickets retire their waits and deleted tickets remove them", asy
 	expect(await h.rows(sql`SELECT * FROM manager_next_actions`)).toEqual([]);
 });
 
-test("simultaneous launches can exceed the target before sustained work starts", async () => {
+test("simultaneous assignments retain their independent ticket owners", async () => {
 	await queue();
 	const otherId = await h.read(async (tx) => {
 		const [row] = (await tx.execute(sql`SELECT status_id FROM tickets WHERE id=${ticketId}`)).rows;
@@ -281,7 +279,7 @@ test("a new status decision replaces the old wait without repeated immediate wak
 	expect(await take(2)).toBeNull();
 });
 
-test("an idle worker releases capacity without closing its assignment", async () => {
+test("an idle worker retains its assignment when queued work becomes ready", async () => {
 	await queue();
 	const observed = [controllerSession(), controllerSession("busy-attempt")];
 	await h.run((ctx, tx) => collect(ctx, tx, { sessions: observed }), { now: secondsAfter(1) });
@@ -292,12 +290,9 @@ test("an idle worker releases capacity without closing its assignment", async ()
 	});
 });
 
-test("a launch keeps capacity free until sustained work starts and retains persona ownership", async () => {
-	const observed = [controllerSession("busy-attempt")];
+test("a launch retains exclusive persona ownership on its ticket", async () => {
 	const input = { ticket: ticketId, personaId: "builder" };
-	const first = await h.run((ctx, tx) => reserve(ctx, tx, input, [], { sessions: observed }));
+	const first = await h.run((ctx, tx) => reserve(ctx, tx, input));
 	expect(first.replay).toBe(false);
-	const { capacityAvailable } = await import("../../../../../src/services/assignments/capacity.ts");
-	expect(await h.read((tx) => capacityAvailable(tx, { projectId, sessions: observed }))).toBe(true);
-	await expect(h.run((ctx, tx) => reserve(ctx, tx, input, [], { sessions: observed }))).rejects.toThrow();
+	await expect(h.run((ctx, tx) => reserve(ctx, tx, input))).rejects.toThrow();
 });

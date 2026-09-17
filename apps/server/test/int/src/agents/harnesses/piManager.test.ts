@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { preparePi } from "../../../../../src/agents/harnesses/pi/pi.ts";
 
-test("Pi managers expose only bridge tools and forward their calls without a shell", async () => {
+test("Pi copilots expose native and Trellis tools", async () => {
 	const directory = await mkdtemp(join(tmpdir(), "trellis-pi-manager-"));
 	try {
 		const bridge = join(directory, "bridge.mjs");
@@ -26,10 +26,10 @@ for await (const line of createInterface({input:process.stdin})) {
 			managerSystemPrompt: `Database persona ${crypto.randomUUID()}`,
 			managerTools: { command: process.execPath, args: [bridge] },
 		});
-		expect(launch.args).toContain("--no-builtin-tools");
+		expect(launch.args).not.toContain("--no-builtin-tools");
 		expect(launch.args).toContain("--no-extensions");
 		expect(launch.args).toContain("--no-skills");
-		expect(launch.args).not.toContain("read,bash,edit,write,grep,find,ls");
+		expect(launch.args).toContain("read,bash,edit,write,grep,find,ls");
 		const extension = await import(join(directory, "trellis-pi.mjs"));
 		const handlers = new Map<string, ((...args: unknown[]) => unknown)[]>();
 		const tools: {
@@ -37,11 +37,12 @@ for await (const line of createInterface({input:process.stdin})) {
 			parameters: unknown;
 			execute: (id: string, args: unknown) => Promise<{ content: { text: string }[] }>;
 		}[] = [];
-		let active: string[] = [];
+		let active: string[] = ["read", "bash"];
 		await extension.default({
 			on: (name: string, handler: (...args: unknown[]) => unknown) =>
 				handlers.set(name, [...(handlers.get(name) ?? []), handler]),
 			registerTool: (tool: (typeof tools)[number]) => tools.push(tool),
+			getActiveTools: () => active,
 			setActiveTools: (names: string[]) => {
 				active = names;
 			},
@@ -49,8 +50,8 @@ for await (const line of createInterface({input:process.stdin})) {
 		try {
 			for (const handler of handlers.get("session_start")!)
 				await handler({}, { sessionManager: { getSessionId: () => "session" } });
-			expect(active).toEqual(["trellis_tickets_list"]);
-			expect(tools.map((tool) => tool.name)).toEqual(active);
+			expect(active).toEqual(["read", "bash", "trellis_tickets_list"]);
+			expect(tools.map((tool) => tool.name)).toEqual(["trellis_tickets_list"]);
 			expect(tools[0]!.parameters).toMatchObject({ type: "object", required: ["project"] });
 			const result = await tools[0]!.execute("call", { project: "TRL; echo bad" });
 			expect(JSON.parse(result.content[0]!.text)).toEqual({
@@ -58,10 +59,7 @@ for await (const line of createInterface({input:process.stdin})) {
 				arguments: { project: "TRL; echo bad" },
 			});
 			await expect(tools[0]!.execute("denied", { project: "denied" })).rejects.toThrow("denied");
-			const deny = handlers.get("tool_call")![0]!;
-			expect(await deny({ toolName: "bash" })).toMatchObject({ block: true });
-			expect(await deny({ toolName: "other_mcp_read" })).toMatchObject({ block: true });
-			expect(await deny({ toolName: "trellis_tickets_list" })).toBeUndefined();
+			expect(handlers.get("tool_call")).toBeUndefined();
 		} finally {
 			for (const handler of handlers.get("session_shutdown") ?? []) await handler();
 		}

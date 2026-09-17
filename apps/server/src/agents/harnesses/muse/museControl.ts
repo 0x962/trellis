@@ -5,15 +5,17 @@ import type { MspClient } from "./mspClient.ts";
 import { uuid7 } from "./uuid7.ts";
 
 // The private control socket of one Muse bridge. The host sends a follow-up
-// prompt or an interrupt here, and the bridge turns it into a Muse command
-// on the session it owns. A prompt that arrives during a turn waits in the
-// queue of Muse and starts the next turn.
+// prompt or an interrupt here. An interrupt becomes a Muse command on the
+// session the bridge owns. A prompt goes to `submit`, which starts a turn
+// when the session is idle and holds the prompt until the running turn
+// ends otherwise.
 export async function museControl(input: {
 	socket: string;
 	token: string;
 	sessionId: string;
 	client: MspClient;
 	current: () => { turnId: string | null; working: boolean };
+	submit: (prompt: string) => Promise<void>;
 }) {
 	let pending = false;
 	let interrupted: string | null = null;
@@ -53,12 +55,7 @@ export async function museControl(input: {
 				const prompt = z.string().min(1).parse(value.prompt);
 				pending = true;
 				ownsPending = true;
-				await input.client.request("turn/start", {
-					commandId: uuid7(),
-					sessionId: input.sessionId,
-					input: [{ type: "text", text: prompt }],
-					ifBusy: "queue",
-				});
+				await input.submit(prompt);
 			}
 			reply(200, { accepted: true, sessionId: input.sessionId });
 		} catch (error) {

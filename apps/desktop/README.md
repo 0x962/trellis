@@ -106,7 +106,7 @@ The command signs the local package and runs the packaged smoke checks. It copie
 
 Use this command for each production install. Keep the installed bundle in place until the verified copy is complete. Run service commands through `~/Applications/Trellis.app/Contents/MacOS/TrellisHost`. The helper requires the LaunchAgent plist inside its app bundle.
 
-Restart Trellis to activate the installed build. For a changed package, Trellis saves the confirmed active agent sessions before it stops the previous runtime. After the new host starts, Trellis resumes those provider sessions in their saved workspaces. Agents that you stopped stay stopped. An unchanged package keeps the existing processes.
+Restart Trellis to activate the installed build. For a changed package, Trellis saves the confirmed active agent sessions before it stops the previous runtime. After the new host starts, Trellis resumes those provider sessions in their saved workspaces. The deterministic manager restarts copilots and workers in configured columns. Other stopped agents stay stopped. An unchanged package keeps the existing processes.
 
 Trellis stores pending resumes in `restart-plan.json` inside the selected data directory. A failed activation preserves this plan for the next app launch. Each saved attempt has one resume identity, which prevents duplicate processes and restart messages. A later package gives a partial resume one more pass, then merges the entries that still failed into its own plan, so the restart status keeps their reasons.
 
@@ -124,11 +124,12 @@ The app retains earlier releases. The release identity includes the desktop laun
 
 Runtime files stay outside the host database directory, so a database export does not include application binaries. A package replacement does not remove the files of an active runtime. The integration test removes the source app, retains a live PTY, starts another child with the pinned native modules, and restarts the host.
 
-### Fresh manager conversation
+### Project copilots
 
-Save your prompt changes. Select the project name in the sidebar to open its manager terminal. Select **Restart with new context** beside the process control. Confirm the restart. The manager starts a fresh conversation with the saved persona and project instructions. Existing workers keep their processes, and the manager keeps its workspace.
-
-Use **Resume manager** to continue the current conversation after a manual stop. A desktop app restart also preserves the current conversation.
+Trellis keeps one copilot available for each active project. A copilot acts on user instructions.
+Project settings select its persona and harness. New starts and restarts read the saved settings.
+A compatible restart preserves the copilot conversation.
+Column settings control automatic ticket workers, including recovery after a stop or failure.
 
 ## Release limits
 

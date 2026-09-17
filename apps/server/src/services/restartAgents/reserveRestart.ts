@@ -1,4 +1,4 @@
-import { fromHarnessModel } from "@trellis/api";
+import { fromHarnessModel, HarnessEffortSchema } from "@trellis/api";
 import type { RestartSession } from "@trellis/runtime-protocol/restart-plan";
 import { sql } from "drizzle-orm";
 import { taskKey } from "../../agents/nativeFlow/taskKey.ts";
@@ -38,11 +38,11 @@ export async function reserveRestart(
 	const config = await projectLaunchConfig(tx, { projectId: run.projectId });
 	if (project.archived_at !== null) return null;
 	if (run.ticketId !== null) {
-		const [ticket] = await rows<{ completed_at: string | null }>(
+		const [ticket] = await rows<{ completed_at: string | null; category: string }>(
 			tx,
-			sql`SELECT completed_at FROM tickets WHERE id=${run.ticketId}`,
+			sql`SELECT t.completed_at,s.category FROM tickets t JOIN statuses s ON s.id=t.status_id WHERE t.id=${run.ticketId}`,
 		);
-		if (!ticket || ticket.completed_at !== null) return null;
+		if (!ticket || ticket.completed_at !== null || ticket.category === "todo") return null;
 	}
 	const tasks = await rows<{ execution_id: string; key: string; attempt_id: string; result_id: string | null }>(
 		tx,
@@ -112,6 +112,7 @@ export async function reserveRestart(
 				...config.harness,
 				preset: session.harness,
 				model: session.model ? fromHarnessModel(session.harness, session.model) : undefined,
+				effort: session.effort === undefined ? undefined : HarnessEffortSchema.parse(session.effort),
 			},
 		},
 		attempt,

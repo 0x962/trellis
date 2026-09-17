@@ -31,7 +31,7 @@ beforeEach(async () => {
 	sessions = [controllerSession("terminal-1")];
 	await h.read(async (tx) => {
 		projectId = await seedRoot(tx, "CTL", {
-			manager_config: { personaId: "01M2GHTTXSHPZDFTJQW1MC28N2", concurrency: 3, directory: "" },
+			manager_config: { personaId: "01M2GHTTXSHPZDFTJQW1MC28N2", directory: "" },
 		});
 		const statusId = await seedStatus(tx, { projectId, name: "Todo", category: "todo", position: 0, isDefault: true });
 		ticketId = await seedTicket(tx, { projectId, rootId: projectId, statusId });
@@ -171,7 +171,7 @@ test("a sub-project that turns on its manager notifies the parent manager once",
 	await h.run((ctx, tx) =>
 		projects.update(ctx, tx, {
 			project: "CTL.child",
-			managerConfig: { personaId: "01M2GK00000000000000000CHD", concurrency: 3, directory: "" },
+			managerConfig: { personaId: "01M2GK00000000000000000CHD", directory: "" },
 		}),
 	);
 	await gather();

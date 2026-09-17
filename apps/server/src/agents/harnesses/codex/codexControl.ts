@@ -9,6 +9,7 @@ export async function codexControl(input: {
 	token: string;
 	sessionId: string;
 	manager?: boolean;
+	effort?: string;
 	client: CodexAppServerClient;
 	current: () => { turnId: string | null; working: boolean };
 }) {
@@ -49,6 +50,7 @@ export async function codexControl(input: {
 				await input.client.request("turn/start", {
 					threadId: input.sessionId,
 					input: [{ type: "text", text: prompt }],
+					effort: input.effort,
 					approvalPolicy: "never",
 					sandboxPolicy: { type: "dangerFullAccess" },
 					...(input.manager ? managerPolicy.turn : {}),

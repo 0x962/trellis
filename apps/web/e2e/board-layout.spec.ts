@@ -1,17 +1,36 @@
 import { expect, test } from "@playwright/test";
+import { patch, post } from "./api";
 import { createTicket, ensureProject, moveTicket, trellis } from "./cli";
 import { failingPrUrl } from "./ghReplies";
 import { cardOf, columnOf, signIn } from "./support";
 
 // Sixteen Todo cards are taller than a 900 px board, so Todo overflows and
 // the other columns do not.
-test.beforeAll(() => {
+test.beforeAll(async () => {
+	await post("/native-work/stop", {});
 	if (!ensureProject("BRD", "Board layout")) return;
+	const builder = await post<{ id: string }>("/personas", {
+		name: "Board layout builder",
+		kind: "builder",
+		instruction: "Work on the ticket.",
+	});
+	await patch("/projects/BRD", {
+		managerConfig: {
+			personaId: null,
+			directory: "",
+			builder: { personaId: builder.id, harness: { preset: "claude" } },
+		},
+	});
 	for (let n = 1; n <= 16; n++) createTicket("BRD", `Fill the Todo column past the board height ${n}`);
 	createTicket("BRD", "Keep one ticket in progress");
 	moveTicket("BRD-17", "in-progress");
 	createTicket("BRD", "Keep the card border consistent when checks fail");
 	trellis(["pr", "add", "BRD-18", failingPrUrl]);
+});
+
+test.afterAll(async () => {
+	moveTicket("BRD-17", "todo");
+	await post("/native-work/resume", {});
 });
 
 test("failed checks keep the same board card border as other tickets", async ({ page }) => {
@@ -45,13 +64,4 @@ test("every column name sits at the same height when one column overflows", asyn
 		);
 	const top = names[0]!.split(" ").pop();
 	expect(names).toEqual(names.map((name) => name.replace(/\d+$/, top!)));
-});
-
-// The concurrency slots of a project belong to the column whose tickets
-// occupy them, so the badge sits in the In Progress header and nowhere else.
-test("the agent capacity badge sits in the In Progress column header", async ({ page }) => {
-	await signIn(page, "/p/BRD/board");
-	const badge = page.getByRole("status", { name: /concurrency slots in use$/ });
-	await expect(badge).toHaveCount(1);
-	await expect(page.locator('section[data-category="started"] header').getByRole("status")).toHaveText(/^\d+\/\d+$/);
 });

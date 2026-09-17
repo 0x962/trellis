@@ -30,7 +30,7 @@ beforeEach(async () => {
 		const project = await seedRoot(tx, "PROMPT");
 		await seedStatuses(tx, project);
 		await tx.execute(
-			sql`UPDATE projects SET manager_config=${JSON.stringify({ personaId: null, concurrency: 3, directory: fixture.home, harness: { preset: "claude" } })}::jsonb WHERE id=${project}`,
+			sql`UPDATE projects SET manager_config=${JSON.stringify({ personaId: null, directory: fixture.home, harness: { preset: "claude" } })}::jsonb WHERE id=${project}`,
 		);
 	});
 	await h.rebuild();

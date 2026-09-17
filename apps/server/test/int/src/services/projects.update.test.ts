@@ -65,7 +65,7 @@ const update = (input: Parameters<typeof projects.update>[2]) => h.run((ctx, tx)
 describe("projects.update manager scope", () => {
 	const persona = "01M2GHTTXSHPZDFTJQW1MC28N2";
 	const other = "01M2GJ634MAAPPB8JDZVDYWX3B";
-	const config = (personaId: string | null) => ({ personaId, concurrency: 3, directory: "" });
+	const config = (personaId: string | null) => ({ personaId, directory: "" });
 	beforeEach(() =>
 		h.db.execute(
 			sql`INSERT INTO personas (id, name, kind, instruction, created_at, updated_at)
@@ -251,7 +251,6 @@ describe("the account of a project", () => {
 	const disabledAccount = "01M00000000000000000000A03";
 	const config = (accountId: string | null, preset: "claude" | "codex" = "claude") => ({
 		personaId: null,
-		concurrency: 3,
 		directory: "",
 		dispatchPaused: false,
 		ade: "native" as const,

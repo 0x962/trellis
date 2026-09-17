@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ORPCError } from "@orpc/server";
-import type { ProjectManagerConfig } from "@trellis/api";
+import type { ProjectManagerConfig, StatusAgentConfig } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import type { HarnessDescriptor, HarnessStartInput } from "../../agents/harnessHost/types.ts";
@@ -19,6 +19,7 @@ import { profileDefault, profileEnvironment } from "../harnessAccounts/profiles.
 import { getAccount } from "../harnessAccounts/queries.ts";
 import { transferSession } from "../harnessAccounts/transferSession.ts";
 import type { ServiceCtx } from "../support.ts";
+import { launchAllowed } from "./launchAllowed.ts";
 import { assertNativeWorkEnabled } from "./nativeControl.ts";
 import type { StoredRun } from "./queries.ts";
 
@@ -55,6 +56,9 @@ export const startNative = async (
 		deadlineAt?: number;
 		resumePrompt?: string;
 		preserveAssignmentOnFailure?: boolean;
+		requiredTicketCategory?: "started";
+		requiredStatusId?: string;
+		requiredAgentConfig?: StatusAgentConfig;
 	},
 	deps: Partial<Dependencies> = {},
 ) => {
@@ -65,7 +69,7 @@ export const startNative = async (
 	try {
 		if (run.kind === "manager" && config.harness.preset === "custom")
 			throw new Error(
-				`The ${config.harness.preset} harness cannot enforce the manager tool boundary. Select Claude, Codex, OpenCode, Pi, or Muse for managers. Workers can use any harness.`,
+				`The ${config.harness.preset} harness does not support copilot chat. Select Claude, Codex, OpenCode, Pi, or Muse.`,
 			);
 		if (input.deadlineAt !== undefined && input.deadlineAt <= Date.now())
 			throw new Error("The flow group deadline elapsed before launch");
@@ -79,12 +83,29 @@ export const startNative = async (
 		const profile = account ?? (await hostDefaultProfile(config.harness.preset, ambientEnv));
 		const baseEnv = profile ? await profileEnvironment(profile, ambientEnv) : ambientEnv;
 		const workspaceId = await (deps.workspace ?? nativeWorkspace)(ctx.home, run, config.directory);
-		const owned = await ctx.newTx((tx) =>
-			rows<{ id: string }>(
+		const owned = await ctx.newTx(async (tx) => {
+			if (run.ticketId !== null) {
+				const [ticket] = await rows<{ category: string; id: string; configMatches: boolean }>(
+					tx,
+					sql`SELECT s.id,s.category,(s.agent_config=${JSON.stringify(input.requiredAgentConfig ?? null)}::jsonb) AS "configMatches" FROM tickets t JOIN statuses s ON s.id=t.status_id WHERE t.id=${run.ticketId}`,
+				);
+				if (
+					!ticket ||
+					(ticket.category === "todo" && !input.requiredStatusId) ||
+					(input.requiredStatusId && (ticket.id !== input.requiredStatusId || !ticket.configMatches)) ||
+					(input.requiredTicketCategory && ticket.category !== input.requiredTicketCategory)
+				) {
+					await tx.execute(
+						sql`UPDATE agent_runs SET closed_at=${ctx.now()},error='The ticket status does not permit this agent start.' WHERE id=${run.id} AND terminal_id=${terminalId} AND closed_at IS NULL`,
+					);
+					return [];
+				}
+			}
+			return rows<{ id: string }>(
 				tx,
 				sql`UPDATE agent_runs SET workspace_id=${workspaceId} WHERE id=${run.id} AND terminal_id=${terminalId} AND closed_at IS NULL RETURNING id`,
-			),
-		);
+			);
+		});
 		if (owned.length === 0) return { id: run.id };
 		await ctx.newTx(assertNativeWorkEnabled);
 		const env = {
@@ -118,6 +139,17 @@ export const startNative = async (
 				env,
 				timeoutMs,
 			});
+			if (
+				!(await ctx.newTx((tx) =>
+					launchAllowed(tx, {
+						runId: run.id,
+						terminalId,
+						requiredStatusId: input.requiredStatusId,
+						requiredAgentConfig: input.requiredAgentConfig,
+					}),
+				))
+			)
+				return { id: run.id };
 			launchSubmitted = true;
 			await client.start(spec);
 			session = await client.inspect(terminalId);
@@ -134,6 +166,7 @@ export const startNative = async (
 				cwd: workspaceId,
 				prompt: input.resumePrompt ?? launchPrompt({ run, url: ctx.localUrl, context }),
 				model: config.harness.model,
+				effort: config.harness.effort,
 				token: input.attempt.token,
 				timeoutMs,
 			};
@@ -171,13 +204,24 @@ export const startNative = async (
 			}
 			const descriptor = await host.prepare(launch, sessionId);
 			launchWorkspace = descriptor.spec.cwd;
+			if (
+				!(await ctx.newTx((tx) =>
+					launchAllowed(tx, {
+						runId: run.id,
+						terminalId,
+						requiredStatusId: input.requiredStatusId,
+						requiredAgentConfig: input.requiredAgentConfig,
+					}),
+				))
+			)
+				return { id: run.id };
 			launchSubmitted = true;
 			({ process: session } =
 				sessionId === undefined ? await host.start(launch) : await host.resume({ ...launch, sessionId }));
 		}
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET workspace_id = ${launchWorkspace}, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = ${session.status === "exited" ? ctx.now() : null}, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
+				sql`UPDATE agent_runs SET workspace_id = ${launchWorkspace}, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = CASE WHEN ${session.status === "exited"} AND NOT (kind='builder' AND EXISTS (SELECT 1 FROM tickets t JOIN statuses s ON s.id=t.status_id WHERE t.id=agent_runs.ticket_id AND s.category='started') AND NOT EXISTS (SELECT 1 FROM flow_execution_tasks task WHERE task.run_id=agent_runs.id)) THEN ${ctx.now()}::timestamptz ELSE NULL END, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
 	} catch (error) {
