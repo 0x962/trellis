@@ -201,6 +201,14 @@ test("history pages keep every stored check readable without the workspace", asy
 	expect(JSON.stringify([...first.items, ...second.items])).toContain("retained output");
 });
 
+test("history rejects a malformed page cursor", async () => {
+	await expect(
+		h.run((core, tx) => history(core, tx, { runId, limit: 100, before: "not-a-cursor" })),
+	).rejects.toMatchObject({
+		code: "INVALID_CURSOR",
+	});
+});
+
 test("a check that changes workspace contents cannot provide current passing evidence", async () => {
 	const result = await check(ctx, command('await Bun.write("code.ts", "changed by check")'));
 	expect(result.state).toBe("passed");
