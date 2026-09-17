@@ -66,7 +66,7 @@ export const startNative = async (
 	try {
 		if (run.kind === "manager" && config.harness.preset === "custom")
 			throw new Error(
-				`The ${config.harness.preset} harness does not support copilot chat. Select Claude, Codex, OpenCode, Pi, or Muse.`,
+				`The ${config.harness.preset} harness does not support copilot conversations. Select Claude, Codex, OpenCode, Pi, or Muse.`,
 			);
 		if (input.deadlineAt !== undefined && input.deadlineAt <= Date.now())
 			throw new Error("The flow group deadline elapsed before launch");

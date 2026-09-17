@@ -6,7 +6,6 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./app.css";
 import { type AppContext, AppProvider } from "./lib/appContext";
-import { notifyChat } from "./lib/chatSound";
 import type { DesktopBridge } from "./lib/desktopBridge";
 import { hasMacDesktopChrome } from "./lib/desktopChrome";
 import { createLive } from "./lib/live";
@@ -17,17 +16,14 @@ import { createAppRouter } from "./router";
 
 // The browser's own locks, channel, and EventSource. One tab per origin
 // holds the trellis-sse lock and owns the connection. Every event updates
-// the cache; a chat message from someone else also plays the chat tone.
+// the cache.
 const live = createLive({
 	queryClient,
 	locks: navigator.locks,
 	createChannel: (name) => new BroadcastChannel(name),
 	EventSource,
 	scheduler: realScheduler,
-	applyEvent: (event, cache) => {
-		applyEvent(event, cache);
-		notifyChat(event);
-	},
+	applyEvent,
 });
 live.start();
 

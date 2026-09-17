@@ -1,7 +1,6 @@
 import { agentRuns } from "./agentRuns.ts";
 import { attachments } from "./attachments.ts";
 import { os } from "./base.ts";
-import { chat } from "./chat.ts";
 import { comments } from "./comments.ts";
 import { controller } from "./controller.ts";
 import { flowExecutions } from "./flowExecutions.ts";
@@ -45,7 +44,6 @@ export const router = os.router({
 	tickets,
 	timeline,
 	comments,
-	chat,
 	notes,
 	attachments,
 	pullRequests,

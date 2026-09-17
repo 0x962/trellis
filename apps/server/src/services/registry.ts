@@ -12,9 +12,6 @@ import { lineStats as workspaceLineStats } from "./agentRuns/workspace/lineStats
 import { workspace } from "./agentRuns/workspace/workspace.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
-import * as chatAttachments from "./chat/attachments.ts";
-import * as chatChannels from "./chat/channels.ts";
-import * as chatMessages from "./chat/messages.ts";
 import * as comments from "./comments.ts";
 import * as controller from "./controller/controller.ts";
 import * as controllerDispatch from "./controller/dispatch.ts";
@@ -230,12 +227,6 @@ export const services = {
 	"comments.create": core("mutation", comments.create),
 	"comments.update": core("mutation", comments.update),
 	"comments.delete": core("mutation", comments.delete),
-	"chat.channels": core("read", chatChannels.list),
-	"chat.createChannel": core("mutation", chatChannels.create),
-	"chat.list": core("read", chatMessages.list),
-	"chat.post": core("mutation", chatMessages.post),
-	"chat.upload": io("mutation", chatAttachments.upload),
-	"chat.attachment": io("read", chatAttachments.get),
 	"notes.list": core("read", notes.list),
 	"notes.get": core("read", notes.get),
 	"notes.create": core("mutation", notes.create),

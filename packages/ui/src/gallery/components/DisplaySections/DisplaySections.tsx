@@ -1,4 +1,4 @@
-import { ChatCircle, Check, Funnel, Paperclip, Plus, X } from "@phosphor-icons/react";
+import { Check, Funnel, Paperclip, Plus, TextAlignLeft, X } from "@phosphor-icons/react";
 import { StatusIcon } from "../../../domain/StatusIcon";
 import { Avatar } from "../../../primitives/Avatar";
 import { Badge } from "../../../primitives/Badge";
@@ -27,7 +27,7 @@ export function DisplaySections() {
 				</Badge>
 				<Badge tone="wait">1</Badge>
 				<Badge tone="agent">5</Badge>
-				<Badge tone="neutral" icon={<ChatCircle />}>
+				<Badge tone="neutral" icon={<TextAlignLeft />}>
 					14
 				</Badge>
 				<Badge tone="ok">merged</Badge>

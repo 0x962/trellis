@@ -212,7 +212,7 @@ export const createInlineTransport = ({
 		loopRuntimes.set(config.home, controller);
 		await db.transaction((tx) => cache.rebuild(tx));
 		await warmWrites(db, cache);
-		const found = await db.execute(sql`SELECT sha256 FROM attachments UNION SELECT sha256 FROM chat_attachments`);
+		const found = await db.execute(sql`SELECT sha256 FROM attachments`);
 		if (options !== undefined) {
 			const clock = scaledClock(options.clockRate);
 			flowReconcile = startNativeReconcile({

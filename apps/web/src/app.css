@@ -57,38 +57,38 @@ svg {
  * Read-only markdown: a description or a comment rendered by renderMarkdown.
  * The scale is the token scale; the colors are the tokens.
  */
-:is(.markdown, .comment-markdown, .chat-markdown) {
+:is(.markdown, .comment-markdown) {
 	color: var(--fg);
 	overflow-wrap: anywhere;
 }
-:is(.markdown, .comment-markdown, .chat-markdown) > * + * {
+:is(.markdown, .comment-markdown) > * + * {
 	margin-top: 12px;
 }
-:is(.markdown, .comment-markdown, .chat-markdown) h1,
-:is(.markdown, .comment-markdown, .chat-markdown) h2,
-:is(.markdown, .comment-markdown, .chat-markdown) h3,
-:is(.markdown, .comment-markdown, .chat-markdown) h4 {
+:is(.markdown, .comment-markdown) h1,
+:is(.markdown, .comment-markdown) h2,
+:is(.markdown, .comment-markdown) h3,
+:is(.markdown, .comment-markdown) h4 {
 	font-weight: 600;
 	line-height: 1.3;
 }
-:is(.markdown, .comment-markdown, .chat-markdown) h1 {
+:is(.markdown, .comment-markdown) h1 {
 	font-size: 20px;
 }
-:is(.markdown, .comment-markdown, .chat-markdown) h2 {
+:is(.markdown, .comment-markdown) h2 {
 	font-size: 16px;
 }
-:is(.markdown, .comment-markdown, .chat-markdown) h3,
-:is(.markdown, .comment-markdown, .chat-markdown) h4 {
+:is(.markdown, .comment-markdown) h3,
+:is(.markdown, .comment-markdown) h4 {
 	font-size: 14px;
 }
-:is(.markdown, .comment-markdown, .chat-markdown) ul,
-:is(.markdown, .comment-markdown, .chat-markdown) ol {
+:is(.markdown, .comment-markdown) ul,
+:is(.markdown, .comment-markdown) ol {
 	padding-left: 24px;
 }
-:is(.markdown, .comment-markdown, .chat-markdown) ul {
+:is(.markdown, .comment-markdown) ul {
 	list-style: disc;
 }
-:is(.markdown, .comment-markdown, .chat-markdown) ol {
+:is(.markdown, .comment-markdown) ol {
 	list-style: decimal;
 }
 /*
@@ -96,16 +96,16 @@ svg {
  * checkbox as the first child of the item; the Tiptap editor marks the item
  * with data-type="taskItem" and puts the checkbox in a label.
  */
-:is(.markdown, .comment-markdown, .chat-markdown) li:has(> input[type="checkbox"]),
-:is(.markdown, .comment-markdown, .chat-markdown) li[data-type="taskItem"] {
+:is(.markdown, .comment-markdown) li:has(> input[type="checkbox"]),
+:is(.markdown, .comment-markdown) li[data-type="taskItem"] {
 	list-style: none;
 }
-:is(.markdown, .comment-markdown, .chat-markdown) li[data-type="taskItem"] {
+:is(.markdown, .comment-markdown) li[data-type="taskItem"] {
 	display: flex;
 	gap: 8px;
 	align-items: baseline;
 }
-:is(.markdown, .comment-markdown, .chat-markdown) li:has(> input[type="checkbox"]) > input[type="checkbox"] {
+:is(.markdown, .comment-markdown) li:has(> input[type="checkbox"]) > input[type="checkbox"] {
 	margin-right: 8px;
 }
 /*
@@ -114,26 +114,24 @@ svg {
  * selector, so no selector can say "every item is a task item". A plain
  * item in such a list draws its bullet inside its own box instead.
  */
-:is(.markdown, .comment-markdown, .chat-markdown) ul[data-type="taskList"],
-:is(.markdown, .comment-markdown, .chat-markdown) ul:has(> li > input[type="checkbox"]) {
+:is(.markdown, .comment-markdown) ul[data-type="taskList"],
+:is(.markdown, .comment-markdown) ul:has(> li > input[type="checkbox"]) {
 	padding-left: 0;
 }
-:is(.markdown, .comment-markdown, .chat-markdown)
-	ul:has(> li > input[type="checkbox"])
-	> li:not(:has(> input[type="checkbox"])) {
+:is(.markdown, .comment-markdown) ul:has(> li > input[type="checkbox"]) > li:not(:has(> input[type="checkbox"])) {
 	list-style-position: inside;
 }
-:is(.markdown, .comment-markdown, .chat-markdown) li + li {
+:is(.markdown, .comment-markdown) li + li {
 	margin-top: 4px;
 }
-:is(.markdown, .comment-markdown, .chat-markdown) a {
+:is(.markdown, .comment-markdown) a {
 	color: var(--accent);
 	text-underline-offset: 2px;
 }
-:is(.markdown, .comment-markdown, .chat-markdown) a:hover {
+:is(.markdown, .comment-markdown) a:hover {
 	text-decoration: underline;
 }
-:is(.markdown, .comment-markdown, .chat-markdown) code {
+:is(.markdown, .comment-markdown) code {
 	font-family: var(--mono);
 	font-size: 12px;
 	background: var(--bg);
@@ -141,59 +139,38 @@ svg {
 	border-radius: var(--radius-sm);
 	padding: 1px 4px;
 }
-:is(.markdown, .comment-markdown, .chat-markdown) pre {
+:is(.markdown, .comment-markdown) pre {
 	background: var(--bg);
 	border: 1px solid var(--border);
 	border-radius: var(--radius-md);
 	padding: 12px;
 	overflow-x: auto;
 }
-:is(.markdown, .comment-markdown, .chat-markdown) pre code {
+:is(.markdown, .comment-markdown) pre code {
 	border: 0;
 	padding: 0;
 	background: transparent;
 }
-:is(.markdown, .comment-markdown, .chat-markdown) blockquote {
+:is(.markdown, .comment-markdown) blockquote {
 	border-left: 2px solid var(--border-strong);
 	padding-left: 12px;
 	color: var(--fg-muted);
 }
-:is(.markdown, .comment-markdown, .chat-markdown) hr {
+:is(.markdown, .comment-markdown) hr {
 	border: 0;
 	border-top: 1px solid var(--border);
 }
-:is(.markdown, .comment-markdown, .chat-markdown) table {
+:is(.markdown, .comment-markdown) table {
 	border-collapse: collapse;
 	font-size: 12px;
 }
-:is(.markdown, .comment-markdown, .chat-markdown) th,
-:is(.markdown, .comment-markdown, .chat-markdown) td {
+:is(.markdown, .comment-markdown) th,
+:is(.markdown, .comment-markdown) td {
 	border: 1px solid var(--border);
 	padding: 4px 8px;
 	text-align: left;
 }
-:is(.markdown, .comment-markdown, .chat-markdown) img {
+:is(.markdown, .comment-markdown) img {
 	max-width: 100%;
 	border-radius: var(--radius-md);
-}
-
-/*
- * The chat log: the same markdown, tighter. A message is a few lines, so
- * blocks sit 4px apart, and a mention of an agent, a person, or a role is a
- * soft accent pill.
- */
-.chat-markdown > * + * {
-	margin-top: 4px;
-}
-:is(.markdown, .comment-markdown, .chat-markdown) mark.mention {
-	color: var(--accent);
-	background: var(--accent-soft);
-	border-radius: 4px;
-	padding: 0 3px;
-	font-weight: 500;
-}
-.chat-markdown a {
-	color: var(--accent);
-	text-decoration: underline;
-	text-underline-offset: 2px;
 }
