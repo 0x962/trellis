@@ -3,7 +3,6 @@ import { cx, TicketGlimmer } from "@trellis/ui";
 import { type KeyboardEvent, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useArchivedProjects } from "../../../../hooks/useArchivedProjects";
-import { useWorkingAgents } from "../../../agents/useWorkingAgents";
 import { useCardDnd } from "../../hooks/useBoardDnd";
 import { CardContent } from "../CardContent";
 import { CardPreview } from "../CardPreview";
@@ -15,6 +14,7 @@ export type BoardCardProps = {
 	columnId: string;
 	columnName: string;
 	columnCount: number;
+	working: boolean;
 	onOpen: () => void;
 	onFocus: () => void;
 	onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
@@ -31,6 +31,7 @@ export function BoardCard({
 	columnId,
 	columnName,
 	columnCount,
+	working,
 	onOpen,
 	onFocus,
 	onKeyDown,
@@ -38,8 +39,6 @@ export function BoardCard({
 	showStatus = false,
 	dropBefore = false,
 }: BoardCardProps) {
-	const { ticketIds } = useWorkingAgents();
-	const working = ticketIds.includes(ticket.id);
 	const ref = useRef<HTMLLIElement>(null);
 	const pickup = useCallback((message: string) => announce(message), [announce]);
 	const readOnly = useArchivedProjects().isArchived(ticket.project.path);
