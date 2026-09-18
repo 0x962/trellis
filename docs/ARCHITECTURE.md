@@ -522,7 +522,8 @@ Repository initialization runs outside the database transaction. An idempotent r
 After a host crash, an unconfirmed attempt requires process inspection before another launch.
 Unsent text and files stay available when the user changes sessions.
 Each session row opens its conversation. The conversation controls can stop, resume, or delete the session.
-Each project row shows the Trellis mark and project name. Tickets, Diffs, Sessions, and Settings appear below it.
+Each project row shows the Trellis mark and project name. Tickets, Diffs, and Sessions appear below it.
+The row menu of a project opens its Settings page.
 The Diffs page at `/p/<path>/diffs` lists the pull requests of the project: the ones linked to a ticket of the
 project or one of its sub-projects, and the ones kept for a review in a repository of the project or one of its
 ancestors. Its second source lists the open pull requests of the signed-in GitHub user in those repositories.
