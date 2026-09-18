@@ -690,8 +690,8 @@ returns one canonical spelling.
 | tickets.get | GET /api/tickets/{ticket} | the full ticket with project, status, parent, children, prs, attachments |
 | tickets.create | POST /api/tickets | 201 and `Location`; `epic` joins an epic of the same root |
 | tickets.update | PATCH /api/tickets/{ticket} | `If-Match` maps to `expectedVersion`; `epic: null` clears the epic |
-| tickets.move | POST /api/tickets/{ticket}/move | status, after, before, force; an anchor must be in the target column |
-| tickets.updateMany, deleteMany | POST /api/tickets/update-many, delete-many | up to 200 refs in one transaction |
+| tickets.move | POST /api/tickets/{ticket}/move | status, after, before; an anchor must be in the target column |
+| tickets.updateMany, deleteMany | POST /api/tickets/update-many, delete-many | up to 200 refs in one transaction; two refs with the same canonical spelling are refused, and a ULID and a `KEY-n` of one ticket are two spellings |
 | tickets.delete | DELETE /api/tickets/{ticket} | `force` overrides the agent policy |
 | epics.list | GET /api/epics?project=KEY | the epics of the project and its sub-projects; open first, then done, then by updated desc |
 | epics.get | GET /api/epics/{epic} | the summary and its tickets in number order; `{epic}` takes `KEY/slug` with its slash |

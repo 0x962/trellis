@@ -10,7 +10,8 @@ export type TableController = {
 	// The table's root element. The keys act while focus is inside it or
 	// on the page body, and never inside a dialog or a text field.
 	root: RefObject<HTMLElement | null>;
-	// Every ticket id in display order, mounted or not.
+	// The id of every row a person can see, in display order. A row inside a
+	// collapsed group is not one of them.
 	ids: readonly string[];
 	focusedId: string | null;
 	focus: (id: string) => void;
@@ -18,9 +19,10 @@ export type TableController = {
 	selection: RowSelection;
 	editing: { id: string; field: EditField } | null;
 	setEditing: (editing: { id: string; field: EditField } | null) => void;
-	// Opens the label picker of the row, or the one in the bulk bar while
-	// rows are selected.
-	openLabels: (id: string) => void;
+	// Opens the picker of that field. While rows are selected it opens the
+	// picker in the bulk bar, which writes to every selected row. With no
+	// selection it opens the picker on the row that holds the focus.
+	openField: (id: string, field: EditField) => void;
 	groupKeys: readonly string[];
 	toggleGroup: (key: string) => void;
 	openTicket: (id: string) => void;
@@ -104,13 +106,16 @@ export const useTableHotkeys = (controller: TableController) => {
 	useHotkey(" ", useStableCallback(withFocused((id) => controller.openTicket(id))));
 	useHotkey("o", useStableCallback(withFocused((id) => controller.openPage(id))));
 	useHotkey("x", useStableCallback(withFocused((id) => controller.selection.toggle(id))));
-	useHotkey("s", useStableCallback(withFocused((id) => controller.setEditing({ id, field: "status" }))));
-	useHotkey("p", useStableCallback(withFocused((id) => controller.setEditing({ id, field: "priority" }))));
-	useHotkey("shift+p", useStableCallback(withFocused((id) => controller.setEditing({ id, field: "parent" }))));
-	useHotkey("m", useStableCallback(withFocused((id) => controller.setEditing({ id, field: "project" }))));
-	useHotkey("l", useStableCallback(withFocused((id) => controller.openLabels(id))));
-	// With a selection, the copy key and the delete keys act on every
-	// selected row, as the bulk bar does.
+	useHotkey("s", useStableCallback(withFocused((id) => controller.openField(id, "status"))));
+	useHotkey("p", useStableCallback(withFocused((id) => controller.openField(id, "priority"))));
+	useHotkey("shift+p", useStableCallback(withFocused((id) => controller.openField(id, "parent"))));
+	useHotkey("m", useStableCallback(withFocused((id) => controller.openField(id, "project"))));
+	useHotkey("l", useStableCallback(withFocused((id) => controller.openField(id, "labels"))));
+	useHotkey("e", useStableCallback(withFocused((id) => controller.openField(id, "epic"))));
+	// One rule for every key of this block: with a selection it writes to the
+	// selected rows, and with no selection it writes to the focused row. The
+	// position of the focused row inside or outside the selection changes
+	// nothing.
 	useHotkey(
 		"mod+c",
 		useStableCallback(

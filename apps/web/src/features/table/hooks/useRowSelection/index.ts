@@ -1,1 +1,1 @@
-export { type RowSelection, type RowSelectionOptions, useRowSelection } from "./useRowSelection";
+export { type RowSelection, type RowSelectionOptions, selectionOf, useRowSelection } from "./useRowSelection";

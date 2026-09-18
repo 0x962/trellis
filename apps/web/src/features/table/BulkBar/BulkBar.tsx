@@ -11,6 +11,11 @@ import { ProjectPicker } from "../../pickers/ProjectPicker";
 import { StatusPicker } from "../../pickers/StatusPicker";
 import { TicketPicker } from "../../pickers/TicketPicker";
 
+// One control of the bar that opens a list of values. A table key opens one
+// of them: `s` opens "status", `p` opens "priority", `l` opens "labels",
+// `m` opens "project", `shift+p` opens "parent", and `e` opens "epic".
+export type BulkPicker = "status" | "priority" | "labels" | "project" | "parent" | "epic";
+
 export type BulkBarProps = {
 	// True while a selection exists. The bar stays mounted for its exit
 	// motion after this turns false.
@@ -23,12 +28,22 @@ export type BulkBarProps = {
 	// tree owns the labels and the epics, so a route without a project offers
 	// no Labels control and no Set epic.
 	project?: string;
-	// The ids of the labels every selected ticket holds.
+	// The ids of the labels every selected ticket holds. The picker draws
+	// each one with a check, and a pick on it removes the label everywhere.
 	labelIds: readonly string[];
-	// True while the label picker of the bar is open. The `l` key of the table
-	// opens it.
-	labelsOpen: boolean;
-	onLabelsOpenChange: (open: boolean) => void;
+	// The ids of the labels some, but not all, selected tickets hold. The
+	// picker draws each one with a minus, and a pick on it adds the label
+	// everywhere.
+	mixedLabelIds: readonly string[];
+	// The ref of the epic every selected ticket holds. It is undefined when
+	// every selected ticket holds no epic.
+	epicRef?: string;
+	// True when the selected tickets hold different epics. The picker then
+	// marks no row, not even No epic.
+	epicMixed: boolean;
+	// The control whose list is open, or null while every list is closed.
+	openPicker: BulkPicker | null;
+	onOpenPickerChange: (picker: BulkPicker | null) => void;
 	// `checked` is the new state of that label on every selected ticket.
 	onLabel: (label: Label, checked: boolean) => void;
 	onStatus: (status: StatusSummary) => void;
@@ -64,6 +79,10 @@ const withKey = (name: string, key: string, control: ReactElement) => (
 // in 160 ms and sinks the same way; under reduced motion it shows and
 // hides in place. While it sinks it is inert and hidden from assistive
 // technology, so the selection reads as cleared at once.
+//
+// A write through this bar keeps the selection, so a person sets the status
+// of the same rows and then their epic without selecting them again. Delete
+// clears the selection, because the deleted ids name nothing.
 export function BulkBar({
 	open,
 	count,
@@ -72,8 +91,11 @@ export function BulkBar({
 	ticketRootIds,
 	project,
 	labelIds,
-	labelsOpen,
-	onLabelsOpenChange,
+	mixedLabelIds,
+	epicRef,
+	epicMixed,
+	openPicker,
+	onOpenPickerChange,
 	onLabel,
 	onStatus,
 	onPriority,
@@ -101,6 +123,7 @@ export function BulkBar({
 
 	if (!open && !mounted) return null;
 	const shown = open ? count : lastCount.current;
+	const opener = (picker: BulkPicker) => (next: boolean) => onOpenPickerChange(next ? picker : null);
 
 	return (
 		<div
@@ -121,12 +144,25 @@ export function BulkBar({
 			{withKey(
 				"Status",
 				"s",
-				<StatusPicker statuses={statuses} onPick={onStatus} side="top" trigger={<Button size="sm">Status</Button>} />,
+				<StatusPicker
+					statuses={statuses}
+					onPick={onStatus}
+					open={openPicker === "status"}
+					onOpenChange={opener("status")}
+					side="top"
+					trigger={<Button size="sm">Status</Button>}
+				/>,
 			)}
 			{withKey(
 				"Priority",
 				"p",
-				<PriorityPicker onPick={onPriority} side="top" trigger={<Button size="sm">Priority</Button>} />,
+				<PriorityPicker
+					onPick={onPriority}
+					open={openPicker === "priority"}
+					onOpenChange={opener("priority")}
+					side="top"
+					trigger={<Button size="sm">Priority</Button>}
+				/>,
 			)}
 			{project !== undefined &&
 				withKey(
@@ -135,9 +171,10 @@ export function BulkBar({
 					<LabelPicker
 						project={project}
 						checked={labelIds}
+						mixed={mixedLabelIds}
 						onToggle={onLabel}
-						open={labelsOpen}
-						onOpenChange={onLabelsOpenChange}
+						open={openPicker === "labels"}
+						onOpenChange={opener("labels")}
 						side="top"
 						trigger={<Button size="sm">Labels</Button>}
 					/>,
@@ -149,6 +186,8 @@ export function BulkBar({
 					projects={projects}
 					ticketRootIds={ticketRootIds}
 					onPick={onProject}
+					open={openPicker === "project"}
+					onOpenChange={opener("project")}
 					side="top"
 					trigger={<Button size="sm">Move to project</Button>}
 				/>,
@@ -156,16 +195,30 @@ export function BulkBar({
 			{withKey(
 				"Set parent",
 				"⇧P",
-				<TicketPicker project={project} onPick={onParent} side="top" trigger={<Button size="sm">Set parent</Button>} />,
-			)}
-			{project !== undefined && (
-				<EpicPicker
-					project={rootKey(project)}
-					onPick={onEpic}
+				<TicketPicker
+					project={project}
+					onPick={onParent}
+					open={openPicker === "parent"}
+					onOpenChange={opener("parent")}
 					side="top"
-					trigger={<Button size="sm">Set epic</Button>}
-				/>
+					trigger={<Button size="sm">Set parent</Button>}
+				/>,
 			)}
+			{project !== undefined &&
+				withKey(
+					"Set epic",
+					"e",
+					<EpicPicker
+						project={rootKey(project)}
+						value={epicRef}
+						mixed={epicMixed}
+						onPick={onEpic}
+						open={openPicker === "epic"}
+						onOpenChange={opener("epic")}
+						side="top"
+						trigger={<Button size="sm">Set epic</Button>}
+					/>,
+				)}
 			{withKey(
 				"Copy IDs",
 				"⌘C",

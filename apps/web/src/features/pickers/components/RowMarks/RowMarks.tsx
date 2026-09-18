@@ -1,9 +1,10 @@
-import { Check } from "@phosphor-icons/react";
+import { Check, Minus } from "@phosphor-icons/react";
 import { cx } from "@trellis/ui";
 
 export type RowMarksProps = {
-	// True on the value the field holds now.
-	current: boolean;
+	// True on the value the field holds now. "mixed" means the picker writes
+	// to several tickets and only some of them hold this value.
+	current: boolean | "mixed";
 	// The key that picks the row, such as "1".
 	keyLabel?: string;
 	// True when the row also shows a hint on its right edge. The marks then
@@ -12,17 +13,18 @@ export type RowMarksProps = {
 	afterHint?: boolean;
 };
 
-// The marks on the right of a picker row: a check on the current value and
-// the key cap of the key that picks the row. CSS draws the key from
-// `data-key`, and the marks are hidden from assistive tech, so the text and
-// the accessible name of the row stay its label.
+// The marks on the right of a picker row: a check on the current value, a
+// minus on a mixed one, and the key cap of the key that picks the row. CSS
+// draws the key from `data-key`, and the marks are hidden from assistive
+// tech, so the text and the accessible name of the row stay its label.
 export function RowMarks({ current, keyLabel, afterHint = false }: RowMarksProps) {
 	return (
 		<span
 			aria-hidden="true"
 			className={cx("flex shrink-0 items-center gap-2", afterHint ? "order-last ml-2" : "order-last ml-auto")}
 		>
-			{current && <Check data-current-mark="" className="size-3.5 text-fg-muted" />}
+			{current === "mixed" && <Minus data-current-mark="" className="size-3.5 text-fg-muted" />}
+			{current === true && <Check data-current-mark="" className="size-3.5 text-fg-muted" />}
 			{keyLabel !== undefined && (
 				<span
 					data-key={keyLabel}

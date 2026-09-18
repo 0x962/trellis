@@ -33,6 +33,12 @@ export type LabelChange = {
 
 export type LabelDeltaInput = { addLabels?: readonly string[]; removeLabels?: readonly string[] };
 
+// The labels one write adds and the labels it removes, already read from the
+// database. `null` says the write names no label, so the ticket keeps the
+// labels it holds. A ref resolves inside one root, so one plan serves every
+// ticket of that root.
+export type LabelPlan = { adds: LabelRow[]; removes: LabelRow[] } | null;
+
 const heldLabels = (tx: Tx, ticketId: string) =>
 	rows<HeldLabel>(
 		tx,
@@ -59,17 +65,15 @@ const insertRows = (tx: Tx, ticketId: string, labelIds: readonly string[], now: 
 		)}`,
 	);
 
-// Adds and removes the labels `input` names, and returns one change per label
-// that moved. An added label the ticket holds already, and a removed label it
-// does not hold, change nothing.
-export const applyLabelDeltas = async (
+// Reads the labels `input` names once for the tickets of `rootId`. A batch of
+// 200 tickets therefore reads each label ref one time.
+export const planLabelDeltas = async (
 	ctx: ServiceCtx,
 	tx: Tx,
-	row: TicketRow,
+	rootId: string,
 	input: LabelDeltaInput,
-): Promise<LabelChange[]> => {
-	if (input.addLabels === undefined && input.removeLabels === undefined) return [];
-	const rootId = row.rootId;
+): Promise<LabelPlan> => {
+	if (input.addLabels === undefined && input.removeLabels === undefined) return null;
 	const adds =
 		input.addLabels === undefined
 			? []
@@ -81,6 +85,20 @@ export const applyLabelDeltas = async (
 			? []
 			: await resolveLabels(ctx, tx, { rootId, refs: input.removeLabels, field: "removeLabels" })
 	).filter((label) => !adds.some((added) => added.id === label.id));
+	return { adds, removes };
+};
+
+// Writes the labels of `plan` on one ticket, and returns one change per label
+// that moved. An added label the ticket holds already, and a removed label it
+// does not hold, change nothing.
+export const applyLabelPlan = async (
+	ctx: ServiceCtx,
+	tx: Tx,
+	row: TicketRow,
+	plan: LabelPlan,
+): Promise<LabelChange[]> => {
+	if (plan === null) return [];
+	const { adds, removes } = plan;
 	const current = new Map((await heldLabels(tx, row.id)).map((label) => [label.id, label]));
 	const changes: LabelChange[] = [];
 	const inserted: string[] = [];

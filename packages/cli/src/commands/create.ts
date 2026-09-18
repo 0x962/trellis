@@ -26,7 +26,6 @@ export default defineCommand({
 		parent: { type: "string", description: "Parent ticket ref" },
 		epic: { type: "string", description: "Epic ref, such as OP/routine-runtime" },
 		label: labelFlag,
-		force: { type: "boolean", description: "Accepted for compatibility; completion does not require force" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);
@@ -41,7 +40,6 @@ export default defineCommand({
 				parent: args.parent,
 				epic: args.epic,
 				labels: labelRefs(context.rawArgs, "label"),
-				force: args.force === true ? true : undefined,
 			}),
 		);
 		printRecord(ctx.out, ctx.format, ticket, ticketRecord);

@@ -24,6 +24,9 @@ export type EpicPickerProps = {
 	project: string;
 	// The ref of the current epic.
 	value?: string;
+	// True when the picker writes to several tickets that hold different
+	// epics. No row then shows a check, so the list claims no shared value.
+	mixed?: boolean;
 	// `null` clears the epic.
 	onPick: (epic: EpicSummary | null) => void;
 	trigger: ReactElement;
@@ -34,8 +37,19 @@ export type EpicPickerProps = {
 };
 
 // The epic popover: the epics of the project, searchable by name and ref,
-// and a None option that clears the epic.
-export function EpicPicker({ project, value, onPick, trigger, open, onOpenChange, finalFocus, side }: EpicPickerProps) {
+// and a No epic option that clears the epic. `onPick` sends `null` for that
+// option, and a bulk caller writes `epic: null` to every selected ticket.
+export function EpicPicker({
+	project,
+	value,
+	mixed = false,
+	onPick,
+	trigger,
+	open,
+	onOpenChange,
+	finalFocus,
+	side,
+}: EpicPickerProps) {
 	const { orpc } = useApp();
 	const [own, setOwn] = useState(false);
 	const input = useRef<HTMLInputElement>(null);
@@ -48,8 +62,8 @@ export function EpicPicker({ project, value, onPick, trigger, open, onOpenChange
 	};
 
 	const items: CommandItem[] = [
-		...epicItems(epics, value),
-		{ id: noneId, label: "None", current: value === undefined },
+		...epicItems(epics, mixed ? undefined : value),
+		{ id: noneId, label: "No epic", current: !mixed && value === undefined },
 	];
 
 	return (

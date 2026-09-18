@@ -1,7 +1,9 @@
-import type { ProjectSummary, Ticket } from "@trellis/api";
+import type { ProjectSummary, Ticket, TicketSummary } from "@trellis/api";
 import type { ReactNode } from "react";
 import { currentPlatform, formatShortcut, shortcutById } from "../../lib/shortcuts";
+import type { BulkWrite } from "../table/hooks/useBulkWrite";
 import type { ActionContext } from "./actions";
+import type { SelectionOwner } from "./commandStore";
 import type { PaletteItemDef } from "./items";
 
 // The shape the palette draws. A section builder returns these rows, and
@@ -22,6 +24,9 @@ export type PaletteRow = {
 	keys?: string[];
 	icon?: ReactNode;
 	keywords?: string[];
+	// The state of a value the row belongs to: true when every ticket the
+	// submenu writes to holds it, "mixed" when some do and some do not.
+	checked?: boolean | "mixed";
 	run: () => void;
 };
 
@@ -31,16 +36,26 @@ export type PaletteGroup = {
 	rows: PaletteRow[];
 };
 
-// The list a submenu shows and the tickets its pick writes to.
+// The list a submenu shows and the tickets its pick writes to. `tickets`
+// holds one identifier when the This ticket section opened the submenu, and
+// every selected identifier when the Selection section opened it. The rows
+// behind those identifiers are `RowDeps.selection`.
+//
+// The Selection section sets `bulk`. A pick then writes through
+// `RowDeps.bulk`, which patches the rows in the cache, asks before a large
+// write, and reports what it changed. A selection of one row sets `bulk` as
+// well, so one rule covers every selection size.
 export type Submenu =
-	| { kind: "status"; tickets: string[]; project: string }
-	| { kind: "priority"; tickets: string[] }
-	| { kind: "project"; tickets: string[] }
-	| { kind: "parent"; ticket: string; project: string }
-	// `checked` holds the labels the ticket carries when the submenu opens,
-	// so each row states what its pick does. A submenu over several tickets
-	// checks nothing, and every pick there adds its label.
-	| { kind: "labels"; tickets: string[]; project: string; checked: string[] }
+	| { kind: "status"; tickets: string[]; project: string; bulk?: true }
+	| { kind: "priority"; tickets: string[]; bulk?: true }
+	| { kind: "project"; tickets: string[]; bulk?: true }
+	| { kind: "parent"; tickets: string[]; project: string; bulk?: true }
+	| { kind: "epic"; tickets: string[]; project: string; bulk?: true }
+	// `checked` names the labels that every ticket of the submenu holds, and
+	// `mixed` names the labels that some hold and some do not. A pick on a
+	// checked label removes it everywhere. A pick on any other label, mixed
+	// or not, adds it everywhere.
+	| { kind: "labels"; tickets: string[]; project: string; checked: string[]; mixed: string[]; bulk?: true }
 	| { kind: "sort" }
 	| { kind: "group" }
 	| { kind: "goto" };
@@ -51,7 +66,12 @@ export type RowDeps = {
 	ticket: Ticket | undefined;
 	// The identifier of the ticket in context.
 	identifier: string | null;
-	selection: string[];
+	// The selected rows of the table or the board, in display order.
+	selection: readonly TicketSummary[];
+	// The one path every Selection section write takes.
+	bulk: BulkWrite;
+	// The surface that owns the selection, or null while none is on screen.
+	selectionOwner: SelectionOwner | null;
 	projects: ProjectSummary[];
 	pathname: string;
 	search: Record<string, unknown>;

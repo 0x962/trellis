@@ -68,38 +68,31 @@ export const setLabel = async (context: ActionContext, ticket: string, label: st
 		context.client.tickets.update({ ticket, ...(on ? { addLabels: [label] } : { removeLabels: [label] }) }),
 	);
 
+export const setEpic = async (context: ActionContext, ticket: string, epic: string | null): Promise<void> =>
+	write(context, "The epic did not change.", () => context.client.tickets.update({ ticket, epic }));
+
 export const deleteTicket = async (context: ActionContext, ticket: string): Promise<void> => {
 	if (!(await context.confirm(`Delete ${ticket}?`))) return;
 	await write(context, `${ticket} is not deleted.`, () => context.client.tickets.delete({ ticket }));
 };
 
-export const bulkChangeStatus = async (context: ActionContext, tickets: string[], status: string): Promise<void> =>
-	write(context, "The status did not change.", () => context.client.tickets.updateMany({ tickets, status }));
-
-export const bulkSetPriority = async (context: ActionContext, tickets: string[], priority: Priority): Promise<void> =>
-	write(context, "The priority did not change.", () => context.client.tickets.updateMany({ tickets, priority }));
-
-export const bulkMoveToProject = async (context: ActionContext, tickets: string[], project: string): Promise<void> =>
-	write(context, "The tickets did not move.", () => context.client.tickets.updateMany({ tickets, project }));
-
-export const bulkSetLabel = async (
-	context: ActionContext,
-	tickets: string[],
-	label: string,
-	on: boolean,
-): Promise<void> =>
-	write(context, "The labels did not change.", () =>
-		context.client.tickets.updateMany({ tickets, ...(on ? { addLabels: [label] } : { removeLabels: [label] }) }),
-	);
-
-export const bulkDelete = async (context: ActionContext, tickets: string[]): Promise<void> => {
-	if (!(await context.confirm(`Delete ${tickets.length} tickets?`))) return;
-	await write(context, "The tickets are not deleted.", () => context.client.tickets.deleteMany({ tickets }));
-};
-
 export const copyId = async (context: ActionContext, ticket: string): Promise<void> => {
 	await context.copy(ticket);
 	context.notify("Copied the ID.");
+};
+
+const plural = (count: number) => `${count} ${count === 1 ? "ticket" : "tickets"}`;
+
+// One identifier per line, in the order the rows are selected.
+export const copyIds = async (context: ActionContext, tickets: string[]): Promise<void> => {
+	await context.copy(tickets.join("\n"));
+	context.notify(`Copied the IDs of ${plural(tickets.length)}.`);
+};
+
+// One ticket URL per line, in the order the rows are selected.
+export const copyLinks = async (context: ActionContext, tickets: string[]): Promise<void> => {
+	await context.copy(tickets.map((ticket) => `${context.origin}/t/${ticket}`).join("\n"));
+	context.notify(`Copied the links of ${plural(tickets.length)}.`);
 };
 
 // `CDE-42` and `Restore the export pages!` give `cde-42-restore-the-export-pages`.

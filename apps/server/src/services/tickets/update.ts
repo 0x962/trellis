@@ -1,6 +1,7 @@
 import {
 	type Priority,
 	type Ticket,
+	type TicketSummary,
 	TicketUpdateInputSchema,
 	TicketUpdateManyInputSchema,
 	type TicketUpdateManyOutputSchema,
@@ -12,14 +13,15 @@ import type { ServiceCtx } from "../../context.ts";
 import { effectiveStatuses } from "../../db/queries/effectiveStatuses.ts";
 import { statusById } from "../../db/queries/statusById.ts";
 import { rows } from "../../db/queries/support.ts";
-import { ticketGet, ticketSummary } from "../../db/queries/ticketGet.ts";
+import { ticketGet } from "../../db/queries/ticketGet.ts";
+import { ticketSummaries } from "../../db/queries/ticketSummaries.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { record } from "../activity.ts";
-import { resolveEpicForTicket } from "../epics/resolve.ts";
 import { epicRefOf } from "../epics/rows.ts";
 import { assertProjectActive, pathOf, resolveProject, resolveStatus, resolveTicket, type TicketRow } from "../refs.ts";
-import { applyLabelDeltas } from "./labels.ts";
+import { applyLabelPlan } from "./labels.ts";
+import { type ChangePlanner, changePlanner } from "./plan.ts";
 import { assertVersion, outsideRoot, remapStatus, stampColumns } from "./rules.ts";
 
 // The fields `update` and `updateMany` share. A ref is a canonical string;
@@ -34,7 +36,6 @@ type ChangeInput = {
 	project?: string;
 	addLabels?: readonly string[];
 	removeLabels?: readonly string[];
-	force?: boolean;
 };
 
 // One changed field: its activity values, and the SET clause that writes it.
@@ -47,6 +48,11 @@ type FieldChange = {
 	meta?: Record<string, unknown>;
 	set?: SQL;
 };
+
+// One ticket after `applyChanges`: its id, and the name of every field the
+// write changed. An empty `fields` says the write touched nothing, so the
+// ticket gets no activity row and no event.
+type Applied = { id: string; fields: string[] };
 
 // A parent must sit in the same root and must not be the ticket or one of
 // its descendants. The walk down the children stops at depth 64.
@@ -67,7 +73,10 @@ const resolveParent = async (ctx: ServiceCtx, tx: Tx, row: TicketRow, ref: strin
 	return parent;
 };
 
+// A write that names neither `status` nor `project` leaves the status of the
+// ticket alone, so it reads no status row.
 const projectAndStatusChanges = async (ctx: ServiceCtx, tx: Tx, row: TicketRow, input: ChangeInput) => {
+	if (input.status === undefined && input.project === undefined) return [];
 	const changes: FieldChange[] = [];
 	let projectId = row.projectId;
 	if (input.project !== undefined) {
@@ -105,10 +114,18 @@ const projectAndStatusChanges = async (ctx: ServiceCtx, tx: Tx, row: TicketRow, 
 	return changes;
 };
 
-// Applies `input` to one ticket under `batchId`: one UPDATE, one activity
-// row per changed field, one ticket.updated event. An input that changes
-// nothing writes nothing. Returns the summary after the write.
-export const applyChanges = async (ctx: ServiceCtx, tx: Tx, batchId: string, row: TicketRow, input: ChangeInput) => {
+// Applies `input` to one ticket under `batchId`: one UPDATE and one activity
+// row per changed field. An input that changes nothing writes nothing.
+// `planner` holds the epic row and the label rows the write names, so a batch
+// reads each of them once and not once per ticket.
+const applyChanges = async (
+	ctx: ServiceCtx,
+	tx: Tx,
+	batchId: string,
+	row: TicketRow,
+	input: ChangeInput,
+	planner: ChangePlanner,
+): Promise<Applied> => {
 	const changes: FieldChange[] = [];
 	if (input.title !== undefined && input.title !== row.title) {
 		changes.push({ field: "title", from: row.title, to: input.title, set: sql`title = ${input.title}` });
@@ -137,7 +154,7 @@ export const applyChanges = async (ctx: ServiceCtx, tx: Tx, batchId: string, row
 		}
 	}
 	if (input.epic !== undefined) {
-		const epic = input.epic === null ? null : await resolveEpicForTicket(ctx, tx, row.rootId, input.epic);
+		const epic = (await planner.epic(row.rootId)) ?? null;
 		if ((epic?.id ?? null) !== row.epicId) {
 			changes.push({
 				field: "epic",
@@ -149,8 +166,8 @@ export const applyChanges = async (ctx: ServiceCtx, tx: Tx, batchId: string, row
 		}
 	}
 	changes.push(...(await projectAndStatusChanges(ctx, tx, row, input)));
-	changes.push(...(await applyLabelDeltas(ctx, tx, row, input)));
-	if (changes.length === 0) return ticketSummary(tx, row.id);
+	changes.push(...(await applyLabelPlan(ctx, tx, row, await planner.labels(row.rootId))));
+	if (changes.length === 0) return { id: row.id, fields: [] };
 
 	// A write that changes labels alone has no column to set, and it still
 	// raises `version`, so every client sees that the row changed.
@@ -168,10 +185,24 @@ export const applyChanges = async (ctx: ServiceCtx, tx: Tx, batchId: string, row
 		batchId,
 		changes: changes.map(({ field, from, to, meta }) => ({ field, from, to, meta })),
 	});
-	const summary = await ticketSummary(tx, row.id);
-	const fields = [...new Set(changes.map((change) => change.field))];
-	ctx.emit({ type: "ticket.updated", summary, fields, batchId });
-	return summary;
+	return { id: row.id, fields: [...new Set(changes.map((change) => change.field))] };
+};
+
+// Reads the summary of every written ticket in one statement, and emits one
+// `ticket.updated` for each ticket that changed. The result holds one summary
+// per entry of `applied`, in that order.
+const readAndEmit = async (ctx: ServiceCtx, tx: Tx, batchId: string, applied: Applied[]): Promise<TicketSummary[]> => {
+	const found = await ticketSummaries(
+		tx,
+		applied.map((entry) => entry.id),
+	);
+	const byId = new Map(found.map((summary) => [summary.id, summary]));
+	const items = applied.map((entry) => byId.get(entry.id) as TicketSummary);
+	applied.forEach((entry, index) => {
+		if (entry.fields.length === 0) return;
+		ctx.emit({ type: "ticket.updated", summary: items[index] as TicketSummary, fields: entry.fields, batchId });
+	});
+	return items;
 };
 
 export const update = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<Ticket> => {
@@ -179,7 +210,9 @@ export const update = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	const row = await resolveTicket(ctx, tx, input.ticket);
 	assertProjectActive(ctx, row.projectId);
 	await assertVersion(tx, row, input.expectedVersion);
-	await applyChanges(ctx, tx, ulid(), row, input);
+	const batchId = ulid();
+	const applied = await applyChanges(ctx, tx, batchId, row, input, changePlanner(ctx, tx, input));
+	await readAndEmit(ctx, tx, batchId, [applied]);
 	return ticketGet(tx, row.id);
 };
 
@@ -192,11 +225,12 @@ export const updateMany = async (
 ): Promise<z.infer<typeof TicketUpdateManyOutputSchema>> => {
 	const input = TicketUpdateManyInputSchema.parse(rawInput);
 	const batchId = ulid();
-	const items = [];
+	const planner = changePlanner(ctx, tx, input);
+	const applied: Applied[] = [];
 	for (const ref of input.tickets) {
 		const row = await resolveTicket(ctx, tx, ref);
 		assertProjectActive(ctx, row.projectId);
-		items.push(await applyChanges(ctx, tx, batchId, row, input));
+		applied.push(await applyChanges(ctx, tx, batchId, row, input, planner));
 	}
-	return { items };
+	return { items: await readAndEmit(ctx, tx, batchId, applied) };
 };

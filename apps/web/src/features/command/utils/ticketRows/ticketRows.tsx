@@ -4,21 +4,27 @@ import {
 	Copy,
 	FolderSimple,
 	GitPullRequest,
+	Link,
+	ListChecks,
+	Stack,
 	Tag,
 	Trash,
+	X,
 } from "@phosphor-icons/react";
 import { PriorityIcon, StatusIcon } from "@trellis/ui";
 import type { ReactNode } from "react";
 import { labelNames } from "../../../../lib/labelNames";
-import { projectSlashPath } from "../../../../lib/projectPath";
+import { projectSlashPath, rootKey } from "../../../../lib/projectPath";
 import { composerActions } from "../../../composer";
+import { labelStates } from "../../../table/utils/labelStates";
 import {
 	branchName,
-	bulkDelete,
 	copyAgentBrief,
 	copyBranchName,
 	copyId,
+	copyIds,
 	copyLink,
+	copyLinks,
 	deleteTicket,
 	openPullRequest,
 } from "../../actions";
@@ -40,8 +46,14 @@ const icons: Record<string, ReactNode> = {
 	"ticket.open": <ArrowSquareOut />,
 	"ticket.delete": <Trash />,
 	"selection.project": <FolderSimple />,
+	"selection.parent": <ArrowElbowDownRight />,
+	"selection.epic": <Stack />,
 	"selection.labels": <Tag />,
+	"selection.copyIds": <Copy />,
+	"selection.copyLinks": <Link />,
 	"selection.delete": <Trash />,
+	"selection.selectAll": <ListChecks />,
+	"selection.clear": <X />,
 };
 
 // The palette closes as soon as an action starts, so the page under it
@@ -75,13 +87,14 @@ export const ticketRows = (deps: RowDeps): PaletteRow[] => {
 		"ticket.status": () => deps.openSubmenu({ kind: "status", tickets: [identifier], project: statusProject(deps) }),
 		"ticket.priority": () => deps.openSubmenu({ kind: "priority", tickets: [identifier] }),
 		"ticket.project": () => deps.openSubmenu({ kind: "project", tickets: [identifier] }),
-		"ticket.parent": () => deps.openSubmenu({ kind: "parent", ticket: identifier, project: statusProject(deps) }),
+		"ticket.parent": () => deps.openSubmenu({ kind: "parent", tickets: [identifier], project: statusProject(deps) }),
 		"ticket.labels": () =>
 			deps.openSubmenu({
 				kind: "labels",
 				tickets: [identifier],
 				project: statusProject(deps),
 				checked: (ticket?.labels ?? []).map((label) => label.id),
+				mixed: [],
 			}),
 		"ticket.subTicket": run(deps, () => composerActions.open({ parent: identifier, project: ticket?.project.path })),
 		"ticket.copyId": run(deps, () => void copyId(action, identifier)),
@@ -126,15 +139,45 @@ const iconOf = (id: string, deps: RowDeps): ReactNode => {
 	return icons[id];
 };
 
+// The Selection section. Every row acts on every selected ticket. A write
+// takes the bulk path, which asks before a large change and reports what it
+// changed. An empty selection has no section at all.
 export const selectionRows = (deps: RowDeps): PaletteRow[] => {
 	const { action, selection } = deps;
+	if (selection.length === 0) return [];
+	const identifiers = selection.map((row) => row.identifier);
+	// The statuses and the labels a submenu offers come from the project of
+	// the first selected row, and the epics come from the root of that
+	// project tree. A selection that spans two projects still writes a value
+	// that belongs to one of them.
+	const project = selection[0]!.project.path;
+	const labels = labelStates(selection);
 	const runs: Record<string, () => void> = {
-		"selection.status": () => deps.openSubmenu({ kind: "status", tickets: selection, project: statusProject(deps) }),
-		"selection.priority": () => deps.openSubmenu({ kind: "priority", tickets: selection }),
-		"selection.project": () => deps.openSubmenu({ kind: "project", tickets: selection }),
+		"selection.status": () => deps.openSubmenu({ kind: "status", tickets: identifiers, project, bulk: true }),
+		"selection.priority": () => deps.openSubmenu({ kind: "priority", tickets: identifiers, bulk: true }),
 		"selection.labels": () =>
-			deps.openSubmenu({ kind: "labels", tickets: selection, project: statusProject(deps), checked: [] }),
-		"selection.delete": run(deps, () => void bulkDelete(action, selection)),
+			deps.openSubmenu({
+				kind: "labels",
+				tickets: identifiers,
+				project,
+				checked: labels.all,
+				mixed: labels.some,
+				bulk: true,
+			}),
+		"selection.project": () => deps.openSubmenu({ kind: "project", tickets: identifiers, bulk: true }),
+		"selection.parent": () => deps.openSubmenu({ kind: "parent", tickets: identifiers, project, bulk: true }),
+		// The root project of a tree owns every epic of that tree. `rootKey`
+		// takes the key of the tree, so a row under a sub-project offers the
+		// same epics as a row under the root.
+		"selection.epic": () =>
+			deps.openSubmenu({ kind: "epic", tickets: identifiers, project: rootKey(project), bulk: true }),
+		"selection.copyIds": run(deps, () => void copyIds(action, identifiers)),
+		"selection.copyLinks": run(deps, () => void copyLinks(action, identifiers)),
+		// The bulk path asks its own question before it deletes, and the
+		// surface that owns the selection clears it after.
+		"selection.delete": run(deps, () => void deps.bulk.remove(selection)),
+		"selection.selectAll": run(deps, () => deps.selectionOwner?.selectAll()),
+		"selection.clear": run(deps, () => deps.selectionOwner?.clear()),
 	};
 	return itemsOfSection("selection").map((item) => ({
 		value: item.id,

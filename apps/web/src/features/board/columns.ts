@@ -31,7 +31,7 @@ export const workingFirst = (columns: BoardColumnModel[], workingTicketIds: Read
 	}));
 
 export const workingGroupInsertIndex = (
-	items: TicketSummary[],
+	items: readonly TicketSummary[],
 	ticketId: string,
 	workingTicketIds: ReadonlySet<string>,
 ) =>

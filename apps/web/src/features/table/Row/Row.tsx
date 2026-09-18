@@ -17,7 +17,7 @@ import { StatusCell } from "./components/StatusCell";
 import { TitleCell } from "./components/TitleCell";
 
 // The inline editors a row opens.
-export type EditField = "status" | "priority" | "project" | "parent" | "labels";
+export type EditField = "status" | "priority" | "project" | "parent" | "labels" | "epic";
 
 // One change a row's picker or the bulk bar applies. `checked` on a label
 // change is the new state of that label on the ticket.
