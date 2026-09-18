@@ -49,12 +49,11 @@ export const DEFAULT_TICKET_TEMPLATE = "## Context\n\n## Acceptance criteria\n- 
 
 const assertManagerConfig = async (tx: Tx, config: ProjectCreateInput["managerConfig"]) => {
 	if (config?.accountId != null) {
-		const [account] = await rows<{ harness: string; enabled: boolean }>(
+		const [account] = await rows<{ harness: string }>(
 			tx,
-			sql`SELECT harness, enabled FROM harness_accounts WHERE id = ${config.accountId} AND archived_at IS NULL`,
+			sql`SELECT harness FROM harness_accounts WHERE id = ${config.accountId} AND archived_at IS NULL`,
 		);
 		if (account === undefined) throw invalidInput("managerConfig.accountId", "Select an account from Settings.");
-		if (!account.enabled) throw invalidInput("managerConfig.accountId", "Select an enabled account.");
 		const preset = config.harness?.preset ?? "claude";
 		if (account.harness !== preset) throw invalidInput("managerConfig.accountId", `Select a ${preset} account.`);
 	}

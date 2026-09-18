@@ -72,8 +72,8 @@ export const startNative = async (
 			throw new Error("The flow group deadline elapsed before launch");
 		const ambientEnv = deps.env ?? (await (deps.environment ?? executionEnvironment)());
 		const account = run.accountId ? await ctx.newTx((tx) => getAccount(tx, { id: run.accountId! })) : null;
-		if (account && (!account.enabled || account.harness !== config.harness.preset))
-			throw new Error("The selected account is disabled or belongs to another harness.");
+		if (account && account.harness !== config.harness.preset)
+			throw new Error("The selected account belongs to another harness.");
 		// A run with no account reads the SuperSet pointer at every launch, so
 		// a switch made in SuperSet reaches the next Trellis launch. A profile
 		// the person exported in the login shell wins over the pointer.

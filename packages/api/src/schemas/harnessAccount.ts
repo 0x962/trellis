@@ -9,7 +9,6 @@ export const HarnessAccountSchema = z.object({
 	harness: AccountHarnessSchema,
 	profilePath: z.string(),
 	isDefault: z.boolean(),
-	enabled: z.boolean(),
 	loginCommand: z.string().nullable(),
 	capabilities: z.object({
 		launch: z.boolean(),
@@ -44,7 +43,6 @@ export const HarnessAccountUpdateSchema = z.strictObject({
 		.min(1, "Enter an account name of 1 to 120 characters.")
 		.max(120, "Enter an account name of 1 to 120 characters.")
 		.optional(),
-	enabled: z.boolean().optional(),
 	isDefault: z.boolean().optional(),
 });
 export type HarnessAccountUpdate = z.infer<typeof HarnessAccountUpdateSchema>;

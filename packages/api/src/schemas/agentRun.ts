@@ -59,9 +59,7 @@ export const AgentRunStartInputSchema = z
 		model: ModelIdSchema.optional().describe(
 			"Canonical model ID from models.list for this assignment. Defaults to the project's harness model.",
 		),
-		accountId: UlidSchema.optional().describe(
-			"Configured harness account. Select an enabled account from harnessAccounts.list.",
-		),
+		accountId: UlidSchema.optional().describe("Configured harness account from harnessAccounts.list."),
 		requestId: z
 			.string()
 			.min(1)

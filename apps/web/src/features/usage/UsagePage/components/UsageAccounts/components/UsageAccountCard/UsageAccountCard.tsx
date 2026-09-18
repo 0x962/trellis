@@ -1,6 +1,6 @@
 import { ArrowClockwise, Copy, PencilSimple, SignIn, Star, Trash } from "@phosphor-icons/react";
 import type { HarnessAccount, UsageAccount, UsageGroupRow, UsageMetric } from "@trellis/api";
-import { Button, Dialog, IconButton, ProviderIcon, QuotaWindows, Skeleton, Switch, Tooltip, toast } from "@trellis/ui";
+import { Button, Dialog, IconButton, ProviderIcon, QuotaWindows, Skeleton, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { formatMetric, formatShare, harnessLabel, harnessProvider } from "../../../../../formatUsage";
 
@@ -34,7 +34,6 @@ export function UsageAccountCard({
 	busy,
 	refreshing,
 	onDefault,
-	onEnabled,
 	onRename,
 	onRemove,
 	onRefresh,
@@ -49,7 +48,6 @@ export function UsageAccountCard({
 	busy: boolean;
 	refreshing: boolean;
 	onDefault: () => void;
-	onEnabled: (enabled: boolean) => void;
 	onRename: () => void;
 	onRemove: () => void;
 	onRefresh: () => void;
@@ -78,7 +76,7 @@ export function UsageAccountCard({
 							<Tooltip content="Make default">
 								<IconButton
 									label={`Make ${account.name} the default`}
-									disabled={busy || managed.isDefault || !managed.enabled}
+									disabled={busy || managed.isDefault}
 									onClick={onDefault}
 									icon={<Star weight={managed.isDefault ? "fill" : "regular"} />}
 								/>
@@ -171,14 +169,6 @@ export function UsageAccountCard({
 				</p>
 			)}
 			<p className="break-all font-mono text-xs text-fg-faint">{account.profilePath}</p>
-			{managed && (
-				<Switch
-					label={`Allow assignments to use ${account.name}`}
-					checked={managed.enabled}
-					disabled={busy}
-					onCheckedChange={onEnabled}
-				/>
-			)}
 			<Dialog
 				open={login}
 				onOpenChange={setLogin}

@@ -10,7 +10,6 @@ export const harnessAccounts = pgTable(
 		harness: text().notNull(),
 		profilePath: text("profile_path").notNull(),
 		isDefault: boolean("is_default").notNull().default(false),
-		enabled: boolean().notNull().default(true),
 		archivedAt: at("archived_at"),
 		createdAt: at("created_at").notNull(),
 		updatedAt: at("updated_at").notNull(),

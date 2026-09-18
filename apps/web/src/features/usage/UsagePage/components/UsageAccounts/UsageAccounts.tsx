@@ -164,10 +164,6 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 									setError(undefined);
 									update.mutate({ id: managed!.id, isDefault: true });
 								}}
-								onEnabled={(enabled) => {
-									setError(undefined);
-									update.mutate({ id: managed!.id, enabled, ...(!enabled ? { isDefault: false } : {}) });
-								}}
 								onRename={() => {
 									setError(undefined);
 									update.reset();

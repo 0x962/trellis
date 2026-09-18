@@ -108,7 +108,7 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 						items={[
 							{ value: "default", label: "Default account" },
 							...(accounts.data ?? [])
-								.filter((account) => account.enabled && account.harness === draft.harness.preset)
+								.filter((account) => account.harness === draft.harness.preset)
 								.map((account) => ({ value: account.id, label: account.name })),
 						]}
 						onValueChange={(accountId) => change({ accountId: accountId === "default" ? "" : accountId })}
