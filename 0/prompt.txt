@@ -1,0 +1,7 @@
+<task-notification>
+<task-id>bbvvx510q</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-navidkhan-projects-trellis/f93378da-eb95-43c3-8373-0bb162948448/tasks/bbvvx510q.output</output-file>
+<status>completed</status>
+<summary>Background command "Retry the TRL-76 assignment to Ellis" completed (exit code 0)</summary>
+</task-notification>
