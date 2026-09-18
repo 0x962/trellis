@@ -7,7 +7,7 @@
 // - `run.model.configured`: the model of the runs that follow.
 // - `runtime.session` with `event.kind === "model_completed"`: the tokens of
 //   one model call. `input_tokens` includes `cached_tokens`.
-// - `runtime.command_intake.received` with a `turn_submit` command: a prompt.
+// - `runtime.command_intake.received` with a turn command: a prompt.
 // A session on the `echo` provider is a local test with no model, so it
 // adds nothing.
 
@@ -27,7 +27,7 @@ type MuseRecord = {
 			workspace_root?: string;
 			provider_id?: string;
 			model_id?: string;
-			command?: { kind?: string; prompt?: string };
+			command?: { kind?: string; prompt?: string; payload?: { prompt?: string } };
 		};
 		event?: {
 			kind?: string;
@@ -65,8 +65,9 @@ async function parseMuseLogFile(
 			return;
 		}
 		if (record.payload_type === "runtime.command_intake.received") {
-			if (payload.record?.command?.kind === "turn_submit" && !sessionLabels.has(sessionId)) {
-				const label = toSessionLabel(payload.record.command.prompt);
+			const command = payload.record?.command;
+			if (["turn_submit", "turn_queue_submit"].includes(command?.kind ?? "") && !sessionLabels.has(sessionId)) {
+				const label = toSessionLabel(command?.payload?.prompt ?? command?.prompt);
 				if (label) sessionLabels.set(sessionId, label);
 			}
 			return;
@@ -98,7 +99,8 @@ async function parseMuseLogFile(
 			!line.includes("model_completed") &&
 			!line.includes("runtime.session.metadata") &&
 			!line.includes("run.model.configured") &&
-			!line.includes("turn_submit")
+			!line.includes("turn_submit") &&
+			!line.includes("turn_queue_submit")
 		)
 			return;
 		let parsed: MuseRecord;

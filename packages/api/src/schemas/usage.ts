@@ -104,8 +104,16 @@ export const UsageReportSchema = z.object({
 	days: UsageDaysSchema,
 	buckets: z.array(UsageDaySchema),
 	totals: UsageTotalsSchema,
-	groups: z.record(UsageGroupBySchema, z.array(UsageGroupRowSchema)),
-	sessions: z.array(UsageSessionSchema),
+	rankings: z.object({
+		usd: z.object({
+			groups: z.record(UsageGroupBySchema, z.array(UsageGroupRowSchema)),
+			sessions: z.array(UsageSessionSchema),
+		}),
+		tokens: z.object({
+			groups: z.record(UsageGroupBySchema, z.array(UsageGroupRowSchema)),
+			sessions: z.array(UsageSessionSchema),
+		}),
+	}),
 	scannedFiles: z.number().int(),
 	pricingTableUpdated: z.string(),
 	computedAt: IsoDateTimeSchema,
@@ -128,7 +136,7 @@ export type UsageReportInput = z.infer<typeof UsageReportInputSchema>;
 // One login on this machine with its subscription quota: a configured
 // account, or the default login of a harness that no account names.
 // `key` is the row key of the account grouping in the usage report, so a
-// card joins its cost from `groups.account`.
+// card joins its value from the account group of the selected ranking.
 export const UsageAccountSchema = z.object({
 	key: z.string(),
 	id: UlidSchema.nullable(),
@@ -146,15 +154,15 @@ export const UsageAccountSchema = z.object({
 	// The usage of such a directory is one shared row of the report.
 	sharedWith: z.array(z.string()),
 	quota: z.object({
-		// `unlimited` is a login whose provider reports no quota window: an
-		// API key, a plan without limits, or a harness with no quota endpoint.
-		status: z.enum(["ok", "unlimited", "signed_out", "expired", "unavailable"]),
+		status: z.enum(["ok", "unlimited", "metered", "signed_out", "stale", "expired", "unavailable"]),
 		email: z.string().nullable(),
 		plan: z.string().nullable(),
 		detail: z.string().nullable(),
 		windows: z.array(
 			z.object({ id: z.string(), label: z.string(), usedPercent: z.number(), resetsAt: IsoDateTimeSchema.nullable() }),
 		),
+		creditsBalance: z.number().nullable(),
+		extraUsage: z.object({ usedCents: z.number(), limitCents: z.number() }).nullable(),
 		fetchedAt: IsoDateTimeSchema,
 	}),
 });

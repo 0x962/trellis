@@ -43,9 +43,6 @@ export type UsageReportInputs = {
 	// each profile. Several profiles can share one transcript directory, so
 	// the directory alone cannot name the account.
 	sessionAccounts: ReadonlyMap<string, string>;
-	// The default account of each harness. A run with no account of its own
-	// launched with the default profile, so its usage belongs to that account.
-	defaultAccounts: Partial<Record<UsageHarness, string>>;
 	days: UsageDays;
 	cutoffMs: number;
 	now: Date;
@@ -124,7 +121,7 @@ function attribute(
 function groupKeys(
 	entry: CollectedEntry,
 	attribution: Attribution,
-	input: Pick<UsageReportInputs, "sessionAccounts" | "defaultAccounts">,
+	input: Pick<UsageReportInputs, "sessionAccounts">,
 ): Record<UsageGroupBy, { key: string; label: RowLabel }> {
 	const { run, project, other } = attribution;
 	const outside: RowLabel = {
@@ -163,7 +160,6 @@ function groupKeys(
 		: { key: OUTSIDE, label: outside };
 	const accountName =
 		run?.accountName ??
-		(run ? input.defaultAccounts[entry.harness] : undefined) ??
 		input.sessionAccounts.get(entry.sessionId) ??
 		(entry.accounts.length === 1 ? entry.accounts[0]! : null);
 	const account = accountName
@@ -356,59 +352,64 @@ export function computeUsageReport(input: UsageReportInputs): UsageReport {
 		buckets.push(bucketsByDay.get(key) ?? { day: key, usd: 0, tokens: 0, harnesses: {} });
 	}
 
-	const groupRows = {} as Record<UsageGroupBy, UsageGroupRow[]>;
+	const allGroupRows = {} as Record<UsageGroupBy, UsageGroupRow[]>;
 	for (const grouping of GROUPINGS) {
-		groupRows[grouping] = [...groups.get(grouping)!.entries()]
-			.map(([key, row]) => ({
-				key,
-				...row.label,
-				usd: row.usd,
-				tokens: row.tokens,
-				sessions: row.sessions.size,
-				runs: row.runs.size,
-				approximate: row.approximate,
-				days: [...row.days.entries()]
-					.map(([day, slice]) => ({ day, usd: slice.usd, tokens: slice.tokens }))
-					.sort((a, b) => a.day.localeCompare(b.day)),
-			}))
-			.sort((a, b) => b.usd - a.usd)
-			.slice(0, MAX_GROUP_ROWS);
+		allGroupRows[grouping] = [...groups.get(grouping)!.entries()].map(([key, row]) => ({
+			key,
+			...row.label,
+			usd: row.usd,
+			tokens: row.tokens,
+			sessions: row.sessions.size,
+			runs: row.runs.size,
+			approximate: row.approximate,
+			days: [...row.days.entries()]
+				.map(([day, slice]) => ({ day, usd: slice.usd, tokens: slice.tokens }))
+				.sort((a, b) => a.day.localeCompare(b.day)),
+		}));
 	}
 
-	const sessionRows: UsageSession[] = [...sessions.values()]
-		.sort((a, b) => b.usd - a.usd)
-		.slice(0, MAX_SESSIONS)
-		.map((session) => ({
-			sessionId: session.sessionId,
-			harness: session.harness,
-			model: [...session.models.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "unknown",
-			label: input.sessionLabels.get(session.sessionId) ?? null,
-			usd: session.usd,
-			tokens: session.tokens,
-			turns: session.turns,
-			firstAt: new Date(session.firstMs).toISOString(),
-			lastAt: new Date(session.lastMs).toISOString(),
-			approximate: session.approximate,
-			run: session.run
-				? {
-						id: session.run.id,
-						kind: session.run.kind,
-						name: session.run.name,
-						ticketIdentifier: session.run.ticketIdentifier,
-						ticketTitle: session.run.ticketTitle,
-						projectPath: session.run.projectPath,
-						account: session.run.accountName,
-					}
-				: null,
-			groupKeys: session.groupKeys,
-		}));
+	const allSessionRows: UsageSession[] = [...sessions.values()].map((session) => ({
+		sessionId: session.sessionId,
+		harness: session.harness,
+		model: [...session.models.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "unknown",
+		label: input.sessionLabels.get(session.sessionId) ?? null,
+		usd: session.usd,
+		tokens: session.tokens,
+		turns: session.turns,
+		firstAt: new Date(session.firstMs).toISOString(),
+		lastAt: new Date(session.lastMs).toISOString(),
+		approximate: session.approximate,
+		run: session.run
+			? {
+					id: session.run.id,
+					kind: session.run.kind,
+					name: session.run.name,
+					ticketIdentifier: session.run.ticketIdentifier,
+					ticketTitle: session.run.ticketTitle,
+					projectPath: session.run.projectPath,
+					account: session.run.accountName,
+				}
+			: null,
+		groupKeys: session.groupKeys,
+	}));
+	const ranking = (metric: "usd" | "tokens") => {
+		const other = metric === "usd" ? "tokens" : "usd";
+		const compare = (a: { usd: number; tokens: number }, b: { usd: number; tokens: number }) =>
+			b[metric] - a[metric] || b[other] - a[other];
+		const rankedGroups = {} as Record<UsageGroupBy, UsageGroupRow[]>;
+		for (const grouping of GROUPINGS)
+			rankedGroups[grouping] = [...allGroupRows[grouping]].sort(compare).slice(0, MAX_GROUP_ROWS);
+		return {
+			groups: rankedGroups,
+			sessions: [...allSessionRows].sort(compare).slice(0, MAX_SESSIONS),
+		};
+	};
 
 	return {
 		days: input.days,
 		buckets,
 		totals,
-		groups: groupRows,
-		sessions: sessionRows,
+		rankings: { usd: ranking("usd"), tokens: ranking("tokens") },
 		scannedFiles: input.scannedFiles,
 		pricingTableUpdated: PRICING_TABLE_UPDATED,
 		computedAt: input.now.toISOString(),

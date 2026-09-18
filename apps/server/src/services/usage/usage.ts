@@ -1,6 +1,5 @@
-import type { UsageHarness, UsageReport, UsageReportInput } from "@trellis/api";
+import type { UsageReport, UsageReportInput } from "@trellis/api";
 import { executionEnvironment } from "../../executionEnvironment";
-import { resolveHostDefault } from "../harnessAccounts/hostDefault.ts";
 import type { IoCtx } from "../support.ts";
 import { rangeStart } from "./aggregate.ts";
 import { claudeSessionOwners } from "./owners.ts";
@@ -41,17 +40,11 @@ export const prepareReport = async (
 		const env = await deps.env();
 		const roots = await usageRoots(accounts, env);
 		const sessionAccounts = await claudeSessionOwners(accounts, env);
-		const defaultAccounts: Partial<Record<UsageHarness, string>> = {};
-		for (const harness of ["claude", "codex", "pi", "opencode", "muse"] as const) {
-			const resolved = await resolveHostDefault(harness, accounts, env);
-			if (resolved.account) defaultAccounts[harness] = resolved.account.name;
-		}
 		return computeUsageReportInWorker({
 			roots,
 			runs,
 			projects,
 			sessionAccounts,
-			defaultAccounts,
 			days,
 			cutoffMs,
 			now: new Date(deps.now()),

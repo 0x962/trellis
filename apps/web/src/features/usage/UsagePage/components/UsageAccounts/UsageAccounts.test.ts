@@ -38,6 +38,8 @@ describe("unavailableUsageAccounts", () => {
 					plan: null,
 					detail: null,
 					windows: [],
+					creditsBalance: null,
+					extraUsage: null,
 					fetchedAt: account.updatedAt,
 				},
 			},
