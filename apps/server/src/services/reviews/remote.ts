@@ -1,11 +1,16 @@
-import type { ReviewSubmit } from "@trellis/api";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import type { ReviewSubmit, ReviewThread } from "@trellis/api";
+import { sql } from "drizzle-orm";
+import { rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
 import { invalidInput } from "../../errors";
 import { fetchPullRequests, type PullRequestRow } from "../../gh/graphql";
 import { effectiveRepos } from "../projectsRepos";
 import { recordAction } from "../pullRequestAction";
 import { fail, type IoCtx, type PrepareCtx, type ServiceCtx } from "../support";
-import { parseRef } from "./queries";
+import { findPr, parseRef, readThreads } from "./queries";
 import { gh } from "./revision";
 export const actionNames = [
 	"merge",
@@ -99,6 +104,40 @@ export async function action(ctx: PrepareCtx, input: { pr: string; action: Actio
 	return current(ctx, input.pr, input.action);
 }
 
+// The threads a submission carries to GitHub, each checked to sit on the
+// reviewed head, because GitHub anchors a review comment to a commit.
+const threadsToPost = async (ctx: PrepareCtx, input: ReviewSubmit) => {
+	if (input.threadIds.length === 0) return [];
+	const pr = await ctx.newTx((tx) => findPr(tx, input.pr));
+	const threads = await ctx.newTx((tx) => readThreads(tx, input.threadIds));
+	const heads = await ctx.newTx((tx) =>
+		rows<{ id: string; head_sha: string }>(
+			tx,
+			sql`SELECT id, head_sha FROM review_revisions WHERE id = ANY(${sql.param(threads.map((thread) => thread.revisionId))}::text[])`,
+		),
+	);
+	for (const thread of threads) {
+		if (thread.prId !== pr?.id) throw invalidInput("threadIds", `Thread ${thread.id} belongs to another pull request.`);
+		if (heads.find((head) => head.id === thread.revisionId)?.head_sha !== input.headSha)
+			throw invalidInput("threadIds", `Thread ${thread.id} does not sit on the reviewed head.`);
+	}
+	return threads;
+};
+
+// One GitHub review comment per thread: the root body, at the anchor of
+// the thread. A suggestion block in the body renders as a suggested change
+// on GitHub.
+const reviewComment = (thread: ReviewThread) => {
+	const side = thread.side === "old" ? "LEFT" : "RIGHT";
+	return {
+		path: thread.path,
+		line: thread.line,
+		side,
+		...(thread.startLine < thread.line ? { start_line: thread.startLine, start_side: side } : {}),
+		body: thread.body,
+	};
+};
+
 export async function submit(ctx: PrepareCtx, input: ReviewSubmit) {
 	const ref = parseRef(input.pr);
 	const meta = JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", "headRefOid"])) as {
@@ -106,12 +145,36 @@ export async function submit(ctx: PrepareCtx, input: ReviewSubmit) {
 	};
 	if (meta.headRefOid !== input.headSha)
 		throw invalidInput("headSha", "The PR head changed. Refresh before this review.");
-	const flag = {
-		comment: "--comment",
-		approve: "--approve",
-		request_changes: "--request-changes",
-	}[input.verdict];
-	await gh(ctx, ["pr", "review", ref.url, flag, "--body", input.body]);
+	const threads = await threadsToPost(ctx, input);
+	if (threads.length === 0) {
+		const flag = {
+			comment: "--comment",
+			approve: "--approve",
+			request_changes: "--request-changes",
+		}[input.verdict];
+		await gh(ctx, ["pr", "review", ref.url, flag, "--body", input.body]);
+		return current(ctx, input.pr, input.verdict);
+	}
+	const event = { comment: "COMMENT", approve: "APPROVE", request_changes: "REQUEST_CHANGES" }[input.verdict];
+	const directory = await mkdtemp(join(tmpdir(), "trellis-review-submit-"));
+	const file = join(directory, "review.json");
+	try {
+		await writeFile(
+			file,
+			JSON.stringify({ commit_id: input.headSha, event, body: input.body, comments: threads.map(reviewComment) }),
+			{ mode: 0o600 },
+		);
+		await gh(ctx, [
+			"api",
+			"--method",
+			"POST",
+			`repos/${ref.owner}/${ref.repo}/pulls/${ref.number}/reviews`,
+			"--input",
+			file,
+		]);
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
 	return current(ctx, input.pr, input.verdict);
 }
 

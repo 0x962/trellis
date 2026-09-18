@@ -1,6 +1,6 @@
-import type { DiffAnchor, DiffThread } from "./ReviewDiff";
 import { lineAnnotations } from "./lineAnnotations";
 import type { ReviewFile, ReviewHunk } from "./parseReviewFiles";
+import type { DiffAnchor, DiffThread } from "./ReviewDiff";
 
 export type ReviewDiffLine = {
 	type: "context" | "addition" | "deletion";
@@ -71,13 +71,7 @@ const splitLines = (lines: ReviewDiffLine[]): [ReviewDiffLine | undefined, Revie
 	return rows;
 };
 
-const contextLines = (
-	contents: ExpandedFile,
-	oldStart: number,
-	oldEnd: number,
-	newStart: number,
-	newEnd: number,
-) => {
+const contextLines = (contents: ExpandedFile, oldStart: number, oldEnd: number, newStart: number, newEnd: number) => {
 	const count = Math.max(oldEnd - oldStart, newEnd - newStart);
 	return Array.from({ length: count }, (_, index): ReviewDiffLine => {
 		const oldLine = oldStart + index < oldEnd ? oldStart + index : undefined;
@@ -140,8 +134,7 @@ export function buildReviewRows(
 			rows.push({ kind: "annotation", key: `${file.name}:annotations`, file, annotations: fileAnnotations });
 		let lineIndex = 0;
 		for (const section of sections(file, expanded.get(file.name))) {
-			if (section.specs)
-				rows.push({ kind: "hunk", key: `${file.name}:hunk:${lineIndex}`, file, specs: section.specs });
+			if (section.specs) rows.push({ kind: "hunk", key: `${file.name}:hunk:${lineIndex}`, file, specs: section.specs });
 			if (mode === "split") {
 				for (const [oldLine, newLine] of splitLines(section.lines)) {
 					rows.push({
@@ -150,12 +143,8 @@ export function buildReviewRows(
 						file,
 						oldLine,
 						newLine,
-						oldAnnotations: oldLine?.oldLine
-							? (annotations.get(annotationKey("old", oldLine.oldLine)) ?? [])
-							: [],
-						newAnnotations: newLine?.newLine
-							? (annotations.get(annotationKey("new", newLine.newLine)) ?? [])
-							: [],
+						oldAnnotations: oldLine?.oldLine ? (annotations.get(annotationKey("old", oldLine.oldLine)) ?? []) : [],
+						newAnnotations: newLine?.newLine ? (annotations.get(annotationKey("new", newLine.newLine)) ?? []) : [],
 					});
 				}
 				continue;
@@ -179,5 +168,42 @@ export function buildReviewRows(
 	return rows;
 }
 
+// The annotations a line row stacks under itself: a thread or the
+// composer, on one side or both.
+export const rowAnnotations = (row: ReviewRow) =>
+	row.kind === "unified"
+		? row.annotations.length
+		: row.kind === "split"
+			? Math.max(row.oldAnnotations.length, row.newAnnotations.length)
+			: 0;
+
+// The height estimate the virtual list starts from. A row with an
+// annotation reports its real height once it mounts.
 export const reviewRowSize = (row: ReviewRow) =>
-	row.kind === "file" ? 48 : row.kind === "annotation" ? 120 : row.kind === "end" ? 16 : 24;
+	row.kind === "file" ? 48 : row.kind === "annotation" ? 120 : row.kind === "end" ? 16 : 24 + 120 * rowAnnotations(row);
+
+// The text of the lines from `startLine` to `line` on the side of the
+// anchor, or null when the view does not show one of them. A deletion has
+// no new-side number and an addition has no old-side number, so each side
+// reads its own lines only.
+export const anchorLines = (
+	files: ReviewFile[],
+	expanded: ReadonlyMap<string, ExpandedFile>,
+	anchor: DiffAnchor,
+): string[] | null => {
+	const file = files.find((candidate) => candidate.name === anchor.path);
+	if (file === undefined) return null;
+	const byNumber = new Map<number, string>();
+	for (const section of sections(file, expanded.get(file.name)))
+		for (const line of section.lines) {
+			const number = anchor.side === "old" ? line.oldLine : line.newLine;
+			if (number !== undefined) byNumber.set(number, line.text);
+		}
+	const lines: string[] = [];
+	for (let number = anchor.startLine; number <= anchor.line; number += 1) {
+		const text = byNumber.get(number);
+		if (text === undefined) return null;
+		lines.push(text);
+	}
+	return lines;
+};

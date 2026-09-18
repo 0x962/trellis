@@ -14,6 +14,8 @@ export * from "./pair.ts";
 export * from "./query-keys.ts";
 export * from "./refs.ts";
 export * from "./reviewImage";
+export * from "./reviewPatch/index.ts";
 export * from "./reviewRef/index.ts";
+export * from "./reviewSuggestion/index.ts";
 export * from "./schemas/index.ts";
 export * from "./time.ts";

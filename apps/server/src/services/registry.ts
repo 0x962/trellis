@@ -30,6 +30,7 @@ import * as needsYou from "./needsYou/needsYou.ts";
 import * as notes from "./notes/notes.ts";
 import * as projects from "./projects.ts";
 import * as pullRequests from "./pullRequests.ts";
+import * as reviewApply from "./reviews/apply";
 import * as reviewImage from "./reviews/image";
 import * as reviewMessages from "./reviews/messages";
 import * as reviewPrs from "./reviews/prs";
@@ -154,6 +155,7 @@ export const services = {
 	"reviews.edit": io("mutation", reviewMessages.edit),
 	"reviews.reaction": io("mutation", reviewMessages.reaction),
 	"reviews.submit": prepared("mutation", reviewRemote.submit, reviewRemote.actionResult),
+	"reviews.apply": prepared("mutation", reviewApply.prepareApply, reviewApply.applyResult),
 
 	"agentRuns.send": agentMutation(agentCommunication.prepareSend),
 	"commentMentions.dispatch": prepared("mutation", commentMentions.prepare, commentMentions.finish),

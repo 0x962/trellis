@@ -1,23 +1,12 @@
 import { ArrowsInLineVertical, ArrowsOutLineVertical } from "@phosphor-icons/react";
-import {
-	type ReactNode,
-	useCallback,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
 import { DiffLine } from "./DiffLine";
 import { loadReviewFileContents } from "./loadReviewFileContents";
 import { parseReviewFiles, type ReviewFile } from "./parseReviewFiles";
-import {
-	buildReviewRows,
-	type ExpandedFile,
-	type ReviewRow,
-} from "./reviewRows";
+import { anchorLines, buildReviewRows, type ExpandedFile, type ReviewRow } from "./reviewRows";
 import { VirtualDiffRows } from "./VirtualDiffRows";
 import "./ReviewDiff.css";
 
@@ -35,7 +24,9 @@ type Props = {
 	renderThread: (id: string) => ReactNode;
 	composer?: DiffAnchor | null;
 	renderComposer?: () => ReactNode;
-	onSelect: (anchor: DiffAnchor) => void;
+	// `lines` is the text of the selected lines, for a suggestion, or null
+	// when the view does not show every line of the range.
+	onSelect: (anchor: DiffAnchor, lines: string[] | null) => void;
 	loadFile?: (path: string, side: "old" | "new") => Promise<string>;
 	onFiles: (files: { path: string; type: string; additions: number; deletions: number }[]) => void;
 };
@@ -90,16 +81,21 @@ export function ReviewDiff({
 	const selection = useRef<DiffAnchor | undefined>(undefined);
 	const pointer = useRef<DiffAnchor | undefined>(undefined);
 	const skipClick = useRef(false);
+	const selectAnchor = useCallback(
+		(anchor: DiffAnchor) => onSelect(anchor, anchorLines(files, expanded, anchor)),
+		[onSelect, files, expanded],
+	);
 	const select = useCallback<SelectLine>(
 		(anchor, extend = false) => {
 			const start = selection.current;
-			if (extend && start?.path === anchor.path && start.side === anchor.side) onSelect(orderedAnchor(start, anchor));
+			if (extend && start?.path === anchor.path && start.side === anchor.side)
+				selectAnchor(orderedAnchor(start, anchor));
 			else {
 				selection.current = anchor;
-				onSelect(anchor);
+				selectAnchor(anchor);
 			}
 		},
-		[onSelect],
+		[selectAnchor],
 	);
 	const startPointer = (anchor: DiffAnchor) => {
 		pointer.current = anchor;
@@ -110,7 +106,7 @@ export function ReviewDiff({
 		if (!start || start.path !== anchor.path || start.side !== anchor.side || start.line === anchor.line) return;
 		selection.current = start;
 		skipClick.current = true;
-		onSelect(orderedAnchor(start, anchor));
+		selectAnchor(orderedAnchor(start, anchor));
 	};
 	const clickSelect = useCallback<SelectLine>(
 		(anchor, extend) => {

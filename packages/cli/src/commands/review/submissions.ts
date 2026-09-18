@@ -11,6 +11,10 @@ export const submissions = {
 			pr: id,
 			verdict: { type: "string", default: "comment" },
 			body: { type: "string", default: "" },
+			threads: {
+				type: "string",
+				description: "Thread identifiers, comma separated, that go to GitHub as review comments",
+			},
 		},
 		async run(c) {
 			const ctx = contextOf(c);
@@ -26,6 +30,7 @@ export const submissions = {
 						headSha: String(status.headRefOid),
 						body: await readText(ctx, a.body),
 						verdict: a.verdict as "comment" | "approve" | "request_changes",
+						threadIds: a.threads === undefined ? [] : a.threads.split(",").filter((value) => value !== ""),
 					}),
 				),
 			);

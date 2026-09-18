@@ -24,6 +24,17 @@ export const ReviewReplySchema = z.object({
 	version: z.number().int(),
 	reactions: z.array(ReviewReactionSchema),
 });
+// The suggestion a thread body carries. `original` is the text of the
+// anchor lines in the reviewed revision, which the mini diff and the apply
+// need. `applied` names the commit that took the suggestion. `outdated`
+// means the head no longer holds the original lines at the anchor.
+export const ReviewSuggestionSchema = z.object({
+	original: z.array(z.string()),
+	state: z.enum(["open", "applied", "outdated"]),
+	appliedSha: z.string().nullable(),
+	appliedAt: IsoDateTimeSchema.nullable(),
+});
+export type ReviewSuggestion = z.infer<typeof ReviewSuggestionSchema>;
 export const ReviewThreadSchema = ReviewReplySchema.extend({
 	prId: UlidSchema,
 	path: z.string(),
@@ -35,6 +46,8 @@ export const ReviewThreadSchema = ReviewReplySchema.extend({
 	resolvedBy: z.string().nullable(),
 	resolvedAt: IsoDateTimeSchema.nullable(),
 	replies: z.array(ReviewReplySchema),
+	// Absent on a thread written before suggestions existed.
+	suggestion: ReviewSuggestionSchema.nullable().optional(),
 });
 export type ReviewThread = z.infer<typeof ReviewThreadSchema>;
 export type ReviewReply = z.infer<typeof ReviewReplySchema>;
@@ -46,6 +59,10 @@ export const ReviewAnchorSchema = z
 		startLine: z.number().int().positive().optional(),
 		revisionId: UlidSchema.nullable().optional(),
 		body: ReviewBodySchema,
+		// The text of the anchor lines, for a suggestion on lines outside
+		// the hunks of the patch. The server reads lines inside a hunk from
+		// the patch itself.
+		original: z.array(z.string()).max(10_000).optional(),
 	})
 	.refine((v) => v.startLine === undefined || v.startLine <= v.line, {
 		path: ["startLine"],
@@ -102,12 +119,29 @@ export const ReviewSubmitSchema = z
 		headSha: z.string().min(1),
 		verdict: z.enum(["comment", "approve", "request_changes"]),
 		body: z.string().trim().max(200_000).default(""),
+		// The local threads that go to GitHub as review comments with this
+		// submission. Each must sit on the reviewed head.
+		threadIds: z.array(UlidSchema).max(200).default([]),
 	})
 	.refine((value) => value.verdict === "approve" || value.body.length > 0, {
 		path: ["body"],
 		message: "Enter a review summary before you submit this review.",
 	});
 export type ReviewSubmit = z.output<typeof ReviewSubmitSchema>;
+// One commit on the head branch takes the suggestions of these threads.
+export const ReviewApplySchema = z.strictObject({
+	pr: ReviewRefSchema,
+	threadIds: z.array(UlidSchema).min(1).max(50),
+	headSha: z.string().min(1),
+	message: z.string().trim().max(10_000).optional(),
+});
+export type ReviewApply = z.output<typeof ReviewApplySchema>;
+export const ReviewApplyResultSchema = z.object({
+	sha: z.string(),
+	url: z.string(),
+	threads: z.array(ReviewThreadSchema),
+});
+export type ReviewApplyResult = z.infer<typeof ReviewApplyResultSchema>;
 export const ReviewDeliverySchema = z.object({
 	id: UlidSchema,
 	reviewId: UlidSchema,

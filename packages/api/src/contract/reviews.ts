@@ -5,6 +5,8 @@ import { UlidSchema } from "../schemas/primitives";
 import { PullRequestSchema } from "../schemas/pullRequest";
 import {
 	ReactionKeySchema,
+	ReviewApplyResultSchema,
+	ReviewApplySchema,
 	ReviewBodySchema,
 	ReviewCreateSchema,
 	ReviewListSchema,
@@ -162,4 +164,9 @@ export const reviews = {
 		.route({ method: "POST", path: "/reviews/submit", summary: "Submit a pull request review" })
 		.input(ReviewSubmitSchema)
 		.output(PullRequestSchema),
+	apply: base
+		.errors(pickErrors(["GH_UNAVAILABLE", "REVIEW_SUGGESTION_STALE"]))
+		.route({ method: "POST", path: "/reviews/apply", summary: "Commit suggested changes to the head branch" })
+		.input(ReviewApplySchema)
+		.output(ReviewApplyResultSchema),
 };

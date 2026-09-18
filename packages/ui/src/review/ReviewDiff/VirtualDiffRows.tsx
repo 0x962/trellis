@@ -1,11 +1,12 @@
 import { createElement, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualRows } from "../useVirtualRows";
-import { reviewRowSize, type ReviewRow } from "./reviewRows";
+import { type ReviewRow, reviewRowSize, rowAnnotations } from "./reviewRows";
 
-// A wrapper that reports the height of variable-height annotation content.
-// The virtual list starts from the 120 px estimate and corrects itself once
-// the row mounts. A zero height means the host reports no layout, so the
-// estimate stands and tests keep deterministic offsets.
+// A wrapper that reports the height of variable-height annotation content:
+// a file-level annotation row, or a line row with a thread or the composer
+// under it. The virtual list starts from the estimate and corrects itself
+// once the row mounts. A zero height means the host reports no layout, so
+// the estimate stands and tests keep deterministic offsets.
 function MeasuredAnnotation({
 	rowKey,
 	onMeasure,
@@ -30,6 +31,8 @@ function MeasuredAnnotation({
 	return <div ref={ref}>{children}</div>;
 }
 
+const measurable = (row: ReviewRow) => row.kind === "annotation" || rowAnnotations(row) > 0;
+
 export function VirtualDiffRows({
 	rows,
 	mode,
@@ -48,10 +51,7 @@ export function VirtualDiffRows({
 		setMeasured((current) => (current.get(key) === height ? current : new Map(current).set(key, height)));
 	}, []);
 	const sizes = useMemo(
-		() =>
-			rows.map((row) =>
-				row.kind === "annotation" ? (measured.get(row.key) ?? reviewRowSize(row)) : reviewRowSize(row),
-			),
+		() => rows.map((row) => (measurable(row) ? (measured.get(row.key) ?? reviewRowSize(row)) : reviewRowSize(row))),
 		[rows, measured],
 	);
 	const viewportRef = useRef<HTMLElement>(null);
@@ -70,7 +70,7 @@ export function VirtualDiffRows({
 		{ className: "review-code", "data-diff-type": mode, "data-theme": theme, ref: viewportRef },
 		<div aria-hidden="true" style={{ height: virtual.before }} />,
 		...rows.slice(virtual.start, virtual.end).map((row) =>
-			row.kind === "annotation" ? (
+			measurable(row) ? (
 				<MeasuredAnnotation key={row.key} rowKey={row.key} onMeasure={onMeasure}>
 					{renderRow(row)}
 				</MeasuredAnnotation>

@@ -1,1 +1,1 @@
-export { ReviewCommentEditor } from "./ReviewCommentEditor";
+export { insertBlock, ReviewCommentEditor } from "./ReviewCommentEditor";

@@ -1,4 +1,4 @@
-import type { ReactionKeySchema, ReviewThread } from "@trellis/api";
+import { type ReactionKeySchema, type ReviewThread, suggestionBlock } from "@trellis/api";
 import { reviewHref } from "@trellis/api/client";
 import { defineCommand } from "citty";
 import type { z } from "zod";
@@ -25,6 +25,14 @@ const hrefOf = (pr: string) => {
 	} catch (error) {
 		throw usageError((error as Error).message);
 	}
+};
+
+// The lines of a suggestion as typed. An empty value is an empty list,
+// which deletes the anchor lines.
+const splitSuggestion = (text: string) => {
+	const lines = text.split(/\r?\n/);
+	if (lines.at(-1) === "") lines.pop();
+	return lines;
 };
 
 const client = (ctx: CliContext, args: { author?: string; session?: string }) =>
@@ -84,12 +92,23 @@ export default defineCommand({
 				side: { type: "string", default: "new" },
 				revision: { type: "string" },
 				body,
+				suggestion: {
+					type: "string",
+					description: "Replacement text for the lines, or - for stdin. An empty value deletes the lines.",
+				},
 				...identity,
 			},
 			async run(c) {
 				const ctx = contextOf(c);
 				const a = c.args;
 				if (a.side !== "old" && a.side !== "new") throw usageError("--side must be old or new");
+				const text = await readText(ctx, a.body);
+				// The suggestion goes into the body as the block GitHub renders
+				// as a suggested change.
+				const suggested =
+					a.suggestion === undefined
+						? ""
+						: `\n\n${suggestionBlock(splitSuggestion(await readText(ctx, a.suggestion)))}`;
 				emit(
 					ctx,
 					await client(ctx, a).reviews.add({
@@ -99,7 +118,30 @@ export default defineCommand({
 						startLine: a["start-line"] === undefined ? undefined : Number(a["start-line"]),
 						side: a.side,
 						revisionId: a.revision,
-						body: await readText(ctx, a.body),
+						body: `${text}${suggested}`,
+					}),
+				);
+			},
+		}),
+		apply: defineCommand({
+			meta: { description: "Commit the suggestions of the threads to the head branch in one commit" },
+			args: {
+				pr: ref,
+				thread: { type: "positional", required: true, description: "Thread identifiers, space separated" },
+				message: { type: "string", description: "The commit message" },
+			},
+			async run(c) {
+				const ctx = contextOf(c);
+				const api = clientOf(ctx);
+				const status = await api.reviews.status({ pr: c.args.pr });
+				const ids = [c.args.thread, ...c.args._.filter((value) => value !== c.args.pr && value !== c.args.thread)];
+				emit(
+					ctx,
+					await api.reviews.apply({
+						pr: c.args.pr,
+						headSha: String(status.headRefOid),
+						threadIds: ids,
+						message: c.args.message,
 					}),
 				);
 			},

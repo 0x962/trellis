@@ -1,18 +1,100 @@
+import { GitCommit, Minus, Stack } from "@phosphor-icons/react";
 import type { ReactionKeySchema, ReviewThread } from "@trellis/api";
-import { ReviewThreadCard } from "@trellis/ui/review";
+import { IconButton, Tooltip } from "@trellis/ui";
+import { type ReviewSuggestionState, ReviewThreadCard } from "@trellis/ui/review";
+import type { ReactNode } from "react";
 import type { z } from "zod";
 import { useActor } from "../../../lib/actor";
 import { useApp } from "../../../lib/appContext";
-import { ReviewMarkdown } from "../ReviewPage/ReviewMarkdown";
+import { type ReviewApplyState, useReviewApply } from "../ReviewApply";
+import { ReviewBody } from "../ReviewBody";
+
+type SuggestionView = { state: ReviewSuggestionState; note?: ReactNode; actions?: ReactNode };
+
+// What the suggestion widget of a thread shows, and whether it offers the
+// apply controls. Every reason apply is off reads in the footer.
+const suggestionView = (thread: ReviewThread, apply: ReviewApplyState | null): SuggestionView => {
+	const suggestion = thread.suggestion ?? null;
+	if (suggestion === null)
+		return { state: "unknown", note: "The original lines are unknown, so this suggestion cannot be applied." };
+	if (suggestion.state === "applied") {
+		const sha = suggestion.appliedSha ?? "";
+		return {
+			state: "applied",
+			note: (
+				<>
+					Applied in{" "}
+					<a href={`${apply?.pr ?? ""}/commits/${sha}`} target="_blank" rel="noreferrer">
+						{sha.slice(0, 7)}
+					</a>
+					.
+				</>
+			),
+		};
+	}
+	if (suggestion.state === "outdated")
+		return { state: "outdated", note: "The pull request head no longer holds these lines." };
+	if (thread.status !== "open") return { state: "open", note: "The thread is resolved." };
+	if (thread.side === "old") return { state: "open", note: "Suggestions on deleted lines cannot be applied." };
+	if (apply === null) return { state: "open" };
+	if (!apply.prOpen) return { state: "open", note: "Suggestions apply to an open pull request only." };
+	if (thread.revisionId !== apply.revisionId)
+		return { state: "open", note: "This suggestion sits on another revision. Refresh from GitHub to check it." };
+	const inBatch = apply.batch.has(thread.id);
+	return {
+		state: "open",
+		note: inBatch ? "In the batch." : undefined,
+		actions: (
+			<>
+				<Tooltip content={inBatch ? "Remove from batch" : "Add suggestion to batch"}>
+					<IconButton
+						size="xs"
+						label={inBatch ? "Remove from batch" : "Add suggestion to batch"}
+						icon={inBatch ? <Minus /> : <Stack />}
+						onClick={() => apply.toggleBatch(thread.id)}
+					/>
+				</Tooltip>
+				<Tooltip content="Commit suggestion">
+					<IconButton
+						size="xs"
+						label="Commit suggestion"
+						icon={<GitCommit />}
+						onClick={() => apply.apply([thread.id])}
+					/>
+				</Tooltip>
+			</>
+		),
+	};
+};
+
 export function ReviewComment({ thread }: { thread: ReviewThread }) {
 	const { client, orpc, queryClient } = useApp();
 	const actor = useActor();
+	const apply = useReviewApply();
 	const invalid = () => queryClient.invalidateQueries({ queryKey: orpc.reviews.key() });
+	const view = suggestionView(thread, apply);
 	return (
 		<ReviewThreadCard
 			thread={thread}
 			actor={actor?.name}
-			renderBody={(body) => <ReviewMarkdown body={body} />}
+			renderBody={(body, message) =>
+				message.root ? (
+					<ReviewBody
+						body={body}
+						original={thread.suggestion?.original ?? null}
+						state={view.state}
+						note={view.note}
+						actions={view.actions}
+					/>
+				) : (
+					<ReviewBody
+						body={body}
+						original={null}
+						state="unknown"
+						note="A suggestion applies from the first message of a thread."
+					/>
+				)
+			}
 			onReply={async (body) => {
 				await client.reviews.reply({ id: thread.id, body });
 				await invalid();
