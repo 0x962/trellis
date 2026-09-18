@@ -1,1 +1,1 @@
-export { closedCategories, closedKey, useTableGroups } from "./useTableGroups";
+export { closedCategories, closedKey, type TableGroupsOptions, useTableGroups } from "./useTableGroups";

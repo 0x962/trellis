@@ -23,7 +23,11 @@ const expandedPlan: readonly string[] = [];
 // collapse state lives in `uiStore` under `<routeKey>#plan`. The ticket
 // table stores its collapsed groups under `routeKey` with its own defaults,
 // and the first toggle under a key writes the whole list of that key, so
-// the plan takes a key of its own.
+// the plan takes a key of its own. The band and the plan scroll inside one
+// area of the epic page that is at most half of the page card. The header
+// sticks to the top of that area on the ground of the page, so a plan that
+// the area cuts reads as a scrolled list, and Hide stays in reach at every
+// scroll position.
 export function EpicPlan({ routeKey, description }: EpicPlanProps) {
 	const bodyId = useId();
 	const { isCollapsed, toggle } = useCollapsedGroups(
@@ -35,6 +39,7 @@ export function EpicPlan({ routeKey, description }: EpicPlanProps) {
 		<section aria-label="Plan" className="flex flex-col gap-2 px-5 pb-4 max-md:px-4">
 			<SectionHeader
 				title="Plan"
+				className="sticky top-0 z-10 bg-pane"
 				actions={
 					<Button
 						variant="quiet"

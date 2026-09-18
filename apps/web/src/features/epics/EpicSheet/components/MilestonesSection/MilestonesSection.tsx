@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { MILESTONE_NAME_MAX, MilestoneNameSchema, type MilestoneSummary } from "@trellis/api";
 import { Button, ConfirmDialog, Input, SectionHeader, Skeleton } from "@trellis/ui";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { errorMessage } from "../../../../../lib/conflict";
 import { failToast } from "../../../../../lib/failToast";
@@ -44,6 +44,11 @@ export function MilestonesSection({ epicRef }: MilestonesSectionProps) {
 	const [moved, setMoved] = useState<{ id: string; step: -1 | 1 } | null>(null);
 	const clearMoved = useCallback(() => setMoved(null), []);
 	const parsedName = MilestoneNameSchema.safeParse(newName);
+	const section = useRef<HTMLElement>(null);
+	// The list index of the milestone whose delete the person confirmed, or
+	// null. A delete removes the Delete button that opened the confirm
+	// dialog, so the dialog cannot return the focus to it.
+	const deletedIndex = useRef<number | null>(null);
 
 	const write = useMutation({
 		mutationFn: async (input: Write) => {
@@ -55,8 +60,10 @@ export function MilestonesSection({ epicRef }: MilestonesSectionProps) {
 		},
 		onSuccess: async (_, input) => {
 			if (input.kind === "create") setNewName("");
-			if (input.kind === "delete") setDeleting(null);
 			await queryClient.invalidateQueries({ queryKey: orpc.epics.key() });
+			// The confirm dialog closes after the list holds the new rows,
+			// because `fieldAfterDelete` reads the rows when the dialog closes.
+			if (input.kind === "delete") setDeleting(null);
 			// A milestone delete takes the milestone off its tickets, and a
 			// rename changes the name every ticket row prints.
 			if (input.kind === "delete" || input.kind === "rename") {
@@ -76,12 +83,23 @@ export function MilestonesSection({ epicRef }: MilestonesSectionProps) {
 		write.mutate({ kind: "reorder", refs });
 	};
 
+	// The name fields of the rows come first in the section, in list order,
+	// and the New milestone field comes last. After a delete the field at
+	// the index of the deleted row is the name of the next row, or the New
+	// milestone field when no row follows. A cancel returns true, so the
+	// Delete button that opened the dialog takes the focus back.
+	const fieldAfterDelete = () => {
+		const index = deletedIndex.current;
+		deletedIndex.current = null;
+		return index === null ? true : section.current!.querySelectorAll("input")[index]!;
+	};
+
 	const add = () => {
 		if (parsedName.success && !blocked) write.mutate({ kind: "create", name: parsedName.data });
 	};
 
 	return (
-		<section aria-label="Milestones" className="flex flex-col gap-2">
+		<section ref={section} aria-label="Milestones" className="flex flex-col gap-2">
 			<SectionHeader title="Milestones" count={epic.isSuccess ? formatCount(milestones.length) : undefined} level={3} />
 			<p className="text-sm text-fg-muted">
 				A milestone is one phase of the epic. The epic page groups the tickets by milestone in this order.
@@ -153,8 +171,15 @@ export function MilestonesSection({ epicRef }: MilestonesSectionProps) {
 				confirmLabel="Delete milestone"
 				danger
 				processing={write.isPending}
-				onCancel={() => setDeleting(null)}
-				onConfirm={() => deleting !== null && write.mutate({ kind: "delete", milestone: deleting })}
+				finalFocus={fieldAfterDelete}
+				onCancel={() => {
+					deletedIndex.current = null;
+					setDeleting(null);
+				}}
+				onConfirm={() => {
+					deletedIndex.current = milestones.findIndex((milestone) => milestone.id === deleting!.id);
+					write.mutate({ kind: "delete", milestone: deleting! });
+				}}
 			/>
 		</section>
 	);

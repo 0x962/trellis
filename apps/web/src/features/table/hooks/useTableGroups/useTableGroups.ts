@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import type { View } from "../../../filters/grammar";
 import { useEpicMilestonesLoad } from "../../../pickers/hooks/useEpicMilestones";
 import type { TableGroup } from "../../utils/flattenGroups";
-import { groupRows } from "../../utils/groupRows";
+import { groupRows, type RowRank } from "../../utils/groupRows";
 import { closedSlugs } from "../../utils/listQuery";
 import { milestoneMarks } from "../../utils/milestoneGroups";
 import type { ClosedCategory, TableData } from "../useTableData";
@@ -13,6 +13,9 @@ export type TableGroupsOptions = {
 	view: View;
 	project?: string;
 	isCollapsed: (key: string) => boolean;
+	// The rank of a row inside its group, ahead of the view's sort. The
+	// groups rebuild when its identity changes, so the caller memoizes it.
+	rowRank?: RowRank;
 };
 
 export type TableGroups = {
@@ -52,7 +55,7 @@ const noRefs: string[] = [];
 // landed, because the group order and the header marks come from them; the
 // table draws its skeleton for that time, so the groups never change order
 // on screen.
-export const useTableGroups = ({ data, view, project, isCollapsed }: TableGroupsOptions): TableGroups => {
+export const useTableGroups = ({ data, view, project, isCollapsed, rowRank }: TableGroupsOptions): TableGroups => {
 	const { rows: activeRows, statuses, closed, inlineClosed } = data;
 	// A live patch can close a row of the active pass while the closed pass
 	// already holds it, so the closed pass gives way on a shared id.
@@ -73,6 +76,7 @@ export const useTableGroups = ({ data, view, project, isCollapsed }: TableGroups
 			statuses,
 			project,
 			milestoneOrder: milestones.map((milestone) => milestone.id),
+			rowRank,
 		}).map((group) => {
 			const mark = marks?.get(group.key);
 			return {
@@ -108,6 +112,6 @@ export const useTableGroups = ({ data, view, project, isCollapsed }: TableGroups
 			});
 		}
 		return [...active.filter((group) => !closedCategories.includes(group.category as ClosedCategory)), ...tail];
-	}, [rows, statuses, closed, view.group, view.closed, view.sort, project, isCollapsed, epics, epicRefs]);
+	}, [rows, statuses, closed, view.group, view.closed, view.sort, project, isCollapsed, epics, epicRefs, rowRank]);
 	return { groups, loading: pending };
 };

@@ -251,9 +251,11 @@ export function BulkBar({
 				)}
 			{project !== undefined &&
 				(epicRef === undefined ? (
-					<Button size="sm" disabled>
-						Set milestone
-					</Button>
+					<Tooltip content="Select tickets of one epic">
+						<Button size="sm" focusableWhenDisabled disabled>
+							Set milestone
+						</Button>
+					</Tooltip>
 				) : (
 					<MilestonePicker
 						epic={epicRef}

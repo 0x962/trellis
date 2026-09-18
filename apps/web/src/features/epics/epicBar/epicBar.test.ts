@@ -17,3 +17,8 @@ test("the bar holds one segment per category, done first, canceled last", () => 
 	expect(segments.map((segment) => segment.key)).toEqual(["done", "review", "started", "todo", "canceled"]);
 	expect(segments.reduce((sum, segment) => sum + segment.value, 0)).toBe(counts.total);
 });
+
+test("Todo draws in the faint neutral, and every other category keeps its tone", () => {
+	const tones = Object.fromEntries(epicSegments(counts).map((segment) => [segment.key, segment.tone]));
+	expect(tones).toEqual({ done: "success", review: "agent", started: "warning", todo: "faint", canceled: "danger" });
+});

@@ -351,6 +351,12 @@
 }
 
 
+/* A button is off through the disabled attribute, or through aria-disabled
+   when it has to keep the keyboard focus for the Tooltip that gives the
+   reason. The button looks read these two, so both forms draw the same. */
+@custom-variant control-off (&:disabled, &[aria-disabled="true"]);
+@custom-variant control-on (&:enabled:not([aria-disabled="true"]));
+
 /* Tailwind has no theme namespace for durations, so each one is a utility. */
 @utility duration-hover {
 	transition-duration: var(--duration-hover);

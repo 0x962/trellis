@@ -20,7 +20,7 @@ import { useCopyTickets } from "../hooks/useCopyTickets";
 import { useRowSelection } from "../hooks/useRowSelection";
 import { useTableCollapse } from "../hooks/useTableCollapse";
 import { useTableData } from "../hooks/useTableData";
-import { closedCategories, useTableGroups } from "../hooks/useTableGroups";
+import { closedCategories, type TableGroupsOptions, useTableGroups } from "../hooks/useTableGroups";
 import { type CopyKind, useTableHotkeys } from "../hooks/useTableHotkeys";
 import { useTicketMutations } from "../hooks/useTicketMutations";
 import type { EditField, RowChange } from "../Row";
@@ -43,6 +43,8 @@ export type TicketTableProps = {
 	search: Partial<View>;
 	onOpenPage: (identifier: string) => void;
 	emptyState?: ReactNode;
+	// Orders the rows of each group ahead of the view sort. Memoize it: a new identity regroups the rows.
+	rowRank?: TableGroupsOptions["rowRank"];
 };
 
 export type Editing = { id: string; field: EditField } | null;
@@ -53,7 +55,7 @@ const focusFilter = () => document.querySelector<HTMLElement>("[data-filter-bar]
 // The ticket table of a list route: the active rows grouped client-side,
 // the closed groups on demand, the roving focus, the id-keyed selection,
 // the inline pickers, and the bulk bar.
-export function TicketTable({ project, routeKey, search, onOpenPage, emptyState }: TicketTableProps) {
+export function TicketTable({ project, routeKey, search, onOpenPage, emptyState, rowRank }: TicketTableProps) {
 	const { orpc } = useApp();
 	const view = viewOf(search);
 	const storedDensity = useUiStore((state) => state.density);
@@ -80,6 +82,7 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 		view,
 		project,
 		isCollapsed: collapsed.isCollapsed,
+		rowRank,
 	});
 	const items = useMemo(() => flattenGroups(groups), [groups]);
 	const loaded = useMemo(() => groups.flatMap((group) => group.rows), [groups]);

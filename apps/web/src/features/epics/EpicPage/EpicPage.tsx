@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { Project, TicketSummary } from "@trellis/api";
 import { Button, EmptyState, IconButton, Menu } from "@trellis/ui";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { errorMessage } from "../../../lib/conflict";
 import { epicHref, projectHref, projectSlashPath, rootKey } from "../../../lib/projectPath";
@@ -24,6 +24,7 @@ import { TicketTable } from "../../table/TicketTable";
 import { TableSkeleton } from "../../table/TicketTable/components/TableSkeleton";
 import { DeleteEpicDialog } from "../DeleteEpicDialog";
 import { EpicSheet } from "../EpicSheet";
+import { assignedTicketIds, epicRowRank } from "../epicRowRank";
 import { epicPageSearch, epicQueryString, epicUrlSearch } from "../epicSearch";
 import { EpicPlan } from "./components/EpicPlan";
 import { EpicProgress } from "./components/EpicProgress";
@@ -41,6 +42,8 @@ export type EpicPageProps = {
 
 const clearLinkClass =
 	"inline-flex h-8 items-center rounded-md border border-border bg-surface px-3 text-base font-medium text-fg transition duration-hover hover:bg-bg hover:border-border-strong focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
+
+const noAssigned: ReadonlySet<string> = new Set();
 
 const breadcrumbLinkClass =
 	"inline-flex h-7 items-center rounded-md px-1 text-fg-muted transition-colors duration-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
@@ -68,6 +71,15 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	const splat = `${projectSlashPath(project.path)}/epics/${slug}`;
 	const [editing, setEditing] = useState(false);
 	const [deleting, setDeleting] = useState(false);
+	// The assigned runs come from the query that the actor cell of every row
+	// reads, so the order of the rows costs no request of its own. Inside a
+	// milestone group the tickets that wait for the person come first, then
+	// the tickets to start, then the running tickets.
+	const assigned = useQuery({
+		...orpc.agentRuns.list.queryOptions({ input: { assigned: true } }),
+		select: assignedTicketIds,
+	}).data;
+	const rowRank = useMemo(() => epicRowRank(assigned ?? noAssigned), [assigned]);
 
 	// The epic query refetches after the ticket write, because the write
 	// response names no changed fields and the counts live on the epic.
@@ -219,6 +231,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 						project={rootKey(project.path)}
 						routeKey={routeKey}
 						search={tableSearch}
+						rowRank={rowRank}
 						onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
 						emptyState={
 							hasFilters(search) ? (
