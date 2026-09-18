@@ -1,0 +1,7 @@
+<task-notification>
+<task-id>b5p4h8ysl</task-id>
+<tool-use-id>toolu_01GgTfL2aDeBsU2ED2oEgaCH</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-navidkhan-projects-trellis/f8584a45-27db-465c-8008-a4eaa12dc273/tasks/b5p4h8ysl.output</output-file>
+<status>completed</status>
+<summary>Background command "Wait for server, then finish TRL-73 and TRL-74" completed (exit code 0)</summary>
+</task-notification>
