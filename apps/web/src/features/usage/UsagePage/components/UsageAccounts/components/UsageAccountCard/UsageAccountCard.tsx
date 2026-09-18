@@ -2,17 +2,22 @@ import { ArrowClockwise, Copy, PencilSimple, SignIn, Star, Trash } from "@phosph
 import type { HarnessAccount, UsageAccount, UsageGroupRow, UsageMetric } from "@trellis/api";
 import { Button, Dialog, IconButton, ProviderIcon, QuotaWindows, Skeleton, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
-import { formatMetric, formatShare, harnessLabel, harnessProvider } from "../../../../../formatUsage";
+import { formatMetric, formatShare, formatUsd, harnessLabel, harnessProvider } from "../../../../../formatUsage";
 
 const statusLabel: Record<UsageAccount["quota"]["status"], string> = {
 	ok: "Quota available",
 	unlimited: "Unlimited",
+	metered: "Metered billing",
 	signed_out: "Sign in required",
+	stale: "Quota refresh pending",
 	expired: "Sign-in expired",
 	unavailable: "Quota unavailable",
 };
 
 const needsLogin = new Set<UsageAccount["quota"]["status"]>(["signed_out", "expired"]);
+
+const formatObservedAt = (iso: string) =>
+	new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 const copy = async (text: string) => {
 	try {
@@ -55,6 +60,12 @@ export function UsageAccountCard({
 	const [login, setLogin] = useState(false);
 	const value = row?.[metric] ?? 0;
 	const sharedValue = shared?.[metric] ?? 0;
+	const quotaDetail =
+		account.quota.creditsBalance !== null
+			? `${formatUsd(account.quota.creditsBalance)} credits`
+			: account.quota.extraUsage
+				? `${formatUsd(account.quota.extraUsage.usedCents / 100)} of ${formatUsd(account.quota.extraUsage.limitCents / 100)} extra usage`
+				: null;
 	return (
 		<article aria-label={account.name} className="flex min-w-0 flex-col gap-3 rounded-lg border border-border p-4">
 			<div className="flex items-start justify-between gap-2">
@@ -138,11 +149,18 @@ export function UsageAccountCard({
 				</p>
 			)}
 			{account.quota.status === "ok" ? (
-				<QuotaWindows name={account.name} windows={account.quota.windows} />
-			) : account.quota.status === "unlimited" ? (
+				<>
+					<QuotaWindows name={account.name} windows={account.quota.windows} />
+					{quotaDetail && <p className="text-xs text-fg-muted tabular">{quotaDetail}</p>}
+					{account.harness === "muse" && (
+						<p className="text-xs text-fg-faint tabular">Observed {formatObservedAt(account.quota.fetchedAt)}</p>
+					)}
+				</>
+			) : account.quota.status === "unlimited" || account.quota.status === "metered" ? (
 				<p role="status" className="text-sm text-success">
 					{statusLabel[account.quota.status]}
 					{account.quota.detail ? ` · ${account.quota.detail}` : ""}
+					{quotaDetail ? ` · ${quotaDetail}` : ""}
 				</p>
 			) : needsLogin.has(account.quota.status) && account.loginCommand ? (
 				<div className="flex flex-col gap-2">

@@ -1,7 +1,7 @@
 import type { HarnessAccountQuota } from "@trellis/api";
 import type { IoCtx } from "../support.ts";
 import { readCredential } from "./credentials.ts";
-import { fetchAccountQuota } from "./fetchQuota.ts";
+import { fetchAccountQuota, isCurrentMuseQuota } from "./fetchQuota.ts";
 import { type AccountRow, getAccount } from "./queries.ts";
 
 const cache = new Map<string, { at: number; result: Promise<HarnessAccountQuota> }>();
@@ -14,7 +14,10 @@ export const prepareQuota = async (
 	const key = `${ctx.home}:${account.id}`;
 	const saved = cache.get(key);
 	const now = deps.now();
-	if (saved && now - saved.at < (input.refresh ? 10000 : 300000)) return saved.result;
+	if (saved && now - saved.at < (input.refresh ? 1000 : 30000)) {
+		const result = await saved.result;
+		if (account.harness !== "muse" || isCurrentMuseQuota(result, now)) return result;
+	}
 	const result = deps.load(account);
 	cache.set(key, { at: now, result });
 	return result;

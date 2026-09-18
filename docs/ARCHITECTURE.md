@@ -343,14 +343,15 @@ Claude uses `CLAUDE_CONFIG_DIR`; Codex uses `CODEX_HOME`; Pi uses `PI_CODING_AGE
 Removal archives the account record and retains its files.
 
 `harnessAccounts.list` returns account metadata, login commands, and capabilities. Account mutation requires a human actor.
-`harnessAccounts.quota` reads Claude or Codex subscription usage outside database transactions and caches results for five minutes.
-A manual refresh has a ten-second minimum interval. OpenCode and Pi return `unlimited` quota.
+`harnessAccounts.quota` reads subscription usage outside database transactions and caches results for 30 seconds.
+A manual refresh has a one-second minimum interval. OpenCode and Pi return `unavailable` because they expose no quota endpoint.
 Muse returns `signed_out` for a profile without `muse/auth.json`, unless a saved quota error has an active exhausted window.
 Muse announces its subscription windows to its session client after each model call. The Muse bridge saves the latest announcement to `muse/trellis-usage.json`.
 The bridge saves the reset time from a subscription quota error to `muse/trellis-quota.json`.
 The bridge serializes writes across processes and keeps the newest observation in each file.
 The separate quota file keeps a late usage announcement from removing an active error. An active exhausted window reads `ok` at 100 percent.
 A normal snapshot with a later observation time supersedes an older quota error.
+Trellis accepts a Muse observation for 60 seconds. An older observation returns `unavailable` without its windows.
 Before the first run, or after every saved window has reset, the account is `unavailable` with a sentence that asks for a run.
 An unavailable quota result contains no allowance estimate. Credentials stay on the host and do not enter API responses.
 
@@ -360,10 +361,10 @@ The Usage page at `/usage` shows what every agent on the machine consumed.
 `usage.report` reads the transcript files that each harness CLI writes: `projects/` of a Claude profile, `sessions/` of a Codex or Pi profile, `opencode/storage/` of an OpenCode data home, and `muse/sessions/` of a Muse data home, the default XDG data home or a Muse account profile.
 The scan covers the default profile of each harness and the profile of every account, resolved to real paths, so a shared directory counts once.
 The scan runs in the `prepare` step, outside every database transaction. A child worker parses the transcripts and builds the report. Database calls continue during the scan. The server caches each range for five minutes. A refresh uses a cached result for ten seconds.
-Every turn is priced at the API list rate in `services/usage/pricing.ts`. A harness that records its own cost, such as Pi or OpenCode, keeps that cost. Muse Spark has no list price, so a Muse turn counts its tokens at zero dollars. A model outside the table takes the cheapest rate of its harness and marks the row approximate.
+Every turn uses the rate in `services/usage/pricing.ts`. A harness that records its own cost, such as Pi or OpenCode, keeps that cost. Muse Spark and Muse Glimmer cost $1.25 per million input tokens and $4.25 per million output tokens. Cached Muse input uses the input rate. A model outside the table takes the cheapest rate of its harness and marks the row approximate.
 A session joins the agent run whose `session_id` it carries. A session whose cwd is inside `agents/<run id>/work` joins that run. A session whose cwd is inside a project directory joins that project. Every other session is outside Trellis.
-The report holds the day series by harness, the totals, one row list per grouping (ticket, agent, project, kind, account, model, harness), and the top 200 sessions with one key per grouping.
-`usage.accounts` lists every configured account and the default login of each harness that no account names, each with its quota. A login whose provider reports no quota window is `unlimited`: an API key, a plan without limits, or a harness with no quota endpoint. The default Muse login comes from `muse/auth.json` under the XDG config home, and a Muse account profile holds its own `muse/auth.json`. Its windows come from the normal usage and quota files that Muse agent runs save. The page joins each login to its cost through the account grouping of the report.
+The report holds the day series by harness, the totals, and separate cost and token rankings. Each ranking holds one row list per grouping (ticket, agent, project, kind, account, model, harness) and the top 200 sessions with one key per grouping.
+`usage.accounts` lists every configured account and the default login of each harness that no account names, each with its quota. A Codex account with no standard quota windows is `unlimited`. An API key is `metered`. A login with no quota endpoint or no usable quota data is `unavailable`. The default Muse login comes from `muse/auth.json` under the XDG config home, and a Muse account profile holds its own `muse/auth.json`. Its windows come from the normal usage and quota files that Muse agent runs save. The page joins each login to its value through the account grouping of the selected ranking.
 The page keeps the range, the metric, the grouping, the selected row, and the selected day in the URL.
 
 The default login of a harness resolves the way SuperSet resolves it. SuperSet keeps one pointer file per harness under `~/.superset/state/`: `default-claude-config-dir` and `default-codex-home`, each with the profile directory of the default, or nothing for the plain login. When the file exists it wins. Otherwise the account with the Trellis default flag wins. Otherwise the plain login of the harness is the default. A pointer whose directory is gone counts as the plain login. A default picked in Settings also writes the pointer, so both tools agree. A run with no account reads the pointer again at every launch, and a profile exported in the login shell wins over the pointer.
