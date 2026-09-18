@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
 import { Avatar, cx, EmptyState, Tabs } from "@trellis/ui";
 import type { ReactNode } from "react";
@@ -27,6 +28,7 @@ export function TicketWorkArea({
 	onOpenPullRequest: (url: string) => void;
 }) {
 	const { orpc } = useApp();
+	const hash = useLocation({ select: (location) => location.hash });
 	const runs = useQuery({
 		...orpc.agentRuns.list.queryOptions({ input: { ticket: ticket.identifier } }),
 		refetchInterval: 2000,
