@@ -12,6 +12,7 @@ import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive } from "../refs.ts";
 import type { IoCtx } from "../support.ts";
+import { prepareSessionRepository } from "./directory.ts";
 import { sessionOperation } from "./operation.ts";
 import { sessionProcess } from "./process.ts";
 import { getSession } from "./queries.ts";
@@ -38,6 +39,7 @@ export const prepareStart = async (
 		if (previous?.status === "running") return { id: session.id };
 		if (previous !== null && previous.status !== "exited")
 			throw invalidInput("id", "Stop the prior process and confirm it exited before you start the session again.");
+		if (run.projectId === null && run.terminalId === null) await prepareSessionRepository(ctx.home, session.name);
 		const resume =
 			previous?.status === "exited" &&
 			previous.agent?.sessionId != null &&

@@ -14,6 +14,7 @@ import { gcAttachmentBlobs } from "../services/attachments.ts";
 import { loopRuntimes } from "../services/loops/runtime.ts";
 import { readWaitSeconds } from "../services/loops/wait.ts";
 import { type ServiceEntry, type ServiceName, services } from "../services/registry.ts";
+import type { IoCtx } from "../services/support.ts";
 import { createCache } from "./cache.ts";
 import type { Db } from "./client.ts";
 import { createMaintenance } from "./maintenance.ts";
@@ -91,6 +92,7 @@ export const createInlineTransport = ({
 	const cache = createCache();
 	const actorCache = new Map<string, number>();
 	const inFlight = new Set<Promise<unknown>>();
+	const backgroundTasks = new Set<Promise<void>>();
 
 	const newTx = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
@@ -107,7 +109,7 @@ export const createInlineTransport = ({
 
 	// An `io` read never writes the actor, so a request without the header
 	// carries the system actor there.
-	const ioCtx = (ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>) => ({
+	const ioCtx = (ctx: RequestContext, emit: Emit, tasks: Array<() => Promise<void>>): IoCtx => ({
 		core: coreCtx(ctx, emit, tasks),
 		localUrl: config.agentsUrl,
 		publicUrl: config.publicUrl,
@@ -124,6 +126,19 @@ export const createInlineTransport = ({
 		emit,
 		afterCommit: (task: () => Promise<void>) => {
 			tasks.push(task);
+		},
+		background: (task) => {
+			const pending: Array<() => Promise<void>> = [];
+			const background = ioCtx({ ...ctx, now: new Date() }, (event) => bus.emit(event, ctx.actor), pending);
+			const work = (async () => {
+				await task(background);
+				for (const followup of pending) await followup();
+			})()
+				.catch((error: unknown) => {
+					log("background task failed", { error: error instanceof Error ? error.message : String(error) });
+				})
+				.finally(() => backgroundTasks.delete(work));
+			backgroundTasks.add(work);
 		},
 		newTx: <T>(fn: (tx: Tx) => Promise<T>) =>
 			newTx(async (tx) => {
@@ -235,6 +250,7 @@ export const createInlineTransport = ({
 		await flowReconcile?.stop();
 		if (jobs !== null) await jobs.stop();
 		await Promise.allSettled([...inFlight]);
+		while (backgroundTasks.size > 0) await Promise.all([...backgroundTasks]);
 	};
 
 	return { call, start, close };

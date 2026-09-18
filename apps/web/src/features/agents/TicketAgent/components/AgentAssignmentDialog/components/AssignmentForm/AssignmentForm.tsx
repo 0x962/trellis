@@ -1,5 +1,6 @@
 import { ORPCError } from "@orpc/client";
 import { useMutation } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import type { Harness } from "@trellis/api";
 import { Button } from "@trellis/ui";
 import { useState } from "react";
@@ -16,12 +17,19 @@ export function AssignmentForm({
 	onClose: () => void;
 }) {
 	const { client, orpc, queryClient } = useApp();
+	const navigate = useNavigate();
 	const [harness, setHarness] = useState(initialHarness);
+	const [requestId] = useState(() => crypto.randomUUID());
 	const start = useMutation({
-		mutationFn: () => client.agentRuns.start({ ticket, harness }),
-		onSuccess: async () => {
-			await queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
+		mutationFn: () => client.agentRuns.start({ ticket, harness, requestId }),
+		onSuccess: (run) => {
+			queryClient.setQueryData(orpc.agentRuns.list.queryOptions({ input: { ticket } }).queryKey, (current) => [
+				run,
+				...(current ?? []).filter((item) => item.id !== run.id),
+			]);
 			onClose();
+			void queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
+			void navigate({ to: "/t/$identifier", params: { identifier: ticket }, hash: `attempt-${run.terminalId}` });
 		},
 	});
 	const error =
