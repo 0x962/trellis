@@ -20,11 +20,15 @@ export type SummaryRow = {
 	project_path: string;
 	parent_id: string | null;
 	parent_identifier: string | null;
+	epic_id: string | null;
+	epic_slug: string | null;
+	epic_name: string | null;
 	ancestors: string[] | null;
 	child_count: number;
 	child_done_count: number;
 	comment_count: number;
 	attachment_count: number;
+	labels: TicketSummary["labels"] | null;
 	pr_state: PrState | null;
 	pr_ci_state: CiState | null;
 	pr_review_state: ReviewState | null;
@@ -60,12 +64,14 @@ export const summaryColumns = sql`
 	t.project_id, root.key AS project_key, pp.path AS project_path,
 	par.id AS parent_id,
 	CASE WHEN par.id IS NULL THEN NULL ELSE root.key || '-' || par.number END AS parent_identifier,
+	e.id AS epic_id, e.slug AS epic_slug, e.name AS epic_name,
 	anc.identifiers AS ancestors,
 	(SELECT count(*)::int FROM tickets c WHERE c.parent_id = t.id) AS child_count,
 	(SELECT count(*)::int FROM tickets c JOIN statuses cs ON cs.id = c.status_id
 		WHERE c.parent_id = t.id AND cs.category = 'done') AS child_done_count,
 	(SELECT count(*)::int FROM comments c WHERE c.ticket_id = t.id) AS comment_count,
 	(SELECT count(*)::int FROM attachments a WHERE a.ticket_id = t.id) AS attachment_count,
+	lb.items AS labels,
 	pr.state AS pr_state, pr.ci_state AS pr_ci_state, pr.review_state AS pr_review_state,
 	pr.pass AS pr_pass, pr.fail AS pr_fail, pr.pending AS pr_pending,
 	pr.reviews AS pr_reviews,
@@ -83,6 +89,17 @@ export const summaryJoins = sql`
 	JOIN projects root ON root.id = t.root_id
 	JOIN paths pp ON pp.id = t.project_id
 	LEFT JOIN tickets par ON par.id = t.parent_id
+	LEFT JOIN epics e ON e.id = t.epic_id
+	LEFT JOIN LATERAL (
+		SELECT jsonb_agg(
+			jsonb_build_object('id', l.id, 'name', l.name, 'color', l.color, 'group', g.name)
+			ORDER BY (l.group_id IS NOT NULL), lower(g.name), lower(l.name)
+		) AS items
+		FROM ticket_labels tl
+		JOIN labels l ON l.id = tl.label_id
+		LEFT JOIN label_groups g ON g.id = l.group_id
+		WHERE tl.ticket_id = t.id
+	) lb ON true
 	LEFT JOIN LATERAL (
 		SELECT
 			(array_agg(p.state ORDER BY ${prStateRank(sql`p.state`)}))[1] AS state,
@@ -140,10 +157,15 @@ export const toSummary = (row: SummaryRow): TicketSummary => ({
 	project: { id: row.project_id, key: row.project_key, path: row.project_path },
 	parent: row.parent_id === null ? null : { id: row.parent_id, identifier: row.parent_identifier as string },
 	ancestors: row.ancestors ?? [],
+	epic:
+		row.epic_id === null
+			? null
+			: { id: row.epic_id, ref: `${row.project_key}/${row.epic_slug}`, name: row.epic_name as string },
 	childCount: row.child_count,
 	childDoneCount: row.child_done_count,
 	commentCount: row.comment_count,
 	attachmentCount: row.attachment_count,
+	labels: row.labels ?? [],
 	pr:
 		row.pr_state === null
 			? null

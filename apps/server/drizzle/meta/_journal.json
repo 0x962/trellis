@@ -516,8 +516,29 @@
     {
       "idx": 76,
       "version": "7",
-      "when": 1789758963769,
-      "tag": "0076_session_attention",
+      "when": 1789750451000,
+      "tag": "0076_restore_label_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1789751879623,
+      "tag": "0077_ticket_labels",
+      "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1789758778818,
+      "tag": "0078_kind_jetstream",
+      "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1789760086055,
+      "tag": "0079_session_attention",
       "breakpoints": true
     }
   ]

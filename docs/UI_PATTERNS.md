@@ -58,11 +58,14 @@ Place filter chips beside the page title. Align Filter and Display at the right 
 Filter uses the funnel icon. Display uses the sliders icon. Both use circular `IconButton` triggers with tooltips.
 The filter picker uses `FilterPopover` and `Command`. Selected filters use `Chip`, with an edit action and a remove action.
 The `f` shortcut opens the filter picker.
+The `epic` stage of the picker lists the epics of the project from `epics.list` and the choice No epic.
+The chip prints the epic name, or No epic for `none`.
 
 Use `ModelPicker` for each model field. It groups models by family and shows the provider mark.
 
 Put the sort field and direction inside `DisplayPopover`. Use one option per field and a separate direction button.
 The direction button shows the current direction through its icon and tooltip.
+`DisplayPopover` offers Group by Epic. The group label is the epic name, and No epic is the last group.
 The page determines the initial direction for each field. The server applies the selected order before pagination.
 Keep filters and sort in the URL. Keep local display preferences, such as collapsed groups, in `uiStore` under the route key.
 
@@ -77,6 +80,12 @@ The header is 32 px on desktop and 48 px on a phone. Its label button reports th
 Keep group headers visible during scroll when the list permits it.
 Use the count of all matching items, including pages that have not loaded. An unloaded count stays blank.
 A collapsed group retains its count. Its Show action expands the group.
+
+## Board cards
+
+The top row of a card prints the identifier trail. When the ticket has an epic, the epic name comes first: `Routine runtime · OP-32`.
+The name is `text-xs text-fg-faint truncate` in the sans face, the separator is ` · `, and the trail keeps `shrink-0`.
+A long name gives way and the identifier stays. The drag preview draws the same content.
 
 ## Dense rows
 

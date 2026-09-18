@@ -1,6 +1,7 @@
 import { Paperclip } from "@phosphor-icons/react";
 import type { TicketSummary } from "@trellis/api";
 import {
+	LabelPills,
 	LineChanges,
 	type LineChangesValue,
 	lineChangesVisible,
@@ -20,10 +21,12 @@ export type CardContentProps = {
 	lineChangesPending?: boolean;
 };
 
-// The three rows of a board card: the trail of identifiers with the
-// priority, the title, and the meta row. The card on the board and the drag
-// preview both draw it, so the preview looks like the card under the
-// pointer.
+// The rows of a board card: the epic name and the trail of identifiers with
+// the priority, the title, the labels, and the meta row. A ticket with no
+// label draws no label row at all, so the card keeps its height. The card on
+// the board and the drag preview both draw it, so the preview looks like the
+// card under the pointer. On the top row the epic name gives way and the
+// identifiers stay, so `Routine runtime · OP-32` keeps its OP-32.
 export function CardContent({ ticket, showStatus = false, lineChanges, lineChangesPending = false }: CardContentProps) {
 	const progress = ticket.childCount === 0 ? 0 : ticket.childDoneCount / ticket.childCount;
 	const trail = ticketTrail(ticket.ancestors, ticket.identifier);
@@ -33,6 +36,14 @@ export function CardContent({ ticket, showStatus = false, lineChanges, lineChang
 		<>
 			<div className="flex h-4 items-center justify-between gap-1.5">
 				<span className="flex min-w-0 items-center gap-1 font-mono text-xs whitespace-nowrap text-fg-faint tabular">
+					{ticket.epic !== null && (
+						<>
+							<span className="min-w-0 truncate font-sans">{ticket.epic.name}</span>
+							<span aria-hidden="true" className="shrink-0">
+								·
+							</span>
+						</>
+					)}
 					{trail.map((step, index) => (
 						<span key={step} className="flex items-center gap-1">
 							{index > 0 && <span aria-hidden="true">→</span>}
@@ -43,6 +54,7 @@ export function CardContent({ ticket, showStatus = false, lineChanges, lineChang
 				{ticket.priority !== "none" && <PriorityIcon priority={ticket.priority} />}
 			</div>
 			<p className="line-clamp-3 text-base font-medium text-fg">{ticket.title}</p>
+			<LabelPills labels={ticket.labels} wrap />
 			<div className="mt-auto flex min-h-4 min-w-0 items-center gap-1.5 text-xs text-fg-faint tabular">
 				{ticket.childCount > 0 && (
 					<span className="inline-flex items-center gap-1">

@@ -7,7 +7,9 @@ import { ticketGet, ticketSummary } from "../../db/queries/ticketGet.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { record } from "../activity.ts";
+import { resolveEpicForTicket } from "../epics/resolve.ts";
 import { assertProjectActive, resolveProject, resolveStatus, resolveTicket } from "../refs.ts";
+import { createTicketLabels } from "./labels.ts";
 import { lastPosition } from "./position.ts";
 import { outsideRoot } from "./rules.ts";
 
@@ -47,6 +49,7 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 			: await resolveStatus(ctx, tx, { projectId: project.id, status: input.status });
 	const parent = input.parent === undefined ? null : await resolveTicket(ctx, tx, input.parent);
 	if (parent !== null && outsideRoot(parent, project.rootId)) throw fail("CROSS_ROOT_MOVE");
+	const epic = input.epic === undefined ? null : await resolveEpicForTicket(ctx, tx, project.rootId, input.epic);
 
 	const batchId = ulid();
 	const number = await nextNumber(tx, project.rootId);
@@ -58,10 +61,15 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	const completedAt = status.category === "done" || status.category === "canceled" ? ctx.now : null;
 	await tx.execute(
 		sql`INSERT INTO tickets (id, project_id, root_id, number, title, description, priority, status_id, parent_id,
-				position, version, started_at, completed_at, created_at, updated_at)
+				epic_id, position, version, started_at, completed_at, created_at, updated_at)
 			VALUES (${id}, ${project.id}, ${project.rootId}, ${number}, ${input.title}, ${description}, ${priority},
-				${status.id}, ${parent?.id ?? null}, ${position}, 1, ${startedAt}, ${completedAt}, ${ctx.now}, ${ctx.now})`,
+				${status.id}, ${parent?.id ?? null}, ${epic?.id ?? null}, ${position}, 1, ${startedAt}, ${completedAt},
+				${ctx.now}, ${ctx.now})`,
 	);
+	const labels =
+		input.labels === undefined
+			? 0
+			: await createTicketLabels(ctx, tx, { ticketId: id, rootId: project.rootId, refs: input.labels });
 	await record(ctx, tx, {
 		rootId: project.rootId,
 		projectId: project.id,
@@ -71,7 +79,16 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 		changes: [{ field: null, from: null, to: null }],
 	});
 
-	const fields = ["title", "description", "priority", "status", "project", ...(parent === null ? [] : ["parent"])];
+	const fields = [
+		"title",
+		"description",
+		"priority",
+		"status",
+		"project",
+		...(parent === null ? [] : ["parent"]),
+		...(epic === null ? [] : ["epic"]),
+		...(labels === 0 ? [] : ["labels"]),
+	];
 	ctx.emit({ type: "ticket.created", summary: await ticketSummary(tx, id), fields, batchId });
 	return ticketGet(tx, id);
 };

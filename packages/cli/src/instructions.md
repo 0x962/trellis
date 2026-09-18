@@ -13,6 +13,9 @@ Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, set `T
 8. When the agent review passes: trellis move KEY-42 human-review
 Never delete tickets.
 
+Labels say what a ticket is about. Read the set of the project: trellis labels list KEY
+Put one on a ticket: trellis edit KEY-42 --add-label bug
+
 Read a comment thread: trellis thread show <comment-id>
 Reply in that thread: trellis comment KEY-42 --reply-to <comment-id> --body "..."
 Resolve a thread: trellis thread resolve <comment-id>
@@ -22,6 +25,12 @@ Project notes: facts, current state, and decisions that every agent of the proje
 Read the notes: trellis notes list KEY
 Write a note: trellis notes add KEY --title "..." --body "..."
 Update or remove one: trellis notes edit <id> --body "..." / trellis notes rm <id>
+
+A plan that produces several tickets is an epic. Create the epic with the plan as its description, then create each ticket with --epic.
+Create the epic: trellis epics create --project KEY --name "..." --description - < plan.md
+Create a ticket of the epic: trellis create -p KEY --epic KEY/<slug> -t "..."
+Read the epic and its tickets: trellis epics show KEY/<slug>
+File a question for the person as a ticket of the epic in the human review status: trellis create -p KEY --epic KEY/<slug> --status human-review -t "..."
 
 PR review comments live in Trellis. Read them before work: trellis review list <pr-url>
 Post a finding: trellis review add <pr-url> --path <file> --line <n> --body "..."

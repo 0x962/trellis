@@ -38,6 +38,10 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 		description: "List, add, edit, remove, or clear statuses",
 		load: () => import("./commands/statuses.ts").then((m) => command(m.default)),
 	},
+	labels: {
+		description: "List, add, edit, or remove labels and label groups",
+		load: () => import("./commands/labels/labels.ts").then((m) => command(m.default)),
+	},
 	agents: {
 		description: "List, start, refresh, stop, or talk to agents",
 		load: () => import("./commands/agents.ts").then((m) => command(m.default)),
@@ -74,6 +78,10 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 	notes: {
 		description: "Read and write the notes of a project",
 		load: () => import("./commands/notes.ts").then((m) => command(m.default)),
+	},
+	epics: {
+		description: "List, show, create, edit, fill, or delete the epics of a project",
+		load: () => import("./commands/epics.ts").then((m) => command(m.default)),
 	},
 	attach: {
 		description: "Upload a file to a ticket",

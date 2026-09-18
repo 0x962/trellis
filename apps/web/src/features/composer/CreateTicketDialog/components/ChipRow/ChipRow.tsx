@@ -1,11 +1,13 @@
-import { ArrowElbowDownRight, FolderOpen } from "@phosphor-icons/react";
+import { ArrowElbowDownRight, FolderOpen, Tag } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import type { Priority, Status, TicketSummary } from "@trellis/api";
-import { cx, PriorityIcon, StatusIcon } from "@trellis/ui";
+import type { Label, Priority, Status, TicketLabel, TicketSummary } from "@trellis/api";
+import { cx, LabelPills, PriorityIcon, StatusIcon } from "@trellis/ui";
 import type { ReactNode } from "react";
 import { useArchivedProjects } from "../../../../../hooks/useArchivedProjects";
 import { useApp } from "../../../../../lib/appContext";
+import { labelNames } from "../../../../../lib/labelNames";
 import { projectSlashPath } from "../../../../../lib/projectPath";
+import { LabelPicker } from "../../../../pickers/LabelPicker";
 import { PriorityPicker, priorityLabels } from "../../../../pickers/PriorityPicker";
 import { ProjectPicker } from "../../../../pickers/ProjectPicker";
 import { StatusPicker } from "../../../../pickers/StatusPicker";
@@ -20,10 +22,13 @@ export type ChipRowProps = {
 	priority: Priority;
 	parent: TicketSummary | null;
 	parentRef?: string;
+	labels: readonly TicketLabel[];
 	onProject: (ref: string) => void;
 	onStatus: (status: Status) => void;
 	onPriority: (priority: Priority) => void;
 	onParent: (ticket: TicketSummary | null) => void;
+	// `checked` is the new state of the picked label row.
+	onLabel: (label: Label, checked: boolean) => void;
 };
 
 type ChipProps = {
@@ -64,7 +69,9 @@ const chip = ({ label, icon, children, unset = false, invalid = false, disabled 
 );
 
 // The property chips under the description: project, status, priority,
-// parent. Each one opens the same picker the rail and the table use.
+// parent, and labels. Each one opens the same picker the rail and the table
+// use. The labels of a tree belong to its root project, so the labels chip
+// waits for a project.
 export function ChipRow({
 	project,
 	projectMissing,
@@ -73,10 +80,12 @@ export function ChipRow({
 	priority,
 	parent,
 	parentRef,
+	labels,
 	onProject,
 	onStatus,
 	onPriority,
 	onParent,
+	onLabel,
 }: ChipRowProps) {
 	const { orpc } = useApp();
 	const { isArchived } = useArchivedProjects();
@@ -136,6 +145,21 @@ export function ChipRow({
 						children: parentName ?? "Parent",
 					})}
 				/>
+				{project === undefined ? (
+					chip({ label: "Labels", icon: <Tag />, unset: true, disabled: true, children: "Labels" })
+				) : (
+					<LabelPicker
+						project={project}
+						checked={labels.map((label) => label.id)}
+						onToggle={onLabel}
+						trigger={chip({
+							label: `Labels: ${labels.length === 0 ? "None" : labelNames(labels)}`,
+							icon: <Tag />,
+							unset: labels.length === 0,
+							children: labels.length === 0 ? "Labels" : <LabelPills labels={labels} />,
+						})}
+					/>
+				)}
 			</div>
 			{projectMissing && (
 				<p id="new-ticket-project-error" role="alert" className="text-xs text-danger">

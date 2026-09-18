@@ -7,6 +7,7 @@ export type ColumnId =
 	| "priority"
 	| "id"
 	| "title"
+	| "labels"
 	| "status"
 	| "pr"
 	| "project"
@@ -14,6 +15,7 @@ export type ColumnId =
 	| "updated"
 	| "created"
 	| "parent"
+	| "epic"
 	| "subtickets";
 
 // The columns in display order.
@@ -22,6 +24,7 @@ export const columnOrder: readonly ColumnId[] = [
 	"priority",
 	"id",
 	"title",
+	"labels",
 	"status",
 	"pr",
 	"project",
@@ -29,6 +32,7 @@ export const columnOrder: readonly ColumnId[] = [
 	"updated",
 	"created",
 	"parent",
+	"epic",
 	"subtickets",
 ];
 
@@ -37,6 +41,7 @@ export const columnLabels: Record<ColumnId, string> = {
 	priority: "Priority",
 	id: "ID",
 	title: "Title",
+	labels: "Labels",
 	status: "Status",
 	pr: "PR",
 	project: "Project",
@@ -44,6 +49,7 @@ export const columnLabels: Record<ColumnId, string> = {
 	updated: "Updated",
 	created: "Created",
 	parent: "Parent",
+	epic: "Epic",
 	subtickets: "Sub-tickets",
 };
 
@@ -53,6 +59,9 @@ export const columnWidths: Record<ColumnId, string> = {
 	priority: "16px",
 	id: "72px",
 	title: "minmax(0, 1fr)",
+	// Two label pills and the gap between them. The track never changes with
+	// the data, so a row that gains a label keeps its title width.
+	labels: "180px",
 	status: "140px",
 	pr: "72px",
 	project: "120px",
@@ -60,6 +69,7 @@ export const columnWidths: Record<ColumnId, string> = {
 	updated: "48px",
 	created: "48px",
 	parent: "72px",
+	epic: "120px",
 	subtickets: "48px",
 };
 
@@ -67,7 +77,7 @@ export const columnWidths: Record<ColumnId, string> = {
 export const alwaysVisible: readonly ColumnId[] = ["select", "title"];
 
 // The columns a route hides until the Display popover shows them.
-export const hiddenByDefault: readonly ColumnId[] = ["created", "parent", "subtickets"];
+export const hiddenByDefault: readonly ColumnId[] = ["created", "parent", "epic", "subtickets"];
 
 export const tableFeatureSet = tableFeatures({ columnVisibilityFeature });
 
@@ -86,7 +96,7 @@ export const buildColumns = () =>
 export const gridTemplate = (ids: readonly string[]) => ids.map((id) => columnWidths[id as ColumnId]).join(" ");
 
 // The columns a screen under 768 px hides, so the title keeps room to read.
-export const narrowHidden: readonly ColumnId[] = ["pr", "project", "actor"];
+export const narrowHidden: readonly ColumnId[] = ["labels", "pr", "project", "actor"];
 
 // Under 768 px the status cell shows its icon alone, in its 28 px button.
 const narrowWidths: Partial<Record<ColumnId, string>> = { status: "28px" };

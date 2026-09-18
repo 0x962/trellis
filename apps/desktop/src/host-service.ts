@@ -3,6 +3,7 @@ import { userInfo } from "node:os";
 import { dirname, join } from "node:path";
 import { assertHostStopped, ensureHostToken } from "./host/host.ts";
 import { pinResources } from "./pinnedResources/pinnedResources.ts";
+import { pruneReleases } from "./pruneReleases/pruneReleases.ts";
 import { defaultDesktopUserData, readSelectedHome } from "./selectedHome/selectedHome.ts";
 import { chooseHostRelease, recordActiveRelease } from "./updateStatus/updateStatus.ts";
 
@@ -21,6 +22,7 @@ const start = async () => {
 	const owner = existsSync(lock) ? JSON.parse(readFileSync(lock, "utf8")) : undefined;
 	writeFileSync(join(home, "desktop-service.pid"), String(process.pid), { mode: 0o600 });
 	await recordActiveRelease(home, release);
+	pruneReleases(join(userData, "releases"), [release.manifest.id, available.manifest.id]);
 	process.execve!(join(root, "bin/bun"), [join(root, "bin/bun"), join(root, "apps/server/src/index.ts")], {
 		...process.env,
 		TRELLIS_EXECUTION_SHELL: userInfo().shell!,

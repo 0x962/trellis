@@ -170,6 +170,11 @@ export async function createTerminalRuntime(
 			parking.append(wrapper);
 			if (snapshot.connection === "closed") dispose();
 		},
+		// Sends the current size of this view to the process again. Two views
+		// of one process, such as the terminal on a session page and the same
+		// terminal in a sheet over it, share one process size. The last view to
+		// send wins, so a view that stays calls this when the other one leaves.
+		resendSize: () => resize.request(true),
 		reconnect: connect,
 		dispose,
 	};

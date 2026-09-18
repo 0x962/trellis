@@ -2,9 +2,18 @@ import type { Priority } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, readText } from "../context.ts";
+import { labelRefs } from "../flags.ts";
 import { printRecord, ticketRecord } from "../output.ts";
 
 export const priorities = ["none", "urgent", "high", "medium", "low"] as const;
+
+// The shape of a flag that names labels of one ticket: `--label` here and on
+// `sub`, `--add-label` and `--remove-label` on `edit`. The caller repeats the
+// flag, or writes several refs with a comma between them.
+export const labelFlag = {
+	type: "string",
+	description: "Label ref: a ULID, a name, or group/name; repeat it or separate refs with commas",
+} as const;
 
 export default defineCommand({
 	meta: { name: "create", description: "Create a ticket" },
@@ -15,6 +24,8 @@ export default defineCommand({
 		priority: { type: "enum", options: [...priorities], description: "Priority" },
 		status: { type: "string", description: "Status ref; the project default when absent" },
 		parent: { type: "string", description: "Parent ticket ref" },
+		epic: { type: "string", description: "Epic ref, such as OP/routine-runtime" },
+		label: labelFlag,
 		force: { type: "boolean", description: "Accepted for compatibility; completion does not require force" },
 	},
 	async run(context) {
@@ -28,6 +39,8 @@ export default defineCommand({
 				priority: args.priority as Priority | undefined,
 				status: args.status,
 				parent: args.parent,
+				epic: args.epic,
+				labels: labelRefs(context.rawArgs, "label"),
 				force: args.force === true ? true : undefined,
 			}),
 		);

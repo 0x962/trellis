@@ -11,6 +11,7 @@ import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { useCommandContext } from "../../command/hooks/useCommandContext";
 import { composerActions } from "../../composer/composerStore";
 import { type View, viewOf } from "../../filters/grammar";
+import { useScopeLabels } from "../../filters/hooks/useScopeLabels";
 import { hasFilters } from "../../filters/labels";
 import { BulkBar } from "../BulkBar";
 import { buildColumns, type ColumnId, tableFeatureSet } from "../columns";
@@ -27,6 +28,7 @@ import { TableEmpty } from "../TableEmpty";
 import { TableFooter } from "../TableFooter";
 import { autoHide, columnVisibility } from "../utils/columnVisibility";
 import { flattenGroups } from "../utils/flattenGroups";
+import { sharedLabelIds } from "../utils/sharedLabelIds";
 import { CapBanner } from "./components/CapBanner";
 import { TableBody } from "./components/TableBody";
 import { TableError } from "./components/TableError";
@@ -58,6 +60,7 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 	const pendingFocus = useRef<string | null>(null);
 	const [focusState, setFocusState] = useState<string | null>(null);
 	const [editing, setEditing] = useState<Editing>(null);
+	const [bulkLabels, setBulkLabels] = useState(false);
 	const [pendingDelete, setPendingDelete] = useState<string[] | null>(null);
 
 	const projectQuery = useQuery({
@@ -68,6 +71,7 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 	const showProject = project === undefined || ((projectQuery.data?.children.length ?? 0) > 0 && view.scope !== "self");
 
 	const statuses = useScopeStatuses(project);
+	const labelGroups = useScopeLabels(project).groups;
 	const closedKeys = useMemo(
 		() => closedCategories.map((category) => closedKey(statuses, category)).filter((key) => key !== undefined),
 		[statuses],
@@ -115,7 +119,7 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 		if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
 	});
 
-	const applyChange = useApplyChange(mutations, projects);
+	const applyChange = useApplyChange(mutations, projects, labelGroups);
 
 	const selectedTickets = () => selection.selected.map((id) => byId.get(id)!);
 	const projectRootIds = new Map(projects.map((project) => [project.id, project.rootId]));
@@ -159,6 +163,13 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 		setEditing(field === null ? null : { id, field }),
 	);
 
+	// `l` sets the labels of the whole selection when one exists, and the
+	// labels of the focused row when none does.
+	const openLabels = useStableCallback((id: string) => {
+		if (selection.count > 0 && project !== undefined) setBulkLabels(true);
+		else setEditing({ id, field: "labels" });
+	});
+
 	const openNew = (status?: StatusSummary) =>
 		composerActions.open({
 			...(status === undefined ? {} : { status: status.slug }),
@@ -174,6 +185,7 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 		selection,
 		editing,
 		setEditing,
+		openLabels,
 		groupKeys: groups.filter((group) => group.label !== null).map((group) => group.key),
 		toggleGroup: collapsed.toggle,
 		openTicket,
@@ -242,10 +254,15 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 				projects={projects}
 				ticketRootIds={ticketRootIds}
 				project={project}
+				labelIds={sharedLabelIds(selectedTickets())}
+				labelsOpen={bulkLabels && selection.count > 0}
+				onLabelsOpenChange={setBulkLabels}
+				onLabel={(label, checked) => void applyChange(selectedTickets(), { label, checked })}
 				onStatus={(status) => void applyChange(selectedTickets(), { status })}
 				onPriority={(priority) => void applyChange(selectedTickets(), { priority })}
 				onProject={(ref) => void applyChange(selectedTickets(), { project: ref })}
 				onParent={(parent) => void applyChange(selectedTickets(), { parent })}
+				onEpic={(epic) => void applyChange(selectedTickets(), { epic })}
 				onCopyIds={copyIds}
 				onDelete={() => setPendingDelete(selection.selected)}
 				onClear={selection.clear}

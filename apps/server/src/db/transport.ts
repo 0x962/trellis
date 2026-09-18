@@ -15,6 +15,7 @@ import { assertCurrentAttempt } from "../services/assignments/attempts.ts";
 import { gcAttachmentBlobs } from "../services/attachments.ts";
 import { type ServiceEntry, type ServiceName, services } from "../services/registry.ts";
 import type { IoCtx } from "../services/support.ts";
+import type { SweepResult } from "../services/sweep/prepareSweep.ts";
 import { createCache } from "./cache.ts";
 import type { Db } from "./client.ts";
 import { createMaintenance } from "./maintenance.ts";
@@ -73,6 +74,9 @@ export type InlineTransport = ServiceTransport;
 export type WorkerTransportOptions = { bus: Bus; config: Config; runtime: Runtime };
 
 const MB = 1024 * 1024;
+
+// The time between two sweeps of finished agent files.
+export const FILE_SWEEP_MS = 60 * 60 * 1000;
 
 // Two clock readings of one service call, from `performance.now()`. 0 means
 // the call has not reached that point.
@@ -218,6 +222,7 @@ export const createInlineTransport = ({
 	let jobs: Jobs | null = null;
 	let commentDelivery: ReturnType<typeof startCommentDeliveryLoop> | null = null;
 	let flowReconcile: ReturnType<typeof startNativeReconcile> | null = null;
+	let fileSweep: ReturnType<typeof startNativeReconcile> | null = null;
 	const start = async (options?: JobsStart) => {
 		await db.transaction((tx) => restoreHarnesses({ home: config.home }, tx));
 		await db.transaction((tx) => cache.rebuild(tx));
@@ -237,6 +242,23 @@ export const createInlineTransport = ({
 				clearTimer: clock.clearTimer,
 				log: options.log,
 			});
+			// The sweep of finished agent files runs once at boot and then once
+			// an hour. Its first tick runs before the port answers, so a home
+			// with a large backlog is swept in the background of the boot.
+			fileSweep = startNativeReconcile({
+				tick: async () => {
+					const result = (await backgroundCall("system.sweep", {})) as SweepResult;
+					if (
+						result.removedWorkspaces.length + result.removedOutputFiles + result.removedAttempts > 0 ||
+						result.errors.length > 0
+					)
+						options.log("sweep agent files", result);
+				},
+				setTimer: clock.setTimer,
+				clearTimer: clock.clearTimer,
+				log: options.log,
+				intervalMs: FILE_SWEEP_MS,
+			});
 			commentDelivery = startCommentDeliveryLoop({
 				clock,
 				log: options.log,
@@ -251,6 +273,7 @@ export const createInlineTransport = ({
 		await sessionMonitor?.stop();
 		await commentDelivery?.stop();
 		await flowReconcile?.stop();
+		await fileSweep?.stop();
 		if (jobs !== null) await jobs.stop();
 		await Promise.allSettled([...inFlight]);
 		while (backgroundTasks.size > 0) await Promise.all([...backgroundTasks]);

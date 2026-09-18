@@ -16,28 +16,36 @@ import { ticketGet, ticketSummary } from "../../db/queries/ticketGet.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { record } from "../activity.ts";
+import { resolveEpicForTicket } from "../epics/resolve.ts";
+import { epicRefOf } from "../epics/rows.ts";
 import { assertProjectActive, pathOf, resolveProject, resolveStatus, resolveTicket, type TicketRow } from "../refs.ts";
+import { applyLabelDeltas } from "./labels.ts";
 import { assertVersion, outsideRoot, remapStatus, stampColumns } from "./rules.ts";
 
 // The fields `update` and `updateMany` share. A ref is a canonical string;
-// `parent: null` clears the parent.
+// `parent: null` clears the parent, and `epic: null` clears the epic.
 type ChangeInput = {
 	title?: string;
 	description?: string;
 	priority?: Priority;
 	status?: string;
 	parent?: string | null;
+	epic?: string | null;
 	project?: string;
+	addLabels?: readonly string[];
+	removeLabels?: readonly string[];
 	force?: boolean;
 };
 
-// One changed field: its activity values and its SET clause.
+// One changed field: its activity values, and the SET clause that writes it.
+// A label change carries no clause, because the labels of a ticket live in
+// `ticket_labels` and not in a column of `tickets`.
 type FieldChange = {
 	field: string;
 	from: string | null;
 	to: string | null;
 	meta?: Record<string, unknown>;
-	set: SQL;
+	set?: SQL;
 };
 
 // A parent must sit in the same root and must not be the ticket or one of
@@ -128,12 +136,28 @@ export const applyChanges = async (ctx: ServiceCtx, tx: Tx, batchId: string, row
 			});
 		}
 	}
+	if (input.epic !== undefined) {
+		const epic = input.epic === null ? null : await resolveEpicForTicket(ctx, tx, row.rootId, input.epic);
+		if ((epic?.id ?? null) !== row.epicId) {
+			changes.push({
+				field: "epic",
+				from: row.epicRef,
+				to: epic === null ? null : epicRefOf(epic),
+				meta: { fromId: row.epicId, toId: epic?.id ?? null },
+				set: sql`epic_id = ${epic?.id ?? null}`,
+			});
+		}
+	}
 	changes.push(...(await projectAndStatusChanges(ctx, tx, row, input)));
+	changes.push(...(await applyLabelDeltas(ctx, tx, row, input)));
 	if (changes.length === 0) return ticketSummary(tx, row.id);
 
-	const sets = changes.map((change) => change.set);
+	// A write that changes labels alone has no column to set, and it still
+	// raises `version`, so every client sees that the row changed.
+	const sets = changes.flatMap((change) => (change.set === undefined ? [] : [change.set]));
 	await tx.execute(
-		sql`UPDATE tickets SET ${sql.join(sets, sql`, `)}, version = version + 1, updated_at = ${ctx.now}
+		sql`UPDATE tickets
+			SET ${sql.join([...sets, sql`version = version + 1`, sql`updated_at = ${ctx.now}`], sql`, `)}
 			WHERE id = ${row.id}`,
 	);
 	await record(ctx, tx, {
@@ -145,7 +169,8 @@ export const applyChanges = async (ctx: ServiceCtx, tx: Tx, batchId: string, row
 		changes: changes.map(({ field, from, to, meta }) => ({ field, from, to, meta })),
 	});
 	const summary = await ticketSummary(tx, row.id);
-	ctx.emit({ type: "ticket.updated", summary, fields: changes.map((change) => change.field), batchId });
+	const fields = [...new Set(changes.map((change) => change.field))];
+	ctx.emit({ type: "ticket.updated", summary, fields, batchId });
 	return summary;
 };
 

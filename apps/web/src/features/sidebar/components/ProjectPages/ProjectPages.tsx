@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
 import { cx } from "@trellis/ui";
+import { formatCount } from "../../../../lib/format";
 import { projectRefOfPathname, projectSlashPath } from "../../../../lib/projectPath";
 
 const indent = ["pl-8", "pl-8", "pl-11", "pl-14", "pl-17"] as const;
@@ -20,6 +21,8 @@ export function ProjectPages({
 	// section, which the project's row menu (ProjectRowActions) opens.
 	const settings = pathname.endsWith("/settings") || pathname.endsWith("/notes");
 	const diffs = pathname.endsWith("/diffs");
+	// The epics list and the page of one epic, `/epics/<slug>`.
+	const epics = pathname.endsWith("/epics") || pathname.includes("/epics/");
 	const sessions = pathname.startsWith("/sessions/project/");
 	return (
 		<li>
@@ -29,11 +32,19 @@ export function ProjectPages({
 						{
 							label: "Tickets",
 							suffix: "",
-							active: current && !settings && !diffs && !sessions,
+							active: current && !settings && !diffs && !epics && !sessions,
+							trailing: null,
 						},
-						{ label: "Diffs", suffix: "/diffs", active: current && diffs },
-						{ label: "Sessions", suffix: "/sessions", active: current && sessions },
-					].map(({ label, suffix, active }) => (
+						{
+							label: "Epics",
+							suffix: "/epics",
+							active: current && epics,
+							// The count of open epics of this project alone.
+							trailing: project.openEpicCount > 0 ? formatCount(project.openEpicCount) : null,
+						},
+						{ label: "Diffs", suffix: "/diffs", active: current && diffs, trailing: null },
+						{ label: "Sessions", suffix: "/sessions", active: current && sessions, trailing: null },
+					].map(({ label, suffix, active, trailing }) => (
 						<li key={label}>
 							<Link
 								data-project-page=""
@@ -52,6 +63,7 @@ export function ProjectPages({
 								)}
 							>
 								<span className="sidebar-label">{label}</span>
+								{trailing !== null && <span className="sidebar-trailing text-fg-faint">{trailing}</span>}
 							</Link>
 						</li>
 					))}

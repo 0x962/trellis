@@ -34,7 +34,9 @@ export const membershipFields: ReadonlySet<string> = new Set([
 	"status",
 	"project",
 	"priority",
+	"labels",
 	"parent",
+	"epic",
 	"completed",
 	"completedAt",
 	"position",
@@ -43,6 +45,11 @@ export const membershipFields: ReadonlySet<string> = new Set([
 // A parent's `childDoneCount` and `children` change when a child completes
 // or moves. The parent row emits no event of its own, so its detail refetches.
 const parentFields: ReadonlySet<string> = new Set(["parent", "status", "completedAt"]);
+
+// The counts and the state of an epic derive from its tickets. The epic row
+// emits no event of its own when a ticket changes, so the epic queries
+// refetch on a ticket event that names one of these fields.
+const epicFields: ReadonlySet<string> = new Set(["epic", "status", "completedAt"]);
 
 type TicketEvent = Extract<TrellisEvent, { type: "ticket.created" | "ticket.updated" | "ticket.deleted" }>;
 
@@ -158,6 +165,9 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 		if ((membership || fields.some((field) => parentFields.has(field))) && summary.parent !== null) {
 			enqueue(ticketDetail(summary.parent.id));
 		}
+		if ((membership && summary.epic !== null) || fields.some((field) => epicFields.has(field))) {
+			enqueue([family("epics")]);
+		}
 		for (const id of parentsThatLostAChild) enqueue(ticketDetail(id));
 		if (!change.deleted) enqueue([forTicket(["timeline", "list"], summary.id)]);
 	};
@@ -208,6 +218,12 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "notes.changed":
 				enqueue([family("notes")]);
 				return;
+			// A ticket row copies the epic name and ref, and the projects list
+			// carries `openEpicCount`. No ticket event follows an epic change,
+			// so every query that holds a ticket row refetches.
+			case "epics.changed":
+				enqueue([family("epics"), family("tickets"), family("projects", "list")]);
+				return;
 			// The Diffs page of a project lists pull requests by their ticket
 			// links, so a link change refetches that list too.
 			case "pr.linked":
@@ -223,14 +239,19 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 					family("reviews", "prs"),
 				]);
 				return;
+			// Every cached summary holds the name, the color, and the group name
+			// of each label on its ticket. A rename, a new color, a move to a
+			// group, or a delete alters those values, and no ticket row changes,
+			// so no ticket event follows. So every query that holds a summary
+			// refetches with the label list.
+			case "labels.changed":
+				enqueue([family("labels"), family("tickets"), family("search"), family("needsYou")]);
+				return;
 			// A status rename or a reviewer change alters the `status` inside
 			// every cached summary. No ticket row changes, so no ticket event
 			// follows. A project rename alters
 			// `project.path` the same way. So every query that holds a summary
 			// refetches.
-			case "labels.changed":
-				enqueue([family("labelGroups")]);
-				return;
 			case "statuses.changed":
 			case "project.created":
 			case "project.updated":

@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parseArgs, promisify } from "node:util";
@@ -22,6 +22,15 @@ const assertAncestry = async () => {
 	if (destination !== installed) await assertInstalledAncestry(repo, commit, destination);
 };
 await assertAncestry();
+// A failed build keeps its directory for inspection. Each build removes the
+// directories of the builds that are older than two hours, so one failed
+// build is the most the disk carries.
+for (const name of await readdir(tmpdir())) {
+	if (!name.startsWith("trellis-production-")) continue;
+	const path = join(tmpdir(), name);
+	if (Date.now() - (await stat(path)).mtimeMs < 2 * 60 * 60 * 1000) continue;
+	await rm(path, { recursive: true, force: true });
+}
 const build = await mkdtemp(join(tmpdir(), "trellis-production-"));
 const source = join(build, "source");
 const output = join(build, "package");

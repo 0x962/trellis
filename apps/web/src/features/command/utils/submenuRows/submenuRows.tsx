@@ -1,12 +1,14 @@
 import { ArrowBendUpLeft } from "@phosphor-icons/react";
-import type { Status, TicketSummary } from "@trellis/api";
-import { PriorityIcon, StatusIcon } from "@trellis/ui";
+import type { Label, LabelGroup, Status, TicketSummary } from "@trellis/api";
+import { LabelDot, PriorityIcon, StatusIcon } from "@trellis/ui";
 import {
 	bulkChangeStatus,
 	bulkMoveToProject,
+	bulkSetLabel,
 	bulkSetPriority,
 	changeStatus,
 	moveToProject,
+	setLabel,
 	setParent,
 	setPriority,
 } from "../../actions";
@@ -24,6 +26,7 @@ export const submenuHeadings: Record<Submenu["kind"], string> = {
 	priority: "Set priority",
 	project: "Move to project",
 	parent: "Set parent",
+	labels: "Set labels",
 	sort: "Sort by",
 	group: "Group by",
 	goto: "Go to project",
@@ -34,6 +37,15 @@ export type SubmenuData = {
 	statuses: Status[];
 	// The tickets a parent can be picked from.
 	tickets: TicketSummary[];
+	// The labels of the project tree, and the groups that name them.
+	labels: Label[];
+	labelGroups: LabelGroup[];
+};
+
+// "Bug", or "Type / Bug" for a label that belongs to a group.
+const labelText = (label: Label, groups: readonly LabelGroup[]) => {
+	const group = groups.find((candidate) => candidate.id === label.groupId);
+	return group === undefined ? label.name : `${group.name} / ${label.name}`;
 };
 
 const sorts = [
@@ -50,6 +62,7 @@ const groups = [
 	{ value: "priority", label: "Priority" },
 	{ value: "project", label: "Project" },
 	{ value: "parent", label: "Parent" },
+	{ value: "epic", label: "Epic" },
 	{ value: "pr", label: "PR" },
 	{ value: "none", label: "None" },
 ] as const;
@@ -101,6 +114,23 @@ export const submenuRows = (submenu: Submenu, deps: RowDeps, data: SubmenuData):
 					() => void bulkMoveToProject(action, submenu.tickets, project.path),
 				),
 		);
+	}
+	if (submenu.kind === "labels") {
+		return data.labels.map((label) => {
+			const held = submenu.checked.includes(label.id);
+			return {
+				value: `label.${label.id}`,
+				label: labelText(label, data.labelGroups),
+				sub: held ? "Remove" : undefined,
+				icon: <LabelDot color={label.color} variant="icon" />,
+				run: writeTickets(
+					deps,
+					submenu.tickets,
+					() => void setLabel(action, submenu.tickets[0]!, label.id, !held),
+					() => void bulkSetLabel(action, submenu.tickets, label.id, !held),
+				),
+			};
+		});
 	}
 	if (submenu.kind === "goto") return gotoProjectRows(deps);
 	if (submenu.kind === "parent") {

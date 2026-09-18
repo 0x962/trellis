@@ -18,6 +18,7 @@ import * as brief from "./brief.ts";
 import * as commentMentions from "./commentMentions/run.ts";
 import * as comments from "./comments.ts";
 import { diagnostics } from "./diagnostics.ts";
+import * as epics from "./epics/epics.ts";
 import { decide as decideFlowExecution } from "./flowExecutions/decide.ts";
 import { list as listFlowExecutions } from "./flowExecutions/list.ts";
 import { prepareFlowCancel } from "./flowExecutions/prepareFlowCancel.ts";
@@ -29,6 +30,7 @@ import * as flowSave from "./flows/save.ts";
 import * as harnessAccounts from "./harnessAccounts/harnessAccounts.ts";
 import { prepareQuota } from "./harnessAccounts/quota.ts";
 import * as labelGroups from "./labelGroups.ts";
+import * as labels from "./labels.ts";
 import * as needsYou from "./needsYou/needsYou.ts";
 import * as notes from "./notes/notes.ts";
 import * as projects from "./projects.ts";
@@ -50,6 +52,7 @@ import { prepareStart as startSession } from "./sessions/start.ts";
 import * as settings from "./settings.ts";
 import * as statuses from "./statuses.ts";
 import type { IoCtx, PrepareCtx } from "./support.ts";
+import { prepareSweep } from "./sweep/prepareSweep.ts";
 import * as system from "./system.ts";
 import { prepareSystemUsage } from "./systemUsage";
 import * as tickets from "./tickets.ts";
@@ -131,6 +134,7 @@ export const services = {
 	"flowExecutions.reconcile": prepared("mutation", prepareFlowReconcile, agentTerminal.result),
 	"system.doctor": prepared("read", diagnostics, agentTerminal.result),
 	"system.stopNativeWork": prepared("mutation", stopNativeWork, agentTerminal.result),
+	"system.sweep": prepared("mutation", prepareSweep, agentTerminal.result),
 	"agentRuns.workspaceLineStats": prepared("read", workspaceLineStats, agentTerminal.result),
 	"agentRuns.workspaceSummary": prepared("read", workspaceSummary, agentTerminal.result),
 	"agentRuns.workspace": prepared("read", workspace, agentTerminal.result),
@@ -184,9 +188,13 @@ export const services = {
 	"flows.update": core("mutation", flows.update),
 	"flows.save": core("mutation", flowSave.save),
 	"flows.delete": core("mutation", flows.remove),
-	"labelGroups.list": core("read", labelGroups.list),
+	"labels.list": core("read", labels.list),
+	"labels.create": core("mutation", labels.create),
+	"labels.update": core("mutation", labels.update),
+	"labels.delete": core("mutation", labels.delete),
 	"labelGroups.create": core("mutation", labelGroups.create),
-	"labelGroups.createLabel": core("mutation", labelGroups.createLabel),
+	"labelGroups.update": core("mutation", labelGroups.update),
+	"labelGroups.delete": core("mutation", labelGroups.delete),
 	"projects.list": core("read", projects.list),
 	"projects.get": core("read", projects.get),
 	"projects.create": core("mutation", projects.create),
@@ -224,6 +232,11 @@ export const services = {
 	"notes.create": core("mutation", notes.create),
 	"notes.update": core("mutation", notes.update),
 	"notes.delete": core("mutation", notes.remove),
+	"epics.list": core("read", epics.list),
+	"epics.get": core("read", epics.get),
+	"epics.create": core("mutation", epics.create),
+	"epics.update": core("mutation", epics.update),
+	"epics.delete": core("mutation", epics.remove),
 	"attachments.list": io("read", attachments.list),
 	"attachments.upload": io("mutation", attachments.upload),
 	"attachments.get": io("read", attachments.get),

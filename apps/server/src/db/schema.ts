@@ -15,10 +15,12 @@ import {
 } from "drizzle-orm/pg-core";
 import { CI_STATES, checkIn, PR_LINK_SOURCES, PR_STATES, PRIORITIES, REVIEW_STATES } from "./enums.ts";
 import { actorColumns, actorFk, at } from "./tables/actors.ts";
+import { epics } from "./tables/epics.ts";
 import { projects, statuses } from "./tables/projects.ts";
 
 export * from "./tables/actors.ts";
 export * from "./tables/agentRuns.ts";
+export * from "./tables/epics.ts";
 export * from "./tables/flows.ts";
 export * from "./tables/labels.ts";
 export * from "./tables/projects.ts";
@@ -35,7 +37,10 @@ export * from "./tables/sessions.ts";
 // ticket, its project, and its parent inside one root. The status foreign
 // key accepts any status; the owner rule is checked in the service. Each
 // foreign key is RESTRICT: the delete of a row a ticket still points at
-// fails at once, inside the statement that deletes it.
+// fails at once, inside the statement that deletes it. The epic foreign
+// key is the exception: an epic delete sets `epic_id` NULL on its tickets.
+// The same-root rule for `epic_id` is a service rule, because a composite
+// foreign key cannot SET NULL one column alone.
 // The generated column `search` (title at weight A, description at weight
 // B) and its GIN index live in the migration 0002_constraints, because
 // drizzle-kit renders no generated tsvector. The GIN index on title with
@@ -55,6 +60,7 @@ export const tickets = pgTable(
 			.notNull()
 			.references(() => statuses.id, { onDelete: "restrict" }),
 		parentId: text("parent_id"),
+		epicId: text("epic_id"),
 		position: doublePrecision().notNull(),
 		version: integer().notNull().default(1),
 		startedAt: at("started_at"),
@@ -75,6 +81,11 @@ export const tickets = pgTable(
 			columns: [t.parentId, t.rootId],
 			foreignColumns: [t.id, t.rootId],
 		}).onDelete("restrict"),
+		foreignKey({
+			name: "tickets_epic_fk",
+			columns: [t.epicId],
+			foreignColumns: [epics.id],
+		}).onDelete("set null"),
 		check("tickets_parent_not_self", sql`${t.parentId} <> ${t.id}`),
 		check("tickets_number_check", sql`${t.number} > 0`),
 		check("tickets_title_check", sql`${t.title} = btrim(${t.title}) AND length(${t.title}) BETWEEN 1 AND 500`),
@@ -95,6 +106,7 @@ export const tickets = pgTable(
 			t.rootId,
 		),
 		index("tickets_parent_id_idx").on(t.parentId),
+		index("tickets_epic_id_idx").on(t.epicId),
 		index("tickets_open_idx").on(t.rootId, t.updatedAt.desc().nullsFirst()).where(sql`${t.completedAt} IS NULL`),
 		index("tickets_completed_idx")
 			.on(t.rootId, t.completedAt.desc().nullsFirst())

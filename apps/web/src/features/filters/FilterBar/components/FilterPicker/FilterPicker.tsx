@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import type { Actor, CiState, PrFilter, Priority, StatusSummary } from "@trellis/api";
+import type { Actor, CiState, EpicSummary, PrFilter, Priority, StatusSummary } from "@trellis/api";
 import { type CommandItem, FilterPopover } from "@trellis/ui";
 import type { ReactElement } from "react";
 import { useApp } from "../../../../../lib/appContext";
+import { rootKey } from "../../../../../lib/projectPath";
+import { epicItems } from "../../../../pickers/EpicPicker";
 import { priorityItems } from "../../../../pickers/PriorityPicker";
 import { projectItems } from "../../../../pickers/ProjectPicker";
 import { statusGroups } from "../../../../pickers/statusGroups";
@@ -16,6 +18,7 @@ import {
 	timeLabels,
 } from "../../../fields";
 import type { View } from "../../../grammar";
+import { type FilterLabel, labelValueGroups } from "../../../labelValues";
 import { presets } from "../../../presets";
 
 // The picker shows the fields first, then the values of one field. `scope`
@@ -32,6 +35,8 @@ const scopeValues = [
 export type FilterPickerProps = {
 	view: View;
 	statuses: readonly StatusSummary[];
+	// The labels of the project tree the route shows, already in row order.
+	labels: readonly FilterLabel[];
 	// The project ref of the route. /all offers the project field.
 	project?: string;
 	onChange: (view: View) => void;
@@ -55,6 +60,7 @@ const emptyToUndefined = <T,>(values: T[]) => (values.length === 0 ? undefined :
 export function FilterPicker({
 	view,
 	statuses,
+	labels,
 	project,
 	onChange,
 	open,
@@ -69,6 +75,13 @@ export function FilterPicker({
 		useQuery({
 			...orpc.actors.list.queryOptions({ input: {} }),
 			enabled: open && stage.kind === "values" && stage.field === "actor",
+		}).data ?? [];
+	// The epic field lists the epics of the root of the viewed project. /all
+	// has no project, so it offers no epic field.
+	const epics =
+		useQuery({
+			...orpc.epics.list.queryOptions({ input: { project: project === undefined ? "" : rootKey(project) } }),
+			enabled: open && project !== undefined && stage.kind === "values" && stage.field === "epic",
 		}).data ?? [];
 
 	const close = () => onOpenChange(false);
@@ -99,18 +112,27 @@ export function FilterPicker({
 		...presets.map((preset) => ({ id: presetId(preset.label), label: preset.label })),
 		...pickerFields
 			.filter((field) => field !== "project" || project === undefined)
+			// The root project of a tree owns its labels and its epics. A route
+			// without a project reads no one tree, so it offers no Label field and
+			// no Epic field.
+			.filter((field) => (field !== "label" && field !== "epic") || project !== undefined)
 			.map((field) => ({ id: field, label: fieldLabels[field] })),
 	];
 
+	// The Status and the Label values come in sections, so they take `groups`
+	// and leave `items` empty.
+	const sectioned = stage.kind === "values" && (stage.field === "status" || stage.field === "label");
 	const groups =
 		stage.kind === "values" && stage.field === "status"
 			? statusGroups(statuses, { checked: checkedStatusIds(view, statuses) })
-			: [];
+			: stage.kind === "values" && stage.field === "label"
+				? labelValueGroups(labels, view.label ?? [])
+				: [];
 	const items =
 		stage.kind === "scope"
 			? scopeValues.map((entry) => ({ id: entry.id, label: entry.label, checked: view.scope === entry.id }))
-			: stage.kind === "values" && stage.field !== "status"
-				? valueItems(stage.field, view, projects, actors)
+			: stage.kind === "values" && !sectioned
+				? valueItems(stage.field, view, projects, actors, epics)
 				: fieldItems;
 
 	const pickScope = (id: string) => {
@@ -134,7 +156,7 @@ export function FilterPicker({
 			placeholder={
 				stage.kind === "values" ? fieldLabels[stage.field] : stage.kind === "scope" ? "Projects" : "Filter by"
 			}
-			items={stage.kind === "values" && stage.field === "status" ? [] : items}
+			items={sectioned ? [] : items}
 			groups={groups}
 			onSelect={(id) =>
 				stage.kind === "values" ? pickValue(stage.field, id) : stage.kind === "scope" ? pickScope(id) : pickField(id)
@@ -153,6 +175,7 @@ const valueItems = (
 	view: View,
 	projects: readonly ProjectRow[],
 	actors: readonly Actor[],
+	epics: readonly EpicSummary[],
 ): CommandItem[] => {
 	switch (field) {
 		case "priority":
@@ -161,6 +184,8 @@ const valueItems = (
 			return projectItems(projects, view.project);
 		case "parent":
 			return [{ id: "none", label: "No parent", current: view.parent === "none" }];
+		case "epic":
+			return [{ id: "none", label: "No epic", current: view.epic === "none" }, ...epicItems(epics, view.epic)];
 		case "pr":
 		case "ci":
 			return [
@@ -202,10 +227,14 @@ const valueChange = (view: View, field: FilterField, id: string, statuses: reado
 		}
 		case "priority":
 			return { ...view, priority: emptyToUndefined(toggle(view.priority, id) as Priority[]) };
+		case "label":
+			return { ...view, label: emptyToUndefined(toggle(view.label, id)) };
 		case "project":
 			return { ...view, project: id };
 		case "parent":
 			return { ...view, parent: "none" };
+		case "epic":
+			return { ...view, epic: id };
 		case "pr":
 		case "ci":
 			return id.startsWith("pr:")

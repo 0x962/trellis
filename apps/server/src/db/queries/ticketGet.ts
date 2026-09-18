@@ -23,6 +23,13 @@ export const childSummaries = (tx: Tx, parentId: string) =>
 		sql`page AS (SELECT c.id, row_number() OVER (ORDER BY c.number) AS rn FROM tickets c WHERE c.parent_id = ${parentId})`,
 	);
 
+// The tickets of one epic, in number order.
+export const epicSummaries = (tx: Tx, epicId: string) =>
+	summariesOf(
+		tx,
+		sql`page AS (SELECT c.id, row_number() OVER (ORDER BY c.number) AS rn FROM tickets c WHERE c.epic_id = ${epicId})`,
+	);
+
 type RawLinkedPr = {
 	id: string;
 	owner: string;

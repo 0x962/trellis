@@ -70,7 +70,7 @@ export const errors = {
 	},
 	AGENT_CANNOT_DELETE: {
 		status: 403,
-		message: "An agent cannot delete a ticket or a project without force.",
+		message: "An agent cannot delete a ticket, an epic, a project, a label, or a label group without force.",
 		data: z.undefined(),
 	},
 	NOT_FOUND: {
@@ -113,10 +113,25 @@ export const errors = {
 		message: "The category of a status is immutable.",
 		data: z.undefined(),
 	},
+	// A bare label name matches more than one label. `matches` holds the
+	// `group/name` ref of each of those labels.
+	LABEL_AMBIGUOUS: {
+		status: 409,
+		message: "More than one label has this name. Use the group/name form.",
+		data: z.object({ matches: z.array(z.string().min(1)) }),
+	},
+	// A ticket holds one label of a group at most. `count` is the number of
+	// tickets that hold the moved label and another label of the target group.
+	LABEL_GROUP_CONFLICT: {
+		status: 409,
+		message:
+			"Tickets hold this label and another label of the group. Remove one of the two labels from each of those tickets first.",
+		data: z.object({ count: CountSchema }),
+	},
 	CROSS_ROOT_MOVE: {
 		status: 409,
 		message:
-			"A ticket, a parent, or a project cannot move to another root. Create the ticket or project again in the other root.",
+			"A ticket, a parent, an epic, or a project cannot move to another root. Create the ticket or project again in the other root.",
 		data: z.undefined(),
 	},
 	PARENT_CYCLE: {

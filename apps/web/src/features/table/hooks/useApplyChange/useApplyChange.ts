@@ -1,7 +1,8 @@
-import type { ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
+import type { LabelGroup, ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
 import { useStableCallback } from "../../../../hooks/useStableCallback";
 import { projectSlashPath } from "../../../../lib/projectPath";
 import { priorityLabels } from "../../../pickers/PriorityPicker";
+import { toggleLabel } from "../../../pickers/utils/toggleLabel";
 import type { RowChange } from "../../Row";
 import type { useTicketMutations, Verb } from "../useTicketMutations";
 
@@ -18,8 +19,13 @@ const summaryOf = (status: StatusSummary): StatusSummary => ({
 
 // Applies one inline or bulk change to the target rows. One target writes
 // through `mutations.update`; two or more write through `mutations.updateMany`.
-// The callback identity is stable across renders.
-export const useApplyChange = (mutations: Mutations, projects: readonly ProjectSummary[]) =>
+// `groups` names the label groups of the route, which decide the label a new
+// label of a group replaces. The callback identity is stable across renders.
+export const useApplyChange = (
+	mutations: Mutations,
+	projects: readonly ProjectSummary[],
+	groups: readonly LabelGroup[],
+) =>
 	useStableCallback((targets: readonly TicketSummary[], change: RowChange) => {
 		const many = targets.length > 1;
 		if ("status" in change) {
@@ -36,6 +42,17 @@ export const useApplyChange = (mutations: Mutations, projects: readonly ProjectS
 				? mutations.updateMany(targets, { priority: change.priority }, { priority: change.priority }, verb)
 				: mutations.update(targets[0]!, { priority: change.priority }, { priority: change.priority }, verb);
 		}
+		if ("label" in change) {
+			const { label, checked } = change;
+			// A label write sends the one label it changes, never the whole set,
+			// so two writers do not overwrite the labels of each other.
+			const fields = checked ? { addLabels: [label.id] } : { removeLabels: [label.id] };
+			const patch = (row: TicketSummary) => ({ labels: toggleLabel(row.labels, label, groups, checked) });
+			const verb: Verb = (subject) => `The labels of ${subject} did not change.`;
+			return many
+				? mutations.updateMany(targets, fields, patch, verb)
+				: mutations.update(targets[0]!, fields, patch, verb, { expectVersion: false });
+		}
 		if ("project" in change) {
 			const target = projects.find((entry) => entry.path === change.project);
 			const patch = target === undefined ? {} : { project: { id: target.id, key: target.key, path: target.path } };
@@ -44,9 +61,16 @@ export const useApplyChange = (mutations: Mutations, projects: readonly ProjectS
 				? mutations.updateMany(targets, { project: change.project }, patch, verb)
 				: mutations.update(targets[0]!, { project: change.project }, patch, verb);
 		}
-		const parent = change.parent === null ? null : { id: change.parent.id, identifier: change.parent.identifier };
-		const verb: Verb = (subject) => `The parent of ${subject} did not change.`;
+		if ("parent" in change) {
+			const parent = change.parent === null ? null : { id: change.parent.id, identifier: change.parent.identifier };
+			const verb: Verb = (subject) => `The parent of ${subject} did not change.`;
+			return many
+				? mutations.updateMany(targets, { parent: parent?.identifier ?? null }, { parent }, verb)
+				: mutations.update(targets[0]!, { parent: parent?.identifier ?? null }, { parent }, verb);
+		}
+		const epic = change.epic === null ? null : { id: change.epic.id, ref: change.epic.ref, name: change.epic.name };
+		const verb: Verb = (subject) => `The epic of ${subject} did not change.`;
 		return many
-			? mutations.updateMany(targets, { parent: parent?.identifier ?? null }, { parent }, verb)
-			: mutations.update(targets[0]!, { parent: parent?.identifier ?? null }, { parent }, verb);
+			? mutations.updateMany(targets, { epic: epic?.ref ?? null }, { epic }, verb)
+			: mutations.update(targets[0]!, { epic: epic?.ref ?? null }, { epic }, verb);
 	});

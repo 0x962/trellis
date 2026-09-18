@@ -50,6 +50,20 @@
 	--film-gold: #BF9E53;
 	--film-gradient: linear-gradient(110deg, transparent 15%, var(--film-pink) 32%, var(--film-violet) 42%, var(--film-blue) 50%, var(--film-mint) 58%, var(--film-gold) 68%, transparent 85%);
 	--film-opacity-static: 0.2;
+	/* The label hues. A ticket label draws one as an 8 px dot. Each value
+	   reads 3:1 or better on --bg, --surface, and --elevated of its theme.
+	   --success, --warning, --danger, and --agent each carry a product
+	   meaning, and a label color carries none, so a label hue never points
+	   at one of those four. */
+	--label-gray: #7E8087;
+	--label-red: #DB2943;
+	--label-orange: #D96604;
+	--label-yellow: #A98904;
+	--label-green: #1A9D4B;
+	--label-teal: #0B959B;
+	--label-blue: #2A80E2;
+	--label-purple: #9751D7;
+	--label-pink: #D84497;
 	/* The ground of a default button, a danger-soft button, and a Select
 	   trigger, then its hover and pressed steps. Each step moves toward the
 	   text color: darker in light, lighter in dark. */
@@ -96,6 +110,15 @@
 		--film-blue: #9BCDEC;
 		--film-mint: #A5E5D2;
 		--film-gold: #EFDB9F;
+		--label-gray: #9698A0;
+		--label-red: #FA6863;
+		--label-orange: #FFA24D;
+		--label-yellow: #F3D350;
+		--label-green: #56D57B;
+		--label-teal: #4ECCD3;
+		--label-blue: #70ADFB;
+		--label-purple: #C190F6;
+		--label-pink: #F691CC;
 		--control: #1C1C1E;
 		--control-hover: #252527;
 		--control-active: #2E2E30;
@@ -134,6 +157,15 @@
 	--film-blue: #9BCDEC;
 	--film-mint: #A5E5D2;
 	--film-gold: #EFDB9F;
+	--label-gray: #9698A0;
+	--label-red: #FA6863;
+	--label-orange: #FFA24D;
+	--label-yellow: #F3D350;
+	--label-green: #56D57B;
+	--label-teal: #4ECCD3;
+	--label-blue: #70ADFB;
+	--label-purple: #C190F6;
+	--label-pink: #F691CC;
 	--control: #1C1C1E;
 	--control-hover: #252527;
 	--control-active: #2E2E30;
@@ -173,6 +205,15 @@
 	--color-warning-soft: var(--warning-soft);
 	--color-danger: var(--danger);
 	--color-danger-soft: var(--danger-soft);
+	--color-label-gray: var(--label-gray);
+	--color-label-red: var(--label-red);
+	--color-label-orange: var(--label-orange);
+	--color-label-yellow: var(--label-yellow);
+	--color-label-green: var(--label-green);
+	--color-label-teal: var(--label-teal);
+	--color-label-blue: var(--label-blue);
+	--color-label-purple: var(--label-purple);
+	--color-label-pink: var(--label-pink);
 	--color-control: var(--control);
 	--color-control-hover: var(--control-hover);
 	--color-control-active: var(--control-active);

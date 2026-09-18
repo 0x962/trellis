@@ -1,19 +1,16 @@
 import { pickErrors } from "../errors.ts";
 import {
-	LabelCreateInputSchema,
 	LabelGroupCreateInputSchema,
-	LabelGroupListInputSchema,
-	LabelGroupListOutputSchema,
+	LabelGroupDeleteInputSchema,
+	LabelGroupDeleteOutputSchema,
 	LabelGroupSchema,
-	LabelSchema,
+	LabelGroupUpdateInputSchema,
 } from "../schemas/label.ts";
 import { base } from "./base.ts";
 
+// `labels.list` returns the groups with the labels. `{project}` is any
+// project of the tree. `{group}` is the group ULID.
 export const labelGroups = {
-	list: base
-		.route({ method: "GET", path: "/projects/{project}/label-groups", summary: "List a project's label groups" })
-		.input(LabelGroupListInputSchema)
-		.output(LabelGroupListOutputSchema),
 	create: base
 		.errors(pickErrors(["DUPLICATE", "PROJECT_ARCHIVED"]))
 		.route({
@@ -24,14 +21,22 @@ export const labelGroups = {
 		})
 		.input(LabelGroupCreateInputSchema)
 		.output(LabelGroupSchema),
-	createLabel: base
+	update: base
 		.errors(pickErrors(["DUPLICATE", "PROJECT_ARCHIVED"]))
 		.route({
-			method: "POST",
-			path: "/projects/{project}/label-groups/{group}/labels",
-			successStatus: 201,
-			summary: "Create a label in a group",
+			method: "PATCH",
+			path: "/projects/{project}/label-groups/{group}",
+			summary: "Rename a label group",
 		})
-		.input(LabelCreateInputSchema)
-		.output(LabelSchema),
+		.input(LabelGroupUpdateInputSchema)
+		.output(LabelGroupSchema),
+	delete: base
+		.errors(pickErrors(["AGENT_CANNOT_DELETE", "DUPLICATE", "PROJECT_ARCHIVED"]))
+		.route({
+			method: "DELETE",
+			path: "/projects/{project}/label-groups/{group}",
+			summary: "Delete a label group, and ungroup or delete its labels",
+		})
+		.input(LabelGroupDeleteInputSchema)
+		.output(LabelGroupDeleteOutputSchema),
 };

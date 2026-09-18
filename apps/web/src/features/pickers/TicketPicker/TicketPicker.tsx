@@ -19,6 +19,9 @@ export type TicketPickerProps = {
 	// `null` clears the parent.
 	onPick: (ticket: TicketSummary | null) => void;
 	trigger: ReactElement;
+	// The popover name and the search prompt. The defaults name the parent.
+	label?: string;
+	placeholder?: string;
 	open?: boolean;
 	onOpenChange?: (open: boolean) => void;
 	finalFocus?: RefObject<HTMLElement | null>;
@@ -37,6 +40,8 @@ export function TicketPicker({
 	onOpenChange,
 	finalFocus,
 	side,
+	label = "Parent",
+	placeholder = "Set parent: an identifier or a title",
 }: TicketPickerProps) {
 	const { orpc } = useApp();
 	const [own, setOwn] = useState(false);
@@ -78,7 +83,7 @@ export function TicketPicker({
 	return (
 		<Popover
 			trigger={trigger}
-			label="Parent"
+			label={label}
 			open={isOpen}
 			onOpenChange={setOpen}
 			initialFocus={input}
@@ -89,7 +94,7 @@ export function TicketPicker({
 			<Command
 				inputRef={input}
 				label="Search tickets"
-				placeholder="Set parent: an identifier or a title"
+				placeholder={placeholder}
 				filter={false}
 				onSearchChange={setSearch}
 				items={items}

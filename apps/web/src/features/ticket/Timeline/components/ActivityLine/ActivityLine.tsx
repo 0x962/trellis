@@ -1,5 +1,5 @@
 import { type Activity, fullZonedDateTime } from "@trellis/api";
-import { type StatusCategory, StatusIcon } from "@trellis/ui";
+import { type LabelColor, LabelDot, type StatusCategory, StatusIcon } from "@trellis/ui";
 import { compactRelativeTime } from "../../../../../lib/format";
 import { ActorChip } from "../../../../agents/ActorChip";
 import { describeActivity } from "../../utils/describeActivity";
@@ -45,6 +45,31 @@ function StatusMove({ item, reviewer }: { item: Activity; reviewer: (statusName:
 	);
 }
 
+// A label row keeps the color of the label in `meta`, so the line draws the
+// same dot the label pills draw. A row that swaps one label of a group for
+// another holds the color of the label the ticket now carries.
+function LabelChange({ item }: { item: Activity }) {
+	const color = item.meta.color as LabelColor;
+	const named = (name: string) => (
+		<span className="inline-flex items-center gap-1 whitespace-nowrap">
+			<LabelDot color={color} />
+			<span className="text-fg">{name}</span>
+		</span>
+	);
+	return (
+		<span className="inline-flex min-w-0 items-center gap-1 truncate">
+			{item.fromValue === null && <> added the label {named(item.toValue ?? "")}</>}
+			{item.toValue === null && <> removed the label {named(item.fromValue ?? "")}</>}
+			{item.fromValue !== null && item.toValue !== null && (
+				<>
+					{" "}
+					changed the label from {item.fromValue} to {named(item.toValue)}
+				</>
+			)}
+		</span>
+	);
+}
+
 const humanReviewer = () => "human" as const;
 
 // One 32 px line: the actor, the verb phrase, and the time. The phrase
@@ -52,6 +77,7 @@ const humanReviewer = () => "human" as const;
 export function ActivityLine({ item, reviewer = humanReviewer }: ActivityLineProps) {
 	const actor = item.actor;
 	const statusMove = item.field === "status" && item.meta.fromCategory !== undefined;
+	const labelChange = item.field === "labels";
 	return (
 		<li
 			data-kind="activity"
@@ -59,11 +85,9 @@ export function ActivityLine({ item, reviewer = humanReviewer }: ActivityLinePro
 			className="relative flex h-8 items-center gap-2 text-sm text-fg-muted"
 		>
 			<ActorChip compact className="gap-2.5" actor={actor} />
-			{statusMove ? (
-				<StatusMove item={item} reviewer={reviewer} />
-			) : (
-				<span className="min-w-0 truncate"> {describeActivity(item)}</span>
-			)}
+			{statusMove && <StatusMove item={item} reviewer={reviewer} />}
+			{labelChange && <LabelChange item={item} />}
+			{!statusMove && !labelChange && <span className="min-w-0 truncate"> {describeActivity(item)}</span>}
 			<time
 				dateTime={item.createdAt}
 				title={fullZonedDateTime(item.createdAt)}

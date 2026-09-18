@@ -23,13 +23,19 @@ import { useUiStore } from "../../../stores/uiStore";
 import { ArchivedBanner } from "./components/ArchivedBanner";
 import { ProjectLoadError } from "./components/ProjectLoadError";
 
-// The settings screen and the diffs screen load in their own chunks, so the
-// list views never pay for them.
+// The settings screen, the diffs screen, and the epic screens load in their
+// own chunks, so the list views never pay for them.
 const ProjectSettingsPage = lazy(async () => ({
 	default: (await import("./components/ProjectSettingsPage")).ProjectSettingsPage,
 }));
 const ProjectDiffsPage = lazy(async () => ({
 	default: (await import("../../../features/reviews/ProjectDiffsPage")).ProjectDiffsPage,
+}));
+const EpicsPage = lazy(async () => ({
+	default: (await import("../../../features/epics/EpicsPage")).EpicsPage,
+}));
+const EpicPage = lazy(async () => ({
+	default: (await import("../../../features/epics/EpicPage")).EpicPage,
 }));
 
 const projectOptions = (context: AppContext, ref: string) =>
@@ -43,9 +49,10 @@ const countsOptions = (context: AppContext, ref: string, search: Partial<View>, 
 	});
 
 // `/p/CDE`, `/p/CDE/board`, `/p/CDE/web/auth`, `/p/CDE/settings`,
-// `/p/CDE/notes`, and `/p/CDE/diffs`. The splat is `[key, ...slugs, view?]`.
-// The URL keeps slashes, and the API ref joins with dots. The URL omits the
-// default view.
+// `/p/CDE/notes`, `/p/CDE/diffs`, `/p/CDE/epics`, and `/p/CDE/epics/<slug>`.
+// The splat is `[key, ...slugs, view?]`, and the epic view takes two
+// segments. The URL keeps slashes, and the API ref joins with dots. The URL
+// omits the default view.
 export const Route = createFileRoute("/p/$")({
 	validateSearch: (search: Record<string, unknown>) => stripDefaults(parseSearch(search)),
 	beforeLoad: ({ location, params, search }) => {
@@ -84,7 +91,7 @@ function ProjectPage() {
 	const navigate = useNavigate();
 	const context = useApp();
 	const storedDensity = useUiStore((state) => state.density);
-	const { ref, view } = parseProjectSplat(_splat);
+	const { ref, view, epic } = parseProjectSplat(_splat);
 	const project = useSuspenseQuery(projectOptions(context, ref)).data;
 	const full = viewOf(search);
 	const routeKey = projectHref(ref);
@@ -112,6 +119,21 @@ function ProjectPage() {
 				}
 			>
 				<ProjectDiffsPage key={project.id} project={project} />
+			</Suspense>
+		);
+	}
+	if (view === "epics" || view === "epic") {
+		return (
+			<Suspense
+				fallback={
+					<div className="flex min-h-0 flex-1 items-center justify-center text-sm text-fg-muted">Load epics…</div>
+				}
+			>
+				{view === "epics" ? (
+					<EpicsPage key={project.id} project={project} />
+				) : (
+					<EpicPage key={`${project.id}/${epic}`} project={project} slug={epic!} />
+				)}
 			</Suspense>
 		);
 	}

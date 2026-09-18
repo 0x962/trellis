@@ -5,9 +5,12 @@
 export const parseSearchString = (searchStr: string): Record<string, string> =>
 	Object.fromEntries(new URLSearchParams(searchStr));
 
-// A comma, a colon, and an at sign stay readable in the URL.
+// A comma, a colon, an at sign, and a slash stay readable in the URL. The
+// slash separates a group from a label in a label ref such as `type/bug`. The
+// canonical check compares this string with `serializeSearch`, so every
+// character that the grammar writes raw must stay raw here.
 const encode = (value: string) =>
-	encodeURIComponent(value).replace(/%2C/g, ",").replace(/%3A/g, ":").replace(/%40/g, "@");
+	encodeURIComponent(value).replace(/%2C/g, ",").replace(/%3A/g, ":").replace(/%40/g, "@").replace(/%2F/g, "/");
 
 export const searchParamOrder = [
 	"project",
@@ -15,7 +18,9 @@ export const searchParamOrder = [
 	"category",
 	"reviewer",
 	"priority",
+	"label",
 	"parent",
+	"epic",
 	"pr",
 	"ci",
 	"actor",
