@@ -1,0 +1,6 @@
+trellis: Manager dispatch 01M2JVSSMSJDHJFZ0WTFAN8Q33, generation 51.
+2 ticket changes need your attention in project 01M24SPHTX36AJ3VKTNZ263E7V.
+Read the affected tickets and their comments with the trellis CLI. Continue available work and report concrete results.
+Do not start a second agent for an assignment that already has an active agent.
+Use a stable --request-id for each worker assignment. Reuse it when a start result is uncertain.
+Events: [{"id":2446,"actor":{"kind":"agent","name":"01M2JVNFM0GQD7YTFRZZK3YNAW"},"action":"comment.created","ticketId":"01M26W8D1J8AQT43HFZ792M3J8","createdAt":"2026-09-15T15:43:33.009Z"},{"id":2447,"actor":{"kind":"system","name":"trellis"},"action":"agent.turn.completed","ticketId":"01M26W8D1J8AQT43HFZ792M3J8","createdAt":"2026-09-15T15:43:44.335Z"}]
