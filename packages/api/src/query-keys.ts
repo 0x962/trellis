@@ -255,8 +255,10 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "reviews.changed":
 				enqueue([family("reviews")]);
 				return;
+			// A flow run stores its state under flowExecutions, and every state
+			// write emits flows.changed with the flow id.
 			case "flows.changed":
-				enqueue([family("flows")]);
+				enqueue([family("flows"), family("flowExecutions")]);
 				return;
 			case "reset":
 				invalidateAll();

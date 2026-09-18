@@ -5,15 +5,19 @@ import { Dialog, IconButton, Tooltip } from "@trellis/ui";
 import { useApp } from "../../../../../../../../../lib/appContext";
 import { NativeTerminal } from "../../../../../../../../agents/NativeTerminal";
 
+// The terminal of one flow task. The agent runs of the ticket hold the run
+// of the task, and the ticket page already keeps that list warm.
 export function FlowTaskTerminal({
 	task,
+	ticket,
 	onClose,
 }: {
 	task: FlowExecutionRecord["tasks"][number];
+	ticket: string;
 	onClose: () => void;
 }) {
 	const { orpc } = useApp();
-	const runs = useQuery(orpc.agentRuns.list.queryOptions({ input: {} }));
+	const runs = useQuery(orpc.agentRuns.list.queryOptions({ input: { ticket } }));
 	const run = runs.data?.find((item) => item.id === task.runId && item.terminalId === task.attemptId);
 	return (
 		<Dialog

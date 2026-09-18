@@ -26,7 +26,11 @@ export const get = async (_ctx: ServiceCtx, tx: Tx, input: { id: string }): Prom
 	);
 	return {
 		...record,
-		state: { ...record.state, steps: record.state.steps.map((step) => ({ ...step, actionKey: taskKey(step) })) },
+		// A step stored before `endedAt` existed has no such key.
+		state: {
+			...record.state,
+			steps: record.state.steps.map((step) => ({ ...step, endedAt: step.endedAt ?? null, actionKey: taskKey(step) })),
+		},
 		tasks,
 	};
 };

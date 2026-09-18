@@ -18,6 +18,9 @@ function activate(doc: FlowDoc, state: FlowExecution, step: FlowStep, node: Flow
 		state.steps.push(...makeSteps(doc, node.id, step.key, step.round));
 	} else step.state = node.kind === "human" ? "waiting_human" : "ready";
 }
+// The steps inside a box in its current round.
+const childrenOf = (state: FlowExecution, step: FlowStep) =>
+	state.steps.filter((child) => child.parentKey === step.key && child.iteration === step.round);
 export function settleFlow(doc: FlowDoc, state: FlowExecution, now: number): FlowExecution {
 	const nodes = new Map(doc.nodes.map((node) => [node.id, node]));
 	let changed = true;
@@ -25,9 +28,19 @@ export function settleFlow(doc: FlowDoc, state: FlowExecution, now: number): Flo
 		changed = false;
 		for (const step of state.steps) {
 			const node = nodes.get(step.nodeId)!;
+			if (step.state === "running" && step.phase === "children") {
+				// A failed child fails its box with the same error, so the box and
+				// the run name the cause before any step after the box starts.
+				const failed = childrenOf(state, step).find((child) => child.state === "failed");
+				if (failed) {
+					step.state = "failed";
+					step.error = failed.error;
+					changed = true;
+				}
+			}
 			if (step.state === "running" && step.deadlineAt !== null && now >= step.deadlineAt) {
 				step.state = "failed";
-				step.error = `Group ${node.title} reached its time limit`;
+				step.error = `Group ${node.title} reached its time limit (${node.minutes} min)`;
 				changed = true;
 			}
 			if (step.state === "failed") {
@@ -63,7 +76,7 @@ export function settleFlow(doc: FlowDoc, state: FlowExecution, now: number): Flo
 				changed = true;
 			}
 			if (step.state === "running" && step.phase === "children") {
-				const children = state.steps.filter((child) => child.parentKey === step.key && child.iteration === step.round);
+				const children = childrenOf(state, step);
 				if (!children.every((child) => terminal.has(child.state))) continue;
 				step.output = children
 					.filter((child) => child.state === "succeeded" && child.output !== null)
@@ -91,6 +104,9 @@ export function settleFlow(doc: FlowDoc, state: FlowExecution, now: number): Flo
 				? "running"
 				: "waiting";
 	}
+	// A step keeps the time it became final. A step stored before `endedAt`
+	// existed has no such key, so the loose check covers it.
+	for (const step of state.steps) if (terminal.has(step.state) && step.endedAt == null) step.endedAt = now;
 	state.updatedAt = now;
 	return state;
 }

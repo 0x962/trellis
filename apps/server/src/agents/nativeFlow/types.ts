@@ -20,6 +20,8 @@ export interface FlowStep {
 	decision: "yes" | "no" | null;
 	error: string | null;
 	startedAt: number | null;
+	// The time the step became final. Rows stored before this field existed carry no value.
+	endedAt: number | null;
 	deadlineAt: number | null;
 	needsStop: boolean;
 }

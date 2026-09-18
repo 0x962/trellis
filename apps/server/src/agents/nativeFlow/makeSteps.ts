@@ -20,6 +20,7 @@ export function makeSteps(
 			decision: null,
 			error: null,
 			startedAt: null,
+			endedAt: null,
 			deadlineAt: null,
 			needsStop: false,
 		}));
