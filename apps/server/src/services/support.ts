@@ -37,7 +37,13 @@ export type ServiceCtx = {
 };
 
 // The context of an `io` service inside its transaction.
-export type IoCtx = ServiceCtx & { core: CoreCtx; localUrl: string; publicUrl: string };
+export type IoCtx = ServiceCtx & {
+	core: CoreCtx;
+	localUrl: string;
+	publicUrl: string;
+	// background starts immediately. Call it after the database writes that authorize the task commit.
+	background: (task: (ctx: IoCtx) => Promise<void>) => void;
+};
 
 // The context of a `prepare` step, the one place a service may run gh. The
 // database has one lock, and every other call waits while a transaction

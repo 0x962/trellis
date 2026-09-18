@@ -1,7 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ORPCError } from "@orpc/server";
-import type { ProjectManagerConfig } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import type { HarnessDescriptor, HarnessStartInput } from "../../agents/harnessHost/types.ts";
@@ -18,6 +17,7 @@ import { readHostDefault } from "../harnessAccounts/hostDefault.ts";
 import { profileDefault, profileEnvironment } from "../harnessAccounts/profiles.ts";
 import { getAccount } from "../harnessAccounts/queries.ts";
 import { transferSession } from "../harnessAccounts/transferSession.ts";
+import type { ProjectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import type { ServiceCtx } from "../support.ts";
 import { hostIsShuttingDown } from "./hostShutdown.ts";
 import { launchAllowed } from "./launchAllowed.ts";
@@ -47,33 +47,29 @@ export const startNative = async (
 	ctx: ServiceCtx & { localUrl: string },
 	input: {
 		run: StoredRun;
-		config: ProjectManagerConfig;
+		config: ProjectLaunchConfig;
 		resume: boolean;
 		previousAttemptId?: string | null;
 		previousAccountId?: string | null;
-		context: string;
 		attempt: ExecutionAttempt;
 		deadlineAt?: number;
+		prompt?: string;
 		resumePrompt?: string;
 		preserveAssignmentOnFailure?: boolean;
 	},
 	deps: Partial<Dependencies> = {},
 ) => {
-	const { run, config, resume, context } = input;
+	const { run, config, resume } = input;
 	const terminalId = input.attempt.id;
 	const previousTerminalId = resume ? (input.previousAttemptId ?? null) : null;
 	let launchSubmitted = false;
 	try {
-		if (run.kind === "manager" && config.harness.preset === "custom")
-			throw new Error(
-				`The ${config.harness.preset} harness does not support copilot conversations. Select Claude, Codex, OpenCode, Pi, or Muse.`,
-			);
 		if (input.deadlineAt !== undefined && input.deadlineAt <= Date.now())
 			throw new Error("The flow group deadline elapsed before launch");
 		const ambientEnv = deps.env ?? (await (deps.environment ?? executionEnvironment)());
 		const account = run.accountId ? await ctx.newTx((tx) => getAccount(tx, { id: run.accountId! })) : null;
-		if (account && (!account.enabled || account.harness !== config.harness.preset))
-			throw new Error("The selected account is disabled or belongs to another harness.");
+		if (account && account.harness !== config.harness.preset)
+			throw new Error("The selected account belongs to another harness.");
 		// A run with no account reads the SuperSet pointer at every launch, so
 		// a switch made in SuperSet reaches the next Trellis launch. A profile
 		// the person exported in the login shell wins over the pointer.
@@ -109,12 +105,10 @@ export const startNative = async (
 		const timeoutMs = input.deadlineAt === undefined ? undefined : input.deadlineAt - Date.now();
 		if (timeoutMs !== undefined && timeoutMs <= 0) throw new Error("The flow group deadline elapsed before launch");
 		let session: RuntimeProcessStatus;
-		let launchWorkspace = workspaceId;
 		if (config.harness.preset === "custom") {
 			const launch = launchCommand({
 				run,
 				url: ctx.localUrl,
-				context,
 				messageId: terminalId,
 				directory: workspaceId,
 				resume,
@@ -144,14 +138,10 @@ export const startNative = async (
 			const host = nativeHost(ctx.home, env, client);
 			const launch: HarnessStartInput = {
 				id: terminalId,
-				...(run.kind === "manager"
-					? { kind: "manager", managerId: run.id, managerSystemPrompt: run.instruction }
-					: run.kind === "session"
-						? {}
-						: { kind: "builder" }),
+				...(run.kind === "session" ? {} : { kind: "builder" }),
 				harness: config.harness.preset,
 				cwd: workspaceId,
-				prompt: input.resumePrompt ?? launchPrompt({ run, url: ctx.localUrl, context }),
+				prompt: input.resumePrompt ?? input.prompt ?? launchPrompt({ run }),
 				model: config.harness.model,
 				effort: config.harness.effort,
 				token: input.attempt.token,
@@ -187,10 +177,8 @@ export const startNative = async (
 						env,
 						directory: join(ctx.home, "harness-attempts", terminalId, "transfer"),
 					});
-				launch.cwd = previous.launch!.cwd;
 			}
-			const descriptor = await host.prepare(launch, sessionId);
-			launchWorkspace = descriptor.spec.cwd;
+			await host.prepare(launch, sessionId);
 			if (
 				!(await ctx.newTx((tx) =>
 					launchAllowed(tx, {
@@ -207,7 +195,7 @@ export const startNative = async (
 		}
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET workspace_id = ${launchWorkspace}, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = CASE WHEN ${session.status === "exited"} AND kind<>'agent' THEN ${ctx.now()}::timestamptz ELSE NULL END, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
+				sql`UPDATE agent_runs SET workspace_id = ${workspaceId}, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = CASE WHEN ${session.status === "exited"} AND kind<>'agent' THEN ${ctx.now()}::timestamptz ELSE NULL END, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
 	} catch (error) {

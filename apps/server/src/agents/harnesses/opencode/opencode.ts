@@ -29,7 +29,7 @@ export const prepareOpenCode = async (input: HarnessLaunchInput): Promise<Harnes
 	const plugin = join(input.configDirectory, "trellis-opencode.mjs");
 	await copyFile(fileURLToPath(new URL("./plugin.mjs", import.meta.url)), plugin);
 	await copyFile(fileURLToPath(new URL("./control.mjs", import.meta.url)), join(input.configDirectory, "control.mjs"));
-	const args: string[] = input.managerTools ? ["--agent", "trellis-manager"] : [];
+	const args: string[] = [];
 	const permission = { "*": "allow" };
 	if (input.model !== undefined) args.push("--model", input.model);
 	if (input.resume) {
@@ -42,40 +42,10 @@ export const prepareOpenCode = async (input: HarnessLaunchInput): Promise<Harnes
 		env: {
 			OPENCODE_DISABLE_AUTOUPDATE: "1",
 			OPENCODE_PERMISSION: JSON.stringify(permission),
-			...(input.managerTools
-				? {
-						TRELLIS_MANAGER_TOOLS: JSON.stringify(input.managerTools),
-						TRELLIS_MANAGER_SYSTEM_PROMPT: input.managerSystemPrompt,
-						OPENCODE_DISABLE_PROJECT_CONFIG: "1",
-					}
-				: {}),
 			OPENCODE_CONFIG_CONTENT: JSON.stringify({
 				autoupdate: false,
-				...(input.effort && !input.managerTools
-					? { agent: { build: { model: input.model, variant: input.effort } } }
-					: {}),
-				permission: input.managerTools ? permission : "allow",
-				...(input.managerTools
-					? {
-							default_agent: "trellis-manager",
-							agent: {
-								"trellis-manager": {
-									mode: "primary",
-									permission,
-									prompt: input.managerSystemPrompt,
-									model: input.model,
-									variant: input.effort,
-								},
-							},
-							mcp: {
-								trellis: {
-									type: "local",
-									command: [input.managerTools.command, ...input.managerTools.args],
-									enabled: true,
-								},
-							},
-						}
-					: {}),
+				...(input.effort ? { agent: { build: { model: input.model, variant: input.effort } } } : {}),
+				permission: "allow",
 				plugin: [pathToFileURL(plugin).href],
 			}),
 			TRELLIS_HARNESS_HOOK: input.hookCommand,

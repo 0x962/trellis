@@ -5,16 +5,11 @@ import { CommentSchema } from "./comment.ts";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 // The `action` of an activity row, as the server writes it. A client that
-// finds the create row of a ticket compares against `created`. The two
-// `subprojectManager` rows sit on a parent project with a null ticket: a
-// sub-project of that parent set or cleared its own manager instruction, and
-// `meta.projectId` and `to_value` name that sub-project.
+// finds the create row of a ticket compares against `created`.
 export const activityActions = {
 	created: "ticket.created",
 	updated: "ticket.updated",
 	deleted: "ticket.deleted",
-	subprojectManagerEnabled: "project.subproject_manager_enabled",
-	subprojectManagerDisabled: "project.subproject_manager_disabled",
 } as const;
 
 // One audit row. `id` is the bigint identity, the cursor and the sort key.

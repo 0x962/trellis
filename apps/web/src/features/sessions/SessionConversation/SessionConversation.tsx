@@ -2,7 +2,7 @@ import { Play, Stop, Ticket, Trash } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import type { AgentRun, Session } from "@trellis/api";
 import { Avatar, ConfirmDialog, EmptyState, IconButton, Tooltip } from "@trellis/ui";
-import { useCallback, useRef, useState } from "react";
+import { type RefObject, useCallback, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../../agents/agentKindOf";
 import { agentProfileOf } from "../../agents/agentProfileOf";
@@ -10,6 +10,7 @@ import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
 import { isAgentWorking } from "../../agents/isAgentWorking";
 import { NativeTerminal } from "../../agents/NativeTerminal";
 import { DeleteSessionDialog } from "../DeleteSessionDialog";
+import { sessionStateLabel } from "../sessionStateLabel";
 
 export function SessionConversation({
 	run,
@@ -17,18 +18,21 @@ export function SessionConversation({
 	readOnly = false,
 	onDeleted,
 	onOpenTicket,
+	headingRef,
 }: {
 	run: AgentRun;
 	session?: Session;
 	readOnly?: boolean;
 	onDeleted?: () => void;
 	onOpenTicket?: () => void;
+	headingRef?: RefObject<HTMLHeadingElement | null>;
 }) {
 	const { client, orpc, queryClient } = useApp();
 	const [confirmStop, setConfirmStop] = useState(false);
 	const [confirmDelete, setConfirmDelete] = useState(false);
-	const control = useRef<HTMLButtonElement>(null);
-	const leaveTerminal = useCallback(() => control.current?.focus(), []);
+	const localHeading = useRef<HTMLHeadingElement>(null);
+	const heading = headingRef ?? localHeading;
+	const leaveTerminal = useCallback(() => heading.current?.focus(), [heading]);
 	const active = hasAssignedProcess(run);
 	const refresh = () =>
 		Promise.all([
@@ -66,8 +70,15 @@ export function SessionConversation({
 					state={isAgentWorking(run) ? "working" : "static"}
 					className="size-7 shrink-0"
 				/>
-				<span className="min-w-0 flex-1 truncate text-sm font-medium tabular">{name}</span>
-				<span className="text-xs text-fg-muted">{run.state}</span>
+				<h2
+					ref={heading}
+					tabIndex={-1}
+					title={name}
+					className="min-w-0 flex-1 truncate rounded-sm text-sm font-medium tabular focus-visible:outline-2 focus-visible:outline-accent"
+				>
+					{name}
+				</h2>
+				<span className="text-xs text-fg-muted">{sessionStateLabel(run)}</span>
 				{onOpenTicket && run.ticketIdentifier && (
 					<Tooltip content={`Open ${run.ticketIdentifier}`}>
 						<IconButton label={`Open ${run.ticketIdentifier}`} icon={<Ticket />} onClick={onOpenTicket} />
@@ -75,7 +86,6 @@ export function SessionConversation({
 				)}
 				<Tooltip content={active ? (run.kind === "agent" ? "Remove assignment" : "Stop session") : "Resume session"}>
 					<IconButton
-						ref={control}
 						label={active ? (run.kind === "agent" ? "Remove assignment" : "Stop session") : "Resume session"}
 						icon={active ? <Stop /> : <Play />}
 						disabled={

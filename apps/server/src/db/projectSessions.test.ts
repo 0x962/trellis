@@ -11,11 +11,24 @@ import { prepareCreate } from "../services/sessions/create.ts";
 import { getSession, listSessions } from "../services/sessions/queries.ts";
 import { prepareDelete } from "../services/sessions/remove.ts";
 import { prepareStart } from "../services/sessions/start.ts";
-import { ctx, db, git, harness, home, launches, projectId, repo, start, ticketId } from "./projectSessionsFixture.ts";
+import {
+	ctx,
+	db,
+	drainBackground,
+	git,
+	harness,
+	home,
+	launches,
+	projectId,
+	repo,
+	start,
+	ticketId,
+} from "./projectSessionsFixture.ts";
 
 const attachmentRequestId = crypto.randomUUID();
 test("project sessions and ticket agents use the same isolated workspace primitive", async () => {
 	const result = await prepareCreate(ctx, { project: "TST", name: "plan", prompt: "Read the source", harness }, start);
+	await drainBackground();
 	const session = await db.transaction((tx) => getSession(tx, result.id));
 	const run = await db.transaction((tx) => getRun(tx, session.runId));
 	expect(session.projectId).toBe(projectId);
@@ -35,6 +48,7 @@ test("project sessions and ticket agents use the same isolated workspace primiti
 	expect(await db.transaction((tx) => getRun(tx, ticket.run.id))).toMatchObject({
 		projectId,
 		ticketId,
+		instruction: "Task",
 		ticketTitle: "Task",
 		ticketStatusCategory: "todo",
 	});
@@ -52,6 +66,7 @@ test("concurrent create requests launch once and bind the request to file bytes"
 	};
 	const count = launches.length;
 	const [one, two] = await Promise.all([prepareCreate(ctx, input, start), prepareCreate(ctx, input, start)]);
+	await drainBackground();
 	expect(one.id).toBe(two.id);
 	expect(launches.length - count).toBe(1);
 	const launch = launches.at(-1)!;
@@ -73,6 +88,7 @@ test("concurrent names and project inheritance retain distinct sessions", async 
 	await db.transaction((tx) => ctx.core.cache.rebuild(tx));
 	const input = { project: "TST.child", name: "same-name", prompt: "Inspect", harness };
 	const sessions = await Promise.all([prepareCreate(ctx, input, start), prepareCreate(ctx, input, start)]);
+	await drainBackground();
 	const rows = await Promise.all(sessions.map(({ id }) => db.transaction((tx) => getSession(tx, id))));
 	expect(new Set(rows.map((row) => row.name)).size).toBe(2);
 	expect(rows.every((row) => row.projectId === child)).toBe(true);
@@ -183,21 +199,13 @@ test("scratch session retries retain one repository and one launch", async () =>
 	const input = { name: "scratch", prompt: "Inspect", harness, requestId: crypto.randomUUID() };
 	const count = launches.length;
 	const [one, two] = await Promise.all([prepareCreate(ctx, input, start), prepareCreate(ctx, input, start)]);
+	await drainBackground();
 	expect(one.id).toBe(two.id);
 	expect(launches.length - count).toBe(1);
 	const session = await db.transaction((tx) => getSession(tx, one.id));
 	expect(session.projectId).toBeNull();
 	expect((await db.transaction((tx) => getRun(tx, session.runId))).harness).toEqual(harness);
 	expect(await git(session.directory, "rev-parse", "--abbrev-ref", "HEAD")).toBe("main");
-});
-
-test("new project managers also use an isolated repository worktree", async () => {
-	const reservation = await db.transaction((tx) => reserve(ctx.core, tx, { project: "TST", harness }));
-	if (reservation.replay) throw new Error("Expected a new manager.");
-	await start(ctx, reservation);
-	const manager = await db.transaction((tx) => getRun(tx, reservation.run.id));
-	expect(manager.workspaceId).not.toBe(repo);
-	expect(await readFile(join(manager.workspaceId!, "source.txt"), "utf8")).toBe("original\n");
 });
 
 test("delete cannot remove a worktree while resume prepares a process", async () => {

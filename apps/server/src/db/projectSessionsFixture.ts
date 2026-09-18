@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { DEFAULT_PROJECT_MANAGER_CONFIG, HarnessSchema } from "@trellis/api";
+import { HarnessSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { nativeWorkspace } from "../agents/native/workspace.ts";
@@ -22,6 +22,10 @@ let ctx: IoCtx;
 const projectId = ulid();
 const ticketId = ulid();
 const launches: Parameters<typeof startNative>[1][] = [];
+const backgroundTasks: Promise<void>[] = [];
+const drainBackground = async () => {
+	await Promise.all(backgroundTasks.splice(0));
+};
 const harness = HarnessSchema.parse({ preset: "codex", model: "openai/gpt-5.6-sol", effort: "high" });
 const git = async (directory: string, ...args: string[]) =>
 	(await exec("git", ["-C", directory, ...args])).stdout.trim();
@@ -48,8 +52,8 @@ beforeAll(async () => {
 	await migrate(db);
 	const at = new Date();
 	const statusId = ulid();
-	await db.execute(sql`INSERT INTO projects (id,root_id,key,slug,name,manager_config,created_at,updated_at)
- VALUES (${projectId},${projectId},'TST','test','Test',${JSON.stringify({ ...DEFAULT_PROJECT_MANAGER_CONFIG, directory: repo })}::jsonb,${at},${at})`);
+	await db.execute(sql`INSERT INTO projects (id,root_id,key,slug,name,directory,created_at,updated_at)
+ VALUES (${projectId},${projectId},'TST','test','Test',${repo},${at},${at})`);
 	await db.execute(sql`INSERT INTO statuses (id,project_id,name,slug,category,color,position,is_default,created_at,updated_at)
  VALUES (${statusId},${projectId},'Todo','todo','todo','fg-muted',0,true,${at},${at})`);
 	await db.execute(sql`INSERT INTO tickets (id,project_id,root_id,number,title,status_id,position,created_at,updated_at)
@@ -72,6 +76,9 @@ beforeAll(async () => {
 		addresses: async () => [],
 		emit: () => {},
 		afterCommit: () => {},
+		background: (task) => {
+			backgroundTasks.push(task(ctx));
+		},
 		newTx: (fn) => db.transaction(fn),
 		vacuum: async () => {},
 		localUrl: "http://localhost:4597",
@@ -90,8 +97,9 @@ beforeAll(async () => {
 	};
 });
 afterAll(async () => {
+	await drainBackground();
 	await db?.$client.close();
 	if (home) await rm(home, { recursive: true, force: true });
 });
 
-export { ctx, db, git, harness, home, launches, projectId, repo, start, ticketId };
+export { ctx, db, drainBackground, git, harness, home, launches, projectId, repo, start, ticketId };

@@ -11,7 +11,6 @@ export const enqueue = async (
 	input: {
 		commentId: string;
 		ticketId: string;
-		projectId: string;
 		body: string;
 		previousBody?: string;
 	},
@@ -21,8 +20,7 @@ export const enqueue = async (
 		tx,
 		sql`SELECT id, name AS "agentName", terminal_id AS "terminalId", session_id AS "sessionId"
 		FROM agent_runs WHERE runtime='native' AND closed_at IS NULL
-		AND (kind<>'manager' OR EXISTS (SELECT 1 FROM comments WHERE id=${input.commentId} AND actor_kind='human'))
-		AND (ticket_id=${input.ticketId} OR (project_id=${input.projectId} AND kind='manager'))`,
+		AND ticket_id=${input.ticketId}`,
 	);
 	const names = recipients.map((run) => run.agentName);
 	const current = mentionedNames(input.body, names);

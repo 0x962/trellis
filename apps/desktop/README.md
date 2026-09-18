@@ -32,7 +32,7 @@ A local progress window shows startup progress and estimated time remaining. Est
 
 The packaged app enables its background service at startup. `SMAppService` registers the bundled LaunchAgent. macOS starts it at login and restarts it after a crash. System Settings controls its permission to run at login. The separate Open Trellis at login switch controls the desktop window.
 
-Quit Trellis Completely in the Trellis menu stops known local processes and unregisters the helper. An unknown process prevents the stop. The app waits for the host to exit before it closes. Open Trellis to start the helper and deterministic manager.
+Quit Trellis Completely in the Trellis menu stops known local processes and unregisters the helper. An unknown process prevents the stop. The app waits for the host to exit before it closes. Open Trellis to start the helper.
 
 Project settings select the repository directory. A blank child directory uses the nearest ancestor with a configured directory. Trellis trusts configured repositories and agent workspaces.
 
@@ -69,8 +69,8 @@ This local preview disables hardened runtime through `codesign --options 0`. Ad-
 
 ## Production install
 
-The Trellis SRE manager owns release batches for the TRL project.
-The manager assigns one SRE to all eligible Deploy Queue tickets, with one build, install, and restart for the batch.
+One SRE owns each release batch for the TRL project.
+The SRE handles all eligible Deploy Queue tickets with one build, install, and restart for the batch.
 The SRE saves a release checkpoint before restart and verifies restored sessions afterward.
 
 Merge the source changes into `main`. Push `main` to `origin`. Run this command from a clean `main` checkout at the current `origin/main` commit:
@@ -89,7 +89,7 @@ The command signs the local package. It copies the app with `ditto` into a tempo
 
 Use this command for each production install. Keep the installed bundle in place until the verified copy is complete. Run service commands through `~/Applications/Trellis.app/Contents/MacOS/TrellisHost`. The helper requires the LaunchAgent plist inside its app bundle.
 
-Restart Trellis to activate the installed build. A changed package restarts the host and keeps a compatible runtime active. A runtime protocol change stops the runtime. Trellis preserves ticket assignments and restarts project copilots after an incompatible runtime stops.
+Restart Trellis to activate the installed build. A changed package restarts the host and keeps a compatible runtime active. A runtime protocol change stops the runtime. Trellis preserves ticket assignments.
 
 To prepare a verified candidate without a production install:
 
@@ -102,12 +102,6 @@ This command uses the local ad-hoc signature described above. It requires Node, 
 The app retains earlier releases. The release identity includes the desktop launcher, preload bridge, service launcher, native helper, and LaunchAgent configuration. An unknown service state blocks activation.
 
 Runtime files stay outside the host database directory, so a database export does not include application binaries. A package replacement does not remove the files of an active runtime. The integration test removes the source app, retains a live PTY, starts another child with the pinned native modules, and restarts the host.
-
-### Project copilots
-
-Trellis keeps one copilot available for each active project. A copilot acts on user instructions.
-A compatible restart reads the saved project configuration.
-A compatible restart preserves the copilot conversation.
 
 ## Release limits
 

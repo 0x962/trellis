@@ -498,6 +498,20 @@
       "when": 1789671975812,
       "tag": "0073_curly_fixer",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1789693900125,
+      "tag": "0074_open_warhawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1789695965771,
+      "tag": "0075_steady_invaders",
+      "breakpoints": true
     }
   ]
 }

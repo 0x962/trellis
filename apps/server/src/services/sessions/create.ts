@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { join } from "node:path";
-import { DEFAULT_PROJECT_MANAGER_CONFIG, HarnessSchema, type Session, type SessionCreateInput } from "@trellis/api";
+import { HarnessSchema, type Session, type SessionCreateInput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { rows } from "../../db/queries/support.ts";
@@ -15,7 +15,7 @@ import type { IoCtx } from "../support.ts";
 import { attachmentPrompt, prepareFiles } from "./attachments.ts";
 import { createProjectSession } from "./createProject.ts";
 import { createSessionRepository, sessionDirectoryNames } from "./directory.ts";
-import { sessionOperation } from "./operation.ts";
+import { launchSession } from "./launchSession";
 import { sessionColumns, sessionNames } from "./queries.ts";
 import { friendlySessionName, sessionSlug, uniqueSessionName } from "./sessionName.ts";
 
@@ -56,12 +56,11 @@ export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput, start
 		await upsert(ctx.core, tx, ctx.actor);
 		const selected = await selectAccount(tx, {
 			accountId: input.accountId ?? null,
-			config: { ...DEFAULT_PROJECT_MANAGER_CONFIG, directory, harness },
+			config: { directory, harness, accountId: null },
 			useDefault: true,
 		});
 		const runId = ulid();
 		const instruction = await attachmentPrompt(ctx.home, runId, input.prompt, files);
-		await createSessionRepository(ctx.home, name);
 		const [run] = await rows<StoredRun>(
 			tx,
 			sql`INSERT INTO agent_runs (id, name, account_id, runtime, harness, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, workspace_id, session_id, created_at, updated_at)
@@ -86,16 +85,19 @@ export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput, start
 		};
 	});
 	if (reservation.replay) return { id: reservation.session.id };
-	return sessionOperation(ctx.home, reservation.run.id, async () => {
-		ctx.emit({ type: "sessions.changed", id: reservation.session.id });
-		ctx.emit({ type: "agent-runs.changed", id: reservation.run.id });
-		await start(ctx, {
+	launchSession(
+		ctx,
+		reservation.session.id,
+		{
 			run: reservation.run,
 			config: reservation.config,
 			resume: false,
-			context: "",
 			attempt: reservation.attempt,
-		});
-		return { id: reservation.session.id };
-	});
+		},
+		start,
+		() => createSessionRepository(ctx.home, reservation.session.name),
+	);
+	ctx.emit({ type: "sessions.changed", id: reservation.session.id });
+	ctx.emit({ type: "agent-runs.changed", id: reservation.run.id });
+	return { id: reservation.session.id };
 };

@@ -29,8 +29,19 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 				requestId: draft.requestId,
 			}),
 		onSuccess: async (session) => {
+			const { run, ...record } = session;
+			queryClient.setQueryData(orpc.sessions.get.queryOptions({ input: { id: session.id } }).queryKey, session);
+			queryClient.setQueryData(orpc.sessions.list.queryOptions({ input: {} }).queryKey, (current) => [
+				record,
+				...(current ?? []).filter((item) => item.id !== session.id),
+			]);
+			if (session.projectId)
+				queryClient.setQueryData(
+					orpc.agentRuns.list.queryOptions({ input: { project: session.projectId } }).queryKey,
+					(current) => [run, ...(current ?? []).filter((item) => item.id !== run.id)],
+				);
 			sessionComposerActions.clear();
-			await Promise.all([
+			void Promise.all([
 				queryClient.invalidateQueries({ queryKey: orpc.sessions.key() }),
 				queryClient.invalidateQueries({ queryKey: orpc.agentRuns.key() }),
 			]);
@@ -108,7 +119,7 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 						items={[
 							{ value: "default", label: "Default account" },
 							...(accounts.data ?? [])
-								.filter((account) => account.enabled && account.harness === draft.harness.preset)
+								.filter((account) => account.harness === draft.harness.preset)
 								.map((account) => ({ value: account.id, label: account.name })),
 						]}
 						onValueChange={(accountId) => change({ accountId: accountId === "default" ? "" : accountId })}

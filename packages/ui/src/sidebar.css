@@ -20,6 +20,17 @@
 	@apply bg-elevated text-fg;
 }
 
+@utility sidebar-item {
+	@apply flex min-h-11 w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-fg-muted transition-colors duration-hover ease-out hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2;
+	&[aria-current="page"] {
+		@apply bg-elevated text-fg;
+	}
+}
+
+@utility skip-link {
+	@apply sr-only focus:not-sr-only focus:absolute focus:top-1 focus:left-1 focus:z-30 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:text-fg focus:outline-2 focus:outline-accent;
+}
+
 /* Every row of the sidebar, fixed or project: one height, one radius, one
    hover. */
 @utility sidebar-row {

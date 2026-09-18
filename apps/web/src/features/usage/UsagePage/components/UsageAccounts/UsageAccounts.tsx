@@ -46,6 +46,8 @@ export const unavailableUsageAccounts = (accounts: readonly HarnessAccount[]): U
 			plan: null,
 			detail: null,
 			windows: [],
+			creditsBalance: null,
+			extraUsage: null,
 			fetchedAt: account.updatedAt,
 		},
 	}));
@@ -53,7 +55,7 @@ export const unavailableUsageAccounts = (accounts: readonly HarnessAccount[]): U
 export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsProps) {
 	const { orpc, client, queryClient } = useApp();
 	const accountOptions = orpc.usage.accounts.queryOptions({ input: {} });
-	const accounts = useQuery({ ...accountOptions, refetchInterval: 300_000 });
+	const accounts = useQuery({ ...accountOptions, refetchInterval: 30_000 });
 	const configured = useQuery({
 		...orpc.harnessAccounts.list.queryOptions({ input: {} }),
 		refetchInterval: 30_000,
@@ -163,10 +165,6 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 								onDefault={() => {
 									setError(undefined);
 									update.mutate({ id: managed!.id, isDefault: true });
-								}}
-								onEnabled={(enabled) => {
-									setError(undefined);
-									update.mutate({ id: managed!.id, enabled, ...(!enabled ? { isDefault: false } : {}) });
 								}}
 								onRename={() => {
 									setError(undefined);

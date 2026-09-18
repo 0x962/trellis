@@ -28,9 +28,6 @@ const env = z
 		TRELLIS_HARNESS_SOCKET: z.string(),
 		TRELLIS_ATTEMPT_ID: z.string(),
 		TRELLIS_ATTEMPT_TOKEN: z.string(),
-		TRELLIS_URL: z.string().optional(),
-		TRELLIS_ACTOR: z.string().optional(),
-		TRELLIS_AUTH_TOKEN: z.string().optional(),
 	})
 	.parse(process.env);
 const launch = z
@@ -39,10 +36,8 @@ const launch = z
 		prompt: z.string(),
 		model: z.string().optional(),
 		sessionId: z.string().optional(),
-		managerTools: z.object({ command: z.string(), args: z.array(z.string()) }).optional(),
 	})
 	.parse(JSON.parse(process.argv[2]!));
-const manager = launch.managerTools !== undefined;
 const runtime = new RuntimeClient(env.TRELLIS_HARNESS_SOCKET);
 const directory = dirname(env.TRELLIS_MUSE_CONTROL_SOCKET);
 await mkdir(directory, { mode: 0o700 });
@@ -245,40 +240,17 @@ async function start() {
 	client.closed.catch(reportFailure);
 	const granted = await client.initialize();
 	museHome = granted.museHome;
-	if (manager && !granted.grantedCapabilities.includes("sessionMcp"))
-		throw new Error("Muse did not grant the sessionMcp capability, so the manager cannot reach the Trellis tools");
-	const config = manager
-		? {
-				mcpServers: {
-					trellis: {
-						transport: "stdio",
-						command: launch.managerTools!.command,
-						args: launch.managerTools!.args,
-						framing: "lineDelimitedJson",
-						mode: "required",
-						env: {
-							...(env.TRELLIS_URL ? { TRELLIS_URL: env.TRELLIS_URL } : {}),
-							...(env.TRELLIS_ACTOR ? { TRELLIS_ACTOR: env.TRELLIS_ACTOR } : {}),
-							...(env.TRELLIS_AUTH_TOKEN ? { TRELLIS_AUTH_TOKEN: env.TRELLIS_AUTH_TOKEN } : {}),
-							TRELLIS_ATTEMPT_ID: env.TRELLIS_ATTEMPT_ID,
-							TRELLIS_ATTEMPT_TOKEN: env.TRELLIS_ATTEMPT_TOKEN,
-						},
-					},
-				},
-			}
-		: undefined;
 	const result = session.parse(
 		await client.request(
 			launch.sessionId ? "session/resume" : "session/start",
 			launch.sessionId
-				? { commandId: uuid7(), sessionId: launch.sessionId, excludeItems: true, config }
+				? { commandId: uuid7(), sessionId: launch.sessionId, excludeItems: true }
 				: {
 						commandId: uuid7(),
 						workspaceRoot: launch.cwd,
 						approvalMode: "allowAll",
 						providerId: "meta",
 						...(launch.model ? { modelId: launch.model } : {}),
-						config,
 					},
 		),
 	);

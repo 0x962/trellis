@@ -1,4 +1,3 @@
-import { join } from "node:path";
 import type { HarnessLaunch, HarnessLaunchInput } from "../types.ts";
 
 export async function prepareClaude(input: HarnessLaunchInput): Promise<HarnessLaunch> {
@@ -15,23 +14,7 @@ export async function prepareClaude(input: HarnessLaunchInput): Promise<HarnessL
 	const hooks = Object.fromEntries(
 		events.map((event) => [event, [{ hooks: [{ type: "command", command: input.hookCommand, timeout: 10 }] }]]),
 	);
-	const args = input.managerTools
-		? [
-				"--system-prompt",
-				input.managerSystemPrompt,
-				"--system-prompt-snapshot",
-				"off",
-				"--dangerously-skip-permissions",
-				"--strict-mcp-config",
-				"--mcp-config",
-				JSON.stringify({ mcpServers: { trellis: { type: "stdio", alwaysLoad: true, ...input.managerTools } } }),
-				"--disable-slash-commands",
-				"--setting-sources",
-				"",
-				"--settings",
-				JSON.stringify({ hooks, permissions: { allow: ["mcp__trellis__*"] } }),
-			]
-		: ["--dangerously-skip-permissions", "--settings", JSON.stringify({ hooks })];
+	const args = ["--dangerously-skip-permissions", "--settings", JSON.stringify({ hooks })];
 	if (input.model) args.push("--model", input.model);
 	if (input.effort) args.push("--effort", input.effort);
 	args.push(
@@ -42,8 +25,6 @@ export async function prepareClaude(input: HarnessLaunchInput): Promise<HarnessL
 	return {
 		executable: "claude",
 		args,
-		env: input.managerTools
-			? { TRELLIS_MANAGER_TOOLS_READY: join(input.configDirectory, "manager-tools-ready.json") }
-			: {},
+		env: {},
 	};
 }

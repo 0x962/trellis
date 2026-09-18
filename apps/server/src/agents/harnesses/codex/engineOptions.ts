@@ -1,5 +1,5 @@
-export function engineOptions(manager: boolean, managerConfig: Record<string, unknown>, effort?: string): string[] {
-	const config = manager ? Object.entries(managerConfig).map(([key, value]) => `${key}=${JSON.stringify(value)}`) : [];
+export function engineOptions(effort?: string): string[] {
+	const config: string[] = [];
 	if (effort) config.push(`model_reasoning_effort=${JSON.stringify(effort)}`);
-	return ["--disable", "hooks", ...(manager ? ["--strict-config"] : []), ...config.flatMap((value) => ["-c", value])];
+	return ["--disable", "hooks", ...config.flatMap((value) => ["-c", value])];
 }

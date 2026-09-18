@@ -31,7 +31,6 @@ Older threads retain their original revision.
 The server checks the reviewed head before it submits the review to GitHub.
 The request then refreshes the pull request in Trellis.
 It writes one activity item for each linked ticket.
-Project managers receive that activity through the normal activity route.
 
 Merge and repository actions use a separate sheet.
 The server checks the reviewed head before an action.

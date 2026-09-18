@@ -18,9 +18,7 @@ const StatusSlugSchema = z
 // `color` is a token name from packages/ui, never a raw color value.
 const ColorSchema = ColorTokenSchema;
 
-// Markdown that tells the manager agent what to do with a ticket in this
-// status. The manager reads every description of the set at start and on
-// `statuses.changed`, so a new status needs no code change.
+// Markdown that describes what the status means.
 const StatusDescriptionSchema = z.string().max(2000, "Enter a status description of 2000 characters or less.");
 
 // The status fields every ticket row carries.

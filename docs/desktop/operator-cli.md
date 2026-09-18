@@ -12,7 +12,7 @@ trellis doctor
 ```
 
 `trellis status` prints the server health: version, database, and the `gh` login.
-`trellis doctor` prints the execution service, the manager queue, and each unresolved attempt with its error.
+`trellis doctor` prints the execution service and each unresolved attempt with its error.
 
 ## Read a ticket brief
 
@@ -28,7 +28,7 @@ The brief holds the description, the status, the branch, and the protocol for th
 trellis agents start --ticket TRL-71 --harness claude --model claude-sonnet-4-5 --effort high --request-id 5f0c2d1e-7a44-4a8e-9b1f-3c6d2e8a9b10
 ```
 
-The ticket assignment selects a harness, a model, and an effort. A project manager takes `--project` and uses the project settings.
+The ticket assignment selects a harness, a model, and an effort.
 
 Use one request ID for one assignment. Keep the request ID after an uncertain response, and start again with the same ID. The server returns the first agent and does not start a second one. Use a new request ID only for an intentional new assignment.
 

@@ -82,6 +82,9 @@ beforeAll(async () => {
 		addresses: async () => [],
 		emit: () => {},
 		afterCommit: () => {},
+		background: () => {
+			throw new Error("Unexpected background task");
+		},
 		newTx: (fn) => db.transaction(fn),
 		vacuum: async () => {},
 		localUrl: "http://localhost:4597",

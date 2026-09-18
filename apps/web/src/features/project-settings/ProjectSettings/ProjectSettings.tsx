@@ -3,7 +3,6 @@ import type { Project } from "@trellis/api";
 import type { ReactNode } from "react";
 import { projectSlashPath } from "../../../lib/projectPath";
 import { NotesSettings } from "../../notes/NotesSettings";
-import { useProjectManagerConfig } from "../hooks/useProjectManagerConfig";
 import { LabelSettings } from "../LabelSettings";
 import { ProjectGeneralSettings } from "../ProjectGeneralSettings";
 import { ProjectLifecycle } from "../ProjectLifecycle";
@@ -32,12 +31,11 @@ export function ProjectSettings({ project, section }: ProjectSettingsProps) {
 function ProjectSettingsContent({ project, section }: ProjectSettingsProps) {
 	const hash = useLocation({ select: (location) => location.hash });
 	const selected = section ?? (isProjectSettingsSection(hash) ? hash : "");
-	const manager = useProjectManagerConfig(project);
 
 	const contentFor = (id: ProjectSettingsSectionId): ReactNode => {
 		switch (id) {
 			case "":
-				return <ProjectGeneralSettings project={project} manager={manager} />;
+				return <ProjectGeneralSettings project={project} />;
 			case "notes":
 				return selected === "notes" ? <NotesSettings project={project} /> : null;
 			case "template":

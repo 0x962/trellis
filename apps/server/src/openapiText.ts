@@ -11,10 +11,8 @@ export const ACTOR_HEADER_EXAMPLE = "agent:claude-code";
 export const SERVERS = [{ url: "http://127.0.0.1:4521/api", description: "The local server" }];
 
 export const TAGS = [
-	{ name: "submanagers", description: "Delegated project scopes." },
 	{ name: "harness accounts", description: "Configured account profiles and provider quota." },
 	{ name: "needs you", description: "Work that requires a human decision." },
-	{ name: "controller", description: "Durable manager messages and uncertain delivery decisions." },
 	{ name: "flow executions", description: "Saved flow versions, local worker attempts, and human decisions." },
 	{ name: "reviews", description: "Pull request diffs, local comments, and GitHub review actions." },
 	{ name: "sessions", description: "Scratch sessions: a git repository with one agent, outside every project." },
@@ -40,7 +38,7 @@ export const TAGS = [
 	{ name: "system", description: "Health, the gh state, and backups." },
 	{
 		name: "agent runs",
-		description: "Ticket agents, project managers, flow agents, their output, and their follow-ups.",
+		description: "Ticket agents, flow agents, sessions, their output, and their follow-ups.",
 	},
 ];
 
@@ -89,12 +87,6 @@ Every response carries \`x-trellis-api-version\`. Every error is JSON with \`cod
 
 // One example per request body, keyed by `<METHOD> <path>`.
 export const BODY_EXAMPLES: Record<string, unknown> = {
-	"POST /submanagers": {
-		project: "CDE.web",
-		brief: "Complete the web tickets and prepare them for review.",
-		requestId: "CDE.web:manager",
-	},
-	"POST /submanagers/{id}/retire": {},
 	"POST /harness-accounts": { name: "Work", harness: "claude" },
 	"PATCH /harness-accounts/{id}": { isDefault: true },
 	"POST /agent-runs/{id}/resume": {
@@ -113,14 +105,6 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /agent-runs/{id}/interrupt": {},
 	"POST /agent-runs/{id}/terminal/input": { text: "pwd\r" },
 	"POST /agent-runs/{id}/terminal/resize": { cols: 100, rows: 32 },
-	"POST /manager-dispatches/{id}/retry": {},
-	"POST /manager-dispatches/{id}/received": {},
-	"POST /manager-dispatches/{id}/handle": {
-		generation: 1,
-		outcomes: [
-			{ ticketId: "01J9Z0000000000000000000A1", status: "queued", reason: "An active worker owns this ticket." },
-		],
-	},
 
 	"POST /native-work/stop": {},
 	"POST /needs-you/list": {},

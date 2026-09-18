@@ -41,12 +41,8 @@ export const SessionCreateInputSchema = z
 				"The session name. The server lowercases it and keeps letters, digits, and dashes. Omit it for a generated name.",
 			),
 		prompt: z.string().trim().max(20000).describe("The first message the agent receives."),
-		harness: HarnessSchema.optional().describe(
-			"The agent program, model, and effort. Project sessions inherit project settings; scratch sessions default to Claude.",
-		),
-		accountId: UlidSchema.optional().describe(
-			"Configured harness account. Select an enabled account from harnessAccounts.list.",
-		),
+		harness: HarnessSchema.optional().describe("The agent program, model, and effort. Sessions default to Claude."),
+		accountId: UlidSchema.optional().describe("Configured harness account from harnessAccounts.list."),
 	})
 	.refine((input) => input.prompt.length > 0 || (input.files?.length ?? 0) > 0, "Enter a prompt or attach a file.");
 export type SessionCreateInput = z.infer<typeof SessionCreateInputSchema>;

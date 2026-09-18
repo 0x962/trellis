@@ -32,24 +32,14 @@ export const diagnostics = async (ctx: ServiceCtx): Promise<Diagnostics> => {
 		};
 	}
 	return ctx.newTx(async (tx) => {
-		const [queue] = await rows<Diagnostics["queue"]>(
-			tx,
-			sql`SELECT
-			count(*) FILTER (WHERE state='pending')::int AS pending,
-			count(*) FILTER (WHERE state='sending')::int AS sending,
-			count(*) FILTER (WHERE state='unknown')::int AS unknown,
-			min(due_at) FILTER (WHERE state IN ('pending','sending','unknown')) AS "oldestDueAt"
-			FROM manager_dispatches`,
-		);
 		const runs = await rows<StoredRun>(
 			tx,
 			sql`SELECT ${columns} FROM agent_runs WHERE runtime='native' ORDER BY updated_at DESC LIMIT 100`,
 		);
-		const unresolvedAttempts = projectUnresolvedAttempts(runs, sessions);
+		const unresolvedAttempts = projectUnresolvedAttempts(runs, sessions, ctx.home);
 		return {
 			host: { bootId: ctx.bootId, version: ctx.version, home: ctx.home },
 			runtime,
-			queue: queue!,
 			lastObservationAt:
 				sessions
 					.map((session) => session.checkedAt)

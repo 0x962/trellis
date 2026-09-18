@@ -35,7 +35,7 @@ export async function reserveResume(ctx: ServiceCtx, tx: Tx, session: ResumeSess
 	)
 		return null;
 	const project = await projectRow(tx, run.projectId);
-	const config = await projectLaunchConfig(tx, { projectId: run.projectId });
+	const config = await projectLaunchConfig(tx, { projectId: run.projectId, harness: run.harness! });
 	if (project.archived_at !== null) return null;
 	if (run.ticketId !== null) {
 		const ticket = await rows(tx, sql`SELECT id FROM tickets WHERE id=${run.ticketId}`);
@@ -69,8 +69,8 @@ export async function reserveResume(ctx: ServiceCtx, tx: Tx, session: ResumeSess
 	if (deadlineAt !== undefined && deadlineAt <= ctx.now.getTime()) return null;
 	if (run.accountId) {
 		const account = await getAccount(tx, { id: run.accountId });
-		if (!account.enabled || account.harness !== session.harness)
-			throw invalidInput("accountId", "The saved account is disabled or belongs to another harness.");
+		if (account.harness !== session.harness)
+			throw invalidInput("accountId", "The saved account belongs to another harness.");
 	}
 	const harness = {
 		...config.harness,
@@ -80,10 +80,6 @@ export async function reserveResume(ctx: ServiceCtx, tx: Tx, session: ResumeSess
 	};
 	let attempt: ExecutionAttempt | undefined;
 	if (reserve && run.terminalId === session.previousAttemptId) {
-		if (run.kind === "manager") {
-			run.instruction = config.instruction;
-			await tx.execute(sql`UPDATE agent_runs SET instruction=${config.instruction} WHERE id=${run.id}`);
-		}
 		attempt = await reserveAttempt(ctx, tx, { runId: run.id, attempt: session.attempt });
 		await tx.execute(
 			sql`UPDATE agent_runs SET terminal_id=${attempt.id},session_id=${session.providerSessionId},workspace_id=${session.workspace},harness=${JSON.stringify(harness)}::jsonb,error=NULL,session_lost=false,updated_at=${ctx.now} WHERE id=${run.id}`,

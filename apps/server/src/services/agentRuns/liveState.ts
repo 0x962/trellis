@@ -4,6 +4,7 @@ import type { RuntimeListInput, RuntimeProcessStatus } from "@trellis/runtime-pr
 import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { ExecutionAttemptRecord } from "../assignments.ts";
 import type { ServiceCtx } from "../support.ts";
+import { launchState } from "./launchState";
 import type { StoredRun } from "./queries.ts";
 
 type RuntimeSessionIndex = ReadonlyMap<string, RuntimeProcessStatus>;
@@ -74,9 +75,18 @@ export function executionMetrics(attemptIds: string[], sessions: RuntimeSessionI
 	return { durationMs, tokenCount };
 }
 
-export function projectRun(run: StoredRun, sessions: RuntimeProcessStatus[]): AgentRun {
+export function projectRun(run: StoredRun, sessions: RuntimeProcessStatus[], home?: string): AgentRun {
 	const process = sessions.find((session) => session.id === run.terminalId);
 	const { closedAt: _closedAt, ...metadata } = run;
+	if (!process && home !== undefined && run.terminalId !== null && launchState.has(home, run.terminalId))
+		return {
+			...metadata,
+			assigned: run.closedAt === null,
+			state: "starting",
+			processStatus: null,
+			observation: null,
+			error: null,
+		};
 	if (!process)
 		return {
 			...metadata,
@@ -108,7 +118,8 @@ export function projectRun(run: StoredRun, sessions: RuntimeProcessStatus[]): Ag
 			outcome: process.agent?.outcome ?? null,
 			turnId: process.agent?.turnId ?? null,
 		},
-		error: process.agent?.error ?? process.error,
+		error:
+			process.agent?.error ?? process.error ?? (process.acknowledgedMessageIds.includes(process.id) ? null : run.error),
 	};
 }
 
@@ -123,9 +134,9 @@ export async function observeRuns(
 ): Promise<AgentRun[]> {
 	if (runs.length === 0) return [];
 	const ids = [...new Set(runs.flatMap((run) => (run.terminalId === null ? [] : [run.terminalId])))];
-	if (ids.length === 0) return runs.map((run) => projectRun(run, []));
+	if (ids.length === 0) return runs.map((run) => projectRun(run, [], ctx.home));
 	const sessions = await readSessions(ctx.home, { ids });
-	return runs.map((run) => projectRun(run, sessions));
+	return runs.map((run) => projectRun(run, sessions, ctx.home));
 }
 
 type RunWork = Pick<TicketMetrics, "durationMs" | "tokenCount">;

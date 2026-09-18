@@ -8,7 +8,6 @@ const account: HarnessAccount = {
 	harness: "muse",
 	profilePath: "/tmp/muse-work",
 	isDefault: true,
-	enabled: true,
 	loginCommand: "muse login",
 	capabilities: {
 		launch: true,
@@ -39,6 +38,8 @@ describe("unavailableUsageAccounts", () => {
 					plan: null,
 					detail: null,
 					windows: [],
+					creditsBalance: null,
+					extraUsage: null,
 					fetchedAt: account.updatedAt,
 				},
 			},

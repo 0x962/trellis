@@ -66,7 +66,7 @@ export const readUpdateStatus = async (home: string, available: PinnedRelease): 
 			available,
 			active,
 			runtimeProtocol: protocol,
-			detail: `The active execution service uses protocol ${protocol}. This package requires protocol ${available.manifest.protocol}. Quit and reopen Trellis to activate this package. The deterministic manager starts column workers and copilots after the new host starts.`,
+			detail: `The active execution service uses protocol ${protocol}. This package requires protocol ${available.manifest.protocol}. Quit and reopen Trellis to activate this package.`,
 		};
 	const current = active === null || active.manifest.id === available.manifest.id;
 	return {

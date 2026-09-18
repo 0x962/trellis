@@ -8,6 +8,8 @@ export interface ProcessHandle {
 	pid: number;
 	input(data: Buffer): Promise<void>;
 	resize(cols: number, rows: number): void;
+	pauseOutput(): void;
+	resumeOutput(): void;
 	stop(): void;
 }
 export function createProcessHandle(
@@ -36,6 +38,8 @@ export function createProcessHandle(
 			pid: child.pid,
 			input: async (data) => child.write(data),
 			resize: (cols, rows) => child.resize(cols, rows),
+			pauseOutput: () => child.pause(),
+			resumeOutput: () => child.resume(),
 			stop: completion.stop,
 		};
 	}
@@ -58,6 +62,14 @@ export function createProcessHandle(
 			}),
 		resize: () => {
 			throw new Error("Only PTY sessions support resize");
+		},
+		pauseOutput: () => {
+			child.stdout.pause();
+			child.stderr.pause();
+		},
+		resumeOutput: () => {
+			child.stdout.resume();
+			child.stderr.resume();
 		},
 		stop: completion.stop,
 	};

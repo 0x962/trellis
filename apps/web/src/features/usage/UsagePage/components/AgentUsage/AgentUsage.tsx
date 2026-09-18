@@ -86,7 +86,8 @@ export function AgentUsage() {
 		mutationFn: () => client.usage.report({ days, refresh: true }),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.usage.report.key() }),
 	});
-	const rows = report.data?.groups[group] ?? [];
+	const ranking = report.data?.rankings[metric];
+	const rows = ranking?.groups[group] ?? [];
 	const row = selectedRow === null ? null : (rows.find((candidate) => candidate.key === selectedRow) ?? null);
 	const chartDays = report.data?.buckets.map((bucket) => bucket.day) ?? [];
 	const dayTotals = report.data?.buckets.map((bucket) => bucket[metric]) ?? [];
@@ -111,7 +112,7 @@ export function AgentUsage() {
 				</Tooltip>
 			</div>
 			<UsageAccounts
-				rows={report.data?.groups.account ?? []}
+				rows={ranking?.groups.account ?? []}
 				metric={metric}
 				total={report.data?.totals[metric] ?? 0}
 				pending={report.isPending}
@@ -149,7 +150,7 @@ export function AgentUsage() {
 									label="Metric"
 									options={metricOptions}
 									value={metric}
-									onValueChange={(value) => setSearch({ metric: value })}
+									onValueChange={(value) => setSearch({ metric: value, row: undefined })}
 								/>
 							}
 						/>
@@ -176,9 +177,9 @@ export function AgentUsage() {
 						onSelectRow={(key) => setSearch({ row: key ?? undefined })}
 					/>
 					<UsageSessions
-						sessions={report.data.sessions.filter(
+						sessions={(ranking?.sessions ?? []).filter(
 							(session) =>
-								(selectedRow === null || session.groupKeys[group] === selectedRow) &&
+								(row === null || session.groupKeys[group] === row.key) &&
 								(selectedDay === null ||
 									(localDayKey(session.firstAt) <= selectedDay && selectedDay <= localDayKey(session.lastAt))),
 						)}

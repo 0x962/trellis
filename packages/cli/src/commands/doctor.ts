@@ -4,7 +4,7 @@ import { contextOf } from "../context.ts";
 import { json } from "../output.ts";
 
 export default defineCommand({
-	meta: { name: "doctor", description: "Inspect the local host, execution service, and manager queue" },
+	meta: { name: "doctor", description: "Inspect the local host and execution service" },
 	async run(context) {
 		const ctx = contextOf(context);
 		ctx.out.write(json(await clientOf(ctx).system.doctor({})));

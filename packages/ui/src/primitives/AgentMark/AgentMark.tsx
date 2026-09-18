@@ -16,7 +16,7 @@ const stops = [
 function Artwork({ kind, letters, moving = false }: { kind: AgentMarkKind; letters: string; moving?: boolean }) {
 	return (
 		<g className={moving ? "agent-rotor" : undefined}>
-			{(kind === "manager" ? trellisLines : boxLines).map((d, index) => (
+			{(kind === "trellis" ? trellisLines : boxLines).map((d, index) => (
 				<path key={d} d={d} data-piece={moving ? index : undefined} />
 			))}
 			{kind === "agent" && (
@@ -64,7 +64,7 @@ export function AgentMark({
 	className?: string;
 }) {
 	const appearance = agentAppearance(name, kind);
-	const mode = state === "working" && appearance.kind !== "manager" ? "working-mild" : state;
+	const mode = state === "working" && appearance.kind !== "trellis" ? "working-mild" : state;
 	const id = useId();
 	const ref = useRef<SVGSVGElement>(null);
 	useAgentMotion(ref, mode, id);
@@ -81,7 +81,7 @@ export function AgentMark({
 			data-agent-kind={appearance.kind}
 			data-state={mode}
 		>
-			{appearance.kind === "manager" && background && <rect className="agent-ground" width="32" height="32" rx="7" />}
+			{appearance.kind === "trellis" && background && <rect className="agent-ground" width="32" height="32" rx="7" />}
 			<g className="agent-static">
 				<Artwork {...appearance} />
 			</g>

@@ -16,14 +16,13 @@ function Stat({ label, value, detail }: { label: string; value: string; detail?:
 // cost is what the same tokens cost at the API list rate; a subscription
 // bills none of it per token.
 export function UsageTotals({ totals, pricingTableUpdated }: { totals: Totals; pricingTableUpdated: string }) {
-	const savingsMultiple = totals.usd > 0 ? (totals.cacheSavingsUsd / totals.usd).toFixed(1) : "0";
 	return (
 		<section aria-label="Totals" className="flex flex-col gap-5">
 			<div className="grid grid-cols-2 gap-x-6 gap-y-4 lg:grid-cols-4">
 				<Stat
 					label="API-rate cost"
 					value={`${totals.approximate ? "~" : ""}${formatUsd(totals.usd)}`}
-					detail={`${formatUsd(totals.cacheSavingsUsd)} saved by the cache · ${savingsMultiple}x`}
+					detail={`${formatUsd(totals.cacheSavingsUsd)} net cache savings`}
 				/>
 				<Stat
 					label="Trellis agents"
@@ -69,8 +68,8 @@ export function UsageTotals({ totals, pricingTableUpdated }: { totals: Totals; p
 				]}
 			/>
 			<p className="text-xs text-fg-faint">
-				Priced at the API list rate of {pricingTableUpdated}. A subscription does not bill per token; a ~ marks a model
-				priced with a fallback rate or with no published price, such as Muse.
+				Priced at the API list rate of {pricingTableUpdated}. A subscription does not bill per token. A ~ marks a model
+				priced with a fallback rate.
 			</p>
 		</section>
 	);

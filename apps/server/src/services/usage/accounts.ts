@@ -6,7 +6,7 @@ import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { executionEnvironment } from "../../executionEnvironment";
 import { readCredential } from "../harnessAccounts/credentials.ts";
-import { type Credential, fetchAccountQuota } from "../harnessAccounts/fetchQuota.ts";
+import { type Credential, fetchAccountQuota, isCurrentMuseQuota } from "../harnessAccounts/fetchQuota.ts";
 import { resolveHostDefault } from "../harnessAccounts/hostDefault.ts";
 import { loginCommandFor } from "../harnessAccounts/presentation.ts";
 import { museConfigDefault, profileDefault } from "../harnessAccounts/profiles.ts";
@@ -18,15 +18,15 @@ import { usageRoots } from "./roots.ts";
 // OpenCode do not, so a default login of theirs adds nothing to the page.
 const QUOTA_HARNESSES: readonly AccountHarness[] = ["claude", "codex"];
 
-const CACHE_MS = 5 * 60 * 1000;
-const REFRESH_FLOOR_MS = 10 * 1000;
+const CACHE_MS = 30 * 1000;
+const REFRESH_FLOOR_MS = 1000;
 
 export type UsageLogin = Omit<UsageAccount, "quota">;
 
 const listAccounts = (tx: Tx) =>
 	rows<AccountRow>(
 		tx,
-		sql`SELECT id, name, harness, profile_path AS "profilePath", is_default AS "isDefault", enabled,
+		sql`SELECT id, name, harness, profile_path AS "profilePath", is_default AS "isDefault",
 			to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "createdAt",
 			to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "updatedAt"
 		FROM harness_accounts WHERE archived_at IS NULL ORDER BY harness, name, id`,
@@ -108,8 +108,8 @@ export const invalidateUsageAccounts = (home: string) => {
 };
 
 // Reads the quota of every login outside every database transaction, and
-// caches the list for five minutes per data home. A refresh is served from
-// the cache for ten seconds.
+// caches the list for 30 seconds per data home. A refresh is served from
+// the cache for one second.
 export const prepareAccounts = async (
 	ctx: IoCtx,
 	input: UsageAccountsInput,
@@ -118,7 +118,7 @@ export const prepareAccounts = async (
 		now: Date.now,
 		quota: (login: UsageLogin) =>
 			fetchAccountQuota(
-				{ ...login, id: login.id ?? "", enabled: true, createdAt: "", updatedAt: "" },
+				{ ...login, id: login.id ?? "", createdAt: "", updatedAt: "" },
 				fetch,
 				readCredential as (account: { harness: AccountHarness; profilePath: string }) => Promise<Credential>,
 			),
@@ -127,7 +127,10 @@ export const prepareAccounts = async (
 	const key = ctx.home;
 	const saved = cache.get(key);
 	const now = deps.now();
-	if (saved && now - saved.at < (input.refresh ? REFRESH_FLOOR_MS : CACHE_MS)) return saved.result;
+	if (saved && now - saved.at < (input.refresh ? REFRESH_FLOOR_MS : CACHE_MS)) {
+		const result = await saved.result;
+		if (result.every((login) => login.harness !== "muse" || isCurrentMuseQuota(login.quota, now))) return result;
+	}
 	const result = (async () => {
 		const accounts = await ctx.newTx(listAccounts);
 		const logins = await usageLogins(accounts, await deps.env());

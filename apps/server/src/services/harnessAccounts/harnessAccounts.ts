@@ -91,16 +91,14 @@ export const update = async (ctx: IoCtx, tx: Tx, input: HarnessAccountUpdate) =>
 	await tx.execute(sql`LOCK TABLE harness_accounts IN SHARE ROW EXCLUSIVE MODE`);
 	const account = await getAccount(tx, input);
 	if (input.name) await requireUniqueName(tx, { id: account.id, name: input.name });
-	const enabled = input.enabled ?? account.enabled;
 	const isDefault = input.isDefault ?? account.isDefault;
-	if (isDefault && !enabled) throw invalidInput("enabled", "Clear the default before you disable this account.");
 	if (isDefault)
 		await tx.execute(
 			sql`UPDATE harness_accounts SET is_default=false,updated_at=${ctx.now()} WHERE harness=${account.harness} AND is_default AND id<>${account.id}`,
 		);
 	const [updated] = await rows<AccountRow>(
 		tx,
-		sql`UPDATE harness_accounts SET name=${input.name ?? account.name},enabled=${enabled},is_default=${isDefault},updated_at=${ctx.now()} WHERE id=${account.id} RETURNING ${accountColumns}`,
+		sql`UPDATE harness_accounts SET name=${input.name ?? account.name},is_default=${isDefault},updated_at=${ctx.now()} WHERE id=${account.id} RETURNING ${accountColumns}`,
 	);
 	// A default picked here reaches every other tool on the machine through
 	// the SuperSet pointer, once the transaction holds.
@@ -118,7 +116,7 @@ export const remove = async (ctx: IoCtx, tx: Tx, input: { id: string }) => {
 	);
 	if (active.length) throw invalidInput("id", "Stop the agents that use this account before you remove it.");
 	await tx.execute(
-		sql`UPDATE harness_accounts SET archived_at=${ctx.now()},is_default=false,enabled=false,updated_at=${ctx.now()} WHERE id=${input.id}`,
+		sql`UPDATE harness_accounts SET archived_at=${ctx.now()},is_default=false,updated_at=${ctx.now()} WHERE id=${input.id}`,
 	);
 	invalidateUsage(ctx);
 	return input;

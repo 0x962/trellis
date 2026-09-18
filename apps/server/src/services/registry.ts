@@ -12,13 +12,8 @@ import { lineStats as workspaceLineStats } from "./agentRuns/workspace/lineStats
 import { workspace } from "./agentRuns/workspace/workspace.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
+import * as commentMentions from "./commentMentions/run.ts";
 import * as comments from "./comments.ts";
-import * as controller from "./controller/controller.ts";
-import * as controllerDispatch from "./controller/dispatch.ts";
-import { cancel as cancelManagerAction } from "./controller/nextActions/cancel.ts";
-import { list as listManagerActions } from "./controller/nextActions/list.ts";
-import * as controllerPrepare from "./controller/prepare.ts";
-import * as controllerWork from "./controller/work.ts";
 import { diagnostics } from "./diagnostics.ts";
 import { decide as decideFlowExecution } from "./flowExecutions/decide.ts";
 import { list as listFlowExecutions } from "./flowExecutions/list.ts";
@@ -31,7 +26,6 @@ import * as flowSave from "./flows/save.ts";
 import * as harnessAccounts from "./harnessAccounts/harnessAccounts.ts";
 import { prepareQuota } from "./harnessAccounts/quota.ts";
 import * as labelGroups from "./labelGroups.ts";
-import * as loops from "./loops/loops.ts";
 import * as needsYou from "./needsYou/needsYou.ts";
 import * as notes from "./notes/notes.ts";
 import * as projects from "./projects.ts";
@@ -51,9 +45,6 @@ import * as sessions from "./sessions/sessions.ts";
 import { prepareStart as startSession } from "./sessions/start.ts";
 import * as settings from "./settings.ts";
 import * as statuses from "./statuses.ts";
-import { list as listSubmanagers } from "./submanagers/list.ts";
-import { prepareStart as startSubmanager } from "./submanagers/prepareStart.ts";
-import { prepareRetire as retireSubmanager } from "./submanagers/retire.ts";
 import type { IoCtx, PrepareCtx } from "./support.ts";
 import * as system from "./system.ts";
 import { prepareSystemUsage } from "./systemUsage";
@@ -111,12 +102,13 @@ const sessionMutation = (prepare: Prepare) =>
 export const services = {
 	"sessions.list": core("read", sessions.list),
 	"sessions.get": prepared("read", sessions.observe, agentTerminal.result),
-	"sessions.create": sessionMutation(createSession),
+	"sessions.create": prepared(
+		"mutation",
+		async (ctx, input) => sessions.accepted(ctx, await createSession(ctx, input)),
+		sessions.finish,
+	),
 	"sessions.start": sessionMutation(startSession),
 	"sessions.delete": prepared("mutation", deleteSession, agentTerminal.result),
-	"submanagers.list": core("read", listSubmanagers),
-	"submanagers.start": agentMutation(startSubmanager),
-	"submanagers.retire": prepared("mutation", retireSubmanager, agentTerminal.result),
 	"harnessAccounts.list": io("read", harnessAccounts.list),
 	"harnessAccounts.create": prepared("mutation", harnessAccounts.prepareCreate, harnessAccounts.create),
 	"harnessAccounts.update": io("mutation", harnessAccounts.update),
@@ -164,21 +156,15 @@ export const services = {
 	"reviews.submit": prepared("mutation", reviewRemote.submit, reviewRemote.actionResult),
 
 	"agentRuns.send": agentMutation(agentCommunication.prepareSend),
-	"controller.collect": prepared("mutation", controllerPrepare.prepare, controllerPrepare.collect),
-	"controller.claim": prepared("mutation", controllerPrepare.prepare, controllerPrepare.claim),
-	"controller.complete": core("mutation", controller.complete),
-	"controller.recover": core("mutation", controller.recover),
-	"controller.list": core("read", controller.list),
-	"controller.actions": core("read", listManagerActions),
-	"controller.cancelAction": core("mutation", cancelManagerAction),
-	"controller.handle": core("mutation", controllerWork.handle),
-	"controller.retry": core("mutation", controller.retry),
-	"controller.resolveUnknown": core("mutation", controller.resolveUnknown),
-	"controller.dispatch": prepared("mutation", controllerDispatch.dispatch, controllerDispatch.finished),
+	"commentMentions.dispatch": prepared("mutation", commentMentions.prepare, commentMentions.finish),
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
 	"agentRuns.list": prepared("read", agentRuns.prepareList, agentTerminal.result),
 	"agentRuns.ticketMetrics": prepared("read", agentRuns.prepareTicketMetrics, agentTerminal.result),
-	"agentRuns.start": agentMutation(agentRuns.prepareStart),
+	"agentRuns.start": prepared(
+		"mutation",
+		async (ctx, input) => agentRuns.acceptedResult(ctx, await agentRuns.prepareStart(ctx, input)),
+		agentRuns.finish,
+	),
 	"agentRuns.resume": agentMutation(prepareResume),
 	"agentRuns.setModel": agentMutation(prepareSetModel),
 	"agentRuns.stop": agentMutation(agentLifecycle.prepareStop),
@@ -244,9 +230,6 @@ export const services = {
 	"actors.default": core("read", actors.default),
 	"settings.get": core("read", settings.get),
 	"settings.set": core("mutation", settings.set),
-	"loops.list": io("read", loops.list),
-	"loops.control": io("mutation", loops.control),
-	"loops.update": io("mutation", loops.update),
 	"system.health": io("read", system.health),
 	"system.usage": prepared("read", prepareSystemUsage, agentTerminal.result),
 	"system.snapshot": io("mutation", system.snapshot),

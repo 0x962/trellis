@@ -1,23 +1,29 @@
+import type { Harness } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
-import { managerConfigOf } from "../projectRows.ts";
 
-export async function projectLaunchConfig(tx: Tx, input: { projectId: string }) {
-	const ancestors = await rows<{ manager_config: unknown }>(
+export type ProjectLaunchConfig = {
+	directory: string;
+	harness: Harness;
+	accountId: null;
+};
+
+export async function projectLaunchConfig(
+	tx: Tx,
+	input: { projectId: string; harness: Harness },
+): Promise<ProjectLaunchConfig> {
+	const ancestors = await rows<{ directory: string }>(
 		tx,
 		sql`WITH RECURSIVE lineage AS (
-			SELECT id,parent_id,manager_config,0 AS depth FROM projects WHERE id=${input.projectId}
+			SELECT id,parent_id,directory,0 AS depth FROM projects WHERE id=${input.projectId}
 			UNION ALL
-			SELECT p.id,p.parent_id,p.manager_config,lineage.depth+1 FROM projects p JOIN lineage ON p.id=lineage.parent_id
-		) SELECT manager_config FROM lineage ORDER BY depth`,
+			SELECT p.id,p.parent_id,p.directory,lineage.depth+1 FROM projects p JOIN lineage ON p.id=lineage.parent_id
+		) SELECT directory FROM lineage ORDER BY depth`,
 	);
-	const configs = ancestors.map(managerConfigOf);
-	const config = configs[0]!;
 	return {
-		...config,
-		instruction: configs.find((item) => item.instruction !== "")?.instruction ?? "",
-		directory: configs.find((item) => item.directory !== "")?.directory ?? "",
-		accountId: configs.find((item) => item.accountId !== null)?.accountId ?? null,
+		directory: ancestors.find((item) => item.directory !== "")?.directory ?? "",
+		harness: input.harness,
+		accountId: null,
 	};
 }

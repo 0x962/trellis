@@ -23,6 +23,7 @@ export type SheetProps = {
 	// The element that takes focus when the sheet opens. Base UI's own
 	// rule, the first tabbable element, applies when this is absent.
 	initialFocus?: ComponentProps<typeof BaseDialog.Popup>["initialFocus"];
+	finalFocus?: ComponentProps<typeof BaseDialog.Popup>["finalFocus"];
 	// The element a resizable peek drags to change its width. The Sheet places
 	// it on the edge that faces the page; the drag logic belongs to the caller.
 	resizeHandle?: ReactNode;
@@ -56,6 +57,7 @@ export function Sheet({
 	width = 720,
 	bare = false,
 	initialFocus,
+	finalFocus,
 	resizeHandle,
 	titleClassName = "font-mono text-sm text-fg-muted",
 	motion = "peek",
@@ -77,6 +79,7 @@ export function Sheet({
 					aria-label={title}
 					aria-modal={modal ? "true" : "false"}
 					initialFocus={initialFocus}
+					finalFocus={finalFocus}
 					style={{ width }}
 					className={cx(
 						"fixed inset-y-0 z-50 flex max-w-full flex-col border-border bg-surface text-base text-fg shadow-lg outline-none",

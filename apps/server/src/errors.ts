@@ -15,7 +15,7 @@ export const fail = <C extends ErrorCode>(code: C, data?: ErrorData<C>, message:
 
 // One Standard Schema issue on `path`, for INPUT_VALIDATION_FAILED raised
 // by a rule the zod schema cannot state alone. The error message is the
-// rule itself, so a toast, a CLI line, or a manager tool result states what
+// rule itself, so a toast or a CLI line states what
 // happened without a read of `data.issues`.
 export const invalidInput = (path: string, message: string) =>
 	new ORPCError("INPUT_VALIDATION_FAILED", {

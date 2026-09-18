@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
+import { HarnessSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { advanceFlow } from "../../agents/nativeFlow/advanceFlow.ts";
 import { pendingFlowActions } from "../../agents/nativeFlow/pendingFlowActions.ts";
 import type { ServiceCtx } from "../../context.ts";
 import type { Tx } from "../../db/tx.ts";
-import { invalidInput } from "../../errors.ts";
 import { reserve } from "../agentRuns/reserve.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { readExecution } from "./queries.ts";
@@ -16,9 +16,10 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 	const actions = pendingFlowActions(execution.doc, state).filter((action) => action.type === "agent");
 	if (actions.length === 0) return null;
 	await tx.execute(sql`SELECT id FROM projects WHERE id=${execution.project_id} FOR UPDATE`);
-	const config = await projectLaunchConfig(tx, { projectId: execution.project_id });
-	if (config.ade !== "native" || config.harness.preset === "custom")
-		throw invalidInput("project", "The flow requires a built-in harness.");
+	const config = await projectLaunchConfig(tx, {
+		projectId: execution.project_id,
+		harness: HarnessSchema.parse({ preset: "claude" }),
+	});
 	const action = actions[0]!;
 	const instruction = [
 		execution.doc.flow.briefing,

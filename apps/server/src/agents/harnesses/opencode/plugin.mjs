@@ -2,7 +2,6 @@ import { spawn } from "node:child_process";
 import { openCodeControl } from "./control.mjs";
 
 export const TrellisPlugin = async ({ client }) => {
-	const managerTools = process.env.TRELLIS_MANAGER_TOOLS ? JSON.parse(process.env.TRELLIS_MANAGER_TOOLS) : null;
 	let sessionId = null;
 	let turnId;
 	let working = false;
@@ -20,7 +19,6 @@ export const TrellisPlugin = async ({ client }) => {
 				body: {
 					parts: [{ type: "text", text }],
 					...(process.env.TRELLIS_OPENCODE_VARIANT ? { variant: process.env.TRELLIS_OPENCODE_VARIANT } : {}),
-					...(managerTools ? { agent: "trellis-manager" } : {}),
 					...(model ? { model: { providerID: model.slice(0, split), modelID: model.slice(split + 1) } } : {}),
 				},
 			});
@@ -63,20 +61,10 @@ export const TrellisPlugin = async ({ client }) => {
 	}
 	const matches = (id) => id === sessionId;
 	return {
-		"experimental.chat.system.transform": async (_input, output) => {
-			if (managerTools && output.system.some((text) => text.includes(process.env.TRELLIS_MANAGER_SYSTEM_PROMPT)))
-				output.system = [process.env.TRELLIS_MANAGER_SYSTEM_PROMPT];
-		},
 		config: async (config) => {
 			const permission = { "*": "allow" };
 			config.permission = permission;
 			for (const agent of Object.values(config.agent ?? {})) agent.permission = permission;
-			if (managerTools) {
-				config.tools = { "*": true };
-				config.mcp = {
-					trellis: { type: "local", command: [managerTools.command, ...managerTools.args], enabled: true },
-				};
-			}
 		},
 		"chat.message": async (input, output) => {
 			await control.beforePrompt();

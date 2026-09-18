@@ -20,12 +20,11 @@ const formatWhen = (iso: string) =>
 
 const kindLabel: Record<string, string> = {
 	agent: "Agent",
-	manager: "Copilot",
 	flow: "Flow",
 	session: "Session",
 };
 
-// The most expensive sessions of the range. A session that Trellis started
+// The top sessions for the selected metric. A session that Trellis started
 // names its ticket, agent, and kind. The session id copies for
 // `claude --resume`, `codex resume`, or `muse resume`.
 export function UsageSessions({ sessions, metric, filtered }: UsageSessionsProps) {
@@ -44,7 +43,7 @@ export function UsageSessions({ sessions, metric, filtered }: UsageSessionsProps
 			<SectionHeader
 				title={filtered === null ? "Top sessions" : `Top sessions in ${filtered}`}
 				count={sessions.length}
-				actions={<span>By cost, the most expensive first</span>}
+				actions={<span>{metric === "usd" ? "Highest cost first" : "Most tokens first"}</span>}
 			/>
 			{sessions.length === 0 ? (
 				<p className="border border-dashed border-border p-4 text-sm text-fg-faint">

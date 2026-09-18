@@ -6,7 +6,7 @@
 
 import type { UsageHarness } from "@trellis/api";
 
-export const PRICING_TABLE_UPDATED = "2026-09-03";
+export const PRICING_TABLE_UPDATED = "2026-09-17";
 
 export type ModelRate = {
 	inputPerM: number;
@@ -15,9 +15,6 @@ export type ModelRate = {
 	// its input rate.
 	cacheReadPerM?: number;
 	longContext?: ModelRate;
-	// True for a model with no published API list price. Its tokens count,
-	// its cost stays zero, and every row it touches is approximate.
-	unpriced?: boolean;
 };
 
 export const CACHE_READ_MULTIPLIER = 0.1;
@@ -67,10 +64,9 @@ const GEMINI_RATES: Record<string, ModelRate> = {
 	"gemini-2.5-flash": { inputPerM: 0.3, outputPerM: 2.5 },
 };
 
-// Meta publishes no API list price for the Muse models.
 const MUSE_RATES: Record<string, ModelRate> = {
-	"muse-spark": { inputPerM: 0, outputPerM: 0, unpriced: true },
-	"muse-glimmer": { inputPerM: 0, outputPerM: 0, unpriced: true },
+	"muse-spark": { inputPerM: 1.25, outputPerM: 4.25, cacheReadPerM: 1.25 },
+	"muse-glimmer": { inputPerM: 1.25, outputPerM: 4.25, cacheReadPerM: 1.25 },
 };
 
 // Pi and OpenCode route to many providers. They record their own cost, and
@@ -118,7 +114,7 @@ export function matchModelRate(harness: UsageHarness, model: string, promptToken
 	}
 	if (best) {
 		const rate = promptTokens > 200_000 && best.rate.longContext ? best.rate.longContext : best.rate;
-		return { ...rate, approximate: rate.unpriced === true };
+		return { ...rate, approximate: false };
 	}
 	return { ...cheapestRate(harness), approximate: true };
 }
@@ -145,7 +141,11 @@ export function costUsd(rate: ModelRate, tokens: TokenCounts): number {
 	);
 }
 
-// The dollars the cache reads saved against the full input price.
+// The difference between full-price input tokens and cache read or write tokens.
 export function cacheSavingsUsd(rate: ModelRate, tokens: TokenCounts): number {
-	return (tokens.cachedInput / 1e6) * (rate.inputPerM - cacheReadPerM(rate));
+	return (
+		(tokens.cachedInput / 1e6) * (rate.inputPerM - cacheReadPerM(rate)) -
+		(tokens.cacheWrite5m / 1e6) * rate.inputPerM * (CACHE_WRITE_5M_MULTIPLIER - 1) -
+		(tokens.cacheWrite1h / 1e6) * rate.inputPerM * (CACHE_WRITE_1H_MULTIPLIER - 1)
+	);
 }

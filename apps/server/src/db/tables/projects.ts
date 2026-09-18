@@ -1,16 +1,5 @@
 import { sql } from "drizzle-orm";
-import {
-	boolean,
-	check,
-	foreignKey,
-	index,
-	integer,
-	jsonb,
-	pgTable,
-	text,
-	unique,
-	uniqueIndex,
-} from "drizzle-orm/pg-core";
+import { boolean, check, foreignKey, index, integer, pgTable, text, unique, uniqueIndex } from "drizzle-orm/pg-core";
 import { checkIn, REVIEWERS, STATUS_CATEGORIES } from "../enums.ts";
 import { at } from "./actors.ts";
 
@@ -29,7 +18,7 @@ export const projects = pgTable(
 		slug: text().notNull(),
 		name: text().notNull(),
 		description: text().notNull().default(""),
-		managerConfig: jsonb("manager_config").notNull().default({ instruction: "", directory: "" }),
+		directory: text().notNull().default(""),
 		ticketTemplate: text("ticket_template").notNull().default(""),
 		ticketCounter: integer("ticket_counter").notNull().default(0),
 		position: integer().notNull().default(0),
@@ -73,8 +62,7 @@ export const repos = pgTable(
 
 // A review status names who reviews; every other category carries no
 // reviewer. One status per project is the default for a new ticket.
-// `description` is markdown that tells the manager agent what to do with a
-// ticket in this status.
+// `description` is markdown that describes the status.
 export const statuses = pgTable(
 	"statuses",
 	{

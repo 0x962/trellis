@@ -11,7 +11,6 @@ import { recordRequest, replayRequest } from "../assignments/requests.ts";
 import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive } from "../refs.ts";
-import { assertResume } from "../submanagers/assertResume.ts";
 import type { IoCtx } from "../support.ts";
 import { assertResumeTicket } from "./assertResumeTicket.ts";
 import { startNative } from "./nativeStart.ts";
@@ -33,10 +32,7 @@ export async function prepareResume(
 ) {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
 	if (run.kind === "session") throw invalidInput("id", "Use sessions.start to resume this session.");
-	await ctx.newTx(async (tx) => {
-		await assertResume(ctx.core, tx, run);
-		await assertResumeTicket(tx, run);
-	});
+	await ctx.newTx((tx) => assertResumeTicket(tx, run));
 	if (run.runtime !== "native" || !run.projectId)
 		throw invalidInput("id", "This assignment has no resumable native session.");
 	const target = {
@@ -101,7 +97,6 @@ export async function prepareResume(
 		if (replay) return { replay: true as const, run: replay };
 		assertProjectActive(ctx.core, run.projectId!);
 		const current = await getRun(tx, input.id);
-		await assertResume(ctx.core, tx, current);
 		await assertResumeTicket(tx, current);
 		if (current.terminalId !== input.expectedTerminalId)
 			throw invalidInput("expectedTerminalId", "Another call already replaced this attempt.");
@@ -112,16 +107,13 @@ export async function prepareResume(
 			);
 			if (duplicates.length) throw invalidInput("id", "Another agent already owns this ticket.");
 		}
-		const config = await projectLaunchConfig(tx, { projectId: run.projectId! });
+		const config = await projectLaunchConfig(tx, {
+			projectId: run.projectId!,
+			harness: HarnessSchema.parse({ preset: descriptor.harness, model }),
+		});
 		const selected = await selectAccount(tx, {
 			accountId: input.accountId ?? run.accountId,
-			config: {
-				...config,
-				harness: HarnessSchema.parse({
-					preset: descriptor.harness,
-					model,
-				}),
-			},
+			config,
 			useDefault: false,
 		});
 		if (selected.config.harness.preset !== descriptor.harness)
@@ -154,7 +146,6 @@ export async function prepareResume(
 		resume: true,
 		previousAttemptId: input.expectedTerminalId,
 		previousAccountId: run.accountId ?? null,
-		context: "",
 		resumePrompt: JSON.stringify({
 			type: "trellis.assignment.resumed",
 			runId: run.id,

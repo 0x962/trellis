@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { workingTargets } from "../workingTargets";
 
-const empty = { ticketIds: [] as string[], projectIds: [] as string[], runIds: [] as string[] };
+const empty = { ticketIds: [] as string[], runIds: [] as string[] };
 
 export function useWorkingAgents() {
 	const { orpc } = useApp();

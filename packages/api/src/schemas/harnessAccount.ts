@@ -9,7 +9,6 @@ export const HarnessAccountSchema = z.object({
 	harness: AccountHarnessSchema,
 	profilePath: z.string(),
 	isDefault: z.boolean(),
-	enabled: z.boolean(),
 	loginCommand: z.string().nullable(),
 	capabilities: z.object({
 		launch: z.boolean(),
@@ -44,21 +43,20 @@ export const HarnessAccountUpdateSchema = z.strictObject({
 		.min(1, "Enter an account name of 1 to 120 characters.")
 		.max(120, "Enter an account name of 1 to 120 characters.")
 		.optional(),
-	enabled: z.boolean().optional(),
 	isDefault: z.boolean().optional(),
 });
 export type HarnessAccountUpdate = z.infer<typeof HarnessAccountUpdateSchema>;
 export const HarnessAccountQuotaSchema = z.object({
 	accountId: UlidSchema,
-	// `unlimited` is a login whose provider reports no quota window: an API
-	// key, a plan without limits, or a harness with no quota endpoint.
-	status: z.enum(["ok", "unlimited", "signed_out", "expired", "unavailable"]),
+	status: z.enum(["ok", "unlimited", "metered", "signed_out", "stale", "expired", "unavailable"]),
 	email: z.string().nullable(),
 	plan: z.string().nullable(),
 	detail: z.string().nullable(),
 	windows: z.array(
 		z.object({ id: z.string(), label: z.string(), usedPercent: z.number(), resetsAt: IsoDateTimeSchema.nullable() }),
 	),
+	creditsBalance: z.number().nullable(),
+	extraUsage: z.object({ usedCents: z.number(), limitCents: z.number() }).nullable(),
 	fetchedAt: IsoDateTimeSchema,
 });
 export type HarnessAccountQuota = z.infer<typeof HarnessAccountQuotaSchema>;

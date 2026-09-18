@@ -41,7 +41,7 @@ export const listUsageProjects = async (tx: Tx): Promise<UsageProject[]> => {
 	const result = await rows<ProjectRow>(
 		tx,
 		sql`WITH RECURSIVE ${pathsCte}
-		SELECT p.id, p.parent_id AS "parentId", pp.path, p.name, coalesce(p.manager_config->>'directory', '') AS directory
+		SELECT p.id, p.parent_id AS "parentId", pp.path, p.name, p.directory
 		FROM projects p JOIN paths pp ON pp.id = p.id`,
 	);
 	const byId = new Map(result.map((project) => [project.id, project]));

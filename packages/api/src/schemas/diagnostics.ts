@@ -9,12 +9,6 @@ export const DiagnosticsSchema = z.object({
 		expectedProtocol: z.number(),
 		error: z.string().nullable(),
 	}),
-	queue: z.object({
-		pending: z.number(),
-		sending: z.number(),
-		unknown: z.number(),
-		oldestDueAt: z.string().nullable(),
-	}),
 	lastObservationAt: z.string().nullable(),
 	unresolvedAttempts: z.array(z.object({ id: z.string(), state: z.string(), error: z.string().nullable() })),
 	logs: z.array(z.string()),

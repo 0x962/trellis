@@ -10,7 +10,6 @@ export const resumeText =
 export const launchCommand = (input: {
 	run: Omit<AgentRun, "assigned" | "state" | "processStatus" | "observation">;
 	url: string;
-	context: string;
 	directory?: string;
 	resume?: boolean;
 	template: string;
@@ -28,11 +27,9 @@ export const launchCommand = (input: {
 		prompt,
 		sessionId: run.sessionId!,
 		resumeText:
-			run.kind === "manager"
-				? `${prefix}${JSON.stringify({ event: "session.resumed", actor, project: run.projectPath })}`
-				: run.kind === "session"
-					? `${prefix}Continue this session in the same conversation and workspace.`
-					: `${prefix}${run.instruction}\n\n${resumeText}`,
+			run.kind === "session"
+				? `${prefix}Continue this session in the same conversation and workspace.`
+				: `${prefix}${run.instruction}\n\n${resumeText}`,
 		actor,
 		trellisUrl: url,
 		directory: input.directory ?? "",

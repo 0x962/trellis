@@ -10,6 +10,12 @@ contextBridge.exposeInMainWorld(
 	"trellisDesktop",
 	Object.freeze({
 		platform: "darwin",
+		onAccessibilitySupportChanged: (listener: (enabled: boolean) => void) => {
+			const handler = (_event: IpcRendererEvent, enabled: boolean) => listener(enabled);
+			ipcRenderer.on("trellis:accessibility-support", handler);
+			void ipcRenderer.invoke("trellis:accessibility-ready");
+			return () => ipcRenderer.removeListener("trellis:accessibility-support", handler);
+		},
 		chooseDirectory: (): Promise<string | null> => ipcRenderer.invoke("trellis:choose-directory"),
 		status: (): Promise<DesktopStatus> => ipcRenderer.invoke("trellis:desktop-status"),
 		serviceStatus: (): Promise<DesktopServiceStatus> => ipcRenderer.invoke("trellis:desktop-service-status"),

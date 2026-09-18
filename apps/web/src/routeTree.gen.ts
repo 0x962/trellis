@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GalleryRouteImport } from './routes/[_]gallery'
-import { Route as LoopsRouteImport } from './routes/loops'
 import { Route as NeedsYouRouteRouteImport } from './routes/needs-you/route'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -33,11 +32,6 @@ const IndexRoute = IndexRouteImport.update({
 const GalleryRoute = GalleryRouteImport.update({
   id: '/_gallery',
   path: '/_gallery',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoopsRoute = LoopsRouteImport.update({
-  id: '/loops',
-  path: '/loops',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NeedsYouRouteRoute = NeedsYouRouteRouteImport.update({
@@ -105,7 +99,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/needs-you': typeof NeedsYouRouteRoute
   '/_gallery': typeof GalleryRoute
-  '/loops': typeof LoopsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
@@ -122,7 +115,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/needs-you': typeof NeedsYouRouteRoute
   '/_gallery': typeof GalleryRoute
-  '/loops': typeof LoopsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
@@ -140,7 +132,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/needs-you': typeof NeedsYouRouteRoute
   '/_gallery': typeof GalleryRoute
-  '/loops': typeof LoopsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
@@ -159,7 +150,6 @@ export interface FileRouteTypes {
     | '/'
     | '/needs-you'
     | '/_gallery'
-    | '/loops'
     | '/search'
     | '/settings'
     | '/setup'
@@ -176,7 +166,6 @@ export interface FileRouteTypes {
     | '/'
     | '/needs-you'
     | '/_gallery'
-    | '/loops'
     | '/search'
     | '/settings'
     | '/setup'
@@ -193,7 +182,6 @@ export interface FileRouteTypes {
     | '/'
     | '/needs-you'
     | '/_gallery'
-    | '/loops'
     | '/search'
     | '/settings'
     | '/setup'
@@ -211,7 +199,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   NeedsYouRouteRoute: typeof NeedsYouRouteRoute
   GalleryRoute: typeof GalleryRoute
-  LoopsRoute: typeof LoopsRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   SetupRoute: typeof SetupRoute
@@ -239,13 +226,6 @@ declare module '@tanstack/react-router' {
       path: '/_gallery'
       fullPath: '/_gallery'
       preLoaderRoute: typeof GalleryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/loops': {
-      id: '/loops'
-      path: '/loops'
-      fullPath: '/loops'
-      preLoaderRoute: typeof LoopsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/needs-you': {
@@ -339,7 +319,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   NeedsYouRouteRoute: NeedsYouRouteRoute,
   GalleryRoute: GalleryRoute,
-  LoopsRoute: LoopsRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   SetupRoute: SetupRoute,

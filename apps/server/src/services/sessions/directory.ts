@@ -17,15 +17,13 @@ export const sessionDirectoryNames = async (home: string) => {
 	return readdir(sessionsRoot(home));
 };
 
-// Creates the session directory as a git repository on `main` with one
-// empty commit, so the agent starts in a repository that every git command
-// accepts. The commit carries a fixed identity, because the machine may
-// hold none. The directory must not exist yet.
-export const createSessionRepository = async (home: string, name: string) => {
-	const directory = join(sessionsRoot(home), name);
-	await mkdir(directory, { mode: 0o700 });
+// A first commit lets workspace commands resolve HEAD. The fixed identity
+// permits that commit when the machine has no Git identity.
+const initializeRepository = async (directory: string) => {
 	const env = { NODE_ENV: process.env.NODE_ENV, ...(await executionEnvironment()) };
 	await exec("git", ["-C", directory, "init", "-q", "-b", "main"], { env });
+	const commits = await exec("git", ["-C", directory, "rev-list", "--all", "--max-count=1", "--count"], { env });
+	if (Number(commits.stdout.trim()) > 0) return directory;
 	await exec(
 		"git",
 		[
@@ -38,12 +36,27 @@ export const createSessionRepository = async (home: string, name: string) => {
 			"commit",
 			"-q",
 			"--allow-empty",
+			"--only",
 			"-m",
 			"Start the session",
 		],
 		{ env },
 	);
 	return directory;
+};
+
+export const createSessionRepository = async (home: string, name: string) => {
+	const directory = join(sessionsRoot(home), name);
+	await mkdir(directory, { mode: 0o700 });
+	return initializeRepository(directory);
+};
+
+// A failed first launch can leave the directory or Git metadata incomplete.
+// Repeated initialization preserves files and creates a commit only when Git has no history.
+export const prepareSessionRepository = async (home: string, name: string) => {
+	const directory = join(sessionsRoot(home), name);
+	await mkdir(directory, { recursive: true, mode: 0o700 });
+	return initializeRepository(directory);
 };
 
 // Removes a session directory with every file in it. The path must sit

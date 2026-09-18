@@ -1,21 +1,17 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { watch } from "node:fs";
 import { chmod, mkdir, rm } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname } from "node:path";
 import { createInterface } from "node:readline";
 import { fromHarnessModel } from "@trellis/api/models";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { z } from "zod";
-import { authenticatedManagerTools } from "../../managerTools/authenticatedManagerTools/authenticatedManagerTools.ts";
 import { applyTurnActivity } from "../turnActivity/turnActivity.ts";
 import type { HarnessEvent } from "../types.ts";
 import { CodexAppServerClient } from "./appServerClient.ts";
 import { CodexAppServerEvents } from "./appServerEvents.ts";
 import { codexControl } from "./codexControl.ts";
 import { engineOptions } from "./engineOptions.ts";
-import { managerAdapter } from "./managerAdapter/managerAdapter.ts";
-import { managerPolicy } from "./managerPolicy/managerPolicy.ts";
-import { startManagerTerminalProxy } from "./managerTerminalProxy/managerTerminalProxy.ts";
 
 const env = z
 	.object({
@@ -35,12 +31,8 @@ const launch = z
 		model: z.string().optional(),
 		effort: z.string().optional(),
 		sessionId: z.string().optional(),
-		managerSystemPrompt: z.string().optional(),
 	})
 	.parse(JSON.parse(process.argv[2]!));
-const manager = launch.managerSystemPrompt !== undefined;
-let managerThreadId: string | undefined;
-const adapter = manager ? managerAdapter(authenticatedManagerTools(process.env), () => managerThreadId) : undefined;
 const runtime = new RuntimeClient(env.TRELLIS_HARNESS_SOCKET);
 const directory = dirname(env.TRELLIS_CODEX_ENGINE_SOCKET);
 await mkdir(directory, { mode: 0o700 });
@@ -48,7 +40,6 @@ await chmod(directory, 0o700);
 let client: CodexAppServerClient | undefined;
 let terminal: ChildProcess | undefined;
 let control: Awaited<ReturnType<typeof codexControl>> | undefined;
-let managerEndpoint: Awaited<ReturnType<typeof startManagerTerminalProxy>> | undefined;
 const socketReady = new Promise<void>((resolve, reject) => {
 	const watcher = watch(directory, (_, name) => {
 		if (name === "engine.sock") {
@@ -66,13 +57,13 @@ const engine = spawn(
 	env.TRELLIS_CODEX_EXECUTABLE,
 	[
 		"app-server",
-		...engineOptions(manager, managerPolicy.config, launch.effort),
+		...engineOptions(launch.effort),
 		"--listen",
 		`unix://${env.TRELLIS_CODEX_ENGINE_SOCKET}`,
 		"-c",
 		'approval_policy="never"',
 		"-c",
-		`sandbox_mode="${manager ? "read-only" : "danger-full-access"}"`,
+		'sandbox_mode="danger-full-access"',
 	],
 	{
 		cwd: launch.cwd,
@@ -124,7 +115,7 @@ async function start() {
 		(notification) => {
 			if (parser) observe(parser.parse(notification));
 		},
-		adapter?.request,
+		undefined,
 	);
 	const engineLines = createInterface({ input: engine.stderr! });
 	engineLines.on("line", (line) => {
@@ -143,7 +134,6 @@ async function start() {
 	});
 	client.closed.catch(reportFailure);
 	await client.initialize();
-	const config = manager ? managerPolicy.config : undefined;
 	const result = z
 		.looseObject({
 			thread: z.looseObject({ id: z.string() }),
@@ -158,18 +148,9 @@ async function start() {
 				model: launch.model,
 				approvalPolicy: "never",
 				sandbox: "danger-full-access",
-				...(manager
-					? {
-							baseInstructions: launch.managerSystemPrompt,
-							developerInstructions: "",
-							config,
-							...(!launch.sessionId ? { dynamicTools: adapter!.tools } : {}),
-						}
-					: {}),
 			}),
 		);
 	if (launch.sessionId && result.thread.id !== launch.sessionId) throw new Error("Codex resumed a different thread");
-	managerThreadId = result.thread.id;
 	parser = new CodexAppServerEvents(result.thread.id);
 	await runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, {
 		kind: "session",
@@ -181,7 +162,6 @@ async function start() {
 		token: env.TRELLIS_CODEX_CONTROL_TOKEN,
 		sessionId: result.thread.id,
 		client,
-		manager,
 		effort: launch.effort,
 		current: () => current,
 	});
@@ -191,31 +171,10 @@ async function start() {
 		effort: launch.effort,
 		approvalPolicy: "never",
 		sandboxPolicy: { type: "dangerFullAccess" },
-		...(manager ? managerPolicy.turn : {}),
 	});
 	await firstPrompt;
-	const terminalSocket = manager ? join(directory, "terminal.sock") : env.TRELLIS_CODEX_ENGINE_SOCKET;
-	if (manager) {
-		managerEndpoint = await startManagerTerminalProxy({
-			socket: terminalSocket,
-			engineSocket: env.TRELLIS_CODEX_ENGINE_SOCKET,
-			threadId: result.thread.id,
-			transformRequest: (message) =>
-				managerPolicy.terminalRequest(message, {
-					threadId: result.thread.id,
-					systemPrompt: launch.managerSystemPrompt!,
-					config: config!,
-				}),
-		});
-		managerEndpoint.closed.catch(reportFailure);
-	}
 
-	const args = [
-		"--remote",
-		`unix://${terminalSocket}`,
-		"resume",
-		...(manager ? [] : ["--dangerously-bypass-hook-trust"]),
-	];
+	const args = ["--remote", `unix://${env.TRELLIS_CODEX_ENGINE_SOCKET}`, "resume", "--dangerously-bypass-hook-trust"];
 	if (launch.model) args.push("--model", launch.model);
 	args.push("--", result.thread.id);
 	terminal = spawn(env.TRELLIS_CODEX_EXECUTABLE, args, { cwd: launch.cwd, env: process.env, stdio: "inherit" });
@@ -250,6 +209,5 @@ try {
 	);
 	client?.close();
 	control?.close();
-	await managerEndpoint?.close();
 	await rm(directory, { recursive: true, force: true });
 }

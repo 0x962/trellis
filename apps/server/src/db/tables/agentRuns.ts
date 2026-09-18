@@ -23,23 +23,18 @@ export const agentRuns = pgTable(
 		terminalId: text("terminal_id"),
 		url: text(),
 		error: text(),
-		// The agent session of the run, which trellis names before the first
-		// start. A manager start after a pause hands it to the agent resume
-		// command, in the workspace the row already names.
+		// The agent session of the run, which trellis names before the first start.
 		sessionId: text("session_id"),
-		// True while the last resume of a manager found no session.
+		// True while the last resume found no session.
 		sessionLost: boolean("session_lost").notNull().default(false),
 		createdAt: at("created_at").notNull(),
 		updatedAt: at("updated_at").notNull(),
 	},
 	(t) => [
-		check("agent_runs_kind_check", sql`${t.kind} IN ('agent', 'manager', 'flow', 'session')`),
+		check("agent_runs_kind_check", sql`${t.kind} IN ('agent', 'flow', 'session')`),
 		uniqueIndex("agent_runs_active_ticket_idx")
 			.on(t.ticketId)
 			.where(sql`${t.kind} = 'agent' AND ${t.closedAt} IS NULL`),
-		uniqueIndex("agent_runs_active_manager_idx")
-			.on(t.projectId)
-			.where(sql`${t.kind} = 'manager' AND ${t.runtime} = 'native' AND ${t.closedAt} IS NULL`),
 		index("agent_runs_created_at_idx").on(t.createdAt),
 	],
 );
