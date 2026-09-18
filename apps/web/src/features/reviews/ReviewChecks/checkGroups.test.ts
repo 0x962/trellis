@@ -31,39 +31,29 @@ describe("checkGroups", () => {
 });
 
 describe("checkTabStatus", () => {
-	test("reports blocked before running and done", () => {
-		expect(checkTabStatus([{ name: "Tests", status: "IN_PROGRESS" }], true)).toBe("blocked");
-	});
-
 	test("reports failed when a check fails", () => {
-		expect(checkTabStatus([{ name: "Tests", conclusion: "FAILURE" }], false)).toBe("failed");
+		expect(checkTabStatus([{ name: "Tests", conclusion: "FAILURE" }])).toBe("failed");
 	});
 
 	test("reports running while one check is active", () => {
 		expect(
-			checkTabStatus(
-				[
-					{ name: "Lint", conclusion: "SUCCESS" },
-					{ name: "Tests", status: "QUEUED" },
-				],
-				false,
-			),
+			checkTabStatus([
+				{ name: "Lint", conclusion: "SUCCESS" },
+				{ name: "Tests", status: "QUEUED" },
+			]),
 		).toBe("running");
 	});
 
 	test("reports done when every check has settled", () => {
 		expect(
-			checkTabStatus(
-				[
-					{ name: "Lint", conclusion: "SUCCESS" },
-					{ name: "Preview", conclusion: "SKIPPED" },
-				],
-				false,
-			),
+			checkTabStatus([
+				{ name: "Lint", conclusion: "SUCCESS" },
+				{ name: "Preview", conclusion: "SKIPPED" },
+			]),
 		).toBe("done");
 	});
 
 	test("reports no state when GitHub has no checks", () => {
-		expect(checkTabStatus([], false)).toBeNull();
+		expect(checkTabStatus([])).toBeNull();
 	});
 });

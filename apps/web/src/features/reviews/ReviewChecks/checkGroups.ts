@@ -9,7 +9,7 @@ export type ReviewCheck = {
 };
 
 export type CheckGroupKey = "failed" | "running" | "success" | "skipped";
-export type CheckTabStatus = "failed" | "blocked" | "running" | "done" | null;
+export type CheckTabStatus = "failed" | "running" | "done" | null;
 
 const failedStates = new Set([
 	"ACTION_REQUIRED",
@@ -53,9 +53,10 @@ export function checkGroups(checks: readonly ReviewCheck[]) {
 		.filter((group) => group.checks.length > 0);
 }
 
-export function checkTabStatus(checks: readonly ReviewCheck[], blocked: boolean): CheckTabStatus {
+// The state of the checks alone. The merge state of the pull request, such
+// as a conflict or a missing approval, belongs to the merge control.
+export function checkTabStatus(checks: readonly ReviewCheck[]): CheckTabStatus {
 	const groups = checkGroups(checks);
-	if (blocked) return "blocked";
 	if (groups.some((group) => group.key === "failed")) return "failed";
 	if (groups.some((group) => group.key === "running")) return "running";
 	return groups.length > 0 ? "done" : null;
