@@ -21,19 +21,32 @@ import {
 import { base } from "./base.ts";
 
 // The codes a write to one or many tickets can raise.
-const writeErrors = pickErrors(["PROJECT_ARCHIVED", "STATUS_NOT_IN_PROJECT", "CROSS_ROOT_MOVE", "PARENT_CYCLE"]);
+const writeErrors = pickErrors([
+	"PROJECT_ARCHIVED",
+	"STATUS_NOT_IN_PROJECT",
+	"CROSS_ROOT_MOVE",
+	"PARENT_CYCLE",
+	"LABEL_AMBIGUOUS",
+]);
+
+// The `label` and `labelNot` filters take label refs, and a bare name can
+// match more than one label.
+const filterErrors = pickErrors(["LABEL_AMBIGUOUS"]);
 
 export const tickets = {
 	list: base
+		.errors(filterErrors)
 		.errors(pickErrors(["INVALID_CURSOR"]))
 		.route({ method: "GET", path: "/tickets", summary: "List tickets by the shared filter grammar" })
 		.input(ListQuerySchema)
 		.output(ListOutputSchema),
 	counts: base
+		.errors(filterErrors)
 		.route({ method: "GET", path: "/tickets/counts", summary: "Count tickets per status under the same filters" })
 		.input(CountsQuerySchema)
 		.output(CountsOutputSchema),
 	board: base
+		.errors(filterErrors)
 		.route({ method: "GET", path: "/tickets/board", summary: "Read the kanban columns in one query" })
 		.input(BoardQuerySchema)
 		.output(BoardOutputSchema),

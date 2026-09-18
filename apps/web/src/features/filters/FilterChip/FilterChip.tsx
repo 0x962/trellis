@@ -1,7 +1,7 @@
-import { ArrowElbowDownRight, Clock, FolderOpen, GitPullRequest, User } from "@phosphor-icons/react";
+import { ArrowElbowDownRight, Clock, FolderOpen, GitPullRequest, Tag, User } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import type { StatusSummary } from "@trellis/api";
-import { Chip, PriorityIcon, StatusIcon } from "@trellis/ui";
+import { Chip, LabelDot, PriorityIcon, StatusIcon } from "@trellis/ui";
 import type { ReactElement } from "react";
 import { useApp } from "../../../lib/appContext";
 import {
@@ -15,17 +15,26 @@ import {
 	withoutField,
 } from "../fields";
 import type { NegatableField, View } from "../grammar";
+import type { FilterLabel } from "../labelValues";
 
 export type FilterChipProps = {
 	field: FilterField;
 	view: View;
 	statuses: readonly StatusSummary[];
+	// The labels of the project tree the route shows. It is empty on a route
+	// with no project, where the Label field never gets a chip.
+	labels: readonly FilterLabel[];
 	onChange: (view: View) => void;
 	// Reopens the value picker for the field.
 	onEdit: (field: FilterField) => void;
 };
 
-const iconOf = (field: FilterField, values: string[], statuses: readonly StatusSummary[]): ReactElement => {
+const iconOf = (
+	field: FilterField,
+	values: string[],
+	statuses: readonly StatusSummary[],
+	labels: readonly FilterLabel[],
+): ReactElement => {
 	switch (field) {
 		case "status": {
 			const status = statuses.find((entry) => entry.slug === values[0] || entry.id === values[0]);
@@ -35,6 +44,11 @@ const iconOf = (field: FilterField, values: string[], statuses: readonly StatusS
 			return <StatusIcon category={(values[0] as StatusSummary["category"]) ?? "todo"} />;
 		case "priority":
 			return <PriorityIcon priority={(values[0] as "none") ?? "none"} />;
+		case "label": {
+			const label = labels.find((entry) => entry.ref === values[0]);
+			if (label === undefined) return <Tag />;
+			return <LabelDot color={label.color} variant="icon" />;
+		}
 		case "project":
 			return <FolderOpen />;
 		case "parent":
@@ -53,8 +67,13 @@ const iconOf = (field: FilterField, values: string[], statuses: readonly StatusS
 // The names a chip prints for its values. A status or a category chip names
 // the statuses of the scope, so it reads like the cells; one name shows once
 // even when several projects hold it.
-const namesOf = (field: FilterField, values: string[], statuses: readonly StatusSummary[]): string[] => {
-	if (field !== "category") return values.map((value) => valueLabel(field, value, statuses));
+const namesOf = (
+	field: FilterField,
+	values: string[],
+	statuses: readonly StatusSummary[],
+	labels: readonly FilterLabel[],
+): string[] => {
+	if (field !== "category") return values.map((value) => valueLabel(field, value, statuses, labels));
 	return [...new Set(statuses.filter((status) => values.includes(status.category)).map((status) => status.name))];
 };
 
@@ -65,7 +84,7 @@ const shortList = (names: string[]) =>
 // One active filter as a chip: the field, the operator, the values, and
 // the remove button. The operator flips between is and is not on a
 // negatable field; the values reopen the picker.
-export function FilterChip({ field, view, statuses, onChange, onEdit }: FilterChipProps) {
+export function FilterChip({ field, view, statuses, labels, onChange, onEdit }: FilterChipProps) {
 	const { orpc } = useApp();
 	const actors = useQuery({ ...orpc.actors.list.queryOptions({ input: {} }), enabled: field === "actor" }).data ?? [];
 	const values = valuesOf(view, field);
@@ -78,11 +97,11 @@ export function FilterChip({ field, view, statuses, onChange, onEdit }: FilterCh
 					const actor = actors.find((entry) => `${entry.kind}:${entry.name}` === value);
 					return actor?.displayName ?? valueLabel(field, value, statuses);
 				})
-			: namesOf(field, values, statuses);
+			: namesOf(field, values, statuses, labels);
 	return (
 		<span data-filter-chip={field} className="contents">
 			<Chip
-				icon={iconOf(field, values, statuses)}
+				icon={iconOf(field, values, statuses, labels)}
 				label={label}
 				op={opLabel(field, negated)}
 				value={shortList(names)}

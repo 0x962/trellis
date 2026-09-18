@@ -8,7 +8,17 @@ import { failToast } from "../../../../lib/failToast";
 import { patchRows, readRow } from "../../utils/cacheRows";
 
 // The fields a table edit changes on a row before the server answers.
-export type RowPatch = Partial<Pick<TicketSummary, "status" | "priority" | "project" | "parent">>;
+export type RowPatch = Partial<Pick<TicketSummary, "status" | "priority" | "project" | "parent" | "labels">>;
+
+// The patch of one write. A label toggle reads the row it changes, because
+// the new label set depends on the labels that row holds now.
+export type RowPatcher = RowPatch | ((row: TicketSummary) => RowPatch);
+
+export type UpdateOptions = {
+	// False sends no `expectedVersion`. Adds and removes of one label commute,
+	// so two fast toggles of the same row must not fail with VERSION_CONFLICT.
+	expectVersion: boolean;
+};
 
 type UpdateFields = Omit<TicketUpdateInput, "ticket" | "expectedVersion">;
 type UpdateManyFields = Omit<TicketUpdateManyInput, "tickets">;
@@ -19,13 +29,20 @@ type UpdateManyFields = Omit<TicketUpdateManyInput, "tickets">;
 export type Verb = (subject: string) => string;
 
 export type TicketMutations = {
-	// One row, optimistic, conditional on the row's version.
-	update: (ticket: TicketSummary, fields: UpdateFields, patch: RowPatch, verb: Verb) => Promise<void>;
+	// One row, optimistic. The write is conditional on the row's version
+	// unless `options` turns that off.
+	update: (
+		ticket: TicketSummary,
+		fields: UpdateFields,
+		patch: RowPatcher,
+		verb: Verb,
+		options?: UpdateOptions,
+	) => Promise<void>;
 	// Many rows in one batch, optimistic.
 	updateMany: (
 		tickets: readonly TicketSummary[],
 		fields: UpdateManyFields,
-		patch: RowPatch,
+		patch: RowPatcher,
 		verb: Verb,
 	) => Promise<void>;
 	remove: (ticket: TicketSummary) => Promise<void>;
@@ -56,6 +73,11 @@ export const useTicketMutations = (): TicketMutations => {
 			return true;
 		};
 
+		const patched = (row: TicketSummary, patch: RowPatcher): TicketSummary => ({
+			...row,
+			...(typeof patch === "function" ? patch(row) : patch),
+		});
+
 		const applySummary = (summary: TicketSummary, deleted = false) =>
 			applier.applyEvent({
 				type: deleted ? "ticket.deleted" : "ticket.updated",
@@ -69,16 +91,17 @@ export const useTicketMutations = (): TicketMutations => {
 			patchRows(queryClient, new Set(byId.keys()), (row) => byId.get(row.id) ?? row);
 		};
 
-		const update: TicketMutations["update"] = async (ticket, fields, patch, verb) => {
+		const update: TicketMutations["update"] = async (ticket, fields, patch, verb, options) => {
 			if (refused([ticket])) return;
+			const expectVersion = options?.expectVersion ?? true;
 			const current = readRow(queryClient, ticket.id) ?? ticket;
-			patchRows(queryClient, new Set([current.id]), (row) => ({ ...row, ...patch }));
+			patchRows(queryClient, new Set([current.id]), (row) => patched(row, patch));
 			applier.beginMutation(current.id);
 			try {
 				const result = await client.tickets.update({
 					ticket: current.identifier,
 					...fields,
-					expectedVersion: current.version,
+					...(expectVersion ? { expectedVersion: current.version } : {}),
 				});
 				applier.endMutation(current.id, result);
 			} catch (error) {
@@ -92,14 +115,14 @@ export const useTicketMutations = (): TicketMutations => {
 					toast.error(conflictMessage(current.identifier), { duration: 6000 });
 					return;
 				}
-				failToast(verb(current.identifier), error, () => void update(current, fields, patch, verb));
+				failToast(verb(current.identifier), error, () => void update(current, fields, patch, verb, options));
 			}
 		};
 
 		const updateMany: TicketMutations["updateMany"] = async (tickets, fields, patch, verb) => {
 			if (refused(tickets)) return;
 			const originals = tickets.map((ticket) => readRow(queryClient, ticket.id) ?? ticket);
-			patchRows(queryClient, new Set(originals.map((row) => row.id)), (row) => ({ ...row, ...patch }));
+			patchRows(queryClient, new Set(originals.map((row) => row.id)), (row) => patched(row, patch));
 			try {
 				const { items } = await client.tickets.updateMany({
 					tickets: originals.map((row) => row.identifier),

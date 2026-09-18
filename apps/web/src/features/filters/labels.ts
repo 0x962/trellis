@@ -25,6 +25,7 @@ export const filterKeys = [
 	"category",
 	"reviewer",
 	"priority",
+	"label",
 	"parent",
 	"pr",
 	"ci",

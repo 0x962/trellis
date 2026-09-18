@@ -122,6 +122,16 @@ export const printRecord = <T>(out: Writer, format: Format, row: T, spec: Record
 	}
 };
 
+// A label as a label ref: `name`, or `group/name` for a label of a group. A
+// command takes the same text back as a ref.
+export const labelText = (label: { name: string; group: string | null }): string =>
+	label.group === null ? label.name : `${label.group}/${label.name}`;
+
+// Every label of a ticket in one cell. A label name holds no comma, so the
+// comma separates the labels.
+const labelsCell = (labels: Array<{ name: string; group: string | null }>): string =>
+	cell(labels.map(labelText).join(", "));
+
 // The fields the ticket table reads. A TicketSummary has them all; the type
 // names only what the renderer touches, so any row with them prints.
 export type TicketRow = {
@@ -129,6 +139,7 @@ export type TicketRow = {
 	title: string;
 	priority: string;
 	status: { slug: string };
+	labels: Array<{ name: string; group: string | null }>;
 	updatedAt: string;
 };
 
@@ -137,6 +148,7 @@ export const ticketList: ListSpec<TicketRow> = {
 		{ name: "identifier", value: (row) => row.identifier },
 		{ name: "status", value: (row) => row.status.slug },
 		{ name: "priority", value: (row) => row.priority },
+		{ name: "labels", value: (row) => labelsCell(row.labels) },
 		{ name: "title", value: (row) => cell(row.title) },
 		{ name: "updated", value: (row) => shortZonedDateTime(row.updatedAt) },
 	],
@@ -167,6 +179,7 @@ export const ticketRecord: RecordSpec<TicketFields> = {
 		{ name: "title", value: (row) => cell(row.title) },
 		{ name: "status", value: (row) => `${row.status.slug} (${row.status.category})` },
 		{ name: "priority", value: (row) => row.priority },
+		{ name: "labels", value: (row) => labelsCell(row.labels) },
 		{ name: "project", value: (row) => row.project.path },
 		{ name: "parent", value: (row) => cell(row.parent?.identifier) },
 		{ name: "children", value: (row) => `${row.childDoneCount}/${row.childCount} done` },

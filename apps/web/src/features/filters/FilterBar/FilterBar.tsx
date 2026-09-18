@@ -2,11 +2,13 @@ import { Copy, FunnelSimple, Link, ShareFat } from "@phosphor-icons/react";
 import { useRouterState } from "@tanstack/react-router";
 import type { StatusSummary } from "@trellis/api";
 import { FilterBar as FilterToolbar, IconButton, Menu, toast, useHotkey } from "@trellis/ui";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { toCli } from "../cli";
 import { FilterChip } from "../FilterChip";
 import { chipFields, type FilterField } from "../fields";
 import { serializeSearch, stripDefaults, toListQuery, type View, viewOf } from "../grammar";
+import { useScopeLabels } from "../hooks/useScopeLabels";
+import { filterLabels } from "../labelValues";
 import { FilterPicker, type PickerStage } from "./components/FilterPicker";
 
 export type FilterBarProps = {
@@ -35,6 +37,11 @@ export function FilterBar({ project, search, onSearchChange, statuses, actions, 
 	const [stage, setStage] = useState<PickerStage>(fields);
 	const view = viewOf(search);
 	const active = chipFields.filter((field) => view[field] !== undefined);
+	const scopeLabels = useScopeLabels(project);
+	const labels = useMemo(
+		() => filterLabels(scopeLabels.labels, scopeLabels.groups),
+		[scopeLabels.labels, scopeLabels.groups],
+	);
 
 	const change = (next: View) => onSearchChange(stripDefaults(next));
 
@@ -81,6 +88,7 @@ export function FilterBar({ project, search, onSearchChange, statuses, actions, 
 					field={field}
 					view={view}
 					statuses={statuses}
+					labels={labels}
 					onChange={change}
 					onEdit={(target) => openAt({ kind: "values", field: target })}
 				/>
@@ -90,6 +98,7 @@ export function FilterBar({ project, search, onSearchChange, statuses, actions, 
 			<FilterPicker
 				view={view}
 				statuses={statuses}
+				labels={labels}
 				project={project}
 				onChange={change}
 				open={open}

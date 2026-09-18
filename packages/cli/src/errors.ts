@@ -1,5 +1,5 @@
 import type { ORPCError } from "@orpc/client";
-import { type ErrorCode, type GhReason, ghCopy } from "@trellis/api";
+import { errors as apiErrors, type ErrorCode, type GhReason, ghCopy } from "@trellis/api";
 
 // The process exit code for every error the contract declares. The Record
 // type requires one row for each ErrorCode value.
@@ -20,6 +20,8 @@ const exitCodes: Record<ErrorCode, number> = {
 	LAST_STATUS: 4,
 	ROOT_STATUSES: 4,
 	STATUS_CATEGORY_IMMUTABLE: 4,
+	LABEL_AMBIGUOUS: 4,
+	LABEL_GROUP_CONFLICT: 4,
 	CROSS_ROOT_MOVE: 4,
 	PARENT_CYCLE: 4,
 	PROJECT_NOT_EMPTY: 4,
@@ -60,6 +62,16 @@ export const usageError = (message: string) => new CliFailure("USAGE", 2, messag
 // that names no row. The line matches the server's NOT_FOUND line.
 export const notFound = (kind: string, ref: string) => new CliFailure("NOT_FOUND", 3, `No ${kind} matches ${ref}.`);
 
+// The LABEL_AMBIGUOUS line: the server sentence, then every `group/name` ref
+// that the bare name matches.
+const ambiguousLine = (message: string, matches: string[]) => `${message} Matches: ${matches.join(", ")}.`;
+
+// A bare label name the CLI resolves itself, against the `labels.list`
+// answer, and that names a label in more than one group. The line matches
+// the server's LABEL_AMBIGUOUS line.
+export const labelAmbiguous = (matches: string[]) =>
+	new CliFailure("LABEL_AMBIGUOUS", 4, ambiguousLine(apiErrors.LABEL_AMBIGUOUS.message, matches));
+
 // A path the command line names and the process cannot open. The person
 // reads one line and fixes the path; a stack trace tells them nothing.
 export const fileNotFound = (path: string) => new CliFailure("NOT_FOUND", 3, `No file at ${path}.`);
@@ -96,6 +108,10 @@ const detail = (code: string, message: string, data: Data): string => {
 			return `${message} The current version is ${(data.current as { version: number }).version}.`;
 		case "STATUS_IN_USE":
 			return `${message} ${data.count} tickets use it.`;
+		case "LABEL_AMBIGUOUS":
+			return ambiguousLine(message, data.matches as string[]);
+		case "LABEL_GROUP_CONFLICT":
+			return `${message} ${data.count} tickets hold both labels.`;
 		case "PROJECT_NOT_EMPTY":
 			return `${message} It holds ${data.tickets} tickets and ${data.projects} sub-projects.`;
 		case "DUPLICATE":

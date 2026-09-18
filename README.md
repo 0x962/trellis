@@ -267,16 +267,23 @@ Global flags: `--json`, `--jsonl`, `--quiet`, `--as`, `--url`, and `--no-color`.
 | `trellis statuses edit` | Edit a status. |
 | `trellis statuses rm` | Remove a status. |
 | `trellis statuses clear` | Clear inherited statuses. |
+| `trellis labels list` | List the labels and the label groups of a project tree. |
+| `trellis labels add` | Add a label. `--group`, `--color`, and `--description` set its fields. |
+| `trellis labels edit` | Edit a label. `--group` moves it, and `--no-group` takes it out of its group. |
+| `trellis labels rm` | Delete a label and take it off every ticket. |
+| `trellis labels group-add` | Add a label group. |
+| `trellis labels group-edit` | Rename a label group. |
+| `trellis labels group-rm` | Delete a label group. `--labels` takes `ungroup` or `delete`. |
 | `trellis agents list` | List agent runs. |
 | `trellis agents start` | Assign a ticket agent. |
 | `trellis agents refresh` | Read the terminal and update the state. |
 | `trellis agents stop` | Stop an agent. |
 | `trellis agents send` | Send an agent a follow-up. |
 | `trellis agents output` | Print the terminal output of an agent. |
-| `trellis create` | Create a ticket. |
+| `trellis create` | Create a ticket. `--label` puts labels on it. |
 | `trellis show` | Show a ticket. |
-| `trellis list` | List tickets. |
-| `trellis edit` | Edit a ticket. |
+| `trellis list` | List tickets. `--label` and `--label-not` filter by label. |
+| `trellis edit` | Edit a ticket. `--add-label` and `--remove-label` change its labels. |
 | `trellis move` | Move a ticket to a status. |
 | `trellis comment` | Add a comment. `--reply-to` puts it in a thread. |
 | `trellis comments` | List comments. |
@@ -290,7 +297,7 @@ Global flags: `--json`, `--jsonl`, `--quiet`, `--as`, `--url`, and `--no-color`.
 | `trellis pr rm` | Unlink a pull request. |
 | `trellis pr refresh` | Refresh pull request data. |
 | `trellis pr diff` | Show a pull request diff. |
-| `trellis sub` | Create a sub-ticket. |
+| `trellis sub` | Create a sub-ticket. `--label` puts labels on it. |
 | `trellis delete` | Delete a ticket. |
 | `trellis search` | Search tickets. |
 | `trellis activity` | List ticket activity. |

@@ -7,6 +7,7 @@ export type ColumnId =
 	| "priority"
 	| "id"
 	| "title"
+	| "labels"
 	| "status"
 	| "pr"
 	| "project"
@@ -22,6 +23,7 @@ export const columnOrder: readonly ColumnId[] = [
 	"priority",
 	"id",
 	"title",
+	"labels",
 	"status",
 	"pr",
 	"project",
@@ -37,6 +39,7 @@ export const columnLabels: Record<ColumnId, string> = {
 	priority: "Priority",
 	id: "ID",
 	title: "Title",
+	labels: "Labels",
 	status: "Status",
 	pr: "PR",
 	project: "Project",
@@ -53,6 +56,9 @@ export const columnWidths: Record<ColumnId, string> = {
 	priority: "16px",
 	id: "72px",
 	title: "minmax(0, 1fr)",
+	// Two label pills and the gap between them. The track never changes with
+	// the data, so a row that gains a label keeps its title width.
+	labels: "180px",
 	status: "140px",
 	pr: "72px",
 	project: "120px",
@@ -86,7 +92,7 @@ export const buildColumns = () =>
 export const gridTemplate = (ids: readonly string[]) => ids.map((id) => columnWidths[id as ColumnId]).join(" ");
 
 // The columns a screen under 768 px hides, so the title keeps room to read.
-export const narrowHidden: readonly ColumnId[] = ["pr", "project", "actor"];
+export const narrowHidden: readonly ColumnId[] = ["labels", "pr", "project", "actor"];
 
 // Under 768 px the status cell shows its icon alone, in its 28 px button.
 const narrowWidths: Partial<Record<ColumnId, string>> = { status: "28px" };

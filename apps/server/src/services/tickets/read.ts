@@ -17,6 +17,7 @@ import { ticketGet } from "../../db/queries/ticketGet.ts";
 import { InvalidCursorError, ticketList } from "../../db/queries/ticketList.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
+import { labelFilterIds } from "../labelRefs.ts";
 import { resolveProject, resolveTicket, toSummary } from "../refs.ts";
 
 type Query = z.infer<typeof BoardQuerySchema>;
@@ -58,9 +59,11 @@ const statusIdsOf = async (ctx: ServiceCtx, tx: Tx, refs: string[], projectId: s
 const toFilter = async (ctx: ServiceCtx, tx: Tx, query: Query) => {
 	const filter: TicketFilter = {};
 	let projectId: string | null = null;
+	let rootId: string | null = null;
 	if (query.project !== undefined) {
 		const project = await resolveProject(ctx, tx, query.project);
 		projectId = project.id;
+		rootId = project.rootId;
 		filter.rootIds = [project.rootId];
 		filter.projectIds = query.subprojects ? ctx.cache.resolveSubtree(projectId) : [projectId];
 	}
@@ -71,6 +74,20 @@ const toFilter = async (ctx: ServiceCtx, tx: Tx, query: Query) => {
 	if (query.category !== undefined) filter.categories = query.category;
 	if (query.reviewer !== undefined) filter.reviewer = query.reviewer;
 	if (query.priority !== undefined) filter.priority = query.priority;
+	// The root project of a tree owns its labels, so a label ref resolves
+	// inside the root of the project the query names. A query with no project
+	// reads every root, and a name there matches the label of that name in each
+	// of them. The value `none` names no label: it keeps the tickets that hold
+	// no label at all.
+	if (query.label?.length === 0) throw invalidInput("label", "Name one label at least.");
+	if (query.label !== undefined) {
+		const refs = query.label.filter((ref) => ref !== "none");
+		if (refs.length < query.label.length) filter.noLabel = true;
+		if (refs.length > 0) filter.labelIds = await labelFilterIds(ctx, tx, refs, rootId);
+	}
+	if (query.labelNot?.length === 0) throw invalidInput("labelNot", "Name one label at least.");
+	if (query.labelNot?.includes("none")) throw invalidInput("labelNot", "Name a label. `none` has no meaning here.");
+	if (query.labelNot !== undefined) filter.labelNotIds = await labelFilterIds(ctx, tx, query.labelNot, rootId);
 	if (query.parent !== undefined) {
 		filter.parent = query.parent === "none" ? "none" : (await resolveTicket(ctx, tx, query.parent)).id;
 	}

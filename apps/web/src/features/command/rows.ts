@@ -37,6 +37,10 @@ export type Submenu =
 	| { kind: "priority"; tickets: string[] }
 	| { kind: "project"; tickets: string[] }
 	| { kind: "parent"; ticket: string; project: string }
+	// `checked` holds the labels the ticket carries when the submenu opens,
+	// so each row states what its pick does. A submenu over several tickets
+	// checks nothing, and every pick there adds its label.
+	| { kind: "labels"; tickets: string[]; project: string; checked: string[] }
 	| { kind: "sort" }
 	| { kind: "group" }
 	| { kind: "goto" };

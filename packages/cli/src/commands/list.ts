@@ -3,6 +3,7 @@ import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, splitList } from "../context.ts";
 import { usageError } from "../errors.ts";
+import { labelRefs } from "../flags.ts";
 import { printListPages, ticketList } from "../output.ts";
 
 const units: Record<string, number> = { m: 60_000, h: 3_600_000, d: 86_400_000, w: 604_800_000 };
@@ -30,6 +31,8 @@ export default defineCommand({
 		reviewer: { type: "enum", options: ["human", "agent"], description: "Reviewer of a review status" },
 		priority: { type: "string", description: "Priorities, comma-separated" },
 		parent: { type: "string", description: "Parent ticket ref, or none for top-level only" },
+		label: { type: "string", description: "Label refs, comma-separated; none keeps a ticket with no label" },
+		"label-not": { type: "string", description: "Label refs, comma-separated; a ticket that holds one drops out" },
 		pr: { type: "enum", options: ["any", "none", "open", "draft", "merged", "closed"], description: "PR state" },
 		ci: { type: "string", description: "CI states, comma-separated" },
 		actor: { type: "string", description: "Last actor, kind:name or name" },
@@ -62,6 +65,8 @@ export default defineCommand({
 			reviewer: args.reviewer,
 			priority: splitList(args.priority) as Priority[] | undefined,
 			parent: args.parent,
+			label: labelRefs(context.rawArgs, "label"),
+			labelNot: labelRefs(context.rawArgs, "label-not"),
 			pr: args.pr,
 			ci: splitList(args.ci) as CiState[] | undefined,
 			actor: args.actor,

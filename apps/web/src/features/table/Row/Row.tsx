@@ -1,14 +1,12 @@
-import type { Priority, ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
+import type { Label, Priority, ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
 import { cx, TicketId } from "@trellis/ui";
 import { type MouseEvent, memo, type ReactNode, useRef } from "react";
 import { compactRelativeTime } from "../../../lib/format";
 import type { Density } from "../../../stores/uiStore";
 import { ActorAvatar } from "../../agents/ActorAvatar";
-import { PriorityPicker } from "../../pickers/PriorityPicker";
-import { ProjectPicker } from "../../pickers/ProjectPicker";
-import { StatusPicker } from "../../pickers/StatusPicker";
-import { TicketPicker } from "../../pickers/TicketPicker";
 import { type ColumnId, gridColumnsClass, gridStyle, narrowHidden } from "../columns";
+import { HiddenPickers } from "./components/HiddenPickers";
+import { LabelsCell } from "./components/LabelsCell";
 import { PhoneRow } from "./components/PhoneRow";
 import { PrCell } from "./components/PrCell";
 import { PriorityCell } from "./components/PriorityCell";
@@ -18,14 +16,16 @@ import { StatusCell } from "./components/StatusCell";
 import { TitleCell } from "./components/TitleCell";
 
 // The inline editors a row opens.
-export type EditField = "status" | "priority" | "project" | "parent";
+export type EditField = "status" | "priority" | "project" | "parent" | "labels";
 
-// One change a row's picker applies.
+// One change a row's picker applies. `checked` on a label change is the new
+// state of that label on the ticket.
 export type RowChange =
 	| { status: StatusSummary }
 	| { priority: Priority }
 	| { project: string }
-	| { parent: TicketSummary | null };
+	| { parent: TicketSummary | null }
+	| { label: Label; checked: boolean };
 
 export type RowProps = {
 	ticket: TicketSummary;
@@ -63,11 +63,6 @@ export { phoneRowHeight, rowHeights } from "../rowHeights";
 import { rowHeights } from "../rowHeights";
 
 const noStatuses: StatusSummary[] = [];
-
-// The empty button a picker opens from when the row has no cell for it.
-const anchor = (label: string) => (
-	<button type="button" tabIndex={-1} aria-label={label} className="absolute top-1/2 left-1/2" />
-);
 const noProjects: ProjectSummary[] = [];
 
 // One ticket as a grid row: the cells in column order, the roving tab stop,
@@ -122,6 +117,16 @@ export const Row = memo(function Row({
 		),
 		id: <span className="font-mono text-sm whitespace-nowrap text-fg-faint tabular">{identifier}</span>,
 		title: <TitleCell ticket={ticket} />,
+		labels: (
+			<LabelsCell
+				labels={ticket.labels}
+				project={ticket.project.path}
+				open={editing === "labels"}
+				onOpenChange={editingChange("labels")}
+				onToggle={(label, checked) => change({ label, checked })}
+				finalFocus={element}
+			/>
+		),
 		status: (
 			<StatusCell
 				status={ticket.status}
@@ -216,54 +221,17 @@ export const Row = memo(function Row({
 					{cells[column]}
 				</div>
 			))}
-			{/* A picker whose column is hidden still opens from its key. It
-			anchors to an empty button in the middle of the row, as the parent
-			picker does. */}
-			{editing === "status" && !columns.includes("status") && (
-				<StatusPicker
-					statuses={statuses}
-					value={ticket.status.id}
-					open
-					onOpenChange={editingChange("status")}
-					onPick={(status) => change({ status })}
-					finalFocus={element}
-					trigger={anchor("Status")}
-				/>
-			)}
-			{editing === "priority" && !columns.includes("priority") && (
-				<PriorityPicker
-					value={ticket.priority}
-					open
-					onOpenChange={editingChange("priority")}
-					onPick={(priority) => change({ priority })}
-					finalFocus={element}
-					trigger={anchor("Priority")}
-				/>
-			)}
-			{editing === "project" && !columns.includes("project") && (
-				<ProjectPicker
-					projects={projects}
-					ticketRootIds={ticketRootIds}
-					value={ticket.project.path}
-					open
-					onOpenChange={editingChange("project")}
-					onPick={(project) => change({ project })}
-					finalFocus={element}
-					trigger={anchor("Project")}
-				/>
-			)}
-			{editing === "parent" && (
-				<TicketPicker
-					project={ticket.project.key}
-					value={ticket.parent?.identifier}
-					exclude={[identifier]}
-					open
-					onOpenChange={editingChange("parent")}
-					onPick={(parent) => change({ parent })}
-					finalFocus={element}
-					trigger={anchor("Parent")}
-				/>
-			)}
+			<HiddenPickers
+				ticket={ticket}
+				columns={columns}
+				editing={editing}
+				statuses={statuses}
+				projects={projects}
+				ticketRootIds={ticketRootIds}
+				finalFocus={element}
+				onEditingChange={editingChange}
+				onChange={change}
+			/>
 		</div>
 	);
 });

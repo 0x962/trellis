@@ -21,6 +21,15 @@ export const TAGS = [
 		description: "Flows: graphs of agent steps. A save replaces every node and edge of a flow at once.",
 	},
 	{ name: "projects", description: "The project tree. A root has a key; a sub-project has a parent and a slug." },
+	{
+		name: "labels",
+		description:
+			"Labels of a project tree. The root project owns them, and every project of the tree uses the same labels.",
+	},
+	{
+		name: "label groups",
+		description: "Groups of labels that exclude each other. A ticket holds one label of a group at most.",
+	},
 	{ name: "statuses", description: "The status set of a project. A sub-project inherits the nearest owner's set." },
 	{ name: "tickets", description: "Tickets: list, board, counts, one ticket, and every write." },
 	{ name: "timeline", description: "Comments and activity of one ticket, newest first." },

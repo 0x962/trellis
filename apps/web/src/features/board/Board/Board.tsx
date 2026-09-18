@@ -8,7 +8,7 @@ import {
 	type StatusSummary,
 } from "@trellis/api";
 import { toast, useMediaQuery, useTheme } from "@trellis/ui";
-import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
@@ -19,6 +19,7 @@ import { useCommandContext } from "../../command/hooks/useCommandContext";
 import { BoardLineStatsContext } from "../BoardLineStatsContext";
 import { categoryColumns, moveInBoard, projectColumns, workingFirst, workingGroupInsertIndex } from "../columns";
 import { BoardColumn } from "../components/BoardColumn";
+import { BoardLabels } from "../components/BoardLabels";
 import { BoardSkeleton } from "../components/BoardSkeleton";
 import { StatusChoice } from "../components/StatusChoice";
 import { useBoardAutoScroll, useBoardMonitor } from "../hooks/useBoardDnd";
@@ -26,6 +27,7 @@ import type { BoardColumnModel, BoardMove } from "../types";
 import { boardSort } from "./constants";
 import { useBoardLineStats } from "./hooks/useBoardLineStats";
 import { useCardPositionMotion } from "./hooks/useCardPositionMotion";
+import { cardKeyDown } from "./utils/cardKeyDown";
 import { columnWidth } from "./utils/columnWidth";
 
 export type BoardProps = {
@@ -55,6 +57,8 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 	const [announcement, setAnnouncement] = useState("");
 	const [showAllDone, setShowAllDone] = useState(false);
 	const [pendingChoice, setPendingChoice] = useState<PendingChoice | null>(null);
+	// The id of the card whose label picker is open, from the `l` key.
+	const [labelTicketId, setLabelTicketId] = useState<string | null>(null);
 	const [cursors, setCursors] = useState<Record<string, string | null>>({});
 	const announce = useCallback((message: string) => flushSync(() => setAnnouncement(message)), []);
 	const { isArchived, notice } = useArchivedProjects();
@@ -211,36 +215,17 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 		}));
 	};
 
-	const keyDown = (event: KeyboardEvent<HTMLElement>, column: BoardColumnModel, index: number) => {
-		const ticket = column.items[index]!;
-		if (event.key === "Enter") onOpenTicket(ticket.identifier);
-		if (event.key === "s") {
-			event.preventDefault();
-			setPendingChoice({ ticket, column, statuses: columns.flatMap((entry) => entry.statuses) });
-			return;
-		}
-		if (event.key === "[" || event.key === "]") {
-			event.preventDefault();
-			const at = columns.indexOf(column) + (event.key === "[" ? -1 : 1);
-			const target = columns[at];
-			if (target !== undefined) chooseOrMove({ ticket, column: target });
-			return;
-		}
-		if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
-			event.preventDefault();
-			const columnIndex = columns.indexOf(column);
-			const targetColumn = columns[columnIndex + (event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0)];
-			const targetIndex = index + (event.key === "ArrowUp" ? -1 : event.key === "ArrowDown" ? 1 : 0);
-			const target = targetColumn?.items[Math.max(0, Math.min(targetIndex, targetColumn.items.length - 1))];
-			const element = document.querySelector<HTMLElement>(`[data-ticket-id="${target?.id}"]`);
-			// The focus must not scroll the board, or the column headers leave
-			// their row. The card then scrolls only its own list.
-			element?.focus({ preventScroll: true });
-			element?.scrollIntoView({ block: "nearest" });
-		}
-	};
+	const keyDown = cardKeyDown({
+		columns,
+		openTicket: onOpenTicket,
+		chooseStatus: (move) => setPendingChoice({ ...move, statuses: columns.flatMap((entry) => entry.statuses) }),
+		moveTo: chooseOrMove,
+		setLabels: setLabelTicketId,
+	});
 
 	if (!ready) return <BoardSkeleton />;
+
+	const labelTicket = columns.flatMap((column) => column.items).find((item) => item.id === labelTicketId);
 
 	// On a phone each open column is 85% of the window, and the strip snaps.
 	const width = phone
@@ -273,6 +258,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 			<div role="status" aria-label="Board drag status" aria-live="assertive" className="sr-only">
 				{announcement}
 			</div>
+			{labelTicket !== undefined && <BoardLabels ticket={labelTicket} onClose={() => setLabelTicketId(null)} />}
 			{pendingChoice !== null && (
 				<StatusChoice
 					statuses={pendingChoice.statuses}

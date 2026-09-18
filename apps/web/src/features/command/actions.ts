@@ -60,6 +60,14 @@ export const moveToProject = async (context: ActionContext, ticket: string, proj
 export const setParent = async (context: ActionContext, ticket: string, parent: string | null): Promise<void> =>
 	write(context, "The parent did not change.", () => context.client.tickets.update({ ticket, parent }));
 
+// `on` is the state the label takes. A label write carries no
+// `expectedVersion`: an add and a remove of two labels never contradict each
+// other, and a second pick would otherwise be refused as a conflict.
+export const setLabel = async (context: ActionContext, ticket: string, label: string, on: boolean): Promise<void> =>
+	write(context, "The labels did not change.", () =>
+		context.client.tickets.update({ ticket, ...(on ? { addLabels: [label] } : { removeLabels: [label] }) }),
+	);
+
 export const deleteTicket = async (context: ActionContext, ticket: string): Promise<void> => {
 	if (!(await context.confirm(`Delete ${ticket}?`))) return;
 	await write(context, `${ticket} is not deleted.`, () => context.client.tickets.delete({ ticket }));
@@ -73,6 +81,16 @@ export const bulkSetPriority = async (context: ActionContext, tickets: string[],
 
 export const bulkMoveToProject = async (context: ActionContext, tickets: string[], project: string): Promise<void> =>
 	write(context, "The tickets did not move.", () => context.client.tickets.updateMany({ tickets, project }));
+
+export const bulkSetLabel = async (
+	context: ActionContext,
+	tickets: string[],
+	label: string,
+	on: boolean,
+): Promise<void> =>
+	write(context, "The labels did not change.", () =>
+		context.client.tickets.updateMany({ tickets, ...(on ? { addLabels: [label] } : { removeLabels: [label] }) }),
+	);
 
 export const bulkDelete = async (context: ActionContext, tickets: string[]): Promise<void> => {
 	if (!(await context.confirm(`Delete ${tickets.length} tickets?`))) return;

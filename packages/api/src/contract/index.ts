@@ -8,6 +8,7 @@ import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
 import { labelGroups } from "./labelGroups.ts";
+import { labels } from "./labels.ts";
 import { models } from "./models.ts";
 import { needsYou } from "./needsYou.ts";
 import { notes } from "./notes.ts";
@@ -35,6 +36,7 @@ export const contract = {
 	agentRuns: oc.tag("agent runs").router(agentRuns),
 	flows: oc.tag("flows").router(flows),
 	flowExecutions: oc.tag("flow executions").router(flowExecutions),
+	labels: oc.tag("labels").router(labels),
 	labelGroups: oc.tag("label groups").router(labelGroups),
 	projects: oc.tag("projects").router(projects),
 	statuses: oc.tag("statuses").router(statuses),

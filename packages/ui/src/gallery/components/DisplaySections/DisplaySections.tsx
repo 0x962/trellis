@@ -1,4 +1,8 @@
 import { Check, Funnel, Paperclip, Plus, TextAlignLeft, X } from "@phosphor-icons/react";
+import { LabelDot } from "../../../domain/LabelDot";
+import { LabelPill } from "../../../domain/LabelPill";
+import { type LabelPillItem, LabelPills } from "../../../domain/LabelPills";
+import { labelColors } from "../../../domain/labelColors";
 import { StatusIcon } from "../../../domain/StatusIcon";
 import { Avatar } from "../../../primitives/Avatar";
 import { Badge } from "../../../primitives/Badge";
@@ -13,6 +17,13 @@ import { Skeleton } from "../../../primitives/Skeleton";
 import { Section } from "../Section";
 
 const lines = [...Array(24).keys()].map((line) => `CDE-${line + 20}`);
+
+const ticketLabels: LabelPillItem[] = [
+	{ id: "bug", name: "Bug", color: "red", group: null },
+	{ id: "web", name: "Web", color: "blue", group: "Area" },
+	{ id: "small", name: "Small", color: "green", group: "Size" },
+	{ id: "customer", name: "Customer report", color: "red", group: null },
+];
 
 // Every static display primitive in every variant.
 export function DisplaySections() {
@@ -41,6 +52,34 @@ export function DisplaySections() {
 				/>
 				<Chip icon={<Funnel />} label="Priority" op="is" value="High" onRemove={() => {}} />
 				<Chip label="Actor" op="is" value="claude-code" />
+			</Section>
+			<Section
+				name="LabelPill"
+				note="every hue; a label of a group; a long name; two pills; the N labels pill; the wrap form; the dot alone and in a 14 px icon box"
+				className="items-start"
+			>
+				<div className="flex flex-wrap items-center gap-1">
+					{labelColors.map((color) => (
+						<LabelPill key={color} name={color} color={color} />
+					))}
+				</div>
+				<LabelPill name="Bug" color="red" group="Type" title="The product does not work as the docs say." />
+				<LabelPill
+					name="Restore the export pages after the upstream 1.27 merge"
+					color="purple"
+					group="A group with a long name that is cut"
+				/>
+				<LabelPills labels={ticketLabels.slice(0, 2)} />
+				<LabelPills labels={ticketLabels} />
+				<div className="w-56 rounded-md border border-border bg-bg p-2">
+					<LabelPills labels={ticketLabels} wrap />
+				</div>
+				<div className="flex items-center gap-2">
+					<LabelDot color="teal" />
+					<span className="inline-flex size-3.5 *:size-full">
+						<LabelDot color="teal" variant="icon" />
+					</span>
+				</div>
 			</Section>
 			<Section name="Avatar" note="Human initials and agent states">
 				<Avatar kind="human" name="Dana Lee" />

@@ -1,6 +1,15 @@
-import { ArrowElbowDownRight, ArrowSquareOut, Copy, FolderSimple, GitPullRequest, Trash } from "@phosphor-icons/react";
+import {
+	ArrowElbowDownRight,
+	ArrowSquareOut,
+	Copy,
+	FolderSimple,
+	GitPullRequest,
+	Tag,
+	Trash,
+} from "@phosphor-icons/react";
 import { PriorityIcon, StatusIcon } from "@trellis/ui";
 import type { ReactNode } from "react";
+import { labelNames } from "../../../../lib/labelNames";
 import { projectSlashPath } from "../../../../lib/projectPath";
 import { composerActions } from "../../../composer";
 import {
@@ -22,6 +31,7 @@ import { capsOf, type PaletteRow, priorityLabels, type RowDeps, statusProject } 
 const icons: Record<string, ReactNode> = {
 	"ticket.project": <FolderSimple />,
 	"ticket.parent": <ArrowElbowDownRight />,
+	"ticket.labels": <Tag />,
 	"ticket.subTicket": <ArrowElbowDownRight />,
 	"ticket.copyId": <Copy />,
 	"ticket.copyBranch": <Copy />,
@@ -30,6 +40,7 @@ const icons: Record<string, ReactNode> = {
 	"ticket.open": <ArrowSquareOut />,
 	"ticket.delete": <Trash />,
 	"selection.project": <FolderSimple />,
+	"selection.labels": <Tag />,
 	"selection.delete": <Trash />,
 };
 
@@ -49,6 +60,7 @@ export const ticketRows = (deps: RowDeps): PaletteRow[] => {
 		"ticket.priority": ticket === undefined ? undefined : priorityLabels[ticket.priority],
 		"ticket.project": ticket === undefined ? undefined : projectSlashPath(ticket.project.path),
 		"ticket.parent": ticket?.parent?.identifier,
+		"ticket.labels": ticket === undefined || ticket.labels.length === 0 ? undefined : labelNames(ticket.labels),
 		"ticket.copyId": identifier,
 		"ticket.copyBranch": branch,
 	};
@@ -64,6 +76,13 @@ export const ticketRows = (deps: RowDeps): PaletteRow[] => {
 		"ticket.priority": () => deps.openSubmenu({ kind: "priority", tickets: [identifier] }),
 		"ticket.project": () => deps.openSubmenu({ kind: "project", tickets: [identifier] }),
 		"ticket.parent": () => deps.openSubmenu({ kind: "parent", ticket: identifier, project: statusProject(deps) }),
+		"ticket.labels": () =>
+			deps.openSubmenu({
+				kind: "labels",
+				tickets: [identifier],
+				project: statusProject(deps),
+				checked: (ticket?.labels ?? []).map((label) => label.id),
+			}),
 		"ticket.subTicket": run(deps, () => composerActions.open({ parent: identifier, project: ticket?.project.path })),
 		"ticket.copyId": run(deps, () => void copyId(action, identifier)),
 		"ticket.copyBranch": run(deps, () => void copyBranch()),
@@ -113,6 +132,8 @@ export const selectionRows = (deps: RowDeps): PaletteRow[] => {
 		"selection.status": () => deps.openSubmenu({ kind: "status", tickets: selection, project: statusProject(deps) }),
 		"selection.priority": () => deps.openSubmenu({ kind: "priority", tickets: selection }),
 		"selection.project": () => deps.openSubmenu({ kind: "project", tickets: selection }),
+		"selection.labels": () =>
+			deps.openSubmenu({ kind: "labels", tickets: selection, project: statusProject(deps), checked: [] }),
 		"selection.delete": run(deps, () => void bulkDelete(action, selection)),
 	};
 	return itemsOfSection("selection").map((item) => ({

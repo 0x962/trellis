@@ -70,3 +70,9 @@ export const ColorTokenSchema = z.enum([
 	"danger",
 ]);
 export type ColorToken = z.infer<typeof ColorTokenSchema>;
+
+// The hue names a label may take as its color. packages/ui holds one
+// `--label-<hue>` token per name, with a light and a dark value, so the wire
+// never carries a raw color value. A color picker lists the hues in this order.
+export const LabelColorSchema = z.enum(["gray", "red", "orange", "yellow", "green", "teal", "blue", "purple", "pink"]);
+export type LabelColor = z.infer<typeof LabelColorSchema>;

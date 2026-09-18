@@ -100,6 +100,14 @@ export const describeActivity = (item: Activity): string => {
 			return `moved the ticket to ${(item.toValue ?? "").replaceAll(".", "/")}`;
 		case "position":
 			return "moved the ticket in the column";
+		// One row carries one label change. A ticket holds one label of a
+		// group at most, so a pick inside a group writes a row that names the
+		// label it took off and the label it put on. Each name is `group/name`
+		// for a label of a group.
+		case "labels":
+			if (item.fromValue === null) return `added the label ${item.toValue}`;
+			if (item.toValue === null) return `removed the label ${item.fromValue}`;
+			return `changed the label from ${item.fromValue} to ${item.toValue}`;
 		default:
 			return `changed the ${item.field ?? "ticket"}`;
 	}

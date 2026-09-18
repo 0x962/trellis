@@ -2,8 +2,9 @@ import type { Priority } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, readText } from "../context.ts";
+import { labelRefs } from "../flags.ts";
 import { printRecord, ticketRecord } from "../output.ts";
-import { priorities } from "./create.ts";
+import { labelFlag, priorities } from "./create.ts";
 
 // The sub-ticket lands in the parent's project unless -p names another.
 export default defineCommand({
@@ -15,6 +16,7 @@ export default defineCommand({
 		priority: { type: "enum", options: [...priorities], description: "Priority" },
 		status: { type: "string", description: "Status ref" },
 		project: { type: "string", alias: "p", description: "Project ref; the parent's project when absent" },
+		label: labelFlag,
 	},
 	async run(context) {
 		const ctx = contextOf(context);
@@ -29,6 +31,7 @@ export default defineCommand({
 				description: args.description === undefined ? undefined : await readText(ctx, args.description),
 				priority: args.priority as Priority | undefined,
 				status: args.status,
+				labels: labelRefs(context.rawArgs, "label"),
 			}),
 		);
 		printRecord(ctx.out, ctx.format, ticket, ticketRecord);

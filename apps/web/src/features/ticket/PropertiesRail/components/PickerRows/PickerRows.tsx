@@ -15,6 +15,7 @@ import { ProjectKey } from "../../../../shell/ProjectKey";
 import { useStatuses } from "../../../hooks/useStatuses";
 import { useTicketWrite } from "../../../hooks/useTicketWrite";
 import { type PickerKind, usePickerStore } from "../../../stores/pickerStore";
+import { LabelsRow } from "../LabelsRow";
 import { Row } from "../Row";
 
 export type PickerRowsProps = {
@@ -32,12 +33,12 @@ const summaryOf = (status: Status) => ({
 	color: status.color,
 });
 
-// The four rows a person changes through a picker: status, priority,
+// The rows a person changes through a picker: status, priority, labels,
 // project, and parent. Each pick paints at once and rolls back with a
 // toast on failure. A refused project move shows its reason inside the
-// picker. The s, p, Shift+P, and m keys open the pickers from anywhere on
-// the page. The status picker lists the effective statuses of the ticket's
-// project.
+// picker. The s, p, l, Shift+P, and m keys open the pickers from anywhere
+// on the page. The status picker lists the effective statuses of the
+// ticket's project. `LabelsRow` holds the labels row and its write.
 export function PickerRows({ ticket }: PickerRowsProps) {
 	const { orpc } = useApp();
 	const { write } = useTicketWrite(ticket.identifier);
@@ -59,6 +60,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 	useHotkey("p", openByKey("priority"));
 	useHotkey("shift+p", openByKey("parent"));
 	useHotkey("m", openByKey("project"));
+	useHotkey("l", openByKey("labels"));
 
 	const openChange = (kind: PickerKind) => (next: boolean) => setOpen(next ? kind : null);
 
@@ -159,6 +161,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 					onOpenChange={openChange("priority")}
 				/>
 			</Row>
+			<LabelsRow ticket={ticket} />
 			<Row label="Project">
 				<ProjectPicker
 					trigger={

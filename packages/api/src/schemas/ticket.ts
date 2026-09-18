@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ProjectRefStringSchema, StatusRefStringSchema, TicketRefStringSchema } from "../refs.ts";
+import { LabelRefStringSchema, ProjectRefStringSchema, StatusRefStringSchema, TicketRefStringSchema } from "../refs.ts";
 import { ActorRefSchema } from "./actor.ts";
 import { AttachmentSchema } from "./attachment.ts";
 import {
@@ -10,6 +10,7 @@ import {
 	ReviewStateSchema,
 	StatusCategorySchema,
 } from "./enums.ts";
+import { TicketLabelSchema } from "./label.ts";
 import { booleanString, CountSchema, commaList, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 import { ProjectLinkSchema } from "./project.ts";
 import { LinkedPullRequestSchema } from "./pullRequest.ts";
@@ -50,8 +51,9 @@ const LastActorSchema = ActorRefSchema.extend({
 });
 
 // The row every list, board, and ticket event carries. About
-// 300 bytes; the description lives only on `Ticket`. `version` bumps on every
-// row change and is the guard `applyEvent` compares before a patch.
+// 300 bytes, and about 80 bytes more for each label; the description lives
+// only on `Ticket`. `version` bumps on every row change and is the guard
+// `applyEvent` compares before a patch.
 export const TicketSummarySchema = z.object({
 	id: UlidSchema,
 	identifier: IdentifierSchema,
@@ -69,6 +71,8 @@ export const TicketSummarySchema = z.object({
 	childDoneCount: CountSchema,
 	commentCount: CountSchema,
 	attachmentCount: CountSchema,
+	// The labels with no group first, then by group name, then by label name.
+	labels: z.array(TicketLabelSchema),
 	pr: PrBadgeSchema.nullable(),
 	lastActor: LastActorSchema.nullable(),
 	position: z.number(),
@@ -124,6 +128,13 @@ export const ListQuerySchema = z.strictObject({
 	category: commaList(StatusCategorySchema).optional(),
 	reviewer: ReviewerSchema.optional(),
 	priority: commaList(PrioritySchema).optional(),
+	// `label` keeps a ticket that holds one or more of these labels. The value
+	// `none` in it keeps a ticket that holds no label. `labelNot` keeps a
+	// ticket that holds none of these labels. With `project` set, a ref names a
+	// label of that project tree. With no project, a name matches the label of
+	// that name in every tree.
+	label: commaList(LabelRefStringSchema).optional(),
+	labelNot: commaList(LabelRefStringSchema).optional(),
 	parent: z.union([z.literal("none"), TicketRefStringSchema]).optional(),
 	pr: PrFilterSchema.optional(),
 	ci: commaList(CiStateSchema).optional(),
@@ -182,6 +193,10 @@ export const TicketGetInputSchema = z.strictObject({
 	ticket: TicketRefStringSchema,
 });
 
+// One write names at most 50 labels. A ticket holds one label of a group at
+// most, so two labels of one group in one list fail INPUT_VALIDATION_FAILED.
+const LabelRefListSchema = z.array(LabelRefStringSchema).max(50, "Enter 50 labels or less.");
+
 // `status` defaults to the project's default status; `description` to the
 // project's ticket template.
 export const TicketCreateInputSchema = z.strictObject({
@@ -191,12 +206,17 @@ export const TicketCreateInputSchema = z.strictObject({
 	priority: PrioritySchema.optional(),
 	status: StatusRefStringSchema.optional(),
 	parent: TicketRefStringSchema.optional(),
+	labels: LabelRefListSchema.optional(),
 	force: z.boolean().optional(),
 });
 export type TicketCreateInput = z.input<typeof TicketCreateInputSchema>;
 
 // `expectedVersion` makes the write conditional: a mismatch is
 // VERSION_CONFLICT with the current row. `parent: null` clears the parent.
+// `addLabels` and `removeLabels` change the label set one label at a time, so
+// two writers do not overwrite the labels of each other. A label the ticket
+// holds already, or a removed label it does not hold, changes nothing. An
+// added label of a group replaces the label of that group on the ticket.
 export const TicketUpdateInputSchema = z.strictObject({
 	ticket: TicketRefStringSchema,
 	title: TitleSchema.optional(),
@@ -205,6 +225,8 @@ export const TicketUpdateInputSchema = z.strictObject({
 	status: StatusRefStringSchema.optional(),
 	parent: TicketRefStringSchema.nullable().optional(),
 	project: ProjectRefStringSchema.optional(),
+	addLabels: LabelRefListSchema.optional(),
+	removeLabels: LabelRefListSchema.optional(),
 	expectedVersion: z.number().int().positive().optional(),
 });
 export type TicketUpdateInput = z.input<typeof TicketUpdateInputSchema>;
@@ -229,6 +251,8 @@ export const TicketUpdateManyInputSchema = z.strictObject({
 	priority: PrioritySchema.optional(),
 	project: ProjectRefStringSchema.optional(),
 	parent: TicketRefStringSchema.nullable().optional(),
+	addLabels: LabelRefListSchema.optional(),
+	removeLabels: LabelRefListSchema.optional(),
 	force: z.boolean().optional(),
 });
 export type TicketUpdateManyInput = z.input<typeof TicketUpdateManyInputSchema>;
