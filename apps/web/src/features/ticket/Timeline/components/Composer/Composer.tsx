@@ -69,6 +69,12 @@ export function Composer({ ticket, onAttachFiles }: ComposerProps) {
 	};
 
 	const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+		if (event.key === "Escape" && !event.nativeEvent.isComposing && !event.repeat) {
+			event.preventDefault();
+			event.stopPropagation();
+			event.currentTarget.blur();
+			return;
+		}
 		if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
 			event.preventDefault();
 			submit();

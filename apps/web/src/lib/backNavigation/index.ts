@@ -1,0 +1,1 @@
+export { backNavigation } from "./backNavigation";
