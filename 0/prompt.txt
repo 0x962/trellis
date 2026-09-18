@@ -1,0 +1,7 @@
+<task-notification>
+<task-id>b2cptneec</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-navidkhan-projects-trellis/c8243717-c57c-4b90-9c1b-1bed4eb5c8c0/tasks/b2cptneec.output</output-file>
+<status>completed</status>
+<summary>Background command "Read the macOS sleep and wake log" completed (exit code 0)</summary>
+</task-notification>
