@@ -12,6 +12,7 @@ import {
 	type RuntimeStream,
 } from "./index.ts";
 import { subscribeOutput } from "./subscribeOutput.ts";
+import { terminalChannel } from "./terminalChannel";
 
 export class RuntimeClient {
 	constructor(
@@ -71,6 +72,9 @@ export class RuntimeClient {
 	}
 	subscribeSession(id: string, signal?: AbortSignal) {
 		return subscribeOutput(this.socketPath, { id, offset: 0, output: false }, signal);
+	}
+	terminal(id: string, offset = 0, signal?: AbortSignal) {
+		return terminalChannel(this.socketPath, id, offset, signal);
 	}
 	registerNativeDelivery(
 		id: string,

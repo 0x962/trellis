@@ -1,0 +1,1 @@
+export { useTerminalAccessibility } from "./useTerminalAccessibility";

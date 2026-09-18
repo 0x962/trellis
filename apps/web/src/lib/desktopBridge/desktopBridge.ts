@@ -28,6 +28,7 @@ export type DesktopUpdateStatus = {
 
 export type DesktopBridge = {
 	platform: string;
+	onAccessibilitySupportChanged?: (listener: (enabled: boolean) => void) => () => void;
 	chooseDirectory: () => Promise<string | null>;
 	status: () => Promise<DesktopStatus>;
 	serviceStatus: () => Promise<DesktopServiceStatus>;
