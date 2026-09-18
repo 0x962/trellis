@@ -84,6 +84,13 @@ export interface RuntimeListInput {
 	activity?: "ready" | "working" | "idle";
 	hasError?: boolean;
 }
+export interface RuntimeListPageInput extends RuntimeListInput {
+	cursor?: string;
+}
+export interface RuntimeListPage {
+	sessions: RuntimeProcessStatus[];
+	nextCursor: string | null;
+}
 export interface RuntimeProcessStatus extends RuntimeSession {
 	elapsedMs: number | null;
 	agent: RuntimeAgentMetadata | null;
@@ -189,6 +196,7 @@ export interface RuntimeMethods {
 	};
 	hello: { params: Record<string, never>; result: RuntimeHello };
 	list: { params: RuntimeListInput; result: RuntimeProcessStatus[] };
+	listPage: { params: RuntimeListPageInput; result: RuntimeListPage };
 	start: { params: LaunchSpec; result: RuntimeSession };
 	input: { params: { id: string; data: string; userInput?: boolean; expected?: RuntimeExpectedTurn }; result: null };
 	resize: { params: { id: string; cols: number; rows: number }; result: null };

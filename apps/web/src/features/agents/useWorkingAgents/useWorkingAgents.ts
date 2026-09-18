@@ -7,7 +7,10 @@ const empty = { ticketIds: [] as string[], projectIds: [] as string[], runIds: [
 
 export function useWorkingAgents() {
 	const { orpc } = useApp();
-	const query = useQuery({ ...orpc.agentRuns.list.queryOptions({ input: {} }), select: workingTargets });
+	const query = useQuery({
+		...orpc.agentRuns.list.queryOptions({ input: { assigned: true } }),
+		select: workingTargets,
+	});
 	const [held, setHeld] = useState(empty);
 	useEffect(() => {
 		if (query.data !== undefined) setHeld(query.data);

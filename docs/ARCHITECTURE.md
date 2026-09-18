@@ -75,6 +75,8 @@ An unconfirmed process prevents a successful stop.
 The Bun host owns PGlite and the manager queue. A separate Node runtime owns agent PTYs.
 Its private Unix socket uses protocol 10. A lifetime file lock permits one runtime owner.
 Each attempt has one immutable identifier, a token hash, retained terminal output, and a process record.
+The runtime keeps complete records for active processes and subscribers. Exited history stays on disk for seven days, with eight records cached on demand.
+Inventory responses yield between records so terminal input can proceed. Clients use bounded pages when the runtime advertises `list-pages`.
 Output readers receive bounded chunks with byte offsets.
 The runtime preserves delivery identifiers before it writes input. An uncertain write remains unknown until an agent receipt confirms it.
 A runtime restart never substitutes a new process for an unresolved attempt.
@@ -283,6 +285,8 @@ An existing manager keeps its saved workspace and conversation. A manager withou
 A stopped manager can resume its conversation. An explicit new session gets a new conversation identifier.
 An interrupted manager requires reconciliation before another start.
 API run states come from inspected runtime processes. The database records assignment closure in `closed_at`.
+Periodic runtime checks request the attempt identifiers of open database assignments.
+Sidebar work indicators request assigned runs. Individual agent views request their run identifiers.
 An active background launch reports `starting` until the runtime has a process.
 Otherwise, a missing runtime record produces `interrupted`; an observed process exit produces `exited` or `failed` from its exit code.
 A failed launch retains its error. A stop retains the workspace and output after the runtime confirms process exit.

@@ -1,12 +1,12 @@
 import type { Tx } from "../../db/tx.ts";
-import { readRuntimeSessions } from "../agentRuns/liveState.ts";
+import { readRunningAssignments } from "../agentRuns/readRunningAssignments";
 import type { ServiceCtx } from "../support.ts";
 import { collect as collectEvents } from "./collect.ts";
 import { claim as claimDispatch } from "./controller.ts";
 import type { ControllerInput } from "./types.ts";
 
 export const prepare = async (ctx: ServiceCtx): Promise<ControllerInput> => ({
-	sessions: await readRuntimeSessions(ctx.home),
+	sessions: await readRunningAssignments(ctx),
 });
 export const collect = (ctx: ServiceCtx, tx: Tx, input: ControllerInput) =>
 	collectEvents({ now: ctx.now() }, tx, input);

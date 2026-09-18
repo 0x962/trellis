@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync } from "node:fs";
 import type {
 	LaunchSpec,
 	RuntimeExpectedTurn,
@@ -21,8 +20,8 @@ import { observeHarness } from "./observeHarness.ts";
 import { observeLegacyTurn } from "./observeLegacyTurn.ts";
 import { ProcessExitWatcher } from "./processExitWatcher.ts";
 import { registerNativeDelivery } from "./registerNativeDelivery.ts";
-import { sessionFileSuffixes, sessionFiles } from "./sessionFiles.ts";
 import type { SessionRecord as Record } from "./sessionRecord.ts";
+import { SessionRecords } from "./sessionRecords";
 import { sessionResources } from "./sessionResources.ts";
 import { stopAttempt } from "./stopAttempt.ts";
 import { watchRecoveredSession } from "./watchRecoveredSession.ts";
@@ -34,7 +33,7 @@ const retentionMs = 7 * 24 * 60 * 60 * 1000;
 const sweepIntervalMs = 60 * 60 * 1000;
 
 export class SessionStore {
-	private readonly records = new Map<string, Record>();
+	private readonly records: SessionRecords;
 	private readonly exits = new ProcessExitWatcher();
 	private readonly sweeper: ReturnType<typeof setInterval>;
 	constructor(
@@ -42,92 +41,70 @@ export class SessionStore {
 		private readonly daemonId: string,
 	) {
 		mkdirSync(home, { recursive: true, mode: 0o700 });
-		for (const file of readdirSync(home).filter((file) => file.endsWith(".session.json"))) {
-			const saved = JSON.parse(readFileSync(join(home, file), "utf8")) as {
-				session: RuntimeSession;
-				fingerprint: string | null;
-				identity?: string | null;
-				launch?: RuntimeProcessStatus["launch"];
-			};
-			if (saved.session.status === "running") saved.session.status = "unknown";
-			const record: Record = {
-				...saved,
-				identity: saved.identity ?? null,
-				launch: saved.launch ?? null,
-				listeners: new Set<() => void>(),
-				watchedPids: new Set<number>(),
-				tokenHash: null,
-				activity: null,
-				...sessionResources(home, saved.session.id),
-				stopped: Promise.resolve(undefined),
-				resolveStop: () => {},
-			};
-			record.activity = record.observations.activity;
-			this.records.set(saved.session.id, record);
+		this.records = new SessionRecords(home);
+		this.records.restore((record) => {
 			this.save(record);
 			watchRecoveredSession(record, this.exits);
-		}
+		});
 		this.sweep();
-		this.removeOrphanFiles();
+		this.records.removeOrphanFiles();
 		this.sweeper = setInterval(() => this.sweep(), sweepIntervalMs);
 		this.sweeper.unref();
 	}
-	// Removes each exited session whose exit is older than retentionMs. A record
-	// recovered from a crash has no endedAt, so its startedAt sets its age.
 	private sweep(now = Date.now()) {
 		for (const record of this.records.values()) {
-			if (record.process !== undefined || record.listeners.size > 0) continue;
+			if (record.process !== undefined || record.listeners.size > 0 || record.watchedPids.size > 0) continue;
 			if (inspectSessionRecord(record).status !== "exited") continue;
-			const endedAt = record.session.endedAt ?? record.session.startedAt;
-			if (now - Date.parse(endedAt) < retentionMs) continue;
-			this.records.delete(record.session.id);
-			for (const path of Object.values(sessionFiles(this.home, record.session.id))) rmSync(path, { force: true });
+			this.records.finalize(record);
 		}
-	}
-	// A session file without a session record belongs to a session that a
-	// sweep removed before the runtime wrote the file, or to a removed record
-	// whose file removal did not complete.
-	private removeOrphanFiles() {
-		for (const file of readdirSync(this.home)) {
-			const suffix = sessionFileSuffixes.find((candidate) => file.endsWith(candidate));
-			if (suffix === undefined) continue;
-			if (this.records.has(file.slice(0, -suffix.length))) continue;
-			rmSync(join(this.home, file), { force: true });
-		}
+		this.records.removeExpired(now, retentionMs);
 	}
 	private save(record: Record) {
-		const path = join(this.home, `${record.session.id}.session.json`);
-		writeFileSync(
-			`${path}.tmp`,
-			JSON.stringify({
-				session: record.session,
-				fingerprint: record.fingerprint,
-				identity: record.identity,
-				launch: record.launch,
-			}),
-			{
-				mode: 0o600,
-			},
-		);
-		renameSync(`${path}.tmp`, path);
-		for (const listener of record.listeners) listener();
+		this.records.save(record);
 	}
+
 	private get(id: string) {
 		const record = this.records.get(id);
 		if (!record) throw Object.assign(new Error(`Session ${id} does not exist`), { code: "SESSION_NOT_FOUND" });
 		return record;
 	}
-	list(input: RuntimeListInput = {}) {
-		const ids = input.ids ?? [...this.records.keys()];
-		return ids
-			.flatMap((id) => {
-				const record = this.records.get(id);
-				return record === undefined ? [] : [inspectSessionRecord(record)];
-			})
-			.filter((session) => matchesProcessFilters(session, input));
+	*entries(input: RuntimeListInput = {}, after?: string) {
+		const prefix = `${input.ids === undefined ? "r" : "i"}:${this.daemonId}:`;
+		if (after !== undefined && (!after.startsWith(prefix) || !/^\d+$/.test(after.slice(prefix.length))))
+			throw new Error("The runtime list cursor does not match this runtime or query.");
+		const position = after === undefined ? 0 : Number(after.slice(prefix.length));
+		if (!Number.isSafeInteger(position)) throw new Error("The runtime list cursor position is invalid.");
+		if (input.ids !== undefined) {
+			for (let index = position; index < input.ids.length; index++) {
+				const record = this.records.get(input.ids[index]!);
+				const session = record === undefined ? null : this.inspect(input.ids[index]!);
+				yield {
+					session: session !== null && matchesProcessFilters(session, input) ? session : null,
+					cursor: `${prefix}${index + 1}`,
+				};
+			}
+			return;
+		}
+		for (const [id, entry] of this.records.entries()) {
+			if (entry.sequence <= position) continue;
+			if (entry.final && (input.status === "running" || input.status === "unknown" || input.activity !== undefined))
+				continue;
+			const session = this.inspect(id);
+			yield { session: matchesProcessFilters(session, input) ? session : null, cursor: `${prefix}${entry.sequence}` };
+		}
 	}
+	*iterate(input: RuntimeListInput = {}) {
+		for (const { session } of this.entries(input)) if (session !== null) yield session;
+	}
+	list(input: RuntimeListInput = {}) {
+		return [...this.iterate(input)];
+	}
+
 	inspect(id: string): RuntimeProcessStatus {
-		return inspectSessionRecord(this.get(id));
+		const record = this.get(id);
+		const session = inspectSessionRecord(record);
+		if (session.status === "exited") this.records.finalize(record);
+		return session;
 	}
 	hasMessage({ id, messageId }: RuntimeMethods["hasMessage"]["params"]): RuntimeMessageState {
 		const record = this.get(id);
@@ -157,6 +134,7 @@ export class SessionStore {
 		const record = this.get(id);
 		const sessionChanged = () => listener("session");
 		record.listeners.add(sessionChanged);
+		this.records.retain(record);
 		const unsubscribe = output
 			? (stream === "events" ? record.observations.log : stream === "stderr" ? record.stderr : record.log).subscribe(
 					() => listener("output"),
@@ -165,6 +143,7 @@ export class SessionStore {
 		return () => {
 			record.listeners.delete(sessionChanged);
 			unsubscribe();
+			this.records.release(record);
 		};
 	}
 	start(spec: LaunchSpec): RuntimeSession {
@@ -218,10 +197,15 @@ export class SessionStore {
 		await record.process.input(data);
 		return null;
 	}
-	deliver(id: string, messageId: string, data: string, expected?: RuntimeExpectedTurn) {
+	async deliver(id: string, messageId: string, data: string, expected?: RuntimeExpectedTurn) {
 		const record = this.get(id);
 		if (!record.ledger.has(messageId)) assertExpectedTurn(record, expected);
-		return record.ledger.deliver(messageId, data, () => this.input(id, data));
+		const unpin = this.records.pin(record);
+		try {
+			return await record.ledger.deliver(messageId, data, () => this.input(id, data));
+		} finally {
+			unpin();
+		}
 	}
 	resize(id: string, cols: number, rows: number) {
 		const record = this.get(id);

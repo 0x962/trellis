@@ -1,6 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
+import type { RuntimeListInput, RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { nativeHost, nativePreset } from "../../agents/native/harnessHost.ts";
 import { SYSTEM_ACTOR } from "../../context.ts";
@@ -18,7 +18,7 @@ const defaults = {
 	start: startNative,
 	stop: stopNative,
 	preset: nativePreset,
-	list: (home: string) => nativeHost(home).list(),
+	list: (home: string, input: RuntimeListInput) => nativeHost(home).list(input),
 	mkdir,
 };
 
@@ -31,7 +31,9 @@ export async function reconcileCopilot(
 	const previous = await ctx.newTx((tx) => managerRowOf(tx, projectId, null));
 	let session = sessions.find((item) => item.id === previous?.terminalId);
 	if (previous?.terminalId && !session)
-		session = (await deps.list(ctx.home)).find((item) => item.id === previous.terminalId);
+		session = (await deps.list(ctx.home, { ids: [previous.terminalId] })).find(
+			(item) => item.id === previous.terminalId,
+		);
 	if (session?.status === "unknown") throw new Error(`Cannot confirm process ownership for ${previous!.id}`);
 	if (session && workerAction(session, ctx.now(), { allowIdle: true }) !== "restart") return;
 	if (previous && session?.status === "running") await deps.stop(ctx, previous);

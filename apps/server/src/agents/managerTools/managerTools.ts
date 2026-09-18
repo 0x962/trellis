@@ -102,7 +102,7 @@ export const managerTools = (invoke: Invoke) => {
 			const { include } = sessionInput.parse(input);
 			const session = result as Awaited<ReturnType<TrellisClient["agentRuns"]["session"]>>;
 			if (session === null) {
-				const runs = (await invoke("agentRuns.list", {})) as AgentRun[];
+				const runs = (await invoke("agentRuns.list", { ids: [(parsed as { id: string }).id] })) as AgentRun[];
 				const run = runs.find((run) => run.id === (input as { id: string }).id);
 				return {
 					status: "unknown",
