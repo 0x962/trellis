@@ -18,12 +18,13 @@ const doc: FlowDoc = flowDoc(
 const summaryKey = "root/1/outer/1/inner/1/summary";
 
 test("names the box with the earliest time limit", () => {
-	const state = advanceFlow(
+	const started = advanceFlow(
 		doc,
 		createFlowExecution(doc, 1000),
 		{ type: "started", key: `${summaryKey}:step:1` },
 		2000,
 	);
+	const state = advanceFlow(doc, started, { type: "launched", key: `${summaryKey}:step:1`, at: 17_000 }, 17_100);
 	const step = state.steps.find((step) => step.key === summaryKey)!;
 	expect(describeTaskFailure(doc, state, step, "Process timed out after 104572 ms")).toBe(
 		"Group inner reached its time limit (2 min)",

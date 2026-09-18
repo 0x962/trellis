@@ -37,6 +37,8 @@ export interface FlowExecution {
 }
 export type FlowEvent =
 	| { type: "started"; key: string }
+	// The worker process of the step exists from `at`, a Unix millisecond time.
+	| { type: "launched"; key: string; at: number }
 	| { type: "complete"; key: string; output: string; decision?: "yes" | "no" }
 	| { type: "human"; key: string; approved: boolean; output: string }
 	| { type: "unknown" | "fail"; key: string; error: string }

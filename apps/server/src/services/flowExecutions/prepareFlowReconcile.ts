@@ -12,12 +12,14 @@ import { claimNext } from "./claimNext.ts";
 import { drainFlowStops } from "./drainFlowStops.ts";
 import { readExecution } from "./queries.ts";
 import { recordFlowFailure } from "./recordFlowFailure.ts";
+import { recordTaskLaunch } from "./recordTaskLaunch.ts";
 import { recordTaskObservation } from "./recordTaskObservation.ts";
 import type { FlowCtx } from "./types.ts";
 
 type Claim = NonNullable<Awaited<ReturnType<typeof claimNext>>>;
 type Dependencies = {
-	start: (ctx: FlowCtx, claim: Claim) => Promise<unknown>;
+	// Resolves once the process exists, with the time the runtime started it.
+	start: (ctx: FlowCtx, claim: Claim) => Promise<{ launchedAt?: string } | undefined>;
 	observe: (ctx: FlowCtx, run: StoredRun) => Promise<HarnessSnapshot | null>;
 	stop: (ctx: FlowCtx, run: StoredRun) => Promise<unknown>;
 };
@@ -89,7 +91,16 @@ async function reconcile(ctx: FlowCtx, deps: Dependencies) {
 			claims.map(async (claim) => {
 				const current = await ctx.newTx((tx) => readExecution(tx, claim.id));
 				if (current.state.steps.find((step) => taskKey(step) === claim.key)?.state !== "running") return;
-				await deps.start(ctx, claim);
+				const launchedAt = (await deps.start(ctx, claim))?.launchedAt;
+				if (launchedAt !== undefined)
+					await ctx.newTx((tx) =>
+						recordTaskLaunch(ctx.core, tx, {
+							id: claim.id,
+							key: claim.key,
+							attemptId: claim.attempt.id,
+							launchedAt: Date.parse(launchedAt),
+						}),
+					);
 			}),
 		);
 		for (const [index, result] of outcomes.entries())

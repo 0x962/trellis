@@ -53,6 +53,8 @@ export const startNative = async (
 		previousAccountId?: string | null;
 		attempt: ExecutionAttempt;
 		deadlineAt?: number;
+		// The time limit of a flow box whose clock starts with this process.
+		budgetMs?: number;
 		prompt?: string;
 		resumePrompt?: string;
 		preserveAssignmentOnFailure?: boolean;
@@ -63,6 +65,7 @@ export const startNative = async (
 	const terminalId = input.attempt.id;
 	const previousTerminalId = resume ? (input.previousAttemptId ?? null) : null;
 	let launchSubmitted = false;
+	let launchedAt: string | undefined;
 	try {
 		if (input.deadlineAt !== undefined && input.deadlineAt <= Date.now())
 			throw new Error("The flow group deadline elapsed before launch");
@@ -102,8 +105,12 @@ export const startNative = async (
 			TRELLIS_ATTEMPT_TOKEN: input.attempt.token,
 		};
 		const client = await (deps.runtime ?? ensureNativeRuntime)(ctx.home);
-		const timeoutMs = input.deadlineAt === undefined ? undefined : input.deadlineAt - Date.now();
-		if (timeoutMs !== undefined && timeoutMs <= 0) throw new Error("The flow group deadline elapsed before launch");
+		// A box clock that already runs gives its time left. A box clock that
+		// starts with this process gives its whole budget.
+		const remainingMs = input.deadlineAt === undefined ? Infinity : input.deadlineAt - Date.now();
+		if (remainingMs <= 0) throw new Error("The flow group deadline elapsed before launch");
+		const limitMs = Math.min(remainingMs, input.budgetMs ?? Infinity);
+		const timeoutMs = Number.isFinite(limitMs) ? limitMs : undefined;
 		let session: RuntimeProcessStatus;
 		if (config.harness.preset === "custom") {
 			const launch = launchCommand({
@@ -193,6 +200,7 @@ export const startNative = async (
 			({ process: session } =
 				sessionId === undefined ? await host.start(launch) : await host.resume({ ...launch, sessionId }));
 		}
+		launchedAt = session.startedAt;
 		await ctx.newTx((tx) =>
 			tx.execute(
 				sql`UPDATE agent_runs SET workspace_id = ${workspaceId}, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = CASE WHEN ${session.status === "exited"} AND kind<>'agent' THEN ${ctx.now()}::timestamptz ELSE NULL END, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
@@ -212,5 +220,5 @@ export const startNative = async (
 				data: { reason: "error" },
 			});
 	}
-	return { id: run.id };
+	return { id: run.id, launchedAt };
 };

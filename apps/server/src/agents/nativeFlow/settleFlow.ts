@@ -14,7 +14,8 @@ function activate(doc: FlowDoc, state: FlowExecution, step: FlowStep, node: Flow
 		step.state = "running";
 		step.phase = "children";
 		step.startedAt = now;
-		step.deadlineAt = node.minutes === null ? null : now + node.minutes * 60000;
+		// A box with a time limit starts its clock when the first worker process
+		// inside it starts. advanceFlow sets deadlineAt on that launch.
 		state.steps.push(...makeSteps(doc, node.id, step.key, step.round));
 	} else step.state = node.kind === "human" ? "waiting_human" : "ready";
 }

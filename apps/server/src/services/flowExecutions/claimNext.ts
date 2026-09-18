@@ -2,11 +2,14 @@ import { createHash } from "node:crypto";
 import { HarnessSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { advanceFlow } from "../../agents/nativeFlow/advanceFlow.ts";
+import { flowTarget } from "../../agents/nativeFlow/flowTarget.ts";
 import { pendingFlowActions } from "../../agents/nativeFlow/pendingFlowActions.ts";
 import type { ServiceCtx } from "../../context.ts";
+import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { reserve } from "../agentRuns/reserve.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
+import { resolveTicket } from "../refs.ts";
 import { readExecution } from "./queries.ts";
 import { saveState } from "./saveState.ts";
 export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) {
@@ -21,8 +24,14 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 		harness: HarnessSchema.parse({ preset: "claude" }),
 	});
 	const action = actions[0]!;
+	const ticket = await resolveTicket(ctx, tx, execution.ticket_id);
+	const pulls = await rows<{ url: string; head_ref: string; base_ref: string; state: string }>(
+		tx,
+		sql`SELECT p.url, p.head_ref, p.base_ref, p.state FROM ticket_pull_requests l JOIN pull_requests p ON p.id = l.pull_request_id WHERE l.ticket_id = ${execution.ticket_id} ORDER BY p.created_at, p.id`,
+	);
 	const instruction = [
 		execution.doc.flow.briefing,
+		flowTarget(ticket, pulls),
 		`Flow step: ${action.nodeId}`,
 		action.instruction,
 		`Prior step outputs:\n${JSON.stringify(action.inputs)}`,
@@ -53,17 +62,17 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 		{ ...execution, state },
 		advanceFlow(execution.doc, state, { type: "started", key: action.key }, ctx.now.getTime()),
 	);
-	const deadlines: number[] = [];
+	// The earliest deadline among the boxes around the step whose clock runs,
+	// and the shortest budget among the boxes whose clock starts with this
+	// launch. The runtime gets the smaller of the two as its process timeout.
+	let deadlineAt: number | undefined;
+	let budgetMs: number | undefined;
 	let step = state.steps.find((step) => `${step.key}:${step.phase}:${step.round}` === action.key)!;
 	while (step.parentKey !== null) {
 		step = state.steps.find((parent) => parent.key === step.parentKey)!;
-		if (step.deadlineAt !== null) deadlines.push(step.deadlineAt);
+		const box = execution.doc.nodes.find((node) => node.id === step.nodeId)!;
+		if (step.deadlineAt !== null) deadlineAt = Math.min(deadlineAt ?? Infinity, step.deadlineAt);
+		else if (box.minutes !== null) budgetMs = Math.min(budgetMs ?? Infinity, box.minutes * 60000);
 	}
-	return {
-		...reservation,
-		attempt: reservation.attempt,
-		id: execution.id,
-		key: action.key,
-		deadlineAt: deadlines.length === 0 ? undefined : Math.min(...deadlines),
-	};
+	return { ...reservation, attempt: reservation.attempt, id: execution.id, key: action.key, deadlineAt, budgetMs };
 }

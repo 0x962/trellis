@@ -121,7 +121,7 @@ The terminal sends keyboard input and resize events to the runtime. An explicit 
 Native flows freeze the saved graph and inline node instructions for each execution.
 Each node occurrence binds to an ordinary agent attempt or a versioned human decision.
 Gate results use complete YES or NO responses. Skipped branches remain explicit, and joins wait for their incoming paths to settle.
-Group deadlines also reach the runtime process, so they remain effective after a host crash.
+A box with a time limit starts its clock when the first worker process inside it starts. The deadline also reaches the runtime process as its timeout, so it remains effective after a host crash.
 Cancellation retains files and output and records any worker whose stop remains unconfirmed.
 
 The desktop installs `~/.local/bin/trellis` from the active host release.
@@ -445,7 +445,9 @@ its time left, and a finished step shows its duration from `startedAt` to
 human decision. A finished run can run again at the current flow version.
 A failed child fails its box with the same error, and the run stops there.
 When the runtime stops a worker at a box time limit, the step records the box
-and its limit. The list refreshes on `flows.changed`.
+and its limit. The list refreshes on `flows.changed`. Every flow agent reads
+the ticket, its description, and its linked pull requests right after the
+briefing, so no step spends its budget on finding the target.
 
 ## Web routes
 

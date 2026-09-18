@@ -46,6 +46,7 @@ export async function reserveResume(ctx: ServiceCtx, tx: Tx, session: ResumeSess
 		sql`SELECT execution_id,key,attempt_id,result_id FROM flow_execution_tasks WHERE run_id=${run.id}`,
 	);
 	let deadlineAt: number | undefined;
+	let budgetMs: number | undefined;
 	for (const task of tasks) {
 		const [execution] = await rows<StoredExecution>(
 			tx,
@@ -61,7 +62,9 @@ export async function reserveResume(ctx: ServiceCtx, tx: Tx, session: ResumeSess
 		let step = execution.state.steps.find((item) => taskKey(item) === task.key)!;
 		if (!["running", "unknown"].includes(step.state) || step.needsStop) return null;
 		while (true) {
+			const box = execution.doc.nodes.find((node) => node.id === step.nodeId)!;
 			if (step.deadlineAt !== null) deadlineAt = Math.min(deadlineAt ?? Infinity, step.deadlineAt);
+			else if (box.minutes !== null) budgetMs = Math.min(budgetMs ?? Infinity, box.minutes * 60000);
 			if (step.parentKey === null) break;
 			step = execution.state.steps.find((item) => item.key === step.parentKey)!;
 		}
@@ -105,5 +108,6 @@ export async function reserveResume(ctx: ServiceCtx, tx: Tx, session: ResumeSess
 		},
 		attempt,
 		deadlineAt,
+		budgetMs,
 	};
 }
