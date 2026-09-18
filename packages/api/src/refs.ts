@@ -4,8 +4,8 @@ import { keyPattern, reservedSlugs, slugPattern, ulidPattern } from "./schemas/p
 
 // A ref is how a client names a row without its ULID. Every grammar is
 // case-insensitive on input. `canonicalize` returns the one spelling the
-// server, the web URL, and the CLI print: keys and ULIDs upper-case, slugs
-// and status names lower-case.
+// server, the web URL, and the CLI print: keys and ULIDs upper-case, slugs,
+// status names, label names, and label group names lower-case.
 
 export type TicketRef = { kind: "ulid"; id: string } | { kind: "identifier"; key: string; number: number };
 
@@ -19,6 +19,11 @@ export type StatusRef =
 	| { kind: "ulid"; id: string }
 	| { kind: "category"; category: StatusCategory }
 	| { kind: "identifier"; value: string };
+
+// `group` is null for the bare `name` form, which names no group.
+export type LabelRef = { kind: "ulid"; id: string } | { kind: "name"; group: string | null; name: string };
+
+export type LabelGroupRef = { kind: "ulid"; id: string } | { kind: "name"; name: string };
 
 export type ActorHeader = { kind: ActorKind; name: string };
 
@@ -124,6 +129,48 @@ const statusRef = defineRef(
 	formatStatusRef,
 );
 
+// A label name and a label group name are 1 to 80 characters with no comma
+// and no slash. The slash is reserved for the `group/name` form, so a ref
+// holds one slash at most. The server matches a name without regard to case.
+const isLabelName = (value: string) => value.length >= 1 && value.length <= 80 && !value.includes(",");
+
+const parseLabelRef = (value: string): LabelRef | undefined => {
+	const text = value.trim();
+	if (isUlid(text)) return { kind: "ulid", id: text.toUpperCase() };
+	const segments = text.split("/").map((segment) => segment.trim());
+	if (segments.length > 2 || !segments.every(isLabelName)) return undefined;
+	const [first, second] = segments;
+	return second === undefined
+		? { kind: "name", group: null, name: first!.toLowerCase() }
+		: { kind: "name", group: first!.toLowerCase(), name: second.toLowerCase() };
+};
+
+const formatLabelRef = (ref: LabelRef) => {
+	if (ref.kind === "ulid") return ref.id;
+	return ref.group === null ? ref.name : `${ref.group}/${ref.name}`;
+};
+
+const labelRef = defineRef(
+	"Expected a label ref: a ULID, a label name, or group/name, for example type/bug.",
+	parseLabelRef,
+	formatLabelRef,
+);
+
+const parseLabelGroupRef = (value: string): LabelGroupRef | undefined => {
+	const text = value.trim();
+	if (isUlid(text)) return { kind: "ulid", id: text.toUpperCase() };
+	if (!isLabelName(text) || text.includes("/")) return undefined;
+	return { kind: "name", name: text.toLowerCase() };
+};
+
+const formatLabelGroupRef = (ref: LabelGroupRef) => (ref.kind === "ulid" ? ref.id : ref.name);
+
+const labelGroupRef = defineRef(
+	"Expected a label group ref: a ULID or a group name.",
+	parseLabelGroupRef,
+	formatLabelGroupRef,
+);
+
 // The name is printable ASCII (0x20 to 0x7E) without the colon, 1 to 64 chars.
 const actorHeaderPattern = /^(human|agent):([\x20-\x39\x3B-\x7E]{1,64})$/;
 
@@ -144,6 +191,8 @@ export const TicketRefSchema = ticketRef.schema;
 export const ProjectRefSchema = projectRef.schema;
 export const EpicRefSchema = epicRef.schema;
 export const StatusRefSchema = statusRef.schema;
+export const LabelRefSchema = labelRef.schema;
+export const LabelGroupRefSchema = labelGroupRef.schema;
 export const ActorHeaderSchema = actorHeader.schema;
 
 // The string forms for contract inputs: a valid ref in, its canonical
@@ -152,4 +201,6 @@ export const TicketRefStringSchema = ticketRef.canonical;
 export const ProjectRefStringSchema = projectRef.canonical;
 export const EpicRefStringSchema = epicRef.canonical;
 export const StatusRefStringSchema = statusRef.canonical;
+export const LabelRefStringSchema = labelRef.canonical;
+export const LabelGroupRefStringSchema = labelGroupRef.canonical;
 export const ActorHeaderStringSchema = actorHeader.canonical;

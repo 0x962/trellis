@@ -1,7 +1,7 @@
-import { ArrowElbowDownRight, Clock, FolderOpen, GitPullRequest, Stack, User } from "@phosphor-icons/react";
+import { ArrowElbowDownRight, Clock, FolderOpen, GitPullRequest, Stack, Tag, User } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import type { EpicSummary, StatusSummary } from "@trellis/api";
-import { Chip, PriorityIcon, StatusIcon } from "@trellis/ui";
+import { Chip, LabelDot, PriorityIcon, StatusIcon } from "@trellis/ui";
 import type { ReactElement } from "react";
 import { useApp } from "../../../lib/appContext";
 import { rootKey } from "../../../lib/projectPath";
@@ -16,11 +16,15 @@ import {
 	withoutField,
 } from "../fields";
 import type { NegatableField, View } from "../grammar";
+import type { FilterLabel } from "../labelValues";
 
 export type FilterChipProps = {
 	field: FilterField;
 	view: View;
 	statuses: readonly StatusSummary[];
+	// The labels of the project tree the route shows. It is empty on a route
+	// with no project, where the Label field never gets a chip.
+	labels: readonly FilterLabel[];
 	// The project ref of the route. An epic chip names its epic from the
 	// epics of this project's root; on /all it prints the ref.
 	project?: string;
@@ -29,7 +33,12 @@ export type FilterChipProps = {
 	onEdit: (field: FilterField) => void;
 };
 
-const iconOf = (field: FilterField, values: string[], statuses: readonly StatusSummary[]): ReactElement => {
+const iconOf = (
+	field: FilterField,
+	values: string[],
+	statuses: readonly StatusSummary[],
+	labels: readonly FilterLabel[],
+): ReactElement => {
 	switch (field) {
 		case "status": {
 			const status = statuses.find((entry) => entry.slug === values[0] || entry.id === values[0]);
@@ -39,6 +48,11 @@ const iconOf = (field: FilterField, values: string[], statuses: readonly StatusS
 			return <StatusIcon category={(values[0] as StatusSummary["category"]) ?? "todo"} />;
 		case "priority":
 			return <PriorityIcon priority={(values[0] as "none") ?? "none"} />;
+		case "label": {
+			const label = labels.find((entry) => entry.ref === values[0]);
+			if (label === undefined) return <Tag />;
+			return <LabelDot color={label.color} variant="icon" />;
+		}
 		case "project":
 			return <FolderOpen />;
 		case "parent":
@@ -63,9 +77,10 @@ const namesOf = (
 	field: FilterField,
 	values: string[],
 	statuses: readonly StatusSummary[],
+	labels: readonly FilterLabel[],
 	epics: readonly EpicSummary[],
 ): string[] => {
-	if (field !== "category") return values.map((value) => valueLabel(field, value, statuses, epics));
+	if (field !== "category") return values.map((value) => valueLabel(field, value, statuses, labels, epics));
 	return [...new Set(statuses.filter((status) => values.includes(status.category)).map((status) => status.name))];
 };
 
@@ -76,7 +91,7 @@ const shortList = (names: string[]) =>
 // One active filter as a chip: the field, the operator, the values, and
 // the remove button. The operator flips between is and is not on a
 // negatable field; the values reopen the picker.
-export function FilterChip({ field, view, statuses, project, onChange, onEdit }: FilterChipProps) {
+export function FilterChip({ field, view, statuses, labels, project, onChange, onEdit }: FilterChipProps) {
 	const { orpc } = useApp();
 	const actors = useQuery({ ...orpc.actors.list.queryOptions({ input: {} }), enabled: field === "actor" }).data ?? [];
 	const epics =
@@ -94,11 +109,11 @@ export function FilterChip({ field, view, statuses, project, onChange, onEdit }:
 					const actor = actors.find((entry) => `${entry.kind}:${entry.name}` === value);
 					return actor?.displayName ?? valueLabel(field, value, statuses);
 				})
-			: namesOf(field, values, statuses, epics);
+			: namesOf(field, values, statuses, labels, epics);
 	return (
 		<span data-filter-chip={field} className="contents">
 			<Chip
-				icon={iconOf(field, values, statuses)}
+				icon={iconOf(field, values, statuses, labels)}
 				label={label}
 				op={opLabel(field, negated)}
 				value={shortList(names)}

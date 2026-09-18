@@ -24,7 +24,11 @@ export { GroupHeader, type GroupHeaderProps, groupHeaderHeight, phoneGroupHeader
 export * from "./domain/HarnessAccountForm";
 export * from "./domain/HarnessAccountNameForm";
 export { InboxRow, type InboxRowProps } from "./domain/InboxRow";
+export { LabelDot, type LabelDotProps } from "./domain/LabelDot";
+export { LabelPill, type LabelPillProps } from "./domain/LabelPill";
+export { type LabelPillItem, LabelPills, type LabelPillsProps } from "./domain/LabelPills";
 export { LineChanges, type LineChangesProps, type LineChangesValue, lineChangesVisible } from "./domain/LineChanges";
+export { type LabelColor, labelColors } from "./domain/labelColors";
 export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/PriorityIcon";
 export { type ModelProvider, ProviderIcon, type ProviderIconProps } from "./domain/ProviderIcon";
 export { type QuotaWindow, QuotaWindows, type QuotaWindowsProps, quotaFillClass } from "./domain/QuotaWindows";

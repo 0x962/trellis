@@ -163,11 +163,17 @@ before another agent can take the ticket.
 - Every status-to-status move is legal.
   The `category` of a status is immutable after creation.
 - `started_at` is set once, when a ticket leaves todo. `completed_at` is set when a ticket enters done or canceled, and cleared when it leaves.
-- Priority is none, urgent, high, medium, or low. Projects own label groups, and each label belongs to one group. A sub-project does not inherit groups or labels. Tickets do not yet use labels.
+- Priority is none, urgent, high, medium, or low.
+- The root project of a tree owns every label and every label group of the tree. Every project of the tree reads and writes the one set.
+- A label takes one group or no group. A group is exclusive: a ticket holds one label of a group at most, so a second label of that group replaces the first one.
+- A label name is unique inside its group, or among the labels of the root that have no group, without regard to case. A name holds no comma and no slash, it is 1 to 80 characters, and it is never `none`.
+- A label ref is a ULID, a name, or `group/name`. A bare name takes the label with no group first, then the one label of that name in a group. Two grouped labels of that name are `LABEL_AMBIGUOUS`.
+- A label color is one of nine hues: gray, red, orange, yellow, green, teal, blue, purple, and pink. A create with no color takes a hue that no label of the root uses.
+- A label delete is a hard delete. It takes the label off every ticket, and it leaves `tickets.version` and `tickets.updated_at` as they are.
 - Every non-GET request sends the header `x-trellis-actor: <human|agent>:<name>`. The name is printable ASCII without a colon, 1 to 64 characters.
 - A missing header is `ACTOR_REQUIRED` and a malformed one is `ACTOR_INVALID`. A GET ignores the header. The header rejects the kind `system`, which trellis reserves for `system:trellis`.
 - The optional header `x-trellis-session` is stored in `activity.meta.session`. trellis stores the name and the kind of an actor, and nothing else.
-- The service enforces the agent policy, so curl obeys it too. Agents can move tickets to Done. An agent cannot delete a ticket or a project (`AGENT_CANNOT_DELETE`, 403) without `force`.
+- The service enforces the agent policy, so curl obeys it too. Agents can move tickets to Done. An agent cannot delete a ticket, a project, a label, or a label group (`AGENT_CANNOT_DELETE`, 403) without `force`.
 - An archived project serves reads. Every mutation on it fails with `PROJECT_ARCHIVED`.
 - `tickets.version` rises on every row change. `update` and `move` accept `expectedVersion` or the header `If-Match`. A mismatch is `VERSION_CONFLICT` (412) with the current row.
 - `updated_at` moves only on user-visible activity: a ticket field, a comment, an attachment, or a pull request link. A reorder, a remap, and a poller CI change raise `version` only.
@@ -601,6 +607,9 @@ are no triggers. Every rule is a constraint or a service function that takes
 | projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, directory, ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
 | repos | id PK, project_id (CASCADE), owner, repo (both CHECK lowercase). UNIQUE (project_id, owner, repo). The effective repos of a project are its own plus those of its ancestors. |
 | statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), reviewer (CHECK `(category = 'review') = (reviewer IS NOT NULL)`), color, position, is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
+| label_groups | id PK, project_id (CASCADE, the root of the tree), name, created_at, updated_at. UNIQUE (project_id, lower(name)). CHECK name trimmed, 1 to 80, no `,`, no `/`, and not `none`. |
+| labels | id PK, project_id (CASCADE, the root of the tree), group_id (FK label_groups CASCADE, NULL for a label with no group), name, color (CHECK set), description (CHECK <= 255, default `''`), created_at, updated_at. Partial UNIQUE (group_id, lower(name)) WHERE group_id IS NOT NULL and (project_id, lower(name)) WHERE group_id IS NULL. The same name CHECK as label_groups. Index (project_id). |
+| ticket_labels | ticket_id (CASCADE), label_id (CASCADE), created_at. PK (ticket_id, label_id). Index (label_id). |
 | tickets | id PK, project_id, root_id, number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, epic_id (FK epics SET NULL), position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (root_id, number) and (id, root_id). FK (project_id, root_id) RESTRICT and FK (parent_id, root_id) RESTRICT. Indexes (project_id, status_id, position), (status_id, position, id, project_id, root_id), (parent_id), (epic_id), partial (root_id, updated_at DESC) WHERE completed_at IS NULL, partial (root_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
 | epics | id PK, project_id (CASCADE), root_id, slug (CHECK slug regex), name (CHECK trimmed, 1 to 120), description (CHECK <= 200000), actor_name, actor_kind, created_at, updated_at. FK to actors. UNIQUE (id, root_id) and (root_id, slug). FK (project_id, root_id) CASCADE, so an epic stays in the root of its project. Index (project_id). The state of an epic is never stored. |
 | comments | id PK, ticket_id (CASCADE), body (1 to 200000), parent_id, resolved_at, actor_name, actor_kind, search tsvector GENERATED (body C), created_at, updated_at. FK to actors. UNIQUE (id, ticket_id). FK (parent_id, ticket_id) CASCADE, so a reply stays on the ticket of its root. CHECK `parent_id <> id` and `parent_id IS NULL OR resolved_at IS NULL`, so only a root carries the resolved mark. Index (ticket_id, created_at) and (parent_id). GIN (search). |
@@ -631,7 +640,7 @@ The kanban position of a new card is the maximum plus 1024. A move takes the
 midpoint of its neighbors. The column renumbers in steps of 1024 when the gap
 falls below 1. A list sorts and pages by `(position, id)`.
 
-The schema migrations live in `apps/server/drizzle/`, through `0076_omniscient_sentinels`.
+The schema migrations live in `apps/server/drizzle/`, through `0078_kind_jetstream`.
 `meta/_journal.json` defines their order. Applied migrations preserve upgrades for existing data homes.
 The migrator applies schema changes at boot in one transaction, then runs `ANALYZE` and sets `pg_trgm.word_similarity_threshold`.
 The schema drift check requires `drizzle-kit generate` to leave the migration directory unchanged.
@@ -657,6 +666,7 @@ returns one canonical spelling.
 | EpicRef | ULID or `KEY/slug` | `OP/routine-runtime` |
 | ProjectRef | ULID, `KEY`, or `KEY.slug(.slug)*` | `CDE.web.auth` |
 | StatusRef | ULID, slug, name, or `category:<category>` | `in-progress`, `category:review` |
+| LabelRef | ULID, `name`, or `group/name` | `bug`, `type/feature` |
 | Actor header | `human:<name>` or `agent:<name>` | `agent:claude-code` |
 
 | procedure | route | notes |
@@ -671,6 +681,9 @@ returns one canonical spelling.
 | statuses.list, create, update, reorder | GET, POST /api/projects/{project}/statuses; PATCH .../{status}; PUT .../order | the category is immutable |
 | statuses.delete | DELETE /api/projects/{project}/statuses/{status} | `moveTo` moves the tickets first |
 | statuses.clear | DELETE /api/projects/{project}/statuses | sub-projects only |
+| labels.list | GET /api/projects/{project}/labels | the groups and the labels of the tree, each in name order; every label carries its ticket count |
+| labels.create, update, delete | POST /api/projects/{project}/labels; PATCH, DELETE .../{label} | `{label}` is the label ULID; a body names a group by ULID or by name |
+| labelGroups.create, update, delete | POST /api/projects/{project}/label-groups; PATCH, DELETE .../{group} | delete takes `labels=ungroup` or `labels=delete` |
 | tickets.list | GET /api/tickets | the shared filter grammar; `{items, nextCursor}` and no total |
 | tickets.counts | GET /api/tickets/counts | the same filters; `{total, byStatus}` |
 | tickets.board | GET /api/tickets/board | one query; each column carries a count and its first 100 cards |
@@ -729,6 +742,8 @@ The filter grammar is identical in the API, the web URL, and the CLI flags.
 | priority | a list |
 | parent | a TicketRef or `none` |
 | epic | an EpicRef or `none` |
+| label | a list of LabelRef; a ticket that holds one of them stays; `none` in the list keeps a ticket with no label |
+| labelNot | a list of LabelRef; a ticket that holds one of them drops out |
 | pr | any, none, open, draft, merged, closed |
 | ci | a list of pass, fail, pending, none |
 | actor | `kind:name` or `name`, matched against the last actor |
@@ -740,9 +755,9 @@ The filter grammar is identical in the API, the web URL, and the CLI flags.
 One example on the three surfaces:
 
 ```
-GET /api/tickets?project=CDE&status=in-progress,agent-review&parent=none&ci=fail&sort=-updatedAt
-/p/CDE?status=in-progress,agent-review&parent=none&ci=fail&sort=-updatedAt
-trellis list --project CDE --status in-progress,agent-review --parent none --ci fail --sort -updatedAt
+GET /api/tickets?project=CDE&status=in-progress,agent-review&parent=none&label=bug&ci=fail&sort=-updatedAt
+/p/CDE?status=in-progress,agent-review&parent=none&label=bug&ci=fail&sort=-updatedAt
+trellis list --project CDE --status in-progress,agent-review --parent none --label bug --ci fail --sort -updatedAt
 ```
 
 The contract declares every error as `{defined, code, status, message, data}`.
@@ -752,6 +767,7 @@ AGENT_CANNOT_DELETE 403, NOT_FOUND 404, DUPLICATE
 409, KEY_LOCKED 409, STATUS_NOT_IN_PROJECT 409, STATUS_IN_USE 409, LAST_STATUS
 409, ROOT_STATUSES 409, STATUS_CATEGORY_IMMUTABLE 409, CROSS_ROOT_MOVE 409,
 PARENT_CYCLE 409, PROJECT_NOT_EMPTY 409, PROJECT_ARCHIVED 409,
+LABEL_AMBIGUOUS 409, LABEL_GROUP_CONFLICT 409,
 COMMENT_PARENT_MISMATCH 409, COMMENT_HAS_REPLIES 409, INVALID_ANCHOR 409,
 VERSION_CONFLICT 412, FLOW_VERSION_CONFLICT 412, PAYLOAD_TOO_LARGE 413,
 GH_UNAVAILABLE 503, RUNNER_UNAVAILABLE 503.
@@ -778,7 +794,7 @@ Payloads:
 `pr.linked | unlinked | updated {id, ticketIds, projectIds, state, ciState}`,
 `comment.created | updated | deleted {id, ticketId, projectId, parentId, threadId, resolved}`,
 `attachment.created | deleted {id, ticketId, projectId}`,
-`statuses.changed {projectId}`, `epics.changed {projectId, id}`,
+`statuses.changed {projectId}`, `labels.changed {projectId}`, `epics.changed {projectId, id}`,
 `project.created | updated | deleted | moved {id}`, `gh.status {ok, reason}`,
 `flows.changed {id}`, `agent-runs.changed {id}`, `sessions.changed {id}`, and `needs-you.changed {actorName}`.
 `packages/api/src/events.ts` holds the one list of names, and the `types=`
@@ -797,8 +813,8 @@ While a mutation for an id is in flight, patches queue and apply in version
 order after it settles.
 
 Invalidation happens only when membership or order can change: status, project,
-priority, parent, epic, completed, create, and delete. It runs through a coalescer
-with a 250 ms trailing delay and a 1 s maximum. A mutation writes its response with `setQueryData` and invalidates on an
+priority, labels, parent, epic, completed, create, and delete. It runs through a
+coalescer with a 250 ms trailing delay and a 1 s maximum. A mutation writes its response with `setQueryData` and invalidates on an
 error only. SSE-patched entities use `staleTime: Infinity`, and a `reset` or a
 reconnect invalidates everything.
 

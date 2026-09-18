@@ -18,6 +18,7 @@ import {
 	timeLabels,
 } from "../../../fields";
 import type { View } from "../../../grammar";
+import { type FilterLabel, labelValueGroups } from "../../../labelValues";
 import { presets } from "../../../presets";
 
 // The picker shows the fields first, then the values of one field. `scope`
@@ -34,6 +35,8 @@ const scopeValues = [
 export type FilterPickerProps = {
 	view: View;
 	statuses: readonly StatusSummary[];
+	// The labels of the project tree the route shows, already in row order.
+	labels: readonly FilterLabel[];
 	// The project ref of the route. /all offers the project field.
 	project?: string;
 	onChange: (view: View) => void;
@@ -57,6 +60,7 @@ const emptyToUndefined = <T,>(values: T[]) => (values.length === 0 ? undefined :
 export function FilterPicker({
 	view,
 	statuses,
+	labels,
 	project,
 	onChange,
 	open,
@@ -108,18 +112,26 @@ export function FilterPicker({
 		...presets.map((preset) => ({ id: presetId(preset.label), label: preset.label })),
 		...pickerFields
 			.filter((field) => field !== "project" || project === undefined)
-			.filter((field) => field !== "epic" || project !== undefined)
+			// The root project of a tree owns its labels and its epics. A route
+			// without a project reads no one tree, so it offers no Label field and
+			// no Epic field.
+			.filter((field) => (field !== "label" && field !== "epic") || project !== undefined)
 			.map((field) => ({ id: field, label: fieldLabels[field] })),
 	];
 
+	// The Status and the Label values come in sections, so they take `groups`
+	// and leave `items` empty.
+	const sectioned = stage.kind === "values" && (stage.field === "status" || stage.field === "label");
 	const groups =
 		stage.kind === "values" && stage.field === "status"
 			? statusGroups(statuses, { checked: checkedStatusIds(view, statuses) })
-			: [];
+			: stage.kind === "values" && stage.field === "label"
+				? labelValueGroups(labels, view.label ?? [])
+				: [];
 	const items =
 		stage.kind === "scope"
 			? scopeValues.map((entry) => ({ id: entry.id, label: entry.label, checked: view.scope === entry.id }))
-			: stage.kind === "values" && stage.field !== "status"
+			: stage.kind === "values" && !sectioned
 				? valueItems(stage.field, view, projects, actors, epics)
 				: fieldItems;
 
@@ -144,7 +156,7 @@ export function FilterPicker({
 			placeholder={
 				stage.kind === "values" ? fieldLabels[stage.field] : stage.kind === "scope" ? "Projects" : "Filter by"
 			}
-			items={stage.kind === "values" && stage.field === "status" ? [] : items}
+			items={sectioned ? [] : items}
 			groups={groups}
 			onSelect={(id) =>
 				stage.kind === "values" ? pickValue(stage.field, id) : stage.kind === "scope" ? pickScope(id) : pickField(id)
@@ -215,6 +227,8 @@ const valueChange = (view: View, field: FilterField, id: string, statuses: reado
 		}
 		case "priority":
 			return { ...view, priority: emptyToUndefined(toggle(view.priority, id) as Priority[]) };
+		case "label":
+			return { ...view, label: emptyToUndefined(toggle(view.label, id)) };
 		case "project":
 			return { ...view, project: id };
 		case "parent":

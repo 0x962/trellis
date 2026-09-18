@@ -25,7 +25,8 @@ export type AutoHideContext = {
 // wins over a stored choice: a status column repeats a status grouping, a
 // project column repeats a project grouping or a view of one project, an
 // epic column repeats an epic grouping, and a PR column with no PR in view
-// is empty. A column the person hid stays hidden.
+// is empty. A labels column is empty until one loaded row holds a label. A
+// column the person hid stays hidden.
 export const autoHide = (
 	visibility: Record<ColumnId, boolean>,
 	{ group, rows }: AutoHideContext,
@@ -38,6 +39,7 @@ export const autoHide = (
 		project: visibility.project && group !== "project" && !oneProject,
 		epic: visibility.epic && group !== "epic",
 		pr: visibility.pr && rows.some((row) => row.pr !== null),
+		labels: visibility.labels && rows.some((row) => row.labels.length > 0),
 	};
 };
 

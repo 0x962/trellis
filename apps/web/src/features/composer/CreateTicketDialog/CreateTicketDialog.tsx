@@ -10,6 +10,7 @@ import { composerActions, useComposerStore } from "../composerStore";
 import { defaultStatus, useComposerDefaults } from "../hooks/useComposerDefaults";
 import { useComposerDraft } from "../hooks/useComposerDraft";
 import { useCreateTicket } from "../hooks/useCreateTicket";
+import { useLabelDraft } from "../hooks/useLabelDraft";
 import { ChipRow } from "./components/ChipRow";
 import { ComposerHeader } from "./components/ComposerHeader";
 import { DescriptionField } from "./components/DescriptionField";
@@ -45,6 +46,7 @@ export function CreateTicketDialog() {
 	const titleErrorId = useId();
 
 	const chosenProject = project ?? defaults.project;
+	const labelDraft = useLabelDraft(chosenProject);
 	const bySlug = (slug: string | undefined) => defaults.statuses.find((entry) => entry.slug === slug);
 	const chosenStatus = bySlug(status ?? defaults.status) ?? defaultStatus(defaults.statuses);
 	const chosenPriority = priority ?? defaults.priority;
@@ -57,6 +59,7 @@ export function CreateTicketDialog() {
 
 	const finish = (stay: boolean) => {
 		clearDraft();
+		labelDraft.clear();
 		uploads.clear();
 		setCreatedTicket(null);
 		if (!stay) {
@@ -98,6 +101,7 @@ export function CreateTicketDialog() {
 						status: chosenStatus?.slug,
 						priority: chosenPriority,
 						...(parentRef === undefined ? {} : { parent: parentRef }),
+						...(labelDraft.labels.length === 0 ? {} : { labels: labelDraft.labels.map((label) => label.id) }),
 						...(editing ? { description } : {}),
 					});
 				} catch (error) {
@@ -177,6 +181,7 @@ export function CreateTicketDialog() {
 								priority={chosenPriority}
 								parent={parent ?? null}
 								parentRef={parent === undefined ? defaults.parent : undefined}
+								labels={labelDraft.labels}
 								onProject={(next) => {
 									setProject(next);
 									setProjectMissing(false);
@@ -184,6 +189,7 @@ export function CreateTicketDialog() {
 								onStatus={(next) => setStatus(next.slug)}
 								onPriority={setPriority}
 								onParent={setParent}
+								onLabel={labelDraft.toggle}
 							/>
 						</fieldset>
 					</div>

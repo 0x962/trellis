@@ -1,10 +1,11 @@
 import { X } from "@phosphor-icons/react";
-import type { EpicSummary, Priority, ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
+import type { EpicSummary, Label, Priority, ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
 import { Button, cx, IconButton, Kbd, Tooltip, useReducedMotion } from "@trellis/ui";
 import { type ReactElement, useEffect, useRef, useState } from "react";
 import { formatCount } from "../../../lib/format";
 import { rootKey } from "../../../lib/projectPath";
 import { EpicPicker } from "../../pickers/EpicPicker";
+import { LabelPicker } from "../../pickers/LabelPicker";
 import { PriorityPicker } from "../../pickers/PriorityPicker";
 import { ProjectPicker } from "../../pickers/ProjectPicker";
 import { StatusPicker } from "../../pickers/StatusPicker";
@@ -18,9 +19,18 @@ export type BulkBarProps = {
 	statuses: readonly StatusSummary[];
 	projects: readonly ProjectSummary[];
 	ticketRootIds: readonly string[];
-	// The project ref the parent search stays inside. Set epic offers the
-	// epics of its root. /all has no project, so it has no Set epic.
+	// The project ref the parent search stays inside. The root project of that
+	// tree owns the labels and the epics, so a route without a project offers
+	// no Labels control and no Set epic.
 	project?: string;
+	// The ids of the labels every selected ticket holds.
+	labelIds: readonly string[];
+	// True while the label picker of the bar is open. The `l` key of the table
+	// opens it.
+	labelsOpen: boolean;
+	onLabelsOpenChange: (open: boolean) => void;
+	// `checked` is the new state of that label on every selected ticket.
+	onLabel: (label: Label, checked: boolean) => void;
 	onStatus: (status: StatusSummary) => void;
 	onPriority: (priority: Priority) => void;
 	onProject: (path: string) => void;
@@ -61,6 +71,10 @@ export function BulkBar({
 	projects,
 	ticketRootIds,
 	project,
+	labelIds,
+	labelsOpen,
+	onLabelsOpenChange,
+	onLabel,
 	onStatus,
 	onPriority,
 	onProject,
@@ -114,6 +128,20 @@ export function BulkBar({
 				"p",
 				<PriorityPicker onPick={onPriority} side="top" trigger={<Button size="sm">Priority</Button>} />,
 			)}
+			{project !== undefined &&
+				withKey(
+					"Labels",
+					"l",
+					<LabelPicker
+						project={project}
+						checked={labelIds}
+						onToggle={onLabel}
+						open={labelsOpen}
+						onOpenChange={onLabelsOpenChange}
+						side="top"
+						trigger={<Button size="sm">Labels</Button>}
+					/>,
+				)}
 			{withKey(
 				"Move to project",
 				"m",

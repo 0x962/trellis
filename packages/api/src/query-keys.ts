@@ -34,6 +34,7 @@ export const membershipFields: ReadonlySet<string> = new Set([
 	"status",
 	"project",
 	"priority",
+	"labels",
 	"parent",
 	"epic",
 	"completed",
@@ -238,14 +239,19 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 					family("reviews", "prs"),
 				]);
 				return;
+			// Every cached summary holds the name, the color, and the group name
+			// of each label on its ticket. A rename, a new color, a move to a
+			// group, or a delete alters those values, and no ticket row changes,
+			// so no ticket event follows. So every query that holds a summary
+			// refetches with the label list.
+			case "labels.changed":
+				enqueue([family("labels"), family("tickets"), family("search"), family("needsYou")]);
+				return;
 			// A status rename or a reviewer change alters the `status` inside
 			// every cached summary. No ticket row changes, so no ticket event
 			// follows. A project rename alters
 			// `project.path` the same way. So every query that holds a summary
 			// refetches.
-			case "labels.changed":
-				enqueue([family("labelGroups")]);
-				return;
 			case "statuses.changed":
 			case "project.created":
 			case "project.updated":

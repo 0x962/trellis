@@ -28,6 +28,7 @@ export type SummaryRow = {
 	child_done_count: number;
 	comment_count: number;
 	attachment_count: number;
+	labels: TicketSummary["labels"] | null;
 	pr_state: PrState | null;
 	pr_ci_state: CiState | null;
 	pr_review_state: ReviewState | null;
@@ -70,6 +71,7 @@ export const summaryColumns = sql`
 		WHERE c.parent_id = t.id AND cs.category = 'done') AS child_done_count,
 	(SELECT count(*)::int FROM comments c WHERE c.ticket_id = t.id) AS comment_count,
 	(SELECT count(*)::int FROM attachments a WHERE a.ticket_id = t.id) AS attachment_count,
+	lb.items AS labels,
 	pr.state AS pr_state, pr.ci_state AS pr_ci_state, pr.review_state AS pr_review_state,
 	pr.pass AS pr_pass, pr.fail AS pr_fail, pr.pending AS pr_pending,
 	pr.reviews AS pr_reviews,
@@ -88,6 +90,16 @@ export const summaryJoins = sql`
 	JOIN paths pp ON pp.id = t.project_id
 	LEFT JOIN tickets par ON par.id = t.parent_id
 	LEFT JOIN epics e ON e.id = t.epic_id
+	LEFT JOIN LATERAL (
+		SELECT jsonb_agg(
+			jsonb_build_object('id', l.id, 'name', l.name, 'color', l.color, 'group', g.name)
+			ORDER BY (l.group_id IS NOT NULL), lower(g.name), lower(l.name)
+		) AS items
+		FROM ticket_labels tl
+		JOIN labels l ON l.id = tl.label_id
+		LEFT JOIN label_groups g ON g.id = l.group_id
+		WHERE tl.ticket_id = t.id
+	) lb ON true
 	LEFT JOIN LATERAL (
 		SELECT
 			(array_agg(p.state ORDER BY ${prStateRank(sql`p.state`)}))[1] AS state,
@@ -153,6 +165,7 @@ export const toSummary = (row: SummaryRow): TicketSummary => ({
 	childDoneCount: row.child_done_count,
 	commentCount: row.comment_count,
 	attachmentCount: row.attachment_count,
+	labels: row.labels ?? [],
 	pr:
 		row.pr_state === null
 			? null

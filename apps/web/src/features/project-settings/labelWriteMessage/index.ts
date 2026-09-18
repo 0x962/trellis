@@ -1,0 +1,1 @@
+export { labelWriteMessage } from "./labelWriteMessage";

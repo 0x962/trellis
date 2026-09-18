@@ -1,5 +1,7 @@
 import { ArrowsClockwise, CaretDown, Check, Copy, Trash } from "@phosphor-icons/react";
 import { useState } from "react";
+import { LabelDot } from "../../../domain/LabelDot";
+import { type LabelColor, labelColors } from "../../../domain/labelColors";
 import { Button } from "../../../primitives/Button";
 import { Checkbox } from "../../../primitives/Checkbox";
 import { IconButton } from "../../../primitives/IconButton";
@@ -17,11 +19,14 @@ const iconSizes = ["xs", "sm", "md"] as const;
 
 const priorities = ["none", "low", "medium", "high", "urgent"].map((value) => ({ value, label: value }));
 
+const hues = labelColors.map((color) => ({ value: color, label: color, icon: <LabelDot color={color} /> }));
+
 // Every control primitive in every state.
 export function ControlSections() {
 	const [title, setTitle] = useState("Restore the export pages after the upstream 1.27 merge");
 	const [comment, setComment] = useState("");
 	const [priority, setPriority] = useState("high");
+	const [hue, setHue] = useState<LabelColor>("blue");
 	const [done, setDone] = useState(false);
 	const [sound, setSound] = useState(true);
 	const [view, setView] = useState("Table");
@@ -106,9 +111,10 @@ export function ControlSections() {
 				/>
 				<Textarea label="Locked" rows={2} disabled value="Read only" onChange={() => {}} className="w-56" />
 			</Section>
-			<Section name="Select" note="a value; disabled">
+			<Section name="Select" note="a value; disabled; an icon per item">
 				<Select label="Priority" items={priorities} value={priority} onValueChange={setPriority} />
 				<Select label="Locked" items={priorities} value="low" onValueChange={() => {}} disabled />
+				<Select label="Label color" items={hues} value={hue} onValueChange={setHue} />
 			</Section>
 			<Section name="Checkbox" note="unchecked, checked, mixed, disabled">
 				<Checkbox label="Done" checked={done} onCheckedChange={setDone} />

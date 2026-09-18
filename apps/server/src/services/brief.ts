@@ -58,6 +58,14 @@ export const branchName = (identifier: string, title: string) => {
 	return slug === "" ? identifier.toLowerCase() : `${identifier.toLowerCase()}-${slug}`;
 };
 
+// The labels of the ticket, as `bug, type/feature`, and `none` for a ticket
+// with no label. A label of a group prints the group name, a slash, and the
+// label name, which is the form the CLI and the API take back as a ref.
+const labelLine = (ticket: Ticket) => {
+	if (ticket.labels.length === 0) return "none";
+	return ticket.labels.map((label) => (label.group === null ? label.name : `${label.group}/${label.name}`)).join(", ");
+};
+
 const header = (ticket: Ticket, parentTitle: string | null, epic: Epic | null, publicUrl: string) => {
 	const lines = [
 		`# ${ticket.identifier}: ${ticket.title}`,
@@ -65,6 +73,7 @@ const header = (ticket: Ticket, parentTitle: string | null, epic: Epic | null, p
 		`- Project: ${ticket.project.path}`,
 		`- Status: ${ticket.status.name}`,
 		`- Priority: ${ticket.priority}`,
+		`- Labels: ${labelLine(ticket)}`,
 	];
 	if (ticket.parent !== null) lines.push(`- Parent: ${ticket.parent.identifier} ${parentTitle}`);
 	if (epic !== null) lines.push(epicHeaderLine(epic));

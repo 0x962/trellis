@@ -3,6 +3,7 @@ import {
 	ColorTokenSchema,
 	FlowBranchSchema,
 	FlowNodeKindSchema,
+	LabelColorSchema,
 	NoteAudienceSchema,
 	PrioritySchema,
 	PrLinkSourceSchema,
@@ -24,6 +25,7 @@ export const STORED_ACTOR_KINDS = StoredActorKindSchema.options;
 export const PR_STATES = PrStateSchema.options;
 export const CI_STATES = CiStateSchema.options;
 export const COLOR_TOKENS = ColorTokenSchema.options;
+export const LABEL_COLORS = LabelColorSchema.options;
 export const REVIEW_STATES = ReviewStateSchema.options;
 export const PR_LINK_SOURCES = PrLinkSourceSchema.options;
 export const FLOW_NODE_KINDS = FlowNodeKindSchema.options;

@@ -18,7 +18,7 @@ export type MoreMenuProps = {
 
 export const ticketLink = (identifier: string) => `${window.location.origin}/t/${identifier}`;
 
-// The rest of the ticket actions: the three copies, the two pickers the
+// The rest of the ticket actions: the three copies, the three pickers the
 // rail draws, and Delete behind a confirm.
 export function MoreMenu({ ticket }: MoreMenuProps) {
 	const { client, queryClient } = useApp();
@@ -52,6 +52,7 @@ export function MoreMenu({ ticket }: MoreMenuProps) {
 						{ label: "Copy brief", onSelect: () => void copyBrief() },
 						{ label: "Copy branch name", onSelect: () => void copyText(branch, "Copied the branch name") },
 						{ label: "Copy link", onSelect: () => void copyText(ticketLink(ticket.identifier), "Copied the link") },
+						{ label: "Set labels", onSelect: () => openPicker("labels") },
 						{ label: "Move to project", onSelect: () => openPicker("project") },
 						{ label: "Set parent", onSelect: () => openPicker("parent") },
 						{ label: "Delete", onSelect: () => setConfirming(true), danger: true },

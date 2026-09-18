@@ -51,6 +51,7 @@ export const shortcuts: readonly Shortcut[] = [
 	{ id: "listPriority", keys: "p", scope: "list", label: "Set the priority" },
 	{ id: "listParent", keys: "shift+p", scope: "list", label: "Set the parent" },
 	{ id: "listProject", keys: "m", scope: "list", label: "Move to a project" },
+	{ id: "listLabels", keys: "l", scope: "list", label: "Set the labels" },
 	{ id: "listDelete", keys: "backspace", scope: "list", label: "Delete the ticket" },
 	{ id: "listGroups", keys: "1-9", scope: "list", label: "Collapse or expand a group (1 to 9)" },
 	{ id: "boardPrevious", keys: "[", scope: "board", label: "Move the ticket to the column on the left" },
@@ -61,6 +62,7 @@ export const shortcuts: readonly Shortcut[] = [
 	{ id: "ticketCopyBranch", keys: "mod+shift+c", scope: "ticket", label: "Copy the branch name" },
 	{ id: "ticketCopyLink", keys: "mod+.", scope: "ticket", label: "Copy the link" },
 	{ id: "ticketCopyBrief", keys: "mod+shift+b", scope: "ticket", label: "Copy the agent brief" },
+	{ id: "ticketLabels", keys: "l", scope: "ticket", label: "Set the labels" },
 	{ id: "composerSubmit", keys: "mod+enter", scope: "composer", label: "Submit the form" },
 	{ id: "composerSubmitAgain", keys: "mod+shift+enter", scope: "composer", label: "Create and keep the form open" },
 ];

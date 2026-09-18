@@ -9,6 +9,7 @@ import { fail } from "../../errors.ts";
 import { record } from "../activity.ts";
 import { resolveEpicForTicket } from "../epics/resolve.ts";
 import { assertProjectActive, resolveProject, resolveStatus, resolveTicket } from "../refs.ts";
+import { createTicketLabels } from "./labels.ts";
 import { lastPosition } from "./position.ts";
 import { outsideRoot } from "./rules.ts";
 
@@ -65,6 +66,10 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 				${status.id}, ${parent?.id ?? null}, ${epic?.id ?? null}, ${position}, 1, ${startedAt}, ${completedAt},
 				${ctx.now}, ${ctx.now})`,
 	);
+	const labels =
+		input.labels === undefined
+			? 0
+			: await createTicketLabels(ctx, tx, { ticketId: id, rootId: project.rootId, refs: input.labels });
 	await record(ctx, tx, {
 		rootId: project.rootId,
 		projectId: project.id,
@@ -82,6 +87,7 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 		"project",
 		...(parent === null ? [] : ["parent"]),
 		...(epic === null ? [] : ["epic"]),
+		...(labels === 0 ? [] : ["labels"]),
 	];
 	ctx.emit({ type: "ticket.created", summary: await ticketSummary(tx, id), fields, batchId });
 	return ticketGet(tx, id);

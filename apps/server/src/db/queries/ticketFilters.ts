@@ -17,6 +17,9 @@ export type TicketFilter = {
 	categories?: readonly StatusCategory[];
 	reviewer?: Reviewer;
 	priority?: readonly Priority[];
+	labelIds?: readonly string[];
+	labelNotIds?: readonly string[];
+	noLabel?: boolean;
 	parent?: string;
 	epic?: string;
 	pr?: PrFilter;
@@ -31,6 +34,19 @@ export type TicketFilter = {
 const linked = (test: SQL) =>
 	sql`EXISTS (SELECT 1 FROM ticket_pull_requests l JOIN pull_requests p ON p.id = l.pull_request_id
 		WHERE l.ticket_id = t.id AND ${test})`;
+
+// `labelIds` keeps a ticket that holds one of those labels, and `noLabel`
+// keeps a ticket that holds no label. A query names both when the filter
+// value is `bug,none`, and a ticket matches either half of it.
+const holdsAny = (labelIds: readonly string[]) =>
+	sql`EXISTS (SELECT 1 FROM ticket_labels tl WHERE tl.ticket_id = t.id AND tl.label_id = ANY(${textArray(labelIds)}))`;
+
+const holdsNothing = sql`NOT EXISTS (SELECT 1 FROM ticket_labels tl WHERE tl.ticket_id = t.id)`;
+
+const labelClause = (labelIds: readonly string[] | undefined, noLabel: boolean | undefined): SQL => {
+	if (labelIds === undefined) return holdsNothing;
+	return noLabel === true ? sql`(${holdsAny(labelIds)} OR ${holdsNothing})` : holdsAny(labelIds);
+};
 
 const prClause = (pr: PrFilter): SQL => {
 	switch (pr) {
@@ -95,6 +111,8 @@ export const filterWhere = (filter: TicketFilter): SQL => {
 	}
 	if (filter.reviewer) clauses.push(statusWhere(sql`fs.reviewer = ${filter.reviewer}`));
 	if (filter.priority) clauses.push(sql`t.priority = ANY(${textArray(filter.priority)})`);
+	if (filter.labelIds || filter.noLabel) clauses.push(labelClause(filter.labelIds, filter.noLabel));
+	if (filter.labelNotIds) clauses.push(sql`NOT ${holdsAny(filter.labelNotIds)}`);
 	if (filter.parent === "none") clauses.push(sql`t.parent_id IS NULL`);
 	else if (filter.parent) clauses.push(sql`t.parent_id = ${filter.parent}`);
 	if (filter.epic === "none") clauses.push(sql`t.epic_id IS NULL`);
@@ -117,6 +135,9 @@ export const filterKey = (filter: TicketFilter) => [
 	filter.categories ?? null,
 	filter.reviewer ?? null,
 	filter.priority ?? null,
+	filter.labelIds ?? null,
+	filter.labelNotIds ?? null,
+	filter.noLabel ?? null,
 	filter.parent ?? null,
 	filter.epic ?? null,
 	filter.pr ?? null,

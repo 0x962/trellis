@@ -24,7 +24,7 @@ Table `epics`, in `apps/server/src/db/tables/epics.ts`, exported from `apps/serv
 
 Tickets gain one column: `epic_id` text NULL, FK `tickets_epic_fk` (epic_id) → epics (id) ON DELETE SET NULL, index `tickets_epic_id_idx` (epic_id). The same-root rule is a service rule (`CROSS_ROOT_MOVE`), as for `parent_id`; a composite FK cannot SET NULL one column.
 
-One migration, `0076_omniscient_sentinels`, generated with `bun run db:generate` after `0075_steady_invaders`. Keep the snapshot. The SQL holds only the `epics` table, the `tickets.epic_id` column, its FK, and its index. Never edit an earlier migration.
+One migration, `0078_kind_jetstream`, generated with `bun run db:generate` after `0077_ticket_labels`. Keep the snapshot. The SQL holds only the `epics` table, the `tickets.epic_id` column, its FK, and its index. Never edit an earlier migration.
 
 Derived, never stored:
 

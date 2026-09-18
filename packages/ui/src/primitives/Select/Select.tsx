@@ -1,5 +1,6 @@
 import { Select as BaseSelect } from "@base-ui/react/select";
 import { CaretDown, Check } from "@phosphor-icons/react";
+import type { ReactNode } from "react";
 import { cx } from "../../utils/cx";
 import { hitArea } from "../../utils/hitArea";
 import { popupMotion } from "../../utils/popupMotion";
@@ -7,6 +8,9 @@ import { popupMotion } from "../../utils/popupMotion";
 export type SelectItem<Value extends string> = {
 	value: Value;
 	label: string;
+	// A mark before the label, such as a color swatch. It shows in the list and,
+	// for the chosen item, in the trigger. It keeps its own size.
+	icon?: ReactNode;
 };
 
 export type SelectProps<Value extends string> = {
@@ -34,6 +38,7 @@ export function Select<Value extends string>({
 	alignItemWithTrigger = true,
 	className,
 }: SelectProps<Value>) {
+	const chosenIcon = items.find((item) => item.value === value)?.icon;
 	return (
 		<BaseSelect.Root
 			items={items}
@@ -53,7 +58,16 @@ export function Select<Value extends string>({
 					className,
 				)}
 			>
-				<BaseSelect.Value placeholder={placeholder} className="min-w-0 truncate" />
+				{chosenIcon === undefined ? (
+					<BaseSelect.Value placeholder={placeholder} className="min-w-0 truncate" />
+				) : (
+					<span className="flex min-w-0 items-center gap-1.5">
+						<span aria-hidden="true" className="inline-flex shrink-0 items-center">
+							{chosenIcon}
+						</span>
+						<BaseSelect.Value placeholder={placeholder} className="min-w-0 truncate" />
+					</span>
+				)}
 				<BaseSelect.Icon className="inline-flex size-3.5 shrink-0 text-fg-faint *:size-full">
 					<CaretDown />
 				</BaseSelect.Icon>
@@ -81,7 +95,16 @@ export function Select<Value extends string>({
 									<BaseSelect.ItemIndicator className="col-start-1 inline-flex size-3.5 text-fg-muted *:size-full">
 										<Check />
 									</BaseSelect.ItemIndicator>
-									<BaseSelect.ItemText className="col-start-2 truncate">{item.label}</BaseSelect.ItemText>
+									{item.icon === undefined ? (
+										<BaseSelect.ItemText className="col-start-2 truncate">{item.label}</BaseSelect.ItemText>
+									) : (
+										<span className="col-start-2 flex min-w-0 items-center gap-1.5">
+											<span aria-hidden="true" className="inline-flex shrink-0 items-center">
+												{item.icon}
+											</span>
+											<BaseSelect.ItemText className="min-w-0 truncate">{item.label}</BaseSelect.ItemText>
+										</span>
+									)}
 								</BaseSelect.Item>
 							))}
 						</BaseSelect.List>

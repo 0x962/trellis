@@ -18,6 +18,9 @@ export type TableController = {
 	selection: RowSelection;
 	editing: { id: string; field: EditField } | null;
 	setEditing: (editing: { id: string; field: EditField } | null) => void;
+	// Opens the label picker of the row, or the one in the bulk bar while
+	// rows are selected.
+	openLabels: (id: string) => void;
 	groupKeys: readonly string[];
 	toggleGroup: (key: string) => void;
 	openTicket: (id: string) => void;
@@ -105,6 +108,7 @@ export const useTableHotkeys = (controller: TableController) => {
 	useHotkey("p", useStableCallback(withFocused((id) => controller.setEditing({ id, field: "priority" }))));
 	useHotkey("shift+p", useStableCallback(withFocused((id) => controller.setEditing({ id, field: "parent" }))));
 	useHotkey("m", useStableCallback(withFocused((id) => controller.setEditing({ id, field: "project" }))));
+	useHotkey("l", useStableCallback(withFocused((id) => controller.openLabels(id))));
 	// With a selection, the copy key and the delete keys act on every
 	// selected row, as the bulk bar does.
 	useHotkey(

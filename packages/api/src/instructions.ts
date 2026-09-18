@@ -15,6 +15,9 @@ Inside Claude Code, every command runs as \`agent:claude-code\`. Elsewhere, set 
 8. When the agent review passes: trellis move ${key}-42 human-review
 Never delete tickets.
 
+Labels say what a ticket is about. Read the set of the project: trellis labels list ${key}
+Put one on a ticket: trellis edit ${key}-42 --add-label bug
+
 Read a comment thread: trellis thread show <comment-id>
 Reply in that thread: trellis comment ${key}-42 --reply-to <comment-id> --body "..."
 Resolve a thread: trellis thread resolve <comment-id>

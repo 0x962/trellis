@@ -2,12 +2,14 @@ import type { CiState, EpicSummary, PrFilter, Priority, StatusSummary } from "@t
 import { priorityLabels } from "../pickers/PriorityPicker";
 import { categoryLabels } from "../pickers/statusGroups";
 import type { NegatableField, View } from "./grammar";
+import { type FilterLabel, filterLabelName, noLabelValue } from "./labelValues";
 
 // The fields a chip stands for. `ci` is set through the PR field.
 export type FilterField =
 	| "status"
 	| "category"
 	| "priority"
+	| "label"
 	| "project"
 	| "parent"
 	| "epic"
@@ -21,6 +23,7 @@ export type FilterField =
 export const pickerFields: readonly FilterField[] = [
 	"status",
 	"priority",
+	"label",
 	"project",
 	"parent",
 	"epic",
@@ -35,6 +38,7 @@ export const chipFields: readonly FilterField[] = [
 	"status",
 	"category",
 	"priority",
+	"label",
 	"project",
 	"parent",
 	"epic",
@@ -49,6 +53,7 @@ export const fieldLabels: Record<FilterField, string> = {
 	status: "Status",
 	category: "Status",
 	priority: "Priority",
+	label: "Label",
 	project: "Project",
 	parent: "Parent",
 	epic: "Epic",
@@ -60,9 +65,9 @@ export const fieldLabels: Record<FilterField, string> = {
 };
 
 // A multi-value field keeps its picker open: each pick toggles one value.
-export const multiValue: readonly FilterField[] = ["status", "priority", "ci"];
+export const multiValue: readonly FilterField[] = ["status", "priority", "label", "ci"];
 
-export const negatable: readonly NegatableField[] = ["status", "priority", "project"];
+export const negatable: readonly NegatableField[] = ["status", "priority", "project", "label"];
 
 export const prLabels: Record<PrFilter, string> = {
 	any: "any",
@@ -97,12 +102,15 @@ export const opLabel = (field: FilterField, negated: boolean) => {
 
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
-// The name of one value, as the chip prints it. `epics` holds the epics of
-// the viewed project; an epic value the list does not hold prints its ref.
+// The name of one value, as the chip prints it. `labels` holds the labels of
+// the project tree the route shows, in the same way `statuses` holds its
+// statuses. `epics` holds the epics of the viewed project; an epic value the
+// list does not hold prints its ref.
 export const valueLabel = (
 	field: FilterField,
 	value: string,
 	statuses: readonly StatusSummary[],
+	labels: readonly FilterLabel[] = [],
 	epics: readonly EpicSummary[] = [],
 ): string => {
 	switch (field) {
@@ -114,6 +122,11 @@ export const valueLabel = (
 			return categoryLabels[value as keyof typeof categoryLabels] ?? value;
 		case "priority":
 			return priorityLabels[value as Priority] ?? capitalize(value);
+		case "label": {
+			if (value === noLabelValue) return "No label";
+			const label = labels.find((entry) => entry.ref === value);
+			return label === undefined ? value : filterLabelName(label);
+		}
 		case "pr":
 			return prLabels[value as PrFilter] ?? value;
 		case "ci":

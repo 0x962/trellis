@@ -27,6 +27,26 @@ export const repeatedFlag = (rawArgs: string[], name: string): string[] => {
 	return values;
 };
 
+// Every label ref of a label flag, in order, or undefined when the flag is
+// absent. The caller may repeat the flag, and one value may hold several refs
+// with a comma between them, because a label name holds no comma.
+export const labelRefs = (rawArgs: string[], name: string): string[] | undefined => {
+	const refs = repeatedFlag(rawArgs, name)
+		.flatMap((value) => value.split(","))
+		.map((ref) => ref.trim())
+		.filter((ref) => ref !== "");
+	return refs.length === 0 ? undefined : refs;
+};
+
+// True when `--<name>` is on the command line. citty reads `--no-group` as
+// the flag `group` set to false, and it sets no flag named `no-group`. So a
+// command that declares the boolean `no-group` reads it here. Everything
+// after `--` is positional.
+export const hasFlag = (rawArgs: string[], name: string): boolean => {
+	const end = rawArgs.indexOf("--");
+	return (end === -1 ? rawArgs : rawArgs.slice(0, end)).includes(`--${name}`);
+};
+
 // Every spelling of every flag of the command that takes a value. citty
 // reads the token after such a flag as its value, so the caller that splits
 // the global flags skips that token: `comment --body --help` sends the text

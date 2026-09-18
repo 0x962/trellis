@@ -128,53 +128,51 @@
 @utility status-create-form {
 	@apply flex flex-col gap-3 rounded-lg border border-border bg-surface p-4;
 }
-@utility label-row {
-	@apply grid min-h-12 min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b border-border bg-bg px-3 last:border-b-0;
+/*
+ * The labels settings list. One bordered card holds every row. A label with
+ * no group is a row of the card. A group is a heading band with the rows of
+ * its labels under it. A label row takes the `status-row` shapes above, so
+ * the statuses page and the labels page draw one row style.
+ */
+@utility label-search {
+	@apply w-full max-w-72;
 }
-@utility label-color {
-	@apply size-3 rounded-round bg-fg-muted;
-	&[data-color="fg"] {
-		@apply bg-fg;
-	}
-	&[data-color="fg-faint"] {
-		@apply bg-fg-faint;
-	}
-	&[data-color="accent"] {
-		@apply bg-accent;
-	}
-	&[data-color="agent"] {
-		@apply bg-agent;
-	}
-	&[data-color="success"] {
-		@apply bg-success;
-	}
-	&[data-color="warning"] {
-		@apply bg-warning;
-	}
-	&[data-color="danger"] {
-		@apply bg-danger;
-	}
+/* The slot of the color dot. It holds the same width in every row, so the
+ * label names line up. */
+@utility label-row-mark {
+	@apply inline-flex size-4 shrink-0 items-center justify-center;
 }
-@utility label-name {
-	@apply truncate text-md font-medium text-fg;
+/* The empty box that sets a label row of a group one step in from a row
+ * with no group. */
+@utility label-row-indent {
+	@apply w-3 shrink-0;
+}
+@utility label-row-skeleton {
+	@apply flex min-h-14 items-center gap-3 px-3;
+}
+@utility label-group-heading {
+	@apply flex min-h-9 items-center justify-between gap-2 bg-surface pr-2 pl-3;
+}
+@utility label-group-toggle {
+	@apply flex min-h-9 min-w-0 flex-1 items-center gap-2 text-start outline-none transition-colors duration-hover ease-out;
+	@apply enabled:hover:text-fg focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent;
+}
+@utility label-group-caret {
+	@apply inline-flex size-3.5 shrink-0 text-fg-faint *:size-full;
+}
+@utility label-group-name {
+	@apply truncate text-sm font-semibold text-fg-muted;
+}
+@utility label-group-count {
+	@apply shrink-0 text-sm text-fg-faint tabular;
+}
+/* The rows of a group carry the line that closes the heading band, so a
+ * collapsed group shows one line and not two. */
+@utility label-group-list {
+	@apply min-w-0 border-t border-border;
 }
 @utility label-group-empty {
-	@apply px-3 py-4;
-}
-@utility label-create-form {
-	@apply flex flex-col gap-3 border-t border-border bg-surface p-4;
-}
-@utility label-create-fields {
-	@apply grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto];
-}
-@utility label-color-field {
-	@apply flex flex-col gap-1;
-}
-@utility label-color-label {
-	@apply text-sm text-fg-muted;
-}
-@utility label-form-actions {
-	@apply flex justify-end gap-2;
+	@apply border-t border-border px-3 py-4 text-sm text-fg-muted;
 }
 
 @layer components {
