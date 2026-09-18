@@ -1,0 +1,6 @@
+trellis: Manager dispatch 01M2HJ30CBW7ZDEE8PD12014B0, generation 11.
+5 ticket changes need your attention in project 01M24SPHTX36AJ3VKTNZ263E7V.
+Read the affected tickets and their comments with the trellis CLI. Continue available work and report concrete results.
+Do not start a second agent for an assignment that already has an active agent.
+Use a stable --request-id for each worker assignment. Reuse it when a start result is uncertain.
+Events: [{"id":2246,"actor":{"kind":"system","name":"trellis"},"action":"agent.harness.needs_input","ticketId":"01M26W8D1J8AQT43HFZ792M3J8","createdAt":"2026-09-15T03:34:33.908Z"},{"id":2247,"actor":{"kind":"system","name":"trellis"},"action":"agent.harness.needs_input","ticketId":"01M26ZY4EKTQJZR5SP7KMJ6H8P","createdAt":"2026-09-15T03:34:34.642Z"},{"id":2248,"actor":{"kind":"system","name":"trellis"},"action":"agent.harness.needs_input","ticketId":"01M26ZY4EKTQJZR5SP7KMJ6H8P","createdAt":"2026-09-15T03:34:36.434Z"},{"id":2249,"actor":{"kind":"system","name":"trellis"},"action":"agent.harness.needs_input","ticketId":"01M26ZY4EKTQJZR5SP7KMJ6H8P","createdAt":"2026-09-15T03:34:40.531Z"},{"id":2250,"actor":{"kind":"system","name":"trellis"},"action":"agent.harness.needs_input","ticketId":"01M26W8D1J8AQT43HFZ792M3J8","createdAt":"2026-09-15T03:34:40.531Z"}]
