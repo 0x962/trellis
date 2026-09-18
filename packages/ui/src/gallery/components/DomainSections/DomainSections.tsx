@@ -90,6 +90,13 @@ const flowRows: FlowRunRow[] = [
 		terminal: true,
 		startedAt: flowRunStart + 15_000,
 		endedAt: flowRunStart + 118_000,
+		actor: (
+			<Avatar
+				kind="agent"
+				name="Codex agent"
+				agentProfile={{ provider: "openai", model: "GPT-6 Astra", effort: "High" }}
+			/>
+		),
 	}),
 	flowRow("parallel", "review", 1, "group", "At the same time", "canceled", {
 		meta: "2 at the same time",
@@ -109,6 +116,13 @@ const flowRows: FlowRunRow[] = [
 		terminal: true,
 		startedAt: flowRunStart + 20_000,
 		endedAt: flowRunStart + 95_000,
+		actor: (
+			<Avatar
+				kind="agent"
+				name="Claude agent"
+				agentProfile={{ provider: "anthropic", model: "Claude Opus 5", effort: "Max" }}
+			/>
+		),
 	}),
 ];
 
@@ -188,7 +202,7 @@ export function DomainSections() {
 			</Section>
 			<Section name="ActorChip" note="human; agent; agent live; compact">
 				<ActorChip name="dana" kind="human" />
-				<ActorChip name="codex" kind="agent" />
+				<ActorChip name="Codex agent" kind="agent" />
 				<ActorChip name="claude-code" kind="agent" />
 				<ActorChip name="claude-code" kind="agent" compact />
 			</Section>
@@ -242,7 +256,7 @@ export function DomainSections() {
 					</div>
 					<p className="line-clamp-3 font-medium text-fg">Review the board card details</p>
 					<div className="mt-auto flex min-h-4 items-center gap-1.5 text-xs text-fg-faint tabular">
-						<Avatar kind="agent" name="codex" className="ml-auto" />
+						<Avatar kind="agent" name="Codex agent" className="ml-auto" />
 					</div>
 				</div>
 			</Section>
