@@ -1,0 +1,2 @@
+trellis-message:6b89121c-4013-5e8b-a8d5-c7539700b7fa
+{"type":"trellis.manager.heartbeat","id":"01M2KH442C8RKK6SJYRCN863W8","projectId":"01M24SPHTX36AJ3VKTNZ263E7V","generation":128,"events":[]}
