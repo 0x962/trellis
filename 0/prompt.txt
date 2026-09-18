@@ -1,0 +1,7 @@
+<task-notification>
+<task-id>bn4sz8k0k</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-navidkhan-projects-trellis/f93378da-eb95-43c3-8373-0bb162948448/tasks/bn4sz8k0k.output</output-file>
+<status>completed</status>
+<summary>Background command "Retry the release assignment to Tess" completed (exit code 0)</summary>
+</task-notification>
