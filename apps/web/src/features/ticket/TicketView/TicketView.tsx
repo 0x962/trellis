@@ -1,19 +1,20 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { reviewRef } from "@trellis/api";
 import { cx, EmptyState, useMediaQuery } from "@trellis/ui";
 import { useEffect, useState } from "react";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
+import type { TicketTab } from "../../../lib/ticketSearch";
 import { AttachmentGrid } from "../../attachments/AttachmentGrid";
 import { useUploads } from "../../attachments/hooks/useUploads";
 import { PullRequests } from "../../prs";
-import { ReviewPage } from "../../reviews/ReviewPage/ReviewPage";
 import { NotFoundState } from "../../shell/NotFoundState";
 import { usePageSheet } from "../../shell/PageSheet";
 import { Description } from "../Description";
 import { Header } from "../Header";
 import { useParentSummary } from "../hooks/useParentSummary";
-import { useTicketEscape } from "../hooks/useTicketEscape";
 import { PropertiesRail } from "../PropertiesRail";
 import { SubTickets } from "../SubTickets";
 import { TicketWorkArea } from "../TicketWorkArea";
@@ -28,14 +29,16 @@ export type TicketViewProps = {
 	// The canonical identifier, `CDE-42`.
 	identifier: string;
 	thread?: string;
-	onReturnToList: () => void;
+	tab?: TicketTab;
+	onTabChange?: (tab: TicketTab) => void;
 };
 
 // The ticket page. It renders the same on its route and in a `PageSheet`,
 // with these differences in a sheet: a pull request opens in a second sheet
 // over the ticket and does not replace it, the browser tab keeps the title
 // of the page under the sheet, and the sheet handles Escape.
-export function TicketView({ identifier, thread, onReturnToList }: TicketViewProps) {
+export function TicketView({ identifier, thread, tab, onTabChange }: TicketViewProps) {
+	const navigate = useNavigate();
 	const { orpc } = useApp();
 	const inSheet = usePageSheet() !== null;
 	const query = useQuery(orpc.tickets.get.queryOptions({ input: { ticket: identifier } }));
@@ -44,16 +47,21 @@ export function TicketView({ identifier, thread, onReturnToList }: TicketViewPro
 	const drop = useDropOverlay(uploads.addFiles);
 	const narrow = useMediaQuery("(max-width: 767px)");
 	const { isArchived, notice } = useArchivedProjects();
-	const [workAreaTab, setWorkAreaTab] = useState("activity");
+	const [sheetTab, setSheetTab] = useState<TicketTab>("activity");
+	const workAreaTab = tab ?? sheetTab;
 	const [pullRequest, setPullRequest] = useState<string | null>(null);
-	useTicketEscape(
-		{
-			reviewOpen: pullRequest !== null,
-			closeReview: () => setPullRequest(null),
-			returnToList: onReturnToList,
-		},
-		!inSheet,
-	);
+	const openPullRequest = (url: string) => {
+		if (inSheet) {
+			setPullRequest(url);
+			return;
+		}
+		const ref = reviewRef(url);
+		void navigate({
+			to: "/reviews/$owner/$repo/$number",
+			params: { owner: ref.owner, repo: ref.repo, number: String(ref.number) },
+			search: { ticket: identifier, ticketTab: workAreaTab },
+		});
+	};
 
 	useEffect(() => {
 		if (inSheet || query.data === undefined || pullRequest !== null) return;
@@ -91,9 +99,6 @@ export function TicketView({ identifier, thread, onReturnToList }: TicketViewPro
 			{ticket.identifier}
 		</a>
 	);
-	if (pullRequest !== null && !inSheet) {
-		return <ReviewPage key={pullRequest} pr={pullRequest} syncHash={false} parent={backToTicket} />;
-	}
 
 	// The server refuses every write to a ticket under an archived project.
 	// The disabled fieldset and the edit keys enforce `readOnly`.
@@ -117,7 +122,7 @@ export function TicketView({ identifier, thread, onReturnToList }: TicketViewPro
 				</div>
 				<div className="mt-8 flex flex-col gap-8">
 					<SubTickets ticket={ticket} />
-					<PullRequests ticket={ticket} initialPrs={ticket.prs} onOpen={setPullRequest} title="Pull requests" />
+					<PullRequests ticket={ticket} initialPrs={ticket.prs} onOpen={openPullRequest} title="Pull requests" />
 					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
 					<Timeline thread={thread} ticket={ticket} onAttachFiles={uploads.addFiles} />
 				</div>
@@ -135,9 +140,9 @@ export function TicketView({ identifier, thread, onReturnToList }: TicketViewPro
 
 	return (
 		<>
+			<Header ticket={ticket} readOnly={readOnly} />
 			<fieldset disabled={readOnly} className="contents">
 				<div {...drop.handlers} className="relative flex h-full min-h-0 flex-1 flex-col">
-					<Header ticket={ticket} readOnly={readOnly} />
 					{readOnly && (
 						<p className="flex h-9 shrink-0 items-center bg-warning-soft px-5 text-sm font-medium text-warning max-md:px-4">
 							{notice(ticket.project.path)}
@@ -147,8 +152,8 @@ export function TicketView({ identifier, thread, onReturnToList }: TicketViewPro
 						key={ticket.id}
 						ticket={ticket}
 						tab={workAreaTab}
-						onTabChange={setWorkAreaTab}
-						onOpenPullRequest={setPullRequest}
+						onTabChange={onTabChange ?? setSheetTab}
+						onOpenPullRequest={openPullRequest}
 						activity={activityPage}
 					/>
 					{drop.over && <DropOverlay identifier={ticket.identifier} />}

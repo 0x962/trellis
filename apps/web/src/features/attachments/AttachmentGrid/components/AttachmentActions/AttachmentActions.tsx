@@ -27,6 +27,7 @@ export function AttachmentActions({ attachment, onDelete, onRename, triggerClass
 	const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
 		if (event.key === "Escape") {
 			event.preventDefault();
+			event.stopPropagation();
 			setRenaming(false);
 			trigger.current!.focus();
 			return;

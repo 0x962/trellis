@@ -35,7 +35,7 @@ export const shortcuts: readonly Shortcut[] = [
 		id: "escape",
 		keys: "escape",
 		scope: "global",
-		label: "Close the popover, then clear the selection",
+		label: "Close the active control or go back",
 	},
 	{ id: "listDown", keys: "j", scope: "list", label: "Move to the row below" },
 	{ id: "listUp", keys: "k", scope: "list", label: "Move to the row above" },

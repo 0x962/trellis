@@ -7,12 +7,13 @@ import { ReviewMarkdown } from "../ReviewPage/ReviewMarkdown";
 
 type Props = {
 	threads: ReviewThread[];
+	activeThread: string | null;
 	revision: ReviewRevision | null;
 	renderThread: (id: string) => ReactNode;
 	onJump: (thread: ReviewThread) => void;
 };
 
-export function ReviewDiscussion({ threads, revision, renderThread, onJump }: Props) {
+export function ReviewDiscussion({ threads, activeThread, revision, renderThread, onJump }: Props) {
 	const [filter, setFilter] = useState("all");
 	const [search, setSearch] = useState("");
 	const [position, setPosition] = useState(-1);
@@ -26,10 +27,12 @@ export function ReviewDiscussion({ threads, revision, renderThread, onJump }: Pr
 		setPosition(index);
 		document.getElementById(`thread-${visible[index]!.id}`)?.scrollIntoView({ block: "center" });
 	};
+	const activeThreadVisible = visible.some((thread) => thread.id === activeThread);
 	useEffect(() => {
-		const id = new URLSearchParams(location.hash.split("?")[1]).get("thread");
-		if (id) document.getElementById(`thread-${id}`)?.scrollIntoView({ block: "center" });
-	}, []);
+		if (activeThreadVisible) {
+			document.getElementById(`thread-${activeThread}`)?.scrollIntoView({ block: "center" });
+		}
+	}, [activeThread, activeThreadVisible]);
 	return (
 		<div className="review-scroll">
 			<div className="review-list">

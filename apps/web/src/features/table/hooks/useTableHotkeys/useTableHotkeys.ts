@@ -1,6 +1,7 @@
-import { useHotkey } from "@trellis/ui";
+import { isTextEntry, useHotkey } from "@trellis/ui";
 import type { RefObject } from "react";
 import { useStableCallback } from "../../../../hooks/useStableCallback";
+import { useEscapeLayer } from "../../../../lib/hotkeys";
 import type { EditField } from "../../Row";
 import type { RowSelection } from "../useRowSelection";
 
@@ -141,23 +142,14 @@ export const useTableHotkeys = (controller: TableController) => {
 		}),
 	);
 
-	// Escape unwinds one layer per press: the open picker, then the
-	// selection, then the row focus.
-	useHotkey(
-		"escape",
-		useStableCallback(() => {
-			if (!active()) return;
-			if (controller.editing !== null) {
-				controller.setEditing(null);
-				return;
-			}
-			if (controller.selection.count > 0) {
-				controller.selection.clear();
-				return;
-			}
-			controller.blur();
-		}),
-	);
+	useEscapeLayer("popover", controller.editing !== null, () => {
+		if (!active() || isTextEntry(document.activeElement)) return false;
+		controller.setEditing(null);
+	});
+	useEscapeLayer("selection", controller.selection.count > 0, () => {
+		if (!active() || isTextEntry(document.activeElement)) return false;
+		controller.selection.clear();
+	});
 
 	for (const digit of digits) {
 		// biome-ignore lint/correctness/useHookAtTopLevel: the digits are a fixed list, so the hooks run in one order.
