@@ -163,7 +163,7 @@ export function applySuggestionEdits(fileLines: string[], edits: SuggestionEdit[
 }
 
 // The line ending a file uses, from its first line break.
-export const lineEndingOf = (content: string) => (/\r\n/.test(content.split("\n", 2)[0] ?? "") ? "\r\n" : "\n");
+export const lineEndingOf = (content: string) => content.match(/\r\n|\n/)?.[0] ?? "\n";
 
 // The lines of a file as a suggestion counts them. A trailing line break
 // closes the last line and adds no empty line.
