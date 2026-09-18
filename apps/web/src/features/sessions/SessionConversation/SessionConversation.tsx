@@ -12,7 +12,6 @@ import { useWorkspaceSummary } from "../../agents/useWorkspaceSummary";
 import { DeleteSessionDialog } from "../DeleteSessionDialog";
 import { PendingQuestions } from "../PendingQuestions";
 import { sessionStateLabel } from "../sessionStateLabel";
-import { useSessionAttention } from "../useSessionAttention";
 import { SessionDetails } from "./components/SessionDetails";
 import { SessionMeta } from "./components/SessionMeta";
 
@@ -32,7 +31,6 @@ export function SessionConversation({
 	headingRef?: RefObject<HTMLHeadingElement | null>;
 }) {
 	const { client, orpc, queryClient } = useApp();
-	useSessionAttention(run, !readOnly);
 	const [confirmStop, setConfirmStop] = useState(false);
 	const [confirmDelete, setConfirmDelete] = useState(false);
 	const localHeading = useRef<HTMLHeadingElement>(null);

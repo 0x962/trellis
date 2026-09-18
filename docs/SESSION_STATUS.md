@@ -10,6 +10,8 @@ Its desktop app maps lifecycle events to terminal status and notifications.
 
 - `apps/desktop/src/renderer/hooks/host-service/useTerminalAgentStatuses/deriveTerminalAgentStatus.ts` derives status.
 - `apps/desktop/src/renderer/routes/_authenticated/components/V2NotificationController/lib/lifecycleEvents.ts` handles lifecycle alerts.
+- `packages/host-service/src/events/map-event-type.ts` maps completion, interruption, input, and failure events.
+- `apps/desktop/src/main/lib/notification-sound.ts` reads mute and volume settings. The default volume is 100%.
 
 Trellis uses its existing provider bridges, runtime journal, host event stream, and shared UI components.
 
@@ -49,8 +51,8 @@ A Muse answer identifies the attempt and request. The bridge rejects a duplicate
 
 1. Map provider events to `HarnessEvent` values.
 2. Record the events in the runtime journal and derive `HarnessAttention`.
-3. Observe user-created sessions through `startSessionMonitor`.
-4. Publish `sessions.status` when status or attention changes.
+3. Observe session, ticket, and flow terminals through `startSessionMonitor`.
+4. Publish `agent-runs.status` when status or attention changes.
 5. Derive the same display state in the sidebar, project session list, and conversation header.
 6. Deliver eligible alerts through the desktop process or the elected browser tab.
 
@@ -60,20 +62,22 @@ The runtime protocol version is 11.
 
 ## Alert behavior
 
-Questions, completed turns, and failures can produce an alert.
+Questions, completed or interrupted turns, and provider failures can produce an alert.
+Process attachment, process exit, prompts, and intermediate output stay silent.
 Initial snapshots seed alert history without sound or notifications.
 The alert history rejects duplicate and older sequences within each attempt.
-The active session suppresses alerts while its window has focus.
-A sound throttle combines alerts that arrive within one second.
+The visible terminal suppresses alerts while its window has focus.
+Each new eligible event can play a sound, including completions less than one second apart.
+A completion acknowledgement changes the status indicator; it does not cancel an incoming alert.
 
 The desktop process owns its event connection and continues after the last window closes.
-A notification click opens the associated session.
+A notification click opens the associated session or ticket terminal.
 A full application quit stops desktop alerts.
 The browser elects one tab through the existing event-stream lock.
 Browser notifications require permission. Browser audio remains subject to the browser's playback policy.
 
 Settings contain the native notification switch, sound switch, and volume.
-The default volume is 50%. The preview uses the same sound as a session alert.
+The default volume is 100%. The preview uses the same sound as a session alert.
 The sound is a generated WAV tone with no external asset dependency.
 
 ## Verification and release
@@ -81,6 +85,9 @@ The sound is a generated WAV tone with no external asset dependency.
 Focused tests cover journal replay, stale turns, overlapping requests, provider event mappings, acknowledgement races, alert deduplication, and subscription cleanup.
 A live check covers questions and completion in all three installed providers.
 A browser check covers the Muse answer sheet, status persistence, sound controls, and saved volume.
+The Codex ticket check sends three `status?` prompts through the real provider bridge and desktop event listener.
+The background replies each play one sound. The reply with a visible terminal plays none.
+A browser check opens the ticket terminal from its notification path and clears terminal visibility on the Activity tab.
 
 The host restart check preserves all three attempts, their conversations, attention, and acknowledgement values.
 The unpackaged Electron check receives a live completion alert without a window.

@@ -1,4 +1,4 @@
-export const defaultNotifications = { sound: true, native: true, volume: 50 };
+export const defaultNotifications = { sound: true, native: true, volume: 100 };
 
 export function notificationSound(): Uint8Array {
 	const rate = 22050;

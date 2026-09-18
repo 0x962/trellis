@@ -2,6 +2,7 @@ import type { AgentRun } from "@trellis/api";
 import { Badge, cx, EmptyState } from "@trellis/ui";
 import type { TerminalConnectionState, TerminalSurfaceProps } from "@trellis/ui/terminal";
 import { lazy, Suspense, useCallback, useRef, useState } from "react";
+import { useSessionAttention } from "../../sessions/useSessionAttention";
 import { nativeTerminalTransport } from "./nativeTerminalTransport";
 import { useTerminalAccessibility } from "./useTerminalAccessibility";
 
@@ -18,6 +19,7 @@ export function NativeTerminal({
 	readOnly?: boolean;
 	onLeave?: () => void;
 }) {
+	useSessionAttention(run, !readOnly);
 	const screenReaderMode = useTerminalAccessibility();
 	const heading = useRef<HTMLHeadingElement>(null);
 	const [connection, setConnection] = useState<TerminalConnectionState>({

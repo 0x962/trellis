@@ -5,7 +5,7 @@ import { session } from "../../../../../packages/api/src/sessionStatus/fixture.t
 import { startSessionMonitor } from "./sessionMonitor.ts";
 
 test("the monitor emits changed states, suppresses startup alerts, and closes subscriptions", async () => {
-	const value = session();
+	const value = { run: session().run, sessionId: "session" };
 	let reads = 0;
 	let aborted = false;
 	const emitted: TrellisEvent[] = [];
@@ -41,7 +41,7 @@ test("the monitor emits changed states, suppresses startup alerts, and closes su
 	await monitor.tick();
 	expect(reads).toBe(1);
 	expect(emitted).toHaveLength(1);
-	expect(emitted[0]).toMatchObject({ type: "sessions.status", notify: false });
+	expect(emitted[0]).toMatchObject({ type: "agent-runs.status", notify: false });
 	await monitor.tick();
 	expect(emitted).toHaveLength(1);
 	deliver({
@@ -65,9 +65,9 @@ test("the monitor emits changed states, suppresses startup alerts, and closes su
 	} as unknown as RuntimeProcessStatus);
 	await Bun.sleep(0);
 	expect(emitted.at(-1)).toMatchObject({
-		type: "sessions.status",
+		type: "agent-runs.status",
 		notify: true,
-		session: { run: { observation: { outcome: "completed" } } },
+		activity: { run: { observation: { outcome: "completed" } } },
 	});
 	const count = emitted.length;
 	await monitor.tick();

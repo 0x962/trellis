@@ -5,6 +5,7 @@ import { SessionCreateInputSchema } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import { activityRows } from "../services/agentRuns/activity.ts";
 import { seen } from "../services/agentRuns/attention.ts";
 import { getRun } from "../services/agentRuns/queries.ts";
 import { reserve } from "../services/agentRuns/reserve.ts";
@@ -277,4 +278,18 @@ test("completion acknowledgement is monotonic and rejects a replaced attempt", a
 		attemptId: "replacement",
 		sequence: 2,
 	});
+});
+
+test("alert activity includes ticket and flow agents without a Sessions row", async () => {
+	const sessions = await db.transaction(listSessions);
+	const entries = await db.transaction(activityRows);
+	const ticketRun = entries.find((run) => run.ticketId === ticketId)!;
+	expect(ticketRun.kind).toBe("agent");
+	expect(ticketRun.activitySessionId).toBeNull();
+	const standalone = sessions.find((entry) => entry.name === "scratch")!;
+	expect(entries.find((run) => run.id === standalone.runId)!.activitySessionId).toBe(standalone.id);
+	await db.execute(sql`UPDATE agent_runs SET kind='flow' WHERE id=${ticketRun.id}`);
+	expect((await db.transaction(activityRows)).find((run) => run.id === ticketRun.id)!.kind).toBe("flow");
+	await db.execute(sql`UPDATE agent_runs SET closed_at=${ctx.now()} WHERE id=${ticketRun.id}`);
+	expect((await db.transaction(activityRows)).some((run) => run.id === ticketRun.id)).toBe(false);
 });
