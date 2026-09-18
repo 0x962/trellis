@@ -20,6 +20,9 @@ export type SummaryRow = {
 	project_path: string;
 	parent_id: string | null;
 	parent_identifier: string | null;
+	epic_id: string | null;
+	epic_slug: string | null;
+	epic_name: string | null;
 	ancestors: string[] | null;
 	child_count: number;
 	child_done_count: number;
@@ -60,6 +63,7 @@ export const summaryColumns = sql`
 	t.project_id, root.key AS project_key, pp.path AS project_path,
 	par.id AS parent_id,
 	CASE WHEN par.id IS NULL THEN NULL ELSE root.key || '-' || par.number END AS parent_identifier,
+	e.id AS epic_id, e.slug AS epic_slug, e.name AS epic_name,
 	anc.identifiers AS ancestors,
 	(SELECT count(*)::int FROM tickets c WHERE c.parent_id = t.id) AS child_count,
 	(SELECT count(*)::int FROM tickets c JOIN statuses cs ON cs.id = c.status_id
@@ -83,6 +87,7 @@ export const summaryJoins = sql`
 	JOIN projects root ON root.id = t.root_id
 	JOIN paths pp ON pp.id = t.project_id
 	LEFT JOIN tickets par ON par.id = t.parent_id
+	LEFT JOIN epics e ON e.id = t.epic_id
 	LEFT JOIN LATERAL (
 		SELECT
 			(array_agg(p.state ORDER BY ${prStateRank(sql`p.state`)}))[1] AS state,
@@ -140,6 +145,10 @@ export const toSummary = (row: SummaryRow): TicketSummary => ({
 	project: { id: row.project_id, key: row.project_key, path: row.project_path },
 	parent: row.parent_id === null ? null : { id: row.parent_id, identifier: row.parent_identifier as string },
 	ancestors: row.ancestors ?? [],
+	epic:
+		row.epic_id === null
+			? null
+			: { id: row.epic_id, ref: `${row.project_key}/${row.epic_slug}`, name: row.epic_name as string },
 	childCount: row.child_count,
 	childDoneCount: row.child_done_count,
 	commentCount: row.comment_count,

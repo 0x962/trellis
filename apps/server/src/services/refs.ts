@@ -31,6 +31,8 @@ export type TicketRow = {
 	statusId: string;
 	parentId: string | null;
 	parentIdentifier: string | null;
+	epicId: string | null;
+	epicRef: string | null;
 	position: number;
 	version: number;
 	startedAt: string | null;
@@ -43,6 +45,8 @@ const ticketColumns = sql`t.id, t.project_id AS "projectId", t.root_id AS "rootI
 	root.key || '-' || t.number AS identifier, t.title, t.description,
 	t.priority, t.status_id AS "statusId", t.parent_id AS "parentId",
 	CASE WHEN par.id IS NULL THEN NULL ELSE root.key || '-' || par.number END AS "parentIdentifier",
+	t.epic_id AS "epicId",
+	CASE WHEN e.id IS NULL THEN NULL ELSE root.key || '/' || e.slug END AS "epicRef",
 	t.position, t.version,
 	${iso(sql`t.started_at`)} AS "startedAt", ${iso(sql`t.completed_at`)} AS "completedAt",
 	${iso(sql`t.created_at`)} AS "createdAt", ${iso(sql`t.updated_at`)} AS "updatedAt"`;
@@ -60,6 +64,7 @@ export const resolveTicket = async (_ctx: ServiceCtx, tx: Tx, ref: string): Prom
 		sql`SELECT ${ticketColumns} FROM tickets t
 			JOIN projects root ON root.id = t.root_id
 			LEFT JOIN tickets par ON par.id = t.parent_id
+			LEFT JOIN epics e ON e.id = t.epic_id
 			WHERE ${where}`,
 	);
 	if (found.length === 0) throw fail("NOT_FOUND", { kind: "ticket", ref: canonical });

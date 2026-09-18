@@ -11,6 +11,10 @@ export type TicketRef = { kind: "ulid"; id: string } | { kind: "identifier"; key
 
 export type ProjectRef = { kind: "ulid"; id: string } | { kind: "identifier"; key: string; slugs: string[] };
 
+// An epic ref joins the root key and the epic slug with a slash, so it never
+// reads as a project ref, which joins its segments with dots.
+export type EpicRef = { kind: "ulid"; id: string } | { kind: "identifier"; key: string; slug: string };
+
 export type StatusRef =
 	| { kind: "ulid"; id: string }
 	| { kind: "category"; category: StatusCategory }
@@ -76,6 +80,23 @@ const projectRef = defineRef(
 	formatProjectRef,
 );
 
+const epicIdentifierPattern = /^([A-Z][A-Z0-9]{1,9})\/([A-Z0-9]+(?:-[A-Z0-9]+)*)$/i;
+
+const parseEpicRef = (value: string): EpicRef | undefined => {
+	if (isUlid(value)) return { kind: "ulid", id: value.toUpperCase() };
+	const match = epicIdentifierPattern.exec(value);
+	if (match === null) return undefined;
+	return { kind: "identifier", key: match[1]!.toUpperCase(), slug: match[2]!.toLowerCase() };
+};
+
+const formatEpicRef = (ref: EpicRef) => (ref.kind === "ulid" ? ref.id : `${ref.key}/${ref.slug}`);
+
+const epicRef = defineRef(
+	"Expected an epic ref: a ULID or KEY/slug, for example OP/routine-runtime.",
+	parseEpicRef,
+	formatEpicRef,
+);
+
 // A status name is 1 to 40 characters. The colon is reserved for the
 // `category:` form, so a name never contains one.
 const parseStatusRef = (value: string): StatusRef | undefined => {
@@ -121,6 +142,7 @@ const actorHeader = defineRef(actorHeaderGrammar, parseActorHeader, formatActorH
 
 export const TicketRefSchema = ticketRef.schema;
 export const ProjectRefSchema = projectRef.schema;
+export const EpicRefSchema = epicRef.schema;
 export const StatusRefSchema = statusRef.schema;
 export const ActorHeaderSchema = actorHeader.schema;
 
@@ -128,5 +150,6 @@ export const ActorHeaderSchema = actorHeader.schema;
 // spelling out. The server resolves the canonical string with the schemas above.
 export const TicketRefStringSchema = ticketRef.canonical;
 export const ProjectRefStringSchema = projectRef.canonical;
+export const EpicRefStringSchema = epicRef.canonical;
 export const StatusRefStringSchema = statusRef.canonical;
 export const ActorHeaderStringSchema = actorHeader.canonical;

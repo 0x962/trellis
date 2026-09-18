@@ -15,6 +15,7 @@ export default defineCommand({
 		priority: { type: "enum", options: [...priorities], description: "Priority" },
 		status: { type: "string", description: "Status ref; the project default when absent" },
 		parent: { type: "string", description: "Parent ticket ref" },
+		epic: { type: "string", description: "Epic ref, such as OP/routine-runtime" },
 		force: { type: "boolean", description: "Accepted for compatibility; completion does not require force" },
 	},
 	async run(context) {
@@ -28,6 +29,7 @@ export default defineCommand({
 				priority: args.priority as Priority | undefined,
 				status: args.status,
 				parent: args.parent,
+				epic: args.epic,
 				force: args.force === true ? true : undefined,
 			}),
 		);

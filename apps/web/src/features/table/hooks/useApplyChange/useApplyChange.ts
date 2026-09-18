@@ -44,9 +44,16 @@ export const useApplyChange = (mutations: Mutations, projects: readonly ProjectS
 				? mutations.updateMany(targets, { project: change.project }, patch, verb)
 				: mutations.update(targets[0]!, { project: change.project }, patch, verb);
 		}
-		const parent = change.parent === null ? null : { id: change.parent.id, identifier: change.parent.identifier };
-		const verb: Verb = (subject) => `The parent of ${subject} did not change.`;
+		if ("parent" in change) {
+			const parent = change.parent === null ? null : { id: change.parent.id, identifier: change.parent.identifier };
+			const verb: Verb = (subject) => `The parent of ${subject} did not change.`;
+			return many
+				? mutations.updateMany(targets, { parent: parent?.identifier ?? null }, { parent }, verb)
+				: mutations.update(targets[0]!, { parent: parent?.identifier ?? null }, { parent }, verb);
+		}
+		const epic = change.epic === null ? null : { id: change.epic.id, ref: change.epic.ref, name: change.epic.name };
+		const verb: Verb = (subject) => `The epic of ${subject} did not change.`;
 		return many
-			? mutations.updateMany(targets, { parent: parent?.identifier ?? null }, { parent }, verb)
-			: mutations.update(targets[0]!, { parent: parent?.identifier ?? null }, { parent }, verb);
+			? mutations.updateMany(targets, { epic: epic?.ref ?? null }, { epic }, verb)
+			: mutations.update(targets[0]!, { epic: epic?.ref ?? null }, { epic }, verb);
 	});

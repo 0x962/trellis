@@ -20,10 +20,11 @@ export type CardContentProps = {
 	lineChangesPending?: boolean;
 };
 
-// The three rows of a board card: the trail of identifiers with the
-// priority, the title, and the meta row. The card on the board and the drag
-// preview both draw it, so the preview looks like the card under the
-// pointer.
+// The three rows of a board card: the epic name and the trail of
+// identifiers with the priority, the title, and the meta row. The card on
+// the board and the drag preview both draw it, so the preview looks like
+// the card under the pointer. On the top row the epic name gives way and
+// the identifiers stay, so `Routine runtime · OP-32` keeps its OP-32.
 export function CardContent({ ticket, showStatus = false, lineChanges, lineChangesPending = false }: CardContentProps) {
 	const progress = ticket.childCount === 0 ? 0 : ticket.childDoneCount / ticket.childCount;
 	const trail = ticketTrail(ticket.ancestors, ticket.identifier);
@@ -33,6 +34,14 @@ export function CardContent({ ticket, showStatus = false, lineChanges, lineChang
 		<>
 			<div className="flex h-4 items-center justify-between gap-1.5">
 				<span className="flex min-w-0 items-center gap-1 font-mono text-xs whitespace-nowrap text-fg-faint tabular">
+					{ticket.epic !== null && (
+						<>
+							<span className="min-w-0 truncate font-sans">{ticket.epic.name}</span>
+							<span aria-hidden="true" className="shrink-0">
+								·
+							</span>
+						</>
+					)}
 					{trail.map((step, index) => (
 						<span key={step} className="flex items-center gap-1">
 							{index > 0 && <span aria-hidden="true">→</span>}

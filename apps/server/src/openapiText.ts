@@ -29,6 +29,11 @@ export const TAGS = [
 		name: "notes",
 		description: "Project notes: titled markdown that every agent of the project and its sub-projects reads at start.",
 	},
+	{
+		name: "epics",
+		description:
+			"Epics: the tickets that deliver one plan inside a project, with the plan as markdown. An epic ref is a ULID or KEY/slug.",
+	},
 	{ name: "attachments", description: "Files on a ticket. The bytes are served at GET /api/attachments/{id}/file." },
 	{ name: "pull requests", description: "GitHub pull requests linked to a ticket, with their CI state." },
 	{ name: "search", description: "Full text search over tickets and projects." },
@@ -64,7 +69,7 @@ Every ref is case-insensitive on the way in and canonical on the way out.
 
 ## The list grammar
 
-\`GET /api/tickets\` takes flat query parameters. A parameter that takes several values takes a comma list. \`parent=none\` keeps top-level tickets only. \`sort\` takes \`[-]updatedAt\`, \`createdAt\`, \`priority\`, \`number\`, \`status\`, or \`position\`; the default is \`-updatedAt\`. \`limit\` is 1 to 200; \`cursor\` continues a page and belongs to one filter and sort.
+\`GET /api/tickets\` takes flat query parameters. A parameter that takes several values takes a comma list. \`parent=none\` keeps top-level tickets only. \`epic=<ref>\` keeps the tickets of one epic, and \`epic=none\` the tickets outside every epic. \`sort\` takes \`[-]updatedAt\`, \`createdAt\`, \`priority\`, \`number\`, \`status\`, or \`position\`; the default is \`-updatedAt\`. \`limit\` is 1 to 200; \`cursor\` continues a page and belongs to one filter and sort.
 
 Example: \`GET /api/tickets?project=CDE&status=in-progress,agent-review&parent=none&ci=fail&sort=-updatedAt\`
 
@@ -226,6 +231,12 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 		body: "Free disk: 89 GiB at 16:45 UTC. Large checks stay paused below 100 GiB.",
 		expiresAt: null,
 	},
+	"POST /epics": {
+		project: "OP",
+		name: "Routine runtime",
+		description: "# Routine runtime\n\nStep 1 of the routine runtime: ...",
+	},
+	"PATCH /epics/{epic}": { name: "Routine runtime", description: "# Routine runtime\n\nThe plan, revised." },
 	"POST /tickets/{ticket}/attachments": { file: "<the file bytes as one multipart part named file>", name: "shot.png" },
 	"POST /tickets/{ticket}/prs": { url: "https://github.com/acme/web/pull/12" },
 	"PUT /settings": {

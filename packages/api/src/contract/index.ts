@@ -4,6 +4,7 @@ import { agentRuns } from "./agentRuns.ts";
 import { attachments } from "./attachments.ts";
 import { brief } from "./brief.ts";
 import { comments } from "./comments.ts";
+import { epics } from "./epics.ts";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
@@ -42,6 +43,7 @@ export const contract = {
 	timeline: oc.tag("timeline").router(timeline),
 	comments: oc.tag("comments").router(comments),
 	notes: oc.tag("notes").router(notes),
+	epics: oc.tag("epics").router(epics),
 	attachments: oc.tag("attachments").router(attachments),
 	pullRequests: oc.tag("pull requests").router(pullRequests),
 	sessions: oc.tag("sessions").router(sessions),

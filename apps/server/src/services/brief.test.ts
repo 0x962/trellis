@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
+import type { Epic, TicketSummary } from "@trellis/api";
 import { assignmentInstruction } from "./brief.ts";
+import { epicHeaderLine, epicLines } from "./epics/text.ts";
 
 const input = {
 	identifier: "OP-27",
@@ -59,4 +61,47 @@ test("an assignment skips the description section of a ticket with no descriptio
 	const text = assignmentInstruction({ ...input, description: "  \n" });
 	expect(text).not.toContain("## Description");
 	expect(text).toContain("- URL: http://127.0.0.1:4521/t/OP-27\n\n## Assignment");
+});
+
+// The fields of a ticket row the epic sections read.
+const member = (id: string, identifier: string, title: string, status: string) =>
+	({ id, identifier, title, status: { name: status } }) as unknown as TicketSummary;
+
+const epic: Epic = {
+	id: "01J00000000000000000000010",
+	projectId: "01J00000000000000000000001",
+	projectPath: "OP",
+	ref: "OP/routine-runtime",
+	slug: "routine-runtime",
+	name: "Routine runtime",
+	description: "# Routine runtime\n\nStep 1 creates the runtime.\nStep 2 wires the poller.",
+	counts: { total: 4, todo: 1, started: 1, review: 0, done: 1, canceled: 1 },
+	state: "open",
+	actor: { name: "dana", kind: "human" },
+	createdAt: "2026-09-18T10:00:00.000Z",
+	updatedAt: "2026-09-18T10:00:00.000Z",
+	tickets: [
+		member("01J00000000000000000000029", "OP-29", "Create the runtime", "Done"),
+		member("01J00000000000000000000030", "OP-30", "Wire the poller", "In Progress"),
+		member("01J00000000000000000000031", "OP-31", "Add the cursor", "Todo"),
+		member("01J00000000000000000000032", "OP-32", "Old approach", "Canceled"),
+	],
+};
+
+test("the epic header line counts done tickets against the tickets that are not canceled", () => {
+	expect(epicHeaderLine(epic)).toBe("- Epic: Routine runtime (OP/routine-runtime), 1 of 3 done");
+});
+
+test("the epic sections print the plan and every ticket in number order, and mark this ticket", () => {
+	expect(epicLines(epic, "01J00000000000000000000030")).toEqual([
+		["## Epic: Routine runtime", "", "# Routine runtime\n\nStep 1 creates the runtime.\nStep 2 wires the poller."],
+		[
+			"## Epic tickets",
+			"",
+			"- OP-29 Create the runtime (Done)",
+			"- OP-30 Wire the poller (In Progress) (this ticket)",
+			"- OP-31 Add the cursor (Todo)",
+			"- OP-32 Old approach (Canceled)",
+		],
+	]);
 });

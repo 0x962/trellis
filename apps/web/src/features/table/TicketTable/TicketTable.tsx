@@ -246,6 +246,7 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 				onPriority={(priority) => void applyChange(selectedTickets(), { priority })}
 				onProject={(ref) => void applyChange(selectedTickets(), { project: ref })}
 				onParent={(parent) => void applyChange(selectedTickets(), { parent })}
+				onEpic={(epic) => void applyChange(selectedTickets(), { epic })}
 				onCopyIds={copyIds}
 				onDelete={() => setPendingDelete(selection.selected)}
 				onClear={selection.clear}

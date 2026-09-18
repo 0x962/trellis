@@ -1,10 +1,12 @@
-import { type Brief, BriefGetInputSchema, type StoredActorKind, type Ticket } from "@trellis/api";
+import { type Brief, BriefGetInputSchema, type Epic, type StoredActorKind, type Ticket } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { ServiceCtx } from "../context.ts";
 import { actorDisplayName } from "../db/queries/actorDisplayName.ts";
 import { iso, rows } from "../db/queries/support.ts";
 import { ticketGet } from "../db/queries/ticketGet.ts";
 import type { Tx } from "../db/tx.ts";
+import { epicView } from "./epics/epics.ts";
+import { epicHeaderLine, epicLines } from "./epics/text.ts";
 import { activeNotes } from "./notes/notes.ts";
 import { notesLines } from "./notes/text.ts";
 import { resolveTicket } from "./refs.ts";
@@ -56,7 +58,7 @@ export const branchName = (identifier: string, title: string) => {
 	return slug === "" ? identifier.toLowerCase() : `${identifier.toLowerCase()}-${slug}`;
 };
 
-const header = (ticket: Ticket, parentTitle: string | null, publicUrl: string) => {
+const header = (ticket: Ticket, parentTitle: string | null, epic: Epic | null, publicUrl: string) => {
 	const lines = [
 		`# ${ticket.identifier}: ${ticket.title}`,
 		"",
@@ -65,6 +67,7 @@ const header = (ticket: Ticket, parentTitle: string | null, publicUrl: string) =
 		`- Priority: ${ticket.priority}`,
 	];
 	if (ticket.parent !== null) lines.push(`- Parent: ${ticket.parent.identifier} ${parentTitle}`);
+	if (epic !== null) lines.push(epicHeaderLine(epic));
 	lines.push(`- Branch: ${branchName(ticket.identifier, ticket.title)}`);
 	lines.push(`- URL: ${publicUrl}/t/${ticket.identifier}`);
 	return lines;
@@ -193,9 +196,11 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<B
 						title: string;
 					}
 				).title;
+	const epic = ticket.epic === null ? null : await epicView(ctx, tx, ticket.epic.id);
 	const markdown = sections([
-		header(ticket, parentTitle, ctx.publicUrl),
+		header(ticket, parentTitle, epic, ctx.publicUrl),
 		["## Description", "", ticket.description],
+		...(epic === null ? [] : epicLines(epic, ticket.id)),
 		subTickets(ticket),
 		pullRequests(ticket),
 		attachments(ticket, ctx.publicUrl),

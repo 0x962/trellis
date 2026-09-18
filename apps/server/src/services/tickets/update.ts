@@ -16,17 +16,20 @@ import { ticketGet, ticketSummary } from "../../db/queries/ticketGet.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { record } from "../activity.ts";
+import { resolveEpicForTicket } from "../epics/resolve.ts";
+import { epicRefOf } from "../epics/rows.ts";
 import { assertProjectActive, pathOf, resolveProject, resolveStatus, resolveTicket, type TicketRow } from "../refs.ts";
 import { assertVersion, outsideRoot, remapStatus, stampColumns } from "./rules.ts";
 
 // The fields `update` and `updateMany` share. A ref is a canonical string;
-// `parent: null` clears the parent.
+// `parent: null` clears the parent, and `epic: null` clears the epic.
 type ChangeInput = {
 	title?: string;
 	description?: string;
 	priority?: Priority;
 	status?: string;
 	parent?: string | null;
+	epic?: string | null;
 	project?: string;
 	force?: boolean;
 };
@@ -125,6 +128,18 @@ export const applyChanges = async (ctx: ServiceCtx, tx: Tx, batchId: string, row
 				to: parent?.identifier ?? null,
 				meta: { fromId: row.parentId, toId: parent?.id ?? null },
 				set: sql`parent_id = ${parent?.id ?? null}`,
+			});
+		}
+	}
+	if (input.epic !== undefined) {
+		const epic = input.epic === null ? null : await resolveEpicForTicket(ctx, tx, row.rootId, input.epic);
+		if ((epic?.id ?? null) !== row.epicId) {
+			changes.push({
+				field: "epic",
+				from: row.epicRef,
+				to: epic === null ? null : epicRefOf(epic),
+				meta: { fromId: row.epicId, toId: epic?.id ?? null },
+				set: sql`epic_id = ${epic?.id ?? null}`,
 			});
 		}
 	}

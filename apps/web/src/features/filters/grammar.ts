@@ -14,7 +14,7 @@ import type { z } from "zod";
 import { searchParamOrder } from "../../lib/searchParams";
 import type { Density } from "../../stores/uiStore";
 
-export type Group = "none" | "status" | "priority" | "project" | "parent" | "pr";
+export type Group = "none" | "status" | "priority" | "project" | "parent" | "epic" | "pr";
 export type Scope = "subprojects" | "self";
 
 // The list fields a chip can negate. `not` names the fields whose value
@@ -32,6 +32,9 @@ export type View = {
 	reviewer?: z.infer<typeof ReviewerSchema>;
 	priority?: z.infer<typeof PrioritySchema>[];
 	parent?: string;
+	// An epic ref, `OP/routine-runtime`, or `none` for the tickets outside
+	// every epic.
+	epic?: string;
 	pr?: z.infer<typeof PrFilterSchema>;
 	ci?: z.infer<typeof CiStateSchema>[];
 	actor?: string;
@@ -62,7 +65,7 @@ export const viewDefaults = {
 // web-only fields.
 const relativePattern = /^(\d+)([hd])$/;
 
-const groups: ReadonlySet<string> = new Set(["none", "status", "priority", "project", "parent", "pr"]);
+const groups: ReadonlySet<string> = new Set(["none", "status", "priority", "project", "parent", "epic", "pr"]);
 const scopes: ReadonlySet<string> = new Set(["subprojects", "self"]);
 const densities: ReadonlySet<string> = new Set(["comfortable", "compact"]);
 
@@ -138,6 +141,7 @@ export const parseSearch = (params: Record<string, unknown>): View => {
 		reviewer: single(raw.reviewer, ReviewerSchema),
 		priority: list(raw.priority, PrioritySchema),
 		parent: single(raw.parent, ListQuerySchema.shape.parent),
+		epic: single(raw.epic, ListQuerySchema.shape.epic),
 		pr: single(raw.pr, PrFilterSchema),
 		ci: list(raw.ci, CiStateSchema),
 		actor: single(raw.actor, ListQuerySchema.shape.actor),
@@ -228,6 +232,7 @@ export const toListQuery = (view: View, options: ListQueryOptions = {}): ListQue
 				? complement(PrioritySchema.options, view.priority)
 				: view.priority,
 		parent: view.parent,
+		epic: view.epic,
 		pr: view.pr,
 		ci: view.ci,
 		actor: view.actor,

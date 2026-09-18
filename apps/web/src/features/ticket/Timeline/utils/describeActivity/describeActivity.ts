@@ -96,6 +96,8 @@ export const describeActivity = (item: Activity): string => {
 			return "edited the description";
 		case "parent":
 			return item.toValue === null ? "removed the parent" : `set the parent to ${item.toValue}`;
+		case "epic":
+			return item.toValue === null ? "removed the ticket from its epic" : `put the ticket in the epic ${item.toValue}`;
 		case "project":
 			return `moved the ticket to ${(item.toValue ?? "").replaceAll(".", "/")}`;
 		case "position":

@@ -1,4 +1,4 @@
-import type { Priority, ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
+import type { EpicSummary, Priority, ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
 import { cx, TicketId } from "@trellis/ui";
 import { type MouseEvent, memo, type ReactNode, useRef } from "react";
 import { compactRelativeTime } from "../../../lib/format";
@@ -9,6 +9,7 @@ import { ProjectPicker } from "../../pickers/ProjectPicker";
 import { StatusPicker } from "../../pickers/StatusPicker";
 import { TicketPicker } from "../../pickers/TicketPicker";
 import { type ColumnId, gridColumnsClass, gridStyle, narrowHidden } from "../columns";
+import { EpicCell } from "./components/EpicCell";
 import { PhoneRow } from "./components/PhoneRow";
 import { PrCell } from "./components/PrCell";
 import { PriorityCell } from "./components/PriorityCell";
@@ -20,12 +21,13 @@ import { TitleCell } from "./components/TitleCell";
 // The inline editors a row opens.
 export type EditField = "status" | "priority" | "project" | "parent";
 
-// One change a row's picker applies.
+// One change a row's picker or the bulk bar applies.
 export type RowChange =
 	| { status: StatusSummary }
 	| { priority: Priority }
 	| { project: string }
-	| { parent: TicketSummary | null };
+	| { parent: TicketSummary | null }
+	| { epic: EpicSummary | null };
 
 export type RowProps = {
 	ticket: TicketSummary;
@@ -151,6 +153,7 @@ export const Row = memo(function Row({
 		updated: <span className="text-sm text-fg-muted tabular">{compactRelativeTime(ticket.updatedAt)}</span>,
 		created: <span className="text-sm text-fg-muted tabular">{compactRelativeTime(ticket.createdAt)}</span>,
 		parent: ticket.parent === null ? null : <TicketId id={ticket.parent.identifier} size="sm" />,
+		epic: ticket.epic === null ? null : <EpicCell epic={ticket.epic} />,
 		subtickets:
 			ticket.childCount === 0 ? null : (
 				<span className="text-sm text-fg-muted tabular">

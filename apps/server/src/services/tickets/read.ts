@@ -17,6 +17,7 @@ import { ticketGet } from "../../db/queries/ticketGet.ts";
 import { InvalidCursorError, ticketList } from "../../db/queries/ticketList.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
+import { resolveEpic } from "../epics/resolve.ts";
 import { resolveProject, resolveTicket, toSummary } from "../refs.ts";
 
 type Query = z.infer<typeof BoardQuerySchema>;
@@ -73,6 +74,9 @@ const toFilter = async (ctx: ServiceCtx, tx: Tx, query: Query) => {
 	if (query.priority !== undefined) filter.priority = query.priority;
 	if (query.parent !== undefined) {
 		filter.parent = query.parent === "none" ? "none" : (await resolveTicket(ctx, tx, query.parent)).id;
+	}
+	if (query.epic !== undefined) {
+		filter.epic = query.epic === "none" ? "none" : (await resolveEpic(ctx, tx, query.epic)).id;
 	}
 	if (query.pr !== undefined) filter.pr = query.pr;
 	if (query.ci !== undefined) filter.ci = query.ci;

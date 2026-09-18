@@ -16,6 +16,7 @@ import * as brief from "./brief.ts";
 import * as commentMentions from "./commentMentions/run.ts";
 import * as comments from "./comments.ts";
 import { diagnostics } from "./diagnostics.ts";
+import * as epics from "./epics/epics.ts";
 import { decide as decideFlowExecution } from "./flowExecutions/decide.ts";
 import { list as listFlowExecutions } from "./flowExecutions/list.ts";
 import { prepareFlowCancel } from "./flowExecutions/prepareFlowCancel.ts";
@@ -219,6 +220,11 @@ export const services = {
 	"notes.create": core("mutation", notes.create),
 	"notes.update": core("mutation", notes.update),
 	"notes.delete": core("mutation", notes.remove),
+	"epics.list": core("read", epics.list),
+	"epics.get": core("read", epics.get),
+	"epics.create": core("mutation", epics.create),
+	"epics.update": core("mutation", epics.update),
+	"epics.delete": core("mutation", epics.remove),
 	"attachments.list": io("read", attachments.list),
 	"attachments.upload": io("mutation", attachments.upload),
 	"attachments.get": io("read", attachments.get),

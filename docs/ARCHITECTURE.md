@@ -173,6 +173,10 @@ before another agent can take the ticket.
 - `updated_at` moves only on user-visible activity: a ticket field, a comment, an attachment, or a pull request link. A reorder, a remap, and a poller CI change raise `version` only.
 - A delete is a hard delete. A ticket delete nulls the `parent_id` of its children, then cascades comments, attachments, pull request links, and activity. The blob collector then removes unused files.
 - A project delete needs an empty subtree or `force`.
+- An epic groups the tickets that deliver one plan inside a project. It is its own record with a name, a slug, and a markdown description that holds the plan. An epic is never a ticket.
+- A ticket belongs to at most one epic (`tickets.epic_id`). The epic and the ticket share one root (`CROSS_ROOT_MOVE`). A ticket in an epic can sit in any project of that root.
+- An epic stores no state. Its counts by status category come from its tickets. Its state is `done` when it has at least one ticket and every ticket is done or canceled. Otherwise it is `open`, so an epic with no ticket is open.
+- An epic delete sets `epic_id` NULL on its tickets, raises their `version`, writes one `epic` activity row per ticket, and emits `ticket.updated` for each. An agent needs `force` (`AGENT_CANNOT_DELETE`). A project delete cascades its epics.
 
 ### Project notes
 
@@ -190,6 +194,44 @@ The API is `notes.list`, `notes.get`, `notes.create`, `notes.update`, and
 `notes.delete`. The event `notes.changed` names the owning project and
 invalidates every note query. The CLI verb is `trellis notes`, and the web route is `/p/<project path>/notes`.
 Repository instructions describe note behavior. The ticket brief carries note content.
+
+### Epics
+
+`epics` holds one row per epic: `project_id`, `root_id`, `slug`, `name`,
+`description`, and the actor of the last write. An EpicRef is a ULID or
+`KEY/slug`, such as `OP/routine-runtime`. Two epics of one root never share a
+slug; a taken slug is `DUPLICATE` with field `slug`. A create without `slug`
+derives one from `name`, and a derived slug that collides takes the lowest free
+numeric suffix from `-2`. An archived project serves reads and refuses every
+epic write (`PROJECT_ARCHIVED`).
+
+A ticket joins an epic through `epic` on `tickets.create`, `tickets.update`,
+and `tickets.updateMany`; `null` clears it. The service resolves the ref,
+checks the root, and checks `PROJECT_ARCHIVED` on the project of the epic. A
+change of `epic` records field `epic` with the epic refs as `from_value` and
+`to_value` and the ids in `meta.fromId` and `meta.toId`. `TicketSummary`
+carries `epic` as `{id, ref, name}` or `null`.
+
+The API is `epics.list`, `epics.get`, `epics.create`, `epics.update`, and
+`epics.delete`. The event `epics.changed {projectId, id}` fires on a create, an
+update, and a delete. Every ticket row copies the epic name and ref, so the
+event refetches the `epics` family, the `tickets` family, and `projects.list`.
+The counts of an epic follow its tickets, so a ticket event whose fields
+include `epic`, `status`, or `completedAt` invalidates the `epics` query
+family. `ProjectSummary.openEpicCount` counts the open epics of that project
+alone, and the sidebar prints it.
+
+The ticket brief names the epic. The header gains
+`- Epic: <name> (<ref>), <done> of <total - canceled> done`. After the
+description, `## Epic: <name>` prints the plan in full, and `## Epic tickets`
+lists every ticket of the epic in number order as `- OP-29 Title (Done)`, with
+`(this ticket)` after the current one. The launch instruction stays title plus
+description; an agent reads the epic through `trellis brief`.
+
+The CLI verb is `trellis epics` with `list`, `show`, `create`, `edit`, `add`,
+`remove`, and `delete`. `--epic <ref>` joins `create`, `sub`, and `edit`
+(`--epic none` clears), and `--epic <ref|none>` joins `list`. The web routes
+are `/p/<project path>/epics` and `/p/<project path>/epics/<slug>`.
 
 ### Pull request reviews
 
@@ -467,7 +509,7 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 |---|---|---|
 | `/` | `index.tsx` | a replace redirect to `/needs-you` |
 | `/needs-you` | `needs-you/route.tsx` | human review tickets and personal mentions across every project |
-| `/p/$` | `p/$/route.tsx` | a project as a board, a table, its diffs, its settings, or its notes |
+| `/p/$` | `p/$/route.tsx` | a project as a board, a table, its diffs, its settings, its notes, its epics, or one epic |
 | `/t/$identifier` | `t/$identifier/route.tsx` | one ticket |
 | `/sessions/project/$project` | `sessions.project.$project.tsx` | project sessions and ticket agents in a secondary sidebar |
 | `/sessions/$id` | `sessions.$id.tsx` | one session: the terminal of its agent and the process controls |
@@ -488,9 +530,12 @@ last list URL with its filters.
 `/p/$` takes one splat, `[key, ...slugs, view?]`. The URL keeps slashes and the
 API ref joins the same segments with dots, so `/p/CDE/web/auth` reads
 `CDE.web.auth`. The last segment is a view only when it is a reserved slug:
-`table`, `settings`, `notes`, `diffs`, or `board`. `SlugSchema` refuses `board`,
-`settings`, `notes`, and `diffs`, and a `CHECK` on `projects.slug` refuses `board`
-and `settings`, so a sub-project never takes one of those names.
+`table`, `settings`, `notes`, `diffs`, `epics`, or `board`. The last two
+segments `epics/<slug>` open one epic when a project segment precedes them;
+`/p/EPICS/<sub>` is a sub-project of the root `EPICS`. `SlugSchema` refuses `board`,
+`settings`, `notes`, `diffs`, and `epics`, and a `CHECK` on `projects.slug`
+refuses `board` and `settings`, so a sub-project never takes one of those
+names.
 
 The board uses the bare project URL. An older link
 that ends in `/board` redirects to the same path with the segment dropped.
@@ -528,12 +573,18 @@ Repository initialization runs outside the database transaction. An idempotent r
 After a host crash, an unconfirmed attempt requires process inspection before another launch.
 Unsent text and files stay available when the user changes sessions.
 Each session row opens its conversation. The conversation controls can stop, resume, or delete the session.
-Each project row shows the Trellis mark and project name. Tickets, Diffs, and Sessions appear below it.
+Each project row shows the Trellis mark and project name. Tickets, Epics, Diffs, and Sessions appear below it.
+The Epics row prints `openEpicCount` when it is above zero. The Tickets row is off on the epics pages.
 The row menu of a project opens its Settings page.
 The Diffs page at `/p/<path>/diffs` lists the pull requests of the project: the ones linked to a ticket of the
 project or one of its sub-projects, and the ones kept for a review in a repository of the project or one of its
 ancestors. Its second source lists the open pull requests of the signed-in GitHub user in those repositories.
 The selected state follows the current page for root, nested, and archived projects.
+The Epics page at `/p/<path>/epics` lists the epics of the project and its sub-projects in two groups, Open and
+Done, each with its count. A row prints the name, a `StackedBar` of the counts by category, `done/total`, the
+updated time, and a row menu. `/p/<path>/epics/<slug>` shows one epic: the bar with a legend, the state, the
+description in the ticket markdown renderer, and its tickets in number order. Its Add action opens the
+`TicketPicker` and writes `tickets.updateMany { epic }`; a ticket row menu offers Remove from epic.
 
 ## Database schema
 
@@ -550,7 +601,8 @@ are no triggers. Every rule is a constraint or a service function that takes
 | projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, directory, ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
 | repos | id PK, project_id (CASCADE), owner, repo (both CHECK lowercase). UNIQUE (project_id, owner, repo). The effective repos of a project are its own plus those of its ancestors. |
 | statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), reviewer (CHECK `(category = 'review') = (reviewer IS NOT NULL)`), color, position, is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
-| tickets | id PK, project_id, root_id, number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (root_id, number) and (id, root_id). FK (project_id, root_id) RESTRICT and FK (parent_id, root_id) RESTRICT. Indexes (project_id, status_id, position), (status_id, position, id, project_id, root_id), (parent_id), partial (root_id, updated_at DESC) WHERE completed_at IS NULL, partial (root_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
+| tickets | id PK, project_id, root_id, number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, epic_id (FK epics SET NULL), position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (root_id, number) and (id, root_id). FK (project_id, root_id) RESTRICT and FK (parent_id, root_id) RESTRICT. Indexes (project_id, status_id, position), (status_id, position, id, project_id, root_id), (parent_id), (epic_id), partial (root_id, updated_at DESC) WHERE completed_at IS NULL, partial (root_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
+| epics | id PK, project_id (CASCADE), root_id, slug (CHECK slug regex), name (CHECK trimmed, 1 to 120), description (CHECK <= 200000), actor_name, actor_kind, created_at, updated_at. FK to actors. UNIQUE (id, root_id) and (root_id, slug). FK (project_id, root_id) CASCADE, so an epic stays in the root of its project. Index (project_id). The state of an epic is never stored. |
 | comments | id PK, ticket_id (CASCADE), body (1 to 200000), parent_id, resolved_at, actor_name, actor_kind, search tsvector GENERATED (body C), created_at, updated_at. FK to actors. UNIQUE (id, ticket_id). FK (parent_id, ticket_id) CASCADE, so a reply stays on the ticket of its root. CHECK `parent_id <> id` and `parent_id IS NULL OR resolved_at IS NULL`, so only a root carries the resolved mark. Index (ticket_id, created_at) and (parent_id). GIN (search). |
 | attachments | id PK, ticket_id (CASCADE), filename (1 to 255, no `/`), mime, size (CHECK > 0), sha256 (CHECK hex 64), actor_name, actor_kind, created_at. FK to actors. Index (ticket_id) and (sha256). |
 | pull_requests | id PK, owner, repo (CHECK lowercase), number (CHECK > 0), url, title, state, is_draft, head_ref, base_ref, review_state, merged_at, closed_at, checks jsonb (CHECK array), ci_state, content_hash, fetched_at, fetch_error, created_at, updated_at. UNIQUE (owner, repo, number). Index (state, ci_state). |
@@ -579,7 +631,7 @@ The kanban position of a new card is the maximum plus 1024. A move takes the
 midpoint of its neighbors. The column renumbers in steps of 1024 when the gap
 falls below 1. A list sorts and pages by `(position, id)`.
 
-The schema migrations live in `apps/server/drizzle/`, through `0072_sticky_mockingbird`.
+The schema migrations live in `apps/server/drizzle/`, through `0076_omniscient_sentinels`.
 `meta/_journal.json` defines their order. Applied migrations preserve upgrades for existing data homes.
 The migrator applies schema changes at boot in one transaction, then runs `ANALYZE` and sets `pg_trgm.word_similarity_threshold`.
 The schema drift check requires `drizzle-kit generate` to leave the migration directory unchanged.
@@ -602,13 +654,14 @@ returns one canonical spelling.
 | ref | grammar | example |
 |---|---|---|
 | TicketRef | ULID or `KEY-n` | `CDE-42` |
+| EpicRef | ULID or `KEY/slug` | `OP/routine-runtime` |
 | ProjectRef | ULID, `KEY`, or `KEY.slug(.slug)*` | `CDE.web.auth` |
 | StatusRef | ULID, slug, name, or `category:<category>` | `in-progress`, `category:review` |
 | Actor header | `human:<name>` or `agent:<name>` | `agent:claude-code` |
 
 | procedure | route | notes |
 |---|---|---|
-| projects.list | GET /api/projects | flat list with path, depth, and open count |
+| projects.list | GET /api/projects | flat list with path, depth, open count, and open epic count |
 | projects.get | GET /api/projects/{project} | ancestors, children, repos, effective statuses, ticket template |
 | projects.create | POST /api/projects | 201 and `Location`; a root needs a key, a child rejects one |
 | projects.update | PATCH /api/projects/{project} | name, slug, description, ticket template, archived |
@@ -622,11 +675,16 @@ returns one canonical spelling.
 | tickets.counts | GET /api/tickets/counts | the same filters; `{total, byStatus}` |
 | tickets.board | GET /api/tickets/board | one query; each column carries a count and its first 100 cards |
 | tickets.get | GET /api/tickets/{ticket} | the full ticket with project, status, parent, children, prs, attachments |
-| tickets.create | POST /api/tickets | 201 and `Location` |
-| tickets.update | PATCH /api/tickets/{ticket} | `If-Match` maps to `expectedVersion` |
+| tickets.create | POST /api/tickets | 201 and `Location`; `epic` joins an epic of the same root |
+| tickets.update | PATCH /api/tickets/{ticket} | `If-Match` maps to `expectedVersion`; `epic: null` clears the epic |
 | tickets.move | POST /api/tickets/{ticket}/move | status, after, before, force; an anchor must be in the target column |
 | tickets.updateMany, deleteMany | POST /api/tickets/update-many, delete-many | up to 200 refs in one transaction |
 | tickets.delete | DELETE /api/tickets/{ticket} | `force` overrides the agent policy |
+| epics.list | GET /api/epics?project=KEY | the epics of the project and its sub-projects; open first, then done, then by updated desc |
+| epics.get | GET /api/epics/{epic} | the summary and its tickets in number order; `{epic}` takes `KEY/slug` with its slash |
+| epics.create | POST /api/epics | 201 and `Location`; `slug` derives from `name` when absent |
+| epics.update | PATCH /api/epics/{epic} | name, slug, description |
+| epics.delete | DELETE /api/epics/{epic} | `{id}`; detaches its tickets; `force` overrides the agent policy |
 | timeline.list | GET /api/tickets/{ticket}/timeline | comments and activity merged, newest first |
 | comments.create, update, delete | POST /api/tickets/{ticket}/comments; PATCH, DELETE /api/comments/{id} | a create with `parentId` joins that thread |
 | comments.thread, resolve | GET /api/comments/{id}/thread; POST /api/comments/{id}/resolve | the root comment and every reply; resolve takes the reopen too |
@@ -656,7 +714,7 @@ returns one canonical spelling.
 
 `TicketSummary` is the shape that list, board, and events carry. It holds the
 identifier, the title, the priority, the status, the project, the parent, the
-child counts, the comment and attachment counts, the pull request rollup, the
+epic link (`id`, `ref`, `name`), the child counts, the comment and attachment counts, the pull request rollup, the
 approval state of each linked pull request, the last actor, the position, the
 version, and the timestamps. Only `tickets.get` returns the description.
 
@@ -670,6 +728,7 @@ The filter grammar is identical in the API, the web URL, and the CLI flags.
 | reviewer | human or agent |
 | priority | a list |
 | parent | a TicketRef or `none` |
+| epic | an EpicRef or `none` |
 | pr | any, none, open, draft, merged, closed |
 | ci | a list of pass, fail, pending, none |
 | actor | `kind:name` or `name`, matched against the last actor |
@@ -719,7 +778,7 @@ Payloads:
 `pr.linked | unlinked | updated {id, ticketIds, projectIds, state, ciState}`,
 `comment.created | updated | deleted {id, ticketId, projectId, parentId, threadId, resolved}`,
 `attachment.created | deleted {id, ticketId, projectId}`,
-`statuses.changed {projectId}`,
+`statuses.changed {projectId}`, `epics.changed {projectId, id}`,
 `project.created | updated | deleted | moved {id}`, `gh.status {ok, reason}`,
 `flows.changed {id}`, `agent-runs.changed {id}`, `sessions.changed {id}`, and `needs-you.changed {actorName}`.
 `packages/api/src/events.ts` holds the one list of names, and the `types=`
@@ -738,7 +797,7 @@ While a mutation for an id is in flight, patches queue and apply in version
 order after it settles.
 
 Invalidation happens only when membership or order can change: status, project,
-priority, parent, completed, create, and delete. It runs through a coalescer
+priority, parent, epic, completed, create, and delete. It runs through a coalescer
 with a 250 ms trailing delay and a 1 s maximum. A mutation writes its response with `setQueryData` and invalidates on an
 error only. SSE-patched entities use `staleTime: Infinity`, and a `reset` or a
 reconnect invalidates everything.
@@ -875,9 +934,10 @@ boot. The data home keeps the 10 newest archives. `trellis export` streams
 NDJSON per table in keyset pages of 1000 rows.
 
 `apps/web` holds `routes/` (TanStack Router file routes), `features/` (agents,
-attachments, board, command, composer, filters, needs-you, pickers,
-project-actions, project-settings, prs, search, settings, setup,
-shell, sidebar, table, ticket), `components/`, `hooks/`, `lib/`, and `stores/`.
+attachments, board, command, composer, epics, filters, flows, navRows, needs-you,
+notes, pickers, project-actions, project-settings, prs, reviews, search,
+sessions, settings, setup, shell, sidebar, table, ticket, usage), `components/`,
+`hooks/`, `lib/`, and `stores/`.
 
 `apps/mobile` holds the expo-router `app/` tree and `src/` with `features/`,
 `components/`, `lib/`, and `theme/tokens.ts`. A script generates

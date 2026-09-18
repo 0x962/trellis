@@ -17,6 +17,7 @@ export const eventNames = [
 	"comment.updated",
 	"comment.deleted",
 	"notes.changed",
+	"epics.changed",
 	"attachment.created",
 	"attachment.deleted",
 	"statuses.changed",
@@ -96,6 +97,14 @@ export const NotesChangedPayloadSchema = z.object({
 	projectId: UlidSchema,
 });
 
+// `id` is the epic that a committed create, update, or delete touched, and
+// `projectId` the project that owns it. The counts of an epic follow its
+// tickets, and a ticket event carries those; this event carries the record.
+export const EpicsChangedPayloadSchema = z.object({
+	projectId: UlidSchema,
+	id: UlidSchema,
+});
+
 export const ProjectEventPayloadSchema = z.object({
 	id: UlidSchema,
 });
@@ -149,6 +158,7 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("comment.updated", CommentEventPayloadSchema),
 	typed("comment.deleted", CommentEventPayloadSchema),
 	typed("notes.changed", NotesChangedPayloadSchema),
+	typed("epics.changed", EpicsChangedPayloadSchema),
 	typed("attachment.created", TicketChildEventPayloadSchema),
 	typed("attachment.deleted", TicketChildEventPayloadSchema),
 	typed("statuses.changed", StatusesChangedPayloadSchema),

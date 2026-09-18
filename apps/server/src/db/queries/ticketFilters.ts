@@ -6,7 +6,8 @@ import { ciRank, textArray } from "./support.ts";
 // The flat filter grammar of tickets.list, with every ref already resolved
 // to an id. `rootIds` holds the roots of `projectIds`. The caller reads
 // them from the project cache. The partial indexes of tickets start with
-// root_id. `parent` is a ticket id or `none` for top-level tickets.
+// root_id. `parent` is a ticket id or `none` for top-level tickets. `epic`
+// is an epic id or `none` for the tickets outside every epic.
 // `actor` is `kind:name` or a bare name and matches the last actor.
 // `updated`, `created`, and `completed` are ISO "after" bounds.
 export type TicketFilter = {
@@ -17,6 +18,7 @@ export type TicketFilter = {
 	reviewer?: Reviewer;
 	priority?: readonly Priority[];
 	parent?: string;
+	epic?: string;
 	pr?: PrFilter;
 	ci?: readonly CiState[];
 	actor?: string;
@@ -95,6 +97,8 @@ export const filterWhere = (filter: TicketFilter): SQL => {
 	if (filter.priority) clauses.push(sql`t.priority = ANY(${textArray(filter.priority)})`);
 	if (filter.parent === "none") clauses.push(sql`t.parent_id IS NULL`);
 	else if (filter.parent) clauses.push(sql`t.parent_id = ${filter.parent}`);
+	if (filter.epic === "none") clauses.push(sql`t.epic_id IS NULL`);
+	else if (filter.epic) clauses.push(sql`t.epic_id = ${filter.epic}`);
 	if (filter.pr) clauses.push(prClause(filter.pr));
 	if (filter.ci) clauses.push(ciClause(filter.ci));
 	if (filter.actor) clauses.push(actorClause(filter.actor));
@@ -114,6 +118,7 @@ export const filterKey = (filter: TicketFilter) => [
 	filter.reviewer ?? null,
 	filter.priority ?? null,
 	filter.parent ?? null,
+	filter.epic ?? null,
 	filter.pr ?? null,
 	filter.ci ?? null,
 	filter.actor ?? null,

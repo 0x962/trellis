@@ -23,6 +23,12 @@ Read the notes: trellis notes list KEY
 Write a note: trellis notes add KEY --title "..." --body "..."
 Update or remove one: trellis notes edit <id> --body "..." / trellis notes rm <id>
 
+A plan that produces several tickets is an epic. Create the epic with the plan as its description, then create each ticket with --epic.
+Create the epic: trellis epics create --project KEY --name "..." --description - < plan.md
+Create a ticket of the epic: trellis create -p KEY --epic KEY/<slug> -t "..."
+Read the epic and its tickets: trellis epics show KEY/<slug>
+File a question for the person as a ticket of the epic in the human review status: trellis create -p KEY --epic KEY/<slug> --status human-review -t "..."
+
 PR review comments live in Trellis. Read them before work: trellis review list <pr-url>
 Post a finding: trellis review add <pr-url> --path <file> --line <n> --body "..."
 Reply: trellis review reply <thread-id> --body "..."

@@ -65,7 +65,7 @@ export const errors = {
 	},
 	AGENT_CANNOT_DELETE: {
 		status: 403,
-		message: "An agent cannot delete a ticket or a project without force.",
+		message: "An agent cannot delete a ticket, an epic, or a project without force.",
 		data: z.undefined(),
 	},
 	NOT_FOUND: {
@@ -111,7 +111,7 @@ export const errors = {
 	CROSS_ROOT_MOVE: {
 		status: 409,
 		message:
-			"A ticket, a parent, or a project cannot move to another root. Create the ticket or project again in the other root.",
+			"A ticket, a parent, an epic, or a project cannot move to another root. Create the ticket or project again in the other root.",
 		data: z.undefined(),
 	},
 	PARENT_CYCLE: {

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ProjectRefStringSchema, StatusRefStringSchema, TicketRefStringSchema } from "../refs.ts";
+import { EpicRefStringSchema, ProjectRefStringSchema, StatusRefStringSchema, TicketRefStringSchema } from "../refs.ts";
 import { ActorRefSchema } from "./actor.ts";
 import { AttachmentSchema } from "./attachment.ts";
 import {
@@ -10,6 +10,7 @@ import {
 	ReviewStateSchema,
 	StatusCategorySchema,
 } from "./enums.ts";
+import { EpicLinkSchema } from "./epicLink.ts";
 import { booleanString, CountSchema, commaList, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 import { ProjectLinkSchema } from "./project.ts";
 import { LinkedPullRequestSchema } from "./pullRequest.ts";
@@ -65,6 +66,8 @@ export const TicketSummarySchema = z.object({
 	// last. Empty for a ticket with no parent. A board card draws it as the
 	// trail that leads to the ticket.
 	ancestors: z.array(IdentifierSchema),
+	// The epic the ticket belongs to. A ticket belongs to at most one epic.
+	epic: EpicLinkSchema.nullable(),
 	childCount: CountSchema,
 	childDoneCount: CountSchema,
 	commentCount: CountSchema,
@@ -125,6 +128,8 @@ export const ListQuerySchema = z.strictObject({
 	reviewer: ReviewerSchema.optional(),
 	priority: commaList(PrioritySchema).optional(),
 	parent: z.union([z.literal("none"), TicketRefStringSchema]).optional(),
+	// `none` keeps the tickets outside every epic.
+	epic: z.union([z.literal("none"), EpicRefStringSchema]).optional(),
 	pr: PrFilterSchema.optional(),
 	ci: commaList(CiStateSchema).optional(),
 	actor: ActorFilterSchema.optional(),
@@ -183,7 +188,7 @@ export const TicketGetInputSchema = z.strictObject({
 });
 
 // `status` defaults to the project's default status; `description` to the
-// project's ticket template.
+// project's ticket template. `epic` names an epic of the same root.
 export const TicketCreateInputSchema = z.strictObject({
 	project: ProjectRefStringSchema,
 	title: TitleSchema,
@@ -191,12 +196,14 @@ export const TicketCreateInputSchema = z.strictObject({
 	priority: PrioritySchema.optional(),
 	status: StatusRefStringSchema.optional(),
 	parent: TicketRefStringSchema.optional(),
+	epic: EpicRefStringSchema.optional(),
 	force: z.boolean().optional(),
 });
 export type TicketCreateInput = z.input<typeof TicketCreateInputSchema>;
 
 // `expectedVersion` makes the write conditional: a mismatch is
-// VERSION_CONFLICT with the current row. `parent: null` clears the parent.
+// VERSION_CONFLICT with the current row. `parent: null` clears the parent,
+// and `epic: null` clears the epic.
 export const TicketUpdateInputSchema = z.strictObject({
 	ticket: TicketRefStringSchema,
 	title: TitleSchema.optional(),
@@ -204,6 +211,7 @@ export const TicketUpdateInputSchema = z.strictObject({
 	priority: PrioritySchema.optional(),
 	status: StatusRefStringSchema.optional(),
 	parent: TicketRefStringSchema.nullable().optional(),
+	epic: EpicRefStringSchema.nullable().optional(),
 	project: ProjectRefStringSchema.optional(),
 	expectedVersion: z.number().int().positive().optional(),
 });
@@ -229,6 +237,7 @@ export const TicketUpdateManyInputSchema = z.strictObject({
 	priority: PrioritySchema.optional(),
 	project: ProjectRefStringSchema.optional(),
 	parent: TicketRefStringSchema.nullable().optional(),
+	epic: EpicRefStringSchema.nullable().optional(),
 	force: z.boolean().optional(),
 });
 export type TicketUpdateManyInput = z.input<typeof TicketUpdateManyInputSchema>;

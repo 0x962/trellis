@@ -11,6 +11,7 @@ const flags: readonly Flag[] = [
 	{ key: "reviewer", flag: "--reviewer" },
 	{ key: "priority", flag: "--priority", list: true },
 	{ key: "parent", flag: "--parent" },
+	{ key: "epic", flag: "--epic" },
 	{ key: "pr", flag: "--pr" },
 	{ key: "ci", flag: "--ci", list: true },
 	{ key: "actor", flag: "--actor" },

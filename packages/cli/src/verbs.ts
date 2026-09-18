@@ -75,6 +75,10 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 		description: "Read and write the notes of a project",
 		load: () => import("./commands/notes.ts").then((m) => command(m.default)),
 	},
+	epics: {
+		description: "List, show, create, edit, fill, or delete the epics of a project",
+		load: () => import("./commands/epics.ts").then((m) => command(m.default)),
+	},
 	attach: {
 		description: "Upload a file to a ticket",
 		load: () => import("./commands/attach.ts").then((m) => command(m.default)),

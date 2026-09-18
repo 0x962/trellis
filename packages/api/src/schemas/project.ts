@@ -19,6 +19,7 @@ export type ProjectLink = z.infer<typeof ProjectLinkSchema>;
 
 // One row of the flat project list. The client builds the tree from
 // `parentId`, and `depth` and `position` give the display order.
+// `openEpicCount` counts the epics of this project alone whose state is open.
 export const ProjectSummarySchema = ProjectLinkSchema.extend({
 	parentId: UlidSchema.nullable(),
 	rootId: UlidSchema,
@@ -27,6 +28,7 @@ export const ProjectSummarySchema = ProjectLinkSchema.extend({
 	depth: CountSchema,
 	position: z.number().int(),
 	openCount: CountSchema,
+	openEpicCount: CountSchema,
 	archivedAt: IsoDateTimeSchema.nullable(),
 });
 export type ProjectSummary = z.infer<typeof ProjectSummarySchema>;

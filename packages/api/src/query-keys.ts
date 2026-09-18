@@ -35,6 +35,7 @@ export const membershipFields: ReadonlySet<string> = new Set([
 	"project",
 	"priority",
 	"parent",
+	"epic",
 	"completed",
 	"completedAt",
 	"position",
@@ -43,6 +44,11 @@ export const membershipFields: ReadonlySet<string> = new Set([
 // A parent's `childDoneCount` and `children` change when a child completes
 // or moves. The parent row emits no event of its own, so its detail refetches.
 const parentFields: ReadonlySet<string> = new Set(["parent", "status", "completedAt"]);
+
+// The counts and the state of an epic derive from its tickets. The epic row
+// emits no event of its own when a ticket changes, so the epic queries
+// refetch on a ticket event that names one of these fields.
+const epicFields: ReadonlySet<string> = new Set(["epic", "status", "completedAt"]);
 
 type TicketEvent = Extract<TrellisEvent, { type: "ticket.created" | "ticket.updated" | "ticket.deleted" }>;
 
@@ -158,6 +164,9 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 		if ((membership || fields.some((field) => parentFields.has(field))) && summary.parent !== null) {
 			enqueue(ticketDetail(summary.parent.id));
 		}
+		if ((membership && summary.epic !== null) || fields.some((field) => epicFields.has(field))) {
+			enqueue([family("epics")]);
+		}
 		for (const id of parentsThatLostAChild) enqueue(ticketDetail(id));
 		if (!change.deleted) enqueue([forTicket(["timeline", "list"], summary.id)]);
 	};
@@ -207,6 +216,12 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			// list refetches.
 			case "notes.changed":
 				enqueue([family("notes")]);
+				return;
+			// A ticket row copies the epic name and ref, and the projects list
+			// carries `openEpicCount`. No ticket event follows an epic change,
+			// so every query that holds a ticket row refetches.
+			case "epics.changed":
+				enqueue([family("epics"), family("tickets"), family("projects", "list")]);
 				return;
 			// The Diffs page of a project lists pull requests by their ticket
 			// links, so a link change refetches that list too.

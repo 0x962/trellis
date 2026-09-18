@@ -1,8 +1,10 @@
 import { X } from "@phosphor-icons/react";
-import type { Priority, ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
+import type { EpicSummary, Priority, ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
 import { Button, cx, IconButton, Kbd, Tooltip, useReducedMotion } from "@trellis/ui";
 import { type ReactElement, useEffect, useRef, useState } from "react";
 import { formatCount } from "../../../lib/format";
+import { rootKey } from "../../../lib/projectPath";
+import { EpicPicker } from "../../pickers/EpicPicker";
 import { PriorityPicker } from "../../pickers/PriorityPicker";
 import { ProjectPicker } from "../../pickers/ProjectPicker";
 import { StatusPicker } from "../../pickers/StatusPicker";
@@ -16,12 +18,14 @@ export type BulkBarProps = {
 	statuses: readonly StatusSummary[];
 	projects: readonly ProjectSummary[];
 	ticketRootIds: readonly string[];
-	// The project ref the parent search stays inside.
+	// The project ref the parent search stays inside. Set epic offers the
+	// epics of its root. /all has no project, so it has no Set epic.
 	project?: string;
 	onStatus: (status: StatusSummary) => void;
 	onPriority: (priority: Priority) => void;
 	onProject: (path: string) => void;
 	onParent: (ticket: TicketSummary | null) => void;
+	onEpic: (epic: EpicSummary | null) => void;
 	onCopyIds: () => void;
 	onDelete: () => void;
 	onClear: () => void;
@@ -61,6 +65,7 @@ export function BulkBar({
 	onPriority,
 	onProject,
 	onParent,
+	onEpic,
 	onCopyIds,
 	onDelete,
 	onClear,
@@ -124,6 +129,14 @@ export function BulkBar({
 				"Set parent",
 				"⇧P",
 				<TicketPicker project={project} onPick={onParent} side="top" trigger={<Button size="sm">Set parent</Button>} />,
+			)}
+			{project !== undefined && (
+				<EpicPicker
+					project={rootKey(project)}
+					onPick={onEpic}
+					side="top"
+					trigger={<Button size="sm">Set epic</Button>}
+				/>
 			)}
 			{withKey(
 				"Copy IDs",

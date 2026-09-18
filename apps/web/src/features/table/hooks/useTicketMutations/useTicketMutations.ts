@@ -8,7 +8,7 @@ import { failToast } from "../../../../lib/failToast";
 import { patchRows, readRow } from "../../utils/cacheRows";
 
 // The fields a table edit changes on a row before the server answers.
-export type RowPatch = Partial<Pick<TicketSummary, "status" | "priority" | "project" | "parent">>;
+export type RowPatch = Partial<Pick<TicketSummary, "status" | "priority" | "project" | "parent" | "epic">>;
 
 type UpdateFields = Omit<TicketUpdateInput, "ticket" | "expectedVersion">;
 type UpdateManyFields = Omit<TicketUpdateManyInput, "tickets">;

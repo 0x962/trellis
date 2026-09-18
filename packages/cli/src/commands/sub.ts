@@ -14,6 +14,7 @@ export default defineCommand({
 		description: { type: "string", alias: "d", description: "Description text, or - for stdin" },
 		priority: { type: "enum", options: [...priorities], description: "Priority" },
 		status: { type: "string", description: "Status ref" },
+		epic: { type: "string", description: "Epic ref, such as OP/routine-runtime" },
 		project: { type: "string", alias: "p", description: "Project ref; the parent's project when absent" },
 	},
 	async run(context) {
@@ -29,6 +30,7 @@ export default defineCommand({
 				description: args.description === undefined ? undefined : await readText(ctx, args.description),
 				priority: args.priority as Priority | undefined,
 				status: args.status,
+				epic: args.epic,
 			}),
 		);
 		printRecord(ctx.out, ctx.format, ticket, ticketRecord);

@@ -512,6 +512,13 @@
       "when": 1789695965771,
       "tag": "0075_steady_invaders",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1789754811082,
+      "tag": "0076_omniscient_sentinels",
+      "breakpoints": true
     }
   ]
 }

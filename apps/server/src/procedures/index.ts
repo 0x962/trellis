@@ -2,6 +2,7 @@ import { agentRuns } from "./agentRuns.ts";
 import { attachments } from "./attachments.ts";
 import { os } from "./base.ts";
 import { comments } from "./comments.ts";
+import { epics } from "./epics.ts";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
@@ -39,6 +40,7 @@ export const router = os.router({
 	timeline,
 	comments,
 	notes,
+	epics,
 	attachments,
 	pullRequests,
 	search,

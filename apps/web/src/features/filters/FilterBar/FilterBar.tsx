@@ -81,6 +81,7 @@ export function FilterBar({ project, search, onSearchChange, statuses, actions, 
 					field={field}
 					view={view}
 					statuses={statuses}
+					project={project}
 					onChange={change}
 					onEdit={(target) => openAt({ kind: "values", field: target })}
 				/>

@@ -14,7 +14,7 @@ export type GroupStatus = StatusSummary & { position?: number };
 
 export type RowGroup = {
 	// The URL-safe identity of the group: a status slug, a priority, a
-	// project ref, a parent identifier, a PR state, or `all`.
+	// project ref, a parent identifier, an epic id, a PR state, or `all`.
 	key: string;
 	// The heading. Null when grouping is off.
 	label: string | null;
@@ -82,6 +82,10 @@ export const sortRows = (rows: readonly TicketSummary[], sort: Sort, statuses: r
 
 type Bucket = { key: string; label: string; rank: number | string; status?: StatusSummary; category?: StatusCategory };
 
+// U+FFFF is the highest single code unit, so this rank sorts after every
+// name that compareText can see.
+const lastRank = "\uFFFF";
+
 const prLabels: Record<string, string> = { open: "Open PR", merged: "Merged PR", closed: "Closed PR", none: "No PR" };
 const prRank: Record<string, number> = { open: 0, merged: 1, closed: 2, none: 3 };
 
@@ -108,6 +112,11 @@ const bucketOf = (row: TicketSummary, options: GroupOptions): Bucket => {
 			return row.parent === null
 				? { key: "none", label: "No parent", rank: "~" }
 				: { key: row.parent.identifier, label: row.parent.identifier, rank: row.parent.identifier };
+		case "epic":
+			// Names rank in lower case, so `billing` and `Billing` sit together.
+			return row.epic === null
+				? { key: "none", label: "No epic", rank: lastRank }
+				: { key: row.epic.id, label: row.epic.name, rank: row.epic.name.toLowerCase() };
 		case "pr": {
 			const state = row.pr?.state ?? "none";
 			return { key: state, label: prLabels[state]!, rank: prRank[state]! };
