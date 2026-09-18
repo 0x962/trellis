@@ -23,6 +23,9 @@ export type SummaryRow = {
 	epic_id: string | null;
 	epic_slug: string | null;
 	epic_name: string | null;
+	milestone_id: string | null;
+	milestone_slug: string | null;
+	milestone_name: string | null;
 	ancestors: string[] | null;
 	child_count: number;
 	child_done_count: number;
@@ -65,6 +68,7 @@ export const summaryColumns = sql`
 	par.id AS parent_id,
 	CASE WHEN par.id IS NULL THEN NULL ELSE root.key || '-' || par.number END AS parent_identifier,
 	e.id AS epic_id, e.slug AS epic_slug, e.name AS epic_name,
+	m.id AS milestone_id, m.slug AS milestone_slug, m.name AS milestone_name,
 	anc.identifiers AS ancestors,
 	(SELECT count(*)::int FROM tickets c WHERE c.parent_id = t.id) AS child_count,
 	(SELECT count(*)::int FROM tickets c JOIN statuses cs ON cs.id = c.status_id
@@ -90,6 +94,7 @@ export const summaryJoins = sql`
 	JOIN paths pp ON pp.id = t.project_id
 	LEFT JOIN tickets par ON par.id = t.parent_id
 	LEFT JOIN epics e ON e.id = t.epic_id
+	LEFT JOIN milestones m ON m.id = t.milestone_id
 	LEFT JOIN LATERAL (
 		SELECT jsonb_agg(
 			jsonb_build_object('id', l.id, 'name', l.name, 'color', l.color, 'group', g.name)
@@ -161,6 +166,16 @@ export const toSummary = (row: SummaryRow): TicketSummary => ({
 		row.epic_id === null
 			? null
 			: { id: row.epic_id, ref: `${row.project_key}/${row.epic_slug}`, name: row.epic_name as string },
+	// The milestone of a ticket is a milestone of the epic of that ticket, so
+	// the epic slug of the row is the middle segment of the milestone ref.
+	milestone:
+		row.milestone_id === null
+			? null
+			: {
+					id: row.milestone_id,
+					ref: `${row.project_key}/${row.epic_slug}/${row.milestone_slug}`,
+					name: row.milestone_name as string,
+				},
 	childCount: row.child_count,
 	childDoneCount: row.child_done_count,
 	commentCount: row.comment_count,

@@ -533,6 +533,13 @@
       "when": 1789758778818,
       "tag": "0078_kind_jetstream",
       "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1789760589544,
+      "tag": "0079_stale_serpent_society",
+      "breakpoints": true
     }
   ]
 }

@@ -25,6 +25,10 @@ export default defineCommand({
 		status: { type: "string", description: "Status ref; the project default when absent" },
 		parent: { type: "string", description: "Parent ticket ref" },
 		epic: { type: "string", description: "Epic ref, such as OP/routine-runtime" },
+		milestone: {
+			type: "string",
+			description: "Milestone ref, such as OP/routine-runtime/phase-1; it also sets the epic",
+		},
 		label: labelFlag,
 		force: { type: "boolean", description: "Accepted for compatibility; completion does not require force" },
 	},
@@ -40,6 +44,7 @@ export default defineCommand({
 				status: args.status,
 				parent: args.parent,
 				epic: args.epic,
+				milestone: args.milestone,
 				labels: labelRefs(context.rawArgs, "label"),
 				force: args.force === true ? true : undefined,
 			}),

@@ -10,6 +10,7 @@ import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
 import { labelGroups } from "./labelGroups.ts";
 import { labels } from "./labels.ts";
+import { milestones } from "./milestones.ts";
 import { models } from "./models.ts";
 import { needsYou } from "./needsYou.ts";
 import { notes } from "./notes.ts";
@@ -46,6 +47,7 @@ export const contract = {
 	comments: oc.tag("comments").router(comments),
 	notes: oc.tag("notes").router(notes),
 	epics: oc.tag("epics").router(epics),
+	milestones: oc.tag("milestones").router(milestones),
 	attachments: oc.tag("attachments").router(attachments),
 	pullRequests: oc.tag("pull requests").router(pullRequests),
 	sessions: oc.tag("sessions").router(sessions),

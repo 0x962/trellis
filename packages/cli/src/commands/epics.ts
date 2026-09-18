@@ -15,6 +15,7 @@ import {
 	renderTable,
 	ticketList,
 } from "../output.ts";
+import { countsText, milestoneList, progress } from "./milestones.ts";
 
 const epicArg = {
 	type: "positional" as const,
@@ -28,9 +29,6 @@ const writer = (epic: EpicSummary) =>
 	epic.actor.kind === "agent" && epic.actor.displayName !== undefined
 		? `${epic.actor.kind}:${epic.actor.displayName} ${epic.actor.name}`
 		: `${epic.actor.kind}:${epic.actor.name}`;
-
-// A canceled ticket is never done and never counts in the denominator.
-const progress = (epic: EpicSummary) => `${epic.counts.done}/${epic.counts.total - epic.counts.canceled} done`;
 
 const epicList: ListSpec<EpicSummary> = {
 	columns: [
@@ -55,11 +53,7 @@ const epicRecord: RecordSpec<EpicSummary> = {
 		{ name: "project", value: (row) => row.projectPath },
 		{ name: "state", value: (row) => row.state },
 		{ name: "progress", value: progress },
-		{
-			name: "counts",
-			value: (row) =>
-				`todo ${row.counts.todo}, started ${row.counts.started}, review ${row.counts.review}, done ${row.counts.done}, canceled ${row.counts.canceled}`,
-		},
+		{ name: "counts", value: countsText },
 		{ name: "actor", value: writer },
 		{ name: "created", value: (row) => shortZonedDateTime(row.createdAt) },
 		{ name: "updated", value: (row) => shortZonedDateTime(row.updatedAt) },
@@ -82,16 +76,38 @@ const list = defineCommand({
 	},
 });
 
-// The record block, the description, then the tickets in number order.
+// One ticket table under its heading. The tickets keep their number order.
+const ticketSection = (title: string, tickets: Epic["tickets"], color: boolean): string =>
+	`\n${heading(title, color)}${renderTable(tickets, ticketList.columns)}`;
+
+// An epic with no milestone prints one ticket table. An epic with milestones
+// prints the milestone table, then one ticket table for each milestone in
+// position order. The "no milestone" table prints only when a ticket of the
+// epic holds no milestone.
+const renderTickets = (epic: Epic, color: boolean): string => {
+	if (epic.milestones.length === 0) return ticketSection("tickets", epic.tickets, color);
+	const table = `\n${heading("milestones", color)}${renderTable(epic.milestones, milestoneList.columns)}`;
+	const sections = epic.milestones.map((milestone) =>
+		ticketSection(
+			`${milestone.name} (${milestone.ref})`,
+			epic.tickets.filter((ticket) => ticket.milestone?.id === milestone.id),
+			color,
+		),
+	);
+	const loose = epic.tickets.filter((ticket) => ticket.milestone === null);
+	const rest = loose.length === 0 ? "" : ticketSection("no milestone", loose, color);
+	return `${table}${sections.join("")}${rest}`;
+};
+
+// The record block, the description, then the milestones and the tickets.
 const renderEpic = (epic: Epic, color: boolean): string => {
 	const block = renderRecord(epic, epicRecord.fields);
 	const description = epic.description === "" ? "" : `\n${epic.description}\n`;
-	const tickets = `\n${heading("tickets", color)}${renderTable(epic.tickets, ticketList.columns)}`;
-	return `${block}${description}${tickets}`;
+	return `${block}${description}${renderTickets(epic, color)}`;
 };
 
 const show = defineCommand({
-	meta: { name: "show", description: "Show one epic and its tickets" },
+	meta: { name: "show", description: "Show one epic, its milestones, and its tickets" },
 	args: { epic: epicArg },
 	async run(context) {
 		const ctx = contextOf(context);

@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
-import type { Epic, TicketSummary } from "@trellis/api";
+import type { Epic, MilestoneSummary, TicketSummary } from "@trellis/api";
 import { assignmentInstruction } from "./brief.ts";
-import { epicHeaderLine, epicLines } from "./epics/text.ts";
+import { epicHeaderLine, epicLines, milestoneHeaderLine } from "./epics/text.ts";
 
 const input = {
 	identifier: "OP-27",
@@ -63,9 +63,16 @@ test("an assignment skips the description section of a ticket with no descriptio
 	expect(text).toContain("- URL: http://127.0.0.1:4521/t/OP-27\n\n## Assignment");
 });
 
-// The fields of a ticket row the epic sections read.
-const member = (id: string, identifier: string, title: string, status: string) =>
-	({ id, identifier, title, status: { name: status } }) as unknown as TicketSummary;
+// The fields of a ticket row the epic sections read. `milestoneId` is null
+// for a ticket outside every milestone.
+const member = (id: string, identifier: string, title: string, status: string, milestoneId: string | null = null) =>
+	({
+		id,
+		identifier,
+		title,
+		status: { name: status },
+		milestone: milestoneId === null ? null : { id: milestoneId },
+	}) as unknown as TicketSummary;
 
 const epic: Epic = {
 	id: "01J00000000000000000000010",
@@ -80,6 +87,7 @@ const epic: Epic = {
 	actor: { name: "dana", kind: "human" },
 	createdAt: "2026-09-18T10:00:00.000Z",
 	updatedAt: "2026-09-18T10:00:00.000Z",
+	milestones: [],
 	tickets: [
 		member("01J00000000000000000000029", "OP-29", "Create the runtime", "Done"),
 		member("01J00000000000000000000030", "OP-30", "Wire the poller", "In Progress"),
@@ -103,5 +111,57 @@ test("the epic sections print the plan and every ticket in number order, and mar
 			"- OP-31 Add the cursor (Todo)",
 			"- OP-32 Old approach (Canceled)",
 		],
+	]);
+});
+
+const phase = (id: string, slug: string, name: string, position: number): MilestoneSummary => ({
+	id,
+	epicId: epic.id,
+	ref: `OP/routine-runtime/${slug}`,
+	slug,
+	name,
+	position,
+	counts: { total: 3, todo: 1, started: 0, review: 0, done: 1, canceled: 1 },
+	state: "open",
+	createdAt: "2026-09-18T10:00:00.000Z",
+	updatedAt: "2026-09-18T10:00:00.000Z",
+});
+
+const phase1 = phase("01J00000000000000000000041", "phase-1", "Phase 1: run state", 0);
+const phase2 = phase("01J00000000000000000000042", "phase-2", "Phase 2: unattended runs", 1);
+const phase3 = phase("01J00000000000000000000043", "phase-3", "Phase 3: proposals", 2);
+
+test("the milestone header line counts done tickets against the tickets that are not canceled", () => {
+	expect(milestoneHeaderLine(phase1)).toBe("- Milestone: Phase 1: run state (OP/routine-runtime/phase-1), 1 of 2 done");
+});
+
+test("the epic tickets of an epic with milestones group by milestone in position order, then no milestone", () => {
+	const grouped: Epic = {
+		...epic,
+		milestones: [phase1, phase2, phase3],
+		tickets: [
+			member("01J00000000000000000000029", "OP-29", "Create the runtime", "Done", phase1.id),
+			member("01J00000000000000000000030", "OP-30", "Wire the poller", "In Progress", phase2.id),
+			member("01J00000000000000000000031", "OP-31", "Add the cursor", "Todo", phase1.id),
+			member("01J00000000000000000000032", "OP-32", "Old approach", "Canceled"),
+		],
+	};
+	expect(epicLines(grouped, "01J00000000000000000000031")[1]).toEqual([
+		"## Epic tickets",
+		"",
+		"### Phase 1: run state",
+		"",
+		"- OP-29 Create the runtime (Done)",
+		"- OP-31 Add the cursor (Todo) (this ticket)",
+		"",
+		"### Phase 2: unattended runs",
+		"",
+		"- OP-30 Wire the poller (In Progress)",
+		"",
+		"### Phase 3: proposals",
+		"",
+		"### No milestone",
+		"",
+		"- OP-32 Old approach (Canceled)",
 	]);
 });
