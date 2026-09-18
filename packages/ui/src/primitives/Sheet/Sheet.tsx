@@ -43,6 +43,12 @@ export type SheetProps = {
 // A non-modal sheet lets keyboard shortcuts act on the page behind it.
 // `dismissOnOutside` controls whether an outside pointer press closes it.
 //
+// A modal sheet can open from inside another dialog, such as a second sheet
+// over the first one. Base UI leaves out the backdrop of a dialog inside
+// another dialog. It also closes a modal dialog on an outside click only when
+// the click lands on the backdrop of that dialog. `forceRender` keeps the
+// backdrop, so a click beside the inner sheet closes the inner sheet alone.
+//
 // The resize handle renders after the header and the content. Base UI moves
 // initial focus onto the first tabbable element, so the focus lands on the
 // close button, never on the handle. The handle is positioned against the
@@ -73,7 +79,10 @@ export function Sheet({
 		>
 			<BaseDialog.Portal>
 				{modal && (
-					<BaseDialog.Backdrop className="fixed inset-0 z-50 bg-scrim transition-opacity duration-peek ease-out data-starting-style:opacity-0 data-ending-style:opacity-0" />
+					<BaseDialog.Backdrop
+						forceRender
+						className="fixed inset-0 z-50 bg-scrim transition-opacity duration-peek ease-out data-starting-style:opacity-0 data-ending-style:opacity-0"
+					/>
 				)}
 				<BaseDialog.Popup
 					aria-label={title}

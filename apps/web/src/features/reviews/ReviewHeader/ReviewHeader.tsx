@@ -2,6 +2,7 @@ import { ArrowsClockwise } from "@phosphor-icons/react";
 import { type ReviewRevision, reviewRef } from "@trellis/api";
 import { IconButton, Tooltip } from "@trellis/ui";
 import { type ReactNode, useEffect } from "react";
+import { usePageSheet } from "../../shell/PageSheet";
 import { PageTitle } from "../../shell/PageTitle";
 import { Topbar } from "../../shell/Topbar";
 
@@ -29,13 +30,17 @@ export function ReviewHeader({ pr, revision, refreshing, onRefresh, parent }: Pr
 				isDraft?: boolean;
 		  }
 		| undefined;
+	// A review in a `PageSheet` leaves the browser tab with the title of the
+	// page under the sheet.
+	const inSheet = usePageSheet() !== null;
 	useEffect(() => {
+		if (inSheet) return;
 		const previous = document.title;
 		document.title = `${meta?.title ?? pr} · Trellis`;
 		return () => {
 			document.title = previous;
 		};
-	}, [meta?.title, pr]);
+	}, [inSheet, meta?.title, pr]);
 	return (
 		<Topbar
 			actions={

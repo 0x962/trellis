@@ -310,6 +310,8 @@ A compatible desktop restart preserves a session agent. After a protocol change,
 `sessions.delete` confirms process exit and removes the directory before it deletes the row. The run retains its output as history.
 Project Sessions lists session, ticket, and flow runs. A ticket row uses its identifier, and its terminal header uses the ticket title.
 The ticket Agent tab and session pages share the terminal and process controls.
+The terminal header of a ticket run opens the ticket page in a sheet over the session. The sheet renders the same page as `/t/<identifier>`.
+A pull request in that sheet opens its review in a second, wider sheet. Escape and an outside click close only the top sheet.
 
 ### Harness accounts
 
@@ -522,7 +524,8 @@ Repository initialization runs outside the database transaction. An idempotent r
 After a host crash, an unconfirmed attempt requires process inspection before another launch.
 Unsent text and files stay available when the user changes sessions.
 Each session row opens its conversation. The conversation controls can stop, resume, or delete the session.
-Each project row shows the Trellis mark and project name. Tickets, Diffs, Sessions, and Settings appear below it.
+Each project row shows the Trellis mark and project name. Tickets, Diffs, and Sessions appear below it.
+The row menu of a project opens its Settings page.
 The Diffs page at `/p/<path>/diffs` lists the pull requests of the project: the ones linked to a ticket of the
 project or one of its sub-projects, and the ones kept for a review in a repository of the project or one of its
 ancestors. Its second source lists the open pull requests of the signed-in GitHub user in those repositories.
