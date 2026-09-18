@@ -38,7 +38,9 @@ export function TicketWorkArea({
 		refetchInterval: 2000,
 	});
 	const assigned =
-		runs.data?.find((run) => run.kind === "agent" && run.assigned) ?? runs.data?.find(hasAssignedProcess);
+		runs.data?.find((run) => hash === `attempt-${run.terminalId}`) ??
+		runs.data?.find((run) => run.kind === "agent" && run.assigned) ??
+		runs.data?.find(hasAssignedProcess);
 	const agentProfile = agentProfileOf(assigned?.harness);
 	const agentLabel = assigned ? (
 		<span className="inline-flex items-center gap-1.5">

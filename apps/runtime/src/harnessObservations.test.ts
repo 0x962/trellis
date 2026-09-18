@@ -68,3 +68,15 @@ test("the runtime rejects malformed question payloads at the provider boundary",
 	).toThrow();
 	expect(() => validateHarnessEvent({ kind: "input-request", inputRequest: request })).not.toThrow();
 });
+
+test("an interrupted turn records one stop event and preserves interrupted status", () => {
+	const { observations: state, path } = fixture();
+	state.append({ kind: "working", turnId: "turn" }, at);
+	state.append({ kind: "idle", turnId: "turn", outcome: "interrupted" }, at);
+	const completion = state.agent!.attention!.completion;
+	expect(completion).not.toBeNull();
+	state.append({ kind: "idle", turnId: "turn", outcome: "interrupted" }, at);
+	expect(state.agent!.attention!.completion).toEqual(completion);
+	expect(state.agent!.outcome).toBe("interrupted");
+	expect(new HarnessObservations(path).agent!.attention).toEqual(state.agent!.attention);
+});

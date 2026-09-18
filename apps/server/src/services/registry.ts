@@ -1,5 +1,6 @@
 import type { Tx } from "../db/tx.ts";
 import * as actors from "./actors.ts";
+import { activity as agentActivity } from "./agentRuns/activity.ts";
 import * as agentRuns from "./agentRuns/agentRuns.ts";
 import { answerQuestion } from "./agentRuns/answerQuestion.ts";
 import * as agentAttention from "./agentRuns/attention.ts";
@@ -107,6 +108,7 @@ const sessionMutation = (prepare: Prepare) =>
 	);
 
 export const services = {
+	"agentRuns.activity": prepared("read", agentActivity, agentTerminal.result),
 	"agentRuns.seen": prepared("mutation", agentAttention.prepareSeen, agentAttention.seen),
 	"agentRuns.answer": prepared("mutation", answerQuestion, agentTerminal.result),
 	"sessions.activity": prepared("read", sessions.activity, agentTerminal.result),

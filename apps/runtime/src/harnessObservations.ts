@@ -70,7 +70,8 @@ export class HarnessObservations {
 			attention.requests = attention.requests.filter((request) => request.id !== event.requestId);
 		if (event.kind === "idle" || (event.kind === "error" && !event.willRetry)) {
 			attention.requests = [];
-			if (event.outcome === "completed") attention.completion ??= { sequence: this.sequence, at: observedAt };
+			if (event.outcome === "completed" || event.outcome === "interrupted")
+				attention.completion ??= { sequence: this.sequence, at: observedAt };
 			if (event.outcome === "failed" || event.kind === "error")
 				attention.failure ??= { sequence: this.sequence, at: observedAt };
 		}

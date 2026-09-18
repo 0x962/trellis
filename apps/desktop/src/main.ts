@@ -43,7 +43,7 @@ let visibleSession: string | null = null;
 const notifications = sessionNotifications({
 	directory: join(app.getPath("userData"), "sounds"),
 	isVisible: (runId) => Boolean(window?.isFocused() && !window.isMinimized() && visibleSession === runId),
-	navigate: (id) => navigate(`trellis://open/sessions/${id}`),
+	navigate: (path) => navigate(`trellis://open${path}`),
 });
 app.on("before-quit", () => notifications.stop());
 let availableRelease: PinnedRelease | undefined;
