@@ -1,4 +1,4 @@
-import { unconfirmedDelivery } from "../deliveries/sentences.ts";
+import { unconfirmedDelivery } from "./sentences.ts";
 
 export const sendDeadline = async <T>(send: Promise<T>, milliseconds = 15_000) => {
 	let timer: ReturnType<typeof setTimeout>;

@@ -16,7 +16,6 @@ export async function prepareCodex(input: HarnessLaunchInput): Promise<HarnessLa
 				prompt: input.prompt,
 				model: input.model,
 				effort: input.effort,
-				...(input.managerTools ? { managerSystemPrompt: input.managerSystemPrompt } : {}),
 				...(input.resume ? { sessionId: input.sessionId } : {}),
 			}),
 		],

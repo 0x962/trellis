@@ -19,8 +19,6 @@ import { projects, statuses } from "./tables/projects.ts";
 
 export * from "./tables/actors.ts";
 export * from "./tables/agentRuns.ts";
-export * from "./tables/agents.ts";
-export * from "./tables/controller.ts";
 export * from "./tables/flows.ts";
 export * from "./tables/labels.ts";
 export * from "./tables/projects.ts";
@@ -274,8 +272,6 @@ export * from "./tables/commentDeliveries.ts";
 export * from "./tables/flowExecutions.ts";
 export * from "./tables/flowExecutionTasks.ts";
 export * from "./tables/harnessAccounts.ts";
-export * from "./tables/managerDelegations.ts";
-export * from "./tables/managerNextActions.ts";
 export * from "./tables/nativeMigrations.ts";
 export * from "./tables/needsYouStates.ts";
 export * from "./tables/notes.ts";

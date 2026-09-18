@@ -1,9 +1,4 @@
-import {
-	DEFAULT_PROJECT_MANAGER_CONFIG,
-	type Project,
-	type ProjectCreateInput,
-	type ProjectUpdateInput,
-} from "@trellis/api";
+import type { Project, ProjectCreateInput, ProjectUpdateInput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { requireActor, type ServiceCtx } from "../context.ts";
@@ -15,12 +10,10 @@ import {
 	assertKeyFree,
 	assertRootNameFree,
 	assertSlugFree,
-	managerConfigOf,
 	projectActivity,
 	projectRow,
 	projectView,
 } from "./projectRows.ts";
-import { recordManagerScopeChange } from "./projectsManagerScope.ts";
 import { assertProjectActive, pathOf, resolveProject } from "./refs.ts";
 import { deriveSlug } from "./slug.ts";
 import { seedRootStatuses } from "./statusSet.ts";
@@ -47,22 +40,8 @@ const nextPosition = async (tx: Tx, parentId: string | null) => {
 // starts with an empty template.
 export const DEFAULT_TICKET_TEMPLATE = "## Context\n\n## Acceptance criteria\n- [ ]\n\n## Out of scope\n";
 
-const assertManagerConfig = async (tx: Tx, config: ProjectCreateInput["managerConfig"]) => {
-	if (config?.accountId != null) {
-		const [account] = await rows<{ harness: string; enabled: boolean }>(
-			tx,
-			sql`SELECT harness, enabled FROM harness_accounts WHERE id = ${config.accountId} AND archived_at IS NULL`,
-		);
-		if (account === undefined) throw invalidInput("managerConfig.accountId", "Select an account from Settings.");
-		if (!account.enabled) throw invalidInput("managerConfig.accountId", "Select an enabled account.");
-		const preset = config.harness?.preset ?? "claude";
-		if (account.harness !== preset) throw invalidInput("managerConfig.accountId", `Select a ${preset} account.`);
-	}
-};
-
 export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput): Promise<Project> => {
 	requireActor(ctx);
-	await assertManagerConfig(tx, input.managerConfig);
 	const id = ulid();
 	const parent = input.parent === undefined ? null : await resolveProject(ctx, tx, input.parent);
 	if (parent !== null) assertProjectActive(ctx, parent.id);
@@ -75,21 +54,15 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput)
 	const position = await nextPosition(tx, parent?.id ?? null);
 	const template = input.ticketTemplate ?? (parent === null ? DEFAULT_TICKET_TEMPLATE : "");
 	await tx.execute(
-		sql`INSERT INTO projects (id, parent_id, root_id, key, slug, name, description, ticket_template, ticket_counter, position, archived_at, created_at, updated_at, manager_config)
+		sql`INSERT INTO projects (id, parent_id, root_id, key, slug, name, description, directory, ticket_template, ticket_counter, position, archived_at, created_at, updated_at)
 			VALUES (${id}, ${parent?.id ?? null}, ${parent?.rootId ?? id}, ${key}, ${slug}, ${input.name},
-				${input.description ?? ""}, ${template}, 0, ${position}, NULL, ${ctx.now}, ${ctx.now}, ${JSON.stringify(input.managerConfig ?? DEFAULT_PROJECT_MANAGER_CONFIG)}::jsonb)`,
+				${input.description ?? ""}, ${input.directory ?? ""}, ${template}, 0, ${position}, NULL, ${ctx.now}, ${ctx.now})`,
 	);
 	if (parent === null) await seedRootStatuses(ctx, tx, id);
 	await ctx.cache.rebuild(tx);
 	await projectActivity(ctx, tx, id, "project.created", [
 		{ field: null, from: null, to: input.name, meta: { path: pathOf(ctx.cache, id) } },
 	]);
-	await recordManagerScopeChange(ctx, tx, {
-		projectId: id,
-		parentId: parent?.id ?? null,
-		before: false,
-		after: (input.managerConfig?.instruction ?? "") !== "",
-	});
 	ctx.emit({ type: "project.created", id });
 	return projectView(ctx, tx, id);
 };
@@ -104,7 +77,6 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 	const project = await resolveProject(ctx, tx, input.project);
 	if (input.archived !== false) assertProjectActive(ctx, project.id);
 	const row = await projectRow(tx, project.id);
-	await assertManagerConfig(tx, input.managerConfig);
 	const renamed = input.name !== undefined && input.name !== row.name;
 	const restored = input.archived === false && row.archived_at !== null;
 	if (project.parentId === null && (renamed || restored))
@@ -112,13 +84,8 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 	const { sets, changes, field } = changeSet();
 	field("name", row.name, input.name, sql`name = ${input.name}`);
 	field("description", row.description, input.description, sql`description = ${input.description}`);
+	field("directory", row.directory, input.directory, sql`directory = ${input.directory}`);
 	field("ticketTemplate", row.ticket_template, input.ticketTemplate, sql`ticket_template = ${input.ticketTemplate}`);
-	field(
-		"managerConfig",
-		JSON.stringify(managerConfigOf(row)),
-		input.managerConfig === undefined ? undefined : JSON.stringify(input.managerConfig),
-		sql`manager_config = ${JSON.stringify(input.managerConfig)}::jsonb`,
-	);
 	if (input.slug !== undefined && input.slug !== project.slug) {
 		if (project.parentId === null)
 			throw invalidInput("slug", "A root project takes its slug from its key. Change the key instead.");
@@ -143,13 +110,6 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 	);
 	await projectActivity(ctx, tx, project.id, "project.updated", changes);
 	await ctx.cache.rebuild(tx);
-	if (input.managerConfig !== undefined)
-		await recordManagerScopeChange(ctx, tx, {
-			projectId: project.id,
-			parentId: project.parentId,
-			before: managerConfigOf(row).instruction !== "",
-			after: input.managerConfig.instruction !== "",
-		});
 	ctx.emit({ type: "project.updated", id: project.id });
 	return projectView(ctx, tx, project.id);
 };

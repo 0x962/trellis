@@ -20,7 +20,6 @@ const formatWhen = (iso: string) =>
 
 const kindLabel: Record<string, string> = {
 	agent: "Agent",
-	manager: "Copilot",
 	flow: "Flow",
 	session: "Session",
 };

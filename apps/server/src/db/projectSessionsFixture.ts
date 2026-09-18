@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { DEFAULT_PROJECT_MANAGER_CONFIG, HarnessSchema } from "@trellis/api";
+import { HarnessSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { nativeWorkspace } from "../agents/native/workspace.ts";
@@ -48,8 +48,8 @@ beforeAll(async () => {
 	await migrate(db);
 	const at = new Date();
 	const statusId = ulid();
-	await db.execute(sql`INSERT INTO projects (id,root_id,key,slug,name,manager_config,created_at,updated_at)
- VALUES (${projectId},${projectId},'TST','test','Test',${JSON.stringify({ ...DEFAULT_PROJECT_MANAGER_CONFIG, directory: repo })}::jsonb,${at},${at})`);
+	await db.execute(sql`INSERT INTO projects (id,root_id,key,slug,name,directory,created_at,updated_at)
+ VALUES (${projectId},${projectId},'TST','test','Test',${repo},${at},${at})`);
 	await db.execute(sql`INSERT INTO statuses (id,project_id,name,slug,category,color,position,is_default,created_at,updated_at)
  VALUES (${statusId},${projectId},'Todo','todo','todo','fg-muted',0,true,${at},${at})`);
 	await db.execute(sql`INSERT INTO tickets (id,project_id,root_id,number,title,status_id,position,created_at,updated_at)

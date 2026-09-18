@@ -1,15 +1,7 @@
-import {
-	ArrowsClockwise,
-	ChartLine,
-	FlowArrow,
-	GitPullRequest,
-	MagnifyingGlass,
-	Ticket,
-	Tray,
-} from "@phosphor-icons/react";
+import { ChartLine, FlowArrow, GitPullRequest, MagnifyingGlass, Ticket, Tray } from "@phosphor-icons/react";
 import type { ReactElement } from "react";
 
-export type NavTarget = "/needs-you" | "/search" | "/all" | "/reviews" | "/ai/flows" | "/loops" | "/usage";
+export type NavTarget = "/needs-you" | "/search" | "/all" | "/reviews" | "/ai/flows" | "/usage";
 
 export type NavRow = { to: NavTarget; label: string; icon: ReactElement };
 
@@ -22,6 +14,5 @@ export const navRows: readonly NavRow[] = [
 	{ to: "/all", label: "All tickets", icon: <Ticket /> },
 	{ to: "/reviews", label: "Pull requests", icon: <GitPullRequest /> },
 	{ to: "/ai/flows", label: "Flows", icon: <FlowArrow /> },
-	{ to: "/loops", label: "Loops", icon: <ArrowsClockwise /> },
 	{ to: "/usage", label: "Usage", icon: <ChartLine /> },
 ];

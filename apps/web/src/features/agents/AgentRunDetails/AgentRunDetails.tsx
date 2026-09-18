@@ -32,7 +32,7 @@ export function AgentRunDetails({ run: initial, heading = false, controls = true
 	});
 	const historical = run.runtime !== "native";
 	const active = hasAssignedProcess(run);
-	const canStop = controls && run.kind !== "manager" && (active || (run.kind === "agent" && run.assigned));
+	const canStop = controls && (active || (run.kind === "agent" && run.assigned));
 	const stopLabel = run.kind === "agent" ? "Remove assignment" : "Stop agent";
 	const workspaceUrl = historical ? null : run.url;
 

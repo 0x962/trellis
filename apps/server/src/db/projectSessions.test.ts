@@ -35,6 +35,7 @@ test("project sessions and ticket agents use the same isolated workspace primiti
 	expect(await db.transaction((tx) => getRun(tx, ticket.run.id))).toMatchObject({
 		projectId,
 		ticketId,
+		instruction: "Task",
 		ticketTitle: "Task",
 		ticketStatusCategory: "todo",
 	});
@@ -189,15 +190,6 @@ test("scratch session retries retain one repository and one launch", async () =>
 	expect(session.projectId).toBeNull();
 	expect((await db.transaction((tx) => getRun(tx, session.runId))).harness).toEqual(harness);
 	expect(await git(session.directory, "rev-parse", "--abbrev-ref", "HEAD")).toBe("main");
-});
-
-test("new project managers also use an isolated repository worktree", async () => {
-	const reservation = await db.transaction((tx) => reserve(ctx.core, tx, { project: "TST", harness }));
-	if (reservation.replay) throw new Error("Expected a new manager.");
-	await start(ctx, reservation);
-	const manager = await db.transaction((tx) => getRun(tx, reservation.run.id));
-	expect(manager.workspaceId).not.toBe(repo);
-	expect(await readFile(join(manager.workspaceId!, "source.txt"), "utf8")).toBe("original\n");
 });
 
 test("delete cannot remove a worktree while resume prepares a process", async () => {

@@ -4,7 +4,7 @@ import { ModelIdSchema } from "../models/models.ts";
 import { StatusCategorySchema } from "./enums.ts";
 import { CountSchema, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
-export const AgentRunKindSchema = z.enum(["agent", "manager", "flow", "session"]);
+export const AgentRunKindSchema = z.enum(["agent", "flow", "session"]);
 export type AgentRunKind = z.infer<typeof AgentRunKindSchema>;
 export const AgentRunSchema = z.object({
 	id: UlidSchema,
@@ -36,12 +36,9 @@ export const AgentRunSchema = z.object({
 	terminalId: z.string().nullable(),
 	url: z.string().nullable(),
 	error: z.string().nullable(),
-	// The agent session of the run, which trellis names and the agent
-	// command receives. A manager keeps it across every pause, so a start
-	// after a pause resumes the same session.
+	// The agent session of the run, which trellis names and the agent command receives.
 	sessionId: z.string().nullable(),
-	// True after a resume in which the agent did not find the session. The
-	// manager page then asks the person whether to start a new session.
+	// True after a resume in which the agent did not find the session.
 	sessionLost: z.boolean(),
 	createdAt: IsoDateTimeSchema,
 	updatedAt: IsoDateTimeSchema,
@@ -56,9 +53,7 @@ export type TicketMetrics = z.infer<typeof TicketMetricsSchema>;
 export const AgentRunStartInputSchema = z
 	.strictObject({
 		harness: HarnessSchema.optional(),
-		model: ModelIdSchema.optional().describe(
-			"Canonical model ID from models.list for this assignment. Defaults to the project's harness model.",
-		),
+		model: ModelIdSchema.optional().describe("Canonical model ID from models.list for this assignment."),
 		accountId: UlidSchema.optional().describe(
 			"Configured harness account. Select an enabled account from harnessAccounts.list.",
 		),
@@ -68,17 +63,9 @@ export const AgentRunStartInputSchema = z
 			.max(200)
 			.regex(/^[\x21-\x7e]+$/)
 			.optional(),
-		ticket: z.string().min(1).optional(),
-		project: z.string().min(1).optional(),
-		// True gives a manager a new session in place of the one its row
-		// holds. A person sends it after a resume lost the session.
-		newSession: z.boolean().optional(),
+		ticket: z.string().min(1),
 	})
-	.refine((input) => (input.ticket === undefined) !== (input.project === undefined), "Select one ticket or project.")
-	.refine(
-		(input) => input.ticket === undefined || input.harness !== undefined,
-		"Select a harness for the ticket agent.",
-	);
+	.refine((input) => input.harness !== undefined, "Select a harness for the ticket agent.");
 export type AgentRunStartInput = z.infer<typeof AgentRunStartInputSchema>;
 export const AgentRunListInputSchema = z.strictObject({
 	ticket: z.string().optional(),

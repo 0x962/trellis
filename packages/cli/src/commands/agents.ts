@@ -50,19 +50,14 @@ const list = defineCommand({
 });
 
 const start = defineCommand({
-	meta: { name: "start", description: "Assign an agent to a ticket or start a project manager" },
+	meta: { name: "start", description: "Assign an agent to a ticket" },
 	args: {
-		ticket: { type: "string", description: "Ticket ref" },
-		project: { type: "string", description: "Project ref for a manager" },
+		ticket: { type: "string", required: true, description: "Ticket ref" },
 		harness: { type: "string", description: "Harness preset for a ticket agent" },
 		"request-id": { type: "string", description: "Stable assignment ID to prevent a duplicate start" },
 		account: { type: "string", description: "Account ID from trellis accounts list" },
 		model: { type: "string", description: "Canonical model ID from trellis models list for this assignment" },
 		effort: { type: "string", description: "Reasoning effort for this assignment" },
-		"new-session": {
-			type: "boolean",
-			description: "Give a manager a new agent session in place of the one it keeps",
-		},
 	},
 	async run(context) {
 		const ctx = contextOf(context);
@@ -76,8 +71,6 @@ const start = defineCommand({
 				accountId: args.account,
 				requestId: args["request-id"],
 				ticket: args.ticket,
-				project: args.project,
-				newSession: args["new-session"] ? true : undefined,
 			}),
 		);
 		printRecord(ctx.out, ctx.format, run, agentRecord);
@@ -191,8 +184,7 @@ const send = defineCommand({
 	},
 });
 
-// The terminal text is what a manager reads into its context, so it prints
-// verbatim on a TTY and on a pipe alike.
+// Terminal text prints verbatim on a TTY and on a pipe.
 const output = defineCommand({
 	meta: { name: "output", description: "Print the terminal output of an agent" },
 	args: { id: { type: "positional", required: true, description: "Agent id" } },

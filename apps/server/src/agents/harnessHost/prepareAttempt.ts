@@ -3,7 +3,6 @@ import { link, mkdir, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/p
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { HARNESS_DEFAULT_MODELS, toHarnessModel } from "@trellis/api";
-import { checkCodexManagerVersion } from "./checkCodexManagerVersion/checkCodexManagerVersion.ts";
 import { checkMuseVersion } from "./checkMuseVersion.ts";
 import { checkOpenCodeVersion } from "./checkOpenCodeVersion.ts";
 import { claudeTrust } from "./claudeTrust.ts";
@@ -32,7 +31,6 @@ export async function prepareAttempt(
 		...(input.effort === undefined ? [] : [{ effort: input.effort }]),
 		input.token ?? null,
 		input.timeoutMs ?? null,
-		...(input.kind === "manager" ? ["manager-tools-v1", input.managerId ?? input.id, input.managerSystemPrompt] : []),
 		sessionId ?? null,
 		env,
 		options.bun,
@@ -50,17 +48,12 @@ export async function prepareAttempt(
 		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
 	}
 	const executable = await resolveExecutable(input.harness, env.PATH ?? "");
-	if (input.harness === "codex" && input.kind === "manager") await checkCodexManagerVersion(executable, input.cwd, env);
 	if (input.harness === "opencode") await checkOpenCodeVersion(executable, input.cwd, env);
 	if (input.harness === "muse") await checkMuseVersion(executable, input.cwd, env);
 	await mkdir(directory, { recursive: true, mode: 0o700 });
 	const hookCommand = `${quote(options.bun)} ${quote(fileURLToPath(new URL("./hook.ts", import.meta.url)))}`;
 	const configDirectory = await mkdtemp(join(directory, "config-"));
-	const cwd =
-		input.kind === "manager" && sessionId === undefined
-			? join(options.directory, "manager-workspaces", input.managerId ?? input.id)
-			: input.cwd;
-	if (input.kind === "manager" && sessionId === undefined) await mkdir(cwd, { recursive: true, mode: 0o700 });
+	const cwd = input.cwd;
 	if (input.harness === "claude") await claudeTrust(cwd, env);
 	const common = {
 		env,
@@ -70,15 +63,6 @@ export async function prepareAttempt(
 		effort: input.effort,
 		configDirectory,
 		hookCommand,
-		...(input.kind === "manager"
-			? {
-					managerSystemPrompt: input.managerSystemPrompt,
-					managerTools: {
-						command: options.bun,
-						args: [fileURLToPath(new URL("../managerTools/entry.ts", import.meta.url))],
-					},
-				}
-			: { managerTools: undefined, managerSystemPrompt: undefined }),
 	};
 	const launch = await providers[input.harness].prepare(
 		sessionId === undefined ? { ...common, resume: false } : { ...common, resume: true, sessionId },

@@ -1,6 +1,6 @@
 import type { GhStatus, TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { createController } from "../agents/controller/controller.ts";
+import { startCommentDeliveryLoop } from "../agents/commentDeliveryLoop.ts";
 import { startNativeReconcile } from "../agents/nativeReconcile/host.ts";
 import type { Config } from "../config.ts";
 import { API_VERSION, type RequestContext, SYSTEM_ACTOR, systemContext } from "../context.ts";
@@ -10,8 +10,6 @@ import { type Jobs, type JobsLog, scaledClock, startJobs as startBackgroundJobs 
 import { type DbTiming, LONG_TRANSACTION_MS } from "../serverTiming.ts";
 import { assertCurrentAttempt } from "../services/assignments/attempts.ts";
 import { gcAttachmentBlobs } from "../services/attachments.ts";
-import { loopRuntimes } from "../services/loops/runtime.ts";
-import { readWaitSeconds } from "../services/loops/wait.ts";
 import { type ServiceEntry, type ServiceName, services } from "../services/registry.ts";
 import { createCache } from "./cache.ts";
 import type { Db } from "./client.ts";
@@ -199,17 +197,9 @@ export const createInlineTransport = ({
 	const backgroundCall = (name: ServiceName, input: unknown) => call(name, systemContext(), input);
 
 	let jobs: Jobs | null = null;
-	let controller: ReturnType<typeof createController> | null = null;
+	let commentDelivery: ReturnType<typeof startCommentDeliveryLoop> | null = null;
 	let flowReconcile: ReturnType<typeof startNativeReconcile> | null = null;
 	const start = async (options?: JobsStart) => {
-		const waitSeconds = await db.transaction((tx) => readWaitSeconds(tx));
-		controller = createController({
-			clock: scaledClock(options?.clockRate ?? 1),
-			log: options?.log ?? log,
-			call: (name, input) => backgroundCall(name, input),
-			waitSeconds,
-		});
-		loopRuntimes.set(config.home, controller);
 		await db.transaction((tx) => cache.rebuild(tx));
 		await warmWrites(db, cache);
 		const found = await db.execute(sql`SELECT sha256 FROM attachments`);
@@ -221,15 +211,18 @@ export const createInlineTransport = ({
 				clearTimer: clock.clearTimer,
 				log: options.log,
 			});
-			await controller.start();
+			commentDelivery = startCommentDeliveryLoop({
+				clock,
+				log: options.log,
+				call: () => backgroundCall("commentMentions.dispatch", {}),
+			});
 			jobs = startBackgroundJobs({ db, gh: runtime.gh, bus, log: options.log, clock });
 		}
 		return { applied, liveShas: found.rows.map((row) => row.sha256 as string) };
 	};
 
 	const close = async () => {
-		await controller?.stop();
-		loopRuntimes.delete(config.home);
+		await commentDelivery?.stop();
 		await flowReconcile?.stop();
 		if (jobs !== null) await jobs.stop();
 		await Promise.allSettled([...inFlight]);

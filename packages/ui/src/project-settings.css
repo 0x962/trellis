@@ -185,65 +185,12 @@
 	}
 }
 
-@utility manager-settings-groups {
-	@apply flex min-w-0 flex-col gap-10;
-}
-@utility manager-settings-hint {
-	@apply text-sm leading-relaxed text-fg-muted;
-}
-@utility manager-settings-field {
+@utility project-directory-field {
 	@apply flex min-w-0 flex-col gap-2;
 }
-@utility manager-command-group {
-	@apply min-w-0 border border-border;
-	& > summary {
-		@apply flex min-h-7 list-none items-center gap-2 cursor-pointer px-4 py-3 text-sm font-medium hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent pointer-coarse:min-h-11;
-	}
-	& > summary > .manager-command-hint {
-		@apply ml-auto hidden font-normal text-fg-muted sm:block;
-	}
-}
-@utility manager-command-body {
-	@apply flex min-w-0 flex-col gap-6 border-t border-border p-4;
-}
-@utility manager-command-section {
-	@apply min-w-0;
-	& > h3 {
-		@apply mb-2 text-xs font-semibold text-fg-muted;
-	}
-}
-@utility manager-command-row {
-	@apply min-w-0 border-b border-border;
-	& > summary {
-		@apply flex min-h-7 list-none items-center gap-2 cursor-pointer py-2 text-sm text-fg hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent pointer-coarse:min-h-11;
-	}
-}
-@utility manager-command-editor {
-	@apply flex min-w-0 flex-col gap-3 pt-2 pb-4;
-}
-@utility manager-command-variables {
-	@apply break-words font-mono text-xs;
-}
-@utility manager-save-status {
-	@apply mt-8 min-h-5 max-w-180 text-sm text-fg-muted;
-}
-
-@utility manager-directory-row {
+@utility project-directory-row {
 	@apply flex items-end gap-2;
 	& > :first-child {
 		@apply min-w-0 flex-1;
 	}
-}
-
-.manager-command-group > summary::-webkit-details-marker,
-.manager-command-row > summary::-webkit-details-marker {
-	display: none;
-}
-.manager-command-group > summary > svg,
-.manager-command-row > summary > svg {
-	@apply size-3.5 shrink-0 text-fg-muted;
-}
-.manager-command-group[open] > summary > svg,
-.manager-command-row[open] > summary > svg {
-	@apply rotate-90;
 }

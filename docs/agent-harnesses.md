@@ -7,15 +7,13 @@ The host reads native session events and checks the actual process.
 Muse runs through its session protocol. The Trellis bridge starts one `muse serve` host per attempt, owns one session in it, and prints the transcript to the terminal.
 Type a message into that terminal and press Enter to send it. Press Ctrl+C to interrupt the turn.
 A message that arrives during a Muse turn waits in the bridge. When the turn ends, the next turn carries every waiting message at once, and each message gets its own receipt.
-A Muse worker runs with the Muse sandbox disabled and every approval granted. A Muse manager runs without shell and file writes, and reaches Trellis through the Trellis tool server only.
-A Muse manager reads its instruction from `AGENTS.md` in its private workspace. Muse keeps its own base instructions in front of that file.
+A Muse agent runs with the Muse sandbox disabled and every approval granted.
 Trellis sets `MUSE_NO_AUTO_UPDATE=1` for every launch, so the Muse launcher does not replace its binary during a run. Update Muse by hand.
 Muse reports the session and weekly windows of its login after each model call. Every Muse agent run saves the latest report, and the Usage page shows it on the Muse account card. A card with no run yet asks for one.
 
 ## Project settings
 
-Open **Project → Manager → General** to set the repository directory and manager instruction.
-Set the limit for concurrent active worker turns in the project. Idle workers keep their assignments without occupying slots.
+Open **Project → Settings → General** to set the repository directory.
 A child project with an empty directory uses the nearest parent with a configured directory.
 Trellis trusts configured directories and agent workspaces.
 
@@ -27,14 +25,12 @@ Changes apply to the next agent start.
 Built-in harnesses bypass tool permission prompts.
 
 A worker receives a separate Git worktree.
-The manager uses the configured repository directory.
 The host confirms the native session ID and submitted prompt before a built-in start succeeds.
 A resume selects that exact native session ID.
 
 ## Terminal and process controls
 
 The Agent tab shows the terminal for the ticket's assigned agent.
-The manager page shows its terminal.
 Native flow tasks provide a terminal action for their assigned attempt.
 Terminal output streams to the page and remains available after a reconnect.
 
@@ -61,7 +57,7 @@ Its `trellis` command targets the same host as the desktop app.
 
 Select **Custom** to edit the start and resume commands directly.
 Custom commands run in a local terminal.
-A manager dispatch and a native flow task require a built-in harness with native session observations.
+A native flow task requires a built-in harness with native session observations.
 
 Command fields accept the variables from the [agent command contract](../packages/api/src/agentCommand/agentCommand.ts).
 The Muse preset resumes with `muse --yolo resume --last`, because `muse resume` takes no prompt argument. Type the next instruction into the terminal after a custom Muse resume.

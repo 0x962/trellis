@@ -17,7 +17,7 @@
 	--agent-stroke: var(--agent-mark);
 	--agent-ink: var(--agent-mark-ink);
 }
-.agent-mark[data-agent-kind="manager"] {
+.agent-mark[data-agent-kind="trellis"] {
 	--agent-stroke: #c4c4c4;
 	--agent-ink: #c4c4c4;
 	--film-pink: #efb2d0;
@@ -26,7 +26,7 @@
 	--film-mint: #a5e5d2;
 	--film-gold: #efdb9f;
 }
-.agent-mark[data-agent-kind="manager"][data-background="false"] {
+.agent-mark[data-agent-kind="trellis"][data-background="false"] {
 	--agent-stroke: var(--fg-muted);
 	--agent-ink: var(--fg-muted);
 }

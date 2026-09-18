@@ -1,6 +1,6 @@
 # Agents
 
-Trellis starts local agents for tickets, project management, flows, and scratch sessions.
+Trellis starts local agents for tickets, flows, and scratch sessions.
 Every agent uses `agent:<run id>` as its actor.
 
 Run this command to print the repository instructions:
@@ -47,16 +47,6 @@ An agent run has one state:
 | `stopped` | A person stopped the process. |
 | `exited` | The agent process exited. |
 
-## Project managers
-
-Project settings store the manager instruction directly.
-The same settings store the repository directory, harness, model, effort, and account.
-A child project with its own manager instruction has its own manager scope.
-An empty instruction makes the child project part of its nearest managed ancestor.
-
-The manager keeps one run and one provider conversation across restarts.
-An explicit new-session request replaces that conversation.
-
 ## Flows
 
 A flow stores its prompt in each agent, gate, or loop node.
@@ -78,13 +68,12 @@ The launch supplies these environment variables:
 - `TRELLIS_ATTEMPT_ID`
 - `TRELLIS_ATTEMPT_TOKEN`
 
-The prompt includes the saved instruction, ticket or project context, repository instructions, and active project notes.
+The first prompt contains only the saved run instruction. A ticket assignment saves its title and description as that instruction.
 
 ## Notes
 
 Project notes carry long-lived context for agents.
-The audience is `all`, `manager`, or `worker`.
-A manager reads `all` and `manager` notes.
+The audience is `all` or `worker`.
 A ticket or flow agent reads `all` and `worker` notes.
 
 ```sh

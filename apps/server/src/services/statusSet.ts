@@ -56,7 +56,7 @@ export const materialize = async (ctx: ServiceCtx, tx: Tx, projectId: string) =>
 
 // The set every root starts with, in position order. Todo is the default;
 // the two review statuses name who reviews. Each description tells the
-// manager agent what to do with a ticket in that status. The migration
+// user what the status means. The migration
 // 0006_status_descriptions writes the same texts onto the statuses of a
 // database that existed before the descriptions, so a text change here
 // needs a new data migration for existing projects.

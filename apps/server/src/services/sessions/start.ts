@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { DEFAULT_PROJECT_MANAGER_CONFIG } from "@trellis/api";
+import { HarnessSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { nativePreset } from "../../agents/native/harnessHost.ts";
 import { rows } from "../../db/queries/support.ts";
@@ -51,8 +51,8 @@ export const prepareStart = async (
 				throw invalidInput("id", "Another call already changed this session. Read its current state.");
 			await upsert(ctx.core, tx, ctx.actor);
 			const config = run.projectId
-				? await projectLaunchConfig(tx, { projectId: run.projectId })
-				: { ...DEFAULT_PROJECT_MANAGER_CONFIG, directory: session.directory };
+				? await projectLaunchConfig(tx, { projectId: run.projectId, harness: session.harness })
+				: { directory: session.directory, harness: HarnessSchema.parse(session.harness), accountId: null };
 			const selected = await selectAccount(tx, {
 				accountId: run.accountId,
 				config: { ...config, harness: session.harness },
@@ -75,7 +75,6 @@ export const prepareStart = async (
 			resume,
 			previousAttemptId: resume ? run.terminalId : null,
 			previousAccountId: run.accountId ?? null,
-			context: "",
 			attempt: reservation.attempt,
 			resumePrompt: resume ? "Continue this session in the same conversation and workspace." : undefined,
 		});

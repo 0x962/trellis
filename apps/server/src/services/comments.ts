@@ -139,7 +139,7 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 		sql`INSERT INTO comments (id, ticket_id, parent_id, body, dedupe_key, actor_name, actor_kind, created_at, updated_at)
 			VALUES (${id}, ${row.id}, ${parentId}, ${input.body}, ${input.dedupeKey ?? null}, ${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now})`,
 	);
-	await enqueue(tx, { commentId: id, ticketId: row.id, projectId: row.projectId, body: input.body });
+	await enqueue(tx, { commentId: id, ticketId: row.id, body: input.body });
 	await record(ctx, tx, activityFor(row, "comment.created", batchId, id, parentId));
 	ctx.emit({
 		type: "comment.created",
@@ -162,7 +162,6 @@ export const update = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	await enqueue(tx, {
 		commentId: comment.id,
 		ticketId: row.id,
-		projectId: row.projectId,
 		body: input.body,
 		previousBody: comment.body,
 	});

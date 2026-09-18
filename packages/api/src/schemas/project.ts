@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { HarnessSchema } from "../harness/harness.ts";
 import { ProjectRefStringSchema } from "../refs.ts";
 import { booleanString, CountSchema, IsoDateTimeSchema, KeySchema, SlugSchema, UlidSchema } from "./primitives.ts";
 import { StatusSchema } from "./status.ts";
@@ -45,30 +44,13 @@ const AncestorSchema = ProjectLinkSchema.extend({
 	name: ProjectNameSchema,
 });
 
-export const AdeSchema = z.literal("native");
-export type Ade = z.infer<typeof AdeSchema>;
-
-export const ProjectManagerConfigSchema = z.strictObject({
-	instruction: z.string().max(200_000).default(""),
-	directory: z
-		.string()
-		.trim()
-		.refine((value) => value === "" || value.startsWith("/"), "Use an absolute directory path."),
-	ade: AdeSchema.default("native"),
-	harness: HarnessSchema.default(HarnessSchema.parse({ preset: "claude" })),
-	// The default account for agents of this project. Null means the default login of the harness.
-	// A sub-project with null uses the nearest ancestor that names
-	// one, the way it uses the ancestor directory.
-	accountId: UlidSchema.nullable().default(null),
-});
-export type ProjectManagerConfig = z.infer<typeof ProjectManagerConfigSchema>;
-export const DEFAULT_PROJECT_MANAGER_CONFIG = ProjectManagerConfigSchema.parse({
-	instruction: "",
-	directory: "",
-});
+const ProjectDirectorySchema = z
+	.string()
+	.trim()
+	.refine((value) => value === "" || value.startsWith("/"), "Use an absolute directory path.");
 
 export const ProjectSchema = ProjectSummarySchema.extend({
-	managerConfig: ProjectManagerConfigSchema.optional(),
+	directory: ProjectDirectorySchema,
 	description: z.string(),
 	ticketTemplate: z.string(),
 	ticketCounter: CountSchema,
@@ -95,7 +77,7 @@ export const ProjectGetInputSchema = z.strictObject({
 // is addressed by slug, so exactly one of `key` and `parent` is present.
 export const ProjectCreateInputSchema = z
 	.strictObject({
-		managerConfig: ProjectManagerConfigSchema.optional(),
+		directory: ProjectDirectorySchema.optional(),
 		key: KeySchema.optional(),
 		parent: ProjectRefStringSchema.optional(),
 		name: ProjectNameSchema,
@@ -112,7 +94,7 @@ export type ProjectCreateInput = z.input<typeof ProjectCreateInputSchema>;
 // `key` applies to a root and only while its ticket counter is zero; `slug`
 // applies to a sub-project, whose slug is its path segment.
 export const ProjectUpdateInputSchema = z.strictObject({
-	managerConfig: ProjectManagerConfigSchema.optional(),
+	directory: ProjectDirectorySchema.optional(),
 	project: ProjectRefStringSchema,
 	key: KeySchema.optional(),
 	name: ProjectNameSchema.optional(),

@@ -1,7 +1,4 @@
 import {
-	AgentRoleSchema,
-	AgentRunnerSchema,
-	AgentStateSchema,
 	CiStateSchema,
 	ColorTokenSchema,
 	FlowBranchSchema,
@@ -29,9 +26,6 @@ export const CI_STATES = CiStateSchema.options;
 export const COLOR_TOKENS = ColorTokenSchema.options;
 export const REVIEW_STATES = ReviewStateSchema.options;
 export const PR_LINK_SOURCES = PrLinkSourceSchema.options;
-export const AGENT_ROLES = AgentRoleSchema.options;
-export const AGENT_RUNNERS = AgentRunnerSchema.options;
-export const AGENT_STATES = AgentStateSchema.options;
 export const FLOW_NODE_KINDS = FlowNodeKindSchema.options;
 export const FLOW_BRANCHES = FlowBranchSchema.options;
 export const NOTE_AUDIENCES = NoteAudienceSchema.options;

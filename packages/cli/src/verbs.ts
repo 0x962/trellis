@@ -18,10 +18,6 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 		description: "List harness accounts and check quota",
 		load: () => import("./commands/accounts.ts").then((m) => command(m.default)),
 	},
-	manager: {
-		description: "Read manager work and record coordination outcomes",
-		load: () => import("./commands/manager.ts").then((m) => command(m.default)),
-	},
 	doctor: {
 		description: "Inspect the local host and execution service",
 		load: () => import("./commands/doctor.ts").then((m) => command(m.default)),

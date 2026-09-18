@@ -67,7 +67,6 @@ const HARNESS_LABELS: Record<UsageHarness, string> = {
 const KIND_LABELS: Record<string, string> = {
 	agent: "Ticket agents",
 	flow: "Flow agents",
-	manager: "Managers",
 	session: "Sessions",
 };
 

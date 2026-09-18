@@ -1,10 +1,10 @@
 # Models
 
 Trellis uses Vercel AI Gateway IDs, such as `anthropic/claude-sonnet-4.6` and `openai/gpt-6-astra`.
-The UI, API, CLI, project settings, and manager tools use these IDs.
+The UI, API, and CLI use these IDs.
 The catalog includes tool-capable language models from Google, Anthropic, Meta, and OpenAI.
 
-`trellis models list` and the manager's `models.list` tool return the catalog.
+`trellis models list` returns the catalog.
 Use `trellis models list --harness codex` to restrict the choices to a harness. Use `--harness muse` for the Muse Spark models.
 The settings page uses a model selector.
 An omitted model uses the harness default for a new session and the saved model for a resume.
@@ -29,7 +29,7 @@ Native harness mappings remain explicit application code.
 Navid supplied these preference orders on 2026-09-16.
 The [Artificial Analysis leaderboard](https://artificialanalysis.ai/leaderboards/models) provides supporting benchmark data.
 Reasoning levels remain separate from model IDs.
-This guide does not change the manager instruction or set a harness's reasoning level.
+This guide does not set a harness's reasoning level.
 
 | Intelligence preference | Canonical ID | Reasoning |
 | --- | --- | --- |

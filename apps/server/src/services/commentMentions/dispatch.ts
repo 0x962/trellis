@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { nativePreset } from "../../agents/native/harnessHost.ts";
 import { rows } from "../../db/queries/support.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
-import { sendDeadline } from "../controller/sendDeadline.ts";
+import { sendDeadline } from "../deliveries/sendDeadline.ts";
 import { unconfirmedDelivery } from "../deliveries/sentences.ts";
 import type { ServiceCtx } from "../support.ts";
 
@@ -17,7 +17,6 @@ type Delivery = {
 	projectId: string;
 	parentId: string | null;
 	agentName: string;
-	kind: string;
 };
 
 export const dispatchMentions = async (
@@ -26,11 +25,6 @@ export const dispatchMentions = async (
 	send = prepareSend,
 	preset = nativePreset,
 ) => {
-	await ctx.newTx((tx) =>
-		tx.execute(sql`DELETE FROM comment_deliveries d USING comments c,agent_runs r
-		WHERE d.comment_id=c.id AND d.run_id=r.id AND d.state='pending'
-		AND r.kind='manager' AND c.actor_kind<>'human'`),
-	);
 	await ctx.newTx((tx) =>
 		tx.execute(sql`UPDATE comment_deliveries d SET session_id=r.session_id FROM agent_runs r
 		WHERE d.run_id=r.id AND d.state='pending' AND d.session_id IS NULL AND r.session_id IS NOT NULL
@@ -54,7 +48,7 @@ export const dispatchMentions = async (
 		rows<Delivery>(
 			tx,
 			sql`SELECT d.id,d.run_id AS "runId",d.terminal_id AS "terminalId",d.session_id AS "sessionId",d.agent_name AS "agentName",
-			c.id AS "commentId",c.ticket_id AS "ticketId",c.parent_id AS "parentId",t.project_id AS "projectId",r.kind
+			c.id AS "commentId",c.ticket_id AS "ticketId",c.parent_id AS "parentId",t.project_id AS "projectId"
 			FROM comment_deliveries d JOIN comments c ON c.id=d.comment_id JOIN tickets t ON t.id=c.ticket_id JOIN agent_runs r ON r.id=d.run_id
 		WHERE d.state='pending' AND d.terminal_id IN (${sql.join(
 			ready.map((id) => sql`${id}`),
@@ -82,17 +76,7 @@ export const dispatchMentions = async (
 				send(ctx, {
 					id: delivery.runId,
 					interrupt: (await preset(ctx.home, delivery.terminalId)) !== "custom",
-					text:
-						delivery.kind === "manager"
-							? JSON.stringify({
-									type: "trellis.comment.mentioned",
-									commentId: delivery.commentId,
-									threadId: delivery.parentId ?? delivery.commentId,
-									ticketId: delivery.ticketId,
-									projectId: delivery.projectId,
-									recipient: { runId: delivery.runId, agentName: delivery.agentName },
-								})
-							: `trellis: @${delivery.agentName} has a ticket comment. Read: trellis thread show ${delivery.parentId ?? delivery.commentId}\nRespond to the comment on your assigned ticket.`,
+					text: `trellis: @${delivery.agentName} has a ticket comment. Read: trellis thread show ${delivery.parentId ?? delivery.commentId}\nRespond to the comment on your assigned ticket.`,
 					messageId: delivery.id,
 					expectedTerminalId: delivery.terminalId,
 					expectedSessionId: delivery.sessionId,

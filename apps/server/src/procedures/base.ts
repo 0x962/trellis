@@ -61,9 +61,8 @@ export const os = base.use(declaredValidation).use(requireActor);
 
 // Runs one service through the transport with the context of this request.
 export const call = <T>(context: ProcedureContext, name: ServiceName, input: unknown): Promise<T> => {
-	const readActor = ["submanagers.list", "agentRuns.list", "controller.list"].includes(name)
-		? ActorHeaderSchema.safeParse(context.headers.get("x-trellis-actor"))
-		: null;
+	const readActor =
+		name === "agentRuns.list" ? ActorHeaderSchema.safeParse(context.headers.get("x-trellis-actor")) : null;
 	const ctx: RequestContext = {
 		actor: context.actor ?? (readActor?.success ? readActor.data : null),
 		session: context.headers.get("x-trellis-session"),

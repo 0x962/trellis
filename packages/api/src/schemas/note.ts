@@ -9,9 +9,8 @@ import { booleanString, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 // repository or the machine, the current state of a shared resource, or a
 // decision that later work must respect.
 
-// Who reads a note. `all` reaches every agent, `manager` the manager alone,
-// `worker` builders and reviewers alone.
-export const NoteAudienceSchema = z.enum(["all", "manager", "worker"]);
+// Who reads a note. `all` reaches every agent, and `worker` reaches ticket and flow agents.
+export const NoteAudienceSchema = z.enum(["all", "worker"]);
 export type NoteAudience = z.infer<typeof NoteAudienceSchema>;
 
 export const NOTE_TITLE_MAX = 120;

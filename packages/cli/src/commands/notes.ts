@@ -6,7 +6,7 @@ import { compact, contextOf, noneToNull, readText } from "../context.ts";
 import { usageError } from "../errors.ts";
 import { cell, type ListSpec, printList, printRecord, type RecordSpec, timeCell } from "../output.ts";
 
-const audiences: NoteAudience[] = ["all", "manager", "worker"];
+const audiences: NoteAudience[] = ["all", "worker"];
 
 const projectArg = { type: "positional" as const, required: true as const, description: "Project ref, such as TRL" };
 const idArg = { type: "positional" as const, required: true as const, description: "Note id" };

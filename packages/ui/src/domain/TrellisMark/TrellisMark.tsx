@@ -11,7 +11,7 @@ export function TrellisMark({ label, className = "size-4", background = true, wo
 	return (
 		<AgentMark
 			name="Trellis"
-			kind="manager"
+			kind="trellis"
 			label={label}
 			className={className}
 			background={background}

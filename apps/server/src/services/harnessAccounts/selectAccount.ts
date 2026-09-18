@@ -1,9 +1,10 @@
-import { HarnessSchema, type ProjectManagerConfig } from "@trellis/api";
+import { HarnessSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 import { executionEnvironment } from "../../executionEnvironment";
+import type { ProjectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { resolveHostDefault } from "./hostDefault.ts";
 import { type AccountRow, accountColumns, getAccount } from "./queries.ts";
 
@@ -13,7 +14,7 @@ import { type AccountRow, accountColumns, getAccount } from "./queries.ts";
 // the launch then applies the pointer directory itself.
 export async function selectAccount(
 	tx: Tx,
-	input: { accountId?: string | null; config: ProjectManagerConfig; useDefault: boolean },
+	input: { accountId?: string | null; config: ProjectLaunchConfig; useDefault: boolean },
 	deps = { env: () => executionEnvironment() },
 ) {
 	const defaultChoice = async () => {

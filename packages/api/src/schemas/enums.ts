@@ -45,23 +45,6 @@ export type PrLinkSource = z.infer<typeof PrLinkSourceSchema>;
 export const GhReasonSchema = z.enum(["missing", "unauthenticated", "error"]);
 export type GhReason = z.infer<typeof GhReasonSchema>;
 
-// The job of one agent session. One manager per project dispatches tickets;
-// a builder works one ticket to a PR; a reviewer runs one review of that PR.
-export const AgentRoleSchema = z.enum(["manager", "builder", "reviewer"]);
-export type AgentRole = z.infer<typeof AgentRoleSchema>;
-
-// The program that starts and wakes agents. Superset is the only runner.
-export const AgentRunnerSchema = z.enum(["superset"]);
-export type AgentRunner = z.infer<typeof AgentRunnerSchema>;
-
-// `starting`: the runner was asked and has not reported the terminal.
-// `running`: the agent works a turn. `waiting`: the agent is idle at its
-// prompt. `exited`: the agent process ended by itself. `stopped`: trellis
-// stopped it. `failed`: the runner could not start the agent; the session's
-// `error` holds what the runner said.
-export const AgentStateSchema = z.enum(["starting", "running", "waiting", "exited", "stopped", "failed"]);
-export type AgentState = z.infer<typeof AgentStateSchema>;
-
 // Why the runner cannot serve a request. `missing`: the runner binary is
 // not found. `disabled`: the global or the project switch in the agent
 // settings is off. `unmapped`: no runner project matches the trellis

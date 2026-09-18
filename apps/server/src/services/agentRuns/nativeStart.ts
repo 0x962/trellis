@@ -1,7 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ORPCError } from "@orpc/server";
-import type { ProjectManagerConfig } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import type { HarnessDescriptor, HarnessStartInput } from "../../agents/harnessHost/types.ts";
@@ -18,6 +17,7 @@ import { readHostDefault } from "../harnessAccounts/hostDefault.ts";
 import { profileDefault, profileEnvironment } from "../harnessAccounts/profiles.ts";
 import { getAccount } from "../harnessAccounts/queries.ts";
 import { transferSession } from "../harnessAccounts/transferSession.ts";
+import type { ProjectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import type { ServiceCtx } from "../support.ts";
 import { hostIsShuttingDown } from "./hostShutdown.ts";
 import { launchAllowed } from "./launchAllowed.ts";
@@ -47,27 +47,23 @@ export const startNative = async (
 	ctx: ServiceCtx & { localUrl: string },
 	input: {
 		run: StoredRun;
-		config: ProjectManagerConfig;
+		config: ProjectLaunchConfig;
 		resume: boolean;
 		previousAttemptId?: string | null;
 		previousAccountId?: string | null;
-		context: string;
 		attempt: ExecutionAttempt;
 		deadlineAt?: number;
+		prompt?: string;
 		resumePrompt?: string;
 		preserveAssignmentOnFailure?: boolean;
 	},
 	deps: Partial<Dependencies> = {},
 ) => {
-	const { run, config, resume, context } = input;
+	const { run, config, resume } = input;
 	const terminalId = input.attempt.id;
 	const previousTerminalId = resume ? (input.previousAttemptId ?? null) : null;
 	let launchSubmitted = false;
 	try {
-		if (run.kind === "manager" && config.harness.preset === "custom")
-			throw new Error(
-				`The ${config.harness.preset} harness does not support copilot conversations. Select Claude, Codex, OpenCode, Pi, or Muse.`,
-			);
 		if (input.deadlineAt !== undefined && input.deadlineAt <= Date.now())
 			throw new Error("The flow group deadline elapsed before launch");
 		const ambientEnv = deps.env ?? (await (deps.environment ?? executionEnvironment)());
@@ -114,7 +110,6 @@ export const startNative = async (
 			const launch = launchCommand({
 				run,
 				url: ctx.localUrl,
-				context,
 				messageId: terminalId,
 				directory: workspaceId,
 				resume,
@@ -144,14 +139,10 @@ export const startNative = async (
 			const host = nativeHost(ctx.home, env, client);
 			const launch: HarnessStartInput = {
 				id: terminalId,
-				...(run.kind === "manager"
-					? { kind: "manager", managerId: run.id, managerSystemPrompt: run.instruction }
-					: run.kind === "session"
-						? {}
-						: { kind: "builder" }),
+				...(run.kind === "session" ? {} : { kind: "builder" }),
 				harness: config.harness.preset,
 				cwd: workspaceId,
-				prompt: input.resumePrompt ?? launchPrompt({ run, url: ctx.localUrl, context }),
+				prompt: input.resumePrompt ?? input.prompt ?? launchPrompt({ run }),
 				model: config.harness.model,
 				effort: config.harness.effort,
 				token: input.attempt.token,

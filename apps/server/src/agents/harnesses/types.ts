@@ -12,11 +12,7 @@ export type HarnessLaunchInput = {
 	hookCommand: string;
 	configDirectory: string;
 	env?: Record<string, string>;
-} & (
-	| { managerTools: { command: string; args: string[] }; managerSystemPrompt: string }
-	| { managerTools?: undefined; managerSystemPrompt?: never }
-) &
-	({ resume: false; sessionId?: string } | { resume: true; sessionId: string });
+} & ({ resume: false; sessionId?: string } | { resume: true; sessionId: string });
 
 export type HarnessLaunch = {
 	executable: string;

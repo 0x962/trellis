@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { join } from "node:path";
-import { DEFAULT_PROJECT_MANAGER_CONFIG, HarnessSchema, type Session, type SessionCreateInput } from "@trellis/api";
+import { HarnessSchema, type Session, type SessionCreateInput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { rows } from "../../db/queries/support.ts";
@@ -56,7 +56,7 @@ export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput, start
 		await upsert(ctx.core, tx, ctx.actor);
 		const selected = await selectAccount(tx, {
 			accountId: input.accountId ?? null,
-			config: { ...DEFAULT_PROJECT_MANAGER_CONFIG, directory, harness },
+			config: { directory, harness, accountId: null },
 			useDefault: true,
 		});
 		const runId = ulid();
@@ -93,7 +93,6 @@ export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput, start
 			run: reservation.run,
 			config: reservation.config,
 			resume: false,
-			context: "",
 			attempt: reservation.attempt,
 		});
 		return { id: reservation.session.id };

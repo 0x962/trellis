@@ -498,6 +498,13 @@
       "when": 1789671975812,
       "tag": "0073_curly_fixer",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1789695607823,
+      "tag": "0074_motionless_purple_man",
+      "breakpoints": true
     }
   ]
 }
