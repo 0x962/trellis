@@ -46,10 +46,13 @@ export function EpicsPage({ project }: EpicsPageProps) {
 	const [deleting, setDeleting] = useState<EpicSummary | null>(null);
 
 	const rows = epics.data ?? [];
-	const groups: Group[] = [
+	// Only a group that holds an epic renders. The ticket table drops an
+	// empty closed group the same way.
+	const allGroups: Group[] = [
 		{ key: "open", label: "Open", epics: rows.filter((epic) => epic.state === "open") },
 		{ key: "done", label: "Done", epics: rows.filter((epic) => epic.state === "done") },
 	];
+	const groups = allGroups.filter((group) => group.epics.length > 0);
 
 	const newEpic = readOnly ? undefined : (
 		<Tooltip content="New epic">
