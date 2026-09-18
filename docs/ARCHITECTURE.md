@@ -251,6 +251,8 @@ An omitted model uses the configured default. Custom commands reject explicit mo
 The assignment plus button opens a dialog with Harness, Model, and the supported effort choices.
 The effort label follows the harness: Effort for Claude, Reasoning effort for Codex, Thinking level for Pi, and Variant for OpenCode.
 The dialog hides effort when the selected model has no supported options.
+Ticket assignment returns after it saves the assignment and attempt. A tracked background task prepares the workspace and starts the agent.
+The dialog closes and selects the Agent tab, which shows startup progress and launch errors without blocking the ticket.
 
 Model IDs use Vercel AI Gateway names throughout Trellis. [The model catalog and guide](MODELS.md) describe the choices and harness mappings.
 
@@ -281,7 +283,8 @@ An existing manager keeps its saved workspace and conversation. A manager withou
 A stopped manager can resume its conversation. An explicit new session gets a new conversation identifier.
 An interrupted manager requires reconciliation before another start.
 API run states come from inspected runtime processes. The database records assignment closure in `closed_at`.
-A missing runtime record produces `interrupted`; an observed process exit produces `exited` or `failed` from its exit code.
+An active background launch reports `starting` until the runtime has a process.
+Otherwise, a missing runtime record produces `interrupted`; an observed process exit produces `exited` or `failed` from its exit code.
 A failed launch retains its error. A stop retains the workspace and output after the runtime confirms process exit.
 
 A partial unique index permits one active copilot per project.
@@ -537,6 +540,12 @@ The sessions and the project tree share the one region that scrolls, so the fixe
 links keep their place at any height.
 The global Sessions section lists sessions without a project. Its New session button opens a dialog with project, harness, model, effort, and account choices.
 The dialog accepts a prompt, files, and an optional name. A project also has a Sessions page with a secondary sidebar for all its agents.
+Session creation commits the session and its attempt before workspace preparation and agent startup.
+The response opens the session view and closes the dialog while a tracked background task completes the launch.
+The session view shows startup progress until the runtime reports a process, then attaches its terminal.
+The host publishes launch results after the request ends and waits for background tasks before database shutdown.
+Repository initialization runs outside the database transaction. An idempotent request reuses its reserved session and attempt.
+After a host crash, an unconfirmed attempt requires process inspection before another launch.
 Unsent text and files stay available when the user changes sessions.
 Each session row opens its conversation. The conversation controls can stop, resume, or delete the session.
 Each project row shows the Trellis mark and project name. Tickets, Diffs, Sessions, and Settings appear below it.

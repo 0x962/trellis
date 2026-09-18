@@ -35,6 +35,12 @@ export function NativeTerminal({
 		if (onLeave) onLeave();
 		else heading.current?.focus();
 	}, [onLeave]);
+	if (run.state === "starting" && run.processStatus === null)
+		return (
+			<p role="status" className="p-4 text-sm text-fg-muted">
+				Starting session…
+			</p>
+		);
 	if (run.terminalId === null || run.runtime !== "native")
 		return <EmptyState title="No local terminal" description="This assignment has no local process." />;
 	return (

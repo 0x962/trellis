@@ -29,8 +29,19 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 				requestId: draft.requestId,
 			}),
 		onSuccess: async (session) => {
+			const { run, ...record } = session;
+			queryClient.setQueryData(orpc.sessions.get.queryOptions({ input: { id: session.id } }).queryKey, session);
+			queryClient.setQueryData(orpc.sessions.list.queryOptions({ input: {} }).queryKey, (current) => [
+				record,
+				...(current ?? []).filter((item) => item.id !== session.id),
+			]);
+			if (session.projectId)
+				queryClient.setQueryData(
+					orpc.agentRuns.list.queryOptions({ input: { project: session.projectId } }).queryKey,
+					(current) => [run, ...(current ?? []).filter((item) => item.id !== run.id)],
+				);
 			sessionComposerActions.clear();
-			await Promise.all([
+			void Promise.all([
 				queryClient.invalidateQueries({ queryKey: orpc.sessions.key() }),
 				queryClient.invalidateQueries({ queryKey: orpc.agentRuns.key() }),
 			]);

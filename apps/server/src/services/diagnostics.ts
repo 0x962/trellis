@@ -45,7 +45,7 @@ export const diagnostics = async (ctx: ServiceCtx): Promise<Diagnostics> => {
 			tx,
 			sql`SELECT ${columns} FROM agent_runs WHERE runtime='native' ORDER BY updated_at DESC LIMIT 100`,
 		);
-		const unresolvedAttempts = projectUnresolvedAttempts(runs, sessions);
+		const unresolvedAttempts = projectUnresolvedAttempts(runs, sessions, ctx.home);
 		return {
 			host: { bootId: ctx.bootId, version: ctx.version, home: ctx.home },
 			runtime,

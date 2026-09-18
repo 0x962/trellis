@@ -35,8 +35,10 @@ export function TicketWorkArea({
 	}, [hash, onTabChange]);
 	const runs = useQuery({
 		...orpc.agentRuns.list.queryOptions({ input: { ticket: ticket.identifier } }),
+		refetchInterval: 2000,
 	});
-	const assigned = runs.data?.find(hasAssignedProcess);
+	const assigned =
+		runs.data?.find((run) => run.kind === "agent" && run.assigned) ?? runs.data?.find(hasAssignedProcess);
 	const agentProfile = agentProfileOf(assigned?.harness);
 	const agentLabel = assigned ? (
 		<span className="inline-flex items-center gap-1.5">

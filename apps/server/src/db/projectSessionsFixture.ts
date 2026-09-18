@@ -22,6 +22,10 @@ let ctx: IoCtx;
 const projectId = ulid();
 const ticketId = ulid();
 const launches: Parameters<typeof startNative>[1][] = [];
+const backgroundTasks: Promise<void>[] = [];
+const drainBackground = async () => {
+	await Promise.all(backgroundTasks.splice(0));
+};
 const harness = HarnessSchema.parse({ preset: "codex", model: "openai/gpt-5.6-sol", effort: "high" });
 const git = async (directory: string, ...args: string[]) =>
 	(await exec("git", ["-C", directory, ...args])).stdout.trim();
@@ -72,6 +76,9 @@ beforeAll(async () => {
 		addresses: async () => [],
 		emit: () => {},
 		afterCommit: () => {},
+		background: (task) => {
+			backgroundTasks.push(task(ctx));
+		},
 		newTx: (fn) => db.transaction(fn),
 		vacuum: async () => {},
 		localUrl: "http://localhost:4597",
@@ -90,8 +97,9 @@ beforeAll(async () => {
 	};
 });
 afterAll(async () => {
+	await drainBackground();
 	await db?.$client.close();
 	if (home) await rm(home, { recursive: true, force: true });
 });
 
-export { ctx, db, git, harness, home, launches, projectId, repo, start, ticketId };
+export { ctx, db, drainBackground, git, harness, home, launches, projectId, repo, start, ticketId };
