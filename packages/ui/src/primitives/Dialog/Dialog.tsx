@@ -36,6 +36,12 @@ const bottomSheet =
 // opens, unless a child took focus first. Focus stays inside until it
 // closes, and returns to the opener. Escape and a click on the scrim ask to
 // close.
+//
+// A dialog can open from inside another dialog, such as a confirm inside a
+// sheet. Base UI leaves out the backdrop of a dialog inside another dialog.
+// It also closes a modal dialog on an outside click only when the click
+// lands on the backdrop of that dialog. `forceRender` keeps the backdrop, so
+// a click beside the inner dialog closes the inner dialog alone.
 export function Dialog({
 	open,
 	onOpenChange,
@@ -52,7 +58,10 @@ export function Dialog({
 	return (
 		<BaseDialog.Root open={open} modal={modal} onOpenChange={(next) => onOpenChange(next)}>
 			<BaseDialog.Portal>
-				<BaseDialog.Backdrop className="fixed inset-0 z-50 bg-scrim transition-opacity duration-popover ease-out data-starting-style:opacity-0 data-ending-style:opacity-0" />
+				<BaseDialog.Backdrop
+					forceRender
+					className="fixed inset-0 z-50 bg-scrim transition-opacity duration-popover ease-out data-starting-style:opacity-0 data-ending-style:opacity-0"
+				/>
 				<BaseDialog.Popup
 					aria-modal="true"
 					initialFocus={initialFocus}
