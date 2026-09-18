@@ -310,6 +310,8 @@ A compatible desktop restart preserves a session agent. After a protocol change,
 `sessions.delete` confirms process exit and removes the directory before it deletes the row. The run retains its output as history.
 Project Sessions lists session, ticket, and flow runs. A ticket row uses its identifier, and its terminal header uses the ticket title.
 The ticket Agent tab and session pages share the terminal and process controls.
+The terminal header of a ticket run opens the ticket page in a sheet over the session. The sheet renders the same page as `/t/<identifier>`.
+A pull request in that sheet opens its review in a second, wider sheet. Escape and an outside click close only the top sheet.
 
 ### Harness accounts
 
