@@ -1,25 +1,37 @@
 import { ArrowRight, ArrowsClockwise, Plus, TextAlignLeft } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { reviewRef } from "@trellis/api";
+import { type Project, reviewRef } from "@trellis/api";
 import { Button, EmptyState, IconButton, Input, Segmented, Sheet, Tooltip } from "@trellis/ui";
 import { ReviewStatus } from "@trellis/ui/review";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { PageTitle } from "../../shell/PageTitle";
+import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar } from "../../shell/Topbar";
 import "@trellis/ui/review.css";
-export function ReviewsPage() {
+
+// The pull requests of one project, grouped by repository. The Linked
+// source lists what Trellis holds for the project: a pull request linked
+// to a ticket of the project or one of its sub-projects, or kept for a
+// review in a repository of the project or one of its ancestors. The My
+// open PRs source asks GitHub for the open pull requests of the signed-in
+// user in those repositories.
+export function ProjectDiffsPage({ project }: { project: Project }) {
 	const { client, orpc } = useApp();
 	const navigate = useNavigate();
-	const prs = useQuery(orpc.reviews.prs.queryOptions({ input: {} }));
+	const prs = useQuery(orpc.reviews.prs.queryOptions({ input: { project: project.path } }));
 	const [source, setSource] = useState<"local" | "mine">("local");
-	const mine = useQuery({ ...orpc.reviews.mine.queryOptions({ input: {} }), enabled: source === "mine" });
+	const mine = useQuery({
+		...orpc.reviews.mine.queryOptions({ input: { project: project.path } }),
+		enabled: source === "mine",
+	});
 	const [openSheet, setOpenSheet] = useState(false);
 	const [value, setValue] = useState("");
 	const [filter, setFilter] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
+	const reviewSearch = { project: project.path };
 	const open = async () => {
 		setBusy(true);
 		setError(null);
@@ -29,6 +41,7 @@ export function ReviewsPage() {
 			await navigate({
 				to: "/reviews/$owner/$repo/$number",
 				params: { owner: ref.owner, repo: ref.repo, number: String(ref.number) },
+				search: reviewSearch,
 			});
 		} catch (cause) {
 			setError(cause instanceof Error ? cause.message : String(cause));
@@ -53,14 +66,25 @@ export function ReviewsPage() {
 	);
 	const repositories = [...new Set(visible.map((pr) => pr.repository))].sort();
 	const query = source === "local" ? prs : mine;
+	const empty = filter
+		? { title: "No pull requests match", description: "Try another title, repository, or PR number." }
+		: source === "local"
+			? {
+					title: "No pull requests yet",
+					description: "Link a pull request to a ticket of this project, or open one for review with the plus button.",
+				}
+			: {
+					title: "No open PRs",
+					description: "You have no open pull request in the repositories of this project.",
+				};
 	return (
 		<>
 			<Topbar
 				actions={
 					<>
-						<Tooltip content="Refresh reviews">
+						<Tooltip content="Refresh pull requests">
 							<IconButton
-								label="Refresh reviews"
+								label="Refresh pull requests"
 								icon={<ArrowsClockwise />}
 								disabled={query.isFetching}
 								onClick={() => void query.refetch()}
@@ -72,23 +96,23 @@ export function ReviewsPage() {
 					</>
 				}
 			>
-				<PageTitle title="Pull requests" />
+				<PageTitle parent={<ProjectBreadcrumb project={project} />} title="Diffs" />
 			</Topbar>
 			<div className="page-card review-index">
 				<div className="review-index-toolbar">
 					<Segmented
-						label="Review source"
+						label="Pull request source"
 						value={source}
 						onValueChange={setSource}
 						options={[
-							{ value: "local", label: "Local reviews" },
+							{ value: "local", label: "Linked" },
 							{ value: "mine", label: "My open PRs" },
 						]}
 					/>
 					<Input
-						label="Filter reviews"
+						label="Filter pull requests"
 						hideLabel
-						placeholder="Filter reviews…"
+						placeholder="Filter pull requests…"
 						value={filter}
 						onChange={(event) => setFilter(event.target.value)}
 					/>
@@ -96,20 +120,14 @@ export function ReviewsPage() {
 				<div className="review-index-body">
 					{query.isPending ? (
 						<p role="status" className="review-empty">
-							Load reviews…
+							Load pull requests…
 						</p>
 					) : query.isError ? (
 						<p role="alert" className="review-error">
 							{query.error.message}
 						</p>
 					) : visible.length === 0 ? (
-						<EmptyState
-							variant="page"
-							title={filter ? "No reviews match" : "No reviews yet"}
-							description={
-								filter ? "Try another title, repository, or PR number." : "Open a pull request to start a local review."
-							}
-						/>
+						<EmptyState variant="page" title={empty.title} description={empty.description} />
 					) : (
 						repositories.map((repository) => (
 							<section className="review-repository" key={repository} aria-label={repository}>
@@ -126,6 +144,7 @@ export function ReviewsPage() {
 											key={pr.id}
 											to="/reviews/$owner/$repo/$number"
 											params={{ owner: pr.owner, repo: pr.repo, number: String(pr.number) }}
+											search={reviewSearch}
 										>
 											<span className="review-pr-number">#{pr.number}</span>
 											<span className="review-row-title">{pr.title || `Pull request #${pr.number}`}</span>
@@ -147,7 +166,7 @@ export function ReviewsPage() {
 					)}
 				</div>
 				<div className="review-index-footer">
-					{visible.length} {visible.length === 1 ? "review" : "reviews"}
+					{visible.length} {visible.length === 1 ? "pull request" : "pull requests"}
 				</div>
 			</div>
 			{openSheet && (

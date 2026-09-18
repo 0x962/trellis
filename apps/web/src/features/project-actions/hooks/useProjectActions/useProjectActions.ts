@@ -34,7 +34,7 @@ export const useProjectActions = () => {
 			toast.error(`Could not delete ${project.name}`, { description: (error as Error).message });
 			return false;
 		}
-		await navigate({ to: "/all" });
+		await navigate({ to: "/needs-you" });
 		await queryClient.invalidateQueries();
 		toast(`Deleted ${project.name}`);
 		return true;

@@ -88,19 +88,19 @@ trellis list --project TRL --json
 
 ### The pages
 
-`/` sends you to Needs you. The sidebar holds Needs you, Search, All tickets,
-Pull requests, Flows, Usage, the sessions, and the project tree.
+`/` sends you to Needs you. The sidebar holds Needs you, Search, Flows, Loops,
+Usage, the sessions, and the project tree. Each project lists its Tickets,
+Diffs, Sessions, and Settings pages.
 A session is a scratch git repository with one agent, outside every project.
 The New session button in the sidebar starts one from a prompt.
 
 | Path | Page |
 |---|---|
 | `/needs-you` | Needs you: the page title over an empty body |
-| `/all` | Every ticket as a board |
-| `/all/table` | Every ticket as a table |
 | `/p/TRL` | The board of a project, which is the view a project opens in |
 | `/p/TRL/table` | The table of the same project |
 | `/p/TRL/web/auth` | The board of the sub-project `auth` under `web` |
+| `/p/TRL/diffs` | The pull requests of a project |
 | `/p/TRL/settings` | The settings of a project |
 | `/t/TRL-42` | One ticket |
 | `/sessions/<id>` | One session: the terminal of its agent and the process controls |
@@ -112,7 +112,7 @@ The New session button in the sidebar starts one from a prompt.
 The URL keeps slashes between project segments, and the API ref joins the same
 segments with dots: the page `/p/TRL/web/auth` reads the project `TRL.web.auth`.
 A link that ends in `/board` still opens the board, with the segment dropped.
-`board` and `settings` are reserved, so no sub-project takes one of those slugs.
+`board`, `settings`, `notes`, and `diffs` are reserved, so no sub-project takes one of those slugs.
 
 Press `g b` for the board and `g t` for the table. The view switch in the topbar
 does the same.
@@ -131,7 +131,7 @@ If the title, the branch, or the body of a pull request contains the ticket iden
 
 ### The diff viewer
 
-Each pull request carries a Show diff control that opens its native Trellis review page. The Reviews sidebar entry also accepts a GitHub PR URL. The page supports split and unified diffs, local threads, replies, reactions, and review submissions with agent notifications.
+Each pull request carries a Show diff control that opens its native Trellis review page. The Diffs page of a project lists the pull requests of the project and also accepts a GitHub PR URL. The page supports split and unified diffs, local threads, replies, reactions, and review submissions with agent notifications.
 
 Read [Local pull request reviews](docs/reviews.md) for the CLI and review workflow.
 
@@ -145,7 +145,7 @@ is `apps/web/src/lib/shortcuts.ts`.
 | `Cmd+K` | Global | Open the command palette |
 | `/` | Global | Search tickets |
 | `c` | Global | New ticket |
-| `g h`, `g a`, `g p` | Global | Go to Needs you, All tickets, or a project |
+| `g h`, `g p` | Global | Go to Needs you or a project |
 | `g b`, `g t` | Global | Switch to the board or the table |
 | `g s` | Global | Focus the filter bar |
 | `[` | Global | Collapse or expand the sidebar |

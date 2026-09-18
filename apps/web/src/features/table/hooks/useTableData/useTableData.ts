@@ -18,7 +18,7 @@ export type ClosedGroupData = {
 };
 
 export type TableDataOptions = {
-	// The project ref of the route, or undefined on /all.
+	// The project ref of the route, or undefined for a table over every project.
 	project?: string;
 	view: View;
 	// The closed categories whose groups are open. Each loads on its own.

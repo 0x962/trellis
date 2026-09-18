@@ -47,7 +47,7 @@ export const useTicketMutations = (): TicketMutations => {
 		const applier = eventApplierFor(queryClient);
 
 		// The server refuses every write to a ticket under an archived
-		// project. A list such as All tickets holds such tickets, so every
+		// project. A search result list holds such tickets, so every
 		// write checks its rows first. It sends nothing and names the project.
 		const refused = (tickets: readonly TicketSummary[]) => {
 			const archived = tickets.find((ticket) => isArchived(ticket.project.path));

@@ -214,7 +214,10 @@ Review comments remain local. The review form submits its comment, approval, or
 change request to GitHub. The same request refreshes the stored pull request and
 writes activity for every linked ticket.
 
-The web route `/reviews/$owner/$repo/$number` uses the Trellis shell.
+`reviews.prs` lists every retained pull request, or, with a `project`, every
+pull request linked to a ticket of that project or held in one of its repositories.
+The web route `/reviews/$owner/$repo/$number` uses the Trellis shell. A
+`project` search param names the project whose Diffs page opened the review.
 `@trellis/ui/review` wraps `@pierre/diffs` 1.4.2 with virtual scroll, workers,
 line selection, and thread annotations. Review styles live in `packages/ui`.
 Drafts persist in browser storage until the user submits them.
@@ -477,9 +480,7 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 |---|---|---|
 | `/` | `index.tsx` | a replace redirect to `/needs-you` |
 | `/needs-you` | `needs-you/route.tsx` | human review tickets and personal mentions across every project |
-| `/all` | `all/route.tsx` | every ticket as a board |
-| `/all/table` | `all_.table.tsx` | every ticket as a table |
-| `/p/$` | `p/$/route.tsx` | a project as a board, a table, its settings, or its manager |
+| `/p/$` | `p/$/route.tsx` | a project as a board, a table, its diffs, its settings, or its notes |
 | `/t/$identifier` | `t/$identifier/route.tsx` | one ticket |
 | `/sessions/project/$project` | `sessions.project.$project.tsx` | project sessions and ticket agents in a secondary sidebar |
 | `/sessions/$id` | `sessions.$id.tsx` | one session: the terminal of its agent and the process controls |
@@ -500,8 +501,9 @@ last list URL with its filters.
 `/p/$` takes one splat, `[key, ...slugs, view?]`. The URL keeps slashes and the
 API ref joins the same segments with dots, so `/p/CDE/web/auth` reads
 `CDE.web.auth`. The last segment is a view only when it is a reserved slug:
-`table`, `settings`, or `board`. A `CHECK` on `projects.slug` refuses `board` and
-`settings`, so a sub-project never takes one of those names.
+`table`, `settings`, `notes`, `diffs`, or `board`. `SlugSchema` refuses `board`,
+`settings`, `notes`, and `diffs`, and a `CHECK` on `projects.slug` refuses `board`
+and `settings`, so a sub-project never takes one of those names.
 
 The board uses the bare project URL. An older link
 that ends in `/board` redirects to the same path with the segment dropped.
@@ -525,15 +527,18 @@ time. The first section of each page carries no hash.
 Project settings hold the repository directory and repository selection.
 They write `projects.managerConfig.directory` and the project repositories.
 
-The sidebar holds the workspace row, Needs you, Search, All tickets, Pull
-requests, Flows, Usage, the sessions, the project tree, and the actor footer.
+The sidebar holds the workspace row, Needs you, Search, Flows, Loops, Usage,
+the sessions, the project tree, and the actor footer.
 The sessions and the project tree share the one region that scrolls, so the fixed
 links keep their place at any height.
 The global Sessions section lists sessions without a project. Its New session button opens a dialog with project, harness, model, effort, and account choices.
 The dialog accepts a prompt, files, and an optional name. A project also has a Sessions page with a secondary sidebar for all its agents.
 Unsent text and files stay available when the user changes sessions.
 Each session row opens its conversation. The conversation controls can stop, resume, or delete the session.
-Each project row shows the Trellis mark and project name. Tickets, Sessions, and Settings appear below it.
+Each project row shows the Trellis mark and project name. Tickets, Diffs, Sessions, and Settings appear below it.
+The Diffs page at `/p/<path>/diffs` lists the pull requests of the project: the ones linked to a ticket of the
+project or one of its sub-projects, and the ones kept for a review in a repository of the project or one of its
+ancestors. Its second source lists the open pull requests of the signed-in GitHub user in those repositories.
 The selected state follows the current page for root, nested, and archived projects.
 
 ## Database schema

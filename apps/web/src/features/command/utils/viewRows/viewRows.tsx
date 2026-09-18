@@ -5,7 +5,7 @@ import {
 	FolderPlus,
 	Funnel,
 	Gear,
-	ListBullets,
+	GitPullRequest,
 	Moon,
 	Plus,
 	Rows,
@@ -32,9 +32,9 @@ const icons: Record<string, ReactNode> = {
 	"create.project": <FolderPlus />,
 	"create.subProject": <FolderPlus />,
 	"goto.needsYou": <Tray />,
-	"goto.all": <ListBullets />,
 	"goto.board": <SquaresFour />,
 	"goto.table": <Table />,
+	"goto.diffs": <GitPullRequest />,
 	"goto.usage": <ChartLine />,
 	"goto.settings": <Gear />,
 	"goto.project": <FolderOpen />,
@@ -76,12 +76,11 @@ export const createRows = (deps: RowDeps): PaletteRow[] => {
 };
 
 // The fixed destinations, one row that opens the project list, and the
-// board and the table of the project the route names. Off a project route
-// there is no view to switch.
+// board, the table, and the diffs of the project the route names. Off a
+// project route there is no view to switch.
 export const gotoRows = (deps: RowDeps): PaletteRow[] => {
 	const runs: Record<string, () => void> = {
 		"goto.needsYou": run(deps, () => deps.action.navigate("/needs-you")),
-		"goto.all": run(deps, () => deps.action.navigate("/all")),
 		"goto.usage": run(deps, () => deps.action.navigate("/usage")),
 		"goto.settings": run(deps, () => deps.action.navigate("/settings")),
 		"goto.project": () => deps.openSubmenu({ kind: "goto" }),
@@ -90,6 +89,7 @@ export const gotoRows = (deps: RowDeps): PaletteRow[] => {
 	if (project !== null) {
 		runs["goto.board"] = run(deps, () => deps.action.navigate(projectHref(project, "board")));
 		runs["goto.table"] = run(deps, () => deps.action.navigate(projectHref(project, "table")));
+		runs["goto.diffs"] = run(deps, () => deps.action.navigate(projectHref(project, "diffs")));
 	}
 	return rowsOf("goto", runs);
 };

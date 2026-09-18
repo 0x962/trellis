@@ -32,7 +32,7 @@ import { TableBody } from "./components/TableBody";
 import { TableError } from "./components/TableError";
 
 export type TicketTableProps = {
-	// The project ref of the route, or undefined on /all.
+	// The project ref of the route, or undefined for a table over every project.
 	project?: string;
 	// The pathname, which keys the stored preferences.
 	routeKey: string;
@@ -189,7 +189,7 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 	);
 
 	if (data.error !== null) return <TableError error={data.error} onRetry={data.retry} />;
-	if (data.total === 0 && (project === undefined || projectQuery.data?.parentId === null)) {
+	if (data.total === 0 && project !== undefined && projectQuery.data?.parentId === null) {
 		return (
 			emptyState ?? <TableEmpty project={project} filtered={hasFilters(search)} q={view.q} onCreate={() => openNew()} />
 		);

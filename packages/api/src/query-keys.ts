@@ -208,6 +208,8 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "notes.changed":
 				enqueue([family("notes")]);
 				return;
+			// The Diffs page of a project lists pull requests by their ticket
+			// links, so a link change refetches that list too.
 			case "pr.linked":
 			case "pr.unlinked":
 			case "pr.updated":
@@ -218,6 +220,7 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 					]),
 					family("tickets", "list"),
 					family("tickets", "board"),
+					family("reviews", "prs"),
 				]);
 				return;
 			// A status rename or a reviewer change alters the `status` inside

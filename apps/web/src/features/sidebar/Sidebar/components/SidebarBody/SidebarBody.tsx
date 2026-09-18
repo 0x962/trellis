@@ -14,8 +14,8 @@ import { SessionList } from "../../../SessionList";
 import { ConnectionPanel } from "../ConnectionPanel";
 import { NavRow } from "./components/NavRow";
 
-// A nav row is active on its own page and on every page under it: All
-// tickets stays marked on the All tickets board.
+// A nav row is active on its own page and on every page under it: Flows
+// stays marked on the editor of one flow.
 const isActive = (pathname: string, to: NavTarget) => pathname === to || pathname.startsWith(`${to}/`);
 
 export type SidebarBodyProps = {

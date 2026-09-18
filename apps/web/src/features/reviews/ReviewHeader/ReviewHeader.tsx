@@ -1,5 +1,4 @@
 import { ArrowsClockwise } from "@phosphor-icons/react";
-import { Link } from "@tanstack/react-router";
 import { type ReviewRevision, reviewRef } from "@trellis/api";
 import { IconButton, Tooltip } from "@trellis/ui";
 import { type ReactNode, useEffect } from "react";
@@ -11,6 +10,8 @@ type Props = {
 	revision: ReviewRevision | null;
 	refreshing: boolean;
 	onRefresh: () => void;
+	// The link to the page the review opened from: the Diffs page of a
+	// project, or the ticket. A review opened by its URL has none.
 	parent?: ReactNode;
 };
 export function ReviewHeader({ pr, revision, refreshing, onRefresh, parent }: Props) {
@@ -48,7 +49,7 @@ export function ReviewHeader({ pr, revision, refreshing, onRefresh, parent }: Pr
 				</Tooltip>
 			}
 		>
-			<PageTitle parent={parent ?? <Link to="/reviews">Pull requests</Link>} title={`${ref.repo} #${ref.number}`} />
+			<PageTitle parent={parent} title={`${ref.repo} #${ref.number}`} />
 		</Topbar>
 	);
 }

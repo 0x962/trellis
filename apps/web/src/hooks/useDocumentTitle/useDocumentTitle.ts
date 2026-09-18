@@ -6,18 +6,19 @@ import { parseProjectSplat } from "../../lib/projectPath";
 // its own.
 const pageName = (pathname: string): string | null => {
 	if (pathname === "/needs-you") return "Needs you";
-	if (pathname === "/all" || pathname.startsWith("/all/")) return "All tickets";
 	if (pathname === "/settings") return "Settings";
 	if (pathname === "/search") return "Search";
 	if (pathname.startsWith("/p/")) {
 		const { ref, view } = parseProjectSplat(pathname.slice(3));
 		const path = ref.split(".").join(" › ");
-		return view === "settings" ? `${path} › Settings` : path;
+		if (view === "settings") return `${path} › Settings`;
+		if (view === "diffs") return `${path} › Diffs`;
+		return path;
 	}
 	return null;
 };
 
-// The tab title of a page: "All tickets · trellis". A ticket page and a
+// The tab title of a page: "Needs you · trellis". A ticket page and a
 // session page set their own titles from the record they read, so they get
 // null here.
 export const documentTitle = (pathname: string): string | null => {

@@ -48,9 +48,10 @@ export default defineCommand({
 			},
 		}),
 		prs: defineCommand({
+			args: { project: { type: "string", description: "The pull requests of one project: KEY or KEY.slug" } },
 			async run(c) {
 				const ctx = contextOf(c);
-				emit(ctx, await clientOf(ctx).reviews.prs({}));
+				emit(ctx, await clientOf(ctx).reviews.prs(c.args.project === undefined ? {} : { project: c.args.project }));
 			},
 		}),
 		list: defineCommand({
