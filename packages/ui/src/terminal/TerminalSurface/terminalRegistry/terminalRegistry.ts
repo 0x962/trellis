@@ -89,6 +89,10 @@ export function acquireTerminal(
 			leased.lastUsed = ++order;
 			leased.runtime?.detach();
 			if (leased.disposed) return;
+			// The released view may have set the process size. Every view of the
+			// same identity that stays on screen sends its own size again.
+			for (const other of entries)
+				if (other !== leased && other.identity === identity && other.leased) other.runtime?.resendSize();
 			leased.timer = setTimeout(() => dispose(leased), parkedLifetime);
 			const parked = [...entries].filter((candidate) => !candidate.leased).sort((a, b) => a.lastUsed - b.lastUsed);
 			for (const oldest of parked.slice(0, Math.max(0, parked.length - parkedLimit))) dispose(oldest);
