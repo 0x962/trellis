@@ -1,12 +1,24 @@
-import { effortForHarness, HARNESS_DEFAULT_MODELS, type Harness, MODEL_CATALOG } from "@trellis/api";
+import { effortForHarness, type Harness, MODEL_CATALOG } from "@trellis/api";
 import type { AgentProfile } from "@trellis/ui";
 import { modelProviderOf } from "../modelProviderOf";
 
-export function agentProfileOf(harness: Harness | null | undefined): AgentProfile | undefined {
-	if (!harness || harness.preset === "custom") return undefined;
-	const model = harness.model ?? HARNESS_DEFAULT_MODELS[harness.preset];
+export function agentProfileOf(harness: Harness | null | undefined): AgentProfile {
+	if (!harness || harness.preset === "custom") return { provider: null, model: "Model not recorded" };
+	if (!harness.model)
+		return {
+			provider:
+				harness.preset === "claude"
+					? "anthropic"
+					: harness.preset === "codex"
+						? "openai"
+						: harness.preset === "muse"
+							? "meta"
+							: null,
+			model: "Model not recorded",
+			...(harness.effort === undefined ? {} : { effort: harness.effort }),
+		};
+	const model = harness.model;
 	const provider = modelProviderOf(model);
-	if (provider === null) return undefined;
 	const effort = effortForHarness(harness.preset, model);
 	return {
 		provider,

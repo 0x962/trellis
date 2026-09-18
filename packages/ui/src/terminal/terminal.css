@@ -43,7 +43,20 @@
 	overflow: hidden;
 }
 .terminal-surface[data-layout="fill"] .terminal-hint {
-	@apply sr-only;
+	display: flex;
+	height: calc(var(--spacing) * 6);
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: flex-end;
+	padding-inline: calc(var(--spacing) * 3);
+	font-size: var(--text-xs);
+	visibility: hidden;
+}
+.terminal-surface[data-layout="fill"] .terminal-toolbar {
+	order: 1;
+}
+.terminal-surface[data-layout="fill"]:focus-within .terminal-hint {
+	visibility: visible;
 }
 .terminal-surface[data-layout="fill"] .terminal-toolbar,
 .terminal-surface[data-layout="fill"] .terminal-notice,
@@ -58,7 +71,7 @@
 	min-height: 0;
 	height: auto;
 	flex: 1 1 0;
-	padding: var(--spacing);
+	padding: calc(var(--spacing) * 3);
 	overflow: hidden;
 	border: 0;
 }

@@ -8,6 +8,7 @@ import type { Bus } from "../events/bus.ts";
 import type { GhRunner } from "../gh/run.ts";
 import { type Jobs, type JobsLog, scaledClock, startJobs as startBackgroundJobs } from "../jobs.ts";
 import { type DbTiming, LONG_TRANSACTION_MS } from "../serverTiming.ts";
+import { restoreHarnesses } from "../services/agentRuns/restoreHarnesses.ts";
 import { assertCurrentAttempt } from "../services/assignments/attempts.ts";
 import { gcAttachmentBlobs } from "../services/attachments.ts";
 import { loopRuntimes } from "../services/loops/runtime.ts";
@@ -202,6 +203,7 @@ export const createInlineTransport = ({
 	let controller: ReturnType<typeof createController> | null = null;
 	let flowReconcile: ReturnType<typeof startNativeReconcile> | null = null;
 	const start = async (options?: JobsStart) => {
+		await db.transaction((tx) => restoreHarnesses({ home: config.home }, tx));
 		const waitSeconds = await db.transaction((tx) => readWaitSeconds(tx));
 		controller = createController({
 			clock: scaledClock(options?.clockRate ?? 1),

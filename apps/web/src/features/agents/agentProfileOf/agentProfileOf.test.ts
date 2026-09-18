@@ -10,15 +10,14 @@ test("an agent profile names its provider, model, and effort", () => {
 	});
 });
 
-test("an agent profile shows the harness defaults", () => {
+test("an unknown historical model does not use today's default", () => {
 	expect(agentProfileOf(HarnessSchema.parse({ preset: "claude" }))).toEqual({
 		provider: "anthropic",
-		model: "Claude Opus 5",
-		effort: "Default",
+		model: "Model not recorded",
 	});
 });
 
-test("a custom harness keeps the generic agent mark", () => {
+test("a custom harness uses a neutral profile pill", () => {
 	expect(
 		agentProfileOf(
 			HarnessSchema.parse({
@@ -27,5 +26,9 @@ test("a custom harness keeps the generic agent mark", () => {
 				resumeCommand: "agent {{resumeText}}",
 			}),
 		),
-	).toBeUndefined();
+	).toEqual({ provider: null, model: "Model not recorded" });
+});
+
+test("missing harness metadata uses a neutral profile pill", () => {
+	expect(agentProfileOf(null)).toEqual({ provider: null, model: "Model not recorded" });
 });
