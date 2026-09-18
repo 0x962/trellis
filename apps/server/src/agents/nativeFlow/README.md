@@ -8,6 +8,6 @@ A join waits for every incoming path to finish or skip. It receives outputs from
 
 A connected group starts its entry child. A parallel group starts every child. The group completes after every child settles. Entry children receive inputs from the group boundary. A loop asks its exit question after each round. YES completes the loop. NO starts another round with the prior outputs. NO at the round limit fails the flow.
 
-A human step requires an explicit approval or rejection. Rejection fails the flow. A group deadline uses an absolute time, so a host restart cannot extend it. Failure or cancellation cancels unfinished steps. Claimed tasks produce stop actions until the host confirms process exit.
+A human step requires an explicit approval or rejection. Rejection fails the flow. A group deadline uses an absolute time, so a host restart cannot extend it. `boxClocks` lists the limits around a step. `timeLimitNotice` puts them in the step prompt, and `timeWarning` decides when the host sends the worker a time check: at half of the budget and at a quarter. A `warned` event stores the count on the step. Failure or cancellation cancels unfinished steps. Claimed tasks produce stop actions until the host confirms process exit.
 
 Persistence must bind task keys to ordinary execution attempts before launch. It must reject results from another attempt and preserve the frozen graph version.
