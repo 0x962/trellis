@@ -1,22 +1,42 @@
 import { useMutation } from "@tanstack/react-query";
-import type { ReviewRevision } from "@trellis/api";
-import { Button, ChoiceGroup, Popover, Textarea } from "@trellis/ui";
+import type { ReviewRevision, ReviewThread } from "@trellis/api";
+import { Button, Checkbox, ChoiceGroup, Popover, Textarea } from "@trellis/ui";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../../../../../../../lib/appContext";
 
 type Verdict = "comment" | "approve" | "request_changes";
 
-export function ReviewSubmit({ pr, revision, onDone }: { pr: string; revision: ReviewRevision; onDone: () => void }) {
+export function ReviewSubmit({
+	pr,
+	revision,
+	openThreads,
+	onDone,
+}: {
+	pr: string;
+	revision: ReviewRevision;
+	// The open threads on the reviewed head. Checked, they go to GitHub as
+	// review comments of this submission, suggestions included.
+	openThreads: ReviewThread[];
+	onDone: () => void;
+}) {
 	const { client, orpc, queryClient } = useApp();
 	const [open, setOpen] = useState(false);
 	const [verdict, setVerdict] = useState<Verdict>("comment");
+	const [sendThreads, setSendThreads] = useState(false);
 	const storageKey = `trellis.review.summary:${pr}`;
 	const [body, setBody] = useState(() => localStorage.getItem(storageKey) ?? "");
 	const [validation, setValidation] = useState("");
 	const summary = useRef<HTMLTextAreaElement>(null);
 	useEffect(() => localStorage.setItem(storageKey, body), [body, storageKey]);
 	const submit = useMutation({
-		mutationFn: () => client.reviews.submit({ pr, headSha: revision.headSha, body, verdict }),
+		mutationFn: () =>
+			client.reviews.submit({
+				pr,
+				headSha: revision.headSha,
+				body,
+				verdict,
+				threadIds: sendThreads ? openThreads.map((thread) => thread.id) : [],
+			}),
 		onSuccess: () => {
 			localStorage.removeItem(storageKey);
 			setOpen(false);
@@ -83,6 +103,13 @@ export function ReviewSubmit({ pr, revision, onDone }: { pr: string; revision: R
 							},
 						]}
 					/>
+					{openThreads.length > 0 && (
+						<Checkbox
+							label={`Send ${openThreads.length} open ${openThreads.length === 1 ? "thread" : "threads"} to GitHub as review comments`}
+							checked={sendThreads}
+							onCheckedChange={setSendThreads}
+						/>
+					)}
 					{submit.isError && (
 						<p role="alert" className="review-error">
 							{submit.error.message}

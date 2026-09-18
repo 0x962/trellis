@@ -202,6 +202,16 @@ A second head/base read detects a PR change during a diff fetch.
 
 `review_threads` holds one JSON document per root thread. The document contains
 its anchor, author, session, replies, reactions, and resolution state.
+A body with a ```` ```suggestion ```` block also carries `suggestion`: the original
+lines of the anchor, read from the patch of the revision or sent by the composer for
+a line outside the hunks, and a state of `open`, `applied`, or `outdated`.
+`reviews.apply` reads each file at the pull request head, checks the original lines,
+and commits the new contents on the head branch with one `createCommitOnBranch`
+GraphQL mutation. It resolves the threads and records the commit. A refresh moves an
+open suggestion whose lines still stand to the new revision and marks the others
+outdated. `reviews.submit` posts the named threads as GitHub review comments of the
+submission through the pull request reviews API; without `threadIds` it posts the
+summary only.
 Message edits require the expected version. The database serializes writes.
 Review comments remain local. The review form submits its comment, approval, or
 change request to GitHub. The same request refreshes the stored pull request and
@@ -211,7 +221,7 @@ writes activity for every linked ticket.
 pull request linked to a ticket of that project or held in one of its repositories.
 The web route `/reviews/$owner/$repo/$number` uses the Trellis shell. A
 `project` search param names the project whose Diffs page opened the review.
-`@trellis/ui/review` wraps `@pierre/diffs` 1.4.2 with virtual scroll, workers,
+`@trellis/ui/review` parses the unified diff and draws it with virtual scroll,
 line selection, and thread annotations. Review styles live in `packages/ui`.
 Drafts persist in browser storage until the user submits them.
 The `reviews.changed` event invalidates local review queries after commit.

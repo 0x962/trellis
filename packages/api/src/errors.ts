@@ -33,6 +33,11 @@ export const errors = {
 		message: "The review message changed. Read it again before an edit.",
 		data: z.undefined(),
 	},
+	REVIEW_SUGGESTION_STALE: {
+		status: 409,
+		message: "The pull request head no longer holds the lines this suggestion replaces.",
+		data: z.object({ threadId: z.string().min(1) }),
+	},
 	INPUT_VALIDATION_FAILED: {
 		status: 400,
 		message: "The input does not match the schema.",

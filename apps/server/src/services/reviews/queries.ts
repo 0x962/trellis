@@ -41,9 +41,10 @@ export async function readThread(tx: Tx, id: string): Promise<ReviewThread> {
 }
 export async function writeThread(tx: Tx, thread: ReviewThread) {
 	await tx.execute(
-		sql`UPDATE review_threads SET document = ${JSON.stringify(thread)}::jsonb, updated_at = ${thread.updatedAt} WHERE id = ${thread.id}`,
+		sql`UPDATE review_threads SET document = ${JSON.stringify(thread)}::jsonb, revision_id = ${thread.revisionId}, updated_at = ${thread.updatedAt} WHERE id = ${thread.id}`,
 	);
 }
+export const readThreads = (tx: Tx, ids: string[]) => Promise.all(ids.map((id) => readThread(tx, id)));
 export async function changed(ctx: ServiceCtx, tx: Tx, prId: string) {
 	ctx.emit({ type: "reviews.changed", id: prId, ...(await linkScope(tx, prId)) });
 }

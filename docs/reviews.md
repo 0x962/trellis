@@ -15,6 +15,28 @@ Drag across line numbers to comment on a range.
 The comment sheet shows the file, side, and range.
 Draft text persists in the browser. Added comments appear inline and in Discussion.
 
+## Suggested changes
+
+Select one line or a range in the diff, then select the suggestion action in the comment editor, or press Cmd+G.
+The editor inserts a ```` ```suggestion ```` block with the selected lines. Edit the lines inside the block.
+An empty block deletes the lines. A block equal to the current lines is refused.
+The preview and the thread draw the block as a mini diff: the current lines in red, the suggested lines in green.
+The prose of the comment renders below the widget. Only the first block of a comment applies.
+The server records the current lines from the patch of the reviewed revision.
+For a line outside the hunks, the composer sends the lines it shows, so select **Show full file** first.
+
+**Commit suggestion** opens a commit form with an editable message. **Add suggestion to batch** collects several suggestions.
+**Commit suggestions** takes the whole batch as one commit on the head branch. One commit takes one suggestion per line.
+The commit lands through the GitHub API, so a fork pull request needs edits from maintainers enabled.
+The commit message names the suggesters. An applied thread resolves and shows its commit.
+A suggestion on deleted lines, on a resolved thread, on a closed pull request, or on another revision cannot be applied.
+**Refresh from GitHub** moves a suggestion whose lines still stand to the new revision, and marks one whose lines changed as outdated.
+An apply that finds changed lines marks the suggestion outdated and stops.
+
+A submission carries no thread to GitHub unless you check **Send open threads to GitHub as review comments**.
+Each thread then becomes a GitHub review comment at its anchor, and a suggestion block renders there as a suggested change.
+Only threads on the reviewed head can go.
+
 Discussion holds local threads and the read-only GitHub conversation.
 Threads support replies, edits, resolve, reopen, and eight reactions.
 A stale edit returns a version conflict.
@@ -47,6 +69,8 @@ trellis review prs --project TRL
 trellis review list owner/repo#123
 trellis review list owner/repo#123 --all --json
 trellis review add owner/repo#123 --path src/app.ts --start-line 10 --line 14 --side old --author reviewer --body "Check this branch."
+trellis review add owner/repo#123 --path src/app.ts --start-line 10 --line 11 --body "Use the helper." --suggestion "const total = sum(items);"
+trellis review apply owner/repo#123 <thread-id> [<thread-id>...] --message "Apply suggestions from code review"
 trellis review reply <thread-id> --body "Fixed in the latest commit."
 trellis review edit <thread-id> --body "Updated finding."
 trellis review edit <reply-id> --thread <thread-id> --body "Updated reply."
@@ -57,7 +81,11 @@ trellis review react <message-id> +1 --remove
 trellis review submit owner/repo#123 --verdict comment --body "Review complete."
 trellis review submit owner/repo#123 --verdict approve
 trellis review submit owner/repo#123 --verdict request_changes --body "Fix the failing branch."
+trellis review submit owner/repo#123 --verdict comment --body "See the threads." --threads <thread-id>,<thread-id>
 ```
+
+`--suggestion -` reads the replacement lines from stdin. An empty value deletes the anchor lines.
+`--threads` sends the named threads to GitHub as review comments of the submission.
 
 Use `--body -` to read Markdown from stdin.
 Use `--session` on add or reply to record the author session.

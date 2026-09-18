@@ -6,6 +6,7 @@ import { fail } from "../../errors";
 import type { ServiceCtx } from "../support";
 import { notFound } from "../support";
 import { changed, writeThread } from "./queries";
+import { suggestionFor } from "./suggestions";
 
 async function locate(tx: Tx, id: string) {
 	const [row] = await rows<{ document: ReviewThread }>(
@@ -24,6 +25,10 @@ export async function edit(ctx: ServiceCtx, tx: Tx, input: { id: string; body: s
 	message.version += 1;
 	message.updatedAt = ctx.now().toISOString();
 	thread.updatedAt = message.updatedAt;
+	// The root body carries the suggestion. An applied suggestion keeps its
+	// record, so the commit stays visible after an edit of the words.
+	if (message === thread && thread.suggestion?.state !== "applied")
+		thread.suggestion = await suggestionFor(tx, thread, input.body, thread.suggestion?.original);
 	await writeThread(tx, thread);
 	await changed(ctx, tx, thread.prId);
 	return thread;

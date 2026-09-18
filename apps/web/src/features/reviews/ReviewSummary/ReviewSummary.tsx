@@ -1,21 +1,24 @@
 import { GithubLogo } from "@phosphor-icons/react";
-import { type ReviewRevision, reviewRef } from "@trellis/api";
+import { type ReviewRevision, type ReviewThread, reviewRef } from "@trellis/api";
 import { Badge, Tooltip } from "@trellis/ui";
 import { ReviewHeaderActions } from "./components/ReviewHeaderActions";
 export function ReviewSummary({
 	pr,
 	revision,
-	openCount,
+	openThreads,
 	showReview,
 	onAction,
 }: {
 	pr: string;
 	revision: ReviewRevision | null;
-	openCount: number;
+	// The open threads on the revision in view. The submission can carry
+	// them to GitHub.
+	openThreads: ReviewThread[];
 	showReview: boolean;
 	onAction: () => void;
 }) {
 	const ref = reviewRef(pr);
+	const openCount = openThreads.length;
 	const meta = revision?.meta as
 		| {
 				title?: string;
@@ -34,7 +37,15 @@ export function ReviewSummary({
 		<div className="review-heading">
 			<div className="review-heading-title">
 				<h2>{meta?.title ?? `${ref.owner}/${ref.repo} #${ref.number}`}</h2>
-				{revision && <ReviewHeaderActions pr={pr} revision={revision} showReview={showReview} onDone={onAction} />}
+				{revision && (
+					<ReviewHeaderActions
+						pr={pr}
+						revision={revision}
+						openThreads={openThreads}
+						showReview={showReview}
+						onDone={onAction}
+					/>
+				)}
 			</div>
 			<div className="review-heading-meta">
 				<Badge tone={meta?.state === "MERGED" ? "agent" : meta?.state === "OPEN" && !meta.isDraft ? "ok" : "neutral"}>

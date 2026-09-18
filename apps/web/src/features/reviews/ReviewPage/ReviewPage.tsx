@@ -5,6 +5,7 @@ import { type DiffAnchor, ReviewDiff, ReviewFiles, ReviewTabs } from "@trellis/u
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { useTheme } from "../../../lib/theme";
+import { ApplySuggestionsDialog, ReviewApplyContext, type ReviewApplyState, ReviewBatchBar } from "../ReviewApply";
 import { type CheckTabStatus, checkTabStatus, type ReviewCheck } from "../ReviewChecks/checkGroups";
 import { ReviewChecks } from "../ReviewChecks/ReviewChecks";
 import { ReviewComment } from "../ReviewComment/ReviewComment";
@@ -54,7 +55,13 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	const [file, setFile] = useState("");
 	const [fileFilter, setFileFilter] = useState("");
 	const [fileSheet, setFileSheet] = useState(false);
-	const [composer, setComposer] = useState<DiffAnchor | null>(null);
+	// The composer sits on an anchor; `lines` is the text of the selected
+	// lines, which a suggestion block starts from.
+	const [composer, setComposer] = useState<{ anchor: DiffAnchor; lines: string[] | null } | null>(null);
+	// The suggestion threads waiting for one commit, and the threads the
+	// commit dialog holds while it is open.
+	const [batch, setBatch] = useState<ReadonlySet<string>>(() => new Set());
+	const [applying, setApplying] = useState<string[] | null>(null);
 	const threads = useQuery({
 		...orpc.reviews.list.queryOptions({ input: { pr, all: true } }),
 		queryFn: async () => {
@@ -74,10 +81,12 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	const addThread = useMutation({
 		mutationFn: (comment: ReviewCommentInput) => client.reviews.add({ pr, ...comment }),
 		onSuccess: () => {
-			if (composer)
+			if (composer) {
+				const { anchor } = composer;
 				localStorage.removeItem(
-					`trellis.review.comment:${pr}:${composer.path}:${composer.side}:${composer.startLine}:${composer.line}`,
+					`trellis.review.comment:${pr}:${anchor.path}:${anchor.side}:${anchor.startLine}:${anchor.line}`,
 				);
+			}
 			setComposer(null);
 			void queryClient.invalidateQueries({ queryKey: orpc.reviews.key() });
 		},
@@ -142,6 +151,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	const displayRevision = revision ? { ...revision, meta: status.data ?? revision.meta } : null;
 	const displayMeta = displayRevision?.meta as
 		| {
+				state?: string;
 				statusCheckRollup?: ReviewCheck[];
 				mergeable?: string;
 				mergeStateStatus?: string;
@@ -159,139 +169,187 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		refresh.mutate();
 		void status.refetch();
 	};
+	const toggleBatch = useCallback((threadId: string) => {
+		setBatch((current) => {
+			const next = new Set(current);
+			if (next.has(threadId)) next.delete(threadId);
+			else next.add(threadId);
+			return next;
+		});
+	}, []);
+	const applyState = useMemo<ReviewApplyState>(
+		() => ({
+			pr,
+			revisionId: revision?.id ?? null,
+			headSha: revision?.headSha ?? null,
+			prOpen: displayMeta?.state === "OPEN",
+			batch,
+			toggleBatch,
+			apply: setApplying,
+		}),
+		[pr, revision?.id, revision?.headSha, displayMeta?.state, batch, toggleBatch],
+	);
+	const applyingThreads = applying === null ? [] : applying.flatMap((id) => threadsById.get(id) ?? []);
 	return (
-		<div className="review-page">
-			<ReviewHeader
-				pr={pr}
-				parent={parent}
-				revision={displayRevision}
-				refreshing={refresh.isPending || composer !== null}
-				onRefresh={refreshAll}
-			/>
-			<div className="page-card review-workspace">
-				<ReviewSummary
+		<ReviewApplyContext.Provider value={applyState}>
+			<div className="review-page">
+				<ReviewHeader
 					pr={pr}
+					parent={parent}
 					revision={displayRevision}
-					openCount={allThreads.filter((thread) => thread.status === "open").length}
-					showReview={tab === "changes"}
-					onAction={() => void status.refetch()}
+					refreshing={refresh.isPending || composer !== null}
+					onRefresh={refreshAll}
 				/>
-				{revision && <ReviewStack pr={pr} />}
-				{status.isError && (
-					<p role="alert" className="review-notice">
-						GitHub status: {status.error.message}
-					</p>
-				)}
-				{revision &&
-					status.data &&
-					(status.data.headRefOid !== revision.headSha || status.data.baseRefOid !== revision.baseSha) && (
-						<button type="button" className="review-notice" onClick={() => refresh.mutate()}>
-							The PR has a new revision. Refresh to review it. Current comments keep their original anchors.
-						</button>
-					)}
-				<ReviewTabs
-					value={tab}
-					onValueChange={changeTab}
-					count={allThreads.length}
-					live={pr.includes("/canary-technologies-corp/canary/")}
-					checksStatus={checkStatusIndicator(checksStatus)}
-					liveStatus={liveStatus ? { label: liveStatus, tone: liveStatusTone(liveStatus) } : undefined}
-				>
-					{refresh.isError && (
-						<p className="review-error" role="alert">
-							{refresh.error.message}. Local comments remain available.
+				<div className="page-card review-workspace">
+					<ReviewSummary
+						pr={pr}
+						revision={displayRevision}
+						openThreads={allThreads.filter((thread) => thread.status === "open")}
+						showReview={tab === "changes"}
+						onAction={() => void status.refetch()}
+					/>
+					{revision && <ReviewStack pr={pr} />}
+					{status.isError && (
+						<p role="alert" className="review-notice">
+							GitHub status: {status.error.message}
 						</p>
 					)}
-					{threads.isError && (
-						<p role="alert" className="review-error">
-							{threads.error.message}
-						</p>
-					)}
-					{tab === "changes" && revision === null && !refresh.isError && <ReviewPageSkeleton />}
-					{tab === "changes" && revision !== null && (
-						<div className="review-main">
-							<aside className="review-files" aria-label="Changed files">
-								{fileNav}
-							</aside>
-							<div className="review-content">
-								<DiffToolbar
-									mode={mode}
-									onFiles={() => setFileSheet(true)}
-									onMode={(value) => {
-										setMode(value);
-										localStorage.setItem("trellis.review.mode", value);
-									}}
-								/>
-
-								<ReviewDiff
-									filter={fileFilter}
-									patch={revision.patch}
-									loadFile={loadFile}
-									revisionId={revision.id}
-									threads={allThreads}
-									mode={mode}
-									theme={theme}
-									selectedFile={file}
-									renderThread={renderThread}
-									composer={composer}
-									renderComposer={() =>
-										composer && (
-											<ReviewComposer
-												key={`${revision.id}:${composer.path}:${composer.side}:${composer.startLine}:${composer.line}`}
-												anchor={composer}
-												revisionId={revision.id}
-												storageKey={`trellis.review.comment:${pr}:${composer.path}:${composer.side}:${composer.startLine}:${composer.line}`}
-												onClose={() => {
-													addThread.reset();
-													setComposer(null);
-												}}
-												onSave={(comment) => addThread.mutate(comment)}
-												pending={addThread.isPending}
-												error={addThread.error?.message ?? null}
-											/>
-										)
-									}
-									onSelect={(anchor) => {
-										addThread.reset();
-										setComposer(anchor);
-									}}
-									onFiles={setFiles}
-								/>
-							</div>
-						</div>
-					)}
-					{tab === "discussion" && (
-						<ReviewDiscussion
-							threads={allThreads}
-							revision={displayRevision}
-							renderThread={renderThread}
-							onJump={(thread) => {
-								void (async () => {
-									if (thread.revisionId && thread.revisionId !== revision?.id)
-										setRevision(await client.reviews.revision({ pr, id: thread.revisionId }));
-									setFile(thread.path);
-									changeTab("changes");
-								})();
-							}}
+					{revision &&
+						status.data &&
+						(status.data.headRefOid !== revision.headSha || status.data.baseRefOid !== revision.baseSha) && (
+							<button type="button" className="review-notice" onClick={() => refresh.mutate()}>
+								The PR has a new revision. Refresh to review it. Current comments keep their original anchors.
+							</button>
+						)}
+					{batch.size > 0 && (
+						<ReviewBatchBar
+							count={batch.size}
+							onCommit={() => setApplying([...batch])}
+							onClear={() => setBatch(new Set())}
 						/>
 					)}
-					{tab === "checks" && <ReviewChecks revision={displayRevision} />}
-					{tab === "live" && displayRevision && (
-						<ReviewLive pr={pr} revision={displayRevision} loading={status.isPending} onRefresh={refreshAll} />
-					)}
-				</ReviewTabs>
+					<ReviewTabs
+						value={tab}
+						onValueChange={changeTab}
+						count={allThreads.length}
+						live={pr.includes("/canary-technologies-corp/canary/")}
+						checksStatus={checkStatusIndicator(checksStatus)}
+						liveStatus={liveStatus ? { label: liveStatus, tone: liveStatusTone(liveStatus) } : undefined}
+					>
+						{refresh.isError && (
+							<p className="review-error" role="alert">
+								{refresh.error.message}. Local comments remain available.
+							</p>
+						)}
+						{threads.isError && (
+							<p role="alert" className="review-error">
+								{threads.error.message}
+							</p>
+						)}
+						{tab === "changes" && revision === null && !refresh.isError && <ReviewPageSkeleton />}
+						{tab === "changes" && revision !== null && (
+							<div className="review-main">
+								<aside className="review-files" aria-label="Changed files">
+									{fileNav}
+								</aside>
+								<div className="review-content">
+									<DiffToolbar
+										mode={mode}
+										onFiles={() => setFileSheet(true)}
+										onMode={(value) => {
+											setMode(value);
+											localStorage.setItem("trellis.review.mode", value);
+										}}
+									/>
+
+									<ReviewDiff
+										filter={fileFilter}
+										patch={revision.patch}
+										loadFile={loadFile}
+										revisionId={revision.id}
+										threads={allThreads}
+										mode={mode}
+										theme={theme}
+										selectedFile={file}
+										renderThread={renderThread}
+										composer={composer?.anchor ?? null}
+										renderComposer={() =>
+											composer && (
+												<ReviewComposer
+													key={`${revision.id}:${composer.anchor.path}:${composer.anchor.side}:${composer.anchor.startLine}:${composer.anchor.line}`}
+													anchor={composer.anchor}
+													lines={composer.lines}
+													revisionId={revision.id}
+													storageKey={`trellis.review.comment:${pr}:${composer.anchor.path}:${composer.anchor.side}:${composer.anchor.startLine}:${composer.anchor.line}`}
+													onClose={() => {
+														addThread.reset();
+														setComposer(null);
+													}}
+													onSave={(comment) => addThread.mutate(comment)}
+													pending={addThread.isPending}
+													error={addThread.error?.message ?? null}
+												/>
+											)
+										}
+										onSelect={(anchor, lines) => {
+											addThread.reset();
+											setComposer({ anchor, lines });
+										}}
+										onFiles={setFiles}
+									/>
+								</div>
+							</div>
+						)}
+						{tab === "discussion" && (
+							<ReviewDiscussion
+								threads={allThreads}
+								revision={displayRevision}
+								renderThread={renderThread}
+								onJump={(thread) => {
+									void (async () => {
+										if (thread.revisionId && thread.revisionId !== revision?.id)
+											setRevision(await client.reviews.revision({ pr, id: thread.revisionId }));
+										setFile(thread.path);
+										changeTab("changes");
+									})();
+								}}
+							/>
+						)}
+						{tab === "checks" && <ReviewChecks revision={displayRevision} />}
+						{tab === "live" && displayRevision && (
+							<ReviewLive pr={pr} revision={displayRevision} loading={status.isPending} onRefresh={refreshAll} />
+						)}
+					</ReviewTabs>
+				</div>
+				{fileSheet && (
+					<Sheet
+						open
+						title="Changed files"
+						titleClassName="font-medium text-base"
+						side="left"
+						onOpenChange={(open) => !open && setFileSheet(false)}
+					>
+						<div className="review-file-sheet">{fileNav}</div>
+					</Sheet>
+				)}
+				{applying !== null && revision !== null && applyingThreads.length > 0 && (
+					<ApplySuggestionsDialog
+						pr={pr}
+						headSha={revision.headSha}
+						threads={applyingThreads}
+						onClose={() => setApplying(null)}
+						onApplied={(result) => {
+							setApplying(null);
+							setBatch((current) => {
+								const next = new Set(current);
+								for (const thread of result.threads) next.delete(thread.id);
+								return next;
+							});
+							refreshAll();
+						}}
+					/>
+				)}
 			</div>
-			{fileSheet && (
-				<Sheet
-					open
-					title="Changed files"
-					titleClassName="font-medium text-base"
-					side="left"
-					onOpenChange={(open) => !open && setFileSheet(false)}
-				>
-					<div className="review-file-sheet">{fileNav}</div>
-				</Sheet>
-			)}
-		</div>
+		</ReviewApplyContext.Provider>
 	);
 }

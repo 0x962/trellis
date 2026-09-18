@@ -1,6 +1,6 @@
 import { GithubLogo } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import type { ReviewRevision } from "@trellis/api";
+import type { ReviewRevision, ReviewThread } from "@trellis/api";
 import { ConfirmDialog, IconButton, Menu, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
@@ -25,11 +25,13 @@ type Meta = ReviewActionMeta & {
 export function ReviewHeaderActions({
 	pr,
 	revision,
+	openThreads,
 	showReview,
 	onDone,
 }: {
 	pr: string;
 	revision: ReviewRevision;
+	openThreads: ReviewThread[];
 	showReview: boolean;
 	onDone: () => void;
 }) {
@@ -57,7 +59,7 @@ export function ReviewHeaderActions({
 			{primary !== null && (
 				<>
 					<ReviewerPicker pr={pr} author={meta.author?.login} requests={meta.reviewRequests ?? []} onDone={onDone} />
-					{showReview && <ReviewSubmit pr={pr} revision={revision} onDone={onDone} />}
+					{showReview && <ReviewSubmit pr={pr} revision={revision} openThreads={openThreads} onDone={onDone} />}
 					<MergeControl
 						pr={pr}
 						revision={revision}

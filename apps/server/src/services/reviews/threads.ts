@@ -3,21 +3,30 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
+import { invalidInput } from "../../errors";
 import type { ServiceCtx } from "../support";
 import { assertRevision, changed, ensurePr, findPr, readThread, writeThread } from "./queries";
+import { firstSuggestion, sameLines, suggestionFor } from "./suggestions";
 
 export async function add(ctx: ServiceCtx, tx: Tx, input: ReviewCreate): Promise<ReviewThread> {
 	const pr = await ensurePr(tx, input.pr);
 	await assertRevision(tx, { prId: pr.id, revisionId: input.revisionId });
 	const at = ctx.now().toISOString();
-	const thread: ReviewThread = {
-		id: ulid(),
-		prId: pr.id,
+	const anchor = {
 		path: input.path,
 		side: input.side ?? "new",
 		line: input.line,
 		startLine: input.startLine ?? input.line,
 		revisionId: input.revisionId ?? null,
+	};
+	const suggestion = await suggestionFor(tx, anchor, input.body, input.original);
+	const proposed = firstSuggestion(input.body);
+	if (suggestion !== null && proposed !== null && sameLines(proposed, suggestion.original))
+		throw invalidInput("body", "Change the lines inside the suggestion block. It equals the current lines.");
+	const thread: ReviewThread = {
+		id: ulid(),
+		prId: pr.id,
+		...anchor,
 		body: input.body,
 		author: ctx.actor.name,
 		kind: ctx.actor.kind,
@@ -30,6 +39,7 @@ export async function add(ctx: ServiceCtx, tx: Tx, input: ReviewCreate): Promise
 		resolvedBy: null,
 		replies: [],
 		reactions: [],
+		suggestion,
 	};
 	await tx.execute(
 		sql`INSERT INTO review_threads (id, pr_id, revision_id, document, updated_at) VALUES (${thread.id}, ${pr.id}, ${thread.revisionId}, ${JSON.stringify(thread)}::jsonb, ${at})`,

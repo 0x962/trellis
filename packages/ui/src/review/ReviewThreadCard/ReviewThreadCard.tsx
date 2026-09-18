@@ -18,13 +18,22 @@ type Message = {
 };
 type Props = {
 	thread: Message & { replies: Message[]; status: string; resolvedBy: string | null };
-	renderBody: (body: string) => ReactNode;
+	// `root` is true for the first message, the one that carries the anchor
+	// and any suggestion the thread applies.
+	renderBody: (body: string, message: { id: string; root: boolean }) => ReactNode;
 	onReply: (body: string) => Promise<unknown>;
 	onResolve: () => Promise<unknown>;
 	onEdit: (id: string, body: string, version: number) => Promise<unknown>;
 	onReaction: (id: string, reaction: string, remove: boolean) => Promise<unknown>;
 	actor?: string;
 };
+// The first line of a body, for the collapsed row of a resolved thread. A
+// body that opens with a suggestion block names the change instead.
+const summaryOf = (body: string) => {
+	const first = body.split("\n")[0] ?? "";
+	return /^\s*(`{3,}|~{3,})\s*suggestion/i.test(first) ? "Suggested change" : first;
+};
+
 export function ReviewThreadCard({ thread, renderBody, onReply, onResolve, onEdit, onReaction, actor }: Props) {
 	const root = useRef<HTMLElement>(null);
 	const replyInput = useRef<HTMLTextAreaElement>(null);
@@ -65,7 +74,7 @@ export function ReviewThreadCard({ thread, renderBody, onReply, onResolve, onEdi
 					aria-expanded={expanded}
 					onClick={() => setExpanded(!expanded)}
 				>
-					Resolved by {thread.resolvedBy} · {thread.body.split("\n")[0]}
+					Resolved by {thread.resolvedBy} · {summaryOf(thread.body)}
 				</button>
 			)}
 			{(thread.status !== "resolved" || expanded) && (
@@ -122,7 +131,7 @@ export function ReviewThreadCard({ thread, renderBody, onReply, onResolve, onEdi
 									</div>
 								</form>
 							) : (
-								renderBody(message.body)
+								renderBody(message.body, { id: message.id, root: message.id === thread.id })
 							)}
 							<ReviewReactions
 								reactions={message.reactions}

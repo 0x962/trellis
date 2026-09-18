@@ -27,10 +27,12 @@ Update or remove one: trellis notes edit <id> --body "..." / trellis notes rm <i
 
 PR review comments live in Trellis. Read them before work: trellis review list <pr-url>
 Post a finding: trellis review add <pr-url> --path <file> --line <n> --body "..."
+Suggest replacement lines: trellis review add <pr-url> --path <file> --start-line <n> --line <m> --body "..." --suggestion "new text"
+Apply suggestions as one commit on the head branch: trellis review apply <pr-url> <thread-id> [<thread-id>...]
 Reply: trellis review reply <thread-id> --body "..."
 Resolve an addressed finding: trellis review resolve <thread-id>
 Submit a GitHub review: trellis review submit <pr-url> --verdict <comment|approve|request_changes> --body "..."
-Never post review findings as GitHub comments.
+Never post review findings as GitHub comments. A person chooses the threads a submission carries to GitHub.
 
 Without the CLI, use the HTTP API. It has the same actions. This call creates a ticket:
 curl -X POST http://127.0.0.1:4521/api/tickets -H 'x-trellis-actor: agent:claude-code' -H 'Content-Type: application/json' -d '{"project":"${key}","title":"First"}'
