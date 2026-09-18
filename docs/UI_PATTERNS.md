@@ -19,6 +19,7 @@ Each page supplies its data and available actions. It does not choose new contro
 | Need | Canonical component | Reference |
 | --- | --- | --- |
 | Page title and actions | `Topbar`, `PageTitle` | `apps/web/src/features/shell/Topbar/Topbar.tsx` |
+| A page over the current page | `PageSheet` | `apps/web/src/features/shell/PageSheet/PageSheet.tsx` |
 | Filter chips and controls | `FilterBar`, `Chip` | `packages/ui/src/domain/FilterBar/FilterBar.tsx` |
 | Searchable filter choices | `FilterPopover`, `Command` | `packages/ui/src/domain/FilterPopover/FilterPopover.tsx` |
 | Searchable model choices | `ModelPicker` | `apps/web/src/features/agents/ModelPicker/ModelPicker.tsx` |
@@ -40,6 +41,16 @@ Each page supplies its data and available actions. It does not choose new contro
 | Subscription quota meters | `QuotaWindows` | `packages/ui/src/domain/QuotaWindows/QuotaWindows.tsx` |
 | Flow run header | `FlowRunSummary` | `packages/ui/src/domain/FlowRunSummary/FlowRunSummary.tsx` |
 | Flow run steps | `FlowRunTree` | `packages/ui/src/domain/FlowRunTree/FlowRunTree.tsx` |
+
+## Pages in a sheet
+
+Use `PageSheet` to show a ticket or a pull request over the current page, such as the ticket of a session.
+Render the same page component as the route. Do not build a compact copy of the page.
+`Topbar` renders the title and the actions of the page into the header of the sheet.
+The header adds the Open full page and Close buttons, and it shows them while the page loads.
+A page in a sheet opens a related page in a second `PageSheet`. A ticket does this for a pull request.
+The second sheet is wider and covers the first one. Escape and an outside click close only the top sheet.
+Read `usePageSheet` where a page must differ in a sheet, such as an action that returns to a list.
 
 ## Filters and display options
 

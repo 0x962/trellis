@@ -1,7 +1,5 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import { reviewRef } from "@trellis/api";
 import { cx, EmptyState, useMediaQuery } from "@trellis/ui";
 import { useEffect, useState } from "react";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
@@ -11,6 +9,7 @@ import { useUploads } from "../../attachments/hooks/useUploads";
 import { PullRequests } from "../../prs";
 import { ReviewPage } from "../../reviews/ReviewPage/ReviewPage";
 import { NotFoundState } from "../../shell/NotFoundState";
+import { usePageSheet } from "../../shell/PageSheet";
 import { Description } from "../Description";
 import { Header } from "../Header";
 import { useParentSummary } from "../hooks/useParentSummary";
@@ -22,27 +21,23 @@ import { Timeline } from "../Timeline";
 import { Title } from "../Title";
 import { DropOverlay, useDropOverlay } from "./components/DropOverlay";
 import { ParentChip } from "./components/ParentChip";
+import { PullRequestSheet } from "./components/PullRequestSheet";
 import { TicketSkeleton } from "./components/TicketSkeleton";
 
 export type TicketViewProps = {
 	// The canonical identifier, `CDE-42`.
 	identifier: string;
 	thread?: string;
-	embedded?: boolean;
 	onReturnToList: () => void;
 };
 
-export function TicketView({ identifier, thread, onReturnToList, embedded = false }: TicketViewProps) {
+// The ticket page. It renders the same on its route and in a `PageSheet`,
+// with these differences in a sheet: a pull request opens in a second sheet
+// over the ticket and does not replace it, the browser tab keeps the title
+// of the page under the sheet, and the sheet handles Escape.
+export function TicketView({ identifier, thread, onReturnToList }: TicketViewProps) {
 	const { orpc } = useApp();
-	const navigate = useNavigate();
-	const openPullRequest = (url: string) => {
-		if (!embedded) {
-			setPullRequest(url);
-			return;
-		}
-		const { owner, repo, number } = reviewRef(url);
-		void navigate({ to: "/reviews/$owner/$repo/$number", params: { owner, repo, number: String(number) } });
-	};
+	const inSheet = usePageSheet() !== null;
 	const query = useQuery(orpc.tickets.get.queryOptions({ input: { ticket: identifier } }));
 	const uploads = useUploads(identifier);
 	const parentSummary = useParentSummary(query.data?.parent?.identifier ?? null);
@@ -57,16 +52,16 @@ export function TicketView({ identifier, thread, onReturnToList, embedded = fals
 			closeReview: () => setPullRequest(null),
 			returnToList: onReturnToList,
 		},
-		!embedded,
+		!inSheet,
 	);
 
 	useEffect(() => {
-		if (embedded || query.data === undefined || pullRequest !== null) return;
+		if (inSheet || query.data === undefined || pullRequest !== null) return;
 		document.title = `${query.data.identifier} · ${query.data.title}`;
 		return () => {
 			document.title = "trellis";
 		};
-	}, [embedded, pullRequest, query.data]);
+	}, [inSheet, pullRequest, query.data]);
 
 	if (query.error !== null) {
 		if (query.error instanceof ORPCError && query.error.code === "NOT_FOUND") {
@@ -83,28 +78,21 @@ export function TicketView({ identifier, thread, onReturnToList, embedded = fals
 	}
 	if (query.data === undefined) return <TicketSkeleton />;
 	const ticket = query.data;
-	const inlineRail = embedded || narrow;
 	const readOnly = isArchived(ticket.project.path);
-	if (pullRequest !== null && !embedded) {
-		return (
-			<ReviewPage
-				key={pullRequest}
-				pr={pullRequest}
-				syncHash={false}
-				parent={
-					<a
-						href={`/t/${ticket.identifier}`}
-						aria-label={`Back to ${ticket.identifier}`}
-						onClick={(event) => {
-							event.preventDefault();
-							setPullRequest(null);
-						}}
-					>
-						{ticket.identifier}
-					</a>
-				}
-			/>
-		);
+	const backToTicket = (
+		<a
+			href={`/t/${ticket.identifier}`}
+			aria-label={`Back to ${ticket.identifier}`}
+			onClick={(event) => {
+				event.preventDefault();
+				setPullRequest(null);
+			}}
+		>
+			{ticket.identifier}
+		</a>
+	);
+	if (pullRequest !== null && !inSheet) {
+		return <ReviewPage key={pullRequest} pr={pullRequest} syncHash={false} parent={backToTicket} />;
 	}
 
 	// The server refuses every write to a ticket under an archived project.
@@ -119,24 +107,24 @@ export function TicketView({ identifier, thread, onReturnToList, embedded = fals
 					{ticket.parent !== null && <ParentChip ancestors={ticket.ancestors} title={parentSummary?.title ?? ""} />}
 					<Title key={ticket.identifier} ticket={ticket} onAttachFiles={uploads.addFiles} />
 				</div>
-				{inlineRail && (
+				{narrow && (
 					<div className="mt-3">
 						<PropertiesRail ticket={ticket} variant="inline" />
 					</div>
 				)}
-				<div data-ticket-description="" className={cx("min-h-24", inlineRail ? "mt-4" : "mt-3")}>
+				<div data-ticket-description="" className={cx("min-h-24", narrow ? "mt-4" : "mt-3")}>
 					<Description key={ticket.identifier} ticket={ticket} onAttachFiles={uploads.addFiles} />
 				</div>
 				<div className="mt-8 flex flex-col gap-8">
 					<SubTickets ticket={ticket} />
-					<PullRequests ticket={ticket} initialPrs={ticket.prs} onOpen={openPullRequest} title="Pull requests" />
+					<PullRequests ticket={ticket} initialPrs={ticket.prs} onOpen={setPullRequest} title="Pull requests" />
 					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
 					<Timeline thread={thread} ticket={ticket} onAttachFiles={uploads.addFiles} />
 				</div>
 			</div>
 		</article>
 	);
-	const activityPage = inlineRail ? (
+	const activityPage = narrow ? (
 		activity
 	) : (
 		<div data-ticket-columns="" className="flex min-h-0 flex-1">
@@ -146,17 +134,15 @@ export function TicketView({ identifier, thread, onReturnToList, embedded = fals
 	);
 
 	return (
-		<fieldset disabled={readOnly} className="contents">
-			<div {...drop.handlers} className="relative flex h-full min-h-0 flex-1 flex-col">
-				{!embedded && <Header ticket={ticket} />}
-				{readOnly && (
-					<p className="flex h-9 shrink-0 items-center bg-warning-soft px-5 text-sm font-medium text-warning max-md:px-4">
-						{notice(ticket.project.path)}
-					</p>
-				)}
-				{embedded ? (
-					activityPage
-				) : (
+		<>
+			<fieldset disabled={readOnly} className="contents">
+				<div {...drop.handlers} className="relative flex h-full min-h-0 flex-1 flex-col">
+					<Header ticket={ticket} readOnly={readOnly} />
+					{readOnly && (
+						<p className="flex h-9 shrink-0 items-center bg-warning-soft px-5 text-sm font-medium text-warning max-md:px-4">
+							{notice(ticket.project.path)}
+						</p>
+					)}
 					<TicketWorkArea
 						key={ticket.id}
 						ticket={ticket}
@@ -165,9 +151,10 @@ export function TicketView({ identifier, thread, onReturnToList, embedded = fals
 						onOpenPullRequest={setPullRequest}
 						activity={activityPage}
 					/>
-				)}
-				{drop.over && <DropOverlay identifier={ticket.identifier} />}
-			</div>
-		</fieldset>
+					{drop.over && <DropOverlay identifier={ticket.identifier} />}
+				</div>
+			</fieldset>
+			{inSheet && <PullRequestSheet pr={pullRequest} parent={backToTicket} onClose={() => setPullRequest(null)} />}
+		</>
 	);
 }
