@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { CiStateSchema, GhReasonSchema, PrStateSchema } from "./schemas/enums.ts";
 import { UlidSchema } from "./schemas/primitives.ts";
+import { SessionDetailSchema } from "./schemas/session.ts";
 import { TicketSummarySchema } from "./schemas/ticket.ts";
 
 // Every SSE event name. `types=` on the events route takes these and
@@ -30,6 +31,7 @@ export const eventNames = [
 	"reviews.changed",
 	"agent-runs.changed",
 	"sessions.changed",
+	"sessions.status",
 	"reset",
 	"ready",
 	"bye",
@@ -165,6 +167,7 @@ export const EventSchema = z.discriminatedUnion("type", [
 	),
 	typed("agent-runs.changed", AgentChangedPayloadSchema),
 	typed("sessions.changed", AgentChangedPayloadSchema),
+	typed("sessions.status", z.object({ session: SessionDetailSchema, notify: z.boolean() })),
 	typed("needs-you.changed", z.object({ actorName: z.string() })),
 	typed("reset", ResetPayloadSchema),
 	typed("ready", ReadyPayloadSchema),

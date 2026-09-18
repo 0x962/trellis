@@ -1,5 +1,6 @@
 import { chmod } from "node:fs/promises";
 import { createServer } from "node:http";
+import { type InputAnswer, InputAnswerSchema } from "@trellis/api";
 import { z } from "zod";
 import type { MspClient } from "./mspClient.ts";
 import { uuid7 } from "./uuid7.ts";
@@ -16,6 +17,7 @@ export async function museControl(input: {
 	client: MspClient;
 	current: () => { turnId: string | null; working: boolean };
 	submit: (prompt: string) => Promise<void>;
+	answer: (id: string, answers: InputAnswer[], cancel: boolean) => Promise<void>;
 }) {
 	let pending = false;
 	let interrupted: string | null = null;
@@ -25,7 +27,7 @@ export async function museControl(input: {
 			response.end(JSON.stringify(body));
 		};
 		if (request.headers.authorization !== `Bearer ${input.token}`) return reply(401, { error: "Unauthorized" });
-		if (request.method !== "POST" || !["/prompt", "/interrupt"].includes(request.url!))
+		if (request.method !== "POST" || !["/prompt", "/interrupt", "/answer"].includes(request.url!))
 			return reply(404, { error: "Not found" });
 		let ownsPending = false;
 		try {
@@ -35,12 +37,25 @@ export async function museControl(input: {
 				if (body.length > 1048576) return reply(413, { error: "Request too large" });
 			}
 			const value = z
-				.object({ sessionId: z.string(), prompt: z.string().optional(), turnId: z.string().optional() })
+				.object({
+					sessionId: z.string(),
+					prompt: z.string().optional(),
+					turnId: z.string().optional(),
+					requestId: z.string().optional(),
+					answers: z.array(InputAnswerSchema).optional(),
+					cancel: z.boolean().optional(),
+				})
 				.parse(JSON.parse(body));
 			if (value.sessionId !== input.sessionId) return reply(409, { error: "STALE_SESSION" });
 			const current = input.current();
 			if (pending) return reply(409, { error: "CONTROL_PENDING" });
-			if (request.url === "/interrupt") {
+			if (request.url === "/answer") {
+				await input.answer(
+					z.string().parse(value.requestId),
+					z.array(InputAnswerSchema).parse(value.answers),
+					z.boolean().parse(value.cancel),
+				);
+			} else if (request.url === "/interrupt") {
 				if (!current.working || value.turnId !== current.turnId || value.turnId === interrupted)
 					return reply(409, { error: "STALE_TURN" });
 				pending = true;

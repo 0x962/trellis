@@ -113,6 +113,7 @@ export function projectRun(run: StoredRun, sessions: RuntimeProcessStatus[], hom
 		processStatus: process.status,
 		observation: {
 			checkedAt: process.checkedAt,
+			attention: process.agent?.attention,
 			controllable: process.controllable,
 			activity: process.activity,
 			outcome: process.agent?.outcome ?? null,

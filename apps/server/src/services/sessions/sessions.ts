@@ -3,7 +3,7 @@ import type { ServiceCtx as CoreCtx } from "../../context.ts";
 import type { Tx } from "../../db/tx.ts";
 import { launchState } from "../agentRuns/launchState";
 import { observeRuns, projectRun } from "../agentRuns/liveState.ts";
-import { getRun } from "../agentRuns/queries.ts";
+import { getRun, listSessionRuns } from "../agentRuns/queries.ts";
 import type { IoCtx } from "../support.ts";
 import { getSession, listSessions } from "./queries.ts";
 
@@ -31,4 +31,14 @@ export const finish = async (ctx: IoCtx, _tx: Tx, input: SessionDetail) => {
 	ctx.emit({ type: "sessions.changed", id: input.id });
 	ctx.emit({ type: "agent-runs.changed", id: input.runId });
 	return input;
+};
+
+export const activity = async (ctx: IoCtx): Promise<SessionDetail[]> => {
+	const entries = await ctx.newTx(async (tx) => {
+		const sessions = await listSessions(tx);
+		const runs = await listSessionRuns(tx);
+		return { sessions, runs };
+	});
+	const runs = new Map((await observeRuns(ctx, entries.runs)).map((run) => [run.id, run]));
+	return entries.sessions.map((session) => ({ ...session, run: runs.get(session.runId)! }));
 };

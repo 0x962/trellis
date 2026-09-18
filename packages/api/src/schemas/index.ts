@@ -18,6 +18,7 @@ export * from "./pullRequest.ts";
 export * from "./review.ts";
 export * from "./search.ts";
 export * from "./session.ts";
+export * from "./sessionActivity.ts";
 export * from "./settings.ts";
 export * from "./status.ts";
 export * from "./system.ts";

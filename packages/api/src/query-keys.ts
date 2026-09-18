@@ -246,6 +246,7 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 				return;
 			// A session detail carries the state of its run, so a run change
 			// refetches the sessions with the runs.
+			case "sessions.status":
 			case "agent-runs.changed":
 				enqueue([family("agentRuns"), family("sessions")]);
 				return;

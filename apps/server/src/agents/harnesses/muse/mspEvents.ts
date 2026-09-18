@@ -53,6 +53,47 @@ export class MuseSessionEvents {
 			sessionId: this.sessionId,
 			...(typeof params.turnId === "string" ? { turnId: params.turnId } : {}),
 		};
+		if (method === "userInput/requested" || method === "userInput/request") {
+			const request = z
+				.looseObject({
+					userInputId: z.string(),
+					questions: z.array(
+						z.looseObject({
+							id: z.string(),
+							question: z.string(),
+							options: z.array(z.object({ label: z.string(), description: z.string().optional() })),
+							selection: z.object({
+								mode: z.enum(["single", "multiple"]),
+								minSelections: z.number().optional(),
+								maxSelections: z.number().optional(),
+							}),
+						}),
+					),
+				})
+				.parse(params);
+			return [
+				{
+					kind: "input-request",
+					...identity,
+					inputRequest: {
+						id: request.userInputId,
+						kind: "question",
+						title: "The agent has a question",
+						blocking: true,
+						questions: request.questions.map((question) => ({
+							id: question.id,
+							question: question.question,
+							options: question.options,
+							multiple: question.selection.mode === "multiple",
+							minSelections: question.selection.minSelections,
+							maxSelections: question.selection.maxSelections,
+						})),
+					},
+				},
+			];
+		}
+		if (method === "userInput/settled")
+			return [{ kind: "input-resolved", ...identity, requestId: z.string().parse(params.userInputId) }];
 		if (method === "session/modelChanged")
 			return [{ kind: "session", ...identity, model: fromHarnessModel("muse", z.string().parse(params.modelId)) }];
 		if (method === "turn/started") return [{ kind: "working", ...identity }];

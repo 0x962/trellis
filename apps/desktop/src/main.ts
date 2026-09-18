@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { app, BrowserWindow, dialog, type IpcMainInvokeEvent, ipcMain, Menu, session, shell } from "electron";
+import { app, BrowserWindow, dialog, type IpcMainInvokeEvent, Menu, shell } from "electron";
 import { activateHostRelease } from "./activateHostRelease/activateHostRelease.ts";
 import { appMenu } from "./appMenu/appMenu.ts";
 import { chooseDataHome } from "./chooseDataHome/chooseDataHome.ts";
@@ -11,23 +11,23 @@ import {
 	type DesktopServiceStatus,
 	type DesktopStatus,
 	type DesktopUpdateStatus,
-	parseDesktopAction,
-	parseOpenAtLogin,
 	requireOpenedPath,
 	updateSummary,
 } from "./desktopSettings/desktopSettings.ts";
 import { connectHost, type HostConnection } from "./host/host.ts";
-import { hostRequest } from "./hostRequest/hostRequest.ts";
 import { installCli } from "./installCli/installCli.ts";
-import { deepLinkPath, externalUrl, rendererPath, sameOrigin } from "./navigation/navigation.ts";
+import { deepLinkPath, rendererPath, sameOrigin } from "./navigation/navigation.ts";
 import { type PinnedRelease, pinResources } from "./pinnedResources/pinnedResources.ts";
 import { prepareHome } from "./prepareHome/prepareHome.ts";
+import { registerDesktopHandlers } from "./registerDesktopHandlers/registerDesktopHandlers.ts";
 import { createRendererNavigation } from "./rendererNavigation";
 import { restartHost } from "./restartHost/index.ts";
 import { restartMenuItem } from "./restartMenuItem/index.ts";
+import { secureRenderer } from "./secureRenderer/secureRenderer.ts";
 import { readSelectedHome } from "./selectedHome/selectedHome.ts";
 import { openServiceSettings, serviceCommand } from "./service/service.ts";
 import { requireService, stopLocalWork } from "./serviceActions/serviceActions.ts";
+import { sessionNotifications } from "./sessionNotifications/sessionNotifications.ts";
 import { showMaximizedWindow } from "./showMaximizedWindow/showMaximizedWindow.ts";
 import { showStartupError } from "./showStartupError/index.ts";
 import { startupProgress } from "./startupProgress/index.ts";
@@ -35,8 +35,17 @@ import { showUpdateStatus } from "./updateActions/updateActions.ts";
 import { readUpdateStatus } from "./updateStatus/updateStatus.ts";
 import { windowOptions } from "./windowOptions/windowOptions.ts";
 
+configureDesktopIdentity(app);
+
 let window: BrowserWindow | undefined;
 let host: HostConnection;
+let visibleSession: string | null = null;
+const notifications = sessionNotifications({
+	directory: join(app.getPath("userData"), "sounds"),
+	isVisible: (runId) => Boolean(window?.isFocused() && !window.isMinimized() && visibleSession === runId),
+	navigate: (id) => navigate(`trellis://open/sessions/${id}`),
+});
+app.on("before-quit", () => notifications.stop());
 let availableRelease: PinnedRelease | undefined;
 const rendererNavigation = createRendererNavigation((path) => window?.webContents.send("trellis:navigate", path));
 const progress = startupProgress(join(app.getAppPath(), "dist/startup.html"));
@@ -54,7 +63,6 @@ const developmentHostOptions = () => ({
 	entry: join(paths().hostRoot, "apps/server/src/index.ts"),
 	webDist: join(paths().hostRoot, "apps/web/dist"),
 });
-
 const openWindow = async () => {
 	if (window) {
 		showMaximizedWindow(window);
@@ -89,16 +97,10 @@ const openWindow = async () => {
 	window.on("closed", () => {
 		rendererNavigation.startLoad();
 		window = undefined;
+		visibleSession = null;
 	});
 	window.webContents.on("did-start-loading", rendererNavigation.startLoad);
-	window.webContents.on("will-navigate", (event, url) => {
-		if (!sameOrigin(url, host.origin)) event.preventDefault();
-	});
-	window.webContents.on("will-attach-webview", (event) => event.preventDefault());
-	window.webContents.setWindowOpenHandler(({ url }) => {
-		if (externalUrl(url)) void shell.openExternal(url);
-		return { action: "deny" };
-	});
+	secureRenderer(window, () => host);
 	await window.loadURL(`${host.origin}${rendererNavigation.initialPath()}`);
 };
 const chooseHome = (current = desktopHome()) =>
@@ -113,7 +115,6 @@ const chooseHome = (current = desktopHome()) =>
 			app.exit();
 		},
 	});
-
 const connect = async (report: (stage: string) => Promise<void> = async () => {}) => {
 	const hostRoot = paths().hostRoot;
 	if (app.isPackaged) {
@@ -148,12 +149,13 @@ const connect = async (report: (stage: string) => Promise<void> = async () => {}
 		});
 		if (update.state === "blocked") await showUpdateStatus(desktopHome(), availableRelease);
 		host = connectedHost;
+		notifications.connect(host);
 		return;
 	}
 	await report("Start background host");
 	host = await connectHost(developmentHostOptions());
+	notifications.connect(host);
 };
-
 const navigate = async (url: string) => {
 	const path = deepLinkPath(url);
 	if (!path) return;
@@ -178,29 +180,23 @@ const trustRenderer = (event: IpcMainInvokeEvent) => {
 		throw new Error("Untrusted desktop request.");
 };
 
-// The development app has no background service helper and no pinned package.
 const requirePackaged = () => {
 	if (!app.isPackaged) throw new Error("The development app uses TRELLIS_DESKTOP_HOME and has no background service.");
 };
-
 const desktopStatus = (): DesktopStatus => ({
 	packaged: app.isPackaged,
 	dataDirectory: desktopHome(),
 	openAtLogin: app.getLoginItemSettings().openAtLogin,
 });
-
 const desktopServiceStatus = async (): Promise<DesktopServiceStatus> =>
 	app.isPackaged ? (await serviceCommand(paths().helper, "status")).status : null;
-
 const desktopUpdateStatus = async (): Promise<DesktopUpdateStatus> =>
 	app.isPackaged ? updateSummary(await readUpdateStatus(desktopHome(), availableRelease!)) : null;
-
 const openPath = async (path: string) => {
 	const error = await shell.openPath(path);
 	requireOpenedPath(error);
 };
 
-// Each action rejects with the message that the Settings page shows.
 const desktopActions: Record<DesktopAction, () => Promise<unknown>> = {
 	chooseDataDirectory: async () => {
 		requirePackaged();
@@ -221,11 +217,9 @@ const desktopActions: Record<DesktopAction, () => Promise<unknown>> = {
 	},
 	quit: async () => app.quit(),
 };
-
 const menuAction = (name: DesktopAction, title: string) => () =>
 	void desktopActions[name]().catch((error: Error) => dialog.showErrorBox(title, error.message));
 
-configureDesktopIdentity(app);
 if (process.platform === "darwin") app.commandLine.appendSwitch("disable-backgrounding-occluded-windows");
 app.commandLine.appendSwitch("max-active-webgl-contexts", "256");
 if (!app.requestSingleInstanceLock()) app.quit();
@@ -251,48 +245,20 @@ else {
 		.whenReady()
 		.then(async () => {
 			await progress.show("Prepare Trellis");
-			const rendererSession = session.fromPartition("persist:trellis");
-			rendererSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
-			rendererSession.setPermissionCheckHandler(() => false);
-			rendererSession.webRequest.onBeforeSendHeaders((details, callback) => {
-				if (host && window && details.webContentsId === window.webContents.id && hostRequest(details.url, host.origin))
-					details.requestHeaders.Authorization = `Bearer ${host.token}`;
-				else delete details.requestHeaders.Authorization;
-				callback({ requestHeaders: details.requestHeaders });
-			});
-			ipcMain.handle("trellis:choose-directory", async (event) => {
-				trustRenderer(event);
-				const result = await dialog.showOpenDialog(window!, { properties: ["openDirectory"] });
-				return result.canceled ? null : result.filePaths[0];
-			});
-			ipcMain.handle("trellis:navigation-ready", (event) => {
-				trustRenderer(event);
-				rendererNavigation.rendererReady();
-			});
-			ipcMain.handle("trellis:accessibility-ready", (event) => {
-				trustRenderer(event);
-				event.sender.send("trellis:accessibility-support", app.isAccessibilitySupportEnabled());
-			});
-			ipcMain.handle("trellis:desktop-status", (event) => {
-				trustRenderer(event);
-				return desktopStatus();
-			});
-			ipcMain.handle("trellis:desktop-service-status", (event) => {
-				trustRenderer(event);
-				return desktopServiceStatus();
-			});
-			ipcMain.handle("trellis:desktop-update-status", (event) => {
-				trustRenderer(event);
-				return desktopUpdateStatus();
-			});
-			ipcMain.handle("trellis:set-open-at-login", (event, enabled: unknown) => {
-				trustRenderer(event);
-				requirePackaged();
-				app.setLoginItemSettings({ openAtLogin: parseOpenAtLogin(enabled) });
-			});
-			ipcMain.handle("trellis:desktop-action", async (event, action: unknown) => {
-				trustRenderer(event);
-				await desktopActions[parseDesktopAction(action)]();
+
+			registerDesktopHandlers({
+				trust: trustRenderer,
+				window: () => window,
+				setVisible: (id) => {
+					visibleSession = id;
+				},
+				play: notifications.play,
+				rendererReady: rendererNavigation.rendererReady,
+				status: desktopStatus,
+				serviceStatus: desktopServiceStatus,
+				updateStatus: desktopUpdateStatus,
+				requirePackaged,
+				action: (action) => desktopActions[action](),
 			});
 			await connect(progress.show);
 			if (!host) return;
@@ -311,6 +277,7 @@ else {
 								: {
 										restart: async () => {
 											host = await restartHost(developmentHostOptions());
+											notifications.connect(host);
 										},
 										showError: (error) => dialog.showErrorBox("Trellis did not restart", error.message),
 									},

@@ -18,6 +18,11 @@ const IssueSchema = z.looseObject({
 // An error without a payload declares `z.undefined()`, so `data` is typed
 // as absent instead of as an empty object.
 export const errors = {
+	SESSION_ATTENTION_CHANGED: {
+		status: 409,
+		message: "The session changed. Read it again before you continue.",
+		data: z.object({ reason: z.string() }),
+	},
 	RESTART_FAILED: {
 		status: 503,
 		message: "An agent session could not resume after the system restart.",

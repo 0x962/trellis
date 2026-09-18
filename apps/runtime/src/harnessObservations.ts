@@ -13,6 +13,7 @@ export class HarnessObservations {
 	activity: RuntimeProcessStatus["activity"] = null;
 	private readonly tools = new Map<string, NonNullable<RuntimeAgentMetadata["lastTool"]>>();
 	private hasMessageInTurn = false;
+	private sequence = 0;
 	constructor(path: string) {
 		this.log = new SessionLog(path);
 		let offset = 0;
@@ -40,6 +41,7 @@ export class HarnessObservations {
 		return accepted;
 	}
 	private apply(event: HarnessEvent, observedAt: string): boolean {
+		this.sequence++;
 		this.agent ??= {
 			sessionId: null,
 			model: null,
@@ -52,8 +54,26 @@ export class HarnessObservations {
 			outcome: null,
 		};
 		const agent = this.agent;
+		agent.attention ??= { sequence: 0, completion: null, failure: null, requests: [] };
+		const attention = agent.attention;
 		const begins = event.kind === "prompt" || event.kind === "working";
 		if (!begins && event.turnId !== undefined && agent.turnId !== null && event.turnId !== agent.turnId) return false;
+		attention.sequence = this.sequence;
+		if (event.kind === "prompt" || (event.kind === "working" && event.turnId !== agent.turnId)) {
+			attention.completion = null;
+			attention.failure = null;
+			attention.requests = [];
+		}
+		if (event.kind === "input-request" && !attention.requests.some((request) => request.id === event.inputRequest!.id))
+			attention.requests.push({ ...event.inputRequest!, sequence: this.sequence, at: observedAt });
+		if (event.kind === "input-resolved")
+			attention.requests = attention.requests.filter((request) => request.id !== event.requestId);
+		if (event.kind === "idle" || (event.kind === "error" && !event.willRetry)) {
+			attention.requests = [];
+			if (event.outcome === "completed") attention.completion ??= { sequence: this.sequence, at: observedAt };
+			if (event.outcome === "failed" || event.kind === "error")
+				attention.failure ??= { sequence: this.sequence, at: observedAt };
+		}
 		if (
 			event.kind === "prompt" ||
 			(event.kind === "working" && event.turnId !== undefined && event.turnId !== agent.turnId)
@@ -108,7 +128,11 @@ export class HarnessObservations {
 		}
 		if (event.kind === "message") {
 			if (this.activity !== null) this.activity = { ...this.activity, updatedAt: observedAt };
-		} else if (event.kind !== "session" || this.activity === null) {
+		} else if (
+			event.kind !== "input-request" &&
+			event.kind !== "input-resolved" &&
+			(event.kind !== "session" || this.activity === null)
+		) {
 			const state =
 				event.kind === "session"
 					? "ready"

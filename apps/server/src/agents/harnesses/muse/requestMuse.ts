@@ -1,11 +1,19 @@
 import { request } from "node:http";
+import type { InputAnswer } from "@trellis/api";
 import { controlReplyText } from "../controlReplyText/controlReplyText.ts";
 
 export function requestMuse(
 	socket: string,
 	token: string,
-	path: "/prompt" | "/interrupt",
-	body: { sessionId: string; prompt?: string; turnId?: string },
+	path: "/prompt" | "/interrupt" | "/answer",
+	body: {
+		sessionId: string;
+		prompt?: string;
+		turnId?: string;
+		requestId?: string;
+		answers?: InputAnswer[];
+		cancel?: boolean;
+	},
 ) {
 	return new Promise<void>((resolve, reject) => {
 		const req = request(
