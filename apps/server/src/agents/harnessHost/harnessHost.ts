@@ -51,7 +51,7 @@ export class HarnessHost {
 	}
 	async startPrepared(id: string, timeoutMs?: number): Promise<HarnessStarted> {
 		const descriptor = await this.descriptor(id);
-		const exists = (await this.options.runtime.list()).some((process) => process.id === id);
+		const exists = (await this.options.runtime.list({ ids: [id] })).length > 0;
 		return this.launchDescriptor(descriptor, timeoutMs, !exists);
 	}
 	private async launchDescriptor(

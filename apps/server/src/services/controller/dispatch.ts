@@ -13,8 +13,13 @@ type Dependencies = {
 	manage: typeof manage;
 	mentions: typeof dispatchMentions;
 };
+// The beat needs the running processes only: the copilot check reads an
+// exited copilot by its id, and a message goes to a running process. The
+// runtime keeps exited records for days, so a full list would carry them
+// on every beat.
 const defaults: Dependencies = {
-	readSessions: async (home) => nativeHost(home, undefined, await ensureNativeRuntime(home)).list(),
+	readSessions: async (home) =>
+		nativeHost(home, undefined, await ensureNativeRuntime(home)).list({ status: "running" }),
 	manage,
 	mentions: dispatchMentions,
 };
@@ -24,7 +29,7 @@ export const dispatch = async (ctx: IoCtx, input: { manage?: boolean } = {}, dep
 	const track = <T>(id: "runtime" | "workers" | "messages", work: () => Promise<T>) =>
 		loop && input.manage !== false ? loop.runStep(id, work) : work();
 	const sessions = await track("runtime", () => deps.readSessions(ctx.home));
-	if (input.manage !== false) loop?.record(`Read ${sessions.length} runtime processes.`, "info", "runtime");
+	if (input.manage !== false) loop?.record(`Read ${sessions.length} running processes.`, "info", "runtime");
 	const results = await Promise.allSettled([
 		input.manage === false ? Promise.resolve() : track("workers", () => deps.manage(ctx, { sessions })),
 		track("messages", () => deps.mentions(ctx, sessions)),

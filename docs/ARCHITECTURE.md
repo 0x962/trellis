@@ -236,6 +236,8 @@ The row retains the project path and ticket identifier so its history remains re
 `agentRuns` exposes start, resume, stop, refresh, send, output, session inspection, terminal input, and terminal resize operations.
 `GET /api/agent-runs/:id/terminal/stream` pushes terminal bytes and inspected process status through an authenticated SSE connection.
 The runtime owns each process through a distinct execution attempt. Each attempt has an identifier, generation, and token hash.
+The runtime keeps the record and the output of an exited process for 7 days, and at most 500 exited records at any time.
+The oldest exits leave first. The sweep runs at boot, after every exit, and once an hour.
 A stable start request identifier returns its existing run instead of a new launch.
 A changed target rejects reuse of that identifier.
 
@@ -379,6 +381,7 @@ Migration `0060_muse_harness` adds the `## Muse harness` section, which names th
 The controller schedules the next beat one second after the current beat completes.
 The Loops page at `/loops` shows step cards, recent output, errors, and pass times.
 Wait is the first step. Runtime inspection precedes parallel worker checks and message delivery.
+The inspection reads the running processes only. The copilot check reads an exited copilot by its identifier.
 Each active card has a highlight. Errors retain their source step across subsequent passes.
 `loops.list` reads this process state. Human callers use `loops.control` to pause, resume, run one pass, or clear the history.
 Pause suppresses copilot reconciliation after the current pass. Comment mention delivery continues.
@@ -386,6 +389,9 @@ Run now shares the scheduled pass and cannot overlap it. A paused loop permits o
 Each host starts with management enabled. The host retains 200 output entries and 20 errors until it restarts.
 Project copilots launch independently. A failed launch does not prevent another project job.
 An unknown runtime process requires confirmation before replacement.
+A copilot that exits within 90 seconds of its launch waits before the next launch.
+The wait is 30 seconds after the first such exit. It doubles with each further launch inside one hour, up to 15 minutes.
+The loop log records the wait once per launch, with the error of the process.
 Archived projects suppress new starts. Trellis dispatches agent work for every active project.
 Codex compaction start, provider progress, and completion update the `contextCompaction` tool record.
 The bridge forwards compaction progress from the engine log only for its current thread and turn.

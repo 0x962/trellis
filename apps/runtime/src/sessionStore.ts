@@ -22,6 +22,7 @@ import { observeLegacyTurn } from "./observeLegacyTurn.ts";
 import { ProcessExitWatcher } from "./processExitWatcher.ts";
 import { createProcessHandle } from "./processHandle.ts";
 import { registerNativeDelivery } from "./registerNativeDelivery.ts";
+import { defaultRetainOptions, exitedRecordsToRemove, type RetainOptions } from "./retainExited.ts";
 import { sessionFileSuffixes, sessionFiles } from "./sessionFiles.ts";
 import type { SessionRecord as Record } from "./sessionRecord.ts";
 import { sessionResources } from "./sessionResources.ts";
@@ -30,8 +31,9 @@ import { watchRecoveredSession } from "./watchRecoveredSession.ts";
 
 // A host reads the output of an exited session after the exit, for example
 // when it stores the transcript of a stopped agent. The record and its files
-// stay for this long after the exit, and then the runtime removes them.
-const retentionMs = 7 * 24 * 60 * 60 * 1000;
+// stay for the retention after the exit, and at most `maxExitedRecords` of
+// them stay at any time. The sweep runs at boot, after every exit, and once
+// an hour for the records whose retention ends while nothing exits.
 const sweepIntervalMs = 60 * 60 * 1000;
 
 export class SessionStore {
@@ -41,6 +43,7 @@ export class SessionStore {
 	constructor(
 		private readonly home: string,
 		private readonly daemonId: string,
+		private readonly retain: RetainOptions = defaultRetainOptions,
 	) {
 		mkdirSync(home, { recursive: true, mode: 0o700 });
 		for (const file of readdirSync(home).filter((file) => file.endsWith(".session.json"))) {
@@ -73,14 +76,16 @@ export class SessionStore {
 		this.sweeper = setInterval(() => this.sweep(), sweepIntervalMs);
 		this.sweeper.unref();
 	}
-	// Removes each exited session whose exit is older than retentionMs. A record
+	// Removes the exited sessions that `exitedRecordsToRemove` names. A record
 	// recovered from a crash has no endedAt, so its startedAt sets its age.
 	private sweep(now = Date.now()) {
+		const exited: { record: Record; endedAt: number }[] = [];
 		for (const record of this.records.values()) {
 			if (record.process !== undefined || record.listeners.size > 0) continue;
 			if (inspectSessionRecord(record).status !== "exited") continue;
-			const endedAt = record.session.endedAt ?? record.session.startedAt;
-			if (now - Date.parse(endedAt) < retentionMs) continue;
+			exited.push({ record, endedAt: Date.parse(record.session.endedAt ?? record.session.startedAt) });
+		}
+		for (const record of exitedRecordsToRemove(exited, now, this.retain)) {
 			this.records.delete(record.session.id);
 			for (const path of Object.values(sessionFiles(this.home, record.session.id))) rmSync(path, { force: true });
 		}
@@ -211,6 +216,7 @@ export class SessionStore {
 			record.process = undefined;
 			this.save(record);
 			record.resolveStop();
+			this.sweep();
 		};
 		try {
 			record.process = createProcessHandle(
