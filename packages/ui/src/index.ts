@@ -6,7 +6,20 @@ export { DisplayPopover, type DisplayPopoverProps, type DisplaySortField } from 
 export { FilterBar } from "./domain/FilterBar";
 export { FilterPopover, type FilterPopoverProps } from "./domain/FilterPopover";
 export { FlowDecisionContext } from "./domain/FlowDecisionContext";
-export { FlowProgress } from "./domain/FlowProgress";
+export {
+	type FlowRunStatus,
+	FlowRunSummary,
+	type FlowRunSummaryProps,
+} from "./domain/FlowRunSummary";
+export {
+	type FlowRunKind,
+	type FlowRunRow,
+	type FlowRunState,
+	FlowRunTree,
+	type FlowRunTreeProps,
+	flowKindIcons,
+	flowStateLabels,
+} from "./domain/FlowRunTree";
 export { GroupHeader, type GroupHeaderProps, groupHeaderHeight, phoneGroupHeaderHeight } from "./domain/GroupHeader";
 export * from "./domain/HarnessAccountForm";
 export * from "./domain/HarnessAccountNameForm";
@@ -83,5 +96,6 @@ export { Textarea, type TextareaProps } from "./primitives/Textarea";
 export { Toaster, type ToasterProps, toast } from "./primitives/Toast";
 export { Tooltip, type TooltipProps } from "./primitives/Tooltip";
 export { cx } from "./utils/cx";
+export { formatClock } from "./utils/formatClock";
 export { isTextEntry } from "./utils/isTextEntry";
 export { readRowMotion } from "./utils/readRowMotion";

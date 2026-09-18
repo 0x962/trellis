@@ -14,6 +14,19 @@ export function advanceFlow(doc: FlowDoc, previous: FlowExecution, event: FlowEv
 	if (event.type === "cancel") {
 		state.status = "canceled";
 		state.error = event.reason;
+	} else if (event.type === "launched") {
+		const step = state.steps.find((step) => taskKey(step) === event.key);
+		if (!step || !["running", "unknown"].includes(step.state) || step.phase === "children") return state;
+		// The step counts its time from the moment its process exists. Each box
+		// around it with a time limit and no clock yet starts its clock now.
+		if (step.phase === "step") step.startedAt = event.at;
+		let parentKey = step.parentKey;
+		while (parentKey !== null) {
+			const parent = state.steps.find((candidate) => candidate.key === parentKey)!;
+			const box = doc.nodes.find((node) => node.id === parent.nodeId)!;
+			if (box.minutes !== null && parent.deadlineAt === null) parent.deadlineAt = event.at + box.minutes * 60000;
+			parentKey = parent.parentKey;
+		}
 	} else if (event.type !== "tick") {
 		const step = state.steps.find((step) => taskKey(step) === event.key);
 		if (!step) return state;

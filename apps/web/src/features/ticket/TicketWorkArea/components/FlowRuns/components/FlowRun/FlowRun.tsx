@@ -1,152 +1,168 @@
-import { Stop } from "@phosphor-icons/react";
-import { useMutation } from "@tanstack/react-query";
+import { ArrowsClockwise, FlowArrow, Stop } from "@phosphor-icons/react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import type { FlowExecutionRecord } from "@trellis/api";
-import {
-	Button,
-	ConfirmDialog,
-	Dialog,
-	FlowDecisionContext,
-	FlowProgress,
-	IconButton,
-	Textarea,
-	Tooltip,
-} from "@trellis/ui";
-import { useState } from "react";
+import { Avatar, ConfirmDialog, FlowRunSummary, FlowRunTree, IconButton, Tooltip, toast } from "@trellis/ui";
+import { useMemo, useState } from "react";
 import { useApp } from "../../../../../../../lib/appContext";
+import { relativeTime } from "../../../../../../../lib/format";
+import { agentKindOf } from "../../../../../../agents/agentKindOf";
+import { agentProfileOf } from "../../../../../../agents/agentProfileOf";
+import { isAgentWorking } from "../../../../../../agents/isAgentWorking";
+import { useClock } from "../../useClock";
+import { buildFlowRunRows } from "./buildFlowRunRows";
+import { FlowDecisionDialog } from "./components/FlowDecisionDialog";
 import { FlowTaskTerminal } from "./components/FlowTaskTerminal";
+import { flowRunNotice } from "./flowRunNotice";
 
-export function FlowRun({ execution }: { execution: FlowExecutionRecord }) {
+// A run ends when its last step became final. A run stored before steps
+// kept that time ends at its last state write.
+const endOf = (execution: FlowExecutionRecord) =>
+	Math.max(execution.state.updatedAt, ...execution.state.steps.map((step) => step.endedAt ?? 0));
+
+export function FlowRun({
+	execution,
+	ticket,
+	expanded,
+	onToggle,
+	canStart,
+}: {
+	execution: FlowExecutionRecord;
+	ticket: string;
+	expanded: boolean;
+	onToggle: () => void;
+	// No run of the ticket is live, so this one can run again.
+	canStart: boolean;
+}) {
 	const { client, orpc, queryClient } = useApp();
+	const { doc, state } = execution;
+	const live = state.status === "running" || state.status === "waiting";
+	const now = useClock(live);
+	const runs = useQuery(orpc.agentRuns.list.queryOptions({ input: { ticket } }));
+	const rows = useMemo(() => buildFlowRunRows(execution), [execution]);
 	const [decision, setDecision] = useState<string | null>(null);
-	const [output, setOutput] = useState("");
+	const [terminal, setTerminal] = useState<FlowExecutionRecord["tasks"][number] | null>(null);
 	const [confirmCancel, setConfirmCancel] = useState(false);
-	const [terminalTask, setTerminalTask] = useState<FlowExecutionRecord["tasks"][number] | null>(null);
 	const refresh = () => queryClient.invalidateQueries({ queryKey: orpc.flowExecutions.list.key() });
-	const decide = useMutation({
-		mutationFn: (approved: boolean) =>
-			client.flowExecutions.decide({
-				id: execution.id,
-				key: decision!,
-				approved,
-				output,
-				expectedRevision: execution.revision,
-			}),
-		onSuccess: async () => {
-			setDecision(null);
-			setOutput("");
-			await refresh();
-		},
-	});
 	const cancel = useMutation({
 		mutationFn: () => client.flowExecutions.cancel({ id: execution.id, expectedRevision: execution.revision }),
 		onSuccess: async () => {
 			setConfirmCancel(false);
 			await refresh();
 		},
+		onError: async (error) => {
+			toast.error(error.message);
+			await refresh();
+		},
 	});
-	const active = ["running", "waiting"].includes(execution.state.status);
-	const decisionStep = execution.state.steps.find((step) => step.actionKey === decision);
-	const decisionNode = execution.doc.nodes.find((node) => node.id === decisionStep?.nodeId);
-	const completedOutputs = execution.state.steps
-		.filter((step) => step.state === "succeeded" && step.output)
-		.map((step) => ({
-			key: step.key,
-			title: execution.doc.nodes.find((node) => node.id === step.nodeId)!.title,
-			text: step.output!,
-		}));
+	// The flow runs at its current saved version, which can be newer than the
+	// version of this run.
+	const runAgain = useMutation({
+		mutationFn: async () => {
+			const current = await client.flows.get({ flow: execution.flowId });
+			return client.flowExecutions.start({
+				flow: execution.flowId,
+				ticket,
+				requestId: crypto.randomUUID(),
+				expectedVersion: current.flow.version,
+			});
+		},
+		onSuccess: async () => {
+			await refresh();
+			toast.success(`${doc.flow.name} started`);
+		},
+		onError: (error) => toast.error(error.message),
+	});
+	const taskOf = (key: string) => {
+		const actionKey = rows.find((row) => row.key === key)?.actionKey;
+		return execution.tasks.find((task) => task.key === actionKey) ?? null;
+	};
+	const withActors = rows.map((row) => {
+		const task = row.actionKey === null ? null : execution.tasks.find((task) => task.key === row.actionKey);
+		const run = task ? runs.data?.find((run) => run.id === task.runId) : undefined;
+		if (!run) return row;
+		return {
+			...row,
+			actor: (
+				<Avatar
+					kind="agent"
+					name={run.name}
+					agentKind={agentKindOf(run.kind)}
+					agentProfile={agentProfileOf(run.harness)}
+					state={isAgentWorking(run) ? "working-mild" : "static"}
+				/>
+			),
+		};
+	});
 	return (
-		<section aria-label={execution.doc.flow.name} className="flex min-w-0 flex-col gap-3">
-			<div className="flex items-center justify-between gap-3">
-				<h4 className="text-sm font-medium">
-					{execution.doc.flow.name} <span className="text-fg-muted tabular-nums">v{execution.state.flowVersion}</span>
-				</h4>
-				{active && (
-					<Tooltip content="Cancel flow">
-						<IconButton label="Cancel flow" icon={<Stop />} onClick={() => setConfirmCancel(true)} />
-					</Tooltip>
-				)}
-			</div>
-			{execution.state.error && (
-				<p role="alert" className="text-sm text-danger">
-					{execution.state.error}
-				</p>
-			)}
-			{execution.state.steps.some((step) => step.needsStop) && (
-				<p role="status" className="text-sm text-danger">
-					The host has not confirmed that every flow worker stopped.
-				</p>
-			)}
-			<FlowProgress
-				status={execution.state.status}
-				steps={execution.state.steps.map((step) => ({
-					key: step.actionKey,
-					title: execution.doc.nodes.find((node) => node.id === step.nodeId)?.title ?? step.nodeId,
-					state: step.state,
-					output: step.output,
-					error: step.error,
-					hasTerminal: execution.tasks.some((task) => task.key === step.actionKey),
-				}))}
-				onDecide={setDecision}
-				onOpenTerminal={(key) => setTerminalTask(execution.tasks.find((task) => task.key === key)!)}
-			/>
-			{terminalTask && <FlowTaskTerminal task={terminalTask} onClose={() => setTerminalTask(null)} />}
-			{decision !== null && (
-				<Dialog
-					open
-					title="Decide the flow step"
-					size="lg"
-					onOpenChange={(open) => !open && !decide.isPending && setDecision(null)}
-				>
-					<form
-						className="flex flex-col gap-4"
-						onSubmit={(event) => {
-							event.preventDefault();
-							decide.mutate(true);
-						}}
-					>
-						<FlowDecisionContext
-							title={decisionNode!.title}
-							instruction={decisionNode!.instruction}
-							outputs={completedOutputs}
-						/>
-						<Textarea
-							label="Decision notes"
-							value={output}
-							onChange={(event) => setOutput(event.target.value)}
-							maxLength={512 * 1024}
-							disabled={decide.isPending}
-						/>
-						{decide.error && (
-							<p role="alert" className="text-sm text-danger">
-								{decide.error.message}
-							</p>
+		<section aria-label={`${doc.flow.name} run`} className="flex min-w-0 flex-col gap-3">
+			<FlowRunSummary
+				name={doc.flow.name}
+				version={state.flowVersion}
+				status={state.status}
+				startedAt={state.startedAt}
+				startedLabel={relativeTime(new Date(state.startedAt).toISOString())}
+				durationMs={(live ? now : endOf(execution)) - state.startedAt}
+				notice={flowRunNotice(execution, rows)}
+				expanded={expanded}
+				onToggle={onToggle}
+				actions={
+					<>
+						{live && (
+							<Tooltip content="Cancel this run">
+								<IconButton label="Cancel this run" icon={<Stop />} onClick={() => setConfirmCancel(true)} />
+							</Tooltip>
 						)}
-						<div className="flex justify-end gap-2">
-							<Button type="button" disabled={decide.isPending} onClick={() => decide.mutate(false)}>
-								Reject step
-							</Button>
-							<Button type="submit" variant="primary" disabled={decide.isPending}>
-								Approve step
-							</Button>
-						</div>
-					</form>
-				</Dialog>
+						{!live && canStart && (
+							<Tooltip content={`Run ${doc.flow.name} again`}>
+								<IconButton
+									label={`Run ${doc.flow.name} again`}
+									icon={<ArrowsClockwise />}
+									disabled={runAgain.isPending}
+									onClick={() => runAgain.mutate()}
+								/>
+							</Tooltip>
+						)}
+						<Tooltip content={`Open ${doc.flow.name} in the editor`}>
+							<IconButton
+								label={`Open ${doc.flow.name} in the editor`}
+								icon={<FlowArrow />}
+								render={<Link to="/ai/flows/$slug" params={{ slug: doc.flow.slug }} />}
+							/>
+						</Tooltip>
+					</>
+				}
+			/>
+			{expanded && (
+				<>
+					{state.steps.some((step) => step.needsStop) && (
+						<p role="status" className="text-sm text-danger">
+							The host has not confirmed that every flow worker stopped.
+						</p>
+					)}
+					<FlowRunTree
+						label={`${doc.flow.name} steps`}
+						rows={withActors}
+						now={now}
+						onDecide={(key) => setDecision(rows.find((row) => row.key === key)?.actionKey ?? null)}
+						onOpenTerminal={(key) => setTerminal(taskOf(key))}
+					/>
+					{terminal && <FlowTaskTerminal task={terminal} onClose={() => setTerminal(null)} />}
+					{decision !== null && (
+						<FlowDecisionDialog execution={execution} actionKey={decision} onClose={() => setDecision(null)} />
+					)}
+				</>
 			)}
 			<ConfirmDialog
 				open={confirmCancel}
-				title="Cancel this flow?"
-				description="The host stops this flow's active workers and retains their files and output."
-				confirmLabel="Cancel flow"
+				title="Cancel this run?"
+				description="The host stops the active workers of this run and keeps their files and output."
+				confirmLabel="Cancel run"
 				danger
 				processing={cancel.isPending}
 				onCancel={() => !cancel.isPending && setConfirmCancel(false)}
 				onConfirm={() => cancel.mutate()}
 			/>
-			{cancel.error && (
-				<p role="alert" className="text-sm text-danger">
-					{cancel.error.message}
-				</p>
-			)}
 		</section>
 	);
 }

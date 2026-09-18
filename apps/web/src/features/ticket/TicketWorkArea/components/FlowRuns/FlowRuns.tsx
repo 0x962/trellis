@@ -1,38 +1,67 @@
 import { Play } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import { EmptyState, IconButton, Tooltip } from "@trellis/ui";
+import { EmptyState, IconButton, SectionHeader, Skeleton, Tooltip } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { FlowRun } from "./components/FlowRun";
 import { StartFlowDialog } from "./components/StartFlowDialog";
 
+const isLive = (status: string) => status === "running" || status === "waiting";
+
+// The flow runs of one ticket, newest first. A live run and the newest run
+// open with their steps. An older run opens on its name. The list refreshes
+// on the flows.changed event of the live connection.
 export function FlowRuns({ ticket }: { ticket: string }) {
 	const { orpc } = useApp();
 	const [start, setStart] = useState(false);
-	const executions = useQuery({
-		...orpc.flowExecutions.list.queryOptions({ input: { ticket } }),
-		refetchInterval: 3000,
-	});
+	// The runs whose open state differs from the default.
+	const [toggled, setToggled] = useState<ReadonlySet<string>>(() => new Set());
+	const executions = useQuery(orpc.flowExecutions.list.queryOptions({ input: { ticket } }));
+	const toggle = (id: string) =>
+		setToggled((previous) => {
+			const next = new Set(previous);
+			if (next.has(id)) next.delete(id);
+			else next.add(id);
+			return next;
+		});
+	const anyLive = executions.data?.some((execution) => isLive(execution.state.status)) ?? false;
 	return (
-		<section aria-label="Local flows" className="flex flex-col gap-4">
-			<div className="flex items-center justify-between gap-3">
-				<h3 className="text-sm font-medium">Local flows</h3>
-				<Tooltip content="Start a local flow">
-					<IconButton label="Start a local flow" icon={<Play />} onClick={() => setStart(true)} />
-				</Tooltip>
-			</div>
+		<section aria-label="Flows" className="flex flex-col gap-4">
+			<SectionHeader
+				level={3}
+				title="Flows"
+				count={executions.data?.length}
+				actions={
+					<Tooltip content="Start a flow">
+						<IconButton label="Start a flow" icon={<Play />} onClick={() => setStart(true)} />
+					</Tooltip>
+				}
+			/>
 			{executions.isPending ? (
-				<p role="status" className="text-sm text-fg-muted">
-					Load flow runs…
-				</p>
-			) : executions.error ? (
-				<p role="alert" className="text-sm text-danger">
-					{executions.error.message}
-				</p>
+				<div role="status" aria-label="Load flow runs">
+					<span className="sr-only">Load flow runs</span>
+					<Skeleton lines={3} height="h-9" />
+				</div>
+			) : executions.isError ? (
+				<EmptyState title="Could not load flow runs" description={executions.error.message} />
 			) : executions.data.length === 0 ? (
-				<EmptyState title="No local flow runs" description="Start a saved flow to run its steps for this ticket." />
+				<EmptyState title="No flow runs" description="Start a saved flow to run its steps against this ticket." />
 			) : (
-				executions.data.map((execution) => <FlowRun key={execution.id} execution={execution} />)
+				<div className="flex flex-col gap-6">
+					{executions.data.map((execution, index) => {
+						const open = isLive(execution.state.status) || index === 0;
+						return (
+							<FlowRun
+								key={execution.id}
+								execution={execution}
+								ticket={ticket}
+								expanded={toggled.has(execution.id) ? !open : open}
+								onToggle={() => toggle(execution.id)}
+								canStart={!anyLive}
+							/>
+						);
+					})}
+				</div>
 			)}
 			{start && <StartFlowDialog ticket={ticket} onClose={() => setStart(false)} />}
 		</section>

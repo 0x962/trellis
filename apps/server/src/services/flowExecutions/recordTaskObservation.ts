@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { advanceFlow } from "../../agents/nativeFlow/advanceFlow.ts";
+import { describeTaskFailure } from "../../agents/nativeFlow/describeTaskFailure.ts";
 import { parseFlowDecision } from "../../agents/nativeFlow/parseFlowDecision.ts";
 import { taskKey } from "../../agents/nativeFlow/taskKey.ts";
 import type { FlowEvent } from "../../agents/nativeFlow/types.ts";
@@ -33,7 +34,11 @@ export async function recordTaskObservation(
 	if (!run || run.session_id !== snapshot.sessionId)
 		event = unknown("The result does not belong to the current flow attempt");
 	else if (snapshot.state === "failed")
-		event = { type: "fail", key: input.key, error: snapshot.error ?? "The flow worker failed" };
+		event = {
+			type: "fail",
+			key: input.key,
+			error: describeTaskFailure(execution.doc, execution.state, step, snapshot.error ?? "The flow worker failed"),
+		};
 	else if (snapshot.state === "unknown") event = unknown(snapshot.error ?? "The flow worker needs attention");
 	else if (snapshot.state === "idle") {
 		if (!snapshot.resultId || snapshot.result === null || !snapshot.acknowledgedMessageIds.includes(input.attemptId))

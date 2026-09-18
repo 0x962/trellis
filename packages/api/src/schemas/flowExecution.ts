@@ -34,6 +34,8 @@ export const FlowExecutionStateSchema = z.object({
 			decision: z.enum(["yes", "no"]).nullable(),
 			error: z.string().nullable(),
 			startedAt: z.number().nullable(),
+			// The time the step became final: succeeded, skipped, failed, or canceled.
+			endedAt: z.number().nullable(),
 			deadlineAt: z.number().nullable(),
 			needsStop: z.boolean(),
 		}),

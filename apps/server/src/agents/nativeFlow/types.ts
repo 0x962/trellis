@@ -20,6 +20,8 @@ export interface FlowStep {
 	decision: "yes" | "no" | null;
 	error: string | null;
 	startedAt: number | null;
+	// The time the step became final. Rows stored before this field existed carry no value.
+	endedAt: number | null;
 	deadlineAt: number | null;
 	needsStop: boolean;
 }
@@ -35,6 +37,8 @@ export interface FlowExecution {
 }
 export type FlowEvent =
 	| { type: "started"; key: string }
+	// The worker process of the step exists from `at`, a Unix millisecond time.
+	| { type: "launched"; key: string; at: number }
 	| { type: "complete"; key: string; output: string; decision?: "yes" | "no" }
 	| { type: "human"; key: string; approved: boolean; output: string }
 	| { type: "unknown" | "fail"; key: string; error: string }
