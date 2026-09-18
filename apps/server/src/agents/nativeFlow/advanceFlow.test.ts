@@ -47,3 +47,12 @@ test("a launch of a step that is not running changes nothing", () => {
 	expect(step(state, inner).deadlineAt).toBeNull();
 	expect(step(state, `${inner}/1/second`).startedAt).toBeNull();
 });
+
+test("a warned event keeps the count of time warnings on a running step", () => {
+	let state = createFlowExecution(doc, 1000);
+	state = advanceFlow(doc, state, { type: "started", key: `${inner}/1/first:step:1` }, 2000);
+	state = advanceFlow(doc, state, { type: "warned", key: `${inner}/1/first:step:1`, count: 1 }, 3000);
+	expect(step(state, `${inner}/1/first`).timeWarnings).toBe(1);
+	const idle = advanceFlow(doc, state, { type: "warned", key: `${inner}/1/second:step:1`, count: 1 }, 4000);
+	expect(step(idle, `${inner}/1/second`).timeWarnings).toBeUndefined();
+});

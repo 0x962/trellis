@@ -2,8 +2,11 @@ import { createHash } from "node:crypto";
 import { HarnessSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { advanceFlow } from "../../agents/nativeFlow/advanceFlow.ts";
+import { boxClocks, processLimit } from "../../agents/nativeFlow/boxClocks.ts";
 import { flowTarget } from "../../agents/nativeFlow/flowTarget.ts";
 import { pendingFlowActions } from "../../agents/nativeFlow/pendingFlowActions.ts";
+import { taskKey } from "../../agents/nativeFlow/taskKey.ts";
+import { timeLimitNotice } from "../../agents/nativeFlow/timeLimitNotice.ts";
 import type { ServiceCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
@@ -29,10 +32,14 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 		tx,
 		sql`SELECT p.url, p.head_ref, p.base_ref, p.state FROM ticket_pull_requests l JOIN pull_requests p ON p.id = l.pull_request_id WHERE l.ticket_id = ${execution.ticket_id} ORDER BY p.created_at, p.id`,
 	);
+	// The time limits around the step, so the worker plans its work and its
+	// result inside the budget.
+	const clocks = boxClocks(execution.doc, state, state.steps.find((step) => taskKey(step) === action.key)!);
 	const instruction = [
 		execution.doc.flow.briefing,
 		flowTarget(ticket, pulls),
 		`Flow step: ${action.nodeId}`,
+		timeLimitNotice(clocks, ctx.now.getTime()) ?? "",
 		action.instruction,
 		`Prior step outputs:\n${JSON.stringify(action.inputs)}`,
 		action.purpose === "step" ? "" : "Answer the condition with exactly YES or NO as the complete final response.",
@@ -62,17 +69,5 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 		{ ...execution, state },
 		advanceFlow(execution.doc, state, { type: "started", key: action.key }, ctx.now.getTime()),
 	);
-	// The earliest deadline among the boxes around the step whose clock runs,
-	// and the shortest budget among the boxes whose clock starts with this
-	// launch. The runtime gets the smaller of the two as its process timeout.
-	let deadlineAt: number | undefined;
-	let budgetMs: number | undefined;
-	let step = state.steps.find((step) => `${step.key}:${step.phase}:${step.round}` === action.key)!;
-	while (step.parentKey !== null) {
-		step = state.steps.find((parent) => parent.key === step.parentKey)!;
-		const box = execution.doc.nodes.find((node) => node.id === step.nodeId)!;
-		if (step.deadlineAt !== null) deadlineAt = Math.min(deadlineAt ?? Infinity, step.deadlineAt);
-		else if (box.minutes !== null) budgetMs = Math.min(budgetMs ?? Infinity, box.minutes * 60000);
-	}
-	return { ...reservation, attempt: reservation.attempt, id: execution.id, key: action.key, deadlineAt, budgetMs };
+	return { ...reservation, attempt: reservation.attempt, id: execution.id, key: action.key, ...processLimit(clocks) };
 }
