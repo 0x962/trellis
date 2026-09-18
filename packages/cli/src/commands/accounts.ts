@@ -11,7 +11,6 @@ const accountList: ListSpec<HarnessAccount> = {
 		{ name: "name", value: (row) => row.name },
 		{ name: "harness", value: (row) => row.harness },
 		{ name: "default", value: (row) => String(row.isDefault) },
-		{ name: "enabled", value: (row) => String(row.enabled) },
 		{ name: "profile", value: (row) => row.profilePath },
 	],
 	identifier: (row) => row.id,

@@ -1,10 +1,20 @@
+import { ArrowDown } from "@phosphor-icons/react";
 import type { AgentRun } from "@trellis/api";
-import { Avatar, cx, GroupHeader, useMediaQuery } from "@trellis/ui";
-import { useId } from "react";
+import { Avatar, GroupHeader, IconButton, Tooltip, useMediaQuery } from "@trellis/ui";
+import { useEffect, useId, useRef, useState } from "react";
 import { uiActions, useUiStore } from "../../../../../stores/uiStore";
 import { agentKindOf } from "../../../../agents/agentKindOf";
 import { agentProfileOf } from "../../../../agents/agentProfileOf";
 import { isAgentWorking } from "../../../../agents/isAgentWorking";
+import { sessionStateLabel } from "../../../sessionStateLabel";
+import { isHistoricalSession } from "../../isHistoricalSession";
+
+const dateFormat = new Intl.DateTimeFormat(undefined, {
+	month: "short",
+	day: "numeric",
+	hour: "numeric",
+	minute: "2-digit",
+});
 
 export function SessionGroup({
 	group,
@@ -13,6 +23,7 @@ export function SessionGroup({
 	runs,
 	selectedId,
 	onSelect,
+	searching = false,
 }: {
 	group: string;
 	label: string;
@@ -20,13 +31,26 @@ export function SessionGroup({
 	runs: AgentRun[];
 	selectedId?: string;
 	onSelect: (id: string) => void;
+	searching?: boolean;
 }) {
 	const contentId = useId();
 	const routeKey = `/sessions/project/${projectPath}`;
 	const collapsed = useUiStore((state) => state.collapsedGroups[routeKey]?.includes(group) ?? false);
 	const phone = useMediaQuery("(max-width: 767px)");
+	const [limit, setLimit] = useState(30);
+	const selectedButton = useRef<HTMLButtonElement>(null);
+	const selected = runs.find((run) => run.id === selectedId);
+	const revealId = selected?.id;
+	useEffect(() => {
+		if (revealId || searching) uiActions.setGroupCollapsed(routeKey, group, false);
+	}, [revealId, routeKey, group, searching]);
+	useEffect(() => {
+		if (revealId && !collapsed) selectedButton.current?.scrollIntoView({ block: "nearest" });
+	}, [revealId, collapsed]);
+	const visible = runs.slice(0, limit);
+	if (selected && !visible.includes(selected)) visible.push(selected);
 	return (
-		<section aria-label={`${label} sessions`}>
+		<section aria-label={group === "sessions" ? "Sessions" : `${label} sessions`}>
 			<GroupHeader
 				group={group}
 				label={label}
@@ -35,42 +59,67 @@ export function SessionGroup({
 				onToggle={() => uiActions.toggleGroup(routeKey, group)}
 				phone={phone}
 				controls={contentId}
+				appearance="sidebar"
 				sticky
 			/>
 			<div id={contentId} hidden={collapsed}>
-				{runs.length === 0 && <p className="px-4 py-2 text-sm text-fg-faint">No sessions</p>}
-				<ul className="flex flex-col gap-0.5 px-2 py-1">
-					{runs.map((run) => (
-						<li key={run.id}>
-							<button
-								type="button"
-								title={`${run.ticketIdentifier ?? run.name} · ${run.state} · ${run.createdAt}`}
-								aria-current={selectedId === run.id ? "page" : undefined}
-								className={cx(
-									"sidebar-row w-full pl-2 text-left text-sm hover:bg-elevated focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
-									selectedId === run.id && "sidebar-selected",
-								)}
-								onClick={() => onSelect(run.id)}
-							>
-								<span aria-hidden="true" className="sidebar-leading">
-									<Avatar
-										kind="agent"
-										name={run.ticketIdentifier ?? run.name}
-										agentKind={agentKindOf(run.kind)}
-										agentProfile={agentProfileOf(run.harness)}
-										state={isAgentWorking(run) ? "working" : "static"}
-										className="size-5"
-									/>
-								</span>
-								{isAgentWorking(run) && <span className="sr-only">Agent working: </span>}
-								<span data-slot="label" className="sidebar-label tabular">
-									{run.ticketIdentifier ?? run.name}
-								</span>
-								<span data-slot="trailing" className="sidebar-trailing" aria-hidden="true" />
-							</button>
-						</li>
-					))}
+				<ul className="flex flex-col gap-0.5 px-2 pb-2">
+					{visible.map((run) => {
+						const historical = isHistoricalSession(run);
+						const state = sessionStateLabel(run);
+						const needsAttention = run.state === "failed" || run.state === "interrupted";
+						return (
+							<li key={run.id}>
+								<button
+									ref={run.id === selectedId ? selectedButton : undefined}
+									type="button"
+									title={`${run.ticketIdentifier ?? run.name}${run.ticketTitle ? ` · ${run.ticketTitle}` : ""} · ${state} · ${new Date(run.createdAt).toLocaleString()}`}
+									aria-current={selectedId === run.id ? "page" : undefined}
+									className="sidebar-item"
+									onClick={() => onSelect(run.id)}
+								>
+									<span aria-hidden="true" className="flex shrink-0">
+										<Avatar
+											kind="agent"
+											name={run.ticketIdentifier ?? run.name}
+											agentKind={agentKindOf(run.kind)}
+											agentProfile={agentProfileOf(run.harness)}
+											state={isAgentWorking(run) ? "working" : "static"}
+											className="size-5"
+										/>
+									</span>
+									<span className="min-w-0 flex-1">
+										<span className="flex items-center gap-2">
+											<span className="min-w-0 flex-1 truncate font-medium tabular">
+												{run.ticketIdentifier ?? run.name}
+											</span>
+											{needsAttention && <span className="shrink-0 text-xs font-normal text-fg-muted">{state}</span>}
+										</span>
+										<span className="block truncate text-xs text-fg-muted tabular">
+											{historical
+												? dateFormat.format(new Date(run.createdAt))
+												: (run.ticketTitle ?? dateFormat.format(new Date(run.createdAt)))}
+										</span>
+									</span>
+								</button>
+							</li>
+						);
+					})}
 				</ul>
+				{runs.length > visible.length && (
+					<div className="flex items-center justify-center gap-2 pb-2">
+						<span className="text-xs text-fg-muted tabular">
+							{visible.length} of {runs.length}
+						</span>
+						<Tooltip content={`Load more ${label.toLowerCase()} sessions`}>
+							<IconButton
+								label={`Load more ${label.toLowerCase()} sessions`}
+								icon={<ArrowDown />}
+								onClick={() => setLimit(limit + 30)}
+							/>
+						</Tooltip>
+					</div>
+				)}
 			</div>
 		</section>
 	);

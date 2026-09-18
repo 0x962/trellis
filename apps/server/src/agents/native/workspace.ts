@@ -54,7 +54,8 @@ export const nativeWorkspace = async (home: string, run: WorkspaceRun, directory
 	await mkdir(join(home, "agents", run.id), { recursive: true, mode: 0o700 });
 	const env = { NODE_ENV: process.env.NODE_ENV, ...(await executionEnvironment()) };
 	const base = await sourceBase(source, env);
-	await exec("git", ["-C", source, "worktree", "add", "-b", runBranch(run), destination, base.revision], {
+	const branch = runBranch(run);
+	await exec("git", ["-C", source, "worktree", "add", "-b", branch, destination, base.revision], {
 		env,
 	}).catch((error: { stderr?: string }) => {
 		throw new Error(workspaceErrorText(error.stderr ?? ""), { cause: error });

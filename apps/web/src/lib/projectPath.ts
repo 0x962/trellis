@@ -1,13 +1,13 @@
 import { notFound } from "@tanstack/react-router";
 import { ProjectRefStringSchema } from "@trellis/api";
 
-export type ProjectView = "table" | "board" | "settings" | "notes";
+export type ProjectView = "table" | "board" | "settings" | "notes" | "diffs";
 
 // The web URL keeps slashes; the API ref joins with dots. The last segment
 // is a view only when it is a reserved slug, so a sub-project can never
 // take one of these names. `board` stays reserved so an old link such as
 // /p/CDE/board still resolves to the board, which is now the bare path.
-const views: ReadonlySet<string> = new Set(["board", "table", "settings", "notes"]);
+const views: ReadonlySet<string> = new Set(["board", "table", "settings", "notes", "diffs"]);
 
 export const parseProjectSplat = (splat: string): { ref: string; view: ProjectView } => {
 	const segments = splat.split("/").filter((segment) => segment !== "");

@@ -2,7 +2,6 @@ import { HarnessSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
-import { invalidInput } from "../../errors.ts";
 import { executionEnvironment } from "../../executionEnvironment";
 import type { ProjectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { resolveHostDefault } from "./hostDefault.ts";
@@ -30,7 +29,6 @@ export async function selectAccount(
 	const [choice] = input.accountId ? [{ id: input.accountId }] : input.useDefault ? await defaultChoice() : [];
 	if (!choice) return { accountId: null, config: input.config };
 	const account = await getAccount(tx, choice);
-	if (!account.enabled) throw invalidInput("accountId", "This account is disabled. Select an enabled account.");
 	const harness =
 		account.harness === input.config.harness.preset
 			? input.config.harness

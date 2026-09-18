@@ -8,7 +8,7 @@ import { startNative } from "../agentRuns/nativeStart.ts";
 import { reserve } from "../agentRuns/reserve.ts";
 import type { IoCtx } from "../support.ts";
 import { attachmentPrompt, type prepareFiles } from "./attachments.ts";
-import { sessionOperation } from "./operation.ts";
+import { launchSession } from "./launchSession";
 import { sessionColumns, sessionNames } from "./queries.ts";
 import { uniqueSessionName } from "./sessionName.ts";
 
@@ -60,10 +60,8 @@ export async function createProjectSession(
 		return { ...reservation, session: session! };
 	});
 	if (reservation.replay) return { id: reservation.session.id };
-	return sessionOperation(ctx.home, reservation.run.id, async () => {
-		ctx.emit({ type: "sessions.changed", id: reservation.session.id });
-		ctx.emit({ type: "agent-runs.changed", id: reservation.run.id });
-		await start(ctx, reservation);
-		return { id: reservation.session.id };
-	});
+	launchSession(ctx, reservation.session.id, reservation, start);
+	ctx.emit({ type: "sessions.changed", id: reservation.session.id });
+	ctx.emit({ type: "agent-runs.changed", id: reservation.run.id });
+	return { id: reservation.session.id };
 }

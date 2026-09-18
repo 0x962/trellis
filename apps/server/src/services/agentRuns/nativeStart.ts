@@ -68,8 +68,8 @@ export const startNative = async (
 			throw new Error("The flow group deadline elapsed before launch");
 		const ambientEnv = deps.env ?? (await (deps.environment ?? executionEnvironment)());
 		const account = run.accountId ? await ctx.newTx((tx) => getAccount(tx, { id: run.accountId! })) : null;
-		if (account && (!account.enabled || account.harness !== config.harness.preset))
-			throw new Error("The selected account is disabled or belongs to another harness.");
+		if (account && account.harness !== config.harness.preset)
+			throw new Error("The selected account belongs to another harness.");
 		// A run with no account reads the SuperSet pointer at every launch, so
 		// a switch made in SuperSet reaches the next Trellis launch. A profile
 		// the person exported in the login shell wins over the pointer.
@@ -105,7 +105,6 @@ export const startNative = async (
 		const timeoutMs = input.deadlineAt === undefined ? undefined : input.deadlineAt - Date.now();
 		if (timeoutMs !== undefined && timeoutMs <= 0) throw new Error("The flow group deadline elapsed before launch");
 		let session: RuntimeProcessStatus;
-		let launchWorkspace = workspaceId;
 		if (config.harness.preset === "custom") {
 			const launch = launchCommand({
 				run,
@@ -178,10 +177,8 @@ export const startNative = async (
 						env,
 						directory: join(ctx.home, "harness-attempts", terminalId, "transfer"),
 					});
-				launch.cwd = previous.launch!.cwd;
 			}
-			const descriptor = await host.prepare(launch, sessionId);
-			launchWorkspace = descriptor.spec.cwd;
+			await host.prepare(launch, sessionId);
 			if (
 				!(await ctx.newTx((tx) =>
 					launchAllowed(tx, {
@@ -198,7 +195,7 @@ export const startNative = async (
 		}
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET workspace_id = ${launchWorkspace}, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = CASE WHEN ${session.status === "exited"} AND kind<>'agent' THEN ${ctx.now()}::timestamptz ELSE NULL END, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
+				sql`UPDATE agent_runs SET workspace_id = ${workspaceId}, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = CASE WHEN ${session.status === "exited"} AND kind<>'agent' THEN ${ctx.now()}::timestamptz ELSE NULL END, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
 	} catch (error) {

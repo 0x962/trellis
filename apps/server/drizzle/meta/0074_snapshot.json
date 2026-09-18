@@ -1,5 +1,5 @@
 {
-  "id": "d312293a-87d8-4c3b-a1dc-a40732d9e64e",
+  "id": "765d23bf-5d53-4603-8ccb-fe6fe3571c10",
   "prevId": "2fe75802-6845-48f6-a020-08f0938db4c5",
   "version": "7",
   "dialect": "postgresql",
@@ -1505,6 +1505,22 @@
           "method": "btree",
           "with": {}
         },
+        "agent_runs_active_manager_idx": {
+          "name": "agent_runs_active_manager_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"agent_runs\".\"kind\" = 'manager' AND \"agent_runs\".\"runtime\" = 'native' AND \"agent_runs\".\"closed_at\" IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "agent_runs_created_at_idx": {
           "name": "agent_runs_created_at_idx",
           "columns": [
@@ -1568,7 +1584,518 @@
       "checkConstraints": {
         "agent_runs_kind_check": {
           "name": "agent_runs_kind_check",
-          "value": "\"agent_runs\".\"kind\" IN ('agent', 'flow', 'session')"
+          "value": "\"agent_runs\".\"kind\" IN ('agent', 'manager', 'flow', 'session')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.agent_cursors": {
+      "name": "agent_cursors",
+      "schema": "",
+      "columns": {
+        "project_id": {
+          "name": "project_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "activity_id": {
+          "name": "activity_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "agent_cursors_project_id_projects_id_fk": {
+          "name": "agent_cursors_project_id_projects_id_fk",
+          "tableFrom": "agent_cursors",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.agent_sessions": {
+      "name": "agent_sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ticket_id": {
+          "name": "ticket_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "runner": {
+          "name": "runner",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "workspace_id": {
+          "name": "workspace_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "terminal_id": {
+          "name": "terminal_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "claude_session_id": {
+          "name": "claude_session_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "open_url": {
+          "name": "open_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_woken_at": {
+          "name": "last_woken_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "agent_sessions_project_id_role_state_idx": {
+          "name": "agent_sessions_project_id_role_state_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "role",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "state",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "agent_sessions_ticket_id_idx": {
+          "name": "agent_sessions_ticket_id_idx",
+          "columns": [
+            {
+              "expression": "ticket_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "agent_sessions_live_manager_idx": {
+          "name": "agent_sessions_live_manager_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"agent_sessions\".\"role\" = 'manager' AND \"agent_sessions\".\"state\" NOT IN ('exited', 'stopped', 'failed')",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "agent_sessions_terminal_idx": {
+          "name": "agent_sessions_terminal_idx",
+          "columns": [
+            {
+              "expression": "workspace_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "terminal_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"agent_sessions\".\"workspace_id\" IS NOT NULL AND \"agent_sessions\".\"terminal_id\" IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "agent_sessions_project_id_projects_id_fk": {
+          "name": "agent_sessions_project_id_projects_id_fk",
+          "tableFrom": "agent_sessions",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "agent_sessions_ticket_id_tickets_id_fk": {
+          "name": "agent_sessions_ticket_id_tickets_id_fk",
+          "tableFrom": "agent_sessions",
+          "tableTo": "tickets",
+          "columnsFrom": [
+            "ticket_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "agent_sessions_role_check": {
+          "name": "agent_sessions_role_check",
+          "value": "\"agent_sessions\".\"role\" IN ('manager', 'builder', 'reviewer')"
+        },
+        "agent_sessions_runner_check": {
+          "name": "agent_sessions_runner_check",
+          "value": "\"agent_sessions\".\"runner\" IN ('superset')"
+        },
+        "agent_sessions_state_check": {
+          "name": "agent_sessions_state_check",
+          "value": "\"agent_sessions\".\"state\" IN ('starting', 'running', 'waiting', 'exited', 'stopped', 'failed')"
+        },
+        "agent_sessions_name_check": {
+          "name": "agent_sessions_name_check",
+          "value": "char_length(\"agent_sessions\".\"name\") BETWEEN 1 AND 40"
+        },
+        "agent_sessions_title_check": {
+          "name": "agent_sessions_title_check",
+          "value": "char_length(\"agent_sessions\".\"title\") BETWEEN 1 AND 120"
+        },
+        "agent_sessions_ticket_check": {
+          "name": "agent_sessions_ticket_check",
+          "value": "(\"agent_sessions\".\"role\" = 'manager') = (\"agent_sessions\".\"ticket_id\" IS NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.manager_controller_cursors": {
+      "name": "manager_controller_cursors",
+      "schema": "",
+      "columns": {
+        "project_id": {
+          "name": "project_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "activity_id": {
+          "name": "activity_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "generation": {
+          "name": "generation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "manager_controller_cursors_project_id_projects_id_fk": {
+          "name": "manager_controller_cursors_project_id_projects_id_fk",
+          "tableFrom": "manager_controller_cursors",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.manager_dispatches": {
+      "name": "manager_dispatches",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "terminal_id": {
+          "name": "terminal_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "session_id": {
+          "name": "session_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "generation": {
+          "name": "generation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "work_state": {
+          "name": "work_state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'open'"
+        },
+        "outcomes": {
+          "name": "outcomes",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "next_actions": {
+          "name": "next_actions",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "handled_at": {
+          "name": "handled_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "events": {
+          "name": "events",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "due_at": {
+          "name": "due_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "manager_dispatches_open_work_idx": {
+          "name": "manager_dispatches_open_work_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"manager_dispatches\".\"work_state\" = 'open'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "manager_dispatches_active_project_idx": {
+          "name": "manager_dispatches_active_project_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"manager_dispatches\".\"state\" IN ('pending', 'sending', 'unknown')",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "manager_dispatches_project_id_projects_id_fk": {
+          "name": "manager_dispatches_project_id_projects_id_fk",
+          "tableFrom": "manager_dispatches",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "manager_dispatches_state_check": {
+          "name": "manager_dispatches_state_check",
+          "value": "\"manager_dispatches\".\"state\" IN ('pending', 'sending', 'sent', 'unknown', 'canceled', 'failed')"
+        },
+        "manager_dispatches_work_state_check": {
+          "name": "manager_dispatches_work_state_check",
+          "value": "\"manager_dispatches\".\"work_state\" IN ('untracked', 'open', 'handled')"
         }
       },
       "isRLSEnabled": false
@@ -2284,12 +2811,12 @@
           "notNull": true,
           "default": "''"
         },
-        "directory": {
-          "name": "directory",
-          "type": "text",
+        "manager_config": {
+          "name": "manager_config",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": true,
-          "default": "''"
+          "default": "'{\"instruction\":\"\",\"directory\":\"\"}'::jsonb"
         },
         "ticket_template": {
           "name": "ticket_template",
@@ -3577,13 +4104,6 @@
           "notNull": true,
           "default": false
         },
-        "enabled": {
-          "name": "enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
         "archived_at": {
           "name": "archived_at",
           "type": "timestamp (3) with time zone",
@@ -3648,6 +4168,280 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.manager_delegations": {
+      "name": "manager_delegations",
+      "schema": "",
+      "columns": {
+        "run_id": {
+          "name": "run_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "parent_run_id": {
+          "name": "parent_run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "brief": {
+          "name": "brief",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retired_at": {
+          "name": "retired_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "manager_delegations_project_idx": {
+          "name": "manager_delegations_project_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"manager_delegations\".\"retired_at\" IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "manager_delegations_run_id_agent_runs_id_fk": {
+          "name": "manager_delegations_run_id_agent_runs_id_fk",
+          "tableFrom": "manager_delegations",
+          "tableTo": "agent_runs",
+          "columnsFrom": [
+            "run_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "manager_delegations_parent_run_id_agent_runs_id_fk": {
+          "name": "manager_delegations_parent_run_id_agent_runs_id_fk",
+          "tableFrom": "manager_delegations",
+          "tableTo": "agent_runs",
+          "columnsFrom": [
+            "parent_run_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "manager_delegations_project_id_projects_id_fk": {
+          "name": "manager_delegations_project_id_projects_id_fk",
+          "tableFrom": "manager_delegations",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.manager_next_actions": {
+      "name": "manager_next_actions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ticket_id": {
+          "name": "ticket_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status_id": {
+          "name": "status_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "assignment_request_id": {
+          "name": "assignment_request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "wait_for": {
+          "name": "wait_for",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'waiting'"
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "eligible_at": {
+          "name": "eligible_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notified_at": {
+          "name": "notified_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assigned_at": {
+          "name": "assigned_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "manager_next_actions_waiting_ticket_idx": {
+          "name": "manager_next_actions_waiting_ticket_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ticket_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"manager_next_actions\".\"state\"='waiting'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "manager_next_actions_project_id_projects_id_fk": {
+          "name": "manager_next_actions_project_id_projects_id_fk",
+          "tableFrom": "manager_next_actions",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "manager_next_actions_ticket_id_tickets_id_fk": {
+          "name": "manager_next_actions_ticket_id_tickets_id_fk",
+          "tableFrom": "manager_next_actions",
+          "tableTo": "tickets",
+          "columnsFrom": [
+            "ticket_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "manager_next_actions_run_id_agent_runs_id_fk": {
+          "name": "manager_next_actions_run_id_agent_runs_id_fk",
+          "tableFrom": "manager_next_actions",
+          "tableTo": "agent_runs",
+          "columnsFrom": [
+            "run_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "manager_next_actions_assignment_request_id_unique": {
+          "name": "manager_next_actions_assignment_request_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "assignment_request_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "manager_next_actions_state_check": {
+          "name": "manager_next_actions_state_check",
+          "value": "\"manager_next_actions\".\"state\" IN ('waiting','assigned','canceled')"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.native_migrations": {
@@ -4000,7 +4794,7 @@
         },
         "notes_audience_check": {
           "name": "notes_audience_check",
-          "value": "\"notes\".\"audience\" IN ('all', 'worker')"
+          "value": "\"notes\".\"audience\" IN ('all', 'manager', 'worker')"
         }
       },
       "isRLSEnabled": false

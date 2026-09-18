@@ -26,7 +26,7 @@ export type UsageLogin = Omit<UsageAccount, "quota">;
 const listAccounts = (tx: Tx) =>
 	rows<AccountRow>(
 		tx,
-		sql`SELECT id, name, harness, profile_path AS "profilePath", is_default AS "isDefault", enabled,
+		sql`SELECT id, name, harness, profile_path AS "profilePath", is_default AS "isDefault",
 			to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "createdAt",
 			to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "updatedAt"
 		FROM harness_accounts WHERE archived_at IS NULL ORDER BY harness, name, id`,
@@ -118,7 +118,7 @@ export const prepareAccounts = async (
 		now: Date.now,
 		quota: (login: UsageLogin) =>
 			fetchAccountQuota(
-				{ ...login, id: login.id ?? "", enabled: true, createdAt: "", updatedAt: "" },
+				{ ...login, id: login.id ?? "", createdAt: "", updatedAt: "" },
 				fetch,
 				readCredential as (account: { harness: AccountHarness; profilePath: string }) => Promise<Credential>,
 			),

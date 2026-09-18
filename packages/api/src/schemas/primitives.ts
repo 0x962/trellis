@@ -18,11 +18,11 @@ export const KeySchema = z
 	.string()
 	.regex(keyPattern, "Expected a project key: an upper-case letter and 1 to 9 upper-case letters or digits.");
 
-// A sub-project slug. `board`, `settings`, and `notes` are web routes under a
-// project path, so a sub-project cannot take those names.
+// A sub-project slug. `board`, `settings`, `notes`, and `diffs` are web
+// routes under a project path, so a sub-project cannot take those names.
 export const slugPattern = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-export const reservedSlugs: ReadonlySet<string> = new Set(["board", "settings", "notes"]);
+export const reservedSlugs: ReadonlySet<string> = new Set(["board", "settings", "notes", "diffs"]);
 
 export const SlugSchema = z
 	.string()

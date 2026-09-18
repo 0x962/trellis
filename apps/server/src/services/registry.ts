@@ -102,7 +102,11 @@ const sessionMutation = (prepare: Prepare) =>
 export const services = {
 	"sessions.list": core("read", sessions.list),
 	"sessions.get": prepared("read", sessions.observe, agentTerminal.result),
-	"sessions.create": sessionMutation(createSession),
+	"sessions.create": prepared(
+		"mutation",
+		async (ctx, input) => sessions.accepted(ctx, await createSession(ctx, input)),
+		sessions.finish,
+	),
 	"sessions.start": sessionMutation(startSession),
 	"sessions.delete": prepared("mutation", deleteSession, agentTerminal.result),
 	"harnessAccounts.list": io("read", harnessAccounts.list),
@@ -156,7 +160,11 @@ export const services = {
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
 	"agentRuns.list": prepared("read", agentRuns.prepareList, agentTerminal.result),
 	"agentRuns.ticketMetrics": prepared("read", agentRuns.prepareTicketMetrics, agentTerminal.result),
-	"agentRuns.start": agentMutation(agentRuns.prepareStart),
+	"agentRuns.start": prepared(
+		"mutation",
+		async (ctx, input) => agentRuns.acceptedResult(ctx, await agentRuns.prepareStart(ctx, input)),
+		agentRuns.finish,
+	),
 	"agentRuns.resume": agentMutation(prepareResume),
 	"agentRuns.setModel": agentMutation(prepareSetModel),
 	"agentRuns.stop": agentMutation(agentLifecycle.prepareStop),

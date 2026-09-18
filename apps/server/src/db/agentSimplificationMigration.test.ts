@@ -10,7 +10,7 @@ test("the agent simplification migration preserves project directories and remov
 	const db = await openDb(":memory:");
 	try {
 		const earlierMigrations = readdirSync(migrationsDir)
-			.filter((name) => /^\d{4}.*\.sql$/.test(name) && Number(name.slice(0, 4)) < 74)
+			.filter((name) => /^\d{4}.*\.sql$/.test(name) && Number(name.slice(0, 4)) < 75)
 			.sort();
 		for (const migration of earlierMigrations) {
 			await db.$client.exec(readFileSync(join(migrationsDir, migration), "utf8"));
@@ -26,7 +26,7 @@ test("the agent simplification migration preserves project directories and remov
 			VALUES ('old-note', 'project', 'Old note', 'old', 'manager', 'Test', 'human', now(), now());
 		`);
 
-		await db.$client.exec(readFileSync(join(migrationsDir, "0074_motionless_purple_man.sql"), "utf8"));
+		await db.$client.exec(readFileSync(join(migrationsDir, "0075_steady_invaders.sql"), "utf8"));
 
 		const project = await db.execute(sql`SELECT directory FROM projects WHERE id = 'project'`);
 		expect(project.rows).toEqual([{ directory: "/repo" }]);

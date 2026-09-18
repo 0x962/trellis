@@ -17,6 +17,7 @@ export type GroupHeaderProps = {
 	sticky?: boolean;
 	controls?: string;
 	layout?: "grid" | "section";
+	appearance?: "band" | "sidebar";
 };
 
 export const groupHeaderHeight = 32;
@@ -35,6 +36,7 @@ export function GroupHeader({
 	sticky,
 	controls,
 	layout = "section",
+	appearance = "band",
 }: GroupHeaderProps) {
 	const Chevron = expanded ? CaretDown : CaretRight;
 	return (
@@ -48,7 +50,8 @@ export function GroupHeader({
 				transform: top === undefined ? undefined : `translateY(${top}px)`,
 			}}
 			className={cx(
-				"group/header flex w-full items-center gap-2 border-y border-border bg-band px-5 max-md:px-4",
+				"group/header flex w-full items-center gap-2",
+				appearance === "sidebar" ? "bg-bg px-4" : "border-y border-border bg-band px-5 max-md:px-4",
 				top === undefined ? (sticky ? "sticky top-0 z-10" : "relative") : "absolute top-0 left-0",
 			)}
 		>
@@ -57,17 +60,20 @@ export function GroupHeader({
 				onClick={onToggle}
 				aria-expanded={expanded}
 				aria-controls={controls}
-				className="-ml-1 inline-flex h-7 min-w-7 items-center gap-2 rounded-md px-1 text-sm font-medium text-fg-muted transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11 pointer-coarse:min-w-11"
+				className={cx(
+					"-ml-1 inline-flex h-7 min-w-7 items-center gap-2 rounded-md px-1 font-medium text-fg-muted transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11 pointer-coarse:min-w-11",
+					appearance === "sidebar" ? "text-xs" : "text-sm",
+				)}
 			>
 				<Chevron aria-hidden="true" className="size-3 text-fg-faint" />
 				{icon}
 				{label}
 			</button>
-			<span data-count="" className="text-sm text-fg-faint tabular">
+			<span data-count="" className={cx("text-fg-faint tabular", appearance === "sidebar" ? "text-xs" : "text-sm")}>
 				{count}
 			</span>
 			<span className="ml-auto flex items-center gap-1">
-				{!expanded && (
+				{!expanded && appearance === "band" && (
 					<button
 						type="button"
 						onClick={onToggle}

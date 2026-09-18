@@ -25,7 +25,6 @@ export const shortcuts: readonly Shortcut[] = [
 	{ id: "search", keys: "/", scope: "global", label: "Search tickets" },
 	{ id: "create", keys: "c", scope: "global", label: "New ticket" },
 	{ id: "gotoNeedsYou", keys: "g h", scope: "global", label: "Go to Needs you" },
-	{ id: "gotoAll", keys: "g a", scope: "global", label: "Go to All tickets" },
 	{ id: "gotoProject", keys: "g p", scope: "global", label: "Go to a project" },
 	{ id: "gotoBoard", keys: "g b", scope: "global", label: "Switch to the board" },
 	{ id: "gotoTable", keys: "g t", scope: "global", label: "Switch to the table" },

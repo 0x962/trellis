@@ -12,6 +12,7 @@ import { outputSubscription } from "./outputSubscription.ts";
 import { acquireRuntimeLock } from "./runtimeLock.ts";
 import { SessionStore } from "./sessionStore.ts";
 import { validateSocketPath } from "./socketPath.ts";
+import { serveTerminalChannel } from "./terminalChannel";
 import { validateRequest } from "./validateRequest.ts";
 
 export async function startRuntime(home: string) {
@@ -26,7 +27,7 @@ export async function startRuntime(home: string) {
 		pid: process.pid,
 		startedAt: new Date().toISOString(),
 		socketPath,
-		capabilities: ["terminal-stream"],
+		capabilities: ["terminal-stream", "terminal-channel"],
 	};
 	let store: SessionStore;
 	const sockets = new Set<Socket>();
@@ -83,23 +84,32 @@ export async function startRuntime(home: string) {
 		sockets.add(socket);
 		socket.once("close", () => sockets.delete(socket));
 		socket.on("error", () => socket.destroy());
-		socket.setEncoding("utf8");
 		socket.setTimeout(30_000, () => socket.destroy());
-		let buffer = "";
-		socket.on("data", async (chunk) => {
-			buffer += chunk;
+		let buffer = Buffer.alloc(0);
+		const request = async (chunk: Buffer) => {
+			buffer = Buffer.concat([buffer, chunk]);
 			if (buffer.length > 2_000_000) {
 				socket.destroy();
 				return;
 			}
-			const end = buffer.indexOf("\n");
+			const end = buffer.indexOf(10);
 			if (end < 0) return;
 			socket.pause();
+			socket.off("data", request);
 			let id = "";
 			try {
-				const value = JSON.parse(buffer.slice(0, end));
+				const value = JSON.parse(buffer.subarray(0, end).toString());
 				id = typeof value?.id === "string" ? value.id : "";
 				const request = validateRequest(value);
+				if (request.method === "terminal") {
+					await serveTerminalChannel(
+						store,
+						socket,
+						request.params as RuntimeMethods["terminal"]["params"],
+						buffer.subarray(end + 1),
+					);
+					return;
+				}
 				if (request.method === "subscribe") {
 					socket.setTimeout(0);
 					const controller = new AbortController();
@@ -139,7 +149,8 @@ export async function startRuntime(home: string) {
 					`${JSON.stringify({ id, error: { code: failure.code ?? "RUNTIME_ERROR", message: failure.message } })}\n`,
 				);
 			}
-		});
+		};
+		socket.on("data", request);
 	});
 	await new Promise<void>((resolve, reject) => {
 		server.once("error", reject);

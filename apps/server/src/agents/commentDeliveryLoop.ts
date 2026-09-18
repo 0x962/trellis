@@ -1,10 +1,6 @@
 import type { JobsClock, JobsLog } from "../jobs.ts";
 
-export function startCommentDeliveryLoop(options: {
-	call: () => Promise<unknown>;
-	clock: JobsClock;
-	log: JobsLog;
-}) {
+export function startCommentDeliveryLoop(options: { call: () => Promise<unknown>; clock: JobsClock; log: JobsLog }) {
 	let timer: number | null = null;
 	let running: Promise<void> = Promise.resolve();
 	let stopped = false;

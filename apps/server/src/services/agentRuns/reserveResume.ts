@@ -69,8 +69,8 @@ export async function reserveResume(ctx: ServiceCtx, tx: Tx, session: ResumeSess
 	if (deadlineAt !== undefined && deadlineAt <= ctx.now.getTime()) return null;
 	if (run.accountId) {
 		const account = await getAccount(tx, { id: run.accountId });
-		if (!account.enabled || account.harness !== session.harness)
-			throw invalidInput("accountId", "The saved account is disabled or belongs to another harness.");
+		if (account.harness !== session.harness)
+			throw invalidInput("accountId", "The saved account belongs to another harness.");
 	}
 	const harness = {
 		...config.harness,

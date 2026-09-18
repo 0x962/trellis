@@ -14,12 +14,10 @@ Agents use the `trellis` CLI or the HTTP API. Each write records the name of the
 
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) describes the stack, the domain rules, the schema, and the API.
 
-The [persistent agent research](docs/research/persistent-agents.md) compares public designs and links to the proposed first improvement for the manager.
-
 ## macOS desktop preview
 
 The desktop includes Bun, Node, a local host, and a separate execution runtime. Native ticket work uses Git and the selected agent executable.
-Its manager queue persists ticket events. The ticket work area shows agent output, local changes, checks, artifacts, and required decisions.
+The ticket work area shows agent output, local changes, checks, artifacts, and required decisions.
 
 Use **Settings > Desktop > Choose data directory** to open an existing Trellis home, such as `~/.trellis`, in place.
 The confirmation shows the current directory, selected directory, and backup path.
@@ -88,19 +86,19 @@ trellis list --project TRL --json
 
 ### The pages
 
-`/` sends you to Needs you. The sidebar holds Needs you, Search, All tickets,
-Pull requests, Flows, Usage, the sessions, and the project tree.
+`/` sends you to Needs you. The sidebar holds Needs you, Search, Flows, Loops,
+Usage, the sessions, and the project tree. Each project lists its Tickets,
+Diffs, Sessions, and Settings pages.
 A session is a scratch git repository with one agent, outside every project.
 The New session button in the sidebar starts one from a prompt.
 
 | Path | Page |
 |---|---|
 | `/needs-you` | Needs you: the page title over an empty body |
-| `/all` | Every ticket as a board |
-| `/all/table` | Every ticket as a table |
 | `/p/TRL` | The board of a project, which is the view a project opens in |
 | `/p/TRL/table` | The table of the same project |
 | `/p/TRL/web/auth` | The board of the sub-project `auth` under `web` |
+| `/p/TRL/diffs` | The pull requests of a project |
 | `/p/TRL/settings` | The settings of a project |
 | `/t/TRL-42` | One ticket |
 | `/sessions/<id>` | One session: the terminal of its agent and the process controls |
@@ -112,7 +110,7 @@ The New session button in the sidebar starts one from a prompt.
 The URL keeps slashes between project segments, and the API ref joins the same
 segments with dots: the page `/p/TRL/web/auth` reads the project `TRL.web.auth`.
 A link that ends in `/board` still opens the board, with the segment dropped.
-`board` and `settings` are reserved, so no sub-project takes one of those slugs.
+`board`, `settings`, `notes`, and `diffs` are reserved, so no sub-project takes one of those slugs.
 
 Press `g b` for the board and `g t` for the table. The view switch in the topbar
 does the same.
@@ -131,7 +129,7 @@ If the title, the branch, or the body of a pull request contains the ticket iden
 
 ### The diff viewer
 
-Each pull request carries a Show diff control that opens its native Trellis review page. The Reviews sidebar entry also accepts a GitHub PR URL. The page supports split and unified diffs, local threads, replies, reactions, and review submissions with agent notifications.
+Each pull request carries a Show diff control that opens its native Trellis review page. The Diffs page of a project lists the pull requests of the project and also accepts a GitHub PR URL. The page supports split and unified diffs, local threads, replies, reactions, and review submissions with agent notifications.
 
 Read [Local pull request reviews](docs/reviews.md) for the CLI and review workflow.
 
@@ -145,7 +143,7 @@ is `apps/web/src/lib/shortcuts.ts`.
 | `Cmd+K` | Global | Open the command palette |
 | `/` | Global | Search tickets |
 | `c` | Global | New ticket |
-| `g h`, `g a`, `g p` | Global | Go to Needs you, All tickets, or a project |
+| `g h`, `g p` | Global | Go to Needs you or a project |
 | `g b`, `g t` | Global | Switch to the board or the table |
 | `g s` | Global | Focus the filter bar |
 | `[` | Global | Collapse or expand the sidebar |
@@ -180,9 +178,6 @@ A ticket has zero or one assigned agent. An assignment selects its harness,
 model, and effort. The assignment stays with the ticket across status changes
 and process exits. A person removes it before another agent can take the ticket.
 
-A manager run names one project. A project runs one manager at a time.
-Trellis sends each queued event to a running manager.
-
 The Agent section of the ticket rail shows the assigned agent. Its dialog selects the harness, model, and effort.
 The model picker searches the catalog and groups models by family.
 The agent profile mark uses the model provider icon. Hover over the mark to see the model and effort.
@@ -212,8 +207,6 @@ The local runtime owns the process and retains its output across a host restart.
 The Claude preset uses structured messages and explicit tool permissions. Other harness presets run through the native terminal.
 Trust the repository in project settings before the structured harness starts.
 
-The manager receives queued ticket events when its harness reports ready or idle.
-An uncertain delivery stays in the queue for inspection. Confirm receipt or request a resend only after you inspect the manager output.
 Use the same `--request-id` if a worker start has an uncertain result. Use a new identifier for intentional new work.
 
 The launch supplies `TRELLIS_URL`, `TRELLIS_ACTOR`, `TRELLIS_RUN_ID`, and `TRELLIS_ATTEMPT_TOKEN` to the agent.
@@ -275,7 +268,7 @@ Global flags: `--json`, `--jsonl`, `--quiet`, `--as`, `--url`, and `--no-color`.
 | `trellis statuses rm` | Remove a status. |
 | `trellis statuses clear` | Clear inherited statuses. |
 | `trellis agents list` | List agent runs. |
-| `trellis agents start` | Assign a ticket agent or start a project manager. |
+| `trellis agents start` | Assign a ticket agent. |
 | `trellis agents refresh` | Read the terminal and update the state. |
 | `trellis agents stop` | Stop an agent. |
 | `trellis agents send` | Send an agent a follow-up. |

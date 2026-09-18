@@ -73,7 +73,7 @@ The host stops new launches during shutdown. Open Trellis to start the helper.
 An unconfirmed process prevents a successful stop.
 
 The Bun host owns PGlite. A separate Node runtime owns agent PTYs.
-Its private Unix socket uses protocol 9. A lifetime file lock permits one runtime owner.
+Its private Unix socket uses protocol 10. A lifetime file lock permits one runtime owner.
 Each attempt has one immutable identifier, a token hash, retained terminal output, and a process record.
 Output readers receive bounded chunks with byte offsets.
 The runtime preserves delivery identifiers before it writes input. An uncertain write remains unknown until an agent receipt confirms it.
@@ -110,7 +110,11 @@ The ticket page opens Activity first and puts its top-level tabs below the page 
 Activity shows the centered ticket details, properties, attachments, timeline, and comments.
 The Agent, Changes, and Flows tabs use the page width for the terminal, pull request changes, and local flow runs.
 The authenticated terminal stream replays retained bytes and then pushes output and process observations.
-The terminal WebSocket carries ordered input and binary output outside the database request path after attachment. See [terminal transport](terminal-transport.md).
+The terminal WebSocket carries ordered input and binary output outside the database request path after attachment.
+A capability handshake selects the persistent binary runtime channel or the compatible RPC adapter.
+Live output uses a memory buffer and an ordered asynchronous disk log.
+Parser acknowledgments bound output across the browser connection.
+Terminal instances retain their buffers and subscriptions across page switches. See [terminal transport](terminal-transport.md).
 The terminal sends keyboard input and resize events to the runtime. An explicit reconnect resumes from the last displayed byte.
 `trellis doctor --json` reads runtime diagnostics without starting the runtime.
 
@@ -203,7 +207,10 @@ Review comments remain local. The review form submits its comment, approval, or
 change request to GitHub. The same request refreshes the stored pull request and
 writes activity for every linked ticket.
 
-The web route `/reviews/$owner/$repo/$number` uses the Trellis shell.
+`reviews.prs` lists every retained pull request, or, with a `project`, every
+pull request linked to a ticket of that project or held in one of its repositories.
+The web route `/reviews/$owner/$repo/$number` uses the Trellis shell. A
+`project` search param names the project whose Diffs page opened the review.
 `@trellis/ui/review` wraps `@pierre/diffs` 1.4.2 with virtual scroll, workers,
 line selection, and thread annotations. Review styles live in `packages/ui`.
 Drafts persist in browser storage until the user submits them.
@@ -233,6 +240,8 @@ An omitted model uses the configured default. Custom commands reject explicit mo
 The assignment plus button opens a dialog with Harness, Model, and the supported effort choices.
 The effort label follows the harness: Effort for Claude, Reasoning effort for Codex, Thinking level for Pi, and Variant for OpenCode.
 The dialog hides effort when the selected model has no supported options.
+Ticket assignment returns after it saves the assignment and attempt. A tracked background task prepares the workspace and starts the agent.
+The dialog closes and selects the Agent tab, which shows startup progress and launch errors without blocking the ticket.
 
 Model IDs use Vercel AI Gateway names throughout Trellis. [The model catalog and guide](MODELS.md) describe the choices and harness mappings.
 
@@ -255,7 +264,8 @@ Every preset runs its command through a local PTY. Claude hooks identify ready, 
 The launch supplies the server URL, actor, run identifier, and attempt token through environment variables.
 Each new agent in a configured repository uses a Git worktree under its run directory. This includes sessions, ticket agents, and flow agents.
 API run states come from inspected runtime processes. The database records assignment closure in `closed_at`.
-A missing runtime record produces `interrupted`; an observed process exit produces `exited` or `failed` from its exit code.
+An active background launch reports `starting` until the runtime has a process.
+Otherwise, a missing runtime record produces `interrupted`; an observed process exit produces `exited` or `failed` from its exit code.
 A failed launch retains its error. A stop retains the workspace and output after the runtime confirms process exit.
 
 The ticket page uses three separate metric definitions. Tokens burned sums the latest provider-recorded cumulative total for each agent session.
@@ -418,9 +428,7 @@ The routes are TanStack Router file routes under `apps/web/src/routes/`.
 |---|---|---|
 | `/` | `index.tsx` | a replace redirect to `/needs-you` |
 | `/needs-you` | `needs-you/route.tsx` | human review tickets and personal mentions across every project |
-| `/all` | `all/route.tsx` | every ticket as a board |
-| `/all/table` | `all_.table.tsx` | every ticket as a table |
-| `/p/$` | `p/$/route.tsx` | a project as a board, a table, or its settings |
+| `/p/$` | `p/$/route.tsx` | a project as a board, a table, its diffs, its settings, or its notes |
 | `/t/$identifier` | `t/$identifier/route.tsx` | one ticket |
 | `/sessions/project/$project` | `sessions.project.$project.tsx` | project sessions and ticket agents in a secondary sidebar |
 | `/sessions/$id` | `sessions.$id.tsx` | one session: the terminal of its agent and the process controls |
@@ -441,8 +449,9 @@ last list URL with its filters.
 `/p/$` takes one splat, `[key, ...slugs, view?]`. The URL keeps slashes and the
 API ref joins the same segments with dots, so `/p/CDE/web/auth` reads
 `CDE.web.auth`. The last segment is a view only when it is a reserved slug:
-`table`, `settings`, or `board`. A `CHECK` on `projects.slug` refuses `board` and
-`settings`, so a sub-project never takes one of those names.
+`table`, `settings`, `notes`, `diffs`, or `board`. `SlugSchema` refuses `board`,
+`settings`, `notes`, and `diffs`, and a `CHECK` on `projects.slug` refuses `board`
+and `settings`, so a sub-project never takes one of those names.
 
 The board uses the bare project URL. An older link
 that ends in `/board` redirects to the same path with the segment dropped.
@@ -466,15 +475,24 @@ time. The first section of each page carries no hash.
 Project settings hold the repository directory and repository selection.
 They write `projects.directory` and the project repositories.
 
-The sidebar holds the workspace row, Needs you, Search, All tickets, Pull
-requests, Flows, Usage, the sessions, the project tree, and the actor footer.
+The sidebar holds the workspace row, Needs you, Search, Flows, Usage,
+the sessions, the project tree, and the actor footer.
 The sessions and the project tree share the one region that scrolls, so the fixed
 links keep their place at any height.
 The global Sessions section lists sessions without a project. Its New session button opens a dialog with project, harness, model, effort, and account choices.
 The dialog accepts a prompt, files, and an optional name. A project also has a Sessions page with a secondary sidebar for all its agents.
+Session creation commits the session and its attempt before workspace preparation and agent startup.
+The response opens the session view and closes the dialog while a tracked background task completes the launch.
+The session view shows startup progress until the runtime reports a process, then attaches its terminal.
+The host publishes launch results after the request ends and waits for background tasks before database shutdown.
+Repository initialization runs outside the database transaction. An idempotent request reuses its reserved session and attempt.
+After a host crash, an unconfirmed attempt requires process inspection before another launch.
 Unsent text and files stay available when the user changes sessions.
 Each session row opens its conversation. The conversation controls can stop, resume, or delete the session.
-Each project row shows the Trellis mark and project name. Tickets, Sessions, and Settings appear below it.
+Each project row shows the Trellis mark and project name. Tickets, Diffs, Sessions, and Settings appear below it.
+The Diffs page at `/p/<path>/diffs` lists the pull requests of the project: the ones linked to a ticket of the
+project or one of its sub-projects, and the ones kept for a review in a repository of the project or one of its
+ancestors. Its second source lists the open pull requests of the signed-in GitHub user in those repositories.
 The selected state follows the current page for root, nested, and archived projects.
 
 ## Database schema
@@ -503,7 +521,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | flows | id PK, slug (UNIQUE, CHECK slug regex, 64 at most), name (1 to 120), description (CHECK <= 2000), briefing (CHECK <= 200000), version (CHECK > 0), created_at, updated_at. |
 | flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title (0 to 120), instruction (CHECK <= 200000), parallel (boolean, group only), minutes (optional, group only, 1 to 1440), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Index (flow_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
-| harness_accounts | id PK, name, harness, profile_path, is_default, enabled, archived_at, created_at, updated_at. Partial UNIQUE (harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. |
+| harness_accounts | id PK, name, harness, profile_path, is_default, archived_at, created_at, updated_at. Partial UNIQUE (harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. |
 | agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), harness jsonb, kind (CHECK agent, flow, or session), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial UNIQUE (ticket_id) WHERE `kind = 'agent'` and `closed_at IS NULL`. Index (created_at). |
 | sessions | id PK, name (UNIQUE, CHECK lowercase letters, digits, and dashes, 1 to 40), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), created_at, updated_at. The run has the kind `session`, an optional project, and no ticket. |
 

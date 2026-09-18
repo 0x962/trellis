@@ -3,14 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import type { Project } from "@trellis/api";
 import { EmptyState, IconButton, Sheet, Tooltip, useMediaQuery } from "@trellis/ui";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar } from "../../shell/Topbar";
 import { SessionConversation } from "../SessionConversation";
 import { sessionComposerActions } from "../sessionComposerStore";
-import { SessionGroup } from "./components/SessionGroup";
+import { SessionList } from "./components/SessionList";
 import { SessionTicketSheet } from "./components/SessionTicketSheet";
 import { sessionGroups } from "./sessionGroups";
 
@@ -21,6 +21,8 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	}, [project.name]);
 	const navigate = useNavigate();
 	const [ticketOpen, setTicketOpen] = useState(false);
+	const conversationHeading = useRef<HTMLHeadingElement>(null);
+	const returnToConversation = useRef(false);
 	const [listOpen, setListOpen] = useState(false);
 	const phone = useMediaQuery("(max-width: 767px)");
 	const hash = useRouterState({ select: (state) => state.location.hash });
@@ -32,48 +34,29 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	const items = (runs.data ?? []).filter(
 		(run) => run.kind !== "session" || sessions.data?.some((session) => session.runId === run.id),
 	);
-	const { current, archived } = sessionGroups(items);
-	const selected = hash ? items.find((run) => run.id === hash) : (current[0] ?? archived[0]);
+	const groups = sessionGroups(items, { search: "", history: false });
+	const selected = hash ? items.find((run) => run.id === hash) : (groups.sessions[0] ?? groups.ticketed[0] ?? items[0]);
 	const open = (id: string) => {
+		returnToConversation.current = true;
 		setTicketOpen(false);
 		setListOpen(false);
 		return navigate({ to: "/sessions/project/$project", params: { project: project.path }, hash: id });
 	};
 	const sessionList = (
-		<nav aria-label="Project sessions" className="flex w-full min-h-0 flex-col overflow-y-auto py-2">
-			{(runs.isPending || sessions.isPending) && (
-				<p role="status" className="px-3 text-sm text-fg-muted">
-					Load sessions…
-				</p>
-			)}
-			{(runs.error || sessions.error) && (
-				<p role="alert" className="px-3 text-sm text-danger">
-					{runs.error?.message ?? sessions.error?.message}
-				</p>
-			)}
-			{!runs.isPending && !sessions.isPending && !runs.isError && !sessions.isError && (
-				<>
-					<SessionGroup
-						group="current"
-						label="Current"
-						projectPath={project.path}
-						runs={current}
-						selectedId={selected?.id}
-						onSelect={(id) => void open(id)}
-					/>
-					{archived.length > 0 && (
-						<SessionGroup
-							group="archived"
-							label="Archived"
-							projectPath={project.path}
-							runs={archived}
-							selectedId={selected?.id}
-							onSelect={(id) => void open(id)}
-						/>
-					)}
-				</>
-			)}
-		</nav>
+		<SessionList
+			key={project.id}
+			project={project}
+			runs={items}
+			selectedId={selected?.id}
+			pending={runs.isPending || sessions.isPending}
+			error={runs.error?.message ?? sessions.error?.message}
+			onSelect={(id) => void open(id)}
+			onConversation={() => {
+				returnToConversation.current = true;
+				setListOpen(false);
+				if (!phone) conversationHeading.current?.focus();
+			}}
+		/>
 	);
 	return (
 		<>
@@ -82,28 +65,38 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 					<>
 						{phone && (
 							<Tooltip content="Session list">
-								<IconButton label="Session list" icon={<List />} onClick={() => setListOpen(true)} />
+								<IconButton
+									label="Session list"
+									icon={<List />}
+									onClick={() => {
+										returnToConversation.current = false;
+										setListOpen(true);
+									}}
+								/>
 							</Tooltip>
 						)}
-						<Tooltip content="New session">
-							<IconButton
-								label="New session"
-								icon={<Plus />}
-								disabled={project.archivedAt !== null}
-								onClick={() => sessionComposerActions.open(project.path)}
-							/>
-						</Tooltip>
+						{phone && (
+							<Tooltip content="New session">
+								<IconButton
+									label="New session"
+									icon={<Plus />}
+									disabled={project.archivedAt !== null}
+									onClick={() => sessionComposerActions.open(project.path)}
+								/>
+							</Tooltip>
+						)}
 					</>
 				}
 			>
-				<PageTitle parent={<ProjectBreadcrumb project={project} />} title="Sessions" />
+				<PageTitle parent={<ProjectBreadcrumb project={project} showName />} title="Sessions" />
 			</Topbar>
 			<div className="page-card flex min-h-0 flex-1 overflow-hidden">
-				{!phone && <div className="flex w-64 shrink-0 border-r border-border">{sessionList}</div>}
+				{!phone && <div className="flex w-72 shrink-0 border-r border-border">{sessionList}</div>}
 				{selected ? (
 					<SessionConversation
 						key={selected.id}
 						run={selected}
+						headingRef={conversationHeading}
 						session={sessions.data?.find((session) => session.runId === selected.id)}
 						readOnly={project.archivedAt !== null}
 						onDeleted={() => void open("")}
@@ -132,7 +125,17 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 				)}
 			</div>
 			{phone && (
-				<Sheet open={listOpen} title="Sessions" side="left" onOpenChange={setListOpen}>
+				<Sheet
+					open={listOpen}
+					title="Sessions"
+					side="left"
+					onOpenChange={setListOpen}
+					finalFocus={() => {
+						if (!returnToConversation.current) return true;
+						returnToConversation.current = false;
+						return conversationHeading.current;
+					}}
+				>
 					{sessionList}
 				</Sheet>
 			)}

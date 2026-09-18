@@ -4,8 +4,8 @@ import { projectSlashPath } from "../../../lib/projectPath";
 import { CliLine } from "../../shell/CliLine";
 
 export type TableEmptyProps = {
-	// The project ref of the route, or undefined on /all.
-	project?: string;
+	// The project ref of the route.
+	project: string;
 	// True when a filter narrows the list; false when the project holds no ticket.
 	filtered: boolean;
 	// The search text of the view, when set.
@@ -22,28 +22,21 @@ const linkClass =
 // filter param and keeps the route.
 export function TableEmpty({ project, filtered, q, onCreate }: TableEmptyProps) {
 	if (filtered) {
-		const clear =
-			project === undefined ? (
-				<Link to="/all" search={{}} className={linkClass}>
-					Clear filters
-				</Link>
-			) : (
-				<Link to="/p/$" params={{ _splat: projectSlashPath(project) }} search={{}} className={linkClass}>
-					Clear filters
-				</Link>
-			);
 		return (
 			<EmptyState
 				title={q === undefined ? "No tickets match" : `No tickets match '${q}'`}
 				description="Clear the filters to see every ticket."
 				variant="page"
-				action={clear}
+				action={
+					<Link to="/p/$" params={{ _splat: projectSlashPath(project) }} search={{}} className={linkClass}>
+						Clear filters
+					</Link>
+				}
 			/>
 		);
 	}
-	// The CLI takes the dotted project ref and the title from -t. /all has
-	// no project, so its line names the flag with a placeholder value.
-	const command = `trellis create -p ${project ?? "<project>"} -t "First ticket"`;
+	// The CLI takes the dotted project ref and the title from -t.
+	const command = `trellis create -p ${project} -t "First ticket"`;
 	return (
 		<EmptyState
 			title="No tickets yet"

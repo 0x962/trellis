@@ -24,6 +24,7 @@ export function validateRequest(value: unknown): RuntimeRequest {
 			"stop",
 			"output",
 			"subscribe",
+			"terminal",
 		].includes(request.method)
 	) {
 		if (typeof params.id !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.id))
@@ -144,6 +145,7 @@ export function validateRequest(value: unknown): RuntimeRequest {
 					throw new Error("Terminal dimensions must be between 1 and 1000");
 			break;
 		case "subscribe":
+		case "terminal":
 		case "output":
 			if (params.output !== undefined && typeof params.output !== "boolean")
 				throw new Error("The output subscription flag must be a boolean");

@@ -1,8 +1,8 @@
 # Pull request reviews
 
-Open **Reviews** in the sidebar, or select **Show diff** on a ticket's pull request.
+Open **Diffs** under a project in the sidebar, or select **Show diff** on a ticket's pull request.
 Select **Open review**, then paste a GitHub PR URL or `owner/repo#123`.
-The index groups local reviews by repository.
+The Diffs page lists the pull requests of the project, grouped by repository.
 The native URL is `/reviews/owner/repo/123`.
 A review can exist without a ticket.
 
@@ -43,6 +43,7 @@ Environment commands run only after an explicit form submission.
 ```sh
 trellis review open owner/repo#123 --browser
 trellis review prs
+trellis review prs --project TRL
 trellis review list owner/repo#123
 trellis review list owner/repo#123 --all --json
 trellis review add owner/repo#123 --path src/app.ts --start-line 10 --line 14 --side old --author reviewer --body "Check this branch."

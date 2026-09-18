@@ -31,5 +31,7 @@ export const terminalSocketRoute = (config: Config, transport: ServiceTransport)
 				expectedSessionId: c.req.query("sessionId"),
 			},
 		)) as { terminalId: string; sessionId: string | null };
-		return terminalConnection(await terminalStreamRuntime(config.home), target.terminalId, offset);
+		const client = await terminalStreamRuntime(config.home);
+		const binaryChannel = (await client.hello()).capabilities?.includes("terminal-channel") === true;
+		return terminalConnection(client, target.terminalId, offset, binaryChannel, c.req.query("ack") === "1");
 	});
