@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { setTimeout } from "node:timers/promises";
 
@@ -125,6 +125,9 @@ const startHost = async ({ home, executable, entry, webDist, env }: HostOptions)
 		throw new Error(`Process ${owner.pid} did not become ready. Inspect ${join(home, "server.log")}.`);
 	}
 	const logPath = join(home, "desktop-host.log");
+	// The host appends to this file for its whole life. A host start moves a
+	// file past 10 MB aside, so the log holds two files at most.
+	if (existsSync(logPath) && statSync(logPath).size > 10 * 1024 * 1024) renameSync(logPath, `${logPath}.1`);
 	const log = openSync(logPath, "a", 0o600);
 	const child = spawn(executable, [entry], {
 		detached: true,

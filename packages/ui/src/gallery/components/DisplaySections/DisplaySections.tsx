@@ -10,6 +10,7 @@ import { Button } from "../../../primitives/Button";
 import { Chip } from "../../../primitives/Chip";
 import { EmptyState } from "../../../primitives/EmptyState";
 import { Kbd } from "../../../primitives/Kbd";
+import { PropertyRow } from "../../../primitives/PropertyRow";
 import { ScrollArea } from "../../../primitives/ScrollArea";
 import { SectionHeader } from "../../../primitives/SectionHeader";
 import { Separator } from "../../../primitives/Separator";
@@ -133,6 +134,25 @@ export function DisplaySections() {
 					New ticket
 				</Button>
 				<Button kbd="r">Send back</Button>
+			</Section>
+			<Section
+				name="PropertyRow"
+				note="a label and a value; a value that wraps; compact below 768 px"
+				className="items-stretch"
+			>
+				<dl className="flex w-120 flex-col gap-0.5">
+					<PropertyRow label="Branch">
+						<span className="font-mono text-sm">fix/login-redirect</span>
+					</PropertyRow>
+					<PropertyRow label="Workspace" align="start">
+						<span className="min-w-0 flex-1 break-all font-mono text-sm">
+							/Users/navidkhan/.trellis/agents/01M2S1BZFYJW83WQWYTVQ7R35P/work
+						</span>
+					</PropertyRow>
+					<PropertyRow label="Age" compact>
+						<span className="tabular">51m</span>
+					</PropertyRow>
+				</dl>
 			</Section>
 			<Section name="Skeleton" note="one line; three lines; a row" className="items-start">
 				<Skeleton width="w-32" />

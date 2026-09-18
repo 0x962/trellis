@@ -9,6 +9,7 @@ import { stopNativeWork } from "./agentRuns/stopNativeWork.ts";
 import * as agentTerminal from "./agentRuns/terminal.ts";
 import { file as workspaceFile } from "./agentRuns/workspace/file.ts";
 import { lineStats as workspaceLineStats } from "./agentRuns/workspace/lineStats.ts";
+import { summary as workspaceSummary } from "./agentRuns/workspace/summary.ts";
 import { workspace } from "./agentRuns/workspace/workspace.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
@@ -48,6 +49,7 @@ import { prepareStart as startSession } from "./sessions/start.ts";
 import * as settings from "./settings.ts";
 import * as statuses from "./statuses.ts";
 import type { IoCtx, PrepareCtx } from "./support.ts";
+import { prepareSweep } from "./sweep/prepareSweep.ts";
 import * as system from "./system.ts";
 import { prepareSystemUsage } from "./systemUsage";
 import * as tickets from "./tickets.ts";
@@ -126,7 +128,9 @@ export const services = {
 	"flowExecutions.reconcile": prepared("mutation", prepareFlowReconcile, agentTerminal.result),
 	"system.doctor": prepared("read", diagnostics, agentTerminal.result),
 	"system.stopNativeWork": prepared("mutation", stopNativeWork, agentTerminal.result),
+	"system.sweep": prepared("mutation", prepareSweep, agentTerminal.result),
 	"agentRuns.workspaceLineStats": prepared("read", workspaceLineStats, agentTerminal.result),
+	"agentRuns.workspaceSummary": prepared("read", workspaceSummary, agentTerminal.result),
 	"agentRuns.workspace": prepared("read", workspace, agentTerminal.result),
 	"agentRuns.file": prepared("read", workspaceFile, agentTerminal.result),
 	"agentRuns.session": prepared("read", agentTerminal.session, agentTerminal.result),

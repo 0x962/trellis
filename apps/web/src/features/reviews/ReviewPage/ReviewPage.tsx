@@ -24,7 +24,6 @@ type FileRow = { path: string; type: string; additions: number; deletions: numbe
 
 const checkStatusIndicator = (status: CheckTabStatus) => {
 	if (status === "failed") return { label: "Checks failed", tone: "danger" as const };
-	if (status === "blocked") return { label: "Checks blocked", tone: "danger" as const };
 	if (status === "running") return { label: "Checks running", tone: "warning" as const };
 	if (status === "done") return { label: "Checks passed", tone: "success" as const };
 	return undefined;
@@ -153,17 +152,9 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		| {
 				state?: string;
 				statusCheckRollup?: ReviewCheck[];
-				mergeable?: string;
-				mergeStateStatus?: string;
-				reviewDecision?: string | null;
 		  }
 		| undefined;
-	const checksStatus = checkTabStatus(
-		displayMeta?.statusCheckRollup ?? [],
-		displayMeta?.mergeable === "CONFLICTING" ||
-			displayMeta?.mergeStateStatus === "BLOCKED" ||
-			displayMeta?.reviewDecision === "CHANGES_REQUESTED",
-	);
+	const checksStatus = checkTabStatus(displayMeta?.statusCheckRollup ?? []);
 	const liveStatus = status.data ? liveBranchState(status.data as LiveBranchMeta).label : undefined;
 	const refreshAll = () => {
 		refresh.mutate();

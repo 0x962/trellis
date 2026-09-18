@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Ticket } from "@trellis/api";
+import { PropertyRow } from "@trellis/ui";
 import { useApp } from "../../../../../lib/appContext";
 import { formatCount, formatDuration, tabularClass } from "../../../../../lib/format";
-import { Row } from "../Row";
 import { type MetricRequestState, metricText } from "./metricPresentation";
 import { useLiveAge } from "./useLiveAge";
 
@@ -19,15 +19,15 @@ export function TicketMetrics({ ticket }: { ticket: Ticket }) {
 	const age = metricText(state, ageMs, formatDuration);
 	return (
 		<>
-			<Row label="Tokens burned">
+			<PropertyRow compact label="Tokens burned">
 				<span className={tabularClass}>{tokens}</span>
-			</Row>
-			<Row label="Time burned">
+			</PropertyRow>
+			<PropertyRow compact label="Time burned">
 				<span className={tabularClass}>{duration}</span>
-			</Row>
-			<Row label="Age">
+			</PropertyRow>
+			<PropertyRow compact label="Age">
 				<span className={tabularClass}>{age}</span>
-			</Row>
+			</PropertyRow>
 		</>
 	);
 }

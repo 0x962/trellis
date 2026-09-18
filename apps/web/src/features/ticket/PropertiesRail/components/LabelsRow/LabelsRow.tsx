@@ -1,12 +1,11 @@
 import type { Label, Ticket } from "@trellis/api";
-import { Button, LabelPills } from "@trellis/ui";
+import { Button, LabelPills, PropertyRow } from "@trellis/ui";
 import { failToast } from "../../../../../lib/failToast";
 import { useLabels } from "../../../../pickers/hooks/useLabels";
 import { LabelPicker } from "../../../../pickers/LabelPicker";
 import { toggleLabel } from "../../../../pickers/utils/toggleLabel";
 import { useTicketWrite } from "../../../hooks/useTicketWrite";
 import { usePickerStore } from "../../../stores/pickerStore";
-import { Row } from "../Row";
 
 export type LabelsRowProps = {
 	ticket: Ticket;
@@ -41,7 +40,7 @@ export function LabelsRow({ ticket }: LabelsRowProps) {
 	};
 
 	return (
-		<Row label="Labels" align="top">
+		<PropertyRow compact align="start" label="Labels">
 			<LabelPicker
 				project={ticket.project.path}
 				checked={ticket.labels.map((label) => label.id)}
@@ -58,6 +57,6 @@ export function LabelsRow({ ticket }: LabelsRowProps) {
 				open={open === "labels"}
 				onOpenChange={(next) => setOpen(next ? "labels" : null)}
 			/>
-		</Row>
+		</PropertyRow>
 	);
 }

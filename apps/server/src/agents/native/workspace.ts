@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdir, realpath, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -42,8 +43,9 @@ export const nativeWorkspace = async (home: string, run: WorkspaceRun, directory
 	if (directory === "") throw new Error("Select the local repository directory before you start a native agent.");
 	const source = await realpath(directory);
 	if (!(await stat(source)).isDirectory()) throw new Error(`Not a directory: ${source}`);
-	if (run.workspaceId !== null && run.runtime === "native") {
-		await stat(run.workspaceId);
+	// The sweep removes the worktree of a run that is closed on a done ticket.
+	// A run that starts again after that gets a new worktree on its branch.
+	if (run.workspaceId !== null && run.runtime === "native" && existsSync(run.workspaceId)) {
 		if (run.workspaceId !== source) {
 			const env = { NODE_ENV: process.env.NODE_ENV, ...(await executionEnvironment()) };
 			await setWorkspaceBase(run.workspaceId, await sourceBase(source, env), env, true);
@@ -55,7 +57,16 @@ export const nativeWorkspace = async (home: string, run: WorkspaceRun, directory
 	const env = { NODE_ENV: process.env.NODE_ENV, ...(await executionEnvironment()) };
 	const base = await sourceBase(source, env);
 	const branch = runBranch(run);
-	await exec("git", ["-C", source, "worktree", "add", "-b", branch, destination, base.revision], {
+	// The branch of the run survives the removal of its worktree, so a second
+	// worktree checks the branch out where it stands.
+	const branchExists = await exec("git", ["-C", source, "rev-parse", "--verify", "--quiet", `refs/heads/${branch}`], {
+		env,
+	}).then(
+		() => true,
+		() => false,
+	);
+	const target = branchExists ? [destination, branch] : ["-b", branch, destination, base.revision];
+	await exec("git", ["-C", source, "worktree", "add", ...target], {
 		env,
 	}).catch((error: { stderr?: string }) => {
 		throw new Error(workspaceErrorText(error.stderr ?? ""), { cause: error });

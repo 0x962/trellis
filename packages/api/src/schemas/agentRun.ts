@@ -82,6 +82,36 @@ export const AgentWorkspaceLineStatSchema = z.object({
 	additions: CountSchema,
 	deletions: CountSchema,
 });
+// The Git state of the workspace of one run. `directory` comes from the
+// run row, so it is present in every state. `missing` means the directory
+// is not on disk. `unreadable` means Git could not read it, and `error`
+// holds the text Git printed. In the `ready` state `branch` is null when
+// HEAD names no branch, and `head` is the short commit id. `base` is the
+// branch that the workspace started from. It is null when the workspace
+// started from a commit that no branch named, and for a scratch session
+// repository. `ahead` and `behind` count commits against that start. The
+// line and file counts include the files that are not committed, and
+// `uncommitted` counts the files that differ from HEAD.
+const workspaceSummaryFields = { runId: UlidSchema, directory: z.string() };
+export const AgentWorkspaceSummarySchema = z.discriminatedUnion("state", [
+	z.object({
+		...workspaceSummaryFields,
+		state: z.literal("ready"),
+		branch: z.string().nullable(),
+		head: z.string(),
+		base: z.string().nullable(),
+		ahead: CountSchema,
+		behind: CountSchema,
+		files: CountSchema,
+		additions: CountSchema,
+		deletions: CountSchema,
+		uncommitted: CountSchema,
+	}),
+	z.object({ ...workspaceSummaryFields, state: z.literal("missing") }),
+	z.object({ ...workspaceSummaryFields, state: z.literal("unreadable"), error: z.string() }),
+]);
+export type AgentWorkspaceSummary = z.infer<typeof AgentWorkspaceSummarySchema>;
+export type ReadyWorkspaceSummary = Extract<AgentWorkspaceSummary, { state: "ready" }>;
 export const AgentWorkspaceFileInputSchema = AgentWorkspaceInputSchema.extend({
 	path: z.string().min(1).max(4096),
 });

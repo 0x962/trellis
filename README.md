@@ -88,7 +88,8 @@ trellis list --project TRL --json
 
 `/` sends you to Needs you. The sidebar holds Needs you, Search, Flows, Loops,
 Usage, the sessions, and the project tree. Each project lists its Tickets,
-Diffs, Sessions, and Settings pages.
+Diffs, and Sessions pages. The three-dots menu of a project opens its
+Settings page.
 A session is a scratch git repository with one agent, outside every project.
 The New session button in the sidebar starts one from a prompt.
 
@@ -125,7 +126,7 @@ The ticket page shows:
 - one timeline of comments and activity
 - a properties rail with the status, the priority, the parent, and the agents of the ticket
 
-If the title, the branch, or the body of a pull request contains the ticket identifier, trellis links the pull request to the ticket.
+To link a pull request to the ticket, paste its URL on the ticket page or run `trellis pr add <ticket> <url>`. The first prompt of an assigned agent tells the agent to run that command.
 
 ### The diff viewer
 

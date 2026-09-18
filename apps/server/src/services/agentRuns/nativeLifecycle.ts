@@ -48,11 +48,11 @@ export const stopNative = async (ctx: ServiceCtx, run: StoredRun) => {
 			throw stopFailure(run, stopped.error ?? "The host cannot confirm that the process stopped.");
 		const directory = join(ctx.home, "agents", run.id);
 		await mkdir(directory, { recursive: true, mode: 0o700 });
-		const output = await nativeOutput(ctx.home, run.terminalId);
-		await Promise.all([
-			writeFile(join(directory, "output.txt"), output, { mode: 0o600 }),
-			writeFile(join(directory, `output-${run.terminalId}.txt`), output, { mode: 0o600 }),
-		]);
+		// The output route reads this file for the current terminal of the
+		// run once the run is closed.
+		await writeFile(join(directory, `output-${run.terminalId}.txt`), await nativeOutput(ctx.home, run.terminalId), {
+			mode: 0o600,
+		});
 	}
 	await ctx.newTx((tx) =>
 		tx.execute(

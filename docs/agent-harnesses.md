@@ -47,6 +47,7 @@ trellis agents stop <agent-id>
 
 An interrupt ends the current turn and retains the conversation.
 A stop ends the agent process and retains the worktree and output.
+The hourly sweep removes the worktree when the run is closed, its ticket is done or canceled, and the worktree has no modified or untracked file. The branch stays in the repository.
 The host rejects a follow-up while the agent works or has unsent terminal input.
 A send succeeds after the harness confirms receipt.
 
