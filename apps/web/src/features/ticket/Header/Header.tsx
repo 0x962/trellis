@@ -6,6 +6,7 @@ import { IconButton, isTextEntry, Tooltip, useHotkey, useMediaQuery } from "@tre
 import { useApp } from "../../../lib/appContext";
 import { copyText } from "../../../lib/clipboard";
 import { lastListHref } from "../../../lib/lastList";
+import { usePageSheet } from "../../shell/PageSheet";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar } from "../../shell/Topbar";
@@ -13,7 +14,12 @@ import { branchName, titleSlug } from "../PropertiesRail/utils/branchName";
 import { BriefCopy } from "./components/BriefCopy";
 import { MoreMenu, ticketLink } from "./components/MoreMenu";
 
-export type HeaderProps = { ticket: Ticket };
+export type HeaderProps = {
+	ticket: Ticket;
+	// True for a ticket under an archived project. The server refuses every
+	// write to it, so the header disables its actions.
+	readOnly: boolean;
+};
 
 // A copy chord in a text field or over a selection copies the selected text.
 const claims = (event: KeyboardEvent) => {
@@ -22,11 +28,12 @@ const claims = (event: KeyboardEvent) => {
 	return true;
 };
 
-export function Header({ ticket }: HeaderProps) {
+export function Header({ ticket, readOnly }: HeaderProps) {
 	const router = useRouter();
 	const { orpc } = useApp();
 	const project = useSuspenseQuery(orpc.projects.get.queryOptions({ input: { project: ticket.project.path } })).data;
 	const phone = useMediaQuery("(max-width: 767px)");
+	const inSheet = usePageSheet() !== null;
 	const branch = branchName(ticket.identifier, titleSlug(ticket.title));
 	const back = lastListHref();
 
@@ -40,25 +47,32 @@ export function Header({ ticket }: HeaderProps) {
 		if (claims(event)) void copyText(ticketLink(ticket.identifier), "Copied the link");
 	});
 
+	// In a `PageSheet`, `Topbar` renders the actions into the header of the
+	// sheet. That header is outside the disabled fieldset that `TicketView`
+	// draws around a read-only ticket, so the actions carry their own.
 	return (
 		<Topbar
 			actions={
-				<>
+				<fieldset disabled={readOnly} className="contents">
 					<BriefCopy ticket={ticket} />
-					<Tooltip content="Back to list">
-						<IconButton
-							label="Back to list"
-							role="link"
-							icon={<ArrowLeft />}
-							variant="default"
-							render={<a href={back} />}
-							nativeButton={false}
-							onClick={(event) => {
-								event.preventDefault();
-								void router.navigate({ href: back });
-							}}
-						/>
-					</Tooltip>
+					{/* A ticket in a `PageSheet` has no list to return to. The header of
+					    the sheet holds a close button. */}
+					{!inSheet && (
+						<Tooltip content="Back to list">
+							<IconButton
+								label="Back to list"
+								role="link"
+								icon={<ArrowLeft />}
+								variant="default"
+								render={<a href={back} />}
+								nativeButton={false}
+								onClick={(event) => {
+									event.preventDefault();
+									void router.navigate({ href: back });
+								}}
+							/>
+						</Tooltip>
+					)}
 					{!phone && (
 						<>
 							<Tooltip content="Copy ID ⌘C">
@@ -80,7 +94,7 @@ export function Header({ ticket }: HeaderProps) {
 						</>
 					)}
 					<MoreMenu ticket={ticket} />
-				</>
+				</fieldset>
 			}
 		>
 			<PageTitle parent={<ProjectBreadcrumb project={project} />} title={ticket.identifier} />

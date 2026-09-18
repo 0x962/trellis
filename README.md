@@ -88,7 +88,8 @@ trellis list --project TRL --json
 
 `/` sends you to Needs you. The sidebar holds Needs you, Search, Flows, Loops,
 Usage, the sessions, and the project tree. Each project lists its Tickets,
-Diffs, Sessions, and Settings pages.
+Diffs, and Sessions pages. The three-dots menu of a project opens its
+Settings page.
 A session is a scratch git repository with one agent, outside every project.
 The New session button in the sidebar starts one from a prompt.
 

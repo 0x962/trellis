@@ -9,8 +9,11 @@ import { agentProfileOf } from "../../agents/agentProfileOf";
 import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
 import { isAgentWorking } from "../../agents/isAgentWorking";
 import { NativeTerminal } from "../../agents/NativeTerminal";
+import { useWorkspaceSummary } from "../../agents/useWorkspaceSummary";
 import { DeleteSessionDialog } from "../DeleteSessionDialog";
 import { sessionStateLabel } from "../sessionStateLabel";
+import { SessionDetails } from "./components/SessionDetails";
+import { SessionMeta } from "./components/SessionMeta";
 
 export function SessionConversation({
 	run,
@@ -56,6 +59,10 @@ export function SessionConversation({
 		onSuccess: () => setConfirmStop(false),
 		onSettled: refresh,
 	});
+	// The line under the name is present for every native run, so the name
+	// does not move when the workspace of a new run appears.
+	const native = run.runtime === "native";
+	const summary = useWorkspaceSummary(run, { focus: true }).data;
 	const busy = start.isPending || stop.isPending;
 	const error = start.error ?? stop.error;
 	const name = run.ticketTitle ?? run.name;
@@ -70,15 +77,19 @@ export function SessionConversation({
 					state={isAgentWorking(run) ? "working" : "static"}
 					className="size-7 shrink-0"
 				/>
-				<h2
-					ref={heading}
-					tabIndex={-1}
-					title={name}
-					className="min-w-0 flex-1 truncate rounded-sm text-sm font-medium tabular focus-visible:outline-2 focus-visible:outline-accent"
-				>
-					{name}
-				</h2>
+				<div className="flex min-w-0 flex-1 flex-col">
+					<h2
+						ref={heading}
+						tabIndex={-1}
+						title={name}
+						className="truncate rounded-sm text-sm font-medium tabular focus-visible:outline-2 focus-visible:outline-accent"
+					>
+						{name}
+					</h2>
+					{native && <SessionMeta run={run} summary={summary} />}
+				</div>
 				<span className="text-xs text-fg-muted">{sessionStateLabel(run)}</span>
+				{native && run.workspaceId !== null && <SessionDetails run={run} summary={summary} />}
 				{onOpenTicket && run.ticketIdentifier && (
 					<Tooltip content={`Open ${run.ticketIdentifier}`}>
 						<IconButton label={`Open ${run.ticketIdentifier}`} icon={<Ticket />} onClick={onOpenTicket} />

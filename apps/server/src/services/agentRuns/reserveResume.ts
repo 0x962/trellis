@@ -1,5 +1,6 @@
 import { fromHarnessModel, HarnessEffortSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import { boxClocks, processLimit } from "../../agents/nativeFlow/boxClocks.ts";
 import { taskKey } from "../../agents/nativeFlow/taskKey.ts";
 import type { ServiceCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
@@ -59,15 +60,11 @@ export async function reserveResume(ctx: ServiceCtx, tx: Tx, session: ResumeSess
 			![session.previousAttemptId, session.attempt.id].includes(task.attempt_id)
 		)
 			return null;
-		let step = execution.state.steps.find((item) => taskKey(item) === task.key)!;
+		const step = execution.state.steps.find((item) => taskKey(item) === task.key)!;
 		if (!["running", "unknown"].includes(step.state) || step.needsStop) return null;
-		while (true) {
-			const box = execution.doc.nodes.find((node) => node.id === step.nodeId)!;
-			if (step.deadlineAt !== null) deadlineAt = Math.min(deadlineAt ?? Infinity, step.deadlineAt);
-			else if (box.minutes !== null) budgetMs = Math.min(budgetMs ?? Infinity, box.minutes * 60000);
-			if (step.parentKey === null) break;
-			step = execution.state.steps.find((item) => item.key === step.parentKey)!;
-		}
+		const limit = processLimit(boxClocks(execution.doc, execution.state, step));
+		if (limit.deadlineAt !== undefined) deadlineAt = Math.min(deadlineAt ?? Infinity, limit.deadlineAt);
+		if (limit.budgetMs !== undefined) budgetMs = Math.min(budgetMs ?? Infinity, limit.budgetMs);
 	}
 	if (deadlineAt !== undefined && deadlineAt <= ctx.now.getTime()) return null;
 	if (run.accountId) {

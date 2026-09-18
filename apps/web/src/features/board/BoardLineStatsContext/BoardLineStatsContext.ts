@@ -1,5 +1,5 @@
+import type { LineChangesValue } from "@trellis/ui";
 import { createContext } from "react";
-import type { LineChangesValue } from "../components/CardContent/components/LineChanges";
 
 export type BoardLineStats = {
 	values: ReadonlyMap<string, LineChangesValue>;

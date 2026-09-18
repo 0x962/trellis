@@ -42,9 +42,14 @@ export type FlowRunRowProps = {
 };
 
 // One step of a run: the caret of a box, the kind mark, the state mark, the
-// title, a short fact, the working avatar, the time, and the actions. The
+// title, a short fact, the avatar of the agent, the time, and the actions. The
 // error and the output sit under the title. `--flow-run-depth` indents the
 // row by its depth in the tree.
+//
+// On an `agent` row that has `row.actor`, the avatar is the kind mark: it
+// already says "agent" and it names the model. The avatar column of that row
+// stays empty, so the row draws the avatar once. A gate or an exit question
+// keeps its kind mark and draws the avatar in the avatar column.
 export function FlowRunRow({
 	row,
 	now,
@@ -58,6 +63,7 @@ export function FlowRunRow({
 	onOpenTerminal,
 }: FlowRunRowProps) {
 	const KindIcon = flowKindIcons[row.kind];
+	const actorIsKindMark = row.kind === "agent" && row.actor != null;
 	const Caret = expanded ? CaretDown : CaretRight;
 	const time = rowTime(row, now);
 	const items: MenuItem[] = [];
@@ -91,9 +97,15 @@ export function FlowRunRow({
 				<span aria-hidden="true" className="inline-flex size-3 shrink-0 items-center justify-center text-fg-faint">
 					{row.hasChildren && <Caret className="size-3" />}
 				</span>
-				<span aria-hidden="true" className="inline-flex size-3.5 shrink-0 text-fg-muted *:size-full">
-					<KindIcon />
-				</span>
+				{actorIsKindMark ? (
+					// The avatar is 18 px in the 14 px kind slot. It overflows 2 px on each
+					// side, so the state mark and the title start at the same x on every row.
+					<span className="inline-flex size-3.5 shrink-0 items-center justify-center">{row.actor}</span>
+				) : (
+					<span aria-hidden="true" className="inline-flex size-3.5 shrink-0 text-fg-muted *:size-full">
+						<KindIcon />
+					</span>
+				)}
 				<FlowStepMark state={row.state} />
 				<span
 					className={cx(
@@ -104,7 +116,9 @@ export function FlowRunRow({
 					{row.title}
 				</span>
 				{row.meta !== null && <span className="truncate text-xs text-fg-faint max-md:hidden">{row.meta}</span>}
-				<span className="flex w-5 shrink-0 items-center justify-center max-md:hidden">{row.actor}</span>
+				<span className="flex w-5 shrink-0 items-center justify-center max-md:hidden">
+					{actorIsKindMark ? null : row.actor}
+				</span>
 				<span
 					className="w-20 shrink-0 text-right text-xs text-fg-faint tabular"
 					title={row.startedAt === null ? undefined : `Started ${new Date(row.startedAt).toLocaleString()}`}
