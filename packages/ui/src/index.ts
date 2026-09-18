@@ -24,6 +24,7 @@ export { GroupHeader, type GroupHeaderProps, groupHeaderHeight, phoneGroupHeader
 export * from "./domain/HarnessAccountForm";
 export * from "./domain/HarnessAccountNameForm";
 export { InboxRow, type InboxRowProps } from "./domain/InboxRow";
+export { LineChanges, type LineChangesProps, type LineChangesValue, lineChangesVisible } from "./domain/LineChanges";
 export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/PriorityIcon";
 export { type ModelProvider, ProviderIcon, type ProviderIconProps } from "./domain/ProviderIcon";
 export { type QuotaWindow, QuotaWindows, type QuotaWindowsProps, quotaFillClass } from "./domain/QuotaWindows";
@@ -78,6 +79,7 @@ export { Kbd, type KbdProps } from "./primitives/Kbd";
 export { Menu, type MenuItem, type MenuProps } from "./primitives/Menu";
 export { PickerButton } from "./primitives/PickerButton";
 export { Popover, type PopoverProps } from "./primitives/Popover";
+export { PropertyRow, type PropertyRowProps } from "./primitives/PropertyRow";
 export { ScrollArea, type ScrollAreaProps } from "./primitives/ScrollArea";
 export { SectionHeader, type SectionHeaderProps } from "./primitives/SectionHeader";
 export { Segmented, type SegmentedOption, type SegmentedProps } from "./primitives/Segmented";

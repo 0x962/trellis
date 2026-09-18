@@ -12,6 +12,7 @@ type Target = { ticketId: string; workspace: string };
 const numstat = (text: string) => {
 	let additions = 0;
 	let deletions = 0;
+	let files = 0;
 	const records = text.split("\0");
 	for (let index = 0; index < records.length; index += 1) {
 		const record = records[index]!;
@@ -19,9 +20,10 @@ const numstat = (text: string) => {
 		const [added, deleted, path] = record.split("\t", 3);
 		if (added !== "-") additions += Number(added);
 		if (deleted !== "-") deletions += Number(deleted);
+		files += 1;
 		if (path === "") index += 2;
 	}
-	return { additions, deletions };
+	return { additions, deletions, files };
 };
 
 const lineCount = async (path: string) => {
@@ -43,8 +45,11 @@ const lineCount = async (path: string) => {
 	}
 	return bytes === 0 ? 0 : lines + (last === 10 ? 0 : 1);
 };
-export const countWorkspace = async (workspace: string) => {
-	const base = (await git(workspace, ["rev-parse", "--verify", workspaceBaseRef])).trim();
+// The lines and files that differ between the working tree and the commit
+// where the workspace left `base`. A file that Git does not track counts as
+// one file, and each of its lines counts as an addition. Git lists a nested
+// repository as a path that ends in a slash. That path is not a file.
+export const changeStats = async (workspace: string, base: string) => {
 	const tracked = numstat(
 		await git(workspace, ["diff", "--merge-base", "--numstat", "-z", "--find-renames", base, "--"]),
 	);
@@ -53,7 +58,17 @@ export const countWorkspace = async (workspace: string) => {
 		.filter(Boolean);
 	let additions = tracked.additions;
 	for (const path of untracked) additions += await lineCount(join(workspace, path));
-	return { additions, deletions: tracked.deletions };
+	return {
+		additions,
+		deletions: tracked.deletions,
+		files: tracked.files + untracked.filter((path) => !path.endsWith("/")).length,
+	};
+};
+
+export const countWorkspace = async (workspace: string) => {
+	const base = (await git(workspace, ["rev-parse", "--verify", workspaceBaseRef])).trim();
+	const { additions, deletions } = await changeStats(workspace, base);
+	return { additions, deletions };
 };
 
 export const lineStats = async (ctx: WorkspaceCtx, input: { ticketIds: string[] }) => {

@@ -4,6 +4,7 @@ import { ActorChip } from "../../../domain/ActorChip";
 import { type Check, CheckRibbon } from "../../../domain/CheckRibbon";
 import { FlowRunSummary } from "../../../domain/FlowRunSummary";
 import { type FlowRunRow, FlowRunTree } from "../../../domain/FlowRunTree";
+import { LineChanges } from "../../../domain/LineChanges";
 import { type Priority, PriorityIcon } from "../../../domain/PriorityIcon";
 import { type PullRequestReviewStatus, ReviewStatusSummary } from "../../../domain/ReviewStatusSummary";
 import { StatusIcon } from "../../../domain/StatusIcon";
@@ -191,6 +192,13 @@ export function DomainSections() {
 				<ActorChip name="codex" kind="agent" />
 				<ActorChip name="claude-code" kind="agent" />
 				<ActorChip name="claude-code" kind="agent" compact />
+			</Section>
+			<Section name="LineChanges" note="counts; a zero side; pending; unavailable; grouped digits">
+				<LineChanges value={{ additions: 128, deletions: 34 }} pending={false} />
+				<LineChanges value={{ additions: 2, deletions: 0 }} pending={false} />
+				<LineChanges value={null} pending />
+				<LineChanges value={null} pending={false} />
+				<LineChanges value={{ additions: 12840, deletions: 9310 }} pending={false} align="start" />
 			</Section>
 			<Section name="TicketId" note="md in a row; sm on a card">
 				<TicketId id="CDE-43" />
