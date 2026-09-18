@@ -14,13 +14,12 @@ import type {
 import { assertExpectedTurn } from "./assertExpectedTurn.ts";
 import { authenticateSession } from "./authenticateSession.ts";
 import { fingerprintLaunch } from "./fingerprintLaunch.ts";
-import { inspectProcess } from "./inspectProcess.ts";
 import { inspectSessionRecord } from "./inspectSessionRecord.ts";
+import { launchSession } from "./launchSession";
 import { matchesProcessFilters } from "./matchesProcessFilters.ts";
 import { observeHarness } from "./observeHarness.ts";
 import { observeLegacyTurn } from "./observeLegacyTurn.ts";
 import { ProcessExitWatcher } from "./processExitWatcher.ts";
-import { createProcessHandle } from "./processHandle.ts";
 import { registerNativeDelivery } from "./registerNativeDelivery.ts";
 import { sessionFileSuffixes, sessionFiles } from "./sessionFiles.ts";
 import type { SessionRecord as Record } from "./sessionRecord.ts";
@@ -149,16 +148,22 @@ export class SessionStore {
 		observeLegacyTurn(record, input);
 		return this.inspect(input.id);
 	}
-	subscribe(id: string, listener: () => void, stream: RuntimeStream = "stdout", output = true) {
+	subscribe(
+		id: string,
+		listener: (change: "session" | "output") => void,
+		stream: RuntimeStream = "stdout",
+		output = true,
+	) {
 		const record = this.get(id);
-		record.listeners.add(listener);
+		const sessionChanged = () => listener("session");
+		record.listeners.add(sessionChanged);
 		const unsubscribe = output
 			? (stream === "events" ? record.observations.log : stream === "stderr" ? record.stderr : record.log).subscribe(
-					listener,
+					() => listener("output"),
 				)
 			: () => {};
 		return () => {
-			record.listeners.delete(listener);
+			record.listeners.delete(sessionChanged);
 			unsubscribe();
 		};
 	}
@@ -199,63 +204,18 @@ export class SessionStore {
 		};
 		this.records.set(spec.id, record);
 		this.save(record);
-		let cleanupError: string | null = null;
-		const exit = (code: number | null, error: string | null = session.error) => {
-			clearTimeout(record.timer);
-			session.status = "exited";
-			session.exitCode = code;
-			session.error =
-				(error === cleanupError ? null : error) ??
-				(code !== null && code !== 0 ? `Process ${spec.command} exited with code ${code}` : null);
-			session.endedAt = new Date().toISOString();
-			record.process = undefined;
-			this.save(record);
-			record.resolveStop();
-		};
-		try {
-			record.process = createProcessHandle(
-				spec,
-				(data) => record.log.append(data),
-				(data) => record.stderr.append(data),
-				(code) => exit(code),
-				(error) => exit(null, error.message),
-				(error) => {
-					clearTimeout(record.timer);
-					session.status = "unknown";
-					cleanupError = `Process cleanup is unconfirmed: ${error.message}`;
-					session.error = cleanupError;
-					this.save(record);
-					record.resolveStop(error);
-					Object.assign(record, stopAttempt());
-				},
-				(error) => {
-					session.error = `Input delivery is unconfirmed: ${error.message}`;
-					this.save(record);
-				},
-			);
-		} catch (error) {
-			exit(null, (error as Error).message);
-			return this.inspect(spec.id);
-		}
-		session.pid = record.process.pid > 0 ? record.process.pid : null;
-		const observation = session.pid === null ? { kind: "missing" as const } : inspectProcess(session.pid);
-		if (observation.kind === "live") record.identity = observation.process.identity;
-		session.status = "running";
-		this.save(record);
-		if (spec.timeoutMs !== undefined)
-			record.timer = setTimeout(() => {
-				session.error = `Process timed out after ${spec.timeoutMs} ms`;
-				this.save(record);
-				record.process!.stop();
-			}, spec.timeoutMs);
+		launchSession(record, spec, () => this.save(record));
 		return this.inspect(spec.id);
 	}
 	async input(id: string, data: string, expected?: RuntimeExpectedTurn) {
 		const record = this.get(id);
-		if (!record.process) throw new Error(`Session ${id} is ${record.session.status}`);
 		assertExpectedTurn(record, expected);
-		const bytes = Buffer.from(data, "base64");
-		await record.process.input(bytes);
+		return this.inputBytes(id, Buffer.from(data, "base64"));
+	}
+	async inputBytes(id: string, data: Buffer, _userInput?: boolean) {
+		const record = this.get(id);
+		if (!record.process) throw new Error(`Session ${id} is ${record.session.status}`);
+		await record.process.input(data);
 		return null;
 	}
 	deliver(id: string, messageId: string, data: string, expected?: RuntimeExpectedTurn) {
@@ -308,14 +268,20 @@ export class SessionStore {
 		return this.inspect(id);
 	}
 	output(id: string, offset: number, stream: RuntimeStream = "stdout") {
+		const output = this.outputBytes(id, offset, stream);
+		return { ...output, data: output.data.toString("base64") };
+	}
+	outputBytes(id: string, offset: number, stream: RuntimeStream = "stdout") {
 		const record = this.get(id);
-		return (stream === "events" ? record.observations.log : stream === "stderr" ? record.stderr : record.log).read(
+		return (stream === "events" ? record.observations.log : stream === "stderr" ? record.stderr : record.log).readBytes(
 			offset,
 		);
 	}
 	outputComplete(id: string) {
 		const record = this.get(id);
-		return record.process === undefined && record.watchedPids.size === 0;
+		return (
+			record.process === undefined && record.watchedPids.size === 0 && record.log.complete && record.stderr.complete
+		);
 	}
 	closeWatchers() {
 		clearInterval(this.sweeper);
@@ -323,9 +289,9 @@ export class SessionStore {
 	}
 	async stopAll() {
 		await Promise.all(
-			this.list()
-				.filter((session) => session.status === "running")
-				.map((session) => this.stop(session.id)),
+			[...this.records.values()]
+				.filter((record) => record.process !== undefined)
+				.map((record) => this.stop(record.session.id)),
 		);
 	}
 }

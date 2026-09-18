@@ -5,164 +5,123 @@ import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
 import "@xterm/xterm/css/xterm.css";
 import "../terminal.css";
-import type { TerminalFrame } from "./terminalChunk.ts";
-import { terminalInputSource } from "./terminalInputSource.ts";
-import { terminalOutput } from "./terminalOutput";
+import { acquireTerminal, disposeTerminalIdentity } from "./terminalRegistry";
+import {
+	initialTerminalSnapshot,
+	type TerminalConnectionState,
+	type TerminalRuntime,
+	type TerminalSnapshot,
+	type TerminalTransport,
+} from "./terminalRuntime";
 
 export type TerminalSurfaceProps = {
+	identity: string;
+	createTransport: () => TerminalTransport;
 	layout?: "panel" | "fill";
 	label: string;
-	connected: boolean;
 	stopped?: boolean;
-	unavailableReason?: string | null;
-	follow: (offset: number, onOutput: (frame: TerminalFrame) => Promise<void>, signal: AbortSignal) => Promise<void>;
-	send: (text: string, userInput: boolean) => Promise<unknown>;
-	resize: (cols: number, rows: number) => Promise<unknown>;
+	readOnly?: boolean;
+	screenReaderMode?: boolean;
+	onConnectionChange?: (state: TerminalConnectionState) => void;
 	onLeave: () => void;
 };
 
 export function TerminalSurface({
+	identity,
+	createTransport,
 	layout = "panel",
 	label,
-	connected,
 	stopped = false,
-	unavailableReason,
-	follow,
-	send,
-	resize,
+	readOnly = false,
+	screenReaderMode = true,
+	onConnectionChange,
 	onLeave,
 }: TerminalSurfaceProps) {
 	const container = useRef<HTMLDivElement>(null);
-	const enabled = useRef(connected);
-	const failed = useRef(false);
-	const reconnect = useRef(() => {});
-	const fitCurrent = useRef(() => {});
-	enabled.current = connected && !stopped;
-	const [error, setError] = useState<string | null>(null);
-	const [gap, setGap] = useState(false);
+	const runtime = useRef<TerminalRuntime | null>(null);
+	const view = useRef({ label, readOnly, screenReaderMode, onLeave });
+	view.current = { label, readOnly, screenReaderMode, onLeave };
+	const [state, setState] = useState<{ identity: string; snapshot: TerminalSnapshot }>({
+		identity,
+		snapshot: initialTerminalSnapshot,
+	});
+	const snapshot = state.identity === identity ? state.snapshot : initialTerminalSnapshot;
+	const ended = snapshot.stopped;
 	useEffect(() => {
-		if (connected && !stopped) fitCurrent.current();
-	}, [connected, stopped]);
+		onConnectionChange?.(snapshot);
+	}, [onConnectionChange, snapshot]);
 	useEffect(() => {
-		if (stopped) return;
-		let disposed = false;
-		let dispose = () => {};
-		let connection: AbortController;
-		const start = async () => {
-			const [{ Terminal }, { FitAddon }] = await Promise.all([
-				import("@xterm/xterm"),
-				import("@xterm/addon-fit"),
-			]);
-			if (disposed) return;
-			const styles = getComputedStyle(container.current!.parentElement!);
-			const terminal = new Terminal({
-				fontFamily: styles.fontFamily,
-				fontSize: Number.parseFloat(styles.fontSize),
-				convertEol: false,
-				scrollback: 5000,
-				screenReaderMode: true,
-				theme: { background: styles.backgroundColor, foreground: styles.color, cursor: styles.color },
-			});
-			const fit = new FitAddon();
-			terminal.loadAddon(fit);
-			terminal.open(container.current!);
-			terminal.textarea?.setAttribute("aria-label", label);
-			terminal.attachCustomKeyEventHandler((event) => {
-				event.stopPropagation();
-				if (event.ctrlKey && event.key === "]") {
-					onLeave();
-					return false;
-				}
-				return true;
-			});
-			const fail = (failure: unknown) => {
-				if (disposed) return;
-				failed.current = true;
-				connection?.abort();
-				setError((failure as Error).message);
-			};
-			let input = Promise.resolve<unknown>(undefined);
-			const source = terminalInputSource(container.current!);
-			const data = terminal.onData((text) => {
-				const userInput = source.isUserInput(text);
-				if (enabled.current && !failed.current)
-					input = input
-						.then(() => (enabled.current && !failed.current ? send(text, userInput) : undefined))
-						.catch(fail);
-			});
-			const fitTerminal = () => {
-				if (!container.current?.clientWidth || !container.current.clientHeight) return;
-				fit.fit();
-				if (enabled.current && !failed.current) void resize(terminal.cols, terminal.rows).catch(fail);
-			};
-			fitCurrent.current = fitTerminal;
-			const observer = new ResizeObserver(fitTerminal);
-			observer.observe(container.current!);
-			const output = terminalOutput({
-				write: (bytes, complete) => terminal.write(bytes, complete),
-				reset: () => {
-					terminal.reset();
-					setGap(true);
-				},
-			});
-			const connect = () => {
-				connection?.abort();
-				enabled.current = false;
-				const current = new AbortController();
-				connection = current;
-				failed.current = false;
-				setError(null);
-				void follow(output.offset(), output.push, current.signal).catch((failure) => {
-					if (!current.signal.aborted) fail(failure);
-				});
-			};
-			reconnect.current = connect;
-			dispose = () => {
-				connection?.abort();
-				observer.disconnect();
-				data.dispose();
-				source.dispose();
-				output.dispose();
-				terminal.dispose();
-			};
-			connect();
-			fitTerminal();
+		runtime.current?.update({ label, readOnly, screenReaderMode, onLeave });
+	}, [label, readOnly, screenReaderMode, onLeave]);
+	useEffect(() => {
+		if (stopped) {
+			disposeTerminalIdentity(identity);
+			return;
+		}
+		if (ended) return;
+		const host = container.current!;
+		const styles = getComputedStyle(host.parentElement!);
+		const appearance = {
+			fontFamily: styles.fontFamily,
+			fontSize: Number.parseFloat(styles.fontSize),
+			background: styles.backgroundColor,
+			foreground: styles.color,
 		};
-		void start().catch((failure: Error) => {
-			if (!disposed) {
-				failed.current = true;
-				setError(failure.message);
-			}
-		});
+		const lease = acquireTerminal(identity, appearance, createTransport);
+		let active = true;
+		let unsubscribe = () => {};
+		void lease.ready
+			.then((current) => {
+				if (!active) return;
+				runtime.current = current;
+				const update = () => setState({ identity, snapshot: current.getSnapshot() });
+				unsubscribe = current.subscribe(update);
+				current.attach(host, view.current, appearance);
+				update();
+			})
+			.catch((failure: Error) => {
+				if (active)
+					setState({
+						identity,
+						snapshot: { ...initialTerminalSnapshot, connection: "closed", error: failure.message },
+					});
+			});
 		return () => {
-			disposed = true;
-			dispose();
+			active = false;
+			unsubscribe();
+			runtime.current = null;
+			lease.release();
 		};
-	}, [label, follow, send, resize, onLeave, stopped]);
-	if (stopped) return <EmptyState title="Agent not running" variant={layout === "fill" ? "page" : "section"} />;
+	}, [identity, createTransport, stopped, ended]);
+	if (stopped || ended)
+		return <EmptyState title="Agent not running" variant={layout === "fill" ? "page" : "section"} />;
 	return (
 		<div className="terminal-surface" data-layout={layout}>
 			<div className="terminal-toolbar">
 				<p className="terminal-hint">Press Control+] to leave the terminal.</p>
-				{error && (
+				{snapshot.error && (
 					<Tooltip content="Reconnect terminal">
-						<IconButton label="Reconnect terminal" icon={<ArrowClockwise />} onClick={() => reconnect.current()} />
+						<IconButton
+							label="Reconnect terminal"
+							icon={<ArrowClockwise />}
+							onClick={() => runtime.current?.reconnect()}
+						/>
 					</Tooltip>
 				)}
 			</div>
-			{gap && (
+			{snapshot.gap && (
 				<p role="status" className="terminal-notice">
 					Earlier output is outside the retained buffer.
 				</p>
 			)}
-			{error && (
+			{snapshot.error && (
 				<p role="alert" className="terminal-error">
-					{error}
+					{snapshot.error}
 				</p>
 			)}
-			{unavailableReason && !error && (
+			{snapshot.unavailableReason && !snapshot.error && (
 				<p role="alert" className="terminal-error">
-					{unavailableReason}
+					{snapshot.unavailableReason}
 				</p>
 			)}
 			<div className="terminal-canvas">

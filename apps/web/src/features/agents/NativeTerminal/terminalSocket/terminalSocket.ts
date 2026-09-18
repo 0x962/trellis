@@ -25,6 +25,7 @@ export function createTerminalSocket({
 	url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
 	url.searchParams.set("attemptId", run.terminalId!);
 	url.searchParams.set("offset", String(offset));
+	url.searchParams.set("ack", "1");
 	if (run.sessionId) url.searchParams.set("sessionId", run.sessionId);
 	const socket = createSocket(url.toString());
 	socket.binaryType = "arraybuffer";
@@ -33,6 +34,7 @@ export function createTerminalSocket({
 	let exited = false;
 	let closed = false;
 	let settled = false;
+	let acknowledgedOffset = offset;
 	const detach = () => {
 		socket.removeEventListener("message", message);
 		socket.removeEventListener("close", close);
@@ -63,14 +65,20 @@ export function createTerminalSocket({
 		try {
 			if (event.data instanceof ArrayBuffer) {
 				const header = new DataView(event.data);
+				const nextOffset = header.getFloat64(8);
 				const pending = onOutput({
 					startOffset: header.getFloat64(0),
-					nextOffset: header.getFloat64(8),
+					nextOffset,
 					truncated: header.getUint8(16) === 1,
 					data: new Uint8Array(event.data, 17),
 				});
 				writes.add(pending);
-				void pending.then(() => writes.delete(pending), finish);
+				void pending.then(() => {
+					writes.delete(pending);
+					if (closed || socket.readyState !== WebSocket.OPEN || nextOffset <= acknowledgedOffset) return;
+					acknowledgedOffset = nextOffset;
+					void send({ type: "ack", offset: nextOffset }).catch(finish);
+				}, finish);
 				return;
 			}
 			const data = JSON.parse(event.data) as

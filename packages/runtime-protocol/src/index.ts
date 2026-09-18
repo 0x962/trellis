@@ -118,6 +118,10 @@ export type RuntimeOutputEvent =
 	| ({ type: "output" } & RuntimeOutput)
 	| { type: "session"; session: RuntimeProcessStatus };
 
+export type RuntimeTerminalEvent =
+	| ({ type: "output"; data: Uint8Array } & Omit<RuntimeOutput, "data">)
+	| { type: "session"; session: RuntimeProcessStatus };
+
 export interface RuntimeDelivery {
 	messageId: string;
 	status: "written" | "unknown";
@@ -144,6 +148,10 @@ export interface RuntimeMessageState {
 	status: SessionStatus;
 }
 export interface RuntimeMethods {
+	terminal: {
+		params: { id: string; offset: number };
+		result: RuntimeTerminalEvent;
+	};
 	registerNativeDelivery: {
 		params: {
 			id: string;

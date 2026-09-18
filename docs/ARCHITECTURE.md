@@ -73,7 +73,7 @@ The host stops new launches during shutdown. Open Trellis to start the helper an
 An unconfirmed process prevents a successful stop.
 
 The Bun host owns PGlite and the manager queue. A separate Node runtime owns agent PTYs.
-Its private Unix socket uses protocol 9. A lifetime file lock permits one runtime owner.
+Its private Unix socket uses protocol 10. A lifetime file lock permits one runtime owner.
 Each attempt has one immutable identifier, a token hash, retained terminal output, and a process record.
 Output readers receive bounded chunks with byte offsets.
 The runtime preserves delivery identifiers before it writes input. An uncertain write remains unknown until an agent receipt confirms it.
@@ -119,7 +119,11 @@ The ticket page opens Activity first and puts its top-level tabs below the page 
 Activity shows the centered ticket details, properties, attachments, timeline, and comments.
 The Agent, Changes, and Flows tabs use the page width for the terminal, pull request changes, and local flow runs.
 The authenticated terminal stream replays retained bytes and then pushes output and process observations.
-The terminal WebSocket carries ordered input and binary output outside the database request path after attachment. See [terminal transport](terminal-transport.md).
+The terminal WebSocket carries ordered input and binary output outside the database request path after attachment.
+A capability handshake selects the persistent binary runtime channel or the compatible RPC adapter.
+Live output uses a memory buffer and an ordered asynchronous disk log.
+Parser acknowledgments bound output across the browser connection.
+Terminal instances retain their buffers and subscriptions across page switches. See [terminal transport](terminal-transport.md).
 The terminal sends keyboard input and resize events to the runtime. An explicit reconnect resumes from the last displayed byte.
 `trellis doctor --json` reads runtime diagnostics without starting the runtime.
 

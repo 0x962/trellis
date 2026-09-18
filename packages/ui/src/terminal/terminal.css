@@ -35,6 +35,16 @@
 .terminal-host {
 	height: 100%;
 }
+.terminal-parking {
+	position: fixed;
+	left: -10000px;
+	top: -10000px;
+	width: 100vw;
+	height: 100vh;
+	overflow: hidden;
+	pointer-events: none;
+	visibility: hidden;
+}
 
 .terminal-surface[data-layout="fill"] {
 	min-height: 0;

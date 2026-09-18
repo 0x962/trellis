@@ -78,6 +78,10 @@ const openWindow = async () => {
 		},
 	});
 	const createdWindow = window;
+	if (process.platform === "darwin") {
+		createdWindow.on("restore", () => createdWindow.webContents.invalidate());
+		createdWindow.on("show", () => createdWindow.webContents.invalidate());
+	}
 	rendererNavigation.startLoad();
 	window.once("ready-to-show", () => {
 		void progress.finish(() => showMaximizedWindow(createdWindow));
@@ -222,10 +226,15 @@ const menuAction = (name: DesktopAction, title: string) => () =>
 	void desktopActions[name]().catch((error: Error) => dialog.showErrorBox(title, error.message));
 
 configureDesktopIdentity(app);
+if (process.platform === "darwin") app.commandLine.appendSwitch("disable-backgrounding-occluded-windows");
+app.commandLine.appendSwitch("max-active-webgl-contexts", "256");
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
 	app.setAsDefaultProtocolClient("trellis");
 	app.on("window-all-closed", () => {});
+	app.on("accessibility-support-changed", (_event, enabled) => {
+		window?.webContents.send("trellis:accessibility-support", enabled);
+	});
 	app.on("open-url", (event, url) => {
 		event.preventDefault();
 		void navigate(url);
@@ -259,6 +268,10 @@ else {
 			ipcMain.handle("trellis:navigation-ready", (event) => {
 				trustRenderer(event);
 				rendererNavigation.rendererReady();
+			});
+			ipcMain.handle("trellis:accessibility-ready", (event) => {
+				trustRenderer(event);
+				event.sender.send("trellis:accessibility-support", app.isAccessibilitySupportEnabled());
 			});
 			ipcMain.handle("trellis:desktop-status", (event) => {
 				trustRenderer(event);
