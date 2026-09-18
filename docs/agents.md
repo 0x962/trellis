@@ -68,7 +68,15 @@ The launch supplies these environment variables:
 - `TRELLIS_ATTEMPT_ID`
 - `TRELLIS_ATTEMPT_TOKEN`
 
-The first prompt contains only the saved run instruction. A ticket assignment saves its title and description as that instruction.
+The first prompt contains only the saved run instruction.
+A ticket assignment saves these items as that instruction:
+
+- the ticket identifier, the title, and the description
+- the project path and the ticket URL
+- the branch of the worktree
+- the `trellis` commands for progress, pull request links, and review comments
+
+The instruction tells the agent to run `trellis brief` for the comments, the pull requests, and the project notes.
 
 ## Notes
 

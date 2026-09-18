@@ -45,13 +45,14 @@ test("project sessions and ticket agents use the same isolated workspace primiti
 	await start(ctx, ticket);
 	expect(ticket.run.ticketIdentifier).toBe("TST-1");
 	expect(await git(repo, "worktree", "list", "--porcelain")).toContain(join(home, "agents", ticket.run.id, "work"));
-	expect(await db.transaction((tx) => getRun(tx, ticket.run.id))).toMatchObject({
-		projectId,
-		ticketId,
-		instruction: "Task",
-		ticketTitle: "Task",
-		ticketStatusCategory: "todo",
-	});
+	const assigned = await db.transaction((tx) => getRun(tx, ticket.run.id));
+	expect(assigned).toMatchObject({ projectId, ticketId, ticketTitle: "Task", ticketStatusCategory: "todo" });
+	// The saved instruction names the branch that the worktree is on.
+	const branch = await git(assigned.workspaceId!, "branch", "--show-current");
+	expect(branch).toBe(`trellis/tst-1-${ticket.run.id.toLowerCase()}`);
+	expect(assigned.instruction).toStartWith(
+		`# TST-1: Task\n\n- Project: TST\n- Branch: ${branch}\n- URL: http://localhost:4597/t/TST-1\n\n## Assignment`,
+	);
 });
 
 test("concurrent create requests launch once and bind the request to file bytes", async () => {
