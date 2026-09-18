@@ -9,6 +9,10 @@ import {
 import { base } from "./base.ts";
 
 export const sessions = {
+	activity: base
+		.route({ method: "GET", path: "/sessions/activity", summary: "Read session activity" })
+		.input(z.strictObject({}))
+		.output(z.array(SessionDetailSchema)),
 	list: base
 		.route({ method: "GET", path: "/sessions", summary: "List sessions, newest first" })
 		.input(z.strictObject({}))

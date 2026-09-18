@@ -15,6 +15,7 @@ import {
 	TicketMetricsSchema,
 } from "../schemas/agentRun.ts";
 import { UlidSchema } from "../schemas/primitives.ts";
+import { AgentAnswerInputSchema, AgentSeenInputSchema } from "../schemas/sessionActivity.ts";
 import { TicketGetInputSchema } from "../schemas/ticket.ts";
 import { base } from "./base.ts";
 
@@ -74,6 +75,16 @@ const sessionSchema = z.object({
 	result: z.object({ id: z.string(), text: z.string() }).nullable(),
 });
 export const agentRuns = {
+	seen: base
+		.errors(pickErrors(["SESSION_ATTENTION_CHANGED"]))
+		.route({ method: "POST", path: "/agent-runs/{id}/seen", summary: "Acknowledge a session completion" })
+		.input(AgentSeenInputSchema)
+		.output(z.object({ id: z.string() })),
+	answer: base
+		.errors(pickErrors(["SESSION_ATTENTION_CHANGED"]))
+		.route({ method: "POST", path: "/agent-runs/{id}/answer", summary: "Answer a pending session question" })
+		.input(AgentAnswerInputSchema)
+		.output(z.object({ id: z.string() })),
 	workspaceLineStats: base
 		.route({ method: "GET", path: "/agent-runs/workspaces/line-stats", summary: "Read workspace line changes" })
 		.input(AgentWorkspaceLineStatsInputSchema)

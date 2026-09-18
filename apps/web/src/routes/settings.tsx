@@ -2,6 +2,7 @@ import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { ActorNameField } from "../features/settings/ActorNameField";
 import { DesktopSettings } from "../features/settings/DesktopSettings";
+import { NotificationSettings } from "../features/settings/NotificationSettings";
 import { ThemeField } from "../features/settings/ThemeField";
 import { PageTitle } from "../features/shell/PageTitle";
 import { Topbar } from "../features/shell/Topbar";
@@ -30,6 +31,12 @@ type SettingsSection = {
 };
 
 const sections: SettingsSection[] = [
+	{
+		id: "notifications",
+		title: "Notifications",
+		hint: "Choose alerts for session questions, completed turns, and failures.",
+		rows: <NotificationSettings />,
+	},
 	{
 		id: "account",
 		title: "Account",

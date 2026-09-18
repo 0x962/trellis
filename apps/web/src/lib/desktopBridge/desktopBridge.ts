@@ -28,6 +28,8 @@ export type DesktopUpdateStatus = {
 
 export type DesktopBridge = {
 	platform: string;
+	sessionVisible?: (runId: string | null) => Promise<void>;
+	previewNotification?: (volume: number) => Promise<void>;
 	onAccessibilitySupportChanged?: (listener: (enabled: boolean) => void) => () => void;
 	chooseDirectory: () => Promise<string | null>;
 	status: () => Promise<DesktopStatus>;

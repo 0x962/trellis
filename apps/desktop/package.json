@@ -19,6 +19,7 @@
 		"electron": "44.3.0",
 		"electron-builder": "26.15.3",
 		"node": "26.8.2",
-		"@trellis/runtime-protocol": "workspace:*"
+		"@trellis/runtime-protocol": "workspace:*",
+		"@trellis/api": "workspace:*"
 	}
 }

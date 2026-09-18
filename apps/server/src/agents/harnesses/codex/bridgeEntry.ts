@@ -115,7 +115,10 @@ async function start() {
 		(notification) => {
 			if (parser) observe(parser.parse(notification));
 		},
-		undefined,
+		async (request) => {
+			if (parser) observe(parser.parseRequest(request));
+			return undefined;
+		},
 	);
 	const engineLines = createInterface({ input: engine.stderr! });
 	engineLines.on("line", (line) => {

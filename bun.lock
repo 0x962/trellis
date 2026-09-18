@@ -16,6 +16,7 @@
       "name": "@trellis/desktop",
       "version": "0.0.0",
       "devDependencies": {
+        "@trellis/api": "workspace:*",
         "@trellis/runtime-protocol": "workspace:*",
         "electron": "44.3.0",
         "electron-builder": "26.15.3",

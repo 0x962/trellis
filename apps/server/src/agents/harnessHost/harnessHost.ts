@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { InputAnswer } from "@trellis/api";
 import type {
 	RuntimeExpectedTurn,
 	RuntimeListInput,
@@ -8,6 +9,7 @@ import type {
 	RuntimeStream,
 } from "@trellis/runtime-protocol";
 import { z } from "zod";
+import { requestMuse } from "../harnesses/muse/requestMuse.ts";
 import { interruptHarness } from "./interruptHarness.ts";
 import { prepareAttempt } from "./prepareAttempt.ts";
 import { sendNativePrompt } from "./sendNativePrompt.ts";
@@ -135,6 +137,27 @@ export class HarnessHost {
 	}
 	stop(id: string) {
 		return this.options.runtime.stop(id);
+	}
+	async answer(id: string, requestId: string, answers: InputAnswer[], cancel: boolean) {
+		const descriptor = await this.descriptor(id);
+		const status = await this.status(id);
+		if (
+			descriptor.harness !== "muse" ||
+			!status.controllable ||
+			!status.agent?.attention?.requests.some((request) => request.id === requestId)
+		)
+			throw new Error("This question is no longer available for an answer.");
+		await requestMuse(
+			descriptor.spec.env!.TRELLIS_MUSE_CONTROL_SOCKET!,
+			descriptor.spec.env!.TRELLIS_MUSE_CONTROL_TOKEN!,
+			"/answer",
+			{
+				sessionId: status.agent.sessionId!,
+				requestId,
+				answers,
+				cancel,
+			},
+		);
 	}
 	private async descriptor(id: string): Promise<HarnessDescriptor> {
 		identifier.parse(id);

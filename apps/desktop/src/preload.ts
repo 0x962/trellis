@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld(
 	"trellisDesktop",
 	Object.freeze({
 		platform: "darwin",
+		sessionVisible: (runId: string | null): Promise<void> => ipcRenderer.invoke("trellis:session-visible", runId),
+		previewNotification: (volume: number): Promise<void> => ipcRenderer.invoke("trellis:preview-notification", volume),
 		onAccessibilitySupportChanged: (listener: (enabled: boolean) => void) => {
 			const handler = (_event: IpcRendererEvent, enabled: boolean) => listener(enabled);
 			ipcRenderer.on("trellis:accessibility-support", handler);

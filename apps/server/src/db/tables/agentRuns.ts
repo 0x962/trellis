@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, index, jsonb, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, check, index, integer, jsonb, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { tickets } from "../schema.ts";
 import { at } from "./actors.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
@@ -8,6 +8,8 @@ export const agentRuns = pgTable(
 	"agent_runs",
 	{
 		id: text().primaryKey(),
+		seenAttemptId: text("seen_attempt_id"),
+		seenSequence: integer("seen_sequence").notNull().default(0),
 		name: text().notNull(),
 		accountId: text("account_id").references(() => harnessAccounts.id),
 		runtime: text().notNull().default("native"),

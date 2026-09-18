@@ -1,4 +1,24 @@
-export const RUNTIME_PROTOCOL_VERSION = 10;
+export const RUNTIME_PROTOCOL_VERSION = 11;
+export type HarnessInputRequest = {
+	id: string;
+	kind: "question" | "permission" | "elicitation";
+	title: string;
+	blocking: boolean;
+	questions?: Array<{
+		id: string;
+		question: string;
+		options: Array<{ label: string; description?: string }>;
+		multiple: boolean;
+		minSelections?: number;
+		maxSelections?: number;
+	}>;
+};
+export type HarnessAttention = {
+	sequence: number;
+	completion: { sequence: number; at: string } | null;
+	failure: { sequence: number; at: string } | null;
+	requests: Array<HarnessInputRequest & { sequence: number; at: string }>;
+};
 export type RecordedTokenUsage = { totalTokens: number };
 export type HarnessTool = {
 	id: string;
@@ -11,7 +31,20 @@ export type HarnessEvent = {
 	willRetry?: boolean;
 	turnId?: string;
 	outcome?: "completed" | "interrupted" | "failed";
-	kind: "session" | "prompt" | "working" | "idle" | "message" | "tool-start" | "tool-update" | "tool-end" | "error";
+	kind:
+		| "session"
+		| "prompt"
+		| "working"
+		| "idle"
+		| "message"
+		| "tool-start"
+		| "tool-update"
+		| "tool-end"
+		| "error"
+		| "input-request"
+		| "input-resolved";
+	inputRequest?: HarnessInputRequest;
+	requestId?: string;
 	message?: { text: string; at?: string };
 	sessionId?: string;
 	model?: string;
@@ -28,6 +61,7 @@ export interface RuntimeHarnessObservation {
 	event: HarnessEvent;
 }
 export interface RuntimeAgentMetadata {
+	attention?: HarnessAttention;
 	sessionId: string | null;
 	model: string | null;
 	turnId: string | null;
