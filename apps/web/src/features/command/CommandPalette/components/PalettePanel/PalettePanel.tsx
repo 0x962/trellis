@@ -6,6 +6,7 @@ import { type KeyboardEvent, useEffect, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { projectRefOfPathname } from "../../../../../lib/projectPath";
 import { currentPlatform, formatShortcut } from "../../../../../lib/shortcuts";
+import type { BulkWrite } from "../../../../table/hooks/useBulkWrite";
 import { commandActions, useCommandStore } from "../../../commandStore";
 import { useActionContext } from "../../../hooks/useActionContext";
 import { useCommandSearch } from "../../../hooks/useCommandSearch";
@@ -25,6 +26,10 @@ export type PalettePanelProps = {
 	ticket: Ticket | undefined;
 	submenu: Submenu | null;
 	onSubmenu: (submenu: Submenu | null) => void;
+	// The one path every Selection section write takes. It lives in the
+	// component above this one, which stays mounted after the palette closes,
+	// so its confirm dialog keeps the screen while the person answers.
+	bulk: BulkWrite;
 };
 
 const placeholders = {
@@ -62,10 +67,11 @@ const selectionHeading = (count: number) => (
 // matching commands, and the matching projects, and a group with no match
 // hides. The panel filters the rows itself: cmdk's own filter ranks the
 // groups by score and would move the tickets away from the top.
-export function PalettePanel({ identifier, ticket, submenu, onSubmenu }: PalettePanelProps) {
+export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: PalettePanelProps) {
 	const { orpc } = useApp();
 	const mode = useCommandStore((state) => state.mode);
 	const selection = useCommandStore((state) => state.selection);
+	const selectionOwner = useCommandStore((state) => state.selectionOwner);
 	const pathname = useRouterState({ select: (state) => state.location.pathname });
 	const search = useRouterState({ select: (state) => state.location.search as Record<string, unknown> });
 	const action = useActionContext();
@@ -87,6 +93,8 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu }: Palette
 		ticket,
 		identifier,
 		selection,
+		bulk,
+		selectionOwner,
 		projects,
 		pathname,
 		search,

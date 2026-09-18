@@ -1,1 +1,1 @@
-export { BulkBar } from "./BulkBar";
+export { BulkBar, type BulkBarProps, type BulkPicker } from "./BulkBar";

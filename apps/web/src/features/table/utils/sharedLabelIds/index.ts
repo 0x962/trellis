@@ -1,1 +1,0 @@
-export { sharedLabelIds } from "./sharedLabelIds";

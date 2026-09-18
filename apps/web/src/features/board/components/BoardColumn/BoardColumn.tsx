@@ -1,9 +1,11 @@
 import { CaretRight } from "@phosphor-icons/react";
+import type { TicketSummary } from "@trellis/api";
 import { Button, cx, IconButton, StatusIcon } from "@trellis/ui";
-import { type KeyboardEvent, useCallback, useRef } from "react";
+import { type KeyboardEvent, type MouseEvent, useCallback, useRef } from "react";
 import { workingGroupInsertIndex } from "../../columns";
 import { useBoardAutoScroll, useColumnDnd } from "../../hooks/useBoardDnd";
 import type { BoardColumnModel } from "../../types";
+import { visibleCards } from "../../utils/visibleCards";
 import { BoardCard } from "../BoardCard";
 import { DragIndicator } from "../DragIndicator";
 
@@ -18,16 +20,18 @@ export type BoardColumnProps = {
 	// True in the light theme: the column is a grey well that holds white cards.
 	well: boolean;
 	workingTicketIds: ReadonlySet<string>;
+	// True while cards are selected. The card list then keeps room under the
+	// last card for the bulk bar.
+	bottomRoom: boolean;
+	isSelected: (ticketId: string) => boolean;
 	onToggle: () => void;
 	onShowAllDone: () => void;
 	onShowMore: () => Promise<void>;
-	onOpenTicket: (identifier: string) => void;
 	onFocusTicket: (identifier: string) => void;
-	onCardKeyDown: (event: KeyboardEvent<HTMLElement>, column: BoardColumnModel, index: number) => void;
+	onCardClick: (event: MouseEvent<HTMLElement>, column: BoardColumnModel, ticket: TicketSummary) => void;
+	onCardKeyDown: (event: KeyboardEvent<HTMLElement>, column: BoardColumnModel, ticket: TicketSummary) => void;
 	onAnnounce: (message: string) => void;
 };
-
-const cutoff = () => Date.now() - 30 * 86_400_000;
 
 // One board column: a fixed 36 px header and a list of cards that scrolls
 // under it. The header never scrolls, so every header stays at the same y.
@@ -39,11 +43,13 @@ export function BoardColumn({
 	width,
 	well,
 	workingTicketIds,
+	bottomRoom,
+	isSelected,
 	onToggle,
 	onShowAllDone,
 	onShowMore,
-	onOpenTicket,
 	onFocusTicket,
+	onCardClick,
 	onCardKeyDown,
 	onAnnounce,
 }: BoardColumnProps) {
@@ -54,11 +60,11 @@ export function BoardColumn({
 	}, [collapsed, onToggle]);
 	const over = useColumnDnd(target, column, collapsed, expand);
 	useBoardAutoScroll(list, !collapsed);
-	const visible =
-		column.category === "done" && !showAllDone
-			? column.items.filter((ticket) => ticket.completedAt !== null && Date.parse(ticket.completedAt) >= cutoff())
-			: column.items;
-	const count = column.category === "done" && !showAllDone ? visible.length : column.count;
+	const visible = visibleCards(column, { collapsed, showAllDone });
+	// The rail of a collapsed column prints the number of cards the open
+	// column draws, so the number stays the same when the person opens it.
+	const open = visibleCards(column, { collapsed: false, showAllDone });
+	const count = column.category === "done" && !showAllDone ? open.length : column.count;
 	const dropIndex = over === null ? null : workingGroupInsertIndex(visible, over.ticketId, workingTicketIds);
 	const reviewer = column.statuses[0]?.reviewer ?? undefined;
 
@@ -102,7 +108,7 @@ export function BoardColumn({
 				ref={list}
 				aria-label={`${column.name}, ${count} tickets`}
 				data-category={column.category}
-				className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-1"
+				className={cx("flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-1", bottomRoom && "pb-16")}
 			>
 				{dropIndex === 0 && visible.length === 0 && (
 					<li role="none" className="relative h-0">
@@ -118,9 +124,10 @@ export function BoardColumn({
 						columnName={column.name}
 						columnCount={visible.length}
 						working={workingTicketIds.has(ticket.id)}
-						onOpen={() => onOpenTicket(ticket.identifier)}
+						selected={isSelected(ticket.id)}
+						onClick={(event) => onCardClick(event, column, ticket)}
 						onFocus={() => onFocusTicket(ticket.identifier)}
-						onKeyDown={(event) => onCardKeyDown(event, column, index)}
+						onKeyDown={(event) => onCardKeyDown(event, column, ticket)}
 						announce={onAnnounce}
 						showStatus={categoryMode}
 						dropBefore={dropIndex === index}

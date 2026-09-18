@@ -1,12 +1,11 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import type { ReviewRevision, ReviewThread } from "@trellis/api";
+import { useMutation } from "@tanstack/react-query";
 import { Sheet } from "@trellis/ui";
 import { type DiffAnchor, ReviewDiff, ReviewFiles, ReviewTabs } from "@trellis/ui/review";
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { useTheme } from "../../../lib/theme";
 import { ApplySuggestionsDialog, ReviewApplyContext, type ReviewApplyState, ReviewBatchBar } from "../ReviewApply";
-import { type CheckTabStatus, checkTabStatus, type ReviewCheck } from "../ReviewChecks/checkGroups";
+import { checkTabStatus, type ReviewCheck } from "../ReviewChecks/checkGroups";
 import { ReviewChecks } from "../ReviewChecks/ReviewChecks";
 import { ReviewComment } from "../ReviewComment/ReviewComment";
 import { type ReviewCommentInput, ReviewComposer } from "../ReviewComposer/ReviewComposer";
@@ -18,35 +17,18 @@ import { ReviewStack } from "../ReviewStack/ReviewStack";
 import { ReviewSummary } from "../ReviewSummary/ReviewSummary";
 import { DiffToolbar } from "./components/DiffToolbar/DiffToolbar";
 import { ReviewPageSkeleton } from "./components/ReviewPageSkeleton";
+import { useReviewData } from "./hooks/useReviewData";
+import { useReviewNavigation } from "./hooks/useReviewNavigation";
+import { checkStatusIndicator, liveStatusTone } from "./utils/reviewTabStatus";
 import "@trellis/ui/review.css";
 
 type FileRow = { path: string; type: string; additions: number; deletions: number };
 
-const checkStatusIndicator = (status: CheckTabStatus) => {
-	if (status === "failed") return { label: "Checks failed", tone: "danger" as const };
-	if (status === "running") return { label: "Checks running", tone: "warning" as const };
-	if (status === "done") return { label: "Checks passed", tone: "success" as const };
-	return undefined;
-};
-
-const liveStatusTone = (label: ReturnType<typeof liveBranchState>["label"]) => {
-	if (label === "Ready" || label === "Available") return "success" as const;
-	if (label === "Update available" || label === "Enabled") return "warning" as const;
-	return "neutral" as const;
-};
-
 export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent?: ReactNode; syncHash?: boolean }) {
 	const { client, orpc, queryClient } = useApp();
+	const { tab, activeThread, changeTab } = useReviewNavigation(syncHash);
+	const { revision, setRevision, status, threads, refresh, refreshAll } = useReviewData(pr);
 	const { resolved: theme } = useTheme();
-	const latest = useQuery(orpc.reviews.revision.queryOptions({ input: { pr } }));
-	const [revision, setRevision] = useState<ReviewRevision | null>(null);
-	const status = useQuery({
-		...orpc.reviews.status.queryOptions({ input: { pr } }),
-		enabled: revision !== null,
-		refetchInterval: 45000,
-	});
-	const booted = useRef(false);
-	const [tab, setTab] = useState(() => (syncHash ? location.hash.slice(1).split("?")[0] || "changes" : "changes"));
 	const [mode, setMode] = useState<"split" | "unified">(() =>
 		localStorage.getItem("trellis.review.mode") === "split" ? "split" : "unified",
 	);
@@ -61,22 +43,6 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	// commit dialog holds while it is open.
 	const [batch, setBatch] = useState<ReadonlySet<string>>(() => new Set());
 	const [applying, setApplying] = useState<string[] | null>(null);
-	const threads = useQuery({
-		...orpc.reviews.list.queryOptions({ input: { pr, all: true } }),
-		queryFn: async () => {
-			const items: ReviewThread[] = [];
-			let total = 0;
-			let open = 0;
-			for (let offset = 0; ; offset += 500) {
-				const page = await client.reviews.list({ pr, all: true, offset, limit: 500 });
-				items.push(...page.items);
-				total = page.total;
-				open = page.open;
-				if (page.items.length < 500) break;
-			}
-			return { items, total, open };
-		},
-	});
 	const addThread = useMutation({
 		mutationFn: (comment: ReviewCommentInput) => client.reviews.add({ pr, ...comment }),
 		onSuccess: () => {
@@ -90,24 +56,6 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 			void queryClient.invalidateQueries({ queryKey: orpc.reviews.key() });
 		},
 	});
-	const refresh = useMutation({
-		mutationFn: () => client.reviews.refresh({ pr }),
-		onSuccess: (data) => {
-			setRevision(data);
-			void queryClient.invalidateQueries({ queryKey: orpc.reviews.metadata.key() });
-			queryClient.setQueryData(orpc.reviews.revision.queryKey({ input: { pr } }), data);
-		},
-	});
-	useEffect(() => {
-		if (booted.current || !latest.isSuccess) return;
-		booted.current = true;
-		if (latest.data) setRevision(latest.data);
-		else refresh.mutate();
-	}, [latest.isSuccess, latest.data, refresh.mutate]);
-	const changeTab = (value: string) => {
-		setTab(value);
-		if (syncHash) history.replaceState(null, "", `#${value}`);
-	};
 	const loadFile = useCallback(
 		async (path: string, side: "old" | "new") => {
 			const result = await client.reviews.file({ pr, revisionId: revision!.id, path, side });
@@ -156,10 +104,6 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		| undefined;
 	const checksStatus = checkTabStatus(displayMeta?.statusCheckRollup ?? []);
 	const liveStatus = status.data ? liveBranchState(status.data as LiveBranchMeta).label : undefined;
-	const refreshAll = () => {
-		refresh.mutate();
-		void status.refetch();
-	};
 	const toggleBatch = useCallback((threadId: string) => {
 		setBatch((current) => {
 			const next = new Set(current);
@@ -294,6 +238,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						{tab === "discussion" && (
 							<ReviewDiscussion
 								threads={allThreads}
+								activeThread={activeThread}
 								revision={displayRevision}
 								renderThread={renderThread}
 								onJump={(thread) => {

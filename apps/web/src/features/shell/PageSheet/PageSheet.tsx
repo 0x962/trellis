@@ -1,7 +1,6 @@
 import { ArrowSquareOut, X } from "@phosphor-icons/react";
 import { IconButton, Sheet, Tooltip } from "@trellis/ui";
 import { type ReactElement, type ReactNode, Suspense, useMemo, useRef, useState } from "react";
-import { runTicketEscape } from "../../ticket/hooks/useTicketEscape/useTicketEscape";
 import { PageSheetContext, usePageSheet } from "./pageSheetContext";
 
 export type PageSheetProps = {
@@ -43,23 +42,8 @@ export function PageSheet({ open, onClose, title, fullPage, children }: PageShee
 			bare
 			width={under === null ? "var(--page-sheet-width)" : "var(--page-sheet-over-width)"}
 			initialFocus={closeButton}
-			onOpenChange={(next, details) => {
-				if (next) return;
-				if (details.reason !== "escape-key") {
-					onClose();
-					return;
-				}
-				// A comment draft lives only in React state. When the focused field
-				// holds typed text, `runTicketEscape` removes the focus and leaves
-				// the sheet open, so one Escape never discards the text. The next
-				// Escape closes the sheet.
-				details.cancel();
-				const focused = document.activeElement;
-				runTicketEscape(focused instanceof HTMLElement ? focused : null, {
-					reviewOpen: false,
-					closeReview: onClose,
-					returnToList: onClose,
-				});
+			onOpenChange={(next) => {
+				if (!next) onClose();
 			}}
 		>
 			<div className="flex h-full min-h-0 flex-col">

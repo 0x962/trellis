@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
 import { ModelIdSchema } from "../models/models.ts";
+import { AgentActivitySchema } from "../schemas/agentActivity.ts";
 import {
 	AgentRunListInputSchema,
 	AgentRunSchema,
@@ -75,6 +76,10 @@ const sessionSchema = z.object({
 	result: z.object({ id: z.string(), text: z.string() }).nullable(),
 });
 export const agentRuns = {
+	activity: base
+		.route({ method: "GET", path: "/agent-runs/activity", summary: "Read activity for all agent terminals" })
+		.input(z.strictObject({}))
+		.output(AgentActivitySchema.array()),
 	seen: base
 		.errors(pickErrors(["SESSION_ATTENTION_CHANGED"]))
 		.route({ method: "POST", path: "/agent-runs/{id}/seen", summary: "Acknowledge a session completion" })

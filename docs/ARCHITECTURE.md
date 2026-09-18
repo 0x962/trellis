@@ -591,8 +591,13 @@ Ticket links open `/t/$identifier`. The header shows the project name and ticket
 identifier, with the actions on the right. The content sits in fully rounded
 cards below the header.
 Every page card has a gap from the sidebar, the right edge, and the bottom edge.
-The gap is 12 px on desktop and 8 px on a phone. Back to list restores the
-last list URL with its filters.
+The gap is 12 px on desktop and 8 px on a phone. Back restores the previous
+router entry, including its filters, tab, and hash. Ticket, review, and usage
+tabs each create a history entry. A ticket opens a pull request on its review route.
+Escape closes the active control or clears the selection first, then goes back.
+The terminal passes Escape to page navigation and keeps modified keys as terminal input.
+A direct entry with no previous app page returns to Needs you with a replacement
+entry. Back at the initial Needs you or setup page leaves the page in place.
 
 `/p/$` takes one splat, `[key, ...slugs, view?]`. The URL keeps slashes and the
 API ref joins the same segments with dots, so `/p/CDE/web/auth` reads
@@ -780,8 +785,8 @@ returns one canonical spelling.
 | tickets.get | GET /api/tickets/{ticket} | the full ticket with project, status, parent, children, prs, attachments |
 | tickets.create | POST /api/tickets | 201 and `Location`; `epic` joins an epic of the same root; `milestone` joins a milestone and its epic |
 | tickets.update | PATCH /api/tickets/{ticket} | `If-Match` maps to `expectedVersion`; `epic: null` clears the epic and the milestone; `milestone: null` clears the milestone |
-| tickets.move | POST /api/tickets/{ticket}/move | status, after, before, force; an anchor must be in the target column |
-| tickets.updateMany, deleteMany | POST /api/tickets/update-many, delete-many | up to 200 refs in one transaction; `epic` and `milestone` follow the rules of `tickets.update` per ticket |
+| tickets.move | POST /api/tickets/{ticket}/move | status, after, before; an anchor must be in the target column |
+| tickets.updateMany, deleteMany | POST /api/tickets/update-many, delete-many | up to 200 refs in one transaction; `epic` and `milestone` follow the rules of `tickets.update` per ticket; two refs with the same canonical spelling are refused, and a ULID and a `KEY-n` of one ticket are two spellings |
 | tickets.delete | DELETE /api/tickets/{ticket} | `force` overrides the agent policy |
 | epics.list | GET /api/epics?project=KEY | the epics of the project and its sub-projects; open first, then done, then by updated desc |
 | epics.get | GET /api/epics/{epic} | the summary, its milestones in position order, and its tickets in number order; `{epic}` takes `KEY/slug` with its slash |

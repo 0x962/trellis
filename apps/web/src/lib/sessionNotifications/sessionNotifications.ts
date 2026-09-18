@@ -1,4 +1,4 @@
-import { defaultNotifications, EventSchema, notificationSound, SessionAlerts } from "@trellis/api";
+import { createAgentNotifications, EventSchema, notificationSound } from "@trellis/api";
 import type { DesktopBridge } from "../desktopBridge";
 import { client } from "../orpc";
 
@@ -14,48 +14,45 @@ export async function previewNotification(volume: number) {
 }
 
 export function createSessionNotifications(isLeader: () => boolean, navigate: (path: string) => void) {
-	const alerts = new SessionAlerts();
-	let lastSound = 0;
 	const desktop = (window as Window & { trellisDesktop?: DesktopBridge }).trellisDesktop;
+	const alerts = createAgentNotifications({
+		active: isLeader,
+		isVisible: (runId) => {
+			const visible = JSON.parse(localStorage.getItem("trellis-visible-session") ?? "null") as {
+				runId: string;
+				at: number;
+			} | null;
+			return visible?.runId === runId && Date.now() - visible.at < 1500;
+		},
+		settings: () => client.settings.get(),
+		play: previewNotification,
+		show: (alert) => {
+			if (!("Notification" in window) || Notification.permission !== "granted") return;
+			const notification = new Notification(alert.title, { body: alert.body, tag: alert.key, silent: true });
+			notification.onclick = () => {
+				window.focus();
+				navigate(alert.path);
+				notification.close();
+			};
+		},
+	});
 	let pending = desktop
 		? Promise.resolve()
-		: client.sessions.activity({}).then((sessions) => {
-				for (const session of sessions) alerts.update(session, false);
+		: client.agentRuns.activity({}).then(async (sessions) => {
+				for (const session of sessions) await alerts.update(session, false);
 			});
 	return (value: unknown) => {
 		if (desktop) return;
 		const event = EventSchema.parse(value);
-		if (event.type !== "sessions.status" && event.type !== "sessions.changed") return;
+		if (event.type !== "agent-runs.status" && event.type !== "sessions.changed" && event.type !== "agent-runs.changed")
+			return;
 		pending = pending
 			.then(async () => {
-				if (event.type === "sessions.changed") {
-					alerts.prune(await client.sessions.activity({}));
+				if (event.type === "sessions.changed" || event.type === "agent-runs.changed") {
+					alerts.prune(await client.agentRuns.activity({}));
 					return;
 				}
-				const notifications = alerts.update(event.session, event.notify);
-				if (!isLeader() || !notifications.length) return;
-				const visible = JSON.parse(localStorage.getItem("trellis-visible-session") ?? "null") as {
-					runId: string;
-					at: number;
-				} | null;
-				if (visible?.runId === event.session.run.id && Date.now() - visible.at < 1500) return;
-				const settings = (await client.settings.get()).notifications ?? defaultNotifications;
-				if (settings.sound && settings.volume > 0 && Date.now() - lastSound >= 1000) {
-					lastSound = Date.now();
-					void previewNotification(settings.volume).catch((error: unknown) =>
-						console.info("Notification audio requires browser permission", error),
-					);
-				}
-				if (settings.native && "Notification" in window && Notification.permission === "granted") {
-					for (const alert of notifications) {
-						const notification = new Notification(alert.title, { body: alert.body, tag: alert.key, silent: true });
-						notification.onclick = () => {
-							window.focus();
-							navigate(`/sessions/${alert.sessionId}`);
-							notification.close();
-						};
-					}
-				}
+				await alerts.update(event.activity, event.notify);
 			})
 			.catch((error: unknown) => console.error("Session notification failed", error));
 	};

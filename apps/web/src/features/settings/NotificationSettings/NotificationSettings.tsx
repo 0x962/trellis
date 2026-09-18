@@ -44,7 +44,7 @@ export function NotificationSettings() {
 					onCheckedChange={(enabled) => void native(enabled)}
 				/>
 			</SettingsRow>
-			<SettingsRow label="Sounds" hint="Play a sound for session alerts outside the active session.">
+			<SettingsRow label="Sounds" hint="Play a sound for agent alerts outside the active terminal.">
 				<Switch
 					label="Notification sounds"
 					checked={value.sound}
@@ -52,7 +52,7 @@ export function NotificationSettings() {
 					onCheckedChange={(sound) => void update({ sound })}
 				/>
 			</SettingsRow>
-			<SettingsRow label="Volume" hint="Preview the session alert sound.">
+			<SettingsRow label="Volume" hint="Preview the agent alert sound.">
 				<div className="flex items-center gap-3">
 					<Select
 						label="Notification volume"

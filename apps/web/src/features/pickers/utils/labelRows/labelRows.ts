@@ -15,6 +15,9 @@ export const isCreateRow = (id: string) => id.startsWith(`${createRowId}:`);
 export type LabelRowsOptions = {
 	// The ids of the labels that the rows draw with a check.
 	checked: readonly string[];
+	// The ids of the labels that the rows draw with a minus. A bulk picker
+	// puts a label here when only some of the tickets it writes to hold it.
+	mixed?: readonly string[];
 	// The text in the search field. It becomes the name of a new label.
 	search: string;
 };
@@ -30,12 +33,17 @@ const byName = (a: { name: string }, b: { name: string }) => a.name.toLowerCase(
 
 // cmdk matches a row against its id and its keywords. The group name and the
 // `group/name` form are keywords, so a search for the group finds its labels.
-const labelRow = (label: Label, group: string | null, checked: readonly string[]): CommandItem => ({
+const labelRow = (
+	label: Label,
+	group: string | null,
+	checked: readonly string[],
+	mixed: readonly string[],
+): CommandItem => ({
 	id: label.id,
 	label: label.name,
 	keywords: group === null ? [] : [group, `${group}/${label.name}`],
 	icon: createElement(LabelDot, { color: label.color, variant: "icon" }),
-	checked: checked.includes(label.id),
+	checked: checked.includes(label.id) ? true : mixed.includes(label.id) ? "mixed" : false,
 });
 
 // The create row appears while the text names a label that the tree does not
@@ -53,13 +61,13 @@ const offersCreate = (labels: readonly Label[], name: string) =>
 export const labelRows = (
 	labels: readonly Label[],
 	groups: readonly LabelGroup[],
-	{ checked, search }: LabelRowsOptions,
+	{ checked, mixed = [], search }: LabelRowsOptions,
 ): LabelRows => {
 	const name = search.trim();
 	const items = labels
 		.filter((label) => label.groupId === null)
 		.sort(byName)
-		.map((label) => labelRow(label, null, checked));
+		.map((label) => labelRow(label, null, checked, mixed));
 	const sections: CommandGroup[] = [...groups]
 		.sort(byName)
 		.map((group) => ({
@@ -67,7 +75,7 @@ export const labelRows = (
 			items: labels
 				.filter((label) => label.groupId === group.id)
 				.sort(byName)
-				.map((label) => labelRow(label, group.name, checked)),
+				.map((label) => labelRow(label, group.name, checked, mixed)),
 		}))
 		.filter((section) => section.items.length > 0);
 	if (offersCreate(labels, name)) {

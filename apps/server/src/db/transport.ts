@@ -1,4 +1,4 @@
-import type { GhStatus, SessionDetail, TrellisEvent } from "@trellis/api";
+import type { AgentActivity, GhStatus, TrellisEvent } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { startCommentDeliveryLoop } from "../agents/commentDeliveryLoop.ts";
 import { nativeClient } from "../agents/native/connection.ts";
@@ -231,7 +231,7 @@ export const createInlineTransport = ({
 		if (options !== undefined) {
 			const clock = scaledClock(options.clockRate);
 			sessionMonitor = startSessionMonitor({
-				read: () => backgroundCall("sessions.activity", {}) as Promise<SessionDetail[]>,
+				read: () => backgroundCall("agentRuns.activity", {}) as Promise<AgentActivity[]>,
 				client: nativeClient(config.home),
 				emit: (event) => bus.emit(event),
 				log: options.log,

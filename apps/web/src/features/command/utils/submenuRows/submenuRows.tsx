@@ -1,31 +1,26 @@
-import { ArrowBendUpLeft } from "@phosphor-icons/react";
-import type { Label, LabelGroup, Status, TicketSummary } from "@trellis/api";
+import { ArrowBendUpLeft, Flag, Stack } from "@phosphor-icons/react";
+import type { EpicSummary, Label, LabelGroup, MilestoneSummary, Status, TicketSummary } from "@trellis/api";
 import { LabelDot, PriorityIcon, StatusIcon } from "@trellis/ui";
-import {
-	bulkChangeStatus,
-	bulkMoveToProject,
-	bulkSetLabel,
-	bulkSetPriority,
-	changeStatus,
-	moveToProject,
-	setLabel,
-	setParent,
-	setPriority,
-} from "../../actions";
+import { changeStatus, moveToProject, setEpic, setLabel, setParent, setPriority } from "../../actions";
 import type { PaletteRow, RowDeps, Submenu } from "../../rows";
 import { priorityLabels } from "../../rows";
+import * as bulk from "../bulkChange";
 import { projectRows } from "../projectRows";
 import { viewHref } from "../viewHref";
 import { gotoProjectRows } from "../viewRows";
 
-// The values a submenu offers. One ticket writes through tickets.update
-// and a selection writes through one tickets.updateMany call.
+// The values a submenu offers. A submenu the Selection section opened
+// carries `bulk`, and its picks write through the bulk path every surface
+// shares, over the rows in `deps.selection`. A submenu the This ticket
+// section opened writes its one ticket through tickets.update.
 
 export const submenuHeadings: Record<Submenu["kind"], string> = {
 	status: "Change status",
 	priority: "Set priority",
 	project: "Move to project",
 	parent: "Set parent",
+	epic: "Set epic",
+	milestone: "Set milestone",
 	labels: "Set labels",
 	sort: "Sort by",
 	group: "Group by",
@@ -40,6 +35,10 @@ export type SubmenuData = {
 	// The labels of the project tree, and the groups that name them.
 	labels: Label[];
 	labelGroups: LabelGroup[];
+	// The epics of the project tree.
+	epics: EpicSummary[];
+	// The milestones of the epic of a milestone submenu, in position order.
+	milestones: readonly MilestoneSummary[];
 };
 
 // "Bug", or "Type / Bug" for a label that belongs to a group.
@@ -68,14 +67,17 @@ const groups = [
 	{ value: "none", label: "None" },
 ] as const;
 
-const writeTickets = (deps: RowDeps, tickets: string[], one: () => void, many: () => void) => () => {
+// Runs the write a picked row starts. `bulk` on the submenu means the
+// Selection section opened it, and `deps.selection` then holds the rows the
+// submenu names, one row or many.
+const writeTickets = (deps: RowDeps, submenu: { bulk?: true }, one: () => void, many: () => void) => () => {
 	deps.close();
-	if (tickets.length === 1) one();
-	else many();
+	if (submenu.bulk === true) many();
+	else one();
 };
 
 export const submenuRows = (submenu: Submenu, deps: RowDeps, data: SubmenuData): PaletteRow[] => {
-	const { action } = deps;
+	const { action, selection } = deps;
 	if (submenu.kind === "status") {
 		return data.statuses.map((status) => ({
 			value: `status.${status.id}`,
@@ -84,9 +86,9 @@ export const submenuRows = (submenu: Submenu, deps: RowDeps, data: SubmenuData):
 			keywords: [status.slug],
 			run: writeTickets(
 				deps,
-				submenu.tickets,
+				submenu,
 				() => void changeStatus(action, submenu.tickets[0]!, status.slug),
-				() => void bulkChangeStatus(action, submenu.tickets, status.slug),
+				() => void bulk.setStatus(deps.bulk, selection, status),
 			),
 		}));
 	}
@@ -97,9 +99,9 @@ export const submenuRows = (submenu: Submenu, deps: RowDeps, data: SubmenuData):
 			icon: <PriorityIcon priority={priority as keyof typeof priorityLabels} />,
 			run: writeTickets(
 				deps,
-				submenu.tickets,
+				submenu,
 				() => void setPriority(action, submenu.tickets[0]!, priority as keyof typeof priorityLabels),
-				() => void bulkSetPriority(action, submenu.tickets, priority as keyof typeof priorityLabels),
+				() => void bulk.setPriority(deps.bulk, selection, priority as keyof typeof priorityLabels),
 			),
 		}));
 	}
@@ -110,54 +112,35 @@ export const submenuRows = (submenu: Submenu, deps: RowDeps, data: SubmenuData):
 			(project) =>
 				writeTickets(
 					deps,
-					submenu.tickets,
+					submenu,
 					() => void moveToProject(action, submenu.tickets[0]!, project.path),
-					() => void bulkMoveToProject(action, submenu.tickets, project.path),
+					() => void bulk.moveToProject(deps.bulk, selection, project),
 				),
 		);
 	}
 	if (submenu.kind === "labels") {
 		return data.labels.map((label) => {
 			const held = submenu.checked.includes(label.id);
+			const mixed = submenu.mixed.includes(label.id);
 			return {
 				value: `label.${label.id}`,
 				label: labelText(label, data.labelGroups),
 				sub: held ? "Remove" : undefined,
+				checked: held ? true : mixed ? "mixed" : undefined,
 				icon: <LabelDot color={label.color} variant="icon" />,
 				run: writeTickets(
 					deps,
-					submenu.tickets,
+					submenu,
 					() => void setLabel(action, submenu.tickets[0]!, label.id, !held),
-					() => void bulkSetLabel(action, submenu.tickets, label.id, !held),
+					() => void bulk.setLabel(deps.bulk, selection, label, data.labelGroups, !held),
 				),
 			};
 		});
 	}
 	if (submenu.kind === "goto") return gotoProjectRows(deps);
-	if (submenu.kind === "parent") {
-		const none: PaletteRow = {
-			value: "parent.none",
-			label: "No parent",
-			icon: <ArrowBendUpLeft />,
-			run: () => {
-				deps.close();
-				void setParent(action, submenu.ticket, null);
-			},
-		};
-		const rows = data.tickets
-			.filter((ticket) => ticket.identifier !== submenu.ticket)
-			.map((ticket) => ({
-				value: `parent.${ticket.identifier}`,
-				label: ticket.title,
-				sub: ticket.identifier,
-				mono: true,
-				run: () => {
-					deps.close();
-					void setParent(action, submenu.ticket, ticket.identifier);
-				},
-			}));
-		return [none, ...rows];
-	}
+	if (submenu.kind === "parent") return parentRows(submenu, deps, data);
+	if (submenu.kind === "epic") return epicRows(submenu, deps, data);
+	if (submenu.kind === "milestone") return milestoneRows(deps, data);
 	const field = submenu.kind === "sort" ? "sort" : "group";
 	const options = submenu.kind === "sort" ? sorts : groups;
 	return options.map((option) => ({
@@ -168,4 +151,86 @@ export const submenuRows = (submenu: Submenu, deps: RowDeps, data: SubmenuData):
 			action.navigate(viewHref(deps.pathname, deps.search, { [field]: option.value }));
 		},
 	}));
+};
+
+// A ticket cannot be its own parent, so the one ticket of a single write
+// leaves the list.
+const parentRows = (submenu: Extract<Submenu, { kind: "parent" }>, deps: RowDeps, data: SubmenuData): PaletteRow[] => {
+	const { action, selection } = deps;
+	const tickets = submenu.tickets;
+	const none: PaletteRow = {
+		value: "parent.none",
+		label: "No parent",
+		icon: <ArrowBendUpLeft />,
+		run: writeTickets(
+			deps,
+			submenu,
+			() => void setParent(action, tickets[0]!, null),
+			() => void bulk.setParent(deps.bulk, selection, null),
+		),
+	};
+	const rows = data.tickets
+		.filter((ticket) => !tickets.includes(ticket.identifier))
+		.map((ticket) => ({
+			value: `parent.${ticket.identifier}`,
+			label: ticket.title,
+			sub: ticket.identifier,
+			mono: true,
+			run: writeTickets(
+				deps,
+				submenu,
+				() => void setParent(action, tickets[0]!, ticket.identifier),
+				() => void bulk.setParent(deps.bulk, selection, ticket),
+			),
+		}));
+	return [none, ...rows];
+};
+
+const epicRows = (submenu: Extract<Submenu, { kind: "epic" }>, deps: RowDeps, data: SubmenuData): PaletteRow[] => {
+	const { action, selection } = deps;
+	const tickets = submenu.tickets;
+	const none: PaletteRow = {
+		value: "epic.none",
+		label: "No epic",
+		icon: <Stack />,
+		run: writeTickets(
+			deps,
+			submenu,
+			() => void setEpic(action, tickets[0]!, null),
+			() => void bulk.setEpic(deps.bulk, selection, null),
+		),
+	};
+	const rows = data.epics.map((epic) => ({
+		value: `epic.${epic.ref}`,
+		label: epic.name,
+		sub: epic.state === "done" ? "Done" : undefined,
+		keywords: [epic.ref, epic.slug],
+		icon: <Stack />,
+		run: writeTickets(
+			deps,
+			submenu,
+			() => void setEpic(action, tickets[0]!, epic.ref),
+			() => void bulk.setEpic(deps.bulk, selection, epic),
+		),
+	}));
+	return [none, ...rows];
+};
+
+// Only the Selection section opens this submenu, so every pick writes
+// through the bulk path.
+const milestoneRows = (deps: RowDeps, data: SubmenuData): PaletteRow[] => {
+	const pick = (milestone: MilestoneSummary | null) => () => {
+		deps.close();
+		void bulk.setMilestone(deps.bulk, deps.selection, milestone);
+	};
+	const none: PaletteRow = { value: "milestone.none", label: "No milestone", icon: <Flag />, run: pick(null) };
+	const rows = data.milestones.map((milestone) => ({
+		value: `milestone.${milestone.ref}`,
+		label: milestone.name,
+		sub: milestone.state === "done" ? "Done" : undefined,
+		keywords: [milestone.ref, milestone.slug],
+		icon: <Flag />,
+		run: pick(milestone),
+	}));
+	return [none, ...rows];
 };

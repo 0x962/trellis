@@ -1,4 +1,5 @@
 import { createRouter, type RouterHistory } from "@tanstack/react-router";
+import { NavigationKeys } from "./features/shell/NavigationKeys";
 import { RouteError } from "./features/shell/RouteError";
 import type { RouterContext } from "./lib/appContext";
 import { parseSearchString, stringifySearchObject } from "./lib/searchParams";
@@ -10,6 +11,7 @@ import { routeTree } from "./routeTree.gen";
 export const createAppRouter = (context: RouterContext, history?: RouterHistory) =>
 	createRouter({
 		routeTree,
+		InnerWrap: NavigationKeys,
 		context,
 		history,
 		parseSearch: parseSearchString,

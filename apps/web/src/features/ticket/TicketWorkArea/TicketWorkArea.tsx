@@ -2,8 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
 import { Avatar, cx, EmptyState, Tabs } from "@trellis/ui";
-import { type ReactNode, useEffect } from "react";
+import type { ReactNode } from "react";
 import { useApp } from "../../../lib/appContext";
+import type { TicketTab } from "../../../lib/ticketSearch";
 import { agentKindOf } from "../../agents/agentKindOf";
 import { agentProfileOf } from "../../agents/agentProfileOf";
 import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
@@ -22,23 +23,20 @@ export function TicketWorkArea({
 }: {
 	ticket: Ticket;
 	activity: ReactNode;
-	tab: string;
-	onTabChange: (tab: string) => void;
+	tab: TicketTab;
+	onTabChange: (tab: TicketTab) => void;
 	onOpenPullRequest: (url: string) => void;
 }) {
 	const { orpc } = useApp();
 	const hash = useLocation({ select: (location) => location.hash });
-	useEffect(() => {
-		if (hash.startsWith("attempt-")) {
-			onTabChange("agent");
-		}
-	}, [hash, onTabChange]);
 	const runs = useQuery({
 		...orpc.agentRuns.list.queryOptions({ input: { ticket: ticket.identifier } }),
 		refetchInterval: 2000,
 	});
 	const assigned =
-		runs.data?.find((run) => run.kind === "agent" && run.assigned) ?? runs.data?.find(hasAssignedProcess);
+		runs.data?.find((run) => hash === `attempt-${run.terminalId}`) ??
+		runs.data?.find((run) => run.kind === "agent" && run.assigned) ??
+		runs.data?.find(hasAssignedProcess);
 	const agentProfile = agentProfileOf(assigned?.harness);
 	const agentLabel = assigned ? (
 		<span className="inline-flex items-center gap-1.5">
@@ -76,7 +74,7 @@ export function TicketWorkArea({
 			<Tabs
 				className={cx("ticket-tabs-layout", tab === "agent" && "ticket-tabs-layout-flush")}
 				value={tab}
-				onValueChange={onTabChange}
+				onValueChange={(value) => onTabChange(value as TicketTab)}
 				items={[
 					{ value: "activity", label: "Activity", content: activity },
 					{

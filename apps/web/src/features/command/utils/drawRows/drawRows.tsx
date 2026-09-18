@@ -16,6 +16,7 @@ export const drawRows = (rows: PaletteRow[]) =>
 			keys={row.keys}
 			icon={row.icon}
 			keywords={row.keywords}
+			checked={row.checked}
 			onSelect={row.run}
 		/>
 	));

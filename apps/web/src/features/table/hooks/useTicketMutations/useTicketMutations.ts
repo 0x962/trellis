@@ -3,7 +3,8 @@ import { toast } from "@trellis/ui";
 import { useMemo } from "react";
 import { useArchivedProjects } from "../../../../hooks/useArchivedProjects";
 import { useApp } from "../../../../lib/appContext";
-import { conflictCurrent, conflictMessage } from "../../../../lib/conflict";
+import { batchesOf } from "../../../../lib/batches";
+import { conflictCurrent, conflictMessage, errorMessage } from "../../../../lib/conflict";
 import { failToast } from "../../../../lib/failToast";
 import { patchRows, readRow } from "../../utils/cacheRows";
 
@@ -121,19 +122,43 @@ export const useTicketMutations = (): TicketMutations => {
 			}
 		};
 
+		// The server takes 200 refs per call, so a larger set becomes several
+		// calls in order. Each call is its own transaction. When one call
+		// fails, the rows of that call and of every call after it go back to
+		// the value they had, and the rows of the calls that already answered
+		// keep the value the server sent.
 		const updateMany: TicketMutations["updateMany"] = async (tickets, fields, patch, verb) => {
 			if (refused(tickets)) return;
 			const originals = tickets.map((ticket) => readRow(queryClient, ticket.id) ?? ticket);
 			patchRows(queryClient, new Set(originals.map((row) => row.id)), (row) => patched(row, patch));
-			try {
-				const { items } = await client.tickets.updateMany({
-					tickets: originals.map((row) => row.identifier),
-					...fields,
-				});
-				for (const item of items) applySummary(item);
-			} catch (error) {
-				revert(originals);
-				failToast(verb(`${originals.length} tickets`), error, () => void updateMany(originals, fields, patch, verb));
+			const runs = batchesOf(originals);
+			let changed = 0;
+			for (const [index, run] of runs.entries()) {
+				try {
+					const { items } = await client.tickets.updateMany({
+						tickets: run.map((row) => row.identifier),
+						...fields,
+					});
+					for (const item of items) applySummary(item);
+					changed += run.length;
+				} catch (error) {
+					revert(runs.slice(index).flat());
+					if (changed === 0) {
+						failToast(
+							verb(`${originals.length} tickets`),
+							error,
+							() => void updateMany(originals, fields, patch, verb),
+						);
+						return;
+					}
+					// A retry would write the whole set again, over the rows
+					// the earlier calls already changed, so the toast offers none.
+					toast.error(`${changed} of ${originals.length} tickets changed.`, {
+						description: errorMessage(error),
+						duration: 6000,
+					});
+					return;
+				}
 			}
 		};
 
@@ -149,11 +174,24 @@ export const useTicketMutations = (): TicketMutations => {
 
 		const removeMany: TicketMutations["removeMany"] = async (tickets) => {
 			if (refused(tickets)) return;
-			try {
-				await client.tickets.deleteMany({ tickets: tickets.map((ticket) => ticket.identifier) });
-				for (const ticket of tickets) applySummary(ticket, true);
-			} catch (error) {
-				failToast(`${tickets.length} tickets are not deleted.`, error, () => void removeMany(tickets));
+			const runs = batchesOf(tickets);
+			let deleted = 0;
+			for (const run of runs) {
+				try {
+					await client.tickets.deleteMany({ tickets: run.map((ticket) => ticket.identifier) });
+					for (const ticket of run) applySummary(ticket, true);
+					deleted += run.length;
+				} catch (error) {
+					if (deleted === 0) {
+						failToast(`${tickets.length} tickets are not deleted.`, error, () => void removeMany(tickets));
+						return;
+					}
+					toast.error(`${deleted} of ${tickets.length} tickets are deleted.`, {
+						description: errorMessage(error),
+						duration: 6000,
+					});
+					return;
+				}
 			}
 		};
 

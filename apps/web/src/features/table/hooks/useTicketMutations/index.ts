@@ -1,1 +1,8 @@
-export { type TicketMutations, useTicketMutations, type Verb } from "./useTicketMutations";
+export {
+	type RowPatch,
+	type RowPatcher,
+	type TicketMutations,
+	type UpdateOptions,
+	useTicketMutations,
+	type Verb,
+} from "./useTicketMutations";

@@ -1,13 +1,13 @@
-import { spawn } from "node:child_process";
+import { execFile } from "node:child_process";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { promisify } from "node:util";
 import {
-	defaultNotifications,
+	AgentActivitySchema,
+	createAgentNotifications,
 	EventSchema,
 	notificationSound,
 	readSse,
-	SessionAlerts,
-	SessionDetailSchema,
 	SettingsSchema,
 } from "@trellis/api";
 import { Notification } from "electron";
@@ -16,24 +16,42 @@ import type { HostConnection } from "../host/host.ts";
 export function sessionNotifications(options: {
 	directory: string;
 	isVisible: (runId: string) => boolean;
-	navigate: (sessionId: string) => Promise<void>;
+	navigate: (path: string) => Promise<void>;
 }) {
-	const alerts = new SessionAlerts();
 	let abort: AbortController | undefined;
 	let timer: ReturnType<typeof setTimeout> | undefined;
-	let lastSound = 0;
 	let stopped = false;
+	let currentHost: HostConnection;
 	const soundPath = join(options.directory, "session-notification.wav");
 	let ready: Promise<void> | undefined;
 	const play = async (volume: number) => {
 		ready ??= mkdir(options.directory, { recursive: true }).then(() => writeFile(soundPath, notificationSound()));
 		await ready;
-		if (stopped || volume === 0 || Date.now() - lastSound < 1000) return;
-		lastSound = Date.now();
-		const child = spawn("/usr/bin/afplay", ["-v", String(volume / 100), soundPath], { stdio: "ignore" });
-		child.once("error", (error) => console.error("Notification sound failed", error));
+		if (stopped || volume === 0) return;
+		await promisify(execFile)("/usr/bin/afplay", ["-v", String(volume / 100), soundPath]);
 	};
+	const alerts = createAgentNotifications({
+		active: () => !stopped && !abort?.signal.aborted,
+		isVisible: options.isVisible,
+		settings: async () => {
+			const response = await fetch(`${currentHost.origin}/api/settings`, {
+				headers: { Authorization: `Bearer ${currentHost.token}` },
+				signal: abort?.signal,
+			});
+			if (!response.ok) throw new Error(`Notification settings failed: ${response.status}`);
+			return SettingsSchema.parse(await response.json());
+		},
+		play,
+		show: (alert) => {
+			if (!Notification.isSupported()) return;
+			const notification = new Notification({ title: alert.title, body: alert.body, silent: true });
+			notification.once("click", () => void options.navigate(alert.path));
+			notification.once("failed", (_event, error) => console.error("Agent notification rejected", error));
+			notification.show();
+		},
+	});
 	const connect = (host: HostConnection) => {
+		currentHost = host;
 		abort?.abort();
 		clearTimeout(timer);
 		const controller = new AbortController();
@@ -47,34 +65,19 @@ export function sessionNotifications(options: {
 			return response;
 		};
 		const watch = async () => {
-			const response = await request("events?types=sessions.status,sessions.changed");
-			const baseline = SessionDetailSchema.array().parse(await (await request("sessions/activity")).json());
+			const response = await request("events?types=agent-runs.status,agent-runs.changed,sessions.changed");
+			const baseline = AgentActivitySchema.array().parse(await (await request("agent-runs/activity")).json());
 			alerts.prune(baseline);
-			for (const session of baseline) alerts.update(session, false);
+			for (const activity of baseline) await alerts.update(activity, false);
 			for await (const frame of readSse(response.body!)) {
-				if (frame.event === "sessions.changed") {
-					alerts.prune(SessionDetailSchema.array().parse(await (await request("sessions/activity")).json()));
+				if (frame.event === "sessions.changed" || frame.event === "agent-runs.changed") {
+					alerts.prune(AgentActivitySchema.array().parse(await (await request("agent-runs/activity")).json()));
 					continue;
 				}
-				if (frame.event !== "sessions.status") continue;
+				if (frame.event !== "agent-runs.status") continue;
 				const event = EventSchema.parse({ ...JSON.parse(frame.data), type: frame.event });
-				if (event.type !== "sessions.status") continue;
-				const notifications = alerts.update(event.session, event.notify);
-				if (!notifications.length || options.isVisible(event.session.run.id)) continue;
-				const settings =
-					SettingsSchema.parse(await (await request("settings")).json()).notifications ?? defaultNotifications;
-				if (controller.signal.aborted || options.isVisible(event.session.run.id)) continue;
-				if (settings.sound) await play(settings.volume);
-				if (settings.native && Notification.isSupported()) {
-					for (const alert of notifications) {
-						const notification = new Notification({ title: alert.title, body: alert.body, silent: true });
-						notification.once("click", () => {
-							void options.navigate(alert.sessionId);
-						});
-						notification.once("failed", (_event, error) => console.error("Session notification rejected", error));
-						notification.show();
-					}
-				}
+				if (event.type !== "agent-runs.status") continue;
+				await alerts.update(event.activity, event.notify);
 			}
 		};
 		void watch()

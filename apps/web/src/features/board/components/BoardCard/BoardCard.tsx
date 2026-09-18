@@ -1,6 +1,6 @@
 import type { TicketSummary } from "@trellis/api";
 import { cx, TicketGlimmer } from "@trellis/ui";
-import { type KeyboardEvent, useCallback, useContext, useRef } from "react";
+import { type KeyboardEvent, type MouseEvent, useCallback, useContext, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useArchivedProjects } from "../../../../hooks/useArchivedProjects";
 import { BoardLineStatsContext } from "../../BoardLineStatsContext";
@@ -16,7 +16,13 @@ export type BoardCardProps = {
 	columnName: string;
 	columnCount: number;
 	working: boolean;
-	onOpen: () => void;
+	// True while the card belongs to the board selection. The board's live
+	// region announces the count, because a list item carries no
+	// `aria-selected`.
+	selected: boolean;
+	// A plain click opens the ticket. A shift click and a cmd or ctrl click
+	// change the selection.
+	onClick: (event: MouseEvent<HTMLElement>) => void;
 	onFocus: () => void;
 	onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
 	announce: (message: string) => void;
@@ -33,7 +39,8 @@ export function BoardCard({
 	columnName,
 	columnCount,
 	working,
-	onOpen,
+	selected,
+	onClick,
 	onFocus,
 	onKeyDown,
 	announce,
@@ -68,15 +75,17 @@ export function BoardCard({
 			aria-label={`${ticket.identifier} ${ticket.title}`}
 			aria-description={working ? "Agent working" : undefined}
 			data-card=""
+			data-selected={selected ? "" : undefined}
 			data-working={working || undefined}
 			data-ticket-id={ticket.id}
 			data-dragging={dragging ? "true" : undefined}
-			onClick={onOpen}
+			onClick={onClick}
 			onFocus={onFocus}
 			onKeyDown={onKeyDown}
 			className={cx(
 				"relative flex min-h-19 shrink-0 cursor-grab flex-col gap-1.5 rounded-md border-x border-b bg-surface p-3 text-base shadow-none transition-[box-shadow,border-color] duration-hover ease-out hover:shadow-kanban-hover active:cursor-grabbing",
 				"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset",
+				"data-selected:bg-accent-soft data-selected:ring-2 data-selected:ring-accent data-selected:ring-inset",
 				dragging ? "border-dashed border-border-strong opacity-40" : "border-border",
 			)}
 		>

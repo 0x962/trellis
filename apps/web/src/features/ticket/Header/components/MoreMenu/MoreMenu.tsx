@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
 import { failToast } from "../../../../../lib/failToast";
-import { lastListHref } from "../../../../../lib/lastList";
+import { projectHref } from "../../../../../lib/projectPath";
 import { usePageSheet } from "../../../../shell/PageSheet";
 import { branchName, titleSlug } from "../../../PropertiesRail/utils/branchName";
 import { openPicker } from "../../../stores/pickerStore";
@@ -33,10 +33,8 @@ export function MoreMenu({ ticket }: MoreMenuProps) {
 			await client.tickets.delete({ ticket: ticket.identifier });
 			setConfirming(false);
 			await queryClient.invalidateQueries();
-			// A ticket in a `PageSheet` closes the sheet, and the page under it
-			// stays. A ticket on its route returns to the last list.
 			if (sheet !== null) sheet.close();
-			else void router.navigate({ href: lastListHref() });
+			else void router.navigate({ href: projectHref(ticket.project.path), replace: true });
 		} catch (error) {
 			failToast(`${ticket.identifier} is not deleted.`, error, () => void remove());
 		}

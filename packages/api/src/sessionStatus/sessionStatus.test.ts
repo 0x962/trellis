@@ -35,7 +35,7 @@ test("disconnected and failed processes cannot show a live question", () => {
 });
 
 test("alerts suppress baseline replay and duplicates, including out-of-order snapshots", () => {
-	const value = session();
+	const value = { run: session().run, sessionId: "session" };
 	const alerts = new SessionAlerts();
 	attention(value.run).sequence = 3;
 	attention(value.run).completion = { sequence: 3, at };
@@ -54,18 +54,18 @@ test("alerts suppress baseline replay and duplicates, including out-of-order sna
 	expect(alerts.update(value, true)).toHaveLength(1);
 });
 
-test("unexpected process exit emits one failure even without provider events", () => {
-	const value = session();
+test("process exit without a provider failure stays silent", () => {
+	const value = { run: session().run, sessionId: "session" };
 	value.run.observation = null;
 	value.run.state = "failed";
 	value.run.processStatus = "exited";
 	const alerts = new SessionAlerts();
-	expect(alerts.update(value, true).map((alert) => alert.kind)).toEqual(["failed"]);
+	expect(alerts.update(value, true)).toEqual([]);
 	expect(alerts.update(value, true)).toEqual([]);
 });
 
 test("a resolved snapshot prevents a delayed question alert", () => {
-	const value = session();
+	const value = { run: session().run, sessionId: "session" };
 	const alerts = new SessionAlerts();
 	attention(value.run).sequence = 8;
 	expect(alerts.update(value, true)).toEqual([]);

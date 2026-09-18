@@ -51,6 +51,9 @@ export type MilestonePickerProps = {
 	epic: string;
 	// The ref of the current milestone.
 	value?: string;
+	// True when the picker writes to several tickets that hold different
+	// milestones. No row then shows a check, so the list claims no shared value.
+	mixed?: boolean;
 	// `null` clears the milestone.
 	onPick: (milestone: MilestoneSummary | null) => void;
 	trigger: ReactElement;
@@ -65,6 +68,7 @@ export type MilestonePickerProps = {
 export function MilestonePicker({
 	epic,
 	value,
+	mixed = false,
 	onPick,
 	trigger,
 	open,
@@ -86,12 +90,12 @@ export function MilestonePicker({
 	// The None row waits for the list, so every row mounts at once. cmdk
 	// highlights the first row it mounts and keeps that row when more rows
 	// arrive.
-	const none = value === undefined;
+	const none = !mixed && value === undefined;
 	const items: CommandItem[] =
 		loaded === undefined
 			? []
 			: [
-					...milestoneItems(milestones, { current: value, picker: true }),
+					...milestoneItems(milestones, { current: mixed ? undefined : value, picker: true }),
 					{ id: noneId, label: "None", current: none, trailing: createElement(RowMarks, { current: none }) },
 				];
 

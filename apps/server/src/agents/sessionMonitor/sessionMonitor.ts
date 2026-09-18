@@ -1,9 +1,9 @@
-import type { SessionDetail, TrellisEvent } from "@trellis/api";
+import type { AgentActivity, TrellisEvent } from "@trellis/api";
 import type { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { projectRun } from "../../services/agentRuns/liveState.ts";
 import { startNativeReconcile } from "../nativeReconcile/host.ts";
 
-const fingerprint = (session: SessionDetail) =>
+const fingerprint = (session: AgentActivity) =>
 	JSON.stringify({
 		process: session.run.processStatus,
 		state: session.run.state,
@@ -17,22 +17,22 @@ const fingerprint = (session: SessionDetail) =>
 	});
 
 export function startSessionMonitor(options: {
-	read: () => Promise<SessionDetail[]>;
+	read: () => Promise<AgentActivity[]>;
 	client: Pick<RuntimeClient, "subscribeSession">;
 	emit: (event: TrellisEvent) => unknown;
 	log: (message: string, fields?: Record<string, unknown>) => void;
 }) {
 	const subscriptions = new Map<string, { abort: AbortController; done: Promise<void> }>();
-	const sessions = new Map<string, SessionDetail>();
+	const sessions = new Map<string, AgentActivity>();
 	const fingerprints = new Map<string, string>();
 	let stopped = false;
 	let initialized = false;
-	const publish = (session: SessionDetail, notify: boolean) => {
-		const key = `${session.id}:${session.run.terminalId}`;
+	const publish = (session: AgentActivity, notify: boolean) => {
+		const key = `${session.run.id}:${session.run.terminalId}`;
 		const next = fingerprint(session);
 		if (fingerprints.get(key) === next) return;
 		fingerprints.set(key, next);
-		options.emit({ type: "sessions.status", session, notify });
+		options.emit({ type: "agent-runs.status", activity: session, notify });
 	};
 	const tick = async () => {
 		const entries = await options.read();
@@ -81,7 +81,7 @@ export function startSessionMonitor(options: {
 			subscriptions.set(id, { abort, done });
 		}
 		initialized = true;
-		const keys = new Set(entries.map((entry) => `${entry.id}:${entry.run.terminalId}`));
+		const keys = new Set(entries.map((entry) => `${entry.run.id}:${entry.run.terminalId}`));
 		for (const key of fingerprints.keys()) if (!keys.has(key)) fingerprints.delete(key);
 	};
 	const loop = startNativeReconcile({

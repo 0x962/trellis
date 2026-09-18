@@ -1,6 +1,6 @@
 import { createRootRouteWithContext, Link, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 import { EmptyState, Toaster } from "@trellis/ui";
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense } from "react";
 import { NewSessionHost } from "../features/sessions/NewSessionHost";
 import { GlobalHotkeys } from "../features/shell/GlobalHotkeys";
 import { linkButtonClass } from "../features/shell/linkButtonClass";
@@ -13,8 +13,6 @@ import { useActor } from "../lib/actor";
 import type { RouterContext } from "../lib/appContext";
 import { canOpenDesktopSettingsBeforeSetup, type DesktopBridge } from "../lib/desktopBridge";
 import { resolveActor } from "../lib/identity";
-import { rememberList } from "../lib/lastList";
-import { parseProjectSplat } from "../lib/projectPath";
 
 // The two pages that render without the shell: the first run and the
 // design gallery.
@@ -66,12 +64,6 @@ function RootComponent() {
 	const actor = useActor();
 	const desktop = (window as Window & { trellisDesktop?: Partial<DesktopBridge> }).trellisDesktop;
 	const desktopSetup = actor === null && canOpenDesktopSettingsBeforeSetup(desktop, pathname, location.hash);
-	useEffect(() => {
-		const projectView = pathname.startsWith("/p/") ? parseProjectSplat(pathname.slice(3)).view : undefined;
-		if (["/search", "/needs-you"].includes(pathname) || projectView === "board" || projectView === "table") {
-			rememberList(location.href);
-		}
-	}, [location.href, pathname]);
 	useDocumentTitle();
 
 	if (bare(pathname) || desktopSetup) {

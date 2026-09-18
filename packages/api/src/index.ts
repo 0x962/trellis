@@ -1,5 +1,6 @@
 export * from "./agentCommand/agentCommand.ts";
 export * from "./agentLaunch/agentLaunch.ts";
+export * from "./agentNotifications/index.ts";
 export * from "./client.ts";
 export * from "./contract/index.ts";
 export * from "./errors.ts";

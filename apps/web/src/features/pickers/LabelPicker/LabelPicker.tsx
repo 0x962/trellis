@@ -10,8 +10,14 @@ import { isCreateRow, labelRows } from "../utils/labelRows";
 export type LabelPickerProps = {
 	// A project path. The picker reads the labels of its root through useLabels.
 	project: string;
-	// The ids of the labels drawn as checked.
+	// The ids of the labels drawn as checked. A bulk picker puts a label here
+	// when every ticket it writes to holds that label.
 	checked: readonly string[];
+	// The ids of the labels drawn as mixed, with a minus in place of the
+	// check. A bulk picker puts a label here when some, but not all, of the
+	// tickets it writes to hold that label. A pick on a mixed row sends
+	// `checked` true, so the label lands on every ticket.
+	mixed?: readonly string[];
 	// `checked` is the new state of that row.
 	onToggle: (label: Label, checked: boolean) => void;
 	trigger: ReactElement;
@@ -29,6 +35,7 @@ export type LabelPickerProps = {
 export function LabelPicker({
 	project,
 	checked,
+	mixed,
 	onToggle,
 	trigger,
 	open,
@@ -72,7 +79,7 @@ export function LabelPicker({
 		const label = labels.find((candidate) => candidate.id === id)!;
 		onToggle(label, !checked.includes(label.id));
 	};
-	const rows = labelRows(labels, groups, { checked, search });
+	const rows = labelRows(labels, groups, { checked, mixed, search });
 	return (
 		<Popover
 			trigger={trigger}

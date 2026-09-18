@@ -33,7 +33,6 @@ export const TicketCreateInputSchema = z.strictObject({
 	epic: EpicRefStringSchema.optional(),
 	milestone: MilestoneRefStringSchema.optional(),
 	labels: LabelRefListSchema.optional(),
-	force: z.boolean().optional(),
 });
 export type TicketCreateInput = z.input<typeof TicketCreateInputSchema>;
 
@@ -69,13 +68,20 @@ export const TicketMoveInputSchema = z.strictObject({
 	status: StatusRefStringSchema,
 	after: TicketRefStringSchema.optional(),
 	before: TicketRefStringSchema.optional(),
-	force: z.boolean().optional(),
 	expectedVersion: z.number().int().positive().optional(),
 });
 export type TicketMoveInput = z.input<typeof TicketMoveInputSchema>;
 
-// A batch is one transaction of at most 200 tickets.
-const TicketBatchSchema = z.array(TicketRefStringSchema).min(1).max(200);
+// A batch is one transaction of at most 200 tickets. Each ref arrives in its
+// canonical spelling, `CDE-1` for `cde-1`, and the batch refuses two refs
+// that hold the same canonical spelling. A ULID and a `KEY-n` are two
+// spellings of one ticket, so a batch that holds both passes this check and
+// writes to that ticket twice.
+const TicketBatchSchema = z
+	.array(TicketRefStringSchema)
+	.min(1)
+	.max(200)
+	.refine((refs) => new Set(refs).size === refs.length, "Name each ticket once.");
 
 export const TicketUpdateManyInputSchema = z.strictObject({
 	tickets: TicketBatchSchema,
@@ -87,7 +93,6 @@ export const TicketUpdateManyInputSchema = z.strictObject({
 	milestone: MilestoneRefStringSchema.nullable().optional(),
 	addLabels: LabelRefListSchema.optional(),
 	removeLabels: LabelRefListSchema.optional(),
-	force: z.boolean().optional(),
 });
 export type TicketUpdateManyInput = z.input<typeof TicketUpdateManyInputSchema>;
 

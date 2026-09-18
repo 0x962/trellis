@@ -30,7 +30,6 @@ export default defineCommand({
 			description: "Milestone ref, such as OP/routine-runtime/phase-1; it also sets the epic",
 		},
 		label: labelFlag,
-		force: { type: "boolean", description: "Accepted for compatibility; completion does not require force" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);
@@ -46,7 +45,6 @@ export default defineCommand({
 				epic: args.epic,
 				milestone: args.milestone,
 				labels: labelRefs(context.rawArgs, "label"),
-				force: args.force === true ? true : undefined,
 			}),
 		);
 		printRecord(ctx.out, ctx.format, ticket, ticketRecord);
