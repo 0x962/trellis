@@ -27,6 +27,9 @@ export function advanceFlow(doc: FlowDoc, previous: FlowExecution, event: FlowEv
 			if (box.minutes !== null && parent.deadlineAt === null) parent.deadlineAt = event.at + box.minutes * 60000;
 			parentKey = parent.parentKey;
 		}
+	} else if (event.type === "warned") {
+		const step = state.steps.find((step) => taskKey(step) === event.key);
+		if (step && ["running", "unknown"].includes(step.state)) step.timeWarnings = event.count;
 	} else if (event.type !== "tick") {
 		const step = state.steps.find((step) => taskKey(step) === event.key);
 		if (!step) return state;
