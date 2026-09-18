@@ -6,8 +6,10 @@ import {
 	RUNTIME_PROTOCOL_VERSION,
 	type RuntimeExpectedTurn,
 	type RuntimeListInput,
+	type RuntimeListPageInput,
 	type RuntimeMethod,
 	type RuntimeMethods,
+	type RuntimeProcessStatus,
 	type RuntimeResponse,
 	type RuntimeStream,
 } from "./index.ts";
@@ -15,6 +17,7 @@ import { subscribeOutput } from "./subscribeOutput.ts";
 import { terminalChannel } from "./terminalChannel";
 
 export class RuntimeClient {
+	private capabilities: string[] | undefined;
 	constructor(
 		readonly socketPath: string,
 		readonly timeoutMs = 10_000,
@@ -106,11 +109,25 @@ export class RuntimeClient {
 	shutdown() {
 		return this.call("shutdown", {});
 	}
-	hello() {
-		return this.call("hello", {});
+	async hello() {
+		const hello = await this.call("hello", {});
+		this.capabilities = hello.capabilities ?? [];
+		return hello;
 	}
-	list(input: RuntimeListInput = {}) {
-		return this.call("list", input);
+	async list(input: RuntimeListInput = {}) {
+		if (this.capabilities === undefined) await this.hello();
+		if (!this.capabilities!.includes("list-pages")) return this.call("list", input);
+		const sessions: RuntimeProcessStatus[] = [];
+		let cursor: string | undefined;
+		do {
+			const page = await this.listPage({ ...input, cursor });
+			for (const session of page.sessions) sessions.push(session);
+			cursor = page.nextCursor ?? undefined;
+		} while (cursor !== undefined);
+		return sessions;
+	}
+	listPage(input: RuntimeListPageInput = {}) {
+		return this.call("listPage", input);
 	}
 	start(spec: LaunchSpec) {
 		return this.call("start", spec);

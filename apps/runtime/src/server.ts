@@ -14,6 +14,7 @@ import { SessionStore } from "./sessionStore.ts";
 import { validateSocketPath } from "./socketPath.ts";
 import { serveTerminalChannel } from "./terminalChannel";
 import { validateRequest } from "./validateRequest.ts";
+import { writeSessionList } from "./writeSessionList";
 
 export async function startRuntime(home: string) {
 	validateSocketPath(join(home, "runtime.sock"));
@@ -27,7 +28,7 @@ export async function startRuntime(home: string) {
 		pid: process.pid,
 		startedAt: new Date().toISOString(),
 		socketPath,
-		capabilities: ["terminal-stream", "terminal-channel"],
+		capabilities: ["terminal-stream", "terminal-channel", "list-pages"],
 	};
 	let store: SessionStore;
 	const sockets = new Set<Socket>();
@@ -37,17 +38,19 @@ export async function startRuntime(home: string) {
 		if (closing && request.method === "start") throw new Error("Runtime is shutting down");
 		switch (request.method) {
 			case "shutdown":
-				if (store.list().some((session) => session.status !== "exited" && !session.controllable))
+				if (
+					[...store.list({ status: "running" }), ...store.list({ status: "unknown" })].some(
+						(session) => !session.controllable,
+					)
+				)
 					throw new Error("Cannot shut down: a session has an unknown process owner");
 				closing = true;
 				await store.stopAll();
-				if (store.list().some((session) => session.status === "unknown"))
+				if (store.list({ status: "unknown" }).length > 0)
 					throw new Error("Cannot shut down: process cleanup is unconfirmed");
 				return null;
 			case "hello":
 				return hello;
-			case "list":
-				return store.list(request.params as RuntimeMethods["list"]["params"]);
 			case "inspect":
 				return store.inspect((request.params as RuntimeMethods["inspect"]["params"]).id);
 			case "hasMessage":
@@ -97,10 +100,22 @@ export async function startRuntime(home: string) {
 			socket.pause();
 			socket.off("data", request);
 			let id = "";
+			let listResponse = false;
 			try {
 				const value = JSON.parse(buffer.subarray(0, end).toString());
 				id = typeof value?.id === "string" ? value.id : "";
 				const request = validateRequest(value);
+				if (request.method === "list" || request.method === "listPage") {
+					listResponse = true;
+					await writeSessionList(
+						socket,
+						store,
+						id,
+						request.params as RuntimeMethods["listPage"]["params"],
+						request.method === "listPage",
+					);
+					return;
+				}
 				if (request.method === "terminal") {
 					await serveTerminalChannel(
 						store,
@@ -144,6 +159,10 @@ export async function startRuntime(home: string) {
 					if (request.method === "shutdown") void close();
 				});
 			} catch (error) {
+				if (listResponse) {
+					socket.destroy();
+					return;
+				}
 				const failure = error as Error & { code?: string };
 				socket.end(
 					`${JSON.stringify({ id, error: { code: failure.code ?? "RUNTIME_ERROR", message: failure.message } })}\n`,

@@ -9,11 +9,19 @@ import { projectUnresolvedAttempts } from "./agentRuns.ts";
 import type { ServiceCtx } from "./support.ts";
 
 export const diagnostics = async (ctx: ServiceCtx): Promise<Diagnostics> => {
+	const runs = await ctx.newTx((tx) =>
+		rows<StoredRun>(
+			tx,
+			sql`SELECT ${columns} FROM agent_runs WHERE runtime='native' ORDER BY updated_at DESC LIMIT 100`,
+		),
+	);
 	let runtime: Diagnostics["runtime"];
 	let sessions: RuntimeProcessStatus[] = [];
 	try {
 		const hello = await nativeClient(ctx.home).hello();
-		sessions = await nativeClient(ctx.home).list();
+		sessions = await nativeClient(ctx.home).list({
+			ids: runs.flatMap((run) => (run.terminalId === null ? [] : [run.terminalId])),
+		});
 		runtime = {
 			state: "running",
 			pid: hello.pid,
@@ -31,22 +39,16 @@ export const diagnostics = async (ctx: ServiceCtx): Promise<Diagnostics> => {
 			error: stopped ? null : error instanceof Error ? error.message : String(error),
 		};
 	}
-	return ctx.newTx(async (tx) => {
-		const runs = await rows<StoredRun>(
-			tx,
-			sql`SELECT ${columns} FROM agent_runs WHERE runtime='native' ORDER BY updated_at DESC LIMIT 100`,
-		);
-		const unresolvedAttempts = projectUnresolvedAttempts(runs, sessions, ctx.home);
-		return {
-			host: { bootId: ctx.bootId, version: ctx.version, home: ctx.home },
-			runtime,
-			lastObservationAt:
-				sessions
-					.map((session) => session.checkedAt)
-					.sort()
-					.at(-1) ?? null,
-			unresolvedAttempts,
-			logs: [join(ctx.home, "server.log"), join(ctx.home, "runtime", "runtime.log")],
-		};
-	});
+	const unresolvedAttempts = projectUnresolvedAttempts(runs, sessions, ctx.home);
+	return {
+		host: { bootId: ctx.bootId, version: ctx.version, home: ctx.home },
+		runtime,
+		lastObservationAt:
+			sessions
+				.map((session) => session.checkedAt)
+				.sort()
+				.at(-1) ?? null,
+		unresolvedAttempts,
+		logs: [join(ctx.home, "server.log"), join(ctx.home, "runtime", "runtime.log")],
+	};
 };

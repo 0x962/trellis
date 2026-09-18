@@ -68,6 +68,8 @@ export type AgentRunStartInput = z.infer<typeof AgentRunStartInputSchema>;
 export const AgentRunListInputSchema = z.strictObject({
 	ticket: z.string().optional(),
 	project: z.string().optional(),
+	ids: z.array(z.string().min(1)).max(200).optional(),
+	assigned: z.boolean().optional(),
 });
 export type AgentRunListInput = z.infer<typeof AgentRunListInputSchema>;
 

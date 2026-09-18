@@ -31,11 +31,23 @@ const ticketRuns = (_ctx: CoreCtx, tx: Tx, ticketId: string, projectId: string |
 export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 	const ticket = input.ticket === undefined ? null : await resolveTicket(ctx, tx, input.ticket);
 	const project = input.project === undefined ? null : await resolveProject(ctx, tx, input.project);
-	if (ticket !== null) return ticketRuns(ctx, tx, ticket.id, project?.id ?? null);
 	return rows<StoredRun>(
 		tx,
 		sql`SELECT ${columns} FROM agent_runs WHERE
-		${project === null ? sql`true` : sql`project_id = ${project.id}`} ORDER BY created_at DESC, id DESC`,
+		${project === null ? sql`true` : sql`project_id = ${project.id}`} AND
+		${ticket === null ? sql`true` : sql`ticket_id = ${ticket.id}`} AND
+		${
+			input.ids === undefined
+				? sql`true`
+				: input.ids.length === 0
+					? sql`false`
+					: sql`id IN (${sql.join(
+							input.ids.map((id) => sql`${id}`),
+							sql`, `,
+						)})`
+		} AND
+		${input.assigned === undefined ? sql`true` : input.assigned ? sql`closed_at IS NULL` : sql`closed_at IS NOT NULL`}
+		ORDER BY created_at DESC, id DESC`,
 	);
 };
 

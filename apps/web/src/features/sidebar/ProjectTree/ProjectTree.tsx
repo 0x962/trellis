@@ -16,7 +16,7 @@ const byPosition = (a: ProjectSummary, b: ProjectSummary) => a.position - b.posi
 // navigation that is still loading, so the highlight and the page match.
 export function ProjectTree() {
 	const { orpc } = useApp();
-	useQuery({ ...orpc.agentRuns.list.queryOptions({ input: {} }), refetchInterval: 2000 });
+	useQuery({ ...orpc.agentRuns.list.queryOptions({ input: { assigned: true } }), refetchInterval: 2000 });
 	const { data } = useQuery(orpc.projects.list.queryOptions({ input: { archived: false } }));
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	if (data === undefined) return <nav aria-label="Projects" data-project-tree="" />;

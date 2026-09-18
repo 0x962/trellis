@@ -75,6 +75,8 @@ An unconfirmed process prevents a successful stop.
 The Bun host owns PGlite. A separate Node runtime owns agent PTYs.
 Its private Unix socket uses protocol 10. A lifetime file lock permits one runtime owner.
 Each attempt has one immutable identifier, a token hash, retained terminal output, and a process record.
+The runtime keeps complete records for active processes and subscribers. The runtime retains up to 500 unsubscribed exited records for up to seven days. It caches eight records on demand.
+Inventory responses yield between records so terminal input can proceed. Clients use bounded pages when the runtime advertises `list-pages`.
 Output readers receive bounded chunks with byte offsets.
 The runtime preserves delivery identifiers before it writes input. An uncertain write remains unknown until an agent receipt confirms it.
 A runtime restart never substitutes a new process for an unresolved attempt.
@@ -276,6 +278,8 @@ Every preset runs its command through a local PTY. Claude hooks identify ready, 
 The launch supplies the server URL, actor, run identifier, and attempt token through environment variables.
 Each new agent in a configured repository uses a Git worktree under its run directory. This includes sessions, ticket agents, and flow agents.
 API run states come from inspected runtime processes. The database records assignment closure in `closed_at`.
+Periodic runtime checks request the attempt identifiers of open database assignments.
+Sidebar work indicators request assigned runs. Individual agent views request their run identifiers.
 An active background launch reports `starting` until the runtime has a process.
 Otherwise, a missing runtime record produces `interrupted`; an observed process exit produces `exited` or `failed` from its exit code.
 A failed launch retains its error. A stop retains the workspace and output after the runtime confirms process exit.

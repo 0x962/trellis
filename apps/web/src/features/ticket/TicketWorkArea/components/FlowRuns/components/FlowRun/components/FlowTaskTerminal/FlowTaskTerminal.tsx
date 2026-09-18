@@ -13,7 +13,10 @@ export function FlowTaskTerminal({
 	onClose: () => void;
 }) {
 	const { orpc } = useApp();
-	const runs = useQuery(orpc.agentRuns.list.queryOptions({ input: {} }));
+	const runs = useQuery({
+		...orpc.agentRuns.list.queryOptions({ input: { ids: task.runId ? [task.runId] : [] } }),
+		refetchInterval: 2000,
+	});
 	const run = runs.data?.find((item) => item.id === task.runId && item.terminalId === task.attemptId);
 	return (
 		<Dialog

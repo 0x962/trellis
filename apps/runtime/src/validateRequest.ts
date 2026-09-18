@@ -49,6 +49,13 @@ export function validateRequest(value: unknown): RuntimeRequest {
 		case "stop":
 			break;
 		case "list":
+		case "listPage":
+			if (
+				request.method === "listPage" &&
+				params.cursor !== undefined &&
+				(typeof params.cursor !== "string" || params.cursor.length === 0 || params.cursor.length > 128)
+			)
+				throw new Error("A list cursor must contain between 1 and 128 characters");
 			if (
 				params.ids !== undefined &&
 				(!Array.isArray(params.ids) ||
