@@ -8,6 +8,7 @@ import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
 import { labelGroups } from "./labelGroups.ts";
 import { labels } from "./labels.ts";
+import { milestones } from "./milestones.ts";
 import { models } from "./models.ts";
 import { needsYou } from "./needsYou.ts";
 import { notes } from "./notes.ts";
@@ -43,6 +44,7 @@ export const router = os.router({
 	comments,
 	notes,
 	epics,
+	milestones,
 	attachments,
 	pullRequests,
 	search,

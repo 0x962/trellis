@@ -37,6 +37,7 @@ export const membershipFields: ReadonlySet<string> = new Set([
 	"labels",
 	"parent",
 	"epic",
+	"milestone",
 	"completed",
 	"completedAt",
 	"position",
@@ -46,10 +47,11 @@ export const membershipFields: ReadonlySet<string> = new Set([
 // or moves. The parent row emits no event of its own, so its detail refetches.
 const parentFields: ReadonlySet<string> = new Set(["parent", "status", "completedAt"]);
 
-// The counts and the state of an epic derive from its tickets. The epic row
-// emits no event of its own when a ticket changes, so the epic queries
-// refetch on a ticket event that names one of these fields.
-const epicFields: ReadonlySet<string> = new Set(["epic", "status", "completedAt"]);
+// The counts and the state of an epic and of each of its milestones derive
+// from its tickets. The epic row emits no event of its own when a ticket
+// changes, so the epic queries refetch on a ticket event that names one of
+// these fields.
+const epicFields: ReadonlySet<string> = new Set(["epic", "milestone", "status", "completedAt"]);
 
 type TicketEvent = Extract<TrellisEvent, { type: "ticket.created" | "ticket.updated" | "ticket.deleted" }>;
 
@@ -218,9 +220,10 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "notes.changed":
 				enqueue([family("notes")]);
 				return;
-			// A ticket row copies the epic name and ref, and the projects list
-			// carries `openEpicCount`. No ticket event follows an epic change,
-			// so every query that holds a ticket row refetches.
+			// A ticket row copies the name and the ref of its epic and of its
+			// milestone, and the projects list carries `openEpicCount`. No
+			// ticket event follows a change of an epic or of a milestone, so
+			// every query that holds a ticket row refetches.
 			case "epics.changed":
 				enqueue([family("epics"), family("tickets"), family("projects", "list")]);
 				return;

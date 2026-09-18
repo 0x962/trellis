@@ -100,8 +100,10 @@ export const NotesChangedPayloadSchema = z.object({
 });
 
 // `id` is the epic that a committed create, update, or delete touched, and
-// `projectId` the project that owns it. The counts of an epic follow its
-// tickets, and a ticket event carries those; this event carries the record.
+// `projectId` the project that owns it. A create, an update, a reorder, and
+// a delete of a milestone name the epic of that milestone. The counts of an
+// epic follow its tickets, and a ticket event carries those; this event
+// carries the record.
 export const EpicsChangedPayloadSchema = z.object({
 	projectId: UlidSchema,
 	id: UlidSchema,

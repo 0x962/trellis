@@ -1,7 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
 	bigint,
-	boolean,
 	check,
 	doublePrecision,
 	foreignKey,
@@ -13,17 +12,21 @@ import {
 	text,
 	unique,
 } from "drizzle-orm/pg-core";
-import { CI_STATES, checkIn, PR_LINK_SOURCES, PR_STATES, PRIORITIES, REVIEW_STATES } from "./enums.ts";
+import { checkIn, PR_LINK_SOURCES, PRIORITIES } from "./enums.ts";
 import { actorColumns, actorFk, at } from "./tables/actors.ts";
 import { epics } from "./tables/epics.ts";
+import { milestones } from "./tables/milestones.ts";
 import { projects, statuses } from "./tables/projects.ts";
+import { pullRequests } from "./tables/pullRequests.ts";
 
 export * from "./tables/actors.ts";
 export * from "./tables/agentRuns.ts";
 export * from "./tables/epics.ts";
 export * from "./tables/flows.ts";
 export * from "./tables/labels.ts";
+export * from "./tables/milestones.ts";
 export * from "./tables/projects.ts";
+export * from "./tables/pullRequests.ts";
 export * from "./tables/reviews.ts";
 export * from "./tables/sessions.ts";
 
@@ -40,7 +43,9 @@ export * from "./tables/sessions.ts";
 // fails at once, inside the statement that deletes it. The epic foreign
 // key is the exception: an epic delete sets `epic_id` NULL on its tickets.
 // The same-root rule for `epic_id` is a service rule, because a composite
-// foreign key cannot SET NULL one column alone.
+// foreign key cannot SET NULL one column alone. The milestone foreign key
+// sets `milestone_id` NULL in the same way, and the service holds the rule
+// that the milestone belongs to the epic of the ticket.
 // The generated column `search` (title at weight A, description at weight
 // B) and its GIN index live in the migration 0002_constraints, because
 // drizzle-kit renders no generated tsvector. The GIN index on title with
@@ -61,6 +66,7 @@ export const tickets = pgTable(
 			.references(() => statuses.id, { onDelete: "restrict" }),
 		parentId: text("parent_id"),
 		epicId: text("epic_id"),
+		milestoneId: text("milestone_id"),
 		position: doublePrecision().notNull(),
 		version: integer().notNull().default(1),
 		startedAt: at("started_at"),
@@ -86,6 +92,14 @@ export const tickets = pgTable(
 			columns: [t.epicId],
 			foreignColumns: [epics.id],
 		}).onDelete("set null"),
+		foreignKey({
+			name: "tickets_milestone_fk",
+			columns: [t.milestoneId],
+			foreignColumns: [milestones.id],
+		}).onDelete("set null"),
+		// A row never loses its epic while it holds a milestone. A service
+		// that deletes an epic sets `milestone_id` NULL on its tickets first.
+		check("tickets_milestone_needs_epic", sql`${t.milestoneId} IS NULL OR ${t.epicId} IS NOT NULL`),
 		check("tickets_parent_not_self", sql`${t.parentId} <> ${t.id}`),
 		check("tickets_number_check", sql`${t.number} > 0`),
 		check("tickets_title_check", sql`${t.title} = btrim(${t.title}) AND length(${t.title}) BETWEEN 1 AND 500`),
@@ -107,6 +121,7 @@ export const tickets = pgTable(
 		),
 		index("tickets_parent_id_idx").on(t.parentId),
 		index("tickets_epic_id_idx").on(t.epicId),
+		index("tickets_milestone_id_idx").on(t.milestoneId),
 		index("tickets_open_idx").on(t.rootId, t.updatedAt.desc().nullsFirst()).where(sql`${t.completedAt} IS NULL`),
 		index("tickets_completed_idx")
 			.on(t.rootId, t.completedAt.desc().nullsFirst())
@@ -173,45 +188,6 @@ export const attachments = pgTable(
 		check("attachments_sha256_check", sql`${t.sha256} ~ '^[0-9a-f]{64}$'`),
 		index("attachments_ticket_id_idx").on(t.ticketId),
 		index("attachments_sha256_idx").on(t.sha256),
-	],
-);
-
-// `checks` is the sorted list of `{name, workflow, bucket, link}` gh reported.
-export const pullRequests = pgTable(
-	"pull_requests",
-	{
-		id: text().primaryKey(),
-		owner: text().notNull(),
-		repo: text().notNull(),
-		number: integer().notNull(),
-		url: text().notNull(),
-		title: text().notNull().default(""),
-		state: text().notNull(),
-		isDraft: boolean("is_draft").notNull().default(false),
-		reviewRetained: boolean("review_retained").notNull().default(false),
-		headRef: text("head_ref").notNull().default(""),
-		baseRef: text("base_ref").notNull().default(""),
-		reviewState: text("review_state").notNull().default("none"),
-		mergedAt: at("merged_at"),
-		closedAt: at("closed_at"),
-		checks: jsonb().notNull().default([]),
-		ciState: text("ci_state").notNull().default("none"),
-		contentHash: text("content_hash"),
-		fetchedAt: at("fetched_at"),
-		fetchError: text("fetch_error"),
-		createdAt: at("created_at").notNull(),
-		updatedAt: at("updated_at").notNull(),
-	},
-	(t) => [
-		unique("pull_requests_owner_repo_number_unique").on(t.owner, t.repo, t.number),
-		check("pull_requests_owner_check", sql`${t.owner} = lower(${t.owner}) AND length(${t.owner}) > 0`),
-		check("pull_requests_repo_check", sql`${t.repo} = lower(${t.repo}) AND length(${t.repo}) > 0`),
-		check("pull_requests_number_check", sql`${t.number} > 0`),
-		checkIn(t.state, PR_STATES),
-		checkIn(t.reviewState, REVIEW_STATES),
-		checkIn(t.ciState, CI_STATES),
-		check("pull_requests_checks_check", sql`jsonb_typeof(${t.checks}) = 'array'`),
-		index("pull_requests_state_ci_state_idx").on(t.state, t.ciState),
 	],
 );
 

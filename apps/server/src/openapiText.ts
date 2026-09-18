@@ -43,6 +43,11 @@ export const TAGS = [
 		description:
 			"Epics: the tickets that deliver one plan inside a project, with the plan as markdown. An epic ref is a ULID or KEY/slug.",
 	},
+	{
+		name: "milestones",
+		description:
+			"Milestones: the ordered phases of one epic. A milestone ref is a ULID or KEY/epic-slug/milestone-slug. `GET /api/epics/{epic}` lists the milestones of an epic.",
+	},
 	{ name: "attachments", description: "Files on a ticket. The bytes are served at GET /api/attachments/{id}/file." },
 	{ name: "pull requests", description: "GitHub pull requests linked to a ticket, with their CI state." },
 	{ name: "search", description: "Full text search over tickets and projects." },
@@ -78,7 +83,7 @@ Every ref is case-insensitive on the way in and canonical on the way out.
 
 ## The list grammar
 
-\`GET /api/tickets\` takes flat query parameters. A parameter that takes several values takes a comma list. \`parent=none\` keeps top-level tickets only. \`epic=<ref>\` keeps the tickets of one epic, and \`epic=none\` the tickets outside every epic. \`sort\` takes \`[-]updatedAt\`, \`createdAt\`, \`priority\`, \`number\`, \`status\`, or \`position\`; the default is \`-updatedAt\`. \`limit\` is 1 to 200; \`cursor\` continues a page and belongs to one filter and sort.
+\`GET /api/tickets\` takes flat query parameters. A parameter that takes several values takes a comma list. \`parent=none\` keeps top-level tickets only. \`epic=<ref>\` keeps the tickets of one epic, and \`epic=none\` the tickets outside every epic. \`milestone=<ref>\` keeps the tickets of one milestone, and \`milestone=none\` the tickets outside every milestone. \`sort\` takes \`[-]updatedAt\`, \`createdAt\`, \`priority\`, \`number\`, \`status\`, or \`position\`; the default is \`-updatedAt\`. \`limit\` is 1 to 200; \`cursor\` continues a page and belongs to one filter and sort.
 
 Example: \`GET /api/tickets?project=CDE&status=in-progress,agent-review&parent=none&ci=fail&sort=-updatedAt\`
 
@@ -246,6 +251,12 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 		description: "# Routine runtime\n\nStep 1 of the routine runtime: ...",
 	},
 	"PATCH /epics/{epic}": { name: "Routine runtime", description: "# Routine runtime\n\nThe plan, revised." },
+	"POST /milestones": { epic: "OP/routine-runtime", name: "Phase 1: run state" },
+	"PATCH /milestones/{milestone}": { name: "Phase 1: run state", slug: "phase-1" },
+	"PUT /milestones/order": {
+		epic: "OP/routine-runtime",
+		milestones: ["OP/routine-runtime/phase-1", "OP/routine-runtime/phase-2"],
+	},
 	"POST /tickets/{ticket}/attachments": { file: "<the file bytes as one multipart part named file>", name: "shot.png" },
 	"POST /tickets/{ticket}/prs": { url: "https://github.com/acme/web/pull/12" },
 	"PUT /settings": {

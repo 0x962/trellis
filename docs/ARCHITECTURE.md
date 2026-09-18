@@ -530,8 +530,13 @@ Ticket links open `/t/$identifier`. The header shows the project name and ticket
 identifier, with the actions on the right. The content sits in fully rounded
 cards below the header.
 Every page card has a gap from the sidebar, the right edge, and the bottom edge.
-The gap is 12 px on desktop and 8 px on a phone. Back to list restores the
-last list URL with its filters.
+The gap is 12 px on desktop and 8 px on a phone. Back restores the previous
+router entry, including its filters, tab, and hash. Ticket, review, and usage
+tabs each create a history entry. A ticket opens a pull request on its review route.
+Escape closes the active control or clears the selection first, then goes back.
+The terminal passes Escape to page navigation and keeps modified keys as terminal input.
+A direct entry with no previous app page returns to Needs you with a replacement
+entry. Back at the initial Needs you or setup page leaves the page in place.
 
 `/p/$` takes one splat, `[key, ...slugs, view?]`. The URL keeps slashes and the
 API ref joins the same segments with dots, so `/p/CDE/web/auth` reads

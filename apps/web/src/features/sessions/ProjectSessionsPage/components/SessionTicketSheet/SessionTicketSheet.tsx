@@ -20,7 +20,7 @@ export function SessionTicketSheet({
 			title={identifier}
 			fullPage={<Link to="/t/$identifier" params={{ identifier }} />}
 		>
-			<TicketView identifier={identifier} onReturnToList={onClose} />
+			<TicketView identifier={identifier} />
 		</PageSheet>
 	);
 }

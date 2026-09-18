@@ -1,18 +1,17 @@
 import { ORPCError } from "@orpc/client";
-import { createFileRoute, type ErrorComponentProps, useRouter } from "@tanstack/react-router";
-import { TicketRefStringSchema, UlidSchema } from "@trellis/api";
+import { createFileRoute, type ErrorComponentProps, useLocation } from "@tanstack/react-router";
+import { TicketRefStringSchema } from "@trellis/api";
 import { EmptyState } from "@trellis/ui";
-import { z } from "zod";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
 import { TicketView } from "../../../features/ticket/TicketView";
 import type { AppContext } from "../../../lib/appContext";
-import { lastListHref } from "../../../lib/lastList";
+import { TicketSearchSchema, ticketTab } from "../../../lib/ticketSearch";
 
 const ticketOptions = (context: AppContext, identifier: string) =>
 	context.orpc.tickets.get.queryOptions({ input: { ticket: TicketRefStringSchema.parse(identifier) } });
 
 export const Route = createFileRoute("/t/$identifier")({
-	validateSearch: z.object({ thread: UlidSchema.optional().catch(undefined) }),
+	validateSearch: TicketSearchSchema,
 	loader: async ({ context, params }) => {
 		const ticket = await context.queryClient.ensureQueryData(ticketOptions(context, params.identifier));
 		await context.queryClient.ensureQueryData(
@@ -25,14 +24,22 @@ export const Route = createFileRoute("/t/$identifier")({
 
 function TicketPage() {
 	const { identifier } = Route.useParams();
-	const { thread } = Route.useSearch();
-	const router = useRouter();
+	const { thread, tab } = Route.useSearch();
+	const hash = useLocation({ select: (location) => location.hash });
+	const navigate = Route.useNavigate();
 	return (
 		<TicketView
 			key={identifier}
 			identifier={TicketRefStringSchema.parse(identifier)}
 			thread={thread}
-			onReturnToList={() => void router.navigate({ href: lastListHref() })}
+			tab={ticketTab(tab, hash)}
+			onTabChange={(next) => {
+				void navigate({
+					search: (previous) => ({ ...previous, tab: next === "activity" ? undefined : next }),
+					hash: "",
+					resetScroll: false,
+				});
+			}}
 		/>
 	);
 }

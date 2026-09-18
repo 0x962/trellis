@@ -39,6 +39,7 @@ export function EpicTicketRow({ ticket, readOnly, onOpen, onRemove }: EpicTicket
 			<button
 				type="button"
 				onClick={onOpen}
+				aria-label={`${ticket.identifier} ${ticket.title}`}
 				className="flex h-full min-w-0 flex-1 items-center gap-3 px-3 text-left focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
 			>
 				<StatusIcon category={status.category} reviewer={status.reviewer ?? undefined} />

@@ -1,9 +1,12 @@
 import { z } from "zod";
 import { EpicRefStringSchema, ProjectRefStringSchema } from "../refs.ts";
 import { ActorRefSchema } from "./actor.ts";
-import { booleanString, CountSchema, IsoDateTimeSchema, slugPattern, UlidSchema } from "./primitives.ts";
+import { EpicCountsSchema, EpicStateSchema } from "./epicCounts.ts";
+import { MilestoneSummarySchema } from "./milestone.ts";
+import { booleanString, IsoDateTimeSchema, slugPattern, UlidSchema } from "./primitives.ts";
 import { TicketSummarySchema } from "./ticket.ts";
 
+export { type EpicCounts, EpicCountsSchema, type EpicState, EpicStateSchema } from "./epicCounts.ts";
 export { type EpicLink, EpicLinkSchema } from "./epicLink.ts";
 
 // An epic groups the tickets that deliver one plan inside a project. Its
@@ -31,22 +34,6 @@ export const EpicSlugSchema = z
 	.string()
 	.regex(slugPattern, "Expected a slug: lower-case letters, digits, and single dashes.");
 
-// The tickets of the epic by status category. `total` is the sum of the five.
-export const EpicCountsSchema = z.object({
-	total: CountSchema,
-	todo: CountSchema,
-	started: CountSchema,
-	review: CountSchema,
-	done: CountSchema,
-	canceled: CountSchema,
-});
-export type EpicCounts = z.infer<typeof EpicCountsSchema>;
-
-// `done` when the epic has at least one ticket and every ticket is done or
-// canceled. `open` otherwise, so an epic with no ticket is open.
-export const EpicStateSchema = z.enum(["open", "done"]);
-export type EpicState = z.infer<typeof EpicStateSchema>;
-
 // One row of the epic list. `actor` is the last writer of the record.
 export const EpicSummarySchema = z.object({
 	id: UlidSchema,
@@ -64,9 +51,10 @@ export const EpicSummarySchema = z.object({
 });
 export type EpicSummary = z.infer<typeof EpicSummarySchema>;
 
-// The `epics.get` shape: the summary plus every ticket of the epic in
-// ticket number order.
+// The `epics.get` shape: the summary, the milestones of the epic in position
+// order, and every ticket of the epic in ticket number order.
 export const EpicSchema = EpicSummarySchema.extend({
+	milestones: z.array(MilestoneSummarySchema),
 	tickets: z.array(TicketSummarySchema),
 });
 export type Epic = z.infer<typeof EpicSchema>;

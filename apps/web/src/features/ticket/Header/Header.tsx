@@ -1,11 +1,10 @@
 import { ArrowLeft, Copy, GitBranch } from "@phosphor-icons/react";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
 import { IconButton, isTextEntry, Tooltip, useHotkey, useMediaQuery } from "@trellis/ui";
+import { useBackNavigation } from "../../../hooks/useBackNavigation";
 import { useApp } from "../../../lib/appContext";
 import { copyText } from "../../../lib/clipboard";
-import { lastListHref } from "../../../lib/lastList";
 import { usePageSheet } from "../../shell/PageSheet";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
@@ -29,13 +28,12 @@ const claims = (event: KeyboardEvent) => {
 };
 
 export function Header({ ticket, readOnly }: HeaderProps) {
-	const router = useRouter();
+	const { back } = useBackNavigation();
 	const { orpc } = useApp();
 	const project = useSuspenseQuery(orpc.projects.get.queryOptions({ input: { project: ticket.project.path } })).data;
 	const phone = useMediaQuery("(max-width: 767px)");
 	const inSheet = usePageSheet() !== null;
 	const branch = branchName(ticket.identifier, titleSlug(ticket.title));
-	const back = lastListHref();
 
 	useHotkey("mod+c", (event) => {
 		if (claims(event)) void copyText(ticket.identifier, `Copied ${ticket.identifier}`);
@@ -53,48 +51,38 @@ export function Header({ ticket, readOnly }: HeaderProps) {
 	return (
 		<Topbar
 			actions={
-				<fieldset disabled={readOnly} className="contents">
-					<BriefCopy ticket={ticket} />
-					{/* A ticket in a `PageSheet` has no list to return to. The header of
-					    the sheet holds a close button. */}
+				<>
 					{!inSheet && (
-						<Tooltip content="Back to list">
-							<IconButton
-								label="Back to list"
-								role="link"
-								icon={<ArrowLeft />}
-								variant="default"
-								render={<a href={back} />}
-								nativeButton={false}
-								onClick={(event) => {
-									event.preventDefault();
-									void router.navigate({ href: back });
-								}}
-							/>
+						<Tooltip content="Back (Esc)">
+							<IconButton label="Back" icon={<ArrowLeft />} variant="default" onClick={back} />
 						</Tooltip>
 					)}
-					{!phone && (
-						<>
-							<Tooltip content="Copy ID ⌘C">
-								<IconButton
-									label="Copy ID"
-									variant="default"
-									icon={<Copy />}
-									onClick={() => void copyText(ticket.identifier, `Copied ${ticket.identifier}`)}
-								/>
-							</Tooltip>
-							<Tooltip content="Copy branch name ⌘⇧C">
-								<IconButton
-									label="Copy branch name"
-									variant="default"
-									icon={<GitBranch />}
-									onClick={() => void copyText(branch, "Copied the branch name")}
-								/>
-							</Tooltip>
-						</>
-					)}
-					<MoreMenu ticket={ticket} />
-				</fieldset>
+					<fieldset disabled={readOnly} className="contents">
+						<BriefCopy ticket={ticket} />
+
+						{!phone && (
+							<>
+								<Tooltip content="Copy ID ⌘C">
+									<IconButton
+										label="Copy ID"
+										variant="default"
+										icon={<Copy />}
+										onClick={() => void copyText(ticket.identifier, `Copied ${ticket.identifier}`)}
+									/>
+								</Tooltip>
+								<Tooltip content="Copy branch name ⌘⇧C">
+									<IconButton
+										label="Copy branch name"
+										variant="default"
+										icon={<GitBranch />}
+										onClick={() => void copyText(branch, "Copied the branch name")}
+									/>
+								</Tooltip>
+							</>
+						)}
+						<MoreMenu ticket={ticket} />
+					</fieldset>
+				</>
 			}
 		>
 			<PageTitle parent={<ProjectBreadcrumb project={project} />} title={ticket.identifier} />

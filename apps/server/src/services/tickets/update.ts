@@ -16,14 +16,14 @@ import { ticketGet, ticketSummary } from "../../db/queries/ticketGet.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { record } from "../activity.ts";
-import { resolveEpicForTicket } from "../epics/resolve.ts";
-import { epicRefOf } from "../epics/rows.ts";
 import { assertProjectActive, pathOf, resolveProject, resolveStatus, resolveTicket, type TicketRow } from "../refs.ts";
 import { applyLabelDeltas } from "./labels.ts";
+import { placementChanges, resolvePlacement } from "./placement.ts";
 import { assertVersion, outsideRoot, remapStatus, stampColumns } from "./rules.ts";
 
 // The fields `update` and `updateMany` share. A ref is a canonical string;
-// `parent: null` clears the parent, and `epic: null` clears the epic.
+// `parent: null` clears the parent, `epic: null` clears the epic, and
+// `milestone: null` clears the milestone.
 type ChangeInput = {
 	title?: string;
 	description?: string;
@@ -31,6 +31,7 @@ type ChangeInput = {
 	status?: string;
 	parent?: string | null;
 	epic?: string | null;
+	milestone?: string | null;
 	project?: string;
 	addLabels?: readonly string[];
 	removeLabels?: readonly string[];
@@ -136,18 +137,7 @@ export const applyChanges = async (ctx: ServiceCtx, tx: Tx, batchId: string, row
 			});
 		}
 	}
-	if (input.epic !== undefined) {
-		const epic = input.epic === null ? null : await resolveEpicForTicket(ctx, tx, row.rootId, input.epic);
-		if ((epic?.id ?? null) !== row.epicId) {
-			changes.push({
-				field: "epic",
-				from: row.epicRef,
-				to: epic === null ? null : epicRefOf(epic),
-				meta: { fromId: row.epicId, toId: epic?.id ?? null },
-				set: sql`epic_id = ${epic?.id ?? null}`,
-			});
-		}
-	}
+	changes.push(...placementChanges(row, await resolvePlacement(ctx, tx, row.rootId, row, input)));
 	changes.push(...(await projectAndStatusChanges(ctx, tx, row, input)));
 	changes.push(...(await applyLabelDeltas(ctx, tx, row, input)));
 	if (changes.length === 0) return ticketSummary(tx, row.id);

@@ -15,6 +15,13 @@ export type ProjectRef = { kind: "ulid"; id: string } | { kind: "identifier"; ke
 // reads as a project ref, which joins its segments with dots.
 export type EpicRef = { kind: "ulid"; id: string } | { kind: "identifier"; key: string; slug: string };
 
+// A milestone ref joins the root key, the epic slug, and the milestone slug
+// with slashes. The three segments keep it apart from an epic ref, which
+// holds two.
+export type MilestoneRef =
+	| { kind: "ulid"; id: string }
+	| { kind: "identifier"; key: string; epicSlug: string; slug: string };
+
 export type StatusRef =
 	| { kind: "ulid"; id: string }
 	| { kind: "category"; category: StatusCategory }
@@ -100,6 +107,29 @@ const epicRef = defineRef(
 	"Expected an epic ref: a ULID or KEY/slug, for example OP/routine-runtime.",
 	parseEpicRef,
 	formatEpicRef,
+);
+
+const milestoneIdentifierPattern = /^([A-Z][A-Z0-9]{1,9})\/([A-Z0-9]+(?:-[A-Z0-9]+)*)\/([A-Z0-9]+(?:-[A-Z0-9]+)*)$/i;
+
+const parseMilestoneRef = (value: string): MilestoneRef | undefined => {
+	if (isUlid(value)) return { kind: "ulid", id: value.toUpperCase() };
+	const match = milestoneIdentifierPattern.exec(value);
+	if (match === null) return undefined;
+	return {
+		kind: "identifier",
+		key: match[1]!.toUpperCase(),
+		epicSlug: match[2]!.toLowerCase(),
+		slug: match[3]!.toLowerCase(),
+	};
+};
+
+const formatMilestoneRef = (ref: MilestoneRef) =>
+	ref.kind === "ulid" ? ref.id : `${ref.key}/${ref.epicSlug}/${ref.slug}`;
+
+const milestoneRef = defineRef(
+	"Expected a milestone ref: a ULID or KEY/epic-slug/milestone-slug, for example OP/routine-runtime/phase-1.",
+	parseMilestoneRef,
+	formatMilestoneRef,
 );
 
 // A status name is 1 to 40 characters. The colon is reserved for the
@@ -190,6 +220,7 @@ const actorHeader = defineRef(actorHeaderGrammar, parseActorHeader, formatActorH
 export const TicketRefSchema = ticketRef.schema;
 export const ProjectRefSchema = projectRef.schema;
 export const EpicRefSchema = epicRef.schema;
+export const MilestoneRefSchema = milestoneRef.schema;
 export const StatusRefSchema = statusRef.schema;
 export const LabelRefSchema = labelRef.schema;
 export const LabelGroupRefSchema = labelGroupRef.schema;
@@ -200,6 +231,7 @@ export const ActorHeaderSchema = actorHeader.schema;
 export const TicketRefStringSchema = ticketRef.canonical;
 export const ProjectRefStringSchema = projectRef.canonical;
 export const EpicRefStringSchema = epicRef.canonical;
+export const MilestoneRefStringSchema = milestoneRef.canonical;
 export const StatusRefStringSchema = statusRef.canonical;
 export const LabelRefStringSchema = labelRef.canonical;
 export const LabelGroupRefStringSchema = labelGroupRef.canonical;

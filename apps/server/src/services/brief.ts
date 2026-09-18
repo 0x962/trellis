@@ -6,7 +6,7 @@ import { iso, rows } from "../db/queries/support.ts";
 import { ticketGet } from "../db/queries/ticketGet.ts";
 import type { Tx } from "../db/tx.ts";
 import { epicView } from "./epics/epics.ts";
-import { epicHeaderLine, epicLines } from "./epics/text.ts";
+import { epicHeaderLine, epicLines, milestoneHeaderLine } from "./epics/text.ts";
 import { activeNotes } from "./notes/notes.ts";
 import { notesLines } from "./notes/text.ts";
 import { resolveTicket } from "./refs.ts";
@@ -77,6 +77,8 @@ const header = (ticket: Ticket, parentTitle: string | null, epic: Epic | null, p
 	];
 	if (ticket.parent !== null) lines.push(`- Parent: ${ticket.parent.identifier} ${parentTitle}`);
 	if (epic !== null) lines.push(epicHeaderLine(epic));
+	const milestone = epic?.milestones.find((candidate) => candidate.id === ticket.milestone?.id);
+	if (milestone !== undefined) lines.push(milestoneHeaderLine(milestone));
 	lines.push(`- Branch: ${branchName(ticket.identifier, ticket.title)}`);
 	lines.push(`- URL: ${publicUrl}/t/${ticket.identifier}`);
 	return lines;

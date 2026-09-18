@@ -4,7 +4,7 @@ import { Markdown } from "@tiptap/markdown";
 import { Editor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { type ClipboardEvent, useEffect } from "react";
-import { SlashMenu, SlashMenuList } from "../SlashMenu";
+import { SlashMenu, SlashMenuList, useSlashMenuStore } from "../SlashMenu";
 
 export const descriptionPlaceholder = "Describe the work. Agents read this verbatim.";
 
@@ -42,6 +42,16 @@ const getEditor = () => {
 			contentType: "markdown",
 			content: "",
 			editorProps: {
+				// ProseMirror prevents every Escape after its key handlers run.
+				// Handle focus here and let an open slash menu consume the first press.
+				handleKeyDown: (view, event) => {
+					if (event.key !== "Escape") return false;
+					event.stopPropagation();
+					if (event.repeat || event.isComposing) return true;
+					if (useSlashMenuStore.getState().open) return false;
+					view.dom.blur();
+					return true;
+				},
 				attributes: {
 					role: "textbox",
 					"aria-label": "Description",
