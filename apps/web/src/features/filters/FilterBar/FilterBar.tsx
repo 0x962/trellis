@@ -18,6 +18,14 @@ export type FilterBarProps = {
 	onSearchChange: (next: Partial<View>) => void;
 	// The statuses of the scope: the status values and the chip names.
 	statuses: readonly StatusSummary[];
+	// The filters that the route fixes, such as `epic` on an epic page.
+	// `search` never holds them. The bar draws no chip for them and the
+	// picker does not offer them, and "Copy as CLI" writes them, so the
+	// command lists the rows of the page.
+	fixed?: Partial<Pick<View, FilterField>>;
+	// The query string of a view for "Copy link", with the leading `?` or "".
+	// A route whose defaults differ from `viewDefaults` supplies it.
+	linkSearch?: (view: View) => string;
 	// The controls at the right end, between Filter and the Share menu.
 	actions?: ReactNode;
 	// A control drawn first in the group at the right end, such as the view
@@ -27,11 +35,27 @@ export type FilterBarProps = {
 
 const fields: PickerStage = { kind: "fields" };
 
+const noFixed: Partial<Pick<View, FilterField>> = {};
+
+const listLinkSearch = (view: View) => {
+	const query = serializeSearch(view);
+	return query === "" ? "" : `?${query}`;
+};
+
 // The bar under the topbar: one chip per active filter on the left, then
 // Filter, the route's Display control, and Share at the right end. The three
 // are icons, because their menus name what they do. `f` opens the picker;
 // `g s` focuses the button.
-export function FilterBar({ project, search, onSearchChange, statuses, actions, lead }: FilterBarProps) {
+export function FilterBar({
+	project,
+	search,
+	onSearchChange,
+	statuses,
+	fixed,
+	linkSearch = listLinkSearch,
+	actions,
+	lead,
+}: FilterBarProps) {
 	const pathname = useRouterState({ select: (state) => state.location.pathname });
 	const [open, setOpen] = useState(false);
 	const [stage, setStage] = useState<PickerStage>(fields);
@@ -62,7 +86,7 @@ export function FilterBar({ project, search, onSearchChange, statuses, actions, 
 	});
 
 	const query = {
-		...toListQuery(view, { statuses }),
+		...toListQuery({ ...view, ...fixed }, { statuses }),
 		updated: view.updated,
 		created: view.created,
 		completed: view.completed,
@@ -75,8 +99,7 @@ export function FilterBar({ project, search, onSearchChange, statuses, actions, 
 	};
 
 	const copyLink = async () => {
-		const search = serializeSearch(view);
-		await navigator.clipboard.writeText(`${window.location.origin}${pathname}${search === "" ? "" : `?${search}`}`);
+		await navigator.clipboard.writeText(`${window.location.origin}${pathname}${linkSearch(view)}`);
 		toast("Copied the link");
 	};
 
@@ -101,6 +124,8 @@ export function FilterBar({ project, search, onSearchChange, statuses, actions, 
 				statuses={statuses}
 				labels={labels}
 				project={project}
+				hiddenFields={Object.keys(fixed ?? noFixed) as FilterField[]}
+				fixedEpic={fixed?.epic}
 				onChange={change}
 				open={open}
 				onOpenChange={onOpenChange}

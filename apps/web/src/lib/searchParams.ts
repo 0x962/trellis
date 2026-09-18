@@ -21,6 +21,7 @@ export const searchParamOrder = [
 	"label",
 	"parent",
 	"epic",
+	"milestone",
 	"pr",
 	"ci",
 	"actor",

@@ -48,6 +48,49 @@ describe("toListQuery", () => {
 	});
 });
 
+describe("milestone", () => {
+	test("reads a milestone ref and canonicalizes it", () => {
+		expect(parseSearch({ milestone: "op/Routine-Runtime/Phase-1" }).milestone).toBe("OP/routine-runtime/phase-1");
+	});
+
+	test("reads `none`, the value for a ticket outside every milestone", () => {
+		expect(parseSearch({ milestone: "none" }).milestone).toBe("none");
+	});
+
+	test("drops an epic ref, which has two segments", () => {
+		expect(parseSearch({ milestone: "OP/routine-runtime" }).milestone).toBeUndefined();
+	});
+
+	test("reads the milestone grouping", () => {
+		expect(parseSearch({ group: "milestone" }).group).toBe("milestone");
+	});
+
+	test("writes milestone after epic and before pr", () => {
+		const search = serializeSearch(
+			viewOf({ pr: "open", milestone: "OP/routine-runtime/phase-1", epic: "OP/routine-runtime" }),
+		);
+		expect(search).toBe("epic=OP/routine-runtime&milestone=OP/routine-runtime/phase-1&pr=open");
+	});
+
+	test("returns the parsed view unchanged", () => {
+		const view = parseSearch({ milestone: "OP/routine-runtime/phase-1", group: "milestone" });
+		expect(parseSearch(Object.fromEntries(new URLSearchParams(serializeSearch(view))))).toEqual(view);
+	});
+
+	test("matches the router codec for a milestone ref", () => {
+		const view = viewOf({ milestone: "OP/routine-runtime/phase-1", group: "milestone" });
+		expect(stringifySearchObject(stripDefaults(view))).toBe(`?${serializeSearch(view)}`);
+	});
+
+	test("carries the milestone filter in the list query", () => {
+		expect(toListQuery(viewOf({ milestone: "OP/routine-runtime/phase-1" })).milestone).toBe(
+			"OP/routine-runtime/phase-1",
+		);
+		expect(toListQuery(viewOf({ milestone: "none" })).milestone).toBe("none");
+		expect("milestone" in toListQuery(viewOf({}))).toBe(false);
+	});
+});
+
 describe("parseSearch label", () => {
 	test("reads a comma list of label refs", () => {
 		expect(parseSearch({ label: "bug,type/feature" }).label).toEqual(["bug", "type/feature"]);

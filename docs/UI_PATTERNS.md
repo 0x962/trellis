@@ -60,12 +60,16 @@ The filter picker uses `FilterPopover` and `Command`. Selected filters use `Chip
 The `f` shortcut opens the filter picker.
 The `epic` stage of the picker lists the epics of the project from `epics.list` and the choice No epic.
 The chip prints the epic name, or No epic for `none`.
+The `milestone` stage shows only when the route has a project. It lists the milestones of the epics of the project, grouped by epic name, and the choice No milestone.
+The chip prints the milestone name, or No milestone for `none`.
 
 Use `ModelPicker` for each model field. It groups models by family and shows the provider mark.
 
 Put the sort field and direction inside `DisplayPopover`. Use one option per field and a separate direction button.
 The direction button shows the current direction through its icon and tooltip.
 `DisplayPopover` offers Group by Epic. The group label is the epic name, and No epic is the last group.
+`DisplayPopover` offers Group by Milestone. The groups follow the milestone position order, and No milestone is the last group.
+When the rows come from one epic, the count slot of an expanded `GroupHeader` prints `done/total` of the milestone. A collapsed group prints its row count.
 The page determines the initial direction for each field. The server applies the selected order before pagination.
 Keep filters and sort in the URL. Keep local display preferences, such as collapsed groups, in `uiStore` under the route key.
 
@@ -87,6 +91,17 @@ The top row of a card prints the identifier trail. When the ticket has an epic, 
 The name is `text-xs text-fg-faint truncate` in the sans face, the separator is ` · `, and the trail keeps `shrink-0`.
 A long name gives way and the identifier stays. The drag preview draws the same content.
 
+## Epic pages
+
+The epic page shows its tickets in the full-width `TicketTable` of the project table view. It has no page-specific row and no row menu of its own.
+Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, an Add `IconButton` with the `Tooltip` Add tickets, and the `Menu` with Edit and Delete.
+The page fixes the `epic` filter. By default the table groups by milestone and lists the root project with its sub-projects.
+The header band sits in the page padding. It holds the state `Badge`, the progress text, and the `StackedBar` of the epic with its legend.
+One `StackedBar` line per milestone follows in position order, with the milestone name and `done/total`. A milestone bar has no legend, because the legend of the epic bar names the colors.
+The `SectionHeader` Plan collapses the description through its Show or Hide `Button`. `uiStore` keeps its collapsed state under `<route key>#plan`.
+The band and the plan take at most half of the page card, so the table keeps rows on screen.
+The rows of the epics list page use the `rowHeights`, the hover band, the cell text sizes, the tabular numbers, and the trailing `Menu` slot width of the ticket table `Row`.
+
 ## Dense rows
 
 Give each property a stable column. Let the title use the remaining width.
@@ -95,7 +110,8 @@ Use the existing ticket table widths for identity, project, actor, and time colu
 Truncate long titles and project paths within their columns. Use tabular numbers for identifiers, counts, and times.
 Keep secondary text, such as a mention excerpt, below the title. Do not repeat a full status label in every review row.
 
-Use `ActorAvatar` when a row represents the last actor. It includes the provider mark and the current work state.
+Use `ActorAvatar` when a row represents the last actor. It shows the provider mark and the work state only for the agent run that is assigned to the ticket of the row.
+A ticket with no assigned agent run shows its last actor without a provider mark. An agent actor then draws the agent mark with no provider. This rule holds for the table `Row`, the board card, the sub-ticket rows, the epic page, and Needs you.
 When run data supplies a harness, hover over the provider mark to see the model and effort.
 Keep status and priority indicators distinct from the row's action menu.
 Use one circular action menu at the far right. Reserve its width even when its trigger is hidden.

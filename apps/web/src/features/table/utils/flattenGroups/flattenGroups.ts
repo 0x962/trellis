@@ -7,6 +7,9 @@ export type TableGroup = RowGroup & {
 	// The count the header shows. A closed group counts the server's rows,
 	// loaded or not.
 	count: number;
+	// The text the count slot prints in place of `count`, such as the `3/11`
+	// done and total counts of a milestone.
+	countLabel?: string;
 	expanded: boolean;
 	// A closed group has more pages on the server.
 	hasMore?: boolean;

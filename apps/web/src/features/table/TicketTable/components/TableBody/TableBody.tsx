@@ -165,6 +165,7 @@ export function TableBody({
 									group={group.key}
 									label={group.label ?? ""}
 									count={group.count}
+									countLabel={group.countLabel}
 									status={group.status}
 									category={group.category}
 									expanded={group.expanded}

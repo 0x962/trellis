@@ -8,7 +8,9 @@ import { failToast } from "../../../../lib/failToast";
 import { patchRows, readRow } from "../../utils/cacheRows";
 
 // The fields a table edit changes on a row before the server answers.
-export type RowPatch = Partial<Pick<TicketSummary, "status" | "priority" | "project" | "parent" | "epic" | "labels">>;
+export type RowPatch = Partial<
+	Pick<TicketSummary, "status" | "priority" | "project" | "parent" | "epic" | "milestone" | "labels">
+>;
 
 // The patch of one write. A label toggle reads the row it changes, because
 // the new label set depends on the labels that row holds now.

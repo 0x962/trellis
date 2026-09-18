@@ -2,10 +2,11 @@ import { describe, expect, test } from "bun:test";
 import type { TicketSummary } from "@trellis/api";
 import { groupRows } from "./groupRows";
 
-const ticket = (id: string, epic: TicketSummary["epic"]) =>
+const ticket = (id: string, epic: TicketSummary["epic"], milestone: TicketSummary["milestone"] = null) =>
 	({
 		id,
 		epic,
+		milestone,
 		priority: "none",
 		status: { category: "todo" },
 		updatedAt: "2026-09-18T00:00:00.000Z",
@@ -48,6 +49,56 @@ describe("groupRows by epic", () => {
 		const rows = [ticket("a", null), ticket("b", null)];
 
 		const groups = groupRows(rows, { group: "epic", sort: "-updatedAt", statuses: [] });
+
+		expect(groups).toHaveLength(1);
+		expect(groups[0]!.key).toBe("none");
+		expect(groups[0]!.rows).toHaveLength(2);
+	});
+});
+
+const phase1 = { id: "01MILESTONEPHASE1000000000", ref: "OP/routine-runtime/phase-1", name: "Phase 1" };
+const phase2 = { id: "01MILESTONEPHASE2000000000", ref: "OP/routine-runtime/phase-2", name: "Phase 2" };
+const alpha = { id: "01MILESTONEALPHA0000000000", ref: "OP/routine-runtime/alpha", name: "Alpha" };
+
+describe("groupRows by milestone", () => {
+	test("follows the milestone order, not the names, No milestone last", () => {
+		const rows = [
+			ticket("a", runtime),
+			ticket("b", runtime, alpha),
+			ticket("c", runtime, phase2),
+			ticket("d", runtime, phase1),
+			ticket("e", runtime, phase2),
+		];
+
+		const groups = groupRows(rows, {
+			group: "milestone",
+			sort: "-updatedAt",
+			statuses: [],
+			milestoneOrder: [phase1.id, phase2.id, alpha.id],
+		});
+
+		expect(groups.map((group) => group.label)).toEqual(["Phase 1", "Phase 2", "Alpha", "No milestone"]);
+		expect(groups.map((group) => group.key)).toEqual([phase1.id, phase2.id, alpha.id, "none"]);
+		expect(groups[1]!.rows.map((row) => row.id).sort()).toEqual(["c", "e"]);
+	});
+
+	test("puts a milestone outside the order after the list and before No milestone", () => {
+		const rows = [ticket("a", null), ticket("b", runtime, alpha), ticket("c", runtime, phase1)];
+
+		const groups = groupRows(rows, {
+			group: "milestone",
+			sort: "-updatedAt",
+			statuses: [],
+			milestoneOrder: [phase1.id],
+		});
+
+		expect(groups.map((group) => group.label)).toEqual(["Phase 1", "Alpha", "No milestone"]);
+	});
+
+	test("puts every row without a milestone in one group", () => {
+		const rows = [ticket("a", null), ticket("b", runtime)];
+
+		const groups = groupRows(rows, { group: "milestone", sort: "-updatedAt", statuses: [] });
 
 		expect(groups).toHaveLength(1);
 		expect(groups[0]!.key).toBe("none");

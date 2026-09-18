@@ -1,7 +1,7 @@
 import { PencilSimple, Trash } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { EpicSummary } from "@trellis/api";
-import { Menu, StackedBar } from "@trellis/ui";
+import { cx, Menu, StackedBar } from "@trellis/ui";
 import { compactRelativeTime } from "../../../../../lib/format";
 import { epicSplat } from "../../../../../lib/projectPath";
 import type { Density } from "../../../../../stores/uiStore";
@@ -18,25 +18,33 @@ export type EpicRowProps = {
 	onDelete: () => void;
 };
 
-// One epic as a dense row in the ticket table widths: the name, the bar of
-// the counts, the progress, the updated time, and the row menu. The name
-// link fills the row height, so the hit area is the whole cell. The bar
-// has no legend here; the epic page prints the legend. Below 768 px the
-// bar leaves so the name keeps room.
+// One epic as a dense row with the classes of the ticket table `Row`: the
+// height from `rowHeights[density]`, the text size of the density on the
+// row, the `hover:bg-band` band, the same padding and gaps, and muted
+// `text-sm tabular` numbers. The tracks are the `columnWidths` of the
+// ticket table: the bar takes the status track (140px), the progress takes
+// the sub-tickets track (48px), the time takes the updated track (48px),
+// and the menu slot is the 28 px of an `IconButton` of size sm. The slot
+// keeps its width while the trigger is hidden. The name link fills the row
+// height, so the hit area is the whole cell. The bar has no legend here;
+// the epic page prints the legend. Below 768 px the bar leaves so the name
+// keeps room.
 export function EpicRow({ epic, density, readOnly, onEdit, onDelete }: EpicRowProps) {
 	return (
 		<li
 			data-epic={epic.slug}
 			style={{ height: `${rowHeights[density]}px` }}
-			className={
-				"group/row grid grid-cols-[minmax(0,1fr)_140px_48px_48px_28px] items-center gap-3 border-b border-border px-5 transition-colors duration-hover hover:bg-band max-md:grid-cols-[minmax(0,1fr)_48px_48px_28px] max-md:gap-2 max-md:px-4"
-			}
+			className={cx(
+				"group/row grid w-full grid-cols-[minmax(0,1fr)_140px_48px_48px_28px] items-center gap-3 border-b border-border px-5 transition-colors duration-hover max-md:grid-cols-[minmax(0,1fr)_48px_48px_28px] max-md:gap-2 max-md:px-4",
+				density === "comfortable" ? "text-base" : "text-sm",
+				"hover:bg-band",
+			)}
 		>
 			<Link
 				to="/p/$"
 				params={{ _splat: epicSplat(epic.ref) }}
 				search={{}}
-				className={`flex h-full min-w-0 items-center font-medium text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 ${density === "comfortable" ? "text-base" : "text-sm"}`}
+				className="flex h-full min-w-0 items-center text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
 			>
 				<span className="truncate">{epic.name}</span>
 			</Link>

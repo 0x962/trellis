@@ -1,11 +1,20 @@
 import { X } from "@phosphor-icons/react";
-import type { EpicSummary, Label, Priority, ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
+import type {
+	EpicSummary,
+	Label,
+	MilestoneSummary,
+	Priority,
+	ProjectSummary,
+	StatusSummary,
+	TicketSummary,
+} from "@trellis/api";
 import { Button, cx, IconButton, Kbd, Tooltip, useReducedMotion } from "@trellis/ui";
 import { type ReactElement, useEffect, useRef, useState } from "react";
 import { formatCount } from "../../../lib/format";
 import { rootKey } from "../../../lib/projectPath";
 import { EpicPicker } from "../../pickers/EpicPicker";
 import { LabelPicker } from "../../pickers/LabelPicker";
+import { MilestonePicker } from "../../pickers/MilestonePicker";
 import { PriorityPicker } from "../../pickers/PriorityPicker";
 import { ProjectPicker } from "../../pickers/ProjectPicker";
 import { StatusPicker } from "../../pickers/StatusPicker";
@@ -36,6 +45,12 @@ export type BulkBarProps = {
 	onProject: (path: string) => void;
 	onParent: (ticket: TicketSummary | null) => void;
 	onEpic: (epic: EpicSummary | null) => void;
+	// The ref of the epic that every selected ticket belongs to. It is
+	// undefined when the selected tickets belong to two or more epics, or when
+	// one of them has no epic. Set milestone lists the milestones of this epic,
+	// so the control is disabled without it.
+	milestoneEpic?: string;
+	onMilestone: (milestone: MilestoneSummary | null) => void;
 	onCopyIds: () => void;
 	onDelete: () => void;
 	onClear: () => void;
@@ -80,6 +95,8 @@ export function BulkBar({
 	onProject,
 	onParent,
 	onEpic,
+	milestoneEpic,
+	onMilestone,
 	onCopyIds,
 	onDelete,
 	onClear,
@@ -166,6 +183,19 @@ export function BulkBar({
 					trigger={<Button size="sm">Set epic</Button>}
 				/>
 			)}
+			{project !== undefined &&
+				(milestoneEpic === undefined ? (
+					<Button size="sm" disabled>
+						Set milestone
+					</Button>
+				) : (
+					<MilestonePicker
+						epic={milestoneEpic}
+						onPick={onMilestone}
+						side="top"
+						trigger={<Button size="sm">Set milestone</Button>}
+					/>
+				))}
 			{withKey(
 				"Copy IDs",
 				"⌘C",

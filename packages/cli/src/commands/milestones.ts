@@ -115,9 +115,12 @@ const order = defineCommand({
 		// be a ULID, so the `KEY/epic-slug` prefix comes from the epic record.
 		const epic = await client.epics.get({ epic: args.epic });
 		// citty keeps every positional in `_`, so the slugs follow the epic ref.
+		// An argument with a slash is a full milestone ref and goes out as it
+		// is, so the server answers MILESTONE_OUTSIDE_EPIC for a ref of another
+		// epic.
 		const milestones = await client.milestones.reorder({
 			epic: epic.ref,
-			milestones: args._.slice(1).map((slug) => `${epic.ref}/${slug}`),
+			milestones: args._.slice(1).map((slug) => (slug.includes("/") ? slug : `${epic.ref}/${slug}`)),
 		});
 		printList(ctx.out, ctx.format, milestones, milestoneList);
 	},

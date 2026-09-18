@@ -22,6 +22,8 @@ export type TicketPickerProps = {
 	// nothing to clear, so `onPick` then receives a ticket only.
 	allowNone?: boolean;
 	trigger: ReactElement;
+	// The tooltip of the trigger. An icon trigger needs one to name its action.
+	triggerTooltip?: string;
 	// The popover name and the search prompt. The defaults name the parent.
 	label?: string;
 	placeholder?: string;
@@ -40,6 +42,7 @@ export function TicketPicker({
 	allowNone = true,
 	onPick,
 	trigger,
+	triggerTooltip,
 	open,
 	onOpenChange,
 	finalFocus,
@@ -87,6 +90,7 @@ export function TicketPicker({
 	return (
 		<Popover
 			trigger={trigger}
+			triggerTooltip={triggerTooltip}
 			label={label}
 			open={isOpen}
 			onOpenChange={setOpen}

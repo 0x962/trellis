@@ -82,7 +82,12 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 		return key !== undefined && !collapsed.isCollapsed(key);
 	});
 	const data = useTableData({ project, view, expanded });
-	const groups = useTableGroups({ data, view, project, isCollapsed: collapsed.isCollapsed });
+	const { groups, loading: groupsLoading } = useTableGroups({
+		data,
+		view,
+		project,
+		isCollapsed: collapsed.isCollapsed,
+	});
 	const items = useMemo(() => flattenGroups(groups), [groups]);
 	const tickets = useMemo(() => groups.flatMap((group) => group.rows), [groups]);
 	const ids = useMemo(() => tickets.map((ticket) => ticket.id), [tickets]);
@@ -130,6 +135,9 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 				.filter((id): id is string => id !== undefined),
 		),
 	];
+
+	const selectedEpicRefs = [...new Set(selectedTickets().map((ticket) => ticket.epic?.ref))];
+	const milestoneEpic = selectedEpicRefs.length === 1 ? selectedEpicRefs[0] : undefined;
 
 	const onRowChange = useStableCallback((ticket: TicketSummary, change: RowChange) => {
 		void applyChange(selection.isSelected(ticket.id) ? selectedTickets() : [ticket], change);
@@ -231,7 +239,7 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 				project={project}
 				statuses={data.statuses}
 				projects={projects}
-				loading={data.loading}
+				loading={data.loading || groupsLoading}
 				rowCount={ids.length}
 				focusedId={focusedId}
 				pendingFocus={pendingFocus}
@@ -263,6 +271,8 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 				onProject={(ref) => void applyChange(selectedTickets(), { project: ref })}
 				onParent={(parent) => void applyChange(selectedTickets(), { parent })}
 				onEpic={(epic) => void applyChange(selectedTickets(), { epic })}
+				milestoneEpic={milestoneEpic}
+				onMilestone={(milestone) => void applyChange(selectedTickets(), { milestone })}
 				onCopyIds={copyIds}
 				onDelete={() => setPendingDelete(selection.selected)}
 				onClear={selection.clear}

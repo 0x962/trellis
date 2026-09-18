@@ -28,6 +28,7 @@ export const filterKeys = [
 	"label",
 	"parent",
 	"epic",
+	"milestone",
 	"pr",
 	"ci",
 	"actor",

@@ -11,6 +11,7 @@ import {
 import { Button, Input, Sheet, SheetBody, SheetFooter, Textarea } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { MilestonesSection } from "./components/MilestonesSection";
 
 export type EpicSheetProps = {
 	project: Project;
@@ -22,7 +23,9 @@ export type EpicSheetProps = {
 };
 
 // The form of an epic: the name and the plan as markdown. A create and an
-// edit share it. The server derives the slug from the name.
+// edit share it. The server derives the slug from the name. The
+// milestones section needs the ref of a saved epic, so it shows on an edit
+// only.
 export function EpicSheet({ project, epic, onClose, onSaved }: EpicSheetProps) {
 	const { client, orpc, queryClient } = useApp();
 	const nameRef = useRef<HTMLInputElement>(null);
@@ -86,6 +89,7 @@ export function EpicSheet({ project, epic, onClose, onSaved }: EpicSheetProps) {
 						onChange={(event) => setDescription(event.target.value)}
 						placeholder="The plan, in markdown. A bare ticket identifier such as OP-29 links to its ticket."
 					/>
+					{epic !== undefined && <MilestonesSection epicRef={epic.ref} />}
 					{save.isError && (
 						<p role="alert" className="text-sm text-danger">
 							Could not save the epic. {save.error.message}

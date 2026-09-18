@@ -14,7 +14,8 @@ export type GroupStatus = StatusSummary & { position?: number };
 
 export type RowGroup = {
 	// The URL-safe identity of the group: a status slug, a priority, a
-	// project ref, a parent identifier, an epic id, a PR state, or `all`.
+	// project ref, a parent identifier, an epic id, a milestone id, a PR
+	// state, or `all`.
 	key: string;
 	// The heading. Null when grouping is off.
 	label: string | null;
@@ -29,6 +30,10 @@ export type GroupOptions = {
 	statuses: readonly GroupStatus[];
 	// The viewed project ref. A project label is the path under it.
 	project?: string;
+	// The milestone ids in display order: the milestones of one epic in
+	// position order, then the milestones of the next epic. The milestone
+	// grouping reads it. A milestone outside the list sorts after the list.
+	milestoneOrder?: readonly string[];
 };
 
 // The order the priorities sort in: the most important first.
@@ -117,6 +122,12 @@ const bucketOf = (row: TicketSummary, options: GroupOptions): Bucket => {
 			return row.epic === null
 				? { key: "none", label: "No epic", rank: lastRank }
 				: { key: row.epic.id, label: row.epic.name, rank: row.epic.name.toLowerCase() };
+		case "milestone": {
+			if (row.milestone === null) return { key: "none", label: "No milestone", rank: Number.POSITIVE_INFINITY };
+			const order = options.milestoneOrder ?? [];
+			const index = order.indexOf(row.milestone.id);
+			return { key: row.milestone.id, label: row.milestone.name, rank: index === -1 ? order.length : index };
+		}
 		case "pr": {
 			const state = row.pr?.state ?? "none";
 			return { key: state, label: prLabels[state]!, rank: prRank[state]! };

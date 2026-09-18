@@ -68,9 +68,20 @@ export const useApplyChange = (
 				? mutations.updateMany(targets, { parent: parent?.identifier ?? null }, { parent }, verb)
 				: mutations.update(targets[0]!, { parent: parent?.identifier ?? null }, { parent }, verb);
 		}
+		if ("milestone" in change) {
+			const { milestone: picked } = change;
+			const milestone = picked === null ? null : { id: picked.id, ref: picked.ref, name: picked.name };
+			const verb: Verb = (subject) => `The milestone of ${subject} did not change.`;
+			return many
+				? mutations.updateMany(targets, { milestone: milestone?.ref ?? null }, { milestone }, verb)
+				: mutations.update(targets[0]!, { milestone: milestone?.ref ?? null }, { milestone }, verb);
+		}
 		const epic = change.epic === null ? null : { id: change.epic.id, ref: change.epic.ref, name: change.epic.name };
+		// A milestone belongs to one epic, so the server clears the milestone of
+		// a ticket that leaves its epic. The patch does the same on the row.
+		const patch = (row: TicketSummary) => ({ epic, milestone: row.epic?.id === epic?.id ? row.milestone : null });
 		const verb: Verb = (subject) => `The epic of ${subject} did not change.`;
 		return many
-			? mutations.updateMany(targets, { epic: epic?.ref ?? null }, { epic }, verb)
-			: mutations.update(targets[0]!, { epic: epic?.ref ?? null }, { epic }, verb);
+			? mutations.updateMany(targets, { epic: epic?.ref ?? null }, patch, verb)
+			: mutations.update(targets[0]!, { epic: epic?.ref ?? null }, patch, verb);
 	});

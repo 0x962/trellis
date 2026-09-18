@@ -3,19 +3,23 @@ import { Avatar } from "@trellis/ui";
 import { agentKindOf } from "../agentKindOf";
 import { agentProfileOf } from "../agentProfileOf";
 import { isAgentWorking } from "../isAgentWorking";
-import { useActorRun } from "../useActorRun";
+import { useAssignedRun } from "../useAssignedRun";
 
+// The last actor of a ticket row. A human draws the initials. An agent draws
+// the provider mark, with the model and the effort, only while an agent run
+// is assigned to the ticket: the profile and the working state come from
+// that run. An agent actor on a ticket with no assigned run draws the agent
+// mark with no provider.
 export function ActorAvatar({ actor, ticketId }: { actor: ActorRef; ticketId: string }) {
-	const run = useActorRun(actor);
+	const run = useAssignedRun(ticketId);
 	if (actor.kind === "system") return null;
-	const working = run !== undefined && run.ticketId === ticketId && isAgentWorking(run);
 	return (
 		<Avatar
 			kind={actor.kind}
 			name={actor.displayName ?? actor.name}
 			agentKind={run === undefined ? undefined : agentKindOf(run.kind)}
-			agentProfile={agentProfileOf(run?.harness)}
-			state={working ? "working-mild" : "static"}
+			agentProfile={run === undefined ? undefined : agentProfileOf(run.harness)}
+			state={run !== undefined && isAgentWorking(run) ? "working-mild" : "static"}
 		/>
 	);
 }

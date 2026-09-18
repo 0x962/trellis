@@ -63,6 +63,7 @@ const groups = [
 	{ value: "project", label: "Project" },
 	{ value: "parent", label: "Parent" },
 	{ value: "epic", label: "Epic" },
+	{ value: "milestone", label: "Milestone" },
 	{ value: "pr", label: "PR" },
 	{ value: "none", label: "None" },
 ] as const;
