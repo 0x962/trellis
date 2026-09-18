@@ -10,7 +10,10 @@ export function UsagePage() {
 	const navigate = useNavigate({ from: "/usage" });
 	const tab = search.tab ?? "agent";
 	const setTab = (next: "agent" | "system") =>
-		void navigate({ search: (previous) => ({ ...previous, tab: next === "agent" ? undefined : next }), replace: true });
+		void navigate({
+			search: (previous) => ({ ...previous, tab: next === "agent" ? undefined : next }),
+			resetScroll: false,
+		});
 
 	return (
 		<>

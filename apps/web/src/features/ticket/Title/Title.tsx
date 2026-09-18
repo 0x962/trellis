@@ -97,6 +97,7 @@ export function Title({ ticket, className, onAttachFiles }: TitleProps) {
 			field.current?.blur();
 		} else if (event.key === "Escape") {
 			event.preventDefault();
+			event.stopPropagation();
 			setText(ticket.title);
 			reverting.current = true;
 			field.current?.blur();
