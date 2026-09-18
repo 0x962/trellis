@@ -44,6 +44,9 @@ export const useTableHotkeys = (controller: TableController) => {
 		const element = document.activeElement;
 		if (element === null || element === document.body) return true;
 		if (element.closest('[role="dialog"]') !== null) return false;
+		// A bulk bar picker returns the focus to its button when it closes. The
+		// bar acts on the table selection, so the table keys stay live there.
+		if (element.closest("[data-bulk-bar]") !== null) return true;
 		return controller.root.current?.contains(element) ?? false;
 	});
 

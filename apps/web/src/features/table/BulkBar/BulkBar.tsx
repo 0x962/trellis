@@ -59,8 +59,11 @@ export type BulkBarProps = {
 // The length of the exit motion, the popover duration of the token table.
 const exitMs = 160;
 
-// A Tooltip that names an action and its key. The span takes the hover and
-// the focus of the button inside it, so a picker keeps its own trigger.
+// A Tooltip that names an action and its key. The outer span takes the hover
+// of the button inside it, so a picker keeps its own trigger. The inner span
+// stops the focus event: a picker that closes returns the focus to its
+// button, the tooltip would open on that focus, and the next Escape would
+// close the tooltip when the person means to clear the selection.
 const withKey = (name: string, key: string, control: ReactElement) => (
 	<Tooltip
 		content={
@@ -70,7 +73,12 @@ const withKey = (name: string, key: string, control: ReactElement) => (
 			</span>
 		}
 	>
-		<span className="inline-flex">{control}</span>
+		<span className="inline-flex">
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: the span handles no input of its own; it keeps the focus event of the button from the tooltip. */}
+			<span className="inline-flex" onFocus={(event) => event.stopPropagation()}>
+				{control}
+			</span>
+		</span>
 	</Tooltip>
 );
 
