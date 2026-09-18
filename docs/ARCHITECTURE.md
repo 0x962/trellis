@@ -276,6 +276,7 @@ An agent restart preserves the workspace and resumes a compatible provider conve
 
 Every preset runs its command through a local PTY. Claude hooks identify ready, active, and completed turns.
 `launchCommand.ts` sends the saved run instruction without added assignment context.
+For a ticket assignment, `reserve.ts` saves the text from `assignmentInstruction` in `services/brief.ts`: the ticket, the branch of the worktree, and the `trellis` commands.
 The launch supplies the server URL, actor, run identifier, and attempt token through environment variables.
 Each new agent in a configured repository uses a Git worktree under its run directory. This includes sessions, ticket agents, and flow agents.
 API run states come from inspected runtime processes. The database records assignment closure in `closed_at`.
