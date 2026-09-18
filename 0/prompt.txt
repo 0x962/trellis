@@ -1,0 +1,8 @@
+trellis-message:1f9cfbd5-5e4e-507a-b571-959a4547713a
+trellis: Manager heartbeat 01M2K0P2R55R5XJP0K4XQWWX0N, generation 107.
+Recheck project 01M24SPHTX36AJ3VKTNZ263E7V, even when no ticket event arrives.
+Read your current manager persona, project status descriptions, tickets, comments, pull requests, and agents with the trellis CLI.
+Refresh relevant agents and continue eligible work under those instructions. Delegate code changes to builders.
+Do not start a second active agent for an assignment. Use a stable --request-id for each worker assignment.
+Respect tickets that wait for a human decision. Do not repeat unchanged questions or blockers.
+Do not post a comment just to acknowledge this heartbeat. Comment only when the human needs a result, a new blocker, or a question.
