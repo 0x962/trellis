@@ -1,4 +1,4 @@
-import { ArrowElbowDownRight, FolderOpen, Tag } from "@phosphor-icons/react";
+import { ArrowElbowDownRight, FlagBanner, FolderOpen, Stack, Tag } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import type { Label, Priority, Status, TicketLabel, TicketSummary } from "@trellis/api";
 import { cx, LabelPills, PriorityIcon, StatusIcon } from "@trellis/ui";
@@ -7,7 +7,9 @@ import { useArchivedProjects } from "../../../../../hooks/useArchivedProjects";
 import { useApp } from "../../../../../lib/appContext";
 import { labelNames } from "../../../../../lib/labelNames";
 import { projectSlashPath } from "../../../../../lib/projectPath";
+import { EpicPicker } from "../../../../pickers/EpicPicker";
 import { LabelPicker } from "../../../../pickers/LabelPicker";
+import { MilestonePicker } from "../../../../pickers/MilestonePicker";
 import { PriorityPicker, priorityLabels } from "../../../../pickers/PriorityPicker";
 import { ProjectPicker } from "../../../../pickers/ProjectPicker";
 import { StatusPicker } from "../../../../pickers/StatusPicker";
@@ -22,11 +24,20 @@ export type ChipRowProps = {
 	priority: Priority;
 	parent: TicketSummary | null;
 	parentRef?: string;
+	// The ref of the epic the ticket joins. The page that opened the composer
+	// supplies it, so the row draws the Epic chip and the Milestone chip only
+	// with it.
+	epic?: string;
+	// The ref of a milestone of `epic`.
+	milestone?: string;
 	labels: readonly TicketLabel[];
 	onProject: (ref: string) => void;
 	onStatus: (status: Status) => void;
 	onPriority: (priority: Priority) => void;
 	onParent: (ticket: TicketSummary | null) => void;
+	// Each receives a ref, or `null` for the choice of none.
+	onEpic: (epic: string | null) => void;
+	onMilestone: (milestone: string | null) => void;
 	// `checked` is the new state of the picked label row.
 	onLabel: (label: Label, checked: boolean) => void;
 };
@@ -69,7 +80,8 @@ const chip = ({ label, icon, children, unset = false, invalid = false, disabled 
 );
 
 // The property chips under the description: project, status, priority,
-// parent, and labels. Each one opens the same picker the rail and the table
+// parent, labels, and, for a ticket that joins an epic, the epic and the
+// milestone. Each one opens the same picker the rail and the table
 // use. The labels of a tree belong to its root project, so the labels chip
 // waits for a project.
 export function ChipRow({
@@ -80,11 +92,15 @@ export function ChipRow({
 	priority,
 	parent,
 	parentRef,
+	epic,
+	milestone,
 	labels,
 	onProject,
 	onStatus,
 	onPriority,
 	onParent,
+	onEpic,
+	onMilestone,
 	onLabel,
 }: ChipRowProps) {
 	const { orpc } = useApp();
@@ -95,6 +111,13 @@ export function ChipRow({
 	);
 	const projectName = project === undefined ? "Choose a project" : projectSlashPath(project);
 	const parentName = parent?.identifier ?? parentRef;
+	// `epics.get` carries the epic name and the milestone names of the chips.
+	const epicRecord = useQuery({
+		...orpc.epics.get.queryOptions({ input: { epic: epic ?? "" } }),
+		enabled: epic !== undefined,
+	}).data;
+	const epicName = epicRecord?.name ?? epic;
+	const milestoneName = epicRecord?.milestones.find((entry) => entry.ref === milestone)?.name ?? milestone;
 	return (
 		<div className="flex flex-col gap-1 px-2 pb-2 pt-1">
 			<div className="flex flex-wrap items-center gap-1.5">
@@ -145,6 +168,27 @@ export function ChipRow({
 						children: parentName ?? "Parent",
 					})}
 				/>
+				{project !== undefined && epic !== undefined && (
+					<>
+						<EpicPicker
+							project={project}
+							value={epic}
+							onPick={(next) => onEpic(next?.ref ?? null)}
+							trigger={chip({ label: `Epic: ${epicName}`, icon: <Stack />, children: epicName })}
+						/>
+						<MilestonePicker
+							epic={epic}
+							value={milestone}
+							onPick={(next) => onMilestone(next?.ref ?? null)}
+							trigger={chip({
+								label: `Milestone: ${milestoneName ?? "None"}`,
+								icon: <FlagBanner />,
+								unset: milestoneName === undefined,
+								children: milestoneName ?? "Milestone",
+							})}
+						/>
+					</>
+				)}
 				{project === undefined ? (
 					chip({ label: "Labels", icon: <Tag />, unset: true, disabled: true, children: "Labels" })
 				) : (

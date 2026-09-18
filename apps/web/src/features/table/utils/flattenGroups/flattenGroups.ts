@@ -10,6 +10,14 @@ export type TableGroup = RowGroup & {
 	// The text the count slot prints in place of `count`, such as the `3/11`
 	// done and total counts of a milestone.
 	countLabel?: string;
+	// The word of the `Badge` after the label, such as Current.
+	badge?: string;
+	// A muted word beside the count, such as Later.
+	note?: string;
+	// The ref of the epic that every row of the table belongs to. A new
+	// ticket from the header of the group joins this epic, and the milestone
+	// of the group.
+	epicRef?: string;
 	expanded: boolean;
 	// A closed group has more pages on the server.
 	hasMore?: boolean;

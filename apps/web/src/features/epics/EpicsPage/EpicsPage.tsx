@@ -9,6 +9,7 @@ import { errorMessage } from "../../../lib/conflict";
 import { formatCount } from "../../../lib/format";
 import { epicHref, projectHref } from "../../../lib/projectPath";
 import { useUiStore } from "../../../stores/uiStore";
+import { ArchivedBanner } from "../../project-actions";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar } from "../../shell/Topbar";
@@ -66,6 +67,7 @@ export function EpicsPage({ project }: EpicsPageProps) {
 				<PageTitle parent={<ProjectBreadcrumb project={project} />} title="Epics" />
 			</Topbar>
 			<div className="page-card flex flex-1 flex-col overflow-hidden">
+				{readOnly && <ArchivedBanner project={project} />}
 				<div className="min-h-0 flex-1 overflow-y-auto">
 					{epics.isPending ? (
 						<div role="status" aria-label="Load epics" aria-busy="true">

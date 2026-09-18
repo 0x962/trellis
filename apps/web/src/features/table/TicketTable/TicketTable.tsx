@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTable } from "@tanstack/react-table";
-import type { StatusSummary, TicketSummary } from "@trellis/api";
+import type { TicketSummary } from "@trellis/api";
 import { type MouseEvent, type ReactNode, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useScopeStatuses } from "../../../hooks/useScopeStatuses";
@@ -16,11 +16,11 @@ import { BulkBar, type BulkPicker } from "../BulkBar";
 import { buildColumns, type ColumnId, tableFeatureSet } from "../columns";
 import { useApplyChange } from "../hooks/useApplyChange";
 import { useBulkWrite } from "../hooks/useBulkWrite";
-import { useCollapsedGroups } from "../hooks/useCollapsedGroups";
 import { useCopyTickets } from "../hooks/useCopyTickets";
 import { useRowSelection } from "../hooks/useRowSelection";
+import { useTableCollapse } from "../hooks/useTableCollapse";
 import { useTableData } from "../hooks/useTableData";
-import { closedCategories, closedKey, useTableGroups } from "../hooks/useTableGroups";
+import { closedCategories, useTableGroups } from "../hooks/useTableGroups";
 import { type CopyKind, useTableHotkeys } from "../hooks/useTableHotkeys";
 import { useTicketMutations } from "../hooks/useTicketMutations";
 import type { EditField, RowChange } from "../Row";
@@ -28,7 +28,7 @@ import { TableEmpty } from "../TableEmpty";
 import { TableFooter } from "../TableFooter";
 import { autoHide, columnVisibility } from "../utils/columnVisibility";
 import { epicState } from "../utils/epicState";
-import { flattenGroups } from "../utils/flattenGroups";
+import { flattenGroups, type TableGroup } from "../utils/flattenGroups";
 import { labelStates } from "../utils/labelStates";
 import { visibleRows } from "../utils/visibleRows";
 import { CapBanner } from "./components/CapBanner";
@@ -73,15 +73,7 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 
 	const statuses = useScopeStatuses(project);
 	const labelGroups = useScopeLabels(project).groups;
-	const closedKeys = useMemo(
-		() => closedCategories.map((category) => closedKey(statuses, category)).filter((key) => key !== undefined),
-		[statuses],
-	);
-	const collapsed = useCollapsedGroups(routeKey, closedKeys);
-	const expanded = closedCategories.filter((category) => {
-		const key = closedKey(statuses, category);
-		return key !== undefined && !collapsed.isCollapsed(key);
-	});
+	const { collapsed, expanded } = useTableCollapse(routeKey, statuses, view);
 	const data = useTableData({ project, view, expanded });
 	const { groups, loading: groupsLoading } = useTableGroups({
 		data,
@@ -197,10 +189,14 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 		else setEditing({ id, field });
 	});
 
-	const openNew = (status?: StatusSummary) =>
+	// A table of one epic creates the ticket inside that epic, and inside the
+	// milestone of the group whose header opened the composer.
+	const openNew = (group?: TableGroup) =>
 		composerActions.open({
-			...(status === undefined ? {} : { status: status.slug }),
+			...(group?.status === undefined ? {} : { status: group.status.slug }),
 			...(project === undefined ? {} : { project }),
+			epic: group?.epicRef ?? (view.epic === "none" ? undefined : view.epic),
+			milestone: group?.milestone?.ref,
 		});
 
 	useTableHotkeys({
@@ -234,13 +230,14 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 		);
 	}
 
-	const closedVisible = data.closed !== null && view.group === "status" && view.closed !== "hide";
+	const closedVisible =
+		data.closed !== null && ((view.group === "status" && view.closed !== "hide") || data.inlineClosed !== null);
 	const closedTotal = closedVisible
 		? closedCategories.reduce((sum, category) => sum + data.closed![category].count, 0)
 		: 0;
 	const loadedTotal = data.rows.length + closedTotal;
-	// Under a grouping other than status the rows are the open tickets only,
-	// and the footer names the Done and Canceled tickets it leaves out. The
+	// Under a grouping that holds no closed rows the rows are the open tickets
+	// only, and the footer names the Done and Canceled tickets it leaves out. The
 	// server total counts them, so the open count subtracts them.
 	const hidden = data.closed !== null && !closedVisible ? data.closed.done.count + data.closed.canceled.count : 0;
 	const total = data.allActiveLoaded ? loadedTotal : (data.total ?? loadedTotal) - hidden;

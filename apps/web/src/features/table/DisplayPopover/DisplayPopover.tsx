@@ -67,6 +67,10 @@ export function DisplayPopover({
 	const visibility = columnVisibility(stored, showProject);
 	const hideable = columnOrder.filter((id) => !alwaysVisible.includes(id) && !(epicFixed && id === "epic"));
 	const groupItems = epicFixed ? groups.filter((entry) => entry.value !== "epic") : groups;
+	// The table shows the Done and Canceled rows under the status grouping,
+	// and under the milestone grouping of one epic.
+	const oneEpic = epicFixed || (search.epic !== undefined && search.epic !== "none");
+	const showsClosed = group === "status" || (group === "milestone" && oneEpic);
 	const descending = sort.startsWith("-");
 	const field = sortFields.find((entry) => entry.value === sort.replace(/^-/, "")) ?? sortFields[1];
 
@@ -124,7 +128,7 @@ export function DisplayPopover({
 						<Switch
 							label="Show completed"
 							checked={search.closed !== "hide"}
-							disabled={group !== "status"}
+							disabled={!showsClosed}
 							onCheckedChange={(on) => onSearchChange({ ...search, closed: on ? undefined : "hide" })}
 						/>
 					</div>

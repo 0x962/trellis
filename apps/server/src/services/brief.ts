@@ -2,11 +2,11 @@ import { type Brief, BriefGetInputSchema, type Epic, type StoredActorKind, type 
 import { sql } from "drizzle-orm";
 import type { ServiceCtx } from "../context.ts";
 import { actorDisplayName } from "../db/queries/actorDisplayName.ts";
-import { iso, rows } from "../db/queries/support.ts";
+import { iso, rows, textArray } from "../db/queries/support.ts";
 import { ticketGet } from "../db/queries/ticketGet.ts";
 import type { Tx } from "../db/tx.ts";
 import { epicView } from "./epics/epics.ts";
-import { epicHeaderLine, epicLines, milestoneHeaderLine } from "./epics/text.ts";
+import { earlierResults, epicHeaderLine, epicLines, milestoneHeaderLine, resultsLines } from "./epics/text.ts";
 import { activeNotes } from "./notes/notes.ts";
 import { notesLines } from "./notes/text.ts";
 import { resolveTicket } from "./refs.ts";
@@ -44,6 +44,18 @@ const lastComments = async (tx: Tx, ticketId: string) => {
 		ORDER BY created_at, id`,
 	);
 	return found;
+};
+
+// The body of the last comment that an agent wrote on each ticket of
+// `ticketIds`, by ticket id. One statement reads every ticket.
+const lastAgentComments = async (tx: Tx, ticketIds: string[]) => {
+	const found = await rows<{ ticket_id: string; body: string }>(
+		tx,
+		sql`SELECT DISTINCT ON (ticket_id) ticket_id, body FROM comments
+			WHERE ticket_id = ANY(${textArray(ticketIds)}) AND actor_kind = 'agent'
+			ORDER BY ticket_id, created_at DESC, id DESC`,
+	);
+	return new Map(found.map((comment) => [comment.ticket_id, comment.body]));
 };
 
 // The branch an agent works on: the identifier in lower case and the title
@@ -208,10 +220,23 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<B
 					}
 				).title;
 	const epic = ticket.epic === null ? null : await epicView(ctx, tx, ticket.epic.id);
+	const doneBefore = epic === null ? [] : earlierResults(epic, ticket.id).flatMap((group) => group.tickets);
+	const results =
+		epic === null || doneBefore.length === 0
+			? []
+			: resultsLines(
+					epic,
+					ticket.id,
+					await lastAgentComments(
+						tx,
+						doneBefore.map((done) => done.id),
+					),
+				);
 	const markdown = sections([
 		header(ticket, parentTitle, epic, ctx.publicUrl),
 		["## Description", "", ticket.description],
 		...(epic === null ? [] : epicLines(epic, ticket.id)),
+		results,
 		subTickets(ticket),
 		pullRequests(ticket),
 		attachments(ticket, ctx.publicUrl),

@@ -65,6 +65,8 @@ export const useComposerDefaults = (options: ComposerOptions, chosenProject?: st
 		status: defaults.status,
 		priority: defaults.priority,
 		parent: options.parent,
+		epic: options.epic,
+		milestone: options.milestone,
 		statuses,
 		template: detail.data?.ticketTemplate ?? "",
 	};

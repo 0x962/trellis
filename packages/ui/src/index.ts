@@ -45,6 +45,7 @@ export {
 	type ReviewStatusSummaryProps,
 } from "./domain/ReviewStatusSummary";
 export { StackedBar, type StackedBarProps, type StackedBarSegment } from "./domain/StackedBar";
+export { StackedBarList, type StackedBarListProps, type StackedBarListRow } from "./domain/StackedBarList";
 export { type StatusCategory, StatusIcon, type StatusIconProps } from "./domain/StatusIcon";
 export { TicketGlimmer } from "./domain/TicketGlimmer";
 export { TicketId, type TicketIdProps } from "./domain/TicketId";

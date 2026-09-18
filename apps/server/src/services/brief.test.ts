@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import type { Epic, MilestoneSummary, TicketSummary } from "@trellis/api";
 import { assignmentInstruction } from "./brief.ts";
-import { epicHeaderLine, epicLines, milestoneHeaderLine } from "./epics/text.ts";
+import { epicHeaderLine, epicLines, milestoneHeaderLine, resultsLines } from "./epics/text.ts";
 
 const input = {
 	identifier: "OP-27",
@@ -64,13 +64,14 @@ test("an assignment skips the description section of a ticket with no descriptio
 });
 
 // The fields of a ticket row the epic sections read. `milestoneId` is null
-// for a ticket outside every milestone.
+// for a ticket outside every milestone. The status `Done` is in the done
+// category, and every other status is in the todo category.
 const member = (id: string, identifier: string, title: string, status: string, milestoneId: string | null = null) =>
 	({
 		id,
 		identifier,
 		title,
-		status: { name: status },
+		status: { name: status, category: status === "Done" ? "done" : "todo" },
 		milestone: milestoneId === null ? null : { id: milestoneId },
 	}) as unknown as TicketSummary;
 
@@ -84,6 +85,9 @@ const epic: Epic = {
 	description: "# Routine runtime\n\nStep 1 creates the runtime.\nStep 2 wires the poller.",
 	counts: { total: 4, todo: 1, started: 1, review: 0, done: 1, canceled: 1 },
 	state: "open",
+	currentMilestone: null,
+	currentMilestoneIndex: null,
+	milestoneCount: 0,
 	actor: { name: "dana", kind: "human" },
 	createdAt: "2026-09-18T10:00:00.000Z",
 	updatedAt: "2026-09-18T10:00:00.000Z",
@@ -123,6 +127,9 @@ const phase = (id: string, slug: string, name: string, position: number): Milest
 	position,
 	counts: { total: 3, todo: 1, started: 0, review: 0, done: 1, canceled: 1 },
 	state: "open",
+	toStart: 1,
+	running: 0,
+	waitsForYou: 0,
 	createdAt: "2026-09-18T10:00:00.000Z",
 	updatedAt: "2026-09-18T10:00:00.000Z",
 });
@@ -164,4 +171,48 @@ test("the epic tickets of an epic with milestones group by milestone in position
 		"",
 		"- OP-32 Old approach (Canceled)",
 	]);
+});
+
+test("the results section lists the done tickets of each earlier milestone with the last agent comment", () => {
+	const grouped: Epic = {
+		...epic,
+		milestones: [phase1, phase2, phase3],
+		tickets: [
+			member("01J00000000000000000000029", "OP-29", "Create the runtime", "Done", phase1.id),
+			member("01J00000000000000000000030", "OP-30", "Wire the poller", "Done", phase2.id),
+			member("01J00000000000000000000031", "OP-31", "Add the cursor", "Todo", phase1.id),
+			member("01J00000000000000000000033", "OP-33", "Write the proposals", "Todo", phase3.id),
+			member("01J00000000000000000000034", "OP-34", "Rank the proposals", "Done", phase3.id),
+			member("01J00000000000000000000032", "OP-32", "Old approach", "Done"),
+		],
+	};
+	const bodies = new Map([
+		["01J00000000000000000000029", "The runtime is in runtime.ts.\n\nRun: bun test runtime"],
+		["01J00000000000000000000030", "x".repeat(1300)],
+		["01J00000000000000000000034", "A ticket of the same milestone."],
+	]);
+	expect(resultsLines(grouped, "01J00000000000000000000033", bodies)).toEqual([
+		"## Results of earlier milestones",
+		"",
+		"### Phase 1: run state",
+		"",
+		"- OP-29 Create the runtime",
+		"  The runtime is in runtime.ts.",
+		"  ",
+		"  Run: bun test runtime",
+		"",
+		"### Phase 2: unattended runs",
+		"",
+		"- OP-30 Wire the poller",
+		`  ${"x".repeat(1200)}`,
+	]);
+	expect(resultsLines(grouped, "01J00000000000000000000030", new Map())).toEqual([
+		"## Results of earlier milestones",
+		"",
+		"### Phase 1: run state",
+		"",
+		"- OP-29 Create the runtime",
+	]);
+	expect(resultsLines(grouped, "01J00000000000000000000029", bodies)).toEqual([]);
+	expect(resultsLines(grouped, "01J00000000000000000000032", bodies)).toEqual([]);
 });

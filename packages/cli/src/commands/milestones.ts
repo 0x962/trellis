@@ -22,6 +22,9 @@ export const progress = (row: { counts: EpicCounts }) =>
 export const countsText = (row: { counts: EpicCounts }) =>
 	`todo ${row.counts.todo}, started ${row.counts.started}, review ${row.counts.review}, done ${row.counts.done}, canceled ${row.counts.canceled}`;
 
+export const nextText = (row: MilestoneSummary) =>
+	`to start ${row.toStart}, running ${row.running}, waits for you ${row.waitsForYou}`;
+
 // The rows arrive in position order, so the table prints no position column.
 export const milestoneList: ListSpec<MilestoneSummary> = {
 	columns: [
@@ -29,6 +32,7 @@ export const milestoneList: ListSpec<MilestoneSummary> = {
 		{ name: "state", value: (row) => row.state },
 		{ name: "progress", value: progress },
 		{ name: "counts", value: countsText },
+		{ name: "next", value: nextText },
 		{ name: "name", value: (row) => cell(row.name) },
 	],
 	identifier: (row) => row.ref,
@@ -44,6 +48,7 @@ const milestoneRecord: RecordSpec<MilestoneSummary> = {
 		{ name: "state", value: (row) => row.state },
 		{ name: "progress", value: progress },
 		{ name: "counts", value: countsText },
+		{ name: "next", value: nextText },
 	],
 	identifier: (row) => row.ref,
 };

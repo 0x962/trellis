@@ -1,0 +1,1 @@
+export { useTableCollapse } from "./useTableCollapse";

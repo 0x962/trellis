@@ -104,4 +104,32 @@ describe("groupRows by milestone", () => {
 		expect(groups[0]!.key).toBe("none");
 		expect(groups[0]!.rows).toHaveLength(2);
 	});
+
+	test("keeps a milestone whose rows are all closed, with the milestone link, and puts closed rows last", () => {
+		const closed = (id: string, category: "done" | "canceled", milestone: TicketSummary["milestone"]) =>
+			({ ...ticket(id, runtime, milestone), status: { category } }) as TicketSummary;
+		const rows = [
+			closed("a", "done", phase2),
+			ticket("b", runtime, phase2),
+			closed("c", "canceled", phase2),
+			closed("d", "done", phase1),
+		];
+
+		const groups = groupRows(rows, {
+			group: "milestone",
+			sort: "-updatedAt",
+			statuses: [],
+			milestoneOrder: [phase1.id, phase2.id],
+		});
+
+		expect(groups.map((group) => group.label)).toEqual(["Phase 1", "Phase 2"]);
+		expect(groups[0]!.milestone).toEqual(phase1);
+		expect(groups[1]!.rows[0]!.id).toBe("b");
+		expect(
+			groups[1]!.rows
+				.slice(1)
+				.map((row) => row.id)
+				.sort(),
+		).toEqual(["a", "c"]);
+	});
 });

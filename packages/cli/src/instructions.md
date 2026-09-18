@@ -38,8 +38,8 @@ Plan an epic. A plan that produces several tickets is an epic. The epic descript
 Create the epic: trellis epics create --project KEY --name "..." --description - < plan.md
 Create each milestone in order: trellis milestones create KEY/<slug> --name "Foundation"
 Create each ticket in its milestone: trellis create -p KEY --milestone KEY/<slug>/<milestone-slug> -t "Server: ..."
-Read the epic, its milestones with their counts, and the tickets of each milestone: trellis epics show KEY/<slug>
-When you work on a ticket of an epic, read the plan and the tickets of every milestone first: trellis brief KEY-42
+Read the epic, its milestones with their counts, the tickets of each milestone, and what is next: trellis epics show KEY/<slug>
+When you work on a ticket of an epic, read the plan and the results of the earlier milestones first: trellis brief KEY-42
 
 PR review comments live in Trellis. Read them before work: trellis review list <pr-url>
 Post a finding: trellis review add <pr-url> --path <file> --line <n> --body "..."

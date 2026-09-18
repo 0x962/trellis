@@ -2,9 +2,10 @@ import { useQueries } from "@tanstack/react-query";
 import type { Epic, MilestoneSummary } from "@trellis/api";
 import { useApp } from "../../../../lib/appContext";
 
-// One epic with its milestones in position order.
+// One epic with its milestones in position order. `currentMilestone` is the
+// first milestone that is not done, or null.
 export type EpicMilestones = {
-	epic: Pick<Epic, "id" | "ref" | "name">;
+	epic: Pick<Epic, "id" | "ref" | "name" | "currentMilestone">;
 	milestones: readonly MilestoneSummary[];
 };
 
@@ -19,7 +20,10 @@ const combine = (results: readonly { data: Epic | undefined; isPending: boolean 
 	epics: results
 		.map((result) => result.data)
 		.filter((epic) => epic !== undefined)
-		.map((epic) => ({ epic: { id: epic.id, ref: epic.ref, name: epic.name }, milestones: epic.milestones })),
+		.map((epic) => ({
+			epic: { id: epic.id, ref: epic.ref, name: epic.name, currentMilestone: epic.currentMilestone },
+			milestones: epic.milestones,
+		})),
 	pending: results.some((result) => result.isPending),
 });
 

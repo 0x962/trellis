@@ -44,3 +44,44 @@ export const epicLines = (epic: Epic, ticketId: string): string[][] => {
 		["## Epic tickets", ...tickets],
 	];
 };
+
+export const RESULT_COMMENT_MAX = 1200;
+
+// The done tickets of each milestone that comes before the milestone of the
+// ticket `ticketId`, in position order. A ticket with no milestone has no
+// earlier milestone. A milestone with no done ticket is not in the list.
+export const earlierResults = (epic: Epic, ticketId: string) => {
+	const own = epic.tickets.find((ticket) => ticket.id === ticketId)?.milestone?.id;
+	const end = epic.milestones.findIndex((milestone) => milestone.id === own);
+	return epic.milestones
+		.slice(0, Math.max(end, 0))
+		.map((milestone) => ({
+			milestone,
+			tickets: epic.tickets.filter(
+				(ticket) => ticket.milestone?.id === milestone.id && ticket.status.category === "done",
+			),
+		}))
+		.filter((group) => group.tickets.length > 0);
+};
+
+// The "Results of earlier milestones" section of a brief: one `### <name>`
+// group per milestone of `earlierResults`, and one list item per done
+// ticket. `lastAgentComment` maps a ticket id to the body of the last comment
+// that an agent wrote on it. The body prints below the item, indented, and
+// cut at RESULT_COMMENT_MAX characters. A ticket with no agent comment
+// prints its item alone. No group gives no section.
+export const resultsLines = (epic: Epic, ticketId: string, lastAgentComment: Map<string, string>): string[] => {
+	const groups = earlierResults(epic, ticketId);
+	if (groups.length === 0) return [];
+	const lines = ["## Results of earlier milestones"];
+	for (const group of groups) {
+		lines.push("", `### ${group.milestone.name}`, "");
+		for (const ticket of group.tickets) {
+			lines.push(`- ${ticket.identifier} ${ticket.title}`);
+			const body = lastAgentComment.get(ticket.id);
+			if (body === undefined) continue;
+			for (const line of body.slice(0, RESULT_COMMENT_MAX).trimEnd().split("\n")) lines.push(`  ${line}`);
+		}
+	}
+	return lines;
+};

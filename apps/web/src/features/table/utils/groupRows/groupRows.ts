@@ -1,4 +1,5 @@
 import {
+	type MilestoneLink,
 	type Priority,
 	type Sort,
 	type StatusCategory,
@@ -22,6 +23,8 @@ export type RowGroup = {
 	rows: TicketSummary[];
 	status?: StatusSummary;
 	category?: StatusCategory;
+	// The milestone of a milestone group. The No milestone group has none.
+	milestone?: MilestoneLink;
 };
 
 export type GroupOptions = {
@@ -85,7 +88,14 @@ export const sortRows = (rows: readonly TicketSummary[], sort: Sort, statuses: r
 	});
 };
 
-type Bucket = { key: string; label: string; rank: number | string; status?: StatusSummary; category?: StatusCategory };
+type Bucket = {
+	key: string;
+	label: string;
+	rank: number | string;
+	status?: StatusSummary;
+	category?: StatusCategory;
+	milestone?: MilestoneLink;
+};
 
 // U+FFFF is the highest single code unit, so this rank sorts after every
 // name that compareText can see.
@@ -126,7 +136,12 @@ const bucketOf = (row: TicketSummary, options: GroupOptions): Bucket => {
 			if (row.milestone === null) return { key: "none", label: "No milestone", rank: Number.POSITIVE_INFINITY };
 			const order = options.milestoneOrder ?? [];
 			const index = order.indexOf(row.milestone.id);
-			return { key: row.milestone.id, label: row.milestone.name, rank: index === -1 ? order.length : index };
+			return {
+				key: row.milestone.id,
+				label: row.milestone.name,
+				rank: index === -1 ? order.length : index,
+				milestone: row.milestone,
+			};
 		}
 		case "pr": {
 			const state = row.pr?.state ?? "none";
@@ -156,11 +171,12 @@ export const groupRows = (rows: readonly TicketSummary[], options: GroupOptions)
 	}
 	return [...buckets.values()]
 		.sort((a, b) => compareKeys(a.rank, b.rank))
-		.map(({ key, label, status, category, rows: members }) => ({
+		.map(({ key, label, status, category, milestone, rows: members }) => ({
 			key,
 			label: options.group === "none" ? null : label,
 			rows: sortRows(members, options.sort, options.statuses),
 			status,
 			category,
+			milestone,
 		}));
 };

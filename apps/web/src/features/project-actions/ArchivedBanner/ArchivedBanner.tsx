@@ -1,6 +1,6 @@
 import type { Project } from "@trellis/api";
 import { Button } from "@trellis/ui";
-import { useProjectActions } from "../../../../../features/project-actions";
+import { useProjectActions } from "../hooks/useProjectActions";
 
 export type ArchivedBannerProps = {
 	project: Project;

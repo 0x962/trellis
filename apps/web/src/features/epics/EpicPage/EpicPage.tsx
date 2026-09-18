@@ -13,6 +13,7 @@ import { FilterBar } from "../../filters/FilterBar";
 import { type View, viewOf } from "../../filters/grammar";
 import { hasFilters } from "../../filters/labels";
 import { TicketPicker } from "../../pickers/TicketPicker";
+import { ArchivedBanner } from "../../project-actions";
 import { NotFoundState } from "../../shell/NotFoundState";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
@@ -64,6 +65,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	const epic = useQuery(orpc.epics.get.queryOptions({ input: { epic: ref } }));
 	const readOnly = project.archivedAt !== null;
 	const routeKey = epicHref(project.path, slug);
+	const splat = `${projectSlashPath(project.path)}/epics/${slug}`;
 	const [editing, setEditing] = useState(false);
 	const [deleting, setDeleting] = useState(false);
 
@@ -91,13 +93,45 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 		</span>
 	);
 
+	// The search and the filter bar need the epic ref and the project alone,
+	// so the pending page draws the same bar as the loaded page and the
+	// topbar keeps its shape when the epic arrives.
+	const tableSearch = epicPageSearch(search, ref);
+	const { epic: fixedEpic, ...barSearch } = tableSearch;
+	const full = viewOf(tableSearch);
+	const setSearch = (next: Partial<View>) => onSearchChange(epicUrlSearch(next));
+	const filterBar = (
+		<FilterBar
+			project={project.path}
+			search={barSearch}
+			onSearchChange={setSearch}
+			statuses={project.statuses}
+			fixed={{ epic: ref }}
+			linkSearch={epicQueryString}
+			actions={
+				<DisplayPopover
+					routeKey={routeKey}
+					showProject={full.scope !== "self"}
+					epicFixed
+					search={barSearch}
+					onSearchChange={setSearch}
+					density={search.density ?? storedDensity}
+					group={full.group}
+					sort={full.sort}
+				/>
+			}
+		/>
+	);
+
 	if (epic.isPending) {
 		return (
 			<>
 				<Topbar>
 					<PageTitle parent={parent} title={slug} />
+					{filterBar}
 				</Topbar>
 				<div className="page-card flex flex-1 flex-col overflow-hidden">
+					{readOnly && <ArchivedBanner project={project} />}
 					<div aria-busy="true" className="flex min-h-0 flex-1 flex-col">
 						<TableSkeleton density={search.density ?? storedDensity} />
 					</div>
@@ -134,11 +168,6 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 
 	const record = epic.data;
 	const identifiers = record.tickets.map((ticket) => ticket.identifier);
-	const tableSearch = epicPageSearch(search, record.ref);
-	const { epic: fixedEpic, ...barSearch } = tableSearch;
-	const full = viewOf(tableSearch);
-	const setSearch = (next: Partial<View>) => onSearchChange(epicUrlSearch(next));
-
 	return (
 		<>
 			<Topbar
@@ -176,31 +205,13 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 				}
 			>
 				<PageTitle parent={parent} title={record.name} />
-				<FilterBar
-					project={project.path}
-					search={barSearch}
-					onSearchChange={setSearch}
-					statuses={project.statuses}
-					fixed={{ epic: record.ref }}
-					linkSearch={epicQueryString}
-					actions={
-						<DisplayPopover
-							routeKey={routeKey}
-							showProject={full.scope !== "self"}
-							epicFixed
-							search={barSearch}
-							onSearchChange={setSearch}
-							density={search.density ?? storedDensity}
-							group={full.group}
-							sort={full.sort}
-						/>
-					}
-				/>
+				{filterBar}
 			</Topbar>
 			<div className="page-card flex flex-1 flex-col overflow-hidden">
+				{readOnly && <ArchivedBanner project={project} />}
 				{/* The band and the plan take at most half of the card and scroll inside it, so the table always keeps rows on screen. */}
 				<div className="max-h-1/2 shrink-0 overflow-y-auto border-b border-border">
-					<EpicProgress epic={record} />
+					<EpicProgress epic={record} splat={splat} search={tableSearch} />
 					<EpicPlan routeKey={routeKey} description={record.description} />
 				</div>
 				<fieldset disabled={readOnly} className="contents">
@@ -216,12 +227,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 									title={search.q === undefined ? "No tickets match" : `No tickets match '${search.q}'`}
 									description="Clear the filters to see every ticket of the epic."
 									action={
-										<Link
-											to="/p/$"
-											params={{ _splat: `${projectSlashPath(project.path)}/epics/${slug}` }}
-											search={{}}
-											className={clearLinkClass}
-										>
+										<Link to="/p/$" params={{ _splat: splat }} search={{}} className={clearLinkClass}>
 											Clear filters
 										</Link>
 									}

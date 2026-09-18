@@ -1,9 +1,9 @@
 import type { Project } from "@trellis/api";
+import { ArchivedBanner } from "../../../../../features/project-actions";
 import { ProjectSettings, type ProjectSettingsSectionId } from "../../../../../features/project-settings";
 import { PageTitle } from "../../../../../features/shell/PageTitle";
 import { ProjectBreadcrumb } from "../../../../../features/shell/ProjectBreadcrumb";
 import { Topbar } from "../../../../../features/shell/Topbar";
-import { ArchivedBanner } from "../ArchivedBanner";
 
 export type ProjectSettingsPageProps = {
 	project: Project;

@@ -7,6 +7,7 @@ import { epicSplat } from "../../../../../lib/projectPath";
 import type { Density } from "../../../../../stores/uiStore";
 import { rowHeights } from "../../../../table/rowHeights";
 import { epicProgressLabel, epicSegments } from "../../../epicBar";
+import { currentMilestoneLabel } from "../../../epicNext";
 
 export type EpicRowProps = {
 	epic: EpicSummary;
@@ -26,10 +27,13 @@ export type EpicRowProps = {
 // the sub-tickets track (48px), the time takes the updated track (48px),
 // and the menu slot is the 28 px of an `IconButton` of size sm. The slot
 // keeps its width while the trigger is hidden. The name link fills the row
-// height, so the hit area is the whole cell. The bar has no legend here;
-// the epic page prints the legend. Below 768 px the bar leaves so the name
+// height, so the hit area is the whole cell. After the name the link prints
+// the current milestone and its place, "Surfaces · 2 of 4", in the muted
+// text of the numbers. Both texts truncate inside the name track. The bar
+// has no legend here; the epic page prints the legend. Below 768 px the bar leaves so the name
 // keeps room.
 export function EpicRow({ epic, density, readOnly, onEdit, onDelete }: EpicRowProps) {
+	const milestone = currentMilestoneLabel(epic);
 	return (
 		<li
 			data-epic={epic.slug}
@@ -44,9 +48,10 @@ export function EpicRow({ epic, density, readOnly, onEdit, onDelete }: EpicRowPr
 				to="/p/$"
 				params={{ _splat: epicSplat(epic.ref) }}
 				search={{}}
-				className="flex h-full min-w-0 items-center text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+				className="flex h-full min-w-0 items-center gap-2 text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
 			>
 				<span className="truncate">{epic.name}</span>
+				{milestone !== null && <span className="truncate text-sm text-fg-muted tabular">{milestone}</span>}
 			</Link>
 			<StackedBar
 				label={`${epic.name}: ${epicProgressLabel(epic.counts)} done`}

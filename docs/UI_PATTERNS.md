@@ -37,6 +37,7 @@ Each page supplies its data and available actions. It does not choose new contro
 | Usage per day | `UsageChart` | `packages/ui/src/domain/UsageChart/UsageChart.tsx` |
 | Ranked slices of a whole | `RankedBars` | `packages/ui/src/domain/RankedBars/RankedBars.tsx` |
 | Composition of one total | `StackedBar` | `packages/ui/src/domain/StackedBar/StackedBar.tsx` |
+| Composition of each part of a whole | `StackedBarList` | `packages/ui/src/domain/StackedBarList/StackedBarList.tsx` |
 | Company mark of a model | `ProviderIcon` | `packages/ui/src/domain/ProviderIcon/ProviderIcon.tsx` |
 | Subscription quota meters | `QuotaWindows` | `packages/ui/src/domain/QuotaWindows/QuotaWindows.tsx` |
 | Flow run header | `FlowRunSummary` | `packages/ui/src/domain/FlowRunSummary/FlowRunSummary.tsx` |
@@ -69,7 +70,10 @@ Put the sort field and direction inside `DisplayPopover`. Use one option per fie
 The direction button shows the current direction through its icon and tooltip.
 `DisplayPopover` offers Group by Epic. The group label is the epic name, and No epic is the last group.
 `DisplayPopover` offers Group by Milestone. The groups follow the milestone position order, and No milestone is the last group.
-When the rows come from one epic, the count slot of an expanded `GroupHeader` prints `done/total` of the milestone. A collapsed group prints its row count.
+When the rows come from one epic, the count slot of a milestone `GroupHeader` prints `done/total` of the milestone, expanded or collapsed. The Show action of a collapsed group prints its row count.
+The first milestone that is not done carries the `Badge` Current after its label. An open milestone after it prints Later beside `done/total` in the count slot.
+When the view names one epic, the milestone groups hold the Done and Canceled tickets too, last in each group under the default sort. A done milestone starts collapsed, and Show completed turns the closed rows off.
+The `+` of such a group, and the `c` key, create a ticket inside the epic. The `+` also sets the milestone of the group.
 The page determines the initial direction for each field. The server applies the selected order before pagination.
 Keep filters and sort in the URL. Keep local display preferences, such as collapsed groups, in `uiStore` under the route key.
 
@@ -83,7 +87,8 @@ The data header has a band background, a collapse chevron, a label, and a muted 
 The header is 32 px on desktop and 48 px on a phone. Its label button reports the expanded state.
 Keep group headers visible during scroll when the list permits it.
 Use the count of all matching items, including pages that have not loaded. An unloaded count stays blank.
-A collapsed group retains its count. Its Show action expands the group.
+A collapsed group retains its count. Its Show action expands the group and prints the count of the rows it reveals.
+A header takes one `Badge` after its label through `mark`, such as Current on a milestone.
 
 ## Board cards
 
@@ -96,10 +101,14 @@ A long name gives way and the identifier stays. The drag preview draws the same 
 The epic page shows its tickets in the full-width `TicketTable` of the project table view. It has no page-specific row and no row menu of its own.
 Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, an Add `IconButton` with the `Tooltip` Add tickets, and the `Menu` with Edit and Delete.
 The page fixes the `epic` filter. By default the table groups by milestone and lists the root project with its sub-projects.
-The header band sits in the page padding. It holds the state `Badge`, the progress text, and the `StackedBar` of the epic with its legend.
-One `StackedBar` line per milestone follows in position order, with the milestone name and `done/total`. A milestone bar has no legend, because the legend of the epic bar names the colors.
+The header band sits in the page padding. It opens with one line for the current milestone: `Current: <name>`, then `<n> to start`, `<n> running`, and `<n> wait for you`.
+A count is a link that sets the table filters inside that milestone: `category=todo` for to start, `reviewer=human` for wait for you. Running is plain text, because the filter grammar has no filter for a working agent.
+The band then holds the state `Badge`, the progress text, and the `StackedBar` of the epic with its legend.
+A `StackedBarList` follows with one line per milestone in position order: the milestone name, the `Badge` Current on the current milestone, the bar, and `done/total`. A milestone bar has no legend, because the legend of the epic bar names the colors.
 The `SectionHeader` Plan collapses the description through its Show or Hide `Button`. `uiStore` keeps its collapsed state under `<route key>#plan`.
 The band and the plan take at most half of the page card, so the table keeps rows on screen.
+The page of an archived project shows the `ArchivedBanner` of the project routes at the top of the page card. The pending page draws the same `Topbar` with the `FilterBar`, so the bar keeps its shape when the epic arrives.
+A row of the epics list page prints the current milestone after the epic name in muted text: `<name> · <i> of <n>`.
 The rows of the epics list page use the `rowHeights`, the hover band, the cell text sizes, the tabular numbers, and the trailing `Menu` slot width of the ticket table `Row`.
 
 ## Dense rows

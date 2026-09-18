@@ -13,6 +13,7 @@ import {
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { FilterBar } from "../../../features/filters/FilterBar";
 import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../../../features/filters/grammar";
+import { ArchivedBanner } from "../../../features/project-actions";
 import { ListFooter } from "../../../features/shell/ListFooter";
 import { NewTicketButton } from "../../../features/shell/NewTicketButton";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
@@ -26,7 +27,6 @@ import { TicketTable } from "../../../features/table/TicketTable";
 import { type AppContext, useApp } from "../../../lib/appContext";
 import { parseProjectSplat, projectHref, projectSlashPath } from "../../../lib/projectPath";
 import { useUiStore } from "../../../stores/uiStore";
-import { ArchivedBanner } from "./components/ArchivedBanner";
 import { ProjectLoadError } from "./components/ProjectLoadError";
 
 // The settings screen, the diffs screen, and the epic screens load in their
