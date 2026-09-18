@@ -109,7 +109,6 @@ export const startNative = async (
 		const timeoutMs = input.deadlineAt === undefined ? undefined : input.deadlineAt - Date.now();
 		if (timeoutMs !== undefined && timeoutMs <= 0) throw new Error("The flow group deadline elapsed before launch");
 		let session: RuntimeProcessStatus;
-		let launchWorkspace = workspaceId;
 		if (config.harness.preset === "custom") {
 			const launch = launchCommand({
 				run,
@@ -187,10 +186,8 @@ export const startNative = async (
 						env,
 						directory: join(ctx.home, "harness-attempts", terminalId, "transfer"),
 					});
-				launch.cwd = previous.launch!.cwd;
 			}
-			const descriptor = await host.prepare(launch, sessionId);
-			launchWorkspace = descriptor.spec.cwd;
+			await host.prepare(launch, sessionId);
 			if (
 				!(await ctx.newTx((tx) =>
 					launchAllowed(tx, {
@@ -207,7 +204,7 @@ export const startNative = async (
 		}
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET workspace_id = ${launchWorkspace}, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = CASE WHEN ${session.status === "exited"} AND kind<>'agent' THEN ${ctx.now()}::timestamptz ELSE NULL END, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
+				sql`UPDATE agent_runs SET workspace_id = ${workspaceId}, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = CASE WHEN ${session.status === "exited"} AND kind<>'agent' THEN ${ctx.now()}::timestamptz ELSE NULL END, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
 	} catch (error) {

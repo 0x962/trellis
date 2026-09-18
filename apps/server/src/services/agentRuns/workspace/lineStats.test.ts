@@ -135,6 +135,22 @@ describe("workspace line stats", () => {
 		expect(await countWorkspace(workspace)).toEqual({ additions: 1, deletions: 0 });
 	});
 
+	test("replaces a saved manager launch directory with a repository worktree", async () => {
+		const { repository, root } = await createRepository();
+		const home = join(root, "home");
+		const legacy = join(home, "harness-attempts", "manager-workspaces", run.id);
+		await mkdir(legacy, { recursive: true });
+
+		const workspace = await nativeWorkspace(
+			home,
+			{ ...run, kind: "manager", ticketIdentifier: null, workspaceId: legacy },
+			repository,
+		);
+
+		expect(workspace).toBe(join(home, "agents", run.id, "work"));
+		expect(await git(workspace, ["rev-parse", "--is-inside-work-tree"])).toBe("true");
+	});
+
 	test("ignores an untracked nested repository", async () => {
 		const { workspace } = await createWorkspace();
 		const nested = join(workspace, "nested");

@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdir, realpath, stat } from "node:fs/promises";
 import { join, sep } from "node:path";
 import { promisify } from "node:util";
@@ -42,7 +43,9 @@ export const nativeWorkspace = async (home: string, run: WorkspaceRun, directory
 	if (directory === "") throw new Error("Select the local repository directory before you start a native agent.");
 	const source = await realpath(directory);
 	if (!(await stat(source)).isDirectory()) throw new Error(`Not a directory: ${source}`);
-	if (run.workspaceId !== null && run.runtime === "native") {
+	const legacyManagerWorkspace = join(home, "harness-attempts", "manager-workspaces", run.id);
+	const replaceLegacyWorkspace = run.kind === "manager" && run.workspaceId === legacyManagerWorkspace;
+	if (run.workspaceId !== null && run.runtime === "native" && !replaceLegacyWorkspace) {
 		await stat(run.workspaceId);
 		if (run.workspaceId !== source) {
 			const env = { NODE_ENV: process.env.NODE_ENV, ...(await executionEnvironment()) };
@@ -55,7 +58,18 @@ export const nativeWorkspace = async (home: string, run: WorkspaceRun, directory
 	await mkdir(join(home, "agents", run.id), { recursive: true, mode: 0o700 });
 	const env = { NODE_ENV: process.env.NODE_ENV, ...(await executionEnvironment()) };
 	const base = await sourceBase(source, env);
-	await exec("git", ["-C", source, "worktree", "add", "-b", runBranch(run), destination, base.revision], {
+	if (replaceLegacyWorkspace && existsSync(destination)) {
+		await setWorkspaceBase(destination, base, env, true);
+		return destination;
+	}
+	const branch = runBranch(run);
+	const hasBranch =
+		replaceLegacyWorkspace &&
+		(await exec("git", ["-C", source, "branch", "--list", branch], { env })).stdout.trim() !== "";
+	const args = hasBranch
+		? ["-C", source, "worktree", "add", destination, branch]
+		: ["-C", source, "worktree", "add", "-b", branch, destination, base.revision];
+	await exec("git", args, {
 		env,
 	}).catch((error: { stderr?: string }) => {
 		throw new Error(workspaceErrorText(error.stderr ?? ""), { cause: error });
