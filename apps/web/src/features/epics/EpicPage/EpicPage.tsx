@@ -172,6 +172,7 @@ export function EpicPage({ project, slug }: EpicPageProps) {
 									<TicketPicker
 										project={project.key}
 										exclude={identifiers}
+										allowNone={false}
 										label="Add to epic"
 										placeholder="Add a ticket: an identifier or a title"
 										onPick={(ticket) => {

@@ -185,7 +185,10 @@ const valueItems = (
 		case "parent":
 			return [{ id: "none", label: "No parent", current: view.parent === "none" }];
 		case "epic":
-			return [{ id: "none", label: "No epic", current: view.epic === "none" }, ...epicItems(epics, view.epic)];
+			return [
+				{ id: "none", label: "No epic", current: view.epic === "none" },
+				...epicItems(epics, { current: view.epic }),
+			];
 		case "pr":
 		case "ci":
 			return [
