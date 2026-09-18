@@ -1,0 +1,7 @@
+<task-notification>
+<task-id>b34z7jfcb</task-id>
+<tool-use-id>toolu_01Vdv84aKA1NNd1EC2drH71S</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-navidkhan-projects-trellis/f93378da-eb95-43c3-8373-0bb162948448/tasks/b34z7jfcb.output</output-file>
+<status>failed</status>
+<summary>Background command "Retry delivery to Ellis until the agent is free" failed with exit code 1</summary>
+</task-notification>
