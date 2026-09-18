@@ -11,16 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GalleryRouteImport } from './routes/[_]gallery'
-import { Route as AllRouteRouteImport } from './routes/all/route'
 import { Route as LoopsRouteImport } from './routes/loops'
 import { Route as NeedsYouRouteRouteImport } from './routes/needs-you/route'
-import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as UsageRouteImport } from './routes/usage'
 import { Route as AiFlowsRouteImport } from './routes/ai.flows'
-import { Route as AllTableRouteImport } from './routes/all_.table'
 import { Route as PSplatRouteRouteImport } from './routes/p/$/route'
 import { Route as SessionsIdRouteImport } from './routes/sessions.$id'
 import { Route as TIdentifierRouteRouteImport } from './routes/t/$identifier/route'
@@ -38,11 +35,6 @@ const GalleryRoute = GalleryRouteImport.update({
   path: '/_gallery',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AllRouteRoute = AllRouteRouteImport.update({
-  id: '/all',
-  path: '/all',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoopsRoute = LoopsRouteImport.update({
   id: '/loops',
   path: '/loops',
@@ -51,11 +43,6 @@ const LoopsRoute = LoopsRouteImport.update({
 const NeedsYouRouteRoute = NeedsYouRouteRouteImport.update({
   id: '/needs-you',
   path: '/needs-you',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReviewsRoute = ReviewsRouteImport.update({
-  id: '/reviews',
-  path: '/reviews',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SearchRoute = SearchRouteImport.update({
@@ -81,11 +68,6 @@ const UsageRoute = UsageRouteImport.update({
 const AiFlowsRoute = AiFlowsRouteImport.update({
   id: '/ai/flows',
   path: '/ai/flows',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AllTableRoute = AllTableRouteImport.update({
-  id: '/all_/table',
-  path: '/all/table',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PSplatRouteRoute = PSplatRouteRouteImport.update({
@@ -121,11 +103,9 @@ const ReviewsOwnerRepoNumberRoute = ReviewsOwnerRepoNumberRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/all': typeof AllRouteRoute
   '/needs-you': typeof NeedsYouRouteRoute
   '/_gallery': typeof GalleryRoute
   '/loops': typeof LoopsRoute
-  '/reviews': typeof ReviewsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
@@ -133,7 +113,6 @@ export interface FileRoutesByFullPath {
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
   '/ai/flows': typeof AiFlowsRoute
-  '/all/table': typeof AllTableRoute
   '/sessions/$id': typeof SessionsIdRoute
   '/ai/flows/$slug': typeof AiFlowsSlugRoute
   '/sessions/project/$project': typeof SessionsProjectProjectRoute
@@ -141,11 +120,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/all': typeof AllRouteRoute
   '/needs-you': typeof NeedsYouRouteRoute
   '/_gallery': typeof GalleryRoute
   '/loops': typeof LoopsRoute
-  '/reviews': typeof ReviewsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
@@ -153,7 +130,6 @@ export interface FileRoutesByTo {
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
   '/ai/flows': typeof AiFlowsRoute
-  '/all/table': typeof AllTableRoute
   '/sessions/$id': typeof SessionsIdRoute
   '/ai/flows/$slug': typeof AiFlowsSlugRoute
   '/sessions/project/$project': typeof SessionsProjectProjectRoute
@@ -162,11 +138,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/all': typeof AllRouteRoute
   '/needs-you': typeof NeedsYouRouteRoute
   '/_gallery': typeof GalleryRoute
   '/loops': typeof LoopsRoute
-  '/reviews': typeof ReviewsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
@@ -174,7 +148,6 @@ export interface FileRoutesById {
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
   '/ai/flows': typeof AiFlowsRoute
-  '/all_/table': typeof AllTableRoute
   '/sessions/$id': typeof SessionsIdRoute
   '/ai/flows_/$slug': typeof AiFlowsSlugRoute
   '/sessions/project/$project': typeof SessionsProjectProjectRoute
@@ -184,11 +157,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/all'
     | '/needs-you'
     | '/_gallery'
     | '/loops'
-    | '/reviews'
     | '/search'
     | '/settings'
     | '/setup'
@@ -196,7 +167,6 @@ export interface FileRouteTypes {
     | '/p/$'
     | '/t/$identifier'
     | '/ai/flows'
-    | '/all/table'
     | '/sessions/$id'
     | '/ai/flows/$slug'
     | '/sessions/project/$project'
@@ -204,11 +174,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/all'
     | '/needs-you'
     | '/_gallery'
     | '/loops'
-    | '/reviews'
     | '/search'
     | '/settings'
     | '/setup'
@@ -216,7 +184,6 @@ export interface FileRouteTypes {
     | '/p/$'
     | '/t/$identifier'
     | '/ai/flows'
-    | '/all/table'
     | '/sessions/$id'
     | '/ai/flows/$slug'
     | '/sessions/project/$project'
@@ -224,11 +191,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/all'
     | '/needs-you'
     | '/_gallery'
     | '/loops'
-    | '/reviews'
     | '/search'
     | '/settings'
     | '/setup'
@@ -236,7 +201,6 @@ export interface FileRouteTypes {
     | '/p/$'
     | '/t/$identifier'
     | '/ai/flows'
-    | '/all_/table'
     | '/sessions/$id'
     | '/ai/flows_/$slug'
     | '/sessions/project/$project'
@@ -245,11 +209,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AllRouteRoute: typeof AllRouteRoute
   NeedsYouRouteRoute: typeof NeedsYouRouteRoute
   GalleryRoute: typeof GalleryRoute
   LoopsRoute: typeof LoopsRoute
-  ReviewsRoute: typeof ReviewsRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   SetupRoute: typeof SetupRoute
@@ -257,7 +219,6 @@ export interface RootRouteChildren {
   PSplatRouteRoute: typeof PSplatRouteRoute
   TIdentifierRouteRoute: typeof TIdentifierRouteRoute
   AiFlowsRoute: typeof AiFlowsRoute
-  AllTableRoute: typeof AllTableRoute
   SessionsIdRoute: typeof SessionsIdRoute
   AiFlowsSlugRoute: typeof AiFlowsSlugRoute
   SessionsProjectProjectRoute: typeof SessionsProjectProjectRoute
@@ -280,13 +241,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GalleryRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/all': {
-      id: '/all'
-      path: '/all'
-      fullPath: '/all'
-      preLoaderRoute: typeof AllRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/loops': {
       id: '/loops'
       path: '/loops'
@@ -299,13 +253,6 @@ declare module '@tanstack/react-router' {
       path: '/needs-you'
       fullPath: '/needs-you'
       preLoaderRoute: typeof NeedsYouRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reviews': {
-      id: '/reviews'
-      path: '/reviews'
-      fullPath: '/reviews'
-      preLoaderRoute: typeof ReviewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/search': {
@@ -341,13 +288,6 @@ declare module '@tanstack/react-router' {
       path: '/ai/flows'
       fullPath: '/ai/flows'
       preLoaderRoute: typeof AiFlowsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/all_/table': {
-      id: '/all_/table'
-      path: '/all/table'
-      fullPath: '/all/table'
-      preLoaderRoute: typeof AllTableRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/p/$': {
@@ -397,11 +337,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AllRouteRoute: AllRouteRoute,
   NeedsYouRouteRoute: NeedsYouRouteRoute,
   GalleryRoute: GalleryRoute,
   LoopsRoute: LoopsRoute,
-  ReviewsRoute: ReviewsRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   SetupRoute: SetupRoute,
@@ -409,7 +347,6 @@ const rootRouteChildren: RootRouteChildren = {
   PSplatRouteRoute: PSplatRouteRoute,
   TIdentifierRouteRoute: TIdentifierRouteRoute,
   AiFlowsRoute: AiFlowsRoute,
-  AllTableRoute: AllTableRoute,
   SessionsIdRoute: SessionsIdRoute,
   AiFlowsSlugRoute: AiFlowsSlugRoute,
   SessionsProjectProjectRoute: SessionsProjectProjectRoute,

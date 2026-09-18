@@ -20,8 +20,8 @@ export function NotFoundState({ ref, searchFor }: NotFoundStateProps) {
 			description="Make sure that the URL has no typo. This page also shows for a deleted ticket or project."
 			action={
 				searchFor === undefined ? (
-					<Link to="/all" className={linkButtonClass}>
-						All tickets
+					<Link to="/needs-you" className={linkButtonClass}>
+						Needs you
 					</Link>
 				) : (
 					<Link to="/search" search={{ q: searchFor }} className={linkButtonClass}>

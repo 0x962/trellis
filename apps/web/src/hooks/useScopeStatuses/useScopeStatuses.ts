@@ -15,8 +15,8 @@ const foldBySlug: Combine = (results) => combineStatuses(results.map((result) =>
 const everyStatus: Combine = (results) => results.flatMap((result) => result.data?.statuses ?? none);
 
 // The statuses of a scope, under one `combine` over the root lists. A
-// project route takes its project's effective set; /all reads one list per
-// root. `combine` is a module constant, so the results stay memoized.
+// project takes its effective set; no project reads one list per root.
+// `combine` is a module constant, so the results stay memoized.
 const useStatusesOfScope = (project: string | undefined, combine: Combine): Status[] => {
 	const { orpc } = useApp();
 	const own = useQuery({
@@ -35,8 +35,8 @@ const useStatusesOfScope = (project: string | undefined, combine: Combine): Stat
 	return project === undefined ? statuses : (own.data?.statuses ?? none);
 };
 
-// The statuses a list can filter by and group by. A project route takes
-// its project's effective set. /all takes every root's set, folded by
+// The statuses a list can filter by and group by. A project takes its
+// effective set. No project takes every root's set, folded by
 // slug: the first root's status stands for every root that shares the
 // slug, so one Done group covers the whole list.
 export const useScopeStatuses = (project?: string): Status[] => useStatusesOfScope(project, foldBySlug);

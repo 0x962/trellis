@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { pickErrors } from "../errors";
+import { ProjectRefStringSchema } from "../refs";
 import { UlidSchema } from "../schemas/primitives";
 import { PullRequestSchema } from "../schemas/pullRequest";
 import {
@@ -20,6 +21,10 @@ import { base } from "./base";
 const id = z.object({ id: z.string().min(1) });
 const pr = z.object({ pr: ReviewRefSchema });
 const reviewer = z.string().regex(/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/, "Select a valid GitHub reviewer.");
+// A project narrows a list to the pull requests of that project: the ones
+// linked to a ticket of the project or one of its sub-projects, and the
+// ones in a repository of the project or one of its ancestors.
+const project = z.object({ project: ProjectRefStringSchema.optional() });
 export const reviews = {
 	status: base
 		.errors(pickErrors(["GH_UNAVAILABLE"]))
@@ -68,7 +73,7 @@ export const reviews = {
 	mine: base
 		.errors(pickErrors(["GH_UNAVAILABLE"]))
 		.route({ method: "POST", path: "/reviews/mine", summary: "List the signed-in user's open PRs" })
-		.input(z.object({}))
+		.input(project)
 		.output(
 			z.array(
 				z.object({
@@ -116,8 +121,8 @@ export const reviews = {
 		.input(pr)
 		.output(z.object({ id: UlidSchema, url: z.string() })),
 	prs: base
-		.route({ method: "GET", path: "/reviews/prs", summary: "List local PR reviews" })
-		.input(z.object({}))
+		.route({ method: "GET", path: "/reviews/prs", summary: "List local PR reviews, or the PRs of one project" })
+		.input(project)
 		.output(z.array(ReviewPrSchema)),
 	list: base
 		.route({ method: "GET", path: "/reviews/threads", summary: "Read local review threads" })

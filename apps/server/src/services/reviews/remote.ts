@@ -2,8 +2,9 @@ import type { ReviewSubmit } from "@trellis/api";
 import type { Tx } from "../../db/tx";
 import { invalidInput } from "../../errors";
 import { fetchPullRequests, type PullRequestRow } from "../../gh/graphql";
+import { effectiveRepos } from "../projectsRepos";
 import { recordAction } from "../pullRequestAction";
-import { fail, type PrepareCtx, type ServiceCtx } from "../support";
+import { fail, type IoCtx, type PrepareCtx, type ServiceCtx } from "../support";
 import { parseRef } from "./queries";
 import { gh } from "./revision";
 export const actionNames = [
@@ -115,7 +116,13 @@ export async function submit(ctx: PrepareCtx, input: ReviewSubmit) {
 }
 
 export const actionResult = (ctx: ServiceCtx, tx: Tx, input: PreparedAction) => recordAction(ctx, tx, input);
-export async function mine(ctx: PrepareCtx) {
+// With a project, the search covers the repositories of that project and
+// its ancestors. A project with no repository has no pull request of its
+// own, so the search does not run.
+export async function mine(ctx: IoCtx & PrepareCtx, input: { project?: string }) {
+	const project = input.project;
+	const repos = project === undefined ? [] : await ctx.newTx((tx) => effectiveRepos(ctx.core, tx, { project }));
+	if (project !== undefined && repos.length === 0) return [];
 	const raw = await gh(ctx, [
 		"search",
 		"prs",
@@ -127,6 +134,7 @@ export async function mine(ctx: PrepareCtx) {
 		"100",
 		"--sort",
 		"updated",
+		...repos.flatMap((repo) => ["--repo", `${repo.owner}/${repo.repo}`]),
 		"--json",
 		"number,title,repository,isDraft,url",
 	]);

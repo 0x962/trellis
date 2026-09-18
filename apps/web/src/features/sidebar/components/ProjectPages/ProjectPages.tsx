@@ -16,6 +16,7 @@ export function ProjectPages({
 }) {
 	const current = projectRefOfPathname(pathname) === project.path;
 	const settings = pathname.endsWith("/settings") || pathname.endsWith("/notes");
+	const diffs = pathname.endsWith("/diffs");
 	const sessions = pathname.startsWith("/sessions/project/");
 	return (
 		<li>
@@ -25,8 +26,9 @@ export function ProjectPages({
 						{
 							label: "Tickets",
 							suffix: "",
-							active: current && !settings && !sessions,
+							active: current && !settings && !diffs && !sessions,
 						},
+						{ label: "Diffs", suffix: "/diffs", active: current && diffs },
 						{ label: "Sessions", suffix: "/sessions", active: current && sessions },
 						{ label: "Settings", suffix: "/settings", active: current && settings },
 					].map(({ label, suffix, active }) => (

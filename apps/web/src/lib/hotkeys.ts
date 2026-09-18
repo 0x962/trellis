@@ -40,7 +40,7 @@ const viewHref = (pathname: string, view: "board" | "table") => {
 // show a board leaves both keys to the board, so one press never moves a
 // card and collapses the sidebar at the same time. Every other route
 // toggles the sidebar with `[`.
-const holdsBoardKeys = (pathname: string) => pathname.startsWith("/p/") || pathname.startsWith("/all");
+const holdsBoardKeys = (pathname: string) => pathname.startsWith("/p/");
 
 // The surfaces that take a delegated key. The innermost one wins.
 export type HotkeyTargetScope = "list" | "board" | "ticket" | "composer";
@@ -181,7 +181,6 @@ export const useGlobalHotkeys = (options: GlobalHotkeyOptions): string | null =>
 			clear();
 			const actions: Record<string, () => void> = {
 				h: () => navigate("/needs-you"),
-				a: () => navigate("/all"),
 				p: onProjectPicker,
 				s: () =>
 					(

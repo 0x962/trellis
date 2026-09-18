@@ -8,4 +8,4 @@ export const rememberList = (href: string) => {
 	sessionStorage.setItem(key, href);
 };
 
-export const lastListHref = () => sessionStorage.getItem(key) ?? "/all";
+export const lastListHref = () => sessionStorage.getItem(key) ?? "/needs-you";

@@ -68,11 +68,7 @@ function RootComponent() {
 	const desktopSetup = actor === null && canOpenDesktopSettingsBeforeSetup(desktop, pathname, location.hash);
 	useEffect(() => {
 		const projectView = pathname.startsWith("/p/") ? parseProjectSplat(pathname.slice(3)).view : undefined;
-		if (
-			["/all", "/all/table", "/search", "/needs-you"].includes(pathname) ||
-			projectView === "board" ||
-			projectView === "table"
-		) {
+		if (["/search", "/needs-you"].includes(pathname) || projectView === "board" || projectView === "table") {
 			rememberList(location.href);
 		}
 	}, [location.href, pathname]);

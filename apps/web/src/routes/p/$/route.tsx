@@ -23,9 +23,13 @@ import { useUiStore } from "../../../stores/uiStore";
 import { ArchivedBanner } from "./components/ArchivedBanner";
 import { ProjectLoadError } from "./components/ProjectLoadError";
 
-// The settings screen loads in its own chunk, so the list views never pay for it.
+// The settings screen and the diffs screen load in their own chunks, so the
+// list views never pay for them.
 const ProjectSettingsPage = lazy(async () => ({
 	default: (await import("./components/ProjectSettingsPage")).ProjectSettingsPage,
+}));
+const ProjectDiffsPage = lazy(async () => ({
+	default: (await import("../../../features/reviews/ProjectDiffsPage")).ProjectDiffsPage,
 }));
 
 const projectOptions = (context: AppContext, ref: string) =>
@@ -38,9 +42,10 @@ const countsOptions = (context: AppContext, ref: string, search: Partial<View>, 
 		input: { project: ref, ...toCountsQuery(viewOf(search), { statuses }) },
 	});
 
-// `/p/CDE`, `/p/CDE/board`, `/p/CDE/web/auth`, `/p/CDE/settings`, and
-// `/p/CDE/notes`. The splat is `[key, ...slugs, view?]`. The URL keeps
-// slashes, and the API ref joins with dots. The URL omits the default view.
+// `/p/CDE`, `/p/CDE/board`, `/p/CDE/web/auth`, `/p/CDE/settings`,
+// `/p/CDE/notes`, and `/p/CDE/diffs`. The splat is `[key, ...slugs, view?]`.
+// The URL keeps slashes, and the API ref joins with dots. The URL omits the
+// default view.
 export const Route = createFileRoute("/p/$")({
 	validateSearch: (search: Record<string, unknown>) => stripDefaults(parseSearch(search)),
 	beforeLoad: ({ location, params, search }) => {
@@ -59,10 +64,7 @@ export const Route = createFileRoute("/p/$")({
 	loader: async ({ context, params, deps }) => {
 		const { ref, view } = parseProjectSplat(params._splat ?? "");
 		const project = await context.queryClient.ensureQueryData(projectOptions(context, ref));
-		if (view === "notes") {
-			return;
-		}
-		if (view !== "settings") {
+		if (view === "board" || view === "table") {
 			await context.queryClient.ensureQueryData(countsOptions(context, ref, deps, project.statuses));
 		}
 	},
@@ -99,6 +101,17 @@ function ProjectPage() {
 				}
 			>
 				<ProjectSettingsPage project={project} section={view === "notes" ? "notes" : undefined} />
+			</Suspense>
+		);
+	}
+	if (view === "diffs") {
+		return (
+			<Suspense
+				fallback={
+					<div className="flex min-h-0 flex-1 items-center justify-center text-sm text-fg-muted">Load diffs…</div>
+				}
+			>
+				<ProjectDiffsPage key={project.id} project={project} />
 			</Suspense>
 		);
 	}
