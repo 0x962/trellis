@@ -1,0 +1,2 @@
+trellis-message:6e400ac1-58d3-565e-a2c8-52cc9cf4e8ac
+{"type":"trellis.manager.dispatch","id":"01M2KER9035QK4G7H6MXYDAHTP","projectId":"01M24SPHTX36AJ3VKTNZ263E7V","generation":119,"events":[{"id":2815,"actor":{"kind":"agent","name":"01M2KAQ1TEYRFZSEQE2AQ3M333"},"action":"ticket.updated","ticketId":"01M2KEPGCMDTYPTXBFSV1SPA7G","createdAt":"2026-09-15T21:14:48.462Z"},{"id":2816,"actor":{"kind":"agent","name":"01M2KAQ1TEYRFZSEQE2AQ3M333"},"action":"ticket.updated","ticketId":"01M2KEPGCMDTYPTXBFSV1SPA7G","createdAt":"2026-09-15T21:14:48.462Z"}]}
