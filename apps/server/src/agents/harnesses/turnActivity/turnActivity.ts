@@ -7,6 +7,11 @@ export function applyTurnActivity(current: { turnId: string | null; working: boo
 	const begins = event.kind === "prompt" || event.kind === "working";
 	if (!begins && event.turnId !== undefined && current.turnId !== null && current.turnId !== event.turnId) return;
 	if (event.turnId !== undefined) current.turnId = event.turnId;
-	if (event.kind !== "session" && event.kind !== "message")
+	if (
+		event.kind !== "session" &&
+		event.kind !== "message" &&
+		event.kind !== "input-request" &&
+		event.kind !== "input-resolved"
+	)
 		current.working = event.kind !== "idle" && (event.kind !== "error" || event.willRetry === true);
 }

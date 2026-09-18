@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
 	EpicRefStringSchema,
 	LabelRefStringSchema,
+	MilestoneRefStringSchema,
 	ProjectRefStringSchema,
 	StatusRefStringSchema,
 	TicketRefStringSchema,
@@ -18,19 +19,20 @@ import {
 } from "./enums.ts";
 import { EpicLinkSchema } from "./epicLink.ts";
 import { TicketLabelSchema } from "./label.ts";
+import { MilestoneLinkSchema } from "./milestone.ts";
 import { booleanString, CountSchema, commaList, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 import { ProjectLinkSchema } from "./project.ts";
 import { LinkedPullRequestSchema } from "./pullRequest.ts";
 import { StatusSummarySchema } from "./status.ts";
 
 // A title is stored trimmed. The limit keeps a row under the summary budget.
-const TitleSchema = z
+export const TicketTitleSchema = z
 	.string()
 	.trim()
 	.min(1, "Enter a title of 1 to 500 characters.")
 	.max(500, "Enter a title of 1 to 500 characters.");
 
-const IdentifierSchema = z.string().regex(/^[A-Z][A-Z0-9]{1,9}-[1-9][0-9]*$/);
+export const TicketIdentifierSchema = z.string().regex(/^[A-Z][A-Z0-9]{1,9}-[1-9][0-9]*$/);
 
 const PrReviewSchema = z.object({
 	owner: z.string().min(1),
@@ -63,19 +65,22 @@ const LastActorSchema = ActorRefSchema.extend({
 // `applyEvent` compares before a patch.
 export const TicketSummarySchema = z.object({
 	id: UlidSchema,
-	identifier: IdentifierSchema,
+	identifier: TicketIdentifierSchema,
 	number: z.number().int().positive(),
-	title: TitleSchema,
+	title: TicketTitleSchema,
 	priority: PrioritySchema,
 	status: StatusSummarySchema,
 	project: ProjectLinkSchema,
-	parent: z.object({ id: UlidSchema, identifier: IdentifierSchema }).nullable(),
+	parent: z.object({ id: UlidSchema, identifier: TicketIdentifierSchema }).nullable(),
 	// Every ticket above this one, the top of the tree first and the parent
 	// last. Empty for a ticket with no parent. A board card draws it as the
 	// trail that leads to the ticket.
-	ancestors: z.array(IdentifierSchema),
+	ancestors: z.array(TicketIdentifierSchema),
 	// The epic the ticket belongs to. A ticket belongs to at most one epic.
 	epic: EpicLinkSchema.nullable(),
+	// The milestone the ticket belongs to. It is a milestone of `epic`, so a
+	// ticket with no epic has no milestone.
+	milestone: MilestoneLinkSchema.nullable(),
 	childCount: CountSchema,
 	childDoneCount: CountSchema,
 	commentCount: CountSchema,
@@ -147,6 +152,8 @@ export const ListQuerySchema = z.strictObject({
 	parent: z.union([z.literal("none"), TicketRefStringSchema]).optional(),
 	// `none` keeps the tickets outside every epic.
 	epic: z.union([z.literal("none"), EpicRefStringSchema]).optional(),
+	// `none` keeps the tickets outside every milestone.
+	milestone: z.union([z.literal("none"), MilestoneRefStringSchema]).optional(),
 	pr: PrFilterSchema.optional(),
 	ci: commaList(CiStateSchema).optional(),
 	actor: ActorFilterSchema.optional(),
@@ -202,101 +209,4 @@ export type CountsOutput = z.infer<typeof CountsOutputSchema>;
 
 export const TicketGetInputSchema = z.strictObject({
 	ticket: TicketRefStringSchema,
-});
-
-// One write names at most 50 labels. A ticket holds one label of a group at
-// most, so two labels of one group in one list fail INPUT_VALIDATION_FAILED.
-const LabelRefListSchema = z.array(LabelRefStringSchema).max(50, "Enter 50 labels or less.");
-
-// `status` defaults to the project's default status; `description` to the
-// project's ticket template. `epic` names an epic of the same root.
-export const TicketCreateInputSchema = z.strictObject({
-	project: ProjectRefStringSchema,
-	title: TitleSchema,
-	description: z.string().optional(),
-	priority: PrioritySchema.optional(),
-	status: StatusRefStringSchema.optional(),
-	parent: TicketRefStringSchema.optional(),
-	epic: EpicRefStringSchema.optional(),
-	labels: LabelRefListSchema.optional(),
-});
-export type TicketCreateInput = z.input<typeof TicketCreateInputSchema>;
-
-// `expectedVersion` makes the write conditional: a mismatch is
-// VERSION_CONFLICT with the current row. `parent: null` clears the parent,
-// and `epic: null` clears the epic. `addLabels` and `removeLabels` change the
-// label set one label at a time, so two writers do not overwrite the labels
-// of each other. A label the ticket holds already, or a removed label it does
-// not hold, changes nothing. An added label of a group replaces the label of
-// that group on the ticket.
-export const TicketUpdateInputSchema = z.strictObject({
-	ticket: TicketRefStringSchema,
-	title: TitleSchema.optional(),
-	description: z.string().optional(),
-	priority: PrioritySchema.optional(),
-	status: StatusRefStringSchema.optional(),
-	parent: TicketRefStringSchema.nullable().optional(),
-	epic: EpicRefStringSchema.nullable().optional(),
-	project: ProjectRefStringSchema.optional(),
-	addLabels: LabelRefListSchema.optional(),
-	removeLabels: LabelRefListSchema.optional(),
-	expectedVersion: z.number().int().positive().optional(),
-});
-export type TicketUpdateInput = z.input<typeof TicketUpdateInputSchema>;
-
-// `after` and `before` must sit in the target column.
-export const TicketMoveInputSchema = z.strictObject({
-	ticket: TicketRefStringSchema,
-	status: StatusRefStringSchema,
-	after: TicketRefStringSchema.optional(),
-	before: TicketRefStringSchema.optional(),
-	expectedVersion: z.number().int().positive().optional(),
-});
-export type TicketMoveInput = z.input<typeof TicketMoveInputSchema>;
-
-// A batch is one transaction of at most 200 tickets. Each ref arrives in its
-// canonical spelling, `CDE-1` for `cde-1`, and the batch refuses two refs
-// that hold the same canonical spelling. A ULID and a `KEY-n` are two
-// spellings of one ticket, so a batch that holds both passes this check and
-// writes to that ticket twice.
-const TicketBatchSchema = z
-	.array(TicketRefStringSchema)
-	.min(1)
-	.max(200)
-	.refine((refs) => new Set(refs).size === refs.length, "Name each ticket once.");
-
-export const TicketUpdateManyInputSchema = z.strictObject({
-	tickets: TicketBatchSchema,
-	status: StatusRefStringSchema.optional(),
-	priority: PrioritySchema.optional(),
-	project: ProjectRefStringSchema.optional(),
-	parent: TicketRefStringSchema.nullable().optional(),
-	epic: EpicRefStringSchema.nullable().optional(),
-	addLabels: LabelRefListSchema.optional(),
-	removeLabels: LabelRefListSchema.optional(),
-});
-export type TicketUpdateManyInput = z.input<typeof TicketUpdateManyInputSchema>;
-
-export const TicketUpdateManyOutputSchema = z.object({
-	items: z.array(TicketSummarySchema),
-});
-
-export const TicketDeleteManyInputSchema = z.strictObject({
-	tickets: TicketBatchSchema,
-	force: z.boolean().optional(),
-});
-export type TicketDeleteManyInput = z.input<typeof TicketDeleteManyInputSchema>;
-
-export const TicketDeleteManyOutputSchema = z.object({
-	deleted: z.array(IdentifierSchema),
-});
-
-export const TicketDeleteInputSchema = z.strictObject({
-	ticket: TicketRefStringSchema,
-	force: booleanString.optional(),
-});
-export type TicketDeleteInput = z.input<typeof TicketDeleteInputSchema>;
-
-export const TicketDeleteOutputSchema = z.object({
-	deleted: IdentifierSchema,
 });

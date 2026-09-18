@@ -12,6 +12,7 @@ import { createLive } from "./lib/live";
 import { client, orpc, queryClient } from "./lib/orpc";
 import { preloadOnIdle } from "./lib/preloadOnIdle";
 import { preloadRouteChunks } from "./lib/preloadRouteChunks";
+import { createSessionNotifications } from "./lib/sessionNotifications/sessionNotifications";
 import { createAppRouter } from "./router";
 
 // The browser's own locks, channel, and EventSource. One tab per origin
@@ -23,12 +24,19 @@ const live = createLive({
 	createChannel: (name) => new BroadcastChannel(name),
 	EventSource,
 	scheduler: realScheduler,
-	applyEvent,
+	applyEvent: (event, cache) => {
+		applyEvent(event, cache);
+		notifySession(event);
+	},
 });
-live.start();
 
 const context: AppContext = { queryClient, orpc, client, live, scheduler: realScheduler };
 const router = createAppRouter(context);
+const notifySession = createSessionNotifications(
+	() => live.isLeader(),
+	(path) => void router.navigate({ href: path }),
+);
+live.start();
 const desktop = (window as Window & { trellisDesktop?: Partial<DesktopBridge> }).trellisDesktop;
 desktop?.onNavigate?.((path) => void router.navigate({ href: path }));
 preloadOnIdle(() => preloadRouteChunks(router));

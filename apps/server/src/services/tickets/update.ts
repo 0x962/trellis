@@ -18,14 +18,15 @@ import { ticketSummaries } from "../../db/queries/ticketSummaries.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { record } from "../activity.ts";
-import { epicRefOf } from "../epics/rows.ts";
 import { assertProjectActive, pathOf, resolveProject, resolveStatus, resolveTicket, type TicketRow } from "../refs.ts";
 import { applyLabelPlan } from "./labels.ts";
+import { placementChanges, resolvePlacement } from "./placement.ts";
 import { type ChangePlanner, changePlanner } from "./plan.ts";
 import { assertVersion, outsideRoot, remapStatus, stampColumns } from "./rules.ts";
 
 // The fields `update` and `updateMany` share. A ref is a canonical string;
-// `parent: null` clears the parent, and `epic: null` clears the epic.
+// `parent: null` clears the parent, `epic: null` clears the epic, and
+// `milestone: null` clears the milestone.
 type ChangeInput = {
 	title?: string;
 	description?: string;
@@ -33,6 +34,7 @@ type ChangeInput = {
 	status?: string;
 	parent?: string | null;
 	epic?: string | null;
+	milestone?: string | null;
 	project?: string;
 	addLabels?: readonly string[];
 	removeLabels?: readonly string[];
@@ -116,7 +118,7 @@ const projectAndStatusChanges = async (ctx: ServiceCtx, tx: Tx, row: TicketRow, 
 
 // Applies `input` to one ticket under `batchId`: one UPDATE and one activity
 // row per changed field. An input that changes nothing writes nothing.
-// `planner` holds the epic row and the label rows the write names, so a batch
+// `planner` holds the label rows the write names, so a batch
 // reads each of them once and not once per ticket.
 const applyChanges = async (
 	ctx: ServiceCtx,
@@ -153,18 +155,7 @@ const applyChanges = async (
 			});
 		}
 	}
-	if (input.epic !== undefined) {
-		const epic = (await planner.epic(row.rootId)) ?? null;
-		if ((epic?.id ?? null) !== row.epicId) {
-			changes.push({
-				field: "epic",
-				from: row.epicRef,
-				to: epic === null ? null : epicRefOf(epic),
-				meta: { fromId: row.epicId, toId: epic?.id ?? null },
-				set: sql`epic_id = ${epic?.id ?? null}`,
-			});
-		}
-	}
+	changes.push(...placementChanges(row, await resolvePlacement(ctx, tx, row.rootId, row, input)));
 	changes.push(...(await projectAndStatusChanges(ctx, tx, row, input)));
 	changes.push(...(await applyLabelPlan(ctx, tx, row, await planner.labels(row.rootId))));
 	if (changes.length === 0) return { id: row.id, fields: [] };

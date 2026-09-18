@@ -12,7 +12,7 @@ export const defaults = (): Settings => ({
 	defaultActorName: userInfo().username,
 });
 
-const KEYS = ["defaultActorName"] as const satisfies (keyof Settings)[];
+const KEYS = ["defaultActorName", "notifications"] as const satisfies (keyof Settings)[];
 
 // One row per key with a jsonb value; a key the table lacks reads as its
 // default. The table holds other keys too, such as the agent settings, so

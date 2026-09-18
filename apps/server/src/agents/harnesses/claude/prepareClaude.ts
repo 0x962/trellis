@@ -10,6 +10,9 @@ export async function prepareClaude(input: HarnessLaunchInput): Promise<HarnessL
 		"PreToolUse",
 		"PostToolUse",
 		"PostToolUseFailure",
+		"PermissionRequest",
+		"Elicitation",
+		"ElicitationResult",
 	];
 	const hooks = Object.fromEntries(
 		events.map((event) => [event, [{ hooks: [{ type: "command", command: input.hookCommand, timeout: 10 }] }]]),

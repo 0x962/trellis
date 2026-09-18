@@ -1,11 +1,10 @@
 import { ArrowDown } from "@phosphor-icons/react";
-import type { AgentRun } from "@trellis/api";
+import { type AgentRun, sessionStatus } from "@trellis/api";
 import { Avatar, GroupHeader, IconButton, Tooltip, useMediaQuery } from "@trellis/ui";
 import { useEffect, useId, useRef, useState } from "react";
 import { uiActions, useUiStore } from "../../../../../stores/uiStore";
 import { agentKindOf } from "../../../../agents/agentKindOf";
 import { agentProfileOf } from "../../../../agents/agentProfileOf";
-import { isAgentWorking } from "../../../../agents/isAgentWorking";
 import { sessionStateLabel } from "../../../sessionStateLabel";
 import { isHistoricalSession } from "../../isHistoricalSession";
 import { RunLineChanges } from "./components/RunLineChanges";
@@ -68,7 +67,7 @@ export function SessionGroup({
 					{visible.map((run) => {
 						const historical = isHistoricalSession(run);
 						const state = sessionStateLabel(run);
-						const needsAttention = run.state === "failed" || run.state === "interrupted";
+						const needsAttention = ["failed", "interrupted", "needs-input", "done"].includes(sessionStatus(run));
 						return (
 							<li key={run.id}>
 								<button
@@ -85,7 +84,7 @@ export function SessionGroup({
 											name={run.ticketIdentifier ?? run.name}
 											agentKind={agentKindOf(run.kind)}
 											agentProfile={agentProfileOf(run.harness)}
-											state={isAgentWorking(run) ? "working" : "static"}
+											status={sessionStatus(run)}
 											className="size-5"
 										/>
 									</span>

@@ -48,6 +48,26 @@ export class CodexAppServerEvents {
 			},
 		];
 	}
+	parseRequest(request: { id: string | number; method: string; params?: unknown }): HarnessEvent[] {
+		if (request.method !== "item/tool/requestUserInput") return [];
+		const params = z
+			.looseObject({ threadId: z.string(), turnId: z.string(), isBlocking: z.boolean() })
+			.parse(request.params);
+		if (params.threadId !== this.sessionId || params.isBlocking) return [];
+		return [
+			{
+				kind: "input-request",
+				sessionId: params.threadId,
+				turnId: params.turnId,
+				inputRequest: {
+					id: `codex:request:${request.id}`,
+					kind: "question",
+					title: "Answer the question in the terminal",
+					blocking: false,
+				},
+			},
+		];
+	}
 	parse(payload: unknown): HarnessEvent[] {
 		const { method, params } = notification.parse(payload);
 		if (params.threadId !== this.sessionId) return [];
@@ -55,6 +75,31 @@ export class CodexAppServerEvents {
 			sessionId: this.sessionId,
 			...(typeof params.turnId === "string" ? { turnId: params.turnId } : {}),
 		};
+		if (method === "thread/status/changed") {
+			const status = z
+				.looseObject({ type: z.string(), activeFlags: z.array(z.string()).optional() })
+				.parse(params.status);
+			return ["waitingOnUserInput", "waitingOnApproval"].map(
+				(flag): HarnessEvent =>
+					status.activeFlags?.includes(flag)
+						? {
+								kind: "input-request",
+								...identity,
+								inputRequest: {
+									id: `codex:${flag}`,
+									kind: flag === "waitingOnApproval" ? "permission" : "question",
+									title:
+										flag === "waitingOnApproval"
+											? "Approve the request in the terminal"
+											: "Answer the question in the terminal",
+									blocking: true,
+								},
+							}
+						: { kind: "input-resolved", ...identity, requestId: `codex:${flag}` },
+			);
+		}
+		if (method === "serverRequest/resolved")
+			return [{ kind: "input-resolved", ...identity, requestId: `codex:request:${params.requestId}` }];
 		if (method === "thread/settings/updated")
 			return [
 				{

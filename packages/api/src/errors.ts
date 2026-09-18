@@ -18,6 +18,11 @@ const IssueSchema = z.looseObject({
 // An error without a payload declares `z.undefined()`, so `data` is typed
 // as absent instead of as an empty object.
 export const errors = {
+	SESSION_ATTENTION_CHANGED: {
+		status: 409,
+		message: "The session changed. Read it again before you continue.",
+		data: z.object({ reason: z.string() }),
+	},
 	RESTART_FAILED: {
 		status: 503,
 		message: "An agent session could not resume after the system restart.",
@@ -63,9 +68,16 @@ export const errors = {
 		message: "The URL is not a GitHub pull request URL.",
 		data: z.undefined(),
 	},
+	MILESTONE_OUTSIDE_EPIC: {
+		status: 400,
+		message:
+			"The milestone does not belong to the epic. A ticket takes a milestone of its own epic, and a milestone order names every milestone of the epic once.",
+		data: z.undefined(),
+	},
 	AGENT_CANNOT_DELETE: {
 		status: 403,
-		message: "An agent cannot delete a ticket, an epic, a project, a label, or a label group without force.",
+		message:
+			"An agent cannot delete a ticket, an epic, a milestone, a project, a label, or a label group without force.",
 		data: z.undefined(),
 	},
 	NOT_FOUND: {

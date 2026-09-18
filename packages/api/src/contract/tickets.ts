@@ -6,18 +6,20 @@ import {
 	CountsQuerySchema,
 	ListOutputSchema,
 	ListQuerySchema,
+	TicketGetInputSchema,
+	TicketSchema,
+} from "../schemas/ticket.ts";
+import {
 	TicketCreateInputSchema,
 	TicketDeleteInputSchema,
 	TicketDeleteManyInputSchema,
 	TicketDeleteManyOutputSchema,
 	TicketDeleteOutputSchema,
-	TicketGetInputSchema,
 	TicketMoveInputSchema,
-	TicketSchema,
 	TicketUpdateInputSchema,
 	TicketUpdateManyInputSchema,
 	TicketUpdateManyOutputSchema,
-} from "../schemas/ticket.ts";
+} from "../schemas/ticketWrite.ts";
 import { base } from "./base.ts";
 
 // The codes a write to one or many tickets can raise.
@@ -25,6 +27,7 @@ const writeErrors = pickErrors([
 	"PROJECT_ARCHIVED",
 	"STATUS_NOT_IN_PROJECT",
 	"CROSS_ROOT_MOVE",
+	"MILESTONE_OUTSIDE_EPIC",
 	"PARENT_CYCLE",
 	"LABEL_AMBIGUOUS",
 ]);

@@ -1,17 +1,18 @@
 import { Play, Stop, Ticket, Trash } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
-import type { AgentRun, Session } from "@trellis/api";
+import { type AgentRun, type Session, sessionStatus } from "@trellis/api";
 import { Avatar, ConfirmDialog, EmptyState, IconButton, Tooltip } from "@trellis/ui";
 import { type RefObject, useCallback, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../../agents/agentKindOf";
 import { agentProfileOf } from "../../agents/agentProfileOf";
 import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
-import { isAgentWorking } from "../../agents/isAgentWorking";
 import { NativeTerminal } from "../../agents/NativeTerminal";
 import { useWorkspaceSummary } from "../../agents/useWorkspaceSummary";
 import { DeleteSessionDialog } from "../DeleteSessionDialog";
+import { PendingQuestions } from "../PendingQuestions";
 import { sessionStateLabel } from "../sessionStateLabel";
+import { useSessionAttention } from "../useSessionAttention";
 import { SessionDetails } from "./components/SessionDetails";
 import { SessionMeta } from "./components/SessionMeta";
 
@@ -31,6 +32,7 @@ export function SessionConversation({
 	headingRef?: RefObject<HTMLHeadingElement | null>;
 }) {
 	const { client, orpc, queryClient } = useApp();
+	useSessionAttention(run, !readOnly);
 	const [confirmStop, setConfirmStop] = useState(false);
 	const [confirmDelete, setConfirmDelete] = useState(false);
 	const localHeading = useRef<HTMLHeadingElement>(null);
@@ -74,7 +76,7 @@ export function SessionConversation({
 					name={name}
 					agentKind={agentKindOf(run.kind)}
 					agentProfile={agentProfileOf(run.harness)}
-					state={isAgentWorking(run) ? "working" : "static"}
+					status={sessionStatus(run)}
 					className="size-7 shrink-0"
 				/>
 				<div className="flex min-w-0 flex-1 flex-col">
@@ -123,6 +125,7 @@ export function SessionConversation({
 					</Tooltip>
 				)}
 			</div>
+			<PendingQuestions run={run} readOnly={readOnly} />
 			{(error || run.error) && (
 				<p role="alert" className="px-3 py-2 text-sm text-danger">
 					{error?.message ?? run.error}

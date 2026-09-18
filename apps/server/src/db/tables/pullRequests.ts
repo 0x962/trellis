@@ -1,0 +1,43 @@
+import { sql } from "drizzle-orm";
+import { boolean, check, index, integer, jsonb, pgTable, text, unique } from "drizzle-orm/pg-core";
+import { CI_STATES, checkIn, PR_STATES, REVIEW_STATES } from "../enums.ts";
+import { at } from "./actors.ts";
+
+// `checks` is the sorted list of `{name, workflow, bucket, link}` gh reported.
+export const pullRequests = pgTable(
+	"pull_requests",
+	{
+		id: text().primaryKey(),
+		owner: text().notNull(),
+		repo: text().notNull(),
+		number: integer().notNull(),
+		url: text().notNull(),
+		title: text().notNull().default(""),
+		state: text().notNull(),
+		isDraft: boolean("is_draft").notNull().default(false),
+		reviewRetained: boolean("review_retained").notNull().default(false),
+		headRef: text("head_ref").notNull().default(""),
+		baseRef: text("base_ref").notNull().default(""),
+		reviewState: text("review_state").notNull().default("none"),
+		mergedAt: at("merged_at"),
+		closedAt: at("closed_at"),
+		checks: jsonb().notNull().default([]),
+		ciState: text("ci_state").notNull().default("none"),
+		contentHash: text("content_hash"),
+		fetchedAt: at("fetched_at"),
+		fetchError: text("fetch_error"),
+		createdAt: at("created_at").notNull(),
+		updatedAt: at("updated_at").notNull(),
+	},
+	(t) => [
+		unique("pull_requests_owner_repo_number_unique").on(t.owner, t.repo, t.number),
+		check("pull_requests_owner_check", sql`${t.owner} = lower(${t.owner}) AND length(${t.owner}) > 0`),
+		check("pull_requests_repo_check", sql`${t.repo} = lower(${t.repo}) AND length(${t.repo}) > 0`),
+		check("pull_requests_number_check", sql`${t.number} > 0`),
+		checkIn(t.state, PR_STATES),
+		checkIn(t.reviewState, REVIEW_STATES),
+		checkIn(t.ciState, CI_STATES),
+		check("pull_requests_checks_check", sql`jsonb_typeof(${t.checks}) = 'array'`),
+		index("pull_requests_state_ci_state_idx").on(t.state, t.ciState),
+	],
+);

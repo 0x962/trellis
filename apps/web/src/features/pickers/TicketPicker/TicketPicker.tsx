@@ -18,6 +18,9 @@ export type TicketPickerProps = {
 	exclude?: readonly string[];
 	// `null` clears the parent.
 	onPick: (ticket: TicketSummary | null) => void;
+	// False hides the None row. A picker that adds a ticket to a set has
+	// nothing to clear, so `onPick` then receives a ticket only.
+	allowNone?: boolean;
 	trigger: ReactElement;
 	// The popover name and the search prompt. The defaults name the parent.
 	label?: string;
@@ -34,6 +37,7 @@ export function TicketPicker({
 	project,
 	value,
 	exclude = [],
+	allowNone = true,
 	onPick,
 	trigger,
 	open,
@@ -77,7 +81,7 @@ export function TicketPicker({
 			icon: <StatusIcon category={ticket.status.category} reviewer={ticket.status.reviewer ?? undefined} />,
 			children: <span className="truncate text-fg-muted">{ticket.title}</span>,
 		})),
-		...(search.trim() === "" ? [{ id: noneId, label: "None", current: value === undefined }] : []),
+		...(allowNone && search.trim() === "" ? [{ id: noneId, label: "None", current: value === undefined }] : []),
 	];
 
 	return (

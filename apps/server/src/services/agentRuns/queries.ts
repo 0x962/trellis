@@ -6,7 +6,7 @@ import { fail } from "../../errors.ts";
 export type StoredRun = Omit<AgentRun, "assigned" | "state" | "processStatus" | "observation"> & {
 	closedAt: string | null;
 };
-export const columns = sql`id, account_id AS "accountId", name, runtime, harness, kind, instruction,
+export const columns = sql`id, jsonb_build_object('attemptId', seen_attempt_id, 'sequence', seen_sequence) AS "seenAttention", account_id AS "accountId", name, runtime, harness, kind, instruction,
 	project_id AS "projectId", project_path AS "projectPath", ticket_id AS "ticketId", ticket_identifier AS "ticketIdentifier", ${iso(sql`closed_at`)} AS "closedAt",
 	(SELECT title FROM tickets WHERE tickets.id=agent_runs.ticket_id) AS "ticketTitle",
 	(SELECT statuses.category FROM tickets JOIN statuses ON statuses.id=tickets.status_id WHERE tickets.id=agent_runs.ticket_id) AS "ticketStatusCategory",
@@ -18,3 +18,6 @@ export const getRun = async (tx: Tx, id: string) => {
 	if (run === undefined) throw fail("NOT_FOUND", { kind: "agent", ref: id });
 	return run;
 };
+
+export const listSessionRuns = (tx: Tx) =>
+	rows<StoredRun>(tx, sql`SELECT ${columns} FROM agent_runs WHERE id IN (SELECT run_id FROM sessions)`);

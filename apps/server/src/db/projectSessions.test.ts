@@ -5,6 +5,7 @@ import { SessionCreateInputSchema } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import { seen } from "../services/agentRuns/attention.ts";
 import { getRun } from "../services/agentRuns/queries.ts";
 import { reserve } from "../services/agentRuns/reserve.ts";
 import { prepareCreate } from "../services/sessions/create.ts";
@@ -254,4 +255,26 @@ test("archived projects reject session creation", async () => {
 	const count = launches.length;
 	await expect(prepareCreate(ctx, { project: "TST", prompt: "Inspect", harness }, start)).rejects.toThrow();
 	expect(launches).toHaveLength(count);
+});
+
+test("completion acknowledgement is monotonic and rejects a replaced attempt", async () => {
+	const result = await prepareCreate(ctx, { name: "ack-test", prompt: "Inspect", harness }, start);
+	await drainBackground();
+	const session = await db.transaction((tx) => getSession(tx, result.id));
+	const run = await db.transaction((tx) => getRun(tx, session.runId));
+	await db.transaction((tx) => seen(ctx, tx, { id: run.id, attemptId: run.terminalId, sequence: 8 }));
+	await db.transaction((tx) => seen(ctx, tx, { id: run.id, attemptId: run.terminalId, sequence: 4 }));
+	expect((await db.transaction((tx) => getRun(tx, run.id))).seenAttention).toEqual({
+		attemptId: run.terminalId,
+		sequence: 8,
+	});
+	await db.execute(sql`UPDATE agent_runs SET terminal_id='replacement' WHERE id=${run.id}`);
+	await expect(
+		db.transaction((tx) => seen(ctx, tx, { id: run.id, attemptId: run.terminalId, sequence: 9 })),
+	).rejects.toThrow();
+	await db.transaction((tx) => seen(ctx, tx, { id: run.id, attemptId: "replacement", sequence: 2 }));
+	expect((await db.transaction((tx) => getRun(tx, run.id))).seenAttention).toEqual({
+		attemptId: "replacement",
+		sequence: 2,
+	});
 });

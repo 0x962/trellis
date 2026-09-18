@@ -3,11 +3,13 @@ import { HarnessSchema } from "../harness/harness.ts";
 import { ModelIdSchema } from "../models/models.ts";
 import { StatusCategorySchema } from "./enums.ts";
 import { CountSchema, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
+import { SessionAttentionSchema } from "./sessionActivity.ts";
 
 export const AgentRunKindSchema = z.enum(["agent", "flow", "session"]);
 export type AgentRunKind = z.infer<typeof AgentRunKindSchema>;
 export const AgentRunSchema = z.object({
 	id: UlidSchema,
+	seenAttention: z.object({ attemptId: z.string().nullable(), sequence: z.number().int().nonnegative() }).optional(),
 	name: z.string(),
 	accountId: UlidSchema.nullish(),
 	runtime: z.enum(["native", "superset", "tmux", "commands"]),
@@ -26,6 +28,7 @@ export const AgentRunSchema = z.object({
 	observation: z
 		.object({
 			checkedAt: z.string(),
+			attention: SessionAttentionSchema.optional(),
 			controllable: z.boolean(),
 			activity: z.object({ state: z.enum(["ready", "working", "idle"]), updatedAt: z.string() }).nullable(),
 			outcome: z.enum(["completed", "interrupted", "failed"]).nullable(),

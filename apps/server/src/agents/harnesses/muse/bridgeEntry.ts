@@ -9,6 +9,8 @@ import type { HarnessEvent } from "../types.ts";
 import { MspClient } from "./mspClient.ts";
 import { MuseSessionEvents } from "./mspEvents.ts";
 import { museControl } from "./museControl.ts";
+import { MuseQuestions } from "./museQuestions.ts";
+import { answerMuseRequest } from "./museRequests.ts";
 import { museTerminalHint, museTranscriptLine } from "./museTerminal.ts";
 import { writeMuseQuotaError, writeMuseUsage } from "./museUsage.ts";
 import { uuid7 } from "./uuid7.ts";
@@ -43,13 +45,7 @@ const directory = dirname(env.TRELLIS_MUSE_CONTROL_SOCKET);
 await mkdir(directory, { mode: 0o700 });
 await chmod(directory, 0o700);
 const session = z.looseObject({ session: z.looseObject({ sessionId: z.string(), modelId: z.string().nullable() }) });
-const approval = z.looseObject({
-	approvalId: z.string(),
-	sessionId: z.string(),
-	currentRequirementId: z.unknown(),
-	availableChoices: z.array(z.looseObject({ choiceId: z.string(), decision: z.string() })),
-});
-const userInput = z.looseObject({ userInputId: z.string(), sessionId: z.string() });
+const questions = new MuseQuestions();
 const turnStart = z.looseObject({ turnId: z.string(), disposition: z.string() });
 const failedTurn = z.looseObject({ terminal: z.literal("failed"), error: z.looseObject({ message: z.string() }) });
 
@@ -131,6 +127,7 @@ const firstPrompt = new Promise<void>((resolve) => {
 });
 const print = (text: string) => process.stdout.write(`${text}\n`);
 function record(event: HarnessEvent) {
+	questions.observe(event);
 	applyTurnActivity(current, event);
 	const line = museTranscriptLine(event);
 	if (line !== null) print(line);
@@ -140,41 +137,6 @@ function record(event: HarnessEvent) {
 	});
 	eventQueue.catch(reportFailure);
 	if (!current.working) flushHeld();
-}
-async function answerRequest(request: { method: string; params?: unknown }) {
-	// The reply to a host request only confirms that the bridge saw it. The
-	// decision travels as its own command. Every approval is granted, and
-	// every question is cancelled: nobody sits at this terminal to answer.
-	if (request.method === "approval/request") {
-		const value = approval.parse(request.params);
-		const choice =
-			value.availableChoices.find((item) => item.decision === "approved" || item.decision === "approvedForSession") ??
-			value.availableChoices[0];
-		if (choice)
-			void client!
-				.request("approval/decide", {
-					commandId: uuid7(),
-					sessionId: value.sessionId,
-					approvalId: value.approvalId,
-					requirementId: value.currentRequirementId,
-					choiceId: choice.choiceId,
-				})
-				.catch(reportFailure);
-		return {};
-	}
-	if (request.method === "userInput/request") {
-		const value = userInput.parse(request.params);
-		void client!
-			.request("userInput/cancel", {
-				commandId: uuid7(),
-				sessionId: value.sessionId,
-				userInputId: value.userInputId,
-				reason: "The Trellis bridge runs without a person at the terminal.",
-			})
-			.catch(reportFailure);
-		return {};
-	}
-	return {};
 }
 const ESCAPE = "\u001b";
 const escapeSequence = new RegExp(`${ESCAPE}\\[[0-9;?]*[A-Za-z]`, "g");
@@ -235,7 +197,14 @@ async function start() {
 			if (!parser) return;
 			for (const event of parser.parse(notification)) record(event);
 		},
-		answerRequest,
+		(request) =>
+			answerMuseRequest(request, {
+				client: client!,
+				observe: (value) => {
+					for (const event of parser!.parse(value)) record(event);
+				},
+				fail: reportFailure,
+			}),
 	);
 	client.closed.catch(reportFailure);
 	const granted = await client.initialize();
@@ -274,6 +243,7 @@ async function start() {
 		client,
 		current: () => current,
 		submit,
+		answer: (id, answers, cancel) => questions.answer(client!, sessionId!, id, answers, cancel),
 	});
 	await startTurn([launch.prompt]);
 	await firstPrompt;

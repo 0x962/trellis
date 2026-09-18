@@ -4,14 +4,62 @@ export function validateHarnessEvent(value: unknown): asserts value is HarnessEv
 	if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("A provider event is required");
 	const event = value as Record<string, unknown>;
 	if (
-		!["session", "prompt", "working", "idle", "message", "tool-start", "tool-update", "tool-end", "error"].includes(
-			event.kind as string,
-		)
+		![
+			"session",
+			"prompt",
+			"working",
+			"idle",
+			"message",
+			"tool-start",
+			"tool-update",
+			"tool-end",
+			"error",
+			"input-request",
+			"input-resolved",
+		].includes(event.kind as string)
 	)
 		throw new Error("Unknown provider event kind");
-	for (const field of ["sessionId", "model", "prompt", "result", "error", "turnId"])
+	for (const field of ["requestId", "sessionId", "model", "prompt", "result", "error", "turnId"])
 		if (event[field] !== undefined && (typeof event[field] !== "string" || (event[field] as string).length > 200000))
 			throw new Error(`Provider ${field} must be a string of at most 200000 characters`);
+	if (event.kind === "input-request") {
+		const request = event.inputRequest as Record<string, unknown> | undefined;
+		if (
+			!request ||
+			typeof request.id !== "string" ||
+			!request.id ||
+			typeof request.title !== "string" ||
+			!["question", "permission", "elicitation"].includes(request.kind as string) ||
+			typeof request.blocking !== "boolean"
+		)
+			throw new Error("A provider input request requires an identifier, kind, title, and blocking state");
+		if (request.questions !== undefined) {
+			if (!Array.isArray(request.questions)) throw new Error("Provider questions must be an array");
+			for (const value of request.questions) {
+				const question = value as Record<string, unknown> | null;
+				if (
+					!question ||
+					typeof question.id !== "string" ||
+					typeof question.question !== "string" ||
+					typeof question.multiple !== "boolean" ||
+					!Array.isArray(question.options)
+				)
+					throw new Error("A provider question requires an identifier, text, options, and selection mode");
+				for (const option of question.options)
+					if (
+						!option ||
+						typeof option.label !== "string" ||
+						(option.description !== undefined && typeof option.description !== "string")
+					)
+						throw new Error("A provider option requires a label and optional description");
+				for (const key of ["minSelections", "maxSelections"])
+					if (question[key] !== undefined && (!Number.isSafeInteger(question[key]) || (question[key] as number) < 0))
+						throw new Error("Provider selection limits must be nonnegative integers");
+			}
+		}
+	}
+	if (event.kind === "input-resolved" && typeof event.requestId !== "string")
+		throw new Error("A resolved input request requires an identifier");
 	if (event.willRetry !== undefined && typeof event.willRetry !== "boolean")
 		throw new Error("Provider willRetry must be a boolean");
 	if (
