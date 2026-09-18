@@ -24,6 +24,9 @@ export interface FlowStep {
 	endedAt: number | null;
 	deadlineAt: number | null;
 	needsStop: boolean;
+	// The number of time warnings the host sent to the worker of this step.
+	// Rows stored before this field existed carry no value.
+	timeWarnings?: number;
 }
 export interface FlowExecution {
 	version: 1;
@@ -43,6 +46,8 @@ export type FlowEvent =
 	| { type: "human"; key: string; approved: boolean; output: string }
 	| { type: "unknown" | "fail"; key: string; error: string }
 	| { type: "stopped"; key: string }
+	// The host sent the worker of the step its `count`th time warning.
+	| { type: "warned"; key: string; count: number }
 	| { type: "cancel"; reason: string }
 	| { type: "tick" };
 export interface FlowInput {

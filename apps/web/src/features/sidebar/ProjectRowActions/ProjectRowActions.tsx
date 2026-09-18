@@ -13,8 +13,8 @@ export type ProjectRowActionsProps = {
 };
 
 // The row menu of a project in the sidebar: a 24 px button that fits the
-// row's trailing slot. An open project offers a new sub-project and a new
-// ticket; its settings, archive, and delete live on its settings page. An
+// row's trailing slot. An open project offers a new sub-project, a new
+// ticket, and its settings page; archive and delete live on that page. An
 // archived project takes no new sub-project and no new ticket, so its menu
 // offers unarchive, settings, and delete.
 export function ProjectRowActions({ project }: ProjectRowActionsProps) {
@@ -41,6 +41,7 @@ export function ProjectRowActions({ project }: ProjectRowActionsProps) {
 		: [
 				{ label: "New sub-project", icon: <FolderPlus />, onSelect: () => setCreateOpen(true) },
 				{ label: "New ticket", icon: <Plus />, onSelect: () => composerActions.open({ project: project.path }) },
+				settings,
 			];
 
 	return (

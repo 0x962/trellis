@@ -1,6 +1,11 @@
-import { Skeleton } from "@trellis/ui";
+import { cx, Skeleton } from "@trellis/ui";
+import { usePageSheet } from "../../../../shell/PageSheet";
 
 export function TicketSkeleton() {
+	// On its route, `TicketView` draws a `Topbar` above the tabs when the
+	// ticket loads, so the skeleton keeps that height free. A `PageSheet`
+	// draws the bar in its own header, above this skeleton.
+	const inSheet = usePageSheet() !== null;
 	const main = (
 		<div className="mx-auto flex w-full min-w-0 max-w-[856px] flex-col px-5 pt-6 pb-8 max-md:px-4">
 			<Skeleton width="w-3/4" height="h-8" className="mt-1" />
@@ -10,7 +15,7 @@ export function TicketSkeleton() {
 		</div>
 	);
 	return (
-		<div className="mt-13 flex min-h-0 flex-1 flex-col">
+		<div className={cx("flex min-h-0 flex-1 flex-col", !inSheet && "mt-13")}>
 			<div
 				aria-hidden="true"
 				className="flex h-10 shrink-0 items-end gap-4 border-b border-border px-5 pb-2 max-md:px-4"

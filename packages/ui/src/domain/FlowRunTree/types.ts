@@ -41,6 +41,7 @@ export type FlowRunRow = {
 	// The row waits for a person.
 	decidable: boolean;
 	hasChildren: boolean;
-	// The avatar of the agent that works this row.
+	// The avatar of the agent that works this row. On an `agent` row it is the
+	// kind mark; on every other row it sits in the avatar column.
 	actor?: ReactNode;
 };

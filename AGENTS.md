@@ -16,7 +16,7 @@ Create a scratch checkout or a temporary directory only under `$TMPDIR`, with th
 ## Prompts
 
 - Flow nodes store their instructions directly.
-- A ticket assignment receives its task from the ticket title and description.
+- A ticket assignment receives its task from the ticket title and description. `assignmentInstruction` in `apps/server/src/services/brief.ts` adds the ticket identifier, the branch of the worktree, and the trellis commands.
 - Each ticket agent completes its assigned work and records the result.
 - A ticket agent keeps its assignment until a person removes it.
 

@@ -21,6 +21,7 @@ import type { ProjectLaunchConfig } from "../projectLaunchConfig/projectLaunchCo
 import type { ServiceCtx } from "../support.ts";
 import { hostIsShuttingDown } from "./hostShutdown.ts";
 import { launchAllowed } from "./launchAllowed.ts";
+import { launchedHarness } from "./launchedHarness";
 import type { StoredRun } from "./queries.ts";
 
 class MissingNativeSessionIdentity extends Error {}
@@ -201,9 +202,10 @@ export const startNative = async (
 				sessionId === undefined ? await host.start(launch) : await host.resume({ ...launch, sessionId }));
 		}
 		launchedAt = session.startedAt;
+		const harness = launchedHarness(config.harness, session.agent?.model);
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET workspace_id = ${workspaceId}, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = CASE WHEN ${session.status === "exited"} AND kind<>'agent' THEN ${ctx.now()}::timestamptz ELSE NULL END, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
+				sql`UPDATE agent_runs SET workspace_id = ${workspaceId}, harness = ${JSON.stringify(harness)}::jsonb, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = CASE WHEN ${session.status === "exited"} AND kind<>'agent' THEN ${ctx.now()}::timestamptz ELSE NULL END, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
 	} catch (error) {

@@ -8,6 +8,7 @@ import { agentProfileOf } from "../../../../agents/agentProfileOf";
 import { isAgentWorking } from "../../../../agents/isAgentWorking";
 import { sessionStateLabel } from "../../../sessionStateLabel";
 import { isHistoricalSession } from "../../isHistoricalSession";
+import { RunLineChanges } from "./components/RunLineChanges";
 
 const dateFormat = new Intl.DateTimeFormat(undefined, {
 	month: "short",
@@ -95,10 +96,15 @@ export function SessionGroup({
 											</span>
 											{needsAttention && <span className="shrink-0 text-xs font-normal text-fg-muted">{state}</span>}
 										</span>
-										<span className="block truncate text-xs text-fg-muted tabular">
-											{historical
-												? dateFormat.format(new Date(run.createdAt))
-												: (run.ticketTitle ?? dateFormat.format(new Date(run.createdAt)))}
+										<span className="flex items-center gap-2 text-xs text-fg-muted tabular">
+											<span className="min-w-0 flex-1 truncate">
+												{historical
+													? dateFormat.format(new Date(run.createdAt))
+													: (run.ticketTitle ?? dateFormat.format(new Date(run.createdAt)))}
+											</span>
+											{run.runtime === "native" && run.workspaceId !== null && (
+												<RunLineChanges run={run} enabled={!collapsed} />
+											)}
 										</span>
 									</span>
 								</button>

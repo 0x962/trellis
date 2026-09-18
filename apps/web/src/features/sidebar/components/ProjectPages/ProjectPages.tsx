@@ -15,6 +15,9 @@ export function ProjectPages({
 	pathname: string;
 }) {
 	const current = projectRefOfPathname(pathname) === project.path;
+	// The Tickets row owns the bare project path, so every other page of the
+	// project turns it off. That includes the settings page and its /notes
+	// section, which the project's row menu (ProjectRowActions) opens.
 	const settings = pathname.endsWith("/settings") || pathname.endsWith("/notes");
 	const diffs = pathname.endsWith("/diffs");
 	const sessions = pathname.startsWith("/sessions/project/");
@@ -30,7 +33,6 @@ export function ProjectPages({
 						},
 						{ label: "Diffs", suffix: "/diffs", active: current && diffs },
 						{ label: "Sessions", suffix: "/sessions", active: current && sessions },
-						{ label: "Settings", suffix: "/settings", active: current && settings },
 					].map(({ label, suffix, active }) => (
 						<li key={label}>
 							<Link

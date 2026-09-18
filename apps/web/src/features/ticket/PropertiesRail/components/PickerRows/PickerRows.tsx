@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
 import type { Priority, Status, Ticket } from "@trellis/api";
-import { Button, PriorityIcon, StatusIcon, TicketId, useHotkey } from "@trellis/ui";
+import { Button, PriorityIcon, PropertyRow, StatusIcon, TicketId, useHotkey } from "@trellis/ui";
 import { useEffect, useState } from "react";
 import { useArchivedProjects } from "../../../../../hooks/useArchivedProjects";
 import { useApp } from "../../../../../lib/appContext";
@@ -15,7 +15,6 @@ import { ProjectKey } from "../../../../shell/ProjectKey";
 import { useStatuses } from "../../../hooks/useStatuses";
 import { useTicketWrite } from "../../../hooks/useTicketWrite";
 import { type PickerKind, usePickerStore } from "../../../stores/pickerStore";
-import { Row } from "../Row";
 
 export type PickerRowsProps = {
 	ticket: Ticket;
@@ -126,7 +125,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 
 	return (
 		<>
-			<Row label="Status">
+			<PropertyRow compact label="Status">
 				<StatusPicker
 					trigger={
 						<Button variant="quiet" className={triggerClass}>
@@ -142,8 +141,8 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 					open={open === "status"}
 					onOpenChange={openChange("status")}
 				/>
-			</Row>
-			<Row label="Priority">
+			</PropertyRow>
+			<PropertyRow compact label="Priority">
 				<PriorityPicker
 					trigger={
 						<Button variant="quiet" className={triggerClass}>
@@ -158,8 +157,8 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 					open={open === "priority"}
 					onOpenChange={openChange("priority")}
 				/>
-			</Row>
-			<Row label="Project">
+			</PropertyRow>
+			<PropertyRow compact label="Project">
 				<ProjectPicker
 					trigger={
 						<Button variant="quiet" className={triggerClass}>
@@ -181,8 +180,8 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 					error={projectError}
 					keepOpenOnPick
 				/>
-			</Row>
-			<Row label="Parent">
+			</PropertyRow>
+			<PropertyRow compact label="Parent">
 				<TicketPicker
 					trigger={
 						<Button variant="quiet" className={triggerClass}>
@@ -202,7 +201,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 					open={open === "parent"}
 					onOpenChange={openChange("parent")}
 				/>
-			</Row>
+			</PropertyRow>
 		</>
 	);
 }

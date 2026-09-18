@@ -124,6 +124,7 @@ Native flows freeze the saved graph and inline node instructions for each execut
 Each node occurrence binds to an ordinary agent attempt or a versioned human decision.
 Gate results use complete YES or NO responses. Skipped branches remain explicit, and joins wait for their incoming paths to settle.
 A box with a time limit starts its clock when the first worker process inside it starts. The deadline also reaches the runtime process as its timeout, so it remains effective after a host crash.
+The prompt of a step names each time limit around it and the time left. The reconcile loop sends the worker a message when half of the budget is left, and again at a quarter.
 Cancellation retains files and output and records any worker whose stop remains unconfirmed.
 
 The desktop installs `~/.local/bin/trellis` from the active host release.
@@ -275,6 +276,7 @@ An agent restart preserves the workspace and resumes a compatible provider conve
 
 Every preset runs its command through a local PTY. Claude hooks identify ready, active, and completed turns.
 `launchCommand.ts` sends the saved run instruction without added assignment context.
+For a ticket assignment, `reserve.ts` saves the text from `assignmentInstruction` in `services/brief.ts`: the ticket, the branch of the worktree, and the `trellis` commands.
 The launch supplies the server URL, actor, run identifier, and attempt token through environment variables.
 Each new agent in a configured repository uses a Git worktree under its run directory. This includes sessions, ticket agents, and flow agents.
 API run states come from inspected runtime processes. The database records assignment closure in `closed_at`.
@@ -310,6 +312,8 @@ A compatible desktop restart preserves a session agent. After a protocol change,
 `sessions.delete` confirms process exit and removes the directory before it deletes the row. The run retains its output as history.
 Project Sessions lists session, ticket, and flow runs. A ticket row uses its identifier, and its terminal header uses the ticket title.
 The ticket Agent tab and session pages share the terminal and process controls.
+The terminal header of a ticket run opens the ticket page in a sheet over the session. The sheet renders the same page as `/t/<identifier>`.
+A pull request in that sheet opens its review in a second, wider sheet. Escape and an outside click close only the top sheet.
 
 ### Harness accounts
 
@@ -449,7 +453,9 @@ its time left, and a finished step shows its duration from `startedAt` to
 human decision. A finished run can run again at the current flow version.
 A failed child fails its box with the same error, and the run stops there.
 When the runtime stops a worker at a box time limit, the step records the box
-and its limit. The list refreshes on `flows.changed`. Every flow agent reads
+and its limit. The step prompt names the limit and the time left, and the
+worker gets a message at half of the budget and again at a quarter. The
+list refreshes on `flows.changed`. Every flow agent reads
 the ticket, its description, and its linked pull requests right after the
 briefing, so no step spends its budget on finding the target.
 
@@ -522,7 +528,8 @@ Repository initialization runs outside the database transaction. An idempotent r
 After a host crash, an unconfirmed attempt requires process inspection before another launch.
 Unsent text and files stay available when the user changes sessions.
 Each session row opens its conversation. The conversation controls can stop, resume, or delete the session.
-Each project row shows the Trellis mark and project name. Tickets, Diffs, Sessions, and Settings appear below it.
+Each project row shows the Trellis mark and project name. Tickets, Diffs, and Sessions appear below it.
+The row menu of a project opens its Settings page.
 The Diffs page at `/p/<path>/diffs` lists the pull requests of the project: the ones linked to a ticket of the
 project or one of its sub-projects, and the ones kept for a review in a repository of the project or one of its
 ancestors. Its second source lists the open pull requests of the signed-in GitHub user in those repositories.

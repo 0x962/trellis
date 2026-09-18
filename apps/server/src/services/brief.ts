@@ -121,13 +121,65 @@ const protocol = (identifier: string) => [
 	"",
 	`- Start: trellis move ${identifier} in-progress`,
 	`- Ask or report: trellis comment ${identifier} --body "..."`,
-	`- Link your pull request: trellis pr add ${identifier} <url>`,
+	`- Link each pull request you open: trellis pr add ${identifier} <url>`,
 	`- Split the work: trellis sub ${identifier} -t "..."`,
+	"",
+	"Before you ask for a review, link your pull request. The ticket page and the reviewers see only a linked pull request.",
 	"",
 	`When your work is ready for review, run: trellis move ${identifier} agent-review`,
 ];
 
+const reviewComments = [
+	"## Review comments",
+	"",
+	"Review comments for a pull request live in Trellis, not on GitHub. GitHub comments are for people.",
+	"",
+	"- Read the open review comments before you act on review feedback: trellis review list <pr-url>",
+	'- Reply to a review comment: trellis review reply <thread-id> --body "..."',
+	"- Resolve a review comment you addressed: trellis review resolve <thread-id>",
+	'- Post a review comment: trellis review add <pr-url> --path <file> --line <n> --body "..."',
+	"",
+	"Never post your review comments on GitHub.",
+];
+
+const assignment = (identifier: string) => [
+	"## Assignment",
+	"",
+	"Trellis is the ticket tracker on this machine. It assigned this ticket to you. Your worktree is on the branch named above.",
+	`Before you start, read the ticket with its comments, its pull requests, and the project notes: trellis brief ${identifier}`,
+];
+
 const sections = (parts: string[][]) => parts.filter((part) => part.length > 0).map((part) => part.join("\n"));
+
+// This text is the first prompt of an agent that trellis assigns to a ticket.
+// `reserve` in `agentRuns/reserve.ts` builds this text once and saves it in
+// `agent_runs.instruction`. A run keeps that saved text for its whole life.
+// The comments, the pull requests, and the project notes change while the
+// agent works, so a saved copy of them goes out of date. The lines from
+// `assignment` tell the agent to read their current state with
+// `trellis brief`. `branch` is the branch of the Git worktree that
+// `nativeWorkspace` creates for the run.
+export const assignmentInstruction = (input: {
+	identifier: string;
+	title: string;
+	description: string;
+	projectPath: string;
+	branch: string;
+	publicUrl: string;
+}) =>
+	sections([
+		[
+			`# ${input.identifier}: ${input.title}`,
+			"",
+			`- Project: ${input.projectPath}`,
+			`- Branch: ${input.branch}`,
+			`- URL: ${input.publicUrl}/t/${input.identifier}`,
+		],
+		input.description.trim() === "" ? [] : ["## Description", "", input.description.trimEnd()],
+		assignment(input.identifier),
+		protocol(input.identifier),
+		reviewComments,
+	]).join("\n\n");
 
 export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<Brief> => {
 	const input = BriefGetInputSchema.parse(rawInput);
@@ -150,6 +202,7 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<B
 		comments(await lastComments(tx, row.id)),
 		notesLines(await activeNotes(ctx, tx, { projectId: row.projectId, audience: "worker" }), ticket.project.path),
 		protocol(ticket.identifier),
+		reviewComments,
 	]).join("\n\n");
 	return { markdown: `${markdown}\n`, generatedAt: new Date().toISOString() };
 };

@@ -7,6 +7,7 @@ import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
 import { failToast } from "../../../../../lib/failToast";
 import { lastListHref } from "../../../../../lib/lastList";
+import { usePageSheet } from "../../../../shell/PageSheet";
 import { branchName, titleSlug } from "../../../PropertiesRail/utils/branchName";
 import { openPicker } from "../../../stores/pickerStore";
 import { useCopyBrief } from "../BriefCopy";
@@ -22,6 +23,7 @@ export const ticketLink = (identifier: string) => `${window.location.origin}/t/$
 export function MoreMenu({ ticket }: MoreMenuProps) {
 	const { client, queryClient } = useApp();
 	const router = useRouter();
+	const sheet = usePageSheet();
 	const copyBrief = useCopyBrief(ticket);
 	const [confirming, setConfirming] = useState(false);
 	const branch = branchName(ticket.identifier, titleSlug(ticket.title));
@@ -31,7 +33,10 @@ export function MoreMenu({ ticket }: MoreMenuProps) {
 			await client.tickets.delete({ ticket: ticket.identifier });
 			setConfirming(false);
 			await queryClient.invalidateQueries();
-			void router.navigate({ href: lastListHref() });
+			// A ticket in a `PageSheet` closes the sheet, and the page under it
+			// stays. A ticket on its route returns to the last list.
+			if (sheet !== null) sheet.close();
+			else void router.navigate({ href: lastListHref() });
 		} catch (error) {
 			failToast(`${ticket.identifier} is not deleted.`, error, () => void remove());
 		}

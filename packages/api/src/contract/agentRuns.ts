@@ -11,6 +11,7 @@ import {
 	AgentWorkspaceLineStatSchema,
 	AgentWorkspaceLineStatsInputSchema,
 	AgentWorkspaceSchema,
+	AgentWorkspaceSummarySchema,
 	TicketMetricsSchema,
 } from "../schemas/agentRun.ts";
 import { UlidSchema } from "../schemas/primitives.ts";
@@ -77,6 +78,14 @@ export const agentRuns = {
 		.route({ method: "GET", path: "/agent-runs/workspaces/line-stats", summary: "Read workspace line changes" })
 		.input(AgentWorkspaceLineStatsInputSchema)
 		.output(z.array(AgentWorkspaceLineStatSchema)),
+	workspaceSummary: base
+		.route({
+			method: "GET",
+			path: "/agent-runs/{runId}/workspace/summary",
+			summary: "Read the directory, branch, and change counts of the run workspace",
+		})
+		.input(AgentWorkspaceInputSchema)
+		.output(AgentWorkspaceSummarySchema),
 	workspace: base
 		.route({ method: "GET", path: "/agent-runs/{runId}/workspace", summary: "Inspect the agent workspace" })
 		.input(AgentWorkspaceInputSchema)

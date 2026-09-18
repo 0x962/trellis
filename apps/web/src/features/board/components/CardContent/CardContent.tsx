@@ -1,10 +1,15 @@
 import { Paperclip } from "@phosphor-icons/react";
 import type { TicketSummary } from "@trellis/api";
-import { PriorityIcon, ReviewStatusSummary, StatusIcon } from "@trellis/ui";
+import {
+	LineChanges,
+	type LineChangesValue,
+	lineChangesVisible,
+	PriorityIcon,
+	ReviewStatusSummary,
+	StatusIcon,
+} from "@trellis/ui";
 import { gap, ticketTrail } from "../../../../lib/ticketTrail";
 import { ActorAvatar } from "../../../agents/ActorAvatar";
-import { LineChanges, type LineChangesValue } from "./components/LineChanges";
-import { lineChangesVisible } from "./components/LineChanges/lineChangesVisible";
 
 export type CardContentProps = {
 	ticket: TicketSummary;

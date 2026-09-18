@@ -1,7 +1,9 @@
 import { SidebarSimple } from "@phosphor-icons/react";
 import { IconButton, Tooltip, useMediaQuery } from "@trellis/ui";
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
+import { usePageSheet } from "../PageSheet";
 
 export type TopbarProps = {
 	// The heading and its marks.
@@ -13,6 +15,29 @@ export type TopbarProps = {
 export function Topbar({ children, actions }: TopbarProps) {
 	const phone = useMediaQuery("(max-width: 767px)");
 	const collapsed = useUiStore((state) => state.sidebarCollapsed);
+	const sheet = usePageSheet();
+	const heading = (
+		<div className="flex min-w-0 flex-1 items-center gap-2 max-md:[&_h1]:truncate max-md:[&_h1]:text-md max-md:[&_h1]:font-semibold">
+			{children}
+		</div>
+	);
+	const controls = actions && <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>;
+	// A page in a `PageSheet` draws no bar of its own. The heading and the
+	// controls render into the header of the sheet, before the buttons that
+	// open the full page and close the sheet. The sidebar buttons stay out,
+	// because the sidebar sits under the sheet.
+	if (sheet !== null) {
+		return (
+			sheet.topbar &&
+			createPortal(
+				<>
+					{heading}
+					{controls}
+				</>,
+				sheet.topbar,
+			)
+		);
+	}
 	return (
 		<header
 			data-page-topbar=""
@@ -36,10 +61,8 @@ export function Topbar({ children, actions }: TopbarProps) {
 					onClick={() => uiActions.setMobileSidebarOpen(true)}
 				/>
 			) : null}
-			<div className="flex min-w-0 flex-1 items-center gap-2 max-md:[&_h1]:truncate max-md:[&_h1]:text-md max-md:[&_h1]:font-semibold">
-				{children}
-			</div>
-			{actions && <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>}
+			{heading}
+			{controls}
 		</header>
 	);
 }

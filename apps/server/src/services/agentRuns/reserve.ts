@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { HarnessSchema, supportsModel } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import { runBranch } from "../../agents/launchCommand/branch.ts";
 import { type ServiceCtx as CoreCtx, requireActor } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
@@ -9,6 +10,7 @@ import { fail, invalidInput } from "../../errors.ts";
 import { upsert } from "../actors.ts";
 import { reserveAttempt } from "../assignments/attempts.ts";
 import { recordRequest, replayRequest } from "../assignments/requests.ts";
+import { assignmentInstruction } from "../brief.ts";
 import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive, pathOf, resolveMutableProject, resolveTicket } from "../refs.ts";
@@ -83,14 +85,25 @@ export const reserve = async (
 		config = { ...config, harness: { ...config.harness, model: input.model, effort: undefined } };
 	}
 	const sessionId = config.harness.preset === "custom" ? randomUUID() : null;
+	// `nativeWorkspace` creates the Git worktree of the run on the branch that
+	// `runBranch` builds from the run id. The instruction of a ticket
+	// assignment names that branch, so the id exists before the INSERT.
+	const id = ulid();
 	const instruction =
 		options?.session?.instruction ??
 		options?.flow?.instruction ??
-		(ticket!.description ? `${ticket!.title}\n\n${ticket!.description}` : ticket!.title);
+		assignmentInstruction({
+			identifier: ticket!.identifier,
+			title: ticket!.title,
+			description: ticket!.description,
+			projectPath,
+			branch: runBranch({ id, kind, ticketIdentifier: ticket!.identifier }),
+			publicUrl: ctx.publicUrl,
+		});
 	const [run] = await rows<StoredRun>(
 		tx,
 		sql`INSERT INTO agent_runs (id, name, harness, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, runtime, closed_at, session_id, created_at, updated_at)
-		VALUES (${ulid()}, ${name}, ${JSON.stringify(config.harness)}::jsonb, ${kind}, ${instruction}, ${project.id}, ${projectPath}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'native', NULL, ${sessionId}, ${ctx.now}, ${ctx.now})
+		VALUES (${id}, ${name}, ${JSON.stringify(config.harness)}::jsonb, ${kind}, ${instruction}, ${project.id}, ${projectPath}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'native', NULL, ${sessionId}, ${ctx.now}, ${ctx.now})
 		ON CONFLICT DO NOTHING RETURNING ${columns}`,
 	);
 	if (run === undefined) throw fail("DUPLICATE", { field: "active agent" });

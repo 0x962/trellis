@@ -1,4 +1,5 @@
 import type { FlowDoc } from "@trellis/api";
+import { boxClocks } from "./boxClocks.ts";
 import type { FlowExecution, FlowStep } from "./types.ts";
 
 const processTimeout = /^Process timed out after \d+ ms$/;
@@ -9,15 +10,8 @@ const processTimeout = /^Process timed out after \d+ ms$/;
 // reports the milliseconds, so the step records the box and its limit.
 export function describeTaskFailure(doc: FlowDoc, state: FlowExecution, step: FlowStep, error: string): string {
 	if (!processTimeout.test(error)) return error;
-	let earliest: FlowStep | null = null;
-	let parentKey = step.parentKey;
-	while (parentKey !== null) {
-		const parent = state.steps.find((candidate) => candidate.key === parentKey)!;
-		if (parent.deadlineAt !== null && (earliest === null || parent.deadlineAt < earliest.deadlineAt!))
-			earliest = parent;
-		parentKey = parent.parentKey;
-	}
-	if (earliest === null) return error;
-	const node = doc.nodes.find((candidate) => candidate.id === earliest.nodeId)!;
-	return `Group ${node.title} reached its time limit (${node.minutes} min)`;
+	const running = boxClocks(doc, state, step).filter((clock) => clock.deadlineAt !== null);
+	if (running.length === 0) return error;
+	const { box } = running.reduce((first, next) => (next.deadlineAt! < first.deadlineAt! ? next : first));
+	return `Group ${box.title} reached its time limit (${box.minutes} min)`;
 }
