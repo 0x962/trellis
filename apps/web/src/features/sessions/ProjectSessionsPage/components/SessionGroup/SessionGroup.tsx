@@ -67,6 +67,7 @@ export function SessionGroup({
 					{visible.map((run) => {
 						const historical = isHistoricalSession(run);
 						const state = sessionStateLabel(run);
+						const needsAttention = run.state === "failed" || run.state === "interrupted";
 						return (
 							<li key={run.id}>
 								<button
@@ -92,11 +93,11 @@ export function SessionGroup({
 											<span className="min-w-0 flex-1 truncate font-medium tabular">
 												{run.ticketIdentifier ?? run.name}
 											</span>
-											{!historical && <span className="shrink-0 text-xs font-normal text-fg-muted">{state}</span>}
+											{needsAttention && <span className="shrink-0 text-xs font-normal text-fg-muted">{state}</span>}
 										</span>
 										<span className="block truncate text-xs text-fg-muted tabular">
 											{historical
-												? `${dateFormat.format(new Date(run.createdAt))} · ${state}`
+												? dateFormat.format(new Date(run.createdAt))
 												: (run.ticketTitle ??
 													(run.kind === "manager" ? "Project copilot" : dateFormat.format(new Date(run.createdAt))))}
 										</span>
