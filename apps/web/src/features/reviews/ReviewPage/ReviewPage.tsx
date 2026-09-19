@@ -258,7 +258,9 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 								}}
 							/>
 						)}
-						{tab === "checks" && <ReviewChecks revision={displayRevision} />}
+						{tab === "checks" && (displayRevision !== null || !refresh.isError) && (
+							<ReviewChecks revision={displayRevision} pr={pr} />
+						)}
 						{tab === "live" && displayRevision && (
 							<ReviewLive pr={pr} revision={displayRevision} loading={status.isPending} onRefresh={refreshAll} />
 						)}

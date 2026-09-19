@@ -24,6 +24,7 @@ export const phosphorSpecialWeights: Record<string, readonly string[]> = {
 	Robot: ["bold"],
 	Star: ["fill"],
 	Stop: ["fill"],
+	XCircle: ["fill"],
 };
 
 const phosphorWeightBlock = /\n  \[\n    "(bold|duotone|fill|light|regular|thin)",[\s\S]*?\n  \],?/g;
