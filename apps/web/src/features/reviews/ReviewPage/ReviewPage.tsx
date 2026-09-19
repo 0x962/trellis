@@ -36,6 +36,7 @@ const liveStatusTone = (label: ReturnType<typeof liveBranchState>["label"]) => {
 	return "neutral" as const;
 };
 
+const noThreads: ReviewThread[] = [];
 export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent?: ReactNode; syncHash?: boolean }) {
 	const { client, orpc, queryClient } = useApp();
 	const { resolved: theme } = useTheme();
@@ -116,11 +117,16 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		},
 		[client, pr, revision],
 	);
+	// The diff shows the threads of the revision on screen, plus the threads
+	// that name no revision: the CLI wrote those before the PR had one, and
+	// their lines refer to the diff of that time. The Discussion tab lists
+	// every thread and marks the ones from another revision.
+	const everyThread = threads.data?.items ?? noThreads;
 	const allThreads = useMemo(
-		() => (threads.data?.items ?? []).filter((thread) => thread.revisionId === revision?.id),
-		[threads.data?.items, revision?.id],
+		() => everyThread.filter((thread) => thread.revisionId === null || thread.revisionId === revision?.id),
+		[everyThread, revision?.id],
 	);
-	const threadsById = useMemo(() => new Map(allThreads.map((thread) => [thread.id, thread])), [allThreads]);
+	const threadsById = useMemo(() => new Map(everyThread.map((thread) => [thread.id, thread])), [everyThread]);
 	const openCounts = useMemo(() => {
 		const counts: Record<string, number> = {};
 		for (const thread of allThreads) {
@@ -302,7 +308,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						)}
 						{tab === "discussion" && (
 							<ReviewDiscussion
-								threads={allThreads}
+								threads={everyThread}
 								revision={displayRevision}
 								renderThread={renderThread}
 								onJump={(thread) => {
