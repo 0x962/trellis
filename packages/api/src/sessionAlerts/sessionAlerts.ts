@@ -12,6 +12,7 @@ export class SessionAlerts {
 	private readonly seen = new Map<string, number>();
 	update(session: AgentActivity, notify: boolean): SessionAlert[] {
 		const run = session.run;
+		if (run.kind === "flow") return [];
 		const attention = run.observation?.attention;
 		if (run.terminalId === null) return [];
 		const attempt = `${session.run.id}:${run.terminalId}`;

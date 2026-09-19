@@ -11,7 +11,7 @@ export const activityRows = (tx: Tx) =>
 		tx,
 		sql`
 		SELECT ${columns}, (SELECT id FROM sessions WHERE run_id=agent_runs.id) AS "activitySessionId"
-		FROM agent_runs WHERE runtime='native' AND terminal_id IS NOT NULL AND
+		FROM agent_runs WHERE kind <> 'flow' AND runtime='native' AND terminal_id IS NOT NULL AND
 		(closed_at IS NULL OR id IN (SELECT run_id FROM sessions)) AND
 		(ticket_identifier IS NOT NULL OR id IN (SELECT run_id FROM sessions))`,
 	);

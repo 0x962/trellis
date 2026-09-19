@@ -280,7 +280,7 @@ test("completion acknowledgement is monotonic and rejects a replaced attempt", a
 	});
 });
 
-test("alert activity includes ticket and flow agents without a Sessions row", async () => {
+test("alert activity includes ticket agents and sessions but excludes flow agents", async () => {
 	const sessions = await db.transaction(listSessions);
 	const entries = await db.transaction(activityRows);
 	const ticketRun = entries.find((run) => run.ticketId === ticketId)!;
@@ -289,7 +289,9 @@ test("alert activity includes ticket and flow agents without a Sessions row", as
 	const standalone = sessions.find((entry) => entry.name === "scratch")!;
 	expect(entries.find((run) => run.id === standalone.runId)!.activitySessionId).toBe(standalone.id);
 	await db.execute(sql`UPDATE agent_runs SET kind='flow' WHERE id=${ticketRun.id}`);
-	expect((await db.transaction(activityRows)).find((run) => run.id === ticketRun.id)!.kind).toBe("flow");
+	expect((await db.transaction(activityRows)).some((run) => run.id === ticketRun.id)).toBe(false);
+	expect((await db.transaction((tx) => getRun(tx, ticketRun.id))).kind).toBe("flow");
+	await db.execute(sql`UPDATE agent_runs SET kind='agent' WHERE id=${ticketRun.id}`);
 	await db.execute(sql`UPDATE agent_runs SET closed_at=${ctx.now()} WHERE id=${ticketRun.id}`);
 	expect((await db.transaction(activityRows)).some((run) => run.id === ticketRun.id)).toBe(false);
 });

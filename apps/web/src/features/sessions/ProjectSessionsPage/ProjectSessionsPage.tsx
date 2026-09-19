@@ -32,7 +32,8 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	});
 	const sessions = useQuery(orpc.sessions.list.queryOptions({ input: {} }));
 	const items = (runs.data ?? []).filter(
-		(run) => run.kind !== "session" || sessions.data?.some((session) => session.runId === run.id),
+		(run) =>
+			run.kind !== "flow" && (run.kind !== "session" || sessions.data?.some((session) => session.runId === run.id)),
 	);
 	const groups = sessionGroups(items, { search: "", history: false });
 	const selected = hash ? items.find((run) => run.id === hash) : (groups.sessions[0] ?? groups.ticketed[0] ?? items[0]);

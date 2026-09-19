@@ -51,7 +51,7 @@ A Muse answer identifies the attempt and request. The bridge rejects a duplicate
 
 1. Map provider events to `HarnessEvent` values.
 2. Record the events in the runtime journal and derive `HarnessAttention`.
-3. Observe session, ticket, and flow terminals through `startSessionMonitor`.
+3. Observe standalone sessions and ticket agents through `startSessionMonitor`.
 4. Publish `agent-runs.status` when status or attention changes.
 5. Derive the same display state in the sidebar, project session list, and conversation header.
 6. Deliver eligible alerts through the desktop process or the elected browser tab.
@@ -62,7 +62,8 @@ The runtime protocol version is 11.
 
 ## Alert behavior
 
-Questions, completed or interrupted turns, and provider failures can produce an alert.
+Questions, completed or interrupted turns, and provider failures from standalone sessions and ticket agents can produce an alert.
+The Sessions page lists standalone sessions and ticket agents. Flow agents remain available in their flow views.
 Process attachment, process exit, prompts, and intermediate output stay silent.
 Initial snapshots seed alert history without sound or notifications.
 The alert history rejects duplicate and older sequences within each attempt.

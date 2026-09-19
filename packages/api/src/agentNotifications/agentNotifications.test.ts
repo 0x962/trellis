@@ -112,16 +112,29 @@ test("startup, prompt, output, and process exit stay silent; requests and provid
 	expect(f.shown.map((alert) => alert.kind)).toEqual(["question", "question", "failed"]);
 });
 
-test("session and flow notifications point to their own terminals", async () => {
+test("flow completions, input requests, and failures produce no sound or banner", async () => {
 	const f = fixture();
 	f.value.run.kind = "flow";
 	await f.finish(2);
-	expect(f.shown[0]!.path).toBe("/t/OP-32#attempt-attempt");
+	const attention = f.value.run.observation!.attention!;
+	attention.sequence = 3;
+	attention.requests = [{ id: "question", kind: "question", title: "Choose", blocking: true, sequence: 3, at }];
+	await f.notifications.update(f.value, true);
+	attention.sequence = 4;
+	attention.requests = [];
+	attention.failure = { sequence: 4, at };
+	await f.notifications.update(f.value, true);
+	expect(f.played).toEqual([]);
+	expect(f.shown).toEqual([]);
+});
+
+test("standalone session notifications point to their own terminals", async () => {
+	const f = fixture();
 	f.value.sessionId = "standalone";
 	f.value.run.kind = "session";
 	f.value.run.ticketIdentifier = null;
 	await f.finish(4);
-	expect(f.shown[1]!.path).toBe("/sessions/standalone");
+	expect(f.shown[0]!.path).toBe("/sessions/standalone");
 });
 
 test("focus during the settings read suppresses a pending alert", async () => {
