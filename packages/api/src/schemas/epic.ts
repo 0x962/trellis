@@ -2,7 +2,7 @@ import { z } from "zod";
 import { EpicRefStringSchema, ProjectRefStringSchema } from "../refs.ts";
 import { ActorRefSchema } from "./actor.ts";
 import { EpicCountsSchema, EpicStateSchema } from "./epicCounts.ts";
-import { MilestoneSummarySchema } from "./milestone.ts";
+import { MilestoneLinkSchema, MilestoneSummarySchema } from "./milestone.ts";
 import { booleanString, IsoDateTimeSchema, slugPattern, UlidSchema } from "./primitives.ts";
 import { TicketSummarySchema } from "./ticket.ts";
 
@@ -35,6 +35,9 @@ export const EpicSlugSchema = z
 	.regex(slugPattern, "Expected a slug: lower-case letters, digits, and single dashes.");
 
 // One row of the epic list. `actor` is the last writer of the record.
+// `currentMilestone` is the first milestone in position order whose state is
+// open, and null when the epic has no open milestone. `currentMilestoneIndex`
+// is its place among the milestones of the epic, from 1, and null with it.
 export const EpicSummarySchema = z.object({
 	id: UlidSchema,
 	projectId: UlidSchema,
@@ -45,6 +48,9 @@ export const EpicSummarySchema = z.object({
 	description: z.string(),
 	counts: EpicCountsSchema,
 	state: EpicStateSchema,
+	currentMilestone: MilestoneLinkSchema.nullable(),
+	currentMilestoneIndex: z.number().int().min(1).nullable(),
+	milestoneCount: z.number().int().min(0),
 	actor: ActorRefSchema,
 	createdAt: IsoDateTimeSchema,
 	updatedAt: IsoDateTimeSchema,

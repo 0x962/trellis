@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTable } from "@tanstack/react-table";
-import type { StatusSummary, TicketSummary } from "@trellis/api";
-import { ConfirmDialog } from "@trellis/ui";
+import type { TicketSummary } from "@trellis/api";
 import { type MouseEvent, type ReactNode, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useScopeStatuses } from "../../../hooks/useScopeStatuses";
@@ -13,22 +12,25 @@ import { composerActions } from "../../composer/composerStore";
 import { type View, viewOf } from "../../filters/grammar";
 import { useScopeLabels } from "../../filters/hooks/useScopeLabels";
 import { hasFilters } from "../../filters/labels";
-import { BulkBar } from "../BulkBar";
+import { BulkBar, type BulkPicker } from "../BulkBar";
 import { buildColumns, type ColumnId, tableFeatureSet } from "../columns";
 import { useApplyChange } from "../hooks/useApplyChange";
-import { useCollapsedGroups } from "../hooks/useCollapsedGroups";
+import { useBulkWrite } from "../hooks/useBulkWrite";
 import { useCopyTickets } from "../hooks/useCopyTickets";
 import { useRowSelection } from "../hooks/useRowSelection";
+import { useTableCollapse } from "../hooks/useTableCollapse";
 import { useTableData } from "../hooks/useTableData";
-import { closedCategories, closedKey, useTableGroups } from "../hooks/useTableGroups";
+import { closedCategories, type TableGroupsOptions, useTableGroups } from "../hooks/useTableGroups";
 import { type CopyKind, useTableHotkeys } from "../hooks/useTableHotkeys";
 import { useTicketMutations } from "../hooks/useTicketMutations";
 import type { EditField, RowChange } from "../Row";
 import { TableEmpty } from "../TableEmpty";
 import { TableFooter } from "../TableFooter";
 import { autoHide, columnVisibility } from "../utils/columnVisibility";
-import { flattenGroups } from "../utils/flattenGroups";
-import { sharedLabelIds } from "../utils/sharedLabelIds";
+import { epicState } from "../utils/epicState";
+import { flattenGroups, type TableGroup } from "../utils/flattenGroups";
+import { labelStates } from "../utils/labelStates";
+import { visibleRows } from "../utils/visibleRows";
 import { CapBanner } from "./components/CapBanner";
 import { TableBody } from "./components/TableBody";
 import { TableError } from "./components/TableError";
@@ -41,6 +43,8 @@ export type TicketTableProps = {
 	search: Partial<View>;
 	onOpenPage: (identifier: string) => void;
 	emptyState?: ReactNode;
+	// Orders the rows of each group ahead of the view sort. Memoize it: a new identity regroups the rows.
+	rowRank?: TableGroupsOptions["rowRank"];
 };
 
 export type Editing = { id: string; field: EditField } | null;
@@ -51,7 +55,7 @@ const focusFilter = () => document.querySelector<HTMLElement>("[data-filter-bar]
 // The ticket table of a list route: the active rows grouped client-side,
 // the closed groups on demand, the roving focus, the id-keyed selection,
 // the inline pickers, and the bulk bar.
-export function TicketTable({ project, routeKey, search, onOpenPage, emptyState }: TicketTableProps) {
+export function TicketTable({ project, routeKey, search, onOpenPage, emptyState, rowRank }: TicketTableProps) {
 	const { orpc } = useApp();
 	const view = viewOf(search);
 	const storedDensity = useUiStore((state) => state.density);
@@ -60,8 +64,7 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 	const pendingFocus = useRef<string | null>(null);
 	const [focusState, setFocusState] = useState<string | null>(null);
 	const [editing, setEditing] = useState<Editing>(null);
-	const [bulkLabels, setBulkLabels] = useState(false);
-	const [pendingDelete, setPendingDelete] = useState<string[] | null>(null);
+	const [bulkPicker, setBulkPicker] = useState<BulkPicker | null>(null);
 
 	const projectQuery = useQuery({
 		...orpc.projects.get.queryOptions({ input: { project: project ?? "" } }),
@@ -72,25 +75,27 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 
 	const statuses = useScopeStatuses(project);
 	const labelGroups = useScopeLabels(project).groups;
-	const closedKeys = useMemo(
-		() => closedCategories.map((category) => closedKey(statuses, category)).filter((key) => key !== undefined),
-		[statuses],
-	);
-	const collapsed = useCollapsedGroups(routeKey, closedKeys);
-	const expanded = closedCategories.filter((category) => {
-		const key = closedKey(statuses, category);
-		return key !== undefined && !collapsed.isCollapsed(key);
-	});
+	const { collapsed, expanded } = useTableCollapse(routeKey, statuses, view);
 	const data = useTableData({ project, view, expanded });
-	const groups = useTableGroups({ data, view, project, isCollapsed: collapsed.isCollapsed });
+	const { groups, loading: groupsLoading } = useTableGroups({
+		data,
+		view,
+		project,
+		isCollapsed: collapsed.isCollapsed,
+		rowRank,
+	});
 	const items = useMemo(() => flattenGroups(groups), [groups]);
-	const tickets = useMemo(() => groups.flatMap((group) => group.rows), [groups]);
+	const loaded = useMemo(() => groups.flatMap((group) => group.rows), [groups]);
+	// The selection, the focus, and every key run over the rows a person can
+	// see. A row inside a collapsed group is loaded but not visible, so it
+	// stays out of all three.
+	const tickets = useMemo(() => visibleRows(items), [items]);
 	const ids = useMemo(() => tickets.map((ticket) => ticket.id), [tickets]);
 	const byId = useMemo(() => new Map(tickets.map((ticket) => [ticket.id, ticket])), [tickets]);
 	const stored = useUiStore((state) => state.columnVisibility[routeKey]);
 	const visibility = useMemo(
-		() => autoHide(columnVisibility(stored, showProject), { group: view.group, rows: tickets }),
-		[stored, showProject, view.group, tickets],
+		() => autoHide(columnVisibility(stored, showProject), { group: view.group, rows: loaded }),
+		[stored, showProject, view.group, loaded],
 	);
 	const table = useTable({
 		features: tableFeatureSet,
@@ -107,6 +112,15 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 	const columnIds = table.getVisibleLeafColumns().map((column) => column.id as ColumnId);
 	const selection = useRowSelection({ ids });
 	const mutations = useTicketMutations();
+	// An empty selection leaves no control for a bulk picker to hang on, so
+	// the picker closes with it.
+	const clearSelection = useStableCallback(() => {
+		setBulkPicker(null);
+		selection.clear();
+	});
+	// A delete clears the selection, because the deleted ids name nothing.
+	// Every other bulk write keeps it.
+	const bulk = useBulkWrite({ onDeleted: clearSelection });
 
 	const focusedId = (focusState !== null && byId.has(focusState) ? focusState : undefined) ?? ids[0] ?? null;
 	const setRowFocus = useStableCallback((id: string) => flushSync(() => setFocusState(id)));
@@ -119,7 +133,7 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 		if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
 	});
 
-	const applyChange = useApplyChange(mutations, projects, labelGroups);
+	const applyChange = useApplyChange(mutations, bulk, projects, labelGroups);
 
 	const selectedTickets = () => selection.selected.map((id) => byId.get(id)!);
 	const projectRootIds = new Map(projects.map((project) => [project.id, project.rootId]));
@@ -131,8 +145,19 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 		),
 	];
 
+	// How the selected tickets hold each label: `all` draws a check, `some`
+	// draws a minus. A pick on a check removes the label everywhere, and a
+	// pick on a minus adds it everywhere.
+	const labels = labelStates(selectedTickets());
+	// The epic and the milestone each picker marks as current. The pickers
+	// mark no row when the selection disagrees.
+	const epics = epicState(selectedTickets());
+
+	// A change on a selected row writes to the whole selection. A change on
+	// a row the selection does not hold writes to that row alone.
 	const onRowChange = useStableCallback((ticket: TicketSummary, change: RowChange) => {
-		void applyChange(selection.isSelected(ticket.id) ? selectedTickets() : [ticket], change);
+		if (selection.isSelected(ticket.id)) void applyChange(selectedTickets(), change, "selection");
+		else void applyChange([ticket], change, "row");
 	});
 
 	const openTicket = useStableCallback((id: string) => {
@@ -144,13 +169,8 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 	const copy = useStableCallback((id: string, kind: CopyKind) => void copier.copy(byId.get(id)!, kind));
 	const copyIds = () => void copier.copyIds(selectedTickets());
 
-	const confirmDelete = async () => {
-		const targets = (pendingDelete ?? []).map((id) => byId.get(id)).filter((ticket) => ticket !== undefined);
-		setPendingDelete(null);
-		if (targets.length === 1) await mutations.remove(targets[0]!);
-		else if (targets.length > 1) await mutations.removeMany(targets);
-		selection.clear();
-	};
+	const requestDelete = (targets: readonly string[]) =>
+		void bulk.remove(targets.map((id) => byId.get(id)).filter((ticket) => ticket !== undefined));
 
 	const onRowClick = useStableCallback((id: string, event: MouseEvent) => {
 		if ((event.target as HTMLElement).closest("button, a, [role=checkbox]") !== null) return;
@@ -163,17 +183,23 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 		setEditing(field === null ? null : { id, field }),
 	);
 
-	// `l` sets the labels of the whole selection when one exists, and the
-	// labels of the focused row when none does.
-	const openLabels = useStableCallback((id: string) => {
-		if (selection.count > 0 && project !== undefined) setBulkLabels(true);
-		else setEditing({ id, field: "labels" });
+	// A field key writes to the whole selection when one exists, and to the
+	// focused row when none does. The bulk bar owns the labels and the epic
+	// of a route with no project, so those two keys fall back to the row.
+	const barHasField = (field: EditField) => (field === "labels" || field === "epic" ? project !== undefined : true);
+	const openField = useStableCallback((id: string, field: EditField) => {
+		if (selection.count > 0 && barHasField(field)) setBulkPicker(field);
+		else setEditing({ id, field });
 	});
 
-	const openNew = (status?: StatusSummary) =>
+	// A table of one epic creates the ticket inside that epic, and inside the
+	// milestone of the group whose header opened the composer.
+	const openNew = (group?: TableGroup) =>
 		composerActions.open({
-			...(status === undefined ? {} : { status: status.slug }),
+			...(group?.status === undefined ? {} : { status: group.status.slug }),
 			...(project === undefined ? {} : { project }),
+			epic: group?.epicRef ?? (view.epic === "none" ? undefined : view.epic),
+			milestone: group?.milestone?.ref,
 		});
 
 	useTableHotkeys({
@@ -185,7 +211,7 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 		selection,
 		editing,
 		setEditing,
-		openLabels,
+		openField,
 		groupKeys: groups.filter((group) => group.label !== null).map((group) => group.key),
 		toggleGroup: collapsed.toggle,
 		openTicket,
@@ -193,12 +219,12 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 		openComposer: () => openNew(),
 		copy,
 		copySelection: copyIds,
-		requestDelete: (targets) => setPendingDelete([...targets]),
+		requestDelete,
 	});
-	useCommandContext(
-		focusState === null ? null : (byId.get(focusState)?.identifier ?? null),
-		selection.selected.map((id) => byId.get(id)!.identifier),
-	);
+	useCommandContext(focusState === null ? null : (byId.get(focusState)?.identifier ?? null), selectedTickets(), {
+		selectAll: selection.selectAll,
+		clear: selection.clear,
+	});
 
 	if (data.error !== null) return <TableError error={data.error} onRetry={data.retry} />;
 	if (data.total === 0 && project !== undefined && projectQuery.data?.parentId === null) {
@@ -207,20 +233,17 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 		);
 	}
 
-	const closedVisible = data.closed !== null && view.group === "status" && view.closed !== "hide";
+	const closedVisible =
+		data.closed !== null && ((view.group === "status" && view.closed !== "hide") || data.inlineClosed !== null);
 	const closedTotal = closedVisible
 		? closedCategories.reduce((sum, category) => sum + data.closed![category].count, 0)
 		: 0;
 	const loadedTotal = data.rows.length + closedTotal;
-	// Under a grouping other than status the rows are the open tickets only,
-	// and the footer names the Done and Canceled tickets it leaves out. The
+	// Under a grouping that holds no closed rows the rows are the open tickets
+	// only, and the footer names the Done and Canceled tickets it leaves out. The
 	// server total counts them, so the open count subtracts them.
 	const hidden = data.closed !== null && !closedVisible ? data.closed.done.count + data.closed.canceled.count : 0;
 	const total = data.allActiveLoaded ? loadedTotal : (data.total ?? loadedTotal) - hidden;
-	const count = pendingDelete?.length ?? 0;
-	const deleteTitle =
-		count === 1 ? `Delete ${byId.get(pendingDelete![0]!)?.identifier ?? "the ticket"}?` : `Delete ${count} tickets?`;
-
 	return (
 		<div ref={root} data-ticket-table="" className="relative flex min-h-0 flex-1 flex-col">
 			{data.capped && <CapBanner onNarrow={focusFilter} />}
@@ -231,7 +254,7 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 				project={project}
 				statuses={data.statuses}
 				projects={projects}
-				loading={data.loading}
+				loading={data.loading || groupsLoading}
 				rowCount={ids.length}
 				focusedId={focusedId}
 				pendingFocus={pendingFocus}
@@ -254,28 +277,23 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState 
 				projects={projects}
 				ticketRootIds={ticketRootIds}
 				project={project}
-				labelIds={sharedLabelIds(selectedTickets())}
-				labelsOpen={bulkLabels && selection.count > 0}
-				onLabelsOpenChange={setBulkLabels}
-				onLabel={(label, checked) => void applyChange(selectedTickets(), { label, checked })}
-				onStatus={(status) => void applyChange(selectedTickets(), { status })}
-				onPriority={(priority) => void applyChange(selectedTickets(), { priority })}
-				onProject={(ref) => void applyChange(selectedTickets(), { project: ref })}
-				onParent={(parent) => void applyChange(selectedTickets(), { parent })}
-				onEpic={(epic) => void applyChange(selectedTickets(), { epic })}
+				labelIds={labels.all}
+				mixedLabelIds={labels.some}
+				{...epics}
+				openPicker={selection.count > 0 ? bulkPicker : null}
+				onOpenPickerChange={setBulkPicker}
+				onLabel={(label, checked) => void applyChange(selectedTickets(), { label, checked }, "selection")}
+				onStatus={(status) => void applyChange(selectedTickets(), { status }, "selection")}
+				onPriority={(priority) => void applyChange(selectedTickets(), { priority }, "selection")}
+				onProject={(ref) => void applyChange(selectedTickets(), { project: ref }, "selection")}
+				onParent={(parent) => void applyChange(selectedTickets(), { parent }, "selection")}
+				onEpic={(epic) => void applyChange(selectedTickets(), { epic }, "selection")}
+				onMilestone={(picked) => void applyChange(selectedTickets(), { milestone: picked }, "selection")}
 				onCopyIds={copyIds}
-				onDelete={() => setPendingDelete(selection.selected)}
-				onClear={selection.clear}
+				onDelete={() => requestDelete(selection.selected)}
+				onClear={clearSelection}
 			/>
-			<ConfirmDialog
-				open={pendingDelete !== null}
-				title={deleteTitle}
-				description="trellis cannot restore a deleted ticket. Its sub-tickets stay and lose their parent."
-				confirmLabel="Delete"
-				danger
-				onConfirm={() => void confirmDelete()}
-				onCancel={() => setPendingDelete(null)}
-			/>
+			{bulk.confirmDialog}
 		</div>
 	);
 }

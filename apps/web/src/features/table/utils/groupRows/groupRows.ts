@@ -1,4 +1,5 @@
 import {
+	type MilestoneLink,
 	type Priority,
 	type Sort,
 	type StatusCategory,
@@ -14,13 +15,16 @@ export type GroupStatus = StatusSummary & { position?: number };
 
 export type RowGroup = {
 	// The URL-safe identity of the group: a status slug, a priority, a
-	// project ref, a parent identifier, an epic id, a PR state, or `all`.
+	// project ref, a parent identifier, an epic id, a milestone id, a PR
+	// state, or `all`.
 	key: string;
 	// The heading. Null when grouping is off.
 	label: string | null;
 	rows: TicketSummary[];
 	status?: StatusSummary;
 	category?: StatusCategory;
+	// The milestone of a milestone group. The No milestone group has none.
+	milestone?: MilestoneLink;
 };
 
 export type GroupOptions = {
@@ -29,7 +33,16 @@ export type GroupOptions = {
 	statuses: readonly GroupStatus[];
 	// The viewed project ref. A project label is the path under it.
 	project?: string;
+	// The milestone ids in display order: the milestones of one epic in
+	// position order, then the milestones of the next epic. The milestone
+	// grouping reads it. A milestone outside the list sorts after the list.
+	milestoneOrder?: readonly string[];
+	// The rank of a row inside its group. A lower rank comes first, and the
+	// view's sort orders the rows of one rank.
+	rowRank?: RowRank;
 };
+
+export type RowRank = (row: TicketSummary) => number;
 
 // The order the priorities sort in: the most important first.
 const priorityRank: Record<Priority, number> = { urgent: 0, high: 1, medium: 2, low: 3, none: 4 };
@@ -62,12 +75,21 @@ const closed = (row: TicketSummary) => (row.status.category === "done" || row.st
 // The rows in the view's order. The default sort, `-updatedAt`, puts the
 // open rows first, the priority second, and the newest update third. Every
 // other sort follows its field alone. A tie breaks by id descending, so two
-// calls agree.
-export const sortRows = (rows: readonly TicketSummary[], sort: Sort, statuses: readonly GroupStatus[]) => {
+// calls agree. `rowRank` orders the rows before all of that.
+export const sortRows = (
+	rows: readonly TicketSummary[],
+	sort: Sort,
+	statuses: readonly GroupStatus[],
+	rowRank?: RowRank,
+) => {
 	const desc = sort.startsWith("-");
 	const key = keyOf(sort.replace(/^-/, ""), statuses);
 	const byPriority = sort === "-updatedAt";
 	return [...rows].sort((a, b) => {
+		if (rowRank !== undefined) {
+			const ranked = rowRank(a) - rowRank(b);
+			if (ranked !== 0) return ranked;
+		}
 		if (byPriority) {
 			const open = closed(a) - closed(b);
 			if (open !== 0) return open;
@@ -80,7 +102,14 @@ export const sortRows = (rows: readonly TicketSummary[], sort: Sort, statuses: r
 	});
 };
 
-type Bucket = { key: string; label: string; rank: number | string; status?: StatusSummary; category?: StatusCategory };
+type Bucket = {
+	key: string;
+	label: string;
+	rank: number | string;
+	status?: StatusSummary;
+	category?: StatusCategory;
+	milestone?: MilestoneLink;
+};
 
 // U+FFFF is the highest single code unit, so this rank sorts after every
 // name that compareText can see.
@@ -117,6 +146,17 @@ const bucketOf = (row: TicketSummary, options: GroupOptions): Bucket => {
 			return row.epic === null
 				? { key: "none", label: "No epic", rank: lastRank }
 				: { key: row.epic.id, label: row.epic.name, rank: row.epic.name.toLowerCase() };
+		case "milestone": {
+			if (row.milestone === null) return { key: "none", label: "No milestone", rank: Number.POSITIVE_INFINITY };
+			const order = options.milestoneOrder ?? [];
+			const index = order.indexOf(row.milestone.id);
+			return {
+				key: row.milestone.id,
+				label: row.milestone.name,
+				rank: index === -1 ? order.length : index,
+				milestone: row.milestone,
+			};
+		}
 		case "pr": {
 			const state = row.pr?.state ?? "none";
 			return { key: state, label: prLabels[state]!, rank: prRank[state]! };
@@ -133,8 +173,8 @@ export const projectLabel = (path: string, viewed?: string) => {
 	return projectSlashPath(path.slice(viewed.length + 1));
 };
 
-// The groups of a row set in display order, each sorted by the view's
-// sort. Every row lands in exactly one group.
+// The groups of a row set in display order, each sorted by `rowRank` and
+// then by the view's sort. Every row lands in exactly one group.
 export const groupRows = (rows: readonly TicketSummary[], options: GroupOptions): RowGroup[] => {
 	const buckets = new Map<string, Bucket & { rows: TicketSummary[] }>();
 	for (const row of rows) {
@@ -145,11 +185,12 @@ export const groupRows = (rows: readonly TicketSummary[], options: GroupOptions)
 	}
 	return [...buckets.values()]
 		.sort((a, b) => compareKeys(a.rank, b.rank))
-		.map(({ key, label, status, category, rows: members }) => ({
+		.map(({ key, label, status, category, milestone, rows: members }) => ({
 			key,
 			label: options.group === "none" ? null : label,
-			rows: sortRows(members, options.sort, options.statuses),
+			rows: sortRows(members, options.sort, options.statuses, options.rowRank),
 			status,
 			category,
+			milestone,
 		}));
 };

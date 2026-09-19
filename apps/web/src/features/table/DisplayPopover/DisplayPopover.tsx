@@ -10,6 +10,10 @@ export type DisplayPopoverProps = {
 	routeKey: string;
 	// True when the scope holds sub-projects: the project column then shows.
 	showProject: boolean;
+	// True when the route fixes the epic, as the epic page does. Every row
+	// then holds the same epic, so the popover offers no Epic group and no
+	// Epic column.
+	epicFixed?: boolean;
 	search: Partial<View>;
 	onSearchChange: (next: Partial<View>) => void;
 	density: Density;
@@ -29,6 +33,7 @@ const groups = [
 	{ value: "project", label: "Project" },
 	{ value: "parent", label: "Parent" },
 	{ value: "epic", label: "Epic" },
+	{ value: "milestone", label: "Milestone" },
 	{ value: "pr", label: "PR" },
 ] as const;
 
@@ -51,6 +56,7 @@ const overline = "text-xs font-medium tracking-[0.04em] text-fg-faint uppercase"
 export function DisplayPopover({
 	routeKey,
 	showProject,
+	epicFixed = false,
 	search,
 	onSearchChange,
 	density,
@@ -59,7 +65,12 @@ export function DisplayPopover({
 }: DisplayPopoverProps) {
 	const stored = useUiStore((state) => state.columnVisibility[routeKey]);
 	const visibility = columnVisibility(stored, showProject);
-	const hideable = columnOrder.filter((id) => !alwaysVisible.includes(id));
+	const hideable = columnOrder.filter((id) => !alwaysVisible.includes(id) && !(epicFixed && id === "epic"));
+	const groupItems = epicFixed ? groups.filter((entry) => entry.value !== "epic") : groups;
+	// The table shows the Done and Canceled rows under the status grouping,
+	// and under the milestone grouping of one epic.
+	const oneEpic = epicFixed || (search.epic !== undefined && search.epic !== "none");
+	const showsClosed = group === "status" || (group === "milestone" && oneEpic);
 	const descending = sort.startsWith("-");
 	const field = sortFields.find((entry) => entry.value === sort.replace(/^-/, "")) ?? sortFields[1];
 
@@ -104,7 +115,7 @@ export function DisplayPopover({
 						<span className="text-sm text-fg-muted">Group by</span>
 						<Select
 							label="Group by"
-							items={groups}
+							items={groupItems}
 							value={group}
 							onValueChange={(next) => onSearchChange({ ...search, group: next })}
 						/>
@@ -117,7 +128,7 @@ export function DisplayPopover({
 						<Switch
 							label="Show completed"
 							checked={search.closed !== "hide"}
-							disabled={group !== "status"}
+							disabled={!showsClosed}
 							onCheckedChange={(on) => onSearchChange({ ...search, closed: on ? undefined : "hide" })}
 						/>
 					</div>

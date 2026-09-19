@@ -10,7 +10,6 @@ export default defineCommand({
 		status: { type: "positional", required: true, description: "Status ref: slug, name, or category:<category>" },
 		after: { type: "string", description: "Place after this ticket in the column" },
 		before: { type: "string", description: "Place before this ticket in the column" },
-		force: { type: "boolean", description: "Accepted for compatibility; completion does not require force" },
 		"expect-version": { type: "string", description: "Fail unless the ticket is at this version" },
 	},
 	async run(context) {
@@ -22,7 +21,6 @@ export default defineCommand({
 				status: args.status,
 				after: args.after,
 				before: args.before,
-				force: args.force === true ? true : undefined,
 				expectedVersion: toNumber(args["expect-version"]),
 			}),
 		);

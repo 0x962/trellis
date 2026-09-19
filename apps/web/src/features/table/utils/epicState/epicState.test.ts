@@ -1,0 +1,50 @@
+import { describe, expect, test } from "bun:test";
+import type { TicketSummary } from "@trellis/api";
+import { epicState } from "./epicState";
+
+const row = (epic: string | null, milestone: string | null): TicketSummary =>
+	({
+		epic: epic === null ? null : { id: epic, ref: epic, name: epic },
+		milestone: milestone === null ? null : { id: milestone, ref: milestone, name: milestone },
+	}) as unknown as TicketSummary;
+
+describe("epicState", () => {
+	test("tickets of one epic and one milestone share both refs", () => {
+		expect(epicState([row("OP/a", "OP/a/m1"), row("OP/a", "OP/a/m1")])).toEqual({
+			epicRef: "OP/a",
+			epicMixed: false,
+			milestoneRef: "OP/a/m1",
+			milestoneMixed: false,
+		});
+	});
+
+	test("a ticket with no milestone makes the milestones mixed", () => {
+		expect(epicState([row("OP/a", "OP/a/m1"), row("OP/a", null)])).toEqual({
+			epicRef: "OP/a",
+			epicMixed: false,
+			milestoneRef: undefined,
+			milestoneMixed: true,
+		});
+	});
+
+	test("tickets of two epics share no epic", () => {
+		const state = epicState([row("OP/a", null), row("OP/b", null)]);
+		expect(state.epicRef).toBeUndefined();
+		expect(state.epicMixed).toBe(true);
+	});
+
+	test("a ticket with no epic makes the epics mixed", () => {
+		const state = epicState([row("OP/a", null), row(null, null)]);
+		expect(state.epicRef).toBeUndefined();
+		expect(state.epicMixed).toBe(true);
+	});
+
+	test("tickets with no epic share no epic and are not mixed", () => {
+		expect(epicState([row(null, null), row(null, null)])).toEqual({
+			epicRef: undefined,
+			epicMixed: false,
+			milestoneRef: undefined,
+			milestoneMixed: false,
+		});
+	});
+});

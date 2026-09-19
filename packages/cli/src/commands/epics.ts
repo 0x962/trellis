@@ -3,6 +3,7 @@ import { shortZonedDateTime } from "@trellis/api/time";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, readText } from "../context.ts";
+import template from "../instructions.md" with { type: "text" };
 import {
 	cell,
 	heading,
@@ -42,10 +43,17 @@ const epicList: ListSpec<EpicSummary> = {
 	identifier: (row) => row.ref,
 };
 
+// The current milestone and its place among the milestones of the epic.
+const current = (epic: EpicSummary) =>
+	epic.currentMilestone === null
+		? "-"
+		: cell(`${epic.currentMilestone.name} (${epic.currentMilestoneIndex} of ${epic.milestoneCount})`);
+
 // The description is not a field: it has many lines, so `show` prints it
 // below the block.
 const epicRecord: RecordSpec<EpicSummary> = {
 	fields: [
+		{ name: "current", value: current },
 		{ name: "ref", value: (row) => row.ref },
 		{ name: "id", value: (row) => row.id },
 		{ name: "name", value: (row) => cell(row.name) },
@@ -122,6 +130,20 @@ const show = defineCommand({
 			return;
 		}
 		ctx.out.write(renderEpic(epic, color));
+	},
+});
+
+// The "Plan an epic" section of the instructions template: from the line
+// that starts with "Plan an epic." to the blank line that ends the section.
+export const planGuide = (text: string) => {
+	const start = text.indexOf("Plan an epic.");
+	return text.slice(start, text.indexOf("\n\n", start) + 1);
+};
+
+const guide = defineCommand({
+	meta: { name: "guide", description: "Print how to plan an epic: fronts, milestones, and tickets" },
+	run(context) {
+		contextOf(context).out.write(planGuide(template));
 	},
 });
 
@@ -215,6 +237,6 @@ const del = defineCommand({
 });
 
 export default defineCommand({
-	meta: { name: "epics", description: "List, show, create, edit, fill, or delete the epics of a project" },
-	subCommands: { list, show, create, edit, add, remove, delete: del },
+	meta: { name: "epics", description: "List, show, plan, create, edit, fill, or delete the epics of a project" },
+	subCommands: { list, show, guide, create, edit, add, remove, delete: del },
 });

@@ -1,4 +1,12 @@
-import type { EpicSummary, Label, Priority, ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
+import type {
+	EpicSummary,
+	Label,
+	MilestoneSummary,
+	Priority,
+	ProjectSummary,
+	StatusSummary,
+	TicketSummary,
+} from "@trellis/api";
 import { cx, TicketId } from "@trellis/ui";
 import { type MouseEvent, memo, type ReactNode, useRef } from "react";
 import { compactRelativeTime } from "../../../lib/format";
@@ -17,7 +25,7 @@ import { StatusCell } from "./components/StatusCell";
 import { TitleCell } from "./components/TitleCell";
 
 // The inline editors a row opens.
-export type EditField = "status" | "priority" | "project" | "parent" | "labels";
+export type EditField = "status" | "priority" | "project" | "parent" | "labels" | "epic";
 
 // One change a row's picker or the bulk bar applies. `checked` on a label
 // change is the new state of that label on the ticket.
@@ -27,6 +35,7 @@ export type RowChange =
 	| { project: string }
 	| { parent: TicketSummary | null }
 	| { epic: EpicSummary | null }
+	| { milestone: MilestoneSummary | null }
 	| { label: Label; checked: boolean };
 
 export type RowProps = {
@@ -159,6 +168,12 @@ export const Row = memo(function Row({
 		created: <span className="text-sm text-fg-muted tabular">{compactRelativeTime(ticket.createdAt)}</span>,
 		parent: ticket.parent === null ? null : <TicketId id={ticket.parent.identifier} size="sm" />,
 		epic: ticket.epic === null ? null : <EpicCell epic={ticket.epic} />,
+		milestone:
+			ticket.milestone === null ? null : (
+				<span className="truncate text-sm text-fg-muted" title={ticket.milestone.name}>
+					{ticket.milestone.name}
+				</span>
+			),
 		subtickets:
 			ticket.childCount === 0 ? null : (
 				<span className="text-sm text-fg-muted tabular">

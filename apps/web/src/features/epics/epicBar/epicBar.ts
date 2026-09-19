@@ -4,11 +4,15 @@ import { formatCount } from "../../../lib/format";
 
 // The segments of the epic bar, one per status category. The list page and
 // the epic page draw the same bar, so a category keeps one color on both.
+// Todo takes `faint`, the neutral of the Todo status icon, so a bar of Todo
+// tickets alone reads as not started in both themes. Review takes `agent`,
+// the purple of the review status icon, because the grey `accent` sits one
+// step from `faint` in the light theme and the two segments read as one.
 export const epicSegments = (counts: EpicCounts): StackedBarSegment[] => [
 	{ key: "done", label: "Done", value: counts.done, valueLabel: formatCount(counts.done), tone: "success" },
-	{ key: "review", label: "Review", value: counts.review, valueLabel: formatCount(counts.review), tone: "accent" },
+	{ key: "review", label: "Review", value: counts.review, valueLabel: formatCount(counts.review), tone: "agent" },
 	{ key: "started", label: "Started", value: counts.started, valueLabel: formatCount(counts.started), tone: "warning" },
-	{ key: "todo", label: "Todo", value: counts.todo, valueLabel: formatCount(counts.todo), tone: "fg" },
+	{ key: "todo", label: "Todo", value: counts.todo, valueLabel: formatCount(counts.todo), tone: "faint" },
 	{
 		key: "canceled",
 		label: "Canceled",

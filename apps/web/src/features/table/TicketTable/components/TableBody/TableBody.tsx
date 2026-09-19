@@ -17,7 +17,7 @@ import { GroupHeader, groupHeaderHeight, phoneGroupHeaderHeight } from "../../..
 import type { RowSelection } from "../../../hooks/useRowSelection";
 import { type EditField, Row, type RowChange } from "../../../Row";
 import { phoneRowHeight, rowHeights } from "../../../rowHeights";
-import type { TableItem } from "../../../utils/flattenGroups";
+import type { TableGroup, TableItem } from "../../../utils/flattenGroups";
 import { ShowMoreRow, showMoreHeight } from "../ShowMoreRow";
 import { TableSkeleton } from "../TableSkeleton";
 
@@ -43,7 +43,9 @@ export type TableBodyProps = {
 	onEditingChange: (id: string, field: EditField | null) => void;
 	onRowChange: (ticket: TicketSummary, change: RowChange) => void;
 	onToggleGroup: (key: string) => void;
-	onCreateInGroup: (status: StatusSummary) => void;
+	// Opens the composer with the status, or the epic and the milestone, of
+	// the group.
+	onCreateInGroup: (group: TableGroup) => void;
 	// True while the bulk bar shows. The list then gets 72 px of room under
 	// its last row, so that row can scroll clear of the bar.
 	bottomRoom: boolean;
@@ -165,11 +167,16 @@ export function TableBody({
 									group={group.key}
 									label={group.label ?? ""}
 									count={group.count}
+									countLabel={group.countLabel}
+									badge={group.badge}
+									note={group.note}
 									status={group.status}
 									category={group.category}
 									expanded={group.expanded}
 									onToggle={() => onToggleGroup(group.key)}
-									onCreate={group.status === undefined ? undefined : () => onCreateInGroup(group.status!)}
+									onCreate={
+										group.status === undefined && group.epicRef === undefined ? undefined : () => onCreateInGroup(group)
+									}
 									phone={phone}
 									top={virtual.start}
 								/>

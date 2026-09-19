@@ -1,3 +1,4 @@
+import { Check, Minus } from "@phosphor-icons/react";
 import { Command as Cmdk } from "cmdk";
 import type { ReactNode } from "react";
 import { cx } from "../../../../utils/cx";
@@ -24,6 +25,10 @@ export type CommandRowProps = {
 	// The key caps on the right, in press order.
 	keys?: readonly string[];
 	icon?: ReactNode;
+	// One value of a multi-value set. `true` draws a check mark and `"mixed"`
+	// draws a minus mark: the value holds for some of the things the row
+	// writes to, such as a label that only some selected tickets carry.
+	checked?: boolean | "mixed";
 	onSelect: () => void;
 };
 
@@ -39,10 +44,17 @@ export function CommandRow({
 	leading,
 	keys,
 	icon,
+	checked,
 	onSelect,
 }: CommandRowProps) {
 	return (
-		<Cmdk.Item value={value} keywords={[label, ...(keywords ?? [])]} onSelect={onSelect} className={commandRowClass}>
+		<Cmdk.Item
+			value={value}
+			keywords={[label, ...(keywords ?? [])]}
+			onSelect={onSelect}
+			data-checked={checked === undefined ? undefined : String(checked)}
+			className={commandRowClass}
+		>
 			{leading}
 			{icon && (
 				<span
@@ -65,6 +77,8 @@ export function CommandRow({
 					{sub}
 				</span>
 			)}
+			{checked === "mixed" && <Minus aria-hidden="true" className="ml-auto size-3.5 shrink-0 text-accent" />}
+			{checked === true && <Check aria-hidden="true" className="ml-auto size-3.5 shrink-0 text-accent" />}
 			{keys !== undefined && keys.length > 0 && (
 				<span className="ml-auto flex shrink-0 items-center gap-1">
 					{keys.map((cap) => (

@@ -8,7 +8,14 @@ export type GroupHeaderProps = {
 	group: string;
 	label: string;
 	count?: ReactNode;
+	// The count the Show action of a collapsed group prints: the rows that the
+	// action reveals. It defaults to `count`. A caller sets it when `count`
+	// is a text such as `3/11`.
+	showCount?: ReactNode;
 	icon?: ReactNode;
+	// A `Badge` after the label, such as Current. It sits outside the label
+	// button, so the accessible name of the button stays the label.
+	mark?: ReactNode;
 	expanded: boolean;
 	onToggle: () => void;
 	onCreate?: () => void;
@@ -27,7 +34,9 @@ export function GroupHeader({
 	group,
 	label,
 	count,
+	showCount,
 	icon,
+	mark,
 	expanded,
 	onToggle,
 	onCreate,
@@ -69,6 +78,7 @@ export function GroupHeader({
 				{icon}
 				{label}
 			</button>
+			{mark}
 			<span data-count="" className={cx("text-fg-faint tabular", appearance === "sidebar" ? "text-xs" : "text-sm")}>
 				{count}
 			</span>
@@ -79,7 +89,7 @@ export function GroupHeader({
 						onClick={onToggle}
 						className="inline-flex h-7 items-center gap-1 rounded-md px-1.5 text-sm text-fg-faint transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11 pointer-coarse:min-w-11"
 					>
-						Show {count}
+						Show {showCount ?? count}
 						<CaretDown aria-hidden="true" className="size-3" />
 					</button>
 				)}

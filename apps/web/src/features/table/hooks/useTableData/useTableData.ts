@@ -4,7 +4,15 @@ import { useEffect, useMemo } from "react";
 import { useScopeStatuses, useScopeStatusesAll } from "../../../../hooks/useScopeStatuses";
 import { useApp } from "../../../../lib/appContext";
 import { toCountsQuery, type View } from "../../../filters/grammar";
-import { activeInput, closedInput, closedSlugs, hasStatusFilter, rowCap } from "../../utils/listQuery";
+import {
+	activeInput,
+	closedInput,
+	closedSlugs,
+	hasInlineClosed,
+	hasStatusFilter,
+	inlineClosedInput,
+	rowCap,
+} from "../../utils/listQuery";
 
 export type ClosedCategory = "done" | "canceled";
 
@@ -42,6 +50,10 @@ export type TableData = {
 	// The Done and Canceled groups, or null while a status filter names
 	// the groups the table shows.
 	closed: Record<ClosedCategory, ClosedGroupData> | null;
+	// The Done and Canceled rows that the groups of the view hold beside the
+	// active rows, or null when the view keeps them out of its groups. See
+	// `hasInlineClosed`.
+	inlineClosed: TicketSummary[] | null;
 	statuses: Status[];
 	// The total under the same filters, or undefined until it arrives.
 	total: number | undefined;
@@ -56,7 +68,9 @@ const withCursor = (input: ListQueryInput, cursor: string | undefined): ListQuer
 // pages until the cursor runs out or the cap is reached. A closed group
 // reads its own pages of 50 once its header expands. Every page lives
 // under `tickets.list` keys, so a live patch and a mutation response reach
-// every row.
+// every row. Under the milestone grouping of one epic a third pass reads
+// every Done and Canceled row in 200-row pages, up to the cap, and the two
+// closed groups stay off.
 export const useTableData = ({ project, view, expanded }: TableDataOptions): TableData => {
 	const { orpc } = useApp();
 	const statuses = useScopeStatuses(project);
@@ -85,6 +99,25 @@ export const useTableData = ({ project, view, expanded }: TableDataOptions): Tab
 		void active.fetchNextPage();
 	}, [active.hasNextPage, active.isFetchingNextPage, active.fetchNextPage, rows.length]);
 
+	// An empty status list in the query means every status, so the pass waits
+	// for the closed statuses of the scope.
+	const inline =
+		hasInlineClosed(view) && closedSlugs(statuses, "done").length + closedSlugs(statuses, "canceled").length > 0;
+	const inlinePass = useInfiniteQuery({
+		...orpc.tickets.list.infiniteOptions({
+			input: (cursor: string | undefined) => withCursor(inlineClosedInput(project, view, statuses), cursor),
+			initialPageParam: undefined as string | undefined,
+			getNextPageParam: (last) => last.nextCursor ?? undefined,
+		}),
+		enabled: inline,
+	});
+	const inlineRows = useMemo(() => inlinePass.data?.pages.flatMap((page) => page.items) ?? noRows, [inlinePass.data]);
+
+	useEffect(() => {
+		if (!inline || !inlinePass.hasNextPage || inlinePass.isFetchingNextPage || inlineRows.length >= rowCap) return;
+		void inlinePass.fetchNextPage();
+	}, [inline, inlinePass.hasNextPage, inlinePass.isFetchingNextPage, inlinePass.fetchNextPage, inlineRows.length]);
+
 	const counts = useQuery(
 		orpc.tickets.counts.queryOptions({
 			input:
@@ -100,7 +133,7 @@ export const useTableData = ({ project, view, expanded }: TableDataOptions): Tab
 	};
 
 	const closedGroup = (category: ClosedCategory): ClosedGroupData => {
-		const enabled = !filtered && expanded.includes(category) && closedSlugs(statuses, category).length > 0;
+		const enabled = !filtered && !inline && expanded.includes(category) && closedSlugs(statuses, category).length > 0;
 		// biome-ignore lint/correctness/useHookAtTopLevel: the two categories call this in a fixed order on every render.
 		const query = useInfiniteQuery({
 			...orpc.tickets.list.infiniteOptions({
@@ -125,10 +158,13 @@ export const useTableData = ({ project, view, expanded }: TableDataOptions): Tab
 		rows,
 		capped,
 		allActiveLoaded: active.data !== undefined && !active.hasNextPage,
-		loading: active.isPending,
+		// The inline closed rows land with the first active page, so a group
+		// never gains its done rows on screen.
+		loading: active.isPending || (inline && inlinePass.isPending),
 		error: active.error,
 		retry: () => void active.refetch(),
 		closed: filtered ? null : { done, canceled },
+		inlineClosed: inline ? inlineRows : null,
 		statuses,
 		total: counts.data?.total,
 	};

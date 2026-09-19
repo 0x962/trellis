@@ -15,7 +15,7 @@ import type { z } from "zod";
 import { searchParamOrder } from "../../lib/searchParams";
 import type { Density } from "../../stores/uiStore";
 
-export type Group = "none" | "status" | "priority" | "project" | "parent" | "epic" | "pr";
+export type Group = "none" | "status" | "priority" | "project" | "parent" | "epic" | "milestone" | "pr";
 export type Scope = "subprojects" | "self";
 
 // The list fields a chip can negate. `not` names the fields whose value
@@ -40,6 +40,9 @@ export type View = {
 	// An epic ref, `OP/routine-runtime`, or `none` for the tickets outside
 	// every epic.
 	epic?: string;
+	// A milestone ref, `OP/routine-runtime/phase-1`, or `none` for the tickets
+	// outside every milestone.
+	milestone?: string;
 	pr?: z.infer<typeof PrFilterSchema>;
 	ci?: z.infer<typeof CiStateSchema>[];
 	actor?: string;
@@ -70,7 +73,16 @@ export const viewDefaults = {
 // web-only fields.
 const relativePattern = /^(\d+)([hd])$/;
 
-const groups: ReadonlySet<string> = new Set(["none", "status", "priority", "project", "parent", "epic", "pr"]);
+const groups: ReadonlySet<string> = new Set([
+	"none",
+	"status",
+	"priority",
+	"project",
+	"parent",
+	"epic",
+	"milestone",
+	"pr",
+]);
 const scopes: ReadonlySet<string> = new Set(["subprojects", "self"]);
 const densities: ReadonlySet<string> = new Set(["comfortable", "compact"]);
 
@@ -148,6 +160,7 @@ export const parseSearch = (params: Record<string, unknown>): View => {
 		label: list(raw.label, LabelRefStringSchema),
 		parent: single(raw.parent, ListQuerySchema.shape.parent),
 		epic: single(raw.epic, ListQuerySchema.shape.epic),
+		milestone: single(raw.milestone, ListQuerySchema.shape.milestone),
 		pr: single(raw.pr, PrFilterSchema),
 		ci: list(raw.ci, CiStateSchema),
 		actor: single(raw.actor, ListQuerySchema.shape.actor),
@@ -243,6 +256,7 @@ export const toListQuery = (view: View, options: ListQueryOptions = {}): ListQue
 		labelNot: isNegated(view, "label") ? view.label : undefined,
 		parent: view.parent,
 		epic: view.epic,
+		milestone: view.milestone,
 		pr: view.pr,
 		ci: view.ci,
 		actor: view.actor,

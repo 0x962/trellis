@@ -35,6 +35,18 @@ describe("describeActivity for a label row", () => {
 	});
 });
 
+describe("describeActivity for a milestone row", () => {
+	test("names the milestone a write put the ticket in", () => {
+		const item = row({ field: "milestone", toValue: "OP/routine-runtime/phase-1" });
+		expect(describeActivity(item)).toBe("put the ticket in the milestone OP/routine-runtime/phase-1");
+	});
+
+	test("says the ticket left its milestone", () => {
+		const item = row({ field: "milestone", fromValue: "OP/routine-runtime/phase-1" });
+		expect(describeActivity(item)).toBe("removed the ticket from its milestone");
+	});
+});
+
 describe("describeRun with label rows", () => {
 	test("merges the label rows and the status row into one phrase", () => {
 		const items = [

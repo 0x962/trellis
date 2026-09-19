@@ -36,6 +36,9 @@ export type EpicPickerProps = {
 	project: string;
 	// The ref of the current epic.
 	value?: string;
+	// True when the picker writes to several tickets that hold different
+	// epics. No row then shows a check, so the list claims no shared value.
+	mixed?: boolean;
 	// `null` clears the epic.
 	onPick: (epic: EpicSummary | null) => void;
 	trigger: ReactElement;
@@ -46,8 +49,19 @@ export type EpicPickerProps = {
 };
 
 // The epic popover: the epics of the project, searchable by name and ref,
-// and a None option that clears the epic.
-export function EpicPicker({ project, value, onPick, trigger, open, onOpenChange, finalFocus, side }: EpicPickerProps) {
+// and a No epic option that clears the epic. `onPick` sends `null` for that
+// option, and a bulk caller writes `epic: null` to every selected ticket.
+export function EpicPicker({
+	project,
+	value,
+	mixed = false,
+	onPick,
+	trigger,
+	open,
+	onOpenChange,
+	finalFocus,
+	side,
+}: EpicPickerProps) {
 	const { orpc } = useApp();
 	const [own, setOwn] = useState(false);
 	const input = useRef<HTMLInputElement>(null);
@@ -60,16 +74,16 @@ export function EpicPicker({ project, value, onPick, trigger, open, onOpenChange
 		onOpenChange?.(next);
 	};
 
-	// The None row waits for the list, so every row mounts at once. cmdk
+	// The No epic row waits for the list, so every row mounts at once. cmdk
 	// highlights the first row it mounts and keeps that row when more rows
 	// arrive.
-	const none = value === undefined;
+	const none = !mixed && value === undefined;
 	const items: CommandItem[] =
 		list.data === undefined
 			? []
 			: [
-					...epicItems(epics, { current: value, picker: true }),
-					{ id: noneId, label: "None", current: none, trailing: createElement(RowMarks, { current: none }) },
+					...epicItems(epics, { current: mixed ? undefined : value, picker: true }),
+					{ id: noneId, label: "No epic", current: none, trailing: createElement(RowMarks, { current: none }) },
 				];
 
 	return (

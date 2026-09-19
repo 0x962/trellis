@@ -22,6 +22,10 @@ export type DialogProps = {
 	// The element that takes focus when the dialog opens. Base UI's own
 	// rule, the first tabbable element, applies when this is absent.
 	initialFocus?: ComponentProps<typeof BaseDialog.Popup>["initialFocus"];
+	// The element that takes focus when the dialog closes. The opener takes
+	// it when this is absent, or when the function returns true. Set it when
+	// the action of the dialog removes the opener from the page.
+	finalFocus?: ComponentProps<typeof BaseDialog.Popup>["finalFocus"];
 	className?: string;
 };
 
@@ -53,6 +57,7 @@ export function Dialog({
 	modal = true,
 	size = "md",
 	initialFocus,
+	finalFocus,
 	className,
 }: DialogProps) {
 	return (
@@ -65,6 +70,7 @@ export function Dialog({
 				<BaseDialog.Popup
 					aria-modal="true"
 					initialFocus={initialFocus}
+					finalFocus={finalFocus}
 					className={cx(
 						"fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh-2rem)] max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-lg border border-border bg-elevated p-4 text-base text-fg shadow-lg outline-none",
 						sizes[size],

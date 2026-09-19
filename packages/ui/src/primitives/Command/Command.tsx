@@ -1,4 +1,4 @@
-import { Check, MagnifyingGlass } from "@phosphor-icons/react";
+import { Check, MagnifyingGlass, Minus } from "@phosphor-icons/react";
 import { Command as Cmdk } from "cmdk";
 import type { ReactElement, ReactNode, RefObject } from "react";
 import { cx } from "../../utils/cx";
@@ -28,9 +28,11 @@ export type CommandItem = {
 	icon?: ReactElement;
 	// The value the field holds now. The option carries `data-current`.
 	current?: boolean;
-	// One value of a multi-value set. A checked option shows a check mark and
-	// carries `data-checked="true"`.
-	checked?: boolean;
+	// One value of a multi-value set. `true` draws a check mark and carries
+	// `data-checked="true"`. `"mixed"` draws a minus mark and carries
+	// `data-checked="mixed"`: the option holds for some of the things the
+	// list writes to, such as a label that only some selected tickets carry.
+	checked?: boolean | "mixed";
 	// The depth of a tree row. Each level indents 12 px.
 	depth?: number;
 	// Extra content after the label, such as an identifier the text must carry.
@@ -114,7 +116,8 @@ export function Command({
 			{item.icon && <span className="inline-flex size-3.5 shrink-0 *:size-full">{item.icon}</span>}
 			{item.label}
 			{item.children}
-			{item.checked && <Check aria-hidden="true" className="size-3.5 shrink-0 text-accent" />}
+			{item.checked === "mixed" && <Minus aria-hidden="true" className="size-3.5 shrink-0 text-accent" />}
+			{item.checked === true && <Check aria-hidden="true" className="size-3.5 shrink-0 text-accent" />}
 			{item.trailing}
 		</Cmdk.Item>
 	);

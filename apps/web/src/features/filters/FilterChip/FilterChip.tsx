@@ -1,10 +1,11 @@
-import { ArrowElbowDownRight, Clock, FolderOpen, GitPullRequest, Stack, Tag, User } from "@phosphor-icons/react";
+import { ArrowElbowDownRight, Clock, Flag, FolderOpen, GitPullRequest, Stack, Tag, User } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import type { EpicSummary, StatusSummary } from "@trellis/api";
+import type { EpicSummary, MilestoneSummary, StatusSummary } from "@trellis/api";
 import { Chip, LabelDot, PriorityIcon, StatusIcon } from "@trellis/ui";
 import type { ReactElement } from "react";
 import { useApp } from "../../../lib/appContext";
 import { rootKey } from "../../../lib/projectPath";
+import { useEpicMilestones } from "../../pickers/hooks/useEpicMilestones";
 import {
 	type FilterField,
 	fieldLabels,
@@ -59,6 +60,8 @@ const iconOf = (
 			return <ArrowElbowDownRight />;
 		case "epic":
 			return <Stack />;
+		case "milestone":
+			return <Flag />;
 		case "pr":
 		case "ci":
 			return <GitPullRequest />;
@@ -79,14 +82,24 @@ const namesOf = (
 	statuses: readonly StatusSummary[],
 	labels: readonly FilterLabel[],
 	epics: readonly EpicSummary[],
+	milestones: readonly MilestoneSummary[],
 ): string[] => {
-	if (field !== "category") return values.map((value) => valueLabel(field, value, statuses, labels, epics));
+	if (field !== "category") {
+		return values.map((value) => valueLabel(field, value, statuses, labels, epics, milestones));
+	}
 	return [...new Set(statuses.filter((status) => values.includes(status.category)).map((status) => status.name))];
 };
 
 // Two names, then a count of the rest: "In Progress, Agent Review +1".
 const shortList = (names: string[]) =>
 	names.length > 2 ? `${names.slice(0, 2).join(", ")} +${names.length - 2}` : names.join(", ");
+
+// The epic ref inside a milestone ref: `OP/routine-runtime/phase-1` gives
+// `OP/routine-runtime`. A ULID and `none` name no epic.
+const epicRefOf = (milestone: string) => {
+	const parts = milestone.split("/");
+	return parts.length === 3 ? [`${parts[0]}/${parts[1]}`] : [];
+};
 
 // One active filter as a chip: the field, the operator, the values, and
 // the remove button. The operator flips between is and is not on a
@@ -100,6 +113,9 @@ export function FilterChip({ field, view, statuses, labels, project, onChange, o
 			enabled: field === "epic" && project !== undefined,
 		}).data ?? [];
 	const values = valuesOf(view, field);
+	const milestones = useEpicMilestones(field === "milestone" ? values.flatMap(epicRefOf) : []).flatMap(
+		(entry) => entry.milestones,
+	);
 	const negated = view.not?.includes(field as NegatableField) ?? false;
 	const canNegate = negatable.includes(field as NegatableField);
 	const label = fieldLabels[field];
@@ -109,7 +125,7 @@ export function FilterChip({ field, view, statuses, labels, project, onChange, o
 					const actor = actors.find((entry) => `${entry.kind}:${entry.name}` === value);
 					return actor?.displayName ?? valueLabel(field, value, statuses);
 				})
-			: namesOf(field, values, statuses, labels, epics);
+			: namesOf(field, values, statuses, labels, epics, milestones);
 	return (
 		<span data-filter-chip={field} className="contents">
 			<Chip

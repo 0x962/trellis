@@ -4,6 +4,7 @@ import { projectSlashPath } from "../../../../lib/projectPath";
 import { priorityLabels } from "../../../pickers/PriorityPicker";
 import { toggleLabel } from "../../../pickers/utils/toggleLabel";
 import type { RowChange } from "../../Row";
+import type { BulkWrite } from "../useBulkWrite";
 import type { useTicketMutations, Verb } from "../useTicketMutations";
 
 type Mutations = ReturnType<typeof useTicketMutations>;
@@ -17,60 +18,93 @@ const summaryOf = (status: StatusSummary): StatusSummary => ({
 	color: status.color,
 });
 
-// Applies one inline or bulk change to the target rows. One target writes
-// through `mutations.update`; two or more write through `mutations.updateMany`.
-// `groups` names the label groups of the route, which decide the label a new
-// label of a group replaces. The callback identity is stable across renders.
+// Where the rows of a change come from. "selection" is the bulk bar or a
+// key over the selected rows. "row" is an edit of the one row the person
+// works in, which no selection holds.
+export type ChangeSource = "selection" | "row";
+
+// Applies one inline or bulk change to the target rows. A change from the
+// selection writes through `bulk.update`, which asks before a large write,
+// sends the refs in runs of 200, and reports the tickets it left out. A
+// change from one row writes through `mutations.update`, which sends the
+// version of that row.
+//
+// `words` names the change for the confirm dialog, as in "Set the status to
+// Done". `groups` names the label groups of the route, which decide the
+// label a new label of a group replaces. The callback identity is stable
+// across renders.
 export const useApplyChange = (
 	mutations: Mutations,
+	bulk: BulkWrite,
 	projects: readonly ProjectSummary[],
 	groups: readonly LabelGroup[],
 ) =>
-	useStableCallback((targets: readonly TicketSummary[], change: RowChange) => {
-		const many = targets.length > 1;
+	useStableCallback((targets: readonly TicketSummary[], change: RowChange, source: ChangeSource) => {
+		if (targets.length === 0) return;
+		const many = source === "selection";
 		if ("status" in change) {
 			const status = summaryOf(change.status);
 			const verb: Verb = (subject) => `${subject} did not move to ${status.name}.`;
 			return many
-				? mutations.updateMany(targets, { status: status.id }, { status }, verb)
+				? bulk.update(targets, { status: status.id }, `Set the status to ${status.name}`, { row: { status }, verb })
 				: mutations.update(targets[0]!, { status: status.id }, { status }, verb);
 		}
 		if ("priority" in change) {
-			const verb: Verb = (subject) =>
-				`The priority of ${subject} did not change to ${priorityLabels[change.priority]}.`;
+			const name = priorityLabels[change.priority];
+			const verb: Verb = (subject) => `The priority of ${subject} did not change to ${name}.`;
+			const patch = { priority: change.priority };
 			return many
-				? mutations.updateMany(targets, { priority: change.priority }, { priority: change.priority }, verb)
-				: mutations.update(targets[0]!, { priority: change.priority }, { priority: change.priority }, verb);
+				? bulk.update(targets, patch, `Set the priority to ${name}`, { row: patch, verb })
+				: mutations.update(targets[0]!, patch, patch, verb);
 		}
 		if ("label" in change) {
 			const { label, checked } = change;
 			// A label write sends the one label it changes, never the whole set,
 			// so two writers do not overwrite the labels of each other.
 			const fields = checked ? { addLabels: [label.id] } : { removeLabels: [label.id] };
-			const patch = (row: TicketSummary) => ({ labels: toggleLabel(row.labels, label, groups, checked) });
+			const row = (ticket: TicketSummary) => ({ labels: toggleLabel(ticket.labels, label, groups, checked) });
 			const verb: Verb = (subject) => `The labels of ${subject} did not change.`;
+			const words = checked ? `Add the label ${label.name}` : `Remove the label ${label.name}`;
 			return many
-				? mutations.updateMany(targets, fields, patch, verb)
-				: mutations.update(targets[0]!, fields, patch, verb, { expectVersion: false });
+				? bulk.update(targets, fields, words, { row, verb })
+				: mutations.update(targets[0]!, fields, row, verb, { expectVersion: false });
 		}
 		if ("project" in change) {
 			const target = projects.find((entry) => entry.path === change.project);
-			const patch = target === undefined ? {} : { project: { id: target.id, key: target.key, path: target.path } };
-			const verb: Verb = (subject) => `${subject} did not move to ${projectSlashPath(change.project)}.`;
+			const path = projectSlashPath(change.project);
+			const row = target === undefined ? {} : { project: { id: target.id, key: target.key, path: target.path } };
+			const verb: Verb = (subject) => `${subject} did not move to ${path}.`;
 			return many
-				? mutations.updateMany(targets, { project: change.project }, patch, verb)
-				: mutations.update(targets[0]!, { project: change.project }, patch, verb);
+				? bulk.update(targets, { project: change.project }, `Move to the project ${path}`, { row, verb })
+				: mutations.update(targets[0]!, { project: change.project }, row, verb);
 		}
 		if ("parent" in change) {
 			const parent = change.parent === null ? null : { id: change.parent.id, identifier: change.parent.identifier };
 			const verb: Verb = (subject) => `The parent of ${subject} did not change.`;
+			const words = parent === null ? "Clear the parent" : `Set the parent to ${parent.identifier}`;
+			const fields = { parent: parent?.identifier ?? null };
 			return many
-				? mutations.updateMany(targets, { parent: parent?.identifier ?? null }, { parent }, verb)
-				: mutations.update(targets[0]!, { parent: parent?.identifier ?? null }, { parent }, verb);
+				? bulk.update(targets, fields, words, { row: { parent }, verb })
+				: mutations.update(targets[0]!, fields, { parent }, verb);
+		}
+		if ("milestone" in change) {
+			const { milestone: picked } = change;
+			const milestone = picked === null ? null : { id: picked.id, ref: picked.ref, name: picked.name };
+			const verb: Verb = (subject) => `The milestone of ${subject} did not change.`;
+			const words = milestone === null ? "Clear the milestone" : `Set the milestone to ${milestone.name}`;
+			const fields = { milestone: milestone?.ref ?? null };
+			return many
+				? bulk.update(targets, fields, words, { row: { milestone }, verb })
+				: mutations.update(targets[0]!, fields, { milestone }, verb);
 		}
 		const epic = change.epic === null ? null : { id: change.epic.id, ref: change.epic.ref, name: change.epic.name };
+		// A milestone belongs to one epic, so the server clears the milestone of
+		// a ticket that leaves its epic. The patch does the same on the row.
+		const patch = (row: TicketSummary) => ({ epic, milestone: row.epic?.id === epic?.id ? row.milestone : null });
 		const verb: Verb = (subject) => `The epic of ${subject} did not change.`;
+		const words = epic === null ? "Clear the epic" : `Set the epic to ${epic.name}`;
+		const fields = { epic: epic?.ref ?? null };
 		return many
-			? mutations.updateMany(targets, { epic: epic?.ref ?? null }, { epic }, verb)
-			: mutations.update(targets[0]!, { epic: epic?.ref ?? null }, { epic }, verb);
+			? bulk.update(targets, fields, words, { row: patch, verb })
+			: mutations.update(targets[0]!, fields, patch, verb);
 	});

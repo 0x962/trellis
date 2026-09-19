@@ -4,9 +4,16 @@ import { createFileRoute, type ErrorComponentProps, redirect, useNavigate, usePa
 import type { Status } from "@trellis/api";
 import { lazy, Suspense } from "react";
 import { Board, boardSortLabel } from "../../../features/board";
+import {
+	epicPageSearch,
+	epicUrlSearch,
+	isCanonicalEpicSearch,
+	keepEpicPageChoices,
+} from "../../../features/epics/epicSearch";
 import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { FilterBar } from "../../../features/filters/FilterBar";
 import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../../../features/filters/grammar";
+import { ArchivedBanner } from "../../../features/project-actions";
 import { ListFooter } from "../../../features/shell/ListFooter";
 import { NewTicketButton } from "../../../features/shell/NewTicketButton";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
@@ -20,7 +27,6 @@ import { TicketTable } from "../../../features/table/TicketTable";
 import { type AppContext, useApp } from "../../../lib/appContext";
 import { parseProjectSplat, projectHref, projectSlashPath } from "../../../lib/projectPath";
 import { useUiStore } from "../../../stores/uiStore";
-import { ArchivedBanner } from "./components/ArchivedBanner";
 import { ProjectLoadError } from "./components/ProjectLoadError";
 
 // The settings screen, the diffs screen, and the epic screens load in their
@@ -54,7 +60,12 @@ const countsOptions = (context: AppContext, ref: string, search: Partial<View>, 
 // segments. The URL keeps slashes, and the API ref joins with dots. The URL
 // omits the default view.
 export const Route = createFileRoute("/p/$")({
-	validateSearch: (search: Record<string, unknown>) => stripDefaults(parseSearch(search)),
+	// The epic page groups by milestone when the URL names no group, and
+	// lists the sub-projects when the URL names no scope. So `group=status`
+	// and `scope=self` are choices there, and the validated search keeps
+	// them. On every other view `beforeLoad` redirects them away as written
+	// defaults.
+	validateSearch: (search: Record<string, unknown>) => keepEpicPageChoices(search, stripDefaults(parseSearch(search))),
 	beforeLoad: ({ location, params, search }) => {
 		// The board is the bare path now. An older link that ends in /board
 		// still works: it lands on the same view with the segment dropped.
@@ -63,8 +74,15 @@ export const Route = createFileRoute("/p/$")({
 		if (withoutBoard !== splat) {
 			throw redirect({ to: "/p/$", params: { _splat: withoutBoard }, search, replace: true });
 		}
+		if (parseProjectSplat(splat).view === "epic") {
+			if (!isCanonicalEpicSearch(location.searchStr, search)) {
+				const canonical = epicUrlSearch(epicPageSearch(search, ""));
+				throw redirect({ to: "/p/$", params: { _splat: splat }, search: canonical, replace: true });
+			}
+			return;
+		}
 		if (!isCanonicalSearch(location.searchStr, search)) {
-			throw redirect({ to: "/p/$", params: { _splat: splat }, search, replace: true });
+			throw redirect({ to: "/p/$", params: { _splat: splat }, search: stripDefaults(search), replace: true });
 		}
 	},
 	loaderDeps: ({ search }) => search,
@@ -132,7 +150,13 @@ function ProjectPage() {
 				{view === "epics" ? (
 					<EpicsPage key={project.id} project={project} />
 				) : (
-					<EpicPage key={`${project.id}/${epic}`} project={project} slug={epic!} />
+					<EpicPage
+						key={`${project.id}/${epic}`}
+						project={project}
+						slug={epic!}
+						search={search}
+						onSearchChange={(next) => navigate({ to: "/p/$", params: { _splat }, search: next })}
+					/>
 				)}
 			</Suspense>
 		);

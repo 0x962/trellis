@@ -3,12 +3,12 @@ import {
 	type BoardOutput,
 	type BoardQueryInput,
 	eventApplierFor,
-	type ListOutput,
 	type Status,
 	type StatusSummary,
+	type TicketSummary,
 } from "@trellis/api";
 import { toast, useMediaQuery, useTheme } from "@trellis/ui";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
@@ -18,15 +18,19 @@ import { useWorkingAgents } from "../../agents/useWorkingAgents";
 import { useCommandContext } from "../../command/hooks/useCommandContext";
 import { BoardLineStatsContext } from "../BoardLineStatsContext";
 import { categoryColumns, moveInBoard, projectColumns, workingFirst, workingGroupInsertIndex } from "../columns";
+import { BoardBulkBar } from "../components/BoardBulkBar";
 import { BoardColumn } from "../components/BoardColumn";
 import { BoardLabels } from "../components/BoardLabels";
 import { BoardSkeleton } from "../components/BoardSkeleton";
 import { StatusChoice } from "../components/StatusChoice";
+import { useBoardBulk } from "../hooks/useBoardBulk";
 import { useBoardAutoScroll, useBoardMonitor } from "../hooks/useBoardDnd";
+import { useBoardSelection } from "../hooks/useBoardSelection";
+import { useVisibleCards } from "../hooks/useVisibleCards";
 import type { BoardColumnModel, BoardMove } from "../types";
-import { boardSort } from "./constants";
 import { useBoardLineStats } from "./hooks/useBoardLineStats";
 import { useCardPositionMotion } from "./hooks/useCardPositionMotion";
+import { useShowMore } from "./hooks/useShowMore";
 import { cardKeyDown } from "./utils/cardKeyDown";
 import { columnWidth } from "./utils/columnWidth";
 
@@ -47,10 +51,6 @@ const noCollapsedColumns: string[] = [];
 // columns get the width.
 const closedCategories = ["done", "canceled"];
 
-// The board has no card selection, so the palette's Selection section
-// stays empty on it.
-const noSelection: string[] = [];
-
 export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: BoardProps) {
 	const context = useApp();
 	const boardRef = useRef<HTMLDivElement>(null);
@@ -59,7 +59,6 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 	const [pendingChoice, setPendingChoice] = useState<PendingChoice | null>(null);
 	// The id of the card whose label picker is open, from the `l` key.
 	const [labelTicketId, setLabelTicketId] = useState<string | null>(null);
-	const [cursors, setCursors] = useState<Record<string, string | null>>({});
 	const announce = useCallback((message: string) => flushSync(() => setAnnouncement(message)), []);
 	const { isArchived, notice } = useArchivedProjects();
 	const boardOptions = context.orpc.tickets.board.queryOptions({ input: { ...filters, project: projectRef } });
@@ -73,7 +72,6 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 	const phone = useMediaQuery("(max-width: 767px)");
 	// The card that last took the focus is the palette's This ticket.
 	const [focusedCard, setFocusedCard] = useState<string | null>(null);
-	useCommandContext(focusedCard, noSelection);
 
 	const sourceColumns = useMemo(() => {
 		if (boardQuery.data === undefined) return [];
@@ -90,6 +88,10 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 		[columns],
 	);
 	const lineStats = useBoardLineStats(startedTicketIds);
+	const cardsOf = useVisibleCards({ columns, collapsedColumnIds: collapsed, showAllDone });
+	const selection = useBoardSelection({ columns, cardsOf, focusedCard, say: setAnnouncement });
+	const bulk = useBoardBulk({ rows: selection.rows, project: projectRef, onDeleted: selection.clear });
+	useCommandContext(focusedCard, selection.rows, selection.owner);
 
 	useEffect(() => {
 		if (useUiStore.getState().collapsedGroups[storageKey] !== undefined) return;
@@ -176,52 +178,31 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 		`${collapsed.join(",")}:${showAllDone}`,
 		ready,
 	);
-	useBoardMonitor(columns, (move) => void runMove(move), chooseOrMove, announce, recordDropOrigin);
-
-	const showMore = async (column: BoardColumnModel) => {
-		const input = {
-			...filters,
-			project: projectRef,
-			...(projectRef === undefined
-				? { category: [column.category] }
-				: { status: column.statuses.map((status) => status.slug) }),
-			sort: boardSort,
-			limit: 100,
-		};
-		let cursor = cursors[column.id];
-		let page: ListOutput;
-		try {
-			if (cursor === undefined) cursor = (await context.client.tickets.list(input)).nextCursor;
-			if (cursor === null) return;
-			page = await context.client.tickets.list({ ...input, cursor });
-		} catch (error) {
-			toast.error("The column did not load more tickets.", {
-				description: error instanceof Error ? error.message : String(error),
-				action: { label: "Retry", onClick: () => void showMore(column) },
-			});
-			return;
-		}
-		setCursors((current) => ({ ...current, [column.id]: page.nextCursor }));
-		context.queryClient.setQueryData<BoardOutput>(boardOptions.queryKey, (current) => ({
-			columns: current!.columns.map((entry) => ({
-				...entry,
-				items: [
-					...entry.items,
-					...page.items.filter(
-						(ticket) => ticket.status.id === entry.statusId && !entry.items.some((item) => item.id === ticket.id),
-					),
-				],
-			})),
-		}));
+	// A drag carries the one card the person picked up. That card then leaves
+	// the rest of the selection behind, so the board drops the selection.
+	const dropSelection = (ticketId: string) => {
+		if (selection.isSelected(ticketId)) selection.clear();
 	};
+	useBoardMonitor(columns, (move) => void runMove(move), chooseOrMove, announce, recordDropOrigin, dropSelection);
+
+	const showMore = useShowMore({ filters, project: projectRef, boardKey: boardOptions.queryKey });
 
 	const keyDown = cardKeyDown({
 		columns,
+		cardsOf,
 		openTicket: onOpenTicket,
 		chooseStatus: (move) => setPendingChoice({ ...move, statuses: columns.flatMap((entry) => entry.statuses) }),
 		moveTo: chooseOrMove,
 		setLabels: setLabelTicketId,
+		selection,
+		openBulk: bulk.openPicker,
+		copySelection: bulk.copyIds,
+		deleteSelection: bulk.remove,
 	});
+
+	const cardClick = (event: MouseEvent<HTMLElement>, column: BoardColumnModel, ticket: TicketSummary) => {
+		if (!selection.click(column.id, ticket.id, event)) onOpenTicket(ticket.identifier);
+	};
 
 	if (!ready) return <BoardSkeleton />;
 
@@ -234,26 +215,31 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 
 	return (
 		<BoardLineStatsContext.Provider value={lineStats}>
-			<div ref={boardRef} data-board="" className="flex min-h-0 flex-1 snap-x gap-3 overflow-x-auto px-5 py-4">
-				{columns.map((column) => (
-					<BoardColumn
-						key={column.id}
-						column={column}
-						collapsed={collapsed.includes(column.id)}
-						showAllDone={showAllDone}
-						categoryMode={projectRef === undefined}
-						width={width}
-						well={well}
-						workingTicketIds={workingTickets}
-						onToggle={() => uiActions.setGroupCollapsed(storageKey, column.id, !collapsed.includes(column.id))}
-						onShowAllDone={() => setShowAllDone(true)}
-						onShowMore={() => showMore(column)}
-						onOpenTicket={onOpenTicket}
-						onFocusTicket={setFocusedCard}
-						onCardKeyDown={keyDown}
-						onAnnounce={announce}
-					/>
-				))}
+			<div className="relative flex min-h-0 flex-1 flex-col">
+				<div ref={boardRef} data-board="" className="flex min-h-0 flex-1 snap-x gap-3 overflow-x-auto px-5 py-4">
+					{columns.map((column) => (
+						<BoardColumn
+							key={column.id}
+							column={column}
+							collapsed={collapsed.includes(column.id)}
+							showAllDone={showAllDone}
+							categoryMode={projectRef === undefined}
+							width={width}
+							well={well}
+							workingTicketIds={workingTickets}
+							bottomRoom={selection.count > 0}
+							isSelected={selection.isSelected}
+							onToggle={() => uiActions.setGroupCollapsed(storageKey, column.id, !collapsed.includes(column.id))}
+							onShowAllDone={() => setShowAllDone(true)}
+							onShowMore={() => showMore(column)}
+							onFocusTicket={setFocusedCard}
+							onCardClick={cardClick}
+							onCardKeyDown={keyDown}
+							onAnnounce={announce}
+						/>
+					))}
+				</div>
+				<BoardBulkBar rows={selection.rows} project={projectRef} bulk={bulk} onClear={selection.clear} />
 			</div>
 			<div role="status" aria-label="Board drag status" aria-live="assertive" className="sr-only">
 				{announcement}

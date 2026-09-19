@@ -1,1 +1,1 @@
-export { useApplyChange } from "./useApplyChange";
+export { type ChangeSource, useApplyChange } from "./useApplyChange";

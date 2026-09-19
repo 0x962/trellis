@@ -1,5 +1,7 @@
 import type { ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
 import type { RefObject } from "react";
+import { rootKey } from "../../../../../lib/projectPath";
+import { EpicPicker } from "../../../../pickers/EpicPicker";
 import { LabelPicker } from "../../../../pickers/LabelPicker";
 import { PriorityPicker } from "../../../../pickers/PriorityPicker";
 import { ProjectPicker } from "../../../../pickers/ProjectPicker";
@@ -30,7 +32,9 @@ const anchor = (label: string) => (
 );
 
 // The pickers a key opens for a field whose column the table hides. The
-// parent field has no cell at all, so its picker always lives here.
+// parent field and the epic field have no editable cell, so their pickers
+// always live here. The epic cell of a row is a link to the epic page, and
+// the epic list belongs to the root project of the ticket.
 export function HiddenPickers({
 	ticket,
 	columns,
@@ -86,6 +90,17 @@ export function HiddenPickers({
 					onToggle={(label, checked) => onChange({ label, checked })}
 					finalFocus={finalFocus}
 					trigger={anchor("Labels")}
+				/>
+			)}
+			{editing === "epic" && (
+				<EpicPicker
+					project={rootKey(ticket.project.path)}
+					value={ticket.epic?.ref}
+					open
+					onOpenChange={onEditingChange("epic")}
+					onPick={(epic) => onChange({ epic })}
+					finalFocus={finalFocus}
+					trigger={anchor("Epic")}
 				/>
 			)}
 			{editing === "parent" && (

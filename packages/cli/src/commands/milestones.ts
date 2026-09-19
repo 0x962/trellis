@@ -22,6 +22,9 @@ export const progress = (row: { counts: EpicCounts }) =>
 export const countsText = (row: { counts: EpicCounts }) =>
 	`todo ${row.counts.todo}, started ${row.counts.started}, review ${row.counts.review}, done ${row.counts.done}, canceled ${row.counts.canceled}`;
 
+export const nextText = (row: MilestoneSummary) =>
+	`to start ${row.toStart}, running ${row.running}, waits for you ${row.waitsForYou}`;
+
 // The rows arrive in position order, so the table prints no position column.
 export const milestoneList: ListSpec<MilestoneSummary> = {
 	columns: [
@@ -29,6 +32,7 @@ export const milestoneList: ListSpec<MilestoneSummary> = {
 		{ name: "state", value: (row) => row.state },
 		{ name: "progress", value: progress },
 		{ name: "counts", value: countsText },
+		{ name: "next", value: nextText },
 		{ name: "name", value: (row) => cell(row.name) },
 	],
 	identifier: (row) => row.ref,
@@ -44,6 +48,7 @@ const milestoneRecord: RecordSpec<MilestoneSummary> = {
 		{ name: "state", value: (row) => row.state },
 		{ name: "progress", value: progress },
 		{ name: "counts", value: countsText },
+		{ name: "next", value: nextText },
 	],
 	identifier: (row) => row.ref,
 };
@@ -115,9 +120,12 @@ const order = defineCommand({
 		// be a ULID, so the `KEY/epic-slug` prefix comes from the epic record.
 		const epic = await client.epics.get({ epic: args.epic });
 		// citty keeps every positional in `_`, so the slugs follow the epic ref.
+		// An argument with a slash is a full milestone ref and goes out as it
+		// is, so the server answers MILESTONE_OUTSIDE_EPIC for a ref of another
+		// epic.
 		const milestones = await client.milestones.reorder({
 			epic: epic.ref,
-			milestones: args._.slice(1).map((slug) => `${epic.ref}/${slug}`),
+			milestones: args._.slice(1).map((slug) => (slug.includes("/") ? slug : `${epic.ref}/${slug}`)),
 		});
 		printList(ctx.out, ctx.format, milestones, milestoneList);
 	},

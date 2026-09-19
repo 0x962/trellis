@@ -1,3 +1,4 @@
+import type { TicketSummary } from "@trellis/api";
 import { create } from "zustand";
 
 // What the palette knows about the page under it: the ticket in context,
@@ -8,6 +9,16 @@ import { create } from "zustand";
 // with no command sections, `projects` opens the project picker.
 export type CommandMode = "commands" | "search" | "projects";
 
+// The two selection commands of the surface that owns the rows. The table
+// and the board each hold their own selection state, so the palette calls
+// back into the surface instead of writing that state itself.
+export type SelectionOwner = {
+	// Selects every row the surface shows.
+	selectAll: () => void;
+	// Selects nothing.
+	clear: () => void;
+};
+
 export type CommandState = {
 	open: boolean;
 	initialQuery: string;
@@ -17,8 +28,12 @@ export type CommandState = {
 	pathname: string;
 	// The identifier of the row that holds the focus.
 	focusedTicket: string | null;
-	// The identifiers of the selected rows.
-	selection: string[];
+	// The selected rows, in display order. The palette writes to these rows,
+	// and it reads their labels to mark the label submenu.
+	selection: TicketSummary[];
+	// The surface that wrote `selection`, or null while no such surface is
+	// on screen.
+	selectionOwner: SelectionOwner | null;
 };
 
 const initial: CommandState = {
@@ -29,6 +44,7 @@ const initial: CommandState = {
 	pathname: "",
 	focusedTicket: null,
 	selection: [],
+	selectionOwner: null,
 };
 
 export const useCommandStore = create<CommandState>()(() => ({ ...initial }));
@@ -71,7 +87,8 @@ export const commandActions = {
 	// still true.
 	reset: () => set({ ...initial }),
 	setFocusedTicket: (identifier: string | null) => set({ focusedTicket: identifier }),
-	setSelection: (identifiers: string[]) => set({ selection: identifiers }),
+	setSelection: (rows: TicketSummary[]) => set({ selection: rows }),
+	setSelectionOwner: (owner: SelectionOwner | null) => set({ selectionOwner: owner }),
 	// The route the app moved to. A new route drops the ticket context and
 	// the selection.
 	setRoute: (pathname: string) =>

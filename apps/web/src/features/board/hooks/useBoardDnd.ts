@@ -160,6 +160,9 @@ export const useBoardMonitor = (
 	announce: (message: string) => void,
 	// useCardPositionMotion needs this box before runMove changes the card's column.
 	onDropped: (ticketId: string, priorBox: DOMRect) => void,
+	// Names the card a drag picked up. A drag moves that card and no other,
+	// so the board drops a selection that holds it.
+	onPickUp: (ticketId: string) => void,
 ) => {
 	useEffect(
 		() =>
@@ -167,6 +170,7 @@ export const useBoardMonitor = (
 				canMonitor: ({ source }) => isTicketData(source.data),
 				onDragStart: ({ source }) => {
 					const data = source.data as TicketData;
+					onPickUp(data.ticketId);
 					announce(
 						`${data.identifier} picked up from ${data.columnName}, position ${data.index + 1} of ${data.columnCount}`,
 					);
@@ -195,6 +199,6 @@ export const useBoardMonitor = (
 					onMove(move);
 				},
 			}),
-		[announce, columns, onChooseStatus, onMove, onDropped],
+		[announce, columns, onChooseStatus, onMove, onDropped, onPickUp],
 	);
 };

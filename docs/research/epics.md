@@ -124,6 +124,135 @@ Command palette, `apps/web/src/features/command/items.ts`: "Group by Epic" besid
 
 Every UI element above is canonical (`docs/UI_PATTERNS.md`): `Topbar`, `PageTitle`, `FilterBar`, `Chip`, `FilterPopover`, `Command`, `DisplayPopover`, `GroupHeader`, `SectionHeader`, `Row`, `StackedBar`, `Menu`, `IconButton`, `Tooltip`. The card mark is the one approved exception.
 
+## Milestones
+
+Decided on 2026-09-18. A milestone groups the tickets of one epic into an ordered phase. The routine runtime plan has four phases; each becomes a milestone of the epic. A milestone belongs to one epic. A ticket belongs to at most one milestone, and that milestone belongs to the ticket's epic.
+
+Table `milestones`, in `apps/server/src/db/tables/milestones.ts`, exported from `schema.ts`:
+
+| column | type and constraint |
+|---|---|
+| id | text PK, ULID |
+| epic_id | text NOT NULL, FK epics(id) ON DELETE CASCADE |
+| root_id | text NOT NULL; FK (epic_id, root_id) → epics (id, root_id) |
+| slug | text NOT NULL, CHECK `slugPattern`, UNIQUE (epic_id, slug) |
+| name | text NOT NULL, CHECK trimmed and 1 to 120 |
+| position | integer NOT NULL, CHECK >= 0; the order of the phases inside the epic |
+| created_at, updated_at | `at()` NOT NULL |
+| | UNIQUE (id, epic_id); index (epic_id, position) |
+
+Tickets gain `milestone_id` text NULL, FK `tickets_milestone_fk` (milestone_id) → milestones (id) ON DELETE SET NULL, index (milestone_id), and CHECK `tickets_milestone_needs_epic`: `milestone_id IS NULL OR epic_id IS NOT NULL`. The rule that the milestone belongs to the ticket's epic is a service rule, `MILESTONE_OUTSIDE_EPIC` (400), a new error code in `packages/api/src/errors.ts`.
+
+Service rules on a ticket write: a `milestone` value sets `epic_id` to the milestone's epic in the same write, so one call places a ticket. An `epic` value that differs from the current epic, or `epic: null`, sets `milestone_id` NULL. `updateMany` follows the same rules per ticket. Activity records field `milestone` with the refs as `from_value` and `to_value`. Events: `milestone` joins the `fields` of `ticket.created` and `ticket.updated`, and `membershipFields`; a change of `milestone`, `epic`, `status`, or `completedAt` invalidates the `epics` family. `epics.changed` covers milestone create, update, reorder, and delete (the payload names the epic).
+
+Derived per milestone, never stored: the counts by status category and the state `open` or `done`, with the rules of the epic.
+
+One migration, `0080_wild_legion`, generated after `0079_session_attention` with `bun run db:generate`. Never edit an earlier migration.
+
+Refs and API. MilestoneRef: a ULID, or `KEY/epic-slug/milestone-slug` such as `OP/routine-runtime/phase-1`; three segments keep it apart from an EpicRef. Schemas in `packages/api/src/schemas/milestone.ts` (a `MilestoneLinkSchema` in `milestoneLink.ts` if an import cycle needs it):
+
+```
+MilestoneSummarySchema = { id, epicId, ref, slug, name, position, counts, state, createdAt, updatedAt }
+MilestoneLinkSchema = { id, ref, name }                       // on a ticket
+EpicSchema gains milestones: MilestoneSummary[] in position order
+TicketSummarySchema and TicketSchema gain milestone: MilestoneLinkSchema.nullable()
+TicketCreateInputSchema gains milestone?: MilestoneRef
+TicketUpdateInputSchema and TicketUpdateManyInputSchema gain milestone?: MilestoneRef | null
+ListQuerySchema gains milestone?: "none" | MilestoneRef        // clause, filterKey, read.ts resolve
+```
+
+Contract `packages/api/src/contract/milestones.ts`: `milestones.create POST /api/milestones` (body `epic`, name, slug?, appended last), `milestones.update PATCH /api/milestones/{+milestone}` (name, slug), `milestones.reorder PUT /api/milestones/order` (body `epic` and the full list of milestone refs; a list that is incomplete, repeated, or from another epic is `MILESTONE_OUTSIDE_EPIC`), `milestones.delete DELETE /api/milestones/{+milestone}` (sets `milestone_id` NULL on its tickets through the FK, one activity row and one `ticket.updated` per ticket; an agent needs `force`). The router reads `{+name}` as the rest of the path, so no route continues after an epic ref, and `create` and `reorder` take the epic in the body. A slug taken in the epic is `DUPLICATE` with field `slug`.
+
+Brief: the header gains `- Milestone: <name> (<ref>), <done> of <total - canceled> done` when the ticket has one. `## Epic tickets` groups the lines under `### <milestone name>` headings in position order, then `### No milestone`.
+
+CLI, `packages/cli/src/commands/milestones.ts`, registered in `verbs.ts`:
+
+```
+trellis milestones list OP/routine-runtime
+trellis milestones create OP/routine-runtime --name "Phase 1" [--slug s]
+trellis milestones edit OP/routine-runtime/phase-1 [--name] [--slug]
+trellis milestones order OP/routine-runtime phase-1 phase-2 phase-3 phase-4
+trellis milestones add OP/routine-runtime/phase-1 OP-29 OP-30 ...   # tickets.updateMany with milestone
+trellis milestones remove OP-29 ...                                 # tickets.updateMany with milestone: null
+trellis milestones delete OP/routine-runtime/phase-1 [--force]
+```
+
+`--milestone <ref>` joins `create`, `sub`, `edit` (`none` clears), and `list`. `epics show` prints the milestones with their counts, then the tickets grouped by milestone. `instructions.md`: a plan with phases makes one milestone per phase and creates each ticket with `--milestone`.
+
+Web:
+
+- Filters: `View.milestone`, parse and serialize, `searchParamOrder` after `epic`, field "Milestone" in the picker only when the route has a project (the stage lists the milestones of the epics of the project, grouped by epic name), chip prints the milestone name.
+- `Group` gains `"milestone"`: groups in milestone position order, "No milestone" last; the `GroupHeader` count slot prints `done/total` of the milestone when the rows come from one epic. `DisplayPopover` offers "Milestone". Column "Milestone", hidden by default. `BulkBar`: "Set milestone" with the milestones of the tickets' epic.
+- Ticket page rail: a `PropertyRow` "Milestone" after "Epic"; the picker lists the milestones of the ticket's epic and "None"; hidden when the ticket has no epic.
+- Epic page: see the revision below. The Edit epic sheet gains a "Milestones" section: the list of milestones in order, each with a name field, a move up and a move down `IconButton`, a delete `IconButton`, and an "Add milestone" action. It writes through `milestones.create`, `update`, `reorder`, `delete`.
+
+## Epic page revision
+
+Decided on 2026-09-18: the epic page shows its tickets in the full-width ticket table, the same `TicketTable` as the project table view, with no page-specific row. Structure, top to bottom:
+
+1. `Topbar` with the breadcrumb `Operator / Epics / Routine runtime`, the `FilterBar` chips of the page (every field except `epic`, which the page fixes), the Display `IconButton` (`DisplayPopover` with group, sort, density, columns, as the project table), an Add `IconButton` with a `Tooltip` "Add tickets" that opens the `TicketPicker` scoped to the project (no "None" option), and the row `Menu` (Edit, Delete).
+2. A header band in the page padding: the state `Badge`, `<done> of <total - canceled> done`, the `StackedBar` with legend, and one `StackedBar` line per milestone with its name and `done/total` (the milestones in position order; the "Composition of one total" pattern).
+3. A `SectionHeader` "Plan" that collapses; collapsed by default when the description is longer than 1200 characters, else expanded; the collapsed state per route key in `uiStore` like a table group. The body is the description through `ReadOnlyMarkdown`.
+4. The `TicketTable` with the root project of the epic, `routeKey` of the epic page, and `search` = the URL view with `epic` fixed to the epic ref, `group` default `milestone`, and `scope` default `subprojects`. An epic belongs to a root and holds tickets of any project of that root, so the table reads the root with its sub-projects and its rows match the counts of the band. The URL of the epic page carries the same params as the project table (`group`, `sort`, `density`, `columns`, the other filters). The table's row actions, bulk bar, keyboard navigation, `PrCell` colors, and actor cell come with it. "Remove from epic" is the bulk bar "Set epic" with "None" and the rail row; the page adds no row menu.
+
+The actor cell of every row (table `Row`, board card, epic page, needs-you) shows the provider mark only for the agent run that is assigned to that ticket. A ticket with no assigned agent shows its last actor without a provider mark. `ActorAvatar` takes the assigned run from `agentRuns.list { assigned: true }` (the `useWorkingAgents` query) by `run.ticketId === ticketId`, and reads the profile from that run alone; `useActorRun(actor)` no longer supplies the profile for an unassigned ticket.
+
+The epics list page keeps its rows, aligned with the ticket table `Row` classes: the same row heights (`rowHeights[density]`), the same hover band, the same cell text sizes and tabular numbers, the same trailing `Menu` slot width. No page-specific control shape.
+
+Adoption of the milestones for the Operator case, after the release:
+
+```
+trellis milestones create OP/routine-runtime --name "Phase 1: run state"
+trellis milestones create OP/routine-runtime --name "Phase 2: unattended runs"
+trellis milestones create OP/routine-runtime --name "Phase 3: proposals"
+trellis milestones create OP/routine-runtime --name "Phase 4: system routines"
+trellis milestones add OP/routine-runtime/phase-1-run-state OP-29 OP-30 OP-31 OP-32 OP-33 OP-34 OP-35 OP-36 OP-37 OP-38 OP-39
+trellis milestones add OP/routine-runtime/phase-2-unattended-runs OP-40 OP-41 OP-42 OP-43 OP-44
+trellis milestones add OP/routine-runtime/phase-3-proposals OP-45 OP-46 OP-47 OP-48 OP-49
+trellis milestones add OP/routine-runtime/phase-4-system-routines OP-50 OP-51
+```
+
+## Follow-up build: what is next, and guidance for the planner
+
+This section is a separate build. It starts after the milestones build lands. The milestones build does not read it.
+
+Navid, 2026-09-18: "We need to add guidance for the agent that sets it up. How to create milestones, group work so it can move in parallel, organize items so we can work on multiple fronts together and then integrate. The trellis view should make it clear what needs to happen next. Right now I can't tell with a flat list." The human is the manager: no hold, no gate, no blocked state in the UI. The view informs; the person decides.
+
+### The one rule that carries order
+
+Order lives between milestones, never inside one. Every ticket of a milestone can start at the same time. A ticket that needs the result of another ticket goes in a later milestone. So the milestone order is the dependency structure, and Trellis needs no dependency edge to answer "what is next": it is the open tickets of the first milestone that is not done.
+
+### Guidance for the planner agent
+
+`packages/cli/src/instructions.md` gains a section "Plan an epic", and `trellis epics guide` prints the same text. The text, in STE:
+
+1. Write the plan as the epic description: the goal, the fronts, the milestones, the decisions that the person must make.
+2. Cut the work into fronts. A front is a line of work that one agent can finish with no result from another front: the server, the web, the CLI, the docs, a second repository. One ticket per front per milestone. The ticket title starts with the front: "Server: the milestones table and API".
+3. Put the fronts that can run together in one milestone. Name the milestone for the state it reaches: "Foundation", "Surfaces", "Integrate", "Review", "Fix".
+4. After each set of parallel fronts, add a milestone that integrates them: one ticket that merges the branches, runs the type check, the linter, and the tests, and fixes what the merge broke. Parallel work that nobody integrates is not done.
+5. Keep sequential steps of one front inside its ticket as sub-tickets, in order. A sub-ticket is a step of one agent; a ticket is a front; a milestone is a point where the fronts meet.
+6. Never put two tickets in one milestone when one needs the other. Move the second one to a later milestone.
+7. File each decision for the person as a ticket in the human review status, in the first milestone that needs the answer. Write the options and your recommendation in its description.
+8. State in each ticket: the files it owns, what it must not touch, the commands that verify it, and the result the next milestone reads. Two tickets of one milestone never own the same file.
+9. Size: a milestone holds 2 to 8 tickets. A ticket is 1 agent session. A plan with more than 6 milestones is two epics.
+10. Create everything in one pass: `trellis epics create`, `trellis milestones create` per milestone in order, `trellis create --milestone` per ticket.
+
+The brief of a ticket with a milestone gains "## Results of earlier milestones": for each done ticket of each earlier milestone, its identifier, title, and last comment of its agent, so a front reads what it builds on.
+
+### The view
+
+Server: `EpicSummary` gains `currentMilestone: MilestoneLink | null`, the first milestone in position order whose state is open. Each `MilestoneSummary` gains `toStart`, the count of its tickets in the todo category with no open agent run, and `waitsForYou`, the count of its tickets in a status with the human reviewer.
+
+Epic page, all canonical elements:
+
+- The table groups by milestone in position order. A done milestone starts collapsed. The current milestone carries a `Badge` "Current" in its `GroupHeader`, and its count slot prints `done/total`. A later milestone stays expanded and prints "Later" in the muted count slot beside `done/total`.
+- The header band opens with one line for the current milestone: `Current: <name>` and three counts, `<n> to start`, `<n> running`, `<n> wait for you`. Each count is a link that sets the table filter (status category todo with no agent, working, reviewer human) inside that milestone. The per-milestone bars below mark the current one with the same `Badge`.
+- Inside a milestone group the default sort puts tickets that wait for the person first, then tickets to start, then running, then done.
+
+Epics list row: after the name, the muted text `<current milestone name> · <i> of <n>`. Board card: no change.
+
+Needs you: no change; a decision ticket already lists there.
+
 ## Adoption of the Operator case
 
 After the release runs, three commands:

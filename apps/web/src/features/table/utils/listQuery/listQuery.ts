@@ -46,3 +46,30 @@ export const closedInput = (
 	const { category: _category, ...query } = scopedQuery(project, view, statuses);
 	return { ...query, status: closedSlugs(statuses, category), limit: closedPageSize };
 };
+
+// True when the table draws the Done and Canceled rows inside the groups of
+// the view, not in groups of their own: the milestone grouping of one epic.
+// A finished milestone then keeps its group, and an open milestone shows
+// its done rows. One epic bounds the row count; a milestone grouping over
+// every epic of a project keeps the open rows alone.
+export const hasInlineClosed = (view: View) =>
+	view.group === "milestone" &&
+	view.epic !== undefined &&
+	view.epic !== "none" &&
+	view.closed !== "hide" &&
+	!hasStatusFilter(view);
+
+// The page query of the inline closed rows: the same filters, and the
+// statuses of the two closed categories.
+export const inlineClosedInput = (
+	project: string | undefined,
+	view: View,
+	statuses: readonly Status[],
+): ListQueryInput => {
+	const { category: _category, ...query } = scopedQuery(project, view, statuses);
+	return {
+		...query,
+		status: [...closedSlugs(statuses, "done"), ...closedSlugs(statuses, "canceled")],
+		limit: pageSize,
+	};
+};

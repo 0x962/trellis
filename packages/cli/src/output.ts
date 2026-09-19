@@ -160,6 +160,8 @@ export type TicketFields = TicketRow & {
 	status: { slug: string; category: string };
 	project: { path: string };
 	parent: { identifier: string } | null;
+	epic: { ref: string; name: string } | null;
+	milestone: { ref: string; name: string } | null;
 	childCount: number;
 	childDoneCount: number;
 	commentCount: number;
@@ -182,6 +184,11 @@ export const ticketRecord: RecordSpec<TicketFields> = {
 		{ name: "labels", value: (row) => labelsCell(row.labels) },
 		{ name: "project", value: (row) => row.project.path },
 		{ name: "parent", value: (row) => cell(row.parent?.identifier) },
+		{ name: "epic", value: (row) => (row.epic === null ? "-" : cell(`${row.epic.name} (${row.epic.ref})`)) },
+		{
+			name: "milestone",
+			value: (row) => (row.milestone === null ? "-" : cell(`${row.milestone.name} (${row.milestone.ref})`)),
+		},
 		{ name: "children", value: (row) => `${row.childDoneCount}/${row.childCount} done` },
 		{ name: "comments", value: (row) => String(row.commentCount) },
 		{ name: "attachments", value: (row) => String(row.attachmentCount) },

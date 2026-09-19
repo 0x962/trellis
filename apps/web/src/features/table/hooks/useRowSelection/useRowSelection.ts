@@ -1,8 +1,22 @@
 import { useCallback, useMemo, useState } from "react";
 
 export type RowSelectionOptions = {
-	// Every row id of the view in display order, mounted or not.
+	// The id of every row a person can see, in display order. A row inside a
+	// collapsed group is not one of them, so no key and no range reaches it.
 	ids: readonly string[];
+};
+
+// The selected rows in display order, and how many there are. Both read the
+// same list, so a row that leaves the view, such as a ticket a live patch
+// moves out of the filter, leaves the count as well. The bulk bar prints
+// `count` and every bulk action writes `selected`, and the two must name the
+// same rows.
+export const selectionOf = (
+	ids: readonly string[],
+	selected: ReadonlySet<string>,
+): { selected: string[]; count: number } => {
+	const rows = ids.filter((id) => selected.has(id));
+	return { selected: rows, count: rows.length };
 };
 
 export type RowSelection = {
@@ -59,9 +73,9 @@ export const useRowSelection = ({ ids }: RowSelectionOptions): RowSelection => {
 
 	const clear = useCallback(() => setState(empty), []);
 
-	const selected = useMemo(() => ids.filter((id) => state.selected.has(id)), [ids, state.selected]);
+	const view = useMemo(() => selectionOf(ids, state.selected), [ids, state.selected]);
 
 	const isSelected = useCallback((id: string) => state.selected.has(id), [state.selected]);
 
-	return { selected, count: state.selected.size, isSelected, toggle, extend, selectAll, clear };
+	return { selected: view.selected, count: view.count, isSelected, toggle, extend, selectAll, clear };
 };

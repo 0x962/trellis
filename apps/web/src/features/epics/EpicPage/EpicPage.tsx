@@ -3,59 +3,88 @@ import { PencilSimple, Plus, Trash } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { Project, TicketSummary } from "@trellis/api";
-import { Badge, Button, EmptyState, Menu, SectionHeader, StackedBar } from "@trellis/ui";
-import { useState } from "react";
-import { ReadOnlyMarkdown } from "../../../components/ReadOnlyMarkdown";
+import { Button, EmptyState, IconButton, Menu } from "@trellis/ui";
+import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { errorMessage } from "../../../lib/conflict";
-import { formatCount } from "../../../lib/format";
-import { projectHref, projectSlashPath } from "../../../lib/projectPath";
+import { epicHref, projectHref, projectSlashPath, rootKey } from "../../../lib/projectPath";
+import { useUiStore } from "../../../stores/uiStore";
+import { FilterBar } from "../../filters/FilterBar";
+import { type View, viewOf } from "../../filters/grammar";
+import { hasFilters } from "../../filters/labels";
 import { TicketPicker } from "../../pickers/TicketPicker";
+import { ArchivedBanner } from "../../project-actions";
 import { NotFoundState } from "../../shell/NotFoundState";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar } from "../../shell/Topbar";
+import { DisplayPopover } from "../../table/DisplayPopover";
 import { useTicketMutations } from "../../table/hooks/useTicketMutations";
-import { useOpenTicket } from "../../ticket/hooks/useOpenTicket";
+import { TicketTable } from "../../table/TicketTable";
+import { TableSkeleton } from "../../table/TicketTable/components/TableSkeleton";
 import { DeleteEpicDialog } from "../DeleteEpicDialog";
 import { EpicSheet } from "../EpicSheet";
-import { epicProgress, epicSegments } from "../epicBar";
-import { EpicTicketRow } from "./components/EpicTicketRow";
+import { assignedTicketIds, epicRowRank } from "../epicRowRank";
+import { epicPageSearch, epicQueryString, epicUrlSearch } from "../epicSearch";
+import { EpicPlan } from "./components/EpicPlan";
+import { EpicProgress } from "./components/EpicProgress";
 
 export type EpicPageProps = {
 	project: Project;
 	// The epic slug from the URL: `/p/OP/epics/<slug>`.
 	slug: string;
+	// The validated search of the URL. It holds the same params as the
+	// project table, and never `epic`, because the path names the epic.
+	search: Partial<View>;
+	// Receives the next URL search after a filter or a display change.
+	onSearchChange: (next: Partial<View>) => void;
 };
+
+const clearLinkClass =
+	"inline-flex h-8 items-center rounded-md border border-border bg-surface px-3 text-base font-medium text-fg transition duration-hover hover:bg-bg hover:border-border-strong focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
+
+const noAssigned: ReadonlySet<string> = new Set();
 
 const breadcrumbLinkClass =
 	"inline-flex h-7 items-center rounded-md px-1 text-fg-muted transition-colors duration-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
 
-// One epic: the bar of its counts with the legend, its state, the plan as
-// markdown, and its tickets in number order. Add puts a ticket of the
-// project into the epic; the row menu takes one out. Both are ticket
+// One epic: the progress band, the plan, and the tickets of the epic in the
+// ticket table of the project routes. The table search is the URL search
+// with `epic` fixed to this epic, and it groups by milestone when the URL
+// names no group. An epic belongs to a root and holds tickets of any
+// project of that root, so the table reads the root with its sub-projects,
+// and the rows match the counts of the band and the tickets that Add
+// offers. The filter bar receives `epic` as a fixed filter, so it draws no
+// epic chip and "Copy as CLI" still names the epic. Add puts a ticket of the project into the epic; the bulk bar of the
+// table and the rail of the ticket page take one out. Both are ticket
 // writes, so the ticket rows and the epic counts refetch from the ticket
 // events.
-export function EpicPage({ project, slug }: EpicPageProps) {
+export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProps) {
 	const { orpc, queryClient } = useApp();
 	const navigate = useNavigate();
-	const openTicket = useOpenTicket();
 	const mutations = useTicketMutations();
+	const storedDensity = useUiStore((state) => state.density);
 	const ref = `${project.key}/${slug}`;
 	const epic = useQuery(orpc.epics.get.queryOptions({ input: { epic: ref } }));
 	const readOnly = project.archivedAt !== null;
+	const routeKey = epicHref(project.path, slug);
+	const splat = `${projectSlashPath(project.path)}/epics/${slug}`;
 	const [editing, setEditing] = useState(false);
 	const [deleting, setDeleting] = useState(false);
+	// The assigned runs come from the query that the actor cell of every row
+	// reads, so the order of the rows costs no request of its own. Inside a
+	// milestone group the tickets that wait for the person come first, then
+	// the tickets to start, then the running tickets.
+	const assigned = useQuery({
+		...orpc.agentRuns.list.queryOptions({ input: { assigned: true } }),
+		select: assignedTicketIds,
+	}).data;
+	const rowRank = useMemo(() => epicRowRank(assigned ?? noAssigned), [assigned]);
 
 	// The epic query refetches after the ticket write, because the write
 	// response names no changed fields and the counts live on the epic.
-	const setEpic = async (ticket: TicketSummary, epicRef: string | null) => {
-		await mutations.updateMany(
-			[ticket],
-			{ epic: epicRef },
-			{},
-			(subject) => `${subject} did not ${epicRef === null ? "leave" : "join"} the epic.`,
-		);
+	const addTicket = async (ticket: TicketSummary, epicRef: string) => {
+		await mutations.updateMany([ticket], { epic: epicRef }, {}, (subject) => `${subject} did not join the epic.`);
 		await queryClient.invalidateQueries({ queryKey: orpc.epics.key() });
 	};
 
@@ -76,15 +105,47 @@ export function EpicPage({ project, slug }: EpicPageProps) {
 		</span>
 	);
 
+	// The search and the filter bar need the epic ref and the project alone,
+	// so the pending page draws the same bar as the loaded page and the
+	// topbar keeps its shape when the epic arrives.
+	const tableSearch = epicPageSearch(search, ref);
+	const { epic: fixedEpic, ...barSearch } = tableSearch;
+	const full = viewOf(tableSearch);
+	const setSearch = (next: Partial<View>) => onSearchChange(epicUrlSearch(next));
+	const filterBar = (
+		<FilterBar
+			project={project.path}
+			search={barSearch}
+			onSearchChange={setSearch}
+			statuses={project.statuses}
+			fixed={{ epic: ref }}
+			linkSearch={epicQueryString}
+			actions={
+				<DisplayPopover
+					routeKey={routeKey}
+					showProject={full.scope !== "self"}
+					epicFixed
+					search={barSearch}
+					onSearchChange={setSearch}
+					density={search.density ?? storedDensity}
+					group={full.group}
+					sort={full.sort}
+				/>
+			}
+		/>
+	);
+
 	if (epic.isPending) {
 		return (
 			<>
 				<Topbar>
 					<PageTitle parent={parent} title={slug} />
+					{filterBar}
 				</Topbar>
 				<div className="page-card flex flex-1 flex-col overflow-hidden">
-					<div role="status" className="flex min-h-0 flex-1 items-center justify-center text-sm text-fg-muted">
-						Load epic…
+					{readOnly && <ArchivedBanner project={project} />}
+					<div aria-busy="true" className="flex min-h-0 flex-1 flex-col">
+						<TableSkeleton density={search.density ?? storedDensity} />
 					</div>
 				</div>
 			</>
@@ -118,93 +179,83 @@ export function EpicPage({ project, slug }: EpicPageProps) {
 	}
 
 	const record = epic.data;
-	const progress = epicProgress(record.counts);
 	const identifiers = record.tickets.map((ticket) => ticket.identifier);
-
 	return (
 		<>
 			<Topbar
 				actions={
-					<Menu
-						label={`Actions for ${record.name}`}
-						triggerTooltip="Epic actions"
-						items={[
-							{ label: "Edit", icon: <PencilSimple />, disabled: readOnly, onSelect: () => setEditing(true) },
-							{
-								label: "Delete…",
-								icon: <Trash />,
-								danger: true,
-								disabled: readOnly,
-								onSelect: () => setDeleting(true),
-							},
-						]}
-					/>
+					<>
+						{!readOnly && (
+							<TicketPicker
+								project={project.key}
+								exclude={identifiers}
+								allowNone={false}
+								label="Add to epic"
+								placeholder="Add a ticket: an identifier or a title"
+								triggerTooltip="Add tickets"
+								onPick={(ticket) => {
+									if (ticket !== null) void addTicket(ticket, record.ref);
+								}}
+								trigger={<IconButton label="Add tickets" icon={<Plus />} variant="default" />}
+							/>
+						)}
+						<Menu
+							label={`Actions for ${record.name}`}
+							triggerTooltip="Epic actions"
+							items={[
+								{ label: "Edit", icon: <PencilSimple />, disabled: readOnly, onSelect: () => setEditing(true) },
+								{
+									label: "Delete…",
+									icon: <Trash />,
+									danger: true,
+									disabled: readOnly,
+									onSelect: () => setDeleting(true),
+								},
+							]}
+						/>
+					</>
 				}
 			>
 				<PageTitle parent={parent} title={record.name} />
+				{filterBar}
 			</Topbar>
-			<article className="page-card relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
-				<div className="mx-auto flex w-full min-w-0 max-w-[856px] flex-col gap-8 px-5 pt-6 pb-8 max-md:px-4">
-					<section aria-label="Progress" className="flex flex-col gap-3">
-						<div className="flex items-center gap-3">
-							<Badge tone={record.state === "done" ? "ok" : "accent"}>
-								{record.state === "done" ? "Done" : "Open"}
-							</Badge>
-							<span className="text-sm text-fg-muted tabular">
-								{formatCount(progress.done)} of {formatCount(progress.of)} done
-							</span>
-						</div>
-						<StackedBar label={`Tickets of ${record.name} by status`} segments={epicSegments(record.counts)} />
-					</section>
-					<section aria-label="Description">
-						{record.description.trim() === "" ? (
-							<p className="text-sm text-fg-faint">No description. Edit the epic to write the plan.</p>
-						) : (
-							<ReadOnlyMarkdown markdown={record.description} className="text-md" />
-						)}
-					</section>
-					<section aria-label="Tickets" className="flex flex-col gap-2">
-						<SectionHeader
-							title="Tickets"
-							count={formatCount(record.counts.total)}
-							actions={
-								readOnly ? undefined : (
-									<TicketPicker
-										project={project.key}
-										exclude={identifiers}
-										allowNone={false}
-										label="Add to epic"
-										placeholder="Add a ticket: an identifier or a title"
-										onPick={(ticket) => {
-											if (ticket !== null) void setEpic(ticket, record.ref);
-										}}
-										trigger={
-											<Button variant="quiet" size="sm" icon={<Plus />}>
-												Add
-											</Button>
-										}
-									/>
-								)
-							}
-						/>
-						{record.tickets.length === 0 ? (
-							<EmptyState description="Add a ticket of the project to this epic. Its agent then reads the plan in its brief." />
-						) : (
-							<ul className="overflow-hidden rounded-md border border-border">
-								{record.tickets.map((ticket) => (
-									<EpicTicketRow
-										key={ticket.id}
-										ticket={ticket}
-										readOnly={readOnly}
-										onOpen={() => openTicket(ticket.identifier)}
-										onRemove={() => void setEpic(ticket, null)}
-									/>
-								))}
-							</ul>
-						)}
-					</section>
+			<div className="page-card flex flex-1 flex-col overflow-hidden">
+				{readOnly && <ArchivedBanner project={project} />}
+				{/* The band and the plan take at most half of the card and scroll inside it, so the table always keeps rows on screen. */}
+				<div className="max-h-1/2 shrink-0 overflow-y-auto border-b border-border">
+					<EpicProgress epic={record} splat={splat} search={tableSearch} />
+					<EpicPlan routeKey={routeKey} description={record.description} />
 				</div>
-			</article>
+				<fieldset disabled={readOnly} className="contents">
+					<TicketTable
+						project={rootKey(project.path)}
+						routeKey={routeKey}
+						search={tableSearch}
+						rowRank={rowRank}
+						onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
+						emptyState={
+							hasFilters(search) ? (
+								<EmptyState
+									variant="page"
+									title={search.q === undefined ? "No tickets match" : `No tickets match '${search.q}'`}
+									description="Clear the filters to see every ticket of the epic."
+									action={
+										<Link to="/p/$" params={{ _splat: splat }} search={{}} className={clearLinkClass}>
+											Clear filters
+										</Link>
+									}
+								/>
+							) : (
+								<EmptyState
+									variant="page"
+									title="No tickets"
+									description="Add a ticket of the project to this epic. Its agent then reads the plan in its brief."
+								/>
+							)
+						}
+					/>
+				</fieldset>
+			</div>
 			{editing && <EpicSheet project={project} epic={record} onClose={() => setEditing(false)} />}
 			<DeleteEpicDialog
 				epic={record}

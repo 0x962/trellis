@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { Button } from "../Button";
 import { Dialog } from "../Dialog";
 
@@ -18,6 +18,9 @@ export type ConfirmDialogProps = {
 	// it when this dialog opens on top of another dialog, because two focus
 	// traps on one screen take the keyboard from each other.
 	modal?: boolean | "trap-focus";
+	// The element that takes focus when the dialog closes, as in `Dialog`.
+	// Set it when the confirmed action removes the opener from the page.
+	finalFocus?: ComponentProps<typeof Dialog>["finalFocus"];
 	children?: ReactNode;
 	onConfirm: () => void;
 	onCancel: () => void;
@@ -25,7 +28,7 @@ export type ConfirmDialogProps = {
 
 // The one modal that asks a person to confirm an action. The scrim blocks
 // the page behind it, Escape cancels, and focus returns to the control that
-// opened it.
+// opened it, or to `finalFocus`.
 export function ConfirmDialog({
 	open,
 	title,
@@ -34,6 +37,7 @@ export function ConfirmDialog({
 	danger = false,
 	processing = false,
 	modal = true,
+	finalFocus,
 	children,
 	onConfirm,
 	onCancel,
@@ -42,6 +46,7 @@ export function ConfirmDialog({
 		<Dialog
 			open={open}
 			modal={modal}
+			finalFocus={finalFocus}
 			onOpenChange={(next) => !next && onCancel()}
 			title={title}
 			description={description}

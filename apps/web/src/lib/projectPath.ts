@@ -70,6 +70,29 @@ export const rootKey = (ref: string) => ref.split(".")[0]!;
 // The project path as the sidebar and a breadcrumb print it: `CDE/web/auth`.
 export const projectSlashPath = (ref: string) => ref.split(".").join("/");
 
+// True when the pathname is the page of one epic: `/p/OP/epics/<slug>`.
+export const isEpicPathname = (pathname: string): boolean =>
+	pathname.startsWith("/p/") &&
+	popView(
+		pathname
+			.slice(3)
+			.split("/")
+			.filter((segment) => segment !== ""),
+	).view === "epic";
+
+// The epic ref of an epic page pathname, or null on every other page:
+// `OP/routine-runtime` for `/p/OP/web/epics/routine-runtime`. An epic
+// belongs to a root, so the ref starts with the root key of the project.
+export const epicRefOfPathname = (pathname: string): string | null => {
+	if (!pathname.startsWith("/p/")) return null;
+	const segments = pathname
+		.slice(3)
+		.split("/")
+		.filter((segment) => segment !== "");
+	const { epic } = popView(segments);
+	return epic === undefined ? null : `${segments[0]}/${epic}`;
+};
+
 // The API ref of a `/p/...` pathname, or null when the pathname is not a
 // project route or holds an invalid segment. The sidebar marks the active
 // row with it, so a bad URL never crashes the sidebar.

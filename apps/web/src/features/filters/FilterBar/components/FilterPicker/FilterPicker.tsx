@@ -5,6 +5,8 @@ import type { ReactElement } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { rootKey } from "../../../../../lib/projectPath";
 import { epicItems } from "../../../../pickers/EpicPicker";
+import { useEpicMilestones } from "../../../../pickers/hooks/useEpicMilestones";
+import { milestoneGroups } from "../../../../pickers/MilestonePicker";
 import { priorityItems } from "../../../../pickers/PriorityPicker";
 import { projectItems } from "../../../../pickers/ProjectPicker";
 import { statusGroups } from "../../../../pickers/statusGroups";
@@ -39,6 +41,12 @@ export type FilterPickerProps = {
 	labels: readonly FilterLabel[];
 	// The project ref of the route. /all offers the project field.
 	project?: string;
+	// The fields that the route fixes. The field list leaves them out.
+	hiddenFields?: readonly FilterField[];
+	// The epic ref that the route fixes. The Milestone values then list the
+	// milestones of that epic alone, because a milestone of another epic
+	// matches no ticket of the page.
+	fixedEpic?: string;
 	onChange: (view: View) => void;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -62,6 +70,8 @@ export function FilterPicker({
 	statuses,
 	labels,
 	project,
+	hiddenFields = [],
+	fixedEpic,
 	onChange,
 	open,
 	onOpenChange,
@@ -76,13 +86,20 @@ export function FilterPicker({
 			...orpc.actors.list.queryOptions({ input: {} }),
 			enabled: open && stage.kind === "values" && stage.field === "actor",
 		}).data ?? [];
-	// The epic field lists the epics of the root of the viewed project. /all
-	// has no project, so it offers no epic field.
+	// The epic field and the milestone field list the epics of the root of the
+	// viewed project. /all has no project, so it offers neither field.
 	const epics =
 		useQuery({
 			...orpc.epics.list.queryOptions({ input: { project: project === undefined ? "" : rootKey(project) } }),
-			enabled: open && project !== undefined && stage.kind === "values" && stage.field === "epic",
+			enabled:
+				open &&
+				project !== undefined &&
+				stage.kind === "values" &&
+				(stage.field === "epic" || stage.field === "milestone"),
 		}).data ?? [];
+	const milestoneStage = open && stage.kind === "values" && stage.field === "milestone";
+	const milestoneEpics = fixedEpic === undefined ? epics.map((epic) => epic.ref) : [fixedEpic];
+	const epicMilestones = useEpicMilestones(milestoneStage ? milestoneEpics : []);
 
 	const close = () => onOpenChange(false);
 
@@ -111,23 +128,27 @@ export function FilterPicker({
 		...(project === undefined ? [] : [{ id: scopeField, label: `Projects: ${scopeLabel}` }]),
 		...presets.map((preset) => ({ id: presetId(preset.label), label: preset.label })),
 		...pickerFields
+			.filter((field) => !hiddenFields.includes(field))
 			.filter((field) => field !== "project" || project === undefined)
-			// The root project of a tree owns its labels and its epics. A route
-			// without a project reads no one tree, so it offers no Label field and
-			// no Epic field.
-			.filter((field) => (field !== "label" && field !== "epic") || project !== undefined)
+			// The root project of a tree owns its labels, its epics, and their
+			// milestones. A route without a project reads no one tree, so it offers
+			// no Label field, no Epic field, and no Milestone field.
+			.filter((field) => (field !== "label" && field !== "epic" && field !== "milestone") || project !== undefined)
 			.map((field) => ({ id: field, label: fieldLabels[field] })),
 	];
 
 	// The Status and the Label values come in sections, so they take `groups`
-	// and leave `items` empty.
+	// and leave `items` empty. The Milestone values take both: the No milestone
+	// item, then one section per epic.
 	const sectioned = stage.kind === "values" && (stage.field === "status" || stage.field === "label");
 	const groups =
 		stage.kind === "values" && stage.field === "status"
 			? statusGroups(statuses, { checked: checkedStatusIds(view, statuses) })
 			: stage.kind === "values" && stage.field === "label"
 				? labelValueGroups(labels, view.label ?? [])
-				: [];
+				: milestoneStage
+					? milestoneGroups(epicMilestones, { current: view.milestone })
+					: [];
 	const items =
 		stage.kind === "scope"
 			? scopeValues.map((entry) => ({ id: entry.id, label: entry.label, checked: view.scope === entry.id }))
@@ -189,6 +210,8 @@ const valueItems = (
 				{ id: "none", label: "No epic", current: view.epic === "none" },
 				...epicItems(epics, { current: view.epic }),
 			];
+		case "milestone":
+			return [{ id: "none", label: "No milestone", current: view.milestone === "none" }];
 		case "pr":
 		case "ci":
 			return [
@@ -238,6 +261,8 @@ const valueChange = (view: View, field: FilterField, id: string, statuses: reado
 			return { ...view, parent: "none" };
 		case "epic":
 			return { ...view, epic: id };
+		case "milestone":
+			return { ...view, milestone: id };
 		case "pr":
 		case "ci":
 			return id.startsWith("pr:")

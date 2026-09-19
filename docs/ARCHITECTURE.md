@@ -182,7 +182,13 @@ before another agent can take the ticket.
 - An epic groups the tickets that deliver one plan inside a project. It is its own record with a name, a slug, and a markdown description that holds the plan. An epic is never a ticket.
 - A ticket belongs to at most one epic (`tickets.epic_id`). The epic and the ticket share one root (`CROSS_ROOT_MOVE`). A ticket in an epic can sit in any project of that root.
 - An epic stores no state. Its counts by status category come from its tickets. Its state is `done` when it has at least one ticket and every ticket is done or canceled. Otherwise it is `open`, so an epic with no ticket is open.
-- An epic delete sets `epic_id` NULL on its tickets, raises their `version`, writes one `epic` activity row per ticket, and emits `ticket.updated` for each. An agent needs `force` (`AGENT_CANNOT_DELETE`). A project delete cascades its epics.
+- An epic delete sets `epic_id` and `milestone_id` NULL on its tickets, raises their `version`, records field `epic` for each ticket, records field `milestone` for a ticket that held one, and emits `ticket.updated` for each. An agent needs `force` (`AGENT_CANNOT_DELETE`). A project delete cascades its epics.
+- A milestone is one ordered phase of an epic. It is its own record with a name, a slug, and a position. A milestone belongs to one epic, and an epic delete cascades its milestones.
+- A ticket belongs to at most one milestone (`tickets.milestone_id`), and that milestone belongs to the epic of the ticket. A ticket with no epic has no milestone (CHECK `tickets_milestone_needs_epic`).
+- A ticket write that gives `milestone` sets the epic of the ticket to the epic of that milestone in the same write. An `epic` value in that write that names another epic, or `epic: null`, is `MILESTONE_OUTSIDE_EPIC`.
+- A ticket write that gives an `epic` that differs from the current epic, or `epic: null`, sets `milestone_id` NULL.
+- A milestone stores no state. Its counts by status category and its state come from its tickets, with the rules of the epic.
+- A milestone delete sets `milestone_id` NULL on its tickets, and each ticket stays in its epic. The delete raises their `version`, records field `milestone` for each ticket, and emits `ticket.updated` for each. An agent needs `force` (`AGENT_CANNOT_DELETE`).
 
 ### Project notes
 
@@ -219,25 +225,80 @@ change of `epic` records field `epic` with the epic refs as `from_value` and
 carries `epic` as `{id, ref, name}` or `null`.
 
 The API is `epics.list`, `epics.get`, `epics.create`, `epics.update`, and
-`epics.delete`. The event `epics.changed {projectId, id}` fires on a create, an
+`epics.delete`. `epics.get` returns the summary, the milestones of the epic in
+position order, and the tickets in number order. The event `epics.changed {projectId, id}` fires on a create, an
 update, and a delete. Every ticket row copies the epic name and ref, so the
 event refetches the `epics` family, the `tickets` family, and `projects.list`.
-The counts of an epic follow its tickets, so a ticket event whose fields
-include `epic`, `status`, or `completedAt` invalidates the `epics` query
-family. `ProjectSummary.openEpicCount` counts the open epics of that project
+The counts of an epic and of each milestone follow its tickets, so a ticket
+event whose fields include `epic`, `milestone`, `status`, or `completedAt`
+invalidates the `epics` query family. `ProjectSummary.openEpicCount` counts the open epics of that project
 alone, and the sidebar prints it.
 
 The ticket brief names the epic. The header gains
 `- Epic: <name> (<ref>), <done> of <total - canceled> done`. After the
 description, `## Epic: <name>` prints the plan in full, and `## Epic tickets`
 lists every ticket of the epic in number order as `- OP-29 Title (Done)`, with
-`(this ticket)` after the current one. The launch instruction stays title plus
+`(this ticket)` after the current one. The brief of a ticket in a milestone
+also gains the header line
+`- Milestone: <name> (<ref>), <done> of <total - canceled> done`. When the epic
+has milestones, `## Epic tickets` prints one `### <milestone name>` heading per
+milestone in position order, with the tickets of that milestone in number
+order below it. A milestone with no ticket prints its heading alone.
+`### No milestone` comes last, and it prints only when a ticket of the epic
+holds no milestone. The launch instruction stays title plus
 description; an agent reads the epic through `trellis brief`.
 
 The CLI verb is `trellis epics` with `list`, `show`, `create`, `edit`, `add`,
 `remove`, and `delete`. `--epic <ref>` joins `create`, `sub`, and `edit`
 (`--epic none` clears), and `--epic <ref|none>` joins `list`. The web routes
 are `/p/<project path>/epics` and `/p/<project path>/epics/<slug>`.
+
+### Milestones
+
+`milestones` holds one row per milestone: `epic_id`, `root_id`, `slug`, `name`,
+and `position`. A lower position comes first. A MilestoneRef is a ULID or
+`KEY/epic-slug/milestone-slug`, such as `OP/routine-runtime/phase-1`. Two
+milestones of one epic never share a slug; a taken slug is `DUPLICATE` with
+field `slug`. A create without `slug` derives one from `name`, and a derived
+slug that collides takes the lowest free numeric suffix from `-2`. A create
+puts the milestone after the last milestone of the epic. A delete leaves a gap
+in the positions, and the order still holds. A milestone write leaves
+`updated_at` and the actor of the epic as they are, so the order of
+`epics.list` stays. An archived project refuses every milestone write of its
+epics (`PROJECT_ARCHIVED`).
+
+A ticket joins a milestone through `milestone` on `tickets.create`,
+`tickets.update`, and `tickets.updateMany`; `null` clears it, and the ticket
+stays in its epic. The service resolves the ref, checks the root
+(`CROSS_ROOT_MOVE`), and checks `PROJECT_ARCHIVED` on the project of the epic.
+`resolvePlacement` in `apps/server/src/services/tickets/placement.ts` holds the
+two write rules, and `updateMany` applies them per ticket. A `milestone` value
+alone never fails with `MILESTONE_OUTSIDE_EPIC`, because it sets the epic. A
+change of `milestone` records field `milestone` with the milestone refs as
+`from_value` and `to_value` and the ids in `meta.fromId` and `meta.toId`.
+`TicketSummary` carries `milestone` as `{id, ref, name}` or `null`.
+
+The API is `milestones.create`, `milestones.update`, `milestones.reorder`, and
+`milestones.delete`; `epics.get` is the read. The router reads `{+name}` as the
+rest of the path, so no route continues after an epic ref: `create` and
+`reorder` take `epic` in the body. `milestones.reorder` takes every milestone
+of the epic once, in the new order, and writes the positions 0 to n - 1. A list
+that omits a milestone, repeats one, or names a milestone of another epic is
+`MILESTONE_OUTSIDE_EPIC`. Every milestone write emits
+`epics.changed {projectId, id}` with the epic of the milestone, because
+`epics.get` carries the milestones and every ticket row copies the milestone
+name and ref.
+
+The CLI verb is `trellis milestones` with `list`, `create`, `edit`, `order`,
+`add`, `remove`, and `delete`. `list`, `create`, and `order` take an EpicRef;
+`edit`, `add`, and `delete` take a MilestoneRef. `order` takes every milestone
+slug of the epic in the new order and sends the full refs. `add` puts tickets
+in the milestone and in its epic, and `remove` takes tickets out of their
+milestone and leaves them in the epic. `--milestone <ref>` joins `create`,
+`sub`, and `edit` (`--milestone none` clears), and `--milestone <ref|none>`
+joins `list`. `trellis epics show` prints the milestones with their counts,
+then one ticket table per milestone in position order. A `no milestone` table
+comes last when a ticket of the epic holds no milestone.
 
 ### Pull request reviews
 
@@ -593,9 +654,36 @@ ancestors. Its second source lists the open pull requests of the signed-in GitHu
 The selected state follows the current page for root, nested, and archived projects.
 The Epics page at `/p/<path>/epics` lists the epics of the project and its sub-projects in two groups, Open and
 Done, each with its count. A row prints the name, a `StackedBar` of the counts by category, `done/total`, the
-updated time, and a row menu. `/p/<path>/epics/<slug>` shows one epic: the bar with a legend, the state, the
-description in the ticket markdown renderer, and its tickets in number order. Its Add action opens the
-`TicketPicker` and writes `tickets.updateMany { epic }`; a ticket row menu offers Remove from epic.
+updated time, and a row menu. The rows use the row heights, the hover band, and the cell text sizes of the
+ticket table `Row`.
+`/p/<path>/epics/<slug>` shows one epic. Its `Topbar` holds the breadcrumb, the `FilterBar` chips, the Display
+`IconButton`, the Add tickets `IconButton`, and the `Menu` with Edit and Delete. The page fixes the `epic`
+filter through the `fixed` prop of the `FilterBar`: the bar draws no epic chip, the filter picker offers no
+Epic field and lists the milestones of this epic alone, and Copy as CLI writes `--epic`. The table reads the
+root project with its sub-projects (`scope` default `subprojects`), because an epic holds tickets of any
+project of its root. Every link to the page writes its query through `epicQueryString`, so `group=status` and
+`scope=self` stay in the URL. Add tickets opens the `TicketPicker` of the project and
+writes `tickets.updateMany { epic }`.
+A header band below the `Topbar` prints the state `Badge`, `<done> of <total - canceled> done`, the `StackedBar`
+of the epic with its legend, and one `StackedBar` line per milestone in position order with its name and
+`done/total`.
+The `SectionHeader` Plan holds the description in the ticket markdown renderer, with a Show or Hide action. The
+section starts collapsed when the description is longer than 1200 characters, and `uiStore` keeps the collapsed
+state under the key `<route key>#plan`. The band and the plan take at most half of the page card and scroll
+inside it.
+The tickets show in the full-width `TicketTable` of the project table view. Its search is the URL search with
+`epic` fixed to the epic ref and `group` default `milestone` (`epicSearch.ts`). The URL carries `sort`,
+`density`, `columns`, and the filters, as the project table does. The URL never carries `epic`, it omits
+`group=milestone`, and it writes `group=status`. The row actions, the bulk bar, and the keyboard navigation are the ones of
+the table. The bulk bar Set epic with None, and the Epic row of the ticket rail, take a ticket out of the epic.
+The Edit sheet of an epic holds a Milestones section: each milestone has a name field, a move up, a move down,
+and a delete `IconButton`, and a New milestone field with an Add milestone `Button` follows the list. The section writes through
+`milestones.create`, `milestones.update`, `milestones.reorder`, and `milestones.delete`.
+The ticket filters take `milestone`, the table groups by Milestone in position order with No milestone last,
+and the table has a Milestone column that is hidden by default. The bulk bar offers Set milestone with the
+milestones of the one epic that every selected ticket belongs to, and the control is off without that epic. The
+ticket rail shows a Milestone row after Epic when the ticket has an
+epic.
 
 ## Database schema
 
@@ -615,8 +703,9 @@ are no triggers. Every rule is a constraint or a service function that takes
 | label_groups | id PK, project_id (CASCADE, the root of the tree), name, created_at, updated_at. UNIQUE (project_id, lower(name)). CHECK name trimmed, 1 to 80, no `,`, no `/`, and not `none`. |
 | labels | id PK, project_id (CASCADE, the root of the tree), group_id (FK label_groups CASCADE, NULL for a label with no group), name, color (CHECK set), description (CHECK <= 255, default `''`), created_at, updated_at. Partial UNIQUE (group_id, lower(name)) WHERE group_id IS NOT NULL and (project_id, lower(name)) WHERE group_id IS NULL. The same name CHECK as label_groups. Index (project_id). |
 | ticket_labels | ticket_id (CASCADE), label_id (CASCADE), created_at. PK (ticket_id, label_id). Index (label_id). |
-| tickets | id PK, project_id, root_id, number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, epic_id (FK epics SET NULL), position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (root_id, number) and (id, root_id). FK (project_id, root_id) RESTRICT and FK (parent_id, root_id) RESTRICT. Indexes (project_id, status_id, position), (status_id, position, id, project_id, root_id), (parent_id), (epic_id), partial (root_id, updated_at DESC) WHERE completed_at IS NULL, partial (root_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
+| tickets | id PK, project_id, root_id, number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, epic_id (FK epics SET NULL), milestone_id (FK milestones SET NULL; CHECK `tickets_milestone_needs_epic`: a row with a milestone has an epic), position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (root_id, number) and (id, root_id). FK (project_id, root_id) RESTRICT and FK (parent_id, root_id) RESTRICT. Indexes (project_id, status_id, position), (status_id, position, id, project_id, root_id), (parent_id), (epic_id), (milestone_id), partial (root_id, updated_at DESC) WHERE completed_at IS NULL, partial (root_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
 | epics | id PK, project_id (CASCADE), root_id, slug (CHECK slug regex), name (CHECK trimmed, 1 to 120), description (CHECK <= 200000), actor_name, actor_kind, created_at, updated_at. FK to actors. UNIQUE (id, root_id) and (root_id, slug). FK (project_id, root_id) CASCADE, so an epic stays in the root of its project. Index (project_id). The state of an epic is never stored. |
+| milestones | id PK, epic_id (CASCADE), root_id, slug (CHECK slug regex), name (CHECK trimmed, 1 to 120), position integer (CHECK >= 0), created_at, updated_at. UNIQUE (id, epic_id) and (epic_id, slug). FK (epic_id, root_id) CASCADE, so a milestone stays in the root of its epic. Index (epic_id, position). The state of a milestone is never stored. |
 | comments | id PK, ticket_id (CASCADE), body (1 to 200000), parent_id, resolved_at, actor_name, actor_kind, search tsvector GENERATED (body C), created_at, updated_at. FK to actors. UNIQUE (id, ticket_id). FK (parent_id, ticket_id) CASCADE, so a reply stays on the ticket of its root. CHECK `parent_id <> id` and `parent_id IS NULL OR resolved_at IS NULL`, so only a root carries the resolved mark. Index (ticket_id, created_at) and (parent_id). GIN (search). |
 | attachments | id PK, ticket_id (CASCADE), filename (1 to 255, no `/`), mime, size (CHECK > 0), sha256 (CHECK hex 64), actor_name, actor_kind, created_at. FK to actors. Index (ticket_id) and (sha256). |
 | pull_requests | id PK, owner, repo (CHECK lowercase), number (CHECK > 0), url, title, state, is_draft, head_ref, base_ref, review_state, merged_at, closed_at, checks jsonb (CHECK array), ci_state, content_hash, fetched_at, fetch_error, created_at, updated_at. UNIQUE (owner, repo, number). Index (state, ci_state). |
@@ -669,6 +758,7 @@ returns one canonical spelling.
 |---|---|---|
 | TicketRef | ULID or `KEY-n` | `CDE-42` |
 | EpicRef | ULID or `KEY/slug` | `OP/routine-runtime` |
+| MilestoneRef | ULID or `KEY/epic-slug/milestone-slug` | `OP/routine-runtime/phase-1` |
 | ProjectRef | ULID, `KEY`, or `KEY.slug(.slug)*` | `CDE.web.auth` |
 | StatusRef | ULID, slug, name, or `category:<category>` | `in-progress`, `category:review` |
 | LabelRef | ULID, `name`, or `group/name` | `bug`, `type/feature` |
@@ -693,16 +783,20 @@ returns one canonical spelling.
 | tickets.counts | GET /api/tickets/counts | the same filters; `{total, byStatus}` |
 | tickets.board | GET /api/tickets/board | one query; each column carries a count and its first 100 cards |
 | tickets.get | GET /api/tickets/{ticket} | the full ticket with project, status, parent, children, prs, attachments |
-| tickets.create | POST /api/tickets | 201 and `Location`; `epic` joins an epic of the same root |
-| tickets.update | PATCH /api/tickets/{ticket} | `If-Match` maps to `expectedVersion`; `epic: null` clears the epic |
-| tickets.move | POST /api/tickets/{ticket}/move | status, after, before, force; an anchor must be in the target column |
-| tickets.updateMany, deleteMany | POST /api/tickets/update-many, delete-many | up to 200 refs in one transaction |
+| tickets.create | POST /api/tickets | 201 and `Location`; `epic` joins an epic of the same root; `milestone` joins a milestone and its epic |
+| tickets.update | PATCH /api/tickets/{ticket} | `If-Match` maps to `expectedVersion`; `epic: null` clears the epic and the milestone; `milestone: null` clears the milestone |
+| tickets.move | POST /api/tickets/{ticket}/move | status, after, before; an anchor must be in the target column |
+| tickets.updateMany, deleteMany | POST /api/tickets/update-many, delete-many | up to 200 refs in one transaction; `epic` and `milestone` follow the rules of `tickets.update` per ticket; two refs with the same canonical spelling are refused, and a ULID and a `KEY-n` of one ticket are two spellings |
 | tickets.delete | DELETE /api/tickets/{ticket} | `force` overrides the agent policy |
 | epics.list | GET /api/epics?project=KEY | the epics of the project and its sub-projects; open first, then done, then by updated desc |
-| epics.get | GET /api/epics/{epic} | the summary and its tickets in number order; `{epic}` takes `KEY/slug` with its slash |
+| epics.get | GET /api/epics/{epic} | the summary, its milestones in position order, and its tickets in number order; `{epic}` takes `KEY/slug` with its slash |
 | epics.create | POST /api/epics | 201 and `Location`; `slug` derives from `name` when absent |
 | epics.update | PATCH /api/epics/{epic} | name, slug, description |
 | epics.delete | DELETE /api/epics/{epic} | `{id}`; detaches its tickets; `force` overrides the agent policy |
+| milestones.create | POST /api/milestones | body `{epic, name, slug?}`; 201 and no `Location`; the milestone takes the last position; `slug` derives from `name` when absent |
+| milestones.update | PATCH /api/milestones/{milestone} | name, slug; `{milestone}` takes `KEY/epic-slug/milestone-slug` with its slashes |
+| milestones.reorder | PUT /api/milestones/order | body `{epic, milestones}`, every milestone of the epic once in the new order; answers the list |
+| milestones.delete | DELETE /api/milestones/{milestone} | `{id}`; detaches its tickets; `force` overrides the agent policy |
 | timeline.list | GET /api/tickets/{ticket}/timeline | comments and activity merged, newest first |
 | comments.create, update, delete | POST /api/tickets/{ticket}/comments; PATCH, DELETE /api/comments/{id} | a create with `parentId` joins that thread |
 | comments.thread, resolve | GET /api/comments/{id}/thread; POST /api/comments/{id}/resolve | the root comment and every reply; resolve takes the reopen too |
@@ -732,7 +826,7 @@ returns one canonical spelling.
 
 `TicketSummary` is the shape that list, board, and events carry. It holds the
 identifier, the title, the priority, the status, the project, the parent, the
-epic link (`id`, `ref`, `name`), the child counts, the comment and attachment counts, the pull request rollup, the
+epic link and the milestone link (`id`, `ref`, `name` each), the child counts, the comment and attachment counts, the pull request rollup, the
 approval state of each linked pull request, the last actor, the position, the
 version, and the timestamps. Only `tickets.get` returns the description.
 
@@ -747,6 +841,7 @@ The filter grammar is identical in the API, the web URL, and the CLI flags.
 | priority | a list |
 | parent | a TicketRef or `none` |
 | epic | an EpicRef or `none` |
+| milestone | a MilestoneRef or `none` |
 | label | a list of LabelRef; a ticket that holds one of them stays; `none` in the list keeps a ticket with no label |
 | labelNot | a list of LabelRef; a ticket that holds one of them drops out |
 | pr | any, none, open, draft, merged, closed |
@@ -768,6 +863,7 @@ trellis list --project CDE --status in-progress,agent-review --parent none --lab
 The contract declares every error as `{defined, code, status, message, data}`.
 The map lives in `packages/api/src/errors.ts`: INPUT_VALIDATION_FAILED 400,
 ACTOR_REQUIRED 400, ACTOR_INVALID 400, INVALID_CURSOR 400, INVALID_PR_URL 400,
+MILESTONE_OUTSIDE_EPIC 400,
 AGENT_CANNOT_DELETE 403, NOT_FOUND 404, DUPLICATE
 409, KEY_LOCKED 409, STATUS_NOT_IN_PROJECT 409, STATUS_IN_USE 409, LAST_STATUS
 409, ROOT_STATUSES 409, STATUS_CATEGORY_IMMUTABLE 409, CROSS_ROOT_MOVE 409,
@@ -818,7 +914,7 @@ While a mutation for an id is in flight, patches queue and apply in version
 order after it settles.
 
 Invalidation happens only when membership or order can change: status, project,
-priority, labels, parent, epic, completed, create, and delete. It runs through a
+priority, labels, parent, epic, milestone, completed, create, and delete. It runs through a
 coalescer with a 250 ms trailing delay and a 1 s maximum. A mutation writes its response with `setQueryData` and invalidates on an
 error only. SSE-patched entities use `staleTime: Infinity`, and a `reset` or a
 reconnect invalidates everything.
