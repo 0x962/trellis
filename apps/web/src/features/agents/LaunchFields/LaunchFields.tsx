@@ -10,34 +10,52 @@ const presets = [
 	{ value: "muse", label: "Muse" },
 ] as const;
 
+type Common = { disabled?: boolean; compact?: boolean };
+
+// With `allowDefault`, the harness select carries one more item, labelled
+// with that text, and a choice of it reports null: the caller then falls
+// back to a harness it owns, such as the harness of the flow.
+export type LaunchFieldsProps = Common &
+	(
+		| { harness: Harness; onChange: (harness: Harness) => void; allowDefault?: undefined }
+		| { harness: Harness | null; onChange: (harness: Harness | null) => void; allowDefault: string }
+	);
+
 export function LaunchFields({
 	harness,
 	onChange,
+	allowDefault,
 	disabled = false,
 	compact = false,
-}: {
-	harness: Harness;
-	onChange: (harness: Harness) => void;
-	disabled?: boolean;
-	compact?: boolean;
-}) {
-	const model = harness.model ?? (harness.preset === "custom" ? undefined : HARNESS_DEFAULT_MODELS[harness.preset]);
-	const effort = model === undefined ? null : effortForHarness(harness.preset, model);
+}: LaunchFieldsProps) {
+	const change = onChange as (harness: Harness | null) => void;
+	const model =
+		harness === null
+			? undefined
+			: (harness.model ?? (harness.preset === "custom" ? undefined : HARNESS_DEFAULT_MODELS[harness.preset]));
+	const effort = harness === null || model === undefined ? null : effortForHarness(harness.preset, model);
+	type Choice = (typeof presets)[number]["value"] | "custom" | "default";
+	const items: { value: Choice; label: string }[] = [
+		...(allowDefault === undefined ? [] : [{ value: "default" as const, label: allowDefault }]),
+		...presets,
+		...(harness?.preset === "custom" ? [{ value: "custom" as const, label: "Custom" }] : []),
+	];
 	return (
 		<>
 			<div className={cx("flex min-w-0 flex-col gap-2", compact && "max-w-full")}>
 				<span className={cx("text-sm text-fg-muted", compact && "sr-only")}>Harness</span>
 				<Select
 					label="Harness"
-					value={harness.preset}
-					items={harness.preset === "custom" ? [...presets, { value: "custom", label: "Custom" }] : presets}
+					value={harness?.preset ?? "default"}
+					items={items}
 					disabled={disabled}
-					onValueChange={(preset) => {
-						if (preset !== "custom") onChange({ preset, ...HARNESS_PRESETS[preset] });
+					onValueChange={(preset: Choice) => {
+						if (preset === "default") change(null);
+						else if (preset !== "custom") change({ preset, ...HARNESS_PRESETS[preset] });
 					}}
 				/>
 			</div>
-			{harness.preset !== "custom" && (
+			{harness !== null && harness.preset !== "custom" && (
 				<div className={cx("flex min-w-0 flex-col gap-2", compact && "max-w-full")}>
 					<span className={cx("text-sm text-fg-muted", compact && "sr-only")}>Model</span>
 					<ModelPicker
@@ -46,11 +64,11 @@ export function LaunchFields({
 						compact={compact}
 						className={compact ? "w-auto" : undefined}
 						disabled={disabled}
-						onValueChange={(model) => onChange({ ...harness, model, effort: undefined })}
+						onValueChange={(model) => change({ ...harness, model, effort: undefined })}
 					/>
 				</div>
 			)}
-			{effort && (
+			{harness !== null && effort && (
 				<div className={cx("flex min-w-0 flex-col gap-2", compact && "max-w-full")}>
 					<span className={cx("text-sm text-fg-muted", compact && "sr-only")}>{effort.label}</span>
 					<Select
@@ -59,7 +77,7 @@ export function LaunchFields({
 						disabled={disabled}
 						items={[{ value: "default", label: compact ? "Default effort" : "Harness default" }, ...effort.options]}
 						onValueChange={(value) =>
-							onChange({ ...harness, effort: value === "default" ? undefined : (value as Harness["effort"]) })
+							change({ ...harness, effort: value === "default" ? undefined : (value as Harness["effort"]) })
 						}
 					/>
 				</div>

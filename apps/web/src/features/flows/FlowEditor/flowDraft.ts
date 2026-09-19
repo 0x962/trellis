@@ -57,6 +57,7 @@ export const newFields = (kind: FlowNodeKind): StepFields => ({
 	parallel: false,
 	minutes: null,
 	maxRounds: kind === "loop" ? 3 : null,
+	harness: null,
 });
 
 const canvasNode = (

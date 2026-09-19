@@ -1,6 +1,8 @@
-import type { FlowNodeKind } from "@trellis/api";
+import { type FlowNodeKind, flowAgentKinds } from "@trellis/api";
 import { Button, Input, Sheet, SheetBody, SheetFooter, SheetSection, Switch, Textarea } from "@trellis/ui";
 import { useState } from "react";
+import { LaunchFields } from "../../../../agents/LaunchFields";
+import { flowHarnessOf, harnessOfFlow } from "../../../flowHarness";
 import { flowKinds } from "../../../kinds";
 import type { StepFields } from "../../flowDraft";
 
@@ -78,6 +80,15 @@ export function NodeInspector({
 									value={fields.instruction}
 									onChange={(event) => onChange({ instruction: event.target.value })}
 									placeholder="Write what this step does."
+								/>
+							</SheetSection>
+						)}
+						{flowAgentKinds.has(fields.kind) && (
+							<SheetSection title="Agent" divided>
+								<LaunchFields
+									allowDefault="Flow default"
+									harness={harnessOfFlow(fields.harness)}
+									onChange={(harness) => onChange({ harness: flowHarnessOf(harness) })}
 								/>
 							</SheetSection>
 						)}

@@ -11,7 +11,7 @@ import { assertSlugFree, assertVersion, flowColumns, readDoc, resolveFlow } from
 export const list = (_ctx: ServiceCtx, tx: Tx, _input: Record<string, never>): Promise<FlowSummary[]> =>
 	rows<FlowSummary>(
 		tx,
-		sql`SELECT id, slug, name, description, version,
+		sql`SELECT id, slug, name, description, harness, version,
 			${iso(sql`created_at`)} AS "createdAt", ${iso(sql`updated_at`)} AS "updatedAt",
 			(SELECT count(*)::int FROM flow_nodes WHERE flow_nodes.flow_id = flows.id) AS "nodeCount",
 			(SELECT count(*)::int FROM flow_edges WHERE flow_edges.flow_id = flows.id) AS "edgeCount"
@@ -61,6 +61,7 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: FlowUpdateInput): P
 		sql`UPDATE flows SET name = COALESCE(${input.name ?? null}, name), slug = COALESCE(${input.slug ?? null}, slug),
 			description = COALESCE(${input.description ?? null}, description),
 			briefing = COALESCE(${input.briefing ?? null}, briefing),
+			harness = CASE WHEN ${input.harness === undefined} THEN harness ELSE ${input.harness ? JSON.stringify(input.harness) : null}::jsonb END,
 			version = version + 1, updated_at = ${ctx.now}
 			WHERE id = ${current.id} RETURNING ${flowColumns}`,
 	);

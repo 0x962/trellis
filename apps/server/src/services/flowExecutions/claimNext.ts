@@ -5,6 +5,7 @@ import { advanceFlow } from "../../agents/nativeFlow/advanceFlow.ts";
 import { boxClocks, processLimit } from "../../agents/nativeFlow/boxClocks.ts";
 import { flowTarget } from "../../agents/nativeFlow/flowTarget.ts";
 import { pendingFlowActions } from "../../agents/nativeFlow/pendingFlowActions.ts";
+import { stepHarness } from "../../agents/nativeFlow/stepHarness.ts";
 import { taskKey } from "../../agents/nativeFlow/taskKey.ts";
 import { timeLimitNotice } from "../../agents/nativeFlow/timeLimitNotice.ts";
 import type { ServiceCtx } from "../../context.ts";
@@ -22,11 +23,12 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 	const actions = pendingFlowActions(execution.doc, state).filter((action) => action.type === "agent");
 	if (actions.length === 0) return null;
 	await tx.execute(sql`SELECT id FROM projects WHERE id=${execution.project_id} FOR UPDATE`);
+	const action = actions[0]!;
+	const node = execution.doc.nodes.find((item) => item.id === action.nodeId)!;
 	const config = await projectLaunchConfig(tx, {
 		projectId: execution.project_id,
-		harness: HarnessSchema.parse({ preset: "claude" }),
+		harness: HarnessSchema.parse(stepHarness(execution.doc, node)),
 	});
-	const action = actions[0]!;
 	const ticket = await resolveTicket(ctx, tx, execution.ticket_id);
 	const pulls = await rows<{ url: string; head_ref: string; base_ref: string; state: string }>(
 		tx,
@@ -46,7 +48,6 @@ export async function claimNext(ctx: ServiceCtx, tx: Tx, input: { id: string }) 
 	]
 		.filter(Boolean)
 		.join("\n\n");
-	const node = execution.doc.nodes.find((item) => item.id === action.nodeId)!;
 	const reservation = await reserve(
 		ctx,
 		tx,

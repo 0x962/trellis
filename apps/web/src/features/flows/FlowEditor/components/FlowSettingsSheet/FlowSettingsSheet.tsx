@@ -4,11 +4,15 @@ import { type Flow, FlowSlugSchema } from "@trellis/api";
 import { Button, Input, Sheet, SheetBody, SheetFooter, Textarea } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
+import { LaunchFields } from "../../../../agents/LaunchFields";
+import { flowHarnessOf, harnessOfFlow, sameFlowHarness } from "../../../flowHarness";
 
 type FlowSettingsSheetProps = { flow: Flow; onSaved: (flow: Flow) => void; onClose: () => void };
 
-// The name, the slug, the description, and the briefing of a flow. Every
-// agent of the flow reads the briefing before its own instruction.
+// The name, the slug, the description, the briefing, and the harness of a
+// flow. Every agent of the flow reads the briefing before its own
+// instruction, and every step that names no harness launches with the
+// harness of the flow.
 export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetProps) {
 	const { client, orpc, queryClient } = useApp();
 	const navigate = useNavigate();
@@ -17,14 +21,27 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 	const [slug, setSlug] = useState(flow.slug);
 	const [description, setDescription] = useState(flow.description);
 	const [briefing, setBriefing] = useState(flow.briefing);
+	const [harness, setHarness] = useState(harnessOfFlow(flow.harness));
 	const [confirmDelete, setConfirmDelete] = useState(false);
 	const slugValid = FlowSlugSchema.safeParse(slug).success;
 	const valid = name.trim() !== "" && slugValid;
 	const dirty =
-		name !== flow.name || slug !== flow.slug || description !== flow.description || briefing !== flow.briefing;
+		name !== flow.name ||
+		slug !== flow.slug ||
+		description !== flow.description ||
+		briefing !== flow.briefing ||
+		!sameFlowHarness(flowHarnessOf(harness), flow.harness);
 	const save = useMutation({
 		mutationFn: () =>
-			client.flows.update({ flow: flow.id, name, slug, description, briefing, expectedVersion: flow.version }),
+			client.flows.update({
+				flow: flow.id,
+				name,
+				slug,
+				description,
+				briefing,
+				harness: flowHarnessOf(harness),
+				expectedVersion: flow.version,
+			}),
 		onSuccess: async (saved) => {
 			onSaved(saved);
 			onClose();
@@ -97,6 +114,7 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 						onChange={(event) => setBriefing(event.target.value)}
 						placeholder="What every agent of this flow reads before its own instruction."
 					/>
+					<LaunchFields allowDefault="Claude" harness={harness} disabled={pending} onChange={setHarness} />
 					{save.isError && (
 						<p role="alert" className="text-sm text-danger">
 							Could not save the flow. {save.error.message}

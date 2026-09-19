@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { effortForHarness, HarnessEffortSchema } from "../harness/effort/effort.ts";
+import { HARNESS_DEFAULT_MODELS, HarnessPresetSchema } from "../harness/harness.ts";
+import { ModelIdSchema } from "../models/models.ts";
 import { CountSchema, IsoDateTimeSchema, slugPattern, UlidSchema } from "./primitives.ts";
 
 // A flow is a graph of agent steps that trellis runs against a target, such
@@ -45,6 +48,32 @@ const CoordinateSchema = z.number().min(-1_000_000).max(1_000_000);
 // The drawn size of a group box. A card sizes itself, so a card keeps null.
 const SizeSchema = z.number().min(40).max(100_000);
 
+// The harness of a step that runs an agent, or of a whole flow. A step with
+// null takes the harness of its flow, and a flow with null takes claude. The
+// commands of a preset come from HARNESS_PRESETS at launch, so neither
+// stores a command, and neither takes the custom preset.
+export const FlowHarnessSchema = z
+	.strictObject({
+		preset: HarnessPresetSchema.exclude(["custom"]),
+		model: ModelIdSchema.optional(),
+		effort: HarnessEffortSchema.optional(),
+	})
+	.superRefine((value, ctx) => {
+		if (value.effort === undefined) return;
+		const model = value.model ?? HARNESS_DEFAULT_MODELS[value.preset];
+		if (!effortForHarness(value.preset, model)?.options.some((option) => option.value === value.effort))
+			ctx.addIssue({
+				code: "custom",
+				path: ["effort"],
+				message: "Select an effort supported by this harness and model.",
+			});
+	});
+export type FlowHarness = z.infer<typeof FlowHarnessSchema>;
+
+// Only a step that runs an agent takes a harness.
+const harnessMatchesKind = (node: { kind: FlowNodeKind; harness: FlowHarness | null }) =>
+	node.harness === null || flowAgentKinds.has(node.kind);
+
 // Only a group takes optional minutes or parallel mode. A loop requires maxRounds.
 const numbersMatchKind = (node: {
 	kind: FlowNodeKind;
@@ -69,8 +98,10 @@ export const FlowNodeInputSchema = z
 		y: CoordinateSchema,
 		width: SizeSchema.nullable(),
 		height: SizeSchema.nullable(),
+		harness: FlowHarnessSchema.nullable().default(null),
 	})
-	.refine(numbersMatchKind, "Only a group takes minutes or parallel mode. A loop requires maxRounds.");
+	.refine(numbersMatchKind, "Only a group takes minutes or parallel mode. A loop requires maxRounds.")
+	.refine(harnessMatchesKind, "Only an agent, a gate, or a loop takes a harness.");
 export type FlowNodeInput = z.input<typeof FlowNodeInputSchema>;
 
 export const FlowEdgeInputSchema = z.strictObject({
@@ -94,6 +125,7 @@ export const FlowNodeSchema = z.object({
 	y: z.number(),
 	width: z.number().nullable(),
 	height: z.number().nullable(),
+	harness: FlowHarnessSchema.nullable(),
 });
 export type FlowNode = z.infer<typeof FlowNodeSchema>;
 
@@ -106,13 +138,15 @@ export const FlowEdgeSchema = z.object({
 export type FlowEdge = z.infer<typeof FlowEdgeSchema>;
 
 // `briefing` is the text every agent of the flow reads before its own
-// instruction. `version` rises on every change to the flow or its graph.
+// instruction. `harness` is the harness of every step that names none.
+// `version` rises on every change to the flow or its graph.
 export const FlowSchema = z.object({
 	id: UlidSchema,
 	slug: z.string(),
 	name: z.string(),
 	description: z.string(),
 	briefing: z.string(),
+	harness: FlowHarnessSchema.nullable(),
 	version: z.number().int().positive(),
 	createdAt: IsoDateTimeSchema,
 	updatedAt: IsoDateTimeSchema,
@@ -162,6 +196,8 @@ export const FlowUpdateInputSchema = z.strictObject({
 	slug: FlowSlugSchema.optional(),
 	description: FlowDescriptionSchema.optional(),
 	briefing: z.string().max(200_000).optional(),
+	// null clears the harness of the flow; an absent field keeps it.
+	harness: FlowHarnessSchema.nullable().optional(),
 	expectedVersion: z.number().int().positive().optional(),
 });
 export type FlowUpdateInput = z.input<typeof FlowUpdateInputSchema>;
