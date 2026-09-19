@@ -1,6 +1,7 @@
 @import "./review-tree.css";
 @import "./review-comments.css";
 @import "./review-index.css";
+@import "./review-checks.css";
 
 :root {
 	--review-sheet-width: min(100vw, 32rem);
@@ -198,11 +199,6 @@
 .review-list-row a:hover {
 	text-decoration: underline;
 	text-underline-offset: 3px;
-}
-.review-check-groups {
-	display: flex;
-	flex-direction: column;
-	gap: 16px;
 }
 .review-error {
 	color: var(--danger);

@@ -37,6 +37,7 @@ Each page supplies its data and available actions. It does not choose new contro
 | Usage per day | `UsageChart` | `packages/ui/src/domain/UsageChart/UsageChart.tsx` |
 | Ranked slices of a whole | `RankedBars` | `packages/ui/src/domain/RankedBars/RankedBars.tsx` |
 | Composition of one total | `StackedBar` | `packages/ui/src/domain/StackedBar/StackedBar.tsx` |
+| Summary of GitHub check outcomes | `CheckRing` | `packages/ui/src/domain/CheckRing/CheckRing.tsx` |
 | Composition of each part of a whole | `StackedBarList` | `packages/ui/src/domain/StackedBarList/StackedBarList.tsx` |
 | Company mark of a model | `ProviderIcon` | `packages/ui/src/domain/ProviderIcon/ProviderIcon.tsx` |
 | Subscription quota meters | `QuotaWindows` | `packages/ui/src/domain/QuotaWindows/QuotaWindows.tsx` |
