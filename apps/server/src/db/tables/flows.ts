@@ -6,6 +6,7 @@ import {
 	foreignKey,
 	index,
 	integer,
+	jsonb,
 	pgTable,
 	text,
 	unique,
@@ -24,6 +25,8 @@ export const flows = pgTable(
 		name: text().notNull(),
 		description: text().notNull().default(""),
 		briefing: text().notNull().default(""),
+		// The FlowHarness of every step that names none. NULL means claude.
+		harness: jsonb(),
 		version: integer().notNull().default(1),
 		createdAt: at("created_at").notNull(),
 		updatedAt: at("updated_at").notNull(),
@@ -58,6 +61,8 @@ export const flowNodes = pgTable(
 		parallel: boolean().notNull().default(false),
 		minutes: integer(),
 		maxRounds: integer("max_rounds"),
+		// The FlowHarness of a step that runs an agent. NULL takes the harness of the flow.
+		harness: jsonb(),
 		x: doublePrecision().notNull(),
 		y: doublePrecision().notNull(),
 		width: doublePrecision(),
@@ -79,6 +84,7 @@ export const flowNodes = pgTable(
 			sql`(${t.kind} = 'group' OR ${t.minutes} IS NULL) AND (${t.minutes} IS NULL OR ${t.minutes} BETWEEN 1 AND 1440)`,
 		),
 		check("flow_nodes_parallel_check", sql`${t.kind} = 'group' OR ${t.parallel} = false`),
+		check("flow_nodes_harness_check", sql`${t.kind} IN ('agent', 'gate', 'loop') OR ${t.harness} IS NULL`),
 		check(
 			"flow_nodes_max_rounds_check",
 			sql`(${t.kind} = 'loop') = (${t.maxRounds} IS NOT NULL) AND (${t.maxRounds} IS NULL OR ${t.maxRounds} BETWEEN 1 AND 50)`,

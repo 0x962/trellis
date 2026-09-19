@@ -44,12 +44,13 @@ export const save = async (ctx: ServiceCtx, tx: Tx, input: FlowSaveInput): Promi
 	await tx.execute(sql`DELETE FROM flow_nodes WHERE flow_id = ${current.id}`);
 	if (input.nodes.length > 0)
 		await tx.execute(
-			sql`INSERT INTO flow_nodes (id, flow_id, parent_id, kind, title, instruction, parallel, minutes, max_rounds, x, y, width, height)
+			sql`INSERT INTO flow_nodes (id, flow_id, parent_id, kind, title, instruction, parallel, minutes, max_rounds, harness, x, y, width, height)
 				VALUES ${sql.join(
 					input.nodes.map(
 						(node) =>
 							sql`(${node.id}, ${current.id}, ${node.parentId}, ${node.kind}, ${node.title}, ${node.instruction},
-							${node.parallel ?? false}, ${node.minutes}, ${node.maxRounds}, ${node.x}, ${node.y}, ${node.width}, ${node.height})`,
+							${node.parallel ?? false}, ${node.minutes}, ${node.maxRounds}, ${node.harness ? JSON.stringify(node.harness) : null}::jsonb,
+							${node.x}, ${node.y}, ${node.width}, ${node.height})`,
 					),
 					sql`, `,
 				)}`,
