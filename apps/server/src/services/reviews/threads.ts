@@ -6,18 +6,24 @@ import type { Tx } from "../../db/tx";
 import { invalidInput } from "../../errors";
 import type { ServiceCtx } from "../support";
 import { assertRevision, changed, ensurePr, findPr, readThread, writeThread } from "./queries";
+import { revision } from "./revision";
 import { firstSuggestion, sameLines, suggestionFor } from "./suggestions";
 
 export async function add(ctx: ServiceCtx, tx: Tx, input: ReviewCreate): Promise<ReviewThread> {
 	const pr = await ensurePr(tx, input.pr);
-	await assertRevision(tx, { prId: pr.id, revisionId: input.revisionId });
+	// The review page draws a thread on the revision it names. A comment from
+	// the CLI names none, so it takes the newest revision of the PR, which is
+	// the diff the reviewer read. A PR that no one has opened yet has no
+	// revision, and the thread keeps null.
+	const revisionId = input.revisionId ?? (await revision(ctx, tx, { pr: input.pr }))?.id ?? null;
+	await assertRevision(tx, { prId: pr.id, revisionId });
 	const at = ctx.now().toISOString();
 	const anchor = {
 		path: input.path,
 		side: input.side ?? "new",
 		line: input.line,
 		startLine: input.startLine ?? input.line,
-		revisionId: input.revisionId ?? null,
+		revisionId,
 	};
 	const suggestion = await suggestionFor(tx, anchor, input.body, input.original);
 	const proposed = firstSuggestion(input.body);
