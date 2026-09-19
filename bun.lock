@@ -189,6 +189,7 @@
         "@fontsource-variable/inter": "5.3.0",
         "@fontsource/jetbrains-mono": "5.3.0",
         "@phosphor-icons/react": "2.1.10",
+        "@primer/octicons-react": "19.38.0",
         "@xterm/addon-fit": "0.11.0",
         "@xterm/addon-webgl": "0.20.0-beta.297",
         "@xterm/xterm": "6.1.0-beta.302",
@@ -780,6 +781,8 @@
     "@phosphor-icons/react": ["@phosphor-icons/react@2.1.10", "", { "peerDependencies": { "react": ">= 16.8", "react-dom": ">= 16.8" } }, "sha512-vt8Tvq8GLjheAZZYa+YG/pW7HDbov8El/MANW8pOAz4eGxrwhnbfrQZq0Cp4q8zBEu8NIhHdnr+r8thnfRSNYA=="],
 
     "@pnpm/deps.graph-sequencer": ["@pnpm/deps.graph-sequencer@1100.0.1", "", {}, "sha512-pOr5+q1fLYKwFN3LAJuGZEnfXDcQ73zqgDHMtGy+K+uIoUqyY+6MeDCWFwfu+4EFuq76I5EPFofoNAI+Bmmq4A=="],
+
+    "@primer/octicons-react": ["@primer/octicons-react@19.38.0", "", { "peerDependencies": { "react": ">=16.3" } }, "sha512-ZzWVrX6kluBaCepsDj/jAxagBOMaRX18LEf723IKpr4E/jdkTdCOtlsN+60Oj7IV9YEVrlUpo9Oky0Tn1heSCA=="],
 
     "@radix-ui/primitive": ["@radix-ui/primitive@1.1.7", "", {}, "sha512-rqWnm76nYT8HoNNqEjpgJ7Pw/DrBj5iBTrmEPo6HTX5+VJyBNOqTdv4g89G63HuR5g0AaENoAcH7Is5fF2kZ8Q=="],
 
