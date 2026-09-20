@@ -92,6 +92,7 @@
 	background-image: var(--film-gradient);
 	background-size: 250% 100%;
 	background-position: 150% 0;
+	background-repeat: no-repeat;
 	opacity: var(--film-opacity-static);
 	pointer-events: none;
 	animation: var(--animate-glimmer);
