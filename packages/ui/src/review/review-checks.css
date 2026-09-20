@@ -1,6 +1,6 @@
 .review-checks {
 	width: 100%;
-	max-width: 1040px;
+	max-width: var(--review-column-width);
 	margin-inline: auto;
 	overflow: hidden;
 	border: 1px solid var(--border);

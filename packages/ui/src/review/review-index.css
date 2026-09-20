@@ -100,13 +100,7 @@ button.review-file:is(:hover, [aria-current="true"]) {
 	flex: 1;
 	min-width: 0;
 }
-.review-mobile-files {
-	display: none;
-}
 @media (max-width: 767px) {
-	.review-mobile-files {
-		display: inline-flex;
-	}
 	.review-index-toolbar {
 		flex-wrap: wrap;
 		padding: calc(var(--spacing) * 3) calc(var(--spacing) * 4);

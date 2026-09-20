@@ -81,6 +81,14 @@ export async function status(ctx: PrepareCtx, input: { pr: string }) {
 	const ref = parseRef(input.pr);
 	return JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", fields])) as Record<string, unknown>;
 }
+// GitHub answers `compare/<base head>...<pull request head>` with the commit
+// that both branches share and with `behind_by`: how many commits the base
+// branch holds that the pull request head does not. The review page prints
+// that count as "N commits behind <base branch>".
+export const comparisonFacts = (raw: string) => {
+	const comparison = JSON.parse(raw) as { merge_base_commit: { sha: string }; behind_by: number };
+	return { comparisonBaseSha: comparison.merge_base_commit.sha, behindBy: comparison.behind_by };
+};
 export async function prepare(ctx: PrepareCtx, input: { pr: string }) {
 	const ref = parseRef(input.pr);
 	const meta = JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", fields])) as Record<string, unknown> &
@@ -94,8 +102,7 @@ export async function prepare(ctx: PrepareCtx, input: { pr: string }) {
 		gh(ctx, ["api", `repos/${ref.owner}/${ref.repo}/compare/${meta.baseRefOid}...${meta.headRefOid}`]),
 		gh(ctx, ["pr", "diff", ref.url]),
 	]);
-	const comparison = JSON.parse(comparisonRaw) as { merge_base_commit: { sha: string } };
-	meta.comparisonBaseSha = comparison.merge_base_commit.sha;
+	Object.assign(meta, comparisonFacts(comparisonRaw));
 	const current = JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", "headRefOid,baseRefOid"])) as {
 		headRefOid: string;
 		baseRefOid: string;

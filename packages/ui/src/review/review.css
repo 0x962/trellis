@@ -1,17 +1,15 @@
-@import "./review-tree.css";
 @import "./review-comments.css";
 @import "./review-index.css";
 @import "./review-checks.css";
 
 :root {
 	--review-sheet-width: min(100vw, 32rem);
+	--review-column-width: 1040px;
 	--review-filter-width: 260px;
 	--review-row-icon-size: 14px;
 }
 .review-page,
-.review-workspace,
 .review-tabs-layout,
-.review-content,
 .review-index {
 	display: flex;
 	flex: 1;
@@ -19,7 +17,6 @@
 	min-height: 0;
 	flex-direction: column;
 }
-.review-workspace,
 .review-index {
 	overflow: hidden;
 	background: var(--bg);
@@ -126,14 +123,6 @@
 }
 .review-tabs-layout > [role="tabpanel"][hidden] {
 	display: none;
-}
-.review-main {
-	display: flex;
-	flex: 1;
-	min-height: 0;
-}
-.review-content {
-	overflow: hidden;
 }
 .review-diff-toolbar,
 .review-index-toolbar {
@@ -257,6 +246,90 @@ button.review-notice:hover {
 	opacity: 0.5;
 	cursor: default;
 }
+/* The top band of the review page: the title of the pull request with its
+   buttons, the ticket the pull request answers, and one sentence that says
+   who acts next. The band does not scroll, so the buttons that end the review
+   stay on screen while the reader goes down the page. */
+.review-identity {
+	display: flex;
+	flex-direction: column;
+	border-bottom: 0.5px solid var(--border);
+	background: var(--bg);
+}
+/* The band takes the width of `.review-regions` below it, so the title, the
+   ticket and every block start at one left edge. */
+.review-identity > * {
+	width: 100%;
+	max-width: var(--review-column-width);
+	margin-inline: auto;
+}
+.review-identity .review-heading {
+	padding-bottom: 12px;
+}
+.review-identity-lines {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 0 28px 16px;
+	font-size: 13px;
+	line-height: 20px;
+}
+.review-ticket-line {
+	color: var(--fg-muted);
+}
+.review-turn-line {
+	color: var(--fg);
+}
+/* The review page is one column that reads top to bottom: the conditions, the
+   summary, the review focus, the evidence, the checks, the changed files with
+   the diff, and the threads. `.review-column` is the only part of the page
+   that scrolls, and each block in it grows to the height of its content. */
+.review-column {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	background: var(--bg);
+}
+.review-regions {
+	display: flex;
+	flex-direction: column;
+	gap: 28px;
+	width: 100%;
+	max-width: var(--review-column-width);
+	margin-inline: auto;
+	padding: 24px 28px 64px;
+}
+/* `ReviewDiscussion`, `CheckResults`, `.review-notice` and `ReviewStack` each
+   carry the height, the scroll bar or the side padding of a page that fills
+   the window. Inside `.review-regions` the column supplies all three, so these
+   four rules hand it back: each block grows to its content, and the column
+   scrolls and pads for every one of them. */
+.review-regions .review-scroll {
+	flex: none;
+	overflow: visible;
+	padding: 0;
+}
+.review-regions .review-list {
+	max-width: none;
+}
+.review-regions .review-notice {
+	margin-inline: 0;
+}
+.review-regions .review-stack {
+	padding-inline: 0;
+}
+/* `ReviewDiff` renders only the rows inside the visible height and reads this
+   box for the scroll position, so the box needs a height of its own. Without
+   one it would render every line of the patch at once. */
+.review-diff-window {
+	display: flex;
+	flex-direction: column;
+	height: min(70vh, 720px);
+	overflow: hidden;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-lg);
+	background: var(--bg);
+}
 @media (max-width: 767px) {
 	.review-heading {
 		padding: 20px 16px 16px;
@@ -289,6 +362,16 @@ button.review-notice:hover {
 	}
 	.review-stack {
 		padding-inline: 16px;
+	}
+	.review-identity-lines {
+		padding: 0 16px 12px;
+	}
+	.review-regions {
+		gap: 20px;
+		padding: 16px 16px 48px;
+	}
+	.review-diff-window {
+		height: min(80vh, 560px);
 	}
 }
 
