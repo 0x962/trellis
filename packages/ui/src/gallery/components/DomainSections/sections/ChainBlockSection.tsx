@@ -1,4 +1,9 @@
-import { type ChainAnswer, ChainBlock, type ChainDependency, type ChainRelease } from "../../../../domain/ChainBlock";
+import {
+	type AnsweredQuestion,
+	ChainBlock,
+	type ChainDependency,
+	type ChainRelease,
+} from "../../../../domain/ChainBlock";
 import { Section } from "../../Section";
 
 // The gallery has no router, so a chain line is a plain anchor here. A page
@@ -28,7 +33,7 @@ const op52: ChainDependency = {
 
 // Once a person answers OP-52, it leaves the `waitsOn` of OP-33 and the
 // `Applies` line names the option that was picked.
-const answeredOp52: ChainAnswer = {
+const answeredOp52: AnsweredQuestion = {
 	identifier: "OP-52",
 	title: "Decision: a missed window, run it late or leave it missed",
 	option: 1,
@@ -56,17 +61,22 @@ export function ChainBlockSection() {
 					waitsOn={[op32, op52]}
 					releases={[]}
 					ready="no. OP-32 is not merged, and OP-52 is open."
-					answered={null}
+					answeredQuestions={[]}
 				/>
 			</div>
 			<div className="min-w-96 flex-1">
-				<ChainBlock waitsOn={[op32]} releases={[]} ready="no. OP-32 is not merged." answered={answeredOp52} />
+				<ChainBlock
+					waitsOn={[op32]}
+					releases={[]}
+					ready="no. OP-32 is not merged."
+					answeredQuestions={[answeredOp52]}
+				/>
 			</div>
 			<div className="min-w-96 flex-1">
-				<ChainBlock waitsOn={[op32]} releases={op34Releases} ready="no. OP-32 is not merged." answered={null} />
+				<ChainBlock waitsOn={[op32]} releases={op34Releases} ready="no. OP-32 is not merged." answeredQuestions={[]} />
 			</div>
 			<div className="min-w-96 flex-1">
-				<ChainBlock waitsOn={[]} releases={[]} ready="yes. No ticket holds this one back." answered={null} />
+				<ChainBlock waitsOn={[]} releases={[]} ready="yes. No ticket holds this one back." answeredQuestions={[]} />
 			</div>
 		</Section>
 	);

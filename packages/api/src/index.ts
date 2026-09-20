@@ -1,6 +1,7 @@
 export * from "./agentCommand/agentCommand.ts";
 export * from "./agentLaunch/agentLaunch.ts";
 export * from "./agentNotifications/index.ts";
+export * from "./answerComment/index.ts";
 export * from "./client.ts";
 export * from "./contract/index.ts";
 export * from "./dependencyText/index.ts";
@@ -18,7 +19,7 @@ export * from "./notificationSound/index.ts";
 export * from "./pair.ts";
 export * from "./prPaths/index.ts";
 export * from "./query-keys.ts";
-export * from "./questionParts/index.ts";
+export * from "./readQuestionDescription/index.ts";
 export * from "./readSse/index.ts";
 export * from "./refs.ts";
 export * from "./reviewImage";

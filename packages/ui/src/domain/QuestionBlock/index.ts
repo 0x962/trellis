@@ -1,6 +1,6 @@
 export {
 	QuestionBlock,
 	type QuestionBlockProps,
-	type QuestionChoice,
-	type QuestionRecommendation,
+	type QuestionOption,
+	type RecommendedOption,
 } from "./QuestionBlock";

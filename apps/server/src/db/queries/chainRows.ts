@@ -1,7 +1,7 @@
 import type { StatusCategory } from "@trellis/api";
-import { type SQL, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import type { Tx } from "../tx.ts";
-import { rows } from "./support.ts";
+import { rows, ticketQuestion } from "./support.ts";
 
 export type ChainRow = {
 	identifier: string;
@@ -10,17 +10,6 @@ export type ChainRow = {
 	isQuestion: boolean;
 	outcome: string;
 };
-
-// The description half of the question rule: the text starts with an
-// "Options:" list. A status whose category is not "review" carries no
-// reviewer, so this half is the only half that still holds once a question
-// is answered and moves to the done category.
-export const questionDescription = (ticket: SQL) =>
-	sql`${ticket}.description ~ '(?ms)^Options:[[:space:]]*[^[:space:]]'`;
-
-// A ticket is a question when a person must answer it: a human reviewer, and a description that starts with an "Options:" list.
-export const ticketQuestion = (ticket: SQL, status: SQL) =>
-	sql`${status}.reviewer = 'human' AND ${questionDescription(ticket)}`;
 
 export const chainRows = (tx: Tx, ticketId: string) =>
 	rows<ChainRow>(

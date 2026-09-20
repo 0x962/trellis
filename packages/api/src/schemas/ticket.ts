@@ -125,10 +125,8 @@ export const TicketContractSchema = z.object({
 export type TicketContract = z.infer<typeof TicketContractSchema>;
 export const ticketContractFields = Object.keys(TicketContractSchema.shape) as (keyof TicketContract)[];
 
-// The `tickets.get` shape: the summary plus what only the ticket page reads.
-// The question this ticket waited for, once a person answered it. The
-// ticket page prints it under `Applies`, with the option number that was
-// picked. It is null while no answered question holds this ticket back.
+// One question this ticket waited for, and the option a person picked. The
+// ticket page prints it under `Applies`.
 export const AnsweredQuestionSchema = z.object({
 	identifier: TicketIdentifierSchema,
 	title: TicketTitleSchema,
@@ -136,8 +134,11 @@ export const AnsweredQuestionSchema = z.object({
 });
 export type AnsweredQuestion = z.infer<typeof AnsweredQuestionSchema>;
 
+// The `tickets.get` shape: the summary plus what only the ticket page reads.
 export const TicketSchema = TicketSummarySchema.extend({
-	answeredQuestion: AnsweredQuestionSchema.nullable(),
+	// In ticket number order, and empty while every question this ticket
+	// waits for is still open.
+	answeredQuestions: z.array(AnsweredQuestionSchema),
 	description: z.string(),
 	contract: TicketContractSchema,
 	outcome: z.string(),

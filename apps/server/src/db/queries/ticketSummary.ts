@@ -1,8 +1,7 @@
 import type { CiState, PrState, ReviewState, StoredActorKind, TicketSummary } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { actorDisplayName } from "./actorDisplayName.ts";
-import { ticketQuestion } from "./chainRows.ts";
-import { iso, pathsCte } from "./support.ts";
+import { iso, pathsCte, ticketQuestion } from "./support.ts";
 import { type TicketPrRow, ticketPrColumns, ticketPrJoin, toTicketPrRows } from "./ticketPrs.ts";
 
 export type SummaryRow = {

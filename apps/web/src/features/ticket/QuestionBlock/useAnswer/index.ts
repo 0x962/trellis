@@ -1,1 +1,1 @@
-export { answerResult, useAnswer } from "./useAnswer";
+export { useAnswer } from "./useAnswer";

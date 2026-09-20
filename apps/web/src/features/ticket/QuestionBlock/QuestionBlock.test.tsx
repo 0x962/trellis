@@ -4,7 +4,7 @@ import type { Ticket, TicketAnswerDelivery } from "@trellis/api";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { type AppContext, AppProvider } from "../../../lib/appContext";
-import { answerResult } from "./useAnswer";
+import { answerResult } from "./answerResult";
 
 // `Link` reads the router of the page it renders in, and this test renders
 // no router. The stand-in writes the path the real `Link` writes, so the
@@ -80,19 +80,38 @@ describe("QuestionBlock", () => {
 		expect(html).not.toContain("Options:");
 	});
 
-	test("credits the agent that touched the ticket last with the recommendation", () => {
+	test("prints the recommendation and names nobody as its author", () => {
 		const html = render();
 
-		expect(html).toContain("crisp-fjord recommends this one.");
-		expect(html).toContain("Why crisp-fjord recommends 1");
+		expect(html).toContain("Recommended.");
+		expect(html).toContain("Why option 1 is recommended");
 		expect(html).toContain("A night audit that runs at 09:00 reads a different day than the one it was written for.");
 	});
 
-	test("names nobody when a person touched the ticket last", () => {
-		const html = render({ lastActor: { name: "navid", kind: "human", displayName: "Navid", at: ticket.updatedAt } });
+	test("names no author even when an agent touched the ticket last", () => {
+		const html = render();
 
-		expect(html).toContain("Recommended.");
+		expect(html).not.toContain("crisp-fjord");
 		expect(html).not.toContain("recommends this one");
+	});
+
+	test("reads no option from the paragraph under the recommendation", () => {
+		const html = render({
+			description: [
+				"Options:",
+				"1. Leave it missed.",
+				"2. Run it late.",
+				"",
+				"Recommendation: option 1. Two reasons:",
+				"1. A late run reads the wrong day.",
+				"2. A backlog holds the next tick.",
+			].join("\n"),
+		});
+
+		// The numbered lines under the recommendation stay in its paragraph.
+		// Two radios means two options, and the reason keeps its own words.
+		expect(html.split('role="radio"').length - 1).toBe(2);
+		expect(html).toContain("Two reasons: 1. A late run reads the wrong day. 2. A backlog holds the next tick.");
 	});
 
 	test("opens each released ticket on its own page", () => {

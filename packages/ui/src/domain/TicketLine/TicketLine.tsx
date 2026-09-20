@@ -20,6 +20,9 @@ export type TicketRef = {
 };
 
 export type TicketLineProps = TicketRef & {
+	// A mark before the identifier, such as the status of a ticket. It keeps
+	// its own colour, so it sits in the row with no wrapper around it.
+	mark?: ReactNode;
 	// A muted word before the identifier, such as `answered:` on the question
 	// a ticket applied.
 	lead?: string;
@@ -33,12 +36,13 @@ export type TicketLineProps = TicketRef & {
 // A ticket identifier, an optional muted word, the title, and whatever the
 // caller puts at the end. The chain block and the question block draw their
 // ticket rows with this line.
-export function TicketLine({ identifier, title, link, lead, note, end }: TicketLineProps) {
+export function TicketLine({ identifier, title, link, mark, lead, note, end }: TicketLineProps) {
 	return cloneElement(link, {
 		className: ticketLineClass,
 		title,
 		children: (
 			<>
+				{mark}
 				{lead !== undefined && <span className="shrink-0 text-fg-muted">{lead}</span>}
 				<TicketId id={identifier} size="sm" />
 				{note !== undefined && <span className="shrink-0 text-fg-muted">{note}</span>}

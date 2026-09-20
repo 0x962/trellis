@@ -5,36 +5,37 @@ import { SectionHeader } from "../../primitives/SectionHeader";
 import { Textarea } from "../../primitives/Textarea";
 import { TicketLine, type TicketRef } from "../TicketLine";
 
-// One numbered choice of a question. The description of the ticket prints
-// the number, and the person answers with it.
-export type QuestionChoice = {
+// One numbered option of a question. The description of the ticket prints
+// the number, and a person answers with it.
+export type QuestionOption = {
 	number: number;
 	text: string;
 };
 
-// The choice the author of the question prefers. `by` is the name that wrote
-// it, such as an agent name, and `reason` is the sentences under the label.
-export type QuestionRecommendation = {
+// The option the author of the question prefers. `by` is the name that wrote
+// it, and it is null while no record names an author. `reason` is the
+// sentences under the label.
+export type RecommendedOption = {
 	option: number;
 	by: string | null;
 	reason: string;
 };
 
 export type QuestionBlockProps = {
-	choices: readonly QuestionChoice[];
-	recommendation: QuestionRecommendation | null;
+	options: readonly QuestionOption[];
+	recommendation: RecommendedOption | null;
 	// The tickets that start once this question has an answer.
 	releases: readonly TicketRef[];
-	// The choice the person picked, or null while none is picked.
-	option: number | null;
-	onOptionChange: (option: number) => void;
+	// The number of the option a person picked, or null while none is picked.
+	picked: number | null;
+	onPickedChange: (option: number) => void;
 	reason: string;
 	onReasonChange: (reason: string) => void;
 	// True while the server writes the answer. `Answer` shows a turning ring
 	// and takes no second click.
 	answering: boolean;
 	// One sentence that says what the answer did, once the server took it.
-	// The block keeps the choice and the reason on screen under it.
+	// The block keeps the option and the reason on screen under it.
 	result: string | null;
 	// Why the last answer failed, in the words of the server.
 	error: string | null;
@@ -43,20 +44,17 @@ export type QuestionBlockProps = {
 
 const recommendationNote = (by: string | null) => (by === null ? "Recommended." : `${by} recommends this one.`);
 
-const recommendationLabel = (recommendation: QuestionRecommendation) =>
+const recommendationLabel = (recommendation: RecommendedOption) =>
 	recommendation.by === null
 		? `Why option ${recommendation.option} is recommended`
 		: `Why ${recommendation.by} recommends ${recommendation.option}`;
 
-// The question a person answers: the numbered choices, the recommendation
-// under its choice, the reason for it, the tickets the answer starts, and
-// one `Answer`. The block never writes the word `decide`.
 export function QuestionBlock({
-	choices,
+	options,
 	recommendation,
 	releases,
-	option,
-	onOptionChange,
+	picked,
+	onPickedChange,
 	reason,
 	onReasonChange,
 	answering,
@@ -64,7 +62,7 @@ export function QuestionBlock({
 	error,
 	onAnswer,
 }: QuestionBlockProps) {
-	if (choices.length === 0) {
+	if (options.length === 0) {
 		return (
 			<section aria-label="The question" className="flex min-w-0 flex-col">
 				<SectionHeader title="THE QUESTION" />
@@ -72,10 +70,10 @@ export function QuestionBlock({
 			</section>
 		);
 	}
-	const options: ChoiceGroupOption<string>[] = choices.map((choice) => ({
-		value: String(choice.number),
-		label: `${choice.number}. ${choice.text}`,
-		description: recommendation?.option === choice.number ? recommendationNote(recommendation.by) : "",
+	const radioOptions: ChoiceGroupOption<string>[] = options.map((option) => ({
+		value: String(option.number),
+		label: `${option.number}. ${option.text}`,
+		description: recommendation?.option === option.number ? recommendationNote(recommendation.by) : "",
 	}));
 	return (
 		<section aria-label="The question" className="flex min-w-0 flex-col gap-4">
@@ -84,9 +82,9 @@ export function QuestionBlock({
 				<ChoiceGroup
 					className="-mx-3 mt-1"
 					label="The options of this question"
-					options={options}
-					value={option === null ? "" : String(option)}
-					onValueChange={(value) => onOptionChange(Number(value))}
+					options={radioOptions}
+					value={picked === null ? "" : String(picked)}
+					onValueChange={(value) => onPickedChange(Number(value))}
 				/>
 			</div>
 			{recommendation !== null && recommendation.reason !== "" && (
@@ -118,7 +116,7 @@ export function QuestionBlock({
 					<Button
 						variant="primary"
 						processing={answering}
-						disabled={option === null || reason.trim() === ""}
+						disabled={picked === null || reason.trim() === ""}
 						onClick={onAnswer}
 					>
 						Answer

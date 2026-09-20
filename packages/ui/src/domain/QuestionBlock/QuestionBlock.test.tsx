@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { QuestionBlock, type QuestionBlockProps, type QuestionChoice } from "./QuestionBlock";
+import { QuestionBlock, type QuestionBlockProps, type QuestionOption } from "./QuestionBlock";
 
 // OP-52 of section 2, screen 7 in
 // docs/research/trellis-for-one-human-and-many-agents.md.
-const choices: QuestionChoice[] = [
+const options: QuestionOption[] = [
 	{ number: 1, text: "Leave it missed. Write a RoutineRun with a missed state so the person sees the gap." },
 	{ number: 2, text: "Run it late. The sweep starts every due moment it finds, however old." },
 ];
@@ -18,11 +18,11 @@ const releases = [
 ];
 
 const props: QuestionBlockProps = {
-	choices,
+	options,
 	recommendation: { option: 1, by: "crisp-fjord", reason: "A night audit reads a different day." },
 	releases,
-	option: null,
-	onOptionChange: () => {},
+	picked: null,
+	onPickedChange: () => {},
 	reason: "",
 	onReasonChange: () => {},
 	answering: false,
@@ -81,11 +81,11 @@ describe("QuestionBlock", () => {
 	});
 
 	test("holds Answer shut while the reason is blank", () => {
-		expect(answerButtonTag(render({ option: 1 }))).toContain("disabled");
+		expect(answerButtonTag(render({ picked: 1 }))).toContain("disabled");
 	});
 
 	test("opens Answer once an option and a reason are there", () => {
-		expect(answerButtonTag(render({ option: 1, reason: "A missed night must stay visible." }))).not.toContain(
+		expect(answerButtonTag(render({ picked: 1, reason: "A missed night must stay visible." }))).not.toContain(
 			"disabled",
 		);
 	});
@@ -104,7 +104,7 @@ describe("QuestionBlock", () => {
 	});
 
 	test("prints one line when the ticket lists no option", () => {
-		const html = render({ choices: [] });
+		const html = render({ options: [] });
 
 		expect(html).toContain("The ticket lists no option to pick.");
 		expect(html).not.toContain("<button");

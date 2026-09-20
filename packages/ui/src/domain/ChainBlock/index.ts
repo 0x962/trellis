@@ -1,5 +1,5 @@
 export {
-	type ChainAnswer,
+	type AnsweredQuestion,
 	ChainBlock,
 	type ChainBlockProps,
 	type ChainDependency,

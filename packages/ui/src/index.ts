@@ -1,7 +1,7 @@
 export { DesktopChrome } from "./desktop/DesktopChrome/index.ts";
 export { ActorChip, type ActorChipProps } from "./domain/ActorChip";
 export {
-	type ChainAnswer,
+	type AnsweredQuestion,
 	ChainBlock,
 	type ChainBlockProps,
 	type ChainDependency,
@@ -44,8 +44,8 @@ export { type ModelProvider, ProviderIcon, type ProviderIconProps } from "./doma
 export {
 	QuestionBlock,
 	type QuestionBlockProps,
-	type QuestionChoice,
-	type QuestionRecommendation,
+	type QuestionOption,
+	type RecommendedOption,
 } from "./domain/QuestionBlock";
 export { type QuotaWindow, QuotaWindows, type QuotaWindowsProps, quotaFillClass } from "./domain/QuotaWindows";
 export { type RankedBarRow, RankedBars, type RankedBarsProps } from "./domain/RankedBars";
