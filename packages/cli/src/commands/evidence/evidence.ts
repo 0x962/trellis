@@ -90,5 +90,5 @@ const list = defineCommand({
 
 export default defineCommand({
 	meta: { name: "evidence", description: "Add or list evidence of a pull request" },
-	subCommands: { add, list },
+	subCommands: { add, check: () => import("./check.ts").then((module) => module.default), list },
 });
