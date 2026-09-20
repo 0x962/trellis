@@ -58,8 +58,9 @@ test("a cycle of three tickets fails and names its complete path", async () => {
 		run((tx) => updateDependencies(ctx, tx, { ticket: "TST-1", after: ["TST-3"], expectedVersion: first.version + 1 })),
 	).rejects.toMatchObject({ code: "VERSION_CONFLICT" });
 	await expect(run((tx) => updateDependencies(ctx, tx, { ticket: "TST-1", after: ["TST-3"] }))).rejects.toMatchObject({
-		code: "INPUT_VALIDATION_FAILED",
+		code: "DEPENDENCY_CYCLE",
 		message: "The dependency would close this cycle: TST-1 -> TST-3 -> TST-2 -> TST-1.",
+		data: { path: ["TST-1", "TST-3", "TST-2", "TST-1"] },
 	});
 	const found = await db.execute(sql`SELECT ticket_id, depends_on_id FROM ticket_deps ORDER BY ticket_id`);
 	expect(found.rows).toHaveLength(2);

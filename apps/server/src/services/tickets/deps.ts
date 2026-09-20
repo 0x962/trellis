@@ -5,7 +5,7 @@ import type { ServiceCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import { ticketGet, ticketSummary } from "../../db/queries/ticketGet.ts";
 import type { Tx } from "../../db/tx.ts";
-import { invalidInput } from "../../errors.ts";
+import { fail, invalidInput } from "../../errors.ts";
 import { type Change, record } from "../activity.ts";
 import { assertProjectActive, resolveTicket, type TicketRow } from "../refs.ts";
 import { assertVersion } from "./rules.ts";
@@ -94,10 +94,8 @@ const insertDependencies = async (
 		if (dependency.id === target.id) throw invalidInput("after", "A ticket cannot depend on itself.");
 		if (await hasDependencyPath(tx, dependency.id, target.id)) {
 			const pathIdentifiers = await findDependencyPath(tx, dependency.id, dependency.identifier, target.id);
-			throw invalidInput(
-				"after",
-				`The dependency would close this cycle: ${[target.identifier, ...pathIdentifiers].join(" -> ")}.`,
-			);
+			const path = [target.identifier, ...pathIdentifiers];
+			throw fail("DEPENDENCY_CYCLE", { path }, `The dependency would close this cycle: ${path.join(" -> ")}.`);
 		}
 		const inserted = await rows<unknown>(
 			tx,

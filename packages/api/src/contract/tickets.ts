@@ -94,7 +94,7 @@ export const tickets = {
 		.input(TicketDeleteInputSchema)
 		.output(TicketDeleteOutputSchema),
 	updateDependencies: base
-		.errors(pickErrors(["PROJECT_ARCHIVED", "VERSION_CONFLICT"]))
+		.errors(pickErrors(["DEPENDENCY_CYCLE", "PROJECT_ARCHIVED", "VERSION_CONFLICT"]))
 		.route({
 			method: "PATCH",
 			path: "/tickets/{ticket}/dependencies",
