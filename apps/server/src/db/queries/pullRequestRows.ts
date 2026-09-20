@@ -1,4 +1,12 @@
-import type { Check, CiState, LinkedPullRequest, PrState, PullRequest, StoredActorKind } from "@trellis/api";
+import type {
+	ChangedFile,
+	Check,
+	CiState,
+	LinkedPullRequest,
+	PrState,
+	PullRequest,
+	StoredActorKind,
+} from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { iso } from "./support.ts";
 
@@ -10,6 +18,7 @@ export type PullRequestRow = {
 	additions: number | null;
 	deletions: number | null;
 	changed_files: number | null;
+	files: ChangedFile[] | null;
 	url: string;
 	title: string;
 	state: PrState;
@@ -36,7 +45,7 @@ export type LinkedPullRequestRow = PullRequestRow & {
 };
 
 export const pullRequestColumns = sql`
-	p.id, p.owner, p.repo, p.number, p.additions, p.deletions, p.changed_files,
+	p.id, p.owner, p.repo, p.number, p.additions, p.deletions, p.changed_files, p.files,
 	p.url, p.title, p.state, p.is_draft, p.head_ref, p.base_ref, p.review_state,
 	${iso(sql`p.merged_at`)} AS merged_at, ${iso(sql`p.closed_at`)} AS closed_at, p.checks, p.ci_state,
 	p.content_hash, ${iso(sql`p.fetched_at`)} AS fetched_at, p.fetch_error,
@@ -51,6 +60,7 @@ export const toPullRequest = (row: PullRequestRow): PullRequest => ({
 	additions: row.additions,
 	deletions: row.deletions,
 	changedFiles: row.changed_files,
+	files: row.files,
 	url: row.url,
 	title: row.title,
 	state: row.state,
