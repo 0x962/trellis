@@ -62,6 +62,60 @@ test("holds the clip bytes back until the reader asks for them", () => {
 	expect(html).not.toContain("autoplay");
 });
 
+test("gives the image the label when the agent wrote no sentence", () => {
+	const html = renderToStaticMarkup(
+		<FrontendEvidence
+			capture={capture}
+			before={{ url: before.url, caption: null }}
+			after={null}
+			clip={null}
+			consoleLine={null}
+		/>,
+	);
+
+	expect(html).toContain('alt="the before screen"');
+	expect(html).not.toContain('alt=""');
+});
+
+test("gives the image the sentence the agent wrote", () => {
+	const html = renderToStaticMarkup(full);
+
+	expect(html).toContain(`alt="${before.caption}"`);
+	expect(html).toContain(`alt="${after.caption}"`);
+});
+
+test("holds the shape of the capture viewport before the file arrives", () => {
+	const html = renderToStaticMarkup(full);
+
+	expect(html).toContain("aspect-ratio:1440 / 900");
+});
+
+test("holds the shape of a desktop window when no capture record names a viewport", () => {
+	const html = renderToStaticMarkup(
+		<FrontendEvidence capture={null} before={before} after={after} clip={clip} consoleLine={null} />,
+	);
+
+	expect(html).toContain("aspect-ratio:16 / 10");
+});
+
+test("drops a field the record does not hold, and prints no empty gap", () => {
+	const html = renderToStaticMarkup(
+		<FrontendEvidence
+			capture={{ ...capture, theme: null, seed: null, baseSha: null }}
+			before={null}
+			after={null}
+			clip={null}
+			consoleLine={null}
+		/>,
+	);
+
+	expect(html).toContain("/chat/:uuid · 1440×900");
+	expect(html).toContain("head 8b21f0c · Chrome 141 · 2026-09-18 01:58");
+	expect(html).not.toContain(" ·  · ");
+	expect(html).not.toContain("seed:");
+	expect(html).not.toContain("· base");
+});
+
 test("names the image an agent did not add", () => {
 	const html = renderToStaticMarkup(
 		<FrontendEvidence capture={capture} before={before} after={null} clip={null} consoleLine={null} />,

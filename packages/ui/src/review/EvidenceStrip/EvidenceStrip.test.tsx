@@ -7,7 +7,7 @@ const copy = () => {};
 
 test("prints the count and the note beside the title", () => {
 	const html = renderToStaticMarkup(
-		<EvidenceStrip present={5} required={5} missing={[]} note="captured on 8b21f0c" onCopy={copy}>
+		<EvidenceStrip present={5} required={5} missing={[]} hasRecords={true} note="captured on 8b21f0c" onCopy={copy}>
 			<p>the records</p>
 		</EvidenceStrip>,
 	);
@@ -19,7 +19,7 @@ test("prints the count and the note beside the title", () => {
 
 test("prints one line for each record the pull request still owes", () => {
 	const html = renderToStaticMarkup(
-		<EvidenceStrip present={4} required={5} missing={[gap]} onCopy={copy}>
+		<EvidenceStrip present={4} required={5} missing={[gap]} hasRecords={true} onCopy={copy}>
 			<p>the records</p>
 		</EvidenceStrip>,
 	);
@@ -30,9 +30,9 @@ test("prints one line for each record the pull request still owes", () => {
 	expect(html).toContain("trellis evidence add 56930 --kind console --file &lt;path&gt;");
 });
 
-test("prints placeholders and no count while the records travel", () => {
+test("prints placeholders and no count while the request is not complete", () => {
 	const html = renderToStaticMarkup(
-		<EvidenceStrip present={0} required={5} missing={[gap]} loading={true} onCopy={copy}>
+		<EvidenceStrip present={0} required={5} missing={[gap]} hasRecords={true} loading={true} onCopy={copy}>
 			<p>the records</p>
 		</EvidenceStrip>,
 	);
@@ -44,8 +44,21 @@ test("prints placeholders and no count while the records travel", () => {
 	expect(html).not.toContain("console log");
 });
 
-test("prints one sentence when it has nothing to show", () => {
-	const html = renderToStaticMarkup(<EvidenceStrip present={0} required={0} missing={[]} onCopy={copy} />);
+test("prints one sentence when the pull request owes nothing and carries no record", () => {
+	const html = renderToStaticMarkup(
+		<EvidenceStrip present={0} required={0} missing={[]} hasRecords={false} onCopy={copy} />,
+	);
 
 	expect(html).toContain("This pull request owes no evidence.");
+});
+
+test("hides the records of a pull request that carries none", () => {
+	const html = renderToStaticMarkup(
+		<EvidenceStrip present={0} required={5} missing={[gap]} hasRecords={false} onCopy={copy}>
+			<p>the records</p>
+		</EvidenceStrip>,
+	);
+
+	expect(html).not.toContain("the records");
+	expect(html).toContain("console log");
 });

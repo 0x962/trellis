@@ -109,7 +109,29 @@ describe("EvidenceStrip", () => {
 		expect(html).not.toContain("/api/evidence/01M30A0000000000000000CLIP/file");
 	});
 
-	test("prints placeholders while the records travel", () => {
+	test("drops a field the capture record does not hold", () => {
+		const thin = record({
+			id: "01M30A00000000000000000CAP",
+			kind: "capture",
+			record: { headSha, route: "/chat/:uuid", browser: "Chrome 141" },
+		});
+		const html = renderToStaticMarkup(<EvidenceStrip records={[thin]} floor={floor} />);
+
+		expect(html).toContain("/chat/:uuid");
+		expect(html).toContain("head 8b21f0c · Chrome 141");
+		expect(html).not.toContain(" ·  · ");
+		expect(html).not.toContain("· base");
+	});
+
+	test("prints one sentence when the pull request carries no record", () => {
+		const html = renderToStaticMarkup(
+			<EvidenceStrip records={[]} floor={{ ...floor, required: [], present: [], missing: [] }} />,
+		);
+
+		expect(html).toContain("This pull request owes no evidence.");
+	});
+
+	test("prints placeholders while the request is not complete", () => {
 		const html = renderToStaticMarkup(<EvidenceStrip records={[]} floor={floor} loading={true} />);
 
 		expect(html).toContain('aria-busy="true"');

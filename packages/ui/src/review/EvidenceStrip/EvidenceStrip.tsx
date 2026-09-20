@@ -16,25 +16,27 @@ export type EvidenceStripProps = {
 	present: number;
 	// How many records the pull request owes in total.
 	required: number;
-	// One entry for each owed record the pull request does not carry yet.
 	missing: readonly EvidenceGap[];
+	// True when the pull request carries at least one record. `children` cannot
+	// answer this, because a caller passes the same element whether or not it
+	// found a record to draw in it.
+	hasRecords: boolean;
 	// Words that print after the count, such as "captured on 8b21f0c".
 	note?: string;
-	// True while the records travel from the server.
+	// True while the request for the records is not complete.
 	loading?: boolean;
 	// The records themselves. A frontend pull request passes FrontendEvidence.
 	children?: ReactNode;
 	onCopy: (text: string) => void;
 };
 
-// The evidence of one pull request: the records at the top, then the list of
-// the records the pull request still owes. Each line of that list carries the
-// command that writes the record, because the reader takes the command to a
-// terminal.
+// A missing line carries the command that writes the record, because the
+// reader runs that command in a terminal.
 export function EvidenceStrip({
 	present,
 	required,
 	missing,
+	hasRecords,
 	note,
 	loading = false,
 	children,
@@ -53,11 +55,11 @@ export function EvidenceStrip({
 			/>
 			{loading ? (
 				<Skeleton height="h-4" lines={3} />
-			) : missing.length === 0 && children === undefined ? (
+			) : missing.length === 0 && !hasRecords ? (
 				<EmptyState description="This pull request owes no evidence." />
 			) : (
 				<>
-					{children}
+					{hasRecords && children}
 					{missing.length > 0 && (
 						<dl className="flex min-w-0 flex-col">
 							{missing.map((gap) => (

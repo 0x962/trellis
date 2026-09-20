@@ -7,7 +7,7 @@ export type EvidenceStripProps = {
 	records: readonly Evidence[];
 	// What the pull request owes, and what of it is already there.
 	floor: EvidenceFloor;
-	// True while the records travel from the server.
+	// True while the request for the records is not complete.
 	loading?: boolean;
 };
 
@@ -34,15 +34,14 @@ const text = (record: Evidence["record"], key: string): string | null => {
 	return typeof value === "string" ? value : null;
 };
 
-// The first 7 characters of a commit SHA, the length GitHub prints.
-const short = (sha: string) => sha.slice(0, 7);
+// GitHub prints 7 characters of a SHA.
+const short = (sha: string | null) => (sha === null ? null : sha.slice(0, 7));
+
+// The record holds the time in UTC. The line prints UTC, and never the local
+// time of the reader.
+const minute = (iso: string | null) => (iso === null ? null : iso.slice(0, 16).replace("T", " "));
 
 const bytes = (size: number) => (size < 1024 ? `${size} B` : `${Math.round(size / 1024)} KB`);
-
-// The stored time of the capture, cut to the minute: "2026-09-18 01:58". The
-// record holds the time in UTC, and the line prints that same time, because
-// the line is a record of the capture and not a time the reader must keep.
-const minute = (iso: string) => iso.slice(0, 16).replace("T", " ");
 
 const firstOf = (records: readonly Evidence[], kind: EvidenceKind) =>
 	records.find((record) => record.kind === kind) ?? null;
@@ -53,23 +52,20 @@ const shotOf = (records: readonly Evidence[], kind: "before" | "after") => {
 	return { url: record.blob.url, caption: text(record.record, "caption") };
 };
 
-// The evidence of one frontend pull request. It reads each record out of the
-// list by its kind, and it turns the floor into the list of what is still
-// owed.
 export function EvidenceStrip({ records, floor, loading = false }: EvidenceStripProps) {
 	const captureRecord = firstOf(records, "capture");
 	const capture =
 		captureRecord === null
 			? null
 			: {
-					route: text(captureRecord.record, "route") ?? "",
-					viewport: text(captureRecord.record, "viewport") ?? "",
-					theme: text(captureRecord.record, "theme") ?? "",
-					seed: text(captureRecord.record, "seed") ?? "",
-					browser: text(captureRecord.record, "browser") ?? "",
+					route: text(captureRecord.record, "route"),
+					viewport: text(captureRecord.record, "viewport"),
+					theme: text(captureRecord.record, "theme"),
+					seed: text(captureRecord.record, "seed"),
+					browser: text(captureRecord.record, "browser"),
 					headSha: short(text(captureRecord.record, "headSha") ?? captureRecord.headSha),
-					baseSha: short(text(captureRecord.record, "baseSha") ?? ""),
-					capturedAt: minute(text(captureRecord.record, "capturedAt") ?? ""),
+					baseSha: short(text(captureRecord.record, "baseSha")),
+					capturedAt: minute(text(captureRecord.record, "capturedAt")),
 				};
 
 	const clipRecord = firstOf(records, "clip");
@@ -94,7 +90,8 @@ export function EvidenceStrip({ records, floor, loading = false }: EvidenceStrip
 			present={floor.present.length}
 			required={floor.required.length}
 			missing={floor.missing.map((gap) => ({ label: itemWords[gap.item], fillCommand: gap.fillCommand }))}
-			note={capture === null ? undefined : `captured on ${capture.headSha}`}
+			hasRecords={records.length > 0}
+			note={capture?.headSha == null ? undefined : `captured on ${capture.headSha}`}
 			loading={loading}
 			onCopy={(command) => void copyText(command, "Copied to the clipboard")}
 		>
