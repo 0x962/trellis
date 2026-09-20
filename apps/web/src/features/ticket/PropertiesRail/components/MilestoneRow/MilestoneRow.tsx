@@ -39,12 +39,12 @@ export function MilestoneRow({ ticket, epic }: MilestoneRowProps) {
 				{ optimistic: (row) => ({ ...row, milestone: link }) },
 			);
 		} catch (error) {
-			failToast(`The milestone of ${ticket.identifier} did not change.`, error, () => void pick(milestone));
+			failToast(`The wave of ${ticket.identifier} did not change.`, error, () => void pick(milestone));
 		}
 	};
 
 	return (
-		<PropertyRow compact label="Milestone">
+		<PropertyRow compact label="Wave">
 			{readOnly ? (
 				nameOf(ticket.milestone)
 			) : (
