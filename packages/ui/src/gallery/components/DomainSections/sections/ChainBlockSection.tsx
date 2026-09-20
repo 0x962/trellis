@@ -27,7 +27,6 @@ const op52: ChainDependency = {
 	link: link("OP-52"),
 };
 
-// OP-34 holds two tickets back.
 const op34Releases: ChainRelease[] = [
 	{ identifier: "OP-35", title: "Service: A run whose webhook never came is closed", link: link("OP-35") },
 	{

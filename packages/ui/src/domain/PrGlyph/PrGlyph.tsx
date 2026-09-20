@@ -29,10 +29,12 @@ const looks = {
 	closed: { label: "Pull request closed", tone: "text-danger", Icon: GitPullRequestClosedIcon },
 } as const satisfies Record<string, Look>;
 
-type PrGlyphLook = keyof typeof looks;
+export type PrStateWord = keyof typeof looks;
 
-// GitHub shows the draft mark only while the pull request is open.
-const lookOf = (state: PullRequestState, isDraft: boolean): PrGlyphLook =>
+// The word for a pull request state, and the key of the glyph that draws it.
+// GitHub shows the draft mark only while the pull request is open, so a
+// merged pull request that was once a draft reads as merged.
+export const prStateWord = (state: PullRequestState, isDraft: boolean): PrStateWord =>
 	state === "open" && isDraft ? "draft" : state;
 
 // A table row is 32 px tall and holds the small glyph. A pull request row has
@@ -44,7 +46,7 @@ const iconSizes: Record<PrGlyphSize, string> = { sm: "size-3.5", md: "size-4" };
 // open pull request open. The caller draws the check result next to the glyph.
 // The sr-only text names the state, so color is never the only signal.
 export function PrGlyph({ state, isDraft, size = "md" }: PrGlyphProps) {
-	const key = lookOf(state, isDraft);
+	const key = prStateWord(state, isDraft);
 	const { label, tone, Icon } = looks[key];
 	return (
 		<span

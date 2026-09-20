@@ -12,12 +12,10 @@ export type ChainBlockProps = {
 	releases: TicketSummary["releases"];
 };
 
-// A click on a chain line opens the ticket the line names.
 const ticketLink = (identifier: string) => <Link to="/t/$identifier" params={{ identifier }} />;
 
-// The chain of a ticket: what holds it back, whether it can start, what it
-// holds back, and the open question it applies. `Ready` is the one derived
-// sentence.
+// This wrapper gives each chain line a router link and derives the `Ready`
+// sentence from `waitsOn`.
 export function ChainBlock({ waitsOn, releases }: ChainBlockProps) {
 	const ready = useMemo(() => readyLine(waitsOn), [waitsOn]);
 	const dependencies = useMemo<ChainDependency[]>(

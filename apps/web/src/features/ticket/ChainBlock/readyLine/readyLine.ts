@@ -2,13 +2,12 @@ import type { TicketSummary } from "@trellis/api";
 
 type Dependency = TicketSummary["waitsOn"][number];
 
-// A question ends when a person picks an option, so its blocker word is
-// `open`. Every other ticket ends when its pull request merges.
+// A question closes when a person picks an option, so the sentence says
+// `open`. Every other ticket closes when its pull request merges.
 const reasonOf = (dependency: Dependency) =>
 	`${dependency.identifier} is ${dependency.isQuestion ? "open" : "not merged"}`;
 
-// English puts a comma before the last item of a list of three or more, and
-// the word `and` before the last item of a list of two or more.
+// The list always puts a comma and the word `and` before the last item.
 function sentenceList(parts: readonly string[]): string {
 	if (parts.length === 1) return parts[0] as string;
 	return `${parts.slice(0, -1).join(", ")}, and ${parts[parts.length - 1]}`;

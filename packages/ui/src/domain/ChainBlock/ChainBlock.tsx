@@ -3,15 +3,14 @@ import { AttentionDot } from "../../primitives/AttentionDot";
 import { EmptyState } from "../../primitives/EmptyState";
 import { PropertyRow } from "../../primitives/PropertyRow";
 import { SectionHeader } from "../../primitives/SectionHeader";
-import { PrGlyph, type PullRequestState } from "../PrGlyph";
+import { PrGlyph, type PullRequestState, prStateWord } from "../PrGlyph";
 import { type StatusCategory, StatusIcon } from "../StatusIcon";
 import { TicketId } from "../TicketId";
 
 // An anchor that the caller builds, such as a router Link. `ChainBlock`
 // gives it the class names, the title and the children of a chain line.
-type ChainLink = ReactElement<{ className?: string; title?: string; children?: ReactNode }>;
+type ChainAnchor = ReactElement<{ className?: string; title?: string; children?: ReactNode }>;
 
-// The pull request that carries the work of a ticket in the chain.
 export type ChainPr = {
 	number: number;
 	state: PullRequestState;
@@ -27,13 +26,13 @@ export type ChainDependency = {
 	// dot and the words `your answer`.
 	isQuestion: boolean;
 	pr?: ChainPr;
-	link: ChainLink;
+	link: ChainAnchor;
 };
 
 export type ChainRelease = {
 	identifier: string;
 	title: string;
-	link: ChainLink;
+	link: ChainAnchor;
 };
 
 export type ChainBlockProps = {
@@ -47,10 +46,6 @@ export type ChainBlockProps = {
 	ready: string;
 };
 
-const stateWords: Record<PullRequestState, string> = { open: "open", closed: "closed", merged: "merged" };
-
-const prWord = (pr: ChainPr) => (pr.state === "open" && pr.isDraft ? "draft" : stateWords[pr.state]);
-
 // The words a screen reader says for the status mark of a chain line. A
 // dependency carries the category of its status and not the name a project
 // gives that status.
@@ -63,13 +58,12 @@ const statusWords: Record<StatusCategory, string> = {
 };
 
 // The chain of one ticket: what holds it back, whether it can start, what it
-// holds back, and the open question its answer depends on. Every sentence
-// here reports a state. Nothing in this block starts a run or changes a
-// ticket.
+// holds back, and the open question that decides how the work is built. Every
+// sentence here reports a state. Nothing in this block starts a run or
+// changes a ticket.
 export function ChainBlock({ waitsOn, releases, ready }: ChainBlockProps) {
 	// A question this ticket waits on decides how the ticket is built, so the
-	// `Applies` line names it again with the word `open`. A ticket that waits
-	// on no question has no `Applies` line.
+	// `Applies` line names it again with the word `open`.
 	const question = waitsOn.find((dependency) => dependency.isQuestion);
 	if (waitsOn.length === 0 && releases.length === 0) {
 		return (
@@ -85,7 +79,7 @@ export function ChainBlock({ waitsOn, releases, ready }: ChainBlockProps) {
 			<dl className="flex min-w-0 flex-col">
 				<ChainRow label="Waits on">
 					{waitsOn.length === 0 ? (
-						<Nothing />
+						<NothingWord />
 					) : (
 						waitsOn.map((dependency) => <DependencyLine key={dependency.identifier} dependency={dependency} />)
 					)}
@@ -95,7 +89,7 @@ export function ChainBlock({ waitsOn, releases, ready }: ChainBlockProps) {
 				</ChainRow>
 				<ChainRow label="Releases">
 					{releases.length === 0 ? (
-						<Nothing />
+						<NothingWord />
 					) : (
 						releases.map((release) => <TicketLine key={release.identifier} {...release} />)
 					)}
@@ -110,8 +104,8 @@ export function ChainBlock({ waitsOn, releases, ready }: ChainBlockProps) {
 	);
 }
 
-// The `dd` of `PropertyRow` lays its children in a row, and a chain clause
-// holds a column of lines.
+// The `dd` of `PropertyRow` lays its children in a row, and a chain row holds
+// a column of lines.
 function ChainRow({ label, children }: { label: string; children: ReactNode }) {
 	return (
 		<PropertyRow label={label} align="start" labelWidth="wide">
@@ -120,9 +114,9 @@ function ChainRow({ label, children }: { label: string; children: ReactNode }) {
 	);
 }
 
-// A clause that holds no ticket prints one faint word, so the reader sees an
-// empty clause and not a missing one.
-function Nothing() {
+// An empty row shows one faint word, so the reader sees an empty row and not
+// missing data.
+function NothingWord() {
 	return <span className="text-sm text-fg-faint">nothing</span>;
 }
 
@@ -148,7 +142,7 @@ function DependencyLine({ dependency }: { dependency: ChainDependency }) {
 						<span className="flex shrink-0 items-center gap-1 text-fg-muted">
 							<PrGlyph state={dependency.pr.state} isDraft={dependency.pr.isDraft} size="sm" />
 							<span className="tabular">{`#${dependency.pr.number}`}</span>
-							{prWord(dependency.pr)}
+							{prStateWord(dependency.pr.state, dependency.pr.isDraft)}
 						</span>
 					)
 				)}
@@ -159,7 +153,7 @@ function DependencyLine({ dependency }: { dependency: ChainDependency }) {
 
 // A release line and the `Applies` line hold the same three parts. `note` is
 // the muted word between the identifier and the title, such as `open.` on the
-// question that the ticket applies.
+// question the ticket waits for.
 function TicketLine({
 	identifier,
 	title,
@@ -168,7 +162,7 @@ function TicketLine({
 }: {
 	identifier: string;
 	title: string;
-	link: ChainLink;
+	link: ChainAnchor;
 	note?: string;
 }) {
 	return cloneElement(link, {
