@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import type { AgentRun } from "../schemas/agentRun.ts";
 import { at, session } from "../sessionStatus/fixture.ts";
-import { runLine } from "./runLine.ts";
+import { isAgentWorking, runLine } from "./runLine.ts";
 
 const namedRun = () => {
 	const run = session().run;
@@ -30,6 +30,17 @@ test("works with the current tool and its start time", () => {
 test("works without a current tool", () => {
 	const run = namedRun();
 	expect(runLine(run)).toMatchObject({ kind: "works", words: "works", since: at });
+});
+
+test("identifies a controllable working process", () => {
+	const run = namedRun();
+	expect(isAgentWorking(run)).toBeTrue();
+	attention(run).requests = [
+		{ id: "permission", kind: "permission", title: "Approve Bash", blocking: true, sequence: 2, at },
+	];
+	expect(isAgentWorking(run)).toBeTrue();
+	run.observation!.activity = { state: "idle", updatedAt: at };
+	expect(isAgentWorking(run)).toBeFalse();
 });
 
 test("adds the last message as the second line", () => {
