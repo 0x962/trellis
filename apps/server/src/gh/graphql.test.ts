@@ -1,14 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { buildPullRequestQuery, mapPullRequestResponse, type PullRequestResponse } from "./graphql.ts";
+import type { RawFile } from "./parse.ts";
 
 const ref = { owner: "octo", repo: "repo", number: 42 };
 
 type Size = { additions: number; deletions: number; changedFiles: number };
-type File = { path: string; additions: number; deletions: number };
 
 const defaultFiles = [{ path: "apps/server/src/gh/graphql.ts", additions: 12, deletions: 3 }];
 
-const responseWithSize = (size: Size, files: File[] = defaultFiles): PullRequestResponse => ({
+const responseWithSize = (size: Size, files: RawFile[] = defaultFiles): PullRequestResponse => ({
 	data: {
 		pr0: {
 			pullRequest: {
@@ -30,7 +30,7 @@ const responseWithSize = (size: Size, files: File[] = defaultFiles): PullRequest
 	},
 });
 
-const rowOf = (size: Size, files?: File[]) => {
+const rowOf = (size: Size, files?: RawFile[]) => {
 	const result = mapPullRequestResponse([ref], responseWithSize(size, files))[0]!;
 	if (!("row" in result)) throw new Error(result.error);
 	return result.row;
