@@ -58,6 +58,7 @@ import type { IoCtx, PrepareCtx } from "./support.ts";
 import { prepareSweep } from "./sweep/prepareSweep.ts";
 import * as system from "./system.ts";
 import { prepareSystemUsage } from "./systemUsage";
+import { importContract } from "./tickets/importContract.ts";
 import * as tickets from "./tickets.ts";
 import * as timeline from "./timeline.ts";
 import { prepareAccounts as prepareUsageAccounts } from "./usage/accounts.ts";
@@ -222,6 +223,7 @@ export const services = {
 	"tickets.updateMany": core("mutation", tickets.updateMany),
 	"tickets.deleteMany": core("mutation", tickets.deleteMany),
 	"tickets.delete": core("mutation", tickets.delete),
+	"tickets.importContract": core("mutation", importContract),
 	"tickets.importDependencies": core("mutation", tickets.importDependencies),
 	"tickets.updateDependencies": core("mutation", tickets.updateDependencies),
 	"tickets.setContract": core("mutation", tickets.setContract),
