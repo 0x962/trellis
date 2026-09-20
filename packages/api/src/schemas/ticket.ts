@@ -88,6 +88,21 @@ export const TicketSummarySchema = z.object({
 	attachmentCount: CountSchema,
 	// The labels with no group first, then by group name, then by label name.
 	labels: z.array(TicketLabelSchema),
+	waitsOn: z.array(
+		z.object({
+			identifier: TicketIdentifierSchema,
+			title: TicketTitleSchema,
+			status: StatusCategorySchema,
+			isQuestion: z.boolean(),
+		}),
+	),
+	releases: z.array(
+		z.object({
+			identifier: TicketIdentifierSchema,
+			title: TicketTitleSchema,
+		}),
+	),
+	ready: z.boolean(),
 	pr: PrBadgeSchema.nullable(),
 	// The pull requests in the order they were linked to the ticket.
 	prRows: z.array(TicketPrSchema),
