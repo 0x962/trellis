@@ -13,6 +13,7 @@ import {
 	PriorityIconSection,
 	ReviewFocusListSection,
 	ReviewStatusSummarySection,
+	RunLineSection,
 	StatusIconSection,
 	TicketGlimmerSection,
 	TicketIdSection,
@@ -41,6 +42,7 @@ export function DomainSections() {
 			<FileRiskGroupsSection />
 			<ConditionsBlockSection />
 			<ContractBlockSection />
+			<RunLineSection />
 		</>
 	);
 }
