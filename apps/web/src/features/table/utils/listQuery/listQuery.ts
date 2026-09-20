@@ -48,12 +48,13 @@ export const closedInput = (
 };
 
 // True when the table draws the Done and Canceled rows inside the groups of
-// the view, not in groups of their own: the milestone grouping of one epic.
-// A finished milestone then keeps its group, and an open milestone shows
-// its done rows. One epic bounds the row count; a milestone grouping over
-// every epic of a project keeps the open rows alone.
+// the view, not in groups of their own: the milestone and the turn grouping
+// of one epic. A finished milestone then keeps its group, an open milestone
+// shows its done rows, and the turn grouping fills its Done group. One epic
+// bounds the row count; a milestone grouping over every epic of a project
+// keeps the open rows alone.
 export const hasInlineClosed = (view: View) =>
-	view.group === "milestone" &&
+	(view.group === "milestone" || view.group === "turn") &&
 	view.epic !== undefined &&
 	view.epic !== "none" &&
 	view.closed !== "hide" &&

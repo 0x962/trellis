@@ -176,6 +176,7 @@ export function TableBody({
 									count={group.count}
 									countLabel={group.countLabel}
 									badge={group.badge}
+									forYou={group.forYou}
 									note={group.note}
 									status={group.status}
 									category={group.category}

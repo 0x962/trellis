@@ -13,6 +13,9 @@ export type TableGroup = RowGroup & {
 	countLabel?: string;
 	// The word of the `Badge` after the label, such as Current.
 	badge?: string;
+	// The rows of the group whose turn is the person. The header prints it
+	// after the count.
+	forYou?: number;
 	// A muted word beside the count, such as Later.
 	note?: string;
 	// The ref of the epic that every row of the table belongs to. A new
