@@ -1,4 +1,13 @@
-import type { Epic, EpicSummary } from "@trellis/api";
+import {
+	type Epic,
+	type EpicSummary,
+	epicBandLine,
+	epicCountLine,
+	epicMilestoneHeading,
+	type MilestoneSummary,
+	pullRequestRowLine,
+	type TicketSummary,
+} from "@trellis/api";
 import { shortZonedDateTime } from "@trellis/api/time";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
@@ -84,20 +93,30 @@ const list = defineCommand({
 	},
 });
 
+// Two spaces put a pull request line under its ticket row.
+const prLines = (ticket: TicketSummary): string[] => ticket.prRows.map((pr) => `  ${pullRequestRowLine(pr)}`);
+
 // One ticket table under its heading. The tickets keep their number order.
 const ticketSection = (title: string, tickets: Epic["tickets"], color: boolean): string =>
-	`\n${heading(title, color)}${renderTable(tickets, ticketList.columns)}`;
+	`\n${heading(title, color)}${renderTable<TicketSummary>(tickets, ticketList.columns, prLines)}`;
+
+// `epic.currentMilestone` is a link. This finds the milestone row of the
+// epic with the same id, because the count line reads its counts.
+const currentMilestone = (epic: Epic): MilestoneSummary | undefined =>
+	epic.milestones.find((milestone) => milestone.id === epic.currentMilestone?.id);
 
 // An epic with no milestone prints one ticket table. An epic with milestones
 // prints the milestone table, then one ticket table for each milestone in
-// position order. The "no milestone" table prints only when a ticket of the
-// epic holds no milestone.
+// position order. A milestone heading carries the name, the ref, the word
+// `current` on the milestone the epic works in now, and the counts of that
+// milestone. The "no milestone" table prints only when a ticket of the epic
+// holds no milestone.
 const renderTickets = (epic: Epic, color: boolean): string => {
 	if (epic.milestones.length === 0) return ticketSection("tickets", epic.tickets, color);
 	const table = `\n${heading("milestones", color)}${renderTable(epic.milestones, milestoneList.columns)}`;
 	const sections = epic.milestones.map((milestone) =>
 		ticketSection(
-			`${milestone.name} (${milestone.ref})`,
+			epicMilestoneHeading(milestone, milestone.id === epic.currentMilestone?.id),
 			epic.tickets.filter((ticket) => ticket.milestone?.id === milestone.id),
 			color,
 		),
@@ -107,11 +126,21 @@ const renderTickets = (epic: Epic, color: boolean): string => {
 	return `${table}${sections.join("")}${rest}`;
 };
 
-// The record block, the description, then the milestones and the tickets.
+// The band of the epic page: the tickets by status, then what the person can
+// do in the milestone the epic works in now. An epic with every milestone
+// done prints the band line alone.
+const renderBand = (epic: Epic): string => {
+	const milestone = currentMilestone(epic);
+	const countLine = milestone === undefined ? "" : `${epicCountLine(milestone)}\n`;
+	return `\n${epicBandLine(epic.counts)}\n${countLine}`;
+};
+
+// The record block, the band, the description, then the milestones and the
+// tickets.
 const renderEpic = (epic: Epic, color: boolean): string => {
 	const block = renderRecord(epic, epicRecord.fields);
 	const description = epic.description === "" ? "" : `\n${epic.description}\n`;
-	return `${block}${description}${renderTickets(epic, color)}`;
+	return `${block}${renderBand(epic)}${description}${renderTickets(epic, color)}`;
 };
 
 const show = defineCommand({
