@@ -6,10 +6,8 @@ export type CheckResult = {
 	key: string;
 	name: string;
 	status: CheckStatus;
-	label: string;
 	workflow?: string;
 	url?: string;
-	duration: string | null;
 };
 
 export function CheckResultRow({ check }: { check: CheckResult }) {
@@ -34,11 +32,6 @@ export function CheckResultRow({ check }: { check: CheckResult }) {
 					</span>
 				)}
 			</div>
-			<span className="review-check-state">{check.label}</span>
-			<span className="review-check-duration">
-				{check.duration && <span className="sr-only">Duration: </span>}
-				{check.duration}
-			</span>
 		</li>
 	);
 }
