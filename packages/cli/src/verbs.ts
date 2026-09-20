@@ -92,7 +92,7 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 		load: () => import("./commands/summary/summary.ts").then((m) => command(m.default)),
 	},
 	evidence: {
-		description: "Add evidence to a pull request",
+		description: "Add or list evidence of a pull request",
 		load: () => import("./commands/evidence/evidence.ts").then((m) => command(m.default)),
 	},
 	thread: {
