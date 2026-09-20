@@ -1,4 +1,4 @@
-import { type PrKind, prPaths, type TicketContract } from "@trellis/api";
+import { type PrKind, type PrPath, prPaths, type TicketContract } from "@trellis/api";
 
 const evidenceByKind: Record<PrKind, string> = {
 	backend: "backend: summary · verify record · test proof · contract table",
@@ -7,13 +7,10 @@ const evidenceByKind: Record<PrKind, string> = {
 		"mixed: summary · after image · before image · capture record · console list · verify record · test proof · contract table",
 };
 
-export const evidenceOwedText = (contract: TicketContract): string => {
-	const kind = prPaths(
-		"",
-		contract.files.map((path) => ({ path, change: "change" })),
-	).kind;
-	return evidenceByKind[kind];
-};
+const asChangedFile = (path: string): PrPath => ({ path, change: "change" });
+
+export const evidenceOwedText = (contract: TicketContract, repositoryName: string): string =>
+	contract.files.length === 0 ? "-" : evidenceByKind[prPaths(repositoryName, contract.files.map(asChangedFile)).kind];
 
 const row = (label: string, values: string[]): string => {
 	const prefix = ` ${label.padEnd(15)}`;
@@ -22,7 +19,7 @@ const row = (label: string, values: string[]): string => {
 	return lines.map((value, index) => `${index === 0 ? prefix : continuation}${value}`).join("\n");
 };
 
-export const contractText = (contract: TicketContract): string =>
+export const contractText = (contract: TicketContract, repositoryName: string): string =>
 	`${[
 		"THE CONTRACT",
 		row("Result", [contract.result]),
@@ -30,5 +27,5 @@ export const contractText = (contract: TicketContract): string =>
 		row("Leave alone", contract.leaveAlone),
 		row("Verify", contract.verify),
 		row("Review focus", contract.reviewFocus),
-		row("Evidence owed", [evidenceOwedText(contract)]),
+		row("Evidence owed", [evidenceOwedText(contract, repositoryName)]),
 	].join("\n")}\n`;

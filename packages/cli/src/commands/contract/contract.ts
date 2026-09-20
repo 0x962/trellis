@@ -1,7 +1,8 @@
-import type { TicketContractInput } from "@trellis/api";
+import type { TicketContract, TicketContractInput } from "@trellis/api";
+import type { TrellisClient } from "@trellis/api/client";
 import { defineCommand } from "citty";
 import { clientOf } from "../../client.ts";
-import { compact, contextOf, toNumber, wantsJson } from "../../context.ts";
+import { type CliContext, compact, contextOf, toNumber, wantsJson } from "../../context.ts";
 import { repeatedFlag } from "../../flags.ts";
 import { json } from "../../output.ts";
 import { contractText, evidenceOwedText } from "./contractText.ts";
@@ -23,19 +24,32 @@ export const contractInput = (rawArgs: string[], args: SetArgs): TicketContractI
 		expectedVersion: toNumber(args["expect-version"]),
 	});
 
+const defaultRepositoryName = "default";
+
+const repositoryNameOf = async (client: TrellisClient, projectRef: string): Promise<string> => {
+	const project = await client.projects.get({ project: projectRef });
+	if (project.repos[0] !== undefined) return project.repos[0].repo;
+	for (const ancestor of [...project.ancestors].reverse()) {
+		const parent = await client.projects.get({ project: ancestor.path });
+		if (parent.repos[0] !== undefined) return parent.repos[0].repo;
+	}
+	return defaultRepositoryName;
+};
+
 const printContract = (
-	ctx: ReturnType<typeof contextOf>,
-	ticket: { identifier: string; contract: Parameters<typeof contractText>[0] },
+	ctx: CliContext,
+	ticket: { identifier: string; contract: TicketContract },
+	repositoryName: string,
 ): void => {
 	if (ctx.flags.quiet) {
 		ctx.out.write(`${ticket.identifier}\n`);
 		return;
 	}
 	if (wantsJson(ctx)) {
-		ctx.out.write(json({ ...ticket.contract, evidenceOwed: evidenceOwedText(ticket.contract) }));
+		ctx.out.write(json({ ...ticket.contract, evidenceOwed: evidenceOwedText(ticket.contract, repositoryName) }));
 		return;
 	}
-	ctx.out.write(contractText(ticket.contract));
+	ctx.out.write(contractText(ticket.contract, repositoryName));
 };
 
 const set = defineCommand({
@@ -51,8 +65,9 @@ const set = defineCommand({
 	},
 	async run(context) {
 		const ctx = contextOf(context);
-		const ticket = await clientOf(ctx).tickets.setContract(contractInput(context.rawArgs, context.args));
-		printContract(ctx, ticket);
+		const client = clientOf(ctx);
+		const ticket = await client.tickets.setContract(contractInput(context.rawArgs, context.args));
+		printContract(ctx, ticket, await repositoryNameOf(client, ticket.project.path));
 	},
 });
 
@@ -61,8 +76,9 @@ const show = defineCommand({
 	args: { ticket: { type: "positional", required: true, description: "Ticket ref" } },
 	async run(context) {
 		const ctx = contextOf(context);
-		const ticket = await clientOf(ctx).tickets.get({ ticket: context.args.ticket });
-		printContract(ctx, ticket);
+		const client = clientOf(ctx);
+		const ticket = await client.tickets.get({ ticket: context.args.ticket });
+		printContract(ctx, ticket, await repositoryNameOf(client, ticket.project.path));
 	},
 });
 

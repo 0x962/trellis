@@ -12,7 +12,7 @@ const contract: TicketContract = {
 };
 
 test("prints the contract in the ticket layout", () => {
-	expect(contractText(contract)).toBe(`THE CONTRACT
+	expect(contractText(contract, "canary")).toBe(`THE CONTRACT
  Result         The webhook settles the run row.
  Files          backend/operator-service/agent/signals.py
                 backend/operator-service/routines/apps.py
@@ -26,20 +26,22 @@ test("prints the contract in the ticket layout", () => {
 });
 
 test("prints a dash for an empty list", () => {
-	expect(contractText({ result: "Done.", files: [], leaveAlone: [], verify: [], reviewFocus: [] })).toContain(
-		" Files          -\n Leave alone    -\n Verify         -\n Review focus   -\n",
-	);
+	expect(
+		contractText({ result: "Done.", files: [], leaveAlone: [], verify: [], reviewFocus: [] }, "trellis"),
+	).toContain(" Files          -\n Leave alone    -\n Verify         -\n Review focus   -\n Evidence owed  -\n");
 });
 
 describe("evidence owed", () => {
-	test("uses the frontend floor for frontend files", () => {
-		expect(evidenceOwedText({ ...contract, files: ["frontend/src/App.tsx"] })).toBe(
+	test("uses the frontend list for frontend files", () => {
+		expect(evidenceOwedText({ ...contract, files: ["apps/web/src/routes/index.tsx"] }, "trellis")).toBe(
 			"frontend: summary · after image · before image · capture record · console list",
 		);
 	});
 
-	test("uses both floors for mixed files", () => {
-		expect(evidenceOwedText({ ...contract, files: ["frontend/src/App.tsx", "backend/canary/services/run.py"] })).toBe(
+	test("uses the mixed list for frontend and backend files", () => {
+		expect(
+			evidenceOwedText({ ...contract, files: ["frontend/src/App.tsx", "backend/canary/services/run.py"] }, "canary"),
+		).toBe(
 			"mixed: summary · after image · before image · capture record · console list · verify record · test proof · contract table",
 		);
 	});
