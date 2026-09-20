@@ -1,4 +1,4 @@
-import { CheckBucketSchema, TicketPrSchema } from "@trellis/api";
+import { type ChangedFile, CheckBucketSchema, prPaths, type TicketPr, TicketPrSchema } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { ciRank, prStateRank, reviewStateRank } from "./support.ts";
 
@@ -23,6 +23,26 @@ const passCheck = sql`check_row.value->>'bucket' = ${PASS}`;
 const failCheck = sql`check_row.value->>'bucket' IN (${FAIL}, ${CANCEL})`;
 const pendingCheck = sql`check_row.value->>'bucket' = ${PENDING}`;
 const skippedCheck = sql`check_row.value->>'bucket' = ${SKIPPED}`;
+
+export type TicketPrSource = Omit<TicketPr, "kind" | "risk"> & { files: ChangedFile[] | null };
+
+const unknownRisk: TicketPr["risk"] = {
+	auth: "no",
+	migration: "no",
+	dependency: "no",
+	sharedType: "no",
+	deletedTest: "no",
+};
+
+export const toTicketPrRows = (rows: TicketPrSource[] | null): TicketPr[] =>
+	(rows ?? []).map(({ files, ...row }) => {
+		if (files === null || files.length === 0) return { ...row, kind: "unknown", risk: unknownRisk };
+		const facts = prPaths(
+			row.repo,
+			files.map(({ path }) => ({ path, change: "change" })),
+		);
+		return { ...row, kind: facts.kind, risk: facts.risk };
+	});
 
 export const ticketPrColumns = sql`
 	ticket_pr.state AS pr_state, ticket_pr.ci_state AS pr_ci_state, ticket_pr.review_state AS pr_review_state,
@@ -51,6 +71,7 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 					'number', p.number, 'owner', p.owner, 'repo', p.repo, 'url', p.url,
 					'state', p.state, 'isDraft', p.is_draft,
 					'additions', p.additions, 'deletions', p.deletions, 'changedFiles', p.changed_files,
+					'files', p.files,
 					'sizeBand', CASE
 						WHEN p.additions IS NULL OR p.deletions IS NULL THEN NULL
 						WHEN p.additions::bigint + p.deletions::bigint < 200 THEN ${SMALL}
