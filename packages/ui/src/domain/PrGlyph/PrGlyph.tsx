@@ -17,7 +17,7 @@ export type PrGlyphProps = {
 	size?: PrGlyphSize;
 };
 
-type OcticonProps = { size?: number; className?: string; "aria-hidden"?: "true" };
+type OcticonProps = { className?: string; "aria-hidden"?: "true" };
 
 type Look = { label: string; tone: string; Icon: ComponentType<OcticonProps> };
 
@@ -38,10 +38,7 @@ const lookOf = (state: PullRequestState, isDraft: boolean): PrGlyphLook =>
 // A table row is 32 px tall and holds the small glyph. A pull request row has
 // more room and holds the medium one.
 const spanSizes: Record<PrGlyphSize, string> = { sm: "size-4", md: "size-5" };
-const iconSizes: Record<PrGlyphSize, { className: string; pixels: number }> = {
-	sm: { className: "size-3.5", pixels: 14 },
-	md: { className: "size-4", pixels: 16 },
-};
+const iconSizes: Record<PrGlyphSize, string> = { sm: "size-3.5", md: "size-4" };
 
 // The glyph shows the state, never the check result. A failed check leaves an
 // open pull request open. The caller draws the check result next to the glyph.
@@ -49,14 +46,13 @@ const iconSizes: Record<PrGlyphSize, { className: string; pixels: number }> = {
 export function PrGlyph({ state, isDraft, size = "md" }: PrGlyphProps) {
 	const key = lookOf(state, isDraft);
 	const { label, tone, Icon } = looks[key];
-	const icon = iconSizes[size];
 	return (
 		<span
 			data-pr-glyph={key}
 			title={label}
 			className={cx("relative inline-flex shrink-0 items-center justify-center", spanSizes[size], tone)}
 		>
-			<Icon size={icon.pixels} className={cx("shrink-0", icon.className)} aria-hidden="true" />
+			<Icon className={cx("shrink-0", iconSizes[size])} aria-hidden="true" />
 			<span className="sr-only">{label}</span>
 		</span>
 	);
