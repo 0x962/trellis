@@ -1,1 +1,0 @@
-export { bandLegend } from "./bandLegend";

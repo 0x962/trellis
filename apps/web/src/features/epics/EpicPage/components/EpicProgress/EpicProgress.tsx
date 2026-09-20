@@ -7,7 +7,7 @@ import type { View } from "../../../../filters/grammar";
 import { epicProgress, epicSegments } from "../../../epicBar";
 import { epicNext } from "../../../epicNext";
 import { epicUrlSearch } from "../../../epicSearch";
-import { bandLegend } from "./bandLegend";
+import { epicBarLegend } from "./epicBarLegend";
 
 export type EpicProgressProps = {
 	epic: Epic;
@@ -20,17 +20,12 @@ export type EpicProgressProps = {
 const countLinkClass =
 	"inline-flex h-7 items-center rounded-md px-1 text-sm text-fg-muted tabular transition-colors duration-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
 
-// The header band of the epic page, in four lines. Line 1 names the current
-// wave, the first wave in position order that is not done. Line 2 prints its
-// tickets to start, its running tickets and its tickets that wait for the
-// person; a count is a link to the table with the matching filters, and
-// plain text when the filter grammar has no matching filter. Line 3 draws
-// one 6 px bar of the whole epic and the done tickets over the tickets that
-// count. Line 4 prints the word legend of the bar.
+// The band and the plan share the top half of the page card
+// (`EpicPage.tsx`), and the ticket table takes the rest of it. The band
+// stays at four short lines so the table keeps rows on screen.
 //
-// The band draws no bar per wave. The band and the plan share the top half
-// of the page card (`EpicPage.tsx`), and the table below it must keep rows
-// on screen.
+// A count is a link to the table with the matching filters, and plain text
+// when the filter grammar has no matching filter.
 export function EpicProgress({ epic, splat, search }: EpicProgressProps) {
 	const progress = epicProgress(epic.counts);
 	const next = epicNext(epic, search);
@@ -67,6 +62,7 @@ export function EpicProgress({ epic, splat, search }: EpicProgressProps) {
 				</>
 			)}
 			<div className="flex items-center gap-3">
+				{/* The done count reads in words on the same line, so the bar takes the thin size. */}
 				<StackedBar
 					label={`Tickets of ${epic.name} by status`}
 					segments={epicSegments(epic.counts)}
@@ -78,7 +74,7 @@ export function EpicProgress({ epic, splat, search }: EpicProgressProps) {
 					{formatCount(progress.done)} of {formatCount(progress.of)} done
 				</span>
 			</div>
-			<p className="text-sm text-fg-faint tabular">{bandLegend(epic.counts)}</p>
+			<p className="text-sm text-fg-faint tabular">{epicBarLegend(epic.counts)}</p>
 		</section>
 	);
 }

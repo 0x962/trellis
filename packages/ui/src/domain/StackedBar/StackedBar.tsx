@@ -14,8 +14,7 @@ export type StackedBarProps = {
 	// The accessible name of the bar.
 	label: string;
 	segments: readonly StackedBarSegment[];
-	// The height of the bar: `md` is 12 px, `sm` is 6 px. A band that
-	// carries its value in words next to the bar takes `sm`.
+	// The height of the bar: `sm` is 6 px, `md` is 12 px.
 	size?: "sm" | "md";
 	// False draws the bar alone. Each segment keeps its title, so the
 	// values stay readable on hover.
