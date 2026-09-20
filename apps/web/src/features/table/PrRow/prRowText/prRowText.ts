@@ -5,7 +5,7 @@ export type PrRowTone = "fg" | "muted" | "danger";
 
 // One cell of a pull request row. `key` stays the same for one cell across
 // renders, and the tests find a cell by it.
-export type PrRowCell = { key: string; text: string; tone: PrRowTone };
+type PrRowCell = { key: string; text: string; tone: PrRowTone };
 
 type FlowStatus = TicketPr["flowRuns"][number]["status"];
 
