@@ -14,7 +14,9 @@ describe("PrRow", () => {
 		const html = textOf(renderToStaticMarkup(<PrRow pr={pr} top={0} />));
 
 		expect(html).toContain("#57080");
-		expect(html).toContain("open·311 lines added, 12 lines deleted+311−12·6 files·1 failed·6 pending·47 passed·agent");
+		expect(html).toContain(
+			"open·311 lines added, 12 lines deleted+311−12·6 files·1 failed·6 pending·47 passed·no evidence·agent",
+		);
 	});
 
 	test("draws the changed line counts with the shared element", () => {

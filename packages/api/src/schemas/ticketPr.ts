@@ -38,9 +38,14 @@ export const TicketPrSchema = z.object({
 	sizeBand: z.enum(["small", "medium", "large"]).nullable(),
 	// A null `kind` or `risk` means the poller has no complete file list.
 	// A null `evidence` means the poller has no complete file list or no head SHA.
+	// `evidence` counts the records of the evidence floor that the pull request
+	// carries at its head commit, and `evidenceRequired` counts the records that
+	// floor asks for. The two are null together, so a reader of one number
+	// always has the other.
 	kind: PrKindSchema.nullable(),
 	risk: PrRiskSchema.nullable(),
 	evidence: CountSchema.nullable(),
+	evidenceRequired: CountSchema.nullable(),
 	pass: CountSchema,
 	fail: CountSchema,
 	pending: CountSchema,
