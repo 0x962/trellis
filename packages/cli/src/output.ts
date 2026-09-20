@@ -1,3 +1,4 @@
+import { type TicketSummary, ticketReleasesCell, ticketWaitsCell } from "@trellis/api";
 import { shortZonedDateTime } from "@trellis/api/time";
 
 // `table` is the aligned text a TTY gets. `json` is the procedure output;
@@ -41,7 +42,8 @@ export const timeCell = (iso: string | null): string => (iso === null ? "-" : sh
 
 // Columns are padded to the widest cell and separated by two spaces. The
 // last column is not padded, so no line ends in spaces.
-export const renderTable = <T>(rows: T[], columns: Column<T>[]): string => {
+// A line from `linesUnderRow` holds no cell, so no column pads it.
+export const renderTable = <T>(rows: T[], columns: Column<T>[], linesUnderRow?: (row: T) => string[]): string => {
 	if (rows.length === 0) return "(none)\n";
 	const cells = rows.map((row) => columns.map((column) => column.value(row)));
 	const widths = columns.map((column, index) =>
@@ -49,7 +51,11 @@ export const renderTable = <T>(rows: T[], columns: Column<T>[]): string => {
 	);
 	const line = (values: string[]) =>
 		values.map((value, index) => (index === values.length - 1 ? value : value.padEnd(widths[index]!))).join("  ");
-	return `${[line(columns.map((column) => column.name)), ...cells.map(line)].join("\n")}\n`;
+	const body = rows.flatMap((row, index) => [
+		line(cells[index]!),
+		...(linesUnderRow === undefined ? [] : linesUnderRow(row)),
+	]);
+	return `${[line(columns.map((column) => column.name)), ...body].join("\n")}\n`;
 };
 
 // One `key: value` per line, every value in one column.
@@ -140,6 +146,9 @@ export type TicketRow = {
 	priority: string;
 	status: { slug: string };
 	labels: Array<{ name: string; group: string | null }>;
+	waitsOn: TicketSummary["waitsOn"];
+	releases: TicketSummary["releases"];
+	ready: boolean;
 	updatedAt: string;
 };
 
@@ -150,6 +159,8 @@ export const ticketList: ListSpec<TicketRow> = {
 		{ name: "priority", value: (row) => row.priority },
 		{ name: "labels", value: (row) => labelsCell(row.labels) },
 		{ name: "title", value: (row) => cell(row.title) },
+		{ name: "waits", value: (row) => cell(ticketWaitsCell(row)) },
+		{ name: "releases", value: (row) => cell(ticketReleasesCell(row)) },
 		{ name: "updated", value: (row) => shortZonedDateTime(row.updatedAt) },
 	],
 	identifier: (row) => row.identifier,
