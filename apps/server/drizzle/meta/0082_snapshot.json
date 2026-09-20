@@ -1,5 +1,5 @@
 {
-  "id": "79156586-3bf0-4afa-8182-8a0f613f0a45",
+  "id": "3af7d221-1bc0-45f4-9eb5-642a9cd83aa5",
   "prevId": "dcd1d39e-25f4-4c14-91ce-4069f44d266b",
   "version": "7",
   "dialect": "postgresql",
@@ -2948,22 +2948,19 @@
           "name": "additions",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
-          "default": 0
+          "notNull": false
         },
         "deletions": {
           "name": "deletions",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
-          "default": 0
+          "notNull": false
         },
         "changed_files": {
           "name": "changed_files",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
-          "default": 0
+          "notNull": false
         },
         "url": {
           "name": "url",

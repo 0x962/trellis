@@ -1,18 +1,15 @@
-import type { Check, CiState, LinkedPullRequest, PrState, PullRequest } from "@trellis/api";
+import type { Check, CiState, LinkedPullRequest, PrState, PullRequest, StoredActorKind } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { iso, rows } from "../db/queries/support.ts";
-import type { Tx } from "../db/tx.ts";
-import type { ActorRef } from "./support.ts";
-import { notFound } from "./support.ts";
+import { iso } from "./support.ts";
 
 export type PullRequestRow = {
 	id: string;
 	owner: string;
 	repo: string;
 	number: number;
-	additions: number;
-	deletions: number;
-	changed_files: number;
+	additions: number | null;
+	deletions: number | null;
+	changed_files: number | null;
 	url: string;
 	title: string;
 	state: PrState;
@@ -35,7 +32,7 @@ export type LinkedPullRequestRow = PullRequestRow & {
 	source: LinkedPullRequest["source"];
 	actor_name: string;
 	actor_display_name: string | null;
-	actor_kind: ActorRef["kind"];
+	actor_kind: StoredActorKind;
 };
 
 export const pullRequestColumns = sql`
@@ -81,12 +78,3 @@ export const toLinkedPullRequest = (row: LinkedPullRequestRow, linkedAt: string)
 	},
 	linkedAt,
 });
-
-export const findPullRequestRow = async (tx: Tx, id: string): Promise<PullRequestRow> => {
-	const [row] = await rows<PullRequestRow>(
-		tx,
-		sql`SELECT ${pullRequestColumns} FROM pull_requests p WHERE p.id = ${id}`,
-	);
-	if (row === undefined) throw notFound("pullRequest", id);
-	return row;
-};

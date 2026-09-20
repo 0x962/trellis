@@ -3,7 +3,9 @@ import { buildPullRequestQuery, mapPullRequestResponse, type PullRequestResponse
 
 const ref = { owner: "octo", repo: "repo", number: 42 };
 
-const response = (size: { additions: number; deletions: number; changedFiles: number }): PullRequestResponse => ({
+type Size = { additions: number; deletions: number; changedFiles: number };
+
+const responseWithSize = (size: Size): PullRequestResponse => ({
 	data: {
 		pr0: {
 			pullRequest: {
@@ -24,8 +26,8 @@ const response = (size: { additions: number; deletions: number; changedFiles: nu
 	},
 });
 
-const rowOf = (size: { additions: number; deletions: number; changedFiles: number }) => {
-	const result = mapPullRequestResponse([ref], response(size))[0]!;
+const rowOf = (size: Size) => {
+	const result = mapPullRequestResponse([ref], responseWithSize(size))[0]!;
 	if (!("row" in result)) throw new Error(result.error);
 	return result.row;
 };
