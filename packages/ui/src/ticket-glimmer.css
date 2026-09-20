@@ -124,9 +124,7 @@
 		),
 		conic-gradient(
 			from 212deg at calc(52% + var(--film-x)) calc(48% + var(--film-y)),
-			transparent 0 12%,
-			var(--film-blue) 20%,
-			transparent 31% 48%,
+			transparent 0 48%,
 			var(--film-mint) 57%,
 			transparent 68% 83%,
 			var(--film-gold) 91%,

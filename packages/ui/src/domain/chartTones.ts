@@ -39,7 +39,9 @@ export const chartBgClass: Record<ChartTone, string> = {
 	accent: "bg-accent",
 };
 
-// The tones of a ranked list, first place first. The sixth slice of a
-// chart is "everything else", and it takes the quiet accent grey.
-export const rankedTones: readonly ChartTone[] = ["agent", "success", "warning", "danger", "fg"];
-export const otherTone: ChartTone = "accent";
+// The tones of a ranked list, first place first. The slice after the last
+// ranked one is "everything else", and it takes the quiet grey of `faint`.
+// No ranked tone draws the accent grey, because the light theme draws
+// `accent` and `faint` in one grey and the two slices would read as one.
+export const rankedTones: readonly ChartTone[] = ["success", "warning", "danger", "fg"];
+export const otherTone: ChartTone = "faint";

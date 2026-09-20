@@ -1,15 +1,15 @@
 :root {
-	--agent-mark: #bba7d4;
-	--agent-mark-ink: #6b557f;
+	--agent-mark: #646468;
+	--agent-mark-ink: #646468;
 }
 :root[data-theme="dark"] {
-	--agent-mark: #c7b8de;
-	--agent-mark-ink: #c7b8de;
+	--agent-mark: #c4c4c4;
+	--agent-mark-ink: #c4c4c4;
 }
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme="light"]) {
-		--agent-mark: #c7b8de;
-		--agent-mark-ink: #c7b8de;
+		--agent-mark: #c4c4c4;
+		--agent-mark-ink: #c4c4c4;
 	}
 }
 .agent-mark {
