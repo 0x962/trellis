@@ -13,21 +13,22 @@ type EpicTicket = {
 };
 
 const stepNumber = (description: string) => {
-	const match = /^Step (\d+) of the routine runtime\b/.exec(description);
+	const match = /^Step (\d+)\b/.exec(description);
 	return match === null ? null : Number(match[1]);
 };
 
-const dependencySteps = (description: string) => {
-	const match = /^Depends on:\s+steps?\s+((?:\d+\s*,\s*)*\d+)/im.exec(description);
+const dependencyText = (description: string) => /^Depends on:\s+(.+)$/im.exec(description)?.[1] ?? "";
+
+const dependencySteps = (text: string) => {
+	const match = /\bsteps?\s+((?:\d+\s*,\s*)*\d+)/i.exec(text);
 	return match === null ? [] : [...match[1]!.matchAll(/\d+/g)].map(([step]) => Number(step));
 };
 
-const answerTickets = (description: string) => {
-	const match = /^Waiting on this answer:\s+(.+)$/im.exec(description);
-	return match === null
-		? []
-		: [...match[1]!.matchAll(/\b[A-Z][A-Z0-9]{1,9}-\d+\b/gi)].map(([ref]) => ref.toUpperCase());
-};
+const ticketRefs = (text: string) =>
+	[...text.matchAll(/\b[A-Z][A-Z0-9]{1,9}-\d+\b/gi)].map(([ref]) => ref.toUpperCase());
+
+const answerTickets = (description: string) =>
+	ticketRefs(/^Waiting on this answer:\s+(.+)$/im.exec(description)?.[1] ?? "");
 
 export const importDependencies = async (
 	ctx: ServiceCtx,
@@ -56,8 +57,14 @@ export const importDependencies = async (
 		edges.set(`${ticket.id}:${dependency.id}`, { ticketId: ticket.id, dependsOnId: dependency.id });
 	};
 	for (const ticket of tickets) {
-		for (const step of dependencySteps(ticket.description)) {
+		const dependsOn = dependencyText(ticket.description);
+		for (const step of dependencySteps(dependsOn)) {
 			const dependency = byStep.get(step);
+			if (dependency === undefined) unresolved.add(ticket.identifier);
+			else addEdge(ticket, dependency);
+		}
+		for (const ref of ticketRefs(dependsOn)) {
+			const dependency = byIdentifier.get(ref);
 			if (dependency === undefined) unresolved.add(ticket.identifier);
 			else addEdge(ticket, dependency);
 		}
