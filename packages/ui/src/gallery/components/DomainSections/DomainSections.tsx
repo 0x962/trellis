@@ -1,6 +1,6 @@
 import {
 	ActorChipSection,
-	AgentCardSection,
+	AgentProfileMarkSection,
 	CheckRibbonSection,
 	FlowRunSection,
 	LineChangesSection,
@@ -21,7 +21,7 @@ export function DomainSections() {
 			<ReviewStatusSummarySection />
 			<CheckRibbonSection />
 			<ActorChipSection />
-			<AgentCardSection />
+			<AgentProfileMarkSection />
 			<LineChangesSection />
 			<TicketIdSection />
 			<TicketGlimmerSection />

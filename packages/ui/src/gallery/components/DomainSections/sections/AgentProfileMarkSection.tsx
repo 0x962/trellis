@@ -1,9 +1,9 @@
 import { Avatar } from "../../../../primitives/Avatar";
 import { Section } from "../../Section";
 
-export function AgentCardSection() {
+export function AgentProfileMarkSection() {
 	return (
-		<Section name="AgentCard" note="the run is still; the run works: one band of light every 7 s">
+		<Section name="AgentProfileMark" note="the run is still; the run works: one band of light every 7 s">
 			<Avatar
 				kind="agent"
 				name="Claude agent"
