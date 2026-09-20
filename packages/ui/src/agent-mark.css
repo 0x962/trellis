@@ -93,7 +93,7 @@
 	background-size: 250% 100%;
 	background-position: 150% 0;
 	background-repeat: no-repeat;
-	opacity: var(--film-opacity-static);
+	opacity: var(--film-opacity-sweep);
 	pointer-events: none;
 	animation: var(--animate-glimmer);
 	animation-play-state: paused;

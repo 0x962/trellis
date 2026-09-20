@@ -13,7 +13,9 @@ export type AgentProfile = {
  * The band of light is a CSS animation on the `agent-card-sweep` span. The
  * browser keeps painting an animation that nobody can see, so the span holds
  * the animation paused, and this hook sets `data-sweep="run"` on the span
- * only while the card is inside the viewport and the tab is visible.
+ * only while the card is inside the viewport and the tab is visible. The span
+ * comes first among the children of the card, so the provider mark and the
+ * model name paint above the band.
  */
 function useCardSweep(ref: RefObject<HTMLSpanElement | null>, working: boolean) {
 	useEffect(() => {
@@ -46,6 +48,7 @@ export function AgentProfileMark({ profile, state = "static" }: { profile: Agent
 			aria-hidden="true"
 			className="absolute top-0 left-0 z-20 flex h-full w-max max-w-full items-center overflow-hidden rounded-round border border-border bg-surface text-fg shadow-xs transition-[max-width,box-shadow] duration-hover ease-out group-hover/avatar:max-w-64 group-hover/avatar:shadow-lg motion-reduce:transition-none"
 		>
+			{working && <span ref={sweep} className="agent-card-sweep" />}
 			<span className="relative grid aspect-square h-full shrink-0 place-items-center">
 				{profile.provider ? (
 					<ProviderIcon provider={profile.provider} decorative className="size-[55%]" />
@@ -62,7 +65,6 @@ export function AgentProfileMark({ profile, state = "static" }: { profile: Agent
 					</>
 				)}
 			</span>
-			{working && <span ref={sweep} className="agent-card-sweep" />}
 		</span>
 	);
 }
