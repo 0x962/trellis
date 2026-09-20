@@ -33,6 +33,9 @@ export type SummaryRow = {
 	comment_count: number;
 	attachment_count: number;
 	labels: TicketSummary["labels"] | null;
+	waits_on: TicketSummary["waitsOn"] | null;
+	releases: TicketSummary["releases"] | null;
+	ready: boolean;
 	pr_state: PrState | null;
 	pr_ci_state: CiState | null;
 	pr_review_state: ReviewState | null;
@@ -73,6 +76,9 @@ export const summaryColumns = sql`
 	(SELECT count(*)::int FROM comments c WHERE c.ticket_id = t.id) AS comment_count,
 	(SELECT count(*)::int FROM attachments a WHERE a.ticket_id = t.id) AS attachment_count,
 	lb.items AS labels,
+	waits.items AS waits_on,
+	releases.items AS releases,
+	(s.category = 'todo' AND COALESCE(waits.all_done, true)) AS ready,
 	${ticketPrColumns},
 	${actorDisplayName(sql`la.actor_name`, sql`la.actor_kind`)} AS last_actor_display_name,
 	la.actor_name AS last_actor_name, la.actor_kind AS last_actor_kind, ${iso(sql`la.created_at`)} AS last_actor_at,
@@ -100,6 +106,36 @@ export const summaryJoins = sql`
 		LEFT JOIN label_groups g ON g.id = l.group_id
 		WHERE tl.ticket_id = t.id
 	) lb ON true
+	LEFT JOIN LATERAL (
+		SELECT
+			jsonb_agg(
+				jsonb_build_object(
+					'identifier', waits_root.key || '-' || blocker.number,
+					'title', blocker.title,
+					'status', blocker_status.category,
+					'isQuestion', blocker_status.reviewer = 'human'
+						AND blocker.description ~ '(?ms)^Options:[[:space:]]*[^[:space:]]'
+				) ORDER BY blocker.number, blocker.id
+			) FILTER (WHERE blocker_status.category <> 'done') AS items,
+			bool_and(blocker_status.category = 'done') AS all_done
+		FROM ticket_deps dependency
+		JOIN tickets blocker ON blocker.id = dependency.depends_on_id
+		JOIN statuses blocker_status ON blocker_status.id = blocker.status_id
+		JOIN projects waits_root ON waits_root.id = blocker.root_id
+		WHERE dependency.ticket_id = t.id
+	) waits ON true
+	LEFT JOIN LATERAL (
+		SELECT jsonb_agg(
+			jsonb_build_object(
+				'identifier', releases_root.key || '-' || released.number,
+				'title', released.title
+			) ORDER BY released.number, released.id
+		) AS items
+		FROM ticket_deps dependency
+		JOIN tickets released ON released.id = dependency.ticket_id
+		JOIN projects releases_root ON releases_root.id = released.root_id
+		WHERE dependency.depends_on_id = t.id
+	) releases ON true
 	${ticketPrJoin}
 	LEFT JOIN LATERAL (
 		WITH RECURSIVE chain AS (
@@ -156,6 +192,9 @@ export const toSummary = (row: SummaryRow): TicketSummary => ({
 	commentCount: row.comment_count,
 	attachmentCount: row.attachment_count,
 	labels: row.labels ?? [],
+	waitsOn: row.waits_on ?? [],
+	releases: row.releases ?? [],
+	ready: row.ready,
 	pr:
 		row.pr_state === null
 			? null
