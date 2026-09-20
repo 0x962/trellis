@@ -253,6 +253,102 @@ Epics list row: after the name, the muted text `<current milestone name> · <i> 
 
 Needs you: no change; a decision ticket already lists there.
 
+## Revision 2026-09-19: waves, dependencies, PR rows
+
+Navid, 2026-09-19: "we should show all prs for a ticket under the ticket in the table (indented) with pr specific statuses, including flows, unresolved comments, etc. We should rename milestones to waves since waves are not linear, milestones are. Dependencies are still not clear. waves may not be dependent on each other. tickets inside a wave may have dependencies, etc." This revision replaces the rule "order lives between milestones" and the section "Milestones" where they conflict.
+
+### Waves
+
+A wave is a set of tickets of one epic that the person intends to start together. Its `position` is the display order and carries no dependency. Two waves can run at the same time. Rename: table `milestones` to `waves`, `tickets.milestone_id` to `wave_id`, `MilestoneRef` to `WaveRef` (`KEY/epic-slug/wave-slug`), procedures `waves.*`, CLI `trellis waves list|create|edit|order|add|remove|delete|start` and `--wave` on create, sub, edit, list, the filter `wave`, the group `wave`, the brief headings, the web words. One migration renames the table, the column, the constraints, and the indexes; the data stays. `MILESTONE_OUTSIDE_EPIC` becomes `WAVE_OUTSIDE_EPIC`.
+
+### Dependencies
+
+Table `ticket_deps`: `ticket_id`, `depends_on_id`, `root_id`, actor columns, `created_at`; PK (ticket_id, depends_on_id); CHECK `ticket_id <> depends_on_id`; FK both to `tickets (id, root_id)` ON DELETE CASCADE; index (depends_on_id). Both tickets share one root; the service refuses a cycle with `DEPENDENCY_CYCLE` (400) after a walk of at most 64 steps. An edge crosses waves or stays inside one. Writes: `tickets.create`, `update`, and `updateMany` take `after: TicketRef[]` (full replace on update), CLI `--after OP-32,OP-33`, a rail `PropertyRow` "After" with the `TicketPicker` (many), and the planner writes them from the plan. `TicketSummary` gains `after: [{ identifier, done }]` and `blocks: number`. The brief prints `## After` with the state of each dependency and `## Unblocks`.
+
+Derived: a ticket is **ready** when it is in the todo category and every dependency is done or canceled; **blocked** when one dependency is open. Nothing stops a person from a start on a blocked ticket. The planner guidance changes: a wave holds what starts together; a dependency says what finishes first; neither implies the other; a decision ticket is a dependency of the tickets that wait for its answer.
+
+### Turn words
+
+`You · question | flow | merge`, `Agent · <reason>`, `Checks · n pending`, `Stalled · <reason>`, `Ready`, `Blocked · after OP-32`, blank when done or canceled. The rules of the coordination panel stay, with `Blocked` in place of `Later`, and `Ready` no longer tied to a wave position. The band counts the whole epic: `You · Stalled · Agent · Checks · Ready · Blocked`.
+
+### Start a wave
+
+Withdrawn on 2026-09-20. Navid: "i don't want any queue features yet" and "i want dependency to be clear and i will start stuff myself." No `waves.start`, no queue, no `tickets.queued_at`, no capacity. The person starts each ticket from its page or the CLI, as today. The page makes the dependency clear instead: a todo ticket with no run and one open dependency reads `Blocked · after OP-52` in fg-muted; a todo ticket with no run and no open dependency reads `Ready`; the rail and the brief list After and Unblocks. A Blocked ticket can still be started; the page holds nothing.
+
+### PR rows in the table
+
+Every pull request of a ticket is an indented row under its ticket row, on by default on the epic page and off by default on the project table (a Display toggle "Pull requests"). `TicketSummary` gains `prs: PrRow[]` with `{ id, number, repo, url, title, state (draft|open|merged|closed), ciState, checks {pass, fail, pending}, reviewState, openThreads, flowRun: { name, step, of, status } | null, additions, deletions, baseIdentifier: identifier | null, updatedAt }`. The row prints, in the ticket table widths: a PR mark in the identifier column (`↳ #55569`), the title, then marks in the existing colors: state, checks ribbon, `n threads`, `flow <name> step 2 of 4`, review state, `+412 −38`, `on OP-32`, age. A click opens the review page. The ticket's turn reads the worst PR: a failing check or an open thread with no agent gives `Stalled`; a green non-draft PR with no thread and no run gives `You · merge`. The Row component gains a `PrRow` child in the shape of the sub-ticket rows; a new row kind needs Navid's approval and he asked for it on 2026-09-19.
+
+### Resources on an epic
+
+Navid, 2026-09-19: "We also need full document support. I need to be able to view the design document, assets, plans, etc. We should be able to add many resources to an epic. documents (opened in tiptap), links (opened in in-app browser), images, attachments, etc."
+
+Table `epic_resources`: `id` ULID PK, `epic_id` FK epics(id) ON DELETE CASCADE, `root_id`, `kind` CHECK IN (document, link, image, file), `title` (1 to 200), `position` integer, `body` jsonb NULL (document: the TipTap document), `url` text NULL (link), `attachment_id` FK NULL (image, file; the blob rows the ticket attachments use, with `ticket_id` made nullable or a new owner column), actor columns, `created_at`, `updated_at`; CHECK one of `body`, `url`, `attachment_id` set per kind; index (epic_id, position). The epic `description` migrates into the first document resource named "Plan"; the brief prints every document of the epic as markdown from its TipTap JSON (a server-side serializer), so an agent reads what the person edits. Procedures `epicResources.list|create|update|reorder|delete`, and an upload path for image and file in the shape of `attachments.upload`. CLI: `trellis epics docs list|show|add|edit|rm` (markdown in and out), `trellis epics links add|rm`, `trellis epics files add|rm`.
+
+Web: a "Resources" section on the epic page above the ticket table: one row per resource with a kind mark, the title, the size or the domain, the updated time, and a row menu; an Add action with the four kinds; collapsed to a row of chips when the table scrolls. A document opens in place in a TipTap editor (a new dependency: `@tiptap/react`, `@tiptap/starter-kit`, exact versions; ProseMirror under it), saved on blur with a version check, read-only under an archived project. A link opens in an in-app browser: on the desktop a sheet with a webview, in the plain web app a new tab. An image opens in the viewer the ticket attachments use; a file downloads. The ticket page keeps its attachments as they are.
+
+### The rows of the epic page
+
+Decided by a panel (13 agents) and an independent Codex opinion on 2026-09-19, from Navid's words: "I want all the info I need here on this page to get that birds eye view. Right now we have too many tags that don't give me all the info I need. For instance, for checks against a PR, we could show the ring that shows the check status. PR icon colors for draft, open, closed, merged. I should not have to read and parse every line. Clicking on a row to expand for more info."
+
+Rules. One mark encodes two facts: shape for the class, color for the state. Worst wins in a rollup. Each fact has a fixed column, so the eye compares down a column. Color carries one axis: red is fail, closed, or changes requested; yellow is a wait; green is pass, open, or approved; purple is merged, an agent, or agent review. Text in a row is a name or a number, never a sentence. Every color pairs with a shape, and every mark has `role="img"` with the hover text as its label.
+
+Epic route tracks: select 16 · priority 16 · id 72 (a caret slot of 16 then the identifier) · title 1fr · status 28 (the `StatusIcon` alone) · pr 88 (four 14 px slots: PR state, check ring, review state, open threads) · actor 20 · turn 150 (word, reason of at most 12 characters, age at the right). `labels` and `updated` are off on the epic route.
+
+Marks. PR state: `PrStateIcon` in `packages/ui` with GitHub's four shapes and colors: open `success`, draft `fg-faint` with a dashed arm, merged `agent`, closed `danger` with an X; the ticket row shows the worst PR. Checks: `CheckRing`, new, a 14 px ring of three arcs by share (fail `danger`, pending `warning`, pass `success`) with an inner X, dot, or check in the worst bucket's color; empty when no checks. Review: approved double check `success`, changes requested X `danger`, review required circle `warning`. Threads: `ThreadCount`, a bubble with the open count in `fg-muted`, hidden at zero. Status: the existing `StatusIcon` ring. Actor: `ActorAvatar` with the glimmer for a working agent and the `needs-input` dot. Turn: a word in a tone (You `fg`, Stalled `warning`, Agent `agent`, Ready `success`, Checks and Blocked `fg-muted`), the reason, the age.
+
+PR rows and the detail row. PR rows are collapsed by default; the ticket row carries the rollup. A plain click on a ticket row, its caret, or the Right key expands; Left collapses; Enter, Space, a double click, or `o` open the ticket; Shift and Cmd select. Under the ticket: one row per PR on the same tracks (`↳ #55569`, the title muted, `+412 −38`, the stack base when stacked, the flow step ring in the status track, the four PR slots, `review-pr 2/4` and the PR age in the turn track), then one detail row when the ticket has dependencies, a run, or sub-tickets: `after OP-52 ◎ · OP-24 ●`, `blocks 2`, the model and effort, `2/5`, labels. Expansion height is a count of rows times the row height, so the virtual list keeps exact sizes. The expanded set lives in `uiStore` per route key; Display gains "Expand all". The project table keeps click as open.
+
+Wave header and band. `GroupHeader` with the `StatusIcon` by category (todo, started, done), the name, the Current chip where the wave has running work, and the count slot `0/5 · You 1 · Stalled 4 · Blocked 0` with zeros in `fg-faint`. Band line 1: the Open badge, `3 of 27 done`, "Waves" and one status ring per wave (hover the name, click scrolls). Line 2: the six turn counts as links with zeros. Both bars leave.
+
+Phone, 400 px: the `PhoneRow` first line holds the id, the PR cell, the status ring, and the turn; a child row is 44 px; the ring adds `n/m` as text because there is no hover.
+
+Data the server adds to `TicketSummary`: `prs[]` (state, draft, checks by bucket, review state, open threads, flow run and step, additions, deletions, base identifier, updated), `after` and `blocks`, `turn` fields. New glyphs to draw: `GitPullRequestDraft`, `GitPullRequestClosed`, `CheckRing`. Decisions taken: collapsed by default with the rollup on the row; the plain click toggles on the epic page; rings on both rows; dependencies ship before this page reads `Blocked` from them.
+
+### Revision 2026-09-19, later: the brief for the page
+
+Navid, 2026-09-19: "The user (me, a human) is trying to build software using AI agents at speed by using multiple agents at the same time, with tight control on quality and being completely aware of each pull request being merged and its contents. We do not want to be vibe coding. We are merging into a large enterprise codebase so we want strict quality controls. Since the human is not spending time writing code anymore and the AI agents do most of the implementation, the human only adds value by reviewing the code. He adds value by ensuring we merge small PRs that are not dangerous and he keeps track of the system architecture as it is built. The design decisions, the architecture is what matters."
+
+Rules from the same message:
+
+- The PR identity mark sits before the PR number, in the slot the caret used; it is not one of the marks in a cluster.
+- Marks stay legible at their size: one glyph and one color per fact. A ring of three arcs with a glyph inside fails; a failing check is one red mark.
+- The states of an agent run come from the harness implementations and hooks (Claude Code, Codex), not from a guess: asked a question, done, blocked, dead, and the rest the harness exposes. Each state names its signal.
+- A live state moves. Yellow is not "in progress".
+- The page shows the question or the last message of the agent without a click when the panel finds that this is what the human needs; the panel decides with evidence.
+- Capacity, the wave queue, and the capacity meter leave the proposal. They return only when a real problem asks for them.
+
+### The rows of the epic page, third design (2026-09-19, late)
+
+An open panel (13 agents, brief: the product and the user only) and an independent Codex opinion converged. This replaces the second design where they conflict.
+
+What matters most on the page, ranked: the person's move, visible without a click (a question, a finished turn whose claim needs a read, a PR to review or merge, a decision); whether a waiting PR is small and not dangerous (lines, files, areas, tests, checks, open threads); a run that burns with no output (failed, exited with no PR, stalled); the working agents, each with one moving mark; wave progress.
+
+State model, one turn per ticket, derived on the client from the assigned run and the ticket, first match wins, about 2 s behind the harness:
+
+| Turn | Signal | Color | Second line of the row |
+|---|---|---|---|
+| You · question | `attention.requests` non-empty, process running; or the status has the human reviewer and no PR exists (a decision ticket asks the same way) | warning | the first question line (Muse sends the text; Claude sends it in `tool_input`, one mapping change forwards it; Codex sends a title) |
+| You · read | `activity idle`, `outcome completed`, alive, completion newer than the seen mark | warning | the first line of `lastMessage` |
+| You · review | human reviewer with a PR, or a non-draft open PR with the turn seen and no working run | warning | none, the PR row follows |
+| You · merge | non-draft open PR, approved, checks pass, no open thread, run not working | warning | none |
+| Failed · exit 1 | `state failed`: an error, `outcome failed`, or a nonzero exit | danger | the first error line |
+| Gone · no PR | exited with code 0, unknown, or interrupted, and no PR | danger | the last message |
+| Exited | the same, with a PR | fg-muted | none |
+| Stalled · 14m | `activity working` and the newest of `lastTool.updatedAt` and `lastMessage.at` older than 10 min | fg-muted | none |
+| Agent · Edit 4m | working and not stalled; the tool name and the age since `workingSince` | agent; the mark moves | none |
+| Idle · 3h | turn done, seen, no PR | fg-muted | none |
+| Starting | `state starting` | fg-muted | none |
+| Ready | todo, no run, no open dependency | fg-faint | none |
+| Blocked · after OP-52 | todo, no run, one dependency open (added 2026-09-20) | fg-muted | none |
+| blank | done, canceled | | |
+
+Dead means Failed or Gone. Data the server adds: `lastMessage` and `lastTool` in the observation, the Claude question text forwarded into `questions`, `prs[]` per ticket, and later `additions`, `deletions`, `files[]`, and the PR body from the poller.
+
+The page. Band: the Open badge, `3 of 27 done`, one `StackedBar` with a word legend and no percentages, then `You 4 · Stuck 1 · Working 3 · Ready 15`. Groups: a synthetic **You** group first, oldest wait first, then the waves in position order; a wave header prints `0/5 · You 2 · Stuck 1` and the Current badge; inside a wave the rank is stuck, working, ready, other, closed. The ticket row: select, priority, id, title (the wave name faint after it in the You group), the turn cell (owner · word · age; hover shows the last message and the tool), the agent card: the Avatar of the assigned run, the provider mark of its harness in an 18 px round card. Off on this route: the status ring, the PR cell, labels, updated. A click opens the ticket. A PR row under its ticket, always shown, one per PR: the PR glyph in GitHub's shape and color before the number, the title, `+84 −12`, `6 files`, `tests +2` or `no tests` in warning, one risk badge per class present (migration, auth, deps, shared types, test deleted), the areas, then the mini check ribbon and the check text (`1 fail` in danger with the failed check's name, `12 pending`, `37 pass`), open threads, the review state. Under a You · question, You · read, Failed, or Gone row, the ticket row takes a second line: the agent's name in fg-faint, then one truncated line of the question, the last message, or the error. No label; the name says who speaks, and the row grows only then. A separate say row with a `said:` label was rejected on 2026-09-19 as confusing. No caret and no expansion: the child rows are the expansion, each kind with a fixed height. Two things move on the page. The agent card of a working row carries the 7 s glimmer of the product tokens: 5.6 s still, then one sweep of light across the card. A pending check segment breathes at 2.4 s. The first design, a 3 s rainbow film across the box lines of the agent mark, was rejected on 2026-09-19 as dated; the agent card with the provider logo and the product glimmer replaced it. Yellow means one thing: a human is needed.
+
+Dissent, recorded: the agent's second line prints what the agent claims in the place where the person reads the truth; the PR rows without size data add height until the poller fetches size, files, and body. Navid, 2026-09-20: no `decide` word; a decision ticket reads `You · question`. Navid, 2026-09-20: "no violet anywhere. or purple. except the github merge icon." On the page: the Agent turn word is `fg`, the review segment of the band and the review status ring leave `--agent`, the agent chips take `elevated` and `fg`, the `You` chip takes `warning`, and the film drops its violet stop. In the product this is one change to the tokens: `--film-gradient` without `--film-violet`, and every `--agent` use except the merged PR glyph moves to a neutral. The status category color of review is the largest of those uses. Decisions for Navid: PR rows always shown or behind a caret (pick: shown); a finished turn as You · read until seen or Idle (pick: You · read); the second line printed or on hover (pick: printed, the agent's name first).
+
 ## Adoption of the Operator case
 
 After the release runs, three commands:
