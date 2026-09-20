@@ -1,6 +1,7 @@
 export { ActorChipSection } from "./ActorChipSection";
 export { AgentProfileMarkSection } from "./AgentProfileMarkSection";
 export { AttentionDotSection } from "./AttentionDotSection";
+export { ChangeSummarySection } from "./ChangeSummarySection";
 export { CheckRibbonSection } from "./CheckRibbonSection";
 export { ChecksLineSection } from "./ChecksLineSection";
 export { ConditionsBlockSection } from "./ConditionsBlockSection";
