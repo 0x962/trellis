@@ -8,3 +8,8 @@ export const rowHeights: Record<Density, number> = { comfortable: 36, compact: 3
 
 // The row box below 768 px, where a row is two lines.
 export const phoneRowHeight = 56;
+
+// The row box of one pull request under a ticket row. It does not change
+// with the density or the width, so the epic table scrolls the same on a
+// phone and on a desktop.
+export const prRowHeight = 32;
