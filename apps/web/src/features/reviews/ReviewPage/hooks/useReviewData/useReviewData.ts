@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import type { ReviewRevision, ReviewThread } from "@trellis/api";
+import { type ReviewRevision, type ReviewThread, reviewRef } from "@trellis/api";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 
@@ -12,6 +12,34 @@ export const useReviewData = (pr: string) => {
 		enabled: revision !== null,
 		refetchInterval: 45000,
 	});
+	// `reviews.status` names the ticket that links this pull request. The
+	// ticket carries the review focus sentences, the tickets it waits on, and
+	// the pull request id that the summary and the evidence are stored under.
+	const identifier = status.data?.ticket?.identifier ?? "";
+	const ticket = useQuery({
+		...orpc.tickets.get.queryOptions({ input: { ticket: identifier } }),
+		enabled: identifier !== "",
+	});
+	const ref = reviewRef(pr);
+	const linkedPr =
+		ticket.data?.prs.find((row) => row.owner === ref.owner && row.repo === ref.repo && row.number === ref.number) ??
+		null;
+	const summary = useQuery({
+		...orpc.pullRequests.readSummary.queryOptions({ input: { id: linkedPr?.id ?? "" } }),
+		enabled: linkedPr !== null,
+	});
+	const evidence = useQuery({
+		...orpc.pullRequests.listEvidence.queryOptions({ input: { id: linkedPr?.id ?? "" } }),
+		enabled: linkedPr !== null,
+	});
+	// The conditions, the summary, the review focus and the evidence all come
+	// from this chain of four requests. Until the last one answers, the page
+	// draws none of the four: a block that draws early would say that the
+	// agent wrote no summary before anybody asked for it.
+	const factsReady =
+		status.isFetched &&
+		(status.data?.ticket == null || ticket.isFetched) &&
+		(linkedPr === null || (summary.isFetched && evidence.isFetched));
 	const booted = useRef(false);
 	const threads = useQuery({
 		...orpc.reviews.list.queryOptions({ input: { pr, all: true } }),
@@ -47,5 +75,17 @@ export const useReviewData = (pr: string) => {
 		refresh.mutate();
 		void status.refetch();
 	};
-	return { revision, setRevision, status, threads, refresh, refreshAll };
+	return {
+		revision,
+		setRevision,
+		status,
+		ticket,
+		linkedPr,
+		summary,
+		evidence,
+		factsReady,
+		threads,
+		refresh,
+		refreshAll,
+	};
 };

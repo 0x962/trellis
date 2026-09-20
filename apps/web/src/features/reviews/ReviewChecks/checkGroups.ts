@@ -20,7 +20,6 @@ export type CheckGroupKey =
 	| "skipped"
 	| "neutral"
 	| "unknown";
-export type CheckTabStatus = "failed" | "running" | "pending" | "canceled" | "done" | "neutral" | "unknown" | null;
 
 const failedStates = new Set(["ACTION_REQUIRED", "ERROR", "FAILURE", "STALE", "STARTUP_FAILURE", "TIMED_OUT"]);
 const pendingStates = new Set(["QUEUED", "PENDING", "EXPECTED", "WAITING", "REQUESTED"]);
@@ -72,22 +71,4 @@ export function checkGroups(checks: readonly ReviewCheck[]) {
 	return checkGroupOrder
 		.map((key) => ({ key, checks: rows.filter((check) => checkGroup(check) === key) }))
 		.filter((group) => group.checks.length > 0);
-}
-
-const statusForCounts = (counts: Record<CheckGroupKey, number>): CheckTabStatus => {
-	if (counts.failed) return "failed";
-	if (counts.running) return "running";
-	if (counts.pending) return "pending";
-	if (counts.canceled) return "canceled";
-	if (counts.unknown) return "unknown";
-	if (counts.success) return "done";
-	if (counts.skipped || counts.neutral) return "neutral";
-	return null;
-};
-
-export function checkTabStatus(checks: readonly ReviewCheck[]): CheckTabStatus {
-	const groups = checkGroups(checks);
-	const counts = Object.fromEntries(checkGroupOrder.map((key) => [key, 0])) as Record<CheckGroupKey, number>;
-	for (const group of groups) counts[group.key] = group.checks.length;
-	return statusForCounts(counts);
 }

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { checkGroup, checkGroups, checkTabStatus } from "./checkGroups";
+import { checkGroup, checkGroups } from "./checkGroups";
 
 describe("checkGroups", () => {
 	test("separates failed, active, pending, and settled outcomes", () => {
@@ -51,7 +51,6 @@ describe("checkGroups", () => {
 		const rows = checkGroups(checks).flatMap((group) => group.checks);
 		expect(rows).toHaveLength(4);
 		expect(new Set(rows.map((row) => row.key)).size).toBe(4);
-		expect(checkTabStatus(checks)).toBe("failed");
 	});
 
 	test("preserves ambiguous repeated nodes with unique keys", () => {
@@ -82,25 +81,5 @@ describe("checkGroups", () => {
 
 	test("uses active status before a prior conclusion", () => {
 		expect(checkGroup({ status: "IN_PROGRESS", conclusion: "FAILURE" })).toBe("running");
-	});
-});
-
-describe("checkTabStatus", () => {
-	test("keeps canceled and unknown checks out of passed status", () => {
-		expect(checkTabStatus([{ conclusion: "SUCCESS" }, { conclusion: "CANCELLED" }])).toBe("canceled");
-		expect(checkTabStatus([{ conclusion: "SUCCESS" }, {}])).toBe("unknown");
-	});
-
-	test("distinguishes pending from active checks", () => {
-		expect(checkTabStatus([{ status: "QUEUED" }])).toBe("pending");
-		expect(checkTabStatus([{ status: "IN_PROGRESS" }, { status: "QUEUED" }])).toBe("running");
-	});
-
-	test("reports settled checks without success as neutral", () => {
-		expect(checkTabStatus([{ conclusion: "SKIPPED" }, { conclusion: "NEUTRAL" }])).toBe("neutral");
-	});
-
-	test("reports no state when GitHub has no checks", () => {
-		expect(checkTabStatus([])).toBeNull();
 	});
 });

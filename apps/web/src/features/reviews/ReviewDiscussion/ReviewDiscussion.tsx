@@ -1,9 +1,10 @@
 import { ArrowDown, ArrowUp, Copy } from "@phosphor-icons/react";
 import type { ReviewRevision, ReviewThread } from "@trellis/api";
-import { EmptyState, IconButton, Input, Select, Tooltip } from "@trellis/ui";
+import { EmptyState, IconButton, Input, SectionHeader, Select, Tooltip } from "@trellis/ui";
 import { type ConversationMeta, ReviewConversation } from "@trellis/ui/review";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { ReviewMarkdown } from "../ReviewPage/ReviewMarkdown";
+import { threadGroups } from "./threadGroups";
 
 type Props = {
 	threads: ReviewThread[];
@@ -17,11 +18,17 @@ export function ReviewDiscussion({ threads, activeThread, revision, renderThread
 	const [filter, setFilter] = useState("all");
 	const [search, setSearch] = useState("");
 	const [position, setPosition] = useState(-1);
-	const visible = threads.filter(
-		(thread) =>
-			(filter === "all" || filter === thread.status) &&
-			`${thread.path} ${thread.author} ${thread.body}`.toLowerCase().includes(search.toLowerCase()),
+	// The open threads come first: they are the work. A resolved thread draws
+	// as one line that opens on a click, so the page builds no message body
+	// for it until the reader asks.
+	//
+	// The split runs once per change of the threads, the status choice or the
+	// text, never once per render of the page around it.
+	const { open, resolved } = useMemo(
+		() => threadGroups(threads, { status: filter, search }),
+		[threads, filter, search],
 	);
+	const visible = useMemo(() => [...open, ...resolved], [open, resolved]);
 	const next = (delta: number) => {
 		const index = (position + delta + visible.length) % visible.length;
 		setPosition(index);
@@ -33,6 +40,26 @@ export function ReviewDiscussion({ threads, activeThread, revision, renderThread
 			document.getElementById(`thread-${activeThread}`)?.scrollIntoView({ block: "center" });
 		}
 	}, [activeThread, activeThreadVisible]);
+	const threadEntry = (thread: ReviewThread) => (
+		<section key={thread.id}>
+			<div className="review-thread-location">
+				<button type="button" className="review-meta" onClick={() => onJump(thread)}>
+					{thread.path}:{thread.startLine}–{thread.line} · {thread.side}
+					{thread.revisionId !== revision?.id ? " · Older or unknown revision" : ""}
+				</button>
+				<Tooltip content="Copy thread link">
+					<IconButton
+						label="Copy thread link"
+						icon={<Copy />}
+						onClick={() =>
+							void navigator.clipboard.writeText(`${location.origin}${location.pathname}#?thread=${thread.id}`)
+						}
+					/>
+				</Tooltip>
+			</div>
+			{renderThread(thread.id)}
+		</section>
+	);
 	return (
 		<div className="review-scroll">
 			<div className="review-list">
@@ -79,28 +106,10 @@ export function ReviewDiscussion({ threads, activeThread, revision, renderThread
 							</Tooltip>
 						</div>
 						{visible.length === 0 && <EmptyState description="No threads match." />}
-						{visible.map((thread) => (
-							<section key={thread.id}>
-								<div className="review-thread-location">
-									<button type="button" className="review-meta" onClick={() => onJump(thread)}>
-										{thread.path}:{thread.startLine}–{thread.line} · {thread.side}
-										{thread.revisionId !== revision?.id ? " · Older or unknown revision" : ""}
-									</button>
-									<Tooltip content="Copy thread link">
-										<IconButton
-											label="Copy thread link"
-											icon={<Copy />}
-											onClick={() =>
-												void navigator.clipboard.writeText(
-													`${location.origin}${location.pathname}#discussion?thread=${thread.id}`,
-												)
-											}
-										/>
-									</Tooltip>
-								</div>
-								{renderThread(thread.id)}
-							</section>
-						))}
+						{open.length > 0 && <SectionHeader title="Open" count={open.length} level={3} />}
+						{open.map(threadEntry)}
+						{resolved.length > 0 && <SectionHeader title="Resolved" count={resolved.length} level={3} />}
+						{resolved.map(threadEntry)}
 					</>
 				)}
 			</div>
