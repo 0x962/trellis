@@ -29,8 +29,7 @@ const checksOf = (pr: PrCellProps["pr"]): Check[] => [
 	...Array.from({ length: pr.pass }, () => ({ name: "1 check", bucket: "pass" as const })),
 ];
 
-// The pull request glyph with the mini check ribbon. A compact row has no
-// room for the ribbon, so one dot states the CI result.
+// A compact row has no room for the ribbon, so one dot states the CI result.
 //
 // TicketSummary.pr holds no draft flag, so the glyph draws the open state for
 // a draft pull request here.

@@ -1,1 +1,1 @@
-export { PrGlyph, type PrGlyphProps, type PrGlyphSize, type PrGlyphState, prGlyphLabel } from "./PrGlyph";
+export { PrGlyph, type PrGlyphProps, type PrGlyphSize, type PullRequestState } from "./PrGlyph";

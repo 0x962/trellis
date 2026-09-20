@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { PrGlyph, prGlyphLabel } from "./PrGlyph";
+import { PrGlyph } from "./PrGlyph";
 
 test("an open pull request draws the open glyph in the success color", () => {
 	const html = renderToStaticMarkup(<PrGlyph state="open" isDraft={false} />);
@@ -48,11 +48,4 @@ test("the small glyph and the medium glyph draw the same state", () => {
 	expect(medium).toContain("size-4");
 	expect(small).toContain('data-pr-glyph="open"');
 	expect(medium).toContain('data-pr-glyph="open"');
-});
-
-test("the label names the state of the pull request", () => {
-	expect(prGlyphLabel("open", false)).toBe("Pull request open");
-	expect(prGlyphLabel("open", true)).toBe("Pull request draft");
-	expect(prGlyphLabel("merged", false)).toBe("Pull request merged");
-	expect(prGlyphLabel("closed", false)).toBe("Pull request closed");
 });
