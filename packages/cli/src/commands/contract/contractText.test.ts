@@ -25,10 +25,12 @@ test("prints the contract in the ticket layout", () => {
 `);
 });
 
-test("prints a dash for an empty list", () => {
+test("prints nothing for an empty clause", () => {
 	expect(
 		contractText({ result: "Done.", files: [], leaveAlone: [], verify: [], reviewFocus: [] }, "trellis"),
-	).toContain(" Files          -\n Leave alone    -\n Verify         -\n Review focus   -\n Evidence owed  -\n");
+	).toContain(
+		" Files          nothing\n Leave alone    nothing\n Verify         nothing\n Review focus   nothing\n Evidence owed  -\n",
+	);
 });
 
 describe("evidence owed", () => {

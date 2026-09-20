@@ -31,14 +31,14 @@ test("names every contract clause that the ticket does not set", () => {
 	expect(contractLines({ result: "", files: [], leaveAlone: [], verify: [], reviewFocus: [] })).toEqual([
 		"## Contract",
 		"",
-		"- Result: not set",
+		"- Result: nothing",
 		"- Files:",
-		"  - not set",
+		"  - nothing",
 		"- Leave alone:",
-		"  - not set",
+		"  - nothing",
 		"- Verify:",
-		"  - not set",
+		"  - nothing",
 		"- Review focus:",
-		"  - not set",
+		"  - nothing",
 	]);
 });
