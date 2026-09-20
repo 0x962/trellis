@@ -1,3 +1,4 @@
+export { BlockRow, type BlockRowProps, NothingWord } from "./BlockRow";
 export { type CheckResultGroup, CheckResults } from "./CheckResults";
 export { type CheckStatus, CheckStatusIcon } from "./CheckStatusIcon";
 export { ChecksLine, type ChecksLineBucket, type ChecksLineCheck } from "./ChecksLine";
