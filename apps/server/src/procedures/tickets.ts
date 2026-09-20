@@ -24,4 +24,10 @@ export const tickets = os.tickets.router({
 	updateDependencies: os.tickets.updateDependencies.handler(({ context, input }) =>
 		call(context, "tickets.updateDependencies", withIfMatch(context, input)),
 	),
+	contract: os.tickets.contract.handler(({ context, input }) =>
+		call(context, "tickets.contract", withIfMatch(context, input)),
+	),
+	outcome: os.tickets.outcome.handler(({ context, input }) =>
+		call(context, "tickets.outcome", withIfMatch(context, input)),
+	),
 });

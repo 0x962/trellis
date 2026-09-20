@@ -24,6 +24,31 @@ const TicketDependencyListSchema = z
 	.max(200, "Name 200 tickets or less.")
 	.refine((refs) => new Set(refs).size === refs.length, "Name each ticket once.");
 
+const ContractValueSchema = z.string().min(1, "Enter a value.");
+
+export const TicketContractInputSchema = z.strictObject({
+	ticket: TicketRefStringSchema,
+	result: ContractValueSchema,
+	files: z.array(ContractValueSchema),
+	leaveAlone: z.array(ContractValueSchema),
+	verify: z.array(ContractValueSchema),
+	reviewFocus: z.array(ContractValueSchema),
+	expectedVersion: z.number().int().positive().optional(),
+});
+export type TicketContractInput = z.input<typeof TicketContractInputSchema>;
+
+const sentenceSegmenter = new Intl.Segmenter("en", { granularity: "sentence" });
+export const TicketOutcomeInputSchema = z.strictObject({
+	ticket: TicketRefStringSchema,
+	text: z
+		.string()
+		.trim()
+		.min(1, "Enter an outcome.")
+		.refine((text) => [...sentenceSegmenter.segment(text)].length === 1, "Enter one sentence."),
+	expectedVersion: z.number().int().positive().optional(),
+});
+export type TicketOutcomeInput = z.input<typeof TicketOutcomeInputSchema>;
+
 // `status` defaults to the project's default status; `description` to the
 // project's ticket template. `epic` names an epic of the same root.
 // `after` names the tickets that the new ticket waits for.

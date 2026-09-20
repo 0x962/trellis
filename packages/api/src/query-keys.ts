@@ -53,6 +53,16 @@ const parentFields: ReadonlySet<string> = new Set(["parent", "status", "complete
 // these fields.
 const epicFields: ReadonlySet<string> = new Set(["epic", "milestone", "status", "completedAt"]);
 
+const detailFields: ReadonlySet<string> = new Set([
+	"description",
+	"result",
+	"files",
+	"leaveAlone",
+	"verify",
+	"reviewFocus",
+	"outcome",
+]);
+
 type TicketEvent = Extract<TrellisEvent, { type: "ticket.created" | "ticket.updated" | "ticket.deleted" }>;
 
 // A ticket change with the event kind the cache reacts to.
@@ -81,7 +91,7 @@ const toChange = (event: TicketEvent): HeldChange => ({
 // A mutation's response names no fields. The event for the same write
 // carries them, and it arrives held or after the response.
 const toResultChange = (result: Ticket): HeldChange => {
-	const { description, children, prs, attachments, descriptionStale, ...summary } = result;
+	const { description, contract, outcome, children, prs, attachments, descriptionStale, ...summary } = result;
 	return { summary, fields: [], deleted: false, created: false, detail: result };
 };
 
@@ -93,7 +103,7 @@ export type EventApplier = {
 
 // Cached ticket rows accept only a higher version.
 // `createSettleCheck` refetches rows that miss changes during a request.
-// Description changes mark the cached text stale until its refetch completes.
+// A change to `description`, `contract`, or `outcome` refetches the detail because a ticket event carries only the summary.
 // Ticket writes hold events until the mutation response enters the cache.
 // Deleted ticket IDs block late responses for `TOMBSTONE_MS`.
 export const createEventApplier = (queryClient: QueryClient, options: { scheduler?: Scheduler } = {}): EventApplier => {
@@ -126,7 +136,7 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 	const patchTicket = (change: HeldChange) => {
 		const parentsThatLostAChild: string[] = [];
 		const { id } = change.summary;
-		const description = change.fields.includes("description");
+		const detailChanged = change.fields.some((field) => detailFields.has(field));
 		const membership = changesMembership(change);
 		for (const query of queryClient.getQueryCache().getAll()) {
 			const data = query.state.data;
@@ -143,7 +153,7 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			if (patched === undefined) continue;
 			const invalidated = query.state.isInvalidated;
 			queryClient.setQueryData(query.queryKey, patched);
-			if (!fetching && (invalidated || (own && description))) enqueue([forQuery(query)]);
+			if (!fetching && (invalidated || (own && detailChanged))) enqueue([forQuery(query)]);
 			if (detail && childCount(patched) < childCount(data)) parentsThatLostAChild.push((data as { id: string }).id);
 		}
 		return parentsThatLostAChild;

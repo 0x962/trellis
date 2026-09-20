@@ -10,6 +10,7 @@ import {
 	TicketSchema,
 } from "../schemas/ticket.ts";
 import {
+	TicketContractInputSchema,
 	TicketCreateInputSchema,
 	TicketDeleteInputSchema,
 	TicketDeleteManyInputSchema,
@@ -18,6 +19,7 @@ import {
 	TicketImportDependenciesInputSchema,
 	TicketImportDependenciesOutputSchema,
 	TicketMoveInputSchema,
+	TicketOutcomeInputSchema,
 	TicketUpdateDependenciesInputSchema,
 	TicketUpdateInputSchema,
 	TicketUpdateManyInputSchema,
@@ -108,5 +110,15 @@ export const tickets = {
 			summary: "Add and remove ticket dependencies in one transaction",
 		})
 		.input(TicketUpdateDependenciesInputSchema)
+		.output(TicketSchema),
+	contract: base
+		.errors(pickErrors(["PROJECT_ARCHIVED", "VERSION_CONFLICT"]))
+		.route({ method: "PATCH", path: "/tickets/{ticket}/contract", summary: "Set the contract of a ticket" })
+		.input(TicketContractInputSchema)
+		.output(TicketSchema),
+	outcome: base
+		.errors(pickErrors(["PROJECT_ARCHIVED", "VERSION_CONFLICT"]))
+		.route({ method: "PATCH", path: "/tickets/{ticket}/outcome", summary: "Set the outcome of a ticket" })
+		.input(TicketOutcomeInputSchema)
 		.output(TicketSchema),
 };

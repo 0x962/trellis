@@ -61,6 +61,12 @@ export const tickets = pgTable(
 		number: integer().notNull(),
 		title: text().notNull(),
 		description: text().notNull().default(""),
+		result: text().notNull().default(""),
+		files: jsonb().notNull().default([]),
+		leaveAlone: jsonb("leave_alone").notNull().default([]),
+		verify: jsonb().notNull().default([]),
+		reviewFocus: jsonb("review_focus").notNull().default([]),
+		outcome: text().notNull().default(""),
 		priority: text().notNull().default("none"),
 		statusId: text("status_id")
 			.notNull()
@@ -104,6 +110,10 @@ export const tickets = pgTable(
 		check("tickets_parent_not_self", sql`${t.parentId} <> ${t.id}`),
 		check("tickets_number_check", sql`${t.number} > 0`),
 		check("tickets_title_check", sql`${t.title} = btrim(${t.title}) AND length(${t.title}) BETWEEN 1 AND 500`),
+		check("tickets_files_check", sql`jsonb_typeof(${t.files}) = 'array'`),
+		check("tickets_leave_alone_check", sql`jsonb_typeof(${t.leaveAlone}) = 'array'`),
+		check("tickets_verify_check", sql`jsonb_typeof(${t.verify}) = 'array'`),
+		check("tickets_review_focus_check", sql`jsonb_typeof(${t.reviewFocus}) = 'array'`),
 		checkIn(t.priority, PRIORITIES),
 		index("tickets_project_id_status_id_position_idx").on(t.projectId, t.statusId, t.position),
 		// The `position` sort reads a status in (position, id) order and

@@ -115,9 +115,20 @@ export const TicketSummarySchema = z.object({
 });
 export type TicketSummary = z.infer<typeof TicketSummarySchema>;
 
+export const TicketContractSchema = z.object({
+	result: z.string(),
+	files: z.array(z.string()),
+	leaveAlone: z.array(z.string()),
+	verify: z.array(z.string()),
+	reviewFocus: z.array(z.string()),
+});
+export type TicketContract = z.infer<typeof TicketContractSchema>;
+
 // The `tickets.get` shape: the summary plus what only the ticket page reads.
 export const TicketSchema = TicketSummarySchema.extend({
 	description: z.string(),
+	contract: TicketContractSchema,
+	outcome: z.string(),
 	children: z.array(TicketSummarySchema),
 	prs: z.array(LinkedPullRequestSchema),
 	attachments: z.array(AttachmentSchema),
