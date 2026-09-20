@@ -65,6 +65,15 @@ describe("milestone", () => {
 		expect(parseSearch({ group: "milestone" }).group).toBe("milestone");
 	});
 
+	test("reads the turn grouping and writes it back", () => {
+		expect(parseSearch({ group: "turn" }).group).toBe("turn");
+		expect(serializeSearch(viewOf({ group: "turn" }))).toBe("group=turn");
+	});
+
+	test("drops a grouping the grammar does not name", () => {
+		expect(parseSearch({ group: "evidence" }).group).toBe("status");
+	});
+
 	test("writes milestone after epic and before pr", () => {
 		const search = serializeSearch(
 			viewOf({ pr: "open", milestone: "OP/routine-runtime/phase-1", epic: "OP/routine-runtime" }),

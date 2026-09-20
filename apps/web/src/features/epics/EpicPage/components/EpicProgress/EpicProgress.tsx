@@ -4,6 +4,7 @@ import { StackedBar } from "@trellis/ui";
 import { Fragment } from "react";
 import { formatCount } from "../../../../../lib/format";
 import type { View } from "../../../../filters/grammar";
+import type { WorkingTicketIds } from "../../../../table/utils/turnGroups";
 import { epicProgress, epicSegments } from "../../../epicBar";
 import { epicNext } from "../../../epicNext";
 import { epicUrlSearch } from "../../../epicSearch";
@@ -17,6 +18,10 @@ export type EpicProgressProps = {
 	splat: string;
 	// The search of the epic page. A count link changes its filters.
 	search: Partial<View>;
+	// The ids of the tickets whose assigned agent run works right now. The
+	// `4 wait for you` count reads it, because a ticket whose agent works
+	// waits for the agent and not for the person.
+	workingTicketIds: WorkingTicketIds;
 };
 
 const countLinkClass =
@@ -28,9 +33,9 @@ const countLinkClass =
 //
 // A count is a link to the table with the matching filters, and plain text
 // when the filter grammar has no matching filter.
-export function EpicProgress({ epic, running, splat, search }: EpicProgressProps) {
+export function EpicProgress({ epic, running, splat, search, workingTicketIds }: EpicProgressProps) {
 	const progress = epicProgress(epic.counts);
-	const next = epicNext(epic, running, search);
+	const next = epicNext(epic, running, search, workingTicketIds);
 	return (
 		<section aria-label="Progress" className="flex flex-col gap-2 px-5 pt-4 pb-4 max-md:px-4">
 			{next !== null && (

@@ -81,8 +81,14 @@ export const Route = createFileRoute("/p/$")({
 			}
 			return;
 		}
-		if (!isCanonicalSearch(location.searchStr, search)) {
-			throw redirect({ to: "/p/$", params: { _splat: splat }, search: stripDefaults(search), replace: true });
+		// The turn of a row reads its pull requests, its dependencies and the
+		// agent run that works on it, which the epic page alone loads. An old
+		// link with `group=turn` on a board or a table drops the param, so
+		// the view takes its own default grouping.
+		const { group, ...withoutTurn } = search;
+		const listSearch = group === "turn" ? withoutTurn : search;
+		if (listSearch !== search || !isCanonicalSearch(location.searchStr, listSearch)) {
+			throw redirect({ to: "/p/$", params: { _splat: splat }, search: stripDefaults(listSearch), replace: true });
 		}
 	},
 	loaderDeps: ({ search }) => search,

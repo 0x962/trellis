@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { TicketSummary } from "@trellis/api";
+import type { TicketPr, TicketSummary } from "@trellis/api";
 import { groupRows } from "./groupRows";
 
 const ticket = (id: string, epic: TicketSummary["epic"], milestone: TicketSummary["milestone"] = null) =>
@@ -169,5 +169,45 @@ describe("groupRows with a row rank", () => {
 		const groups = groupRows(rows, { group: "milestone", sort: "-updatedAt", statuses: [] });
 
 		expect(groups[0]!.rows.map((row) => row.id)).toEqual(["new", "mid", "old"]);
+	});
+});
+
+describe("groupRows by turn", () => {
+	const turnRow = (id: string, fields: Partial<TicketSummary>) =>
+		({ ...ticket(id, runtime, phase1), waitsOn: [], prRows: [], ready: false, ...fields }) as TicketSummary;
+	const open = { number: 7, state: "open", isDraft: false, fail: 0, pending: 0, openThreads: 0 } as TicketPr;
+	const question = turnRow("question", {
+		status: { category: "started", reviewer: "human" } as TicketSummary["status"],
+	});
+	const review = turnRow("review", { prRows: [open] });
+	const draft = turnRow("draft", { prRows: [{ ...open, isDraft: true }] });
+	const blocked = turnRow("blocked", {
+		status: { category: "todo" } as TicketSummary["status"],
+		waitsOn: [{ identifier: "OP-32", isQuestion: false } as TicketSummary["waitsOn"][number]],
+	});
+
+	test("draws the groups in the fixed order and renders no empty group", () => {
+		const groups = groupRows([blocked, draft, review], { group: "turn", sort: "-updatedAt", statuses: [] });
+
+		expect(groups.map((group) => group.label)).toEqual(["Your turn", "With an agent", "Waits on a merge"]);
+		expect(groups.map((group) => group.key)).toEqual(["you", "agent", "waits-on-a-merge"]);
+	});
+
+	test("puts every row of one turn in one group", () => {
+		const groups = groupRows([question, review], { group: "turn", sort: "-updatedAt", statuses: [] });
+
+		expect(groups).toHaveLength(1);
+		expect(groups[0]!.rows.map((row) => row.id).sort()).toEqual(["question", "review"]);
+	});
+
+	test("a working agent run moves a row to the agent group", () => {
+		const groups = groupRows([review], {
+			group: "turn",
+			sort: "-updatedAt",
+			statuses: [],
+			workingTicketIds: new Set(["review"]),
+		});
+
+		expect(groups.map((group) => group.label)).toEqual(["With an agent"]);
 	});
 });

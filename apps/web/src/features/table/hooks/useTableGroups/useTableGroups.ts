@@ -6,6 +6,7 @@ import type { TableGroup } from "../../utils/flattenGroups";
 import { groupRows, type RowRank } from "../../utils/groupRows";
 import { closedSlugs } from "../../utils/listQuery";
 import { milestoneMarks } from "../../utils/milestoneGroups";
+import { forYouCount, type WorkingTicketIds, waveCountLabel } from "../../utils/turnGroups";
 import type { ClosedCategory, TableData } from "../useTableData";
 
 export type TableGroupsOptions = {
@@ -16,6 +17,10 @@ export type TableGroupsOptions = {
 	// The rank of a row inside its group, ahead of the view's sort. The
 	// groups rebuild when its identity changes, so the caller memoizes it.
 	rowRank?: RowRank;
+	// The ids of the tickets whose assigned agent run works right now. The
+	// epic route passes it; the turn of a row and the `1 for you` count of
+	// a wave header read it. Memoize it: a new identity regroups the rows.
+	workingTicketIds?: WorkingTicketIds;
 };
 
 export type TableGroups = {
@@ -55,7 +60,14 @@ const noRefs: string[] = [];
 // landed, because the group order and the header marks come from them; the
 // table draws its skeleton for that time, so the groups never change order
 // on screen.
-export const useTableGroups = ({ data, view, project, isCollapsed, rowRank }: TableGroupsOptions): TableGroups => {
+export const useTableGroups = ({
+	data,
+	view,
+	project,
+	isCollapsed,
+	rowRank,
+	workingTicketIds,
+}: TableGroupsOptions): TableGroups => {
 	const { rows: activeRows, statuses, closed, inlineClosed } = data;
 	// A live patch can close a row of the active pass while the closed pass
 	// already holds it, so the closed pass gives way on a shared id.
@@ -77,12 +89,14 @@ export const useTableGroups = ({ data, view, project, isCollapsed, rowRank }: Ta
 			project,
 			milestoneOrder: milestones.map((milestone) => milestone.id),
 			rowRank,
+			workingTicketIds,
 		}).map((group) => {
 			const mark = marks?.get(group.key);
 			return {
 				...group,
 				count: group.rows.length,
-				countLabel: mark?.countLabel,
+				countLabel:
+					mark === undefined ? undefined : waveCountLabel(mark.countLabel, forYouCount(group.rows, workingTicketIds)),
 				badge: mark?.badge,
 				note: mark?.note,
 				epicRef: oneEpic && view.group === "milestone" ? epicRefs[0] : undefined,
@@ -112,6 +126,19 @@ export const useTableGroups = ({ data, view, project, isCollapsed, rowRank }: Ta
 			});
 		}
 		return [...active.filter((group) => !closedCategories.includes(group.category as ClosedCategory)), ...tail];
-	}, [rows, statuses, closed, view.group, view.closed, view.sort, project, isCollapsed, epics, epicRefs, rowRank]);
+	}, [
+		rows,
+		statuses,
+		closed,
+		view.group,
+		view.closed,
+		view.sort,
+		project,
+		isCollapsed,
+		epics,
+		epicRefs,
+		rowRank,
+		workingTicketIds,
+	]);
 	return { groups, loading: pending };
 };

@@ -15,7 +15,7 @@ import type { z } from "zod";
 import { searchParamOrder } from "../../lib/searchParams";
 import type { Density } from "../../stores/uiStore";
 
-export type Group = "none" | "status" | "priority" | "project" | "parent" | "epic" | "milestone" | "pr";
+export type Group = "none" | "status" | "priority" | "project" | "parent" | "epic" | "milestone" | "turn" | "pr";
 export type Scope = "subprojects" | "self";
 
 // The list fields a chip can negate. `not` names the fields whose value
@@ -81,6 +81,7 @@ const groups: ReadonlySet<string> = new Set([
 	"parent",
 	"epic",
 	"milestone",
+	"turn",
 	"pr",
 ]);
 const scopes: ReadonlySet<string> = new Set(["subprojects", "self"]);

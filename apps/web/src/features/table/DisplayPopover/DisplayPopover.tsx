@@ -37,6 +37,7 @@ const groups = [
 	{ value: "parent", label: "Parent" },
 	{ value: "epic", label: "Epic" },
 	{ value: "milestone", label: "Wave" },
+	{ value: "turn", label: "Turn" },
 	{ value: "pr", label: "PR" },
 ] as const;
 
@@ -72,11 +73,15 @@ export function DisplayPopover({
 	const hideable = columnOrder.filter(
 		(id) => !alwaysVisible.includes(id) && !(epicFixed && id === "epic") && kindShows(id, tableKind),
 	);
-	const groupItems = epicFixed ? groups.filter((entry) => entry.value !== "epic") : groups;
+	// The turn of a row reads its pull requests, its dependencies and the
+	// agent run that works on it, which the epic route alone loads. So the
+	// Turn grouping shows on the epic route, and the Epic grouping does not,
+	// because every row there holds the same epic.
+	const groupItems = groups.filter((entry) => (epicFixed ? entry.value !== "epic" : entry.value !== "turn"));
 	// The table shows the Done and Canceled rows under the status grouping,
-	// and under the milestone grouping of one epic.
+	// and under the wave and turn groupings of one epic.
 	const oneEpic = epicFixed || (search.epic !== undefined && search.epic !== "none");
-	const showsClosed = group === "status" || (group === "milestone" && oneEpic);
+	const showsClosed = group === "status" || ((group === "milestone" || group === "turn") && oneEpic);
 	const descending = sort.startsWith("-");
 	const field = sortFields.find((entry) => entry.value === sort.replace(/^-/, "")) ?? sortFields[1];
 

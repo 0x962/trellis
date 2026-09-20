@@ -82,6 +82,10 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	const assigned = useMemo(() => assignedTicketIds(assignedRuns ?? noRuns), [assignedRuns]);
 	const rowRank = useMemo(() => epicRowRank(assigned), [assigned]);
 	const workingAgentTicketIds = useMemo(() => epicWorkingTicketIds(assignedRuns ?? noRuns), [assignedRuns]);
+	// The same ids as a set. The turn of a row reads it once per row, and
+	// the band counts the tickets of the current wave that wait for the
+	// person with it.
+	const workingTicketIds = useMemo(() => new Set(workingAgentTicketIds), [workingAgentTicketIds]);
 	const running = useMemo(
 		() =>
 			assignedRunsQuery.status === "success" && epic.data !== undefined
@@ -240,7 +244,13 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 				{readOnly && <ArchivedBanner project={project} />}
 				{/* The band and the plan take at most half of the card and scroll inside it, so the table always keeps rows on screen. */}
 				<div className="max-h-1/2 shrink-0 overflow-y-auto border-b border-border">
-					<EpicProgress epic={record} running={running} splat={splat} search={tableSearch} />
+					<EpicProgress
+						epic={record}
+						running={running}
+						splat={splat}
+						search={tableSearch}
+						workingTicketIds={workingTicketIds}
+					/>
 					<EpicPlan routeKey={routeKey} description={record.description} />
 				</div>
 				<fieldset disabled={readOnly} className="contents">
@@ -250,6 +260,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 						tableKind="epic"
 						search={tableSearch}
 						rowRank={rowRank}
+						workingTicketIds={workingTicketIds}
 						prRows
 						agentLines={agentLines}
 						onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
