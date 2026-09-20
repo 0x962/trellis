@@ -50,6 +50,3 @@ export const autoHide = (
 		labels: visibility.labels && rows.some((row) => row.labels.length > 0),
 	};
 };
-
-export const visibleColumns = (visibility: Record<string, boolean>): ColumnId[] =>
-	columnOrder.filter((id) => visibility[id] !== false);

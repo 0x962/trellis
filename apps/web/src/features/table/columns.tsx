@@ -135,7 +135,7 @@ const iconWidths: Partial<Record<ColumnId, string>> = { status: "28px" };
 const iconColumnWidths: Record<ColumnId, string> = { ...columnWidths, ...iconWidths };
 
 // The `grid-template-columns` of a row and of the header.
-export const gridTemplate = (ids: readonly string[]) => {
+const gridTemplate = (ids: readonly string[]) => {
 	const widths = statusIconOnly(ids) ? iconColumnWidths : columnWidths;
 	return ids.map((id) => widths[id as ColumnId]).join(" ");
 };
