@@ -1,5 +1,5 @@
 {
-  "id": "bec2ab59-e77e-42ea-8b09-75bff7b06393",
+  "id": "a6bf0616-54e7-4b8e-bfc3-0c8410cffaab",
   "prevId": "41a94426-ed6d-4551-94cd-45d246b63daf",
   "version": "7",
   "dialect": "postgresql",
@@ -3510,7 +3510,23 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "review_deliveries_state_idx": {
+          "name": "review_deliveries_state_idx",
+          "columns": [
+            {
+              "expression": "state",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "review_deliveries_review_id_review_submissions_id_fk": {
           "name": "review_deliveries_review_id_review_submissions_id_fk",
@@ -3531,6 +3547,19 @@
           "tableTo": "comments",
           "columnsFrom": [
             "answer_comment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "review_deliveries_run_id_agent_runs_id_fk": {
+          "name": "review_deliveries_run_id_agent_runs_id_fk",
+          "tableFrom": "review_deliveries",
+          "tableTo": "agent_runs",
+          "columnsFrom": [
+            "run_id"
           ],
           "columnsTo": [
             "id"

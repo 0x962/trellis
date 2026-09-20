@@ -12,10 +12,14 @@ let db: Awaited<ReturnType<typeof openTestDb>>;
 let ctx: ServiceCtx;
 const rootId = ulid();
 const at = "2026-09-20T10:00:00Z";
+const question = "Options:\n1. Leave it missed.\n2. Run it late.\n";
 const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
-// One agent run on `ticketId`. A run with a `closedAt` instant is an agent
-// that already stopped, and the answer skips it.
+const ask = (title: string) =>
+	run((tx) => create(ctx, tx, { project: "ANS", title, description: question, status: "human-review" }));
+
+// A run with a `closedAt` instant is an agent that already stopped, and the
+// answer skips it.
 const startRun = (id: string, ticketId: string, name: string, closedAt: string | null) =>
 	db.execute(sql`INSERT INTO agent_runs
 		(id, name, kind, instruction, project_path, ticket_id, terminal_id, closed_at, created_at, updated_at)
@@ -26,9 +30,10 @@ beforeAll(async () => {
 	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
 		VALUES (${rootId}, ${rootId}, 'ANS', 'ans', 'Answer', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses
-		(id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
-		VALUES (${ulid()}, ${rootId}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at}),
-			(${ulid()}, ${rootId}, 'Done', 'done', 'done', 'fg-muted', 1, false, ${at}, ${at})`);
+		(id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at)
+		VALUES (${ulid()}, ${rootId}, 'Todo', 'todo', 'todo', NULL, 'fg-muted', 0, true, ${at}, ${at}),
+			(${ulid()}, ${rootId}, 'Human Review', 'human-review', 'review', 'human', 'fg-muted', 1, false, ${at}, ${at}),
+			(${ulid()}, ${rootId}, 'Done', 'done', 'done', NULL, 'fg-muted', 2, false, ${at}, ${at})`);
 	const cache = createCache();
 	await run((tx) => cache.rebuild(tx));
 	ctx = {
@@ -47,12 +52,12 @@ beforeAll(async () => {
 afterAll(async () => db.$client.close());
 
 test("an answer writes the comment, closes the question, and queues the running agents", async () => {
-	const question = await run((tx) => create(ctx, tx, { project: "ANS", title: "Run it late or leave it missed" }));
+	const asked = await ask("Run it late or leave it missed");
 	const waiting = await run((tx) =>
-		create(ctx, tx, { project: "ANS", title: "The sweep pass survives one failure", after: [question.identifier] }),
+		create(ctx, tx, { project: "ANS", title: "The sweep pass survives one failure", after: [asked.identifier] }),
 	);
 	const quiet = await run((tx) =>
-		create(ctx, tx, { project: "ANS", title: "The run settles on the page", after: [question.identifier] }),
+		create(ctx, tx, { project: "ANS", title: "The run settles on the page", after: [asked.identifier] }),
 	);
 	const liveRunId = ulid();
 	await startRun(liveRunId, waiting.id, "crisp-fjord", null);
@@ -60,10 +65,10 @@ test("an answer writes the comment, closes the question, and queues the running 
 
 	const result = await run((tx) =>
 		answer(ctx, tx, {
-			ticket: question.identifier,
+			ticket: asked.identifier,
 			option: 2,
 			reason: "A late run reads the day it was written for.",
-			expectedVersion: question.version,
+			expectedVersion: asked.version,
 		}),
 	);
 
@@ -90,16 +95,32 @@ test("the delivery table refuses a second row for the same answer and the same r
 	).rejects.toThrow("review_deliveries_recipient");
 });
 
+test("a ticket that asks no question refuses the answer", async () => {
+	const plain = await run((tx) => create(ctx, tx, { project: "ANS", title: "Build the sweep pass" }));
+	await expect(
+		run((tx) => answer(ctx, tx, { ticket: plain.identifier, option: 1, reason: "The narrow one." })),
+	).rejects.toThrow("This ticket asks no question.");
+	const unchanged = await db.execute(sql`SELECT version FROM tickets WHERE id = ${plain.id}`);
+	expect(unchanged.rows).toEqual([{ version: plain.version }]);
+});
+
+test("an option number above the option count refuses the answer", async () => {
+	const asked = await ask("Which grace window");
+	await expect(
+		run((tx) => answer(ctx, tx, { ticket: asked.identifier, option: 7, reason: "The wide one." })),
+	).rejects.toThrow("This question lists 2 options.");
+});
+
 test("a second answer on the same question refuses the stale version", async () => {
-	const question = await run((tx) => create(ctx, tx, { project: "ANS", title: "Which grace window" }));
-	await run((tx) => answer(ctx, tx, { ticket: question.identifier, option: 1, reason: "The narrow one." }));
+	const asked = await ask("Which retry count");
+	await run((tx) => answer(ctx, tx, { ticket: asked.identifier, option: 1, reason: "The narrow one." }));
 	await expect(
 		run((tx) =>
 			answer(ctx, tx, {
-				ticket: question.identifier,
-				option: 3,
+				ticket: asked.identifier,
+				option: 2,
 				reason: "The wide one.",
-				expectedVersion: question.version,
+				expectedVersion: asked.version,
 			}),
 		),
 	).rejects.toThrow();

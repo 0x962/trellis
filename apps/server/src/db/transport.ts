@@ -271,7 +271,7 @@ export const createInlineTransport = ({
 			reviewDelivery = startReviewDeliveryLoop({
 				clock,
 				log: options.log,
-				call: () => backgroundCall("reviews.dispatchDeliveries", {}),
+				call: () => backgroundCall("reviews.dispatchAnswerDeliveries", {}),
 			});
 			jobs = startBackgroundJobs({ db, gh: runtime.gh, bus, log: options.log, clock });
 		}

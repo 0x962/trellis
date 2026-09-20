@@ -150,13 +150,11 @@ export const ReviewApplyResultSchema = z.object({
 	threads: z.array(ReviewThreadSchema),
 });
 export type ReviewApplyResult = z.infer<typeof ReviewApplyResultSchema>;
-// One delivery carries one message to one agent run. `reviewId` names a
-// review submission, `answerCommentId` names the comment that holds the
-// answer of a question ticket, and exactly one of the two holds a value.
+// One review submission on its way to one agent run. `reviews.show` reads
+// the rows of one submission, so `reviewId` always holds that submission.
 export const ReviewDeliverySchema = z.object({
 	id: UlidSchema,
-	reviewId: UlidSchema.nullable(),
-	answerCommentId: UlidSchema.nullable(),
+	reviewId: UlidSchema,
 	runId: UlidSchema,
 	state: z.enum(["pending", "sending", "sent", "failed", "unknown"]),
 	error: z.string().nullable(),

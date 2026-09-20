@@ -2,13 +2,13 @@ import type { JobsClock, JobsLog } from "../jobs.ts";
 
 // Calls one service once a second, and never twice at the same time. The
 // next call is set only after the previous one settles, so a slow service
-// cannot queue up work. `failureText` is what the log prints when the call
-// throws.
-export function startDeliveryLoop(options: {
+// cannot queue up work. `failureLogMessage` is what the log prints when the
+// call throws.
+export function startRepeatingCall(options: {
 	call: () => Promise<unknown>;
 	clock: JobsClock;
 	log: JobsLog;
-	failureText: string;
+	failureLogMessage: string;
 }) {
 	let timer: number | null = null;
 	let running: Promise<void> = Promise.resolve();
@@ -18,7 +18,7 @@ export function startDeliveryLoop(options: {
 		running = options
 			.call()
 			.catch((error: unknown) =>
-				options.log(options.failureText, { error: error instanceof Error ? error.message : String(error) }),
+				options.log(options.failureLogMessage, { error: error instanceof Error ? error.message : String(error) }),
 			)
 			.then(() => {
 				if (!stopped) timer = options.clock.setTimer(tick, 1000);
@@ -34,4 +34,4 @@ export function startDeliveryLoop(options: {
 	};
 }
 
-export type DeliveryLoopOptions = Omit<Parameters<typeof startDeliveryLoop>[0], "failureText">;
+export type RepeatingCallOptions = Omit<Parameters<typeof startRepeatingCall>[0], "failureLogMessage">;

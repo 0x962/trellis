@@ -62,9 +62,7 @@ export type TicketOutcomeInput = z.input<typeof TicketOutcomeInputSchema>;
 
 // The answer of a question ticket. `option` is the number of the option the
 // person picked, as the ticket description numbers them, and `reason` is the
-// sentence the agent reads. The write stores both in one comment on the
-// question ticket, moves that ticket to the done category, and queues one
-// message for the running agent of each ticket that waits for the question.
+// sentence the agent reads.
 export const TicketAnswerInputSchema = z.strictObject({
 	ticket: TicketRefStringSchema,
 	option: z.number().int().min(1, "Enter the number of an option.").max(99, "Enter the number of an option."),
@@ -77,13 +75,22 @@ export const TicketAnswerInputSchema = z.strictObject({
 });
 export type TicketAnswerInput = z.input<typeof TicketAnswerInputSchema>;
 
-// `deliveries` names each running agent that the answer reached. An empty
-// list means that no ticket which waits for this question holds a running
-// agent.
+// One running agent that the answer goes to. `ticket` is the ticket that
+// agent works on, and that ticket waits for the question.
+export const TicketAnswerDeliverySchema = z.object({
+	ticket: TicketIdentifierSchema,
+	runId: UlidSchema,
+	agentName: z.string(),
+});
+export type TicketAnswerDelivery = z.infer<typeof TicketAnswerDeliverySchema>;
+
+// `deliveries` names each running agent that the answer goes to. The
+// delivery loop sends it. An empty list means that no ticket which waits for
+// this question holds a running agent.
 export const TicketAnswerOutputSchema = z.object({
 	ticket: TicketSchema,
 	commentId: UlidSchema,
-	deliveries: z.array(z.object({ ticket: TicketIdentifierSchema, runId: UlidSchema, agentName: z.string() })),
+	deliveries: z.array(TicketAnswerDeliverySchema),
 });
 export type TicketAnswerOutput = z.infer<typeof TicketAnswerOutputSchema>;
 

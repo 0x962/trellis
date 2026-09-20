@@ -131,8 +131,13 @@ export const tickets = {
 		.input(TicketOutcomeInputSchema)
 		.output(TicketSchema),
 	answer: base
-		.errors(pickErrors(["PROJECT_ARCHIVED", "VERSION_CONFLICT"]))
-		.route({ method: "POST", path: "/tickets/{ticket}/answer", summary: "Answer a question ticket" })
+		.errors(pickErrors(["PROJECT_ARCHIVED", "VERSION_CONFLICT", "STATUS_NOT_IN_PROJECT"]))
+		.route({
+			method: "POST",
+			path: "/tickets/{ticket}/answer",
+			successStatus: 201,
+			summary: "Answer a question ticket",
+		})
 		.input(TicketAnswerInputSchema)
 		.output(TicketAnswerOutputSchema),
 };

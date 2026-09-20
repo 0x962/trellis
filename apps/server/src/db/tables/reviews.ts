@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { check, index, integer, jsonb, pgTable, text, unique } from "drizzle-orm/pg-core";
 import { comments, pullRequests } from "../schema";
 import { at } from "./actors";
+import { agentRuns } from "./agentRuns.ts";
 
 export const reviewRevisions = pgTable(
 	"review_revisions",
@@ -55,7 +56,9 @@ export const reviewDeliveries = pgTable(
 		id: text().primaryKey(),
 		reviewId: text("review_id").references(() => reviewSubmissions.id),
 		answerCommentId: text("answer_comment_id").references(() => comments.id, { onDelete: "cascade" }),
-		runId: text("run_id").notNull(),
+		runId: text("run_id")
+			.notNull()
+			.references(() => agentRuns.id, { onDelete: "cascade" }),
 		state: text().notNull().default("pending"),
 		error: text(),
 		readAt: at("read_at"),
@@ -63,6 +66,7 @@ export const reviewDeliveries = pgTable(
 	},
 	(t) => [
 		unique("review_deliveries_recipient").on(t.reviewId, t.answerCommentId, t.runId).nullsNotDistinct(),
+		index("review_deliveries_state_idx").on(t.state),
 		check("review_deliveries_one_source", sql`num_nonnulls(${t.reviewId}, ${t.answerCommentId}) = 1`),
 	],
 );

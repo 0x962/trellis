@@ -40,13 +40,13 @@ import * as projects from "./projects.ts";
 import * as prSummary from "./prSummary.ts";
 import * as pullRequests from "./pullRequests.ts";
 import * as reviewApply from "./reviews/apply";
-import * as reviewDeliveries from "./reviews/dispatchDeliveries";
 import * as reviewImage from "./reviews/image";
 import * as reviewMessages from "./reviews/messages";
 import * as reviewPrs from "./reviews/prs";
 import * as reviewRemote from "./reviews/remote";
 import * as reviewReviewers from "./reviews/reviewers";
 import * as reviewRevision from "./reviews/revision";
+import * as reviewRunDeliveries from "./reviews/runDeliveries";
 import * as reviewStatus from "./reviews/status";
 import * as reviewThreads from "./reviews/threads";
 import * as reviewTransfers from "./reviews/transfers";
@@ -174,7 +174,7 @@ export const services = {
 	"reviews.reaction": io("mutation", reviewMessages.reaction),
 	"reviews.submit": prepared("mutation", reviewRemote.submit, reviewRemote.actionResult),
 	"reviews.apply": prepared("mutation", reviewApply.prepareApply, reviewApply.applyResult),
-	"reviews.dispatchDeliveries": prepared("mutation", reviewDeliveries.prepare, reviewDeliveries.finish),
+	"reviews.dispatchAnswerDeliveries": prepared("mutation", reviewRunDeliveries.prepare, reviewRunDeliveries.finish),
 
 	"agentRuns.send": agentMutation(agentCommunication.prepareSend),
 	"commentMentions.dispatch": prepared("mutation", commentMentions.prepare, commentMentions.finish),
