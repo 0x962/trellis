@@ -235,6 +235,7 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<B
 						doneBefore.map((done) => done.id),
 					),
 				);
+	// `evidenceLines` uses "default" path rules when the project and its ancestors configure no repository.
 	const repositoryName = (await effectiveRepos(ctx, tx, { project: ticket.project.path }))[0]?.repo ?? "default";
 	const markdown = sections([
 		header(ticket, parentTitle, epic, ctx.publicUrl),

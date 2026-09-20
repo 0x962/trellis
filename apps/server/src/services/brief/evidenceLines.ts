@@ -1,19 +1,6 @@
-import { type EvidenceFloorItem, evidenceFloor, type PrPath, prPaths, type TicketContract } from "@trellis/api";
+import { evidenceFloor, evidenceWords, type PrPath, prPaths, type TicketContract } from "@trellis/api";
 
-const evidenceWords: Record<EvidenceFloorItem, string> = {
-	summary: "summary",
-	after: "after image",
-	before: "before image",
-	capture: "capture record",
-	console: "console list",
-	verify: "verify record",
-	test: "test proof",
-	contract: "contract table",
-	migration: "migration plan",
-	picture: "picture",
-	equivalence: "equivalence proof",
-};
-
+// A contract stores paths without Git change types. `prPaths` receives "change", so it cannot report a deleted test from this data.
 const changedFile = (path: string): PrPath => ({ path, change: "change" });
 
 export const evidenceLines = (contract: TicketContract, repositoryName: string): string[] => {

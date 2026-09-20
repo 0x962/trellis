@@ -1,18 +1,4 @@
-import { type EvidenceFloorItem, evidenceFloor, type PrPath, prPaths, type TicketContract } from "@trellis/api";
-
-const evidenceWords: Record<EvidenceFloorItem, string> = {
-	summary: "summary",
-	after: "after image",
-	before: "before image",
-	capture: "capture record",
-	console: "console list",
-	verify: "verify record",
-	test: "test proof",
-	contract: "contract table",
-	migration: "migration plan",
-	picture: "picture",
-	equivalence: "equivalence proof",
-};
+import { evidenceFloor, evidenceWords, type PrPath, prPaths, type TicketContract } from "@trellis/api";
 
 const asChangedFile = (path: string): PrPath => ({ path, change: "change" });
 

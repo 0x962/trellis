@@ -3,6 +3,20 @@ import type { EvidenceKind } from "../schemas/evidence.ts";
 
 export type EvidenceFloorItem = "summary" | Exclude<EvidenceKind, "clip">;
 
+export const evidenceWords: Record<EvidenceFloorItem, string> = {
+	summary: "summary",
+	after: "after image",
+	before: "before image",
+	capture: "capture record",
+	console: "console list",
+	verify: "verify record",
+	test: "test proof",
+	contract: "contract table",
+	migration: "migration plan",
+	picture: "picture",
+	equivalence: "equivalence proof",
+};
+
 export type EvidenceFloorGap = {
 	item: EvidenceFloorItem;
 	fillCommand: string;
