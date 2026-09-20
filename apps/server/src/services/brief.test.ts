@@ -1,7 +1,16 @@
 import { expect, test } from "bun:test";
-import type { Epic, MilestoneSummary, TicketSummary } from "@trellis/api";
-import { assignmentInstruction } from "./brief.ts";
+import type { ActorRef, Epic, MilestoneSummary, TicketSummary } from "@trellis/api";
+import { sql } from "drizzle-orm";
+import { ulid } from "ulid";
+import type { ServiceCtx } from "../context.ts";
+import { createCache } from "../db/cache.ts";
+import { openTestDb } from "../db/testDb.ts";
+import type { Tx } from "../db/tx.ts";
+import { assignmentInstruction, get as getBrief } from "./brief.ts";
+import { create as createComment } from "./comments.ts";
 import { epicHeaderLine, epicLines, milestoneHeaderLine, resultsLines } from "./epics/text.ts";
+import { setContract } from "./tickets/contract.ts";
+import { create as createTicket } from "./tickets/create.ts";
 
 const input = {
 	identifier: "OP-27",
@@ -214,4 +223,60 @@ test("the results section lists the done tickets of each earlier milestone with 
 	]);
 	expect(resultsLines(grouped, "01J00000000000000000000029", bodies)).toEqual([]);
 	expect(resultsLines(grouped, "01J00000000000000000000032", bodies)).toEqual([]);
+});
+
+test("the brief prints a stable contract and evidence floor above comments", async () => {
+	const db = await openTestDb();
+	const rootId = ulid();
+	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
+		VALUES (${rootId}, ${rootId}, 'BRF', 'brf', 'Brief', '2026-09-20T10:00:00Z', '2026-09-20T10:00:00Z')`);
+	await db.execute(sql`INSERT INTO repos (id, project_id, owner, repo)
+		VALUES (${ulid()}, ${rootId}, 'example', 'trellis')`);
+	await db.execute(sql`INSERT INTO statuses
+		(id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
+		VALUES (${ulid()}, ${rootId}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true,
+			'2026-09-20T10:00:00Z', '2026-09-20T10:00:00Z')`);
+	const cache = createCache();
+	const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
+	await run((tx) => cache.rebuild(tx));
+	const ctx: ServiceCtx = {
+		actor: { kind: "human", name: "Test" } satisfies ActorRef,
+		session: null,
+		reqId: ulid(),
+		now: new Date("2026-09-20T10:01:00Z"),
+		cache,
+		actorCache: new Map(),
+		emit: () => {},
+		dropBlobs: () => {},
+		publicUrl: "http://localhost:4597",
+	};
+	const ticket = await run((tx) => createTicket(ctx, tx, { project: "BRF", title: "Print the contract" }));
+	await run((tx) =>
+		setContract(ctx, tx, {
+			ticket: ticket.identifier,
+			result: "The brief prints the contract.",
+			files: ["apps/server/src/services/brief.ts"],
+			leaveAlone: ["packages/cli/src/commands/brief.ts"],
+			verify: ["bun test apps/server/src/services"],
+			reviewFocus: ["Two reads give the same bytes."],
+		}),
+	);
+	await run((tx) =>
+		createComment(ctx, tx, { ticket: ticket.identifier, body: "Keep this comment after the contract." }),
+	);
+
+	const first = await run((tx) => getBrief(ctx, tx, { ticket: ticket.identifier }));
+	const second = await run((tx) => getBrief(ctx, tx, { ticket: ticket.identifier }));
+	const contractAt = first.markdown.indexOf("## Contract");
+	const evidenceAt = first.markdown.indexOf("## Evidence owed");
+	const commentsAt = first.markdown.indexOf("## Comments");
+
+	expect(first.markdown).toBe(second.markdown);
+	expect(contractAt).toBeGreaterThan(first.markdown.indexOf("## Description"));
+	expect(evidenceAt).toBeGreaterThan(contractAt);
+	expect(commentsAt).toBeGreaterThan(evidenceAt);
+	expect(first.markdown).toContain("- Leave alone:\n  - packages/cli/src/commands/brief.ts");
+	expect(first.markdown).toContain("- Kind: backend\n- summary\n- verify record\n- test proof\n- contract table");
+
+	await db.$client.close();
 });

@@ -5,10 +5,13 @@ import { actorDisplayName } from "../db/queries/actorDisplayName.ts";
 import { iso, rows, textArray } from "../db/queries/support.ts";
 import { ticketGet } from "../db/queries/ticketGet.ts";
 import type { Tx } from "../db/tx.ts";
+import { contractLines } from "./brief/contractLines.ts";
+import { evidenceLines } from "./brief/evidenceLines.ts";
 import { epicView } from "./epics/epics.ts";
 import { earlierResults, epicHeaderLine, epicLines, milestoneHeaderLine, resultsLines } from "./epics/text.ts";
 import { activeNotes } from "./notes/notes.ts";
 import { notesLines } from "./notes/text.ts";
+import { effectiveRepos } from "./projectsRepos.ts";
 import { resolveTicket } from "./refs.ts";
 
 // The markdown an agent starts from. The layout is fixed and every list
@@ -232,9 +235,12 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<B
 						doneBefore.map((done) => done.id),
 					),
 				);
+	const repositoryName = (await effectiveRepos(ctx, tx, { project: ticket.project.path }))[0]?.repo ?? "default";
 	const markdown = sections([
 		header(ticket, parentTitle, epic, ctx.publicUrl),
 		["## Description", "", ticket.description],
+		contractLines(ticket.contract),
+		evidenceLines(ticket.contract, repositoryName),
 		...(epic === null ? [] : epicLines(epic, ticket.id)),
 		results,
 		subTickets(ticket),
