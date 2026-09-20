@@ -1,6 +1,5 @@
 import type { PrKind, PrPathFacts, TicketPr } from "@trellis/api";
 import type { ConditionLine, ConditionsReadiness } from "@trellis/ui/review";
-import type { LiveBranchState } from "../../ReviewLive/liveBranch";
 
 // One ticket that this ticket waits on, and the state of the pull request of
 // that ticket.
@@ -22,6 +21,15 @@ export type EvidenceCondition = {
 // What one flow run of the ticket ended as. A run that waits has not started
 // and a run that runs has not finished, so both read as running.
 export type FlowWord = "running" | "passed" | "failed" | "canceled";
+
+// How far the pull request head sits behind its base branch, from the compare
+// call that fetched the revision on screen.
+export type BaseCondition = {
+	// How many commits the base branch holds that the head does not.
+	behindBy: number;
+	// The name of the base branch, such as "master".
+	baseRefName: string;
+};
 
 // The flow runs of the ticket that owns the pull request.
 export type FlowsCondition = {
@@ -62,7 +70,8 @@ export type Conditions = {
 	// The number of review threads that nobody resolved.
 	threads: number;
 	flows: FlowsCondition;
-	base: LiveBranchState | null;
+	// `null` for a revision fetched before the page read the distance.
+	base: BaseCondition | null;
 	ancestors: readonly ConditionsAncestor[];
 };
 
@@ -165,7 +174,11 @@ const flowsValue = ({ total, newest }: Conditions["flows"]) => {
 		.join(" · ");
 };
 
-const baseValue = (base: LiveBranchState | null) => (base ? base.label.toLowerCase() : "unknown");
+const baseValue = (base: Conditions["base"]) => {
+	if (base === null) return "unknown";
+	if (base.behindBy === 0) return `up to date with ${base.baseRefName}`;
+	return `${base.behindBy} ${base.behindBy === 1 ? "commit" : "commits"} behind ${base.baseRefName}`;
+};
 
 const ancestorsValue = (ancestors: Conditions["ancestors"]) => {
 	if (ancestors.length === 0) return "none";

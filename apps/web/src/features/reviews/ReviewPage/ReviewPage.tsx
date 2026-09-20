@@ -1,10 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { type Evidence, evidenceFloor, type ReviewThread, reviewRef, turnOf } from "@trellis/api";
+import { type Evidence, evidenceFloor, type ReviewRevision, type ReviewThread, reviewRef, turnOf } from "@trellis/api";
 import { TicketId } from "@trellis/ui";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
 import { ConditionsBlock } from "../ConditionsBlock";
+import type { BaseCondition } from "../ConditionsBlock/conditionLines/conditionLines";
 import { EvidenceStrip } from "../EvidenceStrip";
 import { FileRiskGroups } from "../FileRiskGroups";
 import type { ReadMarkFile } from "../FileRiskGroups/readMarks/readMarks";
@@ -14,7 +15,6 @@ import { ReviewComment } from "../ReviewComment/ReviewComment";
 import { ReviewDiscussion } from "../ReviewDiscussion/ReviewDiscussion";
 import { ReviewFocusList } from "../ReviewFocusList";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
-import { type LiveBranchMeta, liveBranchState } from "../ReviewLive/liveBranch";
 import { ReviewStack } from "../ReviewStack/ReviewStack";
 import { ReviewSummary } from "../ReviewSummary/ReviewSummary";
 import { DiffPane } from "./components/DiffPane";
@@ -28,6 +28,16 @@ import "@trellis/ui/review.css";
 const noThreads: ReviewThread[] = [];
 const noRecords: Evidence[] = [];
 const noSentences: string[] = [];
+
+// The distance comes from the revision document, not from the status poll:
+// the server reads it from the compare call that fetched this revision, and
+// the poll answers no such field. A revision stored before the server read
+// the distance carries none, and the line then reads unknown.
+const baseOf = (revision: ReviewRevision | null): BaseCondition | null => {
+	const meta = revision?.meta as { behindBy?: number; baseRefName?: string } | undefined;
+	if (meta?.behindBy === undefined || meta.baseRefName === undefined) return null;
+	return { behindBy: meta.behindBy, baseRefName: meta.baseRefName };
+};
 
 export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent?: ReactNode; syncHash?: boolean }) {
 	const { client } = useApp();
@@ -124,7 +134,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		records,
 		floor,
 		waitsOn: ticket.data?.waitsOn ?? [],
-		base: status.data ? liveBranchState(status.data as LiveBranchMeta) : null,
+		base: baseOf(revision),
 	});
 	// `turnOf` takes `hasWorkingRun` as its second argument. This page loads no
 	// agent run, so it passes false. A ticket with a running agent then gets

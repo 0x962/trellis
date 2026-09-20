@@ -11,7 +11,7 @@ const clear: Conditions = {
 	checks: { pass: 48, fail: 0, pending: 0, skipped: 44 },
 	threads: 0,
 	flows: { total: 2, newest: ["passed", "passed"] },
-	base: { enabled: true, available: true, upToDate: true, label: "Ready", report: null },
+	base: { behindBy: 0, baseRefName: "master" },
 	ancestors: [{ identifier: "TRL-164", merged: true }],
 };
 
@@ -117,9 +117,15 @@ test("a ticket with more runs than the server sends prints the total and the new
 	);
 });
 
-test("the base line prints the live branch state as words", () => {
-	expect(lineValue(clear, "base")).toBe("ready");
-	expect(lineValue({ ...clear, base: { ...clear.base!, label: "Not deployed" } }, "base")).toBe("not deployed");
+test("the base line prints how far the head is behind its base branch", () => {
+	expect(lineValue(clear, "base")).toBe("up to date with master");
+	expect(lineValue({ ...clear, base: { behindBy: 1, baseRefName: "main" } }, "base")).toBe("1 commit behind main");
+	expect(lineValue({ ...clear, base: { behindBy: 97, baseRefName: "master" } }, "base")).toBe(
+		"97 commits behind master",
+	);
+});
+
+test("the base line reads unknown while the revision carries no distance", () => {
 	expect(lineValue({ ...clear, base: null }, "base")).toBe("unknown");
 });
 
@@ -172,7 +178,7 @@ test("the size, the risk answers and the base state stop no merge", () => {
 		risk,
 		size: { additions: 4000, deletions: 20, changedFiles: 90 },
 		sizeBand: "large" as const,
-		base: null,
+		base: { behindBy: 40, baseRefName: "master" },
 	};
 
 	expect(mergeReadiness(loud)).toBe("yes");

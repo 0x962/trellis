@@ -1,11 +1,11 @@
 import type { Evidence, EvidenceFloor, TicketPr, TicketSummary } from "@trellis/api";
 import type {
+	BaseCondition,
 	Conditions,
 	FlowsCondition,
 	FlowWord,
 	TestsCondition,
 } from "../../ConditionsBlock/conditionLines/conditionLines";
-import type { LiveBranchState } from "../../ReviewLive/liveBranch";
 
 export type ConditionsInput = {
 	// The pull request row of the ticket that links this pull request, from
@@ -21,9 +21,9 @@ export type ConditionsInput = {
 	// leaves out a ticket that reached Done, so every entry here names a
 	// ticket that nobody merged yet.
 	waitsOn: TicketSummary["waitsOn"];
-	// What the live branch of the base reports, or `null` when GitHub
-	// answered nothing.
-	base: LiveBranchState | null;
+	// How far the head of the revision on screen sits behind its base branch,
+	// or `null` for a revision fetched before the page read the distance.
+	base: BaseCondition | null;
 };
 
 // A run that waits has not started, and a run that runs has not finished, so

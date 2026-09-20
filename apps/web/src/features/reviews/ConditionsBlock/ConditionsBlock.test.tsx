@@ -14,7 +14,7 @@ const open: Conditions = {
 	checks: { pass: 48, fail: 1, pending: 7, skipped: 44 },
 	threads: 2,
 	flows: { total: 2, newest: ["running", "passed"] },
-	base: { enabled: false, available: false, upToDate: false, label: "Not deployed", report: null },
+	base: { behindBy: 3, baseRefName: "master" },
 	ancestors: [{ identifier: "TRL-167", merged: false }],
 };
 
