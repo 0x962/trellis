@@ -5,6 +5,7 @@ import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { resolveEpic } from "../epics/resolve.ts";
 import { assertProjectActive } from "../refs.ts";
+import { addParsedDependency } from "./deps.ts";
 
 type EpicTicket = {
 	id: string;
@@ -27,7 +28,7 @@ const dependencySteps = (text: string) => {
 const ticketRefs = (text: string) =>
 	[...text.matchAll(/\b[A-Z][A-Z0-9]{1,9}-\d+\b/gi)].map(([ref]) => ref.toUpperCase());
 
-const answerTickets = (description: string) =>
+const identifiersWaitingForThisTicket = (description: string) =>
 	ticketRefs(/^Waiting on this answer:\s+(.+)$/im.exec(description)?.[1] ?? "");
 
 export const importDependencies = async (
@@ -51,42 +52,30 @@ export const importDependencies = async (
 		if (step !== null) byStep.set(step, ticket);
 	}
 
-	const unresolved = new Set<string>();
-	const edges = new Map<string, { ticketId: string; dependsOnId: string }>();
-	const addEdge = (ticket: EpicTicket, dependency: EpicTicket) => {
-		edges.set(`${ticket.id}:${dependency.id}`, { ticketId: ticket.id, dependsOnId: dependency.id });
+	const ticketsWithUnresolvedReferences = new Set<string>();
+	let edgeCount = 0;
+	const writeEdge = async (sourceIdentifier: string, waitingTicket: EpicTicket, dependency: EpicTicket) => {
+		const result = await addParsedDependency(ctx, tx, waitingTicket, dependency);
+		if (result === "cycle") ticketsWithUnresolvedReferences.add(sourceIdentifier);
+		if (result === "written") edgeCount += 1;
 	};
 	for (const ticket of tickets) {
 		const dependsOn = dependencyText(ticket.description);
 		for (const step of dependencySteps(dependsOn)) {
 			const dependency = byStep.get(step);
-			if (dependency === undefined) unresolved.add(ticket.identifier);
-			else addEdge(ticket, dependency);
+			if (dependency === undefined) ticketsWithUnresolvedReferences.add(ticket.identifier);
+			else await writeEdge(ticket.identifier, ticket, dependency);
 		}
-		for (const ref of ticketRefs(dependsOn)) {
-			const dependency = byIdentifier.get(ref);
-			if (dependency === undefined) unresolved.add(ticket.identifier);
-			else addEdge(ticket, dependency);
+		for (const identifier of ticketRefs(dependsOn)) {
+			const dependency = byIdentifier.get(identifier);
+			if (dependency === undefined) ticketsWithUnresolvedReferences.add(ticket.identifier);
+			else await writeEdge(ticket.identifier, ticket, dependency);
 		}
-		for (const ref of answerTickets(ticket.description)) {
-			const target = byIdentifier.get(ref);
-			if (target === undefined) unresolved.add(ticket.identifier);
-			else addEdge(target, ticket);
+		for (const identifier of identifiersWaitingForThisTicket(ticket.description)) {
+			const waitingTicket = byIdentifier.get(identifier);
+			if (waitingTicket === undefined) ticketsWithUnresolvedReferences.add(ticket.identifier);
+			else await writeEdge(ticket.identifier, waitingTicket, ticket);
 		}
 	}
-
-	let edgeCount = 0;
-	for (const edge of edges.values()) {
-		const changed = await rows<unknown>(
-			tx,
-			sql`INSERT INTO ticket_deps (ticket_id, depends_on_id, source, created_at)
-				VALUES (${edge.ticketId}, ${edge.dependsOnId}, 'parsed', ${ctx.now})
-				ON CONFLICT (ticket_id, depends_on_id) DO UPDATE
-				SET source = 'parsed', created_at = ${ctx.now}
-				WHERE ticket_deps.source = 'derived'
-				RETURNING ticket_id`,
-		);
-		edgeCount += changed.length;
-	}
-	return { edgeCount, unresolved: [...unresolved] };
+	return { edgeCount, ticketsWithUnresolvedReferences: [...ticketsWithUnresolvedReferences] };
 };

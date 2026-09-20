@@ -50,7 +50,7 @@ export const TicketImportDependenciesInputSchema = z.strictObject({
 
 export const TicketImportDependenciesOutputSchema = z.object({
 	edgeCount: CountSchema,
-	unresolved: z.array(TicketIdentifierSchema),
+	ticketsWithUnresolvedReferences: z.array(TicketIdentifierSchema),
 });
 export type TicketImportDependenciesOutput = z.infer<typeof TicketImportDependenciesOutputSchema>;
 

@@ -85,7 +85,7 @@ test("the import writes parsed edges once and reports the ticket with each unres
 		(${second.id}, ${question.id}, 'derived', ${ctx.now})`);
 
 	const imported = await run((tx) => importDependencies(ctx, tx, { epic: "TST/first-epic" }));
-	expect(imported).toEqual({ edgeCount: 2, unresolved: ["TST-2", "TST-3"] });
+	expect(imported).toEqual({ edgeCount: 2, ticketsWithUnresolvedReferences: ["TST-2", "TST-3"] });
 	const edges = await db.execute(
 		sql`SELECT d.ticket_id, d.depends_on_id, d.source FROM ticket_deps d
 			JOIN tickets target ON target.id = d.ticket_id
@@ -99,7 +99,7 @@ test("the import writes parsed edges once and reports the ticket with each unres
 	]);
 
 	const repeated = await run((tx) => importDependencies(ctx, tx, { epic: "TST/first-epic" }));
-	expect(repeated).toEqual({ edgeCount: 0, unresolved: ["TST-2", "TST-3"] });
+	expect(repeated).toEqual({ edgeCount: 0, ticketsWithUnresolvedReferences: ["TST-2", "TST-3"] });
 });
 
 test("the import reads a ticket identifier from the Depends on line", async () => {
@@ -130,7 +130,7 @@ test("the import reads a ticket identifier from the Depends on line", async () =
 
 	expect(await run((tx) => importDependencies(ctx, tx, { epic: "TST/identifier-refs" }))).toEqual({
 		edgeCount: 2,
-		unresolved: [],
+		ticketsWithUnresolvedReferences: [],
 	});
 	const edges = await db.execute(sql`SELECT d.depends_on_id, d.source FROM ticket_deps d
 		JOIN tickets dependency ON dependency.id = d.depends_on_id
@@ -163,9 +163,38 @@ test("the step map reads a numbered step without epic-specific words", async () 
 
 	expect(await run((tx) => importDependencies(ctx, tx, { epic: "TST/generic-steps" }))).toEqual({
 		edgeCount: 1,
-		unresolved: [],
+		ticketsWithUnresolvedReferences: [],
 	});
 	const edges = await db.execute(sql`SELECT source FROM ticket_deps
 		WHERE ticket_id = ${target.id} AND depends_on_id = ${dependency.id}`);
 	expect(edges.rows).toEqual([{ source: "parsed" }]);
+});
+
+test("the import reports the ticket whose description would close a cycle", async () => {
+	const ctx = ctxAt("2026-09-20T10:04:00.000Z");
+	await run((tx) => createEpic(ctx, tx, { project: "TST", name: "Cycle" }));
+	const first = await run((tx) =>
+		create(ctx, tx, {
+			project: "TST",
+			title: "First",
+			epic: "TST/cycle",
+			description: "Step 1.\n\nDepends on: step 2.",
+		}),
+	);
+	const second = await run((tx) =>
+		create(ctx, tx, {
+			project: "TST",
+			title: "Second",
+			epic: "TST/cycle",
+			description: "Step 2.\n\nDepends on: step 1.",
+		}),
+	);
+
+	expect(await run((tx) => importDependencies(ctx, tx, { epic: "TST/cycle" }))).toEqual({
+		edgeCount: 1,
+		ticketsWithUnresolvedReferences: [second.identifier],
+	});
+	const edges = await db.execute(sql`SELECT ticket_id, depends_on_id, source FROM ticket_deps
+		WHERE ticket_id IN (${first.id}, ${second.id})`);
+	expect(edges.rows).toEqual([{ ticket_id: first.id, depends_on_id: second.id, source: "parsed" }]);
 });
