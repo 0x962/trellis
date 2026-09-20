@@ -1,4 +1,5 @@
 export { BlockRow, type BlockRowProps, NothingWord } from "./BlockRow";
+export { ChangeSummary, type ChangeSummaryFields, type ChangeSummaryProps } from "./ChangeSummary";
 export { type CheckResultGroup, CheckResults } from "./CheckResults";
 export { type CheckStatus, CheckStatusIcon } from "./CheckStatusIcon";
 export { ChecksLine, type ChecksLineBucket, type ChecksLineCheck } from "./ChecksLine";
