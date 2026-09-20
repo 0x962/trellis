@@ -9,6 +9,9 @@ export const pullRequests = os.pullRequests.router({
 	readSummary: os.pullRequests.readSummary.handler(({ context, input }) =>
 		call(context, "pullRequests.readSummary", input),
 	),
+	readSummaryHead: os.pullRequests.readSummaryHead.handler(({ context, input }) =>
+		call(context, "pullRequests.readSummaryHead", input),
+	),
 	writeSummary: os.pullRequests.writeSummary.handler(({ context, input }) =>
 		call(context, "pullRequests.writeSummary", input),
 	),

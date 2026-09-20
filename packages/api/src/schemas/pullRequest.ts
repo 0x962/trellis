@@ -84,23 +84,43 @@ export const PullRequestIdInputSchema = z.strictObject({
 	id: UlidSchema,
 });
 
+const PullRequestHeadShaSchema = z.string().min(1).max(64);
+const PullRequestSummaryHeadlineSchema = z.string().min(1).max(200);
+const PullRequestSummaryTextSchema = z.string().min(1).max(2000);
+
+// An agent writes these three fields for one head SHA. `headline` states what
+// the change does. `why` gives the problem, the approach, and the limit.
+// `watch` names the first file to read and gives the reason, or it is `nothing`.
 export const PullRequestSummarySchema = z.object({
 	pullRequestId: UlidSchema,
-	headSha: z.string().min(1),
-	headline: z.string().min(1),
-	why: z.string().min(1),
-	watch: z.string().min(1),
+	headSha: PullRequestHeadShaSchema,
+	headline: PullRequestSummaryHeadlineSchema,
+	why: PullRequestSummaryTextSchema,
+	watch: PullRequestSummaryTextSchema,
 });
 export type PullRequestSummary = z.infer<typeof PullRequestSummarySchema>;
 
-export const PullRequestSummaryWriteInputSchema = z.strictObject({
+export const PullRequestSummaryHeadInputSchema = z.strictObject({
 	id: UlidSchema,
-	headSha: z.string().min(1),
-	headline: z.string().min(1),
-	why: z.string().min(1),
-	watch: z.string().min(1),
+	headSha: PullRequestHeadShaSchema,
 });
-export type PullRequestSummaryWriteInput = z.input<typeof PullRequestSummaryWriteInputSchema>;
+
+export const PullRequestSummaryWriteInputSchema = PullRequestSummaryHeadInputSchema.extend({
+	headline: PullRequestSummaryHeadlineSchema,
+	why: PullRequestSummaryTextSchema,
+	watch: PullRequestSummaryTextSchema,
+});
+
+export const PullRequestSummaryWriteOutputSchema = z.object({
+	summary: PullRequestSummarySchema,
+	warnings: z.array(
+		z.object({
+			field: z.enum(["headline", "why", "watch"]),
+			message: z.string().min(1),
+		}),
+	),
+});
+export type PullRequestSummaryWriteOutput = z.infer<typeof PullRequestSummaryWriteOutputSchema>;
 
 // A diff over 1 MB is cut and `truncated` is true; `url` opens the whole
 // diff on GitHub.
