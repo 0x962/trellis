@@ -1,5 +1,5 @@
 import type { Resource } from "@trellis/api";
-import { ResourceList as ResourceListView, type ResourceRowValue } from "@trellis/ui";
+import { type ResourceListRow, ResourceList as ResourceListView } from "@trellis/ui";
 import { useMemo } from "react";
 import { resourceDetail } from "./resourceDetail";
 
@@ -14,10 +14,8 @@ export type ResourceListProps = {
 	onAddFile: () => void;
 };
 
-// This wrapper turns each resource record into the three words the row
-// prints: the kind, the name and the detail line.
 export function ResourceList({ resources, loading, error, onOpen, onAddDoc, onAddLink, onAddFile }: ResourceListProps) {
-	const rows = useMemo<ResourceRowValue[]>(
+	const rows = useMemo<ResourceListRow[]>(
 		() =>
 			resources.map((resource) => ({
 				id: resource.id,

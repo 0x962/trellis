@@ -1,9 +1,9 @@
-import { ResourceList, type ResourceRowValue } from "../../../../domain/ResourceList";
+import { ResourceList, type ResourceListRow } from "../../../../domain/ResourceList";
 import { Section } from "../../Section";
 
 // The resources of the Routines E2E epic. Section 2, screen 8 of
 // docs/research/trellis-for-one-human-and-many-agents.md holds these words.
-const rows: ResourceRowValue[] = [
+const rows: ResourceListRow[] = [
 	{
 		id: "1",
 		kind: "doc",

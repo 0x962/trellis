@@ -1,17 +1,16 @@
-import { Button } from "../../primitives/Button";
+import { Plus } from "@phosphor-icons/react";
 import { EmptyState } from "../../primitives/EmptyState";
+import { IconButton } from "../../primitives/IconButton";
+import { Menu } from "../../primitives/Menu";
 import { SectionHeader } from "../../primitives/SectionHeader";
 import { Skeleton } from "../../primitives/Skeleton";
-import { ResourceRow, type ResourceRowValue } from "./components/ResourceRow";
+import { type ResourceListRow, ResourceRow } from "./components/ResourceRow";
 
 export type ResourceListProps = {
-	// Every resource of the epic, in the order the caller gives. The list
-	// keeps that order and groups nothing.
-	rows: readonly ResourceRowValue[];
-	// True while the request for the resources is not complete.
+	// The list keeps the order of the caller. It groups nothing.
+	rows: readonly ResourceListRow[];
 	loading?: boolean;
-	// Why the resources did not arrive, in the words of the server. Null
-	// means they arrived.
+	// Why the resources did not arrive, in the words of the server.
 	error?: string | null;
 	onOpen: (id: string) => void;
 	onAddDoc: () => void;
@@ -19,9 +18,8 @@ export type ResourceListProps = {
 	onAddFile: () => void;
 };
 
-// The resources of an epic: docs, links, images and files in one list. The
-// three controls stay under every state, so the row area is the only part
-// of the block that changes height.
+// The Add control sits in the header, so the row area is the only part of
+// the block that changes height.
 export function ResourceList({
 	rows,
 	loading = false,
@@ -33,7 +31,22 @@ export function ResourceList({
 }: ResourceListProps) {
 	return (
 		<section aria-busy={loading} aria-label="Resources" className="flex min-w-0 flex-col gap-1">
-			<SectionHeader title="RESOURCES" count={loading || error !== null ? undefined : rows.length} />
+			<SectionHeader
+				title="RESOURCES"
+				count={loading || error !== null ? undefined : rows.length}
+				actions={
+					<Menu
+						label="Add a resource"
+						triggerTooltip="Add a resource"
+						trigger={<IconButton label="Add a resource" icon={<Plus />} />}
+						items={[
+							{ label: "Doc", onSelect: onAddDoc },
+							{ label: "Link", onSelect: onAddLink },
+							{ label: "File", onSelect: onAddFile },
+						]}
+					/>
+				}
+			/>
 			{error !== null ? (
 				<p role="alert" className="py-2 text-sm text-danger">
 					{error}
@@ -45,15 +58,10 @@ export function ResourceList({
 			) : (
 				<ul className="flex min-w-0 flex-col">
 					{rows.map((row) => (
-						<ResourceRow key={row.id} value={row} onOpen={onOpen} />
+						<ResourceRow key={row.id} row={row} onOpen={onOpen} />
 					))}
 				</ul>
 			)}
-			<div className="flex items-center justify-end gap-2 pt-1">
-				<Button onClick={onAddDoc}>Add doc</Button>
-				<Button onClick={onAddLink}>Add link</Button>
-				<Button onClick={onAddFile}>Add file</Button>
-			</div>
 		</section>
 	);
 }

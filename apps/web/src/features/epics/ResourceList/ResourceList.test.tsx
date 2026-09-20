@@ -83,16 +83,14 @@ describe("ResourceList", () => {
 		expect(html.slice(html.indexOf("settle-sequence.mmd"))).not.toContain("also evidence");
 	});
 
-	test("offers the three add controls in every state", () => {
+	test("offers the add control in every state", () => {
 		for (const html of [
 			renderToStaticMarkup(<ResourceList resources={resources} {...controls} />),
 			renderToStaticMarkup(<ResourceList resources={[]} {...controls} />),
 			renderToStaticMarkup(<ResourceList resources={[]} loading {...controls} />),
 			renderToStaticMarkup(<ResourceList resources={[]} error="The server did not answer." {...controls} />),
 		]) {
-			expect(html).toContain("Add doc");
-			expect(html).toContain("Add link");
-			expect(html).toContain("Add file");
+			expect(html).toContain('aria-label="Add a resource"');
 		}
 	});
 

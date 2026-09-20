@@ -1,1 +1,1 @@
-export { type ResourceKind, ResourceRow, type ResourceRowProps, type ResourceRowValue } from "./ResourceRow";
+export { type ResourceListRow, ResourceRow, type ResourceRowProps } from "./ResourceRow";
