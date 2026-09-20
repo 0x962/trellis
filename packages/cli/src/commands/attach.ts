@@ -1,10 +1,8 @@
-import { readFileSync } from "node:fs";
-import { basename } from "node:path";
 import type { Attachment, AttachmentUploadOutput } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf } from "../context.ts";
-import { fileNotFound, fileUnreadable } from "../errors.ts";
+import { fileAt } from "../file.ts";
 import { json, type ListSpec, printList } from "../output.ts";
 
 const attachmentList: ListSpec<Attachment> = {
@@ -18,18 +16,6 @@ const attachmentList: ListSpec<Attachment> = {
 };
 
 const kilobytes = (bytes: number) => `${(bytes / 1024).toFixed(1)} KB`;
-
-// The file the command line names. The file system is a boundary: a path
-// the process cannot open ends the run with one line and no request.
-const fileAt = (path: string): File => {
-	try {
-		return new File([readFileSync(path)], basename(path));
-	} catch (error) {
-		const failure = error as NodeJS.ErrnoException;
-		if (failure.code === "ENOENT") throw fileNotFound(path);
-		throw fileUnreadable(path, failure.message);
-	}
-};
 
 // The server's multipart parser cuts a filename at a double quote or a line
 // break. Such a name also travels in the `name` field, which the server
