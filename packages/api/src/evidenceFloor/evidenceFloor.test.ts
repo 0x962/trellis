@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { PrPathFacts } from "../prPaths/index.ts";
-import { evidenceFloor } from "./evidenceFloor.ts";
+import { contractFloor, evidenceFloor } from "./evidenceFloor.ts";
 
 const clearRisk: PrPathFacts["risk"] = {
 	auth: "no",
@@ -104,5 +104,19 @@ describe("evidenceFloor", () => {
 			},
 			{ item: "contract", fillCommand: "trellis evidence add <pr> --kind contract --before - --after -" },
 		]);
+	});
+});
+
+describe("contractFloor", () => {
+	test("returns unknown without one repository or one file", () => {
+		expect(contractFloor(undefined, { files: ["apps/server/src/services/brief.ts"] })).toBeNull();
+		expect(contractFloor("trellis", { files: [] })).toBeNull();
+	});
+
+	test("forecasts a migration for a server database path", () => {
+		expect(contractFloor("trellis", { files: ["apps/server/src/db/schema.ts"] })).toEqual({
+			kind: "backend",
+			required: ["summary", "verify", "test", "contract", "migration", "picture"],
+		});
 	});
 });
