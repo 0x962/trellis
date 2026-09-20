@@ -1,4 +1,4 @@
-import { type TicketPr, turnOf } from "@trellis/api";
+import { evidenceFloor, type TicketPr, turnOf } from "@trellis/api";
 import { type LineChangesValue, lineChangesVisible } from "@trellis/ui";
 
 export type PrRowTone = "fg" | "muted" | "danger";
@@ -58,6 +58,26 @@ const checkCells = (pr: TicketPr): PrRowCell[] =>
 const threadCells = (pr: TicketPr): PrRowCell[] =>
 	pr.openThreads === 0 ? [] : [mutedCell("threads", countWord(pr.openThreads, "thread", "threads"))];
 
+// `evidenceFloor` sorts the records a pull request owes into the present ones
+// and the missing ones. The number it requires follows from the kind and the
+// risk alone, so this call gives it no record and no summary and reads only
+// the length of `required`.
+const requiredEvidence = (kind: NonNullable<TicketPr["kind"]>, risk: NonNullable<TicketPr["risk"]>) =>
+	evidenceFloor({ kind, risk, rows: [], hasSummary: false }).required.length;
+
+// A pull request row always prints one evidence word. `evidence` counts the
+// records of the floor that the pull request carries at its head commit. The
+// server sets `kind`, `risk` and `evidence` to null together while GitHub
+// gives it no file list, and it sets `evidence` to null while the pull
+// request has no head commit.
+const evidenceCells = (pr: TicketPr): PrRowCell[] => {
+	if (pr.kind === null || pr.risk === null || pr.evidence === null || pr.evidence === 0)
+		return [mutedCell("evidence", "no evidence")];
+	const required = requiredEvidence(pr.kind, pr.risk);
+	const word = pr.evidence === required ? "evidence complete" : `evidence ${pr.evidence} of ${required}`;
+	return [mutedCell("evidence", word)];
+};
+
 // `succeeded` reads `passed`, the word the check counts already use for the
 // same outcome.
 const flowWords: Record<FlowStatus, string> = {
@@ -87,6 +107,7 @@ const cellGroups: ReadonlyArray<(pr: TicketPr) => PrRowCell[]> = [
 	sizeCells,
 	checkCells,
 	threadCells,
+	evidenceCells,
 	flowCells,
 	turnCells,
 ];
