@@ -9,14 +9,13 @@ const FailedCheckSchema = z.object({
 	workflow: z.string().nullable(),
 });
 
-const prKindValues: Record<PrKind | "unknown", null> = {
+const prKindValues: Record<PrKind, null> = {
 	frontend: null,
 	backend: null,
 	mixed: null,
-	unknown: null,
 };
 
-const PrKindSchema = z.enum(Object.keys(prKindValues) as [PrKind | "unknown", ...(PrKind | "unknown")[]]);
+const PrKindSchema = z.enum(Object.keys(prKindValues) as [PrKind, ...PrKind[]]);
 
 const PrRiskSchema: z.ZodType<PrPathFacts["risk"]> = z.object({
 	auth: z.enum(["yes", "no"]),
@@ -37,9 +36,9 @@ export const TicketPrSchema = z.object({
 	deletions: CountSchema.nullable(),
 	changedFiles: CountSchema.nullable(),
 	sizeBand: z.enum(["small", "medium", "large"]).nullable(),
-	// A `TicketPrSchema` row with no complete changed-file list uses "unknown" for `kind` and "no" for each `risk` answer.
-	kind: PrKindSchema,
-	risk: PrRiskSchema,
+	// A null `kind` or `risk` means the poller has not fetched a complete pull request file list.
+	kind: PrKindSchema.nullable(),
+	risk: PrRiskSchema.nullable(),
 	pass: CountSchema,
 	fail: CountSchema,
 	pending: CountSchema,

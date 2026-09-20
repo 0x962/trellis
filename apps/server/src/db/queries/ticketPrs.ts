@@ -26,18 +26,10 @@ const skippedCheck = sql`check_row.value->>'bucket' = ${SKIPPED}`;
 
 export type TicketPrRow = Omit<TicketPr, "kind" | "risk"> & { paths: string[] | null };
 
-const noRiskAnswers: TicketPr["risk"] = {
-	auth: "no",
-	migration: "no",
-	dependency: "no",
-	sharedType: "no",
-	deletedTest: "no",
-};
-
 export const toTicketPrRows = (rows: TicketPrRow[] | null): TicketPr[] =>
 	(rows ?? []).map(({ paths, ...row }) => {
 		if (paths === null || paths.length === 0 || row.changedFiles !== paths.length)
-			return { ...row, kind: "unknown", risk: noRiskAnswers };
+			return { ...row, kind: null, risk: null };
 		// Changed-file rows store path and line counts. `prPaths` receives "change", so `risk.deletedTest` remains "no".
 		const facts = prPaths(
 			row.repo,
