@@ -31,12 +31,14 @@ Allocation by ticket kind:
 | Server, database, API, poller | codex, `openai/gpt-5.6-sol` | high | unlimited quota; the largest layer |
 | CLI verbs and the brief | codex, `openai/gpt-5.6-sol` | high | the same |
 | Web pages and UI primitives | claude, `anthropic/claude-opus-5`, the two Max accounts in turn | high | design fidelity; Opus is open on both |
-| Docs, the rename sweep, mechanical edits | muse, `meta/muse-spark-1.3` | default | low risk; proves the harness early |
+| Docs, the rename sweep, mechanical edits | codex, `openai/gpt-5.6-sol` | high | Muse was tried on T07 and retired: five hours on a 22-line rename, no progress on the wire, and a drift into unrelated code |
 | Judging a hard review, a stuck ticket | claude, `anthropic/claude-fable-5.1`, Canary only | high | Fable is spent on both Max accounts; Canary keeps 16 percent |
 
 Limits: at most three Claude workers at once, at most six Codex workers, at most two Muse workers. Before each start the orchestrator reads `trellis accounts quota <id> --refresh`. A Claude account over 90 percent of its session window gets no new worker; its ticket goes to Codex or waits. The orchestrator itself runs on Canary and keeps its own turns short while the window is spent.
 
 ## Keeping the orchestrator alive
+
+The orchestrator's own account is a quota too. On 2026-09-20 it spent its five-hour window by 08:45 UTC and slept until 12:20 UTC while five pull requests waited. So the orchestrator reads the pull request body and the Review flow findings, and opens a full diff only for a migration, a shared contract, or a risk file. A harness CLI is never upgraded while workers run on it (see the Codex incident in the project notes).
 
 - `scratchpad/build/monitor.sh <epic> 1500` runs in the background. Every 90 s it reads the TRL agents and tickets; every 15 min it reads the three Claude quotas. It exits, and so wakes the orchestrator, when a run fails or ends, when a ticket reaches Agent Review or Human Review, when a Claude session window passes 95 percent, or after 25 min as a heartbeat.
 - A session cron fires every 29 min as a backstop and asks the orchestrator to check the build if the monitor died.
