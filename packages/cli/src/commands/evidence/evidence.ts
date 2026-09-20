@@ -4,8 +4,9 @@ import { ulid } from "ulid";
 import { clientOf } from "../../client.ts";
 import { contextOf, readText } from "../../context.ts";
 import { fileAt } from "../../file.ts";
-import { printRecord, type RecordSpec } from "../../output.ts";
+import { printList, printRecord, type RecordSpec } from "../../output.ts";
 import { currentHead, resolvePullRequest } from "../pullRequestRef.ts";
+import { evidenceList } from "./evidenceText.ts";
 import { type EvidenceArgs, evidenceInput, evidenceKinds, validateKindFlags } from "./kinds.ts";
 
 const evidenceRecord: RecordSpec<Evidence> = {
@@ -73,7 +74,21 @@ const add = defineCommand({
 	},
 });
 
+const list = defineCommand({
+	meta: { name: "list", description: "List the evidence of a pull request" },
+	args: {
+		ref: { type: "positional", required: true, description: "Pull request number, URL, or owner/repo#123" },
+	},
+	async run(context) {
+		const ctx = contextOf(context);
+		const client = clientOf(ctx);
+		const resolved = await resolvePullRequest(client, context.args.ref, false);
+		const rows = await client.pullRequests.listEvidence({ id: resolved.id });
+		printList(ctx.out, ctx.format, rows, evidenceList);
+	},
+});
+
 export default defineCommand({
-	meta: { name: "evidence", description: "Add evidence to a pull request" },
-	subCommands: { add },
+	meta: { name: "evidence", description: "Add or list evidence of a pull request" },
+	subCommands: { add, list },
 });
