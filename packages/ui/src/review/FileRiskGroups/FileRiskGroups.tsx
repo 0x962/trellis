@@ -76,6 +76,7 @@ export function FileRiskGroups({
 				groups.map((group, index) => {
 					const contentId = `${id}-${group.key}`;
 					const total = totals.perGroup[index]!;
+					const collapsed = isCollapsed(group.key);
 					return (
 						<section key={group.key} aria-label={`${group.label} files`}>
 							<GroupHeader
@@ -89,39 +90,44 @@ export function FileRiskGroups({
 									</span>
 								}
 								showCount={total.label}
-								expanded={!isCollapsed(group.key)}
+								expanded={!collapsed}
 								controls={contentId}
 								onToggle={() => onToggle(group.key)}
 								phone={phone}
 							/>
-							<ul id={contentId} hidden={isCollapsed(group.key)}>
-								{group.files.map((file) => (
-									<li
-										key={file.path}
-										className={cx(
-											"flex h-8 items-center gap-2 px-5 transition-colors duration-hover max-md:h-11 max-md:px-4 pointer-coarse:h-11",
-											file.path === selected ? "bg-accent-soft" : "hover:bg-band",
-										)}
-									>
-										<Checkbox
-											label={`Mark ${file.path} read`}
-											hideLabel
-											checked={file.read}
-											onCheckedChange={(next) => onToggleRead(file.path, next)}
-										/>
-										<button
-											type="button"
-											onClick={() => onSelect(file.path)}
-											className={cx(
-												"min-w-0 flex-1 truncate rounded-sm text-left font-mono text-xs focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
-												file.read ? "text-fg-faint" : "text-fg",
-											)}
-										>
-											{file.path}
-										</button>
-										<LineChanges value={{ additions: file.additions, deletions: file.deletions }} pending={false} />
-									</li>
-								))}
+							{/* The list stays in the tree while the group is collapsed, so the
+							    `aria-controls` of the group header always names a live element.
+							    A collapsed group draws no row. */}
+							<ul id={contentId} hidden={collapsed}>
+								{collapsed
+									? null
+									: group.files.map((file) => (
+											<li
+												key={file.path}
+												className={cx(
+													"flex h-8 items-center gap-2 px-5 transition-colors duration-hover max-md:h-11 max-md:px-4 pointer-coarse:h-11",
+													file.path === selected ? "bg-accent-soft" : "hover:bg-band",
+												)}
+											>
+												<Checkbox
+													label={`Mark ${file.path} read`}
+													hideLabel
+													checked={file.read}
+													onCheckedChange={(next) => onToggleRead(file.path, next)}
+												/>
+												<button
+													type="button"
+													onClick={() => onSelect(file.path)}
+													className={cx(
+														"min-w-0 flex-1 truncate rounded-sm text-left font-mono text-xs focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
+														file.read ? "text-fg-faint" : "text-fg",
+													)}
+												>
+													{file.path}
+												</button>
+												<LineChanges value={{ additions: file.additions, deletions: file.deletions }} pending={false} />
+											</li>
+										))}
 							</ul>
 						</section>
 					);

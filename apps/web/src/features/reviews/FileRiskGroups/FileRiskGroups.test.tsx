@@ -80,17 +80,28 @@ test("a stored mark from a revision that changed the file reads as unread", () =
 	expect(html).toContain("0 of 4 read");
 });
 
+const groupOf = (html: string, label: string) => {
+	const start = html.indexOf(`aria-label="${label} files"`);
+	return html.slice(start, start + html.slice(start).indexOf("</section>"));
+};
+
 test("the group of every path comes from the path rules", () => {
 	const html = render();
 
-	const group = (label: string) => {
-		const start = html.indexOf(`aria-label="${label} files"`);
-		return html.slice(start, start + html.slice(start).indexOf("</section>"));
-	};
-	expect(group("Risk")).toContain("apps/server/drizzle/0083_waits.sql");
-	expect(group("Behavior")).toContain("apps/web/src/features/reviews/ReviewPage/ReviewPage.tsx");
-	expect(group("Tests")).toContain("apps/web/src/features/reviews/ReviewPage/ReviewPage.test.tsx");
-	expect(group("Noise")).toContain("bun.lock");
+	expect(groupOf(html, "Risk")).toContain("apps/server/drizzle/0083_waits.sql");
+	expect(groupOf(html, "Behavior")).toContain("apps/web/src/features/reviews/ReviewPage/ReviewPage.tsx");
+	expect(groupOf(html, "Tests")).toContain("apps/web/src/features/reviews/ReviewPage/ReviewPage.test.tsx");
+	// Noise starts collapsed and a collapsed group draws no row, so its one
+	// file shows as the count in the header and as an absence everywhere else.
+	expect(groupOf(html, "Noise")).toContain("1 file");
+	expect(groupOf(html, "Noise")).toContain("2 lines added, 2 lines deleted");
+	for (const label of ["Risk", "Behavior", "Tests"]) expect(groupOf(html, label)).not.toContain("bun.lock");
+});
+
+test("a collapsed group draws no row", () => {
+	const html = render();
+
+	expect(html).toContain('-noise" hidden=""></ul>');
 });
 
 test("each pull request reads its own marks", () => {
