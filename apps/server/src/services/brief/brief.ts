@@ -2,6 +2,7 @@ import { type Brief, BriefGetInputSchema, type Epic, type StoredActorKind, type 
 import { sql } from "drizzle-orm";
 import type { ServiceCtx } from "../../context.ts";
 import { actorDisplayName } from "../../db/queries/actorDisplayName.ts";
+import { chainRows } from "../../db/queries/chainRows.ts";
 import { iso, rows, textArray } from "../../db/queries/support.ts";
 import { ticketGet } from "../../db/queries/ticketGet.ts";
 import type { Tx } from "../../db/tx.ts";
@@ -215,6 +216,7 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<B
 	const input = BriefGetInputSchema.parse(rawInput);
 	const row = await resolveTicket(ctx, tx, input.ticket);
 	const ticket = await ticketGet(tx, row.id);
+	const waitsOn = await chainRows(tx, ticket.id);
 	const parentTitle =
 		ticket.parent === null
 			? null
@@ -243,7 +245,7 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<B
 		["## Description", "", ticket.description],
 		contractLines(ticket.contract),
 		evidenceOwedLines(ticket.contract, repositoryName),
-		await chainLines(tx, ticket.id),
+		chainLines(ticket, waitsOn),
 		...(epic === null ? [] : epicLines(epic, ticket.id)),
 		results,
 		subTickets(ticket),

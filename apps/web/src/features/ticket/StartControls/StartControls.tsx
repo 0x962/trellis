@@ -1,10 +1,9 @@
 import { useMutation } from "@tanstack/react-query";
-import { type Harness, HarnessSchema, type TicketSummary } from "@trellis/api";
+import { blockReason, type Harness, HarnessSchema, type TicketSummary } from "@trellis/api";
 import { StartControls as StartControlsView, type StartDependency } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { LaunchFields } from "../../agents/LaunchFields";
-import { blockReason } from "../blockReason";
 
 export type StartControlsProps = {
 	// The identifier of the ticket the run takes, such as `TRL-188`.

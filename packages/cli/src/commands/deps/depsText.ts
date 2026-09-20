@@ -1,4 +1,4 @@
-import type { Ticket, TicketPr } from "@trellis/api";
+import { statusText, type Ticket, type TicketPr } from "@trellis/api";
 
 type NamedTicket = Ticket["releases"][number];
 type WaitsOnTicket = Ticket["waitsOn"][number];
@@ -11,12 +11,6 @@ export type DepsResult = {
 	waitsOn: WaitsOnTicket[];
 	releases: NamedTicket[];
 	derived: DerivedPr[];
-};
-
-const statusText = (ticket: WaitsOnTicket): string => {
-	if (ticket.status === "started") return "in progress";
-	if (ticket.status === "review") return ticket.isQuestion ? "human review" : "agent review";
-	return ticket.status;
 };
 
 const releaseLines = (tickets: NamedTicket[]): string[] => {
