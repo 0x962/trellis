@@ -48,7 +48,7 @@ export function FileRiskGroupsSection() {
 	};
 	return (
 		<Section name="FileRiskGroups" note="four groups; a line count per group; Noise collapsed; a read mark per file">
-			<div className="w-full max-w-160 rounded-md border border-border bg-bg py-1">
+			<div className="w-full max-w-160 rounded-md border border-border bg-pane py-1">
 				<FileRiskGroups
 					groups={groups}
 					selected={selected}

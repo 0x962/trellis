@@ -1,9 +1,17 @@
 import { expect, test } from "bun:test";
-import { fileShape, isRead, loadReadMarks, type ReadMarks, saveReadMarks, setReadMark } from "./readMarks";
+import {
+	fileShape,
+	isRead,
+	loadReadMarks,
+	type ReadMarkFile,
+	type ReadMarks,
+	saveReadMarks,
+	setReadMark,
+} from "./readMarks";
 
-const file = { path: "apps/web/src/app.tsx", type: "change", additions: 12, deletions: 3 };
+const file: ReadMarkFile = { path: "apps/web/src/app.tsx", change: "change", additions: 12, deletions: 3 };
 
-const memory = (): Storage => {
+const memoryStorage = (): Storage => {
 	const entries = new Map<string, string>();
 	return {
 		get length() {
@@ -46,7 +54,7 @@ test("the mark drops when the revision changes the line counts", () => {
 test("the mark drops when the revision changes how Git changed the file", () => {
 	const marks = setReadMark({}, file, true);
 
-	expect(isRead(marks, { ...file, type: "new" })).toBe(false);
+	expect(isRead(marks, { ...file, change: "new" })).toBe(false);
 });
 
 test("the mark of one file leaves another file unread", () => {
@@ -60,11 +68,11 @@ test("the shape names the change and both line counts", () => {
 });
 
 test("a pull request with no stored marks loads an empty record", () => {
-	expect(loadReadMarks(memory(), "0x962/trellis#161")).toEqual({});
+	expect(loadReadMarks(memoryStorage(), "0x962/trellis#161")).toEqual({});
 });
 
 test("a saved record loads back under the same pull request", () => {
-	const storage = memory();
+	const storage = memoryStorage();
 	const marks: ReadMarks = setReadMark({}, file, true);
 
 	saveReadMarks(storage, "0x962/trellis#161", marks);

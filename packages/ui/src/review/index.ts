@@ -1,6 +1,6 @@
 export { type CheckResultGroup, CheckResults } from "./CheckResults";
 export { type CheckStatus, CheckStatusIcon } from "./CheckStatusIcon";
-export { type FileRiskGroup, FileRiskGroups, type FileRiskGroupsProps, type FileRiskRow } from "./FileRiskGroups";
+export { type FileRiskGroup, FileRiskGroups } from "./FileRiskGroups";
 export { insertBlock, ReviewCommentEditor } from "./ReviewCommentEditor";
 export { type ConversationMeta, ReviewConversation } from "./ReviewConversation/ReviewConversation";
 export { type DiffAnchor, ReviewDiff } from "./ReviewDiff/ReviewDiff";

@@ -1,17 +1,18 @@
+import type { PrChangeType } from "@trellis/api";
+
 // One changed file of a pull request, as the diff of the revision reports it.
-export type ReadMarkFile = { path: string; type: string; additions: number; deletions: number };
+export type ReadMarkFile = { path: string; change: PrChangeType; additions: number; deletions: number };
 
 // The files the person marked read. The key is the path. The value is the
-// shape the file had when he marked it.
+// shape the file had at the mark.
 export type ReadMarks = Record<string, string>;
 
 const storageKey = (pr: string) => `trellis.review.read:${pr}`;
 
-// What the file looked like at one revision: how Git changed it and how many
-// lines it adds and deletes. A later revision that edits the file gives it
-// another shape, so `isRead` returns false and the person reads it again. A
-// later revision that leaves the file alone keeps the shape and the mark.
-export const fileShape = (file: ReadMarkFile) => `${file.type}:${file.additions}:${file.deletions}`;
+// The shape of a file at one revision. A mark holds the shape, so a later
+// revision that changes the file makes `isRead` false and the person reads it
+// again.
+export const fileShape = (file: ReadMarkFile) => `${file.change}:${file.additions}:${file.deletions}`;
 
 export const isRead = (marks: ReadMarks, file: ReadMarkFile) => marks[file.path] === fileShape(file);
 

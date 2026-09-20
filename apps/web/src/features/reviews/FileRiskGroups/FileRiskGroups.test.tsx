@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { FileRiskGroups } from "./FileRiskGroups";
-import { fileShape } from "./readMarks/readMarks";
+import { fileShape, type ReadMarkFile } from "./readMarks/readMarks";
 
 const memoryStorage = (entries: Map<string, string>): Storage => ({
 	get length() {
@@ -22,16 +22,16 @@ const withStorage = (entries: Map<string, string> = new Map()) => {
 
 const pr = "0x962/trellis#161";
 
-const files = [
-	{ path: "apps/server/drizzle/0083_waits.sql", type: "new", additions: 11, deletions: 0 },
-	{ path: "apps/web/src/features/reviews/ReviewPage/ReviewPage.tsx", type: "change", additions: 20, deletions: 4 },
-	{ path: "apps/web/src/features/reviews/ReviewPage/ReviewPage.test.tsx", type: "new", additions: 30, deletions: 0 },
-	{ path: "bun.lock", type: "change", additions: 2, deletions: 2 },
+const files: ReadMarkFile[] = [
+	{ path: "apps/server/drizzle/0083_waits.sql", change: "new", additions: 11, deletions: 0 },
+	{ path: "apps/web/src/features/reviews/ReviewPage/ReviewPage.tsx", change: "change", additions: 20, deletions: 4 },
+	{ path: "apps/web/src/features/reviews/ReviewPage/ReviewPage.test.tsx", change: "new", additions: 30, deletions: 0 },
+	{ path: "bun.lock", change: "change", additions: 2, deletions: 2 },
 ];
 
-const render = (entries?: Map<string, string>) => {
+const render = (entries?: Map<string, string>, on = pr) => {
 	withStorage(entries);
-	return renderToStaticMarkup(<FileRiskGroups pr={pr} repo="trellis" files={files} selected="" onSelect={() => {}} />);
+	return renderToStaticMarkup(<FileRiskGroups pr={on} repo="trellis" files={files} selected="" onSelect={() => {}} />);
 };
 
 test("the four groups print in the order the reviewer reads them", () => {
@@ -91,4 +91,12 @@ test("the group of every path comes from the path rules", () => {
 	expect(group("Behavior")).toContain("apps/web/src/features/reviews/ReviewPage/ReviewPage.tsx");
 	expect(group("Tests")).toContain("apps/web/src/features/reviews/ReviewPage/ReviewPage.test.tsx");
 	expect(group("Noise")).toContain("bun.lock");
+});
+
+test("each pull request reads its own marks", () => {
+	const marked = files[1]!;
+	const entries = new Map([[`trellis.review.read:${pr}`, JSON.stringify({ [marked.path]: fileShape(marked) })]]);
+
+	expect(render(entries, pr)).toContain("1 of 4 read");
+	expect(render(entries, "0x962/trellis#162")).toContain("0 of 4 read");
 });
