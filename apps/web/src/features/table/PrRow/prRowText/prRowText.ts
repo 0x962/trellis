@@ -1,4 +1,4 @@
-import { evidenceFloor, type TicketPr, turnOf } from "@trellis/api";
+import { type TicketPr, turnOf } from "@trellis/api";
 import { type LineChangesValue, lineChangesVisible } from "@trellis/ui";
 
 export type PrRowTone = "fg" | "muted" | "danger";
@@ -58,22 +58,17 @@ const checkCells = (pr: TicketPr): PrRowCell[] =>
 const threadCells = (pr: TicketPr): PrRowCell[] =>
 	pr.openThreads === 0 ? [] : [mutedCell("threads", countWord(pr.openThreads, "thread", "threads"))];
 
-// `required` follows from the kind and the risk alone. The empty `rows` and
-// the false `hasSummary` change only `present` and `missing`.
-const requiredRecordCount = (kind: NonNullable<TicketPr["kind"]>, risk: NonNullable<TicketPr["risk"]>) =>
-	evidenceFloor({ kind, risk, rows: [], hasSummary: false }).required.length;
-
-// A merged or a closed pull request owes no record. `evidence` counts the
-// records of the floor that the pull request carries at its head commit. The
-// server sets `kind`, `risk` and `evidence` to null together while GitHub
-// gives no file list, and it sets `evidence` to null while the pull request
-// has no head commit.
+// A merged or a closed pull request owes no record. The server measures both
+// numbers: `evidence` counts the records of the evidence floor that the pull
+// request carries at its head commit, and `evidenceRequired` counts the
+// records that floor asks for. The server sets the two to null together while
+// GitHub gives no file list and while the pull request has no head commit.
 const evidenceCells = (pr: TicketPr): PrRowCell[] => {
 	if (pr.state !== "open") return [];
-	if (pr.kind === null || pr.risk === null || pr.evidence === null || pr.evidence === 0)
+	if (pr.evidence === null || pr.evidenceRequired === null || pr.evidence === 0)
 		return [mutedCell("evidence", "no evidence")];
-	const requiredCount = requiredRecordCount(pr.kind, pr.risk);
-	const word = pr.evidence === requiredCount ? "evidence complete" : `evidence ${pr.evidence} of ${requiredCount}`;
+	const word =
+		pr.evidence === pr.evidenceRequired ? "evidence complete" : `evidence ${pr.evidence} of ${pr.evidenceRequired}`;
 	return [mutedCell("evidence", word)];
 };
 
