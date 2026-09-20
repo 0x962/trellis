@@ -1,29 +1,29 @@
 import type { TicketSummary } from "../schemas/ticket.ts";
 import type { TicketPr } from "../schemas/ticketPr.ts";
 
-export type Turn = "you" | "agent" | "github" | "waits on your answer" | "waits on a merge" | "done";
+export type Turn = "you" | "agent" | "github" | "ready" | "waits on your answer" | "waits on a merge" | "done";
 
 export type TurnRow = TicketSummary | TicketPr;
 
 const isTicket = (row: TurnRow): row is TicketSummary => "prRows" in row;
 
-export function turnOf(row: TurnRow, workingRun: boolean): Turn {
+export function turnOf(row: TurnRow, hasWorkingRun: boolean): Turn {
 	let ticket: TicketSummary | null;
 	let pullRequests: TicketPr[];
-	let closedPullRequest = false;
+	let isPullRequestClosed = false;
 	if (isTicket(row)) {
 		ticket = row;
 		pullRequests = row.prRows;
 	} else {
 		ticket = null;
 		pullRequests = [row];
-		closedPullRequest = row.state !== "open";
+		isPullRequestClosed = row.state !== "open";
 	}
 
 	if (ticket?.status.category === "done" || ticket?.status.category === "canceled") return "done";
 	if (ticket?.status.reviewer === "human") return "you";
 	if (
-		workingRun ||
+		hasWorkingRun ||
 		pullRequests.some(
 			(pullRequest) =>
 				pullRequest.state === "open" && (pullRequest.isDraft || pullRequest.fail > 0 || pullRequest.openThreads > 0),
@@ -44,9 +44,10 @@ export function turnOf(row: TurnRow, workingRun: boolean): Turn {
 		)
 	)
 		return "you";
+	if (ticket?.status.category === "todo" && ticket.ready) return "ready";
 	if (ticket?.status.category === "todo") {
 		return ticket.waitsOn.some((dependency) => dependency.isQuestion) ? "waits on your answer" : "waits on a merge";
 	}
-	if (closedPullRequest) return "done";
+	if (isPullRequestClosed) return "done";
 	return "agent";
 }

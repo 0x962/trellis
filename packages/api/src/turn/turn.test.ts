@@ -22,6 +22,7 @@ const ticket = (fields: {
 	reviewer?: TicketSummary["status"]["reviewer"];
 	waitsOn?: TicketSummary["waitsOn"];
 	prRows?: TicketPr[];
+	ready?: boolean;
 }): TicketSummary =>
 	({
 		status: {
@@ -30,6 +31,7 @@ const ticket = (fields: {
 		},
 		waitsOn: fields.waitsOn ?? [],
 		prRows: fields.prRows ?? [],
+		ready: fields.ready ?? false,
 	}) as TicketSummary;
 
 test("gives a review-ready pull request to you", () => {
@@ -42,6 +44,10 @@ test("gives a draft pull request to the agent", () => {
 
 test("gives a pull request with pending checks to GitHub", () => {
 	expect(turnOf(pullRequest({ pending: 1 }), false)).toBe("github");
+});
+
+test("returns ready for a Todo ticket with no unmet dependency", () => {
+	expect(turnOf(ticket({ category: "todo", ready: true }), false)).toBe("ready");
 });
 
 test("waits on your answer when an unmet dependency is a question", () => {
