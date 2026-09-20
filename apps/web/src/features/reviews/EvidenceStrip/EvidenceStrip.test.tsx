@@ -138,3 +138,83 @@ describe("EvidenceStrip", () => {
 		expect(html).not.toContain("after image");
 	});
 });
+
+const verifyRecord = record({
+	id: "01M30A0000000000000000VRFY",
+	kind: "verify",
+	record: { command: "cd backend/canary && direnv exec . pytest canary/api", exit: 0, tail: "47 passed in 9.10s" },
+});
+
+const pictureBlob = {
+	sha256: "b0d3f4a1c25e7890ab12cd34ef567890ab12cd34ef567890ab12cd34ef567890",
+	url: "/api/evidence/01M30A00000000000000000PIC/file",
+	filename: "op43-route-sequence.png",
+	mime: "image/png",
+	size: 41000,
+};
+
+const pictureRecord = record({
+	id: "01M30A00000000000000000PIC",
+	kind: "picture",
+	record: { why: "The call path crosses from Operator into Canary." },
+	blob: pictureBlob,
+});
+
+const backendFloor: EvidenceFloor = {
+	kind: "backend",
+	required: ["summary", "verify", "test", "contract", "picture"],
+	present: ["verify", "picture"],
+	missing: [
+		{ item: "summary", fillCommand: 'trellis summary write 57080 --headline "..."' },
+		{
+			item: "test",
+			fillCommand: "trellis evidence add 57080 --kind test --name <test> --fails-on <base> --passes-on <head>",
+		},
+	],
+};
+
+describe("EvidenceStrip of a backend pull request", () => {
+	test("prints the verify record, the picture and the command that fills each gap", () => {
+		const html = renderToStaticMarkup(<EvidenceStrip records={[verifyRecord, pictureRecord]} floor={backendFloor} />);
+
+		expect(html).toContain("2 of 5");
+		expect(html).toContain("pytest canary/api");
+		expect(html).toContain("exit 0");
+		expect(html).toContain("47 passed in 9.10s");
+		expect(html).toContain('<img src="/api/evidence/01M30A00000000000000000PIC/file"');
+		expect(html).toContain("test proof");
+		expect(html).toContain("--kind test --name &lt;test&gt;");
+	});
+
+	test("draws the capture line of a frontend record on a backend pull request never", () => {
+		const html = renderToStaticMarkup(
+			<EvidenceStrip records={[verifyRecord, captureRecord, beforeRecord]} floor={backendFloor} />,
+		);
+
+		expect(html).not.toContain("/chat/:uuid");
+		expect(html).not.toContain("/api/evidence/01M30A0000000000000000BEFR/file");
+	});
+
+	test("draws one picture and never a second one", () => {
+		const second = record({
+			id: "01M30A0000000000000000PIC2",
+			kind: "picture",
+			record: { why: "A second picture." },
+			blob: { ...pictureBlob, url: "/api/evidence/01M30A0000000000000000PIC2/file" },
+		});
+		const html = renderToStaticMarkup(<EvidenceStrip records={[pictureRecord, second]} floor={backendFloor} />);
+
+		expect(html).toContain("/api/evidence/01M30A00000000000000000PIC/file");
+		expect(html).not.toContain("/api/evidence/01M30A0000000000000000PIC2/file");
+		expect(html).not.toContain("A second picture.");
+	});
+
+	test("draws both sets of records for a pull request of both kinds", () => {
+		const html = renderToStaticMarkup(
+			<EvidenceStrip records={[captureRecord, verifyRecord]} floor={{ ...backendFloor, kind: "mixed" }} />,
+		);
+
+		expect(html).toContain("/chat/:uuid");
+		expect(html).toContain("pytest canary/api");
+	});
+});
