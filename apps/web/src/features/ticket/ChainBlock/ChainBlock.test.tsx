@@ -5,8 +5,14 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 // `Link` reads the router of the page it renders in, and this test renders
 // no router. The stand-in writes the path the real `Link` writes, so the
-// test still proves which ticket each chain line opens.
+// test still proves which ticket each chain line opens. The rest of the
+// module stays real, because `mock.module` replaces the whole module, and
+// other test files in the same run import `notFound` and the route helpers
+// from it.
+const router = await import("@tanstack/react-router");
+
 mock.module("@tanstack/react-router", () => ({
+	...router,
 	Link: ({
 		params,
 		className,
