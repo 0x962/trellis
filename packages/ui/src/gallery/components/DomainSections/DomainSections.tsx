@@ -16,6 +16,7 @@ import {
 	PrGlyphSection,
 	PriorityIconSection,
 	QuestionBlockSection,
+	ResourceListSection,
 	ReviewFocusListSection,
 	ReviewStatusSummarySection,
 	RunLineSection,
@@ -55,6 +56,7 @@ export function DomainSections() {
 			<EvidenceStripSection />
 			<BackendEvidenceSection />
 			<StartControlsSection />
+			<ResourceListSection />
 		</>
 	);
 }

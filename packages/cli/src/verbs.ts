@@ -115,6 +115,10 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 		description: "List, create, edit, order, fill, or delete the milestones of an epic",
 		load: () => import("./commands/milestones.ts").then((m) => command(m.default)),
 	},
+	resource: {
+		description: "Add, list, or remove the resources of an epic",
+		load: () => import("./commands/resource/resource.ts").then((m) => command(m.default)),
+	},
 	attach: {
 		description: "Upload a file to a ticket",
 		load: () => import("./commands/attach.ts").then((m) => command(m.default)),
