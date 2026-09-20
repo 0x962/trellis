@@ -31,7 +31,7 @@ const failCheck = sql`check_row.value->>'bucket' IN (${FAIL}, ${CANCEL})`;
 const pendingCheck = sql`check_row.value->>'bucket' = ${PENDING}`;
 const skippedCheck = sql`check_row.value->>'bucket' = ${SKIPPED}`;
 
-export type TicketPrRow = Omit<TicketPr, "kind" | "risk" | "evidence"> & {
+export type TicketPrRow = Omit<TicketPr, "kind" | "risk" | "evidence" | "evidenceRequired"> & {
 	paths: string[] | null;
 	evidenceKinds: EvidenceKind[];
 	hasSummary: boolean;
@@ -41,20 +41,26 @@ export type TicketPrRow = Omit<TicketPr, "kind" | "risk" | "evidence"> & {
 export const toTicketPrRows = (rows: TicketPrRow[] | null): TicketPr[] =>
 	(rows ?? []).map(({ paths, evidenceKinds, hasSummary, hasHead, ...row }) => {
 		if (paths === null || paths.length === 0 || row.changedFiles !== paths.length)
-			return { ...row, kind: null, risk: null, evidence: null };
+			return { ...row, kind: null, risk: null, evidence: null, evidenceRequired: null };
 		// Changed-file rows store path and line counts. `prPaths` receives "change", so `risk.deletedTest` remains "no".
 		const facts = prPaths(
 			row.repo,
 			paths.map((path) => ({ path, change: "change" })),
 		);
-		if (!hasHead) return { ...row, kind: facts.kind, risk: facts.risk, evidence: null };
+		if (!hasHead) return { ...row, kind: facts.kind, risk: facts.risk, evidence: null, evidenceRequired: null };
 		const floor = evidenceFloor({
 			kind: facts.kind,
 			risk: facts.risk,
 			rows: evidenceKinds.map((kind) => ({ kind })),
 			hasSummary,
 		});
-		return { ...row, kind: facts.kind, risk: facts.risk, evidence: floor.present.length };
+		return {
+			...row,
+			kind: facts.kind,
+			risk: facts.risk,
+			evidence: floor.present.length,
+			evidenceRequired: floor.required.length,
+		};
 	});
 
 export const ticketPrColumns = sql`

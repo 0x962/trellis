@@ -14,7 +14,7 @@ describe("evidenceOwedText", () => {
 	test("names the backend floor when no file renders a route", () => {
 		const text = evidenceOwedText("trellis", ["apps/server/src/services/tickets/contract.ts"]);
 
-		expect(text).toBe("backend: summary · verify record · test proof · contract table");
+		expect(text).toBe("backend: summary · verify record · test proof · contract table · picture");
 	});
 
 	test("names both floors when the files render a route and change the server", () => {
@@ -24,7 +24,7 @@ describe("evidenceOwedText", () => {
 		]);
 
 		expect(text).toBe(
-			"mixed: summary · after image · before image · capture record · console list · verify record · test proof · contract table",
+			"mixed: summary · after image · before image · capture record · console list · verify record · test proof · contract table · picture",
 		);
 	});
 
