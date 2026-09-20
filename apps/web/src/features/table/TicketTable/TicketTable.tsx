@@ -13,7 +13,7 @@ import { type View, viewOf } from "../../filters/grammar";
 import { useScopeLabels } from "../../filters/hooks/useScopeLabels";
 import { hasFilters } from "../../filters/labels";
 import { BulkBar, type BulkPicker } from "../BulkBar";
-import { buildColumns, type ColumnId, tableFeatureSet } from "../columns";
+import { buildColumns, type ColumnId, type TableKind, tableFeatureSet } from "../columns";
 import { useApplyChange } from "../hooks/useApplyChange";
 import { useBulkWrite } from "../hooks/useBulkWrite";
 import { useCopyTickets } from "../hooks/useCopyTickets";
@@ -26,6 +26,7 @@ import { useTicketMutations } from "../hooks/useTicketMutations";
 import type { EditField, RowChange } from "../Row";
 import { TableEmpty } from "../TableEmpty";
 import { TableFooter } from "../TableFooter";
+import type { TicketAgentLine } from "../utils/agentLines";
 import { autoHide, columnVisibility } from "../utils/columnVisibility";
 import { epicState } from "../utils/epicState";
 import { flattenGroups, type TableGroup } from "../utils/flattenGroups";
@@ -40,11 +41,21 @@ export type TicketTableProps = {
 	project?: string;
 	// The pathname, which keys the stored preferences.
 	routeKey: string;
+	// The kind of table this route draws. Only an epic table shows the
+	// `waits` and the `releases` columns.
+	tableKind?: TableKind;
 	search: Partial<View>;
 	onOpenPage: (identifier: string) => void;
 	emptyState?: ReactNode;
 	// Orders the rows of each group ahead of the view sort. Memoize it: a new identity regroups the rows.
 	rowRank?: TableGroupsOptions["rowRank"];
+	// True on the epic route: a ticket row is followed by one line per pull
+	// request linked to that ticket.
+	prRows?: boolean;
+	// What the run of a ticket says, keyed by ticket id. A ticket row with
+	// an entry is followed by one agent line. Memoize it: a new identity
+	// rebuilds every line of the list.
+	agentLines?: Readonly<Record<string, TicketAgentLine>>;
 };
 
 export type Editing = { id: string; field: EditField } | null;
@@ -55,7 +66,17 @@ const focusFilter = () => document.querySelector<HTMLElement>("[data-filter-bar]
 // The ticket table of a list route: the active rows grouped client-side,
 // the closed groups on demand, the roving focus, the id-keyed selection,
 // the inline pickers, and the bulk bar.
-export function TicketTable({ project, routeKey, search, onOpenPage, emptyState, rowRank }: TicketTableProps) {
+export function TicketTable({
+	project,
+	routeKey,
+	tableKind = "list",
+	search,
+	onOpenPage,
+	emptyState,
+	rowRank,
+	prRows = false,
+	agentLines,
+}: TicketTableProps) {
 	const { orpc } = useApp();
 	const view = viewOf(search);
 	const storedDensity = useUiStore((state) => state.density);
@@ -84,7 +105,7 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState,
 		isCollapsed: collapsed.isCollapsed,
 		rowRank,
 	});
-	const items = useMemo(() => flattenGroups(groups), [groups]);
+	const items = useMemo(() => flattenGroups(groups, { prRows, agentLines }), [groups, prRows, agentLines]);
 	const loaded = useMemo(() => groups.flatMap((group) => group.rows), [groups]);
 	// The selection, the focus, and every key run over the rows a person can
 	// see. A row inside a collapsed group is loaded but not visible, so it
@@ -94,8 +115,8 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState,
 	const byId = useMemo(() => new Map(tickets.map((ticket) => [ticket.id, ticket])), [tickets]);
 	const stored = useUiStore((state) => state.columnVisibility[routeKey]);
 	const visibility = useMemo(
-		() => autoHide(columnVisibility(stored, showProject), { group: view.group, rows: loaded }),
-		[stored, showProject, view.group, loaded],
+		() => autoHide(columnVisibility(stored, showProject, tableKind), { group: view.group, rows: loaded }),
+		[stored, showProject, tableKind, view.group, loaded],
 	);
 	const table = useTable({
 		features: tableFeatureSet,

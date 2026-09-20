@@ -22,7 +22,7 @@ type Write =
 const failTitle = (write: Write) => {
 	if (write.kind === "create") return `${write.name} is not added.`;
 	if (write.kind === "rename") return `${write.milestone.name} is not renamed.`;
-	if (write.kind === "reorder") return "The milestones did not move.";
+	if (write.kind === "reorder") return "The waves did not move.";
 	return `${write.milestone.name} is not deleted.`;
 };
 
@@ -99,10 +99,10 @@ export function MilestonesSection({ epicRef }: MilestonesSectionProps) {
 	};
 
 	return (
-		<section ref={section} aria-label="Milestones" className="flex flex-col gap-2">
-			<SectionHeader title="Milestones" count={epic.isSuccess ? formatCount(milestones.length) : undefined} level={3} />
+		<section ref={section} aria-label="Waves" className="flex flex-col gap-2">
+			<SectionHeader title="Waves" count={epic.isSuccess ? formatCount(milestones.length) : undefined} level={3} />
 			<p className="text-sm text-fg-muted">
-				A milestone is one phase of the epic. The epic page groups the tickets by milestone in this order.
+				A wave is one phase of the epic. The epic page groups the tickets by wave in this order.
 			</p>
 			{epic.isPending && (
 				<div aria-busy="true" className="flex flex-col gap-2">
@@ -139,7 +139,7 @@ export function MilestonesSection({ epicRef }: MilestonesSectionProps) {
 			<div className="flex items-end gap-2">
 				<div className="min-w-0 flex-1">
 					<Input
-						label="New milestone"
+						label="New wave"
 						autoComplete="off"
 						maxLength={MILESTONE_NAME_MAX}
 						disabled={!epic.isSuccess}
@@ -157,18 +157,18 @@ export function MilestonesSection({ epicRef }: MilestonesSectionProps) {
 					/>
 				</div>
 				<Button type="button" disabled={!parsedName.success || blocked} onClick={add}>
-					Add milestone
+					Add wave
 				</Button>
 			</div>
 			<ConfirmDialog
 				open={deleting !== null}
-				title={`Delete ${deleting?.name ?? "milestone"}?`}
+				title={`Delete ${deleting?.name ?? "wave"}?`}
 				description={
 					deleting === null || deleting.counts.total === 0
-						? "The milestone holds no tickets. You cannot undo a delete."
-						: `The ${formatCount(deleting.counts.total)} ${deleting.counts.total === 1 ? "ticket" : "tickets"} of the milestone stay in the epic and leave the milestone. You cannot undo a delete.`
+						? "The wave holds no tickets. You cannot undo a delete."
+						: `The ${formatCount(deleting.counts.total)} ${deleting.counts.total === 1 ? "ticket" : "tickets"} of the wave stay in the epic and leave the wave. You cannot undo a delete.`
 				}
-				confirmLabel="Delete milestone"
+				confirmLabel="Delete wave"
 				danger
 				processing={write.isPending}
 				finalFocus={fieldAfterDelete}

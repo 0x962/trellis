@@ -14,6 +14,7 @@ import {
 	ReviewPrSchema,
 	ReviewRefSchema,
 	ReviewRevisionSchema,
+	ReviewStatusSchema,
 	ReviewSubmissionSchema,
 	ReviewSubmitSchema,
 	ReviewThreadSchema,
@@ -32,7 +33,7 @@ export const reviews = {
 		.errors(pickErrors(["GH_UNAVAILABLE"]))
 		.route({ method: "POST", path: "/reviews/status", summary: "Read current GitHub PR status" })
 		.input(pr)
-		.output(z.record(z.string(), z.unknown())),
+		.output(ReviewStatusSchema),
 	reviewers: base
 		.errors(pickErrors(["GH_UNAVAILABLE"]))
 		.route({ method: "POST", path: "/reviews/reviewers", summary: "List available GitHub reviewers" })

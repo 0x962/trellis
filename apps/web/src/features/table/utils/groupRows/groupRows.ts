@@ -147,7 +147,7 @@ const bucketOf = (row: TicketSummary, options: GroupOptions): Bucket => {
 				? { key: "none", label: "No epic", rank: lastRank }
 				: { key: row.epic.id, label: row.epic.name, rank: row.epic.name.toLowerCase() };
 		case "milestone": {
-			if (row.milestone === null) return { key: "none", label: "No milestone", rank: Number.POSITIVE_INFINITY };
+			if (row.milestone === null) return { key: "none", label: "No wave", rank: Number.POSITIVE_INFINITY };
 			const order = options.milestoneOrder ?? [];
 			const index = order.indexOf(row.milestone.id);
 			return {

@@ -10,12 +10,18 @@ import {
 	TicketSchema,
 } from "../schemas/ticket.ts";
 import {
+	TicketContractInputSchema,
 	TicketCreateInputSchema,
 	TicketDeleteInputSchema,
 	TicketDeleteManyInputSchema,
 	TicketDeleteManyOutputSchema,
 	TicketDeleteOutputSchema,
+	TicketImportContractInputSchema,
+	TicketImportContractOutputSchema,
+	TicketImportDependenciesInputSchema,
+	TicketImportDependenciesOutputSchema,
 	TicketMoveInputSchema,
+	TicketOutcomeInputSchema,
 	TicketUpdateDependenciesInputSchema,
 	TicketUpdateInputSchema,
 	TicketUpdateManyInputSchema,
@@ -93,6 +99,16 @@ export const tickets = {
 		.route({ method: "DELETE", path: "/tickets/{ticket}", summary: "Delete a ticket" })
 		.input(TicketDeleteInputSchema)
 		.output(TicketDeleteOutputSchema),
+	importContract: base
+		.errors(pickErrors(["PROJECT_ARCHIVED"]))
+		.route({ method: "POST", path: "/tickets/import-contract", summary: "Import contract fields from one epic" })
+		.input(TicketImportContractInputSchema)
+		.output(TicketImportContractOutputSchema),
+	importDependencies: base
+		.errors(pickErrors(["PROJECT_ARCHIVED"]))
+		.route({ method: "POST", path: "/tickets/import-dependencies", summary: "Import dependency edges from one epic" })
+		.input(TicketImportDependenciesInputSchema)
+		.output(TicketImportDependenciesOutputSchema),
 	updateDependencies: base
 		.errors(pickErrors(["DEPENDENCY_CYCLE", "PROJECT_ARCHIVED", "VERSION_CONFLICT"]))
 		.route({
@@ -101,5 +117,15 @@ export const tickets = {
 			summary: "Add and remove ticket dependencies in one transaction",
 		})
 		.input(TicketUpdateDependenciesInputSchema)
+		.output(TicketSchema),
+	setContract: base
+		.errors(pickErrors(["PROJECT_ARCHIVED", "VERSION_CONFLICT"]))
+		.route({ method: "PUT", path: "/tickets/{ticket}/contract", summary: "Set the contract of a ticket" })
+		.input(TicketContractInputSchema)
+		.output(TicketSchema),
+	setOutcome: base
+		.errors(pickErrors(["PROJECT_ARCHIVED", "VERSION_CONFLICT"]))
+		.route({ method: "PUT", path: "/tickets/{ticket}/outcome", summary: "Set the outcome of a ticket" })
+		.input(TicketOutcomeInputSchema)
 		.output(TicketSchema),
 };

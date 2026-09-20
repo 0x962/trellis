@@ -1,4 +1,11 @@
-import type { Attachment, LinkedPullRequest, StoredActorKind, Ticket, TicketSummary } from "@trellis/api";
+import type {
+	Attachment,
+	LinkedPullRequest,
+	StoredActorKind,
+	Ticket,
+	TicketContract,
+	TicketSummary,
+} from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import type { Tx } from "../tx.ts";
 import { actorDisplayName } from "./actorDisplayName.ts";
@@ -85,14 +92,32 @@ export const attachmentsOf = async (tx: Tx, ticketId: string): Promise<Attachmen
 	}));
 };
 
-// The `tickets.get` shape: the summary, the description, the children, the
-// pull requests, and the attachments. The caller resolved the id.
+// The caller resolved the id, so the row exists.
 export const ticketGet = async (tx: Tx, id: string): Promise<Ticket> => {
 	const summary = await ticketSummary(tx, id);
-	const [row] = await rows<{ description: string }>(tx, sql`SELECT description FROM tickets WHERE id = ${id}`);
+	const detail = (
+		await rows<
+			TicketContract & {
+				description: string;
+				outcome: string;
+			}
+		>(
+			tx,
+			sql`SELECT description, result, files, leave_alone AS "leaveAlone", verify,
+		review_focus AS "reviewFocus", outcome FROM tickets WHERE id = ${id}`,
+		)
+	)[0]!;
 	return {
 		...summary,
-		description: (row as { description: string }).description,
+		description: detail.description,
+		contract: {
+			result: detail.result,
+			files: detail.files,
+			leaveAlone: detail.leaveAlone,
+			verify: detail.verify,
+			reviewFocus: detail.reviewFocus,
+		},
+		outcome: detail.outcome,
 		children: await childSummaries(tx, id),
 		prs: await linkedPullRequests(tx, id),
 		attachments: await attachmentsOf(tx, id),

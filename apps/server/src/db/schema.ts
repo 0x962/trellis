@@ -26,6 +26,7 @@ export * from "./tables/flows.ts";
 export * from "./tables/labels.ts";
 export * from "./tables/milestones.ts";
 export * from "./tables/projects.ts";
+export * from "./tables/prSummaries.ts";
 export * from "./tables/pullRequests.ts";
 export * from "./tables/reviews.ts";
 export * from "./tables/sessions.ts";
@@ -61,6 +62,12 @@ export const tickets = pgTable(
 		number: integer().notNull(),
 		title: text().notNull(),
 		description: text().notNull().default(""),
+		result: text().notNull().default(""),
+		files: jsonb().notNull().default([]),
+		leaveAlone: jsonb("leave_alone").notNull().default([]),
+		verify: jsonb().notNull().default([]),
+		reviewFocus: jsonb("review_focus").notNull().default([]),
+		outcome: text().notNull().default(""),
 		priority: text().notNull().default("none"),
 		statusId: text("status_id")
 			.notNull()
@@ -104,6 +111,10 @@ export const tickets = pgTable(
 		check("tickets_parent_not_self", sql`${t.parentId} <> ${t.id}`),
 		check("tickets_number_check", sql`${t.number} > 0`),
 		check("tickets_title_check", sql`${t.title} = btrim(${t.title}) AND length(${t.title}) BETWEEN 1 AND 500`),
+		check("tickets_files_check", sql`jsonb_typeof(${t.files}) = 'array'`),
+		check("tickets_leave_alone_check", sql`jsonb_typeof(${t.leaveAlone}) = 'array'`),
+		check("tickets_verify_check", sql`jsonb_typeof(${t.verify}) = 'array'`),
+		check("tickets_review_focus_check", sql`jsonb_typeof(${t.reviewFocus}) = 'array'`),
 		checkIn(t.priority, PRIORITIES),
 		index("tickets_project_id_status_id_position_idx").on(t.projectId, t.statusId, t.position),
 		// The `position` sort reads a status in (position, id) order and
@@ -214,8 +225,9 @@ export const ticketPullRequests = pgTable(
 );
 
 // The identity id is the cursor and the sort key of every activity feed.
-// A description row records that the text changed and `meta.deltaChars`;
-// the old and new text stay out of the table.
+// A private ticket field records only that the value changed. The old and
+// new values stay out of the table. A description change stores its size in
+// `meta.deltaChars`.
 export const activity = pgTable(
 	"activity",
 	{
@@ -239,8 +251,8 @@ export const activity = pgTable(
 	(t) => [
 		actorFk("activity_actor_fk", t),
 		check(
-			"activity_description_check",
-			sql`${t.field} <> 'description' OR (${t.fromValue} IS NULL AND ${t.toValue} IS NULL)`,
+			"activity_private_values_check",
+			sql`${t.field} NOT IN ('description', 'result', 'outcome') OR (${t.fromValue} IS NULL AND ${t.toValue} IS NULL)`,
 		),
 		index("activity_ticket_id_id_idx").on(t.ticketId, t.id),
 		// The last actor of a ticket is its newest row by (created_at, id). This

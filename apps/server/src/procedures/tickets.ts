@@ -18,7 +18,19 @@ export const tickets = os.tickets.router({
 	updateMany: os.tickets.updateMany.handler(({ context, input }) => call(context, "tickets.updateMany", input)),
 	deleteMany: os.tickets.deleteMany.handler(({ context, input }) => call(context, "tickets.deleteMany", input)),
 	delete: os.tickets.delete.handler(({ context, input }) => call(context, "tickets.delete", input)),
+	importContract: os.tickets.importContract.handler(({ context, input }) =>
+		call(context, "tickets.importContract", input),
+	),
+	importDependencies: os.tickets.importDependencies.handler(({ context, input }) =>
+		call(context, "tickets.importDependencies", input),
+	),
 	updateDependencies: os.tickets.updateDependencies.handler(({ context, input }) =>
 		call(context, "tickets.updateDependencies", withIfMatch(context, input)),
+	),
+	setContract: os.tickets.setContract.handler(({ context, input }) =>
+		call(context, "tickets.setContract", withIfMatch(context, input)),
+	),
+	setOutcome: os.tickets.setOutcome.handler(({ context, input }) =>
+		call(context, "tickets.setOutcome", withIfMatch(context, input)),
 	),
 });

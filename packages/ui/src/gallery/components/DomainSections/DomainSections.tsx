@@ -1,8 +1,13 @@
 import {
 	ActorChipSection,
 	AgentProfileMarkSection,
+	AttentionDotSection,
+	ChainBlockSection,
+	ChangeSummarySection,
 	CheckRibbonSection,
 	ChecksLineSection,
+	ConditionsBlockSection,
+	ContractBlockSection,
 	FileRiskGroupsSection,
 	FlowRunSection,
 	LineChangesSection,
@@ -10,6 +15,8 @@ import {
 	PriorityIconSection,
 	ReviewFocusListSection,
 	ReviewStatusSummarySection,
+	RunLineSection,
+	StartControlsSection,
 	StatusIconSection,
 	TicketGlimmerSection,
 	TicketIdSection,
@@ -22,6 +29,7 @@ export function DomainSections() {
 		<>
 			<StatusIconSection />
 			<PriorityIconSection />
+			<AttentionDotSection />
 			<ReviewFocusListSection />
 			<ReviewStatusSummarySection />
 			<CheckRibbonSection />
@@ -35,6 +43,12 @@ export function DomainSections() {
 			<TrellisMarkSection />
 			<FlowRunSection />
 			<FileRiskGroupsSection />
+			<ConditionsBlockSection />
+			<ContractBlockSection />
+			<ChainBlockSection />
+			<RunLineSection />
+			<ChangeSummarySection />
+			<StartControlsSection />
 		</>
 	);
 }

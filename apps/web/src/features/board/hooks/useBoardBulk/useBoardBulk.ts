@@ -141,10 +141,10 @@ export const useBoardBulk = ({ rows, project, onDeleted }: BoardBulkOptions): Bo
 
 	const milestone = useStableCallback((picked: MilestoneSummary | null) => {
 		const value = picked === null ? null : { id: picked.id, ref: picked.ref, name: picked.name };
-		const words = value === null ? "Clear the milestone" : `Set the milestone to ${value.name}`;
+		const words = value === null ? "Clear the wave" : `Set the wave to ${value.name}`;
 		void write.update(rows, { milestone: value?.ref ?? null }, words, {
 			row: { milestone: value },
-			verb: (subject) => `The milestone of ${subject} did not change.`,
+			verb: (subject) => `The wave of ${subject} did not change.`,
 		});
 	});
 

@@ -118,7 +118,7 @@ export function MilestoneRow({
 					onClick={() => onMove(1)}
 				/>
 			</Tooltip>
-			<Tooltip content="Delete milestone">
+			<Tooltip content="Delete wave">
 				<IconButton
 					label={`Delete ${milestone.name}`}
 					icon={<Trash />}

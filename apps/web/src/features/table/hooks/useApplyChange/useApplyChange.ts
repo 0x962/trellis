@@ -90,8 +90,8 @@ export const useApplyChange = (
 		if ("milestone" in change) {
 			const { milestone: picked } = change;
 			const milestone = picked === null ? null : { id: picked.id, ref: picked.ref, name: picked.name };
-			const verb: Verb = (subject) => `The milestone of ${subject} did not change.`;
-			const words = milestone === null ? "Clear the milestone" : `Set the milestone to ${milestone.name}`;
+			const verb: Verb = (subject) => `The wave of ${subject} did not change.`;
+			const words = milestone === null ? "Clear the wave" : `Set the wave to ${milestone.name}`;
 			const fields = { milestone: milestone?.ref ?? null };
 			return many
 				? bulk.update(targets, fields, words, { row: { milestone }, verb })

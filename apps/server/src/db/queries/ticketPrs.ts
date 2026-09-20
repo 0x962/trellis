@@ -1,5 +1,5 @@
 import { CheckBucketSchema, TicketPrSchema } from "@trellis/api";
-import { sql } from "drizzle-orm";
+import { type SQL, sql } from "drizzle-orm";
 import { ciRank, prStateRank, reviewStateRank } from "./support.ts";
 
 // `ticketPrJoin` reads links for the caller's ticket alias `t`. It adds the PR badge and `prRows`.
@@ -25,13 +25,13 @@ const pendingCheck = sql`check_row.value->>'bucket' = ${PENDING}`;
 const skippedCheck = sql`check_row.value->>'bucket' = ${SKIPPED}`;
 
 export const ticketPrColumns = sql`
-	pr.state AS pr_state, pr.ci_state AS pr_ci_state, pr.review_state AS pr_review_state,
-	pr.pass AS pr_pass, pr.fail AS pr_fail, pr.pending AS pr_pending,
-	pr.reviews AS pr_reviews, pr.pull_requests AS pr_rows`;
+	ticket_pr.state AS pr_state, ticket_pr.ci_state AS pr_ci_state, ticket_pr.review_state AS pr_review_state,
+	ticket_pr.pass AS pr_pass, ticket_pr.fail AS pr_fail, ticket_pr.pending AS pr_pending,
+	ticket_pr.reviews AS pr_reviews, ticket_pr.pull_requests AS pr_rows`;
 
 // A flow execution belongs to a ticket. Each pull request row carries the same
 // five newest `flowRuns` entries and the same `flowRunCount` total.
-export const ticketPrJoin = sql`
+const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 	LEFT JOIN LATERAL (
 		SELECT
 			(array_agg(p.state ORDER BY ${prStateRank(sql`p.state`)}))[1] AS state,
@@ -125,5 +125,8 @@ export const ticketPrJoin = sql`
 				LIMIT 5
 			) recent
 		) flow_runs
-		WHERE link.ticket_id = t.id
-	) pr ON true`;
+		WHERE link.ticket_id = t.id AND ${pullRequestCondition}
+	) ticket_pr ON true`;
+
+export const ticketPrJoin = ticketPrJoinFor(sql`true`);
+export const requestedTicketPrJoin = ticketPrJoinFor(sql`p.id = t.requested_pr_id`);

@@ -11,12 +11,21 @@ export type PropertyRowProps = {
 	// "start" puts the label beside the first line of a value that wraps.
 	// The 7 px of padding keep a one-line value where "center" draws it.
 	align?: "center" | "start";
+	// "wide" gives the label 112 px, which holds a label of two words such as
+	// "Evidence owed" on one line.
+	labelWidth?: "default" | "wide";
 };
 
-// One property in a definition list: a 12 px muted label of 84 px, then
-// the value. The row is at least 30 px tall, so a value that swaps for a
+// One property in a definition list: a 12 px muted label of 84 px, or of
+// 112 px when `labelWidth` is "wide", then the value. The row is at least 30 px tall, so a value that swaps for a
 // picker moves nothing.
-export function PropertyRow({ label, children, compact = false, align = "center" }: PropertyRowProps) {
+export function PropertyRow({
+	label,
+	children,
+	compact = false,
+	align = "center",
+	labelWidth = "default",
+}: PropertyRowProps) {
 	return (
 		<div
 			className={cx(
@@ -25,7 +34,15 @@ export function PropertyRow({ label, children, compact = false, align = "center"
 				compact && "max-md:min-h-8",
 			)}
 		>
-			<dt className={cx("w-21 shrink-0 text-sm text-fg-muted", compact && "max-md:w-16")}>{label}</dt>
+			<dt
+				className={cx(
+					"shrink-0 text-sm text-fg-muted",
+					labelWidth === "wide" ? "w-28" : "w-21",
+					compact && "max-md:w-16",
+				)}
+			>
+				{label}
+			</dt>
 			<dd
 				className={cx(
 					"flex min-w-0 flex-1 items-center gap-2 text-base text-fg",

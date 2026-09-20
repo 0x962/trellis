@@ -211,7 +211,7 @@ const valueItems = (
 				...epicItems(epics, { current: view.epic }),
 			];
 		case "milestone":
-			return [{ id: "none", label: "No milestone", current: view.milestone === "none" }];
+			return [{ id: "none", label: "No wave", current: view.milestone === "none" }];
 		case "pr":
 		case "ci":
 			return [

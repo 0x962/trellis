@@ -1,4 +1,5 @@
-import type { TicketSummary } from "@trellis/api";
+import type { TicketPr, TicketSummary } from "@trellis/api";
+import type { TicketAgentLine } from "../agentLines";
 import type { RowGroup } from "../groupRows";
 
 // A group as the table renders it: the rows it holds and, for a closed
@@ -29,16 +30,40 @@ export type TableGroup = RowGroup & {
 export type TableItem =
 	| { kind: "header"; key: string; group: TableGroup }
 	| { kind: "row"; key: string; group: TableGroup; ticket: TicketSummary }
+	| { kind: "agent"; key: string; group: TableGroup; line: TicketAgentLine }
+	| { kind: "pr"; key: string; group: TableGroup; pr: TicketPr }
 	| { kind: "more"; key: string; group: TableGroup };
 
+export type FlattenOptions = {
+	// True on the epic route: a ticket row is followed by one line per pull
+	// request linked to that ticket. False everywhere else, where the list
+	// holds ticket rows alone.
+	prRows?: boolean;
+	// What the run of a ticket says, keyed by ticket id. A ticket with no
+	// entry has no run, or its run has neither an open request nor a
+	// message, and it gets no agent line.
+	agentLines?: Readonly<Record<string, TicketAgentLine>>;
+};
+
 // The lines in order: each group's header, its rows while it is expanded,
-// and its "show more" line while a page waits on the server.
-export const flattenGroups = (groups: readonly TableGroup[]): TableItem[] => {
+// the agent line of each row when `agentLines` holds one for it, the pull
+// requests of each row when `prRows` asks for them, and its "show more"
+// line while a page waits on the server.
+export const flattenGroups = (groups: readonly TableGroup[], options: FlattenOptions = {}): TableItem[] => {
 	const items: TableItem[] = [];
 	for (const group of groups) {
 		if (group.label !== null) items.push({ kind: "header", key: `header:${group.key}`, group });
 		if (!group.expanded) continue;
-		for (const ticket of group.rows) items.push({ kind: "row", key: ticket.id, group, ticket });
+		for (const ticket of group.rows) {
+			items.push({ kind: "row", key: ticket.id, group, ticket });
+			const line = options.agentLines?.[ticket.id];
+			if (line !== undefined) items.push({ kind: "agent", key: `agent:${ticket.id}`, group, line });
+			if (options.prRows !== true) continue;
+			// Two tickets can link the same pull request, so the ticket id is
+			// part of the key that the virtualizer uses to hold a line.
+			for (const pr of ticket.prRows)
+				items.push({ kind: "pr", key: `pr:${ticket.id}:${pr.owner}/${pr.repo}#${pr.number}`, group, pr });
+		}
 		if (group.hasMore) items.push({ kind: "more", key: `more:${group.key}`, group });
 	}
 	return items;

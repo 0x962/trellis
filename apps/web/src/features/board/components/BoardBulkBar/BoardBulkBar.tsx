@@ -10,7 +10,7 @@ export type BoardBulkBarProps = {
 	rows: readonly TicketSummary[];
 	// The project ref of the route. The root of that tree owns the labels and
 	// the epics, so a board without a project offers no Labels, no Set epic, and
-	// no Set milestone.
+	// no Set wave.
 	project?: string;
 	bulk: BoardBulk;
 	onClear: () => void;

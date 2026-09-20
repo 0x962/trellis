@@ -1,7 +1,9 @@
 export { DesktopChrome } from "./desktop/DesktopChrome/index.ts";
 export { ActorChip, type ActorChipProps } from "./domain/ActorChip";
+export { ChainBlock, type ChainBlockProps, type ChainDependency, type ChainRelease } from "./domain/ChainBlock";
 export { type Check, type CheckBucket, CheckRibbon, type CheckRibbonProps } from "./domain/CheckRibbon";
 export { CheckRing, type CheckRingCounts, type CheckRingProps } from "./domain/CheckRing";
+export { ContractBlock, type ContractBlockProps } from "./domain/ContractBlock";
 export { type ChartTone, otherTone, rankedTones } from "./domain/chartTones";
 export { DisplayPopover, type DisplayPopoverProps, type DisplaySortField } from "./domain/DisplayPopover";
 export { FilterBar } from "./domain/FilterBar";
@@ -46,8 +48,10 @@ export {
 	ReviewStatusSummary,
 	type ReviewStatusSummaryProps,
 } from "./domain/ReviewStatusSummary";
+export { RunLine, type RunLineKind, type RunLineProps, type RunLineValue } from "./domain/RunLine";
 export { StackedBar, type StackedBarProps, type StackedBarSegment } from "./domain/StackedBar";
 export { StackedBarList, type StackedBarListProps, type StackedBarListRow } from "./domain/StackedBarList";
+export { StartControls, type StartControlsProps, type StartDependency } from "./domain/StartControls";
 export { type StatusCategory, StatusIcon, type StatusIconProps } from "./domain/StatusIcon";
 export { TicketGlimmer } from "./domain/TicketGlimmer";
 export { TicketId, type TicketIdProps } from "./domain/TicketId";
@@ -60,6 +64,7 @@ export { useMediaQuery } from "./hooks/useMediaQuery";
 export { useReducedMotion } from "./hooks/useReducedMotion";
 export { type ResolvedTheme, setTheme, type ThemeMode, themeStorageKey, useTheme } from "./hooks/useTheme";
 export { ActivityDot, type ActivityDotProps } from "./primitives/ActivityDot";
+export { AttentionDot, type AttentionDotProps } from "./primitives/AttentionDot";
 export { type ActorKind, type AgentProfile, Avatar, type AvatarProps } from "./primitives/Avatar";
 export { Badge, type BadgeProps, type BadgeTone } from "./primitives/Badge";
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from "./primitives/Button";

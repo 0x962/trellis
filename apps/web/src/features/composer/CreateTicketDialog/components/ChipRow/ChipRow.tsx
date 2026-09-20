@@ -181,10 +181,10 @@ export function ChipRow({
 							value={milestone}
 							onPick={(next) => onMilestone(next?.ref ?? null)}
 							trigger={chip({
-								label: `Milestone: ${milestoneName ?? "None"}`,
+								label: `Wave: ${milestoneName ?? "None"}`,
 								icon: <FlagBanner />,
 								unset: milestoneName === undefined,
-								children: milestoneName ?? "Milestone",
+								children: milestoneName ?? "Wave",
 							})}
 						/>
 					</>

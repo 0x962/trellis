@@ -36,6 +36,7 @@ import * as milestones from "./milestones/milestones.ts";
 import * as needsYou from "./needsYou/needsYou.ts";
 import * as notes from "./notes/notes.ts";
 import * as projects from "./projects.ts";
+import * as prSummary from "./prSummary.ts";
 import * as pullRequests from "./pullRequests.ts";
 import * as reviewApply from "./reviews/apply";
 import * as reviewImage from "./reviews/image";
@@ -44,6 +45,7 @@ import * as reviewPrs from "./reviews/prs";
 import * as reviewRemote from "./reviews/remote";
 import * as reviewReviewers from "./reviews/reviewers";
 import * as reviewRevision from "./reviews/revision";
+import * as reviewStatus from "./reviews/status";
 import * as reviewThreads from "./reviews/threads";
 import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
@@ -149,7 +151,7 @@ export const services = {
 	"agentRuns.interrupt": prepared("mutation", agentTerminal.interrupt, agentTerminal.result),
 	"agentRuns.resize": prepared("mutation", agentTerminal.resize, agentTerminal.result),
 	"reviews.image": prepared("read", reviewImage.image, reviewRemote.result),
-	"reviews.status": prepared("read", reviewRevision.status, reviewRemote.result),
+	"reviews.status": prepared("read", reviewStatus.prepare, reviewStatus.status),
 	"reviews.reviewers": prepared("read", reviewReviewers.reviewers, reviewReviewers.result),
 	"reviews.reviewer": prepared("mutation", reviewReviewers.reviewer, reviewReviewers.result),
 	"reviews.action": prepared("mutation", reviewRemote.action, reviewRemote.actionResult),
@@ -221,7 +223,11 @@ export const services = {
 	"tickets.updateMany": core("mutation", tickets.updateMany),
 	"tickets.deleteMany": core("mutation", tickets.deleteMany),
 	"tickets.delete": core("mutation", tickets.delete),
+	"tickets.importContract": core("mutation", tickets.importContract),
+	"tickets.importDependencies": core("mutation", tickets.importDependencies),
 	"tickets.updateDependencies": core("mutation", tickets.updateDependencies),
+	"tickets.setContract": core("mutation", tickets.setContract),
+	"tickets.setOutcome": core("mutation", tickets.setOutcome),
 	"timeline.list": core("read", timeline.list),
 	"needsYou.list": core("read", needsYou.list),
 	"needsYou.summary": core("read", needsYou.summary),
@@ -254,6 +260,9 @@ export const services = {
 	"pullRequests.unlink": io("mutation", pullRequests.unlink),
 	"pullRequests.refresh": prepared("mutation", pullRequests.prepareRefresh, pullRequests.refresh),
 	"pullRequests.diff": prepared("read", pullRequests.prepareDiff, pullRequests.diff),
+	"pullRequests.readSummary": io("read", prSummary.read),
+	"pullRequests.readSummaryHead": io("read", prSummary.readHead),
+	"pullRequests.writeSummary": prepared("mutation", prSummary.prepareWrite, prSummary.write),
 	"search.query": core("search", search.query),
 	"brief.get": core("read", brief.get),
 	"actors.list": core("read", actors.list),

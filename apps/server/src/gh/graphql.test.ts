@@ -1,16 +1,20 @@
 import { describe, expect, test } from "bun:test";
 import { buildPullRequestQuery, mapPullRequestResponse, type PullRequestResponse } from "./graphql.ts";
+import type { RawFile } from "./parse.ts";
 
 const ref = { owner: "octo", repo: "repo", number: 42 };
 
 type Size = { additions: number; deletions: number; changedFiles: number };
 
-const responseWithSize = (size: Size): PullRequestResponse => ({
+const defaultFiles = [{ path: "apps/server/src/gh/graphql.ts", additions: 12, deletions: 3 }];
+
+const responseWithSize = (size: Size, files: RawFile[] = defaultFiles): PullRequestResponse => ({
 	data: {
 		pr0: {
 			pullRequest: {
 				number: 42,
 				...size,
+				files: { nodes: files },
 				title: "Store pull request size",
 				state: "OPEN",
 				isDraft: false,
@@ -26,8 +30,8 @@ const responseWithSize = (size: Size): PullRequestResponse => ({
 	},
 });
 
-const rowOf = (size: Size) => {
-	const result = mapPullRequestResponse([ref], responseWithSize(size))[0]!;
+const rowOf = (size: Size, files?: RawFile[]) => {
+	const result = mapPullRequestResponse([ref], responseWithSize(size, files))[0]!;
 	if (!("row" in result)) throw new Error(result.error);
 	return result.row;
 };
@@ -35,6 +39,10 @@ const rowOf = (size: Size) => {
 describe("pull request GraphQL size", () => {
 	test("requests all size fields", () => {
 		expect(buildPullRequestQuery([ref])).toContain("number additions deletions changedFiles");
+	});
+
+	test("requests at most 100 changed files", () => {
+		expect(buildPullRequestQuery([ref])).toContain("files(first: 100) { nodes { path additions deletions } }");
 	});
 
 	test("maps all size fields into the stored content", () => {
@@ -51,5 +59,13 @@ describe("pull request GraphQL size", () => {
 		expect(rowOf({ additions: 121, deletions: 30, changedFiles: 9 }).contentHash).not.toBe(base);
 		expect(rowOf({ additions: 120, deletions: 31, changedFiles: 9 }).contentHash).not.toBe(base);
 		expect(rowOf({ additions: 120, deletions: 30, changedFiles: 10 }).contentHash).not.toBe(base);
+	});
+
+	test("includes changed file rows in the content hash", () => {
+		const size = { additions: 120, deletions: 30, changedFiles: 9 };
+		const base = rowOf(size).contentHash;
+		expect(rowOf(size, [{ path: "apps/server/src/gh/parse.ts", additions: 12, deletions: 3 }]).contentHash).not.toBe(
+			base,
+		);
 	});
 });

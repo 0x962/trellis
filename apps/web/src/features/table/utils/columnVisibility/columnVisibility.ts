@@ -1,17 +1,24 @@
 import type { TicketSummary } from "@trellis/api";
-import { type ColumnId, columnOrder, hiddenByDefault } from "../../columns";
+import { type ColumnId, columnOrder, columnOwner, hiddenByDefault, type TableKind } from "../../columns";
+
+// True when this kind of table draws this column. A column that
+// `columnOwner` does not hold shows on every kind.
+export const kindShows = (id: ColumnId, kind: TableKind) => (columnOwner[id] ?? kind) === kind;
 
 // The visibility of every column on a route: the defaults, then the
-// stored choices. The project column shows when the scope holds
-// sub-projects.
+// stored choices, then the columns this kind of table owns. The project
+// column shows when the scope holds sub-projects.
 export const columnVisibility = (
 	stored: Record<string, boolean> | undefined,
 	showProject: boolean,
+	kind: TableKind,
 ): Record<ColumnId, boolean> => {
 	const visibility = {} as Record<ColumnId, boolean>;
 	for (const id of columnOrder) visibility[id] = !hiddenByDefault.includes(id);
 	visibility.project = showProject;
-	return { ...visibility, ...stored, select: true, title: true };
+	const chosen = { ...visibility, ...stored, select: true, title: true };
+	for (const id of columnOrder) if (!kindShows(id, kind)) chosen[id] = false;
+	return chosen;
 };
 
 export type AutoHideContext = {
@@ -43,6 +50,3 @@ export const autoHide = (
 		labels: visibility.labels && rows.some((row) => row.labels.length > 0),
 	};
 };
-
-export const visibleColumns = (visibility: Record<string, boolean>): ColumnId[] =>
-	columnOrder.filter((id) => visibility[id] !== false);

@@ -115,9 +115,21 @@ export const TicketSummarySchema = z.object({
 });
 export type TicketSummary = z.infer<typeof TicketSummarySchema>;
 
+export const TicketContractSchema = z.object({
+	result: z.string(),
+	files: z.array(z.string()),
+	leaveAlone: z.array(z.string()),
+	verify: z.array(z.string()),
+	reviewFocus: z.array(z.string()),
+});
+export type TicketContract = z.infer<typeof TicketContractSchema>;
+export const ticketContractFields = Object.keys(TicketContractSchema.shape) as (keyof TicketContract)[];
+
 // The `tickets.get` shape: the summary plus what only the ticket page reads.
 export const TicketSchema = TicketSummarySchema.extend({
 	description: z.string(),
+	contract: TicketContractSchema,
+	outcome: z.string(),
 	children: z.array(TicketSummarySchema),
 	prs: z.array(LinkedPullRequestSchema),
 	attachments: z.array(AttachmentSchema),
@@ -127,6 +139,8 @@ export const TicketSchema = TicketSummarySchema.extend({
 // summary carries no text. A refetch replaces the whole entry, which drops
 // the flag. An editor saves only while the flag is absent.
 export type Ticket = z.infer<typeof TicketSchema> & { descriptionStale?: boolean };
+
+export const summaryOf = (ticket: Ticket): TicketSummary => TicketSummarySchema.parse(ticket);
 
 export const SortSchema = z.enum([
 	"updatedAt",
