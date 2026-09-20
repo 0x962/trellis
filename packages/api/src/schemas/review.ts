@@ -105,6 +105,8 @@ export const ReviewPrSchema = z.object({
 	resolved: z.number().int(),
 	updatedAt: IsoDateTimeSchema,
 });
+// `gh pr view` supplies the other fields, whose shape belongs to GitHub.
+// Keep this schema loose so each GitHub field passes through unchanged.
 export const ReviewStatusSchema = z.looseObject({
 	ticket: z.object({ identifier: TicketIdentifierSchema, title: z.string() }).nullable(),
 	prRow: TicketPrSchema.nullable(),

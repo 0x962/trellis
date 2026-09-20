@@ -3,10 +3,15 @@ import { sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support";
 import { requestedTicketPrJoin } from "../../db/queries/ticketPrs.ts";
 import type { Tx } from "../../db/tx";
-import type { ServiceCtx } from "../support";
+import type { PrepareCtx, ServiceCtx } from "../support";
 import { parseRef } from "./queries.ts";
+import { status as remoteStatus } from "./revision.ts";
 
-type PreparedStatus = { pr: string; remote: Record<string, unknown> };
+export type PreparedStatus = { pr: string; remote: Record<string, unknown> };
+
+export async function prepare(ctx: PrepareCtx, input: { pr: string }): Promise<PreparedStatus> {
+	return { pr: input.pr, remote: await remoteStatus(ctx, input) };
+}
 
 export async function status(_ctx: ServiceCtx, tx: Tx, input: PreparedStatus) {
 	const ref = parseRef(input.pr);
@@ -28,7 +33,7 @@ export async function status(_ctx: ServiceCtx, tx: Tx, input: PreparedStatus) {
 				WHERE requested_pr.owner = ${ref.owner}
 					AND requested_pr.repo = ${ref.repo}
 					AND requested_pr.number = ${ref.number}
-				ORDER BY t.number, root.key, t.id
+				ORDER BY root.key, t.number, t.id
 				LIMIT 1
 			) t
 			JOIN projects root ON root.id = t.root_id

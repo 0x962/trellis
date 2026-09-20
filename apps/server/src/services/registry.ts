@@ -150,11 +150,7 @@ export const services = {
 	"agentRuns.interrupt": prepared("mutation", agentTerminal.interrupt, agentTerminal.result),
 	"agentRuns.resize": prepared("mutation", agentTerminal.resize, agentTerminal.result),
 	"reviews.image": prepared("read", reviewImage.image, reviewRemote.result),
-	"reviews.status": prepared(
-		"read",
-		async (ctx, input) => ({ pr: input.pr, remote: await reviewRevision.status(ctx, input) }),
-		reviewStatus.status,
-	),
+	"reviews.status": prepared("read", reviewStatus.prepare, reviewStatus.status),
 	"reviews.reviewers": prepared("read", reviewReviewers.reviewers, reviewReviewers.result),
 	"reviews.reviewer": prepared("mutation", reviewReviewers.reviewer, reviewReviewers.result),
 	"reviews.action": prepared("mutation", reviewRemote.action, reviewRemote.actionResult),
