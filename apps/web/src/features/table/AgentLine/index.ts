@@ -1,1 +1,1 @@
-export { AgentLine, type AgentLineProps } from "./AgentLine";
+export { AgentLine } from "./AgentLine";

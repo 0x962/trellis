@@ -1,1 +1,1 @@
-export { type AgentLineText, agentLineOf, agentLinesOf } from "./agentLines";
+export { agentLinesByTicket, type TicketAgentLine } from "./agentLines";

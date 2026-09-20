@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import type { TicketPr, TicketSummary } from "@trellis/api";
-import type { AgentLineText } from "../agentLines";
+import type { TicketAgentLine } from "../agentLines";
 import { flattenGroups, type TableGroup } from "./flattenGroups";
 
 const pr = (number: number) => ({ number, owner: "0x962", repo: "trellis" }) as TicketPr;
 
 const ticket = (id: string, prRows: TicketPr[] = []) => ({ id, prRows }) as TicketSummary;
 
-const line = (words: string, asks = false): AgentLineText => ({ words, asks });
+const line = (words: string, asks = false): TicketAgentLine => ({ words, asks });
 
 const group = (key: string, expanded: boolean, rows: TicketSummary[]) =>
 	({ key, label: key, expanded, count: rows.length, rows }) as TableGroup;
@@ -56,7 +56,7 @@ describe("flattenGroups", () => {
 
 	test("puts the agent line of a ticket between its row and its pull requests", () => {
 		const groups = [group("todo", true, [ticket("a", [pr(11)]), ticket("b")])];
-		const agentLines = new Map([["a", line("crisp-fjord: I rebased.")]]);
+		const agentLines = { a: line("crisp-fjord: I rebased.") };
 
 		const items = flattenGroups(groups, { prRows: true, agentLines });
 
@@ -67,13 +67,13 @@ describe("flattenGroups", () => {
 	test("gives a ticket with no line no agent line", () => {
 		const groups = [group("todo", true, [ticket("a"), ticket("b")])];
 
-		const items = flattenGroups(groups, { agentLines: new Map([["b", line("crisp-fjord: I rebased.")]]) });
+		const items = flattenGroups(groups, { agentLines: { b: line("crisp-fjord: I rebased.") } });
 
 		expect(items.map((item) => item.kind)).toEqual(["header", "row", "row", "agent"]);
 	});
 
 	test("carries the words and the request mark of the line", () => {
-		const agentLines = new Map([["a", line("crisp-fjord asks: Which cap?", true)]]);
+		const agentLines = { a: line("crisp-fjord asks: Which cap?", true) };
 
 		const items = flattenGroups([group("todo", true, [ticket("a")])], { agentLines });
 
@@ -84,7 +84,7 @@ describe("flattenGroups", () => {
 
 	test("a collapsed group hides its agent lines with its rows", () => {
 		const groups = [group("done", false, [ticket("a")])];
-		const agentLines = new Map([["a", line("crisp-fjord: I rebased.")]]);
+		const agentLines = { a: line("crisp-fjord: I rebased.") };
 
 		expect(flattenGroups(groups, { agentLines }).map((item) => item.kind)).toEqual(["header"]);
 	});

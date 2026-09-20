@@ -26,7 +26,7 @@ import { useTicketMutations } from "../hooks/useTicketMutations";
 import type { EditField, RowChange } from "../Row";
 import { TableEmpty } from "../TableEmpty";
 import { TableFooter } from "../TableFooter";
-import type { AgentLineText } from "../utils/agentLines";
+import type { TicketAgentLine } from "../utils/agentLines";
 import { autoHide, columnVisibility } from "../utils/columnVisibility";
 import { epicState } from "../utils/epicState";
 import { flattenGroups, type TableGroup } from "../utils/flattenGroups";
@@ -49,10 +49,10 @@ export type TicketTableProps = {
 	// True on the epic route: a ticket row is followed by one line per pull
 	// request linked to that ticket.
 	prRows?: boolean;
-	// What the run of a ticket says, by ticket id. A ticket row with an
-	// entry is followed by one agent line. Memoize it: a new identity
+	// What the run of a ticket says, keyed by ticket id. A ticket row with
+	// an entry is followed by one agent line. Memoize it: a new identity
 	// rebuilds every line of the list.
-	agentLines?: ReadonlyMap<string, AgentLineText>;
+	agentLines?: Readonly<Record<string, TicketAgentLine>>;
 };
 
 export type Editing = { id: string; field: EditField } | null;

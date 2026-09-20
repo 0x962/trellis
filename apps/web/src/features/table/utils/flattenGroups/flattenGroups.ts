@@ -1,5 +1,5 @@
 import type { TicketPr, TicketSummary } from "@trellis/api";
-import type { AgentLineText } from "../agentLines";
+import type { TicketAgentLine } from "../agentLines";
 import type { RowGroup } from "../groupRows";
 
 // A group as the table renders it: the rows it holds and, for a closed
@@ -30,7 +30,7 @@ export type TableGroup = RowGroup & {
 export type TableItem =
 	| { kind: "header"; key: string; group: TableGroup }
 	| { kind: "row"; key: string; group: TableGroup; ticket: TicketSummary }
-	| { kind: "agent"; key: string; group: TableGroup; line: AgentLineText }
+	| { kind: "agent"; key: string; group: TableGroup; line: TicketAgentLine }
 	| { kind: "pr"; key: string; group: TableGroup; pr: TicketPr }
 	| { kind: "more"; key: string; group: TableGroup };
 
@@ -39,10 +39,10 @@ export type FlattenOptions = {
 	// request linked to that ticket. False everywhere else, where the list
 	// holds ticket rows alone.
 	prRows?: boolean;
-	// What the run of a ticket says, by ticket id. A ticket with no entry
-	// has no run, or its run has neither an open request nor a message, and
-	// it gets no agent line.
-	agentLines?: ReadonlyMap<string, AgentLineText>;
+	// What the run of a ticket says, keyed by ticket id. A ticket with no
+	// entry has no run, or its run has neither an open request nor a
+	// message, and it gets no agent line.
+	agentLines?: Readonly<Record<string, TicketAgentLine>>;
 };
 
 // The lines in order: each group's header, its rows while it is expanded,
@@ -56,7 +56,7 @@ export const flattenGroups = (groups: readonly TableGroup[], options: FlattenOpt
 		if (!group.expanded) continue;
 		for (const ticket of group.rows) {
 			items.push({ kind: "row", key: ticket.id, group, ticket });
-			const line = options.agentLines?.get(ticket.id);
+			const line = options.agentLines?.[ticket.id];
 			if (line !== undefined) items.push({ kind: "agent", key: `agent:${ticket.id}`, group, line });
 			if (options.prRows !== true) continue;
 			// Two tickets can link the same pull request, so the ticket id is

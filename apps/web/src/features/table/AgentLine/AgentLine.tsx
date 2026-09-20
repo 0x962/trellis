@@ -1,9 +1,9 @@
 import { AttentionDot, cx } from "@trellis/ui";
 import { agentLineHeight } from "../rowHeights";
-import type { AgentLineText } from "../utils/agentLines";
+import type { TicketAgentLine } from "../utils/agentLines";
 
-export type AgentLineProps = {
-	line: AgentLineText;
+type AgentLineProps = {
+	line: TicketAgentLine;
 	// The offset of this line inside the virtual body.
 	top: number;
 };

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { AgentRun } from "@trellis/api";
-import { agentLineOf, agentLinesOf } from "./agentLines";
+import { agentLineOf, agentLinesByTicket } from "./agentLines";
 
 const at = "2026-09-18T12:00:00.000Z";
 
@@ -122,48 +122,48 @@ describe("agentLineOf", () => {
 	});
 });
 
-describe("agentLinesOf", () => {
+describe("agentLinesByTicket", () => {
 	test("keys each line by the ticket of its run", () => {
-		expect(agentLinesOf([speaking()])).toEqual(
-			new Map([["ticket-a", { words: "crisp-fjord: I rebased onto master.", asks: false }]]),
-		);
+		expect(agentLinesByTicket([speaking()])).toEqual({
+			"ticket-a": { words: "crisp-fjord: I rebased onto master.", asks: false },
+		});
 	});
 
 	test("leaves out a run of another kind", () => {
 		const flow = speaking();
 		flow.kind = "flow";
 
-		expect(agentLinesOf([flow]).size).toBe(0);
+		expect(agentLinesByTicket([flow])).toEqual({});
 	});
 
 	test("leaves out a run that holds no ticket", () => {
 		const loose = speaking();
 		loose.ticketId = null;
 
-		expect(agentLinesOf([loose]).size).toBe(0);
+		expect(agentLinesByTicket([loose])).toEqual({});
 	});
 
 	test("leaves out a run with nothing to say", () => {
-		expect(agentLinesOf([runOf()]).size).toBe(0);
+		expect(agentLinesByTicket([runOf()])).toEqual({});
 	});
 
 	test("keeps the request of one run when a later run of the same ticket only speaks", () => {
-		const lines = agentLinesOf([asking("amber-quarry"), speaking()]);
+		const lines = agentLinesByTicket([asking("amber-quarry"), speaking()]);
 
-		expect(lines.get("ticket-a")).toEqual({ words: "amber-quarry asks: Which cap?", asks: true });
+		expect(lines["ticket-a"]).toEqual({ words: "amber-quarry asks: Which cap?", asks: true });
 	});
 
 	test("takes the request of a later run of the same ticket", () => {
-		const lines = agentLinesOf([speaking(), asking("amber-quarry")]);
+		const lines = agentLinesByTicket([speaking(), asking("amber-quarry")]);
 
-		expect(lines.get("ticket-a")).toEqual({ words: "amber-quarry asks: Which cap?", asks: true });
+		expect(lines["ticket-a"]).toEqual({ words: "amber-quarry asks: Which cap?", asks: true });
 	});
 
 	test("takes the later message when neither run of a ticket asks", () => {
 		const second = speaking("amber-quarry");
 		second.observation!.lastMessage = { text: "The tests pass.", at };
 
-		expect(agentLinesOf([speaking(), second]).get("ticket-a")).toEqual({
+		expect(agentLinesByTicket([speaking(), second])["ticket-a"]).toEqual({
 			words: "amber-quarry: The tests pass.",
 			asks: false,
 		});
