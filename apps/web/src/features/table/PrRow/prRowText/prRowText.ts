@@ -58,25 +58,22 @@ const checkCells = (pr: TicketPr): PrRowCell[] =>
 const threadCells = (pr: TicketPr): PrRowCell[] =>
 	pr.openThreads === 0 ? [] : [mutedCell("threads", countWord(pr.openThreads, "thread", "threads"))];
 
-// `evidenceFloor` sorts the records a pull request owes into the present ones
-// and the missing ones. The number it requires follows from the kind and the
-// risk alone, so this call gives it no record and no summary and reads only
-// the length of `required`.
-const requiredEvidence = (kind: NonNullable<TicketPr["kind"]>, risk: NonNullable<TicketPr["risk"]>) =>
+// `required` follows from the kind and the risk alone. The empty `rows` and
+// the false `hasSummary` change only `present` and `missing`.
+const requiredRecordCount = (kind: NonNullable<TicketPr["kind"]>, risk: NonNullable<TicketPr["risk"]>) =>
 	evidenceFloor({ kind, risk, rows: [], hasSummary: false }).required.length;
 
-// An open or a draft pull request prints one evidence word. A merged or a
-// closed pull request owes nothing, so it prints no word at all. `evidence`
-// counts the records of the floor that the pull request carries at its head
-// commit. The server sets `kind`, `risk` and `evidence` to null together
-// while GitHub gives it no file list, and it sets `evidence` to null while
-// the pull request has no head commit.
+// A merged or a closed pull request owes no record. `evidence` counts the
+// records of the floor that the pull request carries at its head commit. The
+// server sets `kind`, `risk` and `evidence` to null together while GitHub
+// gives no file list, and it sets `evidence` to null while the pull request
+// has no head commit.
 const evidenceCells = (pr: TicketPr): PrRowCell[] => {
 	if (pr.state !== "open") return [];
 	if (pr.kind === null || pr.risk === null || pr.evidence === null || pr.evidence === 0)
 		return [mutedCell("evidence", "no evidence")];
-	const required = requiredEvidence(pr.kind, pr.risk);
-	const word = pr.evidence === required ? "evidence complete" : `evidence ${pr.evidence} of ${required}`;
+	const requiredCount = requiredRecordCount(pr.kind, pr.risk);
+	const word = pr.evidence === requiredCount ? "evidence complete" : `evidence ${pr.evidence} of ${requiredCount}`;
 	return [mutedCell("evidence", word)];
 };
 

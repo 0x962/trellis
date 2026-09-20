@@ -10,11 +10,8 @@ const textOf = (pr: TicketPr) =>
 		.map((cell) => ("lines" in cell ? `+${cell.lines.additions} −${cell.lines.deletions}` : cell.text))
 		.join(" · ");
 
-// A pull request that trips no risk class. The floor of a frontend change
-// then requires the summary, the after image, the before image, the capture
-// record and the console list, and the floor of a backend change requires
-// the summary, the verify record, the test record and the contract record.
-const noRisk = {
+// Every risk answer is "no", so the floor holds only the items of the kind.
+const clearRisk = {
 	auth: "no",
 	migration: "no",
 	dependency: "no",
@@ -99,25 +96,25 @@ describe("prRowCells", () => {
 	});
 
 	test("counts the records a frontend pull request carries against the records its floor requires", () => {
-		const pr = prOf({ kind: "frontend", risk: noRisk, evidence: 3, pass: 43 });
+		const pr = prOf({ kind: "frontend", risk: clearRisk, evidence: 3, pass: 43 });
 
 		expect(textOf(pr)).toBe("open · 43 passed · evidence 3 of 5 · you");
 	});
 
 	test("reads evidence complete when the pull request carries every record of its floor", () => {
-		const pr = prOf({ kind: "backend", risk: noRisk, evidence: 4, pass: 43 });
+		const pr = prOf({ kind: "backend", risk: clearRisk, evidence: 4, pass: 43 });
 
 		expect(textOf(pr)).toBe("open · 43 passed · evidence complete · you");
 	});
 
 	test("counts the migration record and the picture that a migration adds to the floor", () => {
-		const pr = prOf({ kind: "backend", risk: { ...noRisk, migration: "yes" }, evidence: 4, pass: 43 });
+		const pr = prOf({ kind: "backend", risk: { ...clearRisk, migration: "yes" }, evidence: 4, pass: 43 });
 
 		expect(textOf(pr)).toBe("open · 43 passed · evidence 4 of 6 · you");
 	});
 
 	test("reads no evidence when the pull request carries no record of its floor", () => {
-		const pr = prOf({ kind: "frontend", risk: noRisk, evidence: 0, pass: 43 });
+		const pr = prOf({ kind: "frontend", risk: clearRisk, evidence: 0, pass: 43 });
 
 		expect(textOf(pr)).toBe("open · 43 passed · no evidence · you");
 	});
@@ -129,15 +126,15 @@ describe("prRowCells", () => {
 	});
 
 	test("prints no evidence word on a merged or a closed pull request, which owes nothing", () => {
-		const merged = prOf({ state: "merged", kind: "frontend", risk: noRisk, evidence: 3, pass: 43 });
-		const closed = prOf({ state: "closed", kind: "frontend", risk: noRisk, evidence: 0, pass: 43 });
+		const merged = prOf({ state: "merged", kind: "frontend", risk: clearRisk, evidence: 3, pass: 43 });
+		const closed = prOf({ state: "closed", kind: "frontend", risk: clearRisk, evidence: 0, pass: 43 });
 
 		expect(textOf(merged)).toBe("merged · 43 passed");
 		expect(textOf(closed)).toBe("closed · 43 passed");
 	});
 
 	test("prints the evidence word on a draft, which still owes its records", () => {
-		const pr = prOf({ isDraft: true, kind: "frontend", risk: noRisk, evidence: 3, pass: 43 });
+		const pr = prOf({ isDraft: true, kind: "frontend", risk: clearRisk, evidence: 3, pass: 43 });
 
 		expect(textOf(pr)).toBe("draft · 43 passed · evidence 3 of 5 · agent");
 	});
