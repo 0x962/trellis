@@ -2,6 +2,7 @@ import type { Priority } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, noneToNull, readText, toNumber } from "../context.ts";
+import { usageError } from "../errors.ts";
 import { labelRefs, repeatedFlag } from "../flags.ts";
 import { printRecord, ticketRecord } from "../output.ts";
 import { labelFlag, priorities } from "./create.ts";
@@ -31,6 +32,23 @@ export default defineCommand({
 		const after = repeatedFlag(context.rawArgs, "after");
 		const notAfter = repeatedFlag(context.rawArgs, "not-after");
 		const expectedVersion = toNumber(args["expect-version"]);
+		const addLabels = labelRefs(context.rawArgs, "add-label");
+		const removeLabels = labelRefs(context.rawArgs, "remove-label");
+		const hasFieldChange =
+			args.title !== undefined ||
+			args.description !== undefined ||
+			args.priority !== undefined ||
+			args.parent !== undefined ||
+			args.epic !== undefined ||
+			args.milestone !== undefined ||
+			args.project !== undefined ||
+			args.status !== undefined ||
+			addLabels !== undefined ||
+			removeLabels !== undefined;
+		if ((after.length > 0 || notAfter.length > 0) && expectedVersion !== undefined && hasFieldChange)
+			throw usageError(
+				"cannot combine dependency flags, field flags, and --expect-version; run one trellis edit with --after/--not-after, then one trellis edit with the field flags",
+			);
 		let ticket =
 			after.length === 0 && notAfter.length === 0
 				? undefined
@@ -52,8 +70,8 @@ export default defineCommand({
 			milestone: noneToNull(args.milestone),
 			project: args.project,
 			status: args.status,
-			addLabels: labelRefs(context.rawArgs, "add-label"),
-			removeLabels: labelRefs(context.rawArgs, "remove-label"),
+			addLabels,
+			removeLabels,
 		});
 		// `fields` always holds `ticket`, so a second key means the command changes
 		// a ticket field. With no dependency or field change, `tickets.update` reads
