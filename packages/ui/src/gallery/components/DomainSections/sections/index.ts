@@ -1,6 +1,7 @@
 export { ActorChipSection } from "./ActorChipSection";
 export { AgentProfileMarkSection } from "./AgentProfileMarkSection";
 export { AttentionDotSection } from "./AttentionDotSection";
+export { BackendEvidenceSection } from "./BackendEvidenceSection";
 export { ChainBlockSection } from "./ChainBlockSection";
 export { ChangeSummarySection } from "./ChangeSummarySection";
 export { CheckRibbonSection } from "./CheckRibbonSection";
@@ -13,6 +14,7 @@ export { FlowRunSection } from "./FlowRunSection";
 export { LineChangesSection } from "./LineChangesSection";
 export { PrGlyphSection } from "./PrGlyphSection";
 export { PriorityIconSection } from "./PriorityIconSection";
+export { QuestionBlockSection } from "./QuestionBlockSection";
 export { ReviewFocusListSection } from "./ReviewFocusListSection";
 export { ReviewStatusSummarySection } from "./ReviewStatusSummarySection";
 export { RunLineSection } from "./RunLineSection";

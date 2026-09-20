@@ -2,6 +2,7 @@ import type { ProjectDeleteOutputSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { ServiceCtx } from "../context.ts";
+import { resourceBlobShasOfProjects } from "../db/queries/epicResources.ts";
 import { rows, textArray } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import { fail } from "../errors.ts";
@@ -43,8 +44,9 @@ const remove = async (ctx: ServiceCtx, tx: Tx, input: ProjectDeleteInput): Promi
 		sql`SELECT DISTINCT a.sha256 FROM attachments a JOIN tickets t ON t.id = a.ticket_id
 			WHERE t.project_id = ANY(${scope})`,
 	);
+	const resourceBlobs = await resourceBlobShasOfProjects(tx, subtree);
 	await tx.execute(sql`DELETE FROM tickets WHERE project_id = ANY(${scope})`);
-	ctx.dropBlobs(blobs.map((blob) => blob.sha256));
+	ctx.dropBlobs([...blobs.map((blob) => blob.sha256), ...resourceBlobs]);
 	await tx.execute(
 		sql`DELETE FROM pull_requests pr
 			WHERE NOT pr.review_retained AND NOT EXISTS (SELECT 1 FROM ticket_pull_requests l WHERE l.pull_request_id = pr.id)`,

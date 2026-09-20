@@ -52,9 +52,23 @@ const releases: TicketSummary["releases"] = [
 	{ identifier: "OP-35", title: "Service: A run whose webhook never came is closed" },
 ];
 
+// OP-52 once a person picked option 1. The server leaves a done ticket out of
+// `waitsOn`, so it reaches the page in its own field.
+const answeredOp52 = {
+	identifier: "OP-52",
+	title: "Decision: a missed window, run it late or leave it missed",
+	option: 1,
+};
+
+const answeredOp53 = {
+	identifier: "OP-53",
+	title: "Decision: one queue or one queue per routine",
+	option: 2,
+};
+
 describe("ChainBlock", () => {
 	test("prints each ticket it waits on with the title and the status", () => {
-		const html = renderToStaticMarkup(<ChainBlock waitsOn={waitsOn} releases={releases} />);
+		const html = renderToStaticMarkup(<ChainBlock waitsOn={waitsOn} releases={releases} answeredQuestions={[]} />);
 
 		expect(html).toContain("Waits on");
 		expect(html).toContain("OP-32");
@@ -65,14 +79,14 @@ describe("ChainBlock", () => {
 	});
 
 	test("derives the ready sentence and offers no control", () => {
-		const html = renderToStaticMarkup(<ChainBlock waitsOn={waitsOn} releases={releases} />);
+		const html = renderToStaticMarkup(<ChainBlock waitsOn={waitsOn} releases={releases} answeredQuestions={[]} />);
 
 		expect(html).toContain("no. OP-32 is not merged, and OP-52 is open.");
 		expect(html).not.toContain("<button");
 	});
 
 	test("marks the question line with the yellow dot and the words your answer", () => {
-		const html = renderToStaticMarkup(<ChainBlock waitsOn={waitsOn} releases={releases} />);
+		const html = renderToStaticMarkup(<ChainBlock waitsOn={waitsOn} releases={releases} answeredQuestions={[]} />);
 		const question = html.slice(html.indexOf("OP-52"));
 
 		expect(question).toContain("bg-warning");
@@ -80,28 +94,60 @@ describe("ChainBlock", () => {
 	});
 
 	test("names the open question under Applies", () => {
-		const html = renderToStaticMarkup(<ChainBlock waitsOn={waitsOn} releases={releases} />);
+		const html = renderToStaticMarkup(<ChainBlock waitsOn={waitsOn} releases={releases} answeredQuestions={[]} />);
 
 		expect(html).toContain("Applies");
 		expect(html.indexOf("Applies")).toBeGreaterThan(html.indexOf("Releases"));
 	});
 
 	test("drops the Applies line when the ticket waits on no question", () => {
-		const html = renderToStaticMarkup(<ChainBlock waitsOn={[op32]} releases={releases} />);
+		const html = renderToStaticMarkup(<ChainBlock waitsOn={[op32]} releases={releases} answeredQuestions={[]} />);
 
 		expect(html).toContain("no. OP-32 is not merged.");
 		expect(html).not.toContain("Applies");
 	});
 
 	test("prints nothing for a clause the chain leaves empty", () => {
-		const html = renderToStaticMarkup(<ChainBlock waitsOn={[]} releases={releases} />);
+		const html = renderToStaticMarkup(<ChainBlock waitsOn={[]} releases={releases} answeredQuestions={[]} />);
 
 		expect(html).toContain("nothing");
 		expect(html).toContain("yes. No ticket holds this one back.");
 	});
 
+	test("names the answered question and the option a person picked", () => {
+		const html = renderToStaticMarkup(
+			<ChainBlock waitsOn={[op32]} releases={releases} answeredQuestions={[answeredOp52]} />,
+		);
+
+		expect(html).toContain("Applies");
+		expect(html).toContain("answered:");
+		expect(html).toContain("OP-52");
+		expect(html).toContain("chose 1.");
+	});
+
+	test("names an open question and an answered one under the same label", () => {
+		const html = renderToStaticMarkup(
+			<ChainBlock waitsOn={waitsOn} releases={releases} answeredQuestions={[answeredOp53]} />,
+		);
+
+		expect(html.split("Applies").length - 1).toBe(1);
+		expect(html).toContain("open.");
+		expect(html).toContain("answered:");
+		expect(html).toContain("chose 2.");
+	});
+
+	test("names every answered question", () => {
+		const html = renderToStaticMarkup(
+			<ChainBlock waitsOn={[op32]} releases={releases} answeredQuestions={[answeredOp52, answeredOp53]} />,
+		);
+
+		expect(html.split("answered:").length - 1).toBe(2);
+		expect(html).toContain("chose 1.");
+		expect(html).toContain("chose 2.");
+	});
+
 	test("prints one line when the ticket has no chain", () => {
-		const html = renderToStaticMarkup(<ChainBlock waitsOn={[]} releases={[]} />);
+		const html = renderToStaticMarkup(<ChainBlock waitsOn={[]} releases={[]} answeredQuestions={[]} />);
 
 		expect(html).toContain("The ticket waits for nothing, and no ticket waits for it.");
 		expect(html).not.toContain("Ready");

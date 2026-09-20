@@ -2,6 +2,7 @@ import {
 	ActorChipSection,
 	AgentProfileMarkSection,
 	AttentionDotSection,
+	BackendEvidenceSection,
 	ChainBlockSection,
 	ChangeSummarySection,
 	CheckRibbonSection,
@@ -14,6 +15,7 @@ import {
 	LineChangesSection,
 	PrGlyphSection,
 	PriorityIconSection,
+	QuestionBlockSection,
 	ReviewFocusListSection,
 	ReviewStatusSummarySection,
 	RunLineSection,
@@ -47,9 +49,11 @@ export function DomainSections() {
 			<ConditionsBlockSection />
 			<ContractBlockSection />
 			<ChainBlockSection />
+			<QuestionBlockSection />
 			<RunLineSection />
 			<ChangeSummarySection />
 			<EvidenceStripSection />
+			<BackendEvidenceSection />
 			<StartControlsSection />
 		</>
 	);

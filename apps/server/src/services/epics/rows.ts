@@ -23,6 +23,7 @@ export type RawEpic = {
 	done: number;
 	canceled: number;
 	milestone_count: number;
+	resource_count: number;
 	current_milestone_id: string | null;
 	current_milestone_slug: string | null;
 	current_milestone_name: string | null;
@@ -92,6 +93,7 @@ export const epicSelect = sql`SELECT e.id, e.project_id, e.root_id, root.key AS 
 	e.actor_name, e.actor_kind, ${actorDisplayName(sql`e.actor_name`, sql`e.actor_kind`)} AS actor_display_name,
 	c.total, c.todo, c.started, c.review, c.done, c.canceled,
 	(SELECT count(*)::int FROM milestones WHERE epic_id = e.id) AS milestone_count,
+	(SELECT count(*)::int FROM epic_resources WHERE epic_id = e.id) AS resource_count,
 	cm.id AS current_milestone_id, cm.slug AS current_milestone_slug, cm.name AS current_milestone_name,
 	cm.index AS current_milestone_index,
 	${iso(sql`e.created_at`)} AS created_at, ${iso(sql`e.updated_at`)} AS updated_at
@@ -126,6 +128,7 @@ export const toEpicSummary = (row: RawEpic, projectPath: string): EpicSummary =>
 					},
 		currentMilestoneIndex: row.current_milestone_index,
 		milestoneCount: row.milestone_count,
+		resourceCount: row.resource_count,
 		actor: {
 			name: row.actor_name,
 			kind: row.actor_kind,

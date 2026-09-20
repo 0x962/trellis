@@ -104,11 +104,11 @@ test("a ticket that asks no question refuses the answer", async () => {
 	expect(unchanged.rows).toEqual([{ version: plain.version }]);
 });
 
-test("an option number above the option count refuses the answer", async () => {
+test("an option number the list does not hold refuses the answer", async () => {
 	const asked = await ask("Which grace window");
 	await expect(
 		run((tx) => answer(ctx, tx, { ticket: asked.identifier, option: 7, reason: "The wide one." })),
-	).rejects.toThrow("This question lists 2 options.");
+	).rejects.toThrow("This question lists options 1, 2. Pick one of them.");
 });
 
 test("a second answer on the same question refuses the stale version", async () => {
