@@ -43,17 +43,19 @@ export function runLine(run: AgentRun): RunLine {
 	if (status === "failed") {
 		return { kind: "failed", words: run.error ? `failed: ${run.error}` : "failed", at: null, lastMessage };
 	}
-	if (run.state === "stopped") return { kind: "stopped", words: "stopped", at: null, lastMessage };
-	if (run.state === "exited") return { kind: "exited", words: "exited", at: null, lastMessage };
+	if (status === "stopped") {
+		const kind = run.state === "stopped" ? "stopped" : "exited";
+		return { kind, words: kind, at: null, lastMessage };
+	}
 	if (status === "interrupted" || status === "unavailable") {
 		return { kind: "lost", words: "lost", at: null, lastMessage };
 	}
 	const observation = run.observation!;
 	const completion = observation.attention?.completion;
+	// sessionStatus returns `done` only when the completion is newer than `seenAttention` for this attempt.
 	if (status === "done") {
 		return { kind: "turn-done-new", words: "turn done · new", at: completion!.at, lastMessage };
 	}
-	if (completion) return { kind: "turn-done", words: "turn done", at: completion.at, lastMessage };
 	if (status === "working") {
 		const tool = observation.lastTool?.status === "running" ? observation.lastTool : null;
 		return {
@@ -63,5 +65,6 @@ export function runLine(run: AgentRun): RunLine {
 			lastMessage,
 		};
 	}
-	return { kind: "idle", words: "idle", at: observation.activity!.updatedAt, lastMessage };
+	if (completion) return { kind: "turn-done", words: "turn done", at: completion.at, lastMessage };
+	return { kind: "idle", words: "idle", at: observation.activity?.updatedAt ?? null, lastMessage };
 }

@@ -22,6 +22,8 @@ test("starts from a launch without a process", () => {
 test("works with the current tool and its start time", () => {
 	const run = value();
 	run.observation!.lastTool = { name: "Edit", status: "running", startedAt: at, updatedAt: at };
+	attention(run).completion = { sequence: 1, at };
+	run.seenAttention = { attemptId: "attempt", sequence: 1 };
 	expect(runLine(run)).toMatchObject({ kind: "works", words: "works, tool Edit", at });
 });
 
@@ -72,6 +74,8 @@ test("idles from the activity signal", () => {
 	const run = value();
 	run.observation!.activity = { state: "idle", updatedAt: at };
 	expect(runLine(run)).toMatchObject({ kind: "idle", words: "idle", at });
+	run.observation!.activity = null;
+	expect(runLine(run)).toMatchObject({ kind: "idle", words: "idle", at: null });
 });
 
 test("shows a seen completion as turn done", () => {
@@ -109,7 +113,6 @@ test("stops after a person stops the run", () => {
 
 test("exits after a zero exit code", () => {
 	const run = value();
-	run.state = "exited";
 	run.processStatus = "exited";
 	expect(runLine(run)).toMatchObject({ kind: "exited", words: "exited", at: null });
 });
