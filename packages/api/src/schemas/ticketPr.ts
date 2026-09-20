@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { PrKind, PrPathFacts } from "../prPaths/index.ts";
 import { PrStateSchema } from "./enums.ts";
 import { FlowExecutionStateSchema } from "./flowExecution.ts";
 import { CountSchema } from "./primitives.ts";
@@ -6,6 +7,23 @@ import { CountSchema } from "./primitives.ts";
 const FailedCheckSchema = z.object({
 	name: z.string().min(1),
 	workflow: z.string().nullable(),
+});
+
+const prKindValues: Record<PrKind | "unknown", null> = {
+	frontend: null,
+	backend: null,
+	mixed: null,
+	unknown: null,
+};
+
+const PrKindSchema = z.enum(Object.keys(prKindValues) as [PrKind | "unknown", ...(PrKind | "unknown")[]]);
+
+const PrRiskSchema: z.ZodType<PrPathFacts["risk"]> = z.object({
+	auth: z.enum(["yes", "no"]),
+	migration: z.enum(["yes", "no"]),
+	dependency: z.enum(["yes", "no"]),
+	sharedType: z.enum(["yes", "no"]),
+	deletedTest: z.enum(["yes", "no"]),
 });
 
 export const TicketPrSchema = z.object({
@@ -19,14 +37,9 @@ export const TicketPrSchema = z.object({
 	deletions: CountSchema.nullable(),
 	changedFiles: CountSchema.nullable(),
 	sizeBand: z.enum(["small", "medium", "large"]).nullable(),
-	kind: z.enum(["frontend", "backend", "mixed", "unknown"]),
-	risk: z.object({
-		auth: z.enum(["yes", "no"]),
-		migration: z.enum(["yes", "no"]),
-		dependency: z.enum(["yes", "no"]),
-		sharedType: z.enum(["yes", "no"]),
-		deletedTest: z.enum(["yes", "no"]),
-	}),
+	// A `TicketPrSchema` row with no complete changed-file list uses "unknown" for `kind` and "no" for each `risk` answer.
+	kind: PrKindSchema,
+	risk: PrRiskSchema,
 	pass: CountSchema,
 	fail: CountSchema,
 	pending: CountSchema,

@@ -1,4 +1,4 @@
-import { type ChangedFile, CheckBucketSchema, prPaths, type TicketPr, TicketPrSchema } from "@trellis/api";
+import { CheckBucketSchema, prPaths, type TicketPr, TicketPrSchema } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { ciRank, prStateRank, reviewStateRank } from "./support.ts";
 
@@ -24,9 +24,9 @@ const failCheck = sql`check_row.value->>'bucket' IN (${FAIL}, ${CANCEL})`;
 const pendingCheck = sql`check_row.value->>'bucket' = ${PENDING}`;
 const skippedCheck = sql`check_row.value->>'bucket' = ${SKIPPED}`;
 
-export type TicketPrSource = Omit<TicketPr, "kind" | "risk"> & { files: ChangedFile[] | null };
+export type TicketPrRow = Omit<TicketPr, "kind" | "risk"> & { paths: string[] | null };
 
-const unknownRisk: TicketPr["risk"] = {
+const noRiskAnswers: TicketPr["risk"] = {
 	auth: "no",
 	migration: "no",
 	dependency: "no",
@@ -34,12 +34,14 @@ const unknownRisk: TicketPr["risk"] = {
 	deletedTest: "no",
 };
 
-export const toTicketPrRows = (rows: TicketPrSource[] | null): TicketPr[] =>
-	(rows ?? []).map(({ files, ...row }) => {
-		if (files === null || files.length === 0) return { ...row, kind: "unknown", risk: unknownRisk };
+export const toTicketPrRows = (rows: TicketPrRow[] | null): TicketPr[] =>
+	(rows ?? []).map(({ paths, ...row }) => {
+		if (paths === null || paths.length === 0 || row.changedFiles !== paths.length)
+			return { ...row, kind: "unknown", risk: noRiskAnswers };
+		// Changed-file rows store path and line counts. `prPaths` receives "change", so `risk.deletedTest` remains "no".
 		const facts = prPaths(
 			row.repo,
-			files.map(({ path }) => ({ path, change: "change" })),
+			paths.map((path) => ({ path, change: "change" })),
 		);
 		return { ...row, kind: facts.kind, risk: facts.risk };
 	});
@@ -71,7 +73,10 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 					'number', p.number, 'owner', p.owner, 'repo', p.repo, 'url', p.url,
 					'state', p.state, 'isDraft', p.is_draft,
 					'additions', p.additions, 'deletions', p.deletions, 'changedFiles', p.changed_files,
-					'files', p.files,
+					'paths', (
+						SELECT jsonb_agg(file.value->>'path' ORDER BY file.position)
+						FROM jsonb_array_elements(p.files) WITH ORDINALITY AS file(value, position)
+					),
 					'sizeBand', CASE
 						WHEN p.additions IS NULL OR p.deletions IS NULL THEN NULL
 						WHEN p.additions::bigint + p.deletions::bigint < 200 THEN ${SMALL}

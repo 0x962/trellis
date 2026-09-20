@@ -1,7 +1,6 @@
-import type { TicketPr } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support";
-import { requestedTicketPrJoin } from "../../db/queries/ticketPrs.ts";
+import { requestedTicketPrJoin, type TicketPrRow, toTicketPrRows } from "../../db/queries/ticketPrs.ts";
 import type { Tx } from "../../db/tx";
 import type { PrepareCtx, ServiceCtx } from "../support";
 import { parseRef } from "./queries.ts";
@@ -18,7 +17,7 @@ export async function status(_ctx: ServiceCtx, tx: Tx, input: PreparedStatus) {
 	const [row] = await rows<{
 		identifier: string;
 		title: string;
-		ticket_pr_rows: TicketPr[];
+		ticket_pr_rows: TicketPrRow[];
 	}>(
 		tx,
 		sql`
@@ -44,6 +43,6 @@ export async function status(_ctx: ServiceCtx, tx: Tx, input: PreparedStatus) {
 	return {
 		...input.remote,
 		ticket: { identifier: row.identifier, title: row.title },
-		prRow: row.ticket_pr_rows[0]!,
+		prRow: toTicketPrRows(row.ticket_pr_rows)[0]!,
 	};
 }
