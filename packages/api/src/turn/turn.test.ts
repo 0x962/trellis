@@ -42,6 +42,10 @@ test("gives a draft pull request to the agent", () => {
 	expect(turnOf(pullRequest({ isDraft: true }), false)).toBe("agent");
 });
 
+test("gives a ticket with a draft pull request to the agent", () => {
+	expect(turnOf(ticket({ prRows: [pullRequest({ isDraft: true })] }), false)).toBe("agent");
+});
+
 test("gives a pull request with pending checks to GitHub", () => {
 	expect(turnOf(pullRequest({ pending: 1 }), false)).toBe("github");
 });

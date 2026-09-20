@@ -10,14 +10,12 @@ const isTicket = (row: TurnRow): row is TicketSummary => "prRows" in row;
 export function turnOf(row: TurnRow, hasWorkingRun: boolean): Turn {
 	let ticket: TicketSummary | null;
 	let pullRequests: TicketPr[];
-	let isPullRequestClosed = false;
 	if (isTicket(row)) {
 		ticket = row;
 		pullRequests = row.prRows;
 	} else {
 		ticket = null;
 		pullRequests = [row];
-		isPullRequestClosed = row.state !== "open";
 	}
 
 	if (ticket?.status.category === "done" || ticket?.status.category === "canceled") return "done";
@@ -48,6 +46,6 @@ export function turnOf(row: TurnRow, hasWorkingRun: boolean): Turn {
 	if (ticket?.status.category === "todo") {
 		return ticket.waitsOn.some((dependency) => dependency.isQuestion) ? "waits on your answer" : "waits on a merge";
 	}
-	if (isPullRequestClosed) return "done";
+	if (ticket === null) return "done";
 	return "agent";
 }
