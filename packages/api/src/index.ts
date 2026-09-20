@@ -21,6 +21,7 @@ export * from "./reviewImage";
 export * from "./reviewPatch/index.ts";
 export * from "./reviewRef/index.ts";
 export * from "./reviewSuggestion/index.ts";
+export * from "./runLine/index.ts";
 export * from "./schemas/index.ts";
 export * from "./sessionAlerts/sessionAlerts.ts";
 export * from "./sessionStatus/index.ts";
