@@ -1,6 +1,7 @@
 import {
 	ActorChipSection,
 	CheckRibbonSection,
+	FileRiskGroupsSection,
 	FlowRunSection,
 	LineChangesSection,
 	PriorityIconSection,
@@ -25,6 +26,7 @@ export function DomainSections() {
 			<TicketGlimmerSection />
 			<TrellisMarkSection />
 			<FlowRunSection />
+			<FileRiskGroupsSection />
 		</>
 	);
 }

@@ -1,5 +1,6 @@
 export { ActorChipSection } from "./ActorChipSection";
 export { CheckRibbonSection } from "./CheckRibbonSection";
+export { FileRiskGroupsSection } from "./FileRiskGroupsSection";
 export { FlowRunSection } from "./FlowRunSection";
 export { LineChangesSection } from "./LineChangesSection";
 export { PriorityIconSection } from "./PriorityIconSection";
