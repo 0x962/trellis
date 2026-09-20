@@ -41,10 +41,10 @@ import * as reviewApply from "./reviews/apply";
 import * as reviewImage from "./reviews/image";
 import * as reviewMessages from "./reviews/messages";
 import * as reviewPrs from "./reviews/prs";
-import * as reviewQueries from "./reviews/queries";
 import * as reviewRemote from "./reviews/remote";
 import * as reviewReviewers from "./reviews/reviewers";
 import * as reviewRevision from "./reviews/revision";
+import * as reviewStatus from "./reviews/status";
 import * as reviewThreads from "./reviews/threads";
 import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
@@ -153,7 +153,7 @@ export const services = {
 	"reviews.status": prepared(
 		"read",
 		async (ctx, input) => ({ pr: input.pr, remote: await reviewRevision.status(ctx, input) }),
-		reviewQueries.status,
+		reviewStatus.status,
 	),
 	"reviews.reviewers": prepared("read", reviewReviewers.reviewers, reviewReviewers.result),
 	"reviews.reviewer": prepared("mutation", reviewReviewers.reviewer, reviewReviewers.result),

@@ -1,44 +1,11 @@
-import { type ReviewThread, reviewRef, type TicketPr } from "@trellis/api";
+import { type ReviewThread, reviewRef } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { rows } from "../../db/queries/support";
-import { ticketPrJoin } from "../../db/queries/ticketPrs.ts";
 import type { Tx } from "../../db/tx";
 import { invalidInput } from "../../errors";
 import { linkScope } from "../pullRequestScope";
 import { notFound, type ServiceCtx } from "../support";
-
-type PreparedStatus = { pr: string; remote: Record<string, unknown> };
-
-export async function status(_ctx: ServiceCtx, tx: Tx, input: PreparedStatus) {
-	const ref = parseRef(input.pr);
-	const [row] = await rows<{
-		identifier: string;
-		title: string;
-		pr_rows: TicketPr[];
-	}>(
-		tx,
-		sql`
-			SELECT root.key || '-' || t.number AS identifier, t.title, pr.pull_requests AS pr_rows
-			FROM ticket_pull_requests requested_link
-			JOIN pull_requests requested_pr ON requested_pr.id = requested_link.pull_request_id
-			JOIN tickets t ON t.id = requested_link.ticket_id
-			JOIN projects root ON root.id = t.root_id
-			${ticketPrJoin}
-			WHERE requested_pr.owner = ${ref.owner}
-				AND requested_pr.repo = ${ref.repo}
-				AND requested_pr.number = ${ref.number}
-			ORDER BY t.number, root.key, t.id
-			LIMIT 1
-		`,
-	);
-	if (!row) return { ...input.remote, ticket: null, prRow: null };
-	return {
-		...input.remote,
-		ticket: { identifier: row.identifier, title: row.title },
-		prRow: row.pr_rows.find((pr) => pr.owner === ref.owner && pr.repo === ref.repo && pr.number === ref.number)!,
-	};
-}
 
 export function parseRef(input: string) {
 	try {

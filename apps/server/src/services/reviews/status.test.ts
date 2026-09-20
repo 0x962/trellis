@@ -4,11 +4,11 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { openTestDb } from "../../db/testDb.ts";
 import type { ServiceCtx } from "../support.ts";
-import { status } from "./queries.ts";
+import { status } from "./status.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 const root = ulid();
-const statusId = ulid();
+const todoStatusId = ulid();
 const at = new Date("2026-09-20T12:00:00.000Z");
 const pr = "acme/app#28";
 
@@ -20,14 +20,14 @@ beforeAll(async () => {
 		VALUES (${root}, ${root}, 'TST', 'tst', 'Test', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses (
 		id, project_id, name, slug, category, color, position, is_default, created_at, updated_at
-	) VALUES (${statusId}, ${root}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})`);
+	) VALUES (${todoStatusId}, ${root}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})`);
 	const laterTicket = ulid();
 	const firstTicket = ulid();
 	await db.execute(sql`INSERT INTO tickets (
 		id, project_id, root_id, number, title, status_id, position, created_at, updated_at
 	) VALUES
-		(${laterTicket}, ${root}, ${root}, 9, 'Later ticket', ${statusId}, 0, ${at}, ${at}),
-		(${firstTicket}, ${root}, ${root}, 2, 'First ticket', ${statusId}, 1, ${at}, ${at})`);
+		(${laterTicket}, ${root}, ${root}, 9, 'Later ticket', ${todoStatusId}, 0, ${at}, ${at}),
+		(${firstTicket}, ${root}, ${root}, 2, 'First ticket', ${todoStatusId}, 1, ${at}, ${at})`);
 	const prId = ulid();
 	await db.execute(sql`INSERT INTO pull_requests (
 		id, owner, repo, number, url, state, is_draft, head_ref, base_ref,
