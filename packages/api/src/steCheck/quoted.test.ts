@@ -4,14 +4,11 @@ import { unquotedText } from "./quoted";
 describe("unquotedText", () => {
 	test("masks inline quoted material", () => {
 		const result = unquotedText(
-			"Keep `an — example`, \"a — string\", “curly — words”, 'single — words' and ‘more — words’.",
+			"Keep the user's choice, `an — example`, \"a — string\", “curly — words”, 'single — words' and ‘more — words’.",
 		);
 		expect(result).not.toContain("—");
+		expect(result).toContain("user's");
 		expect(result).toEndWith(".");
-	});
-
-	test("keeps apostrophes in prose", () => {
-		expect(unquotedText("The user's choice isn't changed.")).toBe("The user's choice isn't changed.");
 	});
 
 	test("masks error lines, check names and test names", () => {

@@ -1,13 +1,5 @@
 import { unquotedText } from "./quoted";
-
-const headlineVerbs = new Set(
-	(
-		"add allow apply bind build change check clean close configure connect create delete detect disable display " +
-		"document draw enable enforce expose fix forward give group handle hide import keep limit link list load make match " +
-		"measure merge move name open parse persist prevent print read record remove rename render replace report require " +
-		"resolve restore return reuse save send set show simplify split start stop store support track update use validate verify warn write"
-	).split(" "),
-);
+import { clusterBreaks, clusterVerbs, headlineStartsWithVerb } from "./words";
 
 export type SteCheckResult = { refusals: string[]; warnings: string[] };
 
@@ -29,21 +21,6 @@ const sentences = (masked: string): Sentence[] => {
 	}
 	return result;
 };
-
-const clusterBreaks = new Set([
-	...(
-		"a an and are as at be been both but by for from has have in into is it its no not now of on or that the their then " +
-		"this to was were with changes gave gives holds keeps leaves posts reads says takes"
-	).split(" "),
-	...headlineVerbs,
-]);
-
-const clusterVerbs = new Set(
-	[...headlineVerbs].flatMap((verb) => {
-		if (/[^aeiou]y$/.test(verb)) return [verb, `${verb.slice(0, -1)}ies`];
-		return [verb, `${verb}${/(?:s|x|z|ch|sh|o)$/.test(verb) ? "es" : "s"}`];
-	}),
-);
 
 const nounCluster = (sentence: string) => {
 	let cluster: string[] = [];
@@ -92,7 +69,7 @@ export function steCheck(text: string, options: { headline: boolean }): SteCheck
 		const count = words(masked).length;
 		if (count > 12) refusals.push(`headline is ${count} words. The limit is 12.`);
 		const first = words(masked)[0]?.toLowerCase();
-		if (first !== undefined && !headlineVerbs.has(first)) {
+		if (first !== undefined && !headlineStartsWithVerb(first)) {
 			refusals.push("headline does not start with a verb.");
 		}
 	}

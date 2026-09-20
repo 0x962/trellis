@@ -25,6 +25,20 @@ describe("steCheck refusals", () => {
 		);
 	});
 
+	test("accepts the verdict verbs outside the original table", () => {
+		for (const verb of "Answer Cap Fetch Filter Hold Mark Put Refuse Run Sort Stack Take Wait".split(" ")) {
+			expect(steCheck(`${verb} the result.`, { headline: true }).refusals).not.toContain(
+				"headline does not start with a verb.",
+			);
+		}
+	});
+
+	test("refuses a known noun as the first word", () => {
+		expect(steCheck("Ticket status changes.", { headline: true }).refusals).toContain(
+			"headline does not start with a verb.",
+		);
+	});
+
 	test("reports a noun cluster", () => {
 		expect(steCheck("The pull request summary contract changes.", { headline: false }).refusals).toContain(
 			'sentence 1 holds a noun cluster of 4 words: "pull request summary contract". The limit is 3.',
