@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { booleanString, IsoDateTimeSchema, UlidSchema } from "./primitives";
+import { TicketIdentifierSchema } from "./ticket";
+import { TicketPrSchema } from "./ticketPr";
 
 export const ReviewRefSchema = z.string().min(1).max(2048);
 export const ReviewBodySchema = z
@@ -102,6 +104,10 @@ export const ReviewPrSchema = z.object({
 	open: z.number().int(),
 	resolved: z.number().int(),
 	updatedAt: IsoDateTimeSchema,
+});
+export const ReviewStatusSchema = z.looseObject({
+	ticket: z.object({ identifier: TicketIdentifierSchema, title: z.string() }).nullable(),
+	prRow: TicketPrSchema.nullable(),
 });
 export const ReviewRevisionSchema = z.object({
 	id: UlidSchema,
