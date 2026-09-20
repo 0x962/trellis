@@ -8,6 +8,7 @@ import {
 	LineChangesSection,
 	PrGlyphSection,
 	PriorityIconSection,
+	ReviewFocusListSection,
 	ReviewStatusSummarySection,
 	StatusIconSection,
 	TicketGlimmerSection,
@@ -21,6 +22,7 @@ export function DomainSections() {
 		<>
 			<StatusIconSection />
 			<PriorityIconSection />
+			<ReviewFocusListSection />
 			<ReviewStatusSummarySection />
 			<CheckRibbonSection />
 			<ChecksLineSection />
