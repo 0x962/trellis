@@ -6,6 +6,7 @@ export * from "./contract/index.ts";
 export * from "./epicText/index.ts";
 export * from "./errors.ts";
 export * from "./events.ts";
+export * from "./evidenceFloor/index.ts";
 export * from "./flowGraph.ts";
 export * from "./ghCopy.ts";
 export * from "./harness/effort/effort.ts";

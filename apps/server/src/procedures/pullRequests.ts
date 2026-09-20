@@ -15,4 +15,13 @@ export const pullRequests = os.pullRequests.router({
 	writeSummary: os.pullRequests.writeSummary.handler(({ context, input }) =>
 		call(context, "pullRequests.writeSummary", input),
 	),
+	listEvidence: os.pullRequests.listEvidence.handler(({ context, input }) =>
+		call(context, "pullRequests.listEvidence", input),
+	),
+	readEvidence: os.pullRequests.readEvidence.handler(({ context, input }) =>
+		call(context, "pullRequests.readEvidence", input),
+	),
+	writeEvidence: os.pullRequests.writeEvidence.handler(({ context, input }) =>
+		call(context, "pullRequests.writeEvidence", input),
+	),
 });

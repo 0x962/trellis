@@ -36,9 +36,11 @@ export const TicketPrSchema = z.object({
 	deletions: CountSchema.nullable(),
 	changedFiles: CountSchema.nullable(),
 	sizeBand: z.enum(["small", "medium", "large"]).nullable(),
-	// A null `kind` or `risk` means the poller has not fetched a complete pull request file list.
+	// A null `kind` or `risk` means the poller has no complete file list.
+	// A null `evidence` means the poller has no complete file list or no head SHA.
 	kind: PrKindSchema.nullable(),
 	risk: PrRiskSchema.nullable(),
+	evidence: CountSchema.nullable(),
 	pass: CountSchema,
 	fail: CountSchema,
 	pending: CountSchema,

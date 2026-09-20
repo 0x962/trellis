@@ -11,6 +11,7 @@ import { rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import { invalidInput, invalidIssues } from "../errors.ts";
 import { findPullRequestRow } from "./findPullRequestRow.ts";
+import { announcePullRequestUpdate, setHeadSha } from "./pullRequests.ts";
 import { fail, type PrepareCtx, type ServiceCtx } from "./support.ts";
 
 const summaryColumns = sql`
@@ -70,6 +71,7 @@ export const write = async (ctx: ServiceCtx, tx: Tx, input: WriteInput): Promise
 
 	const pullRequest = await findPullRequestRow(tx, input.id);
 	const at = ctx.now();
+	await setHeadSha(tx, { id: pullRequest.id, headSha: input.headSha });
 	const [summary] = await rows<PullRequestSummary>(
 		tx,
 		sql`INSERT INTO pr_summaries
@@ -80,5 +82,6 @@ export const write = async (ctx: ServiceCtx, tx: Tx, input: WriteInput): Promise
 				updated_at = EXCLUDED.updated_at
 			RETURNING ${summaryColumns}`,
 	);
+	await announcePullRequestUpdate(ctx, tx, pullRequest);
 	return { summary: summary!, warnings };
 };

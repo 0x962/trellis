@@ -6,7 +6,8 @@ import { iso, rows } from "../db/queries/support.ts";
 import { ticketSummary } from "../db/queries/ticketGet.ts";
 import type { Tx } from "../db/tx.ts";
 import { invalidInput } from "../errors.ts";
-import { finalize, gc, markLiveTempFile, tempPath } from "../storage/blobs.ts";
+import { sha256OfFile, storedMime, storeFile } from "../storage/blobs.ts";
+import { gcBlobs } from "./blobs.ts";
 import {
 	assertProjectActive,
 	fail,
@@ -23,8 +24,6 @@ import {
 // same bytes share one file and keep one row each. A delete removes its row
 // inside the transaction and removes the file after the commit, so a rolled
 // back delete keeps both.
-
-const HASH_CHUNK_BYTES = 1024 * 1024;
 
 // The types a browser may render on the app origin. An SVG or an HTML file
 // runs as script there, so every type outside this list downloads instead.
@@ -108,53 +107,6 @@ const toAttachment = (row: AttachmentRow): Attachment => ({
 const markdownFor = (attachment: Attachment) =>
 	`${attachment.mime.startsWith("image/") ? "!" : ""}[${attachment.filename}](${attachment.url})`;
 
-// Writes the upload to `attachments/tmp` and hashes it in the same pass, in
-// parts of 1 MB, so a 50 MB upload never sits in memory. The file then moves
-// to the path of its hash. The name of the temp file is marked live, so a
-// boot sweep in another process leaves the upload alone.
-export const storeFile = async (home: string, file: File) => {
-	const name = ulid();
-	const release = markLiveTempFile(name);
-	const hasher = new Bun.CryptoHasher("sha256");
-	const sink = Bun.file(tempPath(home, name)).writer();
-	let size = 0;
-	for await (const chunk of file.stream()) {
-		for (let offset = 0; offset < chunk.byteLength; offset += HASH_CHUNK_BYTES) {
-			const part = chunk.subarray(offset, offset + HASH_CHUNK_BYTES);
-			hasher.update(part);
-			sink.write(part);
-			size += part.byteLength;
-		}
-	}
-	await sink.end();
-	const sha256 = hasher.digest("hex");
-	await finalize(home, name, sha256);
-	release();
-	return { sha256, size };
-};
-
-const fileSha256 = async (file: File) => {
-	const hasher = new Bun.CryptoHasher("sha256");
-	for await (const chunk of file.stream()) {
-		for (let offset = 0; offset < chunk.byteLength; offset += HASH_CHUNK_BYTES) {
-			hasher.update(chunk.subarray(offset, offset + HASH_CHUNK_BYTES));
-		}
-	}
-	return hasher.digest("hex");
-};
-
-// The mime the row keeps: the type and the subtype, without parameters, as
-// in `text/plain`. The file route sets the charset itself. The multipart
-// parser gives an empty type to a part whose filename has no known
-// extension. Every read refuses an empty mime, so such a part is stored as
-// `application/octet-stream`, which downloads.
-const MIME_PATTERN = /^[\w.+-]+\/[\w.+-]+$/;
-
-export const storedMime = (type: string) => {
-	const essence = type.split(";")[0]!.trim().toLowerCase();
-	return MIME_PATTERN.test(essence) ? essence : "application/octet-stream";
-};
-
 // An upload or a delete changes the ticket's `attachmentCount`, which the
 // ticket table and the board show. The ticket.updated event carries the new
 // summary, so every client patches the count in place.
@@ -184,7 +136,7 @@ export const upload = async (ctx: ServiceCtx, tx: Tx, input: UploadInput): Promi
 				existing.size !== input.file.size ||
 				existing.actor_name !== ctx.actor.name ||
 				existing.actor_kind !== ctx.actor.kind ||
-				existing.sha256 !== (await fileSha256(input.file))
+				existing.sha256 !== (await sha256OfFile(input.file))
 			)
 				throw invalidInput("id", "This id already identifies another attachment.");
 			const attachment = toAttachment(existing);
@@ -221,29 +173,6 @@ const findAttachmentIfExists = async (tx: Tx, id: string): Promise<AttachmentRow
 	return row;
 };
 
-// True while an attachment row still names this hash. `gc` holds the blob
-// lock, so `holdsSha` counts an upload between its file move and row write.
-type BlobCtx = Pick<ServiceCtx, "home" | "newTx">;
-
-const holdsSha = (ctx: BlobCtx, sha256: string) => () =>
-	ctx.newTx(async (tx) => {
-		const [row] = await rows<{ n: number }>(
-			tx,
-			sql`SELECT count(*)::int AS n FROM attachments WHERE sha256 = ${sha256}`,
-		);
-		return row!.n > 0;
-	});
-
-// Removes the file of every hash whose last row went. The caller runs this
-// after the commit, so a rolled back delete never loses a file.
-export const gcAttachmentBlobs = async (ctx: BlobCtx, shas: string[]) => {
-	const removed: string[] = [];
-	for (const sha256 of new Set(shas)) {
-		if (await gc(ctx.home, sha256, holdsSha(ctx, sha256))) removed.push(sha256);
-	}
-	return { removed };
-};
-
 export type IdInput = { id: string };
 
 export const remove = async (ctx: ServiceCtx, tx: Tx, input: IdInput) => {
@@ -262,7 +191,7 @@ export const remove = async (ctx: ServiceCtx, tx: Tx, input: IdInput) => {
 	ctx.emit({ type: "attachment.deleted", id: row.id, ticketId: ticket.id, projectId: ticket.project_id });
 	await emitCount(ctx, tx, ticket.id);
 	ctx.afterCommit(async () => {
-		await gcAttachmentBlobs(ctx, [row.sha256]);
+		await gcBlobs(ctx, [row.sha256]);
 	});
 	return { deleted: row.id };
 };

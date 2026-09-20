@@ -8,7 +8,11 @@ type Size = { additions: number; deletions: number; changedFiles: number };
 
 const defaultFiles = [{ path: "apps/server/src/gh/graphql.ts", additions: 12, deletions: 3 }];
 
-const responseWithSize = (size: Size, files: RawFile[] = defaultFiles): PullRequestResponse => ({
+const responseWithSize = (
+	size: Size,
+	files: RawFile[] = defaultFiles,
+	headSha = "0123456789abcdef",
+): PullRequestResponse => ({
 	data: {
 		pr0: {
 			pullRequest: {
@@ -19,6 +23,7 @@ const responseWithSize = (size: Size, files: RawFile[] = defaultFiles): PullRequ
 				state: "OPEN",
 				isDraft: false,
 				url: "https://github.com/octo/repo/pull/42",
+				headRefOid: headSha,
 				headRefName: "size",
 				baseRefName: "main",
 				mergedAt: null,
@@ -30,8 +35,8 @@ const responseWithSize = (size: Size, files: RawFile[] = defaultFiles): PullRequ
 	},
 });
 
-const rowOf = (size: Size, files?: RawFile[]) => {
-	const result = mapPullRequestResponse([ref], responseWithSize(size, files))[0]!;
+const rowOf = (size: Size, files?: RawFile[], headSha?: string) => {
+	const result = mapPullRequestResponse([ref], responseWithSize(size, files, headSha))[0]!;
 	if (!("row" in result)) throw new Error(result.error);
 	return result.row;
 };
@@ -39,6 +44,10 @@ const rowOf = (size: Size, files?: RawFile[]) => {
 describe("pull request GraphQL size", () => {
 	test("requests all size fields", () => {
 		expect(buildPullRequestQuery([ref])).toContain("number additions deletions changedFiles");
+	});
+
+	test("stores the head SHA", () => {
+		expect(rowOf({ additions: 120, deletions: 30, changedFiles: 9 }).headSha).toBe("0123456789abcdef");
 	});
 
 	test("requests at most 100 changed files", () => {
@@ -67,5 +76,10 @@ describe("pull request GraphQL size", () => {
 		expect(rowOf(size, [{ path: "apps/server/src/gh/parse.ts", additions: 12, deletions: 3 }]).contentHash).not.toBe(
 			base,
 		);
+	});
+
+	test("includes the head SHA in the content hash", () => {
+		const size = { additions: 120, deletions: 30, changedFiles: 9 };
+		expect(rowOf(size, undefined, "head-two").contentHash).not.toBe(rowOf(size, undefined, "head-one").contentHash);
 	});
 });

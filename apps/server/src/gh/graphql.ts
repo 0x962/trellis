@@ -29,6 +29,7 @@ export type RawPullRequest = {
 	state: "OPEN" | "CLOSED" | "MERGED";
 	isDraft: boolean;
 	url: string;
+	headRefOid: string;
 	headRefName: string;
 	baseRefName: string;
 	mergedAt: string | null;
@@ -62,6 +63,7 @@ export type PullRequestContent = {
 	title: string;
 	state: PrState;
 	isDraft: boolean;
+	headSha: string;
 	headRef: string;
 	baseRef: string;
 	reviewState: ReviewState;
@@ -78,7 +80,7 @@ export type PullRequestResult = { ref: PullRequestRef; row: PullRequestRow } | {
 export type FetchPullRequestsResult = { ok: true; results: PullRequestResult[] } | GhFailure;
 
 const selection = `{
-	number additions deletions changedFiles title state isDraft url headRefName baseRefName mergedAt closedAt reviewDecision
+	number additions deletions changedFiles title state isDraft url headRefOid headRefName baseRefName mergedAt closedAt reviewDecision
 	files(first: ${MAX_CHANGED_FILES}) { nodes { path additions deletions } }
 	commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { nodes {
 		__typename
@@ -133,6 +135,7 @@ const toRow = (ref: PullRequestRef, raw: RawPullRequest): PullRequestRow => {
 		title: raw.title,
 		state: raw.state.toLowerCase() as PrState,
 		isDraft: raw.isDraft,
+		headSha: raw.headRefOid,
 		headRef: raw.headRefName,
 		baseRef: raw.baseRefName,
 		reviewState: raw.reviewDecision === null ? "none" : reviewStates[raw.reviewDecision],

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
+import { EvidenceIdInputSchema, EvidenceSchema, EvidenceWriteInputSchema } from "../schemas/evidence.ts";
 import {
 	LinkedPullRequestSchema,
 	PullRequestDiffOutputSchema,
@@ -54,4 +55,21 @@ export const pullRequests = {
 		.route({ method: "PUT", path: "/prs/{id}/summaries/{headSha}", summary: "Write one pull request summary" })
 		.input(PullRequestSummaryWriteInputSchema)
 		.output(PullRequestSummaryWriteOutputSchema),
+	listEvidence: base
+		.route({ method: "GET", path: "/prs/{id}/evidence", summary: "List the evidence of a pull request" })
+		.input(PullRequestIdInputSchema)
+		.output(z.array(EvidenceSchema)),
+	readEvidence: base
+		.route({ method: "GET", path: "/evidence/{evidenceId}", summary: "Read one evidence record" })
+		.input(EvidenceIdInputSchema)
+		.output(EvidenceSchema),
+	writeEvidence: base
+		.errors(pickErrors(["DUPLICATE", "GH_UNAVAILABLE", "PAYLOAD_TOO_LARGE", "PR_HEAD_MOVED"]))
+		.route({
+			method: "PUT",
+			path: "/prs/{id}/evidence/{evidenceId}",
+			summary: "Register evidence for one pull request head",
+		})
+		.input(EvidenceWriteInputSchema)
+		.output(EvidenceSchema),
 };

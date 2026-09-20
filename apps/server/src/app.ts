@@ -21,6 +21,7 @@ import { chooseDirectory } from "./native/chooseDirectory";
 import { type ProcedureContext, router } from "./procedures/index.ts";
 import { docsRoutes } from "./routes/docs.ts";
 import { type Clock, createEventsRoute, realClock } from "./routes/events.ts";
+import { evidenceFileRoute } from "./routes/evidenceFile.ts";
 import { exportRoute } from "./routes/export.ts";
 import { filesRoute } from "./routes/files.ts";
 import { reviewImageRoute } from "./routes/reviewImage";
@@ -157,11 +158,22 @@ export const createApp = ({
 		"/api/tickets/:ticket/attachments",
 		bodyLimit({ maxSize: maxBytes, onError: (c) => c.json(errorBody("PAYLOAD_TOO_LARGE", { maxBytes }), 413) }),
 	);
+	app.use(
+		"/api/prs/:id/evidence/:evidenceId",
+		bodyLimit({ maxSize: maxBytes, onError: (c) => c.json(errorBody("PAYLOAD_TOO_LARGE", { maxBytes }), 413) }),
+	);
 	// The RPC codec wraps every body in `json`. The limit answers before the
 	// handler runs, so it writes that shape itself; without it the client
 	// reads an undefined error and never sees the cap it must report.
 	app.use(
 		"/rpc/attachments/upload",
+		bodyLimit({
+			maxSize: maxBytes,
+			onError: (c) => c.json({ json: errorBody("PAYLOAD_TOO_LARGE", { maxBytes }) }, 413),
+		}),
+	);
+	app.use(
+		"/rpc/pullRequests/writeEvidence",
 		bodyLimit({
 			maxSize: maxBytes,
 			onError: (c) => c.json({ json: errorBody("PAYLOAD_TOO_LARGE", { maxBytes }) }, 413),
@@ -221,6 +233,7 @@ export const createApp = ({
 	});
 
 	app.get("/api/review-image", reviewImageRoute(transport));
+	app.get("/api/evidence/:evidenceId/file", evidenceFileRoute({ config, transport }));
 	app.get("/api/events", events.handler);
 	app.get("/api/agent-runs/:id/terminal/stream", terminalStreamRoute(config, transport));
 	app.get("/api/agent-runs/:id/terminal/socket", terminalSocketRoute(config, transport));
