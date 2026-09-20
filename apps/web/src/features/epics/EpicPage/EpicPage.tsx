@@ -81,17 +81,16 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	const assignedRuns = assignedRunsQuery.data;
 	const assigned = useMemo(() => assignedTicketIds(assignedRuns ?? noRuns), [assignedRuns]);
 	const rowRank = useMemo(() => epicRowRank(assigned), [assigned]);
-	const workingAgentTicketIds = useMemo(() => epicWorkingTicketIds(assignedRuns ?? noRuns), [assignedRuns]);
-	// The same ids as a set. The turn of a row reads it once per row, and
-	// the band counts the tickets of the current wave that wait for the
-	// person with it.
-	const workingTicketIds = useMemo(() => new Set(workingAgentTicketIds), [workingAgentTicketIds]);
+	// A Set, because the turn of each row tests membership. Null until the
+	// query succeeds: an empty set would read a ticket whose agent works as
+	// the turn of the person, and the row would move when the answer lands.
+	const workingTicketIds = useMemo(
+		() => (assignedRunsQuery.status === "success" ? new Set(epicWorkingTicketIds(assignedRuns ?? noRuns)) : null),
+		[assignedRunsQuery.status, assignedRuns],
+	);
 	const running = useMemo(
-		() =>
-			assignedRunsQuery.status === "success" && epic.data !== undefined
-				? epicRunningCount(epic.data, workingAgentTicketIds)
-				: null,
-		[assignedRunsQuery.status, epic.data, workingAgentTicketIds],
+		() => (workingTicketIds !== null && epic.data !== undefined ? epicRunningCount(epic.data, workingTicketIds) : null),
+		[workingTicketIds, epic.data],
 	);
 	// The same `agentRuns.list` query as `assignedRuns` above, with another
 	// `select`. A ticket row whose run holds an open request or a last
@@ -128,7 +127,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	// The search and the filter bar need the epic ref and the project alone,
 	// so the pending page draws the same bar as the loaded page and the
 	// topbar keeps its shape when the epic arrives.
-	const tableSearch = epicPageSearch(search, ref);
+	const tableSearch = useMemo(() => epicPageSearch(search, ref), [search, ref]);
 	const { epic: fixedEpic, ...barSearch } = tableSearch;
 	const full = viewOf(tableSearch);
 	const setSearch = (next: Partial<View>) => onSearchChange(epicUrlSearch(next));

@@ -106,11 +106,8 @@ describe("epicNext", () => {
 		});
 	});
 
-	test("omits the running count until the assigned-run query succeeds", () => {
-		expect(epicNext(epic, null, {}, noWorking)?.counts.map((count) => count.label)).toEqual([
-			"3 to start",
-			"1 waits for you",
-		]);
+	test("omits the running count and the count of the person until the assigned-run query succeeds", () => {
+		expect(epicNext(epic, null, {}, null)?.counts.map((count) => count.label)).toEqual(["3 to start"]);
 	});
 
 	test("is null when no milestone is current", () => {
@@ -130,8 +127,8 @@ describe("epicRunningCount", () => {
 		).toEqual(["working-1", "working-2"]);
 	});
 
-	test("counts working ticket targets in the current milestone once", () => {
-		expect(epicRunningCount(epic, ["working-1", "working-2", "foundation"])).toBe(2);
+	test("counts the tickets of the current milestone whose run works", () => {
+		expect(epicRunningCount(epic, new Set(["working-1", "working-2", "foundation"]))).toBe(2);
 	});
 });
 

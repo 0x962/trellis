@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { TicketPr, TicketSummary } from "@trellis/api";
-import { forYouCount, rowTurn, turnGroupMark, waveCountLabel } from "./turnGroups";
+import { forYouCount, rowTurn, turnBucketOf } from "./turnGroups";
 
 const pullRequest = (fields: Partial<TicketPr> = {}): TicketPr =>
 	({
@@ -49,11 +49,11 @@ const merge = ticket("merge", {
 });
 const shipped = ticket("shipped", { category: "done" });
 
-describe("turnGroupMark", () => {
+describe("turnBucketOf", () => {
 	test("names and ranks the seven groups in display order", () => {
 		const rows = [shipped, merge, answer, checks, draft, start, question];
 
-		const marks = rows.map((row) => turnGroupMark(row)).sort((a, b) => a.rank - b.rank);
+		const marks = rows.map((row) => turnBucketOf(row)).sort((a, b) => a.rank - b.rank);
 
 		expect(marks.map((mark) => mark.label)).toEqual([
 			"Your turn",
@@ -67,14 +67,14 @@ describe("turnGroupMark", () => {
 	});
 
 	test("writes a key with a dash for each space", () => {
-		expect(turnGroupMark(answer).key).toBe("waits-on-your-answer");
-		expect(turnGroupMark(merge).key).toBe("waits-on-a-merge");
-		expect(turnGroupMark(shipped).key).toBe("done");
+		expect(turnBucketOf(answer).key).toBe("waits-on-your-answer");
+		expect(turnBucketOf(merge).key).toBe("waits-on-a-merge");
+		expect(turnBucketOf(shipped).key).toBe("done");
 	});
 
 	test("gives a ticket whose agent run works to the agent", () => {
-		expect(turnGroupMark(review, new Set(["review"])).label).toBe("With an agent");
-		expect(turnGroupMark(start, new Set(["start"])).label).toBe("With an agent");
+		expect(turnBucketOf(review, new Set(["review"])).label).toBe("With an agent");
+		expect(turnBucketOf(start, new Set(["start"])).label).toBe("With an agent");
 	});
 });
 
@@ -96,15 +96,5 @@ describe("forYouCount", () => {
 
 	test("counts nothing in a set that holds no row of the person", () => {
 		expect(forYouCount([draft, merge, shipped])).toBe(0);
-	});
-});
-
-describe("waveCountLabel", () => {
-	test("adds the count of the person after the wave counts", () => {
-		expect(waveCountLabel("0/6", 1)).toBe("0/6 · 1 for you");
-	});
-
-	test("prints the wave counts alone when no row waits for the person", () => {
-		expect(waveCountLabel("3/3", 0)).toBe("3/3");
 	});
 });

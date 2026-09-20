@@ -73,10 +73,9 @@ export function DisplayPopover({
 	const hideable = columnOrder.filter(
 		(id) => !alwaysVisible.includes(id) && !(epicFixed && id === "epic") && kindShows(id, tableKind),
 	);
-	// The turn of a row reads its pull requests, its dependencies and the
-	// agent run that works on it, which the epic route alone loads. So the
-	// Turn grouping shows on the epic route, and the Epic grouping does not,
-	// because every row there holds the same epic.
+	// Only the epic route loads what the turn of a row reads, so only that
+	// route offers the Turn entry. It offers no Epic entry, because every
+	// row there holds the same epic.
 	const groupItems = groups.filter((entry) => (epicFixed ? entry.value !== "epic" : entry.value !== "turn"));
 	// The table shows the Done and Canceled rows under the status grouping,
 	// and under the wave and turn groupings of one epic.

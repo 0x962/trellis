@@ -85,8 +85,8 @@ export const Route = createFileRoute("/p/$")({
 		// agent run that works on it, which the epic page alone loads. An old
 		// link with `group=turn` on a board or a table drops the param, so
 		// the view takes its own default grouping.
-		const { group, ...withoutTurn } = search;
-		const listSearch = group === "turn" ? withoutTurn : search;
+		const { group, ...withoutGroup } = search;
+		const listSearch = group === "turn" ? withoutGroup : search;
 		if (listSearch !== search || !isCanonicalSearch(location.searchStr, listSearch)) {
 			throw redirect({ to: "/p/$", params: { _splat: splat }, search: stripDefaults(listSearch), replace: true });
 		}

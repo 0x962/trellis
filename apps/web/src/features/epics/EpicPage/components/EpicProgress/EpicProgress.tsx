@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { Epic } from "@trellis/api";
 import { StackedBar } from "@trellis/ui";
-import { Fragment } from "react";
+import { Fragment, useMemo } from "react";
 import { formatCount } from "../../../../../lib/format";
 import type { View } from "../../../../filters/grammar";
 import type { WorkingTicketIds } from "../../../../table/utils/turnGroups";
@@ -18,10 +18,8 @@ export type EpicProgressProps = {
 	splat: string;
 	// The search of the epic page. A count link changes its filters.
 	search: Partial<View>;
-	// The ids of the tickets whose assigned agent run works right now. The
-	// `4 wait for you` count reads it, because a ticket whose agent works
-	// waits for the agent and not for the person.
-	workingTicketIds: WorkingTicketIds;
+	// Null until the assigned-run query succeeds, as `running` is.
+	workingTicketIds: WorkingTicketIds | null;
 };
 
 const countLinkClass =
@@ -35,7 +33,12 @@ const countLinkClass =
 // when the filter grammar has no matching filter.
 export function EpicProgress({ epic, running, splat, search, workingTicketIds }: EpicProgressProps) {
 	const progress = epicProgress(epic.counts);
-	const next = epicNext(epic, running, search, workingTicketIds);
+	// `epicNext` reads the turn of every ticket of the current wave, and
+	// this component draws again on each keystroke in the filter bar.
+	const next = useMemo(
+		() => epicNext(epic, running, search, workingTicketIds),
+		[epic, running, search, workingTicketIds],
+	);
 	return (
 		<section aria-label="Progress" className="flex flex-col gap-2 px-5 pt-4 pb-4 max-md:px-4">
 			{next !== null && (

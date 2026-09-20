@@ -6,7 +6,7 @@ import type { TableGroup } from "../../utils/flattenGroups";
 import { groupRows, type RowRank } from "../../utils/groupRows";
 import { closedSlugs } from "../../utils/listQuery";
 import { milestoneMarks } from "../../utils/milestoneGroups";
-import { forYouCount, type WorkingTicketIds, waveCountLabel } from "../../utils/turnGroups";
+import { forYouCount, type WorkingTicketIds } from "../../utils/turnGroups";
 import type { ClosedCategory, TableData } from "../useTableData";
 
 export type TableGroupsOptions = {
@@ -17,10 +17,12 @@ export type TableGroupsOptions = {
 	// The rank of a row inside its group, ahead of the view's sort. The
 	// groups rebuild when its identity changes, so the caller memoizes it.
 	rowRank?: RowRank;
-	// The ids of the tickets whose assigned agent run works right now. The
-	// epic route passes it; the turn of a row and the `1 for you` count of
-	// a wave header read it. Memoize it: a new identity regroups the rows.
-	workingTicketIds?: WorkingTicketIds;
+	// The epic route passes it; the turn of a row and the `1 for you` count
+	// of a wave header read it. Null while the agent-run query of the route
+	// has not answered: the turn grouping then reports `loading`, because a
+	// row would land in the wrong group and move when the answer arrives.
+	// Memoize it: a new identity regroups the rows.
+	workingTicketIds?: WorkingTicketIds | null;
 };
 
 export type TableGroups = {
@@ -78,6 +80,7 @@ export const useTableGroups = ({
 	}, [activeRows, inlineClosed]);
 	const epicRefs = useMemo(() => (view.group === "milestone" ? epicRefsOf(rows) : noRefs), [view.group, rows]);
 	const { epics, pending } = useEpicMilestonesLoad(epicRefs);
+	const working = workingTicketIds ?? undefined;
 	const groups = useMemo(() => {
 		const milestones = epics.flatMap((entry) => entry.milestones);
 		const oneEpic = epicRefs.length === 1 && rows.every((row) => row.epic !== null);
@@ -89,14 +92,14 @@ export const useTableGroups = ({
 			project,
 			milestoneOrder: milestones.map((milestone) => milestone.id),
 			rowRank,
-			workingTicketIds,
+			workingTicketIds: working,
 		}).map((group) => {
 			const mark = marks?.get(group.key);
 			return {
 				...group,
 				count: group.rows.length,
-				countLabel:
-					mark === undefined ? undefined : waveCountLabel(mark.countLabel, forYouCount(group.rows, workingTicketIds)),
+				countLabel: mark?.countLabel,
+				forYou: mark === undefined ? undefined : forYouCount(group.rows, working),
 				badge: mark?.badge,
 				note: mark?.note,
 				epicRef: oneEpic && view.group === "milestone" ? epicRefs[0] : undefined,
@@ -138,7 +141,7 @@ export const useTableGroups = ({
 		epics,
 		epicRefs,
 		rowRank,
-		workingTicketIds,
+		working,
 	]);
-	return { groups, loading: pending };
+	return { groups, loading: pending || (view.group === "turn" && workingTicketIds === null) };
 };
