@@ -12,12 +12,13 @@ import {
 	useState,
 } from "react";
 import type { Density } from "../../../../../stores/uiStore";
+import { AgentLine } from "../../../AgentLine";
 import type { ColumnId } from "../../../columns";
 import { GroupHeader, groupHeaderHeight, phoneGroupHeaderHeight } from "../../../GroupHeader";
 import type { RowSelection } from "../../../hooks/useRowSelection";
 import { PrRow } from "../../../PrRow";
 import { type EditField, Row, type RowChange } from "../../../Row";
-import { phoneRowHeight, prRowHeight, rowHeights } from "../../../rowHeights";
+import { agentLineHeight, phoneRowHeight, prRowHeight, rowHeights } from "../../../rowHeights";
 import type { TableGroup, TableItem } from "../../../utils/flattenGroups";
 import { ShowMoreRow, showMoreHeight } from "../ShowMoreRow";
 import { TableSkeleton } from "../TableSkeleton";
@@ -54,6 +55,7 @@ export type TableBodyProps = {
 
 const heightOf = (item: TableItem, rowHeight: number, headerHeight: number) => {
 	if (item.kind === "header") return headerHeight;
+	if (item.kind === "agent") return agentLineHeight;
 	if (item.kind === "pr") return prRowHeight;
 	if (item.kind === "more") return showMoreHeight;
 	return rowHeight;
@@ -186,6 +188,9 @@ export function TableBody({
 									top={virtual.start}
 								/>
 							);
+						}
+						if (item.kind === "agent") {
+							return <AgentLine key={virtual.key} line={item.line} top={virtual.start} />;
 						}
 						if (item.kind === "pr") {
 							return <PrRow key={virtual.key} pr={item.pr} top={virtual.start} />;

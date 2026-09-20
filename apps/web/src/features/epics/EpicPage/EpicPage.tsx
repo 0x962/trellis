@@ -18,6 +18,7 @@ import { NotFoundState } from "../../shell/NotFoundState";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar } from "../../shell/Topbar";
+import { agentLinesOf } from "../../table/AgentLine";
 import { DisplayPopover } from "../../table/DisplayPopover";
 import { useTicketMutations } from "../../table/hooks/useTicketMutations";
 import { TicketTable } from "../../table/TicketTable";
@@ -80,6 +81,12 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 		select: assignedTicketIds,
 	}).data;
 	const rowRank = useMemo(() => epicRowRank(assigned ?? noAssigned), [assigned]);
+	// What each run says, from the same query. A ticket row whose run holds
+	// an open request or a last message is followed by that one line.
+	const agentLines = useQuery({
+		...orpc.agentRuns.list.queryOptions({ input: { assigned: true } }),
+		select: agentLinesOf,
+	}).data;
 
 	// The epic query refetches after the ticket write, because the write
 	// response names no changed fields and the counts live on the epic.
@@ -233,6 +240,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 						search={tableSearch}
 						rowRank={rowRank}
 						prRows
+						agentLines={agentLines}
 						onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
 						emptyState={
 							hasFilters(search) ? (

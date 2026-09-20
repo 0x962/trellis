@@ -1,6 +1,7 @@
 import {
 	ActorChipSection,
 	AgentProfileMarkSection,
+	AttentionDotSection,
 	CheckRibbonSection,
 	ChecksLineSection,
 	FileRiskGroupsSection,
@@ -22,6 +23,7 @@ export function DomainSections() {
 		<>
 			<StatusIconSection />
 			<PriorityIconSection />
+			<AttentionDotSection />
 			<ReviewFocusListSection />
 			<ReviewStatusSummarySection />
 			<CheckRibbonSection />
