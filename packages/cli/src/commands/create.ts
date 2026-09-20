@@ -29,7 +29,7 @@ export default defineCommand({
 			type: "string",
 			description: "Milestone ref, such as OP/routine-runtime/phase-1; it also sets the epic",
 		},
-		after: { type: "string", description: "Ticket ref that this ticket waits for; repeat for more tickets" },
+		after: { type: "string", description: "Ticket ref to wait for; repeat for more tickets" },
 		label: labelFlag,
 	},
 	async run(context) {

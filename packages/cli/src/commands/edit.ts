@@ -55,6 +55,10 @@ export default defineCommand({
 			addLabels: labelRefs(context.rawArgs, "add-label"),
 			removeLabels: labelRefs(context.rawArgs, "remove-label"),
 		});
+		// `fields` always holds `ticket`, so a second key means the command changes
+		// a ticket field. With no dependency or field change, `tickets.update` reads
+		// the ticket for output. When both calls run, `tickets.update` uses the version
+		// that `tickets.updateDependencies` returned.
 		if (Object.keys(fields).length > 1 || ticket === undefined)
 			ticket = await client.tickets.update(compact({ ...fields, expectedVersion: ticket?.version ?? expectedVersion }));
 		printRecord(ctx.out, ctx.format, ticket, ticketRecord);
