@@ -31,5 +31,12 @@ export const TicketPrSchema = z.object({
 	flowRunCount: CountSchema,
 	baseRef: z.string(),
 	headRef: z.string(),
+	stackedOn: z
+		.object({
+			number: z.number().int().positive(),
+			headRef: z.string(),
+			ticketIdentifier: z.string(),
+		})
+		.nullable(),
 });
 export type TicketPr = z.infer<typeof TicketPrSchema>;

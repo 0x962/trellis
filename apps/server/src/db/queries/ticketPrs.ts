@@ -66,7 +66,24 @@ export const ticketPrJoin = sql`
 					),
 					'flowRuns', flow_runs.items,
 					'flowRunCount', flow_runs.total,
-					'baseRef', p.base_ref, 'headRef', p.head_ref
+					'baseRef', p.base_ref, 'headRef', p.head_ref,
+					'stackedOn', (
+						SELECT jsonb_build_object(
+							'number', stacked.number,
+							'headRef', stacked.head_ref,
+							'ticketIdentifier', stacked_root.key || '-' || stacked_ticket.number
+						)
+						FROM ticket_pull_requests stacked_link
+						JOIN tickets stacked_ticket ON stacked_ticket.id = stacked_link.ticket_id
+						JOIN projects stacked_root ON stacked_root.id = stacked_ticket.root_id
+						JOIN pull_requests stacked ON stacked.id = stacked_link.pull_request_id
+						WHERE t.epic_id IS NOT NULL
+							AND stacked_ticket.epic_id = t.epic_id
+							AND stacked.id <> p.id
+							AND stacked.head_ref = p.base_ref
+						ORDER BY stacked_ticket.number, stacked.number, stacked.id
+						LIMIT 1
+					)
 				) ORDER BY link.created_at, p.id
 			) AS pull_requests
 		FROM ticket_pull_requests link
