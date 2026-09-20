@@ -13,7 +13,7 @@ const open: Conditions = {
 	evidence: null,
 	checks: { pass: 48, fail: 1, pending: 7, skipped: 44 },
 	threads: 2,
-	flows: { running: 1, passed: 1, failed: 0 },
+	flows: { total: 2, newest: ["running", "passed"] },
 	base: { enabled: false, available: false, upToDate: false, label: "Not deployed", report: null },
 	ancestors: [{ identifier: "TRL-167", merged: false }],
 };
@@ -21,11 +21,11 @@ const open: Conditions = {
 const merged: Conditions = {
 	...open,
 	merged: true,
-	tests: 3,
-	evidence: 2,
+	tests: { count: 3, failsOn: "4c9a7719d0e1", passesOn: "8b21f0c53ab4", noneApplies: false },
+	evidence: { present: 5, required: 5, kind: "frontend" },
 	checks: { pass: 55, fail: 0, pending: 0, skipped: 44 },
 	threads: 0,
-	flows: { running: 0, passed: 2, failed: 0 },
+	flows: { total: 2, newest: ["passed", "passed"] },
 	ancestors: [{ identifier: "TRL-167", merged: true }],
 };
 
@@ -59,10 +59,10 @@ test("an all clear risk line prints five no answers and draws no badge", () => {
 	expect(html).not.toContain("badge");
 });
 
-test("a missing count prints none registered", () => {
+test("a condition with no record reads unknown", () => {
 	const html = renderToStaticMarkup(<ConditionsBlock conditions={open} />);
 
-	expect(html).toContain("none registered");
+	expect(html).toContain("unknown");
 	expect(html).not.toContain("0 registered");
 });
 
@@ -87,6 +87,6 @@ test("the short form and the nine-line form print one answer for one condition",
 	const short = renderToStaticMarkup(<ShortConditions conditions={open} />);
 	const full = renderToStaticMarkup(<ConditionsBlock conditions={open} />);
 
-	expect(short).toContain("48 pass · 1 fail · 7 pending · 44 skipped");
-	expect(full).toContain("48 pass · 1 fail · 7 pending · 44 skipped");
+	expect(short).toContain("1 failed · 7 pending · 48 passed · 44 skipped");
+	expect(full).toContain("1 failed · 7 pending · 48 passed · 44 skipped");
 });

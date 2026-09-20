@@ -6,11 +6,11 @@ const clear: Conditions = {
 	size: { additions: 94, deletions: 12, changedFiles: 6 },
 	sizeBand: "medium",
 	risk: { auth: "no", migration: "no", dependency: "no", sharedType: "no", deletedTest: "no" },
-	tests: 3,
-	evidence: 2,
+	tests: { count: 3, failsOn: "4c9a7719d0e1", passesOn: "8b21f0c53ab4", noneApplies: false },
+	evidence: { present: 5, required: 5, kind: "frontend" },
 	checks: { pass: 48, fail: 0, pending: 0, skipped: 44 },
 	threads: 0,
-	flows: { running: 0, passed: 2, failed: 0 },
+	flows: { total: 2, newest: ["passed", "passed"] },
 	base: { enabled: true, available: true, upToDate: true, label: "Ready", report: null },
 	ancestors: [{ identifier: "TRL-164", merged: true }],
 };
@@ -42,20 +42,57 @@ test("the risk line prints the answer of every class", () => {
 	);
 });
 
-test("a missing test count and a missing evidence count read none registered", () => {
+test("the tests line names the count and the two commits", () => {
+	expect(lineValue(clear, "tests")).toBe("3 new · all fail on base 4c9a771 · all pass on head 8b21f0c");
+});
+
+test("two tests read both, and one test reads it", () => {
+	const two = { count: 2, failsOn: "4c9a7719d0e1", passesOn: "8b21f0c53ab4", noneApplies: false };
+
+	expect(lineValue({ ...clear, tests: two }, "tests")).toBe(
+		"2 new · both fail on base 4c9a771 · both pass on head 8b21f0c",
+	);
+	expect(lineValue({ ...clear, tests: { ...two, count: 1 } }, "tests")).toBe(
+		"1 new · it fails on base 4c9a771 · it passes on head 8b21f0c",
+	);
+});
+
+test("tests that name two different base commits print the count alone", () => {
+	const mixed = { count: 2, failsOn: null, passesOn: null, noneApplies: false };
+
+	expect(lineValue({ ...clear, tests: mixed }, "tests")).toBe("2 new");
+});
+
+test("a record that says no test applies reads so, and no record reads none registered", () => {
+	const none = { count: 0, failsOn: null, passesOn: null, noneApplies: true };
+
+	expect(lineValue({ ...clear, tests: none }, "tests")).toBe("no test applies");
+	expect(lineValue({ ...clear, tests: { ...none, noneApplies: false } }, "tests")).toBe("none registered");
+});
+
+test("a missing test record and a missing evidence floor read unknown", () => {
 	const empty = { ...clear, tests: null, evidence: null };
 
-	expect(lineValue(empty, "tests")).toBe("none registered");
-	expect(lineValue(empty, "evidence")).toBe("none registered");
+	expect(lineValue(empty, "tests")).toBe("unknown");
+	expect(lineValue(empty, "evidence")).toBe("unknown");
 });
 
-test("a count of zero prints no zero", () => {
-	expect(lineValue({ ...clear, tests: 0 }, "tests")).toBe("none registered");
-	expect(lineValue({ ...clear, evidence: 0 }, "evidence")).toBe("none registered");
+test("the evidence line prints the two counts and the kind of the change", () => {
+	expect(lineValue(clear, "evidence")).toBe("5 of 5 for a frontend change");
+	expect(lineValue({ ...clear, evidence: { present: 1, required: 4, kind: "backend" } }, "evidence")).toBe(
+		"1 of 4 for a backend change",
+	);
 });
 
-test("the checks line prints the four counts", () => {
-	expect(lineValue(clear, "checks")).toBe("48 pass · 0 fail · 0 pending · 44 skipped");
+test("the checks line prints the failure first and drops an outcome of zero", () => {
+	expect(lineValue(clear, "checks")).toBe("48 passed · 44 skipped");
+	expect(lineValue({ ...clear, checks: { pass: 47, fail: 1, pending: 6, skipped: 44 } }, "checks")).toBe(
+		"1 failed · 6 pending · 47 passed · 44 skipped",
+	);
+});
+
+test("a pull request with no check reads none reported", () => {
+	expect(lineValue({ ...clear, checks: { pass: 0, fail: 0, pending: 0, skipped: 0 } }, "checks")).toBe("none reported");
 });
 
 test("the threads line counts the threads that nobody resolved", () => {
@@ -64,12 +101,20 @@ test("the threads line counts the threads that nobody resolved", () => {
 	expect(lineValue({ ...clear, threads: 4 }, "threads")).toBe("4 open");
 });
 
-test("the flows line names every state that has a run", () => {
+test("the flows line names every state that has a run, the failure first", () => {
 	expect(lineValue(clear, "flows")).toBe("2 passed");
-	expect(lineValue({ ...clear, flows: { running: 1, passed: 2, failed: 1 } }, "flows")).toBe(
-		"1 running · 2 passed · 1 failed",
+	expect(lineValue({ ...clear, flows: { total: 4, newest: ["running", "passed", "failed", "passed"] } }, "flows")).toBe(
+		"1 running · 1 failed · 2 passed",
 	);
-	expect(lineValue({ ...clear, flows: { running: 0, passed: 0, failed: 0 } }, "flows")).toBe("none run");
+	expect(lineValue({ ...clear, flows: { total: 0, newest: [] } }, "flows")).toBe("none run");
+});
+
+test("a ticket with more runs than the server sends prints the total and the newest run", () => {
+	const many = { total: 12, newest: ["passed", "passed", "failed", "passed", "running"] as const };
+
+	expect(lineValue({ ...clear, flows: { total: many.total, newest: [...many.newest] } }, "flows")).toBe(
+		"12 runs · newest passed",
+	);
 });
 
 test("the base line prints the live branch state as words", () => {
@@ -109,11 +154,11 @@ test("each open condition makes the word not yet", () => {
 		{ checks: { pass: 48, fail: 0, pending: 7, skipped: 44 } },
 		{ threads: 2 },
 		{ tests: null },
-		{ tests: 0 },
+		{ tests: { count: 0, failsOn: null, passesOn: null, noneApplies: false } },
 		{ evidence: null },
-		{ evidence: 0 },
-		{ flows: { running: 1, passed: 0, failed: 0 } },
-		{ flows: { running: 0, passed: 0, failed: 1 } },
+		{ evidence: { present: 1, required: 4, kind: "backend" as const } },
+		{ flows: { total: 1, newest: ["running"] } },
+		{ flows: { total: 1, newest: ["failed"] } },
 		{ ancestors: [{ identifier: "TRL-167", merged: false }] },
 	];
 

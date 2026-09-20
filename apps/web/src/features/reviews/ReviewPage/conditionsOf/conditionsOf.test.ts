@@ -32,8 +32,10 @@ const prRow = (fields: Partial<TicketPr> = {}): TicketPr =>
 		...fields,
 	}) as TicketPr;
 
-const record = (kind: Evidence["kind"]): Evidence =>
-	({ id: "01M2ZWN8R3YRYK14SQD0YHV5TG", kind, headSha: "9bf82d2a", record: {}, blob: null }) as unknown as Evidence;
+const record = (kind: Evidence["kind"], fields: Record<string, unknown> = {}): Evidence =>
+	({ id: "01M2ZWN8R3YRYK14SQD0YHV5TG", kind, headSha: "9bf82d2a", record: fields, blob: null }) as unknown as Evidence;
+
+const proof = (name: string) => record("test", { name, failsOn: "4c9a7719d0e1", passesOn: "8b21f0c53ab4" });
 
 const floor: EvidenceFloor = {
 	kind: "backend",
@@ -69,22 +71,41 @@ test("drops the size when GitHub measured no line count", () => {
 	expect(conditionsOf(input({ prRow: prRow({ additions: null }) }))!.size).toBeNull();
 });
 
-test("counts the evidence records of kind test as the test proofs", () => {
-	const conditions = conditionsOf(input({ records: [record("test"), record("test"), record("verify")] }))!;
+test("reads the test proofs with the two commits they name", () => {
+	const conditions = conditionsOf(input({ records: [proof("one"), proof("two"), record("verify")] }))!;
 
-	expect(conditions.tests).toBe(2);
+	expect(conditions.tests).toEqual({
+		count: 2,
+		failsOn: "4c9a7719d0e1",
+		passesOn: "8b21f0c53ab4",
+		noneApplies: false,
+	});
 });
 
-test("counts the evidence as the floor items that are present", () => {
-	expect(conditionsOf(input())!.evidence).toBe(2);
+test("drops the commit that two test proofs do not share", () => {
+	const other = record("test", { name: "three", failsOn: "0000000aaaa", passesOn: "8b21f0c53ab4" });
+	const conditions = conditionsOf(input({ records: [proof("one"), other] }))!;
+
+	expect(conditions.tests!.failsOn).toBeNull();
+	expect(conditions.tests!.passesOn).toBe("8b21f0c53ab4");
+});
+
+test("reads a record that says no test applies", () => {
+	const conditions = conditionsOf(input({ records: [record("test", { none: true, reason: "no new behavior" })] }))!;
+
+	expect(conditions.tests).toEqual({ count: 0, failsOn: null, passesOn: null, noneApplies: true });
+});
+
+test("reads the evidence as the present count, the required count and the kind", () => {
+	expect(conditionsOf(input())!.evidence).toEqual({ present: 2, required: 4, kind: "backend" });
 	expect(conditionsOf(input({ floor: null }))!.evidence).toBeNull();
 });
 
-test("counts a waiting flow run as running and leaves a canceled run out", () => {
+test("reads a waiting flow run as running and carries the total the server counted", () => {
 	const flowRuns = [{ status: "waiting" }, { status: "running" }, { status: "succeeded" }, { status: "canceled" }];
-	const conditions = conditionsOf(input({ prRow: prRow({ flowRuns } as Partial<TicketPr>) }))!;
+	const conditions = conditionsOf(input({ prRow: prRow({ flowRuns, flowRunCount: 9 } as Partial<TicketPr>) }))!;
 
-	expect(conditions.flows).toEqual({ running: 2, passed: 1, failed: 0 });
+	expect(conditions.flows).toEqual({ total: 9, newest: ["running", "running", "passed", "canceled"] });
 });
 
 test("names every ticket the ticket waits on as an unmerged ancestor", () => {

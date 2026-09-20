@@ -1,17 +1,15 @@
-@import "./review-tree.css";
 @import "./review-comments.css";
 @import "./review-index.css";
 @import "./review-checks.css";
 
 :root {
 	--review-sheet-width: min(100vw, 32rem);
+	--review-column-width: 1040px;
 	--review-filter-width: 260px;
 	--review-row-icon-size: 14px;
 }
 .review-page,
-.review-workspace,
 .review-tabs-layout,
-.review-content,
 .review-index {
 	display: flex;
 	flex: 1;
@@ -19,7 +17,6 @@
 	min-height: 0;
 	flex-direction: column;
 }
-.review-workspace,
 .review-index {
 	overflow: hidden;
 	background: var(--bg);
@@ -126,14 +123,6 @@
 }
 .review-tabs-layout > [role="tabpanel"][hidden] {
 	display: none;
-}
-.review-main {
-	display: flex;
-	flex: 1;
-	min-height: 0;
-}
-.review-content {
-	overflow: hidden;
 }
 .review-diff-toolbar,
 .review-index-toolbar {
@@ -257,21 +246,21 @@ button.review-notice:hover {
 	opacity: 0.5;
 	cursor: default;
 }
-/* Region A of the review page: the title of the pull request with its
-   controls, the ticket the pull request answers, and one sentence that says
-   who acts next. It does not scroll with the rest of the page, so the merge
-   control stays on screen while the reader goes down the page. */
+/* The top band of the review page: the title of the pull request with its
+   buttons, the ticket the pull request answers, and one sentence that says
+   who acts next. The band does not scroll, so the buttons that end the review
+   stay on screen while the reader goes down the page. */
 .review-identity {
 	display: flex;
 	flex-direction: column;
 	border-bottom: 0.5px solid var(--border);
 	background: var(--bg);
 }
-/* The heading and the two lines take the width of the region column below
-   them, so the title, the ticket and every region start at one left edge. */
+/* The band takes the width of `.review-regions` below it, so the title, the
+   ticket and every block start at one left edge. */
 .review-identity > * {
 	width: 100%;
-	max-width: 1040px;
+	max-width: var(--review-column-width);
 	margin-inline: auto;
 }
 .review-identity .review-heading {
@@ -294,9 +283,10 @@ button.review-notice:hover {
 .review-turn-line {
 	color: var(--fg);
 }
-/* The review page is one column of regions that reads top to bottom. The
-   column is the only part of the page that scrolls, and every region grows to
-   the height of its content. */
+/* The review page is one column that reads top to bottom: the conditions, the
+   summary, the review focus, the evidence, the checks, the changed files with
+   the diff, and the threads. `.review-column` is the only part of the page
+   that scrolls, and each block in it grows to the height of its content. */
 .review-column {
 	flex: 1;
 	min-height: 0;
@@ -308,19 +298,22 @@ button.review-notice:hover {
 	flex-direction: column;
 	gap: 28px;
 	width: 100%;
-	max-width: 1040px;
+	max-width: var(--review-column-width);
 	margin-inline: auto;
 	padding: 24px 28px 64px;
 }
-/* `ReviewDiscussion` and `CheckResults` each wrap their content in
-   `.review-scroll`, which filled a tab panel and scrolled inside it. The page
-   has no tab panel any more, so in a region the two grow with their content
-   and the column scrolls for them. `.review-notice` and `ReviewStack` carry
-   the side padding of the old page for the same reason. */
+/* `ReviewDiscussion`, `CheckResults`, `.review-notice` and `ReviewStack` each
+   carry the height, the scroll bar or the side padding of a page that fills
+   the window. Inside `.review-regions` the column supplies all three, so these
+   four rules hand it back: each block grows to its content, and the column
+   scrolls and pads for every one of them. */
 .review-regions .review-scroll {
 	flex: none;
 	overflow: visible;
 	padding: 0;
+}
+.review-regions .review-list {
+	max-width: none;
 }
 .review-regions .review-notice {
 	margin-inline: 0;
@@ -328,9 +321,9 @@ button.review-notice:hover {
 .review-regions .review-stack {
 	padding-inline: 0;
 }
-/* The diff draws only the lines that fit the box it scrolls in, and it reads
-   that box for the scroll position. A box with no height of its own would make
-   it draw every line of the patch at once. */
+/* `ReviewDiff` renders only the rows inside the visible height and reads this
+   box for the scroll position, so the box needs a height of its own. Without
+   one it would render every line of the patch at once. */
 .review-diff-window {
 	display: flex;
 	flex-direction: column;

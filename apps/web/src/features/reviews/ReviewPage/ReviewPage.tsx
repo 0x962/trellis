@@ -1,11 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { type Evidence, evidenceFloor, type ReviewThread, reviewRef, turnOf } from "@trellis/api";
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
 import { ConditionsBlock } from "../ConditionsBlock";
 import { EvidenceStrip } from "../EvidenceStrip";
 import { FileRiskGroups } from "../FileRiskGroups";
+import type { ReadMarkFile } from "../FileRiskGroups/readMarks/readMarks";
 import { ApplySuggestionsDialog, ReviewApplyContext, type ReviewApplyState, ReviewBatchBar } from "../ReviewApply";
 import { ReviewChecks } from "../ReviewChecks/ReviewChecks";
 import { ReviewComment } from "../ReviewComment/ReviewComment";
@@ -15,29 +16,27 @@ import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
 import { type LiveBranchMeta, liveBranchState } from "../ReviewLive/liveBranch";
 import { ReviewStack } from "../ReviewStack/ReviewStack";
 import { ReviewSummary } from "../ReviewSummary/ReviewSummary";
-import { type DiffFile, DiffRegion } from "./components/DiffRegion";
+import { DiffPane } from "./components/DiffPane";
 import { ReviewPageSkeleton } from "./components/ReviewPageSkeleton";
 import { TurnLine } from "./components/TurnLine";
 import { conditionsOf } from "./conditionsOf";
+import { useActiveThread } from "./hooks/useActiveThread";
 import { useReviewData } from "./hooks/useReviewData";
-import { useReviewNavigation } from "./hooks/useReviewNavigation";
 import "@trellis/ui/review.css";
 
 const noThreads: ReviewThread[] = [];
 const noRecords: Evidence[] = [];
 const noSentences: string[] = [];
 
-// The review page reads top to bottom in nine regions: the identity with the
-// turn line, the merge conditions, the summary the agent wrote, the review
-// focus of the ticket, the evidence, the checks, the changed files by risk,
-// the threads, and the controls that end the review.
 export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent?: ReactNode; syncHash?: boolean }) {
 	const { client } = useApp();
-	const { activeThread } = useReviewNavigation(syncHash);
+	const activeThread = useActiveThread(syncHash);
 	const { revision, setRevision, status, ticket, linkedPr, summary, evidence, threads, refresh, refreshAll } =
 		useReviewData(pr);
-	const [files, setFiles] = useState<DiffFile[]>([]);
-	const [file, setFile] = useState("");
+	const [changedFiles, setChangedFiles] = useState<ReadMarkFile[]>([]);
+	// The path the reader picked in the file list, or an empty string while
+	// the reader picked none.
+	const [pickedPath, setPickedPath] = useState("");
 	const [composerOpen, setComposerOpen] = useState(false);
 	// The suggestion threads waiting for one commit, and the threads the
 	// commit dialog holds while it is open.
@@ -45,14 +44,14 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	const [applying, setApplying] = useState<string[] | null>(null);
 	// The diff shows the threads of the revision on screen, plus the threads
 	// that name no revision: the CLI wrote those before the pull request had
-	// one, and their lines refer to the diff of that time. Region H lists
-	// every thread and marks the ones from another revision.
-	const everyThread = threads.data?.items ?? noThreads;
-	const allThreads = useMemo(
-		() => everyThread.filter((thread) => thread.revisionId === null || thread.revisionId === revision?.id),
-		[everyThread, revision?.id],
+	// one, and their lines refer to the diff of that time. `ReviewDiscussion`
+	// lists every thread and marks the ones from another revision.
+	const allThreads = threads.data?.items ?? noThreads;
+	const revisionThreads = useMemo(
+		() => allThreads.filter((thread) => thread.revisionId === null || thread.revisionId === revision?.id),
+		[allThreads, revision?.id],
 	);
-	const threadsById = useMemo(() => new Map(everyThread.map((thread) => [thread.id, thread])), [everyThread]);
+	const threadsById = useMemo(() => new Map(allThreads.map((thread) => [thread.id, thread])), [allThreads]);
 	const renderThread = useCallback(
 		(id: string) => {
 			const thread = threadsById.get(id)!;
@@ -84,14 +83,14 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	);
 	const applyingThreads = applying === null ? [] : applying.flatMap((id) => threadsById.get(id) ?? []);
 	// A link with `?thread=<id>` in the hash opens the file that the thread
-	// sits on, so region G shows that diff.
+	// sits on, so the diff below shows that file. A pick in the file list wins
+	// from then on, and the threads can arrive after the reader picks.
 	const deepLinkPath = activeThread === null ? undefined : threadsById.get(activeThread)?.path;
-	useEffect(() => {
-		if (deepLinkPath !== undefined) setFile(deepLinkPath);
-	}, [deepLinkPath]);
-	// Every fact of regions B, C and E belongs to the commit whose diff the
-	// page draws. A summary or an evidence record written for another commit
-	// counts as missing, and the notice above the regions asks for a refresh.
+	const selectedPath = pickedPath !== "" ? pickedPath : (deepLinkPath ?? "");
+	// The conditions, the summary and the evidence records belong to the commit
+	// whose diff the page draws. A summary or an evidence record written for
+	// another commit counts as missing, and the notice above them asks the
+	// reader to refresh.
 	const headSha = revision?.headSha ?? "";
 	const records = useMemo(
 		() => (evidence.data ?? noRecords).filter((record) => record.headSha === headSha),
@@ -115,9 +114,13 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		waitsOn: ticket.data?.waitsOn ?? [],
 		base: status.data ? liveBranchState(status.data as LiveBranchMeta) : null,
 	});
-	// The page reads no run of the ticket, so `turnOf` never answers with the
-	// run that works. Its answer is then the word `agent`.
-	const turnRow = ticket.data ?? prRow;
+	// `turnOf` takes `hasWorkingRun` as its second argument. This page loads no
+	// agent run, so it passes false. A ticket with a running agent then gets
+	// its turn from the state of the pull request.
+	// The ticket row answers first, because it also knows the ticket status and
+	// the tickets it waits on. `prRow` is the fallback for a pull request that
+	// no ticket links.
+	const turnInput = ticket.data ?? prRow;
 	const ref = reviewRef(pr);
 	return (
 		<ReviewApplyContext.Provider value={applyState}>
@@ -129,9 +132,8 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 					refreshing={refresh.isPending || composerOpen}
 					onRefresh={refreshAll}
 				/>
-				{/* Region A. Identity: what the change is, which ticket it
-				    answers, and who acts next. It stays above the column, so
-				    the controls that end the review are always in reach. */}
+				{/* The identity stays above the column, so the buttons that end
+				    the review are always in reach. */}
 				<div className="review-identity">
 					<ReviewSummary
 						pr={pr}
@@ -149,9 +151,9 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 								{status.data.ticket.title}
 							</p>
 						)}
-						{turnRow && (
+						{turnInput && (
 							<TurnLine
-								turn={turnOf(turnRow, false)}
+								turn={turnOf(turnInput, false)}
 								prRow={prRow}
 								mergedOn={linkedPr?.mergedAt?.slice(0, 10) ?? null}
 							/>
@@ -183,11 +185,8 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 								{threads.error.message}
 							</p>
 						)}
-						{/* Region B. The nine merge conditions. */}
 						{conditions && <ConditionsBlock conditions={conditions} />}
-						{/* Region C. The summary the agent wrote for this commit. */}
 						<ChangeSummary summary={summaryRow} headSha={headSha} />
-						{/* Region D. The review focus sentences of the ticket. */}
 						{revision && (
 							<ReviewFocusList
 								pr={pr}
@@ -195,32 +194,34 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 								sentences={ticket.data?.contract.reviewFocus ?? noSentences}
 							/>
 						)}
-						{/* Region E. What the change owes as evidence, and what of it is there. */}
 						{floor && <EvidenceStrip records={records} floor={floor} loading={evidence.isPending} />}
-						{/* Region F. The GitHub checks, in words. */}
 						<ReviewChecks revision={displayRevision} pr={pr} />
-						{/* Region G. The changed files by risk, then the diff of the file the reader picked. */}
 						{revision === null && !refresh.isError ? (
 							<ReviewPageSkeleton />
 						) : (
 							revision && (
 								<>
-									<FileRiskGroups pr={pr} repo={ref.repo} files={files} selected={file} onSelect={setFile} />
-									<DiffRegion
+									<FileRiskGroups
+										pr={pr}
+										repo={ref.repo}
+										files={changedFiles}
+										selected={selectedPath}
+										onSelect={setPickedPath}
+									/>
+									<DiffPane
 										pr={pr}
 										revision={revision}
-										threads={allThreads}
-										selectedFile={file}
+										threads={revisionThreads}
+										selectedFile={selectedPath}
 										renderThread={renderThread}
-										onFiles={setFiles}
+										onFiles={setChangedFiles}
 										onComposer={setComposerOpen}
 									/>
 								</>
 							)
 						)}
-						{/* Region H. Every thread of the pull request. */}
 						<ReviewDiscussion
-							threads={everyThread}
+							threads={allThreads}
 							activeThread={activeThread}
 							revision={displayRevision}
 							renderThread={renderThread}
@@ -228,7 +229,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 								void (async () => {
 									if (thread.revisionId && thread.revisionId !== revision?.id)
 										setRevision(await client.reviews.revision({ pr, id: thread.revisionId }));
-									setFile(thread.path);
+									setPickedPath(thread.path);
 								})();
 							}}
 						/>

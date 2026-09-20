@@ -1,5 +1,10 @@
 import type { Evidence, EvidenceFloor, TicketPr, TicketSummary } from "@trellis/api";
-import type { Conditions } from "../../ConditionsBlock/conditionLines/conditionLines";
+import type {
+	Conditions,
+	FlowsCondition,
+	FlowWord,
+	TestsCondition,
+} from "../../ConditionsBlock/conditionLines/conditionLines";
 import type { LiveBranchState } from "../../ReviewLive/liveBranch";
 
 export type ConditionsInput = {
@@ -22,13 +27,48 @@ export type ConditionsInput = {
 };
 
 // A run that waits has not started, and a run that runs has not finished, so
-// both read as running. A canceled run counts in no group: nobody let it
-// reach an answer.
-const flowCounts = (runs: TicketPr["flowRuns"]): Conditions["flows"] => ({
-	running: runs.filter((run) => run.status === "running" || run.status === "waiting").length,
-	passed: runs.filter((run) => run.status === "succeeded").length,
-	failed: runs.filter((run) => run.status === "failed").length,
+// both read as running.
+const flowWordOf: Record<TicketPr["flowRuns"][number]["status"], FlowWord> = {
+	running: "running",
+	waiting: "running",
+	succeeded: "passed",
+	failed: "failed",
+	canceled: "canceled",
+};
+
+// `flowRuns` holds the five newest runs of the ticket, newest first, and
+// `flowRunCount` holds how many runs the ticket has.
+const flowsOf = (prRow: TicketPr): FlowsCondition => ({
+	total: prRow.flowRunCount,
+	newest: prRow.flowRuns.map((run) => flowWordOf[run.status]),
 });
+
+// A record holds free-form JSON, so every field of it reads as text or as
+// nothing.
+const textField = (record: Evidence["record"], key: string): string | null =>
+	typeof record[key] === "string" ? record[key] : null;
+
+// The one value that every record names, or null when they name more than
+// one. Two test proofs that name two different base commits cannot print one
+// base commit.
+const sharedField = (records: readonly Evidence[], key: string): string | null => {
+	const values = new Set(records.map((record) => textField(record.record, key)));
+	const [only] = [...values];
+	return values.size === 1 && only !== undefined ? only : null;
+};
+
+// `trellis evidence add --kind test` writes either a test name with the two
+// commits, or the words that no test applies to the change.
+const testsOf = (records: readonly Evidence[]): TestsCondition => {
+	const proofs = records.filter((record) => record.kind === "test");
+	const named = proofs.filter((record) => textField(record.record, "name") !== null);
+	return {
+		count: named.length,
+		failsOn: sharedField(named, "failsOn"),
+		passesOn: sharedField(named, "passesOn"),
+		noneApplies: proofs.some((record) => record.record.none === true),
+	};
+};
 
 // GitHub leaves the three size counts null until it measures the pull
 // request. One missing count drops the whole size line.
@@ -50,11 +90,12 @@ export function conditionsOf({ prRow, records, floor, waitsOn, base }: Condition
 		size: sizeOf(prRow),
 		sizeBand: prRow.sizeBand,
 		risk: prRow.risk,
-		tests: records.filter((record) => record.kind === "test").length,
-		evidence: floor === null ? null : floor.present.length,
+		tests: testsOf(records),
+		evidence:
+			floor === null ? null : { present: floor.present.length, required: floor.required.length, kind: floor.kind },
 		checks: { pass: prRow.pass, fail: prRow.fail, pending: prRow.pending, skipped: prRow.skipped },
 		threads: prRow.openThreads,
-		flows: flowCounts(prRow.flowRuns),
+		flows: flowsOf(prRow),
 		base,
 		ancestors: waitsOn.map((dependency) => ({ identifier: dependency.identifier, merged: false })),
 	};

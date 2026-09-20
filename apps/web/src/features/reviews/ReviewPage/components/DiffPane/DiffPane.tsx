@@ -4,24 +4,21 @@ import { type DiffAnchor, ReviewDiff } from "@trellis/ui/review";
 import { type ReactNode, useCallback, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useTheme } from "../../../../../lib/theme";
+import type { ReadMarkFile } from "../../../FileRiskGroups/readMarks/readMarks";
 import { type ReviewCommentInput, ReviewComposer } from "../../../ReviewComposer/ReviewComposer";
-import { DiffToolbar } from "../DiffToolbar/DiffToolbar";
+import { DiffToolbar } from "../DiffToolbar";
 
-// One changed file of the revision on screen, in the shape the file list of
-// region G reads.
-export type DiffFile = { path: string; change: PrChangeType; additions: number; deletions: number };
-
-export type DiffRegionProps = {
+export type DiffPaneProps = {
 	pr: string;
 	revision: ReviewRevision;
 	// The threads that belong to the revision on screen.
 	threads: ReviewThread[];
-	// The path whose diff the reader asked for. The list scrolls to it.
+	// The diff list scrolls to this path.
 	selectedFile: string;
 	renderThread: (id: string) => ReactNode;
 	// The changed files of the revision, as the patch reports them. The page
-	// gives them to the file list of region G.
-	onFiles: (files: DiffFile[]) => void;
+	// gives them to `FileRiskGroups`.
+	onFiles: (files: ReadMarkFile[]) => void;
 	// True while a comment composer holds unsent text. The page disables the
 	// refresh button then, because a refresh replaces the revision the
 	// composer writes against.
@@ -32,17 +29,9 @@ const commentKey = (pr: string, anchor: DiffAnchor) =>
 	`trellis.review.comment:${pr}:${anchor.path}:${anchor.side}:${anchor.startLine}:${anchor.line}`;
 
 // The diff of the revision, with the comment composer that a line selection
-// opens. It scrolls inside its own box, because it draws only the lines that
-// box shows.
-export function DiffRegion({
-	pr,
-	revision,
-	threads,
-	selectedFile,
-	renderThread,
-	onFiles,
-	onComposer,
-}: DiffRegionProps) {
+// opens. `ReviewDiff` renders only the rows inside the visible height, so
+// `.review-diff-window` gives it a fixed height and its own scroll bar.
+export function DiffPane({ pr, revision, threads, selectedFile, renderThread, onFiles, onComposer }: DiffPaneProps) {
 	const { client, orpc, queryClient } = useApp();
 	const { resolved: theme } = useTheme();
 	const [mode, setMode] = useState<"split" | "unified">(() =>

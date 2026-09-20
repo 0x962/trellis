@@ -1,4 +1,4 @@
-import type { PrPathFacts, TicketPr } from "@trellis/api";
+import type { PrKind, PrPathFacts, TicketPr } from "@trellis/api";
 import type { ConditionLine, ConditionsReadiness } from "@trellis/ui/review";
 import type { LiveBranchState } from "../../ReviewLive/liveBranch";
 
@@ -10,22 +10,58 @@ export type ConditionsAncestor = {
 	merged: boolean;
 };
 
+// What the change owes as evidence, and what of it is already there. The
+// floor of a frontend change and the floor of a backend change ask for
+// different items, so the line names the kind that built the count.
+export type EvidenceCondition = {
+	present: number;
+	required: number;
+	kind: PrKind;
+};
+
+// What one flow run of the ticket ended as. A run that waits has not started
+// and a run that runs has not finished, so both read as running.
+export type FlowWord = "running" | "passed" | "failed" | "canceled";
+
+// The flow runs of the ticket that owns the pull request.
+export type FlowsCondition = {
+	// How many runs the ticket has.
+	total: number;
+	// What each of the newest runs ended as, newest first. The server sends
+	// at most five, so a shorter list than `total` describes part of them.
+	newest: readonly FlowWord[];
+};
+
+// The test proofs of the pull request. One proof names a test, the commit
+// where that test fails and the commit where it passes.
+export type TestsCondition = {
+	// How many records name a test.
+	count: number;
+	// The commit where every named test fails, and the commit where every
+	// named test passes. Both are null when the records name more than one
+	// pair of commits.
+	failsOn: string | null;
+	passesOn: string | null;
+	// True when a record says that no test applies to this change.
+	noneApplies: boolean;
+};
+
 export type Conditions = {
 	// True when GitHub merged the pull request.
 	merged: boolean;
 	size: { additions: number; deletions: number; changedFiles: number } | null;
 	sizeBand: TicketPr["sizeBand"];
 	risk: PrPathFacts["risk"];
-	// How many test proofs this pull request has. `null` means that no count
+	// The test proofs of this pull request. `null` means that no record
 	// arrived.
-	tests: number | null;
-	// How many evidence records this pull request has. `null` means that no
-	// count arrived.
-	evidence: number | null;
+	tests: TestsCondition | null;
+	// The evidence floor of this pull request. `null` means that nobody could
+	// build the floor, because the changed file list has not arrived.
+	evidence: EvidenceCondition | null;
 	checks: { pass: number; fail: number; pending: number; skipped: number };
 	// The number of review threads that nobody resolved.
 	threads: number;
-	flows: { running: number; passed: number; failed: number };
+	flows: FlowsCondition;
 	base: LiveBranchState | null;
 	ancestors: readonly ConditionsAncestor[];
 };
@@ -64,26 +100,69 @@ const sizeValue = ({ size, sizeBand }: Conditions) => {
 // An all clear reads as five "no" answers, never a green mark.
 const riskValue = (risk: PrPathFacts["risk"]) => riskWords.map(([key, word]) => `${word} ${risk[key]}`).join(" · ");
 
-// 0 and a missing count read the same. A "0 registered" line looks like an
-// answer, but nothing was registered.
-const countIsEmpty = (count: number | null) => count === null || count === 0;
+// GitHub prints 7 characters of a commit.
+const shortSha = (sha: string) => sha.slice(0, 7);
 
-const registeredValue = (count: number | null) => (countIsEmpty(count) ? "none registered" : `${count} registered`);
+// One test reads "it fails", two read "both fail", more read "all fail".
+const testWords = (count: number) =>
+	count === 1
+		? { subject: "it", fails: "fails", passes: "passes" }
+		: { subject: count === 2 ? "both" : "all", fails: "fail", passes: "pass" };
 
-const checksValue = ({ pass, fail, pending, skipped }: Conditions["checks"]) =>
-	`${pass} pass · ${fail} fail · ${pending} pending · ${skipped} skipped`;
+const testsValue = (tests: Conditions["tests"]) => {
+	if (tests === null) return "unknown";
+	if (tests.count === 0) return tests.noneApplies ? "no test applies" : "none registered";
+	if (tests.failsOn === null || tests.passesOn === null) return `${tests.count} new`;
+	const words = testWords(tests.count);
+	return [
+		`${tests.count} new`,
+		`${words.subject} ${words.fails} on base ${shortSha(tests.failsOn)}`,
+		`${words.subject} ${words.passes} on head ${shortSha(tests.passesOn)}`,
+	].join(" · ");
+};
+
+const kindWords: Record<PrKind, string> = {
+	frontend: "a frontend change",
+	backend: "a backend change",
+	mixed: "a mixed change",
+};
+
+const evidenceValue = (evidence: Conditions["evidence"]) =>
+	evidence === null ? "unknown" : `${evidence.present} of ${evidence.required} for ${kindWords[evidence.kind]}`;
+
+// The failure first, then what still runs, then what finished. An outcome
+// that counts zero prints no words, the same as the pull request row of the
+// epic page.
+const checkOutcomes: ReadonlyArray<[keyof Conditions["checks"], string]> = [
+	["fail", "failed"],
+	["pending", "pending"],
+	["pass", "passed"],
+	["skipped", "skipped"],
+];
+
+const checksValue = (checks: Conditions["checks"]) => {
+	const facts = checkOutcomes.filter(([key]) => checks[key] > 0).map(([key, word]) => `${checks[key]} ${word}`);
+	return facts.length === 0 ? "none reported" : facts.join(" · ");
+};
 
 const threadsValue = (threads: number) => {
 	if (threads === 0) return "none open";
 	return threads === 1 ? "1 open" : `${threads} open`;
 };
 
-const flowsValue = ({ running, passed, failed }: Conditions["flows"]) => {
-	const parts: string[] = [];
-	if (running > 0) parts.push(`${running} running`);
-	if (passed > 0) parts.push(`${passed} passed`);
-	if (failed > 0) parts.push(`${failed} failed`);
-	return parts.length === 0 ? "none run" : parts.join(" · ");
+const flowWords: readonly FlowWord[] = ["running", "failed", "passed", "canceled"];
+
+// The counts hold only while the newest runs are every run. A ticket with
+// more runs than the server sends gets the total and the newest answer, so no
+// count here ever counts part of the runs.
+const flowsValue = ({ total, newest }: Conditions["flows"]) => {
+	if (total === 0) return "none run";
+	if (newest.length < total) return `${total} runs · newest ${newest[0]}`;
+	return flowWords
+		.map((word) => ({ word, count: newest.filter((run) => run === word).length }))
+		.filter((group) => group.count > 0)
+		.map((group) => `${group.count} ${group.word}`)
+		.join(" · ");
 };
 
 const baseValue = (base: LiveBranchState | null) => (base ? base.label.toLowerCase() : "unknown");
@@ -100,10 +179,10 @@ const hasOpenCondition = (conditions: Conditions) =>
 		conditions.checks.fail > 0,
 		conditions.checks.pending > 0,
 		conditions.threads > 0,
-		countIsEmpty(conditions.tests),
-		countIsEmpty(conditions.evidence),
-		conditions.flows.running > 0,
-		conditions.flows.failed > 0,
+		conditions.tests === null || (conditions.tests.count === 0 && !conditions.tests.noneApplies),
+		conditions.evidence === null || conditions.evidence.present < conditions.evidence.required,
+		conditions.flows.newest.includes("running"),
+		conditions.flows.newest.includes("failed"),
 		conditions.ancestors.some((ancestor) => !ancestor.merged),
 	].some(Boolean);
 
@@ -117,8 +196,8 @@ export function conditionLines(conditions: Conditions): Array<ConditionLine & { 
 	return [
 		{ label: "size", value: sizeValue(conditions) },
 		{ label: "risk", value: riskValue(conditions.risk) },
-		{ label: "tests", value: registeredValue(conditions.tests) },
-		{ label: "evidence", value: registeredValue(conditions.evidence) },
+		{ label: "tests", value: testsValue(conditions.tests) },
+		{ label: "evidence", value: evidenceValue(conditions.evidence) },
 		{ label: "checks", value: checksValue(conditions.checks) },
 		{ label: "threads", value: threadsValue(conditions.threads) },
 		{ label: "flows", value: flowsValue(conditions.flows) },
