@@ -13,3 +13,8 @@ export const phoneRowHeight = 56;
 // with the density or the width, so the epic table scrolls the same on a
 // phone and on a desktop.
 export const prRowHeight = 32;
+
+// The row box of the agent line under a ticket row. It does not change with
+// the density or the width, so the epic table scrolls the same on a phone
+// and on a desktop.
+export const agentLineHeight = 24;

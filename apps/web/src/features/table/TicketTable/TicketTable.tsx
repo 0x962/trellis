@@ -26,6 +26,7 @@ import { useTicketMutations } from "../hooks/useTicketMutations";
 import type { EditField, RowChange } from "../Row";
 import { TableEmpty } from "../TableEmpty";
 import { TableFooter } from "../TableFooter";
+import type { TicketAgentLine } from "../utils/agentLines";
 import { autoHide, columnVisibility } from "../utils/columnVisibility";
 import { epicState } from "../utils/epicState";
 import { flattenGroups, type TableGroup } from "../utils/flattenGroups";
@@ -48,6 +49,10 @@ export type TicketTableProps = {
 	// True on the epic route: a ticket row is followed by one line per pull
 	// request linked to that ticket.
 	prRows?: boolean;
+	// What the run of a ticket says, keyed by ticket id. A ticket row with
+	// an entry is followed by one agent line. Memoize it: a new identity
+	// rebuilds every line of the list.
+	agentLines?: Readonly<Record<string, TicketAgentLine>>;
 };
 
 export type Editing = { id: string; field: EditField } | null;
@@ -66,6 +71,7 @@ export function TicketTable({
 	emptyState,
 	rowRank,
 	prRows = false,
+	agentLines,
 }: TicketTableProps) {
 	const { orpc } = useApp();
 	const view = viewOf(search);
@@ -95,7 +101,7 @@ export function TicketTable({
 		isCollapsed: collapsed.isCollapsed,
 		rowRank,
 	});
-	const items = useMemo(() => flattenGroups(groups, { prRows }), [groups, prRows]);
+	const items = useMemo(() => flattenGroups(groups, { prRows, agentLines }), [groups, prRows, agentLines]);
 	const loaded = useMemo(() => groups.flatMap((group) => group.rows), [groups]);
 	// The selection, the focus, and every key run over the rows a person can
 	// see. A row inside a collapsed group is loaded but not visible, so it

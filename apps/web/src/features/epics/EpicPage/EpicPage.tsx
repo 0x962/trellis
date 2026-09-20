@@ -22,6 +22,7 @@ import { DisplayPopover } from "../../table/DisplayPopover";
 import { useTicketMutations } from "../../table/hooks/useTicketMutations";
 import { TicketTable } from "../../table/TicketTable";
 import { TableSkeleton } from "../../table/TicketTable/components/TableSkeleton";
+import { agentLinesByTicket } from "../../table/utils/agentLines";
 import { DeleteEpicDialog } from "../DeleteEpicDialog";
 import { EpicSheet } from "../EpicSheet";
 import { assignedTicketIds, epicRowRank } from "../epicRowRank";
@@ -80,6 +81,13 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 		select: assignedTicketIds,
 	}).data;
 	const rowRank = useMemo(() => epicRowRank(assigned ?? noAssigned), [assigned]);
+	// The same `agentRuns.list` query as `assigned` above, with another
+	// `select`. A ticket row whose run holds an open request or a last
+	// message is followed by one line.
+	const agentLines = useQuery({
+		...orpc.agentRuns.list.queryOptions({ input: { assigned: true } }),
+		select: agentLinesByTicket,
+	}).data;
 
 	// The epic query refetches after the ticket write, because the write
 	// response names no changed fields and the counts live on the epic.
@@ -233,6 +241,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 						search={tableSearch}
 						rowRank={rowRank}
 						prRows
+						agentLines={agentLines}
 						onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
 						emptyState={
 							hasFilters(search) ? (
