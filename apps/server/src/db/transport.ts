@@ -21,6 +21,7 @@ import { createCache } from "./cache.ts";
 import type { Db } from "./client.ts";
 import { createMaintenance } from "./maintenance.ts";
 import { pullStream } from "./pullStream.ts";
+import { allResourceBlobShas } from "./queries/epicResources.ts";
 import { allEvidenceBlobShas } from "./queries/prEvidence.ts";
 import { type Emit, type Tx, withTx } from "./tx.ts";
 import { warmWrites } from "./warmWrites.ts";
@@ -232,6 +233,7 @@ export const createInlineTransport = ({
 		await warmWrites(db, cache);
 		const found = await db.execute(sql`SELECT sha256 FROM attachments`);
 		const evidence = await db.transaction(allEvidenceBlobShas);
+		const resources = await db.transaction(allResourceBlobShas);
 		if (options !== undefined) {
 			const clock = scaledClock(options.clockRate);
 			sessionMonitor = startSessionMonitor({
@@ -277,7 +279,7 @@ export const createInlineTransport = ({
 		}
 		return {
 			applied,
-			liveShas: [...new Set([...found.rows.map((row) => row.sha256 as string), ...evidence])],
+			liveShas: [...new Set([...found.rows.map((row) => row.sha256 as string), ...evidence, ...resources])],
 		};
 	};
 
