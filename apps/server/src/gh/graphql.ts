@@ -1,5 +1,5 @@
-import type { Check, CiState, PrState, ReviewState } from "@trellis/api";
-import { deriveCiState, normalizeChecks, type RawContext } from "./parse.ts";
+import type { ChangedFile, Check, CiState, PrState, ReviewState } from "@trellis/api";
+import { deriveCiState, normalizeChecks, normalizeFiles, type RawContext, type RawFile } from "./parse.ts";
 import type { GhFailure, GhRunner, GhSlot } from "./run.ts";
 
 // One `gh api graphql` request fetches a batch of pull requests. Each ref gets
@@ -17,6 +17,7 @@ export type RawPullRequest = {
 	additions: number;
 	deletions: number;
 	changedFiles: number;
+	files: { nodes: RawFile[] };
 	title: string;
 	state: "OPEN" | "CLOSED" | "MERGED";
 	isDraft: boolean;
@@ -49,6 +50,7 @@ export type PullRequestContent = {
 	additions: number;
 	deletions: number;
 	changedFiles: number;
+	files: ChangedFile[];
 	url: string;
 	title: string;
 	state: PrState;
@@ -70,6 +72,7 @@ export type FetchPullRequestsResult = { ok: true; results: PullRequestResult[] }
 
 const selection = `{
 	number additions deletions changedFiles title state isDraft url headRefName baseRefName mergedAt closedAt reviewDecision
+	files(first: 100) { nodes { path additions deletions } }
 	commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { nodes {
 		__typename
 		... on CheckRun { name status conclusion startedAt detailsUrl checkSuite { workflowRun { event workflow { name } } } }
@@ -118,6 +121,7 @@ const toRow = (ref: PullRequestRef, raw: RawPullRequest): PullRequestRow => {
 		additions: raw.additions,
 		deletions: raw.deletions,
 		changedFiles: raw.changedFiles,
+		files: normalizeFiles(raw.files.nodes),
 		url: raw.url,
 		title: raw.title,
 		state: raw.state.toLowerCase() as PrState,

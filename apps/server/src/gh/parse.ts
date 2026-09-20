@@ -1,4 +1,4 @@
-import type { Check, CheckBucket, CiState } from "@trellis/api";
+import type { ChangedFile, Check, CheckBucket, CiState } from "@trellis/api";
 import type { PullRequestRef } from "./graphql.ts";
 
 // The raw nodes `gh api graphql` returns for `statusCheckRollup { contexts }`.
@@ -26,6 +26,12 @@ export type RawStatusContext = {
 };
 
 export type RawContext = RawCheckRun | RawStatusContext;
+
+export type RawFile = {
+	path: string;
+	additions: number;
+	deletions: number;
+};
 
 // The bucket table mirrors `gh pr checks`, so the web shows the same word
 // gh prints. A conclusion outside the table is a check gh cannot judge yet.
@@ -114,6 +120,11 @@ const latestPerCheck = (nodes: RawContext[]): RawContext[] => {
 };
 
 export const normalizeChecks = (nodes: RawContext[]): Check[] => latestPerCheck(nodes).map(toCheck).sort(compareChecks);
+
+export const normalizeFiles = (nodes: RawFile[]): ChangedFile[] =>
+	nodes
+		.map(({ path, additions, deletions }) => ({ path, additions, deletions }))
+		.sort((a, b) => compareText(a.path, b.path));
 
 // Any fail or cancel gives fail; else any pending gives pending; else any
 // pass gives pass; else none. A skipping check counts as nothing.

@@ -14,6 +14,7 @@ export const pullRequests = pgTable(
 		additions: integer(),
 		deletions: integer(),
 		changedFiles: integer("changed_files"),
+		files: jsonb().notNull().default([]),
 		url: text().notNull(),
 		title: text().notNull().default(""),
 		state: text().notNull(),
@@ -41,6 +42,7 @@ export const pullRequests = pgTable(
 		checkIn(t.reviewState, REVIEW_STATES),
 		checkIn(t.ciState, CI_STATES),
 		check("pull_requests_checks_check", sql`jsonb_typeof(${t.checks}) = 'array'`),
+		check("pull_requests_files_check", sql`jsonb_typeof(${t.files}) = 'array'`),
 		index("pull_requests_state_ci_state_idx").on(t.state, t.ciState),
 	],
 );
