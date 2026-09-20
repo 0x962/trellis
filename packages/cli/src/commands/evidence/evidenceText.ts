@@ -1,8 +1,8 @@
 import type { Evidence } from "@trellis/api";
 import { cell, type ListSpec } from "../../output.ts";
 
-const textField = (row: Evidence, name: string): string => {
-	const value = row.record[name];
+const recordText = (row: Evidence, key: string): string => {
+	const value = row.record[key];
 	return typeof value === "string" ? value : "";
 };
 
@@ -11,18 +11,18 @@ const captionOf = (row: Evidence): string => {
 		case "before":
 		case "after":
 		case "capture":
-			return textField(row, "route");
+			return recordText(row, "route");
 		case "clip":
-			return textField(row, "caption");
+			return recordText(row, "caption");
 		case "verify":
 		case "equivalence":
-			return textField(row, "command");
+			return recordText(row, "command");
 		case "test":
-			return textField(row, "name") || textField(row, "reason");
+			return recordText(row, "name") || recordText(row, "reason");
 		case "migration":
-			return textField(row, "table");
+			return recordText(row, "table");
 		case "picture":
-			return textField(row, "why");
+			return recordText(row, "why");
 		case "console":
 		case "contract":
 			return "";
@@ -32,7 +32,7 @@ const captionOf = (row: Evidence): string => {
 export const evidenceList: ListSpec<Evidence> = {
 	columns: [
 		{ name: "kind", value: (row) => row.kind },
-		{ name: "head sha", value: (row) => row.headSha },
+		{ name: "headSha", value: (row) => row.headSha },
 		{ name: "file", value: (row) => cell(row.blob?.filename) },
 		{ name: "caption", value: (row) => cell(captionOf(row)) },
 	],

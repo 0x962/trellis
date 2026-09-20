@@ -31,7 +31,7 @@ test("prints each evidence kind with its head, file, and caption", () => {
 		evidence("equivalence", "new-head", { command: "bun run bench" }),
 	];
 
-	expect(renderTable(rows, evidenceList.columns)).toBe(`kind         head sha  file         caption
+	expect(renderTable(rows, evidenceList.columns)).toBe(`kind         headSha   file         caption
 after        new-head  after.png    /reviews/170
 before       old-head  before.png   /reviews/170
 capture      new-head  -            /reviews/170
