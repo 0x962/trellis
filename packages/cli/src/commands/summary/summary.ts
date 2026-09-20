@@ -10,7 +10,7 @@ import { refusalText, summaryChecks, warningText } from "./refusalText.ts";
 
 type PullRequestRef = { id: string; url: string };
 
-const resolvePullRequest = async (client: TrellisClient, input: string, open: boolean): Promise<PullRequestRef> => {
+const resolvePullRequest = async (client: TrellisClient, input: string, retain: boolean): Promise<PullRequestRef> => {
 	const reviews = await client.reviews.prs({});
 	if (/^\d+$/.test(input)) {
 		const number = Number(input);
@@ -18,7 +18,7 @@ const resolvePullRequest = async (client: TrellisClient, input: string, open: bo
 		if (local.length > 1)
 			throw usageError(`pull request ${input} matches more than one repository; use owner/repo#${input}`);
 		if (local.length === 1) return { id: local[0]!.id, url: local[0]!.url };
-		if (!open) throw notFound("pull request", input);
+		if (!retain) throw notFound("pull request", input);
 		const remote = (await client.reviews.mine({})).filter((row) => row.number === number);
 		if (remote.length === 0) throw notFound("pull request", input);
 		if (remote.length > 1)
@@ -29,7 +29,7 @@ const resolvePullRequest = async (client: TrellisClient, input: string, open: bo
 	const url = reviewRef(input).url;
 	const local = reviews.find((row) => row.url === url);
 	if (local) return { id: local.id, url: local.url };
-	if (!open) throw notFound("pull request", input);
+	if (!retain) throw notFound("pull request", input);
 	const opened = await client.reviews.open({ pr: url });
 	return { id: opened.id, url: opened.url };
 };
