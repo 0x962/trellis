@@ -15,7 +15,7 @@ import { migrate } from "./migrate.ts";
 import type { Tx } from "./tx.ts";
 
 // One root TST with a todo status, a started status, a human review status,
-// and a done status. The epic TST/plan holds the milestones Foundation,
+// a done status, and a canceled status. The epic TST/plan holds the milestones Foundation,
 // Surfaces, and Integrate in that order, and the epic TST/flat holds none.
 // The services run against an in-memory database with a fixed clock.
 let db: Db;
@@ -102,6 +102,7 @@ beforeAll(async () => {
 	await insertStatus("In Progress", "in-progress", "started", null, 1);
 	await insertStatus("Human Review", "human-review", "review", "human", 2);
 	await insertStatus("Done", "done", "done", null, 3);
+	await insertStatus("Canceled", "canceled", "canceled", null, 4);
 	cache = createCache();
 	await db.transaction((tx) => cache.rebuild(tx));
 	const ctx = ctxAt("2026-09-18T10:00:30.000Z");
@@ -141,12 +142,14 @@ test("an epic names its first open milestone, and an epic with no milestone name
 
 test("a milestone counts ready tickets and tickets that wait for the person", async () => {
 	const ctx = ctxAt("2026-09-18T10:02:00.000Z");
-	await ticket(ctx, "CLI: the command", "surfaces");
+	const releasedByCanceled = await ticket(ctx, "CLI: the command", "surfaces");
 	const blocked = await ticket(ctx, "Docs: the page", "surfaces");
+	const canceled = await ticket(ctx, "Old blocker", "surfaces", "canceled");
 	const humanReview = await ticket(ctx, "Decide the name", "surfaces", "human-review");
 	const readyReview = await ticket(ctx, "Mobile: the screen", "surfaces", "in-progress");
-	await db.execute(sql`INSERT INTO ticket_deps (ticket_id, depends_on_id, source, created_at)
-		VALUES (${blocked.id}, ${readyReview.id}, 'manual', '2026-09-18T10:02:00.000Z')`);
+	await db.execute(sql`INSERT INTO ticket_deps (ticket_id, depends_on_id, source, created_at) VALUES
+		(${blocked.id}, ${readyReview.id}, 'manual', '2026-09-18T10:02:00.000Z'),
+		(${releasedByCanceled.id}, ${canceled.id}, 'manual', '2026-09-18T10:02:00.000Z')`);
 	await insertPullRequest(readyReview.id, 1, { checks: [{ bucket: "pass" }] });
 	await insertPullRequest(readyReview.id, 2);
 	await insertPullRequest((await ticket(ctx, "Draft review", "surfaces", "in-progress")).id, 3, { draft: true });

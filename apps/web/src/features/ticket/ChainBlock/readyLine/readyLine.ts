@@ -1,5 +1,4 @@
-import type { TicketSummary } from "@trellis/api";
-import { blockReason } from "../../blockReason";
+import { blockReason, type TicketSummary } from "@trellis/api";
 
 // The list always puts a comma and the word `and` before the last item.
 function sentenceList(parts: readonly string[]): string {

@@ -12,8 +12,9 @@ const todoStatus = ulid();
 const startedStatus = ulid();
 const questionStatus = ulid();
 const doneStatus = ulid();
+const canceledStatus = ulid();
 const at = new Date("2026-09-20T10:00:00.000Z");
-const tickets = Array.from({ length: 10 }, () => ulid());
+const tickets = Array.from({ length: 11 }, () => ulid());
 
 const insertPullRequest = async (ticketId: string, number: number, headRef: string, baseRef: string) => {
 	const id = ulid();
@@ -41,7 +42,8 @@ beforeAll(async () => {
 		(${todoStatus}, ${root}, 'Todo', 'todo', 'todo', NULL, 'fg-muted', 0, true, ${at}, ${at}),
 		(${startedStatus}, ${root}, 'In Progress', 'in-progress', 'started', NULL, 'accent', 1, false, ${at}, ${at}),
 		(${questionStatus}, ${root}, 'Human Review', 'human-review', 'review', 'human', 'warning', 2, false, ${at}, ${at}),
-		(${doneStatus}, ${root}, 'Done', 'done', 'done', NULL, 'success', 3, false, ${at}, ${at})`);
+		(${doneStatus}, ${root}, 'Done', 'done', 'done', NULL, 'success', 3, false, ${at}, ${at}),
+		(${canceledStatus}, ${root}, 'Canceled', 'canceled', 'canceled', NULL, 'fg-muted', 4, false, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO epics (
 		id, project_id, root_id, slug, name, description, actor_name, actor_kind, created_at, updated_at
 	) VALUES (${epic}, ${root}, ${root}, 'plan', 'Plan', '', 'Test', 'human', ${at}, ${at})`);
@@ -57,7 +59,8 @@ beforeAll(async () => {
 		(${tickets[6]}, ${root}, ${root}, 7, 'Ready ticket', '', ${todoStatus}, ${epic}, 6, ${at}, ${at}),
 		(${tickets[7]}, ${root}, ${root}, 8, 'Ready without dependencies', '', ${todoStatus}, ${epic}, 7, ${at}, ${at}),
 		(${tickets[8]}, ${root}, ${root}, 9, 'Started without dependencies', '', ${startedStatus}, ${epic}, 8, ${at}, ${at}),
-		(${tickets[9]}, ${root}, ${root}, 10, 'Outside the epic', '', ${todoStatus}, NULL, 9, ${at}, ${at})`);
+		(${tickets[9]}, ${root}, ${root}, 10, 'Outside the epic', '', ${todoStatus}, NULL, 9, ${at}, ${at}),
+		(${tickets[10]}, ${root}, ${root}, 11, 'Canceled blocker', '', ${canceledStatus}, ${epic}, 10, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO ticket_deps (ticket_id, depends_on_id, source, created_at) VALUES
 		(${tickets[1]}, ${tickets[8]}, 'manual', ${at}),
 		(${tickets[3]}, ${tickets[0]}, 'manual', ${at}),
@@ -65,7 +68,8 @@ beforeAll(async () => {
 		(${tickets[3]}, ${tickets[2]}, 'manual', ${at}),
 		(${tickets[4]}, ${tickets[3]}, 'manual', ${at}),
 		(${tickets[5]}, ${tickets[4]}, 'manual', ${at}),
-		(${tickets[6]}, ${tickets[0]}, 'manual', ${at})`);
+		(${tickets[6]}, ${tickets[0]}, 'manual', ${at}),
+		(${tickets[6]}, ${tickets[10]}, 'manual', ${at})`);
 	await insertPullRequest(tickets[0] as string, 10, "feature/base", "main");
 	await insertPullRequest(tickets[3] as string, 11, "feature/subject", "feature/base");
 	await insertPullRequest(tickets[9] as string, 12, "feature/outside", "feature/base");
