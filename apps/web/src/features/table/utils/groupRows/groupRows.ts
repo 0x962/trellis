@@ -9,14 +9,15 @@ import {
 } from "@trellis/api";
 import { projectSlashPath } from "../../../../lib/projectPath";
 import type { Group } from "../../../filters/grammar";
+import { turnBucketOf, type WorkingTicketIds } from "../turnGroups";
 
 // A status of the scope, with the position the owner configured.
 export type GroupStatus = StatusSummary & { position?: number };
 
 export type RowGroup = {
 	// The URL-safe identity of the group: a status slug, a priority, a
-	// project ref, a parent identifier, an epic id, a milestone id, a PR
-	// state, or `all`.
+	// project ref, a parent identifier, an epic id, a milestone id, a turn,
+	// a PR state, or `all`.
 	key: string;
 	// The heading. Null when grouping is off.
 	label: string | null;
@@ -40,6 +41,8 @@ export type GroupOptions = {
 	// The rank of a row inside its group. A lower rank comes first, and the
 	// view's sort orders the rows of one rank.
 	rowRank?: RowRank;
+	// The turn grouping reads it. Every other grouping ignores it.
+	workingTicketIds?: WorkingTicketIds;
 };
 
 export type RowRank = (row: TicketSummary) => number;
@@ -157,6 +160,8 @@ const bucketOf = (row: TicketSummary, options: GroupOptions): Bucket => {
 				milestone: row.milestone,
 			};
 		}
+		case "turn":
+			return turnBucketOf(row, options.workingTicketIds);
 		case "pr": {
 			const state = row.pr?.state ?? "none";
 			return { key: state, label: prLabels[state]!, rank: prRank[state]! };

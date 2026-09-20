@@ -10,6 +10,10 @@ export type GroupHeaderProps = Omit<SharedProps, "count" | "showCount" | "icon" 
 	countLabel?: string;
 	// The word of the `Badge` after the label, such as Current.
 	badge?: string;
+	// The rows of the group whose turn is the person. The count slot prints
+	// it after the count, `0/6 · 1 for you`. Undefined on a table that does
+	// not read the turn of a row, and 0 prints nothing.
+	forYou?: number;
 	// A muted word beside the count, such as Later.
 	note?: string;
 	status?: StatusSummary;
@@ -17,13 +21,15 @@ export type GroupHeaderProps = Omit<SharedProps, "count" | "showCount" | "icon" 
 };
 export { groupHeaderHeight, phoneGroupHeaderHeight } from "@trellis/ui";
 
-export function GroupHeader({ count, countLabel, badge, note, status, category, ...props }: GroupHeaderProps) {
-	const text = countLabel ?? formatCount(count);
+export function GroupHeader({ count, countLabel, badge, forYou, note, status, category, ...props }: GroupHeaderProps) {
+	const parts = [countLabel ?? formatCount(count)];
+	if (forYou !== undefined && forYou > 0) parts.push(`${formatCount(forYou)} for you`);
+	if (note !== undefined) parts.push(note);
 	return (
 		<SharedGroupHeader
 			{...props}
 			layout="grid"
-			count={note === undefined ? text : `${text} · ${note}`}
+			count={parts.join(" · ")}
 			showCount={formatCount(count)}
 			mark={badge === undefined ? undefined : <Badge tone="accent">{badge}</Badge>}
 			icon={

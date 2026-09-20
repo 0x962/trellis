@@ -6,6 +6,7 @@ import type { TableGroup } from "../../utils/flattenGroups";
 import { groupRows, type RowRank } from "../../utils/groupRows";
 import { closedSlugs } from "../../utils/listQuery";
 import { milestoneMarks } from "../../utils/milestoneGroups";
+import { forYouCount, type WorkingTicketIds } from "../../utils/turnGroups";
 import type { ClosedCategory, TableData } from "../useTableData";
 
 export type TableGroupsOptions = {
@@ -16,6 +17,12 @@ export type TableGroupsOptions = {
 	// The rank of a row inside its group, ahead of the view's sort. The
 	// groups rebuild when its identity changes, so the caller memoizes it.
 	rowRank?: RowRank;
+	// The epic route passes it; the turn of a row and the `1 for you` count
+	// of a wave header read it. Null while the agent-run query of the route
+	// has not answered: the turn grouping then reports `loading`, because a
+	// row would land in the wrong group and move when the answer arrives.
+	// Memoize it: a new identity regroups the rows.
+	workingTicketIds?: WorkingTicketIds | null;
 };
 
 export type TableGroups = {
@@ -55,7 +62,14 @@ const noRefs: string[] = [];
 // landed, because the group order and the header marks come from them; the
 // table draws its skeleton for that time, so the groups never change order
 // on screen.
-export const useTableGroups = ({ data, view, project, isCollapsed, rowRank }: TableGroupsOptions): TableGroups => {
+export const useTableGroups = ({
+	data,
+	view,
+	project,
+	isCollapsed,
+	rowRank,
+	workingTicketIds,
+}: TableGroupsOptions): TableGroups => {
 	const { rows: activeRows, statuses, closed, inlineClosed } = data;
 	// A live patch can close a row of the active pass while the closed pass
 	// already holds it, so the closed pass gives way on a shared id.
@@ -66,6 +80,7 @@ export const useTableGroups = ({ data, view, project, isCollapsed, rowRank }: Ta
 	}, [activeRows, inlineClosed]);
 	const epicRefs = useMemo(() => (view.group === "milestone" ? epicRefsOf(rows) : noRefs), [view.group, rows]);
 	const { epics, pending } = useEpicMilestonesLoad(epicRefs);
+	const working = workingTicketIds ?? undefined;
 	const groups = useMemo(() => {
 		const milestones = epics.flatMap((entry) => entry.milestones);
 		const oneEpic = epicRefs.length === 1 && rows.every((row) => row.epic !== null);
@@ -77,12 +92,14 @@ export const useTableGroups = ({ data, view, project, isCollapsed, rowRank }: Ta
 			project,
 			milestoneOrder: milestones.map((milestone) => milestone.id),
 			rowRank,
+			workingTicketIds: working,
 		}).map((group) => {
 			const mark = marks?.get(group.key);
 			return {
 				...group,
 				count: group.rows.length,
 				countLabel: mark?.countLabel,
+				forYou: mark === undefined ? undefined : forYouCount(group.rows, working),
 				badge: mark?.badge,
 				note: mark?.note,
 				epicRef: oneEpic && view.group === "milestone" ? epicRefs[0] : undefined,
@@ -112,6 +129,19 @@ export const useTableGroups = ({ data, view, project, isCollapsed, rowRank }: Ta
 			});
 		}
 		return [...active.filter((group) => !closedCategories.includes(group.category as ClosedCategory)), ...tail];
-	}, [rows, statuses, closed, view.group, view.closed, view.sort, project, isCollapsed, epics, epicRefs, rowRank]);
-	return { groups, loading: pending };
+	}, [
+		rows,
+		statuses,
+		closed,
+		view.group,
+		view.closed,
+		view.sort,
+		project,
+		isCollapsed,
+		epics,
+		epicRefs,
+		rowRank,
+		working,
+	]);
+	return { groups, loading: pending || (view.group === "turn" && workingTicketIds === null) };
 };

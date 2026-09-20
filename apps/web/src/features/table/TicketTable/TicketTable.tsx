@@ -56,6 +56,9 @@ export type TicketTableProps = {
 	// an entry is followed by one agent line. Memoize it: a new identity
 	// rebuilds every line of the list.
 	agentLines?: Readonly<Record<string, TicketAgentLine>>;
+	// The epic route passes it, because the turn of a row reads it. Memoize
+	// it: a new identity regroups the rows.
+	workingTicketIds?: TableGroupsOptions["workingTicketIds"];
 };
 
 export type Editing = { id: string; field: EditField } | null;
@@ -76,6 +79,7 @@ export function TicketTable({
 	rowRank,
 	prRows = false,
 	agentLines,
+	workingTicketIds,
 }: TicketTableProps) {
 	const { orpc } = useApp();
 	const view = viewOf(search);
@@ -104,6 +108,7 @@ export function TicketTable({
 		project,
 		isCollapsed: collapsed.isCollapsed,
 		rowRank,
+		workingTicketIds,
 	});
 	const items = useMemo(() => flattenGroups(groups, { prRows, agentLines }), [groups, prRows, agentLines]);
 	const loaded = useMemo(() => groups.flatMap((group) => group.rows), [groups]);

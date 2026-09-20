@@ -81,13 +81,16 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	const assignedRuns = assignedRunsQuery.data;
 	const assigned = useMemo(() => assignedTicketIds(assignedRuns ?? noRuns), [assignedRuns]);
 	const rowRank = useMemo(() => epicRowRank(assigned), [assigned]);
-	const workingAgentTicketIds = useMemo(() => epicWorkingTicketIds(assignedRuns ?? noRuns), [assignedRuns]);
+	// A Set, because the turn of each row tests membership. Null until the
+	// query succeeds: an empty set would read a ticket whose agent works as
+	// the turn of the person, and the row would move when the answer lands.
+	const workingTicketIds = useMemo(
+		() => (assignedRunsQuery.status === "success" ? new Set(epicWorkingTicketIds(assignedRuns ?? noRuns)) : null),
+		[assignedRunsQuery.status, assignedRuns],
+	);
 	const running = useMemo(
-		() =>
-			assignedRunsQuery.status === "success" && epic.data !== undefined
-				? epicRunningCount(epic.data, workingAgentTicketIds)
-				: null,
-		[assignedRunsQuery.status, epic.data, workingAgentTicketIds],
+		() => (workingTicketIds !== null && epic.data !== undefined ? epicRunningCount(epic.data, workingTicketIds) : null),
+		[workingTicketIds, epic.data],
 	);
 	// The same `agentRuns.list` query as `assignedRuns` above, with another
 	// `select`. A ticket row whose run holds an open request or a last
@@ -124,7 +127,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	// The search and the filter bar need the epic ref and the project alone,
 	// so the pending page draws the same bar as the loaded page and the
 	// topbar keeps its shape when the epic arrives.
-	const tableSearch = epicPageSearch(search, ref);
+	const tableSearch = useMemo(() => epicPageSearch(search, ref), [search, ref]);
 	const { epic: fixedEpic, ...barSearch } = tableSearch;
 	const full = viewOf(tableSearch);
 	const setSearch = (next: Partial<View>) => onSearchChange(epicUrlSearch(next));
@@ -240,7 +243,13 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 				{readOnly && <ArchivedBanner project={project} />}
 				{/* The band and the plan take at most half of the card and scroll inside it, so the table always keeps rows on screen. */}
 				<div className="max-h-1/2 shrink-0 overflow-y-auto border-b border-border">
-					<EpicProgress epic={record} running={running} splat={splat} search={tableSearch} />
+					<EpicProgress
+						epic={record}
+						running={running}
+						splat={splat}
+						search={tableSearch}
+						workingTicketIds={workingTicketIds}
+					/>
 					<EpicPlan routeKey={routeKey} description={record.description} />
 				</div>
 				<fieldset disabled={readOnly} className="contents">
@@ -250,6 +259,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 						tableKind="epic"
 						search={tableSearch}
 						rowRank={rowRank}
+						workingTicketIds={workingTicketIds}
 						prRows
 						agentLines={agentLines}
 						onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
