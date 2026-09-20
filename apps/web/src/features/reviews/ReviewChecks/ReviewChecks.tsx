@@ -1,36 +1,30 @@
-import type { ReviewRevision } from "@trellis/api";
-import { CheckRing } from "@trellis/ui";
-import { CheckResults } from "@trellis/ui/review";
+import type { Check, CheckBucket, ReviewRevision } from "@trellis/api";
 import { useCollapsedGroups } from "../../table/hooks/useCollapsedGroups/useCollapsedGroups";
-import { checkDuration, checkGroupOrder, checkGroups, checkLabel, checkSummary, type ReviewCheck } from "./checkGroups";
+import { ChecksLine } from "../ChecksLine";
+import { type CheckGroupKey, checkGroups, type ReviewCheck } from "./checkGroups";
 
-const collapsedDefaults = checkGroupOrder.filter((group) => !group.expanded).map((group) => group.key);
+const collapsedDefaults = ["success", "skipped"];
+const buckets: Record<CheckGroupKey, CheckBucket> = {
+	failed: "fail",
+	running: "pending",
+	pending: "pending",
+	canceled: "cancel",
+	success: "pass",
+	skipped: "skipping",
+	neutral: "skipping",
+	unknown: "pending",
+};
 
 export function ReviewChecks({ revision, pr }: { revision: ReviewRevision | null; pr: string }) {
-	const checks = (revision?.meta.statusCheckRollup ?? []) as ReviewCheck[];
-	const summary = checkSummary(checks);
-	const { isCollapsed, toggle } = useCollapsedGroups(`${pr}#checks`, collapsedDefaults);
-	return (
-		<CheckResults
-			title={summary.title}
-			description={summary.description}
-			loading={revision === null}
-			summary={<CheckRing counts={summary.counts} />}
-			groups={checkGroups(checks).map((group) => ({
-				key: group.key,
-				label: group.label,
-				checks: group.checks.map((check) => ({
-					key: check.key,
-					name: check.name,
-					status: group.key,
-					label: checkLabel(check),
-					workflow: check.workflowName,
-					url: check.detailsUrl || check.targetUrl || undefined,
-					duration: checkDuration(check),
-				})),
-			}))}
-			isCollapsed={isCollapsed}
-			onToggle={toggle}
-		/>
+	const rollup = (revision?.meta.statusCheckRollup ?? []) as ReviewCheck[];
+	const checks: Check[] = checkGroups(rollup).flatMap((group) =>
+		group.checks.map((check) => ({
+			name: check.name,
+			workflow: check.workflowName ?? null,
+			bucket: buckets[group.key],
+			link: check.detailsUrl || check.targetUrl || null,
+		})),
 	);
+	const { isCollapsed, toggle } = useCollapsedGroups(`${pr}#checks`, collapsedDefaults);
+	return <ChecksLine checks={checks} loading={revision === null} isCollapsed={isCollapsed} onToggle={toggle} />;
 }
