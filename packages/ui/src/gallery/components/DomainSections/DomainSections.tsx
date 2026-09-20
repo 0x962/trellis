@@ -15,6 +15,7 @@ import {
 	LineChangesSection,
 	PrGlyphSection,
 	PriorityIconSection,
+	ResourceListSection,
 	ReviewFocusListSection,
 	ReviewStatusSummarySection,
 	RunLineSection,
@@ -53,6 +54,7 @@ export function DomainSections() {
 			<EvidenceStripSection />
 			<BackendEvidenceSection />
 			<StartControlsSection />
+			<ResourceListSection />
 		</>
 	);
 }

@@ -37,6 +37,7 @@ export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/Pr
 export { type ModelProvider, ProviderIcon, type ProviderIconProps } from "./domain/ProviderIcon";
 export { type QuotaWindow, QuotaWindows, type QuotaWindowsProps, quotaFillClass } from "./domain/QuotaWindows";
 export { type RankedBarRow, RankedBars, type RankedBarsProps } from "./domain/RankedBars";
+export { ResourceList, type ResourceListProps, type ResourceKind, type ResourceRowValue } from "./domain/ResourceList";
 export {
 	type PullRequestReviewState,
 	ReviewStateIcon,
