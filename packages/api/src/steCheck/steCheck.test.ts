@@ -90,4 +90,6 @@ test("quoted material does not produce a report", () => {
 	const text =
 		'`one — two` "three — four"\nError: five — six\ncheck: seven — eight\ntest: nine — ten\npackages/pull/request/summary/contract.ts';
 	expect(steCheck(text, { headline: false })).toEqual({ refusals: [], warnings: [] });
+	const pathText = `Read packages/api/src/steCheck/steCheck.ts. ${"word ".repeat(25)}word.`;
+	expect(steCheck(pathText, { headline: false }).refusals).toContain("sentence 2 is 26 words. The limit is 25.");
 });

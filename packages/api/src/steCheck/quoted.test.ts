@@ -4,7 +4,7 @@ import { unquotedText } from "./quoted";
 describe("unquotedText", () => {
 	test("masks inline quoted material", () => {
 		const result = unquotedText(
-			"Keep the user's choice, `an — example`, \"a — string\", “curly — words”, 'single — words' and ‘more — words’.",
+			"Keep the user's choice 🚀🚀, `an — example`, \"a — string\", “curly — words”, 'single — words' and ‘more — words’.",
 		);
 		expect(result).not.toContain("—");
 		expect(result).toContain("user's");
@@ -19,9 +19,6 @@ describe("unquotedText", () => {
 
 	test("masks paths", () => {
 		const result = unquotedText("Open packages/api/src/steCheck/steCheck.ts and ChatPage.vue first.");
-		expect(result).not.toContain("steCheck.ts");
-		expect(result).not.toContain("ChatPage.vue");
-		expect(result).toContain("Open");
-		expect(result).toContain("first.");
+		expect(result).toMatch(/^Open\s+and\s+first\.$/);
 	});
 });
