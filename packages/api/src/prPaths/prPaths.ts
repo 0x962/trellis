@@ -58,6 +58,7 @@ const repositoryRules = {
 
 const answer = (value: boolean): PrRiskAnswer => (value ? "yes" : "no");
 
+// The path list contains at least one changed file. A caller with no file data keeps its pull request kind unknown.
 export function prPaths(repo: string, paths: PrPath[]): PrPathResult {
 	const override = repositoryRules[repo.toLowerCase() as keyof typeof repositoryRules];
 	const rules: Rules = { ...repositoryRules.default, ...override };
@@ -67,12 +68,12 @@ export function prPaths(repo: string, paths: PrPath[]): PrPathResult {
 		return {
 			path: entry.path,
 			frontend: rules.frontendRoot.test(path),
-			auth: authPath.test(path),
-			migration: rules.migrationFolder.test(path),
-			dependency: rules.dependencyManifest.test(path),
-			sharedType: sharedTypePath.test(path) || rules.sharedTypeRoot.test(path),
-			publicApi: publicApiPath.test(path) || rules.publicApiRoot.test(path),
-			secret: secretPath.test(path),
+			auth: !test && authPath.test(path),
+			migration: !test && rules.migrationFolder.test(path),
+			dependency: !test && rules.dependencyManifest.test(path),
+			sharedType: !test && (sharedTypePath.test(path) || rules.sharedTypeRoot.test(path)),
+			publicApi: !test && (publicApiPath.test(path) || rules.publicApiRoot.test(path)),
+			secret: !test && secretPath.test(path),
 			test,
 			deletedTest: entry.type === "deleted" && test,
 			noise: noisePath.test(path),
@@ -86,10 +87,10 @@ export function prPaths(repo: string, paths: PrPath[]): PrPathResult {
 				? "risk"
 				: fact.noise
 					? "noise"
-					: fact.auth || fact.migration || fact.dependency || fact.sharedType || fact.publicApi || fact.secret
-						? "risk"
-						: fact.test
-							? "tests"
+					: fact.test
+						? "tests"
+						: fact.auth || fact.migration || fact.dependency || fact.sharedType || fact.publicApi || fact.secret
+							? "risk"
 							: "behavior",
 		]),
 	);

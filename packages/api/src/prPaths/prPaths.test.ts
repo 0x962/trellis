@@ -23,6 +23,10 @@ describe("risk answers", () => {
 	test("marks a deleted test", () => {
 		expect(prPaths("trellis", [changed("packages/api/src/time.test.ts", "deleted")]).risk.deletedTest).toBe("yes");
 	});
+
+	test("does not mark a test file as a shared type", () => {
+		expect(prPaths("trellis", [changed("packages/api/src/time.test.ts")]).risk.sharedType).toBe("no");
+	});
 });
 
 describe("pull request kind", () => {
@@ -40,6 +44,10 @@ describe("pull request kind", () => {
 		expect(
 			prPaths("canary", [changed("frontend/src/App.tsx"), changed("backend/canary/hotels/selectors.py")]).kind,
 		).toBe("mixed");
+	});
+
+	test("returns backend as the default for an empty path list", () => {
+		expect(prPaths("trellis", []).kind).toBe("backend");
 	});
 });
 
@@ -61,6 +69,12 @@ describe("path groups", () => {
 	test("puts test files in tests", () => {
 		expect(prPaths("trellis", [changed("apps/server/src/log.test.ts")]).groups).toEqual({
 			"apps/server/src/log.test.ts": "tests",
+		});
+	});
+
+	test("puts a test file inside an API directory in tests", () => {
+		expect(prPaths("other", [changed("src/api/client.test.ts")]).groups).toEqual({
+			"src/api/client.test.ts": "tests",
 		});
 	});
 
