@@ -8,7 +8,7 @@ export type ChartTone = "agent" | "fg" | "faint" | "success" | "warning" | "dang
 
 // The text color of a tone, for a legend swatch drawn with `bg-current`.
 export const chartToneClass: Record<ChartTone, string> = {
-	agent: "text-agent",
+	agent: "text-accent",
 	fg: "text-fg",
 	faint: "text-fg-faint",
 	success: "text-success",
@@ -19,7 +19,7 @@ export const chartToneClass: Record<ChartTone, string> = {
 
 // The fill of a tone, for an SVG shape or a bar.
 export const chartFillClass: Record<ChartTone, string> = {
-	agent: "fill-agent",
+	agent: "fill-accent",
 	fg: "fill-fg",
 	faint: "fill-fg-faint",
 	success: "fill-success",
@@ -30,7 +30,7 @@ export const chartFillClass: Record<ChartTone, string> = {
 
 // The background of a tone, for an HTML bar segment.
 export const chartBgClass: Record<ChartTone, string> = {
-	agent: "bg-agent",
+	agent: "bg-accent",
 	fg: "bg-fg",
 	faint: "bg-fg-faint",
 	success: "bg-success",
@@ -39,7 +39,9 @@ export const chartBgClass: Record<ChartTone, string> = {
 	accent: "bg-accent",
 };
 
-// The tones of a ranked list, first place first. The sixth slice of a
-// chart is "everything else", and it takes the quiet accent grey.
-export const rankedTones: readonly ChartTone[] = ["agent", "success", "warning", "danger", "fg"];
-export const otherTone: ChartTone = "accent";
+// The tones of a ranked list, first place first. The slice after the last
+// ranked one is "everything else", and it takes the quiet grey of `faint`.
+// No ranked tone draws the accent grey, because the light theme draws
+// `accent` and `faint` in one grey and the two slices would read as one.
+export const rankedTones: readonly ChartTone[] = ["success", "warning", "danger", "fg"];
+export const otherTone: ChartTone = "faint";

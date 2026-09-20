@@ -45,6 +45,9 @@ export type TicketTableProps = {
 	emptyState?: ReactNode;
 	// Orders the rows of each group ahead of the view sort. Memoize it: a new identity regroups the rows.
 	rowRank?: TableGroupsOptions["rowRank"];
+	// True on the epic route: a ticket row is followed by one line per pull
+	// request linked to that ticket.
+	prRows?: boolean;
 };
 
 export type Editing = { id: string; field: EditField } | null;
@@ -55,7 +58,15 @@ const focusFilter = () => document.querySelector<HTMLElement>("[data-filter-bar]
 // The ticket table of a list route: the active rows grouped client-side,
 // the closed groups on demand, the roving focus, the id-keyed selection,
 // the inline pickers, and the bulk bar.
-export function TicketTable({ project, routeKey, search, onOpenPage, emptyState, rowRank }: TicketTableProps) {
+export function TicketTable({
+	project,
+	routeKey,
+	search,
+	onOpenPage,
+	emptyState,
+	rowRank,
+	prRows = false,
+}: TicketTableProps) {
 	const { orpc } = useApp();
 	const view = viewOf(search);
 	const storedDensity = useUiStore((state) => state.density);
@@ -84,7 +95,7 @@ export function TicketTable({ project, routeKey, search, onOpenPage, emptyState,
 		isCollapsed: collapsed.isCollapsed,
 		rowRank,
 	});
-	const items = useMemo(() => flattenGroups(groups), [groups]);
+	const items = useMemo(() => flattenGroups(groups, { prRows }), [groups, prRows]);
 	const loaded = useMemo(() => groups.flatMap((group) => group.rows), [groups]);
 	// The selection, the focus, and every key run over the rows a person can
 	// see. A row inside a collapsed group is loaded but not visible, so it

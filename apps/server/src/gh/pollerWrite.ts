@@ -24,16 +24,28 @@ export type PolledFailure = { id: string; error: string };
 
 export type WriteInput = { at: Date; written: Polled[]; failed: PolledFailure[] };
 
-const PR_COLUMNS = sql.raw(`(
-	id, owner, repo, number, url, title, state, is_draft, head_ref, base_ref, review_state,
+export const PR_COLUMNS = sql.raw(`(
+	id, owner, repo, number, additions, deletions, changed_files, files, url, title, state, is_draft, head_ref, base_ref, review_state,
 	merged_at, closed_at, checks, ci_state, content_hash, fetched_at, fetch_error, created_at, updated_at
 )`);
 
-const prValues = (at: Date, row: PullRequestRow) => sql`(
-	${ulid()}, ${row.owner}, ${row.repo}, ${row.number}, ${row.url}, ${row.title}, ${row.state}, ${row.isDraft},
+export const prValues = (at: Date, row: PullRequestRow) => sql`(
+	${ulid()}, ${row.owner}, ${row.repo}, ${row.number}, ${row.additions}, ${row.deletions}, ${row.changedFiles},
+	${JSON.stringify(row.files)}::jsonb,
+	${row.url}, ${row.title}, ${row.state}, ${row.isDraft},
 	${row.headRef}, ${row.baseRef}, ${row.reviewState}, ${row.mergedAt}, ${row.closedAt},
 	${JSON.stringify(row.checks)}::jsonb, ${row.ciState}, ${row.contentHash}, ${at}, NULL, ${at}, ${at}
 )`;
+
+export const PR_UPDATE_SET = sql.raw(`
+	additions = EXCLUDED.additions, deletions = EXCLUDED.deletions, changed_files = EXCLUDED.changed_files,
+	files = EXCLUDED.files,
+	url = EXCLUDED.url, title = EXCLUDED.title, state = EXCLUDED.state, is_draft = EXCLUDED.is_draft,
+	head_ref = EXCLUDED.head_ref, base_ref = EXCLUDED.base_ref, review_state = EXCLUDED.review_state,
+	merged_at = EXCLUDED.merged_at, closed_at = EXCLUDED.closed_at, checks = EXCLUDED.checks,
+	ci_state = EXCLUDED.ci_state, content_hash = EXCLUDED.content_hash, fetched_at = EXCLUDED.fetched_at,
+	fetch_error = NULL, updated_at = EXCLUDED.updated_at
+`);
 
 const joined = (parts: SQL[]) => sql.join(parts, sql`, `);
 
@@ -43,12 +55,7 @@ export const upsertPullRequests = (tx: Tx, at: Date, prs: PullRequestRow[]) =>
 	tx.execute(sql`
 		INSERT INTO pull_requests ${PR_COLUMNS}
 		VALUES ${joined(prs.map((row) => prValues(at, row)))}
-		ON CONFLICT (owner, repo, number) DO UPDATE SET
-			url = EXCLUDED.url, title = EXCLUDED.title, state = EXCLUDED.state, is_draft = EXCLUDED.is_draft,
-			head_ref = EXCLUDED.head_ref, base_ref = EXCLUDED.base_ref, review_state = EXCLUDED.review_state,
-			merged_at = EXCLUDED.merged_at, closed_at = EXCLUDED.closed_at, checks = EXCLUDED.checks,
-			ci_state = EXCLUDED.ci_state, content_hash = EXCLUDED.content_hash, fetched_at = EXCLUDED.fetched_at,
-			fetch_error = NULL, updated_at = EXCLUDED.updated_at
+		ON CONFLICT (owner, repo, number) DO UPDATE SET ${PR_UPDATE_SET}
 	`);
 
 // The message gh printed for one pull request it could not answer. The

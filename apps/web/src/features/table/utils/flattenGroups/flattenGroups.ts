@@ -1,4 +1,4 @@
-import type { TicketSummary } from "@trellis/api";
+import type { TicketPr, TicketSummary } from "@trellis/api";
 import type { RowGroup } from "../groupRows";
 
 // A group as the table renders it: the rows it holds and, for a closed
@@ -29,16 +29,32 @@ export type TableGroup = RowGroup & {
 export type TableItem =
 	| { kind: "header"; key: string; group: TableGroup }
 	| { kind: "row"; key: string; group: TableGroup; ticket: TicketSummary }
+	| { kind: "pr"; key: string; group: TableGroup; pr: TicketPr }
 	| { kind: "more"; key: string; group: TableGroup };
 
+export type FlattenOptions = {
+	// True on the epic route: a ticket row is followed by one line per pull
+	// request linked to that ticket. False everywhere else, where the list
+	// holds ticket rows alone.
+	prRows?: boolean;
+};
+
 // The lines in order: each group's header, its rows while it is expanded,
-// and its "show more" line while a page waits on the server.
-export const flattenGroups = (groups: readonly TableGroup[]): TableItem[] => {
+// the pull requests of each row when `prRows` asks for them, and its
+// "show more" line while a page waits on the server.
+export const flattenGroups = (groups: readonly TableGroup[], options: FlattenOptions = {}): TableItem[] => {
 	const items: TableItem[] = [];
 	for (const group of groups) {
 		if (group.label !== null) items.push({ kind: "header", key: `header:${group.key}`, group });
 		if (!group.expanded) continue;
-		for (const ticket of group.rows) items.push({ kind: "row", key: ticket.id, group, ticket });
+		for (const ticket of group.rows) {
+			items.push({ kind: "row", key: ticket.id, group, ticket });
+			if (options.prRows !== true) continue;
+			// Two tickets can link the same pull request, so the ticket id is
+			// part of the key that the virtualizer uses to hold a line.
+			for (const pr of ticket.prRows)
+				items.push({ kind: "pr", key: `pr:${ticket.id}:${pr.owner}/${pr.repo}#${pr.number}`, group, pr });
+		}
 		if (group.hasMore) items.push({ kind: "more", key: `more:${group.key}`, group });
 	}
 	return items;

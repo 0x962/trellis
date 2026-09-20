@@ -2,6 +2,7 @@ import type { Attachment, LinkedPullRequest, StoredActorKind, Ticket, TicketSumm
 import { type SQL, sql } from "drizzle-orm";
 import type { Tx } from "../tx.ts";
 import { actorDisplayName } from "./actorDisplayName.ts";
+import { type LinkedPullRequestRow, pullRequestColumns, toLinkedPullRequest } from "./pullRequestRows.ts";
 import { iso, rows } from "./support.ts";
 import { type SummaryRow, summaryStatement, toSummary } from "./ticketSummary.ts";
 
@@ -30,74 +31,17 @@ export const epicSummaries = (tx: Tx, epicId: string) =>
 		sql`page AS (SELECT c.id, row_number() OVER (ORDER BY c.number) AS rn FROM tickets c WHERE c.epic_id = ${epicId})`,
 	);
 
-type RawLinkedPr = {
-	id: string;
-	owner: string;
-	repo: string;
-	number: number;
-	url: string;
-	title: string;
-	state: LinkedPullRequest["state"];
-	is_draft: boolean;
-	head_ref: string;
-	base_ref: string;
-	review_state: LinkedPullRequest["reviewState"];
-	merged_at: string | null;
-	closed_at: string | null;
-	checks: LinkedPullRequest["checks"];
-	ci_state: LinkedPullRequest["ciState"];
-	fetched_at: string | null;
-	fetch_error: string | null;
-	created_at: string;
-	updated_at: string;
-	source: LinkedPullRequest["source"];
-	actor_name: string;
-	actor_display_name: string | null;
-	actor_kind: StoredActorKind;
-	linked_at: string;
-};
-
 // The pull requests linked to one ticket, oldest link first.
 export const linkedPullRequests = async (tx: Tx, ticketId: string): Promise<LinkedPullRequest[]> => {
-	const found = await rows<RawLinkedPr>(
+	const found = await rows<LinkedPullRequestRow & { linked_at: string }>(
 		tx,
-		sql`SELECT p.id, p.owner, p.repo, p.number, p.url, p.title, p.state, p.is_draft, p.head_ref, p.base_ref,
-			p.review_state, ${iso(sql`p.merged_at`)} AS merged_at, ${iso(sql`p.closed_at`)} AS closed_at, p.checks,
-			p.ci_state, ${iso(sql`p.fetched_at`)} AS fetched_at, p.fetch_error,
-			${iso(sql`p.created_at`)} AS created_at, ${iso(sql`p.updated_at`)} AS updated_at,
+		sql`SELECT ${pullRequestColumns},
 			l.source, l.actor_name, l.actor_kind, ${actorDisplayName(sql`l.actor_name`, sql`l.actor_kind`)} AS actor_display_name, ${iso(sql`l.created_at`)} AS linked_at
 		FROM ticket_pull_requests l JOIN pull_requests p ON p.id = l.pull_request_id
 		WHERE l.ticket_id = ${ticketId}
 		ORDER BY l.created_at, p.id`,
 	);
-	return found.map((row) => ({
-		id: row.id,
-		owner: row.owner,
-		repo: row.repo,
-		number: row.number,
-		url: row.url,
-		title: row.title,
-		state: row.state,
-		isDraft: row.is_draft,
-		headRef: row.head_ref,
-		baseRef: row.base_ref,
-		reviewState: row.review_state,
-		mergedAt: row.merged_at,
-		closedAt: row.closed_at,
-		checks: row.checks,
-		ciState: row.ci_state,
-		fetchedAt: row.fetched_at,
-		fetchError: row.fetch_error,
-		createdAt: row.created_at,
-		updatedAt: row.updated_at,
-		source: row.source,
-		linkedBy: {
-			name: row.actor_name,
-			kind: row.actor_kind,
-			...(row.actor_display_name === null ? {} : { displayName: row.actor_display_name }),
-		},
-		linkedAt: row.linked_at,
-	}));
+	return found.map((row) => toLinkedPullRequest(row, row.linked_at));
 };
 
 type RawAttachment = {

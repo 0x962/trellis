@@ -8,6 +8,7 @@ import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { record } from "../activity.ts";
 import { assertProjectActive, resolveProject, resolveStatus, resolveTicket } from "../refs.ts";
+import { addDependencies } from "./deps.ts";
 import { createTicketLabels } from "./labels.ts";
 import { type Placement, resolvePlacement } from "./placement.ts";
 import { lastPosition } from "./position.ts";
@@ -69,6 +70,8 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 				${status.id}, ${parent?.id ?? null}, ${placement.epicId}, ${placement.milestoneId}, ${position}, 1, ${startedAt},
 				${completedAt}, ${ctx.now}, ${ctx.now})`,
 	);
+	const dependencies =
+		input.after === undefined ? [] : await addDependencies(ctx, tx, await resolveTicket(ctx, tx, id), input.after);
 	const labels =
 		input.labels === undefined
 			? 0
@@ -92,6 +95,7 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 		...(placement.epicId === null ? [] : ["epic"]),
 		...(placement.milestoneId === null ? [] : ["milestone"]),
 		...(labels === 0 ? [] : ["labels"]),
+		...(dependencies.length === 0 ? [] : ["after"]),
 	];
 	ctx.emit({ type: "ticket.created", summary: await ticketSummary(tx, id), fields, batchId });
 	return ticketGet(tx, id);

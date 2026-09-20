@@ -17,7 +17,7 @@ const tones: Record<BadgeTone, string> = {
 	ok: "bg-success-soft text-success px-1.75",
 	bad: "bg-danger-soft text-danger px-1.75",
 	wait: "bg-warning-soft text-warning px-1.75",
-	agent: "bg-agent-soft text-agent px-1.75",
+	agent: "bg-accent-soft text-accent px-1.75",
 	accent: "bg-accent-soft text-accent px-1.75",
 	neutral: "text-fg-faint",
 };

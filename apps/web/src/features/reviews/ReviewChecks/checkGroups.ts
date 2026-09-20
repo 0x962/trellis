@@ -7,7 +7,6 @@ export type ReviewCheck = {
 	state?: string | null;
 	status?: string | null;
 	startedAt?: string | null;
-	completedAt?: string | null;
 	detailsUrl?: string | null;
 	targetUrl?: string | null;
 };
@@ -26,15 +25,15 @@ export type CheckTabStatus = "failed" | "running" | "pending" | "canceled" | "do
 const failedStates = new Set(["ACTION_REQUIRED", "ERROR", "FAILURE", "STALE", "STARTUP_FAILURE", "TIMED_OUT"]);
 const pendingStates = new Set(["QUEUED", "PENDING", "EXPECTED", "WAITING", "REQUESTED"]);
 
-export const checkGroupOrder: ReadonlyArray<{ key: CheckGroupKey; label: string; expanded: boolean }> = [
-	{ key: "failed", label: "Failed", expanded: true },
-	{ key: "running", label: "In progress", expanded: true },
-	{ key: "pending", label: "Pending", expanded: true },
-	{ key: "canceled", label: "Canceled", expanded: true },
-	{ key: "unknown", label: "Unknown", expanded: true },
-	{ key: "neutral", label: "Neutral", expanded: false },
-	{ key: "skipped", label: "Skipped", expanded: false },
-	{ key: "success", label: "Successful", expanded: false },
+const checkGroupOrder: readonly CheckGroupKey[] = [
+	"failed",
+	"running",
+	"pending",
+	"canceled",
+	"unknown",
+	"neutral",
+	"skipped",
+	"success",
 ];
 
 export const checkState = (check: ReviewCheck) => {
@@ -55,15 +54,6 @@ export const checkGroup = (check: ReviewCheck): CheckGroupKey => {
 	return "unknown";
 };
 
-export const checkLabel = (check: ReviewCheck) => {
-	const state = checkState(check);
-	if (state === "SUCCESS") return "Passed";
-	if (state === "FAILURE") return "Failed";
-	if (state === "CANCELLED") return "Canceled";
-	if (state === "COMPLETED") return "Conclusion unavailable";
-	return state.charAt(0) + state.slice(1).toLowerCase().replaceAll("_", " ");
-};
-
 export function checkGroups(checks: readonly ReviewCheck[]) {
 	const occurrences = new Map<string, number>();
 	const rows = checks.map((check, index) => {
@@ -80,7 +70,7 @@ export function checkGroups(checks: readonly ReviewCheck[]) {
 		return { ...check, name, key: `${identity}:${occurrence}` };
 	});
 	return checkGroupOrder
-		.map((definition) => ({ ...definition, checks: rows.filter((check) => checkGroup(check) === definition.key) }))
+		.map((key) => ({ key, checks: rows.filter((check) => checkGroup(check) === key) }))
 		.filter((group) => group.checks.length > 0);
 }
 
@@ -95,56 +85,9 @@ const statusForCounts = (counts: Record<CheckGroupKey, number>): CheckTabStatus 
 	return null;
 };
 
-export function checkSummary(checks: readonly ReviewCheck[]) {
+export function checkTabStatus(checks: readonly ReviewCheck[]): CheckTabStatus {
 	const groups = checkGroups(checks);
-	const counts = Object.fromEntries(checkGroupOrder.map(({ key }) => [key, 0])) as Record<CheckGroupKey, number>;
+	const counts = Object.fromEntries(checkGroupOrder.map((key) => [key, 0])) as Record<CheckGroupKey, number>;
 	for (const group of groups) counts[group.key] = group.checks.length;
-	const total = checks.length;
-	const status = statusForCounts(counts);
-	const titles: Record<NonNullable<CheckTabStatus>, string> = {
-		failed: "Some checks failed",
-		running: "Checks are in progress",
-		pending: "Checks are pending",
-		canceled: counts.canceled === total ? "All checks were canceled" : "Some checks were canceled",
-		unknown: "Check status unavailable",
-		done: counts.success === total ? "All checks passed" : "Checks completed",
-		neutral: counts.skipped === total ? "All checks were skipped" : "Checks completed",
-	};
-	const labels: Record<CheckGroupKey, string> = {
-		failed: "failed",
-		running: "in progress",
-		pending: "pending",
-		canceled: "canceled",
-		success: "passed",
-		skipped: "skipped",
-		neutral: "neutral",
-		unknown: "unknown",
-	};
-	const description = groups
-		.flatMap((group) => {
-			if (group.key !== "pending") return [`${group.checks.length} ${labels[group.key]}`];
-			const states = new Map<string, number>();
-			for (const check of group.checks) {
-				const label = checkLabel(check).toLowerCase();
-				states.set(label, (states.get(label) ?? 0) + 1);
-			}
-			return [...states].map(([label, count]) => `${count} ${label}`);
-		})
-		.join(", ");
-	return { total, counts, status, title: status ? titles[status] : "No checks reported", description };
+	return statusForCounts(counts);
 }
-
-export const checkTabStatus = (checks: readonly ReviewCheck[]): CheckTabStatus => checkSummary(checks).status;
-
-export const checkDuration = (check: ReviewCheck): string | null => {
-	if (check.status && check.status.toUpperCase() !== "COMPLETED") return null;
-	if (!check.startedAt || !check.completedAt) return null;
-	const started = Date.parse(check.startedAt);
-	const completed = Date.parse(check.completedAt);
-	if (!Number.isFinite(started) || !Number.isFinite(completed) || started <= 0 || completed < started) return null;
-	const seconds = Math.floor((completed - started) / 1000);
-	if (seconds < 60) return `${seconds}s`;
-	const minutes = Math.floor(seconds / 60);
-	if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
-	return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
-};
