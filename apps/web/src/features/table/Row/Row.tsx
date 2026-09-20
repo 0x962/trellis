@@ -12,7 +12,7 @@ import { type MouseEvent, memo, type ReactNode, useRef } from "react";
 import { compactRelativeTime } from "../../../lib/format";
 import type { Density } from "../../../stores/uiStore";
 import { ActorAvatar } from "../../agents/ActorAvatar";
-import { type ColumnId, gridColumnsClass, gridStyle, narrowHidden, statusGlyphOnly } from "../columns";
+import { type ColumnId, gridColumnsClass, gridStyle, narrowHidden, statusIconOnly } from "../columns";
 import { EpicCell } from "./components/EpicCell";
 import { HiddenPickers } from "./components/HiddenPickers";
 import { LabelsCell } from "./components/LabelsCell";
@@ -145,7 +145,7 @@ export const Row = memo(function Row({
 				status={ticket.status}
 				statuses={statuses}
 				progress={ticket.childCount === 0 ? undefined : ticket.childDoneCount / ticket.childCount}
-				glyphOnly={statusGlyphOnly(columns)}
+				iconOnly={statusIconOnly(columns)}
 				open={editing === "status"}
 				onOpenChange={editingChange("status")}
 				onPick={(status) => change({ status })}

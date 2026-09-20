@@ -10,9 +10,10 @@ export type StatusCellProps = {
 	statuses: readonly StatusSummary[];
 	// The share of sub-tickets that are done, for a started status.
 	progress?: number;
-	// True where the row says the state of the work in other cells. The name
-	// then reads for assistive tech alone and the cell keeps the icon.
-	glyphOnly?: boolean;
+	// True when the cell keeps the status icon and hides the status name.
+	// An epic table sets this, because the `waits` cell and the pull request
+	// lines already show the state of the work.
+	iconOnly?: boolean;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onPick: (status: StatusSummary) => void;
@@ -21,13 +22,13 @@ export type StatusCellProps = {
 
 // The status icon and name, which open the picker on click or on `s`.
 // Under 768 px the name is for assistive tech only: the group header above
-// the rows names the status, and the title needs the room. `glyphOnly`
+// the rows names the status, and the title needs the room. `iconOnly`
 // takes the name out at every width.
 export function StatusCell({
 	status,
 	statuses,
 	progress,
-	glyphOnly = false,
+	iconOnly = false,
 	open,
 	onOpenChange,
 	onPick,
@@ -44,7 +45,7 @@ export function StatusCell({
 			trigger={
 				<button type="button" aria-label={`Status: ${status.name}`} className={cellButtonClass}>
 					<StatusIcon category={status.category} reviewer={status.reviewer ?? undefined} progress={progress} />
-					<span className={cx("truncate text-sm text-fg-muted max-md:sr-only", glyphOnly && "sr-only")}>
+					<span className={cx("truncate text-sm text-fg-muted max-md:sr-only", iconOnly && "sr-only")}>
 						{status.name}
 					</span>
 				</button>

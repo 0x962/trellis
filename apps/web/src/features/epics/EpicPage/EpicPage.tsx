@@ -131,7 +131,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 			actions={
 				<DisplayPopover
 					routeKey={routeKey}
-					route="epic"
+					tableKind="epic"
 					showProject={full.scope !== "self"}
 					epicFixed
 					search={barSearch}
@@ -239,7 +239,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 					<TicketTable
 						project={rootKey(project.path)}
 						routeKey={routeKey}
-						route="epic"
+						tableKind="epic"
 						search={tableSearch}
 						rowRank={rowRank}
 						prRows

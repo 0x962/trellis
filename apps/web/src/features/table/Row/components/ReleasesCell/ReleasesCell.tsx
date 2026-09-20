@@ -5,8 +5,6 @@ export type ReleasesCellProps = {
 	releases: TicketSummary["releases"];
 };
 
-// How many tickets this ticket holds back. The cell stays empty when it
-// holds none back, so a column of counts reads as the levers of the plan.
 export function ReleasesCell({ releases }: ReleasesCellProps) {
 	if (releases.length === 0) return null;
 

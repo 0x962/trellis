@@ -1,30 +1,23 @@
 import type { TicketSummary } from "@trellis/api";
-import { type ColumnId, columnOrder, hiddenByDefault } from "../../columns";
+import { type ColumnId, columnOrder, columnOwner, hiddenByDefault, type TableKind } from "../../columns";
 
-// The kind of table a route draws. An epic is a plan, so its table is the
-// only one that carries the dependency edges between the tickets.
-export type TableRoute = "epic" | "list";
-
-// The columns one kind of route owns. A route of another kind hides such a
-// column, and the Display popover of that route does not offer it.
-const routeColumns: Partial<Record<ColumnId, TableRoute>> = { waits: "epic", releases: "epic" };
-
-// True when this route draws this column at all.
-export const routeShows = (id: ColumnId, route: TableRoute) => (routeColumns[id] ?? route) === route;
+// True when this kind of table draws this column. A column that
+// `columnOwner` does not hold shows on every kind.
+export const kindShows = (id: ColumnId, kind: TableKind) => (columnOwner[id] ?? kind) === kind;
 
 // The visibility of every column on a route: the defaults, then the
-// stored choices, then the columns the route owns. The project column
-// shows when the scope holds sub-projects.
+// stored choices, then the columns this kind of table owns. The project
+// column shows when the scope holds sub-projects.
 export const columnVisibility = (
 	stored: Record<string, boolean> | undefined,
 	showProject: boolean,
-	route: TableRoute,
+	kind: TableKind,
 ): Record<ColumnId, boolean> => {
 	const visibility = {} as Record<ColumnId, boolean>;
 	for (const id of columnOrder) visibility[id] = !hiddenByDefault.includes(id);
 	visibility.project = showProject;
 	const chosen = { ...visibility, ...stored, select: true, title: true };
-	for (const id of columnOrder) if (!routeShows(id, route)) chosen[id] = false;
+	for (const id of columnOrder) if (!kindShows(id, kind)) chosen[id] = false;
 	return chosen;
 };
 
