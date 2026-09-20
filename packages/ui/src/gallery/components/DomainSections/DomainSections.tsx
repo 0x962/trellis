@@ -4,6 +4,7 @@ import {
 	AttentionDotSection,
 	CheckRibbonSection,
 	ChecksLineSection,
+	ConditionsBlockSection,
 	FileRiskGroupsSection,
 	FlowRunSection,
 	LineChangesSection,
@@ -37,6 +38,7 @@ export function DomainSections() {
 			<TrellisMarkSection />
 			<FlowRunSection />
 			<FileRiskGroupsSection />
+			<ConditionsBlockSection />
 		</>
 	);
 }

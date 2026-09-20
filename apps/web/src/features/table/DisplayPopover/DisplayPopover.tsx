@@ -33,7 +33,7 @@ const groups = [
 	{ value: "project", label: "Project" },
 	{ value: "parent", label: "Parent" },
 	{ value: "epic", label: "Epic" },
-	{ value: "milestone", label: "Milestone" },
+	{ value: "milestone", label: "Wave" },
 	{ value: "pr", label: "PR" },
 ] as const;
 

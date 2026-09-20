@@ -62,7 +62,7 @@ export function EpicProgress({ epic, splat, search }: EpicProgressProps) {
 			<StackedBar label={`Tickets of ${epic.name} by status`} segments={epicSegments(epic.counts)} />
 			{epic.milestones.length > 0 && (
 				<StackedBarList
-					label="Milestones"
+					label="Waves"
 					rows={epic.milestones.map((milestone) => ({
 						key: milestone.id,
 						name: milestone.name,

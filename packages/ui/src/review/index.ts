@@ -1,6 +1,12 @@
 export { type CheckResultGroup, CheckResults } from "./CheckResults";
 export { type CheckStatus, CheckStatusIcon } from "./CheckStatusIcon";
 export { ChecksLine, type ChecksLineBucket, type ChecksLineCheck } from "./ChecksLine";
+export {
+	type ConditionLine,
+	ConditionsBlock,
+	type ConditionsBlockProps,
+	type ConditionsReadiness,
+} from "./ConditionsBlock";
 export { type FileRiskGroup, FileRiskGroups } from "./FileRiskGroups";
 export { insertBlock, ReviewCommentEditor } from "./ReviewCommentEditor";
 export { type ConversationMeta, ReviewConversation } from "./ReviewConversation/ReviewConversation";

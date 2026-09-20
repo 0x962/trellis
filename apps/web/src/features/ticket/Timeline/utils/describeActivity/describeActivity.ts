@@ -99,9 +99,7 @@ export const describeActivity = (item: Activity): string => {
 		case "epic":
 			return item.toValue === null ? "removed the ticket from its epic" : `put the ticket in the epic ${item.toValue}`;
 		case "milestone":
-			return item.toValue === null
-				? "removed the ticket from its milestone"
-				: `put the ticket in the milestone ${item.toValue}`;
+			return item.toValue === null ? "removed the ticket from its wave" : `put the ticket in the wave ${item.toValue}`;
 		case "project":
 			return `moved the ticket to ${(item.toValue ?? "").replaceAll(".", "/")}`;
 		case "position":
