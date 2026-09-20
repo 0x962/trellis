@@ -42,15 +42,16 @@ test("the risk line prints the answer of every class", () => {
 	);
 });
 
-test("a missing tests answer and a missing evidence answer read none registered", () => {
+test("a missing test count and a missing evidence count read none registered", () => {
 	const empty = { ...clear, tests: null, evidence: null };
 
 	expect(lineValue(empty, "tests")).toBe("none registered");
 	expect(lineValue(empty, "evidence")).toBe("none registered");
 });
 
-test("a floor answer of zero prints no zero", () => {
+test("a count of zero prints no zero", () => {
 	expect(lineValue({ ...clear, tests: 0 }, "tests")).toBe("none registered");
+	expect(lineValue({ ...clear, evidence: 0 }, "evidence")).toBe("none registered");
 });
 
 test("the checks line prints the four counts", () => {
@@ -108,7 +109,9 @@ test("each open condition makes the word not yet", () => {
 		{ checks: { pass: 48, fail: 0, pending: 7, skipped: 44 } },
 		{ threads: 2 },
 		{ tests: null },
+		{ tests: 0 },
 		{ evidence: null },
+		{ evidence: 0 },
 		{ flows: { running: 1, passed: 0, failed: 0 } },
 		{ flows: { running: 0, passed: 0, failed: 1 } },
 		{ ancestors: [{ identifier: "TRL-167", merged: false }] },

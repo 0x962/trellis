@@ -59,7 +59,7 @@ test("an all clear risk line prints five no answers and draws no badge", () => {
 	expect(html).not.toContain("badge");
 });
 
-test("a missing floor answer prints none registered", () => {
+test("a missing count prints none registered", () => {
 	const html = renderToStaticMarkup(<ConditionsBlock conditions={open} />);
 
 	expect(html).toContain("none registered");

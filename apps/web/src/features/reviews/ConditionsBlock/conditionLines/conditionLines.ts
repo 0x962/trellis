@@ -16,11 +16,11 @@ export type Conditions = {
 	size: { additions: number; deletions: number; changedFiles: number } | null;
 	sizeBand: TicketPr["sizeBand"];
 	risk: PrPathFacts["risk"];
-	// The number of test proofs that the evidence floor received. `null` means
-	// that the floor gave no answer.
+	// How many test proofs this pull request has. `null` means that no count
+	// arrived.
 	tests: number | null;
-	// The number of evidence records that the evidence floor received. `null`
-	// means that the floor gave no answer.
+	// How many evidence records this pull request has. `null` means that no
+	// count arrived.
 	evidence: number | null;
 	checks: { pass: number; fail: number; pending: number; skipped: number };
 	// The number of review threads that nobody resolved.
@@ -61,14 +61,14 @@ const sizeValue = ({ size, sizeBand }: Conditions) => {
 	return sizeBand ? `${lines} · ${sizeBand}` : lines;
 };
 
-// Every risk class prints its own answer. An all clear reads as five "no"
-// answers.
+// An all clear reads as five "no" answers, never a green mark.
 const riskValue = (risk: PrPathFacts["risk"]) => riskWords.map(([key, word]) => `${word} ${risk[key]}`).join(" · ");
 
-// A floor that gave no answer, and a floor that received nothing, read the
-// same. Neither prints a zero.
-const floorValue = (count: number | null) =>
-	count === null || count === 0 ? "none registered" : `${count} registered`;
+// 0 and a missing count read the same. A "0 registered" line looks like an
+// answer, but nothing was registered.
+const countIsEmpty = (count: number | null) => count === null || count === 0;
+
+const registeredValue = (count: number | null) => (countIsEmpty(count) ? "none registered" : `${count} registered`);
 
 const checksValue = ({ pass, fail, pending, skipped }: Conditions["checks"]) =>
 	`${pass} pass · ${fail} fail · ${pending} pending · ${skipped} skipped`;
@@ -93,33 +93,32 @@ const ancestorsValue = (ancestors: Conditions["ancestors"]) => {
 	return ancestors.map((ancestor) => `${ancestor.identifier} ${ancestor.merged ? "merged" : "open"}`).join(" · ");
 };
 
-// A condition that stops a merge. The size, the risk answers and the base
-// state describe the change. They stop no merge, so they stay out of this
-// list.
-const blockers = (conditions: Conditions) => [
-	conditions.checks.fail > 0,
-	conditions.checks.pending > 0,
-	conditions.threads > 0,
-	conditions.tests === null,
-	conditions.evidence === null,
-	conditions.flows.running > 0,
-	conditions.flows.failed > 0,
-	conditions.ancestors.some((ancestor) => !ancestor.merged),
-];
+// The size, the risk answers and the base state describe the change. They stop
+// no merge, so they stay out of this list.
+const hasOpenCondition = (conditions: Conditions) =>
+	[
+		conditions.checks.fail > 0,
+		conditions.checks.pending > 0,
+		conditions.threads > 0,
+		countIsEmpty(conditions.tests),
+		countIsEmpty(conditions.evidence),
+		conditions.flows.running > 0,
+		conditions.flows.failed > 0,
+		conditions.ancestors.some((ancestor) => !ancestor.merged),
+	].some(Boolean);
 
-// The word after "READY TO MERGE". A merged pull request reads "merged". One
-// open condition makes the word "not yet".
+// The word after "READY TO MERGE".
 export function mergeReadiness(conditions: Conditions): ConditionsReadiness {
 	if (conditions.merged) return "merged";
-	return blockers(conditions).some(Boolean) ? "not yet" : "yes";
+	return hasOpenCondition(conditions) ? "not yet" : "yes";
 }
 
 export function conditionLines(conditions: Conditions): Array<ConditionLine & { label: ConditionLabel }> {
 	return [
 		{ label: "size", value: sizeValue(conditions) },
 		{ label: "risk", value: riskValue(conditions.risk) },
-		{ label: "tests", value: floorValue(conditions.tests) },
-		{ label: "evidence", value: floorValue(conditions.evidence) },
+		{ label: "tests", value: registeredValue(conditions.tests) },
+		{ label: "evidence", value: registeredValue(conditions.evidence) },
 		{ label: "checks", value: checksValue(conditions.checks) },
 		{ label: "threads", value: threadsValue(conditions.threads) },
 		{ label: "flows", value: flowsValue(conditions.flows) },

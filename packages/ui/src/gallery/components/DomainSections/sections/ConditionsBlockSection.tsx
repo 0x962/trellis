@@ -1,9 +1,7 @@
 import { type ConditionLine, ConditionsBlock } from "../../../../review";
 import { Section } from "../../Section";
 
-// Pull request 57080 of the canary repository: the checks still run, two
-// threads stay open, the evidence floor gave no answer, and the ticket waits
-// on one ticket.
+// Pull request 57080 of the canary repository, before the merge.
 const openPr: ConditionLine[] = [
 	{ label: "size", value: "+312 −38 in 9 files · medium" },
 	{ label: "risk", value: "auth yes · migration no · dependency no · shared type yes · deleted test no" },
@@ -17,7 +15,7 @@ const openPr: ConditionLine[] = [
 ];
 
 // The same pull request with every condition answered.
-const clearPr: ConditionLine[] = [
+const answeredPr: ConditionLine[] = [
 	{ label: "size", value: "+312 −38 in 9 files · medium" },
 	{ label: "risk", value: "auth no · migration no · dependency no · shared type no · deleted test no" },
 	{ label: "tests", value: "3 registered" },
@@ -42,9 +40,8 @@ const mergedPr: ConditionLine[] = [
 	{ label: "ancestors", value: "none" },
 ];
 
-// A pull request whose facts have not arrived. Each line prints the words of
-// its own empty answer.
-const noAnswer: ConditionLine[] = [
+// A pull request whose facts have not arrived.
+const unknownPr: ConditionLine[] = [
 	{ label: "size", value: "unknown" },
 	{ label: "risk", value: "auth no · migration no · dependency no · shared type no · deleted test no" },
 	{ label: "tests", value: "none registered" },
@@ -67,13 +64,13 @@ export function ConditionsBlockSection() {
 				<ConditionsBlock readiness="not yet" lines={openPr} />
 			</div>
 			<div className="min-w-96 flex-1">
-				<ConditionsBlock readiness="yes" lines={clearPr} />
+				<ConditionsBlock readiness="yes" lines={answeredPr} />
 			</div>
 			<div className="min-w-96 flex-1">
 				<ConditionsBlock readiness="merged" lines={mergedPr} />
 			</div>
 			<div className="min-w-96 flex-1">
-				<ConditionsBlock readiness="not yet" lines={noAnswer} />
+				<ConditionsBlock readiness="not yet" lines={unknownPr} />
 			</div>
 		</Section>
 	);
