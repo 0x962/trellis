@@ -1,21 +1,11 @@
-import type { Ticket, TicketPr } from "@trellis/api";
+import type { Ticket } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../../client.ts";
 import { contextOf } from "../../context.ts";
 import { json } from "../../output.ts";
 import { type DepsResult, depsText } from "./depsText.ts";
 
-type DependencyTicket = Omit<Ticket, "prRows"> & {
-	waitsOn: DepsResult["waitsOn"];
-	releases: DepsResult["releases"];
-	prRows: Array<
-		TicketPr & {
-			stackedOn: DepsResult["derived"][number]["stackedOn"] | null;
-		}
-	>;
-};
-
-const depsResult = (ticket: DependencyTicket): DepsResult => ({
+const depsResult = (ticket: Ticket): DepsResult => ({
 	ticket: { identifier: ticket.identifier, title: ticket.title },
 	waitsOn: ticket.waitsOn,
 	releases: ticket.releases,
@@ -29,7 +19,7 @@ export default defineCommand({
 	args: { ticket: { type: "positional", required: true, description: "Ticket ref" } },
 	async run(context) {
 		const ctx = contextOf(context);
-		const ticket = (await clientOf(ctx).tickets.get({ ticket: context.args.ticket })) as DependencyTicket;
+		const ticket = await clientOf(ctx).tickets.get({ ticket: context.args.ticket });
 		const result = depsResult(ticket);
 		if (ctx.format.mode === "quiet") {
 			ctx.out.write(`${result.ticket.identifier}\n`);
