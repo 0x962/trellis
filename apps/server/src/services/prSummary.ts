@@ -7,10 +7,11 @@ import {
 	steCheck,
 } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { rows } from "../db/queries/support.ts";
+import { rows, textArray } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import { invalidInput, invalidIssues } from "../errors.ts";
 import { findPullRequestRow } from "./findPullRequestRow.ts";
+import { linkScope } from "./pullRequestScope.ts";
 import { fail, type PrepareCtx, type ServiceCtx } from "./support.ts";
 
 const summaryColumns = sql`
@@ -70,6 +71,7 @@ export const write = async (ctx: ServiceCtx, tx: Tx, input: WriteInput): Promise
 
 	const pullRequest = await findPullRequestRow(tx, input.id);
 	const at = ctx.now();
+	await tx.execute(sql`UPDATE pull_requests SET head_sha = ${input.headSha} WHERE id = ${pullRequest.id}`);
 	const [summary] = await rows<PullRequestSummary>(
 		tx,
 		sql`INSERT INTO pr_summaries
@@ -80,5 +82,15 @@ export const write = async (ctx: ServiceCtx, tx: Tx, input: WriteInput): Promise
 				updated_at = EXCLUDED.updated_at
 			RETURNING ${summaryColumns}`,
 	);
+	const scope = await linkScope(tx, pullRequest.id);
+	if (scope.ticketIds.length > 0)
+		await tx.execute(sql`UPDATE tickets SET version = version + 1 WHERE id = ANY(${textArray(scope.ticketIds)})`);
+	ctx.emit({
+		type: "pr.updated",
+		id: pullRequest.id,
+		...scope,
+		state: pullRequest.state,
+		ciState: pullRequest.ci_state,
+	});
 	return { summary: summary!, warnings };
 };

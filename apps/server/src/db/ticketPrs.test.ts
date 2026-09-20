@@ -11,6 +11,8 @@ const root = ulid();
 const status = ulid();
 const ticket = ulid();
 const emptyTicket = ulid();
+const evidenceTicket = ulid();
+const evidencePullRequest = ulid();
 const at = new Date("2026-09-20T10:00:00.000Z");
 const repoWithTrellisPathRules = "trellis";
 
@@ -62,7 +64,8 @@ beforeAll(async () => {
 		id, project_id, root_id, number, title, status_id, position, created_at, updated_at
 	) VALUES
 		(${ticket}, ${root}, ${root}, 1, 'Task', ${status}, 0, ${at}, ${at}),
-		(${emptyTicket}, ${root}, ${root}, 2, 'Empty task', ${status}, 1, ${at}, ${at})`);
+		(${emptyTicket}, ${root}, ${root}, 2, 'Empty task', ${status}, 1, ${at}, ${at}),
+		(${evidenceTicket}, ${root}, ${root}, 3, 'Evidence task', ${status}, 2, ${at}, ${at})`);
 
 	const first = await insertPull({
 		number: 1,
@@ -117,6 +120,28 @@ beforeAll(async () => {
 			${ulid()}, ${ulid()}, ${ticket}, ${root}, 'human', 'Test', ${crypto.randomUUID()},
 			'{}', '{}', ${{ status: state }}, 1, ${new Date(at.getTime() + index)}, ${at}
 		)`);
+	await db.execute(sql`INSERT INTO pull_requests (
+		id, owner, repo, number, additions, deletions, changed_files, files, url, state, head_sha,
+		head_ref, base_ref, review_state, checks, ci_state, created_at, updated_at
+	) VALUES (
+		${evidencePullRequest}, 'acme', 'trellis', 6, 8, 2, 1,
+		${JSON.stringify([{ path: "apps/server/src/log.ts", additions: 8, deletions: 2 }])}::jsonb,
+		'https://github.com/acme/trellis/pull/6', 'open', 'head-one', 'evidence', 'main',
+		'review_required', '[]'::jsonb, 'pass', ${at}, ${at}
+	)`);
+	await db.execute(sql`INSERT INTO ticket_pull_requests (
+		ticket_id, pull_request_id, source, actor_name, actor_kind, created_at
+	) VALUES (${evidenceTicket}, ${evidencePullRequest}, 'manual', 'Test', 'human', ${at})`);
+	await db.execute(sql`INSERT INTO pr_summaries (
+		pull_request_id, head_sha, headline, why, watch, created_at, updated_at
+	) VALUES (${evidencePullRequest}, 'head-one', 'Store evidence.', 'The row counts this summary.', 'nothing', ${at}, ${at})`);
+	for (const kind of ["verify", "test", "contract"])
+		await db.execute(sql`INSERT INTO pr_evidence (
+			id, pull_request_id, head_sha, kind, record, actor_name, actor_kind, created_at
+		) VALUES (${ulid()}, ${evidencePullRequest}, 'head-one', ${kind}, '{}', 'Test', 'human', ${at})`);
+	await db.execute(sql`INSERT INTO pr_evidence (
+		id, pull_request_id, head_sha, kind, record, actor_name, actor_kind, created_at
+	) VALUES (${ulid()}, ${evidencePullRequest}, 'old-head', 'verify', '{}', 'Test', 'human', ${at})`);
 });
 
 afterAll(async () => {
@@ -159,9 +184,24 @@ test("a ticket summary carries one row for each pull request", async () => {
 	expect(summary.prRows.map((row) => row.kind)).toEqual(["mixed", "backend", "frontend", null, null]);
 	expect(summary.prRows.slice(3).map((row) => row.risk)).toEqual([null, null]);
 	expect(summary.prRows[0]).not.toHaveProperty("paths");
+	expect(summary.prRows.every((row) => row.evidence === 0)).toBe(true);
 	expect(summary.prRows.every((row) => row.flowRuns.length === 5 && row.flowRunCount === 7)).toBe(true);
 
 	const emptySummary = await db.transaction((tx) => ticketSummary(tx, emptyTicket));
 	expect(TicketSummarySchema.parse(emptySummary)).toEqual(emptySummary);
 	expect(emptySummary.prRows).toEqual([]);
+});
+
+test("the evidence count follows the current head and keeps old records", async () => {
+	const first = await db.transaction((tx) => ticketSummary(tx, evidenceTicket));
+	expect(first.prRows[0]?.evidence).toBe(4);
+
+	await db.execute(sql`UPDATE pull_requests SET head_sha = 'head-two' WHERE id = ${evidencePullRequest}`);
+	const afterPush = await db.transaction((tx) => ticketSummary(tx, evidenceTicket));
+	expect(afterPush.prRows[0]?.evidence).toBe(0);
+
+	const records = await db.execute(
+		sql`SELECT count(*)::int AS count FROM pr_evidence WHERE pull_request_id = ${evidencePullRequest}`,
+	);
+	expect(records.rows).toEqual([{ count: 4 }]);
 });

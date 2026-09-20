@@ -39,6 +39,7 @@ export const TicketPrSchema = z.object({
 	// A null `kind` or `risk` means the poller has not fetched a complete pull request file list.
 	kind: PrKindSchema.nullable(),
 	risk: PrRiskSchema.nullable(),
+	evidence: CountSchema,
 	pass: CountSchema,
 	fail: CountSchema,
 	pending: CountSchema,

@@ -221,15 +221,18 @@ const findAttachmentIfExists = async (tx: Tx, id: string): Promise<AttachmentRow
 	return row;
 };
 
-// True while an attachment row still names this hash. `gc` holds the blob
-// lock, so `holdsSha` counts an upload between its file move and row write.
+// True while an attachment or evidence row still names this hash. `gc` holds
+// the blob lock, so `holdsSha` counts an upload between its file move and row write.
 type BlobCtx = Pick<ServiceCtx, "home" | "newTx">;
 
 const holdsSha = (ctx: BlobCtx, sha256: string) => () =>
 	ctx.newTx(async (tx) => {
 		const [row] = await rows<{ n: number }>(
 			tx,
-			sql`SELECT count(*)::int AS n FROM attachments WHERE sha256 = ${sha256}`,
+			sql`SELECT (
+				(SELECT count(*) FROM attachments WHERE sha256 = ${sha256}) +
+				(SELECT count(*) FROM pr_evidence WHERE blob_sha256 = ${sha256})
+			)::int AS n`,
 		);
 		return row!.n > 0;
 	});

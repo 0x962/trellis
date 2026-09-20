@@ -1,16 +1,28 @@
-import { type PrKind, type PrPath, prPaths, type TicketContract } from "@trellis/api";
+import { type EvidenceFloorItem, evidenceFloor, type PrPath, prPaths, type TicketContract } from "@trellis/api";
 
-const evidenceByKind: Record<PrKind, string> = {
-	backend: "backend: summary · verify record · test proof · contract table",
-	frontend: "frontend: summary · after image · before image · capture record · console list",
-	mixed:
-		"mixed: summary · after image · before image · capture record · console list · verify record · test proof · contract table",
+const evidenceWords: Record<EvidenceFloorItem, string> = {
+	summary: "summary",
+	after: "after image",
+	before: "before image",
+	capture: "capture record",
+	clip: "clip",
+	console: "console list",
+	verify: "verify record",
+	test: "test proof",
+	contract: "contract table",
+	migration: "migration plan",
+	picture: "picture",
+	equivalence: "equivalence proof",
 };
 
 const asChangedFile = (path: string): PrPath => ({ path, change: "change" });
 
-export const evidenceOwedText = (contract: TicketContract, repositoryName: string): string =>
-	contract.files.length === 0 ? "-" : evidenceByKind[prPaths(repositoryName, contract.files.map(asChangedFile)).kind];
+export const evidenceOwedText = (contract: TicketContract, repositoryName: string): string => {
+	if (contract.files.length === 0) return "-";
+	const facts = prPaths(repositoryName, contract.files.map(asChangedFile));
+	const floor = evidenceFloor({ kind: facts.kind, risk: facts.risk, records: [], hasSummary: false });
+	return `${floor.kind}: ${floor.required.map((item) => evidenceWords[item]).join(" · ")}`;
+};
 
 const row = (label: string, values: string[]): string => {
 	const prefix = ` ${label.padEnd(15)}`;

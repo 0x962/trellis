@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
 import {
+	EvidenceIdInputSchema,
+	EvidenceListInputSchema,
+	EvidenceSchema,
+	EvidenceWriteInputSchema,
+} from "../schemas/evidence.ts";
+import {
 	LinkedPullRequestSchema,
 	PullRequestDiffOutputSchema,
 	PullRequestIdInputSchema,
@@ -54,4 +60,22 @@ export const pullRequests = {
 		.route({ method: "PUT", path: "/prs/{id}/summaries/{headSha}", summary: "Write one pull request summary" })
 		.input(PullRequestSummaryWriteInputSchema)
 		.output(PullRequestSummaryWriteOutputSchema),
+	listEvidence: base
+		.route({ method: "GET", path: "/prs/{id}/evidence", summary: "List the evidence of a pull request" })
+		.input(EvidenceListInputSchema)
+		.output(z.array(EvidenceSchema)),
+	readEvidence: base
+		.route({ method: "GET", path: "/pr-evidence/{evidenceId}", summary: "Read one evidence record" })
+		.input(EvidenceIdInputSchema)
+		.output(EvidenceSchema),
+	writeEvidence: base
+		.errors(pickErrors(["GH_UNAVAILABLE", "PAYLOAD_TOO_LARGE"]))
+		.route({
+			method: "POST",
+			path: "/prs/{id}/evidence",
+			successStatus: 201,
+			summary: "Register evidence for one pull request head",
+		})
+		.input(EvidenceWriteInputSchema)
+		.output(EvidenceSchema),
 };

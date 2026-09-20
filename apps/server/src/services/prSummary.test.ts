@@ -20,7 +20,8 @@ beforeAll(async () => {
 			'open', '2026-09-20T10:00:00Z', '2026-09-20T10:00:00Z')`);
 	ctx = {
 		now: () => now,
-	} as IoCtx;
+		emit: () => {},
+	} as unknown as IoCtx;
 }, 30_000);
 
 afterAll(async () => db.$client.close());

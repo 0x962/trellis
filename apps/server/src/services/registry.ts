@@ -20,6 +20,7 @@ import * as commentMentions from "./commentMentions/run.ts";
 import * as comments from "./comments.ts";
 import { diagnostics } from "./diagnostics.ts";
 import * as epics from "./epics/epics.ts";
+import * as evidence from "./evidence/evidence.ts";
 import { decide as decideFlowExecution } from "./flowExecutions/decide.ts";
 import { list as listFlowExecutions } from "./flowExecutions/list.ts";
 import { prepareFlowCancel } from "./flowExecutions/prepareFlowCancel.ts";
@@ -263,6 +264,9 @@ export const services = {
 	"pullRequests.readSummary": io("read", prSummary.read),
 	"pullRequests.readSummaryHead": io("read", prSummary.readHead),
 	"pullRequests.writeSummary": prepared("mutation", prSummary.prepareWrite, prSummary.write),
+	"pullRequests.listEvidence": io("read", evidence.list),
+	"pullRequests.readEvidence": io("read", evidence.read),
+	"pullRequests.writeEvidence": prepared("mutation", evidence.prepareWrite, evidence.write),
 	"search.query": core("search", search.query),
 	"brief.get": core("read", brief.get),
 	"actors.list": core("read", actors.list),

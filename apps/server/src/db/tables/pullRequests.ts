@@ -21,6 +21,7 @@ export const pullRequests = pgTable(
 		state: text().notNull(),
 		isDraft: boolean("is_draft").notNull().default(false),
 		reviewRetained: boolean("review_retained").notNull().default(false),
+		headSha: text("head_sha").notNull().default(""),
 		headRef: text("head_ref").notNull().default(""),
 		baseRef: text("base_ref").notNull().default(""),
 		reviewState: text("review_state").notNull().default("none"),

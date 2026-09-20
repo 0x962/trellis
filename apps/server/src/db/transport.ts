@@ -227,7 +227,10 @@ export const createInlineTransport = ({
 		await db.transaction((tx) => restoreHarnesses({ home: config.home }, tx));
 		await db.transaction((tx) => cache.rebuild(tx));
 		await warmWrites(db, cache);
-		const found = await db.execute(sql`SELECT sha256 FROM attachments`);
+		const found = await db.execute(sql`
+			SELECT sha256 FROM attachments
+			UNION SELECT blob_sha256 AS sha256 FROM pr_evidence WHERE blob_sha256 IS NOT NULL
+		`);
 		if (options !== undefined) {
 			const clock = scaledClock(options.clockRate);
 			sessionMonitor = startSessionMonitor({

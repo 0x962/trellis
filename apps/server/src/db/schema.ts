@@ -25,6 +25,7 @@ export * from "./tables/epics.ts";
 export * from "./tables/flows.ts";
 export * from "./tables/labels.ts";
 export * from "./tables/milestones.ts";
+export * from "./tables/prEvidence.ts";
 export * from "./tables/projects.ts";
 export * from "./tables/prSummaries.ts";
 export * from "./tables/pullRequests.ts";

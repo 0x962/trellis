@@ -19,6 +19,7 @@ import {
 } from "../gh/graphql.ts";
 import { parsePullRequestUrl } from "../gh/parse.ts";
 import { PR_COLUMNS, PR_UPDATE_SET, prValues } from "../gh/pollerWrite.ts";
+import { gcAttachmentBlobs } from "./attachments.ts";
 import { findPullRequestRow } from "./findPullRequestRow.ts";
 import type { PreparedDiff } from "./pullRequestDiff.ts";
 import { linkScope } from "./pullRequestScope.ts";
@@ -151,8 +152,23 @@ export const unlink = async (ctx: ServiceCtx, tx: Tx, input: UnlinkInput) => {
 	`);
 	if (dropped.rows.length === 0) throw notFound("pullRequest", input.id);
 	const scope = await linkScope(tx, row.id);
-	if (scope.ticketIds.length === 0)
-		await tx.execute(sql`DELETE FROM pull_requests WHERE id = ${row.id} AND NOT review_retained`);
+	if (scope.ticketIds.length === 0) {
+		const blobs = await rows<{ sha256: string }>(
+			tx,
+			sql`SELECT DISTINCT blob_sha256 AS sha256 FROM pr_evidence
+				WHERE pull_request_id = ${row.id} AND blob_sha256 IS NOT NULL`,
+		);
+		const removed = await tx.execute(
+			sql`DELETE FROM pull_requests WHERE id = ${row.id} AND NOT review_retained RETURNING id`,
+		);
+		if (removed.rows.length > 0 && blobs.length > 0)
+			ctx.afterCommit(async () => {
+				await gcAttachmentBlobs(
+					ctx,
+					blobs.map((blob) => blob.sha256),
+				);
+			});
+	}
 	const at = ctx.now();
 	await touchTicket(tx, { id: ticket.id, at, versionStep: 0 });
 	await writeActivity(ctx, tx, {
