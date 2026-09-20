@@ -16,6 +16,8 @@ export const evidenceKinds = [
 export const addEvidenceKinds = [...evidenceKinds, "capture"] as const;
 export type AddEvidenceKind = (typeof addEvidenceKinds)[number];
 
+// Each evidenceKindFlags entry has one or more valid flag sets.
+// validateKindFlags requires all flags in one set and no flags from another set.
 export const evidenceKindFlags = {
 	before: [["file", "route", "viewport", "theme", "seed", "browser", "base"]],
 	after: [["file", "route", "viewport", "theme", "seed", "browser", "sha"]],
