@@ -1,11 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import type { Epic } from "@trellis/api";
-import { Badge, StackedBar, StackedBarList } from "@trellis/ui";
+import { StackedBar } from "@trellis/ui";
+import { Fragment } from "react";
 import { formatCount } from "../../../../../lib/format";
 import type { View } from "../../../../filters/grammar";
-import { epicProgress, epicProgressLabel, epicSegments } from "../../../epicBar";
+import { epicProgress, epicSegments } from "../../../epicBar";
 import { epicNext } from "../../../epicNext";
 import { epicUrlSearch } from "../../../epicSearch";
+import { bandLegend } from "./bandLegend";
 
 export type EpicProgressProps = {
 	epic: Epic;
@@ -18,61 +20,65 @@ export type EpicProgressProps = {
 const countLinkClass =
 	"inline-flex h-7 items-center rounded-md px-1 text-sm text-fg-muted tabular transition-colors duration-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
 
-// The header band of the epic page. The first line names the current
-// milestone, the first milestone in position order that is not done, with
-// its tickets to start, its running tickets, and its tickets that wait for
-// the person. A count is a link to the table with the matching filters, and
-// plain text when the filter grammar has no matching filter. Then come the
-// state, the done tickets over the tickets that count, the bar of the epic
-// with its legend, and one bar per milestone in position order. A milestone
-// bar has no legend, because the legend of the epic bar names the colors.
+// The header band of the epic page, in four lines. Line 1 names the current
+// wave, the first wave in position order that is not done. Line 2 prints its
+// tickets to start, its running tickets and its tickets that wait for the
+// person; a count is a link to the table with the matching filters, and
+// plain text when the filter grammar has no matching filter. Line 3 draws
+// one 6 px bar of the whole epic and the done tickets over the tickets that
+// count. Line 4 prints the word legend of the bar.
+//
+// The band draws no bar per wave. The band and the plan share the top half
+// of the page card (`EpicPage.tsx`), and the table below it must keep rows
+// on screen.
 export function EpicProgress({ epic, splat, search }: EpicProgressProps) {
 	const progress = epicProgress(epic.counts);
 	const next = epicNext(epic, search);
 	return (
-		<section aria-label="Progress" className="flex flex-col gap-3 px-5 pt-4 pb-4 max-md:px-4">
+		<section aria-label="Progress" className="flex flex-col gap-2 px-5 pt-4 pb-4 max-md:px-4">
 			{next !== null && (
-				<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-					<span className="text-sm font-medium text-fg">Current: {next.milestone.name}</span>
-					{next.counts.map((count) =>
-						count.search === null ? (
-							<span key={count.key} className="px-1 text-sm text-fg-muted tabular">
-								{count.label}
-							</span>
-						) : (
-							<Link
-								key={count.key}
-								to="/p/$"
-								params={{ _splat: splat }}
-								search={epicUrlSearch(count.search)}
-								className={countLinkClass}
-							>
-								{count.label}
-							</Link>
-						),
-					)}
-				</div>
+				<>
+					<p className="text-sm text-fg-muted">
+						Current: <span className="font-medium text-fg">{next.milestone.name}</span>
+					</p>
+					<div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+						{next.counts.map((count, index) => (
+							<Fragment key={count.key}>
+								{index > 0 && (
+									<span aria-hidden="true" className="text-sm text-fg-faint">
+										·
+									</span>
+								)}
+								{count.search === null ? (
+									<span className="px-1 text-sm text-fg-muted tabular">{count.label}</span>
+								) : (
+									<Link
+										to="/p/$"
+										params={{ _splat: splat }}
+										search={epicUrlSearch(count.search)}
+										className={countLinkClass}
+									>
+										{count.label}
+									</Link>
+								)}
+							</Fragment>
+						))}
+					</div>
+				</>
 			)}
 			<div className="flex items-center gap-3">
-				<Badge tone={epic.state === "done" ? "ok" : "accent"}>{epic.state === "done" ? "Done" : "Open"}</Badge>
-				<span className="text-sm text-fg-muted tabular">
+				<StackedBar
+					label={`Tickets of ${epic.name} by status`}
+					segments={epicSegments(epic.counts)}
+					size="sm"
+					legend={false}
+					className="flex-1"
+				/>
+				<span className="shrink-0 text-sm text-fg-muted tabular">
 					{formatCount(progress.done)} of {formatCount(progress.of)} done
 				</span>
 			</div>
-			<StackedBar label={`Tickets of ${epic.name} by status`} segments={epicSegments(epic.counts)} />
-			{epic.milestones.length > 0 && (
-				<StackedBarList
-					label="Waves"
-					rows={epic.milestones.map((milestone) => ({
-						key: milestone.id,
-						name: milestone.name,
-						mark: milestone.id === next?.milestone.id ? <Badge tone="accent">Current</Badge> : undefined,
-						barLabel: `${milestone.name}: ${epicProgressLabel(milestone.counts)} done`,
-						segments: epicSegments(milestone.counts),
-						valueLabel: epicProgressLabel(milestone.counts),
-					}))}
-				/>
-			)}
+			<p className="text-sm text-fg-faint tabular">{bandLegend(epic.counts)}</p>
 		</section>
 	);
 }

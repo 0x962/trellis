@@ -14,21 +14,30 @@ export type StackedBarProps = {
 	// The accessible name of the bar.
 	label: string;
 	segments: readonly StackedBarSegment[];
+	// The height of the bar: `md` is 12 px, `sm` is 6 px. A band that
+	// carries its value in words next to the bar takes `sm`.
+	size?: "sm" | "md";
 	// False draws the bar alone. Each segment keeps its title, so the
 	// values stay readable on hover.
 	legend?: boolean;
 	className?: string;
 };
 
+const barHeightClass = { sm: "h-1.5", md: "h-3" };
+
 // One bar that shows how a total splits: each segment is as wide as its
 // share, and the legend under it names each segment with its value and its
 // share. A segment with no value is left out of the bar and the legend.
-export function StackedBar({ label, segments, legend = true, className }: StackedBarProps) {
+export function StackedBar({ label, segments, size = "md", legend = true, className }: StackedBarProps) {
 	const total = segments.reduce((sum, segment) => sum + segment.value, 0);
 	const present = segments.filter((segment) => segment.value > 0);
 	return (
 		<div className={cx("flex min-w-0 flex-col gap-2", className)}>
-			<div role="img" aria-label={label} className="flex h-3 w-full overflow-hidden rounded-hairline bg-elevated">
+			<div
+				role="img"
+				aria-label={label}
+				className={cx("flex w-full overflow-hidden rounded-hairline bg-elevated", barHeightClass[size])}
+			>
 				{present.map((segment) => (
 					<span
 						key={segment.key}
