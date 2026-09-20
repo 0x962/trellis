@@ -1,0 +1,1 @@
+export { epicBarLegend } from "./epicBarLegend";
