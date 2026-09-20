@@ -11,6 +11,7 @@ import { activeNotes } from "../notes/notes.ts";
 import { notesLines } from "../notes/text.ts";
 import { effectiveRepos } from "../projectsRepos.ts";
 import { resolveTicket } from "../refs.ts";
+import { chainLines } from "./chainLines.ts";
 import { contractLines } from "./contractLines.ts";
 import { evidenceOwedLines } from "./evidenceOwedLines.ts";
 
@@ -242,6 +243,7 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<B
 		["## Description", "", ticket.description],
 		contractLines(ticket.contract),
 		evidenceOwedLines(ticket.contract, repositoryName),
+		await chainLines(tx, ticket.id),
 		...(epic === null ? [] : epicLines(epic, ticket.id)),
 		results,
 		subTickets(ticket),

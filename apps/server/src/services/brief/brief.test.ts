@@ -269,14 +269,19 @@ test("the brief prints a stable contract and evidence floor above comments", asy
 	const second = await run((tx) => getBrief(ctx, tx, { ticket: ticket.identifier }));
 	const contractAt = first.markdown.indexOf("## Contract");
 	const evidenceAt = first.markdown.indexOf("## Evidence owed");
+	const chainAt = first.markdown.indexOf("## Chain");
 	const commentsAt = first.markdown.indexOf("## Comments");
 
 	expect(first.markdown).toBe(second.markdown);
 	expect(contractAt).toBeGreaterThan(first.markdown.indexOf("## Description"));
 	expect(evidenceAt).toBeGreaterThan(contractAt);
-	expect(commentsAt).toBeGreaterThan(evidenceAt);
+	expect(chainAt).toBeGreaterThan(evidenceAt);
+	expect(commentsAt).toBeGreaterThan(chainAt);
 	expect(first.markdown).toContain("- Leave alone:\n  - packages/cli/src/commands/brief.ts");
 	expect(first.markdown).toContain("- Kind: backend\n- summary\n- verify record\n- test proof\n- contract table");
+	expect(first.markdown).toContain(
+		"## Chain\n\n- Waits on:\n  - nothing\n- Ready: yes. No ticket holds this one back.\n- Releases:\n  - nothing",
+	);
 
 	await db.execute(sql`INSERT INTO repos (id, project_id, owner, repo)
 		VALUES (${ulid()}, ${rootId}, 'example', 'canary')`);
