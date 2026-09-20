@@ -43,12 +43,12 @@ export const handOverGuard = async (
 	actorKind: ActorKind,
 	ticketRef: string,
 	target: string,
-): Promise<string | null> => {
-	if (actorKind !== "agent" || target !== "human-review") return null;
+): Promise<{ text: string; refuses: boolean } | null> => {
+	if (target !== "human-review") return null;
 	const ticket = await client.tickets.get({ ticket: ticketRef });
 	for (const pullRequest of ticket.prs) {
 		const result = await checkPullRequest(client, ticket, pullRequest);
-		if (!result.complete) return checkText(result);
+		if (!result.complete) return { text: checkText(result), refuses: actorKind === "agent" };
 	}
 	return null;
 };

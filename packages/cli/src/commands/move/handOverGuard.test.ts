@@ -44,10 +44,9 @@ const clientWith = (rows: Array<{ kind: string; headSha: string }>, summary: obj
 		},
 	}) as unknown as TrellisClient;
 
-test("does not read the ticket for a human actor or another target", async () => {
+test("does not read the ticket for another target", async () => {
 	const client = {} as TrellisClient;
 
-	expect(await handOverGuard(client, "human", "KEY-42", "human-review")).toBeNull();
 	expect(await handOverGuard(client, "agent", "KEY-42", "done")).toBeNull();
 });
 
@@ -59,15 +58,23 @@ test("allows an agent hand-over with no linked pull request", async () => {
 	expect(await handOverGuard(client, "agent", "KEY-42", "human-review")).toBeNull();
 });
 
-test("prints the evidence check list for an incomplete floor", async () => {
-	const text = await handOverGuard(clientWith([], null), "agent", "KEY-42", "human-review");
+test("refuses an agent with the evidence check list for an incomplete floor", async () => {
+	const result = await handOverGuard(clientWith([], null), "agent", "KEY-42", "human-review");
 
-	expect(text).toContain(`#42  KEY-42  Add the hand-over guard
+	expect(result?.refuses).toBe(true);
+	expect(result?.text).toContain(`#42  KEY-42  Add the hand-over guard
 kind: backend            0 of 4 required present`);
-	expect(text).toContain("  MISSING  summary");
-	expect(text).toContain("  MISSING  verify record");
-	expect(text).toContain("  MISSING  test proof");
-	expect(text).toContain("  MISSING  contract table");
+	expect(result?.text).toContain("  MISSING  summary");
+	expect(result?.text).toContain("  MISSING  verify record");
+	expect(result?.text).toContain("  MISSING  test proof");
+	expect(result?.text).toContain("  MISSING  contract table");
+});
+
+test("shows the evidence check list to a human without a refusal", async () => {
+	const result = await handOverGuard(clientWith([], null), "human", "KEY-42", "human-review");
+
+	expect(result?.refuses).toBe(false);
+	expect(result?.text).toContain("  MISSING  summary");
 });
 
 test("allows an agent hand-over with a complete floor", async () => {

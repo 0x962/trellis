@@ -18,10 +18,10 @@ export default defineCommand({
 		const ctx = contextOf(context);
 		const { args } = context;
 		const client = clientOf(ctx);
-		const missing = await handOverGuard(client, ctx.actor().kind, args.ticket, args.status);
-		if (missing !== null) {
-			ctx.out.write(missing);
-			throw evidenceFloorMissing(args.ticket);
+		const handOver = await handOverGuard(client, ctx.actor().kind, args.ticket, args.status);
+		if (handOver !== null) {
+			ctx.out.write(handOver.text);
+			if (handOver.refuses) throw evidenceFloorMissing(args.ticket);
 		}
 		const ticket = await client.tickets.move(
 			compact({
