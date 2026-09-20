@@ -1,18 +1,11 @@
-import { GitMerge, GitPullRequest } from "@phosphor-icons/react";
 import type { CiState, TicketSummary } from "@trellis/api";
-import { type Check, CheckRibbon, cx } from "@trellis/ui";
+import { type Check, CheckRibbon, cx, PrGlyph } from "@trellis/ui";
 import type { Density } from "../../../../../stores/uiStore";
 
 export type PrCellProps = {
 	pr: NonNullable<TicketSummary["pr"]>;
 	density: Density;
 };
-
-const icons = {
-	open: { Icon: GitPullRequest, className: "text-success", label: "PR open" },
-	merged: { Icon: GitMerge, className: "text-agent", label: "PR merged" },
-	closed: { Icon: GitPullRequest, className: "text-danger", label: "PR closed" },
-} as const;
 
 const dots: Record<CiState, string> = {
 	pass: "bg-success",
@@ -36,13 +29,15 @@ const checksOf = (pr: PrCellProps["pr"]): Check[] => [
 	...Array.from({ length: pr.pass }, () => ({ name: "1 check", bucket: "pass" as const })),
 ];
 
-// The PR state icon with the mini check ribbon. A compact row has no room
-// for the ribbon, so one dot states the CI result.
+// The pull request glyph with the mini check ribbon. A compact row has no
+// room for the ribbon, so one dot states the CI result.
+//
+// TicketSummary.pr holds no draft flag, so the glyph draws the open state for
+// a draft pull request here.
 export function PrCell({ pr, density }: PrCellProps) {
-	const { Icon, className, label } = icons[pr.state];
 	return (
 		<span className="inline-flex items-center gap-1.5">
-			<Icon role="img" aria-label={label} className={cx("size-3.5 shrink-0", className)} />
+			<PrGlyph state={pr.state} isDraft={false} size="sm" />
 			{density === "comfortable" ? (
 				<CheckRibbon checks={checksOf(pr)} size="mini" />
 			) : (

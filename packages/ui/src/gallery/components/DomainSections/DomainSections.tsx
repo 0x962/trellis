@@ -3,6 +3,7 @@ import {
 	CheckRibbonSection,
 	FlowRunSection,
 	LineChangesSection,
+	PrGlyphSection,
 	PriorityIconSection,
 	ReviewStatusSummarySection,
 	StatusIconSection,
@@ -19,6 +20,7 @@ export function DomainSections() {
 			<PriorityIconSection />
 			<ReviewStatusSummarySection />
 			<CheckRibbonSection />
+			<PrGlyphSection />
 			<ActorChipSection />
 			<LineChangesSection />
 			<TicketIdSection />
