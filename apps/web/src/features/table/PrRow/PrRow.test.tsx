@@ -1,33 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import type { TicketPr } from "@trellis/api";
 import { renderToStaticMarkup } from "react-dom/server";
 import { prRowHeight } from "../rowHeights";
 import { PrRow } from "./PrRow";
-
-const prOf = (fields: Partial<TicketPr>): TicketPr => ({
-	number: 57080,
-	owner: "0x962",
-	repo: "trellis",
-	url: "https://github.com/0x962/trellis/pull/57080",
-	state: "open",
-	isDraft: false,
-	additions: null,
-	deletions: null,
-	changedFiles: null,
-	sizeBand: null,
-	pass: 0,
-	fail: 0,
-	pending: 0,
-	skipped: 0,
-	failedChecks: [],
-	openThreads: 0,
-	flowRuns: [],
-	flowRunCount: 0,
-	baseRef: "main",
-	headRef: "trellis/trl-181",
-	stackedOn: null,
-	...fields,
-});
+import { prOf } from "./prOf";
 
 // `renderToStaticMarkup` writes the text of each span with no separator, so
 // the words of one line run together. The test reads the words, not the gaps.

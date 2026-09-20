@@ -1,4 +1,5 @@
 import { type TicketPr, turnOf } from "@trellis/api";
+import { formatCount } from "../../../../lib/format";
 
 export type PrRowTone = "fg" | "muted" | "danger";
 
@@ -30,7 +31,7 @@ const stateCells = (pr: TicketPr): PrRowCell[] => {
 const sizeCells = (pr: TicketPr): PrRowCell[] => {
 	const cells: PrRowCell[] = [];
 	if (pr.additions !== null && pr.deletions !== null)
-		cells.push(mutedCell("size", `+${pr.additions} −${pr.deletions}`));
+		cells.push(mutedCell("size", `+${formatCount(pr.additions)} −${formatCount(pr.deletions)}`));
 	if (pr.changedFiles !== null && pr.changedFiles > 0)
 		cells.push(mutedCell("files", countWord(pr.changedFiles, "file", "files")));
 	return cells;

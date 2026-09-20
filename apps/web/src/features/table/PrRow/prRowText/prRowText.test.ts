@@ -1,31 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { TicketPr } from "@trellis/api";
+import { prOf } from "../prOf";
 import { prRowCells } from "./prRowText";
-
-const prOf = (fields: Partial<TicketPr>): TicketPr => ({
-	number: 57080,
-	owner: "0x962",
-	repo: "trellis",
-	url: "https://github.com/0x962/trellis/pull/57080",
-	state: "open",
-	isDraft: false,
-	additions: null,
-	deletions: null,
-	changedFiles: null,
-	sizeBand: null,
-	pass: 0,
-	fail: 0,
-	pending: 0,
-	skipped: 0,
-	failedChecks: [],
-	openThreads: 0,
-	flowRuns: [],
-	flowRunCount: 0,
-	baseRef: "main",
-	headRef: "trellis/trl-181",
-	stackedOn: null,
-	...fields,
-});
 
 const textOf = (pr: TicketPr) =>
 	prRowCells(pr)
@@ -71,6 +47,10 @@ describe("prRowCells", () => {
 
 	test("drops a check bucket, a thread count and a flow that count zero", () => {
 		expect(textOf(prOf({ state: "merged", pass: 43 }))).toBe("merged · 43 passed");
+	});
+
+	test("groups the digits of a large line count", () => {
+		expect(textOf(prOf({ additions: 4735, deletions: 9, pass: 43 }))).toBe("open · +4,735 −9 · 43 passed · you");
 	});
 
 	test("writes the singular word for a count of one", () => {
