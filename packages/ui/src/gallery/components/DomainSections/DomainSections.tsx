@@ -3,6 +3,7 @@ import {
 	AgentProfileMarkSection,
 	AttentionDotSection,
 	ChainBlockSection,
+	ChangeSummarySection,
 	CheckRibbonSection,
 	ChecksLineSection,
 	ConditionsBlockSection,
@@ -46,6 +47,7 @@ export function DomainSections() {
 			<ContractBlockSection />
 			<ChainBlockSection />
 			<RunLineSection />
+			<ChangeSummarySection />
 			<StartControlsSection />
 		</>
 	);
