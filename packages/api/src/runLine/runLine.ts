@@ -22,6 +22,15 @@ export type RunLine = {
 	lastMessage: { words: string; at: string } | null;
 };
 
+export function isAgentWorking(run: Pick<AgentRun, "processStatus" | "observation">): boolean {
+	return (
+		run.processStatus === "running" &&
+		run.observation?.controllable === true &&
+		run.observation.activity?.state === "working" &&
+		run.observation.outcome === null
+	);
+}
+
 const lastMessageLine = (run: AgentRun): RunLine["lastMessage"] => {
 	const lastMessage = run.observation?.lastMessage;
 	return lastMessage ? { words: `${run.name}: ${lastMessage.text}`, at: lastMessage.at } : null;
