@@ -48,7 +48,7 @@
 	--film-blue: #5B9BCA;
 	--film-mint: #5CB5A4;
 	--film-gold: #BF9E53;
-	--film-gradient: linear-gradient(110deg, transparent 15%, var(--film-pink) 32%, var(--film-violet) 42%, var(--film-blue) 50%, var(--film-mint) 58%, var(--film-gold) 68%, transparent 85%);
+	--film-gradient: linear-gradient(110deg, transparent 15%, var(--film-pink) 32%, var(--film-blue) 50%, var(--film-mint) 58%, var(--film-gold) 68%, transparent 85%);
 	--film-opacity-static: 0.2;
 	/* The label hues. A ticket label draws one as an 8 px dot. Each value
 	   reads 3:1 or better on --bg, --surface, and --elevated of its theme.

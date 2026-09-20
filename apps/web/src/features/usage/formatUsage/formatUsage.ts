@@ -77,8 +77,8 @@ export function modelProvider(model: string): ModelProvider | null {
 	return null;
 }
 
-// Each harness keeps one tone on every chart, so Claude Code is purple on
-// the harness split, on the model list, and on the quota cards.
+// Each harness keeps one tone on every chart, so Claude Code takes the same
+// tone on the harness split, on the model list, and on the quota cards.
 export const harnessTone: Record<UsageHarness, ChartTone> = {
 	claude: "agent",
 	codex: "fg",
@@ -95,5 +95,6 @@ export const rowTone = (row: UsageGroupRow, rank: number, group: UsageGroupBy): 
 	group === "harness" && row.harness ? harnessTone[row.harness] : (rankedTones[rank] ?? otherTone);
 
 // How many rows a chart draws as their own series before the rest fold
-// into one "Other" series.
-export const CHART_TOP_ROWS = 5;
+// into one "Other" series. One ranked tone covers each of these rows, so no
+// row falls back to the tone of the "Other" series and takes its color.
+export const CHART_TOP_ROWS = rankedTones.length;
