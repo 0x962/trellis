@@ -4,7 +4,7 @@ import { actorHeaderGrammar } from "./refs.ts";
 import { GhReasonSchema, RunnerReasonSchema } from "./schemas/enums.ts";
 import { CountSchema } from "./schemas/primitives.ts";
 import { StatusSummarySchema } from "./schemas/status.ts";
-import { TicketSchema } from "./schemas/ticket.ts";
+import { TicketIdentifierSchema, TicketSchema } from "./schemas/ticket.ts";
 
 // One Standard Schema issue. Extra keys (zod's `code`, `expected`) pass through.
 const IssueSchema = z.looseObject({
@@ -145,6 +145,11 @@ export const errors = {
 		status: 409,
 		message: "A ticket or a project cannot be its own ancestor.",
 		data: z.undefined(),
+	},
+	DEPENDENCY_CYCLE: {
+		status: 409,
+		message: "A dependency cannot close a cycle.",
+		data: z.object({ path: z.array(TicketIdentifierSchema) }),
 	},
 	PROJECT_NOT_EMPTY: {
 		status: 409,

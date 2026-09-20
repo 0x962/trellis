@@ -221,6 +221,7 @@ export const services = {
 	"tickets.updateMany": core("mutation", tickets.updateMany),
 	"tickets.deleteMany": core("mutation", tickets.deleteMany),
 	"tickets.delete": core("mutation", tickets.delete),
+	"tickets.updateDependencies": core("mutation", tickets.updateDependencies),
 	"timeline.list": core("read", timeline.list),
 	"needsYou.list": core("read", needsYou.list),
 	"needsYou.summary": core("read", needsYou.summary),
