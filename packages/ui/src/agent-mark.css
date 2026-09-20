@@ -86,24 +86,19 @@
  * card, and gives each card its own `animation-delay`.
  */
 .agent-profile-sweep {
+	@apply film-sweep;
 	position: absolute;
 	inset: 0;
 	background-image: var(--film-gradient);
-	background-size: 250% 100%;
-	background-position: 150% 0;
 	background-repeat: no-repeat;
 	opacity: var(--film-opacity-sweep);
 	pointer-events: none;
-	animation: var(--animate-glimmer);
 	animation-play-state: paused;
 }
 .agent-profile-sweep[data-sweep="run"] {
 	animation-play-state: running;
 }
 @media (prefers-reduced-motion: reduce) {
-	.agent-profile-sweep {
-		animation: none;
-	}
 	.agent-mark[data-motion="active"] .agent-effect {
 		opacity: 0;
 	}

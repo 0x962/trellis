@@ -127,11 +127,30 @@
 }
 
 /*
+ * The band of light that `--animate-glimmer` moves. The keyframes run
+ * `background-position` from 150% to -50%, so a rule that takes the animation
+ * must draw its band 2.5 times as wide as its own box and start it at 150%,
+ * or the band starts in the wrong place. Each site brings its own
+ * `background-image`, its own opacity and its own `background-repeat`: a band
+ * that starts and ends at one color repeats with no seam, and a band that
+ * fades to transparent takes `no-repeat`. A person who turns motion off sees
+ * the site without the band.
+ */
+@utility film-sweep {
+	background-size: 250% 100%;
+	background-position: 150% 0;
+	animation: var(--animate-glimmer);
+	@media (prefers-reduced-motion: reduce) {
+		animation: none;
+	}
+}
+
+/*
  * Text that catches the light now and then: a band of the bright text color
- * sweeps across muted text once every seven seconds. A person who turns
- * motion off sees the muted text, still.
+ * sweeps across muted text once every seven seconds.
  */
 @utility text-glimmer {
+	@apply film-sweep;
 	background-image: linear-gradient(
 		90deg,
 		var(--color-fg-muted) 0%,
@@ -140,14 +159,8 @@
 		var(--color-fg-muted) 60%,
 		var(--color-fg-muted) 100%
 	);
-	background-size: 250% 100%;
-	background-position: 150% 0;
 	background-clip: text;
 	-webkit-text-fill-color: transparent;
-	animation: var(--animate-glimmer);
-	@media (prefers-reduced-motion: reduce) {
-		animation: none;
-	}
 }
 
 .harness-account-meter {
