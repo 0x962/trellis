@@ -16,6 +16,8 @@ import {
 	TicketDeleteManyInputSchema,
 	TicketDeleteManyOutputSchema,
 	TicketDeleteOutputSchema,
+	TicketImportContractInputSchema,
+	TicketImportContractOutputSchema,
 	TicketImportDependenciesInputSchema,
 	TicketImportDependenciesOutputSchema,
 	TicketMoveInputSchema,
@@ -97,6 +99,11 @@ export const tickets = {
 		.route({ method: "DELETE", path: "/tickets/{ticket}", summary: "Delete a ticket" })
 		.input(TicketDeleteInputSchema)
 		.output(TicketDeleteOutputSchema),
+	importContract: base
+		.errors(pickErrors(["PROJECT_ARCHIVED"]))
+		.route({ method: "POST", path: "/tickets/import-contract", summary: "Import contract fields from one epic" })
+		.input(TicketImportContractInputSchema)
+		.output(TicketImportContractOutputSchema),
 	importDependencies: base
 		.errors(pickErrors(["PROJECT_ARCHIVED"]))
 		.route({ method: "POST", path: "/tickets/import-dependencies", summary: "Import dependency edges from one epic" })

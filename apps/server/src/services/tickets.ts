@@ -1,7 +1,9 @@
 // This entry point exports every service under `tickets.*`.
-export { create } from "./tickets/create.ts";
+
 export { setContract } from "./tickets/contract.ts";
+export { create } from "./tickets/create.ts";
 export { updateDependencies } from "./tickets/deps.ts";
+export { importContract } from "./tickets/importContract.ts";
 export { importDependencies } from "./tickets/importDeps.ts";
 export { move } from "./tickets/move.ts";
 export { setOutcome } from "./tickets/outcome.ts";
