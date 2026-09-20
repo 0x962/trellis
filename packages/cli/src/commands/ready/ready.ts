@@ -1,15 +1,9 @@
-import { type AgentRun, type TicketSummary, turnOf } from "@trellis/api";
+import { runLine, type TicketSummary, turnOf } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../../client.ts";
 import { contextOf } from "../../context.ts";
 import { json } from "../../output.ts";
 import { type ReadyResult, readyGroupOrder, readyText } from "./readyText.ts";
-
-const isWorking = (run: AgentRun): boolean =>
-	run.processStatus === "running" &&
-	run.observation?.controllable === true &&
-	run.observation.activity?.state === "working" &&
-	run.observation.outcome === null;
 
 const identifierFor = (ticket: TicketSummary, turn: ReturnType<typeof turnOf>): string => {
 	if (ticket.status.reviewer === "human") return ticket.identifier;
@@ -46,7 +40,9 @@ export default defineCommand({
 			client.agentRuns.list({ assigned: true }),
 		]);
 		const workingTicketIds = new Set(
-			runs.flatMap((run) => (run.kind === "agent" && run.ticketId !== null && isWorking(run) ? [run.ticketId] : [])),
+			runs.flatMap((run) =>
+				run.kind === "agent" && run.ticketId !== null && runLine(run).kind === "works" ? [run.ticketId] : [],
+			),
 		);
 		const result = readyResult(epic.tickets, workingTicketIds);
 		if (ctx.format.mode === "quiet") {
