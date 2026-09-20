@@ -1,3 +1,12 @@
+export {
+	BackendEvidence,
+	type BackendEvidenceProps,
+	type ContractChange,
+	type EvidencePicture,
+	type MigrationPlan,
+	type TestProof,
+	type VerifyRun,
+} from "./BackendEvidence";
 export { BlockRow, type BlockRowProps, NothingWord } from "./BlockRow";
 export { ChangeSummary, type ChangeSummaryFields, type ChangeSummaryProps } from "./ChangeSummary";
 export { type CheckResultGroup, CheckResults } from "./CheckResults";
@@ -10,6 +19,7 @@ export {
 	type ConditionsReadiness,
 } from "./ConditionsBlock";
 export { CopyLine, type CopyLineProps } from "./CopyLine";
+export { desktopRatio, EvidenceFigure, type EvidenceFigureProps } from "./EvidenceFigure";
 export { type EvidenceGap, EvidenceStrip, type EvidenceStripProps } from "./EvidenceStrip";
 export { type FileRiskGroup, FileRiskGroups } from "./FileRiskGroups";
 export {

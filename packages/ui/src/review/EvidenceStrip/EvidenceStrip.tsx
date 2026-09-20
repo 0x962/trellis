@@ -2,15 +2,9 @@ import type { ReactNode } from "react";
 import { EmptyState } from "../../primitives/EmptyState";
 import { SectionHeader } from "../../primitives/SectionHeader";
 import { Skeleton } from "../../primitives/Skeleton";
-import { BlockRow } from "../BlockRow";
-import { CopyLine } from "../CopyLine";
+import { type EvidenceGap, MissingList } from "./components/MissingList";
 
-export type EvidenceGap = {
-	// The words for one record the pull request owes, such as "verify record".
-	label: string;
-	// The shell command that writes that record.
-	fillCommand: string;
-};
+export type { EvidenceGap };
 
 export type EvidenceStripProps = {
 	// How many of the owed records the pull request carries.
@@ -26,13 +20,13 @@ export type EvidenceStripProps = {
 	note?: string;
 	// True while the request for the records is not complete.
 	loading?: boolean;
-	// The records themselves. A frontend pull request passes FrontendEvidence.
+	// The records themselves. A frontend pull request passes
+	// FrontendEvidence, a backend pull request passes BackendEvidence, and a
+	// pull request of both kinds passes both.
 	children?: ReactNode;
 	onCopy: (text: string) => void;
 };
 
-// A missing line carries the command that writes the record, because the
-// reader runs that command in a terminal.
 export function EvidenceStrip({
 	present,
 	required,
@@ -61,16 +55,7 @@ export function EvidenceStrip({
 			) : (
 				<>
 					{hasRecords && children}
-					{missing.length > 0 && (
-						<dl className="flex min-w-0 flex-col">
-							{missing.map((gap) => (
-								<BlockRow key={gap.label} label={gap.label}>
-									<span className="text-sm text-warning">missing</span>
-									<CopyLine text={gap.fillCommand} tone="quiet" onCopy={onCopy} />
-								</BlockRow>
-							))}
-						</dl>
-					)}
+					{missing.length > 0 && <MissingList gaps={missing} onCopy={onCopy} />}
 				</>
 			)}
 		</section>
