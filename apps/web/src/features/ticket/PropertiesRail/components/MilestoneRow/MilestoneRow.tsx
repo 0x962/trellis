@@ -44,7 +44,7 @@ export function MilestoneRow({ ticket, epic }: MilestoneRowProps) {
 	};
 
 	return (
-		<PropertyRow compact label="Milestone">
+		<PropertyRow compact label="Wave">
 			{readOnly ? (
 				nameOf(ticket.milestone)
 			) : (

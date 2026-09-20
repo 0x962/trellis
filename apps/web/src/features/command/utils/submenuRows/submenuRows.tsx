@@ -20,7 +20,7 @@ export const submenuHeadings: Record<Submenu["kind"], string> = {
 	project: "Move to project",
 	parent: "Set parent",
 	epic: "Set epic",
-	milestone: "Set milestone",
+	milestone: "Set wave",
 	labels: "Set labels",
 	sort: "Sort by",
 	group: "Group by",
@@ -62,7 +62,7 @@ const groups = [
 	{ value: "project", label: "Project" },
 	{ value: "parent", label: "Parent" },
 	{ value: "epic", label: "Epic" },
-	{ value: "milestone", label: "Milestone" },
+	{ value: "milestone", label: "Wave" },
 	{ value: "pr", label: "PR" },
 	{ value: "none", label: "None" },
 ] as const;
@@ -223,7 +223,7 @@ const milestoneRows = (deps: RowDeps, data: SubmenuData): PaletteRow[] => {
 		deps.close();
 		void bulk.setMilestone(deps.bulk, deps.selection, milestone);
 	};
-	const none: PaletteRow = { value: "milestone.none", label: "No milestone", icon: <Flag />, run: pick(null) };
+	const none: PaletteRow = { value: "milestone.none", label: "No wave", icon: <Flag />, run: pick(null) };
 	const rows = data.milestones.map((milestone) => ({
 		value: `milestone.${milestone.ref}`,
 		label: milestone.name,

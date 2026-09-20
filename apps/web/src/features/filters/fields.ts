@@ -60,7 +60,7 @@ export const fieldLabels: Record<FilterField, string> = {
 	project: "Project",
 	parent: "Parent",
 	epic: "Epic",
-	milestone: "Milestone",
+	milestone: "Wave",
 	pr: "PR",
 	ci: "PR",
 	updated: "Updated",
@@ -151,7 +151,7 @@ export const valueLabel = (
 			return epic?.name ?? value;
 		}
 		case "milestone": {
-			if (value === "none") return "No milestone";
+			if (value === "none") return "No wave";
 			const milestone = milestones.find((entry) => entry.ref === value || entry.id === value);
 			return milestone?.name ?? value;
 		}

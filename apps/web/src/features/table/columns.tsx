@@ -52,7 +52,7 @@ export const columnLabels: Record<ColumnId, string> = {
 	created: "Created",
 	parent: "Parent",
 	epic: "Epic",
-	milestone: "Milestone",
+	milestone: "Wave",
 	subtickets: "Sub-tickets",
 };
 
