@@ -1,7 +1,8 @@
 import type { CiState, PrState, ReviewState, StoredActorKind, TicketSummary } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { actorDisplayName } from "./actorDisplayName.ts";
-import { ciRank, iso, pathsCte, prStateRank, reviewStateRank } from "./support.ts";
+import { iso, pathsCte } from "./support.ts";
+import { ticketPrColumns, ticketPrJoin } from "./ticketPrs.ts";
 
 export type SummaryRow = {
 	id: string;
@@ -39,6 +40,7 @@ export type SummaryRow = {
 	pr_fail: number | null;
 	pr_pending: number | null;
 	pr_reviews: NonNullable<TicketSummary["pr"]>["reviews"] | null;
+	pr_rows: TicketSummary["prRows"] | null;
 	last_actor_name: string | null;
 	last_actor_display_name: string | null;
 	last_actor_kind: StoredActorKind | null;
@@ -49,11 +51,6 @@ export type SummaryRow = {
 	updated_at: string;
 	completed_at: string | null;
 };
-
-// The check counts behind the PR ribbon come from the `checks` snapshot of
-// every linked pull request. A canceled check counts as failed; a skipped
-// check counts for nothing.
-const bucketCount = (test: SQL) => sql`sum((SELECT count(*) FROM jsonb_array_elements(p.checks) c WHERE ${test}))::int`;
 
 // One row of TicketSummary per ticket in `page`, an earlier CTE with the
 // columns `id` and `rn`. Every count and the PR badge are subqueries on the
@@ -76,9 +73,7 @@ export const summaryColumns = sql`
 	(SELECT count(*)::int FROM comments c WHERE c.ticket_id = t.id) AS comment_count,
 	(SELECT count(*)::int FROM attachments a WHERE a.ticket_id = t.id) AS attachment_count,
 	lb.items AS labels,
-	pr.state AS pr_state, pr.ci_state AS pr_ci_state, pr.review_state AS pr_review_state,
-	pr.pass AS pr_pass, pr.fail AS pr_fail, pr.pending AS pr_pending,
-	pr.reviews AS pr_reviews,
+	${ticketPrColumns},
 	${actorDisplayName(sql`la.actor_name`, sql`la.actor_kind`)} AS last_actor_display_name,
 	la.actor_name AS last_actor_name, la.actor_kind AS last_actor_kind, ${iso(sql`la.created_at`)} AS last_actor_at,
 	t.position, t.version,
@@ -105,27 +100,7 @@ export const summaryJoins = sql`
 		LEFT JOIN label_groups g ON g.id = l.group_id
 		WHERE tl.ticket_id = t.id
 	) lb ON true
-	LEFT JOIN LATERAL (
-		SELECT
-			(array_agg(p.state ORDER BY ${prStateRank(sql`p.state`)}))[1] AS state,
-			(array_agg(p.ci_state ORDER BY ${ciRank(sql`p.ci_state`)}))[1] AS ci_state,
-			(array_agg(p.review_state ORDER BY ${reviewStateRank(sql`p.review_state`)}))[1] AS review_state,
-			${bucketCount(sql`c->>'bucket' = 'pass'`)} AS pass,
-			${bucketCount(sql`c->>'bucket' IN ('fail', 'cancel')`)} AS fail,
-			${bucketCount(sql`c->>'bucket' = 'pending'`)} AS pending,
-			jsonb_agg(
-				jsonb_build_object(
-					'owner', p.owner,
-					'repo', p.repo,
-					'number', p.number,
-					'reviewState', p.review_state,
-					'isDraft', p.is_draft
-				)
-				ORDER BY l.created_at, p.id
-			) AS reviews
-		FROM ticket_pull_requests l JOIN pull_requests p ON p.id = l.pull_request_id
-		WHERE l.ticket_id = t.id
-	) pr ON true
+	${ticketPrJoin}
 	LEFT JOIN LATERAL (
 		WITH RECURSIVE chain AS (
 			SELECT a.id, a.parent_id, a.number, 1 AS depth FROM tickets a WHERE a.id = t.parent_id
@@ -193,6 +168,7 @@ export const toSummary = (row: SummaryRow): TicketSummary => ({
 					pending: row.pr_pending as number,
 					reviews: row.pr_reviews as NonNullable<TicketSummary["pr"]>["reviews"],
 				},
+	prRows: row.pr_rows ?? [],
 	lastActor:
 		row.last_actor_name === null
 			? null

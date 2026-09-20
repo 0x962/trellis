@@ -31,7 +31,7 @@ export const PRIORITY_ORDER = [
 
 export const priorityRank = (column: SQL) => sql`array_position(${literalArray(PRIORITY_ORDER)}, ${column})`;
 
-// ticketSummary.ts sorts linked pull requests with these arrays. The first
+// ticketPrs.ts sorts linked pull requests with these arrays. The first
 // value is the state that needs the most work.
 export const CI_WORST_FIRST = ["fail", "pending", "pass", "none"] as const;
 export const PR_STATE_WORST_FIRST = ["open", "closed", "merged"] as const;
