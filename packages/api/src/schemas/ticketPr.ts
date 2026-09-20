@@ -25,9 +25,10 @@ export const TicketPrSchema = z.object({
 	skipped: CountSchema,
 	failedChecks: z.array(FailedCheckSchema),
 	openThreads: CountSchema,
-	// A flow execution belongs to the ticket. Each pull request row of the
-	// ticket carries the same `flowRuns` list.
-	flowRuns: z.array(z.object({ state: FlowExecutionStateSchema.shape.status })),
+	// Each `TicketPrSchema` result carries the five newest executions of its ticket.
+	// `flowRunCount` gives the total number of executions for that ticket.
+	flowRuns: z.array(z.object({ status: FlowExecutionStateSchema.shape.status })),
+	flowRunCount: CountSchema,
 	baseRef: z.string(),
 	headRef: z.string(),
 });

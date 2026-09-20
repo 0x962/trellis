@@ -66,7 +66,7 @@ beforeAll(async () => {
 	await db.execute(sql`INSERT INTO review_threads (id, pr_id, document, updated_at) VALUES
 		(${ulid()}, ${first}, ${{ status: "open" }}, ${at}),
 		(${ulid()}, ${first}, ${{ status: "resolved" }}, ${at})`);
-	for (const [index, state] of ["running", "succeeded"].entries())
+	for (const [index, state] of ["running", "succeeded", "failed", "canceled", "waiting", "running", "failed"].entries())
 		await db.execute(sql`INSERT INTO flow_executions (
 			id, flow_id, ticket_id, project_id, actor_kind, actor_name, request_id,
 			request, doc, state, revision, created_at, updated_at
@@ -94,11 +94,18 @@ test("a ticket summary carries one row for each pull request", async () => {
 			{ name: "old job", workflow: null },
 		],
 		openThreads: 1,
-		flowRuns: [{ state: "running" }, { state: "succeeded" }],
+		flowRuns: [
+			{ status: "failed" },
+			{ status: "running" },
+			{ status: "waiting" },
+			{ status: "canceled" },
+			{ status: "failed" },
+		],
+		flowRunCount: 7,
 		baseRef: "main",
 		headRef: "feature-1",
 	});
-	expect(summary.prRows.every((row) => row.flowRuns.length === 2)).toBe(true);
+	expect(summary.prRows.every((row) => row.flowRuns.length === 5 && row.flowRunCount === 7)).toBe(true);
 
 	const emptySummary = await db.transaction((tx) => ticketSummary(tx, emptyTicket));
 	expect(TicketSummarySchema.parse(emptySummary)).toEqual(emptySummary);

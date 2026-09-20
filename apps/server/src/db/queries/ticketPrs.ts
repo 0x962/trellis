@@ -29,8 +29,8 @@ export const ticketPrColumns = sql`
 	pr.pass AS pr_pass, pr.fail AS pr_fail, pr.pending AS pr_pending,
 	pr.reviews AS pr_reviews, pr.pull_requests AS pr_rows`;
 
-// A flow execution belongs to a ticket. Each pull request row of the ticket
-// carries the same `flowRuns` list.
+// A flow execution belongs to a ticket. Each pull request row carries the same
+// five newest `flowRuns` entries and the same `flowRunCount` total.
 export const ticketPrJoin = sql`
 	LEFT JOIN LATERAL (
 		SELECT
@@ -64,13 +64,8 @@ export const ticketPrJoin = sql`
 						SELECT count(*) FROM review_threads thread
 						WHERE thread.pr_id = p.id AND thread.document->>'status' = 'open'
 					),
-					'flowRuns', COALESCE((
-						SELECT jsonb_agg(
-							jsonb_build_object('state', execution.state->>'status')
-							ORDER BY execution.created_at, execution.id
-						)
-						FROM flow_executions execution WHERE execution.ticket_id = t.id
-					), '[]'::jsonb),
+					'flowRuns', flow_runs.items,
+					'flowRunCount', flow_runs.total,
 					'baseRef', p.base_ref, 'headRef', p.head_ref
 				) ORDER BY link.created_at, p.id
 			) AS pull_requests
@@ -93,5 +88,25 @@ export const ticketPrJoin = sql`
 				) AS failed_checks
 			FROM jsonb_array_elements(p.checks) WITH ORDINALITY AS check_row(value, position)
 		) check_counts
+		CROSS JOIN LATERAL (
+			SELECT
+				COALESCE(max(recent.total), 0)::int AS total,
+				COALESCE(
+					jsonb_agg(
+						jsonb_build_object('status', recent.status)
+						ORDER BY recent.created_at DESC, recent.id DESC
+					),
+					'[]'::jsonb
+				) AS items
+			FROM (
+				SELECT
+					execution.id, execution.created_at, execution.state->>'status' AS status,
+					count(*) OVER () AS total
+				FROM flow_executions execution
+				WHERE execution.ticket_id = t.id
+				ORDER BY execution.created_at DESC, execution.id DESC
+				LIMIT 5
+			) recent
+		) flow_runs
 		WHERE link.ticket_id = t.id
 	) pr ON true`;
