@@ -80,6 +80,13 @@ export const labelAmbiguous = (matches: string[]) =>
 // reads one line and fixes the path; a stack trace tells them nothing.
 export const fileNotFound = (path: string) => new CliFailure("NOT_FOUND", 3, `No file at ${path}.`);
 
+export const evidenceFloorMissing = (ticket: string) =>
+	new CliFailure(
+		"EVIDENCE_FLOOR_MISSING",
+		1,
+		`An agent cannot move ${ticket} to human-review while required evidence is missing.`,
+	);
+
 export const fileUnreadable = (path: string, reason: string) =>
 	new CliFailure("USAGE", 2, `cannot read ${path}: ${reason}`);
 
