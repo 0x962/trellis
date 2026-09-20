@@ -6,7 +6,7 @@ const row = (labels: TicketLabel[]) => ({ project: { id: "p1" }, pr: null, label
 
 const bug: TicketLabel = { id: "L1", name: "Bug", color: "red", group: null };
 
-const visible = () => columnVisibility(undefined, true);
+const visible = () => columnVisibility(undefined, true, "list");
 
 describe("autoHide labels", () => {
 	test("keeps the column when one loaded row holds a label", () => {
@@ -26,7 +26,7 @@ describe("autoHide labels", () => {
 	});
 
 	test("a hidden choice stays hidden even with a labelled row", () => {
-		const stored = columnVisibility({ labels: false }, true);
+		const stored = columnVisibility({ labels: false }, true, "list");
 
 		expect(autoHide(stored, { group: "none", rows: [row([bug])] }).labels).toBe(false);
 	});
@@ -35,5 +35,51 @@ describe("autoHide labels", () => {
 describe("columnVisibility labels", () => {
 	test("the column shows before any choice", () => {
 		expect(visible().labels).toBe(true);
+	});
+});
+
+describe("the columns of the epic route", () => {
+	test("the epic route shows the waits column and the releases column", () => {
+		const result = columnVisibility(undefined, true, "epic");
+
+		expect(result.waits).toBe(true);
+		expect(result.releases).toBe(true);
+	});
+
+	test("every other route hides both columns", () => {
+		expect(visible().waits).toBe(false);
+		expect(visible().releases).toBe(false);
+	});
+
+	test("a stored choice does not show a column the route hides", () => {
+		const stored = columnVisibility({ waits: true, releases: true }, true, "list");
+
+		expect(stored.waits).toBe(false);
+		expect(stored.releases).toBe(false);
+	});
+
+	test("a stored choice hides a column the route shows", () => {
+		const stored = columnVisibility({ waits: false }, true, "epic");
+
+		expect(stored.waits).toBe(false);
+		expect(stored.releases).toBe(true);
+	});
+});
+
+describe("autoHide and the epic route", () => {
+	test("keeps both columns, because neither repeats a grouping", () => {
+		const epic = columnVisibility(undefined, true, "epic");
+		const result = autoHide(epic, { group: "milestone", rows: [row([])] });
+
+		expect(result.waits).toBe(true);
+		expect(result.releases).toBe(true);
+	});
+
+	test("keeps both columns while the list is empty", () => {
+		const epic = columnVisibility(undefined, true, "epic");
+		const result = autoHide(epic, { group: "milestone", rows: [] });
+
+		expect(result.waits).toBe(true);
+		expect(result.releases).toBe(true);
 	});
 });

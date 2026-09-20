@@ -1,0 +1,1 @@
+export { WaitsCell } from "./WaitsCell";
