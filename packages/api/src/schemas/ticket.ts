@@ -24,6 +24,7 @@ import { booleanString, CountSchema, commaList, IsoDateTimeSchema, UlidSchema } 
 import { ProjectLinkSchema } from "./project.ts";
 import { LinkedPullRequestSchema } from "./pullRequest.ts";
 import { StatusSummarySchema } from "./status.ts";
+import { TicketPrSchema } from "./ticketPr.ts";
 
 // A title is stored trimmed. The limit keeps a row under the summary budget.
 export const TicketTitleSchema = z
@@ -88,6 +89,7 @@ export const TicketSummarySchema = z.object({
 	// The labels with no group first, then by group name, then by label name.
 	labels: z.array(TicketLabelSchema),
 	pr: PrBadgeSchema.nullable(),
+	prRows: z.array(TicketPrSchema),
 	lastActor: LastActorSchema.nullable(),
 	position: z.number(),
 	version: z.number().int().positive(),
