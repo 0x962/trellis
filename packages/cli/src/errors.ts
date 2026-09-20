@@ -80,6 +80,9 @@ export const labelAmbiguous = (matches: string[]) =>
 // reads one line and fixes the path; a stack trace tells them nothing.
 export const fileNotFound = (path: string) => new CliFailure("NOT_FOUND", 3, `No file at ${path}.`);
 
+export const fileUnreadable = (path: string, reason: string) =>
+	new CliFailure("USAGE", 2, `cannot read ${path}: ${reason}`);
+
 // EVIDENCE_FLOOR_MISSING comes from this CLI, so exitCodes has no row.
 // Its exit code 1 reports a refused operation, not invalid input.
 export const evidenceFloorMissing = (ticket: string) =>
@@ -88,9 +91,6 @@ export const evidenceFloorMissing = (ticket: string) =>
 		1,
 		`An agent cannot move ${ticket} to human-review while required evidence is missing.`,
 	);
-
-export const fileUnreadable = (path: string, reason: string) =>
-	new CliFailure("USAGE", 2, `cannot read ${path}: ${reason}`);
 
 export const unreachable = (url: string) =>
 	new CliFailure("UNREACHABLE", 5, `trellis server not running at ${url}; run "trellis install" or "bun dev"`);

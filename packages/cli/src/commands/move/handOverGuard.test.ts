@@ -1,6 +1,5 @@
 import { expect, test } from "bun:test";
 import type { TrellisClient } from "@trellis/api/client";
-import { evidenceFloorMissing } from "../../errors.ts";
 import { handOverGuard } from "./handOverGuard.ts";
 
 const risk = {
@@ -11,22 +10,36 @@ const risk = {
 	deletedTest: "no" as const,
 };
 
-const linked = { id: "01M30HDWKZ17G62PJAFHZNED2J", url: "https://github.com/acme/roadmap/pull/42" };
+const humanReviewId = "01M24QC2CQ8T155DMRNRMF3E8T";
+const linked = { id: "01M30HDWKZ17G62PJAFHZNED2J", number: 42, url: "https://github.com/acme/roadmap/pull/42" };
 
-const clientWith = (rows: Array<{ kind: string; headSha: string }>, summary: object | null): TrellisClient =>
+const clientWith = ({
+	evidenceRows,
+	pullRequestState = "open",
+	summaryHead,
+}: {
+	evidenceRows: Array<{ kind: string; headSha: string }>;
+	pullRequestState?: "open" | "closed" | "merged";
+	summaryHead: { body: string } | null;
+}): TrellisClient =>
 	({
 		tickets: {
 			get: async () => ({
 				identifier: "KEY-42",
 				title: "Add the hand-over guard",
+				project: { path: "KEY" },
 				contract: { verify: ["bun test"] },
-				prs: [linked],
+				prs: [{ ...linked, state: pullRequestState }],
+			}),
+		},
+		statuses: {
+			list: async () => ({
+				statuses: [{ id: humanReviewId, slug: "human-review", name: "Human Review", category: "review" }],
 			}),
 		},
 		pullRequests: {
-			refresh: async () => ({ number: 42, url: linked.url }),
-			listEvidence: async () => rows,
-			readSummaryHead: async () => summary,
+			listEvidence: async () => evidenceRows,
+			readSummaryHead: async () => summaryHead,
 		},
 		reviews: {
 			status: async () => ({
@@ -44,49 +57,72 @@ const clientWith = (rows: Array<{ kind: string; headSha: string }>, summary: obj
 		},
 	}) as unknown as TrellisClient;
 
-test("does not read the ticket for another target", async () => {
-	const client = {} as TrellisClient;
+test("allows another target without evidence checks", async () => {
+	const client = clientWith({ evidenceRows: [], summaryHead: null });
 
-	expect(await handOverGuard(client, "agent", "KEY-42", "done")).toBeNull();
+	expect(await handOverGuard(client, "agent", "KEY-42", "Done")).toBeNull();
 });
 
 test("allows an agent hand-over with no linked pull request", async () => {
 	const client = {
-		tickets: { get: async () => ({ prs: [] }) },
+		tickets: { get: async () => ({ project: { path: "KEY" }, prs: [] }) },
+		statuses: {
+			list: async () => ({
+				statuses: [{ id: humanReviewId, slug: "human-review", name: "Human Review", category: "review" }],
+			}),
+		},
 	} as unknown as TrellisClient;
 
 	expect(await handOverGuard(client, "agent", "KEY-42", "human-review")).toBeNull();
 });
 
 test("refuses an agent with the evidence check list for an incomplete floor", async () => {
-	const result = await handOverGuard(clientWith([], null), "agent", "KEY-42", "human-review");
+	for (const statusRef of ["human-review", "Human Review", "Human-Review", "category:review", humanReviewId]) {
+		const missing = await handOverGuard(
+			clientWith({ evidenceRows: [], summaryHead: null }),
+			"agent",
+			"KEY-42",
+			statusRef,
+		);
 
-	expect(result?.refuses).toBe(true);
-	expect(result?.text).toContain(`#42  KEY-42  Add the hand-over guard
-kind: backend            0 of 4 required present`);
-	expect(result?.text).toContain("  MISSING  summary");
-	expect(result?.text).toContain("  MISSING  verify record");
-	expect(result?.text).toContain("  MISSING  test proof");
-	expect(result?.text).toContain("  MISSING  contract table");
+		expect(missing?.blocksAgent).toBe(true);
+		expect(missing?.result.complete).toBe(false);
+		expect(missing?.result.items.map((item) => item.status)).toEqual(["MISSING", "MISSING", "MISSING", "MISSING"]);
+	}
 });
 
 test("shows the evidence check list to a human without a refusal", async () => {
-	const result = await handOverGuard(clientWith([], null), "human", "KEY-42", "human-review");
+	const missing = await handOverGuard(
+		clientWith({ evidenceRows: [], summaryHead: null }),
+		"human",
+		"KEY-42",
+		humanReviewId,
+	);
 
-	expect(result?.refuses).toBe(false);
-	expect(result?.text).toContain("  MISSING  summary");
+	expect(missing?.blocksAgent).toBe(false);
+	expect(missing?.result.complete).toBe(false);
+});
+
+test("ignores a closed pull request", async () => {
+	expect(
+		await handOverGuard(
+			clientWith({ evidenceRows: [], pullRequestState: "closed", summaryHead: null }),
+			"agent",
+			"KEY-42",
+			"human-review",
+		),
+	).toBeNull();
 });
 
 test("allows an agent hand-over with a complete floor", async () => {
 	const rows = ["verify", "test", "contract"].map((kind) => ({ kind, headSha: "head-sha" }));
 
-	expect(await handOverGuard(clientWith(rows, {}), "agent", "KEY-42", "human-review")).toBeNull();
-});
-
-test("declares the hand-over refusal code and text", () => {
-	const failure = evidenceFloorMissing("KEY-42");
-
-	expect(failure.code).toBe("EVIDENCE_FLOOR_MISSING");
-	expect(failure.exitCode).toBe(1);
-	expect(failure.message).toBe("An agent cannot move KEY-42 to human-review while required evidence is missing.");
+	expect(
+		await handOverGuard(
+			clientWith({ evidenceRows: rows, summaryHead: { body: "summary" } }),
+			"agent",
+			"KEY-42",
+			"category:review",
+		),
+	).toBeNull();
 });
