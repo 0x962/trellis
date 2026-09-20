@@ -5,10 +5,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { type AppContext, AppProvider } from "../../../lib/appContext";
 import { StartControls } from "./StartControls";
 
-// The first render reads no field of the app context: the client, the oRPC
-// utils and the query client reach the screen only after a person clicks
-// `Start`. So the test hands the component an empty context and a live
-// query client, which `useMutation` needs.
+// Before a click on `Start`, the component reads only the query client from
+// the app context. The test gives that one field.
 const app = { queryClient: new QueryClient() } as AppContext;
 
 // The chain of OP-33 in section 2, screen 6 of
@@ -36,9 +34,13 @@ const render = (waitsOn: TicketSummary["waitsOn"]) =>
 		</QueryClientProvider>,
 	);
 
-// The `Start` button is the last button of the row, after the three picker
-// triggers. This cut holds its tag and nothing before it.
-const startButton = (html: string) => html.slice(html.lastIndexOf("<button", html.indexOf("Start</")));
+// `Start` is the last button in the row. This slice holds the `<button` tag
+// of `Start` and stops at its closing angle bracket, so an attribute of a
+// later element never reaches an assertion.
+const startButtonTag = (html: string) => {
+	const open = html.lastIndexOf("<button", html.indexOf("Start</"));
+	return html.slice(open, html.indexOf(">", open) + 1);
+};
 
 describe("StartControls", () => {
 	test("prints the harness picker, the model picker and the effort picker with one Start", () => {
@@ -54,7 +56,7 @@ describe("StartControls", () => {
 	test("keeps Start live while another ticket holds the work back", () => {
 		const html = render([op32, op52]);
 
-		expect(startButton(html)).not.toContain("disabled");
+		expect(startButtonTag(html)).not.toContain("disabled");
 	});
 
 	test("names each ticket that holds the work back by identifier and title", () => {

@@ -1,30 +1,32 @@
 import { useState } from "react";
-import { type StartBlocker, StartControls } from "../../../../domain/StartControls";
+import { ProviderIcon } from "../../../../domain/ProviderIcon";
+import { StartControls, type StartDependency } from "../../../../domain/StartControls";
+import { PickerButton } from "../../../../primitives/PickerButton";
 import { Select } from "../../../../primitives/Select";
 import { Section } from "../../Section";
 
-// Screens 5 and 6 of section 2 in
-// docs/research/trellis-for-one-human-and-many-agents.md hold these words.
-// OP-34 waits on one pull request. OP-33 waits on that pull request and on
-// a question that nobody answered.
-const op32: StartBlocker = {
+// These words come from screens 5 and 6 of section 2 in
+// docs/research/trellis-for-one-human-and-many-agents.md. OP-32 is a ticket
+// with a pull request that nobody merged. OP-52 is a question that nobody
+// answered.
+const op32: StartDependency = {
 	identifier: "OP-32",
 	title: "Service: A routine run opens a chat and queues the turn",
-	words: "is not merged",
+	reason: "is not merged",
 };
 
-const op52: StartBlocker = {
+const op52: StartDependency = {
 	identifier: "OP-52",
 	title: "Decision: a missed window, run it late or leave it missed",
-	words: "is open",
+	reason: "is open",
 };
 
 // The ticket page passes the harness picker, the model picker and the
-// effort picker. The gallery holds no harness catalog, so these three
-// `Select` triggers stand in for them and carry the same words.
+// effort picker. The gallery holds no harness catalog and no model catalog,
+// so these three controls carry fixed words. The middle one is a
+// `PickerButton`, the control that `ModelPicker` in the web app draws.
 function Pickers() {
 	const [harness, setHarness] = useState("claude");
-	const [model, setModel] = useState("opus");
 	const [effort, setEffort] = useState("high");
 	return (
 		<>
@@ -37,15 +39,16 @@ function Pickers() {
 					{ value: "codex", label: "Codex" },
 				]}
 			/>
-			<Select
-				label="Model"
-				value={model}
-				onValueChange={setModel}
-				items={[
-					{ value: "opus", label: "Opus" },
-					{ value: "sonnet", label: "Sonnet" },
-				]}
-			/>
+			{/* `PickerButton` fills the width of its parent, so this box holds it
+			    to the width of its words, as `LaunchFields` does in the web app. */}
+			<div className="min-w-0">
+				<PickerButton label="Model" size="sm">
+					<span className="inline-flex min-w-0 items-center gap-2">
+						<ProviderIcon provider="anthropic" decorative className="size-3.5" />
+						<span className="truncate">Claude Opus 5</span>
+					</span>
+				</PickerButton>
+			</div>
 			<Select
 				label="Effort"
 				value={effort}
@@ -64,24 +67,29 @@ export function StartControlsSection() {
 		<Section
 			name="StartControls"
 			note="two tickets hold the work back, one ticket, nothing, a run that starts, and a start that failed"
-			className="flex-col items-stretch"
 		>
 			<div className="w-full max-w-160">
-				<StartControls pickers={<Pickers />} blockers={[op32, op52]} starting={false} error={null} onStart={() => {}} />
+				<StartControls
+					pickers={<Pickers />}
+					dependencies={[op32, op52]}
+					starting={false}
+					error={null}
+					onStart={() => {}}
+				/>
 			</div>
 			<div className="w-full max-w-160">
-				<StartControls pickers={<Pickers />} blockers={[op32]} starting={false} error={null} onStart={() => {}} />
+				<StartControls pickers={<Pickers />} dependencies={[op32]} starting={false} error={null} onStart={() => {}} />
 			</div>
 			<div className="w-full max-w-160">
-				<StartControls pickers={<Pickers />} blockers={[]} starting={false} error={null} onStart={() => {}} />
+				<StartControls pickers={<Pickers />} dependencies={[]} starting={false} error={null} onStart={() => {}} />
 			</div>
 			<div className="w-full max-w-160">
-				<StartControls pickers={<Pickers />} blockers={[op32]} starting error={null} onStart={() => {}} />
+				<StartControls pickers={<Pickers />} dependencies={[op32]} starting error={null} onStart={() => {}} />
 			</div>
 			<div className="w-full max-w-160">
 				<StartControls
 					pickers={<Pickers />}
-					blockers={[]}
+					dependencies={[]}
 					starting={false}
 					error="The workspace of the ticket is gone."
 					onStart={() => {}}

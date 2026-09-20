@@ -1,10 +1,10 @@
 import { useMutation } from "@tanstack/react-query";
 import { type Harness, HarnessSchema, type TicketSummary } from "@trellis/api";
-import { type StartBlocker, StartControls as StartControlsView } from "@trellis/ui";
+import { StartControls as StartControlsView, type StartDependency } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { LaunchFields } from "../../agents/LaunchFields";
-import { dependencyWords } from "../dependencyWords";
+import { blockReason } from "../blockReason";
 
 export type StartControlsProps = {
 	// The identifier of the ticket the run takes, such as `TRL-188`.
@@ -14,9 +14,8 @@ export type StartControlsProps = {
 	waitsOn: TicketSummary["waitsOn"];
 };
 
-// This wrapper holds the harness the pickers write, names each ticket that
-// holds the work back, and starts the run. `Start` stays live while the
-// ticket waits for another ticket: the person reads the line and decides.
+// `Start` stays live even when another ticket holds this ticket back. A
+// person reads the line under the row and decides when a run starts.
 export function StartControls({ ticket, waitsOn }: StartControlsProps) {
 	const { client, orpc, queryClient } = useApp();
 	const [harness, setHarness] = useState<Harness>(() => HarnessSchema.parse({ preset: "claude" }));
@@ -31,19 +30,19 @@ export function StartControls({ ticket, waitsOn }: StartControlsProps) {
 			void queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
 		},
 	});
-	const blockers = useMemo<StartBlocker[]>(
+	const dependencies = useMemo<StartDependency[]>(
 		() =>
 			waitsOn.map((dependency) => ({
 				identifier: dependency.identifier,
 				title: dependency.title,
-				words: dependencyWords(dependency),
+				reason: blockReason(dependency),
 			})),
 		[waitsOn],
 	);
 	return (
 		<StartControlsView
 			pickers={<LaunchFields harness={harness} onChange={setHarness} disabled={start.isPending} compact />}
-			blockers={blockers}
+			dependencies={dependencies}
 			starting={start.isPending}
 			error={start.error?.message ?? null}
 			onStart={() => start.mutate()}
