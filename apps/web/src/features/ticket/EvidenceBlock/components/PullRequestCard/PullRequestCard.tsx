@@ -11,8 +11,6 @@ export type PullRequestCardProps = {
 	onOpen: (url: string) => void;
 };
 
-// One pull request of the ticket: its row, and under it the short form of the
-// merge conditions with the button that opens the review.
 export function PullRequestCard({ ticket, pr, onOpen }: PullRequestCardProps) {
 	const row = ticket.prRows.find((candidate) => candidate.url === pr.url);
 	const conditions = row === undefined ? null : prConditions(row, ticket.waitsOn);

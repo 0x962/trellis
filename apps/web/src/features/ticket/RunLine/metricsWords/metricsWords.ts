@@ -1,7 +1,6 @@
 import type { TicketMetrics } from "@trellis/api";
 import { formatCount, formatDuration } from "../../../../lib/format";
 
-// The time and the tokens the ticket burned, for the hover of the run line.
 export const metricsWords = (metrics: TicketMetrics | null) => {
 	if (metrics === null) return "The time and the tokens are not counted.";
 	const time = metrics.durationMs === null ? "no time" : formatDuration(metrics.durationMs);

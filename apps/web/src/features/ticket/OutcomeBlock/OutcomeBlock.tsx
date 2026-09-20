@@ -6,7 +6,6 @@ export type OutcomeBlockProps = {
 	outcome: string;
 };
 
-// What merged, in the sentence the brief of the next ticket reads.
 export function OutcomeBlock({ outcome }: OutcomeBlockProps) {
 	return (
 		<section aria-label="The outcome" className="flex min-w-0 flex-col">

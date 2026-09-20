@@ -1,0 +1,1 @@
+export { useSoleRepositoryName } from "./useSoleRepositoryName";

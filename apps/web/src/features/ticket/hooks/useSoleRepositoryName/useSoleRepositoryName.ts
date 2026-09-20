@@ -1,13 +1,13 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { useApp } from "../../../../lib/appContext";
 
-// The name of the repository whose path rules decide the evidence a contract
-// owes, such as `trellis`. A project uses the repositories of its own record
-// and of every project above it. The name is set only when that chain holds
-// exactly one repository. `apps/server/src/services/brief/brief.ts` applies
-// the same rule, so the page and the brief print the same `Evidence owed`.
-// The name stays unset until every project of the chain has loaded.
-export function useRepositoryName(projectPath: string | undefined): string | undefined {
+// The name of the one repository that the project chain holds, such as
+// `trellis`. A project uses the repositories of its own record and of every
+// project above it. `apps/server/src/services/brief/brief.ts` applies the same
+// rule, so the page and the brief print the same `Evidence owed`. The hook
+// returns undefined while the chain loads, and when the chain holds no
+// repository or more than one.
+export function useSoleRepositoryName(projectPath: string | undefined): string | undefined {
 	const { orpc } = useApp();
 	const project = useQuery({
 		...orpc.projects.get.queryOptions({ input: { project: projectPath ?? "" } }),

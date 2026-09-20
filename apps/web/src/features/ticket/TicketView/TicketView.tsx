@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { asksQuestion, reviewRef } from "@trellis/api";
+import { asksQuestion, questionParts, reviewRef } from "@trellis/api";
 import { cx, EmptyState, SectionHeader, useMediaQuery } from "@trellis/ui";
 import { useEffect, useState } from "react";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
@@ -13,13 +13,15 @@ import { usePageSheet } from "../../shell/PageSheet";
 import { ChainBlock } from "../ChainBlock";
 import { ContractBlock } from "../ContractBlock";
 import { Description } from "../Description";
+import { EvidenceBlock } from "../EvidenceBlock";
 import { Header } from "../Header";
 import { useParentSummary } from "../hooks/useParentSummary";
-import { useRepositoryName } from "../hooks/useRepositoryName";
+import { useSoleRepositoryName } from "../hooks/useSoleRepositoryName";
+import { OutcomeBlock } from "../OutcomeBlock";
 import { PropertiesRail } from "../PropertiesRail";
 import { QuestionBlock } from "../QuestionBlock";
+import { RunBlock } from "../RunBlock";
 import { SubTickets } from "../SubTickets";
-import { TicketWorkArea } from "../TicketWorkArea";
 import { Title } from "../Title";
 import { DropOverlay, useDropOverlay } from "./components/DropOverlay";
 import { ParentChip } from "./components/ParentChip";
@@ -50,7 +52,7 @@ export function TicketView({ identifier }: TicketViewProps) {
 	const drop = useDropOverlay(uploads.addFiles);
 	const narrow = useMediaQuery("(max-width: 767px)");
 	const { isArchived, notice } = useArchivedProjects();
-	const repo = useRepositoryName(query.data?.project.path);
+	const repo = useSoleRepositoryName(query.data?.project.path);
 	const [pullRequest, setPullRequest] = useState<string | null>(null);
 	const openPullRequest = (url: string) => {
 		if (inSheet) {
@@ -90,6 +92,9 @@ export function TicketView({ identifier }: TicketViewProps) {
 	const ticket = query.data;
 	const readOnly = isArchived(ticket.project.path);
 	const question = asksQuestion(ticket.status.reviewer, ticket.description);
+	// On a question, `QuestionBlock` prints the options and the reason, so the
+	// ask prints only the prose around them, and a person cannot edit it here.
+	const ask = question ? questionParts(ticket.description).ask : "";
 	const backToTicket = (
 		<a
 			href={`/t/${ticket.identifier}`}
@@ -120,12 +125,21 @@ export function TicketView({ identifier }: TicketViewProps) {
 						<PropertiesRail ticket={ticket} variant="inline" />
 					</div>
 				)}
-				<section aria-label="The ask" className={cx("flex min-w-0 flex-col", narrow ? "mt-4" : "mt-3")}>
-					<SectionHeader title="THE ASK" />
-					<div data-ticket-description="" className="min-h-24">
-						<Description key={ticket.identifier} ticket={ticket} onAttachFiles={uploads.addFiles} />
-					</div>
-				</section>
+				{question ? (
+					ask !== "" && (
+						<section aria-label="The ask" className={cx("flex min-w-0 flex-col", narrow ? "mt-4" : "mt-3")}>
+							<SectionHeader title="THE ASK" />
+							<p className="whitespace-pre-line text-base text-fg">{ask}</p>
+						</section>
+					)
+				) : (
+					<section aria-label="The ask" className={cx("flex min-w-0 flex-col", narrow ? "mt-4" : "mt-3")}>
+						<SectionHeader title="THE ASK" />
+						<div data-ticket-description="" className="min-h-24">
+							<Description key={ticket.identifier} ticket={ticket} onAttachFiles={uploads.addFiles} />
+						</div>
+					</section>
+				)}
 				<div className="mt-8 flex flex-col gap-8">
 					{question ? (
 						<QuestionBlock ticket={ticket} />
@@ -137,7 +151,9 @@ export function TicketView({ identifier }: TicketViewProps) {
 								releases={ticket.releases}
 								answeredQuestions={ticket.answeredQuestions}
 							/>
-							<TicketWorkArea key={ticket.id} ticket={ticket} onOpenPullRequest={openPullRequest} />
+							<EvidenceBlock ticket={ticket} onOpenPullRequest={openPullRequest} />
+							<OutcomeBlock outcome={ticket.outcome} />
+							<RunBlock key={ticket.id} ticket={ticket} />
 						</>
 					)}
 					<SubTickets ticket={ticket} />

@@ -3,7 +3,6 @@ import { SessionConversation } from "../../../../sessions/SessionConversation";
 import { PageSheet } from "../../../../shell/PageSheet";
 
 export type SessionSheetProps = {
-	// The run whose terminal and conversation the sheet shows.
 	run: AgentRun;
 	open: boolean;
 	onClose: () => void;

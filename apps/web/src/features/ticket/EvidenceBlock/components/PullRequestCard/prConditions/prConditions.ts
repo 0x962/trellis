@@ -20,8 +20,8 @@ const sizeOf = (pr: TicketPr): Conditions["size"] =>
 // `tests` and `base` stay null, and the readiness word cannot read `yes` on
 // the ticket page. The review page reads both.
 //
-// The answer is null while the poller has no risk answers for the pull
-// request, because most lines would then print a value that nobody measured.
+// The function returns null while the poller has no risk answer for the pull
+// request. Most lines would then print a value that nobody measured.
 export function prConditions(pr: TicketPr, waitsOn: TicketSummary["waitsOn"]): Conditions | null {
 	if (pr.risk === null) return null;
 	return {

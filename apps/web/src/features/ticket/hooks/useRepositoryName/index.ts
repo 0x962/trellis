@@ -1,1 +1,0 @@
-export { useRepositoryName } from "./useRepositoryName";
