@@ -277,9 +277,6 @@ button.review-notice:hover {
 .review-ticket-line {
 	color: var(--fg-muted);
 }
-.review-ticket-line a {
-	color: var(--fg);
-}
 .review-turn-line {
 	color: var(--fg);
 }

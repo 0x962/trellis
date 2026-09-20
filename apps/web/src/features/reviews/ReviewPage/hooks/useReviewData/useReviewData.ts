@@ -32,6 +32,14 @@ export const useReviewData = (pr: string) => {
 		...orpc.pullRequests.listEvidence.queryOptions({ input: { id: linkedPr?.id ?? "" } }),
 		enabled: linkedPr !== null,
 	});
+	// The conditions, the summary, the review focus and the evidence all come
+	// from this chain of four requests. Until the last one answers, the page
+	// draws none of the four: a block that draws early would say that the
+	// agent wrote no summary before anybody asked for it.
+	const factsReady =
+		status.isFetched &&
+		(status.data?.ticket == null || ticket.isFetched) &&
+		(linkedPr === null || (summary.isFetched && evidence.isFetched));
 	const booted = useRef(false);
 	const threads = useQuery({
 		...orpc.reviews.list.queryOptions({ input: { pr, all: true } }),
@@ -67,5 +75,17 @@ export const useReviewData = (pr: string) => {
 		refresh.mutate();
 		void status.refetch();
 	};
-	return { revision, setRevision, status, ticket, linkedPr, summary, evidence, threads, refresh, refreshAll };
+	return {
+		revision,
+		setRevision,
+		status,
+		ticket,
+		linkedPr,
+		summary,
+		evidence,
+		factsReady,
+		threads,
+		refresh,
+		refreshAll,
+	};
 };

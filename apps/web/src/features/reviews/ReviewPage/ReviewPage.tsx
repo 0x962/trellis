@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { type Evidence, evidenceFloor, type ReviewThread, reviewRef, turnOf } from "@trellis/api";
+import { TicketId } from "@trellis/ui";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
@@ -31,8 +32,19 @@ const noSentences: string[] = [];
 export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent?: ReactNode; syncHash?: boolean }) {
 	const { client } = useApp();
 	const activeThread = useActiveThread(syncHash);
-	const { revision, setRevision, status, ticket, linkedPr, summary, evidence, threads, refresh, refreshAll } =
-		useReviewData(pr);
+	const {
+		revision,
+		setRevision,
+		status,
+		ticket,
+		linkedPr,
+		summary,
+		evidence,
+		factsReady,
+		threads,
+		refresh,
+		refreshAll,
+	} = useReviewData(pr);
 	const [changedFiles, setChangedFiles] = useState<ReadMarkFile[]>([]);
 	// The path the reader picked in the file list, or an empty string while
 	// the reader picked none.
@@ -146,7 +158,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						{status.data?.ticket && (
 							<p className="review-ticket-line">
 								<Link to="/t/$identifier" params={{ identifier: status.data.ticket.identifier }}>
-									{status.data.ticket.identifier}
+									<TicketId id={status.data.ticket.identifier} />
 								</Link>{" "}
 								{status.data.ticket.title}
 							</p>
@@ -185,16 +197,20 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 								{threads.error.message}
 							</p>
 						)}
-						{conditions && <ConditionsBlock conditions={conditions} />}
-						<ChangeSummary summary={summaryRow} headSha={headSha} />
-						{revision && (
-							<ReviewFocusList
-								pr={pr}
-								revisionId={revision.id}
-								sentences={ticket.data?.contract.reviewFocus ?? noSentences}
-							/>
+						{factsReady && (
+							<>
+								{conditions && <ConditionsBlock conditions={conditions} />}
+								<ChangeSummary summary={summaryRow} headSha={headSha} />
+								{revision && (
+									<ReviewFocusList
+										pr={pr}
+										revisionId={revision.id}
+										sentences={ticket.data?.contract.reviewFocus ?? noSentences}
+									/>
+								)}
+								{floor && <EvidenceStrip records={records} floor={floor} />}
+							</>
 						)}
-						{floor && <EvidenceStrip records={records} floor={floor} loading={evidence.isPending} />}
 						<ReviewChecks revision={displayRevision} pr={pr} />
 						{revision === null && !refresh.isError ? (
 							<ReviewPageSkeleton />
