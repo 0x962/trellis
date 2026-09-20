@@ -2,6 +2,7 @@ export { ActorChipSection } from "./ActorChipSection";
 export { CheckRibbonSection } from "./CheckRibbonSection";
 export { FlowRunSection } from "./FlowRunSection";
 export { LineChangesSection } from "./LineChangesSection";
+export { PrGlyphSection } from "./PrGlyphSection";
 export { PriorityIconSection } from "./PriorityIconSection";
 export { ReviewStatusSummarySection } from "./ReviewStatusSummarySection";
 export { StatusIconSection } from "./StatusIconSection";
