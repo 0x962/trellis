@@ -1,4 +1,4 @@
-import { Terminal } from "@phosphor-icons/react";
+import { TerminalWindow } from "@phosphor-icons/react";
 import { ActivityDot } from "../../primitives/ActivityDot";
 import { AttentionDot } from "../../primitives/AttentionDot";
 import { type AgentProfile, Avatar } from "../../primitives/Avatar";
@@ -106,7 +106,7 @@ export function RunLine({ run, onOpenSession }: RunLineProps) {
 					<IconButton
 						className="ml-auto"
 						label="Session"
-						icon={<Terminal aria-hidden="true" />}
+						icon={<TerminalWindow aria-hidden="true" />}
 						onClick={onOpenSession}
 					/>
 				</Tooltip>
