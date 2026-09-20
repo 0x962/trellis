@@ -24,6 +24,7 @@ import { booleanString, CountSchema, commaList, IsoDateTimeSchema, UlidSchema } 
 import { ProjectLinkSchema } from "./project.ts";
 import { LinkedPullRequestSchema } from "./pullRequest.ts";
 import { StatusSummarySchema } from "./status.ts";
+import { TicketPrSchema } from "./ticketPr.ts";
 
 // A title is stored trimmed. The limit keeps a row under the summary budget.
 export const TicketTitleSchema = z
@@ -87,7 +88,24 @@ export const TicketSummarySchema = z.object({
 	attachmentCount: CountSchema,
 	// The labels with no group first, then by group name, then by label name.
 	labels: z.array(TicketLabelSchema),
+	waitsOn: z.array(
+		z.object({
+			identifier: TicketIdentifierSchema,
+			title: TicketTitleSchema,
+			status: StatusCategorySchema,
+			isQuestion: z.boolean(),
+		}),
+	),
+	releases: z.array(
+		z.object({
+			identifier: TicketIdentifierSchema,
+			title: TicketTitleSchema,
+		}),
+	),
+	ready: z.boolean(),
 	pr: PrBadgeSchema.nullable(),
+	// The pull requests in the order they were linked to the ticket.
+	prRows: z.array(TicketPrSchema),
 	lastActor: LastActorSchema.nullable(),
 	position: z.number(),
 	version: z.number().int().positive(),

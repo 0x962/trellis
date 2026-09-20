@@ -8,7 +8,7 @@ import {
 	TicketRefStringSchema,
 } from "../refs.ts";
 import { PrioritySchema } from "./enums.ts";
-import { booleanString } from "./primitives.ts";
+import { booleanString, CountSchema } from "./primitives.ts";
 import { TicketIdentifierSchema, TicketSummarySchema, TicketTitleSchema } from "./ticket.ts";
 
 // The inputs and the outputs of the ticket writes: create, update, move,
@@ -18,8 +18,15 @@ import { TicketIdentifierSchema, TicketSummarySchema, TicketTitleSchema } from "
 // most, so two labels of one group in one list fail INPUT_VALIDATION_FAILED.
 const LabelRefListSchema = z.array(LabelRefStringSchema).max(50, "Enter 50 labels or less.");
 
+const TicketDependencyListSchema = z
+	.array(TicketRefStringSchema)
+	.min(1, "Name one ticket at least.")
+	.max(200, "Name 200 tickets or less.")
+	.refine((refs) => new Set(refs).size === refs.length, "Name each ticket once.");
+
 // `status` defaults to the project's default status; `description` to the
 // project's ticket template. `epic` names an epic of the same root.
+// `after` names the tickets that the new ticket waits for.
 // `milestone` names a milestone of the same root and places the ticket in
 // the epic of that milestone. With `epic` and `milestone` together, the
 // milestone must belong to that epic (MILESTONE_OUTSIDE_EPIC).
@@ -33,8 +40,37 @@ export const TicketCreateInputSchema = z.strictObject({
 	epic: EpicRefStringSchema.optional(),
 	milestone: MilestoneRefStringSchema.optional(),
 	labels: LabelRefListSchema.optional(),
+	after: TicketDependencyListSchema.optional(),
 });
 export type TicketCreateInput = z.input<typeof TicketCreateInputSchema>;
+
+export const TicketImportDependenciesInputSchema = z.strictObject({
+	epic: EpicRefStringSchema,
+});
+
+export const TicketImportDependenciesOutputSchema = z.object({
+	edgeCount: CountSchema,
+	ticketsWithUnresolvedReferences: z.array(TicketIdentifierSchema),
+});
+export type TicketImportDependenciesOutput = z.infer<typeof TicketImportDependenciesOutputSchema>;
+
+// `after` names the tickets that this ticket waits for. `notAfter` removes
+// those waits. `expectedVersion` makes both changes conditional.
+export const TicketUpdateDependenciesInputSchema = z
+	.strictObject({
+		ticket: TicketRefStringSchema,
+		after: TicketDependencyListSchema.optional(),
+		notAfter: TicketDependencyListSchema.optional(),
+		expectedVersion: z.number().int().positive().optional(),
+	})
+	.refine((input) => input.after !== undefined || input.notAfter !== undefined, "Name a dependency to add or remove.")
+	.refine(
+		(input) =>
+			input.after === undefined ||
+			input.notAfter === undefined ||
+			!input.after.some((ref) => input.notAfter?.includes(ref)),
+		"Do not add and remove the same dependency.",
+	);
 
 // `expectedVersion` makes the write conditional: a mismatch is
 // VERSION_CONFLICT with the current row. `parent: null` clears the parent,

@@ -31,6 +31,7 @@ export const PR_LINK_SOURCES = PrLinkSourceSchema.options;
 export const FLOW_NODE_KINDS = FlowNodeKindSchema.options;
 export const FLOW_BRANCHES = FlowBranchSchema.options;
 export const NOTE_AUDIENCES = NoteAudienceSchema.options;
+export const TICKET_DEP_SOURCES = ["manual", "parsed", "derived"] as const;
 
 // A CHECK named `<table>_<column>_check` that keeps a column inside a closed
 // set. The options are inline literals: drizzle-kit copies the rendered SQL

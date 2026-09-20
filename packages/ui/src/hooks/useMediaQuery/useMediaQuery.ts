@@ -10,5 +10,9 @@ export function useMediaQuery(query: string) {
 			return () => list.removeEventListener("change", onChange);
 		},
 		() => window.matchMedia(query).matches,
+		// A render without a browser has no viewport to measure. It answers
+		// "no match", which draws the desktop layout, and the first paint in
+		// the browser replaces it.
+		() => false,
 	);
 }

@@ -1,9 +1,12 @@
 export { type CheckResultGroup, CheckResults } from "./CheckResults";
 export { type CheckStatus, CheckStatusIcon } from "./CheckStatusIcon";
+export { ChecksLine, type ChecksLineBucket, type ChecksLineCheck } from "./ChecksLine";
+export { type FileRiskGroup, FileRiskGroups } from "./FileRiskGroups";
 export { insertBlock, ReviewCommentEditor } from "./ReviewCommentEditor";
 export { type ConversationMeta, ReviewConversation } from "./ReviewConversation/ReviewConversation";
 export { type DiffAnchor, ReviewDiff } from "./ReviewDiff/ReviewDiff";
 export { ReviewFiles } from "./ReviewFiles/ReviewFiles";
+export { ReviewFocusList, type ReviewFocusListProps } from "./ReviewFocusList";
 export { ReviewStatus } from "./ReviewStatus/ReviewStatus";
 export { ReviewSuggestion, type ReviewSuggestionLine, type ReviewSuggestionState } from "./ReviewSuggestion";
 export { type ReviewTabStatus, ReviewTabs } from "./ReviewTabs/ReviewTabs";

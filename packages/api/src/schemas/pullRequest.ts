@@ -2,7 +2,16 @@ import { z } from "zod";
 import { TicketRefStringSchema } from "../refs.ts";
 import { ActorRefSchema } from "./actor.ts";
 import { CheckBucketSchema, CiStateSchema, PrLinkSourceSchema, PrStateSchema, ReviewStateSchema } from "./enums.ts";
-import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
+import { CountSchema, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
+
+export const MAX_CHANGED_FILES = 100;
+
+export const ChangedFileSchema = z.object({
+	path: z.string().min(1),
+	additions: CountSchema,
+	deletions: CountSchema,
+});
+export type ChangedFile = z.infer<typeof ChangedFileSchema>;
 
 // One CI check on a pull request, sorted by workflow and name. `bucket` is
 // the bucket gh reported; `ciState` on the pull request folds the buckets,
@@ -22,6 +31,10 @@ export const PullRequestSchema = z.object({
 	owner: z.string().min(1),
 	repo: z.string().min(1),
 	number: z.number().int().positive(),
+	additions: CountSchema.nullable(),
+	deletions: CountSchema.nullable(),
+	changedFiles: CountSchema.nullable(),
+	files: z.array(ChangedFileSchema).max(MAX_CHANGED_FILES).nullable(),
 	url: z.string().min(1),
 	title: z.string(),
 	state: PrStateSchema,

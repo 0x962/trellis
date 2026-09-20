@@ -49,7 +49,12 @@
 	--film-mint: #5CB5A4;
 	--film-gold: #BF9E53;
 	--film-gradient: linear-gradient(110deg, transparent 15%, var(--film-pink) 32%, var(--film-blue) 50%, var(--film-mint) 58%, var(--film-gold) 68%, transparent 85%);
+	/* A human avatar and an activity dot hold the film still under their
+	   content, at the static opacity. The band that crosses an agent card
+	   takes about one second, and it paints at the sweep opacity so that a
+	   person sees it in that second. */
 	--film-opacity-static: 0.2;
+	--film-opacity-sweep: 0.8;
 	/* The label hues. A ticket label draws one as an 8 px dot. Each value
 	   reads 3:1 or better on --bg, --surface, and --elevated of its theme.
 	   --success, --warning, --danger, and --agent each carry a product
