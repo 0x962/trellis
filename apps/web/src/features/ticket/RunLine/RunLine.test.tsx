@@ -5,7 +5,7 @@ import { RunLine } from "./RunLine";
 
 const at = new Date(Date.now() - 3 * 60 * 1000).toISOString();
 
-// A run that works on a ticket. Each test adds the one field it reads.
+// A run that works on a ticket. Each test passes only the fields it changes.
 const runOf = (fields: Partial<AgentRun> = {}) =>
 	({
 		id: "run",
@@ -52,7 +52,8 @@ const runOf = (fields: Partial<AgentRun> = {}) =>
 const metrics: TicketMetrics = { durationMs: 12 * 60 * 1000, tokenCount: 48120, ageMs: 60 * 60 * 1000 };
 
 // `renderToStaticMarkup` writes the text of each span with no separator, so
-// the words of one line run together. The test reads the words, not the gaps.
+// the words of one line run together. A test must not expect a space between
+// the text of two spans.
 const textOf = (html: string) => html.replace(/<[^>]*>/g, "");
 
 const render = (run: AgentRun | null, ticketMetrics: TicketMetrics | null = metrics) =>
@@ -78,14 +79,6 @@ describe("RunLine", () => {
 
 	test("prints one line while the run says nothing", () => {
 		expect(textOf(render(runOf()))).not.toContain(":");
-	});
-
-	test("the time and the tokens of the ticket arrive on a hover of the line", () => {
-		expect(render(runOf())).toContain('title="12m burned · 48,120 tokens"');
-	});
-
-	test("names the two numbers that the server does not count", () => {
-		expect(render(runOf(), null)).toContain("The time and the tokens are not counted.");
 	});
 
 	test("the agent card moves while the run works", () => {

@@ -1,48 +1,50 @@
-import { RunLine, type RunLineFacts, type RunLineKind } from "../../../../domain/RunLine";
+import { RunLine, type RunLineKind, type RunLineValue } from "../../../../domain/RunLine";
 import { Section } from "../../Section";
 
 const profile = { provider: "anthropic", model: "Claude Opus 5", effort: "High" } as const;
 
-const factsOf = (kind: RunLineKind, words: string, time: string | null, lastMessage: string | null): RunLineFacts => ({
+const lineOf = (fields: {
+	kind: RunLineKind;
+	words: string;
+	time: string | null;
+	lastMessage: string | null;
+}): RunLineValue => ({
 	name: "crisp-fjord",
 	harness: "Claude",
 	profile,
-	kind,
-	words,
-	time,
-	lastMessage,
-	metrics: "12m burned · 48,120 tokens",
+	metricsWords: "12m burned · 48,120 tokens",
+	...fields,
 });
 
-const said = "crisp-fjord: I rebased onto master.";
+const lastMessage = "crisp-fjord: I rebased onto master.";
 
 // The twelve states of `runLine`, a run that says nothing, and a ticket that
 // no agent holds.
-const lines: readonly RunLineFacts[] = [
-	factsOf("starts", "starts", null, null),
-	factsOf("works", "works, tool Bash", "3m ago", said),
-	factsOf("works", "works", "12s ago", null),
-	factsOf("question", "asks: Which cap holds the sweep?", "1m ago", said),
-	factsOf("permission", "asks to run: Bash", "2m ago", said),
-	factsOf("elicitation", "asks: Project name", "4m ago", said),
-	factsOf("idle", "idle", "18m ago", said),
-	factsOf("turn-done", "turn done", "6m ago", said),
-	factsOf("turn-done-new", "turn done · new", "1m ago", said),
-	factsOf("failed", "failed: the branch is gone", null, said),
-	factsOf("stopped", "stopped", null, said),
-	factsOf("exited", "exited", null, said),
-	factsOf("lost", "lost", null, said),
+const lines: readonly RunLineValue[] = [
+	lineOf({ kind: "starts", words: "starts", time: null, lastMessage: null }),
+	lineOf({ kind: "works", words: "works, tool Bash", time: "3m ago", lastMessage }),
+	lineOf({ kind: "works", words: "works", time: "12s ago", lastMessage: null }),
+	lineOf({ kind: "question", words: "asks: Which cap holds the sweep?", time: "1m ago", lastMessage }),
+	lineOf({ kind: "permission", words: "asks to run: Bash", time: "2m ago", lastMessage }),
+	lineOf({ kind: "elicitation", words: "asks: Project name", time: "4m ago", lastMessage }),
+	lineOf({ kind: "idle", words: "idle", time: "18m ago", lastMessage }),
+	lineOf({ kind: "turn-done", words: "turn done", time: "6m ago", lastMessage }),
+	lineOf({ kind: "turn-done-new", words: "turn done · new", time: "1m ago", lastMessage }),
+	lineOf({ kind: "failed", words: "failed: the branch is gone", time: null, lastMessage }),
+	lineOf({ kind: "stopped", words: "stopped", time: null, lastMessage }),
+	lineOf({ kind: "exited", words: "exited", time: null, lastMessage }),
+	lineOf({ kind: "lost", words: "lost", time: null, lastMessage }),
 ];
 
 export function RunLineSection() {
 	return (
-		<Section name="RunLine" note="the twelve states, a run that says nothing, and no run" className="flex-col">
+		<Section name="RunLine" note="the twelve states, a run that says nothing, and no run">
 			{lines.map((line) => (
-				<div key={`${line.kind}-${line.words}`} className="w-160 max-w-full">
+				<div key={`${line.kind}-${line.words}`} className="w-full max-w-160">
 					<RunLine run={line} onOpenSession={() => {}} />
 				</div>
 			))}
-			<div className="w-160 max-w-full">
+			<div className="w-full max-w-160">
 				<RunLine run={null} onOpenSession={() => {}} />
 			</div>
 		</Section>

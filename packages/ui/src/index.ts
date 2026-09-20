@@ -36,7 +36,6 @@ export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/Pr
 export { type ModelProvider, ProviderIcon, type ProviderIconProps } from "./domain/ProviderIcon";
 export { type QuotaWindow, QuotaWindows, type QuotaWindowsProps, quotaFillClass } from "./domain/QuotaWindows";
 export { type RankedBarRow, RankedBars, type RankedBarsProps } from "./domain/RankedBars";
-export { RunLine, type RunLineFacts, type RunLineKind, type RunLineProps } from "./domain/RunLine";
 export {
 	type PullRequestReviewState,
 	ReviewStateIcon,
@@ -48,6 +47,7 @@ export {
 	ReviewStatusSummary,
 	type ReviewStatusSummaryProps,
 } from "./domain/ReviewStatusSummary";
+export { RunLine, type RunLineKind, type RunLineProps, type RunLineValue } from "./domain/RunLine";
 export { StackedBar, type StackedBarProps, type StackedBarSegment } from "./domain/StackedBar";
 export { StackedBarList, type StackedBarListProps, type StackedBarListRow } from "./domain/StackedBarList";
 export { type StatusCategory, StatusIcon, type StatusIconProps } from "./domain/StatusIcon";

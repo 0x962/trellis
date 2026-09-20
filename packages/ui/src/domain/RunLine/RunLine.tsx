@@ -25,46 +25,47 @@ export type RunLineKind =
 	| "exited"
 	| "lost";
 
-export type RunLineFacts = {
+export type RunLineValue = {
 	// The name of the run, such as `crisp-fjord`.
 	name: string;
-	// The agent program that runs the agent, such as `Claude`.
+	// The name of the command line program that runs the agent, such as `Claude`.
 	harness: string;
-	// The company mark, the model name and the effort of the run. The mark
-	// draws the card at the left of the line, and the card opens on a hover.
+	// The provider, the model and the effort. `Avatar` shows them as a round
+	// mark at the left of the line. The mark widens on a hover and adds the
+	// model name.
 	profile: AgentProfile;
 	kind: RunLineKind;
 	// The state of the run in words, such as `works, tool Bash`.
 	words: string;
 	// How long the run holds this state, in words, such as `3m ago`. It is
-	// null for a state that carries no time.
+	// null for a state that has no time.
 	time: string | null;
 	// What the run said last, such as `crisp-fjord: I rebased onto master.`
 	// It is null while the run says nothing.
 	lastMessage: string | null;
 	// The time and the tokens the ticket burned, in words. A person reads it
 	// on a hover of the line.
-	metrics: string;
+	metricsWords: string;
 };
 
 export type RunLineProps = {
 	// The run of the ticket. It is null while no agent holds the ticket.
-	run: RunLineFacts | null;
+	run: RunLineValue | null;
 	onOpenSession: () => void;
 };
 
-// A person must act in these four states before the run goes on. The words
-// name what the run waits for. `turn-done-new` is a turn that the run
-// finished and that nobody read.
+// These four states show an attention dot. The first three wait for an answer
+// from a person. `turn-done-new` is a finished turn that nobody read.
 const waitingKinds: readonly RunLineKind[] = ["question", "permission", "elicitation", "turn-done-new"];
-// One red dot carries both states. `failed` says the run stopped on an error,
-// and `lost` says the server holds no live record of the run. The words carry
-// the difference.
+// Both states show the same red dot. `failed` says the run stopped on an
+// error. `lost` says the server holds no live record of the run. The words
+// state the difference.
 const brokenKinds: readonly RunLineKind[] = ["failed", "lost"];
 
 function StateDot({ kind }: { kind: RunLineKind }) {
 	if (waitingKinds.includes(kind)) return <AttentionDot label="The run waits for a person." />;
-	if (brokenKinds.includes(kind)) return <AttentionDot tone="danger" label="The run stopped." />;
+	if (brokenKinds.includes(kind))
+		return <AttentionDot tone="danger" label={kind === "failed" ? "The run failed." : "The run is lost."} />;
 	if (kind === "starts") return <ActivityDot placement="inline" label="The agent starts." />;
 	if (kind === "works") return <ActivityDot placement="inline" label="The agent works." />;
 	return null;
@@ -73,9 +74,7 @@ function StateDot({ kind }: { kind: RunLineKind }) {
 const wordsTone = (kind: RunLineKind) =>
 	waitingKinds.includes(kind) ? "text-warning" : brokenKinds.includes(kind) ? "text-danger" : "text-fg-muted";
 
-// The run of a ticket on one line: the agent card, the name, the harness, the
-// model, the state words and the time. What the run said last prints under
-// that line. The card moves only in the `works` state.
+// The `Avatar` mark moves only in the `works` state.
 export function RunLine({ run, onOpenSession }: RunLineProps) {
 	if (run === null) {
 		return (
@@ -87,20 +86,22 @@ export function RunLine({ run, onOpenSession }: RunLineProps) {
 	return (
 		<section aria-label="The run" className="flex min-w-0 flex-col gap-0.5">
 			<div className="flex min-w-0 items-center gap-2 text-sm">
-				<div className="flex min-w-0 items-center gap-2" title={run.metrics}>
-					<Avatar
-						kind="agent"
-						name={run.name}
-						agentProfile={run.profile}
-						state={run.kind === "works" ? "working" : "static"}
-					/>
-					<span className="shrink-0 font-medium text-fg">{run.name}</span>
-					<span className="shrink-0 text-fg-muted">{run.harness}</span>
-					<span className="truncate text-fg-muted">{run.profile.model}</span>
-					<StateDot kind={run.kind} />
-					<span className={cx("truncate", wordsTone(run.kind))}>{run.words}</span>
-					{run.time !== null && <span className="shrink-0 text-fg-faint tabular">{run.time}</span>}
-				</div>
+				<Tooltip content={run.metricsWords}>
+					<div className="flex min-w-0 items-center gap-2">
+						<Avatar
+							kind="agent"
+							name={run.name}
+							agentProfile={run.profile}
+							state={run.kind === "works" ? "working" : "static"}
+						/>
+						<span className="shrink-0 font-medium text-fg">{run.name}</span>
+						<span className="shrink-0 text-fg-muted">{run.harness}</span>
+						<span className="max-w-32 truncate text-fg-muted">{run.profile.model}</span>
+						<StateDot kind={run.kind} />
+						<span className={cx("truncate", wordsTone(run.kind))}>{run.words}</span>
+						{run.time !== null && <span className="shrink-0 text-fg-faint tabular">{run.time}</span>}
+					</div>
+				</Tooltip>
 				<Tooltip content="Session">
 					<IconButton
 						className="ml-auto"
