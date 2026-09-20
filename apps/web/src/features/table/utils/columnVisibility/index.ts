@@ -1,1 +1,1 @@
-export { type AutoHideContext, autoHide, columnVisibility, visibleColumns } from "./columnVisibility";
+export { autoHide, columnVisibility, kindShows } from "./columnVisibility";

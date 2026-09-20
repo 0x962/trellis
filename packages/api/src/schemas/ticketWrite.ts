@@ -38,6 +38,16 @@ export const TicketContractInputSchema = z.strictObject({
 });
 export type TicketContractInput = z.input<typeof TicketContractInputSchema>;
 
+export const TicketImportContractInputSchema = z.strictObject({
+	epic: EpicRefStringSchema,
+});
+
+export const TicketImportContractOutputSchema = z.object({
+	filledCount: CountSchema,
+	unresolved: z.array(z.object({ ticket: TicketIdentifierSchema, line: z.string() })),
+});
+export type TicketImportContractOutput = z.infer<typeof TicketImportContractOutputSchema>;
+
 let sentenceSegmenter: Intl.Segmenter | undefined;
 const oneSentence = (text: string) => {
 	sentenceSegmenter ??= new Intl.Segmenter("en", { granularity: "sentence" });

@@ -4,6 +4,7 @@ export { AttentionDotSection } from "./AttentionDotSection";
 export { CheckRibbonSection } from "./CheckRibbonSection";
 export { ChecksLineSection } from "./ChecksLineSection";
 export { ConditionsBlockSection } from "./ConditionsBlockSection";
+export { ContractBlockSection } from "./ContractBlockSection";
 export { FileRiskGroupsSection } from "./FileRiskGroupsSection";
 export { FlowRunSection } from "./FlowRunSection";
 export { LineChangesSection } from "./LineChangesSection";
