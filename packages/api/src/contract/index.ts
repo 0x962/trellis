@@ -16,6 +16,7 @@ import { needsYou } from "./needsYou.ts";
 import { notes } from "./notes.ts";
 import { projects } from "./projects.ts";
 import { pullRequests } from "./pullRequests.ts";
+import { resources } from "./resources.ts";
 import { reviews } from "./reviews";
 import { search } from "./search.ts";
 import { sessions } from "./sessions.ts";
@@ -50,6 +51,7 @@ export const contract = {
 	milestones: oc.tag("milestones").router(milestones),
 	attachments: oc.tag("attachments").router(attachments),
 	pullRequests: oc.tag("pull requests").router(pullRequests),
+	resources: oc.tag("resources").router(resources),
 	sessions: oc.tag("sessions").router(sessions),
 	search: oc.tag("search").router(search),
 	brief: oc.tag("brief").router(brief),

@@ -19,6 +19,7 @@ export * from "./note.ts";
 export * from "./primitives.ts";
 export * from "./project.ts";
 export * from "./pullRequest.ts";
+export * from "./resource.ts";
 export * from "./review.ts";
 export * from "./search.ts";
 export * from "./session.ts";

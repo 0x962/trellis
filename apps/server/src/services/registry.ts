@@ -39,6 +39,7 @@ import * as notes from "./notes/notes.ts";
 import * as projects from "./projects.ts";
 import * as prSummary from "./prSummary.ts";
 import * as pullRequests from "./pullRequests.ts";
+import * as resources from "./resources/resources.ts";
 import * as reviewApply from "./reviews/apply";
 import * as reviewImage from "./reviews/image";
 import * as reviewMessages from "./reviews/messages";
@@ -270,6 +271,10 @@ export const services = {
 	"pullRequests.listEvidence": io("read", evidence.list),
 	"pullRequests.readEvidence": io("read", evidence.read),
 	"pullRequests.writeEvidence": prepared("mutation", evidence.prepareWrite, evidence.write),
+	"resources.add": io("mutation", resources.add),
+	"resources.list": io("read", resources.list),
+	"resources.remove": io("mutation", resources.remove),
+	"resources.blob": io("read", resources.readBlob),
 	"search.query": core("search", search.query),
 	"brief.get": core("read", brief.get),
 	"actors.list": core("read", actors.list),

@@ -11,6 +11,7 @@ import {
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { requireActor, type ServiceCtx } from "../../context.ts";
+import { resourceBlobShasOfEpic } from "../../db/queries/epicResources.ts";
 import { rows, textArray } from "../../db/queries/support.ts";
 import { epicSummaries } from "../../db/queries/ticketGet.ts";
 import { ticketSummaries } from "../../db/queries/ticketSummaries.ts";
@@ -142,6 +143,7 @@ export const remove = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	assertProjectActive(ctx, existing.project_id);
 	const actor = requireActor(ctx);
 	await upsert(ctx, tx, actor);
+	const resourceBlobs = await resourceBlobShasOfEpic(tx, existing.id);
 	const members = await rows<{
 		id: string;
 		project_id: string;
@@ -158,6 +160,7 @@ export const remove = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 			WHERE epic_id = ${existing.id}`,
 	);
 	await tx.execute(sql`DELETE FROM epics WHERE id = ${existing.id}`);
+	ctx.dropBlobs(resourceBlobs);
 	const batchId = ulid();
 	const ref = epicRefOf(existing);
 	for (const member of members) {

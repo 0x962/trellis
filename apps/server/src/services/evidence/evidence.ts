@@ -8,7 +8,7 @@ import {
 } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { actorDisplayName } from "../../db/queries/actorDisplayName.ts";
-import { iso, rows } from "../../db/queries/support.ts";
+import { iso, rows, textArray } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 import { storedMime, storeFile } from "../../storage/blobs.ts";
@@ -37,6 +37,20 @@ const columns = sql`
 `;
 
 export const evidenceFileUrl = (id: string) => `/api/evidence/${id}/file`;
+
+export const pullRequestNumbersByBlob = async (tx: Tx, epicId: string, shas: string[]) => {
+	const found = await rows<{ sha256: string; number: number }>(
+		tx,
+		sql`SELECT DISTINCT ON (pe.blob_sha256) pe.blob_sha256 AS sha256, pr.number
+			FROM pr_evidence pe
+			JOIN pull_requests pr ON pr.id = pe.pull_request_id
+			JOIN ticket_pull_requests tpr ON tpr.pull_request_id = pr.id
+			JOIN tickets t ON t.id = tpr.ticket_id
+			WHERE pe.blob_sha256 = ANY(${textArray(shas)}) AND t.epic_id = ${epicId}
+			ORDER BY pe.blob_sha256, pe.created_at DESC, pe.id DESC`,
+	);
+	return new Map(found.map((row) => [row.sha256, row.number]));
+};
 
 const toEvidence = (row: EvidenceRow): Evidence => {
 	const blob =

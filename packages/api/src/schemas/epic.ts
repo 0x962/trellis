@@ -51,6 +51,7 @@ export const EpicSummarySchema = z.object({
 	currentMilestone: MilestoneLinkSchema.nullable(),
 	currentMilestoneIndex: z.number().int().min(1).nullable(),
 	milestoneCount: z.number().int().min(0),
+	resourceCount: z.number().int().min(0),
 	actor: ActorRefSchema,
 	createdAt: IsoDateTimeSchema,
 	updatedAt: IsoDateTimeSchema,

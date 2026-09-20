@@ -15,6 +15,7 @@ import { notes } from "./notes.ts";
 import { projects } from "./projects.ts";
 import { pullRequests } from "./pullRequests.ts";
 import { actors, brief, search, settings, timeline } from "./reads.ts";
+import { resources } from "./resources.ts";
 import { reviews } from "./reviews";
 import { sessions } from "./sessions.ts";
 import { statuses } from "./statuses.ts";
@@ -47,6 +48,7 @@ export const router = os.router({
 	milestones,
 	attachments,
 	pullRequests,
+	resources,
 	search,
 	brief,
 	actors,
