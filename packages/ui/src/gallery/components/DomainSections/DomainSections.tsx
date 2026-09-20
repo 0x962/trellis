@@ -3,6 +3,7 @@ import {
 	AgentProfileMarkSection,
 	CheckRibbonSection,
 	ChecksLineSection,
+	FileRiskGroupsSection,
 	FlowRunSection,
 	LineChangesSection,
 	PrGlyphSection,
@@ -31,6 +32,7 @@ export function DomainSections() {
 			<TicketGlimmerSection />
 			<TrellisMarkSection />
 			<FlowRunSection />
+			<FileRiskGroupsSection />
 		</>
 	);
 }

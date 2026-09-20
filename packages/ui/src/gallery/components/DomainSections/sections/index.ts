@@ -2,6 +2,7 @@ export { ActorChipSection } from "./ActorChipSection";
 export { AgentProfileMarkSection } from "./AgentProfileMarkSection";
 export { CheckRibbonSection } from "./CheckRibbonSection";
 export { ChecksLineSection } from "./ChecksLineSection";
+export { FileRiskGroupsSection } from "./FileRiskGroupsSection";
 export { FlowRunSection } from "./FlowRunSection";
 export { LineChangesSection } from "./LineChangesSection";
 export { PrGlyphSection } from "./PrGlyphSection";
