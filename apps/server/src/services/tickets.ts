@@ -2,6 +2,7 @@
 // `(ctx, tx, input)`, throws the contract errors, writes activity under one
 // batch id, and emits TicketSummary events on the transaction collector.
 export { create } from "./tickets/create.ts";
+export { updateDependencies } from "./tickets/deps.ts";
 export { move } from "./tickets/move.ts";
 export { boardOf as board, countsOf as counts, get, list, resolveTicketAge } from "./tickets/read.ts";
 export { delete, deleteMany } from "./tickets/remove.ts";

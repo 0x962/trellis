@@ -16,6 +16,7 @@ import {
 	TicketDeleteManyOutputSchema,
 	TicketDeleteOutputSchema,
 	TicketMoveInputSchema,
+	TicketUpdateDependenciesInputSchema,
 	TicketUpdateInputSchema,
 	TicketUpdateManyInputSchema,
 	TicketUpdateManyOutputSchema,
@@ -92,4 +93,13 @@ export const tickets = {
 		.route({ method: "DELETE", path: "/tickets/{ticket}", summary: "Delete a ticket" })
 		.input(TicketDeleteInputSchema)
 		.output(TicketDeleteOutputSchema),
+	updateDependencies: base
+		.errors(pickErrors(["PROJECT_ARCHIVED", "VERSION_CONFLICT"]))
+		.route({
+			method: "PATCH",
+			path: "/tickets/{ticket}/dependencies",
+			summary: "Add and remove ticket dependencies in one transaction",
+		})
+		.input(TicketUpdateDependenciesInputSchema)
+		.output(TicketSchema),
 };
