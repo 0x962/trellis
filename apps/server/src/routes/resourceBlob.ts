@@ -4,7 +4,6 @@ import type { Config } from "../config.ts";
 import type { RequestContext } from "../context.ts";
 import type { ServiceTransport } from "../db/transport.ts";
 import { createDbTiming, serverTimingHeader } from "../serverTiming.ts";
-import { contentDisposition } from "../services/attachments.ts";
 import { blobPath } from "../storage/blobs.ts";
 
 export const resourceBlobRoute =
@@ -27,7 +26,6 @@ export const resourceBlobRoute =
 				...headers,
 				"content-type": blob.mime,
 				"content-length": String(blob.size),
-				"content-disposition": contentDisposition(blob.name, blob.mime),
 			},
 		});
 	};

@@ -12,12 +12,13 @@ import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 import { storedMime, storeFile } from "../../storage/blobs.ts";
-import { isInlineMime } from "../attachments.ts";
 import { gcBlobs } from "../blobs.ts";
 import { resolveEpic } from "../epics/resolve.ts";
 import { pullRequestNumbersByBlob } from "../evidence/evidence.ts";
 import { assertProjectActive, resolveTicket } from "../refs.ts";
 import { fail, type IoCtx, notFound, touchActor } from "../support.ts";
+
+const IMAGE_MIMES: ReadonlySet<string> = new Set(["image/png", "image/jpeg", "image/gif", "image/webp", "image/avif"]);
 
 type ResourceRow = {
 	id: string;
@@ -105,7 +106,7 @@ export const add = async (ctx: IoCtx, tx: Tx, rawInput: unknown): Promise<Resour
 	if (input.kind === "image" || input.kind === "file") {
 		if (input.file.size > ctx.maxUploadBytes) throw fail("PAYLOAD_TOO_LARGE", { maxBytes: ctx.maxUploadBytes });
 		const mime = storedMime(input.file.type);
-		if (input.kind === "image" && (!mime.startsWith("image/") || !isInlineMime(mime)))
+		if (input.kind === "image" && !IMAGE_MIMES.has(mime))
 			throw invalidInput("file", "Select a PNG, JPEG, GIF, WebP, or AVIF image.");
 		if (input.kind === "image" && storedMime(Bun.file(input.name).type) !== mime)
 			throw invalidInput("name", "Use the image file extension in the resource name.");
