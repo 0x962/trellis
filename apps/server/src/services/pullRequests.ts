@@ -2,6 +2,13 @@ import type { LinkedPullRequest, PullRequest, PullRequestDiffOutput } from "@tre
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { actorDisplayName } from "../db/queries/actorDisplayName.ts";
+import {
+	type LinkedPullRequestRow,
+	type PullRequestRow,
+	pullRequestColumns,
+	toLinkedPullRequest,
+	toPullRequest,
+} from "../db/queries/pullRequestRows.ts";
 import { iso, rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import {
@@ -11,15 +18,9 @@ import {
 	type PullRequestResult,
 } from "../gh/graphql.ts";
 import { parsePullRequestUrl } from "../gh/parse.ts";
+import { PR_COLUMNS, PR_UPDATE_SET, prValues } from "../gh/pollerWrite.ts";
+import { findPullRequestRow } from "./findPullRequestRow.ts";
 import type { PreparedDiff } from "./pullRequestDiff.ts";
-import {
-	findPullRequestRow,
-	type LinkedPullRequestRow,
-	type PullRequestRow,
-	pullRequestColumns,
-	toLinkedPullRequest,
-	toPullRequest,
-} from "./pullRequestRows.ts";
 import { linkScope } from "./pullRequestScope.ts";
 import {
 	assertProjectActive,
@@ -62,25 +63,14 @@ const fetchOne = async (ctx: PrepareCtx, ref: PullRequestRef): Promise<Fetched> 
 // link of one URL answers the same row, stamps included.
 const writeFetched = (tx: Tx, at: Date, row: GraphqlPullRequestRow) =>
 	tx.execute(sql`
-	INSERT INTO pull_requests (
-		id, owner, repo, number, url, title, state, is_draft, head_ref, base_ref, review_state,
-		merged_at, closed_at, checks, ci_state, content_hash, fetched_at, fetch_error, created_at, updated_at
-	) VALUES (
-		${ulid()}, ${row.owner}, ${row.repo}, ${row.number}, ${row.url}, ${row.title}, ${row.state}, ${row.isDraft},
-		${row.headRef}, ${row.baseRef}, ${row.reviewState}, ${row.mergedAt}, ${row.closedAt},
-		${JSON.stringify(row.checks)}::jsonb, ${row.ciState}, ${row.contentHash}, ${at}, NULL, ${at}, ${at}
-	)
-	ON CONFLICT (owner, repo, number) DO UPDATE SET
-		url = EXCLUDED.url, title = EXCLUDED.title, state = EXCLUDED.state, is_draft = EXCLUDED.is_draft,
-		head_ref = EXCLUDED.head_ref, base_ref = EXCLUDED.base_ref, review_state = EXCLUDED.review_state,
-		merged_at = EXCLUDED.merged_at, closed_at = EXCLUDED.closed_at, checks = EXCLUDED.checks,
-		ci_state = EXCLUDED.ci_state, content_hash = EXCLUDED.content_hash, fetched_at = EXCLUDED.fetched_at,
-		fetch_error = NULL, updated_at = EXCLUDED.updated_at
+	INSERT INTO pull_requests ${PR_COLUMNS}
+	VALUES ${prValues(at, row)}
+	ON CONFLICT (owner, repo, number) DO UPDATE SET ${PR_UPDATE_SET}
 	WHERE pull_requests.content_hash IS DISTINCT FROM EXCLUDED.content_hash
 `);
 
-// A pull request gh could not answer for still gets its row, with the gh
-// message and the default fields, so the link survives a network outage.
+// A pull request gh could not answer for still gets a row, so the link
+// survives. Its size fields stay null until a later request succeeds.
 const writeUnfetched = (tx: Tx, at: Date, ref: PullRequestRef, url: string, error: string) =>
 	tx.execute(sql`
 	INSERT INTO pull_requests (id, owner, repo, number, url, state, fetch_error, created_at, updated_at)
