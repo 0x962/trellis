@@ -25,6 +25,8 @@ export const TicketPrSchema = z.object({
 	skipped: CountSchema,
 	failedChecks: z.array(FailedCheckSchema),
 	openThreads: CountSchema,
+	// A flow execution belongs to the ticket. Each pull request row of the
+	// ticket carries the same `flowRuns` list.
 	flowRuns: z.array(z.object({ state: FlowExecutionStateSchema.shape.status })),
 	baseRef: z.string(),
 	headRef: z.string(),

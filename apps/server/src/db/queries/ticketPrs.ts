@@ -1,6 +1,8 @@
 import { type SQL, sql } from "drizzle-orm";
 import { ciRank, prStateRank, reviewStateRank } from "./support.ts";
 
+// `bucketCount` folds the last GitHub check snapshot into the PR badge totals.
+// A canceled check increases `fail`. A skipped check does not increase a badge total.
 const bucketCount = (test: SQL) => sql`sum((SELECT count(*) FROM jsonb_array_elements(p.checks) c WHERE ${test}))::int`;
 
 export const ticketPrColumns = sql`
@@ -8,6 +10,8 @@ export const ticketPrColumns = sql`
 	pr.pass AS pr_pass, pr.fail AS pr_fail, pr.pending AS pr_pending,
 	pr.reviews AS pr_reviews, pr.rows AS pr_rows`;
 
+// A flow execution belongs to a ticket. Each pull request row of the ticket
+// carries the same `flowRuns` list.
 export const ticketPrJoin = sql`
 	LEFT JOIN LATERAL (
 		WITH flow_runs AS (

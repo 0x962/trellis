@@ -89,6 +89,7 @@ export const TicketSummarySchema = z.object({
 	// The labels with no group first, then by group name, then by label name.
 	labels: z.array(TicketLabelSchema),
 	pr: PrBadgeSchema.nullable(),
+	// The pull requests in the order they were linked to the ticket.
 	prRows: z.array(TicketPrSchema),
 	lastActor: LastActorSchema.nullable(),
 	position: z.number(),
