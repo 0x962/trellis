@@ -1,5 +1,5 @@
 import type { Evidence } from "@trellis/api";
-import { cell, type ListSpec, renderTable } from "../../output.ts";
+import { cell, type ListSpec } from "../../output.ts";
 
 const textField = (row: Evidence, name: string): string => {
 	const value = row.record[name];
@@ -38,5 +38,3 @@ export const evidenceList: ListSpec<Evidence> = {
 	],
 	identifier: (row) => row.id,
 };
-
-export const evidenceText = (rows: Evidence[]): string => renderTable(rows, evidenceList.columns);

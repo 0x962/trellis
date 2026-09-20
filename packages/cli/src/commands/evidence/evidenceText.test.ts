@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import type { Evidence, EvidenceKind } from "@trellis/api";
-import { evidenceText } from "./evidenceText.ts";
+import { renderTable } from "../../output.ts";
+import { evidenceList } from "./evidenceText.ts";
 
 const evidence = (kind: EvidenceKind, headSha: string, record: Evidence["record"], filename?: string): Evidence =>
 	({
@@ -30,7 +31,7 @@ test("prints each evidence kind with its head, file, and caption", () => {
 		evidence("equivalence", "new-head", { command: "bun run bench" }),
 	];
 
-	expect(evidenceText(rows)).toBe(`kind         head sha  file         caption
+	expect(renderTable(rows, evidenceList.columns)).toBe(`kind         head sha  file         caption
 after        new-head  after.png    /reviews/170
 before       old-head  before.png   /reviews/170
 capture      new-head  -            /reviews/170
@@ -47,5 +48,5 @@ equivalence  new-head  -            bun run bench
 });
 
 test("prints the empty list marker", () => {
-	expect(evidenceText([])).toBe("(none)\n");
+	expect(renderTable([], evidenceList.columns)).toBe("(none)\n");
 });
