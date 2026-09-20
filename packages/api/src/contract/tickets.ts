@@ -1,7 +1,4 @@
-import { z } from "zod";
 import { pickErrors } from "../errors.ts";
-import { EpicRefStringSchema } from "../refs.ts";
-import { CountSchema } from "../schemas/primitives.ts";
 import {
 	BoardOutputSchema,
 	BoardQuerySchema,
@@ -10,7 +7,6 @@ import {
 	ListOutputSchema,
 	ListQuerySchema,
 	TicketGetInputSchema,
-	TicketIdentifierSchema,
 	TicketSchema,
 } from "../schemas/ticket.ts";
 import {
@@ -20,6 +16,8 @@ import {
 	TicketDeleteManyInputSchema,
 	TicketDeleteManyOutputSchema,
 	TicketDeleteOutputSchema,
+	TicketImportContractInputSchema,
+	TicketImportContractOutputSchema,
 	TicketImportDependenciesInputSchema,
 	TicketImportDependenciesOutputSchema,
 	TicketMoveInputSchema,
@@ -30,12 +28,6 @@ import {
 	TicketUpdateManyOutputSchema,
 } from "../schemas/ticketWrite.ts";
 import { base } from "./base.ts";
-
-const ImportContractInputSchema = z.strictObject({ epic: EpicRefStringSchema });
-const ImportContractOutputSchema = z.object({
-	filledCount: CountSchema,
-	unresolved: z.array(z.object({ ticket: TicketIdentifierSchema, line: z.string() })),
-});
 
 // The codes a write to one or many tickets can raise.
 const writeErrors = pickErrors([
@@ -110,8 +102,8 @@ export const tickets = {
 	importContract: base
 		.errors(pickErrors(["PROJECT_ARCHIVED"]))
 		.route({ method: "POST", path: "/tickets/import-contract", summary: "Import contract fields from one epic" })
-		.input(ImportContractInputSchema)
-		.output(ImportContractOutputSchema),
+		.input(TicketImportContractInputSchema)
+		.output(TicketImportContractOutputSchema),
 	importDependencies: base
 		.errors(pickErrors(["PROJECT_ARCHIVED"]))
 		.route({ method: "POST", path: "/tickets/import-dependencies", summary: "Import dependency edges from one epic" })

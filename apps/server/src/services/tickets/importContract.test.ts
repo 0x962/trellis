@@ -48,14 +48,15 @@ test("the import reads inline values and multi-line lists without changing the d
 		"The ticket asks for a change.",
 		"",
 		"Files:",
+		"",
 		"- `one.ts`",
 		"- two.ts",
 		"",
-		"Verify:",
+		"#### VERIFY:",
 		"`bun test one`",
 		"bun test two",
 		"",
-		"Review focus:",
+		"**Review focus:**",
 		"- The first rule stays true.",
 		"- The second rule stays true.",
 	].join("\n");
@@ -63,7 +64,7 @@ test("the import reads inline values and multi-line lists without changing the d
 		create(ctx, tx, { project: "CON", epic: "CON/first-epic", title: "Listed", description: listedDescription }),
 	);
 	const inlineDescription =
-		"Files: one.ts and its test.\n\nVerify: `bun test one`\n\nReview focus: The value stays exact.";
+		"files: one.ts and its test.\n- two.ts\n\nVerify: `bun test one`\n\nReview focus: The value stays exact.";
 	const inline = await run((tx) =>
 		create(ctx, tx, { project: "CON", epic: "CON/first-epic", title: "Inline", description: inlineDescription }),
 	);
@@ -83,7 +84,7 @@ test("the import reads inline values and multi-line lists without changing the d
 	expect(await run((tx) => ticketGet(tx, inline.id))).toMatchObject({
 		description: inlineDescription,
 		contract: {
-			files: ["one.ts and its test."],
+			files: ["one.ts and its test.", "two.ts"],
 			verify: ["bun test one"],
 			reviewFocus: ["The value stays exact."],
 		},
@@ -96,7 +97,7 @@ test("the import keeps filled fields, reports unreadable lines, and changes noth
 			project: "CON",
 			epic: "CON/first-epic",
 			title: "Existing",
-			description: "Files:\none.ts\n\nVerify: bun test new\n\nReview focus: Read the boundary.",
+			description: "Files:\none.ts\n\nVerify: ``\n\nReview focus: Read the boundary.",
 		}),
 	);
 	const existing = await run((tx) =>
@@ -110,10 +111,22 @@ test("the import keeps filled fields, reports unreadable lines, and changes noth
 		}),
 	);
 	const first = await run((tx) => importContract(ctx, tx, { epic: "CON/first-epic" }));
-	expect(first).toEqual({ filledCount: 1, unresolved: [{ ticket: ticket.identifier, line: "one.ts" }] });
+	expect(first).toEqual({
+		filledCount: 1,
+		unresolved: [
+			{ ticket: ticket.identifier, line: "one.ts" },
+			{ ticket: ticket.identifier, line: "Verify: ``" },
+		],
+	});
 	const afterFirst = await run((tx) => ticketGet(tx, ticket.id));
 	expect(afterFirst.contract).toEqual({ ...existing.contract, reviewFocus: ["Read the boundary."] });
 	const repeated = await run((tx) => importContract(ctx, tx, { epic: "CON/first-epic" }));
-	expect(repeated).toEqual({ filledCount: 0, unresolved: [{ ticket: ticket.identifier, line: "one.ts" }] });
+	expect(repeated).toEqual({
+		filledCount: 0,
+		unresolved: [
+			{ ticket: ticket.identifier, line: "one.ts" },
+			{ ticket: ticket.identifier, line: "Verify: ``" },
+		],
+	});
 	expect((await run((tx) => ticketGet(tx, ticket.id))).version).toBe(afterFirst.version);
 });
