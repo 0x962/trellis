@@ -2,7 +2,7 @@ import type { Priority } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, readText } from "../context.ts";
-import { labelRefs } from "../flags.ts";
+import { labelRefs, repeatedFlag } from "../flags.ts";
 import { printRecord, ticketRecord } from "../output.ts";
 
 export const priorities = ["none", "urgent", "high", "medium", "low"] as const;
@@ -29,11 +29,13 @@ export default defineCommand({
 			type: "string",
 			description: "Milestone ref, such as OP/routine-runtime/phase-1; it also sets the epic",
 		},
+		after: { type: "string", description: "Ticket ref that this ticket waits for; repeat for more tickets" },
 		label: labelFlag,
 	},
 	async run(context) {
 		const ctx = contextOf(context);
 		const { args } = context;
+		const after = repeatedFlag(context.rawArgs, "after");
 		const ticket = await clientOf(ctx).tickets.create(
 			compact({
 				project: args.project,
@@ -45,6 +47,7 @@ export default defineCommand({
 				epic: args.epic,
 				milestone: args.milestone,
 				labels: labelRefs(context.rawArgs, "label"),
+				after: after.length === 0 ? undefined : after,
 			}),
 		);
 		printRecord(ctx.out, ctx.format, ticket, ticketRecord);

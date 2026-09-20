@@ -59,6 +59,10 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 		description: "Change ticket fields",
 		load: () => import("./commands/edit.ts").then((m) => command(m.default)),
 	},
+	deps: {
+		description: "Show what a ticket waits on and releases",
+		load: () => import("./commands/deps/deps.ts").then((m) => command(m.default)),
+	},
 	move: {
 		description: "Move a ticket to a status",
 		load: () => import("./commands/move.ts").then((m) => command(m.default)),
