@@ -25,10 +25,8 @@ export function checksLineResult(checks: readonly ChecksLineCheck[]) {
 						key: check.key ?? `${identity}:${occurrence}`,
 						name: check.name,
 						status: display.status,
-						label: display.label,
 						workflow: check.workflow ?? undefined,
 						url: check.link ?? undefined,
-						duration: null,
 					};
 				}),
 			},
