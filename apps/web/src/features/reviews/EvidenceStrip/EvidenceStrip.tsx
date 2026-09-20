@@ -17,12 +17,9 @@ export type EvidenceStripProps = {
 // both sets.
 export function EvidenceStrip({ records, floor, loading = false }: EvidenceStripProps) {
 	const lines = evidenceLines(records, floor);
+	const copy = (text: string) => void copyText(text, "Copied to the clipboard");
 	return (
-		<EvidenceStripView
-			{...lines.strip}
-			loading={loading}
-			onCopy={(command) => void copyText(command, "Copied to the clipboard")}
-		>
+		<EvidenceStripView {...lines.strip} loading={loading} onCopy={copy}>
 			{floor.kind !== "backend" && (
 				<FrontendEvidence
 					capture={lines.capture}
@@ -39,6 +36,7 @@ export function EvidenceStrip({ records, floor, loading = false }: EvidenceStrip
 					contracts={lines.contracts}
 					migration={lines.migration}
 					picture={lines.picture}
+					onCopy={copy}
 				/>
 			)}
 		</EvidenceStripView>

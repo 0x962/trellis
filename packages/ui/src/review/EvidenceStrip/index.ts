@@ -1,1 +1,1 @@
-export { EvidenceStrip, type EvidenceStripProps } from "./EvidenceStrip";
+export { type EvidenceGap, EvidenceStrip, type EvidenceStripProps } from "./EvidenceStrip";

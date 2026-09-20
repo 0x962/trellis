@@ -19,7 +19,8 @@ export {
 	type ConditionsReadiness,
 } from "./ConditionsBlock";
 export { CopyLine, type CopyLineProps } from "./CopyLine";
-export { EvidenceStrip, type EvidenceStripProps } from "./EvidenceStrip";
+export { desktopRatio, EvidenceFigure, type EvidenceFigureProps } from "./EvidenceFigure";
+export { type EvidenceGap, EvidenceStrip, type EvidenceStripProps } from "./EvidenceStrip";
 export { type FileRiskGroup, FileRiskGroups } from "./FileRiskGroups";
 export {
 	type CaptureRun,
@@ -28,7 +29,6 @@ export {
 	FrontendEvidence,
 	type FrontendEvidenceProps,
 } from "./FrontendEvidence";
-export { type EvidenceGap, MissingList, type MissingListProps } from "./MissingList";
 export { insertBlock, ReviewCommentEditor } from "./ReviewCommentEditor";
 export { type ConversationMeta, ReviewConversation } from "./ReviewConversation/ReviewConversation";
 export { type DiffAnchor, ReviewDiff } from "./ReviewDiff/ReviewDiff";

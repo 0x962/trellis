@@ -177,12 +177,21 @@ describe("evidenceLines", () => {
 		});
 		const lines = evidenceLines([verify, proof, contract], floor);
 
-		expect(lines.verify).toEqual([{ command: "bun scripts/check.ts", exit: 1, tail: "5 errors" }]);
+		expect(lines.verify).toEqual([
+			{ id: "01M30A0000000000000000VRFY", command: "bun scripts/check.ts", exit: 1, tail: "5 errors" },
+		]);
 		expect(lines.tests).toEqual([
-			{ state: "named", name: "prints the verify record", failsOn: "4c9a771", passesOn: "8b21f0c" },
+			{
+				id: "01M30A0000000000000000TEST",
+				state: "named",
+				name: "prints the verify record",
+				failsOn: "4c9a771",
+				passesOn: "8b21f0c",
+			},
 		]);
 		expect(lines.contracts).toEqual([
 			{
+				id: "01M30A0000000000000000CONT",
 				state: "changed",
 				before: "evidence.list returns the rows",
 				after: "evidence.list returns the rows and the floor",
@@ -199,8 +208,10 @@ describe("evidenceLines", () => {
 		const contract = record({ id: "01M30A0000000000000000CONT", kind: "contract", record: { none: true } });
 		const lines = evidenceLines([proof, contract], floor);
 
-		expect(lines.tests).toEqual([{ state: "none", reason: "the change deletes a dead branch" }]);
-		expect(lines.contracts).toEqual([{ state: "none" }]);
+		expect(lines.tests).toEqual([
+			{ id: "01M30A0000000000000000TEST", state: "none", reason: "the change deletes a dead branch" },
+		]);
+		expect(lines.contracts).toEqual([{ id: "01M30A0000000000000000CONT", state: "none" }]);
 	});
 
 	test("reads the migration plan and its file out of one record", () => {
@@ -218,7 +229,7 @@ describe("evidenceLines", () => {
 		});
 
 		expect(evidenceLines([migration], floor).migration).toEqual({
-			table: "phase: expand · lock: none",
+			plan: "phase: expand · lock: none",
 			filename: "0089_epic_resources.sql",
 		});
 	});

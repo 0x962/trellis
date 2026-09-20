@@ -2,9 +2,19 @@ import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { BackendEvidence, type BackendEvidenceProps } from "./BackendEvidence";
 
-const empty: BackendEvidenceProps = { verify: [], tests: [], contracts: [], migration: null, picture: null };
+const copy = () => {};
+
+const empty: BackendEvidenceProps = {
+	verify: [],
+	tests: [],
+	contracts: [],
+	migration: null,
+	picture: null,
+	onCopy: copy,
+};
 
 const passed = {
+	id: "01M30A0000000000000000VRF1",
 	command: "cd backend/canary && direnv exec . pytest canary/api/tests/test_staff_hotels.py",
 	exit: 0,
 	tail: "6 passed in 4.21s",
@@ -34,7 +44,13 @@ test("prints each test by name with the SHA it fails on and the SHA it passes on
 		<BackendEvidence
 			{...empty}
 			tests={[
-				{ state: "named", name: "test_staff_hotels_names_no_other_property", failsOn: "4c9a771", passesOn: "8b21f0c" },
+				{
+					id: "01M30A0000000000000000TEST",
+					state: "named",
+					name: "test_staff_hotels_names_no_other_property",
+					failsOn: "4c9a771",
+					passesOn: "8b21f0c",
+				},
 			]}
 		/>,
 	);
@@ -46,7 +62,10 @@ test("prints each test by name with the SHA it fails on and the SHA it passes on
 
 test("prints the reason of a change that adds no test", () => {
 	const html = renderToStaticMarkup(
-		<BackendEvidence {...empty} tests={[{ state: "none", reason: "the change deletes a dead branch" }]} />,
+		<BackendEvidence
+			{...empty}
+			tests={[{ id: "01M30A0000000000000000TEST", state: "none", reason: "the change deletes a dead branch" }]}
+		/>,
 	);
 
 	expect(html).toContain("no new test · the change deletes a dead branch");
@@ -58,6 +77,7 @@ test("prints one contract as it reads before the change and after it", () => {
 			{...empty}
 			contracts={[
 				{
+					id: "01M30A0000000000000000CONT",
 					state: "changed",
 					before: "GET /api/private/staff-hotels · 403 for a service token",
 					after: "GET /api/private/staff-hotels?user=<uuid> · 200 {properties: []}",
@@ -72,7 +92,9 @@ test("prints one contract as it reads before the change and after it", () => {
 });
 
 test("prints the words of a change that moves no contract", () => {
-	const html = renderToStaticMarkup(<BackendEvidence {...empty} contracts={[{ state: "none" }]} />);
+	const html = renderToStaticMarkup(
+		<BackendEvidence {...empty} contracts={[{ id: "01M30A0000000000000000CONT", state: "none" }]} />,
+	);
 
 	expect(html).toContain("no contract changed");
 });
@@ -82,7 +104,7 @@ test("prints the migration file and the plan the agent wrote", () => {
 		<BackendEvidence
 			{...empty}
 			migration={{
-				table: "phase: expand · lock: none · rollback: drop the column",
+				plan: "phase: expand · lock: none · rollback: drop the column",
 				filename: "0089_epic_resources.sql",
 			}}
 		/>,
@@ -106,7 +128,7 @@ test("draws the picture in the page with the sentence of the agent", () => {
 
 	expect(html).toContain('<img src="/api/evidence/01M30A00000000000000000PIC/file"');
 	expect(html).toContain('alt="The call path crosses from Operator into Canary."');
-	expect(html).toContain("aspect-[16/10]");
+	expect(html).toContain("aspect-ratio:16 / 10");
 });
 
 test("draws no row for a record the pull request does not carry", () => {

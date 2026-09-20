@@ -1,5 +1,5 @@
-import { BlockRow } from "../BlockRow";
-import { CopyLine } from "../CopyLine";
+import { BlockRow } from "../../../BlockRow";
+import { CopyLine } from "../../../CopyLine";
 
 export type EvidenceGap = {
 	// The words for one record the pull request owes, such as "verify record".
@@ -13,9 +13,8 @@ export type MissingListProps = {
 	onCopy: (text: string) => void;
 };
 
-// One line per record the pull request owes. A line carries the command that
-// writes the record, because the reader runs that command in a terminal, and
-// a click puts the whole command on the clipboard.
+// A line carries the command that writes the record, because the reader runs
+// that command in a terminal.
 export function MissingList({ gaps, onCopy }: MissingListProps) {
 	return (
 		<dl className="flex min-w-0 flex-col">

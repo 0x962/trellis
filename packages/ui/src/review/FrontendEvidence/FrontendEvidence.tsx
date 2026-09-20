@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Button } from "../../primitives/Button";
 import { PropertyRow } from "../../primitives/PropertyRow";
+import { dotted } from "../../utils/dotted";
+import { desktopRatio, EvidenceFigure } from "../EvidenceFigure";
 
 export type CaptureRun = {
 	route: string | null;
@@ -44,16 +46,8 @@ export type FrontendEvidenceProps = {
 	consoleLine: string | null;
 };
 
-// A field the record does not hold drops out of its line, so the line never
-// prints two separators with nothing between them.
-const dotted = (parts: readonly (string | null)[]) => parts.filter((part) => part !== null).join(" · ");
-
 // The shape of the box that holds a screenshot, taken from the viewport of
-// the capture. The box keeps that shape before the file arrives, so the lines
-// under it stay where they are when the bytes come in. A record without a
-// readable viewport, and a pull request without a capture record, get the
-// shape of a 1440x900 desktop window.
-const desktopRatio = "16 / 10";
+// the capture.
 const boxRatio = (viewport: string | null) => {
 	const sides = (viewport ?? "").split(/[x×]/).map(Number);
 	return sides.length === 2 && sides.every((side) => side > 0) ? sides.join(" / ") : desktopRatio;
@@ -115,24 +109,22 @@ function Screenshot({
 	ratio: string;
 	screenshot: EvidenceScreenshot | null;
 }) {
-	return (
-		<figure className="flex min-w-0 flex-col gap-1">
-			<span className="text-sm text-fg-muted">{label}</span>
-			{screenshot === null ? (
+	if (screenshot === null) {
+		return (
+			<figure className="flex min-w-0 flex-col gap-1">
+				<span className="text-sm text-fg-muted">{label}</span>
 				<span className="text-sm text-fg-faint">The agent added no {label} screenshot.</span>
-			) : (
-				<>
-					<div className="w-full overflow-hidden rounded-md border border-border" style={{ aspectRatio: ratio }}>
-						<img
-							src={screenshot.url}
-							alt={screenshot.caption ?? `the ${label} screenshot`}
-							className="size-full object-contain"
-						/>
-					</div>
-					{screenshot.caption !== null && <figcaption className="text-sm text-fg">{screenshot.caption}</figcaption>}
-				</>
-			)}
-		</figure>
+			</figure>
+		);
+	}
+	return (
+		<EvidenceFigure
+			label={label}
+			url={screenshot.url}
+			alt={screenshot.caption ?? `the ${label} screenshot`}
+			caption={screenshot.caption}
+			ratio={ratio}
+		/>
 	);
 }
 

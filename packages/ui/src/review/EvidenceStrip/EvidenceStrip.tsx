@@ -2,7 +2,9 @@ import type { ReactNode } from "react";
 import { EmptyState } from "../../primitives/EmptyState";
 import { SectionHeader } from "../../primitives/SectionHeader";
 import { Skeleton } from "../../primitives/Skeleton";
-import { type EvidenceGap, MissingList } from "../MissingList";
+import { type EvidenceGap, MissingList } from "./components/MissingList";
+
+export type { EvidenceGap };
 
 export type EvidenceStripProps = {
 	// How many of the owed records the pull request carries.
@@ -25,8 +27,6 @@ export type EvidenceStripProps = {
 	onCopy: (text: string) => void;
 };
 
-// The count of the records the pull request owes, then the records it
-// carries, then the list of the records it still owes.
 export function EvidenceStrip({
 	present,
 	required,

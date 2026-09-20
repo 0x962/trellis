@@ -26,7 +26,7 @@ export type EvidenceLines = {
 	picture: EvidencePicture | null;
 };
 
-// A record holds free-form JSON, so every field of it reads as text or as
+// The JSON field holds any shape, so each key of it reads as text or as
 // nothing.
 const stringField = (record: Evidence["record"], key: string): string | null => {
 	const value = record[key];
@@ -90,17 +90,18 @@ const consoleLineOf = (records: readonly Evidence[]): string | null => {
 
 const verifyOf = (records: readonly Evidence[]): VerifyRun[] =>
 	allOf(records, "verify").map((record) => ({
+		id: record.id,
 		command: stringField(record.record, "command") ?? "",
 		exit: numberField(record.record, "exit"),
 		tail: stringField(record.record, "tail") ?? "",
 	}));
 
-// A test record names one test, or says that the change adds none and why.
 const testsOf = (records: readonly Evidence[]): TestProof[] =>
 	allOf(records, "test").map((record) => {
 		const name = stringField(record.record, "name");
-		if (name === null) return { state: "none", reason: stringField(record.record, "reason") ?? "" };
+		if (name === null) return { id: record.id, state: "none", reason: stringField(record.record, "reason") ?? "" };
 		return {
+			id: record.id,
 			state: "named",
 			name,
 			failsOn: shortSha(stringField(record.record, "failsOn")),
@@ -108,23 +109,19 @@ const testsOf = (records: readonly Evidence[]): TestProof[] =>
 		};
 	});
 
-// A contract record holds one contract as it reads on the base and on the
-// head, or says that no contract changed.
 const contractsOf = (records: readonly Evidence[]): ContractChange[] =>
 	allOf(records, "contract").map((record) => {
 		const before = stringField(record.record, "before");
-		if (before === null) return { state: "none" };
-		return { state: "changed", before, after: stringField(record.record, "after") ?? "" };
+		if (before === null) return { id: record.id, state: "none" };
+		return { id: record.id, state: "changed", before, after: stringField(record.record, "after") ?? "" };
 	});
 
 const migrationOf = (records: readonly Evidence[]): MigrationPlan | null => {
 	const record = firstOf(records, "migration");
 	if (record === null) return null;
-	return { table: stringField(record.record, "table"), filename: record.blob?.filename ?? null };
+	return { plan: stringField(record.record, "table"), filename: record.blob?.filename ?? null };
 };
 
-// A backend change owes one picture. The first record is that picture, and
-// every later record draws nothing.
 const pictureOf = (records: readonly Evidence[]): EvidencePicture | null => {
 	const record = firstOf(records, "picture");
 	if (record === null || record.blob === null) return null;
