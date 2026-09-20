@@ -10,6 +10,9 @@ export type PullRequestRow = {
 	owner: string;
 	repo: string;
 	number: number;
+	additions: number;
+	deletions: number;
+	changed_files: number;
 	url: string;
 	title: string;
 	state: PrState;
@@ -36,7 +39,8 @@ export type LinkedPullRequestRow = PullRequestRow & {
 };
 
 export const pullRequestColumns = sql`
-	p.id, p.owner, p.repo, p.number, p.url, p.title, p.state, p.is_draft, p.head_ref, p.base_ref, p.review_state,
+	p.id, p.owner, p.repo, p.number, p.additions, p.deletions, p.changed_files,
+	p.url, p.title, p.state, p.is_draft, p.head_ref, p.base_ref, p.review_state,
 	${iso(sql`p.merged_at`)} AS merged_at, ${iso(sql`p.closed_at`)} AS closed_at, p.checks, p.ci_state,
 	p.content_hash, ${iso(sql`p.fetched_at`)} AS fetched_at, p.fetch_error,
 	${iso(sql`p.created_at`)} AS created_at, ${iso(sql`p.updated_at`)} AS updated_at
@@ -47,6 +51,9 @@ export const toPullRequest = (row: PullRequestRow): PullRequest => ({
 	owner: row.owner,
 	repo: row.repo,
 	number: row.number,
+	additions: row.additions,
+	deletions: row.deletions,
+	changedFiles: row.changed_files,
 	url: row.url,
 	title: row.title,
 	state: row.state,
@@ -76,7 +83,10 @@ export const toLinkedPullRequest = (row: LinkedPullRequestRow, linkedAt: string)
 });
 
 export const findPullRequestRow = async (tx: Tx, id: string): Promise<PullRequestRow> => {
-	const [row] = await rows<PullRequestRow>(tx, sql`SELECT ${pullRequestColumns} FROM pull_requests p WHERE p.id = ${id}`);
+	const [row] = await rows<PullRequestRow>(
+		tx,
+		sql`SELECT ${pullRequestColumns} FROM pull_requests p WHERE p.id = ${id}`,
+	);
 	if (row === undefined) throw notFound("pullRequest", id);
 	return row;
 };

@@ -554,6 +554,13 @@
       "when": 1789803619546,
       "tag": "0081_spooky_giant_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1789887824722,
+      "tag": "0082_romantic_green_goblin",
+      "breakpoints": true
     }
   ]
 }

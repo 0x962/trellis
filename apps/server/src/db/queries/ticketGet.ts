@@ -35,6 +35,9 @@ type RawLinkedPr = {
 	owner: string;
 	repo: string;
 	number: number;
+	additions: number;
+	deletions: number;
+	changed_files: number;
 	url: string;
 	title: string;
 	state: LinkedPullRequest["state"];
@@ -61,7 +64,8 @@ type RawLinkedPr = {
 export const linkedPullRequests = async (tx: Tx, ticketId: string): Promise<LinkedPullRequest[]> => {
 	const found = await rows<RawLinkedPr>(
 		tx,
-		sql`SELECT p.id, p.owner, p.repo, p.number, p.url, p.title, p.state, p.is_draft, p.head_ref, p.base_ref,
+		sql`SELECT p.id, p.owner, p.repo, p.number, p.additions, p.deletions, p.changed_files,
+			p.url, p.title, p.state, p.is_draft, p.head_ref, p.base_ref,
 			p.review_state, ${iso(sql`p.merged_at`)} AS merged_at, ${iso(sql`p.closed_at`)} AS closed_at, p.checks,
 			p.ci_state, ${iso(sql`p.fetched_at`)} AS fetched_at, p.fetch_error,
 			${iso(sql`p.created_at`)} AS created_at, ${iso(sql`p.updated_at`)} AS updated_at,
@@ -75,6 +79,9 @@ export const linkedPullRequests = async (tx: Tx, ticketId: string): Promise<Link
 		owner: row.owner,
 		repo: row.repo,
 		number: row.number,
+		additions: row.additions,
+		deletions: row.deletions,
+		changedFiles: row.changed_files,
 		url: row.url,
 		title: row.title,
 		state: row.state,
