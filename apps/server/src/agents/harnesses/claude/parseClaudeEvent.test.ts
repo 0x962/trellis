@@ -16,7 +16,10 @@ test("Claude reads AskUserQuestion questions from the tool input", () => {
 						{ label: "PGlite", description: "Keep the database local", preview: true },
 						{ label: "Postgres", description: "Use a remote database" },
 					],
-					multiSelect: false,
+				},
+				{
+					question: 42,
+					options: [{ label: "Ignore this invalid question" }],
 				},
 				{
 					question: "Which checks should run?",
@@ -47,7 +50,7 @@ test("Claude reads AskUserQuestion questions from the tool input", () => {
 					multiple: false,
 				},
 				{
-					id: "1",
+					id: "2",
 					question: "Which checks should run?",
 					options: [{ label: "Lint" }, { label: "Typecheck" }],
 					multiple: true,

@@ -9,26 +9,34 @@ const nativeEvent = z.looseObject({
 	prompt_id: z.string().optional(),
 });
 
-const askUserQuestionInput = z.object({
-	questions: z.array(
-		z.object({
-			question: z.string(),
-			options: z.array(z.object({ label: z.string(), description: z.string().optional() })),
-			multiSelect: z.boolean(),
-		}),
-	),
+const askUserQuestion = z.object({
+	question: z.string(),
+	options: z.array(z.object({ label: z.string(), description: z.string().optional() })),
+	multiSelect: z.boolean().default(false),
 });
 
-function parseQuestionFields(input: unknown) {
+const askUserQuestionInput = z.object({
+	questions: z.array(z.unknown()),
+});
+
+function readQuestions(input: unknown) {
 	const parsed = askUserQuestionInput.safeParse(input);
-	if (!parsed.success || parsed.data.questions.length === 0) return {};
+	if (!parsed.success) return {};
+	const questions = parsed.data.questions.flatMap((inputQuestion, index) => {
+		const question = askUserQuestion.safeParse(inputQuestion);
+		if (!question.success) return [];
+		return [
+			{
+				id: String(index),
+				question: question.data.question,
+				options: question.data.options,
+				multiple: question.data.multiSelect,
+			},
+		];
+	});
+	if (questions.length === 0) return {};
 	return {
-		questions: parsed.data.questions.map((question, index) => ({
-			id: String(index),
-			question: question.question,
-			options: question.options,
-			multiple: question.multiSelect,
-		})),
+		questions,
 	};
 }
 
@@ -117,7 +125,7 @@ export function parseClaudeEvent(payload: unknown): HarnessEvent[] {
 										kind: "question" as const,
 										title: "The agent has a question in the terminal",
 										blocking: true,
-										...parseQuestionFields(event.tool_input),
+										...readQuestions(event.tool_input),
 									},
 								},
 							]
