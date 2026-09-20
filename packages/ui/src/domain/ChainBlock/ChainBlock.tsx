@@ -91,12 +91,12 @@ export function ChainBlock({ waitsOn, releases, ready }: ChainBlockProps) {
 					{releases.length === 0 ? (
 						<NothingWord />
 					) : (
-						releases.map((release) => <TicketLine key={release.identifier} {...release} />)
+						releases.map((release) => <TitleLine key={release.identifier} {...release} />)
 					)}
 				</ChainRow>
 				{question !== undefined && (
 					<ChainRow label="Applies">
-						<TicketLine identifier={question.identifier} title={question.title} link={question.link} note="open." />
+						<TitleLine identifier={question.identifier} title={question.title} link={question.link} note="open." />
 					</ChainRow>
 				)}
 			</dl>
@@ -151,10 +151,10 @@ function DependencyLine({ dependency }: { dependency: ChainDependency }) {
 	});
 }
 
-// A release line and the `Applies` line hold the same three parts. `note` is
-// the muted word between the identifier and the title, such as `open.` on the
-// question the ticket waits for.
-function TicketLine({
+// A release line and the `Applies` line print the identifier, an optional
+// muted word and the title, and no status mark and no pull request. `note` is
+// the muted word, such as `open.` on the question the ticket waits for.
+function TitleLine({
 	identifier,
 	title,
 	link,
