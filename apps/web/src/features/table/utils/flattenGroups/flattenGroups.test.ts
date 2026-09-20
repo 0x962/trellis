@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { TicketPr, TicketSummary } from "@trellis/api";
-import type { AgentLineText } from "../../AgentLine";
+import type { AgentLineText } from "../agentLines";
 import { flattenGroups, type TableGroup } from "./flattenGroups";
 
 const pr = (number: number) => ({ number, owner: "0x962", repo: "trellis" }) as TicketPr;

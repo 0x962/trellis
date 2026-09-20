@@ -1,5 +1,5 @@
 import type { TicketPr, TicketSummary } from "@trellis/api";
-import type { AgentLineText } from "../../AgentLine";
+import type { AgentLineText } from "../agentLines";
 import type { RowGroup } from "../groupRows";
 
 // A group as the table renders it: the rows it holds and, for a closed

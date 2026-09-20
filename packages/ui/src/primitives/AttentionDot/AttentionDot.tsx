@@ -14,8 +14,8 @@ export type AttentionDotProps = {
 //
 // `ActivityDot` is the other 6 px dot. It says that an agent works, it can
 // sit on the corner of an icon, and its colors are `accent` and `metal`.
-// This dot carries the two colors of the mark table: `--warning` when a
-// person must act, and `--danger` when a run failed or is lost.
+// This dot uses two other colors: `--warning` when a person must act, and
+// `--danger` when a run failed or is lost.
 export function AttentionDot({ label, tone = "warning" }: AttentionDotProps) {
 	return (
 		<span

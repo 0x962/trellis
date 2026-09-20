@@ -23,6 +23,6 @@ test("gives a screen reader the label in place of the dot", () => {
 	expect(html).toContain('aria-label="The agent asks a question."');
 });
 
-test("takes the 6 px size of the mark table", () => {
+test("takes the 6 px size", () => {
 	expect(renderToStaticMarkup(<AttentionDot label="The agent asks a question." />)).toContain("size-1.5");
 });
