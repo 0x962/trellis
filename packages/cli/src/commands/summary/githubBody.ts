@@ -16,12 +16,12 @@ export const githubBody = (
 	pullRequest: BodyPullRequest,
 	reviewUrl: string,
 ): string => {
-	const additions = pullRequest.additions!;
-	const deletions = pullRequest.deletions!;
-	const changedFiles = pullRequest.changedFiles!;
+	const { additions, deletions, changedFiles, files } = pullRequest;
+	if (additions === null || deletions === null || changedFiles === null || files === null)
+		throw new Error(`pull request ${pullRequest.repo} has no diff counts yet`);
 	const risk = prPaths(
 		pullRequest.repo,
-		pullRequest.files!.map((file) => ({
+		files.map((file) => ({
 			path: file.path,
 			change: file.additions === 0 && file.deletions > 0 ? ("deleted" as const) : ("change" as const),
 		})),

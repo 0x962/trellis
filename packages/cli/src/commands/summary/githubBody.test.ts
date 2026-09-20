@@ -50,3 +50,9 @@ test("reads a deleted test risk from the stored file counts", () => {
 	);
 	expect(body).toContain("deleted test yes");
 });
+
+test("refuses to print missing stored diff counts", () => {
+	expect(() => githubBody({ headline: "Print it." }, { ...pullRequest, additions: null }, "review")).toThrow(
+		"pull request trellis has no diff counts yet",
+	);
+});

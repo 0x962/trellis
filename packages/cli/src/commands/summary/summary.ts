@@ -8,40 +8,44 @@ import { json } from "../../output.ts";
 import { githubBody } from "./githubBody.ts";
 import { refusalText, summaryChecks, warningText } from "./refusalText.ts";
 
-type ResolvedPullRequest = { id: string; url: string };
+type PullRequestRef = { id: string; url: string };
 
-const resolvePullRequest = async (client: TrellisClient, input: string): Promise<ResolvedPullRequest> => {
-	let url: string;
+const resolvePullRequest = async (client: TrellisClient, input: string, open: boolean): Promise<PullRequestRef> => {
+	const reviews = await client.reviews.prs({});
 	if (/^\d+$/.test(input)) {
 		const number = Number(input);
-		const local = (await client.reviews.prs({})).filter((row) => row.number === number);
+		const local = reviews.filter((row) => row.number === number);
 		if (local.length > 1)
 			throw usageError(`pull request ${input} matches more than one repository; use owner/repo#${input}`);
 		if (local.length === 1) return { id: local[0]!.id, url: local[0]!.url };
+		if (!open) throw notFound("pull request", input);
 		const remote = (await client.reviews.mine({})).filter((row) => row.number === number);
 		if (remote.length === 0) throw notFound("pull request", input);
 		if (remote.length > 1)
 			throw usageError(`pull request ${input} matches more than one repository; use owner/repo#${input}`);
-		url = remote[0]!.url;
-	} else {
-		url = reviewRef(input).url;
+		const opened = await client.reviews.open({ pr: remote[0]!.url });
+		return { id: opened.id, url: opened.url };
 	}
+	const url = reviewRef(input).url;
+	const local = reviews.find((row) => row.url === url);
+	if (local) return { id: local.id, url: local.url };
+	if (!open) throw notFound("pull request", input);
 	const opened = await client.reviews.open({ pr: url });
-	return { id: opened.id, url };
+	return { id: opened.id, url: opened.url };
 };
 
-const currentPullRequest = async (
+const currentHead = async (
 	client: TrellisClient,
-	resolved: ResolvedPullRequest,
-): Promise<{ headSha: string; pullRequest: PullRequest }> => {
-	const pullRequest = await client.pullRequests.refresh({ id: resolved.id });
-	const status = await client.reviews.status({ pr: resolved.url });
-	return { headSha: status.headRefOid as string, pullRequest };
+	ref: PullRequestRef,
+): Promise<{ sha: string; pullRequest: PullRequest }> => {
+	const pullRequest = await client.pullRequests.refresh({ id: ref.id });
+	const status = await client.reviews.status({ pr: ref.url });
+	return { sha: status.headRefOid as string, pullRequest };
 };
 
 const reviewUrl = (publicUrl: string, prUrl: string): string => `${publicUrl}${reviewHref(prUrl)}`;
 
-const row = (label: string, value: string): string => {
+const labeledLine = (label: string, value: string): string => {
 	const prefix = `${label.padEnd(10)}`;
 	return value
 		.split(/\r?\n/)
@@ -50,17 +54,17 @@ const row = (label: string, value: string): string => {
 };
 
 const summaryText = (summary: PullRequestSummary): string =>
-	`${row("headline", summary.headline)}\n${row("why", summary.why)}\n${row("watch", summary.watch)}\n`;
+	`${labeledLine("headline", summary.headline)}\n${labeledLine("why", summary.why)}\n${labeledLine("watch", summary.watch)}\n`;
 
-const pr = { type: "positional", required: true, description: "Pull request number, URL, or owner/repo#123" } as const;
+const ref = { type: "positional", required: true, description: "Pull request number, URL, or owner/repo#123" } as const;
 
 const write = defineCommand({
 	meta: { name: "write", description: "Write a summary for the current pull request head" },
 	args: {
-		pr,
+		ref,
 		headline: { type: "string", required: true, description: "Instruction of 12 words or less" },
 		why: { type: "string", required: true, description: "Problem, approach, and limit, or - for stdin" },
-		watch: { type: "string", required: true, description: "First file to read and the reason, or nothing" },
+		watch: { type: "string", required: true, description: "First file to read and the reason, or the word nothing" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);
@@ -75,41 +79,41 @@ const write = defineCommand({
 			return 4;
 		}
 		const client = clientOf(ctx);
-		const resolved = await resolvePullRequest(client, context.args.pr);
-		const current = await currentPullRequest(client, resolved);
-		const result = await client.pullRequests.writeSummary({ id: resolved.id, headSha: current.headSha, ...input });
+		const resolved = await resolvePullRequest(client, context.args.ref, true);
+		const head = await currentHead(client, resolved);
+		const result = await client.pullRequests.writeSummary({ id: resolved.id, headSha: head.sha, ...input });
 		if (result.warnings.length > 0) ctx.err.write(warningText(result.warnings));
-		const body = githubBody(result.summary, current.pullRequest, reviewUrl(ctx.publicUrl, resolved.url));
-		if (wantsJson(ctx)) ctx.out.write(json({ ...result, body }));
-		else ctx.out.write(body);
+		const githubText = githubBody(result.summary, head.pullRequest, reviewUrl(ctx.publicUrl, resolved.url));
+		if (wantsJson(ctx)) ctx.out.write(json({ ...result, body: githubText }));
+		else ctx.out.write(githubText);
 		return 0;
 	},
 });
 
 const show = defineCommand({
 	meta: { name: "show", description: "Show the newest stored summary" },
-	args: { pr },
+	args: { ref },
 	async run(context) {
 		const ctx = contextOf(context);
 		const client = clientOf(ctx);
-		const resolved = await resolvePullRequest(client, context.args.pr);
+		const resolved = await resolvePullRequest(client, context.args.ref, false);
 		const summary = await client.pullRequests.readSummary({ id: resolved.id });
-		if (summary === null) throw notFound("summary for pull request", context.args.pr);
+		if (summary === null) throw notFound("summary for pull request", context.args.ref);
 		ctx.out.write(wantsJson(ctx) ? json(summary) : summaryText(summary));
 	},
 });
 
 const body = defineCommand({
 	meta: { name: "body", description: "Print the GitHub body for the current pull request head" },
-	args: { pr },
+	args: { ref },
 	async run(context) {
 		const ctx = contextOf(context);
 		const client = clientOf(ctx);
-		const resolved = await resolvePullRequest(client, context.args.pr);
-		const current = await currentPullRequest(client, resolved);
-		const summary = await client.pullRequests.readSummaryHead({ id: resolved.id, headSha: current.headSha });
-		if (summary === null) throw notFound("summary for pull request head", context.args.pr);
-		const text = githubBody(summary, current.pullRequest, reviewUrl(ctx.publicUrl, resolved.url));
+		const resolved = await resolvePullRequest(client, context.args.ref, false);
+		const head = await currentHead(client, resolved);
+		const summary = await client.pullRequests.readSummaryHead({ id: resolved.id, headSha: head.sha });
+		if (summary === null) throw notFound("summary for pull request head", context.args.ref);
+		const text = githubBody(summary, head.pullRequest, reviewUrl(ctx.publicUrl, resolved.url));
 		ctx.out.write(wantsJson(ctx) ? json({ body: text }) : text);
 	},
 });
