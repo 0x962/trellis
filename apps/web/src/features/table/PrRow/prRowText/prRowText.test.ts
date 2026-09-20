@@ -3,12 +3,17 @@ import type { TicketPr } from "@trellis/api";
 import { prOf } from "../prOf";
 import { prRowCells } from "./prRowText";
 
+// The size cell holds a value, not text. `LineChanges` draws it, so this
+// helper writes the counts the way that element writes them.
 const textOf = (pr: TicketPr) =>
 	prRowCells(pr)
-		.map((cell) => cell.text)
+		.map((cell) => ("lines" in cell ? `+${cell.lines.additions} −${cell.lines.deletions}` : cell.text))
 		.join(" · ");
 
-const toneOf = (pr: TicketPr, key: string) => prRowCells(pr).find((cell) => cell.key === key)?.tone;
+const toneOf = (pr: TicketPr, key: string) => {
+	const cell = prRowCells(pr).find((found) => found.key === key);
+	return cell !== undefined && "tone" in cell ? cell.tone : undefined;
+};
 
 describe("prRowCells", () => {
 	test("prints the state, the size, the checks, the threads and the turn in order", () => {
@@ -49,8 +54,15 @@ describe("prRowCells", () => {
 		expect(textOf(prOf({ state: "merged", pass: 43 }))).toBe("merged · 43 passed");
 	});
 
-	test("groups the digits of a large line count", () => {
-		expect(textOf(prOf({ additions: 4735, deletions: 9, pass: 43 }))).toBe("open · +4,735 −9 · 43 passed · you");
+	test("holds the changed line counts as a value for the shared element", () => {
+		expect(prRowCells(prOf({ additions: 311, deletions: 12 })).find((cell) => cell.key === "size")).toEqual({
+			key: "size",
+			lines: { additions: 311, deletions: 12 },
+		});
+	});
+
+	test("drops the size of a pull request that changes no line", () => {
+		expect(textOf(prOf({ additions: 0, deletions: 0, changedFiles: 0, pass: 43 }))).toBe("open · 43 passed · you");
 	});
 
 	test("writes the singular word for a count of one", () => {

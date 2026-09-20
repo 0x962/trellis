@@ -1,9 +1,9 @@
 import type { TicketPr } from "@trellis/api";
-import { cx, PrGlyph } from "@trellis/ui";
+import { cx, LineChanges, PrGlyph } from "@trellis/ui";
 import { Fragment } from "react";
 import { tabularClass } from "../../../lib/format";
 import { prRowHeight } from "../rowHeights";
-import { type PrRowTone, prRowCells } from "./prRowText";
+import { type PrRowCell, type PrRowTone, prRowCells } from "./prRowText";
 
 export type PrRowProps = {
 	pr: TicketPr;
@@ -18,6 +18,20 @@ const toneClass: Record<PrRowTone, string | undefined> = {
 	muted: undefined,
 	danger: "text-danger",
 };
+
+// `LineChanges` draws the changed line counts everywhere in the app: the
+// plus in `text-success`, the minus in `text-danger`, the digits grouped by
+// thousands and a label for a screen reader. `align="start"` takes the
+// width of the text, for counts that follow other text.
+//
+// `pending={false}` because the row draws no cell at all while GitHub has
+// not measured the pull request.
+const cellContent = (cell: PrRowCell) =>
+	"lines" in cell ? (
+		<LineChanges value={cell.lines} pending={false} align="start" />
+	) : (
+		<span className={cx("shrink-0", tabularClass, toneClass[cell.tone])}>{cell.text}</span>
+	);
 
 // One pull request of a ticket, on the line under that ticket's row in the
 // epic table. The line is 32 px tall whatever it holds, because the
@@ -45,7 +59,7 @@ export function PrRow({ pr, top }: PrRowProps) {
 							·
 						</span>
 					)}
-					<span className={cx("shrink-0", tabularClass, toneClass[cell.tone])}>{cell.text}</span>
+					{cellContent(cell)}
 				</Fragment>
 			))}
 		</div>

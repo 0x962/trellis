@@ -1,11 +1,13 @@
 import { type TicketPr, turnOf } from "@trellis/api";
-import { formatCount } from "../../../../lib/format";
+import { type LineChangesValue, lineChangesVisible } from "@trellis/ui";
 
 export type PrRowTone = "fg" | "muted" | "danger";
 
 // One cell of a pull request row. `key` stays the same for one cell across
-// renders, and the tests find a cell by it.
-type PrRowCell = { key: string; text: string; tone: PrRowTone };
+// renders, and the tests find a cell by it. The row draws a cell that holds
+// `lines` with the shared `LineChanges` element and every other cell as
+// text.
+export type PrRowCell = { key: string; text: string; tone: PrRowTone } | { key: string; lines: LineChangesValue };
 
 type FlowStatus = TicketPr["flowRuns"][number]["status"];
 
@@ -26,12 +28,14 @@ const stateCells = (pr: TicketPr): PrRowCell[] => {
 };
 
 // GitHub sets `additions` and `deletions` to null until it measures the pull
-// request. `changedFiles` counts 0 for a pull request that changes no file,
-// and that cell drops out.
+// request. `lineChangesVisible` also drops a pull request that changes no
+// line, so the row prints no `+0 −0`. `changedFiles` counts 0 for the same
+// pull request, and that cell drops out too.
 const sizeCells = (pr: TicketPr): PrRowCell[] => {
 	const cells: PrRowCell[] = [];
-	if (pr.additions !== null && pr.deletions !== null)
-		cells.push(mutedCell("size", `+${formatCount(pr.additions)} −${formatCount(pr.deletions)}`));
+	const lines =
+		pr.additions === null || pr.deletions === null ? null : { additions: pr.additions, deletions: pr.deletions };
+	if (lineChangesVisible(lines)) cells.push({ key: "size", lines });
 	if (pr.changedFiles !== null && pr.changedFiles > 0)
 		cells.push(mutedCell("files", countWord(pr.changedFiles, "file", "files")));
 	return cells;

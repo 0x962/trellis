@@ -14,7 +14,15 @@ describe("PrRow", () => {
 		const html = textOf(renderToStaticMarkup(<PrRow pr={pr} top={0} />));
 
 		expect(html).toContain("#57080");
-		expect(html).toContain("open·+311 −12·6 files·1 failed·6 pending·47 passed·agent");
+		expect(html).toContain("open·311 lines added, 12 lines deleted+311−12·6 files·1 failed·6 pending·47 passed·agent");
+	});
+
+	test("draws the changed line counts with the shared element", () => {
+		const html = renderToStaticMarkup(<PrRow pr={prOf({ additions: 4735, deletions: 9 })} top={0} />);
+
+		expect(html).toContain("4735 lines added, 9 lines deleted");
+		expect(html).toContain('class="text-success">+4,735');
+		expect(html).toContain('class="text-danger">−9');
 	});
 
 	test("leaves out a check bucket that counts zero", () => {
