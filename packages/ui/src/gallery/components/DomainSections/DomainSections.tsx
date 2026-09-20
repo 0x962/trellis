@@ -2,8 +2,10 @@ import {
 	ActorChipSection,
 	AgentProfileMarkSection,
 	CheckRibbonSection,
+	ChecksLineSection,
 	FlowRunSection,
 	LineChangesSection,
+	PrGlyphSection,
 	PriorityIconSection,
 	ReviewStatusSummarySection,
 	StatusIconSection,
@@ -20,6 +22,8 @@ export function DomainSections() {
 			<PriorityIconSection />
 			<ReviewStatusSummarySection />
 			<CheckRibbonSection />
+			<ChecksLineSection />
+			<PrGlyphSection />
 			<ActorChipSection />
 			<AgentProfileMarkSection />
 			<LineChangesSection />

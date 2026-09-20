@@ -18,7 +18,7 @@ export function CheckResults({
 	onToggle,
 }: {
 	title: string;
-	description: string;
+	description?: string;
 	groups: CheckResultGroup[];
 	summary?: ReactNode;
 	loading?: boolean;
@@ -54,7 +54,7 @@ export function CheckResults({
 							{summary}
 							<div className="min-w-0" role="status" aria-live="polite" aria-atomic="true">
 								<h2>{title}</h2>
-								<p>{description}</p>
+								{description && <p>{description}</p>}
 							</div>
 						</header>
 						{groups.map((group) => {
