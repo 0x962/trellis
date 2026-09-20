@@ -1,12 +1,18 @@
 import { steCheck, type TicketOutcomeInput } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../../client.ts";
-import { type CliContext, contextOf, readText, wantsJson } from "../../context.ts";
+import { type CliContext, compact, contextOf, readText, toNumber, wantsJson } from "../../context.ts";
 import { json } from "../../output.ts";
 
-export const outcomeInput = (ticket: string, text: string): TicketOutcomeInput => ({ ticket, outcome: text });
+type SetArgs = {
+	ticket: string;
+	"expect-version"?: string;
+};
 
-export const outcomeReport = (text: string): { refusals: string[]; warnings: string[] } => {
+export const outcomeInput = (args: SetArgs, text: string): TicketOutcomeInput =>
+	compact({ ticket: args.ticket, outcome: text, expectedVersion: toNumber(args["expect-version"]) });
+
+export const steLines = (text: string): { refusals: string[]; warnings: string[] } => {
 	const report = steCheck(text, { headline: false });
 	return {
 		refusals: report.refusals.map((line) => `refused  ${line}`),
@@ -31,15 +37,16 @@ const set = defineCommand({
 	args: {
 		ticket: { type: "positional", required: true, description: "Ticket ref" },
 		text: { type: "string", required: true, description: "One outcome sentence, or - for standard input" },
+		"expect-version": { type: "string", description: "Fail unless the ticket is at this version" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);
 		const text = await readText(ctx, context.args.text);
-		const report = outcomeReport(text);
+		const report = steLines(text);
 		const lines = [...report.refusals, ...report.warnings];
 		if (lines.length > 0) ctx.err.write(`${lines.join("\n")}\n`);
 		if (report.refusals.length > 0) return 4;
-		const ticket = await clientOf(ctx).tickets.setOutcome(outcomeInput(context.args.ticket, text));
+		const ticket = await clientOf(ctx).tickets.setOutcome(outcomeInput(context.args, text));
 		printOutcome(ctx, ticket);
 	},
 });
