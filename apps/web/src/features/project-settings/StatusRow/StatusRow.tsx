@@ -26,7 +26,7 @@ const iconColors: Record<ColorToken, string> = {
 	"fg-muted": "!text-fg-muted",
 	"fg-faint": "!text-fg-faint",
 	accent: "!text-accent",
-	agent: "!text-agent",
+	agent: "!text-accent",
 	success: "!text-success",
 	warning: "!text-warning",
 	danger: "!text-danger",

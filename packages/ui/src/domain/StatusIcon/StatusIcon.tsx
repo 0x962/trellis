@@ -28,12 +28,11 @@ const icons = { todo: Circle, review: CircleDashed, done: CheckCircle, canceled:
 
 // The status mark by category, drawn with Phosphor icons. Done is the filled
 // check circle. An agent review is the dashed ring in the duotone weight, so
-// it differs from a human review in shape as well as in color. Started is the
-// ring with a disk inside that fills clockwise from twelve o'clock by
-// `progress`; a conic gradient draws the disk, because no icon draws an
-// arbitrary share.
+// its shape tells it from a human review. Started is the ring with a disk
+// inside that fills clockwise from twelve o'clock by `progress`; a conic
+// gradient draws the disk, because no icon draws an arbitrary share.
 export function StatusIcon({ category, reviewer = "human", progress, label, className }: StatusIconProps) {
-	const color = category === "review" && reviewer === "agent" ? "text-agent" : colors[category];
+	const color = colors[category];
 	const shared = {
 		"data-category": category,
 		"data-reviewer": category === "review" ? reviewer : undefined,

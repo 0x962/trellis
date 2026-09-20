@@ -5,7 +5,6 @@ import { useAgentMotion } from "./useAgentMotion";
 const stops = [
 	[0, "pink", 0],
 	[0.16, "pink", 1],
-	[0.32, "violet", 1],
 	[0.46, "blue", 1],
 	[0.6, "mint", 1],
 	[0.73, "gold", 1],

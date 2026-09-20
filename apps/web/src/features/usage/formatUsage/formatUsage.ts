@@ -77,8 +77,8 @@ export function modelProvider(model: string): ModelProvider | null {
 	return null;
 }
 
-// Each harness keeps one tone on every chart, so Claude Code is purple on
-// the harness split, on the model list, and on the quota cards.
+// Each harness keeps one tone on every chart, so Claude Code takes the same
+// tone on the harness split, on the model list, and on the quota cards.
 export const harnessTone: Record<UsageHarness, ChartTone> = {
 	claude: "agent",
 	codex: "fg",
