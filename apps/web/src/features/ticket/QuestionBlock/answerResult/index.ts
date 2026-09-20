@@ -1,0 +1,1 @@
+export { answerResult } from "./answerResult";

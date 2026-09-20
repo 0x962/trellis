@@ -1,4 +1,10 @@
-import { TicketAnswerInputSchema, type TicketAnswerOutput } from "@trellis/api";
+import {
+	answerCommentBody,
+	type QuestionOption,
+	readQuestionDescription,
+	TicketAnswerInputSchema,
+	type TicketAnswerOutput,
+} from "@trellis/api";
 import type { ServiceCtx } from "../../context.ts";
 import { statusById } from "../../db/queries/statusById.ts";
 import type { Tx } from "../../db/tx.ts";
@@ -15,11 +21,11 @@ import { assertVersion } from "./rules.ts";
 // and the two must agree.
 const questionOpening = /^Options:\s*\S/;
 
-// The lines of the option list, in the form `1. Leave it missed.`. The
-// person picks one of these numbers.
-const optionLine = /^[ \t]*\d+[.)][ \t]+\S/;
-
-const optionCount = (description: string) => description.split("\n").filter((line) => optionLine.test(line)).length;
+// What a person reads when the number they sent is not on the list.
+const optionRefusal = (options: QuestionOption[]) =>
+	options.length === 0
+		? "This question numbers no option. Ask its author to write the option list."
+		: `This question lists options ${options.map((option) => option.number).join(", ")}. Pick one of them.`;
 
 const assertQuestion = async (tx: Tx, ticket: TicketRow, option: number) => {
 	const status = await statusById(tx, ticket.statusId);
@@ -28,13 +34,13 @@ const assertQuestion = async (tx: Tx, ticket: TicketRow, option: number) => {
 			"ticket",
 			"This ticket asks no question. A question waits for a person and opens its description with an option list.",
 		);
-	const options = optionCount(ticket.description);
-	if (option > options) throw invalidInput("option", `This question lists ${options} options. Pick one of them.`);
+	// `readQuestionDescription` reads the option list here and on the ticket
+	// page, so the page prints the same options that this write accepts. The
+	// test is membership and not size: a description that numbers its options
+	// 1, 2 and 5 accepts 5 and refuses 3.
+	const options = readQuestionDescription(ticket.description).options;
+	if (!options.some((listed) => listed.number === option)) throw invalidInput("option", optionRefusal(options));
 };
-
-// The one line the agent brief reads. The option number comes before the
-// reason, so a reader who scans the brief sees the choice first.
-const answerBody = (option: number, reason: string) => `Answer: option ${option}. ${reason}`;
 
 // Answers a question ticket. The answer becomes a comment on the question,
 // the question moves to the done category, and each running agent that waits
@@ -48,7 +54,7 @@ export const answer = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	await assertQuestion(tx, question, input.option);
 	const comment = await writeComment(ctx, tx, {
 		ticket: question.id,
-		body: answerBody(input.option, input.reason),
+		body: answerCommentBody(input.option, input.reason),
 	});
 	const ticket = await move(ctx, tx, { ticket: question.id, status: "category:done" });
 	const deliveries = await enqueueAnswerDeliveries(tx, { commentId: comment.id, questionId: question.id });
