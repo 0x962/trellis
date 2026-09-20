@@ -26,5 +26,6 @@ export * from "./settings.ts";
 export * from "./status.ts";
 export * from "./system.ts";
 export * from "./ticket.ts";
+export * from "./ticketPr.ts";
 export * from "./ticketWrite.ts";
 export * from "./usage.ts";
