@@ -125,3 +125,10 @@ test("a project without a repository lists the pull requests of its tickets only
 test("no project lists every pull request kept for a local review", async () => {
 	expect(await idsOf()).toEqual([pulls.retained, pulls.elsewhere].sort());
 });
+
+test("a partial pull request row keeps an unknown size", async () => {
+	const size = await db.execute(
+		sql`SELECT additions, deletions, changed_files FROM pull_requests WHERE id = ${pulls.linked}`,
+	);
+	expect(size.rows[0]).toEqual({ additions: null, deletions: null, changed_files: null });
+});

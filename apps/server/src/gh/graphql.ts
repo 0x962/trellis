@@ -14,6 +14,9 @@ export type PullRequestRef = { owner: string; repo: string; number: number };
 
 export type RawPullRequest = {
 	number: number;
+	additions: number;
+	deletions: number;
+	changedFiles: number;
 	title: string;
 	state: "OPEN" | "CLOSED" | "MERGED";
 	isDraft: boolean;
@@ -43,6 +46,9 @@ export type PullRequestContent = {
 	owner: string;
 	repo: string;
 	number: number;
+	additions: number;
+	deletions: number;
+	changedFiles: number;
 	url: string;
 	title: string;
 	state: PrState;
@@ -63,7 +69,7 @@ export type PullRequestResult = { ref: PullRequestRef; row: PullRequestRow } | {
 export type FetchPullRequestsResult = { ok: true; results: PullRequestResult[] } | GhFailure;
 
 const selection = `{
-	number title state isDraft url headRefName baseRefName mergedAt closedAt reviewDecision
+	number additions deletions changedFiles title state isDraft url headRefName baseRefName mergedAt closedAt reviewDecision
 	commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { nodes {
 		__typename
 		... on CheckRun { name status conclusion startedAt detailsUrl checkSuite { workflowRun { event workflow { name } } } }
@@ -109,6 +115,9 @@ const toRow = (ref: PullRequestRef, raw: RawPullRequest): PullRequestRow => {
 		owner: ref.owner,
 		repo: ref.repo,
 		number: raw.number,
+		additions: raw.additions,
+		deletions: raw.deletions,
+		changedFiles: raw.changedFiles,
 		url: raw.url,
 		title: raw.title,
 		state: raw.state.toLowerCase() as PrState,
