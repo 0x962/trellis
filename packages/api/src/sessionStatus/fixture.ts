@@ -39,6 +39,8 @@ export const session = (): SessionDetail => ({
 			checkedAt: at,
 			controllable: true,
 			activity: { state: "working", updatedAt: at },
+			lastMessage: null,
+			lastTool: null,
 			outcome: null,
 			turnId: "turn",
 			attention: { sequence: 1, requests: [], completion: null, failure: null },

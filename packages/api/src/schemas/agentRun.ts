@@ -31,7 +31,7 @@ export const AgentRunSchema = z.object({
 			attention: SessionAttentionSchema.optional(),
 			controllable: z.boolean(),
 			activity: z.object({ state: z.enum(["ready", "working", "idle"]), updatedAt: z.string() }).nullable(),
-			lastMessage: z.object({ text: z.string(), at: z.string() }).nullable().optional(),
+			lastMessage: z.object({ text: z.string(), at: z.string() }).nullable(),
 			lastTool: z
 				.object({
 					name: z.string(),
@@ -39,8 +39,7 @@ export const AgentRunSchema = z.object({
 					startedAt: z.string().nullable(),
 					updatedAt: z.string(),
 				})
-				.nullable()
-				.optional(),
+				.nullable(),
 			outcome: z.enum(["completed", "interrupted", "failed"]).nullable(),
 			turnId: z.string().nullable(),
 		})
