@@ -24,11 +24,9 @@ export const MilestoneSlugSchema = z
 
 // One milestone of an epic. `position` orders the milestones of the epic:
 // a lower position comes first. A delete leaves a gap in the positions.
-// `counts` and `state` follow the rules of the epic. An open agent run is a
-// run of the kind `agent` that is not closed. `running` counts the tickets
-// with an open agent run, `toStart` counts the tickets in the todo category
-// with no open agent run, and `waitsForYou` counts the tickets in a status
-// whose reviewer is the human.
+// `counts` and `state` follow the rules of the epic. `toStart` counts the
+// todo tickets whose dependencies are done. `waitsForYou` counts human-review
+// ticket rows and pull request rows that are ready for human review.
 export const MilestoneSummarySchema = z.object({
 	id: UlidSchema,
 	epicId: UlidSchema,
@@ -39,7 +37,6 @@ export const MilestoneSummarySchema = z.object({
 	counts: EpicCountsSchema,
 	state: EpicStateSchema,
 	toStart: z.number().int().min(0),
-	running: z.number().int().min(0),
 	waitsForYou: z.number().int().min(0),
 	createdAt: IsoDateTimeSchema,
 	updatedAt: IsoDateTimeSchema,

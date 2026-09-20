@@ -29,11 +29,6 @@ const insertStatus = (name: string, slug: string, category: string, reviewer: st
 	db.execute(sql`INSERT INTO statuses (id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at)
 		VALUES (${ulid()}, ${tst}, ${name}, ${slug}, ${category}, ${reviewer}, 'fg-muted', ${position}, ${position === 0}, '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
 
-// An agent run of the kind `agent` on the ticket. `closedAt` null is an open run.
-const insertRun = (id: string, ticketId: string, closedAt: string | null) =>
-	db.execute(sql`INSERT INTO agent_runs (id, name, kind, instruction, project_id, project_path, ticket_id, closed_at, created_at, updated_at)
-		VALUES (${id}, 'Builder', 'agent', '', ${tst}, 'TST', ${ticketId}, ${closedAt}, '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
-
 const ctxAt = (now: string, actor: ActorRef = human): ServiceCtx => ({
 	actor,
 	session: null,
@@ -51,13 +46,33 @@ const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 const ticket = (ctx: ServiceCtx, title: string, milestone: string, status = "todo") =>
 	run((tx) => createTicket(ctx, tx, { project: "TST", title, milestone: `TST/plan/${milestone}`, status }));
 
+const insertPull = async (
+	ticketId: string,
+	number: number,
+	options: { checks?: { bucket: string }[]; draft?: boolean; openThread?: boolean } = {},
+) => {
+	const id = ulid();
+	await db.execute(sql`INSERT INTO pull_requests (
+		id, owner, repo, number, url, state, is_draft, checks, created_at, updated_at
+	) VALUES (
+		${id}, 'acme', 'app', ${number}, ${`https://github.com/acme/app/pull/${number}`},
+		'open', ${options.draft ?? false}, ${JSON.stringify(options.checks ?? [])}::jsonb,
+		'2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z'
+	)`);
+	await db.execute(sql`INSERT INTO ticket_pull_requests (
+		ticket_id, pull_request_id, source, actor_name, actor_kind, created_at
+	) VALUES (${ticketId}, ${id}, 'manual', 'Test', 'human', '2026-09-18T10:00:00.000Z')`);
+	if (options.openThread)
+		await db.execute(sql`INSERT INTO review_threads (id, pr_id, document, updated_at)
+			VALUES (${ulid()}, ${id}, ${{ status: "open" }}, '2026-09-18T10:00:00.000Z')`);
+};
+
 const next = async (ctx: ServiceCtx) => {
 	const epic = await run((tx) => getEpic(ctx, tx, { epic: "TST/plan" }));
 	return epic.milestones.map((milestone) => [
 		milestone.slug,
 		milestone.state,
 		milestone.toStart,
-		milestone.running,
 		milestone.waitsForYou,
 	]);
 };
@@ -108,19 +123,23 @@ test("an epic names its first open milestone, and an epic with no milestone name
 	]);
 });
 
-test("a milestone counts the tickets to start, the running tickets, and the tickets that wait for the person", async () => {
+test("a milestone counts ready tickets and rows that wait for the person", async () => {
 	const ctx = ctxAt("2026-09-18T10:02:00.000Z");
-	const running = await ticket(ctx, "CLI: the command", "surfaces");
-	const stopped = await ticket(ctx, "Docs: the page", "surfaces");
+	await ticket(ctx, "CLI: the command", "surfaces");
+	const blocked = await ticket(ctx, "Docs: the page", "surfaces");
 	await ticket(ctx, "Decide the name", "surfaces", "human-review");
 	const started = await ticket(ctx, "Mobile: the screen", "surfaces", "in-progress");
-	await insertRun(runId, running.id, null);
-	await insertRun(ulid(), stopped.id, "2026-09-18T10:01:30.000Z");
-	await insertRun(ulid(), started.id, null);
+	await db.execute(sql`INSERT INTO ticket_deps (ticket_id, depends_on_id, source, created_at)
+		VALUES (${blocked.id}, ${started.id}, 'manual', '2026-09-18T10:02:00.000Z')`);
+	await insertPull(started.id, 1);
+	await insertPull(started.id, 2, { draft: true });
+	await insertPull(started.id, 3, { checks: [{ bucket: "pending" }] });
+	await insertPull(started.id, 4, { checks: [{ bucket: "fail" }] });
+	await insertPull(started.id, 5, { openThread: true });
 	expect(await next(ctx)).toEqual([
-		["foundation", "done", 0, 0, 0],
-		["surfaces", "open", 2, 2, 1],
-		["integrate", "open", 0, 0, 0],
+		["foundation", "done", 0, 0],
+		["surfaces", "open", 2, 2],
+		["integrate", "open", 0, 0],
 	]);
 });
 

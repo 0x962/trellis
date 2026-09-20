@@ -1,5 +1,6 @@
-import type { Epic, EpicSummary, MilestoneSummary } from "@trellis/api";
+import type { AgentRun, Epic, EpicSummary, MilestoneSummary } from "@trellis/api";
 import { formatCount } from "../../../lib/format";
+import { isAgentWorking } from "../../agents/isAgentWorking";
 import type { View } from "../../filters/grammar";
 
 export type EpicNextCount = {
@@ -18,11 +19,11 @@ export type EpicNext = {
 
 // What happens next in an epic: the current milestone and its three counts.
 // Every ticket of one milestone can start at the same time, so the open
-// tickets of the current milestone are the next work. The current milestone
-// and the counts come from the server (`EpicSummary.currentMilestone`,
-// `MilestoneSummary.toStart`, `running`, `waitsForYou`); this module is the
-// one place in the web that reads them for the header band and the list row.
-// The result is null when every milestone is done or the epic has none.
+// tickets of the current milestone are the next work. The server supplies
+// `toStart` and `waitsForYou`. The assigned-run query supplies the working
+// runs. This module is the one place in the web that reads these values for
+// the header band and the list row. The result is null when every milestone
+// is done or the epic has none.
 //
 // Each link keeps the other filters and the display fields of `search`, and
 // replaces the milestone, status, category, and reviewer filters. The to
@@ -30,11 +31,18 @@ export type EpicNext = {
 // filter grammar has no filter for a ticket without an agent run. For the
 // same reason the running count has no link.
 export const epicNext = (
-	epic: Pick<Epic, "currentMilestone" | "milestones">,
+	epic: Pick<Epic, "currentMilestone" | "milestones" | "tickets">,
+	runs: readonly AgentRun[],
 	search: Partial<View>,
 ): EpicNext | null => {
 	const milestone = epic.milestones.find((entry) => entry.id === epic.currentMilestone?.id);
 	if (milestone === undefined) return null;
+	const ticketIds = new Set(
+		epic.tickets.filter((ticket) => ticket.milestone?.id === milestone.id).map((ticket) => ticket.id),
+	);
+	const running = runs.filter(
+		(run) => run.kind === "agent" && run.ticketId !== null && ticketIds.has(run.ticketId) && isAgentWorking(run),
+	).length;
 	const { status, category, reviewer, milestone: _milestone, not, ...rest } = search;
 	const kept = not?.filter((field) => field !== "status");
 	const base: Partial<View> = {
@@ -46,7 +54,7 @@ export const epicNext = (
 		milestone,
 		counts: [
 			{ key: "toStart", label: `${formatCount(milestone.toStart)} to start`, search: { ...base, category: ["todo"] } },
-			{ key: "running", label: `${formatCount(milestone.running)} running`, search: null },
+			{ key: "running", label: `${formatCount(running)} running`, search: null },
 			{
 				key: "waitsForYou",
 				label: `${formatCount(milestone.waitsForYou)} ${milestone.waitsForYou === 1 ? "waits" : "wait"} for you`,
