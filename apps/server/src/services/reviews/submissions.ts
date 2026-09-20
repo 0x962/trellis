@@ -8,7 +8,7 @@ import { findPr } from "./queries";
 export async function deliveryRows(tx: Tx, id: string) {
 	return rows<ReviewDelivery>(
 		tx,
-		sql`SELECT id, review_id AS "reviewId", run_id AS "runId", state, error, to_char(read_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "readAt" FROM review_deliveries WHERE review_id = ${id} ORDER BY id`,
+		sql`SELECT id, review_id AS "reviewId", answer_comment_id AS "answerCommentId", run_id AS "runId", state, error, to_char(read_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "readAt" FROM review_deliveries WHERE review_id = ${id} ORDER BY id`,
 	);
 }
 export async function show(_ctx: ServiceCtx, tx: Tx, input: { id: string }): Promise<ReviewSubmission> {

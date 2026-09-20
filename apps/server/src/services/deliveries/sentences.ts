@@ -9,3 +9,8 @@ export const unconfirmedDelivery =
 // ended, and the input ledger of that session holds no record of the
 // message. A new send needs a running agent.
 export const lostDelivery = "The agent session ended without this message. Resend it to a running agent.";
+
+// The sentence for a delivery that waited for an agent run which ended
+// before the send. The run holds a `closed_at` instant, so no process is
+// left to receive the message.
+export const closedBeforeDelivery = "The assigned agent session closed before delivery.";

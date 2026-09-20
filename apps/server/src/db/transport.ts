@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { startCommentDeliveryLoop } from "../agents/commentDeliveryLoop.ts";
 import { nativeClient } from "../agents/native/connection.ts";
 import { startNativeReconcile } from "../agents/nativeReconcile/host.ts";
+import { startReviewDeliveryLoop } from "../agents/reviewDeliveryLoop.ts";
 import { startSessionMonitor } from "../agents/sessionMonitor/sessionMonitor.ts";
 import type { Config } from "../config.ts";
 import { API_VERSION, type RequestContext, SYSTEM_ACTOR, systemContext } from "../context.ts";
@@ -222,6 +223,7 @@ export const createInlineTransport = ({
 	let sessionMonitor: ReturnType<typeof startSessionMonitor> | null = null;
 	let jobs: Jobs | null = null;
 	let commentDelivery: ReturnType<typeof startCommentDeliveryLoop> | null = null;
+	let reviewDelivery: ReturnType<typeof startReviewDeliveryLoop> | null = null;
 	let flowReconcile: ReturnType<typeof startNativeReconcile> | null = null;
 	let fileSweep: ReturnType<typeof startNativeReconcile> | null = null;
 	const start = async (options?: JobsStart) => {
@@ -266,6 +268,11 @@ export const createInlineTransport = ({
 				log: options.log,
 				call: () => backgroundCall("commentMentions.dispatch", {}),
 			});
+			reviewDelivery = startReviewDeliveryLoop({
+				clock,
+				log: options.log,
+				call: () => backgroundCall("reviews.dispatchDeliveries", {}),
+			});
 			jobs = startBackgroundJobs({ db, gh: runtime.gh, bus, log: options.log, clock });
 		}
 		return {
@@ -277,6 +284,7 @@ export const createInlineTransport = ({
 	const close = async () => {
 		await sessionMonitor?.stop();
 		await commentDelivery?.stop();
+		await reviewDelivery?.stop();
 		await flowReconcile?.stop();
 		await fileSweep?.stop();
 		if (jobs !== null) await jobs.stop();

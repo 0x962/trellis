@@ -40,6 +40,7 @@ import * as projects from "./projects.ts";
 import * as prSummary from "./prSummary.ts";
 import * as pullRequests from "./pullRequests.ts";
 import * as reviewApply from "./reviews/apply";
+import * as reviewDeliveries from "./reviews/dispatchDeliveries";
 import * as reviewImage from "./reviews/image";
 import * as reviewMessages from "./reviews/messages";
 import * as reviewPrs from "./reviews/prs";
@@ -173,6 +174,7 @@ export const services = {
 	"reviews.reaction": io("mutation", reviewMessages.reaction),
 	"reviews.submit": prepared("mutation", reviewRemote.submit, reviewRemote.actionResult),
 	"reviews.apply": prepared("mutation", reviewApply.prepareApply, reviewApply.applyResult),
+	"reviews.dispatchDeliveries": prepared("mutation", reviewDeliveries.prepare, reviewDeliveries.finish),
 
 	"agentRuns.send": agentMutation(agentCommunication.prepareSend),
 	"commentMentions.dispatch": prepared("mutation", commentMentions.prepare, commentMentions.finish),
@@ -229,6 +231,7 @@ export const services = {
 	"tickets.updateDependencies": core("mutation", tickets.updateDependencies),
 	"tickets.setContract": core("mutation", tickets.setContract),
 	"tickets.setOutcome": core("mutation", tickets.setOutcome),
+	"tickets.answer": core("mutation", tickets.answer),
 	"timeline.list": core("read", timeline.list),
 	"needsYou.list": core("read", needsYou.list),
 	"needsYou.summary": core("read", needsYou.summary),
