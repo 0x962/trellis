@@ -25,8 +25,6 @@ export const prOf = (fields: Partial<TicketPr>): TicketPr => ({
 	openThreads: 0,
 	flowRuns: [],
 	flowRunCount: 0,
-	kind: null,
-	risk: null,
 	baseRef: "main",
 	headRef: "trellis/trl-181",
 	stackedOn: null,
