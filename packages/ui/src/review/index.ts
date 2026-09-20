@@ -7,7 +7,6 @@ export {
 	type ConditionsBlockProps,
 	type ConditionsReadiness,
 } from "./ConditionsBlock";
-export { ContractBlock, type ContractBlockProps } from "./ContractBlock";
 export { type FileRiskGroup, FileRiskGroups } from "./FileRiskGroups";
 export { insertBlock, ReviewCommentEditor } from "./ReviewCommentEditor";
 export { type ConversationMeta, ReviewConversation } from "./ReviewConversation/ReviewConversation";

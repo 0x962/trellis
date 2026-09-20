@@ -1,4 +1,4 @@
-import { ContractBlock } from "../../../../review/ContractBlock";
+import { ContractBlock } from "../../../../domain/ContractBlock";
 import { Section } from "../../Section";
 
 // OP-34 of the Routines E2E epic: a signal receiver that crosses two Django
@@ -44,7 +44,7 @@ const emptyContract = {
 	leaveAlone: [],
 	verify: [],
 	reviewFocus: [],
-	evidenceOwed: "unknown. The contract names no file.",
+	evidenceOwed: "",
 };
 
 export function ContractBlockSection() {

@@ -1,0 +1,1 @@
+export { evidenceOwedText } from "./evidenceOwedText";

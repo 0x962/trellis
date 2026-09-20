@@ -1,17 +1,14 @@
 import { prPaths } from "@trellis/api";
 
 // Sections 4.2 and 4.3 of docs/research/trellis-for-one-human-and-many-agents.md
-// list the evidence of a pull request and mark these items "always". An item
-// that one change alone owes, such as a clip or a migration plan, is not here,
-// because the file list cannot name it.
-const alwaysItem = "summary";
-const frontendItems = ["after image", "before image", "capture record", "console list"];
-const backendItems = ["verify record", "test proof", "contract table"];
+// mark these items "always". A file list gives only the kind of the change, so
+// these lists hold only the items that every change of that kind owes.
+const everyKindOwes = "summary";
+const frontendOwes = ["after image", "before image", "capture record", "console list"];
+const backendOwes = ["verify record", "test proof", "contract table"];
 
-const line = (kind: string, items: readonly string[]) => `${kind}: ${[alwaysItem, ...items].join(" · ")}`;
+const evidenceLine = (kind: string, items: readonly string[]) => `${kind}: ${[everyKindOwes, ...items].join(" · ")}`;
 
-// The evidence sentence of a ticket. `prPaths` reads the kind of the change
-// out of the paths the contract names, and each kind owes one fixed list.
 export function evidenceOwedText(repo: string, files: readonly string[]): string {
 	if (files.length === 0) {
 		return "unknown. The contract names no file.";
@@ -21,10 +18,10 @@ export function evidenceOwedText(repo: string, files: readonly string[]): string
 		files.map((path) => ({ path, change: "change" as const })),
 	).kind;
 	if (kind === "frontend") {
-		return line("frontend", frontendItems);
+		return evidenceLine("frontend", frontendOwes);
 	}
 	if (kind === "backend") {
-		return line("backend", backendItems);
+		return evidenceLine("backend", backendOwes);
 	}
-	return line("mixed", [...frontendItems, ...backendItems]);
+	return evidenceLine("mixed", [...frontendOwes, ...backendOwes]);
 }

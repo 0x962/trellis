@@ -1,29 +1,27 @@
 import type { ReactNode } from "react";
 import { EmptyState } from "../../primitives/EmptyState";
+import { PropertyRow } from "../../primitives/PropertyRow";
 import { SectionHeader } from "../../primitives/SectionHeader";
 
 export type ContractBlockProps = {
 	// One sentence that says what the ticket delivers.
 	result: string;
-	// The paths the ticket writes. Each path prints on its own line.
+	// The paths the ticket writes.
 	files: readonly string[];
 	// The paths the ticket must not write. A line also names the ticket that
 	// owns the path, so the line wraps and never loses a word.
 	leaveAlone: readonly string[];
-	// The shell commands that prove the work, one per line.
+	// The shell commands that prove the work.
 	verify: readonly string[];
-	// The sentences a reviewer reads first, one per line.
+	// The sentences a reviewer reads first.
 	reviewFocus: readonly string[];
 	// One sentence that names the evidence this ticket owes. The caller
 	// computes it from `files`.
 	evidenceOwed: string;
-	// A click on a path or on a command calls this with that text.
 	onCopy: (text: string) => void;
 };
 
-// The six clauses of a ticket contract, in one order. Each clause prints
-// every line the contract holds. A path or a command is a button that copies
-// itself, because the agent and the person both retype these by hand.
+// The six clauses of a ticket contract, in one order.
 export function ContractBlock({
 	result,
 	files,
@@ -47,51 +45,49 @@ export function ContractBlock({
 			<SectionHeader title="THE CONTRACT" />
 			<dl className="flex min-w-0 flex-col">
 				<ClauseRow label="Result">
-					<Sentences lines={result === "" ? [] : [result]} />
+					<PlainLines lines={result === "" ? [] : [result]} />
 				</ClauseRow>
 				<ClauseRow label="Files">
-					<CopyLines lines={files} onCopy={onCopy} />
+					<CopyableLines lines={files} onCopy={onCopy} />
 				</ClauseRow>
 				<ClauseRow label="Leave alone">
-					<CopyLines lines={leaveAlone} onCopy={onCopy} />
+					<CopyableLines lines={leaveAlone} onCopy={onCopy} />
 				</ClauseRow>
 				<ClauseRow label="Verify">
-					<CopyLines lines={verify} onCopy={onCopy} />
+					<CopyableLines lines={verify} onCopy={onCopy} />
 				</ClauseRow>
 				<ClauseRow label="Review focus">
-					<Sentences lines={reviewFocus} />
+					<PlainLines lines={reviewFocus} />
 				</ClauseRow>
 				<ClauseRow label="Evidence owed">
-					<Sentences lines={evidenceOwed === "" ? [] : [evidenceOwed]} />
+					<PlainLines lines={evidenceOwed === "" ? [] : [evidenceOwed]} />
 				</ClauseRow>
 			</dl>
 		</section>
 	);
 }
 
-// One clause: the label, then every line of the clause. The label column is
-// 112 px, because "Evidence owed" takes two lines in the 84 px column of
-// `PropertyRow`.
+// The `dd` of `PropertyRow` lays its children in a row, and a clause holds a
+// column of lines.
 function ClauseRow({ label, children }: { label: string; children: ReactNode }) {
 	return (
-		<div className="flex min-w-0 items-start gap-2 py-1.75">
-			<dt className="w-28 shrink-0 text-sm text-fg-muted">{label}</dt>
-			<dd className="flex min-w-0 flex-1 flex-col">{children}</dd>
-		</div>
+		<PropertyRow label={label} align="start" labelWidth="wide">
+			<div className="flex min-w-0 flex-1 flex-col">{children}</div>
+		</PropertyRow>
 	);
 }
 
 // Two clauses can hold the same line, so the position of a line is part of
 // its key.
-const numbered = (lines: readonly string[]) => lines.map((line, index) => ({ key: `${index}:${line}`, line }));
+const keyedLines = (lines: readonly string[]) => lines.map((line, index) => ({ key: `${index}:${line}`, line }));
 
 // A clause that holds no line prints one faint word, so the reader sees an
 // empty clause and not a missing one.
-function Sentences({ lines }: { lines: readonly string[] }) {
+function PlainLines({ lines }: { lines: readonly string[] }) {
 	if (lines.length === 0) {
 		return <span className="text-sm text-fg-faint">none</span>;
 	}
-	return numbered(lines).map((item) => (
+	return keyedLines(lines).map((item) => (
 		<span key={item.key} className="text-sm text-fg">
 			{item.line}
 		</span>
@@ -100,11 +96,11 @@ function Sentences({ lines }: { lines: readonly string[] }) {
 
 // Each line is a button, because a path and a command are text that the
 // reader takes to a terminal.
-function CopyLines({ lines, onCopy }: { lines: readonly string[]; onCopy: (text: string) => void }) {
+function CopyableLines({ lines, onCopy }: { lines: readonly string[]; onCopy: (text: string) => void }) {
 	if (lines.length === 0) {
 		return <span className="text-sm text-fg-faint">none</span>;
 	}
-	return numbered(lines).map((item) => (
+	return keyedLines(lines).map((item) => (
 		<button
 			key={item.key}
 			type="button"
