@@ -170,7 +170,7 @@ export const planGuide = (text: string) => {
 };
 
 const guide = defineCommand({
-	meta: { name: "guide", description: "Print how to plan an epic: fronts, milestones, and tickets" },
+	meta: { name: "guide", description: "Print how to plan an epic: fronts, waves, dependencies, and evidence" },
 	run(context) {
 		contextOf(context).out.write(planGuide(template));
 	},

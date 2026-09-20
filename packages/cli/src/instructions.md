@@ -13,6 +13,34 @@ Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, set `T
 8. When the agent review passes: trellis move KEY-42 human-review
 Never delete tickets.
 
+Prove the change. A pull request without its evidence is not reviewable.
+
+1. Read the contract:  trellis contract show KEY-42
+   It names the files, the files to leave alone, the verify commands, the review focus and the evidence owed.
+2. Record each dependency as an edge, never as prose:  trellis edit KEY-43 --after KEY-42
+3. Write the summary:  trellis summary write <pr> --headline "..." --why - --watch "..."
+   The headline is one instruction of 12 words or less. Start it with a verb.
+   The why is three sentences or less: the problem, the approach, the limit. 25 words each, active voice, present tense.
+   The watch line names one file and the reason to open it first, or says "nothing".
+   Never write the size, the risk or the check counts. Trellis computes them and ignores yours.
+   Rewrite the summary after every push.
+4. When the change renders a screen, attach:
+   the after image of each route, at 1440x900, dark; the before image of the same route from the merge base,
+   same viewport, theme and seed; the capture record with both shas, the route, the viewport, the theme, the seed
+   command and the browser; the console error list and the failed request list; a clip of 15 s or less when the
+   change touches motion, a gesture, scroll, timing, or a task of more than one step.
+   Capture in your own worktree, on your own port, with animations off. Register each file with
+   trellis evidence add <pr> --kind before|after|clip|console.
+5. When the change renders no screen, attach:
+   the verify record of each Verify command, with the exit code, the tail and the head sha; each new test by name,
+   with the base sha where it fails and the head sha where it passes; the contract table, before and after, or
+   "no contract changed"; the migration plan when a schema changes; one picture, and one only, when the call path
+   crosses a process, a service or a trust boundary, or when a state machine changes. Write it in Mermaid.
+6. Bind every sentence to something checkable: a file and a line, a check result, a test name, or a number with
+   its sha. Say when a sentence is a guess.
+7. Check yourself:  trellis evidence check <pr>
+   Hand over:        trellis move KEY-42 human-review
+
 Labels say what a ticket is about. Read the set of the project: trellis labels list KEY
 Put one on a ticket: trellis edit KEY-42 --add-label bug
 
@@ -26,20 +54,26 @@ Read the notes: trellis notes list KEY
 Write a note: trellis notes add KEY --title "..." --body "..."
 Update or remove one: trellis notes edit <id> --body "..." / trellis notes rm <id>
 
-Plan an epic. A plan that produces several tickets is an epic. The epic description holds the plan: the goal, the fronts, the milestones, and the decisions for the person.
-- A front is a line of work that one agent finishes with no result from another front: the server, the web, the CLI, the docs, a second repository. Make one ticket per front per milestone, and start its title with the front: "Server: the milestones table".
-- A milestone holds the tickets that can all start at the same time. Order lives between milestones, never inside one. A ticket that needs the result of another ticket goes in a later milestone.
-- After each set of parallel fronts, add a milestone that integrates them: one ticket that merges the branches, runs the type check, the linter, and the tests, and fixes what the merge broke.
-- Keep the sequential steps of one front inside its ticket as sub-tickets, in order. A sub-ticket is a step of one agent, a ticket is a front, and a milestone is a point where the fronts meet.
-- State in each ticket the files it owns, what it must not touch, the commands that verify it, and the result that the next milestone reads. Two tickets of one milestone never own the same file.
-- File each decision for the person as a ticket in the human review status, in the first milestone that needs the answer, with the options and your recommendation.
-- Keep a milestone to 2 to 8 tickets and an epic to 6 milestones. A larger plan is two epics.
-- The person is the manager. The person starts the agents. Do not wait for a gate, and do not start the work of a later milestone on your own.
+Plan an epic. A plan that produces several tickets is an epic. The epic description holds the goal, the fronts, the waves, and the questions for the person.
+- A front is work that one agent finishes with no result from another front. Make one ticket per front per wave. Start its title with the front.
+- A wave holds the tickets that you intend to start together. A wave gates nothing.
+- Record order with `--after`. Each ticket that needs another ticket records `--after` on that ticket.
+- After each set of parallel fronts, add a wave that integrates them. One ticket merges the branches and runs all checks.
+- Keep the sequential steps of one front inside its ticket as ordered sub-tickets.
+- Each ticket states its files, the files to leave alone, the verify commands, the review focus, and the evidence owed.
+- Two tickets in one wave never own the same file.
+- A question for the person is a ticket in the human review status. Every ticket that needs the answer records `--after` on it.
+- An answer reaches each live run that waits on the question.
+- Keep a wave to 2 to 8 tickets and an epic to 6 waves. A larger plan is two epics.
+- The person is the manager. The person starts the agents. Do not wait for a gate.
+- Frontend evidence floor: summary, after image, before image, capture record, console list.
+- Backend evidence floor: summary, verify record, test proof, contract table.
+- Read the full evidence rules in `docs/EVIDENCE.md`.
 Create the epic: trellis epics create --project KEY --name "..." --description - < plan.md
-Create each milestone in order: trellis milestones create KEY/<slug> --name "Foundation"
-Create each ticket in its milestone: trellis create -p KEY --milestone KEY/<slug>/<milestone-slug> -t "Server: ..."
-Read the epic, its milestones with their counts, the tickets of each milestone, and what is next: trellis epics show KEY/<slug>
-When you work on a ticket of an epic, read the plan and the results of the earlier milestones first: trellis brief KEY-42
+Create each wave in order: trellis milestones create KEY/<slug> --name "Foundation"
+Create each ticket in its wave: trellis create -p KEY --milestone KEY/<slug>/<milestone-slug> -t "Server: ..."
+Read the epic, its waves with their counts, the tickets of each wave, and what is next: trellis epics show KEY/<slug>
+When you work on an epic ticket, read the plan and the results of the earlier waves first: trellis brief KEY-42
 
 PR review comments live in Trellis. Read them before work: trellis review list <pr-url>
 Post a finding: trellis review add <pr-url> --path <file> --line <n> --body "..."
