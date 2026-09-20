@@ -1,7 +1,7 @@
 import { EvidenceWriteInputSchema } from "@trellis/api";
 import { usageError } from "../../errors.ts";
 
-export const evidenceKinds = [
+export const reviewKinds = [
 	"before",
 	"after",
 	"clip",
@@ -13,12 +13,12 @@ export const evidenceKinds = [
 	"picture",
 	"equivalence",
 ] as const;
-export const addEvidenceKinds = [...evidenceKinds, "capture"] as const;
-export type AddEvidenceKind = (typeof addEvidenceKinds)[number];
+export const evidenceKinds = [...reviewKinds, "capture"] as const;
+export type EvidenceKind = (typeof evidenceKinds)[number];
 
-// Each evidenceKindFlags entry has one or more valid flag sets.
-// validateKindFlags requires all flags in one set and no flags from another set.
-export const evidenceKindFlags = {
+// Each kind has one or more flag sets. The caller gives every flag of one set,
+// and no flag from another set.
+const evidenceKindFlags = {
 	before: [["file", "route", "viewport", "theme", "seed", "browser", "base"]],
 	after: [["file", "route", "viewport", "theme", "seed", "browser", "sha"]],
 	clip: [["file", "route", "caption"]],
@@ -35,16 +35,19 @@ export const evidenceKindFlags = {
 	capture: [["base", "route", "viewport", "theme", "seed", "browser", "time"]],
 } as const;
 
-type Flag = (typeof evidenceKindFlags)[AddEvidenceKind][number][number];
-export type EvidenceArgs = { kind: AddEvidenceKind } & Partial<Record<Flag, string | boolean>>;
-const flags = [...new Set(Object.values(evidenceKindFlags).flat(2))] as Flag[];
+type Flag = (typeof evidenceKindFlags)[EvidenceKind][number][number];
+export type EvidenceArgs = { kind: EvidenceKind } & Partial<Record<Flag, string | boolean>>;
+const allFlags = [...new Set(Object.values(evidenceKindFlags).flat(2))] as Flag[];
+const stdinFlags = ["tail", "before", "after", "table"] as const;
 
 export const validateKindFlags = (args: EvidenceArgs): void => {
 	const variants = evidenceKindFlags[args.kind];
 	const allowed = new Set(variants.flat());
-	const supplied = flags.filter((flag) => args[flag] !== undefined && args[flag] !== false);
+	const supplied = allFlags.filter((flag) => args[flag] !== undefined && args[flag] !== false);
 	const refused = supplied.find((flag) => !allowed.has(flag));
 	if (refused !== undefined) throw usageError(`${args.kind} evidence does not take --${refused}`);
+	if (stdinFlags.filter((flag) => args[flag] === "-").length > 1)
+		throw usageError("only one evidence text flag can read standard input");
 	if (
 		variants.some((variant) => variant.every((flag) => supplied.includes(flag)) && supplied.length === variant.length)
 	)
@@ -53,54 +56,58 @@ export const validateKindFlags = (args: EvidenceArgs): void => {
 	throw usageError(`${args.kind} evidence needs ${needs}`);
 };
 
-type Common = { id: string; evidenceId: string; headSha: string };
-type Built = { record: object; file?: File };
-type Builder = (args: EvidenceArgs, common: Common, file?: File) => Built;
-const text = (args: EvidenceArgs, flag: Flag): string => args[flag] as string;
-const capture = (args: EvidenceArgs) => ({
-	route: text(args, "route"),
-	viewport: text(args, "viewport"),
-	theme: text(args, "theme"),
-	seed: text(args, "seed"),
-	browser: text(args, "browser"),
+type EvidenceKeys = { id: string; evidenceId: string; headSha: string };
+type EvidenceBody = { record: object; file?: File };
+type Builder = (args: EvidenceArgs, keys: EvidenceKeys, file?: File) => EvidenceBody;
+const flagValue = (args: EvidenceArgs, flag: Flag): string => args[flag] as string;
+const captureFields = (args: EvidenceArgs) => ({
+	route: flagValue(args, "route"),
+	viewport: flagValue(args, "viewport"),
+	theme: flagValue(args, "theme"),
+	seed: flagValue(args, "seed"),
+	browser: flagValue(args, "browser"),
 });
-const command = (args: EvidenceArgs) => {
-	const exit = Number(text(args, "exit"));
-	if (!Number.isInteger(exit)) throw usageError("--exit needs an integer");
-	return { command: text(args, "cmd"), exit, tail: text(args, "tail") };
+const commandRun = (args: EvidenceArgs) => {
+	const rawExit = flagValue(args, "exit");
+	if (!/^-?\d+$/.test(rawExit)) throw usageError("--exit needs an integer");
+	return { command: flagValue(args, "cmd"), exit: Number(rawExit), tail: flagValue(args, "tail") };
 };
-const withFile = (record: object, file?: File): Built => ({ record, file });
+const withFile = (record: object, file?: File): EvidenceBody => ({ record, file });
 
-const builders: Record<AddEvidenceKind, Builder> = {
-	before: (args, _common, file) => withFile({ ...capture(args), base: text(args, "base") }, file),
-	after: (args, _common, file) => withFile(capture(args), file),
-	capture: (args, common) => ({
+const builders: Record<EvidenceKind, Builder> = {
+	before: (args, _keys, file) => withFile({ ...captureFields(args), base: flagValue(args, "base") }, file),
+	after: (args, _keys, file) => withFile(captureFields(args), file),
+	capture: (args, keys) => ({
 		record: {
-			headSha: common.headSha,
-			baseSha: text(args, "base"),
-			...capture(args),
-			capturedAt: text(args, "time"),
+			headSha: keys.headSha,
+			baseSha: flagValue(args, "base"),
+			...captureFields(args),
+			capturedAt: flagValue(args, "time"),
 		},
 	}),
-	clip: (args, _common, file) => withFile({ route: text(args, "route"), caption: text(args, "caption") }, file),
-	console: (_args, _common, file) => withFile({}, file),
-	verify: (args) => ({ record: command(args) }),
-	equivalence: (args) => ({ record: command(args) }),
+	clip: (args, _keys, file) => withFile({ route: flagValue(args, "route"), caption: flagValue(args, "caption") }, file),
+	console: (_args, _keys, file) => withFile({}, file),
+	verify: (args) => ({ record: commandRun(args) }),
+	equivalence: (args) => ({ record: commandRun(args) }),
 	test: (args) => ({
 		record:
 			args.none === true
-				? { none: true, reason: text(args, "reason") }
-				: { name: text(args, "name"), failsOn: text(args, "fails-on"), passesOn: text(args, "passes-on") },
+				? { none: true, reason: flagValue(args, "reason") }
+				: {
+						name: flagValue(args, "name"),
+						failsOn: flagValue(args, "fails-on"),
+						passesOn: flagValue(args, "passes-on"),
+					},
 	}),
 	contract: (args) => ({
-		record: args.none === true ? { none: true } : { before: text(args, "before"), after: text(args, "after") },
+		record:
+			args.none === true ? { none: true } : { before: flagValue(args, "before"), after: flagValue(args, "after") },
 	}),
-	migration: (args, _common, file) =>
-		file === undefined ? { record: { table: text(args, "table") } } : withFile({}, file),
-	picture: (args, _common, file) => withFile({ why: text(args, "why") }, file),
+	migration: (args, _keys, file) =>
+		file === undefined ? { record: { table: flagValue(args, "table") } } : withFile({}, file),
+	picture: (args, _keys, file) => withFile({ why: flagValue(args, "why") }, file),
 };
 
-export const evidenceInput = (common: Common, args: EvidenceArgs, file?: File) => {
-	validateKindFlags(args);
-	return EvidenceWriteInputSchema.parse({ ...common, kind: args.kind, ...builders[args.kind](args, common, file) });
+export const evidenceInput = (keys: EvidenceKeys, args: EvidenceArgs, file?: File) => {
+	return EvidenceWriteInputSchema.parse({ ...keys, kind: args.kind, ...builders[args.kind](args, keys, file) });
 };

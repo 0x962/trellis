@@ -1,14 +1,12 @@
-import { readFileSync } from "node:fs";
-import { basename } from "node:path";
 import type { Evidence } from "@trellis/api";
 import { defineCommand } from "citty";
 import { ulid } from "ulid";
 import { clientOf } from "../../client.ts";
-import { contextOf } from "../../context.ts";
-import { fileNotFound, fileUnreadable } from "../../errors.ts";
+import { contextOf, readText } from "../../context.ts";
+import { fileAt } from "../../file.ts";
 import { printRecord, type RecordSpec } from "../../output.ts";
 import { currentHead, resolvePullRequest } from "../pullRequestRef.ts";
-import { addEvidenceKinds, type EvidenceArgs, evidenceInput, validateKindFlags } from "./kinds.ts";
+import { type EvidenceArgs, evidenceInput, evidenceKinds, validateKindFlags } from "./kinds.ts";
 
 const evidenceRecord: RecordSpec<Evidence> = {
 	fields: [
@@ -20,21 +18,11 @@ const evidenceRecord: RecordSpec<Evidence> = {
 	identifier: (row) => row.id,
 };
 
-export const fileAt = (path: string): File => {
-	try {
-		return new File([readFileSync(path)], basename(path));
-	} catch (error) {
-		const failure = error as NodeJS.ErrnoException;
-		if (failure.code === "ENOENT") throw fileNotFound(path);
-		throw fileUnreadable(path, failure.message);
-	}
-};
-
 const add = defineCommand({
 	meta: { name: "add", description: "Add evidence to a pull request head" },
 	args: {
 		ref: { type: "positional", required: true, description: "Pull request number, URL, or owner/repo#123" },
-		kind: { type: "enum", options: [...addEvidenceKinds], required: true, description: "Evidence kind" },
+		kind: { type: "enum", options: [...evidenceKinds], required: true, description: "Evidence kind" },
 		file: { type: "string", description: "File path" },
 		route: { type: "string", description: "Captured route" },
 		viewport: { type: "string", description: "Captured viewport" },
@@ -63,24 +51,23 @@ const add = defineCommand({
 		const args = context.args as unknown as EvidenceArgs & { ref: string };
 		validateKindFlags(args);
 		const file = args.file === undefined ? undefined : fileAt(args.file as string);
-		let stdin: Promise<string> | undefined;
-		const read = (value: string | boolean | undefined) => {
-			if (value !== "-") return Promise.resolve(value);
-			stdin ??= ctx.deps.stdin();
-			return stdin;
-		};
-		const values = {
+		const [tail, before, after, table] = await Promise.all(
+			[args.tail, args.before, args.after, args.table].map((value) =>
+				value === undefined ? undefined : readText(ctx, value as string),
+			),
+		);
+		const argsWithStdin = {
 			...args,
-			tail: await read(args.tail),
-			before: await read(args.before),
-			after: await read(args.after),
-			table: await read(args.table),
+			tail,
+			before,
+			after,
+			table,
 		} as EvidenceArgs;
 		const client = clientOf(ctx);
 		const resolved = await resolvePullRequest(client, args.ref, true);
 		const headSha = args.sha === undefined ? (await currentHead(client, resolved)).sha : (args.sha as string);
 		const row = await client.pullRequests.writeEvidence(
-			evidenceInput({ id: resolved.id, evidenceId: ulid(), headSha }, values, file),
+			evidenceInput({ id: resolved.id, evidenceId: ulid(), headSha }, argsWithStdin, file),
 		);
 		printRecord(ctx.out, ctx.format, row, evidenceRecord);
 	},

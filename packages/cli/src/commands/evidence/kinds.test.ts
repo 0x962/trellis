@@ -1,6 +1,5 @@
 import { expect, test } from "bun:test";
-import { fileAt } from "./evidence.ts";
-import { type AddEvidenceKind, type EvidenceArgs, evidenceInput, evidenceKinds, validateKindFlags } from "./kinds.ts";
+import { type EvidenceArgs, type EvidenceKind, evidenceInput, reviewKinds, validateKindFlags } from "./kinds.ts";
 
 const common = {
 	id: "01M305F0YWET001AED2TE7AZT2",
@@ -8,7 +7,7 @@ const common = {
 	headSha: "head-sha",
 };
 const file = new File(["proof"], "proof.txt");
-const capture = {
+const captureFields = {
 	route: "/reviews/170",
 	viewport: "1440x900",
 	theme: "dark",
@@ -18,14 +17,14 @@ const capture = {
 
 const cases: Array<{ args: EvidenceArgs; record: object; file?: File }> = [
 	{
-		args: { kind: "before", file: "proof.txt", ...capture, base: "base-sha" },
-		record: { ...capture, base: "base-sha" },
+		args: { kind: "before", file: "proof.txt", ...captureFields, base: "base-sha" },
+		record: { ...captureFields, base: "base-sha" },
 		file,
 	},
-	{ args: { kind: "after", file: "proof.txt", ...capture, sha: "head-sha" }, record: capture, file },
+	{ args: { kind: "after", file: "proof.txt", ...captureFields, sha: "head-sha" }, record: captureFields, file },
 	{
-		args: { kind: "clip", file: "proof.txt", route: capture.route, caption: "Open the evidence." },
-		record: { route: capture.route, caption: "Open the evidence." },
+		args: { kind: "clip", file: "proof.txt", route: captureFields.route, caption: "Open the evidence." },
+		record: { route: captureFields.route, caption: "Open the evidence." },
 		file,
 	},
 	{ args: { kind: "console", file: "proof.txt" }, record: {}, file },
@@ -55,8 +54,13 @@ const cases: Array<{ args: EvidenceArgs; record: object; file?: File }> = [
 		record: { command: "bun bench", exit: 0, tail: "same" },
 	},
 	{
-		args: { kind: "capture", base: "base-sha", ...capture, time: "2026-09-20T20:32:08.114Z" },
-		record: { headSha: "head-sha", baseSha: "base-sha", ...capture, capturedAt: "2026-09-20T20:32:08.114Z" },
+		args: { kind: "capture", base: "base-sha", ...captureFields, time: "2026-09-20T20:32:08.114Z" },
+		record: {
+			headSha: "head-sha",
+			baseSha: "base-sha",
+			...captureFields,
+			capturedAt: "2026-09-20T20:32:08.114Z",
+		},
 	},
 ];
 
@@ -72,10 +76,10 @@ for (const item of cases) {
 }
 
 const valid = Object.fromEntries(cases.map((item) => [item.args.kind, item.args])) as Record<
-	AddEvidenceKind,
+	EvidenceKind,
 	EvidenceArgs
 >;
-for (const kind of evidenceKinds) {
+for (const kind of reviewKinds) {
 	test(`${kind} refuses a flag that it does not take`, () => {
 		expect(() => validateKindFlags({ ...valid[kind], time: "2026-09-20T20:32:08.114Z" })).toThrow(
 			`${kind} evidence does not take --time`,
@@ -98,8 +102,12 @@ test("an alternative refuses flags from both forms", () => {
 
 test("an exit code must be an integer", () => {
 	expect(() => evidenceInput(common, { ...valid.verify, exit: "no" })).toThrow("--exit needs an integer");
+	expect(() => evidenceInput(common, { ...valid.verify, exit: "" })).toThrow("--exit needs an integer");
+	expect(() => evidenceInput(common, { ...valid.verify, exit: "0x10" })).toThrow("--exit needs an integer");
 });
 
-test("a missing evidence file is one NOT_FOUND failure", () => {
-	expect(() => fileAt("/tmp/trellis-trl-194-no-such-file")).toThrow("No file at /tmp/trellis-trl-194-no-such-file.");
+test("only one evidence text flag can read standard input", () => {
+	expect(() => validateKindFlags({ kind: "contract", before: "-", after: "-" })).toThrow(
+		"only one evidence text flag can read standard input",
+	);
 });
