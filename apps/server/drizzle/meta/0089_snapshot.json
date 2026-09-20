@@ -1,5 +1,5 @@
 {
-  "id": "9d56d922-aa6f-4ea2-addb-87a6f02bfa1e",
+  "id": "38a1e8d3-3b58-404b-9c68-4f421221f3c3",
   "prevId": "a6bf0616-54e7-4b8e-bfc3-0c8410cffaab",
   "version": "7",
   "dialect": "postgresql",
@@ -1554,6 +1554,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "blob_size": {
+          "name": "blob_size",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mime": {
+          "name": "mime",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "ticket_id": {
           "name": "ticket_id",
           "type": "text",
@@ -1618,6 +1630,7 @@
             }
           ],
           "isUnique": false,
+          "where": "\"epic_resources\".\"blob_sha256\" IS NOT NULL",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -1705,9 +1718,13 @@
           "name": "epic_resources_blob_sha256_check",
           "value": "\"epic_resources\".\"blob_sha256\" IS NULL OR \"epic_resources\".\"blob_sha256\" ~ '^[0-9a-f]{64}$'"
         },
+        "epic_resources_blob_size_check": {
+          "name": "epic_resources_blob_size_check",
+          "value": "\"epic_resources\".\"blob_size\" IS NULL OR \"epic_resources\".\"blob_size\" > 0"
+        },
         "epic_resources_value_check": {
           "name": "epic_resources_value_check",
-          "value": "(\"epic_resources\".\"kind\" = 'doc' AND \"epic_resources\".\"body\" IS NOT NULL AND \"epic_resources\".\"url\" IS NULL AND \"epic_resources\".\"blob_sha256\" IS NULL)\n\t\t\t\tOR (\"epic_resources\".\"kind\" = 'link' AND \"epic_resources\".\"body\" IS NULL AND \"epic_resources\".\"url\" IS NOT NULL AND \"epic_resources\".\"blob_sha256\" IS NULL)\n\t\t\t\tOR (\"epic_resources\".\"kind\" IN ('image', 'file') AND \"epic_resources\".\"body\" IS NULL AND \"epic_resources\".\"url\" IS NULL AND \"epic_resources\".\"blob_sha256\" IS NOT NULL)"
+          "value": "(\"epic_resources\".\"kind\" = 'doc' AND \"epic_resources\".\"body\" IS NOT NULL AND \"epic_resources\".\"url\" IS NULL AND \"epic_resources\".\"blob_sha256\" IS NULL AND \"epic_resources\".\"blob_size\" IS NULL AND \"epic_resources\".\"mime\" IS NULL)\n\t\t\t\tOR (\"epic_resources\".\"kind\" = 'link' AND \"epic_resources\".\"body\" IS NULL AND \"epic_resources\".\"url\" IS NOT NULL AND \"epic_resources\".\"blob_sha256\" IS NULL AND \"epic_resources\".\"blob_size\" IS NULL AND \"epic_resources\".\"mime\" IS NULL)\n\t\t\t\tOR (\"epic_resources\".\"kind\" IN ('image', 'file') AND \"epic_resources\".\"body\" IS NULL AND \"epic_resources\".\"url\" IS NULL AND \"epic_resources\".\"blob_sha256\" IS NOT NULL AND \"epic_resources\".\"blob_size\" IS NOT NULL AND \"epic_resources\".\"mime\" IS NOT NULL)"
         }
       },
       "isRLSEnabled": false

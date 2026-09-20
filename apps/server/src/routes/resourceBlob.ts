@@ -1,24 +1,18 @@
+import type { ResourceBlobFile } from "@trellis/api";
 import type { Context } from "hono";
 import type { Config } from "../config.ts";
 import type { RequestContext } from "../context.ts";
 import type { ServiceTransport } from "../db/transport.ts";
 import { createDbTiming, serverTimingHeader } from "../serverTiming.ts";
+import { contentDisposition } from "../services/attachments.ts";
 import { blobPath } from "../storage/blobs.ts";
-
-type BlobResult = {
-	sha256: string;
-	name: string;
-	mime: string;
-	size: number;
-	disposition: string;
-};
 
 export const resourceBlobRoute =
 	({ config, transport }: { config: Config; transport: ServiceTransport }) =>
 	async (c: Context) => {
 		const ctx: RequestContext = { actor: null, session: null, reqId: c.get("requestId"), now: new Date() };
 		const timing = createDbTiming();
-		const blob = (await transport.call("resources.blob", ctx, { id: c.req.param("id") }, timing)) as BlobResult;
+		const blob = (await transport.call("resources.blob", ctx, { id: c.req.param("id") }, timing)) as ResourceBlobFile;
 		const etag = `"${blob.sha256}"`;
 		const headers: Record<string, string> = {
 			etag,
@@ -33,7 +27,7 @@ export const resourceBlobRoute =
 				...headers,
 				"content-type": blob.mime,
 				"content-length": String(blob.size),
-				"content-disposition": blob.disposition,
+				"content-disposition": contentDisposition(blob.name, blob.mime),
 			},
 		});
 	};

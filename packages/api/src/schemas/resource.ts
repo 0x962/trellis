@@ -5,7 +5,6 @@ import { EPIC_DESCRIPTION_MAX } from "./epic.ts";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 export const ResourceKindSchema = z.enum(["doc", "link", "image", "file"]);
-export type ResourceKind = z.infer<typeof ResourceKindSchema>;
 
 export const ResourceNameSchema = z
 	.string()
@@ -24,6 +23,13 @@ export const ResourceBlobSchema = z.object({
 	size: z.number().int().nonnegative(),
 });
 
+export type ResourceBlobFile = {
+	sha256: string;
+	name: string;
+	mime: string;
+	size: number;
+};
+
 export const ResourceSchema = z.object({
 	id: UlidSchema,
 	epicId: UlidSchema,
@@ -40,7 +46,7 @@ export const ResourceSchema = z.object({
 });
 export type Resource = z.infer<typeof ResourceSchema>;
 
-const addBase = {
+const sharedAddFields = {
 	epic: EpicRefStringSchema,
 	name: ResourceNameSchema,
 	ticket: TicketRefStringSchema.optional(),
@@ -48,15 +54,14 @@ const addBase = {
 
 export const ResourceAddInputSchema = z.discriminatedUnion("kind", [
 	z.strictObject({
-		...addBase,
+		...sharedAddFields,
 		kind: z.literal("doc"),
 		body: z.string().max(EPIC_DESCRIPTION_MAX),
 	}),
-	z.strictObject({ ...addBase, kind: z.literal("link"), url: ResourceUrlSchema }),
-	z.strictObject({ ...addBase, kind: z.literal("image"), file: z.file().min(1) }),
-	z.strictObject({ ...addBase, kind: z.literal("file"), file: z.file().min(1) }),
+	z.strictObject({ ...sharedAddFields, kind: z.literal("link"), url: ResourceUrlSchema }),
+	z.strictObject({ ...sharedAddFields, kind: z.literal("image"), file: z.file().min(1) }),
+	z.strictObject({ ...sharedAddFields, kind: z.literal("file"), file: z.file().min(1) }),
 ]);
-export type ResourceAddInput = z.input<typeof ResourceAddInputSchema>;
 
 export const ResourceListInputSchema = z.strictObject({
 	epic: EpicRefStringSchema,

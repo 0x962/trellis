@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ResourceAddInputSchema } from "@trellis/api";
@@ -137,6 +137,9 @@ test("stores an image and returns its evidence pull request", async () => {
 		${ulid()}, ${pullRequestId}, 'head', 'picture', '{}'::jsonb, ${resource.blob!.sha256},
 		${actor.name}, ${actor.kind}, ${now}
 	)`);
+	await db.execute(sql`INSERT INTO ticket_pull_requests (
+		ticket_id, pull_request_id, source, actor_name, actor_kind, created_at
+	) VALUES (${ticketId}, ${pullRequestId}, 'manual', ${actor.name}, ${actor.kind}, ${now})`);
 
 	const found = await inTx((tx) => list(context, tx, { epic: epicId }));
 	expect(found.find((item) => item.id === resource.id)).toMatchObject({
@@ -156,6 +159,10 @@ test("stores an image and returns its evidence pull request", async () => {
 	expect(response.headers.get("content-security-policy")).toBe("sandbox");
 	expect(response.headers.get("content-type")).toBe("image/png");
 	expect(await response.text()).toBe("image");
+	await unlink(blobPath(home, resource.blob!.sha256));
+	expect(
+		(await inTx((tx) => list(context, tx, { epic: epicId }))).find((item) => item.id === resource.id)?.blob?.size,
+	).toBe(5);
 });
 
 test("stores and removes a file", async () => {
@@ -168,6 +175,10 @@ test("stores and removes a file", async () => {
 		}),
 	);
 	const path = blobPath(home, resource.blob!.sha256);
+	expect(await inTx((tx) => readBlob(context, tx, { id: resource.id }))).toMatchObject({
+		mime: "text/plain",
+		size: 7,
+	});
 	expect(existsSync(path)).toBe(true);
 	expect(await gcBlobs(context, [resource.blob!.sha256])).toEqual({ removed: [] });
 	expect(await inTx((tx) => remove(context, tx, { id: resource.id }))).toEqual({ deleted: resource.id });
