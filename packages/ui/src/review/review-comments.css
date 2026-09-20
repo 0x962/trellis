@@ -588,6 +588,43 @@
 	flex: 1;
 	min-width: 0;
 }
+/* The verdict bar sits under the scrolling column, so its controls stay on
+   screen. It takes the width of the column above it. */
+.review-verdict-bar {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	width: calc(100% - 56px);
+	max-width: calc(var(--review-column-width) - 56px);
+	margin: 0 auto 12px;
+	padding: 8px 8px 8px 16px;
+	border: 0.5px solid var(--border);
+	border-radius: var(--radius-md);
+	background: var(--surface);
+	font-size: 13px;
+}
+.review-verdict-bar-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.review-verdict-bar-text {
+	flex: 1;
+	min-width: 0;
+	font-variant-numeric: tabular-nums;
+}
+.review-verdict-bar-unmet {
+	color: var(--fg-muted);
+	font-size: 12px;
+}
+.review-merge-unmet {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding-left: 16px;
+	list-style: disc;
+	font-size: 13px;
+}
 .review-apply-form {
 	display: flex;
 	flex-direction: column;

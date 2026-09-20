@@ -1,13 +1,13 @@
 import { GithubLogo } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ReviewRevision, ReviewThread } from "@trellis/api";
-import { ConfirmDialog, IconButton, Menu, Tooltip, toast } from "@trellis/ui";
+import { Button, ConfirmDialog, IconButton, Menu, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
-import { MergeControl } from "./components/MergeControl";
 import { ReviewerPicker } from "./components/ReviewerPicker";
 import { ReviewSubmit } from "./components/ReviewSubmit";
 import {
+	mergeMenuActions,
 	overflowActions,
 	primaryReviewAction,
 	type ReviewAction,
@@ -35,7 +35,7 @@ export function ReviewHeaderActions({
 	showReview: boolean;
 	onDone: () => void;
 }) {
-	const { client, orpc } = useApp();
+	const { client, orpc, queryClient } = useApp();
 	const [closeOpen, setCloseOpen] = useState(false);
 	const [metadataRequested, setMetadataRequested] = useState(false);
 	const meta = revision.meta as Meta;
@@ -49,6 +49,7 @@ export function ReviewHeaderActions({
 		mutationFn: (next: ReviewAction) => client.reviews.action({ pr, headSha: revision.headSha, action: next }),
 		onSuccess: () => {
 			setCloseOpen(false);
+			void queryClient.invalidateQueries({ queryKey: orpc.reviews.metadata.key() });
 			onDone();
 		},
 		onError: (error) => toast.error("The pull request action failed", { description: error.message }),
@@ -60,15 +61,11 @@ export function ReviewHeaderActions({
 				<>
 					<ReviewerPicker pr={pr} author={meta.author?.login} requests={meta.reviewRequests ?? []} onDone={onDone} />
 					{showReview && <ReviewSubmit pr={pr} revision={revision} openThreads={openThreads} onDone={onDone} />}
-					<MergeControl
-						pr={pr}
-						revision={revision}
-						meta={meta}
-						extra={extra}
-						metadataPending={metadataRequested && metadata.isPending}
-						onMenuOpen={() => setMetadataRequested(true)}
-						onDone={onDone}
-					/>
+					{primary === "ready" && (
+						<Button variant="primary" processing={action.isPending} onClick={() => action.mutate("ready")}>
+							Mark ready for review
+						</Button>
+					)}
 				</>
 			)}
 			<Tooltip content="Open pull request on GitHub">
@@ -85,12 +82,14 @@ export function ReviewHeaderActions({
 						label="More pull request actions"
 						triggerTooltip="More actions"
 						onOpenChange={(open) => open && setMetadataRequested(true)}
-						items={overflowActions(meta, extra).map((item) => ({
-							label: item.label,
-							danger: item.action === "close",
-							disabled: action.isPending,
-							onSelect: () => (item.action === "close" ? setCloseOpen(true) : action.mutate(item.action)),
-						}))}
+						items={[...(primary === "merge" ? mergeMenuActions(meta, extra) : []), ...overflowActions(meta, extra)].map(
+							(item) => ({
+								label: item.label,
+								danger: item.action === "close",
+								disabled: action.isPending,
+								onSelect: () => (item.action === "close" ? setCloseOpen(true) : action.mutate(item.action)),
+							}),
+						)}
 					/>
 					<ConfirmDialog
 						open={closeOpen}

@@ -5,7 +5,7 @@ import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
 import { ConditionsBlock } from "../ConditionsBlock";
-import type { BaseCondition } from "../ConditionsBlock/conditionLines/conditionLines";
+import { type BaseCondition, unmetConditions } from "../ConditionsBlock/conditionLines/conditionLines";
 import { EvidenceStrip } from "../EvidenceStrip";
 import { FileRiskGroups } from "../FileRiskGroups";
 import type { ReadMarkFile } from "../FileRiskGroups/readMarks/readMarks";
@@ -16,7 +16,12 @@ import { ReviewDiscussion } from "../ReviewDiscussion/ReviewDiscussion";
 import { ReviewFocusList } from "../ReviewFocusList";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
 import { ReviewStack } from "../ReviewStack/ReviewStack";
+import {
+	primaryReviewAction,
+	type ReviewActionMeta,
+} from "../ReviewSummary/components/ReviewHeaderActions/reviewActions";
 import { ReviewSummary } from "../ReviewSummary/ReviewSummary";
+import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
 import { ReviewPageSkeleton } from "./components/ReviewPageSkeleton";
 import { TurnLine } from "./components/TurnLine";
@@ -143,6 +148,9 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	// the tickets it waits on. `prRow` is the fallback for a pull request that
 	// no ticket links.
 	const turnInput = ticket.data ?? prRow;
+	// While the poller has no risk answers, nobody measured the conditions, so
+	// the bar says so and does not read as all met.
+	const unmet = conditions === null ? ["conditions unknown"] : unmetConditions(conditions);
 	const ref = reviewRef(pr);
 	return (
 		<ReviewApplyContext.Provider value={applyState}>
@@ -261,6 +269,15 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						/>
 					</div>
 				</div>
+				{displayRevision && primaryReviewAction(displayRevision.meta as ReviewActionMeta) === "merge" && (
+					<VerdictBar
+						pr={pr}
+						revision={displayRevision}
+						drafts={revisionThreads.filter((thread) => thread.status === "open").length}
+						unmet={unmet}
+						onDone={() => void status.refetch()}
+					/>
+				)}
 				{batch.size > 0 && (
 					<ReviewBatchBar
 						count={batch.size}

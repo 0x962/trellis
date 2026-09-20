@@ -185,24 +185,34 @@ const ancestorsValue = (ancestors: Conditions["ancestors"]) => {
 	return ancestors.map((ancestor) => `${ancestor.identifier} ${ancestor.merged ? "merged" : "open"}`).join(" · ");
 };
 
-// The size, the risk answers and the base state describe the change. They stop
-// no merge, so they stay out of this list.
-const hasOpenCondition = (conditions: Conditions) =>
-	[
-		conditions.checks.fail > 0,
-		conditions.checks.pending > 0,
-		conditions.threads > 0,
-		conditions.tests === null || (conditions.tests.count === 0 && !conditions.tests.noneApplies),
-		conditions.evidence === null || conditions.evidence.present < conditions.evidence.required,
-		conditions.flows.newest.includes("running"),
-		conditions.flows.newest.includes("failed"),
-		conditions.ancestors.some((ancestor) => !ancestor.merged),
-	].some(Boolean);
+const counted = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+
+const flowCount = (flows: Conditions["flows"], word: FlowWord) => flows.newest.filter((run) => run === word).length;
+
+// Each condition that stops a merge, in the words of one short phrase, such as
+// "1 check failed" or "1 of 4 evidence". The size, the risk answers and the
+// base state describe the change. They stop no merge, so they stay out of
+// this list.
+export function unmetConditions(conditions: Conditions): string[] {
+	const { checks, tests, evidence, flows } = conditions;
+	return [
+		checks.fail > 0 && counted(checks.fail, "check failed", "checks failed"),
+		checks.pending > 0 && counted(checks.pending, "check pending", "checks pending"),
+		conditions.threads > 0 && counted(conditions.threads, "open thread", "open threads"),
+		tests === null && "tests unknown",
+		tests !== null && tests.count === 0 && !tests.noneApplies && "no test registered",
+		evidence === null && "evidence unknown",
+		evidence !== null && evidence.present < evidence.required && `${evidence.present} of ${evidence.required} evidence`,
+		flowCount(flows, "running") > 0 && counted(flowCount(flows, "running"), "flow running", "flows running"),
+		flowCount(flows, "failed") > 0 && counted(flowCount(flows, "failed"), "flow failed", "flows failed"),
+		...conditions.ancestors.map((ancestor) => !ancestor.merged && `${ancestor.identifier} not merged`),
+	].filter((phrase): phrase is string => phrase !== false);
+}
 
 // The word after "READY TO MERGE".
 export function mergeReadiness(conditions: Conditions): ConditionsReadiness {
 	if (conditions.merged) return "merged";
-	return hasOpenCondition(conditions) ? "not yet" : "yes";
+	return unmetConditions(conditions).length > 0 ? "not yet" : "yes";
 }
 
 export function conditionLines(conditions: Conditions): Array<ConditionLine & { label: ConditionLabel }> {
