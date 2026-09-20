@@ -116,7 +116,9 @@ export function projectRun(run: StoredRun, sessions: RuntimeProcessStatus[], hom
 			attention: process.agent?.attention,
 			controllable: process.controllable,
 			activity: process.activity,
-			lastMessage: process.agent?.lastMessage ?? null,
+			lastMessage: process.agent?.lastMessage
+				? { text: process.agent.lastMessage.text, at: process.agent.lastMessage.at }
+				: null,
 			// A tool input or output can hold a full file, so an AgentRun observation keeps only the tool state and times.
 			lastTool: process.agent?.lastTool
 				? {

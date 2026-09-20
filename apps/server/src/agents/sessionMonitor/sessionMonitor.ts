@@ -12,7 +12,7 @@ const fingerprint = (session: AgentActivity) =>
 		outcome: session.run.observation?.outcome,
 		controllable: session.run.observation?.controllable,
 		lastMessageAt: session.run.observation?.lastMessage?.at,
-		lastToolAt: session.run.observation?.lastTool?.updatedAt,
+		lastToolUpdatedAt: session.run.observation?.lastTool?.updatedAt,
 		requests: session.run.observation?.attention?.requests,
 		completion: session.run.observation?.attention?.completion,
 		failure: session.run.observation?.attention?.failure,

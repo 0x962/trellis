@@ -1,11 +1,37 @@
 import { expect, test } from "bun:test";
 import { AgentRunSchema } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
-import { session } from "../../../../../packages/api/src/sessionStatus/fixture.ts";
 import { projectRun } from "./liveState.ts";
+import type { StoredRun } from "./queries.ts";
 
-const at = "2026-09-18T12:00:00.000Z";
-const later = "2026-09-18T12:00:01.000Z";
+const started = "2026-09-18T12:00:00.000Z";
+const updated = "2026-09-18T12:00:01.000Z";
+
+const run: StoredRun = {
+	id: "01J00000000000000000000000",
+	seenAttention: { attemptId: null, sequence: 0 },
+	name: "test",
+	accountId: null,
+	runtime: "native",
+	harness: null,
+	kind: "session",
+	instruction: "",
+	projectId: null,
+	projectPath: "",
+	ticketId: null,
+	ticketIdentifier: null,
+	ticketTitle: null,
+	ticketStatusCategory: null,
+	workspaceId: "/tmp",
+	terminalId: "attempt",
+	url: null,
+	error: null,
+	sessionId: "conversation",
+	sessionLost: false,
+	createdAt: started,
+	updatedAt: started,
+	closedAt: null,
+};
 
 const process = (): RuntimeProcessStatus => ({
 	id: "attempt",
@@ -13,7 +39,7 @@ const process = (): RuntimeProcessStatus => ({
 	pid: 123,
 	mode: "pty",
 	status: "running",
-	startedAt: at,
+	startedAt: started,
 	endedAt: null,
 	exitCode: null,
 	error: null,
@@ -28,40 +54,33 @@ const process = (): RuntimeProcessStatus => ({
 			name: "Read",
 			input: { file: "whole input" },
 			output: { file: "whole output" },
-			startedAt: at,
-			updatedAt: later,
+			startedAt: started,
+			updatedAt: updated,
 			status: "completed",
 			error: null,
 		},
-		lastMessage: { text: "Done", at: later },
+		lastMessage: { text: "Done", at: updated },
 		error: null,
 		outcome: null,
 	},
 	result: null,
 	acknowledgedMessageIds: ["attempt"],
-	activity: { state: "working", updatedAt: later },
-	checkedAt: later,
+	activity: { state: "working", updatedAt: updated },
+	checkedAt: updated,
 	controllable: true,
 	process: null,
 	launch: null,
 });
 
-test("projectRun forwards a bounded last message and last tool", () => {
-	const projected = projectRun(
-		{
-			...session().run,
-			id: "01J00000000000000000000000",
-			closedAt: null,
-		},
-		[process()],
-	);
+test("projectRun forwards the last message and the last tool without the tool input and output", () => {
+	const projected = projectRun(run, [process()]);
 
-	expect(projected.observation?.lastMessage).toEqual({ text: "Done", at: later });
+	expect(projected.observation?.lastMessage).toEqual({ text: "Done", at: updated });
 	expect(projected.observation?.lastTool).toEqual({
 		name: "Read",
 		status: "completed",
-		startedAt: at,
-		updatedAt: later,
+		startedAt: started,
+		updatedAt: updated,
 	});
 	expect(projected.observation?.lastTool).not.toHaveProperty("input");
 	expect(projected.observation?.lastTool).not.toHaveProperty("output");
