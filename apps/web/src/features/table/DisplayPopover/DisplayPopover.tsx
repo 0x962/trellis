@@ -3,11 +3,14 @@ import { cx, DisplayPopover as DisplayOptions, Segmented, Select, Switch } from 
 import { type Density, uiActions, useUiStore } from "../../../stores/uiStore";
 import type { Group, View } from "../../filters/grammar";
 import { alwaysVisible, type ColumnId, columnLabels, columnOrder } from "../columns";
-import { columnVisibility } from "../utils/columnVisibility";
+import { columnVisibility, routeShows, type TableRoute } from "../utils/columnVisibility";
 
 export type DisplayPopoverProps = {
 	// The pathname the column and group choices are stored under.
 	routeKey: string;
+	// The kind of table the route draws. The popover offers the columns of
+	// that kind alone.
+	route?: TableRoute;
 	// True when the scope holds sub-projects: the project column then shows.
 	showProject: boolean;
 	// True when the route fixes the epic, as the epic page does. Every row
@@ -55,6 +58,7 @@ const overline = "text-xs font-medium tracking-[0.04em] text-fg-faint uppercase"
 // URL, so a link carries them.
 export function DisplayPopover({
 	routeKey,
+	route = "list",
 	showProject,
 	epicFixed = false,
 	search,
@@ -64,8 +68,10 @@ export function DisplayPopover({
 	sort,
 }: DisplayPopoverProps) {
 	const stored = useUiStore((state) => state.columnVisibility[routeKey]);
-	const visibility = columnVisibility(stored, showProject);
-	const hideable = columnOrder.filter((id) => !alwaysVisible.includes(id) && !(epicFixed && id === "epic"));
+	const visibility = columnVisibility(stored, showProject, route);
+	const hideable = columnOrder.filter(
+		(id) => !alwaysVisible.includes(id) && !(epicFixed && id === "epic") && routeShows(id, route),
+	);
 	const groupItems = epicFixed ? groups.filter((entry) => entry.value !== "epic") : groups;
 	// The table shows the Done and Canceled rows under the status grouping,
 	// and under the milestone grouping of one epic.

@@ -11,6 +11,8 @@ export type ColumnId =
 	| "status"
 	| "pr"
 	| "project"
+	| "waits"
+	| "releases"
 	| "actor"
 	| "updated"
 	| "created"
@@ -29,6 +31,8 @@ export const columnOrder: readonly ColumnId[] = [
 	"status",
 	"pr",
 	"project",
+	"waits",
+	"releases",
 	"actor",
 	"updated",
 	"created",
@@ -47,6 +51,8 @@ export const columnLabels: Record<ColumnId, string> = {
 	status: "Status",
 	pr: "PR",
 	project: "Project",
+	waits: "Waits on",
+	releases: "Releases",
 	actor: "Last actor",
 	updated: "Updated",
 	created: "Created",
@@ -68,6 +74,10 @@ export const columnWidths: Record<ColumnId, string> = {
 	status: "140px",
 	pr: "72px",
 	project: "120px",
+	// Two identifiers and the separator between them, at 12 px mono. A third
+	// identifier comes out and the cell prints `+1` in its place.
+	waits: "110px",
+	releases: "40px",
 	actor: "20px",
 	updated: "48px",
 	created: "48px",
@@ -96,14 +106,26 @@ export const buildColumns = () =>
 		),
 	);
 
+// True when the row prints the status icon without the status name. The
+// `waits` cell names every ticket that this ticket must wait for, and the
+// pull request lines under the row carry the state of the work, so the
+// status name repeats what the row already says. Only the epic route shows
+// the `waits` column.
+export const statusGlyphOnly = (ids: readonly string[]) => ids.includes("waits");
+
+// The status cell drops its name in two places: on a screen under 768 px,
+// and on a row where `statusGlyphOnly` is true. The track then holds the
+// icon button, which is 28 px wide, the smallest hit area a pointer gets.
+const glyphWidths: Partial<Record<ColumnId, string>> = { status: "28px" };
+
 // The `grid-template-columns` of a row and of the header.
-export const gridTemplate = (ids: readonly string[]) => ids.map((id) => columnWidths[id as ColumnId]).join(" ");
+export const gridTemplate = (ids: readonly string[]) => {
+	const widths = statusGlyphOnly(ids) ? { ...columnWidths, ...glyphWidths } : columnWidths;
+	return ids.map((id) => widths[id as ColumnId]).join(" ");
+};
 
 // The columns a screen under 768 px hides, so the title keeps room to read.
 export const narrowHidden: readonly ColumnId[] = ["labels", "pr", "project", "actor"];
-
-// Under 768 px the status cell shows its icon alone, in its 28 px button.
-const narrowWidths: Partial<Record<ColumnId, string>> = { status: "28px" };
 
 // The tracks of a row and of the header as two custom properties, one for
 // 768 px and up and one for a narrower screen. `gridColumnsClass` picks one
@@ -114,7 +136,7 @@ export const gridStyle = (ids: readonly string[]) =>
 		"--grid-wide": gridTemplate(ids),
 		"--grid-narrow": ids
 			.filter((id) => !narrowHidden.includes(id as ColumnId))
-			.map((id) => narrowWidths[id as ColumnId] ?? columnWidths[id as ColumnId])
+			.map((id) => glyphWidths[id as ColumnId] ?? columnWidths[id as ColumnId])
 			.join(" "),
 	}) as CSSProperties;
 

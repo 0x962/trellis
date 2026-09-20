@@ -1,0 +1,1 @@
+export { ReleasesCell } from "./ReleasesCell";

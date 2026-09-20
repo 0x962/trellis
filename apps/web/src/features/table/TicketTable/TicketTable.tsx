@@ -27,7 +27,7 @@ import type { EditField, RowChange } from "../Row";
 import { TableEmpty } from "../TableEmpty";
 import { TableFooter } from "../TableFooter";
 import type { TicketAgentLine } from "../utils/agentLines";
-import { autoHide, columnVisibility } from "../utils/columnVisibility";
+import { autoHide, columnVisibility, type TableRoute } from "../utils/columnVisibility";
 import { epicState } from "../utils/epicState";
 import { flattenGroups, type TableGroup } from "../utils/flattenGroups";
 import { labelStates } from "../utils/labelStates";
@@ -41,6 +41,9 @@ export type TicketTableProps = {
 	project?: string;
 	// The pathname, which keys the stored preferences.
 	routeKey: string;
+	// The kind of table this route draws. Only the epic route shows the
+	// `waits` and the `releases` columns.
+	route?: TableRoute;
 	search: Partial<View>;
 	onOpenPage: (identifier: string) => void;
 	emptyState?: ReactNode;
@@ -66,6 +69,7 @@ const focusFilter = () => document.querySelector<HTMLElement>("[data-filter-bar]
 export function TicketTable({
 	project,
 	routeKey,
+	route = "list",
 	search,
 	onOpenPage,
 	emptyState,
@@ -111,8 +115,8 @@ export function TicketTable({
 	const byId = useMemo(() => new Map(tickets.map((ticket) => [ticket.id, ticket])), [tickets]);
 	const stored = useUiStore((state) => state.columnVisibility[routeKey]);
 	const visibility = useMemo(
-		() => autoHide(columnVisibility(stored, showProject), { group: view.group, rows: loaded }),
-		[stored, showProject, view.group, loaded],
+		() => autoHide(columnVisibility(stored, showProject, route), { group: view.group, rows: loaded }),
+		[stored, showProject, route, view.group, loaded],
 	);
 	const table = useTable({
 		features: tableFeatureSet,

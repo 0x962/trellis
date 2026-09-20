@@ -12,7 +12,7 @@ import { type MouseEvent, memo, type ReactNode, useRef } from "react";
 import { compactRelativeTime } from "../../../lib/format";
 import type { Density } from "../../../stores/uiStore";
 import { ActorAvatar } from "../../agents/ActorAvatar";
-import { type ColumnId, gridColumnsClass, gridStyle, narrowHidden } from "../columns";
+import { type ColumnId, gridColumnsClass, gridStyle, narrowHidden, statusGlyphOnly } from "../columns";
 import { EpicCell } from "./components/EpicCell";
 import { HiddenPickers } from "./components/HiddenPickers";
 import { LabelsCell } from "./components/LabelsCell";
@@ -20,9 +20,11 @@ import { PhoneRow } from "./components/PhoneRow";
 import { PrCell } from "./components/PrCell";
 import { PriorityCell } from "./components/PriorityCell";
 import { ProjectCell } from "./components/ProjectCell";
+import { ReleasesCell } from "./components/ReleasesCell";
 import { SelectCell } from "./components/SelectCell";
 import { StatusCell } from "./components/StatusCell";
 import { TitleCell } from "./components/TitleCell";
+import { WaitsCell } from "./components/WaitsCell";
 
 // The inline editors a row opens.
 export type EditField = "status" | "priority" | "project" | "parent" | "labels" | "epic";
@@ -143,6 +145,7 @@ export const Row = memo(function Row({
 				status={ticket.status}
 				statuses={statuses}
 				progress={ticket.childCount === 0 ? undefined : ticket.childDoneCount / ticket.childCount}
+				glyphOnly={statusGlyphOnly(columns)}
 				open={editing === "status"}
 				onOpenChange={editingChange("status")}
 				onPick={(status) => change({ status })}
@@ -162,6 +165,8 @@ export const Row = memo(function Row({
 				finalFocus={element}
 			/>
 		),
+		waits: <WaitsCell waitsOn={ticket.waitsOn} ready={ticket.ready} />,
+		releases: <ReleasesCell releases={ticket.releases} />,
 		actor:
 			lastActor === null || lastActor.kind === "system" ? null : <ActorAvatar actor={lastActor} ticketId={ticket.id} />,
 		updated: <span className="text-sm text-fg-muted tabular">{compactRelativeTime(ticket.updatedAt)}</span>,
