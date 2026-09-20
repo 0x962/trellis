@@ -11,7 +11,7 @@ import {
 } from "./invalidationCoalescer.ts";
 import { realScheduler, type Scheduler } from "./scheduler.ts";
 import type { CommentThread } from "./schemas/comment.ts";
-import type { Ticket } from "./schemas/ticket.ts";
+import { summaryOf, type Ticket, ticketContractFields } from "./schemas/ticket.ts";
 import { createSettleCheck } from "./settleCheck.ts";
 import {
 	holdsTicketRow,
@@ -53,15 +53,13 @@ const parentFields: ReadonlySet<string> = new Set(["parent", "status", "complete
 // these fields.
 const epicFields: ReadonlySet<string> = new Set(["epic", "milestone", "status", "completedAt"]);
 
-const detailFields: ReadonlySet<string> = new Set([
-	"description",
-	"result",
-	"files",
-	"leaveAlone",
-	"verify",
-	"reviewFocus",
-	"outcome",
-]);
+// A ticket event carries only the summary. A change to one of these fields
+// is not in the summary, so the detail query must load the row again.
+const detailFields: ReadonlySet<string> = new Set(["description", ...ticketContractFields, "outcome"]);
+
+// A summary event cannot patch these values. Remove the detail so a reader
+// cannot pair old values with the event's newer version.
+const replaceDetailFields: ReadonlySet<string> = new Set([...ticketContractFields, "outcome"]);
 
 type TicketEvent = Extract<TrellisEvent, { type: "ticket.created" | "ticket.updated" | "ticket.deleted" }>;
 
@@ -91,8 +89,7 @@ const toChange = (event: TicketEvent): HeldChange => ({
 // A mutation's response names no fields. The event for the same write
 // carries them, and it arrives held or after the response.
 const toResultChange = (result: Ticket): HeldChange => {
-	const { description, contract, outcome, children, prs, attachments, descriptionStale, ...summary } = result;
-	return { summary, fields: [], deleted: false, created: false, detail: result };
+	return { summary: summaryOf(result), fields: [], deleted: false, created: false, detail: result };
 };
 
 export type EventApplier = {
@@ -103,7 +100,7 @@ export type EventApplier = {
 
 // Cached ticket rows accept only a higher version.
 // `createSettleCheck` refetches rows that miss changes during a request.
-// A change to `description`, `contract`, or `outcome` refetches the detail because a ticket event carries only the summary.
+// A change to a field in `detailFields` refetches the detail, because a ticket event carries only the summary.
 // Ticket writes hold events until the mutation response enters the cache.
 // Deleted ticket IDs block late responses for `TOMBSTONE_MS`.
 export const createEventApplier = (queryClient: QueryClient, options: { scheduler?: Scheduler } = {}): EventApplier => {
@@ -132,7 +129,8 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 	// membership change is recorded and makes counts refetch at settle. A
 	// query that was invalidated before the patch refetches once more after
 	// it, because `setQueryData` clears the invalidated flag. A detail that
-	// took a description event refetches, so the text catches up.
+	// took a change to one of the `detailFields` refetches, so the ticket page
+	// shows the new values.
 	const patchTicket = (change: HeldChange) => {
 		const parentsThatLostAChild: string[] = [];
 		const { id } = change.summary;
@@ -148,6 +146,11 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			}
 			const detail = isDetail(query.queryKey);
 			const own = detail && (data as { id: unknown }).id === id;
+			const replaceDetail = own && change.fields.some((field) => replaceDetailFields.has(field));
+			if (replaceDetail) {
+				queryClient.removeQueries({ queryKey: query.queryKey, exact: true });
+				continue;
+			}
 			const patched = patchTicketQuery(query.queryKey, data, change);
 			if (settles) settle.record(query, change, holdsTicketRow(query.queryKey, data, id));
 			if (patched === undefined) continue;

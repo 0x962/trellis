@@ -24,27 +24,28 @@ const TicketDependencyListSchema = z
 	.max(200, "Name 200 tickets or less.")
 	.refine((refs) => new Set(refs).size === refs.length, "Name each ticket once.");
 
-const ContractValueSchema = z.string().min(1, "Enter a value.");
+const ContractLineSchema = z.string().min(1, "Enter a contract line.");
+const ContractListSchema = z.array(ContractLineSchema).max(200, "Enter 200 contract lines or less.");
 
 export const TicketContractInputSchema = z.strictObject({
 	ticket: TicketRefStringSchema,
-	result: ContractValueSchema,
-	files: z.array(ContractValueSchema),
-	leaveAlone: z.array(ContractValueSchema),
-	verify: z.array(ContractValueSchema),
-	reviewFocus: z.array(ContractValueSchema),
+	result: z.string(),
+	files: ContractListSchema,
+	leaveAlone: ContractListSchema,
+	verify: ContractListSchema,
+	reviewFocus: ContractListSchema,
 	expectedVersion: z.number().int().positive().optional(),
 });
 export type TicketContractInput = z.input<typeof TicketContractInputSchema>;
 
-const sentenceSegmenter = new Intl.Segmenter("en", { granularity: "sentence" });
+let sentenceSegmenter: Intl.Segmenter | undefined;
+const oneSentence = (text: string) => {
+	sentenceSegmenter ??= new Intl.Segmenter("en", { granularity: "sentence" });
+	return [...sentenceSegmenter.segment(text)].length === 1;
+};
 export const TicketOutcomeInputSchema = z.strictObject({
 	ticket: TicketRefStringSchema,
-	text: z
-		.string()
-		.trim()
-		.min(1, "Enter an outcome.")
-		.refine((text) => [...sentenceSegmenter.segment(text)].length === 1, "Enter one sentence."),
+	outcome: z.string().trim().min(1, "Enter an outcome.").refine(oneSentence, "Enter one sentence."),
 	expectedVersion: z.number().int().positive().optional(),
 });
 export type TicketOutcomeInput = z.input<typeof TicketOutcomeInputSchema>;

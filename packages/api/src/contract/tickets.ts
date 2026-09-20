@@ -111,14 +111,14 @@ export const tickets = {
 		})
 		.input(TicketUpdateDependenciesInputSchema)
 		.output(TicketSchema),
-	contract: base
+	setContract: base
 		.errors(pickErrors(["PROJECT_ARCHIVED", "VERSION_CONFLICT"]))
-		.route({ method: "PATCH", path: "/tickets/{ticket}/contract", summary: "Set the contract of a ticket" })
+		.route({ method: "PUT", path: "/tickets/{ticket}/contract", summary: "Set the contract of a ticket" })
 		.input(TicketContractInputSchema)
 		.output(TicketSchema),
-	outcome: base
+	setOutcome: base
 		.errors(pickErrors(["PROJECT_ARCHIVED", "VERSION_CONFLICT"]))
-		.route({ method: "PATCH", path: "/tickets/{ticket}/outcome", summary: "Set the outcome of a ticket" })
+		.route({ method: "PUT", path: "/tickets/{ticket}/outcome", summary: "Set the outcome of a ticket" })
 		.input(TicketOutcomeInputSchema)
 		.output(TicketSchema),
 };

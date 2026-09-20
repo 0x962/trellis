@@ -57,8 +57,6 @@ import type { IoCtx, PrepareCtx } from "./support.ts";
 import { prepareSweep } from "./sweep/prepareSweep.ts";
 import * as system from "./system.ts";
 import { prepareSystemUsage } from "./systemUsage";
-import { contract as setTicketContract } from "./tickets/contract.ts";
-import { outcome as setTicketOutcome } from "./tickets/outcome.ts";
 import * as tickets from "./tickets.ts";
 import * as timeline from "./timeline.ts";
 import { prepareAccounts as prepareUsageAccounts } from "./usage/accounts.ts";
@@ -225,8 +223,8 @@ export const services = {
 	"tickets.delete": core("mutation", tickets.delete),
 	"tickets.importDependencies": core("mutation", tickets.importDependencies),
 	"tickets.updateDependencies": core("mutation", tickets.updateDependencies),
-	"tickets.contract": core("mutation", setTicketContract),
-	"tickets.outcome": core("mutation", setTicketOutcome),
+	"tickets.setContract": core("mutation", tickets.setContract),
+	"tickets.setOutcome": core("mutation", tickets.setOutcome),
 	"timeline.list": core("read", timeline.list),
 	"needsYou.list": core("read", needsYou.list),
 	"needsYou.summary": core("read", needsYou.summary),

@@ -68,10 +68,9 @@ const patchChildren = (data: Ticket, change: TicketChange) => {
 	return children === undefined ? undefined : { ...data, children };
 };
 
-// The detail keeps the fields the summary does not carry: description,
-// children, prs, attachments. A description change is not in the summary.
-// So the detail keeps its old text at the new version, and it carries
-// `descriptionStale` until a refetch replaces the whole entry.
+// The detail keeps the fields the summary does not carry. A description
+// change keeps its old text at the new version and sets `descriptionStale`.
+// A refetch replaces the whole entry and removes the flag.
 const patchDetail = (data: Ticket, change: TicketChange): Ticket | undefined => {
 	if (data.id !== change.summary.id) return patchChildren(data, change);
 	if (change.summary.version <= data.version) return undefined;

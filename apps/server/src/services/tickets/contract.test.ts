@@ -7,7 +7,7 @@ import { createCache } from "../../db/cache.ts";
 import { ticketSummary } from "../../db/queries/ticketGet.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
-import { contract } from "./contract.ts";
+import { setContract } from "./contract.ts";
 import { create } from "./create.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
@@ -52,7 +52,7 @@ test("the contract write stores detail fields and keeps them out of the summary"
 		reviewFocus: ["The detail response holds the paths."],
 		expectedVersion: created.version,
 	};
-	const updated = await run((tx) => contract(ctx, tx, input));
+	const updated = await run((tx) => setContract(ctx, tx, input));
 	expect(updated.contract).toEqual({
 		result: input.result,
 		files: input.files,
@@ -62,6 +62,22 @@ test("the contract write stores detail fields and keeps them out of the summary"
 	});
 	expect(updated.version).toBe(created.version + 1);
 	expect(await run((tx) => ticketSummary(tx, created.id))).not.toHaveProperty("contract");
-	const repeated = await run((tx) => contract(ctx, tx, { ...input, expectedVersion: updated.version }));
+	const activityRows = await db.execute(
+		sql`SELECT field, from_value, to_value FROM activity
+			WHERE ticket_id = ${created.id} AND action = 'ticket.updated' ORDER BY id`,
+	);
+	expect(activityRows.rows).toEqual([{ field: "contract", from_value: null, to_value: null }]);
+	const repeated = await run((tx) => setContract(ctx, tx, { ...input, expectedVersion: updated.version }));
 	expect(repeated.version).toBe(updated.version);
+	const cleared = await run((tx) => setContract(ctx, tx, { ...input, result: "", expectedVersion: repeated.version }));
+	expect(cleared.contract.result).toBe("");
+	await expect(
+		run((tx) =>
+			setContract(ctx, tx, {
+				...input,
+				files: Array.from({ length: 201 }, (_, index) => `file-${index}`),
+				expectedVersion: cleared.version,
+			}),
+		),
+	).rejects.toThrow("Enter 200 contract lines or less.");
 });

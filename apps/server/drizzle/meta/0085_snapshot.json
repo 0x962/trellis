@@ -266,9 +266,9 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
-        "activity_description_check": {
-          "name": "activity_description_check",
-          "value": "\"activity\".\"field\" <> 'description' OR (\"activity\".\"from_value\" IS NULL AND \"activity\".\"to_value\" IS NULL)"
+        "activity_private_values_check": {
+          "name": "activity_private_values_check",
+          "value": "\"activity\".\"field\" NOT IN ('description', 'result', 'outcome') OR (\"activity\".\"from_value\" IS NULL AND \"activity\".\"to_value\" IS NULL)"
         }
       },
       "isRLSEnabled": false

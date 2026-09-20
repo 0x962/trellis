@@ -92,8 +92,7 @@ export const attachmentsOf = async (tx: Tx, ticketId: string): Promise<Attachmen
 	}));
 };
 
-// The `tickets.get` shape contains the summary, description, contract, outcome, children, pull requests, and attachments.
-// The caller resolved the id.
+// The caller resolved the id, so the row exists.
 export const ticketGet = async (tx: Tx, id: string): Promise<Ticket> => {
 	const summary = await ticketSummary(tx, id);
 	const detail = (
