@@ -1,24 +1,25 @@
-import { isAgentWorking, type TicketSummary, turnOf } from "@trellis/api";
+import { isAgentWorking, type TicketSummary, type Turn, turnOf } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../../client.ts";
 import { contextOf } from "../../context.ts";
 import { json } from "../../output.ts";
 import { type ReadyResult, readyGroupOrder, readyText } from "./readyText.ts";
 
-const identifierFor = (ticket: TicketSummary, turn: ReturnType<typeof turnOf>): string => {
-	if (ticket.status.reviewer === "human") return ticket.identifier;
+const nameFor = (ticket: TicketSummary, turn: Turn, hasWorkingRun: boolean): string => {
+	if (hasWorkingRun || ticket.status.reviewer === "human") return ticket.identifier;
 	const pullRequest = ticket.prRows.find((row) => turnOf(row, false) === turn);
 	return pullRequest === undefined ? ticket.identifier : `#${pullRequest.number}`;
 };
 
-export const readyResult = (tickets: TicketSummary[], workingTicketIds: ReadonlySet<string>): ReadyResult => {
+export const readyResultOf = (tickets: TicketSummary[], workingTicketIds: ReadonlySet<string>): ReadyResult => {
 	const readyToStart = tickets.filter((ticket) => turnOf(ticket, workingTicketIds.has(ticket.id)) === "ready");
 	const groups = readyGroupOrder.flatMap(({ turn, label }) => {
-		const identifiers = tickets.flatMap((ticket) => {
-			const ticketTurn = turnOf(ticket, workingTicketIds.has(ticket.id));
-			return ticketTurn === turn ? [identifierFor(ticket, ticketTurn)] : [];
+		const names = tickets.flatMap((ticket) => {
+			const hasWorkingRun = workingTicketIds.has(ticket.id);
+			const ticketTurn = turnOf(ticket, hasWorkingRun);
+			return ticketTurn === turn ? [nameFor(ticket, ticketTurn, hasWorkingRun)] : [];
 		});
-		return identifiers.length === 0 ? [] : [{ turn, label, count: identifiers.length, identifiers }];
+		return names.length === 0 ? [] : [{ turn, label, count: names.length, names }];
 	});
 	return {
 		readyToStart: { count: readyToStart.length, identifiers: readyToStart.map((ticket) => ticket.identifier) },
@@ -44,7 +45,7 @@ export default defineCommand({
 				run.kind === "agent" && run.ticketId !== null && isAgentWorking(run) ? [run.ticketId] : [],
 			),
 		);
-		const result = readyResult(epic.tickets, workingTicketIds);
+		const result = readyResultOf(epic.tickets, workingTicketIds);
 		if (ctx.format.mode === "quiet") {
 			ctx.out.write(`${result.readyToStart.identifiers.join("\n")}${result.readyToStart.count === 0 ? "" : "\n"}`);
 			return;

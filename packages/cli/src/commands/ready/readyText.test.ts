@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { TicketPr, TicketSummary } from "@trellis/api";
-import { readyResult } from "./ready.ts";
+import { readyResultOf } from "./ready.ts";
 import { readyText } from "./readyText.ts";
 
 const pullRequest = (number: number, fields: Partial<TicketPr> = {}): TicketPr =>
@@ -43,12 +43,15 @@ test("prints the nonempty turn groups in fixed order", () => {
 		status: "review" as const,
 		isQuestion: true,
 	};
-	const result = readyResult(
+	const startedBlocker = {
+		identifier: "OP-32",
+		title: "Run the routines",
+		status: "started" as const,
+		isQuestion: false,
+	};
+	const result = readyResultOf(
 		[
-			ticket("OP-34", {
-				category: "todo",
-				waitsOn: [{ ...question, identifier: "OP-32", status: "started", isQuestion: false }],
-			}),
+			ticket("OP-34", { category: "todo", waitsOn: [startedBlocker] }),
 			ticket("OP-40", { category: "todo", waitsOn: [question] }),
 			ticket("OP-53", { category: "review", reviewer: "human" }),
 			ticket("OP-32", { prRows: [pullRequest(55569, { isDraft: true })] }),
@@ -61,10 +64,10 @@ test("prints the nonempty turn groups in fixed order", () => {
 	expect(result).toEqual({
 		readyToStart: { count: 1, identifiers: ["OP-41"] },
 		groups: [
-			{ turn: "waits on a merge", label: "waits on a merge", count: 1, identifiers: ["OP-34"] },
-			{ turn: "waits on your answer", label: "waits on your answer", count: 1, identifiers: ["OP-40"] },
-			{ turn: "you", label: "your turn", count: 1, identifiers: ["OP-53"] },
-			{ turn: "agent", label: "with an agent", count: 1, identifiers: ["#55569"] },
+			{ turn: "waits on a merge", label: "waits on a merge", count: 1, names: ["OP-34"] },
+			{ turn: "waits on your answer", label: "waits on your answer", count: 1, names: ["OP-40"] },
+			{ turn: "you", label: "your turn", count: 1, names: ["OP-53"] },
+			{ turn: "agent", label: "with an agent", count: 1, names: ["#55569"] },
 		],
 	});
 	expect(readyText(result)).toBe(`1 ready to start
@@ -78,6 +81,9 @@ with an agent           1   #55569
 });
 
 test("uses a ticket identifier when a working run holds the turn", () => {
-	const result = readyResult([ticket("OP-32")], new Set(["OP-32"]));
-	expect(result.groups).toEqual([{ turn: "agent", label: "with an agent", count: 1, identifiers: ["OP-32"] }]);
+	const result = readyResultOf(
+		[ticket("OP-32", { prRows: [pullRequest(55569, { isDraft: true })] })],
+		new Set(["OP-32"]),
+	);
+	expect(result.groups).toEqual([{ turn: "agent", label: "with an agent", count: 1, names: ["OP-32"] }]);
 });

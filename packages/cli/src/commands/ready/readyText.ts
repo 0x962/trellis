@@ -8,11 +8,11 @@ export const readyGroupOrder = [
 	{ turn: "github", label: "with GitHub" },
 ] as const satisfies readonly { turn: Turn; label: string }[];
 
-export type ReadyGroup = {
+type ReadyGroup = {
 	turn: (typeof readyGroupOrder)[number]["turn"];
 	label: string;
 	count: number;
-	identifiers: string[];
+	names: string[];
 };
 
 export type ReadyResult = {
@@ -24,7 +24,7 @@ export const readyText = (result: ReadyResult): string => {
 	const countLine = `${result.readyToStart.count} ready to start`;
 	if (result.groups.length === 0) return `${countLine}\n`;
 	const lines = result.groups.map(
-		(group) => `${group.label.padEnd(23)}${String(group.count).padStart(2)}   ${group.identifiers.join(" ")}`,
+		(group) => `${group.label.padEnd(23)}${String(group.count).padStart(2)}   ${group.names.join(" ")}`,
 	);
 	return `${countLine}\n\n${lines.join("\n")}\n`;
 };
