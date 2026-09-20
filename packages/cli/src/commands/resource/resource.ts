@@ -4,7 +4,8 @@ import { clientOf } from "../../client.ts";
 import { type CliContext, contextOf, readText } from "../../context.ts";
 import { usageError } from "../../errors.ts";
 import { fileAt } from "../../file.ts";
-import { printList, printRecord, type RecordSpec } from "../../output.ts";
+import { printList, printRecord } from "../../output.ts";
+import { deletedRecord } from "../delete.ts";
 import { resourceList, resourceRecord } from "./resourceText.ts";
 
 const resourceKinds = ["doc", "link", "image", "file"] as const;
@@ -21,33 +22,32 @@ type ResourceArgs = {
 	file?: string;
 };
 
-const sourceFlag: Record<ResourceKind, SourceFlag> = {
+const sourceFlags: Record<ResourceKind, SourceFlag> = {
 	doc: "body",
 	link: "url",
 	image: "file",
 	file: "file",
 };
 
-const validateSource = (args: ResourceArgs): SourceFlag => {
-	const expected = sourceFlag[args.kind];
+const validateSource = (args: ResourceArgs): void => {
+	const expected = sourceFlags[args.kind];
 	const supplied = (["body", "url", "file"] as const).filter((flag) => args[flag] !== undefined);
 	const refused = supplied.find((flag) => flag !== expected);
 	if (refused !== undefined) throw usageError(`${args.kind} resource does not take --${refused}`);
 	if (!supplied.includes(expected)) throw usageError(`${args.kind} resource needs --${expected}`);
-	return expected;
 };
 
 export const resourceInput = async (ctx: CliContext, args: ResourceArgs, readFile: (path: string) => File = fileAt) => {
 	validateSource(args);
-	const common = { epic: args.epic, kind: args.kind, name: args.name, ticket: args.ticket };
+	const sharedFields = { epic: args.epic, kind: args.kind, name: args.name, ticket: args.ticket };
 	switch (args.kind) {
 		case "doc":
-			return ResourceAddInputSchema.parse({ ...common, body: await readText(ctx, args.body!) });
+			return ResourceAddInputSchema.parse({ ...sharedFields, body: await readText(ctx, args.body!) });
 		case "link":
-			return ResourceAddInputSchema.parse({ ...common, url: args.url });
+			return ResourceAddInputSchema.parse({ ...sharedFields, url: args.url });
 		case "image":
 		case "file":
-			return ResourceAddInputSchema.parse({ ...common, file: readFile(args.file!) });
+			return ResourceAddInputSchema.parse({ ...sharedFields, file: readFile(args.file!) });
 	}
 };
 
@@ -78,11 +78,6 @@ const list = defineCommand({
 		printList(ctx.out, ctx.format, resources, resourceList);
 	},
 });
-
-const deletedRecord: RecordSpec<{ deleted: string }> = {
-	fields: [{ name: "deleted", value: (result) => result.deleted }],
-	identifier: (result) => result.deleted,
-};
 
 const rm = defineCommand({
 	meta: { name: "rm", description: "Remove a resource" },

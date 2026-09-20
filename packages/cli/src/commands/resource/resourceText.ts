@@ -16,7 +16,7 @@ const sourceOf = (resource: Resource): string => {
 const pullRequestOf = (resource: Resource): string =>
 	resource.pullRequestNumber === null ? "-" : `#${resource.pullRequestNumber}`;
 
-const fields = [
+const resourceColumns = [
 	{ name: "kind", value: (resource: Resource) => resource.kind },
 	{ name: "name", value: (resource: Resource) => cell(resource.name) },
 	{ name: "source", value: sourceOf },
@@ -24,11 +24,11 @@ const fields = [
 ];
 
 export const resourceList: ListSpec<Resource> = {
-	columns: fields,
+	columns: resourceColumns,
 	identifier: (resource) => resource.id,
 };
 
 export const resourceRecord: RecordSpec<Resource> = {
-	fields: [{ name: "id", value: (resource) => resource.id }, ...fields],
+	fields: [{ name: "id", value: (resource) => resource.id }, ...resourceColumns],
 	identifier: (resource) => resource.id,
 };
