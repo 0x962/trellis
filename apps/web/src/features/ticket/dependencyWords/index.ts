@@ -1,0 +1,1 @@
+export { dependencyWords } from "./dependencyWords";
