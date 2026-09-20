@@ -20,80 +20,62 @@ export type PrPathResult = {
 };
 
 type Rules = {
-	frontend: RegExp;
-	auth: RegExp;
-	migration: RegExp;
-	dependency: RegExp;
-	sharedType: RegExp;
-	publicApi: RegExp;
-	secret: RegExp;
-	test: RegExp;
-	noise: RegExp;
+	frontendRoot: RegExp;
+	migrationFolder: RegExp;
+	dependencyManifest: RegExp;
+	sharedTypeRoot: RegExp;
+	publicApiRoot: RegExp;
 };
 
-const repositoryRules: Record<string, Rules> = {
+const authPath = /(^|\/)(auth|authentication|authorization|permissions?|rbac|tenancy|private)(\/|[._-])/;
+const sharedTypePath = /(^|\/)(types?|schemas?|contracts?)(\/|[._-])|\.d\.ts$/;
+const publicApiPath = /(^|\/)(api|openapi|routes?|urls?|procedures?)(\/|[._-])/;
+const secretPath =
+	/(^|\/|[._-])(secrets?|credentials?|tokens?|api[_-]?keys?|private[_-]?keys?)(\/|[._-])|(^|\/)\.env($|\.)|\.(pem|key)$/;
+const testPath =
+	/(^|\/)(__tests__|tests?)(\/|[._-])|(^|\/)(test_[^/]+|[^/]+_(test|spec))\.[^/]+$|\.(test|spec)\.[^/]+$/;
+const noisePath =
+	/(^|\/)(node_modules|__snapshots__|generated)(\/|$)|^(dist|build|coverage)\/|^(apps|packages)\/[^/]+\/(dist|build|coverage)\/|\.(gen|generated)\.|\.snap$|(^|\/)(bun\.lockb?|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|poetry\.lock|pdm\.lock|uv\.lock|cargo\.lock|go\.sum|gemfile\.lock|composer\.lock|pubspec\.lock)$/;
+
+const repositoryRules = {
 	default: {
-		frontend: /^frontend\//,
-		auth: /(^|\/)(auth|authentication|authorization|permissions?|rbac|tenancy|private)(\/|[._-])/,
-		migration: /(^|\/)(drizzle|migrations?)(\/|[._-])/,
-		dependency:
+		frontendRoot: /^frontend\//,
+		migrationFolder: /(^|\/)(migrations?)(\/|[._-])/,
+		dependencyManifest:
 			/(^|\/)(bun\.lockb?|package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock|deno\.jsonc?|pyproject\.toml|poetry\.lock|requirements[^/]*\.txt|pdm\.lock|uv\.lock|cargo\.toml|cargo\.lock|go\.mod|go\.sum|gemfile(\.lock)?|composer\.json|composer\.lock|pubspec\.yaml|pubspec\.lock)$/,
-		sharedType: /(^|\/)(types?|schemas?|contracts?)(\/|[._-])|\.d\.ts$/,
-		publicApi: /(^|\/)(api|openapi|routes?|urls?|procedures?)(\/|[._-])/,
-		secret:
-			/(^|\/|[._-])(secrets?|credentials?|tokens?|api[_-]?keys?|private[_-]?keys?)(\/|[._-])|(^|\/)\.env($|\.)|\.(pem|key)$/,
-		test: /(^|\/)(__tests__|tests?)(\/|[._-])|(^|\/)(test_[^/]+|[^/]+_(test|spec))\.[^/]+$|\.(test|spec)\.[^/]+$/,
-		noise:
-			/(^|\/)(generated|dist|build|coverage|__snapshots__)(\/|$)|\.(gen|generated)\.|\.snap$|(^|\/)(bun\.lockb?|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|poetry\.lock|pdm\.lock|uv\.lock|cargo\.lock|go\.sum|gemfile\.lock|composer\.lock|pubspec\.lock)$/,
+		sharedTypeRoot: /$^/,
+		publicApiRoot: /$^/,
 	},
-	canary: {
-		frontend: /^frontend\//,
-		auth: /(^|\/)(auth|authentication|authorization|permissions?|rbac|tenancy|private)(\/|[._-])/,
-		migration: /(^|\/)(migrations?)(\/|[._-])/,
-		dependency:
-			/(^|\/)(package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock|pyproject\.toml|poetry\.lock|requirements[^/]*\.txt|pdm\.lock|uv\.lock)$/,
-		sharedType: /(^|\/)(types?|schemas?|contracts?)(\/|[._-])|\.d\.ts$/,
-		publicApi: /(^|\/)(api|openapi|routes?|urls?)(\/|[._-])/,
-		secret:
-			/(^|\/|[._-])(secrets?|credentials?|tokens?|api[_-]?keys?|private[_-]?keys?)(\/|[._-])|(^|\/)\.env($|\.)|\.(pem|key)$/,
-		test: /(^|\/)(__tests__|tests?)(\/|[._-])|(^|\/)(test_[^/]+|[^/]+_(test|spec))\.[^/]+$|\.(test|spec)\.[^/]+$/,
-		noise:
-			/(^|\/)(generated|dist|build|coverage|__snapshots__)(\/|$)|\.(gen|generated)\.|\.snap$|(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|poetry\.lock|pdm\.lock|uv\.lock)$/,
-	},
+	canary: {},
 	trellis: {
-		frontend: /^(apps\/web|packages\/ui)\//,
-		auth: /(^|\/)(auth|authentication|authorization|permissions?|rbac|tenancy|private)(\/|[._-])/,
-		migration: /(^|\/)(drizzle|migrations?)(\/|[._-])/,
-		dependency: /(^|\/)(bun\.lockb?|package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock)$/,
-		sharedType: /^packages\/api\/|(^|\/)(types?|schemas?|contracts?)(\/|[._-])|\.d\.ts$/,
-		publicApi: /^packages\/api\/|(^|\/)(api|openapi|routes?|procedures?)(\/|[._-])/,
-		secret:
-			/(^|\/|[._-])(secrets?|credentials?|tokens?|api[_-]?keys?|private[_-]?keys?)(\/|[._-])|(^|\/)\.env($|\.)|\.(pem|key)$/,
-		test: /(^|\/)(__tests__|tests?)(\/|[._-])|(^|\/)(test_[^/]+|[^/]+_(test|spec))\.[^/]+$|\.(test|spec)\.[^/]+$/,
-		noise:
-			/(^|\/)(generated|dist|build|coverage|__snapshots__)(\/|$)|\.(gen|generated)\.|\.snap$|(^|\/)(bun\.lockb?|package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$/,
+		frontendRoot: /^(apps\/web|packages\/ui)\//,
+		migrationFolder: /(^|\/)(drizzle|migrations?)(\/|[._-])/,
+		dependencyManifest: /(^|\/)(bun\.lockb?|package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock)$/,
+		sharedTypeRoot: /^packages\/api\//,
+		publicApiRoot: /^packages\/api\//,
 	},
-};
+} satisfies Record<string, Partial<Rules>>;
 
 const answer = (value: boolean): PrRiskAnswer => (value ? "yes" : "no");
 
 export function prPaths(repo: string, paths: PrPath[]): PrPathResult {
-	const rules = repositoryRules[repo.toLowerCase()] ?? repositoryRules.default!;
+	const override = repositoryRules[repo.toLowerCase() as keyof typeof repositoryRules];
+	const rules: Rules = { ...repositoryRules.default, ...override };
 	const facts = paths.map((entry) => {
 		const path = entry.path.replace(/^\.\//, "").toLowerCase();
-		const test = rules.test.test(path);
+		const test = testPath.test(path);
 		return {
 			path: entry.path,
-			frontend: rules.frontend.test(path),
-			auth: rules.auth.test(path),
-			migration: rules.migration.test(path),
-			dependency: rules.dependency.test(path),
-			sharedType: rules.sharedType.test(path),
-			publicApi: rules.publicApi.test(path),
-			secret: rules.secret.test(path),
+			frontend: rules.frontendRoot.test(path),
+			auth: authPath.test(path),
+			migration: rules.migrationFolder.test(path),
+			dependency: rules.dependencyManifest.test(path),
+			sharedType: sharedTypePath.test(path) || rules.sharedTypeRoot.test(path),
+			publicApi: publicApiPath.test(path) || rules.publicApiRoot.test(path),
+			secret: secretPath.test(path),
 			test,
 			deletedTest: entry.type === "deleted" && test,
-			noise: rules.noise.test(path),
+			noise: noisePath.test(path),
 		};
 	});
 	const frontend = facts.filter((fact) => fact.frontend).length;
