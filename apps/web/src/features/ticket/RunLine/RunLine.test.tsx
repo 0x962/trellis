@@ -1,0 +1,132 @@
+import { describe, expect, test } from "bun:test";
+import type { AgentRun, TicketMetrics } from "@trellis/api";
+import { renderToStaticMarkup } from "react-dom/server";
+import { RunLine } from "./RunLine";
+
+const at = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+
+// A run that works on a ticket. Each test adds the one field it reads.
+const runOf = (fields: Partial<AgentRun> = {}) =>
+	({
+		id: "run",
+		name: "crisp-fjord",
+		kind: "agent",
+		runtime: "native",
+		harness: {
+			preset: "claude",
+			model: "anthropic/claude-opus-5",
+			startCommand: "claude",
+			resumeCommand: "claude --resume",
+		},
+		instruction: "",
+		projectId: null,
+		projectPath: "",
+		ticketId: "ticket-a",
+		ticketIdentifier: "TRL-184",
+		ticketTitle: null,
+		ticketStatusCategory: null,
+		assigned: true,
+		state: "running",
+		processStatus: "running",
+		workspaceId: null,
+		terminalId: "attempt",
+		url: null,
+		error: null,
+		sessionId: "conversation",
+		sessionLost: false,
+		createdAt: at,
+		updatedAt: at,
+		observation: {
+			checkedAt: at,
+			controllable: true,
+			activity: { state: "working", updatedAt: at },
+			lastMessage: null,
+			lastTool: { name: "Bash", status: "running", startedAt: at, updatedAt: at },
+			outcome: null,
+			turnId: "turn",
+			attention: { sequence: 1, requests: [], completion: null, failure: null },
+		},
+		...fields,
+	}) as AgentRun;
+
+const metrics: TicketMetrics = { durationMs: 12 * 60 * 1000, tokenCount: 48120, ageMs: 60 * 60 * 1000 };
+
+// `renderToStaticMarkup` writes the text of each span with no separator, so
+// the words of one line run together. The test reads the words, not the gaps.
+const textOf = (html: string) => html.replace(/<[^>]*>/g, "");
+
+const render = (run: AgentRun | null, ticketMetrics: TicketMetrics | null = metrics) =>
+	renderToStaticMarkup(<RunLine run={run} metrics={ticketMetrics} onOpenSession={() => {}} />);
+
+describe("RunLine", () => {
+	test("prints the name, the harness, the model, the state words and the time", () => {
+		const text = textOf(render(runOf()));
+
+		expect(text).toContain("crisp-fjord");
+		expect(text).toContain("Claude");
+		expect(text).toContain("Claude Opus 5");
+		expect(text).toContain("works, tool Bash");
+		expect(text).toContain("3m ago");
+	});
+
+	test("prints the last message under the line", () => {
+		const run = runOf();
+		run.observation!.lastMessage = { text: "I rebased onto master.", at };
+
+		expect(textOf(render(run))).toContain("crisp-fjord: I rebased onto master.");
+	});
+
+	test("prints one line while the run says nothing", () => {
+		expect(textOf(render(runOf()))).not.toContain(":");
+	});
+
+	test("the time and the tokens of the ticket arrive on a hover of the line", () => {
+		expect(render(runOf())).toContain('title="12m burned · 48,120 tokens"');
+	});
+
+	test("names the two numbers that the server does not count", () => {
+		expect(render(runOf(), null)).toContain("The time and the tokens are not counted.");
+	});
+
+	test("the agent card moves while the run works", () => {
+		expect(render(runOf())).toContain("agent-profile-sweep");
+	});
+
+	test("the agent card stands still while the run waits for a person", () => {
+		const run = runOf();
+		run.observation!.attention!.requests = [
+			{
+				id: "question",
+				kind: "question",
+				title: "The agent has a question",
+				blocking: true,
+				questions: [{ id: "0", question: "Which cap?", options: [], multiple: false }],
+				sequence: 2,
+				at,
+			},
+		];
+		const html = render(run);
+
+		expect(textOf(html)).toContain("asks: Which cap?");
+		expect(html).toContain("The run waits for a person.");
+		expect(html).not.toContain("agent-profile-sweep");
+	});
+
+	test("a failed run and a lost run take one red dot and two sets of words", () => {
+		const failed = render(runOf({ state: "failed", error: "the branch is gone" }));
+		const lost = render(runOf({ processStatus: "unknown" }));
+
+		expect(textOf(failed)).toContain("failed: the branch is gone");
+		expect(textOf(lost)).toContain("lost");
+		expect(failed).toContain("bg-danger");
+		expect(lost).toContain("bg-danger");
+	});
+
+	test("opens the session from a control that a screen reader names", () => {
+		expect(render(runOf())).toContain('aria-label="Session"');
+	});
+
+	test("prints one sentence while no agent holds the ticket", () => {
+		expect(textOf(render(null))).toContain("No agent works on this ticket.");
+	});
+});
