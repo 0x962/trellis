@@ -24,6 +24,7 @@ import { type Clock, createEventsRoute, realClock } from "./routes/events.ts";
 import { evidenceFileRoute } from "./routes/evidenceFile.ts";
 import { exportRoute } from "./routes/export.ts";
 import { filesRoute } from "./routes/files.ts";
+import { resourceBlobRoute } from "./routes/resourceBlob.ts";
 import { reviewImageRoute } from "./routes/reviewImage";
 import { staticRoute } from "./routes/static.ts";
 import { terminalSocketRoute } from "./routes/terminalSocket/terminalSocket.ts";
@@ -234,6 +235,7 @@ export const createApp = ({
 
 	app.get("/api/review-image", reviewImageRoute(transport));
 	app.get("/api/evidence/:evidenceId/file", evidenceFileRoute({ config, transport }));
+	app.get("/api/resources/:id/blob", resourceBlobRoute({ config, transport }));
 	app.get("/api/events", events.handler);
 	app.get("/api/agent-runs/:id/terminal/stream", terminalStreamRoute(config, transport));
 	app.get("/api/agent-runs/:id/terminal/socket", terminalSocketRoute(config, transport));
