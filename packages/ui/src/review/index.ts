@@ -9,7 +9,16 @@ export {
 	type ConditionsBlockProps,
 	type ConditionsReadiness,
 } from "./ConditionsBlock";
+export { CopyLine, type CopyLineProps } from "./CopyLine";
+export { type EvidenceGap, EvidenceStrip, type EvidenceStripProps } from "./EvidenceStrip";
 export { type FileRiskGroup, FileRiskGroups } from "./FileRiskGroups";
+export {
+	type CaptureRun,
+	type EvidenceClip,
+	type EvidenceScreenshot,
+	FrontendEvidence,
+	type FrontendEvidenceProps,
+} from "./FrontendEvidence";
 export { insertBlock, ReviewCommentEditor } from "./ReviewCommentEditor";
 export { type ConversationMeta, ReviewConversation } from "./ReviewConversation/ReviewConversation";
 export { type DiffAnchor, ReviewDiff } from "./ReviewDiff/ReviewDiff";

@@ -1,6 +1,7 @@
 import { EmptyState } from "../../primitives/EmptyState";
 import { SectionHeader } from "../../primitives/SectionHeader";
 import { BlockRow, NothingWord } from "../../review/BlockRow";
+import { CopyLine } from "../../review/CopyLine";
 
 export type ContractBlockProps = {
 	// One sentence that says what the ticket delivers.
@@ -81,21 +82,9 @@ function PlainLines({ lines }: { lines: readonly string[] }) {
 	));
 }
 
-// Each line is a button, because a path and a command are text that the
-// reader takes to a terminal.
 function CopyableLines({ lines, onCopy }: { lines: readonly string[]; onCopy: (text: string) => void }) {
 	if (lines.length === 0) {
 		return <NothingWord />;
 	}
-	return keyedLines(lines).map((item) => (
-		<button
-			key={item.key}
-			type="button"
-			aria-label={`Copy ${item.line}`}
-			onClick={() => onCopy(item.line)}
-			className="-mx-1 max-w-full cursor-pointer self-start rounded-sm px-1 py-0.5 text-left font-mono text-xs break-words text-fg transition-colors duration-hover ease-out hover:bg-band focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent pointer-coarse:py-2"
-		>
-			{item.line}
-		</button>
-	));
+	return keyedLines(lines).map((item) => <CopyLine key={item.key} text={item.line} onCopy={onCopy} />);
 }
