@@ -13,6 +13,7 @@ export * from "./instructions.ts";
 export * from "./models/models.ts";
 export * from "./notificationSound/index.ts";
 export * from "./pair.ts";
+export * from "./prPaths/index.ts";
 export * from "./query-keys.ts";
 export * from "./readSse/index.ts";
 export * from "./refs.ts";
