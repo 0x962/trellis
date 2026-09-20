@@ -36,6 +36,7 @@ import * as milestones from "./milestones/milestones.ts";
 import * as needsYou from "./needsYou/needsYou.ts";
 import * as notes from "./notes/notes.ts";
 import * as projects from "./projects.ts";
+import * as prSummary from "./prSummary.ts";
 import * as pullRequests from "./pullRequests.ts";
 import * as reviewApply from "./reviews/apply";
 import * as reviewImage from "./reviews/image";
@@ -258,6 +259,9 @@ export const services = {
 	"pullRequests.unlink": io("mutation", pullRequests.unlink),
 	"pullRequests.refresh": prepared("mutation", pullRequests.prepareRefresh, pullRequests.refresh),
 	"pullRequests.diff": prepared("read", pullRequests.prepareDiff, pullRequests.diff),
+	"pullRequests.readSummary": io("read", prSummary.read),
+	"pullRequests.readSummaryHead": io("read", prSummary.readHead),
+	"pullRequests.writeSummary": prepared("mutation", prSummary.prepareWrite, prSummary.write),
 	"search.query": core("search", search.query),
 	"brief.get": core("read", brief.get),
 	"actors.list": core("read", actors.list),

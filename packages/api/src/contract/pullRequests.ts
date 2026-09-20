@@ -7,6 +7,10 @@ import {
 	PullRequestLinkInputSchema,
 	PullRequestListInputSchema,
 	PullRequestSchema,
+	PullRequestSummaryHeadInputSchema,
+	PullRequestSummarySchema,
+	PullRequestSummaryWriteInputSchema,
+	PullRequestSummaryWriteOutputSchema,
 	PullRequestUnlinkInputSchema,
 	PullRequestUnlinkOutputSchema,
 } from "../schemas/pullRequest.ts";
@@ -37,4 +41,17 @@ export const pullRequests = {
 		.route({ method: "GET", path: "/prs/{id}/diff", summary: "Read the diff, cut at 1 MB" })
 		.input(PullRequestIdInputSchema)
 		.output(PullRequestDiffOutputSchema),
+	readSummary: base
+		.route({ method: "GET", path: "/prs/{id}/summary", summary: "Read the newest summary of a pull request" })
+		.input(PullRequestIdInputSchema)
+		.output(PullRequestSummarySchema.nullable()),
+	readSummaryHead: base
+		.route({ method: "GET", path: "/prs/{id}/summaries/{headSha}", summary: "Read one pull request summary" })
+		.input(PullRequestSummaryHeadInputSchema)
+		.output(PullRequestSummarySchema.nullable()),
+	writeSummary: base
+		.errors(pickErrors(["GH_UNAVAILABLE"]))
+		.route({ method: "PUT", path: "/prs/{id}/summaries/{headSha}", summary: "Write one pull request summary" })
+		.input(PullRequestSummaryWriteInputSchema)
+		.output(PullRequestSummaryWriteOutputSchema),
 };
