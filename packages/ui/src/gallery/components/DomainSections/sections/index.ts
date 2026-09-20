@@ -7,6 +7,7 @@ export { FlowRunSection } from "./FlowRunSection";
 export { LineChangesSection } from "./LineChangesSection";
 export { PrGlyphSection } from "./PrGlyphSection";
 export { PriorityIconSection } from "./PriorityIconSection";
+export { ReviewFocusListSection } from "./ReviewFocusListSection";
 export { ReviewStatusSummarySection } from "./ReviewStatusSummarySection";
 export { StatusIconSection } from "./StatusIconSection";
 export { TicketGlimmerSection } from "./TicketGlimmerSection";
