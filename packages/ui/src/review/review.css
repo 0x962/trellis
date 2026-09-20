@@ -257,6 +257,89 @@ button.review-notice:hover {
 	opacity: 0.5;
 	cursor: default;
 }
+/* Region A of the review page: the title of the pull request with its
+   controls, the ticket the pull request answers, and one sentence that says
+   who acts next. It does not scroll with the rest of the page, so the merge
+   control stays on screen while the reader goes down the page. */
+.review-identity {
+	display: flex;
+	flex-direction: column;
+	border-bottom: 0.5px solid var(--border);
+	background: var(--bg);
+}
+/* The heading and the two lines take the width of the region column below
+   them, so the title, the ticket and every region start at one left edge. */
+.review-identity > * {
+	width: 100%;
+	max-width: 1040px;
+	margin-inline: auto;
+}
+.review-identity .review-heading {
+	padding-bottom: 12px;
+}
+.review-identity-lines {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 0 28px 16px;
+	font-size: 13px;
+	line-height: 20px;
+}
+.review-ticket-line {
+	color: var(--fg-muted);
+}
+.review-ticket-line a {
+	color: var(--fg);
+}
+.review-turn-line {
+	color: var(--fg);
+}
+/* The review page is one column of regions that reads top to bottom. The
+   column is the only part of the page that scrolls, and every region grows to
+   the height of its content. */
+.review-column {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	background: var(--bg);
+}
+.review-regions {
+	display: flex;
+	flex-direction: column;
+	gap: 28px;
+	width: 100%;
+	max-width: 1040px;
+	margin-inline: auto;
+	padding: 24px 28px 64px;
+}
+/* `ReviewDiscussion` and `CheckResults` each wrap their content in
+   `.review-scroll`, which filled a tab panel and scrolled inside it. The page
+   has no tab panel any more, so in a region the two grow with their content
+   and the column scrolls for them. `.review-notice` and `ReviewStack` carry
+   the side padding of the old page for the same reason. */
+.review-regions .review-scroll {
+	flex: none;
+	overflow: visible;
+	padding: 0;
+}
+.review-regions .review-notice {
+	margin-inline: 0;
+}
+.review-regions .review-stack {
+	padding-inline: 0;
+}
+/* The diff draws only the lines that fit the box it scrolls in, and it reads
+   that box for the scroll position. A box with no height of its own would make
+   it draw every line of the patch at once. */
+.review-diff-window {
+	display: flex;
+	flex-direction: column;
+	height: min(70vh, 720px);
+	overflow: hidden;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-lg);
+	background: var(--bg);
+}
 @media (max-width: 767px) {
 	.review-heading {
 		padding: 20px 16px 16px;
@@ -289,6 +372,16 @@ button.review-notice:hover {
 	}
 	.review-stack {
 		padding-inline: 16px;
+	}
+	.review-identity-lines {
+		padding: 0 16px 12px;
+	}
+	.review-regions {
+		gap: 20px;
+		padding: 16px 16px 48px;
+	}
+	.review-diff-window {
+		height: min(80vh, 560px);
 	}
 }
 
