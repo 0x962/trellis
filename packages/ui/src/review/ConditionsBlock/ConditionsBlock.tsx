@@ -1,4 +1,5 @@
 import { PropertyRow } from "../../primitives/PropertyRow";
+import { SectionHeader } from "../../primitives/SectionHeader";
 
 export type ConditionsReadiness = "yes" | "not yet" | "merged";
 
@@ -21,10 +22,14 @@ export type ConditionsBlockProps = {
 export function ConditionsBlock({ readiness, lines }: ConditionsBlockProps) {
 	return (
 		<section aria-label="Merge conditions" className="flex min-w-0 flex-col">
-			<div className="flex h-7 items-center gap-2">
-				<h2 className="font-medium text-fg-faint text-xs uppercase tracking-[0.04em]">READY TO MERGE</h2>
-				<span className="text-base text-fg">{readiness}</span>
-			</div>
+			<SectionHeader
+				title="READY TO MERGE"
+				actions={
+					<span role="status" aria-live="polite">
+						{readiness}
+					</span>
+				}
+			/>
 			<dl className="flex min-w-0 flex-col">
 				{lines.map((line) => (
 					<PropertyRow key={line.label} label={line.label} align="start">

@@ -32,13 +32,13 @@ const merged: Conditions = {
 test("the block prints the readiness word", () => {
 	const html = renderToStaticMarkup(<ConditionsBlock conditions={open} />);
 
-	expect(html).toMatch(/READY TO MERGE<\/h2><span[^>]*>not yet<\/span>/);
+	expect(html).toMatch(/READY TO MERGE<\/span><\/h2><div[^>]*><span[^>]*>not yet<\/span>/);
 });
 
 test("a merged pull request prints the word merged", () => {
 	const html = renderToStaticMarkup(<ConditionsBlock conditions={merged} />);
 
-	expect(html).toMatch(/READY TO MERGE<\/h2><span[^>]*>merged<\/span>/);
+	expect(html).toMatch(/READY TO MERGE<\/span><\/h2><div[^>]*><span[^>]*>merged<\/span>/);
 });
 
 test("the nine labels print in one order", () => {
