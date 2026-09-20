@@ -9,7 +9,7 @@ const summary = {
 };
 
 test("prints the headline, the why and the watch line", () => {
-	const html = renderToStaticMarkup(<ChangeSummary summary={summary} behind={false} />);
+	const html = renderToStaticMarkup(<ChangeSummary summary={summary} headShaMoved={false} />);
 
 	expect(html).toContain("Give the Operator message post a timeout.");
 	expect(html).toContain("postMessage has no timeout, so a stalled post leaves the dialog with both buttons greyed.");
@@ -19,14 +19,14 @@ test("prints the headline, the why and the watch line", () => {
 });
 
 test("prints the warning line when the head SHA moved after the summary", () => {
-	const html = renderToStaticMarkup(<ChangeSummary summary={summary} behind={true} />);
+	const html = renderToStaticMarkup(<ChangeSummary summary={summary} headShaMoved={true} />);
 
 	expect(html).toContain("the summary is one revision behind");
 	expect(html).toContain("text-warning");
 });
 
 test("prints one faint line when no agent wrote the summary", () => {
-	const html = renderToStaticMarkup(<ChangeSummary summary={null} behind={false} />);
+	const html = renderToStaticMarkup(<ChangeSummary summary={null} headShaMoved={false} />);
 
 	expect(html).toContain("The agent has not written the summary.");
 	expect(html).not.toContain("Watch this: ");
@@ -34,7 +34,7 @@ test("prints one faint line when no agent wrote the summary", () => {
 });
 
 test("prints no field name and no markdown mark", () => {
-	const html = renderToStaticMarkup(<ChangeSummary summary={summary} behind={false} />);
+	const html = renderToStaticMarkup(<ChangeSummary summary={summary} headShaMoved={false} />);
 
 	expect(html).not.toContain("headline");
 	expect(html).not.toContain("<strong>");
