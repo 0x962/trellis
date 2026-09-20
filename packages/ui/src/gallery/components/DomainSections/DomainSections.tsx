@@ -2,6 +2,7 @@ import {
 	ActorChipSection,
 	AgentProfileMarkSection,
 	AttentionDotSection,
+	ChainBlockSection,
 	ChangeSummarySection,
 	CheckRibbonSection,
 	ChecksLineSection,
@@ -43,6 +44,7 @@ export function DomainSections() {
 			<FileRiskGroupsSection />
 			<ConditionsBlockSection />
 			<ContractBlockSection />
+			<ChainBlockSection />
 			<RunLineSection />
 			<ChangeSummarySection />
 		</>

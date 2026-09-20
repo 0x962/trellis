@@ -31,7 +31,7 @@ export function ChangeSummary({ summary, headShaMoved }: ChangeSummaryProps) {
 				<span className="text-fg-muted">{"Watch this: "}</span>
 				{summary.watch}
 			</p>
-			{headShaMoved && <p className="text-base text-warning">the summary is one revision behind</p>}
+			{headShaMoved && <p className="text-base text-warning">The summary is one revision behind.</p>}
 		</section>
 	);
 }

@@ -1,7 +1,6 @@
-import type { ReactNode } from "react";
 import { EmptyState } from "../../primitives/EmptyState";
-import { PropertyRow } from "../../primitives/PropertyRow";
 import { SectionHeader } from "../../primitives/SectionHeader";
+import { BlockRow, NothingWord } from "../../review/BlockRow";
 
 export type ContractBlockProps = {
 	// One sentence that says what the ticket delivers.
@@ -44,48 +43,36 @@ export function ContractBlock({
 		<section aria-label="The contract" className="flex min-w-0 flex-col">
 			<SectionHeader title="THE CONTRACT" />
 			<dl className="flex min-w-0 flex-col">
-				<ClauseRow label="Result">
+				<BlockRow label="Result">
 					<PlainLines lines={result === "" ? [] : [result]} />
-				</ClauseRow>
-				<ClauseRow label="Files">
+				</BlockRow>
+				<BlockRow label="Files">
 					<CopyableLines lines={files} onCopy={onCopy} />
-				</ClauseRow>
-				<ClauseRow label="Leave alone">
+				</BlockRow>
+				<BlockRow label="Leave alone">
 					<CopyableLines lines={leaveAlone} onCopy={onCopy} />
-				</ClauseRow>
-				<ClauseRow label="Verify">
+				</BlockRow>
+				<BlockRow label="Verify">
 					<CopyableLines lines={verify} onCopy={onCopy} />
-				</ClauseRow>
-				<ClauseRow label="Review focus">
+				</BlockRow>
+				<BlockRow label="Review focus">
 					<PlainLines lines={reviewFocus} />
-				</ClauseRow>
-				<ClauseRow label="Evidence owed">
+				</BlockRow>
+				<BlockRow label="Evidence owed">
 					<PlainLines lines={evidenceOwed === "" ? [] : [evidenceOwed]} />
-				</ClauseRow>
+				</BlockRow>
 			</dl>
 		</section>
 	);
 }
 
-// The `dd` of `PropertyRow` lays its children in a row, and a clause holds a
-// column of lines.
-function ClauseRow({ label, children }: { label: string; children: ReactNode }) {
-	return (
-		<PropertyRow label={label} align="start" labelWidth="wide">
-			<div className="flex min-w-0 flex-1 flex-col">{children}</div>
-		</PropertyRow>
-	);
-}
-
-// Two clauses can hold the same line, so the position of a line is part of
-// its key.
+// Two rows can hold the same line, so the position of a line is part of its
+// key.
 const keyedLines = (lines: readonly string[]) => lines.map((line, index) => ({ key: `${index}:${line}`, line }));
 
-// A clause that holds no line prints one faint word, so the reader sees an
-// empty clause and not a missing one.
 function PlainLines({ lines }: { lines: readonly string[] }) {
 	if (lines.length === 0) {
-		return <span className="text-sm text-fg-faint">none</span>;
+		return <NothingWord />;
 	}
 	return keyedLines(lines).map((item) => (
 		<span key={item.key} className="text-sm text-fg">
@@ -98,7 +85,7 @@ function PlainLines({ lines }: { lines: readonly string[] }) {
 // reader takes to a terminal.
 function CopyableLines({ lines, onCopy }: { lines: readonly string[]; onCopy: (text: string) => void }) {
 	if (lines.length === 0) {
-		return <span className="text-sm text-fg-faint">none</span>;
+		return <NothingWord />;
 	}
 	return keyedLines(lines).map((item) => (
 		<button

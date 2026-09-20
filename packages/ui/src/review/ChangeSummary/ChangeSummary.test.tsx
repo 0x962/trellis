@@ -21,7 +21,7 @@ test("prints the headline, the why and the watch line", () => {
 test("prints the warning line when the head SHA moved after the summary", () => {
 	const html = renderToStaticMarkup(<ChangeSummary summary={summary} headShaMoved={true} />);
 
-	expect(html).toContain("the summary is one revision behind");
+	expect(html).toContain("The summary is one revision behind.");
 	expect(html).toContain("text-warning");
 });
 

@@ -44,7 +44,7 @@ describe("ContractBlock", () => {
 		expect(html).not.toContain("Evidence owed");
 	});
 
-	test("prints none for a clause the contract leaves empty", () => {
+	test("prints nothing for a row the contract leaves empty", () => {
 		const html = renderToStaticMarkup(
 			<ContractBlock
 				repo="trellis"
@@ -53,7 +53,7 @@ describe("ContractBlock", () => {
 		);
 
 		expect(html).toContain("One failed start does not end the sweep pass.");
-		expect(html).toContain("none");
+		expect(html).toContain("nothing");
 		expect(html).toContain("unknown. The contract names no file.");
 	});
 });
