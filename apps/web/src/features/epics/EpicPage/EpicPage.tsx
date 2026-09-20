@@ -2,7 +2,7 @@ import { ORPCError } from "@orpc/client";
 import { PencilSimple, Plus, Trash } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import type { Project, TicketSummary } from "@trellis/api";
+import type { AgentRun, Project, TicketSummary } from "@trellis/api";
 import { Button, EmptyState, IconButton, Menu } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -25,6 +25,7 @@ import { TableSkeleton } from "../../table/TicketTable/components/TableSkeleton"
 import { agentLinesByTicket } from "../../table/utils/agentLines";
 import { DeleteEpicDialog } from "../DeleteEpicDialog";
 import { EpicSheet } from "../EpicSheet";
+import { epicRunningCount, epicWorkingTicketIds } from "../epicNext";
 import { assignedTicketIds, epicRowRank } from "../epicRowRank";
 import { epicPageSearch, epicQueryString, epicUrlSearch } from "../epicSearch";
 import { EpicPlan } from "./components/EpicPlan";
@@ -44,7 +45,7 @@ export type EpicPageProps = {
 const clearLinkClass =
 	"inline-flex h-8 items-center rounded-md border border-border bg-surface px-3 text-base font-medium text-fg transition duration-hover hover:bg-bg hover:border-border-strong focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
 
-const noAssigned: ReadonlySet<string> = new Set();
+const noRuns: readonly AgentRun[] = [];
 
 const breadcrumbLinkClass =
 	"inline-flex h-7 items-center rounded-md px-1 text-fg-muted transition-colors duration-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
@@ -76,12 +77,19 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	// reads, so the order of the rows costs no request of its own. Inside a
 	// milestone group the tickets that wait for the person come first, then
 	// the tickets to start, then the running tickets.
-	const assigned = useQuery({
-		...orpc.agentRuns.list.queryOptions({ input: { assigned: true } }),
-		select: assignedTicketIds,
-	}).data;
-	const rowRank = useMemo(() => epicRowRank(assigned ?? noAssigned), [assigned]);
-	// The same `agentRuns.list` query as `assigned` above, with another
+	const assignedRunsQuery = useQuery(orpc.agentRuns.list.queryOptions({ input: { assigned: true } }));
+	const assignedRuns = assignedRunsQuery.data;
+	const assigned = useMemo(() => assignedTicketIds(assignedRuns ?? noRuns), [assignedRuns]);
+	const rowRank = useMemo(() => epicRowRank(assigned), [assigned]);
+	const workingAgentTicketIds = useMemo(() => epicWorkingTicketIds(assignedRuns ?? noRuns), [assignedRuns]);
+	const running = useMemo(
+		() =>
+			assignedRunsQuery.status === "success" && epic.data !== undefined
+				? epicRunningCount(epic.data, workingAgentTicketIds)
+				: null,
+		[assignedRunsQuery.status, epic.data, workingAgentTicketIds],
+	);
+	// The same `agentRuns.list` query as `assignedRuns` above, with another
 	// `select`. A ticket row whose run holds an open request or a last
 	// message is followed by one line.
 	const agentLines = useQuery({
@@ -232,7 +240,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 				{readOnly && <ArchivedBanner project={project} />}
 				{/* The band and the plan take at most half of the card and scroll inside it, so the table always keeps rows on screen. */}
 				<div className="max-h-1/2 shrink-0 overflow-y-auto border-b border-border">
-					<EpicProgress epic={record} splat={splat} search={tableSearch} />
+					<EpicProgress epic={record} running={running} splat={splat} search={tableSearch} />
 					<EpicPlan routeKey={routeKey} description={record.description} />
 				</div>
 				<fieldset disabled={readOnly} className="contents">

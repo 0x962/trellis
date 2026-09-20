@@ -128,7 +128,6 @@ const phase = (id: string, slug: string, name: string, position: number): Milest
 	counts: { total: 3, todo: 1, started: 0, review: 0, done: 1, canceled: 1 },
 	state: "open",
 	toStart: 1,
-	running: 0,
 	waitsForYou: 0,
 	createdAt: "2026-09-18T10:00:00.000Z",
 	updatedAt: "2026-09-18T10:00:00.000Z",

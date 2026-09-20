@@ -29,11 +29,6 @@ const insertStatus = (name: string, slug: string, category: string, reviewer: st
 	db.execute(sql`INSERT INTO statuses (id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at)
 		VALUES (${ulid()}, ${tst}, ${name}, ${slug}, ${category}, ${reviewer}, 'fg-muted', ${position}, ${position === 0}, '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
 
-// An agent run of the kind `agent` on the ticket. `closedAt` null is an open run.
-const insertRun = (id: string, ticketId: string, closedAt: string | null) =>
-	db.execute(sql`INSERT INTO agent_runs (id, name, kind, instruction, project_id, project_path, ticket_id, closed_at, created_at, updated_at)
-		VALUES (${id}, 'Builder', 'agent', '', ${tst}, 'TST', ${ticketId}, ${closedAt}, '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
-
 const ctxAt = (now: string, actor: ActorRef = human): ServiceCtx => ({
 	actor,
 	session: null,
@@ -51,13 +46,49 @@ const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 const ticket = (ctx: ServiceCtx, title: string, milestone: string, status = "todo") =>
 	run((tx) => createTicket(ctx, tx, { project: "TST", title, milestone: `TST/plan/${milestone}`, status }));
 
+const insertPullRequest = async (
+	ticketId: string,
+	prNumber: number,
+	options: {
+		checks?: { bucket: string }[];
+		draft?: boolean;
+		fetched?: boolean;
+		fetchError?: string;
+		openThread?: boolean;
+	} = {},
+) => {
+	const id = ulid();
+	const checks = options.checks ?? [];
+	const buckets = checks.map((check) => check.bucket);
+	const ciState = buckets.some((bucket) => bucket === "fail" || bucket === "cancel")
+		? "fail"
+		: buckets.includes("pending")
+			? "pending"
+			: buckets.includes("pass")
+				? "pass"
+				: "none";
+	await db.execute(sql`INSERT INTO pull_requests (
+		id, owner, repo, number, url, state, is_draft, checks, ci_state, fetched_at, fetch_error, created_at, updated_at
+	) VALUES (
+		${id}, 'acme', 'app', ${prNumber}, ${`https://github.com/acme/app/pull/${prNumber}`},
+		'open', ${options.draft ?? false}, ${JSON.stringify(checks)}::jsonb, ${ciState},
+		${options.fetched === false ? null : "2026-09-18T10:00:00.000Z"}, ${options.fetchError ?? null},
+		'2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z'
+	)`);
+	await db.execute(sql`INSERT INTO ticket_pull_requests (
+		ticket_id, pull_request_id, source, actor_name, actor_kind, created_at
+	) VALUES (${ticketId}, ${id}, 'manual', 'Test', 'human', '2026-09-18T10:00:00.000Z')`);
+	if (options.openThread)
+		await db.execute(sql`INSERT INTO review_threads (id, pr_id, document, updated_at)
+			VALUES (${ulid()}, ${id}, ${{ status: "open" }}, '2026-09-18T10:00:00.000Z')`);
+};
+
 const next = async (ctx: ServiceCtx) => {
 	const epic = await run((tx) => getEpic(ctx, tx, { epic: "TST/plan" }));
 	return epic.milestones.map((milestone) => [
 		milestone.slug,
 		milestone.state,
 		milestone.toStart,
-		milestone.running,
 		milestone.waitsForYou,
 	]);
 };
@@ -108,19 +139,43 @@ test("an epic names its first open milestone, and an epic with no milestone name
 	]);
 });
 
-test("a milestone counts the tickets to start, the running tickets, and the tickets that wait for the person", async () => {
+test("a milestone counts ready tickets and tickets that wait for the person", async () => {
 	const ctx = ctxAt("2026-09-18T10:02:00.000Z");
-	const running = await ticket(ctx, "CLI: the command", "surfaces");
-	const stopped = await ticket(ctx, "Docs: the page", "surfaces");
-	await ticket(ctx, "Decide the name", "surfaces", "human-review");
-	const started = await ticket(ctx, "Mobile: the screen", "surfaces", "in-progress");
-	await insertRun(runId, running.id, null);
-	await insertRun(ulid(), stopped.id, "2026-09-18T10:01:30.000Z");
-	await insertRun(ulid(), started.id, null);
+	await ticket(ctx, "CLI: the command", "surfaces");
+	const blocked = await ticket(ctx, "Docs: the page", "surfaces");
+	const humanReview = await ticket(ctx, "Decide the name", "surfaces", "human-review");
+	const readyReview = await ticket(ctx, "Mobile: the screen", "surfaces", "in-progress");
+	await db.execute(sql`INSERT INTO ticket_deps (ticket_id, depends_on_id, source, created_at)
+		VALUES (${blocked.id}, ${readyReview.id}, 'manual', '2026-09-18T10:02:00.000Z')`);
+	await insertPullRequest(readyReview.id, 1, { checks: [{ bucket: "pass" }] });
+	await insertPullRequest(readyReview.id, 2);
+	await insertPullRequest((await ticket(ctx, "Draft review", "surfaces", "in-progress")).id, 3, { draft: true });
+	await insertPullRequest((await ticket(ctx, "Pending review", "surfaces", "in-progress")).id, 4, {
+		checks: [{ bucket: "pending" }],
+	});
+	await insertPullRequest((await ticket(ctx, "Failed review", "surfaces", "in-progress")).id, 5, {
+		checks: [{ bucket: "fail" }],
+	});
+	await insertPullRequest((await ticket(ctx, "Thread review", "surfaces", "in-progress")).id, 6, {
+		openThread: true,
+	});
+	await insertPullRequest((await ticket(ctx, "Unfetched review", "surfaces", "in-progress")).id, 7, {
+		fetched: false,
+	});
+	await insertPullRequest((await ticket(ctx, "Unavailable review", "surfaces", "in-progress")).id, 8, {
+		fetchError: "GitHub did not answer.",
+	});
+	await insertPullRequest(humanReview.id, 9, { checks: [{ bucket: "pass" }] });
+	await insertPullRequest((await ticket(ctx, "Finished review", "surfaces", "done")).id, 10, {
+		checks: [{ bucket: "pass" }],
+	});
+	const mixedReview = await ticket(ctx, "Mixed review", "surfaces", "in-progress");
+	await insertPullRequest(mixedReview.id, 11, { checks: [{ bucket: "pass" }] });
+	await insertPullRequest(mixedReview.id, 12, { draft: true });
 	expect(await next(ctx)).toEqual([
-		["foundation", "done", 0, 0, 0],
-		["surfaces", "open", 2, 2, 1],
-		["integrate", "open", 0, 0, 0],
+		["foundation", "done", 0, 0],
+		["surfaces", "open", 2, 2],
+		["integrate", "open", 0, 0],
 	]);
 });
 

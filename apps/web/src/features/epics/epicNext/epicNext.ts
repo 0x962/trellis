@@ -1,5 +1,6 @@
-import type { Epic, EpicSummary, MilestoneSummary } from "@trellis/api";
+import type { AgentRun, Epic, EpicSummary, MilestoneSummary } from "@trellis/api";
 import { formatCount } from "../../../lib/format";
+import { workingTargets } from "../../agents/workingTargets";
 import type { View } from "../../filters/grammar";
 
 export type EpicNextCount = {
@@ -16,21 +17,39 @@ export type EpicNext = {
 	counts: EpicNextCount[];
 };
 
-// What happens next in an epic: the current milestone and its three counts.
+// The ticket targets of assigned agent runs that currently work.
+export const epicWorkingTicketIds = (runs: readonly AgentRun[]): string[] =>
+	workingTargets(runs.filter((run) => run.kind === "agent")).ticketIds;
+
+// The number of working agent targets in the current milestone.
+export const epicRunningCount = (
+	epic: Pick<Epic, "currentMilestone" | "milestones" | "tickets">,
+	workingTicketIds: readonly string[],
+): number => {
+	const milestone = epic.milestones.find((entry) => entry.id === epic.currentMilestone?.id);
+	if (milestone === undefined) return 0;
+	const milestoneTicketIds = new Set(
+		epic.tickets.filter((ticket) => ticket.milestone?.id === milestone.id).map((ticket) => ticket.id),
+	);
+	return workingTicketIds.filter((ticketId) => milestoneTicketIds.has(ticketId)).length;
+};
+
+// What happens next in an epic: the current milestone and its available counts.
 // Every ticket of one milestone can start at the same time, so the open
-// tickets of the current milestone are the next work. The current milestone
-// and the counts come from the server (`EpicSummary.currentMilestone`,
-// `MilestoneSummary.toStart`, `running`, `waitsForYou`); this module is the
-// one place in the web that reads them for the header band and the list row.
-// The result is null when every milestone is done or the epic has none.
+// tickets of the current milestone are the next work. The server supplies
+// `toStart` and `waitsForYou`. The epic page supplies `running` after its
+// assigned-run query succeeds. This module is the one place in the web that
+// reads these values for the header band and the list row. The result is null
+// when every milestone is done or the epic has none.
 //
 // Each link keeps the other filters and the display fields of `search`, and
 // replaces the milestone, status, category, and reviewer filters. The to
 // start link lists the whole todo category of the milestone, because the
-// filter grammar has no filter for a ticket without an agent run. For the
-// same reason the running count has no link.
+// filter grammar has no dependency-ready filter. The running count has no
+// link because the grammar has no working-agent filter.
 export const epicNext = (
-	epic: Pick<Epic, "currentMilestone" | "milestones">,
+	epic: Pick<Epic, "currentMilestone" | "milestones" | "tickets">,
+	running: number | null,
 	search: Partial<View>,
 ): EpicNext | null => {
 	const milestone = epic.milestones.find((entry) => entry.id === epic.currentMilestone?.id);
@@ -42,18 +61,16 @@ export const epicNext = (
 		...(kept === undefined || kept.length === 0 ? {} : { not: kept }),
 		milestone: milestone.ref,
 	};
-	return {
-		milestone,
-		counts: [
-			{ key: "toStart", label: `${formatCount(milestone.toStart)} to start`, search: { ...base, category: ["todo"] } },
-			{ key: "running", label: `${formatCount(milestone.running)} running`, search: null },
-			{
-				key: "waitsForYou",
-				label: `${formatCount(milestone.waitsForYou)} ${milestone.waitsForYou === 1 ? "waits" : "wait"} for you`,
-				search: { ...base, reviewer: "human" },
-			},
-		],
-	};
+	const counts: EpicNextCount[] = [
+		{ key: "toStart", label: `${formatCount(milestone.toStart)} to start`, search: { ...base, category: ["todo"] } },
+	];
+	if (running !== null) counts.push({ key: "running", label: `${formatCount(running)} running`, search: null });
+	counts.push({
+		key: "waitsForYou",
+		label: `${formatCount(milestone.waitsForYou)} ${milestone.waitsForYou === 1 ? "waits" : "wait"} for you`,
+		search: { ...base, reviewer: "human" },
+	});
+	return { milestone, counts };
 };
 
 // "Surfaces · 2 of 4", as the epics list row prints it after the epic name.

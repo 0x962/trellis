@@ -1,5 +1,5 @@
 import type { EpicCounts, MilestoneSummary } from "@trellis/api";
-import { sql } from "drizzle-orm";
+import { type SQL, sql } from "drizzle-orm";
 import { iso } from "../../db/queries/support.ts";
 import { stateOf, ticketCounts, toCounts } from "../epics/rows.ts";
 
@@ -17,7 +17,6 @@ export type RawMilestone = EpicCounts & {
 	name: string;
 	position: number;
 	to_start: number;
-	running: number;
 	waits_for_you: number;
 	created_at: string;
 	updated_at: string;
@@ -28,23 +27,64 @@ export type RawMilestone = EpicCounts & {
 export const milestoneRefOf = (row: { root_key: string; epic_slug: string; slug: string }) =>
 	`${row.root_key}/${row.epic_slug}/${row.slug}`;
 
-// True for a ticket `t` with an open agent run. One ticket holds at most one
-// open agent run, because the index `agent_runs_active_ticket_idx` is unique.
-const hasOpenRun = sql`EXISTS (
-		SELECT 1 FROM agent_runs r WHERE r.kind = 'agent' AND r.closed_at IS NULL AND r.ticket_id = t.id
-	)`;
+const hasOpenThread = sql`EXISTS (
+	SELECT 1 FROM review_threads thread
+	WHERE thread.pr_id = pull_request.id AND thread.document->>'status' = 'open'
+)`;
 
-// The counts that tell the person what is next in a milestone. A ticket with
-// an open agent run counts in `running` in every status category.
+const hasLinkedPullRequest = (condition: SQL) => sql`EXISTS (
+	SELECT 1 FROM ticket_pull_requests link
+	JOIN pull_requests pull_request ON pull_request.id = link.pull_request_id
+	WHERE link.ticket_id = t.id AND ${condition}
+)`;
+
+const hasAgentPullRequest = hasLinkedPullRequest(sql`
+	pull_request.state = 'open' AND (
+		pull_request.is_draft OR pull_request.ci_state = 'fail' OR ${hasOpenThread}
+	)
+`);
+
+const hasGithubPullRequest = hasLinkedPullRequest(sql`
+	pull_request.state = 'open' AND NOT pull_request.is_draft AND pull_request.ci_state = 'pending'
+`);
+
+const hasReadyPullRequest = hasLinkedPullRequest(sql`
+	pull_request.fetched_at IS NOT NULL
+	AND pull_request.fetch_error IS NULL
+	AND pull_request.state = 'open'
+	AND NOT pull_request.is_draft
+	AND pull_request.ci_state IN ('none', 'pass')
+	AND NOT ${hasOpenThread}
+`);
+
+// The counts that tell the person what is next in a milestone. A todo ticket
+// can start when every ticket that it depends on is done.
+// `packages/api/src/turn/turn.ts` defines whose turn a ticket has.
+// `waits_for_you` is its SQL form for the status and pull request fields in
+// the database. Each ticket adds at most one to the count.
 const nextCounts = sql`,
-			(count(*) FILTER (WHERE s.category = 'todo' AND NOT ${hasOpenRun}))::int AS to_start,
-			(count(*) FILTER (WHERE ${hasOpenRun}))::int AS running,
-			(count(*) FILTER (WHERE s.reviewer = 'human'))::int AS waits_for_you`;
+			(count(*) FILTER (WHERE s.category = 'todo' AND NOT EXISTS (
+				SELECT 1 FROM ticket_deps dependency
+				JOIN tickets blocker ON blocker.id = dependency.depends_on_id
+				JOIN statuses blocker_status ON blocker_status.id = blocker.status_id
+				WHERE dependency.ticket_id = t.id AND blocker_status.category <> 'done'
+			)))::int AS to_start,
+			(count(*) FILTER (WHERE
+				s.category NOT IN ('done', 'canceled')
+				AND (
+					s.reviewer = 'human'
+					OR (
+						NOT ${hasAgentPullRequest}
+						AND NOT ${hasGithubPullRequest}
+						AND ${hasReadyPullRequest}
+					)
+				)
+			))::int AS waits_for_you`;
 
 // `c` holds the counts of the tickets that point at the milestone.
 export const milestoneSelect = sql`SELECT m.id, m.epic_id, e.slug AS epic_slug, e.project_id AS epic_project_id,
 	m.root_id, root.key AS root_key, m.slug, m.name, m.position,
-	c.total, c.todo, c.started, c.review, c.done, c.canceled, c.to_start, c.running, c.waits_for_you,
+	c.total, c.todo, c.started, c.review, c.done, c.canceled, c.to_start, c.waits_for_you,
 	${iso(sql`m.created_at`)} AS created_at, ${iso(sql`m.updated_at`)} AS updated_at
 	FROM milestones m
 	JOIN epics e ON e.id = m.epic_id
@@ -68,7 +108,6 @@ export const toMilestoneSummary = (row: RawMilestone): MilestoneSummary => {
 		counts,
 		state: stateOf(counts),
 		toStart: row.to_start,
-		running: row.running,
 		waitsForYou: row.waits_for_you,
 		createdAt: row.created_at,
 		updatedAt: row.updated_at,
