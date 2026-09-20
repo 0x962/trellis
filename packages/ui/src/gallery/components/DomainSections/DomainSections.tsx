@@ -4,6 +4,7 @@ import {
 	CheckRibbonSection,
 	ChecksLineSection,
 	ConditionsBlockSection,
+	ContractBlockSection,
 	FileRiskGroupsSection,
 	FlowRunSection,
 	LineChangesSection,
@@ -37,6 +38,7 @@ export function DomainSections() {
 			<FlowRunSection />
 			<FileRiskGroupsSection />
 			<ConditionsBlockSection />
+			<ContractBlockSection />
 		</>
 	);
 }
