@@ -33,4 +33,7 @@ export const tickets = os.tickets.router({
 	setOutcome: os.tickets.setOutcome.handler(({ context, input }) =>
 		call(context, "tickets.setOutcome", withIfMatch(context, input)),
 	),
+	answer: os.tickets.answer.handler(({ context, input }) =>
+		call(context, "tickets.answer", withIfMatch(context, input)),
+	),
 });

@@ -58,7 +58,7 @@ const hasReadyPullRequest = hasLinkedPullRequest(sql`
 `);
 
 // The counts that tell the person what is next in a milestone. A todo ticket
-// can start when every ticket that it depends on is done.
+// can start when every ticket that it depends on is done or canceled.
 // `packages/api/src/turn/turn.ts` defines whose turn a ticket has.
 // `waits_for_you` is its SQL form for the status and pull request fields in
 // the database. Each ticket adds at most one to the count.
@@ -67,7 +67,7 @@ const nextCounts = sql`,
 				SELECT 1 FROM ticket_deps dependency
 				JOIN tickets blocker ON blocker.id = dependency.depends_on_id
 				JOIN statuses blocker_status ON blocker_status.id = blocker.status_id
-				WHERE dependency.ticket_id = t.id AND blocker_status.category <> 'done'
+				WHERE dependency.ticket_id = t.id AND blocker_status.category NOT IN ('done', 'canceled')
 			)))::int AS to_start,
 			(count(*) FILTER (WHERE
 				s.category NOT IN ('done', 'canceled')

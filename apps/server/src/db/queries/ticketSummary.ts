@@ -1,6 +1,7 @@
 import type { CiState, PrState, ReviewState, StoredActorKind, TicketSummary } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { actorDisplayName } from "./actorDisplayName.ts";
+import { ticketQuestion } from "./chainRows.ts";
 import { iso, pathsCte } from "./support.ts";
 import { type TicketPrRow, ticketPrColumns, ticketPrJoin, toTicketPrRows } from "./ticketPrs.ts";
 
@@ -113,11 +114,10 @@ export const summaryJoins = sql`
 					'identifier', waits_root.key || '-' || blocker.number,
 					'title', blocker.title,
 					'status', blocker_status.category,
-					'isQuestion', blocker_status.reviewer = 'human'
-						AND blocker.description ~ '(?ms)^Options:[[:space:]]*[^[:space:]]'
+					'isQuestion', ${ticketQuestion(sql`blocker`, sql`blocker_status`)}
 				) ORDER BY blocker.number, blocker.id
-			) FILTER (WHERE blocker_status.category <> 'done') AS items,
-			bool_and(blocker_status.category = 'done') AS all_done
+			) FILTER (WHERE blocker_status.category NOT IN ('done', 'canceled')) AS items,
+			bool_and(blocker_status.category IN ('done', 'canceled')) AS all_done
 		FROM ticket_deps dependency
 		JOIN tickets blocker ON blocker.id = dependency.depends_on_id
 		JOIN statuses blocker_status ON blocker_status.id = blocker.status_id
