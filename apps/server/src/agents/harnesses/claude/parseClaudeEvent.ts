@@ -16,13 +16,13 @@ const askUserQuestion = z.object({
 });
 
 const askUserQuestionInput = z.object({
-	questions: z.array(z.unknown()),
+	questions: z.array(z.unknown()).optional(),
 });
 
 function readQuestions(input: unknown) {
-	const parsed = askUserQuestionInput.safeParse(input);
-	if (!parsed.success) return {};
-	const questions = parsed.data.questions.flatMap((inputQuestion, index) => {
+	const inputQuestions = askUserQuestionInput.parse(input ?? {}).questions;
+	if (!inputQuestions) return {};
+	const questions = inputQuestions.flatMap((inputQuestion, index) => {
 		const question = askUserQuestion.safeParse(inputQuestion);
 		if (!question.success) return [];
 		return [

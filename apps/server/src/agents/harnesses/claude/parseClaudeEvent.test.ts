@@ -39,25 +39,25 @@ test("Claude reads AskUserQuestion questions from the tool input", () => {
 			kind: "question",
 			title: "The agent has a question in the terminal",
 			blocking: true,
-			questions: [
-				{
-					id: "0",
-					question: "Which database should this service use?",
-					options: [
-						{ label: "PGlite", description: "Keep the database local" },
-						{ label: "Postgres", description: "Use a remote database" },
-					],
-					multiple: false,
-				},
-				{
-					id: "2",
-					question: "Which checks should run?",
-					options: [{ label: "Lint" }, { label: "Typecheck" }],
-					multiple: true,
-				},
-			],
 		},
 	});
+	expect(events[0]?.inputRequest?.questions).toEqual([
+		{
+			id: "0",
+			question: "Which database should this service use?",
+			options: [
+				{ label: "PGlite", description: "Keep the database local" },
+				{ label: "Postgres", description: "Use a remote database" },
+			],
+			multiple: false,
+		},
+		{
+			id: "2",
+			question: "Which checks should run?",
+			options: [{ label: "Lint" }, { label: "Typecheck" }],
+			multiple: true,
+		},
+	]);
 });
 
 test("Claude keeps the terminal title when the tool input has no question", () => {
