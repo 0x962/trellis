@@ -10,6 +10,7 @@ let db: Db;
 const root = ulid();
 const status = ulid();
 const ticket = ulid();
+const emptyTicket = ulid();
 const at = new Date("2026-09-20T10:00:00.000Z");
 
 const check = (name: string, workflow: string | null, bucket: string) => ({ name, workflow, bucket, link: null });
@@ -48,7 +49,9 @@ beforeAll(async () => {
 	) VALUES (${status}, ${root}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO tickets (
 		id, project_id, root_id, number, title, status_id, position, created_at, updated_at
-	) VALUES (${ticket}, ${root}, ${root}, 1, 'Task', ${status}, 0, ${at}, ${at})`);
+	) VALUES
+		(${ticket}, ${root}, ${root}, 1, 'Task', ${status}, 0, ${at}, ${at}),
+		(${emptyTicket}, ${root}, ${root}, 2, 'Empty task', ${status}, 1, ${at}, ${at})`);
 
 	const first = await insertPull(1, 99, 100, [
 		check("unit", "CI", "pass"),
@@ -96,4 +99,8 @@ test("a ticket summary carries one row for each pull request", async () => {
 		headRef: "feature-1",
 	});
 	expect(summary.prRows.every((row) => row.flowRuns.length === 2)).toBe(true);
+
+	const emptySummary = await db.transaction((tx) => ticketSummary(tx, emptyTicket));
+	expect(TicketSummarySchema.parse(emptySummary)).toEqual(emptySummary);
+	expect(emptySummary.prRows).toEqual([]);
 });
