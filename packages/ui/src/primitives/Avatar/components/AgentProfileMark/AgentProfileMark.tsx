@@ -13,7 +13,9 @@ export type AgentProfile = {
 // Cards that start together sweep together, which reads as one blink of a whole
 // row. A negative delay from the id of the card starts each card at its own
 // point of the seven seconds. `useAgentMotion` does the same for the 32 px mark.
-const phaseOf = (id: string) => ([...id].reduce((value, char) => value + char.charCodeAt(0), 0) * 0.43) % 7;
+// Two ids of one row differ by one character, so the step of 2.71 s carries
+// each card to a far point of the seven seconds.
+const phaseOf = (id: string) => ([...id].reduce((value, char) => value + char.charCodeAt(0), 0) * 2.71) % 7;
 
 export function AgentProfileMark({ profile, state }: { profile: AgentProfile; state: AgentMarkState }) {
 	const working = state !== "static";
