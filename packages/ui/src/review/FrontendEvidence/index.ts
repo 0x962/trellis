@@ -1,7 +1,7 @@
 export {
 	type CaptureRun,
 	type EvidenceClip,
-	type EvidenceShot,
+	type EvidenceScreenshot,
 	FrontendEvidence,
 	type FrontendEvidenceProps,
 } from "./FrontendEvidence";

@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { EvidenceStrip } from "./EvidenceStrip";
 
-const gap = { label: "console log", fillCommand: "trellis evidence add 56930 --kind console --file <path>" };
+const gap = { label: "console list", fillCommand: "trellis evidence add 56930 --kind console --file <path>" };
 const copy = () => {};
 
 test("prints the count and the note beside the title", () => {
@@ -25,7 +25,7 @@ test("prints one line for each record the pull request still owes", () => {
 	);
 
 	expect(html).toContain("4 of 5");
-	expect(html).toContain("console log");
+	expect(html).toContain("console list");
 	expect(html).toContain("missing");
 	expect(html).toContain("trellis evidence add 56930 --kind console --file &lt;path&gt;");
 });
@@ -60,5 +60,5 @@ test("hides the records of a pull request that carries none", () => {
 	);
 
 	expect(html).not.toContain("the records");
-	expect(html).toContain("console log");
+	expect(html).toContain("console list");
 });

@@ -73,7 +73,7 @@ test("gives the image the label when the agent wrote no sentence", () => {
 		/>,
 	);
 
-	expect(html).toContain('alt="the before screen"');
+	expect(html).toContain('alt="the before screenshot"');
 	expect(html).not.toContain('alt=""');
 });
 
@@ -121,7 +121,7 @@ test("names the image an agent did not add", () => {
 		<FrontendEvidence capture={capture} before={before} after={null} clip={null} consoleLine={null} />,
 	);
 
-	expect(html).toContain("The agent added no after image.");
+	expect(html).toContain("The agent added no after screenshot.");
 	expect(html).not.toContain("op27-console.txt");
 });
 

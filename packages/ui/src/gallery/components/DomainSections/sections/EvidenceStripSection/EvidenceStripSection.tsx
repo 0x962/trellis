@@ -1,8 +1,8 @@
-import { EvidenceStrip, FrontendEvidence } from "../../../../review";
-import { Section } from "../../Section";
-import beforeShot from "./evidence/op27-send-pending.png";
+import { EvidenceStrip, FrontendEvidence } from "../../../../../review";
+import { Section } from "../../../Section";
+import beforeScreenshot from "./evidence/op27-send-pending.png";
 import clipFile from "./evidence/op27-send-timeout.gif";
-import afterShot from "./evidence/op27-send-timeout.png";
+import afterScreenshot from "./evidence/op27-send-timeout.png";
 
 // The three files an agent attached to pull request 56930 of the canary
 // repository, and the capture record of that same pull request.
@@ -18,12 +18,12 @@ const capture = {
 };
 
 const before = {
-	url: beforeShot,
+	url: beforeScreenshot,
 	caption: "The dialog holds both buttons greyed while the post stalls.",
 };
 
 const after = {
-	url: afterShot,
+	url: afterScreenshot,
 	caption: "A post that gives up prints its words and the dialog closes.",
 };
 
@@ -54,7 +54,7 @@ export function EvidenceStripSection() {
 				<EvidenceStrip
 					present={4}
 					required={5}
-					missing={[{ label: "console log", fillCommand: "trellis evidence add 56930 --kind console --file <path>" }]}
+					missing={[{ label: "console list", fillCommand: "trellis evidence add 56930 --kind console --file <path>" }]}
 					hasRecords={true}
 					note="captured on 8b21f0c"
 					onCopy={copy}

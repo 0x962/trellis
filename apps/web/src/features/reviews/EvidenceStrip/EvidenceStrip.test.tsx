@@ -87,7 +87,7 @@ describe("EvidenceStrip", () => {
 		expect(html).toContain("3 of 5 · captured on 8b21f0c");
 		expect(html).toContain("/chat/:uuid · 1440×900 · dark · seed: trellis seed op27-stall");
 		expect(html).toContain("head 8b21f0c · base 4c9a771 · Chrome 141 · 2026-09-18 01:58");
-		expect(html).toContain("op27-console.txt · 2 KB");
+		expect(html).toContain("op27-console.txt · 2.0 KB");
 	});
 
 	test("names each owed record in words and carries the command that writes it", () => {

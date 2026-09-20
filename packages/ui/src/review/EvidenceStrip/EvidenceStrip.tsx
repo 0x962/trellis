@@ -3,6 +3,7 @@ import { EmptyState } from "../../primitives/EmptyState";
 import { SectionHeader } from "../../primitives/SectionHeader";
 import { Skeleton } from "../../primitives/Skeleton";
 import { BlockRow } from "../BlockRow";
+import { CopyLine } from "../CopyLine";
 
 export type EvidenceGap = {
 	// The words for one record the pull request owes, such as "verify record".
@@ -65,14 +66,7 @@ export function EvidenceStrip({
 							{missing.map((gap) => (
 								<BlockRow key={gap.label} label={gap.label}>
 									<span className="text-sm text-warning">missing</span>
-									<button
-										type="button"
-										aria-label={`Copy ${gap.fillCommand}`}
-										onClick={() => onCopy(gap.fillCommand)}
-										className="-mx-1 max-w-full cursor-pointer self-start rounded-sm px-1 py-0.5 text-left font-mono text-xs break-words text-fg-muted transition-colors duration-hover ease-out hover:bg-band focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent pointer-coarse:py-2"
-									>
-										{gap.fillCommand}
-									</button>
+									<CopyLine text={gap.fillCommand} tone="quiet" onCopy={onCopy} />
 								</BlockRow>
 							))}
 						</dl>
