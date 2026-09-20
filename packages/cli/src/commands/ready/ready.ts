@@ -1,4 +1,4 @@
-import { runLine, type TicketSummary, turnOf } from "@trellis/api";
+import { isAgentWorking, type TicketSummary, turnOf } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../../client.ts";
 import { contextOf } from "../../context.ts";
@@ -41,7 +41,7 @@ export default defineCommand({
 		]);
 		const workingTicketIds = new Set(
 			runs.flatMap((run) =>
-				run.kind === "agent" && run.ticketId !== null && runLine(run).kind === "works" ? [run.ticketId] : [],
+				run.kind === "agent" && run.ticketId !== null && isAgentWorking(run) ? [run.ticketId] : [],
 			),
 		);
 		const result = readyResult(epic.tickets, workingTicketIds);
