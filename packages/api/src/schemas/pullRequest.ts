@@ -84,6 +84,24 @@ export const PullRequestIdInputSchema = z.strictObject({
 	id: UlidSchema,
 });
 
+export const PullRequestSummarySchema = z.object({
+	pullRequestId: UlidSchema,
+	headSha: z.string().min(1),
+	headline: z.string().min(1),
+	why: z.string().min(1),
+	watch: z.string().min(1),
+});
+export type PullRequestSummary = z.infer<typeof PullRequestSummarySchema>;
+
+export const PullRequestSummaryWriteInputSchema = z.strictObject({
+	id: UlidSchema,
+	headSha: z.string().min(1),
+	headline: z.string().min(1),
+	why: z.string().min(1),
+	watch: z.string().min(1),
+});
+export type PullRequestSummaryWriteInput = z.input<typeof PullRequestSummaryWriteInputSchema>;
+
 // A diff over 1 MB is cut and `truncated` is true; `url` opens the whole
 // diff on GitHub.
 export const PullRequestDiffOutputSchema = z.object({

@@ -7,6 +7,8 @@ import {
 	PullRequestLinkInputSchema,
 	PullRequestListInputSchema,
 	PullRequestSchema,
+	PullRequestSummarySchema,
+	PullRequestSummaryWriteInputSchema,
 	PullRequestUnlinkInputSchema,
 	PullRequestUnlinkOutputSchema,
 } from "../schemas/pullRequest.ts";
@@ -37,4 +39,12 @@ export const pullRequests = {
 		.route({ method: "GET", path: "/prs/{id}/diff", summary: "Read the diff, cut at 1 MB" })
 		.input(PullRequestIdInputSchema)
 		.output(PullRequestDiffOutputSchema),
+	readSummary: base
+		.route({ method: "GET", path: "/prs/{id}/summary", summary: "Read the newest summary of a pull request" })
+		.input(PullRequestIdInputSchema)
+		.output(PullRequestSummarySchema.nullable()),
+	writeSummary: base
+		.route({ method: "PUT", path: "/prs/{id}/summary", summary: "Write the summary of one pull request head" })
+		.input(PullRequestSummaryWriteInputSchema)
+		.output(PullRequestSummarySchema),
 };
