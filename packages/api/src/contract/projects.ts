@@ -44,6 +44,12 @@ export const projects = {
 		.route({ method: "DELETE", path: "/projects/{project}", summary: "Delete a project" })
 		.input(ProjectDeleteInputSchema)
 		.output(ProjectDeleteOutputSchema),
+	// The repos of the project and of every project above it, one row for each
+	// owner and repo pair.
+	repos: base
+		.route({ method: "GET", path: "/projects/{project}/repos", summary: "List the repos a project uses" })
+		.input(ProjectGetInputSchema)
+		.output(z.array(RepoSchema)),
 	setRepos: base
 		.errors(pickErrors(["PROJECT_ARCHIVED"]))
 		.route({ method: "PUT", path: "/projects/{project}/repos", summary: "Replace the repos the poller scans" })

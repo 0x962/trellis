@@ -12,7 +12,10 @@ export type ConditionLine = {
 };
 
 export type ConditionsBlockProps = {
-	readiness: ConditionsReadiness;
+	// The word after `READY TO MERGE`. Without it, the block prints the lines
+	// under `MERGE CONDITIONS`, for a caller that cannot measure every
+	// condition.
+	readiness?: ConditionsReadiness;
 	// The lines print in the order of this array.
 	lines: readonly ConditionLine[];
 };
@@ -22,14 +25,18 @@ export type ConditionsBlockProps = {
 export function ConditionsBlock({ readiness, lines }: ConditionsBlockProps) {
 	return (
 		<section aria-label="Merge conditions" className="flex min-w-0 flex-col">
-			<SectionHeader
-				title="READY TO MERGE"
-				actions={
-					<span role="status" aria-live="polite">
-						{readiness}
-					</span>
-				}
-			/>
+			{readiness === undefined ? (
+				<SectionHeader title="MERGE CONDITIONS" />
+			) : (
+				<SectionHeader
+					title="READY TO MERGE"
+					actions={
+						<span role="status" aria-live="polite">
+							{readiness}
+						</span>
+					}
+				/>
+			)}
 			<dl className="flex min-w-0 flex-col">
 				{lines.map((line) => (
 					<PropertyRow key={line.label} label={line.label} align="start">

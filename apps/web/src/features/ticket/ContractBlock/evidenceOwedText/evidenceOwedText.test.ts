@@ -36,4 +36,10 @@ describe("evidenceOwedText", () => {
 	test("says unknown when the contract names no file", () => {
 		expect(evidenceOwedText("trellis", [])).toBe("unknown. The contract names no file.");
 	});
+
+	test("says unknown when the project uses no repository or more than one", () => {
+		expect(evidenceOwedText(undefined, ["frontend/src/App.tsx"])).toBe(
+			"unknown. The project uses no repository, or more than one.",
+		);
+	});
 });

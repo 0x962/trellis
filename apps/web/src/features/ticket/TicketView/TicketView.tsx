@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { asksQuestion, questionParts, reviewRef } from "@trellis/api";
+import { asksQuestion, questionParts, reviewRef, type Ticket } from "@trellis/api";
 import { cx, EmptyState, SectionHeader, useMediaQuery } from "@trellis/ui";
 import { useEffect, useState } from "react";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
@@ -28,6 +28,13 @@ import { ParentChip } from "./components/ParentChip";
 import { PullRequestSheet } from "./components/PullRequestSheet";
 import { TicketSkeleton } from "./components/TicketSkeleton";
 
+// The contract reads the repository name of the project, and the ticket must
+// load before the page knows the project.
+function TicketContract({ ticket }: { ticket: Ticket }) {
+	const repo = useSoleRepositoryName(ticket.project.path);
+	return <ContractBlock repo={repo} contract={ticket.contract} />;
+}
+
 export type TicketViewProps = {
 	// The canonical identifier, `CDE-42`.
 	identifier: string;
@@ -52,7 +59,6 @@ export function TicketView({ identifier }: TicketViewProps) {
 	const drop = useDropOverlay(uploads.addFiles);
 	const narrow = useMediaQuery("(max-width: 767px)");
 	const { isArchived, notice } = useArchivedProjects();
-	const repo = useSoleRepositoryName(query.data?.project.path);
 	const [pullRequest, setPullRequest] = useState<string | null>(null);
 	const openPullRequest = (url: string) => {
 		if (inSheet) {
@@ -145,7 +151,7 @@ export function TicketView({ identifier }: TicketViewProps) {
 						<QuestionBlock ticket={ticket} />
 					) : (
 						<>
-							<ContractBlock repo={repo} contract={ticket.contract} />
+							<TicketContract ticket={ticket} />
 							<ChainBlock
 								waitsOn={ticket.waitsOn}
 								releases={ticket.releases}

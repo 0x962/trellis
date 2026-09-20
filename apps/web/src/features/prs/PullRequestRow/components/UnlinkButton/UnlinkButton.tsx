@@ -2,7 +2,7 @@ import { Gear } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import type { LinkedPullRequest, TicketSummary } from "@trellis/api";
 import { IconButton } from "@trellis/ui";
-import { useApp } from "../../../../../../../lib/appContext";
+import { useApp } from "../../../../../lib/appContext";
 
 export type UnlinkButtonProps = {
 	ticket: TicketSummary;

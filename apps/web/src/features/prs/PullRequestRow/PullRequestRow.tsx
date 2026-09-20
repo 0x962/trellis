@@ -1,7 +1,7 @@
 import { GithubLogo, Warning } from "@phosphor-icons/react";
 import type { LinkedPullRequest, TicketSummary } from "@trellis/api";
 import { cx, IconButton, PrGlyph, ReviewStateIcon } from "@trellis/ui";
-import { tabularClass } from "../../../../../lib/format";
+import { tabularClass } from "../../../lib/format";
 import { OpenReviewButton } from "./components/OpenReviewButton";
 import { UnlinkButton } from "./components/UnlinkButton";
 

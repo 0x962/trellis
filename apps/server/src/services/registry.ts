@@ -210,6 +210,7 @@ export const services = {
 	"projects.update": core("mutation", projects.update),
 	"projects.move": core("mutation", projects.move),
 	"projects.delete": core("mutation", projects.delete),
+	"projects.repos": core("read", projects.effectiveRepos),
 	"projects.setRepos": core("mutation", projects.setRepos),
 	"statuses.list": core("read", statuses.list),
 	"statuses.create": core("mutation", statuses.create),

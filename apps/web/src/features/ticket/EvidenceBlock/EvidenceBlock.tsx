@@ -18,16 +18,23 @@ export function EvidenceBlock({ ticket, onOpenPullRequest }: EvidenceBlockProps)
 	const prs = useQuery({
 		...orpc.pullRequests.list.queryOptions({ input: { ticket: ticket.id } }),
 		initialData: ticket.prs,
-	}).data;
+	});
 	return (
-		<section aria-label="The evidence" className="flex min-w-0 flex-col gap-3">
+		<section aria-label="The evidence" className="flex min-w-0 flex-col">
 			<SectionHeader title="THE EVIDENCE" />
-			{prs.length === 0 ? (
-				<EmptyState description="No pull request yet." />
-			) : (
-				prs.map((pr) => <PullRequestCard key={pr.id} ticket={ticket} pr={pr} onOpen={onOpenPullRequest} />)
-			)}
-			<FlowRuns ticket={ticket.identifier} />
+			<div className="flex min-w-0 flex-col gap-3">
+				{prs.isError && (
+					<p role="alert" className="text-sm text-danger">
+						{prs.error.message}
+					</p>
+				)}
+				{prs.data.length === 0 ? (
+					<EmptyState description="No pull request yet." />
+				) : (
+					prs.data.map((pr) => <PullRequestCard key={pr.id} ticket={ticket} pr={pr} onOpen={onOpenPullRequest} />)
+				)}
+				<FlowRuns ticket={ticket.identifier} />
+			</div>
 		</section>
 	);
 }

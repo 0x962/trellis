@@ -1,5 +1,5 @@
 import type { TicketPr, TicketSummary } from "@trellis/api";
-import type { Conditions } from "../../../../../reviews/ConditionsBlock";
+import type { Conditions } from "../conditionLines/conditionLines";
 
 // A run that waits has not started, so it counts as running.
 const flowsOf = (runs: TicketPr["flowRuns"]): Conditions["flows"] => ({
@@ -17,8 +17,9 @@ const sizeOf = (pr: TicketPr): Conditions["size"] =>
 
 // The merge conditions of one pull request, read from the pull request row of
 // the ticket. The row holds no test proof and no base branch state, so
-// `tests` and `base` stay null, and the readiness word cannot read `yes` on
-// the ticket page. The review page reads both.
+// `tests` and `base` stay null. The row holds only the five newest flow runs,
+// so `flows` counts those five. `mergeReadiness` would read these gaps as
+// open conditions, so `ShortConditions` prints no readiness word.
 //
 // The function returns null while the poller has no risk answer for the pull
 // request. Most lines would then print a value that nobody measured.

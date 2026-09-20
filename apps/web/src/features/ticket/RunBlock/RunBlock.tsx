@@ -13,44 +13,58 @@ export type RunBlockProps = {
 	ticket: Ticket;
 };
 
-// The run that holds the ticket, and the controls that start one.
+// The run that holds the ticket, and the controls that start one. `RunLine`
+// draws the named region `The run`, so this frame is a plain `div`.
 export function RunBlock({ ticket }: RunBlockProps) {
 	const { orpc } = useApp();
 	const hash = useLocation({ select: (location) => location.hash });
-	const [sessionOpen, setSessionOpen] = useState(false);
+	// The id of the run whose session sheet is open. The sheet opens only for
+	// that run, so a later run never opens it.
+	const [sessionRun, setSessionRun] = useState<string | null>(null);
 	const runs = useQuery({
 		...orpc.agentRuns.list.queryOptions({ input: { ticket: ticket.identifier } }),
 		refetchInterval: 2000,
 	});
 	// The run line prints the time and the tokens on a hover.
 	const metrics = useQuery({
-		...orpc.agentRuns.ticketMetrics.queryOptions({ input: { ticket: ticket.identifier }, retry: false }),
+		...orpc.agentRuns.ticketMetrics.queryOptions({ input: { ticket: ticket.identifier } }),
 		refetchInterval: 2000,
 	});
 	// A link to `#attempt-<terminal id>` picks that run. Without one, the run
 	// line shows the assigned agent run, then any run with a live process.
-	const assigned =
+	const shown =
 		runs.data?.find((run) => hash === `attempt-${run.terminalId}`) ??
 		runs.data?.find((run) => run.kind === "agent" && run.assigned) ??
 		runs.data?.find(hasAssignedProcess) ??
 		null;
-	// A person starts a run on an open ticket that no live process holds.
-	const canStart =
-		runs.isSuccess && ticket.completedAt === null && (assigned === null || !hasAssignedProcess(assigned));
+	// `apps/server/src/services/agentRuns/reserve.ts` refuses a start while an
+	// agent run of the ticket is open, and `assigned` reads that same column.
+	const canStart = runs.isSuccess && !runs.data.some((run) => run.kind === "agent" && run.assigned);
 	return (
-		<div className="flex min-w-0 flex-col gap-3">
+		<div className="flex min-w-0 flex-col">
 			<SectionHeader title="THE RUN" />
-			{runs.isError ? (
-				<p role="alert" className="text-sm text-danger">
-					{runs.error.message}
-				</p>
-			) : runs.isPending ? (
-				<Skeleton width="w-64" />
-			) : (
-				<RunLine run={assigned} metrics={metrics.data ?? null} onOpenSession={() => setSessionOpen(true)} />
+			<div className="flex min-w-0 flex-col gap-3">
+				{runs.isError ? (
+					<p role="alert" className="text-sm text-danger">
+						{runs.error.message}
+					</p>
+				) : runs.isPending ? (
+					<div className="flex h-7 items-center">
+						<Skeleton width="w-64" />
+					</div>
+				) : (
+					<RunLine run={shown} metrics={metrics.data ?? null} onOpenSession={() => setSessionRun(shown?.id ?? null)} />
+				)}
+				{metrics.isError && (
+					<p role="alert" className="text-sm text-danger">
+						{metrics.error.message}
+					</p>
+				)}
+				{canStart && <StartControls ticket={ticket.identifier} waitsOn={ticket.waitsOn} />}
+			</div>
+			{shown !== null && (
+				<SessionSheet run={shown} open={shown.id === sessionRun} onClose={() => setSessionRun(null)} />
 			)}
-			{canStart && <StartControls ticket={ticket.identifier} waitsOn={ticket.waitsOn} />}
-			{assigned !== null && <SessionSheet run={assigned} open={sessionOpen} onClose={() => setSessionOpen(false)} />}
 		</div>
 	);
 }

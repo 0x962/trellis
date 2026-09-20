@@ -773,6 +773,7 @@ returns one canonical spelling.
 | projects.update | PATCH /api/projects/{project} | name, slug, description, ticket template, archived |
 | projects.move | POST /api/projects/{project}/move | parent, after, before |
 | projects.delete | DELETE /api/projects/{project} | `force` deletes a non-empty subtree |
+| projects.repos | GET /api/projects/{project}/repos | the repos of the project and of every project above it |
 | projects.setRepos | PUT /api/projects/{project}/repos | full replace, idempotent |
 | statuses.list, create, update, reorder | GET, POST /api/projects/{project}/statuses; PATCH .../{status}; PUT .../order | the category is immutable |
 | statuses.delete | DELETE /api/projects/{project}/statuses/{status} | `moveTo` moves the tickets first |
