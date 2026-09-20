@@ -80,6 +80,8 @@ export const labelAmbiguous = (matches: string[]) =>
 // reads one line and fixes the path; a stack trace tells them nothing.
 export const fileNotFound = (path: string) => new CliFailure("NOT_FOUND", 3, `No file at ${path}.`);
 
+// EVIDENCE_FLOOR_MISSING comes from this CLI, so exitCodes has no row.
+// Its exit code 1 reports a refused operation, not invalid input.
 export const evidenceFloorMissing = (ticket: string) =>
 	new CliFailure(
 		"EVIDENCE_FLOOR_MISSING",
