@@ -23,7 +23,7 @@ import { TicketPicker } from "../../pickers/TicketPicker";
 // One control of the bar that opens a list of values. A table key opens one
 // of them: `s` opens "status", `p` opens "priority", `l` opens "labels",
 // `m` opens "project", `shift+p` opens "parent", and `e` opens "epic".
-// "milestone" has no key, so a click on Set milestone opens it.
+// "milestone" has no key, so a click on Set wave opens it.
 export type BulkPicker = "status" | "priority" | "labels" | "project" | "parent" | "epic" | "milestone";
 
 export type BulkBarProps = {
@@ -47,7 +47,7 @@ export type BulkBarProps = {
 	mixedLabelIds: readonly string[];
 	// The ref of the epic every selected ticket holds. It is undefined when
 	// every selected ticket holds no epic, and when `epicMixed` is true. Set
-	// milestone lists the milestones of this epic, so that control is disabled
+	// Set wave lists the milestones of this epic, so that control is disabled
 	// without it.
 	epicRef?: string;
 	// True when the selected tickets hold different epics. The picker then
@@ -253,7 +253,7 @@ export function BulkBar({
 				(epicRef === undefined ? (
 					<Tooltip content="Select tickets of one epic">
 						<Button size="sm" focusableWhenDisabled disabled>
-							Set milestone
+							Set wave
 						</Button>
 					</Tooltip>
 				) : (
@@ -265,7 +265,7 @@ export function BulkBar({
 						open={openPicker === "milestone"}
 						onOpenChange={opener("milestone")}
 						side="top"
-						trigger={<Button size="sm">Set milestone</Button>}
+						trigger={<Button size="sm">Set wave</Button>}
 					/>
 				))}
 			{withKey(

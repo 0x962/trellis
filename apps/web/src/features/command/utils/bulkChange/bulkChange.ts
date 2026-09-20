@@ -97,10 +97,10 @@ export const setMilestone = (
 	bulk.update(
 		rows,
 		{ milestone: milestone === null ? null : milestone.ref },
-		milestone === null ? "Clear the milestone" : `Set the milestone to ${milestone.name}`,
+		milestone === null ? "Clear the wave" : `Set the wave to ${milestone.name}`,
 		{
 			row: { milestone: milestone === null ? null : { id: milestone.id, ref: milestone.ref, name: milestone.name } },
-			verb: (subject) => `The milestone of ${subject} did not change.`,
+			verb: (subject) => `The wave of ${subject} did not change.`,
 		},
 	);
 

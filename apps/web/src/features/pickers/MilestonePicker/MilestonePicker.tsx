@@ -102,7 +102,7 @@ export function MilestonePicker({
 	return (
 		<Popover
 			trigger={trigger}
-			label="Milestone"
+			label="Wave"
 			open={isOpen}
 			onOpenChange={setOpen}
 			initialFocus={input}
@@ -112,10 +112,10 @@ export function MilestonePicker({
 		>
 			<Command
 				inputRef={input}
-				label="Search milestones"
-				placeholder="Set milestone"
+				label="Search waves"
+				placeholder="Set wave"
 				items={items}
-				empty={loaded === undefined ? "Load milestones…" : "No milestones."}
+				empty={loaded === undefined ? "Load waves…" : "No waves."}
 				onSelect={(id) => {
 					setOpen(false);
 					onPick(id === noneId ? null : milestones.find((milestone) => milestone.ref === id)!);

@@ -77,7 +77,7 @@ describe("groupRows by milestone", () => {
 			milestoneOrder: [phase1.id, phase2.id, alpha.id],
 		});
 
-		expect(groups.map((group) => group.label)).toEqual(["Phase 1", "Phase 2", "Alpha", "No milestone"]);
+		expect(groups.map((group) => group.label)).toEqual(["Phase 1", "Phase 2", "Alpha", "No wave"]);
 		expect(groups.map((group) => group.key)).toEqual([phase1.id, phase2.id, alpha.id, "none"]);
 		expect(groups[1]!.rows.map((row) => row.id).sort()).toEqual(["c", "e"]);
 	});
@@ -92,7 +92,7 @@ describe("groupRows by milestone", () => {
 			milestoneOrder: [phase1.id],
 		});
 
-		expect(groups.map((group) => group.label)).toEqual(["Phase 1", "Alpha", "No milestone"]);
+		expect(groups.map((group) => group.label)).toEqual(["Phase 1", "Alpha", "No wave"]);
 	});
 
 	test("puts every row without a milestone in one group", () => {
