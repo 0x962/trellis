@@ -1,4 +1,5 @@
 export { ActorChipSection } from "./ActorChipSection";
+export { AgentProfileMarkSection } from "./AgentProfileMarkSection";
 export { CheckRibbonSection } from "./CheckRibbonSection";
 export { ChecksLineSection } from "./ChecksLineSection";
 export { FlowRunSection } from "./FlowRunSection";

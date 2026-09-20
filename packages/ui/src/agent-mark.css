@@ -78,6 +78,26 @@
 	stroke: var(--surface);
 	stroke-width: 1.5;
 }
+/*
+ * One band of `--film-gradient` crosses the card of a working agent, once per
+ * run of `--animate-glimmer`. The start position holds the band off the left
+ * edge of the card, so a card with the animation paused or off shows no band.
+ * `AgentProfileMark` adds `data-sweep="run"` only while a person can see the
+ * card, and gives each card its own `animation-delay`.
+ */
+.agent-profile-sweep {
+	@apply film-sweep;
+	position: absolute;
+	inset: 0;
+	background-image: var(--film-gradient);
+	background-repeat: no-repeat;
+	opacity: var(--film-opacity-sweep);
+	pointer-events: none;
+	animation-play-state: paused;
+}
+.agent-profile-sweep[data-sweep="run"] {
+	animation-play-state: running;
+}
 @media (prefers-reduced-motion: reduce) {
 	.agent-mark[data-motion="active"] .agent-effect {
 		opacity: 0;

@@ -82,6 +82,13 @@
 	font-size: 12px;
 	font-variant-numeric: tabular-nums;
 }
+/*
+ * The band of light of `film-sweep` in base.css, written out. A stylesheet
+ * that an app imports on its own holds no Tailwind context, so `@apply` here
+ * fails the build with "Cannot apply unknown utility class". The three values
+ * below must match the utility: the keyframes of `--animate-glimmer` run
+ * `background-position` from 150% to -50%.
+ */
 .review-check-tab-running {
 	color: var(--warning);
 	background-image: linear-gradient(
