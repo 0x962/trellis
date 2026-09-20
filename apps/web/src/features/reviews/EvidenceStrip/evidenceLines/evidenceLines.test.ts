@@ -159,4 +159,102 @@ describe("evidenceLines", () => {
 		expect(lines.strip.note).toBeUndefined();
 		expect(lines.capture).toBeNull();
 	});
+	test("reads the verify record, the test proof and the contract table out of their records", () => {
+		const verify = record({
+			id: "01M30A0000000000000000VRFY",
+			kind: "verify",
+			record: { command: "bun scripts/check.ts", exit: 1, tail: "5 errors" },
+		});
+		const proof = record({
+			id: "01M30A0000000000000000TEST",
+			kind: "test",
+			record: { name: "prints the verify record", failsOn: "4c9a771e28b0f6d3", passesOn: headSha },
+		});
+		const contract = record({
+			id: "01M30A0000000000000000CONT",
+			kind: "contract",
+			record: { before: "evidence.list returns the rows", after: "evidence.list returns the rows and the floor" },
+		});
+		const lines = evidenceLines([verify, proof, contract], floor);
+
+		expect(lines.verify).toEqual([{ command: "bun scripts/check.ts", exit: 1, tail: "5 errors" }]);
+		expect(lines.tests).toEqual([
+			{ state: "named", name: "prints the verify record", failsOn: "4c9a771", passesOn: "8b21f0c" },
+		]);
+		expect(lines.contracts).toEqual([
+			{
+				state: "changed",
+				before: "evidence.list returns the rows",
+				after: "evidence.list returns the rows and the floor",
+			},
+		]);
+	});
+
+	test("reads a record that names no test and a record that names no contract", () => {
+		const proof = record({
+			id: "01M30A0000000000000000TEST",
+			kind: "test",
+			record: { none: true, reason: "the change deletes a dead branch" },
+		});
+		const contract = record({ id: "01M30A0000000000000000CONT", kind: "contract", record: { none: true } });
+		const lines = evidenceLines([proof, contract], floor);
+
+		expect(lines.tests).toEqual([{ state: "none", reason: "the change deletes a dead branch" }]);
+		expect(lines.contracts).toEqual([{ state: "none" }]);
+	});
+
+	test("reads the migration plan and its file out of one record", () => {
+		const migration = record({
+			id: "01M30A0000000000000000MIGR",
+			kind: "migration",
+			record: { table: "phase: expand · lock: none" },
+			blob: {
+				sha256: "c4f1a90b23de5678ab12cd34ef567890ab12cd34ef567890ab12cd34ef561234",
+				url: "/api/evidence/01M30A0000000000000000MIGR/file",
+				filename: "0089_epic_resources.sql",
+				mime: "text/plain",
+				size: 812,
+			},
+		});
+
+		expect(evidenceLines([migration], floor).migration).toEqual({
+			table: "phase: expand · lock: none",
+			filename: "0089_epic_resources.sql",
+		});
+	});
+
+	test("takes the first picture record and no other", () => {
+		const picture = (id: string, why: string) =>
+			record({
+				id,
+				kind: "picture",
+				record: { why },
+				blob: {
+					sha256: "b0d3f4a1c25e7890ab12cd34ef567890ab12cd34ef567890ab12cd34ef567890",
+					url: `/api/evidence/${id}/file`,
+					filename: "op43-route-sequence.png",
+					mime: "image/png",
+					size: 41000,
+				},
+			});
+		const lines = evidenceLines(
+			[
+				picture("01M30A00000000000000000PIC", "The first picture."),
+				picture("01M30A0000000000000000PIC2", "The second one."),
+			],
+			floor,
+		);
+
+		expect(lines.picture).toEqual({ url: "/api/evidence/01M30A00000000000000000PIC/file", why: "The first picture." });
+	});
+
+	test("reports a pull request that carries no backend record", () => {
+		const lines = evidenceLines([captureRecord], floor);
+
+		expect(lines.verify).toEqual([]);
+		expect(lines.tests).toEqual([]);
+		expect(lines.contracts).toEqual([]);
+		expect(lines.migration).toBeNull();
+		expect(lines.picture).toBeNull();
+	});
 });

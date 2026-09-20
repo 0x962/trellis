@@ -1,5 +1,5 @@
 import type { Evidence, EvidenceFloor } from "@trellis/api";
-import { EvidenceStrip as EvidenceStripView, FrontendEvidence } from "@trellis/ui/review";
+import { BackendEvidence, EvidenceStrip as EvidenceStripView, FrontendEvidence } from "@trellis/ui/review";
 import { copyText } from "../../../lib/clipboard";
 import { evidenceLines } from "./evidenceLines";
 
@@ -12,6 +12,9 @@ export type EvidenceStripProps = {
 	loading?: boolean;
 };
 
+// The kind of the pull request chooses the records the strip draws. A pull
+// request of the kind "mixed" changes a screen and a service, so it draws
+// both sets.
 export function EvidenceStrip({ records, floor, loading = false }: EvidenceStripProps) {
 	const lines = evidenceLines(records, floor);
 	return (
@@ -20,13 +23,24 @@ export function EvidenceStrip({ records, floor, loading = false }: EvidenceStrip
 			loading={loading}
 			onCopy={(command) => void copyText(command, "Copied to the clipboard")}
 		>
-			<FrontendEvidence
-				capture={lines.capture}
-				before={lines.before}
-				after={lines.after}
-				clip={lines.clip}
-				consoleLine={lines.consoleLine}
-			/>
+			{floor.kind !== "backend" && (
+				<FrontendEvidence
+					capture={lines.capture}
+					before={lines.before}
+					after={lines.after}
+					clip={lines.clip}
+					consoleLine={lines.consoleLine}
+				/>
+			)}
+			{floor.kind !== "frontend" && (
+				<BackendEvidence
+					verify={lines.verify}
+					tests={lines.tests}
+					contracts={lines.contracts}
+					migration={lines.migration}
+					picture={lines.picture}
+				/>
+			)}
 		</EvidenceStripView>
 	);
 }
