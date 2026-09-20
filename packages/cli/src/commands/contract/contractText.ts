@@ -1,11 +1,8 @@
-import { evidenceFloor, evidenceWords, type PrPath, prPaths, type TicketContract } from "@trellis/api";
+import { contractFloor, evidenceWords, type TicketContract } from "@trellis/api";
 
-const asChangedFile = (path: string): PrPath => ({ path, change: "change" });
-
-export const evidenceOwedText = (contract: TicketContract, repositoryName: string): string => {
-	if (contract.files.length === 0) return "-";
-	const facts = prPaths(repositoryName, contract.files.map(asChangedFile));
-	const floor = evidenceFloor({ kind: facts.kind, risk: facts.risk, rows: [], hasSummary: false });
+export const evidenceOwedText = (contract: TicketContract, repositoryName: string | undefined): string => {
+	const floor = contractFloor(repositoryName, contract);
+	if (floor === null) return "-";
 	return `${floor.kind}: ${floor.required.map((item) => evidenceWords[item]).join(" · ")}`;
 };
 
@@ -16,7 +13,7 @@ const row = (label: string, values: string[]): string => {
 	return lines.map((value, index) => `${index === 0 ? prefix : continuation}${value}`).join("\n");
 };
 
-export const contractText = (contract: TicketContract, repositoryName: string): string =>
+export const contractText = (contract: TicketContract, repositoryName: string | undefined): string =>
 	`${[
 		"THE CONTRACT",
 		row("Result", [contract.result]),

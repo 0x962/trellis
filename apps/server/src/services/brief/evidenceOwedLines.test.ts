@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { TicketContract } from "@trellis/api";
-import { evidenceLines } from "./evidenceLines.ts";
+import { evidenceOwedLines } from "./evidenceOwedLines.ts";
 
 const contract = (files: string[]): TicketContract => ({
 	result: "Done.",
@@ -11,7 +11,7 @@ const contract = (files: string[]): TicketContract => ({
 });
 
 test("prints the backend evidence floor", () => {
-	expect(evidenceLines(contract(["apps/server/src/services/brief.ts"]), "trellis")).toEqual([
+	expect(evidenceOwedLines(contract(["apps/server/src/services/brief.ts"]), "trellis")).toEqual([
 		"## Evidence owed",
 		"",
 		"- Kind: backend",
@@ -23,7 +23,7 @@ test("prints the backend evidence floor", () => {
 });
 
 test("prints the frontend evidence floor", () => {
-	expect(evidenceLines(contract(["apps/web/src/routes/index.tsx"]), "trellis")).toEqual([
+	expect(evidenceOwedLines(contract(["apps/web/src/routes/index.tsx"]), "trellis")).toEqual([
 		"## Evidence owed",
 		"",
 		"- Kind: frontend",
@@ -37,7 +37,7 @@ test("prints the frontend evidence floor", () => {
 
 test("prints the mixed floor and the required risk evidence", () => {
 	expect(
-		evidenceLines(contract(["apps/web/src/routes/index.tsx", "apps/server/drizzle/0088_answer.sql"]), "trellis"),
+		evidenceOwedLines(contract(["apps/web/src/routes/index.tsx", "apps/server/drizzle/0088_answer.sql"]), "trellis"),
 	).toEqual([
 		"## Evidence owed",
 		"",
@@ -56,7 +56,12 @@ test("prints the mixed floor and the required risk evidence", () => {
 });
 
 test("names the missing file list", () => {
-	expect(evidenceLines(contract([]), "trellis")).toEqual([
+	expect(evidenceOwedLines(contract([]), "trellis")).toEqual([
+		"## Evidence owed",
+		"",
+		"- unknown. The contract names no file.",
+	]);
+	expect(evidenceOwedLines(contract(["apps/server/src/services/brief.ts"]), undefined)).toEqual([
 		"## Evidence owed",
 		"",
 		"- unknown. The contract names no file.",

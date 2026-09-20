@@ -1,5 +1,6 @@
-import type { PrKind, PrPathFacts } from "../prPaths/index.ts";
+import { type PrKind, type PrPath, type PrPathFacts, prPaths } from "../prPaths/index.ts";
 import type { EvidenceKind } from "../schemas/evidence.ts";
+import type { TicketContract } from "../schemas/ticket.ts";
 
 export type EvidenceFloorItem = "summary" | Exclude<EvidenceKind, "clip">;
 
@@ -29,6 +30,8 @@ export type EvidenceFloor = {
 	missing: EvidenceFloorGap[];
 };
 
+export type ContractFloor = Pick<EvidenceFloor, "kind" | "required">;
+
 type PrRisk = PrPathFacts["risk"];
 
 const frontendFloor: EvidenceFloorItem[] = ["summary", "after", "before", "capture", "console"];
@@ -53,6 +56,36 @@ const fillCommands: Record<EvidenceFloorItem, string> = {
 
 const unique = <T>(items: T[]): T[] => [...new Set(items)];
 
+const requiredItems = (kind: PrKind, risk: PrRisk): EvidenceFloorItem[] => [
+	...(kind === "frontend"
+		? frontendFloor
+		: kind === "backend"
+			? backendFloor
+			: unique([...frontendFloor, ...backendFloor])),
+	...(risk.migration === "yes" ? (["migration"] as const) : []),
+	...(Object.entries(risk).some(([name, answer]) => name !== "deletedTest" && answer === "yes")
+		? (["picture"] as const)
+		: []),
+	...(risk.deletedTest === "yes" ? (["equivalence"] as const) : []),
+];
+
+// A contract lists paths only. Each path counts as a change, so the forecast cannot report a deleted test.
+const asChangedFile = (path: string): PrPath => ({ path, change: "change" });
+const serverDatabasePath = /^(?:\.\/)?apps\/server\/src\/db\//i;
+
+export const contractFloor = (
+	repositoryName: string | undefined,
+	contract: Pick<TicketContract, "files">,
+): ContractFloor | null => {
+	if (repositoryName === undefined || contract.files.length === 0) return null;
+	const facts = prPaths(repositoryName, contract.files.map(asChangedFile));
+	// A brief forecasts what the work will owe before a migration file exists, so a server database path counts as migration work.
+	const risk = contract.files.some((path) => serverDatabasePath.test(path))
+		? { ...facts.risk, migration: "yes" as const }
+		: facts.risk;
+	return { kind: facts.kind, required: requiredItems(facts.kind, risk) };
+};
+
 export const evidenceFloor = ({
 	kind,
 	risk,
@@ -64,18 +97,7 @@ export const evidenceFloor = ({
 	rows: ReadonlyArray<Pick<{ kind: EvidenceKind }, "kind">>;
 	hasSummary: boolean;
 }): EvidenceFloor => {
-	const required = [
-		...(kind === "frontend"
-			? frontendFloor
-			: kind === "backend"
-				? backendFloor
-				: unique([...frontendFloor, ...backendFloor])),
-		...(risk.migration === "yes" ? (["migration"] as const) : []),
-		...(Object.entries(risk).some(([name, answer]) => name !== "deletedTest" && answer === "yes")
-			? (["picture"] as const)
-			: []),
-		...(risk.deletedTest === "yes" ? (["equivalence"] as const) : []),
-	] satisfies EvidenceFloorItem[];
+	const required = requiredItems(kind, risk);
 	const recordKinds = new Set(rows.map((row) => row.kind));
 	const present = required.filter((item) => (item === "summary" ? hasSummary : recordKinds.has(item)));
 	const presentItems = new Set(present);

@@ -2,15 +2,15 @@ import { expect, test } from "bun:test";
 import type { ActorRef, Epic, MilestoneSummary, TicketSummary } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
-import type { ServiceCtx } from "../context.ts";
-import { createCache } from "../db/cache.ts";
-import { openTestDb } from "../db/testDb.ts";
-import type { Tx } from "../db/tx.ts";
+import type { ServiceCtx } from "../../context.ts";
+import { createCache } from "../../db/cache.ts";
+import { openTestDb } from "../../db/testDb.ts";
+import type { Tx } from "../../db/tx.ts";
+import { create as createComment } from "../comments.ts";
+import { epicHeaderLine, epicLines, milestoneHeaderLine, resultsLines } from "../epics/text.ts";
+import { setContract } from "../tickets/contract.ts";
+import { create as createTicket } from "../tickets/create.ts";
 import { assignmentInstruction, get as getBrief } from "./brief.ts";
-import { create as createComment } from "./comments.ts";
-import { epicHeaderLine, epicLines, milestoneHeaderLine, resultsLines } from "./epics/text.ts";
-import { setContract } from "./tickets/contract.ts";
-import { create as createTicket } from "./tickets/create.ts";
 
 const input = {
 	identifier: "OP-27",
@@ -277,6 +277,15 @@ test("the brief prints a stable contract and evidence floor above comments", asy
 	expect(commentsAt).toBeGreaterThan(evidenceAt);
 	expect(first.markdown).toContain("- Leave alone:\n  - packages/cli/src/commands/brief.ts");
 	expect(first.markdown).toContain("- Kind: backend\n- summary\n- verify record\n- test proof\n- contract table");
+
+	await db.execute(sql`INSERT INTO repos (id, project_id, owner, repo)
+		VALUES (${ulid()}, ${rootId}, 'example', 'canary')`);
+	const ambiguous = await run((tx) => getBrief(ctx, tx, { ticket: ticket.identifier }));
+	expect(ambiguous.markdown).toContain("## Evidence owed\n\n- unknown. The contract names no file.");
+
+	await db.execute(sql`DELETE FROM repos WHERE project_id = ${rootId}`);
+	const missing = await run((tx) => getBrief(ctx, tx, { ticket: ticket.identifier }));
+	expect(missing.markdown).toContain("## Evidence owed\n\n- unknown. The contract names no file.");
 
 	await db.$client.close();
 });
