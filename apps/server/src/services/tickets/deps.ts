@@ -10,7 +10,9 @@ import { type Change, record } from "../activity.ts";
 import { assertProjectActive, resolveTicket, type TicketRow } from "../refs.ts";
 import { assertVersion } from "./rules.ts";
 
-type DependencyTarget = Pick<TicketRow, "id" | "identifier" | "projectId" | "rootId" | "version">;
+type DependencyNode = Pick<TicketRow, "id" | "identifier">;
+type DependencyTarget = DependencyNode & Pick<TicketRow, "projectId" | "rootId" | "version">;
+type ParsedDependencyResult = "cycle" | "unchanged" | "written";
 
 const resolveDependencies = async (
 	ctx: ServiceCtx,
@@ -112,6 +114,25 @@ const insertDependencies = async (
 
 export const addDependencies = async (ctx: ServiceCtx, tx: Tx, target: DependencyTarget, refs: readonly string[]) =>
 	insertDependencies(ctx, tx, target, await resolveDependencies(ctx, tx, target, refs, "after"));
+
+export const addParsedDependency = async (
+	ctx: ServiceCtx,
+	tx: Tx,
+	target: DependencyNode,
+	dependency: DependencyNode,
+): Promise<ParsedDependencyResult> => {
+	if (await hasDependencyPath(tx, dependency.id, target.id)) return "cycle";
+	const writtenRows = await rows<unknown>(
+		tx,
+		sql`INSERT INTO ticket_deps (ticket_id, depends_on_id, source, created_at)
+			VALUES (${target.id}, ${dependency.id}, 'parsed', ${ctx.now})
+			ON CONFLICT (ticket_id, depends_on_id) DO UPDATE
+			SET source = 'parsed', created_at = ${ctx.now}
+			WHERE ticket_deps.source = 'derived'
+			RETURNING ticket_id`,
+	);
+	return writtenRows.length === 0 ? "unchanged" : "written";
+};
 
 export const updateDependencies = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<Ticket> => {
 	const input = TicketUpdateDependenciesInputSchema.parse(rawInput);
