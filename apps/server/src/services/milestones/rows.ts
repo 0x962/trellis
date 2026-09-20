@@ -1,5 +1,5 @@
 import type { EpicCounts, MilestoneSummary } from "@trellis/api";
-import { sql } from "drizzle-orm";
+import { type SQL, sql } from "drizzle-orm";
 import { iso } from "../../db/queries/support.ts";
 import { stateOf, ticketCounts, toCounts } from "../epics/rows.ts";
 
@@ -27,10 +27,41 @@ export type RawMilestone = EpicCounts & {
 export const milestoneRefOf = (row: { root_key: string; epic_slug: string; slug: string }) =>
 	`${row.root_key}/${row.epic_slug}/${row.slug}`;
 
+const hasOpenThread = sql`EXISTS (
+	SELECT 1 FROM review_threads thread
+	WHERE thread.pr_id = pull_request.id AND thread.document->>'status' = 'open'
+)`;
+
+const hasLinkedPullRequest = (condition: SQL) => sql`EXISTS (
+	SELECT 1 FROM ticket_pull_requests link
+	JOIN pull_requests pull_request ON pull_request.id = link.pull_request_id
+	WHERE link.ticket_id = t.id AND ${condition}
+)`;
+
+const hasAgentPullRequest = hasLinkedPullRequest(sql`
+	pull_request.state = 'open' AND (
+		pull_request.is_draft OR pull_request.ci_state = 'fail' OR ${hasOpenThread}
+	)
+`);
+
+const hasGithubPullRequest = hasLinkedPullRequest(sql`
+	pull_request.state = 'open' AND NOT pull_request.is_draft AND pull_request.ci_state = 'pending'
+`);
+
+const hasReadyPullRequest = hasLinkedPullRequest(sql`
+	pull_request.fetched_at IS NOT NULL
+	AND pull_request.fetch_error IS NULL
+	AND pull_request.state = 'open'
+	AND NOT pull_request.is_draft
+	AND pull_request.ci_state IN ('none', 'pass')
+	AND NOT ${hasOpenThread}
+`);
+
 // The counts that tell the person what is next in a milestone. A todo ticket
-// can start when every ticket that it depends on is done. A human-review
-// ticket is one row for the person. Each fetched pull request that has no
-// draft, failed check, pending check, or open thread is another row.
+// can start when every ticket that it depends on is done.
+// `packages/api/src/turn/turn.ts` defines whose turn a ticket has.
+// `waits_for_you` is its SQL form for the status and pull request fields in
+// the database. Each ticket adds at most one to the count.
 const nextCounts = sql`,
 			(count(*) FILTER (WHERE s.category = 'todo' AND NOT EXISTS (
 				SELECT 1 FROM ticket_deps dependency
@@ -38,24 +69,17 @@ const nextCounts = sql`,
 				JOIN statuses blocker_status ON blocker_status.id = blocker.status_id
 				WHERE dependency.ticket_id = t.id AND blocker_status.category <> 'done'
 			)))::int AS to_start,
-			(
-				count(*) FILTER (WHERE s.reviewer = 'human') +
-				(
-					SELECT count(*) FROM ticket_pull_requests link
-					JOIN tickets linked_ticket ON linked_ticket.id = link.ticket_id
-					JOIN pull_requests pull_request ON pull_request.id = link.pull_request_id
-					WHERE linked_ticket.milestone_id = m.id
-						AND pull_request.fetched_at IS NOT NULL
-						AND pull_request.fetch_error IS NULL
-						AND pull_request.state = 'open'
-						AND NOT pull_request.is_draft
-						AND pull_request.ci_state IN ('none', 'pass')
-						AND NOT EXISTS (
-							SELECT 1 FROM review_threads thread
-							WHERE thread.pr_id = pull_request.id AND thread.document->>'status' = 'open'
-						)
+			(count(*) FILTER (WHERE
+				s.category NOT IN ('done', 'canceled')
+				AND (
+					s.reviewer = 'human'
+					OR (
+						NOT ${hasAgentPullRequest}
+						AND NOT ${hasGithubPullRequest}
+						AND ${hasReadyPullRequest}
+					)
 				)
-			)::int AS waits_for_you`;
+			))::int AS waits_for_you`;
 
 // `c` holds the counts of the tickets that point at the milestone.
 export const milestoneSelect = sql`SELECT m.id, m.epic_id, e.slug AS epic_slug, e.project_id AS epic_project_id,

@@ -139,26 +139,42 @@ test("an epic names its first open milestone, and an epic with no milestone name
 	]);
 });
 
-test("a milestone counts ready tickets and rows that wait for the person", async () => {
+test("a milestone counts ready tickets and tickets that wait for the person", async () => {
 	const ctx = ctxAt("2026-09-18T10:02:00.000Z");
 	await ticket(ctx, "CLI: the command", "surfaces");
 	const blocked = await ticket(ctx, "Docs: the page", "surfaces");
 	const humanReview = await ticket(ctx, "Decide the name", "surfaces", "human-review");
-	const started = await ticket(ctx, "Mobile: the screen", "surfaces", "in-progress");
+	const readyReview = await ticket(ctx, "Mobile: the screen", "surfaces", "in-progress");
 	await db.execute(sql`INSERT INTO ticket_deps (ticket_id, depends_on_id, source, created_at)
-		VALUES (${blocked.id}, ${started.id}, 'manual', '2026-09-18T10:02:00.000Z')`);
-	await insertPullRequest(started.id, 1, { checks: [{ bucket: "pass" }] });
-	await insertPullRequest(started.id, 2, { draft: true });
-	await insertPullRequest(started.id, 3, { checks: [{ bucket: "pending" }] });
-	await insertPullRequest(started.id, 4, { checks: [{ bucket: "fail" }] });
-	await insertPullRequest(started.id, 5, { openThread: true });
-	await insertPullRequest(started.id, 6);
-	await insertPullRequest(started.id, 7, { fetched: false });
-	await insertPullRequest(started.id, 8, { fetchError: "GitHub did not answer." });
+		VALUES (${blocked.id}, ${readyReview.id}, 'manual', '2026-09-18T10:02:00.000Z')`);
+	await insertPullRequest(readyReview.id, 1, { checks: [{ bucket: "pass" }] });
+	await insertPullRequest(readyReview.id, 2);
+	await insertPullRequest((await ticket(ctx, "Draft review", "surfaces", "in-progress")).id, 3, { draft: true });
+	await insertPullRequest((await ticket(ctx, "Pending review", "surfaces", "in-progress")).id, 4, {
+		checks: [{ bucket: "pending" }],
+	});
+	await insertPullRequest((await ticket(ctx, "Failed review", "surfaces", "in-progress")).id, 5, {
+		checks: [{ bucket: "fail" }],
+	});
+	await insertPullRequest((await ticket(ctx, "Thread review", "surfaces", "in-progress")).id, 6, {
+		openThread: true,
+	});
+	await insertPullRequest((await ticket(ctx, "Unfetched review", "surfaces", "in-progress")).id, 7, {
+		fetched: false,
+	});
+	await insertPullRequest((await ticket(ctx, "Unavailable review", "surfaces", "in-progress")).id, 8, {
+		fetchError: "GitHub did not answer.",
+	});
 	await insertPullRequest(humanReview.id, 9, { checks: [{ bucket: "pass" }] });
+	await insertPullRequest((await ticket(ctx, "Finished review", "surfaces", "done")).id, 10, {
+		checks: [{ bucket: "pass" }],
+	});
+	const mixedReview = await ticket(ctx, "Mixed review", "surfaces", "in-progress");
+	await insertPullRequest(mixedReview.id, 11, { checks: [{ bucket: "pass" }] });
+	await insertPullRequest(mixedReview.id, 12, { draft: true });
 	expect(await next(ctx)).toEqual([
 		["foundation", "done", 0, 0],
-		["surfaces", "open", 2, 4],
+		["surfaces", "open", 2, 2],
 		["integrate", "open", 0, 0],
 	]);
 });
