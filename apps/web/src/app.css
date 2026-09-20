@@ -9,31 +9,26 @@
 @source "../../../packages/ui/src";
 
 /*
- * The two grounds of the main pane. The pane holds the page, and the band
- * holds group headers, wells, and row hover. Light paints the pane white
- * and the band grey; dark swaps them, so the dark pane keeps the page
- * ground. Each block has to win on its own, as in tokens.css.
+ * The ground of the main pane. It holds the page. Light takes the surface
+ * one step off the page ground, and dark takes the page ground itself.
+ * Each block has to win on its own, as in tokens.css.
  */
 :root {
 	--pane: var(--surface);
-	--band: var(--bg);
 }
 
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme="light"]) {
 		--pane: var(--bg);
-		--band: var(--surface);
 	}
 }
 
 :root[data-theme="dark"] {
 	--pane: var(--bg);
-	--band: var(--surface);
 }
 
 @theme {
 	--color-pane: var(--pane);
-	--color-band: var(--band);
 }
 
 html,
