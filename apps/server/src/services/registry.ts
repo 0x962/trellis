@@ -44,6 +44,7 @@ import * as reviewPrs from "./reviews/prs";
 import * as reviewRemote from "./reviews/remote";
 import * as reviewReviewers from "./reviews/reviewers";
 import * as reviewRevision from "./reviews/revision";
+import * as reviewStatus from "./reviews/status";
 import * as reviewThreads from "./reviews/threads";
 import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
@@ -149,7 +150,7 @@ export const services = {
 	"agentRuns.interrupt": prepared("mutation", agentTerminal.interrupt, agentTerminal.result),
 	"agentRuns.resize": prepared("mutation", agentTerminal.resize, agentTerminal.result),
 	"reviews.image": prepared("read", reviewImage.image, reviewRemote.result),
-	"reviews.status": prepared("read", reviewRevision.status, reviewRemote.result),
+	"reviews.status": prepared("read", reviewStatus.prepare, reviewStatus.status),
 	"reviews.reviewers": prepared("read", reviewReviewers.reviewers, reviewReviewers.result),
 	"reviews.reviewer": prepared("mutation", reviewReviewers.reviewer, reviewReviewers.result),
 	"reviews.action": prepared("mutation", reviewRemote.action, reviewRemote.actionResult),
