@@ -12,6 +12,7 @@ export { PrGlyphSection } from "./PrGlyphSection";
 export { PriorityIconSection } from "./PriorityIconSection";
 export { ReviewFocusListSection } from "./ReviewFocusListSection";
 export { ReviewStatusSummarySection } from "./ReviewStatusSummarySection";
+export { RunLineSection } from "./RunLineSection";
 export { StatusIconSection } from "./StatusIconSection";
 export { TicketGlimmerSection } from "./TicketGlimmerSection";
 export { TicketIdSection } from "./TicketIdSection";
