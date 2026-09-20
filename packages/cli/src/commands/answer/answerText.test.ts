@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
 import type { TicketAnswerOutput } from "@trellis/api";
+import type { CliContext } from "../../context.ts";
+import { answerInput } from "./answer.ts";
 import { answerText } from "./answerText.ts";
 
 const output = (fields: Partial<TicketAnswerOutput> = {}): TicketAnswerOutput =>
@@ -25,6 +27,37 @@ const output = (fields: Partial<TicketAnswerOutput> = {}): TicketAnswerOutput =>
 		],
 		...fields,
 	}) as TicketAnswerOutput;
+
+const context = (stdin: string): CliContext =>
+	({
+		deps: { stdin: () => Promise.resolve(stdin) },
+	}) as CliContext;
+
+test("builds the answer input from both free text and standard input", async () => {
+	await expect(
+		answerInput(context("unused"), { ticket: "OP-52", option: "1", reason: "The narrow option." }),
+	).resolves.toEqual({
+		ticket: "OP-52",
+		option: 1,
+		reason: "The narrow option.",
+	});
+	await expect(
+		answerInput(context("The piped reason."), { ticket: "OP-52", option: "2", reason: "-" }),
+	).resolves.toEqual({
+		ticket: "OP-52",
+		option: 2,
+		reason: "The piped reason.",
+	});
+});
+
+test("refuses option text that is not an integer", async () => {
+	await expect(answerInput(context("unused"), { ticket: "OP-52", option: "abc", reason: "A reason." })).rejects.toThrow(
+		"--option needs an integer",
+	);
+	await expect(answerInput(context("unused"), { ticket: "OP-52", option: "1e3", reason: "A reason." })).rejects.toThrow(
+		"--option needs an integer",
+	);
+});
 
 test("prints the answer, status, released tickets, and deliveries", () => {
 	expect(answerText({ ...output(), option: 1 })).toBe(`ticket: OP-52
