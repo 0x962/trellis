@@ -26,8 +26,9 @@ const toneClass: Record<PrRowTone, string | undefined> = {
 // The line is text, not a control. The pull request opens from the ticket
 // page and from the review page.
 //
-// A narrow window clips the cells at the right edge. The row holds the
-// cells at their full width, and the table body scrolls up and down alone.
+// `overflow-hidden` on the row and `shrink-0` on each cell keep the cells
+// at their full width. A narrow window cuts the last cells off at the right
+// edge. No cell wraps, and the row never scrolls sideways.
 export function PrRow({ pr, top }: PrRowProps) {
 	return (
 		<div

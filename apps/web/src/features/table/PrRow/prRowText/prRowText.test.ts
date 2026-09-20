@@ -36,7 +36,7 @@ const toneOf = (pr: TicketPr, key: string) => prRowCells(pr).find((cell) => cell
 
 describe("prRowCells", () => {
 	test("prints the state, the size, the checks, the threads and the turn in order", () => {
-		const cells = prOf({
+		const pr = prOf({
 			additions: 311,
 			deletions: 12,
 			changedFiles: 6,
@@ -46,23 +46,23 @@ describe("prRowCells", () => {
 			openThreads: 2,
 		});
 
-		expect(textOf(cells)).toBe("open · +311 −12 · 6 files · 1 failed · 6 pending · 47 passed · 2 threads · agent");
+		expect(textOf(pr)).toBe("open · +311 −12 · 6 files · 1 failed · 6 pending · 47 passed · 2 threads · agent");
 	});
 
 	test("names the pull request this one is stacked on, after the state", () => {
-		const cells = prOf({
+		const pr = prOf({
 			isDraft: true,
 			stackedOn: { number: 55569, headRef: "nk/operator-routine-execution", ticketIdentifier: "TRL-32" },
 			pass: 9,
 		});
 
-		expect(textOf(cells)).toBe("draft · stacked on #55569 · 9 passed · agent");
+		expect(textOf(pr)).toBe("draft · stacked on #55569 · 9 passed · agent");
 	});
 
 	test("names the state of the newest flow run before the turn", () => {
-		const cells = prOf({ flowRuns: [{ status: "succeeded" }, { status: "failed" }], flowRunCount: 2, pass: 43 });
+		const pr = prOf({ flowRuns: [{ status: "succeeded" }, { status: "failed" }], flowRunCount: 2, pass: 43 });
 
-		expect(textOf(cells)).toBe("open · 43 passed · flow: passed · you");
+		expect(textOf(pr)).toBe("open · 43 passed · flow: passed · you");
 	});
 
 	test("drops the size and the file count while GitHub has measured neither", () => {
@@ -74,9 +74,9 @@ describe("prRowCells", () => {
 	});
 
 	test("writes the singular word for a count of one", () => {
-		const cells = prOf({ additions: 4, deletions: 0, changedFiles: 1, openThreads: 1 });
+		const pr = prOf({ additions: 4, deletions: 0, changedFiles: 1, openThreads: 1 });
 
-		expect(textOf(cells)).toBe("open · +4 −0 · 1 file · 1 thread · agent");
+		expect(textOf(pr)).toBe("open · +4 −0 · 1 file · 1 thread · agent");
 	});
 
 	test("a merged pull request that was a draft reads as merged and leaves nobody to act", () => {
@@ -84,10 +84,10 @@ describe("prRowCells", () => {
 	});
 
 	test("draws the failed count in the danger color and every other count in the row color", () => {
-		const cells = prOf({ fail: 2, pass: 8 });
+		const pr = prOf({ fail: 2, pass: 8 });
 
-		expect(toneOf(cells, "failed")).toBe("danger");
-		expect(toneOf(cells, "passed")).toBe("muted");
+		expect(toneOf(pr, "failed")).toBe("danger");
+		expect(toneOf(pr, "passed")).toBe("muted");
 	});
 
 	test("draws the turn of the person in the foreground color, and the turn of another in the row color", () => {
