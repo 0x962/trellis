@@ -38,10 +38,11 @@ beforeAll(async () => {
 		(${firstProjectTicket}, ${firstRoot}, ${firstRoot}, 7, 'First project ticket', ${firstRootTodoStatusId}, 0, ${at}, ${at})`);
 	const prId = ulid();
 	await db.execute(sql`INSERT INTO pull_requests (
-		id, owner, repo, number, url, state, is_draft, head_ref, base_ref,
+		id, owner, repo, number, changed_files, files, url, state, is_draft, head_ref, base_ref,
 		review_state, checks, ci_state, created_at, updated_at
 	) VALUES (
-		${prId}, 'acme', 'app', 28, 'https://github.com/acme/app/pull/28', 'open', false,
+		${prId}, 'acme', 'app', 28, 1, '[{"path":"backend/service.ts","additions":1,"deletions":0}]',
+		'https://github.com/acme/app/pull/28', 'open', false,
 		'feature', 'main', 'review_required', '[]', 'pass', ${at}, ${at}
 	)`);
 	await db.execute(sql`INSERT INTO ticket_pull_requests (
@@ -62,8 +63,9 @@ test("review status sorts linked tickets by project key and ticket number", asyn
 	expect(result).toMatchObject({
 		title: "GitHub title",
 		ticket: { identifier: "AAA-7", title: "First project ticket" },
-		prRow: { number: 28, owner: "acme", repo: "app" },
+		prRow: { number: 28, owner: "acme", repo: "app", kind: "backend" },
 	});
+	expect(result.prRow).not.toHaveProperty("paths");
 });
 
 test("review status returns null row facts for an unlinked pull request", async () => {

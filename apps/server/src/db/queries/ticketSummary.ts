@@ -2,7 +2,7 @@ import type { CiState, PrState, ReviewState, StoredActorKind, TicketSummary } fr
 import { type SQL, sql } from "drizzle-orm";
 import { actorDisplayName } from "./actorDisplayName.ts";
 import { iso, pathsCte } from "./support.ts";
-import { ticketPrColumns, ticketPrJoin } from "./ticketPrs.ts";
+import { type TicketPrRow, ticketPrColumns, ticketPrJoin, toTicketPrRows } from "./ticketPrs.ts";
 
 export type SummaryRow = {
 	id: string;
@@ -43,7 +43,7 @@ export type SummaryRow = {
 	pr_fail: number | null;
 	pr_pending: number | null;
 	pr_reviews: NonNullable<TicketSummary["pr"]>["reviews"] | null;
-	pr_rows: TicketSummary["prRows"] | null;
+	pr_rows: TicketPrRow[] | null;
 	last_actor_name: string | null;
 	last_actor_display_name: string | null;
 	last_actor_kind: StoredActorKind | null;
@@ -207,7 +207,7 @@ export const toSummary = (row: SummaryRow): TicketSummary => ({
 					pending: row.pr_pending as number,
 					reviews: row.pr_reviews as NonNullable<TicketSummary["pr"]>["reviews"],
 				},
-	prRows: row.pr_rows ?? [],
+	prRows: toTicketPrRows(row.pr_rows),
 	lastActor:
 		row.last_actor_name === null
 			? null

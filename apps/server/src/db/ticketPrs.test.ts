@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
-import { TicketSummarySchema } from "@trellis/api";
+import { type ChangedFile, TicketSummarySchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { type Db, openDb } from "./client.ts";
@@ -12,22 +12,33 @@ const status = ulid();
 const ticket = ulid();
 const emptyTicket = ulid();
 const at = new Date("2026-09-20T10:00:00.000Z");
+const repoWithTrellisPathRules = "trellis";
 
 const check = (name: string, workflow: string | null, bucket: string) => ({ name, workflow, bucket, link: null });
 
-const insertPull = async (
-	number: number,
-	additions: number | null,
-	deletions: number | null,
-	checks: ReturnType<typeof check>[],
-) => {
+const insertPull = async ({
+	number,
+	additions,
+	deletions,
+	checks,
+	files,
+	changedFiles = files?.length ?? null,
+}: {
+	number: number;
+	additions: number | null;
+	deletions: number | null;
+	checks: ReturnType<typeof check>[];
+	files: ChangedFile[] | null;
+	changedFiles?: number | null;
+}) => {
 	const id = ulid();
 	await db.execute(sql`INSERT INTO pull_requests (
-		id, owner, repo, number, additions, deletions, changed_files, url, state, is_draft,
+		id, owner, repo, number, additions, deletions, changed_files, files, url, state, is_draft,
 		head_ref, base_ref, review_state, checks, ci_state, created_at, updated_at
 	) VALUES (
-		${id}, 'acme', 'app', ${number}, ${additions}, ${deletions}, 3,
-		${`https://github.com/acme/app/pull/${number}`}, 'open', ${number === 2},
+		${id}, 'acme', ${repoWithTrellisPathRules}, ${number}, ${additions}, ${deletions}, ${changedFiles},
+		${files === null ? null : JSON.stringify(files)}::jsonb,
+		${`https://github.com/acme/${repoWithTrellisPathRules}/pull/${number}`}, 'open', ${number === 2},
 		${`feature-${number}`}, 'main', 'review_required', ${JSON.stringify(checks)}::jsonb,
 		'fail', ${at}, ${at}
 	)`);
@@ -53,16 +64,48 @@ beforeAll(async () => {
 		(${ticket}, ${root}, ${root}, 1, 'Task', ${status}, 0, ${at}, ${at}),
 		(${emptyTicket}, ${root}, ${root}, 2, 'Empty task', ${status}, 1, ${at}, ${at})`);
 
-	const first = await insertPull(1, 99, 100, [
-		check("unit", "CI", "pass"),
-		check("lint", "CI", "fail"),
-		check("old job", null, "cancel"),
-		check("deploy", "Release", "pending"),
-		check("docs", "CI", "skipping"),
-	]);
-	await insertPull(2, 200, 200, []);
-	await insertPull(3, 401, 0, []);
-	await insertPull(4, null, null, []);
+	const first = await insertPull({
+		number: 1,
+		additions: 99,
+		deletions: 100,
+		checks: [
+			check("unit", "CI", "pass"),
+			check("lint", "CI", "fail"),
+			check("old job", null, "cancel"),
+			check("deploy", "Release", "pending"),
+			check("docs", "CI", "skipping"),
+		],
+		files: [
+			{ path: "apps/web/src/routes/index.tsx", additions: 20, deletions: 2 },
+			{ path: "apps/server/src/auth/session.ts", additions: 20, deletions: 2 },
+			{ path: "apps/server/drizzle/0087_kind.sql", additions: 20, deletions: 2 },
+			{ path: "package.json", additions: 1, deletions: 1 },
+			{ path: "packages/api/src/schemas/review.ts", additions: 10, deletions: 1 },
+		],
+	});
+	await insertPull({
+		number: 2,
+		additions: 200,
+		deletions: 200,
+		checks: [],
+		files: [{ path: "apps/server/src/log.ts", additions: 5, deletions: 1 }],
+	});
+	await insertPull({
+		number: 3,
+		additions: 401,
+		deletions: 0,
+		checks: [],
+		files: [{ path: "packages/ui/src/Button.tsx", additions: 5, deletions: 1 }],
+	});
+	await insertPull({ number: 4, additions: null, deletions: null, checks: [], files: null });
+	await insertPull({
+		number: 5,
+		additions: 1,
+		deletions: 1,
+		checks: [],
+		files: [{ path: "packages/ui/src/Dialog.tsx", additions: 1, deletions: 1 }],
+		changedFiles: 2,
+	});
 	await db.execute(sql`INSERT INTO review_threads (id, pr_id, document, updated_at) VALUES
 		(${ulid()}, ${first}, ${{ status: "open" }}, ${at}),
 		(${ulid()}, ${first}, ${{ status: "resolved" }}, ${at})`);
@@ -83,8 +126,16 @@ afterAll(async () => {
 test("a ticket summary carries one row for each pull request", async () => {
 	const summary = await db.transaction((tx) => ticketSummary(tx, ticket));
 	expect(TicketSummarySchema.parse(summary)).toEqual(summary);
-	expect(summary.prRows.map((row) => row.sizeBand)).toEqual(["small", "medium", "large", null]);
+	expect(summary.prRows.map((row) => row.sizeBand)).toEqual(["small", "medium", "large", null, "small"]);
 	expect(summary.prRows[0]).toMatchObject({
+		kind: "mixed",
+		risk: {
+			auth: "yes",
+			migration: "yes",
+			dependency: "yes",
+			sharedType: "yes",
+			deletedTest: "no",
+		},
 		pass: 1,
 		fail: 2,
 		pending: 1,
@@ -105,6 +156,9 @@ test("a ticket summary carries one row for each pull request", async () => {
 		baseRef: "main",
 		headRef: "feature-1",
 	});
+	expect(summary.prRows.map((row) => row.kind)).toEqual(["mixed", "backend", "frontend", null, null]);
+	expect(summary.prRows.slice(3).map((row) => row.risk)).toEqual([null, null]);
+	expect(summary.prRows[0]).not.toHaveProperty("paths");
 	expect(summary.prRows.every((row) => row.flowRuns.length === 5 && row.flowRunCount === 7)).toBe(true);
 
 	const emptySummary = await db.transaction((tx) => ticketSummary(tx, emptyTicket));

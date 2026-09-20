@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { PrKind, PrPathFacts } from "../prPaths/index.ts";
 import { PrStateSchema } from "./enums.ts";
 import { FlowExecutionStateSchema } from "./flowExecution.ts";
 import { CountSchema } from "./primitives.ts";
@@ -6,6 +7,22 @@ import { CountSchema } from "./primitives.ts";
 const FailedCheckSchema = z.object({
 	name: z.string().min(1),
 	workflow: z.string().nullable(),
+});
+
+const prKindValues: Record<PrKind, null> = {
+	frontend: null,
+	backend: null,
+	mixed: null,
+};
+
+const PrKindSchema = z.enum(Object.keys(prKindValues) as [PrKind, ...PrKind[]]);
+
+const PrRiskSchema: z.ZodType<PrPathFacts["risk"]> = z.object({
+	auth: z.enum(["yes", "no"]),
+	migration: z.enum(["yes", "no"]),
+	dependency: z.enum(["yes", "no"]),
+	sharedType: z.enum(["yes", "no"]),
+	deletedTest: z.enum(["yes", "no"]),
 });
 
 export const TicketPrSchema = z.object({
@@ -19,6 +36,9 @@ export const TicketPrSchema = z.object({
 	deletions: CountSchema.nullable(),
 	changedFiles: CountSchema.nullable(),
 	sizeBand: z.enum(["small", "medium", "large"]).nullable(),
+	// A null `kind` or `risk` means the poller has not fetched a complete pull request file list.
+	kind: PrKindSchema.nullable(),
+	risk: PrRiskSchema.nullable(),
 	pass: CountSchema,
 	fail: CountSchema,
 	pending: CountSchema,
