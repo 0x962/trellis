@@ -1,9 +1,8 @@
 import { GithubLogo, Warning } from "@phosphor-icons/react";
 import type { LinkedPullRequest, TicketSummary } from "@trellis/api";
-import { cx, IconButton, ReviewStateIcon } from "@trellis/ui";
+import { cx, IconButton, PrGlyph, ReviewStateIcon } from "@trellis/ui";
 import { tabularClass } from "../../../../../lib/format";
 import { OpenReviewButton } from "./components/OpenReviewButton";
-import { PrStateIcon } from "./components/PrStateIcon";
 import { UnlinkButton } from "./components/UnlinkButton";
 
 export type PullRequestRowProps = {
@@ -23,7 +22,7 @@ export function PullRequestRow({ ticket, pr, onOpen }: PullRequestRowProps) {
 			data-pr-row={pr.id}
 			className="group relative flex h-14 items-center gap-3 px-5 transition-colors duration-hover ease-out hover:bg-band focus-within:bg-band focus-within:outline-2 focus-within:outline-accent focus-within:-outline-offset-2 max-md:px-4"
 		>
-			<PrStateIcon state={pr.state} isDraft={pr.isDraft} ciState={pr.ciState} />
+			<PrGlyph state={pr.state} isDraft={pr.isDraft} />
 			<span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
 				<span className="flex min-w-0 items-center gap-2">
 					<OpenReviewButton onOpen={() => onOpen(pr.url)}>{pr.title}</OpenReviewButton>
