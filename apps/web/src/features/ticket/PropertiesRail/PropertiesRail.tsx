@@ -1,7 +1,6 @@
 import type { Ticket } from "@trellis/api";
 import { TicketAgent } from "../../agents/TicketAgent";
 import { PickerRows } from "./components/PickerRows";
-import { TicketMetrics } from "./components/TicketMetrics";
 
 export type PropertiesRailProps = {
 	ticket: Ticket;
@@ -18,7 +17,6 @@ export function PropertiesRail({ ticket, variant }: PropertiesRailProps) {
 		return (
 			<dl aria-label="Properties" className="grid grid-cols-2 gap-x-6 gap-y-1 max-sm:grid-cols-1">
 				<PickerRows ticket={ticket} />
-				<TicketMetrics ticket={ticket} />
 				{agent}
 			</dl>
 		);
@@ -30,7 +28,6 @@ export function PropertiesRail({ ticket, variant }: PropertiesRailProps) {
 		>
 			<dl className="flex flex-col gap-0.5">
 				<PickerRows ticket={ticket} />
-				<TicketMetrics ticket={ticket} />
 				{agent}
 			</dl>
 		</aside>

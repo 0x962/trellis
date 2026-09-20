@@ -1,107 +1,79 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
-import { Avatar, cx, EmptyState, Tabs } from "@trellis/ui";
-import type { ReactNode } from "react";
+import { EmptyState, SectionHeader, Skeleton } from "@trellis/ui";
+import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
-import type { TicketTab } from "../../../lib/ticketSearch";
-import { agentKindOf } from "../../agents/agentKindOf";
-import { agentProfileOf } from "../../agents/agentProfileOf";
 import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
-import { isAgentWorking } from "../../agents/isAgentWorking";
-import { modelFamily } from "../../agents/ModelPicker";
-import { PullRequests } from "../../prs";
-import { SessionConversation } from "../../sessions/SessionConversation";
+import { OutcomeBlock } from "../OutcomeBlock";
+import { RunLine } from "../RunLine";
+import { StartControls } from "../StartControls";
 import { FlowRuns } from "./components/FlowRuns";
+import { PullRequestCard } from "./components/PullRequestCard";
+import { SessionSheet } from "./components/SessionSheet";
 
-export function TicketWorkArea({
-	ticket,
-	activity,
-	tab,
-	onTabChange,
-	onOpenPullRequest,
-}: {
+export type TicketWorkAreaProps = {
 	ticket: Ticket;
-	activity: ReactNode;
-	tab: TicketTab;
-	onTabChange: (tab: TicketTab) => void;
 	onOpenPullRequest: (url: string) => void;
-}) {
+};
+
+// The three regions of the ticket page under the chain, in reading order: the
+// evidence, the outcome and the run. The proof sits above the process.
+export function TicketWorkArea({ ticket, onOpenPullRequest }: TicketWorkAreaProps) {
 	const { orpc } = useApp();
 	const hash = useLocation({ select: (location) => location.hash });
+	const [sessionOpen, setSessionOpen] = useState(false);
+	const prs = useQuery({
+		...orpc.pullRequests.list.queryOptions({ input: { ticket: ticket.id } }),
+		initialData: ticket.prs,
+	}).data;
 	const runs = useQuery({
 		...orpc.agentRuns.list.queryOptions({ input: { ticket: ticket.identifier } }),
 		refetchInterval: 2000,
 	});
+	// The run line prints the time and the tokens on a hover.
+	const metrics = useQuery({
+		...orpc.agentRuns.ticketMetrics.queryOptions({ input: { ticket: ticket.identifier }, retry: false }),
+		refetchInterval: 2000,
+	});
+	// A link to `#attempt-<terminal id>` picks that run. Without one, the run
+	// line shows the assigned agent run, then any run with a live process.
 	const assigned =
 		runs.data?.find((run) => hash === `attempt-${run.terminalId}`) ??
 		runs.data?.find((run) => run.kind === "agent" && run.assigned) ??
-		runs.data?.find(hasAssignedProcess);
-	const agentProfile = agentProfileOf(assigned?.harness);
-	const agentLabel = assigned ? (
-		<span className="inline-flex items-center gap-1.5">
-			<Avatar
-				kind="agent"
-				name={assigned.name}
-				agentKind={agentKindOf(assigned.kind)}
-				agentProfile={agentProfile}
-				state={isAgentWorking(assigned) ? "working-mild" : "static"}
-			/>
-			<span>{agentProfile ? modelFamily(agentProfile.model) : assigned.name}</span>
-		</span>
-	) : (
-		"Agent"
-	);
-	const execution = assigned ? (
-		<SessionConversation key={assigned.id} run={assigned} />
-	) : (
-		<section aria-label="Execution" className="flex min-h-0 flex-1 flex-col px-5 py-4 max-md:px-4">
-			{runs.isError ? (
-				<p role="alert" className="text-sm text-danger">
-					{runs.error.message}
-				</p>
-			) : runs.isPending ? (
-				<p role="status" className="text-sm text-fg-muted">
-					Load attempts…
-				</p>
-			) : (
-				<EmptyState title="No assigned agent" description="Choose an agent in the ticket properties to start work." />
-			)}
-		</section>
-	);
+		runs.data?.find(hasAssignedProcess) ??
+		null;
+	// A person starts a run on an open ticket that no live process holds.
+	const canStart =
+		runs.isSuccess && ticket.completedAt === null && (assigned === null || !hasAssignedProcess(assigned));
 	return (
-		<section aria-label="Ticket pages" className="flex min-h-0 min-w-0 flex-1 flex-col">
-			<Tabs
-				className={cx("ticket-tabs-layout", tab === "agent" && "ticket-tabs-layout-flush")}
-				value={tab}
-				onValueChange={(value) => onTabChange(value as TicketTab)}
-				items={[
-					{ value: "activity", label: "Activity", content: activity },
-					{
-						value: "agent",
-						label: agentLabel,
-						content: execution,
-					},
-					{
-						value: "changes",
-						label: "Diffs",
-						content: (
-							<div className="page-card flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-4 max-md:px-4">
-								<PullRequests ticket={ticket} initialPrs={ticket.prs} onOpen={onOpenPullRequest} />
-							</div>
-						),
-					},
-					{
-						value: "flows",
-						label: "Flows",
-						content: (
-							<div className="page-card min-h-0 flex-1 overflow-y-auto px-5 py-4 max-md:px-4">
-								<FlowRuns ticket={ticket.identifier} />
-							</div>
-						),
-					},
-				]}
-			/>
-		</section>
+		<>
+			<section aria-label="The evidence" className="flex min-w-0 flex-col gap-3">
+				<SectionHeader title="THE EVIDENCE" />
+				{prs.length === 0 ? (
+					<EmptyState description="No pull request yet." />
+				) : (
+					prs.map((pr) => <PullRequestCard key={pr.id} ticket={ticket} pr={pr} onOpen={onOpenPullRequest} />)
+				)}
+				{/* A flow run belongs to the ticket and not to one pull request, so the
+				    list draws once, under the pull request cards. */}
+				<FlowRuns ticket={ticket.identifier} />
+			</section>
+			<OutcomeBlock outcome={ticket.outcome} />
+			<div className="flex min-w-0 flex-col gap-3">
+				<SectionHeader title="THE RUN" />
+				{runs.isError ? (
+					<p role="alert" className="text-sm text-danger">
+						{runs.error.message}
+					</p>
+				) : runs.isPending ? (
+					<Skeleton width="w-64" />
+				) : (
+					<RunLine run={assigned} metrics={metrics.data ?? null} onOpenSession={() => setSessionOpen(true)} />
+				)}
+				{canStart && <StartControls ticket={ticket.identifier} waitsOn={ticket.waitsOn} />}
+			</div>
+			{assigned !== null && <SessionSheet run={assigned} open={sessionOpen} onClose={() => setSessionOpen(false)} />}
+		</>
 	);
 }

@@ -1,24 +1,25 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { reviewRef } from "@trellis/api";
-import { cx, EmptyState, useMediaQuery } from "@trellis/ui";
+import { asksQuestion, reviewRef } from "@trellis/api";
+import { cx, EmptyState, SectionHeader, useMediaQuery } from "@trellis/ui";
 import { useEffect, useState } from "react";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
-import type { TicketTab } from "../../../lib/ticketSearch";
 import { AttachmentGrid } from "../../attachments/AttachmentGrid";
 import { useUploads } from "../../attachments/hooks/useUploads";
-import { PullRequests } from "../../prs";
 import { NotFoundState } from "../../shell/NotFoundState";
 import { usePageSheet } from "../../shell/PageSheet";
+import { ChainBlock } from "../ChainBlock";
+import { ContractBlock } from "../ContractBlock";
 import { Description } from "../Description";
 import { Header } from "../Header";
 import { useParentSummary } from "../hooks/useParentSummary";
+import { useRepositoryName } from "../hooks/useRepositoryName";
 import { PropertiesRail } from "../PropertiesRail";
+import { QuestionBlock } from "../QuestionBlock";
 import { SubTickets } from "../SubTickets";
 import { TicketWorkArea } from "../TicketWorkArea";
-import { Timeline } from "../Timeline";
 import { Title } from "../Title";
 import { DropOverlay, useDropOverlay } from "./components/DropOverlay";
 import { ParentChip } from "./components/ParentChip";
@@ -28,16 +29,18 @@ import { TicketSkeleton } from "./components/TicketSkeleton";
 export type TicketViewProps = {
 	// The canonical identifier, `CDE-42`.
 	identifier: string;
-	thread?: string;
-	tab?: TicketTab;
-	onTabChange?: (tab: TicketTab) => void;
 };
 
-// The ticket page. It renders the same on its route and in a `PageSheet`,
+// The ticket page, one column read top to bottom: the ask, the contract or
+// the question, the chain, the evidence, the outcome and the run. A question
+// ticket holds no work of its own, so its question block takes the place of
+// every region after the ask.
+//
+// The page renders the same on its route and in a `PageSheet`,
 // with these differences in a sheet: a pull request opens in a second sheet
 // over the ticket and does not replace it, the browser tab keeps the title
 // of the page under the sheet, and the sheet handles Escape.
-export function TicketView({ identifier, thread, tab, onTabChange }: TicketViewProps) {
+export function TicketView({ identifier }: TicketViewProps) {
 	const navigate = useNavigate();
 	const { orpc } = useApp();
 	const inSheet = usePageSheet() !== null;
@@ -47,8 +50,7 @@ export function TicketView({ identifier, thread, tab, onTabChange }: TicketViewP
 	const drop = useDropOverlay(uploads.addFiles);
 	const narrow = useMediaQuery("(max-width: 767px)");
 	const { isArchived, notice } = useArchivedProjects();
-	const [sheetTab, setSheetTab] = useState<TicketTab>("activity");
-	const workAreaTab = tab ?? sheetTab;
+	const repo = useRepositoryName(query.data?.project.path);
 	const [pullRequest, setPullRequest] = useState<string | null>(null);
 	const openPullRequest = (url: string) => {
 		if (inSheet) {
@@ -59,7 +61,7 @@ export function TicketView({ identifier, thread, tab, onTabChange }: TicketViewP
 		void navigate({
 			to: "/reviews/$owner/$repo/$number",
 			params: { owner: ref.owner, repo: ref.repo, number: String(ref.number) },
-			search: { ticket: identifier, ticketTab: workAreaTab },
+			search: { ticket: identifier },
 		});
 	};
 
@@ -87,6 +89,7 @@ export function TicketView({ identifier, thread, tab, onTabChange }: TicketViewP
 	if (query.data === undefined) return <TicketSkeleton />;
 	const ticket = query.data;
 	const readOnly = isArchived(ticket.project.path);
+	const question = asksQuestion(ticket.status.reviewer, ticket.description);
 	const backToTicket = (
 		<a
 			href={`/t/${ticket.identifier}`}
@@ -102,7 +105,7 @@ export function TicketView({ identifier, thread, tab, onTabChange }: TicketViewP
 
 	// The server refuses every write to a ticket under an archived project.
 	// The disabled fieldset and the edit keys enforce `readOnly`.
-	const activity = (
+	const column = (
 		<article className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto page-card">
 			<div
 				data-ticket-content=""
@@ -117,23 +120,37 @@ export function TicketView({ identifier, thread, tab, onTabChange }: TicketViewP
 						<PropertiesRail ticket={ticket} variant="inline" />
 					</div>
 				)}
-				<div data-ticket-description="" className={cx("min-h-24", narrow ? "mt-4" : "mt-3")}>
-					<Description key={ticket.identifier} ticket={ticket} onAttachFiles={uploads.addFiles} />
-				</div>
+				<section aria-label="The ask" className={cx("flex min-w-0 flex-col", narrow ? "mt-4" : "mt-3")}>
+					<SectionHeader title="THE ASK" />
+					<div data-ticket-description="" className="min-h-24">
+						<Description key={ticket.identifier} ticket={ticket} onAttachFiles={uploads.addFiles} />
+					</div>
+				</section>
 				<div className="mt-8 flex flex-col gap-8">
+					{question ? (
+						<QuestionBlock ticket={ticket} />
+					) : (
+						<>
+							<ContractBlock repo={repo} contract={ticket.contract} />
+							<ChainBlock
+								waitsOn={ticket.waitsOn}
+								releases={ticket.releases}
+								answeredQuestions={ticket.answeredQuestions}
+							/>
+							<TicketWorkArea key={ticket.id} ticket={ticket} onOpenPullRequest={openPullRequest} />
+						</>
+					)}
 					<SubTickets ticket={ticket} />
-					<PullRequests ticket={ticket} initialPrs={ticket.prs} onOpen={openPullRequest} title="Pull requests" />
 					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
-					<Timeline thread={thread} ticket={ticket} onAttachFiles={uploads.addFiles} />
 				</div>
 			</div>
 		</article>
 	);
-	const activityPage = narrow ? (
-		activity
+	const page = narrow ? (
+		column
 	) : (
 		<div data-ticket-columns="" className="flex min-h-0 flex-1">
-			{activity}
+			{column}
 			<PropertiesRail ticket={ticket} variant="page" />
 		</div>
 	);
@@ -148,14 +165,7 @@ export function TicketView({ identifier, thread, tab, onTabChange }: TicketViewP
 							{notice(ticket.project.path)}
 						</p>
 					)}
-					<TicketWorkArea
-						key={ticket.id}
-						ticket={ticket}
-						tab={workAreaTab}
-						onTabChange={onTabChange ?? setSheetTab}
-						onOpenPullRequest={openPullRequest}
-						activity={activityPage}
-					/>
+					{page}
 					{drop.over && <DropOverlay identifier={ticket.identifier} />}
 				</div>
 			</fieldset>

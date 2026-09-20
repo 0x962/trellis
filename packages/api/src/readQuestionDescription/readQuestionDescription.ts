@@ -1,3 +1,5 @@
+import type { Reviewer } from "../schemas/enums.ts";
+
 // One numbered choice of a question. `number` is the number the description
 // prints, and a person answers with it. The numbers need not run 1, 2, 3: a
 // description that numbers its options 1, 2 and 5 gives those three numbers.
@@ -66,3 +68,10 @@ export const readQuestionDescription = (description: string): QuestionDescriptio
 	);
 	return { options, recommendation: readRecommendation(lines.slice(heading + block.length)) };
 };
+
+// A ticket asks a question when a person must review it and its description
+// opens with an option list. `questionDescription` in
+// `apps/server/src/db/queries/support.ts` runs the same rule in SQL for the
+// `isQuestion` field of a ticket summary, and the two must agree.
+export const asksQuestion = (reviewer: Reviewer | null, description: string) =>
+	reviewer === "human" && /^Options:\s*\S/.test(description);

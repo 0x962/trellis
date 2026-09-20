@@ -5,8 +5,9 @@ import { copyText } from "../../../lib/clipboard";
 import { evidenceOwedText } from "./evidenceOwedText";
 
 export type ContractBlockProps = {
-	// The repository name that picks the path rules, such as `trellis`.
-	repo: string;
+	// The repository name that picks the path rules, such as `trellis`. It is
+	// undefined when the project chain holds no repository or more than one.
+	repo: string | undefined;
 	contract: TicketContract;
 };
 

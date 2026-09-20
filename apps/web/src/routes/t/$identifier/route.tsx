@@ -1,11 +1,11 @@
 import { ORPCError } from "@orpc/client";
-import { createFileRoute, type ErrorComponentProps, useLocation } from "@tanstack/react-router";
+import { createFileRoute, type ErrorComponentProps } from "@tanstack/react-router";
 import { TicketRefStringSchema } from "@trellis/api";
 import { EmptyState } from "@trellis/ui";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
 import { TicketView } from "../../../features/ticket/TicketView";
 import type { AppContext } from "../../../lib/appContext";
-import { TicketSearchSchema, ticketTab } from "../../../lib/ticketSearch";
+import { TicketSearchSchema } from "../../../lib/ticketSearch";
 
 const ticketOptions = (context: AppContext, identifier: string) =>
 	context.orpc.tickets.get.queryOptions({ input: { ticket: TicketRefStringSchema.parse(identifier) } });
@@ -24,24 +24,7 @@ export const Route = createFileRoute("/t/$identifier")({
 
 function TicketPage() {
 	const { identifier } = Route.useParams();
-	const { thread, tab } = Route.useSearch();
-	const hash = useLocation({ select: (location) => location.hash });
-	const navigate = Route.useNavigate();
-	return (
-		<TicketView
-			key={identifier}
-			identifier={TicketRefStringSchema.parse(identifier)}
-			thread={thread}
-			tab={ticketTab(tab, hash)}
-			onTabChange={(next) => {
-				void navigate({
-					search: (previous) => ({ ...previous, tab: next === "activity" ? undefined : next }),
-					hash: "",
-					resetScroll: false,
-				});
-			}}
-		/>
-	);
+	return <TicketView key={identifier} identifier={TicketRefStringSchema.parse(identifier)} />;
 }
 
 function TicketError({ error }: ErrorComponentProps) {
