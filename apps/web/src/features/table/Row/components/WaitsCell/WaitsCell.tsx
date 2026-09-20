@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import type { TicketSummary } from "@trellis/api";
 import { AttentionDot, TicketId } from "@trellis/ui";
 
@@ -12,6 +13,11 @@ export type WaitsCellProps = {
 // How many identifiers the 110 px cell holds. The rest become `+n`.
 const shown = 2;
 
+// `onRowClick` in TicketTable leaves a click inside an anchor alone, so a
+// click here opens the ticket it names and the row stays closed.
+const linkClass =
+	"inline-flex h-7 items-center rounded-md px-0.5 transition-colors duration-hover hover:bg-fg/6 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
+
 // What holds a ticket back, in the width of two identifiers.
 //
 // The cell prints one of four things:
@@ -21,6 +27,8 @@ const shown = 2;
 // - up to two identifiers, then `+n` for the ones that do not fit;
 // - the yellow dot after an identifier whose ticket is an open question,
 //   which is a ticket that only a person can finish.
+//
+// Each identifier is a link to that ticket's page.
 export function WaitsCell({ waitsOn, ready }: WaitsCellProps) {
 	if (waitsOn.length === 0) return ready ? <span className="text-sm text-fg-faint">ready</span> : null;
 
@@ -34,7 +42,14 @@ export function WaitsCell({ waitsOn, ready }: WaitsCellProps) {
 							·
 						</span>
 					)}
-					<TicketId id={dependency.identifier} size="sm" />
+					<Link
+						to="/t/$identifier"
+						params={{ identifier: dependency.identifier }}
+						className={linkClass}
+						title={dependency.title}
+					>
+						<TicketId id={dependency.identifier} size="sm" />
+					</Link>
 					{dependency.isQuestion && <AttentionDot label={`${dependency.identifier} is a question for you.`} />}
 				</span>
 			))}
