@@ -79,12 +79,12 @@
 	stroke-width: 1.5;
 }
 /*
- * The card of an agent draws the provider mark of the run. While the run
- * works, one band of the shared film light crosses the card every seven
- * seconds, and the card stays still for the rest of each seven seconds. The
- * band waits off the left edge of the card between the sweeps, so a card that
- * runs no animation shows no band. `AgentProfileMark` sets `data-sweep` while
- * a person can see the card.
+ * The card of an agent draws the provider mark of its run. While the run
+ * works, one band of `--film-gradient` crosses the card every seven seconds,
+ * and the card stays still for the rest of each seven seconds. The band sits
+ * off the left edge of the card at the start of each seven seconds, so a card
+ * with the animation off shows no band. `AgentProfileMark` sets `data-sweep`
+ * while a person can see the card.
  */
 .agent-card-sweep {
 	position: absolute;

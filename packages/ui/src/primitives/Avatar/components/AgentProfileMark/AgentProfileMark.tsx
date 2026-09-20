@@ -10,10 +10,10 @@ export type AgentProfile = {
 };
 
 /*
- * The band of light is a CSS animation on the `agent-card-sweep` span. A CSS
- * animation of a card that nobody looks at still burns a frame, so the span
- * holds the animation paused and this hook sets `data-sweep="run"` on it only
- * while the card is inside the viewport and the tab is visible.
+ * The band of light is a CSS animation on the `agent-card-sweep` span. The
+ * browser keeps painting an animation that nobody can see, so the span holds
+ * the animation paused, and this hook sets `data-sweep="run"` on the span
+ * only while the card is inside the viewport and the tab is visible.
  */
 function useCardSweep(ref: RefObject<HTMLSpanElement | null>, working: boolean) {
 	useEffect(() => {
