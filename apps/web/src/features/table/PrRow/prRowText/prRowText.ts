@@ -65,12 +65,14 @@ const threadCells = (pr: TicketPr): PrRowCell[] =>
 const requiredEvidence = (kind: NonNullable<TicketPr["kind"]>, risk: NonNullable<TicketPr["risk"]>) =>
 	evidenceFloor({ kind, risk, rows: [], hasSummary: false }).required.length;
 
-// A pull request row always prints one evidence word. `evidence` counts the
-// records of the floor that the pull request carries at its head commit. The
-// server sets `kind`, `risk` and `evidence` to null together while GitHub
-// gives it no file list, and it sets `evidence` to null while the pull
-// request has no head commit.
+// An open or a draft pull request prints one evidence word. A merged or a
+// closed pull request owes nothing, so it prints no word at all. `evidence`
+// counts the records of the floor that the pull request carries at its head
+// commit. The server sets `kind`, `risk` and `evidence` to null together
+// while GitHub gives it no file list, and it sets `evidence` to null while
+// the pull request has no head commit.
 const evidenceCells = (pr: TicketPr): PrRowCell[] => {
+	if (pr.state !== "open") return [];
 	if (pr.kind === null || pr.risk === null || pr.evidence === null || pr.evidence === 0)
 		return [mutedCell("evidence", "no evidence")];
 	const required = requiredEvidence(pr.kind, pr.risk);

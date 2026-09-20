@@ -65,7 +65,7 @@ describe("prRowCells", () => {
 	});
 
 	test("drops a check bucket, a thread count and a flow that count zero", () => {
-		expect(textOf(prOf({ state: "merged", pass: 43 }))).toBe("merged · 43 passed · no evidence");
+		expect(textOf(prOf({ state: "merged", pass: 43 }))).toBe("merged · 43 passed");
 	});
 
 	test("holds the changed line counts as a value for the shared element", () => {
@@ -88,7 +88,7 @@ describe("prRowCells", () => {
 	});
 
 	test("a merged pull request that was a draft reads as merged and leaves nobody to act", () => {
-		expect(textOf(prOf({ state: "merged", isDraft: true }))).toBe("merged · no evidence");
+		expect(textOf(prOf({ state: "merged", isDraft: true }))).toBe("merged");
 	});
 
 	test("draws the failed count in the danger color and every other count in the row color", () => {
@@ -126,6 +126,20 @@ describe("prRowCells", () => {
 		expect(textOf(prOf({ kind: null, risk: null, evidence: null, pass: 43 }))).toBe(
 			"open · 43 passed · no evidence · you",
 		);
+	});
+
+	test("prints no evidence word on a merged or a closed pull request, which owes nothing", () => {
+		const merged = prOf({ state: "merged", kind: "frontend", risk: noRisk, evidence: 3, pass: 43 });
+		const closed = prOf({ state: "closed", kind: "frontend", risk: noRisk, evidence: 0, pass: 43 });
+
+		expect(textOf(merged)).toBe("merged · 43 passed");
+		expect(textOf(closed)).toBe("closed · 43 passed");
+	});
+
+	test("prints the evidence word on a draft, which still owes its records", () => {
+		const pr = prOf({ isDraft: true, kind: "frontend", risk: noRisk, evidence: 3, pass: 43 });
+
+		expect(textOf(pr)).toBe("draft · 43 passed · evidence 3 of 5 · agent");
 	});
 
 	test("draws the turn of the person in the foreground color, and the turn of another in the row color", () => {
