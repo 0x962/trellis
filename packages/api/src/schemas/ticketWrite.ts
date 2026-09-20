@@ -8,8 +8,8 @@ import {
 	TicketRefStringSchema,
 } from "../refs.ts";
 import { PrioritySchema } from "./enums.ts";
-import { booleanString, CountSchema } from "./primitives.ts";
-import { TicketIdentifierSchema, TicketSummarySchema, TicketTitleSchema } from "./ticket.ts";
+import { booleanString, CountSchema, UlidSchema } from "./primitives.ts";
+import { TicketIdentifierSchema, TicketSchema, TicketSummarySchema, TicketTitleSchema } from "./ticket.ts";
 
 // The inputs and the outputs of the ticket writes: create, update, move,
 // the two batch writes, and delete.
@@ -59,6 +59,40 @@ export const TicketOutcomeInputSchema = z.strictObject({
 	expectedVersion: z.number().int().positive().optional(),
 });
 export type TicketOutcomeInput = z.input<typeof TicketOutcomeInputSchema>;
+
+// The answer of a question ticket. `option` is the number of the option the
+// person picked, as the ticket description numbers them, and `reason` is the
+// sentence the agent reads.
+export const TicketAnswerInputSchema = z.strictObject({
+	ticket: TicketRefStringSchema,
+	option: z.number().int().min(1, "Enter the number of an option.").max(99, "Enter the number of an option."),
+	reason: z
+		.string()
+		.trim()
+		.min(1, "Enter a reason of 1 to 4,000 characters.")
+		.max(4000, "Enter a reason of 1 to 4,000 characters."),
+	expectedVersion: z.number().int().positive().optional(),
+});
+export type TicketAnswerInput = z.input<typeof TicketAnswerInputSchema>;
+
+// One running agent that the answer goes to. `ticket` is the ticket that
+// agent works on, and that ticket waits for the question.
+export const TicketAnswerDeliverySchema = z.object({
+	ticket: TicketIdentifierSchema,
+	runId: UlidSchema,
+	agentName: z.string(),
+});
+export type TicketAnswerDelivery = z.infer<typeof TicketAnswerDeliverySchema>;
+
+// `deliveries` names each running agent that the answer goes to. The
+// delivery loop sends it. An empty list means that no ticket which waits for
+// this question holds a running agent.
+export const TicketAnswerOutputSchema = z.object({
+	ticket: TicketSchema,
+	commentId: UlidSchema,
+	deliveries: z.array(TicketAnswerDeliverySchema),
+});
+export type TicketAnswerOutput = z.infer<typeof TicketAnswerOutputSchema>;
 
 // `status` defaults to the project's default status; `description` to the
 // project's ticket template. `epic` names an epic of the same root.

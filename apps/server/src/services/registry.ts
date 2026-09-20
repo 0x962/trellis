@@ -46,6 +46,7 @@ import * as reviewPrs from "./reviews/prs";
 import * as reviewRemote from "./reviews/remote";
 import * as reviewReviewers from "./reviews/reviewers";
 import * as reviewRevision from "./reviews/revision";
+import * as reviewRunDeliveries from "./reviews/runDeliveries";
 import * as reviewStatus from "./reviews/status";
 import * as reviewThreads from "./reviews/threads";
 import * as reviewTransfers from "./reviews/transfers";
@@ -173,6 +174,7 @@ export const services = {
 	"reviews.reaction": io("mutation", reviewMessages.reaction),
 	"reviews.submit": prepared("mutation", reviewRemote.submit, reviewRemote.actionResult),
 	"reviews.apply": prepared("mutation", reviewApply.prepareApply, reviewApply.applyResult),
+	"reviews.dispatchAnswerDeliveries": prepared("mutation", reviewRunDeliveries.prepare, reviewRunDeliveries.finish),
 
 	"agentRuns.send": agentMutation(agentCommunication.prepareSend),
 	"commentMentions.dispatch": prepared("mutation", commentMentions.prepare, commentMentions.finish),
@@ -229,6 +231,7 @@ export const services = {
 	"tickets.updateDependencies": core("mutation", tickets.updateDependencies),
 	"tickets.setContract": core("mutation", tickets.setContract),
 	"tickets.setOutcome": core("mutation", tickets.setOutcome),
+	"tickets.answer": core("mutation", tickets.answer),
 	"timeline.list": core("read", timeline.list),
 	"needsYou.list": core("read", needsYou.list),
 	"needsYou.summary": core("read", needsYou.summary),

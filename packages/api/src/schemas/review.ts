@@ -150,6 +150,8 @@ export const ReviewApplyResultSchema = z.object({
 	threads: z.array(ReviewThreadSchema),
 });
 export type ReviewApplyResult = z.infer<typeof ReviewApplyResultSchema>;
+// One review submission on its way to one agent run. `reviews.show` reads
+// the rows of one submission, so `reviewId` always holds that submission.
 export const ReviewDeliverySchema = z.object({
 	id: UlidSchema,
 	reviewId: UlidSchema,
