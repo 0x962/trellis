@@ -1,4 +1,4 @@
-import { ChainBlock, type ChainDependency, type ChainRelease } from "../../../../domain/ChainBlock";
+import { type ChainAnswer, ChainBlock, type ChainDependency, type ChainRelease } from "../../../../domain/ChainBlock";
 import { Section } from "../../Section";
 
 // The gallery has no router, so a chain line is a plain anchor here. A page
@@ -26,6 +26,15 @@ const op52: ChainDependency = {
 	link: link("OP-52"),
 };
 
+// Once a person answers OP-52, it leaves the `waitsOn` of OP-33 and the
+// `Applies` line names the option that was picked.
+const answeredOp52: ChainAnswer = {
+	identifier: "OP-52",
+	title: "Decision: a missed window, run it late or leave it missed",
+	option: 1,
+	link: link("OP-52"),
+};
+
 const op34Releases: ChainRelease[] = [
 	{ identifier: "OP-35", title: "Service: A run whose webhook never came is closed", link: link("OP-35") },
 	{
@@ -37,15 +46,27 @@ const op34Releases: ChainRelease[] = [
 
 export function ChainBlockSection() {
 	return (
-		<Section name="ChainBlock" note="OP-33, OP-34, and a ticket with no chain" className="items-start">
+		<Section
+			name="ChainBlock"
+			note="OP-33 with an open question, OP-33 with the answer, OP-34, and a ticket with no chain"
+			className="items-start"
+		>
 			<div className="min-w-96 flex-1">
-				<ChainBlock waitsOn={[op32, op52]} releases={[]} ready="no. OP-32 is not merged, and OP-52 is open." />
+				<ChainBlock
+					waitsOn={[op32, op52]}
+					releases={[]}
+					ready="no. OP-32 is not merged, and OP-52 is open."
+					answered={null}
+				/>
 			</div>
 			<div className="min-w-96 flex-1">
-				<ChainBlock waitsOn={[op32]} releases={op34Releases} ready="no. OP-32 is not merged." />
+				<ChainBlock waitsOn={[op32]} releases={[]} ready="no. OP-32 is not merged." answered={answeredOp52} />
 			</div>
 			<div className="min-w-96 flex-1">
-				<ChainBlock waitsOn={[]} releases={[]} ready="yes. No ticket holds this one back." />
+				<ChainBlock waitsOn={[op32]} releases={op34Releases} ready="no. OP-32 is not merged." answered={null} />
+			</div>
+			<div className="min-w-96 flex-1">
+				<ChainBlock waitsOn={[]} releases={[]} ready="yes. No ticket holds this one back." answered={null} />
 			</div>
 		</Section>
 	);

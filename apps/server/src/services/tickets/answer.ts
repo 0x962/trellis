@@ -1,4 +1,4 @@
-import { TicketAnswerInputSchema, type TicketAnswerOutput } from "@trellis/api";
+import { questionParts, TicketAnswerInputSchema, type TicketAnswerOutput } from "@trellis/api";
 import type { ServiceCtx } from "../../context.ts";
 import { statusById } from "../../db/queries/statusById.ts";
 import type { Tx } from "../../db/tx.ts";
@@ -15,12 +15,6 @@ import { assertVersion } from "./rules.ts";
 // and the two must agree.
 const questionOpening = /^Options:\s*\S/;
 
-// The lines of the option list, in the form `1. Leave it missed.`. The
-// person picks one of these numbers.
-const optionLine = /^[ \t]*\d+[.)][ \t]+\S/;
-
-const optionCount = (description: string) => description.split("\n").filter((line) => optionLine.test(line)).length;
-
 const assertQuestion = async (tx: Tx, ticket: TicketRow, option: number) => {
 	const status = await statusById(tx, ticket.statusId);
 	if (status.reviewer !== "human" || !questionOpening.test(ticket.description))
@@ -28,7 +22,9 @@ const assertQuestion = async (tx: Tx, ticket: TicketRow, option: number) => {
 			"ticket",
 			"This ticket asks no question. A question waits for a person and opens its description with an option list.",
 		);
-	const options = optionCount(ticket.description);
+	// `questionParts` reads the option list here and on the ticket page, so
+	// the page prints the same options that this write accepts.
+	const options = questionParts(ticket.description).options.length;
 	if (option > options) throw invalidInput("option", `This question lists ${options} options. Pick one of them.`);
 };
 

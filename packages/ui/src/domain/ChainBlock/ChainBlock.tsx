@@ -1,14 +1,11 @@
-import { cloneElement, type ReactElement, type ReactNode } from "react";
+import { cloneElement } from "react";
 import { AttentionDot } from "../../primitives/AttentionDot";
 import { EmptyState } from "../../primitives/EmptyState";
 import { SectionHeader } from "../../primitives/SectionHeader";
 import { BlockRow, NothingWord } from "../../review/BlockRow";
 import { type StatusCategory, StatusIcon } from "../StatusIcon";
 import { TicketId } from "../TicketId";
-
-// An anchor that the caller builds, such as a router Link. `ChainBlock`
-// gives it the class names, the title and the children of a chain line.
-type ChainAnchor = ReactElement<{ className?: string; title?: string; children?: ReactNode }>;
+import { type TicketAnchor, TicketLine, type TicketRef, ticketLineClass } from "../TicketLine";
 
 export type ChainDependency = {
 	identifier: string;
@@ -18,13 +15,15 @@ export type ChainDependency = {
 	// question and holds the answer options. Such a line carries the yellow
 	// dot and the words `your answer`.
 	isQuestion: boolean;
-	link: ChainAnchor;
+	link: TicketAnchor;
 };
 
-export type ChainRelease = {
-	identifier: string;
-	title: string;
-	link: ChainAnchor;
+export type ChainRelease = TicketRef;
+
+// The question this ticket waited for, and the option a person picked. The
+// `Applies` line prints it once the question is done.
+export type ChainAnswer = TicketRef & {
+	option: number;
 };
 
 export type ChainBlockProps = {
@@ -36,6 +35,9 @@ export type ChainBlockProps = {
 	// One sentence that says whether the work can start, and names each
 	// ticket that holds it back. The caller derives it from `waitsOn`.
 	ready: string;
+	// The question this ticket applies, once somebody answered it. It is null
+	// while no answered question decides how the work is built.
+	answered: ChainAnswer | null;
 };
 
 // The words a screen reader says for the status mark of a chain line. A
@@ -53,11 +55,12 @@ const statusWords: Record<StatusCategory, string> = {
 // holds back, and the open question that decides how the work is built. Every
 // sentence here reports a state. Nothing in this block starts a run or
 // changes a ticket.
-export function ChainBlock({ waitsOn, releases, ready }: ChainBlockProps) {
+export function ChainBlock({ waitsOn, releases, ready, answered }: ChainBlockProps) {
 	// A question this ticket waits on decides how the ticket is built, so the
-	// `Applies` line names it again with the word `open`.
+	// `Applies` line names it again with the word `open`. Once the question is
+	// answered it leaves `waitsOn`, and the same line names the picked option.
 	const question = waitsOn.find((dependency) => dependency.isQuestion);
-	if (waitsOn.length === 0 && releases.length === 0) {
+	if (waitsOn.length === 0 && releases.length === 0 && answered === null) {
 		return (
 			<section aria-label="The chain" className="flex min-w-0 flex-col">
 				<SectionHeader title="THE CHAIN" />
@@ -83,12 +86,23 @@ export function ChainBlock({ waitsOn, releases, ready }: ChainBlockProps) {
 					{releases.length === 0 ? (
 						<NothingWord />
 					) : (
-						releases.map((release) => <TitleLine key={release.identifier} {...release} />)
+						releases.map((release) => <TicketLine key={release.identifier} {...release} />)
 					)}
 				</BlockRow>
 				{question !== undefined && (
 					<BlockRow label="Applies">
-						<TitleLine identifier={question.identifier} title={question.title} link={question.link} note="open." />
+						<TicketLine identifier={question.identifier} title={question.title} link={question.link} note="open." />
+					</BlockRow>
+				)}
+				{question === undefined && answered !== null && (
+					<BlockRow label="Applies">
+						<TicketLine
+							identifier={answered.identifier}
+							title={answered.title}
+							link={answered.link}
+							lead="answered:"
+							note={`chose ${answered.option}.`}
+						/>
 					</BlockRow>
 				)}
 			</dl>
@@ -96,12 +110,9 @@ export function ChainBlock({ waitsOn, releases, ready }: ChainBlockProps) {
 	);
 }
 
-const lineClass =
-	"-mx-1 flex min-w-0 items-center gap-2 rounded-sm px-1 py-0.5 text-sm text-fg transition-colors duration-hover ease-out hover:bg-band focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent pointer-coarse:py-2";
-
 function DependencyLine({ dependency }: { dependency: ChainDependency }) {
 	return cloneElement(dependency.link, {
-		className: lineClass,
+		className: ticketLineClass,
 		title: dependency.title,
 		children: (
 			<>
@@ -114,33 +125,6 @@ function DependencyLine({ dependency }: { dependency: ChainDependency }) {
 						your answer
 					</span>
 				)}
-			</>
-		),
-	});
-}
-
-// A release line and the `Applies` line print the identifier, an optional
-// muted word and the title, and no status mark. `note` is the muted word,
-// such as `open.` on the question the ticket waits for.
-function TitleLine({
-	identifier,
-	title,
-	link,
-	note,
-}: {
-	identifier: string;
-	title: string;
-	link: ChainAnchor;
-	note?: string;
-}) {
-	return cloneElement(link, {
-		className: lineClass,
-		title,
-		children: (
-			<>
-				<TicketId id={identifier} size="sm" />
-				{note !== undefined && <span className="shrink-0 text-fg-muted">{note}</span>}
-				<span className="min-w-0 flex-1 truncate">{title}</span>
 			</>
 		),
 	});

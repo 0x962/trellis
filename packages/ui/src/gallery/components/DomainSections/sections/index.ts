@@ -13,6 +13,7 @@ export { FlowRunSection } from "./FlowRunSection";
 export { LineChangesSection } from "./LineChangesSection";
 export { PrGlyphSection } from "./PrGlyphSection";
 export { PriorityIconSection } from "./PriorityIconSection";
+export { QuestionBlockSection } from "./QuestionBlockSection";
 export { ReviewFocusListSection } from "./ReviewFocusListSection";
 export { ReviewStatusSummarySection } from "./ReviewStatusSummarySection";
 export { RunLineSection } from "./RunLineSection";

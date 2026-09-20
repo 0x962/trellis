@@ -126,7 +126,18 @@ export type TicketContract = z.infer<typeof TicketContractSchema>;
 export const ticketContractFields = Object.keys(TicketContractSchema.shape) as (keyof TicketContract)[];
 
 // The `tickets.get` shape: the summary plus what only the ticket page reads.
+// The question this ticket waited for, once a person answered it. The
+// ticket page prints it under `Applies`, with the option number that was
+// picked. It is null while no answered question holds this ticket back.
+export const AnsweredQuestionSchema = z.object({
+	identifier: TicketIdentifierSchema,
+	title: TicketTitleSchema,
+	option: z.number().int().positive(),
+});
+export type AnsweredQuestion = z.infer<typeof AnsweredQuestionSchema>;
+
 export const TicketSchema = TicketSummarySchema.extend({
+	answeredQuestion: AnsweredQuestionSchema.nullable(),
 	description: z.string(),
 	contract: TicketContractSchema,
 	outcome: z.string(),
