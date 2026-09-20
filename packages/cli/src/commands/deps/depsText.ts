@@ -1,23 +1,9 @@
-import type { StatusCategory } from "@trellis/api";
+import type { Ticket, TicketPr } from "@trellis/api";
 
-type NamedTicket = {
-	identifier: string;
-	title: string;
-};
-
-type WaitsOnTicket = NamedTicket & {
-	status: StatusCategory;
-	isQuestion: boolean;
-};
-
-type DerivedPr = {
-	number: number;
-	baseRef: string;
-	stackedOn: {
-		number: number;
-		headRef: string;
-		ticketIdentifier: string;
-	};
+type NamedTicket = Ticket["releases"][number];
+type WaitsOnTicket = Ticket["waitsOn"][number];
+type DerivedPr = Pick<TicketPr, "number" | "baseRef"> & {
+	stackedOn: NonNullable<TicketPr["stackedOn"]>;
 };
 
 export type DepsResult = {
