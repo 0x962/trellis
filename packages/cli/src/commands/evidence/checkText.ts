@@ -1,10 +1,10 @@
-import { type EvidenceFloor, type EvidenceFloorItem, evidenceWords, type PrKind, type TicketPr } from "@trellis/api";
+import type { EvidenceFloor, EvidenceFloorItem, PrKind, TicketPr } from "@trellis/api";
 
-export type EvidenceCheckItem = {
+export type EvidenceCheckLine = {
 	item: EvidenceFloorItem;
 	label: string;
 	status: "present" | "MISSING" | "due";
-	note: string | null;
+	hint: string | null;
 	command: string | null;
 };
 
@@ -15,68 +15,13 @@ export type EvidenceCheckResult = {
 	present: number;
 	required: number;
 	complete: boolean;
-	items: EvidenceCheckItem[];
+	items: EvidenceCheckLine[];
 	checks: Pick<TicketPr, "pass" | "fail" | "pending" | "skipped" | "failedChecks">;
 };
 
-type EvidenceCheckInput = Omit<EvidenceCheckResult, "present" | "required" | "complete" | "items"> & {
+export type EvidenceCheckInput = Omit<EvidenceCheckResult, "kind" | "present" | "required" | "complete" | "items"> & {
 	floor: EvidenceFloor;
 	verifyCommands: string[];
-};
-
-const labelOf = (item: EvidenceFloorItem): string => (item === "contract" ? "contract" : evidenceWords[item]);
-
-const noteOf = (item: EvidenceFloorItem, verifyCommands: string[]): string => {
-	switch (item) {
-		case "summary":
-			return "write the STE summary:";
-		case "after":
-			return "capture the head route:";
-		case "before":
-			return "capture the merge base route:";
-		case "capture":
-			return "record the capture conditions:";
-		case "console":
-			return "attach the console list:";
-		case "verify":
-			return verifyCommands.length === 0
-				? "the ticket has no parsed Verify command:"
-				: `run each Verify command (${verifyCommands.join("; ")}):`;
-		case "test":
-			return "name each new test:";
-		case "contract":
-			return "write the before and after table, or:";
-		case "migration":
-			return "attach the migration plan:";
-		case "picture":
-			return "add one picture:";
-		case "equivalence":
-			return "prove equivalent coverage:";
-	}
-};
-
-const fillCommand = (command: string, number: number, headSha: string): string =>
-	command.replaceAll("<pr>", String(number)).replaceAll("<head>", headSha);
-
-export const evidenceCheckResult = ({ floor, verifyCommands, ...input }: EvidenceCheckInput): EvidenceCheckResult => {
-	const gaps = new Map(floor.missing.map((gap) => [gap.item, gap]));
-	return {
-		...input,
-		present: floor.present.length,
-		required: floor.required.length,
-		complete: floor.missing.length === 0,
-		items: floor.required.map((item) => {
-			const gap = gaps.get(item);
-			return {
-				item,
-				label: labelOf(item),
-				status: gap === undefined ? "present" : item === "picture" ? "due" : "MISSING",
-				note: gap === undefined ? null : noteOf(item, verifyCommands),
-				command:
-					gap === undefined ? null : fillCommand(gap.fillCommand, input.pullRequest.number, input.pullRequest.headSha),
-			};
-		}),
-	};
 };
 
 const checkNote = ({ pass, fail, pending, failedChecks }: EvidenceCheckResult["checks"]): string => {
@@ -88,10 +33,11 @@ const checkNote = ({ pass, fail, pending, failedChecks }: EvidenceCheckResult["c
 };
 
 export const checkText = (result: EvidenceCheckResult): string => {
-	const labelWidth = Math.max(...result.items.map((item) => item.label.length));
-	const lines = result.items.map((item) => {
-		const prefix = `  ${item.status.padEnd(7)}  ${item.label.padEnd(labelWidth)}`;
-		return item.note === null ? prefix.trimEnd() : `${prefix}   ${item.note}  ${item.command}`;
+	const labelWidth = Math.max(...result.items.map((line) => line.label.length));
+	const hintWidth = Math.max(...result.items.map((line) => line.hint?.length ?? 0));
+	const lines = result.items.map((line) => {
+		const prefix = `  ${line.status.padEnd(7)}  ${line.label.padEnd(labelWidth)}`;
+		return line.hint === null ? prefix.trimEnd() : `${prefix}   ${line.hint.padEnd(hintWidth)}  ${line.command}`;
 	});
 	return `${[
 		`#${result.pullRequest.number}  ${result.ticket.identifier}  ${result.ticket.title}`,
