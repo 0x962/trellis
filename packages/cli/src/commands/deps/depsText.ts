@@ -1,16 +1,16 @@
 import type { StatusCategory } from "@trellis/api";
 
-export type DependencyTicket = {
+type NamedTicket = {
 	identifier: string;
 	title: string;
 };
 
-export type WaitsOnTicket = DependencyTicket & {
+type WaitsOnTicket = NamedTicket & {
 	status: StatusCategory;
 	isQuestion: boolean;
 };
 
-export type DerivedDependency = {
+type DerivedPr = {
 	number: number;
 	baseRef: string;
 	stackedOn: {
@@ -21,10 +21,10 @@ export type DerivedDependency = {
 };
 
 export type DepsResult = {
-	ticket: DependencyTicket;
+	ticket: NamedTicket;
 	waitsOn: WaitsOnTicket[];
-	releases: DependencyTicket[];
-	derived: DerivedDependency[];
+	releases: NamedTicket[];
+	derived: DerivedPr[];
 };
 
 const statusText = (ticket: WaitsOnTicket): string => {
@@ -33,7 +33,7 @@ const statusText = (ticket: WaitsOnTicket): string => {
 	return ticket.status;
 };
 
-const ticketLines = (tickets: DependencyTicket[]): string[] => {
+const releaseLines = (tickets: NamedTicket[]): string[] => {
 	if (tickets.length === 0) return ["    nothing"];
 	const identifierWidth = Math.max(...tickets.map((ticket) => ticket.identifier.length));
 	return tickets.map((ticket) => `    ${ticket.identifier.padEnd(identifierWidth)}  ${ticket.title}`);
@@ -49,12 +49,12 @@ const waitsOnLines = (tickets: WaitsOnTicket[]): string[] => {
 	);
 };
 
-const derivedLines = (dependencies: DerivedDependency[]): string[] =>
-	dependencies.length === 0
+const derivedLines = (prs: DerivedPr[]): string[] =>
+	prs.length === 0
 		? ["    nothing"]
-		: dependencies.map(
-				(dependency) =>
-					`    #${dependency.number} is based on ${dependency.baseRef}, the head of #${dependency.stackedOn.number} (${dependency.stackedOn.ticketIdentifier})`,
+		: prs.map(
+				(pr) =>
+					`    #${pr.number} is based on ${pr.baseRef}, the head of #${pr.stackedOn.number} (${pr.stackedOn.ticketIdentifier})`,
 			);
 
 export const depsText = (result: DepsResult): string =>
@@ -63,7 +63,7 @@ export const depsText = (result: DepsResult): string =>
 		"  waits on",
 		...waitsOnLines(result.waitsOn),
 		"  releases",
-		...ticketLines(result.releases),
+		...releaseLines(result.releases),
 		"  derived",
 		...derivedLines(result.derived),
 	].join("\n")}\n`;
