@@ -1,1 +1,1 @@
-export * from "./summaryOf";
+export { summaryOf } from "@trellis/api";
