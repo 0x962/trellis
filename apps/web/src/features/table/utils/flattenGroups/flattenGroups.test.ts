@@ -73,12 +73,12 @@ describe("flattenGroups", () => {
 	});
 
 	test("carries the words and the request mark of the line", () => {
-		const agentLines = new Map([["a", line("crisp-fjord: asks: Which cap?", true)]]);
+		const agentLines = new Map([["a", line("crisp-fjord asks: Which cap?", true)]]);
 
 		const items = flattenGroups([group("todo", true, [ticket("a")])], { agentLines });
 
 		expect(items.flatMap((item) => (item.kind === "agent" ? [item.line] : []))).toEqual([
-			{ words: "crisp-fjord: asks: Which cap?", asks: true },
+			{ words: "crisp-fjord asks: Which cap?", asks: true },
 		]);
 	});
 

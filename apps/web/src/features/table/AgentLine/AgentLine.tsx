@@ -20,13 +20,17 @@ export type AgentLineProps = {
 // the run has neither an open request nor a message.
 //
 // A run that waits for a person wins over the last message, because a
-// person reads the line to find what to answer. `runLine` writes the run
-// name and a colon in front of the message text already, so the request
-// case adds the same prefix to the request words.
+// person reads the line to find what to answer.
+//
+// The line holds one colon. `runLine` writes the request words as
+// `asks: <question>`, which carries that colon, so the request form puts a
+// space after the run name: `crisp-fjord asks: Which cap?`. `runLine`
+// writes the message words as `<name>: <text>` already, so the message form
+// takes those words unchanged: `crisp-fjord: Pushed the branch.`
 export const agentLineOf = (run: AgentRun): AgentLineText | null => {
 	const line = runLine(run);
 	if (line.kind === "question" || line.kind === "permission" || line.kind === "elicitation") {
-		return { words: `${run.name}: ${line.words}`, asks: true };
+		return { words: `${run.name} ${line.words}`, asks: true };
 	}
 	return line.lastMessage === null ? null : { words: line.lastMessage.words, asks: false };
 };

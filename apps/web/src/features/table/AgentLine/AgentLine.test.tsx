@@ -79,7 +79,7 @@ describe("agentLineOf", () => {
 	});
 
 	test("prints the question of the harness and marks the line as a request", () => {
-		expect(agentLineOf(asking())).toEqual({ words: "crisp-fjord: asks: Which cap?", asks: true });
+		expect(agentLineOf(asking())).toEqual({ words: "crisp-fjord asks: Which cap?", asks: true });
 	});
 
 	test("prints the title alone when the harness sends no question text", () => {
@@ -88,7 +88,7 @@ describe("agentLineOf", () => {
 			{ id: "elicitation", kind: "elicitation", title: "Project name", blocking: true, sequence: 2, at },
 		];
 
-		expect(agentLineOf(run)).toEqual({ words: "crisp-fjord: asks: Project name", asks: true });
+		expect(agentLineOf(run)).toEqual({ words: "crisp-fjord asks: Project name", asks: true });
 	});
 
 	test("names the tool of a permission request", () => {
@@ -97,7 +97,17 @@ describe("agentLineOf", () => {
 			{ id: "permission", kind: "permission", title: "Approve Bash", blocking: true, sequence: 2, at },
 		];
 
-		expect(agentLineOf(run)).toEqual({ words: "crisp-fjord: asks to run: Bash", asks: true });
+		expect(agentLineOf(run)).toEqual({ words: "crisp-fjord asks to run: Bash", asks: true });
+	});
+
+	test("writes one colon in each form of the line", () => {
+		const asked = agentLineOf(asking())!;
+		const said = agentLineOf(speaking())!;
+
+		expect(asked.words).toBe("crisp-fjord asks: Which cap?");
+		expect(said.words).toBe("crisp-fjord: I rebased onto master.");
+		expect(asked.words.split(":").length - 1).toBe(1);
+		expect(said.words.split(":").length - 1).toBe(1);
 	});
 
 	test("gives a run that works with no message and no request no line", () => {
@@ -108,7 +118,7 @@ describe("agentLineOf", () => {
 		const run = asking();
 		run.observation!.lastMessage = { text: "I rebased onto master.", at };
 
-		expect(agentLineOf(run)).toEqual({ words: "crisp-fjord: asks: Which cap?", asks: true });
+		expect(agentLineOf(run)).toEqual({ words: "crisp-fjord asks: Which cap?", asks: true });
 	});
 
 	test("keeps the message of a run that stopped", () => {
@@ -156,10 +166,10 @@ describe("AgentLine", () => {
 
 	test("draws the dot and the warning color when the run asks", () => {
 		const html = renderToStaticMarkup(
-			<AgentLine line={{ words: "crisp-fjord: asks: Which cap?", asks: true }} top={0} />,
+			<AgentLine line={{ words: "crisp-fjord asks: Which cap?", asks: true }} top={0} />,
 		);
 
-		expect(textOf(html)).toContain("crisp-fjord: asks: Which cap?");
+		expect(textOf(html)).toContain("crisp-fjord asks: Which cap?");
 		expect(html).toContain("bg-warning");
 		expect(html).toContain("text-warning");
 	});
