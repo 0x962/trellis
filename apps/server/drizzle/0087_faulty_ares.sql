@@ -8,7 +8,7 @@ CREATE TABLE "pr_evidence" (
 	"actor_name" text NOT NULL,
 	"actor_kind" text NOT NULL,
 	"created_at" timestamp (3) with time zone NOT NULL,
-	CONSTRAINT "pr_evidence_kind_check" CHECK ("pr_evidence"."kind" IN ('before', 'after', 'clip', 'console', 'verify', 'test', 'contract', 'migration', 'picture', 'equivalence')),
+	CONSTRAINT "pr_evidence_kind_check" CHECK ("pr_evidence"."kind" IN ('before', 'after', 'capture', 'clip', 'console', 'verify', 'test', 'contract', 'migration', 'picture', 'equivalence')),
 	CONSTRAINT "pr_evidence_record_check" CHECK (jsonb_typeof("pr_evidence"."record") = 'object'),
 	CONSTRAINT "pr_evidence_head_sha_check" CHECK (length("pr_evidence"."head_sha") BETWEEN 1 AND 64),
 	CONSTRAINT "pr_evidence_blob_sha256_check" CHECK ("pr_evidence"."blob_sha256" IS NULL OR "pr_evidence"."blob_sha256" ~ '^[0-9a-f]{64}$')

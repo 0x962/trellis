@@ -10,6 +10,7 @@ import { sql } from "drizzle-orm";
 import { actorDisplayName } from "../../db/queries/actorDisplayName.ts";
 import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
+import { invalidInput } from "../../errors.ts";
 import { storedMime, storeFile } from "../../storage/blobs.ts";
 import { findPullRequestRow } from "../findPullRequestRow.ts";
 import { announcePullRequestUpdate, setHeadSha } from "../pullRequests.ts";
@@ -97,6 +98,8 @@ type PreparedWrite = Pick<
 
 export const prepareWrite = async (ctx: PrepareCtx, rawInput: unknown): Promise<PreparedWrite> => {
 	const input = EvidenceWriteInputSchema.parse(rawInput);
+	if (input.kind === "capture" && input.record.headSha !== input.headSha)
+		throw invalidInput("record.headSha", "The capture head SHA must match the evidence head SHA.");
 	const pullRequest = await ctx.newTx((tx) => findPullRequestRow(tx, input.id));
 	const result = await ctx.gh("interactive", ["pr", "view", pullRequest.url, "--json", "headRefOid"]);
 	if (!result.ok) throw fail("GH_UNAVAILABLE", { reason: result.reason });

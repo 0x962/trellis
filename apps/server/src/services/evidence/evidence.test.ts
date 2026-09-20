@@ -94,6 +94,54 @@ test("stores and reads one record for the current head SHA", async () => {
 	expect(current.rows).toEqual([{ head_sha: headSha }]);
 });
 
+test("stores a capture record apart from the before image", async () => {
+	const evidenceId = ulid();
+	const record = {
+		headSha,
+		baseSha: "base-sha",
+		route: "/reviews/185",
+		viewport: "1440x900",
+		theme: "dark",
+		seed: "bun run seed",
+		browser: "Aside",
+		capturedAt: now.toISOString(),
+	};
+	const prepared = await prepareWrite(ctx(), {
+		id: pullRequestId,
+		evidenceId,
+		headSha,
+		kind: "capture",
+		record,
+	});
+	const stored = await inTx((tx) => write(ctx(), tx, prepared));
+
+	expect(stored).toMatchObject({ id: evidenceId, headSha, kind: "capture", record, blob: null });
+});
+
+test("requires the capture record head SHA to match its evidence row", async () => {
+	const attempt = prepareWrite(ctx(), {
+		id: pullRequestId,
+		evidenceId: ulid(),
+		headSha,
+		kind: "capture",
+		record: {
+			headSha: "other-head",
+			baseSha: "base-sha",
+			route: "/reviews/185",
+			viewport: "1440x900",
+			theme: "dark",
+			seed: "bun run seed",
+			browser: "Aside",
+			capturedAt: now.toISOString(),
+		},
+	});
+
+	await expect(attempt).rejects.toMatchObject({
+		code: "INPUT_VALIDATION_FAILED",
+		data: { issues: [{ path: ["record.headSha"] }] },
+	});
+});
+
 test("stores a file in the shared blob store", async () => {
 	const evidenceId = ulid();
 	const prepared = await prepareWrite(ctx(), {

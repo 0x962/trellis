@@ -2714,7 +2714,7 @@
       "checkConstraints": {
         "pr_evidence_kind_check": {
           "name": "pr_evidence_kind_check",
-          "value": "\"pr_evidence\".\"kind\" IN ('before', 'after', 'clip', 'console', 'verify', 'test', 'contract', 'migration', 'picture', 'equivalence')"
+          "value": "\"pr_evidence\".\"kind\" IN ('before', 'after', 'capture', 'clip', 'console', 'verify', 'test', 'contract', 'migration', 'picture', 'equivalence')"
         },
         "pr_evidence_record_check": {
           "name": "pr_evidence_record_check",

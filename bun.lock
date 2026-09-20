@@ -175,6 +175,7 @@
         "@orpc/client": "1.15.0",
         "@trellis/api": "workspace:*",
         "citty": "0.2.2",
+        "ulid": "3.0.2",
       },
     },
     "packages/runtime-protocol": {

@@ -5,6 +5,7 @@ import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 export const EvidenceKindSchema = z.enum([
 	"before",
 	"after",
+	"capture",
 	"clip",
 	"console",
 	"verify",
@@ -56,6 +57,13 @@ const captureRecord = {
 	browser: z.string().min(1),
 };
 
+const captureRunRecord = {
+	headSha: z.string().min(1).max(64),
+	baseSha: z.string().min(1).max(64),
+	...captureRecord,
+	capturedAt: IsoDateTimeSchema,
+};
+
 export const EvidenceWriteInputSchema = z.discriminatedUnion("kind", [
 	z.strictObject({
 		...writeBase,
@@ -68,6 +76,11 @@ export const EvidenceWriteInputSchema = z.discriminatedUnion("kind", [
 		kind: z.literal("after"),
 		record: z.strictObject(captureRecord),
 		file: z.file(),
+	}),
+	z.strictObject({
+		...writeBase,
+		kind: z.literal("capture"),
+		record: z.strictObject(captureRunRecord),
 	}),
 	z.strictObject({
 		...writeBase,

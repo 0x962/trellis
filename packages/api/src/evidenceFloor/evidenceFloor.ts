@@ -1,7 +1,7 @@
 import type { PrKind, PrPathFacts } from "../prPaths/index.ts";
 import type { EvidenceKind } from "../schemas/evidence.ts";
 
-export type EvidenceFloorItem = "summary" | "capture" | Exclude<EvidenceKind, "clip">;
+export type EvidenceFloorItem = "summary" | Exclude<EvidenceKind, "clip">;
 
 export type EvidenceFloorGap = {
 	item: EvidenceFloorItem;
@@ -27,7 +27,7 @@ const fillCommands: Record<EvidenceFloorItem, string> = {
 	before:
 		'trellis evidence add <pr> --kind before --file <path> --route <route> --viewport 1440x900 --theme dark --seed "<command>" --browser <browser> --base <base>',
 	capture:
-		'trellis evidence add <pr> --kind before --file <path> --route <route> --viewport 1440x900 --theme dark --seed "<command>" --browser <browser> --base <base>',
+		'trellis evidence add <pr> --kind capture --base <base> --route <route> --viewport 1440x900 --theme dark --seed "<command>" --browser <browser> --time <time>',
 	console: "trellis evidence add <pr> --kind console --file <path>",
 	verify: 'trellis evidence add <pr> --kind verify --cmd "<command>" --exit <code> --sha <head> --tail -',
 	test: "trellis evidence add <pr> --kind test --name <test> --fails-on <base> --passes-on <head>",
@@ -63,11 +63,7 @@ export const evidenceFloor = ({
 		...(risk.deletedTest === "yes" ? (["equivalence"] as const) : []),
 	] satisfies EvidenceFloorItem[];
 	const recordKinds = new Set(rows.map((row) => row.kind));
-	const present = required.filter((item) => {
-		if (item === "summary") return hasSummary;
-		if (item === "capture") return recordKinds.has("before");
-		return recordKinds.has(item);
-	});
+	const present = required.filter((item) => (item === "summary" ? hasSummary : recordKinds.has(item)));
 	const presentItems = new Set(present);
 	return {
 		kind,

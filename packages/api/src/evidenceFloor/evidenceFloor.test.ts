@@ -11,7 +11,7 @@ const clearRisk: PrPathFacts["risk"] = {
 };
 
 describe("evidenceFloor", () => {
-	test("returns the frontend floor and counts the before capture record", () => {
+	test("requires a capture record apart from the before image", () => {
 		const floor = evidenceFloor({
 			kind: "frontend",
 			risk: clearRisk,
@@ -20,8 +20,22 @@ describe("evidenceFloor", () => {
 		});
 
 		expect(floor.required).toEqual(["summary", "after", "before", "capture", "console"]);
-		expect(floor.present).toEqual(floor.required);
-		expect(floor.missing).toEqual([]);
+		expect(floor.present).toEqual(["summary", "after", "before", "console"]);
+		expect(floor.missing).toEqual([
+			{
+				item: "capture",
+				fillCommand:
+					'trellis evidence add <pr> --kind capture --base <base> --route <route> --viewport 1440x900 --theme dark --seed "<command>" --browser <browser> --time <time>',
+			},
+		]);
+
+		const complete = evidenceFloor({
+			kind: "frontend",
+			risk: clearRisk,
+			hasSummary: true,
+			rows: [{ kind: "after" }, { kind: "before" }, { kind: "capture" }, { kind: "console" }],
+		});
+		expect(complete.present).toEqual(complete.required);
 	});
 
 	test("returns the backend floor and accepts a test none record", () => {
