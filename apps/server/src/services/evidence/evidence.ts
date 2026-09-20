@@ -1,12 +1,18 @@
 import { isDeepStrictEqual } from "node:util";
-import { type Evidence, EvidenceIdInputSchema, EvidenceListInputSchema, EvidenceWriteInputSchema } from "@trellis/api";
+import {
+	type Evidence,
+	EvidenceIdInputSchema,
+	EvidenceStoredFileSchema,
+	EvidenceWriteInputSchema,
+	PullRequestIdInputSchema,
+} from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { actorDisplayName } from "../../db/queries/actorDisplayName.ts";
-import { iso, rows, textArray } from "../../db/queries/support.ts";
+import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
-import { invalidInput } from "../../errors.ts";
-import { storedMime, storeFile } from "../attachments.ts";
+import { storedMime, storeFile } from "../../storage/blobs.ts";
 import { findPullRequestRow } from "../findPullRequestRow.ts";
+import { announcePullRequestUpdate, setHeadSha } from "../pullRequests.ts";
 import { fail, notFound, type PrepareCtx, type ServiceCtx, touchActor } from "../support.ts";
 
 type EvidenceRow = {
@@ -29,22 +35,32 @@ const columns = sql`
 	${iso(sql`e.created_at`)} AS created_at
 `;
 
-export const fileUrl = (id: string) => `/api/pr-evidence/${id}/file`;
+export const evidenceFileUrl = (id: string) => `/api/evidence/${id}/file`;
 
-const toEvidence = (row: EvidenceRow): Evidence => ({
-	id: row.id,
-	pullRequestId: row.pull_request_id,
-	headSha: row.head_sha,
-	kind: row.kind,
-	record: row.record,
-	blob: row.blob_sha256 === null ? null : { sha256: row.blob_sha256, url: fileUrl(row.id) },
-	actor: {
-		name: row.actor_name,
-		kind: row.actor_kind,
-		...(row.actor_display_name === null ? {} : { displayName: row.actor_display_name }),
-	},
-	createdAt: row.created_at,
-});
+const toEvidence = (row: EvidenceRow): Evidence => {
+	const blob =
+		row.blob_sha256 === null
+			? null
+			: {
+					sha256: row.blob_sha256,
+					url: evidenceFileUrl(row.id),
+					...EvidenceStoredFileSchema.parse(row.record.file),
+				};
+	return {
+		id: row.id,
+		pullRequestId: row.pull_request_id,
+		headSha: row.head_sha,
+		kind: row.kind,
+		record: row.record,
+		blob,
+		actor: {
+			name: row.actor_name,
+			kind: row.actor_kind,
+			...(row.actor_display_name === null ? {} : { displayName: row.actor_display_name }),
+		},
+		createdAt: row.created_at,
+	};
+};
 
 const find = async (tx: Tx, id: string): Promise<EvidenceRow | undefined> => {
 	const [row] = await rows<EvidenceRow>(tx, sql`SELECT ${columns} FROM pr_evidence e WHERE e.id = ${id}`);
@@ -59,7 +75,7 @@ export const read = async (_ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise
 };
 
 export const list = async (_ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<Evidence[]> => {
-	const input = EvidenceListInputSchema.parse(rawInput);
+	const input = PullRequestIdInputSchema.parse(rawInput);
 	await findPullRequestRow(tx, input.id);
 	return (
 		await rows<EvidenceRow>(
@@ -85,8 +101,7 @@ export const prepareWrite = async (ctx: PrepareCtx, rawInput: unknown): Promise<
 	const result = await ctx.gh("interactive", ["pr", "view", pullRequest.url, "--json", "headRefOid"]);
 	if (!result.ok) throw fail("GH_UNAVAILABLE", { reason: result.reason });
 	const { headRefOid } = JSON.parse(result.stdout) as { headRefOid: string };
-	if (headRefOid !== input.headSha)
-		throw invalidInput("headSha", "headSha does not match the current pull request head.");
+	if (headRefOid !== input.headSha) throw fail("PR_HEAD_MOVED", { currentHeadSha: headRefOid });
 	const writeInput = {
 		id: input.id,
 		evidenceId: input.evidenceId,
@@ -102,7 +117,7 @@ export const prepareWrite = async (ctx: PrepareCtx, rawInput: unknown): Promise<
 		...writeInput,
 		record: {
 			...input.record,
-			blob: {
+			file: {
 				filename: file.name,
 				mime: storedMime(file.type),
 				size: stored.size,
@@ -124,36 +139,19 @@ const sameWrite = (row: EvidenceRow, ctx: ServiceCtx, input: PreparedWrite) =>
 export const write = async (ctx: ServiceCtx, tx: Tx, input: PreparedWrite): Promise<Evidence> => {
 	const existing = await find(tx, input.evidenceId);
 	if (existing !== undefined) {
-		if (!sameWrite(existing, ctx, input)) throw invalidInput("evidenceId", "This id identifies another record.");
+		if (!sameWrite(existing, ctx, input)) throw fail("DUPLICATE", { field: "evidenceId" });
 		return toEvidence(existing);
 	}
 	const pullRequest = await findPullRequestRow(tx, input.id);
 	const at = ctx.now();
 	await touchActor(tx, ctx.actor, at);
-	await tx.execute(sql`UPDATE pull_requests SET head_sha = ${input.headSha} WHERE id = ${pullRequest.id}`);
+	await setHeadSha(tx, { id: pullRequest.id, headSha: input.headSha });
 	await tx.execute(sql`INSERT INTO pr_evidence (
 		id, pull_request_id, head_sha, kind, record, blob_sha256, actor_name, actor_kind, created_at
 	) VALUES (
 		${input.evidenceId}, ${pullRequest.id}, ${input.headSha}, ${input.kind},
 		${JSON.stringify(input.record)}::jsonb, ${input.blobSha256}, ${ctx.actor.name}, ${ctx.actor.kind}, ${at}
 	)`);
-	const links = await rows<{ ticket_id: string; project_id: string }>(
-		tx,
-		sql`SELECT link.ticket_id, ticket.project_id
-			FROM ticket_pull_requests link JOIN tickets ticket ON ticket.id = link.ticket_id
-			WHERE link.pull_request_id = ${pullRequest.id}`,
-	);
-	if (links.length > 0)
-		await tx.execute(
-			sql`UPDATE tickets SET version = version + 1 WHERE id = ANY(${textArray(links.map((link) => link.ticket_id))})`,
-		);
-	ctx.emit({
-		type: "pr.updated",
-		id: pullRequest.id,
-		ticketIds: links.map((link) => link.ticket_id),
-		projectIds: [...new Set(links.map((link) => link.project_id))],
-		state: pullRequest.state,
-		ciState: pullRequest.ci_state,
-	});
+	await announcePullRequestUpdate(ctx, tx, pullRequest);
 	return toEvidence((await find(tx, input.evidenceId))!);
 };

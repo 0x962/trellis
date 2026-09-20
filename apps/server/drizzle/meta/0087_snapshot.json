@@ -1,5 +1,5 @@
 {
-  "id": "4f1b5ec1-7bf7-447a-b9ed-01fbaaf8c1c8",
+  "id": "41a94426-ed6d-4551-94cd-45d246b63daf",
   "prevId": "dd1af329-874e-4acd-895e-f74c0642dba4",
   "version": "7",
   "dialect": "postgresql",
@@ -2569,6 +2569,168 @@
       },
       "isRLSEnabled": false
     },
+    "public.pr_evidence": {
+      "name": "pr_evidence",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "pull_request_id": {
+          "name": "pull_request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "head_sha": {
+          "name": "head_sha",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "record": {
+          "name": "record",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "blob_sha256": {
+          "name": "blob_sha256",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "actor_name": {
+          "name": "actor_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_kind": {
+          "name": "actor_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "pr_evidence_pr_head_kind_created_idx": {
+          "name": "pr_evidence_pr_head_kind_created_idx",
+          "columns": [
+            {
+              "expression": "pull_request_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "head_sha",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "kind",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "pr_evidence_blob_sha256_idx": {
+          "name": "pr_evidence_blob_sha256_idx",
+          "columns": [
+            {
+              "expression": "blob_sha256",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "pr_evidence_pull_request_id_pull_requests_id_fk": {
+          "name": "pr_evidence_pull_request_id_pull_requests_id_fk",
+          "tableFrom": "pr_evidence",
+          "tableTo": "pull_requests",
+          "columnsFrom": [
+            "pull_request_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "pr_evidence_actor_fk": {
+          "name": "pr_evidence_actor_fk",
+          "tableFrom": "pr_evidence",
+          "tableTo": "actors",
+          "columnsFrom": [
+            "actor_name",
+            "actor_kind"
+          ],
+          "columnsTo": [
+            "name",
+            "kind"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "pr_evidence_kind_check": {
+          "name": "pr_evidence_kind_check",
+          "value": "\"pr_evidence\".\"kind\" IN ('before', 'after', 'clip', 'console', 'verify', 'test', 'contract', 'migration', 'picture', 'equivalence')"
+        },
+        "pr_evidence_record_check": {
+          "name": "pr_evidence_record_check",
+          "value": "jsonb_typeof(\"pr_evidence\".\"record\") = 'object'"
+        },
+        "pr_evidence_head_sha_check": {
+          "name": "pr_evidence_head_sha_check",
+          "value": "length(\"pr_evidence\".\"head_sha\") BETWEEN 1 AND 64"
+        },
+        "pr_evidence_blob_sha256_check": {
+          "name": "pr_evidence_blob_sha256_check",
+          "value": "\"pr_evidence\".\"blob_sha256\" IS NULL OR \"pr_evidence\".\"blob_sha256\" ~ '^[0-9a-f]{64}$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.projects": {
       "name": "projects",
       "schema": "",
@@ -2974,168 +3136,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.pr_evidence": {
-      "name": "pr_evidence",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "pull_request_id": {
-          "name": "pull_request_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "head_sha": {
-          "name": "head_sha",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "record": {
-          "name": "record",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "blob_sha256": {
-          "name": "blob_sha256",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "actor_name": {
-          "name": "actor_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "actor_kind": {
-          "name": "actor_kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "pr_evidence_pr_head_kind_created_idx": {
-          "name": "pr_evidence_pr_head_kind_created_idx",
-          "columns": [
-            {
-              "expression": "pull_request_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "head_sha",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "kind",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "pr_evidence_blob_sha256_idx": {
-          "name": "pr_evidence_blob_sha256_idx",
-          "columns": [
-            {
-              "expression": "blob_sha256",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "pr_evidence_pull_request_id_pull_requests_id_fk": {
-          "name": "pr_evidence_pull_request_id_pull_requests_id_fk",
-          "tableFrom": "pr_evidence",
-          "tableTo": "pull_requests",
-          "columnsFrom": [
-            "pull_request_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "pr_evidence_actor_fk": {
-          "name": "pr_evidence_actor_fk",
-          "tableFrom": "pr_evidence",
-          "tableTo": "actors",
-          "columnsFrom": [
-            "actor_name",
-            "actor_kind"
-          ],
-          "columnsTo": [
-            "name",
-            "kind"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "pr_evidence_kind_check": {
-          "name": "pr_evidence_kind_check",
-          "value": "\"pr_evidence\".\"kind\" IN ('before', 'after', 'clip', 'console', 'verify', 'test', 'contract', 'migration', 'picture', 'equivalence')"
-        },
-        "pr_evidence_record_check": {
-          "name": "pr_evidence_record_check",
-          "value": "jsonb_typeof(\"pr_evidence\".\"record\") = 'object'"
-        },
-        "pr_evidence_head_sha_check": {
-          "name": "pr_evidence_head_sha_check",
-          "value": "length(\"pr_evidence\".\"head_sha\") BETWEEN 1 AND 64"
-        },
-        "pr_evidence_blob_sha256_check": {
-          "name": "pr_evidence_blob_sha256_check",
-          "value": "\"pr_evidence\".\"blob_sha256\" IS NULL OR \"pr_evidence\".\"blob_sha256\" ~ '^[0-9a-f]{64}$'"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.pr_summaries": {
       "name": "pr_summaries",
       "schema": "",
@@ -3302,8 +3302,7 @@
           "name": "head_sha",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "default": "''"
+          "notNull": false
         },
         "head_ref": {
           "name": "head_ref",

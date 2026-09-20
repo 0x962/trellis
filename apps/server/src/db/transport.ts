@@ -12,7 +12,7 @@ import { type Jobs, type JobsLog, scaledClock, startJobs as startBackgroundJobs 
 import { type DbTiming, LONG_TRANSACTION_MS } from "../serverTiming.ts";
 import { restoreHarnesses } from "../services/agentRuns/restoreHarnesses.ts";
 import { assertCurrentAttempt } from "../services/assignments/attempts.ts";
-import { gcAttachmentBlobs } from "../services/attachments.ts";
+import { gcBlobs } from "../services/blobs.ts";
 import { type ServiceEntry, type ServiceName, services } from "../services/registry.ts";
 import type { IoCtx } from "../services/support.ts";
 import type { SweepResult } from "../services/sweep/prepareSweep.ts";
@@ -20,6 +20,7 @@ import { createCache } from "./cache.ts";
 import type { Db } from "./client.ts";
 import { createMaintenance } from "./maintenance.ts";
 import { pullStream } from "./pullStream.ts";
+import { allEvidenceBlobShas } from "./queries/prEvidence.ts";
 import { type Emit, type Tx, withTx } from "./tx.ts";
 import { warmWrites } from "./warmWrites.ts";
 
@@ -106,7 +107,7 @@ export const createInlineTransport = ({
 		cache,
 		actorCache,
 		dropBlobs: (shas: string[]) => {
-			tasks.push(() => gcAttachmentBlobs({ home: config.home, newTx }, shas).then(() => undefined));
+			tasks.push(() => gcBlobs({ home: config.home, newTx }, shas).then(() => undefined));
 		},
 		publicUrl: config.publicUrl,
 	});
@@ -227,10 +228,8 @@ export const createInlineTransport = ({
 		await db.transaction((tx) => restoreHarnesses({ home: config.home }, tx));
 		await db.transaction((tx) => cache.rebuild(tx));
 		await warmWrites(db, cache);
-		const found = await db.execute(sql`
-			SELECT sha256 FROM attachments
-			UNION SELECT blob_sha256 AS sha256 FROM pr_evidence WHERE blob_sha256 IS NOT NULL
-		`);
+		const found = await db.execute(sql`SELECT sha256 FROM attachments`);
+		const evidence = await db.transaction(allEvidenceBlobShas);
 		if (options !== undefined) {
 			const clock = scaledClock(options.clockRate);
 			sessionMonitor = startSessionMonitor({
@@ -269,7 +268,10 @@ export const createInlineTransport = ({
 			});
 			jobs = startBackgroundJobs({ db, gh: runtime.gh, bus, log: options.log, clock });
 		}
-		return { applied, liveShas: found.rows.map((row) => row.sha256 as string) };
+		return {
+			applied,
+			liveShas: [...new Set([...found.rows.map((row) => row.sha256 as string), ...evidence])],
+		};
 	};
 
 	const close = async () => {

@@ -1,7 +1,7 @@
 import type { PrKind, PrPathFacts } from "../prPaths/index.ts";
 import type { EvidenceKind } from "../schemas/evidence.ts";
 
-export type EvidenceFloorItem = "summary" | "capture" | EvidenceKind;
+export type EvidenceFloorItem = "summary" | "capture" | Exclude<EvidenceKind, "clip">;
 
 export type EvidenceFloorGap = {
 	item: EvidenceFloorItem;
@@ -10,7 +10,6 @@ export type EvidenceFloorGap = {
 
 export type EvidenceFloor = {
 	kind: PrKind;
-	assumedBackend: boolean;
 	required: EvidenceFloorItem[];
 	present: EvidenceFloorItem[];
 	missing: EvidenceFloorGap[];
@@ -29,7 +28,6 @@ const fillCommands: Record<EvidenceFloorItem, string> = {
 		'trellis evidence add <pr> --kind before --file <path> --route <route> --viewport 1440x900 --theme dark --seed "<command>" --browser <browser> --base <base>',
 	capture:
 		'trellis evidence add <pr> --kind before --file <path> --route <route> --viewport 1440x900 --theme dark --seed "<command>" --browser <browser> --base <base>',
-	clip: "trellis evidence add <pr> --kind clip --file <path> --route <route> --caption <text>",
 	console: "trellis evidence add <pr> --kind console --file <path>",
 	verify: 'trellis evidence add <pr> --kind verify --cmd "<command>" --exit <code> --sha <head> --tail -',
 	test: "trellis evidence add <pr> --kind test --name <test> --fails-on <base> --passes-on <head>",
@@ -39,42 +37,32 @@ const fillCommands: Record<EvidenceFloorItem, string> = {
 	equivalence: 'trellis evidence add <pr> --kind equivalence --cmd "<command>" --exit <code> --sha <head> --tail -',
 };
 
-const clearRisk: PrRisk = {
-	auth: "no",
-	migration: "no",
-	dependency: "no",
-	sharedType: "no",
-	deletedTest: "no",
-};
-
 const unique = <T>(items: T[]): T[] => [...new Set(items)];
 
 export const evidenceFloor = ({
 	kind,
 	risk,
-	records,
+	rows,
 	hasSummary,
 }: {
-	kind: PrKind | null;
-	risk: PrRisk | null;
-	records: ReadonlyArray<Pick<{ kind: EvidenceKind }, "kind">>;
+	kind: PrKind;
+	risk: PrRisk;
+	rows: ReadonlyArray<Pick<{ kind: EvidenceKind }, "kind">>;
 	hasSummary: boolean;
 }): EvidenceFloor => {
-	const effectiveKind = kind ?? "backend";
-	const effectiveRisk = risk ?? clearRisk;
 	const required = [
-		...(effectiveKind === "frontend"
+		...(kind === "frontend"
 			? frontendFloor
-			: effectiveKind === "backend"
+			: kind === "backend"
 				? backendFloor
 				: unique([...frontendFloor, ...backendFloor])),
-		...(effectiveRisk.migration === "yes" ? (["migration"] as const) : []),
-		...(Object.entries(effectiveRisk).some(([name, answer]) => name !== "deletedTest" && answer === "yes")
+		...(risk.migration === "yes" ? (["migration"] as const) : []),
+		...(Object.entries(risk).some(([name, answer]) => name !== "deletedTest" && answer === "yes")
 			? (["picture"] as const)
 			: []),
-		...(effectiveRisk.deletedTest === "yes" ? (["equivalence"] as const) : []),
+		...(risk.deletedTest === "yes" ? (["equivalence"] as const) : []),
 	] satisfies EvidenceFloorItem[];
-	const recordKinds = new Set(records.map((record) => record.kind));
+	const recordKinds = new Set(rows.map((row) => row.kind));
 	const present = required.filter((item) => {
 		if (item === "summary") return hasSummary;
 		if (item === "capture") return recordKinds.has("before");
@@ -82,8 +70,7 @@ export const evidenceFloor = ({
 	});
 	const presentItems = new Set(present);
 	return {
-		kind: effectiveKind,
-		assumedBackend: kind === null,
+		kind,
 		required,
 		present,
 		missing: required

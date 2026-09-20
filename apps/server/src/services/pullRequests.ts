@@ -2,6 +2,7 @@ import type { LinkedPullRequest, PullRequest, PullRequestDiffOutput } from "@tre
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { actorDisplayName } from "../db/queries/actorDisplayName.ts";
+import { blobShasOfPullRequest } from "../db/queries/prEvidence.ts";
 import {
 	type LinkedPullRequestRow,
 	type PullRequestRow,
@@ -9,7 +10,7 @@ import {
 	toLinkedPullRequest,
 	toPullRequest,
 } from "../db/queries/pullRequestRows.ts";
-import { iso, rows } from "../db/queries/support.ts";
+import { iso, rows, textArray } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import {
 	fetchPullRequests,
@@ -19,7 +20,7 @@ import {
 } from "../gh/graphql.ts";
 import { parsePullRequestUrl } from "../gh/parse.ts";
 import { PR_COLUMNS, PR_UPDATE_SET, prValues } from "../gh/pollerWrite.ts";
-import { gcAttachmentBlobs } from "./attachments.ts";
+import { gcBlobs } from "./blobs.ts";
 import { findPullRequestRow } from "./findPullRequestRow.ts";
 import type { PreparedDiff } from "./pullRequestDiff.ts";
 import { linkScope } from "./pullRequestScope.ts";
@@ -48,6 +49,18 @@ import {
 
 export { prepareDiff } from "./pullRequestDiff.ts";
 export { parsePullRequestUrl };
+
+// The caller verifies `headSha` with GitHub before this transaction starts.
+// This update stores that verified SHA before the caller writes head-specific data.
+export const setHeadSha = (tx: Tx, input: { id: string; headSha: string }) =>
+	tx.execute(sql`UPDATE pull_requests SET head_sha = ${input.headSha} WHERE id = ${input.id}`);
+
+export const announcePullRequestUpdate = async (ctx: ServiceCtx, tx: Tx, row: PullRequestRow) => {
+	const scope = await linkScope(tx, row.id);
+	if (scope.ticketIds.length > 0)
+		await tx.execute(sql`UPDATE tickets SET version = version + 1 WHERE id = ANY(${textArray(scope.ticketIds)})`);
+	ctx.emit({ type: "pr.updated", id: row.id, ...scope, state: row.state, ciState: row.ci_state });
+};
 
 // The fields gh returned, or the message it printed. A message is stored on
 // the row, so the web shows why the fields are stale.
@@ -153,20 +166,13 @@ export const unlink = async (ctx: ServiceCtx, tx: Tx, input: UnlinkInput) => {
 	if (dropped.rows.length === 0) throw notFound("pullRequest", input.id);
 	const scope = await linkScope(tx, row.id);
 	if (scope.ticketIds.length === 0) {
-		const blobs = await rows<{ sha256: string }>(
-			tx,
-			sql`SELECT DISTINCT blob_sha256 AS sha256 FROM pr_evidence
-				WHERE pull_request_id = ${row.id} AND blob_sha256 IS NOT NULL`,
-		);
+		const blobs = await blobShasOfPullRequest(tx, row.id);
 		const removed = await tx.execute(
 			sql`DELETE FROM pull_requests WHERE id = ${row.id} AND NOT review_retained RETURNING id`,
 		);
 		if (removed.rows.length > 0 && blobs.length > 0)
 			ctx.afterCommit(async () => {
-				await gcAttachmentBlobs(
-					ctx,
-					blobs.map((blob) => blob.sha256),
-				);
+				await gcBlobs(ctx, blobs);
 			});
 	}
 	const at = ctx.now();

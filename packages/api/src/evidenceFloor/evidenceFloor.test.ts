@@ -16,7 +16,7 @@ describe("evidenceFloor", () => {
 			kind: "frontend",
 			risk: clearRisk,
 			hasSummary: true,
-			records: [{ kind: "after" }, { kind: "before" }, { kind: "console" }],
+			rows: [{ kind: "after" }, { kind: "before" }, { kind: "console" }],
 		});
 
 		expect(floor.required).toEqual(["summary", "after", "before", "capture", "console"]);
@@ -29,7 +29,7 @@ describe("evidenceFloor", () => {
 			kind: "backend",
 			risk: clearRisk,
 			hasSummary: true,
-			records: [{ kind: "verify" }, { kind: "test" }, { kind: "contract" }],
+			rows: [{ kind: "verify" }, { kind: "test" }, { kind: "contract" }],
 		});
 
 		expect(floor.required).toEqual(["summary", "verify", "test", "contract"]);
@@ -38,18 +38,10 @@ describe("evidenceFloor", () => {
 	});
 
 	test("returns both floors for a mixed pull request", () => {
-		const floor = evidenceFloor({ kind: "mixed", risk: clearRisk, hasSummary: false, records: [] });
+		const floor = evidenceFloor({ kind: "mixed", risk: clearRisk, hasSummary: false, rows: [] });
 
 		expect(floor.required).toEqual(["summary", "after", "before", "capture", "console", "verify", "test", "contract"]);
 		expect(floor.missing.map((gap) => gap.item)).toEqual(floor.required);
-	});
-
-	test("treats an unknown kind as backend", () => {
-		const floor = evidenceFloor({ kind: null, risk: null, hasSummary: false, records: [] });
-
-		expect(floor.kind).toBe("backend");
-		expect(floor.assumedBackend).toBe(true);
-		expect(floor.required).toEqual(["summary", "verify", "test", "contract"]);
 	});
 
 	test("adds a migration plan and one picture for a schema change", () => {
@@ -57,7 +49,7 @@ describe("evidenceFloor", () => {
 			kind: "backend",
 			risk: { ...clearRisk, migration: "yes", sharedType: "yes" },
 			hasSummary: false,
-			records: [],
+			rows: [],
 		});
 
 		expect(floor.required).toEqual(["summary", "verify", "test", "contract", "migration", "picture"]);
@@ -68,7 +60,7 @@ describe("evidenceFloor", () => {
 			{ ...clearRisk, auth: "yes" as const },
 			{ ...clearRisk, dependency: "yes" as const },
 		]) {
-			const floor = evidenceFloor({ kind: "backend", risk, hasSummary: false, records: [] });
+			const floor = evidenceFloor({ kind: "backend", risk, hasSummary: false, rows: [] });
 			expect(floor.required.at(-1)).toBe("picture");
 		}
 	});
@@ -78,14 +70,14 @@ describe("evidenceFloor", () => {
 			kind: "backend",
 			risk: { ...clearRisk, deletedTest: "yes" },
 			hasSummary: false,
-			records: [],
+			rows: [],
 		});
 
 		expect(floor.required.at(-1)).toBe("equivalence");
 	});
 
 	test("returns the exact fill command for each gap", () => {
-		const floor = evidenceFloor({ kind: "backend", risk: clearRisk, hasSummary: true, records: [] });
+		const floor = evidenceFloor({ kind: "backend", risk: clearRisk, hasSummary: true, rows: [] });
 
 		expect(floor.missing).toEqual([
 			{

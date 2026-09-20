@@ -5,7 +5,6 @@ const evidenceWords: Record<EvidenceFloorItem, string> = {
 	after: "after image",
 	before: "before image",
 	capture: "capture record",
-	clip: "clip",
 	console: "console list",
 	verify: "verify record",
 	test: "test proof",
@@ -20,7 +19,7 @@ const asChangedFile = (path: string): PrPath => ({ path, change: "change" });
 export const evidenceOwedText = (contract: TicketContract, repositoryName: string): string => {
 	if (contract.files.length === 0) return "-";
 	const facts = prPaths(repositoryName, contract.files.map(asChangedFile));
-	const floor = evidenceFloor({ kind: facts.kind, risk: facts.risk, records: [], hasSummary: false });
+	const floor = evidenceFloor({ kind: facts.kind, risk: facts.risk, rows: [], hasSummary: false });
 	return `${floor.kind}: ${floor.required.map((item) => evidenceWords[item]).join(" · ")}`;
 };
 

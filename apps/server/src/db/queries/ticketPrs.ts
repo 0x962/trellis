@@ -35,28 +35,23 @@ export type TicketPrRow = Omit<TicketPr, "kind" | "risk" | "evidence"> & {
 	paths: string[] | null;
 	evidenceKinds: EvidenceKind[];
 	hasSummary: boolean;
+	hasHead: boolean;
 };
 
 export const toTicketPrRows = (rows: TicketPrRow[] | null): TicketPr[] =>
-	(rows ?? []).map(({ paths, evidenceKinds, hasSummary, ...row }) => {
-		if (paths === null || paths.length === 0 || row.changedFiles !== paths.length) {
-			const floor = evidenceFloor({
-				kind: null,
-				risk: null,
-				records: evidenceKinds.map((kind) => ({ kind })),
-				hasSummary,
-			});
-			return { ...row, kind: null, risk: null, evidence: floor.present.length };
-		}
+	(rows ?? []).map(({ paths, evidenceKinds, hasSummary, hasHead, ...row }) => {
+		if (paths === null || paths.length === 0 || row.changedFiles !== paths.length)
+			return { ...row, kind: null, risk: null, evidence: null };
 		// Changed-file rows store path and line counts. `prPaths` receives "change", so `risk.deletedTest` remains "no".
 		const facts = prPaths(
 			row.repo,
 			paths.map((path) => ({ path, change: "change" })),
 		);
+		if (!hasHead) return { ...row, kind: facts.kind, risk: facts.risk, evidence: null };
 		const floor = evidenceFloor({
 			kind: facts.kind,
 			risk: facts.risk,
-			records: evidenceKinds.map((kind) => ({ kind })),
+			rows: evidenceKinds.map((kind) => ({ kind })),
 			hasSummary,
 		});
 		return { ...row, kind: facts.kind, risk: facts.risk, evidence: floor.present.length };
@@ -108,6 +103,7 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 						SELECT 1 FROM pr_summaries summary
 						WHERE summary.pull_request_id = p.id AND summary.head_sha = p.head_sha
 					),
+					'hasHead', p.head_sha IS NOT NULL,
 					'pass', check_counts.pass, 'fail', check_counts.fail,
 					'pending', check_counts.pending, 'skipped', check_counts.skipped,
 					'failedChecks', check_counts.failed_checks,

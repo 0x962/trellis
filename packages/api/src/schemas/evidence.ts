@@ -19,8 +19,12 @@ export type EvidenceKind = z.infer<typeof EvidenceKindSchema>;
 export const EvidenceBlobSchema = z.object({
 	sha256: z.string().regex(/^[0-9a-f]{64}$/),
 	url: z.string().min(1),
+	filename: z.string().min(1),
+	mime: z.string().min(1),
+	size: z.number().int().nonnegative(),
 });
-export type EvidenceBlob = z.infer<typeof EvidenceBlobSchema>;
+
+export const EvidenceStoredFileSchema = EvidenceBlobSchema.pick({ filename: true, mime: true, size: true });
 
 export const EvidenceSchema = z.object({
 	id: UlidSchema,
@@ -33,10 +37,6 @@ export const EvidenceSchema = z.object({
 	createdAt: IsoDateTimeSchema,
 });
 export type Evidence = z.infer<typeof EvidenceSchema>;
-
-export const EvidenceListInputSchema = z.strictObject({
-	id: UlidSchema,
-});
 
 export const EvidenceIdInputSchema = z.strictObject({
 	evidenceId: UlidSchema,
@@ -115,4 +115,3 @@ export const EvidenceWriteInputSchema = z.discriminatedUnion("kind", [
 		record: z.strictObject({ command: z.string().min(1), exit: z.number().int(), tail: z.string() }),
 	}),
 ]);
-export type EvidenceWriteInput = z.input<typeof EvidenceWriteInputSchema>;

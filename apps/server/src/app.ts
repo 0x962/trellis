@@ -159,7 +159,7 @@ export const createApp = ({
 		bodyLimit({ maxSize: maxBytes, onError: (c) => c.json(errorBody("PAYLOAD_TOO_LARGE", { maxBytes }), 413) }),
 	);
 	app.use(
-		"/api/prs/:id/evidence",
+		"/api/prs/:id/evidence/:evidenceId",
 		bodyLimit({ maxSize: maxBytes, onError: (c) => c.json(errorBody("PAYLOAD_TOO_LARGE", { maxBytes }), 413) }),
 	);
 	// The RPC codec wraps every body in `json`. The limit answers before the
@@ -233,7 +233,7 @@ export const createApp = ({
 	});
 
 	app.get("/api/review-image", reviewImageRoute(transport));
-	app.get("/api/pr-evidence/:id/file", evidenceFileRoute({ config, transport }));
+	app.get("/api/evidence/:evidenceId/file", evidenceFileRoute({ config, transport }));
 	app.get("/api/events", events.handler);
 	app.get("/api/agent-runs/:id/terminal/stream", terminalStreamRoute(config, transport));
 	app.get("/api/agent-runs/:id/terminal/socket", terminalSocketRoute(config, transport));

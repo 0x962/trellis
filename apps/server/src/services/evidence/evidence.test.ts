@@ -13,7 +13,7 @@ import type { ServiceTransport } from "../../db/transport.ts";
 import type { Tx } from "../../db/tx.ts";
 import { evidenceFileRoute } from "../../routes/evidenceFile.ts";
 import { blobPath, tempDir } from "../../storage/blobs.ts";
-import { gcAttachmentBlobs } from "../attachments.ts";
+import { gcBlobs } from "../blobs.ts";
 import type { IoCtx, PrepareCtx } from "../support.ts";
 import { list, prepareWrite, read, write } from "./evidence.ts";
 
@@ -78,6 +78,18 @@ test("stores and reads one record for the current head SHA", async () => {
 	expect(await inTx((tx) => read(ctx(), tx, { evidenceId }))).toEqual(stored);
 	expect(await inTx((tx) => list(ctx(), tx, { id: pullRequestId }))).toEqual([stored]);
 	expect(await inTx((tx) => write(ctx(), tx, prepared))).toEqual(stored);
+	const conflict = await prepareWrite(ctx(), {
+		id: pullRequestId,
+		evidenceId,
+		headSha,
+		kind: "verify",
+		record: { command: "bun test", exit: 1, tail: "1 fail" },
+	});
+	await expect(inTx((tx) => write(ctx(), tx, conflict))).rejects.toMatchObject({
+		code: "DUPLICATE",
+		status: 409,
+		data: { field: "evidenceId" },
+	});
 	const current = await db.execute(sql`SELECT head_sha FROM pull_requests WHERE id = ${pullRequestId}`);
 	expect(current.rows).toEqual([{ head_sha: headSha }]);
 });
@@ -96,20 +108,31 @@ test("stores a file in the shared blob store", async () => {
 
 	expect(stored.record).toEqual({
 		why: "Show the write and read path.",
-		blob: { filename: "sequence.png", mime: "image/png", size: 7 },
+		file: { filename: "sequence.png", mime: "image/png", size: 7 },
 	});
-	expect(stored.blob?.url).toBe(`/api/pr-evidence/${evidenceId}/file`);
+	expect(stored.blob).toMatchObject({
+		url: `/api/evidence/${evidenceId}/file`,
+		filename: "sequence.png",
+		mime: "image/png",
+		size: 7,
+	});
 	expect(existsSync(blobPath(home, stored.blob!.sha256))).toBe(true);
-	expect(await gcAttachmentBlobs(ctx(), [stored.blob!.sha256])).toEqual({ removed: [] });
+	expect(await gcBlobs(ctx(), [stored.blob!.sha256])).toEqual({ removed: [] });
 
 	const app = new Hono();
 	const transport = { call: async () => stored } as unknown as ServiceTransport;
-	app.get("/:id", evidenceFileRoute({ config: { home } as Config, transport }));
+	app.get("/:evidenceId", evidenceFileRoute({ config: { home } as Config, transport }));
 	const response = await app.request(`/${evidenceId}`);
+	const etag = `"${stored.blob!.sha256}"`;
 	expect(response.headers.get("content-security-policy")).toBe("sandbox");
 	expect(response.headers.get("x-content-type-options")).toBe("nosniff");
 	expect(response.headers.get("cache-control")).toBe("private, max-age=300");
+	expect(response.headers.get("content-disposition")).toBe('inline; filename="sequence.png"');
+	expect(response.headers.get("etag")).toBe(etag);
 	expect(await response.text()).toBe("picture");
+	const unchanged = await app.request(`/${evidenceId}`, { headers: { "if-none-match": etag } });
+	expect(unchanged.status).toBe(304);
+	expect(unchanged.headers.get("content-security-policy")).toBe("sandbox");
 });
 
 test("refuses a record for an old head SHA", async () => {
@@ -122,8 +145,9 @@ test("refuses a record for an old head SHA", async () => {
 	});
 
 	await expect(attempt).rejects.toMatchObject({
-		code: "INPUT_VALIDATION_FAILED",
-		data: { issues: [{ path: ["headSha"] }] },
+		code: "PR_HEAD_MOVED",
+		status: 409,
+		data: { currentHeadSha: headSha },
 	});
 });
 

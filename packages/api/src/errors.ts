@@ -43,6 +43,11 @@ export const errors = {
 		message: "The pull request head no longer holds the lines this suggestion replaces.",
 		data: z.object({ threadId: z.string().min(1) }),
 	},
+	PR_HEAD_MOVED: {
+		status: 409,
+		message: "The pull request head changed. Read it again before you register evidence.",
+		data: z.object({ currentHeadSha: z.string().min(1) }),
+	},
 	INPUT_VALIDATION_FAILED: {
 		status: 400,
 		message: "The input does not match the schema.",

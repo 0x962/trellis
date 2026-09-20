@@ -16,7 +16,7 @@ export const prOf = (fields: Partial<TicketPr>): TicketPr => ({
 	sizeBand: null,
 	kind: null,
 	risk: null,
-	evidence: 0,
+	evidence: null,
 	pass: 0,
 	fail: 0,
 	pending: 0,

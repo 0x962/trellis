@@ -1,11 +1,6 @@
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
-import {
-	EvidenceIdInputSchema,
-	EvidenceListInputSchema,
-	EvidenceSchema,
-	EvidenceWriteInputSchema,
-} from "../schemas/evidence.ts";
+import { EvidenceIdInputSchema, EvidenceSchema, EvidenceWriteInputSchema } from "../schemas/evidence.ts";
 import {
 	LinkedPullRequestSchema,
 	PullRequestDiffOutputSchema,
@@ -62,18 +57,17 @@ export const pullRequests = {
 		.output(PullRequestSummaryWriteOutputSchema),
 	listEvidence: base
 		.route({ method: "GET", path: "/prs/{id}/evidence", summary: "List the evidence of a pull request" })
-		.input(EvidenceListInputSchema)
+		.input(PullRequestIdInputSchema)
 		.output(z.array(EvidenceSchema)),
 	readEvidence: base
-		.route({ method: "GET", path: "/pr-evidence/{evidenceId}", summary: "Read one evidence record" })
+		.route({ method: "GET", path: "/evidence/{evidenceId}", summary: "Read one evidence record" })
 		.input(EvidenceIdInputSchema)
 		.output(EvidenceSchema),
 	writeEvidence: base
-		.errors(pickErrors(["GH_UNAVAILABLE", "PAYLOAD_TOO_LARGE"]))
+		.errors(pickErrors(["DUPLICATE", "GH_UNAVAILABLE", "PAYLOAD_TOO_LARGE", "PR_HEAD_MOVED"]))
 		.route({
-			method: "POST",
-			path: "/prs/{id}/evidence",
-			successStatus: 201,
+			method: "PUT",
+			path: "/prs/{id}/evidence/{evidenceId}",
 			summary: "Register evidence for one pull request head",
 		})
 		.input(EvidenceWriteInputSchema)

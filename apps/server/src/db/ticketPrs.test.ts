@@ -184,7 +184,7 @@ test("a ticket summary carries one row for each pull request", async () => {
 	expect(summary.prRows.map((row) => row.kind)).toEqual(["mixed", "backend", "frontend", null, null]);
 	expect(summary.prRows.slice(3).map((row) => row.risk)).toEqual([null, null]);
 	expect(summary.prRows[0]).not.toHaveProperty("paths");
-	expect(summary.prRows.every((row) => row.evidence === 0)).toBe(true);
+	expect(summary.prRows.every((row) => row.evidence === null)).toBe(true);
 	expect(summary.prRows.every((row) => row.flowRuns.length === 5 && row.flowRunCount === 7)).toBe(true);
 
 	const emptySummary = await db.transaction((tx) => ticketSummary(tx, emptyTicket));
