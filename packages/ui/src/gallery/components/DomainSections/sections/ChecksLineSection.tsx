@@ -62,7 +62,6 @@ export function ChecksLineSection() {
 			<div className="w-full">
 				<CheckResults
 					title="1 failed · 6 pending · 47 passed · 44 skipped"
-					description=""
 					groups={groups}
 					isCollapsed={(key) => collapsed.includes(key)}
 					onToggle={(key) =>

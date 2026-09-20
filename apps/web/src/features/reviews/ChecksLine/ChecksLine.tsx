@@ -2,18 +2,30 @@ import type { Check, CheckBucket } from "@trellis/api";
 import { type CheckResultGroup, CheckResults, type CheckStatus } from "@trellis/ui/review";
 import { checkWords } from "./checkWords/checkWords";
 
+export type ChecksLineCheck = Check & { status?: CheckStatus };
+
 const groups: ReadonlyArray<{
-	bucket: CheckBucket;
 	status: CheckStatus;
 	label: string;
 	word: string;
 }> = [
-	{ bucket: "fail", status: "failed", label: "Failed", word: "Failed" },
-	{ bucket: "pending", status: "pending", label: "Pending", word: "Pending" },
-	{ bucket: "cancel", status: "canceled", label: "Canceled", word: "Canceled" },
-	{ bucket: "pass", status: "success", label: "Passed", word: "Passed" },
-	{ bucket: "skipping", status: "skipped", label: "Skipped", word: "Skipped" },
+	{ status: "failed", label: "Failed", word: "Failed" },
+	{ status: "running", label: "In progress", word: "In progress" },
+	{ status: "pending", label: "Pending", word: "Pending" },
+	{ status: "canceled", label: "Canceled", word: "Canceled" },
+	{ status: "unknown", label: "Unknown", word: "Unknown" },
+	{ status: "neutral", label: "Neutral", word: "Neutral" },
+	{ status: "success", label: "Passed", word: "Passed" },
+	{ status: "skipped", label: "Skipped", word: "Skipped" },
 ];
+
+const statusForBucket: Record<CheckBucket, CheckStatus> = {
+	fail: "failed",
+	pending: "pending",
+	cancel: "canceled",
+	pass: "success",
+	skipping: "skipped",
+};
 
 export function ChecksLine({
 	checks,
@@ -21,20 +33,20 @@ export function ChecksLine({
 	isCollapsed,
 	onToggle,
 }: {
-	checks: readonly Check[];
+	checks: readonly ChecksLineCheck[];
 	loading?: boolean;
 	isCollapsed: (key: CheckStatus) => boolean;
 	onToggle: (key: CheckStatus) => void;
 }) {
 	const resultGroups: CheckResultGroup[] = groups.flatMap((group) => {
-		const members = checks.filter((check) => check.bucket === group.bucket);
+		const members = checks.filter((check) => (check.status ?? statusForBucket[check.bucket]) === group.status);
 		if (members.length === 0) return [];
 		return [
 			{
 				key: group.status,
 				label: group.label,
 				checks: members.map((check, index) => ({
-					key: `${group.bucket}:${check.workflow ?? ""}:${check.name}:${index}`,
+					key: `${check.bucket}:${check.workflow ?? ""}:${check.name}:${index}`,
 					name: check.name,
 					status: group.status,
 					label: group.word,
@@ -48,7 +60,6 @@ export function ChecksLine({
 	return (
 		<CheckResults
 			title={checkWords(checks)}
-			description=""
 			groups={resultGroups}
 			loading={loading}
 			isCollapsed={isCollapsed}

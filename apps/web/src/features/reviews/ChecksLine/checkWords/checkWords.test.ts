@@ -15,4 +15,13 @@ describe("checkWords", () => {
 		expect(checkWords(checks("cancel"))).toBe("1 canceled");
 		expect(checkWords([])).toBe("");
 	});
+
+	test("keeps an unknown row out of the pending count", () => {
+		expect(
+			checkWords([
+				{ bucket: "pending", status: "unknown" },
+				{ bucket: "pending", status: "running" },
+			]),
+		).toBe("1 pending · 1 unknown");
+	});
 });

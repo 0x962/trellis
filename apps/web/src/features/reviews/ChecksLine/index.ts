@@ -1,1 +1,1 @@
-export { ChecksLine } from "./ChecksLine";
+export { ChecksLine, type ChecksLineCheck } from "./ChecksLine";
