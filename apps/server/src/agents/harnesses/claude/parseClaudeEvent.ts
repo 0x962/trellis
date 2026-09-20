@@ -9,6 +9,29 @@ const nativeEvent = z.looseObject({
 	prompt_id: z.string().optional(),
 });
 
+const askUserQuestionInput = z.object({
+	questions: z.array(
+		z.object({
+			question: z.string(),
+			options: z.array(z.object({ label: z.string(), description: z.string().optional() })),
+			multiSelect: z.boolean(),
+		}),
+	),
+});
+
+function parseQuestionFields(input: unknown) {
+	const parsed = askUserQuestionInput.safeParse(input);
+	if (!parsed.success || parsed.data.questions.length === 0) return {};
+	return {
+		questions: parsed.data.questions.map((question, index) => ({
+			id: String(index),
+			question: question.question,
+			options: question.options,
+			multiple: question.multiSelect,
+		})),
+	};
+}
+
 export function parseClaudeEvent(payload: unknown): HarnessEvent[] {
 	const event = nativeEvent.parse(payload);
 	if (typeof event.agent_id === "string") return [];
@@ -94,6 +117,7 @@ export function parseClaudeEvent(payload: unknown): HarnessEvent[] {
 										kind: "question" as const,
 										title: "The agent has a question in the terminal",
 										blocking: true,
+										...parseQuestionFields(event.tool_input),
 									},
 								},
 							]
