@@ -5,8 +5,8 @@ import { clientOf } from "../../client.ts";
 import { contextOf, readText, wantsJson } from "../../context.ts";
 import { notFound, usageError } from "../../errors.ts";
 import { json } from "../../output.ts";
+import { refusalText, steReport, warningText } from "../../steReport.ts";
 import { githubBody } from "./githubBody.ts";
-import { refusalText, summaryChecks, warningText } from "./refusalText.ts";
 
 type PullRequestRef = { id: string; url: string };
 
@@ -73,9 +73,13 @@ const write = defineCommand({
 			why: await readText(ctx, context.args.why),
 			watch: context.args.watch,
 		};
-		const checks = summaryChecks(input);
+		const checks = [
+			steReport(input.headline, { headline: true }, "headline"),
+			steReport(input.why, { headline: false }, "why"),
+			steReport(input.watch, { headline: false }, "watch"),
+		];
 		if (checks.some(({ result }) => result.refusals.length > 0)) {
-			ctx.err.write(refusalText(checks));
+			ctx.err.write(`${refusalText(checks)}${warningText(checks)}`);
 			return 4;
 		}
 		const client = clientOf(ctx);

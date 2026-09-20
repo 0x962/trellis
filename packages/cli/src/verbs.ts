@@ -75,6 +75,10 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 		description: "Set or show the contract of a ticket",
 		load: () => import("./commands/contract/contract.ts").then((m) => command(m.default)),
 	},
+	outcome: {
+		description: "Set or show the outcome of a ticket",
+		load: () => import("./commands/outcome/outcome.ts").then((m) => command(m.default)),
+	},
 	summary: {
 		description: "Write, show, or print a pull request summary",
 		load: () => import("./commands/summary/summary.ts").then((m) => command(m.default)),
