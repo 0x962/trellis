@@ -1,2 +1,0 @@
-ALTER TABLE "pull_requests" ADD COLUMN "files" jsonb DEFAULT '[]'::jsonb NOT NULL;--> statement-breakpoint
-ALTER TABLE "pull_requests" ADD CONSTRAINT "pull_requests_files_check" CHECK (jsonb_typeof("pull_requests"."files") = 'array');

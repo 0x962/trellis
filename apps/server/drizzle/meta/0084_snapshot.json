@@ -1,5 +1,5 @@
 {
-  "id": "358fbdbd-3131-4fb8-be5b-5e1387baa2cb",
+  "id": "202df998-e7b1-426d-a7bf-a4a726da458d",
   "prevId": "e6ab85cf-2baf-4e2a-9f8f-1c3a48e63784",
   "version": "7",
   "dialect": "postgresql",
@@ -2966,8 +2966,7 @@
           "name": "files",
           "type": "jsonb",
           "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
+          "notNull": false
         },
         "url": {
           "name": "url",
@@ -3148,7 +3147,7 @@
         },
         "pull_requests_files_check": {
           "name": "pull_requests_files_check",
-          "value": "jsonb_typeof(\"pull_requests\".\"files\") = 'array'"
+          "value": "\"pull_requests\".\"files\" IS NULL OR jsonb_typeof(\"pull_requests\".\"files\") = 'array'"
         }
       },
       "isRLSEnabled": false

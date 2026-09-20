@@ -4,6 +4,8 @@ import { ActorRefSchema } from "./actor.ts";
 import { CheckBucketSchema, CiStateSchema, PrLinkSourceSchema, PrStateSchema, ReviewStateSchema } from "./enums.ts";
 import { CountSchema, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
+export const MAX_CHANGED_FILES = 100;
+
 export const ChangedFileSchema = z.object({
 	path: z.string().min(1),
 	additions: CountSchema,
@@ -32,7 +34,7 @@ export const PullRequestSchema = z.object({
 	additions: CountSchema.nullable(),
 	deletions: CountSchema.nullable(),
 	changedFiles: CountSchema.nullable(),
-	files: z.array(ChangedFileSchema).max(100),
+	files: z.array(ChangedFileSchema).max(MAX_CHANGED_FILES).nullable(),
 	url: z.string().min(1),
 	title: z.string(),
 	state: PrStateSchema,

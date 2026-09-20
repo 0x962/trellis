@@ -18,7 +18,7 @@ export type PullRequestRow = {
 	additions: number | null;
 	deletions: number | null;
 	changed_files: number | null;
-	files: ChangedFile[];
+	files: ChangedFile[] | null;
 	url: string;
 	title: string;
 	state: PrState;

@@ -1,4 +1,11 @@
-import type { ChangedFile, Check, CiState, PrState, ReviewState } from "@trellis/api";
+import {
+	type ChangedFile,
+	type Check,
+	type CiState,
+	MAX_CHANGED_FILES,
+	type PrState,
+	type ReviewState,
+} from "@trellis/api";
 import { deriveCiState, normalizeChecks, normalizeFiles, type RawContext, type RawFile } from "./parse.ts";
 import type { GhFailure, GhRunner, GhSlot } from "./run.ts";
 
@@ -72,7 +79,7 @@ export type FetchPullRequestsResult = { ok: true; results: PullRequestResult[] }
 
 const selection = `{
 	number additions deletions changedFiles title state isDraft url headRefName baseRefName mergedAt closedAt reviewDecision
-	files(first: 100) { nodes { path additions deletions } }
+	files(first: ${MAX_CHANGED_FILES}) { nodes { path additions deletions } }
 	commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { nodes {
 		__typename
 		... on CheckRun { name status conclusion startedAt detailsUrl checkSuite { workflowRun { event workflow { name } } } }

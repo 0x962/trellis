@@ -19,4 +19,15 @@ describe("normalizeFiles", () => {
 			{ path: "src/z.ts", additions: 1, deletions: 0 },
 		]);
 	});
+
+	test("keeps at most 100 files", () => {
+		const files = Array.from({ length: 101 }, (_, index) => ({
+			path: `src/${String(index).padStart(3, "0")}.ts`,
+			additions: 1,
+			deletions: 0,
+		}));
+		const normalized = normalizeFiles(files);
+		expect(normalized).toHaveLength(100);
+		expect(normalized.at(-1)?.path).toBe("src/099.ts");
+	});
 });

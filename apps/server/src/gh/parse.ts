@@ -1,4 +1,4 @@
-import type { ChangedFile, Check, CheckBucket, CiState } from "@trellis/api";
+import { type ChangedFile, type Check, type CheckBucket, type CiState, MAX_CHANGED_FILES } from "@trellis/api";
 import type { PullRequestRef } from "./graphql.ts";
 
 // The raw nodes `gh api graphql` returns for `statusCheckRollup { contexts }`.
@@ -124,7 +124,8 @@ export const normalizeChecks = (nodes: RawContext[]): Check[] => latestPerCheck(
 export const normalizeFiles = (nodes: RawFile[]): ChangedFile[] =>
 	nodes
 		.map(({ path, additions, deletions }) => ({ path, additions, deletions }))
-		.sort((a, b) => compareText(a.path, b.path));
+		.sort((a, b) => compareText(a.path, b.path))
+		.slice(0, MAX_CHANGED_FILES);
 
 // Any fail or cancel gives fail; else any pending gives pending; else any
 // pass gives pass; else none. A skipping check counts as nothing.

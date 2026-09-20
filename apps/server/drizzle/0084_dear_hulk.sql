@@ -1,0 +1,2 @@
+ALTER TABLE "pull_requests" ADD COLUMN "files" jsonb;--> statement-breakpoint
+ALTER TABLE "pull_requests" ADD CONSTRAINT "pull_requests_files_check" CHECK ("pull_requests"."files" IS NULL OR jsonb_typeof("pull_requests"."files") = 'array');
