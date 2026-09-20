@@ -9,6 +9,16 @@ export {
 	type ConditionsBlockProps,
 	type ConditionsReadiness,
 } from "./ConditionsBlock";
+export {
+	type CaptureRun,
+	type EvidenceClip,
+	type EvidenceGap,
+	type EvidenceShot,
+	EvidenceStrip,
+	type EvidenceStripProps,
+	FrontendEvidence,
+	type FrontendEvidenceProps,
+} from "./EvidenceStrip";
 export { type FileRiskGroup, FileRiskGroups } from "./FileRiskGroups";
 export { insertBlock, ReviewCommentEditor } from "./ReviewCommentEditor";
 export { type ConversationMeta, ReviewConversation } from "./ReviewConversation/ReviewConversation";

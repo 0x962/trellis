@@ -8,6 +8,7 @@ import {
 	ChecksLineSection,
 	ConditionsBlockSection,
 	ContractBlockSection,
+	EvidenceStripSection,
 	FileRiskGroupsSection,
 	FlowRunSection,
 	LineChangesSection,
@@ -48,6 +49,7 @@ export function DomainSections() {
 			<ChainBlockSection />
 			<RunLineSection />
 			<ChangeSummarySection />
+			<EvidenceStripSection />
 			<StartControlsSection />
 		</>
 	);
