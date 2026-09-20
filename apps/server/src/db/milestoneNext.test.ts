@@ -46,17 +46,33 @@ const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 const ticket = (ctx: ServiceCtx, title: string, milestone: string, status = "todo") =>
 	run((tx) => createTicket(ctx, tx, { project: "TST", title, milestone: `TST/plan/${milestone}`, status }));
 
-const insertPull = async (
+const insertPullRequest = async (
 	ticketId: string,
-	number: number,
-	options: { checks?: { bucket: string }[]; draft?: boolean; openThread?: boolean } = {},
+	prNumber: number,
+	options: {
+		checks?: { bucket: string }[];
+		draft?: boolean;
+		fetched?: boolean;
+		fetchError?: string;
+		openThread?: boolean;
+	} = {},
 ) => {
 	const id = ulid();
+	const checks = options.checks ?? [];
+	const buckets = checks.map((check) => check.bucket);
+	const ciState = buckets.some((bucket) => bucket === "fail" || bucket === "cancel")
+		? "fail"
+		: buckets.includes("pending")
+			? "pending"
+			: buckets.includes("pass")
+				? "pass"
+				: "none";
 	await db.execute(sql`INSERT INTO pull_requests (
-		id, owner, repo, number, url, state, is_draft, checks, created_at, updated_at
+		id, owner, repo, number, url, state, is_draft, checks, ci_state, fetched_at, fetch_error, created_at, updated_at
 	) VALUES (
-		${id}, 'acme', 'app', ${number}, ${`https://github.com/acme/app/pull/${number}`},
-		'open', ${options.draft ?? false}, ${JSON.stringify(options.checks ?? [])}::jsonb,
+		${id}, 'acme', 'app', ${prNumber}, ${`https://github.com/acme/app/pull/${prNumber}`},
+		'open', ${options.draft ?? false}, ${JSON.stringify(checks)}::jsonb, ${ciState},
+		${options.fetched === false ? null : "2026-09-18T10:00:00.000Z"}, ${options.fetchError ?? null},
 		'2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z'
 	)`);
 	await db.execute(sql`INSERT INTO ticket_pull_requests (
@@ -127,18 +143,22 @@ test("a milestone counts ready tickets and rows that wait for the person", async
 	const ctx = ctxAt("2026-09-18T10:02:00.000Z");
 	await ticket(ctx, "CLI: the command", "surfaces");
 	const blocked = await ticket(ctx, "Docs: the page", "surfaces");
-	await ticket(ctx, "Decide the name", "surfaces", "human-review");
+	const humanReview = await ticket(ctx, "Decide the name", "surfaces", "human-review");
 	const started = await ticket(ctx, "Mobile: the screen", "surfaces", "in-progress");
 	await db.execute(sql`INSERT INTO ticket_deps (ticket_id, depends_on_id, source, created_at)
 		VALUES (${blocked.id}, ${started.id}, 'manual', '2026-09-18T10:02:00.000Z')`);
-	await insertPull(started.id, 1);
-	await insertPull(started.id, 2, { draft: true });
-	await insertPull(started.id, 3, { checks: [{ bucket: "pending" }] });
-	await insertPull(started.id, 4, { checks: [{ bucket: "fail" }] });
-	await insertPull(started.id, 5, { openThread: true });
+	await insertPullRequest(started.id, 1, { checks: [{ bucket: "pass" }] });
+	await insertPullRequest(started.id, 2, { draft: true });
+	await insertPullRequest(started.id, 3, { checks: [{ bucket: "pending" }] });
+	await insertPullRequest(started.id, 4, { checks: [{ bucket: "fail" }] });
+	await insertPullRequest(started.id, 5, { openThread: true });
+	await insertPullRequest(started.id, 6);
+	await insertPullRequest(started.id, 7, { fetched: false });
+	await insertPullRequest(started.id, 8, { fetchError: "GitHub did not answer." });
+	await insertPullRequest(humanReview.id, 9, { checks: [{ bucket: "pass" }] });
 	expect(await next(ctx)).toEqual([
 		["foundation", "done", 0, 0],
-		["surfaces", "open", 2, 2],
+		["surfaces", "open", 2, 4],
 		["integrate", "open", 0, 0],
 	]);
 });

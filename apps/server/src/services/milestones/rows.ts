@@ -1,4 +1,4 @@
-import { CheckBucketSchema, type EpicCounts, type MilestoneSummary } from "@trellis/api";
+import type { EpicCounts, MilestoneSummary } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { iso } from "../../db/queries/support.ts";
 import { stateOf, ticketCounts, toCounts } from "../epics/rows.ts";
@@ -28,7 +28,9 @@ export const milestoneRefOf = (row: { root_key: string; epic_slug: string; slug:
 	`${row.root_key}/${row.epic_slug}/${row.slug}`;
 
 // The counts that tell the person what is next in a milestone. A todo ticket
-// can start when every ticket that it depends on is done.
+// can start when every ticket that it depends on is done. A human-review
+// ticket is one row for the person. Each fetched pull request that has no
+// draft, failed check, pending check, or open thread is another row.
 const nextCounts = sql`,
 			(count(*) FILTER (WHERE s.category = 'todo' AND NOT EXISTS (
 				SELECT 1 FROM ticket_deps dependency
@@ -38,25 +40,21 @@ const nextCounts = sql`,
 			)))::int AS to_start,
 			(
 				count(*) FILTER (WHERE s.reviewer = 'human') +
-				COALESCE(sum((
+				(
 					SELECT count(*) FROM ticket_pull_requests link
+					JOIN tickets linked_ticket ON linked_ticket.id = link.ticket_id
 					JOIN pull_requests pull_request ON pull_request.id = link.pull_request_id
-					WHERE link.ticket_id = t.id
+					WHERE linked_ticket.milestone_id = m.id
+						AND pull_request.fetched_at IS NOT NULL
+						AND pull_request.fetch_error IS NULL
 						AND pull_request.state = 'open'
 						AND NOT pull_request.is_draft
-						AND NOT EXISTS (
-							SELECT 1 FROM jsonb_array_elements(pull_request.checks) check_row
-							WHERE check_row->>'bucket' IN (
-								${CheckBucketSchema.enum.fail},
-								${CheckBucketSchema.enum.cancel},
-								${CheckBucketSchema.enum.pending}
-							)
-						)
+						AND pull_request.ci_state IN ('none', 'pass')
 						AND NOT EXISTS (
 							SELECT 1 FROM review_threads thread
 							WHERE thread.pr_id = pull_request.id AND thread.document->>'status' = 'open'
 						)
-				)), 0)
+				)
 			)::int AS waits_for_you`;
 
 // `c` holds the counts of the tickets that point at the milestone.

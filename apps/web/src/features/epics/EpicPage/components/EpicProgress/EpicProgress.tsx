@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import type { AgentRun, Epic } from "@trellis/api";
+import type { Epic } from "@trellis/api";
 import { StackedBar } from "@trellis/ui";
 import { Fragment } from "react";
 import { formatCount } from "../../../../../lib/format";
@@ -11,8 +11,8 @@ import { epicBarLegend } from "./epicBarLegend";
 
 export type EpicProgressProps = {
 	epic: Epic;
-	// The assigned runs that the epic page already loads for its ticket rows.
-	runs: readonly AgentRun[];
+	// Null until the assigned-run query succeeds.
+	running: number | null;
 	// The `/p/$` splat of the epic page, which every count link keeps.
 	splat: string;
 	// The search of the epic page. A count link changes its filters.
@@ -28,9 +28,9 @@ const countLinkClass =
 //
 // A count is a link to the table with the matching filters, and plain text
 // when the filter grammar has no matching filter.
-export function EpicProgress({ epic, runs, splat, search }: EpicProgressProps) {
+export function EpicProgress({ epic, running, splat, search }: EpicProgressProps) {
 	const progress = epicProgress(epic.counts);
-	const next = epicNext(epic, runs, search);
+	const next = epicNext(epic, running, search);
 	return (
 		<section aria-label="Progress" className="flex flex-col gap-2 px-5 pt-4 pb-4 max-md:px-4">
 			{next !== null && (

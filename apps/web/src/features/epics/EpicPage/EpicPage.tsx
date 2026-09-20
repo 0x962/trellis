@@ -25,6 +25,7 @@ import { TableSkeleton } from "../../table/TicketTable/components/TableSkeleton"
 import { agentLinesByTicket } from "../../table/utils/agentLines";
 import { DeleteEpicDialog } from "../DeleteEpicDialog";
 import { EpicSheet } from "../EpicSheet";
+import { epicRunningCount, epicWorkingTicketIds } from "../epicNext";
 import { assignedTicketIds, epicRowRank } from "../epicRowRank";
 import { epicPageSearch, epicQueryString, epicUrlSearch } from "../epicSearch";
 import { EpicPlan } from "./components/EpicPlan";
@@ -76,10 +77,19 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	// reads, so the order of the rows costs no request of its own. Inside a
 	// milestone group the tickets that wait for the person come first, then
 	// the tickets to start, then the running tickets.
-	const runs = useQuery(orpc.agentRuns.list.queryOptions({ input: { assigned: true } })).data;
-	const assigned = useMemo(() => assignedTicketIds(runs ?? noRuns), [runs]);
+	const assignedRunsQuery = useQuery(orpc.agentRuns.list.queryOptions({ input: { assigned: true } }));
+	const assignedRuns = assignedRunsQuery.data;
+	const assigned = useMemo(() => assignedTicketIds(assignedRuns ?? noRuns), [assignedRuns]);
 	const rowRank = useMemo(() => epicRowRank(assigned), [assigned]);
-	// The same `agentRuns.list` query as `assigned` above, with another
+	const workingAgentTicketIds = useMemo(() => epicWorkingTicketIds(assignedRuns ?? noRuns), [assignedRuns]);
+	const running = useMemo(
+		() =>
+			assignedRunsQuery.status === "success" && epic.data !== undefined
+				? epicRunningCount(epic.data, workingAgentTicketIds)
+				: null,
+		[assignedRunsQuery.status, epic.data, workingAgentTicketIds],
+	);
+	// The same `agentRuns.list` query as `assignedRuns` above, with another
 	// `select`. A ticket row whose run holds an open request or a last
 	// message is followed by one line.
 	const agentLines = useQuery({
@@ -230,7 +240,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 				{readOnly && <ArchivedBanner project={project} />}
 				{/* The band and the plan take at most half of the card and scroll inside it, so the table always keeps rows on screen. */}
 				<div className="max-h-1/2 shrink-0 overflow-y-auto border-b border-border">
-					<EpicProgress epic={record} runs={runs ?? noRuns} splat={splat} search={tableSearch} />
+					<EpicProgress epic={record} running={running} splat={splat} search={tableSearch} />
 					<EpicPlan routeKey={routeKey} description={record.description} />
 				</div>
 				<fieldset disabled={readOnly} className="contents">
