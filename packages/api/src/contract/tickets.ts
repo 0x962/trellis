@@ -15,6 +15,8 @@ import {
 	TicketDeleteManyInputSchema,
 	TicketDeleteManyOutputSchema,
 	TicketDeleteOutputSchema,
+	TicketImportDependenciesInputSchema,
+	TicketImportDependenciesOutputSchema,
 	TicketMoveInputSchema,
 	TicketUpdateDependenciesInputSchema,
 	TicketUpdateInputSchema,
@@ -93,6 +95,11 @@ export const tickets = {
 		.route({ method: "DELETE", path: "/tickets/{ticket}", summary: "Delete a ticket" })
 		.input(TicketDeleteInputSchema)
 		.output(TicketDeleteOutputSchema),
+	importDependencies: base
+		.errors(pickErrors(["PROJECT_ARCHIVED"]))
+		.route({ method: "POST", path: "/tickets/import-dependencies", summary: "Import dependency edges from one epic" })
+		.input(TicketImportDependenciesInputSchema)
+		.output(TicketImportDependenciesOutputSchema),
 	updateDependencies: base
 		.errors(pickErrors(["DEPENDENCY_CYCLE", "PROJECT_ARCHIVED", "VERSION_CONFLICT"]))
 		.route({

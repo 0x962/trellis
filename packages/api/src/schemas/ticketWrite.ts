@@ -8,7 +8,7 @@ import {
 	TicketRefStringSchema,
 } from "../refs.ts";
 import { PrioritySchema } from "./enums.ts";
-import { booleanString } from "./primitives.ts";
+import { booleanString, CountSchema } from "./primitives.ts";
 import { TicketIdentifierSchema, TicketSummarySchema, TicketTitleSchema } from "./ticket.ts";
 
 // The inputs and the outputs of the ticket writes: create, update, move,
@@ -43,6 +43,16 @@ export const TicketCreateInputSchema = z.strictObject({
 	after: TicketDependencyListSchema.optional(),
 });
 export type TicketCreateInput = z.input<typeof TicketCreateInputSchema>;
+
+export const TicketImportDependenciesInputSchema = z.strictObject({
+	epic: EpicRefStringSchema,
+});
+
+export const TicketImportDependenciesOutputSchema = z.object({
+	edgeCount: CountSchema,
+	unresolved: z.array(TicketIdentifierSchema),
+});
+export type TicketImportDependenciesOutput = z.infer<typeof TicketImportDependenciesOutputSchema>;
 
 // `after` names the tickets that this ticket waits for. `notAfter` removes
 // those waits. `expectedVersion` makes both changes conditional.
