@@ -16,27 +16,19 @@ const askUserQuestion = z.object({
 });
 
 const askUserQuestionInput = z.object({
-	questions: z.array(z.unknown()).optional(),
+	questions: z.array(askUserQuestion).optional(),
 });
 
 function readQuestions(input: unknown) {
-	const inputQuestions = askUserQuestionInput.parse(input ?? {}).questions;
-	if (!inputQuestions) return {};
-	const questions = inputQuestions.flatMap((inputQuestion, index) => {
-		const question = askUserQuestion.safeParse(inputQuestion);
-		if (!question.success) return [];
-		return [
-			{
-				id: String(index),
-				question: question.data.question,
-				options: question.data.options,
-				multiple: question.data.multiSelect,
-			},
-		];
-	});
-	if (questions.length === 0) return {};
+	const questions = askUserQuestionInput.parse(input ?? {}).questions;
+	if (!questions?.length) return {};
 	return {
-		questions,
+		questions: questions.map((question, index) => ({
+			id: String(index),
+			question: question.question,
+			options: question.options,
+			multiple: question.multiSelect,
+		})),
 	};
 }
 
