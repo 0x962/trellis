@@ -1,4 +1,5 @@
 export { ActorChipSection } from "./ActorChipSection";
+export { AgentCardSection } from "./AgentCardSection";
 export { CheckRibbonSection } from "./CheckRibbonSection";
 export { FlowRunSection } from "./FlowRunSection";
 export { LineChangesSection } from "./LineChangesSection";

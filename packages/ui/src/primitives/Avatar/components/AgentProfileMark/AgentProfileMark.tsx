@@ -1,5 +1,7 @@
 import { Terminal } from "@phosphor-icons/react";
+import { type RefObject, useEffect, useRef } from "react";
 import { type ModelProvider, ProviderIcon } from "../../../../domain/ProviderIcon";
+import type { AgentMarkState } from "../../../AgentMark";
 
 export type AgentProfile = {
 	provider: ModelProvider | null;
@@ -7,7 +9,38 @@ export type AgentProfile = {
 	effort?: string;
 };
 
-export function AgentProfileMark({ profile }: { profile: AgentProfile }) {
+/*
+ * The band of light is a CSS animation on the `agent-card-sweep` span. A CSS
+ * animation of a card that nobody looks at still burns a frame, so the span
+ * holds the animation paused and this hook sets `data-sweep="run"` on it only
+ * while the card is inside the viewport and the tab is visible.
+ */
+function useCardSweep(ref: RefObject<HTMLSpanElement | null>, working: boolean) {
+	useEffect(() => {
+		if (!working) return;
+		const node = ref.current!;
+		let onScreen = false;
+		const sync = () => {
+			if (onScreen && !document.hidden) node.dataset.sweep = "run";
+			else delete node.dataset.sweep;
+		};
+		const observer = new IntersectionObserver(([entry]) => {
+			onScreen = entry!.isIntersecting;
+			sync();
+		});
+		observer.observe(node);
+		document.addEventListener("visibilitychange", sync);
+		return () => {
+			observer.disconnect();
+			document.removeEventListener("visibilitychange", sync);
+		};
+	}, [ref, working]);
+}
+
+export function AgentProfileMark({ profile, state = "static" }: { profile: AgentProfile; state?: AgentMarkState }) {
+	const working = state !== "static";
+	const sweep = useRef<HTMLSpanElement>(null);
+	useCardSweep(sweep, working);
 	return (
 		<span
 			aria-hidden="true"
@@ -29,6 +62,7 @@ export function AgentProfileMark({ profile }: { profile: AgentProfile }) {
 					</>
 				)}
 			</span>
+			{working && <span ref={sweep} className="agent-card-sweep" />}
 		</span>
 	);
 }
