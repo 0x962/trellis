@@ -232,6 +232,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 						routeKey={routeKey}
 						search={tableSearch}
 						rowRank={rowRank}
+						prRows
 						onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
 						emptyState={
 							hasFilters(search) ? (
