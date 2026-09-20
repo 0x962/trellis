@@ -14,7 +14,6 @@ const op32: ChainDependency = {
 	title: "Service: A routine run opens a chat and queues the turn",
 	status: "review",
 	isQuestion: false,
-	pr: { number: 55569, state: "open", isDraft: true },
 	link: link("OP-32"),
 };
 

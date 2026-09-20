@@ -1,7 +1,1 @@
-export {
-	ChainBlock,
-	type ChainBlockProps,
-	type ChainDependency,
-	type ChainPr,
-	type ChainRelease,
-} from "./ChainBlock";
+export { ChainBlock, type ChainBlockProps, type ChainDependency, type ChainRelease } from "./ChainBlock";

@@ -1,12 +1,6 @@
 export { DesktopChrome } from "./desktop/DesktopChrome/index.ts";
 export { ActorChip, type ActorChipProps } from "./domain/ActorChip";
-export {
-	ChainBlock,
-	type ChainBlockProps,
-	type ChainDependency,
-	type ChainPr,
-	type ChainRelease,
-} from "./domain/ChainBlock";
+export { ChainBlock, type ChainBlockProps, type ChainDependency, type ChainRelease } from "./domain/ChainBlock";
 export { type Check, type CheckBucket, CheckRibbon, type CheckRibbonProps } from "./domain/CheckRibbon";
 export { CheckRing, type CheckRingCounts, type CheckRingProps } from "./domain/CheckRing";
 export { ContractBlock, type ContractBlockProps } from "./domain/ContractBlock";

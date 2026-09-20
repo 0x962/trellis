@@ -1,21 +1,14 @@
 import { cloneElement, type ReactElement, type ReactNode } from "react";
 import { AttentionDot } from "../../primitives/AttentionDot";
 import { EmptyState } from "../../primitives/EmptyState";
-import { PropertyRow } from "../../primitives/PropertyRow";
 import { SectionHeader } from "../../primitives/SectionHeader";
-import { PrGlyph, type PullRequestState, prStateWord } from "../PrGlyph";
+import { BlockRow, NothingWord } from "../../review/BlockRow";
 import { type StatusCategory, StatusIcon } from "../StatusIcon";
 import { TicketId } from "../TicketId";
 
 // An anchor that the caller builds, such as a router Link. `ChainBlock`
 // gives it the class names, the title and the children of a chain line.
 type ChainAnchor = ReactElement<{ className?: string; title?: string; children?: ReactNode }>;
-
-export type ChainPr = {
-	number: number;
-	state: PullRequestState;
-	isDraft: boolean;
-};
 
 export type ChainDependency = {
 	identifier: string;
@@ -25,7 +18,6 @@ export type ChainDependency = {
 	// question and holds the answer options. Such a line carries the yellow
 	// dot and the words `your answer`.
 	isQuestion: boolean;
-	pr?: ChainPr;
 	link: ChainAnchor;
 };
 
@@ -77,47 +69,31 @@ export function ChainBlock({ waitsOn, releases, ready }: ChainBlockProps) {
 		<section aria-label="The chain" className="flex min-w-0 flex-col">
 			<SectionHeader title="THE CHAIN" />
 			<dl className="flex min-w-0 flex-col">
-				<ChainRow label="Waits on">
+				<BlockRow label="Waits on">
 					{waitsOn.length === 0 ? (
 						<NothingWord />
 					) : (
 						waitsOn.map((dependency) => <DependencyLine key={dependency.identifier} dependency={dependency} />)
 					)}
-				</ChainRow>
-				<ChainRow label="Ready">
+				</BlockRow>
+				<BlockRow label="Ready">
 					<span className="text-sm text-fg">{ready}</span>
-				</ChainRow>
-				<ChainRow label="Releases">
+				</BlockRow>
+				<BlockRow label="Releases">
 					{releases.length === 0 ? (
 						<NothingWord />
 					) : (
 						releases.map((release) => <TitleLine key={release.identifier} {...release} />)
 					)}
-				</ChainRow>
+				</BlockRow>
 				{question !== undefined && (
-					<ChainRow label="Applies">
+					<BlockRow label="Applies">
 						<TitleLine identifier={question.identifier} title={question.title} link={question.link} note="open." />
-					</ChainRow>
+					</BlockRow>
 				)}
 			</dl>
 		</section>
 	);
-}
-
-// The `dd` of `PropertyRow` lays its children in a row, and a chain row holds
-// a column of lines.
-function ChainRow({ label, children }: { label: string; children: ReactNode }) {
-	return (
-		<PropertyRow label={label} align="start" labelWidth="wide">
-			<div className="flex min-w-0 flex-1 flex-col gap-0.5">{children}</div>
-		</PropertyRow>
-	);
-}
-
-// An empty row shows one faint word, so the reader sees an empty row and not
-// missing data.
-function NothingWord() {
-	return <span className="text-sm text-fg-faint">nothing</span>;
 }
 
 const lineClass =
@@ -132,19 +108,11 @@ function DependencyLine({ dependency }: { dependency: ChainDependency }) {
 				<StatusIcon category={dependency.status} label={statusWords[dependency.status]} />
 				<TicketId id={dependency.identifier} size="sm" />
 				<span className="min-w-0 flex-1 truncate">{dependency.title}</span>
-				{dependency.isQuestion ? (
+				{dependency.isQuestion && (
 					<span className="flex shrink-0 items-center gap-1 text-fg-muted">
 						<AttentionDot label={`${dependency.identifier} waits for your answer.`} />
 						your answer
 					</span>
-				) : (
-					dependency.pr !== undefined && (
-						<span className="flex shrink-0 items-center gap-1 text-fg-muted">
-							<PrGlyph state={dependency.pr.state} isDraft={dependency.pr.isDraft} size="sm" />
-							<span className="tabular">{`#${dependency.pr.number}`}</span>
-							{prStateWord(dependency.pr.state, dependency.pr.isDraft)}
-						</span>
-					)
 				)}
 			</>
 		),
@@ -152,8 +120,8 @@ function DependencyLine({ dependency }: { dependency: ChainDependency }) {
 }
 
 // A release line and the `Applies` line print the identifier, an optional
-// muted word and the title, and no status mark and no pull request. `note` is
-// the muted word, such as `open.` on the question the ticket waits for.
+// muted word and the title, and no status mark. `note` is the muted word,
+// such as `open.` on the question the ticket waits for.
 function TitleLine({
 	identifier,
 	title,
