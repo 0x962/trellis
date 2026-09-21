@@ -34,7 +34,7 @@ const prActionWords: Record<string, (pr: string) => string> = {
 	"update-branch": (pr) => `updated the branch for PR ${pr}`,
 };
 
-// An answer, an attachment, and a pull request row carry no field. The
+// An attachment and a pull request row carry no field. The
 // action names what happened, and `meta` holds the URL, the file name, or
 // the two states. The map keys are the action names the server writes.
 const byAction: Record<string, (item: Activity) => string> = {
@@ -50,7 +50,6 @@ const byAction: Record<string, (item: Activity) => string> = {
 	"pr.state_changed": (item) => `PR ${metaText(item, "from")} → ${metaText(item, "to")}`,
 	"attachment.created": (item) => `attached ${metaText(item, "filename")}`,
 	"attachment.deleted": (item) => `removed ${metaText(item, "filename")}`,
-	"ticket.answered": (item) => `answered with option ${metaText(item, "option")}`,
 };
 
 // The text of one activity line after the actor: "moved Todo → In Progress",

@@ -82,11 +82,7 @@ test("reads readiness from the ticket", () => {
 });
 
 test("a canceled dependency does not block readiness", () => {
-	expect(
-		chainLines(ticket(true), [
-			blocker({ identifier: "OP-52", title: "Old plan", status: "canceled" }),
-		]),
-	).toEqual([
+	expect(chainLines(ticket(true), [blocker({ identifier: "OP-52", title: "Old plan", status: "canceled" })])).toEqual([
 		"## Chain",
 		"",
 		"- Waits on:",

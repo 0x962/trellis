@@ -177,7 +177,7 @@ before another agent can take the ticket.
 - An archived project serves reads. Every mutation on it fails with `PROJECT_ARCHIVED`.
 - `tickets.version` rises on every row change. `update` and `move` accept `expectedVersion` or the header `If-Match`. A mismatch is `VERSION_CONFLICT` (412) with the current row.
 - `updated_at` moves only on user-visible activity: a ticket field, an attachment, or a pull request link. A reorder, a remap, and a poller CI change raise `version` only.
-- A delete is a hard delete. A ticket delete nulls the `parent_id` of its children, then cascades comments, answers, attachments, pull request links, and activity. The blob collector then removes unused files.
+- A delete is a hard delete. A ticket delete nulls the `parent_id` of its children, then cascades comments, attachments, pull request links, and activity. The blob collector then removes unused files.
 - A project delete needs an empty subtree or `force`.
 - An epic groups the tickets that deliver one plan inside a project. It is its own record with a name, a slug, and a markdown description that holds the plan. An epic is never a ticket.
 - A ticket belongs to at most one epic (`tickets.epic_id`). The epic and the ticket share one root (`CROSS_ROOT_MOVE`). A ticket in an epic can sit in any project of that root.
@@ -316,8 +316,7 @@ manual write changes a parsed or derived edge to manual.
 `TicketSummary.waitsOn` lists each dependency that is not done or canceled.
 `TicketSummary.releases` lists each ticket that waits for this ticket.
 `TicketSummary.ready` is true when the ticket is Todo and each dependency has
-a done or canceled status. `tickets.get` also returns answered questions that
-have left `waitsOn`.
+a done or canceled status.
 
 The API writes dependencies through `tickets.create` and
 `tickets.updateDependencies`. The routes are `POST /api/tickets` and
@@ -329,8 +328,7 @@ A dependency uses TicketRef for the target and for every related ticket. A
 TicketRef is a ULID or `KEY-n`. The CLI flags are `trellis create --after`,
 `trellis edit --after`, and `trellis edit --not-after`. `trellis deps
 <TicketRef>` prints both directions and each derived pull request stack.
-The web route `/t/<KEY-n>` shows the chain, the ready sentence, and each
-answered question. An epic route also shows the `waits` and `releases` cells.
+The web route `/t/<KEY-n>` shows the chain and the ready sentence. An epic route also shows the `waits` and `releases` cells.
 
 ### Ticket contract
 
@@ -429,33 +427,6 @@ after the review focus. It renders frontend and backend records according to
 the pull request kind. The route shows each missing item with its fill command.
 The ticket route `/t/<KEY-n>` shows one evidence card for each linked pull
 request.
-
-### Ticket answers
-
-An answer lives in `ticket_answers`: the question ticket, the option, the
-reason, the actor, and the time. The option is an integer from 1 through 99.
-The target ticket must have a human review status and a description that
-holds a numbered option list.
-
-`tickets.answer` writes the answer row and a `ticket.answered` activity row,
-and moves the question to the Done category in one transaction. It also adds one `review_deliveries` row for each
-open native agent run on a ticket that waits for the question. The delivery
-loop sends the answer after the transaction commits.
-
-The API route is `POST /api/tickets/{ticket}/answer`. It accepts TicketRef,
-`option`, `reason`, and optional `expectedVersion`. TicketRef is a ULID or
-`KEY-n`. The response returns the ticket, the answer ULID, and the agent
-deliveries. The delivered message holds the option, its text, and the reason.
-
-The CLI verb is `trellis answer <TicketRef> --option <n> --reason <text>`.
-The web route `/t/<KEY-n>` replaces the work regions of a question with its
-options, recommendation, reason field, released tickets, and Answer action.
-An answered question keeps its question block, which shows the picked option
-and the reason. The same route shows an answered dependency under `Applies`
-on a waiting ticket.
-
-`Ticket.answer` is the newest answer of the ticket. `Ticket.answeredQuestions`
-reads the newest answer of each done question that the ticket waits for.
 
 ### Epic resources
 
@@ -911,7 +882,6 @@ are no triggers. Every rule is a constraint or a service function that takes
 | epics | id PK, project_id (CASCADE), root_id, slug (CHECK slug regex), name (CHECK trimmed, 1 to 120), description (CHECK <= 200000), actor_name, actor_kind, created_at, updated_at. FK to actors. UNIQUE (id, root_id) and (root_id, slug). FK (project_id, root_id) CASCADE, so an epic stays in the root of its project. Index (project_id). The state of an epic is never stored. |
 | waves | id PK, epic_id (CASCADE), root_id, slug (CHECK slug regex), name (CHECK trimmed, 1 to 120), position integer (CHECK >= 0), created_at, updated_at. UNIQUE (id, epic_id) and (epic_id, slug). FK (epic_id, root_id) CASCADE, so a wave stays in the root of its epic. Index (epic_id, position). The state of a wave is never stored. |
 | comments | id PK, ticket_id (CASCADE), body (1 to 200000), parent_id, resolved_at, actor_name, actor_kind, search tsvector GENERATED (body C), created_at, updated_at. No code reads or writes the table. It keeps the rows that ticket comments stored. |
-| ticket_answers | id PK, ticket_id (CASCADE), option (CHECK 1 to 99), reason, actor_name, actor_kind, created_at. FK to actors. Index (ticket_id, created_at). |
 | attachments | id PK, ticket_id (CASCADE), filename (1 to 255, no `/`), mime, size (CHECK > 0), sha256 (CHECK hex 64), actor_name, actor_kind, created_at. FK to actors. Index (ticket_id) and (sha256). |
 | pull_requests | id PK, owner, repo (CHECK lowercase), number (CHECK > 0), url, title, state, is_draft, is_queued, head_ref, base_ref, review_state, merged_at, closed_at, checks jsonb (CHECK array), ci_state, content_hash, fetched_at, fetch_error, created_at, updated_at. UNIQUE (owner, repo, number). Index (state, ci_state). |
 | ticket_pull_requests | ticket_id (CASCADE), pull_request_id (CASCADE), source (manual), actor_name, actor_kind, created_at. PK (ticket_id, pull_request_id). Index (pull_request_id). |

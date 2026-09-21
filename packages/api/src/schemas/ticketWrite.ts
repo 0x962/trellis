@@ -8,8 +8,8 @@ import {
 	WaveRefStringSchema,
 } from "../refs.ts";
 import { PrioritySchema } from "./enums.ts";
-import { booleanString, CountSchema, UlidSchema } from "./primitives.ts";
-import { TicketIdentifierSchema, TicketSchema, TicketSummarySchema, TicketTitleSchema } from "./ticket.ts";
+import { booleanString, CountSchema } from "./primitives.ts";
+import { TicketIdentifierSchema, TicketSummarySchema, TicketTitleSchema } from "./ticket.ts";
 
 // The inputs and the outputs of the ticket writes: create, update, move,
 // the two batch writes, and delete.
