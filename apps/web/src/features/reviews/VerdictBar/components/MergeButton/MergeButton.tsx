@@ -1,11 +1,10 @@
-import { GitMerge } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import type { ReviewRevision } from "@trellis/api";
-import { Checkbox, ConfirmDialog, IconButton, Tooltip, toast } from "@trellis/ui";
+import { Button, Checkbox, ConfirmDialog, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { mergeAction } from "../../../reviewActions/reviewActions";
-import { mergeQuestion } from "../../unmetText/unmetText";
+import { mergeQuestion } from "../../unmetLine/unmetLine";
 
 // The button stays enabled when a condition is unmet. The confirm dialog
 // names each unmet condition, and the person decides.
@@ -37,9 +36,9 @@ export function MergeButton({
 
 	return (
 		<>
-			<Tooltip content="Merge">
-				<IconButton label="Merge" icon={<GitMerge />} variant="primary" onClick={() => setConfirmOpen(true)} />
-			</Tooltip>
+			<Button variant="primary" onClick={() => setConfirmOpen(true)}>
+				Merge
+			</Button>
 			<ConfirmDialog
 				open={confirmOpen}
 				title={mergeQuestion(unmetConditions)}

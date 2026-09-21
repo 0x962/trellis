@@ -15,7 +15,7 @@
 	font-variant-numeric: tabular-nums;
 }
 .review-batch-bar-text,
-.review-verdict-bar-threads {
+.review-verdict-bar-drafts {
 	flex: 1;
 	min-width: 0;
 }
@@ -32,6 +32,13 @@
 .review-verdict-bar-unmet {
 	color: var(--fg-muted);
 	font-size: var(--text-sm);
+}
+/* The note that goes to GitHub with the drafts, and the message of a send
+   that failed. */
+.review-draft-note {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
 }
 .review-merge-confirmation {
 	display: flex;
