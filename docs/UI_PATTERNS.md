@@ -21,6 +21,7 @@ Each page supplies its data and available actions. It does not choose new contro
 | Page title and actions | `Topbar`, `PageTitle` | `apps/web/src/features/shell/Topbar/Topbar.tsx` |
 | A page over the current page | `PageSheet` | `apps/web/src/features/shell/PageSheet/PageSheet.tsx` |
 | The ticket sheet and the review sheet over it | `PageSheetHost`, `pageSheetActions` | `apps/web/src/features/shell/PageSheetHost/PageSheetHost.tsx` |
+| A web page inside the app | `BrowserSheet`, `openLink` | `apps/web/src/features/shell/PageSheetHost/components/BrowserSheet/BrowserSheet.tsx` |
 | The name of a ticket in a list | `TicketLink` | `apps/web/src/features/shell/TicketLink/TicketLink.tsx` |
 | Filter chips and controls | `FilterBar`, `Chip` | `packages/ui/src/domain/FilterBar/FilterBar.tsx` |
 | Searchable filter choices | `FilterPopover`, `Command` | `packages/ui/src/domain/FilterPopover/FilterPopover.tsx` |
@@ -61,6 +62,14 @@ Give a ticket name in a list the `TicketLink` component: a plain click opens the
 A list never navigates to `/t/$identifier`. The route stays for a link that arrives from outside the app.
 The review sheet takes the wide width, so it covers the ticket sheet under it.
 Escape, the back gesture and a click beside the sheets close the top sheet only.
+
+## Links to a web page
+
+Send every control that leads to a web page through `openLink`.
+On the desktop app it opens the page in `BrowserSheet`, the in-app browser, over the sheet the person reads.
+In a browser it opens a new tab.
+An anchor with `target="_blank"` needs no handler: `LinkCapture` sends it to the same sheet.
+The sheet header holds Back, Forward, Reload, and Open in browser, which hands the address to the browser of the operating system.
 
 ## Filters and display options
 

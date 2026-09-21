@@ -3,6 +3,7 @@ import { EmptyState, Toaster } from "@trellis/ui";
 import { lazy, Suspense } from "react";
 import { NewSessionHost } from "../features/sessions/NewSessionHost";
 import { GlobalHotkeys } from "../features/shell/GlobalHotkeys";
+import { LinkCapture } from "../features/shell/LinkCapture";
 import { linkButtonClass } from "../features/shell/linkButtonClass";
 import { RouteError } from "../features/shell/RouteError";
 import { RouteProgress } from "../features/shell/RouteProgress";
@@ -83,6 +84,7 @@ function RootComponent() {
 			</div>
 			<div data-command-palette="" hidden />
 			<GlobalHotkeys />
+			<LinkCapture />
 			<ShellOverlays />
 			<NewSessionHost />
 			<Toaster />

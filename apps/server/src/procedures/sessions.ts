@@ -11,5 +11,6 @@ export const sessions = os.sessions.router({
 		return session;
 	}),
 	start: os.sessions.start.handler(({ context, input }) => call(context, "sessions.start", input)),
+	move: os.sessions.move.handler(({ context, input }) => call(context, "sessions.move", input)),
 	delete: os.sessions.delete.handler(({ context, input }) => call(context, "sessions.delete", input)),
 });

@@ -5,6 +5,7 @@ import { pageSheetActions, usePageSheetStore } from "../../../../../stores/pageS
 import { SessionConversation } from "../../../../sessions/SessionConversation";
 import { PageSheet } from "../../../PageSheet";
 import { useShown } from "../../useShown";
+import { BrowserSheet } from "../BrowserSheet";
 
 // The session of one agent run, in a `PageSheet` over the page that opened
 // it. The store holds the id of the run, and this query reads the run that
@@ -31,6 +32,7 @@ export function SessionSheet() {
 				<EmptyState variant="page" title="The session is gone" description="Trellis holds no run with this id." />
 			)}
 			{run !== null && <SessionConversation key={run.id} run={run} />}
+			<BrowserSheet at="session" />
 		</PageSheet>
 	);
 }

@@ -1,4 +1,4 @@
-import { Play, Stop, Ticket, Trash } from "@phosphor-icons/react";
+import { Play, Stop, Ticket } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import { type AgentRun, type Session, sessionStatus } from "@trellis/api";
 import { Avatar, ConfirmDialog, EmptyState, IconButton, Tooltip } from "@trellis/ui";
@@ -9,8 +9,8 @@ import { agentProfileOf } from "../../agents/agentProfileOf";
 import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
 import { NativeTerminal } from "../../agents/NativeTerminal";
 import { useWorkspaceSummary } from "../../agents/useWorkspaceSummary";
-import { DeleteSessionDialog } from "../DeleteSessionDialog";
 import { PendingQuestions } from "../PendingQuestions";
+import { SessionActionsMenu } from "../SessionActionsMenu";
 import { sessionStateLabel } from "../sessionStateLabel";
 import { SessionDetails } from "./components/SessionDetails";
 import { SessionMeta } from "./components/SessionMeta";
@@ -32,7 +32,6 @@ export function SessionConversation({
 }) {
 	const { client, orpc, queryClient } = useApp();
 	const [confirmStop, setConfirmStop] = useState(false);
-	const [confirmDelete, setConfirmDelete] = useState(false);
 	const localHeading = useRef<HTMLHeadingElement>(null);
 	const heading = headingRef ?? localHeading;
 	const leaveTerminal = useCallback(() => heading.current?.focus(), [heading]);
@@ -112,16 +111,7 @@ export function SessionConversation({
 						}}
 					/>
 				</Tooltip>
-				{session && (
-					<Tooltip content="Delete session">
-						<IconButton
-							label="Delete session"
-							icon={<Trash />}
-							disabled={readOnly || busy}
-							onClick={() => setConfirmDelete(true)}
-						/>
-					</Tooltip>
-				)}
+				{session && <SessionActionsMenu session={session} deleteDisabled={readOnly || busy} onDeleted={onDeleted} />}
 			</div>
 			<PendingQuestions run={run} readOnly={readOnly} />
 			{(error || run.error) && (
@@ -146,14 +136,6 @@ export function SessionConversation({
 				onConfirm={() => stop.mutate()}
 				onCancel={() => setConfirmStop(false)}
 			/>
-			{session && (
-				<DeleteSessionDialog
-					session={session}
-					open={confirmDelete}
-					onOpenChange={setConfirmDelete}
-					onDeleted={onDeleted}
-				/>
-			)}
 		</section>
 	);
 }

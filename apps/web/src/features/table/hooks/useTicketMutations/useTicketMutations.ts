@@ -76,9 +76,13 @@ export const useTicketMutations = (): TicketMutations => {
 			return true;
 		};
 
+		// The server stamps `updatedAt` on every write. The optimistic row
+		// takes the same stamp, so a list sorted by updated puts the row where
+		// the server's row lands, and the row moves once.
 		const patched = (row: TicketSummary, patch: RowPatcher): TicketSummary => ({
 			...row,
 			...(typeof patch === "function" ? patch(row) : patch),
+			updatedAt: new Date().toISOString(),
 		});
 
 		const applySummary = (summary: TicketSummary, deleted = false) =>

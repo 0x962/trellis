@@ -1,13 +1,13 @@
-import { DotsThree } from "@phosphor-icons/react";
 import { useRouter } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
-import { Button, Dialog, IconButton, Menu, Tooltip } from "@trellis/ui";
+import { Button, Dialog } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
 import { failToast } from "../../../../../lib/failToast";
 import { projectHref } from "../../../../../lib/projectPath";
 import { usePageSheet } from "../../../../shell/PageSheet";
+import { TopbarActionMenu } from "../../../../shell/Topbar";
 import { branchName, titleSlug } from "../../../PropertiesRail/utils/branchName";
 import { openPicker } from "../../../stores/pickerStore";
 import { useCopyBrief } from "../BriefCopy";
@@ -42,22 +42,20 @@ export function MoreMenu({ ticket }: MoreMenuProps) {
 
 	return (
 		<>
-			<Tooltip content="More actions">
-				<Menu
-					label="More actions"
-					trigger={<IconButton label="More actions" variant="default" icon={<DotsThree />} />}
-					items={[
-						{ label: "Copy brief", onSelect: () => void copyBrief() },
-						{ label: "Copy branch name", onSelect: () => void copyText(branch, "Copied the branch name") },
-						{ label: "Copy link", onSelect: () => void copyText(ticketLink(ticket.identifier), "Copied the link") },
-						{ label: "Set labels", onSelect: () => openPicker("labels") },
-						{ label: "Move to project", onSelect: () => openPicker("project") },
-						{ label: "Set parent", onSelect: () => openPicker("parent") },
-						{ label: "Set dependencies", onSelect: () => openPicker("dependencies") },
-						{ label: "Delete", onSelect: () => setConfirming(true), danger: true },
-					]}
-				/>
-			</Tooltip>
+			<TopbarActionMenu
+				label="More actions"
+				triggerTooltip="More actions"
+				items={[
+					{ label: "Copy brief", onSelect: () => void copyBrief() },
+					{ label: "Copy branch name", onSelect: () => void copyText(branch, "Copied the branch name") },
+					{ label: "Copy link", onSelect: () => void copyText(ticketLink(ticket.identifier), "Copied the link") },
+					{ label: "Set labels", onSelect: () => openPicker("labels") },
+					{ label: "Move to project", onSelect: () => openPicker("project") },
+					{ label: "Set parent", onSelect: () => openPicker("parent") },
+					{ label: "Set dependencies", onSelect: () => openPicker("dependencies") },
+					{ label: "Delete", onSelect: () => setConfirming(true), danger: true },
+				]}
+			/>
 			<Dialog
 				open={confirming}
 				onOpenChange={setConfirming}

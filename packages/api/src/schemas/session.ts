@@ -49,3 +49,11 @@ export type SessionCreateInput = z.infer<typeof SessionCreateInputSchema>;
 
 export const SessionIdInputSchema = z.strictObject({ id: UlidSchema });
 export type SessionIdInput = z.infer<typeof SessionIdInputSchema>;
+
+export const SessionMoveInputSchema = z
+	.strictObject({
+		id: UlidSchema,
+		project: z.string().min(1).nullable(),
+	})
+	.describe("Set the project of a session, or send null to make it independent.");
+export type SessionMoveInput = z.infer<typeof SessionMoveInputSchema>;

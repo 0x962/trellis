@@ -39,6 +39,7 @@ import { WaveStartDialog } from "../WaveStart";
 import { CapBanner } from "./components/CapBanner";
 import { TableBody } from "./components/TableBody";
 import { TableError } from "./components/TableError";
+import { rowClickOpens } from "./rowClickOpens";
 
 export type TicketTableProps = {
 	// The project ref of the route, or undefined for a table over every project.
@@ -222,9 +223,8 @@ export function TicketTable({
 
 	const onRowClick = useStableCallback((id: string, event: MouseEvent) => {
 		// The link that covers the whole row (`data-row-link` in `Row`) forwards
-		// its plain click here, so a click on it opens the ticket. A click on a
-		// control or another link inside a cell belongs to that control.
-		if ((event.target as HTMLElement).closest("button, a:not([data-row-link]), [role=checkbox]") !== null) return;
+		// its plain click here, with the link as `currentTarget`.
+		if (!rowClickOpens(event.target as Element, event.currentTarget as Node)) return;
 		if (event.shiftKey) selection.extend(id);
 		else if (event.metaKey || event.ctrlKey) selection.toggle(id);
 		else openTicket(id);
