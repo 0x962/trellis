@@ -35,7 +35,7 @@ export type BaseCondition = {
 export type FlowsCondition = {
 	// How many runs the ticket has.
 	total: number;
-	// The newest run, with the review threads that its agents wrote.
+	// The newest run. `findings` counts the review threads that its agents wrote.
 	newest: { name: string; status: FlowWord; findings: number } | null;
 	// These counts stop a merge across the five newest runs. A waiting run
 	// counts as running.
