@@ -13,10 +13,15 @@ export type WaveRowProps = {
 	epic: EpicLink;
 };
 
-const triggerClass = "-ml-2 max-w-full justify-start font-normal";
+const triggerClass =
+	"-ml-2 h-auto min-w-0 max-w-full justify-start whitespace-normal text-left font-normal leading-5 [&_span]:min-w-0 [&_span]:whitespace-normal";
 
 const nameOf = (wave: WaveLink | null) =>
-	wave === null ? <span className="text-fg-muted">None</span> : <span className="truncate">{wave.name}</span>;
+	wave === null ? (
+		<span className="text-fg-muted">None</span>
+	) : (
+		<span className="min-w-0 break-words">{wave.name}</span>
+	);
 
 // The wave of the ticket, and the picker that changes it. The picker
 // lists the waves of the epic of the ticket and None. A pick paints at
@@ -42,7 +47,7 @@ export function WaveRow({ ticket, epic }: WaveRowProps) {
 	};
 
 	return (
-		<PropertyRow compact label="Wave">
+		<PropertyRow compact align="start" label="Wave">
 			{readOnly ? (
 				nameOf(ticket.wave)
 			) : (

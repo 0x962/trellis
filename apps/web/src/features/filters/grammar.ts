@@ -57,7 +57,7 @@ export type View = {
 	// "hide" drops the Done and Canceled groups from a status grouping. The
 	// URL carries it only when set, so a view shows them by default.
 	closed?: "hide";
-	// The tab of the epic page. The Plan tab is the default, so the URL
+	// The tab of the epic page. The Overview tab is the default, so the URL
 	// carries the field only for the Resources tab. Every other route
 	// drops it.
 	tab?: "resources";

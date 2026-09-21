@@ -8,7 +8,7 @@ export type ChartTone = "agent" | "fg" | "faint" | "success" | "warning" | "dang
 
 // The text color of a tone, for a legend swatch drawn with `bg-current`.
 export const chartToneClass: Record<ChartTone, string> = {
-	agent: "text-accent",
+	agent: "text-agent",
 	fg: "text-fg",
 	faint: "text-fg-faint",
 	success: "text-success",
@@ -19,7 +19,7 @@ export const chartToneClass: Record<ChartTone, string> = {
 
 // The fill of a tone, for an SVG shape or a bar.
 export const chartFillClass: Record<ChartTone, string> = {
-	agent: "fill-accent",
+	agent: "fill-agent",
 	fg: "fill-fg",
 	faint: "fill-fg-faint",
 	success: "fill-success",
@@ -30,7 +30,7 @@ export const chartFillClass: Record<ChartTone, string> = {
 
 // The background of a tone, for an HTML bar segment.
 export const chartBgClass: Record<ChartTone, string> = {
-	agent: "bg-accent",
+	agent: "bg-agent",
 	fg: "bg-fg",
 	faint: "bg-fg-faint",
 	success: "bg-success",

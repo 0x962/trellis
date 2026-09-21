@@ -3,7 +3,12 @@ import type { Resource } from "@trellis/api";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ResourceList } from "./ResourceList";
 
-const controls = { onAdd: { doc: () => {}, link: () => {}, file: () => {} } };
+const controls = {
+	planTitle: "Routines E2E",
+	openDocId: "plan",
+	onOpenDoc: () => {},
+	onAdd: { doc: () => {}, link: () => {}, file: () => {} },
+};
 
 const base = {
 	epicId: "01M2YRWY0TEG6ETHHWRHVDQ5AH",
@@ -55,12 +60,14 @@ describe("ResourceList", () => {
 		expect(html).toContain(">file<");
 		expect(html).toContain("The routine runtime");
 		expect(html).toContain("settle-sequence.mmd");
-		expect(html).toContain("(4)");
+		expect(html).toContain("(5)");
 	});
 
-	test("keeps the order the server gives", () => {
+	test("draws the epic description first, then keeps the order the server gives", () => {
 		const html = renderToStaticMarkup(<ResourceList resources={resources} {...controls} />);
 
+		expect(html.indexOf("Routines E2E")).toBeLessThan(html.indexOf("The routine runtime"));
+		expect(html).toContain("the epic description");
 		expect(html.indexOf("The routine runtime")).toBeLessThan(html.indexOf("canary#55569"));
 		expect(html.indexOf("canary#55569")).toBeLessThan(html.indexOf("op27-send-timeout.gif"));
 		expect(html.indexOf("op27-send-timeout.gif")).toBeLessThan(html.indexOf("settle-sequence.mmd"));
@@ -94,11 +101,21 @@ describe("ResourceList", () => {
 		}
 	});
 
-	test("says the epic holds no resource when the list is empty", () => {
+	test("draws the epic description when the epic holds no resource", () => {
 		const html = renderToStaticMarkup(<ResourceList resources={[]} {...controls} />);
 
-		expect(html).toContain("The epic holds no resource.");
-		expect(html).toContain("(0)");
+		expect(html).toContain("Routines E2E");
+		expect(html).toContain("(1)");
+	});
+
+	test("marks the open document, and says Untitled for a document with no title", () => {
+		const untitled: Resource = { ...resources[0]!, id: "01AAAAAAAAAAAAAAAAAAAAAAA5", name: "", body: "" };
+		const html = renderToStaticMarkup(
+			<ResourceList resources={[untitled]} {...controls} openDocId="01AAAAAAAAAAAAAAAAAAAAAAA5" />,
+		);
+
+		expect(html.match(/aria-current="page"/g)).toHaveLength(1);
+		expect(html.slice(html.indexOf('aria-current="page"'))).toContain("Untitled");
 	});
 
 	test("waits with no count and no empty words while the resources load", () => {
@@ -116,17 +133,17 @@ describe("ResourceList", () => {
 	});
 
 	test("counts its own rows as soon as it has them", () => {
-		const html = renderToStaticMarkup(<ResourceList resources={resources} count={5} {...controls} />);
+		const html = renderToStaticMarkup(<ResourceList resources={resources} count={6} {...controls} />);
 
-		expect(html).toContain("(4)");
-		expect(html).not.toContain("(5)");
+		expect(html).toContain("(5)");
+		expect(html).not.toContain("(6)");
 	});
 
 	test("draws the rows alone when the caller names the list in a tab", () => {
-		const html = renderToStaticMarkup(<ResourceList resources={resources} header={false} />);
+		const html = renderToStaticMarkup(<ResourceList resources={resources} {...controls} header={false} />);
 
 		expect(html).not.toContain("<h2");
-		expect(html).not.toContain("(4)");
+		expect(html).not.toContain("(5)");
 		expect(html).toContain("The routine runtime");
 	});
 

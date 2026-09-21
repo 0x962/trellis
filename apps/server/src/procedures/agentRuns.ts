@@ -13,6 +13,7 @@ export const agentRuns = os.agentRuns.router({
 	file: os.agentRuns.file.handler(({ context, input }) => call(context, "agentRuns.file", input)),
 	setModel: os.agentRuns.setModel.handler(({ context, input }) => call(context, "agentRuns.setModel", input)),
 	resume: os.agentRuns.resume.handler(({ context, input }) => call(context, "agentRuns.resume", input)),
+	retry: os.agentRuns.retry.handler(({ context, input }) => call(context, "agentRuns.retry", input)),
 	session: os.agentRuns.session.handler(({ context, input }) => call(context, "agentRuns.session", input)),
 	terminalOutput: os.agentRuns.terminalOutput.handler(({ context, input }) =>
 		call(context, "agentRuns.terminalOutput", input),
