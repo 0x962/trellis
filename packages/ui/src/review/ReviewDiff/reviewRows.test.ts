@@ -22,8 +22,7 @@ const patch = [
 const files = parseReviewFiles(patch);
 const nothing = new Map();
 
-const rowsOf = (viewed: string[]) =>
-	buildReviewRows(files, "unified", [], "revision", null, nothing, new Set(viewed));
+const rowsOf = (viewed: string[]) => buildReviewRows(files, "unified", [], "revision", null, nothing, new Set(viewed));
 
 const kindsOf = (viewed: string[], name: string) =>
 	rowsOf(viewed)
