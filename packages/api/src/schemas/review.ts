@@ -191,6 +191,12 @@ export const ReviewSubmissionSchema = z.object({
 	verdict: z.enum(["commented", "changes_requested", "approved"]),
 	body: z.string(),
 	revisionId: UlidSchema.nullable(),
+	// The head commit of `revisionId`, or null when the submission names no
+	// revision.
+	headSha: z.string().nullable(),
+	// True when a human actor wrote the submission. An agent can submit a
+	// review from the CLI.
+	byPerson: z.boolean(),
 	threads: z.array(ReviewThreadSchema),
 	createdAt: IsoDateTimeSchema,
 	deliveries: z.array(ReviewDeliverySchema),

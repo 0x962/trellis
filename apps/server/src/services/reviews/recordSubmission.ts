@@ -35,7 +35,9 @@ export const recordSubmission = async (ctx: ServiceCtx, tx: Tx, input: Submissio
 		sql`SELECT p.state, p.ci_state AS "ciState", ${localReviewState(sql`p.id`)} AS "reviewState"
 			FROM pull_requests p WHERE p.id = ${input.prId}`,
 	);
-	const document: ReviewSubmission = {
+	// `reviews.submissions` reads `headSha` and `byPerson` from the revision
+	// and actor tables, so the stored document does not hold them.
+	const document: Omit<ReviewSubmission, "headSha" | "byPerson"> = {
 		id,
 		prId: input.prId,
 		url: input.url,

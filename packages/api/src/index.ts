@@ -4,6 +4,7 @@ export * from "./agentNotifications/index.ts";
 export * from "./answerComment/index.ts";
 export * from "./client.ts";
 export * from "./contract/index.ts";
+export * from "./currentVerdict/index.ts";
 export * from "./dependencyText/index.ts";
 export * from "./epicText/index.ts";
 export * from "./errors.ts";

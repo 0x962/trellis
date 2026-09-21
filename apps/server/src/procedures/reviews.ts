@@ -18,6 +18,7 @@ export const reviews = os.reviews.router({
 	resolve: os.reviews.resolve.handler(({ context, input }) => call(context, "reviews.resolve", input)),
 	edit: os.reviews.edit.handler(({ context, input }) => call(context, "reviews.edit", input)),
 	reaction: os.reviews.reaction.handler(({ context, input }) => call(context, "reviews.reaction", input)),
+	submissions: os.reviews.submissions.handler(({ context, input }) => call(context, "reviews.submissions", input)),
 	submit: os.reviews.submit.handler(({ context, input }) => call(context, "reviews.submit", input)),
 	apply: os.reviews.apply.handler(({ context, input }) => call(context, "reviews.apply", input)),
 });

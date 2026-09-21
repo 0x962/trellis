@@ -4,9 +4,11 @@ import {
 	evidenceFloor,
 	isAgentWorking,
 	type ReviewRevision,
+	type ReviewSubmission,
 	type ReviewThread,
 	reviewRef,
 	turnOf,
+	verdictMark,
 } from "@trellis/api";
 import { Skeleton, TicketId, useMediaQuery } from "@trellis/ui";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
@@ -39,6 +41,7 @@ import { useReviewData } from "./hooks/useReviewData";
 import "@trellis/ui/review.css";
 
 const noThreads: ReviewThread[] = [];
+const noSubmissions: ReviewSubmission[] = [];
 const noRecords: Evidence[] = [];
 const noSentences: string[] = [];
 // The facts strip starts shut, so the file tree and the diff start near the
@@ -66,6 +69,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		evidence,
 		factsReady,
 		threads,
+		submissions,
 		refresh,
 		refreshAll,
 	} = useReviewData(pr);
@@ -140,6 +144,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		() => (evidence.data ?? noRecords).filter((record) => record.headSha === headSha),
 		[evidence.data, headSha],
 	);
+	const allSubmissions = submissions.data ?? noSubmissions;
 	const summaryRow = summary.data ?? null;
 	const prRow = status.data?.prRow ?? null;
 	const floor =
@@ -167,7 +172,12 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	return (
 		<ReviewApplyContext.Provider value={applyState}>
 			<div className="review-page">
-				<ReviewHeader pr={pr} parent={parent} revision={displayRevision} />
+				<ReviewHeader
+					pr={pr}
+					parent={parent}
+					revision={displayRevision}
+					verdict={revision === null ? null : verdictMark(allSubmissions, revision.headSha)}
+				/>
 				{/* The identity stays above the column, so the buttons that end
 				    the review are always in reach. */}
 				<div className="review-identity">
@@ -306,6 +316,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						ticket={status.data?.ticket?.identifier ?? null}
 						run={run}
 						drafts={drafts}
+						submissions={allSubmissions}
 						unmetConditions={conditions === null ? [] : unmetConditions(conditions)}
 						phone={phone}
 						showMerge={canMerge}

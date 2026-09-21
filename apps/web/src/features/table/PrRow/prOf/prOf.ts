@@ -2,7 +2,7 @@ import type { TicketPr } from "@trellis/api";
 
 // One pull request row for a test. `fields` replaces the values the test
 // reads, and the rest take the values of a pull request that GitHub has not
-// measured and that carries no check, no thread and no flow run.
+// measured and that carries no check, no thread, no verdict and no flow run.
 export const prOf = (fields: Partial<TicketPr>): TicketPr => ({
 	number: 57080,
 	owner: "0x962",
@@ -26,6 +26,7 @@ export const prOf = (fields: Partial<TicketPr>): TicketPr => ({
 	skipped: 0,
 	failedChecks: [],
 	openThreads: 0,
+	verdict: null,
 	flowRuns: [],
 	flowRunCount: 0,
 	baseRef: "main",

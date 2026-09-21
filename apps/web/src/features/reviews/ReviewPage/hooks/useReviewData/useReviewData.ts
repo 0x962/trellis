@@ -53,6 +53,17 @@ export const useReviewData = (pr: string) => {
 		status.isFetched &&
 		(status.data?.ticket == null || ticket.isFetched) &&
 		(linkedPr === null || (summary.isFetched && evidence.isFetched));
+	// A delivery changes state after the submit answers, and the server sends
+	// no event for it, so the read repeats while a delivery is on its way.
+	const submissions = useQuery({
+		...orpc.reviews.submissions.queryOptions({ input: { pr } }),
+		refetchInterval: (query) =>
+			query.state.data?.some((submission) =>
+				submission.deliveries.some((delivery) => delivery.state === "pending" || delivery.state === "sending"),
+			)
+				? 3000
+				: false,
+	});
 	const bootedPr = useRef("");
 	const threads = useQuery({
 		...orpc.reviews.list.queryOptions({ input: { pr, all: true } }),
@@ -120,6 +131,7 @@ export const useReviewData = (pr: string) => {
 		evidence,
 		factsReady,
 		threads,
+		submissions,
 		refresh,
 		refreshAll,
 	};

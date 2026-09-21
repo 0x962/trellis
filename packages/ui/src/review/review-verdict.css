@@ -29,6 +29,12 @@
 	align-items: center;
 	gap: 8px;
 }
+.review-verdict-bar-state {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
 .review-verdict-bar-unmet {
 	color: var(--fg-muted);
 	font-size: var(--text-sm);
