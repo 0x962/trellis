@@ -37,7 +37,20 @@
 	font-variant-numeric: tabular-nums;
 	pointer-events: auto;
 }
-.review-batch-bar-text,
+/* The words of the card, left of the buttons: the verdict, the comment count
+   and the count of the unmet conditions. */
+.review-bar-words {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+}
+.review-batch-bar-text {
+	flex: 1;
+	min-width: 0;
+	white-space: nowrap;
+}
 .review-verdict-bar-drafts {
 	white-space: nowrap;
 }
@@ -92,10 +105,7 @@
 	.review-verdict-bar-detail {
 		display: none;
 	}
-	.review-verdict-bar-drafts {
-		flex: 1;
-		min-width: 0;
+	.review-bar-words {
 		overflow: hidden;
-		text-overflow: ellipsis;
 	}
 }

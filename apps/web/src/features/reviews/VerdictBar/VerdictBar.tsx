@@ -40,16 +40,27 @@ export function VerdictBar({ pr, revision, ticket, run, drafts, submissions, unm
 	const given = state?.current && changing !== state.id ? state : null;
 	return (
 		<section className="review-bar review-verdict-bar" aria-label="Verdict">
-			{state && <VerdictLine state={state} />}
-			<span className="review-verdict-bar-drafts text-fg-muted">{commentCount(drafts.length)}</span>
-			{unmet.length > 0 && (
-				<>
-					<span className="review-bar-dot" aria-hidden={true}>
-						·
-					</span>
-					<UnmetConditions unmet={unmet} />
-				</>
-			)}
+			{/* One dot separates each pair of words, and no dot sits at either
+			    end of the line. */}
+			<div className="review-bar-words">
+				{state && (
+					<>
+						<VerdictLine state={state} />
+						<span className="review-bar-dot" aria-hidden={true}>
+							·
+						</span>
+					</>
+				)}
+				<span className="review-verdict-bar-drafts text-fg-muted">{commentCount(drafts.length)}</span>
+				{unmet.length > 0 && (
+					<>
+						<span className="review-bar-dot" aria-hidden={true}>
+							·
+						</span>
+						<UnmetConditions unmet={unmet} />
+					</>
+				)}
+			</div>
 			{given === null ? (
 				<>
 					<VerdictButton
