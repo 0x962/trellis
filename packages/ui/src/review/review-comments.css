@@ -318,6 +318,13 @@
 	font-variant-numeric: tabular-nums;
 }
 @media (max-width: 767px) {
+	.review-thread,
+	.review-message,
+	.review-suggestion,
+	.review-suggestion-diff {
+		max-width: 100%;
+		min-width: 0;
+	}
 	.review-live-links,
 	.review-live-details {
 		grid-template-columns: 1fr;
