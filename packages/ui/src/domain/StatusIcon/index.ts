@@ -1,1 +1,7 @@
-export { type StatusCategory, StatusIcon, type StatusIconProps } from "./StatusIcon";
+export {
+	type ReviewShape,
+	type StatusCategory,
+	type StatusColor,
+	StatusIcon,
+	type StatusIconProps,
+} from "./StatusIcon";

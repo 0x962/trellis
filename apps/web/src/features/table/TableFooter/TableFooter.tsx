@@ -8,7 +8,7 @@ export type TableFooterProps = {
 	// The completed tickets the view leaves out: Done and Canceled under a
 	// grouping other than status. The footer then names them.
 	hidden?: number;
-	// The URL sort. The default sort reads as priority, then updated.
+	// The URL sort.
 	sort: Sort;
 };
 

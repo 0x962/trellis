@@ -12,7 +12,7 @@ const evidenceOf = (pr: TicketPr): EvidenceCondition | null =>
 // The merge conditions of one pull request, read from the pull request row of
 // the ticket. `conditionsOf` builds the same shape for the review page from
 // the evidence records, which the ticket page does not load. The row holds no
-// test proof and no base branch state, so `tests` and `base` stay null.
+// test proof, so `tests` stays null.
 // `mergeReadiness` would read those gaps as open conditions, so
 // `ShortConditions` prints no readiness word.
 //
@@ -30,7 +30,9 @@ export function prConditions(pr: TicketPr, waitsOn: TicketSummary["waitsOn"]): C
 		checks: { pass: pr.pass, fail: pr.fail, pending: pr.pending, skipped: pr.skipped },
 		threads: pr.openThreads,
 		flows: flowsOf(pr),
-		base: null,
+		base: { behindBy: null, baseRefName: pr.baseRef },
+		stackedOn:
+			pr.stackedOn === null ? null : { number: pr.stackedOn.number, ticketIdentifier: pr.stackedOn.ticketIdentifier },
 		// The server leaves a ticket that is done out of `waitsOn`, so every
 		// entry is a ticket that nobody merged yet.
 		ancestors: waitsOn.map((dependency) => ({ identifier: dependency.identifier, merged: false })),

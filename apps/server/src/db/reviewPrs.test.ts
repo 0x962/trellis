@@ -36,9 +36,23 @@ const insertTicket = (id: string, project: string, root: string, status: string,
 	db.execute(sql`INSERT INTO tickets (id, project_id, root_id, number, title, status_id, position, created_at, updated_at)
 		VALUES (${id}, ${project}, ${root}, ${number}, 'Task', ${status}, 0, ${at}, ${at})`);
 
-const insertPull = (id: string, owner: string, repo: string, number: number, retained: boolean) =>
-	db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, review_retained, created_at, updated_at)
-		VALUES (${id}, ${owner}, ${repo}, ${number}, ${`https://github.com/${owner}/${repo}/pull/${number}`}, 'open', ${retained}, ${at}, ${at})`);
+const ciStateOf = (checks: readonly { bucket: string }[]) => {
+	if (checks.some((check) => check.bucket === "fail" || check.bucket === "cancel")) return "fail";
+	if (checks.some((check) => check.bucket === "pending")) return "pending";
+	if (checks.some((check) => check.bucket === "pass")) return "pass";
+	return "none";
+};
+
+const insertPull = (
+	id: string,
+	owner: string,
+	repo: string,
+	number: number,
+	retained: boolean,
+	checks: readonly { name: string; workflow: string | null; bucket: string; link: string | null }[] = [],
+) =>
+	db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, review_retained, checks, ci_state, created_at, updated_at)
+		VALUES (${id}, ${owner}, ${repo}, ${number}, ${`https://github.com/${owner}/${repo}/pull/${number}`}, 'open', ${retained}, ${JSON.stringify(checks)}::jsonb, ${ciStateOf(checks)}, ${at}, ${at})`);
 
 const link = (ticket: string, pull: string) =>
 	db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
@@ -58,7 +72,9 @@ beforeAll(async () => {
 	const oth1 = ulid();
 	await insertTicket(tst1, web, tst, await insertStatus(tst), 1);
 	await insertTicket(oth1, oth, oth, await insertStatus(oth), 1);
-	await insertPull(pulls.linked, "acme", "app", 1, false);
+	await insertPull(pulls.linked, "acme", "app", 1, false, [
+		{ name: "lint", workflow: "CI", bucket: "fail", link: "https://checks.example/lint" },
+	]);
 	await insertPull(pulls.retained, "acme", "app", 2, true);
 	await insertPull(pulls.other, "other", "repo", 3, false);
 	await insertPull(pulls.elsewhere, "other", "repo", 4, true);
@@ -131,4 +147,14 @@ test("a partial pull request row keeps an unknown size", async () => {
 		sql`SELECT additions, deletions, changed_files FROM pull_requests WHERE id = ${pulls.linked}`,
 	);
 	expect(size.rows[0]).toEqual({ additions: null, deletions: null, changed_files: null });
+});
+
+test("a pull request row carries check state", async () => {
+	const list = await db.transaction((tx) => prs(ctx, tx, { project: "TST" }));
+	const linked = list.find((pr) => pr.id === pulls.linked)!;
+
+	expect(linked.ciState).toBe("fail");
+	expect(linked.checks).toEqual([
+		{ name: "lint", workflow: "CI", bucket: "fail", link: "https://checks.example/lint" },
+	]);
 });

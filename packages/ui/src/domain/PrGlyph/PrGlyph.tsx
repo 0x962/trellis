@@ -35,7 +35,7 @@ const looks = {
 type PrGlyphLook = keyof typeof looks;
 
 // GitHub shows the draft and queued marks only while the pull request is open.
-const lookOf = (state: PullRequestState, isDraft: boolean, isQueued: boolean): PrGlyphLook => {
+export const prGlyphLook = (state: PullRequestState, isDraft: boolean, isQueued: boolean): PrGlyphLook => {
 	if (state === "open" && isQueued) return "queued";
 	return state === "open" && isDraft ? "draft" : state;
 };
@@ -49,7 +49,7 @@ const iconSizes: Record<PrGlyphSize, string> = { sm: "size-3.5", md: "size-4" };
 // open pull request open. The caller draws the check result next to the glyph.
 // The sr-only text names the state, so color is never the only signal.
 export function PrGlyph({ state, isDraft, isQueued, size = "md" }: PrGlyphProps) {
-	const key = lookOf(state, isDraft, isQueued);
+	const key = prGlyphLook(state, isDraft, isQueued);
 	const { label, tone, Icon } = looks[key];
 	return (
 		<span

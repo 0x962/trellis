@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CiStateSchema } from "./enums";
 import { booleanString, IsoDateTimeSchema, UlidSchema } from "./primitives";
 import { CheckSchema, PullRequestSchema } from "./pullRequest";
 import { TicketIdentifierSchema } from "./ticket";
@@ -104,6 +105,8 @@ export const ReviewPrSchema = z.object({
 	state: z.string(),
 	isDraft: z.boolean(),
 	isQueued: z.boolean(),
+	checks: z.array(CheckSchema),
+	ciState: CiStateSchema,
 	open: z.number().int(),
 	resolved: z.number().int(),
 	updatedAt: IsoDateTimeSchema,

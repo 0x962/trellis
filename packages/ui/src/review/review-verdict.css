@@ -35,34 +35,11 @@
 	align-items: center;
 	gap: 6px;
 }
-.review-verdict-bar-unmet {
-	color: var(--fg-muted);
-	font-size: var(--text-sm);
-}
 /* The local verdict note and the message of a submit that failed. */
 .review-draft-note {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
-}
-.review-merge-confirmation {
-	display: flex;
-	flex-direction: column;
-	gap: 10px;
-}
-.review-merge-admin-note,
-.review-merge-sha {
-	color: var(--fg-muted);
-	font-size: var(--text-sm);
-	font-variant-numeric: tabular-nums;
-}
-.review-merge-unmet {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	padding-left: 16px;
-	list-style: disc;
-	font-size: var(--text-base);
 }
 /* The page moves to a 16 px gutter on a phone, and the bar follows it. */
 @media (max-width: 767px) {

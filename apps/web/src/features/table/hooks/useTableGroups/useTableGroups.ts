@@ -102,6 +102,7 @@ export const useTableGroups = ({
 				forYou: mark === undefined ? undefined : forYouCount(group.rows, working),
 				badge: mark?.badge,
 				note: mark?.note,
+				done: mark?.done,
 				epicRef: oneEpic && view.group === "wave" ? epicRefs[0] : undefined,
 				expanded: view.group === "none" || !isCollapsed(group.key),
 			};

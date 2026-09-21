@@ -2,6 +2,7 @@ import type { StatusSummary } from "@trellis/api";
 import { cx, StatusIcon } from "@trellis/ui";
 import type { RefObject } from "react";
 import { StatusPicker } from "../../../../pickers/StatusPicker";
+import { statusIconProps } from "../../../../statusIconProps";
 import { cellButtonClass } from "../../cellButtonClass";
 
 export type StatusCellProps = {
@@ -44,7 +45,7 @@ export function StatusCell({
 			finalFocus={finalFocus}
 			trigger={
 				<button type="button" aria-label={`Status: ${status.name}`} className={cellButtonClass}>
-					<StatusIcon category={status.category} reviewer={status.reviewer ?? undefined} progress={progress} />
+					<StatusIcon {...statusIconProps(status)} progress={progress} />
 					<span className={cx("truncate text-sm text-fg-muted max-md:sr-only", iconOnly && "sr-only")}>
 						{status.name}
 					</span>

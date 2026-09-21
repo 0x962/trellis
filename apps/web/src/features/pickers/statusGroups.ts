@@ -2,6 +2,7 @@ import { type StatusCategory, StatusCategorySchema, type StatusSummary } from "@
 import type { CommandGroup } from "@trellis/ui";
 import { StatusIcon } from "@trellis/ui";
 import { createElement } from "react";
+import { statusIconProps } from "../statusIconProps";
 import { RowMarks } from "./components/RowMarks";
 
 export const categoryLabels: Record<StatusCategory, string> = {
@@ -46,7 +47,7 @@ export const statusGroups = (statuses: readonly StatusSummary[], options: Status
 						id: status.id,
 						label: status.name,
 						keywords: [status.slug],
-						icon: createElement(StatusIcon, { category, reviewer: status.reviewer ?? undefined }),
+						icon: createElement(StatusIcon, statusIconProps(status)),
 						current,
 						checked: options.checked === undefined ? undefined : options.checked.includes(status.id),
 						...(picker

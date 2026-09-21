@@ -13,6 +13,7 @@ const allMet: Conditions = {
 	threads: 0,
 	flows: { total: 1, newest: { name: "Code Reviewer", status: "passed", findings: 0 }, running: 0, failed: 0 },
 	base: { behindBy: 3, baseRefName: "master" },
+	stackedOn: null,
 	ancestors: [],
 };
 
@@ -31,7 +32,7 @@ test("the line names every condition that stops the merge", () => {
 		threads: 2,
 	});
 
-	expect(line).toBe("1 check failed · 2 open threads");
+	expect(line).toBe("1 check failed · 2 comments open");
 });
 
 test("a pull request with no risk answers reads as loading", () => {

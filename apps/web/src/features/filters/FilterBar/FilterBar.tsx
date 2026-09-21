@@ -3,6 +3,7 @@ import { useRouterState } from "@tanstack/react-router";
 import type { StatusSummary } from "@trellis/api";
 import { FilterBar as FilterToolbar, IconButton, Menu, toast, useHotkey } from "@trellis/ui";
 import { type ReactNode, useMemo, useState } from "react";
+import { useEscapeLayer } from "../../../lib/hotkeys";
 import { toCli } from "../cli";
 import { FilterChip } from "../FilterChip";
 import { chipFields, type FilterField } from "../fields";
@@ -83,6 +84,9 @@ export function FilterBar({
 		if (document.activeElement?.closest('[role="dialog"]') !== null) return;
 		event.preventDefault();
 		openAt(fields);
+	});
+	useEscapeLayer("popover", open, () => {
+		setOpen(false);
 	});
 
 	const query = {

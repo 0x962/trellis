@@ -196,7 +196,7 @@ test("a local comment reaches the agent of the ticket", async () => {
 	expect(sent).toEqual([
 		{
 			id: queued.runId,
-			text: `trellis: your pull request has a comment. The review has 3 comments.\nReview note: Name the count in the header.\nRead the threads: trellis review list ${queued.url}\nApply what each thread asks. Answer each thread.`,
+			text: `trellis: your pull request has a comment. The review has 3 comments.\nReview note: Name the count in the header.\nRead the comments: trellis review list ${queued.url}\nApply what each comment asks. Answer each comment.`,
 			interrupt: true,
 			messageId: `review-${queued.deliveryId}`,
 			expectedTerminalId: `term-${queued.runId}`,
