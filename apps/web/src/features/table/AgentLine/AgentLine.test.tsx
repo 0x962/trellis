@@ -203,8 +203,8 @@ describe("AgentLine", () => {
 			/>,
 		);
 
-		expect(html).toContain("<button");
-		expect(html).toContain('type="button"');
+		expect(html).toContain('role="button"');
+		expect(html).toContain('tabindex="0"');
 		expect(html).toContain("hover:bg-band");
 		expect(html).toContain("focus-visible:outline-accent");
 	});

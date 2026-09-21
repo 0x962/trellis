@@ -1,5 +1,5 @@
 import { cx } from "@trellis/ui";
-import type { Ref } from "react";
+import type { KeyboardEvent, MouseEvent, Ref } from "react";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { AgentWords } from "../AgentWords";
 import { agentLineHeight } from "../rowHeights";
@@ -21,7 +21,7 @@ type AgentLineProps = {
 	index?: number;
 	// The virtualizer's `measureElement`. The words wrap, so the height of
 	// the line depends on its text and on the table width.
-	measureRef?: Ref<HTMLButtonElement>;
+	measureRef?: Ref<HTMLDivElement>;
 	// The markdown renderer of the message. `AgentWords` names what it is
 	// for.
 	render?: (markdown: string) => string;
@@ -35,13 +35,30 @@ type AgentLineProps = {
 // grows with the message. Below 768 px the table draws no such line, and the
 // phone row shows the words.
 //
-// A click on the line, or Enter on it, opens the session of that run in the
-// sheet over this list.
+// A click on the line, or Enter or Space on it, opens the session of that
+// run in the sheet over this list. The line carries `role="button"` on a
+// div and not a `button` element, because the message renders as markdown,
+// and a link or an image inside a `button` element is invalid HTML. A click
+// that starts on such a link or image does its own work and opens no sheet.
+// `base.css` gives every `role="button"` the pointer cursor.
 export function AgentLine({ line, top, last, depth, index, measureRef, render }: AgentLineProps) {
+	const open = () => pageSheetActions.openSession(line.runId);
+	const onClick = (event: MouseEvent<HTMLDivElement>) => {
+		if ((event.target as HTMLElement).closest("a, img") !== null) return;
+		open();
+	};
+	const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+		if (event.target !== event.currentTarget) return;
+		if (event.key !== "Enter" && event.key !== " ") return;
+		event.preventDefault();
+		open();
+	};
 	return (
-		<button
-			type="button"
+		// biome-ignore lint/a11y/useSemanticElements: the message renders as markdown, which a button element cannot hold.
+		<div
 			ref={measureRef}
+			role="button"
+			tabIndex={0}
 			data-index={index}
 			data-agent-line={line.asks ? "asks" : line.working ? "working" : "message"}
 			style={{ minHeight: `${agentLineHeight}px`, transform: `translateY(${top}px)` }}
@@ -50,10 +67,11 @@ export function AgentLine({ line, top, last, depth, index, measureRef, render }:
 				treeContentPad[depth],
 				last && "border-b border-border",
 			)}
-			onClick={() => pageSheetActions.openSession(line.runId)}
+			onClick={onClick}
+			onKeyDown={onKeyDown}
 		>
 			<TreeBranch last={last} elbowTop={agentLineHeight / 2} depth={depth} />
 			<AgentWords line={line} wrap render={render} />
-		</button>
+		</div>
 	);
 }
