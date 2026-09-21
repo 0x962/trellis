@@ -12,7 +12,7 @@ import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { useActor } from "../lib/actor";
 import type { RouterContext } from "../lib/appContext";
 import { canOpenDesktopSettingsBeforeSetup, type DesktopBridge } from "../lib/desktopBridge";
-import { resolveActor } from "../lib/identity";
+import { entryStep, loadEntry } from "../lib/entryGate";
 
 // The two pages that render without the shell: the first run and the
 // design gallery.
@@ -21,22 +21,17 @@ const bare = (pathname: string) => pathname === "/setup" || pathname.startsWith(
 const Sidebar = lazy(async () => ({ default: (await import("../features/sidebar/Sidebar")).Sidebar }));
 
 // Every page but the bare two needs an identity and a project. The server
-// holds the identity, so only a server with no stored name and no project
-// opens the first run. Without a project the app opens the project step of
-// the same form. The settings come with the projects in one batched
-// request, because the palette reads the agent command template on the
-// first Cmd+K.
+// holds the identity, so only a server that answers with no stored name and
+// no project opens the first run. Without a project the app opens the
+// project step of the same form. A server that refuses or does not answer
+// throws instead, and `errorComponent` below names the refusal.
 export const Route = createRootRouteWithContext<RouterContext>()({
 	beforeLoad: async ({ context, location }) => {
 		const desktop = (window as Window & { trellisDesktop?: Partial<DesktopBridge> }).trellisDesktop;
 		if (bare(location.pathname) || canOpenDesktopSettingsBeforeSetup(desktop, location.pathname, location.hash)) return;
-		const [projects, identity] = await Promise.all([
-			context.queryClient.fetchQuery(context.orpc.projects.list.queryOptions({ input: {} })),
-			context.queryClient.ensureQueryData(context.orpc.actors.default.queryOptions({})),
-			context.queryClient.ensureQueryData(context.orpc.settings.get.queryOptions()),
-		]);
-		if (!(await resolveActor(context, identity, projects.length))) throw redirect({ to: "/setup", replace: true });
-		if (projects.length === 0) throw redirect({ to: "/setup", search: { step: "project" }, replace: true });
+		const step = await entryStep(context, await loadEntry(context));
+		if (step === "name") throw redirect({ to: "/setup", replace: true });
+		if (step === "project") throw redirect({ to: "/setup", search: { step: "project" }, replace: true });
 	},
 	component: RootComponent,
 	notFoundComponent: PageNotFound,
