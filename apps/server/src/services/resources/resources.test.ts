@@ -106,6 +106,24 @@ test("stores a doc without a blob", async () => {
 	expect(ResourceUpdateInputSchema.safeParse({ id: resource.id, body: `${body}a` }).success).toBe(false);
 });
 
+test("stores a doc with an empty title, then renames it and keeps its body", async () => {
+	const resource = await inTx((tx) => add(context, tx, { epic: "TRL/resources", kind: "doc", name: "", body: "" }));
+	expect(resource).toMatchObject({ kind: "doc", name: "", body: "" });
+
+	const renamed = await inTx((tx) => update(context, tx, { id: resource.id, name: "  Research notes " }));
+	expect(renamed).toMatchObject({ name: "Research notes", body: "" });
+	const typed = await inTx((tx) => update(context, tx, { id: resource.id, body: "First line" }));
+	expect(typed).toMatchObject({ name: "Research notes", body: "First line" });
+
+	expect(
+		ResourceAddInputSchema.safeParse({ epic: "TRL/resources", kind: "link", name: "", url: "https://a.b" }).success,
+	).toBe(false);
+	await expect(
+		db.execute(sql`INSERT INTO epic_resources (id, epic_id, kind, name, url, actor_name, actor_kind, created_at, updated_at)
+			VALUES (${ulid()}, ${epicId}, 'link', '', 'https://a.b', ${actor.name}, ${actor.kind}, ${now}, ${now})`),
+	).rejects.toThrow("epic_resources_name_check");
+});
+
 test("stores a link without a blob", async () => {
 	const resource = await inTx((tx) =>
 		add(context, tx, {
