@@ -46,6 +46,7 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 			key={project.id}
 			project={project}
 			runs={items}
+			sessions={sessions.data ?? []}
 			selectedId={selected?.id}
 			pending={runs.isPending || sessions.isPending}
 			error={runs.error?.message ?? sessions.error?.message}

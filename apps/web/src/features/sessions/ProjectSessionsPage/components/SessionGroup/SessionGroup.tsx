@@ -1,10 +1,11 @@
 import { ArrowDown } from "@phosphor-icons/react";
-import { type AgentRun, sessionStatus } from "@trellis/api";
+import { type AgentRun, type Session, sessionStatus } from "@trellis/api";
 import { Avatar, GroupHeader, IconButton, Tooltip, useMediaQuery } from "@trellis/ui";
 import { useEffect, useId, useRef, useState } from "react";
 import { uiActions, useUiStore } from "../../../../../stores/uiStore";
 import { agentKindOf } from "../../../../agents/agentKindOf";
 import { agentProfileOf } from "../../../../agents/agentProfileOf";
+import { SessionActionsMenu } from "../../../SessionActionsMenu";
 import { sessionStateLabel } from "../../../sessionStateLabel";
 import { isHistoricalSession } from "../../isHistoricalSession";
 import { RunLineChanges } from "./components/RunLineChanges";
@@ -21,6 +22,7 @@ export function SessionGroup({
 	label,
 	projectPath,
 	runs,
+	sessionsByRunId,
 	selectedId,
 	onSelect,
 	searching = false,
@@ -29,6 +31,7 @@ export function SessionGroup({
 	label: string;
 	projectPath: string;
 	runs: AgentRun[];
+	sessionsByRunId: Map<string, Session>;
 	selectedId?: string;
 	onSelect: (id: string) => void;
 	searching?: boolean;
@@ -68,8 +71,9 @@ export function SessionGroup({
 						const historical = isHistoricalSession(run);
 						const state = sessionStateLabel(run);
 						const needsAttention = ["failed", "interrupted", "needs-input", "done"].includes(sessionStatus(run));
+						const session = sessionsByRunId.get(run.id);
 						return (
-							<li key={run.id}>
+							<li key={run.id} className="group/row relative">
 								<button
 									ref={run.id === selectedId ? selectedButton : undefined}
 									type="button"
@@ -107,6 +111,14 @@ export function SessionGroup({
 										</span>
 									</span>
 								</button>
+								{session !== undefined && (
+									<span
+										data-slot="menu"
+										className="absolute top-1 right-1 flex size-6 pointer-coarse:top-0 pointer-coarse:size-11 items-center justify-center opacity-0 transition-opacity duration-hover ease-out group-focus-within/row:opacity-100 group-hover/row:opacity-100 has-[[data-popup-open]]:opacity-100 [@media(hover:none)]:opacity-100"
+									>
+										<SessionActionsMenu session={session} size="xs" />
+									</span>
+								)}
 							</li>
 						);
 					})}
