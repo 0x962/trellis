@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { reviewRef } from "@trellis/api";
+import { useState } from "react";
 import { pageSheetActions, usePageSheetStore } from "../../../../../stores/pageSheetStore";
 import { ReviewPage } from "../../../../reviews/ReviewPage/ReviewPage";
+import type { ReviewTab } from "../../../../reviews/ReviewPage/reviewTab";
 import { PageSheet } from "../../../PageSheet";
 import { useShown } from "../../useShown";
 
@@ -21,6 +23,11 @@ export function PullRequestSheet({ ticket }: PullRequestSheetProps) {
 	const pr = usePageSheetStore((state) => state.pr);
 	const shown = useShown(pr);
 	const ref = shown === null ? null : reviewRef(shown);
+	// The page under the sheet owns the URL, so the sheet holds the picked tab
+	// and hands it to the full-page link. A tab picked for one pull request
+	// does not carry over to the next.
+	const [picked, setPicked] = useState<{ pr: string; tab: ReviewTab } | null>(null);
+	const tab = picked !== null && picked.pr === shown ? picked.tab : undefined;
 	// The header of the review names the ticket under it. A click on that
 	// name closes the review and leaves the ticket open.
 	const parent =
@@ -47,12 +54,21 @@ export function PullRequestSheet({ ticket }: PullRequestSheetProps) {
 					<Link
 						to="/reviews/$owner/$repo/$number"
 						params={{ owner: ref.owner, repo: ref.repo, number: String(ref.number) }}
-						search={ticket === undefined ? {} : { ticket }}
+						search={{ ...(ticket === undefined ? {} : { ticket }), ...(tab === undefined ? {} : { tab }) }}
 					/>
 				)
 			}
 		>
-			{shown !== null && <ReviewPage key={shown} pr={shown} syncHash={false} parent={parent} />}
+			{shown !== null && (
+				<ReviewPage
+					key={shown}
+					pr={shown}
+					syncHash={false}
+					parent={parent}
+					tab={tab}
+					onTabChange={(next) => setPicked({ pr: shown, tab: next })}
+				/>
+			)}
 		</PageSheet>
 	);
 }

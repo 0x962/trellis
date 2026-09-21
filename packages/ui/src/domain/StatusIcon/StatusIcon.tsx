@@ -1,5 +1,4 @@
 import { CheckCircle, Circle, CircleDashed, XCircle } from "@phosphor-icons/react";
-import type { ReactElement } from "react";
 import { Tooltip } from "../../primitives/Tooltip";
 import { cx } from "../../utils/cx";
 
@@ -18,8 +17,10 @@ export type StatusIconProps = {
 	// For the started category: the share of sub-tickets that are done, 0 to 1.
 	// Without it the disk is half full.
 	progress?: number;
-	// The status name. A labeled icon is an image with a name; an unlabeled one
-	// is decoration beside the name it stands for.
+	// The status name. A labeled icon is an image with a name, and it shows
+	// that name in a tooltip. An unlabeled one is decoration beside the name
+	// it stands for, and the control around it carries the name and the
+	// tooltip.
 	label?: string;
 	tooltip?: boolean;
 	focusable?: boolean;
@@ -109,9 +110,28 @@ export function StatusIcon({
 		"aria-hidden": label ? undefined : ("true" as const),
 		tabIndex: label && tooltip && focusable ? 0 : undefined,
 	};
-	const withTooltip = (icon: ReactElement) => (label && tooltip ? <Tooltip content={label}>{icon}</Tooltip> : icon);
+	const icon = mark({ category, shape, tone, progress, shared, className });
+	return label === undefined || !tooltip ? icon : <Tooltip content={label}>{icon}</Tooltip>;
+}
+
+// The drawn mark, without the tooltip around it.
+function mark({
+	category,
+	shape,
+	tone,
+	progress,
+	shared,
+	className,
+}: {
+	category: StatusCategory;
+	shape: ReviewShape;
+	tone: string;
+	progress?: number;
+	shared: Record<string, string | number | undefined>;
+	className?: string;
+}) {
 	if (category === "started") {
-		return withTooltip(
+		return (
 			<span
 				{...shared}
 				data-progress={progress}
@@ -123,13 +143,13 @@ export function StatusIcon({
 					className="absolute size-1/2 rounded-round"
 					style={{ backgroundImage: `conic-gradient(currentColor ${progress ?? 0.5}turn, transparent 0)` }}
 				/>
-			</span>,
+			</span>
 		);
 	}
 	if (category === "review") {
-		return withTooltip(<ReviewIcon shape={shape} color={tone} shared={shared} className={className} />);
+		return <ReviewIcon shape={shape} color={tone} shared={shared} className={className} />;
 	}
 	const Icon = icons[category];
 	const weight = category === "done" ? "fill" : "regular";
-	return withTooltip(<Icon {...shared} weight={weight} className={cx(baseClass, tone, className)} />);
+	return <Icon {...shared} weight={weight} className={cx(baseClass, tone, className)} />;
 }

@@ -11,6 +11,9 @@ export type StatusPickerProps<S extends StatusSummary> = {
 	value?: string;
 	onPick: (status: S) => void;
 	trigger: ReactElement;
+	// The words the trigger shows on hover and on keyboard focus. The
+	// popover hides them while it is open.
+	triggerTooltip?: string;
 	open?: boolean;
 	onOpenChange?: (open: boolean) => void;
 	// The element that takes focus when the picker closes.
@@ -26,6 +29,7 @@ export function StatusPicker<S extends StatusSummary>({
 	value,
 	onPick,
 	trigger,
+	triggerTooltip,
 	open,
 	onOpenChange,
 	finalFocus,
@@ -52,6 +56,7 @@ export function StatusPicker<S extends StatusSummary>({
 	return (
 		<Popover
 			trigger={trigger}
+			triggerTooltip={triggerTooltip}
 			label="Status"
 			open={isOpen}
 			onOpenChange={setOpen}

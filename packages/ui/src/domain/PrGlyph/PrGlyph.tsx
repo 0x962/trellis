@@ -51,7 +51,8 @@ const iconSizes: Record<PrGlyphSize, string> = { sm: "size-3.5", md: "size-4" };
 
 // The glyph shows the state, never the check result. A failed check leaves an
 // open pull request open. The caller draws the check result next to the glyph.
-// The accessible name states the pull request state, so color is never the only signal.
+// The accessible name and the tooltip use the same words, so color is never
+// the only signal.
 export function PrGlyph({
 	state,
 	isDraft,

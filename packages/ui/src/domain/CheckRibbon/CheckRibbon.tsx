@@ -20,8 +20,8 @@ const buckets: Record<CheckBucket, string> = {
 	pass: "bg-success",
 	fail: "bg-danger",
 	cancel: "bg-danger",
-	skipping: "bg-warning",
-	pending: "bg-border-strong ribbon-shimmer motion-reduce:animate-none",
+	skipping: "bg-border-strong",
+	pending: "bg-warning ribbon-shimmer motion-reduce:animate-none",
 };
 
 // The segments of `ribbonSegments`, in order, colored by bucket. A pending
@@ -30,6 +30,10 @@ const buckets: Record<CheckBucket, string> = {
 // segment is keyed by its position, because GitHub check names repeat (one
 // job in two workflows, a matrix re-run). The position is what a segment
 // stands for.
+//
+// The whole ribbon carries one tooltip, which counts the checks of each
+// outcome. A tooltip on each segment would open a second popup over the
+// first one while the pointer crosses the bar.
 export function CheckRibbon({
 	checks,
 	size = "full",
@@ -80,5 +84,6 @@ export function CheckRibbon({
 			{segments}
 		</span>
 	);
-	return tooltip ? <Tooltip content={label}>{ribbon}</Tooltip> : ribbon;
+	if (!tooltip) return ribbon;
+	return <Tooltip content={label}>{ribbon}</Tooltip>;
 }

@@ -10,6 +10,11 @@ export type ReviewStateIconProps = {
 	isDraft: boolean;
 	tooltip?: boolean;
 	focusable?: boolean;
+	// The words for this mark, in place of the GitHub review state words.
+	// The local verdict of the person who looks at the screen needs its own
+	// words: the mark then says what that person did, not what GitHub asks
+	// of a reviewer.
+	label?: string;
 };
 
 type Look = { label: string; tone: string; Icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }> };
@@ -32,20 +37,28 @@ export const reviewStateLabel = (reviewState: PullRequestReviewState, isDraft: b
 	looks[isDraft ? "idle" : keys[reviewState]].label;
 
 // The review state of one pull request uses a distinct icon and color. A
-// draft uses the idle icon because it does not accept a review.
-export function ReviewStateIcon({ reviewState, isDraft, tooltip = true, focusable = true }: ReviewStateIconProps) {
+// draft uses the idle icon because it does not accept a review. The
+// accessible name and the tooltip say the same words.
+export function ReviewStateIcon({
+	reviewState,
+	isDraft,
+	tooltip = true,
+	focusable = true,
+	label,
+}: ReviewStateIconProps) {
 	const key = isDraft ? "idle" : keys[reviewState];
-	const { label, tone, Icon } = looks[key];
+	const { tone, Icon } = looks[key];
+	const words = label ?? looks[key].label;
 	const icon = (
 		<span
 			data-review-state={key}
 			role="img"
-			aria-label={label}
+			aria-label={words}
 			tabIndex={tooltip && focusable ? 0 : undefined}
 			className={cx("relative inline-flex size-5 shrink-0 items-center justify-center", tone)}
 		>
 			<Icon className="size-4" aria-hidden={true} />
 		</span>
 	);
-	return tooltip ? <Tooltip content={label}>{icon}</Tooltip> : icon;
+	return tooltip ? <Tooltip content={words}>{icon}</Tooltip> : icon;
 }

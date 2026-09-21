@@ -2,13 +2,9 @@ import { Paperclip, TextAlignLeft } from "@phosphor-icons/react";
 import type { TicketSummary } from "@trellis/api";
 import { Tooltip } from "@trellis/ui";
 import { formatCount } from "../../../../../lib/format";
-import type { TicketDisclosure as TicketDisclosureState } from "../../../utils/flattenGroups";
-import { TicketDisclosure } from "../TicketDisclosure";
 
 export type TitleCellProps = {
 	ticket: TicketSummary;
-	disclosure: TicketDisclosureState;
-	onToggleDisclosure?: () => void;
 };
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
@@ -16,14 +12,19 @@ const plural = (count: number, word: string) => `${count} ${word}${count === 1 ?
 // The title on one line, then the muted marks: the parent, the sub-ticket
 // ring, the attachment count, and the comment count. A long title
 // truncates, so the row keeps its height.
-export function TitleCell({ ticket, disclosure, onToggleDisclosure }: TitleCellProps) {
+//
+// A done or canceled ticket prints its title alone. Its work is over, so
+// the marks say nothing a person acts on, and the row reads as one quiet
+// line. The caret that shows and hides its pull request lines is not here:
+// `Row` draws it in the track at the right end of the row.
+export function TitleCell({ ticket }: TitleCellProps) {
 	const { parent, childCount, childDoneCount, attachmentCount, commentCount } = ticket;
 	const progress = childCount === 0 ? 0 : childDoneCount / childCount;
+	if (ticket.status.category === "done" || ticket.status.category === "canceled") {
+		return <span className="truncate text-fg">{ticket.title}</span>;
+	}
 	return (
 		<span className="flex min-w-0 items-center gap-2">
-			{disclosure !== null && (
-				<TicketDisclosure identifier={ticket.identifier} disclosure={disclosure} onToggle={onToggleDisclosure} />
-			)}
 			<span className="truncate text-fg">{ticket.title}</span>
 			{parent !== null && (
 				<Tooltip content={`Parent ${parent.identifier}`}>
@@ -54,10 +55,15 @@ export function TitleCell({ ticket, disclosure, onToggleDisclosure }: TitleCellP
 			)}
 			{attachmentCount > 0 && (
 				<Tooltip content={plural(attachmentCount, "attachment")}>
+					{/* The row covers itself with a link that opens the ticket, and `Row`
+					    turns the pointer off for a cell so that link takes the pointer.
+					    This mark takes the pointer back, or it never sees a hover and
+					    its tooltip never opens. A click on it still opens the ticket,
+					    because the click reaches the row. */}
 					<span
 						role="img"
 						aria-label={plural(attachmentCount, "attachment")}
-						className="inline-flex shrink-0 items-center gap-0.5 text-xs text-fg-muted tabular"
+						className="pointer-events-auto inline-flex shrink-0 items-center gap-0.5 text-xs text-fg-muted tabular"
 					>
 						<Paperclip aria-hidden="true" className="size-2.75" />
 						{formatCount(attachmentCount)}

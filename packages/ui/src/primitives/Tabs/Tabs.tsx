@@ -19,6 +19,9 @@ export type TabsProps<Value extends string> = {
 	// Replaces the 12 px top padding of the panel, such as for a panel that
 	// fills the height of the page.
 	panelClassName?: string;
+	// Keeps every panel in the tree and hides the inactive ones, so a panel
+	// keeps its scroll position and its state while another tab shows.
+	keepMounted?: boolean;
 };
 
 // The tab an arrow key lands on, among the enabled tabs only. Base UI moves
@@ -49,6 +52,7 @@ export function Tabs<Value extends string>({
 	onValueChange,
 	className,
 	panelClassName = "pt-3",
+	keepMounted = false,
 }: TabsProps<Value>) {
 	const onKeyDown = (event: BaseUIEvent<KeyboardEvent<HTMLDivElement>>) => {
 		const next = step(items, value, event.key);
@@ -85,6 +89,7 @@ export function Tabs<Value extends string>({
 				<BaseTabs.Panel
 					key={item.value}
 					value={item.value}
+					keepMounted={keepMounted}
 					className={cx(
 						panelClassName,
 						"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",

@@ -3,18 +3,20 @@ import type { KeyboardEvent, MouseEvent, Ref } from "react";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { AgentWords } from "../AgentWords";
 import { agentLineHeight } from "../rowHeights";
-import { TreeBranch, type TreeDepth, treeContentPad } from "../TreeLines";
+import { TreeBranch, type TreeDepth, TreeRule, treeContentPad } from "../TreeLines";
 import type { TicketAgentLine } from "../utils/agentLines";
 
 type AgentLineProps = {
 	line: TicketAgentLine;
 	// The offset of this line inside the virtual body.
 	top: number;
-	// True when this is the final child line of the line it hangs from. The
-	// line then ends the tree rule and draws the bottom border of the group.
+	// True when this is the final child line of its ticket. The line then
+	// draws the bottom border of the group. It is false when the merged pull
+	// requests of the ticket follow the line, and the rule of the ticket then
+	// runs through the line to reach them.
 	last: boolean;
-	// The line this one hangs from: 1 under the ticket row, 2 under the last
-	// pull request of the ticket.
+	// The line this one hangs from: 1 under the ticket row, 2 under a pull
+	// request of the ticket.
 	depth: TreeDepth;
 	// The index of the line in the virtual list, which the virtualizer reads
 	// from `data-index` when it measures the line.
@@ -27,8 +29,8 @@ type AgentLineProps = {
 	render?: (markdown: string) => string;
 };
 
-// What the run of a ticket says, on the line under the last pull request of
-// that ticket, or under the ticket row when the ticket links none. A run
+// What the run of a ticket says, on the line under the pull request the run
+// works on, or under the ticket row when the ticket links none. A run
 // that works writes what it does at this moment on one line, and the line
 // shimmers. A run that ended its turn writes its last message: those words
 // wrap and never truncate, so the line is one text line tall at least and
@@ -70,7 +72,8 @@ export function AgentLine({ line, top, last, depth, index, measureRef, render }:
 			onClick={onClick}
 			onKeyDown={onKeyDown}
 		>
-			<TreeBranch last={last} elbowTop={agentLineHeight / 2} depth={depth} />
+			<TreeBranch last elbowTop={agentLineHeight / 2} depth={depth} />
+			{depth === 2 && !last && <TreeRule depth={1} />}
 			<AgentWords line={line} wrap render={render} />
 		</div>
 	);

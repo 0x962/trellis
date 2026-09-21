@@ -119,11 +119,14 @@ export type TableKind = "epic" | "list";
 // does not hold shows on every kind.
 export const columnOwner: Partial<Record<ColumnId, TableKind>> = { pr: "list", waits: "epic", releases: "epic" };
 
-// True when the row prints the status icon without the status name. Only
-// an epic table shows the `waits` and the `releases` columns, and on that
-// table the `waits` cell and the pull request lines already show the state
-// of the work.
-export const statusIconOnly = (ids: readonly string[]) => ids.some((id) => columnOwner[id as ColumnId] === "epic");
+// True when the ids come from an epic table. Only an epic table shows the
+// `waits` and the `releases` columns.
+export const isEpicTable = (ids: readonly string[]) => ids.some((id) => columnOwner[id as ColumnId] === "epic");
+
+// True when the row prints the status icon without the status name. On an
+// epic table the `waits` cell and the pull request lines already show the
+// state of the work.
+export const statusIconOnly = isEpicTable;
 
 // The status cell drops its name on a screen under 768 px, and on a row
 // where `statusIconOnly` is true. The status column is then 28 px, the
@@ -134,23 +137,31 @@ const iconWidths: Partial<Record<ColumnId, string>> = { status: "28px" };
 // built once here.
 const iconColumnWidths: Record<ColumnId, string> = { ...columnWidths, ...iconWidths };
 
-// The `grid-template-columns` of a row and of the header.
-const gridTemplate = (ids: readonly string[]) => {
-	const widths = statusIconOnly(ids) ? iconColumnWidths : columnWidths;
-	return ids.map((id) => widths[id as ColumnId]).join(" ");
+// The track at the right end of an epic row that holds the show or hide
+// caret of a done or canceled ticket. `IconButton` at size `xs` draws
+// 24 px. Every epic row keeps the track, so a row with a caret and a row
+// without one put their cells at the same x.
+export const disclosureTrack = "24px";
+
+// The `grid-template-columns` of a row. An epic row keeps one track more
+// than it has columns, at its right end, for the caret.
+const gridTemplate = (ids: readonly string[], widths: Record<ColumnId, string>) => {
+	const tracks = ids.map((id) => widths[id as ColumnId]);
+	if (isEpicTable(ids)) tracks.push(disclosureTrack);
+	return tracks.join(" ");
 };
 
-// The tracks of a row and of the header as two custom properties, one for
-// 768 px and up and one for a narrower screen. `gridColumnsClass` picks one
-// with a media query. A cell in `narrowHidden` is `display: none` under
-// 768 px, so the narrow set has no track for it.
+// The tracks of a row as two custom properties, one for 768 px and up and
+// one for a narrower screen. `gridColumnsClass` picks one with a media
+// query. A cell in `narrowHidden` is `display: none` under 768 px, so the
+// narrow set has no track for it.
 export const gridStyle = (ids: readonly string[]) =>
 	({
-		"--grid-wide": gridTemplate(ids),
-		"--grid-narrow": ids
-			.filter((id) => !narrowHidden.includes(id as ColumnId))
-			.map((id) => iconWidths[id as ColumnId] ?? columnWidths[id as ColumnId])
-			.join(" "),
+		"--grid-wide": gridTemplate(ids, statusIconOnly(ids) ? iconColumnWidths : columnWidths),
+		"--grid-narrow": gridTemplate(
+			ids.filter((id) => !narrowHidden.includes(id as ColumnId)),
+			iconColumnWidths,
+		),
 	}) as CSSProperties;
 
 export const gridColumnsClass = "grid-cols-(--grid-wide) max-md:grid-cols-(--grid-narrow)";
