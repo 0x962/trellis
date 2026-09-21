@@ -95,6 +95,11 @@ beforeAll(async () => {
 		],
 		isQueued: true,
 	});
+	await db.execute(sql`INSERT INTO review_submissions (id, pr_id, request_id, actor, document, created_at)
+		VALUES
+			(${ulid()}, ${first}, ${crypto.randomUUID()}, 'Test', ${{ verdict: "approved" }}, ${at}),
+			(${ulid()}, ${first}, ${crypto.randomUUID()}, 'Test', ${{ verdict: "changes_requested" }},
+				${new Date(at.getTime() + 1)})`);
 	await insertPull({
 		number: 2,
 		additions: 200,
@@ -246,6 +251,8 @@ test("a ticket summary carries one row for each pull request", async () => {
 	expect(summary.prRows[0]).not.toHaveProperty("files");
 	expect(summary.prRows.every((row) => row.evidence === null)).toBe(true);
 	expect(summary.prRows.every((row) => row.flowRuns.length === 5 && row.flowRunCount === 7)).toBe(true);
+	expect(summary.pr?.reviews[0]?.reviewState).toBe("changes_requested");
+	expect(summary.pr?.reviews[1]?.reviewState).toBe("none");
 
 	const emptySummary = await db.transaction((tx) => ticketSummary(tx, emptyTicket));
 	expect(TicketSummarySchema.parse(emptySummary)).toEqual(emptySummary);

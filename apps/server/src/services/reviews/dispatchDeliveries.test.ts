@@ -13,6 +13,7 @@ import { answer } from "../tickets/answer.ts";
 import { create } from "../tickets/create.ts";
 import { dispatchDeliveries } from "./dispatchDeliveries.ts";
 import { recordSubmission } from "./recordSubmission.ts";
+import { submit } from "./remote.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 let core: CoreCtx;
@@ -87,12 +88,11 @@ const queueReview = async (title: string, threads: number) => {
 		recordSubmission(serviceCtx, tx, {
 			prId,
 			verdict: "comment",
-			url: `${url}#pullrequestreview-1`,
+			url,
 			author: "0x962",
 			body: "Name the count in the header.",
 			revisionId: null,
 			threads: Array.from({ length: threads }, () => ({}) as never),
-			sendBack: true,
 		}),
 	);
 	const [row] = (await db.execute(sql`SELECT id FROM review_deliveries WHERE run_id = ${runId}`)).rows as {
@@ -135,6 +135,7 @@ beforeAll(async () => {
 const serviceCtx = {
 	actor: { kind: "human", name: "dana" },
 	now: () => new Date(at),
+	emit: () => {},
 } as never;
 
 afterAll(async () => db.$client.close());
@@ -185,7 +186,7 @@ test("a send that passes its deadline stays unknown", async () => {
 	expect(await deliveryOf(queued.runId)).toEqual({ state: "unknown", error: unconfirmedDelivery });
 });
 
-test("a review that a person sent back reaches the agent of the ticket", async () => {
+test("a local comment reaches the agent of the ticket", async () => {
 	sent.length = 0;
 	const queued = await queueReview("Open the resources section", 3);
 
@@ -195,7 +196,7 @@ test("a review that a person sent back reaches the agent of the ticket", async (
 	expect(sent).toEqual([
 		{
 			id: queued.runId,
-			text: `trellis: your pull request has a review with 3 comments.\nRead the threads: trellis review list ${queued.url}\nApply what each thread asks. Answer each thread.`,
+			text: `trellis: your pull request has a comment. The review has 3 comments.\nReview note: Name the count in the header.\nRead the threads: trellis review list ${queued.url}\nApply what each thread asks. Answer each thread.`,
 			interrupt: true,
 			messageId: `review-${queued.deliveryId}`,
 			expectedTerminalId: `term-${queued.runId}`,
@@ -205,31 +206,111 @@ test("a review that a person sent back reaches the agent of the ticket", async (
 	expect(await deliveryOf(queued.runId)).toEqual({ state: "sent", error: null });
 });
 
-test("a review that a person did not send back queues nothing", async () => {
-	const ticket = await run((tx) => create(core, tx, { project: "DSP", title: "Keep the review here" }));
+test("each local verdict queues for the agent of the linked ticket", async () => {
+	for (const [verdict, body, reviewState] of [
+		["approve", "", "approved"],
+		["request_changes", "Fix the count.", "changes_requested"],
+		["comment", "Read the note.", "review_required"],
+	] as const) {
+		const ticket = await run((tx) => create(core, tx, { project: "DSP", title: `${verdict} the review` }));
+		const prId = ulid();
+		const url = `https://github.com/o/r/pull/${++prNumber}`;
+		await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, head_sha, created_at, updated_at)
+			VALUES (${prId}, 'o', 'r', ${prNumber}, ${url}, 'open', 'reviewed-head', ${at}, ${at})`);
+		await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
+			VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at})`);
+		const runId = ulid();
+		await startRun(runId, ticket.id, ticket.identifier);
+
+		const result = await run((tx) =>
+			submit(serviceCtx, tx, {
+				pr: url,
+				headSha: "reviewed-head",
+				verdict,
+				body,
+				threadIds: [],
+			}),
+		);
+
+		expect(result.pullRequest.reviewState).toBe(reviewState);
+		expect(result.submission.recipients).toEqual([{ runId, agentName: "crisp-fjord" }]);
+		expect(await deliveryOf(runId)).toEqual({ state: "pending", error: null });
+	}
+});
+
+test("a moved head stores the verdict on the current revision and keeps older threads", async () => {
+	const ticket = await run((tx) => create(core, tx, { project: "DSP", title: "Apply feedback after a new commit" }));
 	const prId = ulid();
-	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, created_at, updated_at)
-		VALUES (${prId}, 'o', 'r', ${++prNumber}, ${`https://github.com/o/r/pull/${prNumber}`}, 'open', ${at}, ${at})`);
+	const number = ++prNumber;
+	const url = `https://github.com/o/r/pull/${number}`;
+	const oldRevisionId = ulid();
+	const currentRevisionId = ulid();
+	const threadId = ulid();
+	const runId = ulid();
+	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, head_sha, created_at, updated_at)
+		VALUES (${prId}, 'o', 'r', ${number}, ${url}, 'open', 'current-head', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
 		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at})`);
-	const runId = ulid();
 	await startRun(runId, ticket.id, ticket.identifier);
-
-	const stored = await run((tx) =>
-		recordSubmission(serviceCtx, tx, {
+	await db.execute(sql`INSERT INTO review_revisions (id, pr_id, base_sha, head_sha, document, created_at) VALUES
+		(${oldRevisionId}, ${prId}, 'base-head', 'old-head', ${JSON.stringify({
+			id: oldRevisionId,
 			prId,
-			verdict: "comment",
-			url: "https://github.com/o/r/pull/1#pullrequestreview-2",
-			author: "0x962",
-			body: "Read it later.",
-			revisionId: null,
-			threads: [],
-			sendBack: false,
+			baseSha: "base-head",
+			headSha: "old-head",
+			patch: "",
+			meta: {},
+			fetchedAt: at,
+		})}::jsonb, ${at}),
+		(${currentRevisionId}, ${prId}, 'base-head', 'current-head', ${JSON.stringify({
+			id: currentRevisionId,
+			prId,
+			baseSha: "base-head",
+			headSha: "current-head",
+			patch: "",
+			meta: {},
+			fetchedAt: at,
+		})}::jsonb, ${at})`);
+	await db.execute(sql`INSERT INTO review_threads (id, pr_id, revision_id, document, updated_at)
+		VALUES (${threadId}, ${prId}, ${oldRevisionId}, ${JSON.stringify({
+			id: threadId,
+			prId,
+			path: "src/count.ts",
+			side: "new",
+			line: 4,
+			startLine: 4,
+			revisionId: oldRevisionId,
+			body: "Keep this feedback.",
+			author: "dana",
+			kind: "human",
+			session: null,
+			status: "open",
+			createdAt: at,
+			updatedAt: at,
+			version: 1,
+			resolvedAt: null,
+			resolvedBy: null,
+			replies: [],
+			reactions: [],
+			suggestion: null,
+		})}::jsonb, ${at})`);
+
+	const result = await run((tx) =>
+		submit(serviceCtx, tx, {
+			pr: url,
+			headSha: "old-head",
+			verdict: "request_changes",
+			body: "Apply the feedback to the current head.",
+			threadIds: [threadId],
 		}),
 	);
+	const [stored] = (await db.execute(sql`SELECT document FROM review_submissions WHERE id = ${result.submission.id}`))
+		.rows as { document: { revisionId: string | null; threads: { id: string }[] } }[];
 
-	expect(stored.recipients).toEqual([]);
-	expect(await deliveryOf(runId)).toBeUndefined();
+	expect(stored?.document.revisionId).toBe(currentRevisionId);
+	expect(stored?.document.threads.map((thread) => thread.id)).toEqual([threadId]);
+	expect(result.submission.recipients).toEqual([{ runId, agentName: "crisp-fjord" }]);
+	expect(await deliveryOf(runId)).toEqual({ state: "pending", error: null });
 });
 
 test("a review with no agent assignment reports no recipient", async () => {
@@ -244,12 +325,11 @@ test("a review with no agent assignment reports no recipient", async () => {
 		recordSubmission(serviceCtx, tx, {
 			prId,
 			verdict: "comment",
-			url: `https://github.com/o/r/pull/${prNumber}#pullrequestreview-3`,
+			url: `https://github.com/o/r/pull/${prNumber}`,
 			author: "0x962",
 			body: "Start a run for this review.",
 			revisionId: null,
 			threads: [],
-			sendBack: true,
 		}),
 	);
 	const deliveries = await db.execute(sql`SELECT id FROM review_deliveries WHERE review_id = ${stored.id}`);

@@ -176,7 +176,6 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						revision={displayRevision}
 						pullRequest={displayMeta}
 						isQueued={status.data?.isQueued ?? false}
-						openThreads={allThreads.filter((thread) => thread.status === "open")}
 						onAction={refreshAll}
 					/>
 					<div className="review-identity-lines">

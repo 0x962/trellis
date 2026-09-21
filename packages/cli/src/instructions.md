@@ -81,7 +81,7 @@ PR review comments live in Trellis. Read them before work: trellis review list <
 Post a finding: trellis review add <pr-url> --path <file> --line <n> --body "..."
 Reply: trellis review reply <thread-id> --body "..."
 Resolve an addressed finding: trellis review resolve <thread-id>
-Submit a GitHub review: trellis review submit <pr-url> --verdict <comment|approve|request_changes> --body "..."
+Save a local verdict and deliver it to the agent: trellis review submit <pr-url> --verdict <comment|approve|request_changes> --body "..."
 Never post review findings as GitHub comments.
 
 Without the CLI, use the HTTP API. It has the same actions. This call creates a ticket:

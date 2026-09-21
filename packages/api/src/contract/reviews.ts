@@ -151,8 +151,7 @@ export const reviews = {
 		.input(id.extend({ reaction: ReactionKeySchema, remove: z.boolean().default(false) }))
 		.output(ReviewThreadSchema),
 	submit: base
-		.errors(pickErrors(["GH_UNAVAILABLE"]))
-		.route({ method: "POST", path: "/reviews/submit", summary: "Submit a pull request review" })
+		.route({ method: "POST", path: "/reviews/submit", summary: "Save and deliver a local pull request verdict" })
 		.input(ReviewSubmitSchema)
 		.output(ReviewSubmitResultSchema),
 	apply: base

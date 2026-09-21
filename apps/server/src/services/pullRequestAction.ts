@@ -1,5 +1,6 @@
 import type { PullRequest } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import { localReviewState } from "../db/queries/pullRequestRows.ts";
 import { rows } from "../db/queries/support";
 import type { Tx } from "../db/tx";
 import type { PullRequestRow } from "../gh/graphql";
@@ -15,7 +16,8 @@ export const recordAction = async (
 	const stored = await ensurePr(tx, input.row.url);
 	const [before] = await rows<{ content_hash: string | null; review_state: PullRequest["reviewState"] }>(
 		tx,
-		sql`SELECT content_hash, review_state FROM pull_requests WHERE id = ${stored.id}`,
+		sql`SELECT p.content_hash, ${localReviewState(sql`p.id`)} AS review_state
+			FROM pull_requests p WHERE p.id = ${stored.id}`,
 	);
 	const fresh = await refresh(ctx, tx, {
 		id: stored.id,

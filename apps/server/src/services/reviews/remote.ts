@@ -1,16 +1,18 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import type { ReviewSubmit, ReviewThread } from "@trellis/api";
+import type { ReviewSubmit } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import {
+	type PullRequestRow as LocalPullRequestRow,
+	pullRequestColumns,
+	toPullRequest,
+} from "../../db/queries/pullRequestRows.ts";
 import { rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
 import { invalidInput } from "../../errors";
-import { fetchPullRequests, type PullRequestRow, withQueueState } from "../../gh/graphql";
+import { fetchPullRequests, type PullRequestRow as GithubPullRequestRow, withQueueState } from "../../gh/graphql";
 import { effectiveRepos } from "../projectsRepos";
 import { recordAction } from "../pullRequestAction";
 import { fail, type IoCtx, type PrepareCtx, type ServiceCtx } from "../support";
-import { findPr, parseRef, readThreads } from "./queries";
+import { parseRef, readThreads } from "./queries";
 import { recordSubmission } from "./recordSubmission";
 import { gh } from "./revision";
 export const actionNames = [
@@ -34,30 +36,12 @@ export const actionNames = [
 	"live-unpersist",
 ] as const;
 export type Action = (typeof actionNames)[number];
-// A review that GitHub accepted, on its way to the transaction that stores
-// it. `threads` holds the local threads the submission carried, and
-// `sendBack` says whether the agent of the ticket must read them.
-export type PreparedSubmission = {
-	verdict: ReviewSubmit["verdict"];
-	url: string;
-	author: string;
-	body: string;
-	revisionId: string | null;
-	threads: ReviewThread[];
-	sendBack: boolean;
-};
 type PreparedAction = {
-	action: Action | ReviewSubmit["verdict"];
-	row: PullRequestRow;
-	submission?: PreparedSubmission;
+	action: Action;
+	row: GithubPullRequestRow;
 };
 
-const current = async (
-	ctx: PrepareCtx,
-	pr: string,
-	action: PreparedAction["action"],
-	submission?: PreparedSubmission,
-): Promise<PreparedAction> => {
+const current = async (ctx: PrepareCtx, pr: string, action: PreparedAction["action"]): Promise<PreparedAction> => {
 	const ref = parseRef(pr);
 	const result = await fetchPullRequests(ctx.gh, [ref], "interactive");
 	if (!result.ok) {
@@ -71,7 +55,7 @@ const current = async (
 		error.message = first.error;
 		throw error;
 	}
-	return { action, row: first.row, submission };
+	return { action, row: first.row };
 };
 
 export async function action(ctx: PrepareCtx, input: { pr: string; action: Action; headSha: string }) {
@@ -127,101 +111,53 @@ export async function action(ctx: PrepareCtx, input: { pr: string; action: Actio
 	return prepared;
 }
 
-// The threads a submission carries to GitHub, each checked to sit on the
-// reviewed head, because GitHub anchors a review comment to a commit.
-const threadsToPost = async (ctx: PrepareCtx, input: ReviewSubmit) => {
+// A local verdict can carry a thread from an older commit because the agent
+// applies the feedback to the current head. The pull request must still own
+// each thread.
+type SubmissionPullRequest = LocalPullRequestRow & { head_sha: string | null };
+
+const threadsForSubmission = async (tx: Tx, input: ReviewSubmit, prId: string) => {
 	if (input.threadIds.length === 0) return [];
-	const pr = await ctx.newTx((tx) => findPr(tx, input.pr));
-	const threads = await ctx.newTx((tx) => readThreads(tx, input.threadIds));
-	const heads = await ctx.newTx((tx) =>
-		rows<{ id: string; head_sha: string }>(
-			tx,
-			sql`SELECT id, head_sha FROM review_revisions WHERE id = ANY(${sql.param(threads.map((thread) => thread.revisionId))}::text[])`,
-		),
-	);
+	const threads = await readThreads(tx, input.threadIds);
 	for (const thread of threads) {
-		if (thread.prId !== pr?.id) throw invalidInput("threadIds", `Thread ${thread.id} belongs to another pull request.`);
-		if (heads.find((head) => head.id === thread.revisionId)?.head_sha !== input.headSha)
-			throw invalidInput("threadIds", `Thread ${thread.id} does not sit on the reviewed head.`);
+		if (thread.prId !== prId) throw invalidInput("threadIds", `Thread ${thread.id} belongs to another pull request.`);
 	}
 	return threads;
 };
 
-// One GitHub review comment per thread: the root body, at the anchor of
-// the thread. A suggestion block in the body renders as a suggested change
-// on GitHub.
-const reviewComment = (thread: ReviewThread) => {
-	const side = thread.side === "old" ? "LEFT" : "RIGHT";
-	return {
-		path: thread.path,
-		line: thread.line,
-		side,
-		...(thread.startLine < thread.line ? { start_line: thread.startLine, start_side: side } : {}),
-		body: thread.body,
-	};
-};
-
-// One GitHub review per call, through the reviews API. The API answers with
-// the review it created, and the answer carries the address a person opens.
-// `gh pr review` posts the same review and prints no address, so this call
-// does the work for a review with comments and for one without.
-const postReview = async (ctx: PrepareCtx, input: ReviewSubmit, threads: ReviewThread[]) => {
+export async function submit(ctx: ServiceCtx, tx: Tx, input: ReviewSubmit) {
 	const ref = parseRef(input.pr);
-	const event = { comment: "COMMENT", approve: "APPROVE", request_changes: "REQUEST_CHANGES" }[input.verdict];
-	const directory = await mkdtemp(join(tmpdir(), "trellis-review-submit-"));
-	const file = join(directory, "review.json");
-	try {
-		await writeFile(
-			file,
-			JSON.stringify({
-				commit_id: input.headSha,
-				event,
-				body: input.body,
-				...(threads.length === 0 ? {} : { comments: threads.map(reviewComment) }),
-			}),
-			{ mode: 0o600 },
-		);
-		const answer = await gh(ctx, [
-			"api",
-			"--method",
-			"POST",
-			`repos/${ref.owner}/${ref.repo}/pulls/${ref.number}/reviews`,
-			"--input",
-			file,
-		]);
-		return JSON.parse(answer) as { html_url: string; user?: { login?: string } };
-	} finally {
-		await rm(directory, { recursive: true, force: true });
-	}
-};
-
-export async function submit(ctx: PrepareCtx, input: ReviewSubmit) {
-	const ref = parseRef(input.pr);
-	const meta = JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", "headRefOid"])) as {
-		headRefOid: string;
-	};
-	if (meta.headRefOid !== input.headSha)
-		throw invalidInput("headSha", "The PR head changed. Refresh before this review.");
-	const threads = await threadsToPost(ctx, input);
-	const review = await postReview(ctx, input, threads);
-	return current(ctx, input.pr, input.verdict, {
+	const [pr] = await rows<SubmissionPullRequest>(
+		tx,
+		sql`SELECT ${pullRequestColumns}, p.head_sha FROM pull_requests p
+			WHERE p.owner = ${ref.owner} AND p.repo = ${ref.repo} AND p.number = ${ref.number}`,
+	);
+	if (pr === undefined) throw invalidInput("pr", "Open this pull request in Trellis before you submit a review.");
+	const threads = await threadsForSubmission(tx, input, pr.id);
+	const [currentRevision] = await rows<{ id: string }>(
+		tx,
+		sql`SELECT id FROM review_revisions
+			WHERE pr_id = ${pr.id} AND head_sha = ${pr.head_sha}
+			ORDER BY created_at DESC, id DESC LIMIT 1`,
+	);
+	const submission = await recordSubmission(ctx, tx, {
+		prId: pr.id,
 		verdict: input.verdict,
-		url: review.html_url,
-		author: review.user?.login ?? "",
+		url: pr.url,
+		author: ctx.actor.name,
 		body: input.body,
-		// Every thread of one submission sits on the reviewed head, so they
-		// share one revision. A submission that carries no thread names none.
-		revisionId: threads[0]?.revisionId ?? null,
+		revisionId: currentRevision?.id ?? null,
 		threads,
-		sendBack: input.sendBack,
 	});
+	const [fresh] = await rows<LocalPullRequestRow>(
+		tx,
+		sql`SELECT ${pullRequestColumns} FROM pull_requests p WHERE p.id = ${pr.id}`,
+	);
+	return { pullRequest: toPullRequest(fresh!), submission };
 }
 
 export const actionResult = async (ctx: ServiceCtx, tx: Tx, input: PreparedAction) => {
-	const pullRequest = await recordAction(ctx, tx, input);
-	if (!input.submission) return pullRequest;
-	const submission = await recordSubmission(ctx, tx, { prId: pullRequest.id, ...input.submission });
-	return { pullRequest, submission };
+	return recordAction(ctx, tx, input);
 };
 // With a project, the search covers the repositories of that project and
 // its ancestors. A project with no repository has no pull request of its

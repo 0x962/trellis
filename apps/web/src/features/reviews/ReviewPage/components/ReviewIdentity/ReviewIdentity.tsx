@@ -1,5 +1,5 @@
 import { GithubLogo } from "@phosphor-icons/react";
-import { type ReviewRevision, type ReviewThread, reviewRef } from "@trellis/api";
+import { type ReviewRevision, reviewRef } from "@trellis/api";
 import { Badge, type BadgeTone, PrGlyph, Tooltip } from "@trellis/ui";
 import { ReviewHeaderActions } from "../../../ReviewHeaderActions";
 
@@ -39,25 +39,20 @@ export type ReviewIdentityProps = {
 	revision: ReviewRevision | null;
 	pullRequest: GithubPullRequest | undefined;
 	isQueued: boolean;
-	// Every thread that nobody resolved. A review submission carries them to
-	// GitHub.
-	openThreads: ReviewThread[];
 	onAction: () => void;
 };
 
 // The title, the state, the branch and the buttons that end a review.
 // `ConditionsBlock` prints the size, the open thread count and the distance
 // from the base branch, so this band prints none of those three.
-export function ReviewIdentity({ pr, revision, pullRequest, isQueued, openThreads, onAction }: ReviewIdentityProps) {
+export function ReviewIdentity({ pr, revision, pullRequest, isQueued, onAction }: ReviewIdentityProps) {
 	const ref = reviewRef(pr);
 	const glyphState = pullRequest?.state === "MERGED" ? "merged" : pullRequest?.state === "CLOSED" ? "closed" : "open";
 	return (
 		<div className="review-heading">
 			<div className="review-heading-title">
 				<h2>{pullRequest?.title ?? `${ref.owner}/${ref.repo} #${ref.number}`}</h2>
-				{revision && (
-					<ReviewHeaderActions pr={pr} revision={revision} openThreads={openThreads} showReview onDone={onAction} />
-				)}
+				{revision && <ReviewHeaderActions pr={pr} revision={revision} onDone={onAction} />}
 			</div>
 			<div className="review-heading-meta">
 				{pullRequest !== undefined && (

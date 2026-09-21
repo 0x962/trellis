@@ -33,8 +33,7 @@
 	color: var(--fg-muted);
 	font-size: var(--text-sm);
 }
-/* The note that goes to GitHub with the drafts, and the message of a send
-   that failed. */
+/* The local verdict note and the message of a submit that failed. */
 .review-draft-note {
 	display: flex;
 	flex-direction: column;

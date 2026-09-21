@@ -1,25 +1,23 @@
 import type { AgentRun, ReviewRevision } from "@trellis/api";
-import { CommentOnlyButton } from "./components/CommentOnlyButton";
 import { MergeButton } from "./components/MergeButton";
-import { SendBackButton } from "./components/SendBackButton";
-import { draftCount } from "./sendBackText/sendBackText";
+import { VerdictButton } from "./components/VerdictButton";
 import { unmetLine } from "./unmetLine/unmetLine";
 
 // A merge writes to a company repository, and the page cannot undo it, so the
 // person runs it at a computer.
 const phoneNoMergeLine = "A merge into an enterprise repository needs the desk.";
+const draftCount = (drafts: number) => `${drafts} ${drafts === 1 ? "draft" : "drafts"}`;
 
 export type VerdictBarProps = {
 	pr: string;
 	revision: ReviewRevision;
 	// The ticket that links this pull request, or null while no ticket does.
-	// `Send back` needs a ticket to name the agent and to start one, so the
-	// bar leaves that control out without one.
+	// A saved verdict needs the ticket to find or start its agent.
 	ticket: string | null;
 	// The open agent assignment of the ticket, or null while the ticket has
 	// none.
 	run: AgentRun | null;
-	// The threads that `Send back` and `Comment only` carry to GitHub.
+	// The open threads that Request changes and Comment deliver to the agent.
 	drafts: readonly string[];
 	// One phrase per condition that the pull request does not meet, in the
 	// words of `conditionLines`.
@@ -58,17 +56,33 @@ export function VerdictBar({
 						onDone={onDone}
 					/>
 				)}
-				{ticket !== null && (
-					<SendBackButton
-						pr={pr}
-						headSha={revision.headSha}
-						ticket={ticket}
-						run={run}
-						drafts={drafts}
-						onDone={onDone}
-					/>
-				)}
-				<CommentOnlyButton pr={pr} headSha={revision.headSha} drafts={drafts} onDone={onDone} />
+				<VerdictButton
+					pr={pr}
+					headSha={revision.headSha}
+					ticket={ticket}
+					run={run}
+					drafts={drafts}
+					verdict="approve"
+					onDone={onDone}
+				/>
+				<VerdictButton
+					pr={pr}
+					headSha={revision.headSha}
+					ticket={ticket}
+					run={run}
+					drafts={drafts}
+					verdict="request_changes"
+					onDone={onDone}
+				/>
+				<VerdictButton
+					pr={pr}
+					headSha={revision.headSha}
+					ticket={ticket}
+					run={run}
+					drafts={drafts}
+					verdict="comment"
+					onDone={onDone}
+				/>
 			</div>
 			{line && <p className="review-verdict-bar-unmet">{line}</p>}
 		</section>

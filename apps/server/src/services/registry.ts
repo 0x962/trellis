@@ -170,7 +170,7 @@ export const services = {
 	"reviews.resolve": io("mutation", reviewThreads.resolve),
 	"reviews.edit": io("mutation", reviewMessages.edit),
 	"reviews.reaction": io("mutation", reviewMessages.reaction),
-	"reviews.submit": prepared("mutation", reviewRemote.submit, reviewRemote.actionResult),
+	"reviews.submit": io("mutation", reviewRemote.submit),
 	"reviews.apply": prepared("mutation", reviewApply.prepareApply, reviewApply.applyResult),
 	"reviews.dispatchDeliveries": prepared("mutation", reviewRunDeliveries.prepare, reviewRunDeliveries.finish),
 

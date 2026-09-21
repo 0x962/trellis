@@ -1,6 +1,6 @@
 import { GithubLogo } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import type { ReviewRevision, ReviewThread } from "@trellis/api";
+import type { ReviewRevision } from "@trellis/api";
 import { Button, ConfirmDialog, IconButton, Menu, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -13,19 +13,14 @@ import {
 	type ReviewActionMeta,
 	type ReviewActionMetadata,
 } from "../reviewActions/reviewActions";
-import { ReviewSubmit } from "./components/ReviewSubmit";
 
 export function ReviewHeaderActions({
 	pr,
 	revision,
-	openThreads,
-	showReview,
 	onDone,
 }: {
 	pr: string;
 	revision: ReviewRevision;
-	openThreads: ReviewThread[];
-	showReview: boolean;
 	onDone: () => void;
 }) {
 	const { client, orpc, queryClient } = useApp();
@@ -69,15 +64,10 @@ export function ReviewHeaderActions({
 
 	return (
 		<div className="review-header-actions">
-			{primary !== null && (
-				<>
-					{showReview && <ReviewSubmit pr={pr} revision={revision} openThreads={openThreads} onDone={onDone} />}
-					{primary === "ready" && (
-						<Button variant="primary" processing={action.isPending} onClick={() => action.mutate("ready")}>
-							Mark ready for review
-						</Button>
-					)}
-				</>
+			{primary !== null && primary === "ready" && (
+				<Button variant="primary" processing={action.isPending} onClick={() => action.mutate("ready")}>
+					Mark ready for review
+				</Button>
 			)}
 			<Tooltip content="Open pull request on GitHub">
 				<IconButton

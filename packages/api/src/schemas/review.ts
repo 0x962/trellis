@@ -132,14 +132,9 @@ export const ReviewSubmitSchema = z
 		headSha: z.string().min(1),
 		verdict: z.enum(["comment", "approve", "request_changes"]),
 		body: z.string().trim().max(200_000).default(""),
-		// The local threads that go to GitHub as review comments with this
-		// submission. Each must sit on the reviewed head.
+		// The local threads that this verdict gives to the agent. A thread can
+		// belong to an older revision of the same pull request.
 		threadIds: z.array(UlidSchema).max(200).default([]),
-		// True gives the review to the agent of the ticket: the server queues
-		// one `review_deliveries` row per open agent assignment of the ticket
-		// that links this pull request, and the delivery loop sends it. False
-		// publishes the review and reaches nobody.
-		sendBack: z.boolean().default(false),
 	})
 	.refine((value) => value.verdict === "approve" || value.body.length > 0, {
 		path: ["body"],
@@ -153,9 +148,8 @@ export const ReviewSubmitRecipientSchema = z.object({
 	agentName: z.string(),
 });
 export type ReviewSubmitRecipient = z.infer<typeof ReviewSubmitRecipientSchema>;
-// A person needs both facts after a submit: GitHub accepted the review, and
-// the server queued these delivery rows. An empty recipient list means that
-// the review is on GitHub but no open agent assignment can receive it.
+// A person needs the saved verdict and its recipients after a submit. An
+// empty recipient list means no open agent assignment can receive it.
 export const ReviewSubmitResultSchema = z.object({
 	pullRequest: PullRequestSchema,
 	submission: z.object({

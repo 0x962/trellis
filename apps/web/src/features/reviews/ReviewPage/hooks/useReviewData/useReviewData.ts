@@ -25,9 +25,8 @@ export const useReviewData = (pr: string) => {
 		...orpc.tickets.get.queryOptions({ input: { ticket: identifier } }),
 		enabled: identifier !== "",
 	});
-	// The agent assignment of the ticket. `Send back` names it, and the name
-	// changes when a restart replaces the run, so this read follows the same
-	// 45 second beat as the GitHub status.
+	// The verdict bar delivers to this agent assignment. A restart replaces
+	// the run, so this read follows the 45 second beat of the GitHub status.
 	const runs = useQuery({
 		...orpc.agentRuns.list.queryOptions({ input: { ticket: identifier, assigned: true } }),
 		enabled: identifier !== "",

@@ -65,14 +65,21 @@ const pendingAnswers = async (tx: Tx, terminals: string[]): Promise<Delivery[]> 
 // A queued review submission. The stored document holds the pull request
 // address and the threads the submission carried, so the message names both
 // without a second query.
-type ReviewRow = Omit<Delivery, "text"> & { url: string; drafts: number };
+type ReviewRow = Omit<Delivery, "text"> & {
+	url: string;
+	drafts: number;
+	verdict: "commented" | "changes_requested" | "approved";
+	body: string;
+};
 
 const pendingReviews = async (tx: Tx, terminals: string[]): Promise<Delivery[]> => {
 	const found = await rows<ReviewRow>(
 		tx,
 		sql`SELECT ${deliveryColumns},
 			pr.url AS "url",
-			jsonb_array_length(submission.document -> 'threads') AS "drafts"
+			jsonb_array_length(submission.document -> 'threads') AS "drafts",
+			submission.document ->> 'verdict' AS "verdict",
+			submission.document ->> 'body' AS "body"
 		FROM review_deliveries delivery
 		JOIN agent_runs run ON run.id = delivery.run_id
 		JOIN review_submissions submission ON submission.id = delivery.review_id
