@@ -24,6 +24,8 @@ export const session = (): SessionDetail => ({
 		ticketIdentifier: null,
 		ticketTitle: null,
 		ticketStatusCategory: null,
+		ticketEpicId: null,
+		ticketEpicProjectId: null,
 		assigned: true,
 		state: "running",
 		processStatus: "running",
