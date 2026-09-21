@@ -75,10 +75,27 @@ describe("PhoneRow on the epic table", () => {
 	});
 
 	test("prints what the run says on line 2", () => {
-		const html = render(ticket(), "epic", { words: "crisp-fjord: I rebased.", asks: false, working: false });
+		const html = render(ticket(), "epic", {
+			words: "crisp-fjord: I rebased.",
+			asks: false,
+			working: false,
+			runId: "run",
+		});
 
 		expect(html).toContain('data-line="agent"');
 		expect(textOf(html)).toContain("crisp-fjord: I rebased.");
+	});
+
+	test("gives the words of the run a control of their own", () => {
+		const html = render(ticket(), "epic", {
+			words: "crisp-fjord: I rebased.",
+			asks: false,
+			working: false,
+			runId: "run",
+		});
+
+		expect(html).toContain('data-line="agent"');
+		expect(html).toContain("<button");
 	});
 
 	test("draws no line 2 for a ticket that holds none of the four facts", () => {
@@ -90,7 +107,7 @@ describe("PhoneRow on the epic table", () => {
 		const html = render(
 			ticket({ prRows: [pr] }),
 			"epic",
-			{ words: "crisp-fjord: Done.", asks: false, working: false },
+			{ words: "crisp-fjord: Done.", asks: false, working: false, runId: "run" },
 			"collapsed",
 		);
 
@@ -99,7 +116,12 @@ describe("PhoneRow on the epic table", () => {
 	});
 
 	test("shows line 2 while a done ticket is expanded", () => {
-		const html = render(ticket(), "epic", { words: "crisp-fjord: Done.", asks: false, working: false }, "expanded");
+		const html = render(
+			ticket(),
+			"epic",
+			{ words: "crisp-fjord: Done.", asks: false, working: false, runId: "run" },
+			"expanded",
+		);
 
 		expect(html).toContain('data-line="agent"');
 		expect(html).toContain("Hide details for OP-35");

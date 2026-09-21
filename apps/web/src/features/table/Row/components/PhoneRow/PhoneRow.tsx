@@ -2,6 +2,7 @@ import type { TicketSummary } from "@trellis/api";
 import { cx, StatusIcon } from "@trellis/ui";
 import type { KeyboardEvent, MouseEvent, ReactNode, Ref } from "react";
 import { compactRelativeTime } from "../../../../../lib/format";
+import { pageSheetActions } from "../../../../../stores/pageSheetStore";
 import { AgentWords } from "../../../AgentWords";
 import type { TableKind } from "../../../columns";
 import { PrCells } from "../../../PrCells";
@@ -37,15 +38,34 @@ export type PhoneRowProps = {
 	onToggleDisclosure?: () => void;
 };
 
+// The words of the run open its session. The row around them opens the
+// ticket, so the click stops there. The row keeps the finger target of the
+// phone list: it stands 56 px tall, and these words take one text line of
+// it.
+const AgentLineButton = ({ line }: { line: TicketAgentLine }) => (
+	<button
+		type="button"
+		className="flex min-w-0 flex-1 items-center gap-2 rounded-sm text-left focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+		onClick={(event) => {
+			event.stopPropagation();
+			pageSheetActions.openSession(line.runId);
+		}}
+	>
+		<AgentWords line={line} />
+	</button>
+);
+
 const phoneLineContent = (line: PhoneLine) => {
-	if (line.kind === "agent") return <AgentWords line={line.line} />;
+	if (line.kind === "agent") return <AgentLineButton line={line.line} />;
 	if (line.kind === "pr") return <PrCells pr={line.pr} cells={prPhoneCells(line.pr)} />;
 	return <span className="truncate">{line.words}</span>;
 };
 
-// The row is the one control. At 56 px it is larger than the 44 px that a
-// finger needs. `overflow-hidden` on line 2 cuts a long pull request line,
-// so the row never grows to a third line.
+// The row opens the ticket, and the words of the run inside it open the
+// session of that run. At 56 px the row is larger than the 44 px that a
+// finger needs, and the words take one text line of it. `overflow-hidden`
+// on line 2 cuts a long pull request line, so the row never grows to a
+// third line.
 function EpicCells({
 	ticket,
 	actor,

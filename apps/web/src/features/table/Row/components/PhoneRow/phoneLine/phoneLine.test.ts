@@ -23,7 +23,7 @@ const ticket = (facts: Partial<Facts> = {}): Facts => ({
 	...facts,
 });
 
-const asks = { words: "crisp-fjord asks: Which cap?", asks: true, working: false };
+const asks = { words: "crisp-fjord asks: Which cap?", asks: true, working: false, runId: "run" };
 
 describe("phoneLineOf", () => {
 	test("prints what the run says ahead of every other fact", () => {

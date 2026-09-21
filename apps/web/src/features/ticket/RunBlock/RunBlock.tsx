@@ -2,12 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
 import { SectionHeader, Skeleton } from "@trellis/ui";
-import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
 import { RunLine } from "../RunLine";
 import { StartControls } from "../StartControls";
-import { SessionSheet } from "./components/SessionSheet";
 
 export type RunBlockProps = {
 	ticket: Ticket;
@@ -17,9 +16,6 @@ export type RunBlockProps = {
 export function RunBlock({ ticket }: RunBlockProps) {
 	const { orpc } = useApp();
 	const hash = useLocation({ select: (location) => location.hash });
-	// The id of the run whose session sheet is open. The sheet opens only for
-	// that run, so a later run never opens it.
-	const [sessionRun, setSessionRun] = useState<string | null>(null);
 	const runs = useQuery({
 		...orpc.agentRuns.list.queryOptions({ input: { ticket: ticket.identifier } }),
 		refetchInterval: 2000,
@@ -52,7 +48,11 @@ export function RunBlock({ ticket }: RunBlockProps) {
 						<Skeleton width="w-64" />
 					</div>
 				) : (
-					<RunLine run={shown} metrics={metrics.data ?? null} onOpenSession={() => setSessionRun(shown?.id ?? null)} />
+					<RunLine
+						run={shown}
+						metrics={metrics.data ?? null}
+						onOpenSession={() => shown !== null && pageSheetActions.openSession(shown.id)}
+					/>
 				)}
 				{metrics.isError && (
 					<p role="alert" className="text-sm text-danger">
@@ -61,9 +61,6 @@ export function RunBlock({ ticket }: RunBlockProps) {
 				)}
 				{canStart && <StartControls ticket={ticket.identifier} waitsOn={ticket.waitsOn} />}
 			</div>
-			{shown !== null && (
-				<SessionSheet run={shown} open={shown.id === sessionRun} onClose={() => setSessionRun(null)} />
-			)}
 		</section>
 	);
 }

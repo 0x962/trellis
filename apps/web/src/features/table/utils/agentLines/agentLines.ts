@@ -4,11 +4,14 @@ import { type AgentRun, runLine } from "@trellis/api";
 // the run waits for a person, which turns the words yellow and puts the dot
 // before them. `working` is true while the agent works, and the words then
 // say what it does at this moment: the line takes the shimmer and stays on
-// one line, and it settles on the last message when the turn ends.
+// one line, and it settles on the last message when the turn ends. `runId`
+// is the run that speaks, which a click on the line opens in the session
+// sheet.
 export type TicketAgentLine = {
 	words: string;
 	asks: boolean;
 	working: boolean;
+	runId: string;
 };
 
 // The words a ticket row shows on its own line, or null when the run has
@@ -30,10 +33,13 @@ export type TicketAgentLine = {
 export const agentLineOf = (run: AgentRun): TicketAgentLine | null => {
 	const line = runLine(run);
 	if (line.kind === "question" || line.kind === "permission" || line.kind === "elicitation") {
-		return { words: `${run.name} ${line.words}`, asks: true, working: false };
+		return { words: `${run.name} ${line.words}`, asks: true, working: false, runId: run.id };
 	}
-	if (line.activity !== null) return { words: `${run.name}: ${line.activity}`, asks: false, working: true };
-	return line.lastMessage === null ? null : { words: line.lastMessage.words, asks: false, working: false };
+	if (line.activity !== null)
+		return { words: `${run.name}: ${line.activity}`, asks: false, working: true, runId: run.id };
+	return line.lastMessage === null
+		? null
+		: { words: line.lastMessage.words, asks: false, working: false, runId: run.id };
 };
 
 // The agent line of each ticket that holds an assigned agent run, keyed by
