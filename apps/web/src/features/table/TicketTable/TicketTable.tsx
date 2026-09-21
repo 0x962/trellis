@@ -275,6 +275,7 @@ export function TicketTable({
 			{data.capped && <CapBanner onNarrow={focusFilter} />}
 			<TableBody
 				items={items}
+				tableKind={tableKind}
 				columns={columnIds}
 				density={density}
 				project={project}

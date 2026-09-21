@@ -12,7 +12,8 @@ import { type MouseEvent, memo, type ReactNode, useRef } from "react";
 import { compactRelativeTime } from "../../../lib/format";
 import type { Density } from "../../../stores/uiStore";
 import { ActorAvatar } from "../../agents/ActorAvatar";
-import { type ColumnId, gridColumnsClass, gridStyle, narrowHidden, statusIconOnly } from "../columns";
+import { type ColumnId, gridColumnsClass, gridStyle, narrowHidden, statusIconOnly, type TableKind } from "../columns";
+import type { TicketAgentLine } from "../utils/agentLines";
 import { EpicCell } from "./components/EpicCell";
 import { HiddenPickers } from "./components/HiddenPickers";
 import { LabelsCell } from "./components/LabelsCell";
@@ -51,9 +52,12 @@ export type RowProps = {
 	top?: number;
 	// The group key, for the rows of a group.
 	group?: string;
-	// Below 768 px: two lines, priority, ID, status icon, and time over the
-	// title. The PR, actor, and project cells do not show.
+	// Below 768 px the row is a `PhoneRow` of two lines.
 	phone?: boolean;
+	// The layout of the `PhoneRow`.
+	phoneLayout?: TableKind;
+	// The line of the ticket's run, for the phone row.
+	agentLine?: TicketAgentLine | null;
 	focused?: boolean;
 	selected?: boolean;
 	// True while any row is selected.
@@ -89,6 +93,8 @@ export const Row = memo(function Row({
 	top,
 	group,
 	phone = false,
+	phoneLayout = "list",
+	agentLine = null,
 	focused = false,
 	selected = false,
 	selecting = false,
@@ -193,6 +199,9 @@ export const Row = memo(function Row({
 				ref={element}
 				ticket={ticket}
 				priority={cells.priority}
+				actor={cells.actor}
+				layout={phoneLayout}
+				agentLine={agentLine}
 				top={top}
 				group={group}
 				focused={focused}
