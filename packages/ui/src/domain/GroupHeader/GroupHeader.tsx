@@ -1,4 +1,4 @@
-import { CaretDown, CaretRight, Plus } from "@phosphor-icons/react";
+import { CaretDown, CaretRight, Plus, Star } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
@@ -19,7 +19,13 @@ export type GroupHeaderProps = {
 	expanded: boolean;
 	onToggle: () => void;
 	onCreate?: () => void;
+	// Opens the Start wave dialog of a wave group.
+	onStart?: () => void;
 	phone?: boolean;
+	// The box height in px. It defaults to `groupHeaderHeight`, or to
+	// `phoneGroupHeaderHeight` on a phone. A virtual list that reserves its
+	// own header height passes the same number here.
+	height?: number;
 	top?: number;
 	sticky?: boolean;
 	controls?: string;
@@ -29,6 +35,11 @@ export type GroupHeaderProps = {
 
 export const groupHeaderHeight = 32;
 export const phoneGroupHeaderHeight = 48;
+
+// A header action shows while the pointer or the focus is on the header, and
+// always on a touch screen.
+const revealOnHover =
+	"opacity-0 transition-opacity duration-hover group-hover/header:opacity-100 group-focus-within/header:opacity-100 [@media(hover:none)]:opacity-100";
 
 export function GroupHeader({
 	group,
@@ -40,7 +51,9 @@ export function GroupHeader({
 	expanded,
 	onToggle,
 	onCreate,
+	onStart,
 	phone = false,
+	height = phone ? phoneGroupHeaderHeight : groupHeaderHeight,
 	top,
 	sticky,
 	controls,
@@ -55,7 +68,7 @@ export function GroupHeader({
 			data-group={group}
 			aria-expanded={layout === "grid" ? expanded : undefined}
 			style={{
-				height: `${phone ? phoneGroupHeaderHeight : groupHeaderHeight}px`,
+				height: `${height}px`,
 				transform: top === undefined ? undefined : `translateY(${top}px)`,
 			}}
 			className={cx(
@@ -93,6 +106,18 @@ export function GroupHeader({
 						<CaretDown aria-hidden="true" className="size-3" />
 					</button>
 				)}
+				{onStart && (
+					<Tooltip content="Start wave">
+						<IconButton
+							size="xs"
+							variant="primary"
+							label="Start wave"
+							icon={<Star />}
+							onClick={onStart}
+							className={revealOnHover}
+						/>
+					</Tooltip>
+				)}
 				{onCreate && (
 					<Tooltip content={`New ticket in ${label}`}>
 						<IconButton
@@ -101,7 +126,7 @@ export function GroupHeader({
 							label={`New ticket in ${label}`}
 							icon={<Plus />}
 							onClick={onCreate}
-							className="opacity-0 transition-opacity duration-hover group-hover/header:opacity-100 group-focus-within/header:opacity-100 [@media(hover:none)]:opacity-100"
+							className={revealOnHover}
 						/>
 					</Tooltip>
 				)}
