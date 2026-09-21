@@ -23,19 +23,32 @@ export type StartControlsProps = {
 	starting: boolean;
 	// Why the last start failed, in the words of the server.
 	error: string | null;
+	// The text of the Start button. A dialog that starts many runs names the
+	// count, such as `Start 4 agents`.
+	label?: string;
+	// True when there is nothing to start.
+	disabled?: boolean;
 	onStart: () => void;
 };
 
 // `Start` stays live even when another ticket holds this ticket back. A
 // person reads the line under the row and decides when a run starts.
-export function StartControls({ pickers, dependencies, starting, error, onStart }: StartControlsProps) {
+export function StartControls({
+	pickers,
+	dependencies,
+	starting,
+	error,
+	label = "Start",
+	disabled = false,
+	onStart,
+}: StartControlsProps) {
 	return (
 		<section aria-label="Start a run" className="flex min-w-0 flex-col gap-1.5">
 			<div className="flex min-w-0 flex-wrap items-center gap-2">
 				<span className="shrink-0 text-sm text-fg-muted">Start with</span>
 				{pickers}
-				<Button className="ml-auto" variant="primary" processing={starting} onClick={onStart}>
-					Start
+				<Button className="ml-auto" variant="primary" processing={starting} disabled={disabled} onClick={onStart}>
+					{label}
 				</Button>
 			</div>
 			{dependencies.length > 0 && (

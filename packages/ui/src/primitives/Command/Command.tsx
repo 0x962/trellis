@@ -1,6 +1,6 @@
 import { Check, MagnifyingGlass, Minus } from "@phosphor-icons/react";
 import { Command as Cmdk } from "cmdk";
-import type { ReactElement, ReactNode, RefObject } from "react";
+import { type ReactElement, type ReactNode, type RefObject, useState } from "react";
 import { cx } from "../../utils/cx";
 import { CommandDialog } from "./components/CommandDialog";
 import { CommandEmpty } from "./components/CommandEmpty";
@@ -12,6 +12,7 @@ import { CommandGroup as GroupSection } from "./components/CommandGroup";
 import { CommandList } from "./components/CommandList";
 import { CommandRoot } from "./components/CommandRoot";
 import { CommandRow } from "./components/CommandRow";
+import { currentOption } from "./currentOption";
 
 export type CommandItem = {
 	// The value `onSelect` receives, such as a ticket identifier. It is also
@@ -75,9 +76,12 @@ export type CommandProps = {
 const indents = ["pl-2", "pl-5", "pl-8", "pl-11"] as const;
 
 // A filterable list with one search field. Typing narrows the options, arrow
-// keys move the selection, Enter picks it. `Command.Dialog` puts it in the
-// Cmd-K panel. Each option stays a direct child of its list or group: cmdk
-// reorders the options in the DOM by rank and moves only those children.
+// keys move the selection, Enter picks it. The list opens with the selection
+// on the current option, or on the first checked option, so Enter keeps the
+// value the field holds. A list with neither opens on its first option.
+// `Command.Dialog` puts it in the Cmd-K panel. Each option stays a direct
+// child of its list or group: cmdk reorders the options in the DOM by rank
+// and moves only those children.
 // A surface that needs its own field, sections, or footer builds them from
 // `Command.Root` and the parts hung off it.
 export function Command({
@@ -94,6 +98,11 @@ export function Command({
 	className,
 	listClassName,
 }: CommandProps) {
+	// The option cmdk selected last, by a key, the pointer, or a search. The
+	// current option holds the selection until then, and also when it arrives
+	// with the first rows of a list that loads after the list mounts.
+	const [selected, setSelected] = useState<string>();
+	const current = currentOption(items, groups);
 	const option = (item: CommandItem) => (
 		<Cmdk.Item
 			key={item.id}
@@ -122,7 +131,13 @@ export function Command({
 		</Cmdk.Item>
 	);
 	return (
-		<Cmdk label={label} shouldFilter={filter} className={cx("flex flex-col text-base text-fg", className)}>
+		<Cmdk
+			label={label}
+			shouldFilter={filter}
+			value={selected ?? current ?? ""}
+			onValueChange={setSelected}
+			className={cx("flex flex-col text-base text-fg", className)}
+		>
 			<div className="flex h-11 items-center gap-2 border-b border-border px-3">
 				<MagnifyingGlass className="size-3.5 shrink-0 text-fg-faint" aria-hidden="true" />
 				<Cmdk.Input

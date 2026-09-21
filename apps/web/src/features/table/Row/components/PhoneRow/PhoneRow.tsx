@@ -1,6 +1,6 @@
 import type { TicketSummary } from "@trellis/api";
 import { cx, StatusIcon } from "@trellis/ui";
-import type { MouseEvent, ReactNode, Ref } from "react";
+import type { KeyboardEvent, MouseEvent, ReactNode, Ref } from "react";
 import { compactRelativeTime } from "../../../../../lib/format";
 import { AgentWords } from "../../../AgentWords";
 import type { TableKind } from "../../../columns";
@@ -8,6 +8,8 @@ import { PrCells } from "../../../PrCells";
 import { prPhoneCells } from "../../../PrRow/prRowText";
 import { phoneRowHeight } from "../../../rowHeights";
 import type { TicketAgentLine } from "../../../utils/agentLines";
+import type { TicketDisclosure as TicketDisclosureState } from "../../../utils/flattenGroups";
+import { TicketDisclosure } from "../TicketDisclosure";
 import { type PhoneLine, phoneLineOf } from "./phoneLine";
 
 export type PhoneRowProps = {
@@ -23,6 +25,7 @@ export type PhoneRowProps = {
 	// The line of the ticket's run, or null when the run says nothing. The
 	// epic layout reads it for line 2.
 	agentLine: TicketAgentLine | null;
+	disclosure: TicketDisclosureState;
 	// The offset inside the virtual body.
 	top?: number;
 	group?: string;
@@ -30,6 +33,8 @@ export type PhoneRowProps = {
 	selected: boolean;
 	onFocus?: (id: string) => void;
 	onClick?: (id: string, event: MouseEvent) => void;
+	onKeyDown?: (event: KeyboardEvent<HTMLDivElement>) => void;
+	onToggleDisclosure?: () => void;
 };
 
 const phoneLineContent = (line: PhoneLine) => {
@@ -45,15 +50,22 @@ function EpicCells({
 	ticket,
 	actor,
 	agentLine,
+	disclosure,
+	onToggleDisclosure,
 }: {
 	ticket: TicketSummary;
 	actor: ReactNode;
 	agentLine: TicketAgentLine | null;
+	disclosure: TicketDisclosureState;
+	onToggleDisclosure?: () => void;
 }) {
-	const line = phoneLineOf(ticket, agentLine);
+	const line = disclosure === "collapsed" ? null : phoneLineOf(ticket, agentLine);
 	return (
 		<div className="flex min-w-0 flex-1 flex-col gap-1">
 			<div className="flex min-w-0 items-center gap-2">
+				{disclosure !== null && (
+					<TicketDisclosure identifier={ticket.identifier} disclosure={disclosure} onToggle={onToggleDisclosure} />
+				)}
 				{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
 				<div role="gridcell" data-column="status" className="flex shrink-0 items-center">
 					<StatusIcon
@@ -140,20 +152,24 @@ export function PhoneRow({
 	actor,
 	layout,
 	agentLine,
+	disclosure,
 	top,
 	group,
 	focused,
 	selected,
 	onFocus,
 	onClick,
+	onKeyDown,
+	onToggleDisclosure,
 }: PhoneRowProps) {
 	return (
-		// biome-ignore lint/a11y/useSemanticElements lint/a11y/useKeyWithClickEvents: The virtual grid positions each row, and the table keyboard map provides every row action.
+		// biome-ignore lint/a11y/useSemanticElements: The virtual grid positions each row, so a table element cannot hold it.
 		<div
 			ref={ref}
 			role="row"
 			tabIndex={focused ? 0 : -1}
 			aria-selected={selected}
+			aria-expanded={disclosure === null ? undefined : disclosure === "expanded"}
 			data-identifier={ticket.identifier}
 			data-group={group}
 			data-focused={focused ? "" : undefined}
@@ -171,9 +187,16 @@ export function PhoneRow({
 				if (event.target === event.currentTarget) onFocus?.(ticket.id);
 			}}
 			onClick={(event) => onClick?.(ticket.id, event)}
+			onKeyDown={onKeyDown}
 		>
 			{layout === "epic" ? (
-				<EpicCells ticket={ticket} actor={actor} agentLine={agentLine} />
+				<EpicCells
+					ticket={ticket}
+					actor={actor}
+					agentLine={agentLine}
+					disclosure={disclosure}
+					onToggleDisclosure={onToggleDisclosure}
+				/>
 			) : (
 				<ListCells ticket={ticket} priority={priority} />
 			)}

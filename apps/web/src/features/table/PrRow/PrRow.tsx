@@ -1,4 +1,5 @@
 import type { TicketPr } from "@trellis/api";
+import { type Check, CheckRibbon } from "@trellis/ui";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { PrCells } from "../PrCells";
 import { prRowHeight } from "../rowHeights";
@@ -9,6 +10,13 @@ export type PrRowProps = {
 	// The offset of this line inside the virtual body.
 	top: number;
 };
+
+const checksOf = (pr: TicketPr): Check[] => [
+	...Array.from({ length: pr.fail }, () => ({ name: "1 check", bucket: "fail" as const })),
+	...Array.from({ length: pr.pending }, () => ({ name: "1 check", bucket: "pending" as const })),
+	...Array.from({ length: pr.pass }, () => ({ name: "1 check", bucket: "pass" as const })),
+	...Array.from({ length: pr.skipped }, () => ({ name: "1 check", bucket: "skipping" as const })),
+];
 
 // One pull request of a ticket, on the line under that ticket's row in the
 // epic table. The line is 32 px tall whatever it holds, because the
@@ -30,6 +38,7 @@ export function PrRow({ pr, top }: PrRowProps) {
 			onClick={() => pageSheetActions.openPullRequest(pr.url)}
 		>
 			<PrCells pr={pr} cells={prRowCells(pr)} />
+			<CheckRibbon checks={checksOf(pr)} size="wide" />
 		</button>
 	);
 }

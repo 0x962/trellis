@@ -28,7 +28,7 @@ beforeAll(async () => {
 		(${tickets[0]}, ${root}, ${root}, 29, 'Create the runtime', '', ${done},
 			'The runtime writes one durable row.', 0, ${at}, ${at}),
 		(${tickets[1]}, ${root}, ${root}, 33, 'Continue the sweep', '', ${todo}, '', 1, ${at}, ${at}),
-		(${tickets[2]}, ${root}, ${root}, 52, 'Run late or leave missed', E'Options:\\n1. Leave missed\\n2. Run late',
+		(${tickets[2]}, ${root}, ${root}, 52, 'Run late or leave missed', E'A run can miss its window.\\n\\nOptions:\\n\\n1. Leave missed\\n2. Run late',
 			${review}, '', 2, ${at}, ${at}),
 		(${tickets[3]}, ${root}, ${root}, 53, 'Review without options', '', ${review}, '', 3, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO ticket_deps (ticket_id, depends_on_id, source, created_at) VALUES

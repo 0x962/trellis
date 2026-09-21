@@ -16,6 +16,7 @@ import {
 	ReviewRevisionSchema,
 	ReviewStatusSchema,
 	ReviewSubmissionSchema,
+	ReviewSubmitResultSchema,
 	ReviewSubmitSchema,
 	ReviewThreadSchema,
 } from "../schemas/review";
@@ -153,7 +154,7 @@ export const reviews = {
 		.errors(pickErrors(["GH_UNAVAILABLE"]))
 		.route({ method: "POST", path: "/reviews/submit", summary: "Submit a pull request review" })
 		.input(ReviewSubmitSchema)
-		.output(PullRequestSchema),
+		.output(ReviewSubmitResultSchema),
 	apply: base
 		.errors(pickErrors(["GH_UNAVAILABLE", "PR_HEAD_MOVED", "REVIEW_SUGGESTION_STALE"]))
 		.route({ method: "POST", path: "/reviews/apply", summary: "Commit suggested changes to the head branch" })

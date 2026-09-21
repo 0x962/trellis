@@ -55,19 +55,19 @@ describe("epicNext", () => {
 		const next = epicNext(epic, 2, {}, noWorking);
 
 		expect(next?.wave).toBe(surfaces);
-		expect(next?.counts.map((count) => count.label)).toEqual(["3 to start", "2 running", "1 waits for you"]);
+		expect(next?.counts.map((count) => count.label)).toEqual(["3 to start", "2 running", "2 wait for you"]);
 	});
 
-	test("counts the questions and the pull requests of the wave that wait for the person", () => {
+	test("counts the questions and the pull requests of the epic that wait for the person", () => {
 		const waiting = { ...epic, tickets: [...epic.tickets, review("review", surfaces), review("other", foundation)] };
 
-		expect(epicNext(waiting, 2, {}, noWorking)?.counts[2]?.label).toBe("2 wait for you");
+		expect(epicNext(waiting, 2, {}, noWorking)?.counts[2]?.label).toBe("4 wait for you");
 	});
 
 	test("drops a ticket whose agent run works from the count of the person", () => {
 		const waiting = { ...epic, tickets: [...epic.tickets, review("review", surfaces)] };
 
-		expect(epicNext(waiting, 2, {}, new Set(["review"]))?.counts[2]?.label).toBe("1 waits for you");
+		expect(epicNext(waiting, 2, {}, new Set(["review"]))?.counts[2]?.label).toBe("2 wait for you");
 	});
 
 	test("links to start inside the wave, groups wait for you by turn, and gives running no link", () => {
@@ -76,7 +76,7 @@ describe("epicNext", () => {
 		expect(next?.counts.map((count) => count.search)).toEqual([
 			{ wave: surfaces.ref, category: ["todo"] },
 			null,
-			{ wave: surfaces.ref, group: "turn" },
+			{ group: "turn" },
 		]);
 	});
 
@@ -101,7 +101,6 @@ describe("epicNext", () => {
 			epic: "OP/routine-runtime",
 			priority: ["high"],
 			not: ["priority"],
-			wave: surfaces.ref,
 			group: "turn",
 		});
 	});

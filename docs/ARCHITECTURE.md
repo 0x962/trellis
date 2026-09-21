@@ -689,8 +689,8 @@ Harness events establish turn activity. Terminal output alone does not establish
 A host interruption changes an unfinished send to `unknown`.
 A durable receipt can confirm the original delivery. An explicit resend uses a new generation and message identifier.
 
-The web Needs you page lists tickets in review statuses with a human reviewer across every project.
-The list includes inherited and custom statuses, with or without a linked pull request.
+The web Needs you page lists each ticket whose turn is `you` across every project.
+`packages/api/src/turn/turn.ts` defines this turn from the status, pull requests, and the assigned run.
 The Mentioned section lists comments that name the current human actor outside code.
 A resolved comment or thread removes its mentions. A Done transition clears comments created before that transition, even if the ticket reopens.
 Comments created after that transition remain eligible, including comments on Done tickets. Canceled transitions do not clear mentions.

@@ -12,6 +12,8 @@ export type UiData = {
 	// The collapsed group names per route: `{"/p/CDE": ["done"]}`. A route
 	// with no entry collapses its Done and Canceled groups.
 	collapsedGroups: Record<string, string[]>;
+	// The done or canceled ticket rows that show their child rows, by route.
+	expandedTickets: Record<string, string[]>;
 	// A project row is expanded unless this holds `false` for its id.
 	expandedProjects: Record<string, boolean>;
 	// The table columns a route hides or shows: `{"/p/CDE": {updated: false}}`.
@@ -29,6 +31,7 @@ export type UiState = UiData & {
 	toggleProject: (id: string) => void;
 	// `defaults` names the groups a route collapses before its first toggle.
 	toggleGroup: (route: string, group: string, defaults?: string[]) => void;
+	toggleTicketExpanded: (route: string, ticketId: string) => void;
 	setColumnVisible: (route: string, column: string, visible: boolean) => void;
 	setGroupCollapsed: (route: string, group: string, collapsed: boolean) => void;
 };
@@ -37,6 +40,7 @@ const defaults: UiData = {
 	sidebarCollapsed: false,
 	density: "comfortable",
 	collapsedGroups: {},
+	expandedTickets: {},
 	expandedProjects: {},
 	columnVisibility: {},
 };
@@ -61,6 +65,13 @@ const updates = {
 			const next = groups.includes(group) ? groups.filter((name) => name !== group) : [...groups, group];
 			return { collapsedGroups: { ...state.collapsedGroups, [route]: next } };
 		},
+	toggleTicketExpanded:
+		(route: string, ticketId: string) =>
+		(state: UiData): Partial<UiData> => {
+			const tickets = state.expandedTickets[route] ?? [];
+			const next = tickets.includes(ticketId) ? tickets.filter((id) => id !== ticketId) : [...tickets, ticketId];
+			return { expandedTickets: { ...state.expandedTickets, [route]: next } };
+		},
 	setColumnVisible:
 		(route: string, column: string, visible: boolean) =>
 		(state: UiData): Partial<UiData> => ({
@@ -78,8 +89,8 @@ const updates = {
 		},
 };
 
-// The renderer-local preferences: the sidebar, the density, the collapsed
-// groups, and the tree expansion. Every change writes through to
+// The renderer-local preferences: the sidebar, density, table expansion,
+// project tree expansion, and visible columns. Every change writes to
 // localStorage, and a new store reads the stored state at creation.
 export const createUiStore = () =>
 	create<UiState>()(
@@ -93,6 +104,7 @@ export const createUiStore = () =>
 				setDensity: (density) => set(updates.setDensity(density)),
 				toggleProject: (id) => set(updates.toggleProject(id)),
 				toggleGroup: (route, group, defaults) => set(updates.toggleGroup(route, group, defaults)),
+				toggleTicketExpanded: (route, ticketId) => set(updates.toggleTicketExpanded(route, ticketId)),
 				setColumnVisible: (route, column, visible) => set(updates.setColumnVisible(route, column, visible)),
 				setGroupCollapsed: (route, group, collapsed) => set(updates.setGroupCollapsed(route, group, collapsed)),
 			}),
@@ -103,6 +115,7 @@ export const createUiStore = () =>
 					sidebarCollapsed: state.sidebarCollapsed,
 					density: state.density,
 					collapsedGroups: state.collapsedGroups,
+					expandedTickets: state.expandedTickets,
 					expandedProjects: state.expandedProjects,
 					columnVisibility: state.columnVisibility,
 				}),
@@ -121,6 +134,8 @@ export const uiActions = {
 	toggleProject: (id: string) => useUiStore.setState(updates.toggleProject(id)),
 	toggleGroup: (route: string, group: string, defaults?: string[]) =>
 		useUiStore.setState(updates.toggleGroup(route, group, defaults)),
+	toggleTicketExpanded: (route: string, ticketId: string) =>
+		useUiStore.setState(updates.toggleTicketExpanded(route, ticketId)),
 	setColumnVisible: (route: string, column: string, visible: boolean) =>
 		useUiStore.setState(updates.setColumnVisible(route, column, visible)),
 	setGroupCollapsed: (route: string, group: string, collapsed: boolean) =>

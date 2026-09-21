@@ -3,9 +3,8 @@ import type { TicketPr } from "../schemas/ticketPr.ts";
 import { turnOf } from "../turn/turn.ts";
 import { factSeparator, groupSeparator } from "./separators.ts";
 
-// One pull request of a ticket, in the words the epic page prints under the
-// ticket row. `apps/web/src/features/table/PrRow/prRowText/prRowText.ts`
-// builds the same facts for the page, and a new fact must reach both sides.
+// One pull request of a ticket, with the review facts that `trellis epics show`
+// gives an agent. The web row shows the title and opens the review sheet for these facts.
 //
 // The page names the agent that works on a pull request. `epics.get` answers
 // with no run, so `turnOf` reads false for a working run here and the turn
