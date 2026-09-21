@@ -10,9 +10,9 @@ export type FilesDisclosureProps = {
 	children: ReactNode;
 };
 
-// The checks, the file list, the diff and the threads of the review page. A
-// person does not read a diff on a phone, so under 768 px one button named
-// Files opens and shuts all four. A wider window draws the four and no button.
+// The file tree and the diff of the review page. A person does not read a
+// diff on a phone, so under 768 px one button named Files opens and shuts
+// both. A wider window draws both panes and no button.
 //
 // The box keeps its children in the tree while it is shut, because `DiffPane`
 // inside it reports the changed file list that `FileRiskGroups` draws and that
