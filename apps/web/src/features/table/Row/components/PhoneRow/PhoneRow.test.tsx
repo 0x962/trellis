@@ -8,6 +8,7 @@ import { PhoneRow } from "./PhoneRow";
 // `renderToStaticMarkup` writes the text of each span with no separator, so
 // the words of one line run together. The test reads the words, not the gaps.
 const textOf = (html: string) => html.replace(/<[^>]*>/g, "");
+const visibleTextOf = (html: string) => textOf(html.replace(/<span class="sr-only">.*?<\/span>/g, ""));
 
 const ticket = (fields: Partial<TicketSummary> = {}) =>
 	({
@@ -47,6 +48,7 @@ const render = (
 			disclosure={disclosure}
 			focused={false}
 			selected={false}
+			href="/t/OP-35"
 		/>,
 	);
 
@@ -54,8 +56,9 @@ describe("PhoneRow on the epic table", () => {
 	test("puts the ID, the title and the actor on line 1, and leaves the priority mark out", () => {
 		const html = render(ticket(), "epic");
 
-		expect(textOf(html)).toBe("OP-35Service: A run whose webhook fails retries three timesactor");
+		expect(visibleTextOf(html)).toBe("OP-35Service: A run whose webhook fails retries three timesactor");
 		expect(html).not.toContain('data-column="priority"');
+		expect(html).toContain('href="/t/OP-35"');
 	});
 
 	test("prints the pull request number and title on line 2", () => {
