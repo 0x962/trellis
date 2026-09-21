@@ -1,9 +1,7 @@
 import { GithubLogo } from "@phosphor-icons/react";
 import { type ReviewRevision, type ReviewThread, reviewRef } from "@trellis/api";
 import { Badge, type BadgeTone, Tooltip } from "@trellis/ui";
-// `ReviewHeaderActions` still lives under `ReviewSummary/components/` although
-// `ReviewSummary` is gone. TRL-209 (T64) owns that tree and moves it here.
-import { ReviewHeaderActions } from "../../../ReviewSummary/components/ReviewHeaderActions";
+import { ReviewHeaderActions } from "../../../ReviewHeaderActions";
 
 // `revision.meta` holds the answer of `gh pr view` and has no type. This type
 // lists the fields that the band shows.

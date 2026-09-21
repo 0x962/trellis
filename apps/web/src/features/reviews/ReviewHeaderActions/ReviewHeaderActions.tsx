@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ReviewRevision, ReviewThread } from "@trellis/api";
 import { Button, ConfirmDialog, IconButton, Menu, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
-import { useApp } from "../../../../../lib/appContext";
+import { useApp } from "../../../lib/appContext";
 import {
 	mergeMenuActions,
 	overflowActions,
@@ -11,7 +11,7 @@ import {
 	type ReviewAction,
 	type ReviewActionMeta,
 	type ReviewActionMetadata,
-} from "../../../reviewActions/reviewActions";
+} from "../reviewActions/reviewActions";
 import { ReviewSubmit } from "./components/ReviewSubmit";
 
 export function ReviewHeaderActions({

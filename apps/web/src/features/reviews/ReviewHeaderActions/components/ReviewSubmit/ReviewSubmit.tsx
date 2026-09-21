@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import type { ReviewRevision, ReviewThread } from "@trellis/api";
 import { Button, Checkbox, ChoiceGroup, Popover, Textarea } from "@trellis/ui";
 import { useEffect, useRef, useState } from "react";
-import { useApp } from "../../../../../../../lib/appContext";
+import { useApp } from "../../../../../lib/appContext";
 
 type Verdict = "comment" | "approve" | "request_changes";
 

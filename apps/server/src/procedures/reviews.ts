@@ -1,8 +1,6 @@
 import { call, os } from "./base";
 export const reviews = os.reviews.router({
 	status: os.reviews.status.handler(({ context, input }) => call(context, "reviews.status", input)),
-	reviewers: os.reviews.reviewers.handler(({ context, input }) => call(context, "reviews.reviewers", input)),
-	reviewer: os.reviews.reviewer.handler(({ context, input }) => call(context, "reviews.reviewer", input)),
 	action: os.reviews.action.handler(({ context, input }) => call(context, "reviews.action", input)),
 	metadata: os.reviews.metadata.handler(({ context, input }) => call(context, "reviews.metadata", input)),
 	mine: os.reviews.mine.handler(({ context, input }) => call(context, "reviews.mine", input)),
