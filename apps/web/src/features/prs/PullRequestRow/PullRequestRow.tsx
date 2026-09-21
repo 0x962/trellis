@@ -18,7 +18,7 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 			data-pr-row={pr.id}
 			className="group flex h-14 items-center gap-3 px-5 transition-colors duration-hover ease-out hover:bg-band focus-within:bg-band focus-within:outline-2 focus-within:outline-accent focus-within:-outline-offset-2 max-md:px-4"
 		>
-			<PrGlyph state={pr.state} isDraft={pr.isDraft} />
+			<PrGlyph state={pr.state} isDraft={pr.isDraft} isQueued={pr.isQueued} />
 			<span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
 				<span className="flex min-w-0 items-center gap-2">
 					<span className="min-w-0 truncate text-base font-medium text-fg">{pr.title}</span>

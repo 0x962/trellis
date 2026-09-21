@@ -48,6 +48,7 @@ const PrReviewSchema = z.object({
 // each linked pull request.
 const PrBadgeSchema = z.object({
 	state: PrStateSchema,
+	isQueued: z.boolean(),
 	ciState: CiStateSchema,
 	reviewState: ReviewStateSchema,
 	pass: CountSchema,
@@ -170,7 +171,7 @@ export const SortSchema = z.enum([
 ]);
 export type Sort = z.infer<typeof SortSchema>;
 
-export const PrFilterSchema = z.enum(["any", "none", "open", "draft", "merged", "closed"]);
+export const PrFilterSchema = z.enum(["any", "none", "open", "draft", "queued", "merged", "closed"]);
 export type PrFilter = z.infer<typeof PrFilterSchema>;
 
 // The last actor filter: `kind:name` or a bare `name`.
@@ -194,6 +195,10 @@ export const ListQuerySchema = z.strictObject({
 	label: commaList(LabelRefStringSchema).optional(),
 	labelNot: commaList(LabelRefStringSchema).optional(),
 	parent: z.union([z.literal("none"), TicketRefStringSchema]).optional(),
+	// `waitsOn` keeps tickets that have a dependency edge to the named ticket.
+	waitsOn: TicketRefStringSchema.optional(),
+	// `blocked` tests for at least one dependency whose status is still open.
+	blocked: booleanString.optional(),
 	// `none` keeps the tickets outside every epic.
 	epic: z.union([z.literal("none"), EpicRefStringSchema]).optional(),
 	// `none` keeps the tickets outside every wave.

@@ -33,6 +33,7 @@ export const TicketPrSchema = z.object({
 	title: z.string(),
 	state: PrStateSchema,
 	isDraft: z.boolean(),
+	isQueued: z.boolean(),
 	additions: CountSchema.nullable(),
 	deletions: CountSchema.nullable(),
 	changedFiles: CountSchema.nullable(),

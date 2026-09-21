@@ -27,6 +27,8 @@ export const filterKeys = [
 	"priority",
 	"label",
 	"parent",
+	"waitsOn",
+	"blocked",
 	"epic",
 	"wave",
 	"pr",

@@ -1,6 +1,15 @@
-import { GitPullRequest, Plus } from "@phosphor-icons/react";
+import { Plus } from "@phosphor-icons/react";
 import type { Ticket, TicketSummary } from "@trellis/api";
-import { Button, CheckRibbon, EmptyState, PriorityIcon, SectionHeader, StatusIcon, TicketId } from "@trellis/ui";
+import {
+	Button,
+	CheckRibbon,
+	EmptyState,
+	PrGlyph,
+	PriorityIcon,
+	SectionHeader,
+	StatusIcon,
+	TicketId,
+} from "@trellis/ui";
 import { compactRelativeTime } from "../../../lib/format";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { ActorAvatar } from "../../agents/ActorAvatar";
@@ -24,7 +33,7 @@ const badgeChecks = (pr: NonNullable<TicketSummary["pr"]>) => [
 const ciLabels = { none: "none", pending: "pending", pass: "passed", fail: "failed" } as const;
 
 const prLabel = (pr: NonNullable<TicketSummary["pr"]>) =>
-	`${pr.state.charAt(0).toUpperCase()}${pr.state.slice(1)} PR, checks ${ciLabels[pr.ciState]}`;
+	`${pr.isQueued ? "Queued" : `${pr.state.charAt(0).toUpperCase()}${pr.state.slice(1)}`} PR, checks ${ciLabels[pr.ciState]}`;
 
 // The children of a ticket: the header with the done count and the Add
 // button, a progress bar, and one fixed-height row per child. Add opens the
@@ -94,7 +103,7 @@ function ChildRow({ child, onOpen }: { child: TicketSummary; onOpen: () => void 
 			<span className="flex w-16 shrink-0 items-center gap-1">
 				{pr !== null && (
 					<span role="img" aria-label={prLabel(pr)} className="inline-flex items-center gap-1 text-fg-muted">
-						<GitPullRequest className="size-3.5" aria-hidden="true" />
+						<PrGlyph state={pr.state} isDraft={false} isQueued={pr.isQueued} size="sm" />
 						<CheckRibbon size="mini" checks={badgeChecks(pr)} />
 					</span>
 				)}

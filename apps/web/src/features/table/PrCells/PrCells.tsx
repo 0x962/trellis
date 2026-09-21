@@ -9,7 +9,7 @@ import type { PrRowCell } from "../PrRow/prRowText";
 export function PrCells({ pr, cells }: { pr: TicketPr; cells: readonly PrRowCell[] }) {
 	return (
 		<>
-			<PrGlyph state={pr.state} isDraft={pr.isDraft} size="sm" />
+			<PrGlyph state={pr.state} isDraft={pr.isDraft} isQueued={pr.isQueued} size="sm" />
 			<span className={cx("shrink-0 text-fg", tabularClass)}>#{pr.number}</span>
 			{cells.map((cell) => (
 				<span key={cell.key} title={cell.text} className="min-w-0 flex-1 truncate text-fg">

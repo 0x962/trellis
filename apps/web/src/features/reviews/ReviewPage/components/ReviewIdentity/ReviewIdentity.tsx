@@ -1,6 +1,6 @@
 import { GithubLogo } from "@phosphor-icons/react";
 import { type ReviewRevision, reviewRef } from "@trellis/api";
-import { Badge, type BadgeTone, Tooltip } from "@trellis/ui";
+import { Badge, type BadgeTone, PrGlyph, Tooltip } from "@trellis/ui";
 import { ReviewHeaderActions } from "../../../ReviewHeaderActions";
 
 // `revision.meta` holds the answer of `gh pr view` and has no type. This type
@@ -14,9 +14,9 @@ export type GithubPullRequest = {
 	baseRefName?: string;
 };
 
-// GitHub can mark a pull request a draft while the state stays OPEN. The draft
-// check comes first, so the badge then reads Draft.
-export const stateWord = (pullRequest: GithubPullRequest | undefined) => {
+// GitHub can mark a pull request as queued or draft while its state stays OPEN.
+export const stateWord = (pullRequest: GithubPullRequest | undefined, isQueued = false) => {
+	if (isQueued) return "Queued";
 	if (pullRequest === undefined) return "Not fetched";
 	if (pullRequest.isDraft) return "Draft";
 	if (pullRequest.state === "MERGED") return "Merged";
@@ -25,7 +25,8 @@ export const stateWord = (pullRequest: GithubPullRequest | undefined) => {
 	return "Not fetched";
 };
 
-export const stateTone = (pullRequest: GithubPullRequest | undefined): BadgeTone => {
+export const stateTone = (pullRequest: GithubPullRequest | undefined, isQueued = false): BadgeTone => {
+	if (isQueued) return "wait";
 	if (pullRequest?.state === "MERGED") return "agent";
 	if (pullRequest?.state === "OPEN" && !pullRequest.isDraft) return "ok";
 	return "neutral";
@@ -37,14 +38,16 @@ export type ReviewIdentityProps = {
 	// no revision arrived. The buttons need a revision, so they wait for it.
 	revision: ReviewRevision | null;
 	pullRequest: GithubPullRequest | undefined;
+	isQueued: boolean;
 	onAction: () => void;
 };
 
 // The title, the state, the branch and the buttons that end a review.
 // `ConditionsBlock` prints the size, the open thread count and the distance
 // from the base branch, so this band prints none of those three.
-export function ReviewIdentity({ pr, revision, pullRequest, onAction }: ReviewIdentityProps) {
+export function ReviewIdentity({ pr, revision, pullRequest, isQueued, onAction }: ReviewIdentityProps) {
 	const ref = reviewRef(pr);
+	const glyphState = pullRequest?.state === "MERGED" ? "merged" : pullRequest?.state === "CLOSED" ? "closed" : "open";
 	return (
 		<div className="review-heading">
 			<div className="review-heading-title">
@@ -52,7 +55,10 @@ export function ReviewIdentity({ pr, revision, pullRequest, onAction }: ReviewId
 				{revision && <ReviewHeaderActions pr={pr} revision={revision} onDone={onAction} />}
 			</div>
 			<div className="review-heading-meta">
-				<Badge tone={stateTone(pullRequest)}>{stateWord(pullRequest)}</Badge>
+				{pullRequest !== undefined && (
+					<PrGlyph state={glyphState} isDraft={pullRequest.isDraft ?? false} isQueued={isQueued} size="sm" />
+				)}
+				<Badge tone={stateTone(pullRequest, isQueued)}>{stateWord(pullRequest, isQueued)}</Badge>
 				{pullRequest?.mergeable === "CONFLICTING" && (
 					<Tooltip content="Open merge conflicts on GitHub">
 						<a className="inline-flex items-center gap-1.5" href={`${pr}/conflicts`} target="_blank" rel="noreferrer">

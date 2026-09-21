@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Actor, CiState, EpicSummary, PrFilter, Priority, StatusSummary } from "@trellis/api";
-import { type CommandItem, FilterPopover } from "@trellis/ui";
-import type { ReactElement } from "react";
+import { type CommandItem, FilterPopover, StatusIcon } from "@trellis/ui";
+import { type ReactElement, useEffect, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { rootKey } from "../../../../../lib/projectPath";
 import { epicItems } from "../../../../pickers/EpicPicker";
@@ -80,6 +80,16 @@ export function FilterPicker({
 	trigger,
 }: FilterPickerProps) {
 	const { orpc } = useApp();
+	const [ticketSearch, setTicketSearch] = useState("");
+	const [ticketQuery, setTicketQuery] = useState("");
+	const waitsOnStage = open && stage.kind === "values" && stage.field === "waitsOn";
+	useEffect(() => {
+		const timer = setTimeout(() => setTicketQuery(ticketSearch.trim()), 120);
+		return () => clearTimeout(timer);
+	}, [ticketSearch]);
+	useEffect(() => {
+		if (!waitsOnStage) setTicketSearch("");
+	}, [waitsOnStage]);
 	const projects = useQuery({ ...orpc.projects.list.queryOptions({ input: {} }), enabled: open }).data ?? [];
 	const actors =
 		useQuery({
@@ -97,6 +107,13 @@ export function FilterPicker({
 	const waveStage = open && stage.kind === "values" && stage.field === "wave";
 	const waveEpics = fixedEpic === undefined ? epics.map((epic) => epic.ref) : [fixedEpic];
 	const epicWaves = useEpicWaves(waveStage ? waveEpics : []);
+	const dependencyTickets =
+		useQuery({
+			...orpc.search.query.queryOptions({
+				input: { q: ticketQuery, project: project === undefined ? undefined : rootKey(project), limit: 10 },
+			}),
+			enabled: waitsOnStage && ticketQuery !== "",
+		}).data?.tickets ?? [];
 
 	const close = () => onOpenChange(false);
 
@@ -149,9 +166,17 @@ export function FilterPicker({
 	const items =
 		stage.kind === "scope"
 			? scopeValues.map((entry) => ({ id: entry.id, label: entry.label, checked: view.scope === entry.id }))
-			: stage.kind === "values" && !sectioned
-				? valueItems(stage.field, view, projects, actors, epics)
-				: fieldItems;
+			: waitsOnStage
+				? dependencyTickets.map((ticket) => ({
+						id: ticket.identifier,
+						label: ticket.identifier,
+						current: view.waitsOn === ticket.identifier,
+						icon: <StatusIcon category={ticket.status.category} reviewer={ticket.status.reviewer ?? undefined} />,
+						children: <span className="truncate text-fg-muted">{ticket.title}</span>,
+					}))
+				: stage.kind === "values" && !sectioned
+					? valueItems(stage.field, view, projects, actors, epics)
+					: fieldItems;
 
 	const pickScope = (id: string) => {
 		onChange({ ...view, scope: id as View["scope"] });
@@ -176,6 +201,9 @@ export function FilterPicker({
 			}
 			items={sectioned ? [] : items}
 			groups={groups}
+			filter={waitsOnStage ? false : undefined}
+			onSearchChange={waitsOnStage ? setTicketSearch : undefined}
+			empty={waitsOnStage && ticketQuery === "" ? "Type to search." : undefined}
 			onSelect={(id) =>
 				stage.kind === "values" ? pickValue(stage.field, id) : stage.kind === "scope" ? pickScope(id) : pickField(id)
 			}
@@ -202,6 +230,11 @@ const valueItems = (
 			return projectItems(projects, view.project);
 		case "parent":
 			return [{ id: "none", label: "No parent", current: view.parent === "none" }];
+		case "blocked":
+			return [
+				{ id: "true", label: "Blocked", current: view.blocked === true },
+				{ id: "false", label: "Not blocked", current: view.blocked === false },
+			];
 		case "epic":
 			return [
 				{ id: "none", label: "No epic", current: view.epic === "none" },
@@ -256,6 +289,10 @@ const valueChange = (view: View, field: FilterField, id: string, statuses: reado
 			return { ...view, project: id };
 		case "parent":
 			return { ...view, parent: "none" };
+		case "waitsOn":
+			return { ...view, waitsOn: id };
+		case "blocked":
+			return { ...view, blocked: id === "true" };
 		case "epic":
 			return { ...view, epic: id };
 		case "wave":

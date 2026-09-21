@@ -1,15 +1,14 @@
 import { create } from "zustand";
 
-export type PickerKind = "status" | "priority" | "parent" | "project" | "epic" | "wave" | "labels";
+export type PickerKind = "status" | "priority" | "parent" | "dependencies" | "project" | "epic" | "wave" | "labels";
 
 type PickerState = {
 	open: PickerKind | null;
 	setOpen: (open: PickerKind | null) => void;
 };
 
-// Which property picker is open on the ticket surface. The rail draws the
-// pickers; the s, p, Shift+P, m, and l keys and the more menu open them
-// through this one value, so a caller needs no handle on the rail.
+// The property picker that is open on the ticket surface. The rail draws
+// each picker. Keyboard shortcuts and the menu set this one value.
 export const usePickerStore = create<PickerState>()((set) => ({
 	open: null,
 	setOpen: (open) => set({ open }),

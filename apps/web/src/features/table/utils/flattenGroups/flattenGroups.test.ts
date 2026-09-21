@@ -152,6 +152,51 @@ describe("the agent line on the row", () => {
 	});
 });
 
+describe("flattenGroups tree", () => {
+	const lastOf = (items: ReturnType<typeof flattenGroups>) =>
+		items.flatMap((item) => (item.kind === "pr" || item.kind === "agent" ? [item.last] : []));
+	const childLinesOf = (items: ReturnType<typeof flattenGroups>) =>
+		items.flatMap((item) => (item.kind === "row" ? [item.hasChildLines] : []));
+
+	test("marks the agent line as the last child when the ticket has one", () => {
+		const groups = [group("todo", true, [ticket("a", [pr(11), pr(12)])])];
+
+		const items = flattenGroups(groups, { prRows: true, agentLines: { a: line("Pushed.") } });
+
+		expect(lastOf(items)).toEqual([false, false, true]);
+	});
+
+	test("marks the final pull request as the last child when the ticket has no agent line", () => {
+		const groups = [group("todo", true, [ticket("a", [pr(11), pr(12)]), ticket("b", [pr(13)])])];
+
+		expect(lastOf(flattenGroups(groups, { prRows: true }))).toEqual([false, true, true]);
+	});
+
+	test("marks a lone agent line as the last child", () => {
+		const groups = [group("todo", true, [ticket("a")])];
+
+		expect(lastOf(flattenGroups(groups, { prRows: true, agentLines: { a: line("Pushed.") } }))).toEqual([true]);
+	});
+
+	test("says which ticket rows have child lines under them", () => {
+		const groups = [group("todo", true, [ticket("a", [pr(11)]), ticket("b"), ticket("c", [pr(12)], "done")])];
+
+		expect(childLinesOf(flattenGroups(groups, { prRows: true }))).toEqual([true, false, false]);
+	});
+
+	test("a ticket has no child lines when the route leaves the pull requests out", () => {
+		const groups = [group("todo", true, [ticket("a", [pr(11)])])];
+
+		expect(childLinesOf(flattenGroups(groups))).toEqual([false]);
+	});
+
+	test("an opened done ticket has child lines", () => {
+		const groups = [group("done", true, [ticket("a", [pr(11)], "done")])];
+
+		expect(childLinesOf(flattenGroups(groups, { prRows: true, expandedTickets: ["a"] }))).toEqual([true]);
+	});
+});
+
 describe("phoneItems", () => {
 	test("drops the agent lines and the pull request lines, and keeps the rest in order", () => {
 		const groups = [{ ...group("todo", true, [ticket("a", [pr(11)]), ticket("b")]), hasMore: true }];

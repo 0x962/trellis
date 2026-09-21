@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { booleanString, IsoDateTimeSchema, UlidSchema } from "./primitives";
-import { PullRequestSchema } from "./pullRequest";
+import { CheckSchema, PullRequestSchema } from "./pullRequest";
 import { TicketIdentifierSchema } from "./ticket";
 import { TicketPrSchema } from "./ticketPr";
 
@@ -102,6 +102,8 @@ export const ReviewPrSchema = z.object({
 	number: z.number().int(),
 	title: z.string(),
 	state: z.string(),
+	isDraft: z.boolean(),
+	isQueued: z.boolean(),
 	open: z.number().int(),
 	resolved: z.number().int(),
 	updatedAt: IsoDateTimeSchema,
@@ -109,8 +111,10 @@ export const ReviewPrSchema = z.object({
 // `gh pr view` supplies the other fields, whose shape belongs to GitHub.
 // Keep this schema loose so each GitHub field passes through unchanged.
 export const ReviewStatusSchema = z.looseObject({
+	isQueued: z.boolean(),
 	ticket: z.object({ identifier: TicketIdentifierSchema, title: z.string() }).nullable(),
 	prRow: TicketPrSchema.nullable(),
+	checks: z.array(CheckSchema).nullable(),
 });
 export const ReviewRevisionSchema = z.object({
 	id: UlidSchema,

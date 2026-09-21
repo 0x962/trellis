@@ -17,7 +17,13 @@ export type TicketPickerProps = {
 	// Tickets the list leaves out, such as the ticket itself.
 	exclude?: readonly string[];
 	// `null` clears the parent.
-	onPick: (ticket: TicketSummary | null) => void;
+	onPick?: (ticket: TicketSummary | null) => void;
+	// The ticket identifiers that a picker for a set draws as checked.
+	checked?: readonly string[];
+	// The checked state when it depends on facts in each search result.
+	isChecked?: (ticket: TicketSummary) => boolean;
+	// `checked` is the new state of the selected ticket.
+	onToggle?: (ticket: TicketSummary, checked: boolean) => void;
 	// False hides the None row. A picker that adds a ticket to a set has
 	// nothing to clear, so `onPick` then receives a ticket only.
 	allowNone?: boolean;
@@ -33,14 +39,17 @@ export type TicketPickerProps = {
 	side?: "top" | "bottom";
 };
 
-// The parent popover: a search over the tickets of the scope, an identifier
-// match first, and a None option that clears the parent.
+// A ticket search for one value or a set. A set keeps the popover open and
+// toggles its checked rows. A single value can offer None.
 export function TicketPicker({
 	project,
 	value,
+	checked,
+	isChecked,
 	exclude = [],
 	allowNone = true,
 	onPick,
+	onToggle,
 	trigger,
 	triggerTooltip,
 	open,
@@ -83,12 +92,16 @@ export function TicketPicker({
 		...tickets.map((ticket) => ({
 			id: ticket.identifier,
 			label: ticket.identifier,
-			current: ticket.identifier === value,
+			current: onToggle === undefined && ticket.identifier === value,
+			checked:
+				onToggle === undefined ? undefined : (isChecked?.(ticket) ?? checked?.includes(ticket.identifier) ?? false),
 			icon: <StatusIcon category={ticket.status.category} reviewer={ticket.status.reviewer ?? undefined} />,
 			children: <span className="truncate text-fg-muted">{ticket.title}</span>,
 		})),
-		...(empty && value !== undefined ? [{ id: value, label: value, current: true }] : []),
-		...(allowNone && empty ? [{ id: noneId, label: "None", current: value === undefined }] : []),
+		...(onToggle === undefined && empty && value !== undefined ? [{ id: value, label: value, current: true }] : []),
+		...(onToggle === undefined && allowNone && empty
+			? [{ id: noneId, label: "None", current: value === undefined }]
+			: []),
 	];
 
 	return (
@@ -112,9 +125,15 @@ export function TicketPicker({
 				items={items}
 				empty={q === "" ? "Type to search." : "No results."}
 				onSelect={(id) => {
+					if (onToggle !== undefined) {
+						const ticket = tickets.find((entry) => entry.identifier === id)!;
+						const current = isChecked?.(ticket) ?? checked?.includes(id) ?? false;
+						onToggle(ticket, !current);
+						return;
+					}
 					setOpen(false);
-					if (id === noneId) onPick(null);
-					else if (id !== value) onPick(tickets.find((ticket) => ticket.identifier === id)!);
+					if (id === noneId) onPick!(null);
+					else if (id !== value) onPick!(tickets.find((ticket) => ticket.identifier === id)!);
 				}}
 			/>
 		</Popover>

@@ -37,6 +37,8 @@ export type View = {
 	reviewer?: z.infer<typeof ReviewerSchema>;
 	priority?: z.infer<typeof PrioritySchema>[];
 	parent?: string;
+	waitsOn?: string;
+	blocked?: boolean;
 	// An epic ref, `OP/routine-runtime`, or `none` for the tickets outside
 	// every epic.
 	epic?: string;
@@ -95,7 +97,7 @@ const densities: ReadonlySet<string> = new Set(["comfortable", "compact"]);
 
 // A raw search value: the string a URL carries, or the typed value a Link
 // or a redirect passes, which the router validates again.
-type Raw = string | string[] | number | undefined;
+type Raw = string | string[] | number | boolean | undefined;
 
 const entries = (value: Raw): string[] => {
 	if (Array.isArray(value)) return value;
@@ -129,6 +131,11 @@ const timeBound = (value: Raw) => {
 };
 
 const text = (value: Raw) => (typeof value !== "string" || value === "" ? undefined : value);
+
+const booleanValue = (value: Raw) => {
+	const parsed = ListQuerySchema.shape.blocked.safeParse(value);
+	return parsed.success ? parsed.data : undefined;
+};
 
 const negatable: NegatableField[] = ["status", "priority", "project", "label"];
 
@@ -167,6 +174,8 @@ export const parseSearch = (params: Record<string, unknown>): View => {
 		priority: list(raw.priority, PrioritySchema),
 		label: list(raw.label, LabelRefStringSchema),
 		parent: single(raw.parent, ListQuerySchema.shape.parent),
+		waitsOn: single(raw.waitsOn, ListQuerySchema.shape.waitsOn),
+		blocked: booleanValue(raw.blocked),
 		epic: single(raw.epic, ListQuerySchema.shape.epic),
 		wave: single(raw.wave ?? raw[legacyWaveKey], ListQuerySchema.shape.wave),
 		pr: single(raw.pr, PrFilterSchema),
@@ -264,6 +273,8 @@ export const toListQuery = (view: View, options: ListQueryOptions = {}): ListQue
 		label: isNegated(view, "label") ? undefined : view.label,
 		labelNot: isNegated(view, "label") ? view.label : undefined,
 		parent: view.parent,
+		waitsOn: view.waitsOn,
+		blocked: view.blocked,
 		epic: view.epic,
 		wave: view.wave,
 		pr: view.pr,

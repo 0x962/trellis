@@ -3,6 +3,11 @@ import { stringifySearchObject } from "../../lib/searchParams";
 import { parseSearch, serializeSearch, stripDefaults, toListQuery, viewOf } from "./grammar";
 
 describe("parseSearch", () => {
+	test("reads the queued pull request filter", () => {
+		expect(parseSearch({ pr: "queued" }).pr).toBe("queued");
+		expect(serializeSearch(viewOf({ pr: "queued" }))).toBe("pr=queued");
+	});
+
 	test("reads an epic ref and canonicalizes it", () => {
 		expect(parseSearch({ epic: "op/Routine-Runtime" }).epic).toBe("OP/routine-runtime");
 	});
@@ -45,6 +50,35 @@ describe("toListQuery", () => {
 
 	test("leaves the epic out when unset", () => {
 		expect("epic" in toListQuery(viewOf({}))).toBe(false);
+	});
+});
+
+describe("dependency filters", () => {
+	test("reads and writes a waits-on ticket and the blocked state", () => {
+		const view = parseSearch({ waitsOn: "op-56", blocked: "true" });
+
+		expect(view.waitsOn).toBe("OP-56");
+		expect(view.blocked).toBe(true);
+		expect(serializeSearch(view)).toBe("waitsOn=OP-56&blocked=true");
+	});
+
+	test("keeps false as an active blocked filter", () => {
+		const view = parseSearch({ blocked: "false" });
+
+		expect(view.blocked).toBe(false);
+		expect(serializeSearch(view)).toBe("blocked=false");
+	});
+
+	test("drops invalid dependency filter values", () => {
+		expect(parseSearch({ waitsOn: "not-a-ticket", blocked: "yes" }).waitsOn).toBeUndefined();
+		expect(parseSearch({ waitsOn: "not-a-ticket", blocked: "yes" }).blocked).toBeUndefined();
+	});
+
+	test("carries both dependency filters to the list query", () => {
+		const query = toListQuery(viewOf({ waitsOn: "OP-56", blocked: true }));
+
+		expect(query.waitsOn).toBe("OP-56");
+		expect(query.blocked).toBe(true);
 	});
 });
 

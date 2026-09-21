@@ -8,7 +8,7 @@ import {
 import { rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
 import { invalidInput } from "../../errors";
-import { fetchPullRequests, type PullRequestRow as GithubPullRequestRow } from "../../gh/graphql";
+import { fetchPullRequests, type PullRequestRow as GithubPullRequestRow, withQueueState } from "../../gh/graphql";
 import { effectiveRepos } from "../projectsRepos";
 import { recordAction } from "../pullRequestAction";
 import { fail, type IoCtx, type PrepareCtx, type ServiceCtx } from "../support";
@@ -66,8 +66,7 @@ export async function action(ctx: PrepareCtx, input: { pr: string; action: Actio
 		state: string;
 		headRefName: string;
 	};
-	if (meta.headRefOid !== input.headSha)
-		throw invalidInput("headSha", "The PR head changed. Refresh before this action.");
+	if (meta.headRefOid !== input.headSha) throw fail("PR_HEAD_MOVED", { currentHeadSha: meta.headRefOid });
 	const a = input.action;
 	if (a.startsWith("live-")) {
 		if (`${ref.owner}/${ref.repo}` !== "canary-technologies-corp/canary")
@@ -107,7 +106,9 @@ export async function action(ctx: PrepareCtx, input: { pr: string; action: Actio
 		const [verb, ...flags] = args[a];
 		await gh(ctx, ["pr", verb!, ref.url, ...flags]);
 	}
-	return current(ctx, input.pr, input.action);
+	const prepared = await current(ctx, input.pr, input.action);
+	if (a === "queue" || a === "dequeue") prepared.row = withQueueState(prepared.row, a === "queue");
+	return prepared;
 }
 
 // Each submitted thread must belong to the pull request and the reviewed

@@ -12,6 +12,8 @@ export type FilterField =
 	| "label"
 	| "project"
 	| "parent"
+	| "waitsOn"
+	| "blocked"
 	| "epic"
 	| "wave"
 	| "pr"
@@ -27,6 +29,8 @@ export const pickerFields: readonly FilterField[] = [
 	"label",
 	"project",
 	"parent",
+	"waitsOn",
+	"blocked",
 	"epic",
 	"wave",
 	"pr",
@@ -43,6 +47,8 @@ export const chipFields: readonly FilterField[] = [
 	"label",
 	"project",
 	"parent",
+	"waitsOn",
+	"blocked",
 	"epic",
 	"wave",
 	"pr",
@@ -59,6 +65,8 @@ export const fieldLabels: Record<FilterField, string> = {
 	label: "Label",
 	project: "Project",
 	parent: "Parent",
+	waitsOn: "Waits on",
+	blocked: "Blocked",
 	epic: "Epic",
 	wave: "Wave",
 	pr: "PR",
@@ -78,6 +86,7 @@ export const prLabels: Record<PrFilter, string> = {
 	none: "none",
 	open: "open",
 	draft: "draft",
+	queued: "queued",
 	merged: "merged",
 	closed: "closed",
 };
@@ -145,6 +154,10 @@ export const valueLabel = (
 			return actorLabels[value] ?? value;
 		case "parent":
 			return value === "none" ? "none" : value;
+		case "waitsOn":
+			return value;
+		case "blocked":
+			return value === "true" ? "yes" : "no";
 		case "epic": {
 			if (value === "none") return "No epic";
 			const epic = epics.find((entry) => entry.ref === value || entry.id === value);

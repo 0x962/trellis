@@ -28,6 +28,7 @@ const insertPull = async ({
 	changedFiles = files?.length ?? null,
 	ticketId = ticket,
 	headSha = null,
+	isQueued = false,
 }: {
 	number: number;
 	additions: number | null;
@@ -37,15 +38,16 @@ const insertPull = async ({
 	changedFiles?: number | null;
 	ticketId?: string;
 	headSha?: string | null;
+	isQueued?: boolean;
 }) => {
 	const id = ulid();
 	await db.execute(sql`INSERT INTO pull_requests (
-		id, owner, repo, number, additions, deletions, changed_files, files, url, state, is_draft, head_sha,
+		id, owner, repo, number, additions, deletions, changed_files, files, url, state, is_draft, is_queued, head_sha,
 		head_ref, base_ref, review_state, checks, ci_state, created_at, updated_at
 	) VALUES (
 		${id}, 'acme', ${repoWithTrellisPathRules}, ${number}, ${additions}, ${deletions}, ${changedFiles},
 		${files === null ? null : JSON.stringify(files)}::jsonb,
-		${`https://github.com/acme/${repoWithTrellisPathRules}/pull/${number}`}, 'open', ${number === 2}, ${headSha},
+		${`https://github.com/acme/${repoWithTrellisPathRules}/pull/${number}`}, 'open', ${number === 2}, ${isQueued}, ${headSha},
 		${`feature-${number}`}, 'main', 'review_required', ${JSON.stringify(checks)}::jsonb,
 		'fail', ${at}, ${at}
 	)`);
@@ -91,6 +93,7 @@ beforeAll(async () => {
 			{ path: "package.json", change: "change", additions: 1, deletions: 1 },
 			{ path: "packages/api/src/schemas/review.ts", change: "change", additions: 10, deletions: 1 },
 		],
+		isQueued: true,
 	});
 	await db.execute(sql`INSERT INTO review_submissions (id, pr_id, request_id, actor, document, created_at)
 		VALUES
@@ -212,6 +215,8 @@ test("a ticket summary carries one row for each pull request", async () => {
 	const summary = await db.transaction((tx) => ticketSummary(tx, ticket));
 	expect(TicketSummarySchema.parse(summary)).toEqual(summary);
 	expect(summary.prRows.map((row) => row.sizeBand)).toEqual(["small", "medium", "large", null, "small"]);
+	expect(summary.pr?.isQueued).toBe(true);
+	expect(summary.prRows.map((row) => row.isQueued)).toEqual([true, false, false, false, false]);
 	expect(summary.prRows[0]).toMatchObject({
 		kind: "mixed",
 		risk: {

@@ -4,7 +4,7 @@ import { Popover } from "../../primitives/Popover";
 
 export type FilterPopoverProps = Pick<
 	ComponentProps<typeof Command>,
-	"label" | "placeholder" | "items" | "groups" | "onSelect" | "empty"
+	"label" | "placeholder" | "items" | "groups" | "onSelect" | "empty" | "filter" | "onSearchChange"
 > & {
 	trigger: ReactElement;
 	open: boolean;

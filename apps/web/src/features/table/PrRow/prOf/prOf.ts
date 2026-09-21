@@ -11,6 +11,7 @@ export const prOf = (fields: Partial<TicketPr>): TicketPr => ({
 	title: "Show the pull request title",
 	state: "open",
 	isDraft: false,
+	isQueued: false,
 	additions: null,
 	deletions: null,
 	changedFiles: null,
