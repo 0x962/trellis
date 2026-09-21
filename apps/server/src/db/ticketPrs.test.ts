@@ -109,9 +109,9 @@ beforeAll(async () => {
 		files: [{ path: "packages/ui/src/Dialog.tsx", additions: 1, deletions: 1 }],
 		changedFiles: 2,
 	});
-	const flowRun = ulid();
+	const reviewerRunId = ulid();
 	await db.execute(sql`INSERT INTO review_threads (id, pr_id, document, updated_at) VALUES
-		(${ulid()}, ${first}, ${{ status: "open", author: flowRun }}, ${at}),
+		(${ulid()}, ${first}, ${{ status: "open", author: "Code Reviewer", session: "review-session" }}, ${at}),
 		(${ulid()}, ${first}, ${{ status: "resolved" }}, ${at})`);
 	let newestExecution = "";
 	for (const [index, state] of [
@@ -134,18 +134,18 @@ beforeAll(async () => {
 			${new Date(at.getTime() + index)}, ${at}
 		)`);
 	}
-	const flowAttempt = ulid();
+	const reviewerAttemptId = ulid();
 	await db.execute(sql`INSERT INTO agent_runs (
 		id, name, kind, instruction, project_id, project_path, ticket_id, ticket_identifier,
 		session_id, created_at, updated_at
 	) VALUES (
-		${flowRun}, 'Code Reviewer', 'flow', 'Review the pull request.', ${root}, '/tmp/test', ${ticket},
+		${reviewerRunId}, 'Code Reviewer', 'flow', 'Review the pull request.', ${root}, '/tmp/test', ${ticket},
 		'TST-1', 'review-session', ${at}, ${at}
 	)`);
 	await db.execute(sql`INSERT INTO agent_execution_attempts (id, run_id, generation, token_hash, created_at)
-		VALUES (${flowAttempt}, ${flowRun}, 1, 'hash', ${at})`);
+		VALUES (${reviewerAttemptId}, ${reviewerRunId}, 1, 'hash', ${at})`);
 	await db.execute(sql`INSERT INTO flow_execution_tasks (execution_id, key, run_id, attempt_id, created_at)
-		VALUES (${newestExecution}, 'review', ${flowRun}, ${flowAttempt}, ${at})`);
+		VALUES (${newestExecution}, 'review', ${reviewerRunId}, ${reviewerAttemptId}, ${at})`);
 	await db.execute(sql`INSERT INTO pull_requests (
 		id, owner, repo, number, additions, deletions, changed_files, files, url, state, head_sha,
 		head_ref, base_ref, review_state, checks, ci_state, created_at, updated_at

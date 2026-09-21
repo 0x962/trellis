@@ -10,7 +10,7 @@ const clear: Conditions = {
 	evidence: { present: 5, required: 5, kind: "frontend" },
 	checks: { pass: 48, fail: 0, pending: 0, skipped: 44 },
 	threads: 0,
-	flows: { total: 2, newest: { name: "Code Reviewer", status: "passed", findings: 0 } },
+	flows: { total: 2, newest: { name: "Code Reviewer", status: "passed", findings: 0 }, running: 0, failed: 0 },
 	base: { behindBy: 0, baseRefName: "master" },
 	ancestors: [{ identifier: "TRL-164", merged: true }],
 };
@@ -105,15 +105,23 @@ test("the flows line names the newest flow result and its finding count", () => 
 	expect(lineValue(clear, "flows")).toBe("Code Reviewer passed · 0 findings");
 	expect(
 		lineValue(
-			{ ...clear, flows: { total: 4, newest: { name: "Security Review", status: "failed", findings: 1 } } },
+			{
+				...clear,
+				flows: { total: 4, newest: { name: "Security Review", status: "failed", findings: 1 }, running: 0, failed: 1 },
+			},
 			"flows",
 		),
 	).toBe("Security Review failed · 1 finding");
-	expect(lineValue({ ...clear, flows: { total: 0, newest: null } }, "flows")).toBe("none run");
+	expect(lineValue({ ...clear, flows: { total: 0, newest: null, running: 0, failed: 0 } }, "flows")).toBe("none run");
 });
 
 test("an older flow run does not change the newest flow result", () => {
-	const many = { total: 12, newest: { name: "Code Reviewer", status: "passed" as const, findings: 4 } };
+	const many = {
+		total: 12,
+		newest: { name: "Code Reviewer", status: "passed" as const, findings: 4 },
+		running: 1,
+		failed: 1,
+	};
 
 	expect(lineValue({ ...clear, flows: many }, "flows")).toBe("Code Reviewer passed · 4 findings");
 });
@@ -164,8 +172,22 @@ test("each open condition makes the word not yet", () => {
 		{ tests: { count: 0, failsOn: null, passesOn: null, noneApplies: false } },
 		{ evidence: null },
 		{ evidence: { present: 1, required: 4, kind: "backend" as const } },
-		{ flows: { total: 1, newest: { name: "Code Reviewer", status: "running", findings: 0 } } },
-		{ flows: { total: 1, newest: { name: "Code Reviewer", status: "failed", findings: 2 } } },
+		{
+			flows: {
+				total: 2,
+				newest: { name: "Code Reviewer", status: "passed", findings: 0 },
+				running: 1,
+				failed: 0,
+			},
+		},
+		{
+			flows: {
+				total: 2,
+				newest: { name: "Code Reviewer", status: "passed", findings: 0 },
+				running: 0,
+				failed: 1,
+			},
+		},
 		{ ancestors: [{ identifier: "TRL-167", merged: false }] },
 	];
 

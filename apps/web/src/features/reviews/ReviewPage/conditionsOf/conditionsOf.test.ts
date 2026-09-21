@@ -104,13 +104,15 @@ test("reads the evidence as the present count, the required count and the kind",
 test("reads the name, state and findings of the newest flow run", () => {
 	const flowRuns = [
 		{ name: "Code Reviewer", status: "waiting", findings: 2 },
-		{ name: "Security Review", status: "succeeded", findings: 0 },
+		{ name: "Security Review", status: "failed", findings: 0 },
 	];
 	const conditions = conditionsOf(input({ prRow: prRow({ flowRuns, flowRunCount: 9 } as Partial<TicketPr>) }))!;
 
 	expect(conditions.flows).toEqual({
 		total: 9,
 		newest: { name: "Code Reviewer", status: "running", findings: 2 },
+		running: 1,
+		failed: 1,
 	});
 });
 

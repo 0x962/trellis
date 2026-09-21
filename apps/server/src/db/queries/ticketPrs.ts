@@ -179,12 +179,15 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 					execution.doc->'flow'->>'name' AS name,
 					execution.state->>'status' AS status,
 					(
+						-- --author can replace the actor name of a review thread. Its session
+						-- still matches agent_runs.session_id. One execution can use the same
+						-- run for two task keys, so count each thread one time.
 						SELECT count(DISTINCT thread.id)::int
 						FROM flow_execution_tasks task
 						JOIN agent_runs run ON run.id = task.run_id
 						JOIN review_threads thread
 							ON thread.pr_id = p.id
-							AND thread.document->>'author' = run.id
+							AND thread.document->>'session' = run.session_id
 						WHERE task.execution_id = execution.id
 					) AS findings,
 					count(*) OVER () AS total

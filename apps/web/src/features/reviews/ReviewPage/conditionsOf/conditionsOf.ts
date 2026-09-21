@@ -38,17 +38,19 @@ const flowWordOf: Record<TicketPr["flowRuns"][number]["status"], FlowWord> = {
 
 // `flowRuns` holds the five newest runs of the ticket, newest first, and
 // `flowRunCount` holds how many runs the ticket has.
-export const flowsOf = (prRow: TicketPr): FlowsCondition => ({
-	total: prRow.flowRunCount,
-	newest:
-		prRow.flowRuns[0] === undefined
-			? null
-			: {
-					name: prRow.flowRuns[0].name,
-					status: flowWordOf[prRow.flowRuns[0].status],
-					findings: prRow.flowRuns[0].findings,
-				},
-});
+export const flowsOf = (prRow: TicketPr): FlowsCondition => {
+	const runs = prRow.flowRuns.map((run) => ({
+		name: run.name,
+		status: flowWordOf[run.status],
+		findings: run.findings,
+	}));
+	return {
+		total: prRow.flowRunCount,
+		newest: runs[0] ?? null,
+		running: runs.filter((run) => run.status === "running").length,
+		failed: runs.filter((run) => run.status === "failed").length,
+	};
+};
 
 // A record holds free-form JSON, so every field of it reads as text or as
 // nothing.

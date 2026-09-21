@@ -37,6 +37,10 @@ export type FlowsCondition = {
 	total: number;
 	// The newest run, with the review threads that its agents wrote.
 	newest: { name: string; status: FlowWord; findings: number } | null;
+	// These counts stop a merge across the five newest runs. A waiting run
+	// counts as running.
+	running: number;
+	failed: number;
 };
 
 // The test proofs of the pull request. One proof names a test, the commit
@@ -158,11 +162,11 @@ const threadsValue = (threads: number) => {
 	return threads === 1 ? "1 open" : `${threads} open`;
 };
 
-// The condition names the newest run because an older run does not describe
-// the current review result.
+const countPhrase = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+
 const flowsValue = ({ total, newest }: Conditions["flows"]) => {
-	if (total === 0) return "none run";
-	return `${newest!.name} ${newest!.status} · ${newest!.findings} ${newest!.findings === 1 ? "finding" : "findings"}`;
+	if (total === 0 || newest === null) return "none run";
+	return `${newest.name} ${newest.status} · ${countPhrase(newest.findings, "finding", "findings")}`;
 };
 
 const baseValue = (base: Conditions["base"]) => {
@@ -175,8 +179,6 @@ const ancestorsValue = (ancestors: Conditions["ancestors"]) => {
 	if (ancestors.length === 0) return "none";
 	return ancestors.map((ancestor) => `${ancestor.identifier} ${ancestor.merged ? "merged" : "open"}`).join(" · ");
 };
-
-const countPhrase = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 // Each condition that stops a merge, as one short phrase, such as
 // "1 check failed" or "1 of 4 evidence". The size, the risk answers and the
@@ -192,8 +194,8 @@ export function unmetConditions(conditions: Conditions): string[] {
 		tests !== null && tests.count === 0 && !tests.noneApplies && "no test registered",
 		evidence === null && "evidence unknown",
 		evidence !== null && evidence.present < evidence.required && `${evidence.present} of ${evidence.required} evidence`,
-		flows.newest?.status === "running" && "1 flow running",
-		flows.newest?.status === "failed" && "1 flow failed",
+		flows.running > 0 && countPhrase(flows.running, "flow running", "flows running"),
+		flows.failed > 0 && countPhrase(flows.failed, "flow failed", "flows failed"),
 		...conditions.ancestors.map((ancestor) => !ancestor.merged && `${ancestor.identifier} not merged`),
 	].filter((phrase): phrase is string => phrase !== false);
 }

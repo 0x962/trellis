@@ -13,7 +13,7 @@ const open: Conditions = {
 	evidence: null,
 	checks: { pass: 48, fail: 1, pending: 7, skipped: 44 },
 	threads: 2,
-	flows: { total: 2, newest: { name: "Code Reviewer", status: "running", findings: 2 } },
+	flows: { total: 2, newest: { name: "Code Reviewer", status: "running", findings: 2 }, running: 1, failed: 0 },
 	base: { behindBy: 3, baseRefName: "master" },
 	ancestors: [{ identifier: "TRL-167", merged: false }],
 };
@@ -25,7 +25,7 @@ const merged: Conditions = {
 	evidence: { present: 5, required: 5, kind: "frontend" },
 	checks: { pass: 55, fail: 0, pending: 0, skipped: 44 },
 	threads: 0,
-	flows: { total: 2, newest: { name: "Code Reviewer", status: "passed", findings: 0 } },
+	flows: { total: 2, newest: { name: "Code Reviewer", status: "passed", findings: 0 }, running: 0, failed: 0 },
 	ancestors: [{ identifier: "TRL-167", merged: true }],
 };
 
