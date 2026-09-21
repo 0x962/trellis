@@ -116,10 +116,17 @@ export function buildReviewRows(
 	revisionId: string,
 	composer: DiffAnchor | null,
 	expanded: ReadonlyMap<string, ExpandedFile>,
+	viewed: ReadonlySet<string>,
 ) {
 	const rows: ReviewRow[] = [];
 	for (const file of files) {
 		rows.push({ kind: "file", key: `${file.name}:file`, file });
+		// A file the person marked read keeps its header and loses every other
+		// row, so the files that are left sit close together.
+		if (viewed.has(file.name)) {
+			rows.push({ kind: "end", key: `${file.name}:end`, file });
+			continue;
+		}
 		const annotations = new Map<string, string[]>();
 		for (const annotation of lineAnnotations(file, threads, revisionId, composer, expanded.has(file.name))) {
 			const side = annotation.side === "deletions" ? "old" : "new";

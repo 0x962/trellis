@@ -17,7 +17,6 @@ import { ConditionsBlock } from "../ConditionsBlock";
 import { unmetConditions } from "../conditionLines/conditionLines";
 import { EvidenceStrip } from "../EvidenceStrip";
 import { FileRiskGroups } from "../FileRiskGroups";
-import type { ReadMarkFile } from "../FileRiskGroups/readMarks/readMarks";
 import { ApplySuggestionsDialog, ReviewApplyContext, type ReviewApplyState, ReviewBatchBar } from "../ReviewApply";
 import { ReviewChecks } from "../ReviewChecks/ReviewChecks";
 import { ReviewComment } from "../ReviewComment/ReviewComment";
@@ -25,6 +24,7 @@ import { ReviewDiscussion } from "../ReviewDiscussion/ReviewDiscussion";
 import { ReviewFocusList } from "../ReviewFocusList";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
 import { ReviewStack } from "../ReviewStack/ReviewStack";
+import type { ReadMarkFile } from "../readMarks/readMarks";
 import { primaryReviewAction } from "../reviewActions/reviewActions";
 import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
@@ -35,6 +35,7 @@ import { ReviewDiffSkeleton, ReviewTreeSkeleton } from "./components/ReviewPageS
 import { TurnLine } from "./components/TurnLine";
 import { baseOf, conditionsOf } from "./conditionsOf";
 import { useActiveThread } from "./hooks/useActiveThread";
+import { useReadMarks } from "./hooks/useReadMarks";
 import { useReviewData } from "./hooks/useReviewData";
 import "@trellis/ui/review.css";
 
@@ -70,6 +71,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		refreshAll,
 	} = useReviewData(pr);
 	const [changedFiles, setChangedFiles] = useState<ReadMarkFile[]>([]);
+	const { read, setRead } = useReadMarks(pr, changedFiles);
 	const { isCollapsed, toggle: toggleFacts } = useCollapsedGroups(`${pr}#facts`, factsShut);
 	// `FilesDisclosure` hides the review details behind one control on a phone.
 	const phone = useMediaQuery("(max-width: 767px)");
@@ -277,6 +279,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 										pr={pr}
 										repo={ref.repo}
 										files={changedFiles}
+										read={read}
 										selected={selectedPath}
 										onSelect={setPickedPath}
 									/>
@@ -293,6 +296,8 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 										selectedFile={selectedPath}
 										renderThread={renderThread}
 										onFiles={setChangedFiles}
+										read={read}
+										onRead={setRead}
 									/>
 								)}
 							</div>

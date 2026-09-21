@@ -1,16 +1,22 @@
-import { useId, useMemo } from "react";
+import { lazy, Suspense, useId, useMemo } from "react";
 import { GroupHeader } from "../../domain/GroupHeader";
 import { LineChanges } from "../../domain/LineChanges";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
-import { Checkbox } from "../../primitives/Checkbox";
 import { EmptyState } from "../../primitives/EmptyState";
+import { Skeleton } from "../../primitives/Skeleton";
 import { cx } from "../../utils/cx";
+
+// What a revision did to a file. `packages/ui` imports no package above it,
+// so this repeats the change words of `ChangedFileSchema` in `@trellis/api`.
+export type FileChange = "change" | "new" | "deleted" | "rename-pure" | "rename-changed";
 
 export type FileRiskRow = {
 	path: string;
+	// What the revision did to the file. It sets the colour of the tree row.
+	change: FileChange;
 	additions: number;
 	deletions: number;
-	// True when the person marked the file read.
+	// True when the person marked the file read in the header of its diff.
 	read: boolean;
 };
 
@@ -25,32 +31,22 @@ export type FileRiskGroupsProps = {
 	// The path whose diff the pane shows. An empty string selects no row.
 	selected: string;
 	onSelect: (path: string) => void;
-	onToggleRead: (path: string, read: boolean) => void;
 	isCollapsed: (key: string) => boolean;
 	onToggle: (key: string) => void;
 };
 
 export const fileCountLabel = (count: number) => (count === 1 ? "1 file" : `${count} files`);
 
-// A path splits into the folder that holds the file, and the file name with
-// the slash before it. A row prints the two apart, because this list can sit
-// in a pane of 340px. There the folder loses its start and the file name stays
-// whole, and the file name is what tells two files of one folder apart.
-const splitPath = (path: string) => {
-	const cut = path.lastIndexOf("/");
-	return cut === -1 ? { folder: "", name: path } : { folder: path.slice(0, cut), name: path.slice(cut) };
-};
+// `@pierre/trees` weighs more than every other part of this pane together, and
+// only a person who opens a review ever sees it. The dynamic import puts the
+// tree and its styles in a chunk of their own, which the browser fetches when
+// the first review opens.
+const GroupTree = lazy(() => import("./GroupTree/GroupTree").then((module) => ({ default: module.GroupTree })));
 
 // A list of file groups, in the order the caller gives. Each group header
-// shows the file count and the sum of the added and deleted lines.
-export function FileRiskGroups({
-	groups,
-	selected,
-	onSelect,
-	onToggleRead,
-	isCollapsed,
-	onToggle,
-}: FileRiskGroupsProps) {
+// shows the file count and the sum of the added and deleted lines, and each
+// group holds the directory tree of its own files.
+export function FileRiskGroups({ groups, selected, onSelect, isCollapsed, onToggle }: FileRiskGroupsProps) {
 	const id = useId();
 	const phone = useMediaQuery("(max-width: 767px)");
 	const totals = useMemo(() => {
@@ -108,52 +104,16 @@ export function FileRiskGroups({
 								onToggle={() => onToggle(group.key)}
 								phone={phone}
 							/>
-							{/* The list stays in the tree while the group is collapsed, so the
+							{/* The box stays in the tree while the group is collapsed, so the
 							    `aria-controls` of the group header always names a live element.
-							    A collapsed group draws no row. */}
-							<ul id={contentId} hidden={collapsed}>
-								{collapsed
-									? null
-									: group.files.map((file) => (
-											<li
-												key={file.path}
-												className={cx(
-													"flex h-8 items-center gap-2 px-5 transition-colors duration-hover max-md:h-11 max-md:px-4 pointer-coarse:h-11",
-													file.path === selected ? "bg-accent-soft" : "hover:bg-band",
-												)}
-											>
-												<Checkbox
-													label={`Mark ${file.path} read`}
-													hideLabel
-													checked={file.read}
-													onCheckedChange={(next) => onToggleRead(file.path, next)}
-												/>
-												<button
-													type="button"
-													onClick={() => onSelect(file.path)}
-													title={file.path}
-													className={cx(
-														"flex min-w-0 flex-1 rounded-sm text-left font-mono text-xs focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
-														file.read ? "text-fg-faint" : "text-fg",
-													)}
-												>
-													{/* The two spans below draw the path in two parts, so neither reads as
-													    the path on its own. The hidden span holds the whole path, and it
-													    alone names the button. `dir="rtl"` puts the ellipsis of the folder
-													    on the left, so a narrow pane cuts the start of the path and keeps
-													    the folder that holds the file. */}
-													<span className="sr-only">{file.path}</span>
-													<span aria-hidden="true" dir="rtl" className="min-w-0 truncate text-fg-faint">
-														{splitPath(file.path).folder}
-													</span>
-													<span aria-hidden="true" className="shrink-0">
-														{splitPath(file.path).name}
-													</span>
-												</button>
-												<LineChanges value={{ additions: file.additions, deletions: file.deletions }} pending={false} />
-											</li>
-										))}
-							</ul>
+							    A collapsed group draws no tree. */}
+							<div id={contentId} hidden={collapsed} className="px-3 pb-2 max-md:px-2">
+								{collapsed ? null : (
+									<Suspense fallback={<Skeleton lines={group.files.length} />}>
+										<GroupTree label={group.label} files={group.files} selected={selected} onSelect={onSelect} />
+									</Suspense>
+								)}
+							</div>
 						</section>
 					);
 				})

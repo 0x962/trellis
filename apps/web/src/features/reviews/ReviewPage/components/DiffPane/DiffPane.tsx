@@ -4,8 +4,8 @@ import { type DiffAnchor, ReviewDiff } from "@trellis/ui/review";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useTheme } from "../../../../../lib/theme";
-import type { ReadMarkFile } from "../../../FileRiskGroups/readMarks/readMarks";
 import { type ReviewCommentInput, ReviewComposer } from "../../../ReviewComposer/ReviewComposer";
+import type { ReadMarkFile } from "../../../readMarks/readMarks";
 import { DiffToolbar } from "../DiffToolbar";
 
 export type DiffPaneProps = {
@@ -19,6 +19,9 @@ export type DiffPaneProps = {
 	// The changed files of the revision, as the patch reports them. The page
 	// gives them to `FileRiskGroups`.
 	onFiles: (files: ReadMarkFile[]) => void;
+	// The paths the person marked read. A read file shows its header alone.
+	read: ReadonlySet<string>;
+	onRead: (path: string, read: boolean) => void;
 };
 
 const commentKey = (pr: string, anchor: DiffAnchor) =>
@@ -27,7 +30,7 @@ const commentKey = (pr: string, anchor: DiffAnchor) =>
 // The diff of the revision, with the comment composer that a line selection
 // opens. `ReviewDiff` renders only the rows inside the visible height, so
 // `.review-diff-window` gives it a fixed height and its own scroll bar.
-export function DiffPane({ pr, revision, threads, selectedFile, renderThread, onFiles }: DiffPaneProps) {
+export function DiffPane({ pr, revision, threads, selectedFile, renderThread, onFiles, read, onRead }: DiffPaneProps) {
 	const { client, orpc, queryClient } = useApp();
 	const { resolved: theme } = useTheme();
 	const [mode, setMode] = useState<"split" | "unified">(() =>
@@ -114,6 +117,8 @@ export function DiffPane({ pr, revision, threads, selectedFile, renderThread, on
 					setComposerState({ anchor, lines });
 				}}
 				onFiles={reportFiles}
+				viewed={read}
+				onViewed={onRead}
 			/>
 		</div>
 	);
