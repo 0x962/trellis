@@ -65,6 +65,10 @@
 .review-bar-dot {
 	flex-shrink: 0;
 }
+/* One dot stands between two parts of the card line. */
+.review-bar-dot {
+	color: var(--fg-faint);
+}
 /* The verdict, the time and the delivery word of the last submission. */
 .review-verdict-bar-state {
 	display: flex;
@@ -111,19 +115,15 @@
 	padding: 2px;
 	font-size: var(--text-sm);
 }
-/* The dot between the two parts of the short state. */
-.review-bar-dot {
-	color: var(--fg-faint);
-}
 /* The local verdict note and the message of a submit that failed. */
 .review-draft-note {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
 }
-/* The page moves to a 16 px gutter on a phone, and the card spans the width
-   that the gutter leaves. A phone line has no room for the time and the
-   delivery word, so the card drops both and keeps the verdict. */
+/* The page moves to a 16 px side margin on a phone, and the card spans the
+   width that the margin leaves. A phone line has no room for the time and
+   the delivery word, so the card drops both and keeps the verdict. */
 @media (max-width: 767px) {
 	.review-float-bars {
 		right: var(--review-float-gap);
