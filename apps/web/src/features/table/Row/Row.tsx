@@ -8,12 +8,13 @@ import type {
 	WaveSummary,
 } from "@trellis/api";
 import { cx, TicketId } from "@trellis/ui";
-import { type MouseEvent, memo, type ReactNode, useRef } from "react";
+import { type KeyboardEvent, type MouseEvent, memo, type ReactNode, useRef } from "react";
 import { compactRelativeTime } from "../../../lib/format";
 import type { Density } from "../../../stores/uiStore";
 import { ActorAvatar } from "../../agents/ActorAvatar";
 import { type ColumnId, gridColumnsClass, gridStyle, narrowHidden, statusIconOnly, type TableKind } from "../columns";
 import type { TicketAgentLine } from "../utils/agentLines";
+import type { TicketDisclosure } from "../utils/flattenGroups";
 import { EpicCell } from "./components/EpicCell";
 import { HiddenPickers } from "./components/HiddenPickers";
 import { LabelsCell } from "./components/LabelsCell";
@@ -58,6 +59,7 @@ export type RowProps = {
 	phoneLayout?: TableKind;
 	// The line of the ticket's run, for the phone row.
 	agentLine?: TicketAgentLine | null;
+	disclosure?: TicketDisclosure;
 	focused?: boolean;
 	selected?: boolean;
 	// True while any row is selected.
@@ -68,6 +70,7 @@ export type RowProps = {
 	projects?: readonly ProjectSummary[];
 	onFocus?: (id: string) => void;
 	onClick?: (id: string, event: MouseEvent) => void;
+	onToggleDisclosure?: (id: string) => void;
 	// A double click on the title. The title never edits inline.
 	onOpen?: (id: string) => void;
 	onToggleSelect?: (id: string) => void;
@@ -95,6 +98,7 @@ export const Row = memo(function Row({
 	phone = false,
 	phoneLayout = "list",
 	agentLine = null,
+	disclosure = null,
 	focused = false,
 	selected = false,
 	selecting = false,
@@ -103,6 +107,7 @@ export const Row = memo(function Row({
 	projects = noProjects,
 	onFocus,
 	onClick,
+	onToggleDisclosure,
 	onOpen,
 	onToggleSelect,
 	onEditingChange,
@@ -114,6 +119,18 @@ export const Row = memo(function Row({
 	const ticketRootIds = ticketRootId === undefined ? [] : [ticketRootId];
 	const editingChange = (field: EditField) => (open: boolean) => onEditingChange?.(ticket.id, open ? field : null);
 	const change = (value: RowChange) => onChange?.(ticket, value);
+	const toggleDisclosure = () => onToggleDisclosure?.(ticket.id);
+	const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+		if (event.target !== event.currentTarget) return;
+		if (event.key === "ArrowRight" && disclosure === "collapsed") {
+			event.preventDefault();
+			toggleDisclosure();
+		}
+		if (event.key === "ArrowLeft" && disclosure === "expanded") {
+			event.preventDefault();
+			toggleDisclosure();
+		}
+	};
 
 	const cells: Record<string, ReactNode> = {
 		select: (
@@ -135,7 +152,7 @@ export const Row = memo(function Row({
 			/>
 		),
 		id: <span className="font-mono text-sm whitespace-nowrap text-fg-faint tabular">{identifier}</span>,
-		title: <TitleCell ticket={ticket} />,
+		title: <TitleCell ticket={ticket} disclosure={disclosure} onToggleDisclosure={toggleDisclosure} />,
 		labels: (
 			<LabelsCell
 				labels={ticket.labels}
@@ -202,23 +219,27 @@ export const Row = memo(function Row({
 				actor={cells.actor}
 				layout={phoneLayout}
 				agentLine={agentLine}
+				disclosure={disclosure}
 				top={top}
 				group={group}
 				focused={focused}
 				selected={selected}
 				onFocus={onFocus}
 				onClick={onClick}
+				onKeyDown={onKeyDown}
+				onToggleDisclosure={toggleDisclosure}
 			/>
 		);
 	}
 
 	return (
-		// biome-ignore lint/a11y/useSemanticElements lint/a11y/useKeyWithClickEvents: The virtual grid positions each row, and the table keyboard map provides every row action.
+		// biome-ignore lint/a11y/useSemanticElements: The virtual grid positions each row, so a table element cannot hold it.
 		<div
 			ref={element}
 			role="row"
 			tabIndex={focused ? 0 : -1}
 			aria-selected={selected}
+			aria-expanded={disclosure === null ? undefined : disclosure === "expanded"}
 			data-identifier={identifier}
 			data-group={group}
 			data-focused={focused ? "" : undefined}
@@ -241,6 +262,7 @@ export const Row = memo(function Row({
 			}}
 			onClick={(event) => onClick?.(ticket.id, event)}
 			onDoubleClick={() => onOpen?.(ticket.id)}
+			onKeyDown={onKeyDown}
 		>
 			{columns.map((column) => (
 				// biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order.

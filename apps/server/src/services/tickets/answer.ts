@@ -27,7 +27,7 @@ const assertQuestion = async (tx: Tx, ticket: TicketRow, option: number) => {
 	if (!asksQuestion(status.reviewer, ticket.description))
 		throw invalidInput(
 			"ticket",
-			"This ticket asks no question. A question waits for a person and opens its description with an option list.",
+			"This ticket asks no question. A question waits for a person and contains an option list.",
 		);
 	// `readQuestionDescription` reads the option list here and on the ticket
 	// page, so the page prints the same options that this write accepts. The

@@ -19,6 +19,7 @@ import { buildColumns, type ColumnId, type TableKind, tableFeatureSet } from "..
 import { useApplyChange } from "../hooks/useApplyChange";
 import { useBulkWrite } from "../hooks/useBulkWrite";
 import { useCopyTickets } from "../hooks/useCopyTickets";
+import { useExpandedTickets } from "../hooks/useExpandedTickets";
 import { useRowSelection } from "../hooks/useRowSelection";
 import { useTableCollapse } from "../hooks/useTableCollapse";
 import { useTableData } from "../hooks/useTableData";
@@ -34,6 +35,7 @@ import { epicState } from "../utils/epicState";
 import { flattenGroups, type TableGroup } from "../utils/flattenGroups";
 import { labelStates } from "../utils/labelStates";
 import { visibleRows } from "../utils/visibleRows";
+import { WaveStartDialog } from "../WaveStart";
 import { CapBanner } from "./components/CapBanner";
 import { TableBody } from "./components/TableBody";
 import { TableError } from "./components/TableError";
@@ -60,6 +62,10 @@ export type TicketTableProps = {
 	// The epic route passes it, because the turn of a row reads it. Memoize
 	// it: a new identity regroups the rows.
 	workingTicketIds?: TableGroupsOptions["workingTicketIds"];
+	// The ids of the tickets that hold an open agent run. The epic route
+	// passes it once the assigned runs load, and a wave header then offers
+	// Start wave.
+	assignedTicketIds?: ReadonlySet<string>;
 };
 
 export type Editing = { id: string; field: EditField } | null;
@@ -80,6 +86,7 @@ export function TicketTable({
 	prRows = false,
 	agentLines,
 	workingTicketIds,
+	assignedTicketIds,
 }: TicketTableProps) {
 	const { orpc } = useApp();
 	const navigate = useNavigate();
@@ -91,6 +98,11 @@ export function TicketTable({
 	const [focusState, setFocusState] = useState<string | null>(null);
 	const [editing, setEditing] = useState<Editing>(null);
 	const [bulkPicker, setBulkPicker] = useState<BulkPicker | null>(null);
+	// The key of the wave group whose Start wave dialog is open or was open
+	// last. It stays set while the dialog closes, so the dialog keeps its
+	// lists through the close motion.
+	const [startKey, setStartKey] = useState<string | null>(null);
+	const [startOpen, setStartOpen] = useState(false);
 
 	const projectQuery = useQuery({
 		...orpc.projects.get.queryOptions({ input: { project: project ?? "" } }),
@@ -102,6 +114,7 @@ export function TicketTable({
 	const statuses = useScopeStatuses(project);
 	const labelGroups = useScopeLabels(project).groups;
 	const { collapsed, expanded } = useTableCollapse(routeKey, statuses, view);
+	const expandedTickets = useExpandedTickets(routeKey);
 	const data = useTableData({ project, view, expanded });
 	const { groups, loading: groupsLoading } = useTableGroups({
 		data,
@@ -111,7 +124,10 @@ export function TicketTable({
 		rowRank,
 		workingTicketIds,
 	});
-	const items = useMemo(() => flattenGroups(groups, { prRows, agentLines }), [groups, prRows, agentLines]);
+	const items = useMemo(
+		() => flattenGroups(groups, { prRows, agentLines, expandedTickets: expandedTickets.expanded }),
+		[groups, prRows, agentLines, expandedTickets.expanded],
+	);
 	const loaded = useMemo(() => groups.flatMap((group) => group.rows), [groups]);
 	// The selection, the focus, and every key run over the rows a person can
 	// see. A row inside a collapsed group is loaded but not visible, so it
@@ -265,6 +281,7 @@ export function TicketTable({
 		);
 	}
 
+	const startGroup = startKey === null ? undefined : groups.find((group) => group.key === startKey);
 	const closedVisible =
 		data.closed !== null && ((view.group === "status" && view.closed !== "hide") || data.inlineClosed !== null);
 	const closedTotal = closedVisible
@@ -299,7 +316,16 @@ export function TicketTable({
 				onEditingChange={onEditingChange}
 				onRowChange={onRowChange}
 				onToggleGroup={collapsed.toggle}
+				onToggleTicket={expandedTickets.toggle}
 				onCreateInGroup={openNew}
+				onStartGroup={
+					assignedTicketIds !== undefined
+						? (group) => {
+								setStartKey(group.key);
+								setStartOpen(true);
+							}
+						: undefined
+				}
 				bottomRoom={selection.count > 0}
 			/>
 			<TableFooter total={total} hidden={hidden} sort={view.sort} />
@@ -327,6 +353,15 @@ export function TicketTable({
 				onClear={clearSelection}
 			/>
 			{bulk.confirmDialog}
+			{startGroup !== undefined && assignedTicketIds !== undefined && (
+				<WaveStartDialog
+					open={startOpen}
+					onOpenChange={setStartOpen}
+					wave={startGroup.label ?? ""}
+					tickets={startGroup.rows}
+					assigned={assignedTicketIds}
+				/>
+			)}
 		</div>
 	);
 }

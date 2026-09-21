@@ -117,7 +117,7 @@ export type TableKind = "epic" | "list";
 // The kind of table that owns a column. A table of another kind hides that
 // column, and its Display popover does not offer it. A column this map
 // does not hold shows on every kind.
-export const columnOwner: Partial<Record<ColumnId, TableKind>> = { waits: "epic", releases: "epic" };
+export const columnOwner: Partial<Record<ColumnId, TableKind>> = { pr: "list", waits: "epic", releases: "epic" };
 
 // True when the row prints the status icon without the status name. Only
 // an epic table shows the `waits` and the `releases` columns, and on that

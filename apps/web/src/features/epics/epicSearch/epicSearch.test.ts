@@ -62,6 +62,16 @@ describe("epicSearch", () => {
 		expect(isCanonicalEpicSearch("?q=a%26b&group=status", validated({ q: "a&b", group: "status" }))).toBe(true);
 	});
 
+	test("the Resources tab stays in the URL, and the Plan tab is the default", () => {
+		const search = validated({ tab: "resources", priority: "high" });
+		expect(search).toEqual({ tab: "resources", priority: ["high"] });
+		expect(epicUrlSearch(epicPageSearch(search, "OP/routine-runtime"))).toEqual(search);
+		expect(epicQueryString(search)).toBe("?priority=high&tab=resources");
+		expect(isCanonicalEpicSearch("?priority=high&tab=resources", search)).toBe(true);
+		expect(validated({ tab: "plan" })).toEqual({});
+		expect(isCanonicalEpicSearch("?tab=plan", validated({ tab: "plan" }))).toBe(false);
+	});
+
 	test("the canonical check refuses a written default and a written epic", () => {
 		expect(isCanonicalEpicSearch("?group=wave", validated({ group: "wave" }))).toBe(false);
 		expect(isCanonicalEpicSearch("?epic=OP/other", validated({ epic: "OP/other" }))).toBe(false);

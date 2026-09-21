@@ -11,8 +11,9 @@ export type PullRequestSheetProps = {
 	ticket?: string;
 };
 
-// The review of one pull request, in a `PageSheet` that is wider than the
-// ticket sheet.
+// The review of one pull request, in a `PageSheet` that takes the width of
+// the window. A person reads code here, so the sheet gives the file tree and
+// the diff every pixel the window has.
 //
 // The sheet stays mounted while it is closed. A sheet that mounts open skips
 // its slide, so the first pull request would appear with no motion.
@@ -39,7 +40,7 @@ export function PullRequestSheet({ ticket }: PullRequestSheetProps) {
 		<PageSheet
 			open={pr !== null}
 			onClose={pageSheetActions.closePullRequest}
-			width="wide"
+			width="full"
 			title={ref === null ? "Pull request" : `${ref.repo} #${ref.number}`}
 			fullPage={
 				ref === null ? undefined : (

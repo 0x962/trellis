@@ -1,9 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { type Evidence, evidenceFloor, isAgentWorking, type ReviewThread, reviewRef, turnOf } from "@trellis/api";
-import { TicketId, useMediaQuery } from "@trellis/ui";
+import { Skeleton, TicketId, useMediaQuery } from "@trellis/ui";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { useCollapsedGroups } from "../../table/hooks/useCollapsedGroups";
 import { ChangeSummary } from "../ChangeSummary";
+import { ConditionsBlock } from "../ConditionsBlock";
 import { unmetConditions } from "../conditionLines/conditionLines";
 import { EvidenceStrip } from "../EvidenceStrip";
 import { FileRiskGroups } from "../FileRiskGroups";
@@ -19,9 +21,9 @@ import { primaryReviewAction, type ReviewActionMeta } from "../reviewActions/rev
 import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
 import { FilesDisclosure } from "./components/FilesDisclosure";
-import { ReviewFacts } from "./components/ReviewFacts";
+import { factsLine, ReviewFacts } from "./components/ReviewFacts";
 import { type GithubPullRequest, ReviewIdentity } from "./components/ReviewIdentity";
-import { ReviewPageSkeleton } from "./components/ReviewPageSkeleton";
+import { ReviewDiffSkeleton, ReviewTreeSkeleton } from "./components/ReviewPageSkeleton";
 import { TurnLine } from "./components/TurnLine";
 import { baseOf, conditionsOf } from "./conditionsOf";
 import { useActiveThread } from "./hooks/useActiveThread";
@@ -31,6 +33,10 @@ import "@trellis/ui/review.css";
 const noThreads: ReviewThread[] = [];
 const noRecords: Evidence[] = [];
 const noSentences: string[] = [];
+// The facts strip starts shut, so the file tree and the diff start near the
+// top of the sheet.
+const factsGroup = "facts";
+const factsShut = [factsGroup];
 
 export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent?: ReactNode; syncHash?: boolean }) {
 	const { client } = useApp();
@@ -50,6 +56,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		refreshAll,
 	} = useReviewData(pr);
 	const [changedFiles, setChangedFiles] = useState<ReadMarkFile[]>([]);
+	const { isCollapsed, toggle: toggleFacts } = useCollapsedGroups(`${pr}#facts`, factsShut);
 	// `FilesDisclosure` hides the review details behind one control on a phone.
 	const phone = useMediaQuery("(max-width: 767px)");
 	const [pickedPath, setPickedPath] = useState("");
@@ -174,8 +181,11 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						)}
 					</div>
 				</div>
-				<div className="review-column">
-					<div className="review-regions">
+				<div className="review-body">
+					{/* The notices sit outside the facts strip, because a shut strip
+					    would hide them. The box is empty while nothing went wrong, and
+					    an empty box draws nothing. */}
+					<div className="review-notices">
 						{revision && <ReviewStack pr={pr} />}
 						{status.isError && (
 							<p role="alert" className="review-notice">
@@ -199,58 +209,81 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 								{threads.error.message}
 							</p>
 						)}
-						<ReviewFacts ready={factsReady} conditions={conditions}>
-							<ChangeSummary summary={summaryRow} headSha={headSha} />
-							{revision && (
-								<ReviewFocusList
-									pr={pr}
-									revisionId={revision.id}
-									sentences={ticket.data?.contract.reviewFocus ?? noSentences}
-								/>
-							)}
-							{floor && <EvidenceStrip records={records} floor={floor} />}
-						</ReviewFacts>
-						<FilesDisclosure phone={phone} count={changedFiles.length}>
-							<ReviewChecks checks={status.data?.checks ?? null} pr={pr} />
-							{revision === null && !refresh.isError ? (
-								<ReviewPageSkeleton />
-							) : (
-								revision && (
-									<>
-										<FileRiskGroups
-											pr={pr}
-											repo={ref.repo}
-											files={changedFiles}
-											selected={selectedPath}
-											onSelect={setPickedPath}
-										/>
-										<DiffPane
-											pr={pr}
-											revision={revision}
-											threads={revisionThreads}
-											selectedFile={selectedPath}
-											renderThread={renderThread}
-											onFiles={setChangedFiles}
-											onComposer={setComposerOpen}
-										/>
-									</>
-								)
-							)}
-							<ReviewDiscussion
-								threads={allThreads}
-								activeThread={activeThread}
-								revision={displayRevision}
-								renderThread={renderThread}
-								onJump={(thread) => {
-									void (async () => {
-										if (thread.revisionId && thread.revisionId !== revision?.id)
-											setRevision(await client.reviews.revision({ pr, id: thread.revisionId }));
-										setPickedPath(thread.path);
-									})();
-								}}
-							/>
-						</FilesDisclosure>
 					</div>
+					<ReviewFacts
+						line={factsLine(conditions)}
+						shut={isCollapsed(factsGroup)}
+						onToggle={() => toggleFacts(factsGroup)}
+						phone={phone}
+					>
+						{!factsReady || conditions === null ? (
+							<section aria-busy="true">
+								<span className="sr-only" role="status">
+									Merge conditions are loading.
+								</span>
+								<Skeleton lines={10} />
+							</section>
+						) : (
+							<>
+								<ConditionsBlock conditions={conditions} />
+								<ChangeSummary summary={summaryRow} headSha={headSha} />
+								{revision && (
+									<ReviewFocusList
+										pr={pr}
+										revisionId={revision.id}
+										sentences={ticket.data?.contract.reviewFocus ?? noSentences}
+									/>
+								)}
+								{floor && <EvidenceStrip records={records} floor={floor} />}
+							</>
+						)}
+						<ReviewChecks checks={status.data?.checks ?? null} pr={pr} />
+						<ReviewDiscussion
+							threads={allThreads}
+							activeThread={activeThread}
+							revision={displayRevision}
+							renderThread={renderThread}
+							onJump={(thread) => {
+								void (async () => {
+									if (thread.revisionId && thread.revisionId !== revision?.id)
+										setRevision(await client.reviews.revision({ pr, id: thread.revisionId }));
+									setPickedPath(thread.path);
+								})();
+							}}
+						/>
+					</ReviewFacts>
+					<FilesDisclosure phone={phone} count={changedFiles.length}>
+						<div className="review-panes">
+							<aside className="review-tree-pane" aria-label="The changed files">
+								{revision === null ? (
+									<ReviewTreeSkeleton />
+								) : (
+									<FileRiskGroups
+										pr={pr}
+										repo={ref.repo}
+										files={changedFiles}
+										selected={selectedPath}
+										onSelect={setPickedPath}
+									/>
+								)}
+							</aside>
+							<div className="review-diff-pane">
+								{revision === null ? (
+									!refresh.isError && <ReviewDiffSkeleton />
+								) : (
+									<DiffPane
+										pr={pr}
+										revision={revision}
+										threads={revisionThreads}
+										selectedFile={selectedPath}
+										renderThread={renderThread}
+										onFiles={setChangedFiles}
+										onComposer={setComposerOpen}
+									/>
+								)}
+							</div>
+						</div>
+					</FilesDisclosure>
 				</div>
 				{displayRevision && conditions && primaryReviewAction(displayRevision.meta as ReviewActionMeta) === "merge" && (
 					<VerdictBar
