@@ -40,6 +40,11 @@ export type DesktopBridge = {
 	onNavigate?: (listener: (path: string) => void) => () => void;
 };
 
+// The macOS app exposes window.trellisDesktop in the renderer. The browser
+// build leaves it undefined, so this answers whether the app draws a webview
+// and reaches the operating system.
+export const isDesktopApp = () => (window as Window & { trellisDesktop?: unknown }).trellisDesktop !== undefined;
+
 export type DesktopSettingsBridge = Pick<DesktopBridge, "status" | "setOpenAtLogin" | "run">;
 
 // desktopSettingsBridge requires `status`, `setOpenAtLogin`, and `run` because

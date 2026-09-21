@@ -6,6 +6,7 @@ import { ReviewPage } from "../../../../reviews/ReviewPage/ReviewPage";
 import type { ReviewTab } from "../../../../reviews/ReviewPage/reviewTab";
 import { PageSheet } from "../../../PageSheet";
 import { useShown } from "../../useShown";
+import { BrowserSheet } from "../BrowserSheet";
 
 export type PullRequestSheetProps = {
 	// The identifier of the ticket in the sheet under this one. A pull
@@ -69,6 +70,7 @@ export function PullRequestSheet({ ticket }: PullRequestSheetProps) {
 					onTabChange={(next) => setPicked({ pr: shown, tab: next })}
 				/>
 			)}
+			<BrowserSheet at="pullRequest" />
 		</PageSheet>
 	);
 }

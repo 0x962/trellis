@@ -3,6 +3,7 @@ import { pageSheetActions, usePageSheetStore } from "../../../../../stores/pageS
 import { TicketView } from "../../../../ticket/TicketView";
 import { PageSheet } from "../../../PageSheet";
 import { useShown } from "../../useShown";
+import { BrowserSheet } from "../BrowserSheet";
 import { PullRequestSheet } from "../PullRequestSheet";
 import { SessionSheet } from "../SessionSheet";
 
@@ -29,6 +30,7 @@ export function TicketSheet() {
 					<TicketView key={shown} identifier={shown} />
 					<PullRequestSheet ticket={shown} />
 					<SessionSheet />
+					<BrowserSheet at="ticket" />
 				</>
 			)}
 		</PageSheet>

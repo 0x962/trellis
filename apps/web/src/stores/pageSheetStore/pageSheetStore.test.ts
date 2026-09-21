@@ -1,25 +1,27 @@
 import { beforeEach, expect, test } from "bun:test";
-import { pageSheetActions, usePageSheetStore } from "./pageSheetStore";
+import { browserParent, pageSheetActions, usePageSheetStore } from "./pageSheetStore";
 
 const state = () => usePageSheetStore.getState();
 
-beforeEach(() => usePageSheetStore.setState({ ticket: null, pr: null, session: null, stats: null }));
+const empty = { ticket: null, pr: null, session: null, stats: null, browser: null };
+
+beforeEach(() => usePageSheetStore.setState(empty));
 
 test("the stack starts empty", () => {
-	expect(state()).toEqual({ ticket: null, pr: null, session: null, stats: null });
+	expect(state()).toEqual(empty);
 });
 
 test("a pull request opens over the ticket and leaves it open", () => {
 	pageSheetActions.openTicket("TRL-42");
 	pageSheetActions.openPullRequest("https://github.com/o/r/pull/7");
 
-	expect(state()).toEqual({ ticket: "TRL-42", pr: "https://github.com/o/r/pull/7", session: null, stats: null });
+	expect(state()).toEqual({ ...empty, ticket: "TRL-42", pr: "https://github.com/o/r/pull/7" });
 });
 
 test("a pull request opens with no ticket under it", () => {
 	pageSheetActions.openPullRequest("https://github.com/o/r/pull/7");
 
-	expect(state()).toEqual({ ticket: null, pr: "https://github.com/o/r/pull/7", session: null, stats: null });
+	expect(state()).toEqual({ ...empty, pr: "https://github.com/o/r/pull/7" });
 });
 
 test("closing the pull request leaves the ticket open", () => {
@@ -27,7 +29,7 @@ test("closing the pull request leaves the ticket open", () => {
 	pageSheetActions.openPullRequest("https://github.com/o/r/pull/7");
 	pageSheetActions.closePullRequest();
 
-	expect(state()).toEqual({ ticket: "TRL-42", pr: null, session: null, stats: null });
+	expect(state()).toEqual({ ...empty, ticket: "TRL-42" });
 });
 
 test("closing the ticket closes the pull request over it", () => {
@@ -35,7 +37,7 @@ test("closing the ticket closes the pull request over it", () => {
 	pageSheetActions.openPullRequest("https://github.com/o/r/pull/7");
 	pageSheetActions.closeTicket();
 
-	expect(state()).toEqual({ ticket: null, pr: null, session: null, stats: null });
+	expect(state()).toEqual(empty);
 });
 
 test("another ticket closes the pull request of the ticket before it", () => {
@@ -43,7 +45,7 @@ test("another ticket closes the pull request of the ticket before it", () => {
 	pageSheetActions.openPullRequest("https://github.com/o/r/pull/7");
 	pageSheetActions.openTicket("TRL-43");
 
-	expect(state()).toEqual({ ticket: "TRL-43", pr: null, session: null, stats: null });
+	expect(state()).toEqual({ ...empty, ticket: "TRL-43" });
 });
 
 test("statistics opens as the only sheet", () => {
@@ -51,14 +53,14 @@ test("statistics opens as the only sheet", () => {
 	pageSheetActions.openPullRequest("https://github.com/o/r/pull/7");
 	pageSheetActions.openStats("TRL/runtime");
 
-	expect(state()).toEqual({ ticket: null, pr: null, session: null, stats: "TRL/runtime" });
+	expect(state()).toEqual({ ...empty, stats: "TRL/runtime" });
 });
 
 test("a session opens over the ticket and leaves it open", () => {
 	pageSheetActions.openTicket("TRL-42");
 	pageSheetActions.openSession("01M32TW0000000000000WRK001");
 
-	expect(state()).toEqual({ ticket: "TRL-42", pr: null, session: "01M32TW0000000000000WRK001", stats: null });
+	expect(state()).toEqual({ ...empty, ticket: "TRL-42", session: "01M32TW0000000000000WRK001" });
 });
 
 test("a session replaces the pull request over the same ticket", () => {
@@ -66,7 +68,7 @@ test("a session replaces the pull request over the same ticket", () => {
 	pageSheetActions.openPullRequest("https://github.com/o/r/pull/7");
 	pageSheetActions.openSession("01M32TW0000000000000WRK001");
 
-	expect(state()).toEqual({ ticket: "TRL-42", pr: null, session: "01M32TW0000000000000WRK001", stats: null });
+	expect(state()).toEqual({ ...empty, ticket: "TRL-42", session: "01M32TW0000000000000WRK001" });
 });
 
 test("closing the session leaves the ticket open", () => {
@@ -74,7 +76,7 @@ test("closing the session leaves the ticket open", () => {
 	pageSheetActions.openSession("01M32TW0000000000000WRK001");
 	pageSheetActions.closeSession();
 
-	expect(state()).toEqual({ ticket: "TRL-42", pr: null, session: null, stats: null });
+	expect(state()).toEqual({ ...empty, ticket: "TRL-42" });
 });
 
 test("closing the ticket closes the session over it", () => {
@@ -82,5 +84,51 @@ test("closing the ticket closes the session over it", () => {
 	pageSheetActions.openSession("01M32TW0000000000000WRK001");
 	pageSheetActions.closeTicket();
 
-	expect(state()).toEqual({ ticket: null, pr: null, session: null, stats: null });
+	expect(state()).toEqual(empty);
+});
+
+test("the browser opens over the pull request and leaves the stack open", () => {
+	pageSheetActions.openTicket("TRL-42");
+	pageSheetActions.openPullRequest("https://github.com/o/r/pull/7");
+	pageSheetActions.openBrowser("https://github.com/o/r/pull/7");
+
+	expect(state()).toEqual({
+		ticket: "TRL-42",
+		pr: "https://github.com/o/r/pull/7",
+		session: null,
+		stats: null,
+		browser: "https://github.com/o/r/pull/7",
+	});
+});
+
+test("closing the browser leaves the pull request open", () => {
+	pageSheetActions.openTicket("TRL-42");
+	pageSheetActions.openPullRequest("https://github.com/o/r/pull/7");
+	pageSheetActions.openBrowser("https://github.com/o/r/pull/7");
+	pageSheetActions.closeBrowser();
+
+	expect(state()).toEqual({ ...empty, ticket: "TRL-42", pr: "https://github.com/o/r/pull/7" });
+});
+
+test("closing the pull request closes the browser over it", () => {
+	pageSheetActions.openPullRequest("https://github.com/o/r/pull/7");
+	pageSheetActions.openBrowser("https://github.com/o/r/pull/7");
+	pageSheetActions.closePullRequest();
+
+	expect(state()).toEqual(empty);
+});
+
+test("another sheet closes the browser", () => {
+	pageSheetActions.openBrowser("https://github.com/o/r/pull/7");
+	pageSheetActions.openTicket("TRL-42");
+
+	expect(state()).toEqual({ ...empty, ticket: "TRL-42" });
+});
+
+test("the browser stands over the topmost sheet", () => {
+	expect(browserParent(empty)).toBe("page");
+	expect(browserParent({ ...empty, ticket: "TRL-42" })).toBe("ticket");
+	expect(browserParent({ ...empty, ticket: "TRL-42", pr: "https://github.com/o/r/pull/7" })).toBe("pullRequest");
+	expect(browserParent({ ...empty, ticket: "TRL-42", session: "01M32TW0000000000000WRK001" })).toBe("session");
+	expect(browserParent({ ...empty, stats: "TRL/runtime" })).toBe("stats");
 });

@@ -1,9 +1,10 @@
 import type { Resource } from "@trellis/api";
 import { type ResourceListRow, ResourceList as ResourceListView } from "@trellis/ui";
 import { useMemo, useState } from "react";
+import { isDesktopApp } from "../../../lib/desktopBridge";
+import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { docTitle, PLAN_DOC_ID } from "../epicDocs";
 import { ImageSheet } from "./components/ImageSheet";
-import { LinkBrowserSheet } from "./components/LinkBrowserSheet";
 import { resourceDetail } from "./resourceDetail";
 import { resourceOpenAction } from "./resourceOpenAction";
 import { resourceUrl } from "./resourceUrl";
@@ -42,9 +43,7 @@ export function ResourceList({
 	header,
 	onAdd,
 }: ResourceListProps) {
-	const [linkId, setLinkId] = useState<string | null>(null);
 	const [imageId, setImageId] = useState<string | null>(null);
-	const link = resources.find((resource) => resource.id === linkId) ?? null;
 	const image = resources.find((resource) => resource.id === imageId) ?? null;
 	const rows = useMemo<ResourceListRow[]>(
 		() => [
@@ -65,13 +64,13 @@ export function ResourceList({
 			return;
 		}
 		const opened = resources.find((resource) => resource.id === id)!;
-		const desktop = (window as Window & { trellisDesktop?: unknown }).trellisDesktop !== undefined;
+		const desktop = isDesktopApp();
 		switch (resourceOpenAction(opened, desktop)) {
 			case "doc":
 				onOpenDoc(opened.id);
 				return;
 			case "link-sheet":
-				setLinkId(opened.id);
+				pageSheetActions.openBrowser(resourceUrl(opened));
 				return;
 			case "image-sheet":
 				setImageId(opened.id);
@@ -99,7 +98,6 @@ export function ResourceList({
 				selectedId={openDocId}
 				onAdd={onAdd}
 			/>
-			{link !== null && <LinkBrowserSheet name={link.name} url={link.url!} onClose={() => setLinkId(null)} />}
 			{image !== null && <ImageSheet name={image.name} url={resourceUrl(image)} onClose={() => setImageId(null)} />}
 		</>
 	);

@@ -19,7 +19,7 @@ type WebviewParams = {
 	allowpopups?: string;
 };
 
-// `secureLinkBrowser` applies to the one webview that `LinkBrowserSheet` creates.
+// `secureLinkBrowser` applies to the one webview that `BrowserSheet` creates.
 // It removes `preload`, so the remote page cannot reach Trellis code.
 // It disables Node integration and enables the sandbox, so the remote page runs as a plain web page.
 // It forces a fixed partition that no other surface uses, so a browsed site's cookie cannot reach the Trellis app session.
