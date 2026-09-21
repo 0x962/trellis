@@ -271,6 +271,7 @@ export const services = {
 	"pullRequests.writeEvidence": prepared("mutation", evidence.prepareWrite, evidence.write),
 	"resources.add": io("mutation", resources.add),
 	"resources.list": io("read", resources.list),
+	"resources.update": io("mutation", resources.update),
 	"resources.remove": io("mutation", resources.remove),
 	"resources.blob": io("read", resources.readBlob),
 	"search.query": core("search", search.query),

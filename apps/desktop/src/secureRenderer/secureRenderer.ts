@@ -2,12 +2,13 @@ import { type BrowserWindow, shell } from "electron";
 import type { HostConnection } from "../host/host.ts";
 import { hostRequest } from "../hostRequest/hostRequest.ts";
 import { externalUrl, sameOrigin } from "../navigation/navigation.ts";
+import { secureLinkBrowser } from "../secureLinkBrowser/secureLinkBrowser.ts";
 
 export function secureRenderer(window: BrowserWindow, connection: () => HostConnection) {
 	window.webContents.on("will-navigate", (event, url) => {
 		if (!sameOrigin(url, connection().origin)) event.preventDefault();
 	});
-	window.webContents.on("will-attach-webview", (event) => event.preventDefault());
+	window.webContents.on("will-attach-webview", secureLinkBrowser);
 	window.webContents.setWindowOpenHandler(({ url }) => {
 		if (externalUrl(url)) void shell.openExternal(url);
 		return { action: "deny" };

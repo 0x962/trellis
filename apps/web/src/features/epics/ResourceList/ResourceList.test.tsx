@@ -3,7 +3,7 @@ import type { Resource } from "@trellis/api";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ResourceList } from "./ResourceList";
 
-const controls = { onOpen: () => {}, onAdd: { doc: () => {}, link: () => {}, file: () => {} } };
+const controls = { onAdd: { doc: () => {}, link: () => {}, file: () => {} } };
 
 const base = {
 	epicId: "01M2YRWY0TEG6ETHHWRHVDQ5AH",

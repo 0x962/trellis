@@ -4,7 +4,6 @@ import { useApp } from "../../../../../lib/appContext";
 import { errorMessage } from "../../../../../lib/conflict";
 import { useCollapsedGroups } from "../../../../table/hooks/useCollapsedGroups";
 import { ResourceList } from "../../../ResourceList";
-import { resourceUrl } from "../../../ResourceList/resourceUrl";
 
 export type EpicResourcesProps = {
 	// The pathname of the epic page, which keys the stored collapse state.
@@ -44,10 +43,6 @@ export function EpicResources({ routeKey, epic, resourceCount }: EpicResourcesPr
 				expanded={expanded}
 				onToggle={() => toggle(resourcesKey)}
 				headerClassName="sticky top-0 z-10 bg-pane"
-				onOpen={(id) => {
-					const url = resourceUrl(resources.find((resource) => resource.id === id)!);
-					if (url !== null) window.open(url, "_blank", "noopener,noreferrer");
-				}}
 			/>
 		</div>
 	);

@@ -82,6 +82,7 @@ const openWindow = async () => {
 			nodeIntegration: false,
 			sandbox: true,
 			webSecurity: true,
+			webviewTag: true,
 			partition: "persist:trellis",
 		},
 	});

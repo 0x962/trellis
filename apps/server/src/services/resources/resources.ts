@@ -4,6 +4,7 @@ import {
 	type ResourceBlobFile,
 	ResourceIdInputSchema,
 	ResourceListInputSchema,
+	ResourceUpdateInputSchema,
 } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
@@ -140,6 +141,19 @@ export const list = async (ctx: IoCtx, tx: Tx, rawInput: unknown): Promise<Resou
 				er.created_at, er.id`,
 	);
 	return toResources(tx, epic.id, found);
+};
+
+export const update = async (ctx: IoCtx, tx: Tx, rawInput: unknown): Promise<Resource> => {
+	const input = ResourceUpdateInputSchema.parse(rawInput);
+	const row = await find(tx, input.id);
+	if (row.kind !== "doc") throw invalidInput("id", "Select a document resource.");
+	assertProjectActive(ctx.core, row.project_id);
+	const at = ctx.now();
+	await touchActor(tx, ctx.actor, at);
+	await tx.execute(sql`UPDATE epic_resources SET body = ${input.body}, actor_name = ${ctx.actor.name},
+		actor_kind = ${ctx.actor.kind}, updated_at = ${at} WHERE id = ${row.id}`);
+	ctx.emit({ type: "epics.changed", projectId: row.project_id, id: row.epic_id });
+	return (await toResources(tx, row.epic_id, [await find(tx, row.id)]))[0]!;
 };
 
 export const remove = async (ctx: IoCtx, tx: Tx, rawInput: unknown) => {
