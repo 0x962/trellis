@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { CheckResults } from "../CheckResults";
+import { CheckStatusIcon } from "../CheckStatusIcon";
 import { checksLineResult } from "./checksLineResult/checksLineResult";
 import type { ChecksLineCheck, checkDisplay } from "./checkWords/checkWords";
 
@@ -21,7 +22,9 @@ export function ChecksLine({
 	return (
 		<CheckResults
 			title={result.title}
+			description={result.description}
 			groups={result.groups}
+			summary={<CheckStatusIcon status={result.summaryStatus} tooltip={false} className="review-check-summary-mark" />}
 			loading={loading}
 			isCollapsed={isCollapsed}
 			onToggle={onToggle}
