@@ -281,7 +281,11 @@ test("the brief prints a stable contract and evidence floor above comments", asy
 	expect(chainAt).toBeGreaterThan(evidenceAt);
 	expect(commentsAt).toBeGreaterThan(chainAt);
 	expect(first.markdown).toContain("- Leave alone:\n  - packages/cli/src/commands/brief.ts");
-	expect(first.markdown).toContain("- Kind: backend\n- summary\n- verify record\n- test proof\n- contract table");
+	expect(first.markdown).toContain("Evidence shows this change working in the running product.");
+	expect(first.markdown).toContain(
+		'- Kind: backend\n- summary: trellis summary write <pr> --headline "..." --why - --watch "..."',
+	);
+	expect(first.markdown).toContain("Prove the service:");
 	expect(first.markdown).toContain(
 		"## Chain\n\n- Waits on:\n  - nothing\n- Ready: yes. No ticket holds this one back.\n- Releases:\n  - nothing",
 	);
@@ -289,11 +293,15 @@ test("the brief prints a stable contract and evidence floor above comments", asy
 	await db.execute(sql`INSERT INTO repos (id, project_id, owner, repo)
 		VALUES (${ulid()}, ${rootId}, 'example', 'canary')`);
 	const ambiguous = await run((tx) => getBrief(ctx, tx, { ticket: ticket.identifier }));
-	expect(ambiguous.markdown).toContain("## Evidence owed\n\n- unknown. The contract names no file.");
+	expect(ambiguous.markdown).toContain(
+		"- unknown. The contract names no file.\n\nRead the floor of your pull request: trellis evidence check <pr>",
+	);
 
 	await db.execute(sql`DELETE FROM repos WHERE project_id = ${rootId}`);
 	const missing = await run((tx) => getBrief(ctx, tx, { ticket: ticket.identifier }));
-	expect(missing.markdown).toContain("## Evidence owed\n\n- unknown. The contract names no file.");
+	expect(missing.markdown).toContain(
+		"- unknown. The contract names no file.\n\nRead the floor of your pull request: trellis evidence check <pr>",
+	);
 
 	await db.$client.close();
 });

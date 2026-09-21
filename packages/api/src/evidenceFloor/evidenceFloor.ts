@@ -39,7 +39,10 @@ const frontendFloor: EvidenceFloorItem[] = ["summary", "after", "before", "captu
 const backendFloor: EvidenceFloorItem[] = ["summary", "verify", "test", "contract"];
 const softItems = new Set<EvidenceFloorItem>(["picture"]);
 
-const fillCommands: Record<EvidenceFloorItem, string> = {
+// The one command that submits each floor item. The brief prints it beside
+// the name of the item, and `trellis evidence check` prints it for a missing
+// item, so an agent never has to guess the flags.
+export const evidenceFillCommands: Record<EvidenceFloorItem, string> = {
 	summary: 'trellis summary write <pr> --headline "..." --why - --watch "..."',
 	after:
 		'trellis evidence add <pr> --kind after --file <path> --route <route> --viewport 1440x900 --theme dark --seed "<command>" --browser <browser> --sha <head>',
@@ -112,6 +115,6 @@ export const evidenceFloor = ({
 		present,
 		missing: required
 			.filter((item) => !presentItems.has(item))
-			.map((item) => ({ item, fillCommand: fillCommands[item], soft: softItems.has(item) })),
+			.map((item) => ({ item, fillCommand: evidenceFillCommands[item], soft: softItems.has(item) })),
 	};
 };
