@@ -100,3 +100,16 @@ test("the result of an idle event keeps the time of the message that holds the s
 	state.append({ kind: "idle", turnId: "one", outcome: "completed", result: "Done." }, "2026-09-18T12:01:00.000Z");
 	expect(state.agent!.lastMessage).toEqual({ text: "Done.", at });
 });
+
+test("a tool event that arrives after the idle event of its turn leaves the agent idle", () => {
+	const { observations: state } = fixture();
+	state.append({ kind: "working", turnId: "one" }, at);
+	state.append({ kind: "tool-start", turnId: "one", tool: { id: "tool", name: "commandExecution" } }, at);
+	state.append({ kind: "idle", turnId: "one", outcome: "completed" }, at);
+	state.append({ kind: "tool-update", turnId: "one", tool: { id: "tool", name: "commandExecution" } }, at);
+	state.append({ kind: "tool-end", turnId: "one", tool: { id: "tool", name: "commandExecution" } }, at);
+	expect(state.activity!.state).toBe("idle");
+	state.append({ kind: "working", turnId: "two" }, at);
+	state.append({ kind: "tool-end", turnId: "two", tool: { id: "tool", name: "commandExecution" } }, at);
+	expect(state.activity!.state).toBe("working");
+});

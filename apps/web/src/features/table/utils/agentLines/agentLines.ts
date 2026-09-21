@@ -29,14 +29,15 @@ export type TicketAgentLine = {
 // A run that works takes the activity of `runLine` in place of its last
 // message: `crisp-fjord: Edit apps/web/src/app.css` while a tool runs, and
 // the text of the message while the agent writes. The words change with
-// each tool call, so the line reads as live work.
+// each tool call, so the line reads as live work. A run that works before
+// it runs a tool or writes a message says `crisp-fjord: works`.
 export const agentLineOf = (run: AgentRun): TicketAgentLine | null => {
 	const line = runLine(run);
 	if (line.kind === "question" || line.kind === "permission" || line.kind === "elicitation") {
 		return { words: `${run.name} ${line.words}`, asks: true, working: false, runId: run.id };
 	}
-	if (line.activity !== null)
-		return { words: `${run.name}: ${line.activity}`, asks: false, working: true, runId: run.id };
+	if (line.kind === "works")
+		return { words: `${run.name}: ${line.activity ?? line.words}`, asks: false, working: true, runId: run.id };
 	return line.lastMessage === null
 		? null
 		: { words: line.lastMessage.words, asks: false, working: false, runId: run.id };

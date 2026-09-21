@@ -123,8 +123,8 @@ describe("agentLineOf", () => {
 		expect(said.words.split(":").length - 1).toBe(1);
 	});
 
-	test("gives a run that works with no message and no request no line", () => {
-		expect(agentLineOf(runOf())).toBeNull();
+	test("says that a run works when it has no message and no request yet", () => {
+		expect(agentLineOf(runOf())).toEqual({ words: "crisp-fjord: works", asks: false, working: true, runId: "run" });
 	});
 
 	test("a request wins over the last message", () => {
@@ -235,8 +235,11 @@ describe("agentLinesByTicket", () => {
 		expect(agentLinesByTicket([loose])).toEqual({});
 	});
 
-	test("leaves out a run with nothing to say", () => {
-		expect(agentLinesByTicket([runOf()])).toEqual({});
+	test("leaves out an idle run with nothing to say", () => {
+		const idle = runOf();
+		idle.observation!.activity = { state: "idle", updatedAt: at };
+
+		expect(agentLinesByTicket([idle])).toEqual({});
 	});
 
 	test("keeps the request of one run when a later run of the same ticket only speaks", () => {

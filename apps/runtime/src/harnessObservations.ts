@@ -128,9 +128,14 @@ export class HarnessObservations {
 		// older message. The result then replaces it.
 		if (event.kind === "idle" && event.result && event.result !== agent.lastMessage?.text)
 			agent.lastMessage = { text: event.result, at: observedAt };
+		// Codex can report the update and the end of a tool after the idle
+		// event of the same turn. The turn is over, so those events leave the
+		// agent idle.
+		const lateToolEvent = (event.kind === "tool-update" || event.kind === "tool-end") && agent.outcome !== null;
 		if (event.kind === "message") {
 			if (this.activity !== null) this.activity = { ...this.activity, updatedAt: observedAt };
 		} else if (
+			!lateToolEvent &&
 			event.kind !== "input-request" &&
 			event.kind !== "input-resolved" &&
 			(event.kind !== "session" || this.activity === null)

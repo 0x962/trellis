@@ -323,6 +323,7 @@
 	--animate-pulse-live: pulse-live 1.6s ease-in-out infinite;
 	--animate-shimmer: shimmer 1.4s linear infinite;
 	--animate-glimmer: glimmer 7s ease-in-out infinite;
+	--animate-glimmer-run: glimmer-run 2s linear infinite;
 
 	/*
 	 * Skeleton lines use --pulse-scale through pulse-in-place to keep their
@@ -353,6 +354,15 @@
 	@keyframes glimmer {
 		0%,
 		80% {
+			background-position: 150% 0;
+		}
+		100% {
+			background-position: -50% 0;
+		}
+	}
+	/* The same sweep with no still part, for work that goes on now. */
+	@keyframes glimmer-run {
+		0% {
 			background-position: 150% 0;
 		}
 		100% {
