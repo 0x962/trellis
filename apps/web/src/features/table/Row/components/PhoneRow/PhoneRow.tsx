@@ -33,6 +33,7 @@ export type PhoneRowProps = {
 	selected: boolean;
 	onFocus?: (id: string) => void;
 	onClick?: (id: string, event: MouseEvent) => void;
+	href: string;
 	onKeyDown?: (event: KeyboardEvent<HTMLDivElement>) => void;
 	onToggleDisclosure?: () => void;
 };
@@ -159,9 +160,19 @@ export function PhoneRow({
 	selected,
 	onFocus,
 	onClick,
+	href,
 	onKeyDown,
 	onToggleDisclosure,
 }: PhoneRowProps) {
+	const onLinkClick = (event: MouseEvent<HTMLAnchorElement>) => {
+		event.stopPropagation();
+		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+		event.preventDefault();
+		onClick?.(ticket.id, event);
+	};
+	const stopLinkPropagation = (event: MouseEvent<HTMLAnchorElement>) => {
+		event.stopPropagation();
+	};
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: The virtual grid positions each row, so a table element cannot hold it.
 		<div
@@ -189,17 +200,29 @@ export function PhoneRow({
 			onClick={(event) => onClick?.(ticket.id, event)}
 			onKeyDown={onKeyDown}
 		>
-			{layout === "epic" ? (
-				<EpicCells
-					ticket={ticket}
-					actor={actor}
-					agentLine={agentLine}
-					disclosure={disclosure}
-					onToggleDisclosure={onToggleDisclosure}
-				/>
-			) : (
-				<ListCells ticket={ticket} priority={priority} />
-			)}
+			<a
+				href={href}
+				tabIndex={-1}
+				aria-label={`Open ${ticket.identifier}`}
+				className="absolute inset-0 z-0"
+				onClick={onLinkClick}
+				onAuxClick={stopLinkPropagation}
+			>
+				<span className="sr-only">Open {ticket.identifier}</span>
+			</a>
+			<div className="pointer-events-none relative z-10 flex min-w-0 flex-1 items-center gap-3 [&_button]:pointer-events-auto [&_[role=button]]:pointer-events-auto">
+				{layout === "epic" ? (
+					<EpicCells
+						ticket={ticket}
+						actor={actor}
+						agentLine={agentLine}
+						disclosure={disclosure}
+						onToggleDisclosure={onToggleDisclosure}
+					/>
+				) : (
+					<ListCells ticket={ticket} priority={priority} />
+				)}
+			</div>
 		</div>
 	);
 }

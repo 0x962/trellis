@@ -49,6 +49,22 @@
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
+.review-row-checks {
+	display: flex;
+	align-items: center;
+	gap: calc(var(--spacing) * 2);
+	width: calc(var(--spacing) * 34);
+	flex-shrink: 0;
+	color: var(--fg-muted);
+	font-size: var(--text-xs);
+	font-variant-numeric: tabular-nums;
+}
+.review-row-checks > span:last-child {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
 .review-row-count {
 	display: flex;
 	align-items: center;
@@ -115,6 +131,12 @@ button.review-file:is(:hover, [aria-current="true"]) {
 	}
 	.review-pr-number {
 		width: calc(var(--spacing) * 13);
+	}
+	.review-row-checks {
+		width: calc(var(--spacing) * 20);
+	}
+	.review-row-checks > span:last-child {
+		display: none;
 	}
 	.review-repository > header,
 	.review-index-footer {

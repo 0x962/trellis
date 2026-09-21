@@ -24,7 +24,7 @@ import { agentLinesByTicket } from "../../table/utils/agentLines";
 import { DeleteEpicDialog } from "../DeleteEpicDialog";
 import { EpicSheet } from "../EpicSheet";
 import { epicRunningCount, epicWorkingTicketIds } from "../epicNext";
-import { assignedTicketIds, epicRowRank } from "../epicRowRank";
+import { assignedTicketIds } from "../epicRowRank";
 import { epicPageSearch, epicQueryString, epicUrlSearch } from "../epicSearch";
 import { EpicLoadError } from "./components/EpicLoadError";
 import { EpicPlan } from "./components/EpicPlan";
@@ -78,13 +78,11 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	const [editing, setEditing] = useState(false);
 	const [deleting, setDeleting] = useState(false);
 	// The assigned runs come from the query that the actor cell of every row
-	// reads, so the order of the rows costs no request of its own. Inside a
-	// wave group the tickets that wait for the person come first, then
-	// the tickets to start, then the running tickets.
+	// reads, so the row marks and the wave start dialog cost no request of
+	// their own.
 	const assignedRunsQuery = useQuery(orpc.agentRuns.list.queryOptions({ input: { assigned: true } }));
 	const assignedRuns = assignedRunsQuery.data;
 	const assigned = useMemo(() => assignedTicketIds(assignedRuns ?? noRuns), [assignedRuns]);
-	const rowRank = useMemo(() => epicRowRank(assigned), [assigned]);
 	// A Set, because the turn of each row tests membership. Null until the
 	// query succeeds: an empty set would read a ticket whose agent works as
 	// the turn of the person, and the row would move when the answer lands.
@@ -278,7 +276,6 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 						routeKey={routeKey}
 						tableKind="epic"
 						search={tableSearch}
-						rowRank={rowRank}
 						workingTicketIds={workingTicketIds}
 						assignedTicketIds={assignedRunsQuery.status === "success" ? assigned : undefined}
 						prRows
