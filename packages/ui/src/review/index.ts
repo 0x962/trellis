@@ -35,5 +35,4 @@ export { type DiffAnchor, ReviewDiff } from "./ReviewDiff/ReviewDiff";
 export { ReviewFocusList, type ReviewFocusListProps } from "./ReviewFocusList";
 export { ReviewStatus } from "./ReviewStatus/ReviewStatus";
 export { ReviewSuggestion, type ReviewSuggestionLine, type ReviewSuggestionState } from "./ReviewSuggestion";
-export { type ReviewTabStatus, ReviewTabs } from "./ReviewTabs/ReviewTabs";
 export { ReviewThreadCard } from "./ReviewThreadCard/ReviewThreadCard";
