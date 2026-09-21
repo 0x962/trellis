@@ -1,4 +1,4 @@
-import { beforeEach, expect, test } from "bun:test";
+import { afterAll, beforeEach, expect, test } from "bun:test";
 import type { FetchLike } from "@trellis/api";
 
 const memoryStorage = (entries: Map<string, string>): Storage => ({
@@ -12,11 +12,16 @@ const memoryStorage = (entries: Map<string, string>): Storage => ({
 	setItem: (key: string, value: string) => entries.set(key, value),
 });
 
+const hadLocalStorage = "localStorage" in globalThis;
+const originalLocalStorage = globalThis.localStorage;
+const hadWindow = "window" in globalThis;
+const originalWindow = globalThis.window;
 const stored = new Map<string, string>();
-globalThis.localStorage = memoryStorage(stored);
+const localStorage = memoryStorage(stored);
+globalThis.localStorage = localStorage;
 // `createOrpc` reads `window.location.origin` while the module loads, and a
 // test run has no browser. The two imports below wait for it.
-globalThis.window = { location: { origin: "http://127.0.0.1:4521" } } as Window & typeof globalThis;
+globalThis.window = { location: { origin: "http://127.0.0.1:4521" }, localStorage } as Window & typeof globalThis;
 
 const { createOrpc } = await import("./orpc");
 const { saveActorName } = await import("./identity");
@@ -51,6 +56,13 @@ const context = (fetch: FetchLike) => {
 beforeEach(() => {
 	stored.clear();
 	sent.length = 0;
+});
+
+afterAll(() => {
+	if (hadLocalStorage) globalThis.localStorage = originalLocalStorage;
+	else Reflect.deleteProperty(globalThis, "localStorage");
+	if (hadWindow) globalThis.window = originalWindow;
+	else Reflect.deleteProperty(globalThis, "window");
 });
 
 test("a refused settings write leaves this browser with no name", async () => {
