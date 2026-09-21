@@ -218,8 +218,9 @@ export async function submit(ctx: PrepareCtx, input: ReviewSubmit) {
 
 export const actionResult = async (ctx: ServiceCtx, tx: Tx, input: PreparedAction) => {
 	const pullRequest = await recordAction(ctx, tx, input);
-	if (input.submission) await recordSubmission(ctx, tx, { prId: pullRequest.id, ...input.submission });
-	return pullRequest;
+	if (!input.submission) return pullRequest;
+	const submission = await recordSubmission(ctx, tx, { prId: pullRequest.id, ...input.submission });
+	return { pullRequest, submission };
 };
 // With a project, the search covers the repositories of that project and
 // its ancestors. A project with no repository has no pull request of its
