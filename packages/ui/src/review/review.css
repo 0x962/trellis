@@ -234,6 +234,17 @@ button.review-notice:hover {
 .review-regions .review-stack {
 	padding-inline: 0;
 }
+/* The box under the Files button holds the checks, the file list, the diff
+   and the threads. It repeats the gap of `.review-regions`, so the four blocks
+   inside it keep the spacing of the blocks above it. */
+.review-rest {
+	display: flex;
+	flex-direction: column;
+	gap: 28px;
+}
+.review-rest[hidden] {
+	display: none;
+}
 /* `ReviewDiff` renders only the rows inside the visible height and reads this
    box for the scroll position, so the box needs a height of its own. Without
    one it would render every line of the patch at once. */
@@ -279,9 +290,18 @@ button.review-notice:hover {
 	.review-identity-lines {
 		padding: 0 16px 12px;
 	}
-	.review-regions {
+	.review-regions,
+	.review-rest {
 		gap: 20px;
+	}
+	.review-regions {
 		padding: 16px 16px 48px;
+	}
+	/* The Files button above the list prints the word Files, so the heading of
+	   the list would print it a second time one line below. The read count
+	   beside the heading stays. */
+	.review-file-groups h2 {
+		display: none;
 	}
 	.review-diff-window {
 		height: min(80vh, 560px);

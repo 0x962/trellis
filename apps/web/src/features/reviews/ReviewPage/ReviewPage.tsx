@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { type Evidence, evidenceFloor, type ReviewRevision, type ReviewThread, reviewRef, turnOf } from "@trellis/api";
-import { TicketId } from "@trellis/ui";
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import { GroupHeader, TicketId, useMediaQuery } from "@trellis/ui";
+import { type ReactNode, useCallback, useId, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
 import { ConditionsBlock } from "../ConditionsBlock";
@@ -35,6 +35,8 @@ const noSentences: string[] = [];
 // bar prints one phrase for the gap instead.
 const conditionsUnknown = ["conditions unknown"];
 
+const fileCount = (count: number) => (count === 1 ? "1 file" : `${count} files`);
+
 // The distance comes from the revision document, not from the status poll:
 // the server reads it from the compare call that fetched this revision, and
 // the poll answers no such field. A revision stored before the server read
@@ -62,6 +64,12 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		refreshAll,
 	} = useReviewData(pr);
 	const [changedFiles, setChangedFiles] = useState<ReadMarkFile[]>([]);
+	// A phone holds the checks, the file list, the diff and the threads behind
+	// one button named Files, because a person does not read a diff on a phone.
+	// A window of 768 px and wider draws all four and has no button.
+	const phone = useMediaQuery("(max-width: 767px)");
+	const [filesOpen, setFilesOpen] = useState(false);
+	const filesId = useId();
 	// The path the reader picked in the file list, or an empty string while
 	// the reader picked none.
 	const [pickedPath, setPickedPath] = useState("");
@@ -227,44 +235,61 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 								{floor && <EvidenceStrip records={records} floor={floor} />}
 							</>
 						)}
-						<ReviewChecks revision={displayRevision} pr={pr} />
-						{revision === null && !refresh.isError ? (
-							<ReviewPageSkeleton />
-						) : (
-							revision && (
-								<>
-									<FileRiskGroups
-										pr={pr}
-										repo={ref.repo}
-										files={changedFiles}
-										selected={selectedPath}
-										onSelect={setPickedPath}
-									/>
-									<DiffPane
-										pr={pr}
-										revision={revision}
-										threads={revisionThreads}
-										selectedFile={selectedPath}
-										renderThread={renderThread}
-										onFiles={setChangedFiles}
-										onComposer={setComposerOpen}
-									/>
-								</>
-							)
+						{phone && (
+							<GroupHeader
+								group="files"
+								label="Files"
+								count={fileCount(changedFiles.length)}
+								expanded={filesOpen}
+								controls={filesId}
+								phone
+								onToggle={() => setFilesOpen(!filesOpen)}
+							/>
 						)}
-						<ReviewDiscussion
-							threads={allThreads}
-							activeThread={activeThread}
-							revision={displayRevision}
-							renderThread={renderThread}
-							onJump={(thread) => {
-								void (async () => {
-									if (thread.revisionId && thread.revisionId !== revision?.id)
-										setRevision(await client.reviews.revision({ pr, id: thread.revisionId }));
-									setPickedPath(thread.path);
-								})();
-							}}
-						/>
+						{/* `DiffPane` reads the changed file list of the revision and hands it to
+						    `FileRiskGroups`. A phone that hides this box keeps it in the tree, so
+						    the file list and the read marks are ready when a tap on Files opens
+						    the box. */}
+						<div id={filesId} className="review-rest" hidden={phone && !filesOpen}>
+							<ReviewChecks revision={displayRevision} pr={pr} />
+							{revision === null && !refresh.isError ? (
+								<ReviewPageSkeleton />
+							) : (
+								revision && (
+									<>
+										<FileRiskGroups
+											pr={pr}
+											repo={ref.repo}
+											files={changedFiles}
+											selected={selectedPath}
+											onSelect={setPickedPath}
+										/>
+										<DiffPane
+											pr={pr}
+											revision={revision}
+											threads={revisionThreads}
+											selectedFile={selectedPath}
+											renderThread={renderThread}
+											onFiles={setChangedFiles}
+											onComposer={setComposerOpen}
+										/>
+									</>
+								)
+							)}
+							<ReviewDiscussion
+								threads={allThreads}
+								activeThread={activeThread}
+								revision={displayRevision}
+								renderThread={renderThread}
+								onJump={(thread) => {
+									void (async () => {
+										if (thread.revisionId && thread.revisionId !== revision?.id)
+											setRevision(await client.reviews.revision({ pr, id: thread.revisionId }));
+										setPickedPath(thread.path);
+									})();
+								}}
+							/>
+						</div>
 					</div>
 				</div>
 				{displayRevision && primaryReviewAction(displayRevision.meta as ReviewActionMeta) === "merge" && (
@@ -273,6 +298,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						revision={displayRevision}
 						openThreads={revisionThreads.filter((thread) => thread.status === "open").length}
 						unmetConditions={conditions === null ? conditionsUnknown : unmetConditions(conditions)}
+						phone={phone}
 						onDone={() => void status.refetch()}
 					/>
 				)}
