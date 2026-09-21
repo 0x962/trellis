@@ -32,12 +32,14 @@ Prove the change. A pull request without its evidence is not reviewable.
    command and the browser; the console error list and the failed request list; a clip of 15 s or less when the
    change touches motion, a gesture, scroll, timing, or a task of more than one step.
    Capture in your own worktree, on your own port, with animations off. Register each file with
-   trellis evidence add <pr> --kind before|after|clip|console.
+   trellis evidence add <pr> --kind before|after|capture|clip|console.
 5. When the change renders no screen, attach:
    the verify record of each Verify command, with the exit code, the tail and the head sha; each new test by name,
    with the base sha where it fails and the head sha where it passes; the contract table, before and after, or
    "no contract changed"; the migration plan when a schema changes; one picture, and one only, when the call path
    crosses a process, a service or a trust boundary, or when a state machine changes. Write it in Mermaid.
+   Register each record with
+   trellis evidence add <pr> --kind verify|test|contract|migration|picture.
 6. Bind every sentence to something checkable: a file and a line, a check result, a test name, or a number with
    its sha. Say when a sentence is a guess.
 7. Check yourself:  trellis evidence check <pr>
@@ -72,9 +74,9 @@ Plan an epic. A plan that produces several tickets is an epic. The epic descript
 - Backend evidence floor: summary, verify record, test proof, contract table.
 - Read the full evidence rules in \`docs/EVIDENCE.md\`.
 Create the epic: trellis epics create --project ${key} --name "..." --description - < plan.md
-Create each wave in order: trellis milestones create ${key}/<slug> --name "Foundation"
-Create each ticket in its wave: trellis create -p ${key} --milestone ${key}/<slug>/<milestone-slug> -t "Server: ..."
-Read the epic, its waves with their counts, the tickets of each wave, and what is next: trellis epics show ${key}/<slug>
+Create each wave in order: trellis milestones create ${key}/<epic-slug> --name "Foundation"
+Create each ticket in its wave: trellis create -p ${key} --milestone ${key}/<epic-slug>/<wave-slug> -t "Server: ..."
+Read the epic, its waves with their counts, the tickets of each wave, and what is next: trellis epics show ${key}/<epic-slug>
 When you work on an epic ticket, read the plan and the results of the earlier waves first: trellis brief ${key}-42
 
 PR review comments live in Trellis. Read them before work: trellis review list <pr-url>
