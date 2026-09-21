@@ -13,6 +13,7 @@ const allMet: Conditions = {
 	threads: 0,
 	flows: { total: 1, newest: { name: "Code Reviewer", status: "passed", findings: 0 }, running: 0, failed: 0 },
 	base: { behindBy: 3, baseRefName: "master" },
+	stackedOn: null,
 	ancestors: [],
 };
 
@@ -46,12 +47,12 @@ test("every rule of the readiness word has a phrase", () => {
 	expect(unmet).toEqual([
 		"2 checks failed",
 		"6 checks pending",
-		"1 open thread",
+		"1 comment open",
 		"no test registered",
 		"evidence unknown",
 		"1 flow running",
 		"1 flow failed",
 	]);
 	expect(unmetConditions({ ...allMet, tests: null })).toEqual(["tests unknown"]);
-	expect(mergeQuestion(["1 open thread"])).toBe("Merge with 1 condition unmet?");
+	expect(mergeQuestion(["1 comment open"])).toBe("Merge with 1 condition unmet?");
 });

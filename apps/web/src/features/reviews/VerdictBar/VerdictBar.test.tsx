@@ -46,7 +46,7 @@ test("the bar offers each local verdict and keeps Merge live with three unmet co
 		unmet: ["1 check failed", "1 of 4 evidence", "TRL-167 not merged"],
 	});
 
-	expect(html).toContain("2 drafts");
+	expect(html).toContain("2 comments");
 	expect(html).toContain("not yet: 1 check failed · 1 of 4 evidence · TRL-167 not merged");
 	expect(html).toMatch(/<button[^>]*aria-label="Approve"/);
 	expect(html).toMatch(/<button[^>]*aria-label="Request changes"/);
@@ -58,14 +58,14 @@ test("the bar offers each local verdict and keeps Merge live with three unmet co
 test("a pull request with every condition met prints no condition line", () => {
 	const html = render({ ticket: "TRL-203", run: crispFjord, drafts: ["01A"], unmet: [] });
 
-	expect(html).toContain("1 draft");
+	expect(html).toContain("1 comment");
 	expect(html).not.toContain("not yet");
 });
 
 test("a ticket with no agent assignment keeps every verdict", () => {
 	const html = render({ ticket: "TRL-203", run: null, drafts: [], unmet: [] });
 
-	expect(html).toContain("0 drafts");
+	expect(html).toContain("0 comments");
 	expect(html).toMatch(/<button[^>]*aria-label="Approve"/);
 	expect(html).toMatch(/<button[^>]*aria-label="Request changes"/);
 	expect(html).toMatch(/<button[^>]*aria-label="Comment"/);

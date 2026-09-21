@@ -63,7 +63,7 @@ const pendingAnswers = async (tx: Tx, terminals: string[]): Promise<Delivery[]> 
 };
 
 // A queued review submission. The stored document holds the pull request
-// address and the threads the submission carried, so the message names both
+// address and the comments the submission carried, so the message names both
 // without a second query.
 type ReviewRow = Omit<Delivery, "text"> & {
 	url: string;

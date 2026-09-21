@@ -156,7 +156,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		records,
 		floor,
 		waitsOn: ticket.data?.waitsOn ?? [],
-		base: baseOf(revision),
+		base: baseOf(displayRevision, prRow?.baseRef ?? displayMeta?.baseRefName ?? "unknown"),
 	});
 	const canMerge = showMerge && conditions !== null;
 	// The ticket row also knows the ticket status and its dependencies.
