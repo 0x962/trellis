@@ -280,6 +280,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 						search={tableSearch}
 						rowRank={rowRank}
 						workingTicketIds={workingTicketIds}
+						assignedTicketIds={assignedRunsQuery.status === "success" ? assigned : undefined}
 						prRows
 						agentLines={agentLines}
 						emptyState={
