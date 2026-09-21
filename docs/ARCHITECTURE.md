@@ -301,6 +301,207 @@ joins `list`. `trellis epics show` prints the waves with their counts,
 then one ticket table per wave in position order. A `no wave` table
 comes last when a ticket of the epic holds no wave.
 
+### Ticket dependencies
+
+`ticket_deps` holds one directed edge for each pair of tickets. `ticket_id`
+waits for `depends_on_id`. The primary key uses both columns and permits one
+edge for a pair. Both foreign keys cascade on ticket deletion. `source` is
+`manual`, `parsed`, or `derived`. A check refuses an edge from a ticket to
+itself.
+
+Every dependency belongs to one project root. A manual write resolves every
+ticket before it changes an edge. It refuses a cross-root edge and a cycle. A
+cycle error names the path from the target ticket back to itself. A repeated
+manual write changes a parsed or derived edge to manual.
+
+`TicketSummary.waitsOn` lists each dependency that is not done or canceled.
+`TicketSummary.releases` lists each ticket that waits for this ticket.
+`TicketSummary.ready` is true when the ticket is Todo and each dependency has
+a done or canceled status. `tickets.get` also returns answered questions that
+have left `waitsOn`.
+
+The API writes dependencies through `tickets.create` and
+`tickets.updateDependencies`. The routes are `POST /api/tickets` and
+`PATCH /api/tickets/{ticket}/dependencies`. `tickets.importDependencies` at
+`POST /api/tickets/import-dependencies` imports the dependency lines of one
+epic. `tickets.get` at `GET /api/tickets/{ticket}` reads both directions.
+
+A dependency uses TicketRef for the target and for every related ticket. A
+TicketRef is a ULID or `KEY-n`. The CLI flags are `trellis create --after`,
+`trellis edit --after`, and `trellis edit --not-after`. `trellis deps
+<TicketRef>` prints both directions and each derived pull request stack.
+The web route `/t/<KEY-n>` shows the chain, the ready sentence, and each
+answered question. An epic route also shows the `waits` and `releases` cells.
+
+### Ticket contract
+
+The contract lives on the `tickets` row. `result` is text. `files`,
+`leave_alone`, `verify`, and `review_focus` are JSON arrays. Each array has a
+database check for the JSON array type. `Ticket.contract` returns the five
+fields as one object.
+
+`tickets.setContract` replaces all five fields in one write at
+`PUT /api/tickets/{ticket}/contract`. The write accepts `expectedVersion` and
+raises the ticket version. `tickets.get` reads the contract. The import API is
+`tickets.importContract` at `POST /api/tickets/import-contract`. It fills empty
+`files`, `verify`, and `review_focus` fields from an epic ticket description.
+
+The contract uses TicketRef, a ULID or `KEY-n`. The CLI verb is `trellis
+contract`. `trellis contract set` takes one result and repeated `--file`,
+`--leave-alone`, `--verify`, and `--focus` flags. `trellis contract show`
+prints the stored fields and the evidence floor that the file paths imply.
+
+The web route `/t/<KEY-n>` shows the contract after the ask. It derives
+`Evidence owed` from the files and the repository path rules. The review route
+`/reviews/<owner>/<repo>/<number>` reads `review_focus` from the linked ticket.
+The ticket brief prints the same contract fields and evidence floor.
+
+### Pull request summaries
+
+`pr_summaries` holds one row for each pull request and head SHA. Its composite
+primary key is `(pull_request_id, head_sha)`. The row stores `headline`, `why`,
+`watch`, `created_at`, and `updated_at`. A delete of the pull request cascades
+to its summaries.
+
+The server compares a write with the head that GitHub reports before it opens
+the transaction. It applies the STE check to all three fields. A refusal stores
+nothing, and a warning returns with the stored summary. A rewrite keeps
+`created_at`. `readSummary` sorts by that value, so a rewrite of an older head
+does not make it newest.
+
+The API is `pullRequests.readSummary`, `pullRequests.readSummaryHead`, and
+`pullRequests.writeSummary`. Their routes are `GET /api/prs/{id}/summary`,
+`GET /api/prs/{id}/summaries/{headSha}`, and
+`PUT /api/prs/{id}/summaries/{headSha}`. `{id}` is the ULID of the stored pull
+request, and `{headSha}` is 1 to 64 characters.
+
+The CLI accepts a pull request number, a GitHub URL, or
+`owner/repo#<number>`. A number must match one row in the local list. A write
+can also open one match from the signed-in GitHub account.
+The CLI verb is `trellis summary` with `write`, `show`, and `body`.
+
+The web route `/reviews/<owner>/<repo>/<number>` shows the summary above the
+review focus. It shows a revision warning when the stored head SHA differs
+from the displayed revision. On a ticket or epic, each row for a pull request
+includes the current-head summary in its evidence count.
+
+### Pull request evidence
+
+`pr_evidence` holds one immutable record for a pull request head. A row stores
+its ULID, pull request, head SHA, kind, JSON record, optional blob SHA-256,
+actor, and creation time. A delete of the pull request cascades to its evidence.
+Stored files use the shared content-addressed blob store.
+
+The evidence kinds are `before`, `after`, `capture`, `clip`, `console`,
+`verify`, `test`, `contract`, `migration`, `picture`, and `equivalence`.
+Each kind has a strict record schema. A repeated evidence ULID returns the
+existing row only when every stored value and the actor match. Another value
+with that ULID is `DUPLICATE`.
+
+The frontend floor is summary, after image, before image, capture record, and
+console list. The backend floor is summary, verify record, test proof, and
+contract table. A mixed pull request owes both floors. Migration risk adds a
+migration plan. Auth, migration, dependency, or shared-type risk adds a
+picture. Deleted-test risk adds equivalence proof.
+
+The API is `pullRequests.listEvidence`, `pullRequests.readEvidence`, and
+`pullRequests.writeEvidence`. The routes are `GET /api/prs/{id}/evidence`,
+`GET /api/evidence/{evidenceId}`, and
+`PUT /api/prs/{id}/evidence/{evidenceId}`. The file route is
+`GET /api/evidence/{evidenceId}/file`. Pull request and evidence identifiers
+are ULIDs. A write must name the head SHA that GitHub reports.
+
+The CLI uses the summary ref grammar: a number, a GitHub URL, or
+`owner/repo#<number>`. The CLI verb is `trellis evidence` with `add`, `list`,
+and `check`. `check` refreshes the pull request, computes its current-head
+floor, prints each missing record and command, and exits 1 for an incomplete
+floor.
+
+The CLI checks open linked pull requests before an actor moves a ticket to
+`human-review`. It stops at the first floor that is incomplete for the current
+head. It refuses an agent and prints the missing list. It prints the same list
+for a human but permits the human's move. The server does not apply this CLI
+guard in `tickets.move`.
+
+The web route `/reviews/<owner>/<repo>/<number>` shows current-head evidence
+after the review focus. It renders frontend and backend records according to
+the pull request kind. The route shows each missing item with its fill command.
+The ticket route `/t/<KEY-n>` shows one evidence card for each linked pull
+request.
+
+### Ticket answers
+
+An answer lives in `comments`. The body starts with `Answer: option <n>.` and
+then holds the reason. The option is an integer from 1 through 99. The target
+ticket must have a human review status and a description that starts with a
+numbered option list.
+
+`tickets.answer` writes the comment and moves the question to the Done
+category in one transaction. It also adds one `review_deliveries` row for each
+open native agent run on a ticket that waits for the question. The delivery
+loop sends the answer after the transaction commits.
+
+The API route is `POST /api/tickets/{ticket}/answer`. It accepts TicketRef,
+`option`, `reason`, and optional `expectedVersion`. TicketRef is a ULID or
+`KEY-n`. The response returns the ticket, the answer comment ULID, and the
+agent deliveries.
+
+The CLI verb is `trellis answer <TicketRef> --option <n> --reason <text>`.
+The web route `/t/<KEY-n>` replaces the work regions of a question with its
+options, recommendation, reason field, released tickets, and Answer action.
+The same route shows an answered dependency under `Applies` on a waiting
+ticket.
+
+`Ticket.answeredQuestions` reads the last human comment that matches on each
+done question that the ticket waits for. The API can accept an agent actor,
+but an agent answer does not enter `answeredQuestions`.
+
+### Epic resources
+
+`epic_resources` holds one resource for one epic. Its kind is `doc`, `link`,
+`image`, or `file`. A document stores `body`, and a link stores an HTTP or
+HTTPS `url`. An image or file stores its blob SHA-256, size, and MIME type.
+
+Each row also stores a name, an optional ticket, the actor, and timestamps.
+When a row names a ticket, that ticket must belong to the resource epic. Epic
+deletion cascades to its resources. Ticket deletion sets `ticket_id` to NULL.
+An image accepts PNG, JPEG, GIF, WebP, or AVIF.
+
+The API is `resources.add`, `resources.list`, `resources.update`, and
+`resources.remove`. The routes are `POST /api/resources`,
+`GET /api/resources?epic=<EpicRef>`, `PATCH /api/resources/{id}`, and
+`DELETE /api/resources/{id}`. `PATCH` changes a document body only. The blob
+route is `GET /api/resources/{id}/blob`.
+
+Add and list use EpicRef, a ULID or `KEY/slug`. Add can also use TicketRef, a
+ULID or `KEY-n`. Update, remove, and blob reads use the resource ULID. The CLI
+verb is `trellis resource` with `add`, `list`, and `rm`.
+
+The web route `/p/<project path>/epics/<slug>` shows all epic resources in a
+section that starts closed. A document opens in an editor. On desktop, a link
+opens in the in-app browser and an image opens in a sheet. Other browsers open
+links and images in a new tab. A file downloads from its blob URL.
+
+The route `/t/<KEY-n>` shows a resource when the ask or contract names its
+path. The match uses a complete path token or its last path segment. A plain
+title in prose does not name a resource.
+
+### Ticket outcomes
+
+The outcome lives in the `outcome` text column of `tickets`. Its default is
+the empty string. A write requires one non-empty sentence. The write accepts
+`expectedVersion`, raises the ticket version, records field `outcome`, and
+emits `ticket.updated`.
+
+The API is `tickets.setOutcome` at `PUT /api/tickets/{ticket}/outcome` and
+`tickets.get` at `GET /api/tickets/{ticket}`. Both use TicketRef, a ULID or
+`KEY-n`. `Ticket.outcome` is the stored string.
+
+The CLI verb is `trellis outcome` with `set` and `show`. `set` applies the STE
+check before it calls the API, and it refuses a text with an STE error. The
+web route `/t/<KEY-n>` shows the outcome after the evidence. It shows an empty
+state while the stored string is empty.
+
 ### Pull request reviews
 
 The `reviews` API owns local PR discussion. `pull_requests.review_retained`

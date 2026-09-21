@@ -50,6 +50,8 @@ test("an assignment names the ticket, the branch, and the trellis commands", () 
 			"",
 			"Before you ask for a review, link your pull request. The ticket page and the reviewers see only a linked pull request.",
 			"",
+			"Before you end a turn, run trellis review list <pr-url>. Answer every review thread.",
+			"",
 			"When your work is ready for review, run: trellis move OP-27 agent-review",
 			"",
 			"## Review comments",
