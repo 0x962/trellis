@@ -34,6 +34,6 @@ test("the line names every condition that stops the merge", () => {
 	expect(line).toBe("1 check failed · 2 open threads");
 });
 
-test("a pull request with no risk answers reads as unknown", () => {
-	expect(factsLine(null)).toBe("conditions unknown");
+test("a pull request with no risk answers reads as loading", () => {
+	expect(factsLine(null)).toBe("conditions loading");
 });

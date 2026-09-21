@@ -1,4 +1,4 @@
-import type { Evidence, EvidenceFloor, TicketPr, TicketSummary } from "@trellis/api";
+import type { Evidence, EvidenceFloor, ReviewRevision, TicketPr, TicketSummary } from "@trellis/api";
 import type {
 	BaseCondition,
 	Conditions,
@@ -24,6 +24,14 @@ export type ConditionsInput = {
 	// How far the head of the revision on screen sits behind its base branch,
 	// or `null` for a revision fetched before the page read the distance.
 	base: BaseCondition | null;
+};
+
+// `ReviewRevision.meta` stores the distance from the compare request.
+// A revision from an older server has no distance and no base condition.
+export const baseOf = (revision: ReviewRevision | null): BaseCondition | null => {
+	const meta = revision?.meta as { behindBy?: number; baseRefName?: string } | undefined;
+	if (meta?.behindBy === undefined || meta.baseRefName === undefined) return null;
+	return { behindBy: meta.behindBy, baseRefName: meta.baseRefName };
 };
 
 // A run that waits has not started, and a run that runs has not finished, so
