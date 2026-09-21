@@ -1,14 +1,18 @@
 import type { TicketPr } from "@trellis/api";
-import { type Check, CheckRibbon } from "@trellis/ui";
+import { type Check, CheckRibbon, cx } from "@trellis/ui";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { PrCells } from "../PrCells";
 import { prRowHeight } from "../rowHeights";
+import { TreeBranch } from "../TreeLines";
 import { prRowCells } from "./prRowText";
 
 export type PrRowProps = {
 	pr: TicketPr;
 	// The offset of this line inside the virtual body.
 	top: number;
+	// True when this is the final child line of its ticket. The line then
+	// ends the tree rule and draws the bottom border of the group.
+	last: boolean;
 };
 
 const checksOf = (pr: TicketPr): Check[] => [
@@ -28,15 +32,19 @@ const checksOf = (pr: TicketPr): Check[] => [
 // `overflow-hidden` on the row and `shrink-0` on each cell keep the cells
 // at their full width. A narrow window cuts the last cells off at the right
 // edge. No cell wraps, and the row never scrolls sideways.
-export function PrRow({ pr, top }: PrRowProps) {
+export function PrRow({ pr, top, last }: PrRowProps) {
 	return (
 		<button
 			type="button"
 			data-pr-row={`${pr.owner}/${pr.repo}#${pr.number}`}
 			style={{ height: `${prRowHeight}px`, transform: `translateY(${top}px)` }}
-			className="absolute top-0 left-0 flex w-full items-center gap-2 overflow-hidden border-b border-border pr-5 pl-19 text-left text-sm text-fg-muted transition-colors duration-hover hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+			className={cx(
+				"absolute top-0 left-0 flex w-full items-center gap-2 overflow-hidden pr-5 pl-19 text-left text-sm text-fg-muted transition-colors duration-hover hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
+				last && "border-b border-border",
+			)}
 			onClick={() => pageSheetActions.openPullRequest(pr.url)}
 		>
+			<TreeBranch last={last} elbowTop={prRowHeight / 2} />
 			<PrCells pr={pr} cells={prRowCells(pr)} />
 			<CheckRibbon checks={checksOf(pr)} size="wide" />
 		</button>
