@@ -7,6 +7,8 @@ export type TooltipProps = {
 	content: ReactNode;
 	description?: ReactNode;
 	delay?: number;
+	open?: boolean;
+	onOpenChange?: (open: boolean) => void;
 	// The element the tooltip describes. It receives the hover and focus
 	// handlers and, while the tooltip is open, aria-describedby.
 	children: ReactElement;
@@ -17,12 +19,23 @@ export type TooltipProps = {
 // A hint on hover or keyboard focus. The trigger keeps its own name; the
 // tooltip only describes it. Base UI treats a tooltip as a visual-only popup,
 // so the tooltip role and the describedby link are set here.
-export function Tooltip({ content, description, delay = 400, children, side = "top", className }: TooltipProps) {
+export function Tooltip({
+	content,
+	description,
+	delay = 400,
+	open,
+	onOpenChange,
+	children,
+	side = "top",
+	className,
+}: TooltipProps) {
 	const id = useId();
-	const [open, setOpen] = useState(false);
+	const [localOpen, setLocalOpen] = useState(false);
+	const shown = open ?? localOpen;
+	const setShown = onOpenChange ?? setLocalOpen;
 	return (
-		<BaseTooltip.Root open={open} onOpenChange={setOpen}>
-			<BaseTooltip.Trigger render={children} delay={delay} aria-describedby={open ? id : undefined} />
+		<BaseTooltip.Root open={shown} onOpenChange={setShown}>
+			<BaseTooltip.Trigger render={children} delay={delay} aria-describedby={shown ? id : undefined} />
 			<BaseTooltip.Portal>
 				<BaseTooltip.Positioner side={side} sideOffset={6} className="z-50">
 					<BaseTooltip.Popup

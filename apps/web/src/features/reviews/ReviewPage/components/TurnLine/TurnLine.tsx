@@ -19,7 +19,6 @@ const reasonOf = (prRow: TicketPr | null): string | null => {
 	if (prRow === null) return null;
 	if (prRow.fail > 0) return `${countPhrase(prRow.fail, "check", "checks")} failed`;
 	if (prRow.openThreads > 0) return `${countPhrase(prRow.openThreads, "comment", "comments")} open`;
-	if (prRow.isDraft) return "The pull request is a draft";
 	if (prRow.pending > 0) return `${countPhrase(prRow.pending, "check", "checks")} pending`;
 	return null;
 };

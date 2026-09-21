@@ -1,4 +1,4 @@
-import { CaretDown, CaretRight, Plus, Star } from "@phosphor-icons/react";
+import { CaretDown, CaretRight, Checks, Plus, Sparkle } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
@@ -16,6 +16,10 @@ export type GroupHeaderProps = {
 	// A `Badge` after the label, such as Current. It sits outside the label
 	// button, so the accessible name of the button stays the label.
 	mark?: ReactNode;
+	// True when every ticket of the group is done or canceled. The header
+	// then draws the double check after the label. The count beside it, such
+	// as `11/11`, says the same in words.
+	done?: boolean;
 	expanded: boolean;
 	onToggle: () => void;
 	onCreate?: () => void;
@@ -48,6 +52,7 @@ export function GroupHeader({
 	showCount,
 	icon,
 	mark,
+	done = false,
 	expanded,
 	onToggle,
 	onCreate,
@@ -91,6 +96,7 @@ export function GroupHeader({
 				{icon}
 				{label}
 			</button>
+			{done && <Checks aria-hidden="true" data-done-mark="" className="size-4 shrink-0 text-success" />}
 			{mark}
 			<span data-count="" className={cx("text-fg-faint tabular", appearance === "sidebar" ? "text-xs" : "text-sm")}>
 				{count}
@@ -112,7 +118,7 @@ export function GroupHeader({
 							size="xs"
 							variant="primary"
 							label="Start wave"
-							icon={<Star />}
+							icon={<Sparkle />}
 							onClick={onStart}
 							className={revealOnHover}
 						/>

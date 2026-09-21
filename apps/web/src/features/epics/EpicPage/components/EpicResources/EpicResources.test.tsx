@@ -42,37 +42,49 @@ const appOf = (queryClient: QueryClient) =>
 		orpc: { resources: { list: { queryOptions: () => ({ queryKey, queryFn: () => resources }) } } },
 	}) as unknown as AppContext;
 
-const render = () => {
+const render = (props: { description?: string } = {}) => {
 	const queryClient = new QueryClient();
 	queryClient.setQueryData(queryKey, resources);
 	return renderToStaticMarkup(
 		<QueryClientProvider client={queryClient}>
 			<AppProvider value={appOf(queryClient)}>
-				<EpicResources epic={epic} />
+				<EpicResources
+					epic={epic}
+					description={props.description ?? "# Routines E2E\n\nThe goal: settle every routine."}
+					readOnly={false}
+				/>
 			</AppProvider>
 		</QueryClientProvider>,
 	);
 };
 
 describe("EpicResources", () => {
-	test("prints every resource of the epic", () => {
+	test("lists the epic description first, titled with its first heading, then every resource", () => {
 		const html = render();
 
-		expect(html).toContain("routine-runtime.md");
+		expect(html).toContain("Routines E2E");
+		expect(html.indexOf("Routines E2E")).toBeLessThan(html.indexOf("routine-runtime.md"));
 		expect(html).toContain("canary#55569");
 	});
 
-	test("draws no header and no Show control, because the tab label names the list", () => {
-		const html = render();
+	test("titles a description with no heading Untitled", () => {
+		const html = render({ description: "Settle every routine." });
 
-		expect(html).not.toContain("<h2");
-		expect(html).not.toContain(">Show<");
-		expect(html).not.toContain("aria-expanded");
+		expect(html).toContain(">Untitled<");
 	});
 
-	test("offers no Add control, because `trellis resource add` adds a resource", () => {
+	test("opens the epic description beside the list", () => {
+		const html = render();
+		const current = html.slice(html.indexOf('aria-current="page"'));
+
+		expect(html.match(/aria-current="page"/g)).toHaveLength(1);
+		expect(current).toContain("Routines E2E");
+	});
+
+	test("offers New document, and no Add menu for links and files", () => {
 		const html = render();
 
+		expect(html).toContain('aria-label="New document"');
 		expect(html).not.toContain('aria-label="Add a resource"');
 	});
 });

@@ -14,7 +14,6 @@ import { useApp } from "../../../lib/appContext";
 import { useCollapsedGroups } from "../../table/hooks/useCollapsedGroups";
 import { ChangeSummary } from "../ChangeSummary";
 import { ConditionsBlock } from "../ConditionsBlock";
-import { unmetConditions } from "../conditionLines/conditionLines";
 import { EvidenceStrip } from "../EvidenceStrip";
 import { FileRiskGroups } from "../FileRiskGroups";
 import type { ReadMarkFile } from "../FileRiskGroups/readMarks/readMarks";
@@ -25,7 +24,6 @@ import { ReviewDiscussion } from "../ReviewDiscussion/ReviewDiscussion";
 import { ReviewFocusList } from "../ReviewFocusList";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
 import { ReviewStack } from "../ReviewStack/ReviewStack";
-import { primaryReviewAction } from "../reviewActions/reviewActions";
 import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
 import { FilesDisclosure } from "./components/FilesDisclosure";
@@ -109,7 +107,6 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	if (revision !== null && openedReview.current?.pr !== pr)
 		openedReview.current = { pr, commits: new Set(commitsOf(revision).map((commit) => commit.oid)) };
 	const newCommits = commitsOf(revision).filter((commit) => !openedReview.current?.commits.has(commit.oid));
-	const showMerge = displayMeta !== undefined && primaryReviewAction(displayMeta) === "merge";
 	const toggleBatch = useCallback((threadId: string) => {
 		setBatch((current) => {
 			const next = new Set(current);
@@ -158,7 +155,6 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		waitsOn: ticket.data?.waitsOn ?? [],
 		base: baseOf(displayRevision, prRow?.baseRef ?? displayMeta?.baseRefName ?? "unknown"),
 	});
-	const canMerge = showMerge && conditions !== null;
 	// The ticket row also knows the ticket status and its dependencies.
 	// `prRow` is the fallback for a pull request that no ticket links.
 	const turnInput = ticket.data ?? prRow;
@@ -299,16 +295,13 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						</div>
 					</FilesDisclosure>
 				</div>
-				{displayRevision && (canMerge || status.data?.ticket) && (
+				{displayRevision && (
 					<VerdictBar
 						pr={pr}
 						revision={displayRevision}
 						ticket={status.data?.ticket?.identifier ?? null}
 						run={run}
 						drafts={drafts}
-						unmetConditions={conditions === null ? [] : unmetConditions(conditions)}
-						phone={phone}
-						showMerge={canMerge}
 						onDone={refreshAll}
 					/>
 				)}

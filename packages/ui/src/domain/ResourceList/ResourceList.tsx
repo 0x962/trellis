@@ -29,6 +29,8 @@ export type ResourceListProps = {
 	// already names the list and holds the count.
 	header?: boolean;
 	onOpen: (id: string) => void;
+	// The id of the row whose document is open beside the list.
+	selectedId?: string | null;
 	// The three paths that add a resource. A caller that leaves them out gets
 	// a header with no Add control.
 	onAdd?: {
@@ -50,6 +52,7 @@ export function ResourceList({
 	headerClassName,
 	header = true,
 	onOpen,
+	selectedId = null,
 	onAdd,
 }: ResourceListProps) {
 	const bodyId = useId();
@@ -106,7 +109,7 @@ export function ResourceList({
 					) : (
 						<ul className="flex min-w-0 flex-col">
 							{rows.map((row) => (
-								<ResourceRow key={row.id} row={row} onOpen={onOpen} />
+								<ResourceRow key={row.id} row={row} onOpen={onOpen} selected={row.id === selectedId} />
 							))}
 						</ul>
 					)}

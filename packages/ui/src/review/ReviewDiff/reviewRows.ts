@@ -132,10 +132,13 @@ export function buildReviewRows(
 		];
 		if (fileAnnotations.length > 0)
 			rows.push({ kind: "annotation", key: `${file.name}:annotations`, file, annotations: fileAnnotations });
+		// An added file has no old side and a deleted file has no new side, so
+		// split mode draws them in one column across the full width.
+		const fileMode = file.type === "new" || file.type === "deleted" ? "unified" : mode;
 		let lineIndex = 0;
 		for (const section of sections(file, expanded.get(file.name))) {
 			if (section.specs) rows.push({ kind: "hunk", key: `${file.name}:hunk:${lineIndex}`, file, specs: section.specs });
-			if (mode === "split") {
+			if (fileMode === "split") {
 				for (const [oldLine, newLine] of splitLines(section.lines)) {
 					rows.push({
 						kind: "split",

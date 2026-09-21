@@ -71,7 +71,13 @@ export { RunLine, type RunLineKind, type RunLineProps, type RunLineValue } from 
 export { StackedBar, type StackedBarProps, type StackedBarSegment } from "./domain/StackedBar";
 export { StackedBarList, type StackedBarListProps, type StackedBarListRow } from "./domain/StackedBarList";
 export { StartControls, type StartControlsProps, type StartDependency } from "./domain/StartControls";
-export { type StatusCategory, StatusIcon, type StatusIconProps } from "./domain/StatusIcon";
+export {
+	type ReviewShape,
+	type StatusCategory,
+	type StatusColor,
+	StatusIcon,
+	type StatusIconProps,
+} from "./domain/StatusIcon";
 export { TicketGlimmer } from "./domain/TicketGlimmer";
 export { TicketId, type TicketIdProps } from "./domain/TicketId";
 export {

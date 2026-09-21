@@ -1,19 +1,37 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { ProjectRefStringSchema, TicketRefStringSchema } from "@trellis/api";
 import { Chip, EmptyState, Kbd } from "@trellis/ui";
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, type KeyboardEvent, useEffect, useId, useState } from "react";
+import { searchDebounceMs } from "../features/command/hooks/useCommandSearch";
 import { parseSearch, stripDefaults, type View } from "../features/filters/grammar";
 import { useKeyboardFocusRing } from "../features/search/hooks/useKeyboardFocusRing";
 import { SearchResults } from "../features/search/SearchResults";
 import { PageTitle } from "../features/shell/PageTitle";
 import { Topbar } from "../features/shell/Topbar";
+import { useApp } from "../lib/appContext";
+
+type SearchRouteSearch = Partial<View> & { rankProject?: string };
+
+const parseSearchRoute = (search: Record<string, unknown>): SearchRouteSearch => {
+	const parsed = stripDefaults(parseSearch(search));
+	if (parsed.q !== undefined) {
+		const q = parsed.q.trim();
+		if (q === "") delete parsed.q;
+		else parsed.q = q;
+	}
+	const rankProject = ProjectRefStringSchema.safeParse(search.rankProject);
+	return rankProject.success ? { ...parsed, rankProject: rankProject.data } : parsed;
+};
 
 // `q` lives in the URL, so a search is a link.
 export const Route = createFileRoute("/search")({
-	validateSearch: (search: Record<string, unknown>) => stripDefaults(parseSearch(search)),
-	loaderDeps: ({ search }) => ({ q: search.q }),
+	validateSearch: parseSearchRoute,
+	loaderDeps: ({ search }) => ({ q: search.q, rankProject: search.rankProject }),
 	loader: async ({ context, deps }) => {
 		if (deps.q !== undefined) {
-			await context.queryClient.ensureQueryData(context.orpc.search.query.queryOptions({ input: { q: deps.q } }));
+			await context.queryClient.ensureQueryData(
+				context.orpc.search.query.queryOptions({ input: { q: deps.q, rankProject: deps.rankProject } }),
+			);
 		}
 	},
 	component: SearchPage,
@@ -30,19 +48,47 @@ function SearchPage() {
 	const search = Route.useSearch();
 	const { q } = search;
 	const navigate = useNavigate();
+	const { scheduler } = useApp();
 	const [draft, setDraft] = useState(q ?? "");
 	const id = useId();
 	const focusRing = useKeyboardFocusRing();
+	const trimmedDraft = draft.trim();
 
 	const submit = (event: FormEvent) => {
 		event.preventDefault();
-		const next = draft.trim();
-		void navigate({ to: "/search", search: { ...search, q: next === "" ? undefined : next } });
+		const ticket = TicketRefStringSchema.safeParse(trimmedDraft);
+		if (ticket.success) {
+			void navigate({ to: "/t/$identifier", params: { identifier: ticket.data } });
+			return;
+		}
+		void navigate({ to: "/search", search: { ...search, q: trimmedDraft === "" ? undefined : trimmedDraft } });
+	};
+
+	const keyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+		if (event.key !== "Enter") return;
+		const ticket = TicketRefStringSchema.safeParse(trimmedDraft);
+		if (!ticket.success) return;
+		event.preventDefault();
+		void navigate({ to: "/t/$identifier", params: { identifier: ticket.data } });
 	};
 
 	const remove = (field: keyof View) => {
 		void navigate({ to: "/search", search: { ...search, [field]: undefined } });
 	};
+
+	useEffect(() => setDraft(q ?? ""), [q]);
+
+	useEffect(() => {
+		if (trimmedDraft === (q ?? "")) return;
+		const handle = scheduler.setTimeout(() => {
+			void navigate({
+				to: "/search",
+				search: { ...search, q: trimmedDraft === "" ? undefined : trimmedDraft },
+				replace: true,
+			});
+		}, searchDebounceMs);
+		return () => scheduler.clearTimeout(handle);
+	}, [trimmedDraft, q, search, navigate, scheduler]);
 
 	return (
 		<>
@@ -67,6 +113,7 @@ function SearchPage() {
 							onFocus={focusRing.onFocus}
 							onBlur={focusRing.onBlur}
 							onChange={(event) => setDraft(event.target.value)}
+							onKeyDown={keyDown}
 							className={fieldClass}
 						/>
 						{draft === "" && <Kbd className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2">/</Kbd>}

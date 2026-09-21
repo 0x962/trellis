@@ -11,6 +11,9 @@ export type WaveMark = {
 	// "Later" on an open wave after the current one. Order lives between
 	// waves, so its tickets wait for the current wave.
 	note?: string;
+	// True when the wave holds at least one ticket and every ticket of it is
+	// done or canceled. The header of the wave then draws the double check.
+	done: boolean;
 };
 
 // The marks of the waves of one epic, by wave id. `waves` is
@@ -24,6 +27,7 @@ export const waveMarks = (waves: readonly WaveSummary[], currentId: string | und
 			const { counts } = wave;
 			const mark: WaveMark = {
 				countLabel: `${formatCount(counts.done)}/${formatCount(counts.total - counts.canceled)}`,
+				done: wave.state === "done",
 			};
 			if (index === currentIndex) mark.badge = "Current";
 			else if (currentIndex !== -1 && index > currentIndex && wave.state === "open") mark.note = "Later";
