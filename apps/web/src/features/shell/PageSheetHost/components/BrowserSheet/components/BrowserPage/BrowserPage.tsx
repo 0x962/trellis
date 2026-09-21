@@ -16,6 +16,9 @@ export type BrowserPageProps = {
 // Chromium sends the title of a page in this event after the page loads.
 type PageTitleUpdate = Event & { title: string };
 
+const BACK = -1;
+const FORWARD = 1;
+
 // The web page inside the browser sheet: the `<webview>` that Chromium draws,
 // the header controls that move through its history, and the state of the
 // load. `apps/desktop/src/secureLinkBrowser` strips the preload, forces the
@@ -27,24 +30,23 @@ export function BrowserPage({ url }: BrowserPageProps) {
 	const [address, setAddress] = useState(url);
 	const [loading, setLoading] = useState(urlError === null);
 	const [error, setError] = useState<string | null>(null);
-	const [history, setHistory] = useState({ back: false, forward: false });
+	// Whether a page stands before or after the page on screen. The
+	// `<webview>` of Electron 44 answers `canGoBack` with false and does
+	// nothing on `goBack`, so the Back and Forward buttons count in steps
+	// from the page on screen, which the same webview answers correctly.
+	const [steps, setSteps] = useState({ back: false, forward: false });
 	useEffect(() => {
 		if (webview === null) return;
 		const view = webview;
-		// A link inside the page changes the address and the history, and the
-		// two buttons that move through the history read them here.
-		const read = () => {
+		const navigated = () => {
 			setAddress(view.getURL());
-			setHistory({ back: view.canGoBack(), forward: view.canGoForward() });
+			setSteps({ back: view.canGoToOffset(BACK), forward: view.canGoToOffset(FORWARD) });
 		};
 		const started = () => {
 			setError(null);
 			setLoading(true);
 		};
-		const stopped = () => {
-			setLoading(false);
-			read();
-		};
+		const stopped = () => setLoading(false);
 		const failed = (event: Event) => {
 			const message = linkLoadError(event as LinkLoadFailure);
 			if (message !== null) {
@@ -57,15 +59,15 @@ export function BrowserPage({ url }: BrowserPageProps) {
 		view.addEventListener("did-stop-loading", stopped);
 		view.addEventListener("did-fail-load", failed);
 		view.addEventListener("page-title-updated", titled);
-		view.addEventListener("did-navigate", read);
-		view.addEventListener("did-navigate-in-page", read);
+		view.addEventListener("did-navigate", navigated);
+		view.addEventListener("did-navigate-in-page", navigated);
 		return () => {
 			view.removeEventListener("did-start-loading", started);
 			view.removeEventListener("did-stop-loading", stopped);
 			view.removeEventListener("did-fail-load", failed);
 			view.removeEventListener("page-title-updated", titled);
-			view.removeEventListener("did-navigate", read);
-			view.removeEventListener("did-navigate-in-page", read);
+			view.removeEventListener("did-navigate", navigated);
+			view.removeEventListener("did-navigate-in-page", navigated);
 		};
 	}, [webview]);
 	return (
@@ -77,16 +79,16 @@ export function BrowserPage({ url }: BrowserPageProps) {
 							<IconButton
 								label="Back"
 								icon={<ArrowLeft />}
-								disabled={!history.back}
-								onClick={() => webview!.goBack()}
+								disabled={!steps.back}
+								onClick={() => webview!.goToOffset(BACK)}
 							/>
 						</Tooltip>
 						<Tooltip content="Forward">
 							<IconButton
 								label="Forward"
 								icon={<ArrowRight />}
-								disabled={!history.forward}
-								onClick={() => webview!.goForward()}
+								disabled={!steps.forward}
+								onClick={() => webview!.goToOffset(FORWARD)}
 							/>
 						</Tooltip>
 						<Tooltip content="Reload">
