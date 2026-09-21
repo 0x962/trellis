@@ -1,4 +1,4 @@
-import { AttentionDot, cx } from "@trellis/ui";
+import { AttentionDot, cx, WorkingAgentText } from "@trellis/ui";
 import { ReadOnlyMarkdown } from "../../../components/ReadOnlyMarkdown";
 import type { TicketAgentLine } from "../utils/agentLines";
 
@@ -44,9 +44,9 @@ export function AgentWords({ line, wrap = false, render }: AgentWordsProps) {
 			<>
 				<span className="flex h-4 w-4 shrink-0 items-center justify-center">{dot}</span>
 				{line.working ? (
-					<span className="min-w-0 flex-1 truncate text-film" title={line.words}>
+					<WorkingAgentText tooltip={false} className="min-w-0 flex-1 truncate" title={line.words}>
 						{line.words}
-					</span>
+					</WorkingAgentText>
 				) : (
 					<span className={cx("min-w-0 flex-1", tone)}>
 						<ReadOnlyMarkdown markdown={line.words} className="agent-markdown" render={render} />
@@ -58,9 +58,15 @@ export function AgentWords({ line, wrap = false, render }: AgentWordsProps) {
 	return (
 		<>
 			{dot}
-			<span className={cx("truncate", line.working ? "text-film" : tone)} title={line.words}>
-				{line.words}
-			</span>
+			{line.working ? (
+				<WorkingAgentText tooltip={false} className="truncate" title={line.words}>
+					{line.words}
+				</WorkingAgentText>
+			) : (
+				<span className={cx("truncate", tone)} title={line.words}>
+					{line.words}
+				</span>
+			)}
 		</>
 	);
 }

@@ -22,6 +22,8 @@ export const AgentRunSchema = z.object({
 	ticketIdentifier: z.string().nullable(),
 	ticketTitle: z.string().nullable(),
 	ticketStatusCategory: StatusCategorySchema.nullable(),
+	ticketEpicId: UlidSchema.nullable().default(null),
+	ticketEpicProjectId: UlidSchema.nullable().default(null),
 	assigned: z.boolean(),
 	state: z.enum(["starting", "interrupted", "running", "failed", "stopped", "exited"]),
 	processStatus: z.enum(["running", "exited", "unknown"]).nullable(),

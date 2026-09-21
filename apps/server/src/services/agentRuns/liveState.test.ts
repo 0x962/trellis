@@ -22,6 +22,8 @@ const run: StoredRun = {
 	ticketIdentifier: null,
 	ticketTitle: null,
 	ticketStatusCategory: null,
+	ticketEpicId: null,
+	ticketEpicProjectId: null,
 	workspaceId: "/tmp",
 	terminalId: "attempt",
 	url: null,

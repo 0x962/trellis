@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
-import { cx } from "@trellis/ui";
+import { cx, WorkingAgentText } from "@trellis/ui";
 import { formatCount } from "../../../../lib/format";
 import { projectRefOfPathname, projectSlashPath } from "../../../../lib/projectPath";
 
@@ -10,10 +10,14 @@ export function ProjectPages({
 	project,
 	depth,
 	pathname,
+	epicWorkingCount = 0,
+	sessionWorkingCount = 0,
 }: {
 	project: ProjectSummary;
 	depth: number;
 	pathname: string;
+	epicWorkingCount?: number;
+	sessionWorkingCount?: number;
 }) {
 	const current = projectRefOfPathname(pathname) === project.path;
 	// The Tickets row owns the bare project path, so every other page of the
@@ -24,6 +28,7 @@ export function ProjectPages({
 	// The epics list and the page of one epic, `/epics/<slug>`.
 	const epics = pathname.endsWith("/epics") || pathname.includes("/epics/");
 	const sessions = pathname.startsWith("/sessions/project/");
+	const workingCounts = { Epics: epicWorkingCount, Sessions: sessionWorkingCount };
 	return (
 		<li>
 			<nav aria-label={`${project.name} pages`}>
@@ -62,7 +67,16 @@ export function ProjectPages({
 									active && "sidebar-selected font-medium",
 								)}
 							>
-								<span className="sidebar-label">{label}</span>
+								{(workingCounts[label as keyof typeof workingCounts] ?? 0) > 0 ? (
+									<WorkingAgentText
+										count={workingCounts[label as keyof typeof workingCounts] ?? 0}
+										className="sidebar-label"
+									>
+										{label}
+									</WorkingAgentText>
+								) : (
+									<span className="sidebar-label">{label}</span>
+								)}
 								{trailing !== null && <span className="sidebar-trailing text-fg-faint">{trailing}</span>}
 							</Link>
 						</li>

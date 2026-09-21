@@ -91,6 +91,7 @@ export {
 export { TrellisMark, type TrellisMarkProps } from "./domain/TrellisMark";
 export { TrellisWordmark, type TrellisWordmarkProps } from "./domain/TrellisWordmark";
 export { UsageChart, type UsageChartProps, type UsageChartSeries, type UsageChartTone } from "./domain/UsageChart";
+export { WorkingAgentText, type WorkingAgentTextProps, workingAgentsLabel } from "./domain/WorkingAgentText";
 export { WorkspaceChanges } from "./domain/WorkspaceChanges";
 export { type Hotkey, useHotkey } from "./hooks/useHotkey";
 export { useMediaQuery } from "./hooks/useMediaQuery";
