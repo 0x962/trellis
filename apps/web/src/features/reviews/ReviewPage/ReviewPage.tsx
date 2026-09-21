@@ -1,19 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import {
-	type Evidence,
-	evidenceFloor,
-	isAgentWorking,
-	type ReviewRevision,
-	type ReviewThread,
-	reviewRef,
-	turnOf,
-} from "@trellis/api";
+import { type Evidence, evidenceFloor, isAgentWorking, type ReviewThread, reviewRef, turnOf } from "@trellis/api";
 import { TicketId, useMediaQuery } from "@trellis/ui";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
-import { ConditionsBlock } from "../ConditionsBlock";
-import { type BaseCondition, unmetConditions } from "../conditionLines/conditionLines";
+import { unmetConditions } from "../conditionLines/conditionLines";
 import { EvidenceStrip } from "../EvidenceStrip";
 import { FileRiskGroups } from "../FileRiskGroups";
 import type { ReadMarkFile } from "../FileRiskGroups/readMarks/readMarks";
@@ -28,10 +19,11 @@ import { primaryReviewAction, type ReviewActionMeta } from "../reviewActions/rev
 import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
 import { FilesDisclosure } from "./components/FilesDisclosure";
+import { ReviewFacts } from "./components/ReviewFacts";
 import { type GithubPullRequest, ReviewIdentity } from "./components/ReviewIdentity";
 import { ReviewPageSkeleton } from "./components/ReviewPageSkeleton";
 import { TurnLine } from "./components/TurnLine";
-import { conditionsOf } from "./conditionsOf";
+import { baseOf, conditionsOf } from "./conditionsOf";
 import { useActiveThread } from "./hooks/useActiveThread";
 import { useReviewData } from "./hooks/useReviewData";
 import "@trellis/ui/review.css";
@@ -39,20 +31,6 @@ import "@trellis/ui/review.css";
 const noThreads: ReviewThread[] = [];
 const noRecords: Evidence[] = [];
 const noSentences: string[] = [];
-// `conditionsOf` answers null while the pull request row has no risk
-// answers. An empty list would read as "every condition is met", so the
-// bar prints one phrase for the gap instead.
-const conditionsUnknown = ["conditions unknown"];
-
-// The distance comes from the revision document, not from the status poll:
-// the server reads it from the compare call that fetched this revision, and
-// the poll answers no such field. A revision stored before the server read
-// the distance carries none, and the line then reads unknown.
-const baseOf = (revision: ReviewRevision | null): BaseCondition | null => {
-	const meta = revision?.meta as { behindBy?: number; baseRefName?: string } | undefined;
-	if (meta?.behindBy === undefined || meta.baseRefName === undefined) return null;
-	return { behindBy: meta.behindBy, baseRefName: meta.baseRefName };
-};
 
 export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent?: ReactNode; syncHash?: boolean }) {
 	const { client } = useApp();
@@ -72,15 +50,10 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		refreshAll,
 	} = useReviewData(pr);
 	const [changedFiles, setChangedFiles] = useState<ReadMarkFile[]>([]);
-	// A person does not read a diff on a phone, so `FilesDisclosure` puts the
-	// checks, the file list, the diff and the threads behind one button.
+	// `FilesDisclosure` hides the review details behind one control on a phone.
 	const phone = useMediaQuery("(max-width: 767px)");
-	// The path the reader picked in the file list, or an empty string while
-	// the reader picked none.
 	const [pickedPath, setPickedPath] = useState("");
 	const [composerOpen, setComposerOpen] = useState(false);
-	// The suggestion threads waiting for one commit, and the threads the
-	// commit dialog holds while it is open.
 	const [batch, setBatch] = useState<ReadonlySet<string>>(() => new Set());
 	const [applying, setApplying] = useState<string[] | null>(null);
 	// The diff shows the threads of the revision on screen, plus the threads
@@ -92,9 +65,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		() => allThreads.filter((thread) => thread.revisionId === null || thread.revisionId === revision?.id),
 		[allThreads, revision?.id],
 	);
-	// The drafts: the open threads on the commit the page draws. A thread of
-	// another revision, and a thread that names no revision, stay out, because
-	// `reviews.submit` refuses a thread that sits on another commit.
+	// `reviews.submit` accepts only open threads of the revision on screen.
 	const drafts = useMemo(
 		() =>
 			allThreads
@@ -133,15 +104,10 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		[pr, revision?.id, revision?.headSha, displayMeta?.state, batch, toggleBatch],
 	);
 	const applyingThreads = applying === null ? [] : applying.flatMap((id) => threadsById.get(id) ?? []);
-	// A link with `?thread=<id>` in the hash opens the file that the thread
-	// sits on, so the diff below shows that file. A pick in the file list wins
-	// from then on, and the threads can arrive after the reader picks.
+	// A file-list choice overrides the path of a linked thread.
 	const deepLinkPath = activeThread === null ? undefined : threadsById.get(activeThread)?.path;
 	const selectedPath = pickedPath !== "" ? pickedPath : (deepLinkPath ?? "");
-	// The conditions, the summary and the evidence records belong to the commit
-	// whose diff the page draws. A summary or an evidence record written for
-	// another commit counts as missing, and the notice above them asks the
-	// reader to refresh.
+	// The summary and evidence records must match the revision on screen.
 	const headSha = revision?.headSha ?? "";
 	const records = useMemo(
 		() => (evidence.data ?? noRecords).filter((record) => record.headSha === headSha),
@@ -165,11 +131,8 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		waitsOn: ticket.data?.waitsOn ?? [],
 		base: baseOf(revision),
 	});
-	// The ticket row answers the turn first, because it also knows the ticket
-	// status and the tickets it waits on. `prRow` is the fallback for a pull
-	// request that no ticket links. The second argument of `turnOf` says
-	// whether an agent works on the ticket right now, which makes the turn the
-	// agent's whatever the pull request says.
+	// The ticket row also knows the ticket status and its dependencies.
+	// `prRow` is the fallback for a pull request that no ticket links.
 	const turnInput = ticket.data ?? prRow;
 	const agentWorks = run !== null && isAgentWorking(run);
 	const ref = reviewRef(pr);
@@ -236,22 +199,19 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 								{threads.error.message}
 							</p>
 						)}
-						{factsReady && (
-							<>
-								{conditions && <ConditionsBlock conditions={conditions} />}
-								<ChangeSummary summary={summaryRow} headSha={headSha} />
-								{revision && (
-									<ReviewFocusList
-										pr={pr}
-										revisionId={revision.id}
-										sentences={ticket.data?.contract.reviewFocus ?? noSentences}
-									/>
-								)}
-								{floor && <EvidenceStrip records={records} floor={floor} />}
-							</>
-						)}
+						<ReviewFacts ready={factsReady} conditions={conditions}>
+							<ChangeSummary summary={summaryRow} headSha={headSha} />
+							{revision && (
+								<ReviewFocusList
+									pr={pr}
+									revisionId={revision.id}
+									sentences={ticket.data?.contract.reviewFocus ?? noSentences}
+								/>
+							)}
+							{floor && <EvidenceStrip records={records} floor={floor} />}
+						</ReviewFacts>
 						<FilesDisclosure phone={phone} count={changedFiles.length}>
-							<ReviewChecks revision={displayRevision} pr={pr} />
+							<ReviewChecks checks={status.data?.checks ?? null} pr={pr} />
 							{revision === null && !refresh.isError ? (
 								<ReviewPageSkeleton />
 							) : (
@@ -292,14 +252,14 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						</FilesDisclosure>
 					</div>
 				</div>
-				{displayRevision && primaryReviewAction(displayRevision.meta as ReviewActionMeta) === "merge" && (
+				{displayRevision && conditions && primaryReviewAction(displayRevision.meta as ReviewActionMeta) === "merge" && (
 					<VerdictBar
 						pr={pr}
 						revision={displayRevision}
 						ticket={status.data?.ticket?.identifier ?? null}
 						run={run}
 						drafts={drafts}
-						unmetConditions={conditions === null ? conditionsUnknown : unmetConditions(conditions)}
+						unmetConditions={unmetConditions(conditions)}
 						phone={phone}
 						onDone={refreshAll}
 					/>

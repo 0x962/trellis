@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { booleanString, IsoDateTimeSchema, UlidSchema } from "./primitives";
+import { CheckSchema } from "./pullRequest";
 import { TicketIdentifierSchema } from "./ticket";
 import { TicketPrSchema } from "./ticketPr";
 
@@ -110,6 +111,7 @@ export const ReviewPrSchema = z.object({
 export const ReviewStatusSchema = z.looseObject({
 	ticket: z.object({ identifier: TicketIdentifierSchema, title: z.string() }).nullable(),
 	prRow: TicketPrSchema.nullable(),
+	checks: z.array(CheckSchema).nullable(),
 });
 export const ReviewRevisionSchema = z.object({
 	id: UlidSchema,
