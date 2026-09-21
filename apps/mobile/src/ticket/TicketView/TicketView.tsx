@@ -11,8 +11,8 @@ import { layout } from "../../theme/layout";
 import { tokens } from "../../theme/tokens";
 import { usePalette } from "../../theme/usePalette";
 import { Attachments } from "../Attachments";
-import { Composer } from "../Composer";
 import { Description } from "../Description";
+import { MessageAgent } from "../MessageAgent";
 import { PrCard } from "../PrCard";
 import { PrioritySheet } from "../PrioritySheet";
 import { PropertyGrid } from "../PropertyGrid";
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
 });
 
 // The loaded ticket: every section above the timeline as the list header,
-// the timeline rows, and the composer under them. The two sheets and the
+// the timeline rows, and the form that messages the agent under them. The two sheets and the
 // review actions write through one `useTicketUpdate`. The timeline shows the
 // newest page first. While an older page exists, a Load earlier button under
 // the oldest item reads it.
@@ -67,7 +67,7 @@ export function TicketView({ ticket }: TicketViewProps) {
 	// The screen sits under the stack header: the top inset plus
 	// `layout.header`. KeyboardAvoidingView measures its frame inside the
 	// screen and the keyboard inside the window, so it needs this offset to
-	// pad the composer fully above the keyboard.
+	// pad the message form fully above the keyboard.
 	const { top } = useSafeAreaInsets();
 	const client = getClient();
 	const { identifier } = ticket;
@@ -142,7 +142,7 @@ export function TicketView({ ticket }: TicketViewProps) {
 				</View>
 			)}
 			<Timeline rows={timelineRows(items)} header={header} footer={footer} />
-			<Composer ticket={identifier} />
+			<MessageAgent ticket={identifier} />
 			<StatusSheet
 				open={statusOpen}
 				statuses={statuses}

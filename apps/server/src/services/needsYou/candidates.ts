@@ -3,16 +3,14 @@ import { sql } from "drizzle-orm";
 import { iso, rows } from "../../db/queries/support.ts";
 import { ticketSummaries } from "../../db/queries/ticketSummaries.ts";
 import type { Tx } from "../../db/tx.ts";
-import { mentionedNames } from "../commentMentions/mentioned.ts";
 
 export type Candidate = {
 	id: string;
-	section: "review" | "mentioned";
+	section: "review";
 	ticketId: string;
 	receivedAt: string;
 	snoozedUntil: string | null;
 	ignored: boolean;
-	comment: { id: string; threadId: string; body: string; actorName: string } | null;
 	title: string;
 	priority: string;
 	createdAt: string;
@@ -20,6 +18,13 @@ export type Candidate = {
 	identifier: string;
 };
 
+// The inbox of a person holds one item per ticket whose turn is theirs: its
+// status waits for a human reviewer, or it links an open pull request, and
+// no agent works on it (`turnOf` answers "you"). The item id names the last
+// status change, so a move to a new status starts a new item that no earlier
+// snooze or ignore covers. An item leaves the inbox when the ticket moves to
+// the done or the canceled category, when an agent starts to work on it, or
+// when its turn passes to somebody else.
 export const candidates = async (
 	tx: Tx,
 	actor: string,
@@ -30,8 +35,7 @@ export const candidates = async (
 		sql`
 		WITH eligible AS (
 			SELECT 'review:' || t.id || ':' || COALESCE(a.id::text, 'initial') AS id,
-				'review' AS section, t.id AS ticket_id, COALESCE(a.created_at, t.created_at) AS received_at,
-				NULL::jsonb AS comment
+				'review' AS section, t.id AS ticket_id, COALESCE(a.created_at, t.created_at) AS received_at
 			FROM tickets t JOIN statuses s ON s.id=t.status_id
 			LEFT JOIN LATERAL (SELECT id, created_at FROM activity WHERE ticket_id=t.id AND field='status' ORDER BY id DESC LIMIT 1) a ON true
 			WHERE s.category NOT IN ('done', 'canceled') AND (
@@ -41,21 +45,8 @@ export const candidates = async (
 					WHERE link.ticket_id=t.id AND pull_request.state='open'
 				)
 			)
-			UNION ALL
-			SELECT 'mentioned:' || c.id, 'mentioned', t.id, c.created_at,
-				jsonb_build_object('id', c.id, 'threadId', COALESCE(c.parent_id,c.id), 'body',c.body,'actorName',COALESCE(run.name,c.actor_name))
-			FROM comments c JOIN tickets t ON t.id=c.ticket_id
-			JOIN comments root ON root.id=COALESCE(c.parent_id,c.id)
-			LEFT JOIN agent_runs run ON c.actor_kind='agent' AND run.id=c.actor_name
-			WHERE c.resolved_at IS NULL AND root.resolved_at IS NULL
-				AND strpos(lower(c.body), ${`@${actor.toLowerCase()}`}) > 0
-				AND NOT EXISTS (
-					SELECT 1 FROM activity completed
-					WHERE completed.ticket_id=t.id AND completed.field='status'
-						AND completed.meta->>'toCategory'='done' AND completed.created_at > c.created_at
-				)
 		)
-		SELECT e.id, e.section, e.ticket_id AS "ticketId", ${iso(sql`e.received_at`)} AS "receivedAt", e.comment,
+		SELECT e.id, e.section, e.ticket_id AS "ticketId", ${iso(sql`e.received_at`)} AS "receivedAt",
 			${iso(sql`state.snoozed_until`)} AS "snoozedUntil", COALESCE(state.ignored,false) AS ignored,
 			t.title,t.priority,${iso(sql`t.created_at`)} AS "createdAt",${iso(sql`t.updated_at`)} AS "updatedAt",
 			p.key || '-' || t.number AS identifier
@@ -67,16 +58,11 @@ export const candidates = async (
 		(
 			await ticketSummaries(
 				tx,
-				found.filter((item) => item.section === "review").map((item) => item.ticketId),
+				found.map((item) => item.ticketId),
 			)
 		).map((ticket) => [ticket.id, ticket]),
 	);
-	const names = await rows<{ name: string }>(tx, sql`SELECT name FROM actors WHERE kind='human'`);
 	return found.filter(
-		(item) =>
-			(item.comment === null &&
-				turnOf(reviewTickets.get(item.ticketId)!, workingTicketIds.has(item.ticketId)) === "you") ||
-			(item.comment !== null &&
-				mentionedNames(item.comment.body, [actor, ...names.map((name) => name.name)]).has(actor.toLowerCase())),
+		(item) => turnOf(reviewTickets.get(item.ticketId)!, workingTicketIds.has(item.ticketId)) === "you",
 	);
 };

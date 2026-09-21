@@ -60,7 +60,7 @@ export function MoreMenu({ ticket }: MoreMenuProps) {
 				open={confirming}
 				onOpenChange={setConfirming}
 				title={`Delete ${ticket.identifier}?`}
-				description="trellis also deletes its comments, attachments, and PR links. Its sub-tickets stay and lose their parent."
+				description="trellis also deletes its attachments and PR links. Its sub-tickets stay and lose their parent."
 			>
 				<div className="flex justify-end gap-2">
 					<Button variant="quiet" onClick={() => setConfirming(false)}>

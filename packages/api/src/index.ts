@@ -1,7 +1,6 @@
 export * from "./agentCommand/agentCommand.ts";
 export * from "./agentLaunch/agentLaunch.ts";
 export * from "./agentNotifications/index.ts";
-export * from "./answerComment/index.ts";
 export * from "./client.ts";
 export * from "./contract/index.ts";
 export * from "./currentVerdict/index.ts";
@@ -16,6 +15,7 @@ export * from "./harness/effort/effort.ts";
 export * from "./harness/harness.ts";
 export * from "./instructions.ts";
 export * from "./linkBrowser/index.ts";
+export * from "./messageTarget/index.ts";
 export * from "./models/models.ts";
 export * from "./notificationSound/index.ts";
 export * from "./pair.ts";

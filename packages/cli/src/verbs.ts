@@ -75,14 +75,6 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 		description: "Move a ticket to a status",
 		load: () => import("./commands/move.ts").then((m) => command(m.default)),
 	},
-	comment: {
-		description: "Add a comment",
-		load: () => import("./commands/comment.ts").then((m) => command(m.default)),
-	},
-	comments: {
-		description: "List the comments of a ticket",
-		load: () => import("./commands/comment.ts").then((m) => command(m.comments)),
-	},
 	answer: {
 		description: "Answer a question ticket",
 		load: () => import("./commands/answer/answer.ts").then((m) => command(m.default)),
@@ -102,10 +94,6 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 	evidence: {
 		description: "Add or list evidence of a pull request",
 		load: () => import("./commands/evidence/evidence.ts").then((m) => command(m.default)),
-	},
-	thread: {
-		description: "Show, resolve, or reopen a comment thread",
-		load: () => import("./commands/thread.ts").then((m) => command(m.default)),
 	},
 	notes: {
 		description: "Read and write the notes of a project",

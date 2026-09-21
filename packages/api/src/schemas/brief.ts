@@ -6,8 +6,8 @@ export const BriefGetInputSchema = z.strictObject({
 	ticket: TicketRefStringSchema,
 });
 
-// The markdown an agent starts from: the ticket, its comments, its PRs, and
-// the CLI cheat sheet.
+// The markdown an agent starts from: the ticket, its PRs, and the CLI cheat
+// sheet.
 export const BriefSchema = z.object({
 	markdown: z.string(),
 	generatedAt: IsoDateTimeSchema,

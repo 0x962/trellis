@@ -1,5 +1,3 @@
-import type { InfiniteData, QueryClient } from "@tanstack/react-query";
-import type { TimelineItem, TimelineListOutput } from "@trellis/api";
 import { getQueries } from "../../lib/orpc";
 
 // The timeline of one ticket, newest first, one page per cursor. The key is
@@ -12,16 +10,3 @@ export const timelineOptions = (identifier: string) =>
 		initialPageParam: undefined as string | undefined,
 		getNextPageParam: (page) => page.nextCursor ?? undefined,
 	});
-
-// Puts one item at the head of the newest page. The older pages keep their
-// items and their cursors.
-export const prependTimeline = (queryClient: QueryClient, identifier: string, item: TimelineItem) => {
-	queryClient.setQueryData<InfiniteData<TimelineListOutput>>(timelineOptions(identifier).queryKey, (data) =>
-		data === undefined
-			? data
-			: {
-					...data,
-					pages: data.pages.map((page, index) => (index === 0 ? { ...page, items: [item, ...page.items] } : page)),
-				},
-	);
-};

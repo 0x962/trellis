@@ -10,7 +10,7 @@ export const answerText = (result: AnswerResult): string =>
 		`ticket: ${result.ticket.identifier}`,
 		`option: ${result.option}`,
 		`status: ${statusText({ status: result.ticket.status.category, isQuestion: true })}`,
-		`commentId: ${result.commentId}`,
+		`answerId: ${result.answerId}`,
 		"releases:",
 		...indentedLines(result.ticket.releases.map((ticket) => `${ticket.identifier}  ${ticket.title}`)),
 		"deliveries:",

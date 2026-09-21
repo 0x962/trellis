@@ -6,13 +6,15 @@ Tickets live in trellis, a local tracker at http://127.0.0.1:4521. Use the \`tre
 Inside Claude Code, every command runs as \`agent:claude-code\`. Elsewhere, set \`TRELLIS_ACTOR=agent:<name>\`.
 
 1. Pick work:        trellis list --project ${key} --status todo
-2. Read the ticket:  trellis show ${key}-42 --comments
+2. Read the ticket:  trellis brief ${key}-42
 3. Start:            trellis move ${key}-42 in-progress
 4. Put the identifier in the branch name, for example ${key}-42-dark-mode. Link the PR to the ticket: trellis pr add ${key}-42 <url>
 5. Split work:       trellis sub ${key}-42 -t "Write tests"
-6. Ask a question:   trellis comment ${key}-42 --body "..." and then wait for the reply: trellis watch --ticket ${key}-42
+6. Ask a question:   trellis create -p ${key} --status human-review -t "..." --description - with a numbered "Options:" list,
+   then trellis edit ${key}-42 --after <question>. The answer reaches your run.
 7. Finish coding:    trellis move ${key}-42 agent-review
 8. When the agent review passes: trellis move ${key}-42 human-review
+Report what you did in your final message and in the pull request description.
 Never delete tickets.
 
 Prove the change. A pull request without its evidence is not reviewable.
@@ -54,11 +56,6 @@ Prove the change. A pull request without its evidence is not reviewable.
 
 Labels say what a ticket is about. Read the set of the project: trellis labels list ${key}
 Put one on a ticket: trellis edit ${key}-42 --add-label bug
-
-Read a comment thread: trellis thread show <comment-id>
-Reply in that thread: trellis comment ${key}-42 --reply-to <comment-id> --body "..."
-Resolve a thread: trellis thread resolve <comment-id>
-Reopen a thread: trellis thread reopen <comment-id>
 
 Project notes: facts, current state, and decisions that every agent of the project reads at start. Write one when you learn something the next agent must know.
 Read the notes: trellis notes list ${key}

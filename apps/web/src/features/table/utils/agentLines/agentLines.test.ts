@@ -123,8 +123,8 @@ describe("agentLineOf", () => {
 		expect(said.words.split(":").length - 1).toBe(1);
 	});
 
-	test("gives a run that works with no message and no request no line", () => {
-		expect(agentLineOf(runOf())).toBeNull();
+	test("says that a run works when it has no message and no request yet", () => {
+		expect(agentLineOf(runOf())).toEqual({ words: "crisp-fjord: works", asks: false, working: true, runId: "run" });
 	});
 
 	test("a request wins over the last message", () => {
@@ -235,8 +235,11 @@ describe("agentLinesByTicket", () => {
 		expect(agentLinesByTicket([loose])).toEqual({});
 	});
 
-	test("leaves out a run with nothing to say", () => {
-		expect(agentLinesByTicket([runOf()])).toEqual({});
+	test("leaves out an idle run with nothing to say", () => {
+		const idle = runOf();
+		idle.observation!.activity = { state: "idle", updatedAt: at };
+
+		expect(agentLinesByTicket([idle])).toEqual({});
 	});
 
 	test("keeps the request of one run when a later run of the same ticket only speaks", () => {
@@ -261,15 +264,33 @@ describe("agentLinesByTicket", () => {
 		});
 	});
 
-	test("takes the later message when neither run of a ticket asks", () => {
-		const second = speaking("amber-quarry");
-		second.observation!.lastMessage = { text: "The tests pass.", at };
+	// Two runs of one ticket, the older one with an earlier message and a
+	// finished turn. Each test reads them in both array orders.
+	const older = () => {
+		const run = runOf({ id: "older", name: "amber-quarry", createdAt: "2026-09-18T11:00:00.000Z" });
+		run.observation!.activity = { state: "idle", updatedAt: "2026-09-18T11:30:00.000Z" };
+		run.observation!.lastMessage = { text: "Pushed the first try.", at: "2026-09-18T11:30:00.000Z" };
+		return run;
+	};
+	const newer = () => {
+		const run = runOf({ id: "newer", createdAt: "2026-09-18T11:45:00.000Z" });
+		run.observation!.activity = { state: "idle", updatedAt: at };
+		run.observation!.lastMessage = { text: "The retry passes.", at };
+		return run;
+	};
+	const stopped = (run: AgentRun) => ({ ...run, state: "stopped", processStatus: "exited" }) as AgentRun;
 
-		expect(agentLinesByTicket([speaking(), second])["ticket-a"]).toEqual({
-			words: "amber-quarry: The tests pass.",
-			asks: false,
-			working: true,
-			runId: "run",
-		});
+	test("takes the run with the later activity, in either array order", () => {
+		const line = { words: "crisp-fjord: The retry passes.", asks: false, working: false, runId: "newer" };
+
+		expect(agentLinesByTicket([older(), newer()])["ticket-a"]).toEqual(line);
+		expect(agentLinesByTicket([newer(), older()])["ticket-a"]).toEqual(line);
+	});
+
+	test("takes a live run over a stopped run with a later message, in either array order", () => {
+		const line = { words: "amber-quarry: Pushed the first try.", asks: false, working: false, runId: "older" };
+
+		expect(agentLinesByTicket([older(), stopped(newer())])["ticket-a"]).toEqual(line);
+		expect(agentLinesByTicket([stopped(newer()), older()])["ticket-a"]).toEqual(line);
 	});
 });

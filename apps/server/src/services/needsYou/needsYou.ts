@@ -95,7 +95,6 @@ export const list = async (
 			receivedAt: item.receivedAt,
 			snoozedUntil: item.snoozedUntil,
 			ignored: item.ignored,
-			comment: item.comment,
 		})),
 		nextCursor: sorted.length > input.limit && last ? { query, key: last.key, age: last.age, id: last.id } : null,
 	};
@@ -103,7 +102,7 @@ export const list = async (
 
 export const summary = async (ctx: IoCtx, tx: Tx, prepared: Prepared<unknown>) => {
 	const items = await candidates(tx, person(ctx.core), new Set(prepared.workingTicketIds));
-	const result = { active: 0, review: 0, mentioned: 0, snoozed: 0, ignored: 0, nextWakeAt: null as string | null };
+	const result = { active: 0, review: 0, snoozed: 0, ignored: 0, nextWakeAt: null as string | null };
 	for (const item of items) {
 		const state = visibility(item, ctx.core.now);
 		result[state]++;

@@ -10,7 +10,6 @@ import {
 	ticketDetail,
 } from "./invalidationCoalescer.ts";
 import { realScheduler, type Scheduler } from "./scheduler.ts";
-import type { CommentThread } from "./schemas/comment.ts";
 import { summaryOf, type Ticket, ticketContractFields } from "./schemas/ticket.ts";
 import { createSettleCheck } from "./settleCheck.ts";
 import {
@@ -162,8 +161,8 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 	};
 
 	// The server writes an activity row for every ticket change, and the
-	// timeline lists activity beside the comments. So the ticket's timeline
-	// refetches on every change but a delete, which drops the ticket page.
+	// timeline lists that activity. So the ticket's timeline refetches on
+	// every change but a delete, which drops the ticket page.
 	const applyChange = (change: HeldChange) => {
 		const { summary, fields } = change;
 		enqueue([family("needsYou")]);
@@ -204,25 +203,6 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "ticket.deleted":
 				applyTicketEvent(event);
 				return;
-			case "comment.created":
-			case "comment.updated":
-			case "comment.deleted": {
-				enqueue([family("needsYou")]);
-				const threads = queryClient
-					.getQueryCache()
-					.findAll({ queryKey: [["comments", "thread"]] })
-					.filter((query) => {
-						const data = query.state.data as CommentThread | undefined;
-						const input = (query.queryKey[1] as { input: { id: string } }).input;
-						return data?.root.ticketId === event.ticketId || input.id === event.id || input.id === event.threadId;
-					});
-				enqueue([
-					forTicket(["timeline", "list"], event.ticketId),
-					...ticketDetail(event.ticketId),
-					...threads.map(forQuery),
-				]);
-				return;
-			}
 			case "attachment.created":
 			case "attachment.deleted":
 				enqueue([forTicket(["attachments", "list"], event.ticketId), ...ticketDetail(event.ticketId)]);

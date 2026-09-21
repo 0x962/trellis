@@ -21,11 +21,23 @@ export type RecommendedOption = {
 	reason: string;
 };
 
+// The answer a question holds. `by` is the name of the person or the agent
+// that picked the option, and `reason` is the text they gave.
+export type QuestionAnswer = {
+	option: number;
+	by: string;
+	reason: string;
+};
+
 export type QuestionBlockProps = {
 	options: readonly QuestionOption[];
 	recommendation: RecommendedOption | null;
 	// The tickets that start once this question has an answer.
 	releases: readonly TicketRef[];
+	// The stored answer, or null while the question waits for one. An
+	// answered question shows the picked option and the reason, and takes no
+	// second answer.
+	answer: QuestionAnswer | null;
 	// The number of the option a person picked, or null while none is picked.
 	picked: number | null;
 	onPickedChange: (option: number) => void;
@@ -53,6 +65,7 @@ export function QuestionBlock({
 	options,
 	recommendation,
 	releases,
+	answer,
 	picked,
 	onPickedChange,
 	reason,
@@ -75,6 +88,7 @@ export function QuestionBlock({
 		label: `${option.number}. ${option.text}`,
 		description: recommendation?.option === option.number ? recommendationNote(recommendation.by) : "",
 	}));
+	const shown = answer === null ? picked : answer.option;
 	return (
 		<section aria-label="The question" className="flex min-w-0 flex-col gap-4">
 			<div className="flex min-w-0 flex-col">
@@ -83,8 +97,9 @@ export function QuestionBlock({
 					className="-mx-3 mt-1"
 					label="The options of this question"
 					options={radioOptions}
-					value={picked === null ? "" : String(picked)}
+					value={shown === null ? "" : String(shown)}
 					onValueChange={(value) => onPickedChange(Number(value))}
+					disabled={answer !== null}
 				/>
 			</div>
 			{recommendation !== null && recommendation.reason !== "" && (
@@ -101,38 +116,53 @@ export function QuestionBlock({
 					))}
 				</div>
 			)}
-			<div className="flex min-w-0 flex-col gap-2">
-				<SectionHeader level={3} title="Your answer" />
-				<Textarea
-					label="Your reason"
-					hideLabel
-					rows={2}
-					value={reason}
-					placeholder="Your reason, one or two sentences"
-					disabled={answering}
-					onChange={(event) => onReasonChange(event.target.value)}
-				/>
-				<div className="flex min-w-0 items-center gap-3">
-					<Button
-						variant="primary"
-						processing={answering}
-						disabled={picked === null || reason.trim() === ""}
-						onClick={onAnswer}
-					>
-						Answer
-					</Button>
+			{answer !== null ? (
+				<div className="flex min-w-0 flex-col">
+					<SectionHeader level={3} title="The answer" />
+					<p className="text-sm font-medium text-fg">
+						{answer.by} picked option {answer.option}.
+					</p>
+					<p className="whitespace-pre-line text-sm text-fg">{answer.reason}</p>
 					{result !== null && (
-						<p role="status" className="min-w-0 text-sm text-fg-muted">
+						<p role="status" className="mt-2 text-sm text-fg-muted">
 							{result}
 						</p>
 					)}
 				</div>
-				{error !== null && (
-					<p role="alert" className="text-sm text-danger">
-						{error}
-					</p>
-				)}
-			</div>
+			) : (
+				<div className="flex min-w-0 flex-col gap-2">
+					<SectionHeader level={3} title="Your answer" />
+					<Textarea
+						label="Your reason"
+						hideLabel
+						rows={2}
+						value={reason}
+						placeholder="Your reason, one or two sentences"
+						disabled={answering}
+						onChange={(event) => onReasonChange(event.target.value)}
+					/>
+					<div className="flex min-w-0 items-center gap-3">
+						<Button
+							variant="primary"
+							processing={answering}
+							disabled={picked === null || reason.trim() === ""}
+							onClick={onAnswer}
+						>
+							Answer
+						</Button>
+						{result !== null && (
+							<p role="status" className="min-w-0 text-sm text-fg-muted">
+								{result}
+							</p>
+						)}
+					</div>
+					{error !== null && (
+						<p role="alert" className="text-sm text-danger">
+							{error}
+						</p>
+					)}
+				</div>
+			)}
 		</section>
 	);
 }

@@ -4,10 +4,10 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { ServiceCtx } from "../context.ts";
 import { get as getBrief } from "../services/brief.ts";
-import { create as createComment } from "../services/comments.ts";
 import { create as createEpic, get as getEpic, list as listEpics } from "../services/epics/epics.ts";
 import { create as createTicket } from "../services/tickets/create.ts";
 import { move } from "../services/tickets/move.ts";
+import { setOutcome } from "../services/tickets/outcome.ts";
 import { create as createWave } from "../services/waves/waves.ts";
 import { createCache, type ProjectCache } from "./cache.ts";
 import { type Db, openDb } from "./client.ts";
@@ -22,8 +22,6 @@ let db: Db;
 let cache: ProjectCache;
 const tst = ulid();
 const human: ActorRef = { name: "Test", kind: "human" };
-const runId = ulid();
-const agent: ActorRef = { name: runId, kind: "agent" };
 
 const insertStatus = (name: string, slug: string, category: string, reviewer: string | null, position: number) =>
 	db.execute(sql`INSERT INTO statuses (id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at)
@@ -172,16 +170,9 @@ test("a wave counts ready tickets and tickets that wait for the person", async (
 	]);
 });
 
-test("the brief of a ticket prints the done tickets of the earlier waves with the last agent comment", async () => {
+test("the brief of a ticket prints the done tickets of the earlier waves with their outcome", async () => {
 	const ctx = ctxAt("2026-09-18T10:03:00.000Z");
-	await run((tx) => createComment(ctxAt("2026-09-18T10:03:00.000Z", agent), tx, { ticket: "TST-1", body: "First." }));
-	await run((tx) =>
-		createComment(ctxAt("2026-09-18T10:03:10.000Z", agent), tx, {
-			ticket: "TST-1",
-			body: "The table is in 0080.\nRun: bun test",
-		}),
-	);
-	await run((tx) => createComment(ctxAt("2026-09-18T10:03:20.000Z"), tx, { ticket: "TST-1", body: "Thanks." }));
+	await run((tx) => setOutcome(ctx, tx, { ticket: "TST-1", outcome: "The table is in migration 0080." }));
 	await run((tx) => move(ctx, tx, { ticket: "TST-2", status: "done" }));
 	const merge = await ticket(ctx, "Merge the fronts", "integrate");
 	const brief = await run((tx) => getBrief(ctx, tx, { ticket: merge.identifier }));
@@ -192,8 +183,7 @@ test("the brief of a ticket prints the done tickets of the earlier waves with th
 			"### Foundation",
 			"",
 			"- TST-1 Server: the table",
-			"  The table is in 0080.",
-			"  Run: bun test",
+			"  The table is in migration 0080.",
 			"",
 			"### Surfaces",
 			"",
