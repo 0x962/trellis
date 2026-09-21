@@ -2,15 +2,16 @@ import { Play } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { EmptyState, IconButton, SectionHeader, Skeleton, Tooltip } from "@trellis/ui";
 import { useState } from "react";
-import { useApp } from "../../../../../lib/appContext";
+import { useApp } from "../../../lib/appContext";
 import { FlowRun } from "./components/FlowRun";
 import { StartFlowDialog } from "./components/StartFlowDialog";
 
 const isLive = (status: string) => status === "running" || status === "waiting";
 
-// The flow runs of one ticket, newest first. A live run and the newest run
-// open with their steps. An older run opens on its name. The list refreshes
-// on the flows.changed event of the live connection.
+// The flow runs of the ticket that owns the pull request, newest first. A
+// live run and the newest run open with their steps. An older run opens on
+// its name. The list refreshes on the flows.changed event of the live
+// connection.
 export function FlowRuns({ ticket }: { ticket: string }) {
 	const { orpc } = useApp();
 	const [start, setStart] = useState(false);
@@ -28,7 +29,6 @@ export function FlowRuns({ ticket }: { ticket: string }) {
 	return (
 		<section aria-label="Flows" className="flex flex-col gap-4">
 			<SectionHeader
-				level={3}
 				title="Flows"
 				textCase="caps"
 				count={executions.data?.length}

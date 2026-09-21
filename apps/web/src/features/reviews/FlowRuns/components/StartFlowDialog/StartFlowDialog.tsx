@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button, Dialog, Select } from "@trellis/ui";
 import { useState } from "react";
-import { useApp } from "../../../../../../../lib/appContext";
+import { useApp } from "../../../../../lib/appContext";
 
 export function StartFlowDialog({ ticket, onClose }: { ticket: string; onClose: () => void }) {
 	const { client, orpc, queryClient } = useApp();

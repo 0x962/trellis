@@ -8,11 +8,14 @@ export function ChecksLine({
 	loading = false,
 	isCollapsed,
 	onToggle,
+	onOpenCheck,
 }: {
 	checks: readonly ChecksLineCheck[];
 	loading?: boolean;
 	isCollapsed: (key: (typeof checkDisplay)[number]["status"]) => boolean;
 	onToggle: (key: (typeof checkDisplay)[number]["status"]) => void;
+	// Opens the page of one check. The app decides where that page opens.
+	onOpenCheck?: (url: string) => void;
 }) {
 	const result = useMemo(() => checksLineResult(checks), [checks]);
 	return (
@@ -22,6 +25,7 @@ export function ChecksLine({
 			loading={loading}
 			isCollapsed={isCollapsed}
 			onToggle={onToggle}
+			onOpenCheck={onOpenCheck}
 		/>
 	);
 }

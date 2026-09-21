@@ -107,9 +107,11 @@ The host uses these observations for flow completion.
 Database reservations and runtime attempt identifiers prevent duplicate starts.
 
 Native project agents use Git worktrees under `agents/<run id>/work`.
-The ticket page opens Activity first and puts its top-level tabs below the page header.
-Activity shows the centered ticket details, properties, attachments, and the run with a form that sends the agent a message.
-The Agent, Changes, and Flows tabs use the page width for the terminal, pull request changes, and local flow runs.
+The ticket page holds the title, the ask, the sub-tickets and the attachments in one centered column.
+Its properties rail holds the pickers, the pull requests, the agent, the run controls, and the form that sends the agent a message.
+The review sheet of a pull request has four tabs: Overview, Checks, Flows and Diff.
+Overview holds the summary, the merge conditions, the evidence and the discussion. Checks holds every GitHub check of the head commit with its duration. Flows holds the flow runs of the ticket. Diff holds the file tree and the diff.
+The tab stays in the URL of `/reviews/<owner>/<repo>/<number>` as `?tab=overview|checks|flows|diff`, and a link that names the older value `facts` opens Overview.
 The authenticated terminal stream replays retained bytes and then pushes output and process observations.
 The terminal WebSocket carries ordered input and binary output outside the database request path after attachment.
 A capability handshake selects the persistent binary runtime channel or the compatible RPC adapter.
@@ -329,8 +331,10 @@ A dependency uses TicketRef for the target and for every related ticket. A
 TicketRef is a ULID or `KEY-n`. The CLI flags are `trellis create --after`,
 `trellis edit --after`, and `trellis edit --not-after`. `trellis deps
 <TicketRef>` prints both directions and each derived pull request stack.
-The web route `/t/<KEY-n>` shows the chain, the ready sentence, and each
-answered question. An epic route also shows the `waits` and `releases` cells.
+The web route `/t/<KEY-n>` shows both directions in its properties rail, as
+the rows Waits on and Blocks. A pick in either row writes one edge: the Blocks
+row writes it on the ticket that the pick names. An epic route also shows the
+`waits` and `releases` cells.
 
 ### Ticket contract
 
@@ -350,10 +354,9 @@ contract`. `trellis contract set` takes one result and repeated `--file`,
 `--leave-alone`, `--verify`, and `--focus` flags. `trellis contract show`
 prints the stored fields and the evidence floor that the file paths imply.
 
-The web route `/t/<KEY-n>` shows the contract after the ask. It derives
-`Evidence owed` from the files and the repository path rules. The review route
-`/reviews/<owner>/<repo>/<number>` reads `review_focus` from the linked ticket.
-The ticket brief prints the same contract fields and evidence floor.
+No web route draws the contract. The ticket brief prints the contract fields
+and the evidence floor that the file paths imply, and `trellis contract show`
+prints the same.
 
 ### Pull request summaries
 
@@ -361,8 +364,8 @@ The ticket brief prints the same contract fields and evidence floor.
 primary key is `(pull_request_id, head_sha)`. The row stores `headline`, `why`,
 `watch`, `created_at`, and `updated_at`. A delete of the pull request cascades
 to its summaries.
-The `why` field holds the plain explanation that the Facts tab shows below the
-headline.
+The `why` field holds the plain explanation that the Overview tab shows below
+the headline.
 
 The server compares a write with the head that GitHub reports before it opens
 the transaction. It applies the STE check to all three fields. A refusal stores
@@ -381,9 +384,9 @@ The CLI accepts a pull request number, a GitHub URL, or
 can also open one match from the signed-in GitHub account.
 The CLI verb is `trellis summary` with `write`, `show`, and `body`.
 
-The web route `/reviews/<owner>/<repo>/<number>` shows the summary first on the
-Facts tab. It shows a revision warning when the stored head SHA differs from
-the displayed revision. On a ticket or epic, each row for a pull request
+The web route `/reviews/<owner>/<repo>/<number>` shows the summary first on
+its Overview tab. It shows a revision warning when the stored head SHA differs
+from the displayed revision. On a ticket or epic, each row for a pull request
 includes the current-head summary in its evidence count.
 
 ### Pull request evidence
@@ -425,10 +428,9 @@ for a human but permits the human's move. The server does not apply this CLI
 guard in `tickets.move`.
 
 The web route `/reviews/<owner>/<repo>/<number>` shows current-head evidence
-after the review focus. It renders frontend and backend records according to
-the pull request kind. The route shows each missing item with its fill command.
-The ticket route `/t/<KEY-n>` shows one evidence card for each linked pull
-request.
+on its Overview tab, under the summary and the merge conditions. It renders
+frontend and backend records according to the pull request kind. The route
+shows each missing item with its fill command. No ticket route draws evidence.
 
 ### Ticket answers
 
@@ -448,11 +450,8 @@ The API route is `POST /api/tickets/{ticket}/answer`. It accepts TicketRef,
 deliveries. The delivered message holds the option, its text, and the reason.
 
 The CLI verb is `trellis answer <TicketRef> --option <n> --reason <text>`.
-The web route `/t/<KEY-n>` replaces the work regions of a question with its
-options, recommendation, reason field, released tickets, and Answer action.
-An answered question keeps its question block, which shows the picked option
-and the reason. The same route shows an answered dependency under `Applies`
-on a waiting ticket.
+No web route draws the options or the Answer action. A person answers with
+`trellis answer`.
 
 `Ticket.answer` is the newest answer of the ticket. `Ticket.answeredQuestions`
 reads the newest answer of each done question that the ticket waits for.
@@ -488,9 +487,8 @@ app reaches it. On desktop a control that leads to an HTTPS page opens that
 sheet over the page the person reads. The sheet header carries Open in browser,
 which hands the address to the browser of the operating system.
 
-The route `/t/<KEY-n>` shows a resource when the ask or contract names its
-path. The match uses a complete path token or its last path segment. A plain
-title in prose does not name a resource.
+The epic route shows the resources of an epic. The ticket route `/t/<KEY-n>`
+draws none.
 
 ### Ticket outcomes
 
@@ -505,8 +503,8 @@ The API is `tickets.setOutcome` at `PUT /api/tickets/{ticket}/outcome` and
 
 The CLI verb is `trellis outcome` with `set` and `show`. `set` applies the STE
 check before it calls the API, and it refuses a text with an STE error. The
-web route `/t/<KEY-n>` shows the outcome after the evidence. It shows an empty
-state while the stored string is empty.
+outcome reaches a person through `trellis outcome show` and the ticket brief.
+No web route draws it.
 
 ### Pull request reviews
 
@@ -1141,6 +1139,12 @@ records whether that entry exists. A row is written only when its content hash c
 GitHub keeps a re-run beside the run it replaces. `normalizeChecks` therefore
 keeps one node per name, workflow, and event, and takes the node that started
 last, as `gh pr checks` does.
+
+Each stored check carries `startedAt` and `endedAt`. A check run takes them
+from `startedAt` and `completedAt`. A commit status has one time only, so it
+carries `createdAt` as its start and no end. A check that still runs has no
+end, and a row the poller wrote before these two fields reads null for both.
+The Checks tab prints the difference of the two times as the duration.
 
 The tick runs every 10 seconds and picks the pull requests that are due. A pull
 request with pending checks is due after 30 seconds. An open pull request

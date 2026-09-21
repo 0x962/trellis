@@ -2,8 +2,8 @@ import { X } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import type { FlowExecutionRecord } from "@trellis/api";
 import { Dialog, IconButton, Tooltip } from "@trellis/ui";
-import { useApp } from "../../../../../../../../../lib/appContext";
-import { NativeTerminal } from "../../../../../../../../agents/NativeTerminal";
+import { useApp } from "../../../../../../../lib/appContext";
+import { NativeTerminal } from "../../../../../../agents/NativeTerminal";
 
 export function FlowTaskTerminal({
 	task,

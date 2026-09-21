@@ -1,1 +1,0 @@
-export { PullRequestCard } from "./PullRequestCard";

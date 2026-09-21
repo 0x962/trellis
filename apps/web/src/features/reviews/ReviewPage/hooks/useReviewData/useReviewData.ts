@@ -19,8 +19,9 @@ export const useReviewData = (pr: string) => {
 		refetchOnWindowFocus: "always",
 	});
 	// `reviews.status` names the ticket that links this pull request. The
-	// ticket carries the review focus sentences, the tickets it waits on, and
-	// the pull request id that the summary and the evidence are stored under.
+	// ticket carries the tickets it waits on, the flow runs of the Flows tab,
+	// and the pull request id that the summary and the evidence are stored
+	// under.
 	const identifier = status.data?.ticket?.identifier ?? "";
 	const ticket = useQuery({
 		...orpc.tickets.get.queryOptions({ input: { ticket: identifier } }),
@@ -46,11 +47,11 @@ export const useReviewData = (pr: string) => {
 		...orpc.pullRequests.listEvidence.queryOptions({ input: { id: linkedPr?.id ?? "" } }),
 		enabled: linkedPr !== null,
 	});
-	// The conditions, the summary, the review focus and the evidence all come
-	// from this chain of four requests. Until the last one answers, the page
-	// draws none of the four: a block that draws early would say that the
-	// agent wrote no summary before anybody asked for it.
-	const factsReady =
+	// The conditions, the summary and the evidence all come from this chain of
+	// four requests. Until the last one answers, the Overview tab draws none of
+	// the three: a block that draws early would say that the agent wrote no
+	// summary before anybody asked for it.
+	const overviewReady =
 		status.isFetched &&
 		(status.data?.ticket == null || ticket.isFetched) &&
 		(linkedPr === null || (summary.isFetched && evidence.isFetched));
@@ -130,7 +131,7 @@ export const useReviewData = (pr: string) => {
 		linkedPr,
 		summary,
 		evidence,
-		factsReady,
+		overviewReady,
 		threads,
 		submissions,
 		refresh,

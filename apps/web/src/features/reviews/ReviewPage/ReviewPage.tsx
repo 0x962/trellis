@@ -10,7 +10,7 @@ import {
 	turnOf,
 	verdictMark,
 } from "@trellis/api";
-import { Skeleton, Tabs, TicketId, useMediaQuery } from "@trellis/ui";
+import { EmptyState, Skeleton, Tabs, TicketId, useMediaQuery } from "@trellis/ui";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
@@ -18,11 +18,11 @@ import { ConditionsBlock } from "../ConditionsBlock";
 import { unmetConditions } from "../conditionLines/conditionLines";
 import { EvidenceStrip } from "../EvidenceStrip";
 import { FileRiskGroups } from "../FileRiskGroups";
+import { FlowRuns } from "../FlowRuns";
 import { ApplySuggestionsDialog, ReviewApplyContext, type ReviewApplyState, ReviewBatchBar } from "../ReviewApply";
 import { ReviewChecks } from "../ReviewChecks/ReviewChecks";
 import { ReviewComment } from "../ReviewComment/ReviewComment";
 import { ReviewDiscussion } from "../ReviewDiscussion/ReviewDiscussion";
-import { ReviewFocusList } from "../ReviewFocusList";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
 import { ReviewStack } from "../ReviewStack/ReviewStack";
 import type { ReadMarkFile } from "../readMarks/readMarks";
@@ -42,7 +42,6 @@ import "@trellis/ui/review.css";
 const noThreads: ReviewThread[] = [];
 const noSubmissions: ReviewSubmission[] = [];
 const noRecords: Evidence[] = [];
-const noSentences: string[] = [];
 const noConditions: string[] = [];
 
 type Commit = { oid: string; messageHeadline: string };
@@ -73,7 +72,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 		linkedPr,
 		summary,
 		evidence,
-		factsReady,
+		overviewReady,
 		threads,
 		submissions,
 		refresh,
@@ -171,6 +170,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	if (firstTurn.current === null && turn !== null) firstTurn.current = defaultReviewTab(turn);
 	const shownTab = tab ?? firstTurn.current ?? defaultReviewTab(null);
 	const ref = reviewRef(pr);
+	const ticketIdentifier = status.data?.ticket?.identifier ?? "";
 	return (
 		<ReviewApplyContext.Provider value={applyState}>
 			<div className="review-page">
@@ -231,9 +231,9 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 						</p>
 					)}
 				</div>
-				{/* Both panels stay mounted: `DiffPane` reports the changed file list
+				{/* Every panel stays mounted: `DiffPane` reports the changed file list
 				    that the tree draws, and the diff keeps its scroll position while
-				    the Facts tab shows. */}
+				    another tab shows. */}
 				<Tabs
 					value={shownTab}
 					onValueChange={onTabChange}
@@ -242,14 +242,14 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 					panelClassName="review-tab-panel"
 					items={[
 						{
-							value: "facts",
-							label: "Facts",
+							value: "overview",
+							label: "Overview",
 							content: (
-								<div className="review-facts-blocks">
-									{!factsReady || conditions === null ? (
+								<div className="review-blocks">
+									{!overviewReady || conditions === null ? (
 										<section aria-busy="true">
 											<span className="sr-only" role="status">
-												Merge conditions are loading.
+												The overview is loading.
 											</span>
 											<Skeleton lines={10} />
 										</section>
@@ -257,17 +257,9 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 										<>
 											<ChangeSummary summary={summaryRow} headSha={headSha} />
 											<ConditionsBlock conditions={conditions} />
-											{revision && (
-												<ReviewFocusList
-													pr={pr}
-													revisionId={revision.id}
-													sentences={ticket.data?.contract.reviewFocus ?? noSentences}
-												/>
-											)}
 											{floor && <EvidenceStrip records={records} floor={floor} />}
 										</>
 									)}
-									<ReviewChecks checks={status.data?.checks ?? null} pr={pr} />
 									<ReviewDiscussion
 										threads={allThreads}
 										activeThread={activeThread}
@@ -282,6 +274,33 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 											})();
 										}}
 									/>
+								</div>
+							),
+						},
+						{
+							value: "checks",
+							label: "Checks",
+							content: (
+								<div className="review-blocks">
+									<ReviewChecks checks={status.data?.checks ?? null} pr={pr} />
+								</div>
+							),
+						},
+						{
+							value: "flows",
+							label: "Flows",
+							content: (
+								<div className="review-blocks">
+									{/* A flow runs against a ticket, so a pull request that no
+									    ticket links can hold no flow run. */}
+									{ticketIdentifier === "" ? (
+										<EmptyState
+											title="No flow runs"
+											description="No ticket links this pull request, and a flow runs against a ticket."
+										/>
+									) : (
+										<FlowRuns ticket={ticketIdentifier} />
+									)}
 								</div>
 							),
 						},

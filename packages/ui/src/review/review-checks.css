@@ -30,7 +30,7 @@
 }
 .review-check-row {
 	display: grid;
-	grid-template-columns: 16px minmax(0, 1fr);
+	grid-template-columns: 16px minmax(0, 1fr) auto;
 	align-items: center;
 	gap: 12px;
 	min-height: 52px;
@@ -76,6 +76,13 @@
 	font-size: 12px;
 	line-height: 18px;
 }
+/* How long the check took, at the right end of the row. */
+.review-check-duration {
+	justify-self: end;
+	color: var(--fg-faint);
+	font-size: 12px;
+	line-height: 18px;
+}
 @media (max-width: 767px) {
 	.review-check-scroll {
 		padding: 16px;
@@ -86,13 +93,19 @@
 		padding: 16px;
 	}
 	.review-check-row {
-		grid-template-columns: 16px minmax(0, 1fr);
+		grid-template-columns: 16px minmax(0, 1fr) auto;
 		gap: 4px 12px;
 		margin-inline: 16px;
 		padding-block: 12px;
 	}
 	.review-check-name {
 		grid-column: 2 / -1;
+	}
+	/* The name already reaches the right edge, so the duration reads on its
+	   own line under it. */
+	.review-check-duration {
+		grid-column: 2 / -1;
+		justify-self: start;
 	}
 	.review-check-link {
 		min-height: 44px;

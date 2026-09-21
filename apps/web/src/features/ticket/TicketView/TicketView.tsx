@@ -1,53 +1,36 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { asksQuestion, questionParts, type Ticket } from "@trellis/api";
-import { cx, EmptyState, SectionHeader, useMediaQuery } from "@trellis/ui";
+import { EmptyState, SectionHeader, useMediaQuery } from "@trellis/ui";
 import { useEffect } from "react";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
-import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { AttachmentGrid } from "../../attachments/AttachmentGrid";
 import { useUploads } from "../../attachments/hooks/useUploads";
 import { NotFoundState } from "../../shell/NotFoundState";
 import { usePageSheet } from "../../shell/PageSheet";
-import { ChainBlock } from "../ChainBlock";
-import { ContractBlock } from "../ContractBlock";
 import { Description } from "../Description";
-import { EvidenceBlock } from "../EvidenceBlock";
 import { Header } from "../Header";
 import { useParentSummary } from "../hooks/useParentSummary";
-import { useSoleRepositoryName } from "../hooks/useSoleRepositoryName";
-import { OutcomeBlock } from "../OutcomeBlock";
 import { PropertiesRail } from "../PropertiesRail";
-import { QuestionBlock } from "../QuestionBlock";
-import { ResourcesBlock } from "../ResourcesBlock";
-import { RunBlock } from "../RunBlock";
 import { SubTickets } from "../SubTickets";
 import { Title } from "../Title";
 import { DropOverlay, useDropOverlay } from "./components/DropOverlay";
 import { ParentChip } from "./components/ParentChip";
 import { TicketSkeleton } from "./components/TicketSkeleton";
 
-// The contract reads the repository name of the project, and the ticket must
-// load before the page knows the project.
-function TicketContract({ ticket }: { ticket: Ticket }) {
-	const repo = useSoleRepositoryName(ticket.project.path);
-	return <ContractBlock repo={repo} contract={ticket.contract} />;
-}
-
 export type TicketViewProps = {
 	// The canonical identifier, `CDE-42`.
 	identifier: string;
 };
 
-// The ticket page, one column read top to bottom: the ask, the contract or
-// the question, the chain, the evidence, the outcome, the run and the
-// resources the ticket names. A question ticket holds no work of its own, so
-// its question block takes the place of every region after the ask. The
-// resources region follows both, because a question names a resource too.
+// The ticket page holds the words of the ticket and nothing else: the title,
+// the ask, the sub-tickets and the attached files. Every property and every
+// control sits in the properties rail beside it, including the pull requests,
+// the agent and its run.
 //
-// A pull request of the ticket opens in the review sheet, over this page
-// on its route and over the ticket sheet in the stack.
+// The merge conditions, the evidence, the GitHub checks and the flow runs of
+// a pull request live in the review sheet, which a pull request of the rail
+// opens over this page.
 //
 // The page renders the same on its route and in a `PageSheet`, with these
 // differences in a sheet: the browser tab keeps the title of the page under
@@ -86,12 +69,6 @@ export function TicketView({ identifier }: TicketViewProps) {
 	if (query.data === undefined) return <TicketSkeleton />;
 	const ticket = query.data;
 	const readOnly = isArchived(ticket.project.path);
-	// A question keeps its question block once it is answered, and the block
-	// then shows the stored answer.
-	const question = asksQuestion(ticket.status.reviewer, ticket.description) || ticket.answer !== null;
-	// On a question, `QuestionBlock` prints the options and the reason, so the
-	// ask prints only the prose around them, and a person cannot edit it here.
-	const ask = question ? questionParts(ticket.description).ask : "";
 
 	// The server refuses every write to a ticket under an archived project.
 	// The disabled fieldset and the edit keys enforce `readOnly`.
@@ -105,50 +82,20 @@ export function TicketView({ identifier }: TicketViewProps) {
 					{ticket.parent !== null && <ParentChip ancestors={ticket.ancestors} title={parentSummary?.title ?? ""} />}
 					<Title key={ticket.identifier} ticket={ticket} onAttachFiles={uploads.addFiles} />
 				</div>
-				{/* A person on a phone opens a question ticket to answer it, so the ask
-				    and the options come first and the property list follows the
-				    question block. On every other ticket the property list stays above
-				    the ask. */}
-				{narrow && !question && (
+				{/* A phone has no room for the rail beside the page, so the property
+				    list reads between the title and the ask. */}
+				{narrow && (
 					<div className="mt-3">
 						<PropertiesRail ticket={ticket} variant="inline" />
 					</div>
 				)}
-				{question ? (
-					ask !== "" && (
-						<section aria-label="The ask" className={cx("flex min-w-0 flex-col", narrow ? "mt-4" : "mt-3")}>
-							<SectionHeader title="The ask" textCase="caps" />
-							<p className="whitespace-pre-line text-base text-fg">{ask}</p>
-						</section>
-					)
-				) : (
-					<section aria-label="The ask" className={cx("flex min-w-0 flex-col", narrow ? "mt-4" : "mt-3")}>
-						<SectionHeader title="The ask" textCase="caps" />
-						<div data-ticket-description="" className="min-h-24">
-							<Description key={ticket.identifier} ticket={ticket} onAttachFiles={uploads.addFiles} />
-						</div>
-					</section>
-				)}
+				<section aria-label="The ask" className={narrow ? "mt-4 flex min-w-0 flex-col" : "mt-3 flex min-w-0 flex-col"}>
+					<SectionHeader title="The ask" />
+					<div data-ticket-description="" className="min-h-24">
+						<Description key={ticket.identifier} ticket={ticket} onAttachFiles={uploads.addFiles} />
+					</div>
+				</section>
 				<div className="mt-8 flex flex-col gap-8">
-					{question ? (
-						<>
-							<QuestionBlock ticket={ticket} />
-							{narrow && <PropertiesRail ticket={ticket} variant="inline" />}
-						</>
-					) : (
-						<>
-							<TicketContract ticket={ticket} />
-							<ChainBlock
-								waitsOn={ticket.waitsOn}
-								releases={ticket.releases}
-								answeredQuestions={ticket.answeredQuestions}
-							/>
-							<EvidenceBlock ticket={ticket} onOpenPullRequest={pageSheetActions.openPullRequest} />
-							<OutcomeBlock outcome={ticket.outcome} />
-							<RunBlock key={ticket.id} ticket={ticket} />
-						</>
-					)}
-					<ResourcesBlock ticket={ticket} />
 					<SubTickets ticket={ticket} />
 					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
 				</div>

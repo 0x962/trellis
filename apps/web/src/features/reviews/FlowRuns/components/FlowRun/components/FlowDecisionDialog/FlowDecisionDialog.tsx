@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import type { FlowExecutionRecord } from "@trellis/api";
 import { Button, Dialog, FlowDecisionContext, Textarea } from "@trellis/ui";
 import { useState } from "react";
-import { useApp } from "../../../../../../../../../lib/appContext";
+import { useApp } from "../../../../../../../lib/appContext";
 
 // The approve or reject form of a human step. It shows the step instruction
 // and the output of every finished step, because the person decides on that.
