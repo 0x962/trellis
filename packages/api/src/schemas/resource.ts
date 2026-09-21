@@ -13,6 +13,10 @@ export const ResourceNameSchema = z
 	.min(1, "Enter a resource name.")
 	.max(255, "Enter a resource name of 255 characters or less.");
 
+// A document can have an empty title, as a new page does. The page draws
+// "Untitled" in its place.
+export const ResourceDocNameSchema = z.string().trim().max(255, "Enter a title of 255 characters or less.");
+
 export const ResourceUrlSchema = z
 	.url()
 	.max(10000)
@@ -35,7 +39,7 @@ export const ResourceSchema = z.object({
 	id: UlidSchema,
 	epicId: UlidSchema,
 	kind: ResourceKindSchema,
-	name: z.string().min(1).max(255),
+	name: z.string().max(255),
 	body: z.string().nullable(),
 	url: z.string().nullable(),
 	blob: ResourceBlobSchema.nullable(),
@@ -57,6 +61,7 @@ export const ResourceAddInputSchema = z.discriminatedUnion("kind", [
 	z.strictObject({
 		...sharedAddFields,
 		kind: z.literal("doc"),
+		name: ResourceDocNameSchema,
 		body: ResourceBodySchema,
 	}),
 	z.strictObject({ ...sharedAddFields, kind: z.literal("link"), url: ResourceUrlSchema }),
@@ -72,9 +77,11 @@ export const ResourceIdInputSchema = z.strictObject({
 	id: UlidSchema,
 });
 
+// A field that the input omits keeps its value.
 export const ResourceUpdateInputSchema = z.strictObject({
 	id: UlidSchema,
-	body: ResourceBodySchema,
+	name: ResourceDocNameSchema.optional(),
+	body: ResourceBodySchema.optional(),
 });
 
 export const ResourceRemoveOutputSchema = z.object({

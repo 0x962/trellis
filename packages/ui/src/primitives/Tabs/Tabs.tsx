@@ -16,6 +16,9 @@ export type TabsProps<Value extends string> = {
 	value: Value;
 	onValueChange: (value: Value) => void;
 	className?: string;
+	// Replaces the 12 px top padding of the panel, such as for a panel that
+	// fills the height of the page.
+	panelClassName?: string;
 };
 
 // The tab an arrow key lands on, among the enabled tabs only. Base UI moves
@@ -40,7 +43,13 @@ const step = <Value extends string>(items: readonly TabItem<Value>[], value: Val
 // A tab hugs its label, so the underline is as wide as the text. The
 // hit-area layer is centered on the tab with a minimum size of its own. A
 // short label still gives a 28 px hit box, and 44 px on a coarse pointer.
-export function Tabs<Value extends string>({ items, value, onValueChange, className }: TabsProps<Value>) {
+export function Tabs<Value extends string>({
+	items,
+	value,
+	onValueChange,
+	className,
+	panelClassName = "pt-3",
+}: TabsProps<Value>) {
 	const onKeyDown = (event: BaseUIEvent<KeyboardEvent<HTMLDivElement>>) => {
 		const next = step(items, value, event.key);
 		if (!next) return;
@@ -76,7 +85,10 @@ export function Tabs<Value extends string>({ items, value, onValueChange, classN
 				<BaseTabs.Panel
 					key={item.value}
 					value={item.value}
-					className="pt-3 focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+					className={cx(
+						panelClassName,
+						"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
+					)}
 				>
 					{item.content}
 				</BaseTabs.Panel>
