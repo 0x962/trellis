@@ -3,6 +3,9 @@ import type { PrPathFacts } from "../prPaths/index.ts";
 import { contractFloor, evidenceFloor } from "./evidenceFloor.ts";
 
 const clearRisk: PrPathFacts["risk"] = {
+	api: "no",
+	cli: "no",
+	background: "no",
 	auth: "no",
 	migration: "no",
 	dependency: "no",
@@ -39,15 +42,18 @@ describe("evidenceFloor", () => {
 		expect(complete.present).toEqual(complete.required);
 	});
 
-	test("returns the backend floor and accepts a test none record", () => {
+	test("returns the backend floor and accepts working and failing calls", () => {
 		const floor = evidenceFloor({
 			kind: "backend",
 			risk: clearRisk,
 			hasSummary: true,
-			rows: [{ kind: "verify" }, { kind: "test" }, { kind: "contract" }],
+			rows: [
+				{ kind: "call", record: { status: 200 } },
+				{ kind: "call", record: { status: 404 } },
+			],
 		});
 
-		expect(floor.required).toEqual(["summary", "verify", "test", "contract"]);
+		expect(floor.required).toEqual(["summary", "callWorking", "callFailing"]);
 		expect(floor.present).toEqual(floor.required);
 		expect(floor.missing).toEqual([]);
 	});
@@ -55,11 +61,11 @@ describe("evidenceFloor", () => {
 	test("returns both floors for a mixed pull request", () => {
 		const floor = evidenceFloor({ kind: "mixed", risk: clearRisk, hasSummary: false, rows: [] });
 
-		expect(floor.required).toEqual(["summary", "after", "before", "capture", "console", "verify", "test", "contract"]);
+		expect(floor.required).toEqual(["summary", "after", "before", "capture", "console", "callWorking", "callFailing"]);
 		expect(floor.missing.map((gap) => gap.item)).toEqual(floor.required);
 	});
 
-	test("adds a migration plan and one picture for a schema change", () => {
+	test("adds a migration plan for a schema change", () => {
 		const floor = evidenceFloor({
 			kind: "backend",
 			risk: { ...clearRisk, migration: "yes", sharedType: "yes" },
@@ -67,21 +73,10 @@ describe("evidenceFloor", () => {
 			rows: [],
 		});
 
-		expect(floor.required).toEqual(["summary", "verify", "test", "contract", "migration", "picture"]);
-		expect(floor.missing.at(-1)).toMatchObject({ item: "picture", soft: true });
+		expect(floor.required).toEqual(["summary", "callWorking", "callFailing", "migration"]);
 	});
 
-	test("adds one picture for auth or dependency risk", () => {
-		for (const risk of [
-			{ ...clearRisk, auth: "yes" as const },
-			{ ...clearRisk, dependency: "yes" as const },
-		]) {
-			const floor = evidenceFloor({ kind: "backend", risk, hasSummary: false, rows: [] });
-			expect(floor.required.at(-1)).toBe("picture");
-		}
-	});
-
-	test("adds equivalence proof for a deleted test", () => {
+	test("keeps an equivalence proof out of the proof floor", () => {
 		const floor = evidenceFloor({
 			kind: "backend",
 			risk: { ...clearRisk, deletedTest: "yes" },
@@ -89,7 +84,7 @@ describe("evidenceFloor", () => {
 			rows: [],
 		});
 
-		expect(floor.required.at(-1)).toBe("equivalence");
+		expect(floor.required).toEqual(["summary", "callWorking", "callFailing"]);
 	});
 
 	test("returns the exact fill command for each gap", () => {
@@ -97,18 +92,15 @@ describe("evidenceFloor", () => {
 
 		expect(floor.missing).toEqual([
 			{
-				item: "verify",
-				fillCommand: 'trellis evidence add <pr> --kind verify --cmd "<command>" --exit <code> --sha <head> --tail -',
+				item: "callWorking",
+				fillCommand:
+					"trellis evidence add <pr> --kind call --method <method> --path <path> --status <code> --server <url> --request - --response <file>",
 				soft: false,
 			},
 			{
-				item: "test",
-				fillCommand: "trellis evidence add <pr> --kind test --name <test> --fails-on <base> --passes-on <head>",
-				soft: false,
-			},
-			{
-				item: "contract",
-				fillCommand: 'trellis evidence add <pr> --kind contract --before "<before>" --after "<after>"',
+				item: "callFailing",
+				fillCommand:
+					"trellis evidence add <pr> --kind call --method <method> --path <path> --status <code> --server <url> --request - --response <file>",
 				soft: false,
 			},
 		]);
@@ -124,7 +116,7 @@ describe("contractFloor", () => {
 	test("forecasts a migration for a server database path", () => {
 		expect(contractFloor("trellis", { files: ["apps/server/src/db/schema.ts"] })).toEqual({
 			kind: "backend",
-			required: ["summary", "verify", "test", "contract", "migration", "picture"],
+			required: ["summary", "callWorking", "callFailing", "migration"],
 			notes: [],
 		});
 	});

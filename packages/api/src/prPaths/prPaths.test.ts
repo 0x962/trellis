@@ -31,6 +31,11 @@ describe("risk answers", () => {
 
 	test("marks a shared type", () => {
 		expect(prPaths("trellis", [file("packages/api/src/schemas/pullRequest.ts")]).risk.sharedType).toBe("yes");
+		expect(prPaths("trellis", [file("packages/api/src/schemas/pullRequest.ts")]).risk.api).toBe("yes");
+	});
+
+	test("marks a CLI path", () => {
+		expect(prPaths("trellis", [file("packages/cli/src/commands/evidence/evidence.ts")]).risk.cli).toBe("yes");
 	});
 
 	test("marks a deleted test", () => {
@@ -57,6 +62,10 @@ describe("pull request kind", () => {
 		expect(prPaths("canary", [file("frontend/src/App.tsx"), file("backend/canary/hotels/selectors.py")]).kind).toBe(
 			"mixed",
 		);
+	});
+
+	test("returns docs for Markdown-only paths", () => {
+		expect(prPaths("trellis", [file("docs/EVIDENCE.md")]).kind).toBe("docs");
 	});
 
 	test("returns backend as the default for an empty path list", () => {

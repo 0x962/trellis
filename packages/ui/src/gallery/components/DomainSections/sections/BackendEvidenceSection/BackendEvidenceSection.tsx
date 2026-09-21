@@ -6,6 +6,7 @@ import sequencePicture from "./picture/op43-route-sequence.svg";
 // adds a private route that answers the properties of one user.
 const pytestRun = {
 	id: "01M30A0000000000000000VRF1",
+	label: "verify record",
 	command: "cd backend/canary && direnv exec . pytest canary/api/tests/test_staff_hotels.py",
 	exit: 0,
 	tail: "47 passed, 44 skipped in 9.10s",
@@ -13,6 +14,7 @@ const pytestRun = {
 
 const lintRun = {
 	id: "01M30A0000000000000000VRF2",
+	label: "verify record",
 	command: "cd backend/canary && direnv exec . make check-fix",
 	exit: 1,
 	tail: "canary/api/views/staff_hotels.py:42: line too long (121 > 120)",
@@ -34,6 +36,18 @@ const contracts = [
 		state: "changed" as const,
 		before: "GET /api/private/staff-hotels · 403 for a service identity",
 		after: "GET /api/private/staff-hotels?user=<uuid> · 200 {properties: [{id, name}]}",
+	},
+];
+
+const calls = [
+	{
+		id: "01M30A0000000000000000CALL",
+		method: "GET",
+		path: "/api/private/staff-hotels?user=123",
+		request: "",
+		status: 200,
+		response: "{properties: [{id, name}]}",
+		server: "http://127.0.0.1:4571",
 	},
 ];
 
@@ -59,8 +73,10 @@ export function BackendEvidenceSection() {
 	return (
 		<Section name="BackendEvidence" note="filled with one picture, two records missing" className="items-start">
 			<div className="min-w-80 flex-1">
-				<EvidenceStrip present={6} required={6} missing={[]} hasRecords={true} onCopy={copy}>
+				<EvidenceStrip status="proof complete" missing={[]} hasRecords={true} onCopy={copy}>
 					<BackendEvidence
+						calls={calls}
+						runs={[]}
 						verify={[pytestRun, lintRun]}
 						tests={tests}
 						contracts={contracts}
@@ -74,8 +90,15 @@ export function BackendEvidenceSection() {
 				</EvidenceStrip>
 			</div>
 			<div className="min-w-80 flex-1">
-				<EvidenceStrip present={2} required={4} missing={missing} hasRecords={true} onCopy={copy}>
+				<EvidenceStrip
+					status="needs the summary and the contract table"
+					missing={missing}
+					hasRecords={true}
+					onCopy={copy}
+				>
 					<BackendEvidence
+						calls={[]}
+						runs={[]}
 						verify={[lintRun]}
 						tests={[{ id: "01M30A0000000000000000TES2", state: "none", reason: "the change deletes a dead branch" }]}
 						contracts={[]}

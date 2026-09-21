@@ -30,6 +30,40 @@ const cases: Array<{ args: EvidenceArgs; record: object; file?: File }> = [
 	},
 	{ args: { kind: "console", file: "proof.txt" }, record: {}, file },
 	{
+		args: {
+			kind: "call",
+			method: "POST",
+			path: "/api/tickets",
+			request: '{"title":"First"}',
+			status: "201",
+			response: '{"id":"TST-1"}',
+			server: "http://127.0.0.1:4571",
+		},
+		record: {
+			method: "POST",
+			path: "/api/tickets",
+			request: '{"title":"First"}',
+			status: 201,
+			response: '{"id":"TST-1"}',
+			server: "http://127.0.0.1:4571",
+		},
+	},
+	{
+		args: {
+			kind: "run",
+			cmd: "trellis tickets list",
+			exit: "0",
+			output: "TST-1 First",
+			server: "http://127.0.0.1:4571",
+		},
+		record: {
+			command: "trellis tickets list",
+			exit: 0,
+			output: "TST-1 First",
+			server: "http://127.0.0.1:4571",
+		},
+	},
+	{
 		args: { kind: "verify", cmd: "bun test", exit: "0", sha: "head-sha", tail: "3 pass" },
 		record: { command: "bun test", exit: 0, tail: "3 pass" },
 	},
@@ -120,6 +154,9 @@ const fillArgs = (command: string): EvidenceArgs =>
 
 test("every evidence fill command uses flags that its kind accepts", () => {
 	const risk: PrPathFacts["risk"] = {
+		api: "yes",
+		cli: "yes",
+		background: "yes",
 		auth: "yes",
 		migration: "yes",
 		dependency: "yes",
@@ -133,12 +170,10 @@ test("every evidence fill command uses flags that its kind accepts", () => {
 		"before",
 		"capture",
 		"console",
-		"verify",
-		"test",
-		"contract",
+		"callWorking",
+		"callFailing",
+		"run",
 		"migration",
-		"picture",
-		"equivalence",
 	]);
 	for (const gap of floor.missing) expect(() => validateKindFlags(fillArgs(gap.fillCommand))).not.toThrow();
 });

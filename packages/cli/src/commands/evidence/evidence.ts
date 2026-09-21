@@ -36,6 +36,13 @@ const add = defineCommand({
 		cmd: { type: "string", description: "Command" },
 		exit: { type: "string", description: "Exit code" },
 		tail: { type: "string", description: "Output tail, or - for stdin" },
+		method: { type: "string", description: "HTTP method" },
+		path: { type: "string", description: "Request path" },
+		request: { type: "string", description: "Request body, or - for stdin" },
+		status: { type: "string", description: "Response status code" },
+		response: { type: "string", description: "Response body, or - for stdin" },
+		server: { type: "string", description: "Server address" },
+		output: { type: "string", description: "Command output, or - for stdin" },
 		name: { type: "string", description: "Test name" },
 		"fails-on": { type: "string", description: "SHA where the test fails" },
 		"passes-on": { type: "string", description: "SHA where the test passes" },
@@ -52,8 +59,8 @@ const add = defineCommand({
 		const args = context.args as unknown as EvidenceArgs & { ref: string };
 		validateKindFlags(args);
 		const file = args.file === undefined ? undefined : fileAt(args.file as string);
-		const [tail, before, after, table] = await Promise.all(
-			[args.tail, args.before, args.after, args.table].map((value) =>
+		const [tail, before, after, table, request, response, output] = await Promise.all(
+			[args.tail, args.before, args.after, args.table, args.request, args.response, args.output].map((value) =>
 				value === undefined ? undefined : readText(ctx, value as string),
 			),
 		);
@@ -63,6 +70,9 @@ const add = defineCommand({
 			before,
 			after,
 			table,
+			request,
+			response,
+			output,
 		} as EvidenceArgs;
 		const client = clientOf(ctx);
 		const resolved = await resolvePullRequest(client, args.ref, true);

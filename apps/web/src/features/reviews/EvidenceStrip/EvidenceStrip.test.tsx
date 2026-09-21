@@ -83,12 +83,12 @@ const floor: EvidenceFloor = {
 };
 
 describe("EvidenceStrip", () => {
-	test("prints the capture line, the record line and the count", () => {
+	test("prints the capture line, the record line and the proof sentence", () => {
 		const html = renderToStaticMarkup(
 			<EvidenceStrip records={[captureRecord, beforeRecord, consoleRecord]} floor={floor} />,
 		);
 
-		expect(html).toContain("3 of 5 · captured on 8b21f0c");
+		expect(html).toContain("needs the summary and the after image · captured on 8b21f0c");
 		expect(html).toContain("/chat/:uuid · 1440×900 · dark · seed: trellis seed op27-stall");
 		expect(html).toContain("head 8b21f0c · base 4c9a771 · Chrome 141 · 2026-09-18 01:58");
 		expect(html).toContain("op27-console.txt · 2.0 KB");
@@ -149,6 +149,19 @@ const verifyRecord = record({
 	record: { command: "cd backend/canary && direnv exec . pytest canary/api", exit: 0, tail: "47 passed in 9.10s" },
 });
 
+const callRecord = record({
+	id: "01M30A0000000000000000CALL",
+	kind: "call",
+	record: {
+		method: "GET",
+		path: "/api/private/staff-hotels",
+		request: "",
+		status: 200,
+		response: '{"properties":[]}',
+		server: "http://127.0.0.1:4571",
+	},
+});
+
 const pictureBlob = {
 	sha256: "b0d3f4a1c25e7890ab12cd34ef567890ab12cd34ef567890ab12cd34ef567890",
 	url: "/api/evidence/01M30A00000000000000000PIC/file",
@@ -166,34 +179,38 @@ const pictureRecord = record({
 
 const backendFloor: EvidenceFloor = {
 	kind: "backend",
-	required: ["summary", "verify", "test", "contract", "picture"],
-	present: ["verify", "picture"],
+	required: ["summary", "callWorking", "callFailing"],
+	present: ["callWorking"],
 	missing: [
 		{ item: "summary", fillCommand: 'trellis summary write 57080 --headline "..."', soft: false },
 		{
-			item: "test",
-			fillCommand: "trellis evidence add 57080 --kind test --name <test> --fails-on <base> --passes-on <head>",
+			item: "callFailing",
+			fillCommand:
+				"trellis evidence add 57080 --kind call --method GET --path /api/private/staff-hotels --status 404 --server http://127.0.0.1:4571 --request - --response -",
 			soft: false,
 		},
 	],
 };
 
 describe("EvidenceStrip of a backend pull request", () => {
-	test("prints the verify record, the picture and the command that fills each gap", () => {
-		const html = renderToStaticMarkup(<EvidenceStrip records={[verifyRecord, pictureRecord]} floor={backendFloor} />);
+	test("prints the call record, the picture and the command that fills each gap", () => {
+		const html = renderToStaticMarkup(
+			<EvidenceStrip records={[callRecord, verifyRecord, pictureRecord]} floor={backendFloor} />,
+		);
 
-		expect(html).toContain("2 of 5");
-		expect(html).toContain("pytest canary/api");
-		expect(html).toContain("exit 0");
-		expect(html).toContain("47 passed in 9.10s");
+		expect(html).toContain("needs the summary and the failing call");
+		expect(html).toContain("GET");
+		expect(html).toContain("/api/private/staff-hotels");
+		expect(html).toContain("status 200");
+		expect(html).toContain("Verification");
 		expect(html).toContain('<img src="/api/evidence/01M30A00000000000000000PIC/file"');
-		expect(html).toContain("test proof");
-		expect(html).toContain("--kind test --name &lt;test&gt;");
+		expect(html).toContain("failing call");
+		expect(html).toContain("--kind call --method GET");
 	});
 
 	test("draws the capture line of a frontend record on a backend pull request never", () => {
 		const html = renderToStaticMarkup(
-			<EvidenceStrip records={[verifyRecord, captureRecord, beforeRecord]} floor={backendFloor} />,
+			<EvidenceStrip records={[callRecord, captureRecord, beforeRecord]} floor={backendFloor} />,
 		);
 
 		expect(html).not.toContain("/chat/:uuid");
@@ -216,10 +233,10 @@ describe("EvidenceStrip of a backend pull request", () => {
 
 	test("draws both sets of records for a pull request of both kinds", () => {
 		const html = renderToStaticMarkup(
-			<EvidenceStrip records={[captureRecord, verifyRecord]} floor={{ ...backendFloor, kind: "mixed" }} />,
+			<EvidenceStrip records={[captureRecord, callRecord]} floor={{ ...backendFloor, kind: "mixed" }} />,
 		);
 
 		expect(html).toContain("/chat/:uuid");
-		expect(html).toContain("pytest canary/api");
+		expect(html).toContain("/api/private/staff-hotels");
 	});
 });

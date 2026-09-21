@@ -5,6 +5,8 @@ import { BackendEvidence, type BackendEvidenceProps } from "./BackendEvidence";
 const copy = () => {};
 
 const empty: BackendEvidenceProps = {
+	calls: [],
+	runs: [],
 	verify: [],
 	tests: [],
 	contracts: [],
@@ -15,19 +17,67 @@ const empty: BackendEvidenceProps = {
 
 const passed = {
 	id: "01M30A0000000000000000VRF1",
+	label: "verify record",
 	command: "cd backend/canary && direnv exec . pytest canary/api/tests/test_staff_hotels.py",
 	exit: 0,
 	tail: "6 passed in 4.21s",
 };
 
-test("prints each verify command with its exit code and its tail", () => {
+test("prints each verify command with its exit code and its tail under verification", () => {
 	const html = renderToStaticMarkup(<BackendEvidence {...empty} verify={[passed]} />);
 
+	expect(html).toContain("Verification");
 	expect(html).toContain("verify record");
 	expect(html).toContain("pytest canary/api/tests/test_staff_hotels.py");
 	expect(html).toContain("exit 0");
 	expect(html).toContain("6 passed in 4.21s");
 	expect(html).not.toContain("text-danger");
+});
+
+test("prints each call as request and response blocks", () => {
+	const html = renderToStaticMarkup(
+		<BackendEvidence
+			{...empty}
+			calls={[
+				{
+					id: "01M30A0000000000000000CALL",
+					method: "POST",
+					path: "/api/tickets",
+					request: '{"title":"First"}',
+					status: 201,
+					response: '{"identifier":"TST-1"}',
+					server: "http://127.0.0.1:4571",
+				},
+			]}
+		/>,
+	);
+
+	expect(html).toContain("POST");
+	expect(html).toContain("/api/tickets");
+	expect(html).toContain("status 201");
+	expect(html).toContain("{&quot;title&quot;:&quot;First&quot;}");
+	expect(html).toContain("{&quot;identifier&quot;:&quot;TST-1&quot;}");
+});
+
+test("prints each product run with command and output", () => {
+	const html = renderToStaticMarkup(
+		<BackendEvidence
+			{...empty}
+			runs={[
+				{
+					id: "01M30A0000000000000000RUN",
+					command: "trellis tickets list",
+					exit: 0,
+					output: "TST-1 First",
+					server: "http://127.0.0.1:4571",
+				},
+			]}
+		/>,
+	);
+
+	expect(html).toContain("trellis tickets list");
+	expect(html).toContain("exit 0");
+	expect(html).toContain("TST-1 First");
 });
 
 test("draws the exit code of a failed command in the danger color", () => {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { evidenceFloorItems } from "../evidenceFloor/evidenceFloor.ts";
 import type { PrKind, PrPathFacts } from "../prPaths/index.ts";
 import { PrStateSchema } from "./enums.ts";
 import { FlowExecutionStateSchema } from "./flowExecution.ts";
@@ -13,11 +14,16 @@ const prKindValues: Record<PrKind, null> = {
 	frontend: null,
 	backend: null,
 	mixed: null,
+	docs: null,
 };
 
 const PrKindSchema = z.enum(Object.keys(prKindValues) as [PrKind, ...PrKind[]]);
+const EvidenceFloorItemSchema = z.enum(evidenceFloorItems);
 
 const PrRiskSchema: z.ZodType<PrPathFacts["risk"]> = z.object({
+	api: z.enum(["yes", "no"]),
+	cli: z.enum(["yes", "no"]),
+	background: z.enum(["yes", "no"]),
 	auth: z.enum(["yes", "no"]),
 	migration: z.enum(["yes", "no"]),
 	dependency: z.enum(["yes", "no"]),
@@ -49,6 +55,7 @@ export const TicketPrSchema = z.object({
 	risk: PrRiskSchema.nullable(),
 	evidence: CountSchema.nullable(),
 	evidenceRequired: CountSchema.nullable(),
+	evidenceMissing: z.array(EvidenceFloorItemSchema).nullable(),
 	pass: CountSchema,
 	fail: CountSchema,
 	pending: CountSchema,

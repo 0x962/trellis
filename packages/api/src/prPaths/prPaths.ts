@@ -1,6 +1,6 @@
 import type { ChangedFile } from "../schemas/pullRequest.ts";
 
-export type PrKind = "frontend" | "backend" | "mixed";
+export type PrKind = "frontend" | "backend" | "mixed" | "docs";
 export type PrPathGroup = "risk" | "behavior" | "tests" | "noise";
 export type PrRiskAnswer = "yes" | "no";
 export type PrChangeType = ChangedFile["change"];
@@ -23,6 +23,9 @@ export const changedFilePaths = (files: ChangedFile[]): PrPath[] =>
 export type PrPathFacts = {
 	kind: PrKind;
 	risk: {
+		api: PrRiskAnswer;
+		cli: PrRiskAnswer;
+		background: PrRiskAnswer;
 		auth: PrRiskAnswer;
 		migration: PrRiskAnswer;
 		dependency: PrRiskAnswer;
@@ -42,10 +45,13 @@ type Rules = {
 const authPath = /(^|\/)(auth|authentication|authorization|permissions?|rbac|tenancy|private)(\/|[._-])/;
 const sharedTypePath = /(^|\/)(types?|schemas?|contracts?)(\/|[._-])|\.d\.ts$/;
 const publicApiPath = /(^|\/)(api|openapi|routes?|urls?|procedures?)(\/|[._-])/;
+const cliPath = /(^|\/)(cli|commands?)(\/|[._-])/;
+const backgroundPath = /(^|\/)(jobs?|queues?|workers?|schedulers?|pollers?|crons?|flows?)(\/|[._-])/;
 const secretPath =
 	/(^|\/|[._-])(secrets?|credentials?|tokens?|api[_-]?keys?|private[_-]?keys?)(\/|[._-])|(^|\/)\.env($|\.)|\.(pem|key)$/;
 const testPathPattern =
 	/(^|\/)(__tests__|tests?)(\/|[._-])|(^|\/)(test_[^/]+|[^/]+_(test|spec))\.[^/]+$|\.(test|spec)\.[^/]+$/;
+const docsPath = /\.(md|mdx|markdown)$/i;
 const noisePath =
 	/(^|\/)(node_modules|__snapshots__|generated)(\/|$)|^(dist|build|coverage)\/|^(apps|packages)\/[^/]+\/(dist|build|coverage)\/|\.(gen|generated)\.|\.snap$|(^|\/)(bun\.lockb?|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|poetry\.lock|pdm\.lock|uv\.lock|cargo\.lock|go\.sum|gemfile\.lock|composer\.lock|pubspec\.lock)$/;
 
@@ -80,6 +86,10 @@ export function prPaths(repo: string, paths: PrPath[]): PrPathFacts {
 		return {
 			path: entry.path,
 			frontend: rules.frontendRoot.test(path),
+			docs: docsPath.test(path),
+			api: !isTestFile && (publicApiPath.test(path) || rules.sharedTypeRoot.test(path)),
+			cli: !isTestFile && cliPath.test(path),
+			background: !isTestFile && backgroundPath.test(path),
 			auth: !isTestFile && authPath.test(path),
 			migration: !isTestFile && rules.migrationFolder.test(path),
 			dependency: !isTestFile && rules.dependencyManifest.test(path),
@@ -104,14 +114,33 @@ export function prPaths(repo: string, paths: PrPath[]): PrPathFacts {
 					? "noise"
 					: fact.isTestFile
 						? "tests"
-						: fact.auth || fact.migration || fact.dependency || fact.sharedType || fact.publicApi || fact.secret
+						: fact.auth ||
+								fact.migration ||
+								fact.dependency ||
+								fact.sharedType ||
+								fact.publicApi ||
+								fact.secret ||
+								fact.api ||
+								fact.cli ||
+								fact.background
 							? "risk"
 							: "behavior",
 		]),
 	);
+	const codeFacts = facts.filter((fact) => !fact.docs);
 	return {
-		kind: frontendCount === 0 ? "backend" : frontendCount === facts.length ? "frontend" : "mixed",
+		kind:
+			facts.length > 0 && codeFacts.length === 0
+				? "docs"
+				: frontendCount === 0
+					? "backend"
+					: frontendCount === codeFacts.length
+						? "frontend"
+						: "mixed",
 		risk: {
+			api: yesNo(facts.some((fact) => fact.api || fact.publicApi)),
+			cli: yesNo(facts.some((fact) => fact.cli)),
+			background: yesNo(facts.some((fact) => fact.background)),
 			auth: yesNo(facts.some((fact) => fact.auth)),
 			migration: yesNo(facts.some((fact) => fact.migration)),
 			dependency: yesNo(facts.some((fact) => fact.dependency)),

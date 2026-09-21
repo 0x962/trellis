@@ -1,4 +1,4 @@
-import type { EvidenceFloor, EvidenceFloorItem, PrKind, TicketPr } from "@trellis/api";
+import { type EvidenceFloor, type EvidenceFloorItem, type PrKind, proofSentence, type TicketPr } from "@trellis/api";
 
 export type EvidenceCheckLine = {
 	item: EvidenceFloorItem;
@@ -41,7 +41,11 @@ export const checkText = (result: EvidenceCheckResult): string => {
 	});
 	return `${[
 		`#${result.pullRequest.number}  ${result.ticket.identifier}  ${result.ticket.title}`,
-		`${`kind: ${result.kind}`.padEnd(25)}${result.present} of ${result.required} required present`,
+		`${`kind: ${result.kind}`.padEnd(25)}${proofSentence(
+			result.items.filter((item) => item.status !== "present").map((item) => item.item),
+			result.present,
+			result.required,
+		)}`,
 		"",
 		...lines,
 		`  note     ${checkNote(result.checks)}`,

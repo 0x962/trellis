@@ -37,25 +37,36 @@ const pendingCheck = sql`check_row.value->>'bucket' = ${PENDING}`;
 const skippedCheck = sql`check_row.value->>'bucket' = ${SKIPPED}`;
 const verdictState = localReviewState(sql`p.id`);
 
-export type TicketPrRow = Omit<TicketPr, "kind" | "risk" | "evidence" | "evidenceRequired" | "verdict"> & {
+export type TicketPrRow = Omit<
+	TicketPr,
+	"kind" | "risk" | "evidence" | "evidenceRequired" | "evidenceMissing" | "verdict"
+> & {
 	files: ChangedFile[] | null;
-	evidenceKinds: EvidenceKind[];
+	evidenceRows: Array<{ kind: EvidenceKind; record: Record<string, unknown> }>;
 	hasSummary: boolean;
 	headSha: string | null;
 	submissions: VerdictFacts[];
 };
 
 export const toTicketPrRows = (rows: TicketPrRow[] | null): TicketPr[] =>
-	(rows ?? []).map(({ files, evidenceKinds, hasSummary, headSha, submissions, ...fields }) => {
+	(rows ?? []).map(({ files, evidenceRows, hasSummary, headSha, submissions, ...fields }) => {
 		const row = { ...fields, verdict: verdictMark(submissions, headSha) };
 		if (files === null || files.length === 0 || row.changedFiles !== files.length)
-			return { ...row, kind: null, risk: null, evidence: null, evidenceRequired: null };
+			return { ...row, kind: null, risk: null, evidence: null, evidenceRequired: null, evidenceMissing: null };
 		const facts = prPaths(row.repo, changedFilePaths(files));
-		if (headSha === null) return { ...row, kind: facts.kind, risk: facts.risk, evidence: null, evidenceRequired: null };
+		if (headSha === null)
+			return {
+				...row,
+				kind: facts.kind,
+				risk: facts.risk,
+				evidence: null,
+				evidenceRequired: null,
+				evidenceMissing: null,
+			};
 		const floor = evidenceFloor({
 			kind: facts.kind,
 			risk: facts.risk,
-			rows: evidenceKinds.map((kind) => ({ kind })),
+			rows: evidenceRows,
 			hasSummary,
 		});
 		return {
@@ -64,6 +75,7 @@ export const toTicketPrRows = (rows: TicketPrRow[] | null): TicketPr[] =>
 			risk: facts.risk,
 			evidence: floor.present.length,
 			evidenceRequired: floor.required.length,
+			evidenceMissing: floor.missing.map((gap) => gap.item),
 		};
 	});
 
@@ -104,8 +116,11 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 						WHEN p.additions::bigint + p.deletions::bigint <= 400 THEN ${MEDIUM}
 						ELSE ${LARGE}
 					END,
-					'evidenceKinds', (
-						SELECT COALESCE(jsonb_agg(DISTINCT evidence.kind ORDER BY evidence.kind), '[]'::jsonb)
+					'evidenceRows', (
+						SELECT COALESCE(jsonb_agg(
+							jsonb_build_object('kind', evidence.kind, 'record', evidence.record)
+							ORDER BY evidence.created_at, evidence.id
+						), '[]'::jsonb)
 						FROM pr_evidence evidence
 						WHERE evidence.pull_request_id = p.id AND evidence.head_sha = p.head_sha
 					),

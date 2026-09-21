@@ -25,13 +25,10 @@ test("prints the backend evidence floor with the command of each item", () => {
 	expect(lines).toContain("  Write a simple, direct explanation of what changed and why, in plain words.");
 	expect(lines).toContain("  Use real names such as webhook, API, migration, and the page name.");
 	expect(lines).toContain(
-		'- verify record: trellis evidence add <pr> --kind verify --cmd "<command>" --exit <code> --sha <head> --tail -',
+		"- working call: trellis evidence add <pr> --kind call --method <method> --path <path> --status <code> --server <url> --request - --response <file>",
 	);
 	expect(lines).toContain(
-		"- test proof: trellis evidence add <pr> --kind test --name <test> --fails-on <base> --passes-on <head>",
-	);
-	expect(lines).toContain(
-		'- contract table: trellis evidence add <pr> --kind contract --before "<before>" --after "<after>"',
+		"- failing call: trellis evidence add <pr> --kind call --method <method> --path <path> --status <code> --server <url> --request - --response <file>",
 	);
 });
 
@@ -63,7 +60,10 @@ test("tells a backend change how to prove the service, and names no screen steps
 		"2. Call the change on that server with curl or with the trellis CLI. Call the error case as well.",
 	);
 	expect(lines).toContain(
-		"3. Send each call as a verify record. The command is the curl command or the trellis command. A test command does not prove the product.",
+		"3. Send each API request as a call record with the method, path, request body, status, response body and server address.",
+	);
+	expect(lines).toContain(
+		"4. Send each CLI or background-job command as a run record with the command, exit code, output and server address.",
 	);
 	expect(lines).not.toContain("Prove the screen:");
 });

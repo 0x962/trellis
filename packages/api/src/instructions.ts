@@ -43,12 +43,12 @@ Prove the change. A pull request without its evidence is not reviewable.
    Capture in your own worktree, on your own port, with animations off. Register each file with
    trellis evidence add <pr> --kind before|after|capture|clip|console.
 5. When the change renders no screen, attach:
-   the verify record of each Verify command, with the exit code, the tail and the head sha; each new test by name,
-   with the base sha where it fails and the head sha where it passes; the contract table, before and after, or
-   "no contract changed"; the migration plan when a schema changes; one picture, and one only, when the call path
-   crosses a process, a service or a trust boundary, or when a state machine changes. Write it in Mermaid.
+   one working call and one failing call for an API change; one run for a CLI or background-job change; the verify
+   record of each Verify command; each new test by name, with the base sha where it fails and the head sha where it
+   passes; the migration plan when a schema changes; one picture, and one only, when the call path crosses a process,
+   a service or a trust boundary, or when a state machine changes. Write it in Mermaid.
    Register each record with
-   trellis evidence add <pr> --kind verify|test|contract|migration|picture.
+   trellis evidence add <pr> --kind call|run|verify|test|migration|picture.
 6. Bind every sentence to something checkable: a file and a line, a check result, a test name, or a number with
    its sha. Say when a sentence is a guess.
 7. Check yourself:  trellis evidence check <pr>
@@ -75,7 +75,7 @@ Plan an epic. A plan that produces several tickets is an epic. The epic descript
 - Keep a wave to 2 to 8 tickets and an epic to 6 waves. A larger plan is two epics.
 - The person is the manager. The person starts the agents. Do not wait for a gate.
 - Frontend evidence floor: summary, after image, before image, capture record, console list.
-- Backend evidence floor: summary, verify record, test proof, contract table.
+- Backend evidence floor: summary, working call, failing call, or a run record for CLI and background-job changes.
 - Read the full evidence rules in \`docs/EVIDENCE.md\`.
 Create the epic: trellis epics create --project ${key} --name "..." --description - < plan.md
 Create each wave in order: trellis waves create ${key}/<epic-slug> --name "Foundation"

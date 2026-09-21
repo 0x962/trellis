@@ -31,6 +31,8 @@ export function EvidenceStrip({ records, floor, loading = false }: EvidenceStrip
 			)}
 			{floor.kind !== "frontend" && (
 				<BackendEvidence
+					calls={lines.calls}
+					runs={lines.runs}
 					verify={lines.verify}
 					tests={lines.tests}
 					contracts={lines.contracts}

@@ -127,20 +127,19 @@ describe("evidenceLines", () => {
 				soft: false,
 			},
 		]);
-		expect(lines.strip.present).toBe(3);
-		expect(lines.strip.required).toBe(5);
+		expect(lines.strip.status).toBe("needs the summary and the after image");
 	});
 
 	test("keeps the due word from the floor", () => {
 		const dueFloor: EvidenceFloor = {
 			kind: "backend",
-			required: ["picture"],
+			required: ["migration"],
 			present: [],
-			missing: [{ item: "picture", fillCommand: "trellis evidence add <pr> --kind picture", soft: true }],
+			missing: [{ item: "migration", fillCommand: "trellis evidence add <pr> --kind migration", soft: true }],
 		};
 
 		expect(evidenceLines([], dueFloor).strip.missing).toEqual([
-			{ label: "picture", fillCommand: "trellis evidence add <pr> --kind picture", soft: true },
+			{ label: "migration plan", fillCommand: "trellis evidence add <pr> --kind migration", soft: true },
 		]);
 	});
 
@@ -176,6 +175,53 @@ describe("evidenceLines", () => {
 		expect(lines.strip.note).toBeUndefined();
 		expect(lines.capture).toBeNull();
 	});
+	test("reads call and run records out of their records", () => {
+		const call = record({
+			id: "01M30A0000000000000000CALL",
+			kind: "call",
+			record: {
+				method: "POST",
+				path: "/api/tickets",
+				request: "{}",
+				status: 201,
+				response: '{"id":"TST-1"}',
+				server: "http://127.0.0.1:4571",
+			},
+		});
+		const run = record({
+			id: "01M30A00000000000000000RUN",
+			kind: "run",
+			record: {
+				command: "trellis tickets list",
+				exit: 0,
+				output: "TST-1 First",
+				server: "http://127.0.0.1:4571",
+			},
+		});
+		const lines = evidenceLines([call, run], floor);
+
+		expect(lines.calls).toEqual([
+			{
+				id: "01M30A0000000000000000CALL",
+				method: "POST",
+				path: "/api/tickets",
+				request: "{}",
+				status: 201,
+				response: '{"id":"TST-1"}',
+				server: "http://127.0.0.1:4571",
+			},
+		]);
+		expect(lines.runs).toEqual([
+			{
+				id: "01M30A00000000000000000RUN",
+				command: "trellis tickets list",
+				exit: 0,
+				output: "TST-1 First",
+				server: "http://127.0.0.1:4571",
+			},
+		]);
+	});
+
 	test("reads the verify record, the test proof and the contract table out of their records", () => {
 		const verify = record({
 			id: "01M30A0000000000000000VRFY",
@@ -195,7 +241,13 @@ describe("evidenceLines", () => {
 		const lines = evidenceLines([verify, proof, contract], floor);
 
 		expect(lines.verify).toEqual([
-			{ id: "01M30A0000000000000000VRFY", command: "bun scripts/check.ts", exit: 1, tail: "5 errors" },
+			{
+				id: "01M30A0000000000000000VRFY",
+				label: "verify record",
+				command: "bun scripts/check.ts",
+				exit: 1,
+				tail: "5 errors",
+			},
 		]);
 		expect(lines.tests).toEqual([
 			{
@@ -280,6 +332,8 @@ describe("evidenceLines", () => {
 		const lines = evidenceLines([captureRecord], floor);
 
 		expect(lines.verify).toEqual([]);
+		expect(lines.calls).toEqual([]);
+		expect(lines.runs).toEqual([]);
 		expect(lines.tests).toEqual([]);
 		expect(lines.contracts).toEqual([]);
 		expect(lines.migration).toBeNull();

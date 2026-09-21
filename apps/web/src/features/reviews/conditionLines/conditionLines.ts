@@ -1,4 +1,4 @@
-import type { PrKind, PrPathFacts, TicketPr } from "@trellis/api";
+import { type EvidenceFloorItem, type PrKind, type PrPathFacts, proofSentence, type TicketPr } from "@trellis/api";
 import type { ConditionLine, ConditionsReadiness } from "@trellis/ui/review";
 
 // One ticket that this ticket waits on, and the state of the pull request of
@@ -15,6 +15,7 @@ export type ConditionsAncestor = {
 export type EvidenceCondition = {
 	present: number;
 	required: number;
+	missing: readonly EvidenceFloorItem[];
 	kind: PrKind;
 };
 
@@ -96,6 +97,9 @@ export const conditionLabels = [
 export type ConditionLabel = (typeof conditionLabels)[number];
 
 const riskWords: ReadonlyArray<[keyof PrPathFacts["risk"], string]> = [
+	["api", "api"],
+	["cli", "cli"],
+	["background", "background job"],
 	["auth", "auth"],
 	["migration", "migration"],
 	["dependency", "dependency"],
@@ -139,10 +143,13 @@ const kindWords: Record<PrKind, string> = {
 	frontend: "a frontend change",
 	backend: "a backend change",
 	mixed: "a mixed change",
+	docs: "a docs change",
 };
 
 const evidenceValue = (evidence: Conditions["evidence"]) =>
-	evidence === null ? "unknown" : `${evidence.present} of ${evidence.required} for ${kindWords[evidence.kind]}`;
+	evidence === null
+		? "unknown"
+		: `${proofSentence(evidence.missing, evidence.present, evidence.required)} for ${kindWords[evidence.kind]}`;
 
 // The failure first, then what still runs, then what finished. An outcome
 // that counts zero prints no words, the same as the pull request row of the

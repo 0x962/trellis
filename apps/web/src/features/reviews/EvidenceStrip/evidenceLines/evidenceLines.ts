@@ -1,5 +1,6 @@
-import { type Evidence, type EvidenceFloor, type EvidenceKind, evidenceWords } from "@trellis/api";
+import { type Evidence, type EvidenceFloor, type EvidenceKind, evidenceWords, proofSentence } from "@trellis/api";
 import type {
+	CallProof,
 	CaptureRun,
 	ContractChange,
 	EvidenceClip,
@@ -7,18 +8,21 @@ import type {
 	EvidenceScreenshot,
 	EvidenceStripProps,
 	MigrationPlan,
+	ProductRun,
 	TestProof,
 	VerifyRun,
 } from "@trellis/ui/review";
 import { formatBytes } from "../../../attachments/utils/formatBytes";
 
 export type EvidenceLines = {
-	strip: Pick<EvidenceStripProps, "present" | "required" | "missing" | "hasRecords" | "note">;
+	strip: Pick<EvidenceStripProps, "status" | "missing" | "hasRecords" | "note">;
 	capture: CaptureRun | null;
 	before: EvidenceScreenshot | null;
 	after: EvidenceScreenshot | null;
 	clip: EvidenceClip | null;
 	consoleLine: string | null;
+	calls: CallProof[];
+	runs: ProductRun[];
 	verify: VerifyRun[];
 	tests: TestProof[];
 	contracts: ContractChange[];
@@ -88,9 +92,30 @@ const consoleLineOf = (records: readonly Evidence[]): string | null => {
 	return `${record.blob.filename} · ${formatBytes(record.blob.size)}`;
 };
 
-const verifyOf = (records: readonly Evidence[]): VerifyRun[] =>
-	allOf(records, "verify").map((record) => ({
+const callsOf = (records: readonly Evidence[]): CallProof[] =>
+	allOf(records, "call").map((record) => ({
 		id: record.id,
+		method: stringField(record.record, "method") ?? "",
+		path: stringField(record.record, "path") ?? "",
+		request: stringField(record.record, "request") ?? "",
+		status: numberField(record.record, "status"),
+		response: stringField(record.record, "response") ?? "",
+		server: stringField(record.record, "server") ?? "",
+	}));
+
+const runsOf = (records: readonly Evidence[]): ProductRun[] =>
+	allOf(records, "run").map((record) => ({
+		id: record.id,
+		command: stringField(record.record, "command") ?? "",
+		exit: numberField(record.record, "exit"),
+		output: stringField(record.record, "output") ?? "",
+		server: stringField(record.record, "server") ?? "",
+	}));
+
+const verifyOf = (records: readonly Evidence[]): VerifyRun[] =>
+	[...allOf(records, "verify"), ...allOf(records, "equivalence")].map((record) => ({
+		id: record.id,
+		label: record.kind === "equivalence" ? "equivalence proof" : "verify record",
 		command: stringField(record.record, "command") ?? "",
 		exit: numberField(record.record, "exit"),
 		tail: stringField(record.record, "tail") ?? "",
@@ -133,8 +158,11 @@ export const evidenceLines = (records: readonly Evidence[], floor: EvidenceFloor
 	const capture = captureOf(records);
 	return {
 		strip: {
-			present: floor.present.length,
-			required: floor.required.length,
+			status: proofSentence(
+				floor.missing.map((gap) => gap.item),
+				floor.present.length,
+				floor.required.length,
+			),
 			missing: floor.missing.map((gap) => ({
 				label: evidenceWords[gap.item],
 				fillCommand: gap.fillCommand,
@@ -148,6 +176,8 @@ export const evidenceLines = (records: readonly Evidence[], floor: EvidenceFloor
 		after: screenshotOf(records, "after"),
 		clip: clipOf(records),
 		consoleLine: consoleLineOf(records),
+		calls: callsOf(records),
+		runs: runsOf(records),
 		verify: verifyOf(records),
 		tests: testsOf(records),
 		contracts: contractsOf(records),

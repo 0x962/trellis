@@ -6,6 +6,8 @@ export const reviewKinds = [
 	"after",
 	"clip",
 	"console",
+	"call",
+	"run",
 	"verify",
 	"test",
 	"contract",
@@ -23,6 +25,8 @@ const evidenceKindFlags = {
 	after: [["file", "route", "viewport", "theme", "seed", "browser", "sha"]],
 	clip: [["file", "route", "caption"]],
 	console: [["file"]],
+	call: [["method", "path", "request", "status", "response", "server"]],
+	run: [["cmd", "exit", "output", "server"]],
 	verify: [["cmd", "exit", "sha", "tail"]],
 	test: [
 		["name", "fails-on", "passes-on"],
@@ -38,7 +42,7 @@ const evidenceKindFlags = {
 type Flag = (typeof evidenceKindFlags)[EvidenceKind][number][number];
 export type EvidenceArgs = { kind: EvidenceKind } & Partial<Record<Flag, string | boolean>>;
 const allFlags = [...new Set(Object.values(evidenceKindFlags).flat(2))] as Flag[];
-const stdinFlags = ["tail", "before", "after", "table"] as const;
+const stdinFlags = ["tail", "before", "after", "table", "request", "response", "output"] as const;
 
 export const validateKindFlags = (args: EvidenceArgs): void => {
 	const variants = evidenceKindFlags[args.kind];
@@ -67,10 +71,20 @@ const captureFields = (args: EvidenceArgs) => ({
 	seed: flagValue(args, "seed"),
 	browser: flagValue(args, "browser"),
 });
-const commandRun = (args: EvidenceArgs) => {
+const exitCode = (args: EvidenceArgs) => {
 	const rawExit = flagValue(args, "exit");
 	if (!/^-?\d+$/.test(rawExit)) throw usageError("--exit needs an integer");
-	return { command: flagValue(args, "cmd"), exit: Number(rawExit), tail: flagValue(args, "tail") };
+	return Number(rawExit);
+};
+const commandRun = (args: EvidenceArgs) => ({
+	command: flagValue(args, "cmd"),
+	exit: exitCode(args),
+	tail: flagValue(args, "tail"),
+});
+const statusCode = (args: EvidenceArgs) => {
+	const rawStatus = flagValue(args, "status");
+	if (!/^\d+$/.test(rawStatus)) throw usageError("--status needs an integer");
+	return Number(rawStatus);
 };
 const withFile = (record: object, file?: File): EvidenceBody => ({ record, file });
 
@@ -87,6 +101,24 @@ const builders: Record<EvidenceKind, Builder> = {
 	}),
 	clip: (args, _keys, file) => withFile({ route: flagValue(args, "route"), caption: flagValue(args, "caption") }, file),
 	console: (_args, _keys, file) => withFile({}, file),
+	call: (args) => ({
+		record: {
+			method: flagValue(args, "method"),
+			path: flagValue(args, "path"),
+			request: flagValue(args, "request"),
+			status: statusCode(args),
+			response: flagValue(args, "response"),
+			server: flagValue(args, "server"),
+		},
+	}),
+	run: (args) => ({
+		record: {
+			command: flagValue(args, "cmd"),
+			exit: exitCode(args),
+			output: flagValue(args, "output"),
+			server: flagValue(args, "server"),
+		},
+	}),
 	verify: (args) => ({ record: commandRun(args) }),
 	equivalence: (args) => ({ record: commandRun(args) }),
 	test: (args) => ({

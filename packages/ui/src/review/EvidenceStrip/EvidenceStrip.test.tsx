@@ -9,26 +9,26 @@ const gap = {
 };
 const copy = () => {};
 
-test("prints the count and the note beside the title", () => {
+test("prints the status and the note beside the title", () => {
 	const html = renderToStaticMarkup(
-		<EvidenceStrip present={5} required={5} missing={[]} hasRecords={true} note="captured on 8b21f0c" onCopy={copy}>
+		<EvidenceStrip status="proof complete" missing={[]} hasRecords={true} note="captured on 8b21f0c" onCopy={copy}>
 			<p>the records</p>
 		</EvidenceStrip>,
 	);
 
 	expect(html).toContain("EVIDENCE");
-	expect(html).toContain("5 of 5 · captured on 8b21f0c");
+	expect(html).toContain("proof complete · captured on 8b21f0c");
 	expect(html).toContain("the records");
 });
 
 test("prints one line for each record the pull request still owes", () => {
 	const html = renderToStaticMarkup(
-		<EvidenceStrip present={4} required={5} missing={[gap]} hasRecords={true} onCopy={copy}>
+		<EvidenceStrip status="needs the console list" missing={[gap]} hasRecords={true} onCopy={copy}>
 			<p>the records</p>
 		</EvidenceStrip>,
 	);
 
-	expect(html).toContain("4 of 5");
+	expect(html).toContain("needs the console list");
 	expect(html).toContain("console list");
 	expect(html).toContain("missing");
 	expect(html).toContain("trellis evidence add 56930 --kind console --file &lt;path&gt;");
@@ -36,7 +36,12 @@ test("prints one line for each record the pull request still owes", () => {
 
 test("prints due for a soft gap", () => {
 	const html = renderToStaticMarkup(
-		<EvidenceStrip present={4} required={5} missing={[{ ...gap, soft: true }]} hasRecords={true} onCopy={copy} />,
+		<EvidenceStrip
+			status="needs the console list"
+			missing={[{ ...gap, soft: true }]}
+			hasRecords={true}
+			onCopy={copy}
+		/>,
 	);
 
 	expect(html).toContain("due");
@@ -45,7 +50,7 @@ test("prints due for a soft gap", () => {
 
 test("prints placeholders and no count while the request is not complete", () => {
 	const html = renderToStaticMarkup(
-		<EvidenceStrip present={0} required={5} missing={[gap]} hasRecords={true} loading={true} onCopy={copy}>
+		<EvidenceStrip status="no proof yet" missing={[gap]} hasRecords={true} loading={true} onCopy={copy}>
 			<p>the records</p>
 		</EvidenceStrip>,
 	);
@@ -59,7 +64,7 @@ test("prints placeholders and no count while the request is not complete", () =>
 
 test("prints one sentence when the pull request owes nothing and carries no record", () => {
 	const html = renderToStaticMarkup(
-		<EvidenceStrip present={0} required={0} missing={[]} hasRecords={false} onCopy={copy} />,
+		<EvidenceStrip status="proof complete" missing={[]} hasRecords={false} onCopy={copy} />,
 	);
 
 	expect(html).toContain("This pull request owes no evidence.");
@@ -67,7 +72,7 @@ test("prints one sentence when the pull request owes nothing and carries no reco
 
 test("hides the records of a pull request that carries none", () => {
 	const html = renderToStaticMarkup(
-		<EvidenceStrip present={0} required={5} missing={[gap]} hasRecords={false} onCopy={copy}>
+		<EvidenceStrip status="no proof yet" missing={[gap]} hasRecords={false} onCopy={copy}>
 			<p>the records</p>
 		</EvidenceStrip>,
 	);

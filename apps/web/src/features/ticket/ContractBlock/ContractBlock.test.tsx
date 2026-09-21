@@ -26,7 +26,7 @@ describe("ContractBlock", () => {
 		expect(html).toContain("cd backend/operator-service &amp;&amp; direnv exec . pytest routines threads agent");
 		expect(html).toContain("the import direction stays one way");
 		expect(html).toContain("Evidence owed");
-		expect(html).toContain("backend: summary · verify record · test proof · contract table");
+		expect(html).toContain("backend: summary · working call · failing call");
 	});
 
 	test("prints the leave alone line whole, and cuts no word off it", () => {

@@ -18,7 +18,7 @@ test("prints the planner guidance as one block", () => {
 - Keep a wave to 2 to 8 tickets and an epic to 6 waves. A larger plan is two epics.
 - The person is the manager. The person starts the agents. Do not wait for a gate.
 - Frontend evidence floor: summary, after image, before image, capture record, console list.
-- Backend evidence floor: summary, verify record, test proof, contract table.
+- Backend evidence floor: summary, working call, failing call, or a run record for CLI and background-job changes.
 - Read the full evidence rules in \`docs/EVIDENCE.md\`.
 Create the epic: trellis epics create --project KEY --name "..." --description - < plan.md
 Create each wave in order: trellis waves create KEY/<epic-slug> --name "Foundation"

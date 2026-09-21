@@ -21,6 +21,7 @@ export const prOf = (fields: Partial<TicketPr>): TicketPr => ({
 	risk: null,
 	evidence: null,
 	evidenceRequired: null,
+	evidenceMissing: null,
 	pass: 0,
 	fail: 0,
 	pending: 0,

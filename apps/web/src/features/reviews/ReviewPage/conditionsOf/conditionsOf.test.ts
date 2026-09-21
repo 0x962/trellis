@@ -16,9 +16,19 @@ const prRow = (fields: Partial<TicketPr> = {}): TicketPr =>
 		changedFiles: 6,
 		sizeBand: "medium",
 		kind: "backend",
-		risk: { auth: "yes", migration: "no", dependency: "no", sharedType: "no", deletedTest: "no" },
+		risk: {
+			api: "yes",
+			cli: "no",
+			background: "no",
+			auth: "yes",
+			migration: "no",
+			dependency: "no",
+			sharedType: "no",
+			deletedTest: "no",
+		},
 		evidence: 1,
-		evidenceRequired: 4,
+		evidenceRequired: 3,
+		evidenceMissing: ["callWorking", "callFailing"],
 		pass: 47,
 		fail: 1,
 		pending: 6,
@@ -40,9 +50,12 @@ const proof = (name: string) => record("test", { name, failsOn: "4c9a7719d0e1", 
 
 const floor: EvidenceFloor = {
 	kind: "backend",
-	required: ["summary", "verify", "test", "contract"],
-	present: ["summary", "test"],
-	missing: [],
+	required: ["summary", "callWorking", "callFailing"],
+	present: ["summary"],
+	missing: [
+		{ item: "callWorking", fillCommand: "trellis evidence add <pr> --kind call", soft: false },
+		{ item: "callFailing", fillCommand: "trellis evidence add <pr> --kind call", soft: false },
+	],
 };
 
 const input = (fields: Partial<ConditionsInput> = {}): ConditionsInput => ({
@@ -97,8 +110,13 @@ test("reads a record that says no test applies", () => {
 	expect(conditions.tests).toEqual({ count: 0, failsOn: null, passesOn: null, noneApplies: true });
 });
 
-test("reads the evidence as the present count, the required count and the kind", () => {
-	expect(conditionsOf(input())!.evidence).toEqual({ present: 2, required: 4, kind: "backend" });
+test("reads the evidence as the present count, missing items, required count and kind", () => {
+	expect(conditionsOf(input())!.evidence).toEqual({
+		present: 1,
+		required: 3,
+		missing: ["callWorking", "callFailing"],
+		kind: "backend",
+	});
 	expect(conditionsOf(input({ floor: null }))!.evidence).toBeNull();
 });
 

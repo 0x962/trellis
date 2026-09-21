@@ -1,0 +1,2 @@
+ALTER TABLE "pr_evidence" DROP CONSTRAINT "pr_evidence_kind_check";--> statement-breakpoint
+ALTER TABLE "pr_evidence" ADD CONSTRAINT "pr_evidence_kind_check" CHECK ("pr_evidence"."kind" IN ('before', 'after', 'capture', 'clip', 'console', 'call', 'run', 'verify', 'test', 'contract', 'migration', 'picture', 'equivalence'));

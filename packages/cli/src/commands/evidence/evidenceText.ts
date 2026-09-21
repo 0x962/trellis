@@ -14,6 +14,10 @@ const captionOf = (row: Evidence): string => {
 			return recordText(row, "route");
 		case "clip":
 			return recordText(row, "caption");
+		case "call":
+			return `${recordText(row, "method")} ${recordText(row, "path")}`.trim();
+		case "run":
+			return recordText(row, "command");
 		case "verify":
 		case "equivalence":
 			return recordText(row, "command");

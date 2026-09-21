@@ -22,17 +22,16 @@ const screenProof = [
 	"6. Read the full recipe in docs/EVIDENCE.md.",
 ];
 
-// A change that renders no route owes the real requests and the real
-// responses of a server that runs this branch. Today the verify record holds
-// the call and the contract record holds the two responses.
+// A change that renders no route owes the real requests and responses of a
+// server that runs this branch.
 const serviceProof = [
 	"Prove the service:",
 	"",
 	"1. Start a server on this branch, on its own port and its own data home.",
 	"2. Call the change on that server with curl or with the trellis CLI. Call the error case as well.",
-	"3. Send each call as a verify record. The command is the curl command or the trellis command. A test command does not prove the product.",
-	"4. Put the status and the response body in the tail of that record.",
-	"5. Put the response of the merge base and the response of the head in the contract record.",
+	"3. Send each API request as a call record with the method, path, request body, status, response body and server address.",
+	"4. Send each CLI or background-job command as a run record with the command, exit code, output and server address.",
+	"5. Send each Verify command as a verify record. A test command does not prove the product.",
 	"6. Read the full recipe in docs/EVIDENCE.md.",
 ];
 

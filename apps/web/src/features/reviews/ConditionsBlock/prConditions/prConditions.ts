@@ -2,12 +2,13 @@ import type { TicketPr, TicketSummary } from "@trellis/api";
 import type { Conditions, EvidenceCondition } from "../../conditionLines/conditionLines";
 import { flowsOf, sizeOf } from "../../ReviewPage/conditionsOf/conditionsOf";
 
-// `evidence`, `evidenceRequired` and `kind` come from the changed file list,
-// so the three are null together until the poller reads that list.
+// `evidence`, `evidenceRequired`, `evidenceMissing` and `kind` come from the
+// changed file list, so the four are null together until the poller reads that
+// list.
 const evidenceOf = (pr: TicketPr): EvidenceCondition | null =>
-	pr.evidence === null || pr.evidenceRequired === null || pr.kind === null
+	pr.evidence === null || pr.evidenceRequired === null || pr.evidenceMissing === null || pr.kind === null
 		? null
-		: { present: pr.evidence, required: pr.evidenceRequired, kind: pr.kind };
+		: { present: pr.evidence, required: pr.evidenceRequired, missing: pr.evidenceMissing, kind: pr.kind };
 
 // The merge conditions of one pull request, read from the pull request row of
 // the ticket. `conditionsOf` builds the same shape for the review page from

@@ -4,6 +4,9 @@ import { evidenceCheckResult } from "./check.ts";
 import { checkText } from "./checkText.ts";
 
 const clearRisk: PrPathFacts["risk"] = {
+	api: "no",
+	cli: "no",
+	background: "no",
 	auth: "no",
 	migration: "no",
 	dependency: "no",
@@ -37,44 +40,29 @@ test("prints the backend gaps with exact fill commands", () => {
 	const result = resultOf(evidenceFloor({ kind: "backend", risk: clearRisk, hasSummary: true, rows: [] }));
 
 	expect(checkText(result)).toBe(`#57080  OP-43  Add the private properties route
-kind: backend            1 of 4 required present
+kind: backend            needs the working call and the failing call
 
   present  summary
-  MISSING  verify record    run each Verify command (make check-fix; pytest routines threads agent):  trellis evidence add 57080 --kind verify --cmd "<command>" --exit <code> --sha abc123 --tail -
-  MISSING  test proof       name each new test:                                                       trellis evidence add 57080 --kind test --name <test> --fails-on <base> --passes-on abc123
-  MISSING  contract table   write the before and after table, or:                                     trellis evidence add 57080 --kind contract --before "<before>" --after "<after>"
+  MISSING  working call   send a working request:  trellis evidence add 57080 --kind call --method <method> --path <path> --status <code> --server <url> --request - --response <file>
+  MISSING  failing call   send a failing request:  trellis evidence add 57080 --kind call --method <method> --path <path> --status <code> --server <url> --request - --response <file>
   note     1 check failed: merge_gatekeeper
 `);
 	expect(result.complete).toBe(false);
 });
 
-test("warns when the ticket has no parsed Verify command", () => {
-	const result = resultOf(evidenceFloor({ kind: "backend", risk: clearRisk, hasSummary: true, rows: [] }), []);
-
-	expect(result.items.find((line) => line.item === "verify")?.hint).toBe("the ticket has no parsed Verify command:");
-});
-
-test("prints a due picture with its fill command", () => {
+test("keeps a picture out of the proof floor", () => {
 	const floor = evidenceFloor({
 		kind: "backend",
 		risk: { ...clearRisk, dependency: "yes" },
 		hasSummary: true,
-		rows: [{ kind: "verify" }, { kind: "test" }, { kind: "contract" }],
+		rows: [{ kind: "call", record: { status: 200 } }, { kind: "call", record: { status: 400 } }, { kind: "picture" }],
 	});
 	const result = resultOf(floor);
 
-	expect(result.items.at(-1)).toEqual({
-		item: "picture",
-		label: "picture",
-		status: "due",
-		hint: "add one picture:",
-		command: "trellis evidence add 57080 --kind picture --file <path> --why <reason>",
-	});
-	expect(result.present).toBe(4);
-	expect(result.required).toBe(5);
-	expect(result.complete).toBe(false);
-	expect(checkText(result)).toContain("kind: backend            4 of 5 required present");
-	expect(checkText(result)).toContain("  due      picture          add one picture:");
+	expect(result.present).toBe(3);
+	expect(result.required).toBe(3);
+	expect(result.complete).toBe(true);
+	expect(checkText(result)).toContain("kind: backend            proof complete");
 });
 
 test("prints a complete frontend floor", () => {
@@ -89,7 +77,7 @@ test("prints a complete frontend floor", () => {
 	expect(result.complete).toBe(true);
 	expect(result.present).toBe(5);
 	expect(result.items.map((item) => item.status)).toEqual(["present", "present", "present", "present", "present"]);
-	expect(checkText(result)).toContain("kind: frontend           5 of 5 required present");
+	expect(checkText(result)).toContain("kind: frontend           proof complete");
 });
 
 test("returns the stable JSON shape", () => {
@@ -104,11 +92,11 @@ test("returns the stable JSON shape", () => {
 		ticket: { identifier: "OP-43", title: "Add the private properties route" },
 		kind: "backend",
 		present: 1,
-		required: 4,
+		required: 3,
 		complete: false,
 		checks,
 	});
-	expect(result.items).toHaveLength(4);
+	expect(result.items).toHaveLength(3);
 });
 
 test("uses the counts published on the pull request row", () => {
@@ -118,10 +106,10 @@ test("uses the counts published on the pull request row", () => {
 		ticket: { identifier: "OP-43", title: "Add the private properties route" },
 		floor,
 		present: 2,
-		required: 4,
+		required: 3,
 		verifyCommands: [],
 		checks,
 	});
 
-	expect(checkText(result)).toContain("2 of 4 required present");
+	expect(checkText(result)).toContain("needs the working call and the failing call");
 });

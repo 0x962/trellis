@@ -5,9 +5,18 @@ const clear: Conditions = {
 	merged: false,
 	size: { additions: 94, deletions: 12, changedFiles: 6 },
 	sizeBand: "medium",
-	risk: { auth: "no", migration: "no", dependency: "no", sharedType: "no", deletedTest: "no" },
+	risk: {
+		api: "no",
+		cli: "no",
+		background: "no",
+		auth: "no",
+		migration: "no",
+		dependency: "no",
+		sharedType: "no",
+		deletedTest: "no",
+	},
 	tests: { count: 3, failsOn: "4c9a7719d0e1", passesOn: "8b21f0c53ab4", noneApplies: false },
-	evidence: { present: 5, required: 5, kind: "frontend" },
+	evidence: { present: 5, required: 5, missing: [], kind: "frontend" },
 	checks: { pass: 48, fail: 0, pending: 0, skipped: 44 },
 	threads: 0,
 	flows: { total: 2, newest: { name: "Code Reviewer", status: "passed", findings: 0 }, running: 0, failed: 0 },
@@ -41,15 +50,26 @@ test("the size line reads unknown when the row carries no size", () => {
 	expect(lineValue({ ...clear, size: null, sizeBand: null }, "size")).toBe("unknown");
 });
 
-test("an all clear risk line prints five no answers", () => {
-	expect(lineValue(clear, "risk")).toBe("auth no · migration no · dependency no · shared type no · deleted test no");
+test("an all clear risk line prints every no answer", () => {
+	expect(lineValue(clear, "risk")).toBe(
+		"api no · cli no · background job no · auth no · migration no · dependency no · shared type no · deleted test no",
+	);
 });
 
 test("the risk line prints the answer of every class", () => {
-	const risk = { auth: "yes", migration: "yes", dependency: "no", sharedType: "yes", deletedTest: "no" } as const;
+	const risk = {
+		api: "yes",
+		cli: "no",
+		background: "yes",
+		auth: "yes",
+		migration: "yes",
+		dependency: "no",
+		sharedType: "yes",
+		deletedTest: "no",
+	} as const;
 
 	expect(lineValue({ ...clear, risk }, "risk")).toBe(
-		"auth yes · migration yes · dependency no · shared type yes · deleted test no",
+		"api yes · cli no · background job yes · auth yes · migration yes · dependency no · shared type yes · deleted test no",
 	);
 });
 
@@ -88,11 +108,14 @@ test("a missing test record and a missing evidence floor read unknown", () => {
 	expect(lineValue(empty, "evidence")).toBe("unknown");
 });
 
-test("the evidence line prints the two counts and the kind of the change", () => {
-	expect(lineValue(clear, "evidence")).toBe("5 of 5 for a frontend change");
-	expect(lineValue({ ...clear, evidence: { present: 1, required: 4, kind: "backend" } }, "evidence")).toBe(
-		"1 of 4 for a backend change",
-	);
+test("the evidence line prints the proof words and the kind of the change", () => {
+	expect(lineValue(clear, "evidence")).toBe("proof complete for a frontend change");
+	expect(
+		lineValue(
+			{ ...clear, evidence: { present: 1, required: 3, missing: ["callWorking", "callFailing"], kind: "backend" } },
+			"evidence",
+		),
+	).toBe("needs the working call and the failing call for a backend change");
 });
 
 test("the checks line prints the failure first and drops an outcome of zero", () => {
@@ -188,7 +211,7 @@ test("each open condition makes the word not yet", () => {
 		{ tests: null },
 		{ tests: { count: 0, failsOn: null, passesOn: null, noneApplies: false } },
 		{ evidence: null },
-		{ evidence: { present: 1, required: 4, kind: "backend" as const } },
+		{ evidence: { present: 1, required: 3, missing: ["callWorking", "callFailing"], kind: "backend" as const } },
 		{
 			flows: {
 				total: 2,
@@ -212,7 +235,16 @@ test("each open condition makes the word not yet", () => {
 });
 
 test("the size, the risk answers and the base state stop no merge", () => {
-	const risk = { auth: "yes", migration: "yes", dependency: "yes", sharedType: "yes", deletedTest: "yes" } as const;
+	const risk = {
+		api: "yes",
+		cli: "yes",
+		background: "yes",
+		auth: "yes",
+		migration: "yes",
+		dependency: "yes",
+		sharedType: "yes",
+		deletedTest: "yes",
+	} as const;
 	const loud = {
 		...clear,
 		risk,

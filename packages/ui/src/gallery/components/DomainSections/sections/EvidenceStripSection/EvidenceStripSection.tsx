@@ -40,7 +40,7 @@ export function EvidenceStripSection() {
 	return (
 		<Section name="EvidenceStrip" note="filled, one record missing, loading, nothing owed" className="items-start">
 			<div className="min-w-80 flex-1">
-				<EvidenceStrip present={5} required={5} missing={[]} hasRecords={true} note="captured on 8b21f0c" onCopy={copy}>
+				<EvidenceStrip status="proof complete" missing={[]} hasRecords={true} note="captured on 8b21f0c" onCopy={copy}>
 					<FrontendEvidence
 						capture={capture}
 						before={before}
@@ -52,8 +52,7 @@ export function EvidenceStripSection() {
 			</div>
 			<div className="min-w-80 flex-1">
 				<EvidenceStrip
-					present={4}
-					required={5}
+					status="needs the console list"
 					missing={[{ label: "console list", fillCommand: "trellis evidence add 56930 --kind console --file <path>" }]}
 					hasRecords={true}
 					note="captured on 8b21f0c"
@@ -63,10 +62,10 @@ export function EvidenceStripSection() {
 				</EvidenceStrip>
 			</div>
 			<div className="min-w-80 flex-1">
-				<EvidenceStrip present={0} required={5} missing={[]} hasRecords={false} loading={true} onCopy={copy} />
+				<EvidenceStrip status="no proof yet" missing={[]} hasRecords={false} loading={true} onCopy={copy} />
 			</div>
 			<div className="min-w-80 flex-1">
-				<EvidenceStrip present={0} required={0} missing={[]} hasRecords={false} onCopy={copy} />
+				<EvidenceStrip status="proof complete" missing={[]} hasRecords={false} onCopy={copy} />
 			</div>
 		</Section>
 	);

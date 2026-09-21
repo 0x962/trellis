@@ -175,10 +175,17 @@ beforeAll(async () => {
 	await db.execute(sql`INSERT INTO pr_summaries (
 		pull_request_id, head_sha, headline, why, watch, created_at, updated_at
 	) VALUES (${evidencePullRequest}, 'head-one', 'Store evidence.', 'The row counts this summary.', 'nothing', ${at}, ${at})`);
-	for (const kind of ["verify", "test", "contract"])
+	for (const [status, path] of [
+		[200, "/api/ok"],
+		[404, "/api/missing"],
+	] as const)
 		await db.execute(sql`INSERT INTO pr_evidence (
 			id, pull_request_id, head_sha, kind, record, actor_name, actor_kind, created_at
-		) VALUES (${ulid()}, ${evidencePullRequest}, 'head-one', ${kind}, '{}', 'Test', 'human', ${at})`);
+		) VALUES (
+			${ulid()}, ${evidencePullRequest}, 'head-one', 'call',
+			${{ method: "GET", path, request: "", status, response: "{}", server: "http://127.0.0.1:4571" }},
+			'Test', 'human', ${at}
+		)`);
 	await db.execute(sql`INSERT INTO pr_evidence (
 		id, pull_request_id, head_sha, kind, record, actor_name, actor_kind, created_at
 	) VALUES (${ulid()}, ${evidencePullRequest}, 'old-head', 'verify', '{}', 'Test', 'human', ${at})`);
@@ -221,6 +228,9 @@ test("a ticket summary carries one row for each pull request", async () => {
 		kind: "mixed",
 		risk: {
 			auth: "yes",
+			api: "yes",
+			cli: "no",
+			background: "no",
 			migration: "yes",
 			dependency: "yes",
 			sharedType: "yes",
@@ -261,7 +271,7 @@ test("a ticket summary carries one row for each pull request", async () => {
 
 test("the evidence count follows the current head and keeps old records", async () => {
 	const first = await db.transaction((tx) => ticketSummary(tx, evidenceTicket));
-	expect(first.prRows[0]?.evidence).toBe(4);
+	expect(first.prRows[0]?.evidence).toBe(3);
 
 	await db.execute(sql`UPDATE pull_requests SET head_sha = 'head-two' WHERE id = ${evidencePullRequest}`);
 	const afterPush = await db.transaction((tx) => ticketSummary(tx, evidenceTicket));
@@ -270,7 +280,7 @@ test("the evidence count follows the current head and keeps old records", async 
 	const records = await db.execute(
 		sql`SELECT count(*)::int AS count FROM pr_evidence WHERE pull_request_id = ${evidencePullRequest}`,
 	);
-	expect(records.rows).toEqual([{ count: 4 }]);
+	expect(records.rows).toEqual([{ count: 3 }]);
 });
 
 test("a deleted test risk follows the stored file counts", async () => {
@@ -279,10 +289,10 @@ test("a deleted test risk follows the stored file counts", async () => {
 	expect(summary.prRows[0]?.risk?.deletedTest).toBe("yes");
 });
 
-test("a frontend row stays incomplete without the equivalence proof", async () => {
+test("a frontend row stays complete when equivalence is only verification", async () => {
 	const summary = await db.transaction((tx) => ticketSummary(tx, deletedTestTicket));
 
-	expect(summary.prRows[0]).toMatchObject({ kind: "frontend", evidence: 5, evidenceRequired: 6 });
+	expect(summary.prRows[0]).toMatchObject({ kind: "frontend", evidence: 5, evidenceRequired: 5, evidenceMissing: [] });
 });
 
 test("the row verdict is the newest verdict of the person on the head commit", async () => {

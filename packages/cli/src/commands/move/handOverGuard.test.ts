@@ -3,6 +3,9 @@ import type { TrellisClient } from "@trellis/api/client";
 import { handOverGuard } from "./handOverGuard.ts";
 
 const risk = {
+	api: "no" as const,
+	cli: "no" as const,
+	background: "no" as const,
 	auth: "no" as const,
 	migration: "no" as const,
 	dependency: "no" as const,
@@ -48,7 +51,8 @@ const clientWith = ({
 					kind: "backend",
 					risk,
 					evidence: evidenceRows.length + (summaryHead === null ? 0 : 1),
-					evidenceRequired: 4,
+					evidenceRequired: 3,
+					evidenceMissing: [],
 					pass: 1,
 					fail: 0,
 					pending: 0,
@@ -89,7 +93,7 @@ test("refuses an agent with the evidence check list for an incomplete floor", as
 
 		expect(missing?.blocksAgent).toBe(true);
 		expect(missing?.result.complete).toBe(false);
-		expect(missing?.result.items.map((item) => item.status)).toEqual(["MISSING", "MISSING", "MISSING", "MISSING"]);
+		expect(missing?.result.items.map((item) => item.status)).toEqual(["MISSING", "MISSING", "MISSING"]);
 	}
 });
 
@@ -117,7 +121,10 @@ test("ignores a closed pull request", async () => {
 });
 
 test("allows an agent hand-over with a complete floor", async () => {
-	const rows = ["verify", "test", "contract"].map((kind) => ({ kind, headSha: "head-sha" }));
+	const rows = [
+		{ kind: "call", headSha: "head-sha", record: { status: 200 } },
+		{ kind: "call", headSha: "head-sha", record: { status: 400 } },
+	];
 
 	expect(
 		await handOverGuard(

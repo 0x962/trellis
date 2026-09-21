@@ -8,6 +8,7 @@ import { desktopRatio, EvidenceFigure } from "../EvidenceFigure";
 export type VerifyRun = {
 	// The identifier of the record this line draws.
 	id: string;
+	label: string;
 	// One Verify command of the ticket, as the agent ran it.
 	command: string;
 	// The exit code of the command. Null says the record holds no exit code,
@@ -16,6 +17,24 @@ export type VerifyRun = {
 	// The last lines the command printed. The component prints the text
 	// without a change.
 	tail: string;
+};
+
+export type CallProof = {
+	id: string;
+	method: string;
+	path: string;
+	request: string;
+	status: number | null;
+	response: string;
+	server: string;
+};
+
+export type ProductRun = {
+	id: string;
+	command: string;
+	exit: number | null;
+	output: string;
+	server: string;
 };
 
 export type TestProof =
@@ -61,6 +80,8 @@ export type EvidencePicture = {
 };
 
 export type BackendEvidenceProps = {
+	calls: readonly CallProof[];
+	runs: readonly ProductRun[];
 	verify: readonly VerifyRun[];
 	tests: readonly TestProof[];
 	contracts: readonly ContractChange[];
@@ -71,30 +92,33 @@ export type BackendEvidenceProps = {
 	onCopy: (text: string) => void;
 };
 
-export function BackendEvidence({ verify, tests, contracts, migration, picture, onCopy }: BackendEvidenceProps) {
-	const rowCount = verify.length + tests.length + contracts.length + (migration === null ? 0 : 1);
+export function BackendEvidence({
+	calls,
+	runs,
+	verify,
+	tests,
+	contracts,
+	migration,
+	picture,
+	onCopy,
+}: BackendEvidenceProps) {
+	const proofCount = calls.length + runs.length + (migration === null ? 0 : 1);
+	const verificationCount = verify.length + tests.length + contracts.length;
 	return (
 		<div className="flex min-w-0 flex-col gap-3">
-			{rowCount > 0 && (
+			{proofCount > 0 && (
 				<dl className="flex min-w-0 flex-col">
-					{verify.length > 0 && (
-						<BlockRow label="verify record">
-							{verify.map((run) => (
-								<VerifyLine key={run.id} run={run} onCopy={onCopy} />
+					{calls.length > 0 && (
+						<BlockRow label="call">
+							{calls.map((call) => (
+								<CallLine key={call.id} call={call} onCopy={onCopy} />
 							))}
 						</BlockRow>
 					)}
-					{tests.length > 0 && (
-						<BlockRow label="test proof">
-							{tests.map((proof) => (
-								<TestLine key={proof.id} proof={proof} />
-							))}
-						</BlockRow>
-					)}
-					{contracts.length > 0 && (
-						<BlockRow label="contract table">
-							{contracts.map((change) => (
-								<ContractLines key={change.id} change={change} onCopy={onCopy} />
+					{runs.length > 0 && (
+						<BlockRow label="run">
+							{runs.map((run) => (
+								<ProductRunLine key={run.id} run={run} onCopy={onCopy} />
 							))}
 						</BlockRow>
 					)}
@@ -108,6 +132,62 @@ export function BackendEvidence({ verify, tests, contracts, migration, picture, 
 			{picture !== null && (
 				<EvidenceFigure url={picture.url} alt={picture.why} caption={picture.why} ratio={desktopRatio} />
 			)}
+			{verificationCount > 0 && (
+				<details className="group rounded-sm border border-border px-3 py-2">
+					<summary className="cursor-pointer text-sm font-medium text-fg">Verification</summary>
+					<dl className="mt-2 flex min-w-0 flex-col">
+						{verify.length > 0 && (
+							<BlockRow label="verify record">
+								{verify.map((run) => (
+									<VerifyLine key={run.id} run={run} onCopy={onCopy} />
+								))}
+							</BlockRow>
+						)}
+						{tests.length > 0 && (
+							<BlockRow label="test proof">
+								{tests.map((proof) => (
+									<TestLine key={proof.id} proof={proof} />
+								))}
+							</BlockRow>
+						)}
+						{contracts.length > 0 && (
+							<BlockRow label="contract table">
+								{contracts.map((change) => (
+									<ContractLines key={change.id} change={change} onCopy={onCopy} />
+								))}
+							</BlockRow>
+						)}
+					</dl>
+				</details>
+			)}
+		</div>
+	);
+}
+
+function CallLine({ call, onCopy }: { call: CallProof; onCopy: (text: string) => void }) {
+	const status = call.status === null ? "status not recorded" : `status ${call.status}`;
+	return (
+		<div className="flex min-w-0 flex-col gap-1 py-1">
+			<div className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
+				<span className="font-mono text-fg">{call.method}</span>
+				<CopyLine text={call.path} onCopy={onCopy} />
+				<span className="text-fg-muted tabular">{status}</span>
+				<span className="text-fg-faint">{call.server}</span>
+			</div>
+			<OutputBlock text={call.request} maxHeight="max-h-32" />
+			<OutputBlock text={call.response} maxHeight="max-h-40" />
+		</div>
+	);
+}
+
+function ProductRunLine({ run, onCopy }: { run: ProductRun; onCopy: (text: string) => void }) {
+	return (
+		<div className="flex min-w-0 flex-col py-1">
+			<CopyLine text={run.command} onCopy={onCopy} />
+			<span className={cx("text-sm tabular", run.exit === 0 ? "text-fg-muted" : "text-danger")}>
+				{run.exit === null ? "exit not recorded" : `exit ${run.exit}`} · {run.server}
+			</span>
+			{run.output !== "" && <OutputBlock text={run.output} maxHeight="max-h-40" className="mt-1" />}
 		</div>
 	);
 }
@@ -117,6 +197,7 @@ export function BackendEvidence({ verify, tests, contracts, migration, picture, 
 function VerifyLine({ run, onCopy }: { run: VerifyRun; onCopy: (text: string) => void }) {
 	return (
 		<div className="flex min-w-0 flex-col py-0.5">
+			<span className="text-xs text-fg-faint">{run.label}</span>
 			<CopyLine text={run.command} onCopy={onCopy} />
 			{run.exit !== null && (
 				<span className={cx("text-sm tabular", run.exit === 0 ? "text-fg-muted" : "text-danger")}>exit {run.exit}</span>

@@ -7,10 +7,9 @@ import { type EvidenceGap, MissingList } from "./components/MissingList";
 export type { EvidenceGap };
 
 export type EvidenceStripProps = {
-	// How many of the owed records the pull request carries.
-	present: number;
-	// How many records the pull request owes in total.
-	required: number;
+	// The proof state in words, such as "needs the after image and the console
+	// list" or "proof complete".
+	status: string;
 	missing: readonly EvidenceGap[];
 	// True when the pull request carries at least one record. `children` cannot
 	// answer this, because a caller passes the same element whether or not it
@@ -28,8 +27,7 @@ export type EvidenceStripProps = {
 };
 
 export function EvidenceStrip({
-	present,
-	required,
+	status,
 	missing,
 	hasRecords,
 	note,
@@ -37,14 +35,14 @@ export function EvidenceStrip({
 	children,
 	onCopy,
 }: EvidenceStripProps) {
-	const count = `${present} of ${required}${note === undefined ? "" : ` · ${note}`}`;
+	const line = `${status}${note === undefined ? "" : ` · ${note}`}`;
 	return (
 		<section aria-busy={loading} aria-label="Evidence" className="flex min-w-0 flex-col gap-3">
 			<SectionHeader
 				title="EVIDENCE"
 				actions={
 					<span className="tabular" role="status" aria-live="polite">
-						{loading ? "reading" : count}
+						{loading ? "reading" : line}
 					</span>
 				}
 			/>

@@ -21,7 +21,7 @@ test("prints the contract in the ticket layout", () => {
                 pytest routines threads agent
  Review focus   the import direction stays one way
                 a chat run looks for no routine run
- Evidence owed  backend: summary · verify record · test proof · contract table
+ Evidence owed  backend: summary · working call · failing call
 `);
 });
 
@@ -43,9 +43,7 @@ describe("evidence owed", () => {
 	test("uses the mixed list for frontend and backend files", () => {
 		expect(
 			evidenceOwedText({ ...contract, files: ["frontend/src/App.tsx", "backend/canary/services/run.py"] }, "canary"),
-		).toBe(
-			"mixed: summary · after image · before image · capture record · console list · verify record · test proof · contract table",
-		);
+		).toBe("mixed: summary · after image · before image · capture record · console list · working call · failing call");
 	});
 
 	test("names the equivalence condition for a test file", () => {

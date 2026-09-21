@@ -108,7 +108,14 @@ export function conditionsOf({ prRow, records, floor, waitsOn, base }: Condition
 		risk: prRow.risk,
 		tests: testsOf(records),
 		evidence:
-			floor === null ? null : { present: floor.present.length, required: floor.required.length, kind: floor.kind },
+			floor === null
+				? null
+				: {
+						present: floor.present.length,
+						required: floor.required.length,
+						missing: floor.missing.map((gap) => gap.item),
+						kind: floor.kind,
+					},
 		checks: { pass: prRow.pass, fail: prRow.fail, pending: prRow.pending, skipped: prRow.skipped },
 		threads: prRow.openThreads,
 		flows: flowsOf(prRow),

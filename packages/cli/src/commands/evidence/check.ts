@@ -7,7 +7,7 @@ import { json } from "../../output.ts";
 import { resolvePullRequest } from "../pullRequestRef.ts";
 import { checkText, type EvidenceCheckInput, type EvidenceCheckLine, type EvidenceCheckResult } from "./checkText.ts";
 
-const hintOf = (item: EvidenceFloorItem, verifyCommands: string[]): string => {
+const hintOf = (item: EvidenceFloorItem): string => {
 	switch (item) {
 		case "summary":
 			return "write the STE summary:";
@@ -19,27 +19,25 @@ const hintOf = (item: EvidenceFloorItem, verifyCommands: string[]): string => {
 			return "record the capture conditions:";
 		case "console":
 			return "attach the console list:";
-		case "verify":
-			return verifyCommands.length === 0
-				? "the ticket has no parsed Verify command:"
-				: `run each Verify command (${verifyCommands.join("; ")}):`;
-		case "test":
-			return "name each new test:";
-		case "contract":
-			return "write the before and after table, or:";
+		case "callWorking":
+			return "send a working request:";
+		case "callFailing":
+			return "send a failing request:";
+		case "run":
+			return "run the product command:";
 		case "migration":
 			return "attach the migration plan:";
-		case "picture":
-			return "add one picture:";
-		case "equivalence":
-			return "prove equivalent coverage:";
 	}
 };
 
 const fillPlaceholders = (command: string, number: number, headSha: string): string =>
 	command.replaceAll("<pr>", String(number)).replaceAll("<head>", headSha);
 
-export const evidenceCheckResult = ({ floor, verifyCommands, ...input }: EvidenceCheckInput): EvidenceCheckResult => {
+export const evidenceCheckResult = ({
+	floor,
+	verifyCommands: _verifyCommands,
+	...input
+}: EvidenceCheckInput): EvidenceCheckResult => {
 	const gaps = new Map(floor.missing.map((gap) => [gap.item, gap]));
 	const items: EvidenceCheckLine[] = floor.required.map((item) => {
 		const gap = gaps.get(item);
@@ -47,7 +45,7 @@ export const evidenceCheckResult = ({ floor, verifyCommands, ...input }: Evidenc
 			item,
 			label: evidenceWords[item],
 			status: gap === undefined ? "present" : gap.soft ? "due" : "MISSING",
-			hint: gap === undefined ? null : hintOf(item, verifyCommands),
+			hint: gap === undefined ? null : hintOf(item),
 			command:
 				gap === undefined
 					? null

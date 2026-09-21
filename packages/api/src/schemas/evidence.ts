@@ -8,6 +8,8 @@ export const EvidenceKindSchema = z.enum([
 	"capture",
 	"clip",
 	"console",
+	"call",
+	"run",
 	"verify",
 	"test",
 	"contract",
@@ -89,6 +91,28 @@ export const EvidenceWriteInputSchema = z.discriminatedUnion("kind", [
 		file: z.file(),
 	}),
 	z.strictObject({ ...writeBase, kind: z.literal("console"), record: z.strictObject({}), file: z.file() }),
+	z.strictObject({
+		...writeBase,
+		kind: z.literal("call"),
+		record: z.strictObject({
+			method: z.string().min(1),
+			path: z.string().min(1),
+			request: z.string(),
+			status: z.number().int(),
+			response: z.string(),
+			server: z.string().min(1),
+		}),
+	}),
+	z.strictObject({
+		...writeBase,
+		kind: z.literal("run"),
+		record: z.strictObject({
+			command: z.string().min(1),
+			exit: z.number().int(),
+			output: z.string(),
+			server: z.string().min(1),
+		}),
+	}),
 	z.strictObject({
 		...writeBase,
 		kind: z.literal("verify"),

@@ -4,7 +4,7 @@ Navid, 2026-09-21: "diffs are diffs. they are not evidence. evidence shows me th
 
 Evidence shows the change working in the running product. Verification shows that the checks agree with the change. Trellis needs both. Trellis must not count one as the other.
 
-This document is the design. The part of it that ships today is the "Evidence owed" text of the agent brief. Every other part waits on a decision below.
+This document is the design and the current behavior. TRL-284 ships all nine recommendations below so Navid can veto one if needed.
 
 ## Decisions for Navid
 
@@ -52,7 +52,7 @@ Verification stays important. A pull request that breaks the tests does not merg
 | Background job | One `run` that fires the job. One `call` or `run` that reads the state the job left. | The same. |
 | Migration | The migration plan. One `call` or `run` that reads the changed data on a database that ran the migration. | The same. |
 | Refactor, no change of behaviour | One product record at the head. The `equivalence` record. | The same. |
-| Docs | Nothing. | Nothing. |
+| Docs | The summary. | Nothing. |
 
 A pull request of the kind `mixed` owes the UI row and the row of the service it changes.
 
@@ -72,9 +72,7 @@ verify test equivalence
 
 The `picture` record explains the change. It never proves it. One picture, and one only, and always optional.
 
-The `contract` record holds the API contract before and after the change as text. Once the `call` record lands, the two calls hold the same fact as real responses, and the `contract` record becomes the fallback for a contract that no call can show.
-
-Until decisions 2 and 3 land, an agent sends a call as a `verify` record whose command is the curl command or the trellis command, and puts the status and the response body in the tail. This is what the brief tells an agent to do today.
+The `contract` record holds the API contract before and after the change as text. The `call` record is the product proof for an API response, so `contract` is verification.
 
 ## What the brief says
 
@@ -98,17 +96,16 @@ Send every record that the list names. Send the proof of the running product wit
   Avoid jargon only where a plain word says the same thing.
   Avoid internal code names, file paths, and function names unless they are the point.
   Write the headline as one sentence a person would say out loud, such as "A click on a row now opens the ticket again."
-- verify record: trellis evidence add <pr> --kind verify --cmd "<command>" --exit <code> --sha <head> --tail -
-- test proof: trellis evidence add <pr> --kind test --name <test> --fails-on <base> --passes-on <head>
-- contract table: trellis evidence add <pr> --kind contract --before "<before>" --after "<after>"
+- working call: trellis evidence add <pr> --kind call --method <method> --path <path> --status <code> --server <url> --request - --response <file>
+- failing call: trellis evidence add <pr> --kind call --method <method> --path <path> --status <code> --server <url> --request - --response <file>
 
 Prove the service:
 
 1. Start a server on this branch, on its own port and its own data home.
 2. Call the change on that server with curl or with the trellis CLI. Call the error case as well.
-3. Send each call as a verify record. The command is the curl command or the trellis command. A test command does not prove the product.
-4. Put the status and the response body in the tail of that record.
-5. Put the response of the merge base and the response of the head in the contract record.
+3. Send each API request as a call record with the method, path, request body, status, response body and server address.
+4. Send each CLI or background-job command as a run record with the command, exit code, output and server address.
+5. Send each Verify command as a verify record. A test command does not prove the product.
 6. Read the full recipe in docs/EVIDENCE.md.
 
 Check the floor before you hand over: trellis evidence check <pr>
@@ -133,28 +130,35 @@ Every item of the list carries the one command that submits it. The command come
 
 ## What the person sees
 
-### The Facts tab of the review sheet
+### The Overview tab of the review sheet
 
 The evidence region draws three parts in this order.
 
 1. **The proof.** The before image and the after image side by side, each with its route and its viewport under it. A click opens the full file. The clip plays in the page. Each call draws as two blocks: the request with its method, its path and its body, then the response with its status and its body. The call that works comes first. The call that fails comes second.
 2. **What is missing.** One sentence in the four forms of decision 7, with the fill command under each missing item.
-3. **Verification.** One line for each verify record, test proof and equivalence record. The region folds shut. A click opens it.
+3. **Verification.** One line for each verify record, test proof and equivalence record. The region folds shut.
+
+TRL-276 had not landed in `origin/main` when TRL-284 merged main. The same proof components render in the current Facts tab until the Overview tab exists on this branch.
 
 ### The ticket page
 
-Each pull request card shows the newest after image as a thumbnail, the clip under it when there is one, and the missing sentence. No count.
+Each pull request card shows the missing sentence. No count.
 
 ### The epic row
 
 The row prints one of the four sentences of decision 7 in place of "evidence 2 of 5". The sentence names at most two items and then says "and N more".
 
-## What this pull request ships
+## What shipped in TRL-284
 
-1. The "Evidence owed" text of the brief, in `evidenceOwedLines.ts`, with its tests.
-2. The export of `evidenceFillCommands`, so the brief prints the same command as the check.
-
-Nothing else changes. The floor, the record kinds, the CLI and the pages wait on the decisions above.
+1. The proof-only floor counts `before`, `after`, `capture`, `clip`, `console`, `call`, `run`, and `migration`.
+2. The `verify`, `test`, `contract`, and `equivalence` records stay stored and render as verification.
+3. The `call` and `run` records are in the API schema, the database check constraint, and the CLI.
+4. Markdown-only pull requests are `docs` and owe the summary only.
+5. Refactors owe one product record and an equivalence record.
+6. Clips stay conditional.
+7. The product prints proof sentences instead of numeric evidence counts.
+8. The review evidence region renders the proof itself and folds verification below it.
+9. Stored records keep their kind. No data migration changes existing records.
 
 ## Recipe: a service
 
@@ -272,6 +276,7 @@ Trellis reads the changed paths and sets the kind. The agent does not set it.
 | `frontend` | One or more changed files render a route. |
 | `backend` | No changed file renders a route. |
 | `mixed` | Some changed files render a route and some do not. |
+| `docs` | Every changed file is Markdown. |
 
 In Trellis, `apps/web/**` and `packages/ui/**` render routes. A mixed pull request owes the frontend floor and the backend floor.
 
@@ -283,8 +288,6 @@ trellis evidence check 0x962/trellis#174
 
 ## The floor today
 
-This is the floor that the code applies now. Decision 1 changes it.
-
 A frontend pull request always carries these five items:
 
 1. A summary with the headline, the reason, and the file to review first.
@@ -293,14 +296,17 @@ A frontend pull request always carries these five items:
 4. A capture record with both SHAs and all capture settings.
 5. A console error list and a failed request list. An empty list is a result.
 
-A backend pull request always carries these four items:
+A backend pull request with API behavior carries these three items:
 
 1. A summary.
-2. A verify record for each command in the ticket contract.
-3. Test proof for each new test, or a `test` record with `--none --reason`.
-4. A contract table, or a `contract` record with `--none`.
+2. A working `call` record.
+3. A failing `call` record.
 
-A verify record contains the command, its exit code, its output tail, and the head SHA. Test proof names the test, the base SHA where it fails, and the head SHA where it passes.
+A CLI or background-job pull request carries a summary and one `run` record. A pull request that changes both API behavior and a CLI or job owes both the calls and the run.
+
+A docs pull request carries only the summary.
+
+A verify record contains the command, its exit code, its output tail, and the head SHA. Test proof names the test, the base SHA where it fails, and the head SHA where it passes. These records are verification, not proof.
 
 Add a migration plan when a schema changes. State the phase, two-way compatibility, lock cost, backfill, and rollback.
 
