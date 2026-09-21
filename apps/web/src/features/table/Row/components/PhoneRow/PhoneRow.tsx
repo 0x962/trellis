@@ -2,6 +2,7 @@ import type { TicketSummary } from "@trellis/api";
 import { cx, StatusIcon } from "@trellis/ui";
 import type { KeyboardEvent, MouseEvent, ReactNode, Ref } from "react";
 import { compactRelativeTime } from "../../../../../lib/format";
+import { statusIconProps } from "../../../../statusIconProps";
 import { AgentWords } from "../../../AgentWords";
 import type { TableKind } from "../../../columns";
 import { PrCells } from "../../../PrCells";
@@ -68,11 +69,7 @@ function EpicCells({
 				)}
 				{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
 				<div role="gridcell" data-column="status" className="flex shrink-0 items-center">
-					<StatusIcon
-						category={ticket.status.category}
-						reviewer={ticket.status.reviewer ?? undefined}
-						label={ticket.status.name}
-					/>
+					<StatusIcon {...statusIconProps(ticket.status)} label={ticket.status.name} />
 				</div>
 				{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
 				<div
@@ -111,11 +108,7 @@ function ListCells({ ticket, priority }: { ticket: TicketSummary; priority: Reac
 		<>
 			{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
 			<div role="gridcell" data-column="status" className="flex shrink-0 items-center">
-				<StatusIcon
-					category={ticket.status.category}
-					reviewer={ticket.status.reviewer ?? undefined}
-					label={ticket.status.name}
-				/>
+				<StatusIcon {...statusIconProps(ticket.status)} label={ticket.status.name} />
 			</div>
 			<div className="flex min-w-0 flex-1 flex-col gap-1">
 				<div className="flex items-center gap-3">
