@@ -11,8 +11,8 @@ export const backoff = (failures: number) => Math.min(1000 * 2 ** (failures - 1)
 
 // One JSON line per event. `id` is the frame id, which `--since` takes. A
 // payload `id` names the row the event is about, so it prints as `<kind>Id`
-// with kind the first segment of the type: `comment.created` prints
-// `commentId`. The `ready` payload's `id` is the frame id and prints once.
+// with kind the first segment of the type: `attachment.created` prints
+// `attachmentId`. The `ready` payload's `id` is the frame id and prints once.
 const line = (id: string | null, type: string, data: string) => {
 	const { id: rowId, type: _type, ...payload } = JSON.parse(data) as Record<string, unknown>;
 	const row = rowId === undefined || type === "ready" ? {} : { [`${type.split(".")[0]}Id`]: rowId };

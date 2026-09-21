@@ -56,23 +56,30 @@ const failDeliveriesOfClosedRuns = (tx: Tx) =>
 	);
 
 // A queued answer of a question ticket. `question` is the ticket that holds
-// the answer comment, and `waiting` is the ticket the run works on.
-type AnswerRow = Queued & { commentId: string; question: string; waiting: string };
+// the answer, and `waiting` is the ticket the run works on. `description` is
+// the description of the question, which holds the text of each option.
+type AnswerRow = Queued & {
+	question: string;
+	waiting: string;
+	description: string;
+	option: number;
+	reason: string;
+};
 
 const pendingAnswers = async (tx: Tx, terminals: string[]): Promise<Delivery[]> => {
 	const found = await rows<AnswerRow>(
 		tx,
-		sql`SELECT ${deliveryColumns}, comment.id AS "commentId",
+		sql`SELECT ${deliveryColumns}, answer.option, answer.reason, question.description,
 			question_root.key || '-' || question.number AS question,
 			waiting_root.key || '-' || waiting.number AS waiting
 		FROM review_deliveries delivery
 		JOIN agent_runs run ON run.id = delivery.run_id
 		JOIN tickets waiting ON waiting.id = run.ticket_id
 		JOIN projects waiting_root ON waiting_root.id = waiting.root_id
-		JOIN comments comment ON comment.id = delivery.answer_comment_id
-		JOIN tickets question ON question.id = comment.ticket_id
+		JOIN ticket_answers answer ON answer.id = delivery.answer_id
+		JOIN tickets question ON question.id = answer.ticket_id
 		JOIN projects question_root ON question_root.id = question.root_id
-		WHERE delivery.state = 'pending' AND delivery.answer_comment_id IS NOT NULL AND ${due}
+		WHERE delivery.state = 'pending' AND delivery.answer_id IS NOT NULL AND ${due}
 			AND ${runningTerminals(terminals)}
 		ORDER BY delivery.id LIMIT 20`,
 	);

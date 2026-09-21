@@ -1,8 +1,9 @@
 import { sql } from "drizzle-orm";
 import { check, index, integer, jsonb, pgTable, text, unique } from "drizzle-orm/pg-core";
-import { comments, pullRequests } from "../schema";
+import { pullRequests } from "../schema";
 import { at } from "./actors";
 import { agentRuns } from "./agentRuns.ts";
+import { ticketAnswers } from "./ticketAnswers.ts";
 
 export const reviewRevisions = pgTable(
 	"review_revisions",
@@ -47,20 +48,20 @@ export const reviewSubmissions = pgTable(
 );
 // One row is one message that waits for one agent run. The message is a
 // review submission, the answer of a question ticket, or one comment a
-// person wrote on a diff line, so exactly one of `review_id`,
-// `answer_comment_id` and `thread_message_id` holds an identifier. A comment
-// row also names its thread, because the message to the agent carries the
-// file and the line that the thread holds. `due_at` is the first moment the
-// dispatcher may send the row: a comment row sets it a few seconds ahead, so
-// the comments a person writes one after another travel in one message. The
-// unique rule counts two null values as equal, so a second row for the same
-// message and the same run cannot be written.
+// person wrote on a diff line, so exactly one of `review_id`, `answer_id`
+// and `thread_message_id` holds an identifier. A comment row also names its
+// thread, because the message to the agent carries the file and the line
+// that the thread holds. `due_at` is the first moment the dispatcher may
+// send the row: a comment row sets it a few seconds ahead, so the comments a
+// person writes one after another travel in one message. The unique rule
+// counts two null values as equal, so a second row for the same message and
+// the same run cannot be written.
 export const reviewDeliveries = pgTable(
 	"review_deliveries",
 	{
 		id: text().primaryKey(),
 		reviewId: text("review_id").references(() => reviewSubmissions.id),
-		answerCommentId: text("answer_comment_id").references(() => comments.id, { onDelete: "cascade" }),
+		answerId: text("answer_id").references(() => ticketAnswers.id, { onDelete: "cascade" }),
 		threadId: text("thread_id").references(() => reviewThreads.id, { onDelete: "cascade" }),
 		threadMessageId: text("thread_message_id"),
 		runId: text("run_id")
@@ -73,13 +74,8 @@ export const reviewDeliveries = pgTable(
 		attempt: integer().notNull().default(0),
 	},
 	(t) => [
-		unique("review_deliveries_recipient")
-			.on(t.reviewId, t.answerCommentId, t.threadMessageId, t.runId)
-			.nullsNotDistinct(),
+		unique("review_deliveries_recipient").on(t.reviewId, t.answerId, t.threadMessageId, t.runId).nullsNotDistinct(),
 		index("review_deliveries_state_idx").on(t.state),
-		check(
-			"review_deliveries_one_source",
-			sql`num_nonnulls(${t.reviewId}, ${t.answerCommentId}, ${t.threadMessageId}) = 1`,
-		),
+		check("review_deliveries_one_source", sql`num_nonnulls(${t.reviewId}, ${t.answerId}, ${t.threadMessageId}) = 1`),
 	],
 );

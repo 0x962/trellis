@@ -1,6 +1,14 @@
 import { generateOperationKey } from "@orpc/tanstack-query";
 import type { QueryKey } from "@tanstack/react-query";
-import type { Priority, Status, StatusListOutput, Ticket, TicketUpdateInput, TrellisClient } from "@trellis/api";
+import {
+	messageTarget,
+	type Priority,
+	type Status,
+	type StatusListOutput,
+	type Ticket,
+	type TicketUpdateInput,
+	type TrellisClient,
+} from "@trellis/api";
 import { approveTarget, sendBackTarget } from "../reviewTargets";
 
 export type Query<T> = {
@@ -63,15 +71,21 @@ export const approveInput = (ticket: Ticket, statuses: readonly Status[]): Ticke
 export const approve = (client: TrellisClient, ticket: Ticket, statuses: readonly Status[]): Promise<Ticket> =>
 	client.tickets.update(approveInput(ticket, statuses));
 
-// Send back posts `reason` as a comment, then moves the ticket to the lowest
-// started status. The comment bumps the ticket's version, so the move
-// carries no expectedVersion.
+// The message that `sendBack` sends to the agent of the ticket.
+export const sendBackMessage = (identifier: string, reason: string) =>
+	`A person sent ${identifier} back. What has to change: ${reason}`;
+
+// Send back moves the ticket to the lowest started status, then sends
+// `reason` to the assigned agent of the ticket while it runs. A ticket with no
+// running agent keeps the move alone.
 export const sendBack = async (
 	client: TrellisClient,
 	ticket: Ticket,
 	statuses: readonly Status[],
 	reason: string,
 ): Promise<Ticket> => {
-	await client.comments.create({ ticket: ticket.identifier, body: reason });
-	return client.tickets.update({ ticket: ticket.identifier, status: sendBackTarget(statuses).id });
+	const moved = await client.tickets.update({ ticket: ticket.identifier, status: sendBackTarget(statuses).id });
+	const target = messageTarget(await client.agentRuns.list({ ticket: ticket.identifier }));
+	if (target !== null) await client.agentRuns.send({ id: target.id, text: sendBackMessage(ticket.identifier, reason) });
+	return moved;
 };

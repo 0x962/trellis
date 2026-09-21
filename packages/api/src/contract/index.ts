@@ -3,7 +3,6 @@ import { actors } from "./actors.ts";
 import { agentRuns } from "./agentRuns.ts";
 import { attachments } from "./attachments.ts";
 import { brief } from "./brief.ts";
-import { comments } from "./comments.ts";
 import { epics } from "./epics.ts";
 import { flowExecutions } from "./flowExecutions.ts";
 import { flows } from "./flows.ts";
@@ -45,7 +44,6 @@ export const contract = {
 	statuses: oc.tag("statuses").router(statuses),
 	tickets: oc.tag("tickets").router(tickets),
 	timeline: oc.tag("timeline").router(timeline),
-	comments: oc.tag("comments").router(comments),
 	notes: oc.tag("notes").router(notes),
 	epics: oc.tag("epics").router(epics),
 	waves: oc.tag("waves").router(waves),

@@ -32,8 +32,7 @@ export const TAGS = [
 	},
 	{ name: "statuses", description: "The status set of a project. A sub-project inherits the nearest owner's set." },
 	{ name: "tickets", description: "Tickets: list, board, counts, one ticket, and every write." },
-	{ name: "timeline", description: "Comments and activity of one ticket, newest first." },
-	{ name: "comments", description: "Comments on a ticket." },
+	{ name: "timeline", description: "Activity of one ticket, newest first." },
 	{
 		name: "notes",
 		description: "Project notes: titled markdown that every agent of the project and its sub-projects reads at start.",
@@ -233,9 +232,6 @@ export const BODY_EXAMPLES: Record<string, unknown> = {
 	"POST /tickets/{ticket}/move": { status: "in-progress", after: "CDE-41" },
 	"POST /tickets/update-many": { tickets: ["CDE-1", "CDE-2"], priority: "low" },
 	"POST /tickets/delete-many": { tickets: ["CDE-1", "CDE-2"] },
-	"POST /tickets/{ticket}/comments": { body: "Tests pass. Ready for review." },
-	"POST /comments/{id}/resolve": { resolved: true },
-	"PATCH /comments/{id}": { body: "Tests pass. Ready for a human review." },
 	"POST /projects/{project}/notes": {
 		title: "Fresh worktree",
 		body: "A new worktree has no node_modules. Run bun install before the first check.",

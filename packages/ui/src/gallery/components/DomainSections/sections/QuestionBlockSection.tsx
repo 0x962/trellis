@@ -45,6 +45,7 @@ function Answerable({ by, result, error }: { by: string | null; result: string |
 			options={options}
 			recommendation={{ ...recommendation, by }}
 			releases={releases}
+			answer={null}
 			picked={picked}
 			onPickedChange={setPicked}
 			reason={reason}
@@ -61,7 +62,7 @@ export function QuestionBlockSection() {
 	return (
 		<Section
 			name="QuestionBlock"
-			note="OP-52 with a named author, with no author, with the answer it wrote, and with a refused answer"
+			note="OP-52 with a named author, with no author, with the answer it wrote, with a refused answer, and answered"
 		>
 			<div className="w-full max-w-160">
 				<Answerable by="crisp-fjord" result={null} error={null} />
@@ -74,6 +75,22 @@ export function QuestionBlockSection() {
 			</div>
 			<div className="w-full max-w-160">
 				<Answerable by={null} result={null} error="This question lists options 1, 2, 3. Pick one of them." />
+			</div>
+			<div className="w-full max-w-160">
+				<QuestionBlock
+					options={options}
+					recommendation={{ ...recommendation, by: null }}
+					releases={releases}
+					answer={{ option: 1, by: "dana", reason: "A missed night must stay visible." }}
+					picked={null}
+					onPickedChange={() => {}}
+					reason=""
+					onReasonChange={() => {}}
+					answering={false}
+					result={null}
+					error={null}
+					onAnswer={() => {}}
+				/>
 			</div>
 		</Section>
 	);

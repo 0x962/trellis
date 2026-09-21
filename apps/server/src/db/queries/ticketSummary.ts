@@ -30,7 +30,6 @@ export type SummaryRow = {
 	ancestors: string[] | null;
 	child_count: number;
 	child_done_count: number;
-	comment_count: number;
 	attachment_count: number;
 	labels: TicketSummary["labels"] | null;
 	waits_on: TicketSummary["waitsOn"] | null;
@@ -75,7 +74,6 @@ export const summaryColumns = sql`
 	(SELECT count(*)::int FROM tickets c WHERE c.parent_id = t.id) AS child_count,
 	(SELECT count(*)::int FROM tickets c JOIN statuses cs ON cs.id = c.status_id
 		WHERE c.parent_id = t.id AND cs.category = 'done') AS child_done_count,
-	(SELECT count(*)::int FROM comments c WHERE c.ticket_id = t.id) AS comment_count,
 	(SELECT count(*)::int FROM attachments a WHERE a.ticket_id = t.id) AS attachment_count,
 	lb.items AS labels,
 	waits.items AS waits_on,
@@ -190,7 +188,6 @@ export const toSummary = (row: SummaryRow): TicketSummary => ({
 				},
 	childCount: row.child_count,
 	childDoneCount: row.child_done_count,
-	commentCount: row.comment_count,
 	attachmentCount: row.attachment_count,
 	labels: row.labels ?? [],
 	waitsOn: row.waits_on ?? [],

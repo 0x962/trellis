@@ -1,10 +1,9 @@
 import { Check, X } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
-import { type AgentRun, HarnessSchema, type ReviewSubmit } from "@trellis/api";
+import { type AgentRun, HarnessSchema, hasAssignedProcess, type ReviewSubmit } from "@trellis/api";
 import { IconButton, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
-import { hasAssignedProcess } from "../../../../agents/hasAssignedProcess";
 import { DraftNote } from "../DraftNote";
 
 // A comment on a diff line reaches the agent on its own, so the bar offers

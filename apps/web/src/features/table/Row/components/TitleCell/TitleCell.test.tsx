@@ -12,25 +12,16 @@ const ticket = (fields: Partial<TicketSummary> = {}) =>
 		childCount: 0,
 		childDoneCount: 0,
 		attachmentCount: 0,
-		commentCount: 0,
 		...fields,
 	}) as TicketSummary;
 
 const done = (fields: Partial<TicketSummary> = {}) =>
 	ticket({ status: { category: "done" } as TicketSummary["status"], ...fields });
 
-test("links the comment count to the ticket comments section", () => {
-	const html = renderToStaticMarkup(<TitleCell ticket={ticket({ commentCount: 3 })} />);
-
-	expect(html).toContain('href="/t/OP-43#comments"');
-	expect(html).toContain('aria-label="3 comments"');
-});
-
 test("a done ticket prints its title and no mark", () => {
 	const html = renderToStaticMarkup(
 		<TitleCell
 			ticket={done({
-				commentCount: 3,
 				attachmentCount: 2,
 				childCount: 4,
 				childDoneCount: 4,
@@ -43,9 +34,9 @@ test("a done ticket prints its title and no mark", () => {
 });
 
 test("a canceled ticket prints its title and no mark", () => {
-	const ticket = done({ status: { category: "canceled" } as TicketSummary["status"], commentCount: 3 });
+	const ticket = done({ status: { category: "canceled" } as TicketSummary["status"], attachmentCount: 3 });
 
-	expect(renderToStaticMarkup(<TitleCell ticket={ticket} />)).not.toContain("comments");
+	expect(renderToStaticMarkup(<TitleCell ticket={ticket} />)).not.toContain("attachments");
 });
 
 test("a started ticket keeps its marks", () => {

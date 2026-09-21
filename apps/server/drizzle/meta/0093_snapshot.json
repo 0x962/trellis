@@ -1,5 +1,5 @@
 {
-  "id": "e9ccc6c2-ad49-43f8-a9df-8460e0bde436",
+  "id": "f4187138-eea1-4821-b168-771c472a1803",
   "prevId": "1736e4ac-c3ff-46d1-9133-d3f37c54d3f3",
   "version": "7",
   "dialect": "postgresql",
@@ -3557,20 +3557,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "answer_comment_id": {
-          "name": "answer_comment_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "thread_id": {
-          "name": "thread_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "thread_message_id": {
-          "name": "thread_message_id",
+        "answer_id": {
+          "name": "answer_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -3599,13 +3587,6 @@
           "type": "timestamp (3) with time zone",
           "primaryKey": false,
           "notNull": false
-        },
-        "due_at": {
-          "name": "due_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
         },
         "attempt": {
           "name": "attempt",
@@ -3646,25 +3627,12 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "review_deliveries_answer_comment_id_comments_id_fk": {
-          "name": "review_deliveries_answer_comment_id_comments_id_fk",
+        "review_deliveries_answer_id_ticket_answers_id_fk": {
+          "name": "review_deliveries_answer_id_ticket_answers_id_fk",
           "tableFrom": "review_deliveries",
-          "tableTo": "comments",
+          "tableTo": "ticket_answers",
           "columnsFrom": [
-            "answer_comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "review_deliveries_thread_id_review_threads_id_fk": {
-          "name": "review_deliveries_thread_id_review_threads_id_fk",
-          "tableFrom": "review_deliveries",
-          "tableTo": "review_threads",
-          "columnsFrom": [
-            "thread_id"
+            "answer_id"
           ],
           "columnsTo": [
             "id"
@@ -3693,8 +3661,7 @@
           "nullsNotDistinct": true,
           "columns": [
             "review_id",
-            "answer_comment_id",
-            "thread_message_id",
+            "answer_id",
             "run_id"
           ]
         }
@@ -3703,7 +3670,7 @@
       "checkConstraints": {
         "review_deliveries_one_source": {
           "name": "review_deliveries_one_source",
-          "value": "num_nonnulls(\"review_deliveries\".\"review_id\", \"review_deliveries\".\"answer_comment_id\", \"review_deliveries\".\"thread_message_id\") = 1"
+          "value": "num_nonnulls(\"review_deliveries\".\"review_id\", \"review_deliveries\".\"answer_id\") = 1"
         }
       },
       "isRLSEnabled": false
@@ -4031,6 +3998,117 @@
         "sessions_name_check": {
           "name": "sessions_name_check",
           "value": "\"sessions\".\"name\" ~ '^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.ticket_answers": {
+      "name": "ticket_answers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ticket_id": {
+          "name": "ticket_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "option": {
+          "name": "option",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_name": {
+          "name": "actor_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_kind": {
+          "name": "actor_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "ticket_answers_ticket_id_created_at_idx": {
+          "name": "ticket_answers_ticket_id_created_at_idx",
+          "columns": [
+            {
+              "expression": "ticket_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ticket_answers_ticket_id_tickets_id_fk": {
+          "name": "ticket_answers_ticket_id_tickets_id_fk",
+          "tableFrom": "ticket_answers",
+          "tableTo": "tickets",
+          "columnsFrom": [
+            "ticket_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "ticket_answers_actor_fk": {
+          "name": "ticket_answers_actor_fk",
+          "tableFrom": "ticket_answers",
+          "tableTo": "actors",
+          "columnsFrom": [
+            "actor_name",
+            "actor_kind"
+          ],
+          "columnsTo": [
+            "name",
+            "kind"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "ticket_answers_option_check": {
+          "name": "ticket_answers_option_check",
+          "value": "\"ticket_answers\".\"option\" BETWEEN 1 AND 99"
         }
       },
       "isRLSEnabled": false

@@ -26,13 +26,13 @@ const agentsWaitingFor = (tx: Tx, questionId: string) =>
 // the answer goes to.
 export const enqueueAnswerDeliveries = async (
 	tx: Tx,
-	input: { commentId: string; questionId: string },
+	input: { answerId: string; questionId: string },
 ): Promise<TicketAnswerDelivery[]> => {
 	const deliveries = await agentsWaitingFor(tx, input.questionId);
 	for (const delivery of deliveries)
 		await tx.execute(
-			sql`INSERT INTO review_deliveries (id, answer_comment_id, run_id)
-			VALUES (${ulid()}, ${input.commentId}, ${delivery.runId})`,
+			sql`INSERT INTO review_deliveries (id, answer_id, run_id)
+			VALUES (${ulid()}, ${input.answerId}, ${delivery.runId})`,
 		);
 	return deliveries;
 };

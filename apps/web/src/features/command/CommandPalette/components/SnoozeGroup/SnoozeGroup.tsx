@@ -77,8 +77,7 @@ export function SnoozeGroup({ query, setQuery }: { query: string; setQuery: (que
 		? [{ id: exactTarget.id, label: identifier }]
 		: (lookup.data?.pages.flatMap((page) => page.items) ?? []).map((item) => ({
 				id: item.id,
-				label:
-					item.section === "review" ? "Needs review" : `Mention from ${item.comment!.actorName}: ${item.comment!.body}`,
+				label: "Needs review",
 			}));
 	return (
 		<Command.Group

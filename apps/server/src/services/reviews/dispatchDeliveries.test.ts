@@ -72,7 +72,7 @@ const queueAnswer = async (title: string) => {
 		question: asked.identifier,
 		waiting: waiting.identifier,
 		runId,
-		commentId: result.commentId,
+		answerId: result.answerId,
 		deliveryId: row!.id,
 	};
 };
@@ -188,7 +188,7 @@ test("a queued answer reaches the terminal of a running agent", async () => {
 	expect(sent).toEqual([
 		{
 			id: queued.runId,
-			text: `trellis: ${queued.question} has an answer. Read: trellis thread show ${queued.commentId}\nContinue the work on ${queued.waiting}.`,
+			text: `trellis: ${queued.question} has an answer.\nOption 1: Leave it missed.\nReason: The narrow window.\nContinue the work on ${queued.waiting}.`,
 			interrupt: true,
 			messageId: `review-${queued.deliveryId}`,
 			expectedTerminalId: `term-${queued.runId}`,
