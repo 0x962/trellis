@@ -18,7 +18,7 @@ export function PullRequestCard({ ticket, pr, onOpen }: PullRequestCardProps) {
 	const conditions = row === undefined ? null : prConditions(row, ticket.waitsOn);
 	return (
 		<article aria-label={`Pull request #${pr.number}`} className="overflow-hidden rounded-md border border-border">
-			<PullRequestRow ticket={ticket} pr={pr} onOpen={onOpen} />
+			<PullRequestRow ticket={ticket} pr={pr} />
 			<div className="flex min-w-0 items-start gap-2 border-t border-border px-5 py-3 max-md:px-4">
 				<div className="min-w-0 flex-1">
 					{conditions === null ? (

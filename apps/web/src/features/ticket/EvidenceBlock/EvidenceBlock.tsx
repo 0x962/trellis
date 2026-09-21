@@ -21,7 +21,7 @@ export function EvidenceBlock({ ticket, onOpenPullRequest }: EvidenceBlockProps)
 	});
 	return (
 		<section aria-label="The evidence" className="flex min-w-0 flex-col">
-			<SectionHeader title="THE EVIDENCE" />
+			<SectionHeader title="The evidence" textCase="caps" />
 			<div className="flex min-w-0 flex-col gap-3">
 				{prs.isError && (
 					<p role="alert" className="text-sm text-danger">

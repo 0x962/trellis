@@ -9,7 +9,7 @@ export type OutcomeBlockProps = {
 export function OutcomeBlock({ outcome }: OutcomeBlockProps) {
 	return (
 		<section aria-label="The outcome" className="flex min-w-0 flex-col">
-			<SectionHeader title="THE OUTCOME" />
+			<SectionHeader title="The outcome" textCase="caps" />
 			{outcome === "" ? (
 				<EmptyState description="Empty until a pull request merges." />
 			) : (

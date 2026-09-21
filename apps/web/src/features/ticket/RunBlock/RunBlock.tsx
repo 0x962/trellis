@@ -13,8 +13,7 @@ export type RunBlockProps = {
 	ticket: Ticket;
 };
 
-// The run that holds the ticket, and the controls that start one. `RunLine`
-// draws the named region `The run`, so this frame is a plain `div`.
+// The run that holds the ticket, and the controls that start one.
 export function RunBlock({ ticket }: RunBlockProps) {
 	const { orpc } = useApp();
 	const hash = useLocation({ select: (location) => location.hash });
@@ -41,8 +40,8 @@ export function RunBlock({ ticket }: RunBlockProps) {
 	// agent run of the ticket is open, and `assigned` reads that same column.
 	const canStart = runs.isSuccess && !runs.data.some((run) => run.kind === "agent" && run.assigned);
 	return (
-		<div className="flex min-w-0 flex-col">
-			<SectionHeader title="THE RUN" />
+		<section aria-label="The run" className="flex min-w-0 flex-col">
+			<SectionHeader title="The run" textCase="caps" />
 			<div className="flex min-w-0 flex-col gap-3">
 				{runs.isError ? (
 					<p role="alert" className="text-sm text-danger">
@@ -65,6 +64,6 @@ export function RunBlock({ ticket }: RunBlockProps) {
 			{shown !== null && (
 				<SessionSheet run={shown} open={shown.id === sessionRun} onClose={() => setSessionRun(null)} />
 			)}
-		</div>
+		</section>
 	);
 }

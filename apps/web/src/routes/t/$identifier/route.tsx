@@ -5,13 +5,11 @@ import { EmptyState } from "@trellis/ui";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
 import { TicketView } from "../../../features/ticket/TicketView";
 import type { AppContext } from "../../../lib/appContext";
-import { TicketSearchSchema } from "../../../lib/ticketSearch";
 
 const ticketOptions = (context: AppContext, identifier: string) =>
 	context.orpc.tickets.get.queryOptions({ input: { ticket: TicketRefStringSchema.parse(identifier) } });
 
 export const Route = createFileRoute("/t/$identifier")({
-	validateSearch: TicketSearchSchema,
 	loader: async ({ context, params }) => {
 		const ticket = await context.queryClient.ensureQueryData(ticketOptions(context, params.identifier));
 		await context.queryClient.ensureQueryData(

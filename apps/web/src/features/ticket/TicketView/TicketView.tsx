@@ -134,13 +134,13 @@ export function TicketView({ identifier }: TicketViewProps) {
 				{question ? (
 					ask !== "" && (
 						<section aria-label="The ask" className={cx("flex min-w-0 flex-col", narrow ? "mt-4" : "mt-3")}>
-							<SectionHeader title="THE ASK" />
+							<SectionHeader title="The ask" textCase="caps" />
 							<p className="whitespace-pre-line text-base text-fg">{ask}</p>
 						</section>
 					)
 				) : (
 					<section aria-label="The ask" className={cx("flex min-w-0 flex-col", narrow ? "mt-4" : "mt-3")}>
-						<SectionHeader title="THE ASK" />
+						<SectionHeader title="The ask" textCase="caps" />
 						<div data-ticket-description="" className="min-h-24">
 							<Description key={ticket.identifier} ticket={ticket} onAttachFiles={uploads.addFiles} />
 						</div>
