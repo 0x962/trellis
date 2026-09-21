@@ -83,6 +83,12 @@ const ticketDisclosure = (ticket: TicketSummary, hasChildren: boolean, expandedT
 	return expandedTickets.includes(ticket.id) ? "expanded" : "collapsed";
 };
 
+// A ticket's pull requests show open work first and merged work last:
+// open, draft and queued pull requests, then closed ones, then merged ones.
+// The sort is stable, so each state keeps the order the server sent.
+const prRank = (pr: TicketPr) => (pr.state === "merged" ? 2 : pr.state === "closed" ? 1 : 0);
+const sortTicketPrs = (prs: readonly TicketPr[]) => [...prs].sort((a, b) => prRank(a) - prRank(b));
+
 // The lines in order: each group's header, its rows while it is expanded,
 // the pull requests of each row when `prRows` asks for them, the agent line
 // of each row when `agentLines` holds one for it, and its "show more" line
@@ -101,19 +107,28 @@ export const flattenGroups = (groups: readonly TableGroup[], options: FlattenOpt
 			items.push({ kind: "row", key: ticket.id, group, ticket, agentLine: line ?? null, disclosure, hasChildLines });
 			if (!hasChildLines) continue;
 			if (hasPrRows) {
-				// Two tickets can link the same pull request, so the ticket id is
-				// part of the key that the virtualizer uses to hold a line.
-				ticket.prRows.forEach((pr, index) => {
-					const last = index === ticket.prRows.length - 1;
+				const prs = sortTicketPrs(ticket.prRows);
+				// The agent line hangs from the newest open pull request, the work
+				// the agent does now. That is the last open one, because the server
+				// orders a ticket's pull requests by the time each was linked. With
+				// no open pull request it hangs from the last line.
+				const openCount = prs.filter((pr) => prRank(pr) === 0).length;
+				const anchor = openCount > 0 ? openCount - 1 : prs.length - 1;
+				prs.forEach((pr, index) => {
+					const last = index === prs.length - 1;
+					const hasAgent = index === anchor && line !== undefined;
+					// Two tickets can link the same pull request, so the ticket id is
+					// part of the key that the virtualizer uses to hold a line.
 					const key = `pr:${ticket.id}:${pr.owner}/${pr.repo}#${pr.number}`;
-					items.push({ kind: "pr", key, group, pr, last, hasChildLines: last && line !== undefined });
+					items.push({ kind: "pr", key, group, pr, last, hasChildLines: hasAgent });
+					if (hasAgent) items.push({ kind: "agent", key: `agent:${ticket.id}`, group, line, last, depth: 2 });
 				});
+				continue;
 			}
-			// The agent line hangs from the last pull request of the ticket,
-			// which is the newest work, and it hangs from the ticket row itself
-			// when the ticket links no pull request.
+			// A ticket that links no pull request hangs its agent line from the
+			// ticket row itself.
 			if (line !== undefined) {
-				items.push({ kind: "agent", key: `agent:${ticket.id}`, group, line, last: true, depth: hasPrRows ? 2 : 1 });
+				items.push({ kind: "agent", key: `agent:${ticket.id}`, group, line, last: true, depth: 1 });
 			}
 		}
 		if (group.hasMore) items.push({ kind: "more", key: `more:${group.key}`, group });
