@@ -35,6 +35,12 @@ test("prints the frontend evidence floor", () => {
 	]);
 });
 
+test("names the equivalence condition for a test file", () => {
+	expect(evidenceOwedLines(contract(["apps/web/src/App.test.tsx"]), "trellis")).toContain(
+		"- A change that removes test cases also owes an equivalence proof.",
+	);
+});
+
 test("prints the mixed floor and the required risk evidence", () => {
 	expect(
 		evidenceOwedLines(contract(["apps/web/src/routes/index.tsx", "apps/server/drizzle/0088_answer.sql"]), "trellis"),

@@ -47,6 +47,8 @@ const clientWith = ({
 				prRow: {
 					kind: "backend",
 					risk,
+					evidence: evidenceRows.length + (summaryHead === null ? 0 : 1),
+					evidenceRequired: 4,
 					pass: 1,
 					fail: 0,
 					pending: 0,

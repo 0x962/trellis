@@ -125,6 +125,13 @@ describe("contractFloor", () => {
 		expect(contractFloor("trellis", { files: ["apps/server/src/db/schema.ts"] })).toEqual({
 			kind: "backend",
 			required: ["summary", "verify", "test", "contract", "migration", "picture"],
+			notes: [],
 		});
+	});
+
+	test("names the conditional equivalence proof for a test file", () => {
+		expect(contractFloor("trellis", { files: ["apps/web/src/App.test.tsx"] })?.notes).toEqual([
+			"A change that removes test cases also owes an equivalence proof.",
+		]);
 	});
 });

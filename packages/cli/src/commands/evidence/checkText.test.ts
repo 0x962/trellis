@@ -27,6 +27,8 @@ const resultOf = (
 		pullRequest: { number: 57080, url: "https://github.com/acme/canary/pull/57080", headSha: "abc123" },
 		ticket: { identifier: "OP-43", title: "Add the private properties route" },
 		floor,
+		present: floor.present.length,
+		required: floor.required.length,
 		verifyCommands,
 		checks,
 	});
@@ -107,4 +109,19 @@ test("returns the stable JSON shape", () => {
 		checks,
 	});
 	expect(result.items).toHaveLength(4);
+});
+
+test("uses the counts published on the pull request row", () => {
+	const floor = evidenceFloor({ kind: "backend", risk: clearRisk, hasSummary: true, rows: [] });
+	const result = evidenceCheckResult({
+		pullRequest: { number: 57080, url: "https://github.com/acme/canary/pull/57080", headSha: "abc123" },
+		ticket: { identifier: "OP-43", title: "Add the private properties route" },
+		floor,
+		present: 2,
+		required: 4,
+		verifyCommands: [],
+		checks,
+	});
+
+	expect(checkText(result)).toContain("2 of 4 required present");
 });

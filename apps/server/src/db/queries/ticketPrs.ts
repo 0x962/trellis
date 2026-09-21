@@ -88,10 +88,7 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 					'number', p.number, 'owner', p.owner, 'repo', p.repo, 'url', p.url,
 					'state', p.state, 'isDraft', p.is_draft,
 					'additions', p.additions, 'deletions', p.deletions, 'changedFiles', p.changed_files,
-					'files', (
-						SELECT jsonb_agg(file.value ORDER BY file.position)
-						FROM jsonb_array_elements(p.files) WITH ORDINALITY AS file(value, position)
-					),
+					'files', p.files,
 					'sizeBand', CASE
 						WHEN p.additions IS NULL OR p.deletions IS NULL THEN NULL
 						WHEN p.additions::bigint + p.deletions::bigint < 200 THEN ${SMALL}

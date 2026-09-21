@@ -1,4 +1,4 @@
-import { type PrKind, type PrPath, type PrPathFacts, prPaths } from "../prPaths/index.ts";
+import { isTestPath, type PrKind, type PrPath, type PrPathFacts, prPaths } from "../prPaths/index.ts";
 import type { EvidenceKind } from "../schemas/evidence.ts";
 import type { TicketContract } from "../schemas/ticket.ts";
 
@@ -31,7 +31,7 @@ export type EvidenceFloor = {
 	missing: EvidenceFloorGap[];
 };
 
-export type ContractFloor = Pick<EvidenceFloor, "kind" | "required">;
+export type ContractFloor = Pick<EvidenceFloor, "kind" | "required"> & { notes: string[] };
 
 type PrRisk = PrPathFacts["risk"];
 
@@ -71,8 +71,7 @@ const requiredItems = (kind: PrKind, risk: PrRisk): EvidenceFloorItem[] => [
 	...(risk.deletedTest === "yes" ? (["equivalence"] as const) : []),
 ];
 
-// A contract lists paths only. Each path counts as a change, so the forecast cannot report a deleted test.
-const asChangedFile = (path: string): PrPath => ({ path, change: "change" });
+const asPrPath = (path: string): PrPath => ({ path, change: "change", removedLinesOnly: false });
 const serverDatabasePath = /^(?:\.\/)?apps\/server\/src\/db\//i;
 
 export const contractFloor = (
@@ -80,12 +79,16 @@ export const contractFloor = (
 	contract: Pick<TicketContract, "files">,
 ): ContractFloor | null => {
 	if (repositoryName === undefined || contract.files.length === 0) return null;
-	const facts = prPaths(repositoryName, contract.files.map(asChangedFile));
+	const facts = prPaths(repositoryName, contract.files.map(asPrPath));
 	// A brief forecasts what the work will owe before a migration file exists, so a server database path counts as migration work.
 	const risk = contract.files.some((path) => serverDatabasePath.test(path))
 		? { ...facts.risk, migration: "yes" as const }
 		: facts.risk;
-	return { kind: facts.kind, required: requiredItems(facts.kind, risk) };
+	return {
+		kind: facts.kind,
+		required: requiredItems(facts.kind, risk),
+		notes: contract.files.some(isTestPath) ? ["A change that removes test cases also owes an equivalence proof."] : [],
+	};
 };
 
 export const evidenceFloor = ({

@@ -1,4 +1,4 @@
-import { type PrPathGroup, prPaths } from "@trellis/api";
+import { changedFilePaths, type PrPathGroup, prPaths } from "@trellis/api";
 import { FileRiskGroups as FileRiskGroupsView } from "@trellis/ui/review";
 import { useMemo, useState } from "react";
 import { useCollapsedGroups } from "../../table/hooks/useCollapsedGroups";
@@ -39,7 +39,7 @@ export function FileRiskGroups({ pr, repo, files, selected, onSelect }: FileRisk
 		setMarks(loadReadMarks(localStorage, pr));
 	}
 	const { isCollapsed, toggle } = useCollapsedGroups(`${pr}#files`, collapsedDefaults);
-	const groupByPath = useMemo(() => prPaths(repo, files).groups, [repo, files]);
+	const groupByPath = useMemo(() => prPaths(repo, changedFilePaths(files)).groups, [repo, files]);
 	const groups = useMemo(
 		() =>
 			groupOrder.map((group) => ({
