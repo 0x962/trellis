@@ -5,6 +5,7 @@ const ribbon = (buckets: Check["bucket"][]) => buckets.map((bucket, index) => ({
 
 const passing = ribbon(["pass", "pass", "pass", "pass", "pass", "pass"]);
 const mixed = ribbon(["pass", "fail", "pass", "pending", "pending"]);
+const allStates = ribbon(["pass", "fail", "pending", "skipping"]);
 const queued = ribbon(["pending", "pending", "pending", "pending"]);
 const skipped = ribbon(["pass", "pass", "skipping", "pass"]);
 // 40 checks with one failure: the gaps close and every segment stays visible.
@@ -20,6 +21,9 @@ export function CheckRibbonSection() {
 			</span>
 			<span className="inline-flex items-center gap-2 text-sm text-fg-muted">
 				<CheckRibbon checks={mixed} /> 1 failed, 2 pending
+			</span>
+			<span className="inline-flex items-center gap-2 text-sm text-fg-muted">
+				<CheckRibbon checks={allStates} /> passed, failed, pending, skipped
 			</span>
 			<span className="inline-flex items-center gap-2 text-sm text-fg-muted">
 				<CheckRibbon checks={queued} /> queued

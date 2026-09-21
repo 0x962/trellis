@@ -385,9 +385,9 @@
 	transition-duration: var(--duration-sweep);
 }
 
-/* The pending segment of a check ribbon: a moving highlight between two greys. */
+/* The pending segment of a check ribbon: a moving highlight over warning. */
 @utility ribbon-shimmer {
-	background-image: linear-gradient(90deg, var(--border-strong), var(--fg-faint), var(--border-strong));
+	background-image: linear-gradient(90deg, transparent, color-mix(in srgb, var(--warning), var(--bg) 28%), transparent);
 	background-size: 200% 100%;
 	animation: var(--animate-shimmer);
 }
