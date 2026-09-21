@@ -33,8 +33,10 @@ export const readyResultOf = (tickets: TicketSummary[], workingTicketIds: Readon
 };
 
 // Exits 1 until the pull request has the summary and every evidence floor item.
+// `trellis pr add` links a pull request but opens no review, so this opens it
+// the way `trellis summary write` does.
 const pullRequestReady = async (ctx: CliContext, client: TrellisClient, ref: string): Promise<number> => {
-	const resolved = await resolvePullRequest(client, ref, false);
+	const resolved = await resolvePullRequest(client, ref, true);
 	const pullRequest = await client.pullRequests.refresh({ id: resolved.id });
 	const status = await client.reviews.status({ pr: resolved.url });
 	if (status.ticket === null) throw notFound("linked ticket", ref);
