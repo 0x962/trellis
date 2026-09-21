@@ -54,18 +54,39 @@ export const agentLineOf = (run: AgentRun): TicketAgentLine | null => {
 // which would give the table a new identity every 2 s and redraw every
 // visible row.
 //
-// Two agent runs can sit on one ticket, and the server names no order for
-// them. A line with an open request stays in place of a later line that
-// only repeats a message, so the ticket keeps the words a person must
-// answer.
+// Two agent runs can sit on one ticket, after a retry or a follow-up, and the
+// server names no order for them. The line of one run wins over the line of
+// another in this order: an open request, because a person must answer it;
+// then a live run over a stopped or finished one; then the later activity.
 export const agentLinesByTicket = (runs: readonly AgentRun[]): Readonly<Record<string, TicketAgentLine>> => {
 	const lines: Record<string, TicketAgentLine> = {};
+	const winners: Record<string, AgentRun> = {};
 	for (const run of runs) {
 		if (run.kind !== "agent" || run.ticketId === null) continue;
 		const line = agentLineOf(run);
 		if (line === null) continue;
-		if (lines[run.ticketId]?.asks === true && !line.asks) continue;
+		const held = lines[run.ticketId];
+		if (held !== undefined && !beats(run, line, winners[run.ticketId]!, held)) continue;
 		lines[run.ticketId] = line;
+		winners[run.ticketId] = run;
 	}
 	return lines;
 };
+
+const beats = (run: AgentRun, line: TicketAgentLine, heldRun: AgentRun, held: TicketAgentLine) => {
+	if (line.asks !== held.asks) return line.asks;
+	if (isLive(run) !== isLive(heldRun)) return isLive(run);
+	return lastActiveAt(run) >= lastActiveAt(heldRun);
+};
+
+const isLive = (run: AgentRun) => run.processStatus === "running";
+
+// The latest time the run did something: its last message, its last tool or
+// its last change of activity. ISO strings in UTC sort as times.
+const lastActiveAt = (run: AgentRun) =>
+	[
+		run.createdAt,
+		run.observation?.lastMessage?.at,
+		run.observation?.lastTool?.updatedAt,
+		run.observation?.activity?.updatedAt,
+	].reduce<string>((latest, at) => (at != null && at > latest ? at : latest), "");

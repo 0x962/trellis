@@ -80,3 +80,23 @@ test("an interrupted turn records one stop event and preserves interrupted statu
 	expect(state.agent!.outcome).toBe("interrupted");
 	expect(new HarnessObservations(path).agent!.attention).toEqual(state.agent!.attention);
 });
+
+test("the result of an idle event replaces an older message of the same turn", () => {
+	const { observations: state, path } = fixture();
+	state.append({ kind: "working", turnId: "one" }, at);
+	state.append({ kind: "message", turnId: "one", message: { text: "Now cleaning up.", at } }, at);
+	state.append(
+		{ kind: "idle", turnId: "one", outcome: "completed", result: "Done. PR 245 is open." },
+		"2026-09-18T12:01:00.000Z",
+	);
+	expect(state.agent!.lastMessage).toEqual({ text: "Done. PR 245 is open.", at: "2026-09-18T12:01:00.000Z" });
+	expect(new HarnessObservations(path).agent!.lastMessage).toEqual(state.agent!.lastMessage);
+});
+
+test("the result of an idle event keeps the time of the message that holds the same text", () => {
+	const { observations: state } = fixture();
+	state.append({ kind: "working", turnId: "one" }, at);
+	state.append({ kind: "message", turnId: "one", message: { text: "Done.", at } }, at);
+	state.append({ kind: "idle", turnId: "one", outcome: "completed", result: "Done." }, "2026-09-18T12:01:00.000Z");
+	expect(state.agent!.lastMessage).toEqual({ text: "Done.", at });
+});

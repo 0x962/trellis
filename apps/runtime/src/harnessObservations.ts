@@ -12,7 +12,6 @@ export class HarnessObservations {
 	agent: RuntimeAgentMetadata | null = null;
 	activity: RuntimeProcessStatus["activity"] = null;
 	private readonly tools = new Map<string, NonNullable<RuntimeAgentMetadata["lastTool"]>>();
-	private hasMessageInTurn = false;
 	private sequence = 0;
 	constructor(path: string) {
 		this.log = new SessionLog(path);
@@ -79,7 +78,6 @@ export class HarnessObservations {
 			event.kind === "prompt" ||
 			(event.kind === "working" && event.turnId !== undefined && event.turnId !== agent.turnId)
 		) {
-			this.hasMessageInTurn = false;
 			this.tools.clear();
 			agent.error = null;
 			agent.outcome = null;
@@ -123,10 +121,13 @@ export class HarnessObservations {
 		if (event.message !== undefined) {
 			const message = { text: event.message.text, at: event.message.at ?? observedAt };
 			if (agent.lastMessage === null || message.at >= agent.lastMessage.at) agent.lastMessage = message;
-			this.hasMessageInTurn = true;
-		} else if (event.kind === "idle" && event.result && !this.hasMessageInTurn) {
-			agent.lastMessage = { text: event.result, at: observedAt };
 		}
+		// The result of an idle event is the final text of the turn. The Claude
+		// Stop hook can read the transcript before that text is complete in the
+		// file, so the message event just before the idle event can hold an
+		// older message. The result then replaces it.
+		if (event.kind === "idle" && event.result && event.result !== agent.lastMessage?.text)
+			agent.lastMessage = { text: event.result, at: observedAt };
 		if (event.kind === "message") {
 			if (this.activity !== null) this.activity = { ...this.activity, updatedAt: observedAt };
 		} else if (
