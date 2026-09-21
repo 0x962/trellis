@@ -7,8 +7,7 @@ import type { Tx } from "../../db/tx.ts";
 import { type ServiceCtx, type TicketRow, touchTicket, writeActivity } from "../support.ts";
 import { enqueueReviewDeliveries } from "./enqueueReviewDeliveries.ts";
 
-// GitHub names a review by the state it leaves behind, and a stored
-// submission keeps that word.
+// A stored submission uses the verdict words of the public review schema.
 const verdictWords: Record<ReviewSubmit["verdict"], ReviewSubmission["verdict"]> = {
 	comment: "commented",
 	approve: "approved",
@@ -18,10 +17,9 @@ const verdictWords: Record<ReviewSubmit["verdict"], ReviewSubmission["verdict"]>
 export type SubmissionInput = {
 	prId: string;
 	verdict: ReviewSubmit["verdict"];
-	// The address of the review on GitHub, from the answer of the call that
-	// created it.
+	// The pull request address that lets the agent open the local threads.
 	url: string;
-	// The GitHub login that GitHub recorded as the reviewer.
+	// The local actor that submitted the verdict.
 	author: string;
 	body: string;
 	revisionId: string | null;
