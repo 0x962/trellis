@@ -23,6 +23,7 @@ export type PullRequestRow = {
 	title: string;
 	state: PrState;
 	is_draft: boolean;
+	is_queued: boolean;
 	head_ref: string;
 	base_ref: string;
 	review_state: PullRequest["reviewState"];
@@ -46,7 +47,7 @@ export type LinkedPullRequestRow = PullRequestRow & {
 
 export const pullRequestColumns = sql`
 	p.id, p.owner, p.repo, p.number, p.additions, p.deletions, p.changed_files, p.files,
-	p.url, p.title, p.state, p.is_draft, p.head_ref, p.base_ref, p.review_state,
+	p.url, p.title, p.state, p.is_draft, p.is_queued, p.head_ref, p.base_ref, p.review_state,
 	${iso(sql`p.merged_at`)} AS merged_at, ${iso(sql`p.closed_at`)} AS closed_at, p.checks, p.ci_state,
 	p.content_hash, ${iso(sql`p.fetched_at`)} AS fetched_at, p.fetch_error,
 	${iso(sql`p.created_at`)} AS created_at, ${iso(sql`p.updated_at`)} AS updated_at
@@ -65,6 +66,7 @@ export const toPullRequest = (row: PullRequestRow): PullRequest => ({
 	title: row.title,
 	state: row.state,
 	isDraft: row.is_draft,
+	isQueued: row.is_queued,
 	headRef: row.head_ref,
 	baseRef: row.base_ref,
 	reviewState: row.review_state,

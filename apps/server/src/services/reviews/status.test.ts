@@ -38,11 +38,11 @@ beforeAll(async () => {
 		(${firstProjectTicket}, ${firstRoot}, ${firstRoot}, 7, 'First project ticket', ${firstRootTodoStatusId}, 0, ${at}, ${at})`);
 	const prId = ulid();
 	await db.execute(sql`INSERT INTO pull_requests (
-		id, owner, repo, number, changed_files, files, url, state, is_draft, head_ref, base_ref,
+		id, owner, repo, number, changed_files, files, url, state, is_draft, is_queued, head_ref, base_ref,
 		review_state, checks, ci_state, fetched_at, created_at, updated_at
 	) VALUES (
 		${prId}, 'acme', 'app', 28, 1, '[{"path":"backend/service.ts","change":"change","additions":1,"deletions":0}]',
-		'https://github.com/acme/app/pull/28', 'open', false,
+		'https://github.com/acme/app/pull/28', 'open', false, true,
 		'feature', 'main', 'review_required',
 		'[{"name":"Build","workflow":"CI","bucket":"pass","link":null},{"name":"Deploy","workflow":"CI","bucket":"cancel","link":null}]',
 		'fail', ${at}, ${at}, ${at}
@@ -64,6 +64,7 @@ test("review status sorts linked tickets by project key and ticket number", asyn
 	expect(ReviewStatusSchema.parse(result)).toEqual(result);
 	expect(result).toMatchObject({
 		title: "GitHub title",
+		isQueued: true,
 		ticket: { identifier: "AAA-7", title: "First project ticket" },
 		prRow: { number: 28, owner: "acme", repo: "app", kind: "backend", pass: 1, fail: 1 },
 		checks: [
@@ -77,5 +78,5 @@ test("review status sorts linked tickets by project key and ticket number", asyn
 test("review status returns null row facts for an unlinked pull request", async () => {
 	const result = await db.transaction((tx) => status({} as ServiceCtx, tx, { pr: "acme/app#29", remote: {} }));
 	expect(ReviewStatusSchema.parse(result)).toEqual(result);
-	expect(result).toEqual({ ticket: null, prRow: null, checks: null });
+	expect(result).toEqual({ isQueued: false, ticket: null, prRow: null, checks: null });
 });

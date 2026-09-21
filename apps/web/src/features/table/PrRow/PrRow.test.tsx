@@ -35,11 +35,13 @@ describe("PrRow", () => {
 		expect(html).toContain('aria-label="56 checks: 1 failed, 6 pending, 47 passed, 2 skipped"');
 	});
 
-	test("the glyph carries the draft and merged states", () => {
+	test("the glyph carries the draft, queued, and merged states", () => {
 		const draft = renderToStaticMarkup(<PrRow pr={prOf({ isDraft: true })} top={0} last={false} />);
+		const queued = renderToStaticMarkup(<PrRow pr={prOf({ isQueued: true })} top={0} last={false} />);
 		const merged = renderToStaticMarkup(<PrRow pr={prOf({ state: "merged", isDraft: true })} top={0} last={false} />);
 
 		expect(draft).toContain("Pull request draft");
+		expect(queued).toContain("Pull request queued");
 		expect(merged).toContain("Pull request merged");
 	});
 

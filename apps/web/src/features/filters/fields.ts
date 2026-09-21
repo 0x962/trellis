@@ -78,6 +78,7 @@ export const prLabels: Record<PrFilter, string> = {
 	none: "none",
 	open: "open",
 	draft: "draft",
+	queued: "queued",
 	merged: "merged",
 	closed: "closed",
 };

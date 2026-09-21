@@ -28,6 +28,7 @@ export type RawPullRequest = {
 	title: string;
 	state: "OPEN" | "CLOSED" | "MERGED";
 	isDraft: boolean;
+	mergeQueueEntry: { position: number } | null;
 	url: string;
 	headRefOid: string;
 	headRefName: string;
@@ -63,6 +64,7 @@ export type PullRequestContent = {
 	title: string;
 	state: PrState;
 	isDraft: boolean;
+	isQueued: boolean;
 	headSha: string;
 	headRef: string;
 	baseRef: string;
@@ -80,7 +82,7 @@ export type PullRequestResult = { ref: PullRequestRef; row: PullRequestRow } | {
 export type FetchPullRequestsResult = { ok: true; results: PullRequestResult[] } | GhFailure;
 
 const selection = `{
-	number additions deletions changedFiles title state isDraft url headRefOid headRefName baseRefName mergedAt closedAt reviewDecision
+	number additions deletions changedFiles title state isDraft mergeQueueEntry { position } url headRefOid headRefName baseRefName mergedAt closedAt reviewDecision
 	files(first: ${MAX_CHANGED_FILES}) { nodes { path changeType additions deletions } }
 	commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { nodes {
 		__typename
@@ -120,6 +122,12 @@ const canonical = (value: unknown): string => {
 export const contentHash = (content: Record<string, unknown>): string =>
 	new Bun.CryptoHasher("sha256").update(canonical(content)).digest("hex");
 
+export const withQueueState = (row: PullRequestRow, isQueued: boolean): PullRequestRow => {
+	const { contentHash: _contentHash, ...content } = row;
+	const next = { ...content, isQueued };
+	return { ...next, contentHash: contentHash(next) };
+};
+
 const toRow = (ref: PullRequestRef, raw: RawPullRequest): PullRequestRow => {
 	const rollup = raw.commits.nodes[0]?.commit.statusCheckRollup ?? null;
 	const checks = normalizeChecks(rollup?.contexts.nodes ?? []);
@@ -135,6 +143,7 @@ const toRow = (ref: PullRequestRef, raw: RawPullRequest): PullRequestRow => {
 		title: raw.title,
 		state: raw.state.toLowerCase() as PrState,
 		isDraft: raw.isDraft,
+		isQueued: raw.mergeQueueEntry !== null,
 		headSha: raw.headRefOid,
 		headRef: raw.headRefName,
 		baseRef: raw.baseRefName,

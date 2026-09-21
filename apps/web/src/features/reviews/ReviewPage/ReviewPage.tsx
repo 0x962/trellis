@@ -175,6 +175,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						pr={pr}
 						revision={displayRevision}
 						pullRequest={displayMeta}
+						isQueued={status.data?.isQueued ?? false}
 						openThreads={allThreads.filter((thread) => thread.status === "open")}
 						onAction={refreshAll}
 					/>

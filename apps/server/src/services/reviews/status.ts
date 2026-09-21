@@ -15,12 +15,13 @@ export async function prepare(ctx: PrepareCtx, input: { pr: string }): Promise<P
 
 export async function status(_ctx: ServiceCtx, tx: Tx, input: PreparedStatus) {
 	const ref = parseRef(input.pr);
-	const [pullRequest] = await rows<{ checks: Check[]; fetched_at: string | null }>(
+	const [pullRequest] = await rows<{ checks: Check[]; fetched_at: string | null; is_queued: boolean }>(
 		tx,
-		sql`SELECT checks, fetched_at FROM pull_requests
+		sql`SELECT checks, fetched_at, is_queued FROM pull_requests
 			WHERE owner = ${ref.owner} AND repo = ${ref.repo} AND number = ${ref.number}`,
 	);
 	const checks = pullRequest?.fetched_at == null ? null : pullRequest.checks;
+	const isQueued = pullRequest?.is_queued ?? false;
 	const [row] = await rows<{
 		identifier: string;
 		title: string;
@@ -46,9 +47,10 @@ export async function status(_ctx: ServiceCtx, tx: Tx, input: PreparedStatus) {
 			${requestedTicketPrJoin}
 		`,
 	);
-	if (!row) return { ...input.remote, ticket: null, prRow: null, checks };
+	if (!row) return { ...input.remote, isQueued, ticket: null, prRow: null, checks };
 	return {
 		...input.remote,
+		isQueued,
 		ticket: { identifier: row.identifier, title: row.title },
 		prRow: toTicketPrRows(row.ticket_pr_rows)[0]!,
 		checks,

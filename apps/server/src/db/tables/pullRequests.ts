@@ -20,6 +20,7 @@ export const pullRequests = pgTable(
 		title: text().notNull().default(""),
 		state: text().notNull(),
 		isDraft: boolean("is_draft").notNull().default(false),
+		isQueued: boolean("is_queued").notNull().default(false),
 		reviewRetained: boolean("review_retained").notNull().default(false),
 		headSha: text("head_sha"),
 		headRef: text("head_ref").notNull().default(""),
