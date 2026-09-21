@@ -11,6 +11,11 @@
 	/* The gap between the floating cards of the review and the edges of the
 	   page. */
 	--review-float-gap: 16px;
+	/* The width of the file tree beside the diff. */
+	--review-tree-width: 340px;
+	/* The width of the column that holds the line numbers of the diff, which
+	   `.review-diff-hunk-header` and `.review-diff-line` both draw. */
+	--review-diff-gutter: calc(var(--spacing) * 13);
 	/* The height of one floating card plus the gap above and below it. Every
 	   scrolling box of the review pads its bottom by this much, so the last
 	   row of the box rises clear of the card. */
@@ -277,7 +282,7 @@ button.review-notice:hover {
 	min-height: 0;
 }
 .review-tree-pane {
-	width: 340px;
+	width: var(--review-tree-width);
 	flex-shrink: 0;
 	overflow-y: auto;
 	border-right: 0.5px solid var(--border);

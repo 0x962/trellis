@@ -14,7 +14,13 @@
 	flex-direction: column;
 	align-items: flex-end;
 	gap: 8px;
-	max-width: calc(100% - var(--review-float-gap) * 2);
+	/* The box ends where the line numbers of the diff end, so a card can
+	   never cover a line number. A card with more words than the box holds
+	   truncates them. */
+	max-width: min(
+		42rem,
+		calc(100% - var(--review-tree-width) - var(--review-diff-gutter) - var(--review-float-gap) * 2)
+	);
 	/* The box spans the width of the page, and the cards inside it are
 	   narrow. Without this pair the empty part of the box would swallow a
 	   click on the code under it. */
@@ -45,14 +51,19 @@
 	align-items: center;
 	gap: 6px;
 	min-width: 0;
+	overflow: hidden;
 }
 .review-batch-bar-text {
 	flex: 1;
 	min-width: 0;
 	white-space: nowrap;
 }
-.review-verdict-bar-drafts {
-	white-space: nowrap;
+/* The comment count and the dots keep their full width. The verdict words
+   and the condition count shorten instead, and each one shows an ellipsis
+   where it cuts. */
+.review-verdict-bar-drafts,
+.review-bar-dot {
+	flex-shrink: 0;
 }
 /* The verdict, the time and the delivery word of the last submission. */
 .review-verdict-bar-state {
@@ -62,9 +73,28 @@
 	min-width: 0;
 	white-space: nowrap;
 }
+.review-verdict-bar-state > svg {
+	flex-shrink: 0;
+}
+/* A card with more words than room shortens the longest words first. The
+   time and the delivery word give up room fastest, the verdict headline
+   next, and the condition count last. */
+.review-verdict-bar-state > span {
+	flex-shrink: 2;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.review-verdict-bar-detail {
+	flex-shrink: 4;
+}
 /* The count of the conditions that stop the merge. A click lists them. */
 .review-unmet-trigger {
+	flex-shrink: 1;
+	min-width: 0;
+	overflow: hidden;
 	color: var(--fg-muted);
+	text-overflow: ellipsis;
 	text-decoration: underline;
 	text-decoration-style: dotted;
 	text-underline-offset: 3px;
@@ -104,8 +134,5 @@
 	}
 	.review-verdict-bar-detail {
 		display: none;
-	}
-	.review-bar-words {
-		overflow: hidden;
 	}
 }
