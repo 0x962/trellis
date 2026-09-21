@@ -220,7 +220,8 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						{revision && <ReviewStack pr={pr} />}
 						{newCommits.length > 0 && (
 							<p role="status" className="review-notice">
-								New since you opened this review: {newCommits.map((commit) => commit.messageHeadline).join("; ")}. Read
+								New since you opened this review:{" "}
+								{newCommits.map((commit) => `${commit.oid.slice(0, 7)} ${commit.messageHeadline}`).join("; ")}. Read
 								these commits before you merge.
 							</p>
 						)}
