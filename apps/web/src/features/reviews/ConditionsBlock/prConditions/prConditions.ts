@@ -1,6 +1,6 @@
 import type { TicketPr, TicketSummary } from "@trellis/api";
+import type { Conditions, EvidenceCondition } from "../../conditionLines/conditionLines";
 import { flowsOf, sizeOf } from "../../ReviewPage/conditionsOf/conditionsOf";
-import type { Conditions, EvidenceCondition } from "../conditionLines/conditionLines";
 
 // `evidence`, `evidenceRequired` and `kind` come from the changed file list,
 // so the three are null together until the poller reads that list.

@@ -124,7 +124,6 @@ export { SheetFooter } from "./primitives/SheetFooter";
 export { SheetSection } from "./primitives/SheetSection";
 export { Skeleton, type SkeletonProps } from "./primitives/Skeleton";
 export { Spinner, type SpinnerProps } from "./primitives/Spinner";
-export { SplitButton, type SplitButtonProps } from "./primitives/SplitButton";
 export { Switch, type SwitchProps } from "./primitives/Switch";
 export { type TabItem, Tabs, type TabsProps } from "./primitives/Tabs";
 export { Textarea, type TextareaProps } from "./primitives/Textarea";

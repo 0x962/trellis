@@ -1,5 +1,5 @@
 import { ConditionsBlock as ConditionsBlockView } from "@trellis/ui/review";
-import { type ConditionLabel, type Conditions, conditionLines } from "../conditionLines/conditionLines";
+import { type ConditionLabel, type Conditions, conditionLines } from "../../conditionLines/conditionLines";
 
 // The four lines that the ticket page has room for.
 const shortLabels: readonly ConditionLabel[] = ["evidence", "checks", "threads", "ancestors"];
