@@ -90,6 +90,7 @@ export const useTableData = ({ project, view, expanded }: TableDataOptions): Tab
 			getNextPageParam: (last) => last.nextCursor ?? undefined,
 		}),
 		enabled: ready,
+		refetchOnWindowFocus: "always",
 	});
 	const rows = useMemo(() => active.data?.pages.flatMap((page) => page.items) ?? noRows, [active.data]);
 	const capped = rows.length >= rowCap && active.hasNextPage;
@@ -110,6 +111,7 @@ export const useTableData = ({ project, view, expanded }: TableDataOptions): Tab
 			getNextPageParam: (last) => last.nextCursor ?? undefined,
 		}),
 		enabled: inline,
+		refetchOnWindowFocus: "always",
 	});
 	const inlineRows = useMemo(() => inlinePass.data?.pages.flatMap((page) => page.items) ?? noRows, [inlinePass.data]);
 
@@ -118,12 +120,13 @@ export const useTableData = ({ project, view, expanded }: TableDataOptions): Tab
 		void inlinePass.fetchNextPage();
 	}, [inline, inlinePass.hasNextPage, inlinePass.isFetchingNextPage, inlinePass.fetchNextPage, inlineRows.length]);
 
-	const counts = useQuery(
-		orpc.tickets.counts.queryOptions({
+	const counts = useQuery({
+		...orpc.tickets.counts.queryOptions({
 			input:
 				project === undefined ? toCountsQuery(view, { statuses }) : { project, ...toCountsQuery(view, { statuses }) },
 		}),
-	);
+		refetchOnWindowFocus: "always",
+	});
 
 	const countOf = (category: StatusCategory) => {
 		const ids = new Set(allStatuses.filter((status) => status.category === category).map((status) => status.id));
@@ -142,6 +145,7 @@ export const useTableData = ({ project, view, expanded }: TableDataOptions): Tab
 				getNextPageParam: (last) => last.nextCursor ?? undefined,
 			}),
 			enabled,
+			refetchOnWindowFocus: "always",
 		});
 		return {
 			rows: enabled ? (query.data?.pages.flatMap((page) => page.items) ?? noRows) : noRows,

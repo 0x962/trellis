@@ -1,4 +1,10 @@
-import { eventApplierFor, type TicketSummary, type TicketUpdateInput, type TicketUpdateManyInput } from "@trellis/api";
+import {
+	eventApplierFor,
+	summaryOf,
+	type TicketSummary,
+	type TicketUpdateInput,
+	type TicketUpdateManyInput,
+} from "@trellis/api";
 import { toast } from "@trellis/ui";
 import { useMemo } from "react";
 import { useArchivedProjects } from "../../../../hooks/useArchivedProjects";
@@ -6,7 +12,7 @@ import { useApp } from "../../../../lib/appContext";
 import { batchesOf } from "../../../../lib/batches";
 import { conflictCurrent, conflictMessage, errorMessage } from "../../../../lib/conflict";
 import { failToast } from "../../../../lib/failToast";
-import { patchRows, readRow } from "../../utils/cacheRows";
+import { insertRow, patchRows, readRow } from "../../utils/cacheRows";
 
 // The fields a table edit changes on a row before the server answers.
 export type RowPatch = Partial<
@@ -111,6 +117,7 @@ export const useTicketMutations = (): TicketMutations => {
 					...(expectVersion ? { expectedVersion: current.version } : {}),
 				});
 				applier.endMutation(current.id, result);
+				insertRow(queryClient, summaryOf(result));
 			} catch (error) {
 				revert([current]);
 				const conflict = conflictCurrent(error);
@@ -143,7 +150,10 @@ export const useTicketMutations = (): TicketMutations => {
 						tickets: run.map((row) => row.identifier),
 						...fields,
 					});
-					for (const item of items) applySummary(item);
+					for (const item of items) {
+						applySummary(item);
+						insertRow(queryClient, item);
+					}
 					changed += run.length;
 				} catch (error) {
 					revert(runs.slice(index).flat());

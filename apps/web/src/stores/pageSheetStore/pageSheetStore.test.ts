@@ -3,7 +3,10 @@ import { pageSheetActions, usePageSheetStore } from "./pageSheetStore";
 
 const state = () => usePageSheetStore.getState();
 
-beforeEach(() => usePageSheetStore.setState({ ticket: null, pr: null, session: null, stats: null }));
+beforeEach(() => {
+	pageSheetActions.setRefreshBehindSheet(null);
+	usePageSheetStore.setState({ ticket: null, pr: null, session: null, stats: null });
+});
 
 test("the stack starts empty", () => {
 	expect(state()).toEqual({ ticket: null, pr: null, session: null, stats: null });
@@ -28,6 +31,18 @@ test("closing the pull request leaves the ticket open", () => {
 	pageSheetActions.closePullRequest();
 
 	expect(state()).toEqual({ ticket: "TRL-42", pr: null, session: null, stats: null });
+});
+
+test("closing a sheet refreshes the page behind it", () => {
+	let refreshes = 0;
+	pageSheetActions.setRefreshBehindSheet(() => refreshes++);
+	pageSheetActions.openTicket("TRL-42");
+	pageSheetActions.openPullRequest("https://github.com/o/r/pull/7");
+
+	pageSheetActions.closePullRequest();
+	pageSheetActions.closeTicket();
+
+	expect(refreshes).toBe(2);
 });
 
 test("closing the ticket closes the pull request over it", () => {

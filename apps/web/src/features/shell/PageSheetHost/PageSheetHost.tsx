@@ -1,4 +1,7 @@
-import { usePageSheetStore } from "../../../stores/pageSheetStore";
+import { useEffect } from "react";
+import { useApp } from "../../../lib/appContext";
+import { pageSheetActions, usePageSheetStore } from "../../../stores/pageSheetStore";
+import { refreshBehindSheet } from "../../../stores/pageSheetStore/refreshBehindSheet";
 import { EpicStatisticsSheet } from "./components/EpicStatisticsSheet";
 import { PullRequestSheet } from "./components/PullRequestSheet";
 import { SessionSheet } from "./components/SessionSheet";
@@ -11,7 +14,12 @@ import { TicketSheet } from "./components/TicketSheet";
 // `TicketSheet`, because Base UI reads the stack from the React tree. One
 // that opens from a list has no ticket under it and renders here.
 export function PageSheetHost() {
+	const { client, queryClient } = useApp();
 	const ticket = usePageSheetStore((state) => state.ticket);
+	useEffect(() => {
+		pageSheetActions.setRefreshBehindSheet(() => refreshBehindSheet({ client, queryClient }));
+		return () => pageSheetActions.setRefreshBehindSheet(null);
+	}, [client, queryClient]);
 	return (
 		<>
 			<TicketSheet />

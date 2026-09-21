@@ -1,5 +1,7 @@
 import { create } from "zustand";
 
+type RefreshBehindSheet = () => void;
+
 export type PageSheetState = {
 	// The ticket identifier in the ticket sheet, `TRL-42`, or null while no
 	// ticket sheet is open.
@@ -25,20 +27,38 @@ export const usePageSheetStore = create<PageSheetState>()(() => ({
 	stats: null,
 }));
 
+let refreshBehindSheet: RefreshBehindSheet | null = null;
+
+const sheetCount = (state: PageSheetState) =>
+	[state.ticket, state.pr, state.session, state.stats].filter((value) => value !== null).length;
+
+const setSheetState = (next: Partial<PageSheetState>) => {
+	let shouldRefresh = false;
+	usePageSheetStore.setState((state) => {
+		const updated = { ...state, ...next };
+		shouldRefresh = sheetCount(updated) < sheetCount(state);
+		return updated;
+	});
+	if (shouldRefresh) refreshBehindSheet?.();
+};
+
 export const pageSheetActions = {
+	setRefreshBehindSheet: (refresh: RefreshBehindSheet | null) => {
+		refreshBehindSheet = refresh;
+	},
 	// A ticket starts a new stack. The review and the session of the ticket
 	// before it close with it.
-	openTicket: (ticket: string) => usePageSheetStore.setState({ ticket, pr: null, session: null, stats: null }),
+	openTicket: (ticket: string) => setSheetState({ ticket, pr: null, session: null, stats: null }),
 	// A pull request opens over the ticket sheet, or alone when no ticket
 	// sheet is open. One sheet stands over a ticket, so the session of that
 	// ticket closes.
-	openPullRequest: (pr: string) => usePageSheetStore.setState({ pr, session: null, stats: null }),
+	openPullRequest: (pr: string) => setSheetState({ pr, session: null, stats: null }),
 	// The session of one agent run opens over the ticket sheet, or alone
 	// when no ticket sheet is open.
-	openSession: (session: string) => usePageSheetStore.setState({ session, pr: null, stats: null }),
-	openStats: (stats: string) => usePageSheetStore.setState({ ticket: null, pr: null, session: null, stats }),
-	closeTicket: () => usePageSheetStore.setState({ ticket: null, pr: null, session: null }),
-	closePullRequest: () => usePageSheetStore.setState({ pr: null }),
-	closeSession: () => usePageSheetStore.setState({ session: null }),
-	closeStats: () => usePageSheetStore.setState({ stats: null }),
+	openSession: (session: string) => setSheetState({ session, pr: null, stats: null }),
+	openStats: (stats: string) => setSheetState({ ticket: null, pr: null, session: null, stats }),
+	closeTicket: () => setSheetState({ ticket: null, pr: null, session: null }),
+	closePullRequest: () => setSheetState({ pr: null }),
+	closeSession: () => setSheetState({ session: null }),
+	closeStats: () => setSheetState({ stats: null }),
 };
