@@ -53,7 +53,7 @@ export function ResourceList({
 	return (
 		<section aria-busy={loading} aria-label="Resources" className="flex min-w-0 flex-col gap-1">
 			<SectionHeader
-				title="RESOURCES"
+				title="Resources"
 				count={count ?? (loading || error !== null ? undefined : rows.length)}
 				actions={
 					<>

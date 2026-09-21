@@ -63,7 +63,7 @@ describe("EpicResources", () => {
 	test("names the section and prints the count of the epic record", () => {
 		const html = render();
 
-		expect(html).toContain("RESOURCES");
+		expect(html).toContain("Resources");
 		expect(html).toContain("(5)");
 	});
 
