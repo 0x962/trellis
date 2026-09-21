@@ -23,8 +23,15 @@ Prove the change. A pull request without its evidence is not reviewable.
    It names the files, the files to leave alone, the verify commands, the review focus and the evidence owed.
 2. Record each dependency as an edge, never as prose:  trellis edit ${key}-43 --after ${key}-42
 3. Write the summary:  trellis summary write <pr> --headline "..." --why - --watch "..."
-   The headline is one instruction of 12 words or less. Start it with a verb.
-   The why is three sentences or less: the problem, the approach, the limit. 25 words each, active voice, present tense.
+   Write a simple, direct explanation of what changed and why, in plain words.
+   Say what was wrong or missing.
+   Say what changes for the person who uses the product.
+   Say how the pull request works in two or three direct sentences.
+   Use real names such as webhook, API, migration, and the page name.
+   Do not replace technical terms with childish words, metaphors, or analogies.
+   Avoid jargon only where a plain word says the same thing.
+   Avoid internal code names, file paths, and function names unless they are the point.
+   Write the headline as one sentence a person would say out loud.
    The watch line names one file and the reason to open it first, or says "nothing".
    Never write the size, the risk or the check counts. Trellis computes them and ignores yours.
    Rewrite the summary after every push.

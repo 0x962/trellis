@@ -11,9 +11,11 @@ export type RouteErrorProps = {
 
 // What a page shows when its load failed, with the cause the code holds.
 // A server that does not answer shows "Server offline", and the page loads
-// again on its own when the live connection comes back. A route file that
-// no longer exists on the server means a new build replaced the old one,
-// so Retry reloads the whole page to fetch the new files.
+// again on its own when the live connection comes back. A server that
+// refused the request shows that it refused, so a person never reads a
+// refusal as an empty Trellis. A route file that no longer exists on the
+// server means a new build replaced the old one, so Retry reloads the whole
+// page to fetch the new files.
 export function RouteError({ error }: RouteErrorProps) {
 	const router = useRouter();
 	const { live } = useApp();
@@ -40,6 +42,26 @@ export function RouteError({ error }: RouteErrorProps) {
 				action={
 					<Button size="md" onClick={() => window.location.reload()}>
 						Reload
+					</Button>
+				}
+			/>
+		);
+	}
+	if (kind === "refused") {
+		return (
+			<EmptyState
+				variant="page"
+				className="page-card"
+				title="Trellis could not sign in to its server"
+				description={
+					<>
+						The server at <span className="text-fg">{window.location.host}</span> refused this browser. trellis reads no
+						project and no name until the server accepts it.
+					</>
+				}
+				action={
+					<Button size="md" onClick={() => void router.invalidate()}>
+						Retry
 					</Button>
 				}
 			/>

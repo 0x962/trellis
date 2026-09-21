@@ -261,8 +261,8 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 										</section>
 									) : (
 										<>
-											<ConditionsBlock conditions={conditions} />
 											<ChangeSummary summary={summaryRow} headSha={headSha} />
+											<ConditionsBlock conditions={conditions} />
 											{revision && (
 												<ReviewFocusList
 													pr={pr}

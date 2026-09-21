@@ -216,7 +216,7 @@ describe("AgentLine", () => {
 		);
 
 		expect(textOf(html)).toContain("crisp-fjord: Edit apps/web/src/app.css");
-		expect(html).toContain("text-glimmer");
+		expect(html).toContain("text-film");
 		expect(html).toContain("truncate");
 		expect(html).toContain('data-agent-line="working"');
 	});
@@ -232,7 +232,7 @@ describe("AgentLine", () => {
 			/>,
 		);
 
-		expect(html).not.toContain("text-glimmer");
+		expect(html).not.toContain("text-film");
 		expect(html).toContain("agent-markdown");
 		expect(html).toContain('data-agent-line="message"');
 	});

@@ -8,13 +8,12 @@ const summary = {
 	watch: "ChatPage.vue. The end of the wait reads the thread, not the dialog.",
 };
 
-test("prints the headline, the why and the watch line", () => {
+test("prints the headline and the plain explanation", () => {
 	const html = renderToStaticMarkup(<ChangeSummary summary={summary} headShaMoved={false} />);
 
 	expect(html).toContain("Give the Operator message post a timeout.");
 	expect(html).toContain("postMessage has no timeout, so a stalled post leaves the dialog with both buttons greyed.");
-	expect(html).toContain("Watch this: ");
-	expect(html).toContain("ChatPage.vue. The end of the wait reads the thread, not the dialog.");
+	expect(html).not.toContain("Watch this: ");
 	expect(html).not.toContain("one revision behind");
 });
 
@@ -28,7 +27,7 @@ test("prints the warning line when the head SHA moved after the summary", () => 
 test("prints one faint line when no agent wrote the summary", () => {
 	const html = renderToStaticMarkup(<ChangeSummary summary={null} headShaMoved={false} />);
 
-	expect(html).toContain("The agent has not written the summary.");
+	expect(html).toContain("The agent has not written a summary yet.");
 	expect(html).not.toContain("Watch this: ");
 	expect(html).not.toContain("one revision behind");
 });

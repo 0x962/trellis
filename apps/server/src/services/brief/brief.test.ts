@@ -282,6 +282,7 @@ test("the brief prints a stable contract and evidence floor above the chain", as
 	expect(first.markdown).toContain(
 		'- Kind: backend\n- summary: trellis summary write <pr> --headline "..." --why - --watch "..."',
 	);
+	expect(first.markdown).toContain("Write a simple, direct explanation of what changed and why, in plain words.");
 	expect(first.markdown).toContain("Prove the service:");
 	expect(first.markdown).toContain(
 		"## Chain\n\n- Waits on:\n  - nothing\n- Ready: yes. No ticket holds this one back.\n- Releases:\n  - nothing",
