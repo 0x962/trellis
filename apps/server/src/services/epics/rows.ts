@@ -22,12 +22,12 @@ export type RawEpic = {
 	review: number;
 	done: number;
 	canceled: number;
-	milestone_count: number;
+	wave_count: number;
 	resource_count: number;
-	current_milestone_id: string | null;
-	current_milestone_slug: string | null;
-	current_milestone_name: string | null;
-	current_milestone_index: number | null;
+	current_wave_id: string | null;
+	current_wave_slug: string | null;
+	current_wave_name: string | null;
+	current_wave_index: number | null;
 	created_at: string;
 	updated_at: string;
 };
@@ -67,40 +67,40 @@ export const toCounts = (row: EpicCounts): EpicCounts => ({
 	canceled: row.canceled,
 });
 
-// A lateral join with the alias `cm`: the first milestone of the epic `e` in
-// position order that is open, with its place among the milestones from 1.
-// A milestone is open when it holds no ticket, or when one of its tickets is
+// A lateral join with the alias `cm`: the first wave of the epic `e` in
+// position order that is open, with its place among the waves from 1.
+// A wave is open when it holds no ticket, or when one of its tickets is
 // not done and not canceled, which is the rule of `stateOf`. An epic with no
-// open milestone gets NULL columns.
-const currentMilestone = sql`LEFT JOIN LATERAL (
+// open wave gets NULL columns.
+const currentWave = sql`LEFT JOIN LATERAL (
 		SELECT ordered.id, ordered.slug, ordered.name, ordered.index
 		FROM (
 			SELECT m.id, m.slug, m.name, (row_number() OVER (ORDER BY m.position, m.id))::int AS index
-			FROM milestones m WHERE m.epic_id = e.id
+			FROM waves m WHERE m.epic_id = e.id
 		) ordered
-		WHERE NOT EXISTS (SELECT 1 FROM tickets t WHERE t.milestone_id = ordered.id)
+		WHERE NOT EXISTS (SELECT 1 FROM tickets t WHERE t.wave_id = ordered.id)
 			OR EXISTS (
 				SELECT 1 FROM tickets t JOIN statuses s ON s.id = t.status_id
-				WHERE t.milestone_id = ordered.id AND s.category NOT IN ('done', 'canceled')
+				WHERE t.wave_id = ordered.id AND s.category NOT IN ('done', 'canceled')
 			)
 		ORDER BY ordered.index LIMIT 1
 	) cm ON true`;
 
 // `c` holds the counts of the tickets that point at the epic, and `cm` holds
-// the current milestone. An agent actor is `agent:<run id>`, and the run name
+// the current wave. An agent actor is `agent:<run id>`, and the run name
 // is its display name.
 export const epicSelect = sql`SELECT e.id, e.project_id, e.root_id, root.key AS root_key, e.slug, e.name, e.description,
 	e.actor_name, e.actor_kind, ${actorDisplayName(sql`e.actor_name`, sql`e.actor_kind`)} AS actor_display_name,
 	c.total, c.todo, c.started, c.review, c.done, c.canceled,
-	(SELECT count(*)::int FROM milestones WHERE epic_id = e.id) AS milestone_count,
+	(SELECT count(*)::int FROM waves WHERE epic_id = e.id) AS wave_count,
 	(SELECT count(*)::int FROM epic_resources WHERE epic_id = e.id) AS resource_count,
-	cm.id AS current_milestone_id, cm.slug AS current_milestone_slug, cm.name AS current_milestone_name,
-	cm.index AS current_milestone_index,
+	cm.id AS current_wave_id, cm.slug AS current_wave_slug, cm.name AS current_wave_name,
+	cm.index AS current_wave_index,
 	${iso(sql`e.created_at`)} AS created_at, ${iso(sql`e.updated_at`)} AS updated_at
 	FROM epics e
 	JOIN projects root ON root.id = e.root_id
 	${ticketCounts(sql`t.epic_id = e.id`)}
-	${currentMilestone}`;
+	${currentWave}`;
 
 // Open epics first, done epics after them; inside a group the latest change
 // comes first. The boolean is the `done` state, and false sorts before true.
@@ -118,16 +118,16 @@ export const toEpicSummary = (row: RawEpic, projectPath: string): EpicSummary =>
 		description: row.description,
 		counts,
 		state: stateOf(counts),
-		currentMilestone:
-			row.current_milestone_id === null
+		currentWave:
+			row.current_wave_id === null
 				? null
 				: {
-						id: row.current_milestone_id,
-						ref: `${epicRefOf(row)}/${row.current_milestone_slug}`,
-						name: row.current_milestone_name as string,
+						id: row.current_wave_id,
+						ref: `${epicRefOf(row)}/${row.current_wave_slug}`,
+						name: row.current_wave_name as string,
 					},
-		currentMilestoneIndex: row.current_milestone_index,
-		milestoneCount: row.milestone_count,
+		currentWaveIndex: row.current_wave_index,
+		waveCount: row.wave_count,
 		resourceCount: row.resource_count,
 		actor: {
 			name: row.actor_name,

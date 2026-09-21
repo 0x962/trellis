@@ -2,11 +2,11 @@ import { X } from "@phosphor-icons/react";
 import type {
 	EpicSummary,
 	Label,
-	MilestoneSummary,
 	Priority,
 	ProjectSummary,
 	StatusSummary,
 	TicketSummary,
+	WaveSummary,
 } from "@trellis/api";
 import { Button, cx, IconButton, Kbd, Tooltip, useReducedMotion } from "@trellis/ui";
 import { type ReactElement, useEffect, useRef, useState } from "react";
@@ -14,17 +14,17 @@ import { formatCount } from "../../../lib/format";
 import { rootKey } from "../../../lib/projectPath";
 import { EpicPicker } from "../../pickers/EpicPicker";
 import { LabelPicker } from "../../pickers/LabelPicker";
-import { MilestonePicker } from "../../pickers/MilestonePicker";
 import { PriorityPicker } from "../../pickers/PriorityPicker";
 import { ProjectPicker } from "../../pickers/ProjectPicker";
 import { StatusPicker } from "../../pickers/StatusPicker";
 import { TicketPicker } from "../../pickers/TicketPicker";
+import { WavePicker } from "../../pickers/WavePicker";
 
 // One control of the bar that opens a list of values. A table key opens one
 // of them: `s` opens "status", `p` opens "priority", `l` opens "labels",
 // `m` opens "project", `shift+p` opens "parent", and `e` opens "epic".
-// "milestone" has no key, so a click on Set wave opens it.
-export type BulkPicker = "status" | "priority" | "labels" | "project" | "parent" | "epic" | "milestone";
+// "wave" has no key, so a click on Set wave opens it.
+export type BulkPicker = "status" | "priority" | "labels" | "project" | "parent" | "epic" | "wave";
 
 export type BulkBarProps = {
 	// True while a selection exists. The bar stays mounted for its exit
@@ -47,7 +47,7 @@ export type BulkBarProps = {
 	mixedLabelIds: readonly string[];
 	// The ref of the epic every selected ticket holds. It is undefined when
 	// every selected ticket holds no epic, and when `epicMixed` is true. Set
-	// Set wave lists the milestones of this epic, so that control is disabled
+	// Set wave lists the waves of this epic, so that control is disabled
 	// without it.
 	epicRef?: string;
 	// True when the selected tickets hold different epics. The picker then
@@ -63,13 +63,13 @@ export type BulkBarProps = {
 	onProject: (path: string) => void;
 	onParent: (ticket: TicketSummary | null) => void;
 	onEpic: (epic: EpicSummary | null) => void;
-	// The ref of the milestone every selected ticket holds. It is undefined
-	// when every selected ticket holds no milestone.
-	milestoneRef?: string;
-	// True when the selected tickets hold different milestones. The picker
+	// The ref of the wave every selected ticket holds. It is undefined
+	// when every selected ticket holds no wave.
+	waveRef?: string;
+	// True when the selected tickets hold different waves. The picker
 	// then marks no row, not even None.
-	milestoneMixed: boolean;
-	onMilestone: (milestone: MilestoneSummary | null) => void;
+	waveMixed: boolean;
+	onWave: (wave: WaveSummary | null) => void;
 	onCopyIds: () => void;
 	onDelete: () => void;
 	onClear: () => void;
@@ -129,9 +129,9 @@ export function BulkBar({
 	onProject,
 	onParent,
 	onEpic,
-	milestoneRef,
-	milestoneMixed,
-	onMilestone,
+	waveRef,
+	waveMixed,
+	onWave,
 	onCopyIds,
 	onDelete,
 	onClear,
@@ -257,13 +257,13 @@ export function BulkBar({
 						</Button>
 					</Tooltip>
 				) : (
-					<MilestonePicker
+					<WavePicker
 						epic={epicRef}
-						value={milestoneRef}
-						mixed={milestoneMixed}
-						onPick={onMilestone}
-						open={openPicker === "milestone"}
-						onOpenChange={opener("milestone")}
+						value={waveRef}
+						mixed={waveMixed}
+						onPick={onWave}
+						open={openPicker === "wave"}
+						onOpenChange={opener("wave")}
 						side="top"
 						trigger={<Button size="sm">Set wave</Button>}
 					/>

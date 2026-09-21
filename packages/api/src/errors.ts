@@ -73,16 +73,15 @@ export const errors = {
 		message: "The URL is not a GitHub pull request URL.",
 		data: z.undefined(),
 	},
-	MILESTONE_OUTSIDE_EPIC: {
+	WAVE_OUTSIDE_EPIC: {
 		status: 400,
 		message:
-			"The milestone does not belong to the epic. A ticket takes a milestone of its own epic, and a milestone order names every milestone of the epic once.",
+			"The wave does not belong to the epic. A ticket takes a wave of its own epic, and a wave order names every wave of the epic once.",
 		data: z.undefined(),
 	},
 	AGENT_CANNOT_DELETE: {
 		status: 403,
-		message:
-			"An agent cannot delete a ticket, an epic, a milestone, a project, a label, or a label group without force.",
+		message: "An agent cannot delete a ticket, an epic, a wave, a project, a label, or a label group without force.",
 		data: z.undefined(),
 	},
 	NOT_FOUND: {

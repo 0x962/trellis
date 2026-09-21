@@ -33,7 +33,6 @@ import * as harnessAccounts from "./harnessAccounts/harnessAccounts.ts";
 import { prepareQuota } from "./harnessAccounts/quota.ts";
 import * as labelGroups from "./labelGroups.ts";
 import * as labels from "./labels.ts";
-import * as milestones from "./milestones/milestones.ts";
 import * as needsYou from "./needsYou/needsYou.ts";
 import * as notes from "./notes/notes.ts";
 import * as projects from "./projects.ts";
@@ -65,6 +64,7 @@ import * as tickets from "./tickets.ts";
 import * as timeline from "./timeline.ts";
 import { prepareAccounts as prepareUsageAccounts } from "./usage/accounts.ts";
 import { prepareReport as prepareUsageReport } from "./usage/usage.ts";
+import * as waves from "./waves/waves.ts";
 
 // The `family` selects the context shape. The `kind` sets the worker queue
 // priority before the service starts its transaction.
@@ -250,10 +250,10 @@ export const services = {
 	"epics.create": core("mutation", epics.create),
 	"epics.update": core("mutation", epics.update),
 	"epics.delete": core("mutation", epics.remove),
-	"milestones.create": core("mutation", milestones.create),
-	"milestones.update": core("mutation", milestones.update),
-	"milestones.reorder": core("mutation", milestones.reorder),
-	"milestones.delete": core("mutation", milestones.remove),
+	"waves.create": core("mutation", waves.create),
+	"waves.update": core("mutation", waves.update),
+	"waves.reorder": core("mutation", waves.reorder),
+	"waves.delete": core("mutation", waves.remove),
 	"attachments.list": io("read", attachments.list),
 	"attachments.upload": io("mutation", attachments.upload),
 	"attachments.get": io("read", attachments.get),

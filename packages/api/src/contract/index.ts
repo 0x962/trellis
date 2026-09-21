@@ -10,7 +10,6 @@ import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
 import { labelGroups } from "./labelGroups.ts";
 import { labels } from "./labels.ts";
-import { milestones } from "./milestones.ts";
 import { models } from "./models.ts";
 import { needsYou } from "./needsYou.ts";
 import { notes } from "./notes.ts";
@@ -26,6 +25,7 @@ import { system } from "./system.ts";
 import { tickets } from "./tickets.ts";
 import { timeline } from "./timeline.ts";
 import { usage } from "./usage.ts";
+import { waves } from "./waves.ts";
 
 // The whole API. Paths are relative to the `/api` mount of the OpenAPI
 // handler; the RPC handler at `/rpc` addresses a procedure by its dotted
@@ -48,7 +48,7 @@ export const contract = {
 	comments: oc.tag("comments").router(comments),
 	notes: oc.tag("notes").router(notes),
 	epics: oc.tag("epics").router(epics),
-	milestones: oc.tag("milestones").router(milestones),
+	waves: oc.tag("waves").router(waves),
 	attachments: oc.tag("attachments").router(attachments),
 	pullRequests: oc.tag("pull requests").router(pullRequests),
 	resources: oc.tag("resources").router(resources),

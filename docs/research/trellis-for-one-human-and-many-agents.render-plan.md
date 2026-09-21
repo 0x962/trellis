@@ -14,7 +14,7 @@ One entry per screen. Two renderers build in parallel. Neither renderer talks to
 
 ### 0.2 Data
 
-- Ticket exports: `scratchpad/OP-27.json` to `scratchpad/OP-54.json`. Each file is one ticket: `identifier`, `title`, `status.name`, `priority`, `milestone.name`, `description`, `prs[]` with `number`, `state`, `isDraft`, `headRef`, `baseRef`, `checks[]` with `name`, `workflow`, `bucket` (pass, fail, pending, skipping), `reviewState`, `mergedAt`; `attachments[]` with `filename`, `mime`, `size`, `sha256`.
+- Ticket exports: `scratchpad/OP-27.json` to `scratchpad/OP-54.json`. Each file is one ticket: `identifier`, `title`, `status.name`, `priority`, `wave.name`, `description`, `prs[]` with `number`, `state`, `isDraft`, `headRef`, `baseRef`, `checks[]` with `name`, `workflow`, `bucket` (pass, fail, pending, skipping), `reviewState`, `mergedAt`; `attachments[]` with `filename`, `mime`, `size`, `sha256`.
 - Wave counts: `scratchpad/ms.json`.
 - The three real images of OP-27 are on this machine, keyed by sha256:
   - before: `~/.trellis/attachments/fa/fa629876f8c3a7ec361c05ba2c6d8f600a5ac19f70ef8b3123c474efa9e5013d`, copy to `assets/op27-send-pending.png`

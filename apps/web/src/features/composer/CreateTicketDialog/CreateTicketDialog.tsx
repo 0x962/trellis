@@ -29,10 +29,10 @@ export function CreateTicketDialog() {
 	const [status, setStatus] = useState<string | undefined>();
 	const [priority, setPriority] = useState<Priority | undefined>();
 	const [parent, setParent] = useState<TicketSummary | null | undefined>();
-	// An epic ref and a milestone ref. `undefined` keeps the default of the
+	// An epic ref and a wave ref. `undefined` keeps the default of the
 	// page that opened the composer, and `null` is the choice of none.
 	const [epic, setEpic] = useState<string | null | undefined>();
-	const [milestone, setMilestone] = useState<string | null | undefined>();
+	const [wave, setWave] = useState<string | null | undefined>();
 	const [editing, setEditing] = useState(draft.description !== "");
 	const [titleMissing, setTitleMissing] = useState(false);
 	const [projectMissing, setProjectMissing] = useState(false);
@@ -55,7 +55,7 @@ export function CreateTicketDialog() {
 	const chosenStatus = bySlug(status ?? defaults.status) ?? defaultStatus(defaults.statuses);
 	const chosenPriority = priority ?? defaults.priority;
 	const chosenEpic = (epic === undefined ? defaults.epic : epic) ?? undefined;
-	const chosenMilestone = (milestone === undefined ? defaults.milestone : milestone) ?? undefined;
+	const chosenWave = (wave === undefined ? defaults.wave : wave) ?? undefined;
 	const description = draft.description === "" ? defaults.template : draft.description;
 	const dirty =
 		draft.title.trim() !== "" ||
@@ -108,7 +108,7 @@ export function CreateTicketDialog() {
 						priority: chosenPriority,
 						...(parentRef === undefined ? {} : { parent: parentRef }),
 						...(chosenEpic === undefined ? {} : { epic: chosenEpic }),
-						...(chosenMilestone === undefined ? {} : { milestone: chosenMilestone }),
+						...(chosenWave === undefined ? {} : { wave: chosenWave }),
 						...(labelDraft.labels.length === 0 ? {} : { labels: labelDraft.labels.map((label) => label.id) }),
 						...(editing ? { description } : {}),
 					});
@@ -190,7 +190,7 @@ export function CreateTicketDialog() {
 								parent={parent ?? null}
 								parentRef={parent === undefined ? defaults.parent : undefined}
 								epic={chosenEpic}
-								milestone={chosenMilestone}
+								wave={chosenWave}
 								labels={labelDraft.labels}
 								onProject={(next) => {
 									setProject(next);
@@ -201,9 +201,9 @@ export function CreateTicketDialog() {
 								onParent={setParent}
 								onEpic={(next) => {
 									setEpic(next);
-									setMilestone(null);
+									setWave(null);
 								}}
-								onMilestone={setMilestone}
+								onWave={setWave}
 								onLabel={labelDraft.toggle}
 							/>
 						</fieldset>

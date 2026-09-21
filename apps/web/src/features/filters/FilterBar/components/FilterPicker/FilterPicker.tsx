@@ -5,11 +5,11 @@ import type { ReactElement } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { rootKey } from "../../../../../lib/projectPath";
 import { epicItems } from "../../../../pickers/EpicPicker";
-import { useEpicMilestones } from "../../../../pickers/hooks/useEpicMilestones";
-import { milestoneGroups } from "../../../../pickers/MilestonePicker";
+import { useEpicWaves } from "../../../../pickers/hooks/useEpicWaves";
 import { priorityItems } from "../../../../pickers/PriorityPicker";
 import { projectItems } from "../../../../pickers/ProjectPicker";
 import { statusGroups } from "../../../../pickers/statusGroups";
+import { waveGroups } from "../../../../pickers/WavePicker";
 import {
 	ciLabels,
 	type FilterField,
@@ -43,8 +43,8 @@ export type FilterPickerProps = {
 	project?: string;
 	// The fields that the route fixes. The field list leaves them out.
 	hiddenFields?: readonly FilterField[];
-	// The epic ref that the route fixes. The Milestone values then list the
-	// milestones of that epic alone, because a milestone of another epic
+	// The epic ref that the route fixes. The Wave values then list the
+	// waves of that epic alone, because a wave of another epic
 	// matches no ticket of the page.
 	fixedEpic?: string;
 	onChange: (view: View) => void;
@@ -86,20 +86,17 @@ export function FilterPicker({
 			...orpc.actors.list.queryOptions({ input: {} }),
 			enabled: open && stage.kind === "values" && stage.field === "actor",
 		}).data ?? [];
-	// The epic field and the milestone field list the epics of the root of the
+	// The epic field and the wave field list the epics of the root of the
 	// viewed project. /all has no project, so it offers neither field.
 	const epics =
 		useQuery({
 			...orpc.epics.list.queryOptions({ input: { project: project === undefined ? "" : rootKey(project) } }),
 			enabled:
-				open &&
-				project !== undefined &&
-				stage.kind === "values" &&
-				(stage.field === "epic" || stage.field === "milestone"),
+				open && project !== undefined && stage.kind === "values" && (stage.field === "epic" || stage.field === "wave"),
 		}).data ?? [];
-	const milestoneStage = open && stage.kind === "values" && stage.field === "milestone";
-	const milestoneEpics = fixedEpic === undefined ? epics.map((epic) => epic.ref) : [fixedEpic];
-	const epicMilestones = useEpicMilestones(milestoneStage ? milestoneEpics : []);
+	const waveStage = open && stage.kind === "values" && stage.field === "wave";
+	const waveEpics = fixedEpic === undefined ? epics.map((epic) => epic.ref) : [fixedEpic];
+	const epicWaves = useEpicWaves(waveStage ? waveEpics : []);
 
 	const close = () => onOpenChange(false);
 
@@ -131,14 +128,14 @@ export function FilterPicker({
 			.filter((field) => !hiddenFields.includes(field))
 			.filter((field) => field !== "project" || project === undefined)
 			// The root project of a tree owns its labels, its epics, and their
-			// milestones. A route without a project reads no one tree, so it offers
-			// no Label field, no Epic field, and no Milestone field.
-			.filter((field) => (field !== "label" && field !== "epic" && field !== "milestone") || project !== undefined)
+			// waves. A route without a project reads no one tree, so it offers
+			// no Label field, no Epic field, and no Wave field.
+			.filter((field) => (field !== "label" && field !== "epic" && field !== "wave") || project !== undefined)
 			.map((field) => ({ id: field, label: fieldLabels[field] })),
 	];
 
 	// The Status and the Label values come in sections, so they take `groups`
-	// and leave `items` empty. The Milestone values take both: the No milestone
+	// and leave `items` empty. The Wave values take both: the No wave
 	// item, then one section per epic.
 	const sectioned = stage.kind === "values" && (stage.field === "status" || stage.field === "label");
 	const groups =
@@ -146,8 +143,8 @@ export function FilterPicker({
 			? statusGroups(statuses, { checked: checkedStatusIds(view, statuses) })
 			: stage.kind === "values" && stage.field === "label"
 				? labelValueGroups(labels, view.label ?? [])
-				: milestoneStage
-					? milestoneGroups(epicMilestones, { current: view.milestone })
+				: waveStage
+					? waveGroups(epicWaves, { current: view.wave })
 					: [];
 	const items =
 		stage.kind === "scope"
@@ -210,8 +207,8 @@ const valueItems = (
 				{ id: "none", label: "No epic", current: view.epic === "none" },
 				...epicItems(epics, { current: view.epic }),
 			];
-		case "milestone":
-			return [{ id: "none", label: "No wave", current: view.milestone === "none" }];
+		case "wave":
+			return [{ id: "none", label: "No wave", current: view.wave === "none" }];
 		case "pr":
 		case "ci":
 			return [
@@ -261,8 +258,8 @@ const valueChange = (view: View, field: FilterField, id: string, statuses: reado
 			return { ...view, parent: "none" };
 		case "epic":
 			return { ...view, epic: id };
-		case "milestone":
-			return { ...view, milestone: id };
+		case "wave":
+			return { ...view, wave: id };
 		case "pr":
 		case "ci":
 			return id.startsWith("pr:")

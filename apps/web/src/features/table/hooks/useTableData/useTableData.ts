@@ -68,7 +68,7 @@ const withCursor = (input: ListQueryInput, cursor: string | undefined): ListQuer
 // pages until the cursor runs out or the cap is reached. A closed group
 // reads its own pages of 50 once its header expands. Every page lives
 // under `tickets.list` keys, so a live patch and a mutation response reach
-// every row. Under the milestone grouping of one epic a third pass reads
+// every row. Under the wave grouping of one epic a third pass reads
 // every Done and Canceled row in 200-row pages, up to the cap, and the two
 // closed groups stay off.
 export const useTableData = ({ project, view, expanded }: TableDataOptions): TableData => {

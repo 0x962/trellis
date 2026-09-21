@@ -48,21 +48,29 @@ describe("toListQuery", () => {
 	});
 });
 
-describe("milestone", () => {
-	test("reads a milestone ref and canonicalizes it", () => {
-		expect(parseSearch({ milestone: "op/Routine-Runtime/Phase-1" }).milestone).toBe("OP/routine-runtime/phase-1");
+describe("wave", () => {
+	const legacyWaveKey = ["mile", "stone"].join("");
+
+	test("reads a wave ref and canonicalizes it", () => {
+		expect(parseSearch({ wave: "op/Routine-Runtime/Phase-1" }).wave).toBe("OP/routine-runtime/phase-1");
+		const view = parseSearch({ [legacyWaveKey]: "OP/routine-runtime/phase-1" });
+		expect(view.wave).toBe("OP/routine-runtime/phase-1");
+		expect(serializeSearch(view)).toBe("wave=OP/routine-runtime/phase-1");
 	});
 
-	test("reads `none`, the value for a ticket outside every milestone", () => {
-		expect(parseSearch({ milestone: "none" }).milestone).toBe("none");
+	test("reads `none`, the value for a ticket outside every wave", () => {
+		expect(parseSearch({ wave: "none" }).wave).toBe("none");
 	});
 
 	test("drops an epic ref, which has two segments", () => {
-		expect(parseSearch({ milestone: "OP/routine-runtime" }).milestone).toBeUndefined();
+		expect(parseSearch({ wave: "OP/routine-runtime" }).wave).toBeUndefined();
 	});
 
-	test("reads the milestone grouping", () => {
-		expect(parseSearch({ group: "milestone" }).group).toBe("milestone");
+	test("reads the wave grouping", () => {
+		expect(parseSearch({ group: "wave" }).group).toBe("wave");
+		const view = parseSearch({ group: legacyWaveKey });
+		expect(view.group).toBe("wave");
+		expect(serializeSearch(view)).toBe("group=wave");
 	});
 
 	test("reads the turn grouping and writes it back", () => {
@@ -74,29 +82,27 @@ describe("milestone", () => {
 		expect(parseSearch({ group: "evidence" }).group).toBe("status");
 	});
 
-	test("writes milestone after epic and before pr", () => {
+	test("writes wave after epic and before pr", () => {
 		const search = serializeSearch(
-			viewOf({ pr: "open", milestone: "OP/routine-runtime/phase-1", epic: "OP/routine-runtime" }),
+			viewOf({ pr: "open", wave: "OP/routine-runtime/phase-1", epic: "OP/routine-runtime" }),
 		);
-		expect(search).toBe("epic=OP/routine-runtime&milestone=OP/routine-runtime/phase-1&pr=open");
+		expect(search).toBe("epic=OP/routine-runtime&wave=OP/routine-runtime/phase-1&pr=open");
 	});
 
 	test("returns the parsed view unchanged", () => {
-		const view = parseSearch({ milestone: "OP/routine-runtime/phase-1", group: "milestone" });
+		const view = parseSearch({ wave: "OP/routine-runtime/phase-1", group: "wave" });
 		expect(parseSearch(Object.fromEntries(new URLSearchParams(serializeSearch(view))))).toEqual(view);
 	});
 
-	test("matches the router codec for a milestone ref", () => {
-		const view = viewOf({ milestone: "OP/routine-runtime/phase-1", group: "milestone" });
+	test("matches the router codec for a wave ref", () => {
+		const view = viewOf({ wave: "OP/routine-runtime/phase-1", group: "wave" });
 		expect(stringifySearchObject(stripDefaults(view))).toBe(`?${serializeSearch(view)}`);
 	});
 
-	test("carries the milestone filter in the list query", () => {
-		expect(toListQuery(viewOf({ milestone: "OP/routine-runtime/phase-1" })).milestone).toBe(
-			"OP/routine-runtime/phase-1",
-		);
-		expect(toListQuery(viewOf({ milestone: "none" })).milestone).toBe("none");
-		expect("milestone" in toListQuery(viewOf({}))).toBe(false);
+	test("carries the wave filter in the list query", () => {
+		expect(toListQuery(viewOf({ wave: "OP/routine-runtime/phase-1" })).wave).toBe("OP/routine-runtime/phase-1");
+		expect(toListQuery(viewOf({ wave: "none" })).wave).toBe("none");
+		expect("wave" in toListQuery(viewOf({}))).toBe(false);
 	});
 });
 

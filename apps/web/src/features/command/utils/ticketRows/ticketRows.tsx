@@ -50,7 +50,7 @@ const icons: Record<string, ReactNode> = {
 	"selection.project": <FolderSimple />,
 	"selection.parent": <ArrowElbowDownRight />,
 	"selection.epic": <Stack />,
-	"selection.milestone": <Flag />,
+	"selection.wave": <Flag />,
 	"selection.labels": <Tag />,
 	"selection.copyIds": <Copy />,
 	"selection.copyLinks": <Link />,
@@ -155,10 +155,10 @@ export const selectionRows = (deps: RowDeps): PaletteRow[] => {
 	// that belongs to one of them.
 	const project = selection[0]!.project.path;
 	const labels = labelStates(selection);
-	// A milestone belongs to one epic. The Set milestone row exists only when
+	// A wave belongs to one epic. The Set wave row exists only when
 	// every selected ticket belongs to the same epic, and its submenu lists
-	// the milestones of that epic.
-	const milestoneEpic = epicState(selection).epicRef;
+	// the waves of that epic.
+	const waveEpic = epicState(selection).epicRef;
 	const runs: Record<string, () => void> = {
 		"selection.status": () => deps.openSubmenu({ kind: "status", tickets: identifiers, project, bulk: true }),
 		"selection.priority": () => deps.openSubmenu({ kind: "priority", tickets: identifiers, bulk: true }),
@@ -178,8 +178,7 @@ export const selectionRows = (deps: RowDeps): PaletteRow[] => {
 		// same epics as a row under the root.
 		"selection.epic": () =>
 			deps.openSubmenu({ kind: "epic", tickets: identifiers, project: rootKey(project), bulk: true }),
-		"selection.milestone": () =>
-			deps.openSubmenu({ kind: "milestone", tickets: identifiers, epic: milestoneEpic!, bulk: true }),
+		"selection.wave": () => deps.openSubmenu({ kind: "wave", tickets: identifiers, epic: waveEpic!, bulk: true }),
 		"selection.copyIds": run(deps, () => void copyIds(action, identifiers)),
 		"selection.copyLinks": run(deps, () => void copyLinks(action, identifiers)),
 		// The bulk path asks its own question before it deletes, and the
@@ -188,9 +187,7 @@ export const selectionRows = (deps: RowDeps): PaletteRow[] => {
 		"selection.selectAll": run(deps, () => deps.selectionOwner?.selectAll()),
 		"selection.clear": run(deps, () => deps.selectionOwner?.clear()),
 	};
-	const items = itemsOfSection("selection").filter(
-		(item) => item.id !== "selection.milestone" || milestoneEpic !== undefined,
-	);
+	const items = itemsOfSection("selection").filter((item) => item.id !== "selection.wave" || waveEpic !== undefined);
 	return items.map((item) => ({
 		value: item.id,
 		label: item.label,

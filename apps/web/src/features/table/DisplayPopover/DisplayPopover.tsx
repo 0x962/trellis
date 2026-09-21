@@ -36,7 +36,7 @@ const groups = [
 	{ value: "project", label: "Project" },
 	{ value: "parent", label: "Parent" },
 	{ value: "epic", label: "Epic" },
-	{ value: "milestone", label: "Wave" },
+	{ value: "wave", label: "Wave" },
 	{ value: "turn", label: "Turn" },
 	{ value: "pr", label: "PR" },
 ] as const;
@@ -80,7 +80,7 @@ export function DisplayPopover({
 	// The table shows the Done and Canceled rows under the status grouping,
 	// and under the wave and turn groupings of one epic.
 	const oneEpic = epicFixed || (search.epic !== undefined && search.epic !== "none");
-	const showsClosed = group === "status" || ((group === "milestone" || group === "turn") && oneEpic);
+	const showsClosed = group === "status" || ((group === "wave" || group === "turn") && oneEpic);
 	const descending = sort.startsWith("-");
 	const field = sortFields.find((entry) => entry.value === sort.replace(/^-/, "")) ?? sortFields[1];
 

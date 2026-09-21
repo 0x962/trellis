@@ -3,10 +3,10 @@ import {
 	type EpicSummary,
 	epicBandLine,
 	epicCountLine,
-	epicMilestoneHeading,
-	type MilestoneSummary,
+	epicWaveHeading,
 	pullRequestRowLine,
 	type TicketSummary,
+	type WaveSummary,
 } from "@trellis/api";
 import { shortZonedDateTime } from "@trellis/api/time";
 import { defineCommand } from "citty";
@@ -26,7 +26,7 @@ import {
 	ticketList,
 } from "../output.ts";
 import { planGuideText } from "./epics/planGuide.ts";
-import { countsText, milestoneList, progress } from "./milestones.ts";
+import { countsText, progress, waveList } from "./waves.ts";
 
 const epicArg = {
 	type: "positional" as const,
@@ -53,11 +53,9 @@ const epicList: ListSpec<EpicSummary> = {
 	identifier: (row) => row.ref,
 };
 
-// The current milestone and its place among the milestones of the epic.
+// The current wave and its place among the waves of the epic.
 const current = (epic: EpicSummary) =>
-	epic.currentMilestone === null
-		? "-"
-		: cell(`${epic.currentMilestone.name} (${epic.currentMilestoneIndex} of ${epic.milestoneCount})`);
+	epic.currentWave === null ? "-" : cell(`${epic.currentWave.name} (${epic.currentWaveIndex} of ${epic.waveCount})`);
 
 // The description is not a field: it has many lines, so `show` prints it
 // below the block.
@@ -101,42 +99,42 @@ const prLines = (ticket: TicketSummary): string[] => ticket.prRows.map((pr) => `
 const ticketSection = (title: string, tickets: Epic["tickets"], color: boolean): string =>
 	`\n${heading(title, color)}${renderTable<TicketSummary>(tickets, ticketList.columns, prLines)}`;
 
-// `epic.currentMilestone` is a link. This finds the milestone row of the
+// `epic.currentWave` is a link. This finds the wave row of the
 // epic with the same id, because the count line reads its counts.
-const currentMilestone = (epic: Epic): MilestoneSummary | undefined =>
-	epic.milestones.find((milestone) => milestone.id === epic.currentMilestone?.id);
+const currentWave = (epic: Epic): WaveSummary | undefined =>
+	epic.waves.find((wave) => wave.id === epic.currentWave?.id);
 
-// An epic with no milestone prints one ticket table. An epic with milestones
-// prints the milestone table, then one ticket table for each milestone in
-// position order. A milestone heading carries the name, the ref, the word
-// `current` on the milestone the epic works in now, and the counts of that
-// milestone. The "no milestone" table prints only when a ticket of the epic
-// holds no milestone.
+// An epic with no wave prints one ticket table. An epic with waves
+// prints the wave table, then one ticket table for each wave in
+// position order. A wave heading carries the name, the ref, the word
+// `current` on the wave the epic works in now, and the counts of that
+// wave. The "no wave" table prints only when a ticket of the epic
+// holds no wave.
 const renderTickets = (epic: Epic, color: boolean): string => {
-	if (epic.milestones.length === 0) return ticketSection("tickets", epic.tickets, color);
-	const table = `\n${heading("milestones", color)}${renderTable(epic.milestones, milestoneList.columns)}`;
-	const sections = epic.milestones.map((milestone) =>
+	if (epic.waves.length === 0) return ticketSection("tickets", epic.tickets, color);
+	const table = `\n${heading("waves", color)}${renderTable(epic.waves, waveList.columns)}`;
+	const sections = epic.waves.map((wave) =>
 		ticketSection(
-			epicMilestoneHeading(milestone, milestone.id === epic.currentMilestone?.id),
-			epic.tickets.filter((ticket) => ticket.milestone?.id === milestone.id),
+			epicWaveHeading(wave, wave.id === epic.currentWave?.id),
+			epic.tickets.filter((ticket) => ticket.wave?.id === wave.id),
 			color,
 		),
 	);
-	const loose = epic.tickets.filter((ticket) => ticket.milestone === null);
-	const rest = loose.length === 0 ? "" : ticketSection("no milestone", loose, color);
+	const loose = epic.tickets.filter((ticket) => ticket.wave === null);
+	const rest = loose.length === 0 ? "" : ticketSection("no wave", loose, color);
 	return `${table}${sections.join("")}${rest}`;
 };
 
 // The band of the epic page: the tickets by status, then what the person can
-// do in the milestone the epic works in now. An epic with every milestone
+// do in the wave the epic works in now. An epic with every wave
 // done prints the band line alone.
 const renderBand = (epic: Epic): string => {
-	const milestone = currentMilestone(epic);
-	const countLine = milestone === undefined ? "" : `${epicCountLine(milestone)}\n`;
+	const wave = currentWave(epic);
+	const countLine = wave === undefined ? "" : `${epicCountLine(wave)}\n`;
 	return `\n${epicBandLine(epic.counts)}\n${countLine}`;
 };
 
-// The record block, the band, the description, then the milestones and the
+// The record block, the band, the description, then the waves and the
 // tickets.
 const renderEpic = (epic: Epic, color: boolean): string => {
 	const block = renderRecord(epic, epicRecord.fields);
@@ -145,7 +143,7 @@ const renderEpic = (epic: Epic, color: boolean): string => {
 };
 
 const show = defineCommand({
-	meta: { name: "show", description: "Show one epic, its milestones, and its tickets" },
+	meta: { name: "show", description: "Show one epic, its waves, and its tickets" },
 	args: { epic: epicArg },
 	async run(context) {
 		const ctx = contextOf(context);

@@ -26,8 +26,8 @@ const nextNumber = async (tx: Tx, rootId: string) => {
 	return (found[0] as { ticket_counter: number }).ticket_counter;
 };
 
-// A new ticket starts outside every epic and every milestone.
-const unplaced: Placement = { epicId: null, epicRef: null, milestoneId: null, milestoneRef: null };
+// A new ticket starts outside every epic and every wave.
+const unplaced: Placement = { epicId: null, epicRef: null, waveId: null, waveRef: null };
 
 // The markdown a new ticket of this project starts with.
 const ticketTemplate = async (tx: Tx, projectId: string) => {
@@ -65,9 +65,9 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	const completedAt = status.category === "done" || status.category === "canceled" ? ctx.now : null;
 	await tx.execute(
 		sql`INSERT INTO tickets (id, project_id, root_id, number, title, description, priority, status_id, parent_id,
-				epic_id, milestone_id, position, version, started_at, completed_at, created_at, updated_at)
+				epic_id, wave_id, position, version, started_at, completed_at, created_at, updated_at)
 			VALUES (${id}, ${project.id}, ${project.rootId}, ${number}, ${input.title}, ${description}, ${priority},
-				${status.id}, ${parent?.id ?? null}, ${placement.epicId}, ${placement.milestoneId}, ${position}, 1, ${startedAt},
+				${status.id}, ${parent?.id ?? null}, ${placement.epicId}, ${placement.waveId}, ${position}, 1, ${startedAt},
 				${completedAt}, ${ctx.now}, ${ctx.now})`,
 	);
 	const dependencies =
@@ -93,7 +93,7 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 		"project",
 		...(parent === null ? [] : ["parent"]),
 		...(placement.epicId === null ? [] : ["epic"]),
-		...(placement.milestoneId === null ? [] : ["milestone"]),
+		...(placement.waveId === null ? [] : ["wave"]),
 		...(labels === 0 ? [] : ["labels"]),
 		...(dependencies.length === 0 ? [] : ["after"]),
 	];

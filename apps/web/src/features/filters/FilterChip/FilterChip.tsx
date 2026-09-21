@@ -1,11 +1,11 @@
 import { ArrowElbowDownRight, Clock, Flag, FolderOpen, GitPullRequest, Stack, Tag, User } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import type { EpicSummary, MilestoneSummary, StatusSummary } from "@trellis/api";
+import type { EpicSummary, StatusSummary, WaveSummary } from "@trellis/api";
 import { Chip, LabelDot, PriorityIcon, StatusIcon } from "@trellis/ui";
 import type { ReactElement } from "react";
 import { useApp } from "../../../lib/appContext";
 import { rootKey } from "../../../lib/projectPath";
-import { useEpicMilestones } from "../../pickers/hooks/useEpicMilestones";
+import { useEpicWaves } from "../../pickers/hooks/useEpicWaves";
 import {
 	type FilterField,
 	fieldLabels,
@@ -60,7 +60,7 @@ const iconOf = (
 			return <ArrowElbowDownRight />;
 		case "epic":
 			return <Stack />;
-		case "milestone":
+		case "wave":
 			return <Flag />;
 		case "pr":
 		case "ci":
@@ -82,10 +82,10 @@ const namesOf = (
 	statuses: readonly StatusSummary[],
 	labels: readonly FilterLabel[],
 	epics: readonly EpicSummary[],
-	milestones: readonly MilestoneSummary[],
+	waves: readonly WaveSummary[],
 ): string[] => {
 	if (field !== "category") {
-		return values.map((value) => valueLabel(field, value, statuses, labels, epics, milestones));
+		return values.map((value) => valueLabel(field, value, statuses, labels, epics, waves));
 	}
 	return [...new Set(statuses.filter((status) => values.includes(status.category)).map((status) => status.name))];
 };
@@ -94,10 +94,10 @@ const namesOf = (
 const shortList = (names: string[]) =>
 	names.length > 2 ? `${names.slice(0, 2).join(", ")} +${names.length - 2}` : names.join(", ");
 
-// The epic ref inside a milestone ref: `OP/routine-runtime/phase-1` gives
+// The epic ref inside a wave ref: `OP/routine-runtime/phase-1` gives
 // `OP/routine-runtime`. A ULID and `none` name no epic.
-const epicRefOf = (milestone: string) => {
-	const parts = milestone.split("/");
+const epicRefOf = (wave: string) => {
+	const parts = wave.split("/");
 	return parts.length === 3 ? [`${parts[0]}/${parts[1]}`] : [];
 };
 
@@ -113,9 +113,7 @@ export function FilterChip({ field, view, statuses, labels, project, onChange, o
 			enabled: field === "epic" && project !== undefined,
 		}).data ?? [];
 	const values = valuesOf(view, field);
-	const milestones = useEpicMilestones(field === "milestone" ? values.flatMap(epicRefOf) : []).flatMap(
-		(entry) => entry.milestones,
-	);
+	const waves = useEpicWaves(field === "wave" ? values.flatMap(epicRefOf) : []).flatMap((entry) => entry.waves);
 	const negated = view.not?.includes(field as NegatableField) ?? false;
 	const canNegate = negatable.includes(field as NegatableField);
 	const label = fieldLabels[field];
@@ -125,7 +123,7 @@ export function FilterChip({ field, view, statuses, labels, project, onChange, o
 					const actor = actors.find((entry) => `${entry.kind}:${entry.name}` === value);
 					return actor?.displayName ?? valueLabel(field, value, statuses);
 				})
-			: namesOf(field, values, statuses, labels, epics, milestones);
+			: namesOf(field, values, statuses, labels, epics, waves);
 	return (
 		<span data-filter-chip={field} className="contents">
 			<Chip

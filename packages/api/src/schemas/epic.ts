@@ -2,9 +2,9 @@ import { z } from "zod";
 import { EpicRefStringSchema, ProjectRefStringSchema } from "../refs.ts";
 import { ActorRefSchema } from "./actor.ts";
 import { EpicCountsSchema, EpicStateSchema } from "./epicCounts.ts";
-import { MilestoneLinkSchema, MilestoneSummarySchema } from "./milestone.ts";
 import { booleanString, IsoDateTimeSchema, slugPattern, UlidSchema } from "./primitives.ts";
 import { TicketSummarySchema } from "./ticket.ts";
+import { WaveLinkSchema, WaveSummarySchema } from "./wave.ts";
 
 export { type EpicCounts, EpicCountsSchema, type EpicState, EpicStateSchema } from "./epicCounts.ts";
 export { type EpicLink, EpicLinkSchema } from "./epicLink.ts";
@@ -35,9 +35,9 @@ export const EpicSlugSchema = z
 	.regex(slugPattern, "Expected a slug: lower-case letters, digits, and single dashes.");
 
 // One row of the epic list. `actor` is the last writer of the record.
-// `currentMilestone` is the first milestone in position order whose state is
-// open, and null when the epic has no open milestone. `currentMilestoneIndex`
-// is its place among the milestones of the epic, from 1, and null with it.
+// `currentWave` is the first wave in position order whose state is
+// open, and null when the epic has no open wave. `currentWaveIndex`
+// is its place among the waves of the epic, from 1, and null with it.
 export const EpicSummarySchema = z.object({
 	id: UlidSchema,
 	projectId: UlidSchema,
@@ -48,9 +48,9 @@ export const EpicSummarySchema = z.object({
 	description: z.string(),
 	counts: EpicCountsSchema,
 	state: EpicStateSchema,
-	currentMilestone: MilestoneLinkSchema.nullable(),
-	currentMilestoneIndex: z.number().int().min(1).nullable(),
-	milestoneCount: z.number().int().min(0),
+	currentWave: WaveLinkSchema.nullable(),
+	currentWaveIndex: z.number().int().min(1).nullable(),
+	waveCount: z.number().int().min(0),
 	resourceCount: z.number().int().min(0),
 	actor: ActorRefSchema,
 	createdAt: IsoDateTimeSchema,
@@ -58,10 +58,10 @@ export const EpicSummarySchema = z.object({
 });
 export type EpicSummary = z.infer<typeof EpicSummarySchema>;
 
-// The `epics.get` shape: the summary, the milestones of the epic in position
+// The `epics.get` shape: the summary, the waves of the epic in position
 // order, and every ticket of the epic in ticket number order.
 export const EpicSchema = EpicSummarySchema.extend({
-	milestones: z.array(MilestoneSummarySchema),
+	waves: z.array(WaveSummarySchema),
 	tickets: z.array(TicketSummarySchema),
 });
 export type Epic = z.infer<typeof EpicSchema>;

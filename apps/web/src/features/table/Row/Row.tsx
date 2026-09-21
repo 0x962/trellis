@@ -1,11 +1,11 @@
 import type {
 	EpicSummary,
 	Label,
-	MilestoneSummary,
 	Priority,
 	ProjectSummary,
 	StatusSummary,
 	TicketSummary,
+	WaveSummary,
 } from "@trellis/api";
 import { cx, TicketId } from "@trellis/ui";
 import { type MouseEvent, memo, type ReactNode, useRef } from "react";
@@ -38,7 +38,7 @@ export type RowChange =
 	| { project: string }
 	| { parent: TicketSummary | null }
 	| { epic: EpicSummary | null }
-	| { milestone: MilestoneSummary | null }
+	| { wave: WaveSummary | null }
 	| { label: Label; checked: boolean };
 
 export type RowProps = {
@@ -179,10 +179,10 @@ export const Row = memo(function Row({
 		created: <span className="text-sm text-fg-muted tabular">{compactRelativeTime(ticket.createdAt)}</span>,
 		parent: ticket.parent === null ? null : <TicketId id={ticket.parent.identifier} size="sm" />,
 		epic: ticket.epic === null ? null : <EpicCell epic={ticket.epic} />,
-		milestone:
-			ticket.milestone === null ? null : (
-				<span className="truncate text-sm text-fg-muted" title={ticket.milestone.name}>
-					{ticket.milestone.name}
+		wave:
+			ticket.wave === null ? null : (
+				<span className="truncate text-sm text-fg-muted" title={ticket.wave.name}>
+					{ticket.wave.name}
 				</span>
 			),
 		subtickets:

@@ -175,7 +175,7 @@ export function TicketTable({
 	// draws a minus. A pick on a check removes the label everywhere, and a
 	// pick on a minus adds it everywhere.
 	const labels = labelStates(selectedTickets());
-	// The epic and the milestone each picker marks as current. The pickers
+	// The epic and the wave each picker marks as current. The pickers
 	// mark no row when the selection disagrees.
 	const epics = epicState(selectedTickets());
 
@@ -219,13 +219,13 @@ export function TicketTable({
 	});
 
 	// A table of one epic creates the ticket inside that epic, and inside the
-	// milestone of the group whose header opened the composer.
+	// wave of the group whose header opened the composer.
 	const openNew = (group?: TableGroup) =>
 		composerActions.open({
 			...(group?.status === undefined ? {} : { status: group.status.slug }),
 			...(project === undefined ? {} : { project }),
 			epic: group?.epicRef ?? (view.epic === "none" ? undefined : view.epic),
-			milestone: group?.milestone?.ref,
+			wave: group?.wave?.ref,
 		});
 
 	useTableHotkeys({
@@ -315,7 +315,7 @@ export function TicketTable({
 				onProject={(ref) => void applyChange(selectedTickets(), { project: ref }, "selection")}
 				onParent={(parent) => void applyChange(selectedTickets(), { parent }, "selection")}
 				onEpic={(epic) => void applyChange(selectedTickets(), { epic }, "selection")}
-				onMilestone={(picked) => void applyChange(selectedTickets(), { milestone: picked }, "selection")}
+				onWave={(picked) => void applyChange(selectedTickets(), { wave: picked }, "selection")}
 				onCopyIds={copyIds}
 				onDelete={() => requestDelete(selection.selected)}
 				onClear={clearSelection}

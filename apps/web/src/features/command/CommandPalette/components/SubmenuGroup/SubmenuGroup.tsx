@@ -13,7 +13,7 @@ export type SubmenuGroupProps = {
 // The values one submenu offers. The five lists it can need come from the
 // server: the statuses of a project, the tickets a parent is picked from,
 // the labels of a project tree, the epics of a project tree, and the
-// milestones of an epic. A query that is off never sends its placeholder
+// waves of an epic. A query that is off never sends its placeholder
 // input.
 export function SubmenuGroup({ submenu, deps }: SubmenuGroupProps) {
 	const { orpc } = useApp();
@@ -38,8 +38,8 @@ export function SubmenuGroup({ submenu, deps }: SubmenuGroupProps) {
 		enabled: submenu.kind === "epic",
 	});
 	const epic = useQuery({
-		...orpc.epics.get.queryOptions({ input: { epic: submenu.kind === "milestone" ? submenu.epic : "" } }),
-		enabled: submenu.kind === "milestone",
+		...orpc.epics.get.queryOptions({ input: { epic: submenu.kind === "wave" ? submenu.epic : "" } }),
+		enabled: submenu.kind === "wave",
 	});
 	const rows = submenuRows(submenu, deps, {
 		statuses: statuses.data?.statuses ?? [],
@@ -47,7 +47,7 @@ export function SubmenuGroup({ submenu, deps }: SubmenuGroupProps) {
 		labels: labels.data?.labels ?? [],
 		labelGroups: labels.data?.groups ?? [],
 		epics: epics.data ?? [],
-		milestones: epic.data?.milestones ?? [],
+		waves: epic.data?.waves ?? [],
 	});
 	return <Command.Group heading={submenuHeadings[submenu.kind]}>{drawRows(rows)}</Command.Group>;
 }

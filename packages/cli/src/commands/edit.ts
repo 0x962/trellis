@@ -16,7 +16,7 @@ export default defineCommand({
 		priority: { type: "enum", options: [...priorities], description: "New priority" },
 		parent: { type: "string", description: "New parent ref, or none to clear it" },
 		epic: { type: "string", description: "New epic ref, or none to clear it" },
-		milestone: { type: "string", description: "New milestone ref, or none to clear it; a ref also sets the epic" },
+		wave: { type: "string", description: "New wave ref, or none to clear it; a ref also sets the epic" },
 		project: { type: "string", description: "New project ref" },
 		status: { type: "string", description: "New status ref" },
 		after: { type: "string", description: "Ticket ref to wait for; repeat for more tickets" },
@@ -40,7 +40,7 @@ export default defineCommand({
 			args.priority !== undefined ||
 			args.parent !== undefined ||
 			args.epic !== undefined ||
-			args.milestone !== undefined ||
+			args.wave !== undefined ||
 			args.project !== undefined ||
 			args.status !== undefined ||
 			addLabels !== undefined ||
@@ -67,7 +67,7 @@ export default defineCommand({
 			priority: args.priority as Priority | undefined,
 			parent: noneToNull(args.parent),
 			epic: noneToNull(args.epic),
-			milestone: noneToNull(args.milestone),
+			wave: noneToNull(args.wave),
 			project: args.project,
 			status: args.status,
 			addLabels,

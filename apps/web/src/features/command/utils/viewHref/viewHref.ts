@@ -5,7 +5,7 @@ import { parseSearch, serializeSearch, stripDefaults, viewOf } from "../../../fi
 // The URL of the current route with `patch` applied to its view. The query
 // string keeps the grammar order and writes no default, so a list route
 // takes it without a redirect. The epic page has its own defaults: there
-// `group=status` is a choice that the URL must carry, and `group=milestone`
+// `group=status` is a choice that the URL must carry, and `group=wave`
 // is the default that the URL leaves out, so `epicQueryString` writes the
 // query of that route.
 export const viewHref = (pathname: string, search: Record<string, unknown>, patch: Record<string, unknown>): string => {

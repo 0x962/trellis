@@ -47,7 +47,7 @@ export type TableBodyProps = {
 	onEditingChange: (id: string, field: EditField | null) => void;
 	onRowChange: (ticket: TicketSummary, change: RowChange) => void;
 	onToggleGroup: (key: string) => void;
-	// Opens the composer with the status, or the epic and the milestone, of
+	// Opens the composer with the status, or the epic and the wave, of
 	// the group.
 	onCreateInGroup: (group: TableGroup) => void;
 	// True while the bulk bar shows. The list then gets 72 px of room under

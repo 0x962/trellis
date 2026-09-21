@@ -1,4 +1,4 @@
-import type { CiState, EpicSummary, MilestoneSummary, PrFilter, Priority, StatusSummary } from "@trellis/api";
+import type { CiState, EpicSummary, PrFilter, Priority, StatusSummary, WaveSummary } from "@trellis/api";
 import { priorityLabels } from "../pickers/PriorityPicker";
 import { categoryLabels } from "../pickers/statusGroups";
 import type { NegatableField, View } from "./grammar";
@@ -13,7 +13,7 @@ export type FilterField =
 	| "project"
 	| "parent"
 	| "epic"
-	| "milestone"
+	| "wave"
 	| "pr"
 	| "ci"
 	| "updated"
@@ -28,7 +28,7 @@ export const pickerFields: readonly FilterField[] = [
 	"project",
 	"parent",
 	"epic",
-	"milestone",
+	"wave",
 	"pr",
 	"updated",
 	"created",
@@ -44,7 +44,7 @@ export const chipFields: readonly FilterField[] = [
 	"project",
 	"parent",
 	"epic",
-	"milestone",
+	"wave",
 	"pr",
 	"ci",
 	"updated",
@@ -60,7 +60,7 @@ export const fieldLabels: Record<FilterField, string> = {
 	project: "Project",
 	parent: "Parent",
 	epic: "Epic",
-	milestone: "Wave",
+	wave: "Wave",
 	pr: "PR",
 	ci: "PR",
 	updated: "Updated",
@@ -109,8 +109,8 @@ const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slic
 // The name of one value, as the chip prints it. `labels` holds the labels of
 // the project tree the route shows, in the same way `statuses` holds its
 // statuses. `epics` holds the epics of the viewed project; an epic value the
-// list does not hold prints its ref. `milestones` holds the milestones of the
-// epic that the milestone value names; a value the list does not hold prints
+// list does not hold prints its ref. `waves` holds the waves of the
+// epic that the wave value names; a value the list does not hold prints
 // its ref.
 export const valueLabel = (
 	field: FilterField,
@@ -118,7 +118,7 @@ export const valueLabel = (
 	statuses: readonly StatusSummary[],
 	labels: readonly FilterLabel[] = [],
 	epics: readonly EpicSummary[] = [],
-	milestones: readonly MilestoneSummary[] = [],
+	waves: readonly WaveSummary[] = [],
 ): string => {
 	switch (field) {
 		case "status": {
@@ -150,10 +150,10 @@ export const valueLabel = (
 			const epic = epics.find((entry) => entry.ref === value || entry.id === value);
 			return epic?.name ?? value;
 		}
-		case "milestone": {
+		case "wave": {
 			if (value === "none") return "No wave";
-			const milestone = milestones.find((entry) => entry.ref === value || entry.id === value);
-			return milestone?.name ?? value;
+			const wave = waves.find((entry) => entry.ref === value || entry.id === value);
+			return wave?.name ?? value;
 		}
 		case "project":
 			return value.split(".").join("/");

@@ -62,7 +62,7 @@ export function EpicProgress({ epic, routeKey, running, splat, search, phone, wo
 			{next !== null && (
 				<>
 					<p className="text-sm text-fg-muted">
-						Current: <span className="font-medium text-fg">{next.milestone.name}</span>
+						Current: <span className="font-medium text-fg">{next.wave.name}</span>
 					</p>
 					<div className="flex flex-wrap items-center gap-x-2 gap-y-1">
 						{next.counts.map((count, index) => (

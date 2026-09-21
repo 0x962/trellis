@@ -15,10 +15,10 @@ export type ProjectRef = { kind: "ulid"; id: string } | { kind: "identifier"; ke
 // reads as a project ref, which joins its segments with dots.
 export type EpicRef = { kind: "ulid"; id: string } | { kind: "identifier"; key: string; slug: string };
 
-// A milestone ref joins the root key, the epic slug, and the milestone slug
+// A wave ref joins the root key, the epic slug, and the wave slug
 // with slashes. The three segments keep it apart from an epic ref, which
 // holds two.
-export type MilestoneRef =
+export type WaveRef =
 	| { kind: "ulid"; id: string }
 	| { kind: "identifier"; key: string; epicSlug: string; slug: string };
 
@@ -109,11 +109,11 @@ const epicRef = defineRef(
 	formatEpicRef,
 );
 
-const milestoneIdentifierPattern = /^([A-Z][A-Z0-9]{1,9})\/([A-Z0-9]+(?:-[A-Z0-9]+)*)\/([A-Z0-9]+(?:-[A-Z0-9]+)*)$/i;
+const waveIdentifierPattern = /^([A-Z][A-Z0-9]{1,9})\/([A-Z0-9]+(?:-[A-Z0-9]+)*)\/([A-Z0-9]+(?:-[A-Z0-9]+)*)$/i;
 
-const parseMilestoneRef = (value: string): MilestoneRef | undefined => {
+const parseWaveRef = (value: string): WaveRef | undefined => {
 	if (isUlid(value)) return { kind: "ulid", id: value.toUpperCase() };
-	const match = milestoneIdentifierPattern.exec(value);
+	const match = waveIdentifierPattern.exec(value);
 	if (match === null) return undefined;
 	return {
 		kind: "identifier",
@@ -123,13 +123,12 @@ const parseMilestoneRef = (value: string): MilestoneRef | undefined => {
 	};
 };
 
-const formatMilestoneRef = (ref: MilestoneRef) =>
-	ref.kind === "ulid" ? ref.id : `${ref.key}/${ref.epicSlug}/${ref.slug}`;
+const formatWaveRef = (ref: WaveRef) => (ref.kind === "ulid" ? ref.id : `${ref.key}/${ref.epicSlug}/${ref.slug}`);
 
-const milestoneRef = defineRef(
-	"Expected a milestone ref: a ULID or KEY/epic-slug/milestone-slug, for example OP/routine-runtime/phase-1.",
-	parseMilestoneRef,
-	formatMilestoneRef,
+const waveRef = defineRef(
+	"Expected a wave ref: a ULID or KEY/epic-slug/wave-slug, for example OP/routine-runtime/phase-1.",
+	parseWaveRef,
+	formatWaveRef,
 );
 
 // A status name is 1 to 40 characters. The colon is reserved for the
@@ -220,7 +219,7 @@ const actorHeader = defineRef(actorHeaderGrammar, parseActorHeader, formatActorH
 export const TicketRefSchema = ticketRef.schema;
 export const ProjectRefSchema = projectRef.schema;
 export const EpicRefSchema = epicRef.schema;
-export const MilestoneRefSchema = milestoneRef.schema;
+export const WaveRefSchema = waveRef.schema;
 export const StatusRefSchema = statusRef.schema;
 export const LabelRefSchema = labelRef.schema;
 export const LabelGroupRefSchema = labelGroupRef.schema;
@@ -231,7 +230,7 @@ export const ActorHeaderSchema = actorHeader.schema;
 export const TicketRefStringSchema = ticketRef.canonical;
 export const ProjectRefStringSchema = projectRef.canonical;
 export const EpicRefStringSchema = epicRef.canonical;
-export const MilestoneRefStringSchema = milestoneRef.canonical;
+export const WaveRefStringSchema = waveRef.canonical;
 export const StatusRefStringSchema = statusRef.canonical;
 export const LabelRefStringSchema = labelRef.canonical;
 export const LabelGroupRefStringSchema = labelGroupRef.canonical;

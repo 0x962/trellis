@@ -69,7 +69,7 @@ describe("the columns of the epic route", () => {
 describe("autoHide and the epic route", () => {
 	test("keeps both columns, because neither repeats a grouping", () => {
 		const epic = columnVisibility(undefined, true, "epic");
-		const result = autoHide(epic, { group: "milestone", rows: [row([])] });
+		const result = autoHide(epic, { group: "wave", rows: [row([])] });
 
 		expect(result.waits).toBe(true);
 		expect(result.releases).toBe(true);
@@ -77,7 +77,7 @@ describe("autoHide and the epic route", () => {
 
 	test("keeps both columns while the list is empty", () => {
 		const epic = columnVisibility(undefined, true, "epic");
-		const result = autoHide(epic, { group: "milestone", rows: [] });
+		const result = autoHide(epic, { group: "wave", rows: [] });
 
 		expect(result.waits).toBe(true);
 		expect(result.releases).toBe(true);

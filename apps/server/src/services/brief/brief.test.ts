@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { ActorRef, Epic, MilestoneSummary, TicketSummary } from "@trellis/api";
+import type { ActorRef, Epic, TicketSummary, WaveSummary } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { ServiceCtx } from "../../context.ts";
@@ -7,7 +7,7 @@ import { createCache } from "../../db/cache.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
 import { create as createComment } from "../comments.ts";
-import { epicHeaderLine, epicLines, milestoneHeaderLine, resultsLines } from "../epics/text.ts";
+import { epicHeaderLine, epicLines, resultsLines, waveHeaderLine } from "../epics/text.ts";
 import { setContract } from "../tickets/contract.ts";
 import { create as createTicket } from "../tickets/create.ts";
 import { assignmentInstruction, get as getBrief } from "./brief.ts";
@@ -72,16 +72,16 @@ test("an assignment skips the description section of a ticket with no descriptio
 	expect(text).toContain("- URL: http://127.0.0.1:4521/t/OP-27\n\n## Assignment");
 });
 
-// The fields of a ticket row the epic sections read. `milestoneId` is null
-// for a ticket outside every milestone. The status `Done` is in the done
+// The fields of a ticket row the epic sections read. `waveId` is null
+// for a ticket outside every wave. The status `Done` is in the done
 // category, and every other status is in the todo category.
-const member = (id: string, identifier: string, title: string, status: string, milestoneId: string | null = null) =>
+const member = (id: string, identifier: string, title: string, status: string, waveId: string | null = null) =>
 	({
 		id,
 		identifier,
 		title,
 		status: { name: status, category: status === "Done" ? "done" : "todo" },
-		milestone: milestoneId === null ? null : { id: milestoneId },
+		wave: waveId === null ? null : { id: waveId },
 	}) as unknown as TicketSummary;
 
 const epic: Epic = {
@@ -94,14 +94,14 @@ const epic: Epic = {
 	description: "# Routine runtime\n\nStep 1 creates the runtime.\nStep 2 wires the poller.",
 	counts: { total: 4, todo: 1, started: 1, review: 0, done: 1, canceled: 1 },
 	state: "open",
-	currentMilestone: null,
-	currentMilestoneIndex: null,
-	milestoneCount: 0,
+	currentWave: null,
+	currentWaveIndex: null,
+	waveCount: 0,
 	resourceCount: 0,
 	actor: { name: "dana", kind: "human" },
 	createdAt: "2026-09-18T10:00:00.000Z",
 	updatedAt: "2026-09-18T10:00:00.000Z",
-	milestones: [],
+	waves: [],
 	tickets: [
 		member("01J00000000000000000000029", "OP-29", "Create the runtime", "Done"),
 		member("01J00000000000000000000030", "OP-30", "Wire the poller", "In Progress"),
@@ -128,7 +128,7 @@ test("the epic sections print the plan and every ticket in number order, and mar
 	]);
 });
 
-const phase = (id: string, slug: string, name: string, position: number): MilestoneSummary => ({
+const phase = (id: string, slug: string, name: string, position: number): WaveSummary => ({
 	id,
 	epicId: epic.id,
 	ref: `OP/routine-runtime/${slug}`,
@@ -147,14 +147,14 @@ const phase1 = phase("01J00000000000000000000041", "phase-1", "Phase 1: run stat
 const phase2 = phase("01J00000000000000000000042", "phase-2", "Phase 2: unattended runs", 1);
 const phase3 = phase("01J00000000000000000000043", "phase-3", "Phase 3: proposals", 2);
 
-test("the milestone header line counts done tickets against the tickets that are not canceled", () => {
-	expect(milestoneHeaderLine(phase1)).toBe("- Milestone: Phase 1: run state (OP/routine-runtime/phase-1), 1 of 2 done");
+test("the wave header line counts done tickets against the tickets that are not canceled", () => {
+	expect(waveHeaderLine(phase1)).toBe("- Wave: Phase 1: run state (OP/routine-runtime/phase-1), 1 of 2 done");
 });
 
-test("the epic tickets of an epic with milestones group by milestone in position order, then no milestone", () => {
+test("the epic tickets of an epic with waves group by wave in position order, then no wave", () => {
 	const grouped: Epic = {
 		...epic,
-		milestones: [phase1, phase2, phase3],
+		waves: [phase1, phase2, phase3],
 		tickets: [
 			member("01J00000000000000000000029", "OP-29", "Create the runtime", "Done", phase1.id),
 			member("01J00000000000000000000030", "OP-30", "Wire the poller", "In Progress", phase2.id),
@@ -176,16 +176,16 @@ test("the epic tickets of an epic with milestones group by milestone in position
 		"",
 		"### Phase 3: proposals",
 		"",
-		"### No milestone",
+		"### No wave",
 		"",
 		"- OP-32 Old approach (Canceled)",
 	]);
 });
 
-test("the results section lists the done tickets of each earlier milestone with the last agent comment", () => {
+test("the results section lists the done tickets of each earlier wave with the last agent comment", () => {
 	const grouped: Epic = {
 		...epic,
-		milestones: [phase1, phase2, phase3],
+		waves: [phase1, phase2, phase3],
 		tickets: [
 			member("01J00000000000000000000029", "OP-29", "Create the runtime", "Done", phase1.id),
 			member("01J00000000000000000000030", "OP-30", "Wire the poller", "Done", phase2.id),
@@ -198,10 +198,10 @@ test("the results section lists the done tickets of each earlier milestone with 
 	const bodies = new Map([
 		["01J00000000000000000000029", "The runtime is in runtime.ts.\n\nRun: bun test runtime"],
 		["01J00000000000000000000030", "x".repeat(1300)],
-		["01J00000000000000000000034", "A ticket of the same milestone."],
+		["01J00000000000000000000034", "A ticket of the same wave."],
 	]);
 	expect(resultsLines(grouped, "01J00000000000000000000033", bodies)).toEqual([
-		"## Results of earlier milestones",
+		"## Results of earlier waves",
 		"",
 		"### Phase 1: run state",
 		"",
@@ -216,7 +216,7 @@ test("the results section lists the done tickets of each earlier milestone with 
 		`  ${"x".repeat(1200)}`,
 	]);
 	expect(resultsLines(grouped, "01J00000000000000000000030", new Map())).toEqual([
-		"## Results of earlier milestones",
+		"## Results of earlier waves",
 		"",
 		"### Phase 1: run state",
 		"",

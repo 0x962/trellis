@@ -53,7 +53,7 @@ const breadcrumbLinkClass =
 
 // One epic: the progress band, the plan, the resources, and the tickets of
 // the epic in the ticket table of the project routes. The table search is
-// the URL search with `epic` fixed to this epic, and it groups by milestone
+// the URL search with `epic` fixed to this epic, and it groups by wave
 // (by turn below 768 px) when the URL names no group. An epic belongs to a
 // root and holds tickets of any project of that root, so the table reads
 // the root with its sub-projects, and the rows match the counts of the band
@@ -77,7 +77,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	const [deleting, setDeleting] = useState(false);
 	// The assigned runs come from the query that the actor cell of every row
 	// reads, so the order of the rows costs no request of its own. Inside a
-	// milestone group the tickets that wait for the person come first, then
+	// wave group the tickets that wait for the person come first, then
 	// the tickets to start, then the running tickets.
 	const assignedRunsQuery = useQuery(orpc.agentRuns.list.queryOptions({ input: { assigned: true } }));
 	const assignedRuns = assignedRunsQuery.data;

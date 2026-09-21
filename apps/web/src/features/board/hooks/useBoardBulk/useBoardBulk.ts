@@ -2,11 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import type {
 	EpicSummary,
 	Label,
-	MilestoneSummary,
 	Priority,
 	ProjectSummary,
 	StatusSummary,
 	TicketSummary,
+	WaveSummary,
 } from "@trellis/api";
 import { type ReactNode, useState } from "react";
 import { useStableCallback } from "../../../../hooks/useStableCallback";
@@ -33,7 +33,7 @@ export type BoardBulk = {
 	project: (path: string) => void;
 	parent: (ticket: TicketSummary | null) => void;
 	epic: (epic: EpicSummary | null) => void;
-	milestone: (milestone: MilestoneSummary | null) => void;
+	wave: (wave: WaveSummary | null) => void;
 	copyIds: () => void;
 	remove: () => void;
 	// The confirm dialog of `useBulkWrite`. The board renders it, or a write
@@ -132,18 +132,18 @@ export const useBoardBulk = ({ rows, project, onDeleted }: BoardBulkOptions): Bo
 		const value = picked === null ? null : { id: picked.id, ref: picked.ref, name: picked.name };
 		const words = value === null ? "Clear the epic" : `Set the epic to ${value.name}`;
 		void write.update(rows, { epic: value?.ref ?? null }, words, {
-			// A milestone belongs to one epic, so the server clears the milestone
+			// A wave belongs to one epic, so the server clears the wave
 			// of a card that leaves its epic. The patch does the same on the card.
-			row: (row) => ({ epic: value, milestone: row.epic?.id === value?.id ? row.milestone : null }),
+			row: (row) => ({ epic: value, wave: row.epic?.id === value?.id ? row.wave : null }),
 			verb: (subject) => `The epic of ${subject} did not change.`,
 		});
 	});
 
-	const milestone = useStableCallback((picked: MilestoneSummary | null) => {
+	const wave = useStableCallback((picked: WaveSummary | null) => {
 		const value = picked === null ? null : { id: picked.id, ref: picked.ref, name: picked.name };
 		const words = value === null ? "Clear the wave" : `Set the wave to ${value.name}`;
-		void write.update(rows, { milestone: value?.ref ?? null }, words, {
-			row: { milestone: value },
+		void write.update(rows, { wave: value?.ref ?? null }, words, {
+			row: { wave: value },
 			verb: (subject) => `The wave of ${subject} did not change.`,
 		});
 	});
@@ -161,7 +161,7 @@ export const useBoardBulk = ({ rows, project, onDeleted }: BoardBulkOptions): Bo
 		project: moveToProject,
 		parent,
 		epic,
-		milestone,
+		wave,
 		copyIds,
 		remove,
 		confirmDialog: write.confirmDialog,

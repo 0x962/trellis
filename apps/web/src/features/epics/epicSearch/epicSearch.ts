@@ -5,7 +5,7 @@ import { serializeSearch, stripDefaults, type View, viewDefaults, viewOf } from 
 // every other list route. The epic page lists the tickets of every project
 // of the root when the URL names no scope, because an epic belongs to a
 // root and holds tickets of any project of that root. When the URL names no
-// group, the page groups by milestone at 768 px and up. Below 768 px it
+// group, the page groups by wave at 768 px and up. Below 768 px it
 // groups by turn. On a phone a person answers questions and reads states,
 // and the turn groups put those first. The keys stay in the order of
 // `searchParamOrder`.
@@ -14,7 +14,7 @@ import { serializeSearch, stripDefaults, type View, viewDefaults, viewOf } from 
 // group on a phone, and each device writes the group that differs from its
 // own default.
 const pageDefaults = (phone: boolean) =>
-	({ group: phone ? "turn" : "milestone", scope: "subprojects" }) as const satisfies Partial<View>;
+	({ group: phone ? "turn" : "wave", scope: "subprojects" }) as const satisfies Partial<View>;
 type PageKey = keyof ReturnType<typeof pageDefaults>;
 const pageKeys: readonly PageKey[] = ["group", "scope"];
 

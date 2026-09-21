@@ -4,14 +4,14 @@ import { viewHref } from "./viewHref";
 describe("viewHref", () => {
 	test("a list route writes no default", () => {
 		expect(viewHref("/p/OP/table", { priority: ["high"] }, { group: "status" })).toBe("/p/OP/table?priority=high");
-		expect(viewHref("/p/OP/table", {}, { group: "milestone" })).toBe("/p/OP/table?group=milestone");
+		expect(viewHref("/p/OP/table", {}, { group: "wave" })).toBe("/p/OP/table?group=wave");
 	});
 
-	test("the epic page writes the status group and leaves out the milestone group", () => {
+	test("the epic page writes the status group and leaves out the wave group", () => {
 		expect(viewHref("/p/OP/epics/routine-runtime", {}, { group: "status" })).toBe(
 			"/p/OP/epics/routine-runtime?group=status",
 		);
-		expect(viewHref("/p/OP/epics/routine-runtime", { group: "status" }, { group: "milestone" })).toBe(
+		expect(viewHref("/p/OP/epics/routine-runtime", { group: "status" }, { group: "wave" })).toBe(
 			"/p/OP/epics/routine-runtime",
 		);
 	});

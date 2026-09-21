@@ -19,8 +19,8 @@ import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
 import { resolveEpic } from "../epics/resolve.ts";
 import { labelFilterIds } from "../labelRefs.ts";
-import { resolveMilestone } from "../milestones/resolve.ts";
 import { resolveProject, resolveTicket, toSummary } from "../refs.ts";
+import { resolveWave } from "../waves/resolve.ts";
 
 type Query = z.infer<typeof BoardQuerySchema>;
 
@@ -96,8 +96,8 @@ const toFilter = async (ctx: ServiceCtx, tx: Tx, query: Query) => {
 	if (query.epic !== undefined) {
 		filter.epic = query.epic === "none" ? "none" : (await resolveEpic(ctx, tx, query.epic)).id;
 	}
-	if (query.milestone !== undefined) {
-		filter.milestone = query.milestone === "none" ? "none" : (await resolveMilestone(ctx, tx, query.milestone)).id;
+	if (query.wave !== undefined) {
+		filter.wave = query.wave === "none" ? "none" : (await resolveWave(ctx, tx, query.wave)).id;
 	}
 	if (query.pr !== undefined) filter.pr = query.pr;
 	if (query.ci !== undefined) filter.ci = query.ci;

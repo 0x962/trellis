@@ -72,8 +72,8 @@ Plan an epic. A plan that produces several tickets is an epic. The epic descript
 - Backend evidence floor: summary, verify record, test proof, contract table.
 - Read the full evidence rules in `docs/EVIDENCE.md`.
 Create the epic: trellis epics create --project KEY --name "..." --description - < plan.md
-Create each wave in order: trellis milestones create KEY/<epic-slug> --name "Foundation"
-Create each ticket in its wave: trellis create -p KEY --milestone KEY/<epic-slug>/<wave-slug> -t "Server: ..."
+Create each wave in order: trellis waves create KEY/<epic-slug> --name "Foundation"
+Create each ticket in its wave: trellis create -p KEY --wave KEY/<epic-slug>/<wave-slug> -t "Server: ..."
 Read the epic, its waves with their counts, the tickets of each wave, and what is next: trellis epics show KEY/<epic-slug>
 When you work on an epic ticket, read the plan and the results of the earlier waves first: trellis brief KEY-42
 

@@ -60,7 +60,7 @@ const countsOptions = (context: AppContext, ref: string, search: Partial<View>, 
 // segments. The URL keeps slashes, and the API ref joins with dots. The URL
 // omits the default view.
 export const Route = createFileRoute("/p/$")({
-	// The epic page groups by milestone (by turn below 768 px) when the URL
+	// The epic page groups by wave (by turn below 768 px) when the URL
 	// names no group, and lists the sub-projects when the URL names no scope.
 	// So `group=status` and `scope=self` are choices there, and the validated
 	// search keeps them. On every other view `beforeLoad` redirects them away
