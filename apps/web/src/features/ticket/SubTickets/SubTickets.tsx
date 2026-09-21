@@ -40,6 +40,7 @@ export function SubTickets({ ticket }: SubTicketsProps) {
 		<section aria-label="Sub-tickets" className="flex flex-col gap-2">
 			<SectionHeader
 				title="Sub-tickets"
+				textCase="caps"
 				count={`${done}/${total}`}
 				actions={
 					<Button

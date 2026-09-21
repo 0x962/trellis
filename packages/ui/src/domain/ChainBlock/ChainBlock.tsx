@@ -61,14 +61,14 @@ export function ChainBlock({ waitsOn, releases, ready, answeredQuestions }: Chai
 	if (waitsOn.length === 0 && releases.length === 0 && applies === 0) {
 		return (
 			<section aria-label="The chain" className="flex min-w-0 flex-col">
-				<SectionHeader title="THE CHAIN" />
+				<SectionHeader title="The chain" textCase="caps" />
 				<EmptyState description="The ticket waits for nothing, and no ticket waits for it." />
 			</section>
 		);
 	}
 	return (
 		<section aria-label="The chain" className="flex min-w-0 flex-col">
-			<SectionHeader title="THE CHAIN" />
+			<SectionHeader title="The chain" textCase="caps" />
 			<dl className="flex min-w-0 flex-col">
 				<BlockRow label="Waits on">
 					{waitsOn.length === 0 ? (

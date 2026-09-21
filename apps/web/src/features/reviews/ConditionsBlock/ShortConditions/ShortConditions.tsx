@@ -11,5 +11,5 @@ const shortLabels: readonly ConditionLabel[] = ["evidence", "checks", "threads",
 // ready.
 export function ShortConditions({ conditions }: { conditions: Conditions }) {
 	const lines = conditionLines(conditions).filter((line) => shortLabels.includes(line.label));
-	return <ConditionsBlockView lines={lines} />;
+	return <ConditionsBlockView lines={lines} level={3} />;
 }

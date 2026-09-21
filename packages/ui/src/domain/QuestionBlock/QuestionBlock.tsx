@@ -65,7 +65,7 @@ export function QuestionBlock({
 	if (options.length === 0) {
 		return (
 			<section aria-label="The question" className="flex min-w-0 flex-col">
-				<SectionHeader title="THE QUESTION" />
+				<SectionHeader title="The question" textCase="caps" />
 				<EmptyState description="The ticket lists no option to pick." />
 			</section>
 		);
@@ -78,7 +78,7 @@ export function QuestionBlock({
 	return (
 		<section aria-label="The question" className="flex min-w-0 flex-col gap-4">
 			<div className="flex min-w-0 flex-col">
-				<SectionHeader title="THE QUESTION" />
+				<SectionHeader title="The question" textCase="caps" />
 				<ChoiceGroup
 					className="-mx-3 mt-1"
 					label="The options of this question"
@@ -88,21 +88,21 @@ export function QuestionBlock({
 				/>
 			</div>
 			{recommendation !== null && recommendation.reason !== "" && (
-				<div className="flex min-w-0 flex-col gap-1">
-					<h3 className="text-xs font-medium text-fg-faint">{recommendationLabel(recommendation)}</h3>
+				<div className="flex min-w-0 flex-col">
+					<SectionHeader level={3} title={recommendationLabel(recommendation)} textCase="caps" />
 					<p className="text-sm text-fg">{recommendation.reason}</p>
 				</div>
 			)}
 			{releases.length > 0 && (
 				<div className="flex min-w-0 flex-col">
-					<SectionHeader level={3} title="THIS ANSWER RELEASES" />
+					<SectionHeader level={3} title="This answer releases" textCase="caps" />
 					{releases.map((release) => (
 						<TicketLine key={release.identifier} {...release} />
 					))}
 				</div>
 			)}
 			<div className="flex min-w-0 flex-col gap-2">
-				<SectionHeader level={3} title="YOUR ANSWER" />
+				<SectionHeader level={3} title="Your answer" textCase="caps" />
 				<Textarea
 					label="Your reason"
 					hideLabel

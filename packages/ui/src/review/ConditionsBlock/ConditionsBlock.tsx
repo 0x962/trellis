@@ -12,24 +12,29 @@ export type ConditionLine = {
 };
 
 export type ConditionsBlockProps = {
-	// The word after `READY TO MERGE`. Without it, the block prints the lines
-	// under `MERGE CONDITIONS`, for a caller that cannot measure every
-	// condition.
+	// The word after the title `Ready to merge`. Without it, the block prints
+	// the lines under the title `Merge conditions`, for a caller that cannot
+	// measure every condition.
 	readiness?: ConditionsReadiness;
 	// The lines print in the order of this array.
 	lines: readonly ConditionLine[];
+	// 2 draws the block as a region of the page. 3 draws it as a part of a
+	// region, such as the pull request card of the ticket page.
+	level?: 2 | 3;
 };
 
 // The merge conditions of a pull request, in words. Do not add a button or a
 // link here. No condition may disable a control.
-export function ConditionsBlock({ readiness, lines }: ConditionsBlockProps) {
+export function ConditionsBlock({ readiness, lines, level = 2 }: ConditionsBlockProps) {
 	return (
 		<section aria-label="Merge conditions" className="flex min-w-0 flex-col">
 			{readiness === undefined ? (
-				<SectionHeader title="MERGE CONDITIONS" />
+				<SectionHeader level={level} title="Merge conditions" textCase="caps" />
 			) : (
 				<SectionHeader
-					title="READY TO MERGE"
+					level={level}
+					title="Ready to merge"
+					textCase="caps"
 					actions={
 						<span role="status" aria-live="polite">
 							{readiness}

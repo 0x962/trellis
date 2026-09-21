@@ -30,6 +30,7 @@ export function FlowRuns({ ticket }: { ticket: string }) {
 			<SectionHeader
 				level={3}
 				title="Flows"
+				textCase="caps"
 				count={executions.data?.length}
 				actions={
 					<Tooltip content="Start a flow">
