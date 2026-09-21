@@ -4,6 +4,7 @@ import { useApp } from "../../../../../lib/appContext";
 import { errorMessage } from "../../../../../lib/conflict";
 import { useCollapsedGroups } from "../../../../table/hooks/useCollapsedGroups";
 import { ResourceList } from "../../../ResourceList";
+import { resourceUrl } from "../../../ResourceList/resourceUrl";
 
 export type EpicResourcesProps = {
 	// The pathname of the epic page, which keys the stored collapse state.
@@ -20,40 +21,32 @@ const resourcesKey = "resources";
 const collapsedResources: readonly string[] = [resourcesKey];
 const noResources: readonly Resource[] = [];
 
-// `resources.add` stores a url for a link and a blob for an image and a file.
-// A doc carries its text in the record, so its row waits for the editor.
-const resourceAddress = (resource: Resource): string | null => {
-	if (resource.kind === "doc") return null;
-	if (resource.kind === "link") return resource.url;
-	return resource.blob!.url;
-};
-
-// The "Resources" section of the epic page: the resource list of the epic,
-// under the header that collapses it. The collapse state lives in `uiStore`
-// under `<routeKey>#resources`, and the section starts shut, because the band,
-// the plan and the resources share one area that is at most half of the page
-// card. `uiStore` writes the whole list of a key at the first toggle, so the
-// resources take a key of their own, apart from the plan and the table groups.
-// The list reads the resources of the epic only while the section is open.
-// `trellis resource add` adds a resource, so the header carries no Add control.
+// The "Resources" section of the epic page. The section starts shut, because
+// the band, the plan and the resources share one area that is at most half of
+// the page card. `uiStore` writes the whole list of a key at the first toggle,
+// so the resources take a key of their own, apart from the plan and the table
+// groups. The header sticks to the top of that area, so Hide stays in reach at
+// every scroll position. `trellis resource add` adds a resource, so the header
+// carries no Add control.
 export function EpicResources({ routeKey, epic, resourceCount }: EpicResourcesProps) {
 	const { orpc } = useApp();
 	const { isCollapsed, toggle } = useCollapsedGroups(`${routeKey}#resources`, collapsedResources);
-	const open = !isCollapsed(resourcesKey);
-	const list = useQuery({ ...orpc.resources.list.queryOptions({ input: { epic } }), enabled: open });
+	const expanded = !isCollapsed(resourcesKey);
+	const list = useQuery({ ...orpc.resources.list.queryOptions({ input: { epic } }), enabled: expanded });
 	const resources = list.data ?? noResources;
 	return (
 		<div className="px-5 pb-4 max-md:px-4">
 			<ResourceList
 				resources={resources}
 				count={resourceCount}
-				loading={open && list.isPending}
+				loading={expanded && list.isPending}
 				error={list.error === null ? null : errorMessage(list.error)}
-				open={open}
+				expanded={expanded}
 				onToggle={() => toggle(resourcesKey)}
+				headerClassName="sticky top-0 z-10 bg-pane"
 				onOpen={(id) => {
-					const address = resourceAddress(resources.find((resource) => resource.id === id)!);
-					if (address !== null) window.open(address, "_blank", "noopener,noreferrer");
+					const url = resourceUrl(resources.find((resource) => resource.id === id)!);
+					if (url !== null) window.open(url, "_blank", "noopener,noreferrer");
 				}}
 			/>
 		</div>

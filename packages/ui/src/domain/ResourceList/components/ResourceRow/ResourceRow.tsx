@@ -18,31 +18,42 @@ export type ResourceListRow = {
 
 export type ResourceRowProps = {
 	row: ResourceListRow;
-	// The page decides what an open does for each kind.
-	onOpen: (id: string) => void;
+	// The page decides what an open does for each kind. A page that leaves it
+	// out gets a row of text that takes no click and no focus.
+	onOpen?: (id: string) => void;
 };
+
+const rowClass = "flex h-8 w-full min-w-0 items-center gap-3 rounded-md px-2 text-left max-md:h-11 pointer-coarse:h-11";
 
 // Every row draws the same shape, text size and color. The kind word at the
 // left is the only difference.
 export function ResourceRow({ row, onOpen }: ResourceRowProps) {
+	const content = (
+		<>
+			<span className="w-12 shrink-0 text-sm text-fg-faint">{row.kind}</span>
+			<span className="min-w-0 flex-1 truncate text-sm text-fg">{row.name}</span>
+			<span className="min-w-0 max-w-2/3 shrink truncate text-sm text-fg-muted tabular">
+				{row.detail}
+				{row.pullRequest !== null && ` · also evidence on #${row.pullRequest}`}
+			</span>
+		</>
+	);
 	return (
 		<li>
-			<button
-				type="button"
-				onClick={() => onOpen(row.id)}
-				className={cx(
-					"flex h-8 w-full min-w-0 items-center gap-3 rounded-md px-2 text-left transition-colors duration-hover",
-					"hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
-					"max-md:h-11 pointer-coarse:h-11",
-				)}
-			>
-				<span className="w-12 shrink-0 text-sm text-fg-faint">{row.kind}</span>
-				<span className="min-w-0 flex-1 truncate text-sm text-fg">{row.name}</span>
-				<span className="min-w-0 max-w-2/3 shrink truncate text-sm text-fg-muted tabular">
-					{row.detail}
-					{row.pullRequest !== null && ` · also evidence on #${row.pullRequest}`}
-				</span>
-			</button>
+			{onOpen === undefined ? (
+				<div className={rowClass}>{content}</div>
+			) : (
+				<button
+					type="button"
+					onClick={() => onOpen(row.id)}
+					className={cx(
+						rowClass,
+						"transition-colors duration-hover hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
+					)}
+				>
+					{content}
+				</button>
+			)}
 		</li>
 	);
 }

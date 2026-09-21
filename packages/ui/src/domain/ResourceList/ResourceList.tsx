@@ -11,24 +11,28 @@ import { type ResourceListRow, ResourceRow } from "./components/ResourceRow";
 export type ResourceListProps = {
 	// The list keeps the order of the caller. It groups nothing.
 	rows: readonly ResourceListRow[];
-	// The number in the header. The caller gives it when it knows the count
-	// before the rows arrive, which holds the header still. Without it the
-	// header counts the rows.
+	// The number in the header before the rows arrive. A caller that knows the
+	// number ahead of the rows holds the header still with it. The header
+	// counts the rows as soon as it has them.
 	count?: number;
 	loading?: boolean;
 	// Why the resources did not arrive, in the words of the server.
 	error?: string | null;
-	// The rows print while `open` is true.
-	open?: boolean;
+	expanded?: boolean;
 	// A caller that gives `onToggle` gets a Show or a Hide button in the
-	// header, and it holds `open` itself.
+	// header, and it holds `expanded` itself.
 	onToggle?: () => void;
+	// Classes for the header row, such as the sticky position of a section
+	// that scrolls inside a fixed area.
+	headerClassName?: string;
 	onOpen: (id: string) => void;
-	// The three add paths. A caller that leaves them out gets a header with no
-	// Add control, and the resources of its epic arrive another way.
-	onAddDoc?: () => void;
-	onAddLink?: () => void;
-	onAddFile?: () => void;
+	// The three paths that add a resource. A caller that leaves them out gets
+	// a header with no Add control.
+	onAdd?: {
+		doc: () => void;
+		link: () => void;
+		file: () => void;
+	};
 };
 
 // The Add control sits in the header, so the row area is the only part of
@@ -38,52 +42,52 @@ export function ResourceList({
 	count,
 	loading = false,
 	error = null,
-	open = true,
+	expanded = true,
 	onToggle,
+	headerClassName,
 	onOpen,
-	onAddDoc,
-	onAddLink,
-	onAddFile,
+	onAdd,
 }: ResourceListProps) {
 	const bodyId = useId();
-	const add =
-		onAddDoc !== undefined && onAddLink !== undefined && onAddFile !== undefined
-			? { doc: onAddDoc, link: onAddLink, file: onAddFile }
-			: null;
+	// A shut list and a loading list keep the number of the caller. An open
+	// list counts its own rows, because the caller reads the number and the
+	// rows in two requests, and the rows are the newer answer.
+	const shown = expanded ? (loading ? count : error !== null ? undefined : rows.length) : count;
 	return (
-		<section aria-busy={loading} aria-label="Resources" className="flex min-w-0 flex-col gap-1">
+		<section aria-busy={loading} aria-label="Resources" className="flex min-w-0 flex-col gap-2">
 			<SectionHeader
 				title="Resources"
-				count={count ?? (loading || error !== null ? undefined : rows.length)}
+				count={shown}
+				className={headerClassName}
 				actions={
 					<>
 						{onToggle !== undefined && (
 							<Button
 								variant="quiet"
 								size="sm"
-								aria-expanded={open}
-								aria-controls={open ? bodyId : undefined}
+								aria-expanded={expanded}
+								aria-controls={expanded ? bodyId : undefined}
 								onClick={onToggle}
 							>
-								{open ? "Hide" : "Show"}
+								{expanded ? "Hide" : "Show"}
 							</Button>
 						)}
-						{add !== null && (
+						{onAdd !== undefined && (
 							<Menu
 								label="Add a resource"
 								triggerTooltip="Add a resource"
 								trigger={<IconButton label="Add a resource" icon={<Plus />} />}
 								items={[
-									{ label: "Doc", onSelect: add.doc },
-									{ label: "Link", onSelect: add.link },
-									{ label: "File", onSelect: add.file },
+									{ label: "Doc", onSelect: onAdd.doc },
+									{ label: "Link", onSelect: onAdd.link },
+									{ label: "File", onSelect: onAdd.file },
 								]}
 							/>
 						)}
 					</>
 				}
 			/>
-			{open && (
+			{expanded && (
 				<div id={bodyId} className="flex min-w-0 flex-col">
 					{error !== null ? (
 						<p role="alert" className="py-2 text-sm text-danger">
