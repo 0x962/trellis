@@ -22,6 +22,7 @@ import { agentLineHeight, groupHeaderHeight, phoneRowHeight, prRowHeight, rowHei
 import { phoneItems, type TableGroup, type TableItem } from "../../../utils/flattenGroups";
 import { ShowMoreRow, showMoreHeight } from "../ShowMoreRow";
 import { TableSkeleton } from "../TableSkeleton";
+import { useLineMotion } from "./useLineMotion";
 
 export type TableBodyProps = {
 	items: readonly TableItem[];
@@ -95,6 +96,7 @@ export function TableBody({
 	bottomRoom,
 }: TableBodyProps) {
 	const viewport = useRef<HTMLDivElement>(null);
+	const body = useRef<HTMLDivElement>(null);
 	// Below 768 px every row is two lines, so the row height changes with it.
 	const phone = useMediaQuery("(max-width: 767px)");
 	const rowHeight = phone ? phoneRowHeight : rowHeights[density];
@@ -135,6 +137,8 @@ export function TableBody({
 		getItemKey: (index) => items[index]!.key,
 	});
 
+	useLineMotion(body, items);
+
 	// A density or a width change resizes every line.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: the line heights are the trigger; the virtualizer is stable
 	useEffect(() => virtualizer.measure(), [rowHeight, headerHeight]);
@@ -172,7 +176,7 @@ export function TableBody({
 			{loading ? (
 				<TableSkeleton density={density} />
 			) : (
-				<div data-table-body="" style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}>
+				<div ref={body} data-table-body="" style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}>
 					{virtualizer.getVirtualItems().map((virtual) => {
 						const item = items[virtual.index]!;
 						if (item.kind === "header") {

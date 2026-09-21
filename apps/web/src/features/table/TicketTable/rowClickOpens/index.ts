@@ -1,0 +1,1 @@
+export { rowClickOpens } from "./rowClickOpens";
