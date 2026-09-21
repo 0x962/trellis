@@ -1,4 +1,6 @@
 import { CheckCircle, Circle, CircleDashed, XCircle } from "@phosphor-icons/react";
+import type { ReactElement } from "react";
+import { Tooltip } from "../../primitives/Tooltip";
 import { cx } from "../../utils/cx";
 
 export type StatusCategory = "todo" | "started" | "review" | "done" | "canceled";
@@ -19,6 +21,8 @@ export type StatusIconProps = {
 	// The status name. A labeled icon is an image with a name; an unlabeled one
 	// is decoration beside the name it stands for.
 	label?: string;
+	tooltip?: boolean;
+	focusable?: boolean;
 	className?: string;
 };
 
@@ -53,7 +57,7 @@ function ReviewIcon({
 }: {
 	shape: ReviewShape;
 	color: string;
-	shared: Record<string, string | undefined>;
+	shared: Record<string, string | number | undefined>;
 	className?: string;
 }) {
 	if (shape === "human") {
@@ -89,6 +93,8 @@ export function StatusIcon({
 	color,
 	progress,
 	label,
+	tooltip = true,
+	focusable = true,
 	className,
 }: StatusIconProps) {
 	const tone = color === undefined ? colors[category] : colorClasses[color];
@@ -101,9 +107,11 @@ export function StatusIcon({
 		role: label ? "img" : undefined,
 		"aria-label": label,
 		"aria-hidden": label ? undefined : ("true" as const),
+		tabIndex: label && tooltip && focusable ? 0 : undefined,
 	};
+	const withTooltip = (icon: ReactElement) => (label && tooltip ? <Tooltip content={label}>{icon}</Tooltip> : icon);
 	if (category === "started") {
-		return (
+		return withTooltip(
 			<span
 				{...shared}
 				data-progress={progress}
@@ -115,13 +123,13 @@ export function StatusIcon({
 					className="absolute size-1/2 rounded-round"
 					style={{ backgroundImage: `conic-gradient(currentColor ${progress ?? 0.5}turn, transparent 0)` }}
 				/>
-			</span>
+			</span>,
 		);
 	}
 	if (category === "review") {
-		return <ReviewIcon shape={shape} color={tone} shared={shared} className={className} />;
+		return withTooltip(<ReviewIcon shape={shape} color={tone} shared={shared} className={className} />);
 	}
 	const Icon = icons[category];
 	const weight = category === "done" ? "fill" : "regular";
-	return <Icon {...shared} weight={weight} className={cx(baseClass, tone, className)} />;
+	return withTooltip(<Icon {...shared} weight={weight} className={cx(baseClass, tone, className)} />);
 }

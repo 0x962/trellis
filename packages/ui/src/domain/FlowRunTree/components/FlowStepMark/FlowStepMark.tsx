@@ -1,4 +1,5 @@
 import { WarningCircle, XCircle } from "@phosphor-icons/react";
+import { Tooltip } from "../../../../primitives/Tooltip";
 import { StatusIcon } from "../../../StatusIcon";
 import type { FlowRunState } from "../../types";
 
@@ -38,8 +39,22 @@ export function FlowStepMark({ state }: { state: FlowRunState }) {
 		case "canceled":
 			return <StatusIcon category="canceled" label={label} />;
 		case "failed":
-			return <XCircle role="img" aria-label={label} weight="fill" className="size-3.5 shrink-0 text-danger" />;
+			return (
+				<Tooltip content={label}>
+					<XCircle role="img" aria-label={label} tabIndex={0} weight="fill" className="size-3.5 shrink-0 text-danger" />
+				</Tooltip>
+			);
 		case "unknown":
-			return <WarningCircle role="img" aria-label={label} weight="fill" className="size-3.5 shrink-0 text-warning" />;
+			return (
+				<Tooltip content={label}>
+					<WarningCircle
+						role="img"
+						aria-label={label}
+						tabIndex={0}
+						weight="fill"
+						className="size-3.5 shrink-0 text-warning"
+					/>
+				</Tooltip>
+			);
 	}
 }

@@ -1,5 +1,6 @@
 import { Checks, Circle, X } from "@phosphor-icons/react";
 import type { ComponentType } from "react";
+import { Tooltip } from "../../primitives/Tooltip";
 import { cx } from "../../utils/cx";
 
 export type PullRequestReviewState = "none" | "review_required" | "approved" | "changes_requested";
@@ -7,6 +8,8 @@ export type PullRequestReviewState = "none" | "review_required" | "approved" | "
 export type ReviewStateIconProps = {
 	reviewState: PullRequestReviewState;
 	isDraft: boolean;
+	tooltip?: boolean;
+	focusable?: boolean;
 };
 
 type Look = { label: string; tone: string; Icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }> };
@@ -30,17 +33,19 @@ export const reviewStateLabel = (reviewState: PullRequestReviewState, isDraft: b
 
 // The review state of one pull request uses a distinct icon and color. A
 // draft uses the idle icon because it does not accept a review.
-export function ReviewStateIcon({ reviewState, isDraft }: ReviewStateIconProps) {
+export function ReviewStateIcon({ reviewState, isDraft, tooltip = true, focusable = true }: ReviewStateIconProps) {
 	const key = isDraft ? "idle" : keys[reviewState];
 	const { label, tone, Icon } = looks[key];
-	return (
+	const icon = (
 		<span
 			data-review-state={key}
-			title={label}
+			role="img"
+			aria-label={label}
+			tabIndex={tooltip && focusable ? 0 : undefined}
 			className={cx("relative inline-flex size-5 shrink-0 items-center justify-center", tone)}
 		>
 			<Icon className="size-4" aria-hidden={true} />
-			<span className="sr-only">{label}</span>
 		</span>
 	);
+	return tooltip ? <Tooltip content={label}>{icon}</Tooltip> : icon;
 }

@@ -24,7 +24,7 @@ export function ReviewStatus({
 					: "Open";
 	return (
 		<span className="inline-flex items-center gap-1">
-			<PrGlyph state={glyphState} isDraft={draft} isQueued={isQueued} size="sm" />
+			<PrGlyph state={glyphState} isDraft={draft} isQueued={isQueued} size="sm" decorative />
 			<Badge tone={isQueued ? "wait" : state === "MERGED" ? "agent" : state === "OPEN" ? "ok" : "neutral"} size="sm">
 				{word}
 			</Badge>

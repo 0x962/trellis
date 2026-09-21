@@ -1,5 +1,5 @@
 import type { CiState, TicketSummary } from "@trellis/api";
-import { type Check, CheckRibbon, cx, PrGlyph } from "@trellis/ui";
+import { type Check, CheckRibbon, cx, PrGlyph, Tooltip } from "@trellis/ui";
 import type { Density } from "../../../../../stores/uiStore";
 
 export type PrCellProps = {
@@ -39,12 +39,14 @@ export function PrCell({ pr, density }: PrCellProps) {
 			{density === "comfortable" ? (
 				<CheckRibbon checks={checksOf(pr)} size="mini" />
 			) : (
-				<span
-					data-ci-dot={pr.ciState}
-					role="img"
-					aria-label={ciLabels[pr.ciState]}
-					className={cx("size-1.5 shrink-0 rounded-sm", dots[pr.ciState])}
-				/>
+				<Tooltip content={ciLabels[pr.ciState]}>
+					<span
+						data-ci-dot={pr.ciState}
+						role="img"
+						aria-label={ciLabels[pr.ciState]}
+						className={cx("size-1.5 shrink-0 rounded-sm", dots[pr.ciState])}
+					/>
+				</Tooltip>
 			)}
 		</span>
 	);

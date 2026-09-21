@@ -160,34 +160,36 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 								</header>
 								{visible
 									.filter((pr) => pr.repository === repository)
-									.map((pr) => (
-										<Link
-											className="review-index-row"
-											aria-label={`#${pr.number} ${pr.title || "Pull request"}, ${pr.state}${pr.open ? `, ${pr.open} open ${pr.open === 1 ? "comment" : "comments"}` : ""}`}
-											key={pr.id}
-											to="/reviews/$owner/$repo/$number"
-											params={{ owner: pr.owner, repo: pr.repo, number: String(pr.number) }}
-											search={reviewSearch}
-										>
-											<span className="review-pr-number">#{pr.number}</span>
-											<span className="review-row-title">{pr.title || `Pull request #${pr.number}`}</span>
-											<span className="review-row-checks">
-												<CheckRibbon checks={pr.checks} size="full" />
-												<span>{checkWords(pr.checks)}</span>
-											</span>
-											{pr.open > 0 && (
-												<span
-													className="review-row-count"
-													title={`${pr.open} open ${pr.open === 1 ? "comment" : "comments"}`}
-												>
-													<TextAlignLeft aria-hidden="true" />
-													{pr.open}
+									.map((pr) => {
+										const openLabel = `${pr.open} open ${pr.open === 1 ? "comment" : "comments"}`;
+										return (
+											<Link
+												className="review-index-row"
+												aria-label={`#${pr.number} ${pr.title || "Pull request"}, ${pr.state}${pr.open ? `, ${openLabel}` : ""}`}
+												key={pr.id}
+												to="/reviews/$owner/$repo/$number"
+												params={{ owner: pr.owner, repo: pr.repo, number: String(pr.number) }}
+												search={reviewSearch}
+											>
+												<span className="review-pr-number">#{pr.number}</span>
+												<span className="review-row-title">{pr.title || `Pull request #${pr.number}`}</span>
+												<span className="review-row-checks">
+													<CheckRibbon checks={pr.checks} size="full" />
+													<span>{checkWords(pr.checks)}</span>
 												</span>
-											)}
-											<ReviewStatus state={pr.state} isDraft={pr.isDraft} isQueued={pr.isQueued} />
-											<ArrowRight className="review-row-arrow" aria-hidden="true" />
-										</Link>
-									))}
+												{pr.open > 0 && (
+													<Tooltip content={openLabel}>
+														<span role="img" aria-label={openLabel} className="review-row-count">
+															<TextAlignLeft aria-hidden="true" />
+															{pr.open}
+														</span>
+													</Tooltip>
+												)}
+												<ReviewStatus state={pr.state} isDraft={pr.isDraft} isQueued={pr.isQueued} />
+												<ArrowRight className="review-row-arrow" aria-hidden="true" />
+											</Link>
+										);
+									})}
 							</section>
 						))
 					)}

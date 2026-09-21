@@ -1,5 +1,6 @@
 import { Paperclip, TextAlignLeft } from "@phosphor-icons/react";
 import type { TicketSummary } from "@trellis/api";
+import { Tooltip } from "@trellis/ui";
 import { formatCount } from "../../../../../lib/format";
 import type { TicketDisclosure as TicketDisclosureState } from "../../../utils/flattenGroups";
 import { TicketDisclosure } from "../TicketDisclosure";
@@ -25,48 +26,56 @@ export function TitleCell({ ticket, disclosure, onToggleDisclosure }: TitleCellP
 			)}
 			<span className="truncate text-fg">{ticket.title}</span>
 			{parent !== null && (
-				<span
-					role="img"
-					aria-label={`Parent ${parent.identifier}`}
-					className="shrink-0 font-mono text-xs text-fg-muted"
-				>
-					↳ {parent.identifier}
-				</span>
+				<Tooltip content={`Parent ${parent.identifier}`}>
+					<span
+						role="img"
+						aria-label={`Parent ${parent.identifier}`}
+						className="shrink-0 font-mono text-xs text-fg-muted"
+					>
+						↳ {parent.identifier}
+					</span>
+				</Tooltip>
 			)}
 			{childCount > 0 && (
-				<span
-					role="img"
-					aria-label={`${childDoneCount} of ${childCount} sub-tickets done`}
-					className="inline-flex shrink-0 items-center gap-1 text-xs text-fg-muted tabular"
-				>
+				<Tooltip content={`${childDoneCount} of ${childCount} sub-tickets done`}>
 					<span
-						aria-hidden="true"
-						style={{ "--progress": `${Math.round(progress * 100)}%` } as Record<string, string>}
-						className="inline-grid size-3.5 place-items-center rounded-sm bg-[conic-gradient(var(--color-success)_var(--progress),var(--color-border)_0)] after:size-2 after:rounded-sm after:bg-surface after:content-['']"
-					/>
-					{childDoneCount}/{childCount}
-				</span>
+						role="img"
+						aria-label={`${childDoneCount} of ${childCount} sub-tickets done`}
+						className="inline-flex shrink-0 items-center gap-1 text-xs text-fg-muted tabular"
+					>
+						<span
+							aria-hidden="true"
+							style={{ "--progress": `${Math.round(progress * 100)}%` } as Record<string, string>}
+							className="inline-grid size-3.5 place-items-center rounded-sm bg-[conic-gradient(var(--color-success)_var(--progress),var(--color-border)_0)] after:size-2 after:rounded-sm after:bg-surface after:content-['']"
+						/>
+						{childDoneCount}/{childCount}
+					</span>
+				</Tooltip>
 			)}
 			{attachmentCount > 0 && (
-				<span
-					role="img"
-					aria-label={plural(attachmentCount, "attachment")}
-					className="inline-flex shrink-0 items-center gap-0.5 text-xs text-fg-muted tabular"
-				>
-					<Paperclip aria-hidden="true" className="size-2.75" />
-					{formatCount(attachmentCount)}
-				</span>
+				<Tooltip content={plural(attachmentCount, "attachment")}>
+					<span
+						role="img"
+						aria-label={plural(attachmentCount, "attachment")}
+						className="inline-flex shrink-0 items-center gap-0.5 text-xs text-fg-muted tabular"
+					>
+						<Paperclip aria-hidden="true" className="size-2.75" />
+						{formatCount(attachmentCount)}
+					</span>
+				</Tooltip>
 			)}
 			{commentCount > 0 && (
-				<a
-					href={`/t/${ticket.identifier}#comments`}
-					aria-label={plural(commentCount, "comment")}
-					className="inline-flex shrink-0 items-center gap-0.5 rounded-sm text-xs text-fg-muted tabular hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
-					onClick={(event) => event.stopPropagation()}
-				>
-					<TextAlignLeft aria-hidden="true" className="size-2.75" />
-					{formatCount(commentCount)}
-				</a>
+				<Tooltip content={plural(commentCount, "comment")}>
+					<a
+						href={`/t/${ticket.identifier}#comments`}
+						aria-label={plural(commentCount, "comment")}
+						className="inline-flex shrink-0 items-center gap-0.5 rounded-sm text-xs text-fg-muted tabular hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+						onClick={(event) => event.stopPropagation()}
+					>
+						<TextAlignLeft aria-hidden="true" className="size-2.75" />
+						{formatCount(commentCount)}
+					</a>
+				</Tooltip>
 			)}
 		</span>
 	);
