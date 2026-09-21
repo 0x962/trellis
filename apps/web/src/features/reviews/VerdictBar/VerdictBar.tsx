@@ -2,6 +2,7 @@ import { PencilSimple } from "@phosphor-icons/react";
 import type { AgentRun, ReviewRevision, ReviewSubmission } from "@trellis/api";
 import { IconButton, Tooltip } from "@trellis/ui";
 import { useState } from "react";
+import { UnmetConditions } from "./components/UnmetConditions";
 import { VerdictButton } from "./components/VerdictButton";
 import { VerdictLine } from "./components/VerdictLine";
 import { verdictState } from "./verdictState/verdictState";
@@ -17,14 +18,18 @@ export type VerdictBarProps = {
 	run: AgentRun | null;
 	// The local submissions on this pull request, from `reviews.submissions`.
 	submissions: readonly ReviewSubmission[];
+	// Each merge condition that this pull request does not meet, as one short
+	// phrase such as "1 check failed". The card prints the count and opens
+	// the list.
+	unmet: readonly string[];
 	onDone: () => void;
 };
 
-// The bar under the review column shows the verdict of the person. A
-// comment on a diff line reaches the agent on its own, so the bar carries
-// no comment control and no waiting count. A verdict on the head commit
-// hides Approve and Request changes behind Change verdict.
-export function VerdictBar({ pr, revision, ticket, run, submissions, onDone }: VerdictBarProps) {
+// The card that floats over the bottom right of the review shows the verdict
+// of the person on one line. A comment on a diff line reaches the agent when
+// the person posts it, so the card holds the two verdicts only. A verdict on
+// the head commit hides Approve and Request changes behind Change verdict.
+export function VerdictBar({ pr, revision, ticket, run, submissions, unmet, onDone }: VerdictBarProps) {
 	const state = verdictState(submissions, revision.headSha);
 	// Change verdict opens the buttons for the verdict on screen only. A new
 	// submission has another id and closes them again.
@@ -32,33 +37,41 @@ export function VerdictBar({ pr, revision, ticket, run, submissions, onDone }: V
 	const given = state?.current && changing !== state.id ? state : null;
 	return (
 		<section className="review-bar review-verdict-bar" aria-label="Verdict">
-			{state && <VerdictLine state={state} />}
-			<div className="review-verdict-bar-row">
-				{given === null ? (
-					<>
-						<VerdictButton
-							pr={pr}
-							headSha={revision.headSha}
-							ticket={ticket}
-							run={run}
-							verdict="approve"
-							onDone={onDone}
-						/>
-						<VerdictButton
-							pr={pr}
-							headSha={revision.headSha}
-							ticket={ticket}
-							run={run}
-							verdict="request_changes"
-							onDone={onDone}
-						/>
-					</>
-				) : (
-					<Tooltip content="Change verdict">
-						<IconButton label="Change verdict" icon={<PencilSimple />} onClick={() => setChanging(given.id)} />
-					</Tooltip>
+			{/* One dot separates each pair of words, and no dot sits at either
+			    end of the line. */}
+			<div className="review-bar-words">
+				{state && <VerdictLine state={state} />}
+				{state && unmet.length > 0 && (
+					<span className="review-bar-dot" aria-hidden={true}>
+						·
+					</span>
 				)}
+				{unmet.length > 0 && <UnmetConditions unmet={unmet} />}
 			</div>
+			{given === null ? (
+				<>
+					<VerdictButton
+						pr={pr}
+						headSha={revision.headSha}
+						ticket={ticket}
+						run={run}
+						verdict="approve"
+						onDone={onDone}
+					/>
+					<VerdictButton
+						pr={pr}
+						headSha={revision.headSha}
+						ticket={ticket}
+						run={run}
+						verdict="request_changes"
+						onDone={onDone}
+					/>
+				</>
+			) : (
+				<Tooltip content="Change verdict">
+					<IconButton label="Change verdict" icon={<PencilSimple />} onClick={() => setChanging(given.id)} />
+				</Tooltip>
+			)}
 		</section>
 	);
 }
