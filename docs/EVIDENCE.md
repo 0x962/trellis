@@ -89,6 +89,15 @@ Send every record that the list names. Send the proof of the running product wit
 
 - Kind: backend
 - summary: trellis summary write <pr> --headline "..." --why - --watch "..."
+  Write a simple, direct explanation of what changed and why, in plain words.
+  Say what was wrong or missing.
+  Say what changes for the person who uses the product.
+  Say how the pull request works in two or three direct sentences.
+  Use real names such as webhook, API, migration, and the page name.
+  Do not replace technical terms with childish words, metaphors, or analogies.
+  Avoid jargon only where a plain word says the same thing.
+  Avoid internal code names, file paths, and function names unless they are the point.
+  Write the headline as one sentence a person would say out loud, such as "A click on a row now opens the ticket again."
 - verify record: trellis evidence add <pr> --kind verify --cmd "<command>" --exit <code> --sha <head> --tail -
 - test proof: trellis evidence add <pr> --kind test --name <test> --fails-on <base> --passes-on <head>
 - contract table: trellis evidence add <pr> --kind contract --before "<before>" --after "<after>"

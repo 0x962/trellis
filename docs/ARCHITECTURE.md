@@ -363,6 +363,8 @@ prints the same.
 primary key is `(pull_request_id, head_sha)`. The row stores `headline`, `why`,
 `watch`, `created_at`, and `updated_at`. A delete of the pull request cascades
 to its summaries.
+The `why` field holds the plain explanation that the Overview tab shows below
+the headline.
 
 The server compares a write with the head that GitHub reports before it opens
 the transaction. It applies the STE check to all three fields. A refusal stores

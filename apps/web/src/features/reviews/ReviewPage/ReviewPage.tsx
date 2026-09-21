@@ -70,7 +70,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 		linkedPr,
 		summary,
 		evidence,
-		factsReady,
+		overviewReady,
 		threads,
 		submissions,
 		refresh,
@@ -252,7 +252,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 							label: "Overview",
 							content: (
 								<div className="review-blocks">
-									{!factsReady || conditions === null ? (
+									{!overviewReady || conditions === null ? (
 										<section aria-busy="true">
 											<span className="sr-only" role="status">
 												The overview is loading.

@@ -51,7 +51,7 @@ export const useReviewData = (pr: string) => {
 	// four requests. Until the last one answers, the Overview tab draws none of
 	// the three: a block that draws early would say that the agent wrote no
 	// summary before anybody asked for it.
-	const factsReady =
+	const overviewReady =
 		status.isFetched &&
 		(status.data?.ticket == null || ticket.isFetched) &&
 		(linkedPr === null || (summary.isFetched && evidence.isFetched));
@@ -131,7 +131,7 @@ export const useReviewData = (pr: string) => {
 		linkedPr,
 		summary,
 		evidence,
-		factsReady,
+		overviewReady,
 		threads,
 		submissions,
 		refresh,

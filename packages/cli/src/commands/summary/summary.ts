@@ -25,11 +25,11 @@ const summaryText = (summary: PullRequestSummary): string =>
 const ref = { type: "positional", required: true, description: "Pull request number, URL, or owner/repo#123" } as const;
 
 const write = defineCommand({
-	meta: { name: "write", description: "Write a summary for the current pull request head" },
+	meta: { name: "write", description: "Write a plain explanation for the current pull request head" },
 	args: {
 		ref,
-		headline: { type: "string", required: true, description: "Instruction of 12 words or less" },
-		why: { type: "string", required: true, description: "Problem, approach, and limit, or - for stdin" },
+		headline: { type: "string", required: true, description: "One spoken sentence about the change" },
+		why: { type: "string", required: true, description: "Plain explanation of what changed and why, or - for stdin" },
 		watch: { type: "string", required: true, description: "First file to read and the reason, or the word nothing" },
 	},
 	async run(context) {
