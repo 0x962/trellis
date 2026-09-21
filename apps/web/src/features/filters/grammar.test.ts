@@ -49,7 +49,7 @@ describe("toListQuery", () => {
 });
 
 describe("wave", () => {
-	const legacyWaveKey = ["mile", "stone"].join("");
+	const legacyWaveKey = "milestone";
 
 	test("reads a wave ref and canonicalizes it", () => {
 		expect(parseSearch({ wave: "op/Routine-Runtime/Phase-1" }).wave).toBe("OP/routine-runtime/phase-1");
