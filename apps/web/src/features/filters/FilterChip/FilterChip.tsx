@@ -1,4 +1,14 @@
-import { ArrowElbowDownRight, Clock, Flag, FolderOpen, GitPullRequest, Stack, Tag, User } from "@phosphor-icons/react";
+import {
+	ArrowElbowDownRight,
+	Clock,
+	Flag,
+	FolderOpen,
+	GitPullRequest,
+	LockSimple,
+	Stack,
+	Tag,
+	User,
+} from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import type { EpicSummary, StatusSummary, WaveSummary } from "@trellis/api";
 import { Chip, LabelDot, PriorityIcon, StatusIcon } from "@trellis/ui";
@@ -57,7 +67,10 @@ const iconOf = (
 		case "project":
 			return <FolderOpen />;
 		case "parent":
+		case "waitsOn":
 			return <ArrowElbowDownRight />;
+		case "blocked":
+			return <LockSimple />;
 		case "epic":
 			return <Stack />;
 		case "wave":

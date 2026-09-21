@@ -93,6 +93,8 @@ const toFilter = async (ctx: ServiceCtx, tx: Tx, query: Query) => {
 	if (query.parent !== undefined) {
 		filter.parent = query.parent === "none" ? "none" : (await resolveTicket(ctx, tx, query.parent)).id;
 	}
+	if (query.waitsOn !== undefined) filter.waitsOn = (await resolveTicket(ctx, tx, query.waitsOn)).id;
+	if (query.blocked !== undefined) filter.blocked = query.blocked;
 	if (query.epic !== undefined) {
 		filter.epic = query.epic === "none" ? "none" : (await resolveEpic(ctx, tx, query.epic)).id;
 	}

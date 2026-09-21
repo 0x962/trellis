@@ -9,6 +9,8 @@ import { ciRank, textArray } from "./support.ts";
 // root_id. `parent` is a ticket id or `none` for top-level tickets. `epic`
 // is an epic id or `none` for the tickets outside every epic. `wave`
 // is a wave id or `none` for the tickets outside every wave.
+// `waitsOn` is the id of one dependency. `blocked` tests for an open
+// dependency.
 // `actor` is `kind:name` or a bare name and matches the last actor.
 // `updated`, `created`, and `completed` are ISO "after" bounds.
 export type TicketFilter = {
@@ -22,6 +24,8 @@ export type TicketFilter = {
 	labelNotIds?: readonly string[];
 	noLabel?: boolean;
 	parent?: string;
+	waitsOn?: string;
+	blocked?: boolean;
 	epic?: string;
 	wave?: string;
 	pr?: PrFilter;
@@ -44,6 +48,17 @@ const holdsAny = (labelIds: readonly string[]) =>
 	sql`EXISTS (SELECT 1 FROM ticket_labels tl WHERE tl.ticket_id = t.id AND tl.label_id = ANY(${textArray(labelIds)}))`;
 
 const holdsNothing = sql`NOT EXISTS (SELECT 1 FROM ticket_labels tl WHERE tl.ticket_id = t.id)`;
+
+const waitsOn = (dependsOnId: string) =>
+	sql`EXISTS (SELECT 1 FROM ticket_deps dependency
+		WHERE dependency.ticket_id = t.id AND dependency.depends_on_id = ${dependsOnId})`;
+
+const isBlocked = sql`EXISTS (
+	SELECT 1 FROM ticket_deps dependency
+	JOIN tickets blocker ON blocker.id = dependency.depends_on_id
+	JOIN statuses blocker_status ON blocker_status.id = blocker.status_id
+	WHERE dependency.ticket_id = t.id AND blocker_status.category NOT IN ('done', 'canceled')
+)`;
 
 const labelClause = (labelIds: readonly string[] | undefined, noLabel: boolean | undefined): SQL => {
 	if (labelIds === undefined) return holdsNothing;
@@ -119,6 +134,9 @@ export const filterWhere = (filter: TicketFilter): SQL => {
 	if (filter.labelNotIds) clauses.push(sql`NOT ${holdsAny(filter.labelNotIds)}`);
 	if (filter.parent === "none") clauses.push(sql`t.parent_id IS NULL`);
 	else if (filter.parent) clauses.push(sql`t.parent_id = ${filter.parent}`);
+	if (filter.waitsOn) clauses.push(waitsOn(filter.waitsOn));
+	if (filter.blocked === true) clauses.push(isBlocked);
+	else if (filter.blocked === false) clauses.push(sql`NOT ${isBlocked}`);
 	if (filter.epic === "none") clauses.push(sql`t.epic_id IS NULL`);
 	else if (filter.epic) clauses.push(sql`t.epic_id = ${filter.epic}`);
 	if (filter.wave === "none") clauses.push(sql`t.wave_id IS NULL`);
@@ -145,6 +163,8 @@ export const filterKey = (filter: TicketFilter) => [
 	filter.labelNotIds ?? null,
 	filter.noLabel ?? null,
 	filter.parent ?? null,
+	filter.waitsOn ?? null,
+	filter.blocked ?? null,
 	filter.epic ?? null,
 	filter.wave ?? null,
 	filter.pr ?? null,

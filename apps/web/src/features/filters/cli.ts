@@ -13,6 +13,8 @@ const flags: readonly Flag[] = [
 	{ key: "label", flag: "--label", list: true },
 	{ key: "labelNot", flag: "--label-not", list: true },
 	{ key: "parent", flag: "--parent" },
+	{ key: "waitsOn", flag: "--waits-on" },
+	{ key: "blocked", flag: "--blocked", boolean: true },
 	{ key: "epic", flag: "--epic" },
 	{ key: "wave", flag: "--wave" },
 	{ key: "pr", flag: "--pr" },

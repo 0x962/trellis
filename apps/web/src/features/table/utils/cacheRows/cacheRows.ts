@@ -63,7 +63,7 @@ export const patchRows = (
 const accepts = (input: ListQueryInput, row: TicketSummary) => {
 	if (input.q !== undefined || input.updated !== undefined || input.created !== undefined) return false;
 	if (input.completed !== undefined || input.pr !== undefined || input.ci !== undefined) return false;
-	if (input.actor !== undefined) return false;
+	if (input.actor !== undefined || input.waitsOn !== undefined || input.blocked !== undefined) return false;
 	if (input.project !== undefined) {
 		const inside = row.project.path === input.project || row.project.path.startsWith(`${input.project}.`);
 		if (!inside || (input.subprojects === false && row.project.path !== input.project)) return false;

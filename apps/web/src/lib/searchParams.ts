@@ -20,6 +20,8 @@ export const searchParamOrder = [
 	"priority",
 	"label",
 	"parent",
+	"waitsOn",
+	"blocked",
 	"epic",
 	"wave",
 	"pr",
