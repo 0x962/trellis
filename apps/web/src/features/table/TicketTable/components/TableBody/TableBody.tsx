@@ -47,6 +47,7 @@ export type TableBodyProps = {
 	onEditingChange: (id: string, field: EditField | null) => void;
 	onRowChange: (ticket: TicketSummary, change: RowChange) => void;
 	onToggleGroup: (key: string) => void;
+	onToggleTicket: (ticketId: string) => void;
 	// Opens the composer with the status, or the epic and the wave, of
 	// the group.
 	onCreateInGroup: (group: TableGroup) => void;
@@ -86,6 +87,7 @@ export function TableBody({
 	onEditingChange,
 	onRowChange,
 	onToggleGroup,
+	onToggleTicket,
 	onCreateInGroup,
 	bottomRoom,
 }: TableBodyProps) {
@@ -224,6 +226,7 @@ export function TableBody({
 								phone={phone}
 								phoneLayout={tableKind}
 								agentLine={phone ? item.agentLine : null}
+								disclosure={item.disclosure}
 								focused={ticket.id === focusedId}
 								selected={selection.isSelected(ticket.id)}
 								selecting={selection.count > 0}
@@ -234,6 +237,7 @@ export function TableBody({
 									if (pendingFocus.current === null) onFocusRow(id);
 								}}
 								onClick={onRowClick}
+								onToggleDisclosure={onToggleTicket}
 								onOpen={onOpen}
 								onToggleSelect={selection.toggle}
 								onEditingChange={onEditingChange}

@@ -33,7 +33,14 @@ export type TableGroup = RowGroup & {
 export type TableItem =
 	| { kind: "header"; key: string; group: TableGroup }
 	// The line of the ticket's run, for the phone row.
-	| { kind: "row"; key: string; group: TableGroup; ticket: TicketSummary; agentLine: TicketAgentLine | null }
+	| {
+			kind: "row";
+			key: string;
+			group: TableGroup;
+			ticket: TicketSummary;
+			agentLine: TicketAgentLine | null;
+			disclosure: TicketDisclosure;
+	  }
 	| { kind: "agent"; key: string; group: TableGroup; line: TicketAgentLine }
 	| { kind: "pr"; key: string; group: TableGroup; pr: TicketPr }
 	| { kind: "more"; key: string; group: TableGroup };
@@ -47,6 +54,15 @@ export type FlattenOptions = {
 	// entry has no run, or its run has neither an open request nor a
 	// message, and it gets no agent line.
 	agentLines?: Readonly<Record<string, TicketAgentLine>>;
+	// The done or canceled tickets whose child rows a person opened.
+	expandedTickets?: readonly string[];
+};
+
+export type TicketDisclosure = "collapsed" | "expanded" | null;
+
+const ticketDisclosure = (ticket: TicketSummary, hasChildren: boolean, expandedTickets: readonly string[]) => {
+	if (!hasChildren || (ticket.status.category !== "done" && ticket.status.category !== "canceled")) return null;
+	return expandedTickets.includes(ticket.id) ? "expanded" : "collapsed";
 };
 
 // The lines in order: each group's header, its rows while it is expanded,
@@ -60,7 +76,10 @@ export const flattenGroups = (groups: readonly TableGroup[], options: FlattenOpt
 		if (!group.expanded) continue;
 		for (const ticket of group.rows) {
 			const line = options.agentLines?.[ticket.id];
-			items.push({ kind: "row", key: ticket.id, group, ticket, agentLine: line ?? null });
+			const hasPrRows = options.prRows === true && ticket.prRows.length > 0;
+			const disclosure = ticketDisclosure(ticket, hasPrRows || line !== undefined, options.expandedTickets ?? []);
+			items.push({ kind: "row", key: ticket.id, group, ticket, agentLine: line ?? null, disclosure });
+			if (disclosure === "collapsed") continue;
 			if (options.prRows === true) {
 				// Two tickets can link the same pull request, so the ticket id is
 				// part of the key that the virtualizer uses to hold a line.

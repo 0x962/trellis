@@ -1,9 +1,13 @@
 import { Paperclip, TextAlignLeft } from "@phosphor-icons/react";
 import type { TicketSummary } from "@trellis/api";
 import { formatCount } from "../../../../../lib/format";
+import type { TicketDisclosure as TicketDisclosureState } from "../../../utils/flattenGroups";
+import { TicketDisclosure } from "../TicketDisclosure";
 
 export type TitleCellProps = {
 	ticket: TicketSummary;
+	disclosure: TicketDisclosureState;
+	onToggleDisclosure?: () => void;
 };
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
@@ -11,11 +15,14 @@ const plural = (count: number, word: string) => `${count} ${word}${count === 1 ?
 // The title on one line, then the muted marks: the parent, the sub-ticket
 // ring, the attachment count, and the comment count. A long title
 // truncates, so the row keeps its height.
-export function TitleCell({ ticket }: TitleCellProps) {
+export function TitleCell({ ticket, disclosure, onToggleDisclosure }: TitleCellProps) {
 	const { parent, childCount, childDoneCount, attachmentCount, commentCount } = ticket;
 	const progress = childCount === 0 ? 0 : childDoneCount / childCount;
 	return (
 		<span className="flex min-w-0 items-center gap-2">
+			{disclosure !== null && (
+				<TicketDisclosure identifier={ticket.identifier} disclosure={disclosure} onToggle={onToggleDisclosure} />
+			)}
 			<span className="truncate text-fg">{ticket.title}</span>
 			{parent !== null && (
 				<span

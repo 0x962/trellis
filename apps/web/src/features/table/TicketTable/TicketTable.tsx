@@ -19,6 +19,7 @@ import { buildColumns, type ColumnId, type TableKind, tableFeatureSet } from "..
 import { useApplyChange } from "../hooks/useApplyChange";
 import { useBulkWrite } from "../hooks/useBulkWrite";
 import { useCopyTickets } from "../hooks/useCopyTickets";
+import { useExpandedTickets } from "../hooks/useExpandedTickets";
 import { useRowSelection } from "../hooks/useRowSelection";
 import { useTableCollapse } from "../hooks/useTableCollapse";
 import { useTableData } from "../hooks/useTableData";
@@ -102,6 +103,7 @@ export function TicketTable({
 	const statuses = useScopeStatuses(project);
 	const labelGroups = useScopeLabels(project).groups;
 	const { collapsed, expanded } = useTableCollapse(routeKey, statuses, view);
+	const expandedTickets = useExpandedTickets(routeKey);
 	const data = useTableData({ project, view, expanded });
 	const { groups, loading: groupsLoading } = useTableGroups({
 		data,
@@ -111,7 +113,10 @@ export function TicketTable({
 		rowRank,
 		workingTicketIds,
 	});
-	const items = useMemo(() => flattenGroups(groups, { prRows, agentLines }), [groups, prRows, agentLines]);
+	const items = useMemo(
+		() => flattenGroups(groups, { prRows, agentLines, expandedTickets: expandedTickets.expanded }),
+		[groups, prRows, agentLines, expandedTickets.expanded],
+	);
 	const loaded = useMemo(() => groups.flatMap((group) => group.rows), [groups]);
 	// The selection, the focus, and every key run over the rows a person can
 	// see. A row inside a collapsed group is loaded but not visible, so it
@@ -299,6 +304,7 @@ export function TicketTable({
 				onEditingChange={onEditingChange}
 				onRowChange={onRowChange}
 				onToggleGroup={collapsed.toggle}
+				onToggleTicket={expandedTickets.toggle}
 				onCreateInGroup={openNew}
 				bottomRoom={selection.count > 0}
 			/>
