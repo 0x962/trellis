@@ -1,1 +1,1 @@
-export { type ConditionsInput, conditionsOf } from "./conditionsOf";
+export { baseOf, type ConditionsInput, conditionsOf } from "./conditionsOf";
