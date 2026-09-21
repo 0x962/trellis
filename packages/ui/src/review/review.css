@@ -10,7 +10,6 @@
 	--review-row-icon-size: 14px;
 }
 .review-page,
-.review-tabs-layout,
 .review-index {
 	display: flex;
 	flex: 1;
@@ -79,51 +78,6 @@
 	color: var(--fg-muted);
 	font-size: 12px;
 	font-variant-numeric: tabular-nums;
-}
-/*
- * The band of light of `film-sweep` in base.css, written out. A stylesheet
- * that an app imports on its own holds no Tailwind context, so `@apply` here
- * fails the build with "Cannot apply unknown utility class". The three values
- * below must match the utility: the keyframes of `--animate-glimmer` run
- * `background-position` from 150% to -50%.
- */
-.review-check-tab-running {
-	color: var(--warning);
-	background-image: linear-gradient(
-		90deg,
-		var(--warning) 0%,
-		var(--warning) 40%,
-		var(--fg) 50%,
-		var(--warning) 60%,
-		var(--warning) 100%
-	);
-	background-size: 250% 100%;
-	background-position: 150% 0;
-	background-clip: text;
-	-webkit-text-fill-color: transparent;
-	animation: var(--animate-glimmer);
-}
-@media (prefers-reduced-motion: reduce) {
-	.review-check-tab-running {
-		animation: none;
-	}
-}
-.review-tabs-layout > [role="tablist"] {
-	flex-shrink: 0;
-	align-items: end;
-	min-height: 40px;
-	padding-inline: 28px;
-	overflow-x: auto;
-}
-.review-tabs-layout > [role="tabpanel"] {
-	display: flex;
-	flex: 1;
-	min-height: 0;
-	flex-direction: column;
-	padding-top: 0;
-}
-.review-tabs-layout > [role="tabpanel"][hidden] {
-	display: none;
 }
 .review-diff-toolbar,
 .review-index-toolbar {
@@ -351,9 +305,6 @@ button.review-notice:hover {
 	}
 	.review-branch {
 		max-width: 220px;
-	}
-	.review-tabs-layout > [role="tablist"] {
-		padding-inline: 16px;
 	}
 	.review-scroll {
 		padding: 20px 16px;
