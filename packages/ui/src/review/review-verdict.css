@@ -14,8 +14,7 @@
 	font-size: var(--text-base);
 	font-variant-numeric: tabular-nums;
 }
-.review-batch-bar-text,
-.review-verdict-bar-drafts {
+.review-batch-bar-text {
 	flex: 1;
 	min-width: 0;
 }
@@ -47,13 +46,9 @@
 		width: calc(100% - 32px);
 		max-width: calc(var(--review-column-width) - 32px);
 	}
-	/* A width of 390 px does not hold the draft count and the two buttons on
-	   one line, and the count reads as two words on two lines when it shares
-	   the line. The count takes a line of its own, and the buttons follow. */
+	/* A width of 390 px holds the two verdict buttons on one line. The wrap
+	   keeps the row inside the column when a button grows. */
 	.review-verdict-bar-row {
 		flex-wrap: wrap;
-	}
-	.review-verdict-bar-drafts {
-		flex-basis: 100%;
 	}
 }

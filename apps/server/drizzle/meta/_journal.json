@@ -631,6 +631,13 @@
       "when": 1790021946998,
       "tag": "0092_untitled_doc_resource",
       "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1790031533967,
+      "tag": "0093_wide_gunslinger",
+      "breakpoints": true
     }
   ]
 }

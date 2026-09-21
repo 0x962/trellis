@@ -8,7 +8,7 @@ import type { Tx } from "../../db/tx.ts";
 // each linked ticket gives one row at most. A row whose process already
 // ended still counts: the person restarts that agent, and the delivery
 // waits for its terminal.
-const agentsOf = (tx: Tx, prId: string) =>
+export const agentsOf = (tx: Tx, prId: string) =>
 	rows<{ runId: string; agentName: string }>(
 		tx,
 		sql`SELECT run.id AS "runId", run.name AS "agentName"

@@ -28,12 +28,7 @@ const submission = (facts: Partial<ReviewSubmission>): ReviewSubmission => ({
 	...facts,
 });
 
-const render = (props: {
-	ticket: string | null;
-	run: AgentRun | null;
-	drafts: string[];
-	submissions?: ReviewSubmission[];
-}) =>
+const render = (props: { ticket: string | null; run: AgentRun | null; submissions?: ReviewSubmission[] }) =>
 	renderToStaticMarkup(
 		<AppProvider value={app}>
 			<QueryClientProvider client={queryClient}>
@@ -42,7 +37,6 @@ const render = (props: {
 					revision={revision}
 					ticket={props.ticket}
 					run={props.run}
-					drafts={props.drafts}
 					submissions={props.submissions ?? []}
 					onDone={() => {}}
 				/>
@@ -50,46 +44,33 @@ const render = (props: {
 		</AppProvider>,
 	);
 
-test("the bar offers each local verdict", () => {
-	const html = render({
-		ticket: "TRL-203",
-		run: crispFjord,
-		drafts: ["01A", "01B"],
-	});
+test("the bar offers the two verdicts and no comment control", () => {
+	const html = render({ ticket: "TRL-203", run: crispFjord });
 
-	expect(html).toContain("2 comments");
 	expect(html).toMatch(/<button[^>]*aria-label="Approve"/);
 	expect(html).toMatch(/<button[^>]*aria-label="Request changes"/);
-	expect(html).toMatch(/<button[^>]*aria-label="Comment"/);
+	expect(html).not.toMatch(/aria-label="Comment"/);
+	expect(html).not.toContain("comments");
 	expect(html).not.toMatch(/aria-label="Merge"/);
 });
 
-test("a pull request with one comment prints the singular count", () => {
-	const html = render({ ticket: "TRL-203", run: crispFjord, drafts: ["01A"] });
-
-	expect(html).toContain("1 comment");
-});
-
-test("a ticket with no agent assignment keeps every verdict", () => {
-	const html = render({ ticket: "TRL-203", run: null, drafts: [] });
-
-	expect(html).toContain("0 comments");
-	expect(html).toMatch(/<button[^>]*aria-label="Approve"/);
-	expect(html).toMatch(/<button[^>]*aria-label="Request changes"/);
-	expect(html).toMatch(/<button[^>]*aria-label="Comment"/);
-});
-
-test("a pull request that no ticket links keeps every verdict", () => {
-	const html = render({ ticket: null, run: null, drafts: [] });
+test("a ticket with no agent assignment keeps both verdicts", () => {
+	const html = render({ ticket: "TRL-203", run: null });
 
 	expect(html).toMatch(/<button[^>]*aria-label="Approve"/);
 	expect(html).toMatch(/<button[^>]*aria-label="Request changes"/);
-	expect(html).toMatch(/<button[^>]*aria-label="Comment"/);
+});
+
+test("a pull request that no ticket links keeps both verdicts", () => {
+	const html = render({ ticket: null, run: null });
+
+	expect(html).toMatch(/<button[^>]*aria-label="Approve"/);
+	expect(html).toMatch(/<button[^>]*aria-label="Request changes"/);
 	expect(html).not.toMatch(/aria-label="Merge"/);
 });
 
 test("an approval on the head commit replaces Approve and Request changes with Change verdict", () => {
-	const html = render({ ticket: "TRL-259", run: crispFjord, drafts: [], submissions: [submission({})] });
+	const html = render({ ticket: "TRL-259", run: crispFjord, submissions: [submission({})] });
 
 	expect(html).toContain("You approved");
 	expect(html).toContain("sent to the agent");
@@ -97,14 +78,12 @@ test("an approval on the head commit replaces Approve and Request changes with C
 	expect(html).toMatch(/<button[^>]*aria-label="Change verdict"/);
 	expect(html).not.toMatch(/aria-label="Approve"/);
 	expect(html).not.toMatch(/aria-label="Request changes"/);
-	expect(html).toMatch(/<button[^>]*aria-label="Comment"/);
 });
 
 test("a request for changes on the head commit shows the same control", () => {
 	const html = render({
 		ticket: "TRL-259",
 		run: crispFjord,
-		drafts: [],
 		submissions: [submission({ verdict: "changes_requested", deliveries: [] })],
 	});
 
@@ -118,7 +97,6 @@ test("an approval on an older head commit is stale and brings the buttons back",
 	const html = render({
 		ticket: "TRL-259",
 		run: crispFjord,
-		drafts: [],
 		submissions: [submission({ headSha: "a1b2c3d4" })],
 	});
 
@@ -132,7 +110,6 @@ test("a comment shows as the last note and keeps every verdict", () => {
 	const html = render({
 		ticket: "TRL-259",
 		run: crispFjord,
-		drafts: [],
 		submissions: [submission({ verdict: "commented" })],
 	});
 

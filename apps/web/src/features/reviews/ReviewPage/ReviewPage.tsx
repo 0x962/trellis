@@ -93,14 +93,6 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 		() => allThreads.filter((thread) => thread.revisionId === null || thread.revisionId === revision?.id),
 		[allThreads, revision?.id],
 	);
-	// `reviews.submit` accepts only open threads of the revision on screen.
-	const drafts = useMemo(
-		() =>
-			allThreads
-				.filter((thread) => thread.status === "open" && thread.revisionId === revision?.id)
-				.map((thread) => thread.id),
-		[allThreads, revision?.id],
-	);
 	const threadsById = useMemo(() => new Map(allThreads.map((thread) => [thread.id, thread])), [allThreads]);
 	const renderThread = useCallback(
 		(id: string) => {
@@ -339,7 +331,6 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 						revision={displayRevision}
 						ticket={status.data?.ticket?.identifier ?? null}
 						run={run}
-						drafts={drafts}
 						submissions={allSubmissions}
 						onDone={refreshAll}
 					/>

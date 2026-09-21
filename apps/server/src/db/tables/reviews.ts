@@ -45,28 +45,41 @@ export const reviewSubmissions = pgTable(
 	},
 	(t) => [unique("review_submissions_request").on(t.prId, t.actor, t.requestId)],
 );
-// One row is one message that waits for one agent run. The message is
-// either a review submission or the answer of a question ticket, so exactly
-// one of `review_id` and `answer_comment_id` holds an identifier. The unique
-// rule counts two null values as equal, so a second row for the same message
-// and the same run cannot be written.
+// One row is one message that waits for one agent run. The message is a
+// review submission, the answer of a question ticket, or one comment a
+// person wrote on a diff line, so exactly one of `review_id`,
+// `answer_comment_id` and `thread_message_id` holds an identifier. A comment
+// row also names its thread, because the message to the agent carries the
+// file and the line that the thread holds. `due_at` is the first moment the
+// dispatcher may send the row: a comment row sets it a few seconds ahead, so
+// the comments a person writes one after another travel in one message. The
+// unique rule counts two null values as equal, so a second row for the same
+// message and the same run cannot be written.
 export const reviewDeliveries = pgTable(
 	"review_deliveries",
 	{
 		id: text().primaryKey(),
 		reviewId: text("review_id").references(() => reviewSubmissions.id),
 		answerCommentId: text("answer_comment_id").references(() => comments.id, { onDelete: "cascade" }),
+		threadId: text("thread_id").references(() => reviewThreads.id, { onDelete: "cascade" }),
+		threadMessageId: text("thread_message_id"),
 		runId: text("run_id")
 			.notNull()
 			.references(() => agentRuns.id, { onDelete: "cascade" }),
 		state: text().notNull().default("pending"),
 		error: text(),
 		readAt: at("read_at"),
+		dueAt: at("due_at").notNull().defaultNow(),
 		attempt: integer().notNull().default(0),
 	},
 	(t) => [
-		unique("review_deliveries_recipient").on(t.reviewId, t.answerCommentId, t.runId).nullsNotDistinct(),
+		unique("review_deliveries_recipient")
+			.on(t.reviewId, t.answerCommentId, t.threadMessageId, t.runId)
+			.nullsNotDistinct(),
 		index("review_deliveries_state_idx").on(t.state),
-		check("review_deliveries_one_source", sql`num_nonnulls(${t.reviewId}, ${t.answerCommentId}) = 1`),
+		check(
+			"review_deliveries_one_source",
+			sql`num_nonnulls(${t.reviewId}, ${t.answerCommentId}, ${t.threadMessageId}) = 1`,
+		),
 	],
 );
