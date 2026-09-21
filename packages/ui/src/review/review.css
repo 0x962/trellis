@@ -208,10 +208,6 @@ button.review-notice:hover {
 	overflow: hidden;
 	background: var(--bg);
 }
-.review-page:has(.review-verdict-bar) .review-body,
-.review-page:has(.review-batch-bar) .review-body {
-	padding-bottom: calc(var(--spacing) * 24);
-}
 /* The box that holds the GitHub status error, the new-revision button, the
    refresh error and the thread error. It draws nothing while all four are
    absent. */
