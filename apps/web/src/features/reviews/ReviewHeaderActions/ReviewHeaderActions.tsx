@@ -1,14 +1,12 @@
 import { GithubLogo } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ReviewRevision } from "@trellis/api";
-import { Button, ConfirmDialog, IconButton, Menu, Tooltip, toast } from "@trellis/ui";
+import { ConfirmDialog, IconButton, Menu, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import {
+	githubActionItems,
 	isPrHeadMoved,
-	mergeMenuActions,
-	overflowActions,
-	primaryReviewAction,
 	type ReviewAction,
 	type ReviewActionMeta,
 	type ReviewActionMetadata,
@@ -24,86 +22,90 @@ export function ReviewHeaderActions({
 	onDone: () => void;
 }) {
 	const { client, orpc, queryClient } = useApp();
-	const [closeOpen, setCloseOpen] = useState(false);
+	const [confirm, setConfirm] = useState<{
+		action: ReviewAction;
+		title: string;
+		description: string;
+		confirmLabel: string;
+		danger?: boolean;
+	} | null>(null);
 	const [metadataRequested, setMetadataRequested] = useState(false);
 	const meta = revision.meta as ReviewActionMeta;
-	const primary = primaryReviewAction(meta);
 	const metadata = useQuery({
 		...orpc.reviews.metadata.queryOptions({ input: { pr } }),
-		enabled: primary !== null && metadataRequested,
+		enabled: metadataRequested,
 	});
 	const extra = metadata.data as ReviewActionMetadata | undefined;
 	const action = useMutation({
 		mutationFn: (next: ReviewAction) => client.reviews.action({ pr, headSha: revision.headSha, action: next }),
 		onSuccess: () => {
-			setCloseOpen(false);
+			setConfirm(null);
 			void queryClient.invalidateQueries({ queryKey: orpc.reviews.metadata.key() });
 			onDone();
 		},
 		onError: (error) => {
 			if (isPrHeadMoved(error)) {
-				setCloseOpen(false);
+				setConfirm(null);
 				onDone();
 				return;
 			}
 			toast.error("The pull request action failed", { description: error.message });
 		},
 	});
-
-	// `mergeMenuActions` reads `extra.mergeQueueEntry` to choose between "Join
-	// the merge queue" and "Leave the merge queue". The metadata query starts
-	// when this menu opens for the first time, so `extra` is undefined until
-	// that answer arrives. A placeholder holds the place until then, because
-	// the wrong word would send the pull request into the queue twice.
-	const mergeItems: Array<{ action: ReviewAction; label: string; waiting: boolean }> =
-		primary !== "merge"
-			? []
-			: extra === undefined
-				? [{ action: "queue", label: "Loading merge options…", waiting: true }]
-				: mergeMenuActions(meta, extra).map((item) => ({ ...item, waiting: false }));
+	const items = [
+		{
+			label: "Open in GitHub",
+			onSelect: () => window.open(pr, "_blank", "noopener"),
+		},
+		...githubActionItems(meta, extra, pr).map((item) => ({
+			label: item.label,
+			danger: item.danger,
+			disabled: action.isPending,
+			onSelect: () =>
+				item.confirm
+					? setConfirm({
+							action: item.action,
+							title:
+								item.action === "merge" || item.action === "admin-merge"
+									? `${item.label} pull request?`
+									: `${item.label}?`,
+							description:
+								item.action === "close"
+									? "This stops new reviews and prevents the pull request from merging."
+									: item.action === "admin-merge"
+										? "This uses administrator privileges and bypasses branch protection."
+										: item.action === "merge"
+											? "This squashes the commits and merges the pull request."
+											: "This runs the GitHub action.",
+							confirmLabel: item.label,
+							danger: item.danger,
+						})
+					: action.mutate(item.action),
+		})),
+		...(metadataRequested && extra === undefined
+			? [{ label: "Loading GitHub actions...", disabled: true, onSelect: () => {} }]
+			: []),
+	];
 
 	return (
 		<div className="review-header-actions">
-			{primary !== null && primary === "ready" && (
-				<Button variant="primary" processing={action.isPending} onClick={() => action.mutate("ready")}>
-					Mark ready for review
-				</Button>
-			)}
-			<Tooltip content="Open pull request on GitHub">
-				<IconButton
-					label="Open pull request on GitHub"
-					icon={<GithubLogo />}
-					variant="default"
-					onClick={() => window.open(pr, "_blank", "noopener")}
-				/>
-			</Tooltip>
-			{primary !== null && (
-				<>
-					<Menu
-						label="More pull request actions"
-						triggerTooltip="More actions"
-						onOpenChange={(open) => open && setMetadataRequested(true)}
-						items={[...mergeItems, ...overflowActions(meta, extra).map((item) => ({ ...item, waiting: false }))].map(
-							(item) => ({
-								label: item.label,
-								danger: item.action === "close",
-								disabled: action.isPending || item.waiting,
-								onSelect: () => (item.action === "close" ? setCloseOpen(true) : action.mutate(item.action)),
-							}),
-						)}
-					/>
-					<ConfirmDialog
-						open={closeOpen}
-						title="Close pull request?"
-						description="This stops new reviews and prevents the pull request from merging."
-						confirmLabel="Close pull request"
-						danger
-						processing={action.isPending}
-						onCancel={() => setCloseOpen(false)}
-						onConfirm={() => action.mutate("close")}
-					/>
-				</>
-			)}
+			<Menu
+				label="GitHub actions"
+				trigger={<IconButton label="GitHub actions" icon={<GithubLogo />} variant="default" />}
+				triggerTooltip="GitHub actions"
+				onOpenChange={(open) => open && setMetadataRequested(true)}
+				items={items}
+			/>
+			<ConfirmDialog
+				open={confirm !== null}
+				title={confirm?.title ?? ""}
+				description={confirm?.description ?? ""}
+				confirmLabel={confirm?.confirmLabel ?? ""}
+				danger={confirm?.danger}
+				processing={action.isPending}
+				onCancel={() => setConfirm(null)}
+				onConfirm={() => confirm && action.mutate(confirm.action)}
+			/>
 		</div>
 	);
 }

@@ -1,11 +1,6 @@
 import type { AgentRun, ReviewRevision } from "@trellis/api";
-import { MergeButton } from "./components/MergeButton";
 import { VerdictButton } from "./components/VerdictButton";
-import { unmetLine } from "./unmetLine/unmetLine";
 
-// A merge writes to a company repository, and the page cannot undo it, so the
-// person runs it at a computer.
-const phoneNoMergeLine = "A merge into an enterprise repository needs the desk.";
 const draftCount = (drafts: number) => `${drafts} ${drafts === 1 ? "draft" : "drafts"}`;
 
 export type VerdictBarProps = {
@@ -19,43 +14,15 @@ export type VerdictBarProps = {
 	run: AgentRun | null;
 	// The open threads that Request changes and Comment deliver to the agent.
 	drafts: readonly string[];
-	// One phrase per condition that the pull request does not meet, in the
-	// words of `conditionLines`.
-	unmetConditions: readonly string[];
-	phone: boolean;
-	showMerge: boolean;
 	onDone: () => void;
 };
 
-// The bar under the review column shows the draft count and the available
-// review actions. `Merge` stays live with any condition unmet, and its line
-// names each condition before the person clicks.
-export function VerdictBar({
-	pr,
-	revision,
-	ticket,
-	run,
-	drafts,
-	unmetConditions,
-	phone,
-	showMerge,
-	onDone,
-}: VerdictBarProps) {
-	const meta = revision.meta as { baseRefName?: string };
-	const line = showMerge ? (phone ? phoneNoMergeLine : unmetLine(unmetConditions)) : "";
+// The bar under the review column shows the local review actions.
+export function VerdictBar({ pr, revision, ticket, run, drafts, onDone }: VerdictBarProps) {
 	return (
 		<section className="review-bar review-verdict-bar" aria-label="Verdict">
 			<div className="review-verdict-bar-row">
 				<span className="review-verdict-bar-drafts">{draftCount(drafts.length)}</span>
-				{showMerge && !phone && (
-					<MergeButton
-						pr={pr}
-						revision={revision}
-						baseRefName={meta.baseRefName}
-						unmetConditions={unmetConditions}
-						onDone={onDone}
-					/>
-				)}
 				<VerdictButton
 					pr={pr}
 					headSha={revision.headSha}
@@ -84,7 +51,6 @@ export function VerdictBar({
 					onDone={onDone}
 				/>
 			</div>
-			{line && <p className="review-verdict-bar-unmet">{line}</p>}
 		</section>
 	);
 }
