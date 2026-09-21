@@ -31,13 +31,25 @@
 	border-inline: var(--border-width-hairline) solid var(--border);
 }
 .review-diff-hunk-header {
-	padding: calc(var(--spacing) / 2) calc(var(--spacing) * 13);
+	display: grid;
+	/* The gutter holds the expand controls, and it takes the width of the
+	   line numbers beside it. A coarse pointer draws each control at 44 px,
+	   so the gutter grows and the hunk specs move with it. */
+	grid-template-columns: minmax(calc(var(--spacing) * 13), auto) minmax(0, 1fr);
+	min-height: calc(var(--spacing) * 6);
+	align-items: center;
 	border-block: var(--border-width-hairline) solid var(--border);
 	background: var(--surface);
 	color: var(--fg-muted);
 	font-family: var(--font-mono);
 	font-size: var(--text-xs);
 	line-height: var(--text-xs--line-height);
+}
+.review-diff-hunk-controls {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: calc(var(--spacing) / 2);
 }
 .review-diff-line {
 	display: grid;
