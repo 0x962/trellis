@@ -18,7 +18,7 @@ const countPhrase = (count: number, singular: string, plural: string) => `${coun
 const reasonOf = (prRow: TicketPr | null): string | null => {
 	if (prRow === null) return null;
 	if (prRow.fail > 0) return `${countPhrase(prRow.fail, "check", "checks")} failed`;
-	if (prRow.openThreads > 0) return `${countPhrase(prRow.openThreads, "thread", "threads")} open`;
+	if (prRow.openThreads > 0) return `${countPhrase(prRow.openThreads, "comment", "comments")} open`;
 	if (prRow.pending > 0) return `${countPhrase(prRow.pending, "check", "checks")} pending`;
 	return null;
 };

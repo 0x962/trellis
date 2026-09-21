@@ -35,23 +35,23 @@ test("the bar offers each local verdict", () => {
 		drafts: ["01A", "01B"],
 	});
 
-	expect(html).toContain("2 drafts");
+	expect(html).toContain("2 comments");
 	expect(html).toMatch(/<button[^>]*aria-label="Approve"/);
 	expect(html).toMatch(/<button[^>]*aria-label="Request changes"/);
 	expect(html).toMatch(/<button[^>]*aria-label="Comment"/);
 	expect(html).not.toMatch(/aria-label="Merge"/);
 });
 
-test("a pull request with one draft prints the singular count", () => {
+test("a pull request with one comment prints the singular count", () => {
 	const html = render({ ticket: "TRL-203", run: crispFjord, drafts: ["01A"] });
 
-	expect(html).toContain("1 draft");
+	expect(html).toContain("1 comment");
 });
 
 test("a ticket with no agent assignment keeps every verdict", () => {
 	const html = render({ ticket: "TRL-203", run: null, drafts: [] });
 
-	expect(html).toContain("0 drafts");
+	expect(html).toContain("0 comments");
 	expect(html).toMatch(/<button[^>]*aria-label="Approve"/);
 	expect(html).toMatch(/<button[^>]*aria-label="Request changes"/);
 	expect(html).toMatch(/<button[^>]*aria-label="Comment"/);

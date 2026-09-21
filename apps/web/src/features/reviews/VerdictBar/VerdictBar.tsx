@@ -1,7 +1,7 @@
 import type { AgentRun, ReviewRevision } from "@trellis/api";
 import { VerdictButton } from "./components/VerdictButton";
 
-const draftCount = (drafts: number) => `${drafts} ${drafts === 1 ? "draft" : "drafts"}`;
+const commentCount = (comments: number) => `${comments} ${comments === 1 ? "comment" : "comments"}`;
 
 export type VerdictBarProps = {
 	pr: string;
@@ -12,7 +12,7 @@ export type VerdictBarProps = {
 	// The open agent assignment of the ticket, or null while the ticket has
 	// none.
 	run: AgentRun | null;
-	// The open threads that Request changes and Comment deliver to the agent.
+	// The open comments that Request changes and Comment deliver to the agent.
 	drafts: readonly string[];
 	onDone: () => void;
 };
@@ -22,7 +22,7 @@ export function VerdictBar({ pr, revision, ticket, run, drafts, onDone }: Verdic
 	return (
 		<section className="review-bar review-verdict-bar" aria-label="Verdict">
 			<div className="review-verdict-bar-row">
-				<span className="review-verdict-bar-drafts">{draftCount(drafts.length)}</span>
+				<span className="review-verdict-bar-drafts">{commentCount(drafts.length)}</span>
 				<VerdictButton
 					pr={pr}
 					headSha={revision.headSha}

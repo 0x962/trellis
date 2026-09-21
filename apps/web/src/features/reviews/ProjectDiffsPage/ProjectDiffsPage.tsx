@@ -146,7 +146,7 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 									.map((pr) => (
 										<Link
 											className="review-index-row"
-											aria-label={`#${pr.number} ${pr.title || "Pull request"}, ${pr.state}${pr.open ? `, ${pr.open} open ${pr.open === 1 ? "thread" : "threads"}` : ""}`}
+											aria-label={`#${pr.number} ${pr.title || "Pull request"}, ${pr.state}${pr.open ? `, ${pr.open} open ${pr.open === 1 ? "comment" : "comments"}` : ""}`}
 											key={pr.id}
 											to="/reviews/$owner/$repo/$number"
 											params={{ owner: pr.owner, repo: pr.repo, number: String(pr.number) }}
@@ -157,7 +157,7 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 											{pr.open > 0 && (
 												<span
 													className="review-row-count"
-													title={`${pr.open} open ${pr.open === 1 ? "thread" : "threads"}`}
+													title={`${pr.open} open ${pr.open === 1 ? "comment" : "comments"}`}
 												>
 													<TextAlignLeft aria-hidden="true" />
 													{pr.open}
