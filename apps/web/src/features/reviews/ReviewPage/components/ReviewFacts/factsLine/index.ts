@@ -1,1 +1,0 @@
-export { factsLine } from "./factsLine";
