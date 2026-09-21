@@ -9,4 +9,5 @@ export {
 	type DesktopUpdateStatus,
 	desktopErrorMessage,
 	desktopSettingsBridge,
+	isDesktopApp,
 } from "./desktopBridge.ts";

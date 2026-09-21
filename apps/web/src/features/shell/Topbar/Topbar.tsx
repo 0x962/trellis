@@ -1,6 +1,6 @@
-import { SidebarSimple } from "@phosphor-icons/react";
-import { IconButton, Tooltip, useMediaQuery } from "@trellis/ui";
-import type { ReactNode } from "react";
+import { DotsThree, SidebarSimple } from "@phosphor-icons/react";
+import { IconButton, type IconButtonProps, Menu, type MenuProps, Tooltip, useMediaQuery } from "@trellis/ui";
+import type { ReactElement, ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { usePageSheet } from "../PageSheet";
@@ -11,6 +11,20 @@ export type TopbarProps = {
 	// The controls on the right: the view switch, the primary action.
 	actions?: ReactNode;
 };
+
+export type TopbarActionButtonProps = Omit<IconButtonProps, "size" | "variant">;
+
+export function TopbarActionButton(props: TopbarActionButtonProps) {
+	return <IconButton {...props} size="sm" variant="default" />;
+}
+
+export type TopbarActionMenuProps = Omit<MenuProps, "trigger"> & {
+	icon?: ReactElement;
+};
+
+export function TopbarActionMenu({ icon = <DotsThree />, label, ...props }: TopbarActionMenuProps) {
+	return <Menu label={label} trigger={<TopbarActionButton label={label} icon={icon} />} {...props} />;
+}
 
 export function Topbar({ children, actions }: TopbarProps) {
 	const phone = useMediaQuery("(max-width: 767px)");

@@ -1,11 +1,11 @@
 import { Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Button, EmptyState, EntityCard, IconButton, Skeleton } from "@trellis/ui";
+import { Button, EmptyState, EntityCard, Skeleton, Tooltip } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { PageTitle } from "../../shell/PageTitle";
-import { Topbar } from "../../shell/Topbar";
+import { Topbar, TopbarActionButton } from "../../shell/Topbar";
 import { NewFlowDialog } from "./components/NewFlowDialog";
 
 export function FlowsPage() {
@@ -19,7 +19,9 @@ export function FlowsPage() {
 		<>
 			<Topbar
 				actions={
-					<IconButton label="New flow" icon={<Plus />} size="md" variant="primary" onClick={() => setCreating(true)} />
+					<Tooltip content="New flow">
+						<TopbarActionButton label="New flow" icon={<Plus />} onClick={() => setCreating(true)} />
+					</Tooltip>
 				}
 			>
 				<PageTitle title="Flows" />

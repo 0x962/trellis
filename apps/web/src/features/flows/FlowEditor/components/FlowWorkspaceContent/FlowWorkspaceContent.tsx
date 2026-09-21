@@ -1,11 +1,11 @@
 import { Archive, ArrowClockwise, SlidersHorizontal } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { FlowDoc } from "@trellis/api";
-import { ConfirmDialog, IconButton, Tooltip } from "@trellis/ui";
+import { ConfirmDialog, Tooltip } from "@trellis/ui";
 import { useEdgesState, useNodesState, useReactFlow } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PageTitle } from "../../../../shell/PageTitle";
-import { Topbar } from "../../../../shell/Topbar";
+import { Topbar, TopbarActionButton } from "../../../../shell/Topbar";
 import type { createDraftRecovery } from "../../draftRecovery";
 import { FlowEditorContext } from "../../editorContext";
 import {
@@ -127,17 +127,21 @@ export function FlowWorkspaceContent({
 						</span>
 						{autosave.status === "conflict" && (
 							<Tooltip content="Reload the flow">
-								<IconButton label="Reload the flow" icon={<ArrowClockwise />} onClick={() => setConfirmReload(true)} />
+								<TopbarActionButton
+									label="Reload the flow"
+									icon={<ArrowClockwise />}
+									onClick={() => setConfirmReload(true)}
+								/>
 							</Tooltip>
 						)}
 						{autosave.status === "error" && submission === null && (
 							<Tooltip content="Retry the save">
-								<IconButton label="Retry the save" icon={<ArrowClockwise />} onClick={autosave.retry} />
+								<TopbarActionButton label="Retry the save" icon={<ArrowClockwise />} onClick={autosave.retry} />
 							</Tooltip>
 						)}
 						{recovery.candidates().length > 0 && (
 							<Tooltip content="Recover imported draft">
-								<IconButton
+								<TopbarActionButton
 									label="Recover imported draft"
 									icon={<Archive />}
 									onClick={onRecover}
@@ -146,7 +150,7 @@ export function FlowWorkspaceContent({
 							</Tooltip>
 						)}
 						<Tooltip content="Flow settings">
-							<IconButton
+							<TopbarActionButton
 								label="Flow settings"
 								icon={<SlidersHorizontal />}
 								disabled={submitting}

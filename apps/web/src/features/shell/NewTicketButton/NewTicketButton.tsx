@@ -1,8 +1,9 @@
 import { Plus } from "@phosphor-icons/react";
 import { useRouterState } from "@tanstack/react-router";
-import { IconButton } from "@trellis/ui";
+import { Tooltip } from "@trellis/ui";
 import { projectRefOfPathname } from "../../../lib/projectPath";
 import { composerActions } from "../../composer";
+import { TopbarActionButton } from "../Topbar";
 
 // The create control of a list page: a round button with a plus, the shape
 // every create control takes. The New ticket dialog opens in the project of
@@ -12,12 +13,12 @@ export function NewTicketButton() {
 	const pathname = useRouterState({ select: (state) => state.location.pathname });
 	const project = projectRefOfPathname(pathname);
 	return (
-		<IconButton
-			label="New ticket"
-			icon={<Plus />}
-			size="md"
-			variant="primary"
-			onClick={() => composerActions.open(project === null ? {} : { project })}
-		/>
+		<Tooltip content="New ticket">
+			<TopbarActionButton
+				label="New ticket"
+				icon={<Plus />}
+				onClick={() => composerActions.open(project === null ? {} : { project })}
+			/>
+		</Tooltip>
 	);
 }

@@ -482,6 +482,11 @@ section that starts closed. A document opens in an editor. On desktop, a link
 opens in the in-app browser and an image opens in a sheet. Other browsers open
 links and images in a new tab. A file downloads from its blob URL.
 
+The in-app browser is one sheet in the shell sheet stack, and every link in the
+app reaches it. On desktop a control that leads to an HTTPS page opens that
+sheet over the page the person reads. The sheet header carries Open in browser,
+which hands the address to the browser of the operating system.
+
 The route `/t/<KEY-n>` shows a resource when the ask or contract names its
 path. The match uses a complete path token or its last path segment. A plain
 title in prose does not name a resource.
