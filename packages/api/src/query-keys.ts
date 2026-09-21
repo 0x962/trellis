@@ -36,6 +36,7 @@ export const membershipFields: ReadonlySet<string> = new Set([
 	"priority",
 	"labels",
 	"parent",
+	"after",
 	"epic",
 	"wave",
 	"completed",
@@ -47,15 +48,13 @@ export const membershipFields: ReadonlySet<string> = new Set([
 // or moves. The parent row emits no event of its own, so its detail refetches.
 const parentFields: ReadonlySet<string> = new Set(["parent", "status", "completedAt"]);
 
-// The counts and the state of an epic and of each of its waves derive
-// from its tickets. The epic row emits no event of its own when a ticket
-// changes, so the epic queries refetch on a ticket event that names one of
-// these fields.
-const epicFields: ReadonlySet<string> = new Set(["epic", "wave", "status", "completedAt"]);
+// The counts, turns, and state of an epic and its waves derive from tickets.
+// A ticket change emits no epic event, so these fields refetch epic queries.
+const epicFields: ReadonlySet<string> = new Set(["epic", "wave", "status", "completedAt", "after"]);
 
-// A ticket event carries only the summary. A change to one of these fields
-// is not in the summary, so the detail query must load the row again.
-const detailFields: ReadonlySet<string> = new Set(["description", ...ticketContractFields, "outcome"]);
+// A ticket event carries only the summary. These fields change detail data
+// that the summary omits, such as `answeredQuestions` after an `after` change.
+const detailFields: ReadonlySet<string> = new Set(["description", ...ticketContractFields, "outcome", "after"]);
 
 // A summary event cannot patch these values. Remove the detail so a reader
 // cannot pair old values with the event's newer version.

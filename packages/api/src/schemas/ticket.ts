@@ -194,6 +194,10 @@ export const ListQuerySchema = z.strictObject({
 	label: commaList(LabelRefStringSchema).optional(),
 	labelNot: commaList(LabelRefStringSchema).optional(),
 	parent: z.union([z.literal("none"), TicketRefStringSchema]).optional(),
+	// `waitsOn` keeps tickets that have a dependency edge to the named ticket.
+	waitsOn: TicketRefStringSchema.optional(),
+	// `blocked` tests for at least one dependency whose status is still open.
+	blocked: booleanString.optional(),
 	// `none` keeps the tickets outside every epic.
 	epic: z.union([z.literal("none"), EpicRefStringSchema]).optional(),
 	// `none` keeps the tickets outside every wave.

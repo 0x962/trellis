@@ -1043,6 +1043,8 @@ The filter grammar is identical in the API, the web URL, and the CLI flags.
 | reviewer | human or agent |
 | priority | a list |
 | parent | a TicketRef or `none` |
+| waitsOn | a TicketRef; keeps tickets with that dependency edge |
+| blocked | true or false; tests for an open dependency |
 | epic | an EpicRef or `none` |
 | wave | a WaveRef or `none` |
 | label | a list of LabelRef; a ticket that holds one of them stays; `none` in the list keeps a ticket with no label |

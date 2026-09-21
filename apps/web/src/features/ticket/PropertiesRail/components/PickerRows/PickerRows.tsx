@@ -18,6 +18,7 @@ import { ProjectKey } from "../../../../shell/ProjectKey";
 import { useStatuses } from "../../../hooks/useStatuses";
 import { useTicketWrite } from "../../../hooks/useTicketWrite";
 import { type PickerKind, usePickerStore } from "../../../stores/pickerStore";
+import { DependenciesRow } from "../DependenciesRow";
 import { LabelsRow } from "../LabelsRow";
 import { WaveRow } from "../WaveRow";
 
@@ -39,9 +40,8 @@ const summaryOf = (status: Status) => ({
 	color: status.color,
 });
 
-// The rows a person changes through a picker: status, priority, labels,
-// project, parent, and epic. Each pick paints at once and rolls back with a
-// toast on failure. A refused project move shows its reason inside the
+// The rows a person changes through a picker. Each pick paints at once and
+// rolls back with a toast on failure. A refused project move shows its reason inside the
 // picker. The s, p, l, Shift+P, and m keys open the pickers from anywhere
 // on the page. The status picker lists the effective statuses of the
 // ticket's project. `LabelsRow` holds the labels row and its write. The epic
@@ -235,6 +235,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 					onOpenChange={openChange("parent")}
 				/>
 			</PropertyRow>
+			<DependenciesRow ticket={ticket} />
 			<PropertyRow compact label="Epic">
 				{ticket.epic === null ? (
 					<span className="text-fg-muted">None</span>
