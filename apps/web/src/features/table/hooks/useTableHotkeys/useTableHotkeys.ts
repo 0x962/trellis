@@ -106,8 +106,18 @@ export const useTableHotkeys = (controller: TableController) => {
 		useStableCallback((event) => move(-1, true, event)),
 	);
 
-	useHotkey("enter", useStableCallback(withFocused((id) => controller.openTicket(id))));
-	useHotkey(" ", useStableCallback(withFocused((id) => controller.openTicket(id))));
+	// Enter and Space open the ticket of the focused row. The table reads
+	// them on a listener of the document, in the capture phase, so a control
+	// inside the table never sees them first. The pull request line and the
+	// agent line are such controls, and each one answers Enter and Space
+	// itself, so the table leaves the key alone while the focus sits on one.
+	const openFocusedTicket = useStableCallback((event: KeyboardEvent) => {
+		const target = event.target;
+		if (target instanceof Element && target.closest('button, [role="button"]') !== null) return;
+		withFocused((id) => controller.openTicket(id))(event);
+	});
+	useHotkey("enter", openFocusedTicket);
+	useHotkey(" ", openFocusedTicket);
 	useHotkey("o", useStableCallback(withFocused((id) => controller.openPage(id))));
 	useHotkey("x", useStableCallback(withFocused((id) => controller.selection.toggle(id))));
 	useHotkey("s", useStableCallback(withFocused((id) => controller.openField(id, "status"))));
