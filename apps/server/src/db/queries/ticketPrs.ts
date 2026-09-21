@@ -47,6 +47,8 @@ export const toTicketPrRows = (rows: TicketPrRow[] | null): TicketPr[] =>
 			row.repo,
 			files.map((file) => ({
 				path: file.path,
+				// GitHub reports no added line and at least one removed line when a change only removes content.
+				// For a test file, this means the change removed test cases.
 				change: file.additions === 0 && file.deletions > 0 ? "deleted" : "change",
 			})),
 		);
