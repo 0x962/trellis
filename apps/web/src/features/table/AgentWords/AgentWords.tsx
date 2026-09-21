@@ -32,9 +32,10 @@ type AgentWordsProps = {
 // one tool call, or the text the agent writes now. Those words are plain
 // text on one line, because each tool call replaces them, and a line that
 // grew and shrank would move every row under it on each call. They take
-// `text-glimmer`: a band of light crosses them every seven seconds, which
-// says the agent still works. The band is CSS, and a person who asks for
-// less motion reads the same words with no band.
+// `text-film`: the film colors of the ticket glimmer cross them without a
+// pause, one sweep every two seconds, which says the agent works now. The
+// sweep is CSS, and a person who asks for less motion reads the same words
+// with no sweep.
 export function AgentWords({ line, wrap = false, render }: AgentWordsProps) {
 	const dot = line.asks && <AttentionDot label="The run waits for a person." />;
 	const tone = line.asks ? "text-warning" : "text-fg-muted";
@@ -43,7 +44,7 @@ export function AgentWords({ line, wrap = false, render }: AgentWordsProps) {
 			<>
 				<span className="flex h-4 w-4 shrink-0 items-center justify-center">{dot}</span>
 				{line.working ? (
-					<span className="min-w-0 flex-1 truncate text-glimmer" title={line.words}>
+					<span className="min-w-0 flex-1 truncate text-film" title={line.words}>
 						{line.words}
 					</span>
 				) : (
@@ -57,7 +58,7 @@ export function AgentWords({ line, wrap = false, render }: AgentWordsProps) {
 	return (
 		<>
 			{dot}
-			<span className={cx("truncate", line.working ? "text-glimmer" : tone)} title={line.words}>
+			<span className={cx("truncate", line.working ? "text-film" : tone)} title={line.words}>
 				{line.words}
 			</span>
 		</>
