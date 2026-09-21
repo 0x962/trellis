@@ -8,8 +8,8 @@ const pullRequest = {
 	deletions: 44,
 	changedFiles: 7,
 	files: [
-		{ path: "apps/web/src/routes/index.tsx", additions: 100, deletions: 20 },
-		{ path: "packages/api/src/schemas/pullRequest.ts", additions: 86, deletions: 24 },
+		{ path: "apps/web/src/routes/index.tsx", change: "change", additions: 100, deletions: 20 },
+		{ path: "packages/api/src/schemas/pullRequest.ts", change: "change", additions: 86, deletions: 24 },
 	],
 } satisfies Pick<PullRequest, "additions" | "changedFiles" | "deletions" | "files" | "repo">;
 
@@ -44,7 +44,7 @@ test("reads a deleted test risk from the stored file counts", () => {
 		{ headline: "Print it." },
 		{
 			...pullRequest,
-			files: [{ path: "packages/api/src/old.test.ts", additions: 0, deletions: 10 }],
+			files: [{ path: "packages/api/src/old.test.ts", change: "change", additions: 0, deletions: 10 }],
 		},
 		"review",
 	);

@@ -1,9 +1,22 @@
 import { describe, expect, test } from "bun:test";
-import { type PrPath, prPaths } from "./prPaths.ts";
+import { changedFilePaths, type PrPath, prPaths } from "./prPaths.ts";
 
-const file = (path: string, change: PrPath["change"] = "change"): PrPath => ({ path, change });
+const file = (path: string, change: PrPath["change"] = "change"): PrPath => ({
+	path,
+	change,
+	removedLinesOnly: false,
+});
 
 describe("risk answers", () => {
+	test("marks a test file that only loses lines as a deleted-test risk", () => {
+		const paths = changedFilePaths([
+			{ path: "packages/api/src/time.test.ts", change: "change", additions: 0, deletions: 4 },
+		]);
+
+		expect(prPaths("trellis", paths).risk.deletedTest).toBe("yes");
+		expect(paths[0]?.change).toBe("change");
+	});
+
 	test("marks an auth path", () => {
 		expect(prPaths("canary", [file("backend/canary/api/private/staff_hotels.py")]).risk.auth).toBe("yes");
 	});

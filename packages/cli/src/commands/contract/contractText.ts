@@ -3,7 +3,7 @@ import { contractClauses, contractFloor, evidenceWords, type TicketContract } fr
 export const evidenceOwedText = (contract: TicketContract, repositoryName: string | undefined): string => {
 	const floor = contractFloor(repositoryName, contract);
 	if (floor === null) return "-";
-	return `${floor.kind}: ${floor.required.map((item) => evidenceWords[item]).join(" · ")}`;
+	return `${floor.kind}: ${[...floor.required.map((item) => evidenceWords[item]), ...floor.notes].join(" · ")}`;
 };
 
 const row = (label: string, values: string[]): string => {

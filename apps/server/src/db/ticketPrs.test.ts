@@ -12,6 +12,7 @@ const status = ulid();
 const ticket = ulid();
 const emptyTicket = ulid();
 const evidenceTicket = ulid();
+const deletedTestTicket = ulid();
 const evidencePullRequest = ulid();
 const at = new Date("2026-09-20T10:00:00.000Z");
 const repoWithTrellisPathRules = "trellis";
@@ -25,6 +26,8 @@ const insertPull = async ({
 	checks,
 	files,
 	changedFiles = files?.length ?? null,
+	ticketId = ticket,
+	headSha = null,
 }: {
 	number: number;
 	additions: number | null;
@@ -32,21 +35,23 @@ const insertPull = async ({
 	checks: ReturnType<typeof check>[];
 	files: ChangedFile[] | null;
 	changedFiles?: number | null;
+	ticketId?: string;
+	headSha?: string | null;
 }) => {
 	const id = ulid();
 	await db.execute(sql`INSERT INTO pull_requests (
-		id, owner, repo, number, additions, deletions, changed_files, files, url, state, is_draft,
+		id, owner, repo, number, additions, deletions, changed_files, files, url, state, is_draft, head_sha,
 		head_ref, base_ref, review_state, checks, ci_state, created_at, updated_at
 	) VALUES (
 		${id}, 'acme', ${repoWithTrellisPathRules}, ${number}, ${additions}, ${deletions}, ${changedFiles},
 		${files === null ? null : JSON.stringify(files)}::jsonb,
-		${`https://github.com/acme/${repoWithTrellisPathRules}/pull/${number}`}, 'open', ${number === 2},
+		${`https://github.com/acme/${repoWithTrellisPathRules}/pull/${number}`}, 'open', ${number === 2}, ${headSha},
 		${`feature-${number}`}, 'main', 'review_required', ${JSON.stringify(checks)}::jsonb,
 		'fail', ${at}, ${at}
 	)`);
 	await db.execute(sql`INSERT INTO ticket_pull_requests (
 		ticket_id, pull_request_id, source, actor_name, actor_kind, created_at
-	) VALUES (${ticket}, ${id}, 'manual', 'Test', 'human', ${new Date(at.getTime() + number)})`);
+	) VALUES (${ticketId}, ${id}, 'manual', 'Test', 'human', ${new Date(at.getTime() + number)})`);
 	return id;
 };
 
@@ -65,7 +70,8 @@ beforeAll(async () => {
 	) VALUES
 		(${ticket}, ${root}, ${root}, 1, 'Task', ${status}, 0, ${at}, ${at}),
 		(${emptyTicket}, ${root}, ${root}, 2, 'Empty task', ${status}, 1, ${at}, ${at}),
-		(${evidenceTicket}, ${root}, ${root}, 3, 'Evidence task', ${status}, 2, ${at}, ${at})`);
+		(${evidenceTicket}, ${root}, ${root}, 3, 'Evidence task', ${status}, 2, ${at}, ${at}),
+		(${deletedTestTicket}, ${root}, ${root}, 4, 'Deleted test task', ${status}, 3, ${at}, ${at})`);
 
 	const first = await insertPull({
 		number: 1,
@@ -79,11 +85,11 @@ beforeAll(async () => {
 			check("docs", "CI", "skipping"),
 		],
 		files: [
-			{ path: "apps/web/src/routes/index.tsx", additions: 20, deletions: 2 },
-			{ path: "apps/server/src/auth/session.ts", additions: 20, deletions: 2 },
-			{ path: "apps/server/drizzle/0087_kind.sql", additions: 20, deletions: 2 },
-			{ path: "package.json", additions: 1, deletions: 1 },
-			{ path: "packages/api/src/schemas/review.ts", additions: 10, deletions: 1 },
+			{ path: "apps/web/src/routes/index.tsx", change: "change", additions: 20, deletions: 2 },
+			{ path: "apps/server/src/auth/session.ts", change: "change", additions: 20, deletions: 2 },
+			{ path: "apps/server/drizzle/0087_kind.sql", change: "change", additions: 20, deletions: 2 },
+			{ path: "package.json", change: "change", additions: 1, deletions: 1 },
+			{ path: "packages/api/src/schemas/review.ts", change: "change", additions: 10, deletions: 1 },
 		],
 	});
 	await insertPull({
@@ -91,14 +97,14 @@ beforeAll(async () => {
 		additions: 200,
 		deletions: 200,
 		checks: [],
-		files: [{ path: "apps/server/src/log.ts", additions: 5, deletions: 1 }],
+		files: [{ path: "apps/server/src/log.ts", change: "change", additions: 5, deletions: 1 }],
 	});
 	await insertPull({
 		number: 3,
 		additions: 401,
 		deletions: 0,
 		checks: [],
-		files: [{ path: "packages/ui/src/Button.tsx", additions: 5, deletions: 1 }],
+		files: [{ path: "packages/ui/src/Button.tsx", change: "change", additions: 5, deletions: 1 }],
 	});
 	await insertPull({ number: 4, additions: null, deletions: null, checks: [], files: null });
 	await insertPull({
@@ -106,7 +112,7 @@ beforeAll(async () => {
 		additions: 1,
 		deletions: 1,
 		checks: [],
-		files: [{ path: "packages/ui/src/Dialog.tsx", additions: 1, deletions: 1 }],
+		files: [{ path: "packages/ui/src/Dialog.tsx", change: "change", additions: 1, deletions: 1 }],
 		changedFiles: 2,
 	});
 	await db.execute(sql`INSERT INTO review_threads (id, pr_id, document, updated_at) VALUES
@@ -125,7 +131,7 @@ beforeAll(async () => {
 		head_ref, base_ref, review_state, checks, ci_state, created_at, updated_at
 	) VALUES (
 		${evidencePullRequest}, 'acme', 'trellis', 6, 8, 2, 1,
-		${JSON.stringify([{ path: "apps/server/src/log.ts", additions: 8, deletions: 2 }])}::jsonb,
+		${JSON.stringify([{ path: "apps/server/src/log.ts", change: "change", additions: 8, deletions: 2 }])}::jsonb,
 		'https://github.com/acme/trellis/pull/6', 'open', 'head-one', 'evidence', 'main',
 		'review_required', '[]'::jsonb, 'pass', ${at}, ${at}
 	)`);
@@ -142,6 +148,29 @@ beforeAll(async () => {
 	await db.execute(sql`INSERT INTO pr_evidence (
 		id, pull_request_id, head_sha, kind, record, actor_name, actor_kind, created_at
 	) VALUES (${ulid()}, ${evidencePullRequest}, 'old-head', 'verify', '{}', 'Test', 'human', ${at})`);
+
+	const deletedTestPullRequest = await insertPull({
+		number: 7,
+		additions: 20,
+		deletions: 10,
+		checks: [],
+		files: [
+			{ path: "apps/web/src/App.tsx", change: "change", additions: 20, deletions: 0 },
+			{ path: "apps/web/src/App.test.tsx", change: "change", additions: 0, deletions: 10 },
+		],
+		ticketId: deletedTestTicket,
+		headSha: "deleted-test-head",
+	});
+	await db.execute(sql`INSERT INTO pr_summaries (
+		pull_request_id, head_sha, headline, why, watch, created_at, updated_at
+	) VALUES (
+		${deletedTestPullRequest}, 'deleted-test-head', 'Remove one test.',
+		'The row uses the stored file counts.', 'nothing', ${at}, ${at}
+	)`);
+	for (const kind of ["after", "before", "capture", "console"])
+		await db.execute(sql`INSERT INTO pr_evidence (
+			id, pull_request_id, head_sha, kind, record, actor_name, actor_kind, created_at
+		) VALUES (${ulid()}, ${deletedTestPullRequest}, 'deleted-test-head', ${kind}, '{}', 'Test', 'human', ${at})`);
 });
 
 afterAll(async () => {
@@ -183,7 +212,7 @@ test("a ticket summary carries one row for each pull request", async () => {
 	});
 	expect(summary.prRows.map((row) => row.kind)).toEqual(["mixed", "backend", "frontend", null, null]);
 	expect(summary.prRows.slice(3).map((row) => row.risk)).toEqual([null, null]);
-	expect(summary.prRows[0]).not.toHaveProperty("paths");
+	expect(summary.prRows[0]).not.toHaveProperty("files");
 	expect(summary.prRows.every((row) => row.evidence === null)).toBe(true);
 	expect(summary.prRows.every((row) => row.flowRuns.length === 5 && row.flowRunCount === 7)).toBe(true);
 
@@ -204,4 +233,16 @@ test("the evidence count follows the current head and keeps old records", async 
 		sql`SELECT count(*)::int AS count FROM pr_evidence WHERE pull_request_id = ${evidencePullRequest}`,
 	);
 	expect(records.rows).toEqual([{ count: 4 }]);
+});
+
+test("a deleted test risk follows the stored file counts", async () => {
+	const summary = await db.transaction((tx) => ticketSummary(tx, deletedTestTicket));
+
+	expect(summary.prRows[0]?.risk?.deletedTest).toBe("yes");
+});
+
+test("a frontend row stays incomplete without the equivalence proof", async () => {
+	const summary = await db.transaction((tx) => ticketSummary(tx, deletedTestTicket));
+
+	expect(summary.prRows[0]).toMatchObject({ kind: "frontend", evidence: 5, evidenceRequired: 6 });
 });

@@ -6,6 +6,8 @@ export type EvidenceGap = {
 	label: string;
 	// The shell command that writes that record.
 	fillCommand: string;
+	// When true, the record is due but not missing.
+	soft?: boolean;
 };
 
 export type MissingListProps = {
@@ -20,7 +22,7 @@ export function MissingList({ gaps, onCopy }: MissingListProps) {
 		<dl className="flex min-w-0 flex-col">
 			{gaps.map((gap) => (
 				<BlockRow key={gap.label} label={gap.label}>
-					<span className="text-sm text-warning">missing</span>
+					<span className="text-sm text-warning">{gap.soft ? "due" : "missing"}</span>
 					<CopyLine text={gap.fillCommand} tone="quiet" onCopy={onCopy} />
 				</BlockRow>
 			))}

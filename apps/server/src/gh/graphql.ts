@@ -81,7 +81,7 @@ export type FetchPullRequestsResult = { ok: true; results: PullRequestResult[] }
 
 const selection = `{
 	number additions deletions changedFiles title state isDraft url headRefOid headRefName baseRefName mergedAt closedAt reviewDecision
-	files(first: ${MAX_CHANGED_FILES}) { nodes { path additions deletions } }
+	files(first: ${MAX_CHANGED_FILES}) { nodes { path changeType additions deletions } }
 	commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { nodes {
 		__typename
 		... on CheckRun { name status conclusion startedAt detailsUrl checkSuite { workflowRun { event workflow { name } } } }

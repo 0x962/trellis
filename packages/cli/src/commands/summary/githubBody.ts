@@ -1,4 +1,4 @@
-import { type PullRequest, type PullRequestSummary, prPaths } from "@trellis/api";
+import { changedFilePaths, type PullRequest, type PullRequestSummary, prPaths } from "@trellis/api";
 
 type BodyPullRequest = Pick<PullRequest, "additions" | "changedFiles" | "deletions" | "files" | "repo">;
 
@@ -19,13 +19,7 @@ export const githubBody = (
 	const { additions, deletions, changedFiles, files } = pullRequest;
 	if (additions === null || deletions === null || changedFiles === null || files === null)
 		throw new Error(`pull request ${pullRequest.repo} has no diff counts yet`);
-	const risk = prPaths(
-		pullRequest.repo,
-		files.map((file) => ({
-			path: file.path,
-			change: file.additions === 0 && file.deletions > 0 ? ("deleted" as const) : ("change" as const),
-		})),
-	).risk;
+	const risk = prPaths(pullRequest.repo, changedFilePaths(files)).risk;
 	return `${summary.headline}
 size +${additions} −${deletions} · ${fileText(changedFiles)} · band ${sizeBand(additions, deletions)}
 risk auth ${risk.auth} · migration ${risk.migration} · dependency ${risk.dependency} · shared type ${risk.sharedType} · deleted test ${risk.deletedTest}

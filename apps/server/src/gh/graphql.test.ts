@@ -6,7 +6,9 @@ const ref = { owner: "octo", repo: "repo", number: 42 };
 
 type Size = { additions: number; deletions: number; changedFiles: number };
 
-const defaultFiles = [{ path: "apps/server/src/gh/graphql.ts", additions: 12, deletions: 3 }];
+const defaultFiles = [
+	{ path: "apps/server/src/gh/graphql.ts", changeType: "MODIFIED" as const, additions: 12, deletions: 3 },
+];
 
 const responseWithSize = (
 	size: Size,
@@ -51,7 +53,9 @@ describe("pull request GraphQL size", () => {
 	});
 
 	test("requests at most 100 changed files", () => {
-		expect(buildPullRequestQuery([ref])).toContain("files(first: 100) { nodes { path additions deletions } }");
+		expect(buildPullRequestQuery([ref])).toContain(
+			"files(first: 100) { nodes { path changeType additions deletions } }",
+		);
 	});
 
 	test("maps all size fields into the stored content", () => {
@@ -73,9 +77,10 @@ describe("pull request GraphQL size", () => {
 	test("includes changed file rows in the content hash", () => {
 		const size = { additions: 120, deletions: 30, changedFiles: 9 };
 		const base = rowOf(size).contentHash;
-		expect(rowOf(size, [{ path: "apps/server/src/gh/parse.ts", additions: 12, deletions: 3 }]).contentHash).not.toBe(
-			base,
-		);
+		expect(
+			rowOf(size, [{ path: "apps/server/src/gh/parse.ts", changeType: "MODIFIED", additions: 12, deletions: 3 }])
+				.contentHash,
+		).not.toBe(base);
 	});
 
 	test("includes the head SHA in the content hash", () => {
