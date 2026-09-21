@@ -58,7 +58,7 @@ export const evidenceCheckResult = ({ floor, verifyCommands, ...input }: Evidenc
 		...input,
 		kind: floor.kind,
 		present: floor.present.length,
-		required: items.filter((line) => line.status !== "due").length,
+		required: floor.required.length,
 		complete: floor.missing.length === 0,
 		items,
 	};

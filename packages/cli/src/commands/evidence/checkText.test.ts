@@ -40,7 +40,7 @@ kind: backend            1 of 4 required present
   present  summary
   MISSING  verify record    run each Verify command (make check-fix; pytest routines threads agent):  trellis evidence add 57080 --kind verify --cmd "<command>" --exit <code> --sha abc123 --tail -
   MISSING  test proof       name each new test:                                                       trellis evidence add 57080 --kind test --name <test> --fails-on <base> --passes-on abc123
-  MISSING  contract table   write the before and after table, or:                                     trellis evidence add 57080 --kind contract --before - --after -
+  MISSING  contract table   write the before and after table, or:                                     trellis evidence add 57080 --kind contract --before "<before>" --after "<after>"
   note     1 check failed: merge_gatekeeper
 `);
 	expect(result.complete).toBe(false);
@@ -68,6 +68,10 @@ test("prints a due picture with its fill command", () => {
 		hint: "add one picture:",
 		command: "trellis evidence add 57080 --kind picture --file <path> --why <reason>",
 	});
+	expect(result.present).toBe(4);
+	expect(result.required).toBe(5);
+	expect(result.complete).toBe(false);
+	expect(checkText(result)).toContain("kind: backend            4 of 5 required present");
 	expect(checkText(result)).toContain("  due      picture          add one picture:");
 });
 

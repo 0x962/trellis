@@ -102,7 +102,10 @@ describe("evidenceFloor", () => {
 				item: "test",
 				fillCommand: "trellis evidence add <pr> --kind test --name <test> --fails-on <base> --passes-on <head>",
 			},
-			{ item: "contract", fillCommand: "trellis evidence add <pr> --kind contract --before - --after -" },
+			{
+				item: "contract",
+				fillCommand: 'trellis evidence add <pr> --kind contract --before "<before>" --after "<after>"',
+			},
 		]);
 	});
 });

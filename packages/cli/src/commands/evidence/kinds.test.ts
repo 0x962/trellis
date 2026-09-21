@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { evidenceFloor, type PrPathFacts } from "@trellis/api";
 import { type EvidenceArgs, type EvidenceKind, evidenceInput, reviewKinds, validateKindFlags } from "./kinds.ts";
 
 const common = {
@@ -110,4 +111,19 @@ test("only one evidence text flag can read standard input", () => {
 	expect(() => validateKindFlags({ kind: "contract", before: "-", after: "-" })).toThrow(
 		"only one evidence text flag can read standard input",
 	);
+});
+
+test("the contract fill command uses flags that the contract kind accepts", () => {
+	const risk: PrPathFacts["risk"] = {
+		auth: "no",
+		migration: "no",
+		dependency: "no",
+		sharedType: "no",
+		deletedTest: "no",
+	};
+	const floor = evidenceFloor({ kind: "backend", risk, hasSummary: true, rows: [] });
+	const command = floor.missing.find((gap) => gap.item === "contract")?.fillCommand;
+
+	expect(command).toBe('trellis evidence add <pr> --kind contract --before "<before>" --after "<after>"');
+	expect(() => validateKindFlags({ kind: "contract", before: "<before>", after: "<after>" })).not.toThrow();
 });

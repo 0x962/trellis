@@ -12,6 +12,7 @@ const status = ulid();
 const ticket = ulid();
 const emptyTicket = ulid();
 const evidenceTicket = ulid();
+const deletedTestTicket = ulid();
 const evidencePullRequest = ulid();
 const at = new Date("2026-09-20T10:00:00.000Z");
 const repoWithTrellisPathRules = "trellis";
@@ -25,6 +26,8 @@ const insertPull = async ({
 	checks,
 	files,
 	changedFiles = files?.length ?? null,
+	ticketId = ticket,
+	headSha = null,
 }: {
 	number: number;
 	additions: number | null;
@@ -32,21 +35,23 @@ const insertPull = async ({
 	checks: ReturnType<typeof check>[];
 	files: ChangedFile[] | null;
 	changedFiles?: number | null;
+	ticketId?: string;
+	headSha?: string | null;
 }) => {
 	const id = ulid();
 	await db.execute(sql`INSERT INTO pull_requests (
-		id, owner, repo, number, additions, deletions, changed_files, files, url, state, is_draft,
+		id, owner, repo, number, additions, deletions, changed_files, files, url, state, is_draft, head_sha,
 		head_ref, base_ref, review_state, checks, ci_state, created_at, updated_at
 	) VALUES (
 		${id}, 'acme', ${repoWithTrellisPathRules}, ${number}, ${additions}, ${deletions}, ${changedFiles},
 		${files === null ? null : JSON.stringify(files)}::jsonb,
-		${`https://github.com/acme/${repoWithTrellisPathRules}/pull/${number}`}, 'open', ${number === 2},
+		${`https://github.com/acme/${repoWithTrellisPathRules}/pull/${number}`}, 'open', ${number === 2}, ${headSha},
 		${`feature-${number}`}, 'main', 'review_required', ${JSON.stringify(checks)}::jsonb,
 		'fail', ${at}, ${at}
 	)`);
 	await db.execute(sql`INSERT INTO ticket_pull_requests (
 		ticket_id, pull_request_id, source, actor_name, actor_kind, created_at
-	) VALUES (${ticket}, ${id}, 'manual', 'Test', 'human', ${new Date(at.getTime() + number)})`);
+	) VALUES (${ticketId}, ${id}, 'manual', 'Test', 'human', ${new Date(at.getTime() + number)})`);
 	return id;
 };
 
@@ -65,7 +70,8 @@ beforeAll(async () => {
 	) VALUES
 		(${ticket}, ${root}, ${root}, 1, 'Task', ${status}, 0, ${at}, ${at}),
 		(${emptyTicket}, ${root}, ${root}, 2, 'Empty task', ${status}, 1, ${at}, ${at}),
-		(${evidenceTicket}, ${root}, ${root}, 3, 'Evidence task', ${status}, 2, ${at}, ${at})`);
+		(${evidenceTicket}, ${root}, ${root}, 3, 'Evidence task', ${status}, 2, ${at}, ${at}),
+		(${deletedTestTicket}, ${root}, ${root}, 4, 'Deleted test task', ${status}, 3, ${at}, ${at})`);
 
 	const first = await insertPull({
 		number: 1,
@@ -142,6 +148,29 @@ beforeAll(async () => {
 	await db.execute(sql`INSERT INTO pr_evidence (
 		id, pull_request_id, head_sha, kind, record, actor_name, actor_kind, created_at
 	) VALUES (${ulid()}, ${evidencePullRequest}, 'old-head', 'verify', '{}', 'Test', 'human', ${at})`);
+
+	const deletedTestPullRequest = await insertPull({
+		number: 7,
+		additions: 20,
+		deletions: 10,
+		checks: [],
+		files: [
+			{ path: "apps/web/src/App.tsx", additions: 20, deletions: 0 },
+			{ path: "apps/web/src/App.test.tsx", additions: 0, deletions: 10 },
+		],
+		ticketId: deletedTestTicket,
+		headSha: "deleted-test-head",
+	});
+	await db.execute(sql`INSERT INTO pr_summaries (
+		pull_request_id, head_sha, headline, why, watch, created_at, updated_at
+	) VALUES (
+		${deletedTestPullRequest}, 'deleted-test-head', 'Remove one test.',
+		'The row uses the stored file counts.', 'nothing', ${at}, ${at}
+	)`);
+	for (const kind of ["after", "before", "capture", "console"])
+		await db.execute(sql`INSERT INTO pr_evidence (
+			id, pull_request_id, head_sha, kind, record, actor_name, actor_kind, created_at
+		) VALUES (${ulid()}, ${deletedTestPullRequest}, 'deleted-test-head', ${kind}, '{}', 'Test', 'human', ${at})`);
 });
 
 afterAll(async () => {
@@ -204,4 +233,16 @@ test("the evidence count follows the current head and keeps old records", async 
 		sql`SELECT count(*)::int AS count FROM pr_evidence WHERE pull_request_id = ${evidencePullRequest}`,
 	);
 	expect(records.rows).toEqual([{ count: 4 }]);
+});
+
+test("a deleted test risk follows the stored file counts", async () => {
+	const summary = await db.transaction((tx) => ticketSummary(tx, deletedTestTicket));
+
+	expect(summary.prRows[0]?.risk?.deletedTest).toBe("yes");
+});
+
+test("a frontend row stays incomplete without the equivalence proof", async () => {
+	const summary = await db.transaction((tx) => ticketSummary(tx, deletedTestTicket));
+
+	expect(summary.prRows[0]).toMatchObject({ kind: "frontend", evidence: 5, evidenceRequired: 6 });
 });

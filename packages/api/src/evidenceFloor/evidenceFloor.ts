@@ -48,7 +48,7 @@ const fillCommands: Record<EvidenceFloorItem, string> = {
 	console: "trellis evidence add <pr> --kind console --file <path>",
 	verify: 'trellis evidence add <pr> --kind verify --cmd "<command>" --exit <code> --sha <head> --tail -',
 	test: "trellis evidence add <pr> --kind test --name <test> --fails-on <base> --passes-on <head>",
-	contract: "trellis evidence add <pr> --kind contract --before - --after -",
+	contract: 'trellis evidence add <pr> --kind contract --before "<before>" --after "<after>"',
 	migration: "trellis evidence add <pr> --kind migration --file <path>",
 	picture: "trellis evidence add <pr> --kind picture --file <path> --why <reason>",
 	equivalence: 'trellis evidence add <pr> --kind equivalence --cmd "<command>" --exit <code> --sha <head> --tail -',
