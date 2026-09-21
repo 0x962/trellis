@@ -15,6 +15,7 @@ import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
 import { ConditionsBlock } from "../ConditionsBlock";
+import { unmetConditions } from "../conditionLines/conditionLines";
 import { EvidenceStrip } from "../EvidenceStrip";
 import { FileRiskGroups } from "../FileRiskGroups";
 import { FlowRuns } from "../FlowRuns";
@@ -41,6 +42,7 @@ import "@trellis/ui/review.css";
 const noThreads: ReviewThread[] = [];
 const noSubmissions: ReviewSubmission[] = [];
 const noRecords: Evidence[] = [];
+const noConditions: string[] = [];
 
 type Commit = { oid: string; messageHeadline: string };
 const commitsOf = (revision: ReviewRevision | null) =>
@@ -352,24 +354,29 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 						},
 					]}
 				/>
-				{displayRevision && (
-					<VerdictBar
-						pr={pr}
-						revision={displayRevision}
-						ticket={status.data?.ticket?.identifier ?? null}
-						run={run}
-						drafts={drafts}
-						submissions={allSubmissions}
-						onDone={refreshAll}
-					/>
-				)}
-				{batch.size > 0 && (
-					<ReviewBatchBar
-						count={batch.size}
-						onCommit={() => setApplying([...batch])}
-						onClear={() => setBatch(new Set())}
-					/>
-				)}
+				{/* The two cards float over the bottom right of the page. The box
+				    draws nothing while both are absent. */}
+				<div className="review-float-bars">
+					{batch.size > 0 && (
+						<ReviewBatchBar
+							count={batch.size}
+							onCommit={() => setApplying([...batch])}
+							onClear={() => setBatch(new Set())}
+						/>
+					)}
+					{displayRevision && (
+						<VerdictBar
+							pr={pr}
+							revision={displayRevision}
+							ticket={status.data?.ticket?.identifier ?? null}
+							run={run}
+							drafts={drafts}
+							submissions={allSubmissions}
+							unmet={conditions === null ? noConditions : unmetConditions(conditions)}
+							onDone={refreshAll}
+						/>
+					)}
+				</div>
 				{applying !== null && revision !== null && applyingThreads.length > 0 && (
 					<ApplySuggestionsDialog
 						pr={pr}

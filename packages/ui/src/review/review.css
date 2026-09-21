@@ -8,6 +8,18 @@
 	--review-column-width: 1040px;
 	--review-filter-width: 260px;
 	--review-row-icon-size: 14px;
+	/* The gap between the floating cards of the review and the edges of the
+	   page. */
+	--review-float-gap: 16px;
+	/* The width of the file tree beside the diff. */
+	--review-tree-width: 340px;
+	/* The width of the column that holds the line numbers of the diff, which
+	   `.review-diff-hunk-header` and `.review-diff-line` both draw. */
+	--review-diff-gutter: calc(var(--spacing) * 13);
+	/* The height of one floating card plus the gap above and below it. Every
+	   scrolling box of the review pads its bottom by this much, so the last
+	   row of the box rises clear of the card. */
+	--review-float-clearance: 72px;
 }
 .review-page,
 .review-index {
@@ -16,6 +28,11 @@
 	min-width: 0;
 	min-height: 0;
 	flex-direction: column;
+}
+/* `.review-float-bars` pins the verdict card to the bottom right of the page,
+   and this rule makes the page the box that the card measures from. */
+.review-page {
+	position: relative;
 }
 .review-index {
 	overflow: hidden;
@@ -244,7 +261,7 @@ button.review-notice:hover {
 	min-height: 0;
 	flex-direction: column;
 	gap: 28px;
-	padding: 24px 28px;
+	padding: 24px 28px calc(24px + var(--review-float-clearance));
 	overflow-y: auto;
 }
 /* `ReviewDiscussion` and `CheckResults` each carry the height, the scroll bar
@@ -264,7 +281,7 @@ button.review-notice:hover {
 	min-height: 0;
 }
 .review-tree-pane {
-	width: 340px;
+	width: var(--review-tree-width);
 	flex-shrink: 0;
 	overflow-y: auto;
 	border-right: 0.5px solid var(--border);
@@ -301,6 +318,11 @@ button.review-notice:hover {
 	flex-direction: column;
 	overflow: hidden;
 	background: var(--bg);
+}
+/* The patch ends this far above the bottom of the pane, so the last line of
+   the last file scrolls clear of the floating verdict card. */
+.review-diff-window .review-code {
+	padding-bottom: var(--review-float-clearance);
 }
 @media (max-width: 767px) {
 	.review-heading {
@@ -382,9 +404,10 @@ button.review-notice:hover {
 		height: min(80vh, 560px);
 		border-top: 0.5px solid var(--border);
 	}
-	.review-page:has(.review-verdict-bar) .review-body,
-	.review-page:has(.review-batch-bar) .review-body {
-		padding-bottom: calc(var(--spacing) * 44 + env(safe-area-inset-bottom));
+	/* A phone scrolls the whole body, so the body carries the clearance that
+	   the facts box and the diff box carry at desktop width. */
+	.review-page:has(.review-bar) .review-body {
+		padding-bottom: calc(var(--review-float-clearance) + env(safe-area-inset-bottom));
 	}
 }
 
