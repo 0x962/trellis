@@ -1,9 +1,10 @@
 import { usePageSheetStore } from "../../../stores/pageSheetStore";
+import { EpicStatisticsSheet } from "./components/EpicStatisticsSheet";
 import { PullRequestSheet } from "./components/PullRequestSheet";
 import { TicketSheet } from "./components/TicketSheet";
 
-// The sheet stack of the app. The root shell mounts it once, so a ticket
-// and a pull request open over any page.
+// The root shell mounts this sheet stack once. It opens one statistics
+// sheet, or a ticket with a pull request over it.
 //
 // A pull request that opens from a ticket renders inside `TicketSheet`,
 // because Base UI reads the stack from the React tree. A pull request that
@@ -14,6 +15,7 @@ export function PageSheetHost() {
 		<>
 			<TicketSheet />
 			{ticket === null && <PullRequestSheet />}
+			{ticket === null && <EpicStatisticsSheet />}
 		</>
 	);
 }

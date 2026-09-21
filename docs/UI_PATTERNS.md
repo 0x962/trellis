@@ -54,8 +54,8 @@ Render the same page component as the route. Do not build a compact copy of the 
 The header adds the Open full page and Close buttons, and it shows them while the page loads.
 Read `usePageSheet` where a page must differ in a sheet, such as an action that returns to a list.
 
-`pageSheetStore` holds the sheet stack: one ticket, and one pull request over it.
-`PageSheetHost` mounts once in the root shell and draws both sheets.
+`pageSheetStore` holds the sheet stack: one statistics sheet, or one ticket with one pull request over it.
+`PageSheetHost` mounts once in the root shell and draws the stack.
 Open a ticket with `pageSheetActions.openTicket`, and a pull request with `pageSheetActions.openPullRequest`.
 Give a ticket name in a list the `TicketLink` component: a plain click opens the sheet, and the href keeps the ticket page for a new tab.
 A list never navigates to `/t/$identifier`. The route stays for a link that arrives from outside the app.
@@ -108,14 +108,15 @@ A long name gives way and the identifier stays. The drag preview draws the same 
 ## Epic pages
 
 The epic page shows its tickets in the full-width `TicketTable` of the project table view. It has no page-specific row and no row menu of its own.
-Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, an Add `IconButton` with the `Tooltip` Add tickets, and the `Menu` with Edit and Delete.
+Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, the Statistics `IconButton`, an Add `IconButton` with the `Tooltip` Add tickets, and the `Menu` with Edit and Delete.
 The page fixes the `epic` filter. By default the table groups by wave and lists the root project with its sub-projects.
-The header band sits in the page padding. It opens with one line for the current wave: `Current: <name>`, then `<n> to start`, `<n> running`, and `<n> wait for you`.
+The page opens with one line for the current wave: `Current: <name>`, then `<n> to start`, `<n> running`, and `<n> wait for you`.
 A count is a link that sets the table filters inside that wave: `category=todo` for to start, `reviewer=human` for wait for you. Running is plain text, because the filter grammar has no filter for a working agent.
-The band then holds the state `Badge`, the progress text, and the `StackedBar` of the epic with its legend.
-A `StackedBarList` follows with one line per wave in position order: the wave name, the `Badge` Current on the current wave, the bar, and `done/total`. A wave bar has no legend, because the legend of the epic bar names the colors.
+The Statistics button opens a `PageSheet` with the current line, the progress text, the `StackedBar`, and its legend.
+A count link in the sheet sets the table filters and closes the sheet.
+The page holds no progress bar or legend.
 The `SectionHeader` Plan collapses the description through its Show or Hide `Button`. `uiStore` keeps its collapsed state under `<route key>#plan`.
-The band and the plan take at most half of the page card, so the table keeps rows on screen.
+The current line, the plan, and the resources take at most half of the page card, so the table keeps rows on screen.
 The page of an archived project shows the `ArchivedBanner` of the project routes at the top of the page card. The pending page draws the same `Topbar` with the `FilterBar`, so the bar keeps its shape when the epic arrives.
 A row of the epics list page prints the current wave after the epic name in muted text: `<name> · <i> of <n>`.
 The rows of the epics list page use the `rowHeights`, the hover band, the cell text sizes, the tabular numbers, and the trailing `Menu` slot width of the ticket table `Row`.
