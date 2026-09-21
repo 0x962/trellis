@@ -216,6 +216,7 @@ export function PhoneRow({
 			<a
 				href={href}
 				tabIndex={-1}
+				data-row-link=""
 				aria-label={`Open ${ticket.identifier}`}
 				className="absolute inset-0 z-0"
 				onClick={onLinkClick}
