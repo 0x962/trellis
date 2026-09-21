@@ -4,6 +4,7 @@ import { ModelIdSchema } from "../models/models.ts";
 import { AgentActivitySchema } from "../schemas/agentActivity.ts";
 import {
 	AgentRunListInputSchema,
+	AgentRunRetryInputSchema,
 	AgentRunSchema,
 	AgentRunStartInputSchema,
 	AgentWorkspaceFileInputSchema,
@@ -203,6 +204,15 @@ export const agentRuns = {
 	start: base
 		.route({ method: "POST", path: "/agent-runs", successStatus: 201, summary: "Assign an agent to a ticket" })
 		.input(AgentRunStartInputSchema)
+		.output(AgentRunSchema),
+	retry: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.route({
+			method: "POST",
+			path: "/agent-runs/{id}/retry",
+			summary: "Retry an assigned agent run with the same harness, model, effort, account, and instruction.",
+		})
+		.input(AgentRunRetryInputSchema)
 		.output(AgentRunSchema),
 	stop: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
