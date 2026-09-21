@@ -32,6 +32,7 @@ describe("PrRow", () => {
 		);
 
 		expect(html).toContain("w-48");
+		expect(html).toContain("h-3");
 		expect(html).toContain('aria-label="56 checks: 1 failed, 6 pending, 47 passed, 2 skipped"');
 	});
 
