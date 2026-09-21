@@ -1,1 +1,1 @@
-export { ReviewPageSkeleton } from "./ReviewPageSkeleton";
+export { ReviewDiffSkeleton, ReviewTreeSkeleton } from "./ReviewPageSkeleton";
