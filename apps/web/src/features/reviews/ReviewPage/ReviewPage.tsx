@@ -8,12 +8,13 @@ import {
 	reviewRef,
 	turnOf,
 } from "@trellis/api";
-import { TicketId, useMediaQuery } from "@trellis/ui";
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import { Skeleton, TicketId, useMediaQuery } from "@trellis/ui";
+import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { useCollapsedGroups } from "../../table/hooks/useCollapsedGroups";
 import { ChangeSummary } from "../ChangeSummary";
 import { ConditionsBlock } from "../ConditionsBlock";
-import { type BaseCondition, unmetConditions } from "../conditionLines/conditionLines";
+import { unmetConditions } from "../conditionLines/conditionLines";
 import { EvidenceStrip } from "../EvidenceStrip";
 import { FileRiskGroups } from "../FileRiskGroups";
 import type { ReadMarkFile } from "../FileRiskGroups/readMarks/readMarks";
@@ -24,14 +25,15 @@ import { ReviewDiscussion } from "../ReviewDiscussion/ReviewDiscussion";
 import { ReviewFocusList } from "../ReviewFocusList";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
 import { ReviewStack } from "../ReviewStack/ReviewStack";
-import { primaryReviewAction, type ReviewActionMeta } from "../reviewActions/reviewActions";
+import { primaryReviewAction } from "../reviewActions/reviewActions";
 import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
 import { FilesDisclosure } from "./components/FilesDisclosure";
+import { factsLine, ReviewFacts } from "./components/ReviewFacts";
 import { type GithubPullRequest, ReviewIdentity } from "./components/ReviewIdentity";
-import { ReviewPageSkeleton } from "./components/ReviewPageSkeleton";
+import { ReviewDiffSkeleton, ReviewTreeSkeleton } from "./components/ReviewPageSkeleton";
 import { TurnLine } from "./components/TurnLine";
-import { conditionsOf } from "./conditionsOf";
+import { baseOf, conditionsOf } from "./conditionsOf";
 import { useActiveThread } from "./hooks/useActiveThread";
 import { useReviewData } from "./hooks/useReviewData";
 import "@trellis/ui/review.css";
@@ -39,20 +41,16 @@ import "@trellis/ui/review.css";
 const noThreads: ReviewThread[] = [];
 const noRecords: Evidence[] = [];
 const noSentences: string[] = [];
-// `conditionsOf` answers null while the pull request row has no risk
-// answers. An empty list would read as "every condition is met", so the
-// bar prints one phrase for the gap instead.
-const conditionsUnknown = ["conditions unknown"];
+// The facts strip starts shut, so the file tree and the diff start near the
+// top of the sheet.
+const factsGroup = "facts";
+const factsShut = [factsGroup];
 
-// The distance comes from the revision document, not from the status poll:
-// the server reads it from the compare call that fetched this revision, and
-// the poll answers no such field. A revision stored before the server read
-// the distance carries none, and the line then reads unknown.
-const baseOf = (revision: ReviewRevision | null): BaseCondition | null => {
-	const meta = revision?.meta as { behindBy?: number; baseRefName?: string } | undefined;
-	if (meta?.behindBy === undefined || meta.baseRefName === undefined) return null;
-	return { behindBy: meta.behindBy, baseRefName: meta.baseRefName };
-};
+type Commit = { oid: string; messageHeadline: string };
+const commitsOf = (revision: ReviewRevision | null) =>
+	((revision?.meta.commits as Commit[] | undefined) ?? []).filter(
+		(commit) => typeof commit.oid === "string" && typeof commit.messageHeadline === "string",
+	);
 
 export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent?: ReactNode; syncHash?: boolean }) {
 	const { client } = useApp();
@@ -72,15 +70,10 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		refreshAll,
 	} = useReviewData(pr);
 	const [changedFiles, setChangedFiles] = useState<ReadMarkFile[]>([]);
-	// A person does not read a diff on a phone, so `FilesDisclosure` puts the
-	// checks, the file list, the diff and the threads behind one button.
+	const { isCollapsed, toggle: toggleFacts } = useCollapsedGroups(`${pr}#facts`, factsShut);
+	// `FilesDisclosure` hides the review details behind one control on a phone.
 	const phone = useMediaQuery("(max-width: 767px)");
-	// The path the reader picked in the file list, or an empty string while
-	// the reader picked none.
 	const [pickedPath, setPickedPath] = useState("");
-	const [composerOpen, setComposerOpen] = useState(false);
-	// The suggestion threads waiting for one commit, and the threads the
-	// commit dialog holds while it is open.
 	const [batch, setBatch] = useState<ReadonlySet<string>>(() => new Set());
 	const [applying, setApplying] = useState<string[] | null>(null);
 	// The diff shows the threads of the revision on screen, plus the threads
@@ -92,9 +85,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		() => allThreads.filter((thread) => thread.revisionId === null || thread.revisionId === revision?.id),
 		[allThreads, revision?.id],
 	);
-	// The drafts: the open threads on the commit the page draws. A thread of
-	// another revision, and a thread that names no revision, stay out, because
-	// `reviews.submit` refuses a thread that sits on another commit.
+	// `reviews.submit` accepts only open threads of the revision on screen.
 	const drafts = useMemo(
 		() =>
 			allThreads
@@ -110,8 +101,15 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		},
 		[threadsById],
 	);
-	const displayRevision = revision ? { ...revision, meta: status.data ?? revision.meta } : null;
+	const statusMatchesRevision =
+		revision !== null && status.data?.headRefOid === revision.headSha && status.data?.baseRefOid === revision.baseSha;
+	const displayRevision = revision ? { ...revision, meta: statusMatchesRevision ? status.data! : revision.meta } : null;
 	const displayMeta = displayRevision?.meta as GithubPullRequest | undefined;
+	const openedReview = useRef<{ pr: string; commits: ReadonlySet<string> } | null>(null);
+	if (revision !== null && openedReview.current?.pr !== pr)
+		openedReview.current = { pr, commits: new Set(commitsOf(revision).map((commit) => commit.oid)) };
+	const newCommits = commitsOf(revision).filter((commit) => !openedReview.current?.commits.has(commit.oid));
+	const showMerge = displayMeta !== undefined && primaryReviewAction(displayMeta) === "merge";
 	const toggleBatch = useCallback((threadId: string) => {
 		setBatch((current) => {
 			const next = new Set(current);
@@ -133,15 +131,10 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		[pr, revision?.id, revision?.headSha, displayMeta?.state, batch, toggleBatch],
 	);
 	const applyingThreads = applying === null ? [] : applying.flatMap((id) => threadsById.get(id) ?? []);
-	// A link with `?thread=<id>` in the hash opens the file that the thread
-	// sits on, so the diff below shows that file. A pick in the file list wins
-	// from then on, and the threads can arrive after the reader picks.
+	// A file-list choice overrides the path of a linked thread.
 	const deepLinkPath = activeThread === null ? undefined : threadsById.get(activeThread)?.path;
 	const selectedPath = pickedPath !== "" ? pickedPath : (deepLinkPath ?? "");
-	// The conditions, the summary and the evidence records belong to the commit
-	// whose diff the page draws. A summary or an evidence record written for
-	// another commit counts as missing, and the notice above them asks the
-	// reader to refresh.
+	// The summary and evidence records must match the revision on screen.
 	const headSha = revision?.headSha ?? "";
 	const records = useMemo(
 		() => (evidence.data ?? noRecords).filter((record) => record.headSha === headSha),
@@ -165,24 +158,16 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		waitsOn: ticket.data?.waitsOn ?? [],
 		base: baseOf(revision),
 	});
-	// The ticket row answers the turn first, because it also knows the ticket
-	// status and the tickets it waits on. `prRow` is the fallback for a pull
-	// request that no ticket links. The second argument of `turnOf` says
-	// whether an agent works on the ticket right now, which makes the turn the
-	// agent's whatever the pull request says.
+	const canMerge = showMerge && conditions !== null;
+	// The ticket row also knows the ticket status and its dependencies.
+	// `prRow` is the fallback for a pull request that no ticket links.
 	const turnInput = ticket.data ?? prRow;
 	const agentWorks = run !== null && isAgentWorking(run);
 	const ref = reviewRef(pr);
 	return (
 		<ReviewApplyContext.Provider value={applyState}>
 			<div className="review-page">
-				<ReviewHeader
-					pr={pr}
-					parent={parent}
-					revision={displayRevision}
-					refreshing={refresh.isPending || composerOpen}
-					onRefresh={refreshAll}
-				/>
+				<ReviewHeader pr={pr} parent={parent} revision={displayRevision} />
 				{/* The identity stays above the column, so the buttons that end
 				    the review are always in reach. */}
 				<div className="review-identity">
@@ -190,8 +175,9 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						pr={pr}
 						revision={displayRevision}
 						pullRequest={displayMeta}
+						isQueued={status.data?.isQueued ?? false}
 						openThreads={allThreads.filter((thread) => thread.status === "open")}
-						onAction={() => void status.refetch()}
+						onAction={refreshAll}
 					/>
 					<div className="review-identity-lines">
 						{status.data?.ticket && (
@@ -211,21 +197,24 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						)}
 					</div>
 				</div>
-				<div className="review-column">
-					<div className="review-regions">
+				<div className="review-body">
+					{/* The notices sit outside the facts strip, because a shut strip
+					    would hide them. The box is empty while nothing went wrong, and
+					    an empty box draws nothing. */}
+					<div className="review-notices">
 						{revision && <ReviewStack pr={pr} />}
+						{newCommits.length > 0 && (
+							<p role="status" className="review-notice">
+								New since you opened this review:{" "}
+								{newCommits.map((commit) => `${commit.oid.slice(0, 7)} ${commit.messageHeadline}`).join("; ")}. Read
+								these commits before you merge.
+							</p>
+						)}
 						{status.isError && (
 							<p role="alert" className="review-notice">
 								GitHub status: {status.error.message}
 							</p>
 						)}
-						{revision &&
-							status.data &&
-							(status.data.headRefOid !== revision.headSha || status.data.baseRefOid !== revision.baseSha) && (
-								<button type="button" className="review-notice" onClick={() => refresh.mutate()}>
-									The PR has a new revision. Refresh to review it. Current comments keep their original anchors.
-								</button>
-							)}
 						{refresh.isError && (
 							<p className="review-error" role="alert">
 								{refresh.error.message}. Local comments remain available.
@@ -236,9 +225,23 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 								{threads.error.message}
 							</p>
 						)}
-						{factsReady && (
+					</div>
+					<ReviewFacts
+						line={factsLine(conditions)}
+						shut={isCollapsed(factsGroup)}
+						onToggle={() => toggleFacts(factsGroup)}
+						phone={phone}
+					>
+						{!factsReady || conditions === null ? (
+							<section aria-busy="true">
+								<span className="sr-only" role="status">
+									Merge conditions are loading.
+								</span>
+								<Skeleton lines={10} />
+							</section>
+						) : (
 							<>
-								{conditions && <ConditionsBlock conditions={conditions} />}
+								<ConditionsBlock conditions={conditions} />
 								<ChangeSummary summary={summaryRow} headSha={headSha} />
 								{revision && (
 									<ReviewFocusList
@@ -250,57 +253,63 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 								{floor && <EvidenceStrip records={records} floor={floor} />}
 							</>
 						)}
-						<FilesDisclosure phone={phone} count={changedFiles.length}>
-							<ReviewChecks revision={displayRevision} pr={pr} />
-							{revision === null && !refresh.isError ? (
-								<ReviewPageSkeleton />
-							) : (
-								revision && (
-									<>
-										<FileRiskGroups
-											pr={pr}
-											repo={ref.repo}
-											files={changedFiles}
-											selected={selectedPath}
-											onSelect={setPickedPath}
-										/>
-										<DiffPane
-											pr={pr}
-											revision={revision}
-											threads={revisionThreads}
-											selectedFile={selectedPath}
-											renderThread={renderThread}
-											onFiles={setChangedFiles}
-											onComposer={setComposerOpen}
-										/>
-									</>
-								)
-							)}
-							<ReviewDiscussion
-								threads={allThreads}
-								activeThread={activeThread}
-								revision={displayRevision}
-								renderThread={renderThread}
-								onJump={(thread) => {
-									void (async () => {
-										if (thread.revisionId && thread.revisionId !== revision?.id)
-											setRevision(await client.reviews.revision({ pr, id: thread.revisionId }));
-										setPickedPath(thread.path);
-									})();
-								}}
-							/>
-						</FilesDisclosure>
-					</div>
+						<ReviewChecks checks={status.data?.checks ?? null} pr={pr} />
+						<ReviewDiscussion
+							threads={allThreads}
+							activeThread={activeThread}
+							revision={displayRevision}
+							renderThread={renderThread}
+							onJump={(thread) => {
+								void (async () => {
+									if (thread.revisionId && thread.revisionId !== revision?.id)
+										setRevision(await client.reviews.revision({ pr, id: thread.revisionId }));
+									setPickedPath(thread.path);
+								})();
+							}}
+						/>
+					</ReviewFacts>
+					<FilesDisclosure phone={phone} count={changedFiles.length}>
+						<div className="review-panes">
+							<aside className="review-tree-pane" aria-label="The changed files">
+								{revision === null ? (
+									<ReviewTreeSkeleton />
+								) : (
+									<FileRiskGroups
+										pr={pr}
+										repo={ref.repo}
+										files={changedFiles}
+										selected={selectedPath}
+										onSelect={setPickedPath}
+									/>
+								)}
+							</aside>
+							<div className="review-diff-pane">
+								{revision === null ? (
+									!refresh.isError && <ReviewDiffSkeleton />
+								) : (
+									<DiffPane
+										pr={pr}
+										revision={revision}
+										threads={revisionThreads}
+										selectedFile={selectedPath}
+										renderThread={renderThread}
+										onFiles={setChangedFiles}
+									/>
+								)}
+							</div>
+						</div>
+					</FilesDisclosure>
 				</div>
-				{displayRevision && primaryReviewAction(displayRevision.meta as ReviewActionMeta) === "merge" && (
+				{displayRevision && (canMerge || status.data?.ticket) && (
 					<VerdictBar
 						pr={pr}
 						revision={displayRevision}
 						ticket={status.data?.ticket?.identifier ?? null}
 						run={run}
 						drafts={drafts}
-						unmetConditions={conditions === null ? conditionsUnknown : unmetConditions(conditions)}
+						unmetConditions={conditions === null ? [] : unmetConditions(conditions)}
 						phone={phone}
+						showMerge={canMerge}
 						onDone={refreshAll}
 					/>
 				)}
@@ -317,6 +326,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						headSha={revision.headSha}
 						threads={applyingThreads}
 						onClose={() => setApplying(null)}
+						onHeadMoved={refreshAll}
 						onApplied={(result) => {
 							setApplying(null);
 							setBatch((current) => {

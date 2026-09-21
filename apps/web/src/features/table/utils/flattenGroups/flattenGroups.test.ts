@@ -5,7 +5,8 @@ import { flattenGroups, phoneItems, type TableGroup } from "./flattenGroups";
 
 const pr = (number: number) => ({ number, owner: "0x962", repo: "trellis" }) as TicketPr;
 
-const ticket = (id: string, prRows: TicketPr[] = []) => ({ id, prRows }) as TicketSummary;
+const ticket = (id: string, prRows: TicketPr[] = [], category: TicketSummary["status"]["category"] = "started") =>
+	({ id, prRows, status: { category } }) as TicketSummary;
 
 const line = (words: string, asks = false): TicketAgentLine => ({ words, asks });
 
@@ -64,6 +65,50 @@ describe("flattenGroups", () => {
 		expect(items[4]!.key).toBe("agent:a");
 	});
 
+	test("collapses the child rows of a done ticket", () => {
+		const groups = [group("done", true, [ticket("a", [pr(11)], "done")])];
+		const agentLines = { a: line("crisp-fjord: I merged it.") };
+
+		const items = flattenGroups(groups, { prRows: true, agentLines });
+
+		expect(items.map((item) => item.kind)).toEqual(["header", "row"]);
+		expect(items[1]).toMatchObject({ kind: "row", disclosure: "collapsed" });
+	});
+
+	test("shows the child rows of a done ticket that a person opened", () => {
+		const groups = [group("done", true, [ticket("a", [pr(11)], "done")])];
+		const agentLines = { a: line("crisp-fjord: I merged it.") };
+
+		const items = flattenGroups(groups, { prRows: true, agentLines, expandedTickets: ["a"] });
+
+		expect(items.map((item) => item.kind)).toEqual(["header", "row", "pr", "agent"]);
+		expect(items[1]).toMatchObject({ kind: "row", disclosure: "expanded" });
+	});
+
+	test("collapses the child rows of a canceled ticket", () => {
+		const groups = [group("canceled", true, [ticket("a", [pr(11)], "canceled")])];
+
+		const items = flattenGroups(groups, { prRows: true });
+
+		expect(items.map((item) => item.kind)).toEqual(["header", "row"]);
+		expect(items[1]).toMatchObject({ kind: "row", disclosure: "collapsed" });
+	});
+
+	test("keeps the child rows of an active ticket visible without a disclosure", () => {
+		const groups = [group("started", true, [ticket("a", [pr(11)], "started")])];
+
+		const items = flattenGroups(groups, { prRows: true });
+
+		expect(items.map((item) => item.kind)).toEqual(["header", "row", "pr"]);
+		expect(items[1]).toMatchObject({ kind: "row", disclosure: null });
+	});
+
+	test("gives a done ticket with no child row no disclosure", () => {
+		const items = flattenGroups([group("done", true, [ticket("a", [], "done")])], { prRows: true });
+
+		expect(items[1]).toMatchObject({ kind: "row", disclosure: null });
+	});
+
 	test("gives a ticket with no line no agent line", () => {
 		const groups = [group("todo", true, [ticket("a"), ticket("b")])];
 
@@ -104,6 +149,51 @@ describe("the agent line on the row", () => {
 		const groups = [group("todo", true, [ticket("a")])];
 
 		expect(rowLines(flattenGroups(groups))).toEqual([null]);
+	});
+});
+
+describe("flattenGroups tree", () => {
+	const lastOf = (items: ReturnType<typeof flattenGroups>) =>
+		items.flatMap((item) => (item.kind === "pr" || item.kind === "agent" ? [item.last] : []));
+	const childLinesOf = (items: ReturnType<typeof flattenGroups>) =>
+		items.flatMap((item) => (item.kind === "row" ? [item.hasChildLines] : []));
+
+	test("marks the agent line as the last child when the ticket has one", () => {
+		const groups = [group("todo", true, [ticket("a", [pr(11), pr(12)])])];
+
+		const items = flattenGroups(groups, { prRows: true, agentLines: { a: line("Pushed.") } });
+
+		expect(lastOf(items)).toEqual([false, false, true]);
+	});
+
+	test("marks the final pull request as the last child when the ticket has no agent line", () => {
+		const groups = [group("todo", true, [ticket("a", [pr(11), pr(12)]), ticket("b", [pr(13)])])];
+
+		expect(lastOf(flattenGroups(groups, { prRows: true }))).toEqual([false, true, true]);
+	});
+
+	test("marks a lone agent line as the last child", () => {
+		const groups = [group("todo", true, [ticket("a")])];
+
+		expect(lastOf(flattenGroups(groups, { prRows: true, agentLines: { a: line("Pushed.") } }))).toEqual([true]);
+	});
+
+	test("says which ticket rows have child lines under them", () => {
+		const groups = [group("todo", true, [ticket("a", [pr(11)]), ticket("b"), ticket("c", [pr(12)], "done")])];
+
+		expect(childLinesOf(flattenGroups(groups, { prRows: true }))).toEqual([true, false, false]);
+	});
+
+	test("a ticket has no child lines when the route leaves the pull requests out", () => {
+		const groups = [group("todo", true, [ticket("a", [pr(11)])])];
+
+		expect(childLinesOf(flattenGroups(groups))).toEqual([false]);
+	});
+
+	test("an opened done ticket has child lines", () => {
+		const groups = [group("done", true, [ticket("a", [pr(11)], "done")])];
+
+		expect(childLinesOf(flattenGroups(groups, { prRows: true, expandedTickets: ["a"] }))).toEqual([true]);
 	});
 });
 

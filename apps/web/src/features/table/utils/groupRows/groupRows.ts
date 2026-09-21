@@ -118,8 +118,14 @@ type Bucket = {
 // name that compareText can see.
 const lastRank = "\uFFFF";
 
-const prLabels: Record<string, string> = { open: "Open PR", merged: "Merged PR", closed: "Closed PR", none: "No PR" };
-const prRank: Record<string, number> = { open: 0, merged: 1, closed: 2, none: 3 };
+const prLabels: Record<string, string> = {
+	open: "Open PR",
+	queued: "Queued PR",
+	merged: "Merged PR",
+	closed: "Closed PR",
+	none: "No PR",
+};
+const prRank: Record<string, number> = { open: 0, queued: 1, merged: 2, closed: 3, none: 4 };
 
 // The bucket a row falls into for a grouping field.
 const bucketOf = (row: TicketSummary, options: GroupOptions): Bucket => {
@@ -163,7 +169,7 @@ const bucketOf = (row: TicketSummary, options: GroupOptions): Bucket => {
 		case "turn":
 			return turnBucketOf(row, options.workingTicketIds);
 		case "pr": {
-			const state = row.pr?.state ?? "none";
+			const state = row.pr?.isQueued ? "queued" : (row.pr?.state ?? "none");
 			return { key: state, label: prLabels[state]!, rank: prRank[state]! };
 		}
 		case "none":

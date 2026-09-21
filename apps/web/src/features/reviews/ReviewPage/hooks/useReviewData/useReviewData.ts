@@ -1,12 +1,17 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { type ReviewRevision, type ReviewThread, reviewRef } from "@trellis/api";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 
 export const useReviewData = (pr: string) => {
 	const { client, orpc, queryClient } = useApp();
 	const latest = useQuery(orpc.reviews.revision.queryOptions({ input: { pr } }));
-	const [revision, setRevision] = useState<ReviewRevision | null>(null);
+	const [shownRevision, setShownRevision] = useState<{ pr: string; revision: ReviewRevision } | null>(null);
+	const revision = shownRevision?.pr === pr ? shownRevision.revision : null;
+	const setRevision = useCallback(
+		(next: ReviewRevision | null) => setShownRevision(next === null ? null : { pr, revision: next }),
+		[pr],
+	);
 	const status = useQuery({
 		...orpc.reviews.status.queryOptions({ input: { pr } }),
 		enabled: revision !== null,
@@ -49,7 +54,7 @@ export const useReviewData = (pr: string) => {
 		status.isFetched &&
 		(status.data?.ticket == null || ticket.isFetched) &&
 		(linkedPr === null || (summary.isFetched && evidence.isFetched));
-	const booted = useRef(false);
+	const bootedPr = useRef("");
 	const threads = useQuery({
 		...orpc.reviews.list.queryOptions({ input: { pr, all: true } }),
 		queryFn: async () => {
@@ -75,15 +80,36 @@ export const useReviewData = (pr: string) => {
 		},
 	});
 	useEffect(() => {
-		if (booted.current || !latest.isSuccess) return;
-		booted.current = true;
+		if (!latest.isSuccess) return;
 		if (latest.data) setRevision(latest.data);
-		else refresh.mutate();
-	}, [latest.isSuccess, latest.data, refresh.mutate]);
+		if (bootedPr.current === pr) return;
+		bootedPr.current = pr;
+		refresh.mutate();
+	}, [pr, latest.isSuccess, latest.data, refresh.mutate, setRevision]);
 	const refreshAll = () => {
 		refresh.mutate();
 		void status.refetch();
 	};
+	useEffect(() => {
+		const onFocus = () => {
+			refresh.mutate();
+			void status.refetch();
+		};
+		window.addEventListener("focus", onFocus);
+		return () => window.removeEventListener("focus", onFocus);
+	}, [refresh.mutate, status.refetch]);
+	const requestedRevision = useRef("");
+	useEffect(() => {
+		if (revision === null || status.data === undefined) return;
+		const current = `${pr}:${status.data.headRefOid}:${status.data.baseRefOid}`;
+		if (status.data.headRefOid === revision.headSha && status.data.baseRefOid === revision.baseSha) {
+			requestedRevision.current = "";
+			return;
+		}
+		if (requestedRevision.current === current || refresh.isPending) return;
+		requestedRevision.current = current;
+		refresh.mutate();
+	}, [pr, revision, status.data, refresh.isPending, refresh.mutate]);
 	return {
 		revision,
 		setRevision,

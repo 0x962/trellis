@@ -7,6 +7,7 @@ const pullRequest = (fields: Partial<TicketPr> = {}): TicketPr =>
 		number: 57080,
 		state: "open",
 		isDraft: false,
+		isQueued: false,
 		additions: 311,
 		deletions: 12,
 		changedFiles: 6,
@@ -43,6 +44,10 @@ describe("pullRequestRowLine", () => {
 		expect(pullRequestRowLine(pr)).toBe(
 			"#57080  draft · stacked on #55569 · +73 −9 · 3 files · 9 passed · no evidence · agent",
 		);
+	});
+
+	test("prints queued for a pull request in the merge queue", () => {
+		expect(pullRequestRowLine(pullRequest({ isQueued: true }))).toStartWith("#57080  queued ·");
 	});
 
 	test("gives the turn to the person when every check passed and no thread is open", () => {

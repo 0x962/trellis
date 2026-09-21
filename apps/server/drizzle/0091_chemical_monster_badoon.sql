@@ -1,0 +1,1 @@
+ALTER TABLE "pull_requests" ADD COLUMN "is_queued" boolean DEFAULT false NOT NULL;

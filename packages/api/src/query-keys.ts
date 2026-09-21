@@ -252,6 +252,8 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 					family("tickets", "list"),
 					family("tickets", "board"),
 					family("reviews", "prs"),
+					family("reviews", "status"),
+					family("reviews", "metadata"),
 				]);
 				return;
 			// Every cached summary holds the name, the color, and the group name

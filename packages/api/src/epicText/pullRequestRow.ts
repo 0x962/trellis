@@ -3,9 +3,8 @@ import type { TicketPr } from "../schemas/ticketPr.ts";
 import { turnOf } from "../turn/turn.ts";
 import { factSeparator, groupSeparator } from "./separators.ts";
 
-// One pull request of a ticket, in the words the epic page prints under the
-// ticket row. `apps/web/src/features/table/PrRow/prRowText/prRowText.ts`
-// builds the same facts for the page, and a new fact must reach both sides.
+// One pull request of a ticket, with the review facts that `trellis epics show`
+// gives an agent. The web row shows the title and opens the review sheet for these facts.
 //
 // The page names the agent that works on a pull request. `epics.get` answers
 // with no run, so `turnOf` reads false for a working run here and the turn
@@ -15,9 +14,12 @@ import { factSeparator, groupSeparator } from "./separators.ts";
 const countWord = (count: number, singular: string, plural: string): string =>
 	`${count} ${count === 1 ? singular : plural}`;
 
-// GitHub marks a pull request as a draft only while it is open, so a merged
-// pull request that was once a draft reads as merged here too.
-const stateWord = (pr: TicketPr): string => (pr.state === "open" && pr.isDraft ? "draft" : pr.state);
+// Queued and draft are open states. A terminal state takes precedence over
+// either open-state flag.
+const stateWord = (pr: TicketPr): string => {
+	if (pr.state === "open" && pr.isQueued) return "queued";
+	return pr.state === "open" && pr.isDraft ? "draft" : pr.state;
+};
 
 // `stackedOn` holds the pull request whose head branch is the base branch of
 // this one, so this one merges after that one.

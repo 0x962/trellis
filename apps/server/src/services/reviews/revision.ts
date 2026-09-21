@@ -3,7 +3,6 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
-import { invalidInput } from "../../errors";
 import { fail, notFound, type PrepareCtx, type ServiceCtx } from "../support";
 import { ghUnavailableText } from "./ghUnavailableText/ghUnavailableText.ts";
 import { changed, ensurePr, parseRef, readThread, writeThread } from "./queries";
@@ -89,8 +88,7 @@ export const comparisonFacts = (raw: string) => {
 	const comparison = JSON.parse(raw) as { merge_base_commit: { sha: string }; behind_by: number };
 	return { comparisonBaseSha: comparison.merge_base_commit.sha, behindBy: comparison.behind_by };
 };
-export async function prepare(ctx: PrepareCtx, input: { pr: string }) {
-	const ref = parseRef(input.pr);
+export async function loadCurrentRevision(ctx: PrepareCtx, ref: ReturnType<typeof parseRef>) {
 	const meta = JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", fields])) as Record<string, unknown> &
 		HeadRepositoryMeta & {
 			headRefOid: string;
@@ -108,7 +106,12 @@ export async function prepare(ctx: PrepareCtx, input: { pr: string }) {
 		baseRefOid: string;
 	};
 	if (current.headRefOid !== meta.headRefOid || current.baseRefOid !== meta.baseRefOid)
-		throw invalidInput("pr", "The PR changed while its diff loaded. Refresh to read the new revision.");
+		return loadCurrentRevision(ctx, ref);
+	return { meta, patch };
+}
+export async function prepare(ctx: PrepareCtx, input: { pr: string }) {
+	const ref = parseRef(input.pr);
+	const { meta, patch } = await loadCurrentRevision(ctx, ref);
 	const moves = await suggestionMoves(ctx, ref, meta.headRefOid, headRepositoryOf(ref, meta));
 	return { ref, meta, patch, ...moves };
 }

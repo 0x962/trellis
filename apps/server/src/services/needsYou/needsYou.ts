@@ -1,17 +1,44 @@
 import {
+	isAgentWorking,
 	NeedsYouListInputSchema,
 	type NeedsYouListOutput,
 	type NeedsYouSort,
 	NeedsYouUpdateInputSchema,
 } from "@trellis/api";
 import { sql } from "drizzle-orm";
-import { requireActor, type ServiceCtx } from "../../context.ts";
+import { type ServiceCtx as CoreCtx, requireActor } from "../../context.ts";
 import { ticketSummaries } from "../../db/queries/ticketSummaries.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
+import * as agentRuns from "../agentRuns/agentRuns.ts";
+import type { IoCtx, PrepareCtx } from "../support.ts";
 import { type Candidate, candidates } from "./candidates.ts";
 
-const person = (ctx: ServiceCtx) => {
+type Prepared<T> = { input: T; workingTicketIds: string[] };
+
+const workingTicketIds = async (ctx: IoCtx & PrepareCtx): Promise<string[]> => {
+	const runs = await agentRuns.prepareList(ctx, { assigned: true });
+	return runs.flatMap((run) =>
+		run.kind === "agent" && run.ticketId !== null && isAgentWorking(run) ? [run.ticketId] : [],
+	);
+};
+
+export const prepareList = async (ctx: IoCtx & PrepareCtx, rawInput: unknown) => ({
+	input: NeedsYouListInputSchema.parse(rawInput),
+	workingTicketIds: await workingTicketIds(ctx),
+});
+
+export const prepareSummary = async (ctx: IoCtx & PrepareCtx, input: unknown) => ({
+	input,
+	workingTicketIds: await workingTicketIds(ctx),
+});
+
+export const prepareUpdate = async (ctx: IoCtx & PrepareCtx, rawInput: unknown) => ({
+	input: NeedsYouUpdateInputSchema.parse(rawInput),
+	workingTicketIds: await workingTicketIds(ctx),
+});
+
+const person = (ctx: CoreCtx) => {
 	const actor = requireActor(ctx);
 	if (actor.kind !== "human") throw invalidInput("actor", "Needs you requires a human actor.");
 	return actor.name;
@@ -29,20 +56,24 @@ const key = (item: Candidate, sort: NeedsYouSort) => {
 };
 const compareText = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
-export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<NeedsYouListOutput> => {
-	const input = NeedsYouListInputSchema.parse(rawInput);
-	const actor = person(ctx);
+export const list = async (
+	ctx: IoCtx,
+	tx: Tx,
+	prepared: Prepared<ReturnType<typeof NeedsYouListInputSchema.parse>>,
+): Promise<NeedsYouListOutput> => {
+	const { input } = prepared;
+	const actor = person(ctx.core);
 	const query = JSON.stringify([actor, input.section, input.visibility, input.sort, input.ticket]);
 	if (input.cursor && input.cursor.query !== query)
 		throw invalidInput("cursor", "The cursor belongs to another inbox query.");
 	const direction = input.sort.startsWith("-") && input.sort !== "-priority" ? -1 : 1;
 	const compare = (a: { key: string; age: string; id: string }, b: { key: string; age: string; id: string }) =>
 		direction * compareText(a.key, b.key) || compareText(a.age, b.age) || compareText(a.id, b.id);
-	const matching = (await candidates(tx, actor))
+	const matching = (await candidates(tx, actor, new Set(prepared.workingTicketIds)))
 		.filter(
 			(item) =>
 				(!input.section || item.section === input.section) &&
-				visibility(item, ctx.now) === input.visibility &&
+				visibility(item, ctx.core.now) === input.visibility &&
 				(!input.ticket || item.identifier === input.ticket.toUpperCase() || item.ticketId === input.ticket),
 		)
 		.map((item) => ({ item, key: key(item, input.sort), age: item.createdAt, id: item.id }));
@@ -70,11 +101,11 @@ export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 	};
 };
 
-export const summary = async (ctx: ServiceCtx, tx: Tx, _input: unknown) => {
-	const items = await candidates(tx, person(ctx));
+export const summary = async (ctx: IoCtx, tx: Tx, prepared: Prepared<unknown>) => {
+	const items = await candidates(tx, person(ctx.core), new Set(prepared.workingTicketIds));
 	const result = { active: 0, review: 0, mentioned: 0, snoozed: 0, ignored: 0, nextWakeAt: null as string | null };
 	for (const item of items) {
-		const state = visibility(item, ctx.now);
+		const state = visibility(item, ctx.core.now);
 		result[state]++;
 		if (state === "active") result[item.section]++;
 		if (state === "snoozed" && (result.nextWakeAt === null || item.snoozedUntil! < result.nextWakeAt))
@@ -83,16 +114,22 @@ export const summary = async (ctx: ServiceCtx, tx: Tx, _input: unknown) => {
 	return result;
 };
 
-export const update = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown) => {
-	const input = NeedsYouUpdateInputSchema.parse(rawInput);
-	const actor = person(ctx);
-	if (input.action === "snooze" && new Date(input.until) <= ctx.now)
+export const update = async (
+	ctx: IoCtx,
+	tx: Tx,
+	prepared: Prepared<ReturnType<typeof NeedsYouUpdateInputSchema.parse>>,
+) => {
+	const { input } = prepared;
+	const actor = person(ctx.core);
+	if (input.action === "snooze" && new Date(input.until) <= ctx.core.now)
 		throw invalidInput("until", "Choose a future time.");
-	const item = (await candidates(tx, actor)).find((candidate) => candidate.id === input.id);
+	const item = (await candidates(tx, actor, new Set(prepared.workingTicketIds))).find(
+		(candidate) => candidate.id === input.id,
+	);
 	if (!item) throw fail("NOT_FOUND", { kind: "inbox item", ref: input.id });
 	await tx.execute(sql`INSERT INTO needs_you_states (actor_name,item_id,ticket_id,snoozed_until,ignored,updated_at)
-		VALUES (${actor},${item.id},${item.ticketId},${input.action === "snooze" ? input.until : null},${input.action === "ignore"},${ctx.now})
+		VALUES (${actor},${item.id},${item.ticketId},${input.action === "snooze" ? input.until : null},${input.action === "ignore"},${ctx.core.now})
 		ON CONFLICT (actor_name,item_id) DO UPDATE SET snoozed_until=EXCLUDED.snoozed_until,ignored=EXCLUDED.ignored,updated_at=EXCLUDED.updated_at`);
-	ctx.emit({ type: "needs-you.changed", actorName: actor });
+	ctx.core.emit({ type: "needs-you.changed", actorName: actor });
 	return { id: item.id };
 };

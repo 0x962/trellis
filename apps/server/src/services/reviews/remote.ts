@@ -6,7 +6,7 @@ import { sql } from "drizzle-orm";
 import { rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
 import { invalidInput } from "../../errors";
-import { fetchPullRequests, type PullRequestRow } from "../../gh/graphql";
+import { fetchPullRequests, type PullRequestRow, withQueueState } from "../../gh/graphql";
 import { effectiveRepos } from "../projectsRepos";
 import { recordAction } from "../pullRequestAction";
 import { fail, type IoCtx, type PrepareCtx, type ServiceCtx } from "../support";
@@ -82,8 +82,7 @@ export async function action(ctx: PrepareCtx, input: { pr: string; action: Actio
 		state: string;
 		headRefName: string;
 	};
-	if (meta.headRefOid !== input.headSha)
-		throw invalidInput("headSha", "The PR head changed. Refresh before this action.");
+	if (meta.headRefOid !== input.headSha) throw fail("PR_HEAD_MOVED", { currentHeadSha: meta.headRefOid });
 	const a = input.action;
 	if (a.startsWith("live-")) {
 		if (`${ref.owner}/${ref.repo}` !== "canary-technologies-corp/canary")
@@ -123,7 +122,9 @@ export async function action(ctx: PrepareCtx, input: { pr: string; action: Actio
 		const [verb, ...flags] = args[a];
 		await gh(ctx, ["pr", verb!, ref.url, ...flags]);
 	}
-	return current(ctx, input.pr, input.action);
+	const prepared = await current(ctx, input.pr, input.action);
+	if (a === "queue" || a === "dequeue") prepared.row = withQueueState(prepared.row, a === "queue");
+	return prepared;
 }
 
 // The threads a submission carries to GitHub, each checked to sit on the
@@ -218,8 +219,9 @@ export async function submit(ctx: PrepareCtx, input: ReviewSubmit) {
 
 export const actionResult = async (ctx: ServiceCtx, tx: Tx, input: PreparedAction) => {
 	const pullRequest = await recordAction(ctx, tx, input);
-	if (input.submission) await recordSubmission(ctx, tx, { prId: pullRequest.id, ...input.submission });
-	return pullRequest;
+	if (!input.submission) return pullRequest;
+	const submission = await recordSubmission(ctx, tx, { prId: pullRequest.id, ...input.submission });
+	return { pullRequest, submission };
 };
 // With a project, the search covers the repositories of that project and
 // its ancestors. A project with no repository has no pull request of its

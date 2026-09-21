@@ -33,9 +33,21 @@ export type TableGroup = RowGroup & {
 export type TableItem =
 	| { kind: "header"; key: string; group: TableGroup }
 	// The line of the ticket's run, for the phone row.
-	| { kind: "row"; key: string; group: TableGroup; ticket: TicketSummary; agentLine: TicketAgentLine | null }
-	| { kind: "agent"; key: string; group: TableGroup; line: TicketAgentLine }
-	| { kind: "pr"; key: string; group: TableGroup; pr: TicketPr }
+	| {
+			kind: "row";
+			key: string;
+			group: TableGroup;
+			ticket: TicketSummary;
+			agentLine: TicketAgentLine | null;
+			disclosure: TicketDisclosure;
+			// True when child lines follow the row. The row then starts the
+			// tree rule under its status icon and draws no bottom border.
+			hasChildLines: boolean;
+	  }
+	// `last` is true on the final child line of a ticket. That line ends the
+	// tree rule with a corner and draws the bottom border of the group.
+	| { kind: "agent"; key: string; group: TableGroup; line: TicketAgentLine; last: boolean }
+	| { kind: "pr"; key: string; group: TableGroup; pr: TicketPr; last: boolean }
 	| { kind: "more"; key: string; group: TableGroup };
 
 export type FlattenOptions = {
@@ -47,6 +59,15 @@ export type FlattenOptions = {
 	// entry has no run, or its run has neither an open request nor a
 	// message, and it gets no agent line.
 	agentLines?: Readonly<Record<string, TicketAgentLine>>;
+	// The done or canceled tickets whose child rows a person opened.
+	expandedTickets?: readonly string[];
+};
+
+export type TicketDisclosure = "collapsed" | "expanded" | null;
+
+const ticketDisclosure = (ticket: TicketSummary, hasChildren: boolean, expandedTickets: readonly string[]) => {
+	if (!hasChildren || (ticket.status.category !== "done" && ticket.status.category !== "canceled")) return null;
+	return expandedTickets.includes(ticket.id) ? "expanded" : "collapsed";
 };
 
 // The lines in order: each group's header, its rows while it is expanded,
@@ -60,14 +81,21 @@ export const flattenGroups = (groups: readonly TableGroup[], options: FlattenOpt
 		if (!group.expanded) continue;
 		for (const ticket of group.rows) {
 			const line = options.agentLines?.[ticket.id];
-			items.push({ kind: "row", key: ticket.id, group, ticket, agentLine: line ?? null });
-			if (options.prRows === true) {
+			const hasPrRows = options.prRows === true && ticket.prRows.length > 0;
+			const hasChildren = hasPrRows || line !== undefined;
+			const disclosure = ticketDisclosure(ticket, hasChildren, options.expandedTickets ?? []);
+			const hasChildLines = hasChildren && disclosure !== "collapsed";
+			items.push({ kind: "row", key: ticket.id, group, ticket, agentLine: line ?? null, disclosure, hasChildLines });
+			if (!hasChildLines) continue;
+			if (hasPrRows) {
 				// Two tickets can link the same pull request, so the ticket id is
 				// part of the key that the virtualizer uses to hold a line.
-				for (const pr of ticket.prRows)
-					items.push({ kind: "pr", key: `pr:${ticket.id}:${pr.owner}/${pr.repo}#${pr.number}`, group, pr });
+				ticket.prRows.forEach((pr, index) => {
+					const last = line === undefined && index === ticket.prRows.length - 1;
+					items.push({ kind: "pr", key: `pr:${ticket.id}:${pr.owner}/${pr.repo}#${pr.number}`, group, pr, last });
+				});
 			}
-			if (line !== undefined) items.push({ kind: "agent", key: `agent:${ticket.id}`, group, line });
+			if (line !== undefined) items.push({ kind: "agent", key: `agent:${ticket.id}`, group, line, last: true });
 		}
 		if (group.hasMore) items.push({ kind: "more", key: `more:${group.key}`, group });
 	}

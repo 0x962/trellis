@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { booleanString, IsoDateTimeSchema, UlidSchema } from "./primitives";
+import { CheckSchema, PullRequestSchema } from "./pullRequest";
 import { TicketIdentifierSchema } from "./ticket";
 import { TicketPrSchema } from "./ticketPr";
 
@@ -101,6 +102,8 @@ export const ReviewPrSchema = z.object({
 	number: z.number().int(),
 	title: z.string(),
 	state: z.string(),
+	isDraft: z.boolean(),
+	isQueued: z.boolean(),
 	open: z.number().int(),
 	resolved: z.number().int(),
 	updatedAt: IsoDateTimeSchema,
@@ -108,8 +111,10 @@ export const ReviewPrSchema = z.object({
 // `gh pr view` supplies the other fields, whose shape belongs to GitHub.
 // Keep this schema loose so each GitHub field passes through unchanged.
 export const ReviewStatusSchema = z.looseObject({
+	isQueued: z.boolean(),
 	ticket: z.object({ identifier: TicketIdentifierSchema, title: z.string() }).nullable(),
 	prRow: TicketPrSchema.nullable(),
+	checks: z.array(CheckSchema).nullable(),
 });
 export const ReviewRevisionSchema = z.object({
 	id: UlidSchema,
@@ -141,6 +146,24 @@ export const ReviewSubmitSchema = z
 		message: "Enter a review summary before you submit this review.",
 	});
 export type ReviewSubmit = z.output<typeof ReviewSubmitSchema>;
+// Each recipient is an open agent assignment with a `review_deliveries` row.
+// Its agent process can still be stopped or lost.
+export const ReviewSubmitRecipientSchema = z.object({
+	runId: UlidSchema,
+	agentName: z.string(),
+});
+export type ReviewSubmitRecipient = z.infer<typeof ReviewSubmitRecipientSchema>;
+// A person needs both facts after a submit: GitHub accepted the review, and
+// the server queued these delivery rows. An empty recipient list means that
+// the review is on GitHub but no open agent assignment can receive it.
+export const ReviewSubmitResultSchema = z.object({
+	pullRequest: PullRequestSchema,
+	submission: z.object({
+		id: UlidSchema,
+		recipients: z.array(ReviewSubmitRecipientSchema),
+	}),
+});
+export type ReviewSubmitResult = z.infer<typeof ReviewSubmitResultSchema>;
 // One commit on the head branch takes the suggestions of these threads.
 export const ReviewApplySchema = z.strictObject({
 	pr: ReviewRefSchema,

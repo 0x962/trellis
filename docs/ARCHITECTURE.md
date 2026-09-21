@@ -689,8 +689,8 @@ Harness events establish turn activity. Terminal output alone does not establish
 A host interruption changes an unfinished send to `unknown`.
 A durable receipt can confirm the original delivery. An explicit resend uses a new generation and message identifier.
 
-The web Needs you page lists tickets in review statuses with a human reviewer across every project.
-The list includes inherited and custom statuses, with or without a linked pull request.
+The web Needs you page lists each ticket whose turn is `you` across every project.
+`packages/api/src/turn/turn.ts` defines this turn from the status, pull requests, and the assigned run.
 The Mentioned section lists comments that name the current human actor outside code.
 A resolved comment or thread removes its mentions. A Done transition clears comments created before that transition, even if the ticket reopens.
 Comments created after that transition remain eligible, including comments on Done tickets. Canceled transitions do not clear mentions.
@@ -910,7 +910,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | waves | id PK, epic_id (CASCADE), root_id, slug (CHECK slug regex), name (CHECK trimmed, 1 to 120), position integer (CHECK >= 0), created_at, updated_at. UNIQUE (id, epic_id) and (epic_id, slug). FK (epic_id, root_id) CASCADE, so a wave stays in the root of its epic. Index (epic_id, position). The state of a wave is never stored. |
 | comments | id PK, ticket_id (CASCADE), body (1 to 200000), parent_id, resolved_at, actor_name, actor_kind, search tsvector GENERATED (body C), created_at, updated_at. FK to actors. UNIQUE (id, ticket_id). FK (parent_id, ticket_id) CASCADE, so a reply stays on the ticket of its root. CHECK `parent_id <> id` and `parent_id IS NULL OR resolved_at IS NULL`, so only a root carries the resolved mark. Index (ticket_id, created_at) and (parent_id). GIN (search). |
 | attachments | id PK, ticket_id (CASCADE), filename (1 to 255, no `/`), mime, size (CHECK > 0), sha256 (CHECK hex 64), actor_name, actor_kind, created_at. FK to actors. Index (ticket_id) and (sha256). |
-| pull_requests | id PK, owner, repo (CHECK lowercase), number (CHECK > 0), url, title, state, is_draft, head_ref, base_ref, review_state, merged_at, closed_at, checks jsonb (CHECK array), ci_state, content_hash, fetched_at, fetch_error, created_at, updated_at. UNIQUE (owner, repo, number). Index (state, ci_state). |
+| pull_requests | id PK, owner, repo (CHECK lowercase), number (CHECK > 0), url, title, state, is_draft, is_queued, head_ref, base_ref, review_state, merged_at, closed_at, checks jsonb (CHECK array), ci_state, content_hash, fetched_at, fetch_error, created_at, updated_at. UNIQUE (owner, repo, number). Index (state, ci_state). |
 | ticket_pull_requests | ticket_id (CASCADE), pull_request_id (CASCADE), source (manual), actor_name, actor_kind, created_at. PK (ticket_id, pull_request_id). Index (pull_request_id). |
 | activity | id bigint IDENTITY PK, batch_id, root_id (CASCADE), project_id (CASCADE), ticket_id (CASCADE), actor_name, actor_kind, action, field, from_value, to_value, meta jsonb, created_at. FK to actors. CHECK `field <> 'description' OR (from_value IS NULL AND to_value IS NULL)`. Indexes (ticket_id, id), (ticket_id, created_at DESC, id DESC), (root_id, id), (project_id, id), (created_at). |
 | actors | name (CHECK 1 to 64, no `:`), kind (human, agent, or system), first_seen_at, last_seen_at. PK (name, kind). |
@@ -1049,7 +1049,7 @@ The filter grammar is identical in the API, the web URL, and the CLI flags.
 | wave | a WaveRef or `none` |
 | label | a list of LabelRef; a ticket that holds one of them stays; `none` in the list keeps a ticket with no label |
 | labelNot | a list of LabelRef; a ticket that holds one of them drops out |
-| pr | any, none, open, draft, merged, closed |
+| pr | any, none, open, draft, queued, merged, closed |
 | ci | a list of pass, fail, pending, none |
 | actor | `kind:name` or `name`, matched against the last actor |
 | q | full text search with a prefix on the last token |
@@ -1135,7 +1135,8 @@ server-side.
 The poller lives in `apps/server/src/gh/`. It runs one `gh api graphql` request
 per 50 pull requests, with one alias per pull request. One tick spawns one
 process, whatever the pull request count. `link` and `refresh` use the same
-query for one pull request. A row is written only when its content hash changes.
+query for one pull request. The query includes `mergeQueueEntry`, and `is_queued`
+records whether that entry exists. A row is written only when its content hash changes.
 
 GitHub keeps a re-run beside the run it replaces. `normalizeChecks` therefore
 keeps one node per name, workflow, and event, and takes the node that started

@@ -5,6 +5,7 @@ import { Button, ConfirmDialog, IconButton, Menu, Tooltip, toast } from "@trelli
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import {
+	isPrHeadMoved,
 	mergeMenuActions,
 	overflowActions,
 	primaryReviewAction,
@@ -44,7 +45,14 @@ export function ReviewHeaderActions({
 			void queryClient.invalidateQueries({ queryKey: orpc.reviews.metadata.key() });
 			onDone();
 		},
-		onError: (error) => toast.error("The pull request action failed", { description: error.message }),
+		onError: (error) => {
+			if (isPrHeadMoved(error)) {
+				setCloseOpen(false);
+				onDone();
+				return;
+			}
+			toast.error("The pull request action failed", { description: error.message });
+		},
 	});
 
 	// `mergeMenuActions` reads `extra.mergeQueueEntry` to choose between "Join

@@ -85,6 +85,9 @@ export function TicketPicker({
 		if (!next) setSearch("");
 	};
 
+	// An empty search lists no tickets, so the current parent gets its own row
+	// above None. The list then opens on the current parent, and Enter keeps it.
+	const empty = search.trim() === "";
 	const items: CommandItem[] = [
 		...tickets.map((ticket) => ({
 			id: ticket.identifier,
@@ -95,7 +98,8 @@ export function TicketPicker({
 			icon: <StatusIcon category={ticket.status.category} reviewer={ticket.status.reviewer ?? undefined} />,
 			children: <span className="truncate text-fg-muted">{ticket.title}</span>,
 		})),
-		...(onToggle === undefined && allowNone && search.trim() === ""
+		...(onToggle === undefined && empty && value !== undefined ? [{ id: value, label: value, current: true }] : []),
+		...(onToggle === undefined && allowNone && empty
 			? [{ id: noneId, label: "None", current: value === undefined }]
 			: []),
 	];
@@ -128,7 +132,8 @@ export function TicketPicker({
 						return;
 					}
 					setOpen(false);
-					onPick!(id === noneId ? null : tickets.find((ticket) => ticket.identifier === id)!);
+					if (id === noneId) onPick!(null);
+					else if (id !== value) onPick!(tickets.find((ticket) => ticket.identifier === id)!);
 				}}
 			/>
 		</Popover>

@@ -211,3 +211,14 @@ describe("groupRows by turn", () => {
 		expect(groups.map((group) => group.label)).toEqual(["With an agent"]);
 	});
 });
+
+describe("groupRows by pull request state", () => {
+	test("puts a queued pull request in the queued group", () => {
+		const queued = { ...ticket("queued", runtime), pr: { state: "open", isQueued: true } } as TicketSummary;
+		const open = { ...ticket("open", runtime), pr: { state: "open", isQueued: false } } as TicketSummary;
+
+		const groups = groupRows([queued, open], { group: "pr", sort: "-updatedAt", statuses: [] });
+
+		expect(groups.map((group) => group.label)).toEqual(["Open PR", "Queued PR"]);
+	});
+});

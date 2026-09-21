@@ -31,12 +31,13 @@ const checksOf = (pr: PrCellProps["pr"]): Check[] => [
 
 // A compact row has no room for the ribbon, so one dot states the CI result.
 //
-// TicketSummary.pr holds no draft flag, so the glyph draws the open state for
-// a draft pull request here.
+// TicketSummary.pr folds every linked pull request into one badge. It stores no
+// draft flag, so a draft draws as open. Its isQueued flag keeps a queued pull
+// request visible.
 export function PrCell({ pr, density }: PrCellProps) {
 	return (
 		<span className="inline-flex items-center gap-1.5">
-			<PrGlyph state={pr.state} isDraft={false} size="sm" />
+			<PrGlyph state={pr.state} isDraft={false} isQueued={pr.isQueued} size="sm" />
 			{density === "comfortable" ? (
 				<CheckRibbon checks={checksOf(pr)} size="mini" />
 			) : (

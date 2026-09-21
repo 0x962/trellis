@@ -48,6 +48,7 @@ const PrReviewSchema = z.object({
 // each linked pull request.
 const PrBadgeSchema = z.object({
 	state: PrStateSchema,
+	isQueued: z.boolean(),
 	ciState: CiStateSchema,
 	reviewState: ReviewStateSchema,
 	pass: CountSchema,
@@ -170,7 +171,7 @@ export const SortSchema = z.enum([
 ]);
 export type Sort = z.infer<typeof SortSchema>;
 
-export const PrFilterSchema = z.enum(["any", "none", "open", "draft", "merged", "closed"]);
+export const PrFilterSchema = z.enum(["any", "none", "open", "draft", "queued", "merged", "closed"]);
 export type PrFilter = z.infer<typeof PrFilterSchema>;
 
 // The last actor filter: `kind:name` or a bare `name`.

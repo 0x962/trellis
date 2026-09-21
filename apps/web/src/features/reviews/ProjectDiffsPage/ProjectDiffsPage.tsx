@@ -51,13 +51,19 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 	};
 	const rows =
 		source === "local"
-			? (prs.data ?? []).map((pr) => ({ ...pr, repository: `${pr.owner}/${pr.repo}` }))
+			? (prs.data ?? []).map((pr) => ({
+					...pr,
+					repository: `${pr.owner}/${pr.repo}`,
+					state: pr.isQueued ? "QUEUED" : pr.isDraft ? "DRAFT" : pr.state,
+				}))
 			: (mine.data ?? []).map((pr) => ({
 					...reviewRef(pr.url),
 					id: pr.url,
 					title: pr.title,
 					repository: pr.repository.nameWithOwner,
 					state: pr.isDraft ? "DRAFT" : "OPEN",
+					isDraft: pr.isDraft,
+					isQueued: false,
 					open: 0,
 					resolved: 0,
 				}));
@@ -157,7 +163,7 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 													{pr.open}
 												</span>
 											)}
-											<ReviewStatus state={pr.state} />
+											<ReviewStatus state={pr.state} isDraft={pr.isDraft} isQueued={pr.isQueued} />
 											<ArrowRight className="review-row-arrow" aria-hidden="true" />
 										</Link>
 									))}

@@ -98,7 +98,7 @@ const queueReview = async (title: string, threads: number) => {
 	const [row] = (await db.execute(sql`SELECT id FROM review_deliveries WHERE run_id = ${runId}`)).rows as {
 		id: string;
 	}[];
-	return { runId, url, deliveryId: row!.id, reviewId: stored.id, agents: stored.deliveries };
+	return { runId, url, deliveryId: row!.id, reviewId: stored.id, agents: stored.recipients };
 };
 
 const deliveryOf = async (runId: string) => {
@@ -228,6 +228,32 @@ test("a review that a person did not send back queues nothing", async () => {
 		}),
 	);
 
-	expect(stored.deliveries).toEqual([]);
+	expect(stored.recipients).toEqual([]);
 	expect(await deliveryOf(runId)).toBeUndefined();
+});
+
+test("a review with no agent assignment reports no recipient", async () => {
+	const ticket = await run((tx) => create(core, tx, { project: "DSP", title: "Report the missing run" }));
+	const prId = ulid();
+	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, created_at, updated_at)
+		VALUES (${prId}, 'o', 'r', ${++prNumber}, ${`https://github.com/o/r/pull/${prNumber}`}, 'open', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
+		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at})`);
+
+	const stored = await run((tx) =>
+		recordSubmission(serviceCtx, tx, {
+			prId,
+			verdict: "comment",
+			url: `https://github.com/o/r/pull/${prNumber}#pullrequestreview-3`,
+			author: "0x962",
+			body: "Start a run for this review.",
+			revisionId: null,
+			threads: [],
+			sendBack: true,
+		}),
+	);
+	const deliveries = await db.execute(sql`SELECT id FROM review_deliveries WHERE review_id = ${stored.id}`);
+
+	expect(stored.recipients).toEqual([]);
+	expect(deliveries.rows).toEqual([]);
 });

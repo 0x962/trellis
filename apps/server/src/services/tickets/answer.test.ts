@@ -12,7 +12,7 @@ let db: Awaited<ReturnType<typeof openTestDb>>;
 let ctx: ServiceCtx;
 const rootId = ulid();
 const at = "2026-09-20T10:00:00Z";
-const question = "Options:\n1. Leave it missed.\n2. Run it late.\n";
+const question = "The run can miss its window.\n\nOptions:\n\n1. Leave it missed.\n2. Run it late.\n";
 const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
 const ask = (title: string) =>
