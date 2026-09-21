@@ -1,12 +1,10 @@
-import { ORPCError } from "@orpc/client";
 import { PencilSimple, Plus, Trash } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { AgentRun, Project, TicketSummary } from "@trellis/api";
-import { Button, EmptyState, IconButton, Menu } from "@trellis/ui";
+import { EmptyState, IconButton, Menu, useMediaQuery } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
-import { errorMessage } from "../../../lib/conflict";
 import { epicHref, projectHref, projectSlashPath, rootKey } from "../../../lib/projectPath";
 import { useUiStore } from "../../../stores/uiStore";
 import { FilterBar } from "../../filters/FilterBar";
@@ -14,7 +12,6 @@ import { type View, viewOf } from "../../filters/grammar";
 import { hasFilters } from "../../filters/labels";
 import { TicketPicker } from "../../pickers/TicketPicker";
 import { ArchivedBanner } from "../../project-actions";
-import { NotFoundState } from "../../shell/NotFoundState";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar } from "../../shell/Topbar";
@@ -28,6 +25,7 @@ import { EpicSheet } from "../EpicSheet";
 import { epicRunningCount, epicWorkingTicketIds } from "../epicNext";
 import { assignedTicketIds, epicRowRank } from "../epicRowRank";
 import { epicPageSearch, epicQueryString, epicUrlSearch } from "../epicSearch";
+import { EpicLoadError } from "./components/EpicLoadError";
 import { EpicPlan } from "./components/EpicPlan";
 import { EpicProgress } from "./components/EpicProgress";
 import { EpicResources } from "./components/EpicResources";
@@ -48,17 +46,20 @@ const clearLinkClass =
 
 const noRuns: readonly AgentRun[] = [];
 
+// On a phone and on a touch screen the link is 44 px tall, the least a
+// finger hits.
 const breadcrumbLinkClass =
-	"inline-flex h-7 items-center rounded-md px-1 text-fg-muted transition-colors duration-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
+	"inline-flex h-7 max-md:h-11 pointer-coarse:h-11 items-center rounded-md px-1 text-fg-muted transition-colors duration-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
 
 // One epic: the progress band, the plan, the resources, and the tickets of
-// the epic in the ticket table of the project routes. The table search is the URL search
-// with `epic` fixed to this epic, and it groups by milestone when the URL
-// names no group. An epic belongs to a root and holds tickets of any
-// project of that root, so the table reads the root with its sub-projects,
-// and the rows match the counts of the band and the tickets that Add
-// offers. The filter bar receives `epic` as a fixed filter, so it draws no
-// epic chip and "Copy as CLI" still names the epic. Add puts a ticket of the project into the epic; the bulk bar of the
+// the epic in the ticket table of the project routes. The table search is
+// the URL search with `epic` fixed to this epic, and it groups by milestone
+// (by turn below 768 px) when the URL names no group. An epic belongs to a
+// root and holds tickets of any project of that root, so the table reads
+// the root with its sub-projects, and the rows match the counts of the band
+// and the tickets that Add offers. The filter bar receives `epic` as a
+// fixed filter, so it draws no epic chip and "Copy as CLI" still names the
+// epic. Add puts a ticket of the project into the epic; the bulk bar of the
 // table and the rail of the ticket page take one out. Both are ticket
 // writes, so the ticket rows and the epic counts refetch from the ticket
 // events.
@@ -128,10 +129,11 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	// The search and the filter bar need the epic ref and the project alone,
 	// so the pending page draws the same bar as the loaded page and the
 	// topbar keeps its shape when the epic arrives.
-	const tableSearch = useMemo(() => epicPageSearch(search, ref), [search, ref]);
+	const phone = useMediaQuery("(max-width: 767px)");
+	const tableSearch = useMemo(() => epicPageSearch(search, ref, phone), [search, ref, phone]);
 	const { epic: fixedEpic, ...barSearch } = tableSearch;
 	const full = viewOf(tableSearch);
-	const setSearch = (next: Partial<View>) => onSearchChange(epicUrlSearch(next));
+	const setSearch = (next: Partial<View>) => onSearchChange(epicUrlSearch(next, phone));
 	const filterBar = (
 		<FilterBar
 			project={project.path}
@@ -174,28 +176,8 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	}
 
 	if (epic.isError) {
-		const notFound = epic.error instanceof ORPCError && epic.error.code === "NOT_FOUND";
 		return (
-			<>
-				<Topbar>
-					<PageTitle parent={parent} title={slug} />
-				</Topbar>
-				{notFound ? (
-					<NotFoundState ref={ref} />
-				) : (
-					<EmptyState
-						variant="page"
-						className="page-card"
-						title={`${ref} did not load.`}
-						description={errorMessage(epic.error)}
-						action={
-							<Button size="md" onClick={() => void epic.refetch()}>
-								Retry
-							</Button>
-						}
-					/>
-				)}
-			</>
+			<EpicLoadError epicRef={ref} slug={slug} parent={parent} error={epic.error} onRetry={() => void epic.refetch()} />
 		);
 	}
 
@@ -246,9 +228,11 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 				<div className="max-h-1/2 shrink-0 overflow-y-auto border-b border-border">
 					<EpicProgress
 						epic={record}
+						routeKey={routeKey}
 						running={running}
 						splat={splat}
 						search={tableSearch}
+						phone={phone}
 						workingTicketIds={workingTicketIds}
 					/>
 					<EpicPlan routeKey={routeKey} description={record.description} />

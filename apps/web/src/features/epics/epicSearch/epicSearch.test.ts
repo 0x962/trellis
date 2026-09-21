@@ -68,3 +68,25 @@ describe("epicSearch", () => {
 		expect(isCanonicalEpicSearch("?sort=-updatedAt", validated({ sort: "-updatedAt" }))).toBe(false);
 	});
 });
+
+describe("epicSearch on a phone", () => {
+	const phone = true;
+
+	test("a URL with no group groups by turn", () => {
+		expect(epicPageSearch(validated({}), "OP/routine-runtime", phone).group).toBe("turn");
+		expect(epicPageSearch(validated({ group: "milestone" }), "OP/routine-runtime", phone).group).toBe("milestone");
+	});
+
+	test("the URL omits the turn group and writes the milestone group", () => {
+		const scope = "subprojects";
+		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "turn", scope }, phone)).toEqual({});
+		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "milestone", scope }, phone)).toEqual({
+			group: "milestone",
+		});
+	});
+
+	test("the canonical check keeps the milestone group and refuses the turn group", () => {
+		expect(isCanonicalEpicSearch("?group=milestone", validated({ group: "milestone" }), phone)).toBe(true);
+		expect(isCanonicalEpicSearch("?group=turn", validated({ group: "turn" }), phone)).toBe(false);
+	});
+});

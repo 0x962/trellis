@@ -13,18 +13,20 @@ import {
 } from "react";
 import type { Density } from "../../../../../stores/uiStore";
 import { AgentLine } from "../../../AgentLine";
-import type { ColumnId } from "../../../columns";
+import type { ColumnId, TableKind } from "../../../columns";
 import { GroupHeader, groupHeaderHeight, phoneGroupHeaderHeight } from "../../../GroupHeader";
 import type { RowSelection } from "../../../hooks/useRowSelection";
 import { PrRow } from "../../../PrRow";
 import { type EditField, Row, type RowChange } from "../../../Row";
 import { agentLineHeight, phoneRowHeight, prRowHeight, rowHeights } from "../../../rowHeights";
-import type { TableGroup, TableItem } from "../../../utils/flattenGroups";
+import { phoneItems, type TableGroup, type TableItem } from "../../../utils/flattenGroups";
 import { ShowMoreRow, showMoreHeight } from "../ShowMoreRow";
 import { TableSkeleton } from "../TableSkeleton";
 
 export type TableBodyProps = {
 	items: readonly TableItem[];
+	// On a phone, a row of an epic table draws the epic layout of `PhoneRow`.
+	tableKind: TableKind;
 	columns: readonly ColumnId[];
 	density: Density;
 	project?: string;
@@ -65,7 +67,8 @@ const heightOf = (item: TableItem, rowHeight: number, headerHeight: number) => {
 // fixed height, so the spacer is the sum of the lines and never moves
 // when data arrives.
 export function TableBody({
-	items,
+	items: allItems,
+	tableKind,
 	columns,
 	density,
 	project,
@@ -91,6 +94,7 @@ export function TableBody({
 	const phone = useMediaQuery("(max-width: 767px)");
 	const rowHeight = phone ? phoneRowHeight : rowHeights[density];
 	const headerHeight = phone ? phoneGroupHeaderHeight : groupHeaderHeight;
+	const items = useMemo(() => (phone ? phoneItems(allItems) : allItems), [phone, allItems]);
 	const [initialRect, setInitialRect] = useState({ width: 0, height: 0 });
 	useLayoutEffect(() => {
 		const { width, height } = viewport.current!.getBoundingClientRect();
@@ -218,6 +222,8 @@ export function TableBody({
 								top={virtual.start}
 								group={item.group.key}
 								phone={phone}
+								phoneLayout={tableKind}
+								agentLine={phone ? item.agentLine : null}
 								focused={ticket.id === focusedId}
 								selected={selection.isSelected(ticket.id)}
 								selecting={selection.count > 0}
