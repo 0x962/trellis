@@ -7,7 +7,7 @@ import type {
 	PullRequest,
 	StoredActorKind,
 } from "@trellis/api";
-import { sql } from "drizzle-orm";
+import { type SQL, sql } from "drizzle-orm";
 import { iso } from "./support.ts";
 
 export type PullRequestRow = {
@@ -44,9 +44,23 @@ export type LinkedPullRequestRow = PullRequestRow & {
 	actor_kind: StoredActorKind;
 };
 
+// The pull request review state comes from its newest local verdict. A
+// comment requests another agent turn, so it uses `review_required`.
+export const localReviewState = (prId: SQL) => sql`COALESCE((
+	SELECT CASE submission.document->>'verdict'
+		WHEN 'approved' THEN 'approved'
+		WHEN 'changes_requested' THEN 'changes_requested'
+		ELSE 'review_required'
+	END
+	FROM review_submissions submission
+	WHERE submission.pr_id = ${prId}
+	ORDER BY submission.created_at DESC, submission.id DESC
+	LIMIT 1
+), 'none')`;
+
 export const pullRequestColumns = sql`
 	p.id, p.owner, p.repo, p.number, p.additions, p.deletions, p.changed_files, p.files,
-	p.url, p.title, p.state, p.is_draft, p.head_ref, p.base_ref, p.review_state,
+	p.url, p.title, p.state, p.is_draft, p.head_ref, p.base_ref, ${localReviewState(sql`p.id`)} AS review_state,
 	${iso(sql`p.merged_at`)} AS merged_at, ${iso(sql`p.closed_at`)} AS closed_at, p.checks, p.ci_state,
 	p.content_hash, ${iso(sql`p.fetched_at`)} AS fetched_at, p.fetch_error,
 	${iso(sql`p.created_at`)} AS created_at, ${iso(sql`p.updated_at`)} AS updated_at

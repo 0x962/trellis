@@ -7,9 +7,24 @@ test("the answer message names the question, the comment and the waiting ticket"
 	);
 });
 
-test("the review message counts the comments and names the command that reads them", () => {
-	expect(reviewMessage({ url: "https://github.com/o/r/pull/1", drafts: 3 })).toBe(
-		"trellis: your pull request has a review with 3 comments.\nRead the threads: trellis review list https://github.com/o/r/pull/1\nApply what each thread asks. Answer each thread.",
+test("a request for changes names the verdict, the note and the threads", () => {
+	expect(
+		reviewMessage({
+			url: "https://github.com/o/r/pull/1",
+			drafts: 3,
+			verdict: "changes_requested",
+			body: "Fix the count.",
+		}),
+	).toBe(
+		"trellis: your pull request needs changes. The review has 3 comments.\nReview note: Fix the count.\nRead the threads: trellis review list https://github.com/o/r/pull/1\nApply what each thread asks. Answer each thread.",
 	);
-	expect(reviewMessage({ url: "https://github.com/o/r/pull/1", drafts: 1 })).toContain("1 comment.");
+	expect(
+		reviewMessage({ url: "https://github.com/o/r/pull/1", drafts: 1, verdict: "commented", body: "Read this." }),
+	).toContain("1 comment.");
+});
+
+test("an approval tells the agent that the review passed and waits for the merge", () => {
+	expect(reviewMessage({ url: "https://github.com/o/r/pull/1", drafts: 0, verdict: "approved", body: "" })).toBe(
+		"trellis: your pull request review passed. It waits for the merge.",
+	);
 });

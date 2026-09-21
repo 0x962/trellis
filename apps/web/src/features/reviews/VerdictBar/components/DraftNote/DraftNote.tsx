@@ -1,8 +1,8 @@
 import { ConfirmDialog, Textarea } from "@trellis/ui";
 import { useState } from "react";
 
-// `reviews.submit` refuses a submission whose summary is empty, so the
-// dialog asks for the note before the call leaves the page.
+// The Request changes and Comment verdicts need a note. Approve can use an
+// empty note.
 const emptyNote = "Enter a note before you send these drafts.";
 
 export type DraftNoteProps = {
@@ -11,6 +11,7 @@ export type DraftNoteProps = {
 	description: string;
 	confirmLabel: string;
 	note: string;
+	noteRequired: boolean;
 	// The message of a failed send, or null. The dialog stays open with the
 	// note in the field, so a second click sends the same text again.
 	error: string | null;
@@ -20,14 +21,14 @@ export type DraftNoteProps = {
 	onCancel: () => void;
 };
 
-// The dialog behind `Send back` and `Comment only`: the note that goes to
-// GitHub with the drafts, and the message of a failed send.
+// The dialog for a local verdict note and the message of a failed submit.
 export function DraftNote({
 	open,
 	title,
 	description,
 	confirmLabel,
 	note,
+	noteRequired,
 	error,
 	processing,
 	onNote,
@@ -43,7 +44,7 @@ export function DraftNote({
 			confirmLabel={confirmLabel}
 			processing={processing}
 			onCancel={onCancel}
-			onConfirm={() => (note.trim() === "" ? setRefusal(emptyNote) : onConfirm())}
+			onConfirm={() => (noteRequired && note.trim() === "" ? setRefusal(emptyNote) : onConfirm())}
 		>
 			<div className="review-draft-note">
 				<Textarea

@@ -9,6 +9,7 @@ import {
 	TicketPrSchema,
 } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
+import { localReviewState } from "./pullRequestRows.ts";
 import { ciRank, prStateRank, reviewStateRank } from "./support.ts";
 
 // `ticketPrJoin` reads links for the caller's ticket alias `t`. It adds the PR badge and `prRows`.
@@ -32,6 +33,7 @@ const passCheck = sql`check_row.value->>'bucket' = ${PASS}`;
 const failCheck = sql`check_row.value->>'bucket' IN (${FAIL}, ${CANCEL})`;
 const pendingCheck = sql`check_row.value->>'bucket' = ${PENDING}`;
 const skippedCheck = sql`check_row.value->>'bucket' = ${SKIPPED}`;
+const verdictState = localReviewState(sql`p.id`);
 
 export type TicketPrRow = Omit<TicketPr, "kind" | "risk" | "evidence" | "evidenceRequired"> & {
 	files: ChangedFile[] | null;
@@ -73,14 +75,14 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 		SELECT
 			(array_agg(p.state ORDER BY ${prStateRank(sql`p.state`)}))[1] AS state,
 			(array_agg(p.ci_state ORDER BY ${ciRank(sql`p.ci_state`)}))[1] AS ci_state,
-			(array_agg(p.review_state ORDER BY ${reviewStateRank(sql`p.review_state`)}))[1] AS review_state,
+			(array_agg(${verdictState} ORDER BY ${reviewStateRank(verdictState)}))[1] AS review_state,
 			sum(check_counts.pass)::int AS pass,
 			sum(check_counts.fail)::int AS fail,
 			sum(check_counts.pending)::int AS pending,
 			jsonb_agg(
 				jsonb_build_object(
 					'owner', p.owner, 'repo', p.repo, 'number', p.number,
-					'reviewState', p.review_state, 'isDraft', p.is_draft
+					'reviewState', ${verdictState}, 'isDraft', p.is_draft
 				) ORDER BY link.created_at, p.id
 			) AS reviews,
 			jsonb_agg(

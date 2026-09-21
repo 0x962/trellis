@@ -38,7 +38,7 @@ const render = (props: {
 		</AppProvider>,
 	);
 
-test("the bar counts the drafts, names the agent, and keeps Merge live with three unmet conditions", () => {
+test("the bar offers each local verdict and keeps Merge live with three unmet conditions", () => {
 	const html = render({
 		ticket: "TRL-203",
 		run: crispFjord,
@@ -48,8 +48,9 @@ test("the bar counts the drafts, names the agent, and keeps Merge live with thre
 
 	expect(html).toContain("2 drafts");
 	expect(html).toContain("not yet: 1 check failed · 1 of 4 evidence · TRL-167 not merged");
-	expect(html).toContain("Send back to crisp-fjord");
-	expect(html).toContain("Comment only");
+	expect(html).toMatch(/<button[^>]*aria-label="Approve"/);
+	expect(html).toMatch(/<button[^>]*aria-label="Request changes"/);
+	expect(html).toMatch(/<button[^>]*aria-label="Comment"/);
 	expect(html).toMatch(/<button[^>]*aria-label="Merge"/);
 	expect(html).not.toMatch(/<button[^>]*aria-label="Merge"[^>]*disabled/);
 });
@@ -61,30 +62,34 @@ test("a pull request with every condition met prints no condition line", () => {
 	expect(html).not.toContain("not yet");
 });
 
-test("a ticket with no agent assignment offers a new agent", () => {
+test("a ticket with no agent assignment keeps every verdict", () => {
 	const html = render({ ticket: "TRL-203", run: null, drafts: [], unmet: [] });
 
 	expect(html).toContain("0 drafts");
-	expect(html).toContain("Send back to a new agent");
+	expect(html).toMatch(/<button[^>]*aria-label="Approve"/);
+	expect(html).toMatch(/<button[^>]*aria-label="Request changes"/);
+	expect(html).toMatch(/<button[^>]*aria-label="Comment"/);
 });
 
-test("a pull request that no ticket links offers no send back", () => {
+test("a pull request that no ticket links keeps every verdict", () => {
 	const html = render({ ticket: null, run: null, drafts: [], unmet: [] });
 
-	expect(html).not.toContain("Send back");
-	expect(html).toContain("Comment only");
+	expect(html).toMatch(/<button[^>]*aria-label="Approve"/);
+	expect(html).toMatch(/<button[^>]*aria-label="Request changes"/);
+	expect(html).toMatch(/<button[^>]*aria-label="Comment"/);
 	expect(html).toMatch(/<button[^>]*aria-label="Merge"/);
 });
 
-test("a linked ticket keeps Send back when Merge is not available", () => {
+test("a linked ticket keeps every verdict when Merge is not available", () => {
 	const html = render({ ticket: "TRL-236", run: null, drafts: [], unmet: [], showMerge: false });
 
-	expect(html).toContain("Send back to a new agent");
-	expect(html).toContain("Comment only");
+	expect(html).toMatch(/<button[^>]*aria-label="Approve"/);
+	expect(html).toMatch(/<button[^>]*aria-label="Request changes"/);
+	expect(html).toMatch(/<button[^>]*aria-label="Comment"/);
 	expect(html).not.toMatch(/aria-label="Merge"/);
 });
 
-test("a phone draws Send back and Comment only, no Merge, and the reason for it", () => {
+test("a phone draws the local verdicts, no Merge, and the reason for it", () => {
 	const html = render({
 		ticket: "TRL-217",
 		run: crispFjord,
@@ -93,8 +98,9 @@ test("a phone draws Send back and Comment only, no Merge, and the reason for it"
 		phone: true,
 	});
 
-	expect(html).toContain("Send back to crisp-fjord");
-	expect(html).toContain("Comment only");
+	expect(html).toMatch(/<button[^>]*aria-label="Approve"/);
+	expect(html).toMatch(/<button[^>]*aria-label="Request changes"/);
+	expect(html).toMatch(/<button[^>]*aria-label="Comment"/);
 	expect(html).not.toMatch(/aria-label="Merge"/);
 	expect(html).toContain("A merge into an enterprise repository needs the desk.");
 	expect(html).not.toContain("not yet");

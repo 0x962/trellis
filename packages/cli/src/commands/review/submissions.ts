@@ -13,7 +13,7 @@ export const submissions = {
 			body: { type: "string", default: "" },
 			threads: {
 				type: "string",
-				description: "Thread identifiers, comma separated, that go to GitHub as review comments",
+				description: "Local thread identifiers, comma separated, that go to the agent",
 			},
 		},
 		async run(c) {
@@ -22,12 +22,13 @@ export const submissions = {
 			if (!["comment", "approve", "request_changes"].includes(a.verdict))
 				throw usageError("Use comment, approve, or request_changes for --verdict.");
 			const api = clientOf(ctx);
-			const status = await api.reviews.status({ pr: a.pr });
+			const revision = await api.reviews.revision({ pr: a.pr });
+			if (revision === null) throw usageError("Open this pull request in Trellis before you submit a review.");
 			ctx.out.write(
 				json(
 					await api.reviews.submit({
 						pr: a.pr,
-						headSha: String(status.headRefOid),
+						headSha: revision.headSha,
 						body: await readText(ctx, a.body),
 						verdict: a.verdict as "comment" | "approve" | "request_changes",
 						threadIds: a.threads === undefined ? [] : a.threads.split(",").filter((value) => value !== ""),

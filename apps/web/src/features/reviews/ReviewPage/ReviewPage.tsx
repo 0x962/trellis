@@ -198,7 +198,6 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						pr={pr}
 						revision={displayRevision}
 						pullRequest={displayMeta}
-						openThreads={allThreads.filter((thread) => thread.status === "open")}
 						onAction={() => void status.refetch()}
 					/>
 					<div className="review-identity-lines">
