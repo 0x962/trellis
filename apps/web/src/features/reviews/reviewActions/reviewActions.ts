@@ -9,81 +9,56 @@ export type ReviewAction =
 	| "dequeue"
 	| "close"
 	| "ready"
-	| "update-branch"
-	| "deploy-on"
-	| "deploy-off"
-	| "live-create"
-	| "live-deploy"
-	| "live-delete"
-	| "live-enable"
-	| "live-disable"
-	| "live-persist"
-	| "live-unpersist";
+	| "update-branch";
 
-type ActionItem = { action: ReviewAction; label: string; danger?: boolean; confirm?: boolean };
+export type GithubMenuAction = ReviewAction | "open";
+
+export type ActionItem = { action: GithubMenuAction; label: string; danger?: boolean; confirm?: boolean };
+
+export type GithubActionGroup = {
+	label?: string;
+	items: ActionItem[];
+};
 
 export type ReviewActionMeta = {
 	state?: string;
 	isDraft?: boolean;
-	headRefName?: string;
 	autoMergeRequest?: unknown;
-	labels?: { name: string }[];
 };
 
 export type ReviewActionMetadata = {
 	mergeQueueEntry?: unknown;
-	autoDeployAvailable?: boolean;
 };
 
 export const isPrHeadMoved = (error: unknown) => error instanceof ORPCError && error.code === "PR_HEAD_MOVED";
 
-const hasLabel = (meta: ReviewActionMeta, name: string) => meta.labels?.some((label) => label.name === name) ?? false;
-
 export const mergeMenuActions = (meta: ReviewActionMeta, extra?: ReviewActionMetadata): ActionItem[] => [
 	{ action: "merge", label: "Merge", confirm: true },
-	{ action: "admin-merge", label: "Admin merge", confirm: true },
 	meta.autoMergeRequest
-		? { action: "disable-automerge", label: "Disable auto-merge" }
-		: { action: "automerge", label: "Enable auto-merge" },
+		? { action: "disable-automerge", label: "Cancel merge when ready" }
+		: { action: "automerge", label: "Merge when ready" },
 	extra?.mergeQueueEntry
-		? { action: "dequeue", label: "Remove from queue" }
-		: { action: "queue", label: "Add to queue" },
+		? { action: "dequeue", label: "Remove from merge queue" }
+		: { action: "queue", label: "Add to merge queue" },
 ];
-
-export const deployAction = (meta: ReviewActionMeta): ActionItem =>
-	hasLabel(meta, "00_AUTO_DEPLOY")
-		? { action: "deploy-off", label: "Disable deploy on merge" }
-		: { action: "deploy-on", label: "Enable deploy on merge" };
-
-export const liveBranchActions = (meta: ReviewActionMeta, pr: string): ActionItem[] => {
-	if (!pr.includes("github.com/canary-technologies-corp/canary/pull/")) return [];
-	if (meta.state?.toUpperCase() !== "OPEN" || meta.headRefName?.startsWith("golem/")) return [];
-	return [
-		{ action: "live-create", label: "Create Live Branch" },
-		{ action: "live-deploy", label: "Deploy Live Branch" },
-		{ action: "live-delete", label: "Delete Live Branch", danger: true, confirm: true },
-		hasLabel(meta, "Live Branch: Enabled") || hasLabel(meta, "Lite Env: Enabled")
-			? { action: "live-disable", label: "Disable Live Branch on push" }
-			: { action: "live-enable", label: "Enable Live Branch on push" },
-		hasLabel(meta, "Live Branch: Persist") || hasLabel(meta, "Lite Env: Persist")
-			? { action: "live-unpersist", label: "Remove Live Branch persistence" }
-			: { action: "live-persist", label: "Keep Live Branch after merge" },
-	];
-};
 
 export const githubActionItems = (
 	meta: ReviewActionMeta,
 	extra: ReviewActionMetadata | undefined,
-	pr: string,
-): ActionItem[] => {
-	if (meta.state?.toUpperCase() !== "OPEN") return [];
-	const ready: ActionItem[] = meta.isDraft ? [{ action: "ready", label: "Mark ready for review" }] : [];
-	return [
-		...ready,
-		...mergeMenuActions(meta, extra),
+	_pr: string,
+): GithubActionGroup[] => {
+	const openGroup: GithubActionGroup = {
+		items: [{ action: "open", label: "Open in GitHub" }],
+	};
+	if (meta.state?.toUpperCase() !== "OPEN") return [openGroup];
+	const branchItems: ActionItem[] = [
+		...(meta.isDraft ? [{ action: "ready", label: "Mark ready for review" } satisfies ActionItem] : []),
 		{ action: "update-branch", label: "Update branch" },
-		...(extra?.autoDeployAvailable ? [deployAction(meta)] : []),
-		...liveBranchActions(meta, pr),
-		{ action: "close", label: "Close", danger: true, confirm: true },
+	];
+	return [
+		openGroup,
+		{ label: "Merge", items: mergeMenuActions(meta, extra) },
+		{ label: "Branch", items: branchItems },
+		{ items: [{ action: "close", label: "Close pull request", danger: true, confirm: true }] },
 	];
 };

@@ -9,11 +9,46 @@ export type ReviewDiffLine = {
 	newLine?: number;
 };
 
-export type ExpandedFile = { oldLines?: string[]; newLines?: string[] };
+// How many lines one press of an expand control opens. A gap that hides
+// this many lines or fewer offers one control that opens all of them.
+export const EXPAND_LINES = 20;
+
+// How many lines of one gap the reviewer opened. `top` counts lines down
+// from the first line of the gap. `bottom` counts lines up from the last
+// line of the gap.
+export type GapReveal = { top: number; bottom: number };
+
+// A gap is the run of unchanged lines that the patch leaves out. The gap
+// above hunk number `index` has that index, and the gap after the last hunk
+// has the index `file.hunks.length`.
+export type ExpandedFile = {
+	oldLines?: string[];
+	newLines?: string[];
+	// The "Show full file" toggle of the file header is on, so every gap
+	// draws all of its lines.
+	full: boolean;
+	gaps: ReadonlyMap<number, GapReveal>;
+};
+
+// The expand controls that one gap offers, for the row that sits in it.
+// `hidden` is null while the file contents are not loaded and the number of
+// lines in the gap is still unknown.
+export type GapControls = {
+	index: number;
+	hidden: number | null;
+	// Opens the lines above the gap row, which are the lines under the hunk
+	// that comes before the gap.
+	down: boolean;
+	// Opens the lines under the gap row, which are the lines above the hunk
+	// that comes after the gap.
+	up: boolean;
+	// Opens every line the gap still hides.
+	all: boolean;
+};
 
 export type ReviewRow =
 	| { kind: "file"; key: string; file: ReviewFile }
-	| { kind: "hunk"; key: string; file: ReviewFile; specs: string }
+	| { kind: "hunk"; key: string; file: ReviewFile; specs: string | null; gap: GapControls | null }
 	| { kind: "unified"; key: string; file: ReviewFile; line: ReviewDiffLine; annotations: string[] }
 	| {
 			kind: "split";
@@ -82,28 +117,89 @@ const contextLines = (contents: ExpandedFile, oldStart: number, oldEnd: number, 
 	});
 };
 
-type Section = { specs?: string; lines: ReviewDiffLine[] };
+type Section = { key: string; specs?: string; gap?: GapControls; lines: ReviewDiffLine[] };
 
-const sections = (file: ReviewFile, contents?: ExpandedFile): Section[] => {
-	if (!contents) return file.hunks.map((hunk) => ({ specs: hunk.hunkSpecs, lines: hunkLines(file, hunk) }));
+// The lines of a gap that the diff draws. Without the file contents the
+// diff draws none of them, because it has no text to draw. The counts stay
+// inside the gap, so a press that asks for more lines than the gap holds
+// opens the gap and stops there.
+const revealed = (contents: ExpandedFile | undefined, index: number, length: number): GapReveal => {
+	if (contents === undefined) return { top: 0, bottom: 0 };
+	if (contents.full) return { top: length, bottom: 0 };
+	const reveal = contents.gaps.get(index) ?? { top: 0, bottom: 0 };
+	const top = Math.min(reveal.top, length);
+	return { top, bottom: Math.min(reveal.bottom, length - top) };
+};
+
+// A gap of 20 lines or fewer offers one control that opens all of it, and
+// GitHub does the same.
+const controls = (index: number, hidden: number | null, down: boolean, up: boolean): GapControls =>
+	hidden !== null && hidden <= EXPAND_LINES
+		? { index, hidden, down: false, up: false, all: true }
+		: { index, hidden, down, up, all: false };
+
+// The rows of one file, in order: the lines the reviewer opened at the top
+// of each gap, the row of the gap itself, the lines the reviewer opened at
+// the bottom of the gap, and the lines of the hunk.
+const sections = (file: ReviewFile, contents: ExpandedFile | undefined, expandable: boolean): Section[] => {
 	const result: Section[] = [];
+	// An added file has no old side and a deleted file has no new side, so
+	// neither file has a gap between its hunks.
+	const gapped = expandable && file.type !== "new" && file.type !== "deleted";
 	let oldLine = 1;
 	let newLine = 1;
-	for (const hunk of file.hunks) {
-		const gap = contextLines(contents, oldLine, hunk.deletionStart, newLine, hunk.additionStart);
-		if (gap.length > 0) result.push({ lines: gap });
-		result.push({ specs: hunk.hunkSpecs, lines: hunkLines(file, hunk) });
+	file.hunks.forEach((hunk, index) => {
+		const length = Math.max(0, Math.min(hunk.deletionStart - oldLine, hunk.additionStart - newLine));
+		const reveal = revealed(contents, index, length);
+		const hidden = length - reveal.top - reveal.bottom;
+		if (reveal.top > 0)
+			result.push({
+				key: `top:${index}`,
+				lines: contextLines(contents!, oldLine, oldLine + reveal.top, newLine, newLine + reveal.top),
+			});
+		result.push({
+			key: `hunk:${index}`,
+			specs: hunk.hunkSpecs,
+			// The first hunk of a file has no hunk above it, so its gap opens
+			// upward only.
+			...(gapped && hidden > 0 ? { gap: controls(index, hidden, index > 0, true) } : {}),
+			lines: [
+				...(reveal.bottom > 0
+					? contextLines(
+							contents!,
+							hunk.deletionStart - reveal.bottom,
+							hunk.deletionStart,
+							hunk.additionStart - reveal.bottom,
+							hunk.additionStart,
+						)
+					: []),
+				...hunkLines(file, hunk),
+			],
+		});
 		oldLine = hunk.deletionStart + hunk.deletionCount;
 		newLine = hunk.additionStart + hunk.additionCount;
-	}
-	const tail = contextLines(
-		contents,
-		oldLine,
-		(contents.oldLines?.length ?? 0) + 1,
-		newLine,
-		(contents.newLines?.length ?? 0) + 1,
-	);
-	if (tail.length > 0) result.push({ lines: tail });
+	});
+	if (file.hunks.length === 0) return result;
+	const index = file.hunks.length;
+	const length =
+		contents === undefined
+			? null
+			: Math.max(
+					0,
+					Math.min((contents.oldLines?.length ?? 0) + 1 - oldLine, (contents.newLines?.length ?? 0) + 1 - newLine),
+				);
+	const reveal = revealed(contents, index, length ?? 0);
+	if (reveal.top > 0)
+		result.push({
+			key: `top:${index}`,
+			lines: contextLines(contents!, oldLine, oldLine + reveal.top, newLine, newLine + reveal.top),
+		});
+	// The diff learns the length of the file from the first load, so the row
+	// after the last hunk offers to open the end of the file before it knows
+	// that the last hunk already reaches it.
+	const hidden = length === null ? null : length - reveal.top;
+	if (gapped && (hidden === null || hidden > 0))
+		result.push({ key: `hunk:${index}`, gap: controls(index, hidden, true, false), lines: [] });
 	return result;
 };
 
@@ -116,6 +212,7 @@ export function buildReviewRows(
 	revisionId: string,
 	composer: DiffAnchor | null,
 	expanded: ReadonlyMap<string, ExpandedFile>,
+	expandable: boolean,
 	viewed: ReadonlySet<string>,
 ) {
 	const rows: ReviewRow[] = [];
@@ -127,8 +224,17 @@ export function buildReviewRows(
 			rows.push({ kind: "end", key: `${file.name}:end`, file });
 			continue;
 		}
+		const fileSections = sections(file, expanded.get(file.name), expandable);
+		const drawn = new Set<string>();
+		for (const section of fileSections)
+			for (const line of section.lines) {
+				if (line.oldLine !== undefined) drawn.add(annotationKey("old", line.oldLine));
+				if (line.newLine !== undefined) drawn.add(annotationKey("new", line.newLine));
+			}
 		const annotations = new Map<string, string[]>();
-		for (const annotation of lineAnnotations(file, threads, revisionId, composer, expanded.has(file.name))) {
+		for (const annotation of lineAnnotations(file, threads, revisionId, composer, (side, line) =>
+			drawn.has(annotationKey(side, line)),
+		)) {
 			const side = annotation.side === "deletions" ? "old" : "new";
 			const key = annotationKey(side, annotation.lineNumber);
 			annotations.set(key, [...(annotations.get(key) ?? []), annotation.metadata]);
@@ -143,8 +249,15 @@ export function buildReviewRows(
 		// split mode draws them in one column across the full width.
 		const fileMode = file.type === "new" || file.type === "deleted" ? "unified" : mode;
 		let lineIndex = 0;
-		for (const section of sections(file, expanded.get(file.name))) {
-			if (section.specs) rows.push({ kind: "hunk", key: `${file.name}:hunk:${lineIndex}`, file, specs: section.specs });
+		for (const section of fileSections) {
+			if (section.specs !== undefined || section.gap !== undefined)
+				rows.push({
+					kind: "hunk",
+					key: `${file.name}:${section.key}`,
+					file,
+					specs: section.specs ?? null,
+					gap: section.gap ?? null,
+				});
 			if (fileMode === "split") {
 				for (const [oldLine, newLine] of splitLines(section.lines)) {
 					rows.push({
@@ -204,7 +317,7 @@ export const anchorLines = (
 	const file = files.find((candidate) => candidate.name === anchor.path);
 	if (file === undefined) return null;
 	const byNumber = new Map<number, string>();
-	for (const section of sections(file, expanded.get(file.name)))
+	for (const section of sections(file, expanded.get(file.name), false))
 		for (const line of section.lines) {
 			const number = anchor.side === "old" ? line.oldLine : line.newLine;
 			if (number !== undefined) byNumber.set(number, line.text);

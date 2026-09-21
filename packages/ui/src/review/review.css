@@ -208,6 +208,10 @@ button.review-notice:hover {
 	overflow: hidden;
 	background: var(--bg);
 }
+.review-page:has(.review-verdict-bar) .review-body,
+.review-page:has(.review-batch-bar) .review-body {
+	padding-bottom: calc(var(--spacing) * 24);
+}
 /* The box that holds the GitHub status error, the new-revision button, the
    refresh error and the thread error. It draws nothing while all four are
    absent. */
@@ -359,22 +363,33 @@ button.review-notice:hover {
 	.review-panes {
 		display: block;
 		min-height: 0;
+		max-width: 100%;
 	}
 	.review-files-box {
 		flex: none;
+		max-width: 100%;
 	}
 	.review-tree-pane {
 		width: auto;
+		max-width: 100%;
 		overflow-y: visible;
 		border-right-width: 0;
 	}
 	.review-diff-pane {
 		display: block;
+		max-width: 100%;
+		overflow: hidden;
 	}
 	.review-diff-window {
 		flex: none;
+		width: 100%;
+		max-width: 100%;
 		height: min(80vh, 560px);
 		border-top: 0.5px solid var(--border);
+	}
+	.review-page:has(.review-verdict-bar) .review-body,
+	.review-page:has(.review-batch-bar) .review-body {
+		padding-bottom: calc(var(--spacing) * 44 + env(safe-area-inset-bottom));
 	}
 }
 

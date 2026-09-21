@@ -5,16 +5,12 @@ import { serializeSearch, stripDefaults, type View, viewDefaults, viewOf } from 
 // every other list route. The epic page lists the tickets of every project
 // of the root when the URL names no scope, because an epic belongs to a
 // root and holds tickets of any project of that root. When the URL names no
-// group, the page groups by wave at 768 px and up. Below 768 px it
-// groups by turn. On a phone a person answers questions and reads states,
-// and the turn groups put those first. The keys stay in the order of
-// `searchParamOrder`.
+// group, the page groups by wave on every viewport. The keys stay in the
+// order of `searchParamOrder`.
 //
-// `phone` is true below 768 px. The same URL can then open with another
-// group on a phone, and each device writes the group that differs from its
-// own default.
-const pageDefaults = (phone: boolean) =>
-	({ group: phone ? "turn" : "wave", scope: "subprojects" }) as const satisfies Partial<View>;
+// `phone` stays in the signature for callers that compute canonical URLs from
+// the current viewport.
+const pageDefaults = (_phone: boolean) => ({ group: "wave", scope: "subprojects" }) as const satisfies Partial<View>;
 type PageKey = keyof ReturnType<typeof pageDefaults>;
 const pageKeys: readonly PageKey[] = ["group", "scope"];
 
@@ -65,8 +61,8 @@ export const epicUrlSearch = (page: Partial<View>, phone = false): Partial<View>
 // the search holds only page defaults. `search` is a URL search or a page
 // search. Every link to an epic page with a search goes through this,
 // because `serializeSearch` drops `group=status` and `scope=self`. It
-// leaves out the defaults of 768 px and up, so a link copied on a phone
-// writes `group=turn` and opens the same grouping on a desktop.
+// leaves out the page defaults, so a link copied on a phone opens the same
+// grouping on a desktop.
 export const epicQueryString = (search: Partial<View>): string =>
 	stringifySearchObject(epicUrlSearch(epicPageSearch(search, "")));
 
