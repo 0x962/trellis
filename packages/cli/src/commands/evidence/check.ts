@@ -46,7 +46,7 @@ export const evidenceCheckResult = ({ floor, verifyCommands, ...input }: Evidenc
 		return {
 			item,
 			label: evidenceWords[item],
-			status: gap === undefined ? "present" : item === "picture" ? "due" : "MISSING",
+			status: gap === undefined ? "present" : gap.soft ? "due" : "MISSING",
 			hint: gap === undefined ? null : hintOf(item, verifyCommands),
 			command:
 				gap === undefined
@@ -57,9 +57,7 @@ export const evidenceCheckResult = ({ floor, verifyCommands, ...input }: Evidenc
 	return {
 		...input,
 		kind: floor.kind,
-		present: floor.present.length,
-		required: items.filter((line) => line.status !== "due").length,
-		complete: floor.missing.length === 0,
+		complete: input.present === input.required,
 		items,
 	};
 };
@@ -78,6 +76,8 @@ export default defineCommand({
 		if (status.ticket === null || status.prRow === null) throw notFound("linked ticket", context.args.ref);
 		if (status.prRow.kind === null || status.prRow.risk === null)
 			throw notFound("complete changed-file list for pull request", context.args.ref);
+		if (status.prRow.evidence === null || status.prRow.evidenceRequired === null)
+			throw notFound("evidence floor for pull request", context.args.ref);
 		if (typeof status.headRefOid !== "string") throw notFound("head sha of pull request", context.args.ref);
 		const headSha = status.headRefOid;
 		const [ticket, rows, summary] = await Promise.all([
@@ -95,6 +95,8 @@ export default defineCommand({
 			pullRequest: { number: pullRequest.number, url: pullRequest.url, headSha },
 			ticket: status.ticket,
 			floor,
+			present: status.prRow.evidence,
+			required: status.prRow.evidenceRequired,
 			verifyCommands: ticket.contract.verify,
 			checks: {
 				pass: status.prRow.pass,

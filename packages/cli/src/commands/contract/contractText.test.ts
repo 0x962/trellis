@@ -47,6 +47,12 @@ describe("evidence owed", () => {
 			"mixed: summary · after image · before image · capture record · console list · verify record · test proof · contract table",
 		);
 	});
+
+	test("names the equivalence condition for a test file", () => {
+		expect(evidenceOwedText({ ...contract, files: ["apps/web/src/App.test.tsx"] }, "trellis")).toEndWith(
+			"A change that removes test cases also owes an equivalence proof.",
+		);
+	});
 });
 
 test("accumulates repeated contract flags", () => {

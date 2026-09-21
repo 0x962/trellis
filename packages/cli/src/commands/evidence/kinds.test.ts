@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { evidenceFloor, type PrPathFacts } from "@trellis/api";
 import { type EvidenceArgs, type EvidenceKind, evidenceInput, reviewKinds, validateKindFlags } from "./kinds.ts";
 
 const common = {
@@ -110,4 +111,34 @@ test("only one evidence text flag can read standard input", () => {
 	expect(() => validateKindFlags({ kind: "contract", before: "-", after: "-" })).toThrow(
 		"only one evidence text flag can read standard input",
 	);
+});
+
+const fillArgs = (command: string): EvidenceArgs =>
+	Object.fromEntries(
+		[...command.matchAll(/--([a-z-]+)\s+(?:"([^"]*)"|(\S+))/g)].map((match) => [match[1], match[2] ?? match[3]]),
+	) as EvidenceArgs;
+
+test("every evidence fill command uses flags that its kind accepts", () => {
+	const risk: PrPathFacts["risk"] = {
+		auth: "yes",
+		migration: "yes",
+		dependency: "yes",
+		sharedType: "yes",
+		deletedTest: "yes",
+	};
+	const floor = evidenceFloor({ kind: "mixed", risk, hasSummary: true, rows: [] });
+
+	expect(floor.missing.map((gap) => gap.item)).toEqual([
+		"after",
+		"before",
+		"capture",
+		"console",
+		"verify",
+		"test",
+		"contract",
+		"migration",
+		"picture",
+		"equivalence",
+	]);
+	for (const gap of floor.missing) expect(() => validateKindFlags(fillArgs(gap.fillCommand))).not.toThrow();
 });

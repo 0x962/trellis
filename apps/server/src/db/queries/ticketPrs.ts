@@ -1,5 +1,7 @@
 import {
+	type ChangedFile,
 	CheckBucketSchema,
+	changedFilePaths,
 	type EvidenceKind,
 	evidenceFloor,
 	prPaths,
@@ -32,21 +34,17 @@ const pendingCheck = sql`check_row.value->>'bucket' = ${PENDING}`;
 const skippedCheck = sql`check_row.value->>'bucket' = ${SKIPPED}`;
 
 export type TicketPrRow = Omit<TicketPr, "kind" | "risk" | "evidence" | "evidenceRequired"> & {
-	paths: string[] | null;
+	files: ChangedFile[] | null;
 	evidenceKinds: EvidenceKind[];
 	hasSummary: boolean;
 	hasHead: boolean;
 };
 
 export const toTicketPrRows = (rows: TicketPrRow[] | null): TicketPr[] =>
-	(rows ?? []).map(({ paths, evidenceKinds, hasSummary, hasHead, ...row }) => {
-		if (paths === null || paths.length === 0 || row.changedFiles !== paths.length)
+	(rows ?? []).map(({ files, evidenceKinds, hasSummary, hasHead, ...row }) => {
+		if (files === null || files.length === 0 || row.changedFiles !== files.length)
 			return { ...row, kind: null, risk: null, evidence: null, evidenceRequired: null };
-		// Changed-file rows store path and line counts. `prPaths` receives "change", so `risk.deletedTest` remains "no".
-		const facts = prPaths(
-			row.repo,
-			paths.map((path) => ({ path, change: "change" })),
-		);
+		const facts = prPaths(row.repo, changedFilePaths(files));
 		if (!hasHead) return { ...row, kind: facts.kind, risk: facts.risk, evidence: null, evidenceRequired: null };
 		const floor = evidenceFloor({
 			kind: facts.kind,
@@ -90,10 +88,7 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 					'number', p.number, 'owner', p.owner, 'repo', p.repo, 'url', p.url,
 					'state', p.state, 'isDraft', p.is_draft,
 					'additions', p.additions, 'deletions', p.deletions, 'changedFiles', p.changed_files,
-					'paths', (
-						SELECT jsonb_agg(file.value->>'path' ORDER BY file.position)
-						FROM jsonb_array_elements(p.files) WITH ORDINALITY AS file(value, position)
-					),
+					'files', p.files,
 					'sizeBand', CASE
 						WHEN p.additions IS NULL OR p.deletions IS NULL THEN NULL
 						WHEN p.additions::bigint + p.deletions::bigint < 200 THEN ${SMALL}
@@ -163,14 +158,33 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 				COALESCE(max(recent.total), 0)::int AS total,
 				COALESCE(
 					jsonb_agg(
-						jsonb_build_object('status', recent.status)
+						jsonb_build_object(
+							'name', recent.name,
+							'status', recent.status,
+							'findings', recent.findings
+						)
 						ORDER BY recent.created_at DESC, recent.id DESC
 					),
 					'[]'::jsonb
 				) AS items
 			FROM (
 				SELECT
-					execution.id, execution.created_at, execution.state->>'status' AS status,
+					execution.id,
+					execution.created_at,
+					execution.doc->'flow'->>'name' AS name,
+					execution.state->>'status' AS status,
+					(
+						-- --author can replace the actor name of a review thread. Its session
+						-- still matches agent_runs.session_id. One execution can use the same
+						-- run for two task keys, so count each thread one time.
+						SELECT count(DISTINCT thread.id)::int
+						FROM flow_execution_tasks task
+						JOIN agent_runs run ON run.id = task.run_id
+						JOIN review_threads thread
+							ON thread.pr_id = p.id
+							AND thread.document->>'session' = run.session_id
+						WHERE task.execution_id = execution.id
+					) AS findings,
 					count(*) OVER () AS total
 				FROM flow_executions execution
 				WHERE execution.ticket_id = t.id

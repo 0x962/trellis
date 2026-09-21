@@ -29,8 +29,16 @@ export type RawContext = RawCheckRun | RawStatusContext;
 
 export type RawFile = {
 	path: string;
+	changeType: "ADDED" | "CHANGED" | "COPIED" | "DELETED" | "MODIFIED" | "RENAMED";
 	additions: number;
 	deletions: number;
+};
+
+const changeOf = ({ changeType, additions, deletions }: RawFile): ChangedFile["change"] => {
+	if (changeType === "ADDED" || changeType === "COPIED") return "new";
+	if (changeType === "DELETED") return "deleted";
+	if (changeType === "RENAMED") return additions === 0 && deletions === 0 ? "rename-pure" : "rename-changed";
+	return "change";
 };
 
 // The bucket table mirrors `gh pr checks`, so the web shows the same word
@@ -123,7 +131,12 @@ export const normalizeChecks = (nodes: RawContext[]): Check[] => latestPerCheck(
 
 export const normalizeFiles = (nodes: RawFile[]): ChangedFile[] =>
 	nodes
-		.map(({ path, additions, deletions }) => ({ path, additions, deletions }))
+		.map((file) => ({
+			path: file.path,
+			change: changeOf(file),
+			additions: file.additions,
+			deletions: file.deletions,
+		}))
 		.sort((a, b) => compareText(a.path, b.path))
 		.slice(0, MAX_CHANGED_FILES);
 
