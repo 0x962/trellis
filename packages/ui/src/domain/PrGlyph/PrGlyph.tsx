@@ -18,6 +18,9 @@ export type PrGlyphProps = {
 	isDraft: boolean;
 	isQueued: boolean;
 	size?: PrGlyphSize;
+	tooltip?: boolean;
+	focusable?: boolean;
+	decorative?: boolean;
 };
 
 type OcticonProps = { className?: string; "aria-hidden"?: "true" };
@@ -48,20 +51,40 @@ const iconSizes: Record<PrGlyphSize, string> = { sm: "size-3.5", md: "size-4" };
 
 // The glyph shows the state, never the check result. A failed check leaves an
 // open pull request open. The caller draws the check result next to the glyph.
-// The sr-only text names the state, so color is never the only signal, and
-// the tooltip says the same words to a person who points at the shape.
-export function PrGlyph({ state, isDraft, isQueued, size = "md" }: PrGlyphProps) {
+// The accessible name and the tooltip use the same words, so color is never
+// the only signal.
+export function PrGlyph({
+	state,
+	isDraft,
+	isQueued,
+	size = "md",
+	tooltip = true,
+	focusable = true,
+	decorative = false,
+}: PrGlyphProps) {
 	const key = prGlyphLook(state, isDraft, isQueued);
 	const { label, tone, Icon } = looks[key];
-	return (
-		<Tooltip content={label}>
+	if (decorative) {
+		return (
 			<span
 				data-pr-glyph={key}
+				aria-hidden="true"
 				className={cx("relative inline-flex shrink-0 items-center justify-center", spanSizes[size], tone)}
 			>
 				<Icon className={cx("shrink-0", iconSizes[size])} aria-hidden="true" />
-				<span className="sr-only">{label}</span>
 			</span>
-		</Tooltip>
+		);
+	}
+	const glyph = (
+		<span
+			data-pr-glyph={key}
+			role="img"
+			aria-label={label}
+			tabIndex={tooltip && focusable ? 0 : undefined}
+			className={cx("relative inline-flex shrink-0 items-center justify-center", spanSizes[size], tone)}
+		>
+			<Icon className={cx("shrink-0", iconSizes[size])} aria-hidden="true" />
+		</span>
 	);
+	return tooltip ? <Tooltip content={label}>{glyph}</Tooltip> : glyph;
 }

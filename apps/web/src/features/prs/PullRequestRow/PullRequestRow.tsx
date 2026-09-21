@@ -1,6 +1,6 @@
 import { GithubLogo, Warning } from "@phosphor-icons/react";
 import type { LinkedPullRequest, TicketSummary } from "@trellis/api";
-import { cx, IconButton, PrGlyph, ReviewStateIcon } from "@trellis/ui";
+import { cx, IconButton, PrGlyph, ReviewStateIcon, Tooltip } from "@trellis/ui";
 import { tabularClass } from "../../../lib/format";
 import { PrActions } from "./components/PrActions";
 
@@ -31,10 +31,16 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 				</span>
 			</span>
 			{pr.fetchError !== null && (
-				<span data-pr-stale="" title={pr.fetchError} className="shrink-0 text-warning">
-					<Warning className="size-4" aria-hidden={true} />
-					<span className="sr-only">The last read from GitHub failed, so these fields are old.</span>
-				</span>
+				<Tooltip content={pr.fetchError}>
+					<span
+						data-pr-stale=""
+						role="img"
+						aria-label="The last read from GitHub failed, so these fields are old."
+						className="shrink-0 text-warning"
+					>
+						<Warning className="size-4" aria-hidden={true} />
+					</span>
+				</Tooltip>
 			)}
 			<IconButton
 				label="Open on GitHub"

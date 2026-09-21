@@ -1,5 +1,5 @@
 import type { ProjectSummary } from "@trellis/api";
-import { cx, TrellisMark } from "@trellis/ui";
+import { cx, Tooltip, TrellisMark } from "@trellis/ui";
 import { lazy, Suspense } from "react";
 
 const ProjectRowActions = lazy(async () => ({ default: (await import("../../ProjectRowActions")).ProjectRowActions }));
@@ -25,9 +25,11 @@ export function TreeRow({ project, depth, archived = false }: TreeRowProps) {
 			)}
 		>
 			<div className="flex h-8 min-w-0 flex-1 items-center rounded-md transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11">
-				<span aria-hidden="true" className="sidebar-leading text-fg-faint">
-					<TrellisMark className="size-6" background={false} />
-				</span>
+				<Tooltip content="Project">
+					<span role="img" aria-label="Project" className="sidebar-leading text-fg-faint">
+						<TrellisMark className="size-6" background={false} />
+					</span>
+				</Tooltip>
 				<span data-slot="label" title={project.name} className="sidebar-label">
 					{project.name}
 				</span>

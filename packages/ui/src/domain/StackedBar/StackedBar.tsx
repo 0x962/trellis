@@ -1,3 +1,4 @@
+import { Tooltip } from "../../primitives/Tooltip";
 import { cx } from "../../utils/cx";
 import { type ChartTone, chartBgClass, chartToneClass } from "../chartTones";
 
@@ -16,8 +17,7 @@ export type StackedBarProps = {
 	segments: readonly StackedBarSegment[];
 	// The height of the bar: `sm` is 6 px, `md` is 12 px.
 	size?: "sm" | "md";
-	// False draws the bar alone. Each segment keeps its title, so the
-	// values stay readable on hover.
+	// False draws the bar alone.
 	legend?: boolean;
 	className?: string;
 };
@@ -30,8 +30,21 @@ const barHeightClass = { sm: "h-1.5", md: "h-3" };
 export function StackedBar({ label, segments, size = "md", legend = true, className }: StackedBarProps) {
 	const total = segments.reduce((sum, segment) => sum + segment.value, 0);
 	const present = segments.filter((segment) => segment.value > 0);
-	return (
-		<div className={cx("flex min-w-0 flex-col gap-2", className)}>
+	const bar = (
+		<Tooltip
+			content={label}
+			description={
+				<span className="flex flex-col gap-1">
+					{present.map((segment) => (
+						<span key={segment.key} className="flex items-center justify-between gap-4">
+							<span className="truncate">{segment.label}</span>
+							<span className="shrink-0 tabular">{segment.valueLabel}</span>
+						</span>
+					))}
+				</span>
+			}
+			className="w-56"
+		>
 			<div
 				role="img"
 				aria-label={label}
@@ -41,12 +54,16 @@ export function StackedBar({ label, segments, size = "md", legend = true, classN
 					<span
 						key={segment.key}
 						data-segment={segment.key}
-						title={`${segment.label}: ${segment.valueLabel}`}
 						className={cx("block h-full", chartBgClass[segment.tone])}
 						style={{ width: `${(100 * segment.value) / total}%` }}
 					/>
 				))}
 			</div>
+		</Tooltip>
+	);
+	return (
+		<div className={cx("flex min-w-0 flex-col gap-2", className)}>
+			{bar}
 			{legend && (
 				<ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
 					{present.map((segment) => (

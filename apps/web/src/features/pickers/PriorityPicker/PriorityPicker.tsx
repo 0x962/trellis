@@ -29,7 +29,7 @@ export const priorityItems = (options: PriorityItemOptions = {}): CommandItem[] 
 		return {
 			id: priority,
 			label: priorityLabels[priority],
-			icon: createElement(PriorityIcon, { priority }),
+			icon: createElement(PriorityIcon, { priority, decorative: true }),
 			current,
 			checked: options.checked === undefined ? undefined : options.checked.includes(priority),
 			...(options.picker ? { trailing: createElement(RowMarks, { current, keyLabel: String(index) }) } : {}),

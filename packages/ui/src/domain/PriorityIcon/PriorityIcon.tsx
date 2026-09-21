@@ -1,10 +1,15 @@
 import { ExclamationMark } from "@phosphor-icons/react";
+import type { ReactElement } from "react";
+import { Tooltip } from "../../primitives/Tooltip";
 import { cx } from "../../utils/cx";
 
 export type Priority = "none" | "low" | "medium" | "high" | "urgent";
 
 export type PriorityIconProps = {
 	priority: Priority;
+	tooltip?: boolean;
+	focusable?: boolean;
+	decorative?: boolean;
 	className?: string;
 };
 
@@ -16,13 +21,22 @@ const barHeights = ["h-1", "h-2", "h-3"];
 // filled danger square with an exclamation mark, so it reads from across
 // the room. The mark is the Phosphor exclamation icon, not a text node: a picker option
 // that holds the icon keeps its own label as its whole text.
-export function PriorityIcon({ priority, className }: PriorityIconProps) {
+export function PriorityIcon({
+	priority,
+	tooltip = true,
+	focusable = true,
+	decorative = false,
+	className,
+}: PriorityIconProps) {
 	const label = `Priority: ${priority}`;
+	const withTooltip = (icon: ReactElement) => (tooltip ? <Tooltip content={label}>{icon}</Tooltip> : icon);
+	const shared = decorative
+		? { "aria-hidden": "true" as const }
+		: { role: "img", "aria-label": label, tabIndex: tooltip && focusable ? 0 : undefined };
 	if (priority === "urgent") {
-		return (
+		const icon = (
 			<span
-				role="img"
-				aria-label={label}
+				{...shared}
 				className={cx(
 					"inline-grid size-3.5 shrink-0 place-items-center rounded-sm bg-danger text-on-accent select-none",
 					className,
@@ -31,10 +45,11 @@ export function PriorityIcon({ priority, className }: PriorityIconProps) {
 				<ExclamationMark aria-hidden="true" weight="bold" className="size-3" />
 			</span>
 		);
+		return decorative ? icon : withTooltip(icon);
 	}
 	const filled = filledBars[priority];
-	return (
-		<span role="img" aria-label={label} className={cx("inline-flex h-3 w-3.5 shrink-0 items-end gap-0.5", className)}>
+	const icon = (
+		<span {...shared} className={cx("inline-flex h-3 w-3.5 shrink-0 items-end gap-0.5", className)}>
 			{barHeights.map((height, index) => (
 				<i
 					key={height}
@@ -43,4 +58,5 @@ export function PriorityIcon({ priority, className }: PriorityIconProps) {
 			))}
 		</span>
 	);
+	return decorative ? icon : withTooltip(icon);
 }

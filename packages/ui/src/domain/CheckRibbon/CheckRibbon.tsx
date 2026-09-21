@@ -8,6 +8,9 @@ export type CheckRibbonProps = {
 	checks: readonly Check[];
 	// The 192 px `wide` ribbon fits a PR row. Cards use `full` at 64 px or `mini` at 32 px.
 	size?: RibbonSize;
+	tooltip?: boolean;
+	focusable?: boolean;
+	decorative?: boolean;
 	className?: string;
 };
 
@@ -31,15 +34,30 @@ const buckets: Record<CheckBucket, string> = {
 // The whole ribbon carries one tooltip, which counts the checks of each
 // outcome. A tooltip on each segment would open a second popup over the
 // first one while the pointer crosses the bar.
-export function CheckRibbon({ checks, size = "full", className }: CheckRibbonProps) {
+export function CheckRibbon({
+	checks,
+	size = "full",
+	tooltip = true,
+	focusable = true,
+	decorative = false,
+	className,
+}: CheckRibbonProps) {
 	if (checks.length === 0) return null;
 	const count = checks.length === 1 ? "1 check" : `${checks.length} checks`;
 	const label = `${count}: ${checkCountWords(checks)}`;
-	return (
-		<Tooltip content={label}>
+	const segments = ribbonSegments(size, checks).map((segment, index) => (
+		<i
+			// biome-ignore lint/suspicious/noArrayIndexKey: the position is the segment's identity
+			key={index}
+			data-bucket={segment.bucket}
+			style={{ width: segment.width }}
+			className={cx("block shrink-0 rounded-hairline", buckets[segment.bucket])}
+		/>
+	));
+	if (decorative) {
+		return (
 			<span
-				role="img"
-				aria-label={label}
+				aria-hidden="true"
 				className={cx(
 					"inline-flex shrink-0 overflow-hidden",
 					size === "mini" ? "h-1.25 w-8" : size === "wide" ? "h-3 w-48" : "h-1.5 w-16",
@@ -47,16 +65,25 @@ export function CheckRibbon({ checks, size = "full", className }: CheckRibbonPro
 					className,
 				)}
 			>
-				{ribbonSegments(size, checks).map((segment, index) => (
-					<i
-						// biome-ignore lint/suspicious/noArrayIndexKey: the position is the segment's identity
-						key={index}
-						data-bucket={segment.bucket}
-						style={{ width: segment.width }}
-						className={cx("block shrink-0 rounded-hairline", buckets[segment.bucket])}
-					/>
-				))}
+				{segments}
 			</span>
-		</Tooltip>
+		);
+	}
+	const ribbon = (
+		<span
+			role="img"
+			aria-label={label}
+			tabIndex={tooltip && focusable ? 0 : undefined}
+			className={cx(
+				"inline-flex shrink-0 overflow-hidden",
+				size === "mini" ? "h-1.25 w-8" : size === "wide" ? "h-3 w-48" : "h-1.5 w-16",
+				gaps[ribbonGap(size, checks.length)],
+				className,
+			)}
+		>
+			{segments}
+		</span>
 	);
+	if (!tooltip) return ribbon;
+	return <Tooltip content={label}>{ribbon}</Tooltip>;
 }

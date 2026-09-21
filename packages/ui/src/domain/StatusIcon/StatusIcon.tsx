@@ -22,6 +22,8 @@ export type StatusIconProps = {
 	// it stands for, and the control around it carries the name and the
 	// tooltip.
 	label?: string;
+	tooltip?: boolean;
+	focusable?: boolean;
 	className?: string;
 };
 
@@ -56,7 +58,7 @@ function ReviewIcon({
 }: {
 	shape: ReviewShape;
 	color: string;
-	shared: Record<string, string | undefined>;
+	shared: Record<string, string | number | undefined>;
 	className?: string;
 }) {
 	if (shape === "human") {
@@ -92,6 +94,8 @@ export function StatusIcon({
 	color,
 	progress,
 	label,
+	tooltip = true,
+	focusable = true,
 	className,
 }: StatusIconProps) {
 	const tone = color === undefined ? colors[category] : colorClasses[color];
@@ -104,9 +108,10 @@ export function StatusIcon({
 		role: label ? "img" : undefined,
 		"aria-label": label,
 		"aria-hidden": label ? undefined : ("true" as const),
+		tabIndex: label && tooltip && focusable ? 0 : undefined,
 	};
 	const icon = mark({ category, shape, tone, progress, shared, className });
-	return label === undefined ? icon : <Tooltip content={label}>{icon}</Tooltip>;
+	return label === undefined || !tooltip ? icon : <Tooltip content={label}>{icon}</Tooltip>;
 }
 
 // The drawn mark, without the tooltip around it.
@@ -122,7 +127,7 @@ function mark({
 	shape: ReviewShape;
 	tone: string;
 	progress?: number;
-	shared: Record<string, string | undefined>;
+	shared: Record<string, string | number | undefined>;
 	className?: string;
 }) {
 	if (category === "started") {
