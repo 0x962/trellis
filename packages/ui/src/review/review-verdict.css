@@ -1,39 +1,76 @@
-/* The bar that sits under the scrolling column of the review page: the
-   verdict bar, and the batch bar of the suggestions. */
+/* The cards that float over the bottom of the review page: the verdict card,
+   and the batch card of the suggestions. Both sit in `.review-float-bars`,
+   which pins them to the bottom right corner of `.review-page`. The right
+   corner keeps the card away from the line numbers, which the diff draws on
+   the left of every row. The scrolling boxes of the review carry a bottom
+   padding of `--review-float-clearance`, so the last line of a file rises
+   above the card before the scroll ends. */
+.review-float-bars {
+	position: absolute;
+	right: var(--review-float-gap);
+	bottom: var(--review-float-gap);
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 8px;
+	max-width: calc(100% - var(--review-float-gap) * 2);
+	/* The box spans the width of the page, and the cards inside it are
+	   narrow. Without this pair the empty part of the box would swallow a
+	   click on the code under it. */
+	pointer-events: none;
+}
 .review-bar {
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	width: calc(100% - 48px);
-	max-width: calc(var(--review-column-width) - 48px);
-	margin: 0 auto 12px;
-	padding: 8px 8px 8px 16px;
+	max-width: 100%;
+	padding: 6px 6px 6px 12px;
 	border: var(--border-width-hairline) solid var(--border);
-	border-radius: var(--radius-md);
-	background: var(--surface);
-	font-size: var(--text-base);
+	border-radius: var(--radius-lg);
+	/* The code under the card stays visible through it. The blur keeps the
+	   words of the card readable over that code in both themes. */
+	background: color-mix(in srgb, var(--elevated) 85%, transparent);
+	backdrop-filter: blur(12px) saturate(1.6);
+	box-shadow: var(--shadow-lg);
+	font-size: var(--text-sm);
 	font-variant-numeric: tabular-nums;
+	pointer-events: auto;
 }
 .review-batch-bar-text,
 .review-verdict-bar-drafts {
-	flex: 1;
-	min-width: 0;
+	white-space: nowrap;
 }
-.review-verdict-bar {
-	flex-direction: column;
-	align-items: stretch;
-	gap: 4px;
-}
-.review-verdict-bar-row {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-}
+/* The verdict, the time and the delivery word of the last submission. */
 .review-verdict-bar-state {
 	display: flex;
-	flex-wrap: wrap;
 	align-items: center;
 	gap: 6px;
+	min-width: 0;
+	white-space: nowrap;
+}
+/* The count of the conditions that stop the merge. A click lists them. */
+.review-unmet-trigger {
+	color: var(--fg-muted);
+	text-decoration: underline;
+	text-decoration-style: dotted;
+	text-underline-offset: 3px;
+	white-space: nowrap;
+}
+.review-unmet-trigger:hover {
+	color: var(--fg);
+}
+.review-unmet-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	max-width: 22rem;
+	padding: 2px;
+	font-size: var(--text-sm);
+}
+/* The dot between the two parts of the short state. */
+.review-bar-dot {
+	color: var(--fg-faint);
 }
 /* The local verdict note and the message of a submit that failed. */
 .review-draft-note {
@@ -41,19 +78,24 @@
 	flex-direction: column;
 	gap: 8px;
 }
-/* The page moves to a 16 px gutter on a phone, and the bar follows it. */
+/* The page moves to a 16 px gutter on a phone, and the card spans the width
+   that the gutter leaves. A phone line has no room for the time and the
+   delivery word, so the card drops both and keeps the verdict. */
 @media (max-width: 767px) {
-	.review-bar {
-		width: calc(100% - 32px);
-		max-width: calc(var(--review-column-width) - 32px);
+	.review-float-bars {
+		right: var(--review-float-gap);
+		left: var(--review-float-gap);
+		bottom: calc(var(--review-float-gap) + env(safe-area-inset-bottom));
+		align-items: stretch;
+		max-width: none;
 	}
-	/* A width of 390 px does not hold the draft count and the two buttons on
-	   one line, and the count reads as two words on two lines when it shares
-	   the line. The count takes a line of its own, and the buttons follow. */
-	.review-verdict-bar-row {
-		flex-wrap: wrap;
+	.review-verdict-bar-detail {
+		display: none;
 	}
 	.review-verdict-bar-drafts {
-		flex-basis: 100%;
+		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 }
