@@ -1,5 +1,5 @@
 import type { DefaultActor } from "@trellis/api";
-import { readActor, setActorName } from "./actor";
+import { adoptActorName, readActor, setActorName } from "./actor";
 import type { AppContext } from "./appContext";
 
 // The server settings hold the name every browser acts as
@@ -14,16 +14,17 @@ type Clients = Pick<AppContext, "client" | "orpc" | "queryClient">;
 export const rememberStoredName = ({ orpc, queryClient }: Pick<Clients, "orpc" | "queryClient">, name: string) =>
 	queryClient.setQueryData(orpc.actors.default.queryKey({}), { name, kind: "human", stored: true });
 
-// Stores `name` in this browser and in the server settings. The browser copy
-// comes first, so the settings write carries the new name in its header.
+// Stores `name` in the server settings and then in this browser.
 // `settings.set` replaces the whole record, so the write sends every other
-// setting unchanged.
+// setting unchanged. A server that refuses the write throws here and stores
+// the name in neither place.
 export const saveActorName = async (clients: Clients, name: string) => {
 	const { client, orpc, queryClient } = clients;
-	setActorName(name);
 	const settings = await queryClient.ensureQueryData(orpc.settings.get.queryOptions({}));
-	const stored = await client.settings.set({ ...settings, defaultActorName: name });
-	queryClient.setQueriesData({ queryKey: orpc.settings.get.key() }, stored);
+	await adoptActorName(name, async () => {
+		const stored = await client.settings.set({ ...settings, defaultActorName: name });
+		queryClient.setQueriesData({ queryKey: orpc.settings.get.key() }, stored);
+	});
 	rememberStoredName(clients, name);
 };
 

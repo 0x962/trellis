@@ -6,6 +6,7 @@ import { ProjectStep } from "../features/setup/ProjectStep";
 import { StepDots } from "../features/setup/StepDots";
 import { useActor } from "../lib/actor";
 import { useApp } from "../lib/appContext";
+import { loadEntry } from "../lib/entryGate";
 import { resolveActor } from "../lib/identity";
 
 type SetupSearch = { step?: "project" };
@@ -13,16 +14,13 @@ type SetupSearch = { step?: "project" };
 // The first run: a name, then the first project. `?step=project` names the
 // second step, so the same form serves a later new project. A server that
 // stores a name or holds a project skips the name step, and a server with
-// projects skips the first-project step.
+// projects skips the first-project step. A server that refuses the request
+// throws in `loadEntry`, so this form never opens on a refusal.
 export const Route = createFileRoute("/setup")({
 	validateSearch: (search: Record<string, unknown>): SetupSearch =>
 		search.step === "project" ? { step: "project" } : {},
 	beforeLoad: async ({ context, search }) => {
-		const [projects, identity] = await Promise.all([
-			context.queryClient.fetchQuery(context.orpc.projects.list.queryOptions({ input: {} })),
-			context.queryClient.ensureQueryData(context.orpc.actors.default.queryOptions({})),
-			context.queryClient.ensureQueryData(context.orpc.settings.get.queryOptions()),
-		]);
+		const { projects, identity } = await loadEntry(context);
 		if (!(await resolveActor(context, identity, projects.length)) || search.step === "project") return;
 		if (projects.length > 0) throw redirect({ to: "/needs-you", replace: true });
 		throw redirect({ to: "/setup", search: { step: "project" }, replace: true });

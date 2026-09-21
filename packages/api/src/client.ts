@@ -1,4 +1,4 @@
-import { createORPCClient } from "@orpc/client";
+import { createORPCClient, ORPCError } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import type { StandardLinkPlugin } from "@orpc/client/standard";
 import type { ContractRouterClient } from "@orpc/contract";
@@ -46,6 +46,21 @@ const batchUrlPlugin = (baseUrl: string): StandardLinkPlugin<Record<never, never
 	},
 });
 
+// One batch request carries many calls, and the host answers all of them
+// together. The host refuses a request before any call runs: a missing or
+// wrong host token answers 401, and a browser origin or a hostname the host
+// does not serve answers 403. That answer is one error body for the whole
+// request, and not the list of per-call answers that the batch reader
+// expects, so the reader throws "Invalid batch response" and the status is
+// lost. This builds the error that an unbatched call throws, so every caller
+// reads the same code and the same status from a refusal.
+export const batchRefusal = (url: string, status: number): ORPCError<string, unknown> | undefined => {
+	if (status >= 200 && status < 400) return;
+	if (!new URL(url).pathname.endsWith("/__batch__")) return;
+	const code = status === 401 ? "UNAUTHORIZED" : status === 403 ? "FORBIDDEN" : "INTERNAL_SERVER_ERROR";
+	return new ORPCError(code, { status, message: `The Trellis host answered the batch request with ${status}.` });
+};
+
 // A typed client over the RPC handler at `<baseUrl>/rpc`. A fixed `actor`
 // is the `x-trellis-actor` value and must match the header grammar; a bad
 // actor throws here, before any request.
@@ -65,7 +80,12 @@ export const createTrellisClient = (
 	const link = new RPCLink({
 		url: `${baseUrl}/rpc`,
 		headers,
-		fetch: async (request, init) => fetch(request, init),
+		fetch: async (request, init) => {
+			const response = await fetch(request, init);
+			const refusal = batchRefusal(request.url, response.status);
+			if (refusal) throw refusal;
+			return response;
+		},
 		plugins: [...(options.plugins ?? []), batchUrlPlugin(baseUrl)],
 	});
 	return createORPCClient(link);

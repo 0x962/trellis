@@ -134,6 +134,11 @@ export const createApp = ({
 			status: c.res.status,
 			ms: Math.round((performance.now() - started) * 10) / 10,
 			actor: c.req.header("x-trellis-actor") ?? null,
+			// The host refuses with 403 a request that names a hostname it
+			// does not serve, and a request from a browser page of another
+			// origin. Both values are request headers that no other field of
+			// this line holds, so a refused line names its own cause.
+			...(c.res.status === 403 ? { host: c.req.header("host") ?? null, origin: c.req.header("origin") ?? null } : {}),
 			...timingFields(timings.get(c.req.raw)),
 		};
 		if (c.req.method === "GET") log.debug("request", line);

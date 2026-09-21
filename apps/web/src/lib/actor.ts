@@ -26,8 +26,13 @@ export const readActor = (): StoredActor | null => {
 // No stored identity is the first-run signal the root route reads.
 export const hasActor = () => readActor() !== null;
 
+// The name that `adoptActorName` sends while the server decides whether to
+// store it. Nothing else writes it.
+let sending: string | null = null;
+
 // The `x-trellis-actor` value, or null before setup.
 export const actorHeader = (): string | null => {
+	if (sending !== null) return `human:${sending}`;
 	const actor = readActor();
 	return actor === null ? null : `${actor.kind}:${actor.name}`;
 };
@@ -38,6 +43,23 @@ export const setActorName = (name: string) => {
 	ActorHeaderSchema.parse(`human:${name}`);
 	localStorage.setItem(actorStorageKey, JSON.stringify({ name, kind: "human" }));
 	for (const listener of listeners) listener();
+};
+
+// Runs `write` with `name` as the identity in the `x-trellis-actor` header,
+// and stores `name` in this browser only after `write` succeeds. The server
+// needs that header on every write, and the first run has no name in
+// localStorage yet, so the header comes from `name` until the server has
+// the name too. A server that refuses the write leaves this browser with
+// the identity that it had before.
+export const adoptActorName = async (name: string, write: () => Promise<void>) => {
+	ActorHeaderSchema.parse(`human:${name}`);
+	sending = name;
+	try {
+		await write();
+	} finally {
+		sending = null;
+	}
+	setActorName(name);
 };
 
 export const subscribeActor = (listener: () => void) => {
