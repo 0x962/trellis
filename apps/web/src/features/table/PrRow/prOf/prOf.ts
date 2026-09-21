@@ -8,6 +8,7 @@ export const prOf = (fields: Partial<TicketPr>): TicketPr => ({
 	owner: "0x962",
 	repo: "trellis",
 	url: "https://github.com/0x962/trellis/pull/57080",
+	title: "Show the pull request title",
 	state: "open",
 	isDraft: false,
 	additions: null,

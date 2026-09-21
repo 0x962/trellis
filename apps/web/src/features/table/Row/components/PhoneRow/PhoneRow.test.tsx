@@ -55,13 +55,19 @@ describe("PhoneRow on the epic table", () => {
 		expect(html).not.toContain('data-column="priority"');
 	});
 
-	test("prints the pull request on line 2 without the size, the file count and the evidence word", () => {
-		const pr = prOf({ number: 57057, additions: 311, deletions: 12, changedFiles: 6, pass: 42 });
+	test("prints the pull request number and title on line 2", () => {
+		const pr = prOf({
+			number: 57057,
+			title: "Show the pull request title",
+			additions: 311,
+			deletions: 12,
+			changedFiles: 6,
+			pass: 42,
+		});
 		const line2 = textOf(render(ticket({ prRows: [pr] }), "epic").split('data-line="pr"')[1]!);
 
-		expect(line2).toContain("#57057open·42 passed·you");
-		expect(line2).not.toContain("files");
-		expect(line2).not.toContain("evidence");
+		expect(line2).toContain("#57057Show the pull request title");
+		expect(line2).not.toContain("42 passed");
 	});
 
 	test("prints what the run says on line 2", () => {
