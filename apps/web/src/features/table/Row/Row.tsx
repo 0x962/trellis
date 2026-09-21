@@ -287,6 +287,7 @@ export const Row = memo(function Row({
 			<a
 				href={href}
 				tabIndex={-1}
+				data-row-link=""
 				aria-label={`Open ${identifier}`}
 				className="absolute inset-0 z-0"
 				onClick={onLinkClick}
