@@ -6,6 +6,7 @@ import { TicketSummarySchema } from "./ticket.ts";
 export const SearchQuerySchema = z.strictObject({
 	q: z.string().min(1, "Enter the text to search for."),
 	project: ProjectRefStringSchema.optional(),
+	rankProject: ProjectRefStringSchema.optional(),
 	limit: z.coerce
 		.number()
 		.int("Enter a whole number for the limit.")

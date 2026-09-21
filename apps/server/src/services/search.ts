@@ -12,5 +12,9 @@ export const query = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown) => {
 		input.project === undefined
 			? undefined
 			: ctx.cache.resolveSubtree((await resolveProject(ctx, tx, input.project)).id);
-	return search(tx, { q: input.q, projectIds, limit: input.limit });
+	const rankProjectIds =
+		input.rankProject === undefined
+			? undefined
+			: ctx.cache.resolveSubtree((await resolveProject(ctx, tx, input.rankProject)).id);
+	return search(tx, { q: input.q, projectIds, rankProjectIds, limit: input.limit });
 };

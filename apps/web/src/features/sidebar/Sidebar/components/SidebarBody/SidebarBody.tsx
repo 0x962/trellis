@@ -3,6 +3,7 @@ import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { ActivityDot, IconButton, Kbd, Tooltip } from "@trellis/ui";
 import { useApp } from "../../../../../lib/appContext";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
+import { projectRefOfPathname } from "../../../../../lib/projectPath";
 import { uiActions } from "../../../../../stores/uiStore";
 import { type NavTarget, navRows } from "../../../../navRows";
 import { useNeedsYouSummary } from "../../../../needs-you/useNeedsYou";
@@ -45,6 +46,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 	const status = useLiveStatus(live);
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
+	const project = projectRefOfPathname(pathname);
 	const toggleLabel = collapsed ? "Expand sidebar" : "Collapse sidebar";
 	const needsYouActive = (inbox.data?.active ?? 0) > 0;
 	const needsYouMark = needsYouActive ? (
@@ -86,6 +88,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 					<NavRow
 						key={row.to}
 						to={row.to}
+						search={row.to === "/search" && project !== null ? { rankProject: project } : undefined}
 						iconMark={row.to === "/needs-you" && collapsed ? needsYouMark : undefined}
 						icon={row.icon}
 						label={row.label}
