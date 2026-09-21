@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { PrepareCtx } from "../support.ts";
-import { comparisonFacts, loadCurrentRevision } from "./revision.ts";
+import { comparisonFacts, headRepositoryOf, loadCurrentRevision } from "./revision.ts";
 
 // The shape `gh api repos/<owner>/<repo>/compare/<base>...<head>` answered for
 // canary-technologies-corp/canary#57080, cut to the fields the page reads.
@@ -51,4 +51,24 @@ test("loads the revision again when the head changes during the first diff", asy
 	expect(metadataReads).toBe(2);
 	expect(loaded.meta.headRefOid).toBe("head-new");
 	expect(loaded.patch).toBe("patch-2");
+});
+
+// `gh pr view --json headRepository` answers this shape for a branch of the
+// pull request repository itself.
+test("an empty repository name reads the owner and the name beside it", () => {
+	expect(
+		headRepositoryOf(
+			{ owner: "acme", repo: "app" },
+			{ headRepository: { name: "app", nameWithOwner: "" }, headRepositoryOwner: { login: "acme" } },
+		),
+	).toBe("acme/app");
+});
+
+test("a fork names its repository in full", () => {
+	expect(
+		headRepositoryOf(
+			{ owner: "acme", repo: "app" },
+			{ headRepository: { nameWithOwner: "contributor/app" }, headRepositoryOwner: { login: "contributor" } },
+		),
+	).toBe("contributor/app");
 });
