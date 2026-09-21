@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import type { Resource } from "@trellis/api";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ResourceList } from "./ResourceList";
+import { ResourceList, resourceOpenAction } from "./ResourceList";
 
-const controls = { onOpen: () => {}, onAdd: { doc: () => {}, link: () => {}, file: () => {} } };
+const controls = { onAdd: { doc: () => {}, link: () => {}, file: () => {} } };
 
 const base = {
 	epicId: "01M2YRWY0TEG6ETHHWRHVDQ5AH",
@@ -46,6 +46,14 @@ const resources: Resource[] = [
 ];
 
 describe("ResourceList", () => {
+	test("maps each kind to its browser or desktop action", () => {
+		expect(resourceOpenAction(resources[0]!, false)).toBe("doc");
+		expect(resourceOpenAction(resources[1]!, false)).toBe("new-tab");
+		expect(resourceOpenAction(resources[1]!, true)).toBe("link-sheet");
+		expect(resourceOpenAction(resources[2]!, true)).toBe("new-tab");
+		expect(resourceOpenAction(resources[3]!, true)).toBe("download");
+	});
+
 	test("prints the four kinds in one list, each with its kind word", () => {
 		const html = renderToStaticMarkup(<ResourceList resources={resources} {...controls} />);
 

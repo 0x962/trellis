@@ -5,6 +5,7 @@ import { EPIC_DESCRIPTION_MAX } from "./epic.ts";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 export const ResourceKindSchema = z.enum(["doc", "link", "image", "file"]);
+export const ResourceBodySchema = z.string().max(EPIC_DESCRIPTION_MAX);
 
 export const ResourceNameSchema = z
 	.string()
@@ -56,7 +57,7 @@ export const ResourceAddInputSchema = z.discriminatedUnion("kind", [
 	z.strictObject({
 		...sharedAddFields,
 		kind: z.literal("doc"),
-		body: z.string().max(EPIC_DESCRIPTION_MAX),
+		body: ResourceBodySchema,
 	}),
 	z.strictObject({ ...sharedAddFields, kind: z.literal("link"), url: ResourceUrlSchema }),
 	z.strictObject({ ...sharedAddFields, kind: z.literal("image"), file: z.file().min(1) }),
@@ -69,6 +70,11 @@ export const ResourceListInputSchema = z.strictObject({
 
 export const ResourceIdInputSchema = z.strictObject({
 	id: UlidSchema,
+});
+
+export const ResourceUpdateInputSchema = z.strictObject({
+	id: UlidSchema,
+	body: ResourceBodySchema,
 });
 
 export const ResourceRemoveOutputSchema = z.object({

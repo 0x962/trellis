@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, rm, unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ResourceAddInputSchema } from "@trellis/api";
+import { ResourceAddInputSchema, ResourceUpdateInputSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { ulid } from "ulid";
@@ -17,7 +17,7 @@ import { blobPath, tempDir } from "../../storage/blobs.ts";
 import { gcBlobs } from "../blobs.ts";
 import { epicView } from "../epics/epics.ts";
 import type { IoCtx } from "../support.ts";
-import { add, list, readBlob, remove } from "./resources.ts";
+import { add, list, readBlob, remove, update } from "./resources.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 let home: string;
@@ -100,6 +100,10 @@ test("stores a doc without a blob", async () => {
 	expect(
 		ResourceAddInputSchema.safeParse({ epic: "TRL/resources", kind: "doc", name: "Plan", body: `${body}a` }).success,
 	).toBe(false);
+
+	const saved = await inTx((tx) => update(context, tx, { id: resource.id, body: "# Updated plan" }));
+	expect(saved).toMatchObject({ id: resource.id, body: "# Updated plan", updatedAt: now.toISOString() });
+	expect(ResourceUpdateInputSchema.safeParse({ id: resource.id, body: `${body}a` }).success).toBe(false);
 });
 
 test("stores a link without a blob", async () => {
@@ -113,6 +117,9 @@ test("stores a link without a blob", async () => {
 	);
 
 	expect(resource).toMatchObject({ kind: "link", url: "https://github.com/0x962/trellis/pull/196", blob: null });
+	await expect(inTx((tx) => update(context, tx, { id: resource.id, body: "not a document" }))).rejects.toMatchObject({
+		code: "INPUT_VALIDATION_FAILED",
+	});
 });
 
 test("stores an image and returns its evidence pull request", async () => {
