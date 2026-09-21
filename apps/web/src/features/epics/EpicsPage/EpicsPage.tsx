@@ -2,7 +2,7 @@ import { Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import type { EpicSummary, Project } from "@trellis/api";
-import { Button, EmptyState, GroupHeader, IconButton, Skeleton, Tooltip } from "@trellis/ui";
+import { Button, EmptyState, GroupHeader, Skeleton, Tooltip } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { errorMessage } from "../../../lib/conflict";
@@ -12,7 +12,7 @@ import { useUiStore } from "../../../stores/uiStore";
 import { ArchivedBanner } from "../../project-actions";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
-import { Topbar } from "../../shell/Topbar";
+import { Topbar, TopbarActionButton } from "../../shell/Topbar";
 import { useCollapsedGroups } from "../../table/hooks/useCollapsedGroups";
 import { rowHeights } from "../../table/rowHeights";
 import { DeleteEpicDialog } from "../DeleteEpicDialog";
@@ -57,7 +57,7 @@ export function EpicsPage({ project }: EpicsPageProps) {
 
 	const newEpic = readOnly ? undefined : (
 		<Tooltip content="New epic">
-			<IconButton label="New epic" icon={<Plus />} size="md" variant="primary" onClick={() => setEditor({})} />
+			<TopbarActionButton label="New epic" icon={<Plus />} onClick={() => setEditor({})} />
 		</Tooltip>
 	);
 

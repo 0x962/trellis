@@ -1,14 +1,14 @@
 import { ArrowLeft, Copy, GitBranch } from "@phosphor-icons/react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import type { Ticket } from "@trellis/api";
-import { IconButton, isTextEntry, Tooltip, useHotkey, useMediaQuery } from "@trellis/ui";
+import { isTextEntry, Tooltip, useHotkey, useMediaQuery } from "@trellis/ui";
 import { useBackNavigation } from "../../../hooks/useBackNavigation";
 import { useApp } from "../../../lib/appContext";
 import { copyText } from "../../../lib/clipboard";
 import { usePageSheet } from "../../shell/PageSheet";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
-import { Topbar } from "../../shell/Topbar";
+import { Topbar, TopbarActionButton } from "../../shell/Topbar";
 import { branchName, titleSlug } from "../PropertiesRail/utils/branchName";
 import { BriefCopy } from "./components/BriefCopy";
 import { MoreMenu, ticketLink } from "./components/MoreMenu";
@@ -54,7 +54,7 @@ export function Header({ ticket, readOnly }: HeaderProps) {
 				<>
 					{!inSheet && (
 						<Tooltip content="Back (Esc)">
-							<IconButton label="Back" icon={<ArrowLeft />} variant="default" onClick={back} />
+							<TopbarActionButton label="Back" icon={<ArrowLeft />} onClick={back} />
 						</Tooltip>
 					)}
 					<fieldset disabled={readOnly} className="contents">
@@ -63,17 +63,15 @@ export function Header({ ticket, readOnly }: HeaderProps) {
 						{!phone && (
 							<>
 								<Tooltip content="Copy ID ⌘C">
-									<IconButton
+									<TopbarActionButton
 										label="Copy ID"
-										variant="default"
 										icon={<Copy />}
 										onClick={() => void copyText(ticket.identifier, `Copied ${ticket.identifier}`)}
 									/>
 								</Tooltip>
 								<Tooltip content="Copy branch name ⌘⇧C">
-									<IconButton
+									<TopbarActionButton
 										label="Copy branch name"
-										variant="default"
 										icon={<GitBranch />}
 										onClick={() => void copyText(branch, "Copied the branch name")}
 									/>

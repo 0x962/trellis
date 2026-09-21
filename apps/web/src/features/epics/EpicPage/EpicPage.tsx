@@ -2,7 +2,7 @@ import { ChartBar, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { AgentRun, Project, TicketSummary } from "@trellis/api";
-import { EmptyState, IconButton, Menu, Tabs, Tooltip, useMediaQuery } from "@trellis/ui";
+import { EmptyState, Tabs, Tooltip, useMediaQuery } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { epicHref, projectHref, projectSlashPath, rootKey } from "../../../lib/projectPath";
@@ -15,7 +15,7 @@ import { TicketPicker } from "../../pickers/TicketPicker";
 import { ArchivedBanner } from "../../project-actions";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
-import { Topbar } from "../../shell/Topbar";
+import { Topbar, TopbarActionButton, TopbarActionMenu } from "../../shell/Topbar";
 import { DisplayPopover } from "../../table/DisplayPopover";
 import { useTicketMutations } from "../../table/hooks/useTicketMutations";
 import { TicketTable } from "../../table/TicketTable";
@@ -195,7 +195,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 				actions={
 					<>
 						<Tooltip content="Statistics">
-							<IconButton
+							<TopbarActionButton
 								label="Statistics"
 								icon={<ChartBar />}
 								onClick={() => pageSheetActions.openStats(record.ref)}
@@ -212,10 +212,10 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 								onPick={(ticket) => {
 									if (ticket !== null) void addTicket(ticket, record.ref);
 								}}
-								trigger={<IconButton label="Add tickets" icon={<Plus />} variant="default" />}
+								trigger={<TopbarActionButton label="Add tickets" icon={<Plus />} />}
 							/>
 						)}
-						<Menu
+						<TopbarActionMenu
 							label={`Actions for ${record.name}`}
 							triggerTooltip="Epic actions"
 							items={[
