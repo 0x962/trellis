@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { type Session, type SessionStatus, sessionStatusLabels } from "@trellis/api";
 import { Avatar, cx } from "@trellis/ui";
 import { lazy, Suspense } from "react";
+import { compactRelativeTime } from "../../../../lib/format";
 import { agentProfileOf } from "../../../agents/agentProfileOf";
 
 const SessionRowActions = lazy(async () => ({ default: (await import("../../SessionRowActions")).SessionRowActions }));
@@ -9,14 +10,13 @@ const SessionRowActions = lazy(async () => ({ default: (await import("../../Sess
 export type SessionRowProps = {
 	session: Session;
 	status: SessionStatus;
+	activityAt: string;
 	// True on the page of this session.
 	active: boolean;
 };
 
-// One session in the sidebar: the avatar of its agent with the work state,
-// the name, and the row menu in the trailing slot on hover and focus. The
-// row opens the session page.
-export function SessionRow({ session, status, active }: SessionRowProps) {
+export function SessionRow({ session, status, activityAt, active }: SessionRowProps) {
+	const activity = compactRelativeTime(activityAt);
 	return (
 		<li
 			className={cx(
@@ -41,8 +41,16 @@ export function SessionRow({ session, status, active }: SessionRowProps) {
 					/>
 				</span>
 				<span className="sr-only">{sessionStatusLabels[status]}: </span>
-				<span data-slot="label" title={`${session.name} · ${sessionStatusLabels[status]}`} className="sidebar-label">
+				<span
+					data-slot="label"
+					title={`${session.name} · ${sessionStatusLabels[status]} · Last activity ${activity}`}
+					className="sidebar-label"
+				>
 					{session.name}
+				</span>
+				<span className="shrink-0 px-1 text-xs text-fg-faint tabular">
+					<span className="sr-only">Last activity </span>
+					{activity}
 				</span>
 				<span data-slot="trailing" className="sidebar-trailing" aria-hidden="true" />
 			</Link>
