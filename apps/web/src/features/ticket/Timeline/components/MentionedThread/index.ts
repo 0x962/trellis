@@ -1,1 +1,0 @@
-export { MentionedThread } from "./MentionedThread";
