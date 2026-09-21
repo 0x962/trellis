@@ -41,7 +41,7 @@ const rows: ResourceListRow[] = [
 	},
 ];
 
-const controls = { onOpen: () => {}, onAddDoc: () => {}, onAddLink: () => {}, onAddFile: () => {} };
+const controls = { onOpen: () => {}, onAdd: { doc: () => {}, link: () => {}, file: () => {} } };
 
 export function ResourceListSection() {
 	return (
