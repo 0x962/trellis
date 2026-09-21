@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { prRowHeight } from "../rowHeights";
+import { elbowRadius } from "../TreeLines";
 import { columnVisibility } from "../utils/columnVisibility/columnVisibility";
 import { PrRow } from "./PrRow";
 import { prOf } from "./prOf";
@@ -70,8 +71,9 @@ describe("PrRow", () => {
 
 		expect(html).toContain("left-[58px]");
 		expect(html).toContain("bottom-0");
-		expect(html).toContain(`top:${prRowHeight / 2}px`);
-		expect(html).not.toContain("border-b");
+		expect(html).toContain(`top:${prRowHeight / 2 - elbowRadius}px`);
+		expect(html).toContain("rounded-bl-sm");
+		expect(html).not.toContain("border-b border-border");
 	});
 
 	test("the pull request the agent line hangs from runs a rule of its own to its bottom edge", () => {
@@ -90,7 +92,7 @@ describe("PrRow", () => {
 	test("the last child ends the rule at the elbow and draws the border of the group", () => {
 		const html = renderToStaticMarkup(<PrRow pr={prOf({})} top={0} last hasChildLines={false} />);
 
-		expect(html).toContain(`height:${prRowHeight / 2}px`);
+		expect(html).toContain(`height:${prRowHeight / 2 - elbowRadius}px`);
 		expect(html).not.toContain("bottom-0");
 		expect(html).toContain("border-b border-border");
 	});

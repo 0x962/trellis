@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createMarkdownParser } from "../../../lib/markdown";
 import { agentLineHeight } from "../rowHeights";
+import { elbowRadius } from "../TreeLines";
 import { AgentLine } from "./AgentLine";
 
 // The renderer of the app strips whatever runs with the DOM of the browser,
@@ -131,7 +132,7 @@ describe("AgentLine", () => {
 			<AgentLine line={{ words: "crisp-fjord: I rebased.", asks: false }} top={0} last depth={1} render={render} />,
 		);
 
-		expect(html).toContain(`top:${agentLineHeight / 2}px`);
-		expect(html).toContain(`height:${agentLineHeight / 2}px`);
+		expect(html).toContain(`top:${agentLineHeight / 2 - elbowRadius}px`);
+		expect(html).toContain(`height:${agentLineHeight / 2 - elbowRadius}px`);
 	});
 });

@@ -37,7 +37,7 @@ export function TreeStem({ depth }: TreeStemProps) {
 
 type TreeBranchProps = {
 	// True on the final child line of the parent. The rule then stops at the
-	// elbow and makes a corner.
+	// elbow, and the rounded corner of the elbow ends the tree.
 	last: boolean;
 	// The distance from the top of the line to the elbow, in px. The elbow
 	// points at the middle of the first line of text.
@@ -46,21 +46,28 @@ type TreeBranchProps = {
 	depth: TreeDepth;
 };
 
+// The radius of the elbow corner, in px: `--radius-sm`, the corner of the
+// rows and the controls the tree sits among.
+export const elbowRadius = 6;
+
 // The rule and the elbow of one child line. The rule runs the full height
 // of the line, so a tall line stays tied to the line it hangs from. The
-// elbow ends 6 px before the content of the child line starts.
+// elbow is one box with a left and a bottom border, and its bottom-left
+// corner turns with `elbowRadius`. Its bottom border sits at `elbowTop`, and
+// it ends 6 px before the content of the child line starts. On the last
+// line the rule stops where the elbow box starts, so the corner ends it.
 export function TreeBranch({ last, elbowTop, depth }: TreeBranchProps) {
 	return (
 		<>
 			<span
 				aria-hidden="true"
-				style={last ? { height: `${elbowTop}px` } : undefined}
+				style={last ? { height: `${elbowTop - elbowRadius}px` } : undefined}
 				className={cx("absolute top-0 w-px bg-border", ruleLeft[depth], !last && "bottom-0")}
 			/>
 			<span
 				aria-hidden="true"
-				style={{ top: `${elbowTop}px` }}
-				className={cx("absolute h-px w-3 bg-border", ruleLeft[depth])}
+				style={{ top: `${elbowTop - elbowRadius}px`, height: `${elbowRadius + 1}px` }}
+				className={cx("absolute w-3 rounded-bl-sm border-b border-l border-border", ruleLeft[depth])}
 			/>
 		</>
 	);
