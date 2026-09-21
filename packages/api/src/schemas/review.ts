@@ -17,8 +17,19 @@ export const ReviewReactionSchema = z.object({
 	author: z.string(),
 	kind: z.enum(["human", "agent", "system"]),
 });
+// How far one comment of a person got on its way to the agents of the pull
+// request. `pending` and `sending` mean the comment is on its way, `sent`
+// means every agent got it, and `failed` keeps the reason the send gave. A
+// comment an agent wrote has no state, because Trellis sends it to no one.
+export const ReviewMessageDeliverySchema = z.object({
+	state: z.enum(["pending", "sending", "sent", "failed", "unknown"]),
+	error: z.string().nullable(),
+});
+export type ReviewMessageDelivery = z.infer<typeof ReviewMessageDeliverySchema>;
 export const ReviewReplySchema = z.object({
 	id: z.string(),
+	// Absent on a message that Trellis never queued for an agent.
+	delivery: ReviewMessageDeliverySchema.nullish(),
 	author: z.string(),
 	kind: z.enum(["human", "agent", "system", "unknown"]),
 	session: z.string().nullable(),

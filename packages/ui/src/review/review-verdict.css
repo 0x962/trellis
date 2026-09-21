@@ -43,8 +43,8 @@
 	font-variant-numeric: tabular-nums;
 	pointer-events: auto;
 }
-/* The words of the card, left of the buttons: the verdict, the comment count
-   and the count of the unmet conditions. */
+/* The words of the card, left of the buttons: the verdict and the count of
+   the unmet conditions. */
 .review-bar-words {
 	display: flex;
 	flex: 1;
@@ -58,10 +58,8 @@
 	min-width: 0;
 	white-space: nowrap;
 }
-/* The comment count and the dots keep their full width. The verdict words
-   and the condition count shorten instead, and each one shows an ellipsis
-   where it cuts. */
-.review-verdict-bar-drafts,
+/* The dots keep their full width. The verdict words and the condition count
+   shorten instead, and each one shows an ellipsis where it cuts. */
 .review-bar-dot {
 	flex-shrink: 0;
 }

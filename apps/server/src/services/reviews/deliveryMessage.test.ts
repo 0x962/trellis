@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { reviewMessage } from "./deliveryMessage.ts";
+import { commentMessage, reviewMessage } from "./deliveryMessage.ts";
 
 test("a request for changes names the verdict, the note and the comments", () => {
 	expect(
@@ -21,4 +21,40 @@ test("an approval tells the agent that the review passed and waits for the merge
 	expect(reviewMessage({ url: "https://github.com/o/r/pull/1", drafts: 0, verdict: "approved", body: "" })).toBe(
 		"trellis: your pull request review passed. It waits for the merge.",
 	);
+});
+
+test("a verdict that carries no comment names the verdict and its note", () => {
+	expect(
+		reviewMessage({
+			url: "https://github.com/o/r/pull/1",
+			drafts: 0,
+			verdict: "changes_requested",
+			body: "Fix the count.",
+		}),
+	).toBe("trellis: your pull request needs changes.\nReview note: Fix the count.");
+});
+
+test("the comment message names the file, the line and the text of each comment", () => {
+	expect(
+		commentMessage({
+			url: "https://github.com/o/r/pull/1",
+			comments: [{ path: "apps/server/src/db/tx.ts", line: 42, body: "Name the count." }],
+		}),
+	).toBe(
+		"trellis: your pull request has 1 new comment.\napps/server/src/db/tx.ts:42\nName the count.\nRead every comment: trellis review list https://github.com/o/r/pull/1\nApply what each comment asks. Answer each comment.",
+	);
+});
+
+test("comments written together travel in one message", () => {
+	const text = commentMessage({
+		url: "https://github.com/o/r/pull/1",
+		comments: [
+			{ path: "a.ts", line: 1, body: "First." },
+			{ path: "b.ts", line: 2, body: "Second." },
+		],
+	});
+
+	expect(text).toContain("2 new comments.");
+	expect(text).toContain("a.ts:1\nFirst.");
+	expect(text).toContain("b.ts:2\nSecond.");
 });

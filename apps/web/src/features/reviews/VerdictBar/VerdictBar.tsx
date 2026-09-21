@@ -7,8 +7,6 @@ import { VerdictButton } from "./components/VerdictButton";
 import { VerdictLine } from "./components/VerdictLine";
 import { verdictState } from "./verdictState/verdictState";
 
-const commentCount = (comments: number) => `${comments} ${comments === 1 ? "comment" : "comments"}`;
-
 export type VerdictBarProps = {
 	pr: string;
 	revision: ReviewRevision;
@@ -18,8 +16,6 @@ export type VerdictBarProps = {
 	// The open agent assignment of the ticket, or null while the ticket has
 	// none.
 	run: AgentRun | null;
-	// The open comments that Request changes and Comment deliver to the agent.
-	drafts: readonly string[];
 	// The local submissions on this pull request, from `reviews.submissions`.
 	submissions: readonly ReviewSubmission[];
 	// Each merge condition that this pull request does not meet, as one short
@@ -30,9 +26,10 @@ export type VerdictBarProps = {
 };
 
 // The card that floats over the bottom right of the review shows the verdict
-// of the person and the local review actions on one line. A verdict on the
-// head commit hides Approve and Request changes behind Change verdict.
-export function VerdictBar({ pr, revision, ticket, run, drafts, submissions, unmet, onDone }: VerdictBarProps) {
+// of the person on one line. A comment on a diff line reaches the agent when
+// the person posts it, so the card holds the two verdicts only. A verdict on
+// the head commit hides Approve and Request changes behind Change verdict.
+export function VerdictBar({ pr, revision, ticket, run, submissions, unmet, onDone }: VerdictBarProps) {
 	const state = verdictState(submissions, revision.headSha);
 	// Change verdict opens the buttons for the verdict on screen only. A new
 	// submission has another id and closes them again.
@@ -43,23 +40,13 @@ export function VerdictBar({ pr, revision, ticket, run, drafts, submissions, unm
 			{/* One dot separates each pair of words, and no dot sits at either
 			    end of the line. */}
 			<div className="review-bar-words">
-				{state && (
-					<>
-						<VerdictLine state={state} />
-						<span className="review-bar-dot" aria-hidden={true}>
-							·
-						</span>
-					</>
+				{state && <VerdictLine state={state} />}
+				{state && unmet.length > 0 && (
+					<span className="review-bar-dot" aria-hidden={true}>
+						·
+					</span>
 				)}
-				<span className="review-verdict-bar-drafts text-fg-muted">{commentCount(drafts.length)}</span>
-				{unmet.length > 0 && (
-					<>
-						<span className="review-bar-dot" aria-hidden={true}>
-							·
-						</span>
-						<UnmetConditions unmet={unmet} />
-					</>
-				)}
+				{unmet.length > 0 && <UnmetConditions unmet={unmet} />}
 			</div>
 			{given === null ? (
 				<>
@@ -68,7 +55,6 @@ export function VerdictBar({ pr, revision, ticket, run, drafts, submissions, unm
 						headSha={revision.headSha}
 						ticket={ticket}
 						run={run}
-						drafts={drafts}
 						verdict="approve"
 						onDone={onDone}
 					/>
@@ -77,7 +63,6 @@ export function VerdictBar({ pr, revision, ticket, run, drafts, submissions, unm
 						headSha={revision.headSha}
 						ticket={ticket}
 						run={run}
-						drafts={drafts}
 						verdict="request_changes"
 						onDone={onDone}
 					/>
@@ -87,15 +72,6 @@ export function VerdictBar({ pr, revision, ticket, run, drafts, submissions, unm
 					<IconButton label="Change verdict" icon={<PencilSimple />} onClick={() => setChanging(given.id)} />
 				</Tooltip>
 			)}
-			<VerdictButton
-				pr={pr}
-				headSha={revision.headSha}
-				ticket={ticket}
-				run={run}
-				drafts={drafts}
-				verdict="comment"
-				onDone={onDone}
-			/>
 		</section>
 	);
 }

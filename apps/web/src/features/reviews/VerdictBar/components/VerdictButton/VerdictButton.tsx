@@ -1,4 +1,4 @@
-import { ChatCircle, Check, X } from "@phosphor-icons/react";
+import { Check, X } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import { type AgentRun, HarnessSchema, hasAssignedProcess, type ReviewSubmit } from "@trellis/api";
 import { IconButton, Tooltip, toast } from "@trellis/ui";
@@ -6,7 +6,9 @@ import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { DraftNote } from "../DraftNote";
 
-type Verdict = ReviewSubmit["verdict"];
+// A comment on a diff line reaches the agent on its own, so the bar offers
+// the two verdicts only.
+type Verdict = Exclude<ReviewSubmit["verdict"], "comment">;
 
 const copy: Record<Verdict, { label: string; description: string; confirmLabel: string; noteRequired: boolean }> = {
 	approve: {
@@ -17,30 +19,19 @@ const copy: Record<Verdict, { label: string; description: string; confirmLabel: 
 	},
 	request_changes: {
 		label: "Request changes",
-		description: "Save the request in Trellis and deliver the note and comments to the agent.",
+		description: "Save the request in Trellis and deliver the note to the agent.",
 		confirmLabel: "Request changes",
-		noteRequired: true,
-	},
-	comment: {
-		label: "Comment",
-		description: "Save the comment in Trellis and deliver the note and comments to the agent.",
-		confirmLabel: "Comment",
 		noteRequired: true,
 	},
 };
 
-const iconOf = (verdict: Verdict) => {
-	if (verdict === "approve") return <Check />;
-	if (verdict === "request_changes") return <X />;
-	return <ChatCircle />;
-};
+const iconOf = (verdict: Verdict) => (verdict === "approve" ? <Check /> : <X />);
 
 export function VerdictButton({
 	pr,
 	headSha,
 	ticket,
 	run,
-	drafts,
 	verdict,
 	onDone,
 }: {
@@ -48,7 +39,6 @@ export function VerdictButton({
 	headSha: string;
 	ticket: string | null;
 	run: AgentRun | null;
-	drafts: readonly string[];
 	verdict: Verdict;
 	onDone: () => void;
 }) {
@@ -79,14 +69,9 @@ export function VerdictButton({
 		onError: () => toast.error("The run did not start", { description: `Open ${ticket} and inspect its run.` }),
 	});
 	const submit = useMutation({
-		mutationFn: () =>
-			client.reviews.submit({
-				pr,
-				headSha,
-				verdict,
-				body: note,
-				threadIds: verdict === "approve" ? [] : [...drafts],
-			}),
+		// Every comment of the review already reached the agent, so the verdict
+		// carries its note alone.
+		mutationFn: () => client.reviews.submit({ pr, headSha, verdict, body: note, threadIds: [] }),
 		onSuccess: (result) => {
 			setOpen(false);
 			setNote("");
