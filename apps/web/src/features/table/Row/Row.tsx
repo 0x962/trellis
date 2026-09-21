@@ -12,10 +12,18 @@ import { type KeyboardEvent, type MouseEvent, memo, type ReactNode, useRef } fro
 import { compactRelativeTime } from "../../../lib/format";
 import type { Density } from "../../../stores/uiStore";
 import { ActorAvatar } from "../../agents/ActorAvatar";
-import { type ColumnId, gridColumnsClass, gridStyle, narrowHidden, statusIconOnly, type TableKind } from "../columns";
+import {
+	type ColumnId,
+	gridColumnsClass,
+	gridStyle,
+	isEpicTable,
+	narrowHidden,
+	statusIconOnly,
+	type TableKind,
+} from "../columns";
 import { TreeStem } from "../TreeLines";
 import type { TicketAgentLine } from "../utils/agentLines";
-import type { TicketDisclosure } from "../utils/flattenGroups";
+import type { TicketDisclosure as TicketDisclosureState } from "../utils/flattenGroups";
 import { EpicCell } from "./components/EpicCell";
 import { HiddenPickers } from "./components/HiddenPickers";
 import { LabelsCell } from "./components/LabelsCell";
@@ -26,6 +34,7 @@ import { ProjectCell } from "./components/ProjectCell";
 import { ReleasesCell } from "./components/ReleasesCell";
 import { SelectCell } from "./components/SelectCell";
 import { StatusCell } from "./components/StatusCell";
+import { TicketDisclosure } from "./components/TicketDisclosure";
 import { TitleCell } from "./components/TitleCell";
 import { WaitsCell } from "./components/WaitsCell";
 
@@ -60,7 +69,7 @@ export type RowProps = {
 	phoneLayout?: TableKind;
 	// The line of the ticket's run, for the phone row.
 	agentLine?: TicketAgentLine | null;
-	disclosure?: TicketDisclosure;
+	disclosure?: TicketDisclosureState;
 	// True when child lines follow the row. The row then starts the tree
 	// rule under its status icon and draws no bottom border, so the ticket
 	// and its child lines read as one group.
@@ -170,7 +179,7 @@ export const Row = memo(function Row({
 			/>
 		),
 		id: <span className="font-mono text-sm whitespace-nowrap text-fg-faint tabular">{identifier}</span>,
-		title: <TitleCell ticket={ticket} disclosure={disclosure} onToggleDisclosure={toggleDisclosure} />,
+		title: <TitleCell ticket={ticket} />,
 		labels: (
 			<LabelsCell
 				labels={ticket.labels}
@@ -310,6 +319,17 @@ export const Row = memo(function Row({
 					{cells[column]}
 				</div>
 			))}
+			{/* The last track of an epic row. `ticketDisclosure` gives a caret to a done or
+			    canceled ticket that links a pull request or holds a run, and to no other
+			    ticket, so the track is empty on most rows. It keeps its width either way,
+			    so the cells of every row of the table sit at the same x. */}
+			{isEpicTable(columns) && (
+				<div data-column="disclosure" className={cx("relative z-10 flex items-center justify-end", linkedCellClass)}>
+					{disclosure !== null && (
+						<TicketDisclosure identifier={identifier} disclosure={disclosure} onToggle={toggleDisclosure} />
+					)}
+				</div>
+			)}
 			{hasChildLines && <TreeStem depth={1} />}
 			<HiddenPickers
 				ticket={ticket}

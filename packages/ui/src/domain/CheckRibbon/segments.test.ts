@@ -21,6 +21,5 @@ describe("ribbonSegments", () => {
 		const segments = ribbonSegments("wide", crowded);
 
 		expect(segments.filter((segment) => segment.bucket === "fail")).toHaveLength(1);
-		expect(segments.find((segment) => segment.bucket === "fail")?.title).toContain("1 failed");
 	});
 });

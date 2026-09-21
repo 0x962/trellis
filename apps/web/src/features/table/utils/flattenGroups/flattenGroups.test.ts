@@ -5,6 +5,11 @@ import { flattenGroups, phoneItems, type TableGroup } from "./flattenGroups";
 
 const pr = (number: number) => ({ number, owner: "0x962", repo: "trellis" }) as TicketPr;
 
+// One pull request in a named state. `pr` leaves the state out, and the
+// order then reads it as open.
+const prIn = (number: number, state: TicketPr["state"]) =>
+	({ number, owner: "0x962", repo: "trellis", state }) as TicketPr;
+
 const ticket = (id: string, prRows: TicketPr[] = [], category: TicketSummary["status"]["category"] = "started") =>
 	({ id, prRows, status: { category } }) as TicketSummary;
 
@@ -135,6 +140,62 @@ describe("flattenGroups", () => {
 	});
 });
 
+describe("the order of a ticket's pull requests", () => {
+	const numbersOf = (items: ReturnType<typeof flattenGroups>) =>
+		items.flatMap((item) => (item.kind === "pr" ? [item.pr.number] : []));
+
+	test("shows the open pull requests first, then the closed ones, then the merged ones", () => {
+		const prs = [prIn(11, "merged"), prIn(12, "open"), prIn(13, "closed"), prIn(14, "merged"), prIn(15, "open")];
+
+		const items = flattenGroups([group("todo", true, [ticket("a", prs)])], { prRows: true });
+
+		expect(numbersOf(items)).toEqual([12, 15, 13, 11, 14]);
+	});
+
+	test("keeps the order the server sent inside one state", () => {
+		const prs = [prIn(11, "open"), prIn(12, "open"), prIn(13, "open")];
+
+		const items = flattenGroups([group("todo", true, [ticket("a", prs)])], { prRows: true });
+
+		expect(numbersOf(items)).toEqual([11, 12, 13]);
+	});
+
+	test("counts a draft and a queued pull request as open", () => {
+		const draft = { ...prIn(11, "open"), isDraft: true } as TicketPr;
+		const queued = { ...prIn(12, "open"), isQueued: true } as TicketPr;
+		const prs = [prIn(13, "merged"), draft, queued];
+
+		const items = flattenGroups([group("todo", true, [ticket("a", prs)])], { prRows: true });
+
+		expect(numbersOf(items)).toEqual([11, 12, 13]);
+	});
+});
+
+describe("the anchor of the agent line", () => {
+	const agentLines = { a: line("crisp-fjord: I rebased.") };
+	const orderOf = (items: ReturnType<typeof flattenGroups>) =>
+		items.flatMap((item) => {
+			if (item.kind === "pr") return [`pr:${item.pr.number}`];
+			return item.kind === "agent" ? ["agent"] : [];
+		});
+
+	test("hangs the agent line from the last open pull request, and the merged lines follow it", () => {
+		const prs = [prIn(11, "merged"), prIn(12, "open"), prIn(13, "open")];
+
+		const items = flattenGroups([group("todo", true, [ticket("a", prs)])], { prRows: true, agentLines });
+
+		expect(orderOf(items)).toEqual(["pr:12", "pr:13", "agent", "pr:11"]);
+	});
+
+	test("hangs the agent line from the last line when no pull request is open", () => {
+		const prs = [prIn(11, "merged"), prIn(12, "closed")];
+
+		const items = flattenGroups([group("todo", true, [ticket("a", prs)])], { prRows: true, agentLines });
+
+		expect(orderOf(items)).toEqual(["pr:12", "pr:11", "agent"]);
+	});
+});
+
 describe("the agent line on the row", () => {
 	const rowLines = (items: ReturnType<typeof flattenGroups>) =>
 		items.flatMap((item) => (item.kind === "row" ? [item.agentLine] : []));
@@ -164,6 +225,19 @@ describe("flattenGroups tree", () => {
 		const items = flattenGroups(groups, { prRows: true, agentLines: { a: line("Pushed.") } });
 
 		expect(lastOf(items)).toEqual([false, true, true]);
+	});
+
+	test("ends the tree at the last line when a merged pull request follows the agent line", () => {
+		const prs = [prIn(11, "merged"), prIn(12, "open")];
+
+		const items = flattenGroups([group("todo", true, [ticket("a", prs)])], {
+			prRows: true,
+			agentLines: { a: line("Pushed.") },
+		});
+
+		// The open pull request, then the agent line, then the merged one.
+		expect(lastOf(items)).toEqual([false, false, true]);
+		expect(items.flatMap((item) => (item.kind === "pr" ? [item.hasChildLines] : []))).toEqual([true, false]);
 	});
 
 	test("hangs the agent line from the last pull request of the ticket", () => {

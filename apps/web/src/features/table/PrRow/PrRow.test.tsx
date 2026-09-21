@@ -27,6 +27,41 @@ describe("PrRow", () => {
 		expect(html).toContain("min-w-0 flex-1 truncate text-fg");
 	});
 
+	test("gives the number a fixed width and tabular digits", () => {
+		const html = renderToStaticMarkup(<PrRow pr={prOf({ number: 129 })} top={0} last={false} hasChildLines={false} />);
+
+		expect(html).toContain('class="w-14 shrink-0 text-fg tabular"');
+	});
+
+	test("draws the verdict mark after the title, so a mark never moves a title", () => {
+		const html = renderToStaticMarkup(
+			<PrRow pr={prOf({ verdict: "approved" })} top={0} last={false} hasChildLines={false} />,
+		);
+
+		expect(html).toContain('data-review-state="approved"');
+		expect(html.indexOf('data-review-state="approved"')).toBeGreaterThan(html.indexOf("Show the pull request title"));
+	});
+
+	test("a pull request with no verdict draws no mark", () => {
+		const html = renderToStaticMarkup(
+			<PrRow pr={prOf({ verdict: null })} top={0} last={false} hasChildLines={false} />,
+		);
+
+		expect(html).not.toContain("data-review-state");
+	});
+
+	test("names the verdict in the words of the person who gave it", () => {
+		const approved = renderToStaticMarkup(
+			<PrRow pr={prOf({ verdict: "approved" })} top={0} last={false} hasChildLines={false} />,
+		);
+		const changes = renderToStaticMarkup(
+			<PrRow pr={prOf({ verdict: "changes_requested" })} top={0} last={false} hasChildLines={false} />,
+		);
+
+		expect(approved).toContain("You approved this commit");
+		expect(changes).toContain("You asked for changes");
+	});
+
 	test("draws a wide ribbon that names the check counts", () => {
 		const html = renderToStaticMarkup(
 			<PrRow pr={prOf({ fail: 1, pending: 6, pass: 47, skipped: 2 })} top={0} last={false} hasChildLines={false} />,

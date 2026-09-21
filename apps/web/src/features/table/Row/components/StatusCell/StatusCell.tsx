@@ -24,7 +24,8 @@ export type StatusCellProps = {
 // The status icon and name, which open the picker on click or on `s`.
 // Under 768 px the name is for assistive tech only: the group header above
 // the rows names the status, and the title needs the room. `iconOnly`
-// takes the name out at every width.
+// takes the name out at every width. The tooltip then says the name to a
+// person who points at the icon.
 export function StatusCell({
 	status,
 	statuses,
@@ -43,6 +44,7 @@ export function StatusCell({
 			onOpenChange={onOpenChange}
 			onPick={onPick}
 			finalFocus={finalFocus}
+			triggerTooltip={`Status: ${status.name}`}
 			trigger={
 				<button type="button" aria-label={`Status: ${status.name}`} className={cellButtonClass}>
 					<StatusIcon {...statusIconProps(status)} progress={progress} />

@@ -6,6 +6,7 @@ import {
 	GitPullRequestIcon,
 } from "@primer/octicons-react";
 import type { ComponentType } from "react";
+import { Tooltip } from "../../primitives/Tooltip";
 import { cx } from "../../utils/cx";
 
 export type PullRequestState = "open" | "closed" | "merged";
@@ -47,18 +48,20 @@ const iconSizes: Record<PrGlyphSize, string> = { sm: "size-3.5", md: "size-4" };
 
 // The glyph shows the state, never the check result. A failed check leaves an
 // open pull request open. The caller draws the check result next to the glyph.
-// The sr-only text names the state, so color is never the only signal.
+// The sr-only text names the state, so color is never the only signal, and
+// the tooltip says the same words to a person who points at the shape.
 export function PrGlyph({ state, isDraft, isQueued, size = "md" }: PrGlyphProps) {
 	const key = prGlyphLook(state, isDraft, isQueued);
 	const { label, tone, Icon } = looks[key];
 	return (
-		<span
-			data-pr-glyph={key}
-			title={label}
-			className={cx("relative inline-flex shrink-0 items-center justify-center", spanSizes[size], tone)}
-		>
-			<Icon className={cx("shrink-0", iconSizes[size])} aria-hidden="true" />
-			<span className="sr-only">{label}</span>
-		</span>
+		<Tooltip content={label}>
+			<span
+				data-pr-glyph={key}
+				className={cx("relative inline-flex shrink-0 items-center justify-center", spanSizes[size], tone)}
+			>
+				<Icon className={cx("shrink-0", iconSizes[size])} aria-hidden="true" />
+				<span className="sr-only">{label}</span>
+			</span>
+		</Tooltip>
 	);
 }

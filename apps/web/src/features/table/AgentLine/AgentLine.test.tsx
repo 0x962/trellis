@@ -145,6 +145,50 @@ describe("AgentLine", () => {
 		expect(html).not.toContain("left-[58px]");
 	});
 
+	test("runs the rule of the ticket through the line when a merged pull request follows it", () => {
+		const html = renderToStaticMarkup(
+			<AgentLine
+				line={{ words: "crisp-fjord: I rebased.", asks: false, working: false, runId: "run" }}
+				top={0}
+				last={false}
+				depth={2}
+				render={render}
+			/>,
+		);
+
+		expect(html).toContain("left-[84px]");
+		expect(html).toContain("left-[58px]");
+	});
+
+	test("leaves the border of the group to the pull request lines that follow it", () => {
+		const html = renderToStaticMarkup(
+			<AgentLine
+				line={{ words: "crisp-fjord: I rebased.", asks: false, working: false, runId: "run" }}
+				top={0}
+				last={false}
+				depth={2}
+				render={render}
+			/>,
+		);
+
+		expect(html).not.toContain("border-b border-border");
+	});
+
+	test("ends its own branch with a corner, whatever follows it", () => {
+		const html = renderToStaticMarkup(
+			<AgentLine
+				line={{ words: "crisp-fjord: I rebased.", asks: false, working: false, runId: "run" }}
+				top={0}
+				last={false}
+				depth={2}
+				render={render}
+			/>,
+		);
+
+		expect(html).toContain("rounded-bl-sm");
+		expect(html).toContain(`height:${agentLineHeight / 2 - elbowRadius}px`);
+	});
+
 	test("hangs from the ticket row when the ticket links no pull request", () => {
 		const html = renderToStaticMarkup(
 			<AgentLine
