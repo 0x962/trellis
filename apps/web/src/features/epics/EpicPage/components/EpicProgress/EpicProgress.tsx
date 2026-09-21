@@ -40,7 +40,7 @@ export function EpicProgress({
 	workingTicketIds,
 	onCountClick,
 }: EpicProgressProps) {
-	// `epicNext` reads the turn of every ticket of the current wave, and
+	// `epicNext` reads the turn of every ticket of the epic, and
 	// this component draws again on each keystroke in the filter bar.
 	const next = useMemo(
 		() => epicNext(epic, running, search, workingTicketIds),

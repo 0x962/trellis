@@ -44,14 +44,11 @@ export const epicRunningCount = (
 // What happens next in an epic: the current wave and its available counts.
 // Every ticket of one wave can start at the same time, so the open
 // tickets of the current wave are the next work. The server supplies
-// `toStart`. `waitsForYou` counts the tickets of the wave whose turn is
-// the person: a question to answer, or a pull request to review. The wave
-// group header of the table counts its own rows with the same function,
-// `forYouCount`. The header counts the rows the table holds, so a filter
-// that drops rows makes the header smaller than this count. This module is
-// the one place in the web that reads these values for the header band and
-// the list row. The result is null when every wave is done or the epic
-// has none.
+// `toStart`. `waitsForYou` counts every ticket of the epic whose turn is
+// the person. The wave group headers apply `forYouCount` to each wave, so
+// their counts add to the count here. This module is the one place in the
+// web that reads these values for the header band and the list row. The
+// result is null when every wave is done or the epic has none.
 //
 // `running` and `workingTicketIds` are null until the assigned-run query of
 // the epic page succeeds. Their counts then stay out of the band, because a
@@ -77,14 +74,17 @@ export const epicNext = (
 	const base: Partial<View> = {
 		...rest,
 		...(kept === undefined || kept.length === 0 ? {} : { not: kept }),
-		wave: wave.ref,
 	};
 	const counts: EpicNextCount[] = [
-		{ key: "toStart", label: `${formatCount(wave.toStart)} to start`, search: { ...base, category: ["todo"] } },
+		{
+			key: "toStart",
+			label: `${formatCount(wave.toStart)} to start`,
+			search: { ...base, wave: wave.ref, category: ["todo"] },
+		},
 	];
 	if (running !== null) counts.push({ key: "running", label: `${formatCount(running)} running`, search: null });
 	if (workingTicketIds !== null) {
-		const waitsForYou = forYouCount(waveTickets(epic, wave.id), workingTicketIds);
+		const waitsForYou = forYouCount(epic.tickets, workingTicketIds);
 		counts.push({
 			key: "waitsForYou",
 			label: `${formatCount(waitsForYou)} ${waitsForYou === 1 ? "waits" : "wait"} for you`,
