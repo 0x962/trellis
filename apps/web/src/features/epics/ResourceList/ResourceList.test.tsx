@@ -122,12 +122,12 @@ describe("ResourceList", () => {
 		expect(html).not.toContain("(5)");
 	});
 
-	test("prints the number of the caller while it is shut, and no row", () => {
-		const html = renderToStaticMarkup(<ResourceList resources={resources} count={5} expanded={false} {...controls} />);
+	test("draws the rows alone when the caller names the list in a tab", () => {
+		const html = renderToStaticMarkup(<ResourceList resources={resources} header={false} />);
 
-		expect(html).toContain("(5)");
-		expect(html).not.toContain("routine-runtime.md");
-		expect(html).not.toContain("The routine runtime");
+		expect(html).not.toContain("<h2");
+		expect(html).not.toContain("(4)");
+		expect(html).toContain("The routine runtime");
 	});
 
 	test("prints no number when the read failed", () => {

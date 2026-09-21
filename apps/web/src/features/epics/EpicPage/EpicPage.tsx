@@ -2,7 +2,7 @@ import { ChartBar, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { AgentRun, Project, TicketSummary } from "@trellis/api";
-import { EmptyState, IconButton, Menu, Tooltip, useMediaQuery } from "@trellis/ui";
+import { EmptyState, IconButton, Menu, Tabs, Tooltip, useMediaQuery } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { epicHref, projectHref, projectSlashPath, rootKey } from "../../../lib/projectPath";
@@ -52,7 +52,8 @@ const noRuns: readonly AgentRun[] = [];
 const breadcrumbLinkClass =
 	"inline-flex h-7 max-md:h-11 pointer-coarse:h-11 items-center rounded-md px-1 text-fg-muted transition-colors duration-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
 
-// One epic: the current work line, the plan, the resources, and the tickets of
+// One epic: the current work line, one tab strip with the plan and the
+// resources, and the tickets of
 // the epic in the ticket table of the project routes. The table search is
 // the URL search with `epic` fixed to this epic, and it groups by wave
 // (by turn below 768 px) when the URL names no group. An epic belongs to a
@@ -135,6 +136,12 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	const { epic: fixedEpic, ...barSearch } = tableSearch;
 	const full = viewOf(tableSearch);
 	const setSearch = (next: Partial<View>) => onSearchChange(epicUrlSearch(next, phone));
+	// The Plan tab opens first, because the plan is what a reader of the
+	// epic reads every day. The URL names the Resources tab alone, so a
+	// shared link to the resources opens on them.
+	const tab = search.tab ?? "plan";
+	const setTab = (next: "plan" | "resources") =>
+		setSearch({ ...tableSearch, tab: next === "resources" ? next : undefined });
 	const filterBar = (
 		<FilterBar
 			project={project.path}
@@ -232,7 +239,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 			</Topbar>
 			<div className="page-card flex flex-1 flex-col overflow-hidden">
 				{readOnly && <ArchivedBanner project={project} />}
-				{/* The current work line, the plan, and the resources take at most half of the card. The ticket table keeps the remaining space. */}
+				{/* The current work line and the tabs take at most half of the card. The ticket table keeps the remaining space. The tab strip sticks to the top of that area, so the other tab stays one click away at every scroll position. */}
 				<div className="max-h-1/2 shrink-0 overflow-y-auto border-b border-border">
 					<EpicProgress
 						epic={record}
@@ -242,8 +249,28 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 						phone={phone}
 						workingTicketIds={workingTicketIds}
 					/>
-					<EpicPlan routeKey={routeKey} description={record.description} />
-					<EpicResources routeKey={routeKey} epic={record.ref} resourceCount={record.resourceCount} />
+					<Tabs
+						value={tab}
+						onValueChange={setTab}
+						className="px-5 pb-4 max-md:px-4 [&_[role=tablist]]:sticky [&_[role=tablist]]:top-0 [&_[role=tablist]]:z-10 [&_[role=tablist]]:bg-pane"
+						items={[
+							{
+								value: "plan",
+								label: "Plan",
+								content: tab === "plan" ? <EpicPlan description={record.description} /> : null,
+							},
+							{
+								value: "resources",
+								label: (
+									<span className="flex items-baseline gap-1.5">
+										Resources
+										<span className="text-xs text-fg-faint tabular">({record.resourceCount})</span>
+									</span>
+								),
+								content: tab === "resources" ? <EpicResources epic={record.ref} /> : null,
+							},
+						]}
+					/>
 				</div>
 				<fieldset disabled={readOnly} className="contents">
 					<TicketTable

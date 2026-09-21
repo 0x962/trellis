@@ -36,15 +36,21 @@ export const useSessionComposerStore = create<Draft & { open: boolean }>()(
 );
 
 export const sessionComposerActions = {
-	open: (project?: string) =>
+	open: (project = "") =>
 		useSessionComposerStore.setState({
 			open: true,
-			...(project === undefined || project === useSessionComposerStore.getState().project
-				? {}
-				: { project, requestId: crypto.randomUUID() }),
+			project,
+			...(project === useSessionComposerStore.getState().project ? {} : { requestId: crypto.randomUUID() }),
 		}),
 	close: () => useSessionComposerStore.setState({ open: false }),
 	change: (draft: Partial<Draft>) => useSessionComposerStore.setState({ ...draft, requestId: crypto.randomUUID() }),
 	clear: () =>
-		useSessionComposerStore.setState({ name: "", prompt: "", files: [], requestId: crypto.randomUUID(), open: false }),
+		useSessionComposerStore.setState({
+			project: "",
+			name: "",
+			prompt: "",
+			files: [],
+			requestId: crypto.randomUUID(),
+			open: false,
+		}),
 };
