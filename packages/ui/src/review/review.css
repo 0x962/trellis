@@ -1,6 +1,7 @@
 @import "./review-comments.css";
 @import "./review-index.css";
 @import "./review-checks.css";
+@import "./review-verdict.css";
 
 :root {
 	--review-sheet-width: min(100vw, 32rem);
@@ -271,8 +272,8 @@ button.review-notice:hover {
 	flex-direction: column;
 	gap: 2px;
 	padding: 0 28px 16px;
-	font-size: 13px;
-	line-height: 20px;
+	font-size: var(--text-base);
+	line-height: var(--text-base--line-height);
 }
 .review-ticket-line {
 	color: var(--fg-muted);
@@ -326,7 +327,7 @@ button.review-notice:hover {
 	flex-direction: column;
 	height: min(70vh, 720px);
 	overflow: hidden;
-	border: 1px solid var(--border);
+	border: var(--border-width-hairline) solid var(--border);
 	border-radius: var(--radius-lg);
 	background: var(--bg);
 }

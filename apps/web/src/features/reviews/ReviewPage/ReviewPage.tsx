@@ -5,7 +5,7 @@ import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
 import { ConditionsBlock } from "../ConditionsBlock";
-import type { BaseCondition } from "../ConditionsBlock/conditionLines/conditionLines";
+import { type BaseCondition, unmetConditions } from "../conditionLines/conditionLines";
 import { EvidenceStrip } from "../EvidenceStrip";
 import { FileRiskGroups } from "../FileRiskGroups";
 import type { ReadMarkFile } from "../FileRiskGroups/readMarks/readMarks";
@@ -17,6 +17,8 @@ import { ReviewFocusList } from "../ReviewFocusList";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
 import { ReviewStack } from "../ReviewStack/ReviewStack";
 import { ReviewSummary } from "../ReviewSummary/ReviewSummary";
+import { primaryReviewAction, type ReviewActionMeta } from "../reviewActions/reviewActions";
+import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
 import { ReviewPageSkeleton } from "./components/ReviewPageSkeleton";
 import { TurnLine } from "./components/TurnLine";
@@ -28,6 +30,10 @@ import "@trellis/ui/review.css";
 const noThreads: ReviewThread[] = [];
 const noRecords: Evidence[] = [];
 const noSentences: string[] = [];
+// `conditionsOf` answers null while the pull request row has no risk
+// answers. An empty list would read as "every condition is met", so the
+// bar prints one phrase for the gap instead.
+const conditionsUnknown = ["conditions unknown"];
 
 // The distance comes from the revision document, not from the status poll:
 // the server reads it from the compare call that fetched this revision, and
@@ -261,6 +267,15 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						/>
 					</div>
 				</div>
+				{displayRevision && primaryReviewAction(displayRevision.meta as ReviewActionMeta) === "merge" && (
+					<VerdictBar
+						pr={pr}
+						revision={displayRevision}
+						openThreads={revisionThreads.filter((thread) => thread.status === "open").length}
+						unmetConditions={conditions === null ? conditionsUnknown : unmetConditions(conditions)}
+						onDone={() => void status.refetch()}
+					/>
+				)}
 				{batch.size > 0 && (
 					<ReviewBatchBar
 						count={batch.size}

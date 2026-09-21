@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
+import type { Conditions } from "../conditionLines/conditionLines";
 import { ConditionsBlock } from "./ConditionsBlock";
-import type { Conditions } from "./conditionLines/conditionLines";
 import { ShortConditions } from "./ShortConditions";
 
 const open: Conditions = {

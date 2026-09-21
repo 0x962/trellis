@@ -5,7 +5,7 @@ import type {
 	FlowsCondition,
 	FlowWord,
 	TestsCondition,
-} from "../../ConditionsBlock/conditionLines/conditionLines";
+} from "../../conditionLines/conditionLines";
 
 export type ConditionsInput = {
 	// The pull request row of the ticket that links this pull request, from
