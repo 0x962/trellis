@@ -47,4 +47,10 @@ describe("AgentLine", () => {
 		expect(html).toContain(`height:${agentLineHeight}px`);
 		expect(html).toContain("translateY(288px)");
 	});
+
+	test("starts under the id column of the ticket row", () => {
+		const html = renderToStaticMarkup(<AgentLine line={{ words: "crisp-fjord: I rebased.", asks: false }} top={0} />);
+
+		expect(html).toContain("pl-19");
+	});
 });

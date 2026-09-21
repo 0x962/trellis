@@ -71,4 +71,10 @@ describe("PrRow", () => {
 		expect(html).toContain(`height:${prRowHeight}px`);
 		expect(html).toContain("translateY(288px)");
 	});
+
+	test("starts under the id column of the ticket row", () => {
+		const html = renderToStaticMarkup(<PrRow pr={prOf({})} top={0} />);
+
+		expect(html).toContain("pl-19");
+	});
 });

@@ -20,7 +20,7 @@ export function AgentLine({ line, top }: AgentLineProps) {
 		<div
 			data-agent-line={line.asks ? "asks" : "message"}
 			style={{ height: `${agentLineHeight}px`, transform: `translateY(${top}px)` }}
-			className="absolute top-0 left-0 flex w-full items-center gap-2 border-b border-border pr-5 pl-11 text-sm"
+			className="absolute top-0 left-0 flex w-full items-center gap-2 border-b border-border pr-5 pl-19 text-sm"
 		>
 			<AgentWords line={line} />
 		</div>

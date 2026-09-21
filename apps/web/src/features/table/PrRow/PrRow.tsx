@@ -26,7 +26,7 @@ export function PrRow({ pr, top }: PrRowProps) {
 			type="button"
 			data-pr-row={`${pr.owner}/${pr.repo}#${pr.number}`}
 			style={{ height: `${prRowHeight}px`, transform: `translateY(${top}px)` }}
-			className="absolute top-0 left-0 flex w-full items-center gap-2 overflow-hidden border-b border-border pr-5 pl-11 text-left text-sm text-fg-muted transition-colors duration-hover hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+			className="absolute top-0 left-0 flex w-full items-center gap-2 overflow-hidden border-b border-border pr-5 pl-19 text-left text-sm text-fg-muted transition-colors duration-hover hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
 			onClick={() => pageSheetActions.openPullRequest(pr.url)}
 		>
 			<PrCells pr={pr} cells={prRowCells(pr)} />
