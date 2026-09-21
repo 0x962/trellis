@@ -113,17 +113,32 @@ test("only one evidence text flag can read standard input", () => {
 	);
 });
 
-test("the contract fill command uses flags that the contract kind accepts", () => {
-	const risk: PrPathFacts["risk"] = {
-		auth: "no",
-		migration: "no",
-		dependency: "no",
-		sharedType: "no",
-		deletedTest: "no",
-	};
-	const floor = evidenceFloor({ kind: "backend", risk, hasSummary: true, rows: [] });
-	const command = floor.missing.find((gap) => gap.item === "contract")?.fillCommand;
+const fillArgs = (command: string): EvidenceArgs =>
+	Object.fromEntries(
+		[...command.matchAll(/--([a-z-]+)\s+(?:"([^"]*)"|(\S+))/g)].map((match) => [match[1], match[2] ?? match[3]]),
+	) as EvidenceArgs;
 
-	expect(command).toBe('trellis evidence add <pr> --kind contract --before "<before>" --after "<after>"');
-	expect(() => validateKindFlags({ kind: "contract", before: "<before>", after: "<after>" })).not.toThrow();
+test("every evidence fill command uses flags that its kind accepts", () => {
+	const risk: PrPathFacts["risk"] = {
+		auth: "yes",
+		migration: "yes",
+		dependency: "yes",
+		sharedType: "yes",
+		deletedTest: "yes",
+	};
+	const floor = evidenceFloor({ kind: "mixed", risk, hasSummary: true, rows: [] });
+
+	expect(floor.missing.map((gap) => gap.item)).toEqual([
+		"after",
+		"before",
+		"capture",
+		"console",
+		"verify",
+		"test",
+		"contract",
+		"migration",
+		"picture",
+		"equivalence",
+	]);
+	for (const gap of floor.missing) expect(() => validateKindFlags(fillArgs(gap.fillCommand))).not.toThrow();
 });

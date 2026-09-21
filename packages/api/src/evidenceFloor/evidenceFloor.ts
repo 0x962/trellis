@@ -21,6 +21,7 @@ export const evidenceWords: Record<EvidenceFloorItem, string> = {
 export type EvidenceFloorGap = {
 	item: EvidenceFloorItem;
 	fillCommand: string;
+	soft: boolean;
 };
 
 export type EvidenceFloor = {
@@ -36,6 +37,7 @@ type PrRisk = PrPathFacts["risk"];
 
 const frontendFloor: EvidenceFloorItem[] = ["summary", "after", "before", "capture", "console"];
 const backendFloor: EvidenceFloorItem[] = ["summary", "verify", "test", "contract"];
+const softItems = new Set<EvidenceFloorItem>(["picture"]);
 
 const fillCommands: Record<EvidenceFloorItem, string> = {
 	summary: 'trellis summary write <pr> --headline "..." --why - --watch "..."',
@@ -107,6 +109,6 @@ export const evidenceFloor = ({
 		present,
 		missing: required
 			.filter((item) => !presentItems.has(item))
-			.map((item) => ({ item, fillCommand: fillCommands[item] })),
+			.map((item) => ({ item, fillCommand: fillCommands[item], soft: softItems.has(item) })),
 	};
 };

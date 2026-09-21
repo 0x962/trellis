@@ -46,7 +46,7 @@ export const evidenceCheckResult = ({ floor, verifyCommands, ...input }: Evidenc
 		return {
 			item,
 			label: evidenceWords[item],
-			status: gap === undefined ? "present" : item === "picture" ? "due" : "MISSING",
+			status: gap === undefined ? "present" : gap.soft ? "due" : "MISSING",
 			hint: gap === undefined ? null : hintOf(item, verifyCommands),
 			command:
 				gap === undefined

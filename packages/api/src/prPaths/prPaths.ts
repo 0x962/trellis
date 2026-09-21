@@ -1,13 +1,24 @@
+import type { ChangedFile } from "../schemas/pullRequest.ts";
+
 export type PrKind = "frontend" | "backend" | "mixed";
 export type PrPathGroup = "risk" | "behavior" | "tests" | "noise";
 export type PrRiskAnswer = "yes" | "no";
 export type PrChangeType = "change" | "new" | "deleted" | "rename-pure" | "rename-changed";
 
-// `change` describes how Git changed the file. Only a deleted test file changes classification.
+// `deleted` covers a file that Git removed and a file where the change removed lines but added none.
+// A test file with `deleted` sets `deletedTest`, because the change removed test cases.
 export type PrPath = {
 	path: string;
 	change: PrChangeType;
 };
+
+// GitHub reports no added line and at least one removed line when a change only removes content.
+// For a test file, this means the change removed test cases.
+export const changedFilePaths = (files: ChangedFile[]): PrPath[] =>
+	files.map((file) => ({
+		path: file.path,
+		change: file.additions === 0 && file.deletions > 0 ? "deleted" : "change",
+	}));
 
 export type PrPathFacts = {
 	kind: PrKind;

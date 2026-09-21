@@ -2,7 +2,11 @@ import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { EvidenceStrip } from "./EvidenceStrip";
 
-const gap = { label: "console list", fillCommand: "trellis evidence add 56930 --kind console --file <path>" };
+const gap = {
+	label: "console list",
+	fillCommand: "trellis evidence add 56930 --kind console --file <path>",
+	soft: false,
+};
 const copy = () => {};
 
 test("prints the count and the note beside the title", () => {
@@ -28,6 +32,15 @@ test("prints one line for each record the pull request still owes", () => {
 	expect(html).toContain("console list");
 	expect(html).toContain("missing");
 	expect(html).toContain("trellis evidence add 56930 --kind console --file &lt;path&gt;");
+});
+
+test("prints due for a soft gap", () => {
+	const html = renderToStaticMarkup(
+		<EvidenceStrip present={4} required={5} missing={[{ ...gap, soft: true }]} hasRecords={true} onCopy={copy} />,
+	);
+
+	expect(html).toContain("due");
+	expect(html).not.toContain("missing");
 });
 
 test("prints placeholders and no count while the request is not complete", () => {

@@ -26,6 +26,7 @@ describe("evidenceFloor", () => {
 				item: "capture",
 				fillCommand:
 					'trellis evidence add <pr> --kind capture --base <base> --route <route> --viewport 1440x900 --theme dark --seed "<command>" --browser <browser> --time <time>',
+				soft: false,
 			},
 		]);
 
@@ -67,6 +68,7 @@ describe("evidenceFloor", () => {
 		});
 
 		expect(floor.required).toEqual(["summary", "verify", "test", "contract", "migration", "picture"]);
+		expect(floor.missing.at(-1)).toMatchObject({ item: "picture", soft: true });
 	});
 
 	test("adds one picture for auth or dependency risk", () => {
@@ -97,14 +99,17 @@ describe("evidenceFloor", () => {
 			{
 				item: "verify",
 				fillCommand: 'trellis evidence add <pr> --kind verify --cmd "<command>" --exit <code> --sha <head> --tail -',
+				soft: false,
 			},
 			{
 				item: "test",
 				fillCommand: "trellis evidence add <pr> --kind test --name <test> --fails-on <base> --passes-on <head>",
+				soft: false,
 			},
 			{
 				item: "contract",
 				fillCommand: 'trellis evidence add <pr> --kind contract --before "<before>" --after "<after>"',
+				soft: false,
 			},
 		]);
 	});

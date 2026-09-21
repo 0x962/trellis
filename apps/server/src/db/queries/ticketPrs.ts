@@ -1,6 +1,7 @@
 import {
 	type ChangedFile,
 	CheckBucketSchema,
+	changedFilePaths,
 	type EvidenceKind,
 	evidenceFloor,
 	prPaths,
@@ -43,15 +44,7 @@ export const toTicketPrRows = (rows: TicketPrRow[] | null): TicketPr[] =>
 	(rows ?? []).map(({ files, evidenceKinds, hasSummary, hasHead, ...row }) => {
 		if (files === null || files.length === 0 || row.changedFiles !== files.length)
 			return { ...row, kind: null, risk: null, evidence: null, evidenceRequired: null };
-		const facts = prPaths(
-			row.repo,
-			files.map((file) => ({
-				path: file.path,
-				// GitHub reports no added line and at least one removed line when a change only removes content.
-				// For a test file, this means the change removed test cases.
-				change: file.additions === 0 && file.deletions > 0 ? "deleted" : "change",
-			})),
-		);
+		const facts = prPaths(row.repo, changedFilePaths(files));
 		if (!hasHead) return { ...row, kind: facts.kind, risk: facts.risk, evidence: null, evidenceRequired: null };
 		const floor = evidenceFloor({
 			kind: facts.kind,
