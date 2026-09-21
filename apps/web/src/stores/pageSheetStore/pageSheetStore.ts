@@ -7,21 +7,25 @@ export type PageSheetState = {
 	// The URL of the pull request in the review sheet, or null while no
 	// review sheet is open.
 	pr: string | null;
+	// The ref of the epic in the statistics sheet, or null while the sheet is
+	// closed.
+	stats: string | null;
 };
 
-// What the sheet stack holds. Every list and every page writes to this
-// store to open a ticket or a pull request, and `PageSheetHost` draws what
-// it holds. One store owns the stack, so no list keeps sheet state of its
-// own and no two components disagree about what is on top.
-export const usePageSheetStore = create<PageSheetState>()(() => ({ ticket: null, pr: null }));
+// `PageSheetHost` draws the ticket, pull request, or statistics sheet that
+// this store holds. One store owns the stack, so two components cannot open
+// sibling sheets that both respond to Escape.
+export const usePageSheetStore = create<PageSheetState>()(() => ({ ticket: null, pr: null, stats: null }));
 
 export const pageSheetActions = {
 	// A ticket starts a new stack. The review of the ticket before it closes
 	// with it.
-	openTicket: (ticket: string) => usePageSheetStore.setState({ ticket, pr: null }),
+	openTicket: (ticket: string) => usePageSheetStore.setState({ ticket, pr: null, stats: null }),
 	// A pull request opens over the ticket sheet, or alone when no ticket
 	// sheet is open.
-	openPullRequest: (pr: string) => usePageSheetStore.setState({ pr }),
+	openPullRequest: (pr: string) => usePageSheetStore.setState({ pr, stats: null }),
+	openStats: (stats: string) => usePageSheetStore.setState({ ticket: null, pr: null, stats }),
 	closeTicket: () => usePageSheetStore.setState({ ticket: null, pr: null }),
 	closePullRequest: () => usePageSheetStore.setState({ pr: null }),
+	closeStats: () => usePageSheetStore.setState({ stats: null }),
 };

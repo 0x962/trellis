@@ -67,7 +67,7 @@ describe("EpicResources", () => {
 		expect(html).toContain("(5)");
 	});
 
-	test("starts shut, so the band, the plan and the resources leave the table on screen", () => {
+	test("starts shut, so the current work and the plan leave the table on screen", () => {
 		const html = render();
 
 		expect(html).toContain(">Show<");
