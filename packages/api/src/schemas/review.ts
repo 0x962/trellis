@@ -132,8 +132,8 @@ export const ReviewSubmitSchema = z
 		headSha: z.string().min(1),
 		verdict: z.enum(["comment", "approve", "request_changes"]),
 		body: z.string().trim().max(200_000).default(""),
-		// The local threads that this verdict gives to the agent. Each thread
-		// must sit on the reviewed head.
+		// The local threads that this verdict gives to the agent. A thread can
+		// belong to an older revision of the same pull request.
 		threadIds: z.array(UlidSchema).max(200).default([]),
 	})
 	.refine((value) => value.verdict === "approve" || value.body.length > 0, {

@@ -111,21 +111,16 @@ export async function action(ctx: PrepareCtx, input: { pr: string; action: Actio
 	return prepared;
 }
 
-// Each submitted thread must belong to the pull request and the reviewed
-// commit. This keeps a saved local verdict with its exact review revision.
+// A local verdict can carry a thread from an older commit because the agent
+// applies the feedback to the current head. The pull request must still own
+// each thread.
 type SubmissionPullRequest = LocalPullRequestRow & { head_sha: string | null };
 
-const threadsForSubmission = async (tx: Tx, input: ReviewSubmit, pr: SubmissionPullRequest) => {
+const threadsForSubmission = async (tx: Tx, input: ReviewSubmit, prId: string) => {
 	if (input.threadIds.length === 0) return [];
 	const threads = await readThreads(tx, input.threadIds);
-	const heads = await rows<{ id: string; head_sha: string }>(
-		tx,
-		sql`SELECT id, head_sha FROM review_revisions WHERE id = ANY(${sql.param(threads.map((thread) => thread.revisionId))}::text[])`,
-	);
 	for (const thread of threads) {
-		if (thread.prId !== pr.id) throw invalidInput("threadIds", `Thread ${thread.id} belongs to another pull request.`);
-		if (heads.find((head) => head.id === thread.revisionId)?.head_sha !== input.headSha)
-			throw invalidInput("threadIds", `Thread ${thread.id} does not sit on the reviewed head.`);
+		if (thread.prId !== prId) throw invalidInput("threadIds", `Thread ${thread.id} belongs to another pull request.`);
 	}
 	return threads;
 };
@@ -138,15 +133,20 @@ export async function submit(ctx: ServiceCtx, tx: Tx, input: ReviewSubmit) {
 			WHERE p.owner = ${ref.owner} AND p.repo = ${ref.repo} AND p.number = ${ref.number}`,
 	);
 	if (pr === undefined) throw invalidInput("pr", "Open this pull request in Trellis before you submit a review.");
-	if (pr.head_sha !== input.headSha) throw invalidInput("headSha", "The PR head changed. Refresh before this review.");
-	const threads = await threadsForSubmission(tx, input, pr);
+	const threads = await threadsForSubmission(tx, input, pr.id);
+	const [currentRevision] = await rows<{ id: string }>(
+		tx,
+		sql`SELECT id FROM review_revisions
+			WHERE pr_id = ${pr.id} AND head_sha = ${pr.head_sha}
+			ORDER BY created_at DESC, id DESC LIMIT 1`,
+	);
 	const submission = await recordSubmission(ctx, tx, {
 		prId: pr.id,
 		verdict: input.verdict,
 		url: pr.url,
 		author: ctx.actor.name,
 		body: input.body,
-		revisionId: threads[0]?.revisionId ?? null,
+		revisionId: currentRevision?.id ?? null,
 		threads,
 	});
 	const [fresh] = await rows<LocalPullRequestRow>(
