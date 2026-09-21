@@ -3,11 +3,17 @@ import { ulid } from "ulid";
 import type { Tx } from "../../db/tx.ts";
 import { agentsOf } from "./enqueueReviewDeliveries.ts";
 
-// How long one comment waits before the dispatcher may send it. A person
-// who writes several comments in a row fills this window, and the
-// dispatcher joins every waiting comment of one agent into one message, so
-// the agent reads them together and stops its work once.
+// How long the comments of one agent wait after the newest of them. Each
+// new comment moves `due_at` of its own row this far ahead, and the
+// dispatcher sends the waiting comments of an agent only when the newest
+// row is due. A person who writes ten comments in a row therefore stops the
+// agent once, with one message.
 export const commentBatchSeconds = 5;
+
+// The longest time the oldest waiting comment of an agent can wait. A person
+// who keeps writing never lets the newest row fall due, so after this time
+// the dispatcher sends the whole group anyway.
+export const commentBatchLimitSeconds = 30;
 
 // Queues one comment for every agent that holds a ticket of the pull
 // request. `messageId` names the comment: the identifier of the thread for

@@ -9,6 +9,7 @@ import { closedBeforeDelivery, unconfirmedDelivery } from "../deliveries/sentenc
 import type { IoCtx } from "../support.ts";
 import { answerMessage, type CommentNote, commentMessage, reviewMessage } from "./deliveryMessage.ts";
 import { deliveryMessageId } from "./deliveryMessageId.ts";
+import { commentBatchLimitSeconds, commentBatchSeconds } from "./enqueueCommentDeliveries.ts";
 import { changed } from "./queries.ts";
 
 // One queued message with the agent run that waits for it. `terminalId` and
@@ -44,8 +45,8 @@ const list = (values: string[]) =>
 
 const runningTerminals = (terminals: string[]) => sql`run.terminal_id IN (${list(terminals)})`;
 
-// A row waits until its own moment. `due_at` sits a few seconds ahead for a
-// comment, and at the moment of the insert for a verdict or an answer.
+// A verdict or an answer is due at the moment of its insert. Comments follow
+// the rule of `quietRuns` below.
 const due = sql`delivery.due_at <= now()`;
 
 const failDeliveriesOfClosedRuns = (tx: Tx) =>
@@ -120,6 +121,14 @@ const pendingReviews = async (tx: Tx, terminals: string[]): Promise<Delivery[]> 
 // second query. A reply carries the anchor of its thread.
 type CommentRow = Queued & CommentNote & { url: string; prId: string };
 
+// The agents whose waiting comments may leave now: the newest comment is
+// due, or the oldest has waited for the whole limit.
+const quietRuns = sql`SELECT run_id FROM review_deliveries
+	WHERE state = 'pending' AND thread_message_id IS NOT NULL
+	GROUP BY run_id
+	HAVING max(due_at) <= now()
+		OR min(due_at) <= now() - make_interval(secs => ${commentBatchLimitSeconds - commentBatchSeconds})`;
+
 // Every waiting comment of one agent becomes one message. The rows come back
 // in the order a person wrote them, and the group keeps that order.
 const pendingComments = async (tx: Tx, terminals: string[]): Promise<Delivery[]> => {
@@ -135,8 +144,8 @@ const pendingComments = async (tx: Tx, terminals: string[]): Promise<Delivery[]>
 		JOIN agent_runs run ON run.id = delivery.run_id
 		JOIN review_threads thread ON thread.id = delivery.thread_id
 		JOIN pull_requests pr ON pr.id = thread.pr_id
-		WHERE delivery.state = 'pending' AND delivery.thread_message_id IS NOT NULL AND ${due}
-			AND ${runningTerminals(terminals)}
+		WHERE delivery.state = 'pending' AND delivery.thread_message_id IS NOT NULL
+			AND ${runningTerminals(terminals)} AND delivery.run_id IN (${quietRuns})
 		ORDER BY delivery.id LIMIT 50`,
 	);
 	const batches = new Map<string, { row: CommentRow; comments: CommentNote[]; ids: string[] }>();

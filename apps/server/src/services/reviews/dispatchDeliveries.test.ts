@@ -431,3 +431,40 @@ test("a reply of a person carries the file and the line of its thread", async ()
 	expect(sent).toHaveLength(1);
 	expect(sent[0]!.text).toContain("1 new comment.\napps/server/src/db/tx.ts:42\nThe header holds it.");
 });
+
+test("a newer comment holds the older one back until the person stops writing", async () => {
+	sent.length = 0;
+	const queued = await queueComments("Hold the first comment", [
+		{ path: "a.ts", line: 1, body: "First." },
+		{ path: "b.ts", line: 2, body: "Second." },
+	]);
+	const [first, second] = queued.ids;
+	await db.execute(sql`UPDATE review_deliveries SET due_at = now() - interval '1 second' WHERE id = ${first}`);
+	await db.execute(sql`UPDATE review_deliveries SET due_at = now() + interval '3 seconds' WHERE id = ${second}`);
+
+	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
+	expect(sent).toEqual([]);
+
+	await db.execute(sql`UPDATE review_deliveries SET due_at = now() - interval '1 second' WHERE id = ${second}`);
+	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
+
+	expect(sent).toHaveLength(1);
+	expect(sent[0]!.messageId).toBe(`review-${first}`);
+	expect(sent[0]!.text).toContain("2 new comments.");
+});
+
+test("a person who keeps writing still reaches the agent after the limit", async () => {
+	sent.length = 0;
+	const queued = await queueComments("Send after the limit", [
+		{ path: "a.ts", line: 1, body: "First." },
+		{ path: "b.ts", line: 2, body: "Second." },
+	]);
+	const [first, second] = queued.ids;
+	await db.execute(sql`UPDATE review_deliveries SET due_at = now() - interval '40 seconds' WHERE id = ${first}`);
+	await db.execute(sql`UPDATE review_deliveries SET due_at = now() + interval '3 seconds' WHERE id = ${second}`);
+
+	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
+
+	expect(sent).toHaveLength(1);
+	expect(sent[0]!.text).toContain("2 new comments.");
+});
