@@ -9,9 +9,9 @@ import { invalidInput } from "../../errors";
 import { fetchPullRequests, type PullRequestRow } from "../../gh/graphql";
 import { effectiveRepos } from "../projectsRepos";
 import { recordAction } from "../pullRequestAction";
-import { recordSubmission } from "./recordSubmission";
 import { fail, type IoCtx, type PrepareCtx, type ServiceCtx } from "../support";
 import { findPr, parseRef, readThreads } from "./queries";
+import { recordSubmission } from "./recordSubmission";
 import { gh } from "./revision";
 export const actionNames = [
 	"merge",
@@ -218,8 +218,7 @@ export async function submit(ctx: PrepareCtx, input: ReviewSubmit) {
 
 export const actionResult = async (ctx: ServiceCtx, tx: Tx, input: PreparedAction) => {
 	const pullRequest = await recordAction(ctx, tx, input);
-	if (input.submission)
-		await recordSubmission(ctx, tx, { prId: pullRequest.id, ...input.submission });
+	if (input.submission) await recordSubmission(ctx, tx, { prId: pullRequest.id, ...input.submission });
 	return pullRequest;
 };
 // With a project, the search covers the repositories of that project and
