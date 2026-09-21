@@ -8,6 +8,7 @@ export const MAX_CHANGED_FILES = 100;
 
 export const ChangedFileSchema = z.object({
 	path: z.string().min(1),
+	change: z.enum(["change", "new", "deleted", "rename-pure", "rename-changed"]),
 	additions: CountSchema,
 	deletions: CountSchema,
 });

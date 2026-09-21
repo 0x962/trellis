@@ -73,8 +73,12 @@ const floor: EvidenceFloor = {
 	required: ["summary", "after", "before", "capture", "console"],
 	present: ["before", "capture", "console"],
 	missing: [
-		{ item: "summary", fillCommand: 'trellis summary write <pr> --headline "..." --why - --watch "..."' },
-		{ item: "after", fillCommand: "trellis evidence add <pr> --kind after --file <path>" },
+		{
+			item: "summary",
+			fillCommand: 'trellis summary write <pr> --headline "..." --why - --watch "..."',
+			soft: false,
+		},
+		{ item: "after", fillCommand: "trellis evidence add <pr> --kind after --file <path>", soft: false },
 	],
 };
 
@@ -165,10 +169,11 @@ const backendFloor: EvidenceFloor = {
 	required: ["summary", "verify", "test", "contract", "picture"],
 	present: ["verify", "picture"],
 	missing: [
-		{ item: "summary", fillCommand: 'trellis summary write 57080 --headline "..."' },
+		{ item: "summary", fillCommand: 'trellis summary write 57080 --headline "..."', soft: false },
 		{
 			item: "test",
 			fillCommand: "trellis evidence add 57080 --kind test --name <test> --fails-on <base> --passes-on <head>",
+			soft: false,
 		},
 	],
 };

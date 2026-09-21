@@ -27,6 +27,8 @@ const resultOf = (
 		pullRequest: { number: 57080, url: "https://github.com/acme/canary/pull/57080", headSha: "abc123" },
 		ticket: { identifier: "OP-43", title: "Add the private properties route" },
 		floor,
+		present: floor.present.length,
+		required: floor.required.length,
 		verifyCommands,
 		checks,
 	});
@@ -40,7 +42,7 @@ kind: backend            1 of 4 required present
   present  summary
   MISSING  verify record    run each Verify command (make check-fix; pytest routines threads agent):  trellis evidence add 57080 --kind verify --cmd "<command>" --exit <code> --sha abc123 --tail -
   MISSING  test proof       name each new test:                                                       trellis evidence add 57080 --kind test --name <test> --fails-on <base> --passes-on abc123
-  MISSING  contract table   write the before and after table, or:                                     trellis evidence add 57080 --kind contract --before - --after -
+  MISSING  contract table   write the before and after table, or:                                     trellis evidence add 57080 --kind contract --before "<before>" --after "<after>"
   note     1 check failed: merge_gatekeeper
 `);
 	expect(result.complete).toBe(false);
@@ -68,6 +70,10 @@ test("prints a due picture with its fill command", () => {
 		hint: "add one picture:",
 		command: "trellis evidence add 57080 --kind picture --file <path> --why <reason>",
 	});
+	expect(result.present).toBe(4);
+	expect(result.required).toBe(5);
+	expect(result.complete).toBe(false);
+	expect(checkText(result)).toContain("kind: backend            4 of 5 required present");
 	expect(checkText(result)).toContain("  due      picture          add one picture:");
 });
 
@@ -103,4 +109,19 @@ test("returns the stable JSON shape", () => {
 		checks,
 	});
 	expect(result.items).toHaveLength(4);
+});
+
+test("uses the counts published on the pull request row", () => {
+	const floor = evidenceFloor({ kind: "backend", risk: clearRisk, hasSummary: true, rows: [] });
+	const result = evidenceCheckResult({
+		pullRequest: { number: 57080, url: "https://github.com/acme/canary/pull/57080", headSha: "abc123" },
+		ticket: { identifier: "OP-43", title: "Add the private properties route" },
+		floor,
+		present: 2,
+		required: 4,
+		verifyCommands: [],
+		checks,
+	});
+
+	expect(checkText(result)).toContain("2 of 4 required present");
 });

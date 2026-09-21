@@ -135,7 +135,11 @@ export const evidenceLines = (records: readonly Evidence[], floor: EvidenceFloor
 		strip: {
 			present: floor.present.length,
 			required: floor.required.length,
-			missing: floor.missing.map((gap) => ({ label: evidenceWords[gap.item], fillCommand: gap.fillCommand })),
+			missing: floor.missing.map((gap) => ({
+				label: evidenceWords[gap.item],
+				fillCommand: gap.fillCommand,
+				soft: gap.soft,
+			})),
 			hasRecords: records.length > 0,
 			note: capture?.headSha == null ? undefined : `captured on ${capture.headSha}`,
 		},

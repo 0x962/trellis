@@ -1,13 +1,24 @@
+import type { ChangedFile } from "../schemas/pullRequest.ts";
+
 export type PrKind = "frontend" | "backend" | "mixed";
 export type PrPathGroup = "risk" | "behavior" | "tests" | "noise";
 export type PrRiskAnswer = "yes" | "no";
-export type PrChangeType = "change" | "new" | "deleted" | "rename-pure" | "rename-changed";
+export type PrChangeType = ChangedFile["change"];
 
-// `change` describes how Git changed the file. Only a deleted test file changes classification.
 export type PrPath = {
 	path: string;
 	change: PrChangeType;
+	removedLinesOnly: boolean;
 };
+
+// GitHub reports no added line and at least one removed line when a change only removes content.
+// For a test file, this means the change removed test cases.
+export const changedFilePaths = (files: ChangedFile[]): PrPath[] =>
+	files.map((file) => ({
+		path: file.path,
+		change: file.change,
+		removedLinesOnly: file.additions === 0 && file.deletions > 0,
+	}));
 
 export type PrPathFacts = {
 	kind: PrKind;
@@ -33,7 +44,7 @@ const sharedTypePath = /(^|\/)(types?|schemas?|contracts?)(\/|[._-])|\.d\.ts$/;
 const publicApiPath = /(^|\/)(api|openapi|routes?|urls?|procedures?)(\/|[._-])/;
 const secretPath =
 	/(^|\/|[._-])(secrets?|credentials?|tokens?|api[_-]?keys?|private[_-]?keys?)(\/|[._-])|(^|\/)\.env($|\.)|\.(pem|key)$/;
-const testPath =
+const testPathPattern =
 	/(^|\/)(__tests__|tests?)(\/|[._-])|(^|\/)(test_[^/]+|[^/]+_(test|spec))\.[^/]+$|\.(test|spec)\.[^/]+$/;
 const noisePath =
 	/(^|\/)(node_modules|__snapshots__|generated)(\/|$)|^(dist|build|coverage)\/|^(apps|packages)\/[^/]+\/(dist|build|coverage)\/|\.(gen|generated)\.|\.snap$|(^|\/)(bun\.lockb?|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|poetry\.lock|pdm\.lock|uv\.lock|cargo\.lock|go\.sum|gemfile\.lock|composer\.lock|pubspec\.lock)$/;
@@ -57,13 +68,15 @@ const repositoryRules = {
 
 const yesNo = (value: boolean): PrRiskAnswer => (value ? "yes" : "no");
 
+export const isTestPath = (path: string): boolean => testPathPattern.test(path.toLowerCase());
+
 // The path list contains at least one changed file. A caller with no file data keeps its pull request kind unknown.
 export function prPaths(repo: string, paths: PrPath[]): PrPathFacts {
 	const override = repositoryRules[repo.toLowerCase() as keyof typeof repositoryRules];
 	const rules: Rules = { ...repositoryRules.default, ...override };
 	const facts = paths.map((entry) => {
 		const path = entry.path.replace(/^\.\//, "").toLowerCase();
-		const isTestFile = testPath.test(path);
+		const isTestFile = isTestPath(path);
 		return {
 			path: entry.path,
 			frontend: rules.frontendRoot.test(path),
@@ -74,7 +87,7 @@ export function prPaths(repo: string, paths: PrPath[]): PrPathFacts {
 			publicApi: !isTestFile && publicApiPath.test(path),
 			secret: !isTestFile && secretPath.test(path),
 			isTestFile,
-			deletedTest: entry.change === "deleted" && isTestFile,
+			deletedTest: (entry.change === "deleted" || entry.removedLinesOnly) && isTestFile,
 			noise: noisePath.test(path),
 		};
 	});

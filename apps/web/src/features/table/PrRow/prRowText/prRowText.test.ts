@@ -43,7 +43,14 @@ describe("prRowCells", () => {
 	});
 
 	test("names the state of the newest flow run before the turn", () => {
-		const pr = prOf({ flowRuns: [{ status: "succeeded" }, { status: "failed" }], flowRunCount: 2, pass: 43 });
+		const pr = prOf({
+			flowRuns: [
+				{ name: "Code Reviewer", status: "succeeded", findings: 0 },
+				{ name: "Code Reviewer", status: "failed", findings: 2 },
+			],
+			flowRunCount: 2,
+			pass: 43,
+		});
 
 		expect(textOf(pr)).toBe("open · 43 passed · no evidence · flow: passed · you");
 	});

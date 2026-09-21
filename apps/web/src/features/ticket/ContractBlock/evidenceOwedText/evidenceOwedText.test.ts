@@ -33,6 +33,12 @@ describe("evidenceOwedText", () => {
 		expect(evidenceOwedText("trellis", ["frontend/src/App.tsx"])).toStartWith("backend:");
 	});
 
+	test("names the equivalence condition for a test file", () => {
+		expect(evidenceOwedText("trellis", ["apps/web/src/App.test.tsx"])).toEndWith(
+			"A change that removes test cases also owes an equivalence proof.",
+		);
+	});
+
 	test("says unknown when the contract names no file", () => {
 		expect(evidenceOwedText("trellis", [])).toBe("unknown. The contract names no file.");
 	});
