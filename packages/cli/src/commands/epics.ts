@@ -25,6 +25,7 @@ import {
 	renderTable,
 	ticketList,
 } from "../output.ts";
+import { planGuideText } from "./epics/planGuide.ts";
 import { countsText, milestoneList, progress } from "./milestones.ts";
 
 const epicArg = {
@@ -162,17 +163,10 @@ const show = defineCommand({
 	},
 });
 
-// The "Plan an epic" section of the instructions template: from the line
-// that starts with "Plan an epic." to the blank line that ends the section.
-export const planGuide = (text: string) => {
-	const start = text.indexOf("Plan an epic.");
-	return text.slice(start, text.indexOf("\n\n", start) + 1);
-};
-
 const guide = defineCommand({
-	meta: { name: "guide", description: "Print how to plan an epic: fronts, milestones, and tickets" },
+	meta: { name: "guide", description: "Print how to plan an epic: fronts, waves, dependencies, and evidence" },
 	run(context) {
-		contextOf(context).out.write(planGuide(template));
+		contextOf(context).out.write(planGuideText(template));
 	},
 });
 
