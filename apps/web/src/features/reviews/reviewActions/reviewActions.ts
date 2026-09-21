@@ -1,3 +1,5 @@
+import { ORPCError } from "@orpc/client";
+
 export type ReviewAction =
 	| "merge"
 	| "admin-merge"
@@ -31,6 +33,8 @@ export const primaryReviewAction = ({ state, isDraft }: ReviewActionMeta) => {
 };
 
 export const mergeAction = (admin: boolean) => (admin ? "admin-merge" : "merge");
+
+export const isPrHeadMoved = (error: unknown) => error instanceof ORPCError && error.code === "PR_HEAD_MOVED";
 
 export const mergeMenuActions = (meta: ReviewActionMeta, extra?: ReviewActionMetadata): ActionItem[] => [
 	meta.autoMergeRequest

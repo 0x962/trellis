@@ -3,6 +3,7 @@ import type { ReviewApplyResult, ReviewThread } from "@trellis/api";
 import { Button, Dialog, Textarea } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { isPrHeadMoved } from "../reviewActions/reviewActions";
 
 type Props = {
 	pr: string;
@@ -10,6 +11,7 @@ type Props = {
 	threads: ReviewThread[];
 	onClose: () => void;
 	onApplied: (result: ReviewApplyResult) => void;
+	onHeadMoved: () => void;
 };
 
 const location = (thread: ReviewThread) =>
@@ -17,7 +19,7 @@ const location = (thread: ReviewThread) =>
 
 // The commit form for one suggestion or a batch. One commit on the head
 // branch takes every suggestion listed.
-export function ApplySuggestionsDialog({ pr, headSha, threads, onClose, onApplied }: Props) {
+export function ApplySuggestionsDialog({ pr, headSha, threads, onClose, onApplied, onHeadMoved }: Props) {
 	const { client, orpc, queryClient } = useApp();
 	const authors = [...new Set(threads.map((thread) => thread.author))];
 	const [message, setMessage] = useState(
@@ -28,6 +30,11 @@ export function ApplySuggestionsDialog({ pr, headSha, threads, onClose, onApplie
 		onSuccess: async (result) => {
 			await queryClient.invalidateQueries({ queryKey: orpc.reviews.key() });
 			onApplied(result);
+		},
+		onError: (error) => {
+			if (!isPrHeadMoved(error)) return;
+			onClose();
+			onHeadMoved();
 		},
 	});
 	return (
@@ -57,7 +64,7 @@ export function ApplySuggestionsDialog({ pr, headSha, threads, onClose, onApplie
 						</li>
 					))}
 				</ul>
-				{apply.isError && (
+				{apply.isError && !isPrHeadMoved(apply.error) && (
 					<p role="alert" className="review-error">
 						{apply.error.message}
 					</p>

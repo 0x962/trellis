@@ -9,7 +9,7 @@ import {
 	turnOf,
 } from "@trellis/api";
 import { TicketId, useMediaQuery } from "@trellis/ui";
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
 import { ConditionsBlock } from "../ConditionsBlock";
@@ -54,6 +54,12 @@ const baseOf = (revision: ReviewRevision | null): BaseCondition | null => {
 	return { behindBy: meta.behindBy, baseRefName: meta.baseRefName };
 };
 
+type Commit = { oid: string; messageHeadline: string };
+const commitsOf = (revision: ReviewRevision | null) =>
+	((revision?.meta.commits as Commit[] | undefined) ?? []).filter(
+		(commit) => typeof commit.oid === "string" && typeof commit.messageHeadline === "string",
+	);
+
 export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent?: ReactNode; syncHash?: boolean }) {
 	const { client } = useApp();
 	const activeThread = useActiveThread(syncHash);
@@ -78,7 +84,6 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	// The path the reader picked in the file list, or an empty string while
 	// the reader picked none.
 	const [pickedPath, setPickedPath] = useState("");
-	const [composerOpen, setComposerOpen] = useState(false);
 	// The suggestion threads waiting for one commit, and the threads the
 	// commit dialog holds while it is open.
 	const [batch, setBatch] = useState<ReadonlySet<string>>(() => new Set());
@@ -110,8 +115,14 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		},
 		[threadsById],
 	);
-	const displayRevision = revision ? { ...revision, meta: status.data ?? revision.meta } : null;
+	const statusMatchesRevision =
+		revision !== null && status.data?.headRefOid === revision.headSha && status.data?.baseRefOid === revision.baseSha;
+	const displayRevision = revision ? { ...revision, meta: statusMatchesRevision ? status.data! : revision.meta } : null;
 	const displayMeta = displayRevision?.meta as GithubPullRequest | undefined;
+	const openedReview = useRef<{ pr: string; commits: ReadonlySet<string> } | null>(null);
+	if (revision !== null && openedReview.current?.pr !== pr)
+		openedReview.current = { pr, commits: new Set(commitsOf(revision).map((commit) => commit.oid)) };
+	const newCommits = commitsOf(revision).filter((commit) => !openedReview.current?.commits.has(commit.oid));
 	const toggleBatch = useCallback((threadId: string) => {
 		setBatch((current) => {
 			const next = new Set(current);
@@ -140,8 +151,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	const selectedPath = pickedPath !== "" ? pickedPath : (deepLinkPath ?? "");
 	// The conditions, the summary and the evidence records belong to the commit
 	// whose diff the page draws. A summary or an evidence record written for
-	// another commit counts as missing, and the notice above them asks the
-	// reader to refresh.
+	// another commit counts as missing.
 	const headSha = revision?.headSha ?? "";
 	const records = useMemo(
 		() => (evidence.data ?? noRecords).filter((record) => record.headSha === headSha),
@@ -176,13 +186,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	return (
 		<ReviewApplyContext.Provider value={applyState}>
 			<div className="review-page">
-				<ReviewHeader
-					pr={pr}
-					parent={parent}
-					revision={displayRevision}
-					refreshing={refresh.isPending || composerOpen}
-					onRefresh={refreshAll}
-				/>
+				<ReviewHeader pr={pr} parent={parent} revision={displayRevision} />
 				{/* The identity stays above the column, so the buttons that end
 				    the review are always in reach. */}
 				<div className="review-identity">
@@ -191,7 +195,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						revision={displayRevision}
 						pullRequest={displayMeta}
 						openThreads={allThreads.filter((thread) => thread.status === "open")}
-						onAction={() => void status.refetch()}
+						onAction={refreshAll}
 					/>
 					<div className="review-identity-lines">
 						{status.data?.ticket && (
@@ -214,18 +218,17 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 				<div className="review-column">
 					<div className="review-regions">
 						{revision && <ReviewStack pr={pr} />}
+						{newCommits.length > 0 && (
+							<p role="status" className="review-notice">
+								New since you opened this review: {newCommits.map((commit) => commit.messageHeadline).join("; ")}. Read
+								these commits before you merge.
+							</p>
+						)}
 						{status.isError && (
 							<p role="alert" className="review-notice">
 								GitHub status: {status.error.message}
 							</p>
 						)}
-						{revision &&
-							status.data &&
-							(status.data.headRefOid !== revision.headSha || status.data.baseRefOid !== revision.baseSha) && (
-								<button type="button" className="review-notice" onClick={() => refresh.mutate()}>
-									The PR has a new revision. Refresh to review it. Current comments keep their original anchors.
-								</button>
-							)}
 						{refresh.isError && (
 							<p className="review-error" role="alert">
 								{refresh.error.message}. Local comments remain available.
@@ -271,7 +274,6 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 											selectedFile={selectedPath}
 											renderThread={renderThread}
 											onFiles={setChangedFiles}
-											onComposer={setComposerOpen}
 										/>
 									</>
 								)
@@ -317,6 +319,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						headSha={revision.headSha}
 						threads={applyingThreads}
 						onClose={() => setApplying(null)}
+						onHeadMoved={refreshAll}
 						onApplied={(result) => {
 							setApplying(null);
 							setBatch((current) => {

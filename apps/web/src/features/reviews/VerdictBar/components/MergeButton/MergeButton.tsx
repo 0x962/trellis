@@ -4,7 +4,7 @@ import type { ReviewRevision } from "@trellis/api";
 import { Checkbox, ConfirmDialog, IconButton, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
-import { mergeAction } from "../../../reviewActions/reviewActions";
+import { isPrHeadMoved, mergeAction } from "../../../reviewActions/reviewActions";
 import { mergeQuestion } from "../../unmetLine/unmetLine";
 
 // The button stays enabled when a condition is unmet. The confirm dialog
@@ -32,7 +32,14 @@ export function MergeButton({
 			void queryClient.invalidateQueries({ queryKey: orpc.reviews.metadata.key() });
 			onDone();
 		},
-		onError: (error) => toast.error("The merge failed", { description: error.message }),
+		onError: (error) => {
+			if (isPrHeadMoved(error)) {
+				setConfirmOpen(false);
+				onDone();
+				return;
+			}
+			toast.error("The merge failed", { description: error.message });
+		},
 	});
 
 	return (

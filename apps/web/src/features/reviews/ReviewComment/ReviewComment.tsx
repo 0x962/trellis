@@ -39,7 +39,7 @@ const suggestionView = (thread: ReviewThread, apply: ReviewApplyState | null): S
 	if (apply === null) return { state: "open" };
 	if (!apply.prOpen) return { state: "open", note: "Suggestions apply to an open pull request only." };
 	if (thread.revisionId !== apply.revisionId)
-		return { state: "open", note: "This suggestion sits on another revision. Refresh from GitHub to check it." };
+		return { state: "open", note: "This suggestion sits on another revision." };
 	const inBatch = apply.batch.has(thread.id);
 	return {
 		state: "open",

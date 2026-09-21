@@ -34,7 +34,7 @@ export const reviews = {
 		.input(pr)
 		.output(ReviewStatusSchema),
 	action: base
-		.errors(pickErrors(["GH_UNAVAILABLE"]))
+		.errors(pickErrors(["GH_UNAVAILABLE", "PR_HEAD_MOVED"]))
 		.route({ method: "POST", path: "/reviews/action", summary: "Run an explicit GitHub action" })
 		.input(
 			pr.extend({
@@ -155,7 +155,7 @@ export const reviews = {
 		.input(ReviewSubmitSchema)
 		.output(PullRequestSchema),
 	apply: base
-		.errors(pickErrors(["GH_UNAVAILABLE", "REVIEW_SUGGESTION_STALE"]))
+		.errors(pickErrors(["GH_UNAVAILABLE", "PR_HEAD_MOVED", "REVIEW_SUGGESTION_STALE"]))
 		.route({ method: "POST", path: "/reviews/apply", summary: "Commit suggested changes to the head branch" })
 		.input(ReviewApplySchema)
 		.output(ReviewApplyResultSchema),
