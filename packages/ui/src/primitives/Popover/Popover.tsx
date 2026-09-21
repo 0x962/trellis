@@ -1,5 +1,5 @@
 import { Popover as BasePopover } from "@base-ui/react/popover";
-import type { ReactElement, ReactNode, RefObject } from "react";
+import { type ReactElement, type ReactNode, type RefObject, useState } from "react";
 import { cx } from "../../utils/cx";
 import { popupMotion } from "../../utils/popupMotion";
 import { Tooltip } from "../Tooltip";
@@ -44,10 +44,30 @@ export function Popover({
 	className,
 	overlapTrigger = false,
 }: PopoverProps) {
+	const [localOpen, setLocalOpen] = useState(false);
+	const [tooltipOpen, setTooltipOpen] = useState(false);
+	const [suppressTooltip, setSuppressTooltip] = useState(false);
+	const shown = open ?? localOpen;
+	const changeOpen = (next: boolean) => {
+		if (!next) {
+			setTooltipOpen(false);
+			setSuppressTooltip(true);
+		}
+		if (open === undefined) setLocalOpen(next);
+		onOpenChange?.(next);
+	};
+	const changeTooltipOpen = (next: boolean) => {
+		if (!next) {
+			setTooltipOpen(false);
+			setSuppressTooltip(false);
+			return;
+		}
+		if (!suppressTooltip) setTooltipOpen(true);
+	};
 	return (
-		<BasePopover.Root open={open} onOpenChange={onOpenChange ? (next) => onOpenChange(next) : undefined}>
+		<BasePopover.Root open={shown} onOpenChange={changeOpen}>
 			{triggerTooltip ? (
-				<Tooltip content={triggerTooltip}>
+				<Tooltip content={triggerTooltip} open={tooltipOpen && !shown} onOpenChange={changeTooltipOpen}>
 					<BasePopover.Trigger render={trigger} />
 				</Tooltip>
 			) : (

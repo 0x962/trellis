@@ -120,11 +120,13 @@ svg {
 	margin-top: 4px;
 }
 :is(.markdown, .comment-markdown) a {
-	color: var(--accent);
+	color: var(--fg);
+	font-weight: 500;
+	text-decoration: underline;
 	text-underline-offset: 2px;
 }
 :is(.markdown, .comment-markdown) a:hover {
-	text-decoration: underline;
+	color: var(--accent);
 }
 :is(.markdown, .comment-markdown) code {
 	font-family: var(--mono);
