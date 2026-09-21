@@ -5,9 +5,11 @@ import { rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
 import { invalidInput } from "../../errors";
 import type { ServiceCtx } from "../support";
+import { enqueueCommentDeliveries } from "./enqueueCommentDeliveries";
 import { assertRevision, changed, ensurePr, findPr, readThread, writeThread } from "./queries";
 import { revision } from "./revision";
 import { firstSuggestion, sameLines, suggestionFor } from "./suggestions";
+import { withDeliveries } from "./threadDeliveries";
 
 export async function add(ctx: ServiceCtx, tx: Tx, input: ReviewCreate): Promise<ReviewThread> {
 	const pr = await ensurePr(tx, input.pr);
@@ -50,6 +52,13 @@ export async function add(ctx: ServiceCtx, tx: Tx, input: ReviewCreate): Promise
 	await tx.execute(
 		sql`INSERT INTO review_threads (id, pr_id, revision_id, document, updated_at) VALUES (${thread.id}, ${pr.id}, ${thread.revisionId}, ${JSON.stringify(thread)}::jsonb, ${at})`,
 	);
+	if (ctx.actor.kind === "human")
+		await enqueueCommentDeliveries(tx, {
+			prId: pr.id,
+			threadId: thread.id,
+			messageId: thread.id,
+			at: ctx.now(),
+		});
 	await changed(ctx, tx, pr.id);
 	return thread;
 }
@@ -68,14 +77,24 @@ export async function list(
 		tx,
 		sql`SELECT document FROM review_threads WHERE pr_id = ${pr.id} AND (${input.all} OR document->>'status' = 'open') ORDER BY updated_at, id LIMIT ${input.limit} OFFSET ${input.offset}`,
 	);
-	return { items: found.map((r) => r.document), ...counts! };
+	return {
+		items: await withDeliveries(
+			tx,
+			found.map((r) => r.document),
+		),
+		...counts!,
+	};
 }
-export const thread = (_ctx: ServiceCtx, tx: Tx, input: { id: string }) => readThread(tx, input.id);
+export async function thread(_ctx: ServiceCtx, tx: Tx, input: { id: string }) {
+	const [found] = await withDeliveries(tx, [await readThread(tx, input.id)]);
+	return found!;
+}
 export async function reply(ctx: ServiceCtx, tx: Tx, input: { id: string; body: string }) {
 	const doc = await readThread(tx, input.id);
 	const at = ctx.now().toISOString();
+	const messageId = ulid();
 	doc.replies.push({
-		id: ulid(),
+		id: messageId,
 		author: ctx.actor.name,
 		kind: ctx.actor.kind,
 		session: ctx.session,
@@ -87,6 +106,8 @@ export async function reply(ctx: ServiceCtx, tx: Tx, input: { id: string; body: 
 	});
 	doc.updatedAt = at;
 	await writeThread(tx, doc);
+	if (ctx.actor.kind === "human")
+		await enqueueCommentDeliveries(tx, { prId: doc.prId, threadId: doc.id, messageId, at: ctx.now() });
 	await changed(ctx, tx, doc.prId);
 	return doc;
 }

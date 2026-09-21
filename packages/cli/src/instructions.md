@@ -81,12 +81,12 @@ Create each ticket in its wave: trellis create -p KEY --wave KEY/<epic-slug>/<wa
 Read the epic, its waves with their counts, the tickets of each wave, and what is next: trellis epics show KEY/<epic-slug>
 When you work on an epic ticket, read the plan and the results of the earlier waves first: trellis brief KEY-42
 
-PR review comments live in Trellis. Read them before work: trellis review list <pr-url>
+PR review comments live in Trellis. A person's comment reaches you in your terminal as soon as it is posted, one message per comment or per group of comments written together. Read them all before work: trellis review list <pr-url>
 Post a finding: trellis review add <pr-url> --path <file> --line <n> --body "..."
 Reply: trellis review reply <thread-id> --body "..."
 Resolve an addressed finding: trellis review resolve <thread-id>
 Save a local verdict and deliver it to the agent: trellis review submit <pr-url> --verdict <comment|approve|request_changes> --body "..."
-Never post review findings as GitHub comments.
+Never post review findings as GitHub comments. A verdict carries its note, and every comment arrives on its own.
 
 Without the CLI, use the HTTP API. It has the same actions. This call creates a ticket:
 curl -X POST http://127.0.0.1:4521/api/tickets -H 'x-trellis-actor: agent:claude-code' -H 'Content-Type: application/json' -d '{"project":"KEY","title":"First"}'

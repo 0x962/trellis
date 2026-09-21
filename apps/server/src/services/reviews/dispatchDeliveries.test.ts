@@ -14,6 +14,7 @@ import { create } from "../tickets/create.ts";
 import { dispatchDeliveries } from "./dispatchDeliveries.ts";
 import { recordSubmission } from "./recordSubmission.ts";
 import { submit } from "./remote.ts";
+import { add, reply } from "./threads.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 let core: CoreCtx;
@@ -31,7 +32,11 @@ const preset = (async () => "claude") as never;
 const throwingSend = ((..._args: unknown[]) => Promise.reject(new Error("launch.json is missing."))) as never;
 const timingOutSend = ((..._args: unknown[]) => sendDeadline(new Promise(() => {}), 1)) as never;
 
-const ctx = () => ({ home: "/tmp/trellis-dispatch", newTx: run }) as unknown as IoCtx;
+// A sent comment emits `reviews.changed`, so the review page reads the new
+// state of that comment.
+const events: Record<string, unknown>[] = [];
+const ctx = () =>
+	({ home: "/tmp/trellis-dispatch", newTx: run, emit: (event: never) => events.push(event) }) as unknown as IoCtx;
 
 // Each seeded pull request needs its own number, because the table holds one
 // row per owner, repository and number.
@@ -99,6 +104,40 @@ const queueReview = async (title: string, threads: number) => {
 		id: string;
 	}[];
 	return { runId, url, deliveryId: row!.id, reviewId: stored.id, agents: stored.recipients };
+};
+
+// A pull request of one ticket, one running agent on that ticket, and the
+// comments an actor of `kind` wrote on the diff. The clock of the service
+// context sits before the run of the test, so the batch window has passed
+// and the dispatcher may send every row at once.
+const threadCtx = (kind: "human" | "agent") =>
+	({
+		actor: { kind, name: kind === "human" ? "dana" : "crisp-fjord" },
+		session: null,
+		now: () => new Date(at),
+		emit: () => {},
+	}) as never;
+
+const queueComments = async (
+	title: string,
+	notes: { path: string; line: number; body: string }[],
+	kind: "human" | "agent" = "human",
+) => {
+	const ticket = await run((tx) => create(core, tx, { project: "DSP", title }));
+	const runId = ulid();
+	await startRun(runId, ticket.id, ticket.identifier);
+	const prId = ulid();
+	const url = `https://github.com/o/r/pull/${++prNumber}`;
+	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, created_at, updated_at)
+		VALUES (${prId}, 'o', 'r', ${prNumber}, ${url}, 'open', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
+		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at})`);
+	const threads = [];
+	for (const note of notes) threads.push(await run((tx) => add(threadCtx(kind), tx, { pr: url, ...note })));
+	const queued = (await db.execute(sql`SELECT id FROM review_deliveries WHERE run_id = ${runId} ORDER BY id`)).rows as {
+		id: string;
+	}[];
+	return { runId, url, threads, ids: queued.map((row) => row.id) };
 };
 
 const deliveryOf = async (runId: string) => {
@@ -336,4 +375,96 @@ test("a review with no agent assignment reports no recipient", async () => {
 
 	expect(stored.recipients).toEqual([]);
 	expect(deliveries.rows).toEqual([]);
+});
+
+test("the comments a person writes travel to the agent in one message", async () => {
+	sent.length = 0;
+	events.length = 0;
+	const queued = await queueComments("Name the count in the header", [
+		{ path: "apps/server/src/db/tx.ts", line: 42, body: "Name the count." },
+		{ path: "apps/web/src/App.tsx", line: 8, body: "Use the token." },
+	]);
+
+	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
+
+	expect(queued.ids).toHaveLength(2);
+	expect(sent).toEqual([
+		{
+			id: queued.runId,
+			text: `trellis: your pull request has 2 new comments.\napps/server/src/db/tx.ts:42\nName the count.\n\napps/web/src/App.tsx:8\nUse the token.\nRead every comment: trellis review list ${queued.url}\nApply what each comment asks. Answer each comment.`,
+			interrupt: true,
+			messageId: `review-${queued.ids[0]}`,
+			expectedTerminalId: `term-${queued.runId}`,
+			expectedSessionId: null,
+		},
+	]);
+	const states = (await db.execute(sql`SELECT state FROM review_deliveries WHERE run_id = ${queued.runId}`)).rows;
+	expect(states).toEqual([{ state: "sent" }, { state: "sent" }]);
+	expect(events.map((event) => event.type)).toContain("reviews.changed");
+});
+
+test("a comment an agent writes reaches no agent", async () => {
+	sent.length = 0;
+	const queued = await queueComments(
+		"Read the review focus",
+		[{ path: "apps/server/src/db/tx.ts", line: 3, body: "The service takes tx first." }],
+		"agent",
+	);
+
+	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
+
+	expect(queued.ids).toEqual([]);
+	expect(sent).toEqual([]);
+});
+
+test("a reply of a person carries the file and the line of its thread", async () => {
+	sent.length = 0;
+	const queued = await queueComments("Answer the open comment", [
+		{ path: "apps/server/src/db/tx.ts", line: 42, body: "Name the count." },
+	]);
+	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
+	sent.length = 0;
+	await run((tx) => reply(threadCtx("human"), tx, { id: queued.threads[0]!.id, body: "The header holds it." }));
+
+	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
+
+	expect(sent).toHaveLength(1);
+	expect(sent[0]!.text).toContain("1 new comment.\napps/server/src/db/tx.ts:42\nThe header holds it.");
+});
+
+test("a newer comment holds the older one back until the person stops writing", async () => {
+	sent.length = 0;
+	const queued = await queueComments("Hold the first comment", [
+		{ path: "a.ts", line: 1, body: "First." },
+		{ path: "b.ts", line: 2, body: "Second." },
+	]);
+	const [first, second] = queued.ids;
+	await db.execute(sql`UPDATE review_deliveries SET due_at = now() - interval '1 second' WHERE id = ${first}`);
+	await db.execute(sql`UPDATE review_deliveries SET due_at = now() + interval '3 seconds' WHERE id = ${second}`);
+
+	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
+	expect(sent).toEqual([]);
+
+	await db.execute(sql`UPDATE review_deliveries SET due_at = now() - interval '1 second' WHERE id = ${second}`);
+	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
+
+	expect(sent).toHaveLength(1);
+	expect(sent[0]!.messageId).toBe(`review-${first}`);
+	expect(sent[0]!.text).toContain("2 new comments.");
+});
+
+test("a person who keeps writing still reaches the agent after the limit", async () => {
+	sent.length = 0;
+	const queued = await queueComments("Send after the limit", [
+		{ path: "a.ts", line: 1, body: "First." },
+		{ path: "b.ts", line: 2, body: "Second." },
+	]);
+	const [first, second] = queued.ids;
+	await db.execute(sql`UPDATE review_deliveries SET due_at = now() - interval '40 seconds' WHERE id = ${first}`);
+	await db.execute(sql`UPDATE review_deliveries SET due_at = now() + interval '3 seconds' WHERE id = ${second}`);
+
+	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
+
+	expect(sent).toHaveLength(1);
+	expect(sent[0]!.text).toContain("2 new comments.");
 });

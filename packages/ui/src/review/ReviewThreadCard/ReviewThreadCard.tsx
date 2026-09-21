@@ -15,6 +15,17 @@ type Message = {
 	createdAt: string;
 	version: number;
 	reactions: { reaction: string; author: string; kind: string }[];
+	// How far this message got on its way to the agents of the pull request.
+	// A message that Trellis sends to no agent holds nothing here.
+	delivery?: { state: string; error: string | null } | null;
+};
+// The word a reader sees for each state of a send to an agent.
+const deliveryWords: Record<string, string> = {
+	pending: "sending",
+	sending: "sending",
+	sent: "sent",
+	failed: "failed",
+	unknown: "not confirmed",
 };
 type Props = {
 	thread: Message & { replies: Message[]; status: string; resolvedBy: string | null };
@@ -86,6 +97,15 @@ export function ReviewThreadCard({ thread, renderBody, onReply, onResolve, onEdi
 								<span className="review-meta">
 									{message.kind} · {new Date(message.createdAt).toLocaleDateString()}
 								</span>
+								{message.delivery && (
+									<span
+										className="review-delivery"
+										data-state={message.delivery.state}
+										title={message.delivery.error ?? undefined}
+									>
+										{deliveryWords[message.delivery.state]}
+									</span>
+								)}
 								{message.session && (
 									<Tooltip content={`Copy session ${message.session}`}>
 										<IconButton
