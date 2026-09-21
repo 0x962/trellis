@@ -1,1 +1,1 @@
-export { PullRequests, type PullRequestsProps } from "./PullRequests";
+export { PullRequestRow, type PullRequestRowProps } from "./PullRequestRow";

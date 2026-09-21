@@ -1,3 +1,5 @@
+import { listHeading, paragraph, recommendationLine } from "./questionLines.ts";
+
 // One numbered choice of a question. `number` is the number the description
 // prints, and a person answers with it. The numbers need not run 1, 2, 3: a
 // description that numbers its options 1, 2 and 5 gives those three numbers.
@@ -18,28 +20,13 @@ export type QuestionDescription = {
 	recommendation: QuestionRecommendation | null;
 };
 
-// The line that opens the option list.
-const listHeading = /^[ \t]*Options:[ \t]*/;
-
 // A line of the option list, such as `1. Leave it missed.` or `2) Run it
 // late.`.
 const optionLine = /^[ \t]*(\d+)[.)][ \t]+(\S.*)$/;
 
-// The line that names the preferred option, such as
-// `Recommendation: option 1. A night audit reads a different day.`
-const recommendationLine = /^[ \t]*Recommendation:[ \t]*option[ \t]*(\d+)[.:)]?[ \t]*(.*)$/i;
-
-const blank = (line: string) => line.trim() === "";
-
 const toOption = (line: string): QuestionOption | null => {
 	const found = optionLine.exec(line);
 	return found === null ? null : { number: Number(found[1]), text: (found[2] as string).trim() };
-};
-
-// The paragraph that starts at `line` and stops at the first blank line.
-const paragraph = (lines: string[], from: number) => {
-	const end = lines.slice(from).findIndex(blank);
-	return lines.slice(from, end === -1 ? lines.length : from + end);
 };
 
 const readRecommendation = (lines: string[]): QuestionRecommendation | null => {

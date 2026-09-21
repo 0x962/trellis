@@ -12,5 +12,6 @@ export const projects = os.projects.router({
 	update: os.projects.update.handler(({ context, input }) => call(context, "projects.update", input)),
 	move: os.projects.move.handler(({ context, input }) => call(context, "projects.move", input)),
 	delete: os.projects.delete.handler(({ context, input }) => call(context, "projects.delete", input)),
+	repos: os.projects.repos.handler(({ context, input }) => call(context, "projects.repos", input)),
 	setRepos: os.projects.setRepos.handler(({ context, input }) => call(context, "projects.setRepos", input)),
 });

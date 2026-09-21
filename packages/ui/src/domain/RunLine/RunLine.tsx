@@ -74,17 +74,18 @@ function StateDot({ kind }: { kind: RunLineKind }) {
 const wordsTone = (kind: RunLineKind) =>
 	waitingKinds.includes(kind) ? "text-warning" : brokenKinds.includes(kind) ? "text-danger" : "text-fg-muted";
 
-// The `Avatar` mark moves only in the `works` state.
+// The `Avatar` mark moves only in the `works` state. The caller draws the
+// region and its title, such as `RunBlock` on the ticket page.
 export function RunLine({ run, onOpenSession }: RunLineProps) {
 	if (run === null) {
 		return (
-			<section aria-label="The run" className="flex min-w-0 flex-col">
+			<div className="flex min-w-0 flex-col">
 				<EmptyState description="No agent works on this ticket." />
-			</section>
+			</div>
 		);
 	}
 	return (
-		<section aria-label="The run" className="flex min-w-0 flex-col gap-0.5">
+		<div className="flex min-w-0 flex-col gap-0.5">
 			<div className="flex min-w-0 items-center gap-2 text-sm">
 				<Tooltip content={run.metricsWords}>
 					<div className="flex min-w-0 items-center gap-2">
@@ -116,6 +117,6 @@ export function RunLine({ run, onOpenSession }: RunLineProps) {
 					{run.lastMessage}
 				</p>
 			)}
-		</section>
+		</div>
 	);
 }

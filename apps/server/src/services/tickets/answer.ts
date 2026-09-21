@@ -1,5 +1,6 @@
 import {
 	answerCommentBody,
+	asksQuestion,
 	type QuestionOption,
 	readQuestionDescription,
 	TicketAnswerInputSchema,
@@ -15,12 +16,6 @@ import { enqueueAnswerDeliveries } from "../reviews/enqueueAnswerDeliveries.ts";
 import { move } from "./move.ts";
 import { assertVersion } from "./rules.ts";
 
-// A ticket asks a question when a person must review it and its description
-// opens with an option list. `apps/server/src/db/queries/ticketSummary.ts`
-// runs the same rule in SQL for the `isQuestion` field of a ticket summary,
-// and the two must agree.
-const questionOpening = /^Options:\s*\S/;
-
 // What a person reads when the number they sent is not on the list.
 const optionRefusal = (options: QuestionOption[]) =>
 	options.length === 0
@@ -29,7 +24,7 @@ const optionRefusal = (options: QuestionOption[]) =>
 
 const assertQuestion = async (tx: Tx, ticket: TicketRow, option: number) => {
 	const status = await statusById(tx, ticket.statusId);
-	if (status.reviewer !== "human" || !questionOpening.test(ticket.description))
+	if (!asksQuestion(status.reviewer, ticket.description))
 		throw invalidInput(
 			"ticket",
 			"This ticket asks no question. A question waits for a person and opens its description with an option list.",

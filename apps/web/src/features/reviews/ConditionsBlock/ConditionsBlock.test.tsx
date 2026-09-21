@@ -74,11 +74,12 @@ test("the block draws no button and no link", () => {
 	expect(html).not.toContain("disabled");
 });
 
-test("the short form prints four lines and the same readiness word", () => {
+test("the short form prints four lines and no readiness word", () => {
 	const html = renderToStaticMarkup(<ShortConditions conditions={open} />);
 
-	expect(html).toContain("READY TO MERGE");
-	expect(html).toContain("not yet");
+	expect(html).toContain("MERGE CONDITIONS");
+	expect(html).not.toContain("READY TO MERGE");
+	expect(html).not.toContain("not yet");
 	for (const label of ["evidence", "checks", "threads", "ancestors"]) expect(html).toContain(`>${label}<`);
 	for (const label of ["size", "risk", "tests", "flows", "base"]) expect(html).not.toContain(`>${label}<`);
 });

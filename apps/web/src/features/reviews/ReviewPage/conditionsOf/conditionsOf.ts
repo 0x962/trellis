@@ -38,7 +38,7 @@ const flowWordOf: Record<TicketPr["flowRuns"][number]["status"], FlowWord> = {
 
 // `flowRuns` holds the five newest runs of the ticket, newest first, and
 // `flowRunCount` holds how many runs the ticket has.
-const flowsOf = (prRow: TicketPr): FlowsCondition => ({
+export const flowsOf = (prRow: TicketPr): FlowsCondition => ({
 	total: prRow.flowRunCount,
 	newest: prRow.flowRuns.map((run) => flowWordOf[run.status]),
 });
@@ -72,7 +72,7 @@ const testsOf = (records: readonly Evidence[]): TestsCondition => {
 
 // GitHub leaves the three size counts null until it measures the pull
 // request. One missing count drops the whole size line.
-const sizeOf = (prRow: TicketPr): Conditions["size"] =>
+export const sizeOf = (prRow: TicketPr): Conditions["size"] =>
 	prRow.additions === null || prRow.deletions === null || prRow.changedFiles === null
 		? null
 		: { additions: prRow.additions, deletions: prRow.deletions, changedFiles: prRow.changedFiles };
