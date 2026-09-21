@@ -1,5 +1,6 @@
 import type { Check } from "@trellis/api";
 import { ChecksLine } from "@trellis/ui/review";
+import { openLink } from "../../../lib/openLink";
 import { useCollapsedGroups } from "../../table/hooks/useCollapsedGroups/useCollapsedGroups";
 import { checksForDisplay } from "./checksForDisplay";
 
@@ -13,6 +14,7 @@ export function ReviewChecks({ checks, pr }: { checks: readonly Check[] | null; 
 			loading={checks === null}
 			isCollapsed={isCollapsed}
 			onToggle={toggle}
+			onOpenCheck={openLink}
 		/>
 	);
 }

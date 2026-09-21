@@ -44,7 +44,7 @@ beforeAll(async () => {
 		${prId}, 'acme', 'app', 28, 1, '[{"path":"backend/service.ts","change":"change","additions":1,"deletions":0}]',
 		'https://github.com/acme/app/pull/28', 'open', false, true,
 		'feature', 'main', 'review_required',
-		'[{"name":"Build","workflow":"CI","bucket":"pass","link":null},{"name":"Deploy","workflow":"CI","bucket":"cancel","link":null}]',
+		'[{"name":"Build","workflow":"CI","bucket":"pass","link":null,"startedAt":"2026-09-21T10:00:00.000Z","endedAt":"2026-09-21T10:02:14.000Z"},{"name":"Deploy","workflow":"CI","bucket":"cancel","link":null,"startedAt":null,"endedAt":null}]',
 		'fail', ${at}, ${at}, ${at}
 	)`);
 	await db.execute(sql`INSERT INTO ticket_pull_requests (
@@ -68,8 +68,15 @@ test("review status sorts linked tickets by project key and ticket number", asyn
 		ticket: { identifier: "AAA-7", title: "First project ticket" },
 		prRow: { number: 28, owner: "acme", repo: "app", kind: "backend", pass: 1, fail: 1 },
 		checks: [
-			{ name: "Build", workflow: "CI", bucket: "pass", link: null },
-			{ name: "Deploy", workflow: "CI", bucket: "cancel", link: null },
+			{
+				name: "Build",
+				workflow: "CI",
+				bucket: "pass",
+				link: null,
+				startedAt: "2026-09-21T10:00:00.000Z",
+				endedAt: "2026-09-21T10:02:14.000Z",
+			},
+			{ name: "Deploy", workflow: "CI", bucket: "cancel", link: null, startedAt: null, endedAt: null },
 		],
 	});
 	expect(result.prRow).not.toHaveProperty("files");

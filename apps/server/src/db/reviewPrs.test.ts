@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
+import type { Check } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { prs } from "../services/reviews/prs.ts";
@@ -49,7 +50,7 @@ const insertPull = (
 	repo: string,
 	number: number,
 	retained: boolean,
-	checks: readonly { name: string; workflow: string | null; bucket: string; link: string | null }[] = [],
+	checks: readonly Check[] = [],
 ) =>
 	db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, review_retained, checks, ci_state, created_at, updated_at)
 		VALUES (${id}, ${owner}, ${repo}, ${number}, ${`https://github.com/${owner}/${repo}/pull/${number}`}, 'open', ${retained}, ${JSON.stringify(checks)}::jsonb, ${ciStateOf(checks)}, ${at}, ${at})`);
@@ -73,7 +74,14 @@ beforeAll(async () => {
 	await insertTicket(tst1, web, tst, await insertStatus(tst), 1);
 	await insertTicket(oth1, oth, oth, await insertStatus(oth), 1);
 	await insertPull(pulls.linked, "acme", "app", 1, false, [
-		{ name: "lint", workflow: "CI", bucket: "fail", link: "https://checks.example/lint" },
+		{
+			name: "lint",
+			workflow: "CI",
+			bucket: "fail",
+			link: "https://checks.example/lint",
+			startedAt: "2026-09-21T10:00:00.000Z",
+			endedAt: "2026-09-21T10:00:31.000Z",
+		},
 	]);
 	await insertPull(pulls.retained, "acme", "app", 2, true);
 	await insertPull(pulls.other, "other", "repo", 3, false);
@@ -155,6 +163,13 @@ test("a pull request row carries check state", async () => {
 
 	expect(linked.ciState).toBe("fail");
 	expect(linked.checks).toEqual([
-		{ name: "lint", workflow: "CI", bucket: "fail", link: "https://checks.example/lint" },
+		{
+			name: "lint",
+			workflow: "CI",
+			bucket: "fail",
+			link: "https://checks.example/lint",
+			startedAt: "2026-09-21T10:00:00.000Z",
+			endedAt: "2026-09-21T10:00:31.000Z",
+		},
 	]);
 });

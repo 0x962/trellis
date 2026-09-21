@@ -110,7 +110,9 @@ The host sends human comment mentions to active ticket agents.
 Native project agents use Git worktrees under `agents/<run id>/work`.
 The ticket page holds the title, the ask, the sub-tickets and the attachments in one centered column.
 Its properties rail holds the pickers, the pull requests, the agent, and the run controls.
-The review sheet of a pull request holds the summary, the evidence, the GitHub checks, the flow runs and the diff.
+The review sheet of a pull request has four tabs: Overview, Checks, Flows and Diff.
+Overview holds the summary, the merge conditions, the evidence and the discussion. Checks holds every GitHub check of the head commit with its duration. Flows holds the flow runs of the ticket. Diff holds the file tree and the diff.
+The tab stays in the URL of `/reviews/<owner>/<repo>/<number>` as `?tab=overview|checks|flows|diff`, and a link that names the older value `facts` opens Overview.
 The authenticated terminal stream replays retained bytes and then pushes output and process observations.
 The terminal WebSocket carries ordered input and binary output outside the database request path after attachment.
 A capability handshake selects the persistent binary runtime channel or the compatible RPC adapter.
@@ -1146,6 +1148,12 @@ records whether that entry exists. A row is written only when its content hash c
 GitHub keeps a re-run beside the run it replaces. `normalizeChecks` therefore
 keeps one node per name, workflow, and event, and takes the node that started
 last, as `gh pr checks` does.
+
+Each stored check carries `startedAt` and `endedAt`. A check run takes them
+from `startedAt` and `completedAt`. A commit status has one time only, so it
+carries `createdAt` as its start and no end. A check that still runs has no
+end, and a row the poller wrote before these two fields reads null for both.
+The Checks tab prints the difference of the two times as the duration.
 
 The tick runs every 10 seconds and picks the pull requests that are due. A pull
 request with pending checks is due after 30 seconds. An open pull request

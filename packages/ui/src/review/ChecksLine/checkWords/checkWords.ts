@@ -9,6 +9,11 @@ export type ChecksLineCheck = {
 	bucket: ChecksLineBucket;
 	link: string | null;
 	status?: CheckStatus;
+	// When GitHub started the check and when it ended. A check that still
+	// runs, and a check the poller read before it stored these two times,
+	// carry null and print no duration.
+	startedAt?: string | null;
+	endedAt?: string | null;
 };
 
 type WordBucket = ChecksLineBucket | "unknown";

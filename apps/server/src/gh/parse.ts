@@ -13,6 +13,7 @@ export type RawCheckRun = {
 	status: string;
 	conclusion: string | null;
 	startedAt?: string | null;
+	completedAt?: string | null;
 	detailsUrl?: string | null;
 	checkSuite: { workflowRun: { event?: string | null; workflow: { name: string } } | null };
 };
@@ -71,6 +72,8 @@ export const bucketForCheckRun = (node: RawCheckRun): CheckBucket => {
 export const bucketForStatusContext = (node: RawStatusContext): CheckBucket =>
 	statusContextBuckets[node.state] ?? "pending";
 
+// A commit status carries one time only, so its start is its end and it
+// reads as no time at all.
 const toCheck = (node: RawContext): Check => {
 	if (node.__typename === "CheckRun") {
 		return {
@@ -78,9 +81,18 @@ const toCheck = (node: RawContext): Check => {
 			workflow: node.checkSuite.workflowRun?.workflow.name ?? null,
 			bucket: bucketForCheckRun(node),
 			link: node.detailsUrl ?? null,
+			startedAt: node.startedAt ?? null,
+			endedAt: node.completedAt ?? null,
 		};
 	}
-	return { name: node.context, workflow: null, bucket: bucketForStatusContext(node), link: node.targetUrl ?? null };
+	return {
+		name: node.context,
+		workflow: null,
+		bucket: bucketForStatusContext(node),
+		link: node.targetUrl ?? null,
+		startedAt: node.createdAt ?? null,
+		endedAt: null,
+	};
 };
 
 const compareText = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
