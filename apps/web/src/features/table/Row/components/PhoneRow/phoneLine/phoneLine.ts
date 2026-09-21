@@ -10,7 +10,7 @@ export type PhoneLine =
 	| { kind: "releases"; words: string };
 
 // A ticket can link a closed pull request and a newer open one. The open
-// one is the work in flight, so it takes the line.
+// one is the current work, so it takes the line.
 const shownPr = (prRows: readonly TicketPr[]) => prRows.find((pr) => pr.state === "open") ?? prRows[0];
 
 // The first fact that the ticket holds, in this order: what its run says,

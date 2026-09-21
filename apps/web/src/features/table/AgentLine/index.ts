@@ -1,1 +1,1 @@
-export { AgentLine, AgentWords } from "./AgentLine";
+export { AgentLine } from "./AgentLine";

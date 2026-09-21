@@ -2,9 +2,9 @@ import type { TicketSummary } from "@trellis/api";
 import { cx, StatusIcon } from "@trellis/ui";
 import type { MouseEvent, ReactNode, Ref } from "react";
 import { compactRelativeTime } from "../../../../../lib/format";
-import { AgentWords } from "../../../AgentLine";
+import { AgentWords } from "../../../AgentWords";
 import type { TableKind } from "../../../columns";
-import { PrCells } from "../../../PrRow";
+import { PrCells } from "../../../PrCells";
 import { prPhoneCells } from "../../../PrRow/prRowText";
 import { phoneRowHeight } from "../../../rowHeights";
 import type { TicketAgentLine } from "../../../utils/agentLines";
@@ -82,7 +82,7 @@ function EpicCells({
 			{line !== null && (
 				<div
 					data-line={line.kind}
-					className="flex min-w-0 items-center gap-2 overflow-hidden pl-6 text-sm text-fg-muted"
+					className="flex min-w-0 items-center gap-2 overflow-hidden pl-5.5 text-sm text-fg-muted"
 				>
 					{phoneLineContent(line)}
 				</div>

@@ -1,4 +1,4 @@
-import { AttentionDot, cx } from "@trellis/ui";
+import { AgentWords } from "../AgentWords";
 import { agentLineHeight } from "../rowHeights";
 import type { TicketAgentLine } from "../utils/agentLines";
 
@@ -7,19 +7,6 @@ type AgentLineProps = {
 	// The offset of this line inside the virtual body.
 	top: number;
 };
-
-// The dot and the words of one agent line. The epic table draws them on the
-// line under a ticket row, and a phone row draws them on its second line.
-export function AgentWords({ line }: { line: TicketAgentLine }) {
-	return (
-		<>
-			{line.asks && <AttentionDot label="The run waits for a person." />}
-			<span className={cx("truncate", line.asks ? "text-warning" : "text-fg-muted")} title={line.words}>
-				{line.words}
-			</span>
-		</>
-	);
-}
 
 // What the run of a ticket says, on the line under that ticket's row in the
 // epic table. The line is 24 px tall whatever it holds, because the

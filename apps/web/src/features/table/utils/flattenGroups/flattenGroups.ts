@@ -74,7 +74,7 @@ export const flattenGroups = (groups: readonly TableGroup[], options: FlattenOpt
 };
 
 // The lines below 768 px. A phone row shows the run's words or a pull
-// request on its own second line, so the agent lines and the pull request
-// lines leave the list.
+// request on its own second line, so this removes the agent lines and the
+// pull request lines.
 export const phoneItems = (items: readonly TableItem[]): TableItem[] =>
 	items.filter((item) => item.kind !== "agent" && item.kind !== "pr");

@@ -11,10 +11,10 @@ export const rowHeights: Record<Density, number> = { comfortable: 36, compact: 3
 // request line and no agent line, so every ticket takes 56 px.
 export const phoneRowHeight = 56;
 
-// The row box of one pull request under a ticket row, 768 px and up. It
-// does not change with the density.
+// The row box of one pull request under a ticket row, 768 px and up. The
+// virtualizer reserves this height before the line renders.
 export const prRowHeight = 32;
 
-// The row box of the agent line under a ticket row, 768 px and up. It does
-// not change with the density.
+// The row box of the agent line under a ticket row, 768 px and up. The
+// virtualizer reserves this height before the line renders.
 export const agentLineHeight = 24;

@@ -5,9 +5,10 @@ import { serializeSearch, stripDefaults, type View, viewDefaults, viewOf } from 
 // every other list route. The epic page lists the tickets of every project
 // of the root when the URL names no scope, because an epic belongs to a
 // root and holds tickets of any project of that root. When the URL names no
-// group, the page groups by milestone 768 px and up, and by turn below:
-// on a phone a person answers questions and reads states, and the turn
-// groups put those first. The keys stay in the order of `searchParamOrder`.
+// group, the page groups by milestone at 768 px and up. Below 768 px it
+// groups by turn. On a phone a person answers questions and reads states,
+// and the turn groups put those first. The keys stay in the order of
+// `searchParamOrder`.
 //
 // `phone` is true below 768 px. The same URL can then open with another
 // group on a phone, and each device writes the group that differs from its
@@ -63,9 +64,11 @@ export const epicUrlSearch = (page: Partial<View>, phone = false): Partial<View>
 // The query string of an epic page URL, with the leading `?`, or "" when
 // the search holds only page defaults. `search` is a URL search or a page
 // search. Every link to an epic page with a search goes through this,
-// because `serializeSearch` drops `group=status` and `scope=self`.
-export const epicQueryString = (search: Partial<View>, phone = false): string =>
-	stringifySearchObject(epicUrlSearch(epicPageSearch(search, "", phone), phone));
+// because `serializeSearch` drops `group=status` and `scope=self`. It
+// leaves out the defaults of 768 px and up, so a link copied on a phone
+// writes `group=turn` and opens the same grouping on a desktop.
+export const epicQueryString = (search: Partial<View>): string =>
+	stringifySearchObject(epicUrlSearch(epicPageSearch(search, "")));
 
 // True when the query string of an epic page URL is exactly what
 // `epicUrlSearch` writes. `searchStr` is the encoded query string, so an

@@ -223,7 +223,7 @@ export function TableBody({
 								group={item.group.key}
 								phone={phone}
 								phoneLayout={tableKind}
-								agentLine={item.agentLine}
+								agentLine={phone ? item.agentLine : null}
 								focused={ticket.id === focusedId}
 								selected={selection.isSelected(ticket.id)}
 								selecting={selection.count > 0}

@@ -1,1 +1,1 @@
-export { PrCells, PrRow, type PrRowProps } from "./PrRow";
+export { PrRow, type PrRowProps } from "./PrRow";

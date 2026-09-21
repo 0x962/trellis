@@ -83,7 +83,6 @@ describe("epicSearch on a phone", () => {
 		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "milestone", scope }, phone)).toEqual({
 			group: "milestone",
 		});
-		expect(epicQueryString({ group: "milestone" }, phone)).toBe("?group=milestone");
 	});
 
 	test("the canonical check keeps the milestone group and refuses the turn group", () => {
