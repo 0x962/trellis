@@ -284,3 +284,32 @@ test("a frontend row stays incomplete without the equivalence proof", async () =
 
 	expect(summary.prRows[0]).toMatchObject({ kind: "frontend", evidence: 5, evidenceRequired: 6 });
 });
+
+test("the row verdict is the newest verdict of the person on the head commit", async () => {
+	const [row] = (
+		await db.execute(sql`SELECT pull_request_id AS id FROM ticket_pull_requests WHERE ticket_id = ${deletedTestTicket}`)
+	).rows as { id: string }[];
+	const revision = ulid();
+	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
+		VALUES ('crisp-fjord', 'agent', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO review_revisions (id, pr_id, base_sha, head_sha, document, created_at)
+		VALUES (${revision}, ${row!.id}, 'base', 'deleted-test-head', '{}', ${at})`);
+	const submit = (actor: string, verdict: string, minutes: number) => {
+		const createdAt = new Date(at.getTime() + minutes * 60_000);
+		return db.execute(sql`INSERT INTO review_submissions (id, pr_id, request_id, actor, document, created_at)
+			VALUES (${ulid()}, ${row!.id}, ${crypto.randomUUID()}, ${actor},
+				${{ verdict, revisionId: revision, createdAt: createdAt.toISOString() }}, ${createdAt})`);
+	};
+	await submit("Test", "changes_requested", 1);
+	await submit("Test", "approved", 2);
+	await submit("Test", "commented", 3);
+	await submit("crisp-fjord", "changes_requested", 4);
+
+	const summary = await db.transaction((tx) => ticketSummary(tx, deletedTestTicket));
+	expect(summary.prRows[0]?.verdict).toBe("approved");
+
+	await db.execute(sql`UPDATE pull_requests SET head_sha = 'pushed-head' WHERE id = ${row!.id}`);
+	const afterPush = await db.transaction((tx) => ticketSummary(tx, deletedTestTicket));
+	expect(afterPush.prRows[0]?.verdict).toBeNull();
+	await db.execute(sql`UPDATE pull_requests SET head_sha = 'deleted-test-head' WHERE id = ${row!.id}`);
+});

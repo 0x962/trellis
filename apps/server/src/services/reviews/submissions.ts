@@ -1,5 +1,6 @@
 import type { ReviewDelivery, ReviewSubmission } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import { submissionByPerson, submissionHeadSha } from "../../db/queries/pullRequestRows";
 import { rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
 import { notFound, type ServiceCtx } from "../support";
@@ -12,12 +13,19 @@ export async function deliveryRows(tx: Tx, id: string) {
 	);
 }
 export async function show(_ctx: ServiceCtx, tx: Tx, input: { id: string }): Promise<ReviewSubmission> {
-	const [row] = await rows<{ document: ReviewSubmission }>(
+	const [row] = await rows<{ document: ReviewSubmission; headSha: string | null; byPerson: boolean }>(
 		tx,
-		sql`SELECT document FROM review_submissions WHERE id = ${input.id}`,
+		sql`SELECT submission.document, ${submissionHeadSha(sql`submission`)} AS "headSha",
+			${submissionByPerson(sql`submission`)} AS "byPerson"
+			FROM review_submissions submission WHERE submission.id = ${input.id}`,
 	);
 	if (!row) throw notFound("review", input.id);
-	return { ...row.document, deliveries: await deliveryRows(tx, input.id) };
+	return {
+		...row.document,
+		headSha: row.headSha,
+		byPerson: row.byPerson,
+		deliveries: await deliveryRows(tx, input.id),
+	};
 }
 export async function history(ctx: ServiceCtx, tx: Tx, input: { pr: string }) {
 	const pr = await findPr(tx, input.pr);

@@ -54,6 +54,9 @@ export const TicketPrSchema = z.object({
 	skipped: CountSchema,
 	failedChecks: z.array(FailedCheckSchema),
 	openThreads: CountSchema,
+	// The current verdict of the person on the head commit, from
+	// `currentVerdict`. A verdict on an older head commit gives null.
+	verdict: z.enum(["approved", "changes_requested"]).nullable(),
 	// Each `TicketPrSchema` result carries the five newest executions of its ticket.
 	// A finding is a review comment that an agent of that execution wrote.
 	// `flowRunCount` gives the total number of executions for that ticket.

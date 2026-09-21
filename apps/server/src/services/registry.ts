@@ -48,6 +48,7 @@ import * as reviewRemote from "./reviews/remote";
 import * as reviewRevision from "./reviews/revision";
 import * as reviewRunDeliveries from "./reviews/runDeliveries";
 import * as reviewStatus from "./reviews/status";
+import * as reviewSubmissions from "./reviews/submissions";
 import * as reviewThreads from "./reviews/threads";
 import * as reviewTransfers from "./reviews/transfers";
 import * as search from "./search.ts";
@@ -171,6 +172,7 @@ export const services = {
 	"reviews.resolve": io("mutation", reviewThreads.resolve),
 	"reviews.edit": io("mutation", reviewMessages.edit),
 	"reviews.reaction": io("mutation", reviewMessages.reaction),
+	"reviews.submissions": io("read", reviewSubmissions.history),
 	"reviews.submit": io("mutation", reviewRemote.submit),
 	"reviews.apply": prepared("mutation", reviewApply.prepareApply, reviewApply.applyResult),
 	"reviews.dispatchDeliveries": prepared("mutation", reviewRunDeliveries.prepare, reviewRunDeliveries.finish),
