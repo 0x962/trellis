@@ -4,7 +4,7 @@ import { Button, toast } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { hasAssignedProcess } from "../../../../agents/hasAssignedProcess";
-import { sendBackLabel, sendBackMessage, sendBackResult } from "../../sendBackText/sendBackText";
+import { sendBackLabel, sendBackResult } from "../../sendBackText/sendBackText";
 import { DraftNote } from "../DraftNote";
 
 export type SendBackButtonProps = {
@@ -15,30 +15,33 @@ export type SendBackButtonProps = {
 	// The ticket that links this pull request, such as `TRL-203`.
 	ticket: string;
 	// The open agent assignment of the ticket, or null while the ticket has
-	// none. Its process can already be gone; the send then restarts it.
+	// none. Its process can already be gone; the click then restarts it.
 	run: AgentRun | null;
 	// The threads that leave with the click.
 	drafts: readonly string[];
 	onDone: () => void;
 };
 
-// `Send back` gives the review to one agent on one ticket. The click posts
-// the drafts, then makes that agent read them: a live agent takes a message,
-// an agent whose process is gone restarts first, and a ticket with no
-// assignment gets a new agent.
+// `Send back` gives the review to one agent on one ticket. The click makes
+// that agent live, then publishes the review with `sendBack`, which queues
+// one `review_deliveries` row for the agent. The delivery loop sends the
+// message, so an agent that is still starting still reads the review.
 export function SendBackButton({ pr, headSha, ticket, run, drafts, onDone }: SendBackButtonProps) {
 	const { client, orpc, queryClient } = useApp();
 	const [open, setOpen] = useState(false);
 	const [note, setNote] = useState("");
-	// True after the drafts reached GitHub. A send that fails after that point
-	// keeps the dialog open, and the next click must not post them twice.
-	const posted = useRef(false);
+	// The name of the agent the review went to. The click can start that
+	// agent, and the toast names the agent that took the review.
+	const took = useRef("");
 	const close = () => {
 		setOpen(false);
 		setNote("");
-		posted.current = false;
+		took.current = "";
 		sendBack.reset();
 	};
+	// The agent that takes the review. A live agent takes it as it is, an
+	// agent whose process ended restarts with its own conversation and
+	// workspace, and a ticket with no assignment gets a new agent.
 	const live = async () => {
 		if (run === null)
 			return client.agentRuns.start({
@@ -55,18 +58,22 @@ export function SendBackButton({ pr, headSha, ticket, run, drafts, onDone }: Sen
 	};
 	const sendBack = useMutation({
 		mutationFn: async () => {
-			if (!posted.current) {
-				await client.reviews.submit({ pr, headSha, verdict: "comment", body: note, threadIds: [...drafts] });
-				posted.current = true;
-			}
-			const agent = await live();
-			await client.agentRuns.send({ id: agent.id, text: sendBackMessage({ pr, ticket, drafts: drafts.length }) });
-			return agent;
+			if (took.current === "") took.current = (await live()).name;
+			await client.reviews.submit({
+				pr,
+				headSha,
+				verdict: "comment",
+				body: note,
+				threadIds: [...drafts],
+				sendBack: true,
+			});
+			return took.current;
 		},
-		onSuccess: (agent) => {
+		onSuccess: (name) => {
 			close();
-			toast.success("The review went back", { description: sendBackResult(agent.name) });
+			toast.success("The review went back", { description: sendBackResult(name) });
 			void queryClient.invalidateQueries({ queryKey: orpc.agentRuns.key() });
+			void queryClient.invalidateQueries({ queryKey: orpc.reviews.key() });
 			onDone();
 		},
 	});

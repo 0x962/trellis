@@ -41,8 +41,8 @@ test("the bar counts the drafts, names the agent, and keeps Merge live with thre
 	expect(html).toContain("not yet: 1 check failed · 1 of 4 evidence · TRL-167 not merged");
 	expect(html).toContain("Send back to crisp-fjord");
 	expect(html).toContain("Comment only");
-	expect(html).toContain("Merge");
-	expect(html).not.toContain("disabled");
+	expect(html).toMatch(/<button[^>]*aria-label="Merge"/);
+	expect(html).not.toMatch(/<button[^>]*aria-label="Merge"[^>]*disabled/);
 });
 
 test("a pull request with every condition met prints no condition line", () => {
@@ -64,5 +64,5 @@ test("a pull request that no ticket links offers no send back", () => {
 
 	expect(html).not.toContain("Send back");
 	expect(html).toContain("Comment only");
-	expect(html).toContain("Merge");
+	expect(html).toMatch(/<button[^>]*aria-label="Merge"/);
 });

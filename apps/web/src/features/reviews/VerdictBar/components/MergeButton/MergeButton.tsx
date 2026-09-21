@@ -1,6 +1,7 @@
+import { GitMerge } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import type { ReviewRevision } from "@trellis/api";
-import { Button, Checkbox, ConfirmDialog, toast } from "@trellis/ui";
+import { Checkbox, ConfirmDialog, IconButton, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { mergeAction } from "../../../reviewActions/reviewActions";
@@ -36,9 +37,9 @@ export function MergeButton({
 
 	return (
 		<>
-			<Button variant="primary" onClick={() => setConfirmOpen(true)}>
-				Merge
-			</Button>
+			<Tooltip content="Merge">
+				<IconButton label="Merge" icon={<GitMerge />} variant="primary" onClick={() => setConfirmOpen(true)} />
+			</Tooltip>
 			<ConfirmDialog
 				open={confirmOpen}
 				title={mergeQuestion(unmetConditions)}

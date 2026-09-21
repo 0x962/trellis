@@ -130,6 +130,11 @@ export const ReviewSubmitSchema = z
 		// The local threads that go to GitHub as review comments with this
 		// submission. Each must sit on the reviewed head.
 		threadIds: z.array(UlidSchema).max(200).default([]),
+		// True gives the review to the agent of the ticket: the server queues
+		// one `review_deliveries` row per open agent assignment of the ticket
+		// that links this pull request, and the delivery loop sends it. False
+		// publishes the review and reaches nobody.
+		sendBack: z.boolean().default(false),
 	})
 	.refine((value) => value.verdict === "approve" || value.body.length > 0, {
 		path: ["body"],
