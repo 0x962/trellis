@@ -51,10 +51,15 @@ export function TitleCell({ ticket }: TitleCellProps) {
 			)}
 			{attachmentCount > 0 && (
 				<Tooltip content={plural(attachmentCount, "attachment")}>
+					{/* The row covers itself with a link that opens the ticket, and `Row`
+					    turns the pointer off for a cell so that link takes the pointer.
+					    This mark takes the pointer back, or it never sees a hover and
+					    its tooltip never opens. A click on it still opens the ticket,
+					    because the click reaches the row. */}
 					<span
 						role="img"
 						aria-label={plural(attachmentCount, "attachment")}
-						className="inline-flex shrink-0 items-center gap-0.5 text-xs text-fg-muted tabular"
+						className="pointer-events-auto inline-flex shrink-0 items-center gap-0.5 text-xs text-fg-muted tabular"
 					>
 						<Paperclip aria-hidden="true" className="size-2.75" />
 						{formatCount(attachmentCount)}
