@@ -1,7 +1,7 @@
 import { ArrowSquareOut, X } from "@phosphor-icons/react";
 import { IconButton, Sheet, Tooltip } from "@trellis/ui";
 import { type ReactElement, type ReactNode, Suspense, useMemo, useRef, useState } from "react";
-import { PageSheetContext, usePageSheet } from "./pageSheetContext";
+import { PageSheetContext } from "./pageSheetContext";
 
 export type PageSheetProps = {
 	open: boolean;
@@ -11,6 +11,10 @@ export type PageSheetProps = {
 	// A link to the route of the page. The header draws the "Open full page"
 	// button as this link when it is set.
 	fullPage?: ReactElement;
+	// The width of the panel. The review of a pull request takes "wide", so
+	// its sheet covers the ticket sheet under it. Every other page takes the
+	// default.
+	width?: "page" | "wide";
 	children: ReactNode;
 };
 
@@ -28,10 +32,9 @@ export type PageSheetProps = {
 //   wait inside the sheet.
 //
 // A page in a sheet can open a second `PageSheet`, as a ticket does for a
-// pull request. The second sheet is wider, so it covers the first one.
-// Escape and a click beside the sheets close only the second sheet.
-export function PageSheet({ open, onClose, title, fullPage, children }: PageSheetProps) {
-	const under = usePageSheet();
+// pull request. The second sheet is the wide one, so it covers the first
+// one. Escape and a click beside the sheets close only the second sheet.
+export function PageSheet({ open, onClose, title, fullPage, width = "page", children }: PageSheetProps) {
 	const closeButton = useRef<HTMLButtonElement>(null);
 	const [topbar, setTopbar] = useState<HTMLElement | null>(null);
 	const value = useMemo(() => ({ topbar, close: onClose }), [topbar, onClose]);
@@ -40,7 +43,7 @@ export function PageSheet({ open, onClose, title, fullPage, children }: PageShee
 			open={open}
 			title={title}
 			bare
-			width={under === null ? "var(--page-sheet-width)" : "var(--page-sheet-over-width)"}
+			width={width === "page" ? "var(--page-sheet-width)" : "var(--page-sheet-wide-width)"}
 			initialFocus={closeButton}
 			onOpenChange={(next) => {
 				if (!next) onClose();

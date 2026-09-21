@@ -248,7 +248,6 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 						workingTicketIds={workingTicketIds}
 						prRows
 						agentLines={agentLines}
-						onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
 						emptyState={
 							hasFilters(search) ? (
 								<EmptyState

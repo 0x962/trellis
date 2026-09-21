@@ -5,13 +5,13 @@ import type { Project } from "@trellis/api";
 import { EmptyState, IconButton, Sheet, Tooltip, useMediaQuery } from "@trellis/ui";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar } from "../../shell/Topbar";
 import { SessionConversation } from "../SessionConversation";
 import { sessionComposerActions } from "../sessionComposerStore";
 import { SessionList } from "./components/SessionList";
-import { SessionTicketSheet } from "./components/SessionTicketSheet";
 import { sessionGroups } from "./sessionGroups";
 
 export function ProjectSessionsPage({ project }: { project: Project }) {
@@ -20,7 +20,6 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 		document.title = `${project.name} sessions · trellis`;
 	}, [project.name]);
 	const navigate = useNavigate();
-	const [ticketOpen, setTicketOpen] = useState(false);
 	const conversationHeading = useRef<HTMLHeadingElement>(null);
 	const returnToConversation = useRef(false);
 	const [listOpen, setListOpen] = useState(false);
@@ -39,7 +38,6 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	const selected = hash ? items.find((run) => run.id === hash) : (groups.sessions[0] ?? groups.ticketed[0] ?? items[0]);
 	const open = (id: string) => {
 		returnToConversation.current = true;
-		setTicketOpen(false);
 		setListOpen(false);
 		return navigate({ to: "/sessions/project/$project", params: { project: project.path }, hash: id });
 	};
@@ -101,7 +99,9 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 						session={sessions.data?.find((session) => session.runId === selected.id)}
 						readOnly={project.archivedAt !== null}
 						onDeleted={() => void open("")}
-						onOpenTicket={selected.ticketIdentifier ? () => setTicketOpen(true) : undefined}
+						onOpenTicket={
+							selected.ticketIdentifier ? () => pageSheetActions.openTicket(selected.ticketIdentifier!) : undefined
+						}
 					/>
 				) : runs.isPending || sessions.isPending ? (
 					<p role="status" className="p-4 text-sm text-fg-muted">
@@ -139,14 +139,6 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 				>
 					{sessionList}
 				</Sheet>
-			)}
-			{selected?.ticketIdentifier && (
-				<SessionTicketSheet
-					key={selected.id}
-					identifier={selected.ticketIdentifier}
-					open={ticketOpen}
-					onClose={() => setTicketOpen(false)}
-				/>
 			)}
 		</>
 	);

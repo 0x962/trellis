@@ -1,13 +1,14 @@
 import { ArrowRight } from "@phosphor-icons/react";
 import type { TicketSummary } from "@trellis/api";
 import { StatusIcon } from "@trellis/ui";
+import { pageSheetActions } from "../../../../stores/pageSheetStore";
 import type { PaletteRow, RowDeps } from "../../rows";
 
 // The Tickets section and the jump row a typed ID makes.
 
 const openTicket = (deps: RowDeps, identifier: string) => () => {
 	deps.close();
-	deps.action.navigate(`/t/${identifier}`);
+	pageSheetActions.openTicket(identifier);
 };
 
 // A ticket row reads like a list row: the status icon, the ID in faint
@@ -30,6 +31,6 @@ export const jumpRow = (identifier: string, deps: RowDeps): PaletteRow => ({
 	icon: <ArrowRight />,
 	run: () => {
 		deps.close();
-		deps.action.navigate(`/t/${identifier}`);
+		pageSheetActions.openTicket(identifier);
 	},
 });

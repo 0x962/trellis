@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { useTable } from "@tanstack/react-table";
 import type { TicketSummary } from "@trellis/api";
 import { type MouseEvent, type ReactNode, useMemo, useRef, useState } from "react";
@@ -6,6 +7,7 @@ import { flushSync } from "react-dom";
 import { useScopeStatuses } from "../../../hooks/useScopeStatuses";
 import { useStableCallback } from "../../../hooks/useStableCallback";
 import { useApp } from "../../../lib/appContext";
+import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { useCommandContext } from "../../command/hooks/useCommandContext";
 import { composerActions } from "../../composer/composerStore";
@@ -45,7 +47,6 @@ export type TicketTableProps = {
 	// `waits` and the `releases` columns.
 	tableKind?: TableKind;
 	search: Partial<View>;
-	onOpenPage: (identifier: string) => void;
 	emptyState?: ReactNode;
 	// Orders the rows of each group ahead of the view sort. Memoize it: a new identity regroups the rows.
 	rowRank?: TableGroupsOptions["rowRank"];
@@ -74,7 +75,6 @@ export function TicketTable({
 	routeKey,
 	tableKind = "list",
 	search,
-	onOpenPage,
 	emptyState,
 	rowRank,
 	prRows = false,
@@ -82,6 +82,7 @@ export function TicketTable({
 	workingTicketIds,
 }: TicketTableProps) {
 	const { orpc } = useApp();
+	const navigate = useNavigate();
 	const view = viewOf(search);
 	const storedDensity = useUiStore((state) => state.density);
 	const density = search.density ?? storedDensity;
@@ -186,10 +187,15 @@ export function TicketTable({
 		else void applyChange([ticket], change, "row");
 	});
 
+	// A click and Enter open the ticket in the sheet over this list, so the
+	// list keeps its scroll. The `o` key opens the ticket page on its route.
 	const openTicket = useStableCallback((id: string) => {
 		const ticket = byId.get(id);
-		if (ticket !== undefined) onOpenPage(ticket.identifier);
+		if (ticket !== undefined) pageSheetActions.openTicket(ticket.identifier);
 	});
+	const openPage = useStableCallback((id: string) =>
+		navigate({ to: "/t/$identifier", params: { identifier: byId.get(id)!.identifier } }),
+	);
 
 	const copier = useCopyTickets();
 	const copy = useStableCallback((id: string, kind: CopyKind) => void copier.copy(byId.get(id)!, kind));
@@ -241,7 +247,7 @@ export function TicketTable({
 		groupKeys: groups.filter((group) => group.label !== null).map((group) => group.key),
 		toggleGroup: collapsed.toggle,
 		openTicket,
-		openPage: (id) => onOpenPage(byId.get(id)!.identifier),
+		openPage,
 		openComposer: () => openNew(),
 		copy,
 		copySelection: copyIds,

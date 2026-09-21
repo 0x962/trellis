@@ -20,6 +20,8 @@ Each page supplies its data and available actions. It does not choose new contro
 | --- | --- | --- |
 | Page title and actions | `Topbar`, `PageTitle` | `apps/web/src/features/shell/Topbar/Topbar.tsx` |
 | A page over the current page | `PageSheet` | `apps/web/src/features/shell/PageSheet/PageSheet.tsx` |
+| The ticket sheet and the review sheet over it | `PageSheetHost`, `pageSheetActions` | `apps/web/src/features/shell/PageSheetHost/PageSheetHost.tsx` |
+| The name of a ticket in a list | `TicketLink` | `apps/web/src/features/shell/TicketLink/TicketLink.tsx` |
 | Filter chips and controls | `FilterBar`, `Chip` | `packages/ui/src/domain/FilterBar/FilterBar.tsx` |
 | Searchable filter choices | `FilterPopover`, `Command` | `packages/ui/src/domain/FilterPopover/FilterPopover.tsx` |
 | Searchable model choices | `ModelPicker` | `apps/web/src/features/agents/ModelPicker/ModelPicker.tsx` |
@@ -46,13 +48,19 @@ Each page supplies its data and available actions. It does not choose new contro
 
 ## Pages in a sheet
 
-Use `PageSheet` to show a ticket or a pull request over the current page, such as the ticket of a session.
+Use `PageSheet` to show a ticket or a pull request over the current page.
 Render the same page component as the route. Do not build a compact copy of the page.
 `Topbar` renders the title and the actions of the page into the header of the sheet.
 The header adds the Open full page and Close buttons, and it shows them while the page loads.
-A page in a sheet opens a related page in a second `PageSheet`. A ticket does this for a pull request.
-The second sheet is wider and covers the first one. Escape and an outside click close only the top sheet.
 Read `usePageSheet` where a page must differ in a sheet, such as an action that returns to a list.
+
+`pageSheetStore` holds the sheet stack: one ticket, and one pull request over it.
+`PageSheetHost` mounts once in the root shell and draws both sheets.
+Open a ticket with `pageSheetActions.openTicket`, and a pull request with `pageSheetActions.openPullRequest`.
+Give a ticket name in a list the `TicketLink` component: a plain click opens the sheet, and the href keeps the ticket page for a new tab.
+A list never navigates to `/t/$identifier`. The route stays for a link that arrives from outside the app.
+The review sheet takes the wide width, so it covers the ticket sheet under it.
+Escape, the back gesture and a click beside the sheets close the top sheet only.
 
 ## Filters and display options
 
