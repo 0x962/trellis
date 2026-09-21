@@ -11,15 +11,11 @@ import {
 	type ReviewAction,
 	type ReviewActionMeta,
 	type ReviewActionMetadata,
-	type ReviewRequest,
 } from "../../../reviewActions/reviewActions";
-import { ReviewerPicker } from "./components/ReviewerPicker";
 import { ReviewSubmit } from "./components/ReviewSubmit";
 
 type Meta = ReviewActionMeta & {
 	baseRefName?: string;
-	author?: { login: string };
-	reviewRequests?: ReviewRequest[];
 };
 
 export function ReviewHeaderActions({
@@ -71,7 +67,6 @@ export function ReviewHeaderActions({
 		<div className="review-header-actions">
 			{primary !== null && (
 				<>
-					<ReviewerPicker pr={pr} author={meta.author?.login} requests={meta.reviewRequests ?? []} onDone={onDone} />
 					{showReview && <ReviewSubmit pr={pr} revision={revision} openThreads={openThreads} onDone={onDone} />}
 					{primary === "ready" && (
 						<Button variant="primary" processing={action.isPending} onClick={() => action.mutate("ready")}>
