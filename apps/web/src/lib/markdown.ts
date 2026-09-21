@@ -29,16 +29,21 @@ const renderer = {
 	},
 };
 
-// A renderer for a read-only view. Descriptions and comments come from
-// agents and from curl, so nothing that runs survives: no script, no event
-// handler, and no javascript: link.
-export const createMarkdownRenderer = () => {
+// Markdown to HTML for a read-only view, with nothing removed. The HTML
+// holds whatever the markdown holds, so only `renderMarkdown` may reach a
+// page with it.
+export const createMarkdownParser = () => {
 	const marked = new Marked({
 		gfm: true,
 		extensions: [ticketIdExtension],
 		renderer,
 	});
-	return (markdown: string): string => sanitizeHtml(marked.parse(markdown, { async: false }));
+	return (markdown: string): string => marked.parse(markdown, { async: false });
 };
 
-export const renderMarkdown = createMarkdownRenderer();
+const parseMarkdown = createMarkdownParser();
+
+// The HTML of a description, a comment, or the message of an agent run.
+// The text comes from agents and from curl, so nothing that runs survives:
+// no script, no event handler, and no javascript: link.
+export const renderMarkdown = (markdown: string): string => sanitizeHtml(parseMarkdown(markdown));

@@ -1,25 +1,42 @@
 import { AttentionDot, cx } from "@trellis/ui";
+import { ReadOnlyMarkdown } from "../../../components/ReadOnlyMarkdown";
 import type { TicketAgentLine } from "../utils/agentLines";
 
 type AgentWordsProps = {
 	line: TicketAgentLine;
-	// True on the agent line of the epic table: the words wrap onto as many
-	// lines as they need, and the dot gets a 16 px slot of its own, so the
-	// words start where the number of a pull request row starts. False on
-	// the phone row, where the words stay on one line and truncate.
+	// The markdown renderer of the message. It defaults to the renderer of
+	// the app, which reads the browser DOM to strip whatever runs. A test
+	// runs without that DOM and passes the parser alone.
+	render?: (markdown: string) => string;
+	// True on the agent line of the epic table: the message renders as
+	// markdown, it wraps onto as many lines as it needs, and the dot gets a
+	// 16 px slot of its own, so the text starts where the number of a pull
+	// request row starts. False on the phone row, where the words stay on one
+	// line as plain text and truncate.
 	wrap?: boolean;
 };
 
 // The dot and the words of one agent line. The epic table draws them on the
-// line under a ticket row, and a phone row draws them on its second line.
-export function AgentWords({ line, wrap = false }: AgentWordsProps) {
+// line under a ticket row or under a pull request line, and a phone row
+// draws them on its second line.
+//
+// An agent writes its message in markdown, so the epic table renders it with
+// `ReadOnlyMarkdown`, the component the ticket description uses. The
+// `agent-markdown` rules of `app.css` keep the blocks tight and hold every
+// heading at the size of the line text, so one message cannot shout over the
+// table. Those rules take the text color from the element above, which is
+// why the color of the line sits on the span and not on the markdown. The
+// phone row has one line of room, so it prints the raw text.
+export function AgentWords({ line, wrap = false, render }: AgentWordsProps) {
 	const dot = line.asks && <AttentionDot label="The run waits for a person." />;
 	const tone = line.asks ? "text-warning" : "text-fg-muted";
 	if (wrap) {
 		return (
 			<>
 				<span className="flex h-4 w-4 shrink-0 items-center justify-center">{dot}</span>
-				<span className={cx("min-w-0 flex-1 wrap-anywhere", tone)}>{line.words}</span>
+				<span className={cx("min-w-0 flex-1", tone)}>
+					<ReadOnlyMarkdown markdown={line.words} className="agent-markdown" render={render} />
+				</span>
 			</>
 		);
 	}

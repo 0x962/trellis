@@ -169,3 +169,26 @@ svg {
 	max-width: 100%;
 	border-radius: var(--radius-md);
 }
+
+/*
+ * The agent line of the epic table renders the message of a run with the
+ * same markdown rules, on one line of a table. These rules come after the
+ * rules above, so they win where the two say different things.
+ *
+ * The color is the color of the line, yellow while the run waits for a
+ * person and muted otherwise. A heading stays at the size of the line text,
+ * so a message cannot shout over the rows. The blocks stand 4 px apart, so a
+ * short message takes one line of table.
+ */
+.agent-markdown {
+	color: inherit;
+}
+.agent-markdown > * + * {
+	margin-top: 4px;
+}
+.agent-markdown :is(h1, h2, h3, h4, h5, h6) {
+	font-size: inherit;
+}
+.agent-markdown :is(ul, ol) {
+	padding-left: 20px;
+}

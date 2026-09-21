@@ -187,6 +187,7 @@ export function TableBody({
 									badge={group.badge}
 									forYou={group.forYou}
 									note={group.note}
+									done={group.done}
 									status={group.status}
 									category={group.category}
 									expanded={group.expanded}
@@ -209,13 +210,22 @@ export function TableBody({
 									line={item.line}
 									top={virtual.start}
 									last={item.last}
+									depth={item.depth}
 									index={virtual.index}
 									measureRef={virtualizer.measureElement}
 								/>
 							);
 						}
 						if (item.kind === "pr") {
-							return <PrRow key={virtual.key} pr={item.pr} top={virtual.start} last={item.last} />;
+							return (
+								<PrRow
+									key={virtual.key}
+									pr={item.pr}
+									top={virtual.start}
+									last={item.last}
+									hasChildLines={item.hasChildLines}
+								/>
+							);
 						}
 						if (item.kind === "more") {
 							return (
