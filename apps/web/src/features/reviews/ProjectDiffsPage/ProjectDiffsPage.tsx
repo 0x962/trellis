@@ -2,13 +2,13 @@ import { ArrowRight, ArrowsClockwise, Plus, TextAlignLeft } from "@phosphor-icon
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { type Check, type Project, reviewRef } from "@trellis/api";
-import { Button, CheckRibbon, EmptyState, IconButton, Input, Segmented, Sheet, Tooltip } from "@trellis/ui";
+import { Button, CheckRibbon, EmptyState, Input, Segmented, Sheet, Tooltip } from "@trellis/ui";
 import { ReviewStatus } from "@trellis/ui/review";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
-import { Topbar } from "../../shell/Topbar";
+import { Topbar, TopbarActionButton } from "../../shell/Topbar";
 import "@trellis/ui/review.css";
 
 const checkWords = (checks: readonly Check[]) => {
@@ -106,7 +106,7 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 				actions={
 					<>
 						<Tooltip content="Refresh pull requests">
-							<IconButton
+							<TopbarActionButton
 								label="Refresh pull requests"
 								icon={<ArrowsClockwise />}
 								disabled={query.isFetching}
@@ -114,7 +114,7 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 							/>
 						</Tooltip>
 						<Tooltip content="Open review">
-							<IconButton label="Open review" icon={<Plus />} variant="primary" onClick={() => setOpenSheet(true)} />
+							<TopbarActionButton label="Open review" icon={<Plus />} onClick={() => setOpenSheet(true)} />
 						</Tooltip>
 					</>
 				}

@@ -2,13 +2,13 @@ import { List, Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import type { Project } from "@trellis/api";
-import { EmptyState, IconButton, Sheet, Tooltip, useMediaQuery } from "@trellis/ui";
+import { EmptyState, Sheet, Tooltip, useMediaQuery } from "@trellis/ui";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
-import { Topbar } from "../../shell/Topbar";
+import { Topbar, TopbarActionButton } from "../../shell/Topbar";
 import { SessionConversation } from "../SessionConversation";
 import { sessionComposerActions } from "../sessionComposerStore";
 import { SessionList } from "./components/SessionList";
@@ -64,7 +64,7 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 					<>
 						{phone && (
 							<Tooltip content="Session list">
-								<IconButton
+								<TopbarActionButton
 									label="Session list"
 									icon={<List />}
 									onClick={() => {
@@ -76,7 +76,7 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 						)}
 						{phone && (
 							<Tooltip content="New session">
-								<IconButton
+								<TopbarActionButton
 									label="New session"
 									icon={<Plus />}
 									disabled={project.archivedAt !== null}

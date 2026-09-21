@@ -1,11 +1,11 @@
 import { Plus } from "@phosphor-icons/react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { IconButton, Tooltip } from "@trellis/ui";
+import { Tooltip } from "@trellis/ui";
 import { useEffect } from "react";
 import { useApp } from "../../../lib/appContext";
 import { PageTitle } from "../../shell/PageTitle";
-import { Topbar } from "../../shell/Topbar";
+import { Topbar, TopbarActionButton } from "../../shell/Topbar";
 import { SessionConversation } from "../SessionConversation";
 import { sessionComposerActions } from "../sessionComposerStore";
 
@@ -24,7 +24,7 @@ export function SessionPage({ id }: { id: string }) {
 			<Topbar
 				actions={
 					<Tooltip content="New session">
-						<IconButton
+						<TopbarActionButton
 							label="New session"
 							icon={<Plus />}
 							onClick={() => sessionComposerActions.open(session.projectPath)}
