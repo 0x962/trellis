@@ -13,6 +13,7 @@ import { compactRelativeTime } from "../../../lib/format";
 import type { Density } from "../../../stores/uiStore";
 import { ActorAvatar } from "../../agents/ActorAvatar";
 import { type ColumnId, gridColumnsClass, gridStyle, narrowHidden, statusIconOnly, type TableKind } from "../columns";
+import { TreeStem } from "../TreeLines";
 import type { TicketAgentLine } from "../utils/agentLines";
 import type { TicketDisclosure } from "../utils/flattenGroups";
 import { EpicCell } from "./components/EpicCell";
@@ -60,6 +61,10 @@ export type RowProps = {
 	// The line of the ticket's run, for the phone row.
 	agentLine?: TicketAgentLine | null;
 	disclosure?: TicketDisclosure;
+	// True when child lines follow the row. The row then starts the tree
+	// rule under its status icon and draws no bottom border, so the ticket
+	// and its child lines read as one group.
+	hasChildLines?: boolean;
 	focused?: boolean;
 	selected?: boolean;
 	// True while any row is selected.
@@ -99,6 +104,7 @@ export const Row = memo(function Row({
 	phoneLayout = "list",
 	agentLine = null,
 	disclosure = null,
+	hasChildLines = false,
 	focused = false,
 	selected = false,
 	selecting = false,
@@ -250,8 +256,9 @@ export const Row = memo(function Row({
 				transform: top === undefined ? undefined : `translateY(${top}px)`,
 			}}
 			className={cx(
-				"group/row absolute top-0 left-0 grid w-full items-center gap-3 border-b border-border px-5 outline-none transition-colors duration-hover max-md:gap-2 max-md:px-4",
+				"group/row absolute top-0 left-0 grid w-full items-center gap-3 px-5 outline-none transition-colors duration-hover max-md:gap-2 max-md:px-4",
 				gridColumnsClass,
+				!hasChildLines && "border-b border-border",
 				density === "comfortable" ? "text-base" : "text-sm",
 				"before:absolute before:top-1 before:bottom-1 before:left-0 before:w-0.5 before:rounded-r-sm before:bg-accent before:opacity-0 before:content-['']",
 				"hover:bg-band data-focused:bg-accent-soft/60 data-focused:before:opacity-100 data-selected:bg-accent-soft",
@@ -275,6 +282,7 @@ export const Row = memo(function Row({
 					{cells[column]}
 				</div>
 			))}
+			{hasChildLines && <TreeStem />}
 			<HiddenPickers
 				ticket={ticket}
 				columns={columns}

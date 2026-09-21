@@ -66,9 +66,9 @@ const heightOf = (item: TableItem, rowHeight: number, headerHeight: number) => {
 	return rowHeight;
 };
 
-// The scroll container and the virtual list inside it. Every line has a
-// fixed height, so the spacer is the sum of the lines and never moves
-// when data arrives.
+// The scroll container and the virtual list inside it. Every line but the
+// agent line has a fixed height. An agent line wraps its words, so the
+// virtualizer measures it once it renders and moves the lines below it.
 export function TableBody({
 	items: allItems,
 	tableKind,
@@ -203,10 +203,19 @@ export function TableBody({
 							);
 						}
 						if (item.kind === "agent") {
-							return <AgentLine key={virtual.key} line={item.line} top={virtual.start} />;
+							return (
+								<AgentLine
+									key={virtual.key}
+									line={item.line}
+									top={virtual.start}
+									last={item.last}
+									index={virtual.index}
+									measureRef={virtualizer.measureElement}
+								/>
+							);
 						}
 						if (item.kind === "pr") {
-							return <PrRow key={virtual.key} pr={item.pr} top={virtual.start} />;
+							return <PrRow key={virtual.key} pr={item.pr} top={virtual.start} last={item.last} />;
 						}
 						if (item.kind === "more") {
 							return (
@@ -233,6 +242,7 @@ export function TableBody({
 								phoneLayout={tableKind}
 								agentLine={phone ? item.agentLine : null}
 								disclosure={item.disclosure}
+								hasChildLines={item.hasChildLines}
 								focused={ticket.id === focusedId}
 								selected={selection.isSelected(ticket.id)}
 								selecting={selection.count > 0}

@@ -40,9 +40,14 @@ export type TableItem =
 			ticket: TicketSummary;
 			agentLine: TicketAgentLine | null;
 			disclosure: TicketDisclosure;
+			// True when child lines follow the row. The row then starts the
+			// tree rule under its status icon and draws no bottom border.
+			hasChildLines: boolean;
 	  }
-	| { kind: "agent"; key: string; group: TableGroup; line: TicketAgentLine }
-	| { kind: "pr"; key: string; group: TableGroup; pr: TicketPr }
+	// `last` is true on the final child line of a ticket. That line ends the
+	// tree rule with a corner and draws the bottom border of the group.
+	| { kind: "agent"; key: string; group: TableGroup; line: TicketAgentLine; last: boolean }
+	| { kind: "pr"; key: string; group: TableGroup; pr: TicketPr; last: boolean }
 	| { kind: "more"; key: string; group: TableGroup };
 
 export type FlattenOptions = {
@@ -77,16 +82,20 @@ export const flattenGroups = (groups: readonly TableGroup[], options: FlattenOpt
 		for (const ticket of group.rows) {
 			const line = options.agentLines?.[ticket.id];
 			const hasPrRows = options.prRows === true && ticket.prRows.length > 0;
-			const disclosure = ticketDisclosure(ticket, hasPrRows || line !== undefined, options.expandedTickets ?? []);
-			items.push({ kind: "row", key: ticket.id, group, ticket, agentLine: line ?? null, disclosure });
-			if (disclosure === "collapsed") continue;
-			if (options.prRows === true) {
+			const hasChildren = hasPrRows || line !== undefined;
+			const disclosure = ticketDisclosure(ticket, hasChildren, options.expandedTickets ?? []);
+			const hasChildLines = hasChildren && disclosure !== "collapsed";
+			items.push({ kind: "row", key: ticket.id, group, ticket, agentLine: line ?? null, disclosure, hasChildLines });
+			if (!hasChildLines) continue;
+			if (hasPrRows) {
 				// Two tickets can link the same pull request, so the ticket id is
 				// part of the key that the virtualizer uses to hold a line.
-				for (const pr of ticket.prRows)
-					items.push({ kind: "pr", key: `pr:${ticket.id}:${pr.owner}/${pr.repo}#${pr.number}`, group, pr });
+				ticket.prRows.forEach((pr, index) => {
+					const last = line === undefined && index === ticket.prRows.length - 1;
+					items.push({ kind: "pr", key: `pr:${ticket.id}:${pr.owner}/${pr.repo}#${pr.number}`, group, pr, last });
+				});
 			}
-			if (line !== undefined) items.push({ kind: "agent", key: `agent:${ticket.id}`, group, line });
+			if (line !== undefined) items.push({ kind: "agent", key: `agent:${ticket.id}`, group, line, last: true });
 		}
 		if (group.hasMore) items.push({ kind: "more", key: `more:${group.key}`, group });
 	}
