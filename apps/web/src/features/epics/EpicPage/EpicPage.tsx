@@ -1,11 +1,12 @@
-import { PencilSimple, Plus, Trash } from "@phosphor-icons/react";
+import { ChartBar, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { AgentRun, Project, TicketSummary } from "@trellis/api";
-import { EmptyState, IconButton, Menu, useMediaQuery } from "@trellis/ui";
+import { EmptyState, IconButton, Menu, Tooltip, useMediaQuery } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { epicHref, projectHref, projectSlashPath, rootKey } from "../../../lib/projectPath";
+import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { useUiStore } from "../../../stores/uiStore";
 import { FilterBar } from "../../filters/FilterBar";
 import { type View, viewOf } from "../../filters/grammar";
@@ -51,12 +52,12 @@ const noRuns: readonly AgentRun[] = [];
 const breadcrumbLinkClass =
 	"inline-flex h-7 max-md:h-11 pointer-coarse:h-11 items-center rounded-md px-1 text-fg-muted transition-colors duration-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
 
-// One epic: the progress band, the plan, the resources, and the tickets of
+// One epic: the current work line, the plan, the resources, and the tickets of
 // the epic in the ticket table of the project routes. The table search is
 // the URL search with `epic` fixed to this epic, and it groups by wave
 // (by turn below 768 px) when the URL names no group. An epic belongs to a
 // root and holds tickets of any project of that root, so the table reads
-// the root with its sub-projects, and the rows match the counts of the band
+// the root with its sub-projects, and the rows match the counts of the epic
 // and the tickets that Add offers. The filter bar receives `epic` as a
 // fixed filter, so it draws no epic chip and "Copy as CLI" still names the
 // epic. Add puts a ticket of the project into the epic; the bulk bar of the
@@ -188,6 +189,13 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 			<Topbar
 				actions={
 					<>
+						<Tooltip content="Statistics">
+							<IconButton
+								label="Statistics"
+								icon={<ChartBar />}
+								onClick={() => pageSheetActions.openStats(record.ref)}
+							/>
+						</Tooltip>
 						{!readOnly && (
 							<TicketPicker
 								project={project.key}
@@ -224,11 +232,10 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 			</Topbar>
 			<div className="page-card flex flex-1 flex-col overflow-hidden">
 				{readOnly && <ArchivedBanner project={project} />}
-				{/* The band, the plan and the resources take at most half of the card and scroll inside it, so the table always keeps rows on screen. */}
+				{/* The current work line, the plan, and the resources take at most half of the card. The ticket table keeps the remaining space. */}
 				<div className="max-h-1/2 shrink-0 overflow-y-auto border-b border-border">
 					<EpicProgress
 						epic={record}
-						routeKey={routeKey}
 						running={running}
 						splat={splat}
 						search={tableSearch}
@@ -248,7 +255,6 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 						workingTicketIds={workingTicketIds}
 						prRows
 						agentLines={agentLines}
-						onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
 						emptyState={
 							hasFilters(search) ? (
 								<EmptyState

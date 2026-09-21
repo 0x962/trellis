@@ -1,6 +1,5 @@
 import { ArrowCounterClockwise, ArrowDown, Clock, EyeSlash } from "@phosphor-icons/react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import type { NeedsYouListInput } from "@trellis/api";
 import {
 	EmptyState,
@@ -19,6 +18,7 @@ import { compactRelativeTime } from "../../../../../lib/format";
 import { uiActions, useUiStore } from "../../../../../stores/uiStore";
 import { ActorAvatar } from "../../../../agents/ActorAvatar";
 import { commandActions } from "../../../../command/commandStore";
+import { TicketLink } from "../../../../shell/TicketLink";
 import { useNeedsYouUpdate } from "../../../useNeedsYou";
 
 export function InboxSection({
@@ -102,13 +102,7 @@ export function InboxSection({
 							snippet={item.comment?.body}
 							sender={item.comment?.actorName}
 							wake={visibility === "snoozed" ? (item.snoozedUntil ?? undefined) : undefined}
-							link={
-								<Link
-									to="/t/$identifier"
-									params={{ identifier: item.ticket.identifier }}
-									search={{ thread: item.comment?.threadId }}
-								/>
-							}
+							link={<TicketLink identifier={item.ticket.identifier} />}
 							actions={[
 								{
 									label: "Snooze",

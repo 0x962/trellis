@@ -2,9 +2,9 @@ import { GitPullRequest, Plus } from "@phosphor-icons/react";
 import type { Ticket, TicketSummary } from "@trellis/api";
 import { Button, CheckRibbon, EmptyState, PriorityIcon, SectionHeader, StatusIcon, TicketId } from "@trellis/ui";
 import { compactRelativeTime } from "../../../lib/format";
+import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { ActorAvatar } from "../../agents/ActorAvatar";
 import { composerActions } from "../../composer";
-import { useOpenTicket } from "../hooks/useOpenTicket";
 
 export type SubTicketsProps = {
 	ticket: Ticket;
@@ -31,7 +31,6 @@ const prLabel = (pr: NonNullable<TicketSummary["pr"]>) =>
 // create dialog with this ticket as the parent, so a sub-ticket takes a
 // status, a priority and a description like any other ticket.
 export function SubTickets({ ticket }: SubTicketsProps) {
-	const open = useOpenTicket();
 	const done = ticket.children.filter((child) => child.status.category === "done").length;
 	const total = ticket.children.length;
 	const fill = total === 0 ? 0 : (done / total) * 100;
@@ -70,7 +69,7 @@ export function SubTickets({ ticket }: SubTicketsProps) {
 					<ul>
 						{ticket.children.map((child) => (
 							<li key={child.id}>
-								<ChildRow child={child} onOpen={() => open(child.identifier)} />
+								<ChildRow child={child} onOpen={() => pageSheetActions.openTicket(child.identifier)} />
 							</li>
 						))}
 					</ul>

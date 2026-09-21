@@ -6,6 +6,7 @@ import { compactRelativeTime, formatCount } from "../../../lib/format";
 import { projectSlashPath } from "../../../lib/projectPath";
 import type { View } from "../../filters/grammar";
 import { ProjectKey } from "../../shell/ProjectKey";
+import { TicketLink } from "../../shell/TicketLink";
 import { highlight } from "../utils/highlight";
 
 export type SearchResultsProps = {
@@ -69,7 +70,7 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 							return (
 								<tr key={ticket.id} className={phoneRowClass}>
 									<td data-line="phone" colSpan={6}>
-										<Link to="/t/$identifier" params={{ identifier: ticket.identifier }} className={phoneLinkClass}>
+										<TicketLink identifier={ticket.identifier} className={phoneLinkClass}>
 											<span className="flex items-center gap-3">
 												<PriorityIcon priority={ticket.priority} />
 												<span className="font-mono text-sm text-fg-faint tabular">{ticket.identifier}</span>
@@ -84,7 +85,7 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 											<span data-line="title" className="truncate text-sm">
 												{highlight(ticket.title, q)}
 											</span>
-										</Link>
+										</TicketLink>
 									</td>
 								</tr>
 							);
@@ -95,9 +96,9 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 									<PriorityIcon priority={ticket.priority} />
 								</td>
 								<td className="w-20">
-									<Link to="/t/$identifier" params={{ identifier: ticket.identifier }} className={linkClass}>
+									<TicketLink identifier={ticket.identifier} className={linkClass}>
 										<span className="font-mono text-sm text-fg-faint tabular">{ticket.identifier}</span>
-									</Link>
+									</TicketLink>
 								</td>
 								<td className="truncate pr-3 text-base">{highlight(ticket.title, q)}</td>
 								<td className="w-40 pr-3" title={projectSlashPath(ticket.project.path)}>

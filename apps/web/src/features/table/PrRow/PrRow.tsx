@@ -1,4 +1,5 @@
 import type { TicketPr } from "@trellis/api";
+import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { PrCells } from "../PrCells";
 import { prRowHeight } from "../rowHeights";
 import { prRowCells } from "./prRowText";
@@ -14,20 +15,21 @@ export type PrRowProps = {
 // virtualizer reserves that height before the line renders. Below 768 px
 // the table draws no such line, and the phone row shows the pull request.
 //
-// The line is text, not a control. The pull request opens from the ticket
-// page and from the review page.
+// A click opens the review in the wide sheet over this list.
 //
 // `overflow-hidden` on the row and `shrink-0` on each cell keep the cells
 // at their full width. A narrow window cuts the last cells off at the right
 // edge. No cell wraps, and the row never scrolls sideways.
 export function PrRow({ pr, top }: PrRowProps) {
 	return (
-		<div
+		<button
+			type="button"
 			data-pr-row={`${pr.owner}/${pr.repo}#${pr.number}`}
 			style={{ height: `${prRowHeight}px`, transform: `translateY(${top}px)` }}
-			className="absolute top-0 left-0 flex w-full items-center gap-2 overflow-hidden border-b border-border pr-5 pl-19 text-sm text-fg-muted"
+			className="absolute top-0 left-0 flex w-full items-center gap-2 overflow-hidden border-b border-border pr-5 pl-19 text-left text-sm text-fg-muted transition-colors duration-hover hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+			onClick={() => pageSheetActions.openPullRequest(pr.url)}
 		>
 			<PrCells pr={pr} cells={prRowCells(pr)} />
-		</div>
+		</button>
 	);
 }

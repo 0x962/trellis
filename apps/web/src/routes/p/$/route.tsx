@@ -26,6 +26,7 @@ import { ListPending } from "../../../features/table/ListPending";
 import { TicketTable } from "../../../features/table/TicketTable";
 import { type AppContext, useApp } from "../../../lib/appContext";
 import { parseProjectSplat, projectHref, projectSlashPath } from "../../../lib/projectPath";
+import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { useUiStore } from "../../../stores/uiStore";
 import { ProjectLoadError } from "./components/ProjectLoadError";
 
@@ -178,8 +179,6 @@ function ProjectPage() {
 			search,
 		});
 
-	const openTicket = (identifier: string) => navigate({ to: "/t/$identifier", params: { identifier } });
-
 	const archived = project.archivedAt !== null;
 
 	// The server refuses every write to an archived project. The disabled
@@ -221,18 +220,13 @@ function ProjectPage() {
 									projectRef={ref}
 									filters={toCountsQuery(full, { statuses: project.statuses })}
 									storageKey={ref}
-									onOpenTicket={openTicket}
+									onOpenTicket={pageSheetActions.openTicket}
 								/>
 							</div>
 							<ListFooter total={counts?.total} sort={boardSortLabel} />
 						</>
 					) : (
-						<TicketTable
-							project={ref}
-							routeKey={routeKey}
-							search={search}
-							onOpenPage={(identifier) => void navigate({ to: "/t/$identifier", params: { identifier } })}
-						/>
+						<TicketTable project={ref} routeKey={routeKey} search={search} />
 					)}
 				</fieldset>
 			</div>
