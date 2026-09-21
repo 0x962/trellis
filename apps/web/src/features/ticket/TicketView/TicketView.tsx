@@ -1,11 +1,11 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import { asksQuestion, questionParts, reviewRef, type Ticket } from "@trellis/api";
+import { asksQuestion, questionParts, type Ticket } from "@trellis/api";
 import { cx, EmptyState, SectionHeader, useMediaQuery } from "@trellis/ui";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
+import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { AttachmentGrid } from "../../attachments/AttachmentGrid";
 import { useUploads } from "../../attachments/hooks/useUploads";
 import { NotFoundState } from "../../shell/NotFoundState";
@@ -26,7 +26,6 @@ import { SubTickets } from "../SubTickets";
 import { Title } from "../Title";
 import { DropOverlay, useDropOverlay } from "./components/DropOverlay";
 import { ParentChip } from "./components/ParentChip";
-import { PullRequestSheet } from "./components/PullRequestSheet";
 import { TicketSkeleton } from "./components/TicketSkeleton";
 
 // The contract reads the repository name of the project, and the ticket must
@@ -47,12 +46,13 @@ export type TicketViewProps = {
 // its question block takes the place of every region after the ask. The
 // resources region follows both, because a question names a resource too.
 //
-// The page renders the same on its route and in a `PageSheet`,
-// with these differences in a sheet: a pull request opens in a second sheet
-// over the ticket and does not replace it, the browser tab keeps the title
-// of the page under the sheet, and the sheet handles Escape.
+// A pull request of the ticket opens in the review sheet, over this page
+// on its route and over the ticket sheet in the stack.
+//
+// The page renders the same on its route and in a `PageSheet`, with these
+// differences in a sheet: the browser tab keeps the title of the page under
+// the sheet, and the sheet handles Escape.
 export function TicketView({ identifier }: TicketViewProps) {
-	const navigate = useNavigate();
 	const { orpc } = useApp();
 	const inSheet = usePageSheet() !== null;
 	const query = useQuery(orpc.tickets.get.queryOptions({ input: { ticket: identifier } }));
@@ -61,27 +61,14 @@ export function TicketView({ identifier }: TicketViewProps) {
 	const drop = useDropOverlay(uploads.addFiles);
 	const narrow = useMediaQuery("(max-width: 767px)");
 	const { isArchived, notice } = useArchivedProjects();
-	const [pullRequest, setPullRequest] = useState<string | null>(null);
-	const openPullRequest = (url: string) => {
-		if (inSheet) {
-			setPullRequest(url);
-			return;
-		}
-		const ref = reviewRef(url);
-		void navigate({
-			to: "/reviews/$owner/$repo/$number",
-			params: { owner: ref.owner, repo: ref.repo, number: String(ref.number) },
-			search: { ticket: identifier },
-		});
-	};
 
 	useEffect(() => {
-		if (inSheet || query.data === undefined || pullRequest !== null) return;
+		if (inSheet || query.data === undefined) return;
 		document.title = `${query.data.identifier} · ${query.data.title}`;
 		return () => {
 			document.title = "trellis";
 		};
-	}, [inSheet, pullRequest, query.data]);
+	}, [inSheet, query.data]);
 
 	if (query.error !== null) {
 		if (query.error instanceof ORPCError && query.error.code === "NOT_FOUND") {
@@ -103,18 +90,6 @@ export function TicketView({ identifier }: TicketViewProps) {
 	// On a question, `QuestionBlock` prints the options and the reason, so the
 	// ask prints only the prose around them, and a person cannot edit it here.
 	const ask = question ? questionParts(ticket.description).ask : "";
-	const backToTicket = (
-		<a
-			href={`/t/${ticket.identifier}`}
-			aria-label={`Back to ${ticket.identifier}`}
-			onClick={(event) => {
-				event.preventDefault();
-				setPullRequest(null);
-			}}
-		>
-			{ticket.identifier}
-		</a>
-	);
 
 	// The server refuses every write to a ticket under an archived project.
 	// The disabled fieldset and the edit keys enforce `readOnly`.
@@ -166,7 +141,7 @@ export function TicketView({ identifier }: TicketViewProps) {
 								releases={ticket.releases}
 								answeredQuestions={ticket.answeredQuestions}
 							/>
-							<EvidenceBlock ticket={ticket} onOpenPullRequest={openPullRequest} />
+							<EvidenceBlock ticket={ticket} onOpenPullRequest={pageSheetActions.openPullRequest} />
 							<OutcomeBlock outcome={ticket.outcome} />
 							<RunBlock key={ticket.id} ticket={ticket} />
 						</>
@@ -201,7 +176,6 @@ export function TicketView({ identifier }: TicketViewProps) {
 					{drop.over && <DropOverlay identifier={ticket.identifier} />}
 				</div>
 			</fieldset>
-			{inSheet && <PullRequestSheet pr={pullRequest} parent={backToTicket} onClose={() => setPullRequest(null)} />}
 		</>
 	);
 }

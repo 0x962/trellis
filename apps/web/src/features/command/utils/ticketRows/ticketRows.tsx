@@ -16,6 +16,7 @@ import { PriorityIcon, StatusIcon } from "@trellis/ui";
 import type { ReactNode } from "react";
 import { labelNames } from "../../../../lib/labelNames";
 import { projectSlashPath, rootKey } from "../../../../lib/projectPath";
+import { pageSheetActions } from "../../../../stores/pageSheetStore";
 import { composerActions } from "../../../composer";
 import { epicState } from "../../../table/utils/epicState";
 import { labelStates } from "../../../table/utils/labelStates";
@@ -104,7 +105,7 @@ export const ticketRows = (deps: RowDeps): PaletteRow[] => {
 		"ticket.copyBranch": run(deps, () => void copyBranch()),
 		"ticket.copyBrief": run(deps, () => void copyAgentBrief(action, identifier)),
 		"ticket.copyLink": run(deps, () => void copyLink(action, identifier)),
-		"ticket.open": run(deps, () => action.navigate(`/t/${identifier}`)),
+		"ticket.open": run(deps, () => pageSheetActions.openTicket(identifier)),
 		"ticket.delete": run(deps, () => void deleteTicket(action, identifier)),
 	};
 	const rows = itemsOfSection("ticket").map((item) => ({

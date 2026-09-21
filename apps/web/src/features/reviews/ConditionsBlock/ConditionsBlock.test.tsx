@@ -32,13 +32,13 @@ const merged: Conditions = {
 test("the block prints the readiness word", () => {
 	const html = renderToStaticMarkup(<ConditionsBlock conditions={open} />);
 
-	expect(html).toMatch(/READY TO MERGE<\/span><\/h2><div[^>]*><span[^>]*>not yet<\/span>/);
+	expect(html).toMatch(/Ready to merge<\/span><\/h2><div[^>]*><span[^>]*>not yet<\/span>/);
 });
 
 test("a merged pull request prints the word merged", () => {
 	const html = renderToStaticMarkup(<ConditionsBlock conditions={merged} />);
 
-	expect(html).toMatch(/READY TO MERGE<\/span><\/h2><div[^>]*><span[^>]*>merged<\/span>/);
+	expect(html).toMatch(/Ready to merge<\/span><\/h2><div[^>]*><span[^>]*>merged<\/span>/);
 });
 
 test("the nine labels print in one order", () => {
@@ -77,8 +77,8 @@ test("the block draws no button and no link", () => {
 test("the short form prints four lines and no readiness word", () => {
 	const html = renderToStaticMarkup(<ShortConditions conditions={open} />);
 
-	expect(html).toContain("MERGE CONDITIONS");
-	expect(html).not.toContain("READY TO MERGE");
+	expect(html).toContain("Merge conditions");
+	expect(html).not.toContain("Ready to merge");
 	expect(html).not.toContain("not yet");
 	for (const label of ["evidence", "checks", "threads", "ancestors"]) expect(html).toContain(`>${label}<`);
 	for (const label of ["size", "risk", "tests", "flows", "base"]) expect(html).not.toContain(`>${label}<`);

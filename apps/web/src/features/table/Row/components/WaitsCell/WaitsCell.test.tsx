@@ -1,30 +1,7 @@
-import { expect, mock, test } from "bun:test";
+import { expect, test } from "bun:test";
 import type { TicketSummary } from "@trellis/api";
-import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-
-// `Link` reads the router of the page it renders in, and this test renders
-// no router. The stand-in writes the path the real `Link` writes, so the
-// test still proves which ticket each identifier opens.
-mock.module("@tanstack/react-router", () => ({
-	Link: ({
-		params,
-		className,
-		title,
-		children,
-	}: {
-		params: { identifier: string };
-		className: string;
-		title: string;
-		children: ReactNode;
-	}) => (
-		<a href={`/t/${params.identifier}`} className={className} title={title}>
-			{children}
-		</a>
-	),
-}));
-
-const { WaitsCell } = await import("./WaitsCell");
+import { WaitsCell } from "./WaitsCell";
 
 const dependency = (identifier: string, isQuestion = false): TicketSummary["waitsOn"][number] => ({
 	identifier,
@@ -84,7 +61,7 @@ test("prints no ready word while a ticket still holds this one back", () => {
 	expect(html).toContain("OP-32");
 });
 
-test("each identifier opens the page of the ticket it names", () => {
+test("each identifier links to the page of the ticket it names", () => {
 	const html = renderToStaticMarkup(<WaitsCell waitsOn={[dependency("OP-32"), dependency("OP-52")]} ready={false} />);
 
 	expect(html).toContain('href="/t/OP-32"');

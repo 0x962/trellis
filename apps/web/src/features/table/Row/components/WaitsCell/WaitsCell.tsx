@@ -1,6 +1,6 @@
-import { Link } from "@tanstack/react-router";
 import type { TicketSummary } from "@trellis/api";
 import { AttentionDot, TicketId } from "@trellis/ui";
+import { TicketLink } from "../../../../shell/TicketLink";
 
 export type WaitsCellProps = {
 	// The tickets this ticket waits for. The server leaves out a ticket that
@@ -13,7 +13,8 @@ export type WaitsCellProps = {
 const shownIdentifiers = 2;
 
 // `onRowClick` in TicketTable leaves a click inside an anchor alone, so a
-// click here opens the ticket it names and the row stays closed.
+// click here opens the ticket it names and the row of the waiting ticket
+// stays closed.
 const linkClass =
 	"inline-flex h-7 items-center rounded-md px-0.5 transition-colors duration-hover hover:bg-fg/6 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
 
@@ -32,14 +33,9 @@ export function WaitsCell({ waitsOn, ready }: WaitsCellProps) {
 							·
 						</span>
 					)}
-					<Link
-						to="/t/$identifier"
-						params={{ identifier: dependency.identifier }}
-						className={linkClass}
-						title={dependency.title}
-					>
+					<TicketLink identifier={dependency.identifier} className={linkClass} title={dependency.title}>
 						<TicketId id={dependency.identifier} size="sm" />
-					</Link>
+					</TicketLink>
 					{dependency.isQuestion && <AttentionDot label={`${dependency.identifier} is a question for you.`} />}
 				</span>
 			))}
