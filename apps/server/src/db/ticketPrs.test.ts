@@ -109,17 +109,43 @@ beforeAll(async () => {
 		files: [{ path: "packages/ui/src/Dialog.tsx", additions: 1, deletions: 1 }],
 		changedFiles: 2,
 	});
+	const flowRun = ulid();
 	await db.execute(sql`INSERT INTO review_threads (id, pr_id, document, updated_at) VALUES
-		(${ulid()}, ${first}, ${{ status: "open" }}, ${at}),
+		(${ulid()}, ${first}, ${{ status: "open", author: flowRun }}, ${at}),
 		(${ulid()}, ${first}, ${{ status: "resolved" }}, ${at})`);
-	for (const [index, state] of ["running", "succeeded", "failed", "canceled", "waiting", "running", "failed"].entries())
+	let newestExecution = "";
+	for (const [index, state] of [
+		"running",
+		"succeeded",
+		"failed",
+		"canceled",
+		"waiting",
+		"running",
+		"failed",
+	].entries()) {
+		const execution = ulid();
+		newestExecution = execution;
 		await db.execute(sql`INSERT INTO flow_executions (
 			id, flow_id, ticket_id, project_id, actor_kind, actor_name, request_id,
 			request, doc, state, revision, created_at, updated_at
 		) VALUES (
-			${ulid()}, ${ulid()}, ${ticket}, ${root}, 'human', 'Test', ${crypto.randomUUID()},
-			'{}', '{}', ${{ status: state }}, 1, ${new Date(at.getTime() + index)}, ${at}
+			${execution}, ${ulid()}, ${ticket}, ${root}, 'human', 'Test', ${crypto.randomUUID()},
+			'{}', ${{ flow: { name: `Code Reviewer ${index + 1}` } }}, ${{ status: state }}, 1,
+			${new Date(at.getTime() + index)}, ${at}
 		)`);
+	}
+	const flowAttempt = ulid();
+	await db.execute(sql`INSERT INTO agent_runs (
+		id, name, kind, instruction, project_id, project_path, ticket_id, ticket_identifier,
+		session_id, created_at, updated_at
+	) VALUES (
+		${flowRun}, 'Code Reviewer', 'flow', 'Review the pull request.', ${root}, '/tmp/test', ${ticket},
+		'TST-1', 'review-session', ${at}, ${at}
+	)`);
+	await db.execute(sql`INSERT INTO agent_execution_attempts (id, run_id, generation, token_hash, created_at)
+		VALUES (${flowAttempt}, ${flowRun}, 1, 'hash', ${at})`);
+	await db.execute(sql`INSERT INTO flow_execution_tasks (execution_id, key, run_id, attempt_id, created_at)
+		VALUES (${newestExecution}, 'review', ${flowRun}, ${flowAttempt}, ${at})`);
 	await db.execute(sql`INSERT INTO pull_requests (
 		id, owner, repo, number, additions, deletions, changed_files, files, url, state, head_sha,
 		head_ref, base_ref, review_state, checks, ci_state, created_at, updated_at
@@ -171,11 +197,11 @@ test("a ticket summary carries one row for each pull request", async () => {
 		],
 		openThreads: 1,
 		flowRuns: [
-			{ status: "failed" },
-			{ status: "running" },
-			{ status: "waiting" },
-			{ status: "canceled" },
-			{ status: "failed" },
+			{ name: "Code Reviewer 7", status: "failed", findings: 1 },
+			{ name: "Code Reviewer 6", status: "running", findings: 0 },
+			{ name: "Code Reviewer 5", status: "waiting", findings: 0 },
+			{ name: "Code Reviewer 4", status: "canceled", findings: 0 },
+			{ name: "Code Reviewer 3", status: "failed", findings: 0 },
 		],
 		flowRunCount: 7,
 		baseRef: "main",

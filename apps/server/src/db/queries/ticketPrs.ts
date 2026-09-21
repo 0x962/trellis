@@ -163,14 +163,30 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 				COALESCE(max(recent.total), 0)::int AS total,
 				COALESCE(
 					jsonb_agg(
-						jsonb_build_object('status', recent.status)
+						jsonb_build_object(
+							'name', recent.name,
+							'status', recent.status,
+							'findings', recent.findings
+						)
 						ORDER BY recent.created_at DESC, recent.id DESC
 					),
 					'[]'::jsonb
 				) AS items
 			FROM (
 				SELECT
-					execution.id, execution.created_at, execution.state->>'status' AS status,
+					execution.id,
+					execution.created_at,
+					execution.doc->'flow'->>'name' AS name,
+					execution.state->>'status' AS status,
+					(
+						SELECT count(DISTINCT thread.id)::int
+						FROM flow_execution_tasks task
+						JOIN agent_runs run ON run.id = task.run_id
+						JOIN review_threads thread
+							ON thread.pr_id = p.id
+							AND thread.document->>'author' = run.id
+						WHERE task.execution_id = execution.id
+					) AS findings,
 					count(*) OVER () AS total
 				FROM flow_executions execution
 				WHERE execution.ticket_id = t.id

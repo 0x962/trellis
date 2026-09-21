@@ -11,7 +11,7 @@ const allMet: Conditions = {
 	evidence: { present: 4, required: 4, kind: "backend" },
 	checks: { pass: 37, fail: 0, pending: 0, skipped: 35 },
 	threads: 0,
-	flows: { total: 1, newest: ["passed"] },
+	flows: { total: 1, newest: { name: "Code Reviewer", status: "passed", findings: 0 } },
 	base: { behindBy: 3, baseRefName: "master" },
 	ancestors: [],
 };
@@ -40,7 +40,7 @@ test("every rule of the readiness word has a phrase", () => {
 		threads: 1,
 		tests: { count: 0, failsOn: null, passesOn: null, noneApplies: false },
 		evidence: null,
-		flows: { total: 2, newest: ["running", "failed"] },
+		flows: { total: 2, newest: { name: "Code Reviewer", status: "failed", findings: 2 } },
 	});
 
 	expect(unmet).toEqual([
@@ -49,7 +49,6 @@ test("every rule of the readiness word has a phrase", () => {
 		"1 open thread",
 		"no test registered",
 		"evidence unknown",
-		"1 flow running",
 		"1 flow failed",
 	]);
 	expect(unmetConditions({ ...allMet, tests: null })).toEqual(["tests unknown"]);

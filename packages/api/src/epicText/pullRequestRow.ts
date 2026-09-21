@@ -49,6 +49,16 @@ const checkFacts = (pr: TicketPr): string[] =>
 const threadFacts = (pr: TicketPr): string[] =>
 	pr.openThreads === 0 ? [] : [countWord(pr.openThreads, "thread", "threads")];
 
+// An open pull request owes its evidence floor. The server sends both counts
+// as null until it can build that floor.
+const evidenceFacts = (pr: TicketPr): string[] => {
+	if (pr.state !== "open") return [];
+	if (pr.evidence === null || pr.evidenceRequired === null || pr.evidence === 0) return ["no evidence"];
+	return [
+		pr.evidence === pr.evidenceRequired ? "evidence complete" : `evidence ${pr.evidence} of ${pr.evidenceRequired}`,
+	];
+};
+
 // `succeeded` reads `passed`, the word the check counts already use for the
 // same outcome.
 const flowWords: Record<TicketPr["flowRuns"][number]["status"], string> = {
@@ -77,6 +87,7 @@ const factGroups: ReadonlyArray<(pr: TicketPr) => string[]> = [
 	sizeFacts,
 	checkFacts,
 	threadFacts,
+	evidenceFacts,
 	flowFacts,
 	turnFacts,
 ];
