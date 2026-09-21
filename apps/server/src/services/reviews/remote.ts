@@ -82,8 +82,7 @@ export async function action(ctx: PrepareCtx, input: { pr: string; action: Actio
 		state: string;
 		headRefName: string;
 	};
-	if (meta.headRefOid !== input.headSha)
-		throw invalidInput("headSha", "The PR head changed. Refresh before this action.");
+	if (meta.headRefOid !== input.headSha) throw fail("PR_HEAD_MOVED", { currentHeadSha: meta.headRefOid });
 	const a = input.action;
 	if (a.startsWith("live-")) {
 		if (`${ref.owner}/${ref.repo}` !== "canary-technologies-corp/canary")

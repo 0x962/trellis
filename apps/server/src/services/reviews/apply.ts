@@ -79,8 +79,7 @@ export async function prepareApply(ctx: PrepareCtx, input: ReviewApply): Promise
 		await gh(ctx, ["pr", "view", ref.url, "--json", "headRefOid,headRefName,headRepository,headRepositoryOwner,state"]),
 	) as HeadMeta;
 	if (meta.state !== "OPEN") throw invalidInput("pr", "Suggestions apply to an open pull request only.");
-	if (meta.headRefOid !== input.headSha)
-		throw invalidInput("headSha", "The PR head changed. Refresh before you apply a suggestion.");
+	if (meta.headRefOid !== input.headSha) throw fail("PR_HEAD_MOVED", { currentHeadSha: meta.headRefOid });
 	const repository = headRepositoryOf(ref, meta);
 	const byPath = new Map<string, ReviewThread[]>();
 	for (const thread of threads) byPath.set(thread.path, [...(byPath.get(thread.path) ?? []), thread]);

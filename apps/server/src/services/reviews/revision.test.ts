@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
-import { comparisonFacts } from "./revision.ts";
+import type { PrepareCtx } from "../support.ts";
+import { comparisonFacts, loadCurrentRevision } from "./revision.ts";
 
 // The shape `gh api repos/<owner>/<repo>/compare/<base>...<head>` answered for
 // canary-technologies-corp/canary#57080, cut to the fields the page reads.
@@ -21,4 +22,33 @@ test("reads the shared commit and how far the head is behind the base", () => {
 
 test("a head that holds every commit of the base is zero commits behind", () => {
 	expect(comparisonFacts(answer(0)).behindBy).toBe(0);
+});
+
+test("loads the revision again when the head changes during the first diff", async () => {
+	let metadataReads = 0;
+	const gh = async (_queue: string, args: string[]) => {
+		if (args[0] === "pr" && args[1] === "view" && args.at(-1) !== "headRefOid,baseRefOid") {
+			metadataReads += 1;
+			const suffix = metadataReads === 1 ? "old" : "new";
+			return {
+				ok: true as const,
+				stdout: JSON.stringify({ headRefOid: `head-${suffix}`, baseRefOid: `base-${suffix}` }),
+			};
+		}
+		if (args[0] === "api") return { ok: true as const, stdout: answer(0) };
+		if (args[0] === "pr" && args[1] === "diff") return { ok: true as const, stdout: `patch-${metadataReads}` };
+		return {
+			ok: true as const,
+			stdout: JSON.stringify({ headRefOid: "head-new", baseRefOid: "base-new" }),
+		};
+	};
+	const loaded = await loadCurrentRevision({ gh } as PrepareCtx, {
+		owner: "acme",
+		repo: "app",
+		number: 29,
+		url: "https://github.com/acme/app/pull/29",
+	});
+	expect(metadataReads).toBe(2);
+	expect(loaded.meta.headRefOid).toBe("head-new");
+	expect(loaded.patch).toBe("patch-2");
 });

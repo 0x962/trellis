@@ -1,6 +1,4 @@
-import { ArrowsClockwise } from "@phosphor-icons/react";
 import { type ReviewRevision, reviewRef } from "@trellis/api";
-import { IconButton, Tooltip } from "@trellis/ui";
 import { type ReactNode, useEffect } from "react";
 import { usePageSheet } from "../../shell/PageSheet";
 import { PageTitle } from "../../shell/PageTitle";
@@ -9,13 +7,11 @@ import { Topbar } from "../../shell/Topbar";
 type Props = {
 	pr: string;
 	revision: ReviewRevision | null;
-	refreshing: boolean;
-	onRefresh: () => void;
 	// The link to the page the review opened from: the Diffs page of a
 	// project, or the ticket. A review opened by its URL has none.
 	parent?: ReactNode;
 };
-export function ReviewHeader({ pr, revision, refreshing, onRefresh, parent }: Props) {
+export function ReviewHeader({ pr, revision, parent }: Props) {
 	const ref = reviewRef(pr);
 	const meta = revision?.meta as
 		| {
@@ -42,18 +38,7 @@ export function ReviewHeader({ pr, revision, refreshing, onRefresh, parent }: Pr
 		};
 	}, [inSheet, meta?.title, pr]);
 	return (
-		<Topbar
-			actions={
-				<Tooltip content="Refresh from GitHub">
-					<IconButton
-						label="Refresh from GitHub"
-						icon={<ArrowsClockwise />}
-						disabled={refreshing}
-						onClick={onRefresh}
-					/>
-				</Tooltip>
-			}
-		>
+		<Topbar>
 			<PageTitle parent={parent} title={`${ref.repo} #${ref.number}`} />
 		</Topbar>
 	);
