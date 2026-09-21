@@ -1,3 +1,4 @@
+import { Tooltip } from "../../primitives/Tooltip";
 import { cx } from "../../utils/cx";
 import { type Check, type CheckBucket, checkCountWords, type RibbonSize, ribbonGap, ribbonSegments } from "./segments";
 
@@ -26,32 +27,36 @@ const buckets: Record<CheckBucket, string> = {
 // segment is keyed by its position, because GitHub check names repeat (one
 // job in two workflows, a matrix re-run). The position is what a segment
 // stands for.
+//
+// The whole ribbon carries one tooltip, which counts the checks of each
+// outcome. A tooltip on each segment would open a second popup over the
+// first one while the pointer crosses the bar.
 export function CheckRibbon({ checks, size = "full", className }: CheckRibbonProps) {
 	if (checks.length === 0) return null;
 	const count = checks.length === 1 ? "1 check" : `${checks.length} checks`;
 	const label = `${count}: ${checkCountWords(checks)}`;
 	return (
-		<span
-			role="img"
-			aria-label={label}
-			title={label}
-			className={cx(
-				"inline-flex shrink-0 overflow-hidden",
-				size === "mini" ? "h-1.25 w-8" : size === "wide" ? "h-3 w-48" : "h-1.5 w-16",
-				gaps[ribbonGap(size, checks.length)],
-				className,
-			)}
-		>
-			{ribbonSegments(size, checks).map((segment, index) => (
-				<i
-					// biome-ignore lint/suspicious/noArrayIndexKey: the position is the segment's identity
-					key={index}
-					data-bucket={segment.bucket}
-					title={segment.title}
-					style={{ width: segment.width }}
-					className={cx("block shrink-0 rounded-hairline", buckets[segment.bucket])}
-				/>
-			))}
-		</span>
+		<Tooltip content={label}>
+			<span
+				role="img"
+				aria-label={label}
+				className={cx(
+					"inline-flex shrink-0 overflow-hidden",
+					size === "mini" ? "h-1.25 w-8" : size === "wide" ? "h-3 w-48" : "h-1.5 w-16",
+					gaps[ribbonGap(size, checks.length)],
+					className,
+				)}
+			>
+				{ribbonSegments(size, checks).map((segment, index) => (
+					<i
+						// biome-ignore lint/suspicious/noArrayIndexKey: the position is the segment's identity
+						key={index}
+						data-bucket={segment.bucket}
+						style={{ width: segment.width }}
+						className={cx("block shrink-0 rounded-hairline", buckets[segment.bucket])}
+					/>
+				))}
+			</span>
+		</Tooltip>
 	);
 }

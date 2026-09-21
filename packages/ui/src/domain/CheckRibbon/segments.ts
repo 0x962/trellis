@@ -21,8 +21,6 @@ export const outcomeWords: Record<CheckBucket, string> = {
 // One drawn piece of a ribbon: one check or one group of adjacent checks.
 export type RibbonSegment = {
 	bucket: CheckBucket;
-	// The tooltip names the outcomes of all checks that the segment represents.
-	title: string;
 	// The width in px. The widths and the gaps of one ribbon add up to the box width.
 	width: number;
 };
@@ -93,7 +91,6 @@ export const ribbonSegments = (size: RibbonSize, checks: readonly Check[]): Ribb
 	);
 	return groups.map((group, index) => ({
 		bucket: worstBucket(group),
-		title: group.length === 1 ? `${group[0]!.name}: ${outcomeWords[group[0]!.bucket]}` : checkCountWords(group),
 		width: widths[index]! / 100,
 	}));
 };

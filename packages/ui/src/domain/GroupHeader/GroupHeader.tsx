@@ -96,7 +96,16 @@ export function GroupHeader({
 				{icon}
 				{label}
 			</button>
-			{done && <Checks aria-hidden="true" data-done-mark="" className="size-4 shrink-0 text-success" />}
+			{done && (
+				<Tooltip content="Every ticket is done">
+					<Checks
+						role="img"
+						aria-label="Every ticket is done"
+						data-done-mark=""
+						className="size-4 shrink-0 text-success"
+					/>
+				</Tooltip>
+			)}
 			{mark}
 			<span data-count="" className={cx("text-fg-faint tabular", appearance === "sidebar" ? "text-xs" : "text-sm")}>
 				{count}

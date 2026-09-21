@@ -1,4 +1,5 @@
 import { CheckCircle, Circle, CircleDashed, XCircle } from "@phosphor-icons/react";
+import { Tooltip } from "../../primitives/Tooltip";
 import { cx } from "../../utils/cx";
 
 export type StatusCategory = "todo" | "started" | "review" | "done" | "canceled";
@@ -16,8 +17,10 @@ export type StatusIconProps = {
 	// For the started category: the share of sub-tickets that are done, 0 to 1.
 	// Without it the disk is half full.
 	progress?: number;
-	// The status name. A labeled icon is an image with a name; an unlabeled one
-	// is decoration beside the name it stands for.
+	// The status name. A labeled icon is an image with a name, and it shows
+	// that name in a tooltip. An unlabeled one is decoration beside the name
+	// it stands for, and the control around it carries the name and the
+	// tooltip.
 	label?: string;
 	className?: string;
 };
@@ -102,6 +105,26 @@ export function StatusIcon({
 		"aria-label": label,
 		"aria-hidden": label ? undefined : ("true" as const),
 	};
+	const icon = mark({ category, shape, tone, progress, shared, className });
+	return label === undefined ? icon : <Tooltip content={label}>{icon}</Tooltip>;
+}
+
+// The drawn mark, without the tooltip around it.
+function mark({
+	category,
+	shape,
+	tone,
+	progress,
+	shared,
+	className,
+}: {
+	category: StatusCategory;
+	shape: ReviewShape;
+	tone: string;
+	progress?: number;
+	shared: Record<string, string | undefined>;
+	className?: string;
+}) {
 	if (category === "started") {
 		return (
 			<span

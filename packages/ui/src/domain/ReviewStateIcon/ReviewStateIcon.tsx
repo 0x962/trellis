@@ -1,5 +1,6 @@
 import { Checks, Circle, X } from "@phosphor-icons/react";
 import type { ComponentType } from "react";
+import { Tooltip } from "../../primitives/Tooltip";
 import { cx } from "../../utils/cx";
 
 export type PullRequestReviewState = "none" | "review_required" | "approved" | "changes_requested";
@@ -7,6 +8,11 @@ export type PullRequestReviewState = "none" | "review_required" | "approved" | "
 export type ReviewStateIconProps = {
 	reviewState: PullRequestReviewState;
 	isDraft: boolean;
+	// The words for this mark, in place of the GitHub review state words.
+	// The local verdict of the person who looks at the screen needs its own
+	// words: the mark then says what that person did, not what GitHub asks
+	// of a reviewer.
+	label?: string;
 };
 
 type Look = { label: string; tone: string; Icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }> };
@@ -29,18 +35,22 @@ export const reviewStateLabel = (reviewState: PullRequestReviewState, isDraft: b
 	looks[isDraft ? "idle" : keys[reviewState]].label;
 
 // The review state of one pull request uses a distinct icon and color. A
-// draft uses the idle icon because it does not accept a review.
-export function ReviewStateIcon({ reviewState, isDraft }: ReviewStateIconProps) {
+// draft uses the idle icon because it does not accept a review. The
+// tooltip and the sr-only text say the same words, so a person who points
+// at the mark and a person who hears it read learn the same thing.
+export function ReviewStateIcon({ reviewState, isDraft, label }: ReviewStateIconProps) {
 	const key = isDraft ? "idle" : keys[reviewState];
-	const { label, tone, Icon } = looks[key];
+	const { tone, Icon } = looks[key];
+	const words = label ?? looks[key].label;
 	return (
-		<span
-			data-review-state={key}
-			title={label}
-			className={cx("relative inline-flex size-5 shrink-0 items-center justify-center", tone)}
-		>
-			<Icon className="size-4" aria-hidden={true} />
-			<span className="sr-only">{label}</span>
-		</span>
+		<Tooltip content={words}>
+			<span
+				data-review-state={key}
+				className={cx("relative inline-flex size-5 shrink-0 items-center justify-center", tone)}
+			>
+				<Icon className="size-4" aria-hidden={true} />
+				<span className="sr-only">{words}</span>
+			</span>
+		</Tooltip>
 	);
 }
