@@ -1,1 +1,7 @@
-export { type PageSheetState, pageSheetActions, usePageSheetStore } from "./pageSheetStore";
+export {
+	type BrowserParent,
+	browserParent,
+	type PageSheetState,
+	pageSheetActions,
+	usePageSheetStore,
+} from "./pageSheetStore";

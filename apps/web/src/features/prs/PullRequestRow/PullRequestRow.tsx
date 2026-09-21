@@ -2,6 +2,7 @@ import { GithubLogo, Warning } from "@phosphor-icons/react";
 import type { LinkedPullRequest, TicketSummary } from "@trellis/api";
 import { cx, IconButton, PrGlyph, ReviewStateIcon } from "@trellis/ui";
 import { tabularClass } from "../../../lib/format";
+import { openLink } from "../../../lib/openLink";
 import { PrActions } from "./components/PrActions";
 
 export type PullRequestRowProps = {
@@ -41,7 +42,7 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 				icon={<GithubLogo />}
 				size="xs"
 				className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
-				onClick={() => window.open(pr.url, "_blank", "noopener")}
+				onClick={() => openLink(pr.url)}
 			/>
 			<PrActions ticket={ticket} pr={pr} />
 			<ReviewStateIcon reviewState={pr.reviewState} isDraft={pr.isDraft} />

@@ -15,6 +15,7 @@ import { PageSheet } from "../../../PageSheet";
 import { PageTitle } from "../../../PageTitle";
 import { Topbar } from "../../../Topbar";
 import { useShown } from "../../useShown";
+import { BrowserSheet } from "../BrowserSheet";
 
 export function EpicStatisticsSheet() {
 	const { orpc } = useApp();
@@ -81,6 +82,7 @@ export function EpicStatisticsSheet() {
 					</section>
 				</div>
 			)}
+			<BrowserSheet at="stats" />
 		</PageSheet>
 	);
 }
