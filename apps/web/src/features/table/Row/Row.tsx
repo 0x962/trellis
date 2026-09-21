@@ -12,7 +12,7 @@ import { type MouseEvent, memo, type ReactNode, useRef } from "react";
 import { compactRelativeTime } from "../../../lib/format";
 import type { Density } from "../../../stores/uiStore";
 import { ActorAvatar } from "../../agents/ActorAvatar";
-import { type ColumnId, gridColumnsClass, gridStyle, narrowHidden, statusIconOnly } from "../columns";
+import { type ColumnId, gridColumnsClass, gridStyle, narrowHidden, statusIconOnly, type TableKind } from "../columns";
 import type { TicketAgentLine } from "../utils/agentLines";
 import { EpicCell } from "./components/EpicCell";
 import { HiddenPickers } from "./components/HiddenPickers";
@@ -54,8 +54,9 @@ export type RowProps = {
 	group?: string;
 	// Below 768 px the row is a `PhoneRow` of two lines.
 	phone?: boolean;
-	// Set on the epic table alone: the line of the ticket's run, or null
-	// when the run says nothing. A `PhoneRow` reads it for its second line.
+	// The layout of the `PhoneRow`.
+	phoneLayout?: TableKind;
+	// The line of the ticket's run, for the phone row.
 	agentLine?: TicketAgentLine | null;
 	focused?: boolean;
 	selected?: boolean;
@@ -92,7 +93,8 @@ export const Row = memo(function Row({
 	top,
 	group,
 	phone = false,
-	agentLine,
+	phoneLayout = "list",
+	agentLine = null,
 	focused = false,
 	selected = false,
 	selecting = false,
@@ -198,6 +200,7 @@ export const Row = memo(function Row({
 				ticket={ticket}
 				priority={cells.priority}
 				actor={cells.actor}
+				layout={phoneLayout}
 				agentLine={agentLine}
 				top={top}
 				group={group}

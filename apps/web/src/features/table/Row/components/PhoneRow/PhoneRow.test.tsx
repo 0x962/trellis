@@ -29,13 +29,18 @@ const ticket = (fields: Partial<TicketSummary> = {}) =>
 		...fields,
 	}) as TicketSummary;
 
-const render = (row: TicketSummary, agentLine?: { words: string; asks: boolean } | null) =>
+const render = (
+	row: TicketSummary,
+	layout: "epic" | "list",
+	agentLine: { words: string; asks: boolean } | null = null,
+) =>
 	renderToStaticMarkup(
 		<PhoneRow
 			ref={null}
 			ticket={row}
 			priority={<span>priority</span>}
 			actor={<span>actor</span>}
+			layout={layout}
 			agentLine={agentLine}
 			focused={false}
 			selected={false}
@@ -44,7 +49,7 @@ const render = (row: TicketSummary, agentLine?: { words: string; asks: boolean }
 
 describe("PhoneRow on the epic table", () => {
 	test("puts the ID, the title and the actor on line 1, and leaves the priority mark out", () => {
-		const html = render(ticket(), null);
+		const html = render(ticket(), "epic");
 
 		expect(textOf(html)).toBe("OP-35Service: A run whose webhook fails retries three timesactor");
 		expect(html).not.toContain('data-column="priority"');
@@ -52,7 +57,7 @@ describe("PhoneRow on the epic table", () => {
 
 	test("prints the pull request on line 2 without the size, the file count and the evidence word", () => {
 		const pr = prOf({ number: 57057, additions: 311, deletions: 12, changedFiles: 6, pass: 42 });
-		const line2 = textOf(render(ticket({ prRows: [pr] }), null).split('data-line="pr"')[1]!);
+		const line2 = textOf(render(ticket({ prRows: [pr] }), "epic").split('data-line="pr"')[1]!);
 
 		expect(line2).toContain("#57057open·42 passed·you");
 		expect(line2).not.toContain("files");
@@ -60,20 +65,20 @@ describe("PhoneRow on the epic table", () => {
 	});
 
 	test("prints what the run says on line 2", () => {
-		const html = render(ticket(), { words: "crisp-fjord: I rebased.", asks: false });
+		const html = render(ticket(), "epic", { words: "crisp-fjord: I rebased.", asks: false });
 
 		expect(html).toContain('data-line="agent"');
 		expect(textOf(html)).toContain("crisp-fjord: I rebased.");
 	});
 
 	test("draws no line 2 for a ticket that holds none of the four facts", () => {
-		expect(render(ticket({ ready: true }), null)).not.toContain("data-line");
+		expect(render(ticket({ ready: true }), "epic")).not.toContain("data-line");
 	});
 });
 
 describe("PhoneRow on another list", () => {
 	test("keeps the priority mark, and the title on line 2", () => {
-		const html = render(ticket());
+		const html = render(ticket(), "list");
 
 		expect(html).toContain('data-column="priority"');
 		expect(html).toContain('data-line="title"');

@@ -48,8 +48,10 @@ const clearLinkClass =
 
 const noRuns: readonly AgentRun[] = [];
 
+// On a phone and on a touch screen the link is 44 px tall, the least a
+// finger hits.
 const breadcrumbLinkClass =
-	"inline-flex h-7 items-center rounded-md px-1 text-fg-muted transition-colors duration-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
+	"inline-flex h-7 max-md:h-11 pointer-coarse:h-11 items-center rounded-md px-1 text-fg-muted transition-colors duration-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
 
 // One epic: the progress band, the plan, the resources, and the tickets of
 // the epic in the ticket table of the project routes. The table search is

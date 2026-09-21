@@ -99,11 +99,9 @@ const cellGroups: ReadonlyArray<(pr: TicketPr) => PrRowCell[]> = [
 
 export const prRowCells = (pr: TicketPr): PrRowCell[] => cellGroups.flatMap((cellsOf) => cellsOf(pr));
 
-// A phone row gives a pull request one line of about 350 px, so it keeps
-// the state, the checks in words and the turn. The size, the file count,
-// the evidence word, the stack, the threads and the flow leave, and the
-// review page holds them. The row cuts any cell that still does not fit at
-// the right edge.
-const phoneKept: ReadonlySet<string> = new Set(["state", ...checkBuckets.map((bucket) => bucket.word), "turn"]);
+// A phone row gives a pull request one line of about 350 px. The row cuts
+// a cell that does not fit at the right edge. The review page shows every
+// cell.
+const phoneCellKeys: ReadonlySet<string> = new Set(["state", ...checkBuckets.map((bucket) => bucket.word), "turn"]);
 
-export const prPhoneCells = (pr: TicketPr): PrRowCell[] => prRowCells(pr).filter((cell) => phoneKept.has(cell.key));
+export const prPhoneCells = (pr: TicketPr): PrRowCell[] => prRowCells(pr).filter((cell) => phoneCellKeys.has(cell.key));

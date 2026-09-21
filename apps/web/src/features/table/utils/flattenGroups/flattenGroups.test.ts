@@ -94,19 +94,16 @@ describe("the agent line on the row", () => {
 	const rowLines = (items: ReturnType<typeof flattenGroups>) =>
 		items.flatMap((item) => (item.kind === "row" ? [item.agentLine] : []));
 
-	test("the epic route gives each row its line, or null when the run says nothing", () => {
+	test("gives each row its line, or null when the run says nothing", () => {
 		const groups = [group("todo", true, [ticket("a"), ticket("b")])];
 
-		expect(rowLines(flattenGroups(groups, { prRows: true, agentLines: { a: line("Pushed.") } }))).toEqual([
-			line("Pushed."),
-			null,
-		]);
+		expect(rowLines(flattenGroups(groups, { agentLines: { a: line("Pushed.") } }))).toEqual([line("Pushed."), null]);
 	});
 
-	test("another route leaves the field out", () => {
+	test("gives every row null when the route passes no lines", () => {
 		const groups = [group("todo", true, [ticket("a")])];
 
-		expect(rowLines(flattenGroups(groups, { agentLines: { a: line("Pushed.") } }))).toEqual([undefined]);
+		expect(rowLines(flattenGroups(groups))).toEqual([null]);
 	});
 });
 

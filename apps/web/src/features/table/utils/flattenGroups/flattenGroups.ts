@@ -32,10 +32,8 @@ export type TableGroup = RowGroup & {
 // One line of the virtual list.
 export type TableItem =
 	| { kind: "header"; key: string; group: TableGroup }
-	// `agentLine` is set on the epic route alone: the line of the ticket's
-	// run, or null when the run says nothing. A phone row reads it, together
-	// with the ticket, to fill its second line.
-	| { kind: "row"; key: string; group: TableGroup; ticket: TicketSummary; agentLine?: TicketAgentLine | null }
+	// The line of the ticket's run, for the phone row.
+	| { kind: "row"; key: string; group: TableGroup; ticket: TicketSummary; agentLine: TicketAgentLine | null }
 	| { kind: "agent"; key: string; group: TableGroup; line: TicketAgentLine }
 	| { kind: "pr"; key: string; group: TableGroup; pr: TicketPr }
 	| { kind: "more"; key: string; group: TableGroup };
@@ -62,8 +60,7 @@ export const flattenGroups = (groups: readonly TableGroup[], options: FlattenOpt
 		if (!group.expanded) continue;
 		for (const ticket of group.rows) {
 			const line = options.agentLines?.[ticket.id];
-			const row = { kind: "row", key: ticket.id, group, ticket } as const;
-			items.push(options.prRows === true ? { ...row, agentLine: line ?? null } : row);
+			items.push({ kind: "row", key: ticket.id, group, ticket, agentLine: line ?? null });
 			if (line !== undefined) items.push({ kind: "agent", key: `agent:${ticket.id}`, group, line });
 			if (options.prRows !== true) continue;
 			// Two tickets can link the same pull request, so the ticket id is

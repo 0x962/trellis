@@ -3,6 +3,7 @@ import { cx, StatusIcon } from "@trellis/ui";
 import type { MouseEvent, ReactNode, Ref } from "react";
 import { compactRelativeTime } from "../../../../../lib/format";
 import { AgentWords } from "../../../AgentLine";
+import type { TableKind } from "../../../columns";
 import { PrCells } from "../../../PrRow";
 import { prPhoneCells } from "../../../PrRow/prRowText";
 import { phoneRowHeight } from "../../../rowHeights";
@@ -17,9 +18,11 @@ export type PhoneRowProps = {
 	// The actor cell of the row. The epic layout draws it at the end of the
 	// first line.
 	actor: ReactNode;
-	// Set on the epic table alone: the line of the ticket's run, or null
-	// when the run says nothing. It picks the epic layout.
-	agentLine?: TicketAgentLine | null;
+	// `epic` draws `EpicCells` and `list` draws `ListCells`.
+	layout: TableKind;
+	// The line of the ticket's run, or null when the run says nothing. The
+	// epic layout reads it for line 2.
+	agentLine: TicketAgentLine | null;
 	// The offset inside the virtual body.
 	top?: number;
 	group?: string;
@@ -35,11 +38,9 @@ const phoneLineContent = (line: PhoneLine) => {
 	return <span className="truncate">{line.words}</span>;
 };
 
-// The cells of the epic layout. Line 1 holds the status icon, the ID, the
-// title and the actor. Line 2 holds one fact from `phoneLineOf`. The row is
-// the one control, and at 56 px tall it is a touch target of more than
-// 44 px. `overflow-hidden` on line 2 cuts a long pull request line at the
-// right edge, so the row never wraps to a third line.
+// The row is the one control. At 56 px it is larger than the 44 px that a
+// finger needs. `overflow-hidden` on line 2 cuts a long pull request line,
+// so the row never grows to a third line.
 function EpicCells({
 	ticket,
 	actor,
@@ -90,11 +91,8 @@ function EpicCells({
 	);
 }
 
-// The cells of a list route: the priority mark in a column of its own, then
-// the ID, the status icon, and the time on the first line with the title on
-// the second. The priority mark is the one control in the row, and on a
-// coarse pointer it draws 44 px, which the two text lines beside it leave
-// room for.
+// The priority mark is the one control in the row. On a coarse pointer it
+// draws 44 px, and the two text lines beside it leave room for that.
 function ListCells({ ticket, priority }: { ticket: TicketSummary; priority: ReactNode }) {
 	return (
 		<>
@@ -131,9 +129,7 @@ function ListCells({ ticket, priority }: { ticket: TicketSummary; priority: Reac
 	);
 }
 
-// One ticket below 768 px, in two lines of 56 px. The epic table draws the
-// layout of `EpicCells` and every other list draws the layout of
-// `ListCells`. The PR and project cells do not show; the row keeps the grid
+// One ticket below 768 px, in two lines of 56 px. The row keeps the grid
 // roles, the roving tab stop, and the focus and selection states of the
 // wide row.
 export function PhoneRow({
@@ -141,6 +137,7 @@ export function PhoneRow({
 	ticket,
 	priority,
 	actor,
+	layout,
 	agentLine,
 	top,
 	group,
@@ -174,10 +171,10 @@ export function PhoneRow({
 			}}
 			onClick={(event) => onClick?.(ticket.id, event)}
 		>
-			{agentLine === undefined ? (
-				<ListCells ticket={ticket} priority={priority} />
-			) : (
+			{layout === "epic" ? (
 				<EpicCells ticket={ticket} actor={actor} agentLine={agentLine} />
+			) : (
+				<ListCells ticket={ticket} priority={priority} />
 			)}
 		</div>
 	);

@@ -13,7 +13,7 @@ import {
 } from "react";
 import type { Density } from "../../../../../stores/uiStore";
 import { AgentLine } from "../../../AgentLine";
-import type { ColumnId } from "../../../columns";
+import type { ColumnId, TableKind } from "../../../columns";
 import { GroupHeader, groupHeaderHeight, phoneGroupHeaderHeight } from "../../../GroupHeader";
 import type { RowSelection } from "../../../hooks/useRowSelection";
 import { PrRow } from "../../../PrRow";
@@ -25,6 +25,8 @@ import { TableSkeleton } from "../TableSkeleton";
 
 export type TableBodyProps = {
 	items: readonly TableItem[];
+	// On a phone, a row of an epic table draws the epic layout of `PhoneRow`.
+	tableKind: TableKind;
 	columns: readonly ColumnId[];
 	density: Density;
 	project?: string;
@@ -66,6 +68,7 @@ const heightOf = (item: TableItem, rowHeight: number, headerHeight: number) => {
 // when data arrives.
 export function TableBody({
 	items: allItems,
+	tableKind,
 	columns,
 	density,
 	project,
@@ -219,6 +222,7 @@ export function TableBody({
 								top={virtual.start}
 								group={item.group.key}
 								phone={phone}
+								phoneLayout={tableKind}
 								agentLine={item.agentLine}
 								focused={ticket.id === focusedId}
 								selected={selection.isSelected(ticket.id)}
