@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { PrKind, PrPathFacts } from "../prPaths/index.ts";
 import { PrStateSchema } from "./enums.ts";
 import { FlowExecutionStateSchema } from "./flowExecution.ts";
-import { CountSchema } from "./primitives.ts";
+import { CountSchema, UlidSchema } from "./primitives.ts";
 
 const FailedCheckSchema = z.object({
 	name: z.string().min(1),
@@ -26,6 +26,7 @@ const PrRiskSchema: z.ZodType<PrPathFacts["risk"]> = z.object({
 });
 
 export const TicketPrSchema = z.object({
+	id: UlidSchema,
 	number: z.number().int().positive(),
 	owner: z.string().min(1),
 	repo: z.string().min(1),

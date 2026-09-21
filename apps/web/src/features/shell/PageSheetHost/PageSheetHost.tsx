@@ -1,4 +1,7 @@
-import { usePageSheetStore } from "../../../stores/pageSheetStore";
+import { useEffect } from "react";
+import { useApp } from "../../../lib/appContext";
+import { pageSheetActions, usePageSheetStore } from "../../../stores/pageSheetStore";
+import { refreshBehindSheet } from "../../../stores/pageSheetStore/refreshBehindSheet";
 import { BrowserSheet } from "./components/BrowserSheet";
 import { EpicStatisticsSheet } from "./components/EpicStatisticsSheet";
 import { PullRequestSheet } from "./components/PullRequestSheet";
@@ -15,7 +18,12 @@ import { TicketSheet } from "./components/TicketSheet";
 // those sheets draws its own `BrowserSheet` for the same reason, and the one
 // here serves a page with no sheet over it.
 export function PageSheetHost() {
+	const { client, queryClient } = useApp();
 	const ticket = usePageSheetStore((state) => state.ticket);
+	useEffect(() => {
+		pageSheetActions.setRefreshBehindSheet(() => refreshBehindSheet({ client, queryClient }));
+		return () => pageSheetActions.setRefreshBehindSheet(null);
+	}, [client, queryClient]);
 	return (
 		<>
 			<TicketSheet />
