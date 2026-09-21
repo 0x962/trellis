@@ -15,7 +15,7 @@ import type { IoCtx } from "../support.ts";
 import { prepareSessionRepository } from "./directory.ts";
 import { sessionOperation } from "./operation.ts";
 import { sessionProcess } from "./process.ts";
-import { getSession } from "./queries.ts";
+import { getSession, resolveSession } from "./queries.ts";
 
 // Starts the agent of a stopped session again. The harness resumes its
 // saved conversation when the previous process confirmed one for the same
@@ -28,9 +28,9 @@ export const prepareStart = async (
 	input: { id: string },
 	deps = { process: sessionProcess, start: startNative, preset: nativePreset },
 ) => {
-	const session = await ctx.newTx((tx) => getSession(tx, input.id));
+	const session = await ctx.newTx((tx) => resolveSession(tx, input.id));
 	return sessionOperation(ctx.home, session.runId, async () => {
-		await ctx.newTx((tx) => getSession(tx, input.id));
+		await ctx.newTx((tx) => getSession(tx, session.id));
 		const run = await ctx.newTx((tx) => getRun(tx, session.runId));
 		if (run.projectId) assertProjectActive(ctx.core, run.projectId);
 		const previous = await deps.process(ctx, run.terminalId);

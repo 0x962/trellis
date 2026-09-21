@@ -47,12 +47,14 @@ export const SessionCreateInputSchema = z
 	.refine((input) => input.prompt.length > 0 || (input.files?.length ?? 0) > 0, "Enter a prompt or attach a file.");
 export type SessionCreateInput = z.infer<typeof SessionCreateInputSchema>;
 
-export const SessionIdInputSchema = z.strictObject({ id: UlidSchema });
+export const SessionRefSchema = z.string().trim().min(1);
+
+export const SessionIdInputSchema = z.strictObject({ id: SessionRefSchema });
 export type SessionIdInput = z.infer<typeof SessionIdInputSchema>;
 
 export const SessionMoveInputSchema = z
 	.strictObject({
-		id: UlidSchema,
+		id: SessionRefSchema,
 		project: z.string().min(1).nullable(),
 	})
 	.describe("Set the project of a session, or send null to make it independent.");

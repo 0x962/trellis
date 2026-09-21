@@ -47,7 +47,7 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 		load: () => import("./commands/agents.ts").then((m) => command(m.default)),
 	},
 	sessions: {
-		description: "Move sessions between projects",
+		description: "List sessions and move them between projects",
 		load: () => import("./commands/sessions.ts").then((m) => command(m.default)),
 	},
 	create: {
