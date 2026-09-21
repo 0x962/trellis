@@ -12,7 +12,7 @@ import type { IoCtx } from "../support.ts";
 import { removeSessionDirectory } from "./directory.ts";
 import { sessionOperation } from "./operation.ts";
 import { sessionProcess } from "./process.ts";
-import { getSession } from "./queries.ts";
+import { getSession, resolveSession } from "./queries.ts";
 
 // The run retains its output after the session and its worktree are deleted.
 export const prepareDelete = async (
@@ -20,9 +20,9 @@ export const prepareDelete = async (
 	input: { id: string },
 	deps = { process: sessionProcess, stop: stopNative },
 ) => {
-	const session = await ctx.newTx((tx) => getSession(tx, input.id));
+	const session = await ctx.newTx((tx) => resolveSession(tx, input.id));
 	return sessionOperation(ctx.home, session.runId, async () => {
-		await ctx.newTx((tx) => getSession(tx, input.id));
+		await ctx.newTx((tx) => getSession(tx, session.id));
 		const run = await ctx.newTx((tx) => getRun(tx, session.runId));
 		const previous = await deps.process(ctx, run.terminalId);
 		if (previous === null && run.terminalId !== null && run.closedAt === null)
