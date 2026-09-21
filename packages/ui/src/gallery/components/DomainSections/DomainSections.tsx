@@ -15,7 +15,6 @@ import {
 	LineChangesSection,
 	PrGlyphSection,
 	PriorityIconSection,
-	QuestionBlockSection,
 	ResourceListSection,
 	ReviewFocusListSection,
 	ReviewStatusSummarySection,
@@ -50,7 +49,6 @@ export function DomainSections() {
 			<ConditionsBlockSection />
 			<ContractBlockSection />
 			<ChainBlockSection />
-			<QuestionBlockSection />
 			<RunLineSection />
 			<ChangeSummarySection />
 			<EvidenceStripSection />

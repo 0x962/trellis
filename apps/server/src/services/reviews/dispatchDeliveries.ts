@@ -7,7 +7,7 @@ import { prepareSend } from "../agentRuns/communication.ts";
 import { sendDeadline } from "../deliveries/sendDeadline.ts";
 import { closedBeforeDelivery, unconfirmedDelivery } from "../deliveries/sentences.ts";
 import type { IoCtx } from "../support.ts";
-import { answerMessage, reviewMessage } from "./deliveryMessage.ts";
+import { reviewMessage } from "./deliveryMessage.ts";
 import { deliveryMessageId } from "./deliveryMessageId.ts";
 
 // One queued message with the agent run that waits for it. `terminalId` and
@@ -39,36 +39,6 @@ const failDeliveriesOfClosedRuns = (tx: Tx) =>
 		WHERE delivery.run_id = run.id AND delivery.state = 'pending' AND run.closed_at IS NOT NULL`,
 	);
 
-// A queued answer of a question ticket. `question` is the ticket that holds
-// the answer, and `waiting` is the ticket the run works on. `description` is
-// the description of the question, which holds the text of each option.
-type AnswerRow = Omit<Delivery, "text"> & {
-	question: string;
-	waiting: string;
-	description: string;
-	option: number;
-	reason: string;
-};
-
-const pendingAnswers = async (tx: Tx, terminals: string[]): Promise<Delivery[]> => {
-	const found = await rows<AnswerRow>(
-		tx,
-		sql`SELECT ${deliveryColumns}, answer.option, answer.reason, question.description,
-			question_root.key || '-' || question.number AS question,
-			waiting_root.key || '-' || waiting.number AS waiting
-		FROM review_deliveries delivery
-		JOIN agent_runs run ON run.id = delivery.run_id
-		JOIN tickets waiting ON waiting.id = run.ticket_id
-		JOIN projects waiting_root ON waiting_root.id = waiting.root_id
-		JOIN ticket_answers answer ON answer.id = delivery.answer_id
-		JOIN tickets question ON question.id = answer.ticket_id
-		JOIN projects question_root ON question_root.id = question.root_id
-		WHERE delivery.state = 'pending' AND delivery.answer_id IS NOT NULL AND ${runningTerminals(terminals)}
-		ORDER BY delivery.id LIMIT 20`,
-	);
-	return found.map((row) => ({ ...row, text: answerMessage(row) }));
-};
-
 // A queued review submission. The stored document holds the pull request
 // address and the comments the submission carried, so the message names both
 // without a second query.
@@ -91,7 +61,7 @@ const pendingReviews = async (tx: Tx, terminals: string[]): Promise<Delivery[]> 
 		JOIN agent_runs run ON run.id = delivery.run_id
 		JOIN review_submissions submission ON submission.id = delivery.review_id
 		JOIN pull_requests pr ON pr.id = submission.pr_id
-		WHERE delivery.state = 'pending' AND delivery.review_id IS NOT NULL AND ${runningTerminals(terminals)}
+		WHERE delivery.state = 'pending' AND ${runningTerminals(terminals)}
 		ORDER BY delivery.id LIMIT 20`,
 	);
 	return found.map((row) => ({ ...row, text: reviewMessage(row) }));
@@ -108,9 +78,7 @@ const outcomeOf = (failure: unknown) => {
 };
 
 // Sends every queued message whose agent process runs and accepts input.
-// `sessions` is the list the execution service reports for this machine. A
-// row holds either the answer of a question ticket or a review submission,
-// and both reach the agent the same way.
+// `sessions` is the list the execution service reports for this machine.
 export const dispatchDeliveries = async (
 	ctx: IoCtx,
 	sessions: RuntimeProcessStatus[],
@@ -122,10 +90,7 @@ export const dispatchDeliveries = async (
 		.filter((session) => session.status === "running" && session.controllable)
 		.map((session) => session.id);
 	if (ready.length === 0) return;
-	const pending = await ctx.newTx(async (tx) => [
-		...(await pendingAnswers(tx, ready)),
-		...(await pendingReviews(tx, ready)),
-	]);
+	const pending = await ctx.newTx((tx) => pendingReviews(tx, ready));
 	for (const delivery of pending) {
 		const claimed = await ctx.newTx((tx) =>
 			rows(

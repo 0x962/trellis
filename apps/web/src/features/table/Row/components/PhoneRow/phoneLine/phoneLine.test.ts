@@ -6,11 +6,10 @@ type Facts = Pick<TicketSummary, "prRows" | "waitsOn" | "ready" | "releases">;
 
 const pr = (number: number, state: TicketPr["state"] = "open") => ({ number, state }) as TicketPr;
 
-const dependency = (identifier: string, isQuestion = false) => ({
+const dependency = (identifier: string) => ({
 	identifier,
 	title: identifier,
 	status: "todo" as const,
-	isQuestion,
 });
 
 const release = (identifier: string) => ({ identifier, title: identifier });
@@ -45,9 +44,9 @@ describe("phoneLineOf", () => {
 	});
 
 	test("prints the tickets it waits on in the words of the waits cell", () => {
-		const facts = ticket({ waitsOn: [dependency("OP-32"), dependency("OP-33", true), dependency("OP-34")] });
+		const facts = ticket({ waitsOn: [dependency("OP-32"), dependency("OP-33"), dependency("OP-34")] });
 
-		expect(phoneLineOf(facts, null)).toEqual({ kind: "waits", words: "waits on OP-32 · OP-33 asks +1" });
+		expect(phoneLineOf(facts, null)).toEqual({ kind: "waits", words: "waits on OP-32 · OP-33 +1" });
 	});
 
 	test("prints how many tickets wait for it last", () => {

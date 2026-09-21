@@ -2,7 +2,6 @@ import type { Turn } from "@trellis/api";
 
 export const readyGroupOrder = [
 	{ turn: "waits on a merge", label: "waits on a merge" },
-	{ turn: "waits on your answer", label: "waits on your answer" },
 	{ turn: "you", label: "your turn" },
 	{ turn: "agent", label: "with an agent" },
 	{ turn: "github", label: "with GitHub" },

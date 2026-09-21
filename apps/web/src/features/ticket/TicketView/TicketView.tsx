@@ -1,6 +1,6 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { asksQuestion, questionParts, type Ticket } from "@trellis/api";
+import type { Ticket } from "@trellis/api";
 import { cx, EmptyState, SectionHeader, useMediaQuery } from "@trellis/ui";
 import { useEffect } from "react";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
@@ -19,7 +19,6 @@ import { useParentSummary } from "../hooks/useParentSummary";
 import { useSoleRepositoryName } from "../hooks/useSoleRepositoryName";
 import { OutcomeBlock } from "../OutcomeBlock";
 import { PropertiesRail } from "../PropertiesRail";
-import { QuestionBlock } from "../QuestionBlock";
 import { ResourcesBlock } from "../ResourcesBlock";
 import { RunBlock } from "../RunBlock";
 import { SubTickets } from "../SubTickets";
@@ -40,11 +39,9 @@ export type TicketViewProps = {
 	identifier: string;
 };
 
-// The ticket page, one column read top to bottom: the ask, the contract or
-// the question, the chain, the evidence, the outcome, the run and the
-// resources the ticket names. A question ticket holds no work of its own, so
-// its question block takes the place of every region after the ask. The
-// resources region follows both, because a question names a resource too.
+// The ticket page, one column read top to bottom: the ask, the contract, the
+// chain, the evidence, the outcome, the run and the resources the ticket
+// names.
 //
 // A pull request of the ticket opens in the review sheet, over this page
 // on its route and over the ticket sheet in the stack.
@@ -86,12 +83,6 @@ export function TicketView({ identifier }: TicketViewProps) {
 	if (query.data === undefined) return <TicketSkeleton />;
 	const ticket = query.data;
 	const readOnly = isArchived(ticket.project.path);
-	// A question keeps its question block once it is answered, and the block
-	// then shows the stored answer.
-	const question = asksQuestion(ticket.status.reviewer, ticket.description) || ticket.answer !== null;
-	// On a question, `QuestionBlock` prints the options and the reason, so the
-	// ask prints only the prose around them, and a person cannot edit it here.
-	const ask = question ? questionParts(ticket.description).ask : "";
 
 	// The server refuses every write to a ticket under an archived project.
 	// The disabled fieldset and the edit keys enforce `readOnly`.
@@ -105,49 +96,23 @@ export function TicketView({ identifier }: TicketViewProps) {
 					{ticket.parent !== null && <ParentChip ancestors={ticket.ancestors} title={parentSummary?.title ?? ""} />}
 					<Title key={ticket.identifier} ticket={ticket} onAttachFiles={uploads.addFiles} />
 				</div>
-				{/* A person on a phone opens a question ticket to answer it, so the ask
-				    and the options come first and the property list follows the
-				    question block. On every other ticket the property list stays above
-				    the ask. */}
-				{narrow && !question && (
+				{narrow && (
 					<div className="mt-3">
 						<PropertiesRail ticket={ticket} variant="inline" />
 					</div>
 				)}
-				{question ? (
-					ask !== "" && (
-						<section aria-label="The ask" className={cx("flex min-w-0 flex-col", narrow ? "mt-4" : "mt-3")}>
-							<SectionHeader title="The ask" textCase="caps" />
-							<p className="whitespace-pre-line text-base text-fg">{ask}</p>
-						</section>
-					)
-				) : (
-					<section aria-label="The ask" className={cx("flex min-w-0 flex-col", narrow ? "mt-4" : "mt-3")}>
-						<SectionHeader title="The ask" textCase="caps" />
-						<div data-ticket-description="" className="min-h-24">
-							<Description key={ticket.identifier} ticket={ticket} onAttachFiles={uploads.addFiles} />
-						</div>
-					</section>
-				)}
+				<section aria-label="The ask" className={cx("flex min-w-0 flex-col", narrow ? "mt-4" : "mt-3")}>
+					<SectionHeader title="The ask" textCase="caps" />
+					<div data-ticket-description="" className="min-h-24">
+						<Description key={ticket.identifier} ticket={ticket} onAttachFiles={uploads.addFiles} />
+					</div>
+				</section>
 				<div className="mt-8 flex flex-col gap-8">
-					{question ? (
-						<>
-							<QuestionBlock ticket={ticket} />
-							{narrow && <PropertiesRail ticket={ticket} variant="inline" />}
-						</>
-					) : (
-						<>
-							<TicketContract ticket={ticket} />
-							<ChainBlock
-								waitsOn={ticket.waitsOn}
-								releases={ticket.releases}
-								answeredQuestions={ticket.answeredQuestions}
-							/>
-							<EvidenceBlock ticket={ticket} onOpenPullRequest={pageSheetActions.openPullRequest} />
-							<OutcomeBlock outcome={ticket.outcome} />
-							<RunBlock key={ticket.id} ticket={ticket} />
-						</>
-					)}
+					<TicketContract ticket={ticket} />
+					<ChainBlock waitsOn={ticket.waitsOn} releases={ticket.releases} />
+					<EvidenceBlock ticket={ticket} onOpenPullRequest={pageSheetActions.openPullRequest} />
+					<OutcomeBlock outcome={ticket.outcome} />
+					<RunBlock key={ticket.id} ticket={ticket} />
 					<ResourcesBlock ticket={ticket} />
 					<SubTickets ticket={ticket} />
 					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />

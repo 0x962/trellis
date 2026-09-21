@@ -28,7 +28,6 @@ const turnOpening: Record<Turn, string> = {
 	agent: "The agent's turn",
 	github: "GitHub's turn",
 	ready: "Ready to start",
-	"waits on your answer": "Waits on your answer",
 	"waits on a merge": "Waits on a merge",
 	done: "Done",
 };

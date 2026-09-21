@@ -3,11 +3,10 @@ import type { TicketSummary } from "@trellis/api";
 import { renderToStaticMarkup } from "react-dom/server";
 import { WaitsCell } from "./WaitsCell";
 
-const dependency = (identifier: string, isQuestion = false): TicketSummary["waitsOn"][number] => ({
+const dependency = (identifier: string): TicketSummary["waitsOn"][number] => ({
 	identifier,
 	title: `Ticket ${identifier}`,
 	status: "todo",
-	isQuestion,
 });
 
 test("prints nothing when no ticket holds this one back and the work has started", () => {
@@ -42,16 +41,6 @@ test("prints the count of the identifiers that do not fit", () => {
 	expect(html).toContain("OP-52");
 	expect(html).not.toContain("OP-40");
 	expect(html).toContain("+2");
-});
-
-test("prints the yellow dot after a question and after no other ticket", () => {
-	const html = renderToStaticMarkup(
-		<WaitsCell waitsOn={[dependency("OP-32"), dependency("OP-52", true)]} ready={false} />,
-	);
-
-	expect(html).toContain("bg-warning");
-	expect(html).toContain("OP-52 is a question for you.");
-	expect(html).not.toContain("OP-32 is a question for you.");
 });
 
 test("prints no ready word while a ticket still holds this one back", () => {

@@ -16,7 +16,7 @@ const ticket = ({ id, category = "todo", name = "Todo", ready = true, waitsOn = 
 		identifier: id,
 		status: { category, name },
 		ready,
-		waitsOn: waitsOn.map((identifier) => ({ identifier, title: identifier, status: "started", isQuestion: false })),
+		waitsOn: waitsOn.map((identifier) => ({ identifier, title: identifier, status: "started" })),
 	}) as unknown as TicketSummary;
 
 describe("wavePlan", () => {

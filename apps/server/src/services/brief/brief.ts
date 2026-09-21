@@ -112,8 +112,6 @@ const protocol = (identifier: string) => [
 	`When your work is ready for review, run: trellis move ${identifier} agent-review`,
 	"",
 	"Report what you did in your final message and in the pull request description. A person reads both.",
-	'To ask a person a question, create a question ticket: trellis create -p <project> --status human-review -t "..." --description - . Its description holds a numbered "Options:" list.',
-	`Then make this ticket wait for it: trellis edit ${identifier} --after <question>. The answer reaches this run.`,
 ];
 
 const reviewComments = [

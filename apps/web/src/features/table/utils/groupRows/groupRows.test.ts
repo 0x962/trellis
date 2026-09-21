@@ -176,14 +176,14 @@ describe("groupRows by turn", () => {
 	const turnRow = (id: string, fields: Partial<TicketSummary>) =>
 		({ ...ticket(id, runtime, phase1), waitsOn: [], prRows: [], ready: false, ...fields }) as TicketSummary;
 	const open = { number: 7, state: "open", isDraft: false, fail: 0, pending: 0, openThreads: 0 } as TicketPr;
-	const question = turnRow("question", {
+	const humanReview = turnRow("human-review", {
 		status: { category: "started", reviewer: "human" } as TicketSummary["status"],
 	});
 	const review = turnRow("review", { prRows: [open] });
 	const draft = turnRow("draft", { prRows: [{ ...open, isDraft: true }] });
 	const blocked = turnRow("blocked", {
 		status: { category: "todo" } as TicketSummary["status"],
-		waitsOn: [{ identifier: "OP-32", isQuestion: false } as TicketSummary["waitsOn"][number]],
+		waitsOn: [{ identifier: "OP-32" } as TicketSummary["waitsOn"][number]],
 	});
 
 	test("draws the groups in the fixed order and renders no empty group", () => {
@@ -194,10 +194,10 @@ describe("groupRows by turn", () => {
 	});
 
 	test("puts every row of one turn in one group", () => {
-		const groups = groupRows([question, review], { group: "turn", sort: "-updatedAt", statuses: [] });
+		const groups = groupRows([humanReview, review], { group: "turn", sort: "-updatedAt", statuses: [] });
 
 		expect(groups).toHaveLength(1);
-		expect(groups[0]!.rows.map((row) => row.id).sort()).toEqual(["question", "review"]);
+		expect(groups[0]!.rows.map((row) => row.id).sort()).toEqual(["human-review", "review"]);
 	});
 
 	test("a working agent run moves a row to the agent group", () => {

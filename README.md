@@ -7,7 +7,7 @@
 trellis is a local ticket tracker for work that humans give to coding agents. One server on your machine stores:
 
 - projects and tickets
-- attachments and the answers to question tickets
+- attachments
 - linked pull requests and their CI results
 
 Agents use the `trellis` CLI or the HTTP API. Each write records the name of the actor that made it. You use the desktop app, the web app, or the mobile app on your phone. An agent can move a ticket to review. Only a human can move a ticket to Done.
@@ -222,10 +222,8 @@ Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, set `T
 3. Start:            trellis move TRL-42 in-progress
 4. Put the identifier in the branch name, for example TRL-42-dark-mode. Link the PR to the ticket: trellis pr add TRL-42 <url>
 5. Split work:       trellis sub TRL-42 -t "Write tests"
-6. Ask a question:   trellis create -p TRL --status human-review -t "..." --description - with a numbered "Options:" list,
-   then trellis edit TRL-42 --after <question>. The answer reaches your run.
-7. Finish coding:    trellis move TRL-42 agent-review
-8. When the agent review passes: trellis move TRL-42 human-review
+6. Finish coding:    trellis move TRL-42 agent-review
+7. When the agent review passes: trellis move TRL-42 human-review
 Report what you did in your final message and in the pull request description.
 Never delete tickets.
 

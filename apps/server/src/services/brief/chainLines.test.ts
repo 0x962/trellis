@@ -12,7 +12,6 @@ const blocker = (fields: Partial<ChainRow> = {}): ChainRow => ({
 	identifier: "OP-32",
 	title: "Open the chat",
 	status: "review",
-	isQuestion: false,
 	outcome: "",
 	...fields,
 });
@@ -35,7 +34,7 @@ test("prints the four chain lines in order and includes a finished outcome", () 
 				blocker({
 					identifier: "OP-52",
 					title: "Run late or leave missed",
-					isQuestion: true,
+					status: "started",
 				}),
 			],
 		),
@@ -46,16 +45,15 @@ test("prints the four chain lines in order and includes a finished outcome", () 
 		"  - OP-29 Create the runtime (done)",
 		"    Outcome: The runtime writes one durable row.",
 		"  - OP-32 Open the chat (agent review)",
-		"  - OP-52 Run late or leave missed (human review)",
-		"- Ready: no. OP-32 is not merged, and OP-52 is open.",
+		"  - OP-52 Run late or leave missed (in progress)",
+		"- Ready: no. OP-32 is not merged, and OP-52 is not merged.",
 		"- Releases:",
 		"  - OP-35 Close a stale run",
 		"  - OP-40 Start an unattended run",
-		"- Applies: OP-52, open. Run late or leave missed",
 	]);
 });
 
-test("omits Applies when no question holds the ticket back", () => {
+test("prints one blocker", () => {
 	expect(chainLines(ticket(false), [blocker()])).toEqual([
 		"## Chain",
 		"",
@@ -83,16 +81,16 @@ test("reads readiness from the ticket", () => {
 	expect(chainLines(ticket(false), [])[4]).toBe("- Ready: no.");
 });
 
-test("a canceled question does not block readiness or apply", () => {
+test("a canceled dependency does not block readiness", () => {
 	expect(
 		chainLines(ticket(true), [
-			blocker({ identifier: "OP-52", title: "Old question", status: "canceled", isQuestion: true }),
+			blocker({ identifier: "OP-52", title: "Old plan", status: "canceled" }),
 		]),
 	).toEqual([
 		"## Chain",
 		"",
 		"- Waits on:",
-		"  - OP-52 Old question (canceled)",
+		"  - OP-52 Old plan (canceled)",
 		"- Ready: yes. No ticket holds this one back.",
 		"- Releases:",
 		"  - nothing",

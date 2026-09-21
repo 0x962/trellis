@@ -1,7 +1,7 @@
 import type { CiState, PrState, ReviewState, StoredActorKind, TicketSummary } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { actorDisplayName } from "./actorDisplayName.ts";
-import { iso, pathsCte, ticketQuestion } from "./support.ts";
+import { iso, pathsCte } from "./support.ts";
 import { type TicketPrRow, ticketPrColumns, ticketPrJoin, toTicketPrRows } from "./ticketPrs.ts";
 
 export type SummaryRow = {
@@ -112,8 +112,7 @@ export const summaryJoins = sql`
 				jsonb_build_object(
 					'identifier', waits_root.key || '-' || blocker.number,
 					'title', blocker.title,
-					'status', blocker_status.category,
-					'isQuestion', ${ticketQuestion(sql`blocker`, sql`blocker_status`)}
+					'status', blocker_status.category
 				) ORDER BY blocker.number, blocker.id
 			) FILTER (WHERE blocker_status.category NOT IN ('done', 'canceled')) AS items,
 			bool_and(blocker_status.category IN ('done', 'canceled')) AS all_done

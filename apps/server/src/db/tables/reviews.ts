@@ -1,9 +1,7 @@
-import { sql } from "drizzle-orm";
-import { check, index, integer, jsonb, pgTable, text, unique } from "drizzle-orm/pg-core";
+import { index, integer, jsonb, pgTable, text, unique } from "drizzle-orm/pg-core";
 import { pullRequests } from "../schema";
 import { at } from "./actors";
 import { agentRuns } from "./agentRuns.ts";
-import { ticketAnswers } from "./ticketAnswers.ts";
 
 export const reviewRevisions = pgTable(
 	"review_revisions",
@@ -46,17 +44,14 @@ export const reviewSubmissions = pgTable(
 	},
 	(t) => [unique("review_submissions_request").on(t.prId, t.actor, t.requestId)],
 );
-// One row is one message that waits for one agent run. The message is
-// either a review submission or the answer of a question ticket, so exactly
-// one of `review_id` and `answer_id` holds an identifier. The unique
-// rule counts two null values as equal, so a second row for the same message
-// and the same run cannot be written.
+// One row is one review submission that waits for one agent run.
 export const reviewDeliveries = pgTable(
 	"review_deliveries",
 	{
 		id: text().primaryKey(),
-		reviewId: text("review_id").references(() => reviewSubmissions.id),
-		answerId: text("answer_id").references(() => ticketAnswers.id, { onDelete: "cascade" }),
+		reviewId: text("review_id")
+			.notNull()
+			.references(() => reviewSubmissions.id),
 		runId: text("run_id")
 			.notNull()
 			.references(() => agentRuns.id, { onDelete: "cascade" }),
@@ -66,8 +61,7 @@ export const reviewDeliveries = pgTable(
 		attempt: integer().notNull().default(0),
 	},
 	(t) => [
-		unique("review_deliveries_recipient").on(t.reviewId, t.answerId, t.runId).nullsNotDistinct(),
+		unique("review_deliveries_recipient").on(t.reviewId, t.runId),
 		index("review_deliveries_state_idx").on(t.state),
-		check("review_deliveries_one_source", sql`num_nonnulls(${t.reviewId}, ${t.answerId}) = 1`),
 	],
 );

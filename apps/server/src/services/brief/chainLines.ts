@@ -1,4 +1,4 @@
-import { blockReason, statusText, type Ticket } from "@trellis/api";
+import { statusText, type Ticket } from "@trellis/api";
 import type { ChainRow } from "../../db/queries/chainRows.ts";
 
 type ChainTicket = Pick<Ticket, "ready" | "releases">;
@@ -22,12 +22,11 @@ const waitsOnLines = (waitsOn: ChainRow[]) => {
 const readyLine = (ready: boolean, blockers: ChainRow[]) => {
 	if (ready) return "yes. No ticket holds this one back.";
 	if (blockers.length === 0) return "no.";
-	return `no. ${joinWithAnd(blockers.map((blocker) => `${blocker.identifier} ${blockReason(blocker)}`))}.`;
+	return `no. ${joinWithAnd(blockers.map((blocker) => `${blocker.identifier} is not merged`))}.`;
 };
 
 export const chainLines = (ticket: ChainTicket, waitsOn: ChainRow[]): string[] => {
 	const blockers = waitsOn.filter((blocker) => blocker.status !== "done" && blocker.status !== "canceled");
-	const question = blockers.find((blocker) => blocker.isQuestion);
 	return [
 		"## Chain",
 		"",
@@ -36,6 +35,5 @@ export const chainLines = (ticket: ChainTicket, waitsOn: ChainRow[]): string[] =
 		`- Ready: ${readyLine(ticket.ready, blockers)}`,
 		"- Releases:",
 		...releaseLines(ticket.releases),
-		...(question === undefined ? [] : [`- Applies: ${question.identifier}, open. ${question.title}`]),
 	];
 };

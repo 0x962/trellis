@@ -1,6 +1,5 @@
 // This entry point exports every service under `tickets.*`.
 
-export { answer } from "./tickets/answer.ts";
 export { setContract } from "./tickets/contract.ts";
 export { create } from "./tickets/create.ts";
 export { updateDependencies } from "./tickets/deps.ts";

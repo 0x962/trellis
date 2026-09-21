@@ -118,7 +118,7 @@ test("reads the name, state and comments of the newest flow run", () => {
 });
 
 test("names every ticket the ticket waits on as an unmerged ancestor", () => {
-	const waitsOn = [{ identifier: "TRL-164", title: "T19", status: "started", isQuestion: false }] as const;
+	const waitsOn = [{ identifier: "TRL-164", title: "T19", status: "started" }] as const;
 	const conditions = conditionsOf(input({ waitsOn: [...waitsOn] }))!;
 
 	expect(conditions.ancestors).toEqual([{ identifier: "TRL-164", merged: false }]);

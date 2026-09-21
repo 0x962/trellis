@@ -31,7 +31,6 @@ export * from "./tables/prSummaries.ts";
 export * from "./tables/pullRequests.ts";
 export * from "./tables/reviews.ts";
 export * from "./tables/sessions.ts";
-export * from "./tables/ticketAnswers.ts";
 export * from "./tables/ticketDeps.ts";
 export * from "./tables/waves.ts";
 
