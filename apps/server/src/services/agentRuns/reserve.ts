@@ -63,6 +63,7 @@ export const reserve = async (
 		}));
 	if (input.harness) config = { ...config, harness: HarnessSchema.parse(input.harness), accountId: null };
 	if (kind === "agent") {
+		if (ticket!.completedAt !== null) throw invalidInput("ticket", "Reopen the ticket before an agent starts.");
 		const assigned = await rows(
 			tx,
 			sql`SELECT id FROM agent_runs WHERE ticket_id=${ticket!.id} AND kind='agent' AND closed_at IS NULL LIMIT 1`,

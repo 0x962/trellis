@@ -1,4 +1,4 @@
-import { TerminalWindow } from "@phosphor-icons/react";
+import { ArrowClockwise, TerminalWindow } from "@phosphor-icons/react";
 import { ActivityDot } from "../../primitives/ActivityDot";
 import { AttentionDot } from "../../primitives/AttentionDot";
 import { type AgentProfile, Avatar } from "../../primitives/Avatar";
@@ -43,6 +43,7 @@ export type RunLineValue = {
 	// What the run said last, such as `crisp-fjord: I rebased onto master.`
 	// It is null while the run says nothing.
 	lastMessage: string | null;
+	rawError: string | null;
 	// The time and the tokens the ticket burned, in words. A person reads it
 	// on a hover of the line.
 	metricsWords: string;
@@ -51,6 +52,7 @@ export type RunLineValue = {
 export type RunLineProps = {
 	// The run of the ticket. It is null while no agent holds the ticket.
 	run: RunLineValue | null;
+	retry?: { starting: boolean; error: string | null; onRetry: () => void } | null;
 	onOpenSession: () => void;
 };
 
@@ -76,7 +78,7 @@ const wordsTone = (kind: RunLineKind) =>
 
 // The `Avatar` mark moves only in the `works` state. The caller draws the
 // region and its title, such as `RunBlock` on the ticket page.
-export function RunLine({ run, onOpenSession }: RunLineProps) {
+export function RunLine({ run, retry = null, onOpenSession }: RunLineProps) {
 	if (run === null) {
 		return (
 			<div className="flex min-w-0 flex-col">
@@ -103,9 +105,19 @@ export function RunLine({ run, onOpenSession }: RunLineProps) {
 						{run.time !== null && <span className="shrink-0 text-fg-faint tabular">{run.time}</span>}
 					</div>
 				</Tooltip>
-				<Tooltip content="Session">
+				{retry !== null && (
 					<IconButton
 						className="ml-auto"
+						variant="primary"
+						label={retry.starting ? "Retrying" : "Retry"}
+						icon={<ArrowClockwise />}
+						disabled={retry.starting}
+						onClick={retry.onRetry}
+					/>
+				)}
+				<Tooltip content="Session">
+					<IconButton
+						className={retry === null ? "ml-auto" : undefined}
 						label="Session"
 						icon={<TerminalWindow aria-hidden="true" />}
 						onClick={onOpenSession}
@@ -115,6 +127,17 @@ export function RunLine({ run, onOpenSession }: RunLineProps) {
 			{run.lastMessage !== null && (
 				<p title={run.lastMessage} className="truncate pl-6.5 text-sm text-fg-muted">
 					{run.lastMessage}
+				</p>
+			)}
+			{run.rawError !== null && (
+				<details className="pl-6.5 text-xs text-fg-muted">
+					<summary className="cursor-pointer">Details</summary>
+					<p className="mt-1 break-all font-mono text-danger">{run.rawError}</p>
+				</details>
+			)}
+			{retry?.error && (
+				<p role="alert" className="pl-6.5 text-sm text-danger">
+					{retry.error}
 				</p>
 			)}
 		</div>

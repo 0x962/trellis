@@ -89,6 +89,8 @@ import { rowHeights } from "../rowHeights";
 
 const noStatuses: StatusSummary[] = [];
 const noProjects: ProjectSummary[] = [];
+const linkedCellClass =
+	"pointer-events-none [&_a]:pointer-events-auto [&_button]:pointer-events-auto [&_input]:pointer-events-auto [&_[role=button]]:pointer-events-auto [&_[role=checkbox]]:pointer-events-auto";
 
 // One ticket as a grid row: the cells in column order, the roving tab stop,
 // and the focus bar. The row is memoized, so a live patch on one ticket
@@ -121,6 +123,7 @@ export const Row = memo(function Row({
 }: RowProps) {
 	const element = useRef<HTMLDivElement>(null);
 	const { identifier, lastActor } = ticket;
+	const href = `/t/${identifier}`;
 	const ticketRootId = projects.find((project) => project.id === ticket.project.id)?.rootId;
 	const ticketRootIds = ticketRootId === undefined ? [] : [ticketRootId];
 	const editingChange = (field: EditField) => (open: boolean) => onEditingChange?.(ticket.id, open ? field : null);
@@ -136,6 +139,15 @@ export const Row = memo(function Row({
 			event.preventDefault();
 			toggleDisclosure();
 		}
+	};
+	const onLinkClick = (event: MouseEvent<HTMLAnchorElement>) => {
+		event.stopPropagation();
+		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+		event.preventDefault();
+		onClick?.(ticket.id, event);
+	};
+	const stopLinkPropagation = (event: MouseEvent<HTMLAnchorElement>) => {
+		event.stopPropagation();
 	};
 
 	const cells: Record<string, ReactNode> = {
@@ -232,6 +244,7 @@ export const Row = memo(function Row({
 				selected={selected}
 				onFocus={onFocus}
 				onClick={onClick}
+				href={href}
 				onKeyDown={onKeyDown}
 				onToggleDisclosure={toggleDisclosure}
 			/>
@@ -271,18 +284,32 @@ export const Row = memo(function Row({
 			onDoubleClick={() => onOpen?.(ticket.id)}
 			onKeyDown={onKeyDown}
 		>
+			<a
+				href={href}
+				tabIndex={-1}
+				aria-label={`Open ${identifier}`}
+				className="absolute inset-0 z-0"
+				onClick={onLinkClick}
+				onAuxClick={stopLinkPropagation}
+			>
+				<span className="sr-only">Open {identifier}</span>
+			</a>
 			{columns.map((column) => (
 				// biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order.
 				<div
 					key={column}
 					role="gridcell"
 					data-column={column}
-					className={cx("flex min-w-0 items-center", narrowHidden.includes(column as ColumnId) && "max-md:hidden")}
+					className={cx(
+						"relative z-10 flex min-w-0 items-center",
+						linkedCellClass,
+						narrowHidden.includes(column as ColumnId) && "max-md:hidden",
+					)}
 				>
 					{cells[column]}
 				</div>
 			))}
-			{hasChildLines && <TreeStem />}
+			{hasChildLines && <TreeStem depth={1} />}
 			<HiddenPickers
 				ticket={ticket}
 				columns={columns}

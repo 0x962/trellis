@@ -29,10 +29,10 @@ export type AutoHideContext = {
 };
 
 // Hides the columns that repeat what every row already shows. The result
-// wins over a stored choice: a status column repeats a status grouping, a
-// project column repeats a project grouping or a view of one project, an
-// epic column repeats an epic grouping, a wave column repeats a
-// wave grouping, and a PR column with no PR in view is empty. A labels column is empty until one loaded row holds a label. A
+// wins over a stored choice: a project column repeats a project grouping
+// or a view of one project, an epic column repeats an epic grouping, a wave
+// column repeats a wave grouping, and a PR column with no PR in view is
+// empty. A labels column is empty until one loaded row holds a label. A
 // column the person hid stays hidden.
 export const autoHide = (
 	visibility: Record<ColumnId, boolean>,
@@ -42,7 +42,6 @@ export const autoHide = (
 	const oneProject = first !== undefined && rows.every((row) => row.project.id === first);
 	return {
 		...visibility,
-		status: visibility.status && group !== "status",
 		project: visibility.project && group !== "project" && !oneProject,
 		epic: visibility.epic && group !== "epic",
 		wave: visibility.wave && group !== "wave",

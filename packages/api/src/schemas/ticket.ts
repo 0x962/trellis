@@ -48,6 +48,7 @@ const PrReviewSchema = z.object({
 // each linked pull request.
 const PrBadgeSchema = z.object({
 	state: PrStateSchema,
+	isDraft: z.boolean().default(false),
 	isQueued: z.boolean(),
 	ciState: CiStateSchema,
 	reviewState: ReviewStateSchema,

@@ -11,6 +11,7 @@ import { useUploads } from "../../attachments/hooks/useUploads";
 import { NotFoundState } from "../../shell/NotFoundState";
 import { usePageSheet } from "../../shell/PageSheet";
 import { ChainBlock } from "../ChainBlock";
+import { CommentsBlock } from "../CommentsBlock";
 import { ContractBlock } from "../ContractBlock";
 import { Description } from "../Description";
 import { EvidenceBlock } from "../EvidenceBlock";
@@ -147,6 +148,7 @@ export function TicketView({ identifier }: TicketViewProps) {
 						</>
 					)}
 					<ResourcesBlock ticket={ticket} />
+					{ticket.commentCount > 0 && <CommentsBlock ticket={ticket.identifier} count={ticket.commentCount} />}
 					<SubTickets ticket={ticket} />
 					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
 				</div>

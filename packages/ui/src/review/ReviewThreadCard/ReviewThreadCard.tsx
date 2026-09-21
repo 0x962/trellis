@@ -168,9 +168,9 @@ export function ReviewThreadCard({ thread, renderBody, onReply, onResolve, onEdi
 						<Tooltip content="Post reply">
 							<IconButton type="submit" label="Post reply" icon={<ArrowUp />} disabled={busy || !reply.trim()} />
 						</Tooltip>
-						<Tooltip content={thread.status === "resolved" ? "Reopen thread" : "Resolve thread"}>
+						<Tooltip content={thread.status === "resolved" ? "Reopen comment" : "Resolve comment"}>
 							<IconButton
-								label={thread.status === "resolved" ? "Reopen thread" : "Resolve thread"}
+								label={thread.status === "resolved" ? "Reopen comment" : "Resolve comment"}
 								icon={thread.status === "resolved" ? <ArrowCounterClockwise /> : <Check />}
 								disabled={busy}
 								onClick={() =>

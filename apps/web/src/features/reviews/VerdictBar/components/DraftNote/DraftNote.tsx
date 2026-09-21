@@ -3,7 +3,7 @@ import { useState } from "react";
 
 // The Request changes and Comment verdicts need a note. Approve can use an
 // empty note.
-const emptyNote = "Enter a note before you send these drafts.";
+const emptyNote = "Enter a note before you send these comments.";
 
 export type DraftNoteProps = {
 	open: boolean;

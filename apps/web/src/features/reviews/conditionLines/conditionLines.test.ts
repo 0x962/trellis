@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { type Conditions, conditionLabels, conditionLines, mergeReadiness } from "./conditionLines";
+import { type Conditions, conditionLines, mergeReadiness } from "./conditionLines";
 
 const clear: Conditions = {
 	merged: false,
@@ -12,14 +12,25 @@ const clear: Conditions = {
 	threads: 0,
 	flows: { total: 2, newest: { name: "Code Reviewer", status: "passed", findings: 0 }, running: 0, failed: 0 },
 	base: { behindBy: 0, baseRefName: "master" },
+	stackedOn: null,
 	ancestors: [{ identifier: "TRL-164", merged: true }],
 };
 
 const lineValue = (conditions: Conditions, label: string) =>
 	conditionLines(conditions).find((line) => line.label === label)?.value;
 
-test("the nine lines print in one order", () => {
-	expect(conditionLines(clear).map((line) => line.label)).toEqual([...conditionLabels]);
+test("the lines print in one order", () => {
+	expect(conditionLines(clear).map((line) => line.label)).toEqual([
+		"size",
+		"risk",
+		"tests",
+		"evidence",
+		"checks",
+		"comments",
+		"flows",
+		"base branch",
+		"waits on",
+	]);
 });
 
 test("the size line prints the lines, the files and the named band", () => {
@@ -95,14 +106,14 @@ test("a pull request with no check reads none reported", () => {
 	expect(lineValue({ ...clear, checks: { pass: 0, fail: 0, pending: 0, skipped: 0 } }, "checks")).toBe("none reported");
 });
 
-test("the threads line counts the threads that nobody resolved", () => {
-	expect(lineValue(clear, "threads")).toBe("none open");
-	expect(lineValue({ ...clear, threads: 1 }, "threads")).toBe("1 open");
-	expect(lineValue({ ...clear, threads: 4 }, "threads")).toBe("4 open");
+test("the comments line counts the comments that nobody resolved", () => {
+	expect(lineValue(clear, "comments")).toBe("none open");
+	expect(lineValue({ ...clear, threads: 1 }, "comments")).toBe("1 open");
+	expect(lineValue({ ...clear, threads: 4 }, "comments")).toBe("4 open");
 });
 
-test("the flows line names the newest flow result and its finding count", () => {
-	expect(lineValue(clear, "flows")).toBe("Code Reviewer passed · 0 findings");
+test("the flows line names the newest flow result and its comment count", () => {
+	expect(lineValue(clear, "flows")).toBe("Code Reviewer passed · 0 comments");
 	expect(
 		lineValue(
 			{
@@ -111,7 +122,7 @@ test("the flows line names the newest flow result and its finding count", () => 
 			},
 			"flows",
 		),
-	).toBe("Security Review failed · 1 finding");
+	).toBe("Security Review failed · 1 comment");
 	expect(lineValue({ ...clear, flows: { total: 0, newest: null, running: 0, failed: 0 } }, "flows")).toBe("none run");
 });
 
@@ -123,24 +134,30 @@ test("an older flow run does not change the newest flow result", () => {
 		failed: 1,
 	};
 
-	expect(lineValue({ ...clear, flows: many }, "flows")).toBe("Code Reviewer passed · 4 findings");
+	expect(lineValue({ ...clear, flows: many }, "flows")).toBe("Code Reviewer passed · 4 comments");
 });
 
-test("the base line prints how far the head is behind its base branch", () => {
-	expect(lineValue(clear, "base")).toBe("up to date with master");
-	expect(lineValue({ ...clear, base: { behindBy: 1, baseRefName: "main" } }, "base")).toBe("1 commit behind main");
-	expect(lineValue({ ...clear, base: { behindBy: 97, baseRefName: "master" } }, "base")).toBe(
-		"97 commits behind master",
+test("the base branch line prints the target branch and the distance when known", () => {
+	expect(lineValue(clear, "base branch")).toBe("master");
+	expect(lineValue({ ...clear, base: { behindBy: null, baseRefName: "main" } }, "base branch")).toBe("main");
+	expect(lineValue({ ...clear, base: { behindBy: 1, baseRefName: "main" } }, "base branch")).toBe(
+		"main · 1 commit behind",
+	);
+	expect(lineValue({ ...clear, base: { behindBy: 97, baseRefName: "master" } }, "base branch")).toBe(
+		"master · 97 commits behind",
 	);
 });
 
-test("the base line reads unknown while the revision carries no distance", () => {
-	expect(lineValue({ ...clear, base: null }, "base")).toBe("unknown");
+test("the stacked row prints only when a parent pull request exists", () => {
+	expect(lineValue(clear, "stacked on")).toBeUndefined();
+	expect(lineValue({ ...clear, stackedOn: { number: 55569, ticketIdentifier: "OP-32" } }, "stacked on")).toBe(
+		"#55569 · OP-32",
+	);
 });
 
-test("the ancestors line names each ticket and its state", () => {
-	expect(lineValue(clear, "ancestors")).toBe("TRL-164 merged");
-	expect(lineValue({ ...clear, ancestors: [] }, "ancestors")).toBe("none");
+test("the waits on line names each ticket and its state", () => {
+	expect(lineValue(clear, "waits on")).toBe("TRL-164 merged");
+	expect(lineValue({ ...clear, ancestors: [] }, "waits on")).toBeUndefined();
 	expect(
 		lineValue(
 			{
@@ -150,7 +167,7 @@ test("the ancestors line names each ticket and its state", () => {
 					{ identifier: "TRL-167", merged: false },
 				],
 			},
-			"ancestors",
+			"waits on",
 		),
 	).toBe("TRL-164 merged · TRL-167 open");
 });

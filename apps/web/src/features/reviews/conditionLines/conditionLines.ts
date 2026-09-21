@@ -25,8 +25,9 @@ export type FlowWord = "running" | "passed" | "failed" | "canceled";
 // How far the pull request head sits behind its base branch, from the compare
 // call that fetched the revision on screen.
 export type BaseCondition = {
-	// How many commits the base branch holds that the head does not.
-	behindBy: number;
+	// How many commits the base branch holds that the head does not. Null
+	// means the page knows the branch name but not the distance.
+	behindBy: number | null;
 	// The name of the base branch, such as "master".
 	baseRefName: string;
 };
@@ -35,7 +36,7 @@ export type BaseCondition = {
 export type FlowsCondition = {
 	// How many runs the ticket has.
 	total: number;
-	// The newest run. `findings` counts the review threads that its agents wrote.
+	// The newest run. `findings` counts the review comments that its agents wrote.
 	newest: { name: string; status: FlowWord; findings: number } | null;
 	// These counts stop a merge across the five newest runs. A waiting run
 	// counts as running.
@@ -70,25 +71,26 @@ export type Conditions = {
 	// build the floor, because the changed file list has not arrived.
 	evidence: EvidenceCondition | null;
 	checks: { pass: number; fail: number; pending: number; skipped: number };
-	// The number of review threads that nobody resolved.
+	// The number of review comments that nobody resolved.
 	threads: number;
 	flows: FlowsCondition;
-	// `null` for a revision fetched before the page read the distance.
-	base: BaseCondition | null;
+	base: BaseCondition;
+	stackedOn: { number: number; ticketIdentifier: string } | null;
 	ancestors: readonly ConditionsAncestor[];
 };
 
-// The nine conditions, in the order they print.
+// The condition labels, in the order they print.
 export const conditionLabels = [
 	"size",
 	"risk",
 	"tests",
 	"evidence",
 	"checks",
-	"threads",
+	"comments",
 	"flows",
-	"base",
-	"ancestors",
+	"base branch",
+	"stacked on",
+	"waits on",
 ] as const;
 
 export type ConditionLabel = (typeof conditionLabels)[number];
@@ -166,19 +168,20 @@ const countPhrase = (count: number, one: string, many: string) => `${count} ${co
 
 const flowsValue = ({ total, newest }: Conditions["flows"]) => {
 	if (total === 0 || newest === null) return "none run";
-	return `${newest.name} ${newest.status} · ${countPhrase(newest.findings, "finding", "findings")}`;
+	return `${newest.name} ${newest.status} · ${countPhrase(newest.findings, "comment", "comments")}`;
 };
 
 const baseValue = (base: Conditions["base"]) => {
-	if (base === null) return "unknown";
-	if (base.behindBy === 0) return `up to date with ${base.baseRefName}`;
-	return `${base.behindBy} ${base.behindBy === 1 ? "commit" : "commits"} behind ${base.baseRefName}`;
+	if (base.behindBy === null || base.behindBy === 0) return base.baseRefName;
+	return `${base.baseRefName} · ${base.behindBy} ${base.behindBy === 1 ? "commit" : "commits"} behind`;
 };
 
 const ancestorsValue = (ancestors: Conditions["ancestors"]) => {
-	if (ancestors.length === 0) return "none";
 	return ancestors.map((ancestor) => `${ancestor.identifier} ${ancestor.merged ? "merged" : "open"}`).join(" · ");
 };
+
+const stackedOnValue = (stackedOn: NonNullable<Conditions["stackedOn"]>) =>
+	`#${stackedOn.number} · ${stackedOn.ticketIdentifier}`;
 
 // Each condition that stops a merge, as one short phrase, such as
 // "1 check failed" or "1 of 4 evidence". The size, the risk answers and the
@@ -189,7 +192,7 @@ export function unmetConditions(conditions: Conditions): string[] {
 	return [
 		checks.fail > 0 && countPhrase(checks.fail, "check failed", "checks failed"),
 		checks.pending > 0 && countPhrase(checks.pending, "check pending", "checks pending"),
-		conditions.threads > 0 && countPhrase(conditions.threads, "open thread", "open threads"),
+		conditions.threads > 0 && countPhrase(conditions.threads, "comment open", "comments open"),
 		tests === null && "tests unknown",
 		tests !== null && tests.count === 0 && !tests.noneApplies && "no test registered",
 		evidence === null && "evidence unknown",
@@ -213,9 +216,10 @@ export function conditionLines(conditions: Conditions): Array<ConditionLine & { 
 		{ label: "tests", value: testsValue(conditions.tests) },
 		{ label: "evidence", value: evidenceValue(conditions.evidence) },
 		{ label: "checks", value: checksValue(conditions.checks) },
-		{ label: "threads", value: threadsValue(conditions.threads) },
+		{ label: "comments", value: threadsValue(conditions.threads) },
 		{ label: "flows", value: flowsValue(conditions.flows) },
-		{ label: "base", value: baseValue(conditions.base) },
-		{ label: "ancestors", value: ancestorsValue(conditions.ancestors) },
-	];
+		{ label: "base branch", value: baseValue(conditions.base) },
+		conditions.stackedOn === null ? null : { label: "stacked on", value: stackedOnValue(conditions.stackedOn) },
+		conditions.ancestors.length === 0 ? null : { label: "waits on", value: ancestorsValue(conditions.ancestors) },
+	].filter((line): line is ConditionLine & { label: ConditionLabel } => line !== null);
 }

@@ -15,6 +15,7 @@ const open: Conditions = {
 	threads: 2,
 	flows: { total: 2, newest: { name: "Code Reviewer", status: "running", findings: 2 }, running: 1, failed: 0 },
 	base: { behindBy: 3, baseRefName: "master" },
+	stackedOn: null,
 	ancestors: [{ identifier: "TRL-167", merged: false }],
 };
 
@@ -41,11 +42,11 @@ test("a merged pull request prints the word merged", () => {
 	expect(html).toMatch(/Ready to merge<\/span><\/h2><div[^>]*><span[^>]*>merged<\/span>/);
 });
 
-test("the nine labels print in one order", () => {
+test("the labels print in one order", () => {
 	const html = renderToStaticMarkup(<ConditionsBlock conditions={open} />);
 
-	const order = ["size", "risk", "tests", "evidence", "checks", "threads", "flows", "base", "ancestors"].map((label) =>
-		html.indexOf(`>${label}<`),
+	const order = ["size", "risk", "tests", "evidence", "checks", "comments", "flows", "base branch", "waits on"].map(
+		(label) => html.indexOf(`>${label}<`),
 	);
 	expect(order.filter((at) => at > -1)).toHaveLength(9);
 	expect(order).toEqual([...order].sort((a, b) => a - b));
@@ -74,14 +75,15 @@ test("the block draws no button and no link", () => {
 	expect(html).not.toContain("disabled");
 });
 
-test("the short form prints four lines and no readiness word", () => {
+test("the short form prints the available source lines and no readiness word", () => {
 	const html = renderToStaticMarkup(<ShortConditions conditions={open} />);
 
 	expect(html).toContain("Merge conditions");
 	expect(html).not.toContain("Ready to merge");
 	expect(html).not.toContain("not yet");
-	for (const label of ["evidence", "checks", "threads", "ancestors"]) expect(html).toContain(`>${label}<`);
-	for (const label of ["size", "risk", "tests", "flows", "base"]) expect(html).not.toContain(`>${label}<`);
+	for (const label of ["evidence", "checks", "comments", "base branch", "waits on"])
+		expect(html).toContain(`>${label}<`);
+	for (const label of ["size", "risk", "tests", "flows", "stacked on"]) expect(html).not.toContain(`>${label}<`);
 });
 
 test("the short form and the nine-line form print one answer for one condition", () => {

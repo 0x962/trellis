@@ -8,7 +8,7 @@ export const answerMessage = (input: { question: string; waiting: string; commen
 	`trellis: ${input.question} has an answer. Read: trellis thread show ${input.commentId}\nContinue the work on ${input.waiting}.`;
 
 // A local verdict for the pull request of an agent. The message includes the
-// note because `trellis review list` shows the threads, not the submission.
+// note because `trellis review list` shows the comments, not the submission.
 export const reviewMessage = (input: {
 	url: string;
 	drafts: number;
@@ -23,5 +23,5 @@ export const reviewMessage = (input: {
 			: "trellis: your pull request has a comment.";
 	const count = `The review has ${input.drafts} ${input.drafts === 1 ? "comment" : "comments"}.`;
 	if (input.drafts === 0) return `${opening} ${count}${note}`;
-	return `${opening} ${count}${note}\nRead the threads: trellis review list ${input.url}\nApply what each thread asks. Answer each thread.`;
+	return `${opening} ${count}${note}\nRead the comments: trellis review list ${input.url}\nApply what each comment asks. Answer each comment.`;
 };

@@ -11,7 +11,7 @@ import { highlight } from "../utils/highlight";
 
 export type SearchResultsProps = {
 	q: string;
-	filters?: Partial<View>;
+	filters?: Partial<View> & { rankProject?: string };
 };
 
 // A result row is 36 px, as a table row is, and hovers on the band. Below
@@ -34,7 +34,9 @@ const phoneLinkClass =
 export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 	const { orpc } = useApp();
 	const phone = useMediaQuery("(max-width: 767px)");
-	const { tickets, projects } = useSuspenseQuery(orpc.search.query.queryOptions({ input: { q } })).data;
+	const { tickets, projects } = useSuspenseQuery(
+		orpc.search.query.queryOptions({ input: { q, rankProject: filters.rankProject } }),
+	).data;
 	const visibleTickets = tickets.filter(
 		(ticket) => filters.priority === undefined || filters.priority.includes(ticket.priority),
 	);

@@ -37,6 +37,7 @@ export type SummaryRow = {
 	releases: TicketSummary["releases"] | null;
 	ready: boolean;
 	pr_state: PrState | null;
+	pr_is_draft: boolean | null;
 	pr_is_queued: boolean | null;
 	pr_ci_state: CiState | null;
 	pr_review_state: ReviewState | null;
@@ -200,6 +201,7 @@ export const toSummary = (row: SummaryRow): TicketSummary => ({
 			? null
 			: {
 					state: row.pr_state,
+					isDraft: row.pr_is_draft as boolean,
 					isQueued: row.pr_is_queued as boolean,
 					ciState: row.pr_ci_state as CiState,
 					reviewState: row.pr_review_state as ReviewState,

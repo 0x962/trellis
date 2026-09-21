@@ -58,14 +58,15 @@ export function TitleCell({ ticket, disclosure, onToggleDisclosure }: TitleCellP
 				</span>
 			)}
 			{commentCount > 0 && (
-				<span
-					role="img"
+				<a
+					href={`/t/${ticket.identifier}#comments`}
 					aria-label={plural(commentCount, "comment")}
-					className="inline-flex shrink-0 items-center gap-0.5 text-xs text-fg-muted tabular"
+					className="inline-flex shrink-0 items-center gap-0.5 rounded-sm text-xs text-fg-muted tabular hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+					onClick={(event) => event.stopPropagation()}
 				>
 					<TextAlignLeft aria-hidden="true" className="size-2.75" />
 					{formatCount(commentCount)}
-				</span>
+				</a>
 			)}
 		</span>
 	);

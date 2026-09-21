@@ -18,6 +18,9 @@ export type TableGroup = RowGroup & {
 	forYou?: number;
 	// A muted word beside the count, such as Later.
 	note?: string;
+	// True when every ticket of the group is done or canceled. The header
+	// then draws the double check.
+	done?: boolean;
 	// The ref of the epic that every row of the table belongs to. A new
 	// ticket from the header of the group joins this epic, and the wave
 	// of the group.
@@ -44,10 +47,18 @@ export type TableItem =
 			// tree rule under its status icon and draws no bottom border.
 			hasChildLines: boolean;
 	  }
-	// `last` is true on the final child line of a ticket. That line ends the
-	// tree rule with a corner and draws the bottom border of the group.
-	| { kind: "agent"; key: string; group: TableGroup; line: TicketAgentLine; last: boolean }
-	| { kind: "pr"; key: string; group: TableGroup; pr: TicketPr; last: boolean }
+	// `last` is true on the final child line of its parent. That line ends
+	// the tree rule with a corner.
+	//
+	// `depth` is 1 when the agent line hangs from the ticket row, and 2 when
+	// it hangs from a pull request line. The line draws its tree rule under
+	// its parent, so the depth sets how far from the left edge the rule and
+	// the words sit.
+	| { kind: "agent"; key: string; group: TableGroup; line: TicketAgentLine; last: boolean; depth: AgentLineDepth }
+	// `hasChildLines` is true on the pull request line that the agent line
+	// hangs from. That line carries the tree rule down to its bottom edge
+	// and leaves the bottom border of the group to the agent line.
+	| { kind: "pr"; key: string; group: TableGroup; pr: TicketPr; last: boolean; hasChildLines: boolean }
 	| { kind: "more"; key: string; group: TableGroup };
 
 export type FlattenOptions = {
@@ -64,6 +75,8 @@ export type FlattenOptions = {
 };
 
 export type TicketDisclosure = "collapsed" | "expanded" | null;
+
+export type AgentLineDepth = 1 | 2;
 
 const ticketDisclosure = (ticket: TicketSummary, hasChildren: boolean, expandedTickets: readonly string[]) => {
 	if (!hasChildren || (ticket.status.category !== "done" && ticket.status.category !== "canceled")) return null;
@@ -91,11 +104,17 @@ export const flattenGroups = (groups: readonly TableGroup[], options: FlattenOpt
 				// Two tickets can link the same pull request, so the ticket id is
 				// part of the key that the virtualizer uses to hold a line.
 				ticket.prRows.forEach((pr, index) => {
-					const last = line === undefined && index === ticket.prRows.length - 1;
-					items.push({ kind: "pr", key: `pr:${ticket.id}:${pr.owner}/${pr.repo}#${pr.number}`, group, pr, last });
+					const last = index === ticket.prRows.length - 1;
+					const key = `pr:${ticket.id}:${pr.owner}/${pr.repo}#${pr.number}`;
+					items.push({ kind: "pr", key, group, pr, last, hasChildLines: last && line !== undefined });
 				});
 			}
-			if (line !== undefined) items.push({ kind: "agent", key: `agent:${ticket.id}`, group, line, last: true });
+			// The agent line hangs from the last pull request of the ticket,
+			// which is the newest work, and it hangs from the ticket row itself
+			// when the ticket links no pull request.
+			if (line !== undefined) {
+				items.push({ kind: "agent", key: `agent:${ticket.id}`, group, line, last: true, depth: hasPrRows ? 2 : 1 });
+			}
 		}
 		if (group.hasMore) items.push({ kind: "more", key: `more:${group.key}`, group });
 	}
