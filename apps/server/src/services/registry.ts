@@ -7,6 +7,7 @@ import * as agentAttention from "./agentRuns/attention.ts";
 import * as agentCommunication from "./agentRuns/communication.ts";
 import * as agentLifecycle from "./agentRuns/lifecycle.ts";
 import { prepareResume } from "./agentRuns/resume.ts";
+import { prepareRetry } from "./agentRuns/retry.ts";
 import { prepareSetModel } from "./agentRuns/setModel/setModel.ts";
 import { stopNativeWork } from "./agentRuns/stopNativeWork.ts";
 import * as agentTerminal from "./agentRuns/terminal.ts";
@@ -185,6 +186,11 @@ export const services = {
 		agentRuns.finish,
 	),
 	"agentRuns.resume": agentMutation(prepareResume),
+	"agentRuns.retry": prepared(
+		"mutation",
+		async (ctx, input) => agentRuns.acceptedResult(ctx, await prepareRetry(ctx, input)),
+		agentRuns.finish,
+	),
 	"agentRuns.setModel": agentMutation(prepareSetModel),
 	"agentRuns.stop": agentMutation(agentLifecycle.prepareStop),
 	"agentRuns.refresh": agentMutation(agentLifecycle.prepareRefresh),
