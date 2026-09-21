@@ -8,7 +8,7 @@ const pr = (number: number) => ({ number, owner: "0x962", repo: "trellis" }) as 
 const ticket = (id: string, prRows: TicketPr[] = [], category: TicketSummary["status"]["category"] = "started") =>
 	({ id, prRows, status: { category } }) as TicketSummary;
 
-const line = (words: string, asks = false): TicketAgentLine => ({ words, asks });
+const line = (words: string, asks = false): TicketAgentLine => ({ words, asks, working: false });
 
 const group = (key: string, expanded: boolean, rows: TicketSummary[]) =>
 	({ key, label: key, expanded, count: rows.length, rows }) as TableGroup;
@@ -123,7 +123,7 @@ describe("flattenGroups", () => {
 		const items = flattenGroups([group("todo", true, [ticket("a")])], { agentLines });
 
 		expect(items.flatMap((item) => (item.kind === "agent" ? [item.line] : []))).toEqual([
-			{ words: "crisp-fjord asks: Which cap?", asks: true },
+			{ words: "crisp-fjord asks: Which cap?", asks: true, working: false },
 		]);
 	});
 

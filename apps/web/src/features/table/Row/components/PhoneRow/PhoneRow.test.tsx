@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { TicketSummary } from "@trellis/api";
 import { renderToStaticMarkup } from "react-dom/server";
 import { prOf } from "../../../PrRow/prOf";
+import type { TicketAgentLine } from "../../../utils/agentLines";
 import type { TicketDisclosure } from "../../../utils/flattenGroups";
 import { PhoneRow } from "./PhoneRow";
 
@@ -33,7 +34,7 @@ const ticket = (fields: Partial<TicketSummary> = {}) =>
 const render = (
 	row: TicketSummary,
 	layout: "epic" | "list",
-	agentLine: { words: string; asks: boolean } | null = null,
+	agentLine: TicketAgentLine | null = null,
 	disclosure: TicketDisclosure = null,
 ) =>
 	renderToStaticMarkup(
@@ -74,7 +75,7 @@ describe("PhoneRow on the epic table", () => {
 	});
 
 	test("prints what the run says on line 2", () => {
-		const html = render(ticket(), "epic", { words: "crisp-fjord: I rebased.", asks: false });
+		const html = render(ticket(), "epic", { words: "crisp-fjord: I rebased.", asks: false, working: false });
 
 		expect(html).toContain('data-line="agent"');
 		expect(textOf(html)).toContain("crisp-fjord: I rebased.");
@@ -86,14 +87,19 @@ describe("PhoneRow on the epic table", () => {
 
 	test("hides line 2 while a done ticket is collapsed", () => {
 		const pr = prOf({ number: 57057, pass: 42 });
-		const html = render(ticket({ prRows: [pr] }), "epic", { words: "crisp-fjord: Done.", asks: false }, "collapsed");
+		const html = render(
+			ticket({ prRows: [pr] }),
+			"epic",
+			{ words: "crisp-fjord: Done.", asks: false, working: false },
+			"collapsed",
+		);
 
 		expect(html).not.toContain("data-line");
 		expect(html).toContain("Show details for OP-35");
 	});
 
 	test("shows line 2 while a done ticket is expanded", () => {
-		const html = render(ticket(), "epic", { words: "crisp-fjord: Done.", asks: false }, "expanded");
+		const html = render(ticket(), "epic", { words: "crisp-fjord: Done.", asks: false, working: false }, "expanded");
 
 		expect(html).toContain('data-line="agent"');
 		expect(html).toContain("Hide details for OP-35");

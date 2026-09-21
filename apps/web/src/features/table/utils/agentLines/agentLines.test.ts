@@ -68,11 +68,15 @@ const speaking = (name = "crisp-fjord") => {
 
 describe("agentLineOf", () => {
 	test("prints the run name, a colon and the last message", () => {
-		expect(agentLineOf(speaking())).toEqual({ words: "crisp-fjord: I rebased onto master.", asks: false });
+		expect(agentLineOf(speaking())).toEqual({
+			words: "crisp-fjord: I rebased onto master.",
+			asks: false,
+			working: true,
+		});
 	});
 
 	test("prints the question of the harness and marks the line as a request", () => {
-		expect(agentLineOf(asking())).toEqual({ words: "crisp-fjord asks: Which cap?", asks: true });
+		expect(agentLineOf(asking())).toEqual({ words: "crisp-fjord asks: Which cap?", asks: true, working: false });
 	});
 
 	test("prints the title alone when the harness sends no question text", () => {
@@ -81,7 +85,7 @@ describe("agentLineOf", () => {
 			{ id: "elicitation", kind: "elicitation", title: "Project name", blocking: true, sequence: 2, at },
 		];
 
-		expect(agentLineOf(run)).toEqual({ words: "crisp-fjord asks: Project name", asks: true });
+		expect(agentLineOf(run)).toEqual({ words: "crisp-fjord asks: Project name", asks: true, working: false });
 	});
 
 	test("names the tool of a permission request", () => {
@@ -90,7 +94,7 @@ describe("agentLineOf", () => {
 			{ id: "permission", kind: "permission", title: "Approve Bash", blocking: true, sequence: 2, at },
 		];
 
-		expect(agentLineOf(run)).toEqual({ words: "crisp-fjord asks to run: Bash", asks: true });
+		expect(agentLineOf(run)).toEqual({ words: "crisp-fjord asks to run: Bash", asks: true, working: false });
 	});
 
 	test("writes one colon in each form of the line", () => {
@@ -111,21 +115,68 @@ describe("agentLineOf", () => {
 		const run = asking();
 		run.observation!.lastMessage = { text: "I rebased onto master.", at };
 
-		expect(agentLineOf(run)).toEqual({ words: "crisp-fjord asks: Which cap?", asks: true });
+		expect(agentLineOf(run)).toEqual({ words: "crisp-fjord asks: Which cap?", asks: true, working: false });
+	});
+
+	test("names the tool the agent runs now and what it works on", () => {
+		const run = speaking();
+		run.observation!.lastTool = {
+			name: "Edit",
+			target: "apps/web/src/app.css",
+			status: "running",
+			startedAt: at,
+			updatedAt: at,
+		};
+
+		expect(agentLineOf(run)).toEqual({ words: "crisp-fjord: Edit apps/web/src/app.css", asks: false, working: true });
+	});
+
+	test("names the tool alone when the tool input holds no target", () => {
+		const run = speaking();
+		run.observation!.lastTool = { name: "TodoWrite", target: null, status: "running", startedAt: at, updatedAt: at };
+
+		expect(agentLineOf(run)).toEqual({ words: "crisp-fjord: TodoWrite", asks: false, working: true });
+	});
+
+	test("takes the text the agent writes while no tool runs", () => {
+		const run = speaking();
+		run.observation!.lastTool = {
+			name: "Edit",
+			target: "apps/web/src/app.css",
+			status: "completed",
+			startedAt: at,
+			updatedAt: at,
+		};
+
+		expect(agentLineOf(run)).toEqual({ words: "crisp-fjord: I rebased onto master.", asks: false, working: true });
+	});
+
+	test("settles on the last message with no shimmer when the turn ends", () => {
+		const run = speaking();
+		run.observation!.lastTool = {
+			name: "Edit",
+			target: "apps/web/src/app.css",
+			status: "running",
+			startedAt: at,
+			updatedAt: at,
+		};
+		run.observation!.attention!.completion = { sequence: 2, at };
+
+		expect(agentLineOf(run)).toEqual({ words: "crisp-fjord: I rebased onto master.", asks: false, working: false });
 	});
 
 	test("keeps the message of a run that stopped", () => {
 		const run = speaking();
 		run.state = "stopped";
 
-		expect(agentLineOf(run)).toEqual({ words: "crisp-fjord: I rebased onto master.", asks: false });
+		expect(agentLineOf(run)).toEqual({ words: "crisp-fjord: I rebased onto master.", asks: false, working: false });
 	});
 });
 
 describe("agentLinesByTicket", () => {
 	test("keys each line by the ticket of its run", () => {
 		expect(agentLinesByTicket([speaking()])).toEqual({
-			"ticket-a": { words: "crisp-fjord: I rebased onto master.", asks: false },
+			"ticket-a": { words: "crisp-fjord: I rebased onto master.", asks: false, working: true },
 		});
 	});
 
@@ -150,13 +201,13 @@ describe("agentLinesByTicket", () => {
 	test("keeps the request of one run when a later run of the same ticket only speaks", () => {
 		const lines = agentLinesByTicket([asking("amber-quarry"), speaking()]);
 
-		expect(lines["ticket-a"]).toEqual({ words: "amber-quarry asks: Which cap?", asks: true });
+		expect(lines["ticket-a"]).toEqual({ words: "amber-quarry asks: Which cap?", asks: true, working: false });
 	});
 
 	test("takes the request of a later run of the same ticket", () => {
 		const lines = agentLinesByTicket([speaking(), asking("amber-quarry")]);
 
-		expect(lines["ticket-a"]).toEqual({ words: "amber-quarry asks: Which cap?", asks: true });
+		expect(lines["ticket-a"]).toEqual({ words: "amber-quarry asks: Which cap?", asks: true, working: false });
 	});
 
 	test("takes the later message when neither run of a ticket asks", () => {
@@ -166,6 +217,7 @@ describe("agentLinesByTicket", () => {
 		expect(agentLinesByTicket([speaking(), second])["ticket-a"]).toEqual({
 			words: "amber-quarry: The tests pass.",
 			asks: false,
+			working: true,
 		});
 	});
 });

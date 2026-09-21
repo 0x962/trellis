@@ -35,6 +35,10 @@ export const AgentRunSchema = z.object({
 			lastTool: z
 				.object({
 					name: z.string(),
+					// The one short line that says what the tool works on: the file
+					// path of an edit, the command of a shell call, the address of a
+					// fetch. It is null when the tool input names none of these.
+					target: z.string().nullable(),
 					status: z.enum(["running", "completed", "failed"]),
 					startedAt: z.string().nullable(),
 					updatedAt: z.string(),

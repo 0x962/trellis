@@ -41,7 +41,7 @@ const runOf = (fields: Partial<AgentRun> = {}) =>
 			controllable: true,
 			activity: { state: "working", updatedAt: at },
 			lastMessage: null,
-			lastTool: { name: "Bash", status: "running", startedAt: at, updatedAt: at },
+			lastTool: { name: "Bash", target: "bun test", status: "running", startedAt: at, updatedAt: at },
 			outcome: null,
 			turnId: "turn",
 			attention: { sequence: 1, requests: [], completion: null, failure: null },

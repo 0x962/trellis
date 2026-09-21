@@ -52,7 +52,7 @@ const process = (): RuntimeProcessStatus => ({
 		lastTool: {
 			id: "tool",
 			name: "Read",
-			input: { file: "whole input" },
+			input: { file_path: "apps/web/src/app.css", content: "the whole file" },
 			output: { file: "whole output" },
 			startedAt: started,
 			updatedAt: updated,
@@ -72,12 +72,13 @@ const process = (): RuntimeProcessStatus => ({
 	launch: null,
 });
 
-test("projectRun forwards the last message and the last tool without the tool input and output", () => {
+test("projectRun forwards the last message and the last tool as its name, its target and its times", () => {
 	const projected = projectRun(run, [process()]);
 
 	expect(projected.observation?.lastMessage).toEqual({ text: "Done", at: updated });
 	expect(projected.observation?.lastTool).toEqual({
 		name: "Read",
+		target: "apps/web/src/app.css",
 		status: "completed",
 		startedAt: started,
 		updatedAt: updated,

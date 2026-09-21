@@ -21,7 +21,13 @@ test("starts from a launch without a process", () => {
 
 test("works with the current tool and its start time", () => {
 	const run = namedRun();
-	run.observation!.lastTool = { name: "Edit", status: "running", startedAt: at, updatedAt: at };
+	run.observation!.lastTool = {
+		name: "Edit",
+		target: "apps/web/src/app.css",
+		status: "running",
+		startedAt: at,
+		updatedAt: at,
+	};
 	attention(run).completion = { sequence: 1, at };
 	run.seenAttention = { attemptId: "attempt", sequence: 1 };
 	expect(runLine(run)).toMatchObject({ kind: "works", words: "works, tool Edit", since: at });
@@ -30,6 +36,31 @@ test("works with the current tool and its start time", () => {
 test("works without a current tool", () => {
 	const run = namedRun();
 	expect(runLine(run)).toMatchObject({ kind: "works", words: "works", since: at });
+});
+
+test("says the tool it runs now and what that tool works on", () => {
+	const run = namedRun();
+	run.observation!.lastTool = {
+		name: "Bash",
+		target: "bun test apps/web",
+		status: "running",
+		startedAt: at,
+		updatedAt: at,
+	};
+	expect(runLine(run).activity).toBe("Bash bun test apps/web");
+});
+
+test("says the text it writes while no tool runs", () => {
+	const run = namedRun();
+	run.observation!.lastMessage = { text: "I rebased the branch.", at };
+	expect(runLine(run).activity).toBe("I rebased the branch.");
+});
+
+test("says nothing of its activity once the turn ends", () => {
+	const run = namedRun();
+	run.observation!.lastMessage = { text: "I rebased the branch.", at };
+	attention(run).completion = { sequence: 2, at };
+	expect(runLine(run)).toMatchObject({ kind: "turn-done-new", activity: null });
 });
 
 test("identifies a controllable working process", () => {

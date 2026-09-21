@@ -21,7 +21,9 @@ type AgentLineProps = {
 };
 
 // What the run of a ticket says, on the line under that ticket's row in the
-// epic table. The words wrap and never truncate, so the line is one text
+// epic table. A run that works writes what it does at this moment on one
+// line, and the line shimmers. A run that ended its turn writes its last
+// message: those words wrap and never truncate, so the line is one text
 // line tall at least and grows with the message. Below 768 px the table
 // draws no such line, and the phone row shows the words.
 //
@@ -32,7 +34,7 @@ export function AgentLine({ line, top, last, index, measureRef }: AgentLineProps
 		<div
 			ref={measureRef}
 			data-index={index}
-			data-agent-line={line.asks ? "asks" : "message"}
+			data-agent-line={line.asks ? "asks" : line.working ? "working" : "message"}
 			style={{ minHeight: `${agentLineHeight}px`, transform: `translateY(${top}px)` }}
 			className={cx(
 				"absolute top-0 left-0 flex w-full items-start gap-2 py-1 pr-5 pl-19 text-sm",
