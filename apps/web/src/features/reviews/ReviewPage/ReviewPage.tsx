@@ -1,7 +1,15 @@
 import { Link } from "@tanstack/react-router";
-import { type Evidence, evidenceFloor, isAgentWorking, type ReviewThread, reviewRef, turnOf } from "@trellis/api";
+import {
+	type Evidence,
+	evidenceFloor,
+	isAgentWorking,
+	type ReviewRevision,
+	type ReviewThread,
+	reviewRef,
+	turnOf,
+} from "@trellis/api";
 import { Skeleton, TicketId, useMediaQuery } from "@trellis/ui";
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { useCollapsedGroups } from "../../table/hooks/useCollapsedGroups";
 import { ChangeSummary } from "../ChangeSummary";
@@ -17,7 +25,7 @@ import { ReviewDiscussion } from "../ReviewDiscussion/ReviewDiscussion";
 import { ReviewFocusList } from "../ReviewFocusList";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
 import { ReviewStack } from "../ReviewStack/ReviewStack";
-import { primaryReviewAction, type ReviewActionMeta } from "../reviewActions/reviewActions";
+import { primaryReviewAction } from "../reviewActions/reviewActions";
 import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
 import { FilesDisclosure } from "./components/FilesDisclosure";
@@ -37,6 +45,12 @@ const noSentences: string[] = [];
 // top of the sheet.
 const factsGroup = "facts";
 const factsShut = [factsGroup];
+
+type Commit = { oid: string; messageHeadline: string };
+const commitsOf = (revision: ReviewRevision | null) =>
+	((revision?.meta.commits as Commit[] | undefined) ?? []).filter(
+		(commit) => typeof commit.oid === "string" && typeof commit.messageHeadline === "string",
+	);
 
 export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent?: ReactNode; syncHash?: boolean }) {
 	const { client } = useApp();
@@ -60,7 +74,6 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	// `FilesDisclosure` hides the review details behind one control on a phone.
 	const phone = useMediaQuery("(max-width: 767px)");
 	const [pickedPath, setPickedPath] = useState("");
-	const [composerOpen, setComposerOpen] = useState(false);
 	const [batch, setBatch] = useState<ReadonlySet<string>>(() => new Set());
 	const [applying, setApplying] = useState<string[] | null>(null);
 	// The diff shows the threads of the revision on screen, plus the threads
@@ -88,8 +101,15 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		},
 		[threadsById],
 	);
-	const displayRevision = revision ? { ...revision, meta: status.data ?? revision.meta } : null;
+	const statusMatchesRevision =
+		revision !== null && status.data?.headRefOid === revision.headSha && status.data?.baseRefOid === revision.baseSha;
+	const displayRevision = revision ? { ...revision, meta: statusMatchesRevision ? status.data! : revision.meta } : null;
 	const displayMeta = displayRevision?.meta as GithubPullRequest | undefined;
+	const openedReview = useRef<{ pr: string; commits: ReadonlySet<string> } | null>(null);
+	if (revision !== null && openedReview.current?.pr !== pr)
+		openedReview.current = { pr, commits: new Set(commitsOf(revision).map((commit) => commit.oid)) };
+	const newCommits = commitsOf(revision).filter((commit) => !openedReview.current?.commits.has(commit.oid));
+	const showMerge = displayMeta !== undefined && primaryReviewAction(displayMeta) === "merge";
 	const toggleBatch = useCallback((threadId: string) => {
 		setBatch((current) => {
 			const next = new Set(current);
@@ -138,6 +158,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		waitsOn: ticket.data?.waitsOn ?? [],
 		base: baseOf(revision),
 	});
+	const canMerge = showMerge && conditions !== null;
 	// The ticket row also knows the ticket status and its dependencies.
 	// `prRow` is the fallback for a pull request that no ticket links.
 	const turnInput = ticket.data ?? prRow;
@@ -146,13 +167,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	return (
 		<ReviewApplyContext.Provider value={applyState}>
 			<div className="review-page">
-				<ReviewHeader
-					pr={pr}
-					parent={parent}
-					revision={displayRevision}
-					refreshing={refresh.isPending || composerOpen}
-					onRefresh={refreshAll}
-				/>
+				<ReviewHeader pr={pr} parent={parent} revision={displayRevision} />
 				{/* The identity stays above the column, so the buttons that end
 				    the review are always in reach. */}
 				<div className="review-identity">
@@ -161,7 +176,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						revision={displayRevision}
 						pullRequest={displayMeta}
 						openThreads={allThreads.filter((thread) => thread.status === "open")}
-						onAction={() => void status.refetch()}
+						onAction={refreshAll}
 					/>
 					<div className="review-identity-lines">
 						{status.data?.ticket && (
@@ -187,18 +202,18 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 					    an empty box draws nothing. */}
 					<div className="review-notices">
 						{revision && <ReviewStack pr={pr} />}
+						{newCommits.length > 0 && (
+							<p role="status" className="review-notice">
+								New since you opened this review:{" "}
+								{newCommits.map((commit) => `${commit.oid.slice(0, 7)} ${commit.messageHeadline}`).join("; ")}. Read
+								these commits before you merge.
+							</p>
+						)}
 						{status.isError && (
 							<p role="alert" className="review-notice">
 								GitHub status: {status.error.message}
 							</p>
 						)}
-						{revision &&
-							status.data &&
-							(status.data.headRefOid !== revision.headSha || status.data.baseRefOid !== revision.baseSha) && (
-								<button type="button" className="review-notice" onClick={() => refresh.mutate()}>
-									The PR has a new revision. Refresh to review it. Current comments keep their original anchors.
-								</button>
-							)}
 						{refresh.isError && (
 							<p className="review-error" role="alert">
 								{refresh.error.message}. Local comments remain available.
@@ -278,22 +293,22 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 										selectedFile={selectedPath}
 										renderThread={renderThread}
 										onFiles={setChangedFiles}
-										onComposer={setComposerOpen}
 									/>
 								)}
 							</div>
 						</div>
 					</FilesDisclosure>
 				</div>
-				{displayRevision && conditions && primaryReviewAction(displayRevision.meta as ReviewActionMeta) === "merge" && (
+				{displayRevision && (canMerge || status.data?.ticket) && (
 					<VerdictBar
 						pr={pr}
 						revision={displayRevision}
 						ticket={status.data?.ticket?.identifier ?? null}
 						run={run}
 						drafts={drafts}
-						unmetConditions={unmetConditions(conditions)}
+						unmetConditions={conditions === null ? [] : unmetConditions(conditions)}
 						phone={phone}
+						showMerge={canMerge}
 						onDone={refreshAll}
 					/>
 				)}
@@ -310,6 +325,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						headSha={revision.headSha}
 						threads={applyingThreads}
 						onClose={() => setApplying(null)}
+						onHeadMoved={refreshAll}
 						onApplied={(result) => {
 							setApplying(null);
 							setBatch((current) => {

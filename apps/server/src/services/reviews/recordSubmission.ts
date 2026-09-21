@@ -51,6 +51,6 @@ export const recordSubmission = async (ctx: ServiceCtx, tx: Tx, input: Submissio
 		sql`INSERT INTO review_submissions (id, pr_id, request_id, actor, document, created_at)
 		VALUES (${id}, ${input.prId}, ${id}, ${ctx.actor.name}, ${JSON.stringify(document)}::jsonb, ${ctx.now()})`,
 	);
-	if (!input.sendBack) return { id, deliveries: [] };
-	return { id, deliveries: await enqueueReviewDeliveries(tx, { reviewId: id, prId: input.prId }) };
+	if (!input.sendBack) return { id, recipients: [] };
+	return { id, recipients: await enqueueReviewDeliveries(tx, { reviewId: id, prId: input.prId }) };
 };

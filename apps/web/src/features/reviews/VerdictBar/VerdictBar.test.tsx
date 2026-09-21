@@ -18,6 +18,7 @@ const render = (props: {
 	drafts: string[];
 	unmet: string[];
 	phone?: boolean;
+	showMerge?: boolean;
 }) =>
 	renderToStaticMarkup(
 		<AppProvider value={app}>
@@ -30,6 +31,7 @@ const render = (props: {
 					drafts={props.drafts}
 					unmetConditions={props.unmet}
 					phone={props.phone ?? false}
+					showMerge={props.showMerge ?? true}
 					onDone={() => {}}
 				/>
 			</QueryClientProvider>
@@ -72,6 +74,14 @@ test("a pull request that no ticket links offers no send back", () => {
 	expect(html).not.toContain("Send back");
 	expect(html).toContain("Comment only");
 	expect(html).toMatch(/<button[^>]*aria-label="Merge"/);
+});
+
+test("a linked ticket keeps Send back when Merge is not available", () => {
+	const html = render({ ticket: "TRL-236", run: null, drafts: [], unmet: [], showMerge: false });
+
+	expect(html).toContain("Send back to a new agent");
+	expect(html).toContain("Comment only");
+	expect(html).not.toMatch(/aria-label="Merge"/);
 });
 
 test("a phone draws Send back and Comment only, no Merge, and the reason for it", () => {
