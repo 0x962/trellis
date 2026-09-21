@@ -85,7 +85,7 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 			) AS reviews,
 			jsonb_agg(
 				jsonb_build_object(
-					'number', p.number, 'owner', p.owner, 'repo', p.repo, 'url', p.url,
+					'number', p.number, 'owner', p.owner, 'repo', p.repo, 'url', p.url, 'title', p.title,
 					'state', p.state, 'isDraft', p.is_draft,
 					'additions', p.additions, 'deletions', p.deletions, 'changedFiles', p.changed_files,
 					'files', p.files,

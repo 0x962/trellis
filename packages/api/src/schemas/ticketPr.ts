@@ -30,6 +30,7 @@ export const TicketPrSchema = z.object({
 	owner: z.string().min(1),
 	repo: z.string().min(1),
 	url: z.string().min(1),
+	title: z.string(),
 	state: PrStateSchema,
 	isDraft: z.boolean(),
 	additions: CountSchema.nullable(),

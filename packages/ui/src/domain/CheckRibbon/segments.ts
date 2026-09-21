@@ -6,7 +6,7 @@ export type Check = {
 	bucket: CheckBucket;
 };
 
-export type RibbonSize = "full" | "mini";
+export type RibbonSize = "wide" | "full" | "mini";
 
 // The word a person reads for each bucket. A bucket name is GitHub's
 // identifier, and a tooltip never shows it raw.
@@ -18,47 +18,23 @@ export const outcomeWords: Record<CheckBucket, string> = {
 	skipping: "skipped",
 };
 
-// One drawn piece of a ribbon: one check, or one run of checks in one bucket.
+// One drawn piece of a ribbon: one check or one group of adjacent checks.
 export type RibbonSegment = {
 	bucket: CheckBucket;
-	// The tooltip: the check name and its outcome, or the run length and its outcome.
+	// The tooltip names the outcomes of all checks that the segment represents.
 	title: string;
 	// The width in px. The widths and the gaps of one ribbon add up to the box width.
 	width: number;
 };
 
-// The ribbon box widths in px: `w-16` and `w-8` with the 4 px spacing token.
-export const ribbonWidths: Record<RibbonSize, number> = { full: 64, mini: 32 };
+// The ribbon box widths in px: `w-48`, `w-16`, and `w-8` with the 4 px spacing token.
+export const ribbonWidths: Record<RibbonSize, number> = { wide: 192, full: 64, mini: 32 };
 
-// The gap in px between segments for a count of checks. A full ribbon keeps
-// 2 px gaps up to 16 checks and 1 px gaps up to 32. A mini ribbon keeps 1 px
-// gaps up to 16. Above that the segments touch, so the gaps take no width
-// from the segments.
+// The gap stays visible when the ribbon groups more checks than it can draw.
 export const ribbonGap = (size: RibbonSize, count: number) => {
-	if (size === "mini") return count <= 16 ? 1 : 0;
-	if (count <= 16) return 2;
-	return count <= 32 ? 1 : 0;
+	if (size === "mini" || count > 16) return 1;
+	return 2;
 };
-
-// The exact width in px of one segment when every check gets its own
-// segment. That holds up to one check per px of the box, so the width is at
-// least 1 px. The ribbon draws that width in whole hundredths of a px.
-export const segmentWidth = (size: RibbonSize, count: number) =>
-	(ribbonWidths[size] - (count - 1) * ribbonGap(size, count)) / count;
-
-// A failed or canceled run is pinned: it takes 1 px before a free run takes any.
-const pinned = (bucket: CheckBucket) => bucket === "fail" || bucket === "cancel";
-
-type Run = { bucket: CheckBucket; name: string; length: number };
-
-// Consecutive checks in one bucket, in order.
-const runs = (checks: readonly Check[]) =>
-	checks.reduce<Run[]>((result, check) => {
-		const last = result[result.length - 1];
-		if (last && last.bucket === check.bucket) last.length += 1;
-		else result.push({ bucket: check.bucket, name: check.name, length: 1 });
-		return result;
-	}, []);
 
 const total = (values: readonly number[]) => values.reduce((sum, value) => sum + value, 0);
 
@@ -77,61 +53,47 @@ const apportion = (sum: number, weights: readonly number[]) => {
 	return parts;
 };
 
-// The widths of the runs of a crowded ribbon in hundredths of a px, in run
-// order. Every run starts at its share of the box by length. A pinned run
-// under 100 rises to 100, and the widest free run pays each hundredth of
-// the rise. When the free runs cannot pay, they drop to 0 and the pinned
-// runs share the box in proportion. The widths always add up to the box.
-const runWidths = (box: number, merged: readonly Run[]) => {
-	const isPinned = (index: number) => pinned(merged[index]!.bucket);
-	const shares = apportion(
-		box * 100,
-		merged.map((run) => run.length),
-	);
-	const widths = shares.map((share, index) => (isPinned(index) ? Math.max(100, share) : share));
-	const supply = total(widths.filter((_, index) => !isPinned(index)));
-	const deficit = total(widths) - box * 100;
-	if (supply < deficit)
-		return apportion(
-			box * 100,
-			widths.map((width, index) => (isPinned(index) ? width : 0)),
-		);
-	for (let paid = 0; paid < deficit; paid += 1) {
-		let widest = -1;
-		widths.forEach((width, index) => {
-			if (!isPinned(index) && (widest < 0 || width > widths[widest]!)) widest = index;
-		});
-		widths[widest]! -= 1;
-	}
-	return widths;
+const severity: Record<CheckBucket, number> = {
+	pass: 0,
+	skipping: 1,
+	pending: 2,
+	cancel: 3,
+	fail: 4,
 };
 
-// The segments of a ribbon, in check order. Up to one check per px of the
-// box, every check is a segment of `segmentWidth`. Those widths are whole
-// hundredths of a px that add up to the box. Above that, each run of one
-// bucket is a segment, sized by `runWidths`.
+const worstBucket = (checks: readonly Check[]): CheckBucket =>
+	checks.reduce((worst, check) => (severity[check.bucket] > severity[worst] ? check.bucket : worst), checks[0]!.bucket);
+
+const outcomeOrder: readonly CheckBucket[] = ["fail", "cancel", "pending", "pass", "skipping"];
+
+export const checkCountWords = (checks: readonly Check[]) =>
+	outcomeOrder
+		.map((bucket) => ({ bucket, count: checks.filter((check) => check.bucket === bucket).length }))
+		.filter(({ count }) => count > 0)
+		.map(({ bucket, count }) => `${count} ${outcomeWords[bucket]}`)
+		.join(", ");
+
+const groupedChecks = (checks: readonly Check[], count: number) =>
+	Array.from({ length: count }, (_, index) =>
+		checks.slice(Math.floor((index * checks.length) / count), Math.floor(((index + 1) * checks.length) / count)),
+	);
+
+// Every segment keeps at least 1 px of width and a visible gap. A crowded
+// ribbon groups adjacent checks into the maximum number of segments that fit.
+// The worst outcome gives a group its color, so a failure stays visible.
 export const ribbonSegments = (size: RibbonSize, checks: readonly Check[]): RibbonSegment[] => {
 	const box = ribbonWidths[size];
-	if (checks.length <= box) {
-		const room = (box - (checks.length - 1) * ribbonGap(size, checks.length)) * 100;
-		const widths = apportion(
-			room,
-			checks.map(() => 1),
-		);
-		return checks.map((check, index) => ({
-			bucket: check.bucket,
-			title: `${check.name}: ${outcomeWords[check.bucket]}`,
-			width: widths[index]! / 100,
-		}));
-	}
-	const merged = runs(checks);
-	const widths = runWidths(box, merged);
-	return merged.map((run, index) => ({
-		bucket: run.bucket,
-		title:
-			run.length === 1
-				? `${run.name}: ${outcomeWords[run.bucket]}`
-				: `${run.length} checks: ${outcomeWords[run.bucket]}`,
+	const gap = ribbonGap(size, checks.length);
+	const capacity = Math.floor((box + gap) / (1 + gap));
+	const groups = groupedChecks(checks, Math.min(checks.length, capacity));
+	const room = (box - (groups.length - 1) * gap) * 100;
+	const widths = apportion(
+		room,
+		groups.map(() => 1),
+	);
+	return groups.map((group, index) => ({
+		bucket: worstBucket(group),
+		title: group.length === 1 ? `${group[0]!.name}: ${outcomeWords[group[0]!.bucket]}` : checkCountWords(group),
 		width: widths[index]! / 100,
 	}));
 };

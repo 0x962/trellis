@@ -1,11 +1,11 @@
 import { cx } from "../../utils/cx";
-import { type Check, type CheckBucket, type RibbonSize, ribbonGap, ribbonSegments } from "./segments";
+import { type Check, type CheckBucket, checkCountWords, type RibbonSize, ribbonGap, ribbonSegments } from "./segments";
 
 export type { Check, CheckBucket };
 
 export type CheckRibbonProps = {
 	checks: readonly Check[];
-	// `mini` is the 32 px ribbon on a row or a card; `full` is 64 px on a PR row.
+	// The 192 px `wide` ribbon fits a PR row. Cards use `full` at 64 px or `mini` at 32 px.
 	size?: RibbonSize;
 	className?: string;
 };
@@ -29,12 +29,15 @@ const buckets: Record<CheckBucket, string> = {
 export function CheckRibbon({ checks, size = "full", className }: CheckRibbonProps) {
 	if (checks.length === 0) return null;
 	const count = checks.length === 1 ? "1 check" : `${checks.length} checks`;
+	const label = `${count}: ${checkCountWords(checks)}`;
 	return (
 		<span
-			title={count}
+			role="img"
+			aria-label={label}
+			title={label}
 			className={cx(
 				"inline-flex shrink-0 overflow-hidden",
-				size === "mini" ? "h-1.25 w-8" : "h-1.5 w-16",
+				size === "mini" ? "h-1.25 w-8" : size === "wide" ? "h-1.5 w-48" : "h-1.5 w-16",
 				gaps[ribbonGap(size, checks.length)],
 				className,
 			)}
