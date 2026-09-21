@@ -50,7 +50,7 @@ describe("pullRequestRowLine", () => {
 		expect(pullRequestRowLine(pullRequest({ isQueued: true }))).toStartWith("#57080  queued ·");
 	});
 
-	test("gives the turn to the person when every check passed and no thread is open", () => {
+	test("gives the turn to the person when every check passed and no comment is open", () => {
 		expect(
 			pullRequestRowLine(pullRequest({ fail: 0, pending: 0, changedFiles: 7, additions: 186, deletions: 44 })),
 		).toBe("#57080  open · +186 −44 · 7 files · 47 passed · no evidence · you");
@@ -62,7 +62,7 @@ describe("pullRequestRowLine", () => {
 		);
 	});
 
-	test("prints the open threads and the newest flow run", () => {
+	test("prints the open comments and the newest flow run", () => {
 		const pr = pullRequest({
 			openThreads: 1,
 			flowRuns: [
@@ -71,7 +71,7 @@ describe("pullRequestRowLine", () => {
 			],
 		});
 		expect(pullRequestRowLine(pr)).toBe(
-			"#57080  open · +311 −12 · 6 files · 1 failed · 6 pending · 47 passed · 1 thread · no evidence · flow: passed · agent",
+			"#57080  open · +311 −12 · 6 files · 1 failed · 6 pending · 47 passed · 1 comment · no evidence · flow: passed · agent",
 		);
 	});
 

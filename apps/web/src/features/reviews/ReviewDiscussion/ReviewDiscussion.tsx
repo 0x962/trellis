@@ -18,7 +18,7 @@ export function ReviewDiscussion({ threads, activeThread, revision, renderThread
 	const [filter, setFilter] = useState("all");
 	const [search, setSearch] = useState("");
 	const [position, setPosition] = useState(-1);
-	// The open threads come first: they are the work. A resolved thread draws
+	// The open comments come first: they are the work. A resolved comment draws
 	// as one line that opens on a click, so the page builds no message body
 	// for it until the reader asks.
 	//
@@ -47,9 +47,9 @@ export function ReviewDiscussion({ threads, activeThread, revision, renderThread
 					{thread.path}:{thread.startLine}–{thread.line} · {thread.side}
 					{thread.revisionId !== revision?.id ? " · Older or unknown revision" : ""}
 				</button>
-				<Tooltip content="Copy thread link">
+				<Tooltip content="Copy comment link">
 					<IconButton
-						label="Copy thread link"
+						label="Copy comment link"
 						icon={<Copy />}
 						onClick={() =>
 							void navigator.clipboard.writeText(`${location.origin}${location.pathname}#?thread=${thread.id}`)
@@ -73,8 +73,8 @@ export function ReviewDiscussion({ threads, activeThread, revision, renderThread
 						<div className="review-discussion-toolbar">
 							<Input
 								hideLabel
-								placeholder="Find a thread…"
-								label="Find a thread"
+								placeholder="Find a comment…"
+								label="Find a comment"
 								value={search}
 								onChange={(event) => setSearch(event.target.value)}
 							/>
@@ -88,24 +88,24 @@ export function ReviewDiscussion({ threads, activeThread, revision, renderThread
 									{ value: "resolved", label: "Resolved" },
 								]}
 							/>
-							<Tooltip content="Previous thread">
+							<Tooltip content="Previous comment">
 								<IconButton
-									label="Previous thread"
+									label="Previous comment"
 									icon={<ArrowUp />}
 									disabled={!visible.length}
 									onClick={() => next(-1)}
 								/>
 							</Tooltip>
-							<Tooltip content="Next thread">
+							<Tooltip content="Next comment">
 								<IconButton
-									label="Next thread"
+									label="Next comment"
 									icon={<ArrowDown />}
 									disabled={!visible.length}
 									onClick={() => next(1)}
 								/>
 							</Tooltip>
 						</div>
-						{visible.length === 0 && <EmptyState description="No threads match." />}
+						{visible.length === 0 && <EmptyState description="No comments match." />}
 						{open.length > 0 && <SectionHeader title="Open" count={open.length} level={3} />}
 						{open.map(threadEntry)}
 						{resolved.length > 0 && <SectionHeader title="Resolved" count={resolved.length} level={3} />}

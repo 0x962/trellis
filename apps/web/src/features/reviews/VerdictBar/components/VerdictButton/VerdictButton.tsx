@@ -18,13 +18,13 @@ const copy: Record<Verdict, { label: string; description: string; confirmLabel: 
 	},
 	request_changes: {
 		label: "Request changes",
-		description: "Save the request in Trellis and deliver the note and open threads to the agent.",
+		description: "Save the request in Trellis and deliver the note and comments to the agent.",
 		confirmLabel: "Request changes",
 		noteRequired: true,
 	},
 	comment: {
 		label: "Comment",
-		description: "Save the comment in Trellis and deliver the note and open threads to the agent.",
+		description: "Save the comment in Trellis and deliver the note and comments to the agent.",
 		confirmLabel: "Comment",
 		noteRequired: true,
 	},

@@ -50,7 +50,7 @@ const checkFacts = (pr: TicketPr): string[] =>
 	checkOutcomes.filter((outcome) => outcome.count(pr) > 0).map((outcome) => `${outcome.count(pr)} ${outcome.word}`);
 
 const threadFacts = (pr: TicketPr): string[] =>
-	pr.openThreads === 0 ? [] : [countWord(pr.openThreads, "thread", "threads")];
+	pr.openThreads === 0 ? [] : [countWord(pr.openThreads, "comment", "comments")];
 
 const evidenceFacts = (pr: TicketPr): string[] => {
 	const word = evidenceWord(pr);

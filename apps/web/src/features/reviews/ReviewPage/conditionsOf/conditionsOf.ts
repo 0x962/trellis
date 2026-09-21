@@ -21,17 +21,16 @@ export type ConditionsInput = {
 	// leaves out a ticket that reached Done, so every entry here names a
 	// ticket that nobody merged yet.
 	waitsOn: TicketSummary["waitsOn"];
-	// How far the head of the revision on screen sits behind its base branch,
-	// or `null` for a revision fetched before the page read the distance.
-	base: BaseCondition | null;
+	// How far the head of the revision on screen sits behind its base branch.
+	base: BaseCondition;
 };
 
-// `ReviewRevision.meta` stores the distance from the compare request.
-// A revision from an older server has no distance and no base condition.
-export const baseOf = (revision: ReviewRevision | null): BaseCondition | null => {
+// `ReviewRevision.meta` stores the distance from the compare request. The
+// pull request row stores the target branch even when an older revision lacks
+// the distance.
+export const baseOf = (revision: ReviewRevision | null, baseRefName: string): BaseCondition => {
 	const meta = revision?.meta as { behindBy?: number; baseRefName?: string } | undefined;
-	if (meta?.behindBy === undefined || meta.baseRefName === undefined) return null;
-	return { behindBy: meta.behindBy, baseRefName: meta.baseRefName };
+	return { behindBy: meta?.behindBy ?? null, baseRefName: meta?.baseRefName ?? baseRefName };
 };
 
 // A run that waits has not started, and a run that runs has not finished, so
@@ -114,6 +113,10 @@ export function conditionsOf({ prRow, records, floor, waitsOn, base }: Condition
 		threads: prRow.openThreads,
 		flows: flowsOf(prRow),
 		base,
+		stackedOn:
+			prRow.stackedOn === null
+				? null
+				: { number: prRow.stackedOn.number, ticketIdentifier: prRow.stackedOn.ticketIdentifier },
 		ancestors: waitsOn.map((dependency) => ({ identifier: dependency.identifier, merged: false })),
 	};
 }

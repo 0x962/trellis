@@ -158,12 +158,44 @@ describe("flattenGroups tree", () => {
 	const childLinesOf = (items: ReturnType<typeof flattenGroups>) =>
 		items.flatMap((item) => (item.kind === "row" ? [item.hasChildLines] : []));
 
-	test("marks the agent line as the last child when the ticket has one", () => {
+	test("ends the rule of the ticket at its last pull request, and the agent line ends its own", () => {
 		const groups = [group("todo", true, [ticket("a", [pr(11), pr(12)])])];
 
 		const items = flattenGroups(groups, { prRows: true, agentLines: { a: line("Pushed.") } });
 
-		expect(lastOf(items)).toEqual([false, false, true]);
+		expect(lastOf(items)).toEqual([false, true, true]);
+	});
+
+	test("hangs the agent line from the last pull request of the ticket", () => {
+		const groups = [group("todo", true, [ticket("a", [pr(11), pr(12)])])];
+
+		const items = flattenGroups(groups, { prRows: true, agentLines: { a: line("Pushed.") } });
+
+		expect(items.flatMap((item) => (item.kind === "pr" ? [item.hasChildLines] : []))).toEqual([false, true]);
+		expect(items.flatMap((item) => (item.kind === "agent" ? [item.depth] : []))).toEqual([2]);
+	});
+
+	test("hangs the agent line from the ticket row when the ticket links no pull request", () => {
+		const items = flattenGroups([group("todo", true, [ticket("a")])], {
+			prRows: true,
+			agentLines: { a: line("Pushed.") },
+		});
+
+		expect(items.flatMap((item) => (item.kind === "agent" ? [item.depth] : []))).toEqual([1]);
+	});
+
+	test("hangs the agent line from the ticket row when the route leaves the pull requests out", () => {
+		const items = flattenGroups([group("todo", true, [ticket("a", [pr(11)])])], { agentLines: { a: line("Pushed.") } });
+
+		expect(items.flatMap((item) => (item.kind === "agent" ? [item.depth] : []))).toEqual([1]);
+	});
+
+	test("gives a pull request with no agent line under it no child lines", () => {
+		const groups = [group("todo", true, [ticket("a", [pr(11), pr(12)])])];
+
+		const items = flattenGroups(groups, { prRows: true });
+
+		expect(items.flatMap((item) => (item.kind === "pr" ? [item.hasChildLines] : []))).toEqual([false, false]);
 	});
 
 	test("marks the final pull request as the last child when the ticket has no agent line", () => {

@@ -7,6 +7,7 @@ import {
 	StatusIcon,
 } from "@trellis/ui";
 import { formatCount } from "../../../lib/format";
+import { statusIconProps } from "../../statusIconProps";
 import { groupHeaderHeight } from "../rowHeights";
 
 export type GroupHeaderProps = Omit<SharedProps, "count" | "showCount" | "icon" | "mark" | "layout" | "height"> & {
@@ -41,7 +42,9 @@ export function GroupHeader({ count, countLabel, badge, forYou, note, status, ca
 			showCount={formatCount(count)}
 			mark={badge === undefined ? undefined : <Badge tone="accent">{badge}</Badge>}
 			icon={
-				category === undefined ? undefined : <StatusIcon category={category} reviewer={status?.reviewer ?? undefined} />
+				category === undefined ? undefined : (
+					<StatusIcon {...(status === undefined ? { category } : statusIconProps(status))} />
+				)
 			}
 		/>
 	);

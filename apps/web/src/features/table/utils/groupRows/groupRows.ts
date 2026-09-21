@@ -75,10 +75,9 @@ const compareKeys = (left: number | string, right: number | string) =>
 
 const closed = (row: TicketSummary) => (row.status.category === "done" || row.status.category === "canceled" ? 1 : 0);
 
-// The rows in the view's order. The default sort, `-updatedAt`, puts the
-// open rows first, the priority second, and the newest update third. Every
-// other sort follows its field alone. A tie breaks by id descending, so two
-// calls agree. `rowRank` orders the rows before all of that.
+// The rows in the view's order. Completed rows stay last when they are shown.
+// A tie breaks by id descending, so two calls agree. `rowRank` orders the rows
+// before the selected sort.
 export const sortRows = (
 	rows: readonly TicketSummary[],
 	sort: Sort,
@@ -87,18 +86,13 @@ export const sortRows = (
 ) => {
 	const desc = sort.startsWith("-");
 	const key = keyOf(sort.replace(/^-/, ""), statuses);
-	const byPriority = sort === "-updatedAt";
 	return [...rows].sort((a, b) => {
 		if (rowRank !== undefined) {
 			const ranked = rowRank(a) - rowRank(b);
 			if (ranked !== 0) return ranked;
 		}
-		if (byPriority) {
-			const open = closed(a) - closed(b);
-			if (open !== 0) return open;
-			const rank = priorityRank[a.priority] - priorityRank[b.priority];
-			if (rank !== 0) return rank;
-		}
+		const closedOrder = closed(a) - closed(b);
+		if (closedOrder !== 0) return closedOrder;
 		const order = compareKeys(key(a), key(b));
 		if (order !== 0) return desc ? -order : order;
 		return -compareText(a.id, b.id);

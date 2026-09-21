@@ -16,16 +16,14 @@ test("the turn of an agent names the failed check count", () => {
 	);
 });
 
-test("an agent with no failed check and one open thread reads the thread", () => {
+test("an agent with no failed check and one open comment reads the comment", () => {
 	expect(turnSentence({ turn: "agent", prRow: prRow({ openThreads: 2 }), mergedOn: null })).toBe(
-		"The agent's turn. 2 threads open.",
+		"The agent's turn. 2 comments open.",
 	);
 });
 
-test("a draft with no failed check and no open thread reads as a draft", () => {
-	expect(turnSentence({ turn: "agent", prRow: prRow({ isDraft: true }), mergedOn: null })).toBe(
-		"The agent's turn. The pull request is a draft.",
-	);
+test("a draft with no failed check and no open comment does not hold the turn", () => {
+	expect(turnSentence({ turn: "agent", prRow: prRow({ isDraft: true }), mergedOn: null })).toBe("The agent's turn.");
 });
 
 test("the turn of GitHub names the pending check count", () => {

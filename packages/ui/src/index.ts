@@ -38,7 +38,7 @@ export { LabelPill, type LabelPillProps } from "./domain/LabelPill";
 export { type LabelPillItem, LabelPills, type LabelPillsProps } from "./domain/LabelPills";
 export { LineChanges, type LineChangesProps, type LineChangesValue, lineChangesVisible } from "./domain/LineChanges";
 export { type LabelColor, labelColors } from "./domain/labelColors";
-export { PrGlyph, type PrGlyphProps, type PrGlyphSize, type PullRequestState } from "./domain/PrGlyph";
+export { PrGlyph, type PrGlyphProps, type PrGlyphSize, type PullRequestState, prGlyphLook } from "./domain/PrGlyph";
 export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/PriorityIcon";
 export { type ModelProvider, ProviderIcon, type ProviderIconProps } from "./domain/ProviderIcon";
 export {
@@ -71,7 +71,13 @@ export { RunLine, type RunLineKind, type RunLineProps, type RunLineValue } from 
 export { StackedBar, type StackedBarProps, type StackedBarSegment } from "./domain/StackedBar";
 export { StackedBarList, type StackedBarListProps, type StackedBarListRow } from "./domain/StackedBarList";
 export { StartControls, type StartControlsProps, type StartDependency } from "./domain/StartControls";
-export { type StatusCategory, StatusIcon, type StatusIconProps } from "./domain/StatusIcon";
+export {
+	type ReviewShape,
+	type StatusCategory,
+	type StatusColor,
+	StatusIcon,
+	type StatusIconProps,
+} from "./domain/StatusIcon";
 export { TicketGlimmer } from "./domain/TicketGlimmer";
 export { TicketId, type TicketIdProps } from "./domain/TicketId";
 export {

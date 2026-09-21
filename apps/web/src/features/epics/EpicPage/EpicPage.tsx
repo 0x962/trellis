@@ -23,12 +23,10 @@ import { TableSkeleton } from "../../table/TicketTable/components/TableSkeleton"
 import { agentLinesByTicket } from "../../table/utils/agentLines";
 import { DeleteEpicDialog } from "../DeleteEpicDialog";
 import { EpicSheet } from "../EpicSheet";
-import { epicRunningCount, epicWorkingTicketIds } from "../epicNext";
-import { assignedTicketIds, epicRowRank } from "../epicRowRank";
+import { epicWorkingTicketIds } from "../epicNext";
+import { assignedTicketIds } from "../epicRowRank";
 import { epicPageSearch, epicQueryString, epicUrlSearch } from "../epicSearch";
 import { EpicLoadError } from "./components/EpicLoadError";
-import { EpicPlan } from "./components/EpicPlan";
-import { EpicProgress } from "./components/EpicProgress";
 import { EpicResources } from "./components/EpicResources";
 
 export type EpicPageProps = {
@@ -52,18 +50,19 @@ const noRuns: readonly AgentRun[] = [];
 const breadcrumbLinkClass =
 	"inline-flex h-7 max-md:h-11 pointer-coarse:h-11 items-center rounded-md px-1 text-fg-muted transition-colors duration-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
 
-// One epic: the current work line, one tab strip with the plan and the
-// resources, and the tickets of
-// the epic in the ticket table of the project routes. The table search is
-// the URL search with `epic` fixed to this epic, and it groups by wave when
-// the URL names no group. An epic belongs to a root and holds tickets of any
-// project of that root, so the table reads the root with its sub-projects.
-// The rows match the counts of the epic and the tickets that Add offers. The
-// filter bar receives `epic` as a fixed filter, so it draws no epic chip and
-// "Copy as CLI" still names the epic. Add puts a ticket of the project into
-// the epic; the bulk bar of the table and the rail of the ticket page take
-// one out. Both are ticket writes, so the ticket rows and the epic counts
-// refetch from the ticket events.
+// One epic, in two tabs. Overview is the tickets of the epic in the ticket
+// table of the project routes, with nothing above the table. Resources is
+// the documents and the files of the epic, with the epic description as the
+// first document. The Statistics sheet holds the counts of the epic. The
+// table search is the URL search with `epic` fixed to this epic, and it
+// groups by wave when the URL names no group. An epic belongs to a root and
+// holds tickets of any project of that root, so the table reads the root
+// with its sub-projects, and the rows match the counts of the epic and the
+// tickets that Add offers. The filter bar receives `epic` as a fixed filter,
+// so it draws no epic chip and "Copy as CLI" still names the epic. Add puts
+// a ticket of the project into the epic; the bulk bar of the table and the
+// rail of the ticket page take one out. Both are ticket writes, so the ticket
+// rows and the epic counts refetch from the ticket events.
 export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProps) {
 	const { orpc, queryClient } = useApp();
 	const navigate = useNavigate();
@@ -77,23 +76,17 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	const [editing, setEditing] = useState(false);
 	const [deleting, setDeleting] = useState(false);
 	// The assigned runs come from the query that the actor cell of every row
-	// reads, so the order of the rows costs no request of its own. Inside a
-	// wave group the tickets that wait for the person come first, then
-	// the tickets to start, then the running tickets.
+	// reads, so the row marks and the wave start dialog cost no request of
+	// their own.
 	const assignedRunsQuery = useQuery(orpc.agentRuns.list.queryOptions({ input: { assigned: true } }));
 	const assignedRuns = assignedRunsQuery.data;
 	const assigned = useMemo(() => assignedTicketIds(assignedRuns ?? noRuns), [assignedRuns]);
-	const rowRank = useMemo(() => epicRowRank(assigned), [assigned]);
 	// A Set, because the turn of each row tests membership. Null until the
 	// query succeeds: an empty set would read a ticket whose agent works as
 	// the turn of the person, and the row would move when the answer lands.
 	const workingTicketIds = useMemo(
 		() => (assignedRunsQuery.status === "success" ? new Set(epicWorkingTicketIds(assignedRuns ?? noRuns)) : null),
 		[assignedRunsQuery.status, assignedRuns],
-	);
-	const running = useMemo(
-		() => (workingTicketIds !== null && epic.data !== undefined ? epicRunningCount(epic.data, workingTicketIds) : null),
-		[workingTicketIds, epic.data],
 	);
 	// The same `agentRuns.list` query as `assignedRuns` above, with another
 	// `select`. A ticket row whose run holds an open request or a last
@@ -135,11 +128,10 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	const { epic: fixedEpic, ...barSearch } = tableSearch;
 	const full = viewOf(tableSearch);
 	const setSearch = (next: Partial<View>) => onSearchChange(epicUrlSearch(next, phone));
-	// The Plan tab opens first, because the plan is what a reader of the
-	// epic reads every day. The URL names the Resources tab alone, so a
-	// shared link to the resources opens on them.
-	const tab = search.tab ?? "plan";
-	const setTab = (next: "plan" | "resources") =>
+	// The Overview tab opens first. The URL names the Resources tab alone, so
+	// a shared link to the resources opens on them.
+	const tab = search.tab ?? "overview";
+	const setTab = (next: "overview" | "resources") =>
 		setSearch({ ...tableSearch, tab: next === "resources" ? next : undefined });
 	const filterBar = (
 		<FilterBar
@@ -245,72 +237,67 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 			</Topbar>
 			<div className="page-card flex flex-1 flex-col overflow-hidden">
 				{readOnly && <ArchivedBanner project={project} />}
-				{/* The current work line and the tabs take at most half of the card. The ticket table keeps the remaining space. The tab strip sticks to the top of that area, so the other tab stays one click away at every scroll position. */}
-				<div className="max-h-1/2 shrink-0 overflow-y-auto border-b border-border">
-					<EpicProgress
-						epic={record}
-						running={running}
-						splat={splat}
-						search={tableSearch}
-						phone={phone}
-						workingTicketIds={workingTicketIds}
-					/>
-					<Tabs
-						value={tab}
-						onValueChange={setTab}
-						className="px-5 pb-4 max-md:px-4 [&_[role=tablist]]:sticky [&_[role=tablist]]:top-0 [&_[role=tablist]]:z-10 [&_[role=tablist]]:bg-pane"
-						items={[
-							{
-								value: "plan",
-								label: "Plan",
-								content: tab === "plan" ? <EpicPlan description={record.description} /> : null,
-							},
-							{
-								value: "resources",
-								label: (
-									<span className="flex items-baseline gap-1.5">
-										Resources
-										<span className="text-xs text-fg-faint tabular">({record.resourceCount})</span>
-									</span>
-								),
-								content: tab === "resources" ? <EpicResources epic={record.ref} /> : null,
-							},
-						]}
-					/>
-				</div>
-				<fieldset disabled={readOnly} className="contents">
-					<TicketTable
-						project={rootKey(project.path)}
-						routeKey={routeKey}
-						tableKind="epic"
-						search={tableSearch}
-						rowRank={rowRank}
-						workingTicketIds={workingTicketIds}
-						assignedTicketIds={assignedRunsQuery.status === "success" ? assigned : undefined}
-						prRows
-						agentLines={agentLines}
-						emptyState={
-							hasFilters(search) ? (
-								<EmptyState
-									variant="page"
-									title={search.q === undefined ? "No tickets match" : `No tickets match '${search.q}'`}
-									description="Clear the filters to see every ticket of the epic."
-									action={
-										<Link to="/p/$" params={{ _splat: splat }} search={{}} className={clearLinkClass}>
-											Clear filters
-										</Link>
-									}
-								/>
-							) : (
-								<EmptyState
-									variant="page"
-									title="No tickets"
-									description="Add a ticket of the project to this epic. Its agent then reads the plan in its brief."
-								/>
-							)
-						}
-					/>
-				</fieldset>
+				{/* The tab panels fill the card. The ticket table starts right under the tab strip. */}
+				<Tabs
+					value={tab}
+					onValueChange={setTab}
+					className="flex min-h-0 flex-1 flex-col [&>[role=tablist]]:shrink-0 [&>[role=tablist]]:px-5 max-md:[&>[role=tablist]]:px-4"
+					panelClassName="flex min-h-0 flex-1 flex-col"
+					items={[
+						{
+							value: "overview",
+							label: "Overview",
+							content:
+								tab === "overview" ? (
+									<fieldset disabled={readOnly} className="contents">
+										<TicketTable
+											project={rootKey(project.path)}
+											routeKey={routeKey}
+											tableKind="epic"
+											search={tableSearch}
+											workingTicketIds={workingTicketIds}
+											assignedTicketIds={assignedRunsQuery.status === "success" ? assigned : undefined}
+											prRows
+											agentLines={agentLines}
+											emptyState={
+												hasFilters(search) ? (
+													<EmptyState
+														variant="page"
+														title={search.q === undefined ? "No tickets match" : `No tickets match '${search.q}'`}
+														description="Clear the filters to see every ticket of the epic."
+														action={
+															<Link to="/p/$" params={{ _splat: splat }} search={{}} className={clearLinkClass}>
+																Clear filters
+															</Link>
+														}
+													/>
+												) : (
+													<EmptyState
+														variant="page"
+														title="No tickets"
+														description="Add a ticket of the project to this epic. Its agent then reads the plan in its brief."
+													/>
+												)
+											}
+										/>
+									</fieldset>
+								) : null,
+						},
+						{
+							value: "resources",
+							label: (
+								<span className="flex items-baseline gap-1.5">
+									Resources
+									<span className="text-xs text-fg-faint tabular">({record.resourceCount + 1})</span>
+								</span>
+							),
+							content:
+								tab === "resources" ? (
+									<EpicResources epic={record.ref} description={record.description} readOnly={readOnly} />
+								) : null,
+						},
+					]}
+				/>
 			</div>
 			{editing && <EpicSheet project={project} epic={record} onClose={() => setEditing(false)} />}
 			<DeleteEpicDialog

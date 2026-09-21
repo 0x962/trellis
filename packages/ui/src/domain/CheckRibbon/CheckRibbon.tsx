@@ -37,7 +37,7 @@ export function CheckRibbon({ checks, size = "full", className }: CheckRibbonPro
 			title={label}
 			className={cx(
 				"inline-flex shrink-0 overflow-hidden",
-				size === "mini" ? "h-1.25 w-8" : size === "wide" ? "h-1.5 w-48" : "h-1.5 w-16",
+				size === "mini" ? "h-1.25 w-8" : size === "wide" ? "h-3 w-48" : "h-1.5 w-16",
 				gaps[ribbonGap(size, checks.length)],
 				className,
 			)}

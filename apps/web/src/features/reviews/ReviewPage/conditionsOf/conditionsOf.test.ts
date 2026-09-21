@@ -10,6 +10,7 @@ const prRow = (fields: Partial<TicketPr> = {}): TicketPr =>
 		url: "https://github.com/canary-technologies-corp/canary/pull/57080",
 		state: "open",
 		isDraft: false,
+		isQueued: false,
 		additions: 311,
 		deletions: 12,
 		changedFiles: 6,
@@ -49,7 +50,7 @@ const input = (fields: Partial<ConditionsInput> = {}): ConditionsInput => ({
 	records: [],
 	floor,
 	waitsOn: [],
-	base: null,
+	base: { behindBy: null, baseRefName: "master" },
 	...fields,
 });
 
@@ -101,7 +102,7 @@ test("reads the evidence as the present count, the required count and the kind",
 	expect(conditionsOf(input({ floor: null }))!.evidence).toBeNull();
 });
 
-test("reads the name, state and findings of the newest flow run", () => {
+test("reads the name, state and comments of the newest flow run", () => {
 	const flowRuns = [
 		{ name: "Code Reviewer", status: "waiting", findings: 2 },
 		{ name: "Security Review", status: "failed", findings: 0 },
@@ -121,6 +122,18 @@ test("names every ticket the ticket waits on as an unmerged ancestor", () => {
 	const conditions = conditionsOf(input({ waitsOn: [...waitsOn] }))!;
 
 	expect(conditions.ancestors).toEqual([{ identifier: "TRL-164", merged: false }]);
+});
+
+test("reads the stacked parent pull request", () => {
+	const conditions = conditionsOf(
+		input({
+			prRow: prRow({
+				stackedOn: { number: 55569, headRef: "trellis/op-32", ticketIdentifier: "OP-32" },
+			}),
+		}),
+	)!;
+
+	expect(conditions.stackedOn).toEqual({ number: 55569, ticketIdentifier: "OP-32" });
 });
 
 test("reads a merged pull request as merged", () => {

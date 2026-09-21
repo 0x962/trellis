@@ -2,7 +2,14 @@ import { ConditionsBlock as ConditionsBlockView } from "@trellis/ui/review";
 import { type ConditionLabel, type Conditions, conditionLines } from "../../conditionLines/conditionLines";
 
 // The four lines that the ticket page has room for.
-const shortLabels: readonly ConditionLabel[] = ["evidence", "checks", "threads", "ancestors"];
+const shortLabels: readonly ConditionLabel[] = [
+	"evidence",
+	"checks",
+	"comments",
+	"base branch",
+	"stacked on",
+	"waits on",
+];
 
 // The short form of the conditions block. It reads the same words as the
 // nine-line form, so one condition never prints two answers. It prints no

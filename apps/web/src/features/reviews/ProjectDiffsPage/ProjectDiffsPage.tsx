@@ -1,8 +1,8 @@
 import { ArrowRight, ArrowsClockwise, Plus, TextAlignLeft } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { type Project, reviewRef } from "@trellis/api";
-import { Button, EmptyState, IconButton, Input, Segmented, Sheet, Tooltip } from "@trellis/ui";
+import { type Check, type Project, reviewRef } from "@trellis/api";
+import { Button, CheckRibbon, EmptyState, IconButton, Input, Segmented, Sheet, Tooltip } from "@trellis/ui";
 import { ReviewStatus } from "@trellis/ui/review";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -10,6 +10,20 @@ import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar } from "../../shell/Topbar";
 import "@trellis/ui/review.css";
+
+const checkWords = (checks: readonly Check[]) => {
+	if (checks.length === 0) return "without checks";
+	const failed = checks.filter((check) => check.bucket === "fail" || check.bucket === "cancel").length;
+	const pending = checks.filter((check) => check.bucket === "pending").length;
+	const passed = checks.filter((check) => check.bucket === "pass").length;
+	return [
+		failed > 0 ? `${failed} failed` : "",
+		pending > 0 ? `${pending} pending` : "",
+		passed > 0 ? `${passed} passed` : "",
+	]
+		.filter(Boolean)
+		.join(" ");
+};
 
 // The pull requests of one project, grouped by repository. The Linked
 // source lists what Trellis holds for the project: a pull request linked
@@ -64,12 +78,15 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 					state: pr.isDraft ? "DRAFT" : "OPEN",
 					isDraft: pr.isDraft,
 					isQueued: false,
+					checks: [],
+					ciState: "none" as const,
 					open: 0,
 					resolved: 0,
 				}));
-	const visible = rows.filter((pr) =>
-		`${pr.repository} ${pr.number} ${pr.title}`.toLowerCase().includes(filter.toLowerCase()),
-	);
+	const visible = rows.filter((pr) => {
+		const text = `${pr.repository} ${pr.number} ${pr.title} ${pr.ciState} ${checkWords(pr.checks)}`;
+		return text.toLowerCase().includes(filter.toLowerCase());
+	});
 	const repositories = [...new Set(visible.map((pr) => pr.repository))].sort();
 	const query = source === "local" ? prs : mine;
 	const empty = filter
@@ -146,7 +163,7 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 									.map((pr) => (
 										<Link
 											className="review-index-row"
-											aria-label={`#${pr.number} ${pr.title || "Pull request"}, ${pr.state}${pr.open ? `, ${pr.open} open ${pr.open === 1 ? "thread" : "threads"}` : ""}`}
+											aria-label={`#${pr.number} ${pr.title || "Pull request"}, ${pr.state}${pr.open ? `, ${pr.open} open ${pr.open === 1 ? "comment" : "comments"}` : ""}`}
 											key={pr.id}
 											to="/reviews/$owner/$repo/$number"
 											params={{ owner: pr.owner, repo: pr.repo, number: String(pr.number) }}
@@ -154,10 +171,14 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 										>
 											<span className="review-pr-number">#{pr.number}</span>
 											<span className="review-row-title">{pr.title || `Pull request #${pr.number}`}</span>
+											<span className="review-row-checks">
+												<CheckRibbon checks={pr.checks} size="full" />
+												<span>{checkWords(pr.checks)}</span>
+											</span>
 											{pr.open > 0 && (
 												<span
 													className="review-row-count"
-													title={`${pr.open} open ${pr.open === 1 ? "thread" : "threads"}`}
+													title={`${pr.open} open ${pr.open === 1 ? "comment" : "comments"}`}
 												>
 													<TextAlignLeft aria-hidden="true" />
 													{pr.open}

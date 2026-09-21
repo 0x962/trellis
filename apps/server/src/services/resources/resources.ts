@@ -150,8 +150,8 @@ export const update = async (ctx: IoCtx, tx: Tx, rawInput: unknown): Promise<Res
 	assertProjectActive(ctx.core, row.project_id);
 	const at = ctx.now();
 	await touchActor(tx, ctx.actor, at);
-	await tx.execute(sql`UPDATE epic_resources SET body = ${input.body}, actor_name = ${ctx.actor.name},
-		actor_kind = ${ctx.actor.kind}, updated_at = ${at} WHERE id = ${row.id}`);
+	await tx.execute(sql`UPDATE epic_resources SET name = ${input.name ?? row.name}, body = ${input.body ?? row.body},
+		actor_name = ${ctx.actor.name}, actor_kind = ${ctx.actor.kind}, updated_at = ${at} WHERE id = ${row.id}`);
 	ctx.emit({ type: "epics.changed", projectId: row.project_id, id: row.epic_id });
 	return (await toResources(tx, row.epic_id, [await find(tx, row.id)]))[0]!;
 };

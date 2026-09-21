@@ -214,8 +214,14 @@ describe("groupRows by turn", () => {
 
 describe("groupRows by pull request state", () => {
 	test("puts a queued pull request in the queued group", () => {
-		const queued = { ...ticket("queued", runtime), pr: { state: "open", isQueued: true } } as TicketSummary;
-		const open = { ...ticket("open", runtime), pr: { state: "open", isQueued: false } } as TicketSummary;
+		const queued = {
+			...ticket("queued", runtime),
+			pr: { state: "open", isDraft: false, isQueued: true },
+		} as TicketSummary;
+		const open = {
+			...ticket("open", runtime),
+			pr: { state: "open", isDraft: false, isQueued: false },
+		} as TicketSummary;
 
 		const groups = groupRows([queued, open], { group: "pr", sort: "-updatedAt", statuses: [] });
 
