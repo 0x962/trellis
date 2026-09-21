@@ -23,7 +23,6 @@ import { base } from "./base";
 
 const id = z.object({ id: z.string().min(1) });
 const pr = z.object({ pr: ReviewRefSchema });
-const reviewer = z.string().regex(/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/, "Select a valid GitHub reviewer.");
 // A project narrows a list to the pull requests of that project: the ones
 // linked to a ticket of the project or one of its sub-projects, and the
 // ones in a repository of the project or one of its ancestors.
@@ -34,16 +33,6 @@ export const reviews = {
 		.route({ method: "POST", path: "/reviews/status", summary: "Read current GitHub PR status" })
 		.input(pr)
 		.output(ReviewStatusSchema),
-	reviewers: base
-		.errors(pickErrors(["GH_UNAVAILABLE"]))
-		.route({ method: "POST", path: "/reviews/reviewers", summary: "List available GitHub reviewers" })
-		.input(pr)
-		.output(z.array(z.object({ login: z.string(), avatarUrl: z.string() }))),
-	reviewer: base
-		.errors(pickErrors(["GH_UNAVAILABLE"]))
-		.route({ method: "POST", path: "/reviews/reviewer", summary: "Change a GitHub review request" })
-		.input(pr.extend({ reviewer, remove: z.boolean() }))
-		.output(z.object({ reviewer, removed: z.boolean() })),
 	action: base
 		.errors(pickErrors(["GH_UNAVAILABLE"]))
 		.route({ method: "POST", path: "/reviews/action", summary: "Run an explicit GitHub action" })
