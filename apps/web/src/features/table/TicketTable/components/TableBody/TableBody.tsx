@@ -47,6 +47,7 @@ export type TableBodyProps = {
 	onEditingChange: (id: string, field: EditField | null) => void;
 	onRowChange: (ticket: TicketSummary, change: RowChange) => void;
 	onToggleGroup: (key: string) => void;
+	onToggleTicket: (ticketId: string) => void;
 	// Opens the composer with the status of the group.
 	onCreateInGroup: (group: TableGroup) => void;
 	// Opens the Start wave dialog of a wave group of one epic. Undefined
@@ -88,6 +89,7 @@ export function TableBody({
 	onEditingChange,
 	onRowChange,
 	onToggleGroup,
+	onToggleTicket,
 	onCreateInGroup,
 	onStartGroup,
 	bottomRoom,
@@ -230,6 +232,7 @@ export function TableBody({
 								phone={phone}
 								phoneLayout={tableKind}
 								agentLine={phone ? item.agentLine : null}
+								disclosure={item.disclosure}
 								focused={ticket.id === focusedId}
 								selected={selection.isSelected(ticket.id)}
 								selecting={selection.count > 0}
@@ -240,6 +243,7 @@ export function TableBody({
 									if (pendingFocus.current === null) onFocusRow(id);
 								}}
 								onClick={onRowClick}
+								onToggleDisclosure={onToggleTicket}
 								onOpen={onOpen}
 								onToggleSelect={selection.toggle}
 								onEditingChange={onEditingChange}
