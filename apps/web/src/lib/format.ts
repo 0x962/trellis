@@ -10,9 +10,9 @@ const hour = 60 * minute;
 const day = 24 * hour;
 
 // The display bucket of one elapsed time: 1s under a minute, then 1m,
-// 1h, and 1d. The duration label and the age refresh timer share it, so
-// a bucket change moves both together.
-export const durationBucketMs = (elapsed: number) =>
+// 1h, and 1d. `bucket` divides the elapsed time by it and names the unit
+// from it.
+const durationBucketMs = (elapsed: number) =>
 	elapsed < minute ? second : elapsed < hour ? minute : elapsed < day ? hour : day;
 // The bucket label without a suffix: 12s, 5m, 3h, 3d.
 const bucket = (elapsed: number) => {

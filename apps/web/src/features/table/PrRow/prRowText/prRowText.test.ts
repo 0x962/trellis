@@ -43,7 +43,14 @@ describe("prRowCells", () => {
 	});
 
 	test("names the state of the newest flow run before the turn", () => {
-		const pr = prOf({ flowRuns: [{ status: "succeeded" }, { status: "failed" }], flowRunCount: 2, pass: 43 });
+		const pr = prOf({
+			flowRuns: [
+				{ name: "Code Reviewer", status: "succeeded", findings: 0 },
+				{ name: "Code Reviewer", status: "failed", findings: 2 },
+			],
+			flowRunCount: 2,
+			pass: 43,
+		});
 
 		expect(textOf(pr)).toBe("open · 43 passed · no evidence · flow: passed · you");
 	});
@@ -141,7 +148,7 @@ describe("prPhoneCells", () => {
 			pass: 47,
 			openThreads: 2,
 			stackedOn: { number: 55569, headRef: "nk/operator-routine-execution", ticketIdentifier: "TRL-32" },
-			flowRuns: [{ status: "running" }],
+			flowRuns: [{ name: "Review", status: "running", findings: 0 }],
 		});
 
 		expect(prPhoneCells(pr).map((cell) => ("text" in cell ? cell.text : cell.key))).toEqual([

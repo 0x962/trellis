@@ -22,7 +22,7 @@ const agentsWaitingFor = (tx: Tx, questionId: string) =>
 
 // Queues the answer of a question ticket for every agent that waits for it.
 // One row of `review_deliveries` is one message that waits to be sent, and
-// `dispatchAnswerDeliveries` sends it. The returned list names the agents
+// `dispatchDeliveries` sends it. The returned list names the agents
 // the answer goes to.
 export const enqueueAnswerDeliveries = async (
 	tx: Tx,

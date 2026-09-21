@@ -19,7 +19,7 @@ export type EvidenceCheckResult = {
 	checks: Pick<TicketPr, "pass" | "fail" | "pending" | "skipped" | "failedChecks">;
 };
 
-export type EvidenceCheckInput = Omit<EvidenceCheckResult, "kind" | "present" | "required" | "complete" | "items"> & {
+export type EvidenceCheckInput = Omit<EvidenceCheckResult, "kind" | "complete" | "items"> & {
 	floor: EvidenceFloor;
 	verifyCommands: string[];
 };

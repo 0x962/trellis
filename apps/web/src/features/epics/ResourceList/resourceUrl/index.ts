@@ -1,0 +1,1 @@
+export { resourceUrl } from "./resourceUrl";

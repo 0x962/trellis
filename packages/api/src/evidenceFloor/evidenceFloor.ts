@@ -1,4 +1,4 @@
-import { type PrKind, type PrPath, type PrPathFacts, prPaths } from "../prPaths/index.ts";
+import { isTestPath, type PrKind, type PrPath, type PrPathFacts, prPaths } from "../prPaths/index.ts";
 import type { EvidenceKind } from "../schemas/evidence.ts";
 import type { TicketContract } from "../schemas/ticket.ts";
 
@@ -21,6 +21,7 @@ export const evidenceWords: Record<EvidenceFloorItem, string> = {
 export type EvidenceFloorGap = {
 	item: EvidenceFloorItem;
 	fillCommand: string;
+	soft: boolean;
 };
 
 export type EvidenceFloor = {
@@ -30,12 +31,13 @@ export type EvidenceFloor = {
 	missing: EvidenceFloorGap[];
 };
 
-export type ContractFloor = Pick<EvidenceFloor, "kind" | "required">;
+export type ContractFloor = Pick<EvidenceFloor, "kind" | "required"> & { notes: string[] };
 
 type PrRisk = PrPathFacts["risk"];
 
 const frontendFloor: EvidenceFloorItem[] = ["summary", "after", "before", "capture", "console"];
 const backendFloor: EvidenceFloorItem[] = ["summary", "verify", "test", "contract"];
+const softItems = new Set<EvidenceFloorItem>(["picture"]);
 
 const fillCommands: Record<EvidenceFloorItem, string> = {
 	summary: 'trellis summary write <pr> --headline "..." --why - --watch "..."',
@@ -48,7 +50,7 @@ const fillCommands: Record<EvidenceFloorItem, string> = {
 	console: "trellis evidence add <pr> --kind console --file <path>",
 	verify: 'trellis evidence add <pr> --kind verify --cmd "<command>" --exit <code> --sha <head> --tail -',
 	test: "trellis evidence add <pr> --kind test --name <test> --fails-on <base> --passes-on <head>",
-	contract: "trellis evidence add <pr> --kind contract --before - --after -",
+	contract: 'trellis evidence add <pr> --kind contract --before "<before>" --after "<after>"',
 	migration: "trellis evidence add <pr> --kind migration --file <path>",
 	picture: "trellis evidence add <pr> --kind picture --file <path> --why <reason>",
 	equivalence: 'trellis evidence add <pr> --kind equivalence --cmd "<command>" --exit <code> --sha <head> --tail -',
@@ -69,8 +71,7 @@ const requiredItems = (kind: PrKind, risk: PrRisk): EvidenceFloorItem[] => [
 	...(risk.deletedTest === "yes" ? (["equivalence"] as const) : []),
 ];
 
-// A contract lists paths only. Each path counts as a change, so the forecast cannot report a deleted test.
-const asChangedFile = (path: string): PrPath => ({ path, change: "change" });
+const asPrPath = (path: string): PrPath => ({ path, change: "change", removedLinesOnly: false });
 const serverDatabasePath = /^(?:\.\/)?apps\/server\/src\/db\//i;
 
 export const contractFloor = (
@@ -78,12 +79,16 @@ export const contractFloor = (
 	contract: Pick<TicketContract, "files">,
 ): ContractFloor | null => {
 	if (repositoryName === undefined || contract.files.length === 0) return null;
-	const facts = prPaths(repositoryName, contract.files.map(asChangedFile));
+	const facts = prPaths(repositoryName, contract.files.map(asPrPath));
 	// A brief forecasts what the work will owe before a migration file exists, so a server database path counts as migration work.
 	const risk = contract.files.some((path) => serverDatabasePath.test(path))
 		? { ...facts.risk, migration: "yes" as const }
 		: facts.risk;
-	return { kind: facts.kind, required: requiredItems(facts.kind, risk) };
+	return {
+		kind: facts.kind,
+		required: requiredItems(facts.kind, risk),
+		notes: contract.files.some(isTestPath) ? ["A change that removes test cases also owes an equivalence proof."] : [],
+	};
 };
 
 export const evidenceFloor = ({
@@ -107,6 +112,6 @@ export const evidenceFloor = ({
 		present,
 		missing: required
 			.filter((item) => !presentItems.has(item))
-			.map((item) => ({ item, fillCommand: fillCommands[item] })),
+			.map((item) => ({ item, fillCommand: fillCommands[item], soft: softItems.has(item) })),
 	};
 };

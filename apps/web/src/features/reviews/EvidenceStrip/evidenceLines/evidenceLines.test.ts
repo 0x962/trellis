@@ -72,8 +72,8 @@ const floor: EvidenceFloor = {
 	required: ["summary", "after", "before", "capture", "console"],
 	present: ["before", "capture", "console"],
 	missing: [
-		{ item: "summary", fillCommand: 'trellis summary write <pr> --headline "..."' },
-		{ item: "after", fillCommand: "trellis evidence add <pr> --kind after --file <path>" },
+		{ item: "summary", fillCommand: 'trellis summary write <pr> --headline "..."', soft: false },
+		{ item: "after", fillCommand: "trellis evidence add <pr> --kind after --file <path>", soft: false },
 	],
 };
 
@@ -120,11 +120,28 @@ describe("evidenceLines", () => {
 		const lines = evidenceLines([captureRecord], floor);
 
 		expect(lines.strip.missing).toEqual([
-			{ label: "summary", fillCommand: 'trellis summary write <pr> --headline "..."' },
-			{ label: "after image", fillCommand: "trellis evidence add <pr> --kind after --file <path>" },
+			{ label: "summary", fillCommand: 'trellis summary write <pr> --headline "..."', soft: false },
+			{
+				label: "after image",
+				fillCommand: "trellis evidence add <pr> --kind after --file <path>",
+				soft: false,
+			},
 		]);
 		expect(lines.strip.present).toBe(3);
 		expect(lines.strip.required).toBe(5);
+	});
+
+	test("keeps the due word from the floor", () => {
+		const dueFloor: EvidenceFloor = {
+			kind: "backend",
+			required: ["picture"],
+			present: [],
+			missing: [{ item: "picture", fillCommand: "trellis evidence add <pr> --kind picture", soft: true }],
+		};
+
+		expect(evidenceLines([], dueFloor).strip.missing).toEqual([
+			{ label: "picture", fillCommand: "trellis evidence add <pr> --kind picture", soft: true },
+		]);
 	});
 
 	test("reads the screenshot, the clip and the console log out of their records", () => {

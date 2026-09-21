@@ -9,6 +9,7 @@ import { invalidInput } from "../../errors";
 import { fetchPullRequests, type PullRequestRow } from "../../gh/graphql";
 import { effectiveRepos } from "../projectsRepos";
 import { recordAction } from "../pullRequestAction";
+import { recordSubmission } from "./recordSubmission";
 import { fail, type IoCtx, type PrepareCtx, type ServiceCtx } from "../support";
 import { findPr, parseRef, readThreads } from "./queries";
 import { gh } from "./revision";
@@ -33,9 +34,30 @@ export const actionNames = [
 	"live-unpersist",
 ] as const;
 export type Action = (typeof actionNames)[number];
-type PreparedAction = { action: Action | ReviewSubmit["verdict"]; row: PullRequestRow };
+// A review that GitHub accepted, on its way to the transaction that stores
+// it. `threads` holds the local threads the submission carried, and
+// `sendBack` says whether the agent of the ticket must read them.
+export type PreparedSubmission = {
+	verdict: ReviewSubmit["verdict"];
+	url: string;
+	author: string;
+	body: string;
+	revisionId: string | null;
+	threads: ReviewThread[];
+	sendBack: boolean;
+};
+type PreparedAction = {
+	action: Action | ReviewSubmit["verdict"];
+	row: PullRequestRow;
+	submission?: PreparedSubmission;
+};
 
-const current = async (ctx: PrepareCtx, pr: string, action: PreparedAction["action"]): Promise<PreparedAction> => {
+const current = async (
+	ctx: PrepareCtx,
+	pr: string,
+	action: PreparedAction["action"],
+	submission?: PreparedSubmission,
+): Promise<PreparedAction> => {
 	const ref = parseRef(pr);
 	const result = await fetchPullRequests(ctx.gh, [ref], "interactive");
 	if (!result.ok) {
@@ -49,7 +71,7 @@ const current = async (ctx: PrepareCtx, pr: string, action: PreparedAction["acti
 		error.message = first.error;
 		throw error;
 	}
-	return { action, row: first.row };
+	return { action, row: first.row, submission };
 };
 
 export async function action(ctx: PrepareCtx, input: { pr: string; action: Action; headSha: string }) {
@@ -138,6 +160,40 @@ const reviewComment = (thread: ReviewThread) => {
 	};
 };
 
+// One GitHub review per call, through the reviews API. The API answers with
+// the review it created, and the answer carries the address a person opens.
+// `gh pr review` posts the same review and prints no address, so this call
+// does the work for a review with comments and for one without.
+const postReview = async (ctx: PrepareCtx, input: ReviewSubmit, threads: ReviewThread[]) => {
+	const ref = parseRef(input.pr);
+	const event = { comment: "COMMENT", approve: "APPROVE", request_changes: "REQUEST_CHANGES" }[input.verdict];
+	const directory = await mkdtemp(join(tmpdir(), "trellis-review-submit-"));
+	const file = join(directory, "review.json");
+	try {
+		await writeFile(
+			file,
+			JSON.stringify({
+				commit_id: input.headSha,
+				event,
+				body: input.body,
+				...(threads.length === 0 ? {} : { comments: threads.map(reviewComment) }),
+			}),
+			{ mode: 0o600 },
+		);
+		const answer = await gh(ctx, [
+			"api",
+			"--method",
+			"POST",
+			`repos/${ref.owner}/${ref.repo}/pulls/${ref.number}/reviews`,
+			"--input",
+			file,
+		]);
+		return JSON.parse(answer) as { html_url: string; user?: { login?: string } };
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+};
+
 export async function submit(ctx: PrepareCtx, input: ReviewSubmit) {
 	const ref = parseRef(input.pr);
 	const meta = JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", "headRefOid"])) as {
@@ -146,39 +202,26 @@ export async function submit(ctx: PrepareCtx, input: ReviewSubmit) {
 	if (meta.headRefOid !== input.headSha)
 		throw invalidInput("headSha", "The PR head changed. Refresh before this review.");
 	const threads = await threadsToPost(ctx, input);
-	if (threads.length === 0) {
-		const flag = {
-			comment: "--comment",
-			approve: "--approve",
-			request_changes: "--request-changes",
-		}[input.verdict];
-		await gh(ctx, ["pr", "review", ref.url, flag, "--body", input.body]);
-		return current(ctx, input.pr, input.verdict);
-	}
-	const event = { comment: "COMMENT", approve: "APPROVE", request_changes: "REQUEST_CHANGES" }[input.verdict];
-	const directory = await mkdtemp(join(tmpdir(), "trellis-review-submit-"));
-	const file = join(directory, "review.json");
-	try {
-		await writeFile(
-			file,
-			JSON.stringify({ commit_id: input.headSha, event, body: input.body, comments: threads.map(reviewComment) }),
-			{ mode: 0o600 },
-		);
-		await gh(ctx, [
-			"api",
-			"--method",
-			"POST",
-			`repos/${ref.owner}/${ref.repo}/pulls/${ref.number}/reviews`,
-			"--input",
-			file,
-		]);
-	} finally {
-		await rm(directory, { recursive: true, force: true });
-	}
-	return current(ctx, input.pr, input.verdict);
+	const review = await postReview(ctx, input, threads);
+	return current(ctx, input.pr, input.verdict, {
+		verdict: input.verdict,
+		url: review.html_url,
+		author: review.user?.login ?? "",
+		body: input.body,
+		// Every thread of one submission sits on the reviewed head, so they
+		// share one revision. A submission that carries no thread names none.
+		revisionId: threads[0]?.revisionId ?? null,
+		threads,
+		sendBack: input.sendBack,
+	});
 }
 
-export const actionResult = (ctx: ServiceCtx, tx: Tx, input: PreparedAction) => recordAction(ctx, tx, input);
+export const actionResult = async (ctx: ServiceCtx, tx: Tx, input: PreparedAction) => {
+	const pullRequest = await recordAction(ctx, tx, input);
+	if (input.submission)
+		await recordSubmission(ctx, tx, { prId: pullRequest.id, ...input.submission });
+	return pullRequest;
+};
 // With a project, the search covers the repositories of that project and
 // its ancestors. A project with no repository has no pull request of its
 // own, so the search does not run.

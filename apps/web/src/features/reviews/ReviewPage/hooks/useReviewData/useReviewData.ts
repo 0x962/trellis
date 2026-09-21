@@ -20,6 +20,15 @@ export const useReviewData = (pr: string) => {
 		...orpc.tickets.get.queryOptions({ input: { ticket: identifier } }),
 		enabled: identifier !== "",
 	});
+	// The agent assignment of the ticket. `Send back` names it, and the name
+	// changes when a restart replaces the run, so this read follows the same
+	// 45 second beat as the GitHub status.
+	const runs = useQuery({
+		...orpc.agentRuns.list.queryOptions({ input: { ticket: identifier, assigned: true } }),
+		enabled: identifier !== "",
+		refetchInterval: 45000,
+	});
+	const run = runs.data?.find((row) => row.kind === "agent") ?? null;
 	const ref = reviewRef(pr);
 	const linkedPr =
 		ticket.data?.prs.find((row) => row.owner === ref.owner && row.repo === ref.repo && row.number === ref.number) ??
@@ -80,6 +89,7 @@ export const useReviewData = (pr: string) => {
 		setRevision,
 		status,
 		ticket,
+		run,
 		linkedPr,
 		summary,
 		evidence,

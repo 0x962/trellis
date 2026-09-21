@@ -45,7 +45,6 @@ import * as reviewImage from "./reviews/image";
 import * as reviewMessages from "./reviews/messages";
 import * as reviewPrs from "./reviews/prs";
 import * as reviewRemote from "./reviews/remote";
-import * as reviewReviewers from "./reviews/reviewers";
 import * as reviewRevision from "./reviews/revision";
 import * as reviewRunDeliveries from "./reviews/runDeliveries";
 import * as reviewStatus from "./reviews/status";
@@ -155,8 +154,6 @@ export const services = {
 	"agentRuns.resize": prepared("mutation", agentTerminal.resize, agentTerminal.result),
 	"reviews.image": prepared("read", reviewImage.image, reviewRemote.result),
 	"reviews.status": prepared("read", reviewStatus.prepare, reviewStatus.status),
-	"reviews.reviewers": prepared("read", reviewReviewers.reviewers, reviewReviewers.result),
-	"reviews.reviewer": prepared("mutation", reviewReviewers.reviewer, reviewReviewers.result),
 	"reviews.action": prepared("mutation", reviewRemote.action, reviewRemote.actionResult),
 	"reviews.metadata": prepared("read", reviewRemote.metadata, reviewRemote.result),
 	"reviews.mine": prepared("read", reviewRemote.mine, reviewRemote.result),
@@ -175,7 +172,7 @@ export const services = {
 	"reviews.reaction": io("mutation", reviewMessages.reaction),
 	"reviews.submit": prepared("mutation", reviewRemote.submit, reviewRemote.actionResult),
 	"reviews.apply": prepared("mutation", reviewApply.prepareApply, reviewApply.applyResult),
-	"reviews.dispatchAnswerDeliveries": prepared("mutation", reviewRunDeliveries.prepare, reviewRunDeliveries.finish),
+	"reviews.dispatchDeliveries": prepared("mutation", reviewRunDeliveries.prepare, reviewRunDeliveries.finish),
 
 	"agentRuns.send": agentMutation(agentCommunication.prepareSend),
 	"commentMentions.dispatch": prepared("mutation", commentMentions.prepare, commentMentions.finish),
