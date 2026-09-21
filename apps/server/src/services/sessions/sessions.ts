@@ -5,13 +5,13 @@ import { launchState } from "../agentRuns/launchState";
 import { observeRuns, projectRun } from "../agentRuns/liveState.ts";
 import { getRun, listSessionRuns } from "../agentRuns/queries.ts";
 import type { IoCtx } from "../support.ts";
-import { getSession, listSessions } from "./queries.ts";
+import { listSessions, resolveSession } from "./queries.ts";
 
 export const list = async (_ctx: CoreCtx, tx: Tx, _input: Record<string, never>) => listSessions(tx);
 
 // One session with the observed state of its run.
 export const observe = async (ctx: IoCtx, input: { id: string }): Promise<SessionDetail> => {
-	const session = await ctx.newTx((tx) => getSession(tx, input.id));
+	const session = await ctx.newTx((tx) => resolveSession(tx, input.id));
 	const run = await ctx.newTx((tx) => getRun(tx, session.runId));
 	const [observed] = await observeRuns(ctx, [run]);
 	return { ...session, run: observed! };
@@ -19,7 +19,7 @@ export const observe = async (ctx: IoCtx, input: { id: string }): Promise<Sessio
 
 export const accepted = async (ctx: IoCtx, input: { id: string }): Promise<SessionDetail> => {
 	const { session, run } = await ctx.newTx(async (tx) => {
-		const session = await getSession(tx, input.id);
+		const session = await resolveSession(tx, input.id);
 		return { session, run: await getRun(tx, session.runId) };
 	});
 	if (run.terminalId !== null && launchState.has(ctx.home, run.terminalId))

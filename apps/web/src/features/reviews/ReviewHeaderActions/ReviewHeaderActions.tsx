@@ -13,6 +13,7 @@ import type { ReviewRevision } from "@trellis/api";
 import { Checkbox, ConfirmDialog, IconButton, Menu, type MenuGroup, toast } from "@trellis/ui";
 import { type ReactElement, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { openLink } from "../../../lib/openLink";
 import {
 	type ActionItem,
 	type GithubMenuAction,
@@ -85,7 +86,7 @@ export function ReviewHeaderActions({
 		icon: iconByAction[item.action],
 		onSelect: () => {
 			if (item.action === "open") {
-				window.open(pr, "_blank", "noopener");
+				openLink(pr);
 				return;
 			}
 			if (item.confirm) {

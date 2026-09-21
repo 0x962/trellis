@@ -78,7 +78,10 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	// The assigned runs come from the query that the actor cell of every row
 	// reads, so the row marks and the wave start dialog cost no request of
 	// their own.
-	const assignedRunsQuery = useQuery(orpc.agentRuns.list.queryOptions({ input: { assigned: true } }));
+	const assignedRunsQuery = useQuery({
+		...orpc.agentRuns.list.queryOptions({ input: { assigned: true } }),
+		refetchOnWindowFocus: "always",
+	});
 	const assignedRuns = assignedRunsQuery.data;
 	const assigned = useMemo(() => assignedTicketIds(assignedRuns ?? noRuns), [assignedRuns]);
 	// A Set, because the turn of each row tests membership. Null until the
@@ -94,6 +97,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	const agentLines = useQuery({
 		...orpc.agentRuns.list.queryOptions({ input: { assigned: true } }),
 		select: agentLinesByTicket,
+		refetchOnWindowFocus: "always",
 	}).data;
 
 	// The epic query refetches after the ticket write, because the write

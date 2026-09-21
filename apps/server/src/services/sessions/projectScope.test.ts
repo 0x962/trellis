@@ -19,10 +19,18 @@ const rootSessionId = ulid();
 const childSessionId = ulid();
 const moveSessionId = ulid();
 const detachSessionId = ulid();
+const nameMoveSessionId = ulid();
+const runMoveSessionId = ulid();
+const ambiguityRunId = ulid();
+const ambiguityOtherRunId = ulid();
 const rootSessionRowId = ulid();
 const childSessionRowId = ulid();
 const moveSessionRowId = ulid();
 const detachSessionRowId = ulid();
+const nameMoveSessionRowId = ulid();
+const runMoveSessionRowId = ulid();
+const ambiguitySessionRowId = ulid();
+const ambiguitySessionRef = ambiguityRunId;
 const ticketSessionRowId = ulid();
 const rootTicketRunId = ulid();
 const childTicketRunId = ulid();
@@ -49,6 +57,10 @@ beforeAll(async () => {
 		(${childSessionId}, 'child-session', 'session', 'Child', ${childId}, 'SCP.child', NULL, NULL, ${at}, ${at}),
 		(${moveSessionId}, 'move-session', 'session', 'Move', ${rootId}, 'SCP', NULL, NULL, ${at}, ${at}),
 		(${detachSessionId}, 'detach-session', 'session', 'Detach', ${childId}, 'SCP.child', NULL, NULL, ${at}, ${at}),
+		(${nameMoveSessionId}, 'name-move-session', 'session', 'Name move', ${rootId}, 'SCP', NULL, NULL, ${at}, ${at}),
+		(${runMoveSessionId}, 'run-move-session', 'session', 'Run move', ${rootId}, 'SCP', NULL, NULL, ${at}, ${at}),
+		(${ambiguityRunId}, 'ambiguous-run', 'session', 'Ambiguous run', ${rootId}, 'SCP', NULL, NULL, ${at}, ${at}),
+		(${ambiguityOtherRunId}, 'ambiguous-row', 'session', 'Ambiguous row', ${rootId}, 'SCP', NULL, NULL, ${at}, ${at}),
 		(${rootTicketRunId}, 'root-ticket', 'agent', 'Root ticket', ${childId}, 'SCP.child', ${rootTicketId}, 'SCP-1', ${at}, ${at}),
 		(${childTicketRunId}, 'child-ticket', 'agent', 'Child ticket', ${rootId}, 'SCP', ${childTicketId}, 'SCP-2', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO sessions (id, name, directory, harness, run_id, created_at, updated_at) VALUES
@@ -56,6 +68,10 @@ beforeAll(async () => {
 		(${childSessionRowId}, 'child-session', '/tmp/child-session', '{"preset":"claude"}'::jsonb, ${childSessionId}, ${at}, ${at}),
 		(${moveSessionRowId}, 'move-session', '/tmp/move-session', '{"preset":"claude"}'::jsonb, ${moveSessionId}, ${at}, ${at}),
 		(${detachSessionRowId}, 'detach-session', '/tmp/detach-session', '{"preset":"claude"}'::jsonb, ${detachSessionId}, ${at}, ${at}),
+		(${nameMoveSessionRowId}, 'name-move-session', '/tmp/name-move-session', '{"preset":"claude"}'::jsonb, ${nameMoveSessionId}, ${at}, ${at}),
+		(${runMoveSessionRowId}, 'run-move-session', '/tmp/run-move-session', '{"preset":"claude"}'::jsonb, ${runMoveSessionId}, ${at}, ${at}),
+		(${ambiguitySessionRowId}, 'ambiguous-run', '/tmp/ambiguous-run', '{"preset":"claude"}'::jsonb, ${ambiguityRunId}, ${at}, ${at}),
+		(${ambiguitySessionRef}, 'ambiguous-row', '/tmp/ambiguous-row', '{"preset":"claude"}'::jsonb, ${ambiguityOtherRunId}, ${at}, ${at}),
 		(${ticketSessionRowId}, 'root-ticket', '/tmp/root-ticket', '{"preset":"claude"}'::jsonb, ${rootTicketRunId}, ${at}, ${at})`);
 	const cache = createCache();
 	await run((tx) => cache.rebuild(tx));
@@ -77,7 +93,17 @@ afterAll(async () => db.$client.close());
 test("a project lists its sessions and the runs of its current tickets", async () => {
 	const rootRuns = await run((tx) => list(ctx, tx, { project: rootId }));
 	const childRuns = await run((tx) => list(ctx, tx, { project: childId }));
-	expect(rootRuns.map(({ id }) => id).sort()).toEqual([rootSessionId, moveSessionId, rootTicketRunId].sort());
+	expect(rootRuns.map(({ id }) => id).sort()).toEqual(
+		[
+			rootSessionId,
+			moveSessionId,
+			nameMoveSessionId,
+			runMoveSessionId,
+			ambiguityRunId,
+			ambiguityOtherRunId,
+			rootTicketRunId,
+		].sort(),
+	);
 	expect(childRuns.map(({ id }) => id).sort()).toEqual([childSessionId, detachSessionId, childTicketRunId].sort());
 });
 
@@ -94,6 +120,27 @@ test("a bare session clears its project", async () => {
 	const moved = await run((tx) => move(ctx, tx, { id: detachSessionRowId, project: null }));
 	expect(moved.projectId).toBeNull();
 	expect(moved.projectPath).toBe("");
+});
+
+test("a bare session moves by name", async () => {
+	const moved = await run((tx) => move(ctx, tx, { id: "name-move-session", project: "SCP.child" }));
+	expect(moved.id).toBe(nameMoveSessionRowId);
+	expect(moved.projectId).toBe(childId);
+	expect(moved.projectPath).toBe("SCP.child");
+});
+
+test("a bare session moves by agent run id", async () => {
+	const moved = await run((tx) => move(ctx, tx, { id: runMoveSessionId, project: "SCP.child" }));
+	expect(moved.id).toBe(runMoveSessionRowId);
+	expect(moved.projectId).toBe(childId);
+	expect(moved.projectPath).toBe("SCP.child");
+});
+
+test("an ambiguous session ref lists the matching ids", async () => {
+	const matches = [ambiguitySessionRowId, ambiguitySessionRef].sort().join(", ");
+	await expect(run((tx) => move(ctx, tx, { id: ambiguitySessionRef, project: "SCP.child" }))).rejects.toThrow(
+		`More than one session matches ${ambiguitySessionRef}. Matching ids: ${matches}.`,
+	);
 });
 
 test("a ticket session keeps the project of its ticket", async () => {

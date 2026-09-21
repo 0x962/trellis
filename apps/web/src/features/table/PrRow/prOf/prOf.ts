@@ -4,6 +4,7 @@ import type { TicketPr } from "@trellis/api";
 // reads, and the rest take the values of a pull request that GitHub has not
 // measured and that carries no check, no thread, no verdict and no flow run.
 export const prOf = (fields: Partial<TicketPr>): TicketPr => ({
+	id: "01M3300000000000000000PR01",
 	number: 57080,
 	owner: "0x962",
 	repo: "trellis",

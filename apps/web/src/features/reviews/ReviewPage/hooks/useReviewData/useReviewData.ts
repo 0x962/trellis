@@ -16,6 +16,7 @@ export const useReviewData = (pr: string) => {
 		...orpc.reviews.status.queryOptions({ input: { pr } }),
 		enabled: revision !== null,
 		refetchInterval: 45000,
+		refetchOnWindowFocus: "always",
 	});
 	// `reviews.status` names the ticket that links this pull request. The
 	// ticket carries the review focus sentences, the tickets it waits on, and
