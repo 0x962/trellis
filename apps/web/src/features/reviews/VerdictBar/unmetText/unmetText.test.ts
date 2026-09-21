@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
-import { type Conditions, unmetConditions } from "../../ConditionsBlock/conditionLines/conditionLines";
-import { mergeQuestion, unmetLine } from "./unmetLine";
+import { type Conditions, unmetConditions } from "../../conditionLines/conditionLines";
+import { mergeQuestion, unmetLine } from "./unmetText";
 
-const clear: Conditions = {
+const allMet: Conditions = {
 	merged: false,
 	size: { additions: 12, deletions: 3, changedFiles: 2 },
 	sizeBand: "small",
@@ -17,13 +17,13 @@ const clear: Conditions = {
 };
 
 test("a pull request with every condition met prints no line", () => {
-	expect(unmetLine(unmetConditions(clear))).toBeNull();
-	expect(mergeQuestion(unmetConditions(clear))).toBe("Merge this pull request?");
+	expect(unmetLine(unmetConditions(allMet))).toBeNull();
+	expect(mergeQuestion(unmetConditions(allMet))).toBe("Merge this pull request?");
 });
 
 test("the line names each unmet condition and leaves out the base branch", () => {
 	const unmet = unmetConditions({
-		...clear,
+		...allMet,
 		checks: { pass: 36, fail: 1, pending: 0, skipped: 35 },
 		evidence: { present: 1, required: 4, kind: "frontend" },
 		ancestors: [{ identifier: "TRL-167", merged: false }],
@@ -35,7 +35,7 @@ test("the line names each unmet condition and leaves out the base branch", () =>
 
 test("every rule of the readiness word has a phrase", () => {
 	const unmet = unmetConditions({
-		...clear,
+		...allMet,
 		checks: { pass: 30, fail: 2, pending: 6, skipped: 35 },
 		threads: 1,
 		tests: { count: 0, failsOn: null, passesOn: null, noneApplies: false },
@@ -52,6 +52,6 @@ test("every rule of the readiness word has a phrase", () => {
 		"1 flow running",
 		"1 flow failed",
 	]);
-	expect(unmetConditions({ ...clear, tests: null })).toEqual(["tests unknown"]);
+	expect(unmetConditions({ ...allMet, tests: null })).toEqual(["tests unknown"]);
 	expect(mergeQuestion(["1 open thread"])).toBe("Merge with 1 condition unmet?");
 });

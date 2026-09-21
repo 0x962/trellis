@@ -13,7 +13,7 @@ export function ReviewBatchBar({
 	onClear: () => void;
 }) {
 	return (
-		<div className="review-batch-bar" role="status">
+		<div className="review-bar review-batch-bar" role="status">
 			<span className="review-batch-bar-text">
 				{count} {count === 1 ? "suggestion" : "suggestions"} in the batch
 			</span>

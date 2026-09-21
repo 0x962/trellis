@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Avatar, Button, Command, Popover, Skeleton, toast } from "@trellis/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../../../../../lib/appContext";
-import { namedReviewRequests, type ReviewRequest } from "../../reviewActions";
+import { namedReviewRequests, type ReviewRequest } from "../../../../../reviewActions/reviewActions";
 
 export function ReviewerPicker({
 	pr,

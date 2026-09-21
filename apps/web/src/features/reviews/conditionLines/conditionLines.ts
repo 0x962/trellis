@@ -185,26 +185,26 @@ const ancestorsValue = (ancestors: Conditions["ancestors"]) => {
 	return ancestors.map((ancestor) => `${ancestor.identifier} ${ancestor.merged ? "merged" : "open"}`).join(" · ");
 };
 
-const counted = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+const countPhrase = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 const flowCount = (flows: Conditions["flows"], word: FlowWord) => flows.newest.filter((run) => run === word).length;
 
-// Each condition that stops a merge, in the words of one short phrase, such as
+// Each condition that stops a merge, as one short phrase, such as
 // "1 check failed" or "1 of 4 evidence". The size, the risk answers and the
 // base state describe the change. They stop no merge, so they stay out of
 // this list.
 export function unmetConditions(conditions: Conditions): string[] {
 	const { checks, tests, evidence, flows } = conditions;
 	return [
-		checks.fail > 0 && counted(checks.fail, "check failed", "checks failed"),
-		checks.pending > 0 && counted(checks.pending, "check pending", "checks pending"),
-		conditions.threads > 0 && counted(conditions.threads, "open thread", "open threads"),
+		checks.fail > 0 && countPhrase(checks.fail, "check failed", "checks failed"),
+		checks.pending > 0 && countPhrase(checks.pending, "check pending", "checks pending"),
+		conditions.threads > 0 && countPhrase(conditions.threads, "open thread", "open threads"),
 		tests === null && "tests unknown",
 		tests !== null && tests.count === 0 && !tests.noneApplies && "no test registered",
 		evidence === null && "evidence unknown",
 		evidence !== null && evidence.present < evidence.required && `${evidence.present} of ${evidence.required} evidence`,
-		flowCount(flows, "running") > 0 && counted(flowCount(flows, "running"), "flow running", "flows running"),
-		flowCount(flows, "failed") > 0 && counted(flowCount(flows, "failed"), "flow failed", "flows failed"),
+		flowCount(flows, "running") > 0 && countPhrase(flowCount(flows, "running"), "flow running", "flows running"),
+		flowCount(flows, "failed") > 0 && countPhrase(flowCount(flows, "failed"), "flow failed", "flows failed"),
 		...conditions.ancestors.map((ancestor) => !ancestor.merged && `${ancestor.identifier} not merged`),
 	].filter((phrase): phrase is string => phrase !== false);
 }

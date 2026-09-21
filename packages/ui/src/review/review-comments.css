@@ -456,17 +456,6 @@
 	gap: 8px;
 	padding: 12px;
 }
-.review-merge-confirmation {
-	display: flex;
-	flex-direction: column;
-	gap: 10px;
-}
-.review-merge-admin-note,
-.review-merge-sha {
-	color: var(--fg-muted);
-	font-size: 12px;
-	font-variant-numeric: tabular-nums;
-}
 @media (max-width: 480px) {
 	.review-submit-form footer {
 		align-items: flex-start;
@@ -572,58 +561,6 @@
 	color: var(--fg);
 	text-decoration: underline;
 	text-underline-offset: 3px;
-}
-.review-batch-bar {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	margin: 0 24px 12px;
-	padding: 8px 8px 8px 16px;
-	border: 0.5px solid var(--border);
-	border-radius: var(--radius-md);
-	background: var(--surface);
-	font-size: 13px;
-}
-.review-batch-bar-text {
-	flex: 1;
-	min-width: 0;
-}
-/* The verdict bar sits under the scrolling column, so its controls stay on
-   screen. It takes the width of the column above it. */
-.review-verdict-bar {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	width: calc(100% - 56px);
-	max-width: calc(var(--review-column-width) - 56px);
-	margin: 0 auto 12px;
-	padding: 8px 8px 8px 16px;
-	border: 0.5px solid var(--border);
-	border-radius: var(--radius-md);
-	background: var(--surface);
-	font-size: 13px;
-}
-.review-verdict-bar-row {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-}
-.review-verdict-bar-text {
-	flex: 1;
-	min-width: 0;
-	font-variant-numeric: tabular-nums;
-}
-.review-verdict-bar-unmet {
-	color: var(--fg-muted);
-	font-size: 12px;
-}
-.review-merge-unmet {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	padding-left: 16px;
-	list-style: disc;
-	font-size: 13px;
 }
 .review-apply-form {
 	display: flex;

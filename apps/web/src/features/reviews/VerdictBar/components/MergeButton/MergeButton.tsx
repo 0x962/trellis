@@ -4,24 +4,22 @@ import type { ReviewRevision } from "@trellis/api";
 import { Checkbox, ConfirmDialog, IconButton, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
-import { mergeAction } from "../../../ReviewSummary/components/ReviewHeaderActions/reviewActions";
-import { mergeQuestion } from "../../unmetLine/unmetLine";
+import { mergeAction } from "../../../reviewActions/reviewActions";
+import { mergeQuestion } from "../../unmetText/unmetText";
 
-// The merge button of the verdict bar. It is never disabled: an unmet
-// condition only changes the question that the one confirm asks, and the
-// confirm lists each unmet condition. The person decides.
-export function MergeControl({
+// The button stays enabled when a condition is unmet. The confirm dialog
+// names each unmet condition, and the person decides.
+export function MergeButton({
 	pr,
 	revision,
 	baseRefName,
-	unmet,
+	unmetConditions,
 	onDone,
 }: {
 	pr: string;
 	revision: ReviewRevision;
 	baseRefName: string | undefined;
-	// The phrases of `unmetConditions`, such as "1 check failed".
-	unmet: readonly string[];
+	unmetConditions: readonly string[];
 	onDone: () => void;
 }) {
 	const { client, orpc, queryClient } = useApp();
@@ -44,7 +42,7 @@ export function MergeControl({
 			</Tooltip>
 			<ConfirmDialog
 				open={confirmOpen}
-				title={mergeQuestion(unmet)}
+				title={mergeQuestion(unmetConditions)}
 				description={`Squash and merge these changes into ${baseRefName ?? "the base branch"}.`}
 				confirmLabel="Merge"
 				processing={mutation.isPending}
@@ -52,9 +50,9 @@ export function MergeControl({
 				onConfirm={() => mutation.mutate()}
 			>
 				<div className="review-merge-confirmation">
-					{unmet.length > 0 && (
+					{unmetConditions.length > 0 && (
 						<ul className="review-merge-unmet">
-							{unmet.map((phrase) => (
+							{unmetConditions.map((phrase) => (
 								<li key={phrase}>{phrase}</li>
 							))}
 						</ul>

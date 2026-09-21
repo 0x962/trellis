@@ -1,5 +1,10 @@
 import { ConditionsBlock as ConditionsBlockView } from "@trellis/ui/review";
-import { type ConditionLabel, type Conditions, conditionLines, mergeReadiness } from "../conditionLines/conditionLines";
+import {
+	type ConditionLabel,
+	type Conditions,
+	conditionLines,
+	mergeReadiness,
+} from "../../conditionLines/conditionLines";
 
 // The four lines that the ticket page has room for. `tests` and `flows` also
 // change the readiness word, so the short form can read "not yet" with no line

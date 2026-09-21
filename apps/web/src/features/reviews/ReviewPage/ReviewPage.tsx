@@ -5,7 +5,7 @@ import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
 import { ConditionsBlock } from "../ConditionsBlock";
-import { type BaseCondition, unmetConditions } from "../ConditionsBlock/conditionLines/conditionLines";
+import { type BaseCondition, unmetConditions } from "../conditionLines/conditionLines";
 import { EvidenceStrip } from "../EvidenceStrip";
 import { FileRiskGroups } from "../FileRiskGroups";
 import type { ReadMarkFile } from "../FileRiskGroups/readMarks/readMarks";
@@ -16,11 +16,8 @@ import { ReviewDiscussion } from "../ReviewDiscussion/ReviewDiscussion";
 import { ReviewFocusList } from "../ReviewFocusList";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
 import { ReviewStack } from "../ReviewStack/ReviewStack";
-import {
-	primaryReviewAction,
-	type ReviewActionMeta,
-} from "../ReviewSummary/components/ReviewHeaderActions/reviewActions";
 import { ReviewSummary } from "../ReviewSummary/ReviewSummary";
+import { primaryReviewAction, type ReviewActionMeta } from "../reviewActions/reviewActions";
 import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
 import { ReviewPageSkeleton } from "./components/ReviewPageSkeleton";
@@ -33,6 +30,10 @@ import "@trellis/ui/review.css";
 const noThreads: ReviewThread[] = [];
 const noRecords: Evidence[] = [];
 const noSentences: string[] = [];
+// `conditionsOf` answers null while the pull request row has no risk
+// answers. An empty list would read as "every condition is met", so the
+// bar prints one phrase for the gap instead.
+const conditionsUnknown = ["conditions unknown"];
 
 // The distance comes from the revision document, not from the status poll:
 // the server reads it from the compare call that fetched this revision, and
@@ -148,9 +149,6 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	// the tickets it waits on. `prRow` is the fallback for a pull request that
 	// no ticket links.
 	const turnInput = ticket.data ?? prRow;
-	// While the poller has no risk answers, nobody measured the conditions, so
-	// the bar says so and does not read as all met.
-	const unmet = conditions === null ? ["conditions unknown"] : unmetConditions(conditions);
 	const ref = reviewRef(pr);
 	return (
 		<ReviewApplyContext.Provider value={applyState}>
@@ -273,8 +271,8 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 					<VerdictBar
 						pr={pr}
 						revision={displayRevision}
-						drafts={revisionThreads.filter((thread) => thread.status === "open").length}
-						unmet={unmet}
+						openThreads={revisionThreads.filter((thread) => thread.status === "open").length}
+						unmetConditions={conditions === null ? conditionsUnknown : unmetConditions(conditions)}
 						onDone={() => void status.refetch()}
 					/>
 				)}

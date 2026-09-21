@@ -4,8 +4,6 @@ import type { ReviewRevision, ReviewThread } from "@trellis/api";
 import { Button, ConfirmDialog, IconButton, Menu, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
-import { ReviewerPicker } from "./components/ReviewerPicker";
-import { ReviewSubmit } from "./components/ReviewSubmit";
 import {
 	mergeMenuActions,
 	overflowActions,
@@ -14,7 +12,9 @@ import {
 	type ReviewActionMeta,
 	type ReviewActionMetadata,
 	type ReviewRequest,
-} from "./reviewActions";
+} from "../../../reviewActions/reviewActions";
+import { ReviewerPicker } from "./components/ReviewerPicker";
+import { ReviewSubmit } from "./components/ReviewSubmit";
 
 type Meta = ReviewActionMeta & {
 	baseRefName?: string;
@@ -55,6 +55,18 @@ export function ReviewHeaderActions({
 		onError: (error) => toast.error("The pull request action failed", { description: error.message }),
 	});
 
+	// `mergeMenuActions` reads `extra.mergeQueueEntry` to choose between "Join
+	// the merge queue" and "Leave the merge queue". The metadata query starts
+	// when this menu opens for the first time, so `extra` is undefined until
+	// that answer arrives. A placeholder holds the place until then, because
+	// the wrong word would send the pull request into the queue twice.
+	const mergeItems: Array<{ action: ReviewAction; label: string; waiting: boolean }> =
+		primary !== "merge"
+			? []
+			: extra === undefined
+				? [{ action: "queue", label: "Loading merge options…", waiting: true }]
+				: mergeMenuActions(meta, extra).map((item) => ({ ...item, waiting: false }));
+
 	return (
 		<div className="review-header-actions">
 			{primary !== null && (
@@ -82,11 +94,11 @@ export function ReviewHeaderActions({
 						label="More pull request actions"
 						triggerTooltip="More actions"
 						onOpenChange={(open) => open && setMetadataRequested(true)}
-						items={[...(primary === "merge" ? mergeMenuActions(meta, extra) : []), ...overflowActions(meta, extra)].map(
+						items={[...mergeItems, ...overflowActions(meta, extra).map((item) => ({ ...item, waiting: false }))].map(
 							(item) => ({
 								label: item.label,
 								danger: item.action === "close",
-								disabled: action.isPending,
+								disabled: action.isPending || item.waiting,
 								onSelect: () => (item.action === "close" ? setCloseOpen(true) : action.mutate(item.action)),
 							}),
 						)}
