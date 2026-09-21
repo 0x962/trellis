@@ -26,7 +26,7 @@ deleted file mode 100644
 -deleted two
 `;
 
-const render = () =>
+const render = (loadFile?: (path: string, side: "old" | "new") => Promise<string>) =>
 	renderToStaticMarkup(
 		<ReviewDiff
 			patch={patch}
@@ -37,6 +37,7 @@ const render = () =>
 			renderThread={() => null}
 			onSelect={() => {}}
 			onFiles={() => {}}
+			loadFile={loadFile}
 		/>,
 	);
 
@@ -62,4 +63,9 @@ test("split mode draws an added or a deleted file in one column", () => {
 		expect(html).toContain(`<code>${text}</code>`);
 		expect(splitColumns(html).flat()).not.toContain(text);
 	}
+});
+
+test("a diff that reads the file draws the expand controls, and one that does not draws none", () => {
+	expect(render(async () => "")).toContain('aria-label="Expand down"');
+	expect(render()).not.toContain('aria-label="Expand down"');
 });
