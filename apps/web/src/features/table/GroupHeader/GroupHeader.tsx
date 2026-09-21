@@ -1,8 +1,15 @@
 import type { StatusCategory, StatusSummary } from "@trellis/api";
-import { Badge, GroupHeader as SharedGroupHeader, type GroupHeaderProps as SharedProps, StatusIcon } from "@trellis/ui";
+import {
+	Badge,
+	phoneGroupHeaderHeight,
+	GroupHeader as SharedGroupHeader,
+	type GroupHeaderProps as SharedProps,
+	StatusIcon,
+} from "@trellis/ui";
 import { formatCount } from "../../../lib/format";
+import { groupHeaderHeight } from "../rowHeights";
 
-export type GroupHeaderProps = Omit<SharedProps, "count" | "showCount" | "icon" | "mark" | "layout"> & {
+export type GroupHeaderProps = Omit<SharedProps, "count" | "showCount" | "icon" | "mark" | "layout" | "height"> & {
 	// The rows of the group. The Show action of a collapsed group prints it.
 	count: number;
 	// The text the count slot prints in place of `count`, expanded or
@@ -19,7 +26,7 @@ export type GroupHeaderProps = Omit<SharedProps, "count" | "showCount" | "icon" 
 	status?: StatusSummary;
 	category?: StatusCategory;
 };
-export { groupHeaderHeight, phoneGroupHeaderHeight } from "@trellis/ui";
+export { phoneGroupHeaderHeight } from "@trellis/ui";
 
 export function GroupHeader({ count, countLabel, badge, forYou, note, status, category, ...props }: GroupHeaderProps) {
 	const parts = [countLabel ?? formatCount(count)];
@@ -29,6 +36,7 @@ export function GroupHeader({ count, countLabel, badge, forYou, note, status, ca
 		<SharedGroupHeader
 			{...props}
 			layout="grid"
+			height={props.phone ? phoneGroupHeaderHeight : groupHeaderHeight}
 			count={parts.join(" · ")}
 			showCount={formatCount(count)}
 			mark={badge === undefined ? undefined : <Badge tone="accent">{badge}</Badge>}

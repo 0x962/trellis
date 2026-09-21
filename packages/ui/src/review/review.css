@@ -172,12 +172,10 @@ button.review-notice:hover {
 	border-bottom: 0.5px solid var(--border);
 	background: var(--bg);
 }
-/* The band takes the width of `.review-regions` below it, so the title, the
-   ticket and every block start at one left edge. */
+/* The band takes the width of the sheet, so the title, the ticket, the file
+   tree and the diff all start at one left edge. */
 .review-identity > * {
 	width: 100%;
-	max-width: var(--review-column-width);
-	margin-inline: auto;
 }
 .review-identity .review-heading {
 	padding-bottom: 12px;
@@ -196,53 +194,110 @@ button.review-notice:hover {
 .review-turn-line {
 	color: var(--fg);
 }
-/* The review page is one column that reads top to bottom: the conditions, the
-   summary, the review focus, the evidence, the checks, the changed files with
-   the diff, and the threads. `.review-column` is the only part of the page
-   that scrolls, and each block in it grows to the height of its content. */
-.review-column {
+/* Under the identity band the review page is a facts strip and, below it, two
+   panes: the file tree on the left and the diff on the right. `.review-body`
+   holds the three and gives the panes every pixel the sheet has left. While the
+   facts strip is shut, which is how the sheet opens, the three fit the sheet
+   exactly and the body does not scroll: the tree and the diff each scroll
+   inside themselves, so a long file moves the code alone. An open facts strip
+   is taller than that, and the body then scrolls to reach the panes. */
+.review-body {
+	display: flex;
 	flex: 1;
 	min-height: 0;
+	flex-direction: column;
 	overflow-y: auto;
 	background: var(--bg);
 }
-.review-regions {
-	--review-region-gap: 28px;
-	--review-gutter: 28px;
+/* The box that holds the GitHub status error, the new-revision button, the
+   refresh error and the thread error. It draws nothing while all four are
+   absent. */
+.review-notices {
 	display: flex;
 	flex-direction: column;
-	gap: var(--review-region-gap);
-	width: 100%;
-	max-width: var(--review-column-width);
-	margin-inline: auto;
-	padding: 24px var(--review-gutter) 64px;
+	gap: 8px;
+	flex-shrink: 0;
+	padding: 12px 28px 0;
 }
-/* `ReviewDiscussion`, `CheckResults`, `.review-notice` and `ReviewStack` each
-   carry the height, the scroll bar or the side padding of a page that fills
-   the window. Inside `.review-regions` the column supplies all three, so these
-   four rules hand it back: each block grows to its content, and the column
-   scrolls and pads for every one of them. */
-.review-regions .review-scroll {
+.review-notices:empty {
+	display: none;
+}
+.review-notices .review-notice {
+	margin-inline: 0;
+}
+.review-notices .review-stack {
+	padding-inline: 0;
+}
+/* The conditions, the change summary, the review focus, the evidence, the
+   checks and the threads. The strip is one line while it is shut. Open, it
+   takes at most 45% of the window and scrolls inside itself, so the two panes
+   under it keep a height to draw in. */
+.review-facts {
+	display: flex;
+	flex-direction: column;
+	flex-shrink: 0;
+	max-height: 45vh;
+	overflow-y: auto;
+}
+/* The one line that the shut strip prints can name several conditions. It
+   takes one line and ends in an ellipsis. */
+.review-facts [data-count] {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.review-facts-blocks {
+	display: flex;
+	flex-direction: column;
+	gap: 28px;
+	padding: 24px 28px;
+}
+/* The `display: flex` above beats the browser rule for the `hidden`
+   attribute, so the box needs this rule to go away. */
+.review-facts-blocks[hidden] {
+	display: none;
+}
+/* `ReviewDiscussion` and `CheckResults` each carry the height, the scroll bar
+   and the side padding of a page that fills the window. The strip supplies all
+   three, so these two rules hand them back. */
+.review-facts-blocks .review-scroll {
 	flex: none;
 	overflow: visible;
 	padding: 0;
 }
-.review-regions .review-list {
+.review-facts-blocks .review-list {
 	max-width: none;
 }
-.review-regions .review-notice {
-	margin-inline: 0;
+/* The floor keeps the tree and the diff readable while the facts strip is
+   open and takes its share of the sheet. */
+.review-panes {
+	display: flex;
+	flex: 1;
+	min-height: 240px;
+	border-top: 0.5px solid var(--border);
 }
-.review-regions .review-stack {
-	padding-inline: 0;
+.review-tree-pane {
+	width: 340px;
+	flex-shrink: 0;
+	overflow-y: auto;
+	border-right: 0.5px solid var(--border);
+	background: var(--bg);
 }
-/* The box under the Files button holds the checks, the file list, the diff and
-   the threads. It reads the gap of `.review-regions`, so the four blocks inside
-   it keep the spacing of the blocks above it. */
+.review-diff-pane {
+	display: flex;
+	flex: 1;
+	min-width: 0;
+	min-height: 0;
+	flex-direction: column;
+}
+/* The box under the Files button holds the two panes. It fills the height that
+   `.review-body` has left. */
 .review-files-box {
 	display: flex;
+	flex: 1;
+	min-height: 0;
 	flex-direction: column;
-	gap: var(--review-region-gap);
 }
 /* The `display: flex` above beats the browser rule for the `hidden` attribute,
    so the box needs this rule to go away. */
@@ -251,14 +306,14 @@ button.review-notice:hover {
 }
 /* `ReviewDiff` renders only the rows inside the visible height and reads this
    box for the scroll position, so the box needs a height of its own. Without
-   one it would render every line of the patch at once. */
+   one it would render every line of the patch at once. In the right pane the
+   height comes from the pane; on a phone the rule below sets it. */
 .review-diff-window {
 	display: flex;
+	flex: 1;
+	min-height: 0;
 	flex-direction: column;
-	height: min(70vh, 720px);
 	overflow: hidden;
-	border: var(--border-width-hairline) solid var(--border);
-	border-radius: var(--radius-lg);
 	background: var(--bg);
 }
 @media (max-width: 767px) {
@@ -294,20 +349,38 @@ button.review-notice:hover {
 	.review-identity-lines {
 		padding: 0 16px 12px;
 	}
-	.review-regions {
-		--review-region-gap: 20px;
-		--review-gutter: 16px;
-		padding: 16px var(--review-gutter) 48px;
+	/* A phone has no room for two panes side by side, so the tree, then the
+	   diff, read down the screen. */
+	.review-notices {
+		padding: 12px 16px 0;
 	}
-	/* `GroupHeader` draws its band across its whole box and adds a gutter of its
-	   own. This rule cancels the gutter of the column, so the band reaches the
-	   screen edge and the word Files lines up with the text above it. */
-	.review-regions > [data-group="files"] {
-		margin-inline: calc(var(--review-gutter) * -1);
-		width: calc(100% + var(--review-gutter) * 2);
+	.review-facts {
+		max-height: none;
+		overflow-y: visible;
+	}
+	.review-facts-blocks {
+		gap: 20px;
+		padding: 16px;
+	}
+	.review-panes {
+		display: block;
+		min-height: 0;
+	}
+	.review-files-box {
+		flex: none;
+	}
+	.review-tree-pane {
+		width: auto;
+		overflow-y: visible;
+		border-right-width: 0;
+	}
+	.review-diff-pane {
+		display: block;
 	}
 	.review-diff-window {
+		flex: none;
 		height: min(80vh, 560px);
+		border-top: 0.5px solid var(--border);
 	}
 }
 

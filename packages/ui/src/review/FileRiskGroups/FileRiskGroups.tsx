@@ -32,6 +32,15 @@ export type FileRiskGroupsProps = {
 
 export const fileCountLabel = (count: number) => (count === 1 ? "1 file" : `${count} files`);
 
+// A path splits into the folder that holds the file, and the file name with
+// the slash before it. A row prints the two apart, because this list can sit
+// in a pane of 340px. There the folder loses its start and the file name stays
+// whole, and the file name is what tells two files of one folder apart.
+const splitPath = (path: string) => {
+	const cut = path.lastIndexOf("/");
+	return cut === -1 ? { folder: "", name: path } : { folder: path.slice(0, cut), name: path.slice(cut) };
+};
+
 // A list of file groups, in the order the caller gives. Each group header
 // shows the file count and the sum of the added and deleted lines.
 export function FileRiskGroups({
@@ -122,12 +131,24 @@ export function FileRiskGroups({
 												<button
 													type="button"
 													onClick={() => onSelect(file.path)}
+													title={file.path}
 													className={cx(
-														"min-w-0 flex-1 truncate rounded-sm text-left font-mono text-xs focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
+														"flex min-w-0 flex-1 rounded-sm text-left font-mono text-xs focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
 														file.read ? "text-fg-faint" : "text-fg",
 													)}
 												>
-													{file.path}
+													{/* The two spans below draw the path in two parts, so neither reads as
+													    the path on its own. The hidden span holds the whole path, and it
+													    alone names the button. `dir="rtl"` puts the ellipsis of the folder
+													    on the left, so a narrow pane cuts the start of the path and keeps
+													    the folder that holds the file. */}
+													<span className="sr-only">{file.path}</span>
+													<span aria-hidden="true" dir="rtl" className="min-w-0 truncate text-fg-faint">
+														{splitPath(file.path).folder}
+													</span>
+													<span aria-hidden="true" className="shrink-0">
+														{splitPath(file.path).name}
+													</span>
 												</button>
 												<LineChanges value={{ additions: file.additions, deletions: file.deletions }} pending={false} />
 											</li>

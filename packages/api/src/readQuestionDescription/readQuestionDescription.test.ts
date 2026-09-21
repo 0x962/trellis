@@ -56,6 +56,18 @@ describe("readQuestionDescription", () => {
 		expect(question.options.map((option) => option.text)).toEqual(["Yes", "No"]);
 	});
 
+	test("takes options after prose and a blank line", () => {
+		const question = readQuestionDescription("The run needs a bound.\n\nOptions:\n\n1. Mode\n2. Tool allowlist\n");
+
+		expect(question.options.map((option) => option.text)).toEqual(["Mode", "Tool allowlist"]);
+	});
+
+	test("takes the first Options heading that has a numbered list", () => {
+		const question = readQuestionDescription("Options:\nNo list here.\n\nOptions:\n1. Mode\n2. Tool allowlist\n");
+
+		expect(question.options.map((option) => option.text)).toEqual(["Mode", "Tool allowlist"]);
+	});
+
 	test("takes an option that a bracket closes", () => {
 		const question = readQuestionDescription("Options:\n1) Yes\n2) No\n");
 
