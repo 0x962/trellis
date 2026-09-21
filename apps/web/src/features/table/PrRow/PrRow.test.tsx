@@ -27,6 +27,25 @@ describe("PrRow", () => {
 		expect(html).toContain("min-w-0 flex-1 truncate text-fg");
 	});
 
+	test("gives the number a fixed width and tabular digits", () => {
+		const html = renderToStaticMarkup(<PrRow pr={prOf({ number: 129 })} top={0} last={false} hasChildLines={false} />);
+
+		expect(html).toContain('class="w-14 shrink-0 text-fg tabular"');
+	});
+
+	test("keeps the verdict slot on a pull request with no verdict", () => {
+		const none = renderToStaticMarkup(
+			<PrRow pr={prOf({ verdict: null })} top={0} last={false} hasChildLines={false} />,
+		);
+		const approved = renderToStaticMarkup(
+			<PrRow pr={prOf({ verdict: "approved" })} top={0} last={false} hasChildLines={false} />,
+		);
+
+		expect(none).toContain('<span class="flex size-5 shrink-0 items-center justify-center"></span>');
+		expect(approved).toContain('<span class="flex size-5 shrink-0 items-center justify-center">');
+		expect(approved).toContain('data-review-state="approved"');
+	});
+
 	test("draws a wide ribbon that names the check counts", () => {
 		const html = renderToStaticMarkup(
 			<PrRow pr={prOf({ fail: 1, pending: 6, pass: 47, skipped: 2 })} top={0} last={false} hasChildLines={false} />,
