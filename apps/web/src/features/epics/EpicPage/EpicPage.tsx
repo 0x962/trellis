@@ -55,16 +55,15 @@ const breadcrumbLinkClass =
 // One epic: the current work line, one tab strip with the plan and the
 // resources, and the tickets of
 // the epic in the ticket table of the project routes. The table search is
-// the URL search with `epic` fixed to this epic, and it groups by wave
-// (by turn below 768 px) when the URL names no group. An epic belongs to a
-// root and holds tickets of any project of that root, so the table reads
-// the root with its sub-projects, and the rows match the counts of the epic
-// and the tickets that Add offers. The filter bar receives `epic` as a
-// fixed filter, so it draws no epic chip and "Copy as CLI" still names the
-// epic. Add puts a ticket of the project into the epic; the bulk bar of the
-// table and the rail of the ticket page take one out. Both are ticket
-// writes, so the ticket rows and the epic counts refetch from the ticket
-// events.
+// the URL search with `epic` fixed to this epic, and it groups by wave when
+// the URL names no group. An epic belongs to a root and holds tickets of any
+// project of that root, so the table reads the root with its sub-projects.
+// The rows match the counts of the epic and the tickets that Add offers. The
+// filter bar receives `epic` as a fixed filter, so it draws no epic chip and
+// "Copy as CLI" still names the epic. Add puts a ticket of the project into
+// the epic; the bulk bar of the table and the rail of the ticket page take
+// one out. Both are ticket writes, so the ticket rows and the epic counts
+// refetch from the ticket events.
 export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProps) {
 	const { orpc, queryClient } = useApp();
 	const navigate = useNavigate();
@@ -165,12 +164,13 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 			}
 		/>
 	);
+	const titleParent = phone ? undefined : parent;
 
 	if (epic.isPending) {
 		return (
 			<>
 				<Topbar>
-					<PageTitle parent={parent} title={slug} />
+					<PageTitle parent={titleParent} title={slug} />
 					{filterBar}
 				</Topbar>
 				<div className="page-card flex flex-1 flex-col overflow-hidden">
@@ -185,7 +185,13 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 
 	if (epic.isError) {
 		return (
-			<EpicLoadError epicRef={ref} slug={slug} parent={parent} error={epic.error} onRetry={() => void epic.refetch()} />
+			<EpicLoadError
+				epicRef={ref}
+				slug={slug}
+				parent={titleParent}
+				error={epic.error}
+				onRetry={() => void epic.refetch()}
+			/>
 		);
 	}
 
@@ -234,7 +240,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 					</>
 				}
 			>
-				<PageTitle parent={parent} title={record.name} />
+				<PageTitle parent={titleParent} title={record.name} />
 				{filterBar}
 			</Topbar>
 			<div className="page-card flex flex-1 flex-col overflow-hidden">

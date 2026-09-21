@@ -82,21 +82,21 @@ describe("epicSearch", () => {
 describe("epicSearch on a phone", () => {
 	const phone = true;
 
-	test("a URL with no group groups by turn", () => {
-		expect(epicPageSearch(validated({}), "OP/routine-runtime", phone).group).toBe("turn");
-		expect(epicPageSearch(validated({ group: "wave" }), "OP/routine-runtime", phone).group).toBe("wave");
+	test("a URL with no group groups by wave", () => {
+		expect(epicPageSearch(validated({}), "OP/routine-runtime", phone).group).toBe("wave");
+		expect(epicPageSearch(validated({ group: "turn" }), "OP/routine-runtime", phone).group).toBe("turn");
 	});
 
-	test("the URL omits the turn group and writes the wave group", () => {
+	test("the URL omits the wave group and writes the turn group", () => {
 		const scope = "subprojects";
-		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "turn", scope }, phone)).toEqual({});
-		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "wave", scope }, phone)).toEqual({
-			group: "wave",
+		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "wave", scope }, phone)).toEqual({});
+		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "turn", scope }, phone)).toEqual({
+			group: "turn",
 		});
 	});
 
-	test("the canonical check keeps the wave group and refuses the turn group", () => {
-		expect(isCanonicalEpicSearch("?group=wave", validated({ group: "wave" }), phone)).toBe(true);
-		expect(isCanonicalEpicSearch("?group=turn", validated({ group: "turn" }), phone)).toBe(false);
+	test("the canonical check refuses the wave group and keeps the turn group", () => {
+		expect(isCanonicalEpicSearch("?group=wave", validated({ group: "wave" }), phone)).toBe(false);
+		expect(isCanonicalEpicSearch("?group=turn", validated({ group: "turn" }), phone)).toBe(true);
 	});
 });
