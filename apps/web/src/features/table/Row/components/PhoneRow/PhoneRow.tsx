@@ -92,13 +92,18 @@ function EpicCells({
 }
 
 // The priority mark is the one control in the row. On a coarse pointer it
-// draws 44 px, and the two text lines beside it leave room for that.
+// draws 44 px, which is taller than one text line, so it stays outside the
+// block that holds the two text lines and the 56 px row centres it.
 function ListCells({ ticket, priority }: { ticket: TicketSummary; priority: ReactNode }) {
 	return (
 		<>
 			{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-			<div role="gridcell" data-column="priority" className="flex shrink-0 items-center">
-				{priority}
+			<div role="gridcell" data-column="status" className="flex shrink-0 items-center">
+				<StatusIcon
+					category={ticket.status.category}
+					reviewer={ticket.status.reviewer ?? undefined}
+					label={ticket.status.name}
+				/>
 			</div>
 			<div className="flex min-w-0 flex-1 flex-col gap-1">
 				<div className="flex items-center gap-3">
@@ -108,14 +113,6 @@ function ListCells({ ticket, priority }: { ticket: TicketSummary; priority: Reac
 					</div>
 					<span className="flex-1" />
 					{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
-					<div role="gridcell" data-column="status" className="flex items-center">
-						<StatusIcon
-							category={ticket.status.category}
-							reviewer={ticket.status.reviewer ?? undefined}
-							label={ticket.status.name}
-						/>
-					</div>
-					{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
 					<div role="gridcell" data-column="updated" className="text-xs text-fg-faint tabular">
 						{compactRelativeTime(ticket.updatedAt)}
 					</div>
@@ -124,6 +121,10 @@ function ListCells({ ticket, priority }: { ticket: TicketSummary; priority: Reac
 				<div role="gridcell" data-column="title" data-line="title" className="truncate text-sm text-fg">
 					{ticket.title}
 				</div>
+			</div>
+			{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order. */}
+			<div role="gridcell" data-column="priority" className="flex shrink-0 items-center">
+				{priority}
 			</div>
 		</>
 	);

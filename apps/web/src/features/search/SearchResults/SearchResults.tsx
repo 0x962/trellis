@@ -26,8 +26,8 @@ const phoneLinkClass =
 	"flex h-14 w-full flex-col justify-center gap-1 px-4 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
 
 // The tickets and the projects that match `q`, as display-only rows with the
-// table's cells: priority, ID, the title with each matched word marked, the
-// project, the status icon, and the last update. Below 768 px a row takes
+// table's cells: the status icon, ID, the title with each matched word marked,
+// the project, the priority, and the last update. Below 768 px a row takes
 // the table's phone treatment: two lines in one cell, and the whole row is
 // the link.
 export function SearchResults({ q, filters = {} }: SearchResultsProps) {
@@ -71,14 +71,14 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 									<td data-line="phone" colSpan={6}>
 										<Link to="/t/$identifier" params={{ identifier: ticket.identifier }} className={phoneLinkClass}>
 											<span className="flex items-center gap-3">
-												<PriorityIcon priority={ticket.priority} />
-												<span className="font-mono text-sm text-fg-faint tabular">{ticket.identifier}</span>
-												<span className="flex-1" />
 												<StatusIcon
 													category={ticket.status.category}
 													reviewer={ticket.status.reviewer ?? undefined}
 													label={ticket.status.name}
 												/>
+												<span className="font-mono text-sm text-fg-faint tabular">{ticket.identifier}</span>
+												<span className="flex-1" />
+												<PriorityIcon priority={ticket.priority} />
 												<span className="text-xs text-fg-faint tabular">{compactRelativeTime(ticket.updatedAt)}</span>
 											</span>
 											<span data-line="title" className="truncate text-sm">
@@ -92,7 +92,11 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 						return (
 							<tr key={ticket.id} className={rowClass}>
 								<td className="w-9 pl-5">
-									<PriorityIcon priority={ticket.priority} />
+									<StatusIcon
+										category={ticket.status.category}
+										reviewer={ticket.status.reviewer ?? undefined}
+										label={ticket.status.name}
+									/>
 								</td>
 								<td className="w-20">
 									<Link to="/t/$identifier" params={{ identifier: ticket.identifier }} className={linkClass}>
@@ -107,11 +111,7 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 									</span>
 								</td>
 								<td className="w-8">
-									<StatusIcon
-										category={ticket.status.category}
-										reviewer={ticket.status.reviewer ?? undefined}
-										label={ticket.status.name}
-									/>
+									<PriorityIcon priority={ticket.priority} />
 								</td>
 								<td className="w-14 pr-5 text-right text-sm text-fg-muted tabular">
 									{compactRelativeTime(ticket.updatedAt)}

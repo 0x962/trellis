@@ -47,14 +47,14 @@ export function InboxRow({
 					"grid min-w-0 flex-1 grid-cols-[calc(var(--spacing)*4)_calc(var(--spacing)*18)_calc(var(--spacing)*4)_minmax(0,1fr)_calc(var(--spacing)*30)_calc(var(--spacing)*5)_calc(var(--spacing)*12)] items-center gap-x-3 py-2 text-sm outline-none focus-visible:before:absolute focus-visible:before:inset-y-1 focus-visible:before:left-0 focus-visible:before:w-0.5 focus-visible:before:bg-accent max-md:grid-cols-[calc(var(--spacing)*4)_calc(var(--spacing)*18)_calc(var(--spacing)*4)_minmax(0,1fr)_calc(var(--spacing)*12)] max-md:gap-x-2 max-md:gap-y-1",
 				children: (
 					<>
-						<span data-column="priority" className="flex items-center">
-							<PriorityIcon priority={priority} />
+						<span data-column="status" className="flex items-center">
+							{status}
 						</span>
 						<span data-column="id">
 							<TicketId id={identifier} />
 						</span>
-						<span data-column="status" className="flex items-center">
-							{status}
+						<span data-column="priority" className="flex items-center">
+							<PriorityIcon priority={priority} />
 						</span>
 						<span
 							data-column="title"

@@ -24,11 +24,11 @@ export type ColumnId =
 // The columns in display order.
 export const columnOrder: readonly ColumnId[] = [
 	"select",
-	"priority",
+	"status",
 	"id",
 	"title",
 	"labels",
-	"status",
+	"priority",
 	"pr",
 	"project",
 	"waits",
