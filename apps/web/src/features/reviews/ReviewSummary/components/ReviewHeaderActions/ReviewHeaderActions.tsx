@@ -14,10 +14,6 @@ import {
 } from "../../../reviewActions/reviewActions";
 import { ReviewSubmit } from "./components/ReviewSubmit";
 
-type Meta = ReviewActionMeta & {
-	baseRefName?: string;
-};
-
 export function ReviewHeaderActions({
 	pr,
 	revision,
@@ -34,7 +30,7 @@ export function ReviewHeaderActions({
 	const { client, orpc, queryClient } = useApp();
 	const [closeOpen, setCloseOpen] = useState(false);
 	const [metadataRequested, setMetadataRequested] = useState(false);
-	const meta = revision.meta as Meta;
+	const meta = revision.meta as ReviewActionMeta;
 	const primary = primaryReviewAction(meta);
 	const metadata = useQuery({
 		...orpc.reviews.metadata.queryOptions({ input: { pr } }),
