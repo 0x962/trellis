@@ -51,7 +51,7 @@ beforeAll(async () => {
 		id, project_id, root_id, number, title, description, status_id, epic_id, position, created_at, updated_at
 	) VALUES
 		(${tickets[0]}, ${root}, ${root}, 1, 'Done blocker', '', ${doneStatus}, ${epic}, 0, ${at}, ${at}),
-		(${tickets[1]}, ${root}, ${root}, 2, 'Open question', E'Options:\\n1. Yes\\n2. No', ${questionStatus}, ${epic}, 1, ${at}, ${at}),
+		(${tickets[1]}, ${root}, ${root}, 2, 'Open question', E'The run needs a bound.\\n\\nOptions:\\n\\n1. Yes\\n2. No', ${questionStatus}, ${epic}, 1, ${at}, ${at}),
 		(${tickets[2]}, ${root}, ${root}, 3, 'Human review without options', '', ${questionStatus}, ${epic}, 2, ${at}, ${at}),
 		(${tickets[3]}, ${root}, ${root}, 4, 'Subject', '', ${todoStatus}, ${epic}, 3, ${at}, ${at}),
 		(${tickets[4]}, ${root}, ${root}, 5, 'Released ticket', '', ${todoStatus}, ${epic}, 4, ${at}, ${at}),

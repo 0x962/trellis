@@ -22,7 +22,7 @@ export type Scope = "subprojects" | "self";
 // set carries the leading `!` in the URL.
 export type NegatableField = "status" | "priority" | "project" | "label";
 
-// The view state of a list route: the shared list grammar plus the four
+// The view state of a list route: the shared list grammar plus the
 // web-only fields. A time bound keeps the short form a person types (`7d`);
 // `toListQuery` turns it into an ISO instant.
 export type View = {
@@ -55,6 +55,10 @@ export type View = {
 	// "hide" drops the Done and Canceled groups from a status grouping. The
 	// URL carries it only when set, so a view shows them by default.
 	closed?: "hide";
+	// The tab of the epic page. The Plan tab is the default, so the URL
+	// carries the field only for the Resources tab. Every other route
+	// drops it.
+	tab?: "resources";
 	scope: Scope;
 	density: Density;
 	limit: number;
@@ -175,6 +179,7 @@ export const parseSearch = (params: Record<string, unknown>): View => {
 		sort: single(raw.sort, SortSchema) ?? viewDefaults.sort,
 		group: group ?? viewDefaults.group,
 		closed: raw.closed === "hide" ? "hide" : undefined,
+		tab: raw.tab === "resources" ? "resources" : undefined,
 		scope: oneOf<Scope>(raw.scope, scopes) ?? viewDefaults.scope,
 		density: oneOf<Density>(raw.density, densities) ?? viewDefaults.density,
 		limit: Number.isInteger(limit) && limit >= 1 && limit <= 200 ? limit : viewDefaults.limit,

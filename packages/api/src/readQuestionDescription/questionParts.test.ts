@@ -33,6 +33,29 @@ describe("questionParts", () => {
 		expect(questionParts(description).ask).toBe("");
 	});
 
+	test("finds an option list after prose and a blank line", () => {
+		const description = [
+			"The routine can change data without a person in the chat.",
+			"",
+			"Options:",
+			"",
+			"1. Let it use every write tool.",
+			"2. Give it a tool allowlist.",
+			"",
+			"Recommendation: option 2. The routine gets only the tools it needs.",
+			"",
+			"The answer releases OP-40.",
+		].join("\n");
+		expect(questionParts(description)).toEqual({
+			ask: "The routine can change data without a person in the chat.\n\nThe answer releases OP-40.",
+			options: [
+				{ number: 1, text: "Let it use every write tool." },
+				{ number: 2, text: "Give it a tool allowlist." },
+			],
+			recommendation: { option: 2, reason: "The routine gets only the tools it needs." },
+		});
+	});
+
 	test("gives the whole description as the ask when it lists no option", () => {
 		expect(questionParts("Store the cron expression of a routine.")).toEqual({
 			ask: "Store the cron expression of a routine.",

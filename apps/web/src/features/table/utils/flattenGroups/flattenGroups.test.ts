@@ -5,7 +5,8 @@ import { flattenGroups, phoneItems, type TableGroup } from "./flattenGroups";
 
 const pr = (number: number) => ({ number, owner: "0x962", repo: "trellis" }) as TicketPr;
 
-const ticket = (id: string, prRows: TicketPr[] = []) => ({ id, prRows }) as TicketSummary;
+const ticket = (id: string, prRows: TicketPr[] = [], category: TicketSummary["status"]["category"] = "started") =>
+	({ id, prRows, status: { category } }) as TicketSummary;
 
 const line = (words: string, asks = false): TicketAgentLine => ({ words, asks });
 
@@ -62,6 +63,50 @@ describe("flattenGroups", () => {
 
 		expect(items.map((item) => item.kind)).toEqual(["header", "row", "pr", "pr", "agent", "row"]);
 		expect(items[4]!.key).toBe("agent:a");
+	});
+
+	test("collapses the child rows of a done ticket", () => {
+		const groups = [group("done", true, [ticket("a", [pr(11)], "done")])];
+		const agentLines = { a: line("crisp-fjord: I merged it.") };
+
+		const items = flattenGroups(groups, { prRows: true, agentLines });
+
+		expect(items.map((item) => item.kind)).toEqual(["header", "row"]);
+		expect(items[1]).toMatchObject({ kind: "row", disclosure: "collapsed" });
+	});
+
+	test("shows the child rows of a done ticket that a person opened", () => {
+		const groups = [group("done", true, [ticket("a", [pr(11)], "done")])];
+		const agentLines = { a: line("crisp-fjord: I merged it.") };
+
+		const items = flattenGroups(groups, { prRows: true, agentLines, expandedTickets: ["a"] });
+
+		expect(items.map((item) => item.kind)).toEqual(["header", "row", "pr", "agent"]);
+		expect(items[1]).toMatchObject({ kind: "row", disclosure: "expanded" });
+	});
+
+	test("collapses the child rows of a canceled ticket", () => {
+		const groups = [group("canceled", true, [ticket("a", [pr(11)], "canceled")])];
+
+		const items = flattenGroups(groups, { prRows: true });
+
+		expect(items.map((item) => item.kind)).toEqual(["header", "row"]);
+		expect(items[1]).toMatchObject({ kind: "row", disclosure: "collapsed" });
+	});
+
+	test("keeps the child rows of an active ticket visible without a disclosure", () => {
+		const groups = [group("started", true, [ticket("a", [pr(11)], "started")])];
+
+		const items = flattenGroups(groups, { prRows: true });
+
+		expect(items.map((item) => item.kind)).toEqual(["header", "row", "pr"]);
+		expect(items[1]).toMatchObject({ kind: "row", disclosure: null });
+	});
+
+	test("gives a done ticket with no child row no disclosure", () => {
+		const items = flattenGroups([group("done", true, [ticket("a", [], "done")])], { prRows: true });
+
+		expect(items[1]).toMatchObject({ kind: "row", disclosure: null });
 	});
 
 	test("gives a ticket with no line no agent line", () => {

@@ -6,7 +6,6 @@ import { type AppContext, AppProvider } from "../../../../../lib/appContext";
 import { EpicResources } from "./EpicResources";
 
 const epic = "OP/routines-e2e";
-const routeKey = "/p/OP/epics/routines-e2e";
 
 const base = {
 	epicId: "01M2YRWY0TEG6ETHHWRHVDQ5AH",
@@ -43,44 +42,32 @@ const appOf = (queryClient: QueryClient) =>
 		orpc: { resources: { list: { queryOptions: () => ({ queryKey, queryFn: () => resources }) } } },
 	}) as unknown as AppContext;
 
-// `renderToStaticMarkup` reads a zustand store through its server snapshot,
-// which is the state the store held at creation. The stored collapse state of
-// `uiStore` lives in localStorage, and a test run has no browser, so every
-// render here draws the state the section opens with.
 const render = () => {
 	const queryClient = new QueryClient();
 	queryClient.setQueryData(queryKey, resources);
 	return renderToStaticMarkup(
 		<QueryClientProvider client={queryClient}>
 			<AppProvider value={appOf(queryClient)}>
-				<EpicResources routeKey={routeKey} epic={epic} resourceCount={5} />
+				<EpicResources epic={epic} />
 			</AppProvider>
 		</QueryClientProvider>,
 	);
 };
 
 describe("EpicResources", () => {
-	test("names the section and prints the count of the epic record", () => {
+	test("prints every resource of the epic", () => {
 		const html = render();
 
-		expect(html).toContain("Resources");
-		expect(html).toContain("(5)");
+		expect(html).toContain("routine-runtime.md");
+		expect(html).toContain("canary#55569");
 	});
 
-	test("starts shut, so the current work and the plan leave the table on screen", () => {
+	test("draws no header and no Show control, because the tab label names the list", () => {
 		const html = render();
 
-		expect(html).toContain(">Show<");
-		expect(html).toContain('aria-expanded="false"');
-		expect(html).not.toContain("routine-runtime.md");
-		expect(html).not.toContain("canary#55569");
-	});
-
-	test("prints the header alone while it is shut", () => {
-		const html = render();
-
-		expect(html).not.toContain("The epic holds no resource.");
-		expect(html).not.toContain("<ul");
+		expect(html).not.toContain("<h2");
+		expect(html).not.toContain(">Show<");
+		expect(html).not.toContain("aria-expanded");
 	});
 
 	test("offers no Add control, because `trellis resource add` adds a resource", () => {

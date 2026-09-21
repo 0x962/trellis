@@ -32,6 +32,7 @@ export const searchParamOrder = [
 	"sort",
 	"group",
 	"closed",
+	"tab",
 	"scope",
 	"density",
 	"limit",

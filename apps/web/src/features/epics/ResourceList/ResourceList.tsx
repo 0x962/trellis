@@ -14,9 +14,7 @@ export type ResourceListProps = {
 	count?: number;
 	loading?: boolean;
 	error?: string | null;
-	expanded?: boolean;
-	onToggle?: () => void;
-	headerClassName?: string;
+	header?: boolean;
 	onAdd?: {
 		doc: () => void;
 		link: () => void;
@@ -24,16 +22,7 @@ export type ResourceListProps = {
 	};
 };
 
-export function ResourceList({
-	resources,
-	count,
-	loading,
-	error,
-	expanded,
-	onToggle,
-	headerClassName,
-	onAdd,
-}: ResourceListProps) {
+export function ResourceList({ resources, count, loading, error, header, onAdd }: ResourceListProps) {
 	const [docId, setDocId] = useState<string | null>(null);
 	const [linkId, setLinkId] = useState<string | null>(null);
 	const [imageId, setImageId] = useState<string | null>(null);
@@ -82,9 +71,7 @@ export function ResourceList({
 				count={count}
 				loading={loading}
 				error={error}
-				expanded={expanded}
-				onToggle={onToggle}
-				headerClassName={headerClassName}
+				header={header}
 				onOpen={onOpen}
 				onAdd={onAdd}
 			/>

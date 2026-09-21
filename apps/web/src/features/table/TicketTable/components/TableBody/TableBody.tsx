@@ -14,11 +14,11 @@ import {
 import type { Density } from "../../../../../stores/uiStore";
 import { AgentLine } from "../../../AgentLine";
 import type { ColumnId, TableKind } from "../../../columns";
-import { GroupHeader, groupHeaderHeight, phoneGroupHeaderHeight } from "../../../GroupHeader";
+import { GroupHeader, phoneGroupHeaderHeight } from "../../../GroupHeader";
 import type { RowSelection } from "../../../hooks/useRowSelection";
 import { PrRow } from "../../../PrRow";
 import { type EditField, Row, type RowChange } from "../../../Row";
-import { agentLineHeight, phoneRowHeight, prRowHeight, rowHeights } from "../../../rowHeights";
+import { agentLineHeight, groupHeaderHeight, phoneRowHeight, prRowHeight, rowHeights } from "../../../rowHeights";
 import { phoneItems, type TableGroup, type TableItem } from "../../../utils/flattenGroups";
 import { ShowMoreRow, showMoreHeight } from "../ShowMoreRow";
 import { TableSkeleton } from "../TableSkeleton";
@@ -47,9 +47,12 @@ export type TableBodyProps = {
 	onEditingChange: (id: string, field: EditField | null) => void;
 	onRowChange: (ticket: TicketSummary, change: RowChange) => void;
 	onToggleGroup: (key: string) => void;
-	// Opens the composer with the status, or the epic and the wave, of
-	// the group.
+	onToggleTicket: (ticketId: string) => void;
+	// Opens the composer with the status of the group.
 	onCreateInGroup: (group: TableGroup) => void;
+	// Opens the Start wave dialog of a wave group of one epic. Undefined
+	// until the table knows which tickets hold an agent run.
+	onStartGroup?: (group: TableGroup) => void;
 	// True while the bulk bar shows. The list then gets 72 px of room under
 	// its last row, so that row can scroll clear of the bar.
 	bottomRoom: boolean;
@@ -86,7 +89,9 @@ export function TableBody({
 	onEditingChange,
 	onRowChange,
 	onToggleGroup,
+	onToggleTicket,
 	onCreateInGroup,
+	onStartGroup,
 	bottomRoom,
 }: TableBodyProps) {
 	const viewport = useRef<HTMLDivElement>(null);
@@ -186,8 +191,11 @@ export function TableBody({
 									category={group.category}
 									expanded={group.expanded}
 									onToggle={() => onToggleGroup(group.key)}
-									onCreate={
-										group.status === undefined && group.epicRef === undefined ? undefined : () => onCreateInGroup(group)
+									onCreate={group.status === undefined ? undefined : () => onCreateInGroup(group)}
+									onStart={
+										onStartGroup === undefined || group.epicRef === undefined || group.wave === undefined
+											? undefined
+											: () => onStartGroup(group)
 									}
 									phone={phone}
 									top={virtual.start}
@@ -224,6 +232,7 @@ export function TableBody({
 								phone={phone}
 								phoneLayout={tableKind}
 								agentLine={phone ? item.agentLine : null}
+								disclosure={item.disclosure}
 								focused={ticket.id === focusedId}
 								selected={selection.isSelected(ticket.id)}
 								selecting={selection.count > 0}
@@ -234,6 +243,7 @@ export function TableBody({
 									if (pendingFocus.current === null) onFocusRow(id);
 								}}
 								onClick={onRowClick}
+								onToggleDisclosure={onToggleTicket}
 								onOpen={onOpen}
 								onToggleSelect={selection.toggle}
 								onEditingChange={onEditingChange}

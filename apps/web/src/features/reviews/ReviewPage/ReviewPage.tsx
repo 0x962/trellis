@@ -11,6 +11,7 @@ import {
 import { TicketId, useMediaQuery } from "@trellis/ui";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { useCollapsedGroups } from "../../table/hooks/useCollapsedGroups";
 import { ChangeSummary } from "../ChangeSummary";
 import { ConditionsBlock } from "../ConditionsBlock";
 import { type BaseCondition, unmetConditions } from "../conditionLines/conditionLines";
@@ -28,8 +29,9 @@ import { primaryReviewAction, type ReviewActionMeta } from "../reviewActions/rev
 import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
 import { FilesDisclosure } from "./components/FilesDisclosure";
+import { factsLine, ReviewFacts } from "./components/ReviewFacts";
 import { type GithubPullRequest, ReviewIdentity } from "./components/ReviewIdentity";
-import { ReviewPageSkeleton } from "./components/ReviewPageSkeleton";
+import { ReviewDiffSkeleton, ReviewTreeSkeleton } from "./components/ReviewPageSkeleton";
 import { TurnLine } from "./components/TurnLine";
 import { conditionsOf } from "./conditionsOf";
 import { useActiveThread } from "./hooks/useActiveThread";
@@ -43,6 +45,10 @@ const noSentences: string[] = [];
 // answers. An empty list would read as "every condition is met", so the
 // bar prints one phrase for the gap instead.
 const conditionsUnknown = ["conditions unknown"];
+// The facts strip starts shut, so the file tree and the diff start near the
+// top of the sheet.
+const factsGroup = "facts";
+const factsShut = [factsGroup];
 
 // The distance comes from the revision document, not from the status poll:
 // the server reads it from the compare call that fetched this revision, and
@@ -72,6 +78,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		refreshAll,
 	} = useReviewData(pr);
 	const [changedFiles, setChangedFiles] = useState<ReadMarkFile[]>([]);
+	const { isCollapsed, toggle: toggleFacts } = useCollapsedGroups(`${pr}#facts`, factsShut);
 	// A person does not read a diff on a phone, so `FilesDisclosure` puts the
 	// checks, the file list, the diff and the threads behind one button.
 	const phone = useMediaQuery("(max-width: 767px)");
@@ -211,8 +218,11 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						)}
 					</div>
 				</div>
-				<div className="review-column">
-					<div className="review-regions">
+				<div className="review-body">
+					{/* The notices sit outside the facts strip, because a shut strip
+					    would hide them. The box is empty while nothing went wrong, and
+					    an empty box draws nothing. */}
+					<div className="review-notices">
 						{revision && <ReviewStack pr={pr} />}
 						{status.isError && (
 							<p role="alert" className="review-notice">
@@ -236,6 +246,13 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 								{threads.error.message}
 							</p>
 						)}
+					</div>
+					<ReviewFacts
+						line={factsLine(conditions)}
+						shut={isCollapsed(factsGroup)}
+						onToggle={() => toggleFacts(factsGroup)}
+						phone={phone}
+					>
 						{factsReady && (
 							<>
 								{conditions && <ConditionsBlock conditions={conditions} />}
@@ -250,47 +267,53 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 								{floor && <EvidenceStrip records={records} floor={floor} />}
 							</>
 						)}
-						<FilesDisclosure phone={phone} count={changedFiles.length}>
-							<ReviewChecks revision={displayRevision} pr={pr} />
-							{revision === null && !refresh.isError ? (
-								<ReviewPageSkeleton />
-							) : (
-								revision && (
-									<>
-										<FileRiskGroups
-											pr={pr}
-											repo={ref.repo}
-											files={changedFiles}
-											selected={selectedPath}
-											onSelect={setPickedPath}
-										/>
-										<DiffPane
-											pr={pr}
-											revision={revision}
-											threads={revisionThreads}
-											selectedFile={selectedPath}
-											renderThread={renderThread}
-											onFiles={setChangedFiles}
-											onComposer={setComposerOpen}
-										/>
-									</>
-								)
-							)}
-							<ReviewDiscussion
-								threads={allThreads}
-								activeThread={activeThread}
-								revision={displayRevision}
-								renderThread={renderThread}
-								onJump={(thread) => {
-									void (async () => {
-										if (thread.revisionId && thread.revisionId !== revision?.id)
-											setRevision(await client.reviews.revision({ pr, id: thread.revisionId }));
-										setPickedPath(thread.path);
-									})();
-								}}
-							/>
-						</FilesDisclosure>
-					</div>
+						<ReviewChecks revision={displayRevision} pr={pr} />
+						<ReviewDiscussion
+							threads={allThreads}
+							activeThread={activeThread}
+							revision={displayRevision}
+							renderThread={renderThread}
+							onJump={(thread) => {
+								void (async () => {
+									if (thread.revisionId && thread.revisionId !== revision?.id)
+										setRevision(await client.reviews.revision({ pr, id: thread.revisionId }));
+									setPickedPath(thread.path);
+								})();
+							}}
+						/>
+					</ReviewFacts>
+					<FilesDisclosure phone={phone} count={changedFiles.length}>
+						<div className="review-panes">
+							<aside className="review-tree-pane" aria-label="The changed files">
+								{revision === null ? (
+									<ReviewTreeSkeleton />
+								) : (
+									<FileRiskGroups
+										pr={pr}
+										repo={ref.repo}
+										files={changedFiles}
+										selected={selectedPath}
+										onSelect={setPickedPath}
+									/>
+								)}
+							</aside>
+							<div className="review-diff-pane">
+								{revision === null ? (
+									!refresh.isError && <ReviewDiffSkeleton />
+								) : (
+									<DiffPane
+										pr={pr}
+										revision={revision}
+										threads={revisionThreads}
+										selectedFile={selectedPath}
+										renderThread={renderThread}
+										onFiles={setChangedFiles}
+										onComposer={setComposerOpen}
+									/>
+								)}
+							</div>
+						</div>
+					</FilesDisclosure>
 				</div>
 				{displayRevision && primaryReviewAction(displayRevision.meta as ReviewActionMeta) === "merge" && (
 					<VerdictBar

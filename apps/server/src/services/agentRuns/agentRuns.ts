@@ -34,7 +34,12 @@ export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 	return rows<StoredRun>(
 		tx,
 		sql`SELECT ${columns} FROM agent_runs WHERE
-		${project === null ? sql`true` : sql`project_id = ${project.id}`} AND
+		${
+			project === null
+				? sql`true`
+				: sql`((ticket_id IS NULL AND project_id = ${project.id}) OR
+					ticket_id IN (SELECT id FROM tickets WHERE project_id = ${project.id}))`
+		} AND
 		${ticket === null ? sql`true` : sql`ticket_id = ${ticket.id}`} AND
 		${
 			input.ids === undefined

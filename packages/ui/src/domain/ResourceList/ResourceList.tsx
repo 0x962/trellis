@@ -25,6 +25,9 @@ export type ResourceListProps = {
 	// Classes for the header row, such as the sticky position of a section
 	// that scrolls inside a fixed area.
 	headerClassName?: string;
+	// False draws the rows without the header, for a caller whose tab label
+	// already names the list and holds the count.
+	header?: boolean;
 	onOpen: (id: string) => void;
 	// The three paths that add a resource. A caller that leaves them out gets
 	// a header with no Add control.
@@ -45,6 +48,7 @@ export function ResourceList({
 	expanded = true,
 	onToggle,
 	headerClassName,
+	header = true,
 	onOpen,
 	onAdd,
 }: ResourceListProps) {
@@ -55,38 +59,40 @@ export function ResourceList({
 	const shown = expanded ? (loading ? count : error !== null ? undefined : rows.length) : count;
 	return (
 		<section aria-busy={loading} aria-label="Resources" className="flex min-w-0 flex-col gap-2">
-			<SectionHeader
-				title="Resources"
-				count={shown}
-				className={headerClassName}
-				actions={
-					<>
-						{onToggle !== undefined && (
-							<Button
-								variant="quiet"
-								size="sm"
-								aria-expanded={expanded}
-								aria-controls={expanded ? bodyId : undefined}
-								onClick={onToggle}
-							>
-								{expanded ? "Hide" : "Show"}
-							</Button>
-						)}
-						{onAdd !== undefined && (
-							<Menu
-								label="Add a resource"
-								triggerTooltip="Add a resource"
-								trigger={<IconButton label="Add a resource" icon={<Plus />} />}
-								items={[
-									{ label: "Doc", onSelect: onAdd.doc },
-									{ label: "Link", onSelect: onAdd.link },
-									{ label: "File", onSelect: onAdd.file },
-								]}
-							/>
-						)}
-					</>
-				}
-			/>
+			{header && (
+				<SectionHeader
+					title="Resources"
+					count={shown}
+					className={headerClassName}
+					actions={
+						<>
+							{onToggle !== undefined && (
+								<Button
+									variant="quiet"
+									size="sm"
+									aria-expanded={expanded}
+									aria-controls={expanded ? bodyId : undefined}
+									onClick={onToggle}
+								>
+									{expanded ? "Hide" : "Show"}
+								</Button>
+							)}
+							{onAdd !== undefined && (
+								<Menu
+									label="Add a resource"
+									triggerTooltip="Add a resource"
+									trigger={<IconButton label="Add a resource" icon={<Plus />} />}
+									items={[
+										{ label: "Doc", onSelect: onAdd.doc },
+										{ label: "Link", onSelect: onAdd.link },
+										{ label: "File", onSelect: onAdd.file },
+									]}
+								/>
+							)}
+						</>
+					}
+				/>
+			)}
 			{expanded && (
 				<div id={bodyId} className="flex min-w-0 flex-col">
 					{error !== null ? (

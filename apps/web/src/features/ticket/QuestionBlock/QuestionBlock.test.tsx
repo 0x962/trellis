@@ -80,6 +80,15 @@ describe("QuestionBlock", () => {
 		expect(html).not.toContain("Options:");
 	});
 
+	test("reads the numbered options after prose and a blank line", () => {
+		const html = render({
+			description: `The run needs a bound.\n\n${description.replace("Options:\n", "Options:\n\n")}`,
+		});
+
+		expect(html).toContain("1. Leave it missed.");
+		expect(html).toContain("2. Run it late.");
+	});
+
 	test("prints the recommendation and names nobody as its author", () => {
 		const html = render();
 

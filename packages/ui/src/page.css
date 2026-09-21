@@ -1,12 +1,13 @@
-/* The width of a sheet that holds a whole page, and the wider width of the
-   sheet that holds a pull request. Each width leaves a strip of the page for
-   an outside click. The strip of the wide sheet is narrower, so a pull
-   request sheet covers the ticket sheet under it. The 720px floor keeps a
-   sheet usable in a narrow window; `Sheet` limits its panel to the window
-   width. */
+/* The width of a sheet that holds a whole page, and the width of the sheet
+   that holds the review of a pull request. Each width leaves a strip of the
+   page for an outside click. A person reads code in the review, so that sheet
+   takes the window and leaves a strip of 24px on each side: enough to click
+   past it, and enough to keep the ticket under it visible as an edge. The
+   720px floor keeps a sheet usable in a narrow window; `Sheet` limits its
+   panel to the window width. */
 :root {
 	--page-sheet-width: max(720px, min(100vw - 192px, 1200px));
-	--page-sheet-wide-width: max(720px, min(100vw - 96px, 1600px));
+	--page-sheet-full-width: max(720px, calc(100vw - 48px));
 }
 
 @utility page-inset {
