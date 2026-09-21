@@ -13,12 +13,12 @@ const summary: PullRequestSummary = {
 };
 
 describe("ChangeSummary", () => {
-	test("prints the three fields of the summary", () => {
+	test("prints the headline and plain explanation", () => {
 		const html = renderToStaticMarkup(<ChangeSummary summary={summary} headSha={headSha} />);
 
 		expect(html).toContain("Give the Operator message post a timeout.");
-		expect(html).toContain("Watch this: ");
-		expect(html).toContain("ChatPage.vue. The end of the wait reads the thread, not the dialog.");
+		expect(html).toContain("postMessage has no timeout, so a stalled post leaves the dialog with both buttons greyed.");
+		expect(html).not.toContain("Watch this: ");
 		expect(html).not.toContain("one revision behind");
 	});
 
@@ -39,7 +39,7 @@ describe("ChangeSummary", () => {
 	test("prints one faint line when the pull request carries no summary", () => {
 		const html = renderToStaticMarkup(<ChangeSummary summary={null} headSha={headSha} />);
 
-		expect(html).toContain("The agent has not written the summary.");
+		expect(html).toContain("The agent has not written a summary yet.");
 		expect(html).not.toContain("Watch this: ");
 	});
 });
