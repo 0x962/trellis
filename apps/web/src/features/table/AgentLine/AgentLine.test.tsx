@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createMarkdownParser } from "../../../lib/markdown";
 import { agentLineHeight } from "../rowHeights";
+import { elbowRadius } from "../TreeLines";
 import { AgentLine } from "./AgentLine";
 
 // The renderer of the app strips whatever runs with the DOM of the browser,
@@ -17,7 +18,13 @@ const textOf = (html: string) => html.replace(/<[^>]*>/g, "");
 describe("AgentLine", () => {
 	test("prints the words of a message in the muted color and draws no dot", () => {
 		const html = renderToStaticMarkup(
-			<AgentLine line={{ words: "crisp-fjord: I rebased.", asks: false }} top={0} last depth={1} render={render} />,
+			<AgentLine
+				line={{ words: "crisp-fjord: I rebased.", asks: false, working: false, runId: "run" }}
+				top={0}
+				last
+				depth={1}
+				render={render}
+			/>,
 		);
 
 		expect(textOf(html)).toContain("crisp-fjord: I rebased.");
@@ -27,7 +34,13 @@ describe("AgentLine", () => {
 
 	test("draws the dot and the warning color when the run asks", () => {
 		const html = renderToStaticMarkup(
-			<AgentLine line={{ words: "crisp-fjord asks: Which cap?", asks: true }} top={0} last depth={1} render={render} />,
+			<AgentLine
+				line={{ words: "crisp-fjord asks: Which cap?", asks: true, working: false, runId: "run" }}
+				top={0}
+				last
+				depth={1}
+				render={render}
+			/>,
 		);
 
 		expect(textOf(html)).toContain("crisp-fjord asks: Which cap?");
@@ -38,7 +51,13 @@ describe("AgentLine", () => {
 	test("says no label of its own", () => {
 		const html = textOf(
 			renderToStaticMarkup(
-				<AgentLine line={{ words: "crisp-fjord: I rebased.", asks: false }} top={0} last depth={1} render={render} />,
+				<AgentLine
+					line={{ words: "crisp-fjord: I rebased.", asks: false, working: false, runId: "run" }}
+					top={0}
+					last
+					depth={1}
+					render={render}
+				/>,
 			),
 		);
 
@@ -47,7 +66,13 @@ describe("AgentLine", () => {
 
 	test("as the last child, closes the group with the same border as a ticket row", () => {
 		const html = renderToStaticMarkup(
-			<AgentLine line={{ words: "crisp-fjord: I rebased.", asks: false }} top={0} last depth={1} render={render} />,
+			<AgentLine
+				line={{ words: "crisp-fjord: I rebased.", asks: false, working: false, runId: "run" }}
+				top={0}
+				last
+				depth={1}
+				render={render}
+			/>,
 		);
 
 		expect(html).toContain("border-b border-border");
@@ -55,7 +80,13 @@ describe("AgentLine", () => {
 
 	test("takes at least the height the virtual list reserves, at the offset it names", () => {
 		const html = renderToStaticMarkup(
-			<AgentLine line={{ words: "crisp-fjord: I rebased.", asks: false }} top={288} last depth={1} render={render} />,
+			<AgentLine
+				line={{ words: "crisp-fjord: I rebased.", asks: false, working: false, runId: "run" }}
+				top={288}
+				last
+				depth={1}
+				render={render}
+			/>,
 		);
 
 		expect(html).toContain(`min-height:${agentLineHeight}px`);
@@ -65,7 +96,7 @@ describe("AgentLine", () => {
 	test("wraps a long message and never truncates it", () => {
 		const words = `crisp-fjord: ${"I rebased the branch on main and ran the tests again. ".repeat(6)}`;
 		const html = renderToStaticMarkup(
-			<AgentLine line={{ words, asks: false }} top={0} last depth={1} render={render} />,
+			<AgentLine line={{ words, asks: false, working: false, runId: "run" }} top={0} last depth={1} render={render} />,
 		);
 
 		expect(textOf(html)).toContain(words.trim());
@@ -75,7 +106,7 @@ describe("AgentLine", () => {
 	test("renders the message as markdown, so a list reads as a list", () => {
 		const words = "crisp-fjord: The branch is ready.\n\n- Adds `GET /runs`.\n- Needs **one** review.";
 		const html = renderToStaticMarkup(
-			<AgentLine line={{ words, asks: false }} top={0} last depth={1} render={render} />,
+			<AgentLine line={{ words, asks: false, working: false, runId: "run" }} top={0} last depth={1} render={render} />,
 		);
 
 		expect(html).toContain("<li>");
@@ -85,7 +116,13 @@ describe("AgentLine", () => {
 
 	test("holds the markdown to the size of the line, so a heading cannot shout", () => {
 		const html = renderToStaticMarkup(
-			<AgentLine line={{ words: "# crisp-fjord pushed it", asks: false }} top={0} last depth={1} render={render} />,
+			<AgentLine
+				line={{ words: "# crisp-fjord pushed it", asks: false, working: false, runId: "run" }}
+				top={0}
+				last
+				depth={1}
+				render={render}
+			/>,
 		);
 
 		expect(html).toContain("agent-markdown");
@@ -94,7 +131,13 @@ describe("AgentLine", () => {
 
 	test("hangs from the last pull request of the ticket at the deeper tree level", () => {
 		const html = renderToStaticMarkup(
-			<AgentLine line={{ words: "crisp-fjord: I rebased.", asks: false }} top={0} last depth={2} render={render} />,
+			<AgentLine
+				line={{ words: "crisp-fjord: I rebased.", asks: false, working: false, runId: "run" }}
+				top={0}
+				last
+				depth={2}
+				render={render}
+			/>,
 		);
 
 		expect(html).toContain("left-[84px]");
@@ -104,17 +147,73 @@ describe("AgentLine", () => {
 
 	test("hangs from the ticket row when the ticket links no pull request", () => {
 		const html = renderToStaticMarkup(
-			<AgentLine line={{ words: "crisp-fjord: I rebased.", asks: false }} top={0} last depth={1} render={render} />,
+			<AgentLine
+				line={{ words: "crisp-fjord: I rebased.", asks: false, working: false, runId: "run" }}
+				top={0}
+				last
+				depth={1}
+				render={render}
+			/>,
 		);
 
 		expect(html).toContain("left-[58px]");
 		expect(html).toContain("pl-19");
 	});
 
+	test("shimmers the words of a run that works and keeps them on one line", () => {
+		const html = renderToStaticMarkup(
+			<AgentLine
+				line={{ words: "crisp-fjord: Edit apps/web/src/app.css", asks: false, working: true, runId: "run" }}
+				top={0}
+				last
+				depth={1}
+				render={render}
+			/>,
+		);
+
+		expect(textOf(html)).toContain("crisp-fjord: Edit apps/web/src/app.css");
+		expect(html).toContain("text-glimmer");
+		expect(html).toContain("truncate");
+		expect(html).toContain('data-agent-line="working"');
+	});
+
+	test("drops the shimmer and renders markdown when the run ends its turn", () => {
+		const html = renderToStaticMarkup(
+			<AgentLine
+				line={{ words: "crisp-fjord: The branch is ready.", asks: false, working: false, runId: "run" }}
+				top={0}
+				last
+				depth={1}
+				render={render}
+			/>,
+		);
+
+		expect(html).not.toContain("text-glimmer");
+		expect(html).toContain("agent-markdown");
+		expect(html).toContain('data-agent-line="message"');
+	});
+
+	test("is a control that opens the session of its run, with a hover band and a focus ring", () => {
+		const html = renderToStaticMarkup(
+			<AgentLine
+				line={{ words: "crisp-fjord: I rebased.", asks: false, working: false, runId: "run" }}
+				top={0}
+				last
+				depth={1}
+				render={render}
+			/>,
+		);
+
+		expect(html).toContain('role="button"');
+		expect(html).toContain('tabindex="0"');
+		expect(html).toContain("hover:bg-band");
+		expect(html).toContain("focus-visible:outline-accent");
+	});
+
 	test("carries the index the virtualizer reads when it measures the line", () => {
 		const html = renderToStaticMarkup(
 			<AgentLine
-				line={{ words: "crisp-fjord: I rebased.", asks: false }}
+				line={{ words: "crisp-fjord: I rebased.", asks: false, working: false, runId: "run" }}
 				top={0}
 				last
 				depth={1}
@@ -128,10 +227,16 @@ describe("AgentLine", () => {
 
 	test("points its elbow at the middle of its first text line", () => {
 		const html = renderToStaticMarkup(
-			<AgentLine line={{ words: "crisp-fjord: I rebased.", asks: false }} top={0} last depth={1} render={render} />,
+			<AgentLine
+				line={{ words: "crisp-fjord: I rebased.", asks: false, working: false, runId: "run" }}
+				top={0}
+				last
+				depth={1}
+				render={render}
+			/>,
 		);
 
-		expect(html).toContain(`top:${agentLineHeight / 2}px`);
-		expect(html).toContain(`height:${agentLineHeight / 2}px`);
+		expect(html).toContain(`top:${agentLineHeight / 2 - elbowRadius}px`);
+		expect(html).toContain(`height:${agentLineHeight / 2 - elbowRadius}px`);
 	});
 });

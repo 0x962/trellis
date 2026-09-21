@@ -4,9 +4,11 @@ import {
 	evidenceFloor,
 	isAgentWorking,
 	type ReviewRevision,
+	type ReviewSubmission,
 	type ReviewThread,
 	reviewRef,
 	turnOf,
+	verdictMark,
 } from "@trellis/api";
 import { Skeleton, TicketId, useMediaQuery } from "@trellis/ui";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
@@ -16,7 +18,6 @@ import { ChangeSummary } from "../ChangeSummary";
 import { ConditionsBlock } from "../ConditionsBlock";
 import { EvidenceStrip } from "../EvidenceStrip";
 import { FileRiskGroups } from "../FileRiskGroups";
-import type { ReadMarkFile } from "../FileRiskGroups/readMarks/readMarks";
 import { ApplySuggestionsDialog, ReviewApplyContext, type ReviewApplyState, ReviewBatchBar } from "../ReviewApply";
 import { ReviewChecks } from "../ReviewChecks/ReviewChecks";
 import { ReviewComment } from "../ReviewComment/ReviewComment";
@@ -24,6 +25,7 @@ import { ReviewDiscussion } from "../ReviewDiscussion/ReviewDiscussion";
 import { ReviewFocusList } from "../ReviewFocusList";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
 import { ReviewStack } from "../ReviewStack/ReviewStack";
+import type { ReadMarkFile } from "../readMarks/readMarks";
 import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
 import { FilesDisclosure } from "./components/FilesDisclosure";
@@ -33,10 +35,12 @@ import { ReviewDiffSkeleton, ReviewTreeSkeleton } from "./components/ReviewPageS
 import { TurnLine } from "./components/TurnLine";
 import { baseOf, conditionsOf } from "./conditionsOf";
 import { useActiveThread } from "./hooks/useActiveThread";
+import { useReadMarks } from "./hooks/useReadMarks";
 import { useReviewData } from "./hooks/useReviewData";
 import "@trellis/ui/review.css";
 
 const noThreads: ReviewThread[] = [];
+const noSubmissions: ReviewSubmission[] = [];
 const noRecords: Evidence[] = [];
 const noSentences: string[] = [];
 // The facts strip starts shut, so the file tree and the diff start near the
@@ -64,10 +68,12 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		evidence,
 		factsReady,
 		threads,
+		submissions,
 		refresh,
 		refreshAll,
 	} = useReviewData(pr);
 	const [changedFiles, setChangedFiles] = useState<ReadMarkFile[]>([]);
+	const { read, setRead } = useReadMarks(pr, changedFiles);
 	const { isCollapsed, toggle: toggleFacts } = useCollapsedGroups(`${pr}#facts`, factsShut);
 	// `FilesDisclosure` hides the review details behind one control on a phone.
 	const phone = useMediaQuery("(max-width: 767px)");
@@ -137,6 +143,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		() => (evidence.data ?? noRecords).filter((record) => record.headSha === headSha),
 		[evidence.data, headSha],
 	);
+	const allSubmissions = submissions.data ?? noSubmissions;
 	const summaryRow = summary.data ?? null;
 	const prRow = status.data?.prRow ?? null;
 	const floor =
@@ -163,7 +170,12 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	return (
 		<ReviewApplyContext.Provider value={applyState}>
 			<div className="review-page">
-				<ReviewHeader pr={pr} parent={parent} revision={displayRevision} />
+				<ReviewHeader
+					pr={pr}
+					parent={parent}
+					revision={displayRevision}
+					verdict={revision === null ? null : verdictMark(allSubmissions, revision.headSha)}
+				/>
 				{/* The identity stays above the column, so the buttons that end
 				    the review are always in reach. */}
 				<div className="review-identity">
@@ -273,6 +285,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 										pr={pr}
 										repo={ref.repo}
 										files={changedFiles}
+										read={read}
 										selected={selectedPath}
 										onSelect={setPickedPath}
 									/>
@@ -289,6 +302,8 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 										selectedFile={selectedPath}
 										renderThread={renderThread}
 										onFiles={setChangedFiles}
+										read={read}
+										onRead={setRead}
 									/>
 								)}
 							</div>
@@ -302,6 +317,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						ticket={status.data?.ticket?.identifier ?? null}
 						run={run}
 						drafts={drafts}
+						submissions={allSubmissions}
 						onDone={refreshAll}
 					/>
 				)}

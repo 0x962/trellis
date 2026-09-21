@@ -29,6 +29,12 @@
 	align-items: center;
 	gap: 8px;
 }
+.review-verdict-bar-state {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
 /* The local verdict note and the message of a submit that failed. */
 .review-draft-note {
 	display: flex;

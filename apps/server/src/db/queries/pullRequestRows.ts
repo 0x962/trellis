@@ -59,6 +59,18 @@ export const localReviewState = (prId: SQL) => sql`COALESCE((
 	LIMIT 1
 ), 'none')`;
 
+// The head commit of the revision that a `review_submissions` row names.
+export const submissionHeadSha = (submission: SQL) => sql`(
+	SELECT revision.head_sha FROM review_revisions revision
+	WHERE revision.id = ${submission}.document->>'revisionId'
+)`;
+
+// True when a human actor wrote a `review_submissions` row. The row keeps
+// the actor name only, and an agent can submit a review from the CLI.
+export const submissionByPerson = (submission: SQL) => sql`EXISTS (
+	SELECT 1 FROM actors actor WHERE actor.name = ${submission}.actor AND actor.kind = 'human'
+)`;
+
 export const pullRequestColumns = sql`
 	p.id, p.owner, p.repo, p.number, p.additions, p.deletions, p.changed_files, p.files,
 	p.url, p.title, p.state, p.is_draft, p.is_queued, p.head_ref, p.base_ref,

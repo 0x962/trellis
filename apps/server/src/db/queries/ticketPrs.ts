@@ -7,9 +7,11 @@ import {
 	prPaths,
 	type TicketPr,
 	TicketPrSchema,
+	type VerdictFacts,
+	verdictMark,
 } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
-import { localReviewState } from "./pullRequestRows.ts";
+import { localReviewState, submissionByPerson, submissionHeadSha } from "./pullRequestRows.ts";
 import { ciRank, prStateRank, reviewStateRank } from "./support.ts";
 
 // `ticketPrJoin` reads links for the caller's ticket alias `t`. It adds the PR badge and `prRows`.
@@ -35,19 +37,21 @@ const pendingCheck = sql`check_row.value->>'bucket' = ${PENDING}`;
 const skippedCheck = sql`check_row.value->>'bucket' = ${SKIPPED}`;
 const verdictState = localReviewState(sql`p.id`);
 
-export type TicketPrRow = Omit<TicketPr, "kind" | "risk" | "evidence" | "evidenceRequired"> & {
+export type TicketPrRow = Omit<TicketPr, "kind" | "risk" | "evidence" | "evidenceRequired" | "verdict"> & {
 	files: ChangedFile[] | null;
 	evidenceKinds: EvidenceKind[];
 	hasSummary: boolean;
-	hasHead: boolean;
+	headSha: string | null;
+	submissions: VerdictFacts[];
 };
 
 export const toTicketPrRows = (rows: TicketPrRow[] | null): TicketPr[] =>
-	(rows ?? []).map(({ files, evidenceKinds, hasSummary, hasHead, ...row }) => {
+	(rows ?? []).map(({ files, evidenceKinds, hasSummary, headSha, submissions, ...fields }) => {
+		const row = { ...fields, verdict: verdictMark(submissions, headSha) };
 		if (files === null || files.length === 0 || row.changedFiles !== files.length)
 			return { ...row, kind: null, risk: null, evidence: null, evidenceRequired: null };
 		const facts = prPaths(row.repo, changedFilePaths(files));
-		if (!hasHead) return { ...row, kind: facts.kind, risk: facts.risk, evidence: null, evidenceRequired: null };
+		if (headSha === null) return { ...row, kind: facts.kind, risk: facts.risk, evidence: null, evidenceRequired: null };
 		const floor = evidenceFloor({
 			kind: facts.kind,
 			risk: facts.risk,
@@ -109,7 +113,17 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 						SELECT 1 FROM pr_summaries summary
 						WHERE summary.pull_request_id = p.id AND summary.head_sha = p.head_sha
 					),
-					'hasHead', p.head_sha IS NOT NULL,
+					'headSha', p.head_sha,
+					'submissions', (
+						SELECT COALESCE(jsonb_agg(jsonb_build_object(
+							'verdict', submission.document->>'verdict',
+							'headSha', ${submissionHeadSha(sql`submission`)},
+							'byPerson', ${submissionByPerson(sql`submission`)},
+							'createdAt', submission.document->>'createdAt'
+						)), '[]'::jsonb)
+						FROM review_submissions submission
+						WHERE submission.pr_id = p.id
+					),
 					'pass', check_counts.pass, 'fail', check_counts.fail,
 					'pending', check_counts.pending, 'skipped', check_counts.skipped,
 					'failedChecks', check_counts.failed_checks,

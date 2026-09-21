@@ -1,0 +1,38 @@
+/* The tree draws inside a shadow root. It reads its colours, its face and its
+   spacing from the `--trees-*-override` custom properties, which cross the
+   shadow boundary like every other custom property. */
+.review-group-tree {
+	display: flex;
+	--trees-bg-override: var(--bg);
+	--trees-bg-muted-override: var(--surface);
+	--trees-fg-override: var(--fg);
+	--trees-fg-muted-override: var(--fg-muted);
+	--trees-border-color-override: var(--border);
+	--trees-border-radius-override: var(--radius-sm);
+	--trees-font-family-override: var(--font-sans);
+	--trees-font-size-override: var(--text-xs);
+	--trees-padding-inline-override: 0px;
+	--trees-item-padding-x-override: calc(var(--spacing) * 2);
+	--trees-item-margin-x-override: 0px;
+	--trees-icon-width-override: 12px;
+	--trees-item-row-gap-override: calc(var(--spacing) * 1);
+	--trees-level-gap-override: calc(var(--spacing) * 2);
+	--trees-indent-guide-bg-override: transparent;
+	--trees-selected-bg-override: var(--accent-soft);
+	--trees-selected-fg-override: var(--fg);
+	--trees-selected-focused-border-color-override: var(--border-strong);
+	--trees-focus-ring-color-override: var(--accent);
+	--trees-accent-override: var(--accent);
+	--trees-status-added-override: var(--success);
+	--trees-status-modified-override: var(--fg);
+	--trees-status-deleted-override: var(--danger);
+	--trees-status-renamed-override: var(--fg);
+	/* `GroupTree.tsx` gives a file the person marked read the `ignored` status,
+	   so this one colour dims a read row. */
+	--trees-status-ignored-override: var(--fg-faint);
+}
+.review-group-tree file-tree-container {
+	flex: 1;
+	min-height: 0;
+	width: 100%;
+}

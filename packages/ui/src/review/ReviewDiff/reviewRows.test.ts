@@ -35,7 +35,7 @@ const contents = (gaps: [number, GapReveal][], full = false): ReadonlyMap<string
 	new Map([["file.ts", { oldLines: fileLines, newLines: fileLines, full, gaps: new Map(gaps) }]]);
 
 const rowsOf = (source: string, expanded: ReadonlyMap<string, ExpandedFile> = new Map()) =>
-	buildReviewRows(parseReviewFiles(source), "unified", [], "r", null, expanded, true);
+	buildReviewRows(parseReviewFiles(source), "unified", [], "r", null, expanded, true, new Set());
 
 // One word per row: `@@` for a row between two hunks, with the lines it
 // still hides, and the line number of each line the diff draws.
@@ -155,7 +155,7 @@ test("an added file has no gap and no control", () => {
 });
 
 test("a file with no expand service has no control", () => {
-	const rows = buildReviewRows(parseReviewFiles(patch), "unified", [], "r", null, new Map(), false);
+	const rows = buildReviewRows(parseReviewFiles(patch), "unified", [], "r", null, new Map(), false, new Set());
 	expect(gaps(rows)).toEqual([]);
 });
 
@@ -170,7 +170,7 @@ test("a thread on a line of an open gap sits on that line", () => {
 		updatedAt: "",
 		revisionId: "r",
 	};
-	const shut = buildReviewRows(parseReviewFiles(patch), "unified", [thread], "r", null, new Map(), true);
+	const shut = buildReviewRows(parseReviewFiles(patch), "unified", [thread], "r", null, new Map(), true, new Set());
 	expect(shut.find((row) => row.kind === "annotation")?.annotations).toEqual(["t1"]);
 	const open = buildReviewRows(
 		parseReviewFiles(patch),
@@ -180,8 +180,49 @@ test("a thread on a line of an open gap sits on that line", () => {
 		null,
 		contents([[1, { top: 20, bottom: 0 }]]),
 		true,
+		new Set(),
 	);
 	expect(open.find((row) => row.kind === "annotation")).toBeUndefined();
 	const line = open.filter((row) => row.kind === "unified").find((row) => row.line.newLine === 10);
 	expect(line?.annotations).toEqual(["t1"]);
+});
+
+const readPatch = [
+	"diff --git a/a.ts b/a.ts",
+	"--- a/a.ts",
+	"+++ b/a.ts",
+	"@@ -2,2 +2,2 @@ section",
+	"-old",
+	"+new",
+	" same",
+	"diff --git a/b.ts b/b.ts",
+	"--- a/b.ts",
+	"+++ b/b.ts",
+	"@@ -1,1 +1,1 @@",
+	"-one",
+	"+two",
+	"",
+].join("\n");
+
+const readFiles = parseReviewFiles(readPatch);
+const nothingExpanded = new Map();
+
+const readRowsOf = (viewed: string[]) =>
+	buildReviewRows(readFiles, "unified", [], "revision", null, nothingExpanded, false, new Set(viewed));
+
+const kindsOf = (viewed: string[], name: string) =>
+	readRowsOf(viewed)
+		.filter((row) => row.file.name === name)
+		.map((row) => row.kind);
+
+test("a file that nobody marked read keeps its hunk and its lines", () => {
+	expect(kindsOf([], "a.ts")).toEqual(["file", "hunk", "unified", "unified", "unified", "end"]);
+});
+
+test("a file the person marked read keeps its header and its end only", () => {
+	expect(kindsOf(["a.ts"], "a.ts")).toEqual(["file", "end"]);
+});
+
+test("a read file collapses and the other files keep every line", () => {
+	expect(kindsOf(["a.ts"], "b.ts")).toEqual(["file", "hunk", "unified", "unified", "end"]);
 });

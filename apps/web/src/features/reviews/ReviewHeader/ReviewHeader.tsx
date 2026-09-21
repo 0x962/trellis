@@ -1,4 +1,5 @@
-import { type ReviewRevision, reviewRef } from "@trellis/api";
+import { type ReviewRevision, reviewRef, type TicketPr } from "@trellis/api";
+import { ReviewStateIcon } from "@trellis/ui";
 import { type ReactNode, useEffect } from "react";
 import { usePageSheet } from "../../shell/PageSheet";
 import { PageTitle } from "../../shell/PageTitle";
@@ -10,8 +11,10 @@ type Props = {
 	// The link to the page the review opened from: the Diffs page of a
 	// project, or the ticket. A review opened by its URL has none.
 	parent?: ReactNode;
+	// The current verdict of the person on the head commit, or null.
+	verdict: TicketPr["verdict"];
 };
-export function ReviewHeader({ pr, revision, parent }: Props) {
+export function ReviewHeader({ pr, revision, parent, verdict }: Props) {
 	const ref = reviewRef(pr);
 	const meta = revision?.meta as
 		| {
@@ -40,6 +43,7 @@ export function ReviewHeader({ pr, revision, parent }: Props) {
 	return (
 		<Topbar>
 			<PageTitle parent={parent} title={`${ref.repo} #${ref.number}`} />
+			{verdict && <ReviewStateIcon reviewState={verdict} isDraft={false} />}
 		</Topbar>
 	);
 }

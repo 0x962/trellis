@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/server";
-import { type AgentRun, errors, type TicketMetrics } from "@trellis/api";
+import { type AgentRun, errors, type TicketMetrics, toolTarget } from "@trellis/api";
 import type { RuntimeListInput, RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { ExecutionAttemptRecord } from "../assignments.ts";
@@ -119,10 +119,13 @@ export function projectRun(run: StoredRun, sessions: RuntimeProcessStatus[], hom
 			lastMessage: process.agent?.lastMessage
 				? { text: process.agent.lastMessage.text, at: process.agent.lastMessage.at }
 				: null,
-			// A tool input or output can hold a full file, so an AgentRun observation keeps only the tool state and times.
+			// A tool input or output can hold a full file, so an AgentRun observation keeps the tool state, its times
+			// and the one short line of `toolTarget` that says what the tool works on. The target changes only with
+			// the tool, and `updatedAt` changes with it, so the target adds no event to the session monitor.
 			lastTool: process.agent?.lastTool
 				? {
 						name: process.agent.lastTool.name,
+						target: toolTarget(process.agent.lastTool.input),
 						status: process.agent.lastTool.status,
 						startedAt: process.agent.lastTool.startedAt,
 						updatedAt: process.agent.lastTool.updatedAt,

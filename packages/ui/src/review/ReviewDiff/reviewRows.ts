@@ -213,10 +213,17 @@ export function buildReviewRows(
 	composer: DiffAnchor | null,
 	expanded: ReadonlyMap<string, ExpandedFile>,
 	expandable: boolean,
+	viewed: ReadonlySet<string>,
 ) {
 	const rows: ReviewRow[] = [];
 	for (const file of files) {
 		rows.push({ kind: "file", key: `${file.name}:file`, file });
+		// A file the person marked read keeps its header and loses every other
+		// row, so the files that are left sit close together.
+		if (viewed.has(file.name)) {
+			rows.push({ kind: "end", key: `${file.name}:end`, file });
+			continue;
+		}
 		const fileSections = sections(file, expanded.get(file.name), expandable);
 		const drawn = new Set<string>();
 		for (const section of fileSections)

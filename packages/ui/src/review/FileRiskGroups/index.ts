@@ -1,4 +1,5 @@
 export {
+	type FileChange,
 	type FileRiskGroup,
 	FileRiskGroups,
 	type FileRiskGroupsProps,

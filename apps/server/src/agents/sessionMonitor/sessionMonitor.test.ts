@@ -104,6 +104,7 @@ test("the monitor emits when the last message or last tool time changes", async 
 
 	value.run.observation!.lastTool = {
 		name: "Read",
+		target: "apps/web/src/app.css",
 		status: "running",
 		startedAt: "2026-09-18T12:00:03.000Z",
 		updatedAt: "2026-09-18T12:00:03.000Z",

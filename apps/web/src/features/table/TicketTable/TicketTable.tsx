@@ -221,7 +221,10 @@ export function TicketTable({
 		void bulk.remove(targets.map((id) => byId.get(id)).filter((ticket) => ticket !== undefined));
 
 	const onRowClick = useStableCallback((id: string, event: MouseEvent) => {
-		if ((event.target as HTMLElement).closest("button, a, [role=checkbox]") !== null) return;
+		// The link that covers the whole row (`data-row-link` in `Row`) forwards
+		// its plain click here, so a click on it opens the ticket. A click on a
+		// control or another link inside a cell belongs to that control.
+		if ((event.target as HTMLElement).closest("button, a:not([data-row-link]), [role=checkbox]") !== null) return;
 		if (event.shiftKey) selection.extend(id);
 		else if (event.metaKey || event.ctrlKey) selection.toggle(id);
 		else openTicket(id);

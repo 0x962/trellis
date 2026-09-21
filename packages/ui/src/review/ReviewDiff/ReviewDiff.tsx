@@ -1,5 +1,6 @@
 import { ArrowLineDown, ArrowLineUp, ArrowsInLineVertical, ArrowsOutLineVertical } from "@phosphor-icons/react";
 import { type ReactElement, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Checkbox } from "../../primitives/Checkbox";
 import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
@@ -36,6 +37,11 @@ type Props = {
 	onSelect: (anchor: DiffAnchor, lines: string[] | null) => void;
 	loadFile?: (path: string, side: "old" | "new") => Promise<string>;
 	onFiles: (files: { path: string; type: string; additions: number; deletions: number }[]) => void;
+	// The paths the person marked read. A read file shows its header alone.
+	viewed?: ReadonlySet<string>;
+	// Marks a file read or unread. The header draws the Viewed box only when
+	// the caller keeps this state.
+	onViewed?: (path: string, viewed: boolean) => void;
 };
 
 type SelectLine = (anchor: DiffAnchor, extend?: boolean) => void;
@@ -59,6 +65,8 @@ const hunkLabel = (specs: string | null, gap: GapControls | null) => {
 	return [specs, count].filter((part) => part !== null).join(" · ");
 };
 
+const nothingViewed: ReadonlySet<string> = new Set();
+
 export function ReviewDiff({
 	patch,
 	revisionId,
@@ -73,6 +81,8 @@ export function ReviewDiff({
 	onSelect,
 	onFiles,
 	loadFile,
+	viewed = nothingViewed,
+	onViewed,
 }: Props) {
 	const files = useMemo(() => parseReviewFiles(patch), [patch]);
 	const metadata = useMemo(
@@ -92,8 +102,8 @@ export function ReviewDiff({
 	}, [files, filter]);
 	const [expanded, setExpanded] = useState<ReadonlyMap<string, ExpandedFile>>(() => new Map());
 	const rows = useMemo(
-		() => buildReviewRows(shown, mode, threads, revisionId, composer, expanded, loadFile !== undefined),
-		[shown, mode, threads, revisionId, composer, expanded, loadFile],
+		() => buildReviewRows(shown, mode, threads, revisionId, composer, expanded, loadFile !== undefined, viewed),
+		[shown, mode, threads, revisionId, composer, expanded, loadFile, viewed],
 	);
 	const selection = useRef<DiffAnchor | undefined>(undefined);
 	const pointer = useRef<DiffAnchor | undefined>(undefined);
@@ -173,18 +183,29 @@ export function ReviewDiff({
 	const renderRow = (row: ReviewRow) => {
 		if (row.kind === "file") {
 			const isExpanded = expanded.get(row.file.name)?.full === true;
+			const isViewed = viewed.has(row.file.name);
 			return (
-				<header className="review-diff-file-header" data-file-path={row.file.name}>
-					<span>{fileLabel(row.file)}</span>
-					{loadFile && row.file.hunks.length > 0 ? (
-						<Tooltip content={isExpanded ? "Show patch only" : "Show full file"}>
-							<IconButton
-								label={isExpanded ? "Show patch only" : "Show full file"}
-								icon={isExpanded ? <ArrowsInLineVertical /> : <ArrowsOutLineVertical />}
-								onClick={() => void toggleFile(row.file)}
+				<header className="review-diff-file-header" data-file-path={row.file.name} data-viewed={isViewed}>
+					<span className="review-diff-file-name">{fileLabel(row.file)}</span>
+					<div className="review-diff-file-controls">
+						{onViewed && (
+							<Checkbox
+								label="Viewed"
+								checked={isViewed}
+								onCheckedChange={(next) => onViewed(row.file.name, next)}
+								className="review-diff-viewed"
 							/>
-						</Tooltip>
-					) : null}
+						)}
+						{loadFile && row.file.hunks.length > 0 && !isViewed ? (
+							<Tooltip content={isExpanded ? "Show patch only" : "Show full file"}>
+								<IconButton
+									label={isExpanded ? "Show patch only" : "Show full file"}
+									icon={isExpanded ? <ArrowsInLineVertical /> : <ArrowsOutLineVertical />}
+									onClick={() => void toggleFile(row.file)}
+								/>
+							</Tooltip>
+						) : null}
+					</div>
 				</header>
 			);
 		}

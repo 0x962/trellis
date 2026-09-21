@@ -150,6 +150,10 @@ export const reviews = {
 		.route({ method: "POST", path: "/reviews/messages/{id}/reaction", summary: "Add or remove a local reaction" })
 		.input(id.extend({ reaction: ReactionKeySchema, remove: z.boolean().default(false) }))
 		.output(ReviewThreadSchema),
+	submissions: base
+		.route({ method: "GET", path: "/reviews/submissions", summary: "Read the local verdicts of a PR, newest first" })
+		.input(pr)
+		.output(z.array(ReviewSubmissionSchema)),
 	submit: base
 		.route({ method: "POST", path: "/reviews/submit", summary: "Save and deliver a local pull request verdict" })
 		.input(ReviewSubmitSchema)
