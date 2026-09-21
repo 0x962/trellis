@@ -81,6 +81,12 @@ export const AgentRunStartInputSchema = z
 	})
 	.refine((input) => input.harness !== undefined, "Select a harness for the ticket agent.");
 export type AgentRunStartInput = z.infer<typeof AgentRunStartInputSchema>;
+export const AgentRunRetryInputSchema = z.strictObject({
+	id: UlidSchema,
+	expectedTerminalId: z.string().min(1),
+	requestId: z.string().min(1).max(200),
+});
+export type AgentRunRetryInput = z.infer<typeof AgentRunRetryInputSchema>;
 export const AgentRunListInputSchema = z.strictObject({
 	ticket: z.string().optional(),
 	project: z.string().optional(),

@@ -15,16 +15,19 @@ describe("waveMarks", () => {
 	test("marks the current wave, and each open wave after it as Later", () => {
 		const marks = waveMarks(waves, surfaces.id);
 
-		expect(marks.get(foundation.id)).toEqual({ countLabel: "4/4" });
-		expect(marks.get(surfaces.id)).toEqual({ countLabel: "1/3", badge: "Current" });
-		expect(marks.get(integrate.id)).toEqual({ countLabel: "0/2", note: "Later" });
-		expect(marks.get(fix.id)).toEqual({ countLabel: "1/1" });
+		expect(marks.get(foundation.id)).toEqual({ countLabel: "4/4", done: true });
+		expect(marks.get(surfaces.id)).toEqual({ countLabel: "1/3", badge: "Current", done: false });
+		expect(marks.get(integrate.id)).toEqual({ countLabel: "0/2", note: "Later", done: false });
+		expect(marks.get(fix.id)).toEqual({ countLabel: "1/1", done: true });
 	});
 
 	test("prints the counts alone when no wave is current", () => {
 		const marks = waveMarks([foundation, fix], undefined);
 
-		expect([...marks.values()]).toEqual([{ countLabel: "4/4" }, { countLabel: "1/1" }]);
+		expect([...marks.values()]).toEqual([
+			{ countLabel: "4/4", done: true },
+			{ countLabel: "1/1", done: true },
+		]);
 	});
 });
 

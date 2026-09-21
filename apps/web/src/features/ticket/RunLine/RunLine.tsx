@@ -11,11 +11,12 @@ export type RunLineProps = {
 	// The time and the tokens the ticket burned. It is null while the server
 	// counts them.
 	metrics: TicketMetrics | null;
+	retry?: { starting: boolean; error: string | null; onRetry: () => void } | null;
 	onOpenSession: () => void;
 };
 
 // `runLine` reads the state of the run and writes the words of the line.
-export function RunLine({ run, metrics, onOpenSession }: RunLineProps) {
+export function RunLine({ run, metrics, retry = null, onOpenSession }: RunLineProps) {
 	if (run === null) return <RunLineView run={null} onOpenSession={onOpenSession} />;
 	const line = runLine(run);
 	return (
@@ -28,8 +29,10 @@ export function RunLine({ run, metrics, onOpenSession }: RunLineProps) {
 				words: line.words,
 				time: line.since === null ? null : relativeTime(line.since),
 				lastMessage: line.lastMessage?.words ?? null,
+				rawError: line.rawError,
 				metricsWords: metricsWords(metrics),
 			}}
+			retry={retry}
 			onOpenSession={onOpenSession}
 		/>
 	);

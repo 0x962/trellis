@@ -144,7 +144,24 @@ test("fails with the harness error", () => {
 	const run = namedRun();
 	run.state = "failed";
 	run.error = "Command exited 1";
-	expect(runLine(run)).toMatchObject({ kind: "failed", words: "failed: Command exited 1", since: null });
+	expect(runLine(run)).toMatchObject({
+		kind: "failed",
+		words: "failed: Command exited 1",
+		since: null,
+		rawError: null,
+	});
+});
+
+test("keeps a runtime socket error behind details", () => {
+	const run = namedRun();
+	run.state = "failed";
+	run.error = "connect ENOENT /var/folders/example/runtime.sock";
+	expect(runLine(run)).toMatchObject({
+		kind: "failed",
+		words: "did not run: Trellis could not reach the execution service",
+		since: null,
+		rawError: "connect ENOENT /var/folders/example/runtime.sock",
+	});
 });
 
 test("stops after a person stops the run", () => {
@@ -164,5 +181,9 @@ test("is lost when no live attempt record exists", () => {
 	run.state = "interrupted";
 	run.processStatus = null;
 	run.observation = null;
-	expect(runLine(run)).toMatchObject({ kind: "lost", words: "lost", since: null });
+	expect(runLine(run)).toMatchObject({
+		kind: "lost",
+		words: "did not run: Trellis cannot find a live execution record",
+		since: null,
+	});
 });

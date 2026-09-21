@@ -24,6 +24,7 @@ export type RunLine = {
 	// with its target, or the text it wrote last. It is null in every other
 	// state, and a row that draws it then falls back to the last message.
 	activity: string | null;
+	rawError: string | null;
 };
 
 type RunState = Omit<RunLine, "activity">;
@@ -51,6 +52,18 @@ const workingActivity = (run: AgentRun): string | null => {
 	return runningTool.target === null ? runningTool.name : `${runningTool.name} ${runningTool.target}`;
 };
 
+const executionServiceError = (error: string) =>
+	error.includes("ENOENT") || error.includes("ECONNREFUSED") || error.includes("execution service");
+
+const failedWords = (error: string | null) => {
+	if (error === null) return { words: "failed", rawError: null };
+	if (error.includes("no live record"))
+		return { words: "did not run: Trellis cannot find a live execution record", rawError: error };
+	if (executionServiceError(error))
+		return { words: "did not run: Trellis could not reach the execution service", rawError: error };
+	return { words: `failed: ${error}`, rawError: null };
+};
+
 export function runLine(run: AgentRun): RunLine {
 	const state = runState(run);
 	return { ...state, activity: state.kind === "works" ? workingActivity(run) : null };
@@ -59,31 +72,37 @@ export function runLine(run: AgentRun): RunLine {
 function runState(run: AgentRun): RunState {
 	const status = sessionStatus(run);
 	const lastMessage = lastMessageLine(run);
-	if (status === "starting") return { kind: "starts", words: "starts", since: null, lastMessage };
+	if (status === "starting") return { kind: "starts", words: "starts", since: null, lastMessage, rawError: null };
 	if (status === "needs-input") {
 		const request = run.observation!.attention!.requests.at(-1)!;
 		if (request.kind === "permission") {
 			const toolName = request.title.replace(/^Approve /, "");
-			return { kind: "permission", words: `asks to run: ${toolName}`, since: request.at, lastMessage };
+			return { kind: "permission", words: `asks to run: ${toolName}`, since: request.at, lastMessage, rawError: null };
 		}
 		const text = request.kind === "question" ? (request.questions?.[0]?.question ?? request.title) : request.title;
-		return { kind: request.kind, words: `asks: ${text}`, since: request.at, lastMessage };
+		return { kind: request.kind, words: `asks: ${text}`, since: request.at, lastMessage, rawError: null };
 	}
 	if (status === "failed") {
-		return { kind: "failed", words: run.error ? `failed: ${run.error}` : "failed", since: null, lastMessage };
+		return { kind: "failed", ...failedWords(run.error), since: null, lastMessage };
 	}
 	if (status === "stopped") {
 		const kind = run.state === "stopped" ? "stopped" : "exited";
-		return { kind, words: kind, since: null, lastMessage };
+		return { kind, words: kind, since: null, lastMessage, rawError: null };
 	}
 	if (status === "interrupted" || status === "unavailable") {
-		return { kind: "lost", words: "lost", since: null, lastMessage };
+		return {
+			kind: "lost",
+			words: run.error ? failedWords(run.error).words : "did not run: Trellis cannot find a live execution record",
+			since: null,
+			lastMessage,
+			rawError: run.error ?? null,
+		};
 	}
 	const observation = run.observation!;
 	const completion = observation.attention?.completion;
 	// sessionStatus returns `done` only when the completion is newer than `seenAttention` for this attempt.
 	if (status === "done") {
-		return { kind: "turn-done-new", words: "turn done · new", since: completion!.at, lastMessage };
+		return { kind: "turn-done-new", words: "turn done · new", since: completion!.at, lastMessage, rawError: null };
 	}
 	if (status === "working") {
 		const runningTool = observation.lastTool?.status === "running" ? observation.lastTool : null;
@@ -92,8 +111,9 @@ function runState(run: AgentRun): RunState {
 			words: runningTool ? `works, tool ${runningTool.name}` : "works",
 			since: runningTool?.startedAt ?? observation.activity!.updatedAt,
 			lastMessage,
+			rawError: null,
 		};
 	}
-	if (completion) return { kind: "turn-done", words: "turn done", since: completion.at, lastMessage };
-	return { kind: "idle", words: "idle", since: observation.activity?.updatedAt ?? null, lastMessage };
+	if (completion) return { kind: "turn-done", words: "turn done", since: completion.at, lastMessage, rawError: null };
+	return { kind: "idle", words: "idle", since: observation.activity?.updatedAt ?? null, lastMessage, rawError: null };
 }

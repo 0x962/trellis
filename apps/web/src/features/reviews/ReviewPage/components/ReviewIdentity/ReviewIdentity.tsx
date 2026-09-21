@@ -18,7 +18,6 @@ export type GithubPullRequest = {
 export const stateWord = (pullRequest: GithubPullRequest | undefined, isQueued = false) => {
 	if (isQueued) return "Queued";
 	if (pullRequest === undefined) return "Not fetched";
-	if (pullRequest.isDraft) return "Draft";
 	if (pullRequest.state === "MERGED") return "Merged";
 	if (pullRequest.state === "CLOSED") return "Closed";
 	if (pullRequest.state === "OPEN") return "Open";
@@ -28,7 +27,7 @@ export const stateWord = (pullRequest: GithubPullRequest | undefined, isQueued =
 export const stateTone = (pullRequest: GithubPullRequest | undefined, isQueued = false): BadgeTone => {
 	if (isQueued) return "wait";
 	if (pullRequest?.state === "MERGED") return "agent";
-	if (pullRequest?.state === "OPEN" && !pullRequest.isDraft) return "ok";
+	if (pullRequest?.state === "OPEN") return "ok";
 	return "neutral";
 };
 

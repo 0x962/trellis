@@ -1,1 +1,1 @@
-export { TreeBranch, TreeStem } from "./TreeLines";
+export { TreeBranch, type TreeDepth, TreeStem, treeContentPad } from "./TreeLines";

@@ -8,11 +8,13 @@ const lineOf = (fields: {
 	words: string;
 	time: string | null;
 	lastMessage: string | null;
+	rawError?: string | null;
 }): RunLineValue => ({
 	name: "crisp-fjord",
 	harness: "Claude",
 	profile,
 	metricsWords: "12m burned · 48,120 tokens",
+	rawError: null,
 	...fields,
 });
 
@@ -30,10 +32,16 @@ const lines: readonly RunLineValue[] = [
 	lineOf({ kind: "idle", words: "idle", time: "18m ago", lastMessage }),
 	lineOf({ kind: "turn-done", words: "turn done", time: "6m ago", lastMessage }),
 	lineOf({ kind: "turn-done-new", words: "turn done · new", time: "1m ago", lastMessage }),
-	lineOf({ kind: "failed", words: "failed: the branch is gone", time: null, lastMessage }),
+	lineOf({
+		kind: "failed",
+		words: "did not run: Trellis could not reach the execution service",
+		time: null,
+		lastMessage,
+		rawError: "connect ENOENT /var/folders/example/runtime/runtime.sock",
+	}),
 	lineOf({ kind: "stopped", words: "stopped", time: null, lastMessage }),
 	lineOf({ kind: "exited", words: "exited", time: null, lastMessage }),
-	lineOf({ kind: "lost", words: "lost", time: null, lastMessage }),
+	lineOf({ kind: "lost", words: "did not run: Trellis cannot find a live execution record", time: null, lastMessage }),
 ];
 
 export function RunLineSection() {
@@ -41,7 +49,11 @@ export function RunLineSection() {
 		<Section name="RunLine" note="the twelve states, a run that says nothing, and no run">
 			{lines.map((line) => (
 				<div key={`${line.kind}-${line.words}`} className="w-full max-w-160">
-					<RunLine run={line} onOpenSession={() => {}} />
+					<RunLine
+						run={line}
+						retry={line.kind === "failed" ? { starting: false, error: null, onRetry: () => {} } : null}
+						onOpenSession={() => {}}
+					/>
 				</div>
 			))}
 			<div className="w-full max-w-160">

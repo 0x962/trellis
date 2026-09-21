@@ -282,7 +282,7 @@ export const Row = memo(function Row({
 					{cells[column]}
 				</div>
 			))}
-			{hasChildLines && <TreeStem />}
+			{hasChildLines && <TreeStem depth={1} />}
 			<HiddenPickers
 				ticket={ticket}
 				columns={columns}

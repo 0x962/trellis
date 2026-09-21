@@ -110,9 +110,31 @@ describe("RunLine", () => {
 		const lost = render(runOf({ processStatus: "unknown" }));
 
 		expect(textOf(failed)).toContain("failed: the branch is gone");
-		expect(textOf(lost)).toContain("lost");
+		expect(textOf(lost)).toContain("did not run: Trellis cannot find a live execution record");
 		expect(failed).toContain("bg-danger");
 		expect(lost).toContain("bg-danger");
+	});
+
+	test("hides a raw runtime socket error behind details", () => {
+		const html = render(runOf({ state: "failed", error: "connect ENOENT /var/folders/example/runtime.sock" }));
+		const text = textOf(html);
+
+		expect(text).toContain("did not run: Trellis could not reach the execution service");
+		expect(text).toContain("Details");
+		expect(html).toContain("connect ENOENT /var/folders/example/runtime.sock");
+	});
+
+	test("prints one retry button when a retry action exists", () => {
+		const html = renderToStaticMarkup(
+			<RunLine
+				run={runOf({ state: "failed", error: "connect ENOENT /var/folders/example/runtime.sock" })}
+				metrics={metrics}
+				retry={{ starting: false, error: null, onRetry: () => {} }}
+				onOpenSession={() => {}}
+			/>,
+		);
+
+		expect(html.split('aria-label="Retry"').length - 1).toBe(1);
 	});
 
 	test("opens the session from a control that a screen reader names", () => {
