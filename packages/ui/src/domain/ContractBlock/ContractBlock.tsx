@@ -35,14 +35,14 @@ export function ContractBlock({
 	if (result === "" && lineCount === 0) {
 		return (
 			<section aria-label="The contract" className="flex min-w-0 flex-col">
-				<SectionHeader title="THE CONTRACT" />
+				<SectionHeader title="The contract" textCase="caps" />
 				<EmptyState description="The ticket names no contract." />
 			</section>
 		);
 	}
 	return (
 		<section aria-label="The contract" className="flex min-w-0 flex-col">
-			<SectionHeader title="THE CONTRACT" />
+			<SectionHeader title="The contract" textCase="caps" />
 			<dl className="flex min-w-0 flex-col">
 				<BlockRow label="Result">
 					<PlainLines lines={result === "" ? [] : [result]} />

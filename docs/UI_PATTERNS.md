@@ -91,6 +91,11 @@ Use the count of all matching items, including pages that have not loaded. An un
 A collapsed group retains its count. Its Show action expands the group and prints the count of the rows it reveals.
 A header takes one `Badge` after its label through `mark`, such as Current on a wave.
 
+One rule holds for every header of the ticket page.
+Write the title in sentence case and pass `textCase="caps"`, so a screen reader reads the words and the header draws in capitals.
+Pass `level={3}` for a header inside a region, such as Flows or the merge conditions of a pull request card.
+The size carries the level: 13 px for a region and 12 px for a part of a region. The case never carries the level.
+
 ## Board cards
 
 The top row of a card prints the identifier trail. When the ticket has an epic, the epic name comes first: `Routine runtime · OP-32`.

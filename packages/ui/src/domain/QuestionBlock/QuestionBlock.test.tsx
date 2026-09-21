@@ -71,7 +71,7 @@ describe("QuestionBlock", () => {
 	test("names each ticket the answer releases", () => {
 		const html = render();
 
-		expect(html).toContain("THIS ANSWER RELEASES");
+		expect(html).toContain("This answer releases");
 		expect(html).toContain("OP-33");
 		expect(html).toContain("Service: One routine&#x27;s failure does not end the sweep pass");
 	});

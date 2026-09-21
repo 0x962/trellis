@@ -112,6 +112,7 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 			<div data-attachments="" className="flex flex-col gap-2">
 				<SectionHeader
 					title="Attachments"
+					textCase="caps"
 					count={list.length > 0 ? list.length : undefined}
 					actions={<AttachmentBox uploads={uploadManager} />}
 				/>
