@@ -17,8 +17,6 @@ import { summary as workspaceSummary } from "./agentRuns/workspace/summary.ts";
 import { workspace } from "./agentRuns/workspace/workspace.ts";
 import * as attachments from "./attachments.ts";
 import * as brief from "./brief.ts";
-import * as commentMentions from "./commentMentions/run.ts";
-import * as comments from "./comments.ts";
 import { diagnostics } from "./diagnostics.ts";
 import * as epics from "./epics/epics.ts";
 import * as evidence from "./evidence/evidence.ts";
@@ -180,7 +178,6 @@ export const services = {
 	"reviews.dispatchDeliveries": prepared("mutation", reviewRunDeliveries.prepare, reviewRunDeliveries.finish),
 
 	"agentRuns.send": agentMutation(agentCommunication.prepareSend),
-	"commentMentions.dispatch": prepared("mutation", commentMentions.prepare, commentMentions.finish),
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
 	"agentRuns.list": prepared("read", agentRuns.prepareList, agentTerminal.result),
 	"agentRuns.ticketMetrics": prepared("read", agentRuns.prepareTicketMetrics, agentTerminal.result),
@@ -245,11 +242,6 @@ export const services = {
 	"needsYou.list": prepared("read", needsYou.prepareList, needsYou.list),
 	"needsYou.summary": prepared("read", needsYou.prepareSummary, needsYou.summary),
 	"needsYou.update": prepared("mutation", needsYou.prepareUpdate, needsYou.update),
-	"comments.thread": core("read", comments.thread),
-	"comments.resolve": core("mutation", comments.resolve),
-	"comments.create": core("mutation", comments.create),
-	"comments.update": core("mutation", comments.update),
-	"comments.delete": core("mutation", comments.delete),
 	"notes.list": core("read", notes.list),
 	"notes.get": core("read", notes.get),
 	"notes.create": core("mutation", notes.create),

@@ -86,7 +86,6 @@ export const TicketSummarySchema = z.object({
 	wave: WaveLinkSchema.nullable(),
 	childCount: CountSchema,
 	childDoneCount: CountSchema,
-	commentCount: CountSchema,
 	attachmentCount: CountSchema,
 	// The labels with no group first, then by group name, then by label name.
 	labels: z.array(TicketLabelSchema),
@@ -136,11 +135,24 @@ export const AnsweredQuestionSchema = z.object({
 });
 export type AnsweredQuestion = z.infer<typeof AnsweredQuestionSchema>;
 
+// The newest answer of a question ticket: the option a person or an agent
+// picked, the reason they gave, who answered and when.
+export const TicketAnswerSchema = z.object({
+	option: z.number().int().positive(),
+	reason: z.string(),
+	actor: ActorRefSchema,
+	createdAt: IsoDateTimeSchema,
+});
+export type TicketAnswer = z.infer<typeof TicketAnswerSchema>;
+
 // The `tickets.get` shape: the summary plus what only the ticket page reads.
 export const TicketSchema = TicketSummarySchema.extend({
 	// In ticket number order, and empty while every question this ticket
 	// waits for is still open.
 	answeredQuestions: z.array(AnsweredQuestionSchema),
+	// Null on a ticket that nobody answered, which includes every ticket that
+	// asks no question.
+	answer: TicketAnswerSchema.nullable(),
 	description: z.string(),
 	contract: TicketContractSchema,
 	outcome: z.string(),

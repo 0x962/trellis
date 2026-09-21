@@ -91,7 +91,7 @@ type Globals = {
 //
 // `valued` names every spelling of every flag of the command that takes a
 // value. The token after one of those flags is that value, so it stays in
-// `rest`: `comment CDE-42 --body --help` writes the comment `--help`. The
+// `rest`: `create -p CDE -t --help` writes the title `--help`. The
 // caller knows the command only after it reads the verb name out of `rest`,
 // so it splits twice: once with no names, and once with the command's own.
 // `--` and every token after it stay in `rest` as well.

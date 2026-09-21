@@ -21,6 +21,7 @@ const props: QuestionBlockProps = {
 	options,
 	recommendation: { option: 1, by: "crisp-fjord", reason: "A night audit reads a different day." },
 	releases,
+	answer: null,
 	picked: null,
 	onPickedChange: () => {},
 	reason: "",
@@ -108,6 +109,27 @@ describe("QuestionBlock", () => {
 
 		expect(html).toContain("The ticket lists no option to pick.");
 		expect(html).not.toContain("<button");
+	});
+
+	test("an answered question shows the picked option and the reason, and takes no second answer", () => {
+		const html = render({
+			answer: { option: 2, by: "dana", reason: "A late run reads the day it was written for." },
+		});
+
+		expect(html).toContain("dana picked option 2.");
+		expect(html).toContain("A late run reads the day it was written for.");
+		expect(html).not.toContain("Your answer");
+		expect(html).not.toContain("Answer</");
+		expect(html).toContain('aria-checked="true"');
+	});
+
+	test("an answered question keeps the sentence that says what the answer did", () => {
+		const html = render({
+			answer: { option: 1, by: "dana", reason: "A missed night must stay visible." },
+			result: "OP-52 is done. crisp-fjord on OP-33 has the answer.",
+		});
+
+		expect(html).toContain("OP-52 is done. crisp-fjord on OP-33 has the answer.");
 	});
 
 	test("never writes the word decide", () => {

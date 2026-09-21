@@ -4,7 +4,6 @@ export * from "./agentActivity.ts";
 export * from "./agentRun.ts";
 export * from "./attachment.ts";
 export * from "./brief.ts";
-export * from "./comment.ts";
 export * from "./diagnostics.ts";
 export * from "./enums.ts";
 export * from "./epic.ts";

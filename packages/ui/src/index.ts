@@ -42,6 +42,7 @@ export { PrGlyph, type PrGlyphProps, type PrGlyphSize, type PullRequestState, pr
 export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/PriorityIcon";
 export { type ModelProvider, ProviderIcon, type ProviderIconProps } from "./domain/ProviderIcon";
 export {
+	type QuestionAnswer,
 	QuestionBlock,
 	type QuestionBlockProps,
 	type QuestionOption,

@@ -6,7 +6,6 @@ import type { ServiceCtx } from "../../context.ts";
 import { createCache } from "../../db/cache.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
-import { create as createComment } from "../comments.ts";
 import { epicHeaderLine, epicLines, resultsLines, waveHeaderLine } from "../epics/text.ts";
 import { setContract } from "../tickets/contract.ts";
 import { create as createTicket } from "../tickets/create.ts";
@@ -37,14 +36,13 @@ test("an assignment names the ticket, the branch, and the trellis commands", () 
 			"## Assignment",
 			"",
 			"Trellis is the ticket tracker on this machine. It assigned this ticket to you. Your worktree is on the branch named above.",
-			"Before you start, read the ticket with its comments, its pull requests, and the project notes: trellis brief OP-27",
+			"Before you start, read the ticket with its pull requests and the project notes: trellis brief OP-27",
 			"",
 			"## Protocol",
 			"",
 			"Work on the branch named above. Use the trellis CLI to report progress:",
 			"",
 			"- Start: trellis move OP-27 in-progress",
-			'- Ask or report: trellis comment OP-27 --body "..."',
 			"- Link each pull request you open: trellis pr add OP-27 <url>",
 			'- Split the work: trellis sub OP-27 -t "..."',
 			"",
@@ -53,6 +51,10 @@ test("an assignment names the ticket, the branch, and the trellis commands", () 
 			"Before you end a turn, run trellis review list <pr-url>. Answer every review thread.",
 			"",
 			"When your work is ready for review, run: trellis move OP-27 agent-review",
+			"",
+			"Report what you did in your final message and in the pull request description. A person reads both.",
+			'To ask a person a question, create a question ticket: trellis create -p <project> --status human-review -t "..." --description - . Its description holds a numbered "Options:" list.',
+			"Then make this ticket wait for it: trellis edit OP-27 --after <question>. The answer reaches this run.",
 			"",
 			"## Review comments",
 			"",
@@ -184,7 +186,7 @@ test("the epic tickets of an epic with waves group by wave in position order, th
 	]);
 });
 
-test("the results section lists the done tickets of each earlier wave with the last agent comment", () => {
+test("the results section lists the done tickets of each earlier wave with their outcome", () => {
 	const grouped: Epic = {
 		...epic,
 		waves: [phase1, phase2, phase3],
@@ -197,12 +199,12 @@ test("the results section lists the done tickets of each earlier wave with the l
 			member("01J00000000000000000000032", "OP-32", "Old approach", "Done"),
 		],
 	};
-	const bodies = new Map([
+	const outcomes = new Map([
 		["01J00000000000000000000029", "The runtime is in runtime.ts.\n\nRun: bun test runtime"],
 		["01J00000000000000000000030", "x".repeat(1300)],
 		["01J00000000000000000000034", "A ticket of the same wave."],
 	]);
-	expect(resultsLines(grouped, "01J00000000000000000000033", bodies)).toEqual([
+	expect(resultsLines(grouped, "01J00000000000000000000033", outcomes)).toEqual([
 		"## Results of earlier waves",
 		"",
 		"### Phase 1: run state",
@@ -224,11 +226,11 @@ test("the results section lists the done tickets of each earlier wave with the l
 		"",
 		"- OP-29 Create the runtime",
 	]);
-	expect(resultsLines(grouped, "01J00000000000000000000029", bodies)).toEqual([]);
-	expect(resultsLines(grouped, "01J00000000000000000000032", bodies)).toEqual([]);
+	expect(resultsLines(grouped, "01J00000000000000000000029", outcomes)).toEqual([]);
+	expect(resultsLines(grouped, "01J00000000000000000000032", outcomes)).toEqual([]);
 });
 
-test("the brief prints a stable contract and evidence floor above comments", async () => {
+test("the brief prints a stable contract and evidence floor above the chain", async () => {
 	const db = await openTestDb();
 	const rootId = ulid();
 	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
@@ -264,22 +266,17 @@ test("the brief prints a stable contract and evidence floor above comments", asy
 			reviewFocus: ["Two reads give the same bytes."],
 		}),
 	);
-	await run((tx) =>
-		createComment(ctx, tx, { ticket: ticket.identifier, body: "Keep this comment after the contract." }),
-	);
 
 	const first = await run((tx) => getBrief(ctx, tx, { ticket: ticket.identifier }));
 	const second = await run((tx) => getBrief(ctx, tx, { ticket: ticket.identifier }));
 	const contractAt = first.markdown.indexOf("## Contract");
 	const evidenceAt = first.markdown.indexOf("## Evidence owed");
 	const chainAt = first.markdown.indexOf("## Chain");
-	const commentsAt = first.markdown.indexOf("## Comments");
 
 	expect(first.markdown).toBe(second.markdown);
 	expect(contractAt).toBeGreaterThan(first.markdown.indexOf("## Description"));
 	expect(evidenceAt).toBeGreaterThan(contractAt);
 	expect(chainAt).toBeGreaterThan(evidenceAt);
-	expect(commentsAt).toBeGreaterThan(chainAt);
 	expect(first.markdown).toContain("- Leave alone:\n  - packages/cli/src/commands/brief.ts");
 	expect(first.markdown).toContain("Evidence shows this change working in the running product.");
 	expect(first.markdown).toContain(

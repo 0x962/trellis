@@ -1,9 +1,8 @@
-import { type Brief, BriefGetInputSchema, type Epic, type StoredActorKind, type Ticket } from "@trellis/api";
+import { type Brief, BriefGetInputSchema, type Epic, type Ticket } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { ServiceCtx } from "../../context.ts";
-import { actorDisplayName } from "../../db/queries/actorDisplayName.ts";
 import { chainRows } from "../../db/queries/chainRows.ts";
-import { iso, rows, textArray } from "../../db/queries/support.ts";
+import { rows, textArray } from "../../db/queries/support.ts";
 import { ticketGet } from "../../db/queries/ticketGet.ts";
 import type { Tx } from "../../db/tx.ts";
 import { epicView } from "../epics/epics.ts";
@@ -24,43 +23,14 @@ import { evidenceOwedLines } from "./evidenceOwedLines.ts";
 // browser. `ctx.publicUrl` carries the origin, which TRELLIS_PUBLIC_URL sets
 // and which defaults to the loopback address and the port of the server.
 
-export const BRIEF_COMMENT_LIMIT = 10;
-
-type BriefComment = {
-	id: string;
-	parent_id: string | null;
-	resolved_at: string | null;
-	body: string;
-	actor_name: string;
-	actor_kind: StoredActorKind;
-	actor_display_name: string | null;
-	created_at: string;
-};
-
-// Each recent reply includes its root, so the agent can read the original question.
-const lastComments = async (tx: Tx, ticketId: string) => {
-	const found = await rows<BriefComment>(
+// The outcome sentence of each ticket of `ticketIds` that records one, by
+// ticket id. One statement reads every ticket.
+const outcomes = async (tx: Tx, ticketIds: string[]) => {
+	const found = await rows<{ id: string; outcome: string }>(
 		tx,
-		sql`WITH recent AS (
-			SELECT * FROM comments WHERE ticket_id = ${ticketId} ORDER BY created_at DESC, id DESC LIMIT ${BRIEF_COMMENT_LIMIT}
-		)
-		SELECT id, parent_id, ${iso(sql`resolved_at`)} AS resolved_at, body, actor_name, actor_kind, ${actorDisplayName(sql`comments.actor_name`, sql`comments.actor_kind`)} AS actor_display_name, ${iso(sql`created_at`)} AS created_at
-		FROM comments WHERE id IN (SELECT id FROM recent UNION SELECT parent_id FROM recent WHERE parent_id IS NOT NULL)
-		ORDER BY created_at, id`,
+		sql`SELECT id, outcome FROM tickets WHERE id = ANY(${textArray(ticketIds)}) AND outcome <> ''`,
 	);
-	return found;
-};
-
-// The body of the last comment that an agent wrote on each ticket of
-// `ticketIds`, by ticket id. One statement reads every ticket.
-const lastAgentComments = async (tx: Tx, ticketIds: string[]) => {
-	const found = await rows<{ ticket_id: string; body: string }>(
-		tx,
-		sql`SELECT DISTINCT ON (ticket_id) ticket_id, body FROM comments
-			WHERE ticket_id = ANY(${textArray(ticketIds)}) AND actor_kind = 'agent'
-			ORDER BY ticket_id, created_at DESC, id DESC`,
-	);
-	return new Map(found.map((comment) => [comment.ticket_id, comment.body]));
+	return new Map(found.map((ticket) => [ticket.id, ticket.outcome]));
 };
 
 // The branch an agent works on: the identifier in lower case and the title
@@ -126,32 +96,12 @@ const attachments = (ticket: Ticket, publicUrl: string) =>
 		? []
 		: ["## Attachments", "", ...ticket.attachments.map((file) => `- ${file.filename}: ${publicUrl}${file.url}`)];
 
-// One list item per comment; a body of several lines is indented under it.
-const comments = (list: BriefComment[]) => {
-	if (list.length === 0) return [];
-	const lines = ["## Comments", ""];
-	for (const comment of list) {
-		const context =
-			comment.parent_id === null
-				? comment.resolved_at === null
-					? "open thread"
-					: "resolved thread"
-				: `reply to ${comment.parent_id}`;
-		lines.push(
-			`- ${comment.id}, ${context}, ${comment.actor_display_name ?? comment.actor_name} (${comment.actor_kind}) at ${comment.created_at}:`,
-		);
-		for (const line of comment.body.split("\n")) lines.push(`  ${line}`);
-	}
-	return lines;
-};
-
 const protocol = (identifier: string) => [
 	"## Protocol",
 	"",
 	"Work on the branch named above. Use the trellis CLI to report progress:",
 	"",
 	`- Start: trellis move ${identifier} in-progress`,
-	`- Ask or report: trellis comment ${identifier} --body "..."`,
 	`- Link each pull request you open: trellis pr add ${identifier} <url>`,
 	`- Split the work: trellis sub ${identifier} -t "..."`,
 	"",
@@ -160,6 +110,10 @@ const protocol = (identifier: string) => [
 	"Before you end a turn, run trellis review list <pr-url>. Answer every review thread.",
 	"",
 	`When your work is ready for review, run: trellis move ${identifier} agent-review`,
+	"",
+	"Report what you did in your final message and in the pull request description. A person reads both.",
+	'To ask a person a question, create a question ticket: trellis create -p <project> --status human-review -t "..." --description - . Its description holds a numbered "Options:" list.',
+	`Then make this ticket wait for it: trellis edit ${identifier} --after <question>. The answer reaches this run.`,
 ];
 
 const reviewComments = [
@@ -179,7 +133,7 @@ const assignment = (identifier: string) => [
 	"## Assignment",
 	"",
 	"Trellis is the ticket tracker on this machine. It assigned this ticket to you. Your worktree is on the branch named above.",
-	`Before you start, read the ticket with its comments, its pull requests, and the project notes: trellis brief ${identifier}`,
+	`Before you start, read the ticket with its pull requests and the project notes: trellis brief ${identifier}`,
 ];
 
 const sections = (parts: string[][]) => parts.filter((part) => part.length > 0).map((part) => part.join("\n"));
@@ -187,11 +141,10 @@ const sections = (parts: string[][]) => parts.filter((part) => part.length > 0).
 // This text is the first prompt of an agent that trellis assigns to a ticket.
 // `reserve` in `agentRuns/reserve.ts` builds this text once and saves it in
 // `agent_runs.instruction`. A run keeps that saved text for its whole life.
-// The comments, the pull requests, and the project notes change while the
-// agent works, so a saved copy of them goes out of date. The lines from
-// `assignment` tell the agent to read their current state with
-// `trellis brief`. `branch` is the branch of the Git worktree that
-// `nativeWorkspace` creates for the run.
+// The pull requests and the project notes change while the agent works, so a
+// saved copy of them goes out of date. The lines from `assignment` tell the
+// agent to read their current state with `trellis brief`. `branch` is the
+// branch of the Git worktree that `nativeWorkspace` creates for the run.
 export const assignmentInstruction = (input: {
 	identifier: string;
 	title: string;
@@ -235,7 +188,7 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<B
 			: resultsLines(
 					epic,
 					ticket.id,
-					await lastAgentComments(
+					await outcomes(
 						tx,
 						doneBefore.map((done) => done.id),
 					),
@@ -253,7 +206,6 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<B
 		subTickets(ticket),
 		pullRequests(ticket),
 		attachments(ticket, ctx.publicUrl),
-		comments(await lastComments(tx, row.id)),
 		notesLines(await activeNotes(ctx, tx, { projectId: row.projectId, audience: "worker" }), ticket.project.path),
 		protocol(ticket.identifier),
 		reviewComments,

@@ -19,15 +19,14 @@ export const useAnswer = (ticket: Ticket) => {
 				reason,
 				expectedVersion: ticket.version,
 			}),
-		// The answer moves the ticket, writes a comment and releases the
-		// tickets that waited for it. These four trees hold every list and
+		// The answer moves the ticket, writes the answer and releases the
+		// tickets that waited for it. These three trees hold every list and
 		// every counter that reads those facts. A refetch of the whole cache
 		// would also run `agentRuns.workspace`, which reads git.
 		onSuccess: () =>
 			Promise.all([
 				queryClient.invalidateQueries({ queryKey: orpc.tickets.key() }),
 				queryClient.invalidateQueries({ queryKey: orpc.timeline.key() }),
-				queryClient.invalidateQueries({ queryKey: orpc.comments.key() }),
 				queryClient.invalidateQueries({ queryKey: orpc.needsYou.key() }),
 			]),
 	});

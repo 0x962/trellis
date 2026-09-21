@@ -1,6 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { readQuestionDescription, type Ticket } from "@trellis/api";
-import { QuestionBlock as QuestionBlockView, type RecommendedOption, type TicketRef } from "@trellis/ui";
+import { asksQuestion, readQuestionDescription, type Ticket } from "@trellis/api";
+import {
+	type QuestionAnswer,
+	QuestionBlock as QuestionBlockView,
+	type RecommendedOption,
+	type TicketRef,
+} from "@trellis/ui";
 import { useMemo } from "react";
 import { useAnswer } from "./useAnswer";
 
@@ -12,7 +17,9 @@ const ticketLink = (identifier: string) => <Link to="/t/$identifier" params={{ i
 
 // This wrapper reads the options and the recommendation out of the ticket
 // description, gives each released ticket a router link, and holds the one
-// write that answers the question.
+// write that answers the question. A question that a person moved back to a
+// status with a human reviewer asks again, so the stored answer shows only
+// while the ticket asks nothing.
 export function QuestionBlock({ ticket }: QuestionBlockProps) {
 	const question = useMemo(() => readQuestionDescription(ticket.description), [ticket.description]);
 	// No record says who wrote the recommendation, so the block names nobody
@@ -26,8 +33,25 @@ export function QuestionBlock({ ticket }: QuestionBlockProps) {
 		() => ticket.releases.map((release) => ({ ...release, link: ticketLink(release.identifier) })),
 		[ticket.releases],
 	);
+	const stored = useMemo<QuestionAnswer | null>(
+		() =>
+			ticket.answer === null || asksQuestion(ticket.status.reviewer, ticket.description)
+				? null
+				: {
+						option: ticket.answer.option,
+						by: ticket.answer.actor.displayName ?? ticket.answer.actor.name,
+						reason: ticket.answer.reason,
+					},
+		[ticket.answer, ticket.status.reviewer, ticket.description],
+	);
 	const answer = useAnswer(ticket);
 	return (
-		<QuestionBlockView options={question.options} recommendation={recommendation} releases={releases} {...answer} />
+		<QuestionBlockView
+			options={question.options}
+			recommendation={recommendation}
+			releases={releases}
+			answer={stored}
+			{...answer}
+		/>
 	);
 }

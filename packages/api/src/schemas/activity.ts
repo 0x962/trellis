@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { TicketRefStringSchema } from "../refs.ts";
 import { ActorRefSchema } from "./actor.ts";
-import { CommentSchema } from "./comment.ts";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 // The `action` of an activity row, as the server writes it. A client that
@@ -31,11 +30,8 @@ export const ActivitySchema = z.object({
 });
 export type Activity = z.infer<typeof ActivitySchema>;
 
-// The ticket page reads comments and activity as one stream, newest first.
-export const TimelineItemSchema = z.discriminatedUnion("kind", [
-	CommentSchema.extend({ kind: z.literal("comment") }),
-	ActivitySchema.extend({ kind: z.literal("activity") }),
-]);
+// One row of the activity stream of a ticket, newest first.
+export const TimelineItemSchema = ActivitySchema.extend({ kind: z.literal("activity") });
 export type TimelineItem = z.infer<typeof TimelineItemSchema>;
 
 // `before` is the cursor from the previous page.

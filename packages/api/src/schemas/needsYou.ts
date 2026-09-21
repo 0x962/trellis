@@ -2,7 +2,7 @@ import { z } from "zod";
 import { IsoDateTimeSchema } from "./primitives.ts";
 import { TicketSummarySchema } from "./ticket.ts";
 
-export const NeedsYouSectionSchema = z.enum(["review", "mentioned"]);
+export const NeedsYouSectionSchema = z.enum(["review"]);
 export const NeedsYouVisibilitySchema = z.enum(["active", "snoozed", "ignored"]);
 export const NeedsYouSortSchema = z.enum([
 	"priority",
@@ -42,7 +42,6 @@ export const NeedsYouItemSchema = z.object({
 	receivedAt: IsoDateTimeSchema,
 	snoozedUntil: IsoDateTimeSchema.nullable(),
 	ignored: z.boolean(),
-	comment: z.object({ id: z.string(), threadId: z.string(), body: z.string(), actorName: z.string() }).nullable(),
 });
 export type NeedsYouItem = z.infer<typeof NeedsYouItemSchema>;
 export const NeedsYouListOutputSchema = z.object({
@@ -54,7 +53,6 @@ export type NeedsYouListOutput = z.infer<typeof NeedsYouListOutputSchema>;
 export const NeedsYouSummarySchema = z.object({
 	active: z.number().int(),
 	review: z.number().int(),
-	mentioned: z.number().int(),
 	snoozed: z.number().int(),
 	ignored: z.number().int(),
 	nextWakeAt: IsoDateTimeSchema.nullable(),

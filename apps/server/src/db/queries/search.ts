@@ -44,29 +44,23 @@ const scopeIn =
 	(alias) =>
 		ids === undefined ? sql`true` : sql`${sql.raw(alias)}.project_id = ANY(${ids})`;
 
-// The text search hits: tickets by the `search` column and comments grouped
-// by ticket, each ranked by ts_rank. A comment reads its ticket only to test
-// the scope.
-const textHits = (scope: Scope, narrowed: boolean) => sql`
-	SELECT t.id, ts_rank(t.search, query.ts) AS rank, true AS own
-	FROM tickets t, query WHERE t.search @@ query.ts AND ${scope("t")}
-	UNION ALL
-	SELECT c.ticket_id, max(ts_rank(c.search, query.ts)), false
-	FROM comments c ${narrowed ? sql`JOIN tickets t ON t.id = c.ticket_id` : sql``}, query
-	WHERE c.search @@ query.ts AND ${scope("t")} GROUP BY c.ticket_id`;
+// The text search hits: tickets by the `search` column, ranked by ts_rank.
+const textHits = (scope: Scope) => sql`
+	SELECT t.id, ts_rank(t.search, query.ts) AS rank
+	FROM tickets t, query WHERE t.search @@ query.ts AND ${scope("t")}`;
 
-type IdentifierArgs = { key: SQL; number: SQL; q: SQL; limit: SQL; scope: Scope; narrowed: boolean };
+type IdentifierArgs = { key: SQL; number: SQL; q: SQL; limit: SQL; scope: Scope };
 
 // A KEY-n text: the exact ticket first, then the text hits for the same
 // text. The exact lookup and the text search are one statement. A KEY-n
 // text holds a hyphen, and tsquery() sends every text with a hyphen in its
 // last word through websearch_to_tsquery, so the statement calls it
 // directly.
-const identifierPage = ({ key, number, q, limit, scope, narrowed }: IdentifierArgs) => sql`
+const identifierPage = ({ key, number, q, limit, scope }: IdentifierArgs) => sql`
 	exact AS (
 		SELECT t.id FROM tickets t JOIN projects root ON root.id = t.root_id
 		WHERE root.key = ${key} AND t.number = ${number} AND ${scope("t")}
-	), query AS (SELECT websearch_to_tsquery('english', ${q}) AS ts), hits AS (${textHits(scope, narrowed)}), ranked AS (
+	), query AS (SELECT websearch_to_tsquery('english', ${q}) AS ts), hits AS (${textHits(scope)}), ranked AS (
 		SELECT id, row_number() OVER (ORDER BY max(rank) DESC, id DESC) AS rn
 		FROM hits WHERE id NOT IN (SELECT id FROM exact)
 		GROUP BY id
@@ -109,7 +103,6 @@ export const prepareSearch = async (db: Db) => {
 			q: sql.raw("$3"),
 			limit: sql.raw("$4"),
 			scope: scopeIn(narrowed ? sql.raw("$5") : undefined),
-			narrowed,
 		});
 		const body = dialect.sqlToQuery(summaryStatement(page, sql``, sql`page.rn`)).sql;
 		const args = narrowed ? "text, int, text, int, text[]" : "text, int, text, int";
@@ -123,13 +116,13 @@ export const prepareSearch = async (db: Db) => {
 
 // Every other text. A ticket matches only through full-text search: complete
 // words, and a prefix on the last word while the person types.
-const textPage = (q: string, scope: Scope, narrowed: boolean, limit: number, rankIds: SQL | undefined) => {
+const textPage = (q: string, scope: Scope, limit: number, rankIds: SQL | undefined) => {
 	const order =
 		rankIds === undefined
 			? sql`g.rank DESC, g.id DESC`
 			: sql`CASE WHEN t.project_id = ANY(${rankIds}) THEN 0 ELSE 1 END, g.rank DESC, g.id DESC`;
 	return sql`
-	query AS (SELECT ${tsquery(q)} AS ts), hits AS (${textHits(scope, narrowed)}), grouped AS (
+	query AS (SELECT ${tsquery(q)} AS ts), hits AS (${textHits(scope)}), grouped AS (
 		SELECT id, max(rank) AS rank FROM hits GROUP BY id
 	), page AS (
 		SELECT g.id, row_number() OVER (
@@ -186,7 +179,7 @@ export const search = async (tx: Tx, input: SearchRankInput): Promise<SearchOutp
 		);
 		return { tickets: found.map(toSummary), projects: [] };
 	}
-	const page = textPage(q, scopeIn(ids), narrowed, limit, rankIds);
+	const page = textPage(q, scopeIn(ids), limit, rankIds);
 	const found = await rows<SummaryRow>(tx, summaryStatement(page, sql``, sql`page.rn`));
 	return { tickets: found.map(toSummary), projects: await projectsMatching(tx, q, input.projectIds, limit) };
 };

@@ -13,7 +13,7 @@ export type MarkdownProps = {
 	source: string;
 };
 
-// Quotes and dashes stay as the author typed them, so a rendered comment
+// Quotes and dashes stay as the author typed them, so a rendered description
 // matches its source.
 const parser = createMarkdownIt({ typographer: false, plugins: [taskListPlugin] });
 
@@ -47,7 +47,7 @@ const taskRow = StyleSheet.create({
 	box: { alignItems: "center", justifyContent: "center" },
 });
 
-// Read-only markdown in the palette: the description and the comment bodies.
+// Read-only markdown in the palette: the ticket description.
 export function Markdown({ source }: MarkdownProps) {
 	const palette = usePalette();
 	const style = useMemo(() => markdownStyles(palette), [palette]);

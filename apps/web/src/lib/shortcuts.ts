@@ -73,7 +73,6 @@ export const shortcuts: readonly Shortcut[] = [
 	{ id: "boardPrevious", keys: "[", scope: "board", label: "Move the ticket to the column on the left" },
 	{ id: "boardNext", keys: "]", scope: "board", label: "Move the ticket to the column on the right" },
 	{ id: "ticketEdit", keys: "e", scope: "ticket", label: "Edit the description" },
-	{ id: "ticketComment", keys: "shift+c", scope: "ticket", label: "Focus the comment box" },
 	{ id: "ticketCopyId", keys: "mod+c", scope: "ticket", label: "Copy the ID" },
 	{ id: "ticketCopyBranch", keys: "mod+shift+c", scope: "ticket", label: "Copy the branch name" },
 	{ id: "ticketCopyLink", keys: "mod+.", scope: "ticket", label: "Copy the link" },

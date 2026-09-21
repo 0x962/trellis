@@ -3,7 +3,6 @@ import type { ReactElement } from "react";
 import { StyleSheet } from "react-native";
 import { tokens } from "../../theme/tokens";
 import { ActivityRow } from "./components/ActivityRow";
-import { CommentCard } from "./components/CommentCard";
 import type { TimelineRow } from "./timelineRows";
 
 export type TimelineProps = {
@@ -20,14 +19,11 @@ const styles = StyleSheet.create({
 	content: { paddingBottom: tokens.space[4] },
 });
 
-const renderRow = ({ item }: { item: TimelineRow }) =>
-	item.kind === "comment" ? <CommentCard comment={item.comment} /> : <ActivityRow row={item} />;
+const renderRow = ({ item }: { item: TimelineRow }) => <ActivityRow row={item} />;
 
-// The FlashList of the ticket screen, under `testID="ticket-timeline"`.
-// A comment row is a card under
-// `testID="comment-<id>"` with a left border in the actor's color. An
-// activity row is a 32 px line under `testID="activity-row"`; a run
-// expands on press into one `testID="activity-line"` per item.
+// The FlashList of the ticket screen, under `testID="ticket-timeline"`. An
+// activity row is a 32 px line under `testID="activity-row"`; a run expands
+// on press into one `testID="activity-line"` per item.
 export function Timeline({ rows, header, footer }: TimelineProps) {
 	return (
 		<FlashList

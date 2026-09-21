@@ -6,10 +6,9 @@ import type { Tx } from "../db/tx.ts";
 import { fail } from "../errors.ts";
 import { resolveTicket } from "./refs.ts";
 
-// The comments and the activity of one ticket as one stream, newest first,
-// 100 items per page. `before` is the cursor of the previous page. The
-// cursor is user input, so a bad cursor is the 400 INVALID_CURSOR and never
-// the 500 body.
+// The activity of one ticket, newest first, 100 items per page. `before` is
+// the cursor of the previous page. The cursor is user input, so a bad cursor
+// is the 400 INVALID_CURSOR and never the 500 body.
 export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<TimelineListOutput> => {
 	const input = TimelineListInputSchema.parse(rawInput);
 	const row = await resolveTicket(ctx, tx, input.ticket);

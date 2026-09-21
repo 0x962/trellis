@@ -175,7 +175,6 @@ export type TicketFields = TicketRow & {
 	wave: { ref: string; name: string } | null;
 	childCount: number;
 	childDoneCount: number;
-	commentCount: number;
 	attachmentCount: number;
 	pr: { state: string; isQueued: boolean; ciState: string } | null;
 	lastActor: { kind: string; name: string } | null;
@@ -201,7 +200,6 @@ export const ticketRecord: RecordSpec<TicketFields> = {
 			value: (row) => (row.wave === null ? "-" : cell(`${row.wave.name} (${row.wave.ref})`)),
 		},
 		{ name: "children", value: (row) => `${row.childDoneCount}/${row.childCount} done` },
-		{ name: "comments", value: (row) => String(row.commentCount) },
 		{ name: "attachments", value: (row) => String(row.attachmentCount) },
 		{
 			name: "pr",

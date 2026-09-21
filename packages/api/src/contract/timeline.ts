@@ -3,7 +3,11 @@ import { base } from "./base.ts";
 
 export const timeline = {
 	list: base
-		.route({ method: "GET", path: "/tickets/{ticket}/timeline", summary: "Read comments and activity, newest first" })
+		.route({
+			method: "GET",
+			path: "/tickets/{ticket}/timeline",
+			summary: "Read the activity of a ticket, newest first",
+		})
 		.input(TimelineListInputSchema)
 		.output(TimelineListOutputSchema),
 };

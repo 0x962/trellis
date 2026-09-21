@@ -16,7 +16,7 @@ const styles = StyleSheet.create({
 	action: { flex: 1 },
 });
 
-// The sheet behind Send back: the field "Comment" and the buttons Cancel and
+// The sheet behind Send back: the field "Reason" and the buttons Cancel and
 // Confirm. Confirm stays disabled while the field holds no text.
 export function SendBackSheet({ onConfirm, onClose }: SendBackSheetProps) {
 	const [reason, setReason] = useState("");
@@ -25,7 +25,7 @@ export function SendBackSheet({ onConfirm, onClose }: SendBackSheetProps) {
 		<Sheet title="Send back" testID="send-back-sheet" onClose={onClose}>
 			<View style={styles.body}>
 				<Field
-					label="Comment"
+					label="Reason"
 					value={reason}
 					onChangeText={setReason}
 					placeholder="What has to change"

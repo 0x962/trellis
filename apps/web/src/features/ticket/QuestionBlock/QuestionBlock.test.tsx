@@ -55,6 +55,8 @@ const ticket = {
 	title: "Decision: a missed window, run it late or leave it missed",
 	description,
 	version: 3,
+	status: { category: "review", reviewer: "human" },
+	answer: null,
 	lastActor: { name: "crisp-fjord", kind: "agent", displayName: "Agent", at: "2026-09-19T08:00:00.000Z" },
 	releases: [{ identifier: "OP-33", title: "Service: One routine's failure does not end the sweep pass" }],
 } as Ticket;
@@ -128,6 +130,36 @@ describe("QuestionBlock", () => {
 
 		expect(html).toContain('href="/t/OP-33"');
 		expect(html).toContain("Service: One routine&#x27;s failure does not end the sweep pass");
+	});
+
+	test("an answered question shows the stored answer and offers no Answer", () => {
+		const html = render({
+			status: { category: "done", reviewer: null } as Ticket["status"],
+			answer: {
+				option: 2,
+				reason: "A late run reads the day it was written for.",
+				actor: { name: "dana", kind: "human" },
+				createdAt: "2026-09-20T10:01:00.000Z",
+			},
+		});
+
+		expect(html).toContain("dana picked option 2.");
+		expect(html).toContain("A late run reads the day it was written for.");
+		expect(html).not.toContain("Answer</");
+	});
+
+	test("a question asked again takes a new answer", () => {
+		const html = render({
+			answer: {
+				option: 2,
+				reason: "An old answer.",
+				actor: { name: "dana", kind: "human" },
+				createdAt: "2026-09-20T10:01:00.000Z",
+			},
+		});
+
+		expect(html).not.toContain("An old answer.");
+		expect(html.split("Answer</").length - 1).toBe(1);
 	});
 
 	test("offers one Answer and writes the word decide nowhere", () => {

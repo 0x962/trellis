@@ -1,12 +1,11 @@
 import { Stop } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import type { AgentRun } from "@trellis/api";
+import { type AgentRun, hasAssignedProcess } from "@trellis/api";
 import { Avatar, ConfirmDialog, IconButton, Tooltip, toast } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../agentKindOf";
 import { agentProfileOf } from "../agentProfileOf";
-import { hasAssignedProcess } from "../hasAssignedProcess";
 import { isAgentWorking } from "../isAgentWorking";
 import { NativeTerminal } from "../NativeTerminal";
 

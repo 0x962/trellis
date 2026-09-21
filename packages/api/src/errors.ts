@@ -165,16 +165,6 @@ export const errors = {
 		message: "The project is archived. Unarchive it before a change.",
 		data: z.undefined(),
 	},
-	COMMENT_PARENT_MISMATCH: {
-		status: 409,
-		message: "The parent comment belongs to another ticket.",
-		data: z.undefined(),
-	},
-	COMMENT_HAS_REPLIES: {
-		status: 409,
-		message: "This comment has replies. Delete its replies before you delete the comment.",
-		data: z.undefined(),
-	},
 	INVALID_ANCHOR: {
 		status: 409,
 		message: "The after or before item is not in the target list.",

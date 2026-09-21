@@ -49,7 +49,7 @@ export const hasFlag = (rawArgs: string[], name: string): boolean => {
 
 // Every spelling of every flag of the command that takes a value. citty
 // reads the token after such a flag as its value, so the caller that splits
-// the global flags skips that token: `comment --body --help` sends the text
+// the global flags skips that token: `create -t --help` sends the title
 // `--help` and prints no help.
 export const valuedSpellings = (argsDef: ArgsDef): Set<string> => {
 	const valued = new Set<string>();
