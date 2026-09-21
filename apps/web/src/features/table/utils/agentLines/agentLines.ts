@@ -2,10 +2,16 @@ import { type AgentRun, runLine } from "@trellis/api";
 
 // The words of one agent line, and the dot it shows. `asks` is true while
 // the run waits for a person, which turns the words yellow and puts the dot
-// before them.
+// before them. `working` is true while the agent works, and the words then
+// say what it does at this moment: the line takes the shimmer and stays on
+// one line, and it settles on the last message when the turn ends. `runId`
+// is the run that speaks, which a click on the line opens in the session
+// sheet.
 export type TicketAgentLine = {
 	words: string;
 	asks: boolean;
+	working: boolean;
+	runId: string;
 };
 
 // The words a ticket row shows on its own line, or null when the run has
@@ -19,12 +25,21 @@ export type TicketAgentLine = {
 // space after the run name: `crisp-fjord asks: Which cap?`. `runLine`
 // writes the message words as `<name>: <text>` already, so the message form
 // takes those words unchanged: `crisp-fjord: Pushed the branch.`
+//
+// A run that works takes the activity of `runLine` in place of its last
+// message: `crisp-fjord: Edit apps/web/src/app.css` while a tool runs, and
+// the text of the message while the agent writes. The words change with
+// each tool call, so the line reads as live work.
 export const agentLineOf = (run: AgentRun): TicketAgentLine | null => {
 	const line = runLine(run);
 	if (line.kind === "question" || line.kind === "permission" || line.kind === "elicitation") {
-		return { words: `${run.name} ${line.words}`, asks: true };
+		return { words: `${run.name} ${line.words}`, asks: true, working: false, runId: run.id };
 	}
-	return line.lastMessage === null ? null : { words: line.lastMessage.words, asks: false };
+	if (line.activity !== null)
+		return { words: `${run.name}: ${line.activity}`, asks: false, working: true, runId: run.id };
+	return line.lastMessage === null
+		? null
+		: { words: line.lastMessage.words, asks: false, working: false, runId: run.id };
 };
 
 // The agent line of each ticket that holds an assigned agent run, keyed by
