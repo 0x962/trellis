@@ -62,19 +62,14 @@ export function FileRiskGroups({ pr, repo, files, selected, onSelect }: FileRisk
 		saveReadMarks(localStorage, pr, next);
 		setMarks(next);
 	};
-	// `review.css` reads `review-file-groups` to hide the heading of the list
-	// on a phone, where the button above the list already prints the word
-	// Files.
 	return (
-		<div className="review-file-groups">
-			<FileRiskGroupsView
-				groups={groups}
-				selected={selected}
-				onSelect={onSelect}
-				onToggleRead={onToggleRead}
-				isCollapsed={isCollapsed}
-				onToggle={toggle}
-			/>
-		</div>
+		<FileRiskGroupsView
+			groups={groups}
+			selected={selected}
+			onSelect={onSelect}
+			onToggleRead={onToggleRead}
+			isCollapsed={isCollapsed}
+			onToggle={toggle}
+		/>
 	);
 }

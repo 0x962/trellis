@@ -8,8 +8,8 @@ import {
 	reviewRef,
 	turnOf,
 } from "@trellis/api";
-import { GroupHeader, TicketId, useMediaQuery } from "@trellis/ui";
-import { type ReactNode, useCallback, useId, useMemo, useState } from "react";
+import { TicketId, useMediaQuery } from "@trellis/ui";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
 import { ConditionsBlock } from "../ConditionsBlock";
@@ -27,6 +27,7 @@ import { ReviewStack } from "../ReviewStack/ReviewStack";
 import { primaryReviewAction, type ReviewActionMeta } from "../reviewActions/reviewActions";
 import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
+import { FilesDisclosure } from "./components/FilesDisclosure";
 import { type GithubPullRequest, ReviewIdentity } from "./components/ReviewIdentity";
 import { ReviewPageSkeleton } from "./components/ReviewPageSkeleton";
 import { TurnLine } from "./components/TurnLine";
@@ -42,8 +43,6 @@ const noSentences: string[] = [];
 // answers. An empty list would read as "every condition is met", so the
 // bar prints one phrase for the gap instead.
 const conditionsUnknown = ["conditions unknown"];
-
-const fileCount = (count: number) => (count === 1 ? "1 file" : `${count} files`);
 
 // The distance comes from the revision document, not from the status poll:
 // the server reads it from the compare call that fetched this revision, and
@@ -73,12 +72,9 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		refreshAll,
 	} = useReviewData(pr);
 	const [changedFiles, setChangedFiles] = useState<ReadMarkFile[]>([]);
-	// A phone holds the checks, the file list, the diff and the threads behind
-	// one button named Files, because a person does not read a diff on a phone.
-	// A window of 768 px and wider draws all four and has no button.
+	// A person does not read a diff on a phone, so `FilesDisclosure` puts the
+	// checks, the file list, the diff and the threads behind one button.
 	const phone = useMediaQuery("(max-width: 767px)");
-	const [filesOpen, setFilesOpen] = useState(false);
-	const filesId = useId();
 	// The path the reader picked in the file list, or an empty string while
 	// the reader picked none.
 	const [pickedPath, setPickedPath] = useState("");
@@ -254,22 +250,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 								{floor && <EvidenceStrip records={records} floor={floor} />}
 							</>
 						)}
-						{phone && (
-							<GroupHeader
-								group="files"
-								label="Files"
-								count={fileCount(changedFiles.length)}
-								expanded={filesOpen}
-								controls={filesId}
-								phone
-								onToggle={() => setFilesOpen(!filesOpen)}
-							/>
-						)}
-						{/* `DiffPane` reads the changed file list of the revision and hands it to
-						    `FileRiskGroups`. A phone that hides this box keeps it in the tree, so
-						    the file list and the read marks are ready when a tap on Files opens
-						    the box. */}
-						<div id={filesId} className="review-rest" hidden={phone && !filesOpen}>
+						<FilesDisclosure phone={phone} count={changedFiles.length}>
 							<ReviewChecks revision={displayRevision} pr={pr} />
 							{revision === null && !refresh.isError ? (
 								<ReviewPageSkeleton />
@@ -308,7 +289,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 									})();
 								}}
 							/>
-						</div>
+						</FilesDisclosure>
 					</div>
 				</div>
 				{displayRevision && primaryReviewAction(displayRevision.meta as ReviewActionMeta) === "merge" && (

@@ -128,9 +128,10 @@ export function TicketView({ identifier }: TicketViewProps) {
 					{ticket.parent !== null && <ParentChip ancestors={ticket.ancestors} title={parentSummary?.title ?? ""} />}
 					<Title key={ticket.identifier} ticket={ticket} onAttachFiles={uploads.addFiles} />
 				</div>
-				{/* A phone reads a question to answer it, so the ask and the options
-				    come first and the property list follows the question block. On
-				    every other ticket the property list stays above the ask. */}
+				{/* A person on a phone opens a question ticket to answer it, so the ask
+				    and the options come first and the property list follows the
+				    question block. On every other ticket the property list stays above
+				    the ask. */}
 				{narrow && !question && (
 					<div className="mt-3">
 						<PropertiesRail ticket={ticket} variant="inline" />

@@ -30,7 +30,7 @@ export type FileRiskGroupsProps = {
 	onToggle: (key: string) => void;
 };
 
-const fileCountLabel = (count: number) => (count === 1 ? "1 file" : `${count} files`);
+export const fileCountLabel = (count: number) => (count === 1 ? "1 file" : `${count} files`);
 
 // A list of file groups, in the order the caller gives. Each group header
 // shows the file count and the sum of the added and deleted lines.
@@ -61,7 +61,11 @@ export function FileRiskGroups({
 	return (
 		<div className="flex flex-col">
 			<header className="flex items-baseline justify-between gap-2 px-5 py-3 max-md:px-4">
-				<h2 className="font-medium text-fg text-sm">Files</h2>
+				{/* Under 768 px the review page puts this list behind a button that
+				    prints the word Files, so the word would appear twice, one line
+				    apart. `sr-only` takes the heading off the screen and leaves it in
+				    the accessibility tree, where it names this section. */}
+				<h2 className={cx("font-medium text-fg text-sm", phone && "sr-only")}>Files</h2>
 				<p className="text-fg-faint text-sm tabular" role="status" aria-live="polite">
 					{totals.read} of {totals.files} read
 				</p>
