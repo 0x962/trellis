@@ -68,12 +68,6 @@
 .review-branch > span {
 	color: var(--fg-faint);
 }
-.review-additions {
-	color: var(--success);
-}
-.review-deletions {
-	color: var(--danger);
-}
 .review-meta {
 	color: var(--fg-muted);
 	font-size: 12px;
@@ -117,39 +111,6 @@
 	font-size: 14px;
 	line-height: 20px;
 	font-weight: 600;
-}
-.review-header {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	flex-wrap: wrap;
-}
-.review-header h2,
-.review-header h3 {
-	flex: 1;
-	font-size: 16px;
-	line-height: 24px;
-	font-weight: 600;
-}
-.review-list-row {
-	display: flex;
-	align-items: center;
-	gap: 16px;
-	min-height: 48px;
-	padding: 12px 0;
-	border-bottom: 0.5px solid var(--border);
-	font-size: 13px;
-}
-.review-list-row a {
-	flex: 1;
-	min-width: 0;
-}
-.review-list-row:last-child {
-	border-bottom: 0;
-}
-.review-list-row a:hover {
-	text-decoration: underline;
-	text-underline-offset: 3px;
 }
 .review-error {
 	color: var(--danger);

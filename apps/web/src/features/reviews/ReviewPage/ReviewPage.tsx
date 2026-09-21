@@ -1,7 +1,6 @@
-import { GithubLogo } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { type Evidence, evidenceFloor, type ReviewRevision, type ReviewThread, reviewRef, turnOf } from "@trellis/api";
-import { Badge, type BadgeTone, TicketId, Tooltip } from "@trellis/ui";
+import { TicketId } from "@trellis/ui";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
@@ -17,10 +16,10 @@ import { ReviewDiscussion } from "../ReviewDiscussion/ReviewDiscussion";
 import { ReviewFocusList } from "../ReviewFocusList";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
 import { ReviewStack } from "../ReviewStack/ReviewStack";
-import { ReviewHeaderActions } from "../ReviewSummary/components/ReviewHeaderActions";
 import { primaryReviewAction, type ReviewActionMeta } from "../reviewActions/reviewActions";
 import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
+import { type GithubPullRequest, ReviewIdentity } from "./components/ReviewIdentity";
 import { ReviewPageSkeleton } from "./components/ReviewPageSkeleton";
 import { TurnLine } from "./components/TurnLine";
 import { conditionsOf } from "./conditionsOf";
@@ -35,33 +34,6 @@ const noSentences: string[] = [];
 // answers. An empty list would read as "every condition is met", so the
 // bar prints one phrase for the gap instead.
 const conditionsUnknown = ["conditions unknown"];
-
-// What the identity band reads from the GitHub document of the revision.
-type IdentityMeta = {
-	title?: string;
-	state?: string;
-	isDraft?: boolean;
-	mergeable?: string;
-	headRefName?: string;
-	baseRefName?: string;
-};
-
-// The state of the pull request in one word. A pull request that GitHub still
-// marks a draft reads as Draft, whatever its state says.
-const stateWord = (meta: IdentityMeta | undefined) => {
-	if (meta === undefined) return "Not fetched";
-	if (meta.isDraft) return "Draft";
-	if (meta.state === "MERGED") return "Merged";
-	if (meta.state === "CLOSED") return "Closed";
-	if (meta.state === "OPEN") return "Open";
-	return "Not fetched";
-};
-
-const stateTone = (meta: IdentityMeta | undefined): BadgeTone => {
-	if (meta?.state === "MERGED") return "agent";
-	if (meta?.state === "OPEN" && !meta.isDraft) return "ok";
-	return "neutral";
-};
 
 // The distance comes from the revision document, not from the status poll:
 // the server reads it from the compare call that fetched this revision, and
@@ -116,7 +88,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		[threadsById],
 	);
 	const displayRevision = revision ? { ...revision, meta: status.data ?? revision.meta } : null;
-	const displayMeta = displayRevision?.meta as IdentityMeta | undefined;
+	const displayMeta = displayRevision?.meta as GithubPullRequest | undefined;
 	const toggleBatch = useCallback((threadId: string) => {
 		setBatch((current) => {
 			const next = new Set(current);
@@ -191,41 +163,13 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 				{/* The identity stays above the column, so the buttons that end
 				    the review are always in reach. */}
 				<div className="review-identity">
-					<div className="review-heading">
-						<div className="review-heading-title">
-							<h2>{displayMeta?.title ?? `${ref.owner}/${ref.repo} #${ref.number}`}</h2>
-							{displayRevision && (
-								<ReviewHeaderActions
-									pr={pr}
-									revision={displayRevision}
-									openThreads={allThreads.filter((thread) => thread.status === "open")}
-									showReview
-									onDone={() => void status.refetch()}
-								/>
-							)}
-						</div>
-						<div className="review-heading-meta">
-							<Badge tone={stateTone(displayMeta)}>{stateWord(displayMeta)}</Badge>
-							{displayMeta?.mergeable === "CONFLICTING" && (
-								<Tooltip content="Open merge conflicts on GitHub">
-									<a
-										className="inline-flex items-center gap-1.5"
-										href={`${pr}/conflicts`}
-										target="_blank"
-										rel="noreferrer"
-									>
-										<GithubLogo aria-hidden="true" className="size-3.5" />
-										<Badge tone="wait">Merge conflicts</Badge>
-									</a>
-								</Tooltip>
-							)}
-							{displayMeta?.headRefName && (
-								<span className="review-branch" title={`${displayMeta.headRefName} → ${displayMeta.baseRefName}`}>
-									{displayMeta.headRefName} <span aria-hidden="true">→</span> {displayMeta.baseRefName}
-								</span>
-							)}
-						</div>
-					</div>
+					<ReviewIdentity
+						pr={pr}
+						revision={displayRevision}
+						pullRequest={displayMeta}
+						openThreads={allThreads.filter((thread) => thread.status === "open")}
+						onAction={() => void status.refetch()}
+					/>
 					<div className="review-identity-lines">
 						{status.data?.ticket && (
 							<p className="review-ticket-line">
