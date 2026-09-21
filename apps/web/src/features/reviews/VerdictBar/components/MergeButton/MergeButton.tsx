@@ -5,7 +5,7 @@ import { Checkbox, ConfirmDialog, IconButton, Tooltip, toast } from "@trellis/ui
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { mergeAction } from "../../../reviewActions/reviewActions";
-import { mergeQuestion } from "../../unmetText/unmetText";
+import { mergeQuestion } from "../../unmetLine/unmetLine";
 
 // The button stays enabled when a condition is unmet. The confirm dialog
 // names each unmet condition, and the person decides.

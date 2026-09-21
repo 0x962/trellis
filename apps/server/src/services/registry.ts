@@ -175,7 +175,7 @@ export const services = {
 	"reviews.reaction": io("mutation", reviewMessages.reaction),
 	"reviews.submit": prepared("mutation", reviewRemote.submit, reviewRemote.actionResult),
 	"reviews.apply": prepared("mutation", reviewApply.prepareApply, reviewApply.applyResult),
-	"reviews.dispatchAnswerDeliveries": prepared("mutation", reviewRunDeliveries.prepare, reviewRunDeliveries.finish),
+	"reviews.dispatchDeliveries": prepared("mutation", reviewRunDeliveries.prepare, reviewRunDeliveries.finish),
 
 	"agentRuns.send": agentMutation(agentCommunication.prepareSend),
 	"commentMentions.dispatch": prepared("mutation", commentMentions.prepare, commentMentions.finish),

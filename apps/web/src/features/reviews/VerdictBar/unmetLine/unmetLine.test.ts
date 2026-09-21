@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { type Conditions, unmetConditions } from "../../conditionLines/conditionLines";
-import { mergeQuestion, unmetLine } from "./unmetText";
+import { mergeQuestion, unmetLine } from "./unmetLine";
 
 const allMet: Conditions = {
 	merged: false,

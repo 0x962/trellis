@@ -1,5 +1,13 @@
 import { Link } from "@tanstack/react-router";
-import { type Evidence, evidenceFloor, type ReviewRevision, type ReviewThread, reviewRef, turnOf } from "@trellis/api";
+import {
+	type Evidence,
+	evidenceFloor,
+	isAgentWorking,
+	type ReviewRevision,
+	type ReviewThread,
+	reviewRef,
+	turnOf,
+} from "@trellis/api";
 import { TicketId } from "@trellis/ui";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -53,6 +61,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		setRevision,
 		status,
 		ticket,
+		run,
 		linkedPr,
 		summary,
 		evidence,
@@ -77,6 +86,16 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	const allThreads = threads.data?.items ?? noThreads;
 	const revisionThreads = useMemo(
 		() => allThreads.filter((thread) => thread.revisionId === null || thread.revisionId === revision?.id),
+		[allThreads, revision?.id],
+	);
+	// The drafts: the open threads on the commit the page draws. A thread of
+	// another revision, and a thread that names no revision, stay out, because
+	// `reviews.submit` refuses a thread that sits on another commit.
+	const drafts = useMemo(
+		() =>
+			allThreads
+				.filter((thread) => thread.status === "open" && thread.revisionId === revision?.id)
+				.map((thread) => thread.id),
 		[allThreads, revision?.id],
 	);
 	const threadsById = useMemo(() => new Map(allThreads.map((thread) => [thread.id, thread])), [allThreads]);
@@ -142,13 +161,13 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		waitsOn: ticket.data?.waitsOn ?? [],
 		base: baseOf(revision),
 	});
-	// `turnOf` takes `hasWorkingRun` as its second argument. This page loads no
-	// agent run, so it passes false. A ticket with a running agent then gets
-	// its turn from the state of the pull request.
-	// The ticket row answers first, because it also knows the ticket status and
-	// the tickets it waits on. `prRow` is the fallback for a pull request that
-	// no ticket links.
+	// The ticket row answers the turn first, because it also knows the ticket
+	// status and the tickets it waits on. `prRow` is the fallback for a pull
+	// request that no ticket links. The second argument of `turnOf` says
+	// whether an agent works on the ticket right now, which makes the turn the
+	// agent's whatever the pull request says.
 	const turnInput = ticket.data ?? prRow;
+	const agentWorks = run !== null && isAgentWorking(run);
 	const ref = reviewRef(pr);
 	return (
 		<ReviewApplyContext.Provider value={applyState}>
@@ -181,7 +200,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						)}
 						{turnInput && (
 							<TurnLine
-								turn={turnOf(turnInput, false)}
+								turn={turnOf(turnInput, agentWorks)}
 								prRow={prRow}
 								mergedOn={linkedPr?.mergedAt?.slice(0, 10) ?? null}
 							/>
@@ -271,9 +290,11 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 					<VerdictBar
 						pr={pr}
 						revision={displayRevision}
-						openThreads={revisionThreads.filter((thread) => thread.status === "open").length}
+						ticket={status.data?.ticket?.identifier ?? null}
+						run={run}
+						drafts={drafts}
 						unmetConditions={conditions === null ? conditionsUnknown : unmetConditions(conditions)}
-						onDone={() => void status.refetch()}
+						onDone={refreshAll}
 					/>
 				)}
 				{batch.size > 0 && (
