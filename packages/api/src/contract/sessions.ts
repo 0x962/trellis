@@ -4,6 +4,7 @@ import {
 	SessionCreateInputSchema,
 	SessionDetailSchema,
 	SessionIdInputSchema,
+	SessionMoveInputSchema,
 	SessionSchema,
 } from "../schemas/session.ts";
 import { base } from "./base.ts";
@@ -40,6 +41,14 @@ export const sessions = {
 		})
 		.input(SessionIdInputSchema)
 		.output(SessionDetailSchema),
+	move: base
+		.route({
+			method: "POST",
+			path: "/sessions/{id}/project",
+			summary: "Move a session to a project, or clear its project",
+		})
+		.input(SessionMoveInputSchema)
+		.output(SessionSchema),
 	delete: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
 		.route({ method: "DELETE", path: "/sessions/{id}", summary: "Stop the agent and delete the session directory" })

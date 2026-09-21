@@ -46,6 +46,10 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 		description: "List, start, refresh, stop, or talk to agents",
 		load: () => import("./commands/agents.ts").then((m) => command(m.default)),
 	},
+	sessions: {
+		description: "Move sessions between projects",
+		load: () => import("./commands/sessions.ts").then((m) => command(m.default)),
+	},
 	create: {
 		description: "Create a ticket",
 		load: () => import("./commands/create.ts").then((m) => command(m.default)),

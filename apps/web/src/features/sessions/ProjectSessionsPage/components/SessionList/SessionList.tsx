@@ -1,5 +1,5 @@
 import { ClockCounterClockwise, Plus } from "@phosphor-icons/react";
-import type { AgentRun, Project } from "@trellis/api";
+import type { AgentRun, Project, Session } from "@trellis/api";
 import { IconButton, Input, Tooltip } from "@trellis/ui";
 import { useState } from "react";
 import { sessionComposerActions } from "../../../sessionComposerStore";
@@ -9,6 +9,7 @@ import { SessionGroup } from "../SessionGroup";
 export function SessionList({
 	project,
 	runs,
+	sessions,
 	selectedId,
 	pending,
 	error,
@@ -17,6 +18,7 @@ export function SessionList({
 }: {
 	project: Project;
 	runs: AgentRun[];
+	sessions: Session[];
 	selectedId?: string;
 	pending: boolean;
 	error?: string;
@@ -26,6 +28,7 @@ export function SessionList({
 	const [search, setSearch] = useState("");
 	const [history, setHistory] = useState(false);
 	const groups = sessionGroups(runs, { search, history, selectedId });
+	const sessionsByRunId = new Map(sessions.map((session) => [session.runId, session]));
 	return (
 		<nav aria-label="Project sessions" className="relative flex h-full min-h-0 w-full flex-col bg-bg">
 			{selectedId && (
@@ -93,6 +96,7 @@ export function SessionList({
 										label="Sessions"
 										projectPath={project.path}
 										runs={groups.sessions}
+										sessionsByRunId={sessionsByRunId}
 										selectedId={selectedId}
 										onSelect={onSelect}
 									/>
@@ -105,6 +109,7 @@ export function SessionList({
 										label="Ticketed"
 										projectPath={project.path}
 										runs={groups.ticketed}
+										sessionsByRunId={sessionsByRunId}
 										selectedId={selectedId}
 										onSelect={onSelect}
 									/>
