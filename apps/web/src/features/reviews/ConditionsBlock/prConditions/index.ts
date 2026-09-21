@@ -1,1 +1,0 @@
-export { prConditions } from "./prConditions";

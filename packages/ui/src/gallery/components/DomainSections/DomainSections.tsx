@@ -3,12 +3,10 @@ import {
 	AgentProfileMarkSection,
 	AttentionDotSection,
 	BackendEvidenceSection,
-	ChainBlockSection,
 	ChangeSummarySection,
 	CheckRibbonSection,
 	ChecksLineSection,
 	ConditionsBlockSection,
-	ContractBlockSection,
 	EvidenceStripSection,
 	FileRiskGroupsSection,
 	FlowRunSection,
@@ -16,7 +14,6 @@ import {
 	PrGlyphSection,
 	PriorityIconSection,
 	ResourceListSection,
-	ReviewFocusListSection,
 	ReviewStatusSummarySection,
 	RunLineSection,
 	StartControlsSection,
@@ -33,7 +30,6 @@ export function DomainSections() {
 			<StatusIconSection />
 			<PriorityIconSection />
 			<AttentionDotSection />
-			<ReviewFocusListSection />
 			<ReviewStatusSummarySection />
 			<CheckRibbonSection />
 			<ChecksLineSection />
@@ -47,8 +43,6 @@ export function DomainSections() {
 			<FlowRunSection />
 			<FileRiskGroupsSection />
 			<ConditionsBlockSection />
-			<ContractBlockSection />
-			<ChainBlockSection />
 			<RunLineSection />
 			<ChangeSummarySection />
 			<EvidenceStripSection />

@@ -1,6 +1,15 @@
 import { create } from "zustand";
 
-export type PickerKind = "status" | "priority" | "parent" | "dependencies" | "project" | "epic" | "wave" | "labels";
+export type PickerKind =
+	| "status"
+	| "priority"
+	| "parent"
+	| "dependencies"
+	| "blocks"
+	| "project"
+	| "epic"
+	| "wave"
+	| "labels";
 
 type PickerState = {
 	open: PickerKind | null;

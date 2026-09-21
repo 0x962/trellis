@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { type Session, type SessionStatus, sessionStatusLabels } from "@trellis/api";
-import { Avatar, cx } from "@trellis/ui";
+import { Avatar, cx, WorkingAgentText } from "@trellis/ui";
 import { lazy, Suspense } from "react";
 import { compactRelativeTime } from "../../../../lib/format";
 import { agentProfileOf } from "../../../agents/agentProfileOf";
@@ -11,11 +11,12 @@ export type SessionRowProps = {
 	session: Session;
 	status: SessionStatus;
 	activityAt: string;
+	workingCount?: number;
 	// True on the page of this session.
 	active: boolean;
 };
 
-export function SessionRow({ session, status, activityAt, active }: SessionRowProps) {
+export function SessionRow({ session, status, activityAt, workingCount = 0, active }: SessionRowProps) {
 	const activity = compactRelativeTime(activityAt);
 	return (
 		<li
@@ -41,13 +42,24 @@ export function SessionRow({ session, status, activityAt, active }: SessionRowPr
 					/>
 				</span>
 				<span className="sr-only">{sessionStatusLabels[status]}: </span>
-				<span
-					data-slot="label"
-					title={`${session.name} · ${sessionStatusLabels[status]} · Last activity ${activity}`}
-					className="sidebar-label"
-				>
-					{session.name}
-				</span>
+				{workingCount > 0 ? (
+					<WorkingAgentText
+						data-slot="label"
+						count={workingCount}
+						title={`${session.name} · ${sessionStatusLabels[status]} · Last activity ${activity}`}
+						className="sidebar-label"
+					>
+						{session.name}
+					</WorkingAgentText>
+				) : (
+					<span
+						data-slot="label"
+						title={`${session.name} · ${sessionStatusLabels[status]} · Last activity ${activity}`}
+						className="sidebar-label"
+					>
+						{session.name}
+					</span>
+				)}
 				<span className="shrink-0 px-1 text-xs text-fg-faint tabular">
 					<span className="sr-only">Last activity </span>
 					{activity}

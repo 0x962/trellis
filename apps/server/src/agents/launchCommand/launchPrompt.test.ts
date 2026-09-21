@@ -16,6 +16,8 @@ const run: Parameters<typeof launchPrompt>[0]["run"] = {
 	ticketIdentifier: "OP-1",
 	ticketTitle: "Task",
 	ticketStatusCategory: "todo",
+	ticketEpicId: null,
+	ticketEpicProjectId: null,
 	workspaceId: null,
 	terminalId: null,
 	url: null,

@@ -1,4 +1,5 @@
 import type { CheckResultGroup } from "../../CheckResults";
+import { checkDuration } from "../checkDuration";
 import { type ChecksLineCheck, checkDisplay, checkWords, displayOf } from "../checkWords/checkWords";
 
 export function checksLineResult(checks: readonly ChecksLineCheck[]) {
@@ -21,12 +22,14 @@ export function checksLineResult(checks: readonly ChecksLineCheck[]) {
 					const identity = `${check.bucket}:${check.workflow ?? ""}:${check.name}`;
 					const occurrence = occurrences.get(identity) ?? 0;
 					occurrences.set(identity, occurrence + 1);
+					const duration = checkDuration(check.startedAt ?? null, check.endedAt ?? null);
 					return {
 						key: check.key ?? `${identity}:${occurrence}`,
 						name: check.name,
 						status: display.status,
 						workflow: check.workflow ?? undefined,
 						url: check.link ?? undefined,
+						duration: duration === "" ? undefined : duration,
 					};
 				}),
 			},

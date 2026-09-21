@@ -1,14 +1,7 @@
 export { DesktopChrome } from "./desktop/DesktopChrome/index.ts";
 export { ActorChip, type ActorChipProps } from "./domain/ActorChip";
-export {
-	ChainBlock,
-	type ChainBlockProps,
-	type ChainDependency,
-	type ChainRelease,
-} from "./domain/ChainBlock";
 export { type Check, type CheckBucket, CheckRibbon, type CheckRibbonProps } from "./domain/CheckRibbon";
 export { CheckRing, type CheckRingCounts, type CheckRingProps } from "./domain/CheckRing";
-export { ContractBlock, type ContractBlockProps } from "./domain/ContractBlock";
 export { type ChartTone, otherTone, rankedTones } from "./domain/chartTones";
 export { DisplayPopover, type DisplayPopoverProps, type DisplaySortField } from "./domain/DisplayPopover";
 export { FilterBar } from "./domain/FilterBar";
@@ -83,6 +76,7 @@ export {
 export { TrellisMark, type TrellisMarkProps } from "./domain/TrellisMark";
 export { TrellisWordmark, type TrellisWordmarkProps } from "./domain/TrellisWordmark";
 export { UsageChart, type UsageChartProps, type UsageChartSeries, type UsageChartTone } from "./domain/UsageChart";
+export { WorkingAgentText, type WorkingAgentTextProps, workingAgentsLabel } from "./domain/WorkingAgentText";
 export { WorkspaceChanges } from "./domain/WorkspaceChanges";
 export { type Hotkey, useHotkey } from "./hooks/useHotkey";
 export { useMediaQuery } from "./hooks/useMediaQuery";

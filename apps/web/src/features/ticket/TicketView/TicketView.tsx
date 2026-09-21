@@ -1,50 +1,36 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
-import type { Ticket } from "@trellis/api";
-import { cx, EmptyState, SectionHeader, useMediaQuery } from "@trellis/ui";
+import { EmptyState, SectionHeader, useMediaQuery } from "@trellis/ui";
 import { useEffect } from "react";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { useApp } from "../../../lib/appContext";
-import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { AttachmentGrid } from "../../attachments/AttachmentGrid";
 import { useUploads } from "../../attachments/hooks/useUploads";
 import { NotFoundState } from "../../shell/NotFoundState";
 import { usePageSheet } from "../../shell/PageSheet";
-import { ChainBlock } from "../ChainBlock";
-import { ContractBlock } from "../ContractBlock";
 import { Description } from "../Description";
-import { EvidenceBlock } from "../EvidenceBlock";
 import { Header } from "../Header";
 import { useParentSummary } from "../hooks/useParentSummary";
-import { useSoleRepositoryName } from "../hooks/useSoleRepositoryName";
-import { OutcomeBlock } from "../OutcomeBlock";
 import { PropertiesRail } from "../PropertiesRail";
-import { ResourcesBlock } from "../ResourcesBlock";
-import { RunBlock } from "../RunBlock";
 import { SubTickets } from "../SubTickets";
 import { Title } from "../Title";
 import { DropOverlay, useDropOverlay } from "./components/DropOverlay";
 import { ParentChip } from "./components/ParentChip";
 import { TicketSkeleton } from "./components/TicketSkeleton";
 
-// The contract reads the repository name of the project, and the ticket must
-// load before the page knows the project.
-function TicketContract({ ticket }: { ticket: Ticket }) {
-	const repo = useSoleRepositoryName(ticket.project.path);
-	return <ContractBlock repo={repo} contract={ticket.contract} />;
-}
-
 export type TicketViewProps = {
 	// The canonical identifier, `CDE-42`.
 	identifier: string;
 };
 
-// The ticket page, one column read top to bottom: the ask, the contract, the
-// chain, the evidence, the outcome, the run and the resources the ticket
-// names.
+// The ticket page holds the words of the ticket and nothing else: the title,
+// the ask, the sub-tickets and the attached files. Every property and every
+// control sits in the properties rail beside it, including the pull requests,
+// the agent and its run.
 //
-// A pull request of the ticket opens in the review sheet, over this page
-// on its route and over the ticket sheet in the stack.
+// The merge conditions, the evidence, the GitHub checks and the flow runs of
+// a pull request live in the review sheet, which a pull request of the rail
+// opens over this page.
 //
 // The page renders the same on its route and in a `PageSheet`, with these
 // differences in a sheet: the browser tab keeps the title of the page under
@@ -96,24 +82,20 @@ export function TicketView({ identifier }: TicketViewProps) {
 					{ticket.parent !== null && <ParentChip ancestors={ticket.ancestors} title={parentSummary?.title ?? ""} />}
 					<Title key={ticket.identifier} ticket={ticket} onAttachFiles={uploads.addFiles} />
 				</div>
+				{/* A phone has no room for the rail beside the page, so the property
+				    list reads between the title and the ask. */}
 				{narrow && (
 					<div className="mt-3">
 						<PropertiesRail ticket={ticket} variant="inline" />
 					</div>
 				)}
-				<section aria-label="The ask" className={cx("flex min-w-0 flex-col", narrow ? "mt-4" : "mt-3")}>
-					<SectionHeader title="The ask" textCase="caps" />
+				<section aria-label="The ask" className={narrow ? "mt-4 flex min-w-0 flex-col" : "mt-3 flex min-w-0 flex-col"}>
+					<SectionHeader title="The ask" />
 					<div data-ticket-description="" className="min-h-24">
 						<Description key={ticket.identifier} ticket={ticket} onAttachFiles={uploads.addFiles} />
 					</div>
 				</section>
 				<div className="mt-8 flex flex-col gap-8">
-					<TicketContract ticket={ticket} />
-					<ChainBlock waitsOn={ticket.waitsOn} releases={ticket.releases} />
-					<EvidenceBlock ticket={ticket} onOpenPullRequest={pageSheetActions.openPullRequest} />
-					<OutcomeBlock outcome={ticket.outcome} />
-					<RunBlock key={ticket.id} ticket={ticket} />
-					<ResourcesBlock ticket={ticket} />
 					<SubTickets ticket={ticket} />
 					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
 				</div>

@@ -22,6 +22,11 @@ export const CheckSchema = z.object({
 	workflow: z.string().nullable(),
 	bucket: CheckBucketSchema,
 	link: z.string().nullable(),
+	// When GitHub started the check and when it ended. A check that still
+	// runs has no end. A row that the poller wrote before these two fields
+	// existed has neither, so both default to null.
+	startedAt: IsoDateTimeSchema.nullable().default(null),
+	endedAt: IsoDateTimeSchema.nullable().default(null),
 });
 export type Check = z.infer<typeof CheckSchema>;
 

@@ -1,10 +1,23 @@
 import { ConditionsBlock as ConditionsBlockView } from "@trellis/ui/review";
-import { type Conditions, conditionLines, mergeReadiness } from "../conditionLines/conditionLines";
+import { type ConditionLabel, type Conditions, conditionLines, mergeReadiness } from "../conditionLines/conditionLines";
 
-// The nine merge conditions of a pull request. The caller builds the
-// `Conditions` object from the pull request row of the ticket, the test and
-// evidence counts, the live branch state and the tickets that this ticket
-// waits on.
+// The conditions the Overview tab prints. The size, the risk answers, the
+// test proofs and the flow runs stay out: the person reads the size in the
+// header, the flow runs in the Flows tab, and the other two in the evidence.
+const shownLabels: readonly ConditionLabel[] = [
+	"evidence",
+	"checks",
+	"comments",
+	"base branch",
+	"stacked on",
+	"waits on",
+];
+
+// The merge conditions of a pull request, under the explanation of the
+// change. `mergeReadiness` reads every condition, including the ones this
+// block leaves out, so the word after `Ready to merge` still answers for the
+// whole pull request.
 export function ConditionsBlock({ conditions }: { conditions: Conditions }) {
-	return <ConditionsBlockView readiness={mergeReadiness(conditions)} lines={conditionLines(conditions)} />;
+	const lines = conditionLines(conditions).filter((line) => shownLabels.includes(line.label));
+	return <ConditionsBlockView readiness={mergeReadiness(conditions)} lines={lines} />;
 }

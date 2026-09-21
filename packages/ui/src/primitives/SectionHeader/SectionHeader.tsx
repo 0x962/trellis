@@ -12,7 +12,7 @@ export type SectionHeaderProps = {
 	level?: 2 | 3;
 	// `caps` draws the title in capital letters and leaves the text as
 	// written, so a reader and a screen reader get the words of the title.
-	// The region titles of the ticket page and the review page use it.
+	// The region titles of the review page use it. The ticket page does not.
 	textCase?: "as-written" | "caps";
 	className?: string;
 };
@@ -25,11 +25,9 @@ const countSize = { 2: "text-sm", 3: "text-xs" } as const;
 // project settings page. An empty section is this row alone, with its
 // action on the right.
 //
-// One rule holds for every header of the ticket page: write the title in
-// sentence case, pass `textCase="caps"` to draw it in capital letters, and
-// pass `level` to say how deep the header sits. The size carries the level.
-// The case never does, so a reader never asks why one header shouts and the
-// next one does not.
+// Write every title in sentence case, and pass `level` to say how deep the
+// header sits. The size carries the level. The case never does, so a reader
+// never asks why one header of a page shouts and the next one does not.
 export function SectionHeader({
 	title,
 	count,

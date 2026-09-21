@@ -14,6 +14,7 @@ import {
 	requireOpenedPath,
 	updateSummary,
 } from "./desktopSettings/desktopSettings.ts";
+import { askForFullDiskAccess, hasFullDiskAccess } from "./fullDiskAccess/fullDiskAccess.ts";
 import { connectHost, type HostConnection } from "./host/host.ts";
 import { installCli } from "./installCli/installCli.ts";
 import { deepLinkPath, rendererPath, sameOrigin } from "./navigation/navigation.ts";
@@ -289,6 +290,13 @@ else {
 			);
 			await progress.show("Open Trellis");
 			await openWindow();
+			if (app.isPackaged)
+				await askForFullDiskAccess({
+					granted: () => hasFullDiskAccess(homedir()),
+					declinedFile: join(app.getPath("userData"), "full-disk-access-declined"),
+					message: (options) => dialog.showMessageBox(options),
+					openSettings: (url) => shell.openExternal(url),
+				});
 		})
 		.catch(async (error: Error) => {
 			const step = progress.step();

@@ -15,7 +15,8 @@ import type { GhFailure, GhRunner, GhSlot } from "./run.ts";
 //
 // The selection asks for the start time of every check node and for the event
 // that triggered a workflow run. normalizeChecks needs both to tell a re-run
-// from the run it replaces.
+// from the run it replaces. It also asks for the end time of a check run, so
+// the review page can print how long the check took.
 
 export type PullRequestRef = { owner: string; repo: string; number: number };
 
@@ -86,7 +87,7 @@ const selection = `{
 	files(first: ${MAX_CHANGED_FILES}) { nodes { path changeType additions deletions } }
 	commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { nodes {
 		__typename
-		... on CheckRun { name status conclusion startedAt detailsUrl checkSuite { workflowRun { event workflow { name } } } }
+		... on CheckRun { name status conclusion startedAt completedAt detailsUrl checkSuite { workflowRun { event workflow { name } } } }
 		... on StatusContext { context state targetUrl createdAt }
 	} } } } } }
 }`;
