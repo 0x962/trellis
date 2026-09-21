@@ -72,7 +72,8 @@ export const viewDefaults = {
 // The order the params take in a URL: the API grammar first, then the
 // web-only fields.
 const relativePattern = /^(\d+)([hd])$/;
-const legacyWaveKey = ["mile", "stone"].join("");
+// Saved bookmarks can carry the "milestone" key. Read it so each bookmark still opens.
+const legacyWaveKey = "milestone";
 
 const groups: ReadonlySet<string> = new Set([
 	"none",
