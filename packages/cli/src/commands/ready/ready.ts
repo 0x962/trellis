@@ -1,8 +1,13 @@
 import { isAgentWorking, type TicketSummary, type Turn, turnOf } from "@trellis/api";
+import type { TrellisClient } from "@trellis/api/client";
 import { defineCommand } from "citty";
 import { clientOf } from "../../client.ts";
-import { contextOf } from "../../context.ts";
+import { type CliContext, contextOf, wantsJson } from "../../context.ts";
+import { notFound } from "../../errors.ts";
 import { json } from "../../output.ts";
+import { pullRequestCheck } from "../evidence/pullRequestCheck.ts";
+import { resolvePullRequest } from "../pullRequestRef.ts";
+import { pullRequestReadyText } from "./pullRequestReady.ts";
 import { type ReadyResult, readyGroupOrder, readyText } from "./readyText.ts";
 
 const nameFor = (ticket: TicketSummary, turn: Turn, hasWorkingRun: boolean): string => {
@@ -27,17 +32,34 @@ export const readyResultOf = (tickets: TicketSummary[], workingTicketIds: Readon
 	};
 };
 
+// Exits 1 until the pull request has the summary and every evidence floor item.
+const pullRequestReady = async (ctx: CliContext, client: TrellisClient, ref: string): Promise<number> => {
+	const resolved = await resolvePullRequest(client, ref, false);
+	const pullRequest = await client.pullRequests.refresh({ id: resolved.id });
+	const status = await client.reviews.status({ pr: resolved.url });
+	if (status.ticket === null) throw notFound("linked ticket", ref);
+	const ticket = await client.tickets.get({ ticket: status.ticket.identifier });
+	const result = await pullRequestCheck(client, ticket, pullRequest);
+	ctx.out.write(wantsJson(ctx) ? json(result) : pullRequestReadyText(result));
+	return result.complete ? 0 : 1;
+};
+
 export default defineCommand({
-	meta: { name: "ready", description: "Show who holds each ticket of an epic" },
+	meta: { name: "ready", description: "Check a pull request for review, or show who holds each ticket of an epic" },
 	args: {
-		project: { type: "positional", required: true, description: "Root project ref, such as OP" },
-		epic: { type: "string", required: true, description: "Epic slug, such as routines-e2e" },
+		ref: {
+			type: "positional",
+			required: true,
+			description: "Pull request number, URL, or owner/repo#123; with --epic, the root project ref, such as OP",
+		},
+		epic: { type: "string", description: "Epic slug, such as routines-e2e" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);
 		const client = clientOf(ctx);
+		if (context.args.epic === undefined) return pullRequestReady(ctx, client, context.args.ref);
 		const [epic, runs] = await Promise.all([
-			client.epics.get({ epic: `${context.args.project}/${context.args.epic}` }),
+			client.epics.get({ epic: `${context.args.ref}/${context.args.epic}` }),
 			client.agentRuns.list({ assigned: true }),
 		]);
 		const workingTicketIds = new Set(

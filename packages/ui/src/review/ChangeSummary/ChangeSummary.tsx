@@ -1,8 +1,11 @@
+import type { ReactNode } from "react";
 import { EmptyState } from "../../primitives/EmptyState";
 
 export type ChangeSummaryFields = {
 	headline: string;
-	why: string;
+	// The explanation, as text or as the rendered Markdown with its images
+	// and diagrams.
+	why: ReactNode;
 };
 
 export type ChangeSummaryProps = {
@@ -25,7 +28,7 @@ export function ChangeSummary({ summary, headShaMoved }: ChangeSummaryProps) {
 	return (
 		<section aria-label="Change summary" className="flex min-w-0 flex-col gap-2">
 			<p className="text-lg font-medium text-fg">{summary.headline}</p>
-			<p className="text-base text-fg">{summary.why}</p>
+			<div className="text-base text-fg">{summary.why}</div>
 			{headShaMoved && <p className="text-base text-warning">The summary is one revision behind.</p>}
 		</section>
 	);

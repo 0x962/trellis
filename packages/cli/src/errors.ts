@@ -90,6 +90,13 @@ export const evidenceFloorMissing = (ticket: string) =>
 		`An agent cannot move ${ticket} to human-review while required evidence is missing.`,
 	);
 
+export const pullRequestNotReady = (number: number) =>
+	new CliFailure(
+		"PR_NOT_READY",
+		1,
+		`trellis pr add requires the summary and every evidence floor item of #${number}. Run the command beside each MISSING line, then run: trellis ready ${number}`,
+	);
+
 export const unreachable = (url: string) =>
 	new CliFailure("UNREACHABLE", 5, `trellis server not running at ${url}; run "trellis install" or "bun dev"`);
 

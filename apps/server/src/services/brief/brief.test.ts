@@ -290,13 +290,13 @@ test("the brief prints a stable contract and evidence floor above the chain", as
 		VALUES (${ulid()}, ${rootId}, 'example', 'canary')`);
 	const ambiguous = await run((tx) => getBrief(ctx, tx, { ticket: ticket.identifier }));
 	expect(ambiguous.markdown).toContain(
-		"- unknown. The contract names no file.\n\nRead the floor of your pull request: trellis evidence check <pr>",
+		"- the other items: unknown. The contract names no file.\n\ntrellis pr add and trellis ready <pr> require the summary and every evidence floor item.\nWhile an item is missing, they exit with code 1 and print each missing item with the command that adds it.\n\nRead the floor of your pull request: trellis evidence check <pr>",
 	);
 
 	await db.execute(sql`DELETE FROM repos WHERE project_id = ${rootId}`);
 	const missing = await run((tx) => getBrief(ctx, tx, { ticket: ticket.identifier }));
 	expect(missing.markdown).toContain(
-		"- unknown. The contract names no file.\n\nRead the floor of your pull request: trellis evidence check <pr>",
+		"- the other items: unknown. The contract names no file.\n\ntrellis pr add and trellis ready <pr> require the summary and every evidence floor item.\nWhile an item is missing, they exit with code 1 and print each missing item with the command that adds it.\n\nRead the floor of your pull request: trellis evidence check <pr>",
 	);
 
 	await db.$client.close();
