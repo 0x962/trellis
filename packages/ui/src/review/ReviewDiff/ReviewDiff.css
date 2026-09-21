@@ -23,6 +23,31 @@
 	font-size: var(--text-sm);
 	font-weight: var(--font-weight-medium);
 }
+.review-diff-file-name {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+/* A file the person marked read draws no diff under its header, so the header
+   closes its own box and its name sits back. */
+.review-diff-file-header[data-viewed="true"] {
+	border-radius: var(--radius-md);
+}
+.review-diff-file-header[data-viewed="true"] .review-diff-file-name {
+	color: var(--fg-faint);
+}
+.review-diff-file-controls {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	gap: calc(var(--spacing) * 2);
+}
+.review-diff-viewed {
+	font-family: var(--font-sans);
+	font-size: var(--text-xs);
+	color: var(--fg-muted);
+}
 .review-diff-hunk-header,
 .review-diff-line,
 .review-diff-annotation,
