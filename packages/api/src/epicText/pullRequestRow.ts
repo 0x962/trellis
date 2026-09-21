@@ -14,9 +14,12 @@ import { factSeparator, groupSeparator } from "./separators.ts";
 const countWord = (count: number, singular: string, plural: string): string =>
 	`${count} ${count === 1 ? singular : plural}`;
 
-// GitHub marks a pull request as a draft only while it is open, so a merged
-// pull request that was once a draft reads as merged here too.
-const stateWord = (pr: TicketPr): string => (pr.state === "open" && pr.isDraft ? "draft" : pr.state);
+// Queued and draft are open states. A terminal state takes precedence over
+// either open-state flag.
+const stateWord = (pr: TicketPr): string => {
+	if (pr.state === "open" && pr.isQueued) return "queued";
+	return pr.state === "open" && pr.isDraft ? "draft" : pr.state;
+};
 
 // `stackedOn` holds the pull request whose head branch is the base branch of
 // this one, so this one merges after that one.

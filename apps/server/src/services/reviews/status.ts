@@ -14,6 +14,15 @@ export async function prepare(ctx: PrepareCtx, input: { pr: string }): Promise<P
 
 export async function status(_ctx: ServiceCtx, tx: Tx, input: PreparedStatus) {
 	const ref = parseRef(input.pr);
+	const [pullRequest] = await rows<{ is_queued: boolean }>(
+		tx,
+		sql`
+			SELECT is_queued
+			FROM pull_requests
+			WHERE owner = ${ref.owner} AND repo = ${ref.repo} AND number = ${ref.number}
+		`,
+	);
+	const isQueued = pullRequest?.is_queued ?? false;
 	const [row] = await rows<{
 		identifier: string;
 		title: string;
@@ -39,9 +48,10 @@ export async function status(_ctx: ServiceCtx, tx: Tx, input: PreparedStatus) {
 			${requestedTicketPrJoin}
 		`,
 	);
-	if (!row) return { ...input.remote, ticket: null, prRow: null };
+	if (!row) return { ...input.remote, isQueued, ticket: null, prRow: null };
 	return {
 		...input.remote,
+		isQueued,
 		ticket: { identifier: row.identifier, title: row.title },
 		prRow: toTicketPrRows(row.ticket_pr_rows)[0]!,
 	};

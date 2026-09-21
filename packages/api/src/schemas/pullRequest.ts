@@ -40,6 +40,7 @@ export const PullRequestSchema = z.object({
 	title: z.string(),
 	state: PrStateSchema,
 	isDraft: z.boolean(),
+	isQueued: z.boolean(),
 	headRef: z.string(),
 	baseRef: z.string(),
 	reviewState: ReviewStateSchema,

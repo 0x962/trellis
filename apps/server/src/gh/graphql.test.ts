@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { buildPullRequestQuery, mapPullRequestResponse, type PullRequestResponse } from "./graphql.ts";
+import { buildPullRequestQuery, mapPullRequestResponse, type PullRequestResponse, withQueueState } from "./graphql.ts";
 import type { RawFile } from "./parse.ts";
 
 const ref = { owner: "octo", repo: "repo", number: 42 };
@@ -24,6 +24,7 @@ const responseWithSize = (
 				title: "Store pull request size",
 				state: "OPEN",
 				isDraft: false,
+				mergeQueueEntry: null,
 				url: "https://github.com/octo/repo/pull/42",
 				headRefOid: headSha,
 				headRefName: "size",
@@ -50,6 +51,16 @@ describe("pull request GraphQL size", () => {
 
 	test("stores the head SHA", () => {
 		expect(rowOf({ additions: 120, deletions: 30, changedFiles: 9 }).headSha).toBe("0123456789abcdef");
+	});
+
+	test("stores whether the pull request is in the merge queue", () => {
+		const response = responseWithSize({ additions: 120, deletions: 30, changedFiles: 9 });
+		response.data.pr0!.pullRequest!.mergeQueueEntry = { position: 1 };
+
+		const result = mapPullRequestResponse([ref], response)[0]!;
+		if (!("row" in result)) throw new Error(result.error);
+
+		expect(result.row.isQueued).toBe(true);
 	});
 
 	test("requests at most 100 changed files", () => {
@@ -86,5 +97,27 @@ describe("pull request GraphQL size", () => {
 	test("includes the head SHA in the content hash", () => {
 		const size = { additions: 120, deletions: 30, changedFiles: 9 };
 		expect(rowOf(size, undefined, "head-two").contentHash).not.toBe(rowOf(size, undefined, "head-one").contentHash);
+	});
+
+	test("includes the merge queue state in the content hash", () => {
+		const size = { additions: 120, deletions: 30, changedFiles: 9 };
+		const open = responseWithSize(size);
+		const queued = responseWithSize(size);
+		queued.data.pr0!.pullRequest!.mergeQueueEntry = { position: 1 };
+		const rows = [open, queued].map((response) => {
+			const result = mapPullRequestResponse([ref], response)[0]!;
+			if (!("row" in result)) throw new Error(result.error);
+			return result.row;
+		});
+
+		expect(rows[0]!.contentHash).not.toBe(rows[1]!.contentHash);
+	});
+
+	test("recomputes the content hash for an immediate queue action", () => {
+		const row = rowOf({ additions: 120, deletions: 30, changedFiles: 9 });
+		const queued = withQueueState(row, true);
+
+		expect(queued.isQueued).toBe(true);
+		expect(queued.contentHash).not.toBe(row.contentHash);
 	});
 });

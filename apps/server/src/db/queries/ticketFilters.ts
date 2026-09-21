@@ -57,9 +57,11 @@ const prClause = (pr: PrFilter): SQL => {
 		case "none":
 			return sql`NOT ${linked(sql`true`)}`;
 		case "open":
-			return linked(sql`p.state = 'open' AND NOT p.is_draft`);
+			return linked(sql`p.state = 'open' AND NOT p.is_draft AND NOT p.is_queued`);
 		case "draft":
 			return linked(sql`p.state = 'open' AND p.is_draft`);
+		case "queued":
+			return linked(sql`p.state = 'open' AND p.is_queued`);
 		default:
 			return linked(sql`p.state = ${pr}`);
 	}

@@ -11,7 +11,10 @@ const prRecord: RecordSpec<PullRequest> = {
 		{ name: "id", value: (row) => row.id },
 		{ name: "url", value: (row) => row.url },
 		{ name: "title", value: (row) => cell(row.title) },
-		{ name: "state", value: (row) => `${row.state}${row.isDraft ? " (draft)" : ""}` },
+		{
+			name: "state",
+			value: (row) => (row.isQueued ? "queued" : row.state === "open" && row.isDraft ? "draft" : row.state),
+		},
 		{ name: "ciState", value: (row) => row.ciState },
 		{ name: "reviewState", value: (row) => row.reviewState },
 		{ name: "head", value: (row) => `${row.headRef} -> ${row.baseRef}` },

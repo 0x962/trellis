@@ -3,6 +3,11 @@ import { stringifySearchObject } from "../../lib/searchParams";
 import { parseSearch, serializeSearch, stripDefaults, toListQuery, viewOf } from "./grammar";
 
 describe("parseSearch", () => {
+	test("reads the queued pull request filter", () => {
+		expect(parseSearch({ pr: "queued" }).pr).toBe("queued");
+		expect(serializeSearch(viewOf({ pr: "queued" }))).toBe("pr=queued");
+	});
+
 	test("reads an epic ref and canonicalizes it", () => {
 		expect(parseSearch({ epic: "op/Routine-Runtime" }).epic).toBe("OP/routine-runtime");
 	});
