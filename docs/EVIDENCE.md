@@ -124,7 +124,7 @@ Every item of the list carries the one command that submits it. The command come
 
 ## What the person sees
 
-### The Facts tab of the review sheet
+### The Overview tab of the review sheet
 
 The evidence region draws three parts in this order.
 
@@ -134,7 +134,7 @@ The evidence region draws three parts in this order.
 
 ### The ticket page
 
-Each pull request card shows the newest after image as a thumbnail, the clip under it when there is one, and the missing sentence. No count.
+The ticket page draws no evidence. Its properties rail lists each pull request, and a click opens the review sheet.
 
 ### The epic row
 

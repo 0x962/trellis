@@ -108,9 +108,9 @@ Database reservations and runtime attempt identifiers prevent duplicate starts.
 The host sends human comment mentions to active ticket agents.
 
 Native project agents use Git worktrees under `agents/<run id>/work`.
-The ticket page opens Activity first and puts its top-level tabs below the page header.
-Activity shows the centered ticket details, properties, attachments, timeline, and comments.
-The Agent, Changes, and Flows tabs use the page width for the terminal, pull request changes, and local flow runs.
+The ticket page holds the title, the ask, the sub-tickets and the attachments in one centered column.
+Its properties rail holds the pickers, the pull requests, the agent, and the run controls.
+The review sheet of a pull request holds the summary, the evidence, the GitHub checks, the flow runs and the diff.
 The authenticated terminal stream replays retained bytes and then pushes output and process observations.
 The terminal WebSocket carries ordered input and binary output outside the database request path after attachment.
 A capability handshake selects the persistent binary runtime channel or the compatible RPC adapter.
@@ -330,8 +330,10 @@ A dependency uses TicketRef for the target and for every related ticket. A
 TicketRef is a ULID or `KEY-n`. The CLI flags are `trellis create --after`,
 `trellis edit --after`, and `trellis edit --not-after`. `trellis deps
 <TicketRef>` prints both directions and each derived pull request stack.
-The web route `/t/<KEY-n>` shows the chain, the ready sentence, and each
-answered question. An epic route also shows the `waits` and `releases` cells.
+The web route `/t/<KEY-n>` shows both directions in its properties rail, as
+the rows Waits on and Blocks. A pick in either row writes one edge: the Blocks
+row writes it on the ticket that the pick names. An epic route also shows the
+`waits` and `releases` cells.
 
 ### Ticket contract
 
@@ -351,10 +353,9 @@ contract`. `trellis contract set` takes one result and repeated `--file`,
 `--leave-alone`, `--verify`, and `--focus` flags. `trellis contract show`
 prints the stored fields and the evidence floor that the file paths imply.
 
-The web route `/t/<KEY-n>` shows the contract after the ask. It derives
-`Evidence owed` from the files and the repository path rules. The review route
-`/reviews/<owner>/<repo>/<number>` reads `review_focus` from the linked ticket.
-The ticket brief prints the same contract fields and evidence floor.
+No web route draws the contract. The ticket brief prints the contract fields
+and the evidence floor that the file paths imply, and `trellis contract show`
+prints the same.
 
 ### Pull request summaries
 
@@ -380,8 +381,8 @@ The CLI accepts a pull request number, a GitHub URL, or
 can also open one match from the signed-in GitHub account.
 The CLI verb is `trellis summary` with `write`, `show`, and `body`.
 
-The web route `/reviews/<owner>/<repo>/<number>` shows the summary above the
-review focus. It shows a revision warning when the stored head SHA differs
+The web route `/reviews/<owner>/<repo>/<number>` shows the summary first on
+its Overview tab. It shows a revision warning when the stored head SHA differs
 from the displayed revision. On a ticket or epic, each row for a pull request
 includes the current-head summary in its evidence count.
 
@@ -424,10 +425,9 @@ for a human but permits the human's move. The server does not apply this CLI
 guard in `tickets.move`.
 
 The web route `/reviews/<owner>/<repo>/<number>` shows current-head evidence
-after the review focus. It renders frontend and backend records according to
-the pull request kind. The route shows each missing item with its fill command.
-The ticket route `/t/<KEY-n>` shows one evidence card for each linked pull
-request.
+on its Overview tab, under the summary and the merge conditions. It renders
+frontend and backend records according to the pull request kind. The route
+shows each missing item with its fill command. No ticket route draws evidence.
 
 ### Ticket answers
 
@@ -447,10 +447,9 @@ The API route is `POST /api/tickets/{ticket}/answer`. It accepts TicketRef,
 agent deliveries.
 
 The CLI verb is `trellis answer <TicketRef> --option <n> --reason <text>`.
-The web route `/t/<KEY-n>` replaces the work regions of a question with its
-options, recommendation, reason field, released tickets, and Answer action.
-The same route shows an answered dependency under `Applies` on a waiting
-ticket.
+The web route `/t/<KEY-n>` draws the options, the recommendation, the reason
+field, the released tickets, and the Answer action under the ask of a question
+ticket, in place of the description editor.
 
 `Ticket.answeredQuestions` reads the last human comment that matches on each
 done question that the ticket waits for. The API can accept an agent actor,
@@ -487,9 +486,8 @@ app reaches it. On desktop a control that leads to an HTTPS page opens that
 sheet over the page the person reads. The sheet header carries Open in browser,
 which hands the address to the browser of the operating system.
 
-The route `/t/<KEY-n>` shows a resource when the ask or contract names its
-path. The match uses a complete path token or its last path segment. A plain
-title in prose does not name a resource.
+The epic route shows the resources of an epic. The ticket route `/t/<KEY-n>`
+draws none.
 
 ### Ticket outcomes
 
@@ -504,8 +502,8 @@ The API is `tickets.setOutcome` at `PUT /api/tickets/{ticket}/outcome` and
 
 The CLI verb is `trellis outcome` with `set` and `show`. `set` applies the STE
 check before it calls the API, and it refuses a text with an STE error. The
-web route `/t/<KEY-n>` shows the outcome after the evidence. It shows an empty
-state while the stored string is empty.
+outcome reaches a person through `trellis outcome show` and the ticket brief.
+No web route draws it.
 
 ### Pull request reviews
 

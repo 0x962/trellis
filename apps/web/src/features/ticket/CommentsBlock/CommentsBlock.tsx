@@ -27,7 +27,7 @@ export function CommentsBlock({ ticket, count }: CommentsBlockProps) {
 
 	return (
 		<section id="comments" aria-label="Comments" className="flex min-w-0 scroll-mt-6 flex-col">
-			<SectionHeader title="Comments" count={String(count)} textCase="caps" />
+			<SectionHeader title="Comments" count={String(count)} />
 			{timeline.isPending ? (
 				<p role="status" className="py-3 text-sm text-fg-muted">
 					Load comments...

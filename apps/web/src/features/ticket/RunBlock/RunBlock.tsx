@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
 import { type AgentRun, runLine, type Ticket } from "@trellis/api";
-import { SectionHeader, Skeleton } from "@trellis/ui";
+import { Skeleton } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
@@ -22,7 +22,9 @@ export const canRetryRun = (run: AgentRun | null) => {
 	return ["failed", "lost"].includes(runLine(run).kind);
 };
 
-// The run that holds the ticket, and the controls that start one.
+// The run that holds the ticket, and the controls that start one. The
+// properties rail draws this under the agent of the ticket, so the block
+// carries no title of its own.
 export function RunBlock({ ticket }: RunBlockProps) {
 	const { client, orpc, queryClient } = useApp();
 	const hash = useLocation({ select: (location) => location.hash });
@@ -63,7 +65,6 @@ export function RunBlock({ ticket }: RunBlockProps) {
 	const canStart = runs.isSuccess && canStartRun(ticket, runs.data);
 	return (
 		<section aria-label="The run" className="flex min-w-0 flex-col">
-			<SectionHeader title="The run" textCase="caps" />
 			<div className="flex min-w-0 flex-col gap-3">
 				{runs.isError ? (
 					<p role="alert" className="text-sm text-danger">
