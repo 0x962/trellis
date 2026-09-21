@@ -38,6 +38,23 @@ const serviceProof = [
 
 const handOver = ["Check the floor before you hand over: trellis evidence check <pr>"];
 
+const summaryGuidance = [
+	"Write a simple, direct explanation of what changed and why, in plain words.",
+	"Say what was wrong or missing.",
+	"Say what changes for the person who uses the product.",
+	"Say how the pull request works in two or three direct sentences.",
+	"Use real names such as webhook, API, migration, and the page name.",
+	"Do not replace technical terms with childish words, metaphors, or analogies.",
+	"Avoid jargon only where a plain word says the same thing.",
+	"Avoid internal code names, file paths, and function names unless they are the point.",
+	'Write the headline as one sentence a person would say out loud, such as "A click on a row now opens the ticket again."',
+];
+
+const itemLine = (item: keyof typeof evidenceWords): string[] =>
+	item === "summary"
+		? [`- ${evidenceWords[item]}: ${evidenceFillCommands[item]}`, ...summaryGuidance.map((line) => `  ${line}`)]
+		: [`- ${evidenceWords[item]}: ${evidenceFillCommands[item]}`];
+
 // One blank line between each block, and no blank line at the end. `brief`
 // joins the sections, so a trailing blank line here doubles a separator.
 const joinBlocks = (blocks: string[][]): string[] =>
@@ -53,11 +70,7 @@ export const evidenceOwedLines = (contract: TicketContract, repositoryName: stri
 		]);
 	return joinBlocks([
 		["## Evidence owed", "", ...meaning],
-		[
-			`- Kind: ${floor.kind}`,
-			...floor.required.map((item) => `- ${evidenceWords[item]}: ${evidenceFillCommands[item]}`),
-			...floor.notes.map((note) => `- ${note}`),
-		],
+		[`- Kind: ${floor.kind}`, ...floor.required.flatMap(itemLine), ...floor.notes.map((note) => `- ${note}`)],
 		...(floor.kind === "backend" ? [] : [screenProof]),
 		...(floor.kind === "frontend" ? [] : [serviceProof]),
 		handOver,

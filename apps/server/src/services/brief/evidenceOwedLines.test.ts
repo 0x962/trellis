@@ -22,6 +22,8 @@ test("prints the backend evidence floor with the command of each item", () => {
 	expect(lines.slice(0, 5)).toEqual(["## Evidence owed", "", ...meaning]);
 	expect(lines).toContain("- Kind: backend");
 	expect(lines).toContain('- summary: trellis summary write <pr> --headline "..." --why - --watch "..."');
+	expect(lines).toContain("  Write a simple, direct explanation of what changed and why, in plain words.");
+	expect(lines).toContain("  Use real names such as webhook, API, migration, and the page name.");
 	expect(lines).toContain(
 		'- verify record: trellis evidence add <pr> --kind verify --cmd "<command>" --exit <code> --sha <head> --tail -',
 	);

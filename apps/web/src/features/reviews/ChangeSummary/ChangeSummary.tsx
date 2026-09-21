@@ -15,7 +15,7 @@ export function ChangeSummary({ summary, headSha }: ChangeSummaryProps) {
 
 	return (
 		<ChangeSummaryView
-			summary={{ headline: summary.headline, why: summary.why, watch: summary.watch }}
+			summary={{ headline: summary.headline, why: summary.why }}
 			headShaMoved={summary.headSha !== headSha}
 		/>
 	);

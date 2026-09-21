@@ -3,7 +3,6 @@ import { EmptyState } from "../../primitives/EmptyState";
 export type ChangeSummaryFields = {
 	headline: string;
 	why: string;
-	watch: string;
 };
 
 export type ChangeSummaryProps = {
@@ -18,19 +17,15 @@ export function ChangeSummary({ summary, headShaMoved }: ChangeSummaryProps) {
 	if (summary === null) {
 		return (
 			<section aria-label="Change summary" className="flex min-w-0 flex-col">
-				<EmptyState description="The agent has not written the summary." />
+				<EmptyState description="The agent has not written a summary yet." />
 			</section>
 		);
 	}
 
 	return (
 		<section aria-label="Change summary" className="flex min-w-0 flex-col gap-2">
-			<p className="text-md font-medium text-fg">{summary.headline}</p>
+			<p className="text-lg font-medium text-fg">{summary.headline}</p>
 			<p className="text-base text-fg">{summary.why}</p>
-			<p className="text-base text-fg">
-				<span className="text-fg-muted">{"Watch this: "}</span>
-				{summary.watch}
-			</p>
 			{headShaMoved && <p className="text-base text-warning">The summary is one revision behind.</p>}
 		</section>
 	);

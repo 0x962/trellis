@@ -362,6 +362,8 @@ The ticket brief prints the same contract fields and evidence floor.
 primary key is `(pull_request_id, head_sha)`. The row stores `headline`, `why`,
 `watch`, `created_at`, and `updated_at`. A delete of the pull request cascades
 to its summaries.
+The `why` field holds the plain explanation that the Facts tab shows below the
+headline.
 
 The server compares a write with the head that GitHub reports before it opens
 the transaction. It applies the STE check to all three fields. A refusal stores
@@ -380,9 +382,9 @@ The CLI accepts a pull request number, a GitHub URL, or
 can also open one match from the signed-in GitHub account.
 The CLI verb is `trellis summary` with `write`, `show`, and `body`.
 
-The web route `/reviews/<owner>/<repo>/<number>` shows the summary above the
-review focus. It shows a revision warning when the stored head SHA differs
-from the displayed revision. On a ticket or epic, each row for a pull request
+The web route `/reviews/<owner>/<repo>/<number>` shows the summary first on the
+Facts tab. It shows a revision warning when the stored head SHA differs from
+the displayed revision. On a ticket or epic, each row for a pull request
 includes the current-head summary in its evidence count.
 
 ### Pull request evidence
