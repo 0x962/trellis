@@ -50,9 +50,9 @@ export type FlattenOptions = {
 };
 
 // The lines in order: each group's header, its rows while it is expanded,
-// the agent line of each row when `agentLines` holds one for it, the pull
-// requests of each row when `prRows` asks for them, and its "show more"
-// line while a page waits on the server.
+// the pull requests of each row when `prRows` asks for them, the agent line
+// of each row when `agentLines` holds one for it, and its "show more" line
+// while a page waits on the server.
 export const flattenGroups = (groups: readonly TableGroup[], options: FlattenOptions = {}): TableItem[] => {
 	const items: TableItem[] = [];
 	for (const group of groups) {
@@ -61,12 +61,13 @@ export const flattenGroups = (groups: readonly TableGroup[], options: FlattenOpt
 		for (const ticket of group.rows) {
 			const line = options.agentLines?.[ticket.id];
 			items.push({ kind: "row", key: ticket.id, group, ticket, agentLine: line ?? null });
+			if (options.prRows === true) {
+				// Two tickets can link the same pull request, so the ticket id is
+				// part of the key that the virtualizer uses to hold a line.
+				for (const pr of ticket.prRows)
+					items.push({ kind: "pr", key: `pr:${ticket.id}:${pr.owner}/${pr.repo}#${pr.number}`, group, pr });
+			}
 			if (line !== undefined) items.push({ kind: "agent", key: `agent:${ticket.id}`, group, line });
-			if (options.prRows !== true) continue;
-			// Two tickets can link the same pull request, so the ticket id is
-			// part of the key that the virtualizer uses to hold a line.
-			for (const pr of ticket.prRows)
-				items.push({ kind: "pr", key: `pr:${ticket.id}:${pr.owner}/${pr.repo}#${pr.number}`, group, pr });
 		}
 		if (group.hasMore) items.push({ kind: "more", key: `more:${group.key}`, group });
 	}

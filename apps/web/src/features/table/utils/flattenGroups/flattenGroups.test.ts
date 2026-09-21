@@ -54,14 +54,14 @@ describe("flattenGroups", () => {
 		expect(flattenGroups(groups, { prRows: true }).map((item) => item.kind)).toEqual(["header", "row", "pr", "more"]);
 	});
 
-	test("puts the agent line of a ticket between its row and its pull requests", () => {
-		const groups = [group("todo", true, [ticket("a", [pr(11)]), ticket("b")])];
+	test("puts every pull request before the agent line of its ticket", () => {
+		const groups = [group("todo", true, [ticket("a", [pr(11), pr(12)]), ticket("b")])];
 		const agentLines = { a: line("crisp-fjord: I rebased.") };
 
 		const items = flattenGroups(groups, { prRows: true, agentLines });
 
-		expect(items.map((item) => item.kind)).toEqual(["header", "row", "agent", "pr", "row"]);
-		expect(items[2]!.key).toBe("agent:a");
+		expect(items.map((item) => item.kind)).toEqual(["header", "row", "pr", "pr", "agent", "row"]);
+		expect(items[4]!.key).toBe("agent:a");
 	});
 
 	test("gives a ticket with no line no agent line", () => {
