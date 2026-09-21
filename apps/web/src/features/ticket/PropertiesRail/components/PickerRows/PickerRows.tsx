@@ -179,7 +179,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 					trigger={
 						<Button variant="quiet" className={triggerClass}>
 							<span className="inline-flex items-center gap-1.5">
-								<PriorityIcon priority={ticket.priority} />
+								<PriorityIcon priority={ticket.priority} decorative />
 								{priorityLabels[ticket.priority]}
 							</span>
 						</Button>

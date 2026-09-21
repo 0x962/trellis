@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { cx } from "@trellis/ui";
+import { cx, Tooltip } from "@trellis/ui";
 import type { ReactElement, ReactNode } from "react";
 import type { NavTarget } from "../../../../../../navRows";
 
@@ -18,7 +18,7 @@ type NavRowProps = {
 };
 
 export function NavRow({ to, search, icon, label, accessibleLabel, active, trailing, iconMark }: NavRowProps) {
-	return (
+	const row = (
 		<Link
 			to={to}
 			search={search}
@@ -42,4 +42,5 @@ export function NavRow({ to, search, icon, label, accessibleLabel, active, trail
 			</span>
 		</Link>
 	);
+	return accessibleLabel === undefined ? row : <Tooltip content={accessibleLabel}>{row}</Tooltip>;
 }

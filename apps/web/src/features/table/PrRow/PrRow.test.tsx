@@ -22,7 +22,7 @@ describe("PrRow", () => {
 		});
 		const html = renderToStaticMarkup(<PrRow pr={pr} top={0} last={false} hasChildLines={false} />);
 
-		expect(textOf(html)).toBe("Pull request open#57080Show the pull request title");
+		expect(textOf(html)).toBe("#57080Show the pull request title");
 		expect(html).toContain("Pull request open");
 		expect(html).toContain("min-w-0 flex-1 truncate text-fg");
 	});

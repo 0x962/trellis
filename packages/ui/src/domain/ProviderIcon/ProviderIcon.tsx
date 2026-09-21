@@ -1,3 +1,4 @@
+import { Tooltip } from "../../primitives/Tooltip";
 import { cx } from "../../utils/cx";
 
 // The companies that serve the models of the harnesses. Each mark is the
@@ -26,18 +27,38 @@ const marks: Record<ModelProvider, { title: string; path: string }> = {
 export type ProviderIconProps = {
 	provider: ModelProvider;
 	decorative?: boolean;
+	tooltip?: boolean;
+	focusable?: boolean;
 	// A Tailwind size class. The default is 16 px.
 	className?: string;
 };
 
 // The mark of the company behind a model, drawn in the current text color.
-export function ProviderIcon({ provider, decorative = false, className }: ProviderIconProps) {
+export function ProviderIcon({
+	provider,
+	decorative = false,
+	tooltip = true,
+	focusable = true,
+	className,
+}: ProviderIconProps) {
 	const mark = marks[provider];
-	return (
+	if (decorative) {
+		return (
+			<svg
+				aria-hidden="true"
+				viewBox="0 0 24 24"
+				className={cx("inline-block size-4 shrink-0 fill-current", className)}
+				data-provider={provider}
+			>
+				<path d={mark.path} />
+			</svg>
+		);
+	}
+	const icon = (
 		<svg
-			role={decorative ? undefined : "img"}
-			aria-label={decorative ? undefined : mark.title}
-			aria-hidden={decorative || undefined}
+			role="img"
+			aria-label={mark.title}
+			tabIndex={tooltip && focusable ? 0 : undefined}
 			viewBox="0 0 24 24"
 			className={cx("inline-block size-4 shrink-0 fill-current", className)}
 			data-provider={provider}
@@ -45,4 +66,5 @@ export function ProviderIcon({ provider, decorative = false, className }: Provid
 			<path d={mark.path} />
 		</svg>
 	);
+	return tooltip ? <Tooltip content={mark.title}>{icon}</Tooltip> : icon;
 }
