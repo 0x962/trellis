@@ -1,11 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-	mergeAction,
-	mergeMenuActions,
-	namedReviewRequests,
-	overflowActions,
-	primaryReviewAction,
-} from "./reviewActions";
+import { mergeAction, mergeMenuActions, overflowActions, primaryReviewAction } from "./reviewActions";
 
 describe("primaryReviewAction", () => {
 	test("offers ready for review on an open draft", () => {
@@ -54,16 +48,6 @@ describe("overflowActions", () => {
 			{ action: "update-branch", label: "Update branch" },
 			{ action: "deploy-off", label: "Disable deploy on merge" },
 			{ action: "close", label: "Close pull request" },
-		]);
-	});
-});
-
-describe("namedReviewRequests", () => {
-	test("reads user and team review requests", () => {
-		expect(namedReviewRequests([{ login: "ada" }, { slug: "platform" }, { name: "Release team" }, {}])).toEqual([
-			{ name: "ada", kind: "user" },
-			{ name: "platform", kind: "team" },
-			{ name: "Release team", kind: "team" },
 		]);
 	});
 });

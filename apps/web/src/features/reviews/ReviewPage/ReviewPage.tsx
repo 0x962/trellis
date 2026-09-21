@@ -16,10 +16,10 @@ import { ReviewDiscussion } from "../ReviewDiscussion/ReviewDiscussion";
 import { ReviewFocusList } from "../ReviewFocusList";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
 import { ReviewStack } from "../ReviewStack/ReviewStack";
-import { ReviewSummary } from "../ReviewSummary/ReviewSummary";
 import { primaryReviewAction, type ReviewActionMeta } from "../reviewActions/reviewActions";
 import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
+import { type GithubPullRequest, ReviewIdentity } from "./components/ReviewIdentity";
 import { ReviewPageSkeleton } from "./components/ReviewPageSkeleton";
 import { TurnLine } from "./components/TurnLine";
 import { conditionsOf } from "./conditionsOf";
@@ -88,7 +88,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		[threadsById],
 	);
 	const displayRevision = revision ? { ...revision, meta: status.data ?? revision.meta } : null;
-	const displayMeta = displayRevision?.meta as { state?: string } | undefined;
+	const displayMeta = displayRevision?.meta as GithubPullRequest | undefined;
 	const toggleBatch = useCallback((threadId: string) => {
 		setBatch((current) => {
 			const next = new Set(current);
@@ -163,11 +163,11 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 				{/* The identity stays above the column, so the buttons that end
 				    the review are always in reach. */}
 				<div className="review-identity">
-					<ReviewSummary
+					<ReviewIdentity
 						pr={pr}
 						revision={displayRevision}
+						pullRequest={displayMeta}
 						openThreads={allThreads.filter((thread) => thread.status === "open")}
-						showReview
 						onAction={() => void status.refetch()}
 					/>
 					<div className="review-identity-lines">
