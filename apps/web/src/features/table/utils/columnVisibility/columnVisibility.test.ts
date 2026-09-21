@@ -38,6 +38,21 @@ describe("columnVisibility labels", () => {
 	});
 });
 
+describe("autoHide status", () => {
+	test("keeps the status column when the table groups by status", () => {
+		const result = autoHide(visible(), { group: "status", rows: [row([])] });
+
+		expect(result.status).toBe(true);
+	});
+
+	test("a hidden status choice stays hidden when the table groups by status", () => {
+		const stored = columnVisibility({ status: false }, true, "list");
+		const result = autoHide(stored, { group: "status", rows: [row([])] });
+
+		expect(result.status).toBe(false);
+	});
+});
+
 describe("the columns of the epic route", () => {
 	test("the epic route shows the waits column and the releases column", () => {
 		const result = columnVisibility(undefined, true, "epic");
