@@ -1,4 +1,4 @@
-import { CaretDown, CaretRight, Plus, Star } from "@phosphor-icons/react";
+import { CaretDown, CaretRight, Plus, Sparkle } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
@@ -112,7 +112,7 @@ export function GroupHeader({
 							size="xs"
 							variant="primary"
 							label="Start wave"
-							icon={<Star />}
+							icon={<Sparkle />}
 							onClick={onStart}
 							className={revealOnHover}
 						/>
