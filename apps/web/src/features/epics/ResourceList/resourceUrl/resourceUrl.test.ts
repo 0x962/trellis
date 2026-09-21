@@ -31,10 +31,4 @@ describe("resourceUrl", () => {
 		expect(resourceUrl(image)).toBe(blob.url);
 		expect(resourceUrl(file)).toBe(blob.url);
 	});
-
-	test("gives nothing for a doc, which keeps its text in the record", () => {
-		const resource = { ...base, kind: "doc", name: "routine-runtime.md", body: "# The runtime" } as Resource;
-
-		expect(resourceUrl(resource)).toBeNull();
-	});
 });

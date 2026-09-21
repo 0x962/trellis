@@ -2,16 +2,12 @@ import { type BrowserWindow, shell } from "electron";
 import type { HostConnection } from "../host/host.ts";
 import { hostRequest } from "../hostRequest/hostRequest.ts";
 import { externalUrl, sameOrigin } from "../navigation/navigation.ts";
-import { secureLinkBrowser } from "./webviewSecurity.ts";
+import { secureLinkBrowser } from "../secureLinkBrowser/secureLinkBrowser.ts";
 
 export function secureRenderer(window: BrowserWindow, connection: () => HostConnection) {
 	window.webContents.on("will-navigate", (event, url) => {
 		if (!sameOrigin(url, connection().origin)) event.preventDefault();
 	});
-	// The `persist:trellis-link-browser` partition keeps remote data out of the main session.
-	// HTTPS prevents an unencrypted load. No preload and no Node access keep remote code from the host.
-	// The sandbox limits what the remote page can do.
-	// No popup permission prevents a remote page from opening another window.
 	window.webContents.on("will-attach-webview", secureLinkBrowser);
 	window.webContents.setWindowOpenHandler(({ url }) => {
 		if (externalUrl(url)) void shell.openExternal(url);

@@ -1,32 +1,10 @@
-import { ArrowClockwise } from "@phosphor-icons/react";
-import { IconButton, Tooltip } from "@trellis/ui";
+import { LINK_BROWSER_PARTITION, LINK_BROWSER_WEB_PREFERENCES } from "@trellis/api";
+import { Button, EmptyState, Spinner } from "@trellis/ui";
 import { useEffect, useState } from "react";
 import { PageSheet } from "../../../../shell/PageSheet";
 import { PageTitle } from "../../../../shell/PageTitle";
 import { Topbar } from "../../../../shell/Topbar";
-
-export const LINK_BROWSER_PARTITION = "persist:trellis-link-browser";
-export const LINK_BROWSER_WEB_PREFERENCES = "nodeIntegration=no,sandbox=yes";
-
-type LinkLoadFailure = Event & {
-	errorCode: number;
-	errorDescription: string;
-	isMainFrame: boolean;
-};
-
-declare global {
-	interface HTMLWebViewElement {
-		reload: () => void;
-	}
-}
-
-export const linkLoadError = (event: Pick<LinkLoadFailure, "errorCode" | "errorDescription" | "isMainFrame">) => {
-	if (!event.isMainFrame || event.errorCode === -3) return null;
-	return event.errorDescription;
-};
-
-export const linkUrlError = (url: string) =>
-	URL.canParse(url) && new URL(url).protocol === "https:" ? null : "Trellis opens only HTTPS links.";
+import { type LinkLoadFailure, linkLoadError, linkUrlError } from "./linkError";
 
 export type LinkBrowserSheetProps = {
 	name: string;
@@ -38,17 +16,27 @@ export function LinkBrowserSheet({ name, url, onClose }: LinkBrowserSheetProps) 
 	const [webview, setWebview] = useState<HTMLWebViewElement | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const urlError = linkUrlError(url);
+	const [loading, setLoading] = useState(urlError === null);
 	useEffect(() => {
 		if (webview === null) return;
-		const started = () => setError(null);
+		const started = () => {
+			setError(null);
+			setLoading(true);
+		};
+		const stopped = () => setLoading(false);
 		const failed = (event: Event) => {
 			const message = linkLoadError(event as LinkLoadFailure);
-			if (message !== null) setError(message);
+			if (message !== null) {
+				setError(message);
+				setLoading(false);
+			}
 		};
 		webview.addEventListener("did-start-loading", started);
+		webview.addEventListener("did-stop-loading", stopped);
 		webview.addEventListener("did-fail-load", failed);
 		return () => {
 			webview.removeEventListener("did-start-loading", started);
+			webview.removeEventListener("did-stop-loading", stopped);
 			webview.removeEventListener("did-fail-load", failed);
 		};
 	}, [webview]);
@@ -67,17 +55,36 @@ export function LinkBrowserSheet({ name, url, onClose }: LinkBrowserSheetProps) 
 						className="h-full w-full bg-pane"
 					/>
 				)}
-				{(urlError ?? error) !== null && (
-					<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-pane px-6 text-center">
-						<p role="alert" className="text-sm text-danger">
-							The link did not load. {urlError ?? error}
-						</p>
-						{urlError === null && (
-							<Tooltip content="Reload link">
-								<IconButton label="Reload link" icon={<ArrowClockwise />} onClick={() => webview!.reload()} />
-							</Tooltip>
-						)}
+				{loading && urlError === null && error === null && (
+					<div
+						role="status"
+						aria-busy="true"
+						aria-label="The link is loading"
+						className="absolute inset-0 flex items-center justify-center bg-pane"
+					>
+						<Spinner className="size-5" />
 					</div>
+				)}
+				{(urlError ?? error) !== null && (
+					<EmptyState
+						variant="page"
+						className="absolute inset-0 bg-pane"
+						title="The link did not load."
+						description={<span role="alert">{urlError ?? error}</span>}
+						action={
+							urlError === null ? (
+								<Button
+									size="md"
+									onClick={() => {
+										setLoading(true);
+										webview!.reload();
+									}}
+								>
+									Reload
+								</Button>
+							) : undefined
+						}
+					/>
 				)}
 			</div>
 		</PageSheet>

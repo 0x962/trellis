@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import type { Resource } from "@trellis/api";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { PageSheet } from "../../../../shell/PageSheet";
 import { PageTitle } from "../../../../shell/PageTitle";
@@ -14,8 +14,13 @@ export type DocSheetProps = {
 
 export function DocSheet({ resource, onClose }: DocSheetProps) {
 	const { client, orpc, queryClient } = useApp();
-	const body = useRef(resource.body!);
+	const editedBody = useRef(resource.body!);
 	const savedBody = useRef(resource.body!);
+	const [fileError, setFileError] = useState<string | null>(null);
+	useEffect(() => {
+		editedBody.current = resource.body!;
+		savedBody.current = resource.body!;
+	}, [resource.body]);
 	const save = useMutation({
 		mutationFn: (nextBody: string) => client.resources.update({ id: resource.id, body: nextBody }),
 		onSuccess: async (saved) => {
@@ -31,16 +36,24 @@ export function DocSheet({ resource, onClose }: DocSheetProps) {
 			<div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 max-md:px-4">
 				<LazyEditor
 					markdown={resource.body!}
-					contentKey={resource.id}
+					contentKey={`${resource.id}:${resource.updatedAt}`}
 					onChange={(markdown) => {
-						body.current = markdown;
+						editedBody.current = markdown;
+						setFileError(null);
 					}}
 					onBlur={() => {
-						if (body.current !== savedBody.current) save.mutate(body.current);
+						if (editedBody.current !== savedBody.current) save.mutate(editedBody.current);
 					}}
 					onReady={() => {}}
-					onAttachFiles={() => {}}
+					onAttachFiles={() => {
+						setFileError("This document accepts text only. Add the file as another resource.");
+					}}
 				/>
+				{fileError !== null && (
+					<p role="alert" className="mt-3 text-sm text-danger">
+						{fileError}
+					</p>
+				)}
 				{save.isError && (
 					<p role="alert" className="mt-3 text-sm text-danger">
 						Could not save the document. {save.error.message}

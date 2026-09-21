@@ -1,0 +1,3 @@
+interface HTMLWebViewElement {
+	reload: () => void;
+}

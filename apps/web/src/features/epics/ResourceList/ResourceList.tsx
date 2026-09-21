@@ -2,8 +2,10 @@ import type { Resource } from "@trellis/api";
 import { type ResourceListRow, ResourceList as ResourceListView } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { DocSheet } from "./components/DocSheet";
+import { ImageSheet } from "./components/ImageSheet";
 import { LinkBrowserSheet } from "./components/LinkBrowserSheet";
 import { resourceDetail } from "./resourceDetail";
+import { resourceOpenAction } from "./resourceOpenAction";
 import { resourceUrl } from "./resourceUrl";
 
 export type ResourceListProps = {
@@ -22,14 +24,6 @@ export type ResourceListProps = {
 	};
 };
 
-export type ResourceOpenAction = "doc" | "link-sheet" | "new-tab" | "download";
-
-export const resourceOpenAction = (resource: Resource, desktop: boolean): ResourceOpenAction => {
-	if (resource.kind === "doc") return "doc";
-	if (resource.kind === "link") return desktop ? "link-sheet" : "new-tab";
-	return resource.kind === "image" ? "new-tab" : "download";
-};
-
 export function ResourceList({
 	resources,
 	count,
@@ -40,8 +34,12 @@ export function ResourceList({
 	headerClassName,
 	onAdd,
 }: ResourceListProps) {
-	const [doc, setDoc] = useState<Resource | null>(null);
-	const [link, setLink] = useState<Resource | null>(null);
+	const [docId, setDocId] = useState<string | null>(null);
+	const [linkId, setLinkId] = useState<string | null>(null);
+	const [imageId, setImageId] = useState<string | null>(null);
+	const doc = resources.find((resource) => resource.id === docId) ?? null;
+	const link = resources.find((resource) => resource.id === linkId) ?? null;
+	const image = resources.find((resource) => resource.id === imageId) ?? null;
 	const rows = useMemo<ResourceListRow[]>(
 		() =>
 			resources.map((resource) => ({
@@ -54,22 +52,25 @@ export function ResourceList({
 		[resources],
 	);
 	const onOpen = (id: string) => {
-		const resource = resources.find((item) => item.id === id)!;
+		const opened = resources.find((resource) => resource.id === id)!;
 		const desktop = (window as Window & { trellisDesktop?: unknown }).trellisDesktop !== undefined;
-		switch (resourceOpenAction(resource, desktop)) {
-			case "doc":
-				setDoc(resource);
+		switch (resourceOpenAction(opened, desktop)) {
+			case "doc-sheet":
+				setDocId(opened.id);
 				return;
 			case "link-sheet":
-				setLink(resource);
+				setLinkId(opened.id);
+				return;
+			case "image-sheet":
+				setImageId(opened.id);
 				return;
 			case "new-tab":
-				window.open(resourceUrl(resource)!, "_blank", "noopener,noreferrer");
+				window.open(resourceUrl(opened), "_blank", "noopener,noreferrer");
 				return;
 			case "download": {
 				const anchor = document.createElement("a");
-				anchor.href = resourceUrl(resource)!;
-				anchor.download = resource.name;
+				anchor.href = resourceUrl(opened);
+				anchor.download = opened.name;
 				anchor.click();
 			}
 		}
@@ -87,8 +88,9 @@ export function ResourceList({
 				onOpen={onOpen}
 				onAdd={onAdd}
 			/>
-			{doc !== null && <DocSheet key={doc.id} resource={doc} onClose={() => setDoc(null)} />}
-			{link !== null && <LinkBrowserSheet name={link.name} url={link.url!} onClose={() => setLink(null)} />}
+			{doc !== null && <DocSheet key={doc.id} resource={doc} onClose={() => setDocId(null)} />}
+			{link !== null && <LinkBrowserSheet name={link.name} url={link.url!} onClose={() => setLinkId(null)} />}
+			{image !== null && <ImageSheet name={image.name} url={resourceUrl(image)} onClose={() => setImageId(null)} />}
 		</>
 	);
 }

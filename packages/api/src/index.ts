@@ -14,6 +14,7 @@ export * from "./ghCopy.ts";
 export * from "./harness/effort/effort.ts";
 export * from "./harness/harness.ts";
 export * from "./instructions.ts";
+export * from "./linkBrowser/index.ts";
 export * from "./models/models.ts";
 export * from "./notificationSound/index.ts";
 export * from "./pair.ts";
