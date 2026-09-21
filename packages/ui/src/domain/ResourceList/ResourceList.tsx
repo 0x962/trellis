@@ -83,22 +83,25 @@ export function ResourceList({
 					</>
 				}
 			/>
-			{open &&
-				(error !== null ? (
-					<p role="alert" className="py-2 text-sm text-danger">
-						{error}
-					</p>
-				) : loading ? (
-					<Skeleton className="py-2" height="h-4" lines={3} />
-				) : rows.length === 0 ? (
-					<EmptyState description="The epic holds no resource." />
-				) : (
-					<ul id={bodyId} className="flex min-w-0 flex-col">
-						{rows.map((row) => (
-							<ResourceRow key={row.id} row={row} onOpen={onOpen} />
-						))}
-					</ul>
-				))}
+			{open && (
+				<div id={bodyId} className="flex min-w-0 flex-col">
+					{error !== null ? (
+						<p role="alert" className="py-2 text-sm text-danger">
+							{error}
+						</p>
+					) : loading ? (
+						<Skeleton className="py-2" height="h-4" lines={3} />
+					) : rows.length === 0 ? (
+						<EmptyState description="The epic holds no resource." />
+					) : (
+						<ul className="flex min-w-0 flex-col">
+							{rows.map((row) => (
+								<ResourceRow key={row.id} row={row} onOpen={onOpen} />
+							))}
+						</ul>
+					)}
+				</div>
+			)}
 		</section>
 	);
 }
