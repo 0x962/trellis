@@ -1,12 +1,12 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
-import { type AgentRun, runLine, type Ticket } from "@trellis/api";
+import { type AgentRun, hasAssignedProcess, messageTarget, runLine, type Ticket } from "@trellis/api";
 import { SectionHeader, Skeleton } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
-import { hasAssignedProcess } from "../../agents/hasAssignedProcess";
 import { RunLine } from "../RunLine";
 import { StartControls } from "../StartControls";
+import { MessageAgent } from "./components/MessageAgent";
 
 export type RunBlockProps = {
 	ticket: Ticket;
@@ -22,7 +22,8 @@ export const canRetryRun = (run: AgentRun | null) => {
 	return ["failed", "lost"].includes(runLine(run).kind);
 };
 
-// The run that holds the ticket, and the controls that start one.
+// The run that holds the ticket, the controls that start one, and the form
+// that sends a message to the agent while it runs.
 export function RunBlock({ ticket }: RunBlockProps) {
 	const { client, orpc, queryClient } = useApp();
 	const hash = useLocation({ select: (location) => location.hash });
@@ -61,6 +62,7 @@ export function RunBlock({ ticket }: RunBlockProps) {
 		? { starting: retry.isPending, error: retry.error?.message ?? null, onRetry: () => retry.mutate() }
 		: null;
 	const canStart = runs.isSuccess && canStartRun(ticket, runs.data);
+	const target = runs.isSuccess ? messageTarget(runs.data) : null;
 	return (
 		<section aria-label="The run" className="flex min-w-0 flex-col">
 			<SectionHeader title="The run" textCase="caps" />
@@ -86,6 +88,7 @@ export function RunBlock({ ticket }: RunBlockProps) {
 						{metrics.error.message}
 					</p>
 				)}
+				{target !== null && <MessageAgent key={target.id} run={target} />}
 				{canStart && <StartControls ticket={ticket.identifier} waitsOn={ticket.waitsOn} />}
 			</div>
 		</section>

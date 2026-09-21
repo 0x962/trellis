@@ -7,7 +7,7 @@
 trellis is a local ticket tracker for work that humans give to coding agents. One server on your machine stores:
 
 - projects and tickets
-- comments and attachments
+- attachments and the answers to question tickets
 - linked pull requests and their CI results
 
 Agents use the `trellis` CLI or the HTTP API. Each write records the name of the actor that made it. You use the desktop app, the web app, or the mobile app on your phone. An agent can move a ticket to review. Only a human can move a ticket to Done.
@@ -123,7 +123,7 @@ The ticket page shows:
 - the description and the sub-tickets
 - each linked pull request with its check ribbon
 - the attachments
-- one timeline of comments and activity
+- the run of the assigned agent, with a form that sends the agent a message
 - a properties rail with the status, the priority, the parent, and the agents of the ticket
 
 To link a pull request to the ticket, paste its URL on the ticket page or run `trellis pr add <ticket> <url>`. The first prompt of an assigned agent tells the agent to run that command.
@@ -161,7 +161,6 @@ is `apps/web/src/lib/shortcuts.ts`.
 | `1` to `9` | List | Collapse or expand a group |
 | `[`, `]` | Board | Move the ticket one column left or right |
 | `e` | Ticket | Edit the description |
-| `Shift+C` | Ticket | Focus the comment box |
 | `Cmd+C`, `Cmd+Shift+C` | Ticket | Copy the ID or the branch name |
 | `Cmd+.`, `Cmd+Shift+B` | Ticket | Copy the link or the agent brief |
 | `Cmd+Enter` | New ticket | Submit the form |
@@ -219,19 +218,16 @@ Tickets live in trellis, a local tracker at http://127.0.0.1:4521. Use the `trel
 Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, set `TRELLIS_ACTOR=agent:<name>`.
 
 1. Pick work:        trellis list --project TRL --status todo
-2. Read the ticket:  trellis show TRL-42 --comments
+2. Read the ticket:  trellis brief TRL-42
 3. Start:            trellis move TRL-42 in-progress
 4. Put the identifier in the branch name, for example TRL-42-dark-mode. Link the PR to the ticket: trellis pr add TRL-42 <url>
 5. Split work:       trellis sub TRL-42 -t "Write tests"
-6. Ask a question:   trellis comment TRL-42 --body "..." and then wait for the reply: trellis watch --ticket TRL-42
+6. Ask a question:   trellis create -p TRL --status human-review -t "..." --description - with a numbered "Options:" list,
+   then trellis edit TRL-42 --after <question>. The answer reaches your run.
 7. Finish coding:    trellis move TRL-42 agent-review
 8. When the agent review passes: trellis move TRL-42 human-review
+Report what you did in your final message and in the pull request description.
 Never delete tickets.
-
-Read a comment thread: trellis thread show <comment-id>
-Reply in that thread: trellis comment TRL-42 --reply-to <comment-id> --body "..."
-Resolve a thread: trellis thread resolve <comment-id>
-Reopen a thread: trellis thread reopen <comment-id>
 
 Without the CLI, use the HTTP API. It has the same actions. This call creates a ticket:
 curl -X POST http://127.0.0.1:4521/api/tickets -H 'x-trellis-actor: agent:claude-code' -H 'Content-Type: application/json' -d '{"project":"TRL","title":"First"}'
@@ -286,11 +282,6 @@ Global flags: `--json`, `--jsonl`, `--quiet`, `--as`, `--url`, and `--no-color`.
 | `trellis list` | List tickets. `--label` and `--label-not` filter by label. |
 | `trellis edit` | Edit a ticket. `--add-label` and `--remove-label` change its labels. |
 | `trellis move` | Move a ticket to a status. |
-| `trellis comment` | Add a comment. `--reply-to` puts it in a thread. |
-| `trellis comments` | List comments. |
-| `trellis thread show` | Show a comment thread. |
-| `trellis thread resolve` | Resolve a comment thread. |
-| `trellis thread reopen` | Reopen a comment thread. |
 | `trellis attach` | Add an attachment. |
 | `trellis attachments` | List attachments. |
 | `trellis pr add` | Link a pull request. |

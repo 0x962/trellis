@@ -6,7 +6,7 @@ export const VACUUM_AFTER_WRITES = 1000;
 
 // The tables a write touches most. PGlite runs no autovacuum, so dead
 // tuples and stale statistics stay until this runs.
-const VACUUMED_TABLES = ["tickets", "activity", "comments"] as const;
+const VACUUMED_TABLES = ["tickets", "activity"] as const;
 
 // Counts writes and vacuums the busy tables once more than 1000 writes have
 // happened since the last run. `tick` is what the periodic timer calls;

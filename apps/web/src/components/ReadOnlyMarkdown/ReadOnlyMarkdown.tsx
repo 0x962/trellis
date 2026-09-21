@@ -5,7 +5,6 @@ import { renderMarkdown } from "../../lib/markdown";
 export type ReadOnlyMarkdownProps = {
 	markdown: string;
 	className?: string;
-	formatClassName?: "markdown" | "comment-markdown";
 	// `render` overrides `renderMarkdown` and must sanitize its output.
 	render?: (markdown: string) => string;
 };
@@ -14,16 +13,11 @@ type Shown = { src: string; alt: string };
 
 const imageClass = "[&_img]:max-w-full [&_img]:cursor-zoom-in [&_img]:rounded-md [&_img]:border [&_img]:border-border";
 
-// A description or a comment as formatted text. `renderMarkdown` strips
+// A description, an epic document, or an agent line as formatted text. `renderMarkdown` strips
 // every script, event handler, and unsafe URL before the HTML is set. An
 // image, such as a pasted attachment, fits the column and opens large in a
 // lightbox on click.
-export function ReadOnlyMarkdown({
-	markdown,
-	className,
-	formatClassName = "markdown",
-	render = renderMarkdown,
-}: ReadOnlyMarkdownProps) {
+export function ReadOnlyMarkdown({ markdown, className, render = renderMarkdown }: ReadOnlyMarkdownProps) {
 	const [shown, setShown] = useState<Shown | null>(null);
 
 	// React writes the inner HTML again whenever the object under
@@ -45,7 +39,7 @@ export function ReadOnlyMarkdown({
 			{/* biome-ignore lint/a11y/useKeyWithClickEvents: the lightbox is a larger view of an image the text already shows */}
 			<div
 				onClick={onClick}
-				className={cx(formatClassName, imageClass, className)}
+				className={cx("markdown", imageClass, className)}
 				// biome-ignore lint/security/noDangerouslySetInnerHtml: renderMarkdown sanitizes the HTML it returns.
 				dangerouslySetInnerHTML={html}
 			/>

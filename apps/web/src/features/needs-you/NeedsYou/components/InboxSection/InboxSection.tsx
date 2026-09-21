@@ -39,7 +39,7 @@ export function InboxSection({
 	});
 	const query = useInfiniteQuery({ ...options, queryKey: [...options.queryKey, actor?.name] });
 	const items = query.data?.pages.flatMap((page) => page.items) ?? [];
-	const title = section === "review" ? "Needs review" : "Mentioned";
+	const title = "Needs review";
 	return (
 		<section aria-label={title}>
 			<GroupHeader
@@ -65,18 +65,10 @@ export function InboxSection({
 				{!query.isPending && !query.isError && items.length === 0 && (
 					<EmptyState
 						className="px-4"
-						title={
-							visibility === "active"
-								? section === "review"
-									? "Nothing needs review"
-									: "No mentions"
-								: `No ${visibility} items`
-						}
+						title={visibility === "active" ? "Nothing needs review" : `No ${visibility} items`}
 						description={
 							visibility === "active"
-								? section === "review"
-									? "Tickets in human review appear here."
-									: "Mentions clear when the comment or thread is resolved, or the ticket is marked Done after the comment."
+								? "A ticket in human review, or with an open pull request, appears here while no agent works on it. It leaves when its status moves on."
 								: undefined
 						}
 					/>
@@ -99,8 +91,6 @@ export function InboxSection({
 							age={compactRelativeTime(item.ticket.createdAt)}
 							createdAt={item.ticket.createdAt}
 							actor={item.ticket.lastActor && <ActorAvatar actor={item.ticket.lastActor} ticketId={item.ticket.id} />}
-							snippet={item.comment?.body}
-							sender={item.comment?.actorName}
 							wake={visibility === "snoozed" ? (item.snoozedUntil ?? undefined) : undefined}
 							link={<TicketLink identifier={item.ticket.identifier} />}
 							actions={[

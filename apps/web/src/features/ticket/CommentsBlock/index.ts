@@ -1,1 +1,0 @@
-export { CommentsBlock } from "./CommentsBlock";

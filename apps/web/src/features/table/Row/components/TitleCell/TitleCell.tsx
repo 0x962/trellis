@@ -1,4 +1,4 @@
-import { Paperclip, TextAlignLeft } from "@phosphor-icons/react";
+import { Paperclip } from "@phosphor-icons/react";
 import type { TicketSummary } from "@trellis/api";
 import { Tooltip } from "@trellis/ui";
 import { formatCount } from "../../../../../lib/format";
@@ -10,15 +10,15 @@ export type TitleCellProps = {
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
 
 // The title on one line, then the muted marks: the parent, the sub-ticket
-// ring, the attachment count, and the comment count. A long title
-// truncates, so the row keeps its height.
+// ring, and the attachment count. A long title truncates, so the row keeps
+// its height.
 //
 // A done or canceled ticket prints its title alone. Its work is over, so
 // the marks say nothing a person acts on, and the row reads as one quiet
 // line. The caret that shows and hides its pull request lines is not here:
 // `Row` draws it in the track at the right end of the row.
 export function TitleCell({ ticket }: TitleCellProps) {
-	const { parent, childCount, childDoneCount, attachmentCount, commentCount } = ticket;
+	const { parent, childCount, childDoneCount, attachmentCount } = ticket;
 	const progress = childCount === 0 ? 0 : childDoneCount / childCount;
 	if (ticket.status.category === "done" || ticket.status.category === "canceled") {
 		return <span className="truncate text-fg">{ticket.title}</span>;
@@ -68,19 +68,6 @@ export function TitleCell({ ticket }: TitleCellProps) {
 						<Paperclip aria-hidden="true" className="size-2.75" />
 						{formatCount(attachmentCount)}
 					</span>
-				</Tooltip>
-			)}
-			{commentCount > 0 && (
-				<Tooltip content={plural(commentCount, "comment")}>
-					<a
-						href={`/t/${ticket.identifier}#comments`}
-						aria-label={plural(commentCount, "comment")}
-						className="inline-flex shrink-0 items-center gap-0.5 rounded-sm text-xs text-fg-muted tabular hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
-						onClick={(event) => event.stopPropagation()}
-					>
-						<TextAlignLeft aria-hidden="true" className="size-2.75" />
-						{formatCount(commentCount)}
-					</a>
 				</Tooltip>
 			)}
 		</span>

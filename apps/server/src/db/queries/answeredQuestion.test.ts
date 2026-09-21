@@ -2,23 +2,23 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { openTestDb } from "../testDb.ts";
-import { answeredQuestions } from "./answeredQuestion.ts";
+import { answeredQuestions, ticketAnswer } from "./answeredQuestion.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 const root = ulid();
 const todo = ulid();
 const done = ulid();
 // OP-33 waits for OP-52 and OP-53, both answered, and for OP-54, which is
-// done with no option list.
+// done with no option list and holds an answer row all the same.
 const tickets = Array.from({ length: 4 }, () => ulid());
 const at = new Date("2026-09-20T10:00:00.000Z");
 const later = new Date("2026-09-20T11:00:00.000Z");
 
 const question = "Options:\n1. Leave missed\n2. Run late\n3. Wider grace";
 
-const comment = (ticketId: string, body: string, kind: string, name: string, when: Date) =>
-	db.execute(sql`INSERT INTO comments (id, ticket_id, body, actor_name, actor_kind, created_at, updated_at)
-		VALUES (${ulid()}, ${ticketId}, ${body}, ${name}, ${kind}, ${when}, ${when})`);
+const answer = (ticketId: string, option: number, reason: string, kind: string, name: string, when: Date) =>
+	db.execute(sql`INSERT INTO ticket_answers (id, ticket_id, option, reason, actor_name, actor_kind, created_at)
+		VALUES (${ulid()}, ${ticketId}, ${option}, ${reason}, ${name}, ${kind}, ${when})`);
 
 const answers = () => db.transaction((tx) => answeredQuestions(tx, tickets[0] as string));
 
@@ -45,9 +45,9 @@ beforeAll(async () => {
 	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at) VALUES
 		('navid', 'human', ${at}, ${at}),
 		('crisp-fjord', 'agent', ${at}, ${at})`);
-	await comment(tickets[1] as string, "Answer: option 1. A missed night must stay visible.", "human", "navid", at);
-	await comment(tickets[2] as string, "Answer: option 2. One queue per routine.", "human", "navid", at);
-	await comment(tickets[3] as string, "Looks right to me.", "human", "navid", at);
+	await answer(tickets[1] as string, 1, "A missed night must stay visible.", "human", "navid", at);
+	await answer(tickets[2] as string, 2, "One queue per routine.", "human", "navid", at);
+	await answer(tickets[3] as string, 1, "Looks right to me.", "human", "navid", at);
 }, 30_000);
 
 afterAll(async () => {
@@ -65,26 +65,24 @@ test("reports nothing for a ticket that waits on no answered question", async ()
 	expect(await db.transaction((tx) => answeredQuestions(tx, tickets[1] as string))).toEqual([]);
 });
 
-test("reads no answer out of a comment that only starts like one", async () => {
-	await comment(tickets[1] as string, "Answer: option 3 is best, but I took 1.", "human", "navid", later);
+test("reads the answer that an agent wrote", async () => {
+	await answer(tickets[2] as string, 3, "An agent answered through the CLI.", "agent", "crisp-fjord", later);
 
-	expect(await answers()).toMatchObject([{ identifier: "OP-52", option: 1 }, { identifier: "OP-53" }]);
-});
-
-test("reads no answer out of a number that no option can carry", async () => {
-	await comment(tickets[2] as string, "Answer: option 99999999999. why", "human", "navid", later);
-
-	expect(await answers()).toMatchObject([{ identifier: "OP-52" }, { identifier: "OP-53", option: 2 }]);
-});
-
-test("reads no answer out of a comment that an agent wrote", async () => {
-	await comment(tickets[2] as string, "Answer: option 3. An agent cannot answer.", "agent", "crisp-fjord", later);
-
-	expect(await answers()).toMatchObject([{ identifier: "OP-52" }, { identifier: "OP-53", option: 2 }]);
+	expect(await answers()).toMatchObject([{ identifier: "OP-52" }, { identifier: "OP-53", option: 3 }]);
 });
 
 test("takes the newest answer when a person answered twice", async () => {
-	await comment(tickets[1] as string, "Answer: option 3. A wider grace is enough.", "human", "navid", later);
+	await answer(tickets[1] as string, 3, "A wider grace is enough.", "human", "navid", later);
 
 	expect(await answers()).toMatchObject([{ identifier: "OP-52", option: 3 }, { identifier: "OP-53" }]);
+});
+
+test("the newest answer of a question names the option, the reason and the actor", async () => {
+	expect(await db.transaction((tx) => ticketAnswer(tx, tickets[1] as string))).toEqual({
+		option: 3,
+		reason: "A wider grace is enough.",
+		actor: { name: "navid", kind: "human" },
+		createdAt: "2026-09-20T11:00:00.000Z",
+	});
+	expect(await db.transaction((tx) => ticketAnswer(tx, tickets[0] as string))).toBeNull();
 });

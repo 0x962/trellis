@@ -1,16 +1,17 @@
 import {
-	answerCommentBody,
 	asksQuestion,
 	type QuestionOption,
 	readQuestionDescription,
 	TicketAnswerInputSchema,
 	type TicketAnswerOutput,
 } from "@trellis/api";
-import type { ServiceCtx } from "../../context.ts";
+import { sql } from "drizzle-orm";
+import { ulid } from "ulid";
+import { requireActor, type ServiceCtx } from "../../context.ts";
 import { statusById } from "../../db/queries/statusById.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
-import { create as writeComment } from "../comments.ts";
+import { record } from "../activity.ts";
 import { assertProjectActive, resolveTicket, type TicketRow } from "../refs.ts";
 import { enqueueAnswerDeliveries } from "../reviews/enqueueAnswerDeliveries.ts";
 import { move } from "./move.ts";
@@ -37,21 +38,32 @@ const assertQuestion = async (tx: Tx, ticket: TicketRow, option: number) => {
 	if (!options.some((listed) => listed.number === option)) throw invalidInput("option", optionRefusal(options));
 };
 
-// Answers a question ticket. The answer becomes a comment on the question,
-// the question moves to the done category, and each running agent that waits
-// for the question gets a row in `review_deliveries`. The delivery loop sends
-// those rows; this write only queues them.
+// Answers a question ticket. The answer becomes a `ticket_answers` row and an
+// activity row on the question, the question moves to the done category, and
+// each running agent that waits for the question gets a row in
+// `review_deliveries`. The delivery loop sends those rows; this write only
+// queues them. `record` writes the actor row that the answer row points at, so
+// it runs before the insert.
 export const answer = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<TicketAnswerOutput> => {
 	const input = TicketAnswerInputSchema.parse(rawInput);
 	const question = await resolveTicket(ctx, tx, input.ticket);
 	assertProjectActive(ctx, question.projectId);
 	await assertVersion(tx, question, input.expectedVersion);
 	await assertQuestion(tx, question, input.option);
-	const comment = await writeComment(ctx, tx, {
-		ticket: question.id,
-		body: answerCommentBody(input.option, input.reason),
+	const actor = requireActor(ctx);
+	const answerId = ulid();
+	await record(ctx, tx, {
+		rootId: question.rootId,
+		projectId: question.projectId,
+		ticketId: question.id,
+		action: "ticket.answered",
+		changes: [{ field: null, from: null, to: null, meta: { answerId, option: input.option } }],
 	});
+	await tx.execute(
+		sql`INSERT INTO ticket_answers (id, ticket_id, option, reason, actor_name, actor_kind, created_at)
+			VALUES (${answerId}, ${question.id}, ${input.option}, ${input.reason}, ${actor.name}, ${actor.kind}, ${ctx.now})`,
+	);
 	const ticket = await move(ctx, tx, { ticket: question.id, status: "category:done" });
-	const deliveries = await enqueueAnswerDeliveries(tx, { commentId: comment.id, questionId: question.id });
-	return { ticket, commentId: comment.id, deliveries };
+	const deliveries = await enqueueAnswerDeliveries(tx, { answerId, questionId: question.id });
+	return { ticket, answerId, deliveries };
 };

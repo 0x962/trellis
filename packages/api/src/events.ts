@@ -14,9 +14,6 @@ export const eventNames = [
 	"pr.linked",
 	"pr.unlinked",
 	"pr.updated",
-	"comment.created",
-	"comment.updated",
-	"comment.deleted",
 	"notes.changed",
 	"epics.changed",
 	"attachment.created",
@@ -74,18 +71,12 @@ export const PrEventPayloadSchema = z.object({
 	ciState: CiStateSchema,
 });
 
-// `id` is the comment or attachment id. `projectId` is the project of the
+// `id` is the attachment id. `projectId` is the project of the
 // ticket, which a project-scoped event stream reads.
 export const TicketChildEventPayloadSchema = z.object({
 	id: UlidSchema,
 	ticketId: UlidSchema,
 	projectId: UlidSchema.optional(),
-});
-
-export const CommentEventPayloadSchema = TicketChildEventPayloadSchema.extend({
-	parentId: UlidSchema.nullable().optional(),
-	threadId: UlidSchema.optional(),
-	resolved: z.boolean().optional(),
 });
 
 export const StatusesChangedPayloadSchema = z.object({
@@ -158,9 +149,6 @@ export const EventSchema = z.discriminatedUnion("type", [
 	typed("pr.linked", PrEventPayloadSchema),
 	typed("pr.unlinked", PrEventPayloadSchema),
 	typed("pr.updated", PrEventPayloadSchema),
-	typed("comment.created", CommentEventPayloadSchema),
-	typed("comment.updated", CommentEventPayloadSchema),
-	typed("comment.deleted", CommentEventPayloadSchema),
 	typed("notes.changed", NotesChangedPayloadSchema),
 	typed("epics.changed", EpicsChangedPayloadSchema),
 	typed("attachment.created", TicketChildEventPayloadSchema),

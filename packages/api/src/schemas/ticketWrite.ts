@@ -89,7 +89,7 @@ export type TicketAnswerDelivery = z.infer<typeof TicketAnswerDeliverySchema>;
 // this question holds a running agent.
 export const TicketAnswerOutputSchema = z.object({
 	ticket: TicketSchema,
-	commentId: UlidSchema,
+	answerId: UlidSchema,
 	deliveries: z.array(TicketAnswerDeliverySchema),
 });
 export type TicketAnswerOutput = z.infer<typeof TicketAnswerOutputSchema>;

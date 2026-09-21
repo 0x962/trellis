@@ -1,6 +1,5 @@
 import { sql, TransactionRollbackError } from "drizzle-orm";
 import { type ServiceCtx, SYSTEM_ACTOR } from "../context.ts";
-import * as comments from "../services/comments.ts";
 import { chainOf } from "../services/refs.ts";
 import * as tickets from "../services/tickets.ts";
 import type { ProjectCache } from "./cache.ts";
@@ -49,7 +48,6 @@ export const warmWrites = async (db: Db, cache: ProjectCache) => {
 	await db
 		.transaction(async (tx) => {
 			await tickets.update(ctx, tx, { ticket: ticket.id, title });
-			await comments.create(ctx, tx, { ticket: ticket.id, body: WARM_TITLE });
 			await tickets.move(ctx, tx, { ticket: ticket.id, status: ticket.status_id });
 			tx.rollback();
 		})

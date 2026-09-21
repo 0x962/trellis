@@ -17,7 +17,7 @@ const output = (fields: Partial<TicketAnswerOutput> = {}): TicketAnswerOutput =>
 				},
 			],
 		},
-		commentId: "01M30E70H4Y03NV9TX8NY3CME1",
+		answerId: "01M30E70H4Y03NV9TX8NY3CME1",
 		deliveries: [
 			{
 				ticket: "OP-33",
@@ -63,7 +63,7 @@ test("prints the answer, status, released tickets, and deliveries", () => {
 	expect(answerText({ ...output(), option: 1 })).toBe(`ticket: OP-52
 option: 1
 status: done
-commentId: 01M30E70H4Y03NV9TX8NY3CME1
+answerId: 01M30E70H4Y03NV9TX8NY3CME1
 releases:
   OP-33  One routine failure does not end the sweep pass
 deliveries:
@@ -80,7 +80,7 @@ test("prints empty release and delivery fields", () => {
 	).toBe(`ticket: OP-52
 option: 2
 status: done
-commentId: 01M30E70H4Y03NV9TX8NY3CME1
+answerId: 01M30E70H4Y03NV9TX8NY3CME1
 releases:
   nothing
 deliveries:

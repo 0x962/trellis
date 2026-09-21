@@ -1,4 +1,5 @@
 export {
+	type QuestionAnswer,
 	QuestionBlock,
 	type QuestionBlockProps,
 	type QuestionOption,

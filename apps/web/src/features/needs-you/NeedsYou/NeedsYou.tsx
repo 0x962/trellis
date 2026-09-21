@@ -51,7 +51,6 @@ export function NeedsYou() {
 			<div data-testid="needs-you-body" className="page-card flex min-h-0 flex-1 flex-col overflow-hidden">
 				<div className="min-h-0 flex-1 overflow-y-auto">
 					<InboxSection section="review" {...search} />
-					<InboxSection section="mentioned" {...search} />
 				</div>
 			</div>
 		</>

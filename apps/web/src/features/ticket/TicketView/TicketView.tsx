@@ -11,7 +11,6 @@ import { useUploads } from "../../attachments/hooks/useUploads";
 import { NotFoundState } from "../../shell/NotFoundState";
 import { usePageSheet } from "../../shell/PageSheet";
 import { ChainBlock } from "../ChainBlock";
-import { CommentsBlock } from "../CommentsBlock";
 import { ContractBlock } from "../ContractBlock";
 import { Description } from "../Description";
 import { EvidenceBlock } from "../EvidenceBlock";
@@ -87,7 +86,9 @@ export function TicketView({ identifier }: TicketViewProps) {
 	if (query.data === undefined) return <TicketSkeleton />;
 	const ticket = query.data;
 	const readOnly = isArchived(ticket.project.path);
-	const question = asksQuestion(ticket.status.reviewer, ticket.description);
+	// A question keeps its question block once it is answered, and the block
+	// then shows the stored answer.
+	const question = asksQuestion(ticket.status.reviewer, ticket.description) || ticket.answer !== null;
 	// On a question, `QuestionBlock` prints the options and the reason, so the
 	// ask prints only the prose around them, and a person cannot edit it here.
 	const ask = question ? questionParts(ticket.description).ask : "";
@@ -148,7 +149,6 @@ export function TicketView({ identifier }: TicketViewProps) {
 						</>
 					)}
 					<ResourcesBlock ticket={ticket} />
-					{ticket.commentCount > 0 && <CommentsBlock ticket={ticket.identifier} count={ticket.commentCount} />}
 					<SubTickets ticket={ticket} />
 					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
 				</div>

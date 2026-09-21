@@ -31,6 +31,7 @@ export * from "./tables/prSummaries.ts";
 export * from "./tables/pullRequests.ts";
 export * from "./tables/reviews.ts";
 export * from "./tables/sessions.ts";
+export * from "./tables/ticketAnswers.ts";
 export * from "./tables/ticketDeps.ts";
 export * from "./tables/waves.ts";
 
@@ -143,8 +144,10 @@ export const tickets = pgTable(
 	],
 );
 
-// The generated column `search` (body at weight C) and its GIN index live in
-// the migration 0002_constraints: drizzle-kit renders neither.
+// The ticket comments of an earlier version of trellis. No code reads or
+// writes this table; it keeps the stored rows. The generated column `search`
+// (body at weight C) and its GIN index live in the migration
+// 0002_constraints: drizzle-kit renders neither.
 export const comments = pgTable(
 	"comments",
 	{
