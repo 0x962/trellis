@@ -32,6 +32,7 @@ export {
 export { insertBlock, ReviewCommentEditor } from "./ReviewCommentEditor";
 export { type ConversationMeta, ReviewConversation } from "./ReviewConversation/ReviewConversation";
 export { type DiffAnchor, ReviewDiff } from "./ReviewDiff/ReviewDiff";
+export { ReviewFocusList, type ReviewFocusListProps } from "./ReviewFocusList";
 export { ReviewStatus } from "./ReviewStatus/ReviewStatus";
 export { ReviewSuggestion, type ReviewSuggestionLine, type ReviewSuggestionState } from "./ReviewSuggestion";
 export { ReviewThreadCard } from "./ReviewThreadCard/ReviewThreadCard";

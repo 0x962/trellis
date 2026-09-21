@@ -450,10 +450,8 @@ The API route is `POST /api/tickets/{ticket}/answer`. It accepts TicketRef,
 deliveries. The delivered message holds the option, its text, and the reason.
 
 The CLI verb is `trellis answer <TicketRef> --option <n> --reason <text>`.
-The web route `/t/<KEY-n>` draws the options, the recommendation, the reason
-field, the released tickets, and the Answer action under the ask of a question
-ticket, in place of the description editor. An answered question keeps its
-question block, which shows the picked option and the reason.
+No web route draws the options or the Answer action. A person answers with
+`trellis answer`.
 
 `Ticket.answer` is the newest answer of the ticket. `Ticket.answeredQuestions`
 reads the newest answer of each done question that the ticket waits for.

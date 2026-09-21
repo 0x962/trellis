@@ -78,7 +78,7 @@ export function QuestionBlock({
 	if (options.length === 0) {
 		return (
 			<section aria-label="The question" className="flex min-w-0 flex-col">
-				<SectionHeader title="The question" />
+				<SectionHeader title="The question" textCase="caps" />
 				<EmptyState description="The ticket lists no option to pick." />
 			</section>
 		);
@@ -92,7 +92,7 @@ export function QuestionBlock({
 	return (
 		<section aria-label="The question" className="flex min-w-0 flex-col gap-4">
 			<div className="flex min-w-0 flex-col">
-				<SectionHeader title="The question" />
+				<SectionHeader title="The question" textCase="caps" />
 				<ChoiceGroup
 					className="-mx-3 mt-1"
 					label="The options of this question"
@@ -104,13 +104,13 @@ export function QuestionBlock({
 			</div>
 			{recommendation !== null && recommendation.reason !== "" && (
 				<div className="flex min-w-0 flex-col">
-					<SectionHeader level={3} title={recommendationLabel(recommendation)} />
+					<SectionHeader level={3} title={recommendationLabel(recommendation)} textCase="caps" />
 					<p className="text-sm text-fg">{recommendation.reason}</p>
 				</div>
 			)}
 			{releases.length > 0 && (
 				<div className="flex min-w-0 flex-col">
-					<SectionHeader level={3} title="This answer releases" />
+					<SectionHeader level={3} title="This answer releases" textCase="caps" />
 					{releases.map((release) => (
 						<TicketLine key={release.identifier} {...release} />
 					))}
@@ -118,7 +118,7 @@ export function QuestionBlock({
 			)}
 			{answer !== null ? (
 				<div className="flex min-w-0 flex-col">
-					<SectionHeader level={3} title="The answer" />
+					<SectionHeader level={3} title="The answer" textCase="caps" />
 					<p className="text-sm font-medium text-fg">
 						{answer.by} picked option {answer.option}.
 					</p>
@@ -131,7 +131,7 @@ export function QuestionBlock({
 				</div>
 			) : (
 				<div className="flex min-w-0 flex-col gap-2">
-					<SectionHeader level={3} title="Your answer" />
+					<SectionHeader level={3} title="Your answer" textCase="caps" />
 					<Textarea
 						label="Your reason"
 						hideLabel
