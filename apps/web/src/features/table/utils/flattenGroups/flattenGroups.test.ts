@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { TicketPr, TicketSummary } from "@trellis/api";
 import type { TicketAgentLine } from "../agentLines";
-import { flattenGroups, type TableGroup } from "./flattenGroups";
+import { flattenGroups, phoneItems, type TableGroup } from "./flattenGroups";
 
 const pr = (number: number) => ({ number, owner: "0x962", repo: "trellis" }) as TicketPr;
 
@@ -87,5 +87,34 @@ describe("flattenGroups", () => {
 		const agentLines = { a: line("crisp-fjord: I rebased.") };
 
 		expect(flattenGroups(groups, { agentLines }).map((item) => item.kind)).toEqual(["header"]);
+	});
+});
+
+describe("the agent line on the row", () => {
+	const rowLines = (items: ReturnType<typeof flattenGroups>) =>
+		items.flatMap((item) => (item.kind === "row" ? [item.agentLine] : []));
+
+	test("the epic route gives each row its line, or null when the run says nothing", () => {
+		const groups = [group("todo", true, [ticket("a"), ticket("b")])];
+
+		expect(rowLines(flattenGroups(groups, { prRows: true, agentLines: { a: line("Pushed.") } }))).toEqual([
+			line("Pushed."),
+			null,
+		]);
+	});
+
+	test("another route leaves the field out", () => {
+		const groups = [group("todo", true, [ticket("a")])];
+
+		expect(rowLines(flattenGroups(groups, { agentLines: { a: line("Pushed.") } }))).toEqual([undefined]);
+	});
+});
+
+describe("phoneItems", () => {
+	test("drops the agent lines and the pull request lines, and keeps the rest in order", () => {
+		const groups = [{ ...group("todo", true, [ticket("a", [pr(11)]), ticket("b")]), hasMore: true }];
+		const items = flattenGroups(groups, { prRows: true, agentLines: { a: line("Pushed.") } });
+
+		expect(phoneItems(items).map((item) => item.kind)).toEqual(["header", "row", "row", "more"]);
 	});
 });

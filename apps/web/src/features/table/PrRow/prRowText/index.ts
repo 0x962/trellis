@@ -1,1 +1,1 @@
-export { type PrRowCell, type PrRowTone, prRowCells } from "./prRowText";
+export { type PrRowCell, type PrRowTone, prPhoneCells, prRowCells } from "./prRowText";

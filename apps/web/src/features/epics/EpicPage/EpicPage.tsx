@@ -3,7 +3,7 @@ import { PencilSimple, Plus, Trash } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { AgentRun, Project, TicketSummary } from "@trellis/api";
-import { Button, EmptyState, IconButton, Menu } from "@trellis/ui";
+import { Button, EmptyState, IconButton, Menu, useMediaQuery } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { errorMessage } from "../../../lib/conflict";
@@ -52,15 +52,15 @@ const breadcrumbLinkClass =
 
 // One epic: the progress band, the plan, and the tickets of the epic in the
 // ticket table of the project routes. The table search is the URL search
-// with `epic` fixed to this epic, and it groups by milestone when the URL
-// names no group. An epic belongs to a root and holds tickets of any
-// project of that root, so the table reads the root with its sub-projects,
-// and the rows match the counts of the band and the tickets that Add
-// offers. The filter bar receives `epic` as a fixed filter, so it draws no
-// epic chip and "Copy as CLI" still names the epic. Add puts a ticket of the project into the epic; the bulk bar of the
-// table and the rail of the ticket page take one out. Both are ticket
-// writes, so the ticket rows and the epic counts refetch from the ticket
-// events.
+// with `epic` fixed to this epic, and it groups by milestone (by turn below
+// 768 px) when the URL names no group. An epic belongs to a root and holds
+// tickets of any project of that root, so the table reads the root with its
+// sub-projects, and the rows match the counts of the band and the tickets
+// that Add offers. The filter bar receives `epic` as a fixed filter, so it
+// draws no epic chip and "Copy as CLI" still names the epic. Add puts a
+// ticket of the project into the epic; the bulk bar of the table and the
+// rail of the ticket page take one out. Both are ticket writes, so the
+// ticket rows and the epic counts refetch from the ticket events.
 export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProps) {
 	const { orpc, queryClient } = useApp();
 	const navigate = useNavigate();
@@ -127,10 +127,11 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	// The search and the filter bar need the epic ref and the project alone,
 	// so the pending page draws the same bar as the loaded page and the
 	// topbar keeps its shape when the epic arrives.
-	const tableSearch = useMemo(() => epicPageSearch(search, ref), [search, ref]);
+	const phone = useMediaQuery("(max-width: 767px)");
+	const tableSearch = useMemo(() => epicPageSearch(search, ref, phone), [search, ref, phone]);
 	const { epic: fixedEpic, ...barSearch } = tableSearch;
 	const full = viewOf(tableSearch);
-	const setSearch = (next: Partial<View>) => onSearchChange(epicUrlSearch(next));
+	const setSearch = (next: Partial<View>) => onSearchChange(epicUrlSearch(next, phone));
 	const filterBar = (
 		<FilterBar
 			project={project.path}
@@ -248,6 +249,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 						running={running}
 						splat={splat}
 						search={tableSearch}
+						phone={phone}
 						workingTicketIds={workingTicketIds}
 					/>
 					<EpicPlan routeKey={routeKey} description={record.description} />

@@ -108,7 +108,7 @@ export const buildColumns = () =>
 	);
 
 // The columns a screen under 768 px hides, so the title keeps room to read.
-export const narrowHidden: readonly ColumnId[] = ["labels", "pr", "project", "actor"];
+export const narrowHidden: readonly ColumnId[] = ["labels", "pr", "project", "actor", "releases"];
 
 // The kind of table a route draws. An epic is a plan, so only its table
 // shows which ticket waits for which.

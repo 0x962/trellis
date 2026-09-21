@@ -6,15 +6,15 @@ import type { Density } from "../../stores/uiStore";
 // pending state must not load the row and its pickers.
 export const rowHeights: Record<Density, number> = { comfortable: 36, compact: 32 };
 
-// The row box below 768 px, where a row is two lines.
+// The row box below 768 px, where a row is two lines. On the epic table the
+// second line holds one fact of the ticket, and the table draws no pull
+// request line and no agent line, so every ticket takes 56 px.
 export const phoneRowHeight = 56;
 
-// The row box of one pull request under a ticket row. It does not change
-// with the density or the width, so the epic table scrolls the same on a
-// phone and on a desktop.
+// The row box of one pull request under a ticket row, 768 px and up. It
+// does not change with the density.
 export const prRowHeight = 32;
 
-// The row box of the agent line under a ticket row. It does not change with
-// the density or the width, so the epic table scrolls the same on a phone
-// and on a desktop.
+// The row box of the agent line under a ticket row, 768 px and up. It does
+// not change with the density.
 export const agentLineHeight = 24;

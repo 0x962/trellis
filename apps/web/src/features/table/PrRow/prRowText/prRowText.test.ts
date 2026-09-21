@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { TicketPr } from "@trellis/api";
 import { prOf } from "../prOf";
-import { prRowCells } from "./prRowText";
+import { prPhoneCells, prRowCells } from "./prRowText";
 
 // The size cell holds a value, not text. `LineChanges` draws it, so this
 // helper writes the counts the way that element writes them.
@@ -128,5 +128,27 @@ describe("prRowCells", () => {
 		expect(toneOf(prOf({ pass: 43 }), "turn")).toBe("fg");
 		expect(toneOf(prOf({ pending: 1 }), "turn")).toBe("muted");
 		expect(textOf(prOf({ pending: 1 }))).toBe("open · 1 pending · no evidence · github");
+	});
+});
+
+describe("prPhoneCells", () => {
+	test("keeps the state, the checks and the turn, and drops every other cell", () => {
+		const pr = prOf({
+			additions: 311,
+			deletions: 12,
+			changedFiles: 6,
+			fail: 1,
+			pass: 47,
+			openThreads: 2,
+			stackedOn: { number: 55569, headRef: "nk/operator-routine-execution", ticketIdentifier: "TRL-32" },
+			flowRuns: [{ status: "running" }],
+		});
+
+		expect(prPhoneCells(pr).map((cell) => ("text" in cell ? cell.text : cell.key))).toEqual([
+			"open",
+			"1 failed",
+			"47 passed",
+			"agent",
+		]);
 	});
 });

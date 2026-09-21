@@ -60,11 +60,11 @@ const countsOptions = (context: AppContext, ref: string, search: Partial<View>, 
 // segments. The URL keeps slashes, and the API ref joins with dots. The URL
 // omits the default view.
 export const Route = createFileRoute("/p/$")({
-	// The epic page groups by milestone when the URL names no group, and
-	// lists the sub-projects when the URL names no scope. So `group=status`
-	// and `scope=self` are choices there, and the validated search keeps
-	// them. On every other view `beforeLoad` redirects them away as written
-	// defaults.
+	// The epic page groups by milestone (by turn below 768 px) when the URL
+	// names no group, and lists the sub-projects when the URL names no scope.
+	// So `group=status` and `scope=self` are choices there, and the validated
+	// search keeps them. On every other view `beforeLoad` redirects them away
+	// as written defaults.
 	validateSearch: (search: Record<string, unknown>) => keepEpicPageChoices(search, stripDefaults(parseSearch(search))),
 	beforeLoad: ({ location, params, search }) => {
 		// The board is the bare path now. An older link that ends in /board
@@ -75,8 +75,9 @@ export const Route = createFileRoute("/p/$")({
 			throw redirect({ to: "/p/$", params: { _splat: withoutBoard }, search, replace: true });
 		}
 		if (parseProjectSplat(splat).view === "epic") {
-			if (!isCanonicalEpicSearch(location.searchStr, search)) {
-				const canonical = epicUrlSearch(epicPageSearch(search, ""));
+			const phone = window.matchMedia("(max-width: 767px)").matches;
+			if (!isCanonicalEpicSearch(location.searchStr, search, phone)) {
+				const canonical = epicUrlSearch(epicPageSearch(search, "", phone), phone);
 				throw redirect({ to: "/p/$", params: { _splat: splat }, search: canonical, replace: true });
 			}
 			return;

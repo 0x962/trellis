@@ -32,7 +32,10 @@ export type TableGroup = RowGroup & {
 // One line of the virtual list.
 export type TableItem =
 	| { kind: "header"; key: string; group: TableGroup }
-	| { kind: "row"; key: string; group: TableGroup; ticket: TicketSummary }
+	// `agentLine` is set on the epic route alone: the line of the ticket's
+	// run, or null when the run says nothing. A phone row reads it, together
+	// with the ticket, to fill its second line.
+	| { kind: "row"; key: string; group: TableGroup; ticket: TicketSummary; agentLine?: TicketAgentLine | null }
 	| { kind: "agent"; key: string; group: TableGroup; line: TicketAgentLine }
 	| { kind: "pr"; key: string; group: TableGroup; pr: TicketPr }
 	| { kind: "more"; key: string; group: TableGroup };
@@ -58,8 +61,9 @@ export const flattenGroups = (groups: readonly TableGroup[], options: FlattenOpt
 		if (group.label !== null) items.push({ kind: "header", key: `header:${group.key}`, group });
 		if (!group.expanded) continue;
 		for (const ticket of group.rows) {
-			items.push({ kind: "row", key: ticket.id, group, ticket });
 			const line = options.agentLines?.[ticket.id];
+			const row = { kind: "row", key: ticket.id, group, ticket } as const;
+			items.push(options.prRows === true ? { ...row, agentLine: line ?? null } : row);
 			if (line !== undefined) items.push({ kind: "agent", key: `agent:${ticket.id}`, group, line });
 			if (options.prRows !== true) continue;
 			// Two tickets can link the same pull request, so the ticket id is
@@ -71,3 +75,9 @@ export const flattenGroups = (groups: readonly TableGroup[], options: FlattenOpt
 	}
 	return items;
 };
+
+// The lines below 768 px. A phone row shows the run's words or a pull
+// request on its own second line, so the agent lines and the pull request
+// lines leave the list.
+export const phoneItems = (items: readonly TableItem[]): TableItem[] =>
+	items.filter((item) => item.kind !== "agent" && item.kind !== "pr");

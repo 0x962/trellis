@@ -19,7 +19,7 @@ import type { RowSelection } from "../../../hooks/useRowSelection";
 import { PrRow } from "../../../PrRow";
 import { type EditField, Row, type RowChange } from "../../../Row";
 import { agentLineHeight, phoneRowHeight, prRowHeight, rowHeights } from "../../../rowHeights";
-import type { TableGroup, TableItem } from "../../../utils/flattenGroups";
+import { phoneItems, type TableGroup, type TableItem } from "../../../utils/flattenGroups";
 import { ShowMoreRow, showMoreHeight } from "../ShowMoreRow";
 import { TableSkeleton } from "../TableSkeleton";
 
@@ -65,7 +65,7 @@ const heightOf = (item: TableItem, rowHeight: number, headerHeight: number) => {
 // fixed height, so the spacer is the sum of the lines and never moves
 // when data arrives.
 export function TableBody({
-	items,
+	items: allItems,
 	columns,
 	density,
 	project,
@@ -91,6 +91,7 @@ export function TableBody({
 	const phone = useMediaQuery("(max-width: 767px)");
 	const rowHeight = phone ? phoneRowHeight : rowHeights[density];
 	const headerHeight = phone ? phoneGroupHeaderHeight : groupHeaderHeight;
+	const items = useMemo(() => (phone ? phoneItems(allItems) : allItems), [phone, allItems]);
 	const [initialRect, setInitialRect] = useState({ width: 0, height: 0 });
 	useLayoutEffect(() => {
 		const { width, height } = viewport.current!.getBoundingClientRect();
@@ -218,6 +219,7 @@ export function TableBody({
 								top={virtual.start}
 								group={item.group.key}
 								phone={phone}
+								agentLine={item.agentLine}
 								focused={ticket.id === focusedId}
 								selected={selection.isSelected(ticket.id)}
 								selecting={selection.count > 0}
