@@ -63,9 +63,19 @@ After you build the app, run this command from the repository root:
 bun apps/desktop/scripts/sign-preview.ts apps/desktop/release/mac-arm64/Trellis.app
 ```
 
-The command signs native host binaries and the app with the local ad-hoc identity `-`. It recalculates the host release hash before it seals the outer app. It then verifies the nested signatures and the complete app.
+The command signs native host binaries and the app with the "Trellis Local Signing" certificate from the login keychain. It recalculates the host release hash before it seals the outer app. It then verifies the nested signatures and the complete app.
 
-This local preview disables hardened runtime through `codesign --options 0`. Ad-hoc binaries have no shared Team ID, so library validation rejects the native modules with hardened runtime enabled. The production entitlement file and Developer ID build settings retain their existing settings. The preview has no Developer ID signature or notarization.
+The first run on a machine creates the certificate: a self-signed code signing certificate with a 100-year validity. The import gives `/usr/bin/codesign` access to the private key, so the keychain shows no prompt. The certificate has no trust setting, and codesign signs with it by its SHA-1 hash. Keep the certificate in the login keychain. A new certificate changes the signature of every later build.
+
+macOS keys each privacy grant (Full Disk Access, Desktop, Documents, network volumes) to the designated requirement of the app. With this certificate, the requirement is `identifier "com.trellis.desktop" and certificate leaf = H"<hash>"`, so a grant stays valid across builds. An ad-hoc signature puts the build hash in the requirement, and macOS asks again after each install. Each copied release `bin/node` carries the same certificate. macOS asks for access in the name of the app bundle, because `TrellisHost` in the bundle starts the host and its agents.
+
+This local preview disables hardened runtime through `codesign --options 0`. A self-signed certificate has no Team ID, so library validation rejects the native modules with hardened runtime enabled. The production entitlement file and Developer ID build settings retain their existing settings. The preview has no Developer ID signature or notarization.
+
+## Folder access
+
+When the packaged app opens its window, it checks for Full Disk Access. It reads `~/Library/Application Support/com.apple.TCC/TCC.db`, which macOS protects without a prompt. Without the grant, Trellis shows one dialog that lists the protected folders that agents read and opens the Full Disk Access pane of System Settings. A granted app never shows the dialog. "Do not ask again" writes `full-disk-access-declined` in the Trellis application data directory; delete the file to see the dialog again.
+
+After the first install with the local certificate, macOS still lists Trellis under Full Disk Access with the grant of the ad-hoc build. Turn Trellis off and on again once to store the new requirement.
 
 ## Production install
 
@@ -97,7 +107,7 @@ To prepare a verified candidate without a production install:
 bun run desktop:install --prepare /tmp/trellis-preview/Trellis.app
 ```
 
-This command uses the local ad-hoc signature described above. It requires Node, npm, the macOS developer tools, and network access for dependencies. A failed build leaves its temporary directory for inspection.
+This command uses the local signature described above. It requires Node, npm, the macOS developer tools, and network access for dependencies. A failed build leaves its temporary directory for inspection.
 
 The app retains earlier releases. The release identity includes the desktop launcher, preload bridge, service launcher, native helper, and LaunchAgent configuration. An unknown service state blocks activation.
 
