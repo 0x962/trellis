@@ -25,7 +25,7 @@ import { ReviewDiscussion } from "../ReviewDiscussion/ReviewDiscussion";
 import { ReviewFocusList } from "../ReviewFocusList";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
 import { ReviewStack } from "../ReviewStack/ReviewStack";
-import { primaryReviewAction, type ReviewActionMeta } from "../reviewActions/reviewActions";
+import { primaryReviewAction } from "../reviewActions/reviewActions";
 import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
 import { FilesDisclosure } from "./components/FilesDisclosure";
@@ -119,6 +119,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	);
 	const displayRevision = revision ? { ...revision, meta: status.data ?? revision.meta } : null;
 	const displayMeta = displayRevision?.meta as GithubPullRequest | undefined;
+	const showMerge = displayMeta !== undefined && primaryReviewAction(displayMeta) === "merge";
 	const toggleBatch = useCallback((threadId: string) => {
 		setBatch((current) => {
 			const next = new Set(current);
@@ -315,7 +316,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						</div>
 					</FilesDisclosure>
 				</div>
-				{displayRevision && primaryReviewAction(displayRevision.meta as ReviewActionMeta) === "merge" && (
+				{displayRevision && (showMerge || status.data?.ticket) && (
 					<VerdictBar
 						pr={pr}
 						revision={displayRevision}
@@ -324,6 +325,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						drafts={drafts}
 						unmetConditions={conditions === null ? conditionsUnknown : unmetConditions(conditions)}
 						phone={phone}
+						showMerge={showMerge}
 						onDone={refreshAll}
 					/>
 				)}

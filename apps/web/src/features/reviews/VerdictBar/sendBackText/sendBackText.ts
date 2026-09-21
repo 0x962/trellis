@@ -18,3 +18,8 @@ export const sendBackLabel = (runName: string | null) =>
 // What the toast says after the drafts reach an agent. The name is the name
 // the button printed, so the person reads the same word twice.
 export const sendBackResult = (runName: string) => `${runName} has the review.`;
+
+export const noRunResult = (ticket: string) => `No agent run can take the review. Start a run for ${ticket}.`;
+
+export const runStartFailure = (ticket: string) =>
+	`The review stays on GitHub. Open ${ticket} to inspect the run and start it there.`;

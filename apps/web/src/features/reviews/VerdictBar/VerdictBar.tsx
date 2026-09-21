@@ -25,21 +25,31 @@ export type VerdictBarProps = {
 	// words of `conditionLines`.
 	unmetConditions: readonly string[];
 	phone: boolean;
+	showMerge: boolean;
 	onDone: () => void;
 };
 
-// The bar under the review column: how many drafts wait, and the ways to end
-// the review. `Merge` stays live with any condition unmet, and the line under
-// the bar names each one, so the person reads what he overrules before he
-// clicks.
-export function VerdictBar({ pr, revision, ticket, run, drafts, unmetConditions, phone, onDone }: VerdictBarProps) {
+// The bar under the review column shows the draft count and the available
+// review actions. `Merge` stays live with any condition unmet, and its line
+// names each condition before the person clicks.
+export function VerdictBar({
+	pr,
+	revision,
+	ticket,
+	run,
+	drafts,
+	unmetConditions,
+	phone,
+	showMerge,
+	onDone,
+}: VerdictBarProps) {
 	const meta = revision.meta as { baseRefName?: string };
-	const line = phone ? phoneNoMergeLine : unmetLine(unmetConditions);
+	const line = showMerge ? (phone ? phoneNoMergeLine : unmetLine(unmetConditions)) : "";
 	return (
 		<section className="review-bar review-verdict-bar" aria-label="Verdict">
 			<div className="review-verdict-bar-row">
 				<span className="review-verdict-bar-drafts">{draftCount(drafts.length)}</span>
-				{!phone && (
+				{showMerge && !phone && (
 					<MergeButton
 						pr={pr}
 						revision={revision}
