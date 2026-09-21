@@ -15,7 +15,7 @@ import type { z } from "zod";
 import { searchParamOrder } from "../../lib/searchParams";
 import type { Density } from "../../stores/uiStore";
 
-export type Group = "none" | "status" | "priority" | "project" | "parent" | "epic" | "milestone" | "turn" | "pr";
+export type Group = "none" | "status" | "priority" | "project" | "parent" | "epic" | "wave" | "turn" | "pr";
 export type Scope = "subprojects" | "self";
 
 // The list fields a chip can negate. `not` names the fields whose value
@@ -40,9 +40,9 @@ export type View = {
 	// An epic ref, `OP/routine-runtime`, or `none` for the tickets outside
 	// every epic.
 	epic?: string;
-	// A milestone ref, `OP/routine-runtime/phase-1`, or `none` for the tickets
-	// outside every milestone.
-	milestone?: string;
+	// A wave ref, `OP/routine-runtime/phase-1`, or `none` for the tickets
+	// outside every wave.
+	wave?: string;
 	pr?: z.infer<typeof PrFilterSchema>;
 	ci?: z.infer<typeof CiStateSchema>[];
 	actor?: string;
@@ -72,6 +72,8 @@ export const viewDefaults = {
 // The order the params take in a URL: the API grammar first, then the
 // web-only fields.
 const relativePattern = /^(\d+)([hd])$/;
+// Saved bookmarks can carry the "milestone" key. Read it so each bookmark still opens.
+const legacyWaveKey = "milestone";
 
 const groups: ReadonlySet<string> = new Set([
 	"none",
@@ -80,7 +82,7 @@ const groups: ReadonlySet<string> = new Set([
 	"project",
 	"parent",
 	"epic",
-	"milestone",
+	"wave",
 	"turn",
 	"pr",
 ]);
@@ -152,6 +154,7 @@ const splitNegation = (raw: Record<string, Raw>) => {
 export const parseSearch = (params: Record<string, unknown>): View => {
 	const { values: raw, not } = splitNegation(params as Record<string, Raw>);
 	const limit = Number(raw.limit);
+	const group = raw.group === legacyWaveKey ? "wave" : oneOf<Group>(raw.group, groups);
 	const view: View = {
 		project: single(raw.project, ProjectRefStringSchema),
 		status: list(raw.status, StatusRefStringSchema),
@@ -161,7 +164,7 @@ export const parseSearch = (params: Record<string, unknown>): View => {
 		label: list(raw.label, LabelRefStringSchema),
 		parent: single(raw.parent, ListQuerySchema.shape.parent),
 		epic: single(raw.epic, ListQuerySchema.shape.epic),
-		milestone: single(raw.milestone, ListQuerySchema.shape.milestone),
+		wave: single(raw.wave ?? raw[legacyWaveKey], ListQuerySchema.shape.wave),
 		pr: single(raw.pr, PrFilterSchema),
 		ci: list(raw.ci, CiStateSchema),
 		actor: single(raw.actor, ListQuerySchema.shape.actor),
@@ -170,7 +173,7 @@ export const parseSearch = (params: Record<string, unknown>): View => {
 		created: timeBound(raw.created),
 		completed: timeBound(raw.completed),
 		sort: single(raw.sort, SortSchema) ?? viewDefaults.sort,
-		group: oneOf<Group>(raw.group, groups) ?? viewDefaults.group,
+		group: group ?? viewDefaults.group,
 		closed: raw.closed === "hide" ? "hide" : undefined,
 		scope: oneOf<Scope>(raw.scope, scopes) ?? viewDefaults.scope,
 		density: oneOf<Density>(raw.density, densities) ?? viewDefaults.density,
@@ -257,7 +260,7 @@ export const toListQuery = (view: View, options: ListQueryOptions = {}): ListQue
 		labelNot: isNegated(view, "label") ? view.label : undefined,
 		parent: view.parent,
 		epic: view.epic,
-		milestone: view.milestone,
+		wave: view.wave,
 		pr: view.pr,
 		ci: view.ci,
 		actor: view.actor,

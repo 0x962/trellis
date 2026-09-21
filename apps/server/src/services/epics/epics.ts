@@ -19,10 +19,10 @@ import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { record } from "../activity.ts";
 import { upsert } from "../actors.ts";
-import { milestonesOf } from "../milestones/milestones.ts";
 import { assertProjectActive, pathOf, resolveProject } from "../refs.ts";
 import { deriveSlug } from "../slug.ts";
 import { assertAgentMayDelete } from "../tickets/rules.ts";
+import { wavesOf } from "../waves/waves.ts";
 import { resolveEpic } from "./resolve.ts";
 import { epicOrder, epicRefOf, epicSelect, type RawEpic, toEpicSummary } from "./rows.ts";
 
@@ -36,13 +36,13 @@ const byId = async (tx: Tx, id: string) => {
 	return row as RawEpic;
 };
 
-// The `epics.get` shape: the summary, the milestones of the epic in position
+// The `epics.get` shape: the summary, the waves of the epic in position
 // order, and every ticket of the epic in ticket number order.
 export const epicView = async (ctx: ServiceCtx, tx: Tx, id: string): Promise<Epic> => {
 	const row = await byId(tx, id);
 	return {
 		...toEpicSummary(row, pathOf(ctx.cache, row.project_id)),
-		milestones: await milestonesOf(tx, id),
+		waves: await wavesOf(tx, id),
 		tickets: await epicSummaries(tx, id),
 	};
 };
@@ -130,12 +130,12 @@ export const update = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 };
 
 // The foreign key sets `epic_id` NULL on every ticket of the epic when the
-// row goes, and the milestones of the epic go with it. Each of those tickets
+// row goes, and the waves of the epic go with it. Each of those tickets
 // is a changed ticket: its version rises, its activity names the epic and
-// the milestone it left, and one `ticket.updated` event carries its new
-// summary. The UPDATE clears `milestone_id` before the DELETE, because the
-// check `tickets_milestone_needs_epic` refuses a row that loses its epic
-// while it still holds a milestone.
+// the wave it left, and one `ticket.updated` event carries its new
+// summary. The UPDATE clears `wave_id` before the DELETE, because the
+// check `tickets_wave_needs_epic` refuses a row that loses its epic
+// while it still holds a wave.
 export const remove = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<EpicDeleteOutput> => {
 	const input = EpicDeleteInputSchema.parse(rawInput);
 	assertAgentMayDelete(ctx, input.force);
@@ -147,16 +147,16 @@ export const remove = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	const members = await rows<{
 		id: string;
 		project_id: string;
-		milestone_id: string | null;
-		milestone_slug: string | null;
+		wave_id: string | null;
+		wave_slug: string | null;
 	}>(
 		tx,
-		sql`SELECT t.id, t.project_id, t.milestone_id, m.slug AS milestone_slug
-			FROM tickets t LEFT JOIN milestones m ON m.id = t.milestone_id
+		sql`SELECT t.id, t.project_id, t.wave_id, m.slug AS wave_slug
+			FROM tickets t LEFT JOIN waves m ON m.id = t.wave_id
 			WHERE t.epic_id = ${existing.id} ORDER BY t.number`,
 	);
 	await tx.execute(
-		sql`UPDATE tickets SET milestone_id = NULL, version = version + 1, updated_at = ${ctx.now}
+		sql`UPDATE tickets SET wave_id = NULL, version = version + 1, updated_at = ${ctx.now}
 			WHERE epic_id = ${existing.id}`,
 	);
 	await tx.execute(sql`DELETE FROM epics WHERE id = ${existing.id}`);
@@ -165,9 +165,9 @@ export const remove = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	const ref = epicRefOf(existing);
 	for (const member of members) {
 		const left = [{ field: "epic", from: ref, to: null, meta: { fromId: existing.id, toId: null } }];
-		if (member.milestone_id !== null) {
-			const from = `${ref}/${member.milestone_slug}`;
-			left.push({ field: "milestone", from, to: null, meta: { fromId: member.milestone_id, toId: null } });
+		if (member.wave_id !== null) {
+			const from = `${ref}/${member.wave_slug}`;
+			left.push({ field: "wave", from, to: null, meta: { fromId: member.wave_id, toId: null } });
 		}
 		await record(ctx, tx, {
 			rootId: existing.root_id,
@@ -179,9 +179,9 @@ export const remove = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 		});
 	}
 	const ids = members.map((member) => member.id);
-	const hadMilestone = new Set(members.filter((member) => member.milestone_id !== null).map((member) => member.id));
+	const hadWave = new Set(members.filter((member) => member.wave_id !== null).map((member) => member.id));
 	for (const summary of await ticketSummaries(tx, ids)) {
-		const fields = hadMilestone.has(summary.id) ? ["epic", "milestone"] : ["epic"];
+		const fields = hadWave.has(summary.id) ? ["epic", "wave"] : ["epic"];
 		ctx.emit({ type: "ticket.updated", summary, fields, batchId });
 	}
 	ctx.emit({ type: "epics.changed", projectId: existing.project_id, id: existing.id });

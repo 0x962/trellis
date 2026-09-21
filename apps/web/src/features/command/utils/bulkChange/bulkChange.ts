@@ -2,11 +2,11 @@ import type {
 	EpicSummary,
 	Label,
 	LabelGroup,
-	MilestoneSummary,
 	Priority,
 	ProjectSummary,
 	Status,
 	TicketSummary,
+	WaveSummary,
 } from "@trellis/api";
 import { projectSlashPath } from "../../../../lib/projectPath";
 import { toggleLabel } from "../../../pickers/utils/toggleLabel";
@@ -77,29 +77,25 @@ export const setEpic = (bulk: BulkWrite, rows: readonly TicketSummary[], epic: E
 		{ epic: epic === null ? null : epic.ref },
 		epic === null ? "Clear the epic" : `Set the epic to ${epic.name}`,
 		{
-			// A milestone belongs to one epic, so the server clears the milestone
+			// A wave belongs to one epic, so the server clears the wave
 			// of a ticket that leaves its epic. The patch does the same on the row.
 			row: (row: TicketSummary) => ({
 				epic: epic === null ? null : { id: epic.id, ref: epic.ref, name: epic.name },
-				milestone: row.epic?.id === epic?.id ? row.milestone : null,
+				wave: row.epic?.id === epic?.id ? row.wave : null,
 			}),
 			verb: (subject) => `The epic of ${subject} did not change.`,
 		},
 	);
 
-// Every row belongs to the epic of `milestone`, because the Selection
-// section offers the milestones of the one epic the rows share.
-export const setMilestone = (
-	bulk: BulkWrite,
-	rows: readonly TicketSummary[],
-	milestone: MilestoneSummary | null,
-): Promise<void> =>
+// Every row belongs to the epic of `wave`, because the Selection
+// section offers the waves of the one epic the rows share.
+export const setWave = (bulk: BulkWrite, rows: readonly TicketSummary[], wave: WaveSummary | null): Promise<void> =>
 	bulk.update(
 		rows,
-		{ milestone: milestone === null ? null : milestone.ref },
-		milestone === null ? "Clear the wave" : `Set the wave to ${milestone.name}`,
+		{ wave: wave === null ? null : wave.ref },
+		wave === null ? "Clear the wave" : `Set the wave to ${wave.name}`,
 		{
-			row: { milestone: milestone === null ? null : { id: milestone.id, ref: milestone.ref, name: milestone.name } },
+			row: { wave: wave === null ? null : { id: wave.id, ref: wave.ref, name: wave.name } },
 			verb: (subject) => `The wave of ${subject} did not change.`,
 		},
 	);

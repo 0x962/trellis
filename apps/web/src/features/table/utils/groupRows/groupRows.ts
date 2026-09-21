@@ -1,11 +1,11 @@
 import {
-	type MilestoneLink,
 	type Priority,
 	type Sort,
 	type StatusCategory,
 	StatusCategorySchema,
 	type StatusSummary,
 	type TicketSummary,
+	type WaveLink,
 } from "@trellis/api";
 import { projectSlashPath } from "../../../../lib/projectPath";
 import type { Group } from "../../../filters/grammar";
@@ -16,7 +16,7 @@ export type GroupStatus = StatusSummary & { position?: number };
 
 export type RowGroup = {
 	// The URL-safe identity of the group: a status slug, a priority, a
-	// project ref, a parent identifier, an epic id, a milestone id, a turn,
+	// project ref, a parent identifier, an epic id, a wave id, a turn,
 	// a PR state, or `all`.
 	key: string;
 	// The heading. Null when grouping is off.
@@ -24,8 +24,8 @@ export type RowGroup = {
 	rows: TicketSummary[];
 	status?: StatusSummary;
 	category?: StatusCategory;
-	// The milestone of a milestone group. The No milestone group has none.
-	milestone?: MilestoneLink;
+	// The wave of a wave group. The No wave group has none.
+	wave?: WaveLink;
 };
 
 export type GroupOptions = {
@@ -34,10 +34,10 @@ export type GroupOptions = {
 	statuses: readonly GroupStatus[];
 	// The viewed project ref. A project label is the path under it.
 	project?: string;
-	// The milestone ids in display order: the milestones of one epic in
-	// position order, then the milestones of the next epic. The milestone
-	// grouping reads it. A milestone outside the list sorts after the list.
-	milestoneOrder?: readonly string[];
+	// The wave ids in display order: the waves of one epic in
+	// position order, then the waves of the next epic. The wave
+	// grouping reads it. A wave outside the list sorts after the list.
+	waveOrder?: readonly string[];
 	// The rank of a row inside its group. A lower rank comes first, and the
 	// view's sort orders the rows of one rank.
 	rowRank?: RowRank;
@@ -111,7 +111,7 @@ type Bucket = {
 	rank: number | string;
 	status?: StatusSummary;
 	category?: StatusCategory;
-	milestone?: MilestoneLink;
+	wave?: WaveLink;
 };
 
 // U+FFFF is the highest single code unit, so this rank sorts after every
@@ -149,15 +149,15 @@ const bucketOf = (row: TicketSummary, options: GroupOptions): Bucket => {
 			return row.epic === null
 				? { key: "none", label: "No epic", rank: lastRank }
 				: { key: row.epic.id, label: row.epic.name, rank: row.epic.name.toLowerCase() };
-		case "milestone": {
-			if (row.milestone === null) return { key: "none", label: "No wave", rank: Number.POSITIVE_INFINITY };
-			const order = options.milestoneOrder ?? [];
-			const index = order.indexOf(row.milestone.id);
+		case "wave": {
+			if (row.wave === null) return { key: "none", label: "No wave", rank: Number.POSITIVE_INFINITY };
+			const order = options.waveOrder ?? [];
+			const index = order.indexOf(row.wave.id);
 			return {
-				key: row.milestone.id,
-				label: row.milestone.name,
+				key: row.wave.id,
+				label: row.wave.name,
 				rank: index === -1 ? order.length : index,
-				milestone: row.milestone,
+				wave: row.wave,
 			};
 		}
 		case "turn":
@@ -190,12 +190,12 @@ export const groupRows = (rows: readonly TicketSummary[], options: GroupOptions)
 	}
 	return [...buckets.values()]
 		.sort((a, b) => compareKeys(a.rank, b.rank))
-		.map(({ key, label, status, category, milestone, rows: members }) => ({
+		.map(({ key, label, status, category, wave, rows: members }) => ({
 			key,
 			label: options.group === "none" ? null : label,
 			rows: sortRows(members, options.sort, options.statuses, options.rowRank),
 			status,
 			category,
-			milestone,
+			wave,
 		}));
 };

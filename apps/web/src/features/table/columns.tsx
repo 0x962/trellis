@@ -18,7 +18,7 @@ export type ColumnId =
 	| "created"
 	| "parent"
 	| "epic"
-	| "milestone"
+	| "wave"
 	| "subtickets";
 
 // The columns in display order.
@@ -38,7 +38,7 @@ export const columnOrder: readonly ColumnId[] = [
 	"created",
 	"parent",
 	"epic",
-	"milestone",
+	"wave",
 	"subtickets",
 ];
 
@@ -58,7 +58,7 @@ export const columnLabels: Record<ColumnId, string> = {
 	created: "Created",
 	parent: "Parent",
 	epic: "Epic",
-	milestone: "Wave",
+	wave: "Wave",
 	subtickets: "Sub-tickets",
 };
 
@@ -84,7 +84,7 @@ export const columnWidths: Record<ColumnId, string> = {
 	created: "48px",
 	parent: "72px",
 	epic: "120px",
-	milestone: "120px",
+	wave: "120px",
 	subtickets: "48px",
 };
 
@@ -92,7 +92,7 @@ export const columnWidths: Record<ColumnId, string> = {
 export const alwaysVisible: readonly ColumnId[] = ["select", "title"];
 
 // The columns a route hides until the Display popover shows them.
-export const hiddenByDefault: readonly ColumnId[] = ["created", "parent", "epic", "milestone", "subtickets"];
+export const hiddenByDefault: readonly ColumnId[] = ["created", "parent", "epic", "wave", "subtickets"];
 
 export const tableFeatureSet = tableFeatures({ columnVisibilityFeature });
 

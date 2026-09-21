@@ -6,7 +6,7 @@ export type GroupHeaderProps = Omit<SharedProps, "count" | "showCount" | "icon" 
 	// The rows of the group. The Show action of a collapsed group prints it.
 	count: number;
 	// The text the count slot prints in place of `count`, expanded or
-	// collapsed, such as the `3/11` of a milestone.
+	// collapsed, such as the `3/11` of a wave.
 	countLabel?: string;
 	// The word of the `Badge` after the label, such as Current.
 	badge?: string;

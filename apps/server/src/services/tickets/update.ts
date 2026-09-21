@@ -26,7 +26,7 @@ import { assertVersion, outsideRoot, remapStatus, stampColumns } from "./rules.t
 
 // The fields `update` and `updateMany` share. A ref is a canonical string;
 // `parent: null` clears the parent, `epic: null` clears the epic, and
-// `milestone: null` clears the milestone.
+// `wave: null` clears the wave.
 type ChangeInput = {
 	title?: string;
 	description?: string;
@@ -34,7 +34,7 @@ type ChangeInput = {
 	status?: string;
 	parent?: string | null;
 	epic?: string | null;
-	milestone?: string | null;
+	wave?: string | null;
 	project?: string;
 	addLabels?: readonly string[];
 	removeLabels?: readonly string[];

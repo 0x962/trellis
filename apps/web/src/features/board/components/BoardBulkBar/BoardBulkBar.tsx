@@ -28,7 +28,7 @@ export function BoardBulkBar({ rows, project, bulk, onClear }: BoardBulkBarProps
 	// draws a minus. A pick on a check removes the label everywhere, and a
 	// pick on a minus adds it everywhere.
 	const labels = labelStates(rows);
-	// The epic and the milestone each picker marks as current. The pickers
+	// The epic and the wave each picker marks as current. The pickers
 	// mark no row when the selected cards disagree.
 	const epics = epicState(rows);
 
@@ -52,7 +52,7 @@ export function BoardBulkBar({ rows, project, bulk, onClear }: BoardBulkBarProps
 				onProject={bulk.project}
 				onParent={bulk.parent}
 				onEpic={bulk.epic}
-				onMilestone={bulk.milestone}
+				onWave={bulk.wave}
 				onCopyIds={bulk.copyIds}
 				onDelete={bulk.remove}
 				onClear={onClear}

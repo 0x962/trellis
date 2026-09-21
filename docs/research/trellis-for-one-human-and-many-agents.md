@@ -132,7 +132,7 @@ One word for one meaning through this document:
 | --- | --- |
 | ticket | One unit of work, a contract between him and one agent. |
 | question | A ticket whose status has `reviewer: human` and that carries options. Never "decision" in the interface. The titles `Decision: ...` in the exports are quoted data and stay verbatim. |
-| wave | The shipped `milestone` record. What he intends to start together. |
+| wave | The shipped `wave` record. What he intends to start together. |
 | waits on | The tickets that must be done before this ticket starts. |
 | releases | The tickets whose last unmet dependency this ticket is. |
 | summary | The text an agent writes on a pull request: headline, why, watch. |
@@ -856,7 +856,7 @@ warn     why, sentence 3, is passive: "is consumed by". Name the actor.
 The verbs, complete:
 
 ```
-trellis create -p OP -t "..." --milestone OP/routines-e2e/run-settles --after OP-32
+trellis create -p OP -t "..." --wave OP/routines-e2e/run-settles --after OP-32
 trellis edit OP-34 --after OP-32 | --not-after OP-32
 trellis deps OP-33
 trellis ready OP --epic routines-e2e
@@ -1099,7 +1099,7 @@ A ticket in a team tool is a conversation about work. Here one human works, and 
 
 Four questions decide the page. What does the agent owe me? What must finish before this starts? What did the agent produce, and what proves it? Is it safe to merge? The activity feed answers none of them. The comment thread answers none of them.
 
-The real epic already writes the contract by hand, inside prose. OP-34 holds `Files:`, `Depends on: step 4.` and `Review focus:`. OP-54 holds `Verify:` with three commands and the sentence "The result the next milestone reads". OP-52 holds `Options:`, `Recommendation:` and `Waiting on this answer: OP-33`. The structure exists. The page does not show it, and the server cannot read it. The rethought page shows it, and the server reads it.
+The real epic already writes the contract by hand, inside prose. OP-34 holds `Files:`, `Depends on: step 4.` and `Review focus:`. OP-54 holds `Verify:` with three commands and the sentence "The result the next wave reads". OP-52 holds `Options:`, `Recommendation:` and `Waiting on this answer: OP-33`. The structure exists. The page does not show it, and the server cannot read it. The rethought page shows it, and the server reads it.
 
 ### 5.2 The five clauses
 

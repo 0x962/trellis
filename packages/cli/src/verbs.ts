@@ -111,9 +111,9 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 		description: "List, show, plan, create, edit, fill, or delete the epics of a project",
 		load: () => import("./commands/epics.ts").then((m) => command(m.default)),
 	},
-	milestones: {
-		description: "List, create, edit, order, fill, or delete the milestones of an epic",
-		load: () => import("./commands/milestones.ts").then((m) => command(m.default)),
+	waves: {
+		description: "List, create, edit, order, fill, or delete the waves of an epic",
+		load: () => import("./commands/waves.ts").then((m) => command(m.default)),
 	},
 	resource: {
 		description: "Add, list, or remove the resources of an epic",

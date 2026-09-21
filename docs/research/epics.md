@@ -124,11 +124,11 @@ Command palette, `apps/web/src/features/command/items.ts`: "Group by Epic" besid
 
 Every UI element above is canonical (`docs/UI_PATTERNS.md`): `Topbar`, `PageTitle`, `FilterBar`, `Chip`, `FilterPopover`, `Command`, `DisplayPopover`, `GroupHeader`, `SectionHeader`, `Row`, `StackedBar`, `Menu`, `IconButton`, `Tooltip`. The card mark is the one approved exception.
 
-## Milestones
+## Waves
 
-Decided on 2026-09-18. A milestone groups the tickets of one epic into an ordered phase. The routine runtime plan has four phases; each becomes a milestone of the epic. A milestone belongs to one epic. A ticket belongs to at most one milestone, and that milestone belongs to the ticket's epic.
+Decided on 2026-09-18. A wave groups the tickets of one epic into an ordered phase. The routine runtime plan has four phases; each becomes a wave of the epic. A wave belongs to one epic. A ticket belongs to at most one wave, and that wave belongs to the ticket's epic.
 
-Table `milestones`, in `apps/server/src/db/tables/milestones.ts`, exported from `schema.ts`:
+Table `waves`, in `apps/server/src/db/tables/waves.ts`, exported from `schema.ts`:
 
 | column | type and constraint |
 |---|---|
@@ -141,125 +141,125 @@ Table `milestones`, in `apps/server/src/db/tables/milestones.ts`, exported from 
 | created_at, updated_at | `at()` NOT NULL |
 | | UNIQUE (id, epic_id); index (epic_id, position) |
 
-Tickets gain `milestone_id` text NULL, FK `tickets_milestone_fk` (milestone_id) → milestones (id) ON DELETE SET NULL, index (milestone_id), and CHECK `tickets_milestone_needs_epic`: `milestone_id IS NULL OR epic_id IS NOT NULL`. The rule that the milestone belongs to the ticket's epic is a service rule, `MILESTONE_OUTSIDE_EPIC` (400), a new error code in `packages/api/src/errors.ts`.
+Tickets gain `wave_id` text NULL, FK `tickets_wave_fk` (wave_id) → waves (id) ON DELETE SET NULL, index (wave_id), and CHECK `tickets_wave_needs_epic`: `wave_id IS NULL OR epic_id IS NOT NULL`. The rule that the wave belongs to the ticket's epic is a service rule, `WAVE_OUTSIDE_EPIC` (400), a new error code in `packages/api/src/errors.ts`.
 
-Service rules on a ticket write: a `milestone` value sets `epic_id` to the milestone's epic in the same write, so one call places a ticket. An `epic` value that differs from the current epic, or `epic: null`, sets `milestone_id` NULL. `updateMany` follows the same rules per ticket. Activity records field `milestone` with the refs as `from_value` and `to_value`. Events: `milestone` joins the `fields` of `ticket.created` and `ticket.updated`, and `membershipFields`; a change of `milestone`, `epic`, `status`, or `completedAt` invalidates the `epics` family. `epics.changed` covers milestone create, update, reorder, and delete (the payload names the epic).
+Service rules on a ticket write: a `wave` value sets `epic_id` to the wave's epic in the same write, so one call places a ticket. An `epic` value that differs from the current epic, or `epic: null`, sets `wave_id` NULL. `updateMany` follows the same rules per ticket. Activity records field `wave` with the refs as `from_value` and `to_value`. Events: `wave` joins the `fields` of `ticket.created` and `ticket.updated`, and `membershipFields`; a change of `wave`, `epic`, `status`, or `completedAt` invalidates the `epics` family. `epics.changed` covers wave create, update, reorder, and delete (the payload names the epic).
 
-Derived per milestone, never stored: the counts by status category and the state `open` or `done`, with the rules of the epic.
+Derived per wave, never stored: the counts by status category and the state `open` or `done`, with the rules of the epic.
 
 One migration, `0080_wild_legion`, generated after `0079_session_attention` with `bun run db:generate`. Never edit an earlier migration.
 
-Refs and API. MilestoneRef: a ULID, or `KEY/epic-slug/milestone-slug` such as `OP/routine-runtime/phase-1`; three segments keep it apart from an EpicRef. Schemas in `packages/api/src/schemas/milestone.ts` (a `MilestoneLinkSchema` in `milestoneLink.ts` if an import cycle needs it):
+Refs and API. WaveRef: a ULID, or `KEY/epic-slug/wave-slug` such as `OP/routine-runtime/phase-1`; three segments keep it apart from an EpicRef. Schemas in `packages/api/src/schemas/wave.ts` (a `WaveLinkSchema` in `waveLink.ts` if an import cycle needs it):
 
 ```
-MilestoneSummarySchema = { id, epicId, ref, slug, name, position, counts, state, createdAt, updatedAt }
-MilestoneLinkSchema = { id, ref, name }                       // on a ticket
-EpicSchema gains milestones: MilestoneSummary[] in position order
-TicketSummarySchema and TicketSchema gain milestone: MilestoneLinkSchema.nullable()
-TicketCreateInputSchema gains milestone?: MilestoneRef
-TicketUpdateInputSchema and TicketUpdateManyInputSchema gain milestone?: MilestoneRef | null
-ListQuerySchema gains milestone?: "none" | MilestoneRef        // clause, filterKey, read.ts resolve
+WaveSummarySchema = { id, epicId, ref, slug, name, position, counts, state, createdAt, updatedAt }
+WaveLinkSchema = { id, ref, name }                       // on a ticket
+EpicSchema gains waves: WaveSummary[] in position order
+TicketSummarySchema and TicketSchema gain wave: WaveLinkSchema.nullable()
+TicketCreateInputSchema gains wave?: WaveRef
+TicketUpdateInputSchema and TicketUpdateManyInputSchema gain wave?: WaveRef | null
+ListQuerySchema gains wave?: "none" | WaveRef        // clause, filterKey, read.ts resolve
 ```
 
-Contract `packages/api/src/contract/milestones.ts`: `milestones.create POST /api/milestones` (body `epic`, name, slug?, appended last), `milestones.update PATCH /api/milestones/{+milestone}` (name, slug), `milestones.reorder PUT /api/milestones/order` (body `epic` and the full list of milestone refs; a list that is incomplete, repeated, or from another epic is `MILESTONE_OUTSIDE_EPIC`), `milestones.delete DELETE /api/milestones/{+milestone}` (sets `milestone_id` NULL on its tickets through the FK, one activity row and one `ticket.updated` per ticket; an agent needs `force`). The router reads `{+name}` as the rest of the path, so no route continues after an epic ref, and `create` and `reorder` take the epic in the body. A slug taken in the epic is `DUPLICATE` with field `slug`.
+Contract `packages/api/src/contract/waves.ts`: `waves.create POST /api/waves` (body `epic`, name, slug?, appended last), `waves.update PATCH /api/waves/{+wave}` (name, slug), `waves.reorder PUT /api/waves/order` (body `epic` and the full list of wave refs; a list that is incomplete, repeated, or from another epic is `WAVE_OUTSIDE_EPIC`), `waves.delete DELETE /api/waves/{+wave}` (sets `wave_id` NULL on its tickets through the FK, one activity row and one `ticket.updated` per ticket; an agent needs `force`). The router reads `{+name}` as the rest of the path, so no route continues after an epic ref, and `create` and `reorder` take the epic in the body. A slug taken in the epic is `DUPLICATE` with field `slug`.
 
-Brief: the header gains `- Milestone: <name> (<ref>), <done> of <total - canceled> done` when the ticket has one. `## Epic tickets` groups the lines under `### <milestone name>` headings in position order, then `### No milestone`.
+Brief: the header gains `- Wave: <name> (<ref>), <done> of <total - canceled> done` when the ticket has one. `## Epic tickets` groups the lines under `### <wave name>` headings in position order, then `### No wave`.
 
-CLI, `packages/cli/src/commands/milestones.ts`, registered in `verbs.ts`:
+CLI, `packages/cli/src/commands/waves.ts`, registered in `verbs.ts`:
 
 ```
-trellis milestones list OP/routine-runtime
-trellis milestones create OP/routine-runtime --name "Phase 1" [--slug s]
-trellis milestones edit OP/routine-runtime/phase-1 [--name] [--slug]
-trellis milestones order OP/routine-runtime phase-1 phase-2 phase-3 phase-4
-trellis milestones add OP/routine-runtime/phase-1 OP-29 OP-30 ...   # tickets.updateMany with milestone
-trellis milestones remove OP-29 ...                                 # tickets.updateMany with milestone: null
-trellis milestones delete OP/routine-runtime/phase-1 [--force]
+trellis waves list OP/routine-runtime
+trellis waves create OP/routine-runtime --name "Phase 1" [--slug s]
+trellis waves edit OP/routine-runtime/phase-1 [--name] [--slug]
+trellis waves order OP/routine-runtime phase-1 phase-2 phase-3 phase-4
+trellis waves add OP/routine-runtime/phase-1 OP-29 OP-30 ...   # tickets.updateMany with wave
+trellis waves remove OP-29 ...                                 # tickets.updateMany with wave: null
+trellis waves delete OP/routine-runtime/phase-1 [--force]
 ```
 
-`--milestone <ref>` joins `create`, `sub`, `edit` (`none` clears), and `list`. `epics show` prints the milestones with their counts, then the tickets grouped by milestone. `instructions.md`: a plan with phases makes one milestone per phase and creates each ticket with `--milestone`.
+`--wave <ref>` joins `create`, `sub`, `edit` (`none` clears), and `list`. `epics show` prints the waves with their counts, then the tickets grouped by wave. `instructions.md`: a plan with phases makes one wave per phase and creates each ticket with `--wave`.
 
 Web:
 
-- Filters: `View.milestone`, parse and serialize, `searchParamOrder` after `epic`, field "Milestone" in the picker only when the route has a project (the stage lists the milestones of the epics of the project, grouped by epic name), chip prints the milestone name.
-- `Group` gains `"milestone"`: groups in milestone position order, "No milestone" last; the `GroupHeader` count slot prints `done/total` of the milestone when the rows come from one epic. `DisplayPopover` offers "Milestone". Column "Milestone", hidden by default. `BulkBar`: "Set milestone" with the milestones of the tickets' epic.
-- Ticket page rail: a `PropertyRow` "Milestone" after "Epic"; the picker lists the milestones of the ticket's epic and "None"; hidden when the ticket has no epic.
-- Epic page: see the revision below. The Edit epic sheet gains a "Milestones" section: the list of milestones in order, each with a name field, a move up and a move down `IconButton`, a delete `IconButton`, and an "Add milestone" action. It writes through `milestones.create`, `update`, `reorder`, `delete`.
+- Filters: `View.wave`, parse and serialize, `searchParamOrder` after `epic`, field "Wave" in the picker only when the route has a project (the stage lists the waves of the epics of the project, grouped by epic name), chip prints the wave name.
+- `Group` gains `"wave"`: groups in wave position order, "No wave" last; the `GroupHeader` count slot prints `done/total` of the wave when the rows come from one epic. `DisplayPopover` offers "Wave". Column "Wave", hidden by default. `BulkBar`: "Set wave" with the waves of the tickets' epic.
+- Ticket page rail: a `PropertyRow` "Wave" after "Epic"; the picker lists the waves of the ticket's epic and "None"; hidden when the ticket has no epic.
+- Epic page: see the revision below. The Edit epic sheet gains a "Waves" section: the list of waves in order, each with a name field, a move up and a move down `IconButton`, a delete `IconButton`, and an "Add wave" action. It writes through `waves.create`, `update`, `reorder`, `delete`.
 
 ## Epic page revision
 
 Decided on 2026-09-18: the epic page shows its tickets in the full-width ticket table, the same `TicketTable` as the project table view, with no page-specific row. Structure, top to bottom:
 
 1. `Topbar` with the breadcrumb `Operator / Epics / Routine runtime`, the `FilterBar` chips of the page (every field except `epic`, which the page fixes), the Display `IconButton` (`DisplayPopover` with group, sort, density, columns, as the project table), an Add `IconButton` with a `Tooltip` "Add tickets" that opens the `TicketPicker` scoped to the project (no "None" option), and the row `Menu` (Edit, Delete).
-2. A header band in the page padding: the state `Badge`, `<done> of <total - canceled> done`, the `StackedBar` with legend, and one `StackedBar` line per milestone with its name and `done/total` (the milestones in position order; the "Composition of one total" pattern).
+2. A header band in the page padding: the state `Badge`, `<done> of <total - canceled> done`, the `StackedBar` with legend, and one `StackedBar` line per wave with its name and `done/total` (the waves in position order; the "Composition of one total" pattern).
 3. A `SectionHeader` "Plan" that collapses; collapsed by default when the description is longer than 1200 characters, else expanded; the collapsed state per route key in `uiStore` like a table group. The body is the description through `ReadOnlyMarkdown`.
-4. The `TicketTable` with the root project of the epic, `routeKey` of the epic page, and `search` = the URL view with `epic` fixed to the epic ref, `group` default `milestone`, and `scope` default `subprojects`. An epic belongs to a root and holds tickets of any project of that root, so the table reads the root with its sub-projects and its rows match the counts of the band. The URL of the epic page carries the same params as the project table (`group`, `sort`, `density`, `columns`, the other filters). The table's row actions, bulk bar, keyboard navigation, `PrCell` colors, and actor cell come with it. "Remove from epic" is the bulk bar "Set epic" with "None" and the rail row; the page adds no row menu.
+4. The `TicketTable` with the root project of the epic, `routeKey` of the epic page, and `search` = the URL view with `epic` fixed to the epic ref, `group` default `wave`, and `scope` default `subprojects`. An epic belongs to a root and holds tickets of any project of that root, so the table reads the root with its sub-projects and its rows match the counts of the band. The URL of the epic page carries the same params as the project table (`group`, `sort`, `density`, `columns`, the other filters). The table's row actions, bulk bar, keyboard navigation, `PrCell` colors, and actor cell come with it. "Remove from epic" is the bulk bar "Set epic" with "None" and the rail row; the page adds no row menu.
 
 The actor cell of every row (table `Row`, board card, epic page, needs-you) shows the provider mark only for the agent run that is assigned to that ticket. A ticket with no assigned agent shows its last actor without a provider mark. `ActorAvatar` takes the assigned run from `agentRuns.list { assigned: true }` (the `useWorkingAgents` query) by `run.ticketId === ticketId`, and reads the profile from that run alone; `useActorRun(actor)` no longer supplies the profile for an unassigned ticket.
 
 The epics list page keeps its rows, aligned with the ticket table `Row` classes: the same row heights (`rowHeights[density]`), the same hover band, the same cell text sizes and tabular numbers, the same trailing `Menu` slot width. No page-specific control shape.
 
-Adoption of the milestones for the Operator case, after the release:
+Adoption of the waves for the Operator case, after the release:
 
 ```
-trellis milestones create OP/routine-runtime --name "Phase 1: run state"
-trellis milestones create OP/routine-runtime --name "Phase 2: unattended runs"
-trellis milestones create OP/routine-runtime --name "Phase 3: proposals"
-trellis milestones create OP/routine-runtime --name "Phase 4: system routines"
-trellis milestones add OP/routine-runtime/phase-1-run-state OP-29 OP-30 OP-31 OP-32 OP-33 OP-34 OP-35 OP-36 OP-37 OP-38 OP-39
-trellis milestones add OP/routine-runtime/phase-2-unattended-runs OP-40 OP-41 OP-42 OP-43 OP-44
-trellis milestones add OP/routine-runtime/phase-3-proposals OP-45 OP-46 OP-47 OP-48 OP-49
-trellis milestones add OP/routine-runtime/phase-4-system-routines OP-50 OP-51
+trellis waves create OP/routine-runtime --name "Phase 1: run state"
+trellis waves create OP/routine-runtime --name "Phase 2: unattended runs"
+trellis waves create OP/routine-runtime --name "Phase 3: proposals"
+trellis waves create OP/routine-runtime --name "Phase 4: system routines"
+trellis waves add OP/routine-runtime/phase-1-run-state OP-29 OP-30 OP-31 OP-32 OP-33 OP-34 OP-35 OP-36 OP-37 OP-38 OP-39
+trellis waves add OP/routine-runtime/phase-2-unattended-runs OP-40 OP-41 OP-42 OP-43 OP-44
+trellis waves add OP/routine-runtime/phase-3-proposals OP-45 OP-46 OP-47 OP-48 OP-49
+trellis waves add OP/routine-runtime/phase-4-system-routines OP-50 OP-51
 ```
 
 ## Follow-up build: what is next, and guidance for the planner
 
-This section is a separate build. It starts after the milestones build lands. The milestones build does not read it.
+This section is a separate build. It starts after the waves build lands. The waves build does not read it.
 
-Navid, 2026-09-18: "We need to add guidance for the agent that sets it up. How to create milestones, group work so it can move in parallel, organize items so we can work on multiple fronts together and then integrate. The trellis view should make it clear what needs to happen next. Right now I can't tell with a flat list." The human is the manager: no hold, no gate, no blocked state in the UI. The view informs; the person decides.
+Navid, 2026-09-18: "We need to add guidance for the agent that sets it up. How to create waves, group work so it can move in parallel, organize items so we can work on multiple fronts together and then integrate. The trellis view should make it clear what needs to happen next. Right now I can't tell with a flat list." The human is the manager: no hold, no gate, no blocked state in the UI. The view informs; the person decides.
 
 ### The one rule that carries order
 
-Order lives between milestones, never inside one. Every ticket of a milestone can start at the same time. A ticket that needs the result of another ticket goes in a later milestone. So the milestone order is the dependency structure, and Trellis needs no dependency edge to answer "what is next": it is the open tickets of the first milestone that is not done.
+Order lives between waves, never inside one. Every ticket of a wave can start at the same time. A ticket that needs the result of another ticket goes in a later wave. So the wave order is the dependency structure, and Trellis needs no dependency edge to answer "what is next": it is the open tickets of the first wave that is not done.
 
 ### Guidance for the planner agent
 
 `packages/cli/src/instructions.md` gains a section "Plan an epic", and `trellis epics guide` prints the same text. The text, in STE:
 
-1. Write the plan as the epic description: the goal, the fronts, the milestones, the decisions that the person must make.
-2. Cut the work into fronts. A front is a line of work that one agent can finish with no result from another front: the server, the web, the CLI, the docs, a second repository. One ticket per front per milestone. The ticket title starts with the front: "Server: the milestones table and API".
-3. Put the fronts that can run together in one milestone. Name the milestone for the state it reaches: "Foundation", "Surfaces", "Integrate", "Review", "Fix".
-4. After each set of parallel fronts, add a milestone that integrates them: one ticket that merges the branches, runs the type check, the linter, and the tests, and fixes what the merge broke. Parallel work that nobody integrates is not done.
-5. Keep sequential steps of one front inside its ticket as sub-tickets, in order. A sub-ticket is a step of one agent; a ticket is a front; a milestone is a point where the fronts meet.
-6. Never put two tickets in one milestone when one needs the other. Move the second one to a later milestone.
-7. File each decision for the person as a ticket in the human review status, in the first milestone that needs the answer. Write the options and your recommendation in its description.
-8. State in each ticket: the files it owns, what it must not touch, the commands that verify it, and the result the next milestone reads. Two tickets of one milestone never own the same file.
-9. Size: a milestone holds 2 to 8 tickets. A ticket is 1 agent session. A plan with more than 6 milestones is two epics.
-10. Create everything in one pass: `trellis epics create`, `trellis milestones create` per milestone in order, `trellis create --milestone` per ticket.
+1. Write the plan as the epic description: the goal, the fronts, the waves, the decisions that the person must make.
+2. Cut the work into fronts. A front is a line of work that one agent can finish with no result from another front: the server, the web, the CLI, the docs, a second repository. One ticket per front per wave. The ticket title starts with the front: "Server: the waves table and API".
+3. Put the fronts that can run together in one wave. Name the wave for the state it reaches: "Foundation", "Surfaces", "Integrate", "Review", "Fix".
+4. After each set of parallel fronts, add a wave that integrates them: one ticket that merges the branches, runs the type check, the linter, and the tests, and fixes what the merge broke. Parallel work that nobody integrates is not done.
+5. Keep sequential steps of one front inside its ticket as sub-tickets, in order. A sub-ticket is a step of one agent; a ticket is a front; a wave is a point where the fronts meet.
+6. Never put two tickets in one wave when one needs the other. Move the second one to a later wave.
+7. File each decision for the person as a ticket in the human review status, in the first wave that needs the answer. Write the options and your recommendation in its description.
+8. State in each ticket: the files it owns, what it must not touch, the commands that verify it, and the result the next wave reads. Two tickets of one wave never own the same file.
+9. Size: a wave holds 2 to 8 tickets. A ticket is 1 agent session. A plan with more than 6 waves is two epics.
+10. Create everything in one pass: `trellis epics create`, `trellis waves create` per wave in order, `trellis create --wave` per ticket.
 
-The brief of a ticket with a milestone gains "## Results of earlier milestones": for each done ticket of each earlier milestone, its identifier, title, and last comment of its agent, so a front reads what it builds on.
+The brief of a ticket with a wave gains "## Results of earlier waves": for each done ticket of each earlier wave, its identifier, title, and last comment of its agent, so a front reads what it builds on.
 
 ### The view
 
-Server: `EpicSummary` gains `currentMilestone: MilestoneLink | null`, the first milestone in position order whose state is open. Each `MilestoneSummary` gains `toStart`, the count of its tickets in the todo category with no open agent run, and `waitsForYou`, the count of its tickets in a status with the human reviewer.
+Server: `EpicSummary` gains `currentWave: WaveLink | null`, the first wave in position order whose state is open. Each `WaveSummary` gains `toStart`, the count of its tickets in the todo category with no open agent run, and `waitsForYou`, the count of its tickets in a status with the human reviewer.
 
 Epic page, all canonical elements:
 
-- The table groups by milestone in position order. A done milestone starts collapsed. The current milestone carries a `Badge` "Current" in its `GroupHeader`, and its count slot prints `done/total`. A later milestone stays expanded and prints "Later" in the muted count slot beside `done/total`.
-- The header band opens with one line for the current milestone: `Current: <name>` and three counts, `<n> to start`, `<n> running`, `<n> wait for you`. Each count is a link that sets the table filter (status category todo with no agent, working, reviewer human) inside that milestone. The per-milestone bars below mark the current one with the same `Badge`.
-- Inside a milestone group the default sort puts tickets that wait for the person first, then tickets to start, then running, then done.
+- The table groups by wave in position order. A done wave starts collapsed. The current wave carries a `Badge` "Current" in its `GroupHeader`, and its count slot prints `done/total`. A later wave stays expanded and prints "Later" in the muted count slot beside `done/total`.
+- The header band opens with one line for the current wave: `Current: <name>` and three counts, `<n> to start`, `<n> running`, `<n> wait for you`. Each count is a link that sets the table filter (status category todo with no agent, working, reviewer human) inside that wave. The per-wave bars below mark the current one with the same `Badge`.
+- Inside a wave group the default sort puts tickets that wait for the person first, then tickets to start, then running, then done.
 
-Epics list row: after the name, the muted text `<current milestone name> · <i> of <n>`. Board card: no change.
+Epics list row: after the name, the muted text `<current wave name> · <i> of <n>`. Board card: no change.
 
 Needs you: no change; a decision ticket already lists there.
 
 ## Revision 2026-09-19: waves, dependencies, PR rows
 
-Navid, 2026-09-19: "we should show all prs for a ticket under the ticket in the table (indented) with pr specific statuses, including flows, unresolved comments, etc. We should rename milestones to waves since waves are not linear, milestones are. Dependencies are still not clear. waves may not be dependent on each other. tickets inside a wave may have dependencies, etc." This revision replaces the rule "order lives between milestones" and the section "Milestones" where they conflict.
+Navid, 2026-09-19: "we should show all prs for a ticket under the ticket in the table (indented) with pr specific statuses, including flows, unresolved comments, etc. We should rename waves to waves since waves are not linear, waves are. Dependencies are still not clear. waves may not be dependent on each other. tickets inside a wave may have dependencies, etc." This revision replaces the rule "order lives between waves" and the section "Waves" where they conflict.
 
 ### Waves
 
-A wave is a set of tickets of one epic that the person intends to start together. Its `position` is the display order and carries no dependency. Two waves can run at the same time. Rename: table `milestones` to `waves`, `tickets.milestone_id` to `wave_id`, `MilestoneRef` to `WaveRef` (`KEY/epic-slug/wave-slug`), procedures `waves.*`, CLI `trellis waves list|create|edit|order|add|remove|delete|start` and `--wave` on create, sub, edit, list, the filter `wave`, the group `wave`, the brief headings, the web words. One migration renames the table, the column, the constraints, and the indexes; the data stays. `MILESTONE_OUTSIDE_EPIC` becomes `WAVE_OUTSIDE_EPIC`.
+A wave is a set of tickets of one epic that the person intends to start together. Its `position` is the display order and carries no dependency. Two waves can run at the same time. Rename: table `waves` to `waves`, `tickets.wave_id` to `wave_id`, `WaveRef` to `WaveRef` (`KEY/epic-slug/wave-slug`), procedures `waves.*`, CLI `trellis waves list|create|edit|order|add|remove|delete|start` and `--wave` on create, sub, edit, list, the filter `wave`, the group `wave`, the brief headings, the web words. One migration renames the table, the column, the constraints, and the indexes; the data stays. `WAVE_OUTSIDE_EPIC` becomes `WAVE_OUTSIDE_EPIC`.
 
 ### Dependencies
 

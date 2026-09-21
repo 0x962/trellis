@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { CountSchema } from "./primitives.ts";
 
-// The counts and the state that an epic and a milestone both derive from
+// The counts and the state that an epic and a wave both derive from
 // their tickets. These schemas sit in their own module because the epic
-// schema reads the milestone schema, and the milestone schema reads them.
+// schema reads the wave schema, and the wave schema reads them.
 
 // The tickets by status category. `total` is the sum of the five.
 export const EpicCountsSchema = z.object({

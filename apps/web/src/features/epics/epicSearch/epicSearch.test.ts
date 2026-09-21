@@ -17,7 +17,7 @@ describe("epicSearch", () => {
 		expect(page).toEqual({
 			priority: ["high"],
 			epic: "OP/routine-runtime",
-			group: "milestone",
+			group: "wave",
 			scope: "subprojects",
 		});
 	});
@@ -33,7 +33,7 @@ describe("epicSearch", () => {
 
 	test("the query string of a link writes the status group and leaves out the page defaults", () => {
 		expect(epicQueryString({ group: "status", scope: "subprojects" })).toBe("?group=status");
-		expect(epicQueryString({ group: "milestone", scope: "subprojects", priority: ["high"] })).toBe("?priority=high");
+		expect(epicQueryString({ group: "wave", scope: "subprojects", priority: ["high"] })).toBe("?priority=high");
 		expect(epicQueryString({})).toBe("");
 	});
 
@@ -43,9 +43,9 @@ describe("epicSearch", () => {
 		expect(epicPageSearch(search, "OP/routine-runtime").group).toBe("status");
 	});
 
-	test("the URL omits the epic and the milestone group, and writes the status group", () => {
+	test("the URL omits the epic and the wave group, and writes the status group", () => {
 		const scope = "subprojects";
-		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "milestone", scope, sort: "-updatedAt" })).toEqual({});
+		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "wave", scope, sort: "-updatedAt" })).toEqual({});
 		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "status", scope })).toEqual({ group: "status" });
 		// The filter bar strips `group=status` and `scope=self` before it reports a change.
 		expect(epicUrlSearch({ epic: "OP/routine-runtime", priority: ["high"] })).toEqual({
@@ -63,7 +63,7 @@ describe("epicSearch", () => {
 	});
 
 	test("the canonical check refuses a written default and a written epic", () => {
-		expect(isCanonicalEpicSearch("?group=milestone", validated({ group: "milestone" }))).toBe(false);
+		expect(isCanonicalEpicSearch("?group=wave", validated({ group: "wave" }))).toBe(false);
 		expect(isCanonicalEpicSearch("?epic=OP/other", validated({ epic: "OP/other" }))).toBe(false);
 		expect(isCanonicalEpicSearch("?sort=-updatedAt", validated({ sort: "-updatedAt" }))).toBe(false);
 	});
@@ -74,19 +74,19 @@ describe("epicSearch on a phone", () => {
 
 	test("a URL with no group groups by turn", () => {
 		expect(epicPageSearch(validated({}), "OP/routine-runtime", phone).group).toBe("turn");
-		expect(epicPageSearch(validated({ group: "milestone" }), "OP/routine-runtime", phone).group).toBe("milestone");
+		expect(epicPageSearch(validated({ group: "wave" }), "OP/routine-runtime", phone).group).toBe("wave");
 	});
 
-	test("the URL omits the turn group and writes the milestone group", () => {
+	test("the URL omits the turn group and writes the wave group", () => {
 		const scope = "subprojects";
 		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "turn", scope }, phone)).toEqual({});
-		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "milestone", scope }, phone)).toEqual({
-			group: "milestone",
+		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "wave", scope }, phone)).toEqual({
+			group: "wave",
 		});
 	});
 
-	test("the canonical check keeps the milestone group and refuses the turn group", () => {
-		expect(isCanonicalEpicSearch("?group=milestone", validated({ group: "milestone" }), phone)).toBe(true);
+	test("the canonical check keeps the wave group and refuses the turn group", () => {
+		expect(isCanonicalEpicSearch("?group=wave", validated({ group: "wave" }), phone)).toBe(true);
 		expect(isCanonicalEpicSearch("?group=turn", validated({ group: "turn" }), phone)).toBe(false);
 	});
 });

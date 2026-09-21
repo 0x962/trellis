@@ -2,11 +2,11 @@ import { describe, expect, test } from "bun:test";
 import type { TicketPr, TicketSummary } from "@trellis/api";
 import { groupRows } from "./groupRows";
 
-const ticket = (id: string, epic: TicketSummary["epic"], milestone: TicketSummary["milestone"] = null) =>
+const ticket = (id: string, epic: TicketSummary["epic"], wave: TicketSummary["wave"] = null) =>
 	({
 		id,
 		epic,
-		milestone,
+		wave,
 		priority: "none",
 		status: { category: "todo" },
 		updatedAt: "2026-09-18T00:00:00.000Z",
@@ -56,12 +56,12 @@ describe("groupRows by epic", () => {
 	});
 });
 
-const phase1 = { id: "01MILESTONEPHASE1000000000", ref: "OP/routine-runtime/phase-1", name: "Phase 1" };
-const phase2 = { id: "01MILESTONEPHASE2000000000", ref: "OP/routine-runtime/phase-2", name: "Phase 2" };
-const alpha = { id: "01MILESTONEALPHA0000000000", ref: "OP/routine-runtime/alpha", name: "Alpha" };
+const phase1 = { id: "01WAVEPHASE1000000000", ref: "OP/routine-runtime/phase-1", name: "Phase 1" };
+const phase2 = { id: "01WAVEPHASE2000000000", ref: "OP/routine-runtime/phase-2", name: "Phase 2" };
+const alpha = { id: "01WAVEALPHA0000000000", ref: "OP/routine-runtime/alpha", name: "Alpha" };
 
-describe("groupRows by milestone", () => {
-	test("follows the milestone order, not the names, No milestone last", () => {
+describe("groupRows by wave", () => {
+	test("follows the wave order, not the names, No wave last", () => {
 		const rows = [
 			ticket("a", runtime),
 			ticket("b", runtime, alpha),
@@ -71,10 +71,10 @@ describe("groupRows by milestone", () => {
 		];
 
 		const groups = groupRows(rows, {
-			group: "milestone",
+			group: "wave",
 			sort: "-updatedAt",
 			statuses: [],
-			milestoneOrder: [phase1.id, phase2.id, alpha.id],
+			waveOrder: [phase1.id, phase2.id, alpha.id],
 		});
 
 		expect(groups.map((group) => group.label)).toEqual(["Phase 1", "Phase 2", "Alpha", "No wave"]);
@@ -82,32 +82,32 @@ describe("groupRows by milestone", () => {
 		expect(groups[1]!.rows.map((row) => row.id).sort()).toEqual(["c", "e"]);
 	});
 
-	test("puts a milestone outside the order after the list and before No milestone", () => {
+	test("puts a wave outside the order after the list and before No wave", () => {
 		const rows = [ticket("a", null), ticket("b", runtime, alpha), ticket("c", runtime, phase1)];
 
 		const groups = groupRows(rows, {
-			group: "milestone",
+			group: "wave",
 			sort: "-updatedAt",
 			statuses: [],
-			milestoneOrder: [phase1.id],
+			waveOrder: [phase1.id],
 		});
 
 		expect(groups.map((group) => group.label)).toEqual(["Phase 1", "Alpha", "No wave"]);
 	});
 
-	test("puts every row without a milestone in one group", () => {
+	test("puts every row without a wave in one group", () => {
 		const rows = [ticket("a", null), ticket("b", runtime)];
 
-		const groups = groupRows(rows, { group: "milestone", sort: "-updatedAt", statuses: [] });
+		const groups = groupRows(rows, { group: "wave", sort: "-updatedAt", statuses: [] });
 
 		expect(groups).toHaveLength(1);
 		expect(groups[0]!.key).toBe("none");
 		expect(groups[0]!.rows).toHaveLength(2);
 	});
 
-	test("keeps a milestone whose rows are all closed, with the milestone link, and puts closed rows last", () => {
-		const closed = (id: string, category: "done" | "canceled", milestone: TicketSummary["milestone"]) =>
-			({ ...ticket(id, runtime, milestone), status: { category } }) as TicketSummary;
+	test("keeps a wave whose rows are all closed, with the wave link, and puts closed rows last", () => {
+		const closed = (id: string, category: "done" | "canceled", wave: TicketSummary["wave"]) =>
+			({ ...ticket(id, runtime, wave), status: { category } }) as TicketSummary;
 		const rows = [
 			closed("a", "done", phase2),
 			ticket("b", runtime, phase2),
@@ -116,14 +116,14 @@ describe("groupRows by milestone", () => {
 		];
 
 		const groups = groupRows(rows, {
-			group: "milestone",
+			group: "wave",
 			sort: "-updatedAt",
 			statuses: [],
-			milestoneOrder: [phase1.id, phase2.id],
+			waveOrder: [phase1.id, phase2.id],
 		});
 
 		expect(groups.map((group) => group.label)).toEqual(["Phase 1", "Phase 2"]);
-		expect(groups[0]!.milestone).toEqual(phase1);
+		expect(groups[0]!.wave).toEqual(phase1);
 		expect(groups[1]!.rows[0]!.id).toBe("b");
 		expect(
 			groups[1]!.rows
@@ -145,7 +145,7 @@ describe("groupRows with a row rank", () => {
 	test("the rank orders the rows of a group, and the view sort orders one rank", () => {
 		const rowRank = (row: TicketSummary) => (row.id === "old" ? 0 : 1);
 
-		const groups = groupRows(rows, { group: "milestone", sort: "-updatedAt", statuses: [], rowRank });
+		const groups = groupRows(rows, { group: "wave", sort: "-updatedAt", statuses: [], rowRank });
 
 		expect(groups[0]!.rows.map((row) => row.id)).toEqual(["old", "new", "mid"]);
 	});
@@ -155,10 +155,10 @@ describe("groupRows with a row rank", () => {
 		const rowRank = (row: TicketSummary) => (row.id === "other" ? 0 : 1);
 
 		const groups = groupRows([...rows, other], {
-			group: "milestone",
+			group: "wave",
 			sort: "-updatedAt",
 			statuses: [],
-			milestoneOrder: [phase1.id, phase2.id],
+			waveOrder: [phase1.id, phase2.id],
 			rowRank,
 		});
 
@@ -166,7 +166,7 @@ describe("groupRows with a row rank", () => {
 	});
 
 	test("no rank keeps the view sort alone", () => {
-		const groups = groupRows(rows, { group: "milestone", sort: "-updatedAt", statuses: [] });
+		const groups = groupRows(rows, { group: "wave", sort: "-updatedAt", statuses: [] });
 
 		expect(groups[0]!.rows.map((row) => row.id)).toEqual(["new", "mid", "old"]);
 	});

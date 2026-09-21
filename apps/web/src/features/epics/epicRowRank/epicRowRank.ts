@@ -7,7 +7,7 @@ import type { AgentRun, TicketSummary } from "@trellis/api";
 export const assignedTicketIds = (runs: readonly Pick<AgentRun, "kind" | "ticketId">[]): ReadonlySet<string> =>
 	new Set(runs.filter((run) => run.kind === "agent" && run.ticketId !== null).map((run) => run.ticketId!));
 
-// The rank of a ticket inside a milestone group of the epic page, by what
+// The rank of a ticket inside a wave group of the epic page, by what
 // the person does next. A lower rank comes first:
 // 0, the ticket waits for the person: its status names the human reviewer.
 // 1, the ticket can start: the todo category with no assigned agent run.

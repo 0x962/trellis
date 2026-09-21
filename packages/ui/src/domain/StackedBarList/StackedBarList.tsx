@@ -21,7 +21,7 @@ export type StackedBarListProps = {
 	className?: string;
 };
 
-// One `StackedBar` line per part of a whole, such as the milestones of an
+// One `StackedBar` line per part of a whole, such as the waves of an
 // epic: the name, the bar, and a value. The name column and the value column
 // have one width on every row, so the bars start and end on one line. A bar
 // has no legend here; the caller prints one legend for the whole list. Below

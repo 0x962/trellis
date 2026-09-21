@@ -8,7 +8,6 @@ import { flows } from "./flows.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
 import { labelGroups } from "./labelGroups.ts";
 import { labels } from "./labels.ts";
-import { milestones } from "./milestones.ts";
 import { models } from "./models.ts";
 import { needsYou } from "./needsYou.ts";
 import { notes } from "./notes.ts";
@@ -22,6 +21,7 @@ import { statuses } from "./statuses.ts";
 import { system } from "./system.ts";
 import { tickets } from "./tickets.ts";
 import { usage } from "./usage.ts";
+import { waves } from "./waves.ts";
 
 export type { ProcedureContext } from "./base.ts";
 
@@ -45,7 +45,7 @@ export const router = os.router({
 	comments,
 	notes,
 	epics,
-	milestones,
+	waves,
 	attachments,
 	pullRequests,
 	resources,

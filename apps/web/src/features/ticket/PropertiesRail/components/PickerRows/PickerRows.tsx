@@ -19,7 +19,7 @@ import { useStatuses } from "../../../hooks/useStatuses";
 import { useTicketWrite } from "../../../hooks/useTicketWrite";
 import { type PickerKind, usePickerStore } from "../../../stores/pickerStore";
 import { LabelsRow } from "../LabelsRow";
-import { MilestoneRow } from "../MilestoneRow";
+import { WaveRow } from "../WaveRow";
 
 export type PickerRowsProps = {
 	ticket: Ticket;
@@ -46,7 +46,7 @@ const summaryOf = (status: Status) => ({
 // on the page. The status picker lists the effective statuses of the
 // ticket's project. `LabelsRow` holds the labels row and its write. The epic
 // value links to the epic page, so its picker opens from the pencil beside it.
-// `MilestoneRow` follows the epic row while the ticket has an epic.
+// `WaveRow` follows the epic row while the ticket has an epic.
 export function PickerRows({ ticket }: PickerRowsProps) {
 	const { orpc } = useApp();
 	const { write } = useTicketWrite(ticket.identifier);
@@ -128,12 +128,12 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 			await write(
 				(client) => client.tickets.update({ ticket: ticket.identifier, epic: epic === null ? null : epic.ref }),
 				{
-					// A milestone belongs to one epic, so the server clears the
-					// milestone of a ticket that leaves its epic.
+					// A wave belongs to one epic, so the server clears the
+					// wave of a ticket that leaves its epic.
 					optimistic: (row) => ({
 						...row,
 						epic: link,
-						milestone: row.epic?.id === link?.id ? row.milestone : null,
+						wave: row.epic?.id === link?.id ? row.wave : null,
 					}),
 				},
 			);
@@ -264,7 +264,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 					</Tooltip>
 				)}
 			</PropertyRow>
-			{ticket.epic !== null && <MilestoneRow ticket={ticket} epic={ticket.epic} />}
+			{ticket.epic !== null && <WaveRow ticket={ticket} epic={ticket.epic} />}
 		</>
 	);
 }

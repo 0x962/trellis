@@ -2,10 +2,10 @@ import { z } from "zod";
 import {
 	EpicRefStringSchema,
 	LabelRefStringSchema,
-	MilestoneRefStringSchema,
 	ProjectRefStringSchema,
 	StatusRefStringSchema,
 	TicketRefStringSchema,
+	WaveRefStringSchema,
 } from "../refs.ts";
 import { ActorRefSchema } from "./actor.ts";
 import { AttachmentSchema } from "./attachment.ts";
@@ -19,12 +19,12 @@ import {
 } from "./enums.ts";
 import { EpicLinkSchema } from "./epicLink.ts";
 import { TicketLabelSchema } from "./label.ts";
-import { MilestoneLinkSchema } from "./milestone.ts";
 import { booleanString, CountSchema, commaList, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 import { ProjectLinkSchema } from "./project.ts";
 import { LinkedPullRequestSchema } from "./pullRequest.ts";
 import { StatusSummarySchema } from "./status.ts";
 import { TicketPrSchema } from "./ticketPr.ts";
+import { WaveLinkSchema } from "./wave.ts";
 
 // A title is stored trimmed. The limit keeps a row under the summary budget.
 export const TicketTitleSchema = z
@@ -79,9 +79,9 @@ export const TicketSummarySchema = z.object({
 	ancestors: z.array(TicketIdentifierSchema),
 	// The epic the ticket belongs to. A ticket belongs to at most one epic.
 	epic: EpicLinkSchema.nullable(),
-	// The milestone the ticket belongs to. It is a milestone of `epic`, so a
-	// ticket with no epic has no milestone.
-	milestone: MilestoneLinkSchema.nullable(),
+	// The wave the ticket belongs to. It is a wave of `epic`, so a
+	// ticket with no epic has no wave.
+	wave: WaveLinkSchema.nullable(),
 	childCount: CountSchema,
 	childDoneCount: CountSchema,
 	commentCount: CountSchema,
@@ -196,8 +196,8 @@ export const ListQuerySchema = z.strictObject({
 	parent: z.union([z.literal("none"), TicketRefStringSchema]).optional(),
 	// `none` keeps the tickets outside every epic.
 	epic: z.union([z.literal("none"), EpicRefStringSchema]).optional(),
-	// `none` keeps the tickets outside every milestone.
-	milestone: z.union([z.literal("none"), MilestoneRefStringSchema]).optional(),
+	// `none` keeps the tickets outside every wave.
+	wave: z.union([z.literal("none"), WaveRefStringSchema]).optional(),
 	pr: PrFilterSchema.optional(),
 	ci: commaList(CiStateSchema).optional(),
 	actor: ActorFilterSchema.optional(),

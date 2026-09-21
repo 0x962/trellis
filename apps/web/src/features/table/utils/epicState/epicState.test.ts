@@ -2,28 +2,28 @@ import { describe, expect, test } from "bun:test";
 import type { TicketSummary } from "@trellis/api";
 import { epicState } from "./epicState";
 
-const row = (epic: string | null, milestone: string | null): TicketSummary =>
+const row = (epic: string | null, wave: string | null): TicketSummary =>
 	({
 		epic: epic === null ? null : { id: epic, ref: epic, name: epic },
-		milestone: milestone === null ? null : { id: milestone, ref: milestone, name: milestone },
+		wave: wave === null ? null : { id: wave, ref: wave, name: wave },
 	}) as unknown as TicketSummary;
 
 describe("epicState", () => {
-	test("tickets of one epic and one milestone share both refs", () => {
+	test("tickets of one epic and one wave share both refs", () => {
 		expect(epicState([row("OP/a", "OP/a/m1"), row("OP/a", "OP/a/m1")])).toEqual({
 			epicRef: "OP/a",
 			epicMixed: false,
-			milestoneRef: "OP/a/m1",
-			milestoneMixed: false,
+			waveRef: "OP/a/m1",
+			waveMixed: false,
 		});
 	});
 
-	test("a ticket with no milestone makes the milestones mixed", () => {
+	test("a ticket with no wave makes the waves mixed", () => {
 		expect(epicState([row("OP/a", "OP/a/m1"), row("OP/a", null)])).toEqual({
 			epicRef: "OP/a",
 			epicMixed: false,
-			milestoneRef: undefined,
-			milestoneMixed: true,
+			waveRef: undefined,
+			waveMixed: true,
 		});
 	});
 
@@ -43,8 +43,8 @@ describe("epicState", () => {
 		expect(epicState([row(null, null), row(null, null)])).toEqual({
 			epicRef: undefined,
 			epicMixed: false,
-			milestoneRef: undefined,
-			milestoneMixed: false,
+			waveRef: undefined,
+			waveMixed: false,
 		});
 	});
 });

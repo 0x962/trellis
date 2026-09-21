@@ -52,7 +52,7 @@ const build = (submenu: Submenu, selection: TicketSummary[]) => {
 		labels,
 		labelGroups: [],
 		epics: [],
-		milestones: [],
+		waves: [],
 	});
 	return { rows, writes };
 };

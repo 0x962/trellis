@@ -293,19 +293,19 @@ Source: WEB-00.
 
 **New UI element.** None.
 
-#### T07. Rename the milestone label to Wave in the web app
+#### T07. Rename the wave label to Wave in the web app
 
 Source: WEB-09.
 
-**Result.** Every word a person reads in the web app says `Wave`, and every identifier in the code still says `milestone`.
+**Result.** Every word a person reads in the web app says `Wave`, and every identifier in the code still says `wave`.
 
-**Touches.** `apps/web/src/features/table/columns.tsx:55`, `apps/web/src/features/table/DisplayPopover/DisplayPopover.tsx:36`, `apps/web/src/features/filters/fields.ts:63`, `apps/web/src/features/filters/FilterBar/components/FilterPicker/FilterPicker.tsx:214`, `apps/web/src/features/command/utils/submenuRows/submenuRows.tsx:65`, `apps/web/src/features/composer/CreateTicketDialog/components/ChipRow/ChipRow.tsx:184,187`, `apps/web/src/features/epics/EpicPage/components/EpicProgress/EpicProgress.tsx:65`, `apps/web/src/features/ticket/PropertiesRail/components/MilestoneRow/MilestoneRow.tsx`, `apps/web/src/features/epics/EpicSheet/components/MilestonesSection/MilestonesSection.tsx`.
+**Touches.** `apps/web/src/features/table/columns.tsx:55`, `apps/web/src/features/table/DisplayPopover/DisplayPopover.tsx:36`, `apps/web/src/features/filters/fields.ts:63`, `apps/web/src/features/filters/FilterBar/components/FilterPicker/FilterPicker.tsx:214`, `apps/web/src/features/command/utils/submenuRows/submenuRows.tsx:65`, `apps/web/src/features/composer/CreateTicketDialog/components/ChipRow/ChipRow.tsx:184,187`, `apps/web/src/features/epics/EpicPage/components/EpicProgress/EpicProgress.tsx:65`, `apps/web/src/features/ticket/PropertiesRail/components/WaveRow/WaveRow.tsx`, `apps/web/src/features/epics/EpicSheet/components/WavesSection/WavesSection.tsx`.
 
-**Leave alone.** `packages/api/**`, `apps/server/**`, `packages/cli/**`, the URL search key `milestone`, every type name, every `Group` value. T73 renames the identifiers.
+**Leave alone.** `packages/api/**`, `apps/server/**`, `packages/cli/**`, the URL search key `wave`, every type name, every `Group` value. T73 renames the identifiers.
 
 **Verify.** `bun test apps/web/src/features/table` · `bun test apps/web/src/features/filters` · `bun scripts/check.ts` · the epic route and the Display popover.
 
-**Review focus.** A filter string in the URL and in `Copy as CLI` is a contract with the CLI and keeps the word `milestone`. Only the rendered label changes.
+**Review focus.** A filter string in the URL and in `Copy as CLI` is a contract with the CLI and keeps the word `wave`. Only the rendered label changes.
 
 **Evidence.** Frontend floor. No extra.
 
@@ -353,7 +353,7 @@ Source: S8.
 
 **Creates.** `apps/server/src/db/tables/ticketDeps.ts` (ticket_id, depends_on_id, source in `manual | parsed | derived`, created_at; primary key the pair; both foreign keys cascade). `apps/server/src/services/tickets/ticketDeps.test.ts`. One migration with `bun run db:generate` after the newest tag on `main`, and its snapshot.
 
-**Leave alone.** `packages/cli/**` (T21). `apps/server/src/db/tables/milestones.ts`. `apps/server/src/db/queries/ticketSummary.ts` (T19).
+**Leave alone.** `packages/cli/**` (T21). `apps/server/src/db/tables/waves.ts`. `apps/server/src/db/queries/ticketSummary.ts` (T19).
 
 **Verify.** `bun test apps/server/src/services/tickets` · `bun test apps/server/src/db` · `bun scripts/check.ts`.
 
@@ -621,7 +621,7 @@ Source: S10, with `releases[]` as a list.
 
 **The rules.** `waitsOn[]`: identifier, title, status category and `isQuestion` (the status reviewer is `human` and the ticket carries options) of each ticket this one waits on that is not done. `releases[]`: identifier and title of each ticket that waits on this one; a count is the length. `ready`: the category is `todo` and every ticket this one waits on is done. `stackedOn`: the base ref of a pull request equals the head ref of another pull request of the same epic.
 
-**Leave alone.** `apps/server/src/services/milestones/rows.ts` (T27). `apps/web/**`.
+**Leave alone.** `apps/server/src/services/waves/rows.ts` (T27). `apps/web/**`.
 
 **Verify.** `bun test apps/server/src/db` · `bun scripts/check.ts`.
 
@@ -831,13 +831,13 @@ Source: S18.
 
 **New UI element.** None.
 
-#### T27. Replace the milestone next counts with dependency counts
+#### T27. Replace the wave next counts with dependency counts
 
 Source: S14. Lands before T41, which reads the new counts.
 
 **Result.** `toStart` counts the tickets that are ready by their dependencies, `waitsForYou` counts the rows whose turn is `you`, and `running` leaves the wire.
 
-**Touches.** `apps/server/src/services/milestones/rows.ts` (`running` at line 20, `hasOpenRun` at 31-35, `nextCounts` at 37-42, the column list at 47, `toMilestoneSummary` at 71), `packages/api/src/schemas/milestone.ts` (the comment at 25-31, `running` at 42), `apps/server/src/db/milestoneNext.test.ts`, `apps/server/src/services/brief.test.ts` (the fixture at lines 130-131), `packages/cli/src/commands/milestones.ts:26` (the count line; the file keeps its name until T73), `apps/web/src/features/epics/epicNext/epicNext.ts` (lines 6, 23, 48-52), `apps/web/src/features/epics/epicNext/epicNext.test.ts`.
+**Touches.** `apps/server/src/services/waves/rows.ts` (`running` at line 20, `hasOpenRun` at 31-35, `nextCounts` at 37-42, the column list at 47, `toWaveSummary` at 71), `packages/api/src/schemas/wave.ts` (the comment at 25-31, `running` at 42), `apps/server/src/db/waveNext.test.ts`, `apps/server/src/services/brief.test.ts` (the fixture at lines 130-131), `packages/cli/src/commands/waves.ts:26` (the count line; the file keeps its name until T73), `apps/web/src/features/epics/epicNext/epicNext.ts` (lines 6, 23, 48-52), `apps/web/src/features/epics/epicNext/epicNext.test.ts`.
 
 **Creates.** Nothing.
 
@@ -847,7 +847,7 @@ Source: S14. Lands before T41, which reads the new counts.
 
 **Review focus.** Removing `running` breaks every reader at once, so one pull request carries the server, the CLI line and the two web files. Five readers are known; a repository-wide search must prove no sixth, and the command and its output go in the verify record. The web counts working runs itself from the agent runs it already loads.
 
-**Evidence.** Backend: summary, verify record, test proof, contract table of `MilestoneSummarySchema` with the removed field named, the search output that proves zero other callers. No picture.
+**Evidence.** Backend: summary, verify record, test proof, contract table of `WaveSummarySchema` with the removed field named, the search output that proves zero other callers. No picture.
 
 **Depends on.** T19.
 
@@ -1221,7 +1221,7 @@ Source: WEB-12.
 
 **Creates.** `apps/web/src/features/table/utils/turnGroups/turnGroups.ts`, `turnGroups.test.ts`, `index.ts`.
 
-**Leave alone.** `apps/web/src/features/table/utils/milestoneGroups`.
+**Leave alone.** `apps/web/src/features/table/utils/waveGroups`.
 
 **Verify.** `bun test apps/web/src/features/table` · `bun test apps/web/src/features/epics` · `bun test apps/web/src/features/filters` · `bun scripts/check.ts` · the epic route in both groupings.
 
@@ -1997,7 +1997,7 @@ Source: CLI ticket 16.
 
 **Verify.** `bun test packages/cli/src/commands/epics` · `bun scripts/check.ts` · `trellis instructions --project OP` and `trellis epics guide`; record both transcripts.
 
-**Review focus.** The two instruction files differ today (the CLI copy holds the planning block, the api copy holds `trellis review apply`). Diff them after the edit and name every remaining difference. Keep both substitution mechanisms (`KEY` and the `key` template). The word `milestone` stays in this file until T73; the new sentences say `wave` where they name the intent and `--milestone` where they name the shipped flag.
+**Review focus.** The two instruction files differ today (the CLI copy holds the planning block, the api copy holds `trellis review apply`). Diff them after the edit and name every remaining difference. Keep both substitution mechanisms (`KEY` and the `key` template). The word `wave` stays in this file until T73; the new sentences say `wave` where they name the intent and `--wave` where they name the shipped flag.
 
 **Evidence.** Backend: summary, verify record, test proof for `planGuide.test.ts`, contract table of the printed text of both verbs. No picture.
 
@@ -2095,15 +2095,15 @@ Source: WEB-29.
 
 ### Wave 13. The word wave
 
-#### T73. Rename the milestone record to the wave
+#### T73. Rename the wave record to the wave
 
 Source: S17, plus the nine CLI files of CLI ticket 2.
 
-**Result.** Every identifier, column, route, ref, flag and label that says `milestone` says `wave`, and the tree builds.
+**Result.** Every identifier, column, route, ref, flag and label that says `wave` says `wave`, and the tree builds.
 
 **This ticket exceeds the budget and says so.** The word appears 1,461 times in 129 files: 29 under `apps/server`, 71 under `apps/web`, 13 under `packages/api`, 10 under `packages/cli`, 1 under `packages/ui`, 5 under `docs`. A wire rename breaks every reader in one commit, so it lands as one pull request, alone in its wave.
 
-**Touches.** Every file that holds the word, with these anchors: `apps/server/src/db/tables/milestones.ts`, `apps/server/src/db/schema.ts` (`tickets.milestone_id`, the check `tickets_milestone_needs_epic` at line 102), `apps/server/src/services/milestones/**`, `packages/api/src/schemas/milestone.ts`, `packages/api/src/contract/milestones.ts`, `packages/cli/src/commands/milestones.ts` (renamed to `waves.ts`), `packages/cli/src/verbs.ts`, `packages/cli/src/output.ts`, `packages/cli/src/commands/create.ts`, `edit.ts`, `sub.ts`, `list.ts`, `epics.ts`, `packages/cli/src/instructions.md`, `packages/cli/src/errors.ts` (`MILESTONE_OUTSIDE_EPIC`), `apps/web/src/features/table/**`, `apps/web/src/features/epics/**`, `docs/UI_PATTERNS.md`, `docs/ARCHITECTURE.md`.
+**Touches.** Every file that holds the word, with these anchors: `apps/server/src/db/tables/waves.ts`, `apps/server/src/db/schema.ts` (`tickets.wave_id`, the check `tickets_wave_needs_epic` at line 102), `apps/server/src/services/waves/**`, `packages/api/src/schemas/wave.ts`, `packages/api/src/contract/waves.ts`, `packages/cli/src/commands/waves.ts` (renamed to `waves.ts`), `packages/cli/src/verbs.ts`, `packages/cli/src/output.ts`, `packages/cli/src/commands/create.ts`, `edit.ts`, `sub.ts`, `list.ts`, `epics.ts`, `packages/cli/src/instructions.md`, `packages/cli/src/errors.ts` (`WAVE_OUTSIDE_EPIC`), `apps/web/src/features/table/**`, `apps/web/src/features/epics/**`, `docs/UI_PATTERNS.md`, `docs/ARCHITECTURE.md`.
 
 **Creates.** One migration and its snapshot, with `ALTER TABLE ... RENAME` for the table, the column, the constraints and the indexes.
 
@@ -2111,7 +2111,7 @@ Source: S17, plus the nine CLI files of CLI ticket 2.
 
 **Verify.** `bun test apps/server/src` · `bun test packages/api/src` · `bun test apps/web/src` · `bun scripts/check.ts` · `trellis waves list OP/routines-e2e`, `trellis create -p OP -t "probe" --wave OP/routines-e2e/run-settles` against a scratch server.
 
-**Review focus.** The diff holds renames only. A search proves no file holds `milestone` outside the audio header and the landed migrations. The migration renames the constraints and the indexes, not the table alone. `--wave` replaces `--milestone`; `--milestone` stays only if Navid asks.
+**Review focus.** The diff holds renames only. A search proves no file holds `wave` outside the audio header and the landed migrations. The migration renames the constraints and the indexes, not the table alone. `--wave` replaces `--wave`; `--wave` stays only if Navid asks.
 
 **Evidence.** Backend: summary, verify record of the four commands, the unchanged test count on the base sha and the head sha, contract table of every renamed wire field, migration plan. Picture: the migration plan table.
 
@@ -2133,7 +2133,7 @@ Source: CLI ticket 17.
 
 **Result.** `docs/ARCHITECTURE.md` holds one section each for ticket dependencies, the contract, the summary, evidence, the answer, epic resources and the outcome, and each section states the table, the API, the ref grammar, the CLI verb and the web route in the shape of the `### Epics` section.
 
-**Touches.** `docs/ARCHITECTURE.md` (1,103 lines today; T73 renamed its 71 `milestone` lines).
+**Touches.** `docs/ARCHITECTURE.md` (1,103 lines today; T73 renamed its 71 `wave` lines).
 
 **Creates.** Nothing.
 
@@ -2141,7 +2141,7 @@ Source: CLI ticket 17.
 
 **Verify.** `bun scripts/check.ts` · read each section against the merged code and confirm every table name, verb and route.
 
-**Review focus.** Every sentence states what the code does today. A sentence no merged code supports is deleted. No new sentence reintroduces `milestone`.
+**Review focus.** Every sentence states what the code does today. A sentence no merged code supports is deleted. No new sentence reintroduces `wave`.
 
 **Evidence.** Backend: summary, verify record, `--kind test --none`, `--kind contract --none`. No picture.
 
@@ -2166,7 +2166,7 @@ One line per ticket: the paths it writes. An append file (section 0) is listed o
 - T04: `packages/api/src/steCheck/**`, +append `packages/api/src/index.ts`
 - T05: `packages/api/src/prPaths/**`, +append `packages/api/src/index.ts`
 - T06: `packages/ui/src/gallery/components/DomainSections/DomainSections.tsx`, `sections/**`
-- T07: the eight label sites of `columns.tsx`, `DisplayPopover.tsx`, `fields.ts`, `FilterPicker.tsx`, `submenuRows.tsx`, `ChipRow.tsx`, `EpicProgress.tsx`, `MilestoneRow.tsx`, `MilestonesSection.tsx`
+- T07: the eight label sites of `columns.tsx`, `DisplayPopover.tsx`, `fields.ts`, `FilterPicker.tsx`, `submenuRows.tsx`, `ChipRow.tsx`, `EpicProgress.tsx`, `WaveRow.tsx`, `WavesSection.tsx`
 - T08: `StatusIcon.tsx`, `Badge.tsx`, `chartTones.ts`, `tokens.css`, `agent-mark.css`, `ticket-glimmer.css`, `AgentMark.tsx`, `epicBar.ts`, `epicBar.test.ts`, `StatusRow.tsx`
 
 **Wave 2**
@@ -2192,7 +2192,7 @@ One line per ticket: the paths it writes. An append file (section 0) is listed o
 - T24: `apps/server/src/db/schema.ts` (tickets), `apps/server/src/services/tickets/contract.ts`, `contract.test.ts`, `outcome.ts`, `outcome.test.ts`, `apps/server/src/procedures/tickets.ts`, `packages/api/src/schemas/ticket.ts`, `ticketWrite.ts`, `apps/server/drizzle/0085_*`, +append `registry.ts`, `contract/tickets.ts`
 - T25: `packages/api/src/schemas/ticketPr.ts`, `apps/server/src/db/queries/ticketPrs.ts`, `apps/server/src/db/ticketPrs.test.ts`
 - T26: `packages/api/src/turn/**`, +append `packages/api/src/index.ts`
-- T27: `apps/server/src/services/milestones/rows.ts`, `packages/api/src/schemas/milestone.ts`, `apps/server/src/db/milestoneNext.test.ts`, `apps/server/src/services/brief.test.ts` (fixture lines 130-131 only), `packages/cli/src/commands/milestones.ts:26`, `apps/web/src/features/epics/epicNext/**`
+- T27: `apps/server/src/services/waves/rows.ts`, `packages/api/src/schemas/wave.ts`, `apps/server/src/db/waveNext.test.ts`, `apps/server/src/services/brief.test.ts` (fixture lines 130-131 only), `packages/cli/src/commands/waves.ts:26`, `apps/web/src/features/epics/epicNext/**`
 - T28: `packages/api/src/schemas/review.ts`, the review status service under `apps/server/src/services/reviews/` and its test
 - T29: `flattenGroups.ts`, `rowHeights.ts`, `TableBody.tsx`, `apps/web/src/features/table/AgentLine/**`, `packages/ui/src/primitives/AttentionDot/**`, `sections/AttentionDot.tsx`, +append `packages/ui/src/index.ts`, `sections/index.ts`
 
@@ -2258,7 +2258,7 @@ T49 (wave 7) and T55 (wave 8) both write `evidence.ts`; T55 waits on T49, so the
 - T72: `ReviewPage/ReviewPage.tsx`, `VerdictBar/VerdictBar.tsx`, `FileRiskGroups/FileRiskGroups.tsx`, `TicketView/TicketView.tsx`, `QuestionBlock/QuestionBlock.tsx`, `packages/ui/src/review/review.css`
 
 **Wave 13**
-- T73: every file that holds `milestone`; no other ticket runs.
+- T73: every file that holds `wave`; no other ticket runs.
 
 **Wave 14**
 - T74: `docs/ARCHITECTURE.md`.
@@ -2279,7 +2279,7 @@ Each one is generated with `bun run db:generate` after the newest tag on `main` 
 | 0087 | T40 | 6 | 0086 | new table `pr_evidence` |
 | 0088 | T46 | 7 | 0087 | `review_deliveries.review_id` nullable, `answer_comment_id`, new unique rule |
 | 0089 | T51 | 8 | 0088 | new table `epic_resources` |
-| 0090 | T73 | 13 | 0089 | rename `milestones` to `waves`, `tickets.milestone_id` to `wave_id`, constraints and indexes |
+| 0090 | T73 | 13 | 0089 | rename `waves` to `waves`, `tickets.wave_id` to `wave_id`, constraints and indexes |
 
 Nine migrations. No wave holds two.
 

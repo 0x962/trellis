@@ -16,9 +16,9 @@ export default defineCommand({
 		priority: { type: "enum", options: [...priorities], description: "Priority" },
 		status: { type: "string", description: "Status ref" },
 		epic: { type: "string", description: "Epic ref, such as OP/routine-runtime" },
-		milestone: {
+		wave: {
 			type: "string",
-			description: "Milestone ref, such as OP/routine-runtime/phase-1; it also sets the epic",
+			description: "Wave ref, such as OP/routine-runtime/phase-1; it also sets the epic",
 		},
 		project: { type: "string", alias: "p", description: "Project ref; the parent's project when absent" },
 		label: labelFlag,
@@ -37,7 +37,7 @@ export default defineCommand({
 				priority: args.priority as Priority | undefined,
 				status: args.status,
 				epic: args.epic,
-				milestone: args.milestone,
+				wave: args.wave,
 				labels: labelRefs(context.rawArgs, "label"),
 			}),
 		);

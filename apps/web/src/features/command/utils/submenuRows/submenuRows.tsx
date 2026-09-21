@@ -1,5 +1,5 @@
 import { ArrowBendUpLeft, Flag, Stack } from "@phosphor-icons/react";
-import type { EpicSummary, Label, LabelGroup, MilestoneSummary, Status, TicketSummary } from "@trellis/api";
+import type { EpicSummary, Label, LabelGroup, Status, TicketSummary, WaveSummary } from "@trellis/api";
 import { LabelDot, PriorityIcon, StatusIcon } from "@trellis/ui";
 import { changeStatus, moveToProject, setEpic, setLabel, setParent, setPriority } from "../../actions";
 import type { PaletteRow, RowDeps, Submenu } from "../../rows";
@@ -20,7 +20,7 @@ export const submenuHeadings: Record<Submenu["kind"], string> = {
 	project: "Move to project",
 	parent: "Set parent",
 	epic: "Set epic",
-	milestone: "Set wave",
+	wave: "Set wave",
 	labels: "Set labels",
 	sort: "Sort by",
 	group: "Group by",
@@ -37,8 +37,8 @@ export type SubmenuData = {
 	labelGroups: LabelGroup[];
 	// The epics of the project tree.
 	epics: EpicSummary[];
-	// The milestones of the epic of a milestone submenu, in position order.
-	milestones: readonly MilestoneSummary[];
+	// The waves of the epic of a wave submenu, in position order.
+	waves: readonly WaveSummary[];
 };
 
 // "Bug", or "Type / Bug" for a label that belongs to a group.
@@ -62,7 +62,7 @@ const groups = [
 	{ value: "project", label: "Project" },
 	{ value: "parent", label: "Parent" },
 	{ value: "epic", label: "Epic" },
-	{ value: "milestone", label: "Wave" },
+	{ value: "wave", label: "Wave" },
 	{ value: "pr", label: "PR" },
 	{ value: "none", label: "None" },
 ] as const;
@@ -140,7 +140,7 @@ export const submenuRows = (submenu: Submenu, deps: RowDeps, data: SubmenuData):
 	if (submenu.kind === "goto") return gotoProjectRows(deps);
 	if (submenu.kind === "parent") return parentRows(submenu, deps, data);
 	if (submenu.kind === "epic") return epicRows(submenu, deps, data);
-	if (submenu.kind === "milestone") return milestoneRows(deps, data);
+	if (submenu.kind === "wave") return waveRows(deps, data);
 	const field = submenu.kind === "sort" ? "sort" : "group";
 	const options = submenu.kind === "sort" ? sorts : groups;
 	return options.map((option) => ({
@@ -218,19 +218,19 @@ const epicRows = (submenu: Extract<Submenu, { kind: "epic" }>, deps: RowDeps, da
 
 // Only the Selection section opens this submenu, so every pick writes
 // through the bulk path.
-const milestoneRows = (deps: RowDeps, data: SubmenuData): PaletteRow[] => {
-	const pick = (milestone: MilestoneSummary | null) => () => {
+const waveRows = (deps: RowDeps, data: SubmenuData): PaletteRow[] => {
+	const pick = (wave: WaveSummary | null) => () => {
 		deps.close();
-		void bulk.setMilestone(deps.bulk, deps.selection, milestone);
+		void bulk.setWave(deps.bulk, deps.selection, wave);
 	};
-	const none: PaletteRow = { value: "milestone.none", label: "No wave", icon: <Flag />, run: pick(null) };
-	const rows = data.milestones.map((milestone) => ({
-		value: `milestone.${milestone.ref}`,
-		label: milestone.name,
-		sub: milestone.state === "done" ? "Done" : undefined,
-		keywords: [milestone.ref, milestone.slug],
+	const none: PaletteRow = { value: "wave.none", label: "No wave", icon: <Flag />, run: pick(null) };
+	const rows = data.waves.map((wave) => ({
+		value: `wave.${wave.ref}`,
+		label: wave.name,
+		sub: wave.state === "done" ? "Done" : undefined,
+		keywords: [wave.ref, wave.slug],
 		icon: <Flag />,
-		run: pick(milestone),
+		run: pick(wave),
 	}));
 	return [none, ...rows];
 };

@@ -53,11 +53,11 @@ const remove = async (ctx: ServiceCtx, tx: Tx, input: ProjectDeleteInput): Promi
 	);
 	// A ticket outside the subtree may sit in an epic of a deleted project.
 	// The project delete cascades to that epic and sets `epic_id` NULL on the
-	// ticket, and the check `tickets_milestone_needs_epic` refuses a row that
-	// loses its epic while it still holds a milestone.
+	// ticket, and the check `tickets_wave_needs_epic` refuses a row that
+	// loses its epic while it still holds a wave.
 	await tx.execute(
-		sql`UPDATE tickets SET milestone_id = NULL
-			WHERE milestone_id IS NOT NULL AND epic_id IN (SELECT id FROM epics WHERE project_id = ANY(${scope}))`,
+		sql`UPDATE tickets SET wave_id = NULL
+			WHERE wave_id IS NOT NULL AND epic_id IN (SELECT id FROM epics WHERE project_id = ANY(${scope}))`,
 	);
 	await tx.execute(sql`DELETE FROM projects WHERE id = ANY(${scope})`);
 	if (project.parentId !== null) {

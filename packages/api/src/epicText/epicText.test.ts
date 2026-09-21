@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { EpicCounts } from "../schemas/epicCounts.ts";
-import type { MilestoneSummary } from "../schemas/milestone.ts";
-import { epicBandLine, epicCountLine, epicMilestoneHeading } from "./epicText.ts";
+import type { WaveSummary } from "../schemas/wave.ts";
+import { epicBandLine, epicCountLine, epicWaveHeading } from "./epicText.ts";
 
 const counts = (fields: Partial<EpicCounts> = {}): EpicCounts => ({
 	total: 0,
@@ -13,7 +13,7 @@ const counts = (fields: Partial<EpicCounts> = {}): EpicCounts => ({
 	...fields,
 });
 
-const milestone = (fields: Partial<MilestoneSummary> = {}): MilestoneSummary =>
+const wave = (fields: Partial<WaveSummary> = {}): WaveSummary =>
 	({
 		name: "The run settles, and its state reaches the page",
 		ref: "OP/routines-e2e/run-settles",
@@ -21,7 +21,7 @@ const milestone = (fields: Partial<MilestoneSummary> = {}): MilestoneSummary =>
 		toStart: 0,
 		waitsForYou: 0,
 		...fields,
-	}) as MilestoneSummary;
+	}) as WaveSummary;
 
 describe("epicBandLine", () => {
 	test("prints the done count and each status with its count", () => {
@@ -47,15 +47,15 @@ describe("epicCountLine", () => {
 	});
 });
 
-describe("epicMilestoneHeading", () => {
-	test("marks the current milestone and counts the tickets that wait for the person", () => {
-		expect(epicMilestoneHeading(milestone({ waitsForYou: 1 }), true)).toBe(
+describe("epicWaveHeading", () => {
+	test("marks the current wave and counts the tickets that wait for the person", () => {
+		expect(epicWaveHeading(wave({ waitsForYou: 1 }), true)).toBe(
 			"The run settles, and its state reaches the page (OP/routines-e2e/run-settles)  current  0 of 6 · 1 for you",
 		);
 	});
 
-	test("prints the done count alone for a milestone that waits for nobody", () => {
-		expect(epicMilestoneHeading(milestone({ counts: counts({ total: 3, done: 3 }) }), false)).toBe(
+	test("prints the done count alone for a wave that waits for nobody", () => {
+		expect(epicWaveHeading(wave({ counts: counts({ total: 3, done: 3 }) }), false)).toBe(
 			"The run settles, and its state reaches the page (OP/routines-e2e/run-settles)  3 of 3",
 		);
 	});

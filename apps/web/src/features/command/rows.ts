@@ -52,8 +52,8 @@ export type Submenu =
 	| { kind: "parent"; tickets: string[]; project: string; bulk?: true }
 	| { kind: "epic"; tickets: string[]; project: string; bulk?: true }
 	// `epic` is the ref of the epic every ticket of the submenu belongs to.
-	// The submenu lists the milestones of that epic.
-	| { kind: "milestone"; tickets: string[]; epic: string; bulk: true }
+	// The submenu lists the waves of that epic.
+	| { kind: "wave"; tickets: string[]; epic: string; bulk: true }
 	// `checked` names the labels that every ticket of the submenu holds, and
 	// `mixed` names the labels that some hold and some do not. A pick on a
 	// checked label removes it everywhere. A pick on any other label, mixed

@@ -7,8 +7,8 @@ import { ciRank, textArray } from "./support.ts";
 // to an id. `rootIds` holds the roots of `projectIds`. The caller reads
 // them from the project cache. The partial indexes of tickets start with
 // root_id. `parent` is a ticket id or `none` for top-level tickets. `epic`
-// is an epic id or `none` for the tickets outside every epic. `milestone`
-// is a milestone id or `none` for the tickets outside every milestone.
+// is an epic id or `none` for the tickets outside every epic. `wave`
+// is a wave id or `none` for the tickets outside every wave.
 // `actor` is `kind:name` or a bare name and matches the last actor.
 // `updated`, `created`, and `completed` are ISO "after" bounds.
 export type TicketFilter = {
@@ -23,7 +23,7 @@ export type TicketFilter = {
 	noLabel?: boolean;
 	parent?: string;
 	epic?: string;
-	milestone?: string;
+	wave?: string;
 	pr?: PrFilter;
 	ci?: readonly CiState[];
 	actor?: string;
@@ -119,8 +119,8 @@ export const filterWhere = (filter: TicketFilter): SQL => {
 	else if (filter.parent) clauses.push(sql`t.parent_id = ${filter.parent}`);
 	if (filter.epic === "none") clauses.push(sql`t.epic_id IS NULL`);
 	else if (filter.epic) clauses.push(sql`t.epic_id = ${filter.epic}`);
-	if (filter.milestone === "none") clauses.push(sql`t.milestone_id IS NULL`);
-	else if (filter.milestone) clauses.push(sql`t.milestone_id = ${filter.milestone}`);
+	if (filter.wave === "none") clauses.push(sql`t.wave_id IS NULL`);
+	else if (filter.wave) clauses.push(sql`t.wave_id = ${filter.wave}`);
 	if (filter.pr) clauses.push(prClause(filter.pr));
 	if (filter.ci) clauses.push(ciClause(filter.ci));
 	if (filter.actor) clauses.push(actorClause(filter.actor));
@@ -144,7 +144,7 @@ export const filterKey = (filter: TicketFilter) => [
 	filter.noLabel ?? null,
 	filter.parent ?? null,
 	filter.epic ?? null,
-	filter.milestone ?? null,
+	filter.wave ?? null,
 	filter.pr ?? null,
 	filter.ci ?? null,
 	filter.actor ?? null,

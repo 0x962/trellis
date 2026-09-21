@@ -1,5 +1,5 @@
 import type { EpicCounts } from "../schemas/epicCounts.ts";
-import type { MilestoneSummary } from "../schemas/milestone.ts";
+import type { WaveSummary } from "../schemas/wave.ts";
 import { factSeparator, groupSeparator } from "./separators.ts";
 
 // The top of the epic page in the words a terminal prints. The page draws a
@@ -31,28 +31,24 @@ const bandStatuses = ["done", "review", "started", "todo", "canceled"] as const;
 export const epicBandLine = (counts: EpicCounts): string =>
 	[`${doneOfTotal(counts)} done`, ...bandStatuses.map((status) => `${status} ${counts[status]}`)].join(factSeparator);
 
-// What the person can do in the milestone the epic works in now. `toStart`
+// What the person can do in the wave the epic works in now. `toStart`
 // counts the Todo tickets that no other ticket holds back. `waitsForYou`
 // counts the tickets whose turn is the person.
-export const epicCountLine = (milestone: Pick<MilestoneSummary, "toStart" | "waitsForYou">): string =>
-	[
-		`${milestone.toStart} to start`,
-		`${milestone.waitsForYou} ${milestone.waitsForYou === 1 ? "waits" : "wait"} for you`,
-	].join(factSeparator);
-
-// The counts beside a milestone name. A milestone that waits for nobody
-// prints the done count alone.
-const milestoneCounts = (milestone: Pick<MilestoneSummary, "counts" | "waitsForYou">): string =>
-	milestone.waitsForYou === 0
-		? doneOfTotal(milestone.counts)
-		: `${doneOfTotal(milestone.counts)}${factSeparator}${milestone.waitsForYou} for you`;
-
-// The heading of one milestone group. The page marks the milestone the epic
-// works in now with a badge, and a terminal with the word `current`.
-export const epicMilestoneHeading = (
-	milestone: Pick<MilestoneSummary, "counts" | "name" | "ref" | "waitsForYou">,
-	current: boolean,
-): string =>
-	[`${milestone.name} (${milestone.ref})`, ...(current ? ["current"] : []), milestoneCounts(milestone)].join(
-		groupSeparator,
+export const epicCountLine = (wave: Pick<WaveSummary, "toStart" | "waitsForYou">): string =>
+	[`${wave.toStart} to start`, `${wave.waitsForYou} ${wave.waitsForYou === 1 ? "waits" : "wait"} for you`].join(
+		factSeparator,
 	);
+
+// The counts beside a wave name. A wave that waits for nobody
+// prints the done count alone.
+const waveCounts = (wave: Pick<WaveSummary, "counts" | "waitsForYou">): string =>
+	wave.waitsForYou === 0
+		? doneOfTotal(wave.counts)
+		: `${doneOfTotal(wave.counts)}${factSeparator}${wave.waitsForYou} for you`;
+
+// The heading of one wave group. The page marks the wave the epic
+// works in now with a badge, and a terminal with the word `current`.
+export const epicWaveHeading = (
+	wave: Pick<WaveSummary, "counts" | "name" | "ref" | "waitsForYou">,
+	current: boolean,
+): string => [`${wave.name} (${wave.ref})`, ...(current ? ["current"] : []), waveCounts(wave)].join(groupSeparator);

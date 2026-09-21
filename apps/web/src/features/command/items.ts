@@ -44,7 +44,7 @@ export const paletteItems: readonly PaletteItemDef[] = [
 	{ id: "selection.project", label: "Move to project", section: "selection", shortcutId: "listProject", submenu: true },
 	{ id: "selection.parent", label: "Set parent", section: "selection", shortcutId: "listParent", submenu: true },
 	{ id: "selection.epic", label: "Set epic", section: "selection", shortcutId: "listEpic", submenu: true },
-	{ id: "selection.milestone", label: "Set wave", section: "selection", submenu: true },
+	{ id: "selection.wave", label: "Set wave", section: "selection", submenu: true },
 	{ id: "selection.copyIds", label: "Copy IDs", section: "selection", shortcutId: "listCopyIds" },
 	{ id: "selection.copyLinks", label: "Copy links", section: "selection" },
 	{ id: "selection.delete", label: "Delete", section: "selection", shortcutId: "listDelete" },

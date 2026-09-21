@@ -10,7 +10,7 @@ import { patchRows, readRow } from "../../utils/cacheRows";
 
 // The fields a table edit changes on a row before the server answers.
 export type RowPatch = Partial<
-	Pick<TicketSummary, "status" | "priority" | "project" | "parent" | "epic" | "milestone" | "labels">
+	Pick<TicketSummary, "status" | "priority" | "project" | "parent" | "epic" | "wave" | "labels">
 >;
 
 // The patch of one write. A label toggle reads the row it changes, because

@@ -1,5 +1,5 @@
 export {
-	currentMilestoneLabel,
+	currentWaveLabel,
 	type EpicNext,
 	type EpicNextCount,
 	epicNext,

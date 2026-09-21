@@ -4,7 +4,7 @@ import { create } from "zustand";
 // What the caller that opens the quick composer already knows. The palette
 // fills it from the route and from the ticket in context; a table group
 // header fills the status, and on a table of one epic the epic and the
-// milestone of the group. The dialog resolves the rest with
+// wave of the group. The dialog resolves the rest with
 // `useComposerDefaults`.
 export type ComposerOptions = {
 	// A project ref, `CDE.web`.
@@ -16,8 +16,8 @@ export type ComposerOptions = {
 	parent?: string;
 	// An epic ref, `OP/routine-runtime`.
 	epic?: string;
-	// A milestone ref of `epic`, `OP/routine-runtime/phase-1`.
-	milestone?: string;
+	// A wave ref of `epic`, `OP/routine-runtime/phase-1`.
+	wave?: string;
 };
 
 export type ComposerState = {

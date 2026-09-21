@@ -2,10 +2,10 @@ import { z } from "zod";
 import {
 	EpicRefStringSchema,
 	LabelRefStringSchema,
-	MilestoneRefStringSchema,
 	ProjectRefStringSchema,
 	StatusRefStringSchema,
 	TicketRefStringSchema,
+	WaveRefStringSchema,
 } from "../refs.ts";
 import { PrioritySchema } from "./enums.ts";
 import { booleanString, CountSchema, UlidSchema } from "./primitives.ts";
@@ -97,9 +97,9 @@ export type TicketAnswerOutput = z.infer<typeof TicketAnswerOutputSchema>;
 // `status` defaults to the project's default status; `description` to the
 // project's ticket template. `epic` names an epic of the same root.
 // `after` names the tickets that the new ticket waits for.
-// `milestone` names a milestone of the same root and places the ticket in
-// the epic of that milestone. With `epic` and `milestone` together, the
-// milestone must belong to that epic (MILESTONE_OUTSIDE_EPIC).
+// `wave` names a wave of the same root and places the ticket in
+// the epic of that wave. With `epic` and `wave` together, the
+// wave must belong to that epic (WAVE_OUTSIDE_EPIC).
 export const TicketCreateInputSchema = z.strictObject({
 	project: ProjectRefStringSchema,
 	title: TicketTitleSchema,
@@ -108,7 +108,7 @@ export const TicketCreateInputSchema = z.strictObject({
 	status: StatusRefStringSchema.optional(),
 	parent: TicketRefStringSchema.optional(),
 	epic: EpicRefStringSchema.optional(),
-	milestone: MilestoneRefStringSchema.optional(),
+	wave: WaveRefStringSchema.optional(),
 	labels: LabelRefListSchema.optional(),
 	after: TicketDependencyListSchema.optional(),
 });
@@ -144,10 +144,10 @@ export const TicketUpdateDependenciesInputSchema = z
 
 // `expectedVersion` makes the write conditional: a mismatch is
 // VERSION_CONFLICT with the current row. `parent: null` clears the parent,
-// and `epic: null` clears the epic. `milestone` places the ticket in the
-// epic of that milestone in the same write, and `milestone: null` clears the
-// milestone. An `epic` value that differs from the current epic, or
-// `epic: null`, clears the milestone. `addLabels` and `removeLabels` change the
+// and `epic: null` clears the epic. `wave` places the ticket in the
+// epic of that wave in the same write, and `wave: null` clears the
+// wave. An `epic` value that differs from the current epic, or
+// `epic: null`, clears the wave. `addLabels` and `removeLabels` change the
 // label set one label at a time, so two writers do not overwrite the labels
 // of each other. A label the ticket holds already, or a removed label it does
 // not hold, changes nothing. An added label of a group replaces the label of
@@ -160,7 +160,7 @@ export const TicketUpdateInputSchema = z.strictObject({
 	status: StatusRefStringSchema.optional(),
 	parent: TicketRefStringSchema.nullable().optional(),
 	epic: EpicRefStringSchema.nullable().optional(),
-	milestone: MilestoneRefStringSchema.nullable().optional(),
+	wave: WaveRefStringSchema.nullable().optional(),
 	project: ProjectRefStringSchema.optional(),
 	addLabels: LabelRefListSchema.optional(),
 	removeLabels: LabelRefListSchema.optional(),
@@ -196,7 +196,7 @@ export const TicketUpdateManyInputSchema = z.strictObject({
 	project: ProjectRefStringSchema.optional(),
 	parent: TicketRefStringSchema.nullable().optional(),
 	epic: EpicRefStringSchema.nullable().optional(),
-	milestone: MilestoneRefStringSchema.nullable().optional(),
+	wave: WaveRefStringSchema.nullable().optional(),
 	addLabels: LabelRefListSchema.optional(),
 	removeLabels: LabelRefListSchema.optional(),
 });

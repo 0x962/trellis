@@ -28,7 +28,7 @@ export const filterKeys = [
 	"label",
 	"parent",
 	"epic",
-	"milestone",
+	"wave",
 	"pr",
 	"ci",
 	"actor",

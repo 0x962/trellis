@@ -87,20 +87,20 @@ export const useApplyChange = (
 				? bulk.update(targets, fields, words, { row: { parent }, verb })
 				: mutations.update(targets[0]!, fields, { parent }, verb);
 		}
-		if ("milestone" in change) {
-			const { milestone: picked } = change;
-			const milestone = picked === null ? null : { id: picked.id, ref: picked.ref, name: picked.name };
+		if ("wave" in change) {
+			const { wave: picked } = change;
+			const wave = picked === null ? null : { id: picked.id, ref: picked.ref, name: picked.name };
 			const verb: Verb = (subject) => `The wave of ${subject} did not change.`;
-			const words = milestone === null ? "Clear the wave" : `Set the wave to ${milestone.name}`;
-			const fields = { milestone: milestone?.ref ?? null };
+			const words = wave === null ? "Clear the wave" : `Set the wave to ${wave.name}`;
+			const fields = { wave: wave?.ref ?? null };
 			return many
-				? bulk.update(targets, fields, words, { row: { milestone }, verb })
-				: mutations.update(targets[0]!, fields, { milestone }, verb);
+				? bulk.update(targets, fields, words, { row: { wave }, verb })
+				: mutations.update(targets[0]!, fields, { wave }, verb);
 		}
 		const epic = change.epic === null ? null : { id: change.epic.id, ref: change.epic.ref, name: change.epic.name };
-		// A milestone belongs to one epic, so the server clears the milestone of
+		// A wave belongs to one epic, so the server clears the wave of
 		// a ticket that leaves its epic. The patch does the same on the row.
-		const patch = (row: TicketSummary) => ({ epic, milestone: row.epic?.id === epic?.id ? row.milestone : null });
+		const patch = (row: TicketSummary) => ({ epic, wave: row.epic?.id === epic?.id ? row.wave : null });
 		const verb: Verb = (subject) => `The epic of ${subject} did not change.`;
 		const words = epic === null ? "Clear the epic" : `Set the epic to ${epic.name}`;
 		const fields = { epic: epic?.ref ?? null };
