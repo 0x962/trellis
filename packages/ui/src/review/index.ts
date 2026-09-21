@@ -21,7 +21,7 @@ export {
 export { CopyLine, type CopyLineProps } from "./CopyLine";
 export { desktopRatio, EvidenceFigure, type EvidenceFigureProps } from "./EvidenceFigure";
 export { type EvidenceGap, EvidenceStrip, type EvidenceStripProps } from "./EvidenceStrip";
-export { type FileRiskGroup, FileRiskGroups } from "./FileRiskGroups";
+export { type FileRiskGroup, FileRiskGroups, fileCountLabel } from "./FileRiskGroups";
 export {
 	type CaptureRun,
 	type EvidenceClip,

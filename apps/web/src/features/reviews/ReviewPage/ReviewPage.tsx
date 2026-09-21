@@ -8,7 +8,7 @@ import {
 	reviewRef,
 	turnOf,
 } from "@trellis/api";
-import { TicketId } from "@trellis/ui";
+import { TicketId, useMediaQuery } from "@trellis/ui";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
@@ -27,6 +27,7 @@ import { ReviewStack } from "../ReviewStack/ReviewStack";
 import { primaryReviewAction, type ReviewActionMeta } from "../reviewActions/reviewActions";
 import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
+import { FilesDisclosure } from "./components/FilesDisclosure";
 import { type GithubPullRequest, ReviewIdentity } from "./components/ReviewIdentity";
 import { ReviewPageSkeleton } from "./components/ReviewPageSkeleton";
 import { TurnLine } from "./components/TurnLine";
@@ -71,6 +72,9 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 		refreshAll,
 	} = useReviewData(pr);
 	const [changedFiles, setChangedFiles] = useState<ReadMarkFile[]>([]);
+	// A person does not read a diff on a phone, so `FilesDisclosure` puts the
+	// checks, the file list, the diff and the threads behind one button.
+	const phone = useMediaQuery("(max-width: 767px)");
 	// The path the reader picked in the file list, or an empty string while
 	// the reader picked none.
 	const [pickedPath, setPickedPath] = useState("");
@@ -246,44 +250,46 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 								{floor && <EvidenceStrip records={records} floor={floor} />}
 							</>
 						)}
-						<ReviewChecks revision={displayRevision} pr={pr} />
-						{revision === null && !refresh.isError ? (
-							<ReviewPageSkeleton />
-						) : (
-							revision && (
-								<>
-									<FileRiskGroups
-										pr={pr}
-										repo={ref.repo}
-										files={changedFiles}
-										selected={selectedPath}
-										onSelect={setPickedPath}
-									/>
-									<DiffPane
-										pr={pr}
-										revision={revision}
-										threads={revisionThreads}
-										selectedFile={selectedPath}
-										renderThread={renderThread}
-										onFiles={setChangedFiles}
-										onComposer={setComposerOpen}
-									/>
-								</>
-							)
-						)}
-						<ReviewDiscussion
-							threads={allThreads}
-							activeThread={activeThread}
-							revision={displayRevision}
-							renderThread={renderThread}
-							onJump={(thread) => {
-								void (async () => {
-									if (thread.revisionId && thread.revisionId !== revision?.id)
-										setRevision(await client.reviews.revision({ pr, id: thread.revisionId }));
-									setPickedPath(thread.path);
-								})();
-							}}
-						/>
+						<FilesDisclosure phone={phone} count={changedFiles.length}>
+							<ReviewChecks revision={displayRevision} pr={pr} />
+							{revision === null && !refresh.isError ? (
+								<ReviewPageSkeleton />
+							) : (
+								revision && (
+									<>
+										<FileRiskGroups
+											pr={pr}
+											repo={ref.repo}
+											files={changedFiles}
+											selected={selectedPath}
+											onSelect={setPickedPath}
+										/>
+										<DiffPane
+											pr={pr}
+											revision={revision}
+											threads={revisionThreads}
+											selectedFile={selectedPath}
+											renderThread={renderThread}
+											onFiles={setChangedFiles}
+											onComposer={setComposerOpen}
+										/>
+									</>
+								)
+							)}
+							<ReviewDiscussion
+								threads={allThreads}
+								activeThread={activeThread}
+								revision={displayRevision}
+								renderThread={renderThread}
+								onJump={(thread) => {
+									void (async () => {
+										if (thread.revisionId && thread.revisionId !== revision?.id)
+											setRevision(await client.reviews.revision({ pr, id: thread.revisionId }));
+										setPickedPath(thread.path);
+									})();
+								}}
+							/>
+						</FilesDisclosure>
 					</div>
 				</div>
 				{displayRevision && primaryReviewAction(displayRevision.meta as ReviewActionMeta) === "merge" && (
@@ -294,6 +300,7 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 						run={run}
 						drafts={drafts}
 						unmetConditions={conditions === null ? conditionsUnknown : unmetConditions(conditions)}
+						phone={phone}
 						onDone={refreshAll}
 					/>
 				)}

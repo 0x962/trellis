@@ -5,6 +5,10 @@ import { SendBackButton } from "./components/SendBackButton";
 import { draftCount } from "./sendBackText/sendBackText";
 import { unmetLine } from "./unmetLine/unmetLine";
 
+// A merge writes to a company repository, and the page cannot undo it, so the
+// person runs it at a computer.
+const phoneNoMergeLine = "A merge into an enterprise repository needs the desk.";
+
 export type VerdictBarProps = {
 	pr: string;
 	revision: ReviewRevision;
@@ -20,27 +24,30 @@ export type VerdictBarProps = {
 	// One phrase per condition that the pull request does not meet, in the
 	// words of `conditionLines`.
 	unmetConditions: readonly string[];
+	phone: boolean;
 	onDone: () => void;
 };
 
-// The bar under the review column: how many drafts wait, and the three ways
-// to end the review. `Merge` stays live with any condition unmet, and the
-// line under the bar names each one, so the person reads what he overrules
-// before he clicks.
-export function VerdictBar({ pr, revision, ticket, run, drafts, unmetConditions, onDone }: VerdictBarProps) {
+// The bar under the review column: how many drafts wait, and the ways to end
+// the review. `Merge` stays live with any condition unmet, and the line under
+// the bar names each one, so the person reads what he overrules before he
+// clicks.
+export function VerdictBar({ pr, revision, ticket, run, drafts, unmetConditions, phone, onDone }: VerdictBarProps) {
 	const meta = revision.meta as { baseRefName?: string };
-	const line = unmetLine(unmetConditions);
+	const line = phone ? phoneNoMergeLine : unmetLine(unmetConditions);
 	return (
 		<section className="review-bar review-verdict-bar" aria-label="Verdict">
 			<div className="review-verdict-bar-row">
 				<span className="review-verdict-bar-drafts">{draftCount(drafts.length)}</span>
-				<MergeButton
-					pr={pr}
-					revision={revision}
-					baseRefName={meta.baseRefName}
-					unmetConditions={unmetConditions}
-					onDone={onDone}
-				/>
+				{!phone && (
+					<MergeButton
+						pr={pr}
+						revision={revision}
+						baseRefName={meta.baseRefName}
+						unmetConditions={unmetConditions}
+						onDone={onDone}
+					/>
+				)}
 				{ticket !== null && (
 					<SendBackButton
 						pr={pr}

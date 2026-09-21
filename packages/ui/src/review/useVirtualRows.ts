@@ -30,9 +30,16 @@ export function useVirtualRows(
 		update();
 		element.addEventListener("scroll", update, { passive: true });
 		window.addEventListener("resize", update);
+		// A box that is `display: none` at the first read has a height of 0, and
+		// it draws only the overscan rows when it appears. The review page hides
+		// the diff behind the Files button on a phone, and that tap fires neither
+		// a scroll nor a window resize. The observer measures the box itself.
+		const observer = new ResizeObserver(update);
+		observer.observe(element);
 		return () => {
 			element.removeEventListener("scroll", update);
 			window.removeEventListener("resize", update);
+			observer.disconnect();
 		};
 	}, [viewportRef]);
 	const visible = useMemo(() => {

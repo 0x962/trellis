@@ -12,7 +12,13 @@ const app = { queryClient } as AppContext;
 const revision = { headSha: "8b21f0caa1b2c3d4", meta: { baseRefName: "master" } } as unknown as ReviewRevision;
 const crispFjord = { id: "01J0", name: "crisp-fjord" } as unknown as AgentRun;
 
-const render = (props: { ticket: string | null; run: AgentRun | null; drafts: string[]; unmet: string[] }) =>
+const render = (props: {
+	ticket: string | null;
+	run: AgentRun | null;
+	drafts: string[];
+	unmet: string[];
+	phone?: boolean;
+}) =>
 	renderToStaticMarkup(
 		<AppProvider value={app}>
 			<QueryClientProvider client={queryClient}>
@@ -23,6 +29,7 @@ const render = (props: { ticket: string | null; run: AgentRun | null; drafts: st
 					run={props.run}
 					drafts={props.drafts}
 					unmetConditions={props.unmet}
+					phone={props.phone ?? false}
 					onDone={() => {}}
 				/>
 			</QueryClientProvider>
@@ -65,4 +72,27 @@ test("a pull request that no ticket links offers no send back", () => {
 	expect(html).not.toContain("Send back");
 	expect(html).toContain("Comment only");
 	expect(html).toMatch(/<button[^>]*aria-label="Merge"/);
+});
+
+test("a phone draws Send back and Comment only, no Merge, and the reason for it", () => {
+	const html = render({
+		ticket: "TRL-217",
+		run: crispFjord,
+		drafts: ["01A"],
+		unmet: ["1 check failed"],
+		phone: true,
+	});
+
+	expect(html).toContain("Send back to crisp-fjord");
+	expect(html).toContain("Comment only");
+	expect(html).not.toMatch(/aria-label="Merge"/);
+	expect(html).toContain("A merge into an enterprise repository needs the desk.");
+	expect(html).not.toContain("not yet");
+});
+
+test("a phone prints the reason although every condition is met", () => {
+	const html = render({ ticket: "TRL-217", run: crispFjord, drafts: [], unmet: [], phone: true });
+
+	expect(html).not.toMatch(/aria-label="Merge"/);
+	expect(html).toContain("A merge into an enterprise repository needs the desk.");
 });

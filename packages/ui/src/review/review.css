@@ -207,13 +207,15 @@ button.review-notice:hover {
 	background: var(--bg);
 }
 .review-regions {
+	--review-region-gap: 28px;
+	--review-gutter: 28px;
 	display: flex;
 	flex-direction: column;
-	gap: 28px;
+	gap: var(--review-region-gap);
 	width: 100%;
 	max-width: var(--review-column-width);
 	margin-inline: auto;
-	padding: 24px 28px 64px;
+	padding: 24px var(--review-gutter) 64px;
 }
 /* `ReviewDiscussion`, `CheckResults`, `.review-notice` and `ReviewStack` each
    carry the height, the scroll bar or the side padding of a page that fills
@@ -233,6 +235,19 @@ button.review-notice:hover {
 }
 .review-regions .review-stack {
 	padding-inline: 0;
+}
+/* The box under the Files button holds the checks, the file list, the diff and
+   the threads. It reads the gap of `.review-regions`, so the four blocks inside
+   it keep the spacing of the blocks above it. */
+.review-files-box {
+	display: flex;
+	flex-direction: column;
+	gap: var(--review-region-gap);
+}
+/* The `display: flex` above beats the browser rule for the `hidden` attribute,
+   so the box needs this rule to go away. */
+.review-files-box[hidden] {
+	display: none;
 }
 /* `ReviewDiff` renders only the rows inside the visible height and reads this
    box for the scroll position, so the box needs a height of its own. Without
@@ -280,8 +295,16 @@ button.review-notice:hover {
 		padding: 0 16px 12px;
 	}
 	.review-regions {
-		gap: 20px;
-		padding: 16px 16px 48px;
+		--review-region-gap: 20px;
+		--review-gutter: 16px;
+		padding: 16px var(--review-gutter) 48px;
+	}
+	/* `GroupHeader` draws its band across its whole box and adds a gutter of its
+	   own. This rule cancels the gutter of the column, so the band reaches the
+	   screen edge and the word Files lines up with the text above it. */
+	.review-regions > [data-group="files"] {
+		margin-inline: calc(var(--review-gutter) * -1);
+		width: calc(100% + var(--review-gutter) * 2);
 	}
 	.review-diff-window {
 		height: min(80vh, 560px);

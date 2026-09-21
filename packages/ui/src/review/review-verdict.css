@@ -65,4 +65,13 @@
 		width: calc(100% - 32px);
 		max-width: calc(var(--review-column-width) - 32px);
 	}
+	/* A width of 390 px does not hold the draft count and the two buttons on
+	   one line, and the count reads as two words on two lines when it shares
+	   the line. The count takes a line of its own, and the buttons follow. */
+	.review-verdict-bar-row {
+		flex-wrap: wrap;
+	}
+	.review-verdict-bar-drafts {
+		flex-basis: 100%;
+	}
 }
