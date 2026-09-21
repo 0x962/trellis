@@ -9,6 +9,8 @@ const checkPullRequest = async (client: TrellisClient, ticket: Ticket, linked: L
 	if (status.prRow === null) throw notFound("pull request row", linked.url);
 	if (status.prRow.kind === null || status.prRow.risk === null)
 		throw notFound("complete changed-file list for pull request", linked.url);
+	if (status.prRow.evidence === null || status.prRow.evidenceRequired === null)
+		throw notFound("evidence floor for pull request", linked.url);
 	if (typeof status.headRefOid !== "string") throw notFound("head sha of pull request", linked.url);
 	const headSha = status.headRefOid;
 	const [rows, summary] = await Promise.all([
@@ -25,6 +27,8 @@ const checkPullRequest = async (client: TrellisClient, ticket: Ticket, linked: L
 		pullRequest: { number: linked.number, url: linked.url, headSha },
 		ticket: { identifier: ticket.identifier, title: ticket.title },
 		floor,
+		present: status.prRow.evidence,
+		required: status.prRow.evidenceRequired,
 		verifyCommands: ticket.contract.verify,
 		checks: {
 			pass: status.prRow.pass,

@@ -11,7 +11,8 @@ import { closedBeforeDelivery, unconfirmedDelivery } from "../deliveries/sentenc
 import type { IoCtx } from "../support.ts";
 import { answer } from "../tickets/answer.ts";
 import { create } from "../tickets/create.ts";
-import { dispatchAnswerDeliveries } from "./dispatchDeliveries.ts";
+import { dispatchDeliveries } from "./dispatchDeliveries.ts";
+import { recordSubmission } from "./recordSubmission.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 let core: CoreCtx;
@@ -30,6 +31,10 @@ const throwingSend = ((..._args: unknown[]) => Promise.reject(new Error("launch.
 const timingOutSend = ((..._args: unknown[]) => sendDeadline(new Promise(() => {}), 1)) as never;
 
 const ctx = () => ({ home: "/tmp/trellis-dispatch", newTx: run }) as unknown as IoCtx;
+
+// Each seeded pull request needs its own number, because the table holds one
+// row per owner, repository and number.
+let prNumber = 900;
 
 const running = (terminalId: string) =>
 	[{ id: terminalId, status: "running", controllable: true }] as unknown as RuntimeProcessStatus[];
@@ -66,6 +71,36 @@ const queueAnswer = async (title: string) => {
 	};
 };
 
+// A pull request of one ticket, one running agent on that ticket, and a
+// review that a person sent back. The returned ids name the queued delivery.
+const queueReview = async (title: string, threads: number) => {
+	const ticket = await run((tx) => create(core, tx, { project: "DSP", title }));
+	const runId = ulid();
+	await startRun(runId, ticket.id, ticket.identifier);
+	const prId = ulid();
+	const url = `https://github.com/o/r/pull/${prNumber++}`;
+	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, created_at, updated_at)
+		VALUES (${prId}, 'o', 'r', ${prNumber}, ${url}, 'open', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
+		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at})`);
+	const stored = await run((tx) =>
+		recordSubmission(serviceCtx, tx, {
+			prId,
+			verdict: "comment",
+			url: `${url}#pullrequestreview-1`,
+			author: "0x962",
+			body: "Name the count in the header.",
+			revisionId: null,
+			threads: Array.from({ length: threads }, () => ({}) as never),
+			sendBack: true,
+		}),
+	);
+	const [row] = (await db.execute(sql`SELECT id FROM review_deliveries WHERE run_id = ${runId}`)).rows as {
+		id: string;
+	}[];
+	return { runId, url, deliveryId: row!.id, reviewId: stored.id, agents: stored.deliveries };
+};
+
 const deliveryOf = async (runId: string) => {
 	const found = await db.execute(sql`SELECT state, error FROM review_deliveries WHERE run_id = ${runId}`);
 	return found.rows[0];
@@ -95,13 +130,20 @@ beforeAll(async () => {
 	};
 }, 30_000);
 
+// `recordSubmission` reads the actor and the clock of a service call, which
+// the transaction context of this suite does not carry.
+const serviceCtx = {
+	actor: { kind: "human", name: "dana" },
+	now: () => new Date(at),
+} as never;
+
 afterAll(async () => db.$client.close());
 
 test("a queued answer reaches the terminal of a running agent", async () => {
 	sent.length = 0;
 	const queued = await queueAnswer("Run it late or leave it missed");
 
-	await dispatchAnswerDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
+	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
 
 	expect(sent).toEqual([
 		{
@@ -121,7 +163,7 @@ test("a queued answer whose agent stopped fails with the closed session sentence
 	const queued = await queueAnswer("Which grace window");
 	await db.execute(sql`UPDATE agent_runs SET closed_at = ${at} WHERE id = ${queued.runId}`);
 
-	await dispatchAnswerDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
+	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
 
 	expect(sent).toEqual([]);
 	expect(await deliveryOf(queued.runId)).toEqual({ state: "failed", error: closedBeforeDelivery });
@@ -130,7 +172,7 @@ test("a queued answer whose agent stopped fails with the closed session sentence
 test("a send that never started fails with the text of its own error", async () => {
 	const queued = await queueAnswer("Which retry count");
 
-	await dispatchAnswerDeliveries(ctx(), running(`term-${queued.runId}`), throwingSend, preset);
+	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), throwingSend, preset);
 
 	expect(await deliveryOf(queued.runId)).toEqual({ state: "failed", error: "launch.json is missing." });
 });
@@ -138,7 +180,54 @@ test("a send that never started fails with the text of its own error", async () 
 test("a send that passes its deadline stays unknown", async () => {
 	const queued = await queueAnswer("Which sweep order");
 
-	await dispatchAnswerDeliveries(ctx(), running(`term-${queued.runId}`), timingOutSend, preset);
+	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), timingOutSend, preset);
 
 	expect(await deliveryOf(queued.runId)).toEqual({ state: "unknown", error: unconfirmedDelivery });
+});
+
+test("a review that a person sent back reaches the agent of the ticket", async () => {
+	sent.length = 0;
+	const queued = await queueReview("Open the resources section", 3);
+
+	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
+
+	expect(queued.agents).toEqual([{ runId: queued.runId, agentName: "crisp-fjord" }]);
+	expect(sent).toEqual([
+		{
+			id: queued.runId,
+			text: `trellis: your pull request has a review with 3 comments.\nRead the threads: trellis review list ${queued.url}\nApply what each thread asks. Answer each thread.`,
+			interrupt: true,
+			messageId: `review-${queued.deliveryId}`,
+			expectedTerminalId: `term-${queued.runId}`,
+			expectedSessionId: null,
+		},
+	]);
+	expect(await deliveryOf(queued.runId)).toEqual({ state: "sent", error: null });
+});
+
+test("a review that a person did not send back queues nothing", async () => {
+	const ticket = await run((tx) => create(core, tx, { project: "DSP", title: "Keep the review here" }));
+	const prId = ulid();
+	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, created_at, updated_at)
+		VALUES (${prId}, 'o', 'r', ${++prNumber}, ${`https://github.com/o/r/pull/${prNumber}`}, 'open', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
+		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at})`);
+	const runId = ulid();
+	await startRun(runId, ticket.id, ticket.identifier);
+
+	const stored = await run((tx) =>
+		recordSubmission(serviceCtx, tx, {
+			prId,
+			verdict: "comment",
+			url: "https://github.com/o/r/pull/1#pullrequestreview-2",
+			author: "0x962",
+			body: "Read it later.",
+			revisionId: null,
+			threads: [],
+			sendBack: false,
+		}),
+	);
+
+	expect(stored.deliveries).toEqual([]);
+	expect(await deliveryOf(runId)).toBeUndefined();
 });

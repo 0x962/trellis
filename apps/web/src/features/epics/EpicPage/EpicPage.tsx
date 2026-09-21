@@ -30,6 +30,7 @@ import { assignedTicketIds, epicRowRank } from "../epicRowRank";
 import { epicPageSearch, epicQueryString, epicUrlSearch } from "../epicSearch";
 import { EpicPlan } from "./components/EpicPlan";
 import { EpicProgress } from "./components/EpicProgress";
+import { EpicResources } from "./components/EpicResources";
 
 export type EpicPageProps = {
 	project: Project;
@@ -50,8 +51,8 @@ const noRuns: readonly AgentRun[] = [];
 const breadcrumbLinkClass =
 	"inline-flex h-7 items-center rounded-md px-1 text-fg-muted transition-colors duration-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
 
-// One epic: the progress band, the plan, and the tickets of the epic in the
-// ticket table of the project routes. The table search is the URL search
+// One epic: the progress band, the plan, the resources, and the tickets of
+// the epic in the ticket table of the project routes. The table search is the URL search
 // with `epic` fixed to this epic, and it groups by milestone when the URL
 // names no group. An epic belongs to a root and holds tickets of any
 // project of that root, so the table reads the root with its sub-projects,
@@ -241,7 +242,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 			</Topbar>
 			<div className="page-card flex flex-1 flex-col overflow-hidden">
 				{readOnly && <ArchivedBanner project={project} />}
-				{/* The band and the plan take at most half of the card and scroll inside it, so the table always keeps rows on screen. */}
+				{/* The band, the plan and the resources take at most half of the card and scroll inside it, so the table always keeps rows on screen. */}
 				<div className="max-h-1/2 shrink-0 overflow-y-auto border-b border-border">
 					<EpicProgress
 						epic={record}
@@ -251,6 +252,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 						workingTicketIds={workingTicketIds}
 					/>
 					<EpicPlan routeKey={routeKey} description={record.description} />
+					<EpicResources routeKey={routeKey} epic={record.ref} resourceCount={record.resourceCount} />
 				</div>
 				<fieldset disabled={readOnly} className="contents">
 					<TicketTable

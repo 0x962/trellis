@@ -49,7 +49,13 @@ export {
 } from "./domain/QuestionBlock";
 export { type QuotaWindow, QuotaWindows, type QuotaWindowsProps, quotaFillClass } from "./domain/QuotaWindows";
 export { type RankedBarRow, RankedBars, type RankedBarsProps } from "./domain/RankedBars";
-export { ResourceList, type ResourceListProps, type ResourceListRow } from "./domain/ResourceList";
+export {
+	ResourceList,
+	type ResourceListProps,
+	type ResourceListRow,
+	ResourceRow,
+	type ResourceRowProps,
+} from "./domain/ResourceList";
 export {
 	type PullRequestReviewState,
 	ReviewStateIcon,

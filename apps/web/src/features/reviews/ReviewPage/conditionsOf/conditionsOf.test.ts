@@ -101,11 +101,19 @@ test("reads the evidence as the present count, the required count and the kind",
 	expect(conditionsOf(input({ floor: null }))!.evidence).toBeNull();
 });
 
-test("reads a waiting flow run as running and carries the total the server counted", () => {
-	const flowRuns = [{ status: "waiting" }, { status: "running" }, { status: "succeeded" }, { status: "canceled" }];
+test("reads the name, state and findings of the newest flow run", () => {
+	const flowRuns = [
+		{ name: "Code Reviewer", status: "waiting", findings: 2 },
+		{ name: "Security Review", status: "failed", findings: 0 },
+	];
 	const conditions = conditionsOf(input({ prRow: prRow({ flowRuns, flowRunCount: 9 } as Partial<TicketPr>) }))!;
 
-	expect(conditions.flows).toEqual({ total: 9, newest: ["running", "running", "passed", "canceled"] });
+	expect(conditions.flows).toEqual({
+		total: 9,
+		newest: { name: "Code Reviewer", status: "running", findings: 2 },
+		running: 1,
+		failed: 1,
+	});
 });
 
 test("names every ticket the ticket waits on as an unmerged ancestor", () => {

@@ -10,7 +10,7 @@ const clear: Conditions = {
 	evidence: { present: 5, required: 5, kind: "frontend" },
 	checks: { pass: 48, fail: 0, pending: 0, skipped: 44 },
 	threads: 0,
-	flows: { total: 2, newest: ["passed", "passed"] },
+	flows: { total: 2, newest: { name: "Code Reviewer", status: "passed", findings: 0 }, running: 0, failed: 0 },
 	base: { behindBy: 0, baseRefName: "master" },
 	ancestors: [{ identifier: "TRL-164", merged: true }],
 };
@@ -22,8 +22,8 @@ test("the nine lines print in one order", () => {
 	expect(conditionLines(clear).map((line) => line.label)).toEqual([...conditionLabels]);
 });
 
-test("the size line prints the lines, the files and the band as a word", () => {
-	expect(lineValue(clear, "size")).toBe("+94 −12 in 6 files · medium");
+test("the size line prints the lines, the files and the named band", () => {
+	expect(lineValue(clear, "size")).toBe("+94 −12 · 6 files · band medium");
 });
 
 test("the size line reads unknown when the row carries no size", () => {
@@ -101,20 +101,29 @@ test("the threads line counts the threads that nobody resolved", () => {
 	expect(lineValue({ ...clear, threads: 4 }, "threads")).toBe("4 open");
 });
 
-test("the flows line names every state that has a run, the failure first", () => {
-	expect(lineValue(clear, "flows")).toBe("2 passed");
-	expect(lineValue({ ...clear, flows: { total: 4, newest: ["running", "passed", "failed", "passed"] } }, "flows")).toBe(
-		"1 running · 1 failed · 2 passed",
-	);
-	expect(lineValue({ ...clear, flows: { total: 0, newest: [] } }, "flows")).toBe("none run");
+test("the flows line names the newest flow result and its finding count", () => {
+	expect(lineValue(clear, "flows")).toBe("Code Reviewer passed · 0 findings");
+	expect(
+		lineValue(
+			{
+				...clear,
+				flows: { total: 4, newest: { name: "Security Review", status: "failed", findings: 1 }, running: 0, failed: 1 },
+			},
+			"flows",
+		),
+	).toBe("Security Review failed · 1 finding");
+	expect(lineValue({ ...clear, flows: { total: 0, newest: null, running: 0, failed: 0 } }, "flows")).toBe("none run");
 });
 
-test("a ticket with more runs than the server sends prints the total and the newest run", () => {
-	const many = { total: 12, newest: ["passed", "passed", "failed", "passed", "running"] as const };
+test("an older flow run does not change the newest flow result", () => {
+	const many = {
+		total: 12,
+		newest: { name: "Code Reviewer", status: "passed" as const, findings: 4 },
+		running: 1,
+		failed: 1,
+	};
 
-	expect(lineValue({ ...clear, flows: { total: many.total, newest: [...many.newest] } }, "flows")).toBe(
-		"12 runs · newest passed",
-	);
+	expect(lineValue({ ...clear, flows: many }, "flows")).toBe("Code Reviewer passed · 4 findings");
 });
 
 test("the base line prints how far the head is behind its base branch", () => {
@@ -163,8 +172,22 @@ test("each open condition makes the word not yet", () => {
 		{ tests: { count: 0, failsOn: null, passesOn: null, noneApplies: false } },
 		{ evidence: null },
 		{ evidence: { present: 1, required: 4, kind: "backend" as const } },
-		{ flows: { total: 1, newest: ["running"] } },
-		{ flows: { total: 1, newest: ["failed"] } },
+		{
+			flows: {
+				total: 2,
+				newest: { name: "Code Reviewer", status: "passed", findings: 0 },
+				running: 1,
+				failed: 0,
+			},
+		},
+		{
+			flows: {
+				total: 2,
+				newest: { name: "Code Reviewer", status: "passed", findings: 0 },
+				running: 0,
+				failed: 1,
+			},
+		},
 		{ ancestors: [{ identifier: "TRL-167", merged: false }] },
 	];
 

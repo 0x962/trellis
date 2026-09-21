@@ -20,6 +20,7 @@ import { useSoleRepositoryName } from "../hooks/useSoleRepositoryName";
 import { OutcomeBlock } from "../OutcomeBlock";
 import { PropertiesRail } from "../PropertiesRail";
 import { QuestionBlock } from "../QuestionBlock";
+import { ResourcesBlock } from "../ResourcesBlock";
 import { RunBlock } from "../RunBlock";
 import { SubTickets } from "../SubTickets";
 import { Title } from "../Title";
@@ -41,9 +42,10 @@ export type TicketViewProps = {
 };
 
 // The ticket page, one column read top to bottom: the ask, the contract or
-// the question, the chain, the evidence, the outcome and the run. A question
-// ticket holds no work of its own, so its question block takes the place of
-// every region after the ask.
+// the question, the chain, the evidence, the outcome, the run and the
+// resources the ticket names. A question ticket holds no work of its own, so
+// its question block takes the place of every region after the ask. The
+// resources region follows both, because a question names a resource too.
 //
 // The page renders the same on its route and in a `PageSheet`,
 // with these differences in a sheet: a pull request opens in a second sheet
@@ -168,6 +170,7 @@ export function TicketView({ identifier }: TicketViewProps) {
 							<RunBlock key={ticket.id} ticket={ticket} />
 						</>
 					)}
+					<ResourcesBlock ticket={ticket} />
 					<SubTickets ticket={ticket} />
 					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
 				</div>

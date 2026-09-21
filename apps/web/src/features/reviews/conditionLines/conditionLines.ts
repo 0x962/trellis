@@ -35,9 +35,12 @@ export type BaseCondition = {
 export type FlowsCondition = {
 	// How many runs the ticket has.
 	total: number;
-	// What each of the newest runs ended as, newest first. The server sends
-	// at most five, so a shorter list than `total` describes part of them.
-	newest: readonly FlowWord[];
+	// The newest run. `findings` counts the review threads that its agents wrote.
+	newest: { name: string; status: FlowWord; findings: number } | null;
+	// These counts stop a merge across the five newest runs. A waiting run
+	// counts as running.
+	running: number;
+	failed: number;
 };
 
 // The test proofs of the pull request. One proof names a test, the commit
@@ -102,8 +105,8 @@ const fileWords = (count: number) => (count === 1 ? "1 file" : `${count} files`)
 
 const sizeValue = ({ size, sizeBand }: Conditions) => {
 	if (!size) return "unknown";
-	const lines = `+${size.additions} −${size.deletions} in ${fileWords(size.changedFiles)}`;
-	return sizeBand ? `${lines} · ${sizeBand}` : lines;
+	const lines = `+${size.additions} −${size.deletions} · ${fileWords(size.changedFiles)}`;
+	return sizeBand ? `${lines} · band ${sizeBand}` : lines;
 };
 
 // An all clear reads as five "no" answers, never a green mark.
@@ -159,19 +162,11 @@ const threadsValue = (threads: number) => {
 	return threads === 1 ? "1 open" : `${threads} open`;
 };
 
-const flowWords: readonly FlowWord[] = ["running", "failed", "passed", "canceled"];
+const countPhrase = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
-// The counts hold only while the newest runs are every run. A ticket with
-// more runs than the server sends gets the total and the newest answer, so no
-// count here ever counts part of the runs.
 const flowsValue = ({ total, newest }: Conditions["flows"]) => {
-	if (total === 0) return "none run";
-	if (newest.length < total) return `${total} runs · newest ${newest[0]}`;
-	return flowWords
-		.map((word) => ({ word, count: newest.filter((run) => run === word).length }))
-		.filter((group) => group.count > 0)
-		.map((group) => `${group.count} ${group.word}`)
-		.join(" · ");
+	if (total === 0 || newest === null) return "none run";
+	return `${newest.name} ${newest.status} · ${countPhrase(newest.findings, "finding", "findings")}`;
 };
 
 const baseValue = (base: Conditions["base"]) => {
@@ -184,10 +179,6 @@ const ancestorsValue = (ancestors: Conditions["ancestors"]) => {
 	if (ancestors.length === 0) return "none";
 	return ancestors.map((ancestor) => `${ancestor.identifier} ${ancestor.merged ? "merged" : "open"}`).join(" · ");
 };
-
-const countPhrase = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
-
-const flowCount = (flows: Conditions["flows"], word: FlowWord) => flows.newest.filter((run) => run === word).length;
 
 // Each condition that stops a merge, as one short phrase, such as
 // "1 check failed" or "1 of 4 evidence". The size, the risk answers and the
@@ -203,8 +194,8 @@ export function unmetConditions(conditions: Conditions): string[] {
 		tests !== null && tests.count === 0 && !tests.noneApplies && "no test registered",
 		evidence === null && "evidence unknown",
 		evidence !== null && evidence.present < evidence.required && `${evidence.present} of ${evidence.required} evidence`,
-		flowCount(flows, "running") > 0 && countPhrase(flowCount(flows, "running"), "flow running", "flows running"),
-		flowCount(flows, "failed") > 0 && countPhrase(flowCount(flows, "failed"), "flow failed", "flows failed"),
+		flows.running > 0 && countPhrase(flows.running, "flow running", "flows running"),
+		flows.failed > 0 && countPhrase(flows.failed, "flow failed", "flows failed"),
 		...conditions.ancestors.map((ancestor) => !ancestor.merged && `${ancestor.identifier} not merged`),
 	].filter((phrase): phrase is string => phrase !== false);
 }

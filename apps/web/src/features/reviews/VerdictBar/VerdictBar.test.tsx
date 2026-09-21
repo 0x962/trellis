@@ -1,61 +1,98 @@
 import { expect, test } from "bun:test";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { ReviewRevision } from "@trellis/api";
+import type { AgentRun, ReviewRevision } from "@trellis/api";
 import { renderToStaticMarkup } from "react-dom/server";
 import { type AppContext, AppProvider } from "../../../lib/appContext";
 import { VerdictBar } from "./VerdictBar";
 
-// Before a click on `Merge`, the bar reads only the query client from the app
-// context.
+// Before a click, the bar reads only the query client from the app context.
 const queryClient = new QueryClient();
 const app = { queryClient } as AppContext;
 
 const revision = { headSha: "8b21f0caa1b2c3d4", meta: { baseRefName: "master" } } as unknown as ReviewRevision;
+const crispFjord = { id: "01J0", name: "crisp-fjord" } as unknown as AgentRun;
 
-const render = (openThreads: number, unmetConditions: readonly string[], phone = false) =>
+const render = (props: {
+	ticket: string | null;
+	run: AgentRun | null;
+	drafts: string[];
+	unmet: string[];
+	phone?: boolean;
+}) =>
 	renderToStaticMarkup(
 		<AppProvider value={app}>
 			<QueryClientProvider client={queryClient}>
 				<VerdictBar
 					pr="https://github.com/o/r/pull/1"
 					revision={revision}
-					openThreads={openThreads}
-					unmetConditions={unmetConditions}
-					phone={phone}
+					ticket={props.ticket}
+					run={props.run}
+					drafts={props.drafts}
+					unmetConditions={props.unmet}
+					phone={props.phone ?? false}
 					onDone={() => {}}
 				/>
 			</QueryClientProvider>
 		</AppProvider>,
 	);
 
-test("the bar counts the open threads and keeps Merge live with three unmet conditions", () => {
-	const html = render(2, ["1 check failed", "1 of 4 evidence", "TRL-167 not merged"]);
+test("the bar counts the drafts, names the agent, and keeps Merge live with three unmet conditions", () => {
+	const html = render({
+		ticket: "TRL-203",
+		run: crispFjord,
+		drafts: ["01A", "01B"],
+		unmet: ["1 check failed", "1 of 4 evidence", "TRL-167 not merged"],
+	});
 
-	expect(html).toContain("2 open threads");
+	expect(html).toContain("2 drafts");
 	expect(html).toContain("not yet: 1 check failed · 1 of 4 evidence · TRL-167 not merged");
+	expect(html).toContain("Send back to crisp-fjord");
+	expect(html).toContain("Comment only");
 	expect(html).toMatch(/<button[^>]*aria-label="Merge"/);
 	expect(html).not.toMatch(/<button[^>]*aria-label="Merge"[^>]*disabled/);
 });
 
 test("a pull request with every condition met prints no condition line", () => {
-	const html = render(1, []);
+	const html = render({ ticket: "TRL-203", run: crispFjord, drafts: ["01A"], unmet: [] });
 
-	expect(html).toContain("1 open thread");
+	expect(html).toContain("1 draft");
 	expect(html).not.toContain("not yet");
 });
 
-test("a phone draws no Merge and prints the reason in place of the conditions", () => {
-	const html = render(2, ["1 check failed", "1 of 4 evidence"], true);
+test("a ticket with no agent assignment offers a new agent", () => {
+	const html = render({ ticket: "TRL-203", run: null, drafts: [], unmet: [] });
 
-	expect(html).toContain("2 open threads");
-	expect(html).toContain("A merge into an enterprise repository needs the desk.");
+	expect(html).toContain("0 drafts");
+	expect(html).toContain("Send back to a new agent");
+});
+
+test("a pull request that no ticket links offers no send back", () => {
+	const html = render({ ticket: null, run: null, drafts: [], unmet: [] });
+
+	expect(html).not.toContain("Send back");
+	expect(html).toContain("Comment only");
+	expect(html).toMatch(/<button[^>]*aria-label="Merge"/);
+});
+
+test("a phone draws Send back and Comment only, no Merge, and the reason for it", () => {
+	const html = render({
+		ticket: "TRL-217",
+		run: crispFjord,
+		drafts: ["01A"],
+		unmet: ["1 check failed"],
+		phone: true,
+	});
+
+	expect(html).toContain("Send back to crisp-fjord");
+	expect(html).toContain("Comment only");
 	expect(html).not.toMatch(/aria-label="Merge"/);
+	expect(html).toContain("A merge into an enterprise repository needs the desk.");
 	expect(html).not.toContain("not yet");
 });
 
-test("a phone with every condition met still prints the reason", () => {
-	const html = render(0, [], true);
+test("a phone prints the reason although every condition is met", () => {
+	const html = render({ ticket: "TRL-217", run: crispFjord, drafts: [], unmet: [], phone: true });
 
-	expect(html).toContain("A merge into an enterprise repository needs the desk.");
 	expect(html).not.toMatch(/aria-label="Merge"/);
+	expect(html).toContain("A merge into an enterprise repository needs the desk.");
 });

@@ -6,15 +6,31 @@ import { resourceDetail } from "./resourceDetail";
 export type ResourceListProps = {
 	// The resources of the epic, in the order the server returns them.
 	resources: readonly Resource[];
+	count?: number;
 	loading?: boolean;
 	error?: string | null;
+	expanded?: boolean;
+	onToggle?: () => void;
+	headerClassName?: string;
 	onOpen: (id: string) => void;
-	onAddDoc: () => void;
-	onAddLink: () => void;
-	onAddFile: () => void;
+	onAdd?: {
+		doc: () => void;
+		link: () => void;
+		file: () => void;
+	};
 };
 
-export function ResourceList({ resources, loading, error, onOpen, onAddDoc, onAddLink, onAddFile }: ResourceListProps) {
+export function ResourceList({
+	resources,
+	count,
+	loading,
+	error,
+	expanded,
+	onToggle,
+	headerClassName,
+	onOpen,
+	onAdd,
+}: ResourceListProps) {
 	const rows = useMemo<ResourceListRow[]>(
 		() =>
 			resources.map((resource) => ({
@@ -29,12 +45,14 @@ export function ResourceList({ resources, loading, error, onOpen, onAddDoc, onAd
 	return (
 		<ResourceListView
 			rows={rows}
+			count={count}
 			loading={loading}
 			error={error}
+			expanded={expanded}
+			onToggle={onToggle}
+			headerClassName={headerClassName}
 			onOpen={onOpen}
-			onAddDoc={onAddDoc}
-			onAddLink={onAddLink}
-			onAddFile={onAddFile}
+			onAdd={onAdd}
 		/>
 	);
 }

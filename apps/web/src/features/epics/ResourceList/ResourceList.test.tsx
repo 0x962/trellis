@@ -3,7 +3,7 @@ import type { Resource } from "@trellis/api";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ResourceList } from "./ResourceList";
 
-const controls = { onOpen: () => {}, onAddDoc: () => {}, onAddLink: () => {}, onAddFile: () => {} };
+const controls = { onOpen: () => {}, onAdd: { doc: () => {}, link: () => {}, file: () => {} } };
 
 const base = {
 	epicId: "01M2YRWY0TEG6ETHHWRHVDQ5AH",
@@ -107,6 +107,35 @@ describe("ResourceList", () => {
 		expect(html).toContain('aria-busy="true"');
 		expect(html).not.toContain("(0)");
 		expect(html).not.toContain("The epic holds no resource.");
+	});
+
+	test("keeps the number of the caller while the rows are on their way", () => {
+		const html = renderToStaticMarkup(<ResourceList resources={[]} count={5} loading {...controls} />);
+
+		expect(html).toContain("(5)");
+	});
+
+	test("counts its own rows as soon as it has them", () => {
+		const html = renderToStaticMarkup(<ResourceList resources={resources} count={5} {...controls} />);
+
+		expect(html).toContain("(4)");
+		expect(html).not.toContain("(5)");
+	});
+
+	test("prints the number of the caller while it is shut, and no row", () => {
+		const html = renderToStaticMarkup(<ResourceList resources={resources} count={5} expanded={false} {...controls} />);
+
+		expect(html).toContain("(5)");
+		expect(html).not.toContain("routine-runtime.md");
+		expect(html).not.toContain("The routine runtime");
+	});
+
+	test("prints no number when the read failed", () => {
+		const html = renderToStaticMarkup(
+			<ResourceList resources={[]} count={5} error="The server did not answer." {...controls} />,
+		);
+
+		expect(html).not.toContain("(5)");
 	});
 
 	test("prints the words of the server when the read fails", () => {

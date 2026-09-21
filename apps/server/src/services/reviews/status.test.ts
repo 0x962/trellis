@@ -41,7 +41,7 @@ beforeAll(async () => {
 		id, owner, repo, number, changed_files, files, url, state, is_draft, head_ref, base_ref,
 		review_state, checks, ci_state, created_at, updated_at
 	) VALUES (
-		${prId}, 'acme', 'app', 28, 1, '[{"path":"backend/service.ts","additions":1,"deletions":0}]',
+		${prId}, 'acme', 'app', 28, 1, '[{"path":"backend/service.ts","change":"change","additions":1,"deletions":0}]',
 		'https://github.com/acme/app/pull/28', 'open', false,
 		'feature', 'main', 'review_required', '[]', 'pass', ${at}, ${at}
 	)`);
@@ -65,7 +65,7 @@ test("review status sorts linked tickets by project key and ticket number", asyn
 		ticket: { identifier: "AAA-7", title: "First project ticket" },
 		prRow: { number: 28, owner: "acme", repo: "app", kind: "backend" },
 	});
-	expect(result.prRow).not.toHaveProperty("paths");
+	expect(result.prRow).not.toHaveProperty("files");
 });
 
 test("review status returns null row facts for an unlinked pull request", async () => {
