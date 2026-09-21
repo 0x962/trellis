@@ -9,7 +9,6 @@ import type { Tx } from "../../db/tx.ts";
 import { sendDeadline } from "../deliveries/sendDeadline.ts";
 import { closedBeforeDelivery, unconfirmedDelivery } from "../deliveries/sentences.ts";
 import type { IoCtx } from "../support.ts";
-import { answer } from "../tickets/answer.ts";
 import { create } from "../tickets/create.ts";
 import { dispatchDeliveries } from "./dispatchDeliveries.ts";
 import { recordSubmission } from "./recordSubmission.ts";
@@ -20,7 +19,6 @@ let db: Awaited<ReturnType<typeof openTestDb>>;
 let core: CoreCtx;
 const rootId = ulid();
 const at = "2026-09-20T10:00:00Z";
-const question = "Options:\n1. Leave it missed.\n2. Run it late.\n";
 const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
 const sent: Record<string, unknown>[] = [];
@@ -50,32 +48,6 @@ const startRun = (id: string, ticketId: string, identifier: string) =>
 		(id, name, kind, instruction, project_path, ticket_id, ticket_identifier, terminal_id, created_at, updated_at)
 		VALUES (${id}, 'crisp-fjord', 'agent', 'Build it', '/tmp/work', ${ticketId}, ${identifier},
 			${`term-${id}`}, ${at}, ${at})`);
-
-// A question with one waiting ticket, one running agent on that ticket, and
-// the answer already written. The returned ids name the queued delivery.
-const queueAnswer = async (title: string) => {
-	const asked = await run((tx) =>
-		create(core, tx, { project: "DSP", title, description: question, status: "human-review" }),
-	);
-	const waiting = await run((tx) =>
-		create(core, tx, { project: "DSP", title: `${title}, the work`, after: [asked.identifier] }),
-	);
-	const runId = ulid();
-	await startRun(runId, waiting.id, waiting.identifier);
-	const result = await run((tx) =>
-		answer(core, tx, { ticket: asked.identifier, option: 1, reason: "The narrow window." }),
-	);
-	const [row] = (await db.execute(sql`SELECT id FROM review_deliveries WHERE run_id = ${runId}`)).rows as {
-		id: string;
-	}[];
-	return {
-		question: asked.identifier,
-		waiting: waiting.identifier,
-		runId,
-		answerId: result.answerId,
-		deliveryId: row!.id,
-	};
-};
 
 // A pull request of one ticket, one running agent on that ticket, and a
 // review that a person sent back. The returned ids name the queued delivery.
@@ -179,28 +151,9 @@ const serviceCtx = {
 
 afterAll(async () => db.$client.close());
 
-test("a queued answer reaches the terminal of a running agent", async () => {
+test("a queued review whose agent stopped fails with the closed session sentence", async () => {
 	sent.length = 0;
-	const queued = await queueAnswer("Run it late or leave it missed");
-
-	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
-
-	expect(sent).toEqual([
-		{
-			id: queued.runId,
-			text: `trellis: ${queued.question} has an answer.\nOption 1: Leave it missed.\nReason: The narrow window.\nContinue the work on ${queued.waiting}.`,
-			interrupt: true,
-			messageId: `review-${queued.deliveryId}`,
-			expectedTerminalId: `term-${queued.runId}`,
-			expectedSessionId: null,
-		},
-	]);
-	expect(await deliveryOf(queued.runId)).toEqual({ state: "sent", error: null });
-});
-
-test("a queued answer whose agent stopped fails with the closed session sentence", async () => {
-	sent.length = 0;
-	const queued = await queueAnswer("Which grace window");
+	const queued = await queueReview("Which grace window", 1);
 	await db.execute(sql`UPDATE agent_runs SET closed_at = ${at} WHERE id = ${queued.runId}`);
 
 	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
@@ -210,7 +163,7 @@ test("a queued answer whose agent stopped fails with the closed session sentence
 });
 
 test("a send that never started fails with the text of its own error", async () => {
-	const queued = await queueAnswer("Which retry count");
+	const queued = await queueReview("Which retry count", 1);
 
 	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), throwingSend, preset);
 
@@ -218,7 +171,7 @@ test("a send that never started fails with the text of its own error", async () 
 });
 
 test("a send that passes its deadline stays unknown", async () => {
-	const queued = await queueAnswer("Which sweep order");
+	const queued = await queueReview("Which sweep order", 1);
 
 	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), timingOutSend, preset);
 

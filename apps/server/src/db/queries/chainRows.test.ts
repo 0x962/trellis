@@ -28,9 +28,9 @@ beforeAll(async () => {
 		(${tickets[0]}, ${root}, ${root}, 29, 'Create the runtime', '', ${done},
 			'The runtime writes one durable row.', 0, ${at}, ${at}),
 		(${tickets[1]}, ${root}, ${root}, 33, 'Continue the sweep', '', ${todo}, '', 1, ${at}, ${at}),
-		(${tickets[2]}, ${root}, ${root}, 52, 'Run late or leave missed', E'A run can miss its window.\\n\\nOptions:\\n\\n1. Leave missed\\n2. Run late',
+		(${tickets[2]}, ${root}, ${root}, 52, 'Run late or leave missed', '',
 			${review}, '', 2, ${at}, ${at}),
-		(${tickets[3]}, ${root}, ${root}, 53, 'Review without options', '', ${review}, '', 3, ${at}, ${at})`);
+		(${tickets[3]}, ${root}, ${root}, 53, 'Review the sweep', '', ${review}, '', 3, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO ticket_deps (ticket_id, depends_on_id, source, created_at) VALUES
 		(${tickets[1]}, ${tickets[0]}, 'manual', ${at}),
 		(${tickets[1]}, ${tickets[2]}, 'manual', ${at}),
@@ -47,21 +47,18 @@ test("returns each dependency in ticket order", async () => {
 			identifier: "OP-29",
 			title: "Create the runtime",
 			status: "done",
-			isQuestion: false,
 			outcome: "The runtime writes one durable row.",
 		},
 		{
 			identifier: "OP-52",
 			title: "Run late or leave missed",
 			status: "review",
-			isQuestion: true,
 			outcome: "",
 		},
 		{
 			identifier: "OP-53",
-			title: "Review without options",
+			title: "Review the sweep",
 			status: "review",
-			isQuestion: false,
 			outcome: "",
 		},
 	]);

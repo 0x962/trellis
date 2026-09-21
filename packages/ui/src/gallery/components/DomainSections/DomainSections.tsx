@@ -13,7 +13,6 @@ import {
 	LineChangesSection,
 	PrGlyphSection,
 	PriorityIconSection,
-	QuestionBlockSection,
 	ResourceListSection,
 	ReviewStatusSummarySection,
 	RunLineSection,
@@ -44,7 +43,6 @@ export function DomainSections() {
 			<FlowRunSection />
 			<FileRiskGroupsSection />
 			<ConditionsBlockSection />
-			<QuestionBlockSection />
 			<RunLineSection />
 			<ChangeSummarySection />
 			<EvidenceStripSection />

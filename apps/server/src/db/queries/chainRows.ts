@@ -1,13 +1,12 @@
 import type { StatusCategory } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { Tx } from "../tx.ts";
-import { rows, ticketQuestion } from "./support.ts";
+import { rows } from "./support.ts";
 
 export type ChainRow = {
 	identifier: string;
 	title: string;
 	status: StatusCategory;
-	isQuestion: boolean;
 	outcome: string;
 };
 
@@ -16,7 +15,6 @@ export const chainRows = (tx: Tx, ticketId: string) =>
 		tx,
 		sql`SELECT waits_root.key || '-' || blocker.number AS identifier,
 			blocker.title, blocker_status.category AS status,
-			${ticketQuestion(sql`blocker`, sql`blocker_status`)} AS "isQuestion",
 			blocker.outcome
 		FROM ticket_deps dependency
 		JOIN tickets blocker ON blocker.id = dependency.depends_on_id

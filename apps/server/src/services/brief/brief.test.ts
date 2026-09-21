@@ -53,8 +53,6 @@ test("an assignment names the ticket, the branch, and the trellis commands", () 
 			"When your work is ready for review, run: trellis move OP-27 agent-review",
 			"",
 			"Report what you did in your final message and in the pull request description. A person reads both.",
-			'To ask a person a question, create a question ticket: trellis create -p <project> --status human-review -t "..." --description - . Its description holds a numbered "Options:" list.',
-			"Then make this ticket wait for it: trellis edit OP-27 --after <question>. The answer reaches this run.",
 			"",
 			"## Review comments",
 			"",

@@ -10,7 +10,7 @@ test("a pull request with an unknown turn opens on the diff", () => {
 });
 
 test("every other turn opens on the overview", () => {
-	for (const turn of ["agent", "github", "ready", "waits on your answer", "waits on a merge", "done"] as const)
+	for (const turn of ["agent", "github", "ready", "waits on a merge", "done"] as const)
 		expect(defaultReviewTab(turn)).toBe("overview");
 });
 

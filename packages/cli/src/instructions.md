@@ -8,10 +8,8 @@ Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, set `T
 3. Start:            trellis move KEY-42 in-progress
 4. Put the identifier in the branch name, for example KEY-42-dark-mode. Link the PR to the ticket: trellis pr add KEY-42 <url>
 5. Split work:       trellis sub KEY-42 -t "Write tests"
-6. Ask a question:   trellis create -p KEY --status human-review -t "..." --description - with a numbered "Options:" list,
-   then trellis edit KEY-42 --after <question>. The answer reaches your run.
-7. Finish coding:    trellis move KEY-42 agent-review
-8. When the agent review passes: trellis move KEY-42 human-review
+6. Finish coding:    trellis move KEY-42 agent-review
+7. When the agent review passes: trellis move KEY-42 human-review
 Report what you did in your final message and in the pull request description.
 Never delete tickets.
 
@@ -68,8 +66,6 @@ Plan an epic. A plan that produces several tickets is an epic. The epic descript
 - Keep the sequential steps of one front inside its ticket as ordered sub-tickets.
 - Each ticket states its files, the files to leave alone, the verify commands, the review focus, and the evidence owed.
 - Two tickets in one wave never own the same file.
-- A question for the person is a ticket in the human review status. Every ticket that needs the answer records `--after` on it.
-- An answer reaches each live run that waits on the question.
 - Keep a wave to 2 to 8 tickets and an epic to 6 waves. A larger plan is two epics.
 - The person is the manager. The person starts the agents. Do not wait for a gate.
 - Frontend evidence floor: summary, after image, before image, capture record, console list.

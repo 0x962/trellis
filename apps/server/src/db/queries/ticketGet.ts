@@ -9,7 +9,6 @@ import type {
 import { type SQL, sql } from "drizzle-orm";
 import type { Tx } from "../tx.ts";
 import { actorDisplayName } from "./actorDisplayName.ts";
-import { answeredQuestions, ticketAnswer } from "./answeredQuestion.ts";
 import { type LinkedPullRequestRow, pullRequestColumns, toLinkedPullRequest } from "./pullRequestRows.ts";
 import { iso, rows } from "./support.ts";
 import { type SummaryRow, summaryStatement, toSummary } from "./ticketSummary.ts";
@@ -119,8 +118,6 @@ export const ticketGet = async (tx: Tx, id: string): Promise<Ticket> => {
 			reviewFocus: detail.reviewFocus,
 		},
 		outcome: detail.outcome,
-		answeredQuestions: await answeredQuestions(tx, id),
-		answer: await ticketAnswer(tx, id),
 		children: await childSummaries(tx, id),
 		prs: await linkedPullRequests(tx, id),
 		attachments: await attachmentsOf(tx, id),

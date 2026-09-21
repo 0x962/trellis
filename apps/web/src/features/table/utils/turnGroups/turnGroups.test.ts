@@ -34,24 +34,20 @@ const ticket = (
 		ready: fields.ready ?? false,
 	}) as TicketSummary;
 
-const question = ticket("question", { reviewer: "human" });
+const humanReview = ticket("human-review", { reviewer: "human" });
 const review = ticket("review", { prRows: [pullRequest()] });
 const start = ticket("start", { category: "todo", ready: true });
 const draft = ticket("draft", { prRows: [pullRequest({ isDraft: true })] });
 const checks = ticket("checks", { prRows: [pullRequest({ pending: 3 })] });
-const answer = ticket("answer", {
-	category: "todo",
-	waitsOn: [{ identifier: "OP-53", isQuestion: true } as TicketSummary["waitsOn"][number]],
-});
 const merge = ticket("merge", {
 	category: "todo",
-	waitsOn: [{ identifier: "OP-32", isQuestion: false } as TicketSummary["waitsOn"][number]],
+	waitsOn: [{ identifier: "OP-32" } as TicketSummary["waitsOn"][number]],
 });
 const shipped = ticket("shipped", { category: "done" });
 
 describe("turnBucketOf", () => {
-	test("names and ranks the seven groups in display order", () => {
-		const rows = [shipped, merge, answer, checks, draft, start, question];
+	test("names and ranks the six groups in display order", () => {
+		const rows = [shipped, merge, checks, draft, start, humanReview];
 
 		const marks = rows.map((row) => turnBucketOf(row)).sort((a, b) => a.rank - b.rank);
 
@@ -60,14 +56,12 @@ describe("turnBucketOf", () => {
 			"Ready to start",
 			"With an agent",
 			"With GitHub",
-			"Waits on your answer",
 			"Waits on a merge",
 			"Done",
 		]);
 	});
 
 	test("writes a key with a dash for each space", () => {
-		expect(turnBucketOf(answer).key).toBe("waits-on-your-answer");
 		expect(turnBucketOf(merge).key).toBe("waits-on-a-merge");
 		expect(turnBucketOf(shipped).key).toBe("done");
 	});
@@ -86,12 +80,12 @@ describe("rowTurn", () => {
 });
 
 describe("forYouCount", () => {
-	test("counts the questions and the pull requests that wait for the person", () => {
-		expect(forYouCount([question, review, draft, merge, shipped])).toBe(2);
+	test("counts the human reviews and the pull requests that wait for the person", () => {
+		expect(forYouCount([humanReview, review, draft, merge, shipped])).toBe(2);
 	});
 
 	test("drops a row whose agent run works", () => {
-		expect(forYouCount([question, review], new Set(["review"]))).toBe(1);
+		expect(forYouCount([humanReview, review], new Set(["review"]))).toBe(1);
 	});
 
 	test("counts nothing in a set that holds no row of the person", () => {

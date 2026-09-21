@@ -10,7 +10,7 @@ const root = ulid();
 const epic = ulid();
 const todoStatus = ulid();
 const startedStatus = ulid();
-const questionStatus = ulid();
+const reviewStatus = ulid();
 const doneStatus = ulid();
 const canceledStatus = ulid();
 const at = new Date("2026-09-20T10:00:00.000Z");
@@ -41,7 +41,7 @@ beforeAll(async () => {
 	) VALUES
 		(${todoStatus}, ${root}, 'Todo', 'todo', 'todo', NULL, 'fg-muted', 0, true, ${at}, ${at}),
 		(${startedStatus}, ${root}, 'In Progress', 'in-progress', 'started', NULL, 'accent', 1, false, ${at}, ${at}),
-		(${questionStatus}, ${root}, 'Human Review', 'human-review', 'review', 'human', 'warning', 2, false, ${at}, ${at}),
+		(${reviewStatus}, ${root}, 'Human Review', 'human-review', 'review', 'human', 'warning', 2, false, ${at}, ${at}),
 		(${doneStatus}, ${root}, 'Done', 'done', 'done', NULL, 'success', 3, false, ${at}, ${at}),
 		(${canceledStatus}, ${root}, 'Canceled', 'canceled', 'canceled', NULL, 'fg-muted', 4, false, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO epics (
@@ -51,8 +51,8 @@ beforeAll(async () => {
 		id, project_id, root_id, number, title, description, status_id, epic_id, position, created_at, updated_at
 	) VALUES
 		(${tickets[0]}, ${root}, ${root}, 1, 'Done blocker', '', ${doneStatus}, ${epic}, 0, ${at}, ${at}),
-		(${tickets[1]}, ${root}, ${root}, 2, 'Open question', E'The run needs a bound.\\n\\nOptions:\\n\\n1. Yes\\n2. No', ${questionStatus}, ${epic}, 1, ${at}, ${at}),
-		(${tickets[2]}, ${root}, ${root}, 3, 'Human review without options', '', ${questionStatus}, ${epic}, 2, ${at}, ${at}),
+		(${tickets[1]}, ${root}, ${root}, 2, 'Open review', '', ${reviewStatus}, ${epic}, 1, ${at}, ${at}),
+		(${tickets[2]}, ${root}, ${root}, 3, 'Human review without options', '', ${reviewStatus}, ${epic}, 2, ${at}, ${at}),
 		(${tickets[3]}, ${root}, ${root}, 4, 'Subject', '', ${todoStatus}, ${epic}, 3, ${at}, ${at}),
 		(${tickets[4]}, ${root}, ${root}, 5, 'Released ticket', '', ${todoStatus}, ${epic}, 4, ${at}, ${at}),
 		(${tickets[5]}, ${root}, ${root}, 6, 'Indirect ticket', '', ${todoStatus}, ${epic}, 5, ${at}, ${at}),
@@ -83,8 +83,8 @@ test("a ticket summary carries direct waits, releases, and readiness", async () 
 	const summary = await db.transaction((tx) => ticketSummary(tx, tickets[3] as string));
 	expect(TicketSummarySchema.parse(summary)).toEqual(summary);
 	expect(summary.waitsOn).toEqual([
-		{ identifier: "TST-2", title: "Open question", status: "review", isQuestion: true },
-		{ identifier: "TST-3", title: "Human review without options", status: "review", isQuestion: false },
+		{ identifier: "TST-2", title: "Open review", status: "review" },
+		{ identifier: "TST-3", title: "Human review without options", status: "review" },
 	]);
 	expect(summary.releases).toEqual([{ identifier: "TST-5", title: "Released ticket" }]);
 	expect(summary.ready).toBe(false);

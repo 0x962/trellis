@@ -10,8 +10,6 @@ import {
 	TicketSchema,
 } from "../schemas/ticket.ts";
 import {
-	TicketAnswerInputSchema,
-	TicketAnswerOutputSchema,
 	TicketContractInputSchema,
 	TicketCreateInputSchema,
 	TicketDeleteInputSchema,
@@ -130,14 +128,4 @@ export const tickets = {
 		.route({ method: "PUT", path: "/tickets/{ticket}/outcome", summary: "Set the outcome of a ticket" })
 		.input(TicketOutcomeInputSchema)
 		.output(TicketSchema),
-	answer: base
-		.errors(pickErrors(["PROJECT_ARCHIVED", "VERSION_CONFLICT", "STATUS_NOT_IN_PROJECT"]))
-		.route({
-			method: "POST",
-			path: "/tickets/{ticket}/answer",
-			successStatus: 201,
-			summary: "Answer a question ticket",
-		})
-		.input(TicketAnswerInputSchema)
-		.output(TicketAnswerOutputSchema),
 };

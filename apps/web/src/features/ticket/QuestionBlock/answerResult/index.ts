@@ -1,1 +1,0 @@
-export { answerResult } from "./answerResult";

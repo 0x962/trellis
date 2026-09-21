@@ -1,5 +1,5 @@
 import type { TicketSummary } from "@trellis/api";
-import { AttentionDot, TicketId } from "@trellis/ui";
+import { TicketId } from "@trellis/ui";
 import { TicketLink } from "../../../../shell/TicketLink";
 
 export type WaitsCellProps = {
@@ -18,8 +18,7 @@ const shownIdentifiers = 2;
 const linkClass =
 	"inline-flex h-7 items-center rounded-md px-0.5 transition-colors duration-hover hover:bg-fg/6 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
 
-// What holds this ticket back. A question is a ticket that only a person
-// can finish. The yellow dot marks it.
+// What holds this ticket back.
 export function WaitsCell({ waitsOn, ready }: WaitsCellProps) {
 	if (waitsOn.length === 0) return ready ? <span className="text-sm text-fg-faint">ready</span> : null;
 
@@ -36,7 +35,6 @@ export function WaitsCell({ waitsOn, ready }: WaitsCellProps) {
 					<TicketLink identifier={dependency.identifier} className={linkClass} title={dependency.title}>
 						<TicketId id={dependency.identifier} size="sm" />
 					</TicketLink>
-					{dependency.isQuestion && <AttentionDot label={`${dependency.identifier} is a question for you.`} />}
 				</span>
 			))}
 			{rest > 0 && <span className="text-xs text-fg-faint tabular">{`+${rest}`}</span>}

@@ -1,5 +1,4 @@
-import type { LinkedPullRequest, Ticket, TicketAnswer, TimelineListOutput } from "@trellis/api";
-import { shortZonedDateTime } from "@trellis/api/time";
+import type { LinkedPullRequest, Ticket, TimelineListOutput } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { contextOf } from "../context.ts";
@@ -17,17 +16,11 @@ export const prList: ListSpec<LinkedPullRequest> = {
 	identifier: (row) => row.id,
 };
 
-// The newest answer of a question ticket: the option, who picked it and
-// when, then the reason.
-const renderAnswer = (answer: TicketAnswer, color: boolean) =>
-	`\n${heading("answer", color)}option ${answer.option}  ${answer.actor.kind}:${answer.actor.displayName ?? answer.actor.name}  ${shortZonedDateTime(answer.createdAt)}\n${answer.reason}\n`;
-
 const renderTicket = (ticket: Ticket, color: boolean, prs: boolean): string => {
 	const block = renderRecord(ticket, ticketRecord.fields);
 	const description = ticket.description === "" ? "" : `\n${ticket.description}\n`;
-	const answer = ticket.answer === null ? "" : renderAnswer(ticket.answer, color);
 	const linked = prs ? `\n${heading("prs", color)}${renderTable(ticket.prs, prList.columns)}` : "";
-	return `${block}${description}${answer}${linked}`;
+	return `${block}${description}${linked}`;
 };
 
 export default defineCommand({

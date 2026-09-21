@@ -2,11 +2,10 @@ import { describe, expect, test } from "bun:test";
 import type { TicketSummary } from "../schemas/ticket.ts";
 import { ticketReleasesCell, ticketWaitsCell } from "./ticketCells.ts";
 
-const dependency = (identifier: string, isQuestion = false): TicketSummary["waitsOn"][number] => ({
+const dependency = (identifier: string): TicketSummary["waitsOn"][number] => ({
 	identifier,
 	title: "A routine run opens a chat and queues the turn",
 	status: "review",
-	isQuestion,
 });
 
 const ticket = (fields: Partial<TicketSummary> = {}): TicketSummary =>
@@ -24,12 +23,6 @@ describe("ticketWaitsCell", () => {
 	test("prints two identifiers and counts the rest", () => {
 		const waitsOn = [dependency("OP-32"), dependency("OP-52"), dependency("OP-40")];
 		expect(ticketWaitsCell(ticket({ waitsOn }))).toBe("OP-32 · OP-52 +1");
-	});
-
-	test("says asks for a ticket that only a person can finish", () => {
-		expect(ticketWaitsCell(ticket({ waitsOn: [dependency("OP-32"), dependency("OP-52", true)] }))).toBe(
-			"OP-32 · OP-52 asks",
-		);
 	});
 });
 

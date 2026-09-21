@@ -33,13 +33,6 @@ export { type LabelColor, labelColors } from "./domain/labelColors";
 export { PrGlyph, type PrGlyphProps, type PrGlyphSize, type PullRequestState, prGlyphLook } from "./domain/PrGlyph";
 export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/PriorityIcon";
 export { type ModelProvider, ProviderIcon, type ProviderIconProps } from "./domain/ProviderIcon";
-export {
-	type QuestionAnswer,
-	QuestionBlock,
-	type QuestionBlockProps,
-	type QuestionOption,
-	type RecommendedOption,
-} from "./domain/QuestionBlock";
 export { type QuotaWindow, QuotaWindows, type QuotaWindowsProps, quotaFillClass } from "./domain/QuotaWindows";
 export { type RankedBarRow, RankedBars, type RankedBarsProps } from "./domain/RankedBars";
 export {
