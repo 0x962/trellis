@@ -10,10 +10,9 @@ import {
 	turnOf,
 	verdictMark,
 } from "@trellis/api";
-import { Skeleton, TicketId, useMediaQuery } from "@trellis/ui";
+import { Skeleton, Tabs, TicketId, useMediaQuery } from "@trellis/ui";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
-import { useCollapsedGroups } from "../../table/hooks/useCollapsedGroups";
 import { ChangeSummary } from "../ChangeSummary";
 import { ConditionsBlock } from "../ConditionsBlock";
 import { EvidenceStrip } from "../EvidenceStrip";
@@ -29,7 +28,6 @@ import type { ReadMarkFile } from "../readMarks/readMarks";
 import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
 import { FilesDisclosure } from "./components/FilesDisclosure";
-import { factsLine, ReviewFacts } from "./components/ReviewFacts";
 import { type GithubPullRequest, ReviewIdentity } from "./components/ReviewIdentity";
 import { ReviewDiffSkeleton, ReviewTreeSkeleton } from "./components/ReviewPageSkeleton";
 import { TurnLine } from "./components/TurnLine";
@@ -37,16 +35,13 @@ import { baseOf, conditionsOf } from "./conditionsOf";
 import { useActiveThread } from "./hooks/useActiveThread";
 import { useReadMarks } from "./hooks/useReadMarks";
 import { useReviewData } from "./hooks/useReviewData";
+import { defaultReviewTab, type ReviewTab } from "./reviewTab";
 import "@trellis/ui/review.css";
 
 const noThreads: ReviewThread[] = [];
 const noSubmissions: ReviewSubmission[] = [];
 const noRecords: Evidence[] = [];
 const noSentences: string[] = [];
-// The facts strip starts shut, so the file tree and the diff start near the
-// top of the sheet.
-const factsGroup = "facts";
-const factsShut = [factsGroup];
 
 type Commit = { oid: string; messageHeadline: string };
 const commitsOf = (revision: ReviewRevision | null) =>
@@ -54,7 +49,17 @@ const commitsOf = (revision: ReviewRevision | null) =>
 		(commit) => typeof commit.oid === "string" && typeof commit.messageHeadline === "string",
 	);
 
-export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent?: ReactNode; syncHash?: boolean }) {
+export type ReviewPageProps = {
+	pr: string;
+	parent?: ReactNode;
+	syncHash?: boolean;
+	// The tab the person picked, or undefined while they picked none. The page
+	// then shows the tab that `defaultReviewTab` picks.
+	tab: ReviewTab | undefined;
+	onTabChange: (tab: ReviewTab) => void;
+};
+
+export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: ReviewPageProps) {
 	const { client } = useApp();
 	const activeThread = useActiveThread(syncHash);
 	const {
@@ -74,7 +79,6 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	} = useReviewData(pr);
 	const [changedFiles, setChangedFiles] = useState<ReadMarkFile[]>([]);
 	const { read, setRead } = useReadMarks(pr, changedFiles);
-	const { isCollapsed, toggle: toggleFacts } = useCollapsedGroups(`${pr}#facts`, factsShut);
 	// `FilesDisclosure` hides the review details behind one control on a phone.
 	const phone = useMediaQuery("(max-width: 767px)");
 	const [pickedPath, setPickedPath] = useState("");
@@ -166,6 +170,12 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 	// `prRow` is the fallback for a pull request that no ticket links.
 	const turnInput = ticket.data ?? prRow;
 	const agentWorks = run !== null && isAgentWorking(run);
+	// The default tab is fixed the first time the turn is known, so a turn
+	// that changes while the person reads does not move them to the other tab.
+	const turn = turnInput ? turnOf(turnInput, agentWorks) : null;
+	const firstTurn = useRef<ReviewTab | null>(null);
+	if (firstTurn.current === null && turn !== null) firstTurn.current = defaultReviewTab(turn);
+	const shownTab = tab ?? firstTurn.current ?? defaultReviewTab(null);
 	const ref = reviewRef(pr);
 	return (
 		<ReviewApplyContext.Provider value={applyState}>
@@ -195,121 +205,134 @@ export function ReviewPage({ pr, parent, syncHash = true }: { pr: string; parent
 								{status.data.ticket.title}
 							</p>
 						)}
-						{turnInput && (
-							<TurnLine
-								turn={turnOf(turnInput, agentWorks)}
-								prRow={prRow}
-								mergedOn={linkedPr?.mergedAt?.slice(0, 10) ?? null}
-							/>
+						{turn !== null && (
+							<TurnLine turn={turn} prRow={prRow} mergedOn={linkedPr?.mergedAt?.slice(0, 10) ?? null} />
 						)}
 					</div>
 				</div>
-				<div className="review-body">
-					{/* The notices sit outside the facts strip, because a shut strip
-					    would hide them. The box is empty while nothing went wrong, and
-					    an empty box draws nothing. */}
-					<div className="review-notices">
-						{revision && <ReviewStack pr={pr} />}
-						{newCommits.length > 0 && (
-							<p role="status" className="review-notice">
-								New since you opened this review:{" "}
-								{newCommits.map((commit) => `${commit.oid.slice(0, 7)} ${commit.messageHeadline}`).join("; ")}. Read
-								these commits before you merge.
-							</p>
-						)}
-						{status.isError && (
-							<p role="alert" className="review-notice">
-								GitHub status: {status.error.message}
-							</p>
-						)}
-						{refresh.isError && (
-							<p className="review-error" role="alert">
-								{refresh.error.message}. Local comments remain available.
-							</p>
-						)}
-						{threads.isError && (
-							<p role="alert" className="review-error">
-								{threads.error.message}
-							</p>
-						)}
-					</div>
-					<ReviewFacts
-						line={factsLine(conditions)}
-						shut={isCollapsed(factsGroup)}
-						onToggle={() => toggleFacts(factsGroup)}
-						phone={phone}
-					>
-						{!factsReady || conditions === null ? (
-							<section aria-busy="true">
-								<span className="sr-only" role="status">
-									Merge conditions are loading.
-								</span>
-								<Skeleton lines={10} />
-							</section>
-						) : (
-							<>
-								<ConditionsBlock conditions={conditions} />
-								<ChangeSummary summary={summaryRow} headSha={headSha} />
-								{revision && (
-									<ReviewFocusList
-										pr={pr}
-										revisionId={revision.id}
-										sentences={ticket.data?.contract.reviewFocus ?? noSentences}
-									/>
-								)}
-								{floor && <EvidenceStrip records={records} floor={floor} />}
-							</>
-						)}
-						<ReviewChecks checks={status.data?.checks ?? null} pr={pr} />
-						<ReviewDiscussion
-							threads={allThreads}
-							activeThread={activeThread}
-							revision={displayRevision}
-							renderThread={renderThread}
-							onJump={(thread) => {
-								void (async () => {
-									if (thread.revisionId && thread.revisionId !== revision?.id)
-										setRevision(await client.reviews.revision({ pr, id: thread.revisionId }));
-									setPickedPath(thread.path);
-								})();
-							}}
-						/>
-					</ReviewFacts>
-					<FilesDisclosure phone={phone} count={changedFiles.length}>
-						<div className="review-panes">
-							<aside className="review-tree-pane" aria-label="The changed files">
-								{revision === null ? (
-									<ReviewTreeSkeleton />
-								) : (
-									<FileRiskGroups
-										pr={pr}
-										repo={ref.repo}
-										files={changedFiles}
-										read={read}
-										selected={selectedPath}
-										onSelect={setPickedPath}
-									/>
-								)}
-							</aside>
-							<div className="review-diff-pane">
-								{revision === null ? (
-									!refresh.isError && <ReviewDiffSkeleton />
-								) : (
-									<DiffPane
-										pr={pr}
-										revision={revision}
-										threads={revisionThreads}
-										selectedFile={selectedPath}
+				{/* The notices sit above the tabs, so both tabs show them. The box
+				    is empty while nothing went wrong, and an empty box draws nothing. */}
+				<div className="review-notices">
+					{revision && <ReviewStack pr={pr} />}
+					{newCommits.length > 0 && (
+						<p role="status" className="review-notice">
+							New since you opened this review:{" "}
+							{newCommits.map((commit) => `${commit.oid.slice(0, 7)} ${commit.messageHeadline}`).join("; ")}. Read these
+							commits before you merge.
+						</p>
+					)}
+					{status.isError && (
+						<p role="alert" className="review-notice">
+							GitHub status: {status.error.message}
+						</p>
+					)}
+					{refresh.isError && (
+						<p className="review-error" role="alert">
+							{refresh.error.message}. Local comments remain available.
+						</p>
+					)}
+					{threads.isError && (
+						<p role="alert" className="review-error">
+							{threads.error.message}
+						</p>
+					)}
+				</div>
+				{/* Both panels stay mounted: `DiffPane` reports the changed file list
+				    that the tree draws, and the diff keeps its scroll position while
+				    the Facts tab shows. */}
+				<Tabs
+					value={shownTab}
+					onValueChange={onTabChange}
+					keepMounted
+					className="review-body"
+					panelClassName="review-tab-panel"
+					items={[
+						{
+							value: "facts",
+							label: "Facts",
+							content: (
+								<div className="review-facts-blocks">
+									{!factsReady || conditions === null ? (
+										<section aria-busy="true">
+											<span className="sr-only" role="status">
+												Merge conditions are loading.
+											</span>
+											<Skeleton lines={10} />
+										</section>
+									) : (
+										<>
+											<ConditionsBlock conditions={conditions} />
+											<ChangeSummary summary={summaryRow} headSha={headSha} />
+											{revision && (
+												<ReviewFocusList
+													pr={pr}
+													revisionId={revision.id}
+													sentences={ticket.data?.contract.reviewFocus ?? noSentences}
+												/>
+											)}
+											{floor && <EvidenceStrip records={records} floor={floor} />}
+										</>
+									)}
+									<ReviewChecks checks={status.data?.checks ?? null} pr={pr} />
+									<ReviewDiscussion
+										threads={allThreads}
+										activeThread={activeThread}
+										revision={displayRevision}
 										renderThread={renderThread}
-										onFiles={setChangedFiles}
-										read={read}
-										onRead={setRead}
+										onJump={(thread) => {
+											void (async () => {
+												if (thread.revisionId && thread.revisionId !== revision?.id)
+													setRevision(await client.reviews.revision({ pr, id: thread.revisionId }));
+												setPickedPath(thread.path);
+												onTabChange("diff");
+											})();
+										}}
 									/>
-								)}
-							</div>
-						</div>
-					</FilesDisclosure>
-				</div>
+								</div>
+							),
+						},
+						{
+							value: "diff",
+							label: "Diff",
+							content: (
+								<FilesDisclosure phone={phone} count={changedFiles.length}>
+									<div className="review-panes">
+										<aside className="review-tree-pane" aria-label="The changed files">
+											{revision === null ? (
+												<ReviewTreeSkeleton />
+											) : (
+												<FileRiskGroups
+													pr={pr}
+													repo={ref.repo}
+													files={changedFiles}
+													read={read}
+													selected={selectedPath}
+													onSelect={setPickedPath}
+												/>
+											)}
+										</aside>
+										<div className="review-diff-pane">
+											{revision === null ? (
+												!refresh.isError && <ReviewDiffSkeleton />
+											) : (
+												<DiffPane
+													pr={pr}
+													revision={revision}
+													threads={revisionThreads}
+													selectedFile={selectedPath}
+													renderThread={renderThread}
+													onFiles={setChangedFiles}
+													read={read}
+													onRead={setRead}
+												/>
+											)}
+										</div>
+									</div>
+								</FilesDisclosure>
+							),
+						},
+					]}
+				/>
 				{displayRevision && (
 					<VerdictBar
 						pr={pr}

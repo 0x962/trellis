@@ -25,15 +25,6 @@ export const actionNames = [
 	"close",
 	"ready",
 	"update-branch",
-	"deploy-on",
-	"deploy-off",
-	"live-create",
-	"live-deploy",
-	"live-delete",
-	"live-enable",
-	"live-disable",
-	"live-persist",
-	"live-unpersist",
 ] as const;
 export type Action = (typeof actionNames)[number];
 type PreparedAction = {
@@ -60,20 +51,12 @@ const current = async (ctx: PrepareCtx, pr: string, action: PreparedAction["acti
 
 export async function action(ctx: PrepareCtx, input: { pr: string; action: Action; headSha: string }) {
 	const ref = parseRef(input.pr);
-	const meta = JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", "id,headRefOid,state,headRefName"])) as {
+	const meta = JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", "id,headRefOid"])) as {
 		id: string;
 		headRefOid: string;
-		state: string;
-		headRefName: string;
 	};
 	if (meta.headRefOid !== input.headSha) throw fail("PR_HEAD_MOVED", { currentHeadSha: meta.headRefOid });
 	const a = input.action;
-	if (a.startsWith("live-")) {
-		if (`${ref.owner}/${ref.repo}` !== "canary-technologies-corp/canary")
-			throw invalidInput("pr", "This repository has no Live Branch workflow.");
-		if (meta.state !== "OPEN" || meta.headRefName.startsWith("golem/"))
-			throw invalidInput("pr", "Live Branch requires an open PR outside a golem branch.");
-	}
 	if (a === "queue" || a === "dequeue") {
 		const mutation = a === "queue" ? "enqueuePullRequest" : "dequeuePullRequest";
 		await gh(ctx, [
@@ -93,15 +76,6 @@ export async function action(ctx: PrepareCtx, input: { pr: string; action: Actio
 			close: ["close"],
 			ready: ["ready"],
 			"update-branch": ["update-branch"],
-			"deploy-on": ["edit", "--add-label", "00_AUTO_DEPLOY"],
-			"deploy-off": ["edit", "--remove-label", "00_AUTO_DEPLOY"],
-			"live-create": ["comment", "--body", "/create-live-branch"],
-			"live-deploy": ["comment", "--body", "/deploy-live-branch"],
-			"live-delete": ["comment", "--body", "/delete-live-branch"],
-			"live-enable": ["edit", "--add-label", "Live Branch: Enabled"],
-			"live-disable": ["edit", "--remove-label", "Live Branch: Enabled,Lite Env: Enabled"],
-			"live-persist": ["edit", "--add-label", "Live Branch: Persist"],
-			"live-unpersist": ["edit", "--remove-label", "Live Branch: Persist,Lite Env: Persist"],
 		};
 		const [verb, ...flags] = args[a];
 		await gh(ctx, ["pr", verb!, ref.url, ...flags]);
@@ -193,37 +167,19 @@ export async function metadata(ctx: PrepareCtx, input: { pr: string }) {
 	const ref = parseRef(input.pr);
 	const query =
 		"query($owner:String!,$repo:String!,$num:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$num){mergeQueueEntry{position enqueuedAt} stack{entries(first:50){nodes{position pullRequest{number title state url isDraft}}}}}}}";
-	const [graphRaw, rawLabels] = await Promise.all([
-		gh(ctx, [
-			"api",
-			"graphql",
-			"-f",
-			`query=${query}`,
-			"-f",
-			`owner=${ref.owner}`,
-			"-f",
-			`repo=${ref.repo}`,
-			"-F",
-			`num=${ref.number}`,
-		]),
-		gh(ctx, [
-			"label",
-			"list",
-			"-R",
-			`${ref.owner}/${ref.repo}`,
-			"--search",
-			"00_AUTO_DEPLOY",
-			"--limit",
-			"20",
-			"--json",
-			"name",
-		]),
+	const graphRaw = await gh(ctx, [
+		"api",
+		"graphql",
+		"-f",
+		`query=${query}`,
+		"-f",
+		`owner=${ref.owner}`,
+		"-f",
+		`repo=${ref.repo}`,
+		"-F",
+		`num=${ref.number}`,
 	]);
 	const graph = JSON.parse(graphRaw);
-	const labels = (rawLabels.trim() === "" ? [] : JSON.parse(rawLabels)) as { name: string }[];
-	return {
-		...graph.data.repository.pullRequest,
-		autoDeployAvailable: labels.some((l) => l.name === "00_AUTO_DEPLOY"),
-	} as Record<string, unknown>;
+	return graph.data.repository.pullRequest as Record<string, unknown>;
 }
 export const result = <T>(_ctx: ServiceCtx, _tx: Tx, input: T) => Promise.resolve(input);

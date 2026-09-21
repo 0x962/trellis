@@ -14,8 +14,7 @@ export type EpicProgressProps = {
 	splat: string;
 	// The search of the epic page. A count link changes its filters.
 	search: Partial<View>;
-	// True below 768 px. `epicUrlSearch` then removes the default turn group
-	// from each link.
+	// True below 768 px. `epicUrlSearch` then applies the canonical phone URL.
 	phone: boolean;
 	// Null until the assigned-run query succeeds, as `running` is.
 	workingTicketIds: WorkingTicketIds | null;

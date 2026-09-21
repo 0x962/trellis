@@ -1,1 +1,1 @@
-export { Menu, type MenuItem, type MenuProps } from "./Menu";
+export { Menu, type MenuGroup, type MenuItem, type MenuProps } from "./Menu";

@@ -1,5 +1,5 @@
-import { ArrowsInLineVertical, ArrowsOutLineVertical } from "@phosphor-icons/react";
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLineDown, ArrowLineUp, ArrowsInLineVertical, ArrowsOutLineVertical } from "@phosphor-icons/react";
+import { type ReactElement, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Checkbox } from "../../primitives/Checkbox";
 import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
@@ -7,7 +7,14 @@ import { Tooltip } from "../../primitives/Tooltip";
 import { DiffLine } from "./DiffLine";
 import { loadReviewFileContents } from "./loadReviewFileContents";
 import { parseReviewFiles, type ReviewFile } from "./parseReviewFiles";
-import { anchorLines, buildReviewRows, type ExpandedFile, type ReviewRow } from "./reviewRows";
+import {
+	anchorLines,
+	buildReviewRows,
+	EXPAND_LINES,
+	type ExpandedFile,
+	type GapControls,
+	type ReviewRow,
+} from "./reviewRows";
 import { VirtualDiffRows } from "./VirtualDiffRows";
 import "./ReviewDiff.css";
 
@@ -48,6 +55,16 @@ const orderedAnchor = (start: DiffAnchor, end: DiffAnchor): DiffAnchor => ({
 
 const fileLabel = (file: ReviewFile) => (file.prevName ? `${file.prevName} → ${file.name}` : file.name);
 
+// The words of a row that sits between two hunks: the hunk specs of the
+// patch, and how many lines the gap above the hunk still hides. The row
+// after the last hunk has no specs, and it has no count until the file
+// contents load.
+const hunkLabel = (specs: string | null, gap: GapControls | null) => {
+	const hidden = gap?.hidden ?? null;
+	const count = hidden === null ? null : `${hidden} hidden ${hidden === 1 ? "line" : "lines"}`;
+	return [specs, count].filter((part) => part !== null).join(" · ");
+};
+
 const nothingViewed: ReadonlySet<string> = new Set();
 
 export function ReviewDiff({
@@ -85,8 +102,8 @@ export function ReviewDiff({
 	}, [files, filter]);
 	const [expanded, setExpanded] = useState<ReadonlyMap<string, ExpandedFile>>(() => new Map());
 	const rows = useMemo(
-		() => buildReviewRows(shown, mode, threads, revisionId, composer, expanded, viewed),
-		[shown, mode, threads, revisionId, composer, expanded, viewed],
+		() => buildReviewRows(shown, mode, threads, revisionId, composer, expanded, loadFile !== undefined, viewed),
+		[shown, mode, threads, revisionId, composer, expanded, loadFile, viewed],
 	);
 	const selection = useRef<DiffAnchor | undefined>(undefined);
 	const pointer = useRef<DiffAnchor | undefined>(undefined);
@@ -128,17 +145,35 @@ export function ReviewDiff({
 		},
 		[select],
 	);
+	// The lines of both sides of the file. The diff reads them with the
+	// first press and keeps them for every later press.
+	const fileContents = async (file: ReviewFile): Promise<ExpandedFile> =>
+		expanded.get(file.name) ?? { ...(await loadReviewFileContents(loadFile!, file)), full: false, gaps: new Map() };
+	// A press changes the file that the state holds while the read runs, so
+	// each press takes the state at the moment it writes.
+	const writeFile = (name: string, loaded: ExpandedFile, change: (contents: ExpandedFile) => ExpandedFile) =>
+		setExpanded((current) => new Map(current).set(name, change(current.get(name) ?? loaded)));
+	// The toggle of the file header. It opens every gap of the file, and a
+	// second press shuts them all.
 	const toggleFile = async (file: ReviewFile) => {
-		if (expanded.has(file.name)) {
-			setExpanded((current) => {
-				const next = new Map(current);
-				next.delete(file.name);
-				return next;
-			});
-			return;
-		}
-		const contents = await loadReviewFileContents(loadFile!, file);
-		setExpanded((current) => new Map(current).set(file.name, contents));
+		const loaded = await fileContents(file);
+		writeFile(file.name, loaded, (contents) => ({ ...contents, full: !contents.full, gaps: new Map() }));
+	};
+	// One press of an expand control. "down" opens the lines under the hunk
+	// above the gap, "up" opens the lines above the hunk under the gap, and
+	// "all" opens every line the gap still hides.
+	const expandGap = async (file: ReviewFile, gap: GapControls, direction: "down" | "up" | "all") => {
+		const loaded = await fileContents(file);
+		writeFile(file.name, loaded, (contents) => {
+			const reveal = contents.gaps.get(gap.index) ?? { top: 0, bottom: 0 };
+			const next =
+				direction === "down"
+					? { ...reveal, top: reveal.top + EXPAND_LINES }
+					: direction === "up"
+						? { ...reveal, bottom: reveal.bottom + EXPAND_LINES }
+						: { ...reveal, top: reveal.top + (gap.hidden ?? 0) };
+			return { ...contents, gaps: new Map(contents.gaps).set(gap.index, next) };
+		});
 	};
 	const annotation = (metadata: string) => (
 		<div className="review-diff-annotation" key={metadata}>
@@ -147,7 +182,7 @@ export function ReviewDiff({
 	);
 	const renderRow = (row: ReviewRow) => {
 		if (row.kind === "file") {
-			const isExpanded = expanded.has(row.file.name);
+			const isExpanded = expanded.get(row.file.name)?.full === true;
 			const isViewed = viewed.has(row.file.name);
 			return (
 				<header className="review-diff-file-header" data-file-path={row.file.name} data-viewed={isViewed}>
@@ -174,7 +209,24 @@ export function ReviewDiff({
 				</header>
 			);
 		}
-		if (row.kind === "hunk") return <div className="review-diff-hunk-header">{row.specs}</div>;
+		if (row.kind === "hunk") {
+			const gap = row.gap;
+			const control = (target: GapControls, direction: "down" | "up" | "all", label: string, icon: ReactElement) => (
+				<Tooltip content={label}>
+					<IconButton size="xs" label={label} icon={icon} onClick={() => void expandGap(row.file, target, direction)} />
+				</Tooltip>
+			);
+			return (
+				<div className="review-diff-hunk-header">
+					<span className="review-diff-hunk-controls">
+						{gap?.up ? control(gap, "up", "Expand up", <ArrowLineUp />) : null}
+						{gap?.down ? control(gap, "down", "Expand down", <ArrowLineDown />) : null}
+						{gap?.all ? control(gap, "all", "Expand all", <ArrowsOutLineVertical />) : null}
+					</span>
+					<span>{hunkLabel(row.specs, gap)}</span>
+				</div>
+			);
+		}
 		if (row.kind === "annotation") return <>{row.annotations.map(annotation)}</>;
 		if (row.kind === "end") return <div className="review-diff-file-end" />;
 		if (row.kind === "split")

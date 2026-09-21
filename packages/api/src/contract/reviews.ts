@@ -49,15 +49,6 @@ export const reviews = {
 					"close",
 					"ready",
 					"update-branch",
-					"deploy-on",
-					"deploy-off",
-					"live-create",
-					"live-deploy",
-					"live-delete",
-					"live-enable",
-					"live-disable",
-					"live-persist",
-					"live-unpersist",
 				]),
 				headSha: z.string().min(1),
 			}),
@@ -80,7 +71,7 @@ export const reviews = {
 		),
 	metadata: base
 		.errors(pickErrors(["GH_UNAVAILABLE"]))
-		.route({ method: "POST", path: "/reviews/metadata", summary: "Read stack, queue, and deployment options" })
+		.route({ method: "POST", path: "/reviews/metadata", summary: "Read stack and queue options" })
 		.input(pr)
 		.output(z.record(z.string(), z.unknown())),
 	export: base

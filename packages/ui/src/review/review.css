@@ -194,19 +194,18 @@ button.review-notice:hover {
 .review-turn-line {
 	color: var(--fg);
 }
-/* Under the identity band the review page is a facts strip and, below it, two
-   panes: the file tree on the left and the diff on the right. `.review-body`
-   holds the three and gives the panes every pixel the sheet has left. While the
-   facts strip is shut, which is how the sheet opens, the three fit the sheet
-   exactly and the body does not scroll: the tree and the diff each scroll
-   inside themselves, so a long file moves the code alone. An open facts strip
-   is taller than that, and the body then scrolls to reach the panes. */
+/* Under the identity band the review page is two tabs. The Facts panel holds
+   everything that is not code, and the Diff panel holds two panes: the file
+   tree on the left and the diff on the right. `.review-body` is the root of the
+   tabs and gives the open panel every pixel the sheet has left. The body does
+   not scroll: the facts, the tree and the diff each scroll inside themselves,
+   so a long file moves the code alone. */
 .review-body {
 	display: flex;
 	flex: 1;
 	min-height: 0;
 	flex-direction: column;
-	overflow-y: auto;
+	overflow: hidden;
 	background: var(--bg);
 }
 /* The box that holds the GitHub status error, the new-revision button, the
@@ -228,39 +227,30 @@ button.review-notice:hover {
 .review-notices .review-stack {
 	padding-inline: 0;
 }
-/* The conditions, the change summary, the review focus, the evidence, the
-   checks and the threads. The strip is one line while it is shut. Open, it
-   takes at most 45% of the window and scrolls inside itself, so the two panes
-   under it keep a height to draw in. */
-.review-facts {
-	display: flex;
-	flex-direction: column;
+.review-body > [role="tablist"] {
 	flex-shrink: 0;
-	max-height: 45vh;
-	overflow-y: auto;
+	padding-inline: 28px;
 }
-/* The one line that the shut strip prints can name several conditions. It
-   takes one line and ends in an ellipsis. */
-.review-facts [data-count] {
-	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+.review-tab-panel {
+	display: flex;
+	flex: 1;
+	min-height: 0;
+	flex-direction: column;
 }
+/* The conditions, the change summary, the review focus, the evidence, the
+   checks and the threads, in the Facts panel. */
 .review-facts-blocks {
 	display: flex;
+	flex: 1;
+	min-height: 0;
 	flex-direction: column;
 	gap: 28px;
 	padding: 24px 28px;
-}
-/* The `display: flex` above beats the browser rule for the `hidden`
-   attribute, so the box needs this rule to go away. */
-.review-facts-blocks[hidden] {
-	display: none;
+	overflow-y: auto;
 }
 /* `ReviewDiscussion` and `CheckResults` each carry the height, the scroll bar
-   and the side padding of a page that fills the window. The strip supplies all
-   three, so these two rules hand them back. */
+   and the side padding of a page that fills the window. The Facts panel
+   supplies all three, so these two rules hand them back. */
 .review-facts-blocks .review-scroll {
 	flex: none;
 	overflow: visible;
@@ -269,13 +259,10 @@ button.review-notice:hover {
 .review-facts-blocks .review-list {
 	max-width: none;
 }
-/* The floor keeps the tree and the diff readable while the facts strip is
-   open and takes its share of the sheet. */
 .review-panes {
 	display: flex;
 	flex: 1;
-	min-height: 240px;
-	border-top: 0.5px solid var(--border);
+	min-height: 0;
 }
 .review-tree-pane {
 	width: 340px;
@@ -354,33 +341,51 @@ button.review-notice:hover {
 	.review-notices {
 		padding: 12px 16px 0;
 	}
-	.review-facts {
-		max-height: none;
-		overflow-y: visible;
+	.review-body {
+		overflow-y: auto;
+	}
+	.review-body > [role="tablist"] {
+		padding-inline: 16px;
+	}
+	.review-tab-panel,
+	.review-facts-blocks {
+		flex: none;
 	}
 	.review-facts-blocks {
 		gap: 20px;
 		padding: 16px;
+		overflow-y: visible;
 	}
 	.review-panes {
 		display: block;
 		min-height: 0;
+		max-width: 100%;
 	}
 	.review-files-box {
 		flex: none;
+		max-width: 100%;
 	}
 	.review-tree-pane {
 		width: auto;
+		max-width: 100%;
 		overflow-y: visible;
 		border-right-width: 0;
 	}
 	.review-diff-pane {
 		display: block;
+		max-width: 100%;
+		overflow: hidden;
 	}
 	.review-diff-window {
 		flex: none;
+		width: 100%;
+		max-width: 100%;
 		height: min(80vh, 560px);
 		border-top: 0.5px solid var(--border);
+	}
+	.review-page:has(.review-verdict-bar) .review-body,
+	.review-page:has(.review-batch-bar) .review-body {
+		padding-bottom: calc(var(--spacing) * 44 + env(safe-area-inset-bottom));
 	}
 }
 

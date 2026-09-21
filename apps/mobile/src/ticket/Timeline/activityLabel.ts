@@ -32,15 +32,6 @@ const prActionWords: Record<string, (pr: string) => string> = {
 	close: (pr) => `closed PR ${pr}`,
 	ready: (pr) => `marked PR ${pr} ready for review`,
 	"update-branch": (pr) => `updated the branch for PR ${pr}`,
-	"deploy-on": (pr) => `enabled deploy on merge for PR ${pr}`,
-	"deploy-off": (pr) => `disabled deploy on merge for PR ${pr}`,
-	"live-create": (pr) => `requested a Live Branch for PR ${pr}`,
-	"live-deploy": (pr) => `requested a Live Branch deploy for PR ${pr}`,
-	"live-delete": (pr) => `requested Live Branch removal for PR ${pr}`,
-	"live-enable": (pr) => `enabled Live Branch on push for PR ${pr}`,
-	"live-disable": (pr) => `disabled Live Branch on push for PR ${pr}`,
-	"live-persist": (pr) => `kept the Live Branch after merge for PR ${pr}`,
-	"live-unpersist": (pr) => `removed Live Branch persistence for PR ${pr}`,
 };
 
 // A comment, an attachment, and a pull request row carry no field. The

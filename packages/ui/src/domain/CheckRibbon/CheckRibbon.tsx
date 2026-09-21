@@ -17,8 +17,8 @@ const buckets: Record<CheckBucket, string> = {
 	pass: "bg-success",
 	fail: "bg-danger",
 	cancel: "bg-danger",
-	skipping: "bg-warning",
-	pending: "bg-border-strong ribbon-shimmer motion-reduce:animate-none",
+	skipping: "bg-border-strong",
+	pending: "bg-warning ribbon-shimmer motion-reduce:animate-none",
 };
 
 // The segments of `ribbonSegments`, in order, colored by bucket. A pending

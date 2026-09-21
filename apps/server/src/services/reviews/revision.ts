@@ -37,9 +37,11 @@ type HeadRepositoryMeta = {
 
 // `owner/name` of the repository that holds the head branch. gh names it
 // in full on the head repository, or in two parts, or not at all when the
-// fork is gone.
+// fork is gone. `gh pr view --json headRepository` answers an empty
+// `nameWithOwner` and puts the owner in `headRepositoryOwner`, so an empty
+// name reads as no name.
 export const headRepositoryOf = (ref: { owner: string; repo: string }, meta: HeadRepositoryMeta) =>
-	meta.headRepository?.nameWithOwner ??
+	meta.headRepository?.nameWithOwner ||
 	(meta.headRepositoryOwner?.login && meta.headRepository?.name
 		? `${meta.headRepositoryOwner.login}/${meta.headRepository.name}`
 		: `${ref.owner}/${ref.repo}`);
