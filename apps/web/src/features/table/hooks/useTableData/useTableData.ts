@@ -72,7 +72,7 @@ const withCursor = (input: ListQueryInput, cursor: string | undefined): ListQuer
 // every Done and Canceled row in 200-row pages, up to the cap, and the two
 // closed groups stay off.
 export const useTableData = ({ project, view, expanded }: TableDataOptions): TableData => {
-	const { orpc } = useApp();
+	const { orpc, queryClient } = useApp();
 	const statuses = useScopeStatuses(project);
 	// The grouping reads the folded list, which names one root's status per
 	// slug. A count over a category reads every root's statuses, so a ticket
@@ -83,12 +83,13 @@ export const useTableData = ({ project, view, expanded }: TableDataOptions): Tab
 	// waits for them.
 	const ready = !(view.not?.includes("status") && statuses.length === 0);
 
+	const activeOptions = orpc.tickets.list.infiniteOptions({
+		input: (cursor: string | undefined) => withCursor(activeInput(project, view, statuses), cursor),
+		initialPageParam: undefined as string | undefined,
+		getNextPageParam: (last) => last.nextCursor ?? undefined,
+	});
 	const active = useInfiniteQuery({
-		...orpc.tickets.list.infiniteOptions({
-			input: (cursor: string | undefined) => withCursor(activeInput(project, view, statuses), cursor),
-			initialPageParam: undefined as string | undefined,
-			getNextPageParam: (last) => last.nextCursor ?? undefined,
-		}),
+		...activeOptions,
 		enabled: ready,
 		refetchOnWindowFocus: "always",
 	});
@@ -165,8 +166,8 @@ export const useTableData = ({ project, view, expanded }: TableDataOptions): Tab
 		// The inline closed rows land with the first active page, so a group
 		// never gains its done rows on screen.
 		loading: active.isPending || (inline && inlinePass.isPending),
-		error: active.error,
-		retry: () => void active.refetch(),
+		error: active.data === undefined ? (active.failureReason ?? active.error) : null,
+		retry: () => void queryClient.resetQueries({ queryKey: activeOptions.queryKey, exact: true }),
 		closed: filtered ? null : { done, canceled },
 		inlineClosed: inline ? inlineRows : null,
 		statuses,

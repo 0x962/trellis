@@ -3,6 +3,7 @@ import { createTanstackQueryUtils } from "@orpc/tanstack-query";
 import { notifyManager, QueryClient } from "@tanstack/react-query";
 import { createTrellisClient, type FetchLike } from "@trellis/api";
 import { actorHeader } from "./actor";
+import { queryRetryDelay } from "./queryRetry";
 
 export type OrpcOptions = {
 	// The transport. A test passes the fake server's `app.request`.
@@ -59,6 +60,23 @@ export const createOrpc = (options: OrpcOptions = {}) => {
 	});
 	const orpc = createTanstackQueryUtils(client);
 	const queryClient = createQueryClient();
+	const listRetryOptions = { retry: true, retryDelay: queryRetryDelay };
+	for (const queryKey of [
+		orpc.projects.list.key(),
+		orpc.sessions.list.key(),
+		orpc.sessions.activity.key(),
+		orpc.tickets.list.key(),
+		orpc.tickets.board.key(),
+		orpc.tickets.counts.key(),
+		orpc.needsYou.summary.key(),
+		orpc.needsYou.list.key(),
+		orpc.reviews.prs.key(),
+		orpc.reviews.mine.key(),
+		orpc.epics.list.key(),
+		orpc.settings.get.key(),
+	]) {
+		queryClient.setQueryDefaults(queryKey, listRetryOptions);
+	}
 	return { client, orpc, queryClient };
 };
 

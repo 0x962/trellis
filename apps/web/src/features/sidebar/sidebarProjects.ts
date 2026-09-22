@@ -1,15 +1,9 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { AppContext } from "../../lib/appContext";
 
-// The unarchived projects that the sidebar draws. The app query client never
-// retries a query, so one failed request, such as a request to a host that
-// still starts, would leave the Projects section empty until an event
-// refreshes the list. This query retries until the server answers. React
-// Query waits 1 s, 2 s, 4 s and so on between the tries, and never more
-// than 30 s.
-//
-// `SidebarBody` and `ProjectTree` read this one query. The component that
-// starts the request sets the retry rule, so both must pass these options.
+// The unarchived projects that the sidebar draws. This stays as an explicit
+// query helper so the Projects section keeps the TRL-362 loading and Retry
+// behavior while the shared list-query defaults cover the other list views.
 export const sidebarProjectsQuery = (orpc: AppContext["orpc"]) =>
 	orpc.projects.list.queryOptions({ input: { archived: false }, retry: true });
 

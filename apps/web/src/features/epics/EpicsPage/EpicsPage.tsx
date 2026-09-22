@@ -36,17 +36,19 @@ const skeletonWidths = ["w-2/5", "w-1/2", "w-[30%]", "w-[45%]"];
 // Done group, one dense row per epic. The server orders the rows: open
 // first, then by the time of the last change.
 export function EpicsPage({ project }: EpicsPageProps) {
-	const { orpc } = useApp();
+	const { orpc, queryClient } = useApp();
 	const navigate = useNavigate();
 	const density = useUiStore((state) => state.density);
 	const readOnly = project.archivedAt !== null;
-	const epics = useQuery(orpc.epics.list.queryOptions({ input: { project: project.path } }));
+	const epicsOptions = orpc.epics.list.queryOptions({ input: { project: project.path } });
+	const epics = useQuery(epicsOptions);
 	const routeKey = projectHref(project.path, "epics");
 	const { isCollapsed, toggle } = useCollapsedGroups(routeKey, collapsedByDefault);
 	const [editor, setEditor] = useState<{ epic?: EpicSummary } | null>(null);
 	const [deleting, setDeleting] = useState<EpicSummary | null>(null);
 
 	const rows = epics.data ?? [];
+	const failed = epics.data === undefined && epics.failureCount > 0;
 	// Only a group that holds an epic renders. The ticket table drops an
 	// empty closed group the same way.
 	const allGroups: Group[] = [
@@ -69,7 +71,7 @@ export function EpicsPage({ project }: EpicsPageProps) {
 			<div className="page-card flex flex-1 flex-col overflow-hidden">
 				{readOnly && <ArchivedBanner project={project} />}
 				<div className="min-h-0 flex-1 overflow-y-auto">
-					{epics.isPending ? (
+					{epics.isPending && !failed ? (
 						<div role="status" aria-label="Load epics" aria-busy="true">
 							<span className="sr-only">Load epics</span>
 							{skeletonWidths.map((width) => (
@@ -87,6 +89,19 @@ export function EpicsPage({ project }: EpicsPageProps) {
 								</div>
 							))}
 						</div>
+					) : failed ? (
+						<EmptyState
+							variant="page"
+							title="Could not load epics"
+							action={
+								<Button
+									size="md"
+									onClick={() => void queryClient.resetQueries({ queryKey: epicsOptions.queryKey, exact: true })}
+								>
+									Retry
+								</Button>
+							}
+						/>
 					) : epics.isError ? (
 						<EmptyState
 							variant="page"
