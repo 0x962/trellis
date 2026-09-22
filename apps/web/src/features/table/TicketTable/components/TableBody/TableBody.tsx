@@ -188,9 +188,9 @@ export function TableBody({
 									label={group.label ?? ""}
 									count={group.count}
 									countLabel={group.countLabel}
-									badge={group.badge}
+									completedCount={group.completedCount}
+									totalCount={group.totalCount}
 									forYou={group.forYou}
-									note={group.note}
 									done={group.done}
 									status={group.status}
 									category={group.category}
