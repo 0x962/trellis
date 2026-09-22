@@ -34,3 +34,20 @@ test("drops unused weights from icons without a special weight", () => {
 	expect(transformed).not.toContain('"bold"');
 	expect(transformed).not.toContain('"fill"');
 });
+
+test("keeps the fill weight of the verdict card and flow step icons", () => {
+	for (const icon of ["ChatCircle", "ClockCounterClockwise", "WarningCircle"]) {
+		const transformed = stripPhosphorWeights(definition, `/node_modules/@phosphor-icons/react/dist/defs/${icon}.es.js`);
+
+		expect(transformed).toContain('"fill"');
+	}
+});
+
+test("keeps the bold weight of the document drag handle", () => {
+	const transformed = stripPhosphorWeights(
+		definition,
+		"/node_modules/@phosphor-icons/react/dist/defs/DotsSixVertical.es.js",
+	);
+
+	expect(transformed).toContain('"bold"');
+});

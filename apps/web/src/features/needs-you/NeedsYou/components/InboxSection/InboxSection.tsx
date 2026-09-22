@@ -2,6 +2,7 @@ import { ArrowCounterClockwise, ArrowDown, Clock, EyeSlash } from "@phosphor-ico
 import { useInfiniteQuery } from "@tanstack/react-query";
 import type { NeedsYouListInput } from "@trellis/api";
 import {
+	Button,
 	EmptyState,
 	GroupHeader,
 	IconButton,
@@ -27,7 +28,7 @@ export function InboxSection({
 	sort,
 	visibility,
 }: Required<Pick<NeedsYouListInput, "section" | "sort" | "visibility">>) {
-	const { orpc } = useApp();
+	const { orpc, queryClient } = useApp();
 	const actor = useActor();
 	const contentId = useId();
 	const phone = useMediaQuery("(max-width: 767px)");
@@ -40,6 +41,7 @@ export function InboxSection({
 	});
 	const query = useInfiniteQuery({ ...options, queryKey: [...options.queryKey, actor?.name] });
 	const items = query.data?.pages.flatMap((page) => page.items) ?? [];
+	const failed = query.data === undefined && query.failureCount > 0;
 	const title = "Needs review";
 	return (
 		<section aria-label={title}>
@@ -54,16 +56,30 @@ export function InboxSection({
 				sticky
 			/>
 			<div id={contentId} hidden={collapsed}>
-				{query.isPending && (
+				{query.isPending && !failed && (
 					<div className="px-4">
 						<Skeleton className="h-11 w-full" />
 						<Skeleton className="mt-2 h-11 w-full" />
 					</div>
 				)}
-				{query.isError && (
-					<EmptyState className="px-4" title="The items did not load." description={query.error.message} />
+				{failed && (
+					<EmptyState
+						className="px-4"
+						title="Could not load items"
+						action={
+							<Button
+								size="md"
+								onClick={() =>
+									void queryClient.resetQueries({ queryKey: [...options.queryKey, actor?.name], exact: true })
+								}
+							>
+								Retry
+							</Button>
+						}
+					/>
 				)}
-				{!query.isPending && !query.isError && items.length === 0 && (
+				{query.isError && !failed && <EmptyState className="px-4" title="Could not load items" />}
+				{!query.isPending && !query.isError && !failed && items.length === 0 && (
 					<EmptyState
 						className="px-4"
 						title={visibility === "active" ? "Nothing needs review" : `No ${visibility} items`}

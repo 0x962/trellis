@@ -1,6 +1,6 @@
 import { ClockCounterClockwise, Plus } from "@phosphor-icons/react";
 import type { AgentRun, Project, Session } from "@trellis/api";
-import { IconButton, Input, Tooltip } from "@trellis/ui";
+import { Button, IconButton, Input, Tooltip } from "@trellis/ui";
 import { useState } from "react";
 import { sessionComposerActions } from "../../../sessionComposerStore";
 import { sessionGroups } from "../../sessionGroups";
@@ -13,6 +13,8 @@ export function SessionList({
 	selectedId,
 	pending,
 	error,
+	failed,
+	onRetry,
 	onSelect,
 	onConversation,
 }: {
@@ -22,6 +24,8 @@ export function SessionList({
 	selectedId?: string;
 	pending: boolean;
 	error?: string;
+	failed: boolean;
+	onRetry: () => void;
 	onSelect: (id: string) => void;
 	onConversation: () => void;
 }) {
@@ -65,17 +69,25 @@ export function SessionList({
 				</Tooltip>
 			</div>
 			<div className="min-h-0 flex-1 overflow-y-auto py-2">
-				{pending && (
+				{pending && !failed && (
 					<p role="status" className="px-4 py-2 text-sm text-fg-muted">
 						Load sessions…
 					</p>
 				)}
-				{error && (
+				{failed && (
+					<div role="status" className="flex items-center justify-between gap-3 px-4 py-2 text-sm text-fg-muted">
+						<span>Could not load sessions</span>
+						<Button variant="quiet" onClick={onRetry}>
+							Retry
+						</Button>
+					</div>
+				)}
+				{error && !failed && (
 					<p role="alert" className="px-4 py-2 text-sm text-danger">
 						{error}
 					</p>
 				)}
-				{!pending && !error && (
+				{!pending && !error && !failed && (
 					<>
 						{search.trim() && (
 							<p role="status" className="px-4 pb-1 text-xs text-fg-muted">

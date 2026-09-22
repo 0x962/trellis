@@ -32,12 +32,14 @@ const checkWords = (checks: readonly Check[]) => {
 // open PRs source asks GitHub for the open pull requests of the signed-in
 // user in those repositories.
 export function ProjectDiffsPage({ project }: { project: Project }) {
-	const { client, orpc } = useApp();
+	const { client, orpc, queryClient } = useApp();
 	const navigate = useNavigate();
-	const prs = useQuery(orpc.reviews.prs.queryOptions({ input: { project: project.path } }));
+	const prsOptions = orpc.reviews.prs.queryOptions({ input: { project: project.path } });
+	const prs = useQuery(prsOptions);
 	const [source, setSource] = useState<"local" | "mine">("local");
+	const mineOptions = orpc.reviews.mine.queryOptions({ input: { project: project.path } });
 	const mine = useQuery({
-		...orpc.reviews.mine.queryOptions({ input: { project: project.path } }),
+		...mineOptions,
 		enabled: source === "mine",
 	});
 	const [openSheet, setOpenSheet] = useState(false);
@@ -90,6 +92,8 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 	});
 	const repositories = [...new Set(visible.map((pr) => pr.repository))].sort();
 	const query = source === "local" ? prs : mine;
+	const queryOptions = source === "local" ? prsOptions : mineOptions;
+	const failed = query.data === undefined && query.failureCount > 0;
 	const empty = filter
 		? { title: "No pull requests match", description: "Try another title, repository, or PR number." }
 		: source === "local"
@@ -142,9 +146,19 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 					/>
 				</div>
 				<div className="review-index-body">
-					{query.isPending ? (
+					{query.isPending && !failed ? (
 						<p role="status" className="review-empty">
 							Load pull requests…
+						</p>
+					) : failed ? (
+						<p role="status" className="review-error">
+							Could not load pull requests.{" "}
+							<Button
+								variant="quiet"
+								onClick={() => void queryClient.resetQueries({ queryKey: queryOptions.queryKey, exact: true })}
+							>
+								Retry
+							</Button>
 						</p>
 					) : query.isError ? (
 						<p role="alert" className="review-error">
