@@ -37,7 +37,7 @@ export const sessions = {
 		.route({
 			method: "POST",
 			path: "/sessions/{id}/start",
-			summary: "Start the agent of a stopped session again, in its saved conversation when the harness kept one",
+			summary: "Start the agent of an idle session again, in its saved conversation when the harness kept one",
 		})
 		.input(SessionIdInputSchema)
 		.output(SessionDetailSchema),

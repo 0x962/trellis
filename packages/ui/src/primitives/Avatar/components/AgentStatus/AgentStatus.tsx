@@ -8,7 +8,6 @@ export type AgentStatusValue =
 	| "idle"
 	| "failed"
 	| "interrupted"
-	| "stopped"
 	| "unavailable";
 const colors: Record<AgentStatusValue, string> = {
 	starting: "bg-fg-muted",
@@ -18,7 +17,6 @@ const colors: Record<AgentStatusValue, string> = {
 	idle: "bg-fg-faint",
 	failed: "bg-danger",
 	interrupted: "bg-fg-muted",
-	stopped: "bg-fg-faint",
 	unavailable: "bg-fg-faint",
 };
 export function AgentStatus({ status }: { status: AgentStatusValue }) {
