@@ -38,11 +38,11 @@ const add = defineCommand({
 		tail: { type: "string", description: "Output tail, or - for stdin" },
 		method: { type: "string", description: "HTTP method" },
 		path: { type: "string", description: "Request path" },
-		request: { type: "string", description: "Request body, or - for stdin" },
+		request: { type: "string", description: "Request body file, or - for stdin" },
 		status: { type: "string", description: "Response status code" },
-		response: { type: "string", description: "Response body, or - for stdin" },
+		response: { type: "string", description: "Response body file, or - for stdin" },
 		server: { type: "string", description: "Server address" },
-		output: { type: "string", description: "Command output, or - for stdin" },
+		output: { type: "string", description: "Command output file, or - for stdin" },
 		name: { type: "string", description: "Test name" },
 		"fails-on": { type: "string", description: "SHA where the test fails" },
 		"passes-on": { type: "string", description: "SHA where the test passes" },
@@ -59,11 +59,17 @@ const add = defineCommand({
 		const args = context.args as unknown as EvidenceArgs & { ref: string };
 		validateKindFlags(args);
 		const file = args.file === undefined ? undefined : fileAt(args.file as string);
-		const [tail, before, after, table, request, response, output] = await Promise.all(
-			[args.tail, args.before, args.after, args.table, args.request, args.response, args.output].map((value) =>
-				value === undefined ? undefined : readText(ctx, value as string),
-			),
-		);
+		const readFileFlag = (value: string | boolean | undefined) =>
+			value === undefined ? undefined : fileAt(value as string).text();
+		const [tail, before, after, table, request, response, output] = await Promise.all([
+			args.tail === undefined ? undefined : readText(ctx, args.tail as string),
+			args.before === undefined ? undefined : readText(ctx, args.before as string),
+			args.after === undefined ? undefined : readText(ctx, args.after as string),
+			args.table === undefined ? undefined : readText(ctx, args.table as string),
+			args.request === "-" ? readText(ctx, args.request) : readFileFlag(args.request),
+			args.response === "-" ? readText(ctx, args.response) : readFileFlag(args.response),
+			args.output === "-" ? readText(ctx, args.output) : readFileFlag(args.output),
+		]);
 		const argsWithStdin = {
 			...args,
 			tail,
