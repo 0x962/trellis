@@ -5,22 +5,14 @@ import { cx } from "../../utils/cx";
 export type WorkingAgentTextProps = ComponentPropsWithoutRef<"span"> & {
 	count?: number;
 	tooltip?: boolean;
-	variant?: "sweep" | "static";
 	children: ReactNode;
 };
 
 export const workingAgentsLabel = (count: number) => `${count} ${count === 1 ? "agent" : "agents"} working`;
 
-export function WorkingAgentText({
-	count = 1,
-	tooltip = true,
-	variant = "sweep",
-	className,
-	children,
-	...props
-}: WorkingAgentTextProps) {
+export function WorkingAgentText({ count = 1, tooltip = true, className, children, ...props }: WorkingAgentTextProps) {
 	const text = (
-		<span {...props} className={cx(variant === "static" ? "text-film-static" : "text-film", className)}>
+		<span {...props} className={cx("text-film", className)}>
 			{children}
 		</span>
 	);
