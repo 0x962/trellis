@@ -8,9 +8,11 @@ import { nativeHost } from "../../agents/native/harnessHost.ts";
 import { rows } from "../../db/queries/support.ts";
 import { invalidInput } from "../../errors.ts";
 import { recordRequest, replayRequest } from "../assignments/requests.ts";
+import { getAccount } from "../harnessAccounts/queries.ts";
 import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive } from "../refs.ts";
+import { sessionOperation } from "../sessions/operation.ts";
 import type { IoCtx } from "../support.ts";
 import { assertResumeTicket } from "./assertResumeTicket.ts";
 import { startNative } from "./nativeStart.ts";
@@ -23,17 +25,19 @@ type Input = {
 	model?: string;
 	expectedTerminalId: string;
 	requestId: string;
+	confirmInterrupt?: boolean;
 };
-export async function prepareResume(
+export const prepareResume = (
 	ctx: IoCtx,
 	input: Input,
 	start: typeof startNative = startNative,
 	switchRunning = false,
-) {
+) => sessionOperation(ctx.home, input.id, () => resume(ctx, input, start, switchRunning));
+
+async function resume(ctx: IoCtx, input: Input, start: typeof startNative, switchRunning: boolean) {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
-	if (run.kind === "session") throw invalidInput("id", "Use sessions.start to resume this session.");
 	await ctx.newTx((tx) => assertResumeTicket(tx, run));
-	if (run.runtime !== "native" || !run.projectId)
+	if (run.runtime !== "native" || (!run.projectId && run.kind !== "session"))
 		throw invalidInput("id", "This assignment has no resumable native session.");
 	const target = {
 		projectId: run.projectId,
@@ -60,14 +64,24 @@ export async function prepareResume(
 	const descriptor: HarnessDescriptor = JSON.parse(
 		await readFile(join(ctx.home, "harness-attempts", input.expectedTerminalId, "launch.json"), "utf8"),
 	);
+	if (input.accountId) {
+		const account = await ctx.newTx((tx) => getAccount(tx, { id: input.accountId! }));
+		if (account.harness !== descriptor.harness)
+			throw invalidInput("accountId", "A saved conversation requires an account for the same harness.");
+	}
 	if (input.model && !supportsModel(descriptor.harness, input.model))
 		throw invalidInput("model", `Select a model supported by ${descriptor.harness} from models.list.`);
 	const model =
 		input.model ?? (previous.agent?.model ? fromHarnessModel(descriptor.harness, previous.agent.model) : undefined);
 	if (switchRunning && previous.status !== "exited") {
-		assertProjectActive(ctx.core, run.projectId);
+		if (run.projectId) assertProjectActive(ctx.core, run.projectId);
 		if (previous.status !== "running" || !previous.controllable)
 			throw invalidInput("id", "The runtime cannot control this agent. Inspect its current session.");
+		if (input.confirmInterrupt === false && previous.activity?.state === "working")
+			throw invalidInput(
+				"confirmInterrupt",
+				"Confirm the interruption of the running turn before you switch accounts.",
+			);
 		const eligible = await ctx.newTx((tx) =>
 			reserveResume(
 				ctx.core,
@@ -92,10 +106,11 @@ export async function prepareResume(
 		if (previous.status !== "exited") throw invalidInput("id", "The previous process has not stopped.");
 	}
 	const reservation = await ctx.newTx(async (tx) => {
-		await tx.execute(sql`SELECT id FROM projects WHERE id=${run.projectId} FOR UPDATE`);
+		if (run.projectId) await tx.execute(sql`SELECT id FROM projects WHERE id=${run.projectId} FOR UPDATE`);
+		else await tx.execute(sql`SELECT id FROM agent_runs WHERE id=${run.id} FOR UPDATE`);
 		const replay = await replayRequest(ctx.core, tx, request);
 		if (replay) return { replay: true as const, run: replay };
-		assertProjectActive(ctx.core, run.projectId!);
+		if (run.projectId) assertProjectActive(ctx.core, run.projectId);
 		const current = await getRun(tx, input.id);
 		await assertResumeTicket(tx, current);
 		if (current.terminalId !== input.expectedTerminalId)
@@ -107,10 +122,11 @@ export async function prepareResume(
 			);
 			if (duplicates.length) throw invalidInput("id", "Another agent already owns this ticket.");
 		}
-		const config = await projectLaunchConfig(tx, {
-			projectId: run.projectId!,
-			harness: HarnessSchema.parse({ preset: descriptor.harness, model }),
-		});
+		const harness = HarnessSchema.parse({ preset: descriptor.harness, model });
+		const config =
+			run.kind !== "session" && run.projectId
+				? await projectLaunchConfig(tx, { projectId: run.projectId, harness })
+				: { directory: previous.launch!.cwd, harness, accountId: null };
 		const selected = await selectAccount(tx, {
 			accountId: input.accountId ?? run.accountId,
 			config,
@@ -146,10 +162,13 @@ export async function prepareResume(
 		resume: true,
 		previousAttemptId: input.expectedTerminalId,
 		previousAccountId: run.accountId ?? null,
-		resumePrompt: JSON.stringify({
-			type: "trellis.assignment.resumed",
-			runId: run.id,
-			previousAttemptId: input.expectedTerminalId,
-		}),
+		resumePrompt:
+			run.kind === "session"
+				? "Continue this session in the same conversation and workspace."
+				: JSON.stringify({
+						type: "trellis.assignment.resumed",
+						runId: run.id,
+						previousAttemptId: input.expectedTerminalId,
+					}),
 	});
 }

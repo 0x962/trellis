@@ -111,6 +111,22 @@ export const agentRuns = {
 		.route({ method: "GET", path: "/agent-runs/{runId}/workspace/file", summary: "Read a workspace file" })
 		.input(AgentWorkspaceFileInputSchema)
 		.output(AgentWorkspaceFileSchema),
+	switchAccount: base
+		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
+		.route({
+			method: "POST",
+			path: "/agent-runs/{id}/account",
+			summary: "Switch the account and resume the same conversation",
+		})
+		.input(
+			idInput.extend({
+				accountId: UlidSchema,
+				expectedTerminalId: z.string().min(1),
+				requestId: z.string().min(1).max(200),
+				confirmInterrupt: z.boolean().default(false),
+			}),
+		)
+		.output(AgentRunSchema),
 	setModel: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
 		.route({
