@@ -45,7 +45,7 @@ export const workspaceRemovable = (directory: string, runs: SweepRun[], running:
 	);
 };
 
-const terminalOutputFile = /^output-([0-9a-f-]{36})\.txt$/;
+const terminalOutputFile = /^output-(.+)\.txt$/;
 
 // The files in `<home>/agents/<run id>` that no reader opens again. A stop
 // writes the whole terminal output to `output-<terminal id>.txt`, and the

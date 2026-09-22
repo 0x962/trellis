@@ -47,6 +47,7 @@ const initializeRepository = async (directory: string) => {
 
 export const createSessionRepository = async (home: string, name: string) => {
 	const directory = join(sessionsRoot(home), name);
+	await mkdir(sessionsRoot(home), { recursive: true, mode: 0o700 });
 	await mkdir(directory, { mode: 0o700 });
 	return initializeRepository(directory);
 };
