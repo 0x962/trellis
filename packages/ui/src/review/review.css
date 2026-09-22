@@ -78,6 +78,19 @@
 	font-size: 12px;
 	font-variant-numeric: tabular-nums;
 }
+.review-state-group {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+}
+.review-queue-position {
+	display: inline-flex;
+	height: 20px;
+	align-items: center;
+	white-space: nowrap;
+	color: var(--fg-muted);
+}
 /* An agent branch name holds a ticket key and a 26 character run id, so the
    head and base pair is long. The line takes the width the header row gives
    it, and the phone rule below caps it at 220px. */
@@ -351,6 +364,9 @@ button.review-notice:hover {
 	}
 	.review-heading-meta {
 		gap: 8px 12px;
+	}
+	.review-queue-position {
+		display: none;
 	}
 	.review-branch {
 		max-width: 220px;
