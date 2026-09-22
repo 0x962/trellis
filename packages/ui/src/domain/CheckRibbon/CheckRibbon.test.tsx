@@ -6,6 +6,7 @@ test("draws pending checks with warning shimmer and skipped checks with grey", (
 	const html = renderToStaticMarkup(
 		<CheckRibbon
 			checks={[
+				{ name: "Unit", bucket: "pass" },
 				{ name: "Build", bucket: "pending" },
 				{ name: "Preview", bucket: "skipping" },
 			]}
@@ -13,10 +14,13 @@ test("draws pending checks with warning shimmer and skipped checks with grey", (
 	);
 
 	expect(html).toContain(
-		'data-bucket="pending" style="width:31px" class="block shrink-0 rounded-hairline bg-warning ribbon-shimmer motion-reduce:animate-none"',
+		'data-bucket="pass" style="width:20px" class="block shrink-0 rounded-hairline bg-check-ribbon-pass"',
 	);
 	expect(html).toContain(
-		'data-bucket="skipping" style="width:31px" class="block shrink-0 rounded-hairline bg-border-strong"',
+		'data-bucket="pending" style="width:20px" class="block shrink-0 rounded-hairline bg-warning ribbon-shimmer motion-reduce:animate-none"',
+	);
+	expect(html).toContain(
+		'data-bucket="skipping" style="width:20px" class="block shrink-0 rounded-hairline bg-border-strong"',
 	);
 });
 
