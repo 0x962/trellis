@@ -62,7 +62,23 @@ const move = defineCommand({
 	},
 });
 
+const rename = defineCommand({
+	meta: { name: "rename", description: "Rename a session" },
+	args: {
+		session: { type: "positional", required: true, description: "Session id, run id, or name" },
+		name: { type: "positional", required: true, description: "New session name" },
+	},
+	async run(context) {
+		const ctx = contextOf(context);
+		const session = await clientOf(ctx).sessions.rename({
+			id: context.args.session,
+			name: context.args.name,
+		});
+		printRecord(ctx.out, ctx.format, session, sessionRecord);
+	},
+});
+
 export default defineCommand({
-	meta: { name: "sessions", description: "List sessions and move them between projects" },
-	subCommands: { list, move },
+	meta: { name: "sessions", description: "List, move, and rename sessions" },
+	subCommands: { list, move, rename },
 });

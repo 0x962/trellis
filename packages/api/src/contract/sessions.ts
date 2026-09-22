@@ -5,6 +5,7 @@ import {
 	SessionDetailSchema,
 	SessionIdInputSchema,
 	SessionMoveInputSchema,
+	SessionRenameInputSchema,
 	SessionSchema,
 } from "../schemas/session.ts";
 import { base } from "./base.ts";
@@ -48,6 +49,14 @@ export const sessions = {
 			summary: "Move a session to a project, or clear its project",
 		})
 		.input(SessionMoveInputSchema)
+		.output(SessionSchema),
+	rename: base
+		.route({
+			method: "POST",
+			path: "/sessions/{id}/name",
+			summary: "Rename a session",
+		})
+		.input(SessionRenameInputSchema)
 		.output(SessionSchema),
 	delete: base
 		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))

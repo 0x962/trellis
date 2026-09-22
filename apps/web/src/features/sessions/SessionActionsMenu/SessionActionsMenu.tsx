@@ -1,4 +1,4 @@
-import { DotsThree, FolderSimple, Trash, UserSwitch } from "@phosphor-icons/react";
+import { DotsThree, FolderSimple, PencilSimple, Trash, UserSwitch } from "@phosphor-icons/react";
 import type { AgentRun, Session } from "@trellis/api";
 import { IconButton, Menu, type MenuItem } from "@trellis/ui";
 import { useState } from "react";
@@ -12,6 +12,7 @@ export type SessionActionsMenuProps = {
 	size?: "xs" | "sm" | "md";
 	deleteDisabled?: boolean;
 	onDeleted?: () => void;
+	onRename?: () => void;
 };
 
 export function SessionActionsMenu({
@@ -20,35 +21,41 @@ export function SessionActionsMenu({
 	size = "sm",
 	deleteDisabled = false,
 	onDeleted,
+	onRename,
 }: SessionActionsMenuProps) {
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [moveOpen, setMoveOpen] = useState(false);
 	const [accountOpen, setAccountOpen] = useState(false);
 	const name = session?.name ?? run!.name;
-	const items: MenuItem[] = [
-		...(run
-			? [
-					{
-						label: "Switch account",
-						icon: <UserSwitch />,
-						disabled: deleteDisabled || run.runtime !== "native" || !run.terminalId || run.state === "starting",
-						onSelect: () => setAccountOpen(true),
-					},
-				]
-			: []),
-		...(session
-			? [
-					{ label: "Move to project…", icon: <FolderSimple />, onSelect: () => setMoveOpen(true) },
-					{
-						label: "Delete…",
-						icon: <Trash />,
-						danger: true,
-						disabled: deleteDisabled,
-						onSelect: () => setDeleteOpen(true),
-					},
-				]
-			: []),
-	];
+	const items: MenuItem[] = [];
+	if (run) {
+		items.push({
+			label: "Switch account",
+			icon: <UserSwitch />,
+			disabled: deleteDisabled || run.runtime !== "native" || !run.terminalId || run.state === "starting",
+			onSelect: () => setAccountOpen(true),
+		});
+	}
+	if (session && onRename) {
+		items.push({
+			label: "Rename",
+			icon: <PencilSimple />,
+			disabled: deleteDisabled,
+			onSelect: onRename,
+		});
+	}
+	if (session) {
+		items.push(
+			{ label: "Move to project…", icon: <FolderSimple />, onSelect: () => setMoveOpen(true) },
+			{
+				label: "Delete…",
+				icon: <Trash />,
+				danger: true,
+				disabled: deleteDisabled,
+				onSelect: () => setDeleteOpen(true),
+			},
+		);
+	}
 	return (
 		<>
 			<Menu
