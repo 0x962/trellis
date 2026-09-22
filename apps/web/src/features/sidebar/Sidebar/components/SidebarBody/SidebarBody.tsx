@@ -1,7 +1,6 @@
 import { Plus, SidebarSimple } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { ActivityDot, IconButton, Kbd, Tooltip, WorkingAgentText } from "@trellis/ui";
+import { ActivityDot, IconButton, Kbd, Tooltip } from "@trellis/ui";
 import { useApp } from "../../../../../lib/appContext";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
 import { projectRefOfPathname } from "../../../../../lib/projectPath";
@@ -13,7 +12,6 @@ import { ActorFooter } from "../../../ActorFooter";
 import { ArchivedProjects } from "../../../ArchivedProjects";
 import { ProjectTree } from "../../../ProjectTree";
 import { SessionList } from "../../../SessionList";
-import { sidebarWorkCounts } from "../../../sidebarWork";
 import { ConnectionPanel } from "../ConnectionPanel";
 import { NavRow } from "./components/NavRow";
 
@@ -43,13 +41,9 @@ export type SidebarBodyProps = {
 // URL at once but keeps the old page until the new one loads, so the
 // highlight moves when the page does.
 export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps) {
-	const { live, orpc } = useApp();
+	const { live } = useApp();
 	const inbox = useNeedsYouSummary();
 	const status = useLiveStatus(live);
-	const projects = useQuery(orpc.projects.list.queryOptions({ input: { archived: false } }));
-	const runs = useQuery({ ...orpc.agentRuns.list.queryOptions({ input: { assigned: true } }), refetchInterval: 2000 });
-	const sessions = useQuery({ ...orpc.sessions.activity.queryOptions({ input: {} }), refetchInterval: 2000 });
-	const work = sidebarWorkCounts(projects.data ?? [], runs.data ?? [], sessions.data ?? []);
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const project = projectRefOfPathname(pathname);
@@ -112,13 +106,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 			</nav>
 			<div hidden={collapsed} className="mt-3 min-h-0 flex-1 overflow-y-auto pb-2">
 				<div className="sidebar-section">
-					<h2>
-						{work.sessionSection > 0 ? (
-							<WorkingAgentText count={work.sessionSection}>Sessions</WorkingAgentText>
-						) : (
-							"Sessions"
-						)}
-					</h2>
+					<h2>Sessions</h2>
 					<Tooltip content="New session">
 						<IconButton
 							size="xs"
@@ -136,13 +124,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 				</div>
 				<SessionList />
 				<div className="sidebar-section mt-3">
-					<h2>
-						{work.projectSection > 0 ? (
-							<WorkingAgentText count={work.projectSection}>Projects</WorkingAgentText>
-						) : (
-							"Projects"
-						)}
-					</h2>
+					<h2>Projects</h2>
 					<Tooltip content="New project">
 						<IconButton
 							size="xs"

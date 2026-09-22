@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { type Session, type SessionStatus, sessionStatusLabels } from "@trellis/api";
-import { Avatar, cx, WorkingAgentText } from "@trellis/ui";
+import { Avatar, cx } from "@trellis/ui";
 import { lazy, Suspense } from "react";
 import { compactRelativeTime } from "../../../../lib/format";
 import { agentProfileOf } from "../../../agents/agentProfileOf";
@@ -37,29 +37,19 @@ export function SessionRow({ session, status, activityAt, workingCount = 0, acti
 						name={session.name}
 						agentKind="agent"
 						agentProfile={agentProfileOf(session.harness)}
+						state={workingCount > 0 ? "working" : "static"}
 						status={status}
 						className="size-5"
 					/>
 				</span>
 				<span className="sr-only">{sessionStatusLabels[status]}: </span>
-				{workingCount > 0 ? (
-					<WorkingAgentText
-						data-slot="label"
-						count={workingCount}
-						title={`${session.name} · ${sessionStatusLabels[status]} · Last activity ${activity}`}
-						className="sidebar-label"
-					>
-						{session.name}
-					</WorkingAgentText>
-				) : (
-					<span
-						data-slot="label"
-						title={`${session.name} · ${sessionStatusLabels[status]} · Last activity ${activity}`}
-						className="sidebar-label"
-					>
-						{session.name}
-					</span>
-				)}
+				<span
+					data-slot="label"
+					title={`${session.name} · ${sessionStatusLabels[status]} · Last activity ${activity}`}
+					className="sidebar-label"
+				>
+					{session.name}
+				</span>
 				<span className="shrink-0 px-1 text-xs text-fg-faint tabular">
 					<span className="sr-only">Last activity </span>
 					{activity}

@@ -19,7 +19,7 @@ export function ActorAvatar({ actor, ticketId }: { actor: ActorRef; ticketId: st
 			name={actor.displayName ?? actor.name}
 			agentKind={run === undefined ? undefined : agentKindOf(run.kind)}
 			agentProfile={run === undefined ? undefined : agentProfileOf(run.harness)}
-			state={run !== undefined && isAgentWorking(run) ? "working-mild" : "static"}
+			state={run !== undefined && isAgentWorking(run) ? "working" : "static"}
 		/>
 	);
 }

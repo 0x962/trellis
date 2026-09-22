@@ -1,5 +1,5 @@
 export type AgentMarkKind = "agent" | "trellis";
-export type AgentMarkState = "static" | "working-mild" | "working";
+export type AgentMarkState = "static" | "working";
 
 export const trellisLines = ["M13 8 24 19", "M19 24 8 13", "M8 19 19 8", "M24 13 13 24"];
 export const boxLines = ["M5 7H27", "M25 5V27", "M27 25H5", "M7 27V5"];

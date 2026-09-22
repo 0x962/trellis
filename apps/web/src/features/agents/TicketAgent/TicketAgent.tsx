@@ -50,7 +50,7 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 							name={assigned.name}
 							agentKind={agentKindOf(assigned.kind)}
 							agentProfile={profile}
-							state={isAgentWorking(assigned) ? "working-mild" : "static"}
+							state={isAgentWorking(assigned) ? "working" : "static"}
 						/>
 						<span className="truncate">{label}</span>
 						{assigned.state === "failed" && <span className="text-xs text-danger">failed</span>}

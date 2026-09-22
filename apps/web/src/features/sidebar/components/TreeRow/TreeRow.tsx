@@ -1,5 +1,5 @@
 import type { ProjectSummary } from "@trellis/api";
-import { cx, Tooltip, TrellisMark, WorkingAgentText } from "@trellis/ui";
+import { cx, Tooltip, TrellisMark } from "@trellis/ui";
 import { lazy, Suspense } from "react";
 
 const ProjectRowActions = lazy(async () => ({ default: (await import("../../ProjectRowActions")).ProjectRowActions }));
@@ -10,13 +10,12 @@ export type TreeRowProps = {
 	depth: number;
 	// An archived row uses faint text.
 	archived?: boolean;
-	workingCount?: number;
 };
 
 const indent = ["pl-2", "pl-5", "pl-8", "pl-11"] as const;
 
 // The trailing slot reserves space for the project menu on hover and focus.
-export function TreeRow({ project, depth, archived = false, workingCount = 0 }: TreeRowProps) {
+export function TreeRow({ project, depth, archived = false }: TreeRowProps) {
 	return (
 		<li
 			className={cx(
@@ -31,15 +30,9 @@ export function TreeRow({ project, depth, archived = false, workingCount = 0 }: 
 						<TrellisMark className="size-6" background={false} />
 					</span>
 				</Tooltip>
-				{workingCount > 0 ? (
-					<WorkingAgentText data-slot="label" count={workingCount} title={project.name} className="sidebar-label">
-						{project.name}
-					</WorkingAgentText>
-				) : (
-					<span data-slot="label" title={project.name} className="sidebar-label">
-						{project.name}
-					</span>
-				)}
+				<span data-slot="label" title={project.name} className="sidebar-label">
+					{project.name}
+				</span>
 				<span data-slot="trailing" className="sidebar-trailing" aria-hidden="true" />
 			</div>
 			<span

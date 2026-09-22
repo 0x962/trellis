@@ -6,7 +6,6 @@ import type { ReactNode } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ProjectPages } from "../components/ProjectPages";
 import { TreeRow } from "../components/TreeRow";
-import { sidebarWorkCounts } from "../sidebarWork";
 
 const byPosition = (a: ProjectSummary, b: ProjectSummary) => a.position - b.position;
 
@@ -17,8 +16,6 @@ const byPosition = (a: ProjectSummary, b: ProjectSummary) => a.position - b.posi
 // navigation that is still loading, so the highlight and the page match.
 export function ProjectTree() {
 	const { orpc } = useApp();
-	const runs = useQuery({ ...orpc.agentRuns.list.queryOptions({ input: { assigned: true } }), refetchInterval: 2000 });
-	const sessions = useQuery({ ...orpc.sessions.activity.queryOptions({ input: {} }), refetchInterval: 2000 });
 	const { data } = useQuery(orpc.projects.list.queryOptions({ input: { archived: false } }));
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	if (data === undefined) return <nav aria-label="Projects" data-project-tree="" />;
@@ -29,29 +26,14 @@ export function ProjectTree() {
 		list.push(project);
 		children.set(project.parentId, list);
 	}
-	const work = sidebarWorkCounts(data, runs.data ?? [], sessions.data ?? []);
-
 	const level = (parentId: string | null, depth: number): ReactNode[] =>
 		(children.get(parentId) ?? []).sort(byPosition).flatMap((project) => {
-			const row = (
-				<TreeRow
-					key={project.id}
-					project={project}
-					depth={depth}
-					workingCount={work.projectRows.get(project.id) ?? 0}
-				/>
-			);
+			const row = <TreeRow key={project.id} project={project} depth={depth} />;
 			return [
 				row,
 				<li key={`${project.id}.subtree`}>
 					<ul className={cx("flex flex-col gap-0.5")}>
-						<ProjectPages
-							project={project}
-							depth={depth + 1}
-							pathname={pathname}
-							epicWorkingCount={work.epicRows.get(project.id) ?? 0}
-							sessionWorkingCount={work.projectSessionRows.get(project.id) ?? 0}
-						/>
+						<ProjectPages project={project} depth={depth + 1} pathname={pathname} />
 						{level(project.id, depth + 1)}
 					</ul>
 				</li>,

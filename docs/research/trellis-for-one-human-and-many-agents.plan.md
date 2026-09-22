@@ -430,7 +430,7 @@ Source: WEB-02.
 
 **Creates.** `packages/ui/src/primitives/Avatar/components/AgentProfileMark/AgentProfileMark.test.tsx`, `packages/ui/src/gallery/components/DomainSections/sections/AgentCard.tsx` and its line in `sections/index.ts`.
 
-**Leave alone.** `packages/ui/src/primitives/AgentMark/AgentMark.tsx`, `useAgentMotion.ts`. `apps/web/src/features/agents/ActorAvatar/ActorAvatar.tsx` (it already passes `working-mild` at line 22).
+**Leave alone.** `packages/ui/src/primitives/AgentMark/AgentMark.tsx`, `useAgentMotion.ts`. `apps/web/src/features/agents/ActorAvatar/ActorAvatar.tsx` passes `working` for a run that works.
 
 **Verify.** `bun test packages/ui/src/primitives/Avatar` · `bun scripts/check.ts` · the gallery, one card watched for 15 seconds.
 
