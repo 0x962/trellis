@@ -1,18 +1,15 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { Priority, Status, Ticket } from "@trellis/api";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StyleSheet, Text, View } from "react-native";
 import { Button } from "../../components/Button";
 import { SectionHeader } from "../../components/SectionHeader";
 import { getClient } from "../../lib/orpc";
 import { keys, store } from "../../lib/store";
-import { layout } from "../../theme/layout";
 import { tokens } from "../../theme/tokens";
 import { usePalette } from "../../theme/usePalette";
 import { Attachments } from "../Attachments";
 import { Description } from "../Description";
-import { MessageAgent } from "../MessageAgent";
 import { PrCard } from "../PrCard";
 import { PrioritySheet } from "../PrioritySheet";
 import { PropertyGrid } from "../PropertyGrid";
@@ -57,18 +54,13 @@ const styles = StyleSheet.create({
 	earlier: { paddingHorizontal: tokens.space[4], paddingTop: tokens.space[2] },
 });
 
-// The loaded ticket: every section above the timeline as the list header,
-// the timeline rows, and the form that messages the agent under them. The two sheets and the
-// review actions write through one `useTicketUpdate`. The timeline shows the
-// newest page first. While an older page exists, a Load earlier button under
-// the oldest item reads it.
+// The loaded ticket: every section above the timeline as the list header, and
+// the timeline rows below it. The two sheets and the review actions write
+// through one `useTicketUpdate`. The timeline shows the newest page first.
+// While an older page exists, a Load earlier button under the oldest item
+// reads it.
 export function TicketView({ ticket }: TicketViewProps) {
 	const palette = usePalette();
-	// The screen sits under the stack header: the top inset plus
-	// `layout.header`. KeyboardAvoidingView measures its frame inside the
-	// screen and the keyboard inside the window, so it needs this offset to
-	// pad the message form fully above the keyboard.
-	const { top } = useSafeAreaInsets();
 	const client = getClient();
 	const { identifier } = ticket;
 	const statuses = useQuery(statusesQuery(client, ticket.project.id)).data?.statuses ?? [];
@@ -129,12 +121,7 @@ export function TicketView({ ticket }: TicketViewProps) {
 	) : undefined;
 
 	return (
-		<KeyboardAvoidingView
-			testID="ticket-screen"
-			behavior={Platform.OS === "ios" ? "padding" : undefined}
-			keyboardVerticalOffset={top + layout.header}
-			style={styles.screen}
-		>
+		<View testID="ticket-screen" style={styles.screen}>
 			{failure !== undefined && (
 				<View style={[styles.message, { backgroundColor: palette.dangerSoft }]}>
 					<Text style={[styles.messageTitle, { color: palette.danger }]}>{failure.title}</Text>
@@ -142,7 +129,6 @@ export function TicketView({ ticket }: TicketViewProps) {
 				</View>
 			)}
 			<Timeline rows={timelineRows(items)} header={header} footer={footer} />
-			<MessageAgent ticket={identifier} />
 			<StatusSheet
 				open={statusOpen}
 				statuses={statuses}
@@ -156,6 +142,6 @@ export function TicketView({ ticket }: TicketViewProps) {
 				onChoose={choosePriority}
 				onClose={() => setPriorityOpen(false)}
 			/>
-		</KeyboardAvoidingView>
+		</View>
 	);
 }

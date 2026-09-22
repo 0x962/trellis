@@ -77,7 +77,7 @@ const wordsTone = (kind: RunLineKind) =>
 	waitingKinds.includes(kind) ? "text-warning" : brokenKinds.includes(kind) ? "text-danger" : "text-fg-muted";
 
 // The `Avatar` mark moves only in the `works` state. The caller draws the
-// region and its title, such as `RunBlock` on the ticket page.
+// surrounding region and its title.
 export function RunLine({ run, retry = null, onOpenSession }: RunLineProps) {
 	if (run === null) {
 		return (
