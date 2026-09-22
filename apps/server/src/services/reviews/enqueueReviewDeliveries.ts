@@ -8,14 +8,15 @@ import type { Tx } from "../../db/tx.ts";
 // each linked ticket gives one row at most. A row whose process already
 // ended still counts: the person restarts that agent, and the delivery
 // waits for its terminal.
-export const agentsOf = (tx: Tx, prId: string) =>
+export const agentsOf = (tx: Tx, input: { prId: string; exceptRunId?: string }) =>
 	rows<{ runId: string; agentName: string }>(
 		tx,
 		sql`SELECT run.id AS "runId", run.name AS "agentName"
 		FROM ticket_pull_requests link
 		JOIN agent_runs run ON run.ticket_id = link.ticket_id
-		WHERE link.pull_request_id = ${prId}
+		WHERE link.pull_request_id = ${input.prId}
 			AND run.kind = 'agent' AND run.runtime = 'native' AND run.closed_at IS NULL
+			AND (${input.exceptRunId ?? null}::text IS NULL OR run.id <> ${input.exceptRunId ?? null})
 		ORDER BY run.id`,
 	);
 
@@ -24,7 +25,7 @@ export const agentsOf = (tx: Tx, prId: string) =>
 // be sent, and `dispatchDeliveries` sends it. The returned list names the
 // agents the review goes to.
 export const enqueueReviewDeliveries = async (tx: Tx, input: { reviewId: string; prId: string }) => {
-	const deliveries = await agentsOf(tx, input.prId);
+	const deliveries = await agentsOf(tx, { prId: input.prId });
 	for (const delivery of deliveries)
 		await tx.execute(
 			sql`INSERT INTO review_deliveries (id, review_id, run_id)

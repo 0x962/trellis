@@ -19,14 +19,14 @@ export const reviewMessage = (input: {
 	return `${opening} ${count}${note}\nRead the comments: trellis review list ${input.url}\nApply what each comment asks. Answer each comment.`;
 };
 
-// One comment a person wrote on a diff line. `body` is the text of that one
-// comment, and `path` with `line` is the place the thread points at.
+// One comment on a diff line. `body` is the text of that one comment, and
+// `path` with `line` is the place the thread points at.
 export type CommentNote = { path: string; line: number; body: string };
 
-// The comments a person wrote on the pull request of an agent. One message
-// carries every comment the dispatcher holds for that agent, so ten
-// comments in a row stop the work once. The text of each comment travels
-// with it, because the agent can read and answer without another command.
+// The comments on the pull request of an agent. One message carries every
+// comment the dispatcher holds for that agent, so ten comments in a row stop
+// the work once. The text of each comment travels with it, because the agent
+// can read and answer without another command.
 export const commentMessage = (input: { url: string; comments: CommentNote[] }) => {
 	const count = input.comments.length;
 	const opening = `trellis: your pull request has ${count} new ${count === 1 ? "comment" : "comments"}.`;

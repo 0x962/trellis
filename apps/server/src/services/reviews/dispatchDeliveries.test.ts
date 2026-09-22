@@ -79,12 +79,12 @@ const queueReview = async (title: string, threads: number) => {
 };
 
 // A pull request of one ticket, one running agent on that ticket, and the
-// comments an actor of `kind` wrote on the diff. The clock of the service
-// context sits before the run of the test, so the batch window has passed
-// and the dispatcher may send every row at once.
-const threadCtx = (kind: "human" | "agent") =>
+// comments an actor wrote on the diff. The clock of the service context sits
+// before the run of the test, so the batch window has passed and the
+// dispatcher may send every row at once.
+const threadCtx = (actor: { kind: "human" | "agent"; name: string }) =>
 	({
-		actor: { kind, name: kind === "human" ? "dana" : "crisp-fjord" },
+		actor,
 		session: null,
 		now: () => new Date(at),
 		emit: () => {},
@@ -93,11 +93,12 @@ const threadCtx = (kind: "human" | "agent") =>
 const queueComments = async (
 	title: string,
 	notes: { path: string; line: number; body: string }[],
-	kind: "human" | "agent" = "human",
+	actor?: { kind: "human" | "agent"; name: string },
 ) => {
 	const ticket = await run((tx) => create(core, tx, { project: "DSP", title }));
 	const runId = ulid();
 	await startRun(runId, ticket.id, ticket.identifier);
+	const reviewer = actor ?? { kind: "human" as const, name: "dana" };
 	const prId = ulid();
 	const url = `https://github.com/o/r/pull/${++prNumber}`;
 	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, created_at, updated_at)
@@ -105,7 +106,7 @@ const queueComments = async (
 	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
 		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at})`);
 	const threads = [];
-	for (const note of notes) threads.push(await run((tx) => add(threadCtx(kind), tx, { pr: url, ...note })));
+	for (const note of notes) threads.push(await run((tx) => add(threadCtx(reviewer), tx, { pr: url, ...note })));
 	const queued = (await db.execute(sql`SELECT id FROM review_deliveries WHERE run_id = ${runId} ORDER BY id`)).rows as {
 		id: string;
 	}[];
@@ -356,17 +357,53 @@ test("the comments a person writes travel to the agent in one message", async ()
 	expect(events.map((event) => event.type)).toContain("reviews.changed");
 });
 
-test("a comment an agent writes reaches no agent", async () => {
+test("a comment another agent writes travels to the ticket agent", async () => {
 	sent.length = 0;
 	const queued = await queueComments(
 		"Read the review focus",
 		[{ path: "apps/server/src/db/tx.ts", line: 3, body: "The service takes tx first." }],
-		"agent",
+		{ kind: "agent", name: "flow-reviewer" },
 	);
 
 	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
 
-	expect(queued.ids).toEqual([]);
+	expect(queued.ids).toHaveLength(1);
+	expect(sent).toEqual([
+		{
+			id: queued.runId,
+			text: `trellis: your pull request has 1 new comment.\napps/server/src/db/tx.ts:3\nThe service takes tx first.\nRead every comment: trellis review list ${queued.url}\nApply what each comment asks. Answer each comment.`,
+			interrupt: true,
+			messageId: `review-${queued.ids[0]}`,
+			expectedTerminalId: `term-${queued.runId}`,
+			expectedSessionId: null,
+		},
+	]);
+});
+
+test("a comment the ticket agent writes does not travel back to itself", async () => {
+	sent.length = 0;
+	const ticket = await run((tx) => create(core, tx, { project: "DSP", title: "Do not echo self review" }));
+	const runId = ulid();
+	await startRun(runId, ticket.id, ticket.identifier);
+	const prId = ulid();
+	const url = `https://github.com/o/r/pull/${++prNumber}`;
+	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, created_at, updated_at)
+		VALUES (${prId}, 'o', 'r', ${prNumber}, ${url}, 'open', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
+		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at})`);
+
+	await run((tx) =>
+		add(threadCtx({ kind: "agent", name: runId }), tx, {
+			pr: url,
+			path: "apps/server/src/db/tx.ts",
+			line: 3,
+			body: "I already wrote this.",
+		}),
+	);
+	const queued = await db.execute(sql`SELECT id FROM review_deliveries WHERE run_id = ${runId}`);
+	await dispatchDeliveries(ctx(), running(`term-${runId}`), send, preset);
+
+	expect(queued.rows).toEqual([]);
 	expect(sent).toEqual([]);
 });
 
@@ -377,7 +414,9 @@ test("a reply of a person carries the file and the line of its thread", async ()
 	]);
 	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
 	sent.length = 0;
-	await run((tx) => reply(threadCtx("human"), tx, { id: queued.threads[0]!.id, body: "The header holds it." }));
+	await run((tx) =>
+		reply(threadCtx({ kind: "human", name: "dana" }), tx, { id: queued.threads[0]!.id, body: "The header holds it." }),
+	);
 
 	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
 

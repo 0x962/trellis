@@ -16,8 +16,8 @@ import { changed } from "./queries.ts";
 // `sessionId` come from `agent_runs` at this moment, and the send refuses the
 // message when either changes before the bytes leave. `text` is what the
 // agent reads. `ids` names every `review_deliveries` row the message
-// carries: one row for a verdict, and one row per comment for
-// the comments a person wrote inside the batch window. `prId` holds the
+// carries: one row for a verdict, and one row per comment inside the batch
+// window. `prId` holds the
 // pull request of a comment batch, because the review page draws the state
 // of each comment and needs the event that follows the send.
 type Delivery = {
@@ -85,9 +85,9 @@ const pendingReviews = async (tx: Tx, terminals: string[]): Promise<Delivery[]> 
 	return found.map((row) => ({ ...row, ids: [row.id], text: reviewMessage(row) }));
 };
 
-// A queued comment of a person. The thread document holds the anchor and the
-// text, so the message names the file, the line and the words without a
-// second query. A reply carries the anchor of its thread.
+// A queued comment. The thread document holds the anchor and the text, so
+// the message names the file, the line and the words without a second query.
+// A reply carries the anchor of its thread.
 type CommentRow = Queued & CommentNote & { url: string; prId: string };
 
 // The agents whose waiting comments may leave now: the newest comment is
@@ -99,7 +99,7 @@ const quietRuns = sql`SELECT run_id FROM review_deliveries
 		OR min(due_at) <= now() - make_interval(secs => ${commentBatchLimitSeconds - commentBatchSeconds})`;
 
 // Every waiting comment of one agent becomes one message. The rows come back
-// in the order a person wrote them, and the group keeps that order.
+// in the order the reviewers wrote them, and the group keeps that order.
 const pendingComments = async (tx: Tx, terminals: string[]): Promise<Delivery[]> => {
 	const found = await rows<CommentRow>(
 		tx,
