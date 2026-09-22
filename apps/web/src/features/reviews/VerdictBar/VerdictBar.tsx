@@ -31,7 +31,11 @@ export function VerdictBar({ pr, revision, ticket, run, submissions, onDone }: V
 	const given = state?.current && changing !== state.id ? state : null;
 	return (
 		<section className="review-bar review-verdict-bar" aria-label="Verdict">
-			<div className="review-bar-words">{state && <VerdictLine state={state} />}</div>
+			{state && (
+				<div className="review-bar-words">
+					<VerdictLine state={state} />
+				</div>
+			)}
 			{given === null ? (
 				<>
 					<VerdictButton
