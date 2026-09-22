@@ -89,9 +89,34 @@ const updates = {
 		},
 };
 
+const browserStorage = {
+	getItem: (name: string) => {
+		try {
+			return globalThis.localStorage?.getItem(name) ?? null;
+		} catch {
+			return null;
+		}
+	},
+	setItem: (name: string, value: string) => {
+		try {
+			globalThis.localStorage?.setItem(name, value);
+		} catch {
+			return;
+		}
+	},
+	removeItem: (name: string) => {
+		try {
+			globalThis.localStorage?.removeItem(name);
+		} catch {
+			return;
+		}
+	},
+};
+
 // The renderer-local preferences: the sidebar, density, table expansion,
 // project tree expansion, and visible columns. Every change writes to
-// localStorage, and a new store reads the stored state at creation.
+// browser storage when the browser permits it. A new store reads the stored
+// state at creation.
 export const createUiStore = () =>
 	create<UiState>()(
 		persist(
@@ -110,7 +135,7 @@ export const createUiStore = () =>
 			}),
 			{
 				name: uiStorageKey,
-				storage: createJSONStorage(() => localStorage),
+				storage: createJSONStorage(() => browserStorage),
 				partialize: (state) => ({
 					sidebarCollapsed: state.sidebarCollapsed,
 					density: state.density,

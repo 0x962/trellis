@@ -4,15 +4,13 @@ import type { ProjectSummary } from "@trellis/api";
 import { cx } from "@trellis/ui";
 import type { ReactNode } from "react";
 import { useApp } from "../../../lib/appContext";
+import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { ProjectPages } from "../components/ProjectPages";
 import { TreeRow } from "../components/TreeRow";
 import { sidebarWorkCounts } from "../sidebarWork";
 
 const byPosition = (a: ProjectSummary, b: ProjectSummary) => a.position - b.position;
 
-// Each row is the name of its project and opens it. Every level is drawn,
-// so a sub-project is always one glance away.
-//
 // The active row follows the page the outlet shows, not the URL of a
 // navigation that is still loading, so the highlight and the page match.
 export function ProjectTree() {
@@ -21,6 +19,7 @@ export function ProjectTree() {
 	const sessions = useQuery({ ...orpc.sessions.activity.queryOptions({ input: {} }), refetchInterval: 2000 });
 	const { data } = useQuery(orpc.projects.list.queryOptions({ input: { archived: false } }));
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
+	const expandedProjects = useUiStore((state) => state.expandedProjects);
 	if (data === undefined) return <nav aria-label="Projects" data-project-tree="" />;
 
 	const children = new Map<string | null, ProjectSummary[]>();
@@ -33,28 +32,33 @@ export function ProjectTree() {
 
 	const level = (parentId: string | null, depth: number): ReactNode[] =>
 		(children.get(parentId) ?? []).sort(byPosition).flatMap((project) => {
+			const expanded = expandedProjects[project.id] ?? true;
 			const row = (
 				<TreeRow
 					key={project.id}
 					project={project}
 					depth={depth}
 					workingCount={work.projectRows.get(project.id) ?? 0}
+					expanded={expanded}
+					onToggle={() => uiActions.toggleProject(project.id)}
 				/>
 			);
 			return [
 				row,
-				<li key={`${project.id}.subtree`}>
-					<ul className={cx("flex flex-col gap-0.5")}>
-						<ProjectPages
-							project={project}
-							depth={depth + 1}
-							pathname={pathname}
-							epicWorkingCount={work.epicRows.get(project.id) ?? 0}
-							sessionWorkingCount={work.projectSessionRows.get(project.id) ?? 0}
-						/>
-						{level(project.id, depth + 1)}
-					</ul>
-				</li>,
+				expanded && (
+					<li key={`${project.id}.subtree`}>
+						<ul className={cx("flex flex-col gap-0.5")}>
+							<ProjectPages
+								project={project}
+								depth={depth + 1}
+								pathname={pathname}
+								epicWorkingCount={work.epicRows.get(project.id) ?? 0}
+								sessionWorkingCount={work.projectSessionRows.get(project.id) ?? 0}
+							/>
+							{level(project.id, depth + 1)}
+						</ul>
+					</li>
+				),
 			];
 		});
 
