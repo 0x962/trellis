@@ -11,10 +11,9 @@ export type PageSheetProps = {
 	// A link to the route of the page. The header draws the "Open full page"
 	// button as this link when it is set.
 	fullPage?: ReactElement;
-	// The width of the panel. The review of a pull request takes "full", so
-	// its sheet covers the ticket sheet under it and gives the diff the width
-	// of the window. Every other page takes the default.
-	width?: "page" | "full";
+	// The width of the panel. The review of a pull request takes "wide" so
+	// the file tree and the diff both fit. Every other page takes the default.
+	width?: "page" | "wide";
 	children: ReactNode;
 };
 
@@ -32,9 +31,8 @@ export type PageSheetProps = {
 //   wait inside the sheet.
 //
 // A page in a sheet can open a second `PageSheet`, as a ticket does for a
-// pull request. The second sheet is the full-width one, so it covers the
-// first one. Escape and a click beside the sheets close only the second
-// sheet.
+// pull request. The second sheet takes the wide width, so it covers the first
+// sheet. Escape and a click beside the sheets close only the second sheet.
 export function PageSheet({ open, onClose, title, fullPage, width = "page", children }: PageSheetProps) {
 	const closeButton = useRef<HTMLButtonElement>(null);
 	const [topbar, setTopbar] = useState<HTMLElement | null>(null);
@@ -44,7 +42,7 @@ export function PageSheet({ open, onClose, title, fullPage, width = "page", chil
 			open={open}
 			title={title}
 			bare
-			width={width === "page" ? "var(--page-sheet-width)" : "var(--page-sheet-full-width)"}
+			width={width === "page" ? "var(--page-sheet-width)" : "var(--page-sheet-wide-width)"}
 			initialFocus={closeButton}
 			onOpenChange={(next) => {
 				if (!next) onClose();
