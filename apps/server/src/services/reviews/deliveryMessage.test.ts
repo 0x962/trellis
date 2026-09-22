@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { commentMessage, reviewMessage } from "./deliveryMessage.ts";
+import { checkMessage, commentMessage, reviewMessage } from "./deliveryMessage.ts";
 
 test("a request for changes names the verdict, the note and the comments", () => {
 	expect(
@@ -57,4 +57,25 @@ test("comments written together travel in one message", () => {
 	expect(text).toContain("2 new comments.");
 	expect(text).toContain("a.ts:1\nFirst.");
 	expect(text).toContain("b.ts:2\nSecond.");
+});
+
+test("a stuck check names the commit, the check, its link and the wait", () => {
+	expect(
+		checkMessage({
+			url: "https://github.com/o/r/pull/4",
+			headSha: "0123456789abcdef",
+			kind: "stuck",
+			checks: [
+				{ name: "e2e", workflow: "CI", link: "https://github.com/o/r/actions/runs/1/job/2", lines: [] },
+				{ name: "deploy/preview", workflow: null, link: null, lines: [] },
+			],
+		}),
+	).toBe(
+		[
+			"trellis: 2 checks on commit 0123456 of https://github.com/o/r/pull/4 stayed pending for 30 minutes with no change.",
+			"CI / e2e: https://github.com/o/r/actions/runs/1/job/2",
+			"deploy/preview",
+			"Open the check on GitHub to find what it waits for.",
+		].join("\n"),
+	);
 });

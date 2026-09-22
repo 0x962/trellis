@@ -26,7 +26,7 @@ export type WriteInput = { at: Date; written: Polled[]; failed: PolledFailure[] 
 
 export const PR_COLUMNS = sql.raw(`(
 	id, owner, repo, number, additions, deletions, changed_files, files, url, title, state, is_draft, is_queued, head_sha, head_ref, base_ref, review_state,
-	merged_at, closed_at, checks, ci_state, content_hash, fetched_at, fetch_error, created_at, updated_at
+	merged_at, closed_at, checks, checks_changed_at, ci_state, content_hash, fetched_at, fetch_error, created_at, updated_at
 )`);
 
 export const prValues = (at: Date, row: PullRequestRow) => sql`(
@@ -34,10 +34,15 @@ export const prValues = (at: Date, row: PullRequestRow) => sql`(
 	${JSON.stringify(row.files)}::jsonb,
 	${row.url}, ${row.title}, ${row.state}, ${row.isDraft}, ${row.isQueued},
 	${row.headSha}, ${row.headRef}, ${row.baseRef}, ${row.reviewState}, ${row.mergedAt}, ${row.closedAt},
-	${JSON.stringify(row.checks)}::jsonb, ${row.ciState}, ${row.contentHash}, ${at}, NULL, ${at}, ${at}
+	${JSON.stringify(row.checks)}::jsonb, ${at}, ${row.ciState}, ${row.contentHash}, ${at}, NULL, ${at}, ${at}
 )`;
 
+// `checks_changed_at` moves only when the checks or the head commit differ,
+// because the check notice detector counts the quiet time from it.
 export const PR_UPDATE_SET = sql.raw(`
+	checks_changed_at = CASE
+		WHEN pull_requests.checks IS DISTINCT FROM EXCLUDED.checks OR pull_requests.head_sha IS DISTINCT FROM EXCLUDED.head_sha
+		THEN EXCLUDED.updated_at ELSE pull_requests.checks_changed_at END,
 	additions = EXCLUDED.additions, deletions = EXCLUDED.deletions, changed_files = EXCLUDED.changed_files,
 	files = EXCLUDED.files,
 	url = EXCLUDED.url, title = EXCLUDED.title, state = EXCLUDED.state, is_draft = EXCLUDED.is_draft,
