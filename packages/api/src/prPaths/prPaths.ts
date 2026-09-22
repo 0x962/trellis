@@ -65,6 +65,30 @@ const yesNo = (value: boolean): PrRiskAnswer => (value ? "yes" : "no");
 
 export const isTestPath = (path: string): boolean => testPathPattern.test(path.toLowerCase());
 
+const dataModelPath = [
+	/(^|\/)migrations\/[^/]+\.py$/,
+	/(^|\/)models\.py$/,
+	/(^|\/)models\/[^/]+\.py$/,
+	/(^|\/)drizzle\/[^/]+\.sql$/,
+	/(^|\/)db\/tables\/[^/]+\.ts$/,
+	/(^|\/)schema\.prisma$/,
+	/(^|\/)migrations?\/[^/]+\.sql$/,
+];
+
+export const changesDataModels = (paths: PrPath[]): boolean =>
+	paths.some((entry) => {
+		const path = entry.path.replace(/^\.\//, "").toLowerCase();
+		return dataModelPath.some((pattern) => pattern.test(path));
+	});
+
+export const hasMermaidErDiagram = (texts: string[]): boolean =>
+	texts.some((text) => {
+		for (const match of text.matchAll(/```[ \t]*mermaid[^\r\n]*(?:\r?\n)([\s\S]*?)```/gi)) {
+			if (/^\s*erDiagram\b/im.test(match[1] ?? "")) return true;
+		}
+		return false;
+	});
+
 export function prPaths(repo: string, paths: PrPath[]): PrPathFacts {
 	const override = repositoryRules[repo.toLowerCase() as keyof typeof repositoryRules];
 	const rules: Rules = { ...repositoryRules.default, ...override };

@@ -7,10 +7,12 @@ const linked = { id: "01M30HDWKZ17G62PJAFHZNED2J", number: 42, url: "https://git
 
 const clientWith = ({
 	evidence,
+	files = [],
 	pullRequestState = "open",
 	summaryHead,
 }: {
 	evidence: { body: string } | null;
+	files?: Array<{ path: string; change: "change"; additions: number; deletions: number }>;
 	pullRequestState?: "open" | "closed" | "merged";
 	summaryHead: { headline: string } | null;
 }): TrellisClient =>
@@ -29,9 +31,9 @@ const clientWith = ({
 			}),
 		},
 		pullRequests: {
-			refresh: async () => ({ number: linked.number }),
+			refresh: async () => ({ number: linked.number, files }),
 			readEvidence: async () => evidence,
-			readSummaryHead: async () => summaryHead,
+			readSummaryHead: async () => (summaryHead === null ? null : { why: "Why.", watch: "nothing", ...summaryHead }),
 		},
 		reviews: { status: async () => ({ headRefOid: "head-sha" }) },
 	}) as unknown as TrellisClient;
@@ -101,6 +103,21 @@ test("refuses an agent whose pull request has the explanation but no evidence do
 	);
 
 	expect(missing?.result.missing).toEqual(["evidence"]);
+});
+
+test("refuses an agent whose data model pull request has no ER diagram", async () => {
+	const missing = await handOverGuard(
+		clientWith({
+			evidence: { body: "## Proof" },
+			files: [{ path: "backend/operator/migrations/0004_briefing.py", change: "change", additions: 12, deletions: 0 }],
+			summaryHead: { headline: "A row opens the ticket." },
+		}),
+		"agent",
+		"KEY-42",
+		"human-review",
+	);
+
+	expect(missing?.result.missing).toEqual(["data-model-diagram"]);
 });
 
 test("allows an agent hand-over with the explanation and the evidence document", async () => {
