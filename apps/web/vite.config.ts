@@ -12,12 +12,19 @@ export const routerPluginOptions = {
 	routeFileIgnorePattern: "^components$",
 } as const;
 
+// Every icon that a `weight` prop asks for in a weight other than regular.
+// The build keeps the regular weight of every icon and drops the rest, and an
+// icon asked for a weight it does not carry draws nothing. Add the icon here
+// when you write `weight="bold"` or `weight="fill"` on it.
 export const phosphorSpecialWeights: Record<string, readonly string[]> = {
 	CaretDown: ["bold"],
+	ChatCircle: ["fill"],
 	Check: ["bold"],
 	CheckCircle: ["fill"],
 	CircleDashed: ["duotone"],
 	CircleNotch: ["bold"],
+	ClockCounterClockwise: ["fill"],
+	DotsSixVertical: ["bold"],
 	ExclamationMark: ["bold"],
 	LockSimple: ["fill"],
 	Minus: ["bold"],
@@ -25,6 +32,7 @@ export const phosphorSpecialWeights: Record<string, readonly string[]> = {
 	Robot: ["bold"],
 	Star: ["fill"],
 	Stop: ["fill"],
+	WarningCircle: ["fill"],
 	XCircle: ["fill"],
 };
 

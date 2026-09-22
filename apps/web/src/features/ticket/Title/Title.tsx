@@ -58,6 +58,11 @@ export function Title({ ticket, className, onAttachFiles }: TitleProps) {
 			fitHeight(element);
 		});
 		observer.observe(element);
+		// The first measurement runs in the fallback font, which is narrower, so
+		// a title that needs three lines at phone width measures as two and the
+		// last line stays hidden. The web font arrives without changing the
+		// width of the field, so the observer above sees nothing.
+		void document.fonts.ready.then(() => fitHeight(element));
 		return () => observer.disconnect();
 	}, []);
 
