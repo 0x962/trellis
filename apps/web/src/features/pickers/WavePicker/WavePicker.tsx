@@ -93,7 +93,7 @@ export function WavePicker({
 			? []
 			: [
 					...waveItems(waves, { current: mixed ? undefined : value, picker: true }),
-					{ id: noneId, label: "None", current: none, trailing: createElement(RowMarks, { current: none }) },
+					{ id: noneId, label: "No wave", current: none, trailing: createElement(RowMarks, { current: none }) },
 				];
 
 	return (
