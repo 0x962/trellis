@@ -89,7 +89,7 @@ export function SubTickets({ ticket }: SubTicketsProps) {
 }
 
 function ChildRow({ child, onOpen }: { child: TicketSummary; onOpen: () => void }) {
-	const { status, lastActor, pr } = child;
+	const { status, pr } = child;
 	return (
 		<button
 			type="button"
@@ -111,7 +111,7 @@ function ChildRow({ child, onOpen }: { child: TicketSummary; onOpen: () => void 
 				)}
 			</span>
 			<span className="flex w-5 shrink-0 justify-center">
-				{lastActor !== null && <ActorAvatar actor={lastActor} ticketId={child.id} />}
+				<ActorAvatar ticketId={child.id} />
 			</span>
 			<time dateTime={child.updatedAt} className="w-8 shrink-0 text-right text-sm text-fg-muted tabular">
 				{compactRelativeTime(child.updatedAt)}

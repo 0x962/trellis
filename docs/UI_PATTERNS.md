@@ -34,7 +34,7 @@ Each page supplies its data and available actions. It does not choose new contro
 | Ticket table rows | `Row`, with `columns` and `rowHeights` | `apps/web/src/features/table/Row/Row.tsx` |
 | Review and mention rows | `InboxRow` | `packages/ui/src/domain/InboxRow/InboxRow.tsx` |
 | Ticket identity and state | `TicketId`, `PriorityIcon`, `StatusIcon` | `packages/ui/src/domain/` |
-| Last actor, provider, and agent work state | `ActorAvatar` with the shared `Avatar` | `apps/web/src/features/agents/ActorAvatar/ActorAvatar.tsx` |
+| Assigned ticket agent, provider, and agent work state | `ActorAvatar` with the shared `Avatar` | `apps/web/src/features/agents/ActorAvatar/ActorAvatar.tsx` |
 | Added and deleted lines of a workspace | `LineChanges` | `packages/ui/src/domain/LineChanges/LineChanges.tsx` |
 | Row actions | `Menu`, `IconButton`, `Tooltip` | `packages/ui/src/primitives/Menu/Menu.tsx` |
 | Usage per day | `UsageChart` | `packages/ui/src/domain/UsageChart/UsageChart.tsx` |
@@ -143,8 +143,8 @@ Use the existing ticket table widths for identity, project, actor, and time colu
 Truncate long titles and project paths within their columns. Use tabular numbers for identifiers, counts, and times.
 Keep secondary text, such as a mention excerpt, below the title. Do not repeat a full status label in every review row.
 
-Use `ActorAvatar` when a row represents the last actor. It shows the provider mark and the work state only for the agent run that is assigned to the ticket of the row.
-A ticket with no assigned agent run shows no agent avatar for its last actor. A human last actor still draws the initials. This rule holds for the table `Row`, the board card, the sub-ticket rows, the epic page, and Needs you.
+Use `ActorAvatar` when a row represents a ticket. It shows the provider mark and the work state for the agent run that is assigned to the ticket of the row.
+A ticket with no assigned agent run shows no avatar. A human last actor never draws initials on a ticket. This rule holds for the table `Row`, the board card, the sub-ticket rows, the epic page, and Needs you.
 When run data supplies a harness, hover over the provider mark to see the model and effort.
 Keep status and priority indicators distinct from the row's action menu.
 Use one circular action menu at the far right. Reserve its width even when its trigger is hidden.
