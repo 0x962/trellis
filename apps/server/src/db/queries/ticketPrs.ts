@@ -47,7 +47,7 @@ export type TicketPrRow = Omit<TicketPr, "kind" | "risk" | "evidence" | "evidenc
 
 export const toTicketPrRows = (rows: TicketPrRow[] | null): TicketPr[] =>
 	(rows ?? []).map(({ files, evidenceKinds, hasSummary, headSha, submissions, ...fields }) => {
-		const row = { ...fields, verdict: verdictMark(submissions, headSha) };
+		const row = { ...fields, verdict: verdictMark(submissions) };
 		if (files === null || files.length === 0 || row.changedFiles !== files.length)
 			return { ...row, kind: null, risk: null, evidence: null, evidenceRequired: null };
 		const facts = prPaths(row.repo, changedFilePaths(files));

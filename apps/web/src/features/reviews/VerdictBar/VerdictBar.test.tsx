@@ -75,7 +75,7 @@ test("a pull request that no ticket links keeps both verdicts", () => {
 	expect(html).not.toMatch(/aria-label="Merge"/);
 });
 
-test("an approval on the head commit replaces Approve and Request changes with Change verdict", () => {
+test("an approval replaces Approve and Request changes with Change verdict", () => {
 	const html = render({ ticket: "TRL-259", run: crispFjord, submissions: [submission({})] });
 
 	expect(html).toContain("You approved");
@@ -86,7 +86,7 @@ test("an approval on the head commit replaces Approve and Request changes with C
 	expect(html).not.toMatch(/aria-label="Request changes"/);
 });
 
-test("a request for changes on the head commit shows the same control", () => {
+test("a request for changes shows the same control", () => {
 	const html = render({
 		ticket: "TRL-259",
 		run: crispFjord,
@@ -99,17 +99,17 @@ test("a request for changes on the head commit shows the same control", () => {
 	expect(html).not.toMatch(/aria-label="Approve"/);
 });
 
-test("an approval on an older head commit is stale and brings the buttons back", () => {
+test("an approval on an earlier revision still shows Change verdict", () => {
 	const html = render({
 		ticket: "TRL-259",
 		run: crispFjord,
 		submissions: [submission({ headSha: "a1b2c3d4" })],
 	});
 
-	expect(html).toContain("You approved an older commit");
-	expect(html).toMatch(/<button[^>]*aria-label="Approve"/);
-	expect(html).toMatch(/<button[^>]*aria-label="Request changes"/);
-	expect(html).not.toMatch(/aria-label="Change verdict"/);
+	expect(html).toContain("You approved");
+	expect(html).toMatch(/<button[^>]*aria-label="Change verdict"/);
+	expect(html).not.toMatch(/aria-label="Approve"/);
+	expect(html).not.toMatch(/aria-label="Request changes"/);
 });
 
 test("a comment shows as the last note and keeps every verdict", () => {

@@ -27,10 +27,9 @@ export type VerdictBarProps = {
 
 // The card that floats over the bottom right of the review shows the verdict
 // of the person on one line. A comment on a diff line reaches the agent when
-// the person posts it, so the card holds the two verdicts only. A verdict on
-// the head commit hides Approve and Request changes behind Change verdict.
+// the person posts it, so the card holds the two verdicts only.
 export function VerdictBar({ pr, revision, ticket, run, submissions, unmet, onDone }: VerdictBarProps) {
-	const state = verdictState(submissions, revision.headSha);
+	const state = verdictState(submissions);
 	// Change verdict opens the buttons for the verdict on screen only. A new
 	// submission has another id and closes them again.
 	const [changing, setChanging] = useState<string | null>(null);

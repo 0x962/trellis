@@ -11,7 +11,7 @@ type Props = {
 	// The link to the page the review opened from: the Diffs page of a
 	// project, or the ticket. A review opened by its URL has none.
 	parent?: ReactNode;
-	// The current verdict of the person on the head commit, or null.
+	// The current verdict of the person, or null.
 	verdict: TicketPr["verdict"];
 };
 export function ReviewHeader({ pr, revision, parent, verdict }: Props) {

@@ -285,7 +285,7 @@ test("a frontend row stays incomplete without the equivalence proof", async () =
 	expect(summary.prRows[0]).toMatchObject({ kind: "frontend", evidence: 5, evidenceRequired: 6 });
 });
 
-test("the row verdict is the newest verdict of the person on the head commit", async () => {
+test("the row verdict is the newest verdict of the person", async () => {
 	const [row] = (
 		await db.execute(sql`SELECT pull_request_id AS id FROM ticket_pull_requests WHERE ticket_id = ${deletedTestTicket}`)
 	).rows as { id: string }[];
@@ -310,6 +310,6 @@ test("the row verdict is the newest verdict of the person on the head commit", a
 
 	await db.execute(sql`UPDATE pull_requests SET head_sha = 'pushed-head' WHERE id = ${row!.id}`);
 	const afterPush = await db.transaction((tx) => ticketSummary(tx, deletedTestTicket));
-	expect(afterPush.prRows[0]?.verdict).toBeNull();
+	expect(afterPush.prRows[0]?.verdict).toBe("approved");
 	await db.execute(sql`UPDATE pull_requests SET head_sha = 'deleted-test-head' WHERE id = ${row!.id}`);
 });
