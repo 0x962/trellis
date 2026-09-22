@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { changedFilePaths, type PrPath, prPaths } from "./prPaths.ts";
+import { changedFilePaths, changesDataModels, hasMermaidErDiagram, type PrPath, prPaths } from "./prPaths.ts";
 
 const file = (path: string, change: PrPath["change"] = "change"): PrPath => ({
 	path,
@@ -77,5 +77,33 @@ describe("path groups", () => {
 			"src/__snapshots__/app.snap": "noise",
 		});
 		expect(prPaths("trellis", paths).risk.dependency).toBe("yes");
+	});
+});
+
+describe("data model changes", () => {
+	test.each([
+		["Django migration", "backend/operator/migrations/0004_briefing.py"],
+		["Django models.py", "backend/operator/models.py"],
+		["Django models folder", "backend/operator/models/briefing.py"],
+		["Drizzle migration", "apps/server/drizzle/0091_briefings.sql"],
+		["Drizzle table", "apps/server/src/db/tables/briefings.ts"],
+		["Prisma schema", "services/api/schema.prisma"],
+		["plain SQL migration", "db/migrations/202609221628_add_briefings.sql"],
+	])("marks a %s as a data model change", (_name, path) => {
+		expect(changesDataModels([file(path)])).toBe(true);
+	});
+
+	test("ignores an ordinary source path", () => {
+		expect(changesDataModels([file("apps/server/src/services/brief.ts")])).toBe(false);
+	});
+});
+
+describe("mermaid ER diagrams", () => {
+	test("finds an erDiagram inside a mermaid block", () => {
+		expect(hasMermaidErDiagram(["Before\n```mermaid\nerDiagram\n  TICKET ||--o{ PR : links\n```\nAfter"])).toBe(true);
+	});
+
+	test("ignores other mermaid diagrams and unfenced erDiagram text", () => {
+		expect(hasMermaidErDiagram(["```mermaid\nflowchart LR\n  a --> b\n```", "erDiagram"])).toBe(false);
 	});
 });

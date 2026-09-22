@@ -22,6 +22,8 @@ export type TerminalSurfaceProps = {
 	stopped?: boolean;
 	readOnly?: boolean;
 	screenReaderMode?: boolean;
+	autoFocus?: boolean;
+	autoFocusDelay?: number;
 	onConnectionChange?: (state: TerminalConnectionState) => void;
 	onLeave: () => void;
 };
@@ -34,6 +36,8 @@ export function TerminalSurface({
 	stopped = false,
 	readOnly = false,
 	screenReaderMode = true,
+	autoFocus = false,
+	autoFocusDelay = 0,
 	onConnectionChange,
 	onLeave,
 }: TerminalSurfaceProps) {
@@ -41,6 +45,8 @@ export function TerminalSurface({
 	const runtime = useRef<TerminalRuntime | null>(null);
 	const view = useRef({ label, readOnly, screenReaderMode, onLeave });
 	view.current = { label, readOnly, screenReaderMode, onLeave };
+	const focusRequest = useRef({ autoFocus, autoFocusDelay });
+	focusRequest.current = { autoFocus, autoFocusDelay };
 	const [state, setState] = useState<{ identity: string; snapshot: TerminalSnapshot }>({
 		identity,
 		snapshot: initialTerminalSnapshot,
@@ -70,6 +76,7 @@ export function TerminalSurface({
 		const lease = acquireTerminal(identity, appearance, createTransport);
 		let active = true;
 		let unsubscribe = () => {};
+		let focusTimer: number | null = null;
 		void lease.ready
 			.then((current) => {
 				if (!active) return;
@@ -77,6 +84,16 @@ export function TerminalSurface({
 				const update = () => setState({ identity, snapshot: current.getSnapshot() });
 				unsubscribe = current.subscribe(update);
 				current.attach(host, view.current, appearance);
+				const request = focusRequest.current;
+				if (request.autoFocus && !view.current.readOnly) {
+					if (request.autoFocusDelay > 0) {
+						focusTimer = window.setTimeout(() => {
+							if (active) current.focus();
+						}, request.autoFocusDelay);
+					} else {
+						current.focus();
+					}
+				}
 				update();
 			})
 			.catch((failure: Error) => {
@@ -88,6 +105,7 @@ export function TerminalSurface({
 			});
 		return () => {
 			active = false;
+			if (focusTimer !== null) window.clearTimeout(focusTimer);
 			unsubscribe();
 			runtime.current = null;
 			lease.release();

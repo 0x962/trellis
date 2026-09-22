@@ -88,10 +88,14 @@ export const handOverRefused = (ticket: string) =>
 	new CliFailure(
 		"HAND_OVER_REFUSED",
 		1,
-		`An agent moves ${ticket} to human-review after each open pull request has the explanation and the evidence document.`,
+		`An agent moves ${ticket} to human-review after each open pull request passes trellis ready.`,
 	);
 
-const partWords: Record<ReadinessPart, string> = { explanation: "the explanation", evidence: "the evidence document" };
+const partWords: Record<ReadinessPart, string> = {
+	"data-model-diagram": "the data model diagram",
+	evidence: "the evidence document",
+	explanation: "the explanation",
+};
 
 export const pullRequestNotReady = (number: number, missing: ReadinessPart[]) =>
 	new CliFailure(
