@@ -1,120 +1,87 @@
 import { Plus } from "@phosphor-icons/react";
-import { useId } from "react";
-import { Button } from "../../primitives/Button";
 import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
-import { Menu } from "../../primitives/Menu";
-import { SectionHeader } from "../../primitives/SectionHeader";
 import { Skeleton } from "../../primitives/Skeleton";
-import { type ResourceListRow, ResourceRow } from "./components/ResourceRow";
+import { Tooltip } from "../../primitives/Tooltip";
+import { type ResourceKind, type ResourceListRow, ResourceRow } from "./components/ResourceRow";
 
 export type ResourceListProps = {
-	// The list keeps the order of the caller. It groups nothing.
+	// The rows of one kind keep the order of the caller.
 	rows: readonly ResourceListRow[];
-	// The number in the header before the rows arrive. A caller that knows the
-	// number ahead of the rows holds the header still with it. The header
-	// counts the rows as soon as it has them.
-	count?: number;
 	loading?: boolean;
 	// Why the resources did not arrive, in the words of the server.
 	error?: string | null;
-	expanded?: boolean;
-	// A caller that gives `onToggle` gets a Show or a Hide button in the
-	// header, and it holds `expanded` itself.
-	onToggle?: () => void;
-	// Classes for the header row, such as the sticky position of a section
-	// that scrolls inside a fixed area.
-	headerClassName?: string;
-	// False draws the rows without the header, for a caller whose tab label
-	// already names the list and holds the count.
-	header?: boolean;
 	onOpen: (id: string) => void;
 	// The id of the row whose document is open beside the list.
 	selectedId?: string | null;
-	// The three paths that add a resource. A caller that leaves them out gets
-	// a header with no Add control.
-	onAdd?: {
-		doc: () => void;
-		link: () => void;
-		file: () => void;
-	};
+	// A caller that gives `onNewDocument` gets a New document button beside
+	// the Documents heading.
+	onNewDocument?: () => void;
+	newDocumentPending?: boolean;
 };
 
-// The Add control sits in the header, so the row area is the only part of
-// the block that changes height.
+const groups: readonly { kind: ResourceKind; title: string }[] = [
+	{ kind: "doc", title: "Documents" },
+	{ kind: "link", title: "Links" },
+	{ kind: "image", title: "Images" },
+	{ kind: "file", title: "Files" },
+];
+
+// The resources of an epic, grouped by kind under the section headings of the
+// app sidebar. The Documents heading always shows, because it holds the New
+// document button. A kind with no row shows no heading.
 export function ResourceList({
 	rows,
-	count,
 	loading = false,
 	error = null,
-	expanded = true,
-	onToggle,
-	headerClassName,
-	header = true,
 	onOpen,
 	selectedId = null,
-	onAdd,
+	onNewDocument,
+	newDocumentPending = false,
 }: ResourceListProps) {
-	const bodyId = useId();
-	// A shut list and a loading list keep the number of the caller. An open
-	// list counts its own rows, because the caller reads the number and the
-	// rows in two requests, and the rows are the newer answer.
-	const shown = expanded ? (loading ? count : error !== null ? undefined : rows.length) : count;
+	const body =
+		error !== null ? (
+			<p role="alert" className="px-2 py-1 text-sm text-danger">
+				{error}
+			</p>
+		) : loading ? (
+			<Skeleton className="px-2 py-2" height="h-4" lines={3} />
+		) : rows.length === 0 ? (
+			<EmptyState description="The epic holds no resource." />
+		) : null;
 	return (
-		<section aria-busy={loading} aria-label="Resources" className="flex min-w-0 flex-col gap-2">
-			{header && (
-				<SectionHeader
-					title="Resources"
-					count={shown}
-					className={headerClassName}
-					actions={
-						<>
-							{onToggle !== undefined && (
-								<Button
-									variant="quiet"
-									size="sm"
-									aria-expanded={expanded}
-									aria-controls={expanded ? bodyId : undefined}
-									onClick={onToggle}
-								>
-									{expanded ? "Hide" : "Show"}
-								</Button>
+		<nav aria-busy={loading} aria-label="Resources" className="flex min-w-0 flex-col">
+			{groups.map(({ kind, title }) => {
+				const members = rows.filter((row) => row.kind === kind);
+				if (kind !== "doc" && members.length === 0) return null;
+				return (
+					<section key={kind} aria-label={title} className="flex min-w-0 flex-col not-first:mt-3">
+						<div className="sidebar-section">
+							<h3>{title}</h3>
+							{kind === "doc" && onNewDocument !== undefined && (
+								<Tooltip content="New document">
+									<IconButton
+										size="xs"
+										className="pointer-coarse:size-11 pointer-coarse:before:inset-0"
+										label="New document"
+										icon={<Plus />}
+										disabled={newDocumentPending}
+										onClick={onNewDocument}
+									/>
+								</Tooltip>
 							)}
-							{onAdd !== undefined && (
-								<Menu
-									label="Add a resource"
-									triggerTooltip="Add a resource"
-									trigger={<IconButton label="Add a resource" icon={<Plus />} />}
-									items={[
-										{ label: "Doc", onSelect: onAdd.doc },
-										{ label: "Link", onSelect: onAdd.link },
-										{ label: "File", onSelect: onAdd.file },
-									]}
-								/>
-							)}
-						</>
-					}
-				/>
-			)}
-			{expanded && (
-				<div id={bodyId} className="flex min-w-0 flex-col">
-					{error !== null ? (
-						<p role="alert" className="py-2 text-sm text-danger">
-							{error}
-						</p>
-					) : loading ? (
-						<Skeleton className="py-2" height="h-4" lines={3} />
-					) : rows.length === 0 ? (
-						<EmptyState description="The epic holds no resource." />
-					) : (
-						<ul className="flex min-w-0 flex-col">
-							{rows.map((row) => (
-								<ResourceRow key={row.id} row={row} onOpen={onOpen} selected={row.id === selectedId} />
-							))}
-						</ul>
-					)}
-				</div>
-			)}
-		</section>
+						</div>
+						{members.length > 0 && (
+							<ul className="flex min-w-0 flex-col gap-px">
+								{members.map((row) => (
+									<ResourceRow key={row.id} row={row} onOpen={onOpen} selected={row.id === selectedId} />
+								))}
+							</ul>
+						)}
+						{kind === "doc" && body}
+					</section>
+				);
+			})}
+		</nav>
 	);
 }

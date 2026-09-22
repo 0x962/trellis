@@ -16,8 +16,10 @@
 	@apply flex h-8 pointer-coarse:h-11 items-center justify-between pl-2 pr-1 text-base font-semibold text-fg;
 }
 
+/* The selected row takes a fill one step darker than the hover fill
+   (`bg-elevated`), so a hover never looks like a selection. */
 @utility sidebar-selected {
-	@apply bg-elevated text-fg;
+	@apply bg-control-active text-fg;
 }
 
 @utility sidebar-item {

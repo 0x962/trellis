@@ -19,15 +19,11 @@ export type ResourceListProps = {
 	openDocId: string;
 	// Opens a document beside the list: `PLAN_DOC_ID` or a resource id.
 	onOpenDoc: (id: string) => void;
-	count?: number;
-	loading?: boolean;
-	error?: string | null;
-	header?: boolean;
-	onAdd?: {
-		doc: () => void;
-		link: () => void;
-		file: () => void;
-	};
+	loading: boolean;
+	error: string | null;
+	// Absent on a page that takes no write.
+	onNewDocument?: () => void;
+	newDocumentPending: boolean;
 };
 
 // A document opens beside the list. A link opens in the in-app browser, an
@@ -37,17 +33,16 @@ export function ResourceList({
 	planTitle,
 	openDocId,
 	onOpenDoc,
-	count,
 	loading,
 	error,
-	header,
-	onAdd,
+	onNewDocument,
+	newDocumentPending,
 }: ResourceListProps) {
 	const [imageId, setImageId] = useState<string | null>(null);
 	const image = resources.find((resource) => resource.id === imageId) ?? null;
 	const rows = useMemo<ResourceListRow[]>(
 		() => [
-			{ id: PLAN_DOC_ID, kind: "doc", name: planTitle, detail: "the epic description", pullRequest: null },
+			{ id: PLAN_DOC_ID, kind: "doc", name: planTitle, detail: "The epic description", pullRequest: null, plan: true },
 			...resources.map((resource) => ({
 				id: resource.id,
 				kind: resource.kind,
@@ -90,13 +85,12 @@ export function ResourceList({
 		<>
 			<ResourceListView
 				rows={rows}
-				count={count}
 				loading={loading}
 				error={error}
-				header={header}
 				onOpen={onOpen}
 				selectedId={openDocId}
-				onAdd={onAdd}
+				onNewDocument={onNewDocument}
+				newDocumentPending={newDocumentPending}
 			/>
 			{image !== null && <ImageSheet name={image.name} url={resourceUrl(image)} onClose={() => setImageId(null)} />}
 		</>

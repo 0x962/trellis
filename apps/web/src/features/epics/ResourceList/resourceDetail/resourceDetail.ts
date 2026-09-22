@@ -5,10 +5,10 @@ import { formatBytes } from "../../../attachments/utils/formatBytes";
 // file, so those two fields are read without a check.
 export const resourceDetail = (resource: Resource): string => {
 	if (resource.kind === "doc") {
-		return `edited ${shortDay(resource.updatedAt)} by ${resource.actor.displayName ?? resource.actor.name}`;
+		return `Edited ${shortDay(resource.updatedAt)} by ${resource.actor.displayName ?? resource.actor.name}`;
 	}
 	if (resource.kind === "link") {
-		return `${new URL(resource.url!).hostname} · opens in the in-app browser`;
+		return new URL(resource.url!).hostname;
 	}
 	return formatBytes(resource.blob!.size);
 };

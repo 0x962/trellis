@@ -22,19 +22,19 @@ describe("resourceDetail", () => {
 	test("names the day and the actor of a doc", () => {
 		const doc: Resource = { ...base, kind: "doc", body: "# The runtime" };
 
-		expect(resourceDetail(doc)).toBe("edited Sep 19 by crisp-fjord");
+		expect(resourceDetail(doc)).toBe("Edited Sep 19 by crisp-fjord");
 	});
 
 	test("prefers the display name of the actor of a doc", () => {
 		const doc: Resource = { ...base, kind: "doc", actor: { ...base.actor, displayName: "you" } };
 
-		expect(resourceDetail(doc)).toBe("edited Sep 19 by you");
+		expect(resourceDetail(doc)).toBe("Edited Sep 19 by you");
 	});
 
-	test("names the host of a link and where it opens", () => {
+	test("names the host of a link", () => {
 		const link: Resource = { ...base, kind: "link", url: "https://github.com/canary/canary/pull/55569" };
 
-		expect(resourceDetail(link)).toBe("github.com · opens in the in-app browser");
+		expect(resourceDetail(link)).toBe("github.com");
 	});
 
 	test("names the size of an image", () => {

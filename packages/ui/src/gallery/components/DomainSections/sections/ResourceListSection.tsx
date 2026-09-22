@@ -5,24 +5,32 @@ import { Section } from "../../Section";
 // docs/research/trellis-for-one-human-and-many-agents.md holds these words.
 const rows: ResourceListRow[] = [
 	{
+		id: "0",
+		kind: "doc",
+		name: "Routines E2E",
+		detail: "The epic description",
+		pullRequest: null,
+		plan: true,
+	},
+	{
 		id: "1",
 		kind: "doc",
 		name: "The routine runtime",
-		detail: "edited Sep 19 by crisp-fjord",
+		detail: "Edited Sep 19 by crisp-fjord",
 		pullRequest: null,
 	},
 	{
 		id: "2",
 		kind: "doc",
 		name: "Routines E2E plan",
-		detail: "edited Sep 19 by you",
+		detail: "Edited Sep 19 by you",
 		pullRequest: null,
 	},
 	{
 		id: "3",
 		kind: "link",
 		name: "canary#55569",
-		detail: "github.com · opens in the in-app browser",
+		detail: "github.com",
 		pullRequest: null,
 	},
 	{
@@ -41,25 +49,25 @@ const rows: ResourceListRow[] = [
 	},
 ];
 
-const controls = { onOpen: () => {}, onAdd: { doc: () => {}, link: () => {}, file: () => {} } };
+const controls = { onOpen: () => {}, onNewDocument: () => {} };
 
 export function ResourceListSection() {
 	return (
 		<Section
 			name="ResourceList"
-			note="five resources, an epic with none, the wait, and a failed read"
+			note="the plan and five resources, an epic with none, the wait, and a failed read"
 			className="items-start"
 		>
-			<div className="min-w-96 flex-1">
-				<ResourceList rows={rows} {...controls} />
+			<div className="w-60">
+				<ResourceList rows={rows} selectedId="1" {...controls} />
 			</div>
-			<div className="min-w-96 flex-1">
+			<div className="w-60">
 				<ResourceList rows={[]} {...controls} />
 			</div>
-			<div className="min-w-96 flex-1">
+			<div className="w-60">
 				<ResourceList rows={[]} loading {...controls} />
 			</div>
-			<div className="min-w-96 flex-1">
+			<div className="w-60">
 				<ResourceList rows={[]} error="The server did not answer." {...controls} />
 			</div>
 		</Section>
