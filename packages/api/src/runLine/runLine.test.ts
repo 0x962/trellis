@@ -164,16 +164,18 @@ test("keeps a runtime socket error behind details", () => {
 	});
 });
 
-test("stops after a person stops the run", () => {
+test("idles after a person stops the run", () => {
 	const run = namedRun();
 	run.state = "stopped";
-	expect(runLine(run)).toMatchObject({ kind: "stopped", words: "stopped", since: null });
+	expect(runLine(run)).toMatchObject({ kind: "idle", words: "idle", since: at });
 });
 
-test("exits after a zero exit code", () => {
+test("idles after a zero exit code", () => {
 	const run = namedRun();
 	run.processStatus = "exited";
-	expect(runLine(run)).toMatchObject({ kind: "exited", words: "exited", since: null });
+	expect(runLine(run)).toMatchObject({ kind: "idle", words: "idle", since: at });
+	run.observation = null;
+	expect(runLine(run)).toMatchObject({ kind: "idle", words: "idle", since: null });
 });
 
 test("is lost when no live attempt record exists", () => {

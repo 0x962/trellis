@@ -101,14 +101,17 @@ export const useReviewData = (pr: string) => {
 		refresh.mutate();
 		void status.refetch();
 	};
+	// A refresh costs about seven gh calls. A focus while one is on its way
+	// starts no second one, so a person who switches windows while the first
+	// load runs does not queue more calls in front of it.
 	useEffect(() => {
 		const onFocus = () => {
-			refresh.mutate();
+			if (!refresh.isPending) refresh.mutate();
 			void status.refetch();
 		};
 		window.addEventListener("focus", onFocus);
 		return () => window.removeEventListener("focus", onFocus);
-	}, [refresh.mutate, status.refetch]);
+	}, [refresh.isPending, refresh.mutate, status.refetch]);
 	const requestedRevision = useRef("");
 	useEffect(() => {
 		if (revision === null || status.data === undefined) return;

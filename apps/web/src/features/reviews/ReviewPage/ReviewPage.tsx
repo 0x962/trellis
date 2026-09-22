@@ -2,14 +2,13 @@ import { Link } from "@tanstack/react-router";
 import {
 	type GitHubConversationItem,
 	isAgentWorking,
-	type ReviewRevision,
 	type ReviewSubmission,
 	type ReviewThread,
 	reviewRef,
 	turnOf,
 	verdictMark,
 } from "@trellis/api";
-import { EmptyState, Skeleton, Tabs, TicketId, useMediaQuery } from "@trellis/ui";
+import { EmptyState, Skeleton, type TabItem, Tabs, TicketId, useMediaQuery } from "@trellis/ui";
 import type { DiffAnchor } from "@trellis/ui/review";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -27,6 +26,7 @@ import type { ReadMarkFile } from "../readMarks/readMarks";
 import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
 import { FilesDisclosure } from "./components/FilesDisclosure";
+import { PaneBoundary } from "./components/PaneBoundary";
 import { type GithubPullRequest, ReviewIdentity } from "./components/ReviewIdentity";
 import { ReviewDiffSkeleton, ReviewTreeSkeleton } from "./components/ReviewPageSkeleton";
 import { TurnLine } from "./components/TurnLine";
@@ -39,11 +39,10 @@ import "@trellis/ui/review.css";
 const noThreads: ReviewThread[] = [];
 const noSubmissions: ReviewSubmission[] = [];
 
-type Commit = { oid: string; messageHeadline: string };
-const commitsOf = (revision: ReviewRevision | null) =>
-	((revision?.meta.commits as Commit[] | undefined) ?? []).filter(
-		(commit) => typeof commit.oid === "string" && typeof commit.messageHeadline === "string",
-	);
+// Wraps each tab in its own PaneBoundary, so a tab that throws while it
+// draws shows its error and the other tabs keep working.
+const withBoundaries = (items: TabItem<ReviewTab>[]) =>
+	items.map((item) => ({ ...item, content: <PaneBoundary tab={item.value}>{item.content}</PaneBoundary> }));
 
 export type ReviewPageProps = {
 	pr: string;
@@ -102,10 +101,6 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 		revision !== null && status.data?.headRefOid === revision.headSha && status.data?.baseRefOid === revision.baseSha;
 	const displayRevision = revision ? { ...revision, meta: statusMatchesRevision ? status.data! : revision.meta } : null;
 	const displayMeta = displayRevision?.meta as GithubPullRequest | undefined;
-	const openedReview = useRef<{ pr: string; commits: ReadonlySet<string> } | null>(null);
-	if (revision !== null && openedReview.current?.pr !== pr)
-		openedReview.current = { pr, commits: new Set(commitsOf(revision).map((commit) => commit.oid)) };
-	const newCommits = commitsOf(revision).filter((commit) => !openedReview.current?.commits.has(commit.oid));
 	const toggleBatch = useCallback((threadId: string) => {
 		setBatch((current) => {
 			const next = new Set(current);
@@ -186,13 +181,6 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 				    is empty while nothing went wrong, and an empty box draws nothing. */}
 				<div className="review-notices">
 					{revision && <ReviewStack pr={pr} />}
-					{newCommits.length > 0 && (
-						<p role="status" className="review-notice">
-							New since you opened this review:{" "}
-							{newCommits.map((commit) => `${commit.oid.slice(0, 7)} ${commit.messageHeadline}`).join("; ")}. Read these
-							commits before you merge.
-						</p>
-					)}
 					{status.isError && (
 						<p role="alert" className="review-notice">
 							GitHub status: {status.error.message}
@@ -211,19 +199,22 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 				</div>
 				{/* Every panel stays mounted: `DiffPane` reports the changed file list
 				    that the tree draws, and the diff keeps its scroll position while
-				    another tab shows. */}
+				    another tab shows. `withBoundaries` gives each panel its own error. */}
 				<Tabs
 					value={shownTab}
 					onValueChange={onTabChange}
 					keepMounted
 					className="review-body"
 					panelClassName="review-tab-panel"
-					items={[
+					items={withBoundaries([
 						{
 							value: "overview",
 							label: "Overview",
 							content: (
 								<div className="review-blocks">
+									{/* Trellis stores the summary and the evidence document under the
+									    linked pull request row, so a pull request that no ticket links
+									    draws neither. */}
 									{!overviewReady ? (
 										<section aria-busy="true">
 											<span className="sr-only" role="status">
@@ -233,8 +224,8 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 										</section>
 									) : (
 										<>
-											<ChangeSummary summary={summaryRow} headSha={headSha} />
-											<EvidenceDocument evidence={evidence.data ?? null} />
+											{linkedPr !== null && <ChangeSummary summary={summaryRow} headSha={headSha} />}
+											{linkedPr !== null && <EvidenceDocument evidence={evidence.data ?? null} />}
 										</>
 									)}
 									<ReviewDiscussion
@@ -332,7 +323,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 								</FilesDisclosure>
 							),
 						},
-					]}
+					])}
 				/>
 				{/* The two cards float over the bottom right of the page. The box
 				    draws nothing while both are absent. */}

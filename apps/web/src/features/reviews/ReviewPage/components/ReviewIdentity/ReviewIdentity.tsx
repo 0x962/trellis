@@ -1,6 +1,5 @@
-import { GithubLogo } from "@phosphor-icons/react";
 import { type ReviewRevision, reviewRef } from "@trellis/api";
-import { Badge, type BadgeTone, PrGlyph, Tooltip } from "@trellis/ui";
+import { Badge, type BadgeTone, GithubMark, PrGlyph, Tooltip } from "@trellis/ui";
 import { ReviewHeaderActions } from "../../../ReviewHeaderActions";
 
 // `revision.meta` holds the answer of `gh pr view` and has no type. This type
@@ -59,7 +58,7 @@ export function ReviewIdentity({ pr, revision, pullRequest, isQueued, onAction }
 				{pullRequest?.mergeable === "CONFLICTING" && (
 					<Tooltip content="Open merge conflicts on GitHub">
 						<a className="inline-flex items-center gap-1.5" href={`${pr}/conflicts`} target="_blank" rel="noreferrer">
-							<GithubLogo aria-hidden="true" className="size-3.5" />
+							<GithubMark aria-hidden="true" className="size-3.5" />
 							<Badge tone="wait">Merge conflicts</Badge>
 						</a>
 					</Tooltip>

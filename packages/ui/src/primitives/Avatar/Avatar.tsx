@@ -61,7 +61,7 @@ export function Avatar({
 			) : (
 				<span>{initials(name)}</span>
 			)}
-			{kind === "agent" && status && <AgentStatus status={status} />}
+			{kind === "agent" && status && status !== "working" && <AgentStatus status={status} />}
 		</span>
 	);
 	return tooltip ? <Tooltip content={label}>{avatar}</Tooltip> : avatar;

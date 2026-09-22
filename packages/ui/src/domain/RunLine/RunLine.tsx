@@ -1,5 +1,4 @@
 import { ArrowClockwise, TerminalWindow } from "@phosphor-icons/react";
-import { ActivityDot } from "../../primitives/ActivityDot";
 import { AttentionDot } from "../../primitives/AttentionDot";
 import { type AgentProfile, Avatar } from "../../primitives/Avatar";
 import { EmptyState } from "../../primitives/EmptyState";
@@ -7,10 +6,10 @@ import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
 import { cx } from "../../utils/cx";
 
-// The state of one run, in twelve values. `runLine` in
+// The state of one run. `runLine` in
 // `packages/api/src/runLine/runLine.ts` computes the value and the words of
-// each line. This package holds no dependency on that package, so the twelve
-// values are written here again.
+// each line. This package holds no dependency on that package, so the values
+// are written here again.
 export type RunLineKind =
 	| "starts"
 	| "works"
@@ -21,8 +20,6 @@ export type RunLineKind =
 	| "turn-done"
 	| "turn-done-new"
 	| "failed"
-	| "stopped"
-	| "exited"
 	| "lost";
 
 export type RunLineValue = {
@@ -59,7 +56,8 @@ export type RunLineProps = {
 // These four states show an attention dot. The first three wait for an answer
 // from a person. `turn-done-new` is a finished turn that nobody read.
 const waitingKinds: readonly RunLineKind[] = ["question", "permission", "elicitation", "turn-done-new"];
-// Both states show the same red dot. `failed` says the run stopped on an
+const workingKinds: readonly RunLineKind[] = ["starts", "works"];
+// Both states show the same red dot. `failed` says the run ended with an
 // error. `lost` says the server holds no live record of the run. The words
 // state the difference.
 const brokenKinds: readonly RunLineKind[] = ["failed", "lost"];
@@ -68,16 +66,14 @@ function StateDot({ kind }: { kind: RunLineKind }) {
 	if (waitingKinds.includes(kind)) return <AttentionDot label="The run waits for a person." />;
 	if (brokenKinds.includes(kind))
 		return <AttentionDot tone="danger" label={kind === "failed" ? "The run failed." : "The run is lost."} />;
-	if (kind === "starts") return <ActivityDot placement="inline" label="The agent starts." />;
-	if (kind === "works") return <ActivityDot placement="inline" label="The agent works." />;
 	return null;
 }
 
 const wordsTone = (kind: RunLineKind) =>
 	waitingKinds.includes(kind) ? "text-warning" : brokenKinds.includes(kind) ? "text-danger" : "text-fg-muted";
 
-// The `Avatar` mark moves only in the `works` state. The caller draws the
-// surrounding region and its title.
+// The `Avatar` mark glimmers while the run starts or works. The caller draws
+// the surrounding region and its title.
 export function RunLine({ run, retry = null, onOpenSession }: RunLineProps) {
 	if (run === null) {
 		return (
@@ -95,7 +91,7 @@ export function RunLine({ run, retry = null, onOpenSession }: RunLineProps) {
 							kind="agent"
 							name={run.name}
 							agentProfile={run.profile}
-							state={run.kind === "works" ? "working" : "static"}
+							state={workingKinds.includes(run.kind) ? "working" : "static"}
 						/>
 						<span className="shrink-0 font-medium text-fg">{run.name}</span>
 						<span className="shrink-0 text-fg-muted">{run.harness}</span>

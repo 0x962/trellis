@@ -17,12 +17,12 @@ import { sessionOperation } from "./operation.ts";
 import { sessionProcess } from "./process.ts";
 import { getSession, resolveSession } from "./queries.ts";
 
-// Starts the agent of a stopped session again. The harness resumes its
-// saved conversation when the previous process confirmed one for the same
-// harness. Otherwise the agent starts fresh in the same directory, with the
-// original prompt as its first message. A session whose agent runs stays as
-// it is. A process the runtime cannot vouch for blocks the start, so two
-// processes never share one session directory.
+// Starts the agent of an idle session again. The harness resumes its saved
+// conversation when the previous process confirmed one for the same harness.
+// Otherwise the agent starts fresh in the same directory, with the original
+// prompt as its first message. A session whose agent runs stays as it is. A
+// process the runtime cannot vouch for blocks the start, so two processes
+// never share one session directory.
 export const prepareStart = async (
 	ctx: IoCtx,
 	input: { id: string },

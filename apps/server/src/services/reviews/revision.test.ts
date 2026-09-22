@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { PrepareCtx } from "../support.ts";
-import { comparisonFacts, headRepositoryOf, loadCurrentRevision, loadGitHubConversation } from "./revision.ts";
+import { comparisonFacts, headRepositoryOf, loadCurrentRevision, loadGitHubConversation, prepare } from "./revision.ts";
 
 // The shape `gh api repos/<owner>/<repo>/compare/<base>...<head>` answered for
 // canary-technologies-corp/canary#57080, cut to the fields the page reads.
@@ -136,4 +136,24 @@ test("loads the GitHub conversation from comments, reviews and line comments", a
 		side: "new",
 		isBot: true,
 	});
+});
+
+test("two refreshes of one pull request at the same time share one fetch", async () => {
+	let calls = 0;
+	const gh = async (_queue: string, args: string[]) => {
+		calls += 1;
+		if (args[0] === "pr" && args[1] === "view")
+			return { ok: true as const, stdout: JSON.stringify({ headRefOid: "head", baseRefOid: "base" }) };
+		if (args[0] === "pr" && args[1] === "diff") return { ok: true as const, stdout: "patch" };
+		if (args.includes("--paginate")) return { ok: true as const, stdout: "[[]]" };
+		return { ok: true as const, stdout: answer(0) };
+	};
+	const ctx = { gh, newTx: async () => [] } as unknown as PrepareCtx;
+	const input = { pr: "https://github.com/acme/app/pull/31" };
+	const [first, second] = await Promise.all([prepare(ctx, input), prepare(ctx, input)]);
+	expect(second).toBe(first);
+	const perFetch = calls;
+	expect(perFetch).toBe(7);
+	await prepare(ctx, input);
+	expect(calls).toBe(perFetch * 2);
 });

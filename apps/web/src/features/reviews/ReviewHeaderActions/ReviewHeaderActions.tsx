@@ -1,16 +1,7 @@
-import {
-	ArrowSquareOut,
-	ArrowsClockwise,
-	Eye,
-	GithubLogo,
-	GitMerge,
-	Lightning,
-	Queue,
-	XCircle,
-} from "@phosphor-icons/react";
+import { ArrowSquareOut, ArrowsClockwise, Eye, GitMerge, Lightning, Queue, XCircle } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ReviewRevision } from "@trellis/api";
-import { Checkbox, ConfirmDialog, IconButton, Menu, type MenuGroup, toast } from "@trellis/ui";
+import { Checkbox, ConfirmDialog, GithubMark, IconButton, Menu, type MenuGroup, toast } from "@trellis/ui";
 import { type ReactElement, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { openLink } from "../../../lib/openLink";
@@ -128,7 +119,7 @@ export function ReviewHeaderActions({
 		<div className="review-header-actions">
 			<Menu
 				label="GitHub actions"
-				trigger={<IconButton label="GitHub actions" icon={<GithubLogo />} variant="default" />}
+				trigger={<IconButton label="GitHub actions" icon={<GithubMark />} variant="default" />}
 				triggerTooltip="GitHub actions"
 				onOpenChange={(open) => open && setMetadataRequested(true)}
 				items={items}

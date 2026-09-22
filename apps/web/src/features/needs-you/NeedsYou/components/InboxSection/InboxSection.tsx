@@ -90,7 +90,7 @@ export function InboxSection({
 							}
 							age={compactRelativeTime(item.ticket.createdAt)}
 							createdAt={item.ticket.createdAt}
-							actor={item.ticket.lastActor && <ActorAvatar actor={item.ticket.lastActor} ticketId={item.ticket.id} />}
+							actor={<ActorAvatar ticketId={item.ticket.id} />}
 							wake={visibility === "snoozed" ? (item.snoozedUntil ?? undefined) : undefined}
 							link={<TicketLink identifier={item.ticket.identifier} />}
 							actions={[

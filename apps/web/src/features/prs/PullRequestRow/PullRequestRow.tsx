@@ -1,6 +1,6 @@
-import { GithubLogo, Warning } from "@phosphor-icons/react";
+import { Warning } from "@phosphor-icons/react";
 import type { LinkedPullRequest, TicketSummary } from "@trellis/api";
-import { cx, IconButton, PrGlyph, ReviewStateIcon, Tooltip } from "@trellis/ui";
+import { cx, GithubMark, IconButton, PrGlyph, ReviewStateIcon, Tooltip } from "@trellis/ui";
 import { tabularClass } from "../../../lib/format";
 import { openLink } from "../../../lib/openLink";
 import { PrActions } from "./components/PrActions";
@@ -45,7 +45,7 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 			)}
 			<IconButton
 				label="Open on GitHub"
-				icon={<GithubLogo />}
+				icon={<GithubMark />}
 				size="xs"
 				className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
 				onClick={() => openLink(pr.url)}

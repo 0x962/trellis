@@ -20,8 +20,8 @@ const lineOf = (fields: {
 
 const lastMessage = "crisp-fjord: I rebased onto master.";
 
-// The twelve states of `runLine`, a run that says nothing, and a ticket that
-// no agent holds.
+// The states of `runLine`, a run that says nothing, and a ticket that no
+// agent holds.
 const lines: readonly RunLineValue[] = [
 	lineOf({ kind: "starts", words: "starts", time: null, lastMessage: null }),
 	lineOf({ kind: "works", words: "works, tool Bash", time: "3m ago", lastMessage }),
@@ -39,8 +39,6 @@ const lines: readonly RunLineValue[] = [
 		lastMessage,
 		rawError: "connect ENOENT /var/folders/example/runtime/runtime.sock",
 	}),
-	lineOf({ kind: "stopped", words: "stopped", time: null, lastMessage }),
-	lineOf({ kind: "exited", words: "exited", time: null, lastMessage }),
 	lineOf({ kind: "lost", words: "did not run: Trellis cannot find a live execution record", time: null, lastMessage }),
 ];
 

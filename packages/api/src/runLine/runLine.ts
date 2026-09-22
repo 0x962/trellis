@@ -11,8 +11,6 @@ export type RunLineKind =
 	| "turn-done"
 	| "turn-done-new"
 	| "failed"
-	| "stopped"
-	| "exited"
 	| "lost";
 
 export type RunLine = {
@@ -85,10 +83,6 @@ function runState(run: AgentRun): RunState {
 	if (status === "failed") {
 		return { kind: "failed", ...failedWords(run.error), since: null, lastMessage };
 	}
-	if (status === "stopped") {
-		const kind = run.state === "stopped" ? "stopped" : "exited";
-		return { kind, words: kind, since: null, lastMessage, rawError: null };
-	}
 	if (status === "interrupted" || status === "unavailable") {
 		return {
 			kind: "lost",
@@ -98,7 +92,8 @@ function runState(run: AgentRun): RunState {
 			rawError: run.error ?? null,
 		};
 	}
-	const observation = run.observation!;
+	if (run.observation === null) return { kind: "idle", words: "idle", since: null, lastMessage, rawError: null };
+	const observation = run.observation;
 	const completion = observation.attention?.completion;
 	// sessionStatus returns `done` only when the completion is newer than `seenAttention` for this attempt.
 	if (status === "done") {

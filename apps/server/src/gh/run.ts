@@ -6,9 +6,12 @@ import { type ExecutionEnvironment, executionEnvironment } from "../executionEnv
 // keep each command suitable for a request without a terminal.
 //
 // One gh binary serves the whole process, so the slots are shared by every
-// runner: 2 poller slots and 1 interactive slot. A poller call past its two
-// slots waits for one to free. An interactive call (diff, refresh, link)
+// runner: 2 poller slots and 4 interactive slots. A call past the slots of
+// its kind waits for one to free. An interactive call (diff, refresh, link)
 // never waits on a poller, so a user action is not stuck behind a tick.
+// One review refresh makes seven interactive calls, and review pages, the
+// review sheet and agent evidence commands all use these slots, so one slot
+// makes the first load of a review wait a minute or more behind them.
 
 export type GhSlot = "poller" | "interactive";
 
@@ -53,7 +56,7 @@ class Semaphore {
 
 const slots: Record<GhSlot, Semaphore> = {
 	poller: new Semaphore(2),
-	interactive: new Semaphore(1),
+	interactive: new Semaphore(4),
 };
 
 const isMissing = (error: unknown) => (error as { code?: string }).code === "ENOENT";

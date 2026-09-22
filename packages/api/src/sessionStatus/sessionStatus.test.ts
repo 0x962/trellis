@@ -31,7 +31,15 @@ test("disconnected and failed processes cannot show a live question", () => {
 	run.state = "failed";
 	expect(sessionStatus(run)).toBe("failed");
 	run.state = "stopped";
-	expect(sessionStatus(run)).toBe("stopped");
+	expect(sessionStatus(run)).toBe("idle");
+});
+
+test("an exited process reads as idle", () => {
+	const { run } = session();
+	run.processStatus = "exited";
+	expect(sessionStatus(run)).toBe("idle");
+	run.observation = null;
+	expect(sessionStatus(run)).toBe("idle");
 });
 
 test("alerts suppress baseline replay and duplicates, including out-of-order snapshots", () => {
