@@ -174,12 +174,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	return (
 		<ReviewApplyContext.Provider value={applyState}>
 			<div className="review-page">
-				<ReviewHeader
-					pr={pr}
-					parent={parent}
-					revision={displayRevision}
-					verdict={revision === null ? null : verdictMark(allSubmissions, revision.headSha)}
-				/>
+				<ReviewHeader pr={pr} parent={parent} revision={displayRevision} verdict={verdictMark(allSubmissions)} />
 				{/* The identity stays above the column, so the buttons that end
 				    the review are always in reach. */}
 				<div className="review-identity">
