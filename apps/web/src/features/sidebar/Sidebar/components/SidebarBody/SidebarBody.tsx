@@ -13,6 +13,7 @@ import { ActorFooter } from "../../../ActorFooter";
 import { ArchivedProjects } from "../../../ArchivedProjects";
 import { ProjectTree } from "../../../ProjectTree";
 import { SessionList } from "../../../SessionList";
+import { sidebarProjectsQuery } from "../../../sidebarProjects";
 import { sidebarWorkCounts } from "../../../sidebarWork";
 import { ConnectionPanel } from "../ConnectionPanel";
 import { NavRow } from "./components/NavRow";
@@ -46,7 +47,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 	const { live, orpc } = useApp();
 	const inbox = useNeedsYouSummary();
 	const status = useLiveStatus(live);
-	const projects = useQuery(orpc.projects.list.queryOptions({ input: { archived: false } }));
+	const projects = useQuery(sidebarProjectsQuery(orpc));
 	const runs = useQuery({ ...orpc.agentRuns.list.queryOptions({ input: { assigned: true } }), refetchInterval: 2000 });
 	const sessions = useQuery({ ...orpc.sessions.activity.queryOptions({ input: {} }), refetchInterval: 2000 });
 	const work = sidebarWorkCounts(projects.data ?? [], runs.data ?? [], sessions.data ?? []);
