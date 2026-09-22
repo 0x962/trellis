@@ -18,11 +18,12 @@ export const ReviewReactionSchema = z.object({
 	kind: z.enum(["human", "agent", "system"]),
 });
 // How far one comment got on its way to the agents of the pull request.
-// `pending` and `sending` mean the comment is on its way, `sent` means every
-// agent got it, and `failed` keeps the reason the send gave. A comment has
-// no state when Trellis queued it for no agent.
+// `pending` and `sending` mean the comment is on its way, `held` means the
+// ticket runs no agent and Trellis keeps the comment for the next run,
+// `sent` means every agent got it, and `failed` keeps the reason the send
+// gave. A comment has no state when Trellis queued it for no ticket.
 export const ReviewMessageDeliverySchema = z.object({
-	state: z.enum(["pending", "sending", "sent", "failed", "unknown"]),
+	state: z.enum(["pending", "sending", "held", "sent", "failed", "unknown"]),
 	error: z.string().nullable(),
 });
 export type ReviewMessageDelivery = z.infer<typeof ReviewMessageDeliverySchema>;
@@ -156,8 +157,8 @@ export const ReviewSubmitSchema = z
 		message: "Enter a review summary before you submit this review.",
 	});
 export type ReviewSubmit = z.output<typeof ReviewSubmitSchema>;
-// Each recipient is an open agent assignment with a `review_deliveries` row.
-// Its agent process can still be stopped or lost.
+// Each recipient is an open agent assignment of a ticket that links the
+// pull request. Its agent process can still be stopped or lost.
 export const ReviewSubmitRecipientSchema = z.object({
 	runId: UlidSchema,
 	agentName: z.string(),
@@ -187,13 +188,17 @@ export const ReviewApplyResultSchema = z.object({
 	threads: z.array(ReviewThreadSchema),
 });
 export type ReviewApplyResult = z.infer<typeof ReviewApplyResultSchema>;
-// One review submission on its way to one agent run. `reviews.show` reads
-// the rows of one submission, so `reviewId` always holds that submission.
+// One review submission on its way to the agent of one ticket.
+// `reviews.show` reads the rows of one submission, so `reviewId` always
+// holds that submission. `ticketId` is the recipient, and `runId` names the
+// agent run that took the message. `runId` is null while no run has taken
+// it.
 export const ReviewDeliverySchema = z.object({
 	id: UlidSchema,
 	reviewId: UlidSchema,
-	runId: UlidSchema,
-	state: z.enum(["pending", "sending", "sent", "failed", "unknown"]),
+	ticketId: UlidSchema,
+	runId: UlidSchema.nullable(),
+	state: z.enum(["pending", "sending", "held", "sent", "failed", "unknown"]),
 	error: z.string().nullable(),
 	readAt: IsoDateTimeSchema.nullable(),
 });

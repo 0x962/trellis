@@ -6,6 +6,7 @@ const head = "b2c3d4e5";
 const delivery = (facts: Partial<ReviewDelivery>): ReviewDelivery => ({
 	id: "01D",
 	reviewId: "01S",
+	ticketId: "01T",
 	runId: "01R",
 	state: "sent",
 	error: null,

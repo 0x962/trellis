@@ -129,6 +129,7 @@ export const createInlineTransport = ({
 		now: () => ctx.now,
 		ghStatus: runtime.ghStatus,
 		addresses: runtime.addresses,
+		log,
 		emit,
 		afterCommit: (task: () => Promise<void>) => {
 			tasks.push(task);

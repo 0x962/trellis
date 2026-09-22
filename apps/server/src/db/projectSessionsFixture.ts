@@ -74,6 +74,7 @@ beforeAll(async () => {
 			throw new Error("No GitHub request in this test.");
 		},
 		addresses: async () => [],
+		log: () => undefined,
 		emit: () => {},
 		afterCommit: () => {},
 		background: (task) => {

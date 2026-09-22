@@ -2,34 +2,44 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
+import { newestOpenRun } from "./ticketRun.ts";
 
-// The open agent assignment of every ticket that links the pull request.
-// `agent_runs` holds one open row per ticket for a run of kind `agent`, so
-// each linked ticket gives one row at most. A row whose process already
-// ended still counts: the person restarts that agent, and the delivery
-// waits for its terminal.
-export const agentsOf = (tx: Tx, input: { prId: string; exceptRunId?: string }) =>
-	rows<{ runId: string; agentName: string }>(
+// One recipient of the messages of a pull request: a ticket that links the
+// pull request, and the agent run that holds that ticket now. `runId` is
+// null when no run holds the ticket, and a message for that ticket then
+// waits until a run of the ticket starts.
+export type Recipient = { ticketId: string; runId: string | null; agentName: string | null };
+
+// Every ticket that links the pull request, with the agent run that holds
+// it.
+export const recipientsOf = (tx: Tx, input: { prId: string; exceptRunId?: string }) =>
+	rows<Recipient>(
 		tx,
-		sql`SELECT run.id AS "runId", run.name AS "agentName"
+		sql`SELECT link.ticket_id AS "ticketId", run.id AS "runId", run.name AS "agentName"
 		FROM ticket_pull_requests link
-		JOIN agent_runs run ON run.ticket_id = link.ticket_id
+		${newestOpenRun(sql`link.ticket_id`, sql`assignment.id, assignment.name`)}
 		WHERE link.pull_request_id = ${input.prId}
-			AND run.kind = 'agent' AND run.runtime = 'native' AND run.closed_at IS NULL
-			AND (${input.exceptRunId ?? null}::text IS NULL OR run.id <> ${input.exceptRunId ?? null})
-		ORDER BY run.id`,
+			AND (${input.exceptRunId ?? null}::text IS NULL OR run.id IS DISTINCT FROM ${input.exceptRunId ?? null})
+		ORDER BY link.ticket_id`,
 	);
 
-// Queues one review submission for every agent that holds a ticket of the
-// pull request. One row of `review_deliveries` is one message that waits to
-// be sent, and `dispatchDeliveries` sends it. The returned list names the
-// agents the review goes to.
+// The agent runs among the recipients. A person reads this list to learn
+// which agent takes the message now.
+export const agentsOf = (recipients: Recipient[]) =>
+	recipients
+		.filter((recipient) => recipient.runId !== null)
+		.map((recipient) => ({ runId: recipient.runId!, agentName: recipient.agentName! }));
+
+// Queues one review submission for every ticket that links the pull
+// request. One row of `review_deliveries` is one message that waits to be
+// sent, and `dispatchDeliveries` sends it. The returned list names the
+// agents that hold those tickets now.
 export const enqueueReviewDeliveries = async (tx: Tx, input: { reviewId: string; prId: string }) => {
-	const deliveries = await agentsOf(tx, { prId: input.prId });
-	for (const delivery of deliveries)
+	const recipients = await recipientsOf(tx, { prId: input.prId });
+	for (const recipient of recipients)
 		await tx.execute(
-			sql`INSERT INTO review_deliveries (id, review_id, run_id)
-			VALUES (${ulid()}, ${input.reviewId}, ${delivery.runId})`,
+			sql`INSERT INTO review_deliveries (id, review_id, ticket_id)
+			VALUES (${ulid()}, ${input.reviewId}, ${recipient.ticketId})`,
 		);
-	return deliveries;
+	return agentsOf(recipients);
 };

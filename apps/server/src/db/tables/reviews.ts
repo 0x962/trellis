@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { check, index, integer, jsonb, pgTable, text, unique } from "drizzle-orm/pg-core";
-import { pullRequests } from "../schema";
+import { pullRequests, tickets } from "../schema";
 import { at } from "./actors";
 import { agentRuns } from "./agentRuns.ts";
 import { checkNotices } from "./checkNotices.ts";
@@ -46,16 +46,24 @@ export const reviewSubmissions = pgTable(
 	},
 	(t) => [unique("review_submissions_request").on(t.prId, t.actor, t.requestId)],
 );
-// One row is one message that waits for one agent run. The message is a
-// review submission, one comment a person wrote on a diff line, or one check
-// notice, so exactly one of `review_id`, `thread_message_id` and
+// One row is one message that waits for the agent of one ticket. The message
+// is a review submission, one comment a person wrote on a diff line, or one
+// check notice, so exactly one of `review_id`, `thread_message_id` and
 // `check_notice_id` holds an identifier. A comment row also names its
 // thread, because the message to the agent carries the file and the line
-// that the thread holds. `due_at` is the first moment the dispatcher may
-// send the row: a comment row sets it a few seconds ahead, so the comments a
-// person writes one after another travel in one message. The unique rule
-// counts two null values as equal, so a second row for the same message and
-// the same run cannot be written.
+// that the thread holds.
+//
+// `ticket_id` is the recipient. The agent run that receives the message is
+// the open assignment of that ticket at the moment of the send, and
+// `run_id` holds that run once `dispatchDeliveries` claims the row. A row
+// whose ticket has no running agent stays in the state `held`, and the
+// dispatcher sends it when a run of that ticket runs again.
+//
+// `due_at` is the first moment the dispatcher may send the row: a comment
+// row sets it a few seconds ahead, so the comments a person writes one after
+// another travel in one message. The unique rule counts two null values as
+// equal, so a second row for the same message and the same ticket cannot be
+// written.
 export const reviewDeliveries = pgTable(
 	"review_deliveries",
 	{
@@ -64,9 +72,10 @@ export const reviewDeliveries = pgTable(
 		threadId: text("thread_id").references(() => reviewThreads.id, { onDelete: "cascade" }),
 		threadMessageId: text("thread_message_id"),
 		checkNoticeId: text("check_notice_id").references(() => checkNotices.id, { onDelete: "cascade" }),
-		runId: text("run_id")
+		ticketId: text("ticket_id")
 			.notNull()
-			.references(() => agentRuns.id, { onDelete: "cascade" }),
+			.references(() => tickets.id, { onDelete: "cascade" }),
+		runId: text("run_id").references(() => agentRuns.id, { onDelete: "set null" }),
 		state: text().notNull().default("pending"),
 		error: text(),
 		readAt: at("read_at"),
@@ -75,7 +84,7 @@ export const reviewDeliveries = pgTable(
 	},
 	(t) => [
 		unique("review_deliveries_recipient")
-			.on(t.reviewId, t.threadMessageId, t.checkNoticeId, t.runId)
+			.on(t.reviewId, t.threadMessageId, t.checkNoticeId, t.ticketId)
 			.nullsNotDistinct(),
 		index("review_deliveries_state_idx").on(t.state),
 		check(

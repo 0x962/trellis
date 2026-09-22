@@ -24,7 +24,7 @@ const submission = (facts: Partial<ReviewSubmission>): ReviewSubmission => ({
 	byPerson: true,
 	threads: [],
 	createdAt: "2026-09-21T10:00:00.000Z",
-	deliveries: [{ id: "01D", reviewId: "01S", runId: "01R", state: "sent", error: null, readAt: null }],
+	deliveries: [{ id: "01D", reviewId: "01S", ticketId: "01T", runId: "01R", state: "sent", error: null, readAt: null }],
 	...facts,
 });
 

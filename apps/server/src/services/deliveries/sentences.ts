@@ -10,15 +10,10 @@ export const unconfirmedDelivery =
 // message. A new send needs a running agent.
 export const lostDelivery = "The agent session ended without this message. Resend it to a running agent.";
 
-// The sentence for a delivery that waited for an agent run which ended
-// before the send. The run holds a `closed_at` instant, so no process is
-// left to receive the message.
-export const closedBeforeDelivery = "The assigned agent session closed before delivery.";
-
-// The sentence for a check notice or a merge notice whose agent had no
-// running process when the dispatcher looked. The person reads the checks and
-// the conflict mark on the page, so the notice waits for no later start.
-export const notRunningForCheck = "The agent was not running when its pull request changed.";
+// The sentence for a message that no agent can take yet: the ticket of the
+// message has no agent process that runs. Trellis keeps the message and
+// sends it when a run of that ticket runs again.
+export const waitingForRun = "No agent of this ticket runs. Trellis sends this message when one starts.";
 
 // The sentence for a check notice or a merge notice that a newer commit, a
 // newer notice, or a merged or closed pull request replaced before the send.

@@ -24,6 +24,7 @@ type Message = {
 const deliveryWords: Record<string, string> = {
 	pending: "sending",
 	sending: "sending",
+	held: "waits for an agent",
 	sent: "sent",
 	failed: "failed",
 	unknown: "not confirmed",
