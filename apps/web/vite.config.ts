@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig, type Plugin, type UserConfig } from "vite";
+import { defineConfig, type Plugin, type ProxyOptions, type UserConfig } from "vite";
 import { fontPreloads } from "./scripts/fontPreloads";
 
 // Each route becomes its own chunk. Component folders do not define routes.
@@ -27,7 +27,7 @@ export const phosphorSpecialWeights: Record<string, readonly string[]> = {
 	XCircle: ["fill"],
 };
 
-const phosphorWeightBlock = /\n  \[\n    "(bold|duotone|fill|light|regular|thin)",[\s\S]*?\n  \],?/g;
+const phosphorWeightBlock = /\n {2}\[\n {4}"(bold|duotone|fill|light|regular|thin)",[\s\S]*?\n {2}\],?/g;
 const phosphorDefinition = /\/@phosphor-icons\/react\/dist\/defs\/([^/]+)\.es\.js(?:\?|$)/;
 
 export const stripPhosphorWeights = (code: string, id: string) => {
@@ -51,6 +51,15 @@ const defaultApiUrl = "http://127.0.0.1:4521";
 
 // The page and the API share one origin through the proxy, so the actor
 // header and the event stream need no CORS.
+const proxyTarget = (target: string, websocket = false): ProxyOptions => ({
+	target,
+	changeOrigin: true,
+	bypass: (request) => {
+		request.headers.origin = new URL(target).origin;
+	},
+	...(websocket ? { ws: true } : {}),
+});
+
 export const createConfig = (env: Record<string, string | undefined>): UserConfig => {
 	const target = env.TRELLIS_API_URL ?? defaultApiUrl;
 	return {
@@ -74,8 +83,8 @@ export const createConfig = (env: Record<string, string | undefined>): UserConfi
 			port: 5173,
 			strictPort: true,
 			proxy: {
-				"/api": { target, changeOrigin: false, ws: true },
-				"/rpc": { target, changeOrigin: false },
+				"/api": proxyTarget(target, true),
+				"/rpc": proxyTarget(target),
 			},
 		},
 	};
