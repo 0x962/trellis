@@ -1,5 +1,6 @@
 import type { Status } from "@trellis/api";
 import { Button, Popover, StatusIcon } from "@trellis/ui";
+import { statusIconProps } from "../../../statusIconProps";
 
 export type StatusChoiceProps = {
 	statuses: Status[];
@@ -28,7 +29,7 @@ export function StatusChoice({ statuses, onChoose, onCancel }: StatusChoiceProps
 					key={status.id}
 					variant="quiet"
 					className="w-full justify-start"
-					icon={<StatusIcon category={status.category} reviewer={status.reviewer ?? undefined} />}
+					icon={<StatusIcon {...statusIconProps(status)} />}
 					onClick={() => onChoose(status)}
 				>
 					{status.name}

@@ -14,7 +14,7 @@ export type ButtonProps = Omit<ComponentProps<typeof BaseButton>, "children" | "
 	variant?: ButtonVariant;
 	size?: ButtonSize;
 	align?: "center" | "start";
-	// A lucide icon element. It sits before the text at 14 px.
+	// A lucide icon element. It sits before the text at 16 px.
 	icon?: ReactElement;
 	// The shortcut, drawn as a Kbd key cap before the icon and the label. A
 	// key cap is the same element here, in a row, and in a menu.
@@ -93,7 +93,7 @@ export function Button({
 					<Spinner />
 				) : (
 					icon && (
-						<span aria-hidden="true" className="inline-flex size-3.5 shrink-0 *:size-full">
+						<span aria-hidden="true" className="inline-flex size-4 shrink-0 *:size-full">
 							{cloneElement(icon as ReactElement<{ "aria-hidden"?: boolean }>, { "aria-hidden": true })}
 						</span>
 					)

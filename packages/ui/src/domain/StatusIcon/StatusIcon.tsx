@@ -48,8 +48,7 @@ const colorClasses: Record<StatusColor, string> = {
 
 const icons = { todo: Circle, review: CircleDashed, done: CheckCircle, canceled: XCircle };
 
-const baseClass = "size-3.5 shrink-0";
-const doneClass = "size-4 shrink-0";
+const baseClass = "size-4 shrink-0";
 
 function ReviewIcon({
 	shape,
@@ -68,7 +67,7 @@ function ReviewIcon({
 	if (shape === "queue") {
 		return (
 			<span {...shared} className={cx("inline-grid place-items-center", baseClass, color, className)}>
-				<span className="flex h-3 w-3.5 flex-col justify-center gap-px rounded-[2px] border border-current px-px">
+				<span className="flex h-3.5 w-4 flex-col justify-center gap-px rounded-[2px] border border-current px-px">
 					<i className="block h-px rounded-hairline bg-current" />
 					<i className="block h-px rounded-hairline bg-current" />
 				</span>
@@ -77,7 +76,7 @@ function ReviewIcon({
 	}
 	return (
 		<span {...shared} className={cx("relative inline-grid place-items-center", baseClass, color, className)}>
-			<span className="block size-2.75 rotate-45 rounded-[2px] border border-current bg-current/15" />
+			<span className="block size-3 rotate-45 rounded-[2px] border border-current bg-current/15" />
 			<span className="absolute size-1 rounded-round bg-current" />
 		</span>
 	);
@@ -136,7 +135,7 @@ function mark({
 			<span
 				{...shared}
 				data-progress={progress}
-				className={cx("relative inline-grid size-3.5 shrink-0 place-items-center", tone, className)}
+				className={cx("relative inline-grid size-4 shrink-0 place-items-center", tone, className)}
 			>
 				<Circle aria-hidden="true" className="size-full" />
 				<span
@@ -152,7 +151,5 @@ function mark({
 	}
 	const Icon = icons[category];
 	const weight = category === "done" ? "fill" : "regular";
-	return (
-		<Icon {...shared} weight={weight} className={cx(category === "done" ? doneClass : baseClass, tone, className)} />
-	);
+	return <Icon {...shared} weight={weight} className={cx(baseClass, tone, className)} />;
 }

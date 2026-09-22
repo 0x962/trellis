@@ -21,9 +21,13 @@ test("review statuses can draw as human, agent, and queue marks", () => {
 	expect(queue).toContain("text-fg");
 });
 
-test("the done mark draws larger than the shared icon box", () => {
-	const html = renderToStaticMarkup(<StatusIcon category="done" label="Done" />);
+test("the status marks draw in the shared 16 px icon box", () => {
+	const todo = renderToStaticMarkup(<StatusIcon category="todo" label="Todo" />);
+	const started = renderToStaticMarkup(<StatusIcon category="started" label="In Progress" />);
+	const done = renderToStaticMarkup(<StatusIcon category="done" label="Done" />);
 
-	expect(html).toContain("size-4");
-	expect(html).toContain("text-success");
+	expect(todo).toContain("size-4");
+	expect(started).toContain("size-4");
+	expect(done).toContain("size-4");
+	expect(done).toContain("text-success");
 });

@@ -104,7 +104,7 @@ describe("PrRow", () => {
 	test("a middle child runs the tree rule through its full height and draws no border", () => {
 		const html = renderToStaticMarkup(<PrRow pr={prOf({})} top={0} last={false} hasChildLines={false} />);
 
-		expect(html).toContain("left-[58px]");
+		expect(html).toContain("left-[60px]");
 		expect(html).toContain("bottom-0");
 		expect(html).toContain(`top:${prRowHeight / 2 - elbowRadius}px`);
 		expect(html).toContain("rounded-bl-sm");

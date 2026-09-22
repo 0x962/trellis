@@ -20,7 +20,7 @@ export type CommandRowProps = {
 	// Faint mono text before the label, such as a ticket ID.
 	prefix?: string;
 	// A node drawn as is before the label, such as a project key badge. It
-	// takes the place of the 14 px icon box.
+	// takes the place of the 16 px icon box.
 	leading?: ReactNode;
 	// The key caps on the right, in press order.
 	keys?: readonly string[];
@@ -59,7 +59,7 @@ export function CommandRow({
 			{icon && (
 				<span
 					aria-hidden="true"
-					className="inline-flex size-3.5 shrink-0 items-center justify-center text-fg-muted *:size-full"
+					className="inline-flex size-4 shrink-0 items-center justify-center text-fg-muted *:size-full"
 				>
 					{icon}
 				</span>

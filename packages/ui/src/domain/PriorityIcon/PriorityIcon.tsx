@@ -15,7 +15,7 @@ export type PriorityIconProps = {
 
 const filledBars: Record<Exclude<Priority, "urgent">, number> = { none: 0, low: 1, medium: 2, high: 3 };
 
-const barHeights = ["h-1", "h-2", "h-3"];
+const barHeights = ["h-1.5", "h-2.5", "h-3.5"];
 
 // Three rising bars fill from the left as the priority rises. Urgent is a
 // filled danger square with an exclamation mark, so it reads from across
@@ -38,18 +38,18 @@ export function PriorityIcon({
 			<span
 				{...shared}
 				className={cx(
-					"inline-grid size-3.5 shrink-0 place-items-center rounded-sm bg-danger text-on-accent select-none",
+					"inline-grid size-4 shrink-0 place-items-center rounded-sm bg-danger text-on-accent select-none",
 					className,
 				)}
 			>
-				<ExclamationMark aria-hidden="true" weight="bold" className="size-3" />
+				<ExclamationMark aria-hidden="true" weight="bold" className="size-3.5" />
 			</span>
 		);
 		return decorative ? icon : withTooltip(icon);
 	}
 	const filled = filledBars[priority];
 	const icon = (
-		<span {...shared} className={cx("inline-flex h-3 w-3.5 shrink-0 items-end gap-0.5", className)}>
+		<span {...shared} className={cx("inline-flex h-4 w-4 shrink-0 items-end gap-0.5", className)}>
 			{barHeights.map((height, index) => (
 				<i
 					key={height}

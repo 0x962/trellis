@@ -25,7 +25,7 @@ export type CommandItem = {
 	// Short muted text after the label, such as a project path. It is drawn by
 	// CSS, so the option's text stays the label alone.
 	hint?: string;
-	// A lucide icon or a domain mark, shown at 14 px before the label.
+	// A lucide icon or a domain mark, shown at 16 px before the label.
 	icon?: ReactElement;
 	// The value the field holds now. The option carries `data-current`.
 	current?: boolean;
@@ -122,7 +122,7 @@ export function Command({
 				"after:ml-auto after:text-xs after:text-fg-muted after:content-[attr(data-hint)] after:tabular",
 			)}
 		>
-			{item.icon && <span className="inline-flex size-3.5 shrink-0 *:size-full">{item.icon}</span>}
+			{item.icon && <span className="inline-flex size-4 shrink-0 *:size-full">{item.icon}</span>}
 			{item.label}
 			{item.children}
 			{item.checked === "mixed" && <Minus aria-hidden="true" className="size-3.5 shrink-0 text-accent" />}
