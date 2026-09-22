@@ -35,7 +35,12 @@ export function SessionSheet() {
 	const run = runs.data?.[0] ?? null;
 	const terminalFocusDelay = Math.max(0, sheetOpenMotionMs() - (performance.now() - openedAt.current));
 	return (
-		<PageSheet open={session !== null} onClose={pageSheetActions.closeSession} title={run?.name ?? "Session"}>
+		<PageSheet
+			open={session !== null}
+			onClose={pageSheetActions.closeSession}
+			onReturn={pageSheetActions.returnToSession}
+			title={run?.name ?? "Session"}
+		>
 			{shown !== null && runs.isError && (
 				<EmptyState variant="page" title="The session did not load" description={runs.error.message} />
 			)}

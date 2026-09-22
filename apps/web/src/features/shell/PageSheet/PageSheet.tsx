@@ -1,7 +1,8 @@
 import { ArrowSquareOut, X } from "@phosphor-icons/react";
 import { IconButton, Sheet, Tooltip } from "@trellis/ui";
-import { type ReactElement, type ReactNode, Suspense, useMemo, useRef, useState } from "react";
+import { type ReactElement, type ReactNode, Suspense, useContext, useMemo, useRef, useState } from "react";
 import { PageSheetContext } from "./pageSheetContext";
+import { pageSheetBaseWidth, pageSheetStackWidth, pageSheetStripTarget } from "./pageSheetStack";
 
 export type PageSheetProps = {
 	open: boolean;
@@ -14,6 +15,9 @@ export type PageSheetProps = {
 	// The width of the panel. The review of a pull request takes "wide" so
 	// the file tree and the diff both fit. Every other page takes the default.
 	width?: "page" | "wide";
+	// The action that returns to this sheet when a person clicks its visible
+	// strip under sheets above it.
+	onReturn?: () => void;
 	children: ReactNode;
 };
 
@@ -31,19 +35,39 @@ export type PageSheetProps = {
 //   wait inside the sheet.
 //
 // A page in a sheet can open a second `PageSheet`, as a ticket does for a
-// pull request. The second sheet takes the wide width, so it covers the first
-// sheet. Escape and a click beside the sheets close only the second sheet.
-export function PageSheet({ open, onClose, title, fullPage, width = "page", children }: PageSheetProps) {
+// pull request. Each nested sheet loses one 48 px step from the first sheet
+// width, so the left edge of the sheets below it stays visible. Escape closes
+// the top sheet only. A click on a visible edge returns to that sheet.
+export function PageSheet({ open, onClose, onReturn, title, fullPage, width = "page", children }: PageSheetProps) {
+	const parent = useContext(PageSheetContext);
 	const closeButton = useRef<HTMLButtonElement>(null);
 	const [topbar, setTopbar] = useState<HTMLElement | null>(null);
-	const value = useMemo(() => ({ topbar, close: onClose }), [topbar, onClose]);
+	const [panel, setPanel] = useState<HTMLDivElement | null>(null);
+	const depth = parent === null ? 0 : parent.depth + 1;
+	const rootWidth = parent?.rootWidth ?? pageSheetBaseWidth(width);
+	const sheetWidth = pageSheetStackWidth(rootWidth, depth);
+	const stack = useMemo(
+		() => [...(parent?.stack ?? []), { depth, panel, returnTo: onReturn ?? onClose }],
+		[parent?.stack, depth, panel, onReturn, onClose],
+	);
+	const value = useMemo(
+		() => ({ topbar, close: onClose, depth, rootWidth, stack }),
+		[topbar, onClose, depth, rootWidth, stack],
+	);
 	return (
 		<Sheet
 			open={open}
 			title={title}
 			bare
-			width={width === "page" ? "var(--page-sheet-width)" : "var(--page-sheet-wide-width)"}
+			width={sheetWidth}
+			popupRef={setPanel}
+			className="overflow-hidden rounded-l-xl shadow-page-sheet max-md:rounded-none"
+			backdropClassName={depth === 0 ? undefined : "bg-fg/10"}
 			initialFocus={closeButton}
+			onBackdropPointerDown={(event) => {
+				const target = pageSheetStripTarget(stack, event.clientX);
+				if (target !== null && target.depth < depth) target.returnTo();
+			}}
 			onOpenChange={(next) => {
 				if (!next) onClose();
 			}}

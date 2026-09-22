@@ -147,6 +147,24 @@ test("closing the browser leaves the pull request open", () => {
 	expect(state()).toEqual({ ...empty, ticket: "TRL-42", pr: "https://github.com/o/r/pull/7" });
 });
 
+test("returning to the ticket closes every sheet over it", () => {
+	pageSheetActions.openTicket("TRL-42");
+	pageSheetActions.openPullRequest("https://github.com/o/r/pull/7");
+	pageSheetActions.openBrowser("https://github.com/o/r/pull/7");
+	pageSheetActions.returnToTicket();
+
+	expect(state()).toEqual({ ...empty, ticket: "TRL-42" });
+});
+
+test("returning to the pull request closes the browser over it", () => {
+	pageSheetActions.openTicket("TRL-42");
+	pageSheetActions.openPullRequest("https://github.com/o/r/pull/7");
+	pageSheetActions.openBrowser("https://github.com/o/r/pull/7");
+	pageSheetActions.returnToPullRequest();
+
+	expect(state()).toEqual({ ...empty, ticket: "TRL-42", pr: "https://github.com/o/r/pull/7" });
+});
+
 test("closing the pull request closes the browser over it", () => {
 	pageSheetActions.openPullRequest("https://github.com/o/r/pull/7");
 	pageSheetActions.openBrowser("https://github.com/o/r/pull/7");

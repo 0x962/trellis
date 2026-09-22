@@ -39,7 +39,12 @@ export function EpicStatisticsSheet() {
 	const progress = epic.data === undefined ? undefined : epicProgress(epic.data.counts);
 
 	return (
-		<PageSheet open={stats !== null} onClose={pageSheetActions.closeStats} title="Statistics">
+		<PageSheet
+			open={stats !== null}
+			onClose={pageSheetActions.closeStats}
+			onReturn={pageSheetActions.returnToStats}
+			title="Statistics"
+		>
 			<Topbar>
 				<PageTitle title="Statistics" />
 			</Topbar>

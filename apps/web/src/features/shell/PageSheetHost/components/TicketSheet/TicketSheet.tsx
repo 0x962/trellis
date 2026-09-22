@@ -22,6 +22,7 @@ export function TicketSheet() {
 		<PageSheet
 			open={ticket !== null}
 			onClose={pageSheetActions.closeTicket}
+			onReturn={pageSheetActions.returnToTicket}
 			title={shown ?? "Ticket"}
 			fullPage={shown === null ? undefined : <Link to="/t/$identifier" params={{ identifier: shown }} />}
 		>
