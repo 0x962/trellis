@@ -20,6 +20,8 @@ export function SessionConversation({
 	run,
 	session,
 	readOnly = false,
+	autoFocusTerminal = false,
+	autoFocusTerminalDelay = 0,
 	onDeleted,
 	onOpenTicket,
 	headingRef,
@@ -27,6 +29,8 @@ export function SessionConversation({
 	run: AgentRun;
 	session?: Session;
 	readOnly?: boolean;
+	autoFocusTerminal?: boolean;
+	autoFocusTerminalDelay?: number;
 	onDeleted?: () => void;
 	onOpenTicket?: () => void;
 	headingRef?: RefObject<HTMLHeadingElement | null>;
@@ -145,7 +149,15 @@ export function SessionConversation({
 			)}
 			<div className="flex min-h-0 flex-1 flex-col">
 				{run.terminalId ? (
-					<NativeTerminal key={run.terminalId} run={run} layout="fill" readOnly={readOnly} onLeave={leaveTerminal} />
+					<NativeTerminal
+						key={run.terminalId}
+						run={run}
+						layout="fill"
+						readOnly={readOnly}
+						autoFocus={autoFocusTerminal}
+						autoFocusDelay={autoFocusTerminalDelay}
+						onLeave={leaveTerminal}
+					/>
 				) : (
 					<EmptyState variant="page" title="No session process" description="Start the session to open the agent." />
 				)}

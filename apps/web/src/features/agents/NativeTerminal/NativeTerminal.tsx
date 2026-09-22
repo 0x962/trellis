@@ -12,11 +12,15 @@ export function NativeTerminal({
 	run,
 	layout = "panel",
 	readOnly = false,
+	autoFocus = false,
+	autoFocusDelay = 0,
 	onLeave,
 }: {
 	run: AgentRun;
 	layout?: TerminalSurfaceProps["layout"];
 	readOnly?: boolean;
+	autoFocus?: boolean;
+	autoFocusDelay?: number;
 	onLeave?: () => void;
 }) {
 	useSessionAttention(run, !readOnly);
@@ -82,6 +86,8 @@ export function NativeTerminal({
 					layout={layout}
 					label={`Terminal input for ${run.name}`}
 					readOnly={readOnly}
+					autoFocus={autoFocus}
+					autoFocusDelay={autoFocusDelay}
 					stopped={run.processStatus === "exited"}
 					onLeave={leave}
 				/>
