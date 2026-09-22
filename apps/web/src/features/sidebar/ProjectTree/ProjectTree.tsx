@@ -5,22 +5,37 @@ import { cx } from "@trellis/ui";
 import type { ReactNode } from "react";
 import { useApp } from "../../../lib/appContext";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
+import { ProjectListStatus } from "../components/ProjectListStatus";
 import { ProjectPages } from "../components/ProjectPages";
 import { TreeRow } from "../components/TreeRow";
+import { retrySidebarProjects, sidebarProjectsQuery } from "../sidebarProjects";
 import { sidebarWorkCounts } from "../sidebarWork";
 
 const byPosition = (a: ProjectSummary, b: ProjectSummary) => a.position - b.position;
 
 // The active row follows the page the outlet shows, not the URL of a
 // navigation that is still loading, so the highlight and the page match.
+// Until the project list arrives, `ProjectListStatus` takes the place of the
+// rows, so the Projects heading never sits over an empty list.
 export function ProjectTree() {
-	const { orpc } = useApp();
+	const { orpc, queryClient } = useApp();
 	const runs = useQuery({ ...orpc.agentRuns.list.queryOptions({ input: { assigned: true } }), refetchInterval: 2000 });
 	const sessions = useQuery({ ...orpc.sessions.activity.queryOptions({ input: {} }), refetchInterval: 2000 });
-	const { data } = useQuery(orpc.projects.list.queryOptions({ input: { archived: false } }));
+	const projects = useQuery(sidebarProjectsQuery(orpc));
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const expandedProjects = useUiStore((state) => state.expandedProjects);
-	if (data === undefined) return <nav aria-label="Projects" data-project-tree="" />;
+	const data = projects.data;
+	// `failureCount` counts the failed tries of the fetch that runs now. A
+	// Retry click starts a new fetch, so the placeholder rows come back.
+	if (data === undefined)
+		return (
+			<nav aria-label="Projects" data-project-tree="">
+				<ProjectListStatus
+					failed={projects.failureCount > 0}
+					onRetry={() => void retrySidebarProjects(queryClient, orpc)}
+				/>
+			</nav>
+		);
 
 	const children = new Map<string | null, ProjectSummary[]>();
 	for (const project of data) {
