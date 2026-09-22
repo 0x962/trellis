@@ -1,5 +1,5 @@
 import { CaretDown, CaretRight, Play, Plus } from "@phosphor-icons/react";
-import type { ReactNode } from "react";
+import type { KeyboardEventHandler, ReactNode } from "react";
 import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
 import { cx } from "../../utils/cx";
@@ -13,11 +13,20 @@ export type GroupHeaderProps = {
 	// is a text such as `3/11`.
 	showCount?: ReactNode;
 	icon?: ReactNode;
+	// A text field that takes the place of the label, such as the name field
+	// of a wave while the person renames it. The collapse button then holds
+	// the chevron and the icon alone.
+	labelField?: ReactNode;
 	expanded: boolean;
 	onToggle: () => void;
 	onCreate?: () => void;
 	// Opens the Start wave dialog of a wave group.
 	onStart?: () => void;
+	// More header actions, after Start wave and before New ticket. They show
+	// with the other actions, and stay while a menu of theirs is open.
+	actions?: ReactNode;
+	// Reads the keys of the focused collapse button.
+	onKeyDown?: KeyboardEventHandler<HTMLButtonElement>;
 	phone?: boolean;
 	// The box height in px. It defaults to `groupHeaderHeight`, or to
 	// `phoneGroupHeaderHeight` on a phone. A virtual list that reserves its
@@ -44,10 +53,13 @@ export function GroupHeader({
 	count,
 	showCount,
 	icon,
+	labelField,
 	expanded,
 	onToggle,
 	onCreate,
 	onStart,
+	actions,
+	onKeyDown,
 	phone = false,
 	height = phone ? phoneGroupHeaderHeight : groupHeaderHeight,
 	top,
@@ -78,6 +90,8 @@ export function GroupHeader({
 				onClick={onToggle}
 				aria-expanded={expanded}
 				aria-controls={controls}
+				aria-label={labelField === undefined ? undefined : label}
+				onKeyDown={onKeyDown}
 				className={cx(
 					"-ml-1 inline-flex h-7 min-w-7 items-center gap-2 rounded-md px-1 font-medium text-fg-muted transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11 pointer-coarse:min-w-11",
 					appearance === "sidebar" ? "text-xs" : "text-sm",
@@ -85,8 +99,9 @@ export function GroupHeader({
 			>
 				<Chevron aria-hidden="true" className="size-3 text-fg-faint" />
 				{icon}
-				{label}
+				{labelField === undefined && label}
 			</button>
+			{labelField}
 			<span data-count="" className={cx("text-fg-faint tabular", appearance === "sidebar" ? "text-xs" : "text-sm")}>
 				{count}
 			</span>
@@ -112,6 +127,11 @@ export function GroupHeader({
 							className={revealOnHover}
 						/>
 					</Tooltip>
+				)}
+				{actions !== undefined && (
+					<span className={cx("flex items-center gap-1", revealOnHover, "has-[[data-popup-open]]:opacity-100")}>
+						{actions}
+					</span>
 				)}
 				{onCreate && (
 					<Tooltip content={`New ticket in ${label}`}>

@@ -19,6 +19,18 @@ const group = (key: string, expanded: boolean, rows: TicketSummary[]) =>
 	({ key, label: key, expanded, count: rows.length, rows }) as TableGroup;
 
 describe("flattenGroups", () => {
+	test("draws one empty line under an open wave that holds no row", () => {
+		const wave = { ...group("w1", true, []), wave: { id: "w1", ref: "OP/e/w1", name: "w1" } };
+		const closed = { ...wave, key: "w2", expanded: false };
+
+		expect(flattenGroups([wave, closed, group("todo", true, [])]).map((item) => item.key)).toEqual([
+			"header:w1",
+			"empty:w1",
+			"header:w2",
+			"header:todo",
+		]);
+	});
+
 	test("leaves the pull requests out when the route does not ask for them", () => {
 		const groups = [group("todo", true, [ticket("a", [pr(11)]), ticket("b")])];
 

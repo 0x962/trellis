@@ -7,6 +7,7 @@ import { PriorityPicker } from "../../../../pickers/PriorityPicker";
 import { ProjectPicker } from "../../../../pickers/ProjectPicker";
 import { StatusPicker } from "../../../../pickers/StatusPicker";
 import { TicketPicker } from "../../../../pickers/TicketPicker";
+import { WavePicker } from "../../../../pickers/WavePicker";
 import type { EditField, RowChange } from "../../Row";
 
 export type HiddenPickersProps = {
@@ -34,7 +35,9 @@ const anchor = (label: string) => (
 // The pickers a key opens for a field whose column the table hides. The
 // parent field and the epic field have no editable cell, so their pickers
 // always live here. The epic cell of a row is a link to the epic page, and
-// the epic list belongs to the root project of the ticket.
+// the epic list belongs to the root project of the ticket. The wave field
+// lists the waves of the epic of the ticket, so a ticket outside every epic
+// opens no wave picker.
 export function HiddenPickers({
 	ticket,
 	columns,
@@ -101,6 +104,17 @@ export function HiddenPickers({
 					onPick={(epic) => onChange({ epic })}
 					finalFocus={finalFocus}
 					trigger={anchor("Epic")}
+				/>
+			)}
+			{editing === "wave" && ticket.epic !== null && (
+				<WavePicker
+					epic={ticket.epic.ref}
+					value={ticket.wave?.ref}
+					open
+					onOpenChange={onEditingChange("wave")}
+					onPick={(wave) => onChange({ wave })}
+					finalFocus={finalFocus}
+					trigger={anchor("Wave")}
 				/>
 			)}
 			{editing === "parent" && (

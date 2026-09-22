@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useTable } from "@tanstack/react-table";
-import type { TicketSummary } from "@trellis/api";
+import type { TicketSummary, WaveSummary } from "@trellis/api";
 import { type MouseEvent, type ReactNode, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useScopeStatuses } from "../../../hooks/useScopeStatuses";
@@ -26,6 +26,7 @@ import { useTableData } from "../hooks/useTableData";
 import { closedCategories, type TableGroupsOptions, useTableGroups } from "../hooks/useTableGroups";
 import { type CopyKind, useTableHotkeys } from "../hooks/useTableHotkeys";
 import { useTicketMutations } from "../hooks/useTicketMutations";
+import type { WaveEditing } from "../hooks/useWaveEditing";
 import type { EditField, RowChange } from "../Row";
 import { TableEmpty } from "../TableEmpty";
 import { TableFooter } from "../TableFooter";
@@ -67,6 +68,9 @@ export type TicketTableProps = {
 	// passes it once the assigned runs load, and a wave header then offers
 	// Start wave.
 	assignedTicketIds?: ReadonlySet<string>;
+	// The wave writes of the epic route. Each wave header then offers the
+	// wave actions, and a row drags into a wave group.
+	waveEditing?: WaveEditing;
 };
 
 export type Editing = { id: string; field: EditField } | null;
@@ -88,8 +92,9 @@ export function TicketTable({
 	agentLines,
 	workingTicketIds,
 	assignedTicketIds,
+	waveEditing,
 }: TicketTableProps) {
-	const { orpc } = useApp();
+	const { client, orpc, queryClient } = useApp();
 	const navigate = useNavigate();
 	const view = viewOf(search);
 	const storedDensity = useUiStore((state) => state.density);
@@ -236,8 +241,12 @@ export function TicketTable({
 
 	// A field key writes to the whole selection when one exists, and to the
 	// focused row when none does. The bulk bar owns the labels and the epic
-	// of a route with no project, so those two keys fall back to the row.
-	const barHasField = (field: EditField) => (field === "labels" || field === "epic" ? project !== undefined : true);
+	// of a route with no project, so those two keys fall back to the row. The
+	// bar sets a wave only when every selected ticket is in one epic.
+	const barHasField = (field: EditField) => {
+		if (field === "wave") return project !== undefined && epics.epicRef !== undefined;
+		return field === "labels" || field === "epic" ? project !== undefined : true;
+	};
 	const openField = useStableCallback((id: string, field: EditField) => {
 		if (selection.count > 0 && barHasField(field)) setBulkPicker(field);
 		else setEditing({ id, field });
@@ -252,6 +261,41 @@ export function TicketTable({
 			epic: group?.epicRef ?? (view.epic === "none" ? undefined : view.epic),
 			wave: group?.wave?.ref,
 		});
+
+	// A wave write refetches the epic, because the wave counts live on it.
+	const setWave = async (targets: readonly TicketSummary[], wave: WaveSummary | null) => {
+		await applyChange(targets, { wave }, targets.length > 1 ? "selection" : "row");
+		await queryClient.invalidateQueries({ queryKey: orpc.epics.key() });
+	};
+
+	const createWave = async (name: string) => {
+		const wave = await client.waves.create({ epic: epics.epicRef!, name });
+		await setWave(selectedTickets(), wave);
+	};
+
+	const waves =
+		waveEditing === undefined || project === undefined
+			? undefined
+			: {
+					editing: waveEditing,
+					project,
+					onNewTicket: openNew,
+					// A ticket from outside the epic joins the epic and the wave in one write.
+					onAddTicket: async (ticket: TicketSummary, group: TableGroup) => {
+						await mutations.updateMany(
+							[ticket],
+							{ epic: group.epicRef, wave: group.wave!.ref },
+							{},
+							(subject) => `${subject} did not join ${group.label}.`,
+						);
+						await queryClient.invalidateQueries({ queryKey: orpc.epics.key() });
+					},
+					onDrop: (ticketIds: string[], group: TableGroup) =>
+						void setWave(
+							ticketIds.map((id) => byId.get(id)!),
+							waveEditing.waves.find((wave) => wave.id === group.wave?.id) ?? null,
+						),
+				};
 
 	useTableHotkeys({
 		root,
@@ -278,7 +322,10 @@ export function TicketTable({
 	});
 
 	if (data.error !== null) return <TableError error={data.error} onRetry={data.retry} />;
-	if (data.total === 0 && project !== undefined && projectQuery.data?.parentId === null) {
+	// An epic whose waves hold no ticket draws the wave headers in place of
+	// the empty state.
+	const noGroups = !groupsLoading && groups.length === 0;
+	if (data.total === 0 && noGroups && project !== undefined && projectQuery.data?.parentId === null) {
 		return (
 			emptyState ?? <TableEmpty project={project} filtered={hasFilters(search)} q={view.q} onCreate={() => openNew()} />
 		);
@@ -321,6 +368,7 @@ export function TicketTable({
 				onToggleGroup={collapsed.toggle}
 				onToggleTicket={expandedTickets.toggle}
 				onCreateInGroup={openNew}
+				waves={waves}
 				onStartGroup={
 					assignedTicketIds !== undefined
 						? (group) => {
@@ -351,6 +399,7 @@ export function TicketTable({
 				onParent={(parent) => void applyChange(selectedTickets(), { parent }, "selection")}
 				onEpic={(epic) => void applyChange(selectedTickets(), { epic }, "selection")}
 				onWave={(picked) => void applyChange(selectedTickets(), { wave: picked }, "selection")}
+				onCreateWave={(name) => void createWave(name)}
 				onCopyIds={copyIds}
 				onDelete={() => requestDelete(selection.selected)}
 				onClear={clearSelection}

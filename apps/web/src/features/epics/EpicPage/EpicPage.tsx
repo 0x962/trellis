@@ -1,8 +1,8 @@
-import { ChartBar, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
+import { ChartBar, PencilSimple, Trash } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import type { AgentRun, Project, TicketSummary } from "@trellis/api";
-import { EmptyState, Tabs, Tooltip, useMediaQuery } from "@trellis/ui";
+import type { AgentRun, Project, TicketSummary, WaveSummary } from "@trellis/api";
+import { Tabs, Tooltip, useMediaQuery } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { epicHref, projectHref, projectSlashPath, rootKey } from "../../../lib/projectPath";
@@ -11,13 +11,13 @@ import { useUiStore } from "../../../stores/uiStore";
 import { FilterBar } from "../../filters/FilterBar";
 import { type View, viewOf } from "../../filters/grammar";
 import { hasFilters } from "../../filters/labels";
-import { TicketPicker } from "../../pickers/TicketPicker";
 import { ArchivedBanner } from "../../project-actions";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar, TopbarActionButton, TopbarActionMenu } from "../../shell/Topbar";
 import { DisplayPopover } from "../../table/DisplayPopover";
 import { useTicketMutations } from "../../table/hooks/useTicketMutations";
+import { useWaveEditing } from "../../table/hooks/useWaveEditing";
 import { TicketTable } from "../../table/TicketTable";
 import { TableSkeleton } from "../../table/TicketTable/components/TableSkeleton";
 import { agentLinesByTicket } from "../../table/utils/agentLines";
@@ -26,6 +26,8 @@ import { EpicSheet } from "../EpicSheet";
 import { epicWorkingTicketIds } from "../epicNext";
 import { assignedTicketIds } from "../epicRowRank";
 import { epicPageSearch, epicQueryString, epicUrlSearch } from "../epicSearch";
+import { EpicCreateActions } from "./components/EpicCreateActions";
+import { EpicEmptyState } from "./components/EpicEmptyState";
 import { EpicLoadError } from "./components/EpicLoadError";
 import { EpicResources } from "./components/EpicResources";
 
@@ -40,10 +42,9 @@ export type EpicPageProps = {
 	onSearchChange: (next: Partial<View>) => void;
 };
 
-const clearLinkClass =
-	"inline-flex h-8 items-center rounded-md border border-border bg-surface px-3 text-base font-medium text-fg transition duration-hover hover:bg-bg hover:border-border-strong focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
-
 const noRuns: readonly AgentRun[] = [];
+const noWaves: readonly WaveSummary[] = [];
+const noTickets: readonly TicketSummary[] = [];
 
 // On a phone and on a touch screen the link is 44 px tall, the least a
 // finger hits.
@@ -63,6 +64,8 @@ const breadcrumbLinkClass =
 // a ticket of the project into the epic; the bulk bar of the table and the
 // rail of the ticket page take one out. Both are ticket writes, so the ticket
 // rows and the epic counts refetch from the ticket events.
+// New wave adds a wave at the end of the epic, and every wave header of the
+// table carries the actions of its wave (`useWaveEditing`).
 export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProps) {
 	const { orpc, queryClient } = useApp();
 	const navigate = useNavigate();
@@ -99,6 +102,13 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 		select: agentLinesByTicket,
 		refetchOnWindowFocus: "always",
 	}).data;
+
+	const waveEditing = useWaveEditing({
+		epicRef: ref,
+		waves: epic.data?.waves ?? noWaves,
+		tickets: epic.data?.tickets ?? noTickets,
+		assignedTicketIds: assigned,
+	});
 
 	// The epic query refetches after the ticket write, because the write
 	// response names no changed fields and the counts live on the epic.
@@ -193,6 +203,15 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 
 	const record = epic.data;
 	const identifiers = record.tickets.map((ticket) => ticket.identifier);
+	// The top bar and the empty state of the Overview draw the same two buttons.
+	const createActions = readOnly ? null : (
+		<EpicCreateActions
+			project={project.key}
+			exclude={identifiers}
+			waveEditing={waveEditing}
+			onAddTicket={(ticket) => void addTicket(ticket, record.ref)}
+		/>
+	);
 	return (
 		<>
 			<Topbar
@@ -205,20 +224,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 								onClick={() => pageSheetActions.openStats(record.ref)}
 							/>
 						</Tooltip>
-						{!readOnly && (
-							<TicketPicker
-								project={project.key}
-								exclude={identifiers}
-								allowNone={false}
-								label="Add to epic"
-								placeholder="Add a ticket: an identifier or a title"
-								triggerTooltip="Add tickets"
-								onPick={(ticket) => {
-									if (ticket !== null) void addTicket(ticket, record.ref);
-								}}
-								trigger={<TopbarActionButton label="Add tickets" icon={<Plus />} />}
-							/>
-						)}
+						{createActions}
 						<TopbarActionMenu
 							label={`Actions for ${record.name}`}
 							triggerTooltip="Epic actions"
@@ -263,25 +269,14 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 											assignedTicketIds={assignedRunsQuery.status === "success" ? assigned : undefined}
 											prRows
 											agentLines={agentLines}
+											waveEditing={readOnly ? undefined : waveEditing}
 											emptyState={
-												hasFilters(search) ? (
-													<EmptyState
-														variant="page"
-														title={search.q === undefined ? "No tickets match" : `No tickets match '${search.q}'`}
-														description="Clear the filters to see every ticket of the epic."
-														action={
-															<Link to="/p/$" params={{ _splat: splat }} search={{}} className={clearLinkClass}>
-																Clear filters
-															</Link>
-														}
-													/>
-												) : (
-													<EmptyState
-														variant="page"
-														title="No tickets"
-														description="Add a ticket of the project to this epic. Its agent then reads the plan in its brief."
-													/>
-												)
+												<EpicEmptyState
+													filtered={hasFilters(search)}
+													q={search.q}
+													splat={splat}
+													actions={createActions}
+												/>
 											}
 										/>
 									</fieldset>
@@ -303,6 +298,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 					]}
 				/>
 			</div>
+			{waveEditing.element}
 			{editing && <EpicSheet project={project} epic={record} onClose={() => setEditing(false)} />}
 			<DeleteEpicDialog
 				epic={record}

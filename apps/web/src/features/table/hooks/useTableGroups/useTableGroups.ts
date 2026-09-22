@@ -6,7 +6,7 @@ import type { TableGroup } from "../../utils/flattenGroups";
 import { groupRows, type RowRank } from "../../utils/groupRows";
 import { closedSlugs } from "../../utils/listQuery";
 import { forYouCount, type WorkingTicketIds } from "../../utils/turnGroups";
-import { waveMarks } from "../../utils/waveGroups";
+import { waveMarks, withEmptyWaves } from "../../utils/waveGroups";
 import type { ClosedCategory, TableData } from "../useTableData";
 
 export type TableGroupsOptions = {
@@ -77,14 +77,20 @@ export const useTableGroups = ({
 		const activeIds = new Set(activeRows.map((row) => row.id));
 		return [...activeRows, ...inlineClosed.filter((row) => !activeIds.has(row.id))];
 	}, [activeRows, inlineClosed]);
-	const epicRefs = useMemo(() => (view.group === "wave" ? epicRefsOf(rows) : noRefs), [view.group, rows]);
+	// A view that names one epic reads the waves of that epic even with no
+	// row, so an epic whose waves hold no ticket still draws their headers.
+	const fixedEpic = view.epic === undefined || view.epic === "none" ? undefined : view.epic;
+	const epicRefs = useMemo(() => {
+		if (view.group !== "wave") return noRefs;
+		return fixedEpic === undefined ? epicRefsOf(rows) : [fixedEpic];
+	}, [view.group, rows, fixedEpic]);
 	const { epics, pending } = useEpicWavesLoad(epicRefs);
 	const working = workingTicketIds ?? undefined;
 	const groups = useMemo(() => {
 		const waves = epics.flatMap((entry) => entry.waves);
 		const oneEpic = epicRefs.length === 1 && rows.every((row) => row.epic !== null);
 		const marks = oneEpic ? waveMarks(waves) : undefined;
-		const active: TableGroup[] = groupRows(rows, {
+		const grouped = groupRows(rows, {
 			group: view.group,
 			sort: view.sort,
 			statuses,
@@ -92,20 +98,23 @@ export const useTableGroups = ({
 			waveOrder: waves.map((wave) => wave.id),
 			rowRank,
 			workingTicketIds: working,
-		}).map((group) => {
-			const mark = marks?.get(group.key);
-			return {
-				...group,
-				count: group.rows.length,
-				countLabel: mark?.countLabel,
-				completedCount: mark?.completedCount,
-				totalCount: mark?.totalCount,
-				forYou: mark === undefined ? undefined : forYouCount(group.rows, working),
-				done: mark?.done,
-				epicRef: oneEpic && view.group === "wave" ? epicRefs[0] : undefined,
-				expanded: view.group === "none" || !isCollapsed(group.key),
-			};
 		});
+		const active: TableGroup[] = (oneEpic && view.group === "wave" ? withEmptyWaves(grouped, waves) : grouped).map(
+			(group) => {
+				const mark = marks?.get(group.key);
+				return {
+					...group,
+					count: group.rows.length,
+					countLabel: mark?.countLabel,
+					completedCount: mark?.completedCount,
+					totalCount: mark?.totalCount,
+					forYou: mark === undefined ? undefined : forYouCount(group.rows, working),
+					done: mark?.done,
+					epicRef: oneEpic && view.group === "wave" ? epicRefs[0] : undefined,
+					expanded: view.group === "none" || !isCollapsed(group.key),
+				};
+			},
+		);
 		if (closed === null || view.group !== "status" || view.closed === "hide") return active;
 		const tail: TableGroup[] = [];
 		for (const category of closedCategories) {

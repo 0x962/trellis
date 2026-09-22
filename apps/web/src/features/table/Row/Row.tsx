@@ -39,7 +39,7 @@ import { TitleCell } from "./components/TitleCell";
 import { WaitsCell } from "./components/WaitsCell";
 
 // The inline editors a row opens.
-export type EditField = "status" | "priority" | "project" | "parent" | "labels" | "epic";
+export type EditField = "status" | "priority" | "project" | "parent" | "labels" | "epic" | "wave";
 
 // One change a row's picker or the bulk bar applies. `checked` on a label
 // change is the new state of that label on the ticket.

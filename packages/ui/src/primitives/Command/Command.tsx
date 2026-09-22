@@ -41,6 +41,9 @@ export type CommandItem = {
 	// Decoration at the end of the row, such as a check or a key cap. It is
 	// hidden from assistive tech, so the label alone names the option.
 	trailing?: ReactNode;
+	// The option stays in the list whatever the search, such as an option
+	// that creates a value from the typed text.
+	pinned?: boolean;
 };
 
 export type CommandGroup = {
@@ -108,6 +111,7 @@ export function Command({
 			key={item.id}
 			value={item.id}
 			keywords={[item.label, ...(item.keywords ?? [])]}
+			forceMount={item.pinned}
 			onSelect={() => onSelect(item.id)}
 			// The label names the option, so an icon's own label never joins the
 			// name. An option with children takes its name from its content.
@@ -150,7 +154,10 @@ export function Command({
 				/>
 			</div>
 			<Cmdk.List className={cx("overflow-y-auto p-1", listClassName ?? "max-h-80")}>
-				<Cmdk.Empty className="px-2 py-6 text-center text-sm text-fg-muted">{empty}</Cmdk.Empty>
+				{/* cmdk counts no pinned option, so a list with one shows no empty text. */}
+				{![...items, ...groups.flatMap((group) => group.items)].some((item) => item.pinned) && (
+					<Cmdk.Empty className="px-2 py-6 text-center text-sm text-fg-muted">{empty}</Cmdk.Empty>
+				)}
 				{items.map(option)}
 				{groups.map((group, index) => (
 					<Cmdk.Group
