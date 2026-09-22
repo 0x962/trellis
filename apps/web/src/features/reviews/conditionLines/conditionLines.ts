@@ -191,9 +191,9 @@ const stackedOnValue = (stackedOn: NonNullable<Conditions["stackedOn"]>) =>
 	`#${stackedOn.number} · ${stackedOn.ticketIdentifier}`;
 
 // Each condition that stops a merge, as one short phrase, such as
-// "1 check failed" or "1 of 4 evidence". The size, the risk answers and the
-// base state describe the change. They stop no merge, so they stay out of
-// this list.
+// "1 check failed" or "needs the after image". The size, the risk answers
+// and the base state describe the change. They stop no merge, so they stay
+// out of this list.
 export function unmetConditions(conditions: Conditions): string[] {
 	const { checks, tests, evidence, flows } = conditions;
 	return [
@@ -203,7 +203,9 @@ export function unmetConditions(conditions: Conditions): string[] {
 		tests === null && "tests unknown",
 		tests !== null && tests.count === 0 && !tests.noneApplies && "no test registered",
 		evidence === null && "evidence unknown",
-		evidence !== null && evidence.present < evidence.required && `${evidence.present} of ${evidence.required} evidence`,
+		evidence !== null &&
+			evidence.present < evidence.required &&
+			proofSentence(evidence.missing, evidence.present, evidence.required),
 		flows.running > 0 && countPhrase(flows.running, "flow running", "flows running"),
 		flows.failed > 0 && countPhrase(flows.failed, "flow failed", "flows failed"),
 		...conditions.ancestors.map((ancestor) => !ancestor.merged && `${ancestor.identifier} not merged`),

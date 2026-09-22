@@ -125,7 +125,7 @@ test("a comment shows as the last note and keeps every verdict", () => {
 });
 
 test("the card counts the unmet conditions and prints none of them inline", () => {
-	const html = render({ ticket: "TRL-274", run: crispFjord, unmet: ["1 check failed", "2 of 4 evidence"] });
+	const html = render({ ticket: "TRL-274", run: crispFjord, unmet: ["1 check failed", "needs the after image"] });
 
 	expect(html).toContain("2 conditions unmet");
 	expect(html).not.toContain("1 check failed");
