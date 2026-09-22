@@ -20,10 +20,10 @@
 	/* The width of the column that holds the line numbers of the diff, which
 	   `.review-diff-hunk-header` and `.review-diff-line` both draw. */
 	--review-diff-gutter: calc(var(--spacing) * 13);
-	/* The height of one floating card plus its gap to the bottom edge. Every
+	/* The height of one floating card plus the gap above and below it. Every
 	   scrolling box of the review pads its bottom by this much, so the last
-	   row of the box rises clear of the card. */
-	--review-float-clearance: calc(var(--review-float-height) + var(--review-float-gap));
+	   row of the box stops one gap above the card. */
+	--review-float-clearance: calc(var(--review-float-height) + var(--review-float-gap) * 2);
 }
 .review-page,
 .review-index {
