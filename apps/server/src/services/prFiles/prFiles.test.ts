@@ -46,9 +46,8 @@ afterAll(async () => {
 test("stores a file in the shared blob store and serves it", async () => {
 	const fileId = ulid();
 	const file = new File(["picture"], "overview.png", { type: "image/png" });
-	const stored = await inTx(async (tx) =>
-		upload(ctx(), tx, await prepareUpload(ctx(), { id: pullRequestId, fileId, file })),
-	);
+	const prepared = await prepareUpload(ctx(), { id: pullRequestId, fileId, file });
+	const stored = await inTx((tx) => upload(ctx(), tx, prepared));
 
 	expect(stored).toMatchObject({
 		id: fileId,
@@ -61,9 +60,8 @@ test("stores a file in the shared blob store and serves it", async () => {
 	expect(await inTx((tx) => read(ctx(), tx, { fileId }))).toEqual(stored);
 	expect(existsSync(blobPath(home, stored.sha256))).toBe(true);
 	expect(await gcBlobs(ctx(), [stored.sha256])).toEqual({ removed: [] });
-	const again = await inTx(async (tx) =>
-		upload(ctx(), tx, await prepareUpload(ctx(), { id: pullRequestId, fileId, file })),
-	);
+	const repeated = await prepareUpload(ctx(), { id: pullRequestId, fileId, file });
+	const again = await inTx((tx) => upload(ctx(), tx, repeated));
 	expect(again).toEqual(stored);
 
 	const app = new Hono();
@@ -84,7 +82,8 @@ test("stores a file in the shared blob store and serves it", async () => {
 test("refuses a second upload that reuses a file id for other bytes", async () => {
 	const fileId = ulid();
 	const first = new File(["one"], "one.png", { type: "image/png" });
-	await inTx(async (tx) => upload(ctx(), tx, await prepareUpload(ctx(), { id: pullRequestId, fileId, file: first })));
+	const one = await prepareUpload(ctx(), { id: pullRequestId, fileId, file: first });
+	await inTx((tx) => upload(ctx(), tx, one));
 	const other = new File(["two"], "two.png", { type: "image/png" });
 	const prepared = await prepareUpload(ctx(), { id: pullRequestId, fileId, file: other });
 	await expect(inTx((tx) => upload(ctx(), tx, prepared))).rejects.toMatchObject({
