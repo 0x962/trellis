@@ -4,6 +4,7 @@ import type {
 	CiState,
 	LinkedPullRequest,
 	LocalPrState,
+	Mergeable,
 	PrState,
 	PullRequest,
 	StoredActorKind,
@@ -28,6 +29,7 @@ export type PullRequestRow = {
 	local_state: LocalPrState;
 	head_ref: string;
 	base_ref: string;
+	mergeable: Mergeable;
 	review_state: PullRequest["reviewState"];
 	merged_at: string | null;
 	closed_at: string | null;
@@ -79,7 +81,7 @@ export const submissionByPerson = (submission: SQL) => sql`EXISTS (
 
 export const pullRequestColumns = sql`
 	p.id, p.owner, p.repo, p.number, p.additions, p.deletions, p.changed_files, p.files,
-	p.url, p.title, p.state, p.is_draft, p.is_queued, p.local_state, p.head_ref, p.base_ref,
+	p.url, p.title, p.state, p.is_draft, p.is_queued, p.local_state, p.head_ref, p.base_ref, p.mergeable,
 	${localReviewState(sql`p.id`)} AS review_state,
 	${iso(sql`p.merged_at`)} AS merged_at, ${iso(sql`p.closed_at`)} AS closed_at, p.checks, p.ci_state,
 	p.content_hash, ${iso(sql`p.fetched_at`)} AS fetched_at, p.fetch_error,
@@ -103,6 +105,7 @@ export const toPullRequest = (row: PullRequestRow): PullRequest => ({
 	localState: row.local_state,
 	headRef: row.head_ref,
 	baseRef: row.base_ref,
+	mergeable: row.mergeable,
 	reviewState: row.review_state,
 	mergedAt: row.merged_at,
 	closedAt: row.closed_at,

@@ -192,6 +192,7 @@ const pullRequestRow = (number: number, state: "open" | "closed" | "merged"): Pu
 	headSha: "abc1234",
 	headRef: "feature",
 	baseRef: "main",
+	mergeable: "mergeable",
 	reviewState: "none",
 	mergedAt: state === "merged" ? at.toISOString() : null,
 	closedAt: state === "closed" ? at.toISOString() : null,

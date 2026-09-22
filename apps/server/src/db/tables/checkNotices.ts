@@ -4,10 +4,15 @@ import { checkIn } from "../enums.ts";
 import { at } from "./actors.ts";
 import { pullRequests } from "./pullRequests.ts";
 
-export const CHECK_NOTICE_KINDS = ["failed", "passed", "stuck"] as const;
+// `conflict` and `clear` tell about the merge state of the pull request, and
+// the other kinds tell about its checks. The two families never replace each
+// other: `decideNotice` reads the check kinds, and `decideConflictNotice`
+// reads the merge kinds.
+export const CONFLICT_NOTICE_KINDS = ["conflict", "clear"] as const;
+export const CHECK_NOTICE_KINDS = ["failed", "passed", "stuck", ...CONFLICT_NOTICE_KINDS] as const;
 
-// One row is one change in the GitHub checks of a pull request that the
-// agents of its tickets must hear about. `head_sha` is the commit the checks
+// One row is one change in the GitHub checks or the merge state of a pull
+// request that the agents of its tickets must hear about. `head_sha` is the commit the checks
 // ran on. `checks` lists the checks the message names, each as
 // `{name, workflow, link, lines}`, where `lines` holds the first lines of
 // the failure output that GitHub gave. The poller writes the rows, and a

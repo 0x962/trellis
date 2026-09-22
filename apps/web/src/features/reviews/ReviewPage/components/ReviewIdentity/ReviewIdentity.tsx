@@ -31,6 +31,13 @@ export const stateTone = (pullRequest: GithubPullRequest | undefined, isQueued =
 	return "neutral";
 };
 
+// The poller stores the merge state of a linked pull request. A pull request
+// that no ticket links has only the answer of `gh pr view`.
+export const hasConflict = (pullRequest: GithubPullRequest | undefined, linkedPr: LinkedPullRequest | null) => {
+	if (pullRequest?.state !== "OPEN") return false;
+	return linkedPr === null ? pullRequest.mergeable === "CONFLICTING" : linkedPr.mergeable === "conflicting";
+};
+
 export type ReviewIdentityProps = {
 	pr: string;
 	// The revision with the fields of the newest GitHub poll, or `null` while
@@ -71,7 +78,7 @@ export function ReviewIdentity({ pr, revision, pullRequest, isQueued, linkedPr, 
 					/>
 				)}
 				<Badge tone={stateTone(pullRequest, isQueued)}>{stateWord(pullRequest, isQueued)}</Badge>
-				{pullRequest?.mergeable === "CONFLICTING" && (
+				{hasConflict(pullRequest, linkedPr) && (
 					<Tooltip content="Open merge conflicts on GitHub">
 						<a className="inline-flex items-center gap-1.5" href={`${pr}/conflicts`} target="_blank" rel="noreferrer">
 							<GithubMark aria-hidden="true" className="size-3.5" />
