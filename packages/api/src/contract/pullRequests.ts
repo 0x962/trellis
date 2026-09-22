@@ -7,6 +7,8 @@ import {
 	PullRequestIdInputSchema,
 	PullRequestLinkInputSchema,
 	PullRequestListInputSchema,
+	PullRequestResolveInputSchema,
+	PullRequestResolveOutputSchema,
 	PullRequestSchema,
 	PullRequestSummaryHeadInputSchema,
 	PullRequestSummarySchema,
@@ -18,6 +20,11 @@ import {
 import { base } from "./base.ts";
 
 export const pullRequests = {
+	resolve: base
+		.errors(pickErrors(["NOT_FOUND", "INPUT_VALIDATION_FAILED"]))
+		.route({ method: "GET", path: "/prs/resolve", summary: "Resolve a pull request ref known to Trellis" })
+		.input(PullRequestResolveInputSchema)
+		.output(PullRequestResolveOutputSchema),
 	list: base
 		.route({ method: "GET", path: "/tickets/{ticket}/prs", summary: "List the pull requests on a ticket" })
 		.input(PullRequestListInputSchema)

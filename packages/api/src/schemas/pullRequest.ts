@@ -91,6 +91,16 @@ export const PullRequestIdInputSchema = z.strictObject({
 	id: UlidSchema,
 });
 
+export const PullRequestResolveInputSchema = z.strictObject({
+	ref: z.string().min(1),
+});
+
+export const PullRequestResolveOutputSchema = z.object({
+	id: UlidSchema,
+	url: z.string().min(1),
+});
+export type PullRequestResolveOutput = z.infer<typeof PullRequestResolveOutputSchema>;
+
 const PullRequestHeadShaSchema = z.string().min(1).max(64);
 const PullRequestSummaryHeadlineSchema = z.string().min(1).max(200);
 const PullRequestSummaryTextSchema = z.string().min(1).max(2000);
