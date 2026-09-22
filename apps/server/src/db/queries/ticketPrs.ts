@@ -1,15 +1,4 @@
-import {
-	type ChangedFile,
-	CheckBucketSchema,
-	changedFilePaths,
-	type EvidenceKind,
-	evidenceFloor,
-	prPaths,
-	type TicketPr,
-	TicketPrSchema,
-	type VerdictFacts,
-	verdictMark,
-} from "@trellis/api";
+import { CheckBucketSchema, type TicketPr, TicketPrSchema, type VerdictFacts, verdictMark } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { localReviewState, submissionByPerson, submissionHeadSha } from "./pullRequestRows.ts";
 import { ciRank, prStateRank, reviewStateRank } from "./support.ts";
@@ -37,35 +26,12 @@ const pendingCheck = sql`check_row.value->>'bucket' = ${PENDING}`;
 const skippedCheck = sql`check_row.value->>'bucket' = ${SKIPPED}`;
 const verdictState = localReviewState(sql`p.id`);
 
-export type TicketPrRow = Omit<TicketPr, "kind" | "risk" | "evidence" | "evidenceRequired" | "verdict"> & {
-	files: ChangedFile[] | null;
-	evidenceKinds: EvidenceKind[];
-	hasSummary: boolean;
-	headSha: string | null;
+export type TicketPrRow = Omit<TicketPr, "verdict"> & {
 	submissions: VerdictFacts[];
 };
 
 export const toTicketPrRows = (rows: TicketPrRow[] | null): TicketPr[] =>
-	(rows ?? []).map(({ files, evidenceKinds, hasSummary, headSha, submissions, ...fields }) => {
-		const row = { ...fields, verdict: verdictMark(submissions) };
-		if (files === null || files.length === 0 || row.changedFiles !== files.length)
-			return { ...row, kind: null, risk: null, evidence: null, evidenceRequired: null };
-		const facts = prPaths(row.repo, changedFilePaths(files));
-		if (headSha === null) return { ...row, kind: facts.kind, risk: facts.risk, evidence: null, evidenceRequired: null };
-		const floor = evidenceFloor({
-			kind: facts.kind,
-			risk: facts.risk,
-			rows: evidenceKinds.map((kind) => ({ kind })),
-			hasSummary,
-		});
-		return {
-			...row,
-			kind: facts.kind,
-			risk: facts.risk,
-			evidence: floor.present.length,
-			evidenceRequired: floor.required.length,
-		};
-	});
+	(rows ?? []).map(({ submissions, ...fields }) => ({ ...fields, verdict: verdictMark(submissions) }));
 
 export const ticketPrColumns = sql`
 	ticket_pr.state AS pr_state, ticket_pr.is_draft AS pr_is_draft, ticket_pr.is_queued AS pr_is_queued,
@@ -74,7 +40,7 @@ export const ticketPrColumns = sql`
 	ticket_pr.reviews AS pr_reviews, ticket_pr.pull_requests AS pr_rows`;
 
 // A flow execution belongs to a ticket. Each pull request row carries the same
-// five newest `flowRuns` entries and the same `flowRunCount` total.
+// five newest `flowRuns` entries.
 const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 	LEFT JOIN LATERAL (
 		SELECT
@@ -97,23 +63,12 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 					'id', p.id, 'number', p.number, 'owner', p.owner, 'repo', p.repo, 'url', p.url, 'title', p.title,
 					'state', p.state, 'isDraft', p.is_draft, 'isQueued', p.is_queued,
 					'additions', p.additions, 'deletions', p.deletions, 'changedFiles', p.changed_files,
-					'files', p.files,
 					'sizeBand', CASE
 						WHEN p.additions IS NULL OR p.deletions IS NULL THEN NULL
 						WHEN p.additions::bigint + p.deletions::bigint < 200 THEN ${SMALL}
 						WHEN p.additions::bigint + p.deletions::bigint <= 400 THEN ${MEDIUM}
 						ELSE ${LARGE}
 					END,
-					'evidenceKinds', (
-						SELECT COALESCE(jsonb_agg(DISTINCT evidence.kind ORDER BY evidence.kind), '[]'::jsonb)
-						FROM pr_evidence evidence
-						WHERE evidence.pull_request_id = p.id AND evidence.head_sha = p.head_sha
-					),
-					'hasSummary', EXISTS (
-						SELECT 1 FROM pr_summaries summary
-						WHERE summary.pull_request_id = p.id AND summary.head_sha = p.head_sha
-					),
-					'headSha', p.head_sha,
 					'submissions', (
 						SELECT COALESCE(jsonb_agg(jsonb_build_object(
 							'verdict', submission.document->>'verdict',
@@ -132,7 +87,6 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 						WHERE thread.pr_id = p.id AND thread.document->>'status' = 'open'
 					),
 					'flowRuns', flow_runs.items,
-					'flowRunCount', flow_runs.total,
 					'baseRef', p.base_ref, 'headRef', p.head_ref,
 					'stackedOn', (
 						SELECT jsonb_build_object(
@@ -174,7 +128,6 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 		) check_counts
 		CROSS JOIN LATERAL (
 			SELECT
-				COALESCE(max(recent.total), 0)::int AS total,
 				COALESCE(
 					jsonb_agg(
 						jsonb_build_object(
@@ -203,8 +156,7 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 							ON thread.pr_id = p.id
 							AND thread.document->>'session' = run.session_id
 						WHERE task.execution_id = execution.id
-					) AS findings,
-					count(*) OVER () AS total
+					) AS findings
 				FROM flow_executions execution
 				WHERE execution.ticket_id = t.id
 				ORDER BY execution.created_at DESC, execution.id DESC

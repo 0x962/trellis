@@ -72,7 +72,7 @@ export function ReviewDiscussion({ threads, activeThread, revision, renderThread
 				/>
 				{threads.length > 0 && (
 					<>
-						<h2 className="review-local-heading">Local review comments</h2>
+						<SectionHeader title="Local review comments" className="mt-6" />
 						<div className="review-discussion-toolbar">
 							<Input
 								hideLabel

@@ -9,13 +9,13 @@ import {
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { actorDisplayName } from "../../db/queries/actorDisplayName.ts";
+import { pullRequestNumbersByBlob } from "../../db/queries/prFiles.ts";
 import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
 import { storedMime, storeFile } from "../../storage/blobs.ts";
 import { gcBlobs } from "../blobs.ts";
 import { resolveEpic } from "../epics/resolve.ts";
-import { pullRequestNumbersByBlob } from "../evidence/evidence.ts";
 import { assertProjectActive, resolveTicket } from "../refs.ts";
 import { fail, type IoCtx, notFound, touchActor } from "../support.ts";
 

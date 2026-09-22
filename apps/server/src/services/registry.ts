@@ -34,6 +34,7 @@ import * as labelGroups from "./labelGroups.ts";
 import * as labels from "./labels.ts";
 import * as needsYou from "./needsYou/needsYou.ts";
 import * as notes from "./notes/notes.ts";
+import * as prFiles from "./prFiles/prFiles.ts";
 import * as projects from "./projects.ts";
 import * as prSummary from "./prSummary.ts";
 import * as pullRequests from "./pullRequests.ts";
@@ -268,9 +269,10 @@ export const services = {
 	"pullRequests.readSummary": io("read", prSummary.read),
 	"pullRequests.readSummaryHead": io("read", prSummary.readHead),
 	"pullRequests.writeSummary": prepared("mutation", prSummary.prepareWrite, prSummary.write),
-	"pullRequests.listEvidence": io("read", evidence.list),
 	"pullRequests.readEvidence": io("read", evidence.read),
 	"pullRequests.writeEvidence": prepared("mutation", evidence.prepareWrite, evidence.write),
+	"pullRequests.readFile": io("read", prFiles.read),
+	"pullRequests.uploadFile": prepared("mutation", prFiles.prepareUpload, prFiles.upload),
 	"resources.add": io("mutation", resources.add),
 	"resources.list": io("read", resources.list),
 	"resources.update": io("mutation", resources.update),

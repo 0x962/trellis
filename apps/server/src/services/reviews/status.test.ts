@@ -66,7 +66,7 @@ test("review status sorts linked tickets by project key and ticket number", asyn
 		title: "GitHub title",
 		isQueued: true,
 		ticket: { identifier: "AAA-7", title: "First project ticket" },
-		prRow: { number: 28, owner: "acme", repo: "app", kind: "backend", pass: 1, fail: 1 },
+		prRow: { number: 28, owner: "acme", repo: "app", pass: 1, fail: 1 },
 		checks: [
 			{
 				name: "Build",

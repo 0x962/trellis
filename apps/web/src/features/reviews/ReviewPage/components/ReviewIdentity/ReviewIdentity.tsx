@@ -41,8 +41,6 @@ export type ReviewIdentityProps = {
 };
 
 // The title, the state, the branch and the buttons that end a review.
-// `ConditionsBlock` prints the size, the open thread count and the distance
-// from the base branch, so this band prints none of those three.
 export function ReviewIdentity({ pr, revision, pullRequest, isQueued, onAction }: ReviewIdentityProps) {
 	const ref = reviewRef(pr);
 	const glyphState = pullRequest?.state === "MERGED" ? "merged" : pullRequest?.state === "CLOSED" ? "closed" : "open";

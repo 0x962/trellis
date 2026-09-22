@@ -1,5 +1,6 @@
 import type { ORPCError } from "@orpc/client";
 import { errors as apiErrors, type ErrorCode, type GhReason, ghCopy } from "@trellis/api";
+import type { ReadinessPart } from "./commands/ready/pullRequestReady.ts";
 
 // The process exit code for every error the contract declares. The Record
 // type requires one row for each ErrorCode value.
@@ -81,20 +82,22 @@ export const fileNotFound = (path: string) => new CliFailure("NOT_FOUND", 3, `No
 export const fileUnreadable = (path: string, reason: string) =>
 	new CliFailure("USAGE", 2, `cannot read ${path}: ${reason}`);
 
-// EVIDENCE_FLOOR_MISSING comes from this CLI, so exitCodes has no row.
-// Its exit code 1 reports a refused operation, not invalid input.
-export const evidenceFloorMissing = (ticket: string) =>
+// HAND_OVER_REFUSED and PR_NOT_READY come from this CLI, so exitCodes has no
+// row for them. Exit code 1 reports a refused operation, not invalid input.
+export const handOverRefused = (ticket: string) =>
 	new CliFailure(
-		"EVIDENCE_FLOOR_MISSING",
+		"HAND_OVER_REFUSED",
 		1,
-		`An agent cannot move ${ticket} to human-review while required evidence is missing.`,
+		`An agent moves ${ticket} to human-review after each open pull request has the explanation and the evidence document.`,
 	);
 
-export const pullRequestNotReady = (number: number) =>
+const partWords: Record<ReadinessPart, string> = { explanation: "the explanation", evidence: "the evidence document" };
+
+export const pullRequestNotReady = (number: number, missing: ReadinessPart[]) =>
 	new CliFailure(
 		"PR_NOT_READY",
 		1,
-		`trellis pr add requires the summary and every evidence floor item of #${number}. Run the command beside each MISSING line, then run: trellis ready ${number}`,
+		`#${number} needs ${missing.map((part) => partWords[part]).join(" and ")}. Write each missing part with the command above, then run: trellis ready ${number}`,
 	);
 
 export const unreachable = (url: string) =>

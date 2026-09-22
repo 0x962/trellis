@@ -43,8 +43,7 @@
 	font-variant-numeric: tabular-nums;
 	pointer-events: auto;
 }
-/* The words of the card, left of the buttons: the verdict and the count of
-   the unmet conditions. */
+/* The words of the card, left of the buttons: the verdict. */
 .review-bar-words {
 	display: flex;
 	flex: 1;
@@ -58,15 +57,6 @@
 	min-width: 0;
 	white-space: nowrap;
 }
-/* The dots keep their full width. The verdict words and the condition count
-   shorten instead, and each one shows an ellipsis where it cuts. */
-.review-bar-dot {
-	flex-shrink: 0;
-}
-/* One dot stands between two parts of the card line. */
-.review-bar-dot {
-	color: var(--fg-faint);
-}
 /* The verdict, the time and the delivery word of the last submission. */
 .review-verdict-bar-state {
 	display: flex;
@@ -79,8 +69,7 @@
 	flex-shrink: 0;
 }
 /* A card with more words than room shortens the longest words first. The
-   time and the delivery word give up room fastest, the verdict headline
-   next, and the condition count last. */
+   time and the delivery word give up room faster than the verdict headline. */
 .review-verdict-bar-state > span {
 	flex-shrink: 2;
 	min-width: 0;
@@ -89,29 +78,6 @@
 }
 .review-verdict-bar-detail {
 	flex-shrink: 4;
-}
-/* The count of the conditions that stop the merge. A click lists them. */
-.review-unmet-trigger {
-	flex-shrink: 1;
-	min-width: 0;
-	overflow: hidden;
-	color: var(--fg-muted);
-	text-overflow: ellipsis;
-	text-decoration: underline;
-	text-decoration-style: dotted;
-	text-underline-offset: 3px;
-	white-space: nowrap;
-}
-.review-unmet-trigger:hover {
-	color: var(--fg);
-}
-.review-unmet-list {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	max-width: 22rem;
-	padding: 2px;
-	font-size: var(--text-sm);
 }
 /* The local verdict note and the message of a submit that failed. */
 .review-draft-note {

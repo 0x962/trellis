@@ -3,11 +3,9 @@ import type { TrellisClient } from "@trellis/api/client";
 import { defineCommand } from "citty";
 import { clientOf } from "../../client.ts";
 import { type CliContext, contextOf, wantsJson } from "../../context.ts";
-import { notFound } from "../../errors.ts";
 import { json } from "../../output.ts";
-import { pullRequestCheck } from "../evidence/pullRequestCheck.ts";
 import { resolvePullRequest } from "../pullRequestRef.ts";
-import { pullRequestReadyText } from "./pullRequestReady.ts";
+import { pullRequestReadiness, pullRequestReadyText } from "./pullRequestReady.ts";
 import { type ReadyResult, readyGroupOrder, readyText } from "./readyText.ts";
 
 const nameFor = (ticket: TicketSummary, turn: Turn, hasWorkingRun: boolean): string => {
@@ -32,18 +30,14 @@ export const readyResultOf = (tickets: TicketSummary[], workingTicketIds: Readon
 	};
 };
 
-// Exits 1 until the pull request has the summary and every evidence floor item.
-// `trellis pr add` links a pull request but opens no review, so this opens it
-// the way `trellis summary write` does.
+// Exits 1 until the pull request has the explanation and the evidence
+// document. `trellis pr add` links a pull request but opens no review, so
+// this opens it the way `trellis summary write` does.
 const pullRequestReady = async (ctx: CliContext, client: TrellisClient, ref: string): Promise<number> => {
 	const resolved = await resolvePullRequest(client, ref, true);
-	const pullRequest = await client.pullRequests.refresh({ id: resolved.id });
-	const status = await client.reviews.status({ pr: resolved.url });
-	if (status.ticket === null) throw notFound("linked ticket", ref);
-	const ticket = await client.tickets.get({ ticket: status.ticket.identifier });
-	const result = await pullRequestCheck(client, ticket, pullRequest);
+	const result = await pullRequestReadiness(client, resolved);
 	ctx.out.write(wantsJson(ctx) ? json(result) : pullRequestReadyText(result));
-	return result.complete ? 0 : 1;
+	return result.ready ? 0 : 1;
 };
 
 export default defineCommand({

@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
-import { EvidenceIdInputSchema, EvidenceSchema, EvidenceWriteInputSchema } from "../schemas/evidence.ts";
+import {
+	PullRequestEvidenceSchema,
+	PullRequestEvidenceWriteInputSchema,
+	PullRequestFileIdInputSchema,
+	PullRequestFileSchema,
+	PullRequestFileUploadInputSchema,
+} from "../schemas/evidence.ts";
 import {
 	LinkedPullRequestSchema,
 	PullRequestDiffOutputSchema,
@@ -62,21 +68,26 @@ export const pullRequests = {
 		.route({ method: "PUT", path: "/prs/{id}/summaries/{headSha}", summary: "Write one pull request summary" })
 		.input(PullRequestSummaryWriteInputSchema)
 		.output(PullRequestSummaryWriteOutputSchema),
-	listEvidence: base
-		.route({ method: "GET", path: "/prs/{id}/evidence", summary: "List the evidence of a pull request" })
-		.input(PullRequestIdInputSchema)
-		.output(z.array(EvidenceSchema)),
 	readEvidence: base
-		.route({ method: "GET", path: "/evidence/{evidenceId}", summary: "Read one evidence record" })
-		.input(EvidenceIdInputSchema)
-		.output(EvidenceSchema),
+		.route({ method: "GET", path: "/prs/{id}/evidence", summary: "Read the evidence document of a pull request" })
+		.input(PullRequestIdInputSchema)
+		.output(PullRequestEvidenceSchema.nullable()),
 	writeEvidence: base
-		.errors(pickErrors(["DUPLICATE", "GH_UNAVAILABLE", "PAYLOAD_TOO_LARGE", "PR_HEAD_MOVED"]))
+		.errors(pickErrors(["GH_UNAVAILABLE"]))
+		.route({ method: "PUT", path: "/prs/{id}/evidence", summary: "Write the evidence document of a pull request" })
+		.input(PullRequestEvidenceWriteInputSchema)
+		.output(PullRequestEvidenceSchema),
+	readFile: base
+		.route({ method: "GET", path: "/pr-files/{fileId}", summary: "Read one pull request file" })
+		.input(PullRequestFileIdInputSchema)
+		.output(PullRequestFileSchema),
+	uploadFile: base
+		.errors(pickErrors(["DUPLICATE", "PAYLOAD_TOO_LARGE"]))
 		.route({
 			method: "PUT",
-			path: "/prs/{id}/evidence/{evidenceId}",
-			summary: "Register evidence for one pull request head",
+			path: "/prs/{id}/files/{fileId}",
+			summary: "Upload a file that a summary or an evidence document shows",
 		})
-		.input(EvidenceWriteInputSchema)
-		.output(EvidenceSchema),
+		.input(PullRequestFileUploadInputSchema)
+		.output(PullRequestFileSchema),
 };

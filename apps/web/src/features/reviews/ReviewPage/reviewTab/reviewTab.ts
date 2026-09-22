@@ -1,7 +1,7 @@
 import type { Turn } from "@trellis/api";
 
 // The four tabs of the review page. Overview holds the explanation of the
-// change, the merge conditions, the evidence and the discussion. Checks holds
+// change, the evidence document and the discussion. Checks holds
 // the GitHub checks of the head commit. Flows holds the flow runs of the
 // ticket. Diff holds the file tree and the diff.
 export type ReviewTab = "overview" | "checks" | "flows" | "diff";

@@ -1,10 +1,10 @@
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, toNumber, wantsJson } from "../context.ts";
-import { evidenceFloorMissing } from "../errors.ts";
+import { handOverRefused } from "../errors.ts";
 import { json, printRecord, ticketRecord } from "../output.ts";
-import { checkText } from "./evidence/checkText.ts";
 import { handOverGuard } from "./move/handOverGuard.ts";
+import { pullRequestReadyText } from "./ready/pullRequestReady.ts";
 
 export default defineCommand({
 	meta: { name: "move", description: "Move a ticket to a status" },
@@ -21,8 +21,8 @@ export default defineCommand({
 		const client = clientOf(ctx);
 		const missing = await handOverGuard(client, ctx.actor().kind, args.ticket, args.status);
 		if (missing !== null) {
-			ctx.out.write(wantsJson(ctx) ? json(missing.result) : checkText(missing.result));
-			if (missing.blocksAgent) throw evidenceFloorMissing(args.ticket);
+			ctx.out.write(wantsJson(ctx) ? json(missing.result) : pullRequestReadyText(missing.result));
+			if (missing.blocksAgent) throw handOverRefused(args.ticket);
 		}
 		const ticket = await client.tickets.move(
 			compact({

@@ -162,7 +162,7 @@ const show = defineCommand({
 });
 
 const guide = defineCommand({
-	meta: { name: "guide", description: "Print how to plan an epic: fronts, waves, dependencies, and evidence" },
+	meta: { name: "guide", description: "Print how to plan an epic: fronts, waves, and dependencies" },
 	run(context) {
 		contextOf(context).out.write(planGuideText(template));
 	},

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { EmptyState } from "../../primitives/EmptyState";
+import { SectionHeader } from "../../primitives/SectionHeader";
 
 export type ChangeSummaryFields = {
 	headline: string;
@@ -19,7 +20,8 @@ export type ChangeSummaryProps = {
 export function ChangeSummary({ summary, headShaMoved }: ChangeSummaryProps) {
 	if (summary === null) {
 		return (
-			<section aria-label="Change summary" className="flex min-w-0 flex-col">
+			<section aria-label="Change summary" className="flex min-w-0 flex-col gap-2">
+				<SectionHeader title="Summary" />
 				<EmptyState description="The agent has not written a summary yet." />
 			</section>
 		);
@@ -27,6 +29,7 @@ export function ChangeSummary({ summary, headShaMoved }: ChangeSummaryProps) {
 
 	return (
 		<section aria-label="Change summary" className="flex min-w-0 flex-col gap-2">
+			<SectionHeader title="Summary" />
 			<p className="text-lg font-medium text-fg">{summary.headline}</p>
 			<div className="text-base text-fg">{summary.why}</div>
 			{headShaMoved && <p className="text-base text-warning">The summary is one revision behind.</p>}

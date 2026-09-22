@@ -111,7 +111,6 @@ A header takes one `Badge` after its label through `mark`, such as Current on a 
 Write every section title in sentence case, such as Sub-tickets or The ask.
 Pass `level={3}` for a header inside a region, such as Your answer inside the question block.
 The size carries the level: 13 px for a region and 12 px for a part of a region.
-The review page draws its region titles in capitals through `textCase="caps"`. No other page does.
 
 ## Board cards
 

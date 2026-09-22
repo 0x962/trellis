@@ -512,11 +512,6 @@
 .review-message .review-conversation-bot[open] > summary {
 	margin-bottom: 8px;
 }
-.review-local-heading {
-	margin-top: 24px;
-	font-size: 13px;
-	font-weight: 600;
-}
 .review-editor-toolbar {
 	display: flex;
 	align-items: center;

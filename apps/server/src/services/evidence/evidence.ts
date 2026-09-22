@@ -1,174 +1,85 @@
-import { isDeepStrictEqual } from "node:util";
-import {
-	type Evidence,
-	EvidenceIdInputSchema,
-	EvidenceStoredFileSchema,
-	EvidenceWriteInputSchema,
-	PullRequestIdInputSchema,
-} from "@trellis/api";
+import { type PullRequestEvidence, PullRequestEvidenceWriteInputSchema, PullRequestIdInputSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { actorDisplayName } from "../../db/queries/actorDisplayName.ts";
-import { iso, rows, textArray } from "../../db/queries/support.ts";
+import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
-import { storedMime, storeFile } from "../../storage/blobs.ts";
 import { findPullRequestRow } from "../findPullRequestRow.ts";
 import { announcePullRequestUpdate, setHeadSha } from "../pullRequests.ts";
-import { fail, notFound, type PrepareCtx, type ServiceCtx, touchActor } from "../support.ts";
+import { fail, type PrepareCtx, type ServiceCtx, touchActor } from "../support.ts";
 
 type EvidenceRow = {
-	id: string;
 	pull_request_id: string;
 	head_sha: string;
-	kind: Evidence["kind"];
-	record: Evidence["record"];
-	blob_sha256: string | null;
+	body: string;
 	actor_name: string;
-	actor_kind: Evidence["actor"]["kind"];
+	actor_kind: PullRequestEvidence["actor"]["kind"];
 	actor_display_name: string | null;
 	created_at: string;
+	updated_at: string;
 };
 
 const columns = sql`
-	e.id, e.pull_request_id, e.head_sha, e.kind, e.record, e.blob_sha256,
-	e.actor_name, e.actor_kind,
+	e.pull_request_id, e.head_sha, e.body, e.actor_name, e.actor_kind,
 	${actorDisplayName(sql`e.actor_name`, sql`e.actor_kind`)} AS actor_display_name,
-	${iso(sql`e.created_at`)} AS created_at
+	${iso(sql`e.created_at`)} AS created_at, ${iso(sql`e.updated_at`)} AS updated_at
 `;
 
-export const evidenceFileUrl = (id: string) => `/api/evidence/${id}/file`;
+const toEvidence = (row: EvidenceRow): PullRequestEvidence => ({
+	pullRequestId: row.pull_request_id,
+	headSha: row.head_sha,
+	body: row.body,
+	actor: {
+		name: row.actor_name,
+		kind: row.actor_kind,
+		...(row.actor_display_name === null ? {} : { displayName: row.actor_display_name }),
+	},
+	createdAt: row.created_at,
+	updatedAt: row.updated_at,
+});
 
-export const pullRequestNumbersByBlob = async (tx: Tx, epicId: string, shas: string[]) => {
-	const found = await rows<{ sha256: string; number: number }>(
+const find = async (tx: Tx, pullRequestId: string): Promise<EvidenceRow | undefined> => {
+	const [row] = await rows<EvidenceRow>(
 		tx,
-		sql`SELECT DISTINCT ON (pe.blob_sha256) pe.blob_sha256 AS sha256, pr.number
-			FROM pr_evidence pe
-			JOIN pull_requests pr ON pr.id = pe.pull_request_id
-			JOIN ticket_pull_requests tpr ON tpr.pull_request_id = pr.id
-			JOIN tickets t ON t.id = tpr.ticket_id
-			WHERE pe.blob_sha256 = ANY(${textArray(shas)}) AND t.epic_id = ${epicId}
-			ORDER BY pe.blob_sha256, pe.created_at DESC, pe.id DESC`,
+		sql`SELECT ${columns} FROM pr_evidence_documents e WHERE e.pull_request_id = ${pullRequestId}`,
 	);
-	return new Map(found.map((row) => [row.sha256, row.number]));
-};
-
-const toEvidence = (row: EvidenceRow): Evidence => {
-	const blob =
-		row.blob_sha256 === null
-			? null
-			: {
-					sha256: row.blob_sha256,
-					url: evidenceFileUrl(row.id),
-					...EvidenceStoredFileSchema.parse(row.record.file),
-				};
-	return {
-		id: row.id,
-		pullRequestId: row.pull_request_id,
-		headSha: row.head_sha,
-		kind: row.kind,
-		record: row.record,
-		blob,
-		actor: {
-			name: row.actor_name,
-			kind: row.actor_kind,
-			...(row.actor_display_name === null ? {} : { displayName: row.actor_display_name }),
-		},
-		createdAt: row.created_at,
-	};
-};
-
-const find = async (tx: Tx, id: string): Promise<EvidenceRow | undefined> => {
-	const [row] = await rows<EvidenceRow>(tx, sql`SELECT ${columns} FROM pr_evidence e WHERE e.id = ${id}`);
 	return row;
 };
 
-export const read = async (_ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<Evidence> => {
-	const input = EvidenceIdInputSchema.parse(rawInput);
-	const row = await find(tx, input.evidenceId);
-	if (row === undefined) throw notFound("evidence", input.evidenceId);
-	return toEvidence(row);
-};
-
-export const list = async (_ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<Evidence[]> => {
+export const read = async (_ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<PullRequestEvidence | null> => {
 	const input = PullRequestIdInputSchema.parse(rawInput);
-	await findPullRequestRow(tx, input.id);
-	return (
-		await rows<EvidenceRow>(
-			tx,
-			sql`SELECT ${columns} FROM pr_evidence e
-				WHERE e.pull_request_id = ${input.id}
-				ORDER BY e.created_at DESC, e.id DESC`,
-		)
-	).map(toEvidence);
+	const pullRequest = await findPullRequestRow(tx, input.id);
+	const row = await find(tx, pullRequest.id);
+	return row === undefined ? null : toEvidence(row);
 };
 
-type PreparedWrite = Pick<
-	ReturnType<typeof EvidenceWriteInputSchema.parse>,
-	"id" | "evidenceId" | "headSha" | "kind"
-> & {
-	record: Evidence["record"];
-	blobSha256: string | null;
-};
+type WriteInput = ReturnType<typeof PullRequestEvidenceWriteInputSchema.parse>;
 
-export const prepareWrite = async (ctx: PrepareCtx, rawInput: unknown): Promise<PreparedWrite> => {
-	const input = EvidenceWriteInputSchema.parse(rawInput);
-	if (input.kind === "capture" && input.record.headSha !== input.headSha)
-		throw invalidInput("record.headSha", "The capture head SHA must match the evidence head SHA.");
+// The document records the head it was written for, so the head must be the
+// one GitHub reports now.
+export const prepareWrite = async (ctx: PrepareCtx, rawInput: unknown): Promise<WriteInput> => {
+	const input = PullRequestEvidenceWriteInputSchema.parse(rawInput);
 	const pullRequest = await ctx.newTx((tx) => findPullRequestRow(tx, input.id));
 	const result = await ctx.gh("interactive", ["pr", "view", pullRequest.url, "--json", "headRefOid"]);
 	if (!result.ok) throw fail("GH_UNAVAILABLE", { reason: result.reason });
 	const { headRefOid } = JSON.parse(result.stdout) as { headRefOid: string };
-	if (headRefOid !== input.headSha) throw fail("PR_HEAD_MOVED", { currentHeadSha: headRefOid });
-	const writeInput = {
-		id: input.id,
-		evidenceId: input.evidenceId,
-		headSha: input.headSha,
-		kind: input.kind,
-		record: input.record,
-	};
-	const file = "file" in input ? input.file : undefined;
-	if (file === undefined) return { ...writeInput, blobSha256: null };
-	if (file.size > ctx.maxUploadBytes) throw fail("PAYLOAD_TOO_LARGE", { maxBytes: ctx.maxUploadBytes });
-	const stored = await storeFile(ctx.home, file);
-	return {
-		...writeInput,
-		record: {
-			...input.record,
-			file: {
-				filename: file.name,
-				mime: storedMime(file.type),
-				size: stored.size,
-			},
-		},
-		blobSha256: stored.sha256,
-	};
+	if (headRefOid !== input.headSha)
+		throw invalidInput("headSha", "headSha does not match the current pull request head.");
+	return input;
 };
 
-const sameWrite = (row: EvidenceRow, ctx: ServiceCtx, input: PreparedWrite) =>
-	row.pull_request_id === input.id &&
-	row.head_sha === input.headSha &&
-	row.kind === input.kind &&
-	row.blob_sha256 === input.blobSha256 &&
-	row.actor_name === ctx.actor.name &&
-	row.actor_kind === ctx.actor.kind &&
-	isDeepStrictEqual(row.record, input.record);
-
-export const write = async (ctx: ServiceCtx, tx: Tx, input: PreparedWrite): Promise<Evidence> => {
-	const existing = await find(tx, input.evidenceId);
-	if (existing !== undefined) {
-		if (!sameWrite(existing, ctx, input)) throw fail("DUPLICATE", { field: "evidenceId" });
-		return toEvidence(existing);
-	}
+export const write = async (ctx: ServiceCtx, tx: Tx, input: WriteInput): Promise<PullRequestEvidence> => {
 	const pullRequest = await findPullRequestRow(tx, input.id);
 	const at = ctx.now();
 	await touchActor(tx, ctx.actor, at);
 	await setHeadSha(tx, { id: pullRequest.id, headSha: input.headSha });
-	await tx.execute(sql`INSERT INTO pr_evidence (
-		id, pull_request_id, head_sha, kind, record, blob_sha256, actor_name, actor_kind, created_at
-	) VALUES (
-		${input.evidenceId}, ${pullRequest.id}, ${input.headSha}, ${input.kind},
-		${JSON.stringify(input.record)}::jsonb, ${input.blobSha256}, ${ctx.actor.name}, ${ctx.actor.kind}, ${at}
-	)`);
+	await tx.execute(sql`INSERT INTO pr_evidence_documents
+		(pull_request_id, head_sha, body, actor_name, actor_kind, created_at, updated_at)
+		VALUES (${pullRequest.id}, ${input.headSha}, ${input.body}, ${ctx.actor.name}, ${ctx.actor.kind}, ${at}, ${at})
+		ON CONFLICT (pull_request_id) DO UPDATE SET
+			head_sha = EXCLUDED.head_sha, body = EXCLUDED.body,
+			actor_name = EXCLUDED.actor_name, actor_kind = EXCLUDED.actor_kind,
+			updated_at = EXCLUDED.updated_at`);
 	await announcePullRequestUpdate(ctx, tx, pullRequest);
-	return toEvidence((await find(tx, input.evidenceId))!);
+	return toEvidence((await find(tx, pullRequest.id))!);
 };

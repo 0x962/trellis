@@ -13,15 +13,8 @@ const answer = (behindBy: number) =>
 		merge_base_commit: { sha: "19cea5c42c50e4d407eb3dafb403fd10d176ab93" },
 	});
 
-test("reads the shared commit and how far the head is behind the base", () => {
-	expect(comparisonFacts(answer(97))).toEqual({
-		comparisonBaseSha: "19cea5c42c50e4d407eb3dafb403fd10d176ab93",
-		behindBy: 97,
-	});
-});
-
-test("a head that holds every commit of the base is zero commits behind", () => {
-	expect(comparisonFacts(answer(0)).behindBy).toBe(0);
+test("reads the commit that both branches share", () => {
+	expect(comparisonFacts(answer(97))).toEqual({ comparisonBaseSha: "19cea5c42c50e4d407eb3dafb403fd10d176ab93" });
 });
 
 test("loads the revision again when the head changes during the first diff", async () => {

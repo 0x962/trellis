@@ -1,7 +1,6 @@
 import {
 	CiStateSchema,
 	ColorTokenSchema,
-	EvidenceKindSchema,
 	FlowBranchSchema,
 	FlowNodeKindSchema,
 	LabelColorSchema,
@@ -29,7 +28,6 @@ export const COLOR_TOKENS = ColorTokenSchema.options;
 export const LABEL_COLORS = LabelColorSchema.options;
 export const REVIEW_STATES = ReviewStateSchema.options;
 export const PR_LINK_SOURCES = PrLinkSourceSchema.options;
-export const EVIDENCE_KINDS = EvidenceKindSchema.options;
 export const FLOW_NODE_KINDS = FlowNodeKindSchema.options;
 export const FLOW_BRANCHES = FlowBranchSchema.options;
 export const NOTE_AUDIENCES = NoteAudienceSchema.options;

@@ -30,7 +30,6 @@ export function FlowRuns({ ticket }: { ticket: string }) {
 		<section aria-label="Flows" className="flex flex-col gap-4">
 			<SectionHeader
 				title="Flows"
-				textCase="caps"
 				count={executions.data?.length}
 				actions={
 					<Tooltip content="Start a flow">

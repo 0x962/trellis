@@ -45,7 +45,7 @@ export const errors = {
 	},
 	PR_HEAD_MOVED: {
 		status: 409,
-		message: "The pull request head changed. Read it again before you register evidence.",
+		message: "The pull request head changed. Read the pull request again, then try again.",
 		data: z.object({ currentHeadSha: z.string().min(1) }),
 	},
 	INPUT_VALIDATION_FAILED: {

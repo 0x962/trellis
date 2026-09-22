@@ -140,7 +140,7 @@ test("stores a link without a blob", async () => {
 	});
 });
 
-test("stores an image and returns its evidence pull request", async () => {
+test("stores an image and returns the pull request that shows it", async () => {
 	const resource = await inTx((tx) =>
 		add(context, tx, {
 			epic: "TRL/resources",
@@ -156,10 +156,10 @@ test("stores an image and returns its evidence pull request", async () => {
 		${pullRequestId}, '0x962', 'trellis', 196, 'https://github.com/0x962/trellis/pull/196',
 		'open', 'head', ${now}, ${now}
 	)`);
-	await db.execute(sql`INSERT INTO pr_evidence (
-		id, pull_request_id, head_sha, kind, record, blob_sha256, actor_name, actor_kind, created_at
+	await db.execute(sql`INSERT INTO pr_files (
+		id, pull_request_id, blob_sha256, filename, mime, size, actor_name, actor_kind, created_at
 	) VALUES (
-		${ulid()}, ${pullRequestId}, 'head', 'picture', '{}'::jsonb, ${resource.blob!.sha256},
+		${ulid()}, ${pullRequestId}, ${resource.blob!.sha256}, 'migration.png', 'image/png', 5,
 		${actor.name}, ${actor.kind}, ${now}
 	)`);
 	await db.execute(sql`INSERT INTO ticket_pull_requests (

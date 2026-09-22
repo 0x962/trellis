@@ -2,7 +2,6 @@ import { PencilSimple } from "@phosphor-icons/react";
 import type { AgentRun, ReviewRevision, ReviewSubmission } from "@trellis/api";
 import { IconButton, Tooltip } from "@trellis/ui";
 import { useState } from "react";
-import { UnmetConditions } from "./components/UnmetConditions";
 import { VerdictButton } from "./components/VerdictButton";
 import { VerdictLine } from "./components/VerdictLine";
 import { verdictState } from "./verdictState/verdictState";
@@ -18,17 +17,13 @@ export type VerdictBarProps = {
 	run: AgentRun | null;
 	// The local submissions on this pull request, from `reviews.submissions`.
 	submissions: readonly ReviewSubmission[];
-	// Each merge condition that this pull request does not meet, as one short
-	// phrase such as "1 check failed". The card prints the count and opens
-	// the list.
-	unmet: readonly string[];
 	onDone: () => void;
 };
 
 // The card that floats over the bottom right of the review shows the verdict
 // of the person on one line. A comment on a diff line reaches the agent when
 // the person posts it, so the card holds the two verdicts only.
-export function VerdictBar({ pr, revision, ticket, run, submissions, unmet, onDone }: VerdictBarProps) {
+export function VerdictBar({ pr, revision, ticket, run, submissions, onDone }: VerdictBarProps) {
 	const state = verdictState(submissions);
 	// Change verdict opens the buttons for the verdict on screen only. A new
 	// submission has another id and closes them again.
@@ -36,17 +31,7 @@ export function VerdictBar({ pr, revision, ticket, run, submissions, unmet, onDo
 	const given = state?.current && changing !== state.id ? state : null;
 	return (
 		<section className="review-bar review-verdict-bar" aria-label="Verdict">
-			{/* One dot separates each pair of words, and no dot sits at either
-			    end of the line. */}
-			<div className="review-bar-words">
-				{state && <VerdictLine state={state} />}
-				{state && unmet.length > 0 && (
-					<span className="review-bar-dot" aria-hidden={true}>
-						·
-					</span>
-				)}
-				{unmet.length > 0 && <UnmetConditions unmet={unmet} />}
-			</div>
+			<div className="review-bar-words">{state && <VerdictLine state={state} />}</div>
 			{given === null ? (
 				<>
 					<VerdictButton

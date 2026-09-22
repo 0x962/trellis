@@ -228,7 +228,7 @@ test("the results section lists the done tickets of each earlier wave with their
 	expect(resultsLines(grouped, "01J00000000000000000000032", outcomes)).toEqual([]);
 });
 
-test("the brief prints a stable contract and evidence floor above the chain", async () => {
+test("the brief prints a stable contract and the two evidence lines above the chain", async () => {
 	const db = await openTestDb();
 	const rootId = ulid();
 	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
@@ -268,7 +268,7 @@ test("the brief prints a stable contract and evidence floor above the chain", as
 	const first = await run((tx) => getBrief(ctx, tx, { ticket: ticket.identifier }));
 	const second = await run((tx) => getBrief(ctx, tx, { ticket: ticket.identifier }));
 	const contractAt = first.markdown.indexOf("## Contract");
-	const evidenceAt = first.markdown.indexOf("## Evidence owed");
+	const evidenceAt = first.markdown.indexOf("## Evidence\n");
 	const chainAt = first.markdown.indexOf("## Chain");
 
 	expect(first.markdown).toBe(second.markdown);
@@ -276,27 +276,11 @@ test("the brief prints a stable contract and evidence floor above the chain", as
 	expect(evidenceAt).toBeGreaterThan(contractAt);
 	expect(chainAt).toBeGreaterThan(evidenceAt);
 	expect(first.markdown).toContain("- Leave alone:\n  - packages/cli/src/commands/brief.ts");
-	expect(first.markdown).toContain("Evidence shows this change working in the running product.");
 	expect(first.markdown).toContain(
-		'- Kind: backend\n- summary: trellis summary write <pr> --headline "..." --why - --watch "..."',
+		"## Evidence\n\nWrite the explanation with trellis summary write <pr>, and write the evidence document with trellis evidence write <pr> --body -.\ntrellis pr add and trellis ready <pr> exit with code 1 until the pull request has both, and they name the missing one with its command.\n\n## Chain",
 	);
-	expect(first.markdown).toContain("Write a simple, direct explanation of what changed and why, in plain words.");
-	expect(first.markdown).toContain("Prove the service:");
 	expect(first.markdown).toContain(
 		"## Chain\n\n- Waits on:\n  - nothing\n- Ready: yes. No ticket holds this one back.\n- Releases:\n  - nothing",
-	);
-
-	await db.execute(sql`INSERT INTO repos (id, project_id, owner, repo)
-		VALUES (${ulid()}, ${rootId}, 'example', 'canary')`);
-	const ambiguous = await run((tx) => getBrief(ctx, tx, { ticket: ticket.identifier }));
-	expect(ambiguous.markdown).toContain(
-		"- the other items: unknown. The contract names no file.\n\ntrellis pr add and trellis ready <pr> require the summary and every evidence floor item.\nWhile an item is missing, they exit with code 1 and print each missing item with the command that adds it.\n\nRead the floor of your pull request: trellis evidence check <pr>",
-	);
-
-	await db.execute(sql`DELETE FROM repos WHERE project_id = ${rootId}`);
-	const missing = await run((tx) => getBrief(ctx, tx, { ticket: ticket.identifier }));
-	expect(missing.markdown).toContain(
-		"- the other items: unknown. The contract names no file.\n\ntrellis pr add and trellis ready <pr> require the summary and every evidence floor item.\nWhile an item is missing, they exit with code 1 and print each missing item with the command that adds it.\n\nRead the floor of your pull request: trellis evidence check <pr>",
 	);
 
 	await db.$client.close();
