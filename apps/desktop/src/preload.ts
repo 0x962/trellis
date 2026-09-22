@@ -18,12 +18,18 @@ contextBridge.exposeInMainWorld(
 			void ipcRenderer.invoke("trellis:accessibility-ready");
 			return () => ipcRenderer.removeListener("trellis:accessibility-support", handler);
 		},
+		writeClipboard: (text: string): Promise<void> => ipcRenderer.invoke("trellis:write-clipboard", text),
 		chooseDirectory: (): Promise<string | null> => ipcRenderer.invoke("trellis:choose-directory"),
 		status: (): Promise<DesktopStatus> => ipcRenderer.invoke("trellis:desktop-status"),
 		serviceStatus: (): Promise<DesktopServiceStatus> => ipcRenderer.invoke("trellis:desktop-service-status"),
 		updateStatus: (): Promise<DesktopUpdateStatus> => ipcRenderer.invoke("trellis:desktop-update-status"),
 		setOpenAtLogin: (enabled: boolean): Promise<void> => ipcRenderer.invoke("trellis:set-open-at-login", enabled),
 		run: (action: DesktopAction): Promise<void> => ipcRenderer.invoke("trellis:desktop-action", action),
+		onBrowserCopyLink: (listener: () => void) => {
+			const handler = () => listener();
+			ipcRenderer.on("trellis:browser-copy-link", handler);
+			return () => ipcRenderer.removeListener("trellis:browser-copy-link", handler);
+		},
 		onNavigate: (listener: (path: string) => void) => {
 			const handler = (_event: IpcRendererEvent, path: string) => listener(path);
 			ipcRenderer.on("trellis:navigate", handler);

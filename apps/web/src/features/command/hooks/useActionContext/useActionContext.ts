@@ -1,6 +1,6 @@
 import { useRouter } from "@tanstack/react-router";
 import { eventApplierFor, type Ticket } from "@trellis/api";
-import { toast } from "@trellis/ui";
+import { toast, writeClipboard } from "@trellis/ui";
 import { useMemo } from "react";
 import { useApp } from "../../../../lib/appContext";
 import { openLink } from "../../../../lib/openLink";
@@ -25,7 +25,7 @@ export const useActionContext = (): ActionContext => {
 		() => ({
 			client,
 			origin: window.location.origin,
-			copy: (text: string) => navigator.clipboard.writeText(text),
+			copy: (text: string) => writeClipboard(text),
 			confirm: askConfirm,
 			notify,
 			// `beginMutation` and `endMutation` are the pair that writes one

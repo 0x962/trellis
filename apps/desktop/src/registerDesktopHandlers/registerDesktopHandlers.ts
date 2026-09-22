@@ -1,4 +1,4 @@
-import { app, type BrowserWindow, dialog, type IpcMainInvokeEvent, ipcMain } from "electron";
+import { app, type BrowserWindow, clipboard, dialog, type IpcMainInvokeEvent, ipcMain } from "electron";
 import {
 	type DesktopAction,
 	type DesktopServiceStatus,
@@ -35,6 +35,14 @@ export function registerDesktopHandlers(options: {
 		options.trust(event);
 		const result = await dialog.showOpenDialog(options.window()!, { properties: ["openDirectory"] });
 		return result.canceled ? null : result.filePaths[0];
+	});
+	// The renderer session refuses every web permission, so
+	// `navigator.clipboard.writeText` rejects in the window. A copy goes
+	// through the main process instead.
+	ipcMain.handle("trellis:write-clipboard", (event, text: unknown) => {
+		options.trust(event);
+		if (typeof text !== "string") throw new Error("Invalid clipboard text.");
+		clipboard.writeText(text);
 	});
 	ipcMain.handle("trellis:navigation-ready", (event) => {
 		options.trust(event);

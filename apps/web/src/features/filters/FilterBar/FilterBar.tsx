@@ -1,7 +1,7 @@
 import { Copy, FunnelSimple, Link, ShareFat } from "@phosphor-icons/react";
 import { useRouterState } from "@tanstack/react-router";
 import type { StatusSummary } from "@trellis/api";
-import { FilterBar as FilterToolbar, IconButton, Menu, toast, useHotkey } from "@trellis/ui";
+import { FilterBar as FilterToolbar, IconButton, Menu, toast, useHotkey, writeClipboard } from "@trellis/ui";
 import { type ReactNode, useMemo, useState } from "react";
 import { useEscapeLayer } from "../../../lib/hotkeys";
 import { toCli } from "../cli";
@@ -98,12 +98,12 @@ export function FilterBar({
 	for (const key of ["updated", "created", "completed"] as const) if (query[key] === undefined) delete query[key];
 
 	const copyCli = async () => {
-		await navigator.clipboard.writeText(toCli(project === undefined ? query : { project, ...query }));
+		await writeClipboard(toCli(project === undefined ? query : { project, ...query }));
 		toast("Copied the CLI command");
 	};
 
 	const copyLink = async () => {
-		await navigator.clipboard.writeText(`${window.location.origin}${pathname}${linkSearch(view)}`);
+		await writeClipboard(`${window.location.origin}${pathname}${linkSearch(view)}`);
 		toast("Copied the link");
 	};
 

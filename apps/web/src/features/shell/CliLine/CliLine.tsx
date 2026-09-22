@@ -1,5 +1,5 @@
 import { Copy } from "@phosphor-icons/react";
-import { IconButton, toast } from "@trellis/ui";
+import { IconButton, toast, writeClipboard } from "@trellis/ui";
 
 export type CliLineProps = {
 	// The whole command, as one string.
@@ -9,7 +9,7 @@ export type CliLineProps = {
 // A shell command with a copy button, for the empty states.
 export function CliLine({ command }: CliLineProps) {
 	const copy = async () => {
-		await navigator.clipboard.writeText(command);
+		await writeClipboard(command);
 		toast("Copied to the clipboard");
 	};
 	return (

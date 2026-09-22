@@ -2,6 +2,7 @@ import { ArrowClockwise, ArrowLeft, ArrowRight, ArrowSquareOut, Link } from "@ph
 import { LINK_BROWSER_PARTITION, LINK_BROWSER_WEB_PREFERENCES } from "@trellis/api";
 import { Button, EmptyState, IconButton, Spinner, Tooltip, useHotkey } from "@trellis/ui";
 import { useCallback, useEffect, useState } from "react";
+import type { DesktopBridge } from "../../../../../../../lib/desktopBridge";
 import { PageTitle } from "../../../../../PageTitle";
 import { Topbar } from "../../../../../Topbar";
 import { browserTitle } from "../../browserTitle";
@@ -43,6 +44,12 @@ export function BrowserPage({ url }: BrowserPageProps) {
 		event.preventDefault();
 		copyLink();
 	});
+	// While the web page has focus, its keys skip this document, so the
+	// desktop main process reports the same chord through the bridge.
+	useEffect(() => {
+		const desktop = (window as Window & { trellisDesktop?: Partial<DesktopBridge> }).trellisDesktop;
+		return desktop?.onBrowserCopyLink?.(copyLink);
+	}, [copyLink]);
 	useEffect(() => {
 		if (webview === null) return;
 		const view = webview;

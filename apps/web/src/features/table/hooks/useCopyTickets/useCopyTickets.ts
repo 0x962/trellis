@@ -1,5 +1,5 @@
 import type { TicketSummary } from "@trellis/api";
-import { toast } from "@trellis/ui";
+import { toast, writeClipboard } from "@trellis/ui";
 import { useStableCallback } from "../../../../hooks/useStableCallback";
 import { branchName } from "../../../../lib/branchName";
 import type { CopyKind } from "../useTableHotkeys";
@@ -15,12 +15,12 @@ export const useCopyTickets = () => {
 				: kind === "branch"
 					? branchName(ticket.identifier, ticket.title)
 					: `${window.location.origin}/t/${ticket.identifier}`;
-		await navigator.clipboard.writeText(text);
+		await writeClipboard(text);
 		toast(`Copied ${text}`);
 	});
 
 	const copyIds = useStableCallback(async (tickets: readonly TicketSummary[]) => {
-		await navigator.clipboard.writeText(tickets.map((ticket) => ticket.identifier).join("\n"));
+		await writeClipboard(tickets.map((ticket) => ticket.identifier).join("\n"));
 		toast(`Copied ${tickets.length} ${tickets.length === 1 ? "ID" : "IDs"}`);
 	});
 

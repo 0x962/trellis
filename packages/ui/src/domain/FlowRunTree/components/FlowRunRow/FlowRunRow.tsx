@@ -6,6 +6,7 @@ import { toast } from "../../../../primitives/Toast";
 import { Tooltip } from "../../../../primitives/Tooltip";
 import { cx } from "../../../../utils/cx";
 import { formatClock } from "../../../../utils/formatClock";
+import { writeClipboard } from "../../../../utils/writeClipboard";
 import { flowKindIcons } from "../../flowKindIcons";
 import type { FlowRunRow as Row } from "../../types";
 import { FlowStepMark } from "../FlowStepMark";
@@ -23,7 +24,7 @@ export const rowTime = (row: Row, now: number) => {
 };
 
 const copy = async (text: string, what: string) => {
-	await navigator.clipboard.writeText(text);
+	await writeClipboard(text);
 	toast.success(`${what} copied`);
 };
 

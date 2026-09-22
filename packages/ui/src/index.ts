@@ -142,3 +142,4 @@ export { dotted } from "./utils/dotted";
 export { formatClock } from "./utils/formatClock";
 export { isTextEntry } from "./utils/isTextEntry";
 export { readRowMotion } from "./utils/readRowMotion";
+export { writeClipboard } from "./utils/writeClipboard";
