@@ -70,6 +70,8 @@ export const editorExtensions = (): Extensions => [
 	Placeholder.configure({
 		placeholder: ({ editor, node }) => {
 			if (node.type.name === "heading") return `Heading ${node.attrs.level}`;
+			// A slash in a code block is code, so the hint would be wrong there.
+			if (node.type.name === "codeBlock") return "";
 			if (editor.isEmpty) return editorHost.get().placeholder;
 			return "Press / for blocks";
 		},
