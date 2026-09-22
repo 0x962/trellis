@@ -10,7 +10,7 @@ import { toggleTheme } from "./theme";
 // focused surface registers its handlers with `useHotkeyTarget`, and the
 // innermost registered target receives the key. `g s` focuses the Filter
 // button of the list's filter bar, or the bar itself when the page draws
-// no button.
+// no button. `g e` clicks the epic switcher, which only the epic page draws.
 
 // A second key arrives within this window after `g`, or the sequence is
 // dropped.
@@ -148,6 +148,7 @@ export const useGlobalHotkeys = (options: GlobalHotkeyOptions): string | null =>
 			clear();
 			const actions: Record<string, () => void> = {
 				h: () => navigate("/needs-you"),
+				e: () => document.querySelector<HTMLElement>("[data-epic-switcher]")?.click(),
 				p: onProjectPicker,
 				s: () =>
 					(

@@ -4,7 +4,8 @@ export type PageTitleProps = {
 	// A link to the page above this one, drawn before the title and a slash.
 	// A top-level page passes none.
 	parent?: ReactNode;
-	title: string;
+	// The page name, or a control that holds it, such as the epic switcher.
+	title: ReactNode;
 };
 
 // The title of a page in the topbar: the parent link in muted text, a
