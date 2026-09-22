@@ -116,8 +116,10 @@ type Data = Record<string, unknown>;
 // The extra words a code's payload adds to the server message.
 const detail = (code: string, message: string, data: Data): string => {
 	switch (code) {
-		case "NOT_FOUND":
+		case "NOT_FOUND": {
+			if (typeof data.kind !== "string" || typeof data.ref !== "string") return message;
 			return `No ${data.kind} matches ${data.ref}.`;
+		}
 		case "STATUS_NOT_IN_PROJECT": {
 			const names = (data.valid as Array<{ name: string }>).map((status) => status.name).join(", ");
 			return `${message} Valid statuses: ${names}.`;
