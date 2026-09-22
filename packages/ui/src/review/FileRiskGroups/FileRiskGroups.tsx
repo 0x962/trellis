@@ -70,7 +70,7 @@ export function FileRiskGroups({ groups, selected, onSelect, isCollapsed, onTogg
 				    prints the word Files, so the word would appear twice, one line
 				    apart. `sr-only` takes the heading off the screen and leaves it in
 				    the accessibility tree, where it names this section. */}
-				<h2 className={cx("font-medium text-fg text-sm", phone && "sr-only")}>Files</h2>
+				<h2 className={cx("font-medium text-base text-fg", phone && "sr-only")}>Files</h2>
 				<p className="text-fg-faint text-sm tabular" role="status" aria-live="polite">
 					{totals.read} of {totals.files} read
 				</p>

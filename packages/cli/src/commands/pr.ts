@@ -5,8 +5,7 @@ import { contextOf, wantsJson } from "../context.ts";
 import { pullRequestNotReady } from "../errors.ts";
 import { cell, json, printList, printRecord, type RecordSpec, timeCell } from "../output.ts";
 import { deletedRecord } from "./delete.ts";
-import { pullRequestCheck } from "./evidence/pullRequestCheck.ts";
-import { pullRequestReadyText } from "./ready/pullRequestReady.ts";
+import { pullRequestReadiness, pullRequestReadyText } from "./ready/pullRequestReady.ts";
 import { prList } from "./show.ts";
 
 const prRecord: RecordSpec<PullRequest> = {
@@ -29,10 +28,10 @@ const prRecord: RecordSpec<PullRequest> = {
 
 // The server stores the link even when gh is down; the row then carries
 // `fetchError`. The verb prints the row and still exits 6 for the outage.
-// After a link that gh could read, the verb prints the evidence floor when
-// an item is missing. An agent then gets exit 1; a person keeps exit 0. The
-// link stays in both cases, because the summary, the evidence and
-// `trellis ready` read the floor from the linked row.
+// After a link that gh could read, the verb names the explanation or the
+// evidence document when one is missing. An agent then gets exit 1; a person
+// keeps exit 0. The link stays in both cases, so the agent writes the missing
+// part and runs `trellis ready` on the same pull request.
 const add = defineCommand({
 	meta: { name: "add", description: "Link a pull request by URL" },
 	args: {
@@ -51,11 +50,10 @@ const add = defineCommand({
 			ctx.err.write(`warning: gh could not read the pull request: ${row.fetchError}\n`);
 			return 6;
 		}
-		const ticket = await client.tickets.get({ ticket: context.args.ticket });
-		const result = await pullRequestCheck(client, ticket, row);
-		if (result.complete) return 0;
+		const result = await pullRequestReadiness(client, row);
+		if (result.ready) return 0;
 		ctx.out.write(wantsJson(ctx) ? json(result) : `\n${pullRequestReadyText(result)}`);
-		if (ctx.actor().kind === "agent") throw pullRequestNotReady(row.number);
+		if (ctx.actor().kind === "agent") throw pullRequestNotReady(row.number, result.missing);
 		return 0;
 	},
 });

@@ -9,11 +9,10 @@ import { epicView } from "../epics/epics.ts";
 import { earlierResults, epicHeaderLine, epicLines, resultsLines, waveHeaderLine } from "../epics/text.ts";
 import { activeNotes } from "../notes/notes.ts";
 import { notesLines } from "../notes/text.ts";
-import { effectiveRepos } from "../projectsRepos.ts";
 import { resolveTicket } from "../refs.ts";
 import { chainLines } from "./chainLines.ts";
 import { contractLines } from "./contractLines.ts";
-import { evidenceOwedLines } from "./evidenceOwedLines.ts";
+import { evidenceLines } from "./evidenceLines.ts";
 
 // The markdown an agent starts from. The layout is fixed and every list
 // keeps a stable order, so two reads of the same state give the same bytes
@@ -191,13 +190,11 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<B
 						doneBefore.map((done) => done.id),
 					),
 				);
-	const repos = await effectiveRepos(ctx, tx, { project: ticket.project.path });
-	const repositoryName = repos.length === 1 ? repos[0]?.repo : undefined;
 	const markdown = sections([
 		header(ticket, parentTitle, epic, ctx.publicUrl),
 		["## Description", "", ticket.description],
 		contractLines(ticket.contract),
-		evidenceOwedLines(ticket.contract, repositoryName),
+		evidenceLines,
 		chainLines(ticket, waitsOn),
 		...(epic === null ? [] : epicLines(epic, ticket.id)),
 		results,

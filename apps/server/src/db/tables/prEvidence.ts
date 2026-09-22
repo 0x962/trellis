@@ -1,8 +1,25 @@
 import { sql } from "drizzle-orm";
 import { check, index, jsonb, pgTable, text } from "drizzle-orm/pg-core";
-import { checkIn, EVIDENCE_KINDS } from "../enums.ts";
+import { checkIn } from "../enums.ts";
 import { actorColumns, actorFk, at } from "./actors.ts";
 import { pullRequests } from "./pullRequests.ts";
+
+// The typed evidence records of earlier pull requests. No service reads or
+// writes this table. `pr_files` holds a copy of every file that a row names,
+// so the attachment store keeps those files.
+const EVIDENCE_KINDS = [
+	"before",
+	"after",
+	"capture",
+	"clip",
+	"console",
+	"verify",
+	"test",
+	"contract",
+	"migration",
+	"picture",
+	"equivalence",
+] as const;
 
 export const prEvidence = pgTable(
 	"pr_evidence",

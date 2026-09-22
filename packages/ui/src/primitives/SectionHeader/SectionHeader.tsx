@@ -10,10 +10,6 @@ export type SectionHeaderProps = {
 	// 2 titles a region of a page. 3 titles a part of a region, and it draws
 	// one step down the type scale.
 	level?: 2 | 3;
-	// `caps` draws the title in capital letters and leaves the text as
-	// written, so a reader and a screen reader get the words of the title.
-	// The region titles of the review page use it. The ticket page does not.
-	textCase?: "as-written" | "caps";
 	className?: string;
 };
 
@@ -26,23 +22,13 @@ const countSize = { 2: "text-sm", 3: "text-xs" } as const;
 // action on the right.
 //
 // Write every title in sentence case, and pass `level` to say how deep the
-// header sits. The size carries the level. The case never does, so a reader
-// never asks why one header of a page shouts and the next one does not.
-export function SectionHeader({
-	title,
-	count,
-	actions,
-	level = 2,
-	textCase = "as-written",
-	className,
-}: SectionHeaderProps) {
+// header sits. The size carries the level.
+export function SectionHeader({ title, count, actions, level = 2, className }: SectionHeaderProps) {
 	const Heading = level === 2 ? "h2" : "h3";
 	return (
 		<div className={cx("flex h-7 items-center gap-2", className)}>
 			<Heading className="flex min-w-0 items-baseline gap-2">
-				<span className={cx("truncate font-medium text-fg", titleSize[level], textCase === "caps" && "uppercase")}>
-					{title}
-				</span>
+				<span className={cx("truncate font-medium text-fg", titleSize[level])}>{title}</span>
 				{count !== undefined && <span className={cx("text-fg-faint tabular", countSize[level])}>({count})</span>}
 			</Heading>
 			{actions !== undefined && <div className="ml-auto flex items-center gap-2 text-sm text-fg-faint">{actions}</div>}

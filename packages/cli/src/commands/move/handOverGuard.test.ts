@@ -2,25 +2,17 @@ import { expect, test } from "bun:test";
 import type { TrellisClient } from "@trellis/api/client";
 import { handOverGuard } from "./handOverGuard.ts";
 
-const risk = {
-	auth: "no" as const,
-	migration: "no" as const,
-	dependency: "no" as const,
-	sharedType: "no" as const,
-	deletedTest: "no" as const,
-};
-
 const humanReviewId = "01M24QC2CQ8T155DMRNRMF3E8T";
 const linked = { id: "01M30HDWKZ17G62PJAFHZNED2J", number: 42, url: "https://github.com/acme/roadmap/pull/42" };
 
 const clientWith = ({
-	evidenceRows,
+	evidence,
 	pullRequestState = "open",
 	summaryHead,
 }: {
-	evidenceRows: Array<{ kind: string; headSha: string }>;
+	evidence: { body: string } | null;
 	pullRequestState?: "open" | "closed" | "merged";
-	summaryHead: { body: string } | null;
+	summaryHead: { headline: string } | null;
 }): TrellisClient =>
 	({
 		tickets: {
@@ -28,7 +20,6 @@ const clientWith = ({
 				identifier: "KEY-42",
 				title: "Add the hand-over guard",
 				project: { path: "KEY" },
-				contract: { verify: ["bun test"] },
 				prs: [{ ...linked, state: pullRequestState }],
 			}),
 		},
@@ -38,29 +29,15 @@ const clientWith = ({
 			}),
 		},
 		pullRequests: {
-			listEvidence: async () => evidenceRows,
+			refresh: async () => ({ number: linked.number }),
+			readEvidence: async () => evidence,
 			readSummaryHead: async () => summaryHead,
 		},
-		reviews: {
-			status: async () => ({
-				headRefOid: "head-sha",
-				prRow: {
-					kind: "backend",
-					risk,
-					evidence: evidenceRows.length + (summaryHead === null ? 0 : 1),
-					evidenceRequired: 4,
-					pass: 1,
-					fail: 0,
-					pending: 0,
-					skipped: 0,
-					failedChecks: [],
-				},
-			}),
-		},
+		reviews: { status: async () => ({ headRefOid: "head-sha" }) },
 	}) as unknown as TrellisClient;
 
-test("allows another target without evidence checks", async () => {
-	const client = clientWith({ evidenceRows: [], summaryHead: null });
+test("allows another target without a readiness check", async () => {
+	const client = clientWith({ evidence: null, summaryHead: null });
 
 	expect(await handOverGuard(client, "agent", "KEY-42", "Done")).toBeNull();
 });
@@ -78,37 +55,36 @@ test("allows an agent hand-over with no linked pull request", async () => {
 	expect(await handOverGuard(client, "agent", "KEY-42", "human-review")).toBeNull();
 });
 
-test("refuses an agent with the evidence check list for an incomplete floor", async () => {
+test("refuses an agent and names both missing parts", async () => {
 	for (const statusRef of ["human-review", "Human Review", "Human-Review", "category:review", humanReviewId]) {
 		const missing = await handOverGuard(
-			clientWith({ evidenceRows: [], summaryHead: null }),
+			clientWith({ evidence: null, summaryHead: null }),
 			"agent",
 			"KEY-42",
 			statusRef,
 		);
 
 		expect(missing?.blocksAgent).toBe(true);
-		expect(missing?.result.complete).toBe(false);
-		expect(missing?.result.items.map((item) => item.status)).toEqual(["MISSING", "MISSING", "MISSING", "MISSING"]);
+		expect(missing?.result.missing).toEqual(["explanation", "evidence"]);
 	}
 });
 
-test("shows the evidence check list to a human without a refusal", async () => {
+test("shows the missing parts to a human without a refusal", async () => {
 	const missing = await handOverGuard(
-		clientWith({ evidenceRows: [], summaryHead: null }),
+		clientWith({ evidence: null, summaryHead: null }),
 		"human",
 		"KEY-42",
 		humanReviewId,
 	);
 
 	expect(missing?.blocksAgent).toBe(false);
-	expect(missing?.result.complete).toBe(false);
+	expect(missing?.result.ready).toBe(false);
 });
 
 test("ignores a closed pull request", async () => {
 	expect(
 		await handOverGuard(
-			clientWith({ evidenceRows: [], pullRequestState: "closed", summaryHead: null }),
+			clientWith({ evidence: null, pullRequestState: "closed", summaryHead: null }),
 			"agent",
 			"KEY-42",
 			"human-review",
@@ -116,12 +92,21 @@ test("ignores a closed pull request", async () => {
 	).toBeNull();
 });
 
-test("allows an agent hand-over with a complete floor", async () => {
-	const rows = ["verify", "test", "contract"].map((kind) => ({ kind, headSha: "head-sha" }));
+test("refuses an agent whose pull request has the explanation but no evidence document", async () => {
+	const missing = await handOverGuard(
+		clientWith({ evidence: null, summaryHead: { headline: "A row opens the ticket." } }),
+		"agent",
+		"KEY-42",
+		"human-review",
+	);
 
+	expect(missing?.result.missing).toEqual(["evidence"]);
+});
+
+test("allows an agent hand-over with the explanation and the evidence document", async () => {
 	expect(
 		await handOverGuard(
-			clientWith({ evidenceRows: rows, summaryHead: { body: "summary" } }),
+			clientWith({ evidence: { body: "## Proof" }, summaryHead: { headline: "A row opens the ticket." } }),
 			"agent",
 			"KEY-42",
 			"category:review",

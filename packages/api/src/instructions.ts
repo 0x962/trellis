@@ -15,10 +15,10 @@ Inside Claude Code, every command runs as \`agent:claude-code\`. Elsewhere, set 
 Report what you did in your final message and in the pull request description.
 Never delete tickets.
 
-Prove the change. A pull request without its evidence is not reviewable.
+Prove the change. A pull request is ready for review when it has the explanation and the evidence document.
 
 1. Read the contract:  trellis contract show ${key}-42
-   It names the files, the files to leave alone, the verify commands, the review focus and the evidence owed.
+   It names the files, the files to leave alone, the verify commands and the review focus.
 2. Record each dependency as an edge, never as prose:  trellis edit ${key}-43 --after ${key}-42
 3. Write the summary:  trellis summary write <pr> --headline "..." --why - --watch "..."
    Write a simple, direct explanation of what changed and why, in plain words.
@@ -33,23 +33,15 @@ Prove the change. A pull request without its evidence is not reviewable.
    The watch line names one file and the reason to open it first, or says "nothing".
    Never write the size, the risk or the check counts. Trellis computes them and ignores yours.
    Rewrite the summary after every push.
-4. When the change renders a screen, attach:
-   the after image of each route, at 1440x900, dark; the before image of the same route from the merge base,
-   same viewport, theme and seed; the capture record with both shas, the route, the viewport, the theme, the seed
-   command and the browser; the console error list and the failed request list; a clip of 15 s or less when the
-   change touches motion, a gesture, scroll, timing, or a task of more than one step.
-   Capture in your own worktree, on your own port, with animations off. Register each file with
-   trellis evidence add <pr> --kind before|after|capture|clip|console.
-5. When the change renders no screen, attach:
-   the verify record of each Verify command, with the exit code, the tail and the head sha; each new test by name,
-   with the base sha where it fails and the head sha where it passes; the contract table, before and after, or
-   "no contract changed"; the migration plan when a schema changes; one picture, and one only, when the call path
-   crosses a process, a service or a trust boundary, or when a state machine changes. Write it in Mermaid.
-   Register each record with
-   trellis evidence add <pr> --kind verify|test|contract|migration|picture.
-6. Bind every sentence to something checkable: a file and a line, a check result, a test name, or a number with
+4. Write the evidence document:  trellis evidence write <pr> --body proof.md
+   Write Markdown that shows the change working in the running product.
+   Add a screenshot or a recording of each changed screen: ![what it shows](path/to/file.png). The command uploads each local image.
+   Add each real request with its response, and the output of each command you ran, in code blocks.
+   Add a table or a mermaid diagram when it makes the change clear.
+   Write the document again after a push that changes what it shows.
+5. Bind every sentence to something checkable: a file and a line, a check result, a test name, or a number with
    its sha. Say when a sentence is a guess.
-7. Check yourself:  trellis evidence check <pr>
+6. Check yourself:  trellis ready <pr>
    Hand over:        trellis move ${key}-42 human-review
 
 Labels say what a ticket is about. Read the set of the project: trellis labels list ${key}
@@ -66,13 +58,11 @@ Plan an epic. A plan that produces several tickets is an epic. The epic descript
 - Record order with \`--after\`. Each ticket that needs another ticket records \`--after\` on that ticket.
 - After each set of parallel fronts, add a wave that integrates them. One ticket merges the branches and runs all checks.
 - Keep the sequential steps of one front inside its ticket as ordered sub-tickets.
-- Each ticket states its files, the files to leave alone, the verify commands, the review focus, and the evidence owed.
+- Each ticket states its files, the files to leave alone, the verify commands, and the review focus.
 - Two tickets in one wave never own the same file.
 - Keep a wave to 2 to 8 tickets and an epic to 6 waves. A larger plan is two epics.
 - The person is the manager. The person starts the agents. Do not wait for a gate.
-- Frontend evidence floor: summary, after image, before image, capture record, console list.
-- Backend evidence floor: summary, verify record, test proof, contract table.
-- Read the full evidence rules in \`docs/EVIDENCE.md\`.
+- Each pull request carries an explanation and an evidence document. Read \`docs/EVIDENCE.md\`.
 Create the epic: trellis epics create --project ${key} --name "..." --description - < plan.md
 Create each wave in order: trellis waves create ${key}/<epic-slug> --name "Foundation"
 Create each ticket in its wave: trellis create -p ${key} --wave ${key}/<epic-slug>/<wave-slug> -t "Server: ..."

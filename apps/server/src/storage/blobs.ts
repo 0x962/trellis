@@ -3,7 +3,7 @@ import { mkdir, rename, unlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { ulid } from "ulid";
 
-// An attachment or evidence file is stored once per sha256 and is named by that hash.
+// An attachment or pull request file is stored once per sha256 and is named by that hash.
 // The first two characters of the hash are a directory, so one directory
 // never holds every file of the machine. No database row keeps a path, so a
 // data home that moves to another directory still resolves every file.
@@ -143,7 +143,7 @@ const shardDirs = (home: string) =>
 		.map((entry) => entry.name);
 
 // Runs at boot, before the server answers a request. `liveShas` is every
-// sha256 that an attachment or evidence row holds. A process can stop between
+// sha256 that an attachment, pull request file, or epic resource row holds. A process can stop between
 // a committed delete and the file removal. This sweep removes that unowned file.
 // Every file under `attachments/tmp` belongs to an upload that stopped, unless
 // an upload in flight marked it.

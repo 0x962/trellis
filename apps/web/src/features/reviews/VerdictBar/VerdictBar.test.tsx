@@ -28,12 +28,7 @@ const submission = (facts: Partial<ReviewSubmission>): ReviewSubmission => ({
 	...facts,
 });
 
-const render = (props: {
-	ticket: string | null;
-	run: AgentRun | null;
-	submissions?: ReviewSubmission[];
-	unmet?: string[];
-}) =>
+const render = (props: { ticket: string | null; run: AgentRun | null; submissions?: ReviewSubmission[] }) =>
 	renderToStaticMarkup(
 		<AppProvider value={app}>
 			<QueryClientProvider client={queryClient}>
@@ -43,7 +38,6 @@ const render = (props: {
 					ticket={props.ticket}
 					run={props.run}
 					submissions={props.submissions ?? []}
-					unmet={props.unmet ?? []}
 					onDone={() => {}}
 				/>
 			</QueryClientProvider>
@@ -122,23 +116,4 @@ test("a comment shows as the last note and keeps every verdict", () => {
 	expect(html).toContain("You commented");
 	expect(html).toMatch(/<button[^>]*aria-label="Approve"/);
 	expect(html).not.toMatch(/aria-label="Change verdict"/);
-});
-
-test("the card counts the unmet conditions and prints none of them inline", () => {
-	const html = render({ ticket: "TRL-274", run: crispFjord, unmet: ["1 check failed", "2 of 4 evidence"] });
-
-	expect(html).toContain("2 conditions unmet");
-	expect(html).not.toContain("1 check failed");
-});
-
-test("one unmet condition reads in the singular", () => {
-	const html = render({ ticket: "TRL-274", run: crispFjord, unmet: ["1 check failed"] });
-
-	expect(html).toContain("1 condition unmet");
-});
-
-test("a pull request that meets every condition prints no condition count", () => {
-	const html = render({ ticket: "TRL-274", run: crispFjord });
-
-	expect(html).not.toContain("unmet");
 });

@@ -1,1 +1,0 @@
-export { EvidenceStripSection } from "./EvidenceStripSection";

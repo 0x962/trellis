@@ -21,9 +21,9 @@ import { chooseDirectory } from "./native/chooseDirectory";
 import { type ProcedureContext, router } from "./procedures/index.ts";
 import { docsRoutes } from "./routes/docs.ts";
 import { type Clock, createEventsRoute, realClock } from "./routes/events.ts";
-import { evidenceFileRoute } from "./routes/evidenceFile.ts";
 import { exportRoute } from "./routes/export.ts";
 import { filesRoute } from "./routes/files.ts";
+import { prFileRoute } from "./routes/prFile.ts";
 import { resourceBlobRoute } from "./routes/resourceBlob.ts";
 import { reviewImageRoute } from "./routes/reviewImage";
 import { staticRoute } from "./routes/static.ts";
@@ -165,7 +165,7 @@ export const createApp = ({
 		bodyLimit({ maxSize: maxBytes, onError: (c) => c.json(errorBody("PAYLOAD_TOO_LARGE", { maxBytes }), 413) }),
 	);
 	app.use(
-		"/api/prs/:id/evidence/:evidenceId",
+		"/api/prs/:id/files/:fileId",
 		bodyLimit({ maxSize: maxBytes, onError: (c) => c.json(errorBody("PAYLOAD_TOO_LARGE", { maxBytes }), 413) }),
 	);
 	// The RPC codec wraps every body in `json`. The limit answers before the
@@ -179,7 +179,7 @@ export const createApp = ({
 		}),
 	);
 	app.use(
-		"/rpc/pullRequests/writeEvidence",
+		"/rpc/pullRequests/uploadFile",
 		bodyLimit({
 			maxSize: maxBytes,
 			onError: (c) => c.json({ json: errorBody("PAYLOAD_TOO_LARGE", { maxBytes }) }, 413),
@@ -239,7 +239,7 @@ export const createApp = ({
 	});
 
 	app.get("/api/review-image", reviewImageRoute(transport));
-	app.get("/api/evidence/:evidenceId/file", evidenceFileRoute({ config, transport }));
+	app.get("/api/evidence/:fileId/file", prFileRoute({ config, transport }));
 	app.get("/api/resources/:id/blob", resourceBlobRoute({ config, transport }));
 	app.get("/api/events", events.handler);
 	app.get("/api/agent-runs/:id/terminal/stream", terminalStreamRoute(config, transport));

@@ -2,12 +2,9 @@ import {
 	ActorChipSection,
 	AgentProfileMarkSection,
 	AttentionDotSection,
-	BackendEvidenceSection,
 	ChangeSummarySection,
 	CheckRibbonSection,
 	ChecksLineSection,
-	ConditionsBlockSection,
-	EvidenceStripSection,
 	FileRiskGroupsSection,
 	FlowRunSection,
 	LineChangesSection,
@@ -42,11 +39,8 @@ export function DomainSections() {
 			<TrellisMarkSection />
 			<FlowRunSection />
 			<FileRiskGroupsSection />
-			<ConditionsBlockSection />
 			<RunLineSection />
 			<ChangeSummarySection />
-			<EvidenceStripSection />
-			<BackendEvidenceSection />
 			<StartControlsSection />
 			<ResourceListSection />
 		</>

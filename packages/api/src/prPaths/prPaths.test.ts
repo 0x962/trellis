@@ -42,28 +42,6 @@ describe("risk answers", () => {
 	});
 });
 
-describe("pull request kind", () => {
-	test("returns backend for backend paths", () => {
-		expect(prPaths("trellis", [file("apps/server/src/app.ts")]).kind).toBe("backend");
-	});
-
-	test("returns frontend when every path renders the frontend", () => {
-		expect(prPaths("trellis", [file("apps/web/src/routes/index.tsx"), file("packages/ui/src/Button.tsx")]).kind).toBe(
-			"frontend",
-		);
-	});
-
-	test("returns mixed for frontend and backend paths", () => {
-		expect(prPaths("canary", [file("frontend/src/App.tsx"), file("backend/canary/hotels/selectors.py")]).kind).toBe(
-			"mixed",
-		);
-	});
-
-	test("returns backend as the default for an empty path list", () => {
-		expect(prPaths("trellis", []).kind).toBe("backend");
-	});
-});
-
 describe("path groups", () => {
 	test("puts public API files and secret-like paths in risk", () => {
 		const paths = [file("src/api/public.ts"), file("config/service-token.txt")];

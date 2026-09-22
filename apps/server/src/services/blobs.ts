@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { resourceHoldsBlob } from "../db/queries/epicResources.ts";
-import { evidenceHoldsBlob } from "../db/queries/prEvidence.ts";
+import { prFileHoldsBlob } from "../db/queries/prFiles.ts";
 import { rows } from "../db/queries/support.ts";
 import { gcBlobs as gcStoredBlobs } from "../storage/blobs.ts";
 import type { ServiceCtx } from "./support.ts";
@@ -13,10 +13,10 @@ const holdsSha = (ctx: BlobCtx, sha256: string) =>
 			tx,
 			sql`SELECT EXISTS (SELECT 1 FROM attachments WHERE sha256 = ${sha256}) AS held`,
 		);
-		return row!.held || (await evidenceHoldsBlob(tx, sha256)) || (await resourceHoldsBlob(tx, sha256));
+		return row!.held || (await prFileHoldsBlob(tx, sha256)) || (await resourceHoldsBlob(tx, sha256));
 	});
 
-// Removes each file that no attachment, pull request evidence row, or epic
+// Removes each file that no attachment, pull request file, or epic
 // resource row owns. The caller runs this after its transaction commits, so
 // a rollback keeps every file.
 export const gcBlobs = (ctx: BlobCtx, shas: string[]) =>

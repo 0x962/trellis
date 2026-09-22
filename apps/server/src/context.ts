@@ -25,7 +25,7 @@ export type RequestContext = {
 // the status sets. `actorCache` maps `kind:name` to the last instant the
 // actor row was written. `dropBlobs` queues the blob files of these hashes
 // for removal after the commit. A file stays when an attachment, pull request
-// evidence, or epic resource row still names it. A rolled back transaction
+// file, or epic resource row still names it. A rolled back transaction
 // removes no file.
 // `publicUrl` is the origin of every absolute link a service writes, because
 // an agent reads a brief outside a browser.

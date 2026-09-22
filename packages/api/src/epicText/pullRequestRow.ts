@@ -1,4 +1,3 @@
-import { evidenceWord } from "../evidenceFloor/evidenceWord.ts";
 import type { TicketPr } from "../schemas/ticketPr.ts";
 import { turnOf } from "../turn/turn.ts";
 import { factSeparator, groupSeparator } from "./separators.ts";
@@ -52,11 +51,6 @@ const checkFacts = (pr: TicketPr): string[] =>
 const threadFacts = (pr: TicketPr): string[] =>
 	pr.openThreads === 0 ? [] : [countWord(pr.openThreads, "comment", "comments")];
 
-const evidenceFacts = (pr: TicketPr): string[] => {
-	const word = evidenceWord(pr);
-	return word === null ? [] : [word];
-};
-
 // `succeeded` reads `passed`, the word the check counts already use for the
 // same outcome.
 const flowWords: Record<TicketPr["flowRuns"][number]["status"], string> = {
@@ -85,7 +79,6 @@ const factGroups: ReadonlyArray<(pr: TicketPr) => string[]> = [
 	sizeFacts,
 	checkFacts,
 	threadFacts,
-	evidenceFacts,
 	flowFacts,
 	turnFacts,
 ];

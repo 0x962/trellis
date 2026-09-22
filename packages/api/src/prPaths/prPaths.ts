@@ -1,6 +1,5 @@
 import type { ChangedFile } from "../schemas/pullRequest.ts";
 
-export type PrKind = "frontend" | "backend" | "mixed";
 export type PrPathGroup = "risk" | "behavior" | "tests" | "noise";
 export type PrRiskAnswer = "yes" | "no";
 export type PrChangeType = ChangedFile["change"];
@@ -21,7 +20,6 @@ export const changedFilePaths = (files: ChangedFile[]): PrPath[] =>
 	}));
 
 export type PrPathFacts = {
-	kind: PrKind;
 	risk: {
 		auth: PrRiskAnswer;
 		migration: PrRiskAnswer;
@@ -33,7 +31,6 @@ export type PrPathFacts = {
 };
 
 type Rules = {
-	frontendRoot: RegExp;
 	migrationFolder: RegExp;
 	dependencyManifest: RegExp;
 	sharedTypeRoot: RegExp;
@@ -51,7 +48,6 @@ const noisePath =
 
 const repositoryRules = {
 	default: {
-		frontendRoot: /^frontend\//,
 		migrationFolder: /(^|\/)(migrations?)(\/|[._-])/,
 		dependencyManifest:
 			/(^|\/)(bun\.lockb?|package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock|deno\.jsonc?|pyproject\.toml|poetry\.lock|requirements[^/]*\.txt|pdm\.lock|uv\.lock|cargo\.toml|cargo\.lock|go\.mod|go\.sum|gemfile(\.lock)?|composer\.json|composer\.lock|pubspec\.yaml|pubspec\.lock)$/,
@@ -59,7 +55,6 @@ const repositoryRules = {
 	},
 	canary: {},
 	trellis: {
-		frontendRoot: /^(apps\/web|packages\/ui)\//,
 		migrationFolder: /(^|\/)(drizzle|migrations?)(\/|[._-])/,
 		dependencyManifest: /(^|\/)(bun\.lockb?|package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock)$/,
 		sharedTypeRoot: /^packages\/api\//,
@@ -70,7 +65,6 @@ const yesNo = (value: boolean): PrRiskAnswer => (value ? "yes" : "no");
 
 export const isTestPath = (path: string): boolean => testPathPattern.test(path.toLowerCase());
 
-// The path list contains at least one changed file. A caller with no file data keeps its pull request kind unknown.
 export function prPaths(repo: string, paths: PrPath[]): PrPathFacts {
 	const override = repositoryRules[repo.toLowerCase() as keyof typeof repositoryRules];
 	const rules: Rules = { ...repositoryRules.default, ...override };
@@ -79,7 +73,6 @@ export function prPaths(repo: string, paths: PrPath[]): PrPathFacts {
 		const isTestFile = isTestPath(path);
 		return {
 			path: entry.path,
-			frontend: rules.frontendRoot.test(path),
 			auth: !isTestFile && authPath.test(path),
 			migration: !isTestFile && rules.migrationFolder.test(path),
 			dependency: !isTestFile && rules.dependencyManifest.test(path),
@@ -91,7 +84,6 @@ export function prPaths(repo: string, paths: PrPath[]): PrPathFacts {
 			noise: noisePath.test(path),
 		};
 	});
-	const frontendCount = facts.filter((fact) => fact.frontend).length;
 	// A path can match more than one rule. A deleted test file gets `risk` before a noise match.
 	// A noise match gets `noise` before an ordinary test file gets `tests`.
 	// The risk answers still report an auth or migration match on a noise path.
@@ -110,7 +102,6 @@ export function prPaths(repo: string, paths: PrPath[]): PrPathFacts {
 		]),
 	);
 	return {
-		kind: frontendCount === 0 ? "backend" : frontendCount === facts.length ? "frontend" : "mixed",
 		risk: {
 			auth: yesNo(facts.some((fact) => fact.auth)),
 			migration: yesNo(facts.some((fact) => fact.migration)),

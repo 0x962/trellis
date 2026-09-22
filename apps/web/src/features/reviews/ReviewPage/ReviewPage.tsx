@@ -1,7 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import {
-	type Evidence,
-	evidenceFloor,
 	type GitHubConversationItem,
 	isAgentWorking,
 	type ReviewRevision,
@@ -16,9 +14,7 @@ import type { DiffAnchor } from "@trellis/ui/review";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
-import { ConditionsBlock } from "../ConditionsBlock";
-import { unmetConditions } from "../conditionLines/conditionLines";
-import { EvidenceStrip } from "../EvidenceStrip";
+import { EvidenceDocument } from "../EvidenceDocument";
 import { FileRiskGroups } from "../FileRiskGroups";
 import { FlowRuns } from "../FlowRuns";
 import { ApplySuggestionsDialog, ReviewApplyContext, type ReviewApplyState, ReviewBatchBar } from "../ReviewApply";
@@ -34,7 +30,6 @@ import { FilesDisclosure } from "./components/FilesDisclosure";
 import { type GithubPullRequest, ReviewIdentity } from "./components/ReviewIdentity";
 import { ReviewDiffSkeleton, ReviewTreeSkeleton } from "./components/ReviewPageSkeleton";
 import { TurnLine } from "./components/TurnLine";
-import { baseOf, conditionsOf } from "./conditionsOf";
 import { useActiveThread } from "./hooks/useActiveThread";
 import { useReadMarks } from "./hooks/useReadMarks";
 import { useReviewData } from "./hooks/useReviewData";
@@ -43,8 +38,6 @@ import "@trellis/ui/review.css";
 
 const noThreads: ReviewThread[] = [];
 const noSubmissions: ReviewSubmission[] = [];
-const noRecords: Evidence[] = [];
-const noConditions: string[] = [];
 
 type Commit = { oid: string; messageHeadline: string };
 const commitsOf = (revision: ReviewRevision | null) =>
@@ -137,31 +130,10 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	// A file-list choice overrides the path of a linked thread.
 	const deepLinkPath = activeThread === null ? undefined : threadsById.get(activeThread)?.path;
 	const selectedPath = pickedPath !== "" ? pickedPath : (pickedAnchor?.path ?? deepLinkPath ?? "");
-	// The summary and evidence records must match the revision on screen.
 	const headSha = revision?.headSha ?? "";
-	const records = useMemo(
-		() => (evidence.data ?? noRecords).filter((record) => record.headSha === headSha),
-		[evidence.data, headSha],
-	);
 	const allSubmissions = submissions.data ?? noSubmissions;
 	const summaryRow = summary.data ?? null;
 	const prRow = status.data?.prRow ?? null;
-	const floor =
-		prRow === null || prRow.kind === null || prRow.risk === null
-			? null
-			: evidenceFloor({
-					kind: prRow.kind,
-					risk: prRow.risk,
-					rows: records,
-					hasSummary: summaryRow !== null && summaryRow.headSha === headSha,
-				});
-	const conditions = conditionsOf({
-		prRow,
-		records,
-		floor,
-		waitsOn: ticket.data?.waitsOn ?? [],
-		base: baseOf(displayRevision, prRow?.baseRef ?? displayMeta?.baseRefName ?? "unknown"),
-	});
 	// The ticket row also knows the ticket status and its dependencies.
 	// `prRow` is the fallback for a pull request that no ticket links.
 	const turnInput = ticket.data ?? prRow;
@@ -252,7 +224,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 							label: "Overview",
 							content: (
 								<div className="review-blocks">
-									{!overviewReady || conditions === null ? (
+									{!overviewReady ? (
 										<section aria-busy="true">
 											<span className="sr-only" role="status">
 												The overview is loading.
@@ -262,8 +234,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 									) : (
 										<>
 											<ChangeSummary summary={summaryRow} headSha={headSha} />
-											{floor && <EvidenceStrip records={records} floor={floor} />}
-											<ConditionsBlock conditions={conditions} />
+											<EvidenceDocument evidence={evidence.data ?? null} />
 										</>
 									)}
 									<ReviewDiscussion
@@ -380,7 +351,6 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 							ticket={status.data?.ticket?.identifier ?? null}
 							run={run}
 							submissions={allSubmissions}
-							unmet={conditions === null ? noConditions : unmetConditions(conditions)}
 							onDone={refreshAll}
 						/>
 					)}

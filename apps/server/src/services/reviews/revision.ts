@@ -197,12 +197,10 @@ export async function status(ctx: PrepareCtx, input: { pr: string }) {
 	return JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", fields])) as Record<string, unknown>;
 }
 // GitHub answers `compare/<base head>...<pull request head>` with the commit
-// that both branches share and with `behind_by`: how many commits the base
-// branch holds that the pull request head does not. The review page prints
-// that count as "N commits behind <base branch>".
+// that both branches share. The old side of the diff reads files at that commit.
 export const comparisonFacts = (raw: string) => {
-	const comparison = JSON.parse(raw) as { merge_base_commit: { sha: string }; behind_by: number };
-	return { comparisonBaseSha: comparison.merge_base_commit.sha, behindBy: comparison.behind_by };
+	const comparison = JSON.parse(raw) as { merge_base_commit: { sha: string } };
+	return { comparisonBaseSha: comparison.merge_base_commit.sha };
 };
 export async function loadCurrentRevision(ctx: PrepareCtx, ref: ReturnType<typeof parseRef>) {
 	const meta = JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", fields])) as Record<string, unknown> &

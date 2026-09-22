@@ -200,7 +200,7 @@ export function DisplaySections() {
 			</Section>
 			<Section
 				name="SectionHeader"
-				note="title, count, and actions; an empty section is the row alone; caps and the level of a region title"
+				note="title, count, and actions; an empty section is the row alone; the level of a part of a region"
 				className="items-stretch"
 			>
 				<div className="flex w-120 flex-col gap-3">
@@ -222,8 +222,7 @@ export function DisplaySections() {
 						}
 					/>
 					<SectionHeader title="Timeline" count="14" actions={<span>updated 9h ago</span>} />
-					<SectionHeader title="The evidence" textCase="caps" />
-					<SectionHeader level={3} title="Flows" count="1" textCase="caps" />
+					<SectionHeader level={3} title="Open" count="1" />
 				</div>
 			</Section>
 		</>

@@ -110,7 +110,7 @@ Native project agents use Git worktrees under `agents/<run id>/work`.
 The ticket page holds the title, the ask, the sub-tickets, the pull requests and the attachments in one centered column.
 Its properties rail holds the pickers and the agent assignment.
 The review sheet of a pull request has four tabs: Overview, Checks, Flows and Diff.
-Overview holds the summary, the merge conditions, the evidence and the discussion. Checks holds every GitHub check of the head commit with its duration. Flows holds the flow runs of the ticket. Diff holds the file tree and the diff.
+Overview holds the summary, the evidence document and the discussion. Checks holds every GitHub check of the head commit with its duration. Flows holds the flow runs of the ticket. Diff holds the file tree and the diff.
 The tab stays in the URL of `/reviews/<owner>/<repo>/<number>` as `?tab=overview|checks|flows|diff`, and a link that names the older value `facts` opens Overview.
 The authenticated terminal stream replays retained bytes and then pushes output and process observations.
 The terminal WebSocket carries ordered input and binary output outside the database request path after attachment.
@@ -351,11 +351,10 @@ raises the ticket version. `tickets.get` reads the contract. The import API is
 The contract uses TicketRef, a ULID or `KEY-n`. The CLI verb is `trellis
 contract`. `trellis contract set` takes one result and repeated `--file`,
 `--leave-alone`, `--verify`, and `--focus` flags. `trellis contract show`
-prints the stored fields and the evidence floor that the file paths imply.
+prints the stored fields.
 
-No web route draws the contract. The ticket brief prints the contract fields
-and the evidence floor that the file paths imply, and `trellis contract show`
-prints the same.
+No web route draws the contract. The ticket brief prints the contract fields,
+and `trellis contract show` prints the same.
 
 ### Pull request summaries
 
@@ -385,51 +384,45 @@ The CLI verb is `trellis summary` with `write`, `show`, and `body`.
 
 The web route `/reviews/<owner>/<repo>/<number>` shows the summary first on
 its Overview tab. It shows a revision warning when the stored head SHA differs
-from the displayed revision. On a ticket or epic, each row for a pull request
-includes the current-head summary in its evidence count.
+from the displayed revision.
 
 ### Pull request evidence
 
-`pr_evidence` holds one immutable record for a pull request head. A row stores
-its ULID, pull request, head SHA, kind, JSON record, optional blob SHA-256,
-actor, and creation time. A delete of the pull request cascades to its evidence.
-Stored files use the shared content-addressed blob store.
+`pr_evidence_documents` holds one Markdown evidence document for each pull
+request. The agent writes it to show the change working in the running
+product. The row stores the body, the head SHA of the write, the actor,
+`created_at`, and `updated_at`. A new write replaces the body and keeps
+`created_at`. The server compares the head SHA with the head that GitHub
+reports before it opens the transaction.
 
-The evidence kinds are `before`, `after`, `capture`, `clip`, `console`,
-`verify`, `test`, `contract`, `migration`, `picture`, and `equivalence`.
-Each kind has a strict record schema. A repeated evidence ULID returns the
-existing row only when every stored value and the actor match. Another value
-with that ULID is `DUPLICATE`.
+`pr_files` holds each image or file that a summary or an evidence document
+shows. A row stores its ULID, pull request, blob SHA-256, file name, MIME type,
+size, and actor. The bytes use the shared content-addressed blob store. A
+delete of the pull request cascades to its document and its files.
 
-The frontend floor is summary, after image, before image, capture record, and
-console list. The backend floor is summary, verify record, test proof, and
-contract table. A mixed pull request owes both floors. Migration risk adds a
-migration plan. Auth, migration, dependency, or shared-type risk adds a
-picture. Deleted-test risk adds equivalence proof.
+`pr_evidence` holds the typed evidence records of earlier pull requests. No
+service reads or writes it. `pr_files` holds a copy of each file that a row of
+`pr_evidence` names.
 
-The API is `pullRequests.listEvidence`, `pullRequests.readEvidence`, and
-`pullRequests.writeEvidence`. The routes are `GET /api/prs/{id}/evidence`,
-`GET /api/evidence/{evidenceId}`, and
-`PUT /api/prs/{id}/evidence/{evidenceId}`. The file route is
-`GET /api/evidence/{evidenceId}/file`. Pull request and evidence identifiers
-are ULIDs. A write must name the head SHA that GitHub reports.
+The API is `pullRequests.readEvidence`, `pullRequests.writeEvidence`,
+`pullRequests.uploadFile`, and `pullRequests.readFile`. The routes are
+`GET /api/prs/{id}/evidence`, `PUT /api/prs/{id}/evidence`,
+`PUT /api/prs/{id}/files/{fileId}`, and `GET /api/pr-files/{fileId}`. The file
+route is `GET /api/evidence/{fileId}/file`.
 
-The CLI uses the summary ref grammar: a number, a GitHub URL, or
-`owner/repo#<number>`. The CLI verb is `trellis evidence` with `add`, `list`,
-and `check`. `check` refreshes the pull request, computes its current-head
-floor, prints each missing record and command, and exits 1 for an incomplete
-floor.
+The CLI verb is `trellis evidence` with `write` and `show`. `write` reads a
+Markdown file or stdin, uploads each local image, and points the image at its
+stored file. `trellis summary write` uploads its images the same way.
 
-The CLI checks open linked pull requests before an actor moves a ticket to
-`human-review`. It stops at the first floor that is incomplete for the current
-head. It refuses an agent and prints the missing list. It prints the same list
-for a human but permits the human's move. The server does not apply this CLI
-guard in `tickets.move`.
+`trellis pr add` and `trellis ready <pr>` require the current-head summary and
+the evidence document. While one is missing, they print it with its command,
+and they exit 1 for an agent. The CLI applies the same check to each open
+linked pull request before an actor moves a ticket to `human-review`. It
+refuses an agent and permits a human. The server does not apply this CLI guard
+in `tickets.move`.
 
-The web route `/reviews/<owner>/<repo>/<number>` shows current-head evidence
-on its Overview tab, under the summary and the merge conditions. It renders
-frontend and backend records according to the pull request kind. The route
-shows each missing item with its fill command. No ticket route draws evidence.
+The web route `/reviews/<owner>/<repo>/<number>` renders the evidence document
+on its Overview tab, under the summary.
 
 ### Epic resources
 

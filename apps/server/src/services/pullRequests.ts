@@ -3,7 +3,7 @@ import { reviewRef } from "@trellis/api/client";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { actorDisplayName } from "../db/queries/actorDisplayName.ts";
-import { blobShasOfPullRequest } from "../db/queries/prEvidence.ts";
+import { blobShasOfPullRequest } from "../db/queries/prFiles.ts";
 import {
 	type LinkedPullRequestRow,
 	type PullRequestRow,
