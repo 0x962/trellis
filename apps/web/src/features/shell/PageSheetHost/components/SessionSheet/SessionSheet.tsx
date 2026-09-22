@@ -1,11 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { EmptyState } from "@trellis/ui";
+import { useRef } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { pageSheetActions, usePageSheetStore } from "../../../../../stores/pageSheetStore";
 import { SessionConversation } from "../../../../sessions/SessionConversation";
 import { PageSheet } from "../../../PageSheet";
 import { useShown } from "../../useShown";
 import { BrowserSheet } from "../BrowserSheet";
+
+const sheetOpenMotionMs = () =>
+	Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--duration-peek"));
 
 // The session of one agent run, in a `PageSheet` over the page that opened
 // it. The store holds the id of the run, and this query reads the run that
@@ -17,12 +21,19 @@ export function SessionSheet() {
 	const { orpc } = useApp();
 	const session = usePageSheetStore((state) => state.session);
 	const shown = useShown(session);
+	const openedAt = useRef(performance.now());
+	const previousSession = useRef(session);
+	if (session !== previousSession.current) {
+		previousSession.current = session;
+		if (session !== null) openedAt.current = performance.now();
+	}
 	const runs = useQuery({
 		...orpc.agentRuns.list.queryOptions({ input: { ids: [shown ?? ""] } }),
 		refetchInterval: 2000,
 		enabled: shown !== null,
 	});
 	const run = runs.data?.[0] ?? null;
+	const terminalFocusDelay = Math.max(0, sheetOpenMotionMs() - (performance.now() - openedAt.current));
 	return (
 		<PageSheet open={session !== null} onClose={pageSheetActions.closeSession} title={run?.name ?? "Session"}>
 			{shown !== null && runs.isError && (
@@ -31,7 +42,9 @@ export function SessionSheet() {
 			{shown !== null && runs.isSuccess && run === null && (
 				<EmptyState variant="page" title="The session is gone" description="Trellis holds no run with this id." />
 			)}
-			{run !== null && <SessionConversation key={run.id} run={run} />}
+			{run !== null && (
+				<SessionConversation key={run.id} run={run} autoFocusTerminal autoFocusTerminalDelay={terminalFocusDelay} />
+			)}
 			<BrowserSheet at="session" />
 		</PageSheet>
 	);

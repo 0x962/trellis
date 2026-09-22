@@ -57,6 +57,7 @@ export function SessionPage({ id }: { id: string }) {
 					key={session.runId}
 					session={session}
 					run={session.run}
+					autoFocusTerminal
 					onDeleted={() => void navigate({ to: "/needs-you" })}
 				/>
 			</div>
