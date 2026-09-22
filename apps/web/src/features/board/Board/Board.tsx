@@ -7,7 +7,7 @@ import {
 	type StatusSummary,
 	type TicketSummary,
 } from "@trellis/api";
-import { toast, useMediaQuery, useTheme } from "@trellis/ui";
+import { Button, EmptyState, toast, useMediaQuery, useTheme } from "@trellis/ui";
 import { type MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
@@ -204,6 +204,22 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 		if (!selection.click(column.id, ticket.id, event)) onOpenTicket(ticket.identifier);
 	};
 
+	const failed = boardQuery.data === undefined && boardQuery.failureCount > 0;
+	if (failed)
+		return (
+			<EmptyState
+				variant="page"
+				title="Could not load tickets"
+				action={
+					<Button
+						size="md"
+						onClick={() => void context.queryClient.resetQueries({ queryKey: boardOptions.queryKey, exact: true })}
+					>
+						Retry
+					</Button>
+				}
+			/>
+		);
 	if (!ready) return <BoardSkeleton />;
 
 	const labelTicket = columns.flatMap((column) => column.items).find((item) => item.id === labelTicketId);

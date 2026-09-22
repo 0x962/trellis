@@ -80,8 +80,8 @@ export const downAfterFailures = 4;
 // the leader included, feeds applyEvent once per data event. The leader's
 // status travels over the channel, so a follower's dot and banner mirror it.
 // A failed connection reopens from the last id with the backoff above; a
-// `bye` reopens after 1 s. Every ready but the first invalidates every
-// query, because the gap between two connections may exceed the server's
+// `bye` reopens after 1 s. Every ready but the first refetches active
+// queries, because the gap between two connections may exceed the server's
 // ring buffer, and so does a ready from another boot.
 export const createLive = (options: LiveOptions): Live => {
 	const { queryClient, locks, createChannel, EventSource, scheduler } = options;
@@ -105,6 +105,11 @@ export const createLive = (options: LiveOptions): Live => {
 		void queryClient.invalidateQueries();
 	};
 
+	const refreshActiveAfterReconnect = () => {
+		void queryClient.invalidateQueries({ refetchType: "none" });
+		void queryClient.refetchQueries({ type: "active" });
+	};
+
 	const clearTimer = (handle: unknown) => {
 		if (handle !== undefined) scheduler.clearTimeout(handle);
 	};
@@ -123,7 +128,7 @@ export const createLive = (options: LiveOptions): Live => {
 				reconnectingTimer = undefined;
 				status.set("live");
 			}
-			if (!first || bootChanged) invalidateAll();
+			if (!first || bootChanged) refreshActiveAfterReconnect();
 			return;
 		}
 		if (type === "reset") {

@@ -45,10 +45,21 @@ test("the sidebar project list retries failed requests until the server answers"
 	expect(server.calls.count).toBe(4);
 });
 
-test("a query without the sidebar options fails on the first failed request", async () => {
+test("the project list gets the shared retry default", async () => {
+	const { orpc, queryClient } = createOrpc({ fetch: noRequest, baseUrl: "http://127.0.0.1:4521" });
+	const server = flakyServer(2);
+	const options = orpc.projects.list.queryOptions({ input: { archived: false } });
+
+	const projects = await queryClient.fetchQuery({ ...options, queryFn: server.queryFn, retryDelay: 1 });
+
+	expect(projects).toEqual([]);
+	expect(server.calls.count).toBe(3);
+});
+
+test("a non-list query fails on the first failed request", async () => {
 	const { orpc, queryClient } = createOrpc({ fetch: noRequest, baseUrl: "http://127.0.0.1:4521" });
 	const server = flakyServer(1);
-	const options = orpc.projects.list.queryOptions({ input: { archived: false } });
+	const options = orpc.projects.get.queryOptions({ input: { project: "TRL" } });
 
 	await expect(queryClient.fetchQuery({ ...options, queryFn: server.queryFn })).rejects.toThrow("fetch failed");
 	expect(server.calls.count).toBe(1);

@@ -2,7 +2,7 @@ import { List, Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import type { Project } from "@trellis/api";
-import { EmptyState, Sheet, Tooltip, useMediaQuery } from "@trellis/ui";
+import { Button, EmptyState, Sheet, Tooltip, useMediaQuery } from "@trellis/ui";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
@@ -15,7 +15,7 @@ import { SessionList } from "./components/SessionList";
 import { sessionGroups } from "./sessionGroups";
 
 export function ProjectSessionsPage({ project }: { project: Project }) {
-	const { orpc } = useApp();
+	const { orpc, queryClient } = useApp();
 	useEffect(() => {
 		document.title = `${project.name} sessions · trellis`;
 	}, [project.name]);
@@ -25,11 +25,19 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	const [listOpen, setListOpen] = useState(false);
 	const phone = useMediaQuery("(max-width: 767px)");
 	const hash = useRouterState({ select: (state) => state.location.hash });
+	const runsOptions = orpc.agentRuns.list.queryOptions({ input: { project: project.id } });
+	const sessionsOptions = orpc.sessions.list.queryOptions({ input: {} });
 	const runs = useQuery({
-		...orpc.agentRuns.list.queryOptions({ input: { project: project.id } }),
+		...runsOptions,
 		refetchInterval: 2000,
 	});
-	const sessions = useQuery(orpc.sessions.list.queryOptions({ input: {} }));
+	const sessions = useQuery(sessionsOptions);
+	const sessionsFailed =
+		(runs.data === undefined && runs.failureCount > 0) || (sessions.data === undefined && sessions.failureCount > 0);
+	const retrySessions = () => {
+		void queryClient.resetQueries({ queryKey: runsOptions.queryKey, exact: true });
+		void queryClient.resetQueries({ queryKey: sessionsOptions.queryKey, exact: true });
+	};
 	const items = (runs.data ?? []).filter(
 		(run) =>
 			run.kind !== "flow" && (run.kind !== "session" || sessions.data?.some((session) => session.runId === run.id)),
@@ -50,6 +58,8 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 			selectedId={selected?.id}
 			pending={runs.isPending || sessions.isPending}
 			error={runs.error?.message ?? sessions.error?.message}
+			failed={sessionsFailed}
+			onRetry={retrySessions}
 			onSelect={(id) => void open(id)}
 			onConversation={() => {
 				returnToConversation.current = true;
@@ -108,6 +118,16 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 					<p role="status" className="p-4 text-sm text-fg-muted">
 						Load sessions…
 					</p>
+				) : sessionsFailed ? (
+					<EmptyState
+						variant="page"
+						title="Could not load sessions"
+						action={
+							<Button size="md" onClick={retrySessions}>
+								Retry
+							</Button>
+						}
+					/>
 				) : runs.isError || sessions.isError ? (
 					<EmptyState
 						variant="page"
