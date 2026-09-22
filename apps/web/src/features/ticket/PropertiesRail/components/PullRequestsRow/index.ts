@@ -1,1 +1,0 @@
-export { PullRequestsRow } from "./PullRequestsRow";

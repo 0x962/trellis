@@ -1,1 +1,0 @@
-export { metricsWords } from "./metricsWords";

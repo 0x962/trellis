@@ -107,8 +107,8 @@ The host uses these observations for flow completion.
 Database reservations and runtime attempt identifiers prevent duplicate starts.
 
 Native project agents use Git worktrees under `agents/<run id>/work`.
-The ticket page holds the title, the ask, the sub-tickets and the attachments in one centered column.
-Its properties rail holds the pickers, the pull requests, the agent, the run controls, and the form that sends the agent a message.
+The ticket page holds the title, the ask, the sub-tickets, the pull requests and the attachments in one centered column.
+Its properties rail holds the pickers and the agent assignment.
 The review sheet of a pull request has four tabs: Overview, Checks, Flows and Diff.
 Overview holds the summary, the merge conditions, the evidence and the discussion. Checks holds every GitHub check of the head commit with its duration. Flows holds the flow runs of the ticket. Diff holds the file tree and the diff.
 The tab stays in the URL of `/reviews/<owner>/<repo>/<number>` as `?tab=overview|checks|flows|diff`, and a link that names the older value `facts` opens Overview.

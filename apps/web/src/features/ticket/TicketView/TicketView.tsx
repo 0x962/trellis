@@ -12,6 +12,7 @@ import { Description } from "../Description";
 import { Header } from "../Header";
 import { useParentSummary } from "../hooks/useParentSummary";
 import { PropertiesRail } from "../PropertiesRail";
+import { PullRequestsSection } from "../PullRequestsSection";
 import { SubTickets } from "../SubTickets";
 import { Title } from "../Title";
 import { DropOverlay, useDropOverlay } from "./components/DropOverlay";
@@ -23,14 +24,9 @@ export type TicketViewProps = {
 	identifier: string;
 };
 
-// The ticket page holds the words of the ticket and nothing else: the title,
-// the ask, the sub-tickets and the attached files. Every property and every
-// control sits in the properties rail beside it, including the pull requests,
-// the agent and its run.
-//
-// The merge conditions, the evidence, the GitHub checks and the flow runs of
-// a pull request live in the review sheet, which a pull request of the rail
-// opens over this page.
+// The ticket page holds the title, the ask, the sub-tickets, the pull
+// requests and the attached files. The properties rail holds the ticket
+// fields and the assignment of the agent that holds the ticket.
 //
 // The page renders the same on its route and in a `PageSheet`, with these
 // differences in a sheet: the browser tab keeps the title of the page under
@@ -97,6 +93,7 @@ export function TicketView({ identifier }: TicketViewProps) {
 				</section>
 				<div className="mt-8 flex flex-col gap-8">
 					<SubTickets ticket={ticket} />
+					<PullRequestsSection ticket={ticket} />
 					<AttachmentGrid ticket={ticket.identifier} initialAttachments={ticket.attachments} uploads={uploads} />
 				</div>
 			</div>

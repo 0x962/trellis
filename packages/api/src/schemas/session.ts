@@ -40,7 +40,7 @@ export const SessionCreateInputSchema = z
 			.describe(
 				"The session name. The server lowercases it and keeps letters, digits, and dashes. Omit it for a generated name.",
 			),
-		prompt: z.string().trim().max(20000).describe("The first message the agent receives."),
+		prompt: z.string().trim().max(20000).describe("The initial prompt sent to the agent."),
 		harness: HarnessSchema.optional().describe("The agent program, model, and effort. Sessions default to Claude."),
 		accountId: UlidSchema.optional().describe("Configured harness account from harnessAccounts.list."),
 	})
