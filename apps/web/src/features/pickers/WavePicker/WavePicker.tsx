@@ -3,8 +3,12 @@ import { Command, type CommandGroup, type CommandItem, Popover } from "@trellis/
 import { createElement, type ReactElement, type RefObject, useRef, useState } from "react";
 import { RowMarks } from "../components/RowMarks";
 import { type EpicWaves, useEpicWaves } from "../hooks/useEpicWaves";
+import { nextWaveName } from "../utils/nextWaveName";
 
 const noneId = "none";
+// The id of the New wave option. A wave ref always holds a slash, so no
+// wave takes this id.
+const newId = "new-wave";
 
 export type WaveItemOptions = {
 	// The ref of the current wave.
@@ -53,6 +57,9 @@ export type WavePickerProps = {
 	mixed?: boolean;
 	// `null` clears the wave.
 	onPick: (wave: WaveSummary | null) => void;
+	// Adds the New wave option last. It receives the typed search text as
+	// the name, or `Wave <n>` when the search is empty.
+	onCreate?: (name: string) => void;
 	trigger: ReactElement;
 	open?: boolean;
 	onOpenChange?: (open: boolean) => void;
@@ -67,6 +74,7 @@ export function WavePicker({
 	value,
 	mixed = false,
 	onPick,
+	onCreate,
 	trigger,
 	open,
 	onOpenChange,
@@ -74,6 +82,7 @@ export function WavePicker({
 	side,
 }: WavePickerProps) {
 	const [own, setOwn] = useState(false);
+	const [search, setSearch] = useState("");
 	const input = useRef<HTMLInputElement>(null);
 	const isOpen = open ?? own;
 	const loaded = useEpicWaves([epic], isOpen)[0];
@@ -81,6 +90,8 @@ export function WavePicker({
 
 	const setOpen = (next: boolean) => {
 		setOwn(next);
+		// The search field opens empty each time.
+		if (!next) setSearch("");
 		onOpenChange?.(next);
 	};
 
@@ -95,6 +106,10 @@ export function WavePicker({
 					...waveItems(waves, { current: mixed ? undefined : value, picker: true }),
 					{ id: noneId, label: "No wave", current: none, trailing: createElement(RowMarks, { current: none }) },
 				];
+	const newName = search.trim() === "" ? nextWaveName(waves) : search.trim();
+	if (onCreate !== undefined && loaded !== undefined) {
+		items.push({ id: newId, label: "New wave", hint: newName, pinned: true });
+	}
 
 	return (
 		<Popover
@@ -112,10 +127,12 @@ export function WavePicker({
 				label="Search waves"
 				placeholder="Set wave"
 				items={items}
+				onSearchChange={setSearch}
 				empty={loaded === undefined ? "Load waves…" : "No waves."}
 				onSelect={(id) => {
 					setOpen(false);
-					onPick(id === noneId ? null : waves.find((wave) => wave.ref === id)!);
+					if (id === newId) onCreate!(newName);
+					else onPick(id === noneId ? null : waves.find((wave) => wave.ref === id)!);
 				}}
 			/>
 		</Popover>

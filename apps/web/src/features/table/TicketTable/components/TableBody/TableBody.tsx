@@ -14,15 +14,19 @@ import {
 import type { Density } from "../../../../../stores/uiStore";
 import { AgentLine } from "../../../AgentLine";
 import type { ColumnId, TableKind } from "../../../columns";
-import { GroupHeader, phoneGroupHeaderHeight } from "../../../GroupHeader";
+import { phoneGroupHeaderHeight } from "../../../GroupHeader";
 import type { RowSelection } from "../../../hooks/useRowSelection";
 import { PrRow } from "../../../PrRow";
 import { type EditField, Row, type RowChange } from "../../../Row";
 import { agentLineHeight, groupHeaderHeight, phoneRowHeight, prRowHeight, rowHeights } from "../../../rowHeights";
 import { phoneItems, type TableGroup, type TableItem } from "../../../utils/flattenGroups";
+import type { WaveHeaderOptions } from "../../../WaveHeader";
+import { EmptyWaveLine } from "../EmptyWaveLine";
+import { GroupHeaderLine } from "../GroupHeaderLine";
 import { ShowMoreRow, showMoreHeight } from "../ShowMoreRow";
 import { TableSkeleton } from "../TableSkeleton";
 import { useLineMotion } from "./useLineMotion";
+import { useWaveDrop } from "./useWaveDrop";
 
 export type TableBodyProps = {
 	items: readonly TableItem[];
@@ -54,6 +58,9 @@ export type TableBodyProps = {
 	// Opens the Start wave dialog of a wave group of one epic. Undefined
 	// until the table knows which tickets hold an agent run.
 	onStartGroup?: (group: TableGroup) => void;
+	// The wave controls of a table of one epic: the header actions of each
+	// wave, and the drop of dragged rows into a wave group.
+	waves?: WaveHeaderOptions & { onDrop: (ticketIds: string[], group: TableGroup) => void };
 	// True while the bulk bar shows. The list then gets 72 px of room under
 	// its last row, so that row can scroll clear of the bar.
 	bottomRoom: boolean;
@@ -93,6 +100,7 @@ export function TableBody({
 	onToggleTicket,
 	onCreateInGroup,
 	onStartGroup,
+	waves,
 	bottomRoom,
 }: TableBodyProps) {
 	const viewport = useRef<HTMLDivElement>(null);
@@ -139,6 +147,10 @@ export function TableBody({
 
 	useLineMotion(body, items);
 
+	const drop = useWaveDrop(items, selection.selected, virtualizer.measurementsCache, (ids, group) =>
+		waves?.onDrop(ids, group),
+	);
+
 	// A density or a width change resizes every line.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: the line heights are the trigger; the virtualizer is stable
 	useEffect(() => virtualizer.measure(), [rowHeight, headerHeight]);
@@ -176,36 +188,30 @@ export function TableBody({
 			{loading ? (
 				<TableSkeleton density={density} />
 			) : (
-				<div ref={body} data-table-body="" style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}>
+				<div
+					ref={body}
+					data-table-body=""
+					style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}
+					{...(waves === undefined ? {} : drop.handlers)}
+				>
 					{virtualizer.getVirtualItems().map((virtual) => {
 						const item = items[virtual.index]!;
 						if (item.kind === "header") {
-							const { group } = item;
 							return (
-								<GroupHeader
+								<GroupHeaderLine
 									key={virtual.key}
-									group={group.key}
-									label={group.label ?? ""}
-									count={group.count}
-									countLabel={group.countLabel}
-									completedCount={group.completedCount}
-									totalCount={group.totalCount}
-									forYou={group.forYou}
-									done={group.done}
-									status={group.status}
-									category={group.category}
-									expanded={group.expanded}
-									onToggle={() => onToggleGroup(group.key)}
-									onCreate={group.status === undefined ? undefined : () => onCreateInGroup(group)}
-									onStart={
-										onStartGroup === undefined || group.epicRef === undefined || group.wave === undefined
-											? undefined
-											: () => onStartGroup(group)
-									}
-									phone={phone}
+									group={item.group}
 									top={virtual.start}
+									phone={phone}
+									waves={waves}
+									onToggleGroup={onToggleGroup}
+									onCreateInGroup={onCreateInGroup}
+									onStartGroup={onStartGroup}
 								/>
 							);
+						}
+						if (item.kind === "empty") {
+							return <EmptyWaveLine key={virtual.key} group={item.group.key} height={rowHeight} top={virtual.start} />;
 						}
 						if (item.kind === "agent") {
 							return (
@@ -275,6 +281,14 @@ export function TableBody({
 							/>
 						);
 					})}
+					{drop.frame !== null && (
+						<div
+							aria-hidden="true"
+							data-drop-frame=""
+							style={{ height: `${drop.frame.height}px`, transform: `translateY(${drop.frame.top}px)` }}
+							className="pointer-events-none absolute top-0 left-0 z-20 w-full rounded-md border-2 border-accent bg-accent-soft/40"
+						/>
+					)}
 				</div>
 			)}
 		</div>

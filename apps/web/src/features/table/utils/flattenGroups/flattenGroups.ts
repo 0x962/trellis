@@ -59,7 +59,9 @@ export type TableItem =
 	// hangs from. That line carries the tree rule down to its bottom edge
 	// and leaves the bottom border of the group to the line under it.
 	| { kind: "pr"; key: string; group: TableGroup; pr: TicketPr; last: boolean; hasChildLines: boolean }
-	| { kind: "more"; key: string; group: TableGroup };
+	| { kind: "more"; key: string; group: TableGroup }
+	// The one line under the header of a wave that holds no ticket.
+	| { kind: "empty"; key: string; group: TableGroup };
 
 export type FlattenOptions = {
 	// True on the epic route: a ticket row is followed by one line per pull
@@ -99,7 +101,8 @@ const agentAnchor = (prs: readonly TicketPr[]) => {
 	return openCount > 0 ? openCount - 1 : prs.length - 1;
 };
 
-// The lines in order: each group's header, its rows while it is expanded,
+// The lines in order: each group's header, its rows while it is expanded
+// (or one empty line under a wave that holds no row),
 // the pull requests of each row when `prRows` asks for them, the agent line
 // of each row when `agentLines` holds one for it, and its "show more" line
 // while a page waits on the server. The agent line of a ticket with pull
@@ -110,6 +113,10 @@ export const flattenGroups = (groups: readonly TableGroup[], options: FlattenOpt
 	for (const group of groups) {
 		if (group.label !== null) items.push({ kind: "header", key: `header:${group.key}`, group });
 		if (!group.expanded) continue;
+		if (group.wave !== undefined && group.rows.length === 0) {
+			items.push({ kind: "empty", key: `empty:${group.key}`, group });
+			continue;
+		}
 		for (const ticket of group.rows) {
 			const line = options.agentLines?.[ticket.id];
 			const hasPrRows = options.prRows === true && ticket.prRows.length > 0;

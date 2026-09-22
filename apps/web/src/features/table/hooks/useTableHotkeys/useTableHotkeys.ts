@@ -126,6 +126,7 @@ export const useTableHotkeys = (controller: TableController) => {
 	useHotkey("m", useStableCallback(withFocused((id) => controller.openField(id, "project"))));
 	useHotkey("l", useStableCallback(withFocused((id) => controller.openField(id, "labels"))));
 	useHotkey("e", useStableCallback(withFocused((id) => controller.openField(id, "epic"))));
+	useHotkey("w", useStableCallback(withFocused((id) => controller.openField(id, "wave"))));
 	// One rule for every key of this block: with a selection it writes to the
 	// selected rows, and with no selection it writes to the focused row. The
 	// position of the focused row inside or outside the selection changes

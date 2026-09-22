@@ -22,8 +22,8 @@ import { WavePicker } from "../../pickers/WavePicker";
 
 // One control of the bar that opens a list of values. A table key opens one
 // of them: `s` opens "status", `p` opens "priority", `l` opens "labels",
-// `m` opens "project", `shift+p` opens "parent", and `e` opens "epic".
-// "wave" has no key, so a click on Set wave opens it.
+// `m` opens "project", `shift+p` opens "parent", `e` opens "epic", and `w`
+// opens "wave".
 export type BulkPicker = "status" | "priority" | "labels" | "project" | "parent" | "epic" | "wave";
 
 export type BulkBarProps = {
@@ -70,6 +70,9 @@ export type BulkBarProps = {
 	// then marks no row, not even None.
 	waveMixed: boolean;
 	onWave: (wave: WaveSummary | null) => void;
+	// Adds a wave with this name to the epic and moves the selection into
+	// it. The wave picker offers New wave only when this is set.
+	onCreateWave?: (name: string) => void;
 	onCopyIds: () => void;
 	onDelete: () => void;
 	onClear: () => void;
@@ -132,6 +135,7 @@ export function BulkBar({
 	waveRef,
 	waveMixed,
 	onWave,
+	onCreateWave,
 	onCopyIds,
 	onDelete,
 	onClear,
@@ -257,16 +261,21 @@ export function BulkBar({
 						</Button>
 					</Tooltip>
 				) : (
-					<WavePicker
-						epic={epicRef}
-						value={waveRef}
-						mixed={waveMixed}
-						onPick={onWave}
-						open={openPicker === "wave"}
-						onOpenChange={opener("wave")}
-						side="top"
-						trigger={<Button size="sm">Set wave</Button>}
-					/>
+					withKey(
+						"Set wave",
+						"w",
+						<WavePicker
+							epic={epicRef}
+							value={waveRef}
+							mixed={waveMixed}
+							onPick={onWave}
+							onCreate={onCreateWave}
+							open={openPicker === "wave"}
+							onOpenChange={opener("wave")}
+							side="top"
+							trigger={<Button size="sm">Set wave</Button>}
+						/>,
+					)
 				))}
 			{withKey(
 				"Copy IDs",

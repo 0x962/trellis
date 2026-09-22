@@ -56,6 +56,7 @@ export const shortcuts: readonly Shortcut[] = [
 	{ id: "listProject", keys: "m", scope: "list", label: "Move to a project" },
 	{ id: "listLabels", keys: "l", scope: "list", label: "Set the labels" },
 	{ id: "listEpic", keys: "e", scope: "list", label: "Set the epic" },
+	{ id: "listWave", keys: "w", scope: "list", label: "Set the wave" },
 	{ id: "listCopyIds", keys: "mod+c", scope: "list", label: "Copy the IDs" },
 	{ id: "listDelete", keys: "backspace", scope: "list", label: "Delete the ticket" },
 	{ id: "listDeleteForward", keys: "delete", scope: "list", label: "Delete the ticket" },
