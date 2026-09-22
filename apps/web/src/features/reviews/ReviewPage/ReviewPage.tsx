@@ -256,8 +256,8 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 									) : (
 										<>
 											<ChangeSummary summary={summaryRow} headSha={headSha} />
-											<ConditionsBlock conditions={conditions} />
 											{floor && <EvidenceStrip records={records} floor={floor} />}
+											<ConditionsBlock conditions={conditions} />
 										</>
 									)}
 									<ReviewDiscussion

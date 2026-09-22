@@ -48,6 +48,17 @@ const summaryGuidance = [
 	"Avoid jargon only where a plain word says the same thing.",
 	"Avoid internal code names, file paths, and function names unless they are the point.",
 	'Write the headline as one sentence a person would say out loud, such as "A click on a row now opens the ticket again."',
+	"Write the why in Markdown. Add the assets that make the change clear:",
+	"- a screenshot or a GIF of the product: ![what it shows](path/to/file.png). The command uploads each local image.",
+	"- a diagram of a flow or a state change, in a mermaid code block.",
+	"- a chart of numbers before and after the change, in a mermaid xychart-beta code block.",
+];
+
+// `trellis pr add` and `trellis ready <pr>` compute the same floor and refuse
+// an agent's pull request while an item is missing.
+const requirement = [
+	"trellis pr add and trellis ready <pr> require the summary and every evidence floor item.",
+	"While an item is missing, they exit with code 1 and print each missing item with the command that adds it.",
 ];
 
 const itemLine = (item: keyof typeof evidenceWords): string[] =>
@@ -65,12 +76,14 @@ export const evidenceOwedLines = (contract: TicketContract, repositoryName: stri
 	if (floor === null)
 		return joinBlocks([
 			["## Evidence owed", "", ...meaning],
-			["- unknown. The contract names no file."],
+			[...itemLine("summary"), "- the other items: unknown. The contract names no file."],
+			requirement,
 			["Read the floor of your pull request: trellis evidence check <pr>"],
 		]);
 	return joinBlocks([
 		["## Evidence owed", "", ...meaning],
 		[`- Kind: ${floor.kind}`, ...floor.required.flatMap(itemLine), ...floor.notes.map((note) => `- ${note}`)],
+		requirement,
 		...(floor.kind === "backend" ? [] : [screenProof]),
 		...(floor.kind === "frontend" ? [] : [serviceProof]),
 		handOver,

@@ -10,7 +10,12 @@ const mask = (characters: string[], pattern: RegExp, keepTerminal = false) => {
 	}
 };
 
+// A fenced block, such as a mermaid diagram, and a Markdown image hold no
+// sentence, so the check skips them. The fence goes first: the inline code
+// pattern would otherwise pair its backticks.
 const quotedPatterns = [
+	/^[ \t]*```[^\n]*\n[\s\S]*?^[ \t]*```[ \t]*$/gm,
+	/!\[[^\]\n]*\]\([^)\n]*\)/g,
 	/`[^`\n]*`/g,
 	/"[^"\n]*"/g,
 	/“[^”\n]*”/g,
