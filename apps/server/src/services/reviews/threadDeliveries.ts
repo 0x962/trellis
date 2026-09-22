@@ -10,8 +10,9 @@ const rank: Record<ReviewMessageDelivery["state"], number> = {
 	sent: 0,
 	sending: 1,
 	pending: 2,
-	unknown: 3,
-	failed: 4,
+	held: 3,
+	unknown: 4,
+	failed: 5,
 };
 
 const worse = (left: ReviewMessageDelivery, right: ReviewMessageDelivery) =>

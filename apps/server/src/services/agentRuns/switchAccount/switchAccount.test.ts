@@ -40,6 +40,7 @@ beforeAll(async () => {
 		bootId: ulid(),
 		ghStatus: () => ({ ok: true, user: "qa", reason: null, message: null, checkedAt: null }),
 		addresses: async () => [],
+		log: () => undefined,
 		afterCommit: () => {},
 		vacuum: async () => {},
 		localUrl: "http://localhost",

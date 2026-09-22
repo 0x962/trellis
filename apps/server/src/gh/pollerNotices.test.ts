@@ -7,7 +7,7 @@ import type { ServiceCtx } from "../context.ts";
 import { createCache } from "../db/cache.ts";
 import { openTestDb } from "../db/testDb.ts";
 import type { Tx } from "../db/tx.ts";
-import { notRunningForCheck, supersededCheck } from "../services/deliveries/sentences.ts";
+import { supersededCheck, waitingForRun } from "../services/deliveries/sentences.ts";
 import { dispatchDeliveries } from "../services/reviews/dispatchDeliveries.ts";
 import type { IoCtx } from "../services/support.ts";
 import { create } from "../services/tickets/create.ts";
@@ -46,7 +46,14 @@ const send = (async (_ctx: unknown, input: Record<string, unknown>) => {
 	return { id: input.id };
 }) as never;
 const preset = (async () => "claude") as never;
-const ioCtx = () => ({ home: "/tmp/trellis-check-notices", newTx: run, emit: () => {} }) as unknown as IoCtx;
+// Every log line the poller and the dispatcher wrote in one test. The
+// database keeps the rows of the earlier tests, and a tick of the
+// dispatcher reports those rows too, so a test reads the lines of its own
+// pull request.
+const logged: { message: string; fields: Record<string, unknown> }[] = [];
+const log = (message: string, fields: Record<string, unknown> = {}) => logged.push({ message, fields });
+const linesOf = (number: number) => logged.filter((line) => line.fields.pr === `https://github.com/o/r/pull/${number}`);
+const ioCtx = () => ({ home: "/tmp/trellis-check-notices", newTx: run, emit: () => {}, log }) as unknown as IoCtx;
 const running = (terminalId: string) =>
 	[{ id: terminalId, status: "running", controllable: true }] as unknown as RuntimeProcessStatus[];
 
@@ -109,8 +116,9 @@ const seed = async (checks: Check[], options: { withTicket?: boolean } = {}) => 
 				${`term-${runId}`}, ${t0}, ${t0})`);
 		await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
 			VALUES (${ticket.id}, ${pr!.id}, 'manual', 'dana', 'human', ${t0})`);
+		return { number, prId: pr!.id, ticketId: ticket.id, runId, terminal: `term-${runId}` };
 	}
-	return { number, prId: pr!.id, runId, terminal: `term-${runId}` };
+	return { number, prId: pr!.id, ticketId: null, runId, terminal: `term-${runId}` };
 };
 
 const notices = async (prId: string) =>
@@ -120,8 +128,8 @@ const notices = async (prId: string) =>
 		)
 	).rows as { kind: string; headSha: string; checks: { name: string; lines: string[] }[] }[];
 
-const deliveries = async (runId: string) =>
-	(await db.execute(sql`SELECT state, error FROM review_deliveries WHERE run_id = ${runId} ORDER BY id`)).rows;
+const deliveries = async (ticketId: string) =>
+	(await db.execute(sql`SELECT state, error FROM review_deliveries WHERE ticket_id = ${ticketId} ORDER BY id`)).rows;
 
 beforeAll(async () => {
 	db = await openTestDb();
@@ -150,6 +158,7 @@ afterAll(async () => db.$client.close());
 beforeEach(() => {
 	ghCalls.length = 0;
 	sent.length = 0;
+	logged.length = 0;
 });
 
 test("a failure reaches the running agent once, after the burst settles, and a green head follows", async () => {
@@ -186,7 +195,7 @@ test("a failure reaches the running agent once, after the burst settles, and a g
 		expect.any(String),
 		"trellis: every check passed on commit bbb2222 of https://github.com/o/r/pull/700.",
 	]);
-	expect(await deliveries(pr.runId)).toEqual([
+	expect(await deliveries(pr.ticketId!)).toEqual([
 		{ state: "sent", error: null },
 		{ state: "sent", error: null },
 	]);
@@ -211,13 +220,17 @@ test("a pull request with no ticket, or one that merged, gets no notice", async 
 	expect(ghCalls).toEqual([]);
 });
 
-test("a notice for an agent that does not run fails with its sentence and is never sent", async () => {
+test("a notice for an agent that does not run waits, and the next run of the ticket reads it", async () => {
 	const pr = await seed([check("lint", "fail")]);
 	await noticeChecks(db, gh, later(SETTLE_MS));
 
 	await dispatchDeliveries(ioCtx(), running("term-other"), send, preset);
 	expect(sent).toEqual([]);
-	expect(await deliveries(pr.runId)).toEqual([{ state: "failed", error: notRunningForCheck }]);
+	expect(await deliveries(pr.ticketId!)).toEqual([{ state: "held", error: waitingForRun }]);
+
+	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
+	expect(sent.map((entry) => entry.id)).toEqual([pr.runId]);
+	expect(await deliveries(pr.ticketId!)).toEqual([{ state: "sent", error: null }]);
 });
 
 test("a notice that a new head commit replaced before the send fails with its sentence", async () => {
@@ -227,7 +240,7 @@ test("a notice that a new head commit replaced before the send fails with its se
 
 	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
 	expect(sent).toEqual([]);
-	expect(await deliveries(pr.runId)).toEqual([{ state: "failed", error: supersededCheck }]);
+	expect(await deliveries(pr.ticketId!)).toEqual([{ state: "failed", error: supersededCheck }]);
 });
 
 test("a conflict reaches the running agent once per head, after GitHub answers, and a clear follows", async () => {
@@ -278,7 +291,7 @@ test("a check notice and a conflict notice in one tick both reach the agent", as
 	await noticeChecks(db, gh, later(SETTLE_MS));
 	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
 	expect((await notices(pr.prId)).map((notice) => notice.kind).sort()).toEqual(["conflict", "failed"]);
-	expect(await deliveries(pr.runId)).toEqual([
+	expect(await deliveries(pr.ticketId!)).toEqual([
 		{ state: "sent", error: null },
 		{ state: "sent", error: null },
 	]);
@@ -305,4 +318,71 @@ test("a conflict on a pull request whose local state is draft still reaches the 
 
 	await noticeChecks(db, gh, later(1000));
 	expect((await notices(pr.prId)).map((notice) => notice.kind)).toEqual(["conflict"]);
+});
+
+test("a conflict waits while the ticket runs no agent, and the next run reads it", async () => {
+	const pr = await seed([]);
+	await write(later(1000), row(pr.number, "aaa1111aaaa", [], "open", "conflicting"));
+	await noticeChecks(db, gh, later(1000), log);
+
+	// The agent of the ticket has no process, so the notice waits.
+	await dispatchDeliveries(ioCtx(), [], send, preset);
+	expect(sent).toEqual([]);
+	expect(await deliveries(pr.ticketId!)).toEqual([{ state: "held", error: waitingForRun }]);
+
+	// The person starts a run on the ticket, and the notice leaves.
+	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
+	expect(sent.map((entry) => entry.id)).toEqual([pr.runId]);
+	expect(await deliveries(pr.ticketId!)).toEqual([{ state: "sent", error: null }]);
+
+	const lines = linesOf(pr.number);
+	expect(lines.map((line) => line.message)).toEqual([
+		"notice queued",
+		"delivery held",
+		"delivery released",
+		"delivery sent",
+	]);
+	expect(lines[0]!.fields).toEqual({
+		pr: `https://github.com/o/r/pull/${pr.number}`,
+		kind: "conflict",
+		head: "aaa1111aaaa",
+		tickets: [pr.ticketId],
+	});
+	expect(lines[1]!.fields).toMatchObject({ kind: "conflict", head: "aaa1111aaaa" });
+	expect(lines[3]!.fields).toMatchObject({ kind: "conflict", run: pr.runId });
+});
+
+test("a notice that waits is dropped when a new head arrives before the agent starts", async () => {
+	const pr = await seed([]);
+	await write(later(1000), row(pr.number, "aaa1111aaaa", [], "open", "conflicting"));
+	await noticeChecks(db, gh, later(1000), log);
+	await dispatchDeliveries(ioCtx(), [], send, preset);
+	expect(await deliveries(pr.ticketId!)).toEqual([{ state: "held", error: waitingForRun }]);
+
+	await write(later(2000), row(pr.number, "ddd4444dddd", [], "open", "unknown"));
+	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
+
+	expect(sent).toEqual([]);
+	expect(await deliveries(pr.ticketId!)).toEqual([{ state: "failed", error: supersededCheck }]);
+	expect(linesOf(pr.number).map((line) => line.message)).toEqual([
+		"notice queued",
+		"delivery held",
+		"delivery dropped",
+	]);
+});
+
+test("a notice reaches the newest open run of the ticket, and never a closed one", async () => {
+	const pr = await seed([]);
+	await db.execute(sql`UPDATE agent_runs SET closed_at = ${later(500)} WHERE id = ${pr.runId}`);
+	const second = ulid();
+	await db.execute(sql`INSERT INTO agent_runs
+		(id, name, kind, instruction, project_path, ticket_id, terminal_id, created_at, updated_at)
+		VALUES (${second}, 'brisk-pine', 'agent', 'Build it', '/tmp/work', ${pr.ticketId}, ${`term-${second}`},
+			${later(600)}, ${later(600)})`);
+	await write(later(1000), row(pr.number, "aaa1111aaaa", [], "open", "conflicting"));
+	await noticeChecks(db, gh, later(1000), log);
+
+	await dispatchDeliveries(ioCtx(), [...running(pr.terminal), ...running(`term-${second}`)], send, preset);
+
+	expect(sent.map((entry) => entry.id)).toEqual([second]);
 });

@@ -33,6 +33,7 @@ describe("attachments.upload idempotency", () => {
 				throw new Error("The test does not read GitHub status.");
 			},
 			addresses: async () => [],
+			log: () => undefined,
 			emit: () => undefined,
 			afterCommit: () => undefined,
 			newTx: (fn) => db.transaction(fn),
@@ -96,6 +97,7 @@ describe("attachments.upload idempotency", () => {
 				throw new Error("The test does not read GitHub status.");
 			},
 			addresses: async () => [],
+			log: () => undefined,
 			emit: () => undefined,
 			afterCommit: () => undefined,
 			newTx: (fn) => db.transaction(fn),

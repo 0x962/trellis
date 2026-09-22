@@ -178,7 +178,7 @@ const tick = async (hook: PollerHook, state: PollerState) => {
 	if (!(await checkGh(hook, state, atMs))) return;
 	await readBudget(hook, state, atMs);
 	await pollDue(hook, state, at);
-	await noticeChecks(hook.db, hook.gh, at);
+	await noticeChecks(hook.db, hook.gh, at, hook.log);
 	await withTx(hook.db, (tx, emit) => completeMergedPullRequestTickets(serviceCtx(hook, emit, at), tx), hook.sink);
 };
 

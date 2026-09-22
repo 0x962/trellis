@@ -6,6 +6,7 @@ import type { ServiceCtx as CoreCtx } from "../context.ts";
 import { rows } from "../db/queries/support.ts";
 import type { Emit, Tx } from "../db/tx.ts";
 import type { GhRunner } from "../gh/run.ts";
+import type { JobsLog } from "../jobs.ts";
 
 // What every service reads besides its transaction: who acts, where the data
 // home is, and what the clock says. `emit` queues an event that the sink
@@ -30,6 +31,9 @@ export type ServiceCtx = {
 	ghStatus: () => GhStatus;
 	// Every URL the server answers on, network addresses first.
 	addresses: () => Promise<string[]>;
+	// One line of the server log. A boot without a logger, as in most tests,
+	// writes none.
+	log: JobsLog;
 	emit: Emit;
 	afterCommit: (task: () => Promise<void>) => void;
 	newTx: <T>(fn: (tx: Tx) => Promise<T>) => Promise<T>;

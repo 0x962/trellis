@@ -25,6 +25,7 @@ export const deliveryWords = (deliveries: readonly ReviewDelivery[]) => {
 	if (deliveries.some((delivery) => delivery.state === "sent")) return "sent to the agent";
 	if (deliveries.some((delivery) => delivery.state === "pending" || delivery.state === "sending"))
 		return "sending to the agent";
+	if (deliveries.some((delivery) => delivery.state === "held")) return "waits for an agent run";
 	if (deliveries.some((delivery) => delivery.state === "failed")) return "delivery failed";
 	return "delivery state unknown";
 };

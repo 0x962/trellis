@@ -6,11 +6,18 @@ import type { ServiceCtx as CoreCtx } from "../../context.ts";
 import { createCache } from "../../db/cache.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
+import { launchState } from "../agentRuns/launchState";
 import { sendDeadline } from "../deliveries/sendDeadline.ts";
-import { closedBeforeDelivery, unconfirmedDelivery } from "../deliveries/sentences.ts";
+import {
+	otherRuntime,
+	pullRequestEnded,
+	unconfirmedDelivery,
+	waitedTooLong,
+	waitingForRun,
+} from "../deliveries/sentences.ts";
 import type { IoCtx } from "../support.ts";
 import { create } from "../tickets/create.ts";
-import { dispatchDeliveries } from "./dispatchDeliveries.ts";
+import { dispatchDeliveries, WAIT_LIMIT_HOURS } from "./dispatchDeliveries.ts";
 import { recordSubmission } from "./recordSubmission.ts";
 import { submit } from "./remote.ts";
 import { add, reply } from "./threads.ts";
@@ -34,7 +41,12 @@ const timingOutSend = ((..._args: unknown[]) => sendDeadline(new Promise(() => {
 // state of that comment.
 const events: Record<string, unknown>[] = [];
 const ctx = () =>
-	({ home: "/tmp/trellis-dispatch", newTx: run, emit: (event: never) => events.push(event) }) as unknown as IoCtx;
+	({
+		home: "/tmp/trellis-dispatch",
+		newTx: run,
+		emit: (event: never) => events.push(event),
+		log: () => undefined,
+	}) as unknown as IoCtx;
 
 // Each seeded pull request needs its own number, because the table holds one
 // row per owner, repository and number.
@@ -72,21 +84,23 @@ const queueReview = async (title: string, threads: number) => {
 			threads: Array.from({ length: threads }, () => ({}) as never),
 		}),
 	);
-	const [row] = (await db.execute(sql`SELECT id FROM review_deliveries WHERE run_id = ${runId}`)).rows as {
+	const [row] = (await db.execute(sql`SELECT id FROM review_deliveries WHERE ticket_id = ${ticket.id}`)).rows as {
 		id: string;
 	}[];
-	return { runId, url, deliveryId: row!.id, reviewId: stored.id, agents: stored.recipients };
+	return { runId, ticketId: ticket.id, url, deliveryId: row!.id, reviewId: stored.id, agents: stored.recipients };
 };
 
 // A pull request of one ticket, one running agent on that ticket, and the
-// comments an actor wrote on the diff. The clock of the service context sits
-// before the run of the test, so the batch window has passed and the
-// dispatcher may send every row at once.
+// comments an actor wrote on the diff. The clock of the service context
+// sits one minute before the run of the test, so the batch window has
+// passed and the dispatcher may send every row at once. The clock stays
+// inside the day that a message may wait.
+const threadClock = () => new Date(Date.now() - 60_000);
 const threadCtx = (actor: { kind: "human" | "agent"; name: string }) =>
 	({
 		actor,
 		session: null,
-		now: () => new Date(at),
+		now: threadClock,
 		emit: () => {},
 	}) as never;
 
@@ -107,14 +121,13 @@ const queueComments = async (
 		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at})`);
 	const threads = [];
 	for (const note of notes) threads.push(await run((tx) => add(threadCtx(reviewer), tx, { pr: url, ...note })));
-	const queued = (await db.execute(sql`SELECT id FROM review_deliveries WHERE run_id = ${runId} ORDER BY id`)).rows as {
-		id: string;
-	}[];
-	return { runId, url, threads, ids: queued.map((row) => row.id) };
+	const queued = (await db.execute(sql`SELECT id FROM review_deliveries WHERE ticket_id = ${ticket.id} ORDER BY id`))
+		.rows as { id: string }[];
+	return { runId, ticketId: ticket.id, url, threads, ids: queued.map((row) => row.id) };
 };
 
-const deliveryOf = async (runId: string) => {
-	const found = await db.execute(sql`SELECT state, error FROM review_deliveries WHERE run_id = ${runId}`);
+const deliveryOf = async (ticketId: string) => {
+	const found = await db.execute(sql`SELECT state, error FROM review_deliveries WHERE ticket_id = ${ticketId}`);
 	return found.rows[0];
 };
 
@@ -152,7 +165,7 @@ const serviceCtx = {
 
 afterAll(async () => db.$client.close());
 
-test("a queued review whose agent stopped fails with the closed session sentence", async () => {
+test("a queued review whose agent stopped waits for the next run of the ticket", async () => {
 	sent.length = 0;
 	const queued = await queueReview("Which grace window", 1);
 	await db.execute(sql`UPDATE agent_runs SET closed_at = ${at} WHERE id = ${queued.runId}`);
@@ -160,7 +173,16 @@ test("a queued review whose agent stopped fails with the closed session sentence
 	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
 
 	expect(sent).toEqual([]);
-	expect(await deliveryOf(queued.runId)).toEqual({ state: "failed", error: closedBeforeDelivery });
+	expect(await deliveryOf(queued.ticketId)).toEqual({ state: "held", error: waitingForRun });
+
+	// The person starts a new run on the same ticket, and the verdict leaves
+	// with it.
+	const second = ulid();
+	await startRun(second, queued.ticketId, "DSP-1");
+	await dispatchDeliveries(ctx(), running(`term-${second}`), send, preset);
+
+	expect(sent).toHaveLength(1);
+	expect(await deliveryOf(queued.ticketId)).toEqual({ state: "sent", error: null });
 });
 
 test("a send that never started fails with the text of its own error", async () => {
@@ -168,7 +190,7 @@ test("a send that never started fails with the text of its own error", async () 
 
 	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), throwingSend, preset);
 
-	expect(await deliveryOf(queued.runId)).toEqual({ state: "failed", error: "launch.json is missing." });
+	expect(await deliveryOf(queued.ticketId)).toEqual({ state: "failed", error: "launch.json is missing." });
 });
 
 test("a send that passes its deadline stays unknown", async () => {
@@ -176,7 +198,7 @@ test("a send that passes its deadline stays unknown", async () => {
 
 	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), timingOutSend, preset);
 
-	expect(await deliveryOf(queued.runId)).toEqual({ state: "unknown", error: unconfirmedDelivery });
+	expect(await deliveryOf(queued.ticketId)).toEqual({ state: "unknown", error: unconfirmedDelivery });
 });
 
 test("a local comment reaches the agent of the ticket", async () => {
@@ -196,7 +218,7 @@ test("a local comment reaches the agent of the ticket", async () => {
 			expectedSessionId: null,
 		},
 	]);
-	expect(await deliveryOf(queued.runId)).toEqual({ state: "sent", error: null });
+	expect(await deliveryOf(queued.ticketId)).toEqual({ state: "sent", error: null });
 });
 
 test("each local verdict queues for the agent of the linked ticket", async () => {
@@ -227,7 +249,7 @@ test("each local verdict queues for the agent of the linked ticket", async () =>
 
 		expect(result.pullRequest.reviewState).toBe(reviewState);
 		expect(result.submission.recipients).toEqual([{ runId, agentName: "crisp-fjord" }]);
-		expect(await deliveryOf(runId)).toEqual({ state: "pending", error: null });
+		expect(await deliveryOf(ticket.id)).toEqual({ state: "pending", error: null });
 	}
 });
 
@@ -303,10 +325,10 @@ test("a moved head stores the verdict on the current revision and keeps older th
 	expect(stored?.document.revisionId).toBe(currentRevisionId);
 	expect(stored?.document.threads.map((thread) => thread.id)).toEqual([threadId]);
 	expect(result.submission.recipients).toEqual([{ runId, agentName: "crisp-fjord" }]);
-	expect(await deliveryOf(runId)).toEqual({ state: "pending", error: null });
+	expect(await deliveryOf(ticket.id)).toEqual({ state: "pending", error: null });
 });
 
-test("a review with no agent assignment reports no recipient", async () => {
+test("a review with no agent assignment reports no recipient and waits for the ticket", async () => {
 	const ticket = await run((tx) => create(core, tx, { project: "DSP", title: "Report the missing run" }));
 	const prId = ulid();
 	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, created_at, updated_at)
@@ -325,10 +347,12 @@ test("a review with no agent assignment reports no recipient", async () => {
 			threads: [],
 		}),
 	);
-	const deliveries = await db.execute(sql`SELECT id FROM review_deliveries WHERE review_id = ${stored.id}`);
+	const deliveries = await db.execute(
+		sql`SELECT ticket_id AS "ticketId", run_id AS "runId", state FROM review_deliveries WHERE review_id = ${stored.id}`,
+	);
 
 	expect(stored.recipients).toEqual([]);
-	expect(deliveries.rows).toEqual([]);
+	expect(deliveries.rows).toEqual([{ ticketId: ticket.id, runId: null, state: "pending" }]);
 });
 
 test("the comments a person writes travel to the agent in one message", async () => {
@@ -352,7 +376,7 @@ test("the comments a person writes travel to the agent in one message", async ()
 			expectedSessionId: null,
 		},
 	]);
-	const states = (await db.execute(sql`SELECT state FROM review_deliveries WHERE run_id = ${queued.runId}`)).rows;
+	const states = (await db.execute(sql`SELECT state FROM review_deliveries WHERE ticket_id = ${queued.ticketId}`)).rows;
 	expect(states).toEqual([{ state: "sent" }, { state: "sent" }]);
 	expect(events.map((event) => event.type)).toContain("reviews.changed");
 });
@@ -400,7 +424,7 @@ test("a comment the ticket agent writes does not travel back to itself", async (
 			body: "I already wrote this.",
 		}),
 	);
-	const queued = await db.execute(sql`SELECT id FROM review_deliveries WHERE run_id = ${runId}`);
+	const queued = await db.execute(sql`SELECT id FROM review_deliveries WHERE ticket_id = ${ticket.id}`);
 	await dispatchDeliveries(ctx(), running(`term-${runId}`), send, preset);
 
 	expect(queued.rows).toEqual([]);
@@ -459,4 +483,55 @@ test("a person who keeps writing still reaches the agent after the limit", async
 
 	expect(sent).toHaveLength(1);
 	expect(sent[0]!.text).toContain("2 new comments.");
+});
+
+test("a verdict for a ticket whose agent runs on another runtime fails and names it", async () => {
+	sent.length = 0;
+	const queued = await queueReview("Name the other runtime", 1);
+	await db.execute(sql`UPDATE agent_runs SET runtime = 'commands' WHERE id = ${queued.runId}`);
+
+	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
+
+	expect(sent).toEqual([]);
+	expect(await deliveryOf(queued.ticketId)).toEqual({ state: "failed", error: otherRuntime("commands") });
+});
+
+test("a message of a pull request that merged is dropped", async () => {
+	sent.length = 0;
+	const queued = await queueReview("Drop after the merge", 1);
+	await db.execute(sql`UPDATE agent_runs SET closed_at = ${at} WHERE id = ${queued.runId}`);
+	await dispatchDeliveries(ctx(), [], send, preset);
+	expect(await deliveryOf(queued.ticketId)).toEqual({ state: "held", error: waitingForRun });
+
+	await db.execute(sql`UPDATE pull_requests SET state = 'merged' WHERE url = ${queued.url}`);
+	await dispatchDeliveries(ctx(), [], send, preset);
+
+	expect(await deliveryOf(queued.ticketId)).toEqual({ state: "failed", error: pullRequestEnded });
+});
+
+test("a message that waited the whole limit is dropped", async () => {
+	sent.length = 0;
+	const queued = await queueReview("Drop after a day", 1);
+	await db.execute(sql`UPDATE agent_runs SET closed_at = ${at} WHERE id = ${queued.runId}`);
+	await db.execute(
+		sql`UPDATE review_deliveries SET due_at = now() - make_interval(hours => ${WAIT_LIMIT_HOURS + 1})
+		WHERE ticket_id = ${queued.ticketId}`,
+	);
+
+	await dispatchDeliveries(ctx(), [], send, preset);
+
+	expect(await deliveryOf(queued.ticketId)).toEqual({ state: "failed", error: waitedTooLong });
+});
+
+test("a message waits in the queue while Trellis starts the run of its ticket", async () => {
+	sent.length = 0;
+	const queued = await queueReview("Hold nothing while the run starts", 1);
+	const release = launchState.start("/tmp/trellis-dispatch", `term-${queued.runId}`);
+
+	await dispatchDeliveries(ctx(), [], send, preset);
+	expect(await deliveryOf(queued.ticketId)).toEqual({ state: "pending", error: null });
+
+	release();
+	await dispatchDeliveries(ctx(), [], send, preset);
+	expect(await deliveryOf(queued.ticketId)).toEqual({ state: "held", error: waitingForRun });
 });

@@ -2,8 +2,9 @@ import type { Check, CiState, Mergeable, PrState } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { iso, rows } from "../db/queries/support.ts";
 import { type Tx, withTx } from "../db/tx.ts";
+import type { JobsLog } from "../jobs.ts";
 import { enqueueCheckDeliveries } from "../services/reviews/enqueueCheckDeliveries.ts";
-import { agentsOf } from "../services/reviews/enqueueReviewDeliveries.ts";
+import { recipientsOf } from "../services/reviews/enqueueReviewDeliveries.ts";
 import { decideNotice, type NoticeDecision, type StoredNotice } from "./checkNotice.ts";
 import { decideConflictNotice, isConflictKind } from "./conflictNotice.ts";
 import { failureLines } from "./failureLines.ts";
@@ -26,6 +27,7 @@ type Subject = {
 	id: string;
 	owner: string;
 	repo: string;
+	url: string;
 	state: PrState;
 	isDraft: boolean;
 	headSha: string | null;
@@ -42,7 +44,7 @@ type Due = { subject: Subject; decision: NoticeDecision };
 const selectSubjects = (tx: Tx) =>
 	rows<Subject>(
 		tx,
-		sql`SELECT p.id, p.owner, p.repo, p.state, p.is_draft AS "isDraft", p.head_sha AS "headSha", p.mergeable,
+		sql`SELECT p.id, p.owner, p.repo, p.url, p.state, p.is_draft AS "isDraft", p.head_sha AS "headSha", p.mergeable,
 			p.ci_state AS "ciState", p.checks,
 			${iso(sql`p.checks_changed_at`)} AS "checksChangedAt",
 			coalesce((SELECT jsonb_agg(jsonb_build_object('headSha', n.head_sha, 'kind', n.kind, 'checks', n.checks)
@@ -52,8 +54,8 @@ const selectSubjects = (tx: Tx) =>
 		ORDER BY p.id`,
 	);
 
-// The decisions for pull requests that an agent holds. A pull request that
-// no agent holds sends nothing, so it costs no annotations read either.
+// The decisions for pull requests that a ticket links. A pull request that
+// no ticket links sends nothing, so it costs no annotations read either.
 const selectDue = async (tx: Tx, at: Date): Promise<Due[]> => {
 	const due: Due[] = [];
 	for (const subject of await selectSubjects(tx)) {
@@ -64,7 +66,7 @@ const selectDue = async (tx: Tx, at: Date): Promise<Due[]> => {
 			decideConflictNotice(subject, conflictNotices),
 		].filter((decision) => decision !== null);
 		if (decisions.length === 0) continue;
-		if ((await agentsOf(tx, { prId: subject.id })).length === 0) continue;
+		if ((await recipientsOf(tx, { prId: subject.id })).length === 0) continue;
 		for (const decision of decisions) due.push({ subject, decision });
 	}
 	return due;
@@ -80,18 +82,27 @@ const withLines = async (gh: GhRunner, { subject, decision }: Due): Promise<Due>
 	return { subject, decision: { ...decision, checks } };
 };
 
-export const noticeChecks = async (db: Db, gh: GhRunner, at: Date) => {
+// `log` writes one line per notice, so a person reads from the log which
+// pull request produced a notice, on which commit, and for how many tickets.
+export const noticeChecks = async (db: Db, gh: GhRunner, at: Date, log: JobsLog = () => undefined) => {
 	const { result: due } = await withTx(db, (tx) => selectDue(tx, at));
 	const filled: Due[] = [];
 	for (const entry of due) filled.push(await withLines(gh, entry));
 	await withTx(db, async (tx) => {
-		for (const { subject, decision } of filled)
-			await enqueueCheckDeliveries(tx, {
+		for (const { subject, decision } of filled) {
+			const recipients = await enqueueCheckDeliveries(tx, {
 				prId: subject.id,
 				headSha: subject.headSha!,
 				kind: decision.kind,
 				checks: decision.checks,
 				at,
 			});
+			log("notice queued", {
+				pr: subject.url,
+				kind: decision.kind,
+				head: subject.headSha,
+				tickets: recipients.map((recipient) => recipient.ticketId),
+			});
+		}
 	});
 };
