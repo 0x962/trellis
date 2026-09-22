@@ -7,7 +7,10 @@ const controls = {
 	planTitle: "Routines E2E",
 	openDocId: "plan",
 	onOpenDoc: () => {},
-	onAdd: { doc: () => {}, link: () => {}, file: () => {} },
+	loading: false,
+	error: null,
+	onNewDocument: () => {},
+	newDocumentPending: false,
 };
 
 const base = {
@@ -51,61 +54,60 @@ const resources: Resource[] = [
 ];
 
 describe("ResourceList", () => {
-	test("prints the four kinds in one list, each with its kind word", () => {
+	test("groups the resources under Documents, Links, Images and Files", () => {
 		const html = renderToStaticMarkup(<ResourceList resources={resources} {...controls} />);
 
-		expect(html).toContain(">doc<");
-		expect(html).toContain(">link<");
-		expect(html).toContain(">image<");
-		expect(html).toContain(">file<");
-		expect(html).toContain("The routine runtime");
-		expect(html).toContain("settle-sequence.mmd");
-		expect(html).toContain("(5)");
+		const headings = [...html.matchAll(/<h3>([^<]+)<\/h3>/g)].map((match) => match[1]);
+		expect(headings).toEqual(["Documents", "Links", "Images", "Files"]);
+		expect(html.indexOf("The routine runtime")).toBeLessThan(html.indexOf(">Links<"));
+		expect(html.indexOf("canary#55569")).toBeLessThan(html.indexOf(">Images<"));
+		expect(html.indexOf("op27-send-timeout.gif")).toBeLessThan(html.indexOf(">Files<"));
+		expect(html.indexOf(">Files<")).toBeLessThan(html.indexOf("settle-sequence.mmd"));
 	});
 
-	test("draws the epic description first, then keeps the order the server gives", () => {
+	test("draws the epic description first among the documents", () => {
 		const html = renderToStaticMarkup(<ResourceList resources={resources} {...controls} />);
 
 		expect(html.indexOf("Routines E2E")).toBeLessThan(html.indexOf("The routine runtime"));
-		expect(html).toContain("the epic description");
-		expect(html.indexOf("The routine runtime")).toBeLessThan(html.indexOf("canary#55569"));
-		expect(html.indexOf("canary#55569")).toBeLessThan(html.indexOf("op27-send-timeout.gif"));
-		expect(html.indexOf("op27-send-timeout.gif")).toBeLessThan(html.indexOf("settle-sequence.mmd"));
+		expect(html).toContain('title="The epic description"');
 	});
 
-	test("writes a detail line for each kind", () => {
+	test("shows the detail of each kind as the tooltip of its row", () => {
 		const html = renderToStaticMarkup(<ResourceList resources={resources} {...controls} />);
 
-		expect(html).toContain("edited Sep 19 by crisp-fjord");
-		expect(html).toContain("github.com · opens in the in-app browser");
-		expect(html).toContain("55.0 KB");
-		expect(html).toContain("1.2 KB");
+		expect(html).toContain('title="Edited Sep 19 by crisp-fjord"');
+		expect(html).toContain('title="github.com"');
+		expect(html).toContain('title="1.2 KB"');
 	});
 
-	test("prints the pull request after the size of a resource that is also evidence", () => {
+	test("names the pull request of a resource that is also evidence", () => {
 		const html = renderToStaticMarkup(<ResourceList resources={resources} {...controls} />);
-		const image = html.slice(html.indexOf("op27-send-timeout.gif"));
 
-		expect(image).toContain("55.0 KB · also evidence on #56930");
-		expect(html.slice(html.indexOf("settle-sequence.mmd"))).not.toContain("also evidence");
+		expect(html).toContain('title="55.0 KB · also evidence on #56930"');
 	});
 
-	test("offers the add control in every state", () => {
-		for (const html of [
-			renderToStaticMarkup(<ResourceList resources={resources} {...controls} />),
-			renderToStaticMarkup(<ResourceList resources={[]} {...controls} />),
-			renderToStaticMarkup(<ResourceList resources={[]} loading {...controls} />),
-			renderToStaticMarkup(<ResourceList resources={[]} error="The server did not answer." {...controls} />),
-		]) {
-			expect(html).toContain('aria-label="Add a resource"');
-		}
-	});
-
-	test("draws the epic description when the epic holds no resource", () => {
+	test("shows no heading for a kind the epic does not hold", () => {
 		const html = renderToStaticMarkup(<ResourceList resources={[]} {...controls} />);
 
+		expect(html).toContain(">Documents<");
 		expect(html).toContain("Routines E2E");
-		expect(html).toContain("(1)");
+		expect(html).not.toContain(">Links<");
+		expect(html).not.toContain(">Images<");
+		expect(html).not.toContain(">Files<");
+	});
+
+	test("offers New document in every state, and no control without a writer", () => {
+		for (const html of [
+			renderToStaticMarkup(<ResourceList resources={resources} {...controls} />),
+			renderToStaticMarkup(<ResourceList resources={[]} {...controls} loading />),
+			renderToStaticMarkup(<ResourceList resources={[]} {...controls} error="The server did not answer." />),
+		]) {
+			expect(html).toContain('aria-label="New document"');
+		}
+		const readOnly = renderToStaticMarkup(
+			<ResourceList resources={resources} {...controls} onNewDocument={undefined} />,
+		);
+		expect(readOnly).not.toContain('aria-label="New document"');
 	});
 
 	test("marks the open document, and says Untitled for a document with no title", () => {
@@ -118,45 +120,16 @@ describe("ResourceList", () => {
 		expect(html.slice(html.indexOf('aria-current="page"'))).toContain("Untitled");
 	});
 
-	test("waits with no count and no empty words while the resources load", () => {
-		const html = renderToStaticMarkup(<ResourceList resources={[]} loading {...controls} />);
+	test("waits under the epic description while the resources load", () => {
+		const html = renderToStaticMarkup(<ResourceList resources={[]} {...controls} loading />);
 
 		expect(html).toContain('aria-busy="true"');
-		expect(html).not.toContain("(0)");
+		expect(html).toContain("Routines E2E");
 		expect(html).not.toContain("The epic holds no resource.");
 	});
 
-	test("keeps the number of the caller while the rows are on their way", () => {
-		const html = renderToStaticMarkup(<ResourceList resources={[]} count={5} loading {...controls} />);
-
-		expect(html).toContain("(5)");
-	});
-
-	test("counts its own rows as soon as it has them", () => {
-		const html = renderToStaticMarkup(<ResourceList resources={resources} count={6} {...controls} />);
-
-		expect(html).toContain("(5)");
-		expect(html).not.toContain("(6)");
-	});
-
-	test("draws the rows alone when the caller names the list in a tab", () => {
-		const html = renderToStaticMarkup(<ResourceList resources={resources} {...controls} header={false} />);
-
-		expect(html).not.toContain("<h2");
-		expect(html).not.toContain("(5)");
-		expect(html).toContain("The routine runtime");
-	});
-
-	test("prints no number when the read failed", () => {
-		const html = renderToStaticMarkup(
-			<ResourceList resources={[]} count={5} error="The server did not answer." {...controls} />,
-		);
-
-		expect(html).not.toContain("(5)");
-	});
-
 	test("prints the words of the server when the read fails", () => {
-		const html = renderToStaticMarkup(<ResourceList resources={[]} error="The server did not answer." {...controls} />);
+		const html = renderToStaticMarkup(<ResourceList resources={[]} {...controls} error="The server did not answer." />);
 
 		expect(html).toContain('role="alert"');
 		expect(html).toContain("The server did not answer.");

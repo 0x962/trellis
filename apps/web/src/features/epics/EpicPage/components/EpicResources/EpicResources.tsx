@@ -1,7 +1,5 @@
-import { Plus } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { Resource } from "@trellis/api";
-import { IconButton, SectionHeader, Tooltip } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { errorMessage } from "../../../../../lib/conflict";
@@ -25,7 +23,7 @@ const noResources: readonly Resource[] = [];
 // because the brief of every agent and `trellis epics show` print that field,
 // so its edits save through `epics.update`. Every other document is a doc
 // resource and saves through `resources.update`. Links, images and files sit
-// in the same list with their kind word, and open in a sheet or download.
+// in the same list under their own headings, and open in a sheet or download.
 export function EpicResources({ epic, description, readOnly }: EpicResourcesProps) {
 	const { client, orpc, queryClient } = useApp();
 	const list = useQuery(orpc.resources.list.queryOptions({ input: { epic } }));
@@ -52,29 +50,7 @@ export function EpicResources({ epic, description, readOnly }: EpicResourcesProp
 
 	return (
 		<div className="flex min-h-0 flex-1 max-md:flex-col">
-			<div className="flex w-80 shrink-0 flex-col gap-1 overflow-y-auto border-r border-border px-3 py-3 max-md:max-h-1/3 max-md:w-full max-md:border-r-0 max-md:border-b">
-				<SectionHeader
-					title="Documents and files"
-					level={3}
-					className="px-2"
-					actions={
-						!readOnly && (
-							<Tooltip content="New document">
-								<IconButton
-									label="New document"
-									icon={<Plus />}
-									disabled={create.isPending}
-									onClick={() => create.mutate()}
-								/>
-							</Tooltip>
-						)
-					}
-				/>
-				{create.isError && (
-					<p role="alert" className="px-2 text-sm text-danger">
-						Could not create the document. {create.error.message}
-					</p>
-				)}
+			<div className="flex w-60 shrink-0 flex-col gap-1 overflow-y-auto border-r border-border px-2 py-3 max-md:max-h-1/3 max-md:w-full max-md:border-r-0 max-md:border-b">
 				<ResourceList
 					resources={resources}
 					planTitle={planTitle(description)}
@@ -82,8 +58,14 @@ export function EpicResources({ epic, description, readOnly }: EpicResourcesProp
 					onOpenDoc={setOpenDocId}
 					loading={list.isPending}
 					error={list.error === null ? null : errorMessage(list.error)}
-					header={false}
+					onNewDocument={readOnly ? undefined : () => create.mutate()}
+					newDocumentPending={create.isPending}
 				/>
+				{create.isError && (
+					<p role="alert" className="px-2 text-sm text-danger">
+						Could not create the document. {create.error.message}
+					</p>
+				)}
 			</div>
 			<div className="min-w-0 flex-1 overflow-y-auto px-8 py-6 max-md:px-4">
 				<div className="mx-auto max-w-3xl">
