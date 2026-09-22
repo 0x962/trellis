@@ -1,6 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
+import type { Resource } from "@trellis/api";
 import { useEffect, useRef, useState } from "react";
 import { ReadOnlyMarkdown } from "../../../../../../../components/ReadOnlyMarkdown";
+import { isThumbnailImage } from "../../../../../../attachments/utils/isThumbnailImage";
 import { type EditorHandle, LazyEditor } from "../../../../../../ticket/Description/components/LazyEditor";
 import { UNTITLED } from "../../../../../epicDocs";
 import { typingSaver } from "../../typingSaver";
@@ -14,7 +16,11 @@ export type EpicDocumentProps = {
 	title: { name: string; save: (name: string) => Promise<unknown> } | null;
 	readOnly: boolean;
 	saveBody: (markdown: string) => Promise<unknown>;
+	// Stores a file as an image or a file resource of the epic.
+	uploadFile: (kind: "image" | "file", file: File) => Promise<Resource>;
 };
+
+const placeholder = "Write, or press / for blocks";
 
 // The pause after the last keystroke before a save.
 const SAVE_DELAY_MS = 600;
@@ -23,11 +29,21 @@ const SAVE_DELAY_MS = 600;
 // and a body in the shared ticket editor. Both save as the person types, and
 // at once on blur and when another document opens. The caller gives this
 // component a React key of `docId`, so each document starts with its own
-// savers.
-export function EpicDocument({ docId, markdown, title, readOnly, saveBody }: EpicDocumentProps) {
+// savers. A pasted, dropped or picked file becomes a resource of the epic,
+// and the document shows it at the caret: an image inline, any other file as
+// a link.
+export function EpicDocument({ docId, markdown, title, readOnly, saveBody, uploadFile }: EpicDocumentProps) {
 	const [name, setName] = useState(title?.name ?? "");
-	const [fileError, setFileError] = useState<string | null>(null);
 	const editor = useRef<EditorHandle | null>(null);
+	// `scope` keeps the files of one paste in the order the person gave them.
+	const upload = useMutation({
+		mutationFn: (file: File) => uploadFile(isThumbnailImage(file.type) ? "image" : "file", file),
+		scope: { id: `doc-upload:${docId}` },
+		onSuccess: (resource) => {
+			if (resource.kind === "image") editor.current!.insertImage(resource.blob!.url, resource.name);
+			else editor.current!.insertLink(resource.blob!.url, resource.name);
+		},
+	});
 	// `scope` runs the saves of one document in order, so an older text never
 	// lands after a newer one.
 	const body = useMutation({ mutationFn: saveBody, scope: { id: `doc-body:${docId}` } });
@@ -55,6 +71,9 @@ export function EpicDocument({ docId, markdown, title, readOnly, saveBody }: Epi
 			{title !== null && (
 				<input
 					aria-label="Title"
+					// A new document starts in its title, as a new page in Notion.
+					// biome-ignore lint/a11y/noAutofocus: the person just asked for this document
+					autoFocus={title.name === ""}
 					value={name}
 					placeholder={UNTITLED}
 					onChange={(event) => {
@@ -74,21 +93,20 @@ export function EpicDocument({ docId, markdown, title, readOnly, saveBody }: Epi
 			<LazyEditor
 				markdown={markdown}
 				contentKey={docId}
-				onChange={(next) => {
-					setFileError(null);
-					bodySaver.change(next);
-				}}
+				onChange={bodySaver.change}
 				onBlur={bodySaver.flush}
 				onReady={(handle) => {
 					editor.current = handle;
 				}}
-				onAttachFiles={() => {
-					setFileError("This document accepts text only. Add the file as another resource.");
+				onAttachFiles={(files) => {
+					for (const file of files) upload.mutate(file);
 				}}
+				placeholder={placeholder}
+				autoFocus={title === null || title.name !== ""}
 			/>
-			{fileError !== null && (
+			{upload.isError && (
 				<p role="alert" className="text-sm text-danger">
-					{fileError}
+					Could not add the file. {upload.error.message}
 				</p>
 			)}
 			{rename.isError && (

@@ -1,7 +1,7 @@
 import { Extension } from "@tiptap/react";
 import { Suggestion, type SuggestionKeyDownProps, type SuggestionProps } from "@tiptap/suggestion";
 import { create } from "zustand";
-import { type Block, blocks } from "./blocks";
+import { type Block, matchingBlocks } from "./blocks";
 
 type MenuState = {
 	open: boolean;
@@ -63,7 +63,7 @@ export const SlashMenu = Extension.create({
 			Suggestion<Block>({
 				editor: this.editor,
 				char: "/",
-				items: ({ query }) => blocks.filter((block) => block.label.toLowerCase().includes(query.toLowerCase())),
+				items: ({ editor, query }) => matchingBlocks(editor, query),
 				command: ({ editor, range, props }) => props.run(editor, range),
 				render: () => ({
 					onStart: show,

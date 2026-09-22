@@ -43,6 +43,12 @@ export function EpicResources({ epic, description, readOnly }: EpicResourcesProp
 		await client.epics.update({ epic, description: markdown });
 		await queryClient.invalidateQueries({ queryKey: orpc.epics.key() });
 	};
+	const uploadFile = async (kind: "image" | "file", file: File) => {
+		const created = await client.resources.add({ epic, kind, name: file.name, file });
+		await queryClient.invalidateQueries({ queryKey: orpc.resources.key() });
+		await queryClient.invalidateQueries({ queryKey: orpc.epics.key() });
+		return created;
+	};
 	const saveDoc = async (id: string, fields: { name: string } | { body: string }) => {
 		await client.resources.update({ id, ...fields });
 		await queryClient.invalidateQueries({ queryKey: orpc.resources.key() });
@@ -77,6 +83,7 @@ export function EpicResources({ epic, description, readOnly }: EpicResourcesProp
 							title={null}
 							readOnly={readOnly}
 							saveBody={saveDescription}
+							uploadFile={uploadFile}
 						/>
 					) : (
 						<EpicDocument
@@ -86,6 +93,7 @@ export function EpicResources({ epic, description, readOnly }: EpicResourcesProp
 							title={{ name: openDoc.name, save: (name) => saveDoc(openDoc.id, { name }) }}
 							readOnly={readOnly}
 							saveBody={(body) => saveDoc(openDoc.id, { body })}
+							uploadFile={uploadFile}
 						/>
 					)}
 				</div>

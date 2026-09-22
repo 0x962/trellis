@@ -18,6 +18,8 @@ export type DescriptionProps = {
 	onAttachFiles: (files: File[]) => void;
 };
 
+const placeholder = "Describe the work. Agents read this verbatim.";
+
 type Conflict = { current: Ticket; markdown: string };
 
 // The server text that the open editor started from, and its version.
@@ -186,6 +188,8 @@ export function Description({ ticket, onAttachFiles }: DescriptionProps) {
 					onBlur={autosave.onBlur}
 					onReady={onReady}
 					onAttachFiles={onAttachFiles}
+					placeholder={placeholder}
+					autoFocus
 				/>
 			) : (
 				// biome-ignore lint/a11y/noStaticElementInteractions: the `e` key is the keyboard route to the editor
@@ -200,7 +204,7 @@ export function Description({ ticket, onAttachFiles }: DescriptionProps) {
 				>
 					{ticket.description.trim() === "" ? (
 						<div className="markdown text-md">
-							<p className="text-fg-faint">Describe the work. Agents read this verbatim.</p>
+							<p className="text-fg-faint">{placeholder}</p>
 						</div>
 					) : (
 						<ReadOnlyMarkdown markdown={ticket.description} className="text-md" />

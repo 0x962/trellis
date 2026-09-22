@@ -1,0 +1,112 @@
+/*
+ * The editing marks of the shared editor. `.markdown` in app.css draws the
+ * text itself, so an edited document and a read-only one look the same. This
+ * file loads with the editor chunk.
+ */
+
+/* Placeholder sets data-placeholder on the empty block at the caret. */
+.editor .is-empty::before {
+	content: attr(data-placeholder);
+	float: left;
+	height: 0;
+	pointer-events: none;
+	color: var(--fg-faint);
+}
+
+.editor .ProseMirror-selectednode {
+	border-radius: var(--radius-sm);
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+.editor li[data-type="taskItem"] > label {
+	flex-shrink: 0;
+	user-select: none;
+}
+.editor li[data-type="taskItem"] > div {
+	flex: 1;
+	min-width: 0;
+}
+.editor li[data-type="taskItem"][data-checked="true"] > div {
+	color: var(--fg-muted);
+	text-decoration: line-through;
+}
+
+.editor .tableWrapper {
+	overflow-x: auto;
+}
+.editor table {
+	width: 100%;
+	table-layout: fixed;
+}
+.editor th {
+	background: var(--surface);
+	font-weight: 600;
+}
+.editor th,
+.editor td {
+	position: relative;
+	vertical-align: top;
+}
+.editor .selectedCell::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background: var(--accent-soft);
+	opacity: 0.6;
+}
+
+.editor img {
+	display: block;
+}
+
+/* highlight.js class names, which lowlight writes on each token. */
+.editor .hljs-comment,
+.editor .hljs-quote {
+	color: var(--fg-faint);
+	font-style: italic;
+}
+.editor .hljs-keyword,
+.editor .hljs-selector-tag,
+.editor .hljs-built_in,
+.editor .hljs-type {
+	color: var(--label-purple);
+}
+.editor .hljs-string,
+.editor .hljs-regexp,
+.editor .hljs-addition,
+.editor .hljs-attribute {
+	color: var(--label-green);
+}
+.editor .hljs-number,
+.editor .hljs-literal,
+.editor .hljs-symbol,
+.editor .hljs-bullet {
+	color: var(--label-orange);
+}
+.editor .hljs-title,
+.editor .hljs-section,
+.editor .hljs-name,
+.editor .hljs-function {
+	color: var(--label-blue);
+}
+.editor .hljs-attr,
+.editor .hljs-variable,
+.editor .hljs-template-variable,
+.editor .hljs-selector-class,
+.editor .hljs-selector-id {
+	color: var(--label-teal);
+}
+.editor .hljs-deletion {
+	color: var(--label-red);
+}
+.editor .hljs-meta {
+	color: var(--fg-muted);
+}
+.editor .hljs-emphasis {
+	font-style: italic;
+}
+.editor .hljs-strong {
+	font-weight: 600;
+}
