@@ -118,6 +118,7 @@ export function ChipRow({
 	}).data;
 	const epicName = epicRecord?.name ?? epic;
 	const waveName = epicRecord?.waves.find((entry) => entry.ref === wave)?.name ?? wave;
+	const waveLabel = waveName ?? "No wave";
 	return (
 		<div className="flex flex-col gap-1 px-2 pb-2 pt-1">
 			<div className="flex flex-wrap items-center gap-1.5">
@@ -181,10 +182,10 @@ export function ChipRow({
 							value={wave}
 							onPick={(next) => onWave(next?.ref ?? null)}
 							trigger={chip({
-								label: `Wave: ${waveName ?? "None"}`,
+								label: `Wave: ${waveLabel}`,
 								icon: <FlagBanner />,
 								unset: waveName === undefined,
-								children: waveName ?? "Wave",
+								children: waveLabel,
 							})}
 						/>
 					</>

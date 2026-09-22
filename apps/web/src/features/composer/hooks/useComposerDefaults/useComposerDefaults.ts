@@ -31,6 +31,9 @@ export const defaultStatus = (statuses: readonly Status[]): Status | undefined =
 	statuses.find((status) => status.isDefault) ??
 	[...statuses].filter((status) => status.category === "todo").sort((a, b) => a.position - b.position)[0];
 
+export const defaultWave = (epic: { currentWave: { ref: string } | null } | undefined): string | undefined =>
+	epic?.currentWave?.ref;
+
 // The chip values a new ticket starts with. Only a caller
 // that names a status on purpose (a group `+` or a board column) seeds the
 // status. A filter only narrows the list, so a status filter never seeds
@@ -60,13 +63,17 @@ export const useComposerDefaults = (options: ComposerOptions, chosenProject?: st
 	const statuses = detail.data?.statuses ?? [];
 	const view = parseSearch(location.search as Record<string, unknown>);
 	const defaults = composerDefaults({ project: project ?? "", statuses, view, groupStatus: options.status });
+	const epic = useQuery({
+		...orpc.epics.get.queryOptions({ input: { epic: options.epic ?? "" } }),
+		enabled: options.epic !== undefined && options.wave === undefined,
+	});
 	return {
 		project,
 		status: defaults.status,
 		priority: defaults.priority,
 		parent: options.parent,
 		epic: options.epic,
-		wave: options.wave,
+		wave: options.wave ?? defaultWave(epic.data),
 		statuses,
 		template: detail.data?.ticketTemplate ?? "",
 	};
