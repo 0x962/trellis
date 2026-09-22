@@ -236,7 +236,11 @@ export const prepareRefresh = async (ctx: PrepareCtx, input: IdInput): Promise<P
 	const row = await ctx.newTx((tx) => findPullRequestRow(tx, input.id));
 	const ref = { owner: row.owner, repo: row.repo, number: row.number };
 	const result = await fetchPullRequests(ctx.gh, [ref], "interactive");
-	if (!result.ok) throw fail("GH_UNAVAILABLE", { reason: result.reason });
+	if (!result.ok) {
+		const error = fail("GH_UNAVAILABLE", { reason: result.reason });
+		error.message = result.message;
+		throw error;
+	}
 	return { id: row.id, first: result.results[0]! };
 };
 

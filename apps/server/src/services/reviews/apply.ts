@@ -16,7 +16,7 @@ import type { Tx } from "../../db/tx";
 import { invalidInput } from "../../errors";
 import { fail, notFound, type PrepareCtx, type ServiceCtx } from "../support";
 import { changed, findPr, parseRef, readThreads, writeThread } from "./queries";
-import { gh, headRepositoryOf, readRepositoryFile } from "./revision";
+import { ghJson, headRepositoryOf, readRepositoryFile } from "./revision";
 import { firstSuggestion, sameLines } from "./suggestions";
 
 type Prepared = { threadIds: string[]; sha: string; url: string };
@@ -37,7 +37,7 @@ const graphql = async (ctx: PrepareCtx, query: string, variables: Record<string,
 	const file = join(directory, "request.json");
 	try {
 		await writeFile(file, JSON.stringify({ query, variables }), { mode: 0o600 });
-		return JSON.parse(await gh(ctx, ["api", "graphql", "--input", file])) as Record<string, unknown>;
+		return ghJson<Record<string, unknown>>(ctx, ["api", "graphql", "--input", file]);
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}
@@ -75,9 +75,13 @@ export async function prepareApply(ctx: PrepareCtx, input: ReviewApply): Promise
 		const reason = rejects(thread);
 		if (reason !== null) throw invalidInput("threadIds", reason);
 	}
-	const meta = JSON.parse(
-		await gh(ctx, ["pr", "view", ref.url, "--json", "headRefOid,headRefName,headRepository,headRepositoryOwner,state"]),
-	) as HeadMeta;
+	const meta = await ghJson<HeadMeta>(ctx, [
+		"pr",
+		"view",
+		ref.url,
+		"--json",
+		"headRefOid,headRefName,headRepository,headRepositoryOwner,state",
+	]);
 	if (meta.state !== "OPEN") throw invalidInput("pr", "Suggestions apply to an open pull request only.");
 	if (meta.headRefOid !== input.headSha) throw fail("PR_HEAD_MOVED", { currentHeadSha: meta.headRefOid });
 	const repository = headRepositoryOf(ref, meta);

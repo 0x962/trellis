@@ -1,6 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { buildPullRequestQuery, mapPullRequestResponse, type PullRequestResponse, withQueueState } from "./graphql.ts";
+import {
+	buildPullRequestQuery,
+	fetchPullRequests,
+	mapPullRequestResponse,
+	type PullRequestResponse,
+	withQueueState,
+} from "./graphql.ts";
 import type { RawFile } from "./parse.ts";
+import type { GhRunner } from "./run.ts";
 
 const ref = { owner: "octo", repo: "repo", number: 42 };
 
@@ -133,5 +140,31 @@ describe("pull request GraphQL size", () => {
 
 		expect(queued.isQueued).toBe(true);
 		expect(queued.contentHash).not.toBe(row.contentHash);
+	});
+
+	test("reports a successful gh answer that is not JSON as a gh failure", async () => {
+		const gh = Object.assign(
+			async () => ({
+				ok: true as const,
+				code: 0,
+				stdout: "A new release of gh is available.\nRun gh upgrade.",
+				stderr: "",
+			}),
+			{ bin: "gh", timeoutMs: 30_000 },
+		) as GhRunner;
+
+		const result = await fetchPullRequests(gh, [ref], "interactive");
+
+		expect(result).toMatchObject({
+			ok: false,
+			reason: "error",
+			code: 0,
+			stdout: "A new release of gh is available.\nRun gh upgrade.",
+		});
+		if (result.ok) throw new Error("fetchPullRequests unexpectedly succeeded");
+		expect(result.message).toContain("gh answered with something that is not JSON");
+		expect(result.message).toContain("Command: gh api graphql");
+		expect(result.message).toContain("Exit code: 0");
+		expect(result.message).toContain("First line: A new release of gh is available.");
 	});
 });

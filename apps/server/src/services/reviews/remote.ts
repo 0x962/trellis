@@ -14,7 +14,7 @@ import { recordAction } from "../pullRequestAction";
 import { fail, type IoCtx, type PrepareCtx, type ServiceCtx } from "../support";
 import { parseRef, readThreads } from "./queries";
 import { recordSubmission } from "./recordSubmission";
-import { gh } from "./revision";
+import { gh, ghJson } from "./revision";
 export const actionNames = [
 	"merge",
 	"admin-merge",
@@ -51,10 +51,10 @@ const current = async (ctx: PrepareCtx, pr: string, action: PreparedAction["acti
 
 export async function action(ctx: PrepareCtx, input: { pr: string; action: Action; headSha: string }) {
 	const ref = parseRef(input.pr);
-	const meta = JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", "id,headRefOid"])) as {
+	const meta = await ghJson<{
 		id: string;
 		headRefOid: string;
-	};
+	}>(ctx, ["pr", "view", ref.url, "--json", "id,headRefOid"]);
 	if (meta.headRefOid !== input.headSha) throw fail("PR_HEAD_MOVED", { currentHeadSha: meta.headRefOid });
 	const a = input.action;
 	if (a === "queue" || a === "dequeue") {
@@ -140,7 +140,15 @@ export async function mine(ctx: IoCtx & PrepareCtx, input: { project?: string })
 	const project = input.project;
 	const repos = project === undefined ? [] : await ctx.newTx((tx) => effectiveRepos(ctx.core, tx, { project }));
 	if (project !== undefined && repos.length === 0) return [];
-	const raw = await gh(ctx, [
+	return ghJson<
+		{
+			number: number;
+			title: string;
+			repository: { nameWithOwner: string };
+			isDraft: boolean;
+			url: string;
+		}[]
+	>(ctx, [
 		"search",
 		"prs",
 		"--author",
@@ -155,19 +163,14 @@ export async function mine(ctx: IoCtx & PrepareCtx, input: { project?: string })
 		"--json",
 		"number,title,repository,isDraft,url",
 	]);
-	return JSON.parse(raw) as {
-		number: number;
-		title: string;
-		repository: { nameWithOwner: string };
-		isDraft: boolean;
-		url: string;
-	}[];
 }
 export async function metadata(ctx: PrepareCtx, input: { pr: string }) {
 	const ref = parseRef(input.pr);
 	const query =
 		"query($owner:String!,$repo:String!,$num:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$num){mergeQueueEntry{position enqueuedAt} stack{entries(first:50){nodes{position pullRequest{number title state url isDraft}}}}}}}";
-	const graphRaw = await gh(ctx, [
+	const graph = await ghJson<{
+		data: { repository: { pullRequest: Record<string, unknown> } };
+	}>(ctx, [
 		"api",
 		"graphql",
 		"-f",
@@ -179,7 +182,6 @@ export async function metadata(ctx: PrepareCtx, input: { pr: string }) {
 		"-F",
 		`num=${ref.number}`,
 	]);
-	const graph = JSON.parse(graphRaw);
 	return graph.data.repository.pullRequest as Record<string, unknown>;
 }
 export const result = <T>(_ctx: ServiceCtx, _tx: Tx, input: T) => Promise.resolve(input);

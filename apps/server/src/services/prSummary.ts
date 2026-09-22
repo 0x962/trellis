@@ -11,6 +11,7 @@ import { rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import { invalidInput, invalidIssues } from "../errors.ts";
 import { findPullRequestRow } from "./findPullRequestRow.ts";
+import { parseGhJsonForService } from "./ghJson.ts";
 import { announcePullRequestUpdate, setHeadSha } from "./pullRequests.ts";
 import { fail, type PrepareCtx, type ServiceCtx } from "./support.ts";
 
@@ -49,9 +50,10 @@ type WriteInput = ReturnType<typeof PullRequestSummaryWriteInputSchema.parse>;
 export const prepareWrite = async (ctx: PrepareCtx, rawInput: unknown): Promise<WriteInput> => {
 	const input = PullRequestSummaryWriteInputSchema.parse(rawInput);
 	const pullRequest = await ctx.newTx((tx) => findPullRequestRow(tx, input.id));
-	const result = await ctx.gh("interactive", ["pr", "view", pullRequest.url, "--json", "headRefOid"]);
+	const args = ["pr", "view", pullRequest.url, "--json", "headRefOid"];
+	const result = await ctx.gh("interactive", args);
 	if (!result.ok) throw fail("GH_UNAVAILABLE", { reason: result.reason });
-	const { headRefOid } = JSON.parse(result.stdout) as { headRefOid: string };
+	const { headRefOid } = parseGhJsonForService<{ headRefOid: string }>(args, result);
 	if (headRefOid !== input.headSha)
 		throw invalidInput("headSha", "headSha does not match the current pull request head.");
 	return input;

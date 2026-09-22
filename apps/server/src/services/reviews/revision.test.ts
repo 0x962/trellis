@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { PrepareCtx } from "../support.ts";
-import { comparisonFacts, headRepositoryOf, loadCurrentRevision, prepare } from "./revision.ts";
+import { comparisonFacts, headRepositoryOf, loadCurrentRevision, prepare, status } from "./revision.ts";
 
 // The shape `gh api repos/<owner>/<repo>/compare/<base>...<head>` answered for
 // canary-technologies-corp/canary#57080, cut to the fields the page reads.
@@ -14,7 +14,9 @@ const answer = (behindBy: number) =>
 	});
 
 test("reads the commit that both branches share", () => {
-	expect(comparisonFacts(answer(97))).toEqual({ comparisonBaseSha: "19cea5c42c50e4d407eb3dafb403fd10d176ab93" });
+	expect(comparisonFacts(JSON.parse(answer(97)))).toEqual({
+		comparisonBaseSha: "19cea5c42c50e4d407eb3dafb403fd10d176ab93",
+	});
 });
 
 test("loads the revision again when the head changes during the first diff", async () => {
@@ -83,4 +85,30 @@ test("two refreshes of one pull request at the same time share one fetch", async
 	expect(perFetch).toBe(4);
 	await prepare(ctx, input);
 	expect(calls).toBe(perFetch * 2);
+});
+
+test("reports a successful gh answer that is not JSON as gh unavailable", async () => {
+	const gh = Object.assign(
+		async () => ({
+			ok: true as const,
+			code: 0,
+			stdout: "A new release of gh is available.\nRun gh upgrade.",
+			stderr: "",
+		}),
+		{ bin: "gh", timeoutMs: 30_000 },
+	);
+	const attempt = status({ gh } as unknown as PrepareCtx, { pr: "https://github.com/acme/app/pull/31" });
+
+	let error: unknown;
+	try {
+		await attempt;
+	} catch (caught) {
+		error = caught;
+	}
+	expect(error).toMatchObject({
+		code: "GH_UNAVAILABLE",
+		data: { reason: "error" },
+	});
+	expect((error as Error).message).toContain("gh answered with something that is not JSON");
+	expect((error as Error).message).toContain("First line: A new release of gh is available.");
 });
