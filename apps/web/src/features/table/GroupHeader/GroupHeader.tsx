@@ -6,6 +6,7 @@ import {
 	StatusIcon,
 } from "@trellis/ui";
 import { formatCount } from "../../../lib/format";
+import { progressIcon } from "../../progressIcon";
 import { statusIconProps } from "../../statusIconProps";
 import { groupHeaderHeight } from "../rowHeights";
 
@@ -29,19 +30,6 @@ export type GroupHeaderProps = Omit<SharedProps, "count" | "showCount" | "icon" 
 };
 export { phoneGroupHeaderHeight } from "@trellis/ui";
 
-const progressIcon = (
-	completedCount: number | undefined,
-	totalCount: number | undefined,
-	done: boolean | undefined,
-) => {
-	if (completedCount === undefined || totalCount === undefined) return undefined;
-	const label = `${formatCount(completedCount)} of ${formatCount(totalCount)} done`;
-	if (done === true) return <StatusIcon category="done" color="success" label={label} />;
-	if (completedCount === 0) return <StatusIcon category="todo" label={label} />;
-	const progress = totalCount === 0 ? 0 : completedCount / totalCount;
-	return <StatusIcon category="started" color="success" progress={progress} label={label} />;
-};
-
 export function GroupHeader({
 	count,
 	countLabel,
@@ -56,7 +44,9 @@ export function GroupHeader({
 	const parts = [countLabel ?? formatCount(count)];
 	if (forYou !== undefined && forYou > 0) parts.push(`${formatCount(forYou)} for you`);
 	const icon =
-		progressIcon(completedCount, totalCount, done) ??
+		(completedCount !== undefined && totalCount !== undefined
+			? progressIcon(completedCount, totalCount, done === true)
+			: undefined) ??
 		(category === undefined ? undefined : (
 			<StatusIcon {...(status === undefined ? { category } : statusIconProps(status))} />
 		));

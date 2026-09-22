@@ -23,6 +23,7 @@ import { TableSkeleton } from "../../table/TicketTable/components/TableSkeleton"
 import { agentLinesByTicket } from "../../table/utils/agentLines";
 import { DeleteEpicDialog } from "../DeleteEpicDialog";
 import { EpicSheet } from "../EpicSheet";
+import { EpicSwitcher } from "../EpicSwitcher";
 import { epicWorkingTicketIds } from "../epicNext";
 import { assignedTicketIds } from "../epicRowRank";
 import { epicPageSearch, epicQueryString, epicUrlSearch } from "../epicSearch";
@@ -242,7 +243,10 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 					</>
 				}
 			>
-				<PageTitle parent={titleParent} title={record.name} />
+				<PageTitle
+					parent={titleParent}
+					title={<EpicSwitcher project={project.path} epicRef={record.ref} name={record.name} tab={tab} />}
+				/>
 				{filterBar}
 			</Topbar>
 			<div className="page-card flex flex-1 flex-col overflow-hidden">

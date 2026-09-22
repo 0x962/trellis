@@ -8,7 +8,7 @@ export type PopoverProps = {
 	// The element that opens the popover, usually a Button. It receives the
 	// trigger's click handler and aria attributes.
 	trigger: ReactElement;
-	triggerTooltip?: string;
+	triggerTooltip?: ReactNode;
 	children: ReactNode;
 	// The accessible name of the panel.
 	label?: string;
