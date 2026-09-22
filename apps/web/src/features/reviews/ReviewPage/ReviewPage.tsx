@@ -38,7 +38,7 @@ import { baseOf, conditionsOf } from "./conditionsOf";
 import { useActiveThread } from "./hooks/useActiveThread";
 import { useReadMarks } from "./hooks/useReadMarks";
 import { useReviewData } from "./hooks/useReviewData";
-import { defaultReviewTab, type ReviewTab } from "./reviewTab";
+import type { ReviewTab } from "./reviewTab";
 import "@trellis/ui/review.css";
 
 const noThreads: ReviewThread[] = [];
@@ -56,9 +56,8 @@ export type ReviewPageProps = {
 	pr: string;
 	parent?: ReactNode;
 	syncHash?: boolean;
-	// The tab the person picked, or undefined while they picked none. The page
-	// then shows the tab that `defaultReviewTab` picks.
-	tab: ReviewTab | undefined;
+	// The tab selected from the URL, session state, or default rule.
+	tab: ReviewTab;
 	onTabChange: (tab: ReviewTab) => void;
 };
 
@@ -166,12 +165,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	// `prRow` is the fallback for a pull request that no ticket links.
 	const turnInput = ticket.data ?? prRow;
 	const agentWorks = run !== null && isAgentWorking(run);
-	// The default tab is fixed the first time the turn is known, so a turn
-	// that changes while the person reads does not move them to the other tab.
 	const turn = turnInput ? turnOf(turnInput, agentWorks) : null;
-	const firstTurn = useRef<ReviewTab | null>(null);
-	if (firstTurn.current === null && turn !== null) firstTurn.current = defaultReviewTab(turn);
-	const shownTab = tab ?? firstTurn.current ?? defaultReviewTab(null);
 	const ref = reviewRef(pr);
 	const ticketIdentifier = status.data?.ticket?.identifier ?? "";
 	const openGitHubLine = (item: GitHubConversationItem) => {
@@ -241,7 +235,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 				    that the tree draws, and the diff keeps its scroll position while
 				    another tab shows. */}
 				<Tabs
-					value={shownTab}
+					value={tab}
 					onValueChange={onTabChange}
 					keepMounted
 					className="review-body"

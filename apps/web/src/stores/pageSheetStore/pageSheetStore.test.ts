@@ -3,7 +3,7 @@ import { browserParent, pageSheetActions, usePageSheetStore } from "./pageSheetS
 
 const state = () => usePageSheetStore.getState();
 
-const empty = { ticket: null, pr: null, session: null, stats: null, browser: null };
+const empty = { ticket: null, pr: null, session: null, stats: null, browser: null, reviewTab: null };
 
 beforeEach(() => {
 	pageSheetActions.setRefreshBehindSheet(null);
@@ -33,6 +33,15 @@ test("closing the pull request leaves the ticket open", () => {
 	pageSheetActions.closePullRequest();
 
 	expect(state()).toEqual({ ...empty, ticket: "TRL-42" });
+});
+
+test("the last review tab stays after the pull request sheet closes", () => {
+	pageSheetActions.openPullRequest("https://github.com/o/r/pull/7");
+	pageSheetActions.setReviewTab("diff");
+	pageSheetActions.closePullRequest();
+	pageSheetActions.openPullRequest("https://github.com/o/r/pull/8");
+
+	expect(state()).toEqual({ ...empty, pr: "https://github.com/o/r/pull/8", reviewTab: "diff" });
 });
 
 test("closing a sheet refreshes the page behind it", () => {
@@ -125,6 +134,7 @@ test("the browser opens over the pull request and leaves the stack open", () => 
 		session: null,
 		stats: null,
 		browser: "https://github.com/o/r/pull/7",
+		reviewTab: null,
 	});
 });
 

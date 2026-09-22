@@ -1,1 +1,1 @@
-export { defaultReviewTab, type ReviewTab, reviewTabOf } from "./reviewTab";
+export { defaultReviewTab, initialReviewTab, type ReviewTab, reviewTabOf } from "./reviewTab";

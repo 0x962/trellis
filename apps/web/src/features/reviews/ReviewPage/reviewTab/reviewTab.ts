@@ -1,5 +1,3 @@
-import type { Turn } from "@trellis/api";
-
 // The four tabs of the review page. Overview holds the explanation of the
 // change, the merge conditions, the evidence and the discussion. Checks holds
 // the GitHub checks of the head commit. Flows holds the flow runs of the
@@ -14,9 +12,7 @@ const tabs: readonly ReviewTab[] = ["overview", "checks", "flows", "diff"];
 export const reviewTabOf = (value: unknown): ReviewTab | undefined =>
 	value === "facts" ? "overview" : tabs.find((tab) => tab === value);
 
-// The tab a review opens on when its URL names none. A pull request that
-// waits for the person opens on its code. Any other pull request opens on its
-// overview, which says who acts next. `turn` is null while the ticket row and
-// the pull request row load, and the review then opens on its code.
-export const defaultReviewTab = (turn: Turn | null): ReviewTab =>
-	turn === null || turn === "you" ? "diff" : "overview";
+export const defaultReviewTab: ReviewTab = "overview";
+
+export const initialReviewTab = (urlTab: ReviewTab | undefined, lastTab: ReviewTab | null | undefined): ReviewTab =>
+	urlTab ?? lastTab ?? defaultReviewTab;
