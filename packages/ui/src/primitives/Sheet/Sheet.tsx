@@ -1,6 +1,6 @@
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
 import { X } from "@phosphor-icons/react";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, ReactNode, Ref } from "react";
 import { cx } from "../../utils/cx";
 import { IconButton } from "../IconButton";
 
@@ -34,6 +34,9 @@ export type SheetProps = {
 	motion?: "peek" | "popover";
 	children: ReactNode;
 	className?: string;
+	backdropClassName?: string;
+	onBackdropPointerDown?: ComponentProps<typeof BaseDialog.Backdrop>["onPointerDown"];
+	popupRef?: Ref<HTMLDivElement>;
 };
 
 // A panel that slides in from an edge, for the ticket peek. Under reduced
@@ -69,6 +72,9 @@ export function Sheet({
 	motion = "peek",
 	children,
 	className,
+	backdropClassName = "bg-scrim",
+	onBackdropPointerDown,
+	popupRef,
 }: SheetProps) {
 	return (
 		<BaseDialog.Root
@@ -81,10 +87,15 @@ export function Sheet({
 				{modal && (
 					<BaseDialog.Backdrop
 						forceRender
-						className="fixed inset-0 z-50 bg-scrim transition-opacity duration-peek ease-out data-starting-style:opacity-0 data-ending-style:opacity-0"
+						onPointerDown={onBackdropPointerDown}
+						className={cx(
+							"fixed inset-0 z-50 transition-opacity duration-peek ease-out data-starting-style:opacity-0 data-ending-style:opacity-0",
+							backdropClassName,
+						)}
 					/>
 				)}
 				<BaseDialog.Popup
+					ref={popupRef}
 					aria-label={title}
 					aria-modal={modal ? "true" : "false"}
 					initialFocus={initialFocus}

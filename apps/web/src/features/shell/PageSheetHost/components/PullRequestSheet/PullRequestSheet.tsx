@@ -43,6 +43,7 @@ export function PullRequestSheet({ ticket }: PullRequestSheetProps) {
 		<PageSheet
 			open={pr !== null}
 			onClose={pageSheetActions.closePullRequest}
+			onReturn={pageSheetActions.returnToPullRequest}
 			width="wide"
 			title={ref === null ? "Pull request" : `${ref.repo} #${ref.number}`}
 			fullPage={

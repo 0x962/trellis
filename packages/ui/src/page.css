@@ -1,10 +1,12 @@
-/* The width of a sheet that holds a whole page, and the width of a wide sheet
-   such as the review of a pull request. Each width leaves a strip of the page
-   for an outside click. The 720px floor keeps a sheet usable in a narrow
-   window; `Sheet` limits its panel to the window width. */
+/* The first page sheet keeps its page or wide width. A sheet over it subtracts
+   one stack step per depth from that first width. The 640px floor keeps a deep
+   desktop stack usable; phone sheets fill the viewport through the max width of
+   `Sheet`. */
 :root {
 	--page-sheet-width: max(720px, min(100vw - 192px, 1200px));
 	--page-sheet-wide-width: max(720px, calc(80vw - 38.4px));
+	--page-sheet-stack-step: 48px;
+	--page-sheet-stack-min-width: 640px;
 }
 
 @utility page-inset {

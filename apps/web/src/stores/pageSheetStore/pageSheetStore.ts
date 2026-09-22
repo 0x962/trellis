@@ -91,4 +91,8 @@ export const pageSheetActions = {
 	closeSession: () => setSheetState({ session: null, browser: null }),
 	closeStats: () => setSheetState({ stats: null, browser: null }),
 	closeBrowser: () => setSheetState({ browser: null }),
+	returnToTicket: () => setSheetState({ pr: null, session: null, browser: null }),
+	returnToPullRequest: () => setSheetState({ browser: null }),
+	returnToSession: () => setSheetState({ browser: null }),
+	returnToStats: () => setSheetState({ browser: null }),
 };
