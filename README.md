@@ -405,7 +405,13 @@ Only the local server reads and writes the database. The server sends live updat
 bun run dev
 ```
 
-`bun run dev` starts the server on port 4521 and vite on port 5173. Vite sends `/api` and `/rpc` requests to the server. Open `http://127.0.0.1:5173`.
+`bun run dev` starts the server on port 4521 and Vite on port 5173.
+The Vite proxy uses `TRELLIS_DEV_API`.
+Its default target is the scratch server at `http://127.0.0.1:4597`.
+For UI work in an agent worktree, start a server with a scratch `TRELLIS_HOME`.
+Set `TRELLIS_DEV_API` to that server.
+Stop that server before you finish.
+The dev proxy refuses the live port in `~/.trellis/trellis.lock` unless `TRELLIS_ALLOW_LIVE_DEV_API=1` is set.
 
 | Command | What it runs |
 |---|---|
