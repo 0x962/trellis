@@ -132,6 +132,10 @@ const assignment = (identifier: string) => [
 	"",
 	"Trellis is the ticket tracker on this machine. It assigned this ticket to you. Your worktree is on the branch named above.",
 	`Before you start, read the ticket with its pull requests and the project notes: trellis brief ${identifier}`,
+	"If a UI task needs Vite, start a scratch Trellis server under `$TMPDIR/trellis-*`.",
+	"Set `TRELLIS_DEV_API` to that server.",
+	"Stop the scratch server before you finish.",
+	"Do not point Vite at the live host.",
 ];
 
 const sections = (parts: string[][]) => parts.filter((part) => part.length > 0).map((part) => part.join("\n"));
