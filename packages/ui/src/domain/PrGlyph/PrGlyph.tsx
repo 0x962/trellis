@@ -47,7 +47,7 @@ export const prGlyphLook = (state: PullRequestState, isDraft: boolean, isQueued:
 // A table row is 32 px tall and holds the small glyph. A pull request row has
 // more room and holds the medium one.
 const spanSizes: Record<PrGlyphSize, string> = { sm: "size-4", md: "size-5" };
-const iconSizes: Record<PrGlyphSize, string> = { sm: "size-3.5", md: "size-4" };
+const iconSizes: Record<PrGlyphSize, string> = { sm: "size-4", md: "size-4" };
 
 // The glyph shows the state, never the check result. A failed check leaves an
 // open pull request open. The caller draws the check result next to the glyph.

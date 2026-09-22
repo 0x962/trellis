@@ -4,20 +4,19 @@ import { cx } from "@trellis/ui";
 // its agent line) to the line above them. Each piece is a 1 px line in the
 // `border` color, absolutely placed inside its line of the table.
 //
-// A level 1 piece sits at `left-[58px]`, the center of the status icon of a
+// A level 1 piece sits at `left-[60px]`, the center of the status icon of a
 // ticket row at 768 px and up: 20 px of row padding, the 16 px select
 // column, the 12 px column gap, and 4 px of padding in the status button
-// put the 14 px icon at 52 px.
+// put the 16 px icon center at 60 px.
 //
 // A level 2 piece sits at `left-[84px]`, the center of the pull request
 // glyph: a child line starts its content at 76 px, and the glyph is 16 px
 // wide. The agent line under a pull request is the only level 2 line.
 export type TreeDepth = 1 | 2;
 
-const ruleLeft: Record<TreeDepth, string> = { 1: "left-[58px]", 2: "left-[84px]" };
+const ruleLeft: Record<TreeDepth, string> = { 1: "left-[60px]", 2: "left-[84px]" };
 
-// Where a child line of each level starts its content: 6 px after the elbow
-// of that level ends.
+// Where a child line of each level starts its content.
 export const treeContentPad: Record<TreeDepth, string> = { 1: "pl-19", 2: "pl-[102px]" };
 
 type TreeStemProps = {

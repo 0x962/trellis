@@ -52,7 +52,7 @@ test("the small glyph and the medium glyph draw the same state", () => {
 	const small = renderToStaticMarkup(<PrGlyph state="open" isDraft={false} isQueued={false} size="sm" />);
 	const medium = renderToStaticMarkup(<PrGlyph state="open" isDraft={false} isQueued={false} size="md" />);
 
-	expect(small).toContain("size-3.5");
+	expect(small).toContain("size-4");
 	expect(medium).toContain("size-4");
 	expect(small).toContain('data-pr-glyph="open"');
 	expect(medium).toContain('data-pr-glyph="open"');

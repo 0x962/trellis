@@ -15,6 +15,7 @@ import { compactRelativeTime } from "../../../lib/format";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { ActorAvatar } from "../../agents/ActorAvatar";
 import { composerActions } from "../../composer";
+import { statusIconProps } from "../../statusIconProps";
 
 export type SubTicketsProps = {
 	ticket: Ticket;
@@ -96,7 +97,7 @@ function ChildRow({ child, onOpen }: { child: TicketSummary; onOpen: () => void 
 			onClick={onOpen}
 			className={`${rowClass} text-left transition-colors duration-hover ease-out hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2`}
 		>
-			<StatusIcon category={status.category} reviewer={status.reviewer ?? undefined} />
+			<StatusIcon {...statusIconProps(status)} />
 			<TicketId id={child.identifier} className="w-16" />
 			<span className="min-w-0 flex-1 truncate">{child.title}</span>
 			<PriorityIcon priority={child.priority} />

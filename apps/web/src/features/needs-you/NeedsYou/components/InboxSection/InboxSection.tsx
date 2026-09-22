@@ -19,6 +19,7 @@ import { uiActions, useUiStore } from "../../../../../stores/uiStore";
 import { ActorAvatar } from "../../../../agents/ActorAvatar";
 import { commandActions } from "../../../../command/commandStore";
 import { TicketLink } from "../../../../shell/TicketLink";
+import { statusIconProps } from "../../../../statusIconProps";
 import { useNeedsYouUpdate } from "../../../useNeedsYou";
 
 export function InboxSection({
@@ -81,13 +82,7 @@ export function InboxSection({
 							title={item.ticket.title}
 							priority={item.ticket.priority}
 							project={item.ticket.project.path}
-							status={
-								<StatusIcon
-									category={item.ticket.status.category}
-									reviewer={item.ticket.status.reviewer ?? undefined}
-									label={item.ticket.status.name}
-								/>
-							}
+							status={<StatusIcon {...statusIconProps(item.ticket.status)} label={item.ticket.status.name} />}
 							age={compactRelativeTime(item.ticket.createdAt)}
 							createdAt={item.ticket.createdAt}
 							actor={<ActorAvatar ticketId={item.ticket.id} />}

@@ -142,7 +142,7 @@ describe("AgentLine", () => {
 
 		expect(html).toContain("left-[84px]");
 		expect(html).toContain("pl-[102px]");
-		expect(html).not.toContain("left-[58px]");
+		expect(html).not.toContain("left-[60px]");
 	});
 
 	test("runs the rule of the ticket through the line when a merged pull request follows it", () => {
@@ -157,7 +157,7 @@ describe("AgentLine", () => {
 		);
 
 		expect(html).toContain("left-[84px]");
-		expect(html).toContain("left-[58px]");
+		expect(html).toContain("left-[60px]");
 	});
 
 	test("leaves the border of the group to the pull request lines that follow it", () => {
@@ -200,7 +200,7 @@ describe("AgentLine", () => {
 			/>,
 		);
 
-		expect(html).toContain("left-[58px]");
+		expect(html).toContain("left-[60px]");
 		expect(html).toContain("pl-19");
 	});
 
