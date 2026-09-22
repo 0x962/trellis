@@ -1,5 +1,5 @@
 import { type LinkedPullRequest, type ReviewRevision, reviewRef } from "@trellis/api";
-import { Badge, type BadgeTone, MergeConflictMark, PrGlyph } from "@trellis/ui";
+import { Badge, type BadgeTone, MergeConflictMark, PrGlyph, Tooltip } from "@trellis/ui";
 import { ReviewHeaderActions } from "../../../ReviewHeaderActions";
 import { LocalStateMenu } from "./components/LocalStateMenu";
 
@@ -38,6 +38,14 @@ export const hasConflict = (pullRequest: GithubPullRequest | undefined, linkedPr
 		? pullRequest?.state === "OPEN" && pullRequest.mergeable === "CONFLICTING"
 		: linkedPr.state === "open" && linkedPr.mergeable === "conflicting";
 
+export const queuePositionText = (position: number | null | undefined) =>
+	position === undefined ? "Position ..." : `Position ${position ?? "pending"}`;
+
+export const queueTooltipText = (position: number | null | undefined) =>
+	position === undefined
+		? "In the merge queue. Position is loading."
+		: `In the merge queue · ${queuePositionText(position)}`;
+
 export type ReviewIdentityProps = {
 	pr: string;
 	// The revision with the fields of the newest GitHub poll, or `null` while
@@ -48,14 +56,24 @@ export type ReviewIdentityProps = {
 	// The Trellis row of the pull request when a ticket links it. It holds the
 	// local review state. A pull request that no ticket links reads as ready.
 	linkedPr: LinkedPullRequest | null;
+	mergeQueuePosition?: number | null;
 	onAction: () => void;
 };
 
 // The title, the state, the branch and the buttons that end a review.
-export function ReviewIdentity({ pr, revision, pullRequest, isQueued, linkedPr, onAction }: ReviewIdentityProps) {
+export function ReviewIdentity({
+	pr,
+	revision,
+	pullRequest,
+	isQueued,
+	linkedPr,
+	mergeQueuePosition,
+	onAction,
+}: ReviewIdentityProps) {
 	const ref = reviewRef(pr);
 	const localState = linkedPr?.localState ?? "ready";
 	const glyphState = pullRequest?.state === "MERGED" ? "merged" : pullRequest?.state === "CLOSED" ? "closed" : "open";
+	const stateBadge = <Badge tone={stateTone(pullRequest, isQueued)}>{stateWord(pullRequest, isQueued)}</Badge>;
 	return (
 		<div className="review-heading">
 			<div className="review-heading-title">
@@ -77,7 +95,16 @@ export function ReviewIdentity({ pr, revision, pullRequest, isQueued, linkedPr, 
 						size="sm"
 					/>
 				)}
-				<Badge tone={stateTone(pullRequest, isQueued)}>{stateWord(pullRequest, isQueued)}</Badge>
+				{isQueued ? (
+					<Tooltip content={queueTooltipText(mergeQueuePosition)}>
+						<span className="review-state-group">
+							{stateBadge}
+							<span className="review-queue-position">{queuePositionText(mergeQueuePosition)}</span>
+						</span>
+					</Tooltip>
+				) : (
+					stateBadge
+				)}
 				{hasConflict(pullRequest, linkedPr) && (
 					<a className="inline-flex" href={`${pr}/conflicts`} target="_blank" rel="noreferrer">
 						<MergeConflictMark baseRef={linkedPr?.baseRef ?? pullRequest?.baseRefName ?? ""} />

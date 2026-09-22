@@ -1,27 +1,28 @@
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { reviewRef } from "@trellis/api";
-import { useApp } from "../../../lib/appContext";
-export function ReviewStack({ pr }: { pr: string }) {
-	const { orpc } = useApp();
-	const { data, error } = useQuery(orpc.reviews.metadata.queryOptions({ input: { pr } }));
-	const meta = data as
-		| {
-				mergeQueueEntry?: { position: number | null };
-				stack?: {
-					entries: {
-						nodes: { position: number; pullRequest: { url: string; number: number; title: string; state: string } }[];
-					};
-				};
-		  }
-		| undefined;
+
+export type ReviewMetadata = {
+	mergeQueueEntry?: { position?: number | null } | null;
+	stack?: {
+		entries: {
+			nodes: { position: number; pullRequest: { url: string; number: number; title: string; state: string } }[];
+		};
+	};
+};
+
+export function ReviewStack({
+	pr,
+	meta,
+	error,
+}: {
+	pr: string;
+	meta: ReviewMetadata | undefined;
+	error: Error | null;
+}) {
 	const entries = meta?.stack?.entries.nodes ?? [];
 	return (
 		<>
 			{error && <p className="review-meta">Stack and queue status: {error.message}</p>}
-			{meta?.mergeQueueEntry && (
-				<p className="review-notice">In the merge queue · Position {meta.mergeQueueEntry.position ?? "Pending"}</p>
-			)}
 			{entries.length > 0 && (
 				<nav className="review-stack" aria-label="PR stack">
 					{[...entries]

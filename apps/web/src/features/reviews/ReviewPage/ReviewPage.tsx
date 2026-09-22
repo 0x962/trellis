@@ -1,8 +1,10 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { isAgentWorking, type ReviewSubmission, type ReviewThread, reviewRef, turnOf, verdictMark } from "@trellis/api";
 import { EmptyState, Skeleton, type TabItem, Tabs, TicketId, useMediaQuery } from "@trellis/ui";
 import type { DiffAnchor } from "@trellis/ui/review";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
+import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
 import { EvidenceDocument } from "../EvidenceDocument";
 import { FileRiskGroups } from "../FileRiskGroups";
@@ -11,7 +13,7 @@ import { ApplySuggestionsDialog, ReviewApplyContext, type ReviewApplyState, Revi
 import { ReviewChecks } from "../ReviewChecks/ReviewChecks";
 import { ReviewComment } from "../ReviewComment/ReviewComment";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
-import { ReviewStack } from "../ReviewStack/ReviewStack";
+import { type ReviewMetadata, ReviewStack } from "../ReviewStack/ReviewStack";
 import type { ReadMarkFile } from "../readMarks/readMarks";
 import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
@@ -44,6 +46,7 @@ export type ReviewPageProps = {
 };
 
 export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: ReviewPageProps) {
+	const { orpc } = useApp();
 	const activeThread = useActiveThread(syncHash);
 	const {
 		revision,
@@ -115,6 +118,11 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	const allSubmissions = submissions.data ?? noSubmissions;
 	const summaryRow = summary.data ?? null;
 	const prRow = status.data?.prRow ?? null;
+	const metadata = useQuery({
+		...orpc.reviews.metadata.queryOptions({ input: { pr } }),
+		enabled: revision !== null || status.data?.isQueued === true,
+	});
+	const reviewMetadata = metadata.data as ReviewMetadata | undefined;
 	// The ticket row also knows the ticket status and its dependencies.
 	// `prRow` is the fallback for a pull request that no ticket links.
 	const turnInput = ticket.data ?? prRow;
@@ -135,6 +143,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 						pullRequest={displayMeta}
 						isQueued={status.data?.isQueued ?? false}
 						linkedPr={linkedPr}
+						mergeQueuePosition={reviewMetadata?.mergeQueueEntry?.position}
 						onAction={refreshAll}
 					/>
 					<div className="review-identity-lines">
@@ -154,7 +163,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 				{/* The notices sit above the tabs, so both tabs show them. The box
 				    is empty while nothing went wrong, and an empty box draws nothing. */}
 				<div className="review-notices">
-					{revision && <ReviewStack pr={pr} />}
+					{revision && <ReviewStack pr={pr} meta={reviewMetadata} error={metadata.error} />}
 					{status.isError && (
 						<p role="alert" className="review-notice">
 							GitHub status: {status.error.message}
