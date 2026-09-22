@@ -13,8 +13,9 @@ describe("GroupHeader count slot", () => {
 		expect(markup({ countLabel: "0/6", forYou: 1 })).toContain("0/6 · 1 for you");
 	});
 
-	test("prints the note last, so the counts keep one order", () => {
-		expect(markup({ countLabel: "0/2", forYou: 1, note: "Later" })).toContain("0/2 · 1 for you · Later");
+	test("prints no wave word after the count", () => {
+		expect(markup({ countLabel: "0/2", forYou: 1 })).toContain("0/2 · 1 for you");
+		expect(markup({ countLabel: "0/2", forYou: 1 })).not.toContain("Later");
 	});
 
 	test("prints no count of the person when no row waits for the person", () => {
@@ -32,5 +33,32 @@ describe("GroupHeader actions and height", () => {
 	test("stands at the table header height that the virtualizer reserves", () => {
 		expect(markup({})).toContain(`height:${groupHeaderHeight}px`);
 		expect(markup({ phone: true })).toContain(`height:${phoneGroupHeaderHeight}px`);
+	});
+});
+
+describe("GroupHeader wave progress", () => {
+	test("draws an empty grey circle when no ticket is complete", () => {
+		const html = markup({ completedCount: 0, totalCount: 6, countLabel: "0/6" });
+
+		expect(html).toContain('aria-label="0 of 6 done"');
+		expect(html).toContain('data-category="todo"');
+	});
+
+	test("draws a partial green circle when some tickets are complete", () => {
+		const html = markup({ completedCount: 3, totalCount: 6, countLabel: "3/6" });
+
+		expect(html).toContain('aria-label="3 of 6 done"');
+		expect(html).toContain('data-category="started"');
+		expect(html).toContain('data-color="success"');
+		expect(html).toContain('data-progress="0.5"');
+	});
+
+	test("draws a full green circle with a check when every ticket is complete", () => {
+		const html = markup({ completedCount: 6, totalCount: 6, countLabel: "6/6", done: true });
+
+		expect(html).toContain('aria-label="6 of 6 done"');
+		expect(html).toContain('data-category="done"');
+		expect(html).toContain('data-color="success"');
+		expect(html).not.toContain("data-done-mark");
 	});
 });

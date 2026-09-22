@@ -11,15 +11,13 @@ export type TableGroup = RowGroup & {
 	// The text the count slot prints in place of `count`, such as the `3/11`
 	// done and total counts of a wave.
 	countLabel?: string;
-	// The word of the `Badge` after the label, such as Current.
-	badge?: string;
+	// The counts that set the progress circle of a wave group.
+	completedCount?: number;
+	totalCount?: number;
 	// The rows of the group whose turn is the person. The header prints it
 	// after the count.
 	forYou?: number;
-	// A muted word beside the count, such as Later.
-	note?: string;
-	// True when every ticket of the group is done or canceled. The header
-	// then draws the double check.
+	// True when every ticket of the group is done or canceled.
 	done?: boolean;
 	// The ref of the epic that every row of the table belongs to. A new
 	// ticket from the header of the group joins this epic, and the wave

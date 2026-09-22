@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { type ActorRef, type AgentRun, HarnessSchema } from "@trellis/api";
+import { type AgentRun, HarnessSchema } from "@trellis/api";
 import { renderToStaticMarkup } from "react-dom/server";
 import { type AppContext, AppProvider } from "../../../lib/appContext";
 import { ActorAvatar } from "./ActorAvatar";
@@ -49,30 +49,22 @@ const crispFjord = {
 	updatedAt: "2026-09-21T23:26:05.825Z",
 } as AgentRun;
 
-const defaultActor: ActorRef = { kind: "agent", name: "crisp-fjord", displayName: "Agent" };
-
-const render = (runs: AgentRun[], actor: ActorRef = defaultActor) => {
+const render = (runs: AgentRun[]) => {
 	const queryClient = new QueryClient();
 	queryClient.setQueryData(assignedQueryKey, runs);
 	const app = appOf(queryClient);
 	return renderToStaticMarkup(
 		<QueryClientProvider client={queryClient}>
 			<AppProvider value={app}>
-				<ActorAvatar actor={actor} ticketId="01M334MED9Z2GKBXMB6MVTED50" />
+				<ActorAvatar ticketId="01M334MED9Z2GKBXMB6MVTED50" />
 			</AppProvider>
 		</QueryClientProvider>,
 	);
 };
 
 describe("ActorAvatar", () => {
-	test("draws no avatar for an agent actor when no agent run is assigned", () => {
+	test("draws no avatar when no agent run is assigned", () => {
 		expect(render([])).toBe("");
-	});
-
-	test("keeps human initials when no agent run is assigned", () => {
-		const html = render([], { kind: "human", name: "Navid Khan" });
-
-		expect(html).toContain("NK");
 	});
 
 	test("draws the provider mark for an assigned agent run", () => {

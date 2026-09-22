@@ -131,7 +131,7 @@ export const Row = memo(function Row({
 	onChange,
 }: RowProps) {
 	const element = useRef<HTMLDivElement>(null);
-	const { identifier, lastActor } = ticket;
+	const { identifier } = ticket;
 	const href = `/t/${identifier}`;
 	const ticketRootId = projects.find((project) => project.id === ticket.project.id)?.rootId;
 	const ticketRootIds = ticketRootId === undefined ? [] : [ticketRootId];
@@ -217,8 +217,7 @@ export const Row = memo(function Row({
 		),
 		waits: <WaitsCell waitsOn={ticket.waitsOn} ready={ticket.ready} />,
 		releases: <ReleasesCell releases={ticket.releases} />,
-		actor:
-			lastActor === null || lastActor.kind === "system" ? null : <ActorAvatar actor={lastActor} ticketId={ticket.id} />,
+		actor: <ActorAvatar ticketId={ticket.id} />,
 		updated: <span className="text-sm text-fg-muted tabular">{compactRelativeTime(ticket.updatedAt)}</span>,
 		created: <span className="text-sm text-fg-muted tabular">{compactRelativeTime(ticket.createdAt)}</span>,
 		parent: ticket.parent === null ? null : <TicketId id={ticket.parent.identifier} size="sm" />,

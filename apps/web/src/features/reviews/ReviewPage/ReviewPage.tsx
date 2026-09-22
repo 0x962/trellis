@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import {
 	type Evidence,
 	evidenceFloor,
+	type GitHubConversationItem,
 	isAgentWorking,
 	type ReviewRevision,
 	type ReviewSubmission,
@@ -11,6 +12,7 @@ import {
 	verdictMark,
 } from "@trellis/api";
 import { EmptyState, Skeleton, Tabs, TicketId, useMediaQuery } from "@trellis/ui";
+import type { DiffAnchor } from "@trellis/ui/review";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
@@ -83,6 +85,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	// `FilesDisclosure` hides the review details behind one control on a phone.
 	const phone = useMediaQuery("(max-width: 767px)");
 	const [pickedPath, setPickedPath] = useState("");
+	const [pickedAnchor, setPickedAnchor] = useState<DiffAnchor | null>(null);
 	const [batch, setBatch] = useState<ReadonlySet<string>>(() => new Set());
 	const [applying, setApplying] = useState<string[] | null>(null);
 	// The diff shows the threads of the revision on screen, plus the threads
@@ -133,7 +136,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	const applyingThreads = applying === null ? [] : applying.flatMap((id) => threadsById.get(id) ?? []);
 	// A file-list choice overrides the path of a linked thread.
 	const deepLinkPath = activeThread === null ? undefined : threadsById.get(activeThread)?.path;
-	const selectedPath = pickedPath !== "" ? pickedPath : (deepLinkPath ?? "");
+	const selectedPath = pickedPath !== "" ? pickedPath : (pickedAnchor?.path ?? deepLinkPath ?? "");
 	// The summary and evidence records must match the revision on screen.
 	const headSha = revision?.headSha ?? "";
 	const records = useMemo(
@@ -171,15 +174,18 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	const shownTab = tab ?? firstTurn.current ?? defaultReviewTab(null);
 	const ref = reviewRef(pr);
 	const ticketIdentifier = status.data?.ticket?.identifier ?? "";
+	const openGitHubLine = (item: GitHubConversationItem) => {
+		if (!item.path || !item.line) return;
+		const side = item.side ?? "new";
+		const anchor = { path: item.path, side, line: item.line, startLine: item.line };
+		setPickedAnchor(anchor);
+		setPickedPath(item.path);
+		onTabChange("diff");
+	};
 	return (
 		<ReviewApplyContext.Provider value={applyState}>
 			<div className="review-page">
-				<ReviewHeader
-					pr={pr}
-					parent={parent}
-					revision={displayRevision}
-					verdict={revision === null ? null : verdictMark(allSubmissions, revision.headSha)}
-				/>
+				<ReviewHeader pr={pr} parent={parent} revision={displayRevision} verdict={verdictMark(allSubmissions)} />
 				{/* The identity stays above the column, so the buttons that end
 				    the review are always in reach. */}
 				<div className="review-identity">
@@ -256,8 +262,8 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 									) : (
 										<>
 											<ChangeSummary summary={summaryRow} headSha={headSha} />
-											<ConditionsBlock conditions={conditions} />
 											{floor && <EvidenceStrip records={records} floor={floor} />}
+											<ConditionsBlock conditions={conditions} />
 										</>
 									)}
 									<ReviewDiscussion
@@ -270,9 +276,16 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 												if (thread.revisionId && thread.revisionId !== revision?.id)
 													setRevision(await client.reviews.revision({ pr, id: thread.revisionId }));
 												setPickedPath(thread.path);
+												setPickedAnchor({
+													path: thread.path,
+													side: thread.side,
+													line: thread.line,
+													startLine: thread.startLine,
+												});
 												onTabChange("diff");
 											})();
 										}}
+										onGitHubLine={openGitHubLine}
 									/>
 								</div>
 							),
@@ -320,7 +333,10 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 													files={changedFiles}
 													read={read}
 													selected={selectedPath}
-													onSelect={setPickedPath}
+													onSelect={(path) => {
+														setPickedPath(path);
+														setPickedAnchor(null);
+													}}
 												/>
 											)}
 										</aside>
@@ -333,6 +349,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 													revision={revision}
 													threads={revisionThreads}
 													selectedFile={selectedPath}
+													selectedAnchor={pickedAnchor}
 													renderThread={renderThread}
 													onFiles={setChangedFiles}
 													read={read}

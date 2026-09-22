@@ -107,8 +107,8 @@ The host uses these observations for flow completion.
 Database reservations and runtime attempt identifiers prevent duplicate starts.
 
 Native project agents use Git worktrees under `agents/<run id>/work`.
-The ticket page holds the title, the ask, the sub-tickets and the attachments in one centered column.
-Its properties rail holds the pickers, the pull requests, the agent, the run controls, and the form that sends the agent a message.
+The ticket page holds the title, the ask, the sub-tickets, the pull requests and the attachments in one centered column.
+Its properties rail holds the pickers and the agent assignment.
 The review sheet of a pull request has four tabs: Overview, Checks, Flows and Diff.
 Overview holds the summary, the merge conditions, the evidence and the discussion. Checks holds every GitHub check of the head commit with its duration. Flows holds the flow runs of the ticket. Diff holds the file tree and the diff.
 The tab stays in the URL of `/reviews/<owner>/<repo>/<number>` as `?tab=overview|checks|flows|diff`, and a link that names the older value `facts` opens Overview.
@@ -1137,6 +1137,57 @@ pending, else pass on any pass, else none.
 Tests drive `poller.tick()` against a stub gh script. `TRELLIS_GH_BIN` points at
 the stub, `TRELLIS_GH_STUB_FILE` holds its replies, and the stub counts its
 spawns.
+
+### Check notices
+
+A check notice tells the agent of a ticket that the GitHub checks of its pull
+request changed in a way that needs its action. No person relays it.
+
+**Source.** The detector is the last step of every poller tick
+(`gh/pollerNotices.ts`). It reads the checks that the poll just stored, so it
+adds no GitHub poll and no call per agent. A separate job would read the same
+rows on a second timer, and it could run between a poll and its write. The
+upsert sets `pull_requests.checks_changed_at` when the checks or the head
+commit change. The detector measures the quiet time from that column.
+
+**What sends a message.** `decideNotice` (`gh/checkNotice.ts`) returns one of
+three kinds:
+
+- `failed`: a check fails or is canceled on the head commit, and no earlier
+  notice on that head named it. The message names every failed check.
+- `passed`: every check passes, and the newest notice of the pull request is
+  `failed` or `stuck`. The newest notice can be on an older head, so the
+  agent learns that its fix worked.
+- `stuck`: a check is pending, and no check changed for 30 minutes. One
+  message goes out per head and set of pending checks.
+
+A check that starts, one more check that passes, and a skipped check need no
+action, so they send nothing. Trellis does not read which checks GitHub marks
+as required. `passed` means every check passes, the same rule as `ci_state`.
+
+**Burst and dedup.** A `failed` notice waits until no check is pending, or
+until no check changed for 60 seconds. The detector keeps no state in memory:
+it compares each decision with the `check_notices` rows of the pull request.
+A restart therefore sends nothing again. A row that no write changed since the
+migration holds a null `checks_changed_at`, so old results reach no agent. A
+new head commit starts a new set of `failed` and `stuck` notices.
+
+**Message.** The notice row stores the head commit and the checks, each with
+its workflow, job name, and log link. A `failed` notice also stores the first
+5 lines of the failure annotations for at most 3 checks. It reads them with
+one `gh api repos/<o>/<r>/check-runs/<id>/annotations` call per check, and
+only when it writes the notice. The job log is a download of megabytes, so the
+message carries the annotations only. A commit status has no check run id and
+gives no lines.
+
+**Delivery.** A notice queues one `review_deliveries` row with
+`check_notice_id` for each open agent run of a linked ticket, through
+`agentsOf`. The review delivery loop sends it with the same states, the same
+15 second deadline, and the same failure sentences as a review. A pull
+request with no ticket, or with no agent, gets no notice row. The dispatcher
+fails a pending check delivery when the agent has no running process, and
+when a newer notice, a new head commit, a merge, or a close replaced it. A
+merged or closed pull request gets no new notice.
 
 ## Attachments
 

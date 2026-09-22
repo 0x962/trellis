@@ -7,20 +7,21 @@ const markup = (props: Partial<Parameters<typeof GroupHeader>[0]>) =>
 		<GroupHeader group="wave-1" label="Marks, motion, the first facts" expanded onToggle={() => {}} {...props} />,
 	);
 
-describe("GroupHeader done mark", () => {
-	test("draws the double check in the success color when the group is done", () => {
-		const html = markup({ done: true });
+describe("GroupHeader icon", () => {
+	test("draws the icon before the label", () => {
+		const html = markup({ icon: <span data-wave-progress="">wave progress</span> });
 
-		expect(html).toContain("data-done-mark");
-		expect(html).toContain("text-success");
+		expect(html.indexOf("data-wave-progress")).toBeGreaterThan(-1);
+		expect(html.indexOf("data-wave-progress")).toBeLessThan(html.indexOf("Marks, motion, the first facts"));
 	});
 
-	test("draws no mark while the group holds an open ticket", () => {
-		expect(markup({ done: false })).not.toContain("data-done-mark");
+	test("draws no trailing done mark", () => {
 		expect(markup({})).not.toContain("data-done-mark");
 	});
 
-	test("keeps the label out of the mark, so the name reads the same either way", () => {
-		expect(markup({ done: true })).toContain("Marks, motion, the first facts");
+	test("keeps the label in the toggle button", () => {
+		expect(markup({ icon: <span data-wave-progress="">wave progress</span> })).toContain(
+			"Marks, motion, the first facts",
+		);
 	});
 });

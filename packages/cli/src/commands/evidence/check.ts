@@ -10,7 +10,7 @@ import { checkText, type EvidenceCheckInput, type EvidenceCheckLine, type Eviden
 const hintOf = (item: EvidenceFloorItem, verifyCommands: string[]): string => {
 	switch (item) {
 		case "summary":
-			return "write the STE summary:";
+			return "write the explanation, with images and diagrams:";
 		case "after":
 			return "capture the head route:";
 		case "before":

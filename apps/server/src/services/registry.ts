@@ -260,6 +260,7 @@ export const services = {
 	"attachments.get": io("read", attachments.get),
 	"attachments.delete": io("mutation", attachments.remove),
 	"pullRequests.list": io("read", pullRequests.list),
+	"pullRequests.resolve": io("read", pullRequests.resolve),
 	"pullRequests.link": prepared("mutation", pullRequests.prepareLink, pullRequests.link),
 	"pullRequests.unlink": io("mutation", pullRequests.unlink),
 	"pullRequests.refresh": prepared("mutation", pullRequests.prepareRefresh, pullRequests.refresh),

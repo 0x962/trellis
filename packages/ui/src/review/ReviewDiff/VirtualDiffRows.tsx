@@ -1,5 +1,6 @@
 import { createElement, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualRows } from "../useVirtualRows";
+import type { DiffAnchor } from "./ReviewDiff";
 import { type ReviewRow, reviewRowSize, rowAnnotations } from "./reviewRows";
 
 // A wrapper that reports the height of variable-height annotation content:
@@ -33,17 +34,30 @@ function MeasuredAnnotation({
 
 const measurable = (row: ReviewRow) => row.kind === "annotation" || rowAnnotations(row) > 0;
 
+const anchorMatches = (row: ReviewRow, anchor: DiffAnchor) => {
+	if (row.kind === "unified")
+		return (
+			row.file.name === anchor.path &&
+			((anchor.side === "old" && row.line.oldLine === anchor.line) ||
+				(anchor.side === "new" && row.line.newLine === anchor.line))
+		);
+	if (row.kind !== "split" || row.file.name !== anchor.path) return false;
+	return anchor.side === "old" ? row.oldLine?.oldLine === anchor.line : row.newLine?.newLine === anchor.line;
+};
+
 export function VirtualDiffRows({
 	rows,
 	mode,
 	theme,
 	selectedFile,
+	selectedAnchor,
 	renderRow,
 }: {
 	rows: ReviewRow[];
 	mode: "split" | "unified";
 	theme: "light" | "dark" | "system";
 	selectedFile?: string;
+	selectedAnchor?: DiffAnchor | null;
 	renderRow: (row: ReviewRow) => ReactNode;
 }) {
 	const [measured, setMeasured] = useState<ReadonlyMap<string, number>>(() => new Map());
@@ -60,11 +74,16 @@ export function VirtualDiffRows({
 	// file scrolls the list, so the reviewer keeps the place they scrolled to.
 	const scrolledTo = useRef<string | undefined>(undefined);
 	useEffect(() => {
-		if (selectedFile === scrolledTo.current) return;
-		scrolledTo.current = selectedFile;
-		const index = rows.findIndex((row) => row.kind === "file" && row.file.name === selectedFile);
+		const target = selectedAnchor
+			? `${selectedAnchor.path}:${selectedAnchor.side}:${selectedAnchor.line}`
+			: selectedFile;
+		if (target === scrolledTo.current) return;
+		scrolledTo.current = target;
+		const index = selectedAnchor
+			? rows.findIndex((row) => anchorMatches(row, selectedAnchor))
+			: rows.findIndex((row) => row.kind === "file" && row.file.name === selectedFile);
 		if (index >= 0) virtual.scrollToIndex(index);
-	}, [rows, selectedFile, virtual.scrollToIndex]);
+	}, [rows, selectedFile, selectedAnchor, virtual.scrollToIndex]);
 	return createElement(
 		"diffs-container",
 		{ className: "review-code", "data-diff-type": mode, "data-theme": theme, ref: viewportRef },

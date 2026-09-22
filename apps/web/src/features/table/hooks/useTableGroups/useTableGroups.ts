@@ -55,11 +55,10 @@ const noRefs: string[] = [];
 // wave positions of each epic in view. A view that names one epic also
 // holds the Done and Canceled rows of that epic (see `hasInlineClosed`), so
 // a finished wave keeps its group. When every row belongs to one epic,
-// each wave header prints the done and total counts of the wave
-// from the server, and the Current badge or the word Later. A new ticket
-// from such a header joins the epic and the wave.
+// each wave header prints the done and total counts of the wave from the server.
+// A new ticket from such a header joins the epic and the wave.
 // `loading` is true until the waves of every epic in view have
-// landed, because the group order and the header marks come from them; the
+// landed, because the group order and the header counts come from them; the
 // table draws its skeleton for that time, so the groups never change order
 // on screen.
 export const useTableGroups = ({
@@ -84,7 +83,7 @@ export const useTableGroups = ({
 	const groups = useMemo(() => {
 		const waves = epics.flatMap((entry) => entry.waves);
 		const oneEpic = epicRefs.length === 1 && rows.every((row) => row.epic !== null);
-		const marks = oneEpic ? waveMarks(waves, epics[0]?.epic.currentWave?.id) : undefined;
+		const marks = oneEpic ? waveMarks(waves) : undefined;
 		const active: TableGroup[] = groupRows(rows, {
 			group: view.group,
 			sort: view.sort,
@@ -99,9 +98,9 @@ export const useTableGroups = ({
 				...group,
 				count: group.rows.length,
 				countLabel: mark?.countLabel,
+				completedCount: mark?.completedCount,
+				totalCount: mark?.totalCount,
 				forYou: mark === undefined ? undefined : forYouCount(group.rows, working),
-				badge: mark?.badge,
-				note: mark?.note,
 				done: mark?.done,
 				epicRef: oneEpic && view.group === "wave" ? epicRefs[0] : undefined,
 				expanded: view.group === "none" || !isCollapsed(group.key),

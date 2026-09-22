@@ -7,7 +7,7 @@ const checksOf = (...buckets: ChecksLineBucket[]): ChecksLineCheck[] =>
 describe("checkWords", () => {
 	test("prints every nonzero bucket in review order", () => {
 		expect(checkWords(checksOf("pass", "pass", "fail", "pending", "cancel", "skipping", "skipping"))).toBe(
-			"1 failed · 1 pending · 1 canceled · 2 passed · 2 skipped",
+			"1 failing, 1 in progress, 2 skipped, 2 successful checks, 1 canceled",
 		);
 	});
 
@@ -22,6 +22,6 @@ describe("checkWords", () => {
 				{ name: "Unknown", workflow: null, bucket: "pending", link: null, status: "unknown" },
 				{ name: "Build", workflow: null, bucket: "pending", link: null, status: "running" },
 			]),
-		).toBe("1 pending · 1 unknown");
+		).toBe("1 in progress, 1 unknown");
 	});
 });

@@ -21,4 +21,15 @@ describe("unquotedText", () => {
 		const result = unquotedText("Open packages/api/src/steCheck/steCheck.ts and ChatPage.vue first.");
 		expect(result).toMatch(/^Open\s+and\s+first\.$/);
 	});
+
+	test("masks fenced blocks and Markdown images", () => {
+		const result = unquotedText(
+			"Keep this line.\n```mermaid\nflowchart LR\n  agent write summary store page -->|a — b| overview\n```\n![the new Overview tab of pull request 12](shot.png)\nKeep that line.",
+		);
+		expect(result).not.toContain("—");
+		expect(result).not.toContain("flowchart");
+		expect(result).not.toContain("Overview");
+		expect(result).toContain("Keep this line.");
+		expect(result).toContain("Keep that line.");
+	});
 });

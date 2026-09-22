@@ -90,6 +90,13 @@ export const evidenceFloorMissing = (ticket: string) =>
 		`An agent cannot move ${ticket} to human-review while required evidence is missing.`,
 	);
 
+export const pullRequestNotReady = (number: number) =>
+	new CliFailure(
+		"PR_NOT_READY",
+		1,
+		`trellis pr add requires the summary and every evidence floor item of #${number}. Run the command beside each MISSING line, then run: trellis ready ${number}`,
+	);
+
 export const unreachable = (url: string) =>
 	new CliFailure("UNREACHABLE", 5, `trellis server not running at ${url}; run "trellis install" or "bun dev"`);
 
@@ -109,8 +116,10 @@ type Data = Record<string, unknown>;
 // The extra words a code's payload adds to the server message.
 const detail = (code: string, message: string, data: Data): string => {
 	switch (code) {
-		case "NOT_FOUND":
+		case "NOT_FOUND": {
+			if (typeof data.kind !== "string" || typeof data.ref !== "string") return message;
 			return `No ${data.kind} matches ${data.ref}.`;
+		}
 		case "STATUS_NOT_IN_PROJECT": {
 			const names = (data.valid as Array<{ name: string }>).map((status) => status.name).join(", ");
 			return `${message} Valid statuses: ${names}.`;

@@ -28,8 +28,8 @@ const submission = (facts: Partial<ReviewSubmission>): ReviewSubmission => ({
 	...facts,
 });
 
-test("an approval on the head commit is current", () => {
-	expect(verdictState([submission({})], head)).toEqual({
+test("an approval is current", () => {
+	expect(verdictState([submission({})])).toEqual({
 		id: "01S",
 		kind: "approved",
 		current: true,
@@ -39,34 +39,34 @@ test("an approval on the head commit is current", () => {
 	});
 });
 
-test("a request for changes on an older head commit is stale", () => {
-	const state = verdictState([submission({ verdict: "changes_requested", headSha: "a1b2c3d4" })], head);
+test("a request for changes stays current after a later revision", () => {
+	const state = verdictState([submission({ verdict: "changes_requested", headSha: "a1b2c3d4" })]);
 
 	expect(state).toMatchObject({
-		kind: "stale",
-		current: false,
-		headline: "You asked for changes on an older commit",
+		kind: "changes_requested",
+		current: true,
+		headline: "You asked for changes",
 	});
 });
 
 test("a comment alone shows as the last note and sets no verdict", () => {
-	const state = verdictState([submission({ id: "01C", verdict: "commented" })], head);
+	const state = verdictState([submission({ id: "01C", verdict: "commented" })]);
 
 	expect(state).toMatchObject({ id: "01C", kind: "note", current: false, headline: "You commented" });
 });
 
 test("a verdict wins over a newer comment", () => {
-	const state = verdictState(
-		[submission({ id: "01C", verdict: "commented", createdAt: "2026-09-21T11:00:00.000Z" }), submission({ id: "01A" })],
-		head,
-	);
+	const state = verdictState([
+		submission({ id: "01C", verdict: "commented", createdAt: "2026-09-21T11:00:00.000Z" }),
+		submission({ id: "01A" }),
+	]);
 
 	expect(state).toMatchObject({ id: "01A", kind: "approved" });
 });
 
 test("a submission by an agent shows nothing", () => {
-	expect(verdictState([submission({ byPerson: false })], head)).toBeNull();
-	expect(verdictState([], head)).toBeNull();
+	expect(verdictState([submission({ byPerson: false })])).toBeNull();
+	expect(verdictState([])).toBeNull();
 });
 
 test("the delivery words name the best state of any delivery", () => {

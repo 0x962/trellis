@@ -2,8 +2,11 @@ import type { LinkedPullRequest, PullRequest } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { contextOf, wantsJson } from "../context.ts";
+import { pullRequestNotReady } from "../errors.ts";
 import { cell, json, printList, printRecord, type RecordSpec, timeCell } from "../output.ts";
 import { deletedRecord } from "./delete.ts";
+import { pullRequestCheck } from "./evidence/pullRequestCheck.ts";
+import { pullRequestReadyText } from "./ready/pullRequestReady.ts";
 import { prList } from "./show.ts";
 
 const prRecord: RecordSpec<PullRequest> = {
@@ -26,6 +29,10 @@ const prRecord: RecordSpec<PullRequest> = {
 
 // The server stores the link even when gh is down; the row then carries
 // `fetchError`. The verb prints the row and still exits 6 for the outage.
+// After a link that gh could read, the verb prints the evidence floor when
+// an item is missing. An agent then gets exit 1; a person keeps exit 0. The
+// link stays in both cases, because the summary, the evidence and
+// `trellis ready` read the floor from the linked row.
 const add = defineCommand({
 	meta: { name: "add", description: "Link a pull request by URL" },
 	args: {
@@ -34,14 +41,22 @@ const add = defineCommand({
 	},
 	async run(context) {
 		const ctx = contextOf(context);
-		const row: LinkedPullRequest = await clientOf(ctx).pullRequests.link({
+		const client = clientOf(ctx);
+		const row: LinkedPullRequest = await client.pullRequests.link({
 			ticket: context.args.ticket,
 			url: context.args.url,
 		});
 		printRecord(ctx.out, ctx.format, row, prRecord);
-		if (row.fetchError === null) return 0;
-		ctx.err.write(`warning: gh could not read the pull request: ${row.fetchError}\n`);
-		return 6;
+		if (row.fetchError !== null) {
+			ctx.err.write(`warning: gh could not read the pull request: ${row.fetchError}\n`);
+			return 6;
+		}
+		const ticket = await client.tickets.get({ ticket: context.args.ticket });
+		const result = await pullRequestCheck(client, ticket, row);
+		if (result.complete) return 0;
+		ctx.out.write(wantsJson(ctx) ? json(result) : `\n${pullRequestReadyText(result)}`);
+		if (ctx.actor().kind === "agent") throw pullRequestNotReady(row.number);
+		return 0;
 	},
 });
 

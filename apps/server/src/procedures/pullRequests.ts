@@ -1,6 +1,7 @@
 import { call, os } from "./base.ts";
 
 export const pullRequests = os.pullRequests.router({
+	resolve: os.pullRequests.resolve.handler(({ context, input }) => call(context, "pullRequests.resolve", input)),
 	list: os.pullRequests.list.handler(({ context, input }) => call(context, "pullRequests.list", input)),
 	link: os.pullRequests.link.handler(({ context, input }) => call(context, "pullRequests.link", input)),
 	unlink: os.pullRequests.unlink.handler(({ context, input }) => call(context, "pullRequests.unlink", input)),
