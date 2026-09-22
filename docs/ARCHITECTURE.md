@@ -110,7 +110,7 @@ Native project agents use Git worktrees under `agents/<run id>/work`.
 The ticket page holds the title, the ask, the sub-tickets, the pull requests and the attachments in one centered column.
 Its properties rail holds the pickers and the agent assignment.
 The review sheet of a pull request has four tabs: Overview, Checks, Flows and Diff.
-Overview holds the summary, the evidence document and the discussion. Checks holds every GitHub check of the head commit with its duration. Flows holds the flow runs of the ticket. Diff holds the file tree and the diff.
+Overview holds the summary and the evidence document. Checks holds every GitHub check of the head commit with its duration. Flows holds the flow runs of the ticket. Diff holds the file tree and the diff.
 The tab stays in the URL of `/reviews/<owner>/<repo>/<number>` as `?tab=overview|checks|flows|diff`, and a link that names the older value `facts` opens Overview.
 The authenticated terminal stream replays retained bytes and then pushes output and process observations.
 The terminal WebSocket carries ordered input and binary output outside the database request path after attachment.

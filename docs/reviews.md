@@ -37,10 +37,10 @@ A submission carries no thread to GitHub unless you check **Send open threads to
 Each thread then becomes a GitHub review comment at its anchor, and a suggestion block renders there as a suggested change.
 Only threads on the reviewed head can go.
 
-Discussion holds local threads and the read-only GitHub conversation.
+Local threads draw on the Diff tab.
 Threads support replies, edits, resolve, reopen, and eight reactions.
 A stale edit returns a version conflict.
-Thread links open Discussion at the selected thread.
+Thread links select their thread on the Diff tab.
 Session controls copy the recorded session identifier.
 
 The Checks tab shows GitHub checks and their log links.
