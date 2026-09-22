@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { ReviewTab } from "../../features/reviews/ReviewPage/reviewTab";
 
 type RefreshBehindSheet = () => void;
 
@@ -18,6 +19,8 @@ export type PageSheetState = {
 	// The address the in-app browser sheet shows, or null while the browser
 	// sheet is closed.
 	browser: string | null;
+	// The last review tab the person selected in this browser session.
+	reviewTab: ReviewTab | null;
 };
 
 // The sheet that the in-app browser stands over. `PageSheetHost`, the ticket
@@ -47,6 +50,7 @@ export const usePageSheetStore = create<PageSheetState>()(() => ({
 	session: null,
 	stats: null,
 	browser: null,
+	reviewTab: null,
 }));
 
 let refreshBehindSheet: RefreshBehindSheet | null = null;
@@ -68,6 +72,7 @@ export const pageSheetActions = {
 	setRefreshBehindSheet: (refresh: RefreshBehindSheet | null) => {
 		refreshBehindSheet = refresh;
 	},
+	setReviewTab: (reviewTab: ReviewTab) => usePageSheetStore.setState({ reviewTab }),
 	// A ticket starts a new stack. The review and the session of the ticket
 	// before it close with it.
 	openTicket: (ticket: string) => setSheetState({ ticket, pr: null, session: null, stats: null, browser: null }),

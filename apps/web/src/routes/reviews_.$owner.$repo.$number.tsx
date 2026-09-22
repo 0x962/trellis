@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ProjectRefStringSchema, reviewRef, TicketRefStringSchema } from "@trellis/api";
 import { ReviewPage } from "../features/reviews/ReviewPage/ReviewPage";
-import { type ReviewTab, reviewTabOf } from "../features/reviews/ReviewPage/reviewTab";
+import { initialReviewTab, type ReviewTab, reviewTabOf } from "../features/reviews/ReviewPage/reviewTab";
 import { projectSlashPath } from "../lib/projectPath";
+import { pageSheetActions, usePageSheetStore } from "../stores/pageSheetStore";
 
 // `project` names the project whose Diffs page opened the review, so the
 // title links back to it. A review opened by its URL alone carries none.
@@ -27,6 +28,8 @@ function Page() {
 	const { owner, repo, number } = Route.useParams();
 	const { project, ticket, tab } = Route.useSearch();
 	const navigate = useNavigate();
+	const lastTab = usePageSheetStore((state) => state.reviewTab);
+	const shownTab = initialReviewTab(tab, lastTab);
 	const pr = reviewRef(`${owner}/${repo}#${number}`).url;
 	const parent =
 		ticket !== undefined ? (
@@ -45,10 +48,11 @@ function Page() {
 			key={pr}
 			pr={pr}
 			parent={parent}
-			tab={tab}
-			onTabChange={(next) =>
-				void navigate({ to: ".", search: (current) => ({ ...current, tab: next }), hash: true, replace: true })
-			}
+			tab={shownTab}
+			onTabChange={(next) => {
+				pageSheetActions.setReviewTab(next);
+				void navigate({ to: ".", search: (current) => ({ ...current, tab: next }), hash: true, replace: true });
+			}}
 		/>
 	);
 }
