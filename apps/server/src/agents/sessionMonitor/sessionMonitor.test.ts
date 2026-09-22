@@ -76,7 +76,7 @@ test("the monitor emits changed states, suppresses startup alerts, and closes su
 	expect(aborted).toBe(true);
 });
 
-test("the monitor emits when the last message or last tool time changes", async () => {
+test("the monitor emits when the last message or the shown tool changes, and not for tool output", async () => {
 	const value = { run: session().run, sessionId: "session" };
 	value.run.processStatus = "exited";
 	const emitted: TrellisEvent[] = [];
@@ -113,6 +113,10 @@ test("the monitor emits when the last message or last tool time changes", async 
 	expect(emitted).toHaveLength(4);
 
 	value.run.observation!.lastTool.updatedAt = "2026-09-18T12:00:04.000Z";
+	await monitor.tick();
+	expect(emitted).toHaveLength(4);
+
+	value.run.observation!.lastTool.status = "completed";
 	await monitor.tick();
 	expect(emitted).toHaveLength(5);
 	await monitor.stop();

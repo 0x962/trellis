@@ -3,6 +3,11 @@ import type { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { projectRun } from "../../services/agentRuns/liveState.ts";
 import { startNativeReconcile } from "../nativeReconcile/host.ts";
 
+// Each change of the fingerprint sends the whole run to every open page. A
+// field that changes on each event of a run, such as `lastTool.updatedAt`,
+// which each piece of command output moves, sends one event per piece. The
+// tool fields here change only when the agent line changes: a new tool, or
+// the end of one.
 const fingerprint = (session: AgentActivity) =>
 	JSON.stringify({
 		process: session.run.processStatus,
@@ -12,7 +17,12 @@ const fingerprint = (session: AgentActivity) =>
 		outcome: session.run.observation?.outcome,
 		controllable: session.run.observation?.controllable,
 		lastMessageAt: session.run.observation?.lastMessage?.at,
-		lastToolUpdatedAt: session.run.observation?.lastTool?.updatedAt,
+		lastTool: session.run.observation?.lastTool && {
+			name: session.run.observation.lastTool.name,
+			target: session.run.observation.lastTool.target,
+			status: session.run.observation.lastTool.status,
+			startedAt: session.run.observation.lastTool.startedAt,
+		},
 		requests: session.run.observation?.attention?.requests,
 		completion: session.run.observation?.attention?.completion,
 		failure: session.run.observation?.attention?.failure,
