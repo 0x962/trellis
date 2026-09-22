@@ -6,8 +6,10 @@ import { createCache } from "../../db/cache.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
 import { list } from "../agentRuns/agentRuns.ts";
+import { getRun } from "../agentRuns/queries.ts";
 import { move } from "./move.ts";
 import { getSession } from "./queries.ts";
+import { rename } from "./rename.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 let ctx: ServiceCtx;
@@ -134,6 +136,32 @@ test("a bare session moves by agent run id", async () => {
 	expect(moved.id).toBe(runMoveSessionRowId);
 	expect(moved.projectId).toBe(childId);
 	expect(moved.projectPath).toBe("SCP.child");
+});
+
+test("a session rename updates the session and its agent run", async () => {
+	const renamed = await run((tx) => rename(ctx, tx, { id: rootSessionRowId, name: "  Display Name  " }));
+	expect(renamed.name).toBe("display-name");
+	expect((await run((tx) => getSession(tx, rootSessionRowId))).name).toBe("display-name");
+	expect((await run((tx) => getRun(tx, rootSessionId))).name).toBe("display-name");
+});
+
+test("a session renames by agent run id", async () => {
+	const renamed = await run((tx) => rename(ctx, tx, { id: runMoveSessionId, name: "run renamed" }));
+	expect(renamed.id).toBe(runMoveSessionRowId);
+	expect(renamed.name).toBe("run-renamed");
+});
+
+test("a session rename rejects a duplicate name", async () => {
+	await expect(run((tx) => rename(ctx, tx, { id: childSessionRowId, name: "ambiguous run" }))).rejects.toMatchObject({
+		code: "DUPLICATE",
+		data: { field: "name" },
+	});
+});
+
+test("a session rename needs a letter or digit", async () => {
+	await expect(run((tx) => rename(ctx, tx, { id: childSessionRowId, name: " --- " }))).rejects.toThrow(
+		"Use at least one letter or digit in the name.",
+	);
 });
 
 test("an ambiguous session ref lists the matching ids", async () => {

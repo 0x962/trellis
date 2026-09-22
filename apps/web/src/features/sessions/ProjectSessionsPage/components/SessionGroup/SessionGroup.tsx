@@ -7,6 +7,7 @@ import { agentKindOf } from "../../../../agents/agentKindOf";
 import { agentProfileOf } from "../../../../agents/agentProfileOf";
 import { isAgentWorking } from "../../../../agents/isAgentWorking";
 import { SessionActionsMenu } from "../../../SessionActionsMenu";
+import { SessionNameField } from "../../../SessionNameField";
 import { sessionStateLabel } from "../../../sessionStateLabel";
 import { isHistoricalSession } from "../../isHistoricalSession";
 import { RunLineChanges } from "./components/RunLineChanges";
@@ -42,6 +43,7 @@ export function SessionGroup({
 	const collapsed = useUiStore((state) => state.collapsedGroups[routeKey]?.includes(group) ?? false);
 	const phone = useMediaQuery("(max-width: 767px)");
 	const [limit, setLimit] = useState(30);
+	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const selectedButton = useRef<HTMLButtonElement>(null);
 	const selected = runs.find((run) => run.id === selectedId);
 	const revealId = selected?.id;
@@ -73,52 +75,75 @@ export function SessionGroup({
 						const state = sessionStateLabel(run);
 						const needsAttention = ["failed", "interrupted", "needs-input", "done"].includes(sessionStatus(run));
 						const session = sessionsByRunId.get(run.id);
+						const name = run.ticketIdentifier ?? session?.name ?? run.name;
+						const renaming = session !== undefined && renamingId === session.id;
 						return (
 							<li key={run.id} className="group/row relative">
-								<button
-									ref={run.id === selectedId ? selectedButton : undefined}
-									type="button"
-									title={`${run.ticketIdentifier ?? run.name}${run.ticketTitle ? ` · ${run.ticketTitle}` : ""} · ${state} · ${new Date(run.createdAt).toLocaleString()}`}
-									aria-current={selectedId === run.id ? "page" : undefined}
-									className="sidebar-item"
-									onClick={() => onSelect(run.id)}
-								>
-									<span aria-hidden="true" className="flex shrink-0">
-										<Avatar
-											kind="agent"
-											name={run.ticketIdentifier ?? run.name}
-											agentKind={agentKindOf(run.kind)}
-											agentProfile={agentProfileOf(run.harness)}
-											state={isAgentWorking(run) ? "working" : "static"}
-											status={sessionStatus(run)}
-											className="size-5"
+								{renaming ? (
+									<div className="sidebar-item">
+										<span aria-hidden="true" className="flex shrink-0">
+											<Avatar
+												kind="agent"
+												name={name}
+												agentKind={agentKindOf(run.kind)}
+												agentProfile={agentProfileOf(run.harness)}
+												state={isAgentWorking(run) ? "working" : "static"}
+												status={sessionStatus(run)}
+												className="size-5"
+											/>
+										</span>
+										<SessionNameField
+											session={session}
+											className="min-w-0 flex-1 pr-8"
+											inputClassName="h-7 text-sm"
+											onCancel={() => setRenamingId(null)}
+											onSaved={() => setRenamingId(null)}
 										/>
-									</span>
-									<span className="min-w-0 flex-1">
-										<span className="flex items-center gap-2">
-											<span className="min-w-0 flex-1 truncate font-medium tabular">
-												{run.ticketIdentifier ?? run.name}
-											</span>
-											{needsAttention && <span className="shrink-0 text-xs font-normal text-fg-muted">{state}</span>}
+									</div>
+								) : (
+									<button
+										ref={run.id === selectedId ? selectedButton : undefined}
+										type="button"
+										title={`${name}${run.ticketTitle ? ` · ${run.ticketTitle}` : ""} · ${state} · ${new Date(run.createdAt).toLocaleString()}`}
+										aria-current={selectedId === run.id ? "page" : undefined}
+										className="sidebar-item"
+										onClick={() => onSelect(run.id)}
+									>
+										<span aria-hidden="true" className="flex shrink-0">
+											<Avatar
+												kind="agent"
+												name={name}
+												agentKind={agentKindOf(run.kind)}
+												agentProfile={agentProfileOf(run.harness)}
+												state={isAgentWorking(run) ? "working" : "static"}
+												status={sessionStatus(run)}
+												className="size-5"
+											/>
 										</span>
-										<span className="flex items-center gap-2 text-xs text-fg-muted tabular">
-											<span className="min-w-0 flex-1 truncate">
-												{historical
-													? dateFormat.format(new Date(run.createdAt))
-													: (run.ticketTitle ?? dateFormat.format(new Date(run.createdAt)))}
+										<span className="min-w-0 flex-1">
+											<span className="flex items-center gap-2">
+												<span className="min-w-0 flex-1 truncate font-medium tabular">{name}</span>
+												{needsAttention && <span className="shrink-0 text-xs font-normal text-fg-muted">{state}</span>}
 											</span>
-											{run.runtime === "native" && run.workspaceId !== null && (
-												<RunLineChanges run={run} enabled={!collapsed} />
-											)}
+											<span className="flex items-center gap-2 text-xs text-fg-muted tabular">
+												<span className="min-w-0 flex-1 truncate">
+													{historical
+														? dateFormat.format(new Date(run.createdAt))
+														: (run.ticketTitle ?? dateFormat.format(new Date(run.createdAt)))}
+												</span>
+												{run.runtime === "native" && run.workspaceId !== null && (
+													<RunLineChanges run={run} enabled={!collapsed} />
+												)}
+											</span>
 										</span>
-									</span>
-								</button>
-								{session !== undefined && (
+									</button>
+								)}
+								{session !== undefined && !renaming && (
 									<span
 										data-slot="menu"
 										className="absolute top-1 right-1 flex size-6 pointer-coarse:top-0 pointer-coarse:size-11 items-center justify-center opacity-0 transition-opacity duration-hover ease-out group-focus-within/row:opacity-100 group-hover/row:opacity-100 has-[[data-popup-open]]:opacity-100 [@media(hover:none)]:opacity-100"
 									>
-										<SessionActionsMenu session={session} size="xs" />
+										<SessionActionsMenu session={session} size="xs" onRename={() => setRenamingId(session.id)} />
 									</span>
 								)}
 							</li>

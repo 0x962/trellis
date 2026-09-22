@@ -55,6 +55,7 @@ import * as search from "./search.ts";
 import { prepareCreate as createSession } from "./sessions/create.ts";
 import { move as moveSession } from "./sessions/move.ts";
 import { prepareDelete as deleteSession } from "./sessions/remove.ts";
+import { rename as renameSession } from "./sessions/rename.ts";
 import * as sessions from "./sessions/sessions.ts";
 import { prepareStart as startSession } from "./sessions/start.ts";
 import * as settings from "./settings.ts";
@@ -129,6 +130,7 @@ export const services = {
 	),
 	"sessions.start": sessionMutation(startSession),
 	"sessions.move": core("mutation", moveSession),
+	"sessions.rename": core("mutation", renameSession),
 	"sessions.delete": prepared("mutation", deleteSession, agentTerminal.result),
 	"harnessAccounts.list": io("read", harnessAccounts.list),
 	"harnessAccounts.create": prepared("mutation", harnessAccounts.prepareCreate, harnessAccounts.create),

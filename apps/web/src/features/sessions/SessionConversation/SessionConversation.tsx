@@ -11,6 +11,7 @@ import { NativeTerminal } from "../../agents/NativeTerminal";
 import { useWorkspaceSummary } from "../../agents/useWorkspaceSummary";
 import { PendingQuestions } from "../PendingQuestions";
 import { SessionActionsMenu } from "../SessionActionsMenu";
+import { SessionNameField } from "../SessionNameField";
 import { sessionStateLabel } from "../sessionStateLabel";
 import { SessionDetails } from "./components/SessionDetails";
 import { SessionMeta } from "./components/SessionMeta";
@@ -32,6 +33,7 @@ export function SessionConversation({
 }) {
 	const { client, orpc, queryClient } = useApp();
 	const [confirmStop, setConfirmStop] = useState(false);
+	const [renaming, setRenaming] = useState(false);
 	const localHeading = useRef<HTMLHeadingElement>(null);
 	const heading = headingRef ?? localHeading;
 	const leaveTerminal = useCallback(() => heading.current?.focus(), [heading]);
@@ -64,7 +66,7 @@ export function SessionConversation({
 	const summary = useWorkspaceSummary(run, { focus: true }).data;
 	const busy = start.isPending || stop.isPending;
 	const error = start.error ?? stop.error;
-	const name = run.ticketTitle ?? run.name;
+	const name = session?.name ?? run.ticketTitle ?? run.name;
 	return (
 		<section aria-label={`${name} conversation`} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 			<div className="flex min-h-11 shrink-0 items-center gap-2 border-b border-border px-3">
@@ -78,14 +80,24 @@ export function SessionConversation({
 					className="size-7 shrink-0"
 				/>
 				<div className="flex min-w-0 flex-1 flex-col">
-					<h2
-						ref={heading}
-						tabIndex={-1}
-						title={name}
-						className="truncate rounded-sm text-sm font-medium tabular focus-visible:outline-2 focus-visible:outline-accent"
-					>
-						{name}
-					</h2>
+					{session && renaming ? (
+						<SessionNameField
+							session={session}
+							className="max-w-80"
+							inputClassName="h-7 text-sm font-medium"
+							onCancel={() => setRenaming(false)}
+							onSaved={() => setRenaming(false)}
+						/>
+					) : (
+						<h2
+							ref={heading}
+							tabIndex={-1}
+							title={name}
+							className="truncate rounded-sm text-sm font-medium tabular focus-visible:outline-2 focus-visible:outline-accent"
+						>
+							{name}
+						</h2>
+					)}
 					{native && <SessionMeta run={run} summary={summary} />}
 				</div>
 				<span className="text-xs text-fg-muted">{sessionStateLabel(run)}</span>
@@ -112,7 +124,13 @@ export function SessionConversation({
 						}}
 					/>
 				</Tooltip>
-				<SessionActionsMenu run={run} session={session} deleteDisabled={readOnly || busy} onDeleted={onDeleted} />
+				<SessionActionsMenu
+					run={run}
+					session={session}
+					deleteDisabled={readOnly || busy}
+					onDeleted={onDeleted}
+					onRename={session ? () => setRenaming(true) : undefined}
+				/>
 			</div>
 			{run.switchedTo && (
 				<p role="status" className="px-3 py-2 text-xs text-fg-muted">

@@ -59,3 +59,11 @@ export const SessionMoveInputSchema = z
 	})
 	.describe("Set the project of a session, or send null to make it independent.");
 export type SessionMoveInput = z.infer<typeof SessionMoveInputSchema>;
+
+export const SessionRenameInputSchema = z
+	.strictObject({
+		id: SessionRefSchema,
+		name: z.string().trim().min(1).max(60),
+	})
+	.describe("Rename a session.");
+export type SessionRenameInput = z.infer<typeof SessionRenameInputSchema>;
