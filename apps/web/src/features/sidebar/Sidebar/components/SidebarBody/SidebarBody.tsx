@@ -114,7 +114,9 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 				<div className="sidebar-section">
 					<h2>
 						{work.sessionSection > 0 ? (
-							<WorkingAgentText count={work.sessionSection}>Sessions</WorkingAgentText>
+							<WorkingAgentText count={work.sessionSection} variant="static">
+								Sessions
+							</WorkingAgentText>
 						) : (
 							"Sessions"
 						)}
@@ -138,7 +140,9 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 				<div className="sidebar-section mt-3">
 					<h2>
 						{work.projectSection > 0 ? (
-							<WorkingAgentText count={work.projectSection}>Projects</WorkingAgentText>
+							<WorkingAgentText count={work.projectSection} variant="static">
+								Projects
+							</WorkingAgentText>
 						) : (
 							"Projects"
 						)}

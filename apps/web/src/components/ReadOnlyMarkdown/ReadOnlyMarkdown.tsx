@@ -1,6 +1,7 @@
 import { cx, Dialog } from "@trellis/ui";
-import { type MouseEvent, useMemo, useState } from "react";
+import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { renderMarkdown } from "../../lib/markdown";
+import { drawMermaidBlocks } from "./drawMermaidBlocks";
 
 export type ReadOnlyMarkdownProps = {
 	markdown: string;
@@ -12,19 +13,26 @@ export type ReadOnlyMarkdownProps = {
 type Shown = { src: string; alt: string };
 
 const imageClass = "[&_img]:max-w-full [&_img]:cursor-zoom-in [&_img]:rounded-md [&_img]:border [&_img]:border-border";
+const diagramClass = "[&_.mermaid-diagram]:my-3 [&_.mermaid-diagram]:overflow-x-auto";
 
 // A description, an epic document, or an agent line as formatted text. `renderMarkdown` strips
 // every script, event handler, and unsafe URL before the HTML is set. An
 // image, such as a pasted attachment, fits the column and opens large in a
-// lightbox on click.
+// lightbox on click. A ```mermaid code block draws as its diagram.
 export function ReadOnlyMarkdown({ markdown, className, render = renderMarkdown }: ReadOnlyMarkdownProps) {
 	const [shown, setShown] = useState<Shown | null>(null);
+	const root = useRef<HTMLDivElement>(null);
 
 	// React writes the inner HTML again whenever the object under
 	// `dangerouslySetInnerHTML` is a new one, which replaces every rendered
 	// node. One object per text keeps the nodes across a repaint, so a
 	// selection holds and an image keeps its pixels.
 	const html = useMemo(() => ({ __html: render(markdown) }), [markdown, render]);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: each new `html` object puts fresh nodes on the page, so the diagrams must draw again.
+	useEffect(() => {
+		void drawMermaidBlocks(root.current!);
+	}, [html]);
 
 	const onClick = (event: MouseEvent) => {
 		const target = event.target as HTMLElement;
@@ -38,8 +46,9 @@ export function ReadOnlyMarkdown({ markdown, className, render = renderMarkdown 
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: the lightbox is a larger view of an image the text already shows */}
 			{/* biome-ignore lint/a11y/useKeyWithClickEvents: the lightbox is a larger view of an image the text already shows */}
 			<div
+				ref={root}
 				onClick={onClick}
-				className={cx("markdown", imageClass, className)}
+				className={cx("markdown", imageClass, diagramClass, className)}
 				// biome-ignore lint/security/noDangerouslySetInnerHtml: renderMarkdown sanitizes the HTML it returns.
 				dangerouslySetInnerHTML={html}
 			/>

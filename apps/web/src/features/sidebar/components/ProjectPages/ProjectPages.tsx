@@ -70,6 +70,7 @@ export function ProjectPages({
 								{(workingCounts[label as keyof typeof workingCounts] ?? 0) > 0 ? (
 									<WorkingAgentText
 										count={workingCounts[label as keyof typeof workingCounts] ?? 0}
+										variant="static"
 										className="sidebar-label"
 									>
 										{label}
