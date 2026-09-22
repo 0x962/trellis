@@ -1,4 +1,4 @@
-import { type GitHubConversationItem, type ReviewRevision, type ReviewThread, splitFileLines } from "@trellis/api";
+import { type ReviewRevision, type ReviewThread, splitFileLines } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { rows } from "../../db/queries/support";
@@ -18,7 +18,7 @@ export async function gh(ctx: PrepareCtx, args: string[]) {
 	return result.stdout;
 }
 const fields =
-	"title,state,isDraft,author,headRepository,headRepositoryOwner,headRefName,baseRefName,headRefOid,baseRefOid,additions,deletions,changedFiles,mergeable,mergeStateStatus,reviewDecision,reviewRequests,autoMergeRequest,body,comments,reviews,statusCheckRollup,labels";
+	"title,state,isDraft,author,headRepository,headRepositoryOwner,headRefName,baseRefName,headRefOid,baseRefOid,additions,deletions,changedFiles,mergeable,mergeStateStatus,reviewDecision,reviewRequests,autoMergeRequest,statusCheckRollup,labels";
 
 // The text of one file at one commit, from the repository that holds the
 // commit. The head of a fork pull request lives in the fork.
@@ -34,120 +34,6 @@ type HeadRepositoryMeta = {
 	headRepository?: { name?: string; nameWithOwner?: string } | null;
 	headRepositoryOwner?: { login?: string } | null;
 };
-
-type GitHubUser = { login?: string; avatar_url?: string | null; type?: string | null } | null;
-type GitHubIssueComment = {
-	id: number;
-	body?: string | null;
-	html_url?: string | null;
-	created_at: string;
-	updated_at?: string | null;
-	user?: GitHubUser;
-};
-type GitHubReview = {
-	id: number;
-	body?: string | null;
-	state?: string | null;
-	html_url?: string | null;
-	submitted_at?: string | null;
-	user?: GitHubUser;
-};
-type GitHubLineComment = {
-	id: number;
-	body?: string | null;
-	path?: string | null;
-	line?: number | null;
-	original_line?: number | null;
-	side?: string | null;
-	html_url?: string | null;
-	created_at: string;
-	updated_at?: string | null;
-	user?: GitHubUser;
-};
-
-const authorOf = (user: GitHubUser) => (user?.login ? { login: user.login, avatarUrl: user.avatar_url ?? null } : null);
-
-const botOf = (user: GitHubUser) => user?.type === "Bot" || user?.login?.endsWith("[bot]") === true;
-
-const sideOf = (side: string | null | undefined): "old" | "new" | null =>
-	side === "LEFT" ? "old" : side === "RIGHT" ? "new" : null;
-
-const paged = <T>(text: string): T[] => {
-	const value = JSON.parse(text) as T[] | T[][];
-	return Array.isArray(value[0]) ? (value as T[][]).flat() : (value as T[]);
-};
-
-const issueCommentsOf = (comments: GitHubIssueComment[]): GitHubConversationItem[] =>
-	comments.map((comment) => ({
-		id: `issue-comment:${comment.id}`,
-		kind: "comment",
-		author: authorOf(comment.user ?? null),
-		body: comment.body ?? "",
-		state: null,
-		path: null,
-		line: null,
-		side: null,
-		url: comment.html_url ?? null,
-		isBot: botOf(comment.user ?? null),
-		createdAt: comment.created_at,
-		updatedAt: comment.updated_at ?? null,
-	}));
-
-const reviewsOf = (reviews: GitHubReview[]): GitHubConversationItem[] =>
-	reviews
-		.filter((review) => review.submitted_at)
-		.map((review) => ({
-			id: `review:${review.id}`,
-			kind: "review",
-			author: authorOf(review.user ?? null),
-			body: review.body ?? "",
-			state: review.state ?? null,
-			path: null,
-			line: null,
-			side: null,
-			url: review.html_url ?? null,
-			isBot: botOf(review.user ?? null),
-			createdAt: review.submitted_at!,
-			updatedAt: null,
-		}));
-
-const lineCommentsOf = (comments: GitHubLineComment[]): GitHubConversationItem[] =>
-	comments
-		.filter((comment) => comment.path && (comment.line ?? comment.original_line))
-		.map((comment) => ({
-			id: `line-comment:${comment.id}`,
-			kind: "line",
-			author: authorOf(comment.user ?? null),
-			body: comment.body ?? "",
-			state: null,
-			path: comment.path!,
-			line: comment.line ?? comment.original_line ?? null,
-			side: sideOf(comment.side),
-			url: comment.html_url ?? null,
-			isBot: botOf(comment.user ?? null),
-			createdAt: comment.created_at,
-			updatedAt: comment.updated_at ?? null,
-		}));
-
-const endpoint = (ref: ReturnType<typeof parseRef>, path: "comments" | "reviews" | "line-comments") =>
-	path === "comments"
-		? `repos/${ref.owner}/${ref.repo}/issues/${ref.number}/comments?per_page=100`
-		: path === "reviews"
-			? `repos/${ref.owner}/${ref.repo}/pulls/${ref.number}/reviews?per_page=100`
-			: `repos/${ref.owner}/${ref.repo}/pulls/${ref.number}/comments?per_page=100`;
-
-export async function loadGitHubConversation(ctx: PrepareCtx, ref: ReturnType<typeof parseRef>) {
-	const [comments, reviews, lineComments] = await Promise.all([
-		gh(ctx, ["api", "--paginate", "--slurp", endpoint(ref, "comments")]),
-		gh(ctx, ["api", "--paginate", "--slurp", endpoint(ref, "reviews")]),
-		gh(ctx, ["api", "--paginate", "--slurp", endpoint(ref, "line-comments")]),
-	]);
-	return [
-		...issueCommentsOf(paged<GitHubIssueComment>(comments)),
-		...reviewsOf(paged<GitHubReview>(reviews)),
-		...lineCommentsOf(paged<GitHubLineComment>(lineComments)),
-	].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-}
 
 // `owner/name` of the repository that holds the head branch. gh names it
 // in full on the head repository, or in two parts, or not at all when the
@@ -224,18 +110,15 @@ export async function loadCurrentRevision(ctx: PrepareCtx, ref: ReturnType<typeo
 	return { meta, patch };
 }
 const fetchRevision = async (ctx: PrepareCtx, ref: ReturnType<typeof parseRef>) => {
-	const [{ meta, patch }, githubConversation] = await Promise.all([
-		loadCurrentRevision(ctx, ref),
-		loadGitHubConversation(ctx, ref),
-	]);
+	const { meta, patch } = await loadCurrentRevision(ctx, ref);
 	const moves = await suggestionMoves(ctx, ref, meta.headRefOid, headRepositoryOf(ref, meta));
-	return { ref, meta, patch, githubConversation, ...moves };
+	return { ref, meta, patch, ...moves };
 };
 
 // The fetch of each pull request that is on its way, by URL. A refresh
-// costs about seven gh calls, and every review page, review sheet and
+// costs about four gh calls, and every review page, review sheet and
 // window focus asks for one. A second refresh of the same pull request
-// waits for the fetch on its way and does not queue seven more calls.
+// waits for the fetch on its way and does not queue four more calls.
 const fetching = new Map<string, ReturnType<typeof fetchRevision>>();
 
 export function prepare(ctx: PrepareCtx, input: { pr: string }) {
@@ -263,7 +146,6 @@ export async function refresh(
 		headSha: input.meta.headRefOid,
 		patch: input.patch,
 		meta: input.meta,
-		githubConversation: input.githubConversation,
 		fetchedAt: ctx.now().toISOString(),
 	};
 	await tx.execute(

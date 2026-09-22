@@ -264,9 +264,8 @@ button.review-notice:hover {
 	padding: 24px 28px calc(24px + var(--review-float-clearance));
 	overflow-y: auto;
 }
-/* `ReviewDiscussion` and `CheckResults` each carry the height, the scroll bar
-   and the side padding of a page that fills the window. The panel supplies
-   all three, so these two rules hand them back. */
+/* `CheckResults` carries the height, scroll bar and side padding of a page
+   that fills the window. The panel supplies all three. */
 .review-blocks .review-scroll {
 	flex: none;
 	overflow: visible;

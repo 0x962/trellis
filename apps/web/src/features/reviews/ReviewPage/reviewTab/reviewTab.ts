@@ -1,7 +1,7 @@
 // The four tabs of the review page. Overview holds the explanation of the
-// change, the evidence document and the discussion. Checks holds
-// the GitHub checks of the head commit. Flows holds the flow runs of the
-// ticket. Diff holds the file tree and the diff.
+// change and the evidence document. Checks holds the GitHub checks of the
+// head commit. Flows holds the flow runs of the ticket. Diff holds the file
+// tree and the diff.
 export type ReviewTab = "overview" | "checks" | "flows" | "diff";
 
 const tabs: readonly ReviewTab[] = ["overview", "checks", "flows", "diff"];

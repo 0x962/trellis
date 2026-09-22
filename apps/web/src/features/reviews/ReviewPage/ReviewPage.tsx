@@ -1,17 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import {
-	type GitHubConversationItem,
-	isAgentWorking,
-	type ReviewSubmission,
-	type ReviewThread,
-	reviewRef,
-	turnOf,
-	verdictMark,
-} from "@trellis/api";
+import { isAgentWorking, type ReviewSubmission, type ReviewThread, reviewRef, turnOf, verdictMark } from "@trellis/api";
 import { EmptyState, Skeleton, type TabItem, Tabs, TicketId, useMediaQuery } from "@trellis/ui";
 import type { DiffAnchor } from "@trellis/ui/review";
-import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
-import { useApp } from "../../../lib/appContext";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { ChangeSummary } from "../ChangeSummary";
 import { EvidenceDocument } from "../EvidenceDocument";
 import { FileRiskGroups } from "../FileRiskGroups";
@@ -19,7 +10,6 @@ import { FlowRuns } from "../FlowRuns";
 import { ApplySuggestionsDialog, ReviewApplyContext, type ReviewApplyState, ReviewBatchBar } from "../ReviewApply";
 import { ReviewChecks } from "../ReviewChecks/ReviewChecks";
 import { ReviewComment } from "../ReviewComment/ReviewComment";
-import { ReviewDiscussion } from "../ReviewDiscussion/ReviewDiscussion";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
 import { ReviewStack } from "../ReviewStack/ReviewStack";
 import type { ReadMarkFile } from "../readMarks/readMarks";
@@ -54,11 +44,9 @@ export type ReviewPageProps = {
 };
 
 export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: ReviewPageProps) {
-	const { client } = useApp();
 	const activeThread = useActiveThread(syncHash);
 	const {
 		revision,
-		setRevision,
 		status,
 		ticket,
 		run,
@@ -80,9 +68,8 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	const [batch, setBatch] = useState<ReadonlySet<string>>(() => new Set());
 	const [applying, setApplying] = useState<string[] | null>(null);
 	// The diff shows the threads of the revision on screen, plus the threads
-	// that name no revision: the CLI wrote those before the pull request had
-	// one, and their lines refer to the diff of that time. `ReviewDiscussion`
-	// lists every thread and marks the ones from another revision.
+	// that name no revision. The CLI wrote those before the pull request had
+	// one, and their lines refer to the diff of that time.
 	const allThreads = threads.data?.items ?? noThreads;
 	const revisionThreads = useMemo(
 		() => allThreads.filter((thread) => thread.revisionId === null || thread.revisionId === revision?.id),
@@ -135,14 +122,6 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	const turn = turnInput ? turnOf(turnInput, agentWorks) : null;
 	const ref = reviewRef(pr);
 	const ticketIdentifier = status.data?.ticket?.identifier ?? "";
-	const openGitHubLine = (item: GitHubConversationItem) => {
-		if (!item.path || !item.line) return;
-		const side = item.side ?? "new";
-		const anchor = { path: item.path, side, line: item.line, startLine: item.line };
-		setPickedAnchor(anchor);
-		setPickedPath(item.path);
-		onTabChange("diff");
-	};
 	return (
 		<ReviewApplyContext.Provider value={applyState}>
 			<div className="review-page">
@@ -222,27 +201,6 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 											{linkedPr !== null && <EvidenceDocument evidence={evidence.data ?? null} />}
 										</>
 									)}
-									<ReviewDiscussion
-										threads={allThreads}
-										activeThread={activeThread}
-										revision={displayRevision}
-										renderThread={renderThread}
-										onJump={(thread) => {
-											void (async () => {
-												if (thread.revisionId && thread.revisionId !== revision?.id)
-													setRevision(await client.reviews.revision({ pr, id: thread.revisionId }));
-												setPickedPath(thread.path);
-												setPickedAnchor({
-													path: thread.path,
-													side: thread.side,
-													line: thread.line,
-													startLine: thread.startLine,
-												});
-												onTabChange("diff");
-											})();
-										}}
-										onGitHubLine={openGitHubLine}
-									/>
 								</div>
 							),
 						},

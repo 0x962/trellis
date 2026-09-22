@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { PrepareCtx } from "../support.ts";
-import { comparisonFacts, headRepositoryOf, loadCurrentRevision, loadGitHubConversation, prepare } from "./revision.ts";
+import { comparisonFacts, headRepositoryOf, loadCurrentRevision, prepare } from "./revision.ts";
 
 // The shape `gh api repos/<owner>/<repo>/compare/<base>...<head>` answered for
 // canary-technologies-corp/canary#57080, cut to the fields the page reads.
@@ -66,78 +66,6 @@ test("a fork names its repository in full", () => {
 	).toBe("contributor/app");
 });
 
-test("loads the GitHub conversation from comments, reviews and line comments", async () => {
-	const gh = async (_queue: string, args: string[]) => {
-		const endpoint = args.at(-1);
-		if (endpoint?.includes("/issues/29/comments"))
-			return {
-				ok: true as const,
-				stdout: JSON.stringify([
-					[
-						{
-							id: 5,
-							body: "Issue comment.",
-							html_url: "https://github.com/acme/app/pull/29#issuecomment-5",
-							created_at: "2026-09-21T10:00:00.000Z",
-							updated_at: "2026-09-21T10:01:00.000Z",
-							user: { login: "navid", avatar_url: "https://example.com/navid.png", type: "User" },
-						},
-					],
-				]),
-			};
-		if (endpoint?.includes("/pulls/29/reviews"))
-			return {
-				ok: true as const,
-				stdout: JSON.stringify([
-					[
-						{
-							id: 6,
-							body: "Review summary.",
-							state: "APPROVED",
-							html_url: "https://github.com/acme/app/pull/29#pullrequestreview-6",
-							submitted_at: "2026-09-21T10:02:00.000Z",
-							user: { login: "reviewer", avatar_url: null, type: "User" },
-						},
-					],
-				]),
-			};
-		return {
-			ok: true as const,
-			stdout: JSON.stringify([
-				[
-					{
-						id: 7,
-						body: "Line comment.",
-						path: "apps/web/src/App.tsx",
-						line: 42,
-						side: "RIGHT",
-						html_url: "https://github.com/acme/app/pull/29#discussion_r7",
-						created_at: "2026-09-21T10:03:00.000Z",
-						updated_at: "2026-09-21T10:04:00.000Z",
-						user: { login: "ci[bot]", avatar_url: "https://example.com/bot.png", type: "Bot" },
-					},
-				],
-			]),
-		};
-	};
-	const conversation = await loadGitHubConversation({ gh } as PrepareCtx, {
-		owner: "acme",
-		repo: "app",
-		number: 29,
-		url: "https://github.com/acme/app/pull/29",
-	});
-
-	expect(conversation.map((item) => item.id)).toEqual(["issue-comment:5", "review:6", "line-comment:7"]);
-	expect(conversation[0]!.author).toEqual({ login: "navid", avatarUrl: "https://example.com/navid.png" });
-	expect(conversation[1]!.state).toBe("APPROVED");
-	expect(conversation[2]!).toMatchObject({
-		path: "apps/web/src/App.tsx",
-		line: 42,
-		side: "new",
-		isBot: true,
-	});
-});
-
 test("two refreshes of one pull request at the same time share one fetch", async () => {
 	let calls = 0;
 	const gh = async (_queue: string, args: string[]) => {
@@ -145,7 +73,6 @@ test("two refreshes of one pull request at the same time share one fetch", async
 		if (args[0] === "pr" && args[1] === "view")
 			return { ok: true as const, stdout: JSON.stringify({ headRefOid: "head", baseRefOid: "base" }) };
 		if (args[0] === "pr" && args[1] === "diff") return { ok: true as const, stdout: "patch" };
-		if (args.includes("--paginate")) return { ok: true as const, stdout: "[[]]" };
 		return { ok: true as const, stdout: answer(0) };
 	};
 	const ctx = { gh, newTx: async () => [] } as unknown as PrepareCtx;
@@ -153,7 +80,7 @@ test("two refreshes of one pull request at the same time share one fetch", async
 	const [first, second] = await Promise.all([prepare(ctx, input), prepare(ctx, input)]);
 	expect(second).toBe(first);
 	const perFetch = calls;
-	expect(perFetch).toBe(7);
+	expect(perFetch).toBe(4);
 	await prepare(ctx, input);
 	expect(calls).toBe(perFetch * 2);
 });
