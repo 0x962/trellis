@@ -110,8 +110,13 @@ export function SessionConversation({
 						}}
 					/>
 				</Tooltip>
-				{session && <SessionActionsMenu session={session} deleteDisabled={readOnly || busy} onDeleted={onDeleted} />}
+				<SessionActionsMenu run={run} session={session} deleteDisabled={readOnly || busy} onDeleted={onDeleted} />
 			</div>
+			{run.switchedTo && (
+				<p role="status" className="px-3 py-2 text-xs text-fg-muted">
+					Switched to {run.switchedTo}
+				</p>
+			)}
 			<PendingQuestions run={run} readOnly={readOnly} />
 			{(error || run.error) && (
 				<p role="alert" className="px-3 py-2 text-sm text-danger">
