@@ -28,6 +28,7 @@ type Props = {
 	mode: "split" | "unified";
 	theme: "light" | "dark" | "system";
 	selectedFile?: string;
+	selectedAnchor?: DiffAnchor | null;
 	filter?: string;
 	renderThread: (id: string) => ReactNode;
 	composer?: DiffAnchor | null;
@@ -74,6 +75,7 @@ export function ReviewDiff({
 	mode,
 	theme,
 	selectedFile,
+	selectedAnchor = null,
 	filter = "",
 	renderThread,
 	composer = null,
@@ -284,5 +286,14 @@ export function ReviewDiff({
 				/>
 			</div>
 		);
-	return <VirtualDiffRows rows={rows} mode={mode} theme={theme} selectedFile={selectedFile} renderRow={renderRow} />;
+	return (
+		<VirtualDiffRows
+			rows={rows}
+			mode={mode}
+			theme={theme}
+			selectedFile={selectedFile}
+			selectedAnchor={selectedAnchor}
+			renderRow={renderRow}
+		/>
+	);
 }

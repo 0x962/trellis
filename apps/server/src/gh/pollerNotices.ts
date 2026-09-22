@@ -55,7 +55,7 @@ const selectDue = async (tx: Tx, at: Date): Promise<Due[]> => {
 	for (const subject of await selectSubjects(tx)) {
 		const decision = decideNotice(subject, subject.notices, at.getTime());
 		if (decision === null) continue;
-		if ((await agentsOf(tx, subject.id)).length === 0) continue;
+		if ((await agentsOf(tx, { prId: subject.id })).length === 0) continue;
 		due.push({ subject, decision });
 	}
 	return due;

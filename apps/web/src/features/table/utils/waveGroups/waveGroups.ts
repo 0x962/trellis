@@ -6,35 +6,28 @@ export type WaveMark = {
 	// The done tickets over the tickets that count, `3/11`. A canceled ticket
 	// is never in the total.
 	countLabel: string;
-	// "Current" on the current wave of the epic.
-	badge?: string;
-	// "Later" on an open wave after the current one. Order lives between
-	// waves, so its tickets wait for the current wave.
-	note?: string;
+	// The tickets that set the wave progress circle, done or canceled.
+	completedCount: number;
+	totalCount: number;
 	// True when the wave holds at least one ticket and every ticket of it is
-	// done or canceled. The header of the wave then draws the double check.
+	// done or canceled. The header of the wave then draws a full progress mark.
 	done: boolean;
 };
 
-// The marks of the waves of one epic, by wave id. `waves` is
-// in position order. `currentId` is the id of `EpicSummary.currentWave`:
-// the first wave that is not done, or undefined when every wave is
-// done.
-export const waveMarks = (waves: readonly WaveSummary[], currentId: string | undefined): Map<string, WaveMark> => {
-	const currentIndex = waves.findIndex((wave) => wave.id === currentId);
-	return new Map(
-		waves.map((wave, index) => {
+// The marks of the waves of one epic, by wave id. `waves` is in position order.
+export const waveMarks = (waves: readonly WaveSummary[]): Map<string, WaveMark> =>
+	new Map(
+		waves.map((wave) => {
 			const { counts } = wave;
 			const mark: WaveMark = {
 				countLabel: `${formatCount(counts.done)}/${formatCount(counts.total - counts.canceled)}`,
+				completedCount: counts.done + counts.canceled,
+				totalCount: counts.total,
 				done: wave.state === "done",
 			};
-			if (index === currentIndex) mark.badge = "Current";
-			else if (currentIndex !== -1 && index > currentIndex && wave.state === "open") mark.note = "Later";
 			return [wave.id, mark];
 		}),
 	);
-};
 
 // The group keys of the done waves. A table of one epic collapses them
 // until the first toggle on its route. A wave group has the wave

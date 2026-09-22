@@ -15,26 +15,30 @@ const checks: ChecksLineCheck[] = [
 test("puts a count for each bucket in the title and makes one group for each status", () => {
 	const result = checksLineResult(checks);
 
-	expect(result.title).toBe("1 failed · 2 pending · 1 canceled · 1 unknown · 1 passed · 1 skipped");
+	expect(result.title).toBe("Some checks were not successful");
+	expect(result.description).toBe("1 failing, 2 in progress, 1 skipped, 1 successful check, 1 canceled, 1 unknown");
+	expect(result.summaryStatus).toBe("failed");
 	expect(result.groups.map((group) => group.label)).toEqual([
 		"Failed",
 		"In progress",
-		"Pending",
+		"Queued",
+		"Skipped",
+		"Successful",
 		"Canceled",
 		"Unknown",
-		"Passed",
-		"Skipped",
 	]);
 	expect(result.groups[0]?.checks[0]).toMatchObject({
 		name: "merge_gatekeeper",
 		workflow: "9.AUTO Merge gatekeeper",
 		url: "https://example.com/1",
+		outcome: "Failing",
 	});
 });
 
 test("drops zero groups", () => {
 	const result = checksLineResult(checks.filter((check) => check.bucket === "pending" && check.status === undefined));
 
-	expect(result.title).toBe("1 pending");
-	expect(result.groups.map((group) => group.label)).toEqual(["Pending"]);
+	expect(result.title).toBe("Some checks are in progress");
+	expect(result.description).toBe("1 in progress");
+	expect(result.groups.map((group) => group.label)).toEqual(["Queued"]);
 });

@@ -13,7 +13,7 @@ export const enqueueCheckDeliveries = async (
 	tx: Tx,
 	input: { prId: string; headSha: string; kind: CheckNoticeKind; checks: NoticeCheck[]; at: Date },
 ) => {
-	const deliveries = await agentsOf(tx, input.prId);
+	const deliveries = await agentsOf(tx, { prId: input.prId });
 	if (deliveries.length === 0) return deliveries;
 	const noticeId = ulid();
 	await tx.execute(
