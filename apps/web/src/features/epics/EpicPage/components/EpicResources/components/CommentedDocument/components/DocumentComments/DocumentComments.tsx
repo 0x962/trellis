@@ -41,8 +41,9 @@ const cardThreadOf = (thread: ResourceCommentThread) => {
 // The comments margin of a document: the comment being written, then every
 // open thread in the order its text reads. The check button shows the
 // resolved threads too. A click on a thread marks its text in the document,
-// and a click on its quote scrolls the document to that text.
-export function DocumentComments({ comments }: { comments: Comments }) {
+// and a click on its quote scrolls the document to that text. A sheet that
+// holds the margin names it in its own header, so it passes `titled` false.
+export function DocumentComments({ comments, titled }: { comments: Comments; titled: boolean }) {
 	const actor = useActor();
 	const [showResolved, setShowResolved] = useState(false);
 	const tracked = comments.editor?.threads;
@@ -73,7 +74,7 @@ export function DocumentComments({ comments }: { comments: Comments }) {
 	return (
 		<section aria-label="Comments" className="flex flex-col gap-1">
 			<header className="flex h-8 items-center justify-between">
-				<h2 className="text-sm font-medium text-fg-muted">Comments</h2>
+				<h2 className={titled ? "text-sm font-medium text-fg-muted" : "sr-only"}>Comments</h2>
 				{resolvedCount > 0 && (
 					<Tooltip content={showResolved ? "Hide resolved threads" : `Show ${resolvedCount} resolved`}>
 						<IconButton
@@ -94,7 +95,11 @@ export function DocumentComments({ comments }: { comments: Comments }) {
 				</p>
 			)}
 			{rows.length === 0 && comments.draftQuote === null && comments.loadError === null && (
-				<p className="text-sm text-fg-faint">Select text in the document, then press Comment in its menu.</p>
+				<p className="text-sm text-fg-faint">
+					{resolvedCount > 0
+						? "Every thread is resolved."
+						: "Select text in the document, then press Comment in its menu."}
+				</p>
 			)}
 			{rows.map(({ thread, textRemoved }) => (
 				// A click inside a thread marks its text; the controls in it
@@ -104,7 +109,7 @@ export function DocumentComments({ comments }: { comments: Comments }) {
 				<div
 					key={thread.id}
 					data-active={thread.id === active}
-					className="rounded-md data-[active=true]:ring-2 data-[active=true]:ring-warning"
+					className="rounded-md data-[active=true]:ring-1 data-[active=true]:ring-warning"
 					onClick={() => comments.open(thread.id)}
 				>
 					<ReviewThreadCard

@@ -21,7 +21,6 @@ export function CommentedDocument({
 	const comments = useDocumentComments(resourceId, handle);
 	const wide = useMediaQuery(WIDE_QUERY);
 	const [sheetOpen, setSheetOpen] = useState(false);
-	const margin = <DocumentComments comments={comments} />;
 	const hasMargin = comments.threads.length > 0 || comments.draftQuote !== null;
 	return (
 		<EpicDocument
@@ -39,7 +38,7 @@ export function CommentedDocument({
 				margin: wide ? (
 					hasMargin && (
 						<aside className="flex w-80 shrink-0 flex-col overflow-y-auto border-l border-border px-3 py-3">
-							{margin}
+							<DocumentComments comments={comments} titled />
 						</aside>
 					)
 				) : (
@@ -50,10 +49,13 @@ export function CommentedDocument({
 							if (!open) comments.cancelDraft();
 						}}
 						title="Comments"
+						titleClassName="text-md font-medium"
 						modal={false}
 						width={360}
 					>
-						<div className="px-3 py-3">{margin}</div>
+						<div className="px-3 py-3">
+							<DocumentComments comments={comments} titled={false} />
+						</div>
 					</Sheet>
 				),
 				titleAction: !wide && comments.threads.length > 0 && (

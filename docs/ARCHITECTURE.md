@@ -445,6 +445,29 @@ Add and list use EpicRef, a ULID or `KEY/slug`. Add can also use TicketRef, a
 ULID or `KEY-n`. Update, remove, and blob reads use the resource ULID. The CLI
 verb is `trellis resource` with `add`, `list`, and `rm`.
 
+#### Document comments
+
+`resource_comments` holds the comment threads on the text of a document
+resource. One row is one comment. The comments of a thread share `thread_id`,
+and the first comment has `id = thread_id`. Only that first row holds the
+anchor, `text_removed`, and the resolve columns. A delete of the first comment
+deletes its thread, and a delete of the document deletes every thread.
+
+An anchor is the commented text (`quote`) with up to 32 characters of text
+before it (`prefix`) and after it (`suffix`). The document body holds no mark
+for a comment, so an agent and `ReadOnlyMarkdown` read clean markdown. The
+editor draws each thread as a ProseMirror decoration, which lives in the view
+only. It finds the quote by its text and context, maps the decoration through
+every edit, and stores a moved anchor with the body save that moved it. An
+edit that deletes the whole quote sets `text_removed`, and the thread keeps the
+quote it held.
+
+The API is `resourceComments.list`, `create`, `anchors`, `reply`, `resolve`,
+`edit`, and `remove`. A person edits and deletes their own comments only. Each
+change emits `resource-comments.changed`. The CLI verbs are `trellis resource
+comments <resource> [--all]`, `reply <thread> --body`, `resolve <thread>`, and
+`reopen <thread>`. Trellis sends no document comment to an agent run.
+
 The web route `/p/<project path>/epics/<slug>` shows all epic resources in a
 section that starts closed. A document opens in an editor. On desktop, a link
 opens in the in-app browser and an image opens in a sheet. Other browsers open
