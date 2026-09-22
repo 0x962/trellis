@@ -32,7 +32,13 @@ export function TreeRow({ project, depth, archived = false, workingCount = 0 }: 
 					</span>
 				</Tooltip>
 				{workingCount > 0 ? (
-					<WorkingAgentText data-slot="label" count={workingCount} title={project.name} className="sidebar-label">
+					<WorkingAgentText
+						data-slot="label"
+						count={workingCount}
+						variant="static"
+						title={project.name}
+						className="sidebar-label"
+					>
 						{project.name}
 					</WorkingAgentText>
 				) : (

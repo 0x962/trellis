@@ -46,6 +46,7 @@ export function SessionRow({ session, status, activityAt, workingCount = 0, acti
 					<WorkingAgentText
 						data-slot="label"
 						count={workingCount}
+						variant="static"
 						title={`${session.name} · ${sessionStatusLabels[status]} · Last activity ${activity}`}
 						className="sidebar-label"
 					>

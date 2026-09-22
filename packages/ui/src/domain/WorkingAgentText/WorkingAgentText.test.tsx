@@ -9,6 +9,18 @@ test("draws working words with the shared film colours", () => {
 	expect(html).toContain("Sessions");
 });
 
+test("draws static working words with the held film colours", () => {
+	const html = renderToStaticMarkup(
+		<WorkingAgentText tooltip={false} variant="static">
+			Sessions
+		</WorkingAgentText>,
+	);
+
+	expect(html).toContain("text-film-static");
+	expect(html).not.toContain('class="text-film"');
+	expect(html).toContain("Sessions");
+});
+
 test("names one or many working agents", () => {
 	expect(workingAgentsLabel(1)).toBe("1 agent working");
 	expect(workingAgentsLabel(2)).toBe("2 agents working");
