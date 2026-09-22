@@ -113,3 +113,30 @@ test("a tool event that arrives after the idle event of its turn leaves the agen
 	state.append({ kind: "tool-end", turnId: "two", tool: { id: "tool", name: "commandExecution" } }, at);
 	expect(state.activity!.state).toBe("working");
 });
+
+// Codex runs several commands at once. The order comes from the event log of
+// a recorded Codex run: three commands start, the output of an older one
+// arrives, and the newest one ends first.
+test("the end of one parallel tool shows the newest tool that still runs", () => {
+	const { observations: state, path } = fixture();
+	const shell = (id: string, command: string) => ({ id, name: "Shell", input: { command } });
+	state.append({ kind: "working", turnId: "turn" }, at);
+	state.append({ kind: "tool-start", turnId: "turn", tool: shell("brief", "trellis brief OP-81") }, at);
+	state.append({ kind: "tool-start", turnId: "turn", tool: shell("rg", "rg -n OP-81 MEMORY.md") }, at);
+	state.append({ kind: "tool-start", turnId: "turn", tool: shell("status", "git status --short") }, at);
+	state.append({ kind: "tool-update", turnId: "turn", tool: { id: "brief", name: "Shell", output: "# OP-81" } }, at);
+	expect(state.agent!.lastTool).toMatchObject({ id: "status", status: "running" });
+	state.append({ kind: "tool-end", turnId: "turn", tool: { id: "status", name: "Shell" } }, at);
+	expect(state.agent!.lastTool).toMatchObject({
+		id: "rg",
+		status: "running",
+		input: { command: "rg -n OP-81 MEMORY.md" },
+	});
+	expect(state.agent!.tool!.id).toBe("rg");
+	state.append({ kind: "tool-end", turnId: "turn", tool: { id: "brief", name: "Shell" } }, at);
+	expect(state.agent!.lastTool!.id).toBe("rg");
+	state.append({ kind: "tool-end", turnId: "turn", tool: { id: "rg", name: "Shell" } }, at);
+	expect(state.agent!.lastTool).toMatchObject({ id: "rg", status: "completed" });
+	expect(state.agent!.tool).toBeNull();
+	expect(new HarnessObservations(path).agent).toEqual(state.agent);
+});

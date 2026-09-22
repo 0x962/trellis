@@ -95,12 +95,18 @@ export class HarnessObservations {
 		)
 			agent.error = event.error;
 		if (event.kind === "idle" && event.outcome === "completed") agent.error = null;
-		if (event.kind === "tool-start" || event.kind === "tool-update") agent.tool = event.tool!;
-		if (event.kind === "idle" || (event.kind === "error" && !event.willRetry)) agent.tool = null;
-		if (event.kind === "tool-end" && agent.tool?.id === event.tool!.id) agent.tool = null;
+		if (event.kind === "idle" || (event.kind === "error" && !event.willRetry)) {
+			this.tools.clear();
+			agent.tool = null;
+		}
+		// Codex runs several commands at once. `agent.tool` and `lastTool` show
+		// the newest tool that runs: an update to an older tool changes only its
+		// entry in `this.tools`, and the end of the shown tool shows the newest
+		// tool that still runs. `this.tools` keeps its tools in start order.
 		if (event.kind === "tool-start" || event.kind === "tool-update" || event.kind === "tool-end") {
 			const tool = event.tool!;
 			const previous = this.tools.get(tool.id);
+			const shown = agent.tool === null || agent.tool.id === tool.id || previous === undefined;
 			const last = {
 				...previous,
 				...tool,
@@ -114,9 +120,13 @@ export class HarnessObservations {
 						: ("running" as const),
 				error: event.error ?? null,
 			};
-			agent.lastTool = last;
 			if (event.kind === "tool-end") this.tools.delete(tool.id);
 			else this.tools.set(tool.id, last);
+			if (shown) {
+				const running = event.kind === "tool-end" ? [...this.tools.values()].at(-1) : last;
+				agent.tool = running ?? null;
+				agent.lastTool = running ?? last;
+			}
 		}
 		if (event.message !== undefined) {
 			const message = { text: event.message.text, at: event.message.at ?? observedAt };

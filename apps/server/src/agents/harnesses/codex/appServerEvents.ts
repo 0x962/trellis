@@ -1,6 +1,7 @@
 import { fromHarnessModel } from "@trellis/api/models";
 import { z } from "zod";
 import type { HarnessEvent } from "../types.ts";
+import { codexTool, codexToolTypes } from "./codexTool/index.ts";
 
 const notification = z.object({ method: z.string(), params: z.record(z.string(), z.unknown()) });
 const compactionLog = z.object({
@@ -11,22 +12,22 @@ const compactionLog = z.object({
 	),
 });
 const itemSchema = z.looseObject({ id: z.string(), type: z.string() });
-const tools = new Set([
-	"commandExecution",
-	"fileChange",
-	"mcpToolCall",
-	"dynamicToolCall",
-	"webSearch",
-	"imageView",
-	"imageGeneration",
-	"collabAgentToolCall",
-	"contextCompaction",
-]);
+const itemUpdate = z.looseObject({ turnId: z.string(), itemId: z.string() });
+// A sentence end, or a line end, in the text of an agent message.
+const sentenceEnd = /[.!?:]\s|\n/;
 export class CodexAppServerEvents {
 	private readonly answers = new Map<string, Map<string, string>>();
 	private compactionId: string | null = null;
 	private progressTurnId: string | null = null;
 	private readonly prompts = new Set<string>();
+	private planUpdates = 0;
+	// The name of each tool that started in the current turn, by item id. An
+	// update event must carry the name, and an update for a tool that did not
+	// start in this turn has nothing to show.
+	private readonly toolNames = new Map<string, string>();
+	// Each agent message that Codex streams, by item id: the text so far, and
+	// the first sentence once the parser sent it.
+	private readonly streams = new Map<string, { text: string; sent: string | null }>();
 	constructor(private readonly sessionId: string) {}
 	compactionProgress(payload: unknown): HarnessEvent[] {
 		if (this.progressTurnId === null) return [];
@@ -44,7 +45,7 @@ export class CodexAppServerEvents {
 				kind: "tool-update",
 				sessionId: this.sessionId,
 				turnId: this.progressTurnId,
-				tool: { id: this.compactionId ?? `compaction:${this.progressTurnId}`, name: "contextCompaction" },
+				tool: { id: this.compactionId ?? `compaction:${this.progressTurnId}`, name: "Compact" },
 			},
 		];
 	}
@@ -129,6 +130,8 @@ export class CodexAppServerEvents {
 		if (method === "turn/completed") {
 			this.progressTurnId = null;
 			this.compactionId = null;
+			this.streams.clear();
+			this.toolNames.clear();
 			const turn = z
 				.looseObject({
 					id: z.string(),
@@ -178,29 +181,77 @@ export class CodexAppServerEvents {
 				answers.set(item.id, z.string().parse(item.text));
 				this.answers.set(turnId, answers);
 			}
-			if (item.type === "agentMessage" && method === "item/completed")
-				return [{ kind: "message", ...identity, message: { text: z.string().parse(item.text) } }];
-			if (tools.has(item.type))
+			if (item.type === "agentMessage" && method === "item/completed") {
+				const text = z.string().parse(item.text);
+				const sent = this.streams.get(item.id)?.sent;
+				this.streams.delete(item.id);
+				if (sent === text.trim()) return [];
+				return [{ kind: "message", ...identity, message: { text } }];
+			}
+			if (codexToolTypes.has(item.type)) {
+				const tool = codexTool(item);
+				if (method === "item/started") this.toolNames.set(item.id, tool.name);
 				return [
-					{
-						kind: method === "item/started" ? "tool-start" : "tool-end",
-						...identity,
-						tool: { id: item.id, name: item.type, ...(method === "item/started" ? { input: item } : { output: item }) },
-					},
+					method === "item/started"
+						? { kind: "tool-start", ...identity, tool: { id: item.id, name: tool.name, input: tool.input } }
+						: { kind: "tool-end", ...identity, tool: { id: item.id, name: tool.name, output: item } },
 				];
+			}
 		}
-		if (method === "item/commandExecution/outputDelta")
+		// Codex streams an agent message in small pieces. Each message event
+		// sends the whole run to every open page, and the agent line shows one
+		// line of text, so the parser sends the first sentence once it is
+		// complete, and the whole message at item/completed when it holds more.
+		if (method === "item/agentMessage/delta") {
+			const { itemId } = itemUpdate.parse(params);
+			const stream = this.streams.get(itemId) ?? { text: "", sent: null };
+			this.streams.set(itemId, stream);
+			if (stream.sent !== null) return [];
+			stream.text += z.string().parse(params.delta);
+			const text = stream.text.trimStart();
+			const end = sentenceEnd.exec(text);
+			if (end === null) return [];
+			stream.sent = text.slice(0, end.index + 1).trim();
+			return [{ kind: "message", ...identity, message: { text: stream.sent } }];
+		}
+		// A plan update is the update_plan tool call of Codex. It starts and
+		// ends at once, and its target is the step in progress.
+		if (method === "turn/plan/updated") {
+			const plan = z
+				.looseObject({
+					explanation: z.string().nullable(),
+					plan: z.array(z.looseObject({ step: z.string(), status: z.string() })),
+				})
+				.parse(params);
+			const step = plan.plan.find((entry) => entry.status === "inProgress")?.step;
+			const tool = { id: `plan:${params.turnId}:${++this.planUpdates}`, name: "Plan" };
 			return [
-				{
-					kind: "tool-update",
-					...identity,
-					tool: {
-						id: z.string().parse(params.itemId),
-						name: "commandExecution",
-						output: z.string().parse(params.delta),
-					},
-				},
+				{ kind: "tool-start", ...identity, tool: { ...tool, input: { description: step ?? plan.explanation ?? "" } } },
+				{ kind: "tool-end", ...identity, tool: { ...tool, output: plan } },
 			];
+		}
+		if (method === "item/fileChange/patchUpdated") {
+			const { itemId } = itemUpdate.parse(params);
+			return [
+				{ kind: "tool-update", ...identity, tool: { id: itemId, ...codexTool({ type: "fileChange", ...params }) } },
+			];
+		}
+		// Each of these reports progress of a running tool: the output of a
+		// command, the text a command reads from the model, the progress
+		// message of an MCP tool.
+		const progress = {
+			"item/commandExecution/outputDelta": "delta",
+			"item/commandExecution/terminalInteraction": "stdin",
+			"item/mcpToolCall/progress": "message",
+		}[method];
+		if (progress !== undefined) {
+			const { itemId } = itemUpdate.parse(params);
+			const name = this.toolNames.get(itemId);
+			if (name === undefined) return [];
+			return [
+				{ kind: "tool-update", ...identity, tool: { id: itemId, name, output: z.string().parse(params[progress]) } },
+			];
+		}
 		return [];
 	}
 }
