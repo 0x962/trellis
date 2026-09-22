@@ -1,13 +1,19 @@
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { nativePreset } from "../../agents/native/harnessHost.ts";
-import { rows } from "../../db/queries/support.ts";
+import { rows, textArray } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
+import type { CheckNoticeKind, NoticeCheck } from "../../gh/checkNotice.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import { sendDeadline } from "../deliveries/sendDeadline.ts";
-import { closedBeforeDelivery, unconfirmedDelivery } from "../deliveries/sentences.ts";
+import {
+	closedBeforeDelivery,
+	notRunningForCheck,
+	supersededCheck,
+	unconfirmedDelivery,
+} from "../deliveries/sentences.ts";
 import type { IoCtx } from "../support.ts";
-import { type CommentNote, commentMessage, reviewMessage } from "./deliveryMessage.ts";
+import { type CommentNote, checkMessage, commentMessage, reviewMessage } from "./deliveryMessage.ts";
 import { deliveryMessageId } from "./deliveryMessageId.ts";
 import { commentBatchLimitSeconds, commentBatchSeconds } from "./enqueueCommentDeliveries.ts";
 import { changed } from "./queries.ts";
@@ -16,8 +22,8 @@ import { changed } from "./queries.ts";
 // `sessionId` come from `agent_runs` at this moment, and the send refuses the
 // message when either changes before the bytes leave. `text` is what the
 // agent reads. `ids` names every `review_deliveries` row the message
-// carries: one row for a verdict, and one row per comment inside the batch
-// window. `prId` holds the
+// carries: one row for a verdict or a check notice, and one row per comment
+// inside the batch window. `prId` holds the
 // pull request of a comment batch, because the review page draws the state
 // of each comment and needs the event that follows the send.
 type Delivery = {
@@ -134,6 +140,43 @@ const pendingComments = async (tx: Tx, terminals: string[]): Promise<Delivery[]>
 	}));
 };
 
+// A check notice leaves only while it still describes the pull request and
+// its agent runs. A notice for an agent without a running process fails at
+// once, because the person reads the checks on the page. A notice that a
+// newer notice, a new head commit, or a merge replaced fails too, so the
+// agent never reads an old result.
+const failStaleCheckDeliveries = (tx: Tx, running: string[]) => {
+	const absent = sql`(run.terminal_id IS NULL OR NOT run.terminal_id = ANY(${textArray(running)}))`;
+	return tx.execute(
+		sql`UPDATE review_deliveries delivery SET state = 'failed',
+			error = CASE WHEN ${absent} THEN ${notRunningForCheck} ELSE ${supersededCheck} END
+		FROM check_notices notice, pull_requests pr, agent_runs run
+		WHERE delivery.check_notice_id = notice.id AND pr.id = notice.pr_id AND run.id = delivery.run_id
+			AND delivery.state = 'pending'
+			AND (${absent} OR pr.state <> 'open' OR pr.head_sha IS DISTINCT FROM notice.head_sha
+				OR EXISTS (SELECT 1 FROM check_notices newer WHERE newer.pr_id = notice.pr_id
+					AND (newer.created_at, newer.id) > (notice.created_at, notice.id)))`,
+	);
+};
+
+// A queued check notice. The notice row holds the commit and the checks, so
+// the message names both without a second query.
+type CheckRow = Queued & { url: string; headSha: string; kind: CheckNoticeKind; checks: NoticeCheck[] };
+
+const pendingChecks = async (tx: Tx, terminals: string[]): Promise<Delivery[]> => {
+	const found = await rows<CheckRow>(
+		tx,
+		sql`SELECT ${deliveryColumns}, pr.url AS "url", notice.head_sha AS "headSha", notice.kind, notice.checks
+		FROM review_deliveries delivery
+		JOIN agent_runs run ON run.id = delivery.run_id
+		JOIN check_notices notice ON notice.id = delivery.check_notice_id
+		JOIN pull_requests pr ON pr.id = notice.pr_id
+		WHERE delivery.state = 'pending' AND ${due} AND ${runningTerminals(terminals)}
+		ORDER BY delivery.id LIMIT 20`,
+	);
+	return found.map((row) => ({ ...row, ids: [row.id], text: checkMessage(row) }));
+};
+
 // What one failed attempt writes on the row. `sendDeadline` rejects with the
 // sentence `unconfirmedDelivery` when the send passes its 15 second limit,
 // and only then can the agent hold the message already. Every other error
@@ -153,6 +196,8 @@ export const dispatchDeliveries = async (
 	preset = nativePreset,
 ) => {
 	await ctx.newTx(failDeliveriesOfClosedRuns);
+	const running = sessions.filter((session) => session.status === "running").map((session) => session.id);
+	await ctx.newTx((tx) => failStaleCheckDeliveries(tx, running));
 	const ready = sessions
 		.filter((session) => session.status === "running" && session.controllable)
 		.map((session) => session.id);
@@ -160,6 +205,7 @@ export const dispatchDeliveries = async (
 	const pending = await ctx.newTx(async (tx) => [
 		...(await pendingReviews(tx, ready)),
 		...(await pendingComments(tx, ready)),
+		...(await pendingChecks(tx, ready)),
 	]);
 	for (const delivery of pending) {
 		const claimed = await ctx.newTx((tx) =>

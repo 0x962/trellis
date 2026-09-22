@@ -1,0 +1,224 @@
+import { afterAll, beforeAll, beforeEach, expect, test } from "bun:test";
+import type { Check, CheckBucket, PrState } from "@trellis/api";
+import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
+import { sql } from "drizzle-orm";
+import { ulid } from "ulid";
+import type { ServiceCtx } from "../context.ts";
+import { createCache } from "../db/cache.ts";
+import { openTestDb } from "../db/testDb.ts";
+import type { Tx } from "../db/tx.ts";
+import { notRunningForCheck, supersededCheck } from "../services/deliveries/sentences.ts";
+import { dispatchDeliveries } from "../services/reviews/dispatchDeliveries.ts";
+import type { IoCtx } from "../services/support.ts";
+import { create } from "../services/tickets/create.ts";
+import { SETTLE_MS } from "./checkNotice.ts";
+import type { PullRequestRow } from "./graphql.ts";
+import { deriveCiState } from "./parse.ts";
+import { noticeChecks } from "./pollerNotices.ts";
+import { upsertPullRequests } from "./pollerWrite.ts";
+import type { GhRunner } from "./run.ts";
+
+let db: Awaited<ReturnType<typeof openTestDb>>;
+let core: ServiceCtx;
+const rootId = ulid();
+const t0 = new Date("2026-09-21T10:00:00Z");
+const later = (ms: number) => new Date(t0.getTime() + ms);
+const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
+
+// The gh stub answers every annotations read with one failure line, and
+// records the arguments of each call.
+const ghCalls: string[][] = [];
+const gh = Object.assign(
+	async (_slot: string, args: string[]) => {
+		ghCalls.push(args);
+		const annotations = [
+			{ annotation_level: "failure", path: "src/a.test.ts", start_line: 12, message: "expected 1, received 2" },
+			{ annotation_level: "warning", path: ".github", start_line: null, message: "Node 20 is deprecated" },
+		];
+		return { ok: true, code: 0, stdout: JSON.stringify(annotations), stderr: "" };
+	},
+	{ bin: "gh", timeoutMs: 1000 },
+) as unknown as GhRunner;
+
+const sent: Record<string, unknown>[] = [];
+const send = (async (_ctx: unknown, input: Record<string, unknown>) => {
+	sent.push(input);
+	return { id: input.id };
+}) as never;
+const preset = (async () => "claude") as never;
+const ioCtx = () => ({ home: "/tmp/trellis-check-notices", newTx: run, emit: () => {} }) as unknown as IoCtx;
+const running = (terminalId: string) =>
+	[{ id: terminalId, status: "running", controllable: true }] as unknown as RuntimeProcessStatus[];
+
+let prNumber = 700;
+
+const check = (name: string, bucket: CheckBucket): Check => ({
+	name,
+	workflow: "CI",
+	bucket,
+	link: `https://github.com/o/r/actions/runs/5/job/${name.length}`,
+	startedAt: null,
+	endedAt: null,
+});
+
+const row = (number: number, headSha: string, checks: Check[], state: PrState = "open"): PullRequestRow => ({
+	owner: "o",
+	repo: "r",
+	number,
+	additions: 1,
+	deletions: 1,
+	changedFiles: 1,
+	files: [],
+	url: `https://github.com/o/r/pull/${number}`,
+	title: "Fix the sort",
+	state,
+	isDraft: false,
+	isQueued: false,
+	headSha,
+	headRef: "fix",
+	baseRef: "main",
+	reviewState: "none",
+	mergedAt: null,
+	closedAt: null,
+	checks,
+	ciState: deriveCiState(checks),
+	contentHash: ulid(),
+});
+
+const write = (at: Date, pr: PullRequestRow) => run((tx) => upsertPullRequests(tx, at, [pr]));
+
+// One ticket, one running agent on it, and one pull request linked to the
+// ticket. `withTicket: false` leaves the pull request without a ticket.
+const seed = async (checks: Check[], options: { withTicket?: boolean } = {}) => {
+	const number = prNumber++;
+	await write(t0, row(number, "aaa1111aaaa", checks));
+	const [pr] = (await db.execute(sql`SELECT id FROM pull_requests WHERE number = ${number}`)).rows as { id: string }[];
+	const runId = ulid();
+	if (options.withTicket !== false) {
+		const ticket = await run((tx) => create(core, tx, { project: "CHK", title: `Fix ${number}` }));
+		await db.execute(sql`INSERT INTO agent_runs
+			(id, name, kind, instruction, project_path, ticket_id, ticket_identifier, terminal_id, created_at, updated_at)
+			VALUES (${runId}, 'crisp-fjord', 'agent', 'Build it', '/tmp/work', ${ticket.id}, ${ticket.identifier},
+				${`term-${runId}`}, ${t0}, ${t0})`);
+		await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
+			VALUES (${ticket.id}, ${pr!.id}, 'manual', 'dana', 'human', ${t0})`);
+	}
+	return { number, prId: pr!.id, runId, terminal: `term-${runId}` };
+};
+
+const notices = async (prId: string) =>
+	(
+		await db.execute(
+			sql`SELECT kind, head_sha AS "headSha", checks FROM check_notices WHERE pr_id = ${prId} ORDER BY created_at, id`,
+		)
+	).rows as { kind: string; headSha: string; checks: { name: string; lines: string[] }[] }[];
+
+const deliveries = async (runId: string) =>
+	(await db.execute(sql`SELECT state, error FROM review_deliveries WHERE run_id = ${runId} ORDER BY id`)).rows;
+
+beforeAll(async () => {
+	db = await openTestDb();
+	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
+		VALUES (${rootId}, ${rootId}, 'CHK', 'chk', 'Checks', ${t0}, ${t0})`);
+	await db.execute(sql`INSERT INTO statuses
+		(id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at)
+		VALUES (${ulid()}, ${rootId}, 'Todo', 'todo', 'todo', NULL, 'fg-muted', 0, true, ${t0}, ${t0})`);
+	const cache = createCache();
+	await run((tx) => cache.rebuild(tx));
+	core = {
+		actor: { kind: "human", name: "dana" },
+		session: null,
+		reqId: ulid(),
+		now: t0,
+		cache,
+		actorCache: new Map(),
+		emit: () => {},
+		dropBlobs: () => {},
+		publicUrl: "http://localhost:4597",
+	};
+}, 30_000);
+
+afterAll(async () => db.$client.close());
+
+beforeEach(() => {
+	ghCalls.length = 0;
+	sent.length = 0;
+});
+
+test("a failure reaches the running agent once, after the burst settles, and a green head follows", async () => {
+	const pr = await seed([check("lint", "fail"), check("test", "pending")]);
+
+	await noticeChecks(db, gh, later(10_000));
+	expect(await notices(pr.prId)).toEqual([]);
+
+	await noticeChecks(db, gh, later(SETTLE_MS));
+	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
+	expect(ghCalls).toEqual([["api", "repos/o/r/check-runs/4/annotations"]]);
+	expect(sent.map((entry) => entry.text)).toEqual([
+		[
+			"trellis: 1 check failed on commit aaa1111 of https://github.com/o/r/pull/700.",
+			"CI / lint: https://github.com/o/r/actions/runs/5/job/4",
+			"  src/a.test.ts:12 expected 1, received 2",
+			"Read the log, fix the cause, and push. Trellis tells you when every check passes.",
+		].join("\n"),
+	]);
+
+	// The detector holds nothing in memory, so a call after a restart reads
+	// the same notices and writes none.
+	await noticeChecks(db, gh, later(SETTLE_MS + 10_000));
+	await noticeChecks(db, gh, later(3_600_000));
+	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
+	expect((await notices(pr.prId)).map((notice) => notice.kind)).toEqual(["failed"]);
+	expect(sent).toHaveLength(1);
+
+	await write(later(3_700_000), row(pr.number, "bbb2222bbbb", [check("lint", "pass"), check("test", "pass")]));
+	await noticeChecks(db, gh, later(3_700_000));
+	await noticeChecks(db, gh, later(3_710_000));
+	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
+	expect(sent.map((entry) => entry.text)).toEqual([
+		expect.any(String),
+		"trellis: every check passed on commit bbb2222 of https://github.com/o/r/pull/700.",
+	]);
+	expect(await deliveries(pr.runId)).toEqual([
+		{ state: "sent", error: null },
+		{ state: "sent", error: null },
+	]);
+});
+
+test("a write that leaves the checks and the head alone keeps the quiet time", async () => {
+	const pr = await seed([check("lint", "fail"), check("test", "pending")]);
+	await write(later(50_000), row(pr.number, "aaa1111aaaa", [check("lint", "fail"), check("test", "pending")]));
+
+	await noticeChecks(db, gh, later(SETTLE_MS));
+	expect((await notices(pr.prId)).map((notice) => notice.kind)).toEqual(["failed"]);
+});
+
+test("a pull request with no ticket, or one that merged, gets no notice", async () => {
+	const orphan = await seed([check("lint", "fail")], { withTicket: false });
+	const merged = await seed([check("lint", "fail")]);
+	await write(later(1000), row(merged.number, "aaa1111aaaa", [check("lint", "fail"), check("x", "fail")], "merged"));
+
+	await noticeChecks(db, gh, later(SETTLE_MS));
+	expect(await notices(orphan.prId)).toEqual([]);
+	expect(await notices(merged.prId)).toEqual([]);
+	expect(ghCalls).toEqual([]);
+});
+
+test("a notice for an agent that does not run fails with its sentence and is never sent", async () => {
+	const pr = await seed([check("lint", "fail")]);
+	await noticeChecks(db, gh, later(SETTLE_MS));
+
+	await dispatchDeliveries(ioCtx(), running("term-other"), send, preset);
+	expect(sent).toEqual([]);
+	expect(await deliveries(pr.runId)).toEqual([{ state: "failed", error: notRunningForCheck }]);
+});
+
+test("a notice that a new head commit replaced before the send fails with its sentence", async () => {
+	const pr = await seed([check("lint", "fail")]);
+	await noticeChecks(db, gh, later(SETTLE_MS));
+	await write(later(SETTLE_MS + 1000), row(pr.number, "ccc3333cccc", [check("lint", "pending")]));
+
+	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
+	expect(sent).toEqual([]);
+	expect(await deliveries(pr.runId)).toEqual([{ state: "failed", error: supersededCheck }]);
+});

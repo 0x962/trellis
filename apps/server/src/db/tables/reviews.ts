@@ -3,6 +3,7 @@ import { check, index, integer, jsonb, pgTable, text, unique } from "drizzle-orm
 import { pullRequests } from "../schema";
 import { at } from "./actors";
 import { agentRuns } from "./agentRuns.ts";
+import { checkNotices } from "./checkNotices.ts";
 
 export const reviewRevisions = pgTable(
 	"review_revisions",
@@ -46,9 +47,10 @@ export const reviewSubmissions = pgTable(
 	(t) => [unique("review_submissions_request").on(t.prId, t.actor, t.requestId)],
 );
 // One row is one message that waits for one agent run. The message is a
-// review submission or one comment a person wrote on a diff line, so exactly
-// one of `review_id` and `thread_message_id` holds an identifier. A comment
-// row also names its thread, because the message to the agent carries the file and the line
+// review submission, one comment a person wrote on a diff line, or one check
+// notice, so exactly one of `review_id`, `thread_message_id` and
+// `check_notice_id` holds an identifier. A comment row also names its
+// thread, because the message to the agent carries the file and the line
 // that the thread holds. `due_at` is the first moment the dispatcher may
 // send the row: a comment row sets it a few seconds ahead, so the comments a
 // person writes one after another travel in one message. The unique rule
@@ -61,6 +63,7 @@ export const reviewDeliveries = pgTable(
 		reviewId: text("review_id").references(() => reviewSubmissions.id),
 		threadId: text("thread_id").references(() => reviewThreads.id, { onDelete: "cascade" }),
 		threadMessageId: text("thread_message_id"),
+		checkNoticeId: text("check_notice_id").references(() => checkNotices.id, { onDelete: "cascade" }),
 		runId: text("run_id")
 			.notNull()
 			.references(() => agentRuns.id, { onDelete: "cascade" }),
@@ -71,8 +74,13 @@ export const reviewDeliveries = pgTable(
 		attempt: integer().notNull().default(0),
 	},
 	(t) => [
-		unique("review_deliveries_recipient").on(t.reviewId, t.threadMessageId, t.runId).nullsNotDistinct(),
+		unique("review_deliveries_recipient")
+			.on(t.reviewId, t.threadMessageId, t.checkNoticeId, t.runId)
+			.nullsNotDistinct(),
 		index("review_deliveries_state_idx").on(t.state),
-		check("review_deliveries_one_source", sql`num_nonnulls(${t.reviewId}, ${t.threadMessageId}) = 1`),
+		check(
+			"review_deliveries_one_source",
+			sql`num_nonnulls(${t.reviewId}, ${t.threadMessageId}, ${t.checkNoticeId}) = 1`,
+		),
 	],
 );

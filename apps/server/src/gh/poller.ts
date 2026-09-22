@@ -2,6 +2,7 @@ import type { GhReason, TrellisEvent } from "@trellis/api";
 import { withTx } from "../db/tx.ts";
 import { fetchPullRequests } from "./graphql.ts";
 import { type DueRow, isDue, refOf, selectCandidates } from "./pollerDue.ts";
+import { noticeChecks } from "./pollerNotices.ts";
 import { type Polled, type PolledFailure, storeFetchErrors, writePolled } from "./pollerWrite.ts";
 import { readRateLimit } from "./ratelimit.ts";
 import type { GhRunner } from "./run.ts";
@@ -9,7 +10,7 @@ import type { GhRunner } from "./run.ts";
 // The poller is one setTimeout chain. A tick runs every 10 s, one tick runs
 // at a time, and the next timer is armed when the running tick settles. Each
 // tick reads the gh state, reads the rate limit budget, fetches the pull
-// requests that are due.
+// requests that are due, and queues the check notices for their agents.
 //
 // gh that is missing or signed out is a state, not a crash: the tick then
 // does nothing but recheck once a minute, and one event and one log line
@@ -159,6 +160,7 @@ const tick = async (hook: PollerHook, state: PollerState) => {
 	if (!(await checkGh(hook, state, atMs))) return;
 	await readBudget(hook, state, atMs);
 	await pollDue(hook, state, at);
+	await noticeChecks(hook.db, hook.gh, at);
 };
 
 export const start = (hook: PollerHook): PollerHandle => {

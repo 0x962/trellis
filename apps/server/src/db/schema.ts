@@ -21,6 +21,7 @@ import { waves } from "./tables/waves.ts";
 
 export * from "./tables/actors.ts";
 export * from "./tables/agentRuns.ts";
+export * from "./tables/checkNotices.ts";
 export * from "./tables/epicResources.ts";
 export * from "./tables/epics.ts";
 export * from "./tables/flows.ts";

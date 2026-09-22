@@ -29,6 +29,10 @@ export const pullRequests = pgTable(
 		mergedAt: at("merged_at"),
 		closedAt: at("closed_at"),
 		checks: jsonb().notNull().default([]),
+		// The last time a write changed `checks` or `head_sha`. A row that no
+		// write changed since this column exists holds null, and the check
+		// notice detector skips it, so old check results reach no agent.
+		checksChangedAt: at("checks_changed_at"),
 		ciState: text("ci_state").notNull().default("none"),
 		contentHash: text("content_hash"),
 		fetchedAt: at("fetched_at"),
