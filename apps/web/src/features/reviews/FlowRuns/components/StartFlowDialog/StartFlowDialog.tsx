@@ -2,17 +2,19 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button, Dialog, Select } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
+import { startFlowId } from "./startFlowId";
 
 export function StartFlowDialog({ ticket, onClose }: { ticket: string; onClose: () => void }) {
 	const { client, orpc, queryClient } = useApp();
 	const [flowId, setFlowId] = useState("");
 	const [requestId, setRequestId] = useState(() => crypto.randomUUID());
 	const flows = useQuery(orpc.flows.list.queryOptions({ input: {} }));
-	const flow = flows.data?.find((flow) => flow.id === flowId);
+	const selectedFlowId = startFlowId(flows.data ?? [], flowId);
+	const flow = flows.data?.find((flow) => flow.id === selectedFlowId);
 	const start = useMutation({
 		mutationFn: () =>
 			client.flowExecutions.start({
-				flow: flowId,
+				flow: selectedFlowId,
 				ticket,
 				requestId,
 				expectedVersion: flow!.version,
@@ -33,7 +35,7 @@ export function StartFlowDialog({ ticket, onClose }: { ticket: string; onClose: 
 			>
 				<Select
 					label="Flow"
-					value={flowId}
+					value={selectedFlowId}
 					disabled={start.isPending}
 					items={(flows.data ?? []).map((flow) => ({ value: flow.id, label: flow.name }))}
 					onValueChange={(value) => {
