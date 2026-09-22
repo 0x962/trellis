@@ -31,7 +31,6 @@ export function CardContent({ ticket, showStatus = false, lineChanges, lineChang
 	const progress = ticket.childCount === 0 ? 0 : ticket.childDoneCount / ticket.childCount;
 	const trail = ticketTrail(ticket.ancestors, ticket.identifier);
 	const showLineChanges = lineChangesVisible(lineChanges);
-	const lastActor = ticket.lastActor?.kind === "system" ? null : ticket.lastActor;
 	return (
 		<>
 			<div className="flex h-4 items-center justify-between gap-1.5">
@@ -72,12 +71,10 @@ export function CardContent({ ticket, showStatus = false, lineChanges, lineChang
 				{ticket.status.reviewer === "human" && ticket.pr !== null && (
 					<ReviewStatusSummary reviews={ticket.pr.reviews} />
 				)}
-				{(showLineChanges || lastActor !== null) && (
-					<span className="ml-auto flex shrink-0 items-center gap-1.5">
-						{showLineChanges && <LineChanges value={lineChanges} pending={lineChangesPending} />}
-						{lastActor !== null && <ActorAvatar actor={lastActor} ticketId={ticket.id} />}
-					</span>
-				)}
+				<span className="ml-auto flex shrink-0 items-center gap-1.5 empty:hidden">
+					{showLineChanges && <LineChanges value={lineChanges} pending={lineChangesPending} />}
+					<ActorAvatar ticketId={ticket.id} />
+				</span>
 			</div>
 		</>
 	);
