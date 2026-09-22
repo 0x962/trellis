@@ -1,6 +1,16 @@
 import { ArrowClockwise, Copy, PencilSimple, SignIn, Star, Trash } from "@phosphor-icons/react";
 import type { HarnessAccount, UsageAccount, UsageGroupRow, UsageMetric } from "@trellis/api";
-import { Button, Dialog, IconButton, ProviderIcon, QuotaWindows, Skeleton, Tooltip, toast } from "@trellis/ui";
+import {
+	Button,
+	Dialog,
+	IconButton,
+	ProviderIcon,
+	QuotaWindows,
+	Skeleton,
+	Tooltip,
+	toast,
+	writeClipboard,
+} from "@trellis/ui";
 import { useState } from "react";
 import { formatMetric, formatShare, formatUsd, harnessLabel, harnessProvider } from "../../../../../formatUsage";
 
@@ -21,7 +31,7 @@ const formatObservedAt = (iso: string) =>
 
 const copy = async (text: string) => {
 	try {
-		await navigator.clipboard.writeText(text);
+		await writeClipboard(text);
 		toast("Login command copied");
 	} catch (error) {
 		toast(error instanceof Error ? error.message : "Could not copy the command.");

@@ -1,7 +1,7 @@
 import { Copy } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { UsageMetric, UsageSession } from "@trellis/api";
-import { Button, IconButton, SectionHeader, TicketId, Tooltip, toast } from "@trellis/ui";
+import { Button, IconButton, SectionHeader, TicketId, Tooltip, toast, writeClipboard } from "@trellis/ui";
 import { useState } from "react";
 import { formatMetric, harnessLabel } from "../../../formatUsage";
 
@@ -32,7 +32,7 @@ export function UsageSessions({ sessions, metric, filtered }: UsageSessionsProps
 	const visible = sessions.slice(0, shown);
 	const copy = async (id: string) => {
 		try {
-			await navigator.clipboard.writeText(id);
+			await writeClipboard(id);
 			toast("Session id copied");
 		} catch (error) {
 			toast(error instanceof Error ? error.message : "Could not copy the session id.");

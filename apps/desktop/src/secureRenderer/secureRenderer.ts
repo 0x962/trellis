@@ -1,4 +1,5 @@
 import { type BrowserWindow, shell } from "electron";
+import { isCopyLinkChord } from "../copyLinkChord/copyLinkChord.ts";
 import type { HostConnection } from "../host/host.ts";
 import { hostRequest } from "../hostRequest/hostRequest.ts";
 import { externalUrl, sameOrigin } from "../navigation/navigation.ts";
@@ -9,6 +10,13 @@ export function secureRenderer(window: BrowserWindow, connection: () => HostConn
 		if (!sameOrigin(url, connection().origin)) event.preventDefault();
 	});
 	window.webContents.on("will-attach-webview", secureLinkBrowser);
+	window.webContents.on("did-attach-webview", (_event, page) => {
+		page.on("before-input-event", (event, input) => {
+			if (!isCopyLinkChord(input)) return;
+			event.preventDefault();
+			window.webContents.send("trellis:browser-copy-link");
+		});
+	});
 	window.webContents.setWindowOpenHandler(({ url }) => {
 		if (externalUrl(url)) void shell.openExternal(url);
 		return { action: "deny" };

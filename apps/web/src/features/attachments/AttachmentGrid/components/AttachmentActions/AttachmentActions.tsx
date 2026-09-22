@@ -1,6 +1,6 @@
 import { DotsThree } from "@phosphor-icons/react";
 import type { Attachment } from "@trellis/api";
-import { ConfirmDialog, IconButton, Input, Menu } from "@trellis/ui";
+import { ConfirmDialog, IconButton, Input, Menu, writeClipboard } from "@trellis/ui";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { attachmentMarkdown } from "../../../utils/attachmentMarkdown";
 
@@ -68,7 +68,7 @@ export function AttachmentActions({ attachment, onDelete, onRename, triggerClass
 				items={[
 					{
 						label: "Copy markdown link",
-						onSelect: () => void navigator.clipboard.writeText(attachmentMarkdown(attachment)),
+						onSelect: () => void writeClipboard(attachmentMarkdown(attachment)),
 					},
 					{ label: "Rename", onSelect: () => setRenaming(true) },
 					{ label: "Delete", danger: true, onSelect: () => setConfirming(true) },

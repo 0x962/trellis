@@ -31,12 +31,14 @@ export type DesktopBridge = {
 	sessionVisible?: (runId: string | null) => Promise<void>;
 	previewNotification?: (volume: number) => Promise<void>;
 	onAccessibilitySupportChanged?: (listener: (enabled: boolean) => void) => () => void;
+	writeClipboard?: (text: string) => Promise<void>;
 	chooseDirectory: () => Promise<string | null>;
 	status: () => Promise<DesktopStatus>;
 	serviceStatus: () => Promise<DesktopServiceStatus>;
 	updateStatus: () => Promise<DesktopUpdateStatus>;
 	setOpenAtLogin: (enabled: boolean) => Promise<void>;
 	run: (action: DesktopAction) => Promise<void>;
+	onBrowserCopyLink?: (listener: () => void) => () => void;
 	onNavigate?: (listener: (path: string) => void) => () => void;
 };
 

@@ -4,6 +4,7 @@ import { Button } from "../../primitives/Button";
 import { IconButton } from "../../primitives/IconButton";
 import { Textarea } from "../../primitives/Textarea";
 import { Tooltip } from "../../primitives/Tooltip";
+import { writeClipboard } from "../../utils/writeClipboard";
 import { ReviewReactions } from "../ReviewReactions/ReviewReactions";
 
 type Message = {
@@ -128,7 +129,7 @@ export function ReviewThreadCard({
 											className="review-message-action"
 											label="Copy session"
 											icon={<Copy />}
-											onClick={() => void navigator.clipboard.writeText(message.session!)}
+											onClick={() => void writeClipboard(message.session!)}
 										/>
 									</Tooltip>
 								)}
