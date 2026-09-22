@@ -7,7 +7,7 @@ import { prepareSend } from "../agentRuns/communication.ts";
 import { sendDeadline } from "../deliveries/sendDeadline.ts";
 import { closedBeforeDelivery, unconfirmedDelivery } from "../deliveries/sentences.ts";
 import type { IoCtx } from "../support.ts";
-import { answerMessage, type CommentNote, commentMessage, reviewMessage } from "./deliveryMessage.ts";
+import { type CommentNote, commentMessage, reviewMessage } from "./deliveryMessage.ts";
 import { deliveryMessageId } from "./deliveryMessageId.ts";
 import { commentBatchLimitSeconds, commentBatchSeconds } from "./enqueueCommentDeliveries.ts";
 import { changed } from "./queries.ts";
@@ -16,8 +16,8 @@ import { changed } from "./queries.ts";
 // `sessionId` come from `agent_runs` at this moment, and the send refuses the
 // message when either changes before the bytes leave. `text` is what the
 // agent reads. `ids` names every `review_deliveries` row the message
-// carries: one row for a verdict or an answer, and one row per comment for
-// the comments a person wrote inside the batch window. `prId` holds the
+// carries: one row for a verdict, and one row per comment inside the batch
+// window. `prId` holds the
 // pull request of a comment batch, because the review page draws the state
 // of each comment and needs the event that follows the send.
 type Delivery = {
@@ -45,7 +45,7 @@ const list = (values: string[]) =>
 
 const runningTerminals = (terminals: string[]) => sql`run.terminal_id IN (${list(terminals)})`;
 
-// A verdict or an answer is due at the moment of its insert. Comments follow
+// A verdict is due at the moment of its insert. Comments follow
 // the rule of `quietRuns` below.
 const due = sql`delivery.due_at <= now()`;
 
@@ -55,37 +55,6 @@ const failDeliveriesOfClosedRuns = (tx: Tx) =>
 		FROM agent_runs run
 		WHERE delivery.run_id = run.id AND delivery.state = 'pending' AND run.closed_at IS NOT NULL`,
 	);
-
-// A queued answer of a question ticket. `question` is the ticket that holds
-// the answer, and `waiting` is the ticket the run works on. `description` is
-// the description of the question, which holds the text of each option.
-type AnswerRow = Queued & {
-	question: string;
-	waiting: string;
-	description: string;
-	option: number;
-	reason: string;
-};
-
-const pendingAnswers = async (tx: Tx, terminals: string[]): Promise<Delivery[]> => {
-	const found = await rows<AnswerRow>(
-		tx,
-		sql`SELECT ${deliveryColumns}, answer.option, answer.reason, question.description,
-			question_root.key || '-' || question.number AS question,
-			waiting_root.key || '-' || waiting.number AS waiting
-		FROM review_deliveries delivery
-		JOIN agent_runs run ON run.id = delivery.run_id
-		JOIN tickets waiting ON waiting.id = run.ticket_id
-		JOIN projects waiting_root ON waiting_root.id = waiting.root_id
-		JOIN ticket_answers answer ON answer.id = delivery.answer_id
-		JOIN tickets question ON question.id = answer.ticket_id
-		JOIN projects question_root ON question_root.id = question.root_id
-		WHERE delivery.state = 'pending' AND delivery.answer_id IS NOT NULL AND ${due}
-			AND ${runningTerminals(terminals)}
-		ORDER BY delivery.id LIMIT 20`,
-	);
-	return found.map((row) => ({ ...row, ids: [row.id], text: answerMessage(row) }));
-};
 
 // A queued review submission. The stored document holds the pull request
 // address and the comments the submission carried, so the message names both
@@ -116,9 +85,9 @@ const pendingReviews = async (tx: Tx, terminals: string[]): Promise<Delivery[]> 
 	return found.map((row) => ({ ...row, ids: [row.id], text: reviewMessage(row) }));
 };
 
-// A queued comment of a person. The thread document holds the anchor and the
-// text, so the message names the file, the line and the words without a
-// second query. A reply carries the anchor of its thread.
+// A queued comment. The thread document holds the anchor and the text, so
+// the message names the file, the line and the words without a second query.
+// A reply carries the anchor of its thread.
 type CommentRow = Queued & CommentNote & { url: string; prId: string };
 
 // The agents whose waiting comments may leave now: the newest comment is
@@ -130,7 +99,7 @@ const quietRuns = sql`SELECT run_id FROM review_deliveries
 		OR min(due_at) <= now() - make_interval(secs => ${commentBatchLimitSeconds - commentBatchSeconds})`;
 
 // Every waiting comment of one agent becomes one message. The rows come back
-// in the order a person wrote them, and the group keeps that order.
+// in the order the reviewers wrote them, and the group keeps that order.
 const pendingComments = async (tx: Tx, terminals: string[]): Promise<Delivery[]> => {
 	const found = await rows<CommentRow>(
 		tx,
@@ -176,9 +145,7 @@ const outcomeOf = (failure: unknown) => {
 };
 
 // Sends every queued message whose agent process runs and accepts input.
-// `sessions` is the list the execution service reports for this machine. A
-// row holds either the answer of a question ticket or a review submission,
-// and both reach the agent the same way.
+// `sessions` is the list the execution service reports for this machine.
 export const dispatchDeliveries = async (
 	ctx: IoCtx,
 	sessions: RuntimeProcessStatus[],
@@ -191,7 +158,6 @@ export const dispatchDeliveries = async (
 		.map((session) => session.id);
 	if (ready.length === 0) return;
 	const pending = await ctx.newTx(async (tx) => [
-		...(await pendingAnswers(tx, ready)),
 		...(await pendingReviews(tx, ready)),
 		...(await pendingComments(tx, ready)),
 	]);

@@ -31,7 +31,7 @@ Rules that hold for every ticket:
 - The gallery visual check is `bun run --filter @trellis/ui gallery` and the route `/_gallery`. The route visual check is a scratch server: `TRELLIS_HOME=$TMPDIR/trellis-<ticket> TRELLIS_PORT=0 bun run dev`, seeded with the CLI, captured with Aside in the agent's own worktree.
 - Append files take one row per ticket and merge clean with no dependency: `packages/api/src/index.ts`, `apps/server/src/services/registry.ts`, `packages/api/src/contract/tickets.ts`, `packages/api/src/contract/pullRequests.ts`, `packages/api/src/contract/index.ts`, `packages/cli/src/verbs.ts`, `packages/ui/src/gallery/components/DomainSections/sections/index.ts`, `packages/ui/src/index.ts`.
 - `AGENTS.md` applies: STE prose, no em dashes, happy-path code, a file over 300 lines splits.
-- The six decisions of section 8 of the verdict take the judge's recommendation. Section 6 lists every ticket that changes if one goes the other way.
+- The four decisions of section 8 of the verdict take the judge's recommendation. Section 6 lists every ticket that changes if one goes the other way.
 
 ## 1. The waves
 
@@ -43,16 +43,16 @@ Rules that hold for every ticket:
 | 4. The turn, the contract fields, the band counts | T24 T25 T26 T27 T28 T29 | The contract and the outcome on a ticket. The kind and the risk of every pull request. The turn of a row. The band counts from dependencies. The review status names its ticket. The agent line under a title on the epic page. | 0085 (T24) |
 | 5. The chain on the row and the ticket, the contract verbs | T30 T31 T32 T33 T34 T35 T36 T37 T38 T39 | The summary store with the STE refusal. The contracts of Routines E2E imported. `trellis contract`, `trellis outcome`, `trellis ready`. The `waits` and `releases` columns. The pull request row filled with size, checks, stack, flow and turn. The contract block, the chain block and the run line in the gallery. | 0086 (T30) |
 | 6. Group by turn, the evidence store, the epic in the terminal | T40 T41 T42 T43 T44 T45 | The evidence records and the floor. `Group by: Wave · Turn`. The change summary block. The start controls. `trellis summary write`. `trellis epics show` in the words of the epic page. | 0087 (T40) |
-| 7. Evidence on the page, the answer | T46 T47 T48 T49 T50 | The answer that reaches a live run. The frontend evidence strip. The evidence word on the pull request row. `trellis evidence add`. The contract and the evidence owed in the brief. | 0088 (T46) |
-| 8. The review page in one column, the resources store | T51 T52 T53 T54 T55 T56 T57 | The review page with nine regions. The backend evidence strip. The question block. `epic_resources`. `trellis evidence list`, `trellis answer`. The chain in the brief. | 0089 (T51) |
+| 7. Evidence on the page | T46 T47 T48 T49 T50 | The review that reaches a live run. The frontend evidence strip. The evidence word on the pull request row. `trellis evidence add`. The contract and the evidence owed in the brief. | none |
+| 8. The review page in one column, the resources store | T51 T52 T54 T55 T57 | The review page with nine regions. The backend evidence strip. `epic_resources`. `trellis evidence list`. The chain in the brief. | 0088 (T51) |
 | 9. The ticket page in one column, the verdict bar | T58 T59 T60 T61 T62 | The verdict bar with a live `Merge`. The ticket page as five clauses. The resource list in the gallery. `trellis evidence check`. `trellis resource`. | none |
 | 10. Deletions, the hand-over rule, the capture recipe | T63 T64 T65 T66 T67 | The old review summary, the reviewer picker, the feed, the threads, the tabs and the metrics are gone. `docs/UI_PATTERNS.md` updated once. The CLI refuses an agent hand-over with a missing floor. `docs/EVIDENCE.md`. | none |
 | 11. Resources on the epic page, the agent's duty | T68 T69 | The resources section on the epic page and on a ticket. The evidence duty and the planner guidance in `trellis instructions`. | none |
 | 12. The in-app browser and the phone | T70 T71 T72 | A doc opens in the editor, a link opens in the in-app browser. The epic page, the review page and the ticket page at 390 px. | none |
-| 13. The word wave | T73 | Every identifier, column, route and ref says `wave`. Lands alone. | 0090 (T73) |
+| 13. The word wave | T73 | Every identifier, column, route and ref says `wave`. Lands alone. | 0089 (T73) |
 | 14. The architecture doc | T74 | `docs/ARCHITECTURE.md` describes the loop as the code does it. | none |
 
-The review page is 60 to 75 percent of his day. Waves 2 and 3 put every review block in the gallery. Wave 3 puts the dependency cells and the pull request rows on the epic page. Wave 8 assembles the review page. The migration chain (nine migrations, one per wave) sets the floor of fourteen waves.
+The review page is 60 to 75 percent of his day. Waves 2 and 3 put every review block in the gallery. Wave 3 puts the dependency cells and the pull request rows on the epic page. Wave 8 assembles the review page. The migration chain (eight migrations, one per wave) sets the floor of fourteen waves.
 
 ## 2. The dependency edges
 
@@ -101,15 +101,12 @@ T47 after T06, T25, T40
 T48 after T36, T40
 T49 after T40
 T50 after T05, T24, T32, T40
-T51 after T46 (m)
 T52 after T25, T40, T47
-T53 after T03, T06, T38, T46
 T54 after T15, T16, T17, T23, T26, T28, T42, T47
 T55 after T49
-T56 after T46
 T57 after T19, T21, T24, T50
 T58 after T46, T54
-T59 after T24, T37, T38, T39, T43, T53
+T59 after T24, T37, T38, T39, T43
 T60 after T06, T51
 T61 after T25, T40, T49, T55
 T62 after T51
@@ -619,7 +616,7 @@ Source: S10, with `releases[]` as a list.
 
 **Creates.** `apps/server/src/db/ticketDepsSummary.test.ts`.
 
-**The rules.** `waitsOn[]`: identifier, title, status category and `isQuestion` (the status reviewer is `human` and the ticket carries options) of each ticket this one waits on that is not done. `releases[]`: identifier and title of each ticket that waits on this one; a count is the length. `ready`: the category is `todo` and every ticket this one waits on is done. `stackedOn`: the base ref of a pull request equals the head ref of another pull request of the same epic.
+**The rules.** `waitsOn[]`: identifier, title, status category of each ticket this one waits on that is not done. `releases[]`: identifier and title of each ticket that waits on this one; a count is the length. `ready`: the category is `todo` and every ticket this one waits on is done. `stackedOn`: the base ref of a pull request equals the head ref of another pull request of the same epic.
 
 **Leave alone.** `apps/server/src/services/waves/rows.ts` (T27). `apps/web/**`.
 
@@ -641,7 +638,7 @@ Source: S10, with `releases[]` as a list.
 
 Source: S9.
 
-**Result.** One command reads `Depends on: step N` and `Waiting on this answer: KEY-NN` from the ticket descriptions of an epic and writes the edges with source `parsed`.
+**Result.** One command reads `Depends on: step N` from the ticket descriptions of an epic and writes the edges with source `parsed`.
 
 **Touches.** `apps/server/src/services/registry.ts` (append), `packages/api/src/contract/tickets.ts` (append), `packages/api/src/schemas/ticketWrite.ts`.
 
@@ -807,19 +804,19 @@ Source: S7, the binding half.
 
 Source: S18.
 
-**Result.** One pure function `turnOf(row, workingRun)` in `packages/api` turns a `TicketSummary` into one of the six turns of screen 2 of the verdict.
+**Result.** One pure function `turnOf(row, workingRun)` in `packages/api` turns a `TicketSummary` into one of the five turns of screen 2 of the verdict.
 
 **Touches.** `packages/api/src/index.ts` (one appended export line).
 
 **Creates.** `packages/api/src/turn/turn.ts`, `turn.test.ts`, `index.ts`.
 
-**The rules.** `you`: a question in Human Review, or an open pull request that is not a draft, has no failed check and no open thread. `agent`: a draft, a failed check, an open thread, or a working run. `github`: not a draft, no failed check, one or more pending checks. `waits on your answer`: Todo and one unmet dependency is an open question. `waits on a merge`: Todo and every unmet dependency is a ticket. `done`: category done. The function also answers the turn of one pull request row.
+**The rules.** `you`: an open pull request that is not a draft, has no failed check and no open thread. `agent`: a draft, a failed check, an open thread, or a working run. `github`: not a draft, no failed check, one or more pending checks. `waits on a merge`: Todo and one or more unmet dependencies. `done`: category done. The function also answers the turn of one pull request row.
 
 **Leave alone.** `apps/server/**` (the turn is computed by the reader, never stored). `packages/cli/**`, `apps/web/**`.
 
 **Verify.** `bun test packages/api/src/turn` · `bun scripts/check.ts`.
 
-**Review focus.** The six turns are exclusive and the order of the tests decides a row that matches two. Fix the order in the module. One test per turn plus one test for a row that matches `you` and `agent` at once.
+**Review focus.** The five turns are exclusive and the order of the tests decides a row that matches two. Fix the order in the module. One test per turn plus one test for a row that matches `you` and `agent` at once.
 
 **Evidence.** Backend: summary, verify record, test proof one per turn, contract table of the exported function. No picture.
 
@@ -1061,7 +1058,7 @@ Source: WEB-11.
 
 **Verify.** `bun test apps/web/src/features/table` · `bun scripts/check.ts` · the epic route, then every other table route to confirm the two columns stay hidden.
 
-**Review focus.** The `waits` cell prints one of four values: nothing, `ready`, up to two identifiers with `+n`, an identifier with the yellow dot. The dot appears only when `isQuestion` is true. `autoHide` (`columnVisibility.ts:30-45`) must not hide a column that repeats no grouping.
+**Review focus.** The `waits` cell prints one of three values: nothing, `ready`, up to two identifiers with `+n`. `autoHide` (`columnVisibility.ts:30-45`) must not hide a column that repeats no grouping.
 
 **Evidence.** Frontend floor. Extra: the 390 px viewport, the light theme, the empty state.
 
@@ -1131,7 +1128,7 @@ Source: WEB-18.
 
 Source: WEB-19.
 
-**Result.** The ticket page prints Waits on with each ticket's title, status and pull request, a derived `Ready` sentence, Releases with each title, and the Applies line that names the open question.
+**Result.** The ticket page prints Waits on with each ticket's title, status and pull request, a derived `Ready` sentence, and Releases with each title.
 
 **Touches.** Nothing that exists.
 
@@ -1141,7 +1138,7 @@ Source: WEB-19.
 
 **Verify.** `bun test apps/web/src/features/ticket/ChainBlock` · `bun scripts/check.ts` · the gallery with OP-33 as the fixture.
 
-**Review focus.** `Ready` is derived and starts nothing. The `Waits on` line of a question carries the yellow dot and the words `your answer`. `Applies` disappears when no question applies. The `answered: OP-52 chose 1` line arrives in T53.
+**Review focus.** `Ready` is derived and starts nothing.
 
 **Evidence.** Frontend floor. Extra: the empty state.
 
@@ -1217,7 +1214,7 @@ Source: WEB-12.
 
 **Result.** The Display popover offers `Group by: Wave · Turn`, Wave is the default on the desktop, the Turn grouping draws the six groups in fixed order with no empty group, and a group header prints `0 of 6 · 1 for you`.
 
-**Touches.** `apps/web/src/features/filters/grammar.ts` (`Group` gains `turn`), `grammar.test.ts`, `apps/web/src/features/table/DisplayPopover/DisplayPopover.tsx`, `apps/web/src/features/table/utils/groupRows/groupRows.ts` (196 lines, one key), `groupRows.test.ts`, `apps/web/src/features/epics/EpicPage/components/EpicProgress/EpicProgress.tsx` (`4 wait for you` reads the turn), `apps/web/src/features/epics/epicNext/epicNext.ts`, `epicNext.test.ts`.
+**Touches.** `apps/web/src/features/filters/grammar.ts` (`Group` gains `turn`), `grammar.test.ts`, `apps/web/src/features/table/DisplayPopover/DisplayPopover.tsx`, `apps/web/src/features/table/utils/groupRows/groupRows.ts` (196 lines, one key), `groupRows.test.ts`, `apps/web/src/features/epics/EpicPage/components/EpicProgress/EpicProgress.tsx` (`2 wait for you` reads the turn), `apps/web/src/features/epics/epicNext/epicNext.ts`, `epicNext.test.ts`.
 
 **Creates.** `apps/web/src/features/table/utils/turnGroups/turnGroups.ts`, `turnGroups.test.ts`, `index.ts`.
 
@@ -1225,7 +1222,7 @@ Source: WEB-12.
 
 **Verify.** `bun test apps/web/src/features/table` · `bun test apps/web/src/features/epics` · `bun test apps/web/src/features/filters` · `bun scripts/check.ts` · the epic route in both groupings.
 
-**Review focus.** A grouping is a function of the row (`turnOf`, T26), so it adds no row and no column. An empty group does not render. `4 wait for you` counts questions plus pull requests whose turn is `you`; the band and the group header must agree. An old bookmark with `group=turn` on a non-epic route falls back to the route default.
+**Review focus.** A grouping is a function of the row (`turnOf`, T26), so it adds no row and no column. An empty group does not render. `2 wait for you` counts pull requests whose turn is `you`; the band and the group header must agree. An old bookmark with `group=turn` on a non-epic route falls back to the route default.
 
 **Evidence.** Frontend floor. Extra: the empty group case, the 390 px viewport.
 
@@ -1237,7 +1234,7 @@ Source: WEB-12.
 
 **New UI element.** None. `DisplayPopover` gains two entries.
 
-**Decision 6 sensitive.** This ticket sets the desktop default.
+**Decision 4 sensitive.** This ticket sets the desktop default.
 
 #### T42. Build the change summary block
 
@@ -1343,39 +1340,37 @@ Source: CLI ticket 14.
 
 **New UI element.** None.
 
-**Decision 6 sensitive.** Turn on both puts the wave group behind a flag.
+**Decision 4 sensitive.** Turn on both puts the wave group behind a flag.
 
-### Wave 7. Evidence on the page, the answer
+### Wave 7. Evidence on the page
 
-#### T46. Answer a question, and send the answer to the live run
+#### T46. Send a review to the live run
 
 Source: S16.
 
-**Result.** An answer writes a comment row, moves the ticket to done, and reaches the running agent of each released ticket through a delivery row.
+**Result.** A review reaches the running agent of its ticket through a delivery row.
 
-**Touches.** `apps/server/src/db/tables/reviews.ts` (`reviewDeliveries` at lines 46-60: nullable `review_id`, new `answer_comment_id`, a unique rule that covers both), `packages/api/src/schemas/review.ts`, `packages/api/src/schemas/ticketWrite.ts`, `packages/api/src/contract/tickets.ts` (append), `apps/server/src/procedures/tickets.ts`, `apps/server/src/services/registry.ts` (append), `apps/server/src/services/comments.ts`.
+**Touches.** `packages/api/src/schemas/review.ts`, `apps/server/src/services/registry.ts` (append).
 
-**Creates.** `apps/server/src/services/tickets/answer.ts`, `answer.test.ts`, `apps/server/src/services/reviews/dispatchDeliveries.ts`, `dispatchDeliveries.test.ts`, `apps/server/src/agents/reviewDeliveryLoop.ts`. One migration and its snapshot.
+**Creates.** `apps/server/src/services/reviews/dispatchDeliveries.ts`, `dispatchDeliveries.test.ts`, `apps/server/src/agents/reviewDeliveryLoop.ts`.
 
 **The facts.** `review_deliveries` has one reader (`submissions.ts:11`) and no writer. This ticket builds the writer and the loop on the model of `apps/server/src/agents/commentDeliveryLoop.ts` and `apps/server/src/services/commentMentions/dispatch.ts`.
 
-**Leave alone.** `packages/cli/**` (T56). `apps/server/src/services/commentMentions/**`. `apps/server/src/services/agentRuns/answerQuestion.ts` (a harness question, not a ticket question). `apps/server/src/services/reviews/remote.ts`.
+**Leave alone.** `packages/cli/**`. `apps/server/src/services/commentMentions/**`. `apps/server/src/services/agentRuns/answerQuestion.ts`. `apps/server/src/services/reviews/remote.ts`.
 
-**Verify.** `bun test apps/server/src/services/tickets` · `bun test apps/server/src/services/reviews` · `bun test apps/server/src/agents` · `bun scripts/check.ts`.
+**Verify.** `bun test apps/server/src/services/reviews` · `bun test apps/server/src/agents` · `bun scripts/check.ts`.
 
-**Review focus.** `review_deliveries_recipient` is unique on `(review_id, run_id)`; Postgres treats two nulls as different, so the migration replaces it with a rule that also covers `answer_comment_id`. A delivery to a closed run fails with a named reason; copy the guard at `dispatch.ts:36-40`.
+**Review focus.** A delivery to a closed run fails with a named reason; copy the guard at `dispatch.ts:36-40`.
 
-**Evidence.** Backend: summary, verify record, test proof for a live run and a closed run, contract table of `review_deliveries` and the answer input, migration plan. Picture: a Mermaid sequence of the answer, the comment row, the delivery row and the send.
+**Evidence.** Backend: summary, verify record, test proof for a live run and a closed run, contract table of `review_deliveries`. Picture: a Mermaid sequence of the review, the delivery row and the send.
 
 **Depends on.** T19, T24, T40.
 
 **Estimate.** 290 lines, 14 files.
 
-**Risk.** migration, shared type.
+**Risk.** shared type.
 
 **New UI element.** None.
-
-**Decision 4 sensitive.** A `ticket_answers` row adds a table and changes what `lastComments` at `brief.ts:36-47` reads. **Decision 5 sensitive.** Stop and restart removes the loop and the migration and calls `lifecycle.ts` instead.
 
 #### T47. Build the evidence strip for a frontend pull request
 
@@ -1509,7 +1504,7 @@ Added by the merge. `SRV-RESOURCE` had no ticket in any plan; T60, T62, T68 and 
 
 **Evidence.** Backend: summary, verify record, test proof one per kind, contract table of the three procedures, migration plan. Picture: the migration plan table.
 
-**Depends on.** T46 (m).
+**Depends on.** Nothing.
 
 **Estimate.** 280 lines, 12 files.
 
@@ -1542,34 +1537,6 @@ Source: WEB-17.
 **Risk.** none.
 
 **New UI element.** None. Part of `EvidenceStrip`.
-
-#### T53. Build the question block
-
-Source: WEB-21, plus the `answered` line of WEB-19.
-
-**Result.** The block prints the numbered options, the recommendation as words under its option, the reason, the tickets the answer releases, a reason field and one `Answer` button, and the chain block of a released ticket prints `answered: OP-52 chose 1`; the word `decide` appears nowhere.
-
-**Touches.** `apps/web/src/features/ticket/ChainBlock/ChainBlock.tsx` (the `answered` line under `Applies`).
-
-**Creates.** `apps/web/src/features/ticket/QuestionBlock/QuestionBlock.tsx`, `QuestionBlock.test.tsx`, `index.ts`, `useAnswer/useAnswer.ts`. `packages/ui/src/gallery/components/DomainSections/sections/QuestionBlock.tsx` and its line in `sections/index.ts`.
-
-**Leave alone.** `apps/web/src/features/ticket/Timeline/components/Composer` (T65 deletes it).
-
-**Verify.** `bun test apps/web/src/features/ticket/QuestionBlock` · `bun test apps/web/src/features/ticket/ChainBlock` · `bun scripts/check.ts` · the gallery with OP-52 as the fixture.
-
-**Review focus.** `Answer` records the option and the reason, moves the ticket to Done, and reaches the live run in one call (T46). The button stays disabled until an option is picked, and it prints what happened, including the run that received the answer.
-
-**Evidence.** Frontend floor. Extra: a clip, the error state.
-
-**Depends on.** T03, T06, T38, T46.
-
-**Estimate.** 260 lines, 7 files.
-
-**Risk.** none.
-
-**New UI element.** `QuestionBlock`.
-
-**Decision 4 sensitive.** A `ticket_answers` row changes the mutation and the source of the `answered` line. **Decision 5 sensitive.** Stop and restart changes the sentence after `Answer` and adds a confirm.
 
 #### T54. Lay the review page out as one column with nine regions
 
@@ -1623,39 +1590,11 @@ Source: CLI ticket 6b.
 
 **New UI element.** None.
 
-#### T56. Answer a question ticket from the CLI
-
-Source: CLI ticket 7.
-
-**Result.** `trellis answer OP-52 --option 1 --reason "..."` writes the answer where the brief reads it, moves the ticket to Done, and prints the tickets the answer releases.
-
-**Touches.** `packages/cli/src/verbs.ts` (one row, `answer`).
-
-**Creates.** `packages/cli/src/commands/answer/answer.ts`, `answerText.ts`, `answerText.test.ts`.
-
-**Leave alone.** `packages/cli/src/commands/comment.ts` (the server writes the comment row).
-
-**Verify.** `bun test packages/cli/src/commands/answer` · `bun scripts/check.ts` · `trellis answer OP-52 --option 1 --reason "..."` against a scratch server with a live run on OP-33; record the transcript and the delivery row.
-
-**Review focus.** The word `decide` appears in no help line and no output line.
-
-**Evidence.** Backend: summary, verify record, test proof, contract table of the two flags, the status the answer sets and the output fields. Picture: a Mermaid sequence from `trellis answer` to the live run through `review_deliveries`.
-
-**Depends on.** T46.
-
-**Estimate.** 165 lines, 4 files.
-
-**Risk.** none.
-
-**New UI element.** None.
-
-**Decision 4 and 5 sensitive.** The output fields change with the row; a restart prints the restart, not the delivery.
-
 #### T57. Print the chain in the brief
 
 Source: CLI ticket 13b.
 
-**Result.** `trellis brief OP-33` prints a `## Chain` section with `Waits on`, `Ready`, `Releases` and `Applies`, and the outcome sentence of each finished ticket this one waits on.
+**Result.** `trellis brief OP-33` prints a `## Chain` section with `Waits on`, `Ready` and `Releases`, and the outcome sentence of each finished ticket this one waits on.
 
 **Touches.** `apps/server/src/services/brief.ts` (one entry in `sections([...])`), `apps/server/src/services/brief.test.ts`.
 
@@ -1665,9 +1604,7 @@ Source: CLI ticket 13b.
 
 **Verify.** `bun test apps/server/src/services` · `bun scripts/check.ts` · `trellis brief OP-33` against a scratch server; record the transcript.
 
-**Review focus.** A ticket that waits on no question prints no `Applies` line, and the section still holds the other three.
-
-**Evidence.** Backend: summary, verify record, test proof, contract table of the heading, its four line formats and its order. No picture.
+**Evidence.** Backend: summary, verify record, test proof, contract table of the heading, its three line formats and its order. No picture.
 
 **Depends on.** T19, T21, T24, T50.
 
@@ -1676,8 +1613,6 @@ Source: CLI ticket 13b.
 **Risk.** none.
 
 **New UI element.** None.
-
-**Decision 4 sensitive.** `Applies` reads the answer row.
 
 ### Wave 9. The ticket page in one column, the verdict bar
 
@@ -1707,13 +1642,11 @@ Source: WEB-24.
 
 **New UI element.** None claimed. The bar reuses the shape of `ReviewBatchBar` and the controls of `MergeControl` and `ReviewSubmit`. Section 7 lists it as a question for Navid.
 
-**Decision 5 sensitive.** A restart makes `Send back to <run>` name a run it must restart.
-
 #### T59. Lay the ticket page out as one column
 
 Source: WEB-25.
 
-**Result.** `/t/$identifier` reads top to bottom: the ask, the contract or the question, the chain, the evidence, the outcome and the run; the page renders none of the four tabs, the activity feed, the comment thread, the composer, the mentioned thread or the ticket metrics.
+**Result.** `/t/$identifier` reads top to bottom: the ask, the contract, the chain, the evidence, the outcome and the run; the page renders none of the four tabs, the activity feed, the comment thread, the composer, the mentioned thread or the ticket metrics.
 
 **Touches.** `apps/web/src/features/ticket/TicketView/TicketView.tsx` (165 lines; the region order, the tab props at lines 32, 33, 50, 51, 154), `apps/web/src/features/ticket/PropertiesRail/PropertiesRail.tsx` (drop `TicketMetrics`), `apps/web/src/features/ticket/TicketWorkArea/TicketWorkArea.tsx` (the tab strip at lines 26, 27, 77; `FlowRuns` moves into the pull request card; `SessionConversation` moves behind `Session`; `LocalChanges` keeps its place).
 
@@ -1721,13 +1654,13 @@ Source: WEB-25.
 
 **Leave alone.** Every folder T65 deletes: `Timeline/**`, `hooks/useTimeline/**`, `PropertiesRail/components/TicketMetrics/**` (they stay on disk, unmounted, for one wave). `apps/server/src/services/brief.ts` and the `comments` table. `apps/web/src/features/ticket/Description/**`.
 
-**Verify.** `bun test apps/web/src/features/ticket` · `bun scripts/check.ts` · the ticket route for OP-34, OP-33 and OP-52, and the same three in a `PageSheet` from the epic page.
+**Verify.** `bun test apps/web/src/features/ticket` · `bun scripts/check.ts` · the ticket route for OP-34 and OP-33, and the same two in a `PageSheet` from the epic page.
 
 **Review focus.** The elapsed time and the token count arrive on a hover of the run line, so nothing is lost. A mention in a comment still starts a run; that path must read no unmounted component. The pull request card is `ShortConditions` (T23) with `Open the review`.
 
 **Evidence.** Frontend floor. Extra: a clip of one read top to bottom, the 390 px viewport and the light theme, the empty state.
 
-**Depends on.** T24, T37, T38, T39, T43, T53.
+**Depends on.** T24, T37, T38, T39, T43.
 
 **Estimate.** 250 lines, 6 files.
 
@@ -1985,13 +1918,13 @@ Source: WEB-26.
 
 Source: CLI ticket 16.
 
-**Result.** `trellis instructions --project OP` prints the workflow with the evidence duty, and `trellis epics guide` prints the planner guidance that says a wave gates nothing, that a question is a dependency, and what evidence each kind owes.
+**Result.** `trellis instructions --project OP` prints the workflow with the evidence duty, and `trellis epics guide` prints the planner guidance that says a wave gates nothing and what evidence each kind owes.
 
 **Touches.** `packages/cli/src/instructions.md`, `packages/api/src/instructions.ts` (it holds no `Plan an epic.` block today, so the block is added whole), `packages/cli/src/commands/epics.ts` (`planGuide` at lines 138-141 cuts at the first blank line, so the guidance stays one block).
 
 **Creates.** `packages/cli/src/commands/epics/planGuide.test.ts`.
 
-**The text.** The seven steps of screen 9, from `trellis contract show` to `trellis move KEY-42 human-review`. The planner guidance in place of `instructions.md:29-42`: a wave holds the tickets you intend to start together and gates nothing; order comes from `--after`; a question for the person is a ticket in the human review status, and every ticket that needs the answer records `--after` on it; each ticket states its files, the files to leave alone, the verify commands, the review focus and the evidence owed. One line per floor and a link to `docs/EVIDENCE.md`.
+**The text.** The seven steps of screen 9, from `trellis contract show` to `trellis move KEY-42 human-review`. The planner guidance in place of `instructions.md:29-42`: a wave holds the tickets you intend to start together and gates nothing; order comes from `--after`; each ticket states its files, the files to leave alone, the verify commands, the review focus and the evidence owed. One line per floor and a link to `docs/EVIDENCE.md`.
 
 **Leave alone.** `docs/EVIDENCE.md`, `docs/ARCHITECTURE.md`.
 
@@ -2009,7 +1942,7 @@ Source: CLI ticket 16.
 
 **New UI element.** None.
 
-**Decision 3 and 5 sensitive.** Step 7 says the hand-over refuses; the guidance says an answer reaches a live run.
+**Decision 3 sensitive.** Step 7 says the hand-over refuses.
 
 ### Wave 12. The in-app browser and the phone
 
@@ -2065,15 +1998,15 @@ Source: WEB-28.
 
 **New UI element.** None.
 
-**Decision 6 sensitive.** The phone default lives here.
+**Decision 4 sensitive.** The phone default lives here.
 
 #### T72. Fit the review page and the ticket page to the phone
 
 Source: WEB-29.
 
-**Result.** At 390 px the review page shows regions A, B, C, D and E with one `Files` control for the rest, the verdict bar holds `Send back` and `Comment only` and no `Merge`, and the question page is the full desktop page.
+**Result.** At 390 px the review page shows regions A, B, C, D and E with one `Files` control for the rest, the verdict bar holds `Send back` and `Comment only` and no `Merge`.
 
-**Touches.** `apps/web/src/features/reviews/ReviewPage/ReviewPage.tsx`, `apps/web/src/features/reviews/VerdictBar/VerdictBar.tsx`, `apps/web/src/features/reviews/FileRiskGroups/FileRiskGroups.tsx`, `apps/web/src/features/ticket/TicketView/TicketView.tsx`, `apps/web/src/features/ticket/QuestionBlock/QuestionBlock.tsx`, `packages/ui/src/review/review.css`.
+**Touches.** `apps/web/src/features/reviews/ReviewPage/ReviewPage.tsx`, `apps/web/src/features/reviews/VerdictBar/VerdictBar.tsx`, `apps/web/src/features/reviews/FileRiskGroups/FileRiskGroups.tsx`, `apps/web/src/features/ticket/TicketView/TicketView.tsx`, `packages/ui/src/review/review.css`.
 
 **Creates.** Nothing.
 
@@ -2083,11 +2016,11 @@ Source: WEB-29.
 
 **Review focus.** `Merge` does not render on a phone, and the reason reads on screen in one line. A merge into an enterprise repository needs the desk.
 
-**Evidence.** Frontend floor at 390 px and 1440 px, plus a clip of answering a question on the phone.
+**Evidence.** Frontend floor at 390 px and 1440 px.
 
 **Depends on.** T54, T58, T59, T63, T64, T65, T68.
 
-**Estimate.** 190 lines, 6 files.
+**Estimate.** 190 lines, 5 files.
 
 **Risk.** none.
 
@@ -2123,7 +2056,7 @@ Source: S17, plus the nine CLI files of CLI ticket 2.
 
 **New UI element.** None.
 
-**Decision 6 sensitive.** The word only; the default grouping lives in T41 and T71.
+**Decision 4 sensitive.** The word only; the default grouping lives in T41 and T71.
 
 ### Wave 14. The architecture doc
 
@@ -2131,7 +2064,7 @@ Source: S17, plus the nine CLI files of CLI ticket 2.
 
 Source: CLI ticket 17.
 
-**Result.** `docs/ARCHITECTURE.md` holds one section each for ticket dependencies, the contract, the summary, evidence, the answer, epic resources and the outcome, and each section states the table, the API, the ref grammar, the CLI verb and the web route in the shape of the `### Epics` section.
+**Result.** `docs/ARCHITECTURE.md` holds one section each for ticket dependencies, the contract, the summary, evidence, epic resources and the outcome, and each section states the table, the API, the ref grammar, the CLI verb and the web route in the shape of the `### Epics` section.
 
 **Touches.** `docs/ARCHITECTURE.md` (1,103 lines today; T73 renamed its 71 `wave` lines).
 
@@ -2217,19 +2150,17 @@ One line per ticket: the paths it writes. An append file (section 0) is listed o
 - T45: `packages/api/src/epicText/**`, `packages/cli/src/commands/epics.ts`, `packages/cli/src/output.ts`, +append `packages/api/src/index.ts`
 
 **Wave 7**
-- T46: `apps/server/src/db/tables/reviews.ts`, `apps/server/src/services/tickets/answer.ts`, `answer.test.ts`, `apps/server/src/services/reviews/dispatchDeliveries.ts`, `dispatchDeliveries.test.ts`, `apps/server/src/agents/reviewDeliveryLoop.ts`, `apps/server/src/services/comments.ts`, `apps/server/src/procedures/tickets.ts`, `packages/api/src/schemas/review.ts`, `ticketWrite.ts`, `apps/server/drizzle/0088_*`, +append `registry.ts`, `contract/tickets.ts`
+- T46: `apps/server/src/services/reviews/dispatchDeliveries.ts`, `dispatchDeliveries.test.ts`, `apps/server/src/agents/reviewDeliveryLoop.ts`, `packages/api/src/schemas/review.ts`, +append `registry.ts`
 - T47: `apps/web/src/features/reviews/EvidenceStrip/**`, `sections/EvidenceStrip.tsx`, +append `sections/index.ts`
 - T48: `apps/web/src/features/table/PrRow/prRowText/**`
 - T49: `packages/cli/src/commands/evidence/**`, +append `verbs.ts`
 - T50: `apps/server/src/services/brief.ts`, `brief.test.ts`, `apps/server/src/services/brief/contractLines*`, `evidenceLines*`
 
 **Wave 8**
-- T51: `apps/server/src/db/tables/epicResources.ts`, `apps/server/src/db/schema.ts` (export), `apps/server/src/services/resources/**`, `apps/server/src/procedures/resources.ts`, `packages/api/src/schemas/resource.ts`, `epic.ts`, `packages/api/src/contract/resources.ts`, `apps/server/drizzle/0089_*`, +append `registry.ts`, `contract/index.ts`, `packages/api/src/index.ts`
+- T51: `apps/server/src/db/tables/epicResources.ts`, `apps/server/src/db/schema.ts` (export), `apps/server/src/services/resources/**`, `apps/server/src/procedures/resources.ts`, `packages/api/src/schemas/resource.ts`, `epic.ts`, `packages/api/src/contract/resources.ts`, `apps/server/drizzle/0088_*`, +append `registry.ts`, `contract/index.ts`, `packages/api/src/index.ts`
 - T52: `EvidenceStrip/EvidenceStrip.tsx`, `EvidenceStrip/components/BackendEvidence/**`, `MissingList/**`, `sections/BackendEvidence.tsx`, +append `sections/index.ts`
-- T53: `apps/web/src/features/ticket/QuestionBlock/**`, `ChainBlock/ChainBlock.tsx`, `sections/QuestionBlock.tsx`, +append `sections/index.ts`
 - T54: `ReviewPage/ReviewPage.tsx`, `ReviewPage/components/**`, `ReviewPage/conditionsOf/**`, `ReviewPage/hooks/**`, `ReviewHeader/ReviewHeader.tsx`, `packages/ui/src/review/review.css`
 - T55: `packages/cli/src/commands/evidence/evidence.ts` (one line), `evidenceText.ts`, `evidenceText.test.ts`
-- T56: `packages/cli/src/commands/answer/**`, +append `verbs.ts`
 - T57: `apps/server/src/services/brief.ts`, `brief.test.ts`, `apps/server/src/services/brief/chainLines*`
 
 T49 (wave 7) and T55 (wave 8) both write `evidence.ts`; T55 waits on T49, so they never run together.
@@ -2255,7 +2186,7 @@ T49 (wave 7) and T55 (wave 8) both write `evidence.ts`; T55 waits on T49, so the
 **Wave 12**
 - T70: `ResourceList/ResourceList.tsx`, `ResourceList/components/DocSheet/**`, `LinkBrowserSheet/**`
 - T71: `PhoneRow.tsx`, `PrRow/PrRow.tsx`, `AgentLine/AgentLine.tsx`, `rowHeights.ts`, `EpicPage.tsx`, `EpicProgress.tsx`, `columns.tsx`
-- T72: `ReviewPage/ReviewPage.tsx`, `VerdictBar/VerdictBar.tsx`, `FileRiskGroups/FileRiskGroups.tsx`, `TicketView/TicketView.tsx`, `QuestionBlock/QuestionBlock.tsx`, `packages/ui/src/review/review.css`
+- T72: `ReviewPage/ReviewPage.tsx`, `VerdictBar/VerdictBar.tsx`, `FileRiskGroups/FileRiskGroups.tsx`, `TicketView/TicketView.tsx`, `packages/ui/src/review/review.css`
 
 **Wave 13**
 - T73: every file that holds `wave`; no other ticket runs.
@@ -2277,11 +2208,10 @@ Each one is generated with `bun run db:generate` after the newest tag on `main` 
 | 0085 | T24 | 4 | 0084 | `tickets` gains `result`, `files`, `leave_alone`, `verify`, `review_focus`, `outcome` |
 | 0086 | T30 | 5 | 0085 | new table `pr_summaries` |
 | 0087 | T40 | 6 | 0086 | new table `pr_evidence` |
-| 0088 | T46 | 7 | 0087 | `review_deliveries.review_id` nullable, `answer_comment_id`, new unique rule |
-| 0089 | T51 | 8 | 0088 | new table `epic_resources` |
-| 0090 | T73 | 13 | 0089 | rename `waves` to `waves`, `tickets.wave_id` to `wave_id`, constraints and indexes |
+| 0088 | T51 | 8 | 0087 | new table `epic_resources` |
+| 0089 | T73 | 13 | 0088 | rename `waves` to `waves`, `tickets.wave_id` to `wave_id`, constraints and indexes |
 
-Nine migrations. No wave holds two.
+Eight migrations. No wave holds two.
 
 ## 6. The tickets that change if a decision goes the other way
 
@@ -2290,13 +2220,11 @@ Nine migrations. No wave holds two.
 | 1. The contract: fields or prose | fields, with a one-time import | T24 loses its contract half. T31 disappears. T32 keeps `contract show` as a parser. T17 shows a sentence it failed to parse. T23 prints `unknown` for `tests` and `ancestors`. T37 reads a parse result. T50 names what the parse missed. T61 warns when the parse finds no verify command. T74 describes a parser. |
 | 2. Who captures the before image | the agent | T40 gives the `before` kind an actor of `service`. T47 adds a `captured by Trellis` line and a re-capture control. T49 drops `--base`. T67 replaces the second worktree step with a service call. |
 | 3. May the CLI refuse the hand-over | yes | T66 becomes a warning and exit 0. T69 step 7 becomes a warning. T74 drops the sentence. T40 does not change. |
-| 4. Where does an answer live | a comment row | T46 adds a `ticket_answers` table and changes what `lastComments` reads. T53 calls a different mutation and reads the `answered` line from that row. T56 changes its output fields. T57 reads the row for `Applies`. |
-| 5. Does an answer reach a live run | yes, through `review_deliveries` | T46 drops the loop and the migration and calls `lifecycle.ts`. T53 changes the sentence after `Answer` and adds a confirm. T56 prints the restart. T58 `Send back to <run>` names a run it restarts. T69 changes one sentence. |
-| 6. Which grouping is the default on the desktop | Wave | T41 sets the desktop default. T71 sets the phone default; Turn on both makes it a one-line change. T45 puts the wave group behind a flag. T73 owns the word only. |
+| 4. Which grouping is the default on the desktop | Wave | T41 sets the desktop default. T71 sets the phone default; Turn on both makes it a one-line change. T45 puts the wave group behind a flag. T73 owns the word only. |
 
 ## 7. The new UI elements that need approval
 
-`docs/UI_PATTERNS.md:13-15` requires that each new element names the canonical element it would replace and the reason that element fails. Seventeen elements. Approve them before wave 2 starts; every one is built in the gallery first, so a no costs one ticket and nothing on a route.
+`docs/UI_PATTERNS.md:13-15` requires that each new element names the canonical element it would replace and the reason that element fails. Sixteen elements. Approve them before wave 2 starts; every one is built in the gallery first, so a no costs one ticket and nothing on a route.
 
 | Element | Ticket | Nearest canonical element, and why it fails |
 | --- | --- | --- |
@@ -2309,12 +2237,11 @@ Nine migrations. No wave holds two.
 | `AgentLine` | T29 | `Row` is one line at a fixed height; the message needs a 24 px second line only when one exists. |
 | `AttentionDot` | T29 | `Badge` carries a word; `StatusIcon` carries a status; neither is a 6 px dot that means a human is needed. |
 | `ContractBlock` | T37 | `PropertyRow` holds one value; the contract holds lists the server also reads. |
-| `ChainBlock` | T38 | `PropertyRow` holds one direction; the chain holds two, a derived `Ready` and the question it applies. |
+| `ChainBlock` | T38 | `PropertyRow` holds one direction; the chain holds two and a derived `Ready`. |
 | `RunLine` | T39 | `ActorAvatar` marks one actor; the line prints one attempt with its state words, tool, time and message. |
 | `ChangeSummary` | T42 | `Description` renders free prose; the summary is three fields with limits and a `one revision behind` state. |
 | `StartControls` | T43 | `ModelPicker` picks a model; a start needs harness, model and effort with one `Start`. |
 | `EvidenceStrip` | T47, T52 | `AttachmentGrid` splits files into thumbnails and rows; evidence needs a pair, a record, a clip, a verify record, a table and a missing list. |
-| `QuestionBlock` | T53 | `Description` is free prose; an option has no identity and no action there. |
 | `ResourceList` | T60 | `AttachmentGrid` belongs to a ticket; a resource belongs to the epic, has four kinds, and opens an editor or a browser. |
 | `LinkBrowserSheet` | T70 | No in-app browser exists (`webview` and `iframe` return one hit, `sanitizeHtml.ts:40`). `PageSheet` holds no remote page. |
 
@@ -2326,12 +2253,12 @@ Changes to existing elements, no approval needed: `columns.tsx` gains `waits` an
 
 | | Count |
 | --- | --- |
-| Tickets | 74 |
+| Tickets | 72 |
 | Waves | 14 |
-| Migrations | 9 |
+| Migrations | 8 |
 | Estimated changed lines | about 16,700, of which about 2,600 are the rename (T73) and the deletion sweep (T65) |
 | Tickets over the 300-line target, each with its reason | 3: T06 (file split), T65 (deletion sweep), T73 (rename) |
 | Tickets added by the merge | 4: T04 (STE module unfolded), T05 (path rules unfolded), T28 (review status ticket link), T51 (epic resources); plus the outcome column inside T24 |
 | Tickets folded by the merge | 2: CLI ticket 1 into T04, CLI ticket 2 into T73 |
-| New UI elements for approval | 17, plus one question on T58 |
+| New UI elements for approval | 16, plus one question on T58 |
 | Agents at once | 8 in wave 1, 9 in waves 2 and 5, 10 at most in any wave |

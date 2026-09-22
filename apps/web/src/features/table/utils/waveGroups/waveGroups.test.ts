@@ -12,21 +12,31 @@ const fix = wave("fix", "done", 1, 1);
 const waves = [foundation, surfaces, integrate, fix];
 
 describe("waveMarks", () => {
-	test("marks the current wave, and each open wave after it as Later", () => {
-		const marks = waveMarks(waves, surfaces.id);
+	test("carries only the counts and the done state of each wave", () => {
+		const marks = waveMarks(waves);
 
-		expect(marks.get(foundation.id)).toEqual({ countLabel: "4/4", done: true });
-		expect(marks.get(surfaces.id)).toEqual({ countLabel: "1/3", badge: "Current", done: false });
-		expect(marks.get(integrate.id)).toEqual({ countLabel: "0/2", note: "Later", done: false });
-		expect(marks.get(fix.id)).toEqual({ countLabel: "1/1", done: true });
+		expect(marks.get(foundation.id)).toEqual({ countLabel: "4/4", completedCount: 5, totalCount: 5, done: true });
+		expect(marks.get(surfaces.id)).toEqual({
+			countLabel: "1/3",
+			completedCount: 1,
+			totalCount: 3,
+			done: false,
+		});
+		expect(marks.get(integrate.id)).toEqual({
+			countLabel: "0/2",
+			completedCount: 0,
+			totalCount: 2,
+			done: false,
+		});
+		expect(marks.get(fix.id)).toEqual({ countLabel: "1/1", completedCount: 1, totalCount: 1, done: true });
 	});
 
-	test("prints the counts alone when no wave is current", () => {
-		const marks = waveMarks([foundation, fix], undefined);
+	test("prints the counts alone", () => {
+		const marks = waveMarks([foundation, fix]);
 
 		expect([...marks.values()]).toEqual([
-			{ countLabel: "4/4", done: true },
-			{ countLabel: "1/1", done: true },
+			{ countLabel: "4/4", completedCount: 5, totalCount: 5, done: true },
+			{ countLabel: "1/1", completedCount: 1, totalCount: 1, done: true },
 		]);
 	});
 });

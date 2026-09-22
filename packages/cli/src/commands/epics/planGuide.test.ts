@@ -13,8 +13,6 @@ test("prints the planner guidance as one block", () => {
 - Keep the sequential steps of one front inside its ticket as ordered sub-tickets.
 - Each ticket states its files, the files to leave alone, the verify commands, the review focus, and the evidence owed.
 - Two tickets in one wave never own the same file.
-- A question for the person is a ticket in the human review status. Every ticket that needs the answer records \`--after\` on it.
-- An answer reaches each live run that waits on the question.
 - Keep a wave to 2 to 8 tickets and an epic to 6 waves. A larger plan is two epics.
 - The person is the manager. The person starts the agents. Do not wait for a gate.
 - Frontend evidence floor: summary, after image, before image, capture record, console list.

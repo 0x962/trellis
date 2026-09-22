@@ -13,13 +13,11 @@ describe("depsText", () => {
 					identifier: "OP-32",
 					title: "Service: A routine run opens a chat and queues the turn",
 					status: "review",
-					isQuestion: false,
 				},
 				{
 					identifier: "OP-52",
-					title: "Decision: a missed window, run it late or leave it missed",
-					status: "review",
-					isQuestion: true,
+					title: "Service: A missed window runs late",
+					status: "started",
 				},
 			],
 			releases: [],
@@ -38,8 +36,8 @@ describe("depsText", () => {
 
 		expect(depsText(result)).toBe(`OP-33  Service: One routine's failure does not end the sweep pass
   waits on
-    OP-32  Service: A routine run opens a chat and queues the turn    agent review
-    OP-52  Decision: a missed window, run it late or leave it missed  human review
+    OP-32  Service: A routine run opens a chat and queues the turn  agent review
+    OP-52  Service: A missed window runs late                       in progress
   releases
     nothing
   derived

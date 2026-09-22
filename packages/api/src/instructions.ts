@@ -10,10 +10,8 @@ Inside Claude Code, every command runs as \`agent:claude-code\`. Elsewhere, set 
 3. Start:            trellis move ${key}-42 in-progress
 4. Put the identifier in the branch name, for example ${key}-42-dark-mode. Link the PR to the ticket: trellis pr add ${key}-42 <url>
 5. Split work:       trellis sub ${key}-42 -t "Write tests"
-6. Ask a question:   trellis create -p ${key} --status human-review -t "..." --description - with a numbered "Options:" list,
-   then trellis edit ${key}-42 --after <question>. The answer reaches your run.
-7. Finish coding:    trellis move ${key}-42 agent-review
-8. When the agent review passes: trellis move ${key}-42 human-review
+6. Finish coding:    trellis move ${key}-42 agent-review
+7. When the agent review passes: trellis move ${key}-42 human-review
 Report what you did in your final message and in the pull request description.
 Never delete tickets.
 
@@ -43,8 +41,8 @@ Prove the change. A pull request without its evidence is not reviewable.
    Capture in your own worktree, on your own port, with animations off. Register each file with
    trellis evidence add <pr> --kind before|after|capture|clip|console.
 5. When the change renders no screen, attach:
-   one working call and one failing call for an API change; one run for a CLI or background-job change; the verify
-   record of each Verify command; each new test by name, with the base sha where it fails and the head sha where it
+   one working call and one failing call for an API change; one run for a CLI or background-job change; the Verify
+   commands as verification only; each new test by name, with the base sha where it fails and the head sha where it
    passes; the migration plan when a schema changes; one picture, and one only, when the call path crosses a process,
    a service or a trust boundary, or when a state machine changes. Write it in Mermaid.
    Register each record with
@@ -70,8 +68,6 @@ Plan an epic. A plan that produces several tickets is an epic. The epic descript
 - Keep the sequential steps of one front inside its ticket as ordered sub-tickets.
 - Each ticket states its files, the files to leave alone, the verify commands, the review focus, and the evidence owed.
 - Two tickets in one wave never own the same file.
-- A question for the person is a ticket in the human review status. Every ticket that needs the answer records \`--after\` on it.
-- An answer reaches each live run that waits on the question.
 - Keep a wave to 2 to 8 tickets and an epic to 6 waves. A larger plan is two epics.
 - The person is the manager. The person starts the agents. Do not wait for a gate.
 - Frontend evidence floor: summary, after image, before image, capture record, console list.

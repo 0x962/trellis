@@ -17,15 +17,14 @@ export type TurnBucket = {
 // The groups in display order. The rows the person moves come first: the
 // pull requests to review, then the tickets to start. Then the rows that an
 // agent moves, then the rows that GitHub moves. Then the rows that wait on
-// a question or on a merge. The finished rows come last.
-const order: readonly Turn[] = ["you", "ready", "agent", "github", "waits on your answer", "waits on a merge", "done"];
+// a merge. The finished rows come last.
+const order: readonly Turn[] = ["you", "ready", "agent", "github", "waits on a merge", "done"];
 
 const labels: Record<Turn, string> = {
 	you: "Your turn",
 	ready: "Ready to start",
 	agent: "With an agent",
 	github: "With GitHub",
-	"waits on your answer": "Waits on your answer",
 	"waits on a merge": "Waits on a merge",
 	done: "Done",
 };

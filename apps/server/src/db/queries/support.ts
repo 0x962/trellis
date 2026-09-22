@@ -16,15 +16,6 @@ export const textArray = (values: readonly string[]) => sql`${sql.param([...valu
 const literalArray = (values: readonly string[]) =>
 	sql.raw(`ARRAY[${values.map((value) => `'${value}'`).join(", ")}]::text[]`);
 
-// True when the description contains an "Options:" list. Blank lines can
-// separate the heading from the first numbered option.
-export const questionDescription = (ticket: SQL) =>
-	sql`${ticket}.description ~ '(^|\n)[[:blank:]]*Options:[[:space:]]*[0-9]+[.)][[:blank:]]+[^[:space:]]'`;
-
-// True when a ticket asks a question: a human reviewer, and an option list.
-export const ticketQuestion = (ticket: SQL, status: SQL) =>
-	sql`${status}.reviewer = 'human' AND ${questionDescription(ticket)}`;
-
 // Category rank in workflow order: todo, started, review, done, canceled.
 export const categoryRank = (column: SQL) =>
 	sql`array_position(${literalArray(StatusCategorySchema.options)}, ${column})`;

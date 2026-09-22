@@ -7,12 +7,12 @@ import { useAssignedRun } from "../useAssignedRun";
 
 // The last actor of a ticket row. A human draws the initials. An agent draws
 // the provider mark, with the model and the effort, only while an agent run
-// is assigned to the ticket: the profile and the working state come from
-// that run. An agent actor on a ticket with no assigned run draws the agent
-// mark with no provider.
+// is assigned to the ticket. The profile and the working state come from
+// that run.
 export function ActorAvatar({ actor, ticketId }: { actor: ActorRef; ticketId: string }) {
 	const run = useAssignedRun(ticketId);
 	if (actor.kind === "system") return null;
+	if (actor.kind === "agent" && run === undefined) return null;
 	return (
 		<Avatar
 			kind={actor.kind}

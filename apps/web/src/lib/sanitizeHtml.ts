@@ -51,11 +51,12 @@ const dropped: ReadonlySet<string> = new Set([
 ]);
 
 // A link may point at the web, at mail, or inside this app. An image may
-// point at the web or at the file of one attachment on this server, which
-// is the URL the attachment's markdown line names.
+// point at the web, at the file of one attachment on this server, which is
+// the URL the attachment's markdown line names, or at the file of one
+// evidence record, which is the URL a pull request summary names.
 const safeHref = (value: string) => /^(https?:|mailto:)/i.test(value.trim()) || /^[/#]/.test(value.trim());
-const attachmentFile = /^\/api\/attachments\/[0-9A-Z]{26}\/file$/;
-const safeSrc = (value: string) => /^https?:/i.test(value.trim()) || attachmentFile.test(value.trim());
+const storedFile = /^\/api\/(?:attachments|evidence)\/[0-9A-Z]{26}\/file$/;
+const safeSrc = (value: string) => /^https?:/i.test(value.trim()) || storedFile.test(value.trim());
 
 const sanitizeElement = (element: Element) => {
 	for (const child of [...element.children]) sanitizeElement(child);

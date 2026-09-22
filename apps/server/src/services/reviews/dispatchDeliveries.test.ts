@@ -9,7 +9,6 @@ import type { Tx } from "../../db/tx.ts";
 import { sendDeadline } from "../deliveries/sendDeadline.ts";
 import { closedBeforeDelivery, unconfirmedDelivery } from "../deliveries/sentences.ts";
 import type { IoCtx } from "../support.ts";
-import { answer } from "../tickets/answer.ts";
 import { create } from "../tickets/create.ts";
 import { dispatchDeliveries } from "./dispatchDeliveries.ts";
 import { recordSubmission } from "./recordSubmission.ts";
@@ -20,7 +19,6 @@ let db: Awaited<ReturnType<typeof openTestDb>>;
 let core: CoreCtx;
 const rootId = ulid();
 const at = "2026-09-20T10:00:00Z";
-const question = "Options:\n1. Leave it missed.\n2. Run it late.\n";
 const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
 const sent: Record<string, unknown>[] = [];
@@ -50,32 +48,6 @@ const startRun = (id: string, ticketId: string, identifier: string) =>
 		(id, name, kind, instruction, project_path, ticket_id, ticket_identifier, terminal_id, created_at, updated_at)
 		VALUES (${id}, 'crisp-fjord', 'agent', 'Build it', '/tmp/work', ${ticketId}, ${identifier},
 			${`term-${id}`}, ${at}, ${at})`);
-
-// A question with one waiting ticket, one running agent on that ticket, and
-// the answer already written. The returned ids name the queued delivery.
-const queueAnswer = async (title: string) => {
-	const asked = await run((tx) =>
-		create(core, tx, { project: "DSP", title, description: question, status: "human-review" }),
-	);
-	const waiting = await run((tx) =>
-		create(core, tx, { project: "DSP", title: `${title}, the work`, after: [asked.identifier] }),
-	);
-	const runId = ulid();
-	await startRun(runId, waiting.id, waiting.identifier);
-	const result = await run((tx) =>
-		answer(core, tx, { ticket: asked.identifier, option: 1, reason: "The narrow window." }),
-	);
-	const [row] = (await db.execute(sql`SELECT id FROM review_deliveries WHERE run_id = ${runId}`)).rows as {
-		id: string;
-	}[];
-	return {
-		question: asked.identifier,
-		waiting: waiting.identifier,
-		runId,
-		answerId: result.answerId,
-		deliveryId: row!.id,
-	};
-};
 
 // A pull request of one ticket, one running agent on that ticket, and a
 // review that a person sent back. The returned ids name the queued delivery.
@@ -107,12 +79,12 @@ const queueReview = async (title: string, threads: number) => {
 };
 
 // A pull request of one ticket, one running agent on that ticket, and the
-// comments an actor of `kind` wrote on the diff. The clock of the service
-// context sits before the run of the test, so the batch window has passed
-// and the dispatcher may send every row at once.
-const threadCtx = (kind: "human" | "agent") =>
+// comments an actor wrote on the diff. The clock of the service context sits
+// before the run of the test, so the batch window has passed and the
+// dispatcher may send every row at once.
+const threadCtx = (actor: { kind: "human" | "agent"; name: string }) =>
 	({
-		actor: { kind, name: kind === "human" ? "dana" : "crisp-fjord" },
+		actor,
 		session: null,
 		now: () => new Date(at),
 		emit: () => {},
@@ -121,11 +93,12 @@ const threadCtx = (kind: "human" | "agent") =>
 const queueComments = async (
 	title: string,
 	notes: { path: string; line: number; body: string }[],
-	kind: "human" | "agent" = "human",
+	actor?: { kind: "human" | "agent"; name: string },
 ) => {
 	const ticket = await run((tx) => create(core, tx, { project: "DSP", title }));
 	const runId = ulid();
 	await startRun(runId, ticket.id, ticket.identifier);
+	const reviewer = actor ?? { kind: "human" as const, name: "dana" };
 	const prId = ulid();
 	const url = `https://github.com/o/r/pull/${++prNumber}`;
 	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, created_at, updated_at)
@@ -133,7 +106,7 @@ const queueComments = async (
 	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
 		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at})`);
 	const threads = [];
-	for (const note of notes) threads.push(await run((tx) => add(threadCtx(kind), tx, { pr: url, ...note })));
+	for (const note of notes) threads.push(await run((tx) => add(threadCtx(reviewer), tx, { pr: url, ...note })));
 	const queued = (await db.execute(sql`SELECT id FROM review_deliveries WHERE run_id = ${runId} ORDER BY id`)).rows as {
 		id: string;
 	}[];
@@ -179,28 +152,9 @@ const serviceCtx = {
 
 afterAll(async () => db.$client.close());
 
-test("a queued answer reaches the terminal of a running agent", async () => {
+test("a queued review whose agent stopped fails with the closed session sentence", async () => {
 	sent.length = 0;
-	const queued = await queueAnswer("Run it late or leave it missed");
-
-	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
-
-	expect(sent).toEqual([
-		{
-			id: queued.runId,
-			text: `trellis: ${queued.question} has an answer.\nOption 1: Leave it missed.\nReason: The narrow window.\nContinue the work on ${queued.waiting}.`,
-			interrupt: true,
-			messageId: `review-${queued.deliveryId}`,
-			expectedTerminalId: `term-${queued.runId}`,
-			expectedSessionId: null,
-		},
-	]);
-	expect(await deliveryOf(queued.runId)).toEqual({ state: "sent", error: null });
-});
-
-test("a queued answer whose agent stopped fails with the closed session sentence", async () => {
-	sent.length = 0;
-	const queued = await queueAnswer("Which grace window");
+	const queued = await queueReview("Which grace window", 1);
 	await db.execute(sql`UPDATE agent_runs SET closed_at = ${at} WHERE id = ${queued.runId}`);
 
 	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
@@ -210,7 +164,7 @@ test("a queued answer whose agent stopped fails with the closed session sentence
 });
 
 test("a send that never started fails with the text of its own error", async () => {
-	const queued = await queueAnswer("Which retry count");
+	const queued = await queueReview("Which retry count", 1);
 
 	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), throwingSend, preset);
 
@@ -218,7 +172,7 @@ test("a send that never started fails with the text of its own error", async () 
 });
 
 test("a send that passes its deadline stays unknown", async () => {
-	const queued = await queueAnswer("Which sweep order");
+	const queued = await queueReview("Which sweep order", 1);
 
 	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), timingOutSend, preset);
 
@@ -403,17 +357,53 @@ test("the comments a person writes travel to the agent in one message", async ()
 	expect(events.map((event) => event.type)).toContain("reviews.changed");
 });
 
-test("a comment an agent writes reaches no agent", async () => {
+test("a comment another agent writes travels to the ticket agent", async () => {
 	sent.length = 0;
 	const queued = await queueComments(
 		"Read the review focus",
 		[{ path: "apps/server/src/db/tx.ts", line: 3, body: "The service takes tx first." }],
-		"agent",
+		{ kind: "agent", name: "flow-reviewer" },
 	);
 
 	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
 
-	expect(queued.ids).toEqual([]);
+	expect(queued.ids).toHaveLength(1);
+	expect(sent).toEqual([
+		{
+			id: queued.runId,
+			text: `trellis: your pull request has 1 new comment.\napps/server/src/db/tx.ts:3\nThe service takes tx first.\nRead every comment: trellis review list ${queued.url}\nApply what each comment asks. Answer each comment.`,
+			interrupt: true,
+			messageId: `review-${queued.ids[0]}`,
+			expectedTerminalId: `term-${queued.runId}`,
+			expectedSessionId: null,
+		},
+	]);
+});
+
+test("a comment the ticket agent writes does not travel back to itself", async () => {
+	sent.length = 0;
+	const ticket = await run((tx) => create(core, tx, { project: "DSP", title: "Do not echo self review" }));
+	const runId = ulid();
+	await startRun(runId, ticket.id, ticket.identifier);
+	const prId = ulid();
+	const url = `https://github.com/o/r/pull/${++prNumber}`;
+	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, created_at, updated_at)
+		VALUES (${prId}, 'o', 'r', ${prNumber}, ${url}, 'open', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
+		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at})`);
+
+	await run((tx) =>
+		add(threadCtx({ kind: "agent", name: runId }), tx, {
+			pr: url,
+			path: "apps/server/src/db/tx.ts",
+			line: 3,
+			body: "I already wrote this.",
+		}),
+	);
+	const queued = await db.execute(sql`SELECT id FROM review_deliveries WHERE run_id = ${runId}`);
+	await dispatchDeliveries(ctx(), running(`term-${runId}`), send, preset);
+
+	expect(queued.rows).toEqual([]);
 	expect(sent).toEqual([]);
 });
 
@@ -424,7 +414,9 @@ test("a reply of a person carries the file and the line of its thread", async ()
 	]);
 	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
 	sent.length = 0;
-	await run((tx) => reply(threadCtx("human"), tx, { id: queued.threads[0]!.id, body: "The header holds it." }));
+	await run((tx) =>
+		reply(threadCtx({ kind: "human", name: "dana" }), tx, { id: queued.threads[0]!.id, body: "The header holds it." }),
+	);
 
 	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
 

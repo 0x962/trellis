@@ -10,7 +10,7 @@ This document is the design and the current behavior. TRL-284 ships all nine rec
 
 Each decision holds one recommendation. Answer with the number and yes or no.
 
-**1. Split the records into proof and verification.** The floor counts only the records of the running product. The `verify`, `test` and `equivalence` records stay in the store and move to the checks region of the Facts tab. Recommendation: yes. Today a backend pull request meets the whole floor with a typecheck and a test count. Pull request 242 (TRL-263) carries four records: two screenshots and two `verify` records, `bun run typecheck` exit 0 and `bun test apps/web/src/features/reviews` exit 0. Pull request 224 (TRL-240) carries six records and not one of them touched the product.
+**1. Split the records into proof and verification.** The floor counts only the records of the running product. The `verify`, `test` and `equivalence` records stay in the store and move under the proof on the Overview tab. Recommendation: yes. Today a backend pull request meets the whole floor with a typecheck and a test count. Pull request 242 (TRL-263) carries four records: two screenshots and two `verify` records, `bun run typecheck` exit 0 and `bun test apps/web/src/features/reviews` exit 0. Pull request 224 (TRL-240) carries six records and not one of them touched the product.
 
 **2. Add the `call` record.** It holds the method, the path, the request body, the status code, the response body, and the address of the server that answered. An API change owes one call that works and one call that fails. Recommendation: yes. No record today holds a request and a response. This is the gap that made a typecheck look like evidence.
 
@@ -22,9 +22,9 @@ Each decision holds one recommendation. Answer with the number and yes or no.
 
 **6. When a clip is owed.** Keep the clip conditional: motion, a gesture, scroll, a timed action, or a task of more than one step. Recommendation: keep it conditional. No pull request from TRL-224 to TRL-263 carries one clip. A blanket rule would add 15 seconds of a still page to every review.
 
-**7. The words that replace the count.** "0 of 5 evidence" becomes one of four sentences: "no proof yet", "needs the after image and the console list", "needs the after image, the console list and 3 more", and "proof complete". Recommendation: yes, these four forms, on the epic row, on the ticket card and on the Facts tab.
+**7. The words that replace the count.** "0 of 5 evidence" becomes one of four sentences: "no proof yet", "needs the after image and the console list", "needs the after image, the console list and 3 more", and "proof complete". Recommendation: yes, these four forms, on the epic row, on the ticket card and on the Overview tab.
 
-**8. The Facts tab shows the thing, not the name of the thing.** The before image and the after image sit side by side at full width. The clip plays in the page. Each call draws as a request block over a response block. Verification folds shut under them. Recommendation: yes.
+**8. The Overview tab shows the thing, not the name of the thing.** The before image and the after image sit side by side at full width. The clip plays in the page. Each call draws as a request block over a response block. Verification folds shut under them. Recommendation: yes.
 
 **9. How the stored records map.** No record changes its kind. No record is deleted. The floor stops counting three kinds, so every merged pull request keeps its history and reads the same. Recommendation: yes.
 
@@ -40,7 +40,7 @@ A record is proof when a person can read it and see the product do the thing.
 | The terminal output of the real command | A diff |
 | The state that a job left, read back | A pull request |
 
-Verification stays important. A pull request that breaks the tests does not merge. Verification answers "did the checks agree". Evidence answers "did the product do it". The Facts tab holds both, in two regions, and the floor counts only the first.
+Verification stays important. A pull request that breaks the tests does not merge. Verification answers "did the checks agree". Evidence answers "did the product do it". The Overview tab holds both, in two regions, and the floor counts only the first.
 
 ## What each kind of change owes
 
@@ -105,7 +105,7 @@ Prove the service:
 2. Call the change on that server with curl or with the trellis CLI. Call the error case as well.
 3. Send each API request as a call record with the method, path, request body, status, response body and server address.
 4. Send each CLI or background-job command as a run record with the command, exit code, output and server address.
-5. Send each Verify command as a verify record. A test command does not prove the product.
+5. Run the Verify commands after the proof records. A verify record is verification only.
 6. Read the full recipe in docs/EVIDENCE.md.
 
 Check the floor before you hand over: trellis evidence check <pr>
@@ -138,11 +138,9 @@ The evidence region draws three parts in this order.
 2. **What is missing.** One sentence in the four forms of decision 7, with the fill command under each missing item.
 3. **Verification.** One line for each verify record, test proof and equivalence record. The region folds shut.
 
-TRL-276 had not landed in `origin/main` when TRL-284 merged main. The same proof components render in the current Facts tab until the Overview tab exists on this branch.
-
 ### The ticket page
 
-Each pull request card shows the missing sentence. No count.
+The ticket page draws no evidence. Its properties rail lists each pull request, and a click opens the review sheet.
 
 ### The epic row
 
@@ -232,14 +230,20 @@ EVIDENCE_API_PORT=4571
 EVIDENCE_OUTPUT_DIR="$TMPDIR/trellis-evidence-$EVIDENCE_RUN-output"
 EVIDENCE_HEAD_SHA="$(git rev-parse HEAD)"
 export PATH="$(git rev-parse --show-toplevel)/node_modules/.bin:$PATH"
-{ printf 'status %s\n\n' "$(cat "$EVIDENCE_OUTPUT_DIR/status.txt")"; cat "$EVIDENCE_OUTPUT_DIR/response.json"; } |
-  trellis evidence add "$EVIDENCE_PR" --kind verify \
-    --cmd "curl -X POST http://127.0.0.1:$EVIDENCE_API_PORT/api/tickets -d '$(cat "$EVIDENCE_OUTPUT_DIR/request.json")'" \
-    --exit 0 --sha "$EVIDENCE_HEAD_SHA" --tail -
-{ printf 'status %s\n\n' "$(cat "$EVIDENCE_OUTPUT_DIR/error-status.txt")"; cat "$EVIDENCE_OUTPUT_DIR/error-response.json"; } |
-  trellis evidence add "$EVIDENCE_PR" --kind verify \
-    --cmd "curl -X POST http://127.0.0.1:$EVIDENCE_API_PORT/api/tickets -d '$(cat "$EVIDENCE_OUTPUT_DIR/error-request.json")'" \
-    --exit 0 --sha "$EVIDENCE_HEAD_SHA" --tail -
+trellis evidence add "$EVIDENCE_PR" --kind call \
+  --method "$EVIDENCE_METHOD" \
+  --path "$EVIDENCE_PATH" \
+  --status "$(cat "$EVIDENCE_OUTPUT_DIR/status.txt")" \
+  --server "http://127.0.0.1:$EVIDENCE_API_PORT" \
+  --request "$EVIDENCE_OUTPUT_DIR/request.json" \
+  --response "$EVIDENCE_OUTPUT_DIR/response.json"
+trellis evidence add "$EVIDENCE_PR" --kind call \
+  --method POST \
+  --path /api/tickets \
+  --status "$(cat "$EVIDENCE_OUTPUT_DIR/error-status.txt")" \
+  --server "http://127.0.0.1:$EVIDENCE_API_PORT" \
+  --request "$EVIDENCE_OUTPUT_DIR/error-request.json" \
+  --response "$EVIDENCE_OUTPUT_DIR/error-response.json"
 ```
 
 The response of the merge base and the response of the head go in the contract record. Only one text flag reads standard input, so read both files with `cat`.
@@ -578,7 +582,7 @@ export PATH="$(git rev-parse --show-toplevel)/node_modules/.bin:$PATH"
 trellis evidence add "$EVIDENCE_PR" --kind after --file "$EVIDENCE_OUTPUT_DIR/after.png" --route "$EVIDENCE_ROUTE" --viewport 1440x900 --theme dark --seed "$EVIDENCE_SEED_COMMAND" --browser "$EVIDENCE_BROWSER" --sha "$EVIDENCE_HEAD_SHA"
 trellis evidence add "$EVIDENCE_PR" --kind before --file "$EVIDENCE_OUTPUT_DIR/before.png" --route "$EVIDENCE_ROUTE" --viewport 1440x900 --theme dark --seed "$EVIDENCE_SEED_COMMAND" --browser "$EVIDENCE_BROWSER" --base "$EVIDENCE_BASE_SHA"
 trellis evidence add "$EVIDENCE_PR" --kind capture --base "$EVIDENCE_BASE_SHA" --route "$EVIDENCE_ROUTE" --viewport 1440x900 --theme dark --seed "$EVIDENCE_SEED_COMMAND" --browser "$EVIDENCE_BROWSER" --time "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-trellis evidence add "$EVIDENCE_PR" --kind clip --file "$EVIDENCE_OUTPUT_DIR/clip.mp4" --route "$EVIDENCE_ROUTE" --caption 'The EvidenceStrip appears between ChangeSummary and StartControls.'
+trellis evidence add "$EVIDENCE_PR" --kind clip --file "$EVIDENCE_OUTPUT_DIR/clip.mp4" --route "$EVIDENCE_ROUTE" --caption 'The proof appears after the Overview explanation.'
 trellis evidence add "$EVIDENCE_PR" --kind console --file "$EVIDENCE_OUTPUT_DIR/console.json"
 trellis evidence list "$EVIDENCE_PR"
 trellis evidence check "$EVIDENCE_PR"

@@ -53,8 +53,6 @@ test("an assignment names the ticket, the branch, and the trellis commands", () 
 			"When your work is ready for review, run: trellis move OP-27 agent-review",
 			"",
 			"Report what you did in your final message and in the pull request description. A person reads both.",
-			'To ask a person a question, create a question ticket: trellis create -p <project> --status human-review -t "..." --description - . Its description holds a numbered "Options:" list.',
-			"Then make this ticket wait for it: trellis edit OP-27 --after <question>. The answer reaches this run.",
 			"",
 			"## Review comments",
 			"",
@@ -292,13 +290,13 @@ test("the brief prints a stable contract and evidence floor above the chain", as
 		VALUES (${ulid()}, ${rootId}, 'example', 'canary')`);
 	const ambiguous = await run((tx) => getBrief(ctx, tx, { ticket: ticket.identifier }));
 	expect(ambiguous.markdown).toContain(
-		"- unknown. The contract names no file.\n\nRead the floor of your pull request: trellis evidence check <pr>",
+		"- the other items: unknown. The contract names no file.\n\ntrellis pr add and trellis ready <pr> require the summary and every evidence floor item.\nWhile an item is missing, they exit with code 1 and print each missing item with the command that adds it.\n\nRead the floor of your pull request: trellis evidence check <pr>",
 	);
 
 	await db.execute(sql`DELETE FROM repos WHERE project_id = ${rootId}`);
 	const missing = await run((tx) => getBrief(ctx, tx, { ticket: ticket.identifier }));
 	expect(missing.markdown).toContain(
-		"- unknown. The contract names no file.\n\nRead the floor of your pull request: trellis evidence check <pr>",
+		"- the other items: unknown. The contract names no file.\n\ntrellis pr add and trellis ready <pr> require the summary and every evidence floor item.\nWhile an item is missing, they exit with code 1 and print each missing item with the command that adds it.\n\nRead the floor of your pull request: trellis evidence check <pr>",
 	);
 
 	await db.$client.close();

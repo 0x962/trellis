@@ -1,7 +1,7 @@
 import type { TicketSummary } from "../schemas/ticket.ts";
 import type { TicketPr } from "../schemas/ticketPr.ts";
 
-export type Turn = "you" | "agent" | "github" | "ready" | "waits on your answer" | "waits on a merge" | "done";
+export type Turn = "you" | "agent" | "github" | "ready" | "waits on a merge" | "done";
 
 export type TurnRow = TicketSummary | TicketPr;
 
@@ -43,9 +43,7 @@ export function turnOf(row: TurnRow, hasWorkingRun: boolean): Turn {
 	)
 		return "you";
 	if (ticket?.status.category === "todo" && ticket.ready) return "ready";
-	if (ticket?.status.category === "todo") {
-		return ticket.waitsOn.some((dependency) => dependency.isQuestion) ? "waits on your answer" : "waits on a merge";
-	}
+	if (ticket?.status.category === "todo") return "waits on a merge";
 	if (ticket === null) return "done";
 	return "agent";
 }

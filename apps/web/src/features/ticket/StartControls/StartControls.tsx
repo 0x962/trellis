@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { blockReason, type Harness, HarnessSchema, type TicketSummary } from "@trellis/api";
+import { type Harness, HarnessSchema, type TicketSummary } from "@trellis/api";
 import { StartControls as StartControlsView, type StartDependency } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -34,7 +34,7 @@ export function StartControls({ ticket, waitsOn }: StartControlsProps) {
 			waitsOn.map((dependency) => ({
 				identifier: dependency.identifier,
 				title: dependency.title,
-				reason: blockReason(dependency),
+				reason: "is not merged",
 			})),
 		[waitsOn],
 	);

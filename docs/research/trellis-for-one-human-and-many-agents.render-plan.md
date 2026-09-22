@@ -51,9 +51,9 @@ One entry per screen. Two renderers build in parallel. Neither renderer talks to
 | Renderer | Screens |
 | --- | --- |
 | Renderer 1 | `epic-wave`, `epic-turn`, `epic-phone`, `epic-resources`, then `index` |
-| Renderer 2 | `review-backend`, `review-frontend`, `ticket-blocked`, `ticket-review`, `ticket-question`, `cli` |
+| Renderer 2 | `review-backend`, `review-frontend`, `ticket-blocked`, `ticket-review`, `cli` |
 
-`index.html` links the ten files by slug, in the order of this plan, one line each: the slug, then the verdict screen number, then one sentence of purpose. Renderer 1 writes it from this plan. It does not wait for renderer 2.
+`index.html` links the nine files by slug, in the order of this plan, one line each: the slug, then the verdict screen number, then one sentence of purpose. Renderer 1 writes it from this plan. It does not wait for renderer 2.
 
 ---
 
@@ -66,7 +66,7 @@ Sections, top to bottom:
 1. Topbar: `Routines E2E` left; right: three `FilterBar` chips (`Epic: Routines E2E`, `Status: any`, `Group: Wave`), a Display icon button, an Add icon button, a `⋯` menu button.
 2. Band, in the page padding:
    - `Current: ` in `--fg-muted` then `The run settles, and its state reaches the page` in `--fg`.
-   - `0 to start  ·  5 running  ·  4 wait for you`. `0 to start` and `4 wait for you` look like links. `5 running` is plain text and an example value.
+   - `0 to start  ·  5 running  ·  2 wait for you`. `0 to start` and `2 wait for you` look like links. `5 running` is plain text and an example value.
    - `StackedBar`, 6 px tall, segments done 3 `--success`, review 9 `--accent`, todo 15 `--fg-faint`. Right of it `3 of 27 done`.
    - Legend `done 3 · review 9 · todo 15` in `--fg-faint`.
 3. `Plan` section header, collapsed, with `Show`.
@@ -77,7 +77,7 @@ Sections, top to bottom:
 | --- | --- | --- |
 | Foundation: the run row and the named chat | `3 of 3` | open |
 | A routine run opens a chat | `0 of 5 · 1 for you` | open |
-| The run settles, and its state reaches the page | `0 of 6 · 1 for you` | open, `Current` |
+| The run settles, and its state reaches the page | `0 of 6` | open, `Current` |
 | Integrate: the routine runtime | `0 of 1` | collapsed |
 | An unattended run knows nobody is there | `0 of 5 · 2 for you` | collapsed |
 | A trial run, and the stale sweep in production | `0 of 2` | collapsed |
@@ -89,13 +89,11 @@ Data per row (real unless marked):
 
 - Foundation: OP-29 `⧉ #55568 merged · 43 passed`; OP-30 `⧉ #57009 merged · 43 passed`; OP-31 `⧉ #57030 merged · 44 passed`. Done glyph. Updated `2d`.
 - Wave 2, in this order: OP-32 (releases 4, agent line `crisp-fjord: I rebased onto master. post_message returns three values now.` example, pull request row `⊙ #55569 draft · +402 −61 · 14 files · 9 passed · no evidence · crisp-fjord`), OP-27 (`⊙ #56930 open · +186 −44 · 7 files · 37 passed · evidence 3 of 5 · you`), OP-37 (releases 1, `⊙ #57078 draft · +98 −6 · 4 files · 1 failed · 8 passed · no evidence · crisp-fjord`), OP-43 (releases 1, `⊙ #57080 open · +311 −12 · 6 files · 1 failed · 6 pending · 47 passed · evidence 1 of 4 · crisp-fjord`), OP-39 (`⊙ #57079 draft · +64 −12 · 3 files · 1 failed · 8 passed · no evidence · crisp-fjord`). Sizes are example values. Every `failed` is `--danger`.
-- Wave 3, in this order: OP-52 (Human Review glyph `--warning`, yellow dot after the title, releases 1), OP-33 (waits `OP-32 · OP-52 ●`, pull request row `⊙ #57055 draft · stacked on #55569 · +73 −9 · 3 files · 9 passed · no evidence · crisp-fjord`), OP-34 (waits `OP-32`, releases 2), OP-50 (waits `OP-32`, releases 1), OP-38 (waits `OP-37`), OP-44 (waits `OP-43`).
-- Actor column: the Anthropic card on every Agent Review and Human Review row. The card on OP-32 and OP-33 carries the glimmer (example: those runs work). Todo rows have no card, and the column width stays reserved.
-- Updated column: `2d` on Foundation, `4h` on OP-32, `1d` on OP-27, `2h` on OP-37, OP-43, OP-39, `2d` on OP-52, `3h` on OP-33, `1d` on the Todo rows. Example values.
+- Wave 3, in this order: OP-33 (waits `OP-32`, pull request row `⊙ #57055 draft · stacked on #55569 · +73 −9 · 3 files · 9 passed · no evidence · crisp-fjord`), OP-34 (waits `OP-32`, releases 2), OP-50 (waits `OP-32`, releases 1), OP-38 (waits `OP-37`), OP-44 (waits `OP-43`).
+- Actor column: the Anthropic card on every Agent Review row. The card on OP-32 and OP-33 carries the glimmer (example: those runs work). Todo rows have no card, and the column width stays reserved.
+- Updated column: `2d` on Foundation, `4h` on OP-32, `1d` on OP-27, `2h` on OP-37, OP-43, OP-39, `3h` on OP-33, `1d` on the Todo rows. Example values.
 
-Yellow on this screen: the Human Review glyph of OP-52, the dot after OP-52's title, the dot after `OP-52` in OP-33's waits cell. Nowhere else.
-
-Clicks (as `title`): ticket row opens the ticket page in a sheet; pull request row opens the review page in a wider sheet; a waits identifier filters to that ticket; a releases count filters to the tickets that wait on this one; the agent card opens the session; `0 to start` and `4 wait for you` set the filters.
+Clicks (as `title`): ticket row opens the ticket page in a sheet; pull request row opens the review page in a wider sheet; a waits identifier filters to that ticket; a releases count filters to the tickets that wait on this one; the agent card opens the session; `0 to start` and `2 wait for you` set the filters.
 
 Footer: the example-value line of 0.2.
 
@@ -103,11 +101,9 @@ Footer: the example-value line of 0.2.
 
 Renderer 1. Desktop 1280 px. Verdict screen 2.
 
-The same topbar, band, `Plan` and `Resources` as `epic-wave`. The Group chip reads `Group: Turn`. The table renders the block in verdict screen 2, line for line, five groups: `Your turn 4`, `With an agent 5`, `Waits on your answer 2`, `Waits on a merge 13`, `Done 3` collapsed. `With GitHub` does not render.
+The same topbar, band, `Plan` and `Resources` as `epic-wave`. The Group chip reads `Group: Turn`. The table renders the block in verdict screen 2, line for line, four groups: `Your turn 2`, `With an agent 5`, `Waits on a merge 13`, `Done 3` collapsed. `With GitHub` does not render.
 
 Same columns, same row kinds, same marks, same clicks as `epic-wave`. Inside a group the rows sit in the order the verdict prints them.
-
-Yellow on this screen: the Human Review glyphs of OP-53 and OP-52, the dots after their titles, the dot after `OP-52` on OP-33's row, the dots after `OP-53` on OP-40 and OP-45.
 
 ## 3. `review-backend`
 
@@ -151,7 +147,7 @@ Main column, top to bottom, from the block in verdict screen 5:
 2. `OP-34   Service: The webhook settles the routine run`, status chip `○ Todo ▾`, priority chip `high`.
 3. `THE ASK`: the first two paragraphs of `OP-34.json` description, verbatim, code spans kept.
 4. `THE CONTRACT`: label and value rows `Result`, `Files` (four paths from the export), `Leave alone` (`routines/views/routine_run.py` with `OP-32 owns it` right, from OP-54), `Verify` (two commands, real, from OP-54), `Review focus` (two sentences from the export), `Evidence owed` (the sentence from the verdict). `Result` and `Evidence owed` are example values.
-5. `THE CHAIN`: `Waits on  OP-32  Service: A routine run opens a chat and queues the turn  ⊙ #55569 draft`; `Ready  no. OP-32 is not merged.`; `Releases  OP-35 ...`, `OP-42 ...` with the real titles; `Applies  OP-52, open. Its answer changes what a missed window writes.`
+5. `THE CHAIN`: `Waits on  OP-32  Service: A routine run opens a chat and queues the turn  ⊙ #55569 draft`; `Ready  no. OP-32 is not merged.`; `Releases  OP-35 ...`, `OP-42 ...` with the real titles.
 6. `THE EVIDENCE`: `No pull request yet.`
 7. `THE RUN`: `No run.` left; right: three pickers `Claude Code ▾`, `Opus ▾`, `high ▾` and a `Start` button. Under `Start`, one line `OP-32 is not merged. Start anyway?` in `--fg-muted`.
 8. `THE OUTCOME`: `Empty until a pull request merges.`
@@ -170,29 +166,13 @@ Same layout as `ticket-blocked`. Content from the block in verdict screen 6:
 - Status chip `◐ Agent Review ▾` in `--accent`.
 - `THE ASK`: the description of `OP-33.json`, verbatim.
 - `THE CONTRACT`: `Files  backend/operator-service/routines/services/run/run.py and its test` (real), `Leave alone`, `Verify  cd backend/operator-service && direnv exec . pytest routines` (example, from the pattern of OP-54), `Review focus  the cap of 50 holds the CronJob inside its two minute tick`, `Evidence owed  backend: summary · verify record · test proof · contract table. No picture: the change crosses no boundary.`
-- `THE CHAIN`: `Waits on` two lines, OP-32 with `⊙ #55569 draft` and OP-52 with the yellow dot and `your answer` in `--warning`; `Ready  no. OP-32 is not merged, and OP-52 is open.`; `Releases  nothing`; `Applies  OP-52, open. ...`
+- `THE CHAIN`: `Waits on` OP-32 with `⊙ #55569 draft`; `Ready  no. OP-32 is not merged.`; `Releases  nothing`.
 - `THE EVIDENCE`: the pull request card. Line 1 `⊙ #57055   draft   Operator: continue the routine sweep after a failed start`. Line 2 `stacked on #55569 (OP-32)  ·  trellis/op-33-01m2v0v6m3f0ry0eg0k57jwdc5 → nk/operator-routine-execution` (real refs). Line 3 `+73 −9 · 3 files · band small · risk none · 9 passed · 91 skipped · 0 threads` (size example, checks real). Line 4 `evidence 2 of 4:  summary ✓  test proof ✓  verify record missing  contract missing` (example). Line 5 `flows: none run`. Button `Open the review` right.
 - `THE RUN`: agent card with the glimmer, `crisp-fjord   Claude Code · Opus · works, tool Edit, 40 s`, button `Session` right; second line `crisp-fjord: The cap of 50 sits in settings. I named it ROUTINE_SWEEP_CAP.` in `--fg-muted`. Example values.
 - `THE OUTCOME`: `Empty until a pull request merges.`
 - `RESOURCES`: `routine-runtime.md, step 5`.
 
-Yellow: the dot and the words `your answer` on the OP-52 line. Motion: the glimmer on the run's card.
-
-## 7. `ticket-question`
-
-Renderer 2. Desktop 1280 px with a right rail. Verdict screen 7. OP-52.
-
-Content from the block in verdict screen 7:
-
-- Trail, then `OP-52   Decision: a missed window, run it late or leave it missed` (the real title, verbatim), status chip `◍ Human Review ▾` in `--warning`, a yellow dot right of the chip.
-- `THE ASK`: the first paragraph of `OP-52.json`, verbatim.
-- `THE QUESTION`: three radio lines, options 1 to 3 verbatim from the export. Under option 1 the line `crisp-fjord recommends this one.` in `--fg-muted`. No star, no badge.
-- `Why crisp-fjord recommends 1` as a 12 px label, then the recommendation sentence from the export, verbatim, without the words `Recommendation: option 1.`
-- `THIS ANSWER RELEASES`: `OP-33  Service: One routine's failure does not end the sweep pass         ◐ Agent Review · ⊙ #57055`.
-- `YOUR ANSWER`: one text input with the placeholder `Your reason, one or two sentences`, one `Answer` button. No option is selected.
-- `RESOURCES`: `routine-runtime.md`.
-
-Right rail as `ticket-blocked`, Status `Human Review`. The word `decide` appears nowhere on the page. The title `Decision: ...` is data and stays.
+Motion: the glimmer on the run's card.
 
 ## 8. `epic-resources`
 
@@ -232,15 +212,13 @@ Renderer 1. Phone frame 390 px, height 844 px, scrollable inside the frame. Verd
 Top to bottom:
 
 1. Header row: `‹`, `Routines E2E`, `⋯`. 44 px tall.
-2. Band: `Current: The run settles, and its state reaches the page` on two lines; `0 to start · 5 running · 4 for you`; the 6 px bar with `3 of 27` right. No legend.
-3. The table grouped by turn. Group header `▾ Your turn  4`, then four two-line rows of 56 px; group header `▾ With an agent  5`, then five rows; `▸ Waits on your answer  2`, `▸ Waits on a merge  13`, `▸ Done  3` collapsed.
+2. Band: `Current: The run settles, and its state reaches the page` on two lines; `0 to start · 5 running · 2 for you`; the 6 px bar with `3 of 27` right. No legend.
+3. The table grouped by turn. Group header `▾ Your turn  2`, then two two-line rows of 56 px; group header `▾ With an agent  5`, then five rows; `▸ Waits on a merge  13`, `▸ Done  3` collapsed.
 
-Rows, line 1: status glyph, identifier, title cut with an ellipsis, then the agent card or the yellow dot at the right edge. Line 2, 12 px `--fg-muted`, one of: the pull request glyph and number with `open` or `draft`, the checks in words and the turn; the agent's message; `waits on OP-32`; `releases n`.
+Rows, line 1: status glyph, identifier, title cut with an ellipsis, then the agent card at the right edge. Line 2, 12 px `--fg-muted`, one of: the pull request glyph and number with `open` or `draft`, the checks in words and the turn; the agent's message; `waits on OP-32`; `releases n`.
 
 | Row | Line 1 | Line 2 |
 | --- | --- | --- |
-| OP-53 | `◍ OP-53  Decision: what an unatten…  ●` | `releases 2` |
-| OP-52 | `◍ OP-52  Decision: a missed window…  ●` | `releases 1` |
 | OP-35 | `◐ OP-35  Service: A run whose webh…  ⟨A⟩` | `⊙ #57057 open · 42 passed · you` |
 | OP-27 | `◐ OP-27  Web: Bound the Operator me…  ⟨A⟩` | `⊙ #56930 open · 37 passed · you` |
 | OP-32 | `◐ OP-32  Service: A routine run op…  ⟨A⟩` | `crisp-fjord: I rebased onto master. post_message…` |
@@ -249,6 +227,6 @@ Rows, line 1: status glyph, identifier, title cut with an ellipsis, then the age
 | OP-33 | `◐ OP-33  Service: One routine's fai…  ⟨A⟩` | `⊙ #57055 draft · 9 passed · crisp-fjord` |
 | OP-39 | `◐ OP-39  Service: The chat list ans…  ⟨A⟩` | `⊙ #57079 draft · 1 failed · crisp-fjord` |
 
-The card on OP-32 carries the glimmer. `failed` is `--danger`. Yellow: the two Human Review glyphs and the two dots. Every row is a 44 px or taller touch target.
+The card on OP-32 carries the glimmer. `failed` is `--danger`. Every row is a 44 px or taller touch target.
 
 Footer: the example-value line of 0.2, inside the frame.

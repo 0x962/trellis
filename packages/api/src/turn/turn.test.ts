@@ -54,22 +54,11 @@ test("returns ready for a Todo ticket with no unmet dependency", () => {
 	expect(turnOf(ticket({ category: "todo", ready: true }), false)).toBe("ready");
 });
 
-test("waits on your answer when an unmet dependency is a question", () => {
-	const dependency = {
-		identifier: "TRL-1",
-		title: "Choose the contract",
-		status: "review" as const,
-		isQuestion: true,
-	};
-	expect(turnOf(ticket({ category: "todo", waitsOn: [dependency] }), false)).toBe("waits on your answer");
-});
-
 test("waits on a merge when each unmet dependency is a ticket", () => {
 	const dependency = {
 		identifier: "TRL-2",
 		title: "Add the row",
 		status: "started" as const,
-		isQuestion: false,
 	};
 	expect(turnOf(ticket({ category: "todo", waitsOn: [dependency] }), false)).toBe("waits on a merge");
 });
@@ -78,6 +67,6 @@ test("returns done for a done ticket", () => {
 	expect(turnOf(ticket({ category: "done" }), false)).toBe("done");
 });
 
-test("keeps a human-review question with you while a run works", () => {
+test("keeps a human-review ticket with you while a run works", () => {
 	expect(turnOf(ticket({ category: "review", reviewer: "human" }), true)).toBe("you");
 });

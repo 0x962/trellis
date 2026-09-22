@@ -16,6 +16,7 @@ export function CheckResults({
 	loading = false,
 	isCollapsed,
 	onToggle,
+	onOpenCheck,
 }: {
 	title: string;
 	description?: string;
@@ -24,6 +25,8 @@ export function CheckResults({
 	loading?: boolean;
 	isCollapsed: (key: CheckStatus) => boolean;
 	onToggle: (key: CheckStatus) => void;
+	// Opens the page of one check. The app decides where that page opens.
+	onOpenCheck?: (url: string) => void;
 }) {
 	const id = useId();
 	const phone = useMediaQuery("(max-width: 767px)");
@@ -73,7 +76,7 @@ export function CheckResults({
 									/>
 									<ul id={contentId} hidden={isCollapsed(group.key)}>
 										{group.checks.map((check) => (
-											<CheckResultRow key={check.key} check={check} />
+											<CheckResultRow key={check.key} check={check} onOpen={onOpenCheck} />
 										))}
 									</ul>
 								</section>

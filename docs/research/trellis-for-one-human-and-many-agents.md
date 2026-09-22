@@ -41,7 +41,7 @@ Take this literally. Do not assume that the shape of work today (a ticket, a pul
 These came from his corrections over three days. Treat each as a hard constraint.
 
 1. The human is the manager. There is no manager persona, no hold, no gate that blocks him. He starts every ticket himself. No wave start action, no queue, no capacity meter or limit. "I want dependency to be clear and I will start stuff myself."
-2. Dependencies must be visible: what a ticket waits on, what it unblocks, and whether it is ready. A wave is what he intends to start together; a dependency is what finishes first; neither implies the other. A decision only he can make is a ticket that other tickets depend on.
+2. Dependencies must be visible: what a ticket waits on, what it unblocks, and whether it is ready. A wave is what he intends to start together; a dependency is what finishes first; neither implies the other.
 3. Every state of an agent run must come from a real harness signal, named. The harness exposes: the run starts, the agent works (with the current tool), the agent sends a message, the agent asks a question (Muse forwards the question text; Claude Code sends the question inside the tool input, which the server can forward; Codex sends only a title), the turn completes, the run fails with an error or a nonzero exit, the process exits, the process is lost. The server also records the last message and the last tool with their times, and whether the person has seen the latest completion. Do not invent states.
 4. A live state moves; a static mark does not mean "in progress". Yellow means one thing: a human is needed. It is not "in progress".
 5. No violet or purple anywhere, except the GitHub merged pull request glyph.
@@ -49,7 +49,7 @@ These came from his corrections over three days. Treat each as a hard constraint
 7. The GitHub pull request glyph (open, draft, merged, closed in GitHub's shapes and colors) sits before the pull request number, not in a cluster of icons.
 8. Every pull request of a ticket shows under its ticket, with pull request facts: size, files, tests, checks, unresolved review threads, flow runs, review state.
 9. He does not want a separate labeled row that says "said:". The agent's last message or question shows under the ticket title, after the agent's name, on a second line, and only when there is one.
-10. He does not want a "decide" word. A decision ticket is a question.
+10. He does not want a "decide" word.
 11. Agents are shown with the card Trellis already has: an 18 px round card with the provider logo of the run's harness (Anthropic, OpenAI, Meta). While the agent works, the card carries the product's glimmer: one sweep of light every 7 s, still in between (the tokens define `--animate-glimmer`; the film gradient loses its violet stop). No rainbow sweeps, no spinners on the row.
 12. Too many tags fail. Icons that need decoding fail. He must get the whole picture of an epic without reading every line, and a click on a row gives more.
 13. A chart that is "a lot" fails. Two bars on a header were too much.
@@ -98,10 +98,9 @@ Judge's synthesis of design A (review first), design B (epic first) and design C
 | 1. No gate blocks him | Holds. Merge stays live with a confirm line. | Breaks. `Approve and merge` is disabled on a failed check, an open thread or an unmerged stack. | Breaks. `Approve and merge` is disabled on an open thread or a failed check. |
 | 2. Dependencies visible, ready derived | Holds. Landing order list, `ancestors` condition. Data errors: OP-34 unblocks OP-35 and OP-42, not OP-38 and OP-44; OP-44 waits on OP-43, not OP-32; OP-42 waits on OP-34, not OP-32. | Holds. `waits` and `unblocks` columns, derived edge from the branch graph. Data error: the wave 3 rows say OP-44 waits on OP-32. It waits on OP-43. | Holds. Release ranked list. Data error: the dependency table omits OP-35 from the tickets that wait on OP-34. |
 | 3. Named harness signals | Holds. | Holds. | Holds. |
-| 4. Yellow means a human is needed | Holds. Yellow dot on a question only. | Holds. `▲` on a question and on `asks`. | Holds. `?` and yellow text. |
+| 4. Yellow means a human is needed | Holds. | Holds. `▲` on `asks`. | Holds. `?` and yellow text. |
 | 6. One glyph and one color per fact | Holds. | Holds. | Weak. `?`, `!` and `◐` on one row need decoding. |
 | 9. No `said:` row | Holds. | Holds. | Holds. |
-| 10. No `decide` word | Holds. | Holds. | Breaks. The band prints `2 decisions`. |
 | 12. Whole picture without reading every line | Weak. The readiness line carries 8 facts per row. | Strong. Two short cells, `waits` and `unblocks`, plus a pull request row. | Strong. `Next move` phrase and the front line sentence. |
 | 13. No chart that is a lot | Holds. | Holds. Wave list is text. | Holds. |
 | 16. New elements named and justified | 12 elements. | 17 elements. Too many. Several are columns, not elements. | 7 elements. Tightest list. |
@@ -131,7 +130,6 @@ One word for one meaning through this document:
 | Word | Meaning |
 | --- | --- |
 | ticket | One unit of work, a contract between him and one agent. |
-| question | A ticket whose status has `reviewer: human` and that carries options. Never "decision" in the interface. The titles `Decision: ...` in the exports are quoted data and stay verbatim. |
 | wave | The shipped `wave` record. What he intends to start together. |
 | waits on | The tickets that must be done before this ticket starts. |
 | releases | The tickets whose last unmet dependency this ticket is. |
@@ -149,24 +147,22 @@ One word for one meaning through this document:
 
 27 tickets, 6 waves. Done: OP-29, OP-30, OP-31. Agent Review: OP-27, OP-32, OP-33, OP-35, OP-37, OP-39, OP-43. Human Review: OP-52, OP-53. Todo: 15.
 
-The dependency graph, resolved from `Depends on: step N` and `Waiting on this answer:`:
+The dependency graph, resolved from `Depends on: step N`:
 
 | Ticket | Waits on | Releases |
 | --- | --- | --- |
 | OP-32 | OP-29, OP-30, OP-31, all done | OP-33, OP-34, OP-40, OP-50 |
-| OP-33 | OP-32, OP-52 | none |
+| OP-33 | OP-32 | none |
 | OP-34 | OP-32 | OP-35, OP-42 |
 | OP-35 | OP-34 | OP-36 |
 | OP-37 | OP-30, done | OP-38 |
 | OP-39 | OP-31, done | none |
-| OP-40 | OP-32, OP-53 | OP-41 |
+| OP-40 | OP-32 | OP-41 |
 | OP-43 | none | OP-44 |
-| OP-45 | OP-53 | OP-46 |
+| OP-45 | none | OP-46 |
 | OP-46 | OP-45 | OP-47 |
 | OP-47 | OP-46 | OP-48, OP-49 |
 | OP-50 | OP-32 | OP-51 |
-| OP-52 | none | OP-33 |
-| OP-53 | none | OP-40, OP-45 |
 | OP-54 | every ticket of wave 2 and wave 3, 11 tickets | none |
 
 Two facts fall out of the graph, and no design saw both.
@@ -188,21 +184,20 @@ Whose turn, per open pull request:
 
 The failing check on all three is `merge_gatekeeper` in the workflow `9.AUTO Merge gatekeeper`.
 
-So the day holds 4 items for him: 2 questions and 2 reviews. It holds 5 items with agents. The lever of the day is `#55569`, which releases 4 tickets, and it is with an agent.
+So the day holds 2 items for him: 2 reviews. It holds 5 items with agents. The lever of the day is `#55569`, which releases 4 tickets, and it is with an agent.
 
 ### 1.2 The loop
 
 | Step | What he does | Where | Cost |
 | --- | --- | --- | --- |
-| 1 | He opens the epic. He reads the band: `Current: The run settles...`, `0 to start · 5 running · 4 wait for you`. | Epic page | 10 s |
-| 2 | He switches the grouping to Turn. The `Your turn` group lists 4 rows, sorted by what each releases. OP-53 first, it releases 2. | Epic page, group by turn | 5 s |
-| 3 | He answers OP-53 and OP-52. He picks an option, writes one sentence, presses Answer. OP-45 and OP-40 lose their yellow dot. OP-33 loses one of two waits. | Ticket page, question block | 5 to 15 min each |
-| 4 | He opens `#57057`. He reads the conditions. `ancestors  OP-34 not merged, no pull request`. He decides: review it now and hold the merge, or send it back with one thread. | Review page | 1 to 15 min |
-| 5 | He opens `#56930`. Conditions read `READY TO MERGE  yes`. He plays the clip once, reads the two focus items, opens the one risk file, merges. | Review page | 5 to 10 min |
-| 6 | He returns to the epic. `#55569` is still a draft. He opens the session of `crisp-fjord` on OP-32 and asks what holds it. | Session sheet | 2 min |
-| 7 | When `#55569` merges, OP-34, OP-50 and, after the answer, OP-40 read `ready`. He starts each one himself. He picks the harness and the model per ticket. | Ticket page, `Start` | 10 s each |
-| 8 | Through the day, a yellow line under a title means an agent asks. He answers in the session. | Epic page, then session | 3 min each |
-| 9 | Once a day he opens the resources of the epic and reads `routine-runtime.md`. He notes what the day changed in the plan. | Epic resources | 30 min |
+| 1 | He opens the epic. He reads the band: `Current: The run settles...`, `0 to start · 5 running · 2 wait for you`. | Epic page | 10 s |
+| 2 | He switches the grouping to Turn. The `Your turn` group lists 2 rows, sorted by what each releases. | Epic page, group by turn | 5 s |
+| 3 | He opens `#57057`. He reads the conditions. `ancestors  OP-34 not merged, no pull request`. He decides: review it now and hold the merge, or send it back with one thread. | Review page | 1 to 15 min |
+| 4 | He opens `#56930`. Conditions read `READY TO MERGE  yes`. He plays the clip once, reads the two focus items, opens the one risk file, merges. | Review page | 5 to 10 min |
+| 5 | He returns to the epic. `#55569` is still a draft. He opens the session of `crisp-fjord` on OP-32 and asks what holds it. | Session sheet | 2 min |
+| 6 | When `#55569` merges, OP-34, OP-50 and OP-40 read `ready`. He starts each one himself. He picks the harness and the model per ticket. | Ticket page, `Start` | 10 s each |
+| 7 | Through the day, a yellow line under a title means an agent asks. He answers in the session. | Epic page, then session | 3 min each |
+| 8 | Once a day he opens the resources of the epic and reads `routine-runtime.md`. He notes what the day changed in the plan. | Epic resources | 30 min |
 
 Review is 60 to 75 percent of the day. Every screen below cuts reading inside a review, or moves a review earlier in the release order.
 
@@ -219,7 +214,7 @@ Marks, the whole set:
 | `StatusIcon` | The status of the ticket. | Todo `--fg-muted`, Agent Review `--accent` (changed from `agent`), Human Review `--warning`, Done `--success` |
 | GitHub pull request glyph | Open, draft, merged, closed. GitHub's shapes and colors. Sits before the number, nowhere else. | GitHub's own. Merged is the one violet. |
 | 18 px agent card | The run's harness, by provider logo. Glimmer while it works. | The logo's own |
-| 6 px filled dot | A human is needed. On a question row, and before an `asks` line. | `--warning` |
+| 6 px filled dot | A human is needed. Before an `asks` line. | `--warning` |
 | 6 px filled dot | A run failed or is lost. | `--danger` |
 | The word `failed` | A failed check. | `--danger` |
 | Every other fact | Words and numbers. | `--fg`, `--fg-muted`, `--fg-faint` |
@@ -238,13 +233,13 @@ Marks, the whole set:
 
 ```
 Current: The run settles, and its state reaches the page
-0 to start  ·  5 running  ·  4 wait for you
+0 to start  ·  5 running  ·  2 wait for you
 ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░  3 of 27 done
 done 3 · review 9 · todo 15
 ```
 
 - Line 1: `Current: ` in `--fg-muted`, then the name of the first wave that is not done, in `--fg`.
-- Line 2: `0 to start` links to the filter `category=todo, ready=true`. `5 running` is plain text, the filter grammar has no filter for a working agent. `4 wait for you` links to the filter `turn=you`. The count is questions plus pull requests whose turn is `you`: OP-52, OP-53, #56930, #57057.
+- Line 2: `0 to start` links to the filter `category=todo, ready=true`. `5 running` is plain text, the filter grammar has no filter for a working agent. `2 wait for you` links to the filter `turn=you`. The count is pull requests whose turn is `you`: #56930, #57057.
 - Line 3: the existing `StackedBar`, 6 px. Segments: done `--success`, review `--accent`, started `--warning`, todo `--fg-faint`. The review segment leaves the `agent` tone.
 - Line 4: the legend, `--fg-faint`, zero buckets dropped.
 - `StackedBarList` is removed from the band. Six bars plus one is a lot.
@@ -269,12 +264,11 @@ Columns of a ticket row, left to right:
 | actor | 20 px | the agent card of the assigned run |
 | updated | 48 px | relative time |
 
-The `waits` cell prints one of four values:
+The `waits` cell prints one of three values:
 
 - nothing, when the ticket has no unmet dependency and is not Todo;
 - `ready` in `--fg-faint`, when the ticket is Todo and every ticket it waits on is done;
-- the unmet identifiers, two at most, then `+n`: `OP-32 · OP-52`;
-- an identifier followed by the yellow dot when that ticket is an open question: `OP-53 ●`.
+- the unmet identifiers, two at most, then `+n`: `OP-32 +10`.
 
 The `releases` cell prints the count of tickets that wait on this one, or nothing. A click filters the table to those tickets.
 
@@ -312,9 +306,8 @@ The rows of wave 2 and wave 3, in the real state. Sizes and run states are examp
    ◐ OP-39  Service: The chat list answers only the chats a person started                      ⟨A⟩  2h
      ⊙ #57079  draft · +64 −12 · 3 files · 1 failed · 8 passed · no evidence · crisp-fjord
 
-▾  The run settles, and its state reaches the page   [Current]      0 of 6 · 1 for you
-   ◍ OP-52  Decision: a missed window, run it late or leave it missed          ●         1      ⟨A⟩  2d
-   ◐ OP-33  Service: One routine's failure does not end the sweep pass   OP-32 · OP-52 ●        ⟨A⟩  3h
+▾  The run settles, and its state reaches the page   [Current]      0 of 6
+   ◐ OP-33  Service: One routine's failure does not end the sweep pass   OP-32                  ⟨A⟩  3h
      ⊙ #57055  draft · stacked on #55569 · +73 −9 · 3 files · 9 passed · no evidence · crisp-fjord
    ○ OP-34  Service: The webhook settles the routine run                 OP-32           2            1d
    ○ OP-50  Agent: The agent creates, changes, pauses and runs a routine OP-32           1            1d
@@ -326,7 +319,7 @@ Rows inside a group keep `epicRowRank`: what waits for him first, then what he c
 
 The group header keeps the existing `GroupHeader`: the label, the `Current` badge on the first wave that is not done, and the count slot as text: `0 of 6 · 1 for you`. `1 for you` counts the rows of the group whose turn is `you`.
 
-The `◍` mark on OP-52 is the Human Review `StatusIcon` in `--warning`. The yellow dot after its title is the human-needed dot. Yellow appears on this screen in three places only: the Human Review glyph, the dot on a question, and an `asks` line.
+Yellow appears on this screen in two places only: the Human Review glyph and an `asks` line.
 
 **What moves.** The glimmer on the agent card of a working run. Nothing else.
 
@@ -340,7 +333,7 @@ The `◍` mark on OP-52 is the Human Review `StatusIcon` in `--warning`. The yel
 | a `releases` count | filters the table to the tickets that wait on this one |
 | the agent card | opens the session of the run in a `PageSheet` |
 | an agent line that asks | opens the session at the question |
-| `0 to start`, `4 wait for you` | sets the table filters |
+| `0 to start`, `2 wait for you` | sets the table filters |
 | a group label | collapses the group |
 | `c` | creates a ticket in that wave |
 
@@ -350,12 +343,10 @@ The `◍` mark on OP-52 is the Human Review `StatusIcon` in `--warning`. The yel
 
 **Purpose.** Answer "what do I do first" in one read. The groups are who moves next. Inside a group, rows sort by what they release, descending.
 
-Six groups, fixed order. An empty group does not render.
+Five groups, fixed order. An empty group does not render.
 
 ```
-▾  Your turn                                                                    4
-   ◍ OP-53  Decision: what an unattended run may do, A, B or C           ●        2      ⟨A⟩  2d
-   ◍ OP-52  Decision: a missed window, run it late or leave it missed    ●        1      ⟨A⟩  2d
+▾  Your turn                                                                    2
    ◐ OP-35  Service: A run whose webhook never came is closed          OP-34      1      ⟨A⟩  3h
      ⊙ #57057  open · +140 −20 · 5 files · 42 passed · no evidence · you
    ◐ OP-27  Web: Bound the Operator message post, and end the wait on what the thread says  ⟨A⟩  1d
@@ -369,14 +360,10 @@ Six groups, fixed order. An empty group does not render.
      ⊙ #57078  draft · +98 −6 · 4 files · 1 failed · 8 passed · no evidence · crisp-fjord
    ◐ OP-43  Canary: A private Canary route that answers a user's properties       1      ⟨A⟩  2h
      ⊙ #57080  open · +311 −12 · 6 files · 1 failed · 6 pending · 47 passed · evidence 1 of 4 · crisp-fjord
-   ◐ OP-33  Service: One routine's failure does not end the sweep pass   OP-32 · OP-52 ● ⟨A⟩  3h
+   ◐ OP-33  Service: One routine's failure does not end the sweep pass   OP-32           ⟨A⟩  3h
      ⊙ #57055  draft · stacked on #55569 · +73 −9 · 3 files · 9 passed · no evidence · crisp-fjord
    ◐ OP-39  Service: The chat list answers only the chats a person started               ⟨A⟩  2h
      ⊙ #57079  draft · +64 −12 · 3 files · 1 failed · 8 passed · no evidence · crisp-fjord
-
-▾  Waits on your answer                                                         2
-   ○ OP-40  Agent: A scheduled run tells the agent that nobody is there  OP-32 · OP-53 ●  1         1d
-   ○ OP-45  Service: The Proposal model                                  OP-53 ●          1         1d
 
 ▾  Waits on a merge                                                            13
    ○ OP-34  Service: The webhook settles the routine run                 OP-32            2         1d
@@ -402,11 +389,10 @@ The rules of the turn:
 
 | Turn | Condition |
 | --- | --- |
-| you | a question in Human Review; or an open pull request that is not a draft, has no failed check and no open thread |
+| you | an open pull request that is not a draft, has no failed check and no open thread |
 | an agent | a draft; or a failed check; or an open thread; or a run of the ticket is working |
 | github | not a draft, no failed check, one or more pending checks |
-| waits on your answer | Todo, and one unmet dependency is an open question |
-| waits on a merge | Todo, and every unmet dependency is a ticket, not a question |
+| waits on a merge | Todo, and one or more unmet dependencies |
 | done | category done |
 
 The same rows, the same columns, the same clicks as screen 1. No new element. A grouping is a function of the row.
@@ -653,7 +639,6 @@ Section 5 gives the reasoning. This screen is the page.
  Ready          no. OP-32 is not merged.
  Releases       OP-35  Service: A run whose webhook never came is closed
                 OP-42  Service: A routine run's token lives six hours, and settling revokes it
- Applies        OP-52, open. Its answer changes what a missed window writes.
 
  THE EVIDENCE
  No pull request yet.
@@ -683,11 +668,10 @@ The right rail keeps `PickerRows` for status, priority, labels, project, parent,
 | OP-32 under Waits on | opens OP-32 in a `PageSheet` |
 | `#55569` | opens the review page in a wider `PageSheet` |
 | a ticket under Releases | opens it in a `PageSheet` |
-| OP-52 under Applies | opens the question |
 | `Start` | starts a run with the chosen harness, model and effort |
 | `routine-runtime.md` | opens the doc in the TipTap editor, in a `PageSheet` |
 
-### Screen 6. The ticket page, OP-33, Agent Review, a stacked pull request, waits on a question
+### Screen 6. The ticket page, OP-33, Agent Review, a stacked pull request
 
 ```
  Routines E2E  ·  The run settles, and its state reaches the page
@@ -710,10 +694,8 @@ The right rail keeps `PickerRows` for status, priority, labels, project, parent,
 
  THE CHAIN
  Waits on       OP-32  Service: A routine run opens a chat and queues the turn      ⊙ #55569 draft
-                OP-52  Decision: a missed window, run it late or leave it missed    ● your answer
- Ready          no. OP-32 is not merged, and OP-52 is open.
+ Ready          no. OP-32 is not merged.
  Releases       nothing
- Applies        OP-52, open. The missed state this ticket writes depends on the answer.
 
  THE EVIDENCE
  ⊙ #57055   draft   Operator: continue the routine sweep after a failed start
@@ -734,50 +716,11 @@ The right rail keeps `PickerRows` for status, priority, labels, project, parent,
  routine-runtime.md, step 5
 ```
 
-`stacked on #55569` is derived: the base ref of `#57055` is the head ref of `#55569`. Nobody typed it. The `Waits on` line for OP-52 carries the yellow dot and the words `your answer`.
+`stacked on #55569` is derived: the base ref of `#57055` is the head ref of `#55569`. Nobody typed it.
 
 The run line is the `RunLine` of section 6. Its state words come from section 3. The agent card carries the glimmer because the state is `works`. The second line is the last message, after the name, only because one exists.
 
 The pull request card here is the short form of the conditions. `Open the review` opens screen 3's layout for `#57055` in a wider `PageSheet`.
-
-### Screen 7. The ticket page, OP-52, a question
-
-The question block replaces the contract and the evidence. A ticket carries one or the other, never both.
-
-```
- Routines E2E  ·  The run settles, and its state reaches the page
- OP-52   Decision: a missed window, run it late or leave it missed          [ ◍ Human Review ▾ ]   ●
-
- THE ASK
- start_due skips a due moment older than GRACE, 30 minutes. A CronJob outage of an hour loses the
- night's work and records nothing.
-
- THE QUESTION
- ( ) 1   Leave it missed. Write a RoutineRun with a missed state so the person sees the gap.
-         crisp-fjord recommends this one.
- ( ) 2   Run it late. The sweep starts every due moment it finds, however old.
- ( ) 3   Run it late inside a wider grace, for example six hours, and leave older moments missed.
-
- Why crisp-fjord recommends 1
- A night audit that runs at 09:00 reads a different day than the one it was written for, and a
- backlog of late runs can hold the CronJob past its next tick.
-
- THIS ANSWER RELEASES
- OP-33  Service: One routine's failure does not end the sweep pass         ◐ Agent Review · ⊙ #57055
-
- YOUR ANSWER
- [ Your reason, one or two sentences                                                              ]
- [ Answer ]
-
- RESOURCES
- routine-runtime.md
-```
-
-Every option and the recommendation are from the export, verbatim. The recommendation line under option 1 is the one mark: words in `--fg-muted`, no star, no badge.
-
-`Answer` does three things. It writes the option number and the reason where the agent brief reads them. It moves the ticket to Done. It removes the yellow dot from OP-33's `waits` cell on the epic page and prints `answered: OP-52 chose 1` under `Applies` on OP-33. If a run of OP-33 is live, the answer is delivered to it through `review_deliveries`, the same channel a review uses.
-
-The word `decide` appears nowhere. The button says `Answer`.
 
 ### Screen 8. Epic resources
 
@@ -810,8 +753,7 @@ What an agent and he read in the terminal. Output is JSON when stdout is not a t
 0 ready to start
 
 waits on a merge       13   OP-34 OP-50 OP-38 OP-44 OP-42 OP-36 OP-41 OP-46 OP-47 OP-48 OP-49 OP-51 OP-54
-waits on your answer    2   OP-40 OP-45
-your turn               4   OP-53 OP-52 #57057 #56930
+your turn               2   #57057 #56930
 with an agent           5   #55569 #57078 #57080 #57055 #57079
 ```
 
@@ -821,7 +763,6 @@ with an agent           5   #55569 #57078 #57080 #57055 #57079
 OP-33  Service: One routine's failure does not end the sweep pass
   waits on
     OP-32  Service: A routine run opens a chat and queues the turn      agent review   parsed from "Depends on: step 4."
-    OP-52  Decision: a missed window, run it late or leave it missed    human review   parsed from OP-52 "Waiting on this answer: OP-33."
   releases
     nothing
   derived
@@ -868,8 +809,6 @@ trellis summary write <pr> --headline "..." --why - --watch "..."
 trellis evidence add <pr> --kind before|after|clip|console|verify|test|contract|migration|picture|equivalence ...
 trellis evidence check <pr>
 trellis evidence list <pr>
-
-trellis answer OP-52 --option 1 --reason "..."
 
 trellis resource add OP/routines-e2e --kind doc|link|image|file ...
 trellis resource list OP/routines-e2e
@@ -919,16 +858,10 @@ Width 390 px. Two-line rows of 56 px. Every touch target at least 44 px.
 ├────────────────────────────────────────┤
 │ Current: The run settles, and its      │
 │ state reaches the page                 │
-│ 0 to start · 5 running · 4 for you     │
+│ 0 to start · 5 running · 2 for you     │
 │ ████░░░░░░░░░░░░░░░░░░   3 of 27       │
 ├────────────────────────────────────────┤
-│ ▾ Your turn                        4   │
-│                                        │
-│ ◍ OP-53  Decision: what an unatten…  ● │
-│   releases 2                           │
-│                                        │
-│ ◍ OP-52  Decision: a missed window…  ● │
-│   releases 1                           │
+│ ▾ Your turn                        2   │
 │                                        │
 │ ◐ OP-35  Service: A run whose webh…    │
 │   ⊙ #57057 open · 42 passed · you      │
@@ -948,13 +881,12 @@ Width 390 px. Two-line rows of 56 px. Every touch target at least 44 px.
 
 Rules on the phone:
 
-- The phone defaults to the Turn grouping. Answering a question and reading a state are the two tasks that work on a phone. The Display control still offers Wave.
-- Line 1 holds the status glyph, the identifier, the title cut with an ellipsis, then the agent card or the yellow dot.
+- The phone defaults to the Turn grouping. The Display control still offers Wave.
+- Line 1 holds the status glyph, the identifier, the title cut with an ellipsis, then the agent card.
 - Line 2 holds one of: the agent's message, the pull request glyph and number with the checks in words and the turn, `waits on OP-32`, or `releases n`. Size, files and evidence counts drop first.
 - The band keeps its three lines. The legend of the bar is hidden. A tap opens it.
 - A tap on a row opens the ticket as a full page. A tap on a pull request line opens the review page as a full page with regions A, B, C, D and E, and one control named `Files` for the rest. He does not read a diff on a phone.
 - The verdict bar on a phone holds `Send back` and `Comment only`. It holds no `Merge`. A merge into an enterprise repository needs the desk.
-- The question page on a phone is the full screen 7. It is the one review task that a phone does well.
 
 ---
 
@@ -1099,7 +1031,7 @@ A ticket in a team tool is a conversation about work. Here one human works, and 
 
 Four questions decide the page. What does the agent owe me? What must finish before this starts? What did the agent produce, and what proves it? Is it safe to merge? The activity feed answers none of them. The comment thread answers none of them.
 
-The real epic already writes the contract by hand, inside prose. OP-34 holds `Files:`, `Depends on: step 4.` and `Review focus:`. OP-54 holds `Verify:` with three commands and the sentence "The result the next wave reads". OP-52 holds `Options:`, `Recommendation:` and `Waiting on this answer: OP-33`. The structure exists. The page does not show it, and the server cannot read it. The rethought page shows it, and the server reads it.
+The real epic already writes the contract by hand, inside prose. OP-34 holds `Files:`, `Depends on: step 4.` and `Review focus:`. OP-54 holds `Verify:` with three commands and the sentence "The result the next wave reads". The structure exists. The page does not show it, and the server cannot read it. The rethought page shows it, and the server reads it.
 
 ### 5.2 The five clauses
 
@@ -1107,35 +1039,33 @@ The real epic already writes the contract by hand, inside prose. OP-34 holds `Fi
 | --- | --- | --- | --- |
 | The ask | one paragraph: what breaks, or what must exist | he, or the planning agent | the working agent |
 | The contract | Result, Files, Leave alone, Verify, Review focus, Evidence owed | he, or the planning agent; `Evidence owed` is computed | the working agent, the review page, `trellis evidence check` |
-| The chain | Waits on, Ready, Releases, Applies | `--after` edges, parsed prose, the branch graph, `Waiting on this answer:` | he, the epic page, the ancestors condition |
+| The chain | Waits on, Ready, Releases | `--after` edges, parsed prose, the branch graph | he, the epic page, the ancestors condition |
 | The evidence | one card per pull request: the short conditions, the evidence count, the flow verdict, `Open the review` | Trellis | he |
 | The outcome | what merged, and the sentence the next contract reads | the agent at merge, one sentence | the next ticket's brief, OP-54 |
 
 Then two service blocks: the run, one line per attempt with the harness state and the `Start` controls; and the resources the contract names.
-
-For a question, the contract and the evidence clauses give way to the question block: numbered options, the recommendation as words, the reason, the tickets the answer releases, one `Answer` action.
 
 ### 5.3 What leaves the page, and why
 
 | Removed | Where it lives today | Why |
 | --- | --- | --- |
 | the activity feed | `Timeline`, `ActivityLine` in `apps/web/src/features/ticket/Timeline/` | one human makes every field change. The feed tells him what he did. |
-| the comment thread and the composer | `CommentThread`, `CommentCard`, `Composer`, `MentionedThread` | no second human reads them. The session view holds the agent conversation. An agent's question belongs under the title, and his answer belongs in the question block. Together with the feed these hold 716 of the 3,104 TSX lines of the feature. |
+| the comment thread and the composer | `CommentThread`, `CommentCard`, `Composer`, `MentionedThread` | no second human reads them. The session view holds the agent conversation. An agent's question belongs under the title. Together with the feed these hold 716 of the 3,104 TSX lines of the feature. |
 | the four tabs | `TicketWorkArea`: Activity, Agent, Diffs, Flows | the page is one column read top to bottom. Agent becomes `Session` on the run line. Diffs becomes the evidence clause. Flows becomes one line inside each pull request card. |
 | `TicketMetrics` | the right rail: Tokens burned, Time burned, Age | none of the three changes a merge decision. Spend belongs on the usage page. |
 | the human reviewer picker | `ReviewerPicker` on the review page | there is one reviewer. |
 
-Kept, against the instinct to cut: the `comments` table. `apps/server/src/services/brief.ts` reads the last 10 comments into every agent brief, and a mention in a comment starts a run. The rows stay as the transport. `Answer` writes one. Only the interface comes out.
+Kept, against the instinct to cut: the `comments` table. `apps/server/src/services/brief.ts` reads the last 10 comments into every agent brief, and a mention in a comment starts a run. The rows stay as the transport. Only the interface comes out.
 
 ### 5.4 The reading order
 
-The contract sits above the proof. The proof sits above the process. He reads down and stops when he can act. Screens 5, 6 and 7 are the page for a blocked ticket, a ticket under review, and a question.
+The contract sits above the proof. The proof sits above the process. He reads down and stops when he can act. Screens 5 and 6 are the page for a blocked ticket and a ticket under review.
 
 ---
 
 ## 6. Every new UI element
 
-`docs/UI_PATTERNS.md:13-15` requires that each new element names the canonical element it would replace and the reason that element fails. Fourteen elements. Two column additions and one row kind that reuse `Row` are listed separately.
+`docs/UI_PATTERNS.md:13-15` requires that each new element names the canonical element it would replace and the reason that element fails. Thirteen elements. Two column additions and one row kind that reuse `Row` are listed separately.
 
 | New element | Where | Nearest canonical element, and why it fails |
 | --- | --- | --- |
@@ -1148,8 +1078,7 @@ The contract sits above the proof. The proof sits above the process. He reads do
 | `EvidenceStrip` | review page region E, the pull request card | `AttachmentGrid` splits a ticket's files into thumbnails and rows. Evidence needs a before and after pair with one record line, a clip that plays in place, a verify record with an exit code, a contract table, and a missing list with the command that fills each gap. |
 | `FileRiskGroups` | review page region G | `ReviewFiles` lists files by path with per-file comment counts. Nothing orders by risk, prints a line count per group, collapses noise, or keeps a per-file, per-revision read mark. |
 | `ContractBlock` | ticket page | `PropertyRow` holds one label and one value. The contract holds lists of paths, commands and sentences, and the server reads the same fields for the brief, the review focus and `trellis evidence check`. Prose in `Description` cannot be read by the server. |
-| `ChainBlock` | ticket page | `PropertyRow` holds one direction. The chain holds two directions with titles and states, a derived `Ready` sentence, and the question the ticket applies. |
-| `QuestionBlock` | ticket page, on a question | `Description` is free prose. An option has no identity and no action there. The block holds numbered options, the recommendation as words, the reason, the tickets the answer releases, and one `Answer` that writes where the brief reads. |
+| `ChainBlock` | ticket page | `PropertyRow` holds one direction. The chain holds two directions with titles and states, and a derived `Ready` sentence. |
 | `RunLine` | ticket page | `ActorAvatar` marks one actor on a row. The line prints one attempt: the card, the name, the harness, the model, the state words of section 3 with the tool and the time, the last message on a second line, and `Session`. |
 | `StartControls` | ticket page, on the run block | `ModelPicker` picks a model. Starting a run needs the harness, the model and the effort in one row with one `Start`. It reuses `ModelPicker` inside. |
 | `ResourceList` | epic page, ticket page | `AttachmentGrid` belongs to a ticket and holds files. A resource belongs to the epic and has four kinds. A doc opens an editor and a link opens the in-app browser, which no file row does. |
@@ -1175,7 +1104,6 @@ Server and CLI work behind the elements:
 | the contract | fields on the ticket, or a `ticket_contracts` row. Decision 1. |
 | evidence | new tables bound to a pull request and a head sha, with kind, record and blob sha256. The store reuses the `attachments` blob store. |
 | the summary | one row per pull request and head sha |
-| the answer | a comment row today; a `ticket_answers` row later. Decision 4. |
 | epic resources | table `epic_resources` with four kinds, an optional ticket id, an actor |
 | the outcome | one text field on the ticket, written by `trellis outcome set` at merge |
 
@@ -1186,16 +1114,13 @@ Server and CLI work behind the elements:
 | Design | What it proposed | Ruling | Why |
 | --- | --- | --- | --- |
 | B, C | `Approve and merge` disabled on a failed check, an open thread or an unmerged stack | overruled | Rule 1. No gate blocks him. The button stays live and the unmet conditions print as one line. He reads them and decides. |
-| C | the band prints `2 decisions` | overruled | Rule 10. The word is `questions`. The titles `Decision: ...` stay, because they are data. |
 | C | `Next move` phrases replace the status column: `Review #57078`, `Fix checks`, `Blocked by OP-32` | overruled, half taken | Nine phrases is a vocabulary to learn, and a phrase per row is a lot to read across 27 rows. The Turn grouping carries the same fact once per group, and the `waits` cell carries the blocker. The status glyph stays. |
-| C | `?` glyph on a question, `!` for priority, `◐` for a working run on one row | overruled | Rule 6 and 12. Three marks per row need decoding. The human-needed mark is one yellow dot everywhere. |
-| B | a `▲` triangle as the human-needed mark | overruled | A 6 px dot is legible at row size and needs no decoding. The same dot marks a question, an `asks` line, and a question in a `waits` cell. One glyph, one color, one meaning. |
+| B | a `▲` triangle as the human-needed mark | overruled | A 6 px dot is legible at row size and needs no decoding. The same dot marks an `asks` line. One glyph, one color, one meaning. |
 | B | `Group by chain`, one group per path through the graph | overruled | A path is not unique in a graph with joins. OP-33 sits on two paths. The Turn grouping answers "what first" and the `waits` cell answers "after what" without a chain name to invent. |
 | A | the landing order view: `LANDS NOW`, `LANDS AFTER ONE MERGE`, `LANDS LATER` | folded | Its facts live in the Turn grouping. `Waits on a merge` sorts by depth, and the `waits` cell shows the first blocker. |
 | A | a 56 px `ChangeRow` with an eight-fact readiness line on every pull request ticket | overruled | Rule 12. The row grew past what a glance reads. The pull request becomes its own 32 px row with fewer facts, and the review page holds the rest. |
 | A, B, C | the agent-written text is the `brief` | overruled | `trellis brief` and `brief.ts` already mean the markdown the agent starts from. One word, one meaning. The pull request text is the `summary`. |
 | B, C | the ticket page keeps tabs: Plan and Agent, or Contract, Agent, Flows | overruled | One column, read top to bottom. The session opens from the run line in a `PageSheet`. A flow is one line on the pull request card. |
-| C | three buttons `Answer A`, `Answer B`, `Answer C` | overruled | A radio and one `Answer` let him write the reason before the click, and the reason is what the brief reads. |
 | A | `TicketMetrics` removed with no home | adjusted | Removed from the ticket. The elapsed time and the tokens move to a hover on the run line, so nothing is lost. |
 | B | `1 running` stays plain text | kept | `docs/UI_PATTERNS.md:100-113`. The filter grammar has no filter for a working agent. |
 | C | the epic page gains a tab strip: Board, Chain, Resources | overruled | A tab strip is a new element on a page that has a `DisplayPopover` and `SectionHeader`. Grouping goes in Display. Resources is a section. |
@@ -1210,8 +1135,4 @@ Server and CLI work behind the elements:
 
 3. **May the CLI refuse the agent's hand-over?** `trellis move KEY-42 human-review` refuses while the evidence floor is missing. It never refuses you. A required field gets filled and an optional heading does not. The risk is an agent that loops on a refusal. I recommend the refusal, with the missing list printed each time.
 
-4. **Where does an answer live?** A comment row ships today and the brief already reads it. A `ticket_answers` row carries the option number and reads cleaner in the brief and on OP-33's `Applies` line. I recommend the comment row now and the answer row when the brief is next rewritten.
-
-5. **Does an answer reach a live run?** OP-52 releases OP-33, and a run of OP-33 may be working on the wrong assumption while your answer lands. The design delivers the answer to the live run through `review_deliveries`. Say if you want it to stop and restart the run instead.
-
-6. **Which grouping is the default on the desktop?** Wave says what you intend to start together. Turn says what you do first. The design defaults to Wave on the desktop and Turn on the phone. Say if you want Turn on both.
+4. **Which grouping is the default on the desktop?** Wave says what you intend to start together. Turn says what you do first. The design defaults to Wave on the desktop and Turn on the phone. Say if you want Turn on both.

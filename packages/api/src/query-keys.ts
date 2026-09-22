@@ -52,7 +52,7 @@ const parentFields: ReadonlySet<string> = new Set(["parent", "status", "complete
 const epicFields: ReadonlySet<string> = new Set(["epic", "wave", "status", "completedAt", "after"]);
 
 // A ticket event carries only the summary. These fields change detail data
-// that the summary omits, such as `answeredQuestions` after an `after` change.
+// that the summary omits.
 const detailFields: ReadonlySet<string> = new Set(["description", ...ticketContractFields, "outcome", "after"]);
 
 // A summary event cannot patch these values. Remove the detail so a reader

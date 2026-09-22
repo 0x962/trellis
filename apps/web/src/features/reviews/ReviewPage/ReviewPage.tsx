@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import {
 	type Evidence,
 	evidenceFloor,
+	type GitHubConversationItem,
 	isAgentWorking,
 	type ReviewRevision,
 	type ReviewSubmission,
@@ -10,7 +11,8 @@ import {
 	turnOf,
 	verdictMark,
 } from "@trellis/api";
-import { Skeleton, Tabs, TicketId, useMediaQuery } from "@trellis/ui";
+import { EmptyState, Skeleton, Tabs, TicketId, useMediaQuery } from "@trellis/ui";
+import type { DiffAnchor } from "@trellis/ui/review";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
@@ -18,11 +20,11 @@ import { ConditionsBlock } from "../ConditionsBlock";
 import { unmetConditions } from "../conditionLines/conditionLines";
 import { EvidenceStrip } from "../EvidenceStrip";
 import { FileRiskGroups } from "../FileRiskGroups";
+import { FlowRuns } from "../FlowRuns";
 import { ApplySuggestionsDialog, ReviewApplyContext, type ReviewApplyState, ReviewBatchBar } from "../ReviewApply";
 import { ReviewChecks } from "../ReviewChecks/ReviewChecks";
 import { ReviewComment } from "../ReviewComment/ReviewComment";
 import { ReviewDiscussion } from "../ReviewDiscussion/ReviewDiscussion";
-import { ReviewFocusList } from "../ReviewFocusList";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
 import { ReviewStack } from "../ReviewStack/ReviewStack";
 import type { ReadMarkFile } from "../readMarks/readMarks";
@@ -42,7 +44,6 @@ import "@trellis/ui/review.css";
 const noThreads: ReviewThread[] = [];
 const noSubmissions: ReviewSubmission[] = [];
 const noRecords: Evidence[] = [];
-const noSentences: string[] = [];
 const noConditions: string[] = [];
 
 type Commit = { oid: string; messageHeadline: string };
@@ -73,7 +74,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 		linkedPr,
 		summary,
 		evidence,
-		factsReady,
+		overviewReady,
 		threads,
 		submissions,
 		refresh,
@@ -84,6 +85,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	// `FilesDisclosure` hides the review details behind one control on a phone.
 	const phone = useMediaQuery("(max-width: 767px)");
 	const [pickedPath, setPickedPath] = useState("");
+	const [pickedAnchor, setPickedAnchor] = useState<DiffAnchor | null>(null);
 	const [batch, setBatch] = useState<ReadonlySet<string>>(() => new Set());
 	const [applying, setApplying] = useState<string[] | null>(null);
 	// The diff shows the threads of the revision on screen, plus the threads
@@ -134,7 +136,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	const applyingThreads = applying === null ? [] : applying.flatMap((id) => threadsById.get(id) ?? []);
 	// A file-list choice overrides the path of a linked thread.
 	const deepLinkPath = activeThread === null ? undefined : threadsById.get(activeThread)?.path;
-	const selectedPath = pickedPath !== "" ? pickedPath : (deepLinkPath ?? "");
+	const selectedPath = pickedPath !== "" ? pickedPath : (pickedAnchor?.path ?? deepLinkPath ?? "");
 	// The summary and evidence records must match the revision on screen.
 	const headSha = revision?.headSha ?? "";
 	const records = useMemo(
@@ -171,6 +173,15 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	if (firstTurn.current === null && turn !== null) firstTurn.current = defaultReviewTab(turn);
 	const shownTab = tab ?? firstTurn.current ?? defaultReviewTab(null);
 	const ref = reviewRef(pr);
+	const ticketIdentifier = status.data?.ticket?.identifier ?? "";
+	const openGitHubLine = (item: GitHubConversationItem) => {
+		if (!item.path || !item.line) return;
+		const side = item.side ?? "new";
+		const anchor = { path: item.path, side, line: item.line, startLine: item.line };
+		setPickedAnchor(anchor);
+		setPickedPath(item.path);
+		onTabChange("diff");
+	};
 	return (
 		<ReviewApplyContext.Provider value={applyState}>
 			<div className="review-page">
@@ -231,9 +242,9 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 						</p>
 					)}
 				</div>
-				{/* Both panels stay mounted: `DiffPane` reports the changed file list
+				{/* Every panel stays mounted: `DiffPane` reports the changed file list
 				    that the tree draws, and the diff keeps its scroll position while
-				    the Facts tab shows. */}
+				    another tab shows. */}
 				<Tabs
 					value={shownTab}
 					onValueChange={onTabChange}
@@ -242,32 +253,24 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 					panelClassName="review-tab-panel"
 					items={[
 						{
-							value: "facts",
-							label: "Facts",
+							value: "overview",
+							label: "Overview",
 							content: (
-								<div className="review-facts-blocks">
-									{!factsReady || conditions === null ? (
+								<div className="review-blocks">
+									{!overviewReady || conditions === null ? (
 										<section aria-busy="true">
 											<span className="sr-only" role="status">
-												Merge conditions are loading.
+												The overview is loading.
 											</span>
 											<Skeleton lines={10} />
 										</section>
 									) : (
 										<>
 											<ChangeSummary summary={summaryRow} headSha={headSha} />
-											<ConditionsBlock conditions={conditions} />
-											{revision && (
-												<ReviewFocusList
-													pr={pr}
-													revisionId={revision.id}
-													sentences={ticket.data?.contract.reviewFocus ?? noSentences}
-												/>
-											)}
 											{floor && <EvidenceStrip records={records} floor={floor} />}
+											<ConditionsBlock conditions={conditions} />
 										</>
 									)}
-									<ReviewChecks checks={status.data?.checks ?? null} pr={pr} />
 									<ReviewDiscussion
 										threads={allThreads}
 										activeThread={activeThread}
@@ -278,10 +281,44 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 												if (thread.revisionId && thread.revisionId !== revision?.id)
 													setRevision(await client.reviews.revision({ pr, id: thread.revisionId }));
 												setPickedPath(thread.path);
+												setPickedAnchor({
+													path: thread.path,
+													side: thread.side,
+													line: thread.line,
+													startLine: thread.startLine,
+												});
 												onTabChange("diff");
 											})();
 										}}
+										onGitHubLine={openGitHubLine}
 									/>
+								</div>
+							),
+						},
+						{
+							value: "checks",
+							label: "Checks",
+							content: (
+								<div className="review-blocks">
+									<ReviewChecks checks={status.data?.checks ?? null} pr={pr} />
+								</div>
+							),
+						},
+						{
+							value: "flows",
+							label: "Flows",
+							content: (
+								<div className="review-blocks">
+									{/* A flow runs against a ticket, so a pull request that no
+									    ticket links can hold no flow run. */}
+									{ticketIdentifier === "" ? (
+										<EmptyState
+											title="No flow runs"
+											description="No ticket links this pull request, and a flow runs against a ticket."
+										/>
+									) : (
+										<FlowRuns ticket={ticketIdentifier} />
+									)}
 								</div>
 							),
 						},
@@ -301,7 +338,10 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 													files={changedFiles}
 													read={read}
 													selected={selectedPath}
-													onSelect={setPickedPath}
+													onSelect={(path) => {
+														setPickedPath(path);
+														setPickedAnchor(null);
+													}}
 												/>
 											)}
 										</aside>
@@ -314,6 +354,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 													revision={revision}
 													threads={revisionThreads}
 													selectedFile={selectedPath}
+													selectedAnchor={pickedAnchor}
 													renderThread={renderThread}
 													onFiles={setChangedFiles}
 													read={read}

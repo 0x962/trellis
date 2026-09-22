@@ -15,14 +15,12 @@ const op32: TicketSummary["waitsOn"][number] = {
 	identifier: "OP-32",
 	title: "Service: A routine run opens a chat and queues the turn",
 	status: "review",
-	isQuestion: false,
 };
 
 const op52: TicketSummary["waitsOn"][number] = {
 	identifier: "OP-52",
-	title: "Decision: a missed window, run it late or leave it missed",
-	status: "review",
-	isQuestion: true,
+	title: "Service: A missed window runs late",
+	status: "started",
 };
 
 const render = (waitsOn: TicketSummary["waitsOn"]) =>
@@ -66,8 +64,7 @@ describe("StartControls", () => {
 		expect(html).toContain("Service: A routine run opens a chat and queues the turn");
 		expect(html).toContain("is not merged");
 		expect(html).toContain("OP-52");
-		expect(html).toContain("Decision: a missed window, run it late or leave it missed");
-		expect(html).toContain("is open");
+		expect(html).toContain("Service: A missed window runs late");
 		expect(html).toContain("Start anyway?");
 	});
 

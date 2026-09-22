@@ -7,13 +7,11 @@ import { factSeparator } from "./separators.ts";
 
 const maxShownWaits = 2;
 
-// The page marks a question with a yellow dot. A terminal has no color, so
-// the word `asks` takes the place of the dot.
 export const ticketWaitsCell = (ticket: Pick<TicketSummary, "ready" | "waitsOn">): string => {
 	if (ticket.waitsOn.length === 0) return ticket.ready ? "ready" : "";
 	const shown = ticket.waitsOn
 		.slice(0, maxShownWaits)
-		.map((dependency) => (dependency.isQuestion ? `${dependency.identifier} asks` : dependency.identifier))
+		.map((dependency) => dependency.identifier)
 		.join(factSeparator);
 	const rest = ticket.waitsOn.length - maxShownWaits;
 	return rest > 0 ? `${shown} +${rest}` : shown;

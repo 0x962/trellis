@@ -167,6 +167,17 @@
 	}
 }
 
+@utility text-film-static {
+	background-image: var(--film-gradient), linear-gradient(var(--color-fg-muted), var(--color-fg-muted));
+	background-size:
+		100% 100%,
+		100% 100%;
+	background-position: 50% 0;
+	background-repeat: no-repeat, repeat;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
 .harness-account-meter {
 	width: 100%;
 	height: calc(var(--spacing) * 2);

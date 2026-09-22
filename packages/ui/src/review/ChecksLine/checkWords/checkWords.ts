@@ -9,6 +9,12 @@ export type ChecksLineCheck = {
 	bucket: ChecksLineBucket;
 	link: string | null;
 	status?: CheckStatus;
+	required?: boolean;
+	// When GitHub started the check and when it ended. A check that still
+	// runs, and a check the poller read before it stored these two times,
+	// carry null and print no duration.
+	startedAt?: string | null;
+	endedAt?: string | null;
 };
 
 type WordBucket = ChecksLineBucket | "unknown";
@@ -20,8 +26,17 @@ export const checkDisplay: ReadonlyArray<{
 	countAs: WordBucket;
 	summaryOrder: number | null;
 	defaultForBucket: boolean;
+	outcome: string;
 }> = [
-	{ status: "failed", bucket: "fail", label: "Failed", countAs: "fail", summaryOrder: 0, defaultForBucket: true },
+	{
+		status: "failed",
+		bucket: "fail",
+		label: "Failed",
+		countAs: "fail",
+		summaryOrder: 0,
+		defaultForBucket: true,
+		outcome: "Failing",
+	},
 	{
 		status: "running",
 		bucket: "pending",
@@ -29,30 +44,25 @@ export const checkDisplay: ReadonlyArray<{
 		countAs: "pending",
 		summaryOrder: null,
 		defaultForBucket: false,
+		outcome: "In progress",
 	},
 	{
 		status: "pending",
 		bucket: "pending",
-		label: "Pending",
+		label: "Queued",
 		countAs: "pending",
 		summaryOrder: 1,
 		defaultForBucket: true,
+		outcome: "Queued",
 	},
 	{
-		status: "canceled",
-		bucket: "cancel",
-		label: "Canceled",
-		countAs: "cancel",
+		status: "skipped",
+		bucket: "skipping",
+		label: "Skipped",
+		countAs: "skipping",
 		summaryOrder: 2,
 		defaultForBucket: true,
-	},
-	{
-		status: "unknown",
-		bucket: "pending",
-		label: "Unknown",
-		countAs: "unknown",
-		summaryOrder: 3,
-		defaultForBucket: false,
+		outcome: "Skipped",
 	},
 	{
 		status: "neutral",
@@ -61,22 +71,34 @@ export const checkDisplay: ReadonlyArray<{
 		countAs: "skipping",
 		summaryOrder: null,
 		defaultForBucket: false,
+		outcome: "Neutral",
 	},
 	{
 		status: "success",
 		bucket: "pass",
-		label: "Passed",
+		label: "Successful",
 		countAs: "pass",
-		summaryOrder: 4,
+		summaryOrder: 3,
 		defaultForBucket: true,
+		outcome: "Successful",
 	},
 	{
-		status: "skipped",
-		bucket: "skipping",
-		label: "Skipped",
-		countAs: "skipping",
-		summaryOrder: 5,
+		status: "canceled",
+		bucket: "cancel",
+		label: "Canceled",
+		countAs: "cancel",
+		summaryOrder: 4,
 		defaultForBucket: true,
+		outcome: "Canceled",
+	},
+	{
+		status: "unknown",
+		bucket: "pending",
+		label: "Unknown",
+		countAs: "unknown",
+		summaryOrder: 5,
+		defaultForBucket: false,
+		outcome: "Unknown",
 	},
 ];
 
@@ -87,6 +109,15 @@ export const displayOf = (check: ChecksLineCheck) =>
 			: display.status === check.status,
 	)!;
 
+const wordForCount = (bucket: WordBucket, count: number) => {
+	if (bucket === "fail") return "failing";
+	if (bucket === "pending") return "in progress";
+	if (bucket === "pass") return count === 1 ? "successful check" : "successful checks";
+	if (bucket === "skipping") return count === 1 ? "skipped" : "skipped";
+	if (bucket === "cancel") return count === 1 ? "canceled" : "canceled";
+	return "unknown";
+};
+
 export function checkWords(checks: readonly ChecksLineCheck[]): string {
 	const counts = new Map<WordBucket, number>();
 	for (const check of checks) {
@@ -96,6 +127,9 @@ export function checkWords(checks: readonly ChecksLineCheck[]): string {
 	return checkDisplay
 		.filter((display) => display.summaryOrder !== null && counts.has(display.countAs))
 		.sort((a, b) => a.summaryOrder! - b.summaryOrder!)
-		.map((display) => `${counts.get(display.countAs)} ${display.label.toLowerCase()}`)
-		.join(" · ");
+		.map((display) => {
+			const count = counts.get(display.countAs)!;
+			return `${count} ${wordForCount(display.countAs, count)}`;
+		})
+		.join(", ");
 }

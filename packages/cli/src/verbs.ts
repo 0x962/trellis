@@ -68,16 +68,12 @@ export const verbs: Record<string, { description: string; load: Loader }> = {
 		load: () => import("./commands/deps/deps.ts").then((m) => command(m.default)),
 	},
 	ready: {
-		description: "Show who holds each ticket of an epic",
+		description: "Check a pull request for review, or show who holds each ticket of an epic",
 		load: () => import("./commands/ready/ready.ts").then((m) => command(m.default)),
 	},
 	move: {
 		description: "Move a ticket to a status",
 		load: () => import("./commands/move.ts").then((m) => command(m.default)),
-	},
-	answer: {
-		description: "Answer a question ticket",
-		load: () => import("./commands/answer/answer.ts").then((m) => command(m.default)),
 	},
 	contract: {
 		description: "Set or show the contract of a ticket",

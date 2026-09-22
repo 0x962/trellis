@@ -211,12 +211,12 @@ button.review-notice:hover {
 .review-turn-line {
 	color: var(--fg);
 }
-/* Under the identity band the review page is two tabs. The Facts panel holds
-   everything that is not code, and the Diff panel holds two panes: the file
-   tree on the left and the diff on the right. `.review-body` is the root of the
-   tabs and gives the open panel every pixel the sheet has left. The body does
-   not scroll: the facts, the tree and the diff each scroll inside themselves,
-   so a long file moves the code alone. */
+/* Under the identity band the review page is four tabs. Overview, Checks and
+   Flows each hold one column of blocks, and the Diff panel holds two panes:
+   the file tree on the left and the diff on the right. `.review-body` is the
+   root of the tabs and gives the open panel every pixel the sheet has left.
+   The body does not scroll: the blocks, the tree and the diff each scroll
+   inside themselves, so a long file moves the code alone. */
 .review-body {
 	display: flex;
 	flex: 1;
@@ -254,9 +254,8 @@ button.review-notice:hover {
 	min-height: 0;
 	flex-direction: column;
 }
-/* The conditions, the change summary, the review focus, the evidence, the
-   checks and the threads, in the Facts panel. */
-.review-facts-blocks {
+/* The one column of blocks that Overview, Checks and Flows each draw. */
+.review-blocks {
 	display: flex;
 	flex: 1;
 	min-height: 0;
@@ -266,14 +265,14 @@ button.review-notice:hover {
 	overflow-y: auto;
 }
 /* `ReviewDiscussion` and `CheckResults` each carry the height, the scroll bar
-   and the side padding of a page that fills the window. The Facts panel
-   supplies all three, so these two rules hand them back. */
-.review-facts-blocks .review-scroll {
+   and the side padding of a page that fills the window. The panel supplies
+   all three, so these two rules hand them back. */
+.review-blocks .review-scroll {
 	flex: none;
 	overflow: visible;
 	padding: 0;
 }
-.review-facts-blocks .review-list {
+.review-blocks .review-list {
 	max-width: none;
 }
 .review-panes {
@@ -370,10 +369,10 @@ button.review-notice:hover {
 		padding-inline: 16px;
 	}
 	.review-tab-panel,
-	.review-facts-blocks {
+	.review-blocks {
 		flex: none;
 	}
-	.review-facts-blocks {
+	.review-blocks {
 		gap: 20px;
 		padding: 16px;
 		overflow-y: visible;

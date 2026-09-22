@@ -1,15 +1,7 @@
 export { DesktopChrome } from "./desktop/DesktopChrome/index.ts";
 export { ActorChip, type ActorChipProps } from "./domain/ActorChip";
-export {
-	type AnsweredQuestion,
-	ChainBlock,
-	type ChainBlockProps,
-	type ChainDependency,
-	type ChainRelease,
-} from "./domain/ChainBlock";
 export { type Check, type CheckBucket, CheckRibbon, type CheckRibbonProps } from "./domain/CheckRibbon";
 export { CheckRing, type CheckRingCounts, type CheckRingProps } from "./domain/CheckRing";
-export { ContractBlock, type ContractBlockProps } from "./domain/ContractBlock";
 export { type ChartTone, otherTone, rankedTones } from "./domain/chartTones";
 export { DisplayPopover, type DisplayPopoverProps, type DisplaySortField } from "./domain/DisplayPopover";
 export { FilterBar } from "./domain/FilterBar";
@@ -41,13 +33,6 @@ export { type LabelColor, labelColors } from "./domain/labelColors";
 export { PrGlyph, type PrGlyphProps, type PrGlyphSize, type PullRequestState, prGlyphLook } from "./domain/PrGlyph";
 export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/PriorityIcon";
 export { type ModelProvider, ProviderIcon, type ProviderIconProps } from "./domain/ProviderIcon";
-export {
-	type QuestionAnswer,
-	QuestionBlock,
-	type QuestionBlockProps,
-	type QuestionOption,
-	type RecommendedOption,
-} from "./domain/QuestionBlock";
 export { type QuotaWindow, QuotaWindows, type QuotaWindowsProps, quotaFillClass } from "./domain/QuotaWindows";
 export { type RankedBarRow, RankedBars, type RankedBarsProps } from "./domain/RankedBars";
 export {

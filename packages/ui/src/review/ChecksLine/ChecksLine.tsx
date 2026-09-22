@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { CheckResults } from "../CheckResults";
+import { CheckStatusIcon } from "../CheckStatusIcon";
 import { checksLineResult } from "./checksLineResult/checksLineResult";
 import type { ChecksLineCheck, checkDisplay } from "./checkWords/checkWords";
 
@@ -8,20 +9,26 @@ export function ChecksLine({
 	loading = false,
 	isCollapsed,
 	onToggle,
+	onOpenCheck,
 }: {
 	checks: readonly ChecksLineCheck[];
 	loading?: boolean;
 	isCollapsed: (key: (typeof checkDisplay)[number]["status"]) => boolean;
 	onToggle: (key: (typeof checkDisplay)[number]["status"]) => void;
+	// Opens the page of one check. The app decides where that page opens.
+	onOpenCheck?: (url: string) => void;
 }) {
 	const result = useMemo(() => checksLineResult(checks), [checks]);
 	return (
 		<CheckResults
 			title={result.title}
+			description={result.description}
 			groups={result.groups}
+			summary={<CheckStatusIcon status={result.summaryStatus} tooltip={false} className="review-check-summary-mark" />}
 			loading={loading}
 			isCollapsed={isCollapsed}
 			onToggle={onToggle}
+			onOpenCheck={onOpenCheck}
 		/>
 	);
 }

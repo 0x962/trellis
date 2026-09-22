@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, Copy } from "@phosphor-icons/react";
-import type { ReviewRevision, ReviewThread } from "@trellis/api";
+import type { GitHubConversationItem, ReviewRevision, ReviewThread } from "@trellis/api";
 import { EmptyState, IconButton, Input, SectionHeader, Select, Tooltip } from "@trellis/ui";
 import { type ConversationMeta, ReviewConversation } from "@trellis/ui/review";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
@@ -12,9 +12,10 @@ type Props = {
 	revision: ReviewRevision | null;
 	renderThread: (id: string) => ReactNode;
 	onJump: (thread: ReviewThread) => void;
+	onGitHubLine: (item: GitHubConversationItem) => void;
 };
 
-export function ReviewDiscussion({ threads, activeThread, revision, renderThread, onJump }: Props) {
+export function ReviewDiscussion({ threads, activeThread, revision, renderThread, onJump, onGitHubLine }: Props) {
 	const [filter, setFilter] = useState("all");
 	const [search, setSearch] = useState("");
 	const [position, setPosition] = useState(-1);
@@ -65,11 +66,13 @@ export function ReviewDiscussion({ threads, activeThread, revision, renderThread
 			<div className="review-list">
 				<ReviewConversation
 					meta={revision?.meta as ConversationMeta | undefined}
+					items={revision?.githubConversation}
 					renderBody={(body) => <ReviewMarkdown body={body} />}
+					onLineComment={onGitHubLine}
 				/>
 				{threads.length > 0 && (
 					<>
-						<h2 className="review-local-heading">Review comments</h2>
+						<h2 className="review-local-heading">Local review comments</h2>
 						<div className="review-discussion-toolbar">
 							<Input
 								hideLabel

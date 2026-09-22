@@ -108,10 +108,10 @@ Use the count of all matching items, including pages that have not loaded. An un
 A collapsed group retains its count. Its Show action expands the group and prints the count of the rows it reveals.
 A header takes one `Badge` after its label through `mark`, such as Current on a wave.
 
-One rule holds for every header of the ticket page.
-Write the title in sentence case and pass `textCase="caps"`, so a screen reader reads the words and the header draws in capitals.
-Pass `level={3}` for a header inside a region, such as Flows or the merge conditions of a pull request card.
-The size carries the level: 13 px for a region and 12 px for a part of a region. The case never carries the level.
+Write every section title in sentence case, such as Sub-tickets or The ask.
+Pass `level={3}` for a header inside a region, such as Your answer inside the question block.
+The size carries the level: 13 px for a region and 12 px for a part of a region.
+The review page draws its region titles in capitals through `textCase="caps"`. No other page does.
 
 ## Board cards
 
@@ -144,7 +144,7 @@ Truncate long titles and project paths within their columns. Use tabular numbers
 Keep secondary text, such as a mention excerpt, below the title. Do not repeat a full status label in every review row.
 
 Use `ActorAvatar` when a row represents the last actor. It shows the provider mark and the work state only for the agent run that is assigned to the ticket of the row.
-A ticket with no assigned agent run shows its last actor without a provider mark. An agent actor then draws the agent mark with no provider. This rule holds for the table `Row`, the board card, the sub-ticket rows, the epic page, and Needs you.
+A ticket with no assigned agent run shows no agent avatar for its last actor. A human last actor still draws the initials. This rule holds for the table `Row`, the board card, the sub-ticket rows, the epic page, and Needs you.
 When run data supplies a harness, hover over the provider mark to see the model and effort.
 Keep status and priority indicators distinct from the row's action menu.
 Use one circular action menu at the far right. Reserve its width even when its trigger is hidden.

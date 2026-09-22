@@ -2,7 +2,6 @@ import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { Conditions } from "../conditionLines/conditionLines";
 import { ConditionsBlock } from "./ConditionsBlock";
-import { ShortConditions } from "./ShortConditions";
 
 const open: Conditions = {
 	merged: false,
@@ -51,22 +50,15 @@ test("a merged pull request prints the word merged", () => {
 	expect(html).toMatch(/Ready to merge<\/span><\/h2><div[^>]*><span[^>]*>merged<\/span>/);
 });
 
-test("the labels print in one order", () => {
+test("the block prints the six labels in one order and leaves the other four out", () => {
 	const html = renderToStaticMarkup(<ConditionsBlock conditions={open} />);
 
-	const order = ["size", "risk", "tests", "evidence", "checks", "comments", "flows", "base branch", "waits on"].map(
-		(label) => html.indexOf(`>${label}<`),
+	const order = ["evidence", "checks", "comments", "base branch", "waits on"].map((label) =>
+		html.indexOf(`>${label}<`),
 	);
-	expect(order.filter((at) => at > -1)).toHaveLength(9);
+	expect(order.filter((at) => at > -1)).toHaveLength(5);
 	expect(order).toEqual([...order].sort((a, b) => a - b));
-});
-
-test("an all clear risk line prints five no answers and draws no badge", () => {
-	const html = renderToStaticMarkup(<ConditionsBlock conditions={open} />);
-
-	expect(html).toContain("auth no");
-	expect(html).toContain("deleted test no");
-	expect(html).not.toContain("badge");
+	for (const label of ["size", "risk", "tests", "flows", "stacked on"]) expect(html).not.toContain(`>${label}<`);
 });
 
 test("a condition with no record reads unknown", () => {
@@ -76,29 +68,16 @@ test("a condition with no record reads unknown", () => {
 	expect(html).not.toContain("0 registered");
 });
 
+test("the checks line counts every outcome", () => {
+	const html = renderToStaticMarkup(<ConditionsBlock conditions={open} />);
+
+	expect(html).toContain("1 failed \u00b7 7 pending \u00b7 48 passed \u00b7 44 skipped");
+});
+
 test("the block draws no button and no link", () => {
 	const html = renderToStaticMarkup(<ConditionsBlock conditions={open} />);
 
 	expect(html).not.toContain("<button");
 	expect(html).not.toContain("<a ");
 	expect(html).not.toContain("disabled");
-});
-
-test("the short form prints the available source lines and no readiness word", () => {
-	const html = renderToStaticMarkup(<ShortConditions conditions={open} />);
-
-	expect(html).toContain("Merge conditions");
-	expect(html).not.toContain("Ready to merge");
-	expect(html).not.toContain("not yet");
-	for (const label of ["evidence", "checks", "comments", "base branch", "waits on"])
-		expect(html).toContain(`>${label}<`);
-	for (const label of ["size", "risk", "tests", "flows", "stacked on"]) expect(html).not.toContain(`>${label}<`);
-});
-
-test("the short form and the nine-line form print one answer for one condition", () => {
-	const short = renderToStaticMarkup(<ShortConditions conditions={open} />);
-	const full = renderToStaticMarkup(<ConditionsBlock conditions={open} />);
-
-	expect(short).toContain("1 failed · 7 pending · 48 passed · 44 skipped");
-	expect(full).toContain("1 failed · 7 pending · 48 passed · 44 skipped");
 });
