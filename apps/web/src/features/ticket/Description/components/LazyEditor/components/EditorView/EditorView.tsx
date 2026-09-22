@@ -1,16 +1,19 @@
-import { TaskItem, TaskList } from "@tiptap/extension-list";
-import { Placeholder } from "@tiptap/extensions";
-import { Markdown } from "@tiptap/markdown";
 import { Editor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import { type ClipboardEvent, useEffect } from "react";
-import { SlashMenu, SlashMenuList, useSlashMenuStore } from "../SlashMenu";
-
-export const descriptionPlaceholder = "Describe the work. Agents read this verbatim.";
+import { useEffect, useRef } from "react";
+import "./editor.css";
+import { editorHost } from "../../editorHost";
+import { SlashMenuList, useSlashMenuStore } from "../SlashMenu";
+import { BlockHandle } from "./components/BlockHandle";
+import { FormatMenu } from "./components/FormatMenu";
+import { editorExtensions } from "./editorExtensions";
 
 export type EditorHandle = {
 	setContent: (markdown: string) => void;
 	focus: () => void;
+	// Puts an image block at the caret.
+	insertImage: (src: string, alt: string) => void;
+	// Puts `text` at the caret as a link to `href`.
+	insertLink: (href: string, text: string) => void;
 };
 
 export type EditorViewProps = {
@@ -20,7 +23,14 @@ export type EditorViewProps = {
 	onChange: (markdown: string) => void;
 	onBlur: () => void;
 	onReady: (handle: EditorHandle) => void;
+	// Takes the files a person pastes, drops, or picks through the Image
+	// block of the slash menu.
 	onAttachFiles: (files: File[]) => void;
+	// The words the empty editor shows.
+	placeholder: string;
+	// False leaves the focus where it is when the editor opens, such as in
+	// the title field of a new document.
+	autoFocus: boolean;
 };
 
 let shared: Editor | null = null;
@@ -31,14 +41,7 @@ let shared: Editor | null = null;
 const getEditor = () => {
 	if (shared === null) {
 		shared = new Editor({
-			extensions: [
-				StarterKit.configure({ link: { openOnClick: false } }),
-				TaskList,
-				TaskItem.configure({ nested: true }),
-				Markdown,
-				Placeholder.configure({ placeholder: descriptionPlaceholder }),
-				SlashMenu,
-			],
+			extensions: editorExtensions(),
 			contentType: "markdown",
 			content: "",
 			editorProps: {
@@ -75,25 +78,38 @@ export const destroyEditor = () => {
 const handleOf = (editor: Editor): EditorHandle => ({
 	setContent: (markdown) => editor.commands.setContent(markdown, { contentType: "markdown", emitUpdate: false }),
 	focus: () => editor.commands.focus("end"),
+	insertImage: (src, alt) => editor.chain().focus().setImage({ src, alt }).run(),
+	insertLink: (href, text) =>
+		editor
+			.chain()
+			.focus()
+			.insertContent({ type: "text", text, marks: [{ type: "link", attrs: { href } }] })
+			.run(),
 });
 
 // The shared editor mounted on one description. It takes the ticket's
 // markdown, focuses, and reports every change as markdown.
-export function EditorView({ markdown, contentKey, onChange, onBlur, onReady, onAttachFiles }: EditorViewProps) {
+export function EditorView({
+	markdown,
+	contentKey,
+	onChange,
+	onBlur,
+	onReady,
+	onAttachFiles,
+	placeholder,
+	autoFocus,
+}: EditorViewProps) {
+	const picker = useRef<HTMLInputElement>(null);
+	// The host is written before `getEditor`, because the editor draws its
+	// placeholder from it on the first mount.
+	editorHost.set({ placeholder, attachFiles: onAttachFiles, pickFiles: () => picker.current!.click() });
 	const editor = getEditor();
-	const onPasteCapture = (event: ClipboardEvent<HTMLDivElement>) => {
-		const files = [...event.clipboardData.files];
-		if (files.length === 0) return;
-		event.preventDefault();
-		event.stopPropagation();
-		onAttachFiles(files);
-	};
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: the content loads once per ticket
 	useEffect(() => {
 		const handle = handleOf(editor);
 		handle.setContent(markdown);
-		handle.focus();
+		if (autoFocus) handle.focus();
 		onReady(handle);
 	}, [contentKey, editor]);
 
@@ -108,9 +124,23 @@ export function EditorView({ markdown, contentKey, onChange, onBlur, onReady, on
 	}, [editor, onChange, onBlur]);
 
 	return (
-		<div className="relative" onPasteCapture={onPasteCapture}>
+		<div className="relative">
 			<EditorContent editor={editor} />
+			<BlockHandle editor={editor} />
+			<FormatMenu editor={editor} />
 			<SlashMenuList />
+			<input
+				ref={picker}
+				type="file"
+				accept="image/png,image/jpeg,image/gif,image/webp,image/avif"
+				multiple
+				hidden
+				onChange={(event) => {
+					const files = [...event.target.files!];
+					event.target.value = "";
+					if (files.length > 0) onAttachFiles(files);
+				}}
+			/>
 		</div>
 	);
 }
