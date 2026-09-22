@@ -9,17 +9,21 @@
 	--review-filter-width: 260px;
 	--review-row-icon-size: 14px;
 	/* The gap between the floating cards of the review and the edges of the
-	   page. */
-	--review-float-gap: 16px;
+	   page. It equals the side padding of `.review-blocks`, so the right
+	   edge of the card lines up with the right edge of the blocks. */
+	--review-float-gap: 28px;
+	/* The height of one floating card: a 28 px icon button inside 4 px of
+	   padding on each side. */
+	--review-float-height: 36px;
 	/* The width of the file tree beside the diff. */
 	--review-tree-width: 340px;
 	/* The width of the column that holds the line numbers of the diff, which
 	   `.review-diff-hunk-header` and `.review-diff-line` both draw. */
 	--review-diff-gutter: calc(var(--spacing) * 13);
-	/* The height of one floating card plus the gap above and below it. Every
+	/* The height of one floating card plus its gap to the bottom edge. Every
 	   scrolling box of the review pads its bottom by this much, so the last
 	   row of the box rises clear of the card. */
-	--review-float-clearance: 72px;
+	--review-float-clearance: calc(var(--review-float-height) + var(--review-float-gap));
 }
 .review-page,
 .review-index {
@@ -325,6 +329,10 @@ button.review-notice:hover {
 	padding-bottom: var(--review-float-clearance);
 }
 @media (max-width: 767px) {
+	/* The floating cards follow the 16 px side margin of a phone page. */
+	:root {
+		--review-float-gap: 16px;
+	}
 	.review-heading {
 		padding: 20px 16px 16px;
 	}

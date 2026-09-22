@@ -95,7 +95,12 @@ export function VerdictButton({
 	return (
 		<>
 			<Tooltip content={words.label}>
-				<IconButton label={words.label} icon={iconOf(verdict)} onClick={() => setOpen(true)} />
+				<IconButton
+					label={words.label}
+					icon={iconOf(verdict)}
+					data-verdict-action={verdict}
+					onClick={() => setOpen(true)}
+				/>
 			</Tooltip>
 			<DraftNote
 				open={open}

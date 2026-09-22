@@ -26,35 +26,52 @@
 	   click on the code under it. */
 	pointer-events: none;
 }
+/* The card hugs its buttons: 4 px of padding around 28 px icon buttons.
+   The radius, the ground and the shadow are those of a Menu or a Popover.
+   The edge is a ring in the shadow, not a border: in dark, `--shadow-md`
+   draws its own ring, and a border inside it would draw a second line. */
 .review-bar {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 4px;
 	max-width: 100%;
-	padding: 6px 6px 6px 12px;
-	border: var(--border-width-hairline) solid var(--border);
+	padding: 4px;
 	border-radius: var(--radius-lg);
-	/* The code under the card stays visible through it. The blur keeps the
-	   words of the card readable over that code in both themes. */
-	background: color-mix(in srgb, var(--elevated) 85%, transparent);
-	backdrop-filter: blur(12px) saturate(1.6);
-	box-shadow: var(--shadow-lg);
+	background: var(--elevated);
+	box-shadow:
+		var(--shadow-md),
+		0 0 0 var(--border-width-hairline) var(--border);
 	font-size: var(--text-sm);
 	font-variant-numeric: tabular-nums;
 	pointer-events: auto;
 }
-/* The words of the card, left of the buttons: the verdict. */
+/* The words of the card, left of the buttons: the verdict. The side
+   padding gives the words the same inset from the edge of the card as the
+   icon inside a button. */
 .review-bar-words {
 	display: flex;
 	flex: 1;
 	align-items: center;
 	gap: 6px;
 	min-width: 0;
+	padding-inline: 6px 2px;
 	overflow: hidden;
+}
+/* Approve and Request changes are quiet at rest. Under the pointer or the
+   keyboard focus, each one takes the color of what it does, so the person
+   sees which verdict a click sends before the dialog opens. */
+.review-verdict-bar [data-verdict-action="approve"]:enabled:is(:hover, :focus-visible) {
+	background: var(--success-soft);
+	color: var(--success);
+}
+.review-verdict-bar [data-verdict-action="request_changes"]:enabled:is(:hover, :focus-visible) {
+	background: var(--danger-soft);
+	color: var(--danger);
 }
 .review-batch-bar-text {
 	flex: 1;
 	min-width: 0;
+	padding-inline: 6px 2px;
 	white-space: nowrap;
 }
 /* The verdict, the time and the delivery word of the last submission. */
@@ -85,15 +102,15 @@
 	flex-direction: column;
 	gap: 8px;
 }
-/* The page moves to a 16 px side margin on a phone, and the card spans the
-   width that the margin leaves. A phone line has no room for the time and
-   the delivery word, so the card drops both and keeps the verdict. */
+/* The page moves to a 16 px side margin on a phone, and the card moves with
+   it. The card keeps its own width, so the box spans the page only to cap
+   a card with more words than a phone line holds. A phone line has no room
+   for the time and the delivery word, so the card drops both and keeps the
+   verdict. */
 @media (max-width: 767px) {
 	.review-float-bars {
-		right: var(--review-float-gap);
 		left: var(--review-float-gap);
 		bottom: calc(var(--review-float-gap) + env(safe-area-inset-bottom));
-		align-items: stretch;
 		max-width: none;
 	}
 	.review-verdict-bar-detail {
