@@ -66,6 +66,25 @@ export const ReviewThreadSchema = ReviewReplySchema.extend({
 });
 export type ReviewThread = z.infer<typeof ReviewThreadSchema>;
 export type ReviewReply = z.infer<typeof ReviewReplySchema>;
+export const GitHubConversationAuthorSchema = z.object({
+	login: z.string(),
+	avatarUrl: z.string().nullable(),
+});
+export const GitHubConversationItemSchema = z.object({
+	id: z.string(),
+	kind: z.enum(["comment", "review", "line"]),
+	author: GitHubConversationAuthorSchema.nullable(),
+	body: z.string(),
+	state: z.string().nullable(),
+	path: z.string().nullable(),
+	line: z.number().int().positive().nullable(),
+	side: z.enum(["old", "new"]).nullable(),
+	url: z.string().nullable(),
+	isBot: z.boolean(),
+	createdAt: IsoDateTimeSchema,
+	updatedAt: IsoDateTimeSchema.nullable(),
+});
+export type GitHubConversationItem = z.infer<typeof GitHubConversationItemSchema>;
 export const ReviewAnchorSchema = z
 	.object({
 		path: z.string().min(1).max(4096),
@@ -137,6 +156,7 @@ export const ReviewRevisionSchema = z.object({
 	headSha: z.string(),
 	patch: z.string(),
 	meta: z.record(z.string(), z.unknown()),
+	githubConversation: z.array(GitHubConversationItemSchema).optional(),
 	fetchedAt: IsoDateTimeSchema,
 });
 export type ReviewRevision = z.infer<typeof ReviewRevisionSchema>;

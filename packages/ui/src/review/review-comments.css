@@ -487,6 +487,31 @@
 	font-size: 11px;
 	font-variant-numeric: tabular-nums;
 }
+.review-conversation-avatar {
+	width: 20px;
+	height: 20px;
+	border-radius: var(--radius-round);
+}
+.review-conversation-location {
+	border: 0;
+	background: transparent;
+	color: var(--accent);
+	font: inherit;
+	font-size: 11px;
+	cursor: pointer;
+}
+.review-conversation-location:hover {
+	text-decoration: underline;
+}
+.review-message .review-conversation-bot > summary {
+	margin-top: 8px;
+	color: var(--fg-muted);
+	font-size: 12px;
+	cursor: pointer;
+}
+.review-message .review-conversation-bot[open] > summary {
+	margin-bottom: 8px;
+}
 .review-local-heading {
 	margin-top: 24px;
 	font-size: 13px;
