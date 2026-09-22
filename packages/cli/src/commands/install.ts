@@ -1,5 +1,5 @@
-import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { defineCommand } from "citty";
 import { type CliContext, contextOf } from "../context.ts";
 import { CliFailure } from "../errors.ts";
@@ -14,6 +14,24 @@ type Paths = ReturnType<typeof installationPaths>;
 
 const xml = (value: string) =>
 	value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+
+const unxml = (value: string) =>
+	value.replaceAll("&quot;", '"').replaceAll("&gt;", ">").replaceAll("&lt;", "<").replaceAll("&amp;", "&");
+
+const currentPath = (path: string) => (existsSync(path) ? realpathSync(path) : resolve(path));
+
+const checkoutOfServerEntry = (entry: string) => {
+	const root = resolve(dirname(entry), "../../..");
+	return currentPath(join(root, "apps", "server", "src", "index.ts")) === currentPath(entry) ? currentPath(root) : null;
+};
+
+const checkoutOfPlist = (plist: string) => {
+	const text = readFileSync(plist, "utf8");
+	const block = /<key>ProgramArguments<\/key>\s*<array>([\s\S]*?)<\/array>/.exec(text)?.[1];
+	const args = [...(block ?? "").matchAll(/<string>([\s\S]*?)<\/string>/g)].map((match) => unxml(match[1]!));
+	const serverEntry = args[1];
+	return serverEntry === undefined ? null : checkoutOfServerEntry(serverEntry);
+};
 
 // The server binds 127.0.0.1 when the plist sets no TRELLIS_HOST.
 const hostEntry = (host: string | undefined) =>
@@ -125,6 +143,18 @@ const waitForUnload = async (ctx: CliContext, service: string) => {
 	);
 };
 
+const assertServiceOwner = async (ctx: CliContext, paths: Paths, service: string) => {
+	const found = await ctx.deps.run(["launchctl", "print", service]);
+	if (found.code !== 0 || !existsSync(paths.plist)) return;
+	const owner = checkoutOfPlist(paths.plist);
+	if (owner === null || owner === currentPath(paths.repoRoot)) return;
+	throw new CliFailure(
+		"INSTALL_FAILED",
+		1,
+		`com.trellis.server already belongs to ${owner}. Run trellis install --force to take it over from this checkout.`,
+	);
+};
+
 export default defineCommand({
 	meta: { name: "install", description: "Install the server as a launchd agent" },
 	args: {
@@ -145,12 +175,16 @@ export default defineCommand({
 			default: true,
 			description: "Load the agent with launchctl; --no-launchd writes the files only",
 		},
+		force: { type: "boolean", description: "Take over com.trellis.server when another checkout owns it" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);
 		const paths = installationPaths(ctx.deps.env, ctx.deps.home, context.args.prefix);
 		const bun = ctx.deps.which("bun");
 		if (bun === null) throw new CliFailure("INSTALL_FAILED", 1, "bun is not on PATH");
+		const domain = ctx.deps.launchdDomain;
+		const service = `${domain}/com.trellis.server`;
+		if (context.args.launchd && !context.args.force) await assertServiceOwner(ctx, paths, service);
 		await buildWeb(ctx, paths);
 		mkdirSync(dirname(paths.shim), { recursive: true });
 		// The shim and the plist run the same bun, so a machine that serves
@@ -164,8 +198,6 @@ export default defineCommand({
 		setRoute(paths.routes, "trellis", serverPort);
 
 		if (context.args.launchd) {
-			const domain = ctx.deps.launchdDomain;
-			const service = `${domain}/com.trellis.server`;
 			await ctx.deps.run(["launchctl", "bootout", service]);
 			await waitForUnload(ctx, service);
 			const loaded = await ctx.deps.run(["launchctl", "bootstrap", domain, paths.plist]);
