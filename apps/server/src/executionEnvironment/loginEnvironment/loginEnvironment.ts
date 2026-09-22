@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import type { ExecutionEnvironment } from "../executionEnvironment.ts";
+import { definedEnvironment, type ExecutionEnvironment } from "../executionEnvironment.ts";
 
 const execute = promisify(execFile);
 
@@ -9,7 +9,7 @@ const execute = promisify(execFile);
 // caller decides whether to run the shell again with a longer limit.
 const capture = async (shell: string, env: ExecutionEnvironment, timeoutMs: number) => {
 	const result = await execute(shell, ["-ilc", "/usr/bin/env -0"], {
-		env: { NODE_ENV: process.env.NODE_ENV, ...env },
+		env: definedEnvironment(env),
 		cwd: env.HOME,
 		timeout: timeoutMs,
 		maxBuffer: 1024 * 1024,

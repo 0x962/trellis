@@ -20,7 +20,7 @@ export const sessionDirectoryNames = async (home: string) => {
 // A first commit lets workspace commands resolve HEAD. The fixed identity
 // permits that commit when the machine has no Git identity.
 const initializeRepository = async (directory: string) => {
-	const env = { NODE_ENV: process.env.NODE_ENV, ...(await executionEnvironment()) };
+	const env = await executionEnvironment();
 	await exec("git", ["-C", directory, "init", "-q", "-b", "main"], { env });
 	const commits = await exec("git", ["-C", directory, "rev-list", "--all", "--max-count=1", "--count"], { env });
 	if (Number(commits.stdout.trim()) > 0) return directory;
