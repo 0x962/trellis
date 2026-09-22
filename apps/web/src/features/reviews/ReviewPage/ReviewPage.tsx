@@ -10,7 +10,7 @@ import {
 	turnOf,
 	verdictMark,
 } from "@trellis/api";
-import { EmptyState, Skeleton, Tabs, TicketId, useMediaQuery } from "@trellis/ui";
+import { EmptyState, Skeleton, type TabItem, Tabs, TicketId, useMediaQuery } from "@trellis/ui";
 import type { DiffAnchor } from "@trellis/ui/review";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -30,6 +30,7 @@ import type { ReadMarkFile } from "../readMarks/readMarks";
 import { VerdictBar } from "../VerdictBar";
 import { DiffPane } from "./components/DiffPane";
 import { FilesDisclosure } from "./components/FilesDisclosure";
+import { PaneBoundary } from "./components/PaneBoundary";
 import { type GithubPullRequest, ReviewIdentity } from "./components/ReviewIdentity";
 import { ReviewDiffSkeleton, ReviewTreeSkeleton } from "./components/ReviewPageSkeleton";
 import { TurnLine } from "./components/TurnLine";
@@ -44,6 +45,11 @@ const noThreads: ReviewThread[] = [];
 const noSubmissions: ReviewSubmission[] = [];
 const noRecords: Evidence[] = [];
 const noConditions: string[] = [];
+
+// Wraps each tab in its own PaneBoundary, so a tab that throws while it
+// draws shows its error and the other tabs keep working.
+const withBoundaries = (items: TabItem<ReviewTab>[]) =>
+	items.map((item) => ({ ...item, content: <PaneBoundary tab={item.value}>{item.content}</PaneBoundary> }));
 
 export type ReviewPageProps = {
 	pr: string;
@@ -221,20 +227,22 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 				</div>
 				{/* Every panel stays mounted: `DiffPane` reports the changed file list
 				    that the tree draws, and the diff keeps its scroll position while
-				    another tab shows. */}
+				    another tab shows. `withBoundaries` gives each panel its own error. */}
 				<Tabs
 					value={shownTab}
 					onValueChange={onTabChange}
 					keepMounted
 					className="review-body"
 					panelClassName="review-tab-panel"
-					items={[
+					items={withBoundaries([
 						{
 							value: "overview",
 							label: "Overview",
 							content: (
 								<div className="review-blocks">
-									{!overviewReady || conditions === null ? (
+									{/* A pull request that no ticket links has no summary, no
+									    evidence and no conditions, so it draws none of the three. */}
+									{!overviewReady ? (
 										<section aria-busy="true">
 											<span className="sr-only" role="status">
 												The overview is loading.
@@ -243,9 +251,9 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 										</section>
 									) : (
 										<>
-											<ChangeSummary summary={summaryRow} headSha={headSha} />
+											{linkedPr !== null && <ChangeSummary summary={summaryRow} headSha={headSha} />}
 											{floor && <EvidenceStrip records={records} floor={floor} />}
-											<ConditionsBlock conditions={conditions} />
+											{conditions && <ConditionsBlock conditions={conditions} />}
 										</>
 									)}
 									<ReviewDiscussion
@@ -343,7 +351,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 								</FilesDisclosure>
 							),
 						},
-					]}
+					])}
 				/>
 				{/* The two cards float over the bottom right of the page. The box
 				    draws nothing while both are absent. */}

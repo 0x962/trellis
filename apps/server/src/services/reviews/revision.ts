@@ -225,14 +225,28 @@ export async function loadCurrentRevision(ctx: PrepareCtx, ref: ReturnType<typeo
 		return loadCurrentRevision(ctx, ref);
 	return { meta, patch };
 }
-export async function prepare(ctx: PrepareCtx, input: { pr: string }) {
-	const ref = parseRef(input.pr);
+const fetchRevision = async (ctx: PrepareCtx, ref: ReturnType<typeof parseRef>) => {
 	const [{ meta, patch }, githubConversation] = await Promise.all([
 		loadCurrentRevision(ctx, ref),
 		loadGitHubConversation(ctx, ref),
 	]);
 	const moves = await suggestionMoves(ctx, ref, meta.headRefOid, headRepositoryOf(ref, meta));
 	return { ref, meta, patch, githubConversation, ...moves };
+};
+
+// The fetch of each pull request that is on its way, by URL. A refresh
+// costs about seven gh calls, and every review page, review sheet and
+// window focus asks for one. A second refresh of the same pull request
+// waits for the fetch on its way and does not queue seven more calls.
+const fetching = new Map<string, ReturnType<typeof fetchRevision>>();
+
+export function prepare(ctx: PrepareCtx, input: { pr: string }) {
+	const ref = parseRef(input.pr);
+	const running = fetching.get(ref.url);
+	if (running !== undefined) return running;
+	const fetch = fetchRevision(ctx, ref).finally(() => fetching.delete(ref.url));
+	fetching.set(ref.url, fetch);
+	return fetch;
 }
 export async function refresh(
 	ctx: ServiceCtx,
