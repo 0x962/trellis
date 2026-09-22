@@ -23,7 +23,7 @@ describe("PrRow", () => {
 		const html = renderToStaticMarkup(<PrRow pr={pr} top={0} last={false} hasChildLines={false} />);
 
 		expect(textOf(html)).toBe("#57080Show the pull request title");
-		expect(html).toContain("Pull request open");
+		expect(html).toContain("Ready for review");
 		expect(html).toContain("min-w-0 flex-1 truncate text-fg");
 	});
 
@@ -86,6 +86,15 @@ describe("PrRow", () => {
 		expect(draft).toContain("Pull request draft");
 		expect(queued).toContain("Pull request queued");
 		expect(merged).toContain("Pull request merged");
+	});
+
+	test("an open pull request that the agent has not marked ready draws the draft glyph", () => {
+		const html = renderToStaticMarkup(
+			<PrRow pr={prOf({ localState: "draft" })} top={0} last={false} hasChildLines={false} />,
+		);
+
+		expect(html).toContain('data-pr-glyph="localDraft"');
+		expect(html).toContain("Draft: the agent has not asked for review");
 	});
 
 	test("takes the height and offset that the virtual list reserves", () => {

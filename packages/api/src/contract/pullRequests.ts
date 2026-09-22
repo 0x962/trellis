@@ -16,6 +16,7 @@ import {
 	PullRequestResolveInputSchema,
 	PullRequestResolveOutputSchema,
 	PullRequestSchema,
+	PullRequestSetLocalStateInputSchema,
 	PullRequestSummaryHeadInputSchema,
 	PullRequestSummarySchema,
 	PullRequestSummaryWriteInputSchema,
@@ -49,6 +50,15 @@ export const pullRequests = {
 		.errors(pickErrors(["GH_UNAVAILABLE"]))
 		.route({ method: "POST", path: "/prs/{id}/refresh", summary: "Poll one pull request now" })
 		.input(PullRequestIdInputSchema)
+		.output(PullRequestSchema),
+	setLocalState: base
+		.errors(pickErrors(["NOT_FOUND"]))
+		.route({
+			method: "PUT",
+			path: "/prs/{id}/local-state",
+			summary: "Mark a pull request as a draft or ready for review",
+		})
+		.input(PullRequestSetLocalStateInputSchema)
 		.output(PullRequestSchema),
 	diff: base
 		.errors(pickErrors(["GH_UNAVAILABLE"]))

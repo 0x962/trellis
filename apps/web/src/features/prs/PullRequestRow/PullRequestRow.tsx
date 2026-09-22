@@ -1,5 +1,5 @@
 import { Warning } from "@phosphor-icons/react";
-import type { LinkedPullRequest, TicketSummary } from "@trellis/api";
+import { isReviewDraft, type LinkedPullRequest, type TicketSummary } from "@trellis/api";
 import { cx, GithubMark, IconButton, PrGlyph, ReviewStateIcon, Tooltip } from "@trellis/ui";
 import { tabularClass } from "../../../lib/format";
 import { openLink } from "../../../lib/openLink";
@@ -19,7 +19,7 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 			data-pr-row={pr.id}
 			className="group flex h-14 items-center gap-3 px-5 transition-colors duration-hover ease-out hover:bg-band focus-within:bg-band focus-within:outline-2 focus-within:outline-accent focus-within:-outline-offset-2 max-md:px-4"
 		>
-			<PrGlyph state={pr.state} isDraft={pr.isDraft} isQueued={pr.isQueued} />
+			<PrGlyph state={pr.state} isDraft={pr.isDraft} isQueued={pr.isQueued} localState={pr.localState} />
 			<span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
 				<span className="flex min-w-0 items-center gap-2">
 					<span className="min-w-0 truncate text-base font-medium text-fg">{pr.title}</span>
@@ -51,7 +51,7 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 				onClick={() => openLink(pr.url)}
 			/>
 			<PrActions ticket={ticket} pr={pr} />
-			<ReviewStateIcon reviewState={pr.reviewState} isDraft={pr.isDraft} />
+			<ReviewStateIcon reviewState={pr.reviewState} isDraft={isReviewDraft(pr)} />
 		</div>
 	);
 }

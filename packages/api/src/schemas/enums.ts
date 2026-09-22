@@ -41,6 +41,12 @@ export type ReviewState = z.infer<typeof ReviewStateSchema>;
 export const PrLinkSourceSchema = z.enum(["manual"]);
 export type PrLinkSource = z.infer<typeof PrLinkSourceSchema>;
 
+// The review state that Trellis keeps for a pull request, apart from the
+// draft flag of GitHub. A pull request that an agent links starts as `draft`,
+// and `trellis ready` sets `ready` when the agent asks the person for review.
+export const LocalPrStateSchema = z.enum(["draft", "ready"]);
+export type LocalPrState = z.infer<typeof LocalPrStateSchema>;
+
 // Why gh cannot serve a request.
 export const GhReasonSchema = z.enum(["missing", "unauthenticated", "error"]);
 export type GhReason = z.infer<typeof GhReasonSchema>;

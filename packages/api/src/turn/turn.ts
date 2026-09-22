@@ -1,3 +1,4 @@
+import { isReviewDraft } from "../reviewDraft/reviewDraft.ts";
 import type { TicketSummary } from "../schemas/ticket.ts";
 import type { TicketPr } from "../schemas/ticketPr.ts";
 
@@ -24,21 +25,28 @@ export function turnOf(row: TurnRow, hasWorkingRun: boolean): Turn {
 		hasWorkingRun ||
 		pullRequests.some(
 			(pullRequest) =>
-				pullRequest.state === "open" && (pullRequest.isDraft || pullRequest.fail > 0 || pullRequest.openThreads > 0),
+				pullRequest.state === "open" &&
+				(isReviewDraft(pullRequest) || pullRequest.fail > 0 || pullRequest.openThreads > 0),
 		)
 	)
 		return "agent";
 	if (
 		pullRequests.some(
 			(pullRequest) =>
-				pullRequest.state === "open" && !pullRequest.isDraft && pullRequest.fail === 0 && pullRequest.pending > 0,
+				pullRequest.state === "open" &&
+				!isReviewDraft(pullRequest) &&
+				pullRequest.fail === 0 &&
+				pullRequest.pending > 0,
 		)
 	)
 		return "github";
 	if (
 		pullRequests.some(
 			(pullRequest) =>
-				pullRequest.state === "open" && !pullRequest.isDraft && pullRequest.fail === 0 && pullRequest.openThreads === 0,
+				pullRequest.state === "open" &&
+				!isReviewDraft(pullRequest) &&
+				pullRequest.fail === 0 &&
+				pullRequest.openThreads === 0,
 		)
 	)
 		return "you";

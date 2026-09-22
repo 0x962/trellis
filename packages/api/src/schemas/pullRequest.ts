@@ -1,7 +1,14 @@
 import { z } from "zod";
 import { TicketRefStringSchema } from "../refs.ts";
 import { ActorRefSchema } from "./actor.ts";
-import { CheckBucketSchema, CiStateSchema, PrLinkSourceSchema, PrStateSchema, ReviewStateSchema } from "./enums.ts";
+import {
+	CheckBucketSchema,
+	CiStateSchema,
+	LocalPrStateSchema,
+	PrLinkSourceSchema,
+	PrStateSchema,
+	ReviewStateSchema,
+} from "./enums.ts";
 import { CountSchema, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
 export const MAX_CHANGED_FILES = 100;
@@ -46,6 +53,7 @@ export const PullRequestSchema = z.object({
 	state: PrStateSchema,
 	isDraft: z.boolean(),
 	isQueued: z.boolean(),
+	localState: LocalPrStateSchema,
 	headRef: z.string(),
 	baseRef: z.string(),
 	reviewState: ReviewStateSchema,
@@ -89,6 +97,11 @@ export const PullRequestUnlinkOutputSchema = z.object({
 
 export const PullRequestIdInputSchema = z.strictObject({
 	id: UlidSchema,
+});
+
+export const PullRequestSetLocalStateInputSchema = z.strictObject({
+	id: UlidSchema,
+	localState: LocalPrStateSchema,
 });
 
 export const PullRequestResolveInputSchema = z.strictObject({

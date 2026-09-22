@@ -19,7 +19,7 @@ const verdictWords = { approved: "You approved this commit", changes_requested: 
 export function PrCells({ pr, cells }: { pr: TicketPr; cells: readonly PrRowCell[] }) {
 	return (
 		<>
-			<PrGlyph state={pr.state} isDraft={pr.isDraft} isQueued={pr.isQueued} size="sm" />
+			<PrGlyph state={pr.state} isDraft={pr.isDraft} isQueued={pr.isQueued} localState={pr.localState} size="sm" />
 			<span className={cx("w-14 shrink-0 text-fg", tabularClass)}>#{pr.number}</span>
 			{cells.map((cell) => (
 				<span key={cell.key} title={cell.text} className="min-w-0 flex-1 truncate text-fg">

@@ -1,4 +1,4 @@
-import type { CiState, PrState, ReviewState, StoredActorKind, TicketSummary } from "@trellis/api";
+import type { CiState, LocalPrState, PrState, ReviewState, StoredActorKind, TicketSummary } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { actorDisplayName } from "./actorDisplayName.ts";
 import { iso, pathsCte } from "./support.ts";
@@ -38,6 +38,7 @@ export type SummaryRow = {
 	pr_state: PrState | null;
 	pr_is_draft: boolean | null;
 	pr_is_queued: boolean | null;
+	pr_local_state: LocalPrState | null;
 	pr_ci_state: CiState | null;
 	pr_review_state: ReviewState | null;
 	pr_pass: number | null;
@@ -199,6 +200,7 @@ export const toSummary = (row: SummaryRow): TicketSummary => ({
 					state: row.pr_state,
 					isDraft: row.pr_is_draft as boolean,
 					isQueued: row.pr_is_queued as boolean,
+					localState: row.pr_local_state as LocalPrState,
 					ciState: row.pr_ci_state as CiState,
 					reviewState: row.pr_review_state as ReviewState,
 					pass: row.pr_pass as number,

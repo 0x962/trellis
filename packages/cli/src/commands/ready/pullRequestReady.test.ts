@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { type PullRequestReadiness, pullRequestReadyText } from "./pullRequestReady.ts";
+import { type PullRequestReadiness, pullRequestDraftText, pullRequestReadyText } from "./pullRequestReady.ts";
 
 const readiness = (missing: PullRequestReadiness["missing"]): PullRequestReadiness => ({
 	pullRequest: { number: 131, url: "https://github.com/acme/trellis/pull/131", headSha: "abc123" },
@@ -26,6 +26,12 @@ test("names only the evidence document when the explanation exists", () => {
 
 test("says the pull request is ready when both parts exist", () => {
 	expect(pullRequestReadyText(readiness([]))).toBe(
-		"#131 is ready for review. It has the explanation and the evidence document.\n",
+		"#131 is ready for review. It has the explanation and the evidence document. The person will now review it.\n",
+	);
+});
+
+test("tells the agent that a linked pull request is a draft until trellis ready", () => {
+	expect(pullRequestDraftText(131)).toBe(
+		"#131 is a draft. When the work is complete and you want the person to review it, run: trellis ready 131\n",
 	);
 });

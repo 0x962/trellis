@@ -1,6 +1,7 @@
 import type { CiState, PrFilter, Priority, Reviewer, StatusCategory } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { tsquery } from "./fts.ts";
+import { reviewDraftSql } from "./pullRequestRows.ts";
 import { ciRank, textArray } from "./support.ts";
 
 // The flat filter grammar of tickets.list, with every ref already resolved
@@ -72,9 +73,9 @@ const prClause = (pr: PrFilter): SQL => {
 		case "none":
 			return sql`NOT ${linked(sql`true`)}`;
 		case "open":
-			return linked(sql`p.state = 'open' AND NOT p.is_draft AND NOT p.is_queued`);
+			return linked(sql`p.state = 'open' AND NOT ${reviewDraftSql(sql`p`)} AND NOT p.is_queued`);
 		case "draft":
-			return linked(sql`p.state = 'open' AND p.is_draft`);
+			return linked(sql`p.state = 'open' AND ${reviewDraftSql(sql`p`)}`);
 		case "queued":
 			return linked(sql`p.state = 'open' AND p.is_queued`);
 		default:

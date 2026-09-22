@@ -1,5 +1,6 @@
 import type { EpicCounts, WaveSummary } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
+import { reviewDraftSql } from "../../db/queries/pullRequestRows.ts";
 import { iso } from "../../db/queries/support.ts";
 import { stateOf, ticketCounts, toCounts } from "../epics/rows.ts";
 
@@ -40,19 +41,19 @@ const hasLinkedPullRequest = (condition: SQL) => sql`EXISTS (
 
 const hasAgentPullRequest = hasLinkedPullRequest(sql`
 	pull_request.state = 'open' AND (
-		pull_request.is_draft OR pull_request.ci_state = 'fail' OR ${hasOpenThread}
+		${reviewDraftSql(sql`pull_request`)} OR pull_request.ci_state = 'fail' OR ${hasOpenThread}
 	)
 `);
 
 const hasGithubPullRequest = hasLinkedPullRequest(sql`
-	pull_request.state = 'open' AND NOT pull_request.is_draft AND pull_request.ci_state = 'pending'
+	pull_request.state = 'open' AND NOT ${reviewDraftSql(sql`pull_request`)} AND pull_request.ci_state = 'pending'
 `);
 
 const hasReadyPullRequest = hasLinkedPullRequest(sql`
 	pull_request.fetched_at IS NOT NULL
 	AND pull_request.fetch_error IS NULL
 	AND pull_request.state = 'open'
-	AND NOT pull_request.is_draft
+	AND NOT ${reviewDraftSql(sql`pull_request`)}
 	AND pull_request.ci_state IN ('none', 'pass')
 	AND NOT ${hasOpenThread}
 `);

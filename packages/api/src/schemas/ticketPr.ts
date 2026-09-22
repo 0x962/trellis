@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PrStateSchema } from "./enums.ts";
+import { LocalPrStateSchema, PrStateSchema } from "./enums.ts";
 import { FlowExecutionStateSchema } from "./flowExecution.ts";
 import { CountSchema, UlidSchema } from "./primitives.ts";
 
@@ -18,6 +18,7 @@ export const TicketPrSchema = z.object({
 	state: PrStateSchema,
 	isDraft: z.boolean(),
 	isQueued: z.boolean(),
+	localState: LocalPrStateSchema,
 	additions: CountSchema.nullable(),
 	deletions: CountSchema.nullable(),
 	changedFiles: CountSchema.nullable(),

@@ -11,6 +11,7 @@ const pullRequest = (fields: Partial<TicketPr> = {}): TicketPr =>
 		url: "https://github.com/acme/app/pull/42",
 		state: "open",
 		isDraft: false,
+		localState: "ready",
 		fail: 0,
 		pending: 0,
 		openThreads: 0,
@@ -40,6 +41,11 @@ test("gives a review-ready pull request to you", () => {
 
 test("gives a draft pull request to the agent", () => {
 	expect(turnOf(pullRequest({ isDraft: true }), false)).toBe("agent");
+});
+
+test("gives a pull request to the agent until the agent marks it ready", () => {
+	expect(turnOf(pullRequest({ localState: "draft" }), false)).toBe("agent");
+	expect(turnOf(ticket({ prRows: [pullRequest({ localState: "draft" })] }), false)).toBe("agent");
 });
 
 test("gives a ticket with a draft pull request to the agent", () => {
