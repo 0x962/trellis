@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
+import { parseGhJsonForService } from "../ghJson.ts";
 import { fail, notFound, type PrepareCtx, type ServiceCtx } from "../support";
 import { ghUnavailableText } from "./ghUnavailableText/ghUnavailableText.ts";
 import { changed, ensurePr, parseRef, readThread, writeThread } from "./queries";
@@ -17,6 +18,17 @@ export async function gh(ctx: PrepareCtx, args: string[]) {
 	}
 	return result.stdout;
 }
+
+export async function ghJson<T>(ctx: PrepareCtx, args: string[]) {
+	const result = await ctx.gh("interactive", args);
+	if (!result.ok) {
+		const error = fail("GH_UNAVAILABLE", { reason: result.reason });
+		error.message = ghUnavailableText(result.message);
+		throw error;
+	}
+	return parseGhJsonForService<T>(args, result);
+}
+
 const fields =
 	"title,state,isDraft,author,headRepository,headRepositoryOwner,headRefName,baseRefName,headRefOid,baseRefOid,additions,deletions,changedFiles,mergeable,mergeStateStatus,reviewDecision,reviewRequests,autoMergeRequest,statusCheckRollup,labels";
 
@@ -80,31 +92,35 @@ const suggestionMoves = async (
 };
 export async function status(ctx: PrepareCtx, input: { pr: string }) {
 	const ref = parseRef(input.pr);
-	return JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", fields])) as Record<string, unknown>;
+	return ghJson<Record<string, unknown>>(ctx, ["pr", "view", ref.url, "--json", fields]);
 }
 // GitHub answers `compare/<base head>...<pull request head>` with the commit
 // that both branches share. The old side of the diff reads files at that commit.
-export const comparisonFacts = (raw: string) => {
-	const comparison = JSON.parse(raw) as { merge_base_commit: { sha: string } };
+export const comparisonFacts = (comparison: { merge_base_commit: { sha: string } }) => {
 	return { comparisonBaseSha: comparison.merge_base_commit.sha };
 };
 export async function loadCurrentRevision(ctx: PrepareCtx, ref: ReturnType<typeof parseRef>) {
-	const meta = JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", fields])) as Record<string, unknown> &
-		HeadRepositoryMeta & {
-			headRefOid: string;
-			baseRefOid: string;
-			title: string;
-			state: string;
-		};
-	const [comparisonRaw, patch] = await Promise.all([
-		gh(ctx, ["api", `repos/${ref.owner}/${ref.repo}/compare/${meta.baseRefOid}...${meta.headRefOid}`]),
+	const meta = await ghJson<
+		Record<string, unknown> &
+			HeadRepositoryMeta & {
+				headRefOid: string;
+				baseRefOid: string;
+				title: string;
+				state: string;
+			}
+	>(ctx, ["pr", "view", ref.url, "--json", fields]);
+	const [comparison, patch] = await Promise.all([
+		ghJson<{ merge_base_commit: { sha: string } }>(ctx, [
+			"api",
+			`repos/${ref.owner}/${ref.repo}/compare/${meta.baseRefOid}...${meta.headRefOid}`,
+		]),
 		gh(ctx, ["pr", "diff", ref.url]),
 	]);
-	Object.assign(meta, comparisonFacts(comparisonRaw));
-	const current = JSON.parse(await gh(ctx, ["pr", "view", ref.url, "--json", "headRefOid,baseRefOid"])) as {
+	Object.assign(meta, comparisonFacts(comparison));
+	const current = await ghJson<{
 		headRefOid: string;
 		baseRefOid: string;
-	};
+	}>(ctx, ["pr", "view", ref.url, "--json", "headRefOid,baseRefOid"]);
 	if (current.headRefOid !== meta.headRefOid || current.baseRefOid !== meta.baseRefOid)
 		return loadCurrentRevision(ctx, ref);
 	return { meta, patch };

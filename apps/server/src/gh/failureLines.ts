@@ -1,3 +1,4 @@
+import { parseGhJsonResult } from "./json.ts";
 import type { GhRunner } from "./run.ts";
 
 // The first lines of the failure output of one check, as GitHub gives them.
@@ -48,7 +49,13 @@ export const failureLines = async (
 	if (id === null) return [];
 	const result = await gh("poller", ["api", `repos/${ref.owner}/${ref.repo}/check-runs/${id}/annotations`]);
 	if (!result.ok) return [];
-	const annotations = JSON.parse(result.stdout) as Annotation[];
+	const parsed = parseGhJsonResult<Annotation[]>(
+		["api", `repos/${ref.owner}/${ref.repo}/check-runs/${id}/annotations`],
+		result.stdout,
+		result.code,
+	);
+	if (!parsed.ok) return [];
+	const annotations = parsed.value;
 	return annotations
 		.filter((annotation) => annotation.annotation_level === "failure")
 		.flatMap(linesOf)

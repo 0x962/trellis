@@ -1,3 +1,4 @@
+import { parseGhJsonResult } from "./json.ts";
 import type { GhFailure, GhRunner } from "./run.ts";
 
 // `gh api rate_limit` reports one budget per resource. GitHub charges a
@@ -47,19 +48,13 @@ const budgetOf = (value: unknown): ResourceBudget | null => {
 
 // The reply comes from gh, so its text can be anything: an HTML error page
 // from a proxy, or JSON without the expected keys.
-const resourcesOf = (stdout: string): Record<string, unknown> | null => {
-	try {
-		const body = JSON.parse(stdout) as { resources?: unknown } | null;
-		return typeof body?.resources === "object" ? (body.resources as Record<string, unknown> | null) : null;
-	} catch {
-		return null;
-	}
-};
-
 export const readRateLimit = async (runGh: GhRunner): Promise<RateLimitResult> => {
 	const result = await runGh("poller", ["api", "rate_limit"]);
 	if (!result.ok) return result;
-	const resources = resourcesOf(result.stdout);
+	const parsed = parseGhJsonResult<{ resources?: unknown } | null>(["api", "rate_limit"], result.stdout, result.code);
+	if (!parsed.ok) return parsed.failure;
+	const resources =
+		typeof parsed.value?.resources === "object" ? (parsed.value.resources as Record<string, unknown> | null) : null;
 	const budgets = (["core", "graphql"] as const)
 		.map((resource) => ({ resource, budget: budgetOf(resources?.[resource]) }))
 		.filter((entry): entry is { resource: RateLimitResource; budget: ResourceBudget } => entry.budget !== null);

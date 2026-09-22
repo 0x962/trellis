@@ -7,6 +7,7 @@ import {
 	type PrState,
 	type ReviewState,
 } from "@trellis/api";
+import { parseGhJsonResult } from "./json.ts";
 import { deriveCiState, normalizeChecks, normalizeFiles, type RawContext, type RawFile } from "./parse.ts";
 import type { GhFailure, GhRunner, GhSlot } from "./run.ts";
 
@@ -185,23 +186,25 @@ export const fetchPullRequests = async (
 	refs: PullRequestRef[],
 	slot: GhSlot = "poller",
 ): Promise<FetchPullRequestsResult> => {
-	const result = await runGh(slot, ["api", "graphql", "-f", `query=${buildPullRequestQuery(refs)}`]);
-	if (result.ok) return { ok: true, results: mapPullRequestResponse(refs, JSON.parse(result.stdout)) };
+	const args = ["api", "graphql", "-f", `query=${buildPullRequestQuery(refs)}`];
+	const result = await runGh(slot, args);
+	if (result.ok) {
+		const parsed = parseGhJsonResult<PullRequestResponse>(args, result.stdout, result.code);
+		if (!parsed.ok) return parsed.failure;
+		return { ok: true, results: mapPullRequestResponse(refs, parsed.value) };
+	}
 	if (result.reason !== "error") return result;
-	const response = parseFailureBody(result.stdout);
+	const response = parseFailureBody(["api", "graphql"], result.stdout, result.code);
 	if (response === undefined) return result;
 	return { ok: true, results: mapPullRequestResponse(refs, response) };
 };
 
 // The body a failed gh run printed, when it is a JSON object with a data
 // object. Any other stdout, a cut body included, gives undefined.
-const parseFailureBody = (stdout: string): PullRequestResponse | undefined => {
-	let body: unknown;
-	try {
-		body = JSON.parse(stdout);
-	} catch {
-		return undefined;
-	}
+const parseFailureBody = (args: string[], stdout: string, code: number | null): PullRequestResponse | undefined => {
+	const parsed = parseGhJsonResult<PullRequestResponse>(args, stdout, code);
+	if (!parsed.ok) return undefined;
+	const body = parsed.value;
 	const data = (body as Partial<PullRequestResponse> | null)?.data;
 	if (typeof data !== "object" || data === null) return undefined;
 	return body as PullRequestResponse;
