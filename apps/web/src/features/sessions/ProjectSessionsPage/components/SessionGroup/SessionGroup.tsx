@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { uiActions, useUiStore } from "../../../../../stores/uiStore";
 import { agentKindOf } from "../../../../agents/agentKindOf";
 import { agentProfileOf } from "../../../../agents/agentProfileOf";
+import { isAgentWorking } from "../../../../agents/isAgentWorking";
 import { SessionActionsMenu } from "../../../SessionActionsMenu";
 import { sessionStateLabel } from "../../../sessionStateLabel";
 import { isHistoricalSession } from "../../isHistoricalSession";
@@ -88,6 +89,7 @@ export function SessionGroup({
 											name={run.ticketIdentifier ?? run.name}
 											agentKind={agentKindOf(run.kind)}
 											agentProfile={agentProfileOf(run.harness)}
+											state={isAgentWorking(run) ? "working" : "static"}
 											status={sessionStatus(run)}
 											className="size-5"
 										/>

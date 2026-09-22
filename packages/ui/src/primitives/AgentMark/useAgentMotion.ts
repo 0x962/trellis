@@ -3,7 +3,12 @@ import { type RefObject, useEffect } from "react";
 import type { AgentMarkState } from "./agentAppearance";
 import { trellisPoses } from "./trellisPoses";
 
-export function useAgentMotion(ref: RefObject<SVGSVGElement | null>, state: AgentMarkState, id: string) {
+export function useAgentMotion(
+	ref: RefObject<SVGSVGElement | null>,
+	state: AgentMarkState,
+	id: string,
+	artworkMotion: boolean,
+) {
 	useEffect(() => {
 		if (state === "static") return;
 		const node = ref.current!;
@@ -22,9 +27,9 @@ export function useAgentMotion(ref: RefObject<SVGSVGElement | null>, state: Agen
 				return;
 			}
 			if (loops.length === 0) {
-				loops = createLoops(node, state);
-				const phase = ([...id].reduce((value, char) => value + char.charCodeAt(0), 0) * 0.43) % 3;
-				if (state === "working-mild") for (const loop of loops) loop.time = phase;
+				loops = createLoops(node, artworkMotion);
+				const phase = ([...id].reduce((value, char) => value + char.charCodeAt(0), 0) * 0.43) % 2;
+				for (const loop of loops) loop.time = phase;
 				node.dataset.motion = "active";
 			}
 			for (const loop of loops) loop.play();
@@ -43,11 +48,11 @@ export function useAgentMotion(ref: RefObject<SVGSVGElement | null>, state: Agen
 			for (const loop of loops) loop.cancel();
 			delete node.dataset.motion;
 		};
-	}, [ref, state, id]);
+	}, [ref, state, id, artworkMotion]);
 }
 
-function createLoops(node: SVGSVGElement, state: AgentMarkState) {
-	const options = { duration: 3, repeat: Infinity, autoplay: false };
+function createLoops(node: SVGSVGElement, artworkMotion: boolean) {
+	const options = { duration: 2, repeat: Infinity, autoplay: false };
 	const loops = [
 		animate(
 			node.querySelector<SVGRectElement>(".agent-film")!,
@@ -67,8 +72,8 @@ function createLoops(node: SVGSVGElement, state: AgentMarkState) {
 			{ ...options, times: [0, 0.02, 0.12, 0.86, 0.98, 1], ease: "linear" },
 		),
 	];
-	if (state !== "working") return loops;
-	const full = { duration: 2.2, repeat: Infinity, autoplay: false };
+	if (!artworkMotion) return loops;
+	const full = { duration: 2, repeat: Infinity, autoplay: false };
 	for (const [i, frames] of trellisPoses.entries()) {
 		for (const piece of node.querySelectorAll<SVGPathElement>(`[data-piece="${i}"]`)) {
 			loops.push(animate(piece, { d: frames }, { ...full, times: [0, 0.07, 0.18, 0.31, 0.65, 0.75, 0.87, 1] }));

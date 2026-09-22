@@ -15,10 +15,8 @@ export type AttentionDotProps = {
 // A 6 px filled dot that marks one line a person must look at. It takes its
 // own place in a row of text and sits before the words it marks.
 //
-// `ActivityDot` is the other 6 px dot. It says that an agent works, it can
-// sit on the corner of an icon, and its colors are `accent` and `metal`.
-// This dot uses two other colors: `--warning` when a person must act, and
-// `--danger` when a run failed or is lost.
+// The dot uses `--warning` when a person must act, and `--danger` when a run
+// failed or is lost.
 export function AttentionDot({ label, tone = "warning", tooltip = true, focusable = true }: AttentionDotProps) {
 	const dot = (
 		<span

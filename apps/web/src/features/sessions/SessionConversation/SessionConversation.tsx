@@ -6,6 +6,7 @@ import { type RefObject, useCallback, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../../agents/agentKindOf";
 import { agentProfileOf } from "../../agents/agentProfileOf";
+import { isAgentWorking } from "../../agents/isAgentWorking";
 import { NativeTerminal } from "../../agents/NativeTerminal";
 import { useWorkspaceSummary } from "../../agents/useWorkspaceSummary";
 import { PendingQuestions } from "../PendingQuestions";
@@ -72,6 +73,7 @@ export function SessionConversation({
 					name={name}
 					agentKind={agentKindOf(run.kind)}
 					agentProfile={agentProfileOf(run.harness)}
+					state={isAgentWorking(run) ? "working" : "static"}
 					status={sessionStatus(run)}
 					className="size-7 shrink-0"
 				/>
