@@ -52,13 +52,13 @@ export async function add(ctx: ServiceCtx, tx: Tx, input: ReviewCreate): Promise
 	await tx.execute(
 		sql`INSERT INTO review_threads (id, pr_id, revision_id, document, updated_at) VALUES (${thread.id}, ${pr.id}, ${thread.revisionId}, ${JSON.stringify(thread)}::jsonb, ${at})`,
 	);
-	if (ctx.actor.kind === "human")
-		await enqueueCommentDeliveries(tx, {
-			prId: pr.id,
-			threadId: thread.id,
-			messageId: thread.id,
-			at: ctx.now(),
-		});
+	await enqueueCommentDeliveries(tx, {
+		prId: pr.id,
+		threadId: thread.id,
+		messageId: thread.id,
+		author: ctx.actor,
+		at: ctx.now(),
+	});
 	await changed(ctx, tx, pr.id);
 	return thread;
 }
@@ -106,8 +106,7 @@ export async function reply(ctx: ServiceCtx, tx: Tx, input: { id: string; body: 
 	});
 	doc.updatedAt = at;
 	await writeThread(tx, doc);
-	if (ctx.actor.kind === "human")
-		await enqueueCommentDeliveries(tx, { prId: doc.prId, threadId: doc.id, messageId, at: ctx.now() });
+	await enqueueCommentDeliveries(tx, { prId: doc.prId, threadId: doc.id, messageId, author: ctx.actor, at: ctx.now() });
 	await changed(ctx, tx, doc.prId);
 	return doc;
 }
