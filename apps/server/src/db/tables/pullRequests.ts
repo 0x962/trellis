@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { boolean, check, index, integer, jsonb, pgTable, text, unique } from "drizzle-orm/pg-core";
-import { CI_STATES, checkIn, LOCAL_PR_STATES, PR_STATES, REVIEW_STATES } from "../enums.ts";
+import { CI_STATES, checkIn, LOCAL_PR_STATES, MERGEABLE_STATES, PR_STATES, REVIEW_STATES } from "../enums.ts";
 import { at } from "./actors.ts";
 
 // `checks` is the sorted list of `{name, workflow, bucket, link}` gh reported.
@@ -28,6 +28,7 @@ export const pullRequests = pgTable(
 		headSha: text("head_sha"),
 		headRef: text("head_ref").notNull().default(""),
 		baseRef: text("base_ref").notNull().default(""),
+		mergeable: text().notNull().default("unknown"),
 		reviewState: text("review_state").notNull().default("none"),
 		mergedAt: at("merged_at"),
 		closedAt: at("closed_at"),
@@ -52,6 +53,7 @@ export const pullRequests = pgTable(
 		checkIn(t.reviewState, REVIEW_STATES),
 		checkIn(t.localState, LOCAL_PR_STATES),
 		checkIn(t.ciState, CI_STATES),
+		checkIn(t.mergeable, MERGEABLE_STATES),
 		check("pull_requests_checks_check", sql`jsonb_typeof(${t.checks}) = 'array'`),
 		check("pull_requests_files_check", sql`${t.files} IS NULL OR jsonb_typeof(${t.files}) = 'array'`),
 		index("pull_requests_state_ci_state_idx").on(t.state, t.ciState),

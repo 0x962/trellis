@@ -29,6 +29,7 @@ const responseWithSize = (
 				headRefOid: headSha,
 				headRefName: "size",
 				baseRefName: "main",
+				mergeable: "CONFLICTING",
 				mergedAt: null,
 				closedAt: null,
 				reviewDecision: null,
@@ -61,6 +62,19 @@ describe("pull request GraphQL size", () => {
 		if (!("row" in result)) throw new Error(result.error);
 
 		expect(result.row.isQueued).toBe(true);
+	});
+
+	test("stores the merge state in lower case, and includes it in the content hash", () => {
+		const size = { additions: 120, deletions: 30, changedFiles: 9 };
+		const unknown = responseWithSize(size);
+		unknown.data.pr0!.pullRequest!.mergeable = "UNKNOWN";
+		const result = mapPullRequestResponse([ref], unknown)[0]!;
+		if (!("row" in result)) throw new Error(result.error);
+
+		expect(buildPullRequestQuery([ref])).toContain("baseRefName mergeable");
+		expect(rowOf(size).mergeable).toBe("conflicting");
+		expect(result.row.mergeable).toBe("unknown");
+		expect(result.row.contentHash).not.toBe(rowOf(size).contentHash);
 	});
 
 	test("requests at most 100 changed files", () => {

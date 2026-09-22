@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, expect, test } from "bun:test";
-import type { Check, CheckBucket, PrState } from "@trellis/api";
+import type { Check, CheckBucket, Mergeable, PrState } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
@@ -61,7 +61,13 @@ const check = (name: string, bucket: CheckBucket): Check => ({
 	endedAt: null,
 });
 
-const row = (number: number, headSha: string, checks: Check[], state: PrState = "open"): PullRequestRow => ({
+const row = (
+	number: number,
+	headSha: string,
+	checks: Check[],
+	state: PrState = "open",
+	mergeable: Mergeable = "unknown",
+): PullRequestRow => ({
 	owner: "o",
 	repo: "r",
 	number,
@@ -77,6 +83,7 @@ const row = (number: number, headSha: string, checks: Check[], state: PrState = 
 	headSha,
 	headRef: "fix",
 	baseRef: "main",
+	mergeable,
 	reviewState: "none",
 	mergedAt: null,
 	closedAt: null,
@@ -221,4 +228,81 @@ test("a notice that a new head commit replaced before the send fails with its se
 	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
 	expect(sent).toEqual([]);
 	expect(await deliveries(pr.runId)).toEqual([{ state: "failed", error: supersededCheck }]);
+});
+
+test("a conflict reaches the running agent once per head, after GitHub answers, and a clear follows", async () => {
+	const pr = await seed([]);
+	const url = `https://github.com/o/r/pull/${pr.number}`;
+
+	await write(later(1000), row(pr.number, "aaa1111aaaa", [], "open", "conflicting"));
+	await noticeChecks(db, gh, later(1000));
+	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
+	expect(sent.map((entry) => entry.text)).toEqual([
+		[
+			`trellis: ${url} has a merge conflict with the base branch main on commit aaa1111.`,
+			"Merge the base branch into your branch: git fetch origin && git merge origin/main",
+			"Resolve each conflict, run the tests, commit, and push. Trellis tells you when the conflict is gone.",
+		].join("\n"),
+	]);
+
+	// The detector holds nothing in memory, so a call after a restart reads
+	// the same notices and writes none.
+	await noticeChecks(db, gh, later(2000));
+	await noticeChecks(db, gh, later(3000));
+
+	// A push gives a new head, and GitHub answers unknown until it computed
+	// the merge. Unknown sends nothing.
+	await write(later(4000), row(pr.number, "bbb2222bbbb", [], "open", "unknown"));
+	await noticeChecks(db, gh, later(4000));
+	expect((await notices(pr.prId)).map((notice) => notice.kind)).toEqual(["conflict"]);
+
+	await write(later(5000), row(pr.number, "bbb2222bbbb", [], "open", "mergeable"));
+	await noticeChecks(db, gh, later(5000));
+	await noticeChecks(db, gh, later(6000));
+	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
+	expect(sent.map((entry) => entry.text)).toEqual([
+		expect.any(String),
+		`trellis: the merge conflict of ${url} is gone. Commit bbb2222 merges into main with no conflict.`,
+	]);
+	expect(await notices(pr.prId)).toEqual([
+		{ kind: "conflict", headSha: "aaa1111aaaa", checks: [] },
+		{ kind: "clear", headSha: "bbb2222bbbb", checks: [] },
+	]);
+	expect(ghCalls).toEqual([]);
+});
+
+test("a check notice and a conflict notice in one tick both reach the agent", async () => {
+	const pr = await seed([check("lint", "fail")]);
+	await write(t0, row(pr.number, "aaa1111aaaa", [check("lint", "fail")], "open", "conflicting"));
+
+	await noticeChecks(db, gh, later(SETTLE_MS));
+	await dispatchDeliveries(ioCtx(), running(pr.terminal), send, preset);
+	expect((await notices(pr.prId)).map((notice) => notice.kind).sort()).toEqual(["conflict", "failed"]);
+	expect(await deliveries(pr.runId)).toEqual([
+		{ state: "sent", error: null },
+		{ state: "sent", error: null },
+	]);
+});
+
+test("a conflict on a GitHub draft, a merged pull request, or one with no ticket sends nothing", async () => {
+	const draft = await seed([]);
+	await write(later(1000), { ...row(draft.number, "aaa1111aaaa", [], "open", "conflicting"), isDraft: true });
+	const merged = await seed([]);
+	await write(later(1000), row(merged.number, "aaa1111aaaa", [], "merged", "conflicting"));
+	const orphan = await seed([], { withTicket: false });
+	await write(later(1000), row(orphan.number, "aaa1111aaaa", [], "open", "conflicting"));
+
+	await noticeChecks(db, gh, later(1000));
+	expect(await notices(draft.prId)).toEqual([]);
+	expect(await notices(merged.prId)).toEqual([]);
+	expect(await notices(orphan.prId)).toEqual([]);
+});
+
+test("a conflict on a pull request whose local state is draft still reaches the agent", async () => {
+	const pr = await seed([]);
+	await db.execute(sql`UPDATE pull_requests SET local_state = 'draft' WHERE id = ${pr.prId}`);
+	await write(later(1000), row(pr.number, "aaa1111aaaa", [], "open", "conflicting"));
+
+	await noticeChecks(db, gh, later(1000));
+	expect((await notices(pr.prId)).map((notice) => notice.kind)).toEqual(["conflict"]);
 });

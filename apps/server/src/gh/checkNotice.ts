@@ -56,7 +56,8 @@ const sameKeys = (a: NoticeCheck[], b: Check[]) => {
 	return a.length === b.length && b.every((check) => keys.has(keyOf(check)));
 };
 
-// `notices` holds every notice of the pull request, oldest first.
+// `notices` holds every check notice of the pull request, oldest first. The
+// merge notices of `decideConflictNotice` are not in the list.
 export const decideNotice = (subject: NoticeSubject, notices: StoredNotice[], nowMs: number): NoticeDecision | null => {
 	if (subject.state !== "open" || subject.headSha === null || subject.checksChangedAt === null) return null;
 	const quietMs = nowMs - Date.parse(subject.checksChangedAt);

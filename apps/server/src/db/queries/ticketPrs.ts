@@ -89,7 +89,7 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 						WHERE thread.pr_id = p.id AND thread.document->>'status' = 'open'
 					),
 					'flowRuns', flow_runs.items,
-					'baseRef', p.base_ref, 'headRef', p.head_ref,
+					'baseRef', p.base_ref, 'headRef', p.head_ref, 'mergeable', p.mergeable,
 					'stackedOn', (
 						SELECT jsonb_build_object(
 							'number', stacked.number,

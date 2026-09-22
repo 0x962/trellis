@@ -3,6 +3,7 @@ import {
 	type Check,
 	type CiState,
 	MAX_CHANGED_FILES,
+	type Mergeable,
 	type PrState,
 	type ReviewState,
 } from "@trellis/api";
@@ -34,6 +35,7 @@ export type RawPullRequest = {
 	headRefOid: string;
 	headRefName: string;
 	baseRefName: string;
+	mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
 	mergedAt: string | null;
 	closedAt: string | null;
 	reviewDecision: "REVIEW_REQUIRED" | "APPROVED" | "CHANGES_REQUESTED" | null;
@@ -69,6 +71,7 @@ export type PullRequestContent = {
 	headSha: string;
 	headRef: string;
 	baseRef: string;
+	mergeable: Mergeable;
 	reviewState: ReviewState;
 	mergedAt: string | null;
 	closedAt: string | null;
@@ -83,7 +86,7 @@ export type PullRequestResult = { ref: PullRequestRef; row: PullRequestRow } | {
 export type FetchPullRequestsResult = { ok: true; results: PullRequestResult[] } | GhFailure;
 
 const selection = `{
-	number additions deletions changedFiles title state isDraft mergeQueueEntry { position } url headRefOid headRefName baseRefName mergedAt closedAt reviewDecision
+	number additions deletions changedFiles title state isDraft mergeQueueEntry { position } url headRefOid headRefName baseRefName mergeable mergedAt closedAt reviewDecision
 	files(first: ${MAX_CHANGED_FILES}) { nodes { path changeType additions deletions } }
 	commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { nodes {
 		__typename
@@ -148,6 +151,7 @@ const toRow = (ref: PullRequestRef, raw: RawPullRequest): PullRequestRow => {
 		headSha: raw.headRefOid,
 		headRef: raw.headRefName,
 		baseRef: raw.baseRefName,
+		mergeable: raw.mergeable.toLowerCase() as Mergeable,
 		reviewState: raw.reviewDecision === null ? "none" : reviewStates[raw.reviewDecision],
 		mergedAt: raw.mergedAt,
 		closedAt: raw.closedAt,

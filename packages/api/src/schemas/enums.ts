@@ -47,6 +47,12 @@ export type PrLinkSource = z.infer<typeof PrLinkSourceSchema>;
 export const LocalPrStateSchema = z.enum(["draft", "ready"]);
 export type LocalPrState = z.infer<typeof LocalPrStateSchema>;
 
+// Whether GitHub can merge the head of a pull request into its base branch.
+// GitHub computes the answer after a push or a base change, and answers
+// `unknown` until it has one.
+export const MergeableSchema = z.enum(["mergeable", "conflicting", "unknown"]);
+export type Mergeable = z.infer<typeof MergeableSchema>;
+
 // Why gh cannot serve a request.
 export const GhReasonSchema = z.enum(["missing", "unauthenticated", "error"]);
 export type GhReason = z.infer<typeof GhReasonSchema>;

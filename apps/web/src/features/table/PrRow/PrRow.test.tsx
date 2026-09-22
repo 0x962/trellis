@@ -27,6 +27,16 @@ describe("PrRow", () => {
 		expect(html).toContain("min-w-0 flex-1 truncate text-fg");
 	});
 
+	test("draws a conflict mark only on an open pull request that GitHub cannot merge", () => {
+		const row = (fields: Parameters<typeof prOf>[0]) =>
+			renderToStaticMarkup(<PrRow pr={prOf(fields)} top={0} last={false} hasChildLines={false} />);
+
+		expect(row({ mergeable: "conflicting" })).toContain('aria-label="Merge conflict with main"');
+		expect(row({ mergeable: "mergeable" })).not.toContain("data-pr-conflict");
+		expect(row({ mergeable: "unknown" })).not.toContain("data-pr-conflict");
+		expect(row({ mergeable: "conflicting", state: "merged" })).not.toContain("data-pr-conflict");
+	});
+
 	test("gives the number a fixed width and tabular digits", () => {
 		const html = renderToStaticMarkup(<PrRow pr={prOf({ number: 129 })} top={0} last={false} hasChildLines={false} />);
 

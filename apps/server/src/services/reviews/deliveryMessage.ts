@@ -59,3 +59,17 @@ export const checkMessage = (input: { url: string; headSha: string; kind: CheckN
 			: "Open the check on GitHub to find what it waits for.";
 	return `${opening}\n${checks.join("\n")}\n${close}`;
 };
+
+// A change in the merge state of the pull request of an agent: a `conflict`
+// notice or a `clear` notice. GitHub does not name the conflicting files in
+// the poll answer, so the agent finds them with the merge.
+export const conflictMessage = (input: { url: string; baseRef: string; headSha: string; kind: CheckNoticeKind }) => {
+	const commit = input.headSha.slice(0, 7);
+	if (input.kind === "clear")
+		return `trellis: the merge conflict of ${input.url} is gone. Commit ${commit} merges into ${input.baseRef} with no conflict.`;
+	return [
+		`trellis: ${input.url} has a merge conflict with the base branch ${input.baseRef} on commit ${commit}.`,
+		`Merge the base branch into your branch: git fetch origin && git merge origin/${input.baseRef}`,
+		"Resolve each conflict, run the tests, commit, and push. Trellis tells you when the conflict is gone.",
+	].join("\n");
+};

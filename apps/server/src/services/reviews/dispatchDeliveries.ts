@@ -1,9 +1,11 @@
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
-import { sql } from "drizzle-orm";
+import { type SQL, sql } from "drizzle-orm";
 import { nativePreset } from "../../agents/native/harnessHost.ts";
 import { rows, textArray } from "../../db/queries/support.ts";
+import { CONFLICT_NOTICE_KINDS } from "../../db/tables/checkNotices.ts";
 import type { Tx } from "../../db/tx.ts";
 import type { CheckNoticeKind, NoticeCheck } from "../../gh/checkNotice.ts";
+import { isConflictKind } from "../../gh/conflictNotice.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import { sendDeadline } from "../deliveries/sendDeadline.ts";
 import {
@@ -13,7 +15,7 @@ import {
 	unconfirmedDelivery,
 } from "../deliveries/sentences.ts";
 import type { IoCtx } from "../support.ts";
-import { type CommentNote, checkMessage, commentMessage, reviewMessage } from "./deliveryMessage.ts";
+import { type CommentNote, checkMessage, commentMessage, conflictMessage, reviewMessage } from "./deliveryMessage.ts";
 import { deliveryMessageId } from "./deliveryMessageId.ts";
 import { commentBatchLimitSeconds, commentBatchSeconds } from "./enqueueCommentDeliveries.ts";
 import { changed } from "./queries.ts";
@@ -143,8 +145,11 @@ const pendingComments = async (tx: Tx, terminals: string[]): Promise<Delivery[]>
 // A check notice leaves only while it still describes the pull request and
 // its agent runs. A notice for an agent without a running process fails at
 // once, because the person reads the checks on the page. A notice that a
-// newer notice, a new head commit, or a merge replaced fails too, so the
-// agent never reads an old result.
+// newer notice of the same family, a new head commit, or a merge replaced
+// fails too, so the agent never reads an old result. The merge family holds
+// `conflict` and `clear`, and a check result never replaces a merge result.
+const mergeFamily = (notice: SQL) => sql`(${notice}.kind IN (${list([...CONFLICT_NOTICE_KINDS])}))`;
+
 const failStaleCheckDeliveries = (tx: Tx, running: string[]) => {
 	const absent = sql`(run.terminal_id IS NULL OR NOT run.terminal_id = ANY(${textArray(running)}))`;
 	return tx.execute(
@@ -155,18 +160,26 @@ const failStaleCheckDeliveries = (tx: Tx, running: string[]) => {
 			AND delivery.state = 'pending'
 			AND (${absent} OR pr.state <> 'open' OR pr.head_sha IS DISTINCT FROM notice.head_sha
 				OR EXISTS (SELECT 1 FROM check_notices newer WHERE newer.pr_id = notice.pr_id
+					AND ${mergeFamily(sql`newer`)} = ${mergeFamily(sql`notice`)}
 					AND (newer.created_at, newer.id) > (notice.created_at, notice.id)))`,
 	);
 };
 
 // A queued check notice. The notice row holds the commit and the checks, so
 // the message names both without a second query.
-type CheckRow = Queued & { url: string; headSha: string; kind: CheckNoticeKind; checks: NoticeCheck[] };
+type CheckRow = Queued & {
+	url: string;
+	baseRef: string;
+	headSha: string;
+	kind: CheckNoticeKind;
+	checks: NoticeCheck[];
+};
 
 const pendingChecks = async (tx: Tx, terminals: string[]): Promise<Delivery[]> => {
 	const found = await rows<CheckRow>(
 		tx,
-		sql`SELECT ${deliveryColumns}, pr.url AS "url", notice.head_sha AS "headSha", notice.kind, notice.checks
+		sql`SELECT ${deliveryColumns}, pr.url AS "url", pr.base_ref AS "baseRef", notice.head_sha AS "headSha",
+			notice.kind, notice.checks
 		FROM review_deliveries delivery
 		JOIN agent_runs run ON run.id = delivery.run_id
 		JOIN check_notices notice ON notice.id = delivery.check_notice_id
@@ -174,7 +187,11 @@ const pendingChecks = async (tx: Tx, terminals: string[]): Promise<Delivery[]> =
 		WHERE delivery.state = 'pending' AND ${due} AND ${runningTerminals(terminals)}
 		ORDER BY delivery.id LIMIT 20`,
 	);
-	return found.map((row) => ({ ...row, ids: [row.id], text: checkMessage(row) }));
+	return found.map((row) => ({
+		...row,
+		ids: [row.id],
+		text: isConflictKind(row.kind) ? conflictMessage(row) : checkMessage(row),
+	}));
 };
 
 // What one failed attempt writes on the row. `sendDeadline` rejects with the

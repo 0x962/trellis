@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { LocalPrStateSchema, PrStateSchema } from "./enums.ts";
+import { LocalPrStateSchema, MergeableSchema, PrStateSchema } from "./enums.ts";
 import { FlowExecutionStateSchema } from "./flowExecution.ts";
 import { CountSchema, UlidSchema } from "./primitives.ts";
 
@@ -42,6 +42,7 @@ export const TicketPrSchema = z.object({
 	),
 	baseRef: z.string(),
 	headRef: z.string(),
+	mergeable: MergeableSchema,
 	stackedOn: z
 		.object({
 			number: z.number().int().positive(),

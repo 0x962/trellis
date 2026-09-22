@@ -1226,8 +1226,31 @@ gives no lines.
 15 second deadline, and the same failure sentences as a review. A pull
 request with no ticket, or with no agent, gets no notice row. The dispatcher
 fails a pending check delivery when the agent has no running process, and
-when a newer notice, a new head commit, a merge, or a close replaced it. A
-merged or closed pull request gets no new notice.
+when a newer notice of the same family, a new head commit, a merge, or a close
+replaced it. A merged or closed pull request gets no new notice.
+
+**Merge conflicts.** The poll query also reads `mergeable`, and the upsert
+stores it on `pull_requests.mergeable` as `mergeable`, `conflicting`, or
+`unknown`. GitHub answers `unknown` until it has computed the merge after a
+push or a base change. `decideConflictNotice` (`gh/conflictNotice.ts`) runs in
+the same step as `decideNotice` and writes to the same table with two more
+kinds:
+
+- `conflict`: GitHub answers `conflicting`, and the newest merge notice is not
+  a `conflict` on the same head. The message names the base branch, the head
+  commit, and the merge command. GitHub does not name the conflicting files
+  in the poll answer, so the message does not name them.
+- `clear`: GitHub answers `mergeable`, and the newest merge notice is
+  `conflict`.
+
+`unknown` sends nothing. A pull request that GitHub marks as a draft sends
+nothing. A local draft still sends, because its agent owns the branch. The
+merge kinds and the check kinds are two families: `decideNotice` reads only
+the check kinds, and a notice of one family never replaces a pending notice
+of the other. The pull request rows of the ticket page and the epic table,
+and the review header, draw `MergeConflictMark` (packages/ui): the Octicons
+alert triangle in the warning colour, with the tooltip "Merge conflict with
+<base branch>".
 
 ## Attachments
 
