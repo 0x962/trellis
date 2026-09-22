@@ -18,7 +18,7 @@ export async function gh(ctx: PrepareCtx, args: string[]) {
 	return result.stdout;
 }
 const fields =
-	"title,state,isDraft,author,headRepository,headRepositoryOwner,headRefName,baseRefName,headRefOid,baseRefOid,additions,deletions,changedFiles,mergeable,mergeStateStatus,reviewDecision,reviewRequests,autoMergeRequest,body,comments,reviews,statusCheckRollup,labels,commits";
+	"title,state,isDraft,author,headRepository,headRepositoryOwner,headRefName,baseRefName,headRefOid,baseRefOid,additions,deletions,changedFiles,mergeable,mergeStateStatus,reviewDecision,reviewRequests,autoMergeRequest,body,comments,reviews,statusCheckRollup,labels";
 
 // The text of one file at one commit, from the repository that holds the
 // commit. The head of a fork pull request lives in the fork.
