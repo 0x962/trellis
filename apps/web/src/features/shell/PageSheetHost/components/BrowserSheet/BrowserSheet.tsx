@@ -15,8 +15,8 @@ export type BrowserSheetProps = {
 	at: BrowserParent;
 };
 
-// One web page in a `PageSheet` over the page that opened it. The sheet
-// takes the width of the window, because a person reads a whole site here.
+// One web page in a wide `PageSheet` over the page that opened it. A person
+// reads a whole site here, so the sheet needs more room than a page sheet.
 //
 // The store holds one address, and the sheet stack draws this component in
 // five places. Only the copy that `browserParent` names renders, so two
@@ -30,7 +30,7 @@ export function BrowserSheet({ at }: BrowserSheetProps) {
 		<PageSheet
 			open={url !== null}
 			onClose={pageSheetActions.closeBrowser}
-			width="full"
+			width="wide"
 			title={shown === null ? "Browser" : browserHost(shown)}
 		>
 			{shown !== null && <BrowserPage key={shown} url={shown} />}
