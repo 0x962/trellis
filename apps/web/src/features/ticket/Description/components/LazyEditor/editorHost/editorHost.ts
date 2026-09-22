@@ -10,6 +10,9 @@ export type EditorHost = {
 	attachFiles: (files: File[]) => void;
 	// Opens the file picker of the browser for the Image block.
 	pickFiles: () => void;
+	// Opens a comment thread, on a click on its text. Null on a page that
+	// takes no comments.
+	openThread: ((id: string) => void) | null;
 };
 
 let current: EditorHost | null = null;

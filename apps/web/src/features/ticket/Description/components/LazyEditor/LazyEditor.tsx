@@ -4,7 +4,14 @@ import type { EditorViewProps } from "./components/EditorView";
 
 type EditorModule = typeof import("./components/EditorView");
 
-export type { EditorHandle, EditorViewProps } from "./components/EditorView";
+export type {
+	CommentsHandle,
+	CommentsState,
+	EditorHandle,
+	EditorViewProps,
+	MovedAnchor,
+	ThreadInput,
+} from "./components/EditorView";
 
 export type EditorChunkState = "idle" | "loading" | "ready";
 

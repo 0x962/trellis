@@ -1,4 +1,4 @@
-import { ArrowCounterClockwise, ArrowUp, Check, Copy, PencilSimple } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, ArrowUp, Check, Copy, PencilSimple, Trash } from "@phosphor-icons/react";
 import { type ReactNode, useRef, useState } from "react";
 import { Button } from "../../primitives/Button";
 import { IconButton } from "../../primitives/IconButton";
@@ -35,7 +35,13 @@ type Props = {
 	onReply: (body: string) => Promise<unknown>;
 	onResolve: () => Promise<unknown>;
 	onEdit: (id: string, body: string, version: number) => Promise<unknown>;
-	onReaction: (id: string, reaction: string, remove: boolean) => Promise<unknown>;
+	// A thread without reactions draws no reaction row.
+	onReaction?: (id: string, reaction: string, remove: boolean) => Promise<unknown>;
+	// Deletes one message. A thread without it draws no delete button.
+	onDelete?: (id: string) => Promise<unknown>;
+	// Whether the reader may edit and delete a message. Every message when
+	// it is not given.
+	canChange?: (id: string) => boolean;
 	actor?: string;
 };
 // The first line of a body, for the collapsed row of a resolved thread. A
@@ -45,7 +51,17 @@ const summaryOf = (body: string) => {
 	return /^\s*(`{3,}|~{3,})\s*suggestion/i.test(first) ? "Suggested change" : first;
 };
 
-export function ReviewThreadCard({ thread, renderBody, onReply, onResolve, onEdit, onReaction, actor }: Props) {
+export function ReviewThreadCard({
+	thread,
+	renderBody,
+	onReply,
+	onResolve,
+	onEdit,
+	onReaction,
+	onDelete,
+	canChange = () => true,
+	actor,
+}: Props) {
 	const root = useRef<HTMLElement>(null);
 	const replyInput = useRef<HTMLTextAreaElement>(null);
 	const draftKey = `trellis.review.reply:${actor}:${thread.id}`;
@@ -116,15 +132,28 @@ export function ReviewThreadCard({ thread, renderBody, onReply, onResolve, onEdi
 										/>
 									</Tooltip>
 								)}
-								<Tooltip content="Edit message">
-									<IconButton
-										className="review-message-action"
-										label="Edit message"
-										icon={<PencilSimple />}
-										disabled={busy}
-										onClick={() => setEdit({ id: message.id, body: message.body, version: message.version })}
-									/>
-								</Tooltip>
+								{canChange(message.id) && (
+									<Tooltip content="Edit message">
+										<IconButton
+											className="review-message-action"
+											label="Edit message"
+											icon={<PencilSimple />}
+											disabled={busy}
+											onClick={() => setEdit({ id: message.id, body: message.body, version: message.version })}
+										/>
+									</Tooltip>
+								)}
+								{onDelete !== undefined && canChange(message.id) && (
+									<Tooltip content={message.id === thread.id ? "Delete thread" : "Delete message"}>
+										<IconButton
+											className="review-message-action"
+											label={message.id === thread.id ? "Delete thread" : "Delete message"}
+											icon={<Trash />}
+											disabled={busy}
+											onClick={() => void run(() => onDelete(message.id))}
+										/>
+									</Tooltip>
+								)}
 							</header>
 							{edit?.id === message.id ? (
 								<form
@@ -153,12 +182,14 @@ export function ReviewThreadCard({ thread, renderBody, onReply, onResolve, onEdi
 							) : (
 								renderBody(message.body, { id: message.id, root: message.id === thread.id })
 							)}
-							<ReviewReactions
-								reactions={message.reactions}
-								actor={actor}
-								busy={busy}
-								onReaction={(reaction, remove) => void run(() => onReaction(message.id, reaction, remove))}
-							/>
+							{onReaction !== undefined && (
+								<ReviewReactions
+									reactions={message.reactions}
+									actor={actor}
+									busy={busy}
+									onReaction={(reaction, remove) => void run(() => onReaction(message.id, reaction, remove))}
+								/>
+							)}
 						</section>
 					))}
 					<form
