@@ -1,10 +1,11 @@
-import { ArrowClockwise, ArrowLeft, ArrowRight, ArrowSquareOut } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowLeft, ArrowRight, ArrowSquareOut, Link } from "@phosphor-icons/react";
 import { LINK_BROWSER_PARTITION, LINK_BROWSER_WEB_PREFERENCES } from "@trellis/api";
-import { Button, EmptyState, IconButton, Spinner, Tooltip } from "@trellis/ui";
-import { useEffect, useState } from "react";
+import { Button, EmptyState, IconButton, Spinner, Tooltip, useHotkey } from "@trellis/ui";
+import { useCallback, useEffect, useState } from "react";
 import { PageTitle } from "../../../../../PageTitle";
 import { Topbar } from "../../../../../Topbar";
 import { browserTitle } from "../../browserTitle";
+import { copyBrowserLink } from "../../copyBrowserLink";
 import { type LinkLoadFailure, linkLoadError, linkUrlError } from "./linkError";
 
 export type BrowserPageProps = {
@@ -35,6 +36,13 @@ export function BrowserPage({ url }: BrowserPageProps) {
 	// nothing on `goBack`, so the Back and Forward buttons count in steps
 	// from the page on screen, which the same webview answers correctly.
 	const [steps, setSteps] = useState({ back: false, forward: false });
+	const copyLink = useCallback(() => {
+		void copyBrowserLink(address);
+	}, [address]);
+	useHotkey("mod+shift+c", (event) => {
+		event.preventDefault();
+		copyLink();
+	});
 	useEffect(() => {
 		if (webview === null) return;
 		const view = webview;
@@ -98,6 +106,9 @@ export function BrowserPage({ url }: BrowserPageProps) {
 								disabled={webview === null}
 								onClick={() => webview!.reload()}
 							/>
+						</Tooltip>
+						<Tooltip content="Copy link">
+							<IconButton label="Copy link" icon={<Link />} onClick={copyLink} />
 						</Tooltip>
 						<Tooltip content="Open in browser">
 							<IconButton
