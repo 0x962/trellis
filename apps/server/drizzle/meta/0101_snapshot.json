@@ -1,5 +1,5 @@
 {
-  "id": "0cbfb4f4-f983-4f26-97ba-329f4df0820b",
+  "id": "6a99f4c3-e32a-4aad-a2a6-2a66ca716102",
   "prevId": "a1e7db7a-2ac3-4c9f-bff7-39eee8c53874",
   "version": "7",
   "dialect": "postgresql",
@@ -4141,7 +4141,7 @@
           "name": "ticket_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "run_id": {
           "name": "run_id",
@@ -4276,7 +4276,8 @@
             "review_id",
             "thread_message_id",
             "check_notice_id",
-            "ticket_id"
+            "ticket_id",
+            "run_id"
           ]
         }
       },

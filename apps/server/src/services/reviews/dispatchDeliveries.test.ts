@@ -6,11 +6,18 @@ import type { ServiceCtx as CoreCtx } from "../../context.ts";
 import { createCache } from "../../db/cache.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
+import { launchState } from "../agentRuns/launchState";
 import { sendDeadline } from "../deliveries/sendDeadline.ts";
-import { unconfirmedDelivery, waitingForRun } from "../deliveries/sentences.ts";
+import {
+	otherRuntime,
+	pullRequestEnded,
+	unconfirmedDelivery,
+	waitedTooLong,
+	waitingForRun,
+} from "../deliveries/sentences.ts";
 import type { IoCtx } from "../support.ts";
 import { create } from "../tickets/create.ts";
-import { dispatchDeliveries } from "./dispatchDeliveries.ts";
+import { dispatchDeliveries, WAIT_LIMIT_HOURS } from "./dispatchDeliveries.ts";
 import { recordSubmission } from "./recordSubmission.ts";
 import { submit } from "./remote.ts";
 import { add, reply } from "./threads.ts";
@@ -84,14 +91,16 @@ const queueReview = async (title: string, threads: number) => {
 };
 
 // A pull request of one ticket, one running agent on that ticket, and the
-// comments an actor wrote on the diff. The clock of the service context sits
-// before the run of the test, so the batch window has passed and the
-// dispatcher may send every row at once.
+// comments an actor wrote on the diff. The clock of the service context
+// sits one minute before the run of the test, so the batch window has
+// passed and the dispatcher may send every row at once. The clock stays
+// inside the day that a message may wait.
+const threadClock = () => new Date(Date.now() - 60_000);
 const threadCtx = (actor: { kind: "human" | "agent"; name: string }) =>
 	({
 		actor,
 		session: null,
-		now: () => new Date(at),
+		now: threadClock,
 		emit: () => {},
 	}) as never;
 
@@ -474,4 +483,55 @@ test("a person who keeps writing still reaches the agent after the limit", async
 
 	expect(sent).toHaveLength(1);
 	expect(sent[0]!.text).toContain("2 new comments.");
+});
+
+test("a verdict for a ticket whose agent runs on another runtime fails and names it", async () => {
+	sent.length = 0;
+	const queued = await queueReview("Name the other runtime", 1);
+	await db.execute(sql`UPDATE agent_runs SET runtime = 'commands' WHERE id = ${queued.runId}`);
+
+	await dispatchDeliveries(ctx(), running(`term-${queued.runId}`), send, preset);
+
+	expect(sent).toEqual([]);
+	expect(await deliveryOf(queued.ticketId)).toEqual({ state: "failed", error: otherRuntime("commands") });
+});
+
+test("a message of a pull request that merged is dropped", async () => {
+	sent.length = 0;
+	const queued = await queueReview("Drop after the merge", 1);
+	await db.execute(sql`UPDATE agent_runs SET closed_at = ${at} WHERE id = ${queued.runId}`);
+	await dispatchDeliveries(ctx(), [], send, preset);
+	expect(await deliveryOf(queued.ticketId)).toEqual({ state: "held", error: waitingForRun });
+
+	await db.execute(sql`UPDATE pull_requests SET state = 'merged' WHERE url = ${queued.url}`);
+	await dispatchDeliveries(ctx(), [], send, preset);
+
+	expect(await deliveryOf(queued.ticketId)).toEqual({ state: "failed", error: pullRequestEnded });
+});
+
+test("a message that waited the whole limit is dropped", async () => {
+	sent.length = 0;
+	const queued = await queueReview("Drop after a day", 1);
+	await db.execute(sql`UPDATE agent_runs SET closed_at = ${at} WHERE id = ${queued.runId}`);
+	await db.execute(
+		sql`UPDATE review_deliveries SET due_at = now() - make_interval(hours => ${WAIT_LIMIT_HOURS + 1})
+		WHERE ticket_id = ${queued.ticketId}`,
+	);
+
+	await dispatchDeliveries(ctx(), [], send, preset);
+
+	expect(await deliveryOf(queued.ticketId)).toEqual({ state: "failed", error: waitedTooLong });
+});
+
+test("a message waits in the queue while Trellis starts the run of its ticket", async () => {
+	sent.length = 0;
+	const queued = await queueReview("Hold nothing while the run starts", 1);
+	const release = launchState.start("/tmp/trellis-dispatch", `term-${queued.runId}`);
+
+	await dispatchDeliveries(ctx(), [], send, preset);
+	expect(await deliveryOf(queued.ticketId)).toEqual({ state: "pending", error: null });
+
+	release();
+	await dispatchDeliveries(ctx(), [], send, preset);
+	expect(await deliveryOf(queued.ticketId)).toEqual({ state: "held", error: waitingForRun });
 });

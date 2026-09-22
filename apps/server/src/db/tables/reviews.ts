@@ -57,13 +57,18 @@ export const reviewSubmissions = pgTable(
 // the open assignment of that ticket at the moment of the send, and
 // `run_id` holds that run once `dispatchDeliveries` claims the row. A row
 // whose ticket has no running agent stays in the state `held`, and the
-// dispatcher sends it when a run of that ticket runs again.
+// dispatcher sends it when a run of that ticket runs again. `ticket_id` is
+// null on a row that the 0101 upgrade could not match to a ticket, and the
+// upgrade gave every such row a final state.
 //
 // `due_at` is the first moment the dispatcher may send the row: a comment
 // row sets it a few seconds ahead, so the comments a person writes one after
-// another travel in one message. The unique rule counts two null values as
-// equal, so a second row for the same message and the same ticket cannot be
-// written.
+// another travel in one message. It is also the moment the message joined
+// the queue, and `dispatchDeliveries` drops a message that waits a day.
+//
+// The unique rule counts two null values as equal. A queued row holds no
+// run, so the rule allows one queued row per message and ticket. A row that
+// went to an agent holds that run and leaves the rule.
 export const reviewDeliveries = pgTable(
 	"review_deliveries",
 	{
@@ -72,9 +77,7 @@ export const reviewDeliveries = pgTable(
 		threadId: text("thread_id").references(() => reviewThreads.id, { onDelete: "cascade" }),
 		threadMessageId: text("thread_message_id"),
 		checkNoticeId: text("check_notice_id").references(() => checkNotices.id, { onDelete: "cascade" }),
-		ticketId: text("ticket_id")
-			.notNull()
-			.references(() => tickets.id, { onDelete: "cascade" }),
+		ticketId: text("ticket_id").references(() => tickets.id, { onDelete: "cascade" }),
 		runId: text("run_id").references(() => agentRuns.id, { onDelete: "set null" }),
 		state: text().notNull().default("pending"),
 		error: text(),
@@ -84,7 +87,7 @@ export const reviewDeliveries = pgTable(
 	},
 	(t) => [
 		unique("review_deliveries_recipient")
-			.on(t.reviewId, t.threadMessageId, t.checkNoticeId, t.ticketId)
+			.on(t.reviewId, t.threadMessageId, t.checkNoticeId, t.ticketId, t.runId)
 			.nullsNotDistinct(),
 		index("review_deliveries_state_idx").on(t.state),
 		check(

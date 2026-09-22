@@ -7,27 +7,34 @@ import { newestOpenRun } from "./ticketRun.ts";
 // One recipient of the messages of a pull request: a ticket that links the
 // pull request, and the agent run that holds that ticket now. `runId` is
 // null when no run holds the ticket, and a message for that ticket then
-// waits until a run of the ticket starts.
-export type Recipient = { ticketId: string; runId: string | null; agentName: string | null };
+// waits until a run of the ticket starts. `runtime` names the program that
+// started the run, and only a run of the runtime `native` reads a message
+// that Trellis sends.
+export type Recipient = {
+	ticketId: string;
+	runId: string | null;
+	agentName: string | null;
+	runtime: string | null;
+};
 
 // Every ticket that links the pull request, with the agent run that holds
 // it.
 export const recipientsOf = (tx: Tx, input: { prId: string; exceptRunId?: string }) =>
 	rows<Recipient>(
 		tx,
-		sql`SELECT link.ticket_id AS "ticketId", run.id AS "runId", run.name AS "agentName"
+		sql`SELECT link.ticket_id AS "ticketId", run.id AS "runId", run.name AS "agentName", run.runtime
 		FROM ticket_pull_requests link
-		${newestOpenRun(sql`link.ticket_id`, sql`assignment.id, assignment.name`)}
+		${newestOpenRun(sql`link.ticket_id`, sql`assignment.id, assignment.name, assignment.runtime`)}
 		WHERE link.pull_request_id = ${input.prId}
 			AND (${input.exceptRunId ?? null}::text IS NULL OR run.id IS DISTINCT FROM ${input.exceptRunId ?? null})
 		ORDER BY link.ticket_id`,
 	);
 
-// The agent runs among the recipients. A person reads this list to learn
-// which agent takes the message now.
+// The agent runs among the recipients that can read a message. A person
+// reads this list to learn which agent takes the message now.
 export const agentsOf = (recipients: Recipient[]) =>
 	recipients
-		.filter((recipient) => recipient.runId !== null)
+		.filter((recipient) => recipient.runId !== null && recipient.runtime === "native")
 		.map((recipient) => ({ runId: recipient.runId!, agentName: recipient.agentName! }));
 
 // Queues one review submission for every ticket that links the pull

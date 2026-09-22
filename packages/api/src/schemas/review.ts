@@ -192,11 +192,12 @@ export type ReviewApplyResult = z.infer<typeof ReviewApplyResultSchema>;
 // `reviews.show` reads the rows of one submission, so `reviewId` always
 // holds that submission. `ticketId` is the recipient, and `runId` names the
 // agent run that took the message. `runId` is null while no run has taken
-// it.
+// it. `ticketId` is null on a row that Trellis stored before the 0101
+// upgrade and could not match to a ticket.
 export const ReviewDeliverySchema = z.object({
 	id: UlidSchema,
 	reviewId: UlidSchema,
-	ticketId: UlidSchema,
+	ticketId: UlidSchema.nullable(),
 	runId: UlidSchema.nullable(),
 	state: z.enum(["pending", "sending", "held", "sent", "failed", "unknown"]),
 	error: z.string().nullable(),
