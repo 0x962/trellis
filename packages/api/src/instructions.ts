@@ -32,6 +32,8 @@ Prove the change. A pull request is ready for review when it has the explanation
    Write the headline as one sentence a person would say out loud.
    The watch line names one file and the reason to open it first, or says "nothing".
    Never write the size, the risk or the check counts. Trellis computes them and ignores yours.
+   When the pull request adds or changes data models, include a mermaid \`erDiagram\` in the explanation.
+   Show the added or changed tables, key fields with types, and relations to the models they touch. Mark new and changed parts.
    Rewrite the summary after every push.
 4. Write the evidence document:  trellis evidence write <pr> --body proof.md
    Write Markdown that shows the change working in the running product.

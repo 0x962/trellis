@@ -278,7 +278,7 @@ test("the brief prints a stable contract and the two evidence lines above the ch
 	expect(chainAt).toBeGreaterThan(evidenceAt);
 	expect(first.markdown).toContain("- Leave alone:\n  - packages/cli/src/commands/brief.ts");
 	expect(first.markdown).toContain(
-		"## Evidence\n\nWrite the explanation with trellis summary write <pr>, and write the evidence document with trellis evidence write <pr> --body -.\ntrellis pr add and trellis ready <pr> exit with code 1 until the pull request has both, and they name the missing one with its command.\n\n## Chain",
+		"## Evidence\n\nWrite the explanation with trellis summary write <pr>, and write the evidence document with trellis evidence write <pr> --body -.\nWhen the pull request adds or changes data models, include a mermaid `erDiagram` in the explanation. Show the added or changed tables, key fields with types, and relations to the models they touch. Mark new and changed parts.\ntrellis pr add and trellis ready <pr> exit with code 1 until the pull request has both, and they name the missing one with its command.\n\n## Chain",
 	);
 	expect(first.markdown).toContain(
 		"## Chain\n\n- Waits on:\n  - nothing\n- Ready: yes. No ticket holds this one back.\n- Releases:\n  - nothing",

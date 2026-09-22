@@ -13,7 +13,8 @@ export type ReadOnlyMarkdownProps = {
 type Shown = { src: string; alt: string };
 
 const imageClass = "[&_img]:max-w-full [&_img]:cursor-zoom-in [&_img]:rounded-md [&_img]:border [&_img]:border-border";
-const diagramClass = "[&_.mermaid-diagram]:my-3 [&_.mermaid-diagram]:overflow-x-auto";
+const diagramClass =
+	"[&_.mermaid-diagram]:my-3 [&_.mermaid-diagram]:overflow-x-auto [&_.mermaid-diagram_svg]:max-w-none";
 
 // A description, an epic document, or an agent line as formatted text. `renderMarkdown` strips
 // every script, event handler, and unsafe URL before the HTML is set. An
