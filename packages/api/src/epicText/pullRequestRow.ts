@@ -1,3 +1,4 @@
+import { isReviewDraft } from "../reviewDraft/reviewDraft.ts";
 import type { TicketPr } from "../schemas/ticketPr.ts";
 import { turnOf } from "../turn/turn.ts";
 import { factSeparator, groupSeparator } from "./separators.ts";
@@ -14,10 +15,11 @@ const countWord = (count: number, singular: string, plural: string): string =>
 	`${count} ${count === 1 ? singular : plural}`;
 
 // Queued and draft are open states. A terminal state takes precedence over
-// either open-state flag.
+// either open-state flag. `isReviewDraft` reads the GitHub flag and the local
+// state, so the word agrees with the glyph on the web row.
 const stateWord = (pr: TicketPr): string => {
 	if (pr.state === "open" && pr.isQueued) return "queued";
-	return pr.state === "open" && pr.isDraft ? "draft" : pr.state;
+	return pr.state === "open" && isReviewDraft(pr) ? "draft" : pr.state;
 };
 
 // `stackedOn` holds the pull request whose head branch is the base branch of

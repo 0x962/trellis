@@ -421,6 +421,16 @@ linked pull request before an actor moves a ticket to `human-review`. It
 refuses an agent and permits a human. The server does not apply this CLI guard
 in `tickets.move`.
 
+`pull_requests.local_state` is the review state that Trellis keeps apart from
+the GitHub draft flag: `draft` or `ready`. A new link by an agent writes
+`draft`, and every other row starts as `ready`. `trellis ready <pr>` writes
+`ready` after its checks pass, through `pullRequests.setLocalState`. A person
+flips the state from the ⋯ menu of the pull request sheet. A poll or a push
+leaves the state as it is. `isReviewDraft` in `packages/api` reads an open pull
+request as a draft while GitHub or the local state says draft. The glyph, the
+turn, the Needs you inbox, the ticket filters and the wave counts read that
+rule, and `reviewDraftSql` is its SQL form.
+
 The web route `/reviews/<owner>/<repo>/<number>` renders the evidence document
 on its Overview tab, under the summary.
 

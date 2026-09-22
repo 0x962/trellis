@@ -1,0 +1,2 @@
+ALTER TABLE "pull_requests" ADD COLUMN "local_state" text DEFAULT 'ready' NOT NULL;--> statement-breakpoint
+ALTER TABLE "pull_requests" ADD CONSTRAINT "pull_requests_local_state_check" CHECK ("pull_requests"."local_state" IN ('draft', 'ready'));

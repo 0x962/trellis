@@ -13,10 +13,15 @@ export type PullRequestState = "open" | "closed" | "merged";
 
 export type PrGlyphSize = "sm" | "md";
 
+// The review state that Trellis keeps apart from the GitHub draft flag. An
+// agent's pull request stays `draft` until the agent asks for review.
+export type LocalPrState = "draft" | "ready";
+
 export type PrGlyphProps = {
 	state: PullRequestState;
 	isDraft: boolean;
 	isQueued: boolean;
+	localState: LocalPrState;
 	size?: PrGlyphSize;
 	tooltip?: boolean;
 	focusable?: boolean;
@@ -27,10 +32,17 @@ type OcticonProps = { className?: string; "aria-hidden"?: "true" };
 
 type Look = { label: string; tone: string; Icon: ComponentType<OcticonProps> };
 
-// The shapes and the colors match GitHub, so a state reads the same in both products.
+// The shapes and the colors match GitHub, so a state reads the same in both
+// products. A local draft draws the GitHub draft shape, and its words say
+// that the agent has not asked for review.
 const looks = {
-	open: { label: "Pull request open", tone: "text-success", Icon: GitPullRequestIcon },
+	open: { label: "Ready for review", tone: "text-success", Icon: GitPullRequestIcon },
 	draft: { label: "Pull request draft", tone: "text-fg-muted", Icon: GitPullRequestDraftIcon },
+	localDraft: {
+		label: "Draft: the agent has not asked for review",
+		tone: "text-fg-muted",
+		Icon: GitPullRequestDraftIcon,
+	},
 	queued: { label: "Pull request queued", tone: "text-warning", Icon: GitMergeQueueIcon },
 	merged: { label: "Pull request merged", tone: "text-agent", Icon: GitMergeIcon },
 	closed: { label: "Pull request closed", tone: "text-danger", Icon: GitPullRequestClosedIcon },
@@ -38,10 +50,19 @@ const looks = {
 
 type PrGlyphLook = keyof typeof looks;
 
-// GitHub shows the draft and queued marks only while the pull request is open.
-export const prGlyphLook = (state: PullRequestState, isDraft: boolean, isQueued: boolean): PrGlyphLook => {
-	if (state === "open" && isQueued) return "queued";
-	return state === "open" && isDraft ? "draft" : state;
+// GitHub shows the draft and queued marks only while the pull request is
+// open. An open pull request draws the green open glyph only when GitHub and
+// the local state both say ready.
+export const prGlyphLook = (
+	state: PullRequestState,
+	isDraft: boolean,
+	isQueued: boolean,
+	localState: LocalPrState,
+): PrGlyphLook => {
+	if (state !== "open") return state;
+	if (isQueued) return "queued";
+	if (isDraft) return "draft";
+	return localState === "draft" ? "localDraft" : "open";
 };
 
 // A table row is 32 px tall and holds the small glyph. A pull request row has
@@ -57,12 +78,13 @@ export function PrGlyph({
 	state,
 	isDraft,
 	isQueued,
+	localState,
 	size = "md",
 	tooltip = true,
 	focusable = true,
 	decorative = false,
 }: PrGlyphProps) {
-	const key = prGlyphLook(state, isDraft, isQueued);
+	const key = prGlyphLook(state, isDraft, isQueued, localState);
 	const { label, tone, Icon } = looks[key];
 	if (decorative) {
 		return (

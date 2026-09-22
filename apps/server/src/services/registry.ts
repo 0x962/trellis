@@ -38,6 +38,7 @@ import * as notes from "./notes/notes.ts";
 import * as prFiles from "./prFiles/prFiles.ts";
 import * as projects from "./projects.ts";
 import * as prSummary from "./prSummary.ts";
+import * as pullRequestLocalState from "./pullRequestLocalState.ts";
 import * as pullRequests from "./pullRequests.ts";
 import * as resourceComments from "./resources/resourceComments.ts";
 import * as resources from "./resources/resources.ts";
@@ -270,6 +271,7 @@ export const services = {
 	"pullRequests.link": prepared("mutation", pullRequests.prepareLink, pullRequests.link),
 	"pullRequests.unlink": io("mutation", pullRequests.unlink),
 	"pullRequests.refresh": prepared("mutation", pullRequests.prepareRefresh, pullRequests.refresh),
+	"pullRequests.setLocalState": io("mutation", pullRequestLocalState.setLocalState),
 	"pullRequests.diff": prepared("read", pullRequests.prepareDiff, pullRequests.diff),
 	"pullRequests.readSummary": io("read", prSummary.read),
 	"pullRequests.readSummaryHead": io("read", prSummary.readHead),

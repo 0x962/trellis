@@ -11,6 +11,7 @@ import { ActorRefSchema } from "./actor.ts";
 import { AttachmentSchema } from "./attachment.ts";
 import {
 	CiStateSchema,
+	LocalPrStateSchema,
 	PrioritySchema,
 	PrStateSchema,
 	ReviewerSchema,
@@ -41,15 +42,18 @@ const PrReviewSchema = z.object({
 	number: z.number().int().positive(),
 	reviewState: ReviewStateSchema,
 	isDraft: z.boolean(),
+	localState: LocalPrStateSchema,
 });
 
 // The PR badge on a row: the pull request and review states that need the
 // most work, the check counts behind the ribbon, and the approval state of
-// each linked pull request.
+// each linked pull request. `localState` is `draft` when any linked pull
+// request is a local draft, the way `isDraft` folds the GitHub flag.
 const PrBadgeSchema = z.object({
 	state: PrStateSchema,
 	isDraft: z.boolean().default(false),
 	isQueued: z.boolean(),
+	localState: LocalPrStateSchema,
 	ciState: CiStateSchema,
 	reviewState: ReviewStateSchema,
 	pass: CountSchema,

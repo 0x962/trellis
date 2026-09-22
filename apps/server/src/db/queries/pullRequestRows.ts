@@ -3,6 +3,7 @@ import type {
 	Check,
 	CiState,
 	LinkedPullRequest,
+	LocalPrState,
 	PrState,
 	PullRequest,
 	StoredActorKind,
@@ -24,6 +25,7 @@ export type PullRequestRow = {
 	state: PrState;
 	is_draft: boolean;
 	is_queued: boolean;
+	local_state: LocalPrState;
 	head_ref: string;
 	base_ref: string;
 	review_state: PullRequest["reviewState"];
@@ -59,6 +61,10 @@ export const localReviewState = (prId: SQL) => sql`COALESCE((
 	LIMIT 1
 ), 'none')`;
 
+// The SQL form of `isReviewDraft` in packages/api for the pull request
+// alias `pr`: GitHub marks it as a draft, or its local state is `draft`.
+export const reviewDraftSql = (pr: SQL) => sql`(${pr}.is_draft OR ${pr}.local_state = 'draft')`;
+
 // The head commit of the revision that a `review_submissions` row names.
 export const submissionHeadSha = (submission: SQL) => sql`(
 	SELECT revision.head_sha FROM review_revisions revision
@@ -73,7 +79,7 @@ export const submissionByPerson = (submission: SQL) => sql`EXISTS (
 
 export const pullRequestColumns = sql`
 	p.id, p.owner, p.repo, p.number, p.additions, p.deletions, p.changed_files, p.files,
-	p.url, p.title, p.state, p.is_draft, p.is_queued, p.head_ref, p.base_ref,
+	p.url, p.title, p.state, p.is_draft, p.is_queued, p.local_state, p.head_ref, p.base_ref,
 	${localReviewState(sql`p.id`)} AS review_state,
 	${iso(sql`p.merged_at`)} AS merged_at, ${iso(sql`p.closed_at`)} AS closed_at, p.checks, p.ci_state,
 	p.content_hash, ${iso(sql`p.fetched_at`)} AS fetched_at, p.fetch_error,
@@ -94,6 +100,7 @@ export const toPullRequest = (row: PullRequestRow): PullRequest => ({
 	state: row.state,
 	isDraft: row.is_draft,
 	isQueued: row.is_queued,
+	localState: row.local_state,
 	headRef: row.head_ref,
 	baseRef: row.base_ref,
 	reviewState: row.review_state,

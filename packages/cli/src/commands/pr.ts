@@ -5,7 +5,7 @@ import { contextOf, wantsJson } from "../context.ts";
 import { pullRequestNotReady } from "../errors.ts";
 import { cell, json, printList, printRecord, type RecordSpec, timeCell } from "../output.ts";
 import { deletedRecord } from "./delete.ts";
-import { pullRequestReadiness, pullRequestReadyText } from "./ready/pullRequestReady.ts";
+import { pullRequestDraftText, pullRequestReadiness, pullRequestReadyText } from "./ready/pullRequestReady.ts";
 import { prList } from "./show.ts";
 
 const prRecord: RecordSpec<PullRequest> = {
@@ -17,6 +17,7 @@ const prRecord: RecordSpec<PullRequest> = {
 			name: "state",
 			value: (row) => (row.isQueued ? "queued" : row.state === "open" && row.isDraft ? "draft" : row.state),
 		},
+		{ name: "localState", value: (row) => row.localState },
 		{ name: "ciState", value: (row) => row.ciState },
 		{ name: "reviewState", value: (row) => row.reviewState },
 		{ name: "head", value: (row) => `${row.headRef} -> ${row.baseRef}` },
@@ -31,7 +32,9 @@ const prRecord: RecordSpec<PullRequest> = {
 // After a link that gh could read, the verb names the explanation or the
 // evidence document when one is missing. An agent then gets exit 1; a person
 // keeps exit 0. The link stays in both cases, so the agent writes the missing
-// part and runs `trellis ready` on the same pull request.
+// part and runs `trellis ready` on the same pull request. A link by an agent
+// stores the pull request as a draft, so the verb names `trellis ready` as
+// the step that asks the person for review.
 const add = defineCommand({
 	meta: { name: "add", description: "Link a pull request by URL" },
 	args: {
@@ -51,7 +54,10 @@ const add = defineCommand({
 			return 6;
 		}
 		const result = await pullRequestReadiness(client, row);
-		if (result.ready) return 0;
+		if (result.ready) {
+			if (row.localState === "draft" && !wantsJson(ctx)) ctx.out.write(`\n${pullRequestDraftText(row.number)}`);
+			return 0;
+		}
 		ctx.out.write(wantsJson(ctx) ? json(result) : `\n${pullRequestReadyText(result)}`);
 		if (ctx.actor().kind === "agent") throw pullRequestNotReady(row.number, result.missing);
 		return 0;

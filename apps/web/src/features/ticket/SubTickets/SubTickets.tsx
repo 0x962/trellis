@@ -1,5 +1,5 @@
 import { Plus } from "@phosphor-icons/react";
-import type { Ticket, TicketSummary } from "@trellis/api";
+import { isReviewDraft, type Ticket, type TicketSummary } from "@trellis/api";
 import {
 	Button,
 	CheckRibbon,
@@ -35,7 +35,7 @@ const badgeChecks = (pr: NonNullable<TicketSummary["pr"]>) => [
 const ciLabels = { none: "none", pending: "pending", pass: "passed", fail: "failed" } as const;
 
 const prLabel = (pr: NonNullable<TicketSummary["pr"]>) =>
-	`${pr.isQueued ? "Queued" : pr.isDraft ? "Draft" : `${pr.state.charAt(0).toUpperCase()}${pr.state.slice(1)}`} PR, checks ${ciLabels[pr.ciState]}`;
+	`${pr.isQueued ? "Queued" : pr.state === "open" && isReviewDraft(pr) ? "Draft" : `${pr.state.charAt(0).toUpperCase()}${pr.state.slice(1)}`} PR, checks ${ciLabels[pr.ciState]}`;
 
 // The children of a ticket: the header with the done count and the Add
 // button, a progress bar, and one fixed-height row per child. Add opens the
@@ -105,7 +105,14 @@ function ChildRow({ child, onOpen }: { child: TicketSummary; onOpen: () => void 
 				{pr !== null && (
 					<Tooltip content={prLabel(pr)}>
 						<span role="img" aria-label={prLabel(pr)} className="inline-flex items-center gap-1 text-fg-muted">
-							<PrGlyph state={pr.state} isDraft={pr.isDraft} isQueued={pr.isQueued} size="sm" decorative />
+							<PrGlyph
+								state={pr.state}
+								isDraft={pr.isDraft}
+								isQueued={pr.isQueued}
+								localState={pr.localState}
+								size="sm"
+								decorative
+							/>
 							<CheckRibbon size="mini" checks={badgeChecks(pr)} decorative />
 						</span>
 					</Tooltip>

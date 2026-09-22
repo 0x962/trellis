@@ -1,6 +1,7 @@
-import { type ReviewRevision, reviewRef } from "@trellis/api";
+import { type LinkedPullRequest, type ReviewRevision, reviewRef } from "@trellis/api";
 import { Badge, type BadgeTone, GithubMark, PrGlyph, Tooltip } from "@trellis/ui";
 import { ReviewHeaderActions } from "../../../ReviewHeaderActions";
+import { LocalStateMenu } from "./components/LocalStateMenu";
 
 // `revision.meta` holds the answer of `gh pr view` and has no type. This type
 // lists the fields that the band shows.
@@ -37,22 +38,37 @@ export type ReviewIdentityProps = {
 	revision: ReviewRevision | null;
 	pullRequest: GithubPullRequest | undefined;
 	isQueued: boolean;
+	// The Trellis row of the pull request when a ticket links it. It holds the
+	// local review state. A pull request that no ticket links reads as ready.
+	linkedPr: LinkedPullRequest | null;
 	onAction: () => void;
 };
 
 // The title, the state, the branch and the buttons that end a review.
-export function ReviewIdentity({ pr, revision, pullRequest, isQueued, onAction }: ReviewIdentityProps) {
+export function ReviewIdentity({ pr, revision, pullRequest, isQueued, linkedPr, onAction }: ReviewIdentityProps) {
 	const ref = reviewRef(pr);
+	const localState = linkedPr?.localState ?? "ready";
 	const glyphState = pullRequest?.state === "MERGED" ? "merged" : pullRequest?.state === "CLOSED" ? "closed" : "open";
 	return (
 		<div className="review-heading">
 			<div className="review-heading-title">
 				<h2>{pullRequest?.title ?? `${ref.owner}/${ref.repo} #${ref.number}`}</h2>
-				{revision && <ReviewHeaderActions pr={pr} revision={revision} onDone={onAction} />}
+				<div className="review-header-actions">
+					{revision && <ReviewHeaderActions pr={pr} revision={revision} onDone={onAction} />}
+					{linkedPr !== null && pullRequest?.state === "OPEN" && (
+						<LocalStateMenu id={linkedPr.id} number={linkedPr.number} localState={localState} />
+					)}
+				</div>
 			</div>
 			<div className="review-heading-meta">
 				{pullRequest !== undefined && (
-					<PrGlyph state={glyphState} isDraft={pullRequest.isDraft ?? false} isQueued={isQueued} size="sm" />
+					<PrGlyph
+						state={glyphState}
+						isDraft={pullRequest.isDraft ?? false}
+						isQueued={isQueued}
+						localState={localState}
+						size="sm"
+					/>
 				)}
 				<Badge tone={stateTone(pullRequest, isQueued)}>{stateWord(pullRequest, isQueued)}</Badge>
 				{pullRequest?.mergeable === "CONFLICTING" && (

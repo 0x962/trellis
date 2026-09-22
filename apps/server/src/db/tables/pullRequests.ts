@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { boolean, check, index, integer, jsonb, pgTable, text, unique } from "drizzle-orm/pg-core";
-import { CI_STATES, checkIn, PR_STATES, REVIEW_STATES } from "../enums.ts";
+import { CI_STATES, checkIn, LOCAL_PR_STATES, PR_STATES, REVIEW_STATES } from "../enums.ts";
 import { at } from "./actors.ts";
 
 // `checks` is the sorted list of `{name, workflow, bucket, link}` gh reported.
@@ -21,6 +21,9 @@ export const pullRequests = pgTable(
 		state: text().notNull(),
 		isDraft: boolean("is_draft").notNull().default(false),
 		isQueued: boolean("is_queued").notNull().default(false),
+		// The review state that Trellis keeps apart from the GitHub draft flag.
+		// The link of an agent writes `draft`; `trellis ready` writes `ready`.
+		localState: text("local_state").notNull().default("ready"),
 		reviewRetained: boolean("review_retained").notNull().default(false),
 		headSha: text("head_sha"),
 		headRef: text("head_ref").notNull().default(""),
@@ -47,6 +50,7 @@ export const pullRequests = pgTable(
 		check("pull_requests_number_check", sql`${t.number} > 0`),
 		checkIn(t.state, PR_STATES),
 		checkIn(t.reviewState, REVIEW_STATES),
+		checkIn(t.localState, LOCAL_PR_STATES),
 		checkIn(t.ciState, CI_STATES),
 		check("pull_requests_checks_check", sql`jsonb_typeof(${t.checks}) = 'array'`),
 		check("pull_requests_files_check", sql`${t.files} IS NULL OR jsonb_typeof(${t.files}) = 'array'`),

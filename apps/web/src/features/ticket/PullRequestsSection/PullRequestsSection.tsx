@@ -1,4 +1,4 @@
-import type { Ticket } from "@trellis/api";
+import { isReviewDraft, type Ticket } from "@trellis/api";
 import { PrGlyph, ReviewStateIcon, SectionHeader } from "@trellis/ui";
 import { tabularClass } from "../../../lib/format";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
@@ -22,11 +22,22 @@ export function PullRequestsSection({ ticket }: PullRequestsSectionProps) {
 				{ticket.prRows.map((pr) => (
 					<li key={pr.id}>
 						<button type="button" className={rowClass} onClick={() => pageSheetActions.openPullRequest(pr.url)}>
-							<PrGlyph state={pr.state} isDraft={pr.isDraft} isQueued={pr.isQueued} size="sm" decorative />
+							<PrGlyph
+								state={pr.state}
+								isDraft={pr.isDraft}
+								isQueued={pr.isQueued}
+								localState={pr.localState}
+								size="sm"
+								decorative
+							/>
 							<span className={`w-14 shrink-0 text-fg-muted ${tabularClass}`}>#{pr.number}</span>
 							<span className="min-w-0 flex-1 truncate">{pr.title}</span>
 							{pr.verdict !== null && (
-								<ReviewStateIcon reviewState={pr.verdict} isDraft={pr.isDraft} label={verdictLabel(pr.verdict)} />
+								<ReviewStateIcon
+									reviewState={pr.verdict}
+									isDraft={isReviewDraft(pr)}
+									label={verdictLabel(pr.verdict)}
+								/>
 							)}
 						</button>
 					</li>

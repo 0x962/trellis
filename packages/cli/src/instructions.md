@@ -6,7 +6,7 @@ Inside Claude Code, every command runs as `agent:claude-code`. Elsewhere, set `T
 1. Pick work:        trellis list --project KEY --status todo
 2. Read the ticket:  trellis brief KEY-42
 3. Start:            trellis move KEY-42 in-progress
-4. Put the identifier in the branch name, for example KEY-42-dark-mode. Link the PR to the ticket: trellis pr add KEY-42 <url>
+4. Put the identifier in the branch name, for example KEY-42-dark-mode. Link the PR to the ticket: trellis pr add KEY-42 <url>. It starts as a draft.
 5. Split work:       trellis sub KEY-42 -t "Write tests"
 6. Finish coding:    trellis move KEY-42 agent-review
 7. When the agent review passes: trellis move KEY-42 human-review
@@ -39,7 +39,8 @@ Prove the change. A pull request is ready for review when it has the explanation
    Write the document again after a push that changes what it shows.
 5. Bind every sentence to something checkable: a file and a line, a check result, a test name, or a number with
    its sha. Say when a sentence is a guess.
-6. Check yourself:  trellis ready <pr>
+6. Ask for review:  trellis ready <pr>
+   It checks both parts and marks the pull request ready for review. Until then the person sees a draft.
    Hand over:        trellis move KEY-42 human-review
 
 Labels say what a ticket is about. Read the set of the project: trellis labels list KEY
