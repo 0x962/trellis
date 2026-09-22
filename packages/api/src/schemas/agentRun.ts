@@ -12,6 +12,7 @@ export const AgentRunSchema = z.object({
 	seenAttention: z.object({ attemptId: z.string().nullable(), sequence: z.number().int().nonnegative() }).optional(),
 	name: z.string(),
 	accountId: UlidSchema.nullish(),
+	switchedTo: z.string().nullish(),
 	runtime: z.enum(["native", "superset", "tmux", "commands"]),
 	harness: HarnessSchema.nullable(),
 	kind: AgentRunKindSchema,

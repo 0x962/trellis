@@ -646,6 +646,12 @@ The assignment retains its account across process restarts. An explicit account 
 A resume retains the assignment, workspace, and provider conversation. Its target account must use the same harness.
 Claude, Codex, and Pi transfer the selected session file. Muse copies the session directory. OpenCode exports and imports that session through its CLI.
 The runtime checks the resumed provider session identifier before it accepts the process.
+
+`agentRuns.switchAccount` stops a native process and resumes its saved conversation with another account of the same harness.
+The procedure also resumes exited processes and sessions without a project. It checks the account and attempt before it stops the process.
+The session page and session sheet share the Switch account picker. It shows account quotas and requires confirmation before the switch.
+The session shows the latest successful switch from the saved request record. A repeated request does not restart the process again.
+The CLI command is `trellis agents account <id> --account <id>`. The command authorizes interruption of the active turn.
 ### Agent observations
 
 Codex compaction start, provider progress, and completion update the `contextCompaction` tool record.

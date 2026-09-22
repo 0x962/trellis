@@ -29,15 +29,17 @@ export async function reserveResume(ctx: ServiceCtx, tx: Tx, session: ResumeSess
 	const [run] = await rows<StoredRun>(tx, sql`SELECT ${columns} FROM agent_runs WHERE id=${session.runId} FOR UPDATE`);
 	if (
 		!run ||
-		run.projectId === null ||
+		(run.projectId === null && run.kind !== "session") ||
 		run.closedAt !== null ||
 		run.runtime !== "native" ||
 		![session.previousAttemptId, session.attempt.id].includes(run.terminalId!)
 	)
 		return null;
-	const project = await projectRow(tx, run.projectId);
-	const config = await projectLaunchConfig(tx, { projectId: run.projectId, harness: run.harness! });
-	if (project.archived_at !== null) return null;
+	if (run.projectId && (await projectRow(tx, run.projectId)).archived_at !== null) return null;
+	const config =
+		run.kind !== "session" && run.projectId
+			? await projectLaunchConfig(tx, { projectId: run.projectId, harness: run.harness! })
+			: { directory: session.workspace, harness: run.harness!, accountId: null };
 	if (run.ticketId !== null) {
 		const ticket = await rows(tx, sql`SELECT id FROM tickets WHERE id=${run.ticketId}`);
 		if (ticket.length === 0) return null;

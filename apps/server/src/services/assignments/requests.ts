@@ -6,7 +6,7 @@ import { invalidInput } from "../../errors.ts";
 import { getRun } from "../agentRuns/queries.ts";
 
 type Target = {
-	projectId: string;
+	projectId: string | null;
 	ticketId: string | null;
 	newSession: boolean;
 	accountId?: string | null;

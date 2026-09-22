@@ -113,6 +113,32 @@ const resume = defineCommand({
 	},
 });
 
+const account = defineCommand({
+	meta: {
+		name: "account",
+		description: "Switch accounts, interrupt the active turn, and resume the same conversation",
+	},
+	args: {
+		id: { type: "positional", required: true, description: "Agent ID" },
+		account: { type: "string", required: true, description: "Account ID for the same harness" },
+	},
+	async run(context) {
+		const ctx = contextOf(context);
+		const client = clientOf(ctx);
+		const [run] = await client.agentRuns.list({ ids: [context.args.id] });
+		if (!run?.terminalId) throw new Error("This run has no provider session to resume.");
+		const result = await client.agentRuns.switchAccount({
+			id: run.id,
+			accountId: context.args.account,
+			expectedTerminalId: run.terminalId,
+			requestId: crypto.randomUUID(),
+			confirmInterrupt: true,
+		});
+		printRecord(ctx.out, ctx.format, result, agentRecord);
+		return result.state === "running" ? 0 : 6;
+	},
+});
+
 const model = defineCommand({
 	meta: { name: "model", description: "Change a running agent's model and continue its conversation" },
 	args: {
@@ -201,5 +227,5 @@ const output = defineCommand({
 
 export default defineCommand({
 	meta: { name: "agents", description: "List, start, refresh, interrupt, stop, or talk to agents" },
-	subCommands: { list, start, resume, model, refresh, interrupt, stop, send, output },
+	subCommands: { list, start, resume, model, account, refresh, interrupt, stop, send, output },
 });

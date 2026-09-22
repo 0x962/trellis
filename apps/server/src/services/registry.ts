@@ -10,6 +10,7 @@ import { prepareResume } from "./agentRuns/resume.ts";
 import { prepareRetry } from "./agentRuns/retry.ts";
 import { prepareSetModel } from "./agentRuns/setModel/setModel.ts";
 import { stopNativeWork } from "./agentRuns/stopNativeWork.ts";
+import { prepareSwitchAccount } from "./agentRuns/switchAccount/switchAccount.ts";
 import * as agentTerminal from "./agentRuns/terminal.ts";
 import { file as workspaceFile } from "./agentRuns/workspace/file.ts";
 import { lineStats as workspaceLineStats } from "./agentRuns/workspace/lineStats.ts";
@@ -193,6 +194,7 @@ export const services = {
 		agentRuns.finish,
 	),
 	"agentRuns.setModel": agentMutation(prepareSetModel),
+	"agentRuns.switchAccount": agentMutation(prepareSwitchAccount),
 	"agentRuns.stop": agentMutation(agentLifecycle.prepareStop),
 	"agentRuns.refresh": agentMutation(agentLifecycle.prepareRefresh),
 	"flows.list": core("read", flows.list),
