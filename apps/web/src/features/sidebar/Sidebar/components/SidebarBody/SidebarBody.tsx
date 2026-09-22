@@ -30,10 +30,10 @@ export type SidebarBodyProps = {
 	onCollapse?: () => void;
 };
 
-// The sidebar holds the Trellis title, an optional collapse button, the fixed
-// destinations, the sessions, the project tree, and the actor footer. The
-// desktop aside and the phone sheet both draw it. The phone sheet closes in
-// its own way, so it has no collapse button.
+// The sidebar holds the optional collapse button, the fixed destinations, the
+// sessions, the project tree, and the actor footer. The desktop aside and the
+// phone sheet both draw it. The phone sheet closes in its own way, so it has
+// no collapse button.
 //
 // The sessions and the project tree share the one region that scrolls and
 // takes the spare height. Every fixed destination sits above it, so none of
@@ -61,12 +61,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 
 	return (
 		<>
-			<div data-sidebar-toolbar="" className="mb-1 flex h-13 shrink-0 items-center">
-				{!collapsed && (
-					<div className="flex min-w-0 flex-1 items-center pl-0.5">
-						<span className="truncate text-lg font-semibold text-fg">Trellis</span>
-					</div>
-				)}
+			<div data-sidebar-toolbar="" className={`mb-1 flex h-13 shrink-0 items-center${collapsed ? "" : " justify-end"}`}>
 				{onCollapse && (
 					<Tooltip
 						side="right"
