@@ -1,5 +1,5 @@
 import type { ProjectSummary } from "@trellis/api";
-import { cx, Tooltip, TrellisMark, WorkingAgentText } from "@trellis/ui";
+import { cx, Tooltip, TrellisMark } from "@trellis/ui";
 import { type KeyboardEvent, lazy, Suspense } from "react";
 import { formatCount } from "../../../../lib/format";
 
@@ -11,7 +11,6 @@ export type TreeRowProps = {
 	depth: number;
 	// An archived row uses faint text.
 	archived?: boolean;
-	workingCount?: number;
 	expanded?: boolean;
 	onToggle?: () => void;
 };
@@ -19,7 +18,7 @@ export type TreeRowProps = {
 const indent = ["pl-2", "pl-5", "pl-8", "pl-11"] as const;
 
 // The trailing slot reserves space for the project menu on hover and focus.
-export function TreeRow({ project, depth, archived = false, workingCount = 0, expanded, onToggle }: TreeRowProps) {
+export function TreeRow({ project, depth, archived = false, expanded, onToggle }: TreeRowProps) {
 	const hasDisclosure = expanded !== undefined && onToggle !== undefined;
 	const count = project.openCount > 0 ? formatCount(project.openCount) : null;
 	const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
@@ -53,21 +52,9 @@ export function TreeRow({ project, depth, archived = false, workingCount = 0, ex
 						<TrellisMark className="size-6" background={false} />
 					</span>
 				</Tooltip>
-				{workingCount > 0 ? (
-					<WorkingAgentText
-						data-slot="label"
-						count={workingCount}
-						variant="static"
-						title={project.name}
-						className="sidebar-label"
-					>
-						{project.name}
-					</WorkingAgentText>
-				) : (
-					<span data-slot="label" title={project.name} className="sidebar-label">
-						{project.name}
-					</span>
-				)}
+				<span data-slot="label" title={project.name} className="sidebar-label">
+					{project.name}
+				</span>
 				<span data-slot="trailing" className="sidebar-trailing text-fg-faint">
 					{count}
 				</span>
