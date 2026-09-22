@@ -7,10 +7,10 @@ import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
 import { cx } from "../../utils/cx";
 
-// The state of one run, in twelve values. `runLine` in
+// The state of one run. `runLine` in
 // `packages/api/src/runLine/runLine.ts` computes the value and the words of
-// each line. This package holds no dependency on that package, so the twelve
-// values are written here again.
+// each line. This package holds no dependency on that package, so the values
+// are written here again.
 export type RunLineKind =
 	| "starts"
 	| "works"
@@ -21,8 +21,6 @@ export type RunLineKind =
 	| "turn-done"
 	| "turn-done-new"
 	| "failed"
-	| "stopped"
-	| "exited"
 	| "lost";
 
 export type RunLineValue = {
@@ -59,7 +57,7 @@ export type RunLineProps = {
 // These four states show an attention dot. The first three wait for an answer
 // from a person. `turn-done-new` is a finished turn that nobody read.
 const waitingKinds: readonly RunLineKind[] = ["question", "permission", "elicitation", "turn-done-new"];
-// Both states show the same red dot. `failed` says the run stopped on an
+// Both states show the same red dot. `failed` says the run ended with an
 // error. `lost` says the server holds no live record of the run. The words
 // state the difference.
 const brokenKinds: readonly RunLineKind[] = ["failed", "lost"];
