@@ -219,6 +219,9 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "epics.changed":
 				enqueue([family("epics"), family("tickets"), family("projects", "list")]);
 				return;
+			case "resource-comments.changed":
+				enqueue([family("resourceComments")]);
+				return;
 			// The Diffs page of a project lists pull requests by their ticket
 			// links, so a link change refetches that list too.
 			case "pr.linked":

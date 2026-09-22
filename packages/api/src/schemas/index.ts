@@ -18,6 +18,7 @@ export * from "./primitives.ts";
 export * from "./project.ts";
 export * from "./pullRequest.ts";
 export * from "./resource.ts";
+export * from "./resourceComment.ts";
 export * from "./review.ts";
 export * from "./search.ts";
 export * from "./session.ts";

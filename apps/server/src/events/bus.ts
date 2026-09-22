@@ -39,6 +39,7 @@ const scopeOf = (event: TrellisEvent): Scope => {
 		case "statuses.changed":
 		case "labels.changed":
 		case "epics.changed":
+		case "resource-comments.changed":
 			return { projectIds: [event.projectId], ticketIds: [] };
 		case "project.created":
 		case "project.updated":

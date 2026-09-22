@@ -13,6 +13,7 @@ import { notes } from "./notes.ts";
 import { projects } from "./projects.ts";
 import { pullRequests } from "./pullRequests.ts";
 import { actors, brief, search, settings, timeline } from "./reads.ts";
+import { resourceComments } from "./resourceComments.ts";
 import { resources } from "./resources.ts";
 import { reviews } from "./reviews";
 import { sessions } from "./sessions.ts";
@@ -47,6 +48,7 @@ export const router = os.router({
 	attachments,
 	pullRequests,
 	resources,
+	resourceComments,
 	search,
 	brief,
 	actors,
