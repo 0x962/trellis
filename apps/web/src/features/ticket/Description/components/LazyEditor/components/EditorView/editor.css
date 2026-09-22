@@ -110,3 +110,16 @@
 .editor .hljs-strong {
 	font-weight: 600;
 }
+
+/* Commented text: the soft warning tint with an underline, as in Notion. The
+   text of the open thread, or of a comment being written, is tinted deeper. */
+.editor .comment-anchor {
+	background: var(--warning-soft);
+	border-bottom: 2px solid color-mix(in srgb, var(--warning) 45%, transparent);
+	cursor: pointer;
+	transition: background-color var(--duration-hover) ease;
+}
+.editor .comment-anchor-active {
+	background: color-mix(in srgb, var(--warning) 28%, transparent);
+	border-bottom-color: var(--warning);
+}

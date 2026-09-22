@@ -1,4 +1,4 @@
-import { Code, LinkSimple, TextB, TextItalic, TextStrikethrough } from "@phosphor-icons/react";
+import { ChatText, Code, LinkSimple, TextB, TextItalic, TextStrikethrough } from "@phosphor-icons/react";
 import { NodeSelection, TextSelection } from "@tiptap/pm/state";
 import { type Editor, useEditorState } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
@@ -14,10 +14,11 @@ const marks: readonly { mark: Mark; label: string; keys: string; icon: ReactElem
 	{ mark: "code", label: "Inline code", keys: "⌘E", icon: <Code /> },
 ];
 
-// The menu over a text selection: the four marks and a link. The link button
-// swaps the buttons for a field that takes the address. Enter sets the link,
-// an empty field removes it, and Escape goes back to the buttons.
-export function FormatMenu({ editor }: { editor: Editor }) {
+// The menu over a text selection: the four marks, a link, and a comment on a
+// page that takes comments. The link button swaps the buttons for a field
+// that takes the address. Enter sets the link, an empty field removes it, and
+// Escape goes back to the buttons.
+export function FormatMenu({ editor, onComment }: { editor: Editor; onComment: (() => void) | undefined }) {
 	const [linkDraft, setLinkDraft] = useState<string | null>(null);
 	const active = useEditorState({
 		editor,
@@ -70,6 +71,11 @@ export function FormatMenu({ editor }: { editor: Editor }) {
 							onClick={() => setLinkDraft(editor.getAttributes("link").href ?? "")}
 						/>
 					</Tooltip>
+					{onComment !== undefined && (
+						<Tooltip content="Comment">
+							<IconButton label="Comment" icon={<ChatText />} onClick={onComment} />
+						</Tooltip>
+					)}
 				</>
 			) : (
 				<Input

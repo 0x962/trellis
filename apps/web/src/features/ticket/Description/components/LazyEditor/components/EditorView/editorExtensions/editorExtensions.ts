@@ -23,6 +23,7 @@ import yaml from "highlight.js/lib/languages/yaml";
 import { createLowlight } from "lowlight";
 import { editorHost } from "../../../editorHost";
 import { SlashMenu } from "../../SlashMenu";
+import { CommentAnchors } from "../commentAnchors";
 
 // The languages a code block colors. Each grammar also registers its short
 // names, so a fence of `ts`, `sh`, `html` or `yml` colors too. A fence in any
@@ -85,4 +86,5 @@ export const editorExtensions = (): Extensions => [
 		},
 	}),
 	SlashMenu,
+	CommentAnchors,
 ];

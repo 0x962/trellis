@@ -5,6 +5,7 @@ import { useApp } from "../../../../../lib/appContext";
 import { errorMessage } from "../../../../../lib/conflict";
 import { PLAN_DOC_ID, planTitle } from "../../../epicDocs";
 import { ResourceList } from "../../../ResourceList";
+import { CommentedDocument } from "./components/CommentedDocument";
 import { EpicDocument } from "./components/EpicDocument";
 
 export type EpicResourcesProps = {
@@ -24,6 +25,7 @@ const noResources: readonly Resource[] = [];
 // so its edits save through `epics.update`. Every other document is a doc
 // resource and saves through `resources.update`. Links, images and files sit
 // in the same list under their own headings, and open in a sheet or download.
+// A document resource takes comments on its text; the description does not.
 export function EpicResources({ epic, description, readOnly }: EpicResourcesProps) {
 	const { client, orpc, queryClient } = useApp();
 	const list = useQuery(orpc.resources.list.queryOptions({ input: { epic } }));
@@ -73,31 +75,28 @@ export function EpicResources({ epic, description, readOnly }: EpicResourcesProp
 					</p>
 				)}
 			</div>
-			<div className="min-w-0 flex-1 overflow-y-auto px-8 py-6 max-md:px-4">
-				<div className="mx-auto max-w-3xl">
-					{openDoc === null ? (
-						<EpicDocument
-							key={PLAN_DOC_ID}
-							docId={PLAN_DOC_ID}
-							markdown={description}
-							title={null}
-							readOnly={readOnly}
-							saveBody={saveDescription}
-							uploadFile={uploadFile}
-						/>
-					) : (
-						<EpicDocument
-							key={openDoc.id}
-							docId={openDoc.id}
-							markdown={openDoc.body!}
-							title={{ name: openDoc.name, save: (name) => saveDoc(openDoc.id, { name }) }}
-							readOnly={readOnly}
-							saveBody={(body) => saveDoc(openDoc.id, { body })}
-							uploadFile={uploadFile}
-						/>
-					)}
-				</div>
-			</div>
+			{openDoc === null ? (
+				<EpicDocument
+					key={PLAN_DOC_ID}
+					docId={PLAN_DOC_ID}
+					markdown={description}
+					title={null}
+					readOnly={readOnly}
+					saveBody={saveDescription}
+					uploadFile={uploadFile}
+				/>
+			) : (
+				<CommentedDocument
+					key={openDoc.id}
+					resourceId={openDoc.id}
+					docId={openDoc.id}
+					markdown={openDoc.body!}
+					title={{ name: openDoc.name, save: (name) => saveDoc(openDoc.id, { name }) }}
+					readOnly={readOnly}
+					saveBody={(body) => saveDoc(openDoc.id, { body })}
+					uploadFile={uploadFile}
+				/>
+			)}
 		</div>
 	);
 }

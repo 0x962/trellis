@@ -39,6 +39,7 @@ import * as prFiles from "./prFiles/prFiles.ts";
 import * as projects from "./projects.ts";
 import * as prSummary from "./prSummary.ts";
 import * as pullRequests from "./pullRequests.ts";
+import * as resourceComments from "./resources/resourceComments.ts";
 import * as resources from "./resources/resources.ts";
 import * as reviewApply from "./reviews/apply";
 import * as reviewImage from "./reviews/image";
@@ -282,6 +283,13 @@ export const services = {
 	"resources.update": io("mutation", resources.update),
 	"resources.remove": io("mutation", resources.remove),
 	"resources.blob": io("read", resources.readBlob),
+	"resourceComments.list": io("read", resourceComments.list),
+	"resourceComments.create": io("mutation", resourceComments.create),
+	"resourceComments.anchors": io("mutation", resourceComments.anchors),
+	"resourceComments.reply": io("mutation", resourceComments.reply),
+	"resourceComments.resolve": io("mutation", resourceComments.resolve),
+	"resourceComments.edit": io("mutation", resourceComments.edit),
+	"resourceComments.remove": io("mutation", resourceComments.remove),
 	"search.query": core("search", search.query),
 	"brief.get": core("read", brief.get),
 	"actors.list": core("read", actors.list),

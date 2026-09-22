@@ -6,6 +6,7 @@ import { usageError } from "../../errors.ts";
 import { fileAt } from "../../file.ts";
 import { printList, printRecord } from "../../output.ts";
 import { deletedRecord } from "../delete.ts";
+import { printThread, printThreads } from "./resourceCommentText.ts";
 import { resourceList, resourceRecord } from "./resourceText.ts";
 
 const resourceKinds = ["doc", "link", "image", "file"] as const;
@@ -89,7 +90,55 @@ const rm = defineCommand({
 	},
 });
 
+const comments = defineCommand({
+	meta: { name: "comments", description: "List the comment threads of a document, with the commented text" },
+	args: {
+		resource: { type: "positional", required: true, description: "Document resource id" },
+		all: { type: "boolean", description: "Include the resolved threads" },
+	},
+	async run(context) {
+		const ctx = contextOf(context);
+		const threads = await clientOf(ctx).resourceComments.list({ resource: context.args.resource });
+		printThreads(
+			ctx.out,
+			ctx.format,
+			context.args.all === true ? threads : threads.filter((thread) => thread.resolved === null),
+		);
+	},
+});
+
+const reply = defineCommand({
+	meta: { name: "reply", description: "Reply to a comment thread of a document" },
+	args: {
+		thread: { type: "positional", required: true, description: "Thread id" },
+		body: { type: "string", required: true, description: "Reply text, or - for standard input" },
+	},
+	async run(context) {
+		const ctx = contextOf(context);
+		const body = await readText(ctx, context.args.body);
+		const thread = await clientOf(ctx).resourceComments.reply({ thread: context.args.thread, body });
+		printThread(ctx.out, ctx.format, thread);
+	},
+});
+
+const resolveCommand = (resolved: boolean) =>
+	defineCommand({
+		meta: {
+			name: resolved ? "resolve" : "reopen",
+			description: resolved ? "Resolve a comment thread of a document" : "Reopen a comment thread of a document",
+		},
+		args: { thread: { type: "positional", required: true, description: "Thread id" } },
+		async run(context) {
+			const ctx = contextOf(context);
+			const thread = await clientOf(ctx).resourceComments.resolve({ thread: context.args.thread, resolved });
+			printThread(ctx.out, ctx.format, thread);
+		},
+	});
+
 export default defineCommand({
-	meta: { name: "resource", description: "Add, list, or remove the resources of an epic" },
-	subCommands: { add, list, rm },
+	meta: {
+		name: "resource",
+		description: "Add, list, or remove the resources of an epic, and answer document comments",
+	},
+	subCommands: { add, list, rm, comments, reply, resolve: resolveCommand(true), reopen: resolveCommand(false) },
 });
