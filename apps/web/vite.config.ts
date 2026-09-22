@@ -13,6 +13,7 @@ export const routerPluginOptions = {
 } as const;
 
 export const phosphorSpecialWeights: Record<string, readonly string[]> = {
+	CaretDown: ["bold"],
 	Check: ["bold"],
 	CheckCircle: ["fill"],
 	CircleDashed: ["duotone"],
@@ -27,7 +28,7 @@ export const phosphorSpecialWeights: Record<string, readonly string[]> = {
 	XCircle: ["fill"],
 };
 
-const phosphorWeightBlock = /\n  \[\n    "(bold|duotone|fill|light|regular|thin)",[\s\S]*?\n  \],?/g;
+const phosphorWeightBlock = /\n {2}\[\n {4}"(bold|duotone|fill|light|regular|thin)",[\s\S]*?\n {2}\],?/g;
 const phosphorDefinition = /\/@phosphor-icons\/react\/dist\/defs\/([^/]+)\.es\.js(?:\?|$)/;
 
 export const stripPhosphorWeights = (code: string, id: string) => {

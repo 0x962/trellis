@@ -59,8 +59,8 @@ export function EpicSwitcher({ project, epicRef, name, tab }: EpicSwitcherProps)
 					data-epic-switcher=""
 					className="flex h-7 max-w-full min-w-0 items-center gap-1 rounded-md px-1.5 text-left transition-colors duration-hover hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 data-[popup-open]:bg-band max-md:h-11 pointer-coarse:h-11"
 				>
-					<span className="truncate">{name}</span>
-					<CaretDown aria-hidden="true" weight="bold" className="size-3.5 shrink-0 text-fg-muted" />
+					<span className="min-w-0 truncate">{name}</span>
+					<CaretDown aria-hidden="true" weight="bold" className="size-4 shrink-0 text-fg" />
 				</button>
 			}
 		>
