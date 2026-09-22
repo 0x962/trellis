@@ -72,7 +72,7 @@ async function sweep(ctx: ServiceCtx): Promise<SweepResult> {
 	// The login shell that gives git its PATH runs once, and only for a sweep
 	// that has a worktree to remove.
 	let env: NodeJS.ProcessEnv | undefined;
-	const gitEnv = async () => (env ??= { NODE_ENV: process.env.NODE_ENV, ...(await executionEnvironment()) });
+	const gitEnv = async () => (env ??= await executionEnvironment());
 	const agents = join(ctx.home, "agents");
 	for (const runId of await directories(agents)) {
 		const directory = join(agents, runId);
