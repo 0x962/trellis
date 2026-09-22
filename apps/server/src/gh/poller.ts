@@ -1,5 +1,8 @@
 import type { GhReason, TrellisEvent } from "@trellis/api";
+import { type ServiceCtx, SYSTEM_ACTOR } from "../context.ts";
+import type { ProjectCache } from "../db/cache.ts";
 import { withTx } from "../db/tx.ts";
+import { completeMergedPullRequestTickets } from "../services/tickets/completeMergedPullRequests.ts";
 import { fetchPullRequests } from "./graphql.ts";
 import { type DueRow, isDue, refOf, selectCandidates } from "./pollerDue.ts";
 import { noticeChecks } from "./pollerNotices.ts";
@@ -23,6 +26,9 @@ type Db = Parameters<typeof withTx>[0];
 // clock.
 export type PollerHook = {
 	db: Db;
+	cache: ProjectCache;
+	actorCache: Map<string, number>;
+	publicUrl: string;
 	gh: GhRunner;
 	sink: (events: TrellisEvent[]) => void;
 	log: (...line: unknown[]) => void;
@@ -154,6 +160,18 @@ const pollDue = async (hook: PollerHook, state: PollerState, at: Date) => {
 	}
 };
 
+const serviceCtx = (hook: PollerHook, emit: (event: TrellisEvent) => void, at: Date): ServiceCtx => ({
+	actor: SYSTEM_ACTOR,
+	session: null,
+	reqId: "gh-poller",
+	now: at,
+	cache: hook.cache,
+	actorCache: hook.actorCache,
+	emit,
+	dropBlobs: () => {},
+	publicUrl: hook.publicUrl,
+});
+
 const tick = async (hook: PollerHook, state: PollerState) => {
 	const at = hook.now();
 	const atMs = at.getTime();
@@ -161,6 +179,7 @@ const tick = async (hook: PollerHook, state: PollerState) => {
 	await readBudget(hook, state, atMs);
 	await pollDue(hook, state, at);
 	await noticeChecks(hook.db, hook.gh, at);
+	await withTx(hook.db, (tx, emit) => completeMergedPullRequestTickets(serviceCtx(hook, emit, at), tx), hook.sink);
 };
 
 export const start = (hook: PollerHook): PollerHandle => {

@@ -1,3 +1,4 @@
+import type { ProjectCache } from "./db/cache.ts";
 import { createMaintenance, VACUUM_AFTER_WRITES } from "./db/maintenance.ts";
 import type { withTx } from "./db/tx.ts";
 import type { Bus } from "./events/bus.ts";
@@ -25,7 +26,16 @@ export type JobsClock = {
 
 export type JobsLog = (msg: string, fields?: Record<string, unknown>) => void;
 
-export type JobsOptions = { db: Db; gh: GhRunner; bus: Bus; log: JobsLog; clock: JobsClock };
+export type JobsOptions = {
+	db: Db;
+	cache: ProjectCache;
+	actorCache: Map<string, number>;
+	publicUrl: string;
+	gh: GhRunner;
+	bus: Bus;
+	log: JobsLog;
+	clock: JobsClock;
+};
 
 export type Jobs = { stop: () => Promise<void> };
 
@@ -74,13 +84,16 @@ const within = async (work: Promise<void>, ms: number) => {
 	return settled;
 };
 
-export const startJobs = ({ db, gh, bus, log, clock }: JobsOptions): Jobs => {
+export const startJobs = ({ db, cache, actorCache, publicUrl, gh, bus, log, clock }: JobsOptions): Jobs => {
 	const maintenance = createMaintenance(db);
 	const unsubscribe = bus.subscribe(({ event }) => {
 		if (event.type !== "gh.status") maintenance.recordWrites(1);
 	});
 	const handle = poller.start({
 		db,
+		cache,
+		actorCache,
+		publicUrl,
 		gh,
 		sink: (events) => {
 			for (const event of events) bus.emit(event);

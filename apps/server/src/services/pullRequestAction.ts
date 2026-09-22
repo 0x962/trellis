@@ -6,10 +6,10 @@ import type { Tx } from "../db/tx";
 import type { PullRequestRow } from "../gh/graphql";
 import { refresh } from "./pullRequests";
 import { ensurePr } from "./reviews/queries";
-import { type ServiceCtx, type TicketRow, touchTicket, writeActivity } from "./support";
+import { type IoCtx, type TicketRow, touchTicket, writeActivity } from "./support";
 
 export const recordAction = async (
-	ctx: ServiceCtx,
+	ctx: IoCtx,
 	tx: Tx,
 	input: { row: PullRequestRow; action: string },
 ): Promise<PullRequest> => {
