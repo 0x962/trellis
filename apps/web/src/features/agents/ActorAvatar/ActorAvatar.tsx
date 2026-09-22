@@ -15,7 +15,7 @@ export function ActorAvatar({ ticketId }: { ticketId: string }) {
 			name={run.name}
 			agentKind={agentKindOf(run.kind)}
 			agentProfile={agentProfileOf(run.harness)}
-			state={isAgentWorking(run) ? "working-mild" : "static"}
+			state={isAgentWorking(run) ? "working" : "static"}
 		/>
 	);
 }

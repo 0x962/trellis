@@ -17,7 +17,7 @@ export type CheckRibbonProps = {
 const gaps = { 2: "gap-0.5", 1: "gap-px", 0: "gap-0" } as const;
 
 const buckets: Record<CheckBucket, string> = {
-	pass: "bg-success",
+	pass: "bg-check-ribbon-pass",
 	fail: "bg-danger",
 	cancel: "bg-danger",
 	skipping: "bg-border-strong",

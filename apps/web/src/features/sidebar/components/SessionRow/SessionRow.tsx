@@ -37,6 +37,7 @@ export function SessionRow({ session, status, activityAt, workingCount = 0, acti
 						name={session.name}
 						agentKind="agent"
 						agentProfile={agentProfileOf(session.harness)}
+						state={workingCount > 0 ? "working" : "static"}
 						status={status}
 						className="size-5"
 					/>

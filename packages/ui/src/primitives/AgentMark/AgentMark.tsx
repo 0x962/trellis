@@ -63,11 +63,12 @@ export function AgentMark({
 	className?: string;
 }) {
 	const appearance = agentAppearance(name, kind);
-	const mode = state === "working" && appearance.kind !== "trellis" ? "working-mild" : state;
+	const mode = state;
+	const artworkMotion = mode === "working" && appearance.kind === "trellis";
 	const id = useId();
 	const ref = useRef<SVGSVGElement>(null);
-	useAgentMotion(ref, mode, id);
-	const artwork = <Artwork {...appearance} moving={mode === "working"} />;
+	useAgentMotion(ref, mode, id, artworkMotion);
+	const artwork = <Artwork {...appearance} moving={artworkMotion} />;
 	return (
 		<svg
 			ref={ref}
@@ -79,6 +80,7 @@ export function AgentMark({
 			data-background={background}
 			data-agent-kind={appearance.kind}
 			data-state={mode}
+			data-artwork-motion={artworkMotion}
 		>
 			{appearance.kind === "trellis" && background && <rect className="agent-ground" width="32" height="32" rx="7" />}
 			<g className="agent-static">
@@ -86,11 +88,10 @@ export function AgentMark({
 			</g>
 			{mode !== "static" && (
 				<g className="agent-effect">
-					{mode === "working" && artwork}
+					{artworkMotion && artwork}
 					<Glimmer id={id}>{artwork}</Glimmer>
 				</g>
 			)}
-			{mode !== "static" && <circle className="agent-work-dot" cx="28" cy="4" r="2" />}
 		</svg>
 	);
 }

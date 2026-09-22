@@ -49,6 +49,7 @@ const colorClasses: Record<StatusColor, string> = {
 const icons = { todo: Circle, review: CircleDashed, done: CheckCircle, canceled: XCircle };
 
 const baseClass = "size-3.5 shrink-0";
+const doneClass = "size-4 shrink-0";
 
 function ReviewIcon({
 	shape,
@@ -151,5 +152,7 @@ function mark({
 	}
 	const Icon = icons[category];
 	const weight = category === "done" ? "fill" : "regular";
-	return <Icon {...shared} weight={weight} className={cx(baseClass, tone, className)} />;
+	return (
+		<Icon {...shared} weight={weight} className={cx(category === "done" ? doneClass : baseClass, tone, className)} />
+	);
 }
