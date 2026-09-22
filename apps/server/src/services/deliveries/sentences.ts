@@ -15,11 +15,11 @@ export const lostDelivery = "The agent session ended without this message. Resen
 // left to receive the message.
 export const closedBeforeDelivery = "The assigned agent session closed before delivery.";
 
-// The sentence for a check notice whose agent had no running process when
-// the dispatcher looked. The person reads the checks on the page, so the
-// notice waits for no later start.
-export const notRunningForCheck = "The agent was not running when its pull request checks changed.";
+// The sentence for a check notice or a merge notice whose agent had no
+// running process when the dispatcher looked. The person reads the checks and
+// the conflict mark on the page, so the notice waits for no later start.
+export const notRunningForCheck = "The agent was not running when its pull request changed.";
 
-// The sentence for a check notice that a newer commit, a newer notice, or a
-// merged or closed pull request replaced before the send.
-export const supersededCheck = "A newer commit or a newer check result replaced this notice before delivery.";
+// The sentence for a check notice or a merge notice that a newer commit, a
+// newer notice, or a merged or closed pull request replaced before the send.
+export const supersededCheck = "A newer commit or a newer result replaced this notice before delivery.";

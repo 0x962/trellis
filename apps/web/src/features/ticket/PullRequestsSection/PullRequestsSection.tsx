@@ -1,5 +1,5 @@
 import { isReviewDraft, type Ticket } from "@trellis/api";
-import { PrGlyph, ReviewStateIcon, SectionHeader } from "@trellis/ui";
+import { MergeConflictMark, PrGlyph, ReviewStateIcon, SectionHeader } from "@trellis/ui";
 import { tabularClass } from "../../../lib/format";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
 
@@ -32,6 +32,7 @@ export function PullRequestsSection({ ticket }: PullRequestsSectionProps) {
 							/>
 							<span className={`w-14 shrink-0 text-fg-muted ${tabularClass}`}>#{pr.number}</span>
 							<span className="min-w-0 flex-1 truncate">{pr.title}</span>
+							{pr.state === "open" && pr.mergeable === "conflicting" && <MergeConflictMark baseRef={pr.baseRef} />}
 							{pr.verdict !== null && (
 								<ReviewStateIcon
 									reviewState={pr.verdict}

@@ -43,4 +43,13 @@ describe("PullRequestsSection", () => {
 
 		expect(html).not.toContain("data-review-state");
 	});
+
+	test("draws the conflict mark with the base branch only on an open pull request that cannot merge", () => {
+		const html = (fields: Partial<Ticket["prRows"][number]>) =>
+			renderToStaticMarkup(<PullRequestsSection ticket={ticket([pr({ baseRef: "main", ...fields })])} />);
+
+		expect(html({ mergeable: "conflicting" })).toContain('aria-label="Merge conflict with main"');
+		expect(html({ mergeable: "mergeable" })).not.toContain("data-pr-conflict");
+		expect(html({ mergeable: "conflicting", state: "closed" })).not.toContain("data-pr-conflict");
+	});
 });

@@ -1,4 +1,4 @@
-import { GitMerge, Warning } from "@phosphor-icons/react";
+import { Warning } from "@phosphor-icons/react";
 import { isReviewDraft, type LinkedPullRequest, type TicketSummary } from "@trellis/api";
 import { cx, GithubMark, IconButton, PrGlyph, ReviewStateIcon, Tooltip } from "@trellis/ui";
 import { tabularClass } from "../../../lib/format";
@@ -31,18 +31,6 @@ export function PullRequestRow({ ticket, pr }: PullRequestRowProps) {
 					<span className="shrink-0">{pr.baseRef}</span>
 				</span>
 			</span>
-			{pr.state === "open" && pr.mergeable === "conflicting" && (
-				<Tooltip content={`The branch has a merge conflict with ${pr.baseRef}.`}>
-					<span
-						data-pr-conflict=""
-						role="img"
-						aria-label={`Merge conflict with ${pr.baseRef}`}
-						className="shrink-0 text-warning"
-					>
-						<GitMerge className="size-4" aria-hidden={true} />
-					</span>
-				</Tooltip>
-			)}
 			{pr.fetchError !== null && (
 				<Tooltip content={pr.fetchError}>
 					<span

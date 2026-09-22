@@ -31,6 +31,7 @@ export { LabelPill, type LabelPillProps } from "./domain/LabelPill";
 export { type LabelPillItem, LabelPills, type LabelPillsProps } from "./domain/LabelPills";
 export { LineChanges, type LineChangesProps, type LineChangesValue, lineChangesVisible } from "./domain/LineChanges";
 export { type LabelColor, labelColors } from "./domain/labelColors";
+export { MergeConflictMark, type MergeConflictMarkProps } from "./domain/MergeConflictMark";
 export {
 	type LocalPrState,
 	PrGlyph,

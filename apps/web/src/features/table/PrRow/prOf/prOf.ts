@@ -28,6 +28,7 @@ export const prOf = (fields: Partial<TicketPr>): TicketPr => ({
 	flowRuns: [],
 	baseRef: "main",
 	headRef: "trellis/trl-181",
+	mergeable: "mergeable",
 	stackedOn: null,
 	...fields,
 });
