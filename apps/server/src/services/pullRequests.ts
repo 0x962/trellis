@@ -29,6 +29,7 @@ import { linkScope } from "./pullRequestScope.ts";
 import {
 	assertProjectActive,
 	fail,
+	type IoCtx,
 	notFound,
 	type PrepareCtx,
 	resolveTicket,
@@ -38,6 +39,7 @@ import {
 	touchTicket,
 	writeActivity,
 } from "./support.ts";
+import { completeMergedPullRequestTickets } from "./tickets/completeMergedPullRequests.ts";
 
 // One pull request is one row, whatever number of tickets link it. The link
 // row carries the actor who linked it.
@@ -233,7 +235,7 @@ export const prepareRefresh = async (ctx: PrepareCtx, input: IdInput): Promise<P
 	return { id: row.id, first: result.results[0]! };
 };
 
-export const refresh = async (ctx: ServiceCtx, tx: Tx, input: PreparedRefresh): Promise<PullRequest> => {
+export const refresh = async (ctx: IoCtx, tx: Tx, input: PreparedRefresh): Promise<PullRequest> => {
 	const row = await findPullRequestRow(tx, input.id);
 	const { first } = input;
 	const at = ctx.now();
@@ -245,7 +247,9 @@ export const refresh = async (ctx: ServiceCtx, tx: Tx, input: PreparedRefresh): 
 	}
 	if (first.row.contentHash === row.content_hash) {
 		await tx.execute(sql`UPDATE pull_requests SET fetched_at = ${at}, fetch_error = NULL WHERE id = ${row.id}`);
-		return toPullRequest(await findPullRequestRow(tx, row.id));
+		const refreshed = await findPullRequestRow(tx, row.id);
+		await completeMergedPullRequestTickets(ctx.core, tx, { pullRequestId: row.id });
+		return toPullRequest(refreshed);
 	}
 	await writeFetched(tx, at, first.row);
 	const fresh = await findPullRequestRow(tx, row.id);
@@ -256,6 +260,7 @@ export const refresh = async (ctx: ServiceCtx, tx: Tx, input: PreparedRefresh): 
 		state: fresh.state,
 		ciState: fresh.ci_state,
 	});
+	await completeMergedPullRequestTickets(ctx.core, tx, { pullRequestId: fresh.id });
 	return toPullRequest(fresh);
 };
 

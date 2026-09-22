@@ -130,7 +130,7 @@ export async function submit(ctx: ServiceCtx, tx: Tx, input: ReviewSubmit) {
 	return { pullRequest: toPullRequest(fresh!), submission };
 }
 
-export const actionResult = async (ctx: ServiceCtx, tx: Tx, input: PreparedAction) => {
+export const actionResult = async (ctx: IoCtx, tx: Tx, input: PreparedAction) => {
 	return recordAction(ctx, tx, input);
 };
 // With a project, the search covers the repositories of that project and

@@ -268,7 +268,16 @@ export const createInlineTransport = ({
 				log: options.log,
 				call: () => backgroundCall("reviews.dispatchDeliveries", {}),
 			});
-			jobs = startBackgroundJobs({ db, gh: runtime.gh, bus, log: options.log, clock });
+			jobs = startBackgroundJobs({
+				db,
+				cache,
+				actorCache,
+				publicUrl: config.publicUrl,
+				gh: runtime.gh,
+				bus,
+				log: options.log,
+				clock,
+			});
 		}
 		return {
 			applied,
