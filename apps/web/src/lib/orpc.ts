@@ -64,7 +64,7 @@ export const createOrpc = (options: OrpcOptions = {}) => {
 	for (const queryKey of [
 		orpc.projects.list.key(),
 		orpc.sessions.list.key(),
-		orpc.sessions.activity.key(),
+		orpc.agentRuns.activity.key(),
 		orpc.tickets.list.key(),
 		orpc.tickets.board.key(),
 		orpc.tickets.counts.key(),
