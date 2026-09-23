@@ -46,8 +46,19 @@ const writeBatch = async (statePath: string, directories: Set<string>, agentsDir
 		const file = exists ? await realpath(statePath) : statePath;
 		const state: NativeState = exists ? JSON.parse(await readFile(file, "utf8")) : {};
 		const projects = { ...state.projects };
-		for (const directory of Object.keys(projects))
-			if (directory.startsWith(agentsDirectory) && !existsSync(directory)) delete projects[directory];
+		// `stat` gives the event loop back to the server between the entries.
+		// The file holds one entry per start until the first write of this
+		// version, so the first run of this loop reads hundreds of directories.
+		const worktrees = Object.keys(projects).filter((directory) => directory.startsWith(agentsDirectory));
+		const gone = await Promise.all(
+			worktrees.map((directory) =>
+				stat(directory).then(
+					() => null,
+					() => directory,
+				),
+			),
+		);
+		for (const directory of gone) if (directory !== null) delete projects[directory];
 		for (const directory of directories) projects[directory] = { ...projects[directory], hasTrustDialogAccepted: true };
 		state.hasCompletedOnboarding = true;
 		state.projects = projects;
