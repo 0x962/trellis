@@ -126,7 +126,7 @@ export function TerminalSurface({
 	return (
 		<div className="terminal-surface" data-layout={layout}>
 			<div className="terminal-toolbar">
-				<p className="terminal-hint">Press Control+] to leave the terminal.</p>
+				<p className="terminal-hint">Press Escape two times or Control+] to leave the terminal.</p>
 				{snapshot.error && (
 					<Tooltip content="Reconnect terminal">
 						<IconButton

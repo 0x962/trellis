@@ -54,7 +54,7 @@
 }
 .terminal-surface[data-layout="fill"] .terminal-hint {
 	display: flex;
-	height: calc(var(--spacing) * 6);
+	min-height: calc(var(--spacing) * 6);
 	flex-shrink: 0;
 	align-items: center;
 	justify-content: flex-end;
