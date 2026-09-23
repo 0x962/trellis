@@ -18,7 +18,7 @@ type AgentWordsProps = {
 
 const agentText = (line: TicketAgentLine) =>
 	(line.parts ?? [{ text: line.words, code: false }]).map((part) => (
-		<span key={`${part.code ? "code" : "text"}:${part.text}`} className={part.code ? "font-mono" : undefined}>
+		<span key={part.code ? "code" : "text"} className={part.code ? "font-mono" : undefined}>
 			{part.text}
 		</span>
 	));
