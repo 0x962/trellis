@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
@@ -9,33 +9,37 @@ import { prepareSearch } from "./queries/search.ts";
 
 // A PGlite instance that starts on an empty directory builds a new Postgres
 // database, and `migrate` then applies every file in `apps/server/drizzle`.
-// Together they take about 3.4 seconds, and a test setup hook stops after
-// five seconds. This module runs them one time, keeps the result as a tar of
-// the data directory, and starts every test database from that tar in about
-// 0.2 seconds.
+// This module runs them one time, keeps the result as a tar of the data
+// directory, and starts every test database from that tar.
 
 const serverDir = join(import.meta.dir, "../..");
 const migrationsDir = join(serverDir, "drizzle");
 
-// The tar takes 44 MB. It lives under the temporary directory of the machine,
-// because this machine holds hundreds of checkouts of this repository and each
-// one runs these tests. The key in the file name covers the schema, so every
-// checkout with the same migrations reads one file, and the operating system
-// removes the directory.
+// The tar takes 44 MB. It lives under the temporary directory, because many
+// checkouts of this repository can run these tests at the same time. The key
+// in the file name covers the schema, so every checkout with the same
+// migrations reads one file.
 const cacheDir = join(tmpdir(), "trellis-testdb");
 
 const tarPath = (key: string) => join(cacheDir, `testDb-${key}.tar`);
 
-// The key names the stored tar, and it covers every input that decides the
-// schema inside the tar. `drizzle/meta/_journal.json` holds the `when` value
-// of each migration, and Drizzle reads those values to choose which files it
-// applies and in which order. `migrate.ts` holds the code that applies them.
-// `package.json` pins the PGlite version, and a data directory belongs to the
-// Postgres version that wrote it.
+// A tar that no test read for this long belongs to a schema that no checkout
+// runs any more. Each merged migration gives a new key and a new 44 MB file,
+// so without this rule the directory grows for ever.
+const UNREAD_MS = 24 * 60 * 60 * 1000;
+
+// The key names the stored tar. Every input that decides what the data
+// directory holds goes into it. `drizzle/meta/_journal.json` holds the `when`
+// value of each migration, and Drizzle reads those values to choose which
+// files it applies and in which order. `migrate.ts` applies them, and
+// `client.ts` sets the extensions and the start params of the instance. The
+// pinned versions of `pglite` and `drizzle-orm` decide the file format and
+// the bookkeeping rows, so the whole dependency list goes in.
 const schemaKey = async () => {
 	const manifest = JSON.parse(await readFile(join(serverDir, "package.json"), "utf8"));
 	const hash = createHash("sha256");
-	hash.update(manifest.dependencies["@electric-sql/pglite"]);
+	hash.update(JSON.stringify(manifest.dependencies));
+	hash.update(await readFile(join(import.meta.dir, "client.ts")));
 	hash.update(await readFile(join(import.meta.dir, "migrate.ts")));
 	hash.update(await readFile(join(migrationsDir, "meta/_journal.json")));
 	for (const name of (await readdir(migrationsDir)).filter((name) => name.endsWith(".sql")).sort()) {
@@ -45,63 +49,87 @@ const schemaKey = async () => {
 	return hash.digest("hex").slice(0, 16);
 };
 
+// Drizzle runs a `.sql` file only when `_journal.json` names it. A hand
+// written file, or a merge that keeps one side of the journal, gives a tar
+// without that table, and every test that reads the table then fails with a
+// reason that points at the test. The three counts must agree.
 const buildTar = async () => {
 	const db = await openDb(":memory:");
-	await migrate(db);
+	const applied = await migrate(db);
+	const journal = JSON.parse(await readFile(join(migrationsDir, "meta/_journal.json"), "utf8"));
+	const files = (await readdir(migrationsDir)).filter((name) => name.endsWith(".sql")).length;
+	if (applied !== journal.entries.length || applied !== files)
+		throw new Error(
+			`${applied} migrations ran, the journal names ${journal.entries.length}, the folder holds ${files}`,
+		);
 	const tar = await db.$client.dumpDataDir("none");
 	await db.$client.close();
 	return Buffer.from(await tar.arrayBuffer());
 };
 
-// Several test processes run at the same time, and they run from different
-// checkouts. Each one writes a file with its own process id in the name, and
-// then renames that file to `testDb-<key>.tar`. A rename inside one directory
-// happens in one step, so another process always reads a complete tar. No
-// process removes the tar of another key, because that key belongs to another
-// checkout that still reads it.
+// A rename inside one directory happens in one step, so another process
+// always reads a complete tar. The loop then removes a tar that no test
+// opened for `UNREAD_MS`, and it keeps every other one, because another
+// checkout with another schema reads that file. A removal costs that
+// checkout one build.
 const storeTar = async (key: string, tar: Buffer) => {
 	await mkdir(cacheDir, { recursive: true });
 	const ownTarPath = join(cacheDir, `testDb-${key}.${process.pid}.tmp`);
 	await writeFile(ownTarPath, tar);
 	await rename(ownTarPath, tarPath(key));
+	const oldest = Date.now() - UNREAD_MS;
+	for (const name of await readdir(cacheDir)) {
+		if (name === `testDb-${key}.tar` || !name.startsWith("testDb-")) continue;
+		if ((await stat(join(cacheDir, name))).mtimeMs < oldest) await rm(join(cacheDir, name));
+	}
 };
 
-// The first call on a new key takes about 3.4 seconds, because it builds the
-// tar and writes it. The read fails when no process built the tar yet, and a
-// failed read builds it.
-const loadMigratedTar = async () => {
+// The touch of the modification time records the read, because `storeTar`
+// removes the files that no test opened for a day.
+const readTar = async (key: string) => {
+	const stored = await readFile(tarPath(key)).catch((error: NodeJS.ErrnoException) => {
+		if (error.code === "ENOENT") return undefined;
+		throw error;
+	});
+	if (stored === undefined) return undefined;
+	const now = new Date();
+	await utimes(tarPath(key), now, now);
+	return stored;
+};
+
+const loadTar = async () => {
 	const key = await schemaKey();
-	const stored = await readFile(tarPath(key)).catch(() => undefined);
+	const stored = await readTar(key);
 	if (stored !== undefined) return new Blob([stored]);
 	const built = await buildTar();
 	await storeTar(key, built);
 	return new Blob([built]);
 };
 
-let migratedTar: Promise<Blob> | undefined;
+let cached: Promise<Blob> | undefined;
 
-// `scripts/testPreload.ts` calls this before a test file runs. The build of
-// the tar takes about 2 seconds, and a `beforeAll` hook stops after 5 seconds,
-// so the build must end before the first hook starts.
-export const primeTestDb = () => {
-	migratedTar ??= loadMigratedTar();
-	return migratedTar;
+// The tar of the migrated database, built on the first call of the process.
+// That build takes about 1 second on a quiet machine and more than 5 seconds
+// on a loaded one, and a setup hook stops after 5 seconds, so
+// `apps/server/scripts/testPreload.ts` calls this before bun runs the first
+// test file.
+export const migratedTar = () => (cached ??= loadTar());
+
+// PGlite builds a new empty database when it finds no database in the file it
+// unpacked, and it reports no error. Another checkout can write the file at
+// this path, so the `tickets` table proves that the file held the migrated
+// database, and the message names the file that a person must remove.
+const requireSchema = async (db: Awaited<ReturnType<typeof openDb>>) => {
+	const found = await db.execute(sql`SELECT to_regclass('tickets') AS tickets`);
+	if (found.rows[0]!.tickets === null) throw new Error(`No schema in ${tarPath(await schemaKey())}`);
 };
 
-// A file that holds no PGlite data directory gives an empty database, because
-// PGlite runs initdb when it finds no database in the file it unpacked. The
-// `tickets` table proves that the file held the migrated database, and the
-// error names the file that a person must delete. Every other checkout on the
-// machine writes into the same directory, so the file can come from another
-// process.
 // `prepareSearch` creates the search view and the search functions under
 // `pg_temp`. Postgres keeps them in the session and writes them to no file,
-// so the tar holds none of them and `openTestDb` must call `prepareSearch`
-// for each new database.
+// so the tar holds none of them and each new database needs the call.
 export const openTestDb = async () => {
-	const db = await openDb(":memory:", await primeTestDb());
-	const tables = await db.execute(sql`SELECT to_regclass('tickets') AS tickets`);
-	if (tables.rows[0]!.tickets === null) throw new Error(`No schema in ${tarPath(await schemaKey())}`);
+	const db = await openDb(":memory:", await migratedTar());
+	await requireSchema(db);
 	await prepareSearch(db);
 	return db;
 };

@@ -7,8 +7,6 @@ import { allPrFileBlobShas } from "./queries/prFiles.ts";
 import { prepareSearch } from "./queries/search.ts";
 
 // Opens the database of a data home and brings its schema up to date.
-// `prepareSearch` builds the search functions of the session, and PGlite
-// holds one session for the life of the process.
 // `applied` is the number of migrations this open ran. `liveShas` are the
 // hashes that an attachment, pull request file, or epic resource row names.
 // The blob sweep keeps those files.

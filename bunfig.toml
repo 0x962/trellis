@@ -3,8 +3,6 @@
 [install]
 linker = "hoisted"
 
-# `scripts/testPreload.ts` builds the tar of the migrated database that every
-# server test starts from. bun runs it before a test file, so the build ends
-# before the first setup hook starts.
+# `apps/server/scripts/testPreload.ts` states why a test process runs it first.
 [test]
-preload = ["./scripts/testPreload.ts"]
+preload = ["./apps/server/scripts/testPreload.ts"]
