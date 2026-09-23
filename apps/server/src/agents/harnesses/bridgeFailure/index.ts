@@ -1,1 +1,1 @@
-export { failureReason, recordBridgeFailure } from "./bridgeFailure.ts";
+export { failureReason, recordBridgeFailure, recordBridgeStop } from "./bridgeFailure.ts";

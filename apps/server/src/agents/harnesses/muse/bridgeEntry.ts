@@ -4,7 +4,8 @@ import { dirname } from "node:path";
 import { fromHarnessModel } from "@trellis/api/models";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { z } from "zod";
-import { failureReason, recordBridgeFailure } from "../bridgeFailure/index.ts";
+import { failureReason, recordBridgeFailure, recordBridgeStop } from "../bridgeFailure/index.ts";
+import { listenForStopSignals } from "../bridgeSignals/index.ts";
 import { applyTurnActivity } from "../turnActivity/turnActivity.ts";
 import type { HarnessEvent } from "../types.ts";
 import { MspClient } from "./mspClient.ts";
@@ -56,20 +57,24 @@ const host: ChildProcess = spawn(env.TRELLIS_MUSE_EXECUTABLE, ["serve", "--trust
 	env: process.env,
 	stdio: ["pipe", "pipe", "inherit"],
 });
-// The bridge stops its terminal reader before it records a failure. The
-// terminal makes SIGINT again from that point, and a process with no listener
-// for it stops at once. This listener keeps the bridge alive long enough to
-// record the reason.
-const terminated = new Promise<void>((resolve) => {
-	process.once("SIGTERM", resolve);
-	process.once("SIGHUP", resolve);
-	process.once("SIGINT", resolve);
-});
+const { terminated, stopSignal } = listenForStopSignals();
 let eventQueue = Promise.resolve();
 let acceptingEvents = true;
+// The race below reads `observationFailed` one time. A second failure, or a
+// failure after a signal ended the race, reaches no reader, so its reason goes
+// to the standard error stream. The runtime keeps that stream with the
+// session.
 let reportFailure!: (error: unknown) => void;
 const observationFailed = new Promise<never>((_, reject) => {
-	reportFailure = reject;
+	let first = true;
+	reportFailure = (error: unknown) => {
+		if (first) {
+			first = false;
+			reject(error);
+			return;
+		}
+		process.stderr.write(`The bridge also failed: ${failureReason(error)}\n`);
+	};
 });
 // `usageQueue` runs usage writes in notification order for this bridge.
 // `observedAtMs` lets `museUsage.ts` compare writes from other bridge processes.
@@ -211,8 +216,7 @@ async function start() {
 	});
 	await startTurn([launch.prompt]);
 	await firstPrompt;
-	print(museTerminalHint);
-	startMuseTerminalReader({
+	const readerStarted = startMuseTerminalReader({
 		interrupt: async () => {
 			if (!current.working || current.turnId === null) return;
 			await client!.request("turn/interrupt", { commandId: uuid7(), sessionId, turnId: current.turnId });
@@ -220,9 +224,24 @@ async function start() {
 		submit,
 		onFailure: reportFailure,
 	});
+	// A failure can stop the reader before this point, and
+	// `startMuseTerminalReader` then does nothing. The hint tells a person to
+	// type, so it prints only when a reader reads the terminal.
+	if (readerStarted) print(museTerminalHint);
 }
+// `start()` waits for Muse for as long as Muse takes. A signal that arrives in
+// that time ends the run here, and not after `start()` returns. A rejection of
+// `start()` reaches this race through `reportFailure`.
 try {
-	await Promise.race([start().then(() => terminated), observationFailed]);
+	start().catch(reportFailure);
+	await Promise.race([terminated, observationFailed]);
+	if (stopSignal() === "SIGINT") {
+		acceptingEvents = false;
+		await recordBridgeStop({
+			pendingWrites: eventQueue,
+			observe: (event) => runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, event),
+		});
+	}
 } catch (error) {
 	const observedAtMs = Date.now();
 	acceptingEvents = false;
@@ -247,10 +266,16 @@ try {
 } finally {
 	acceptingEvents = false;
 	// SIGTERM, SIGHUP and SIGINT end the try block with no error, so the catch
-	// block does not run. This block is then the only one that gives the
-	// keyboard back. The steps below wait up to five seconds for the Muse
-	// host, and the removal of the directory can throw.
+	// block does not run. This block is then the only one that calls
+	// `stopMuseTerminalReader`, which ends the raw mode of the terminal. That
+	// call is first because the steps below wait up to five seconds for the
+	// Muse host, and the removal of the directory can throw.
 	stopMuseTerminalReader();
+	// A signal can end the run while a write of an event is open. The process
+	// exits after this block, so both chains settle first.
+	await eventQueue.catch((failure: unknown) => {
+		process.stderr.write(`The bridge lost an event write: ${failureReason(failure)}\n`);
+	});
 	await usageQueue;
 	if (host.exitCode === null && host.signalCode === null) {
 		const exited = new Promise<void>((resolve) => host.once("exit", () => resolve()));

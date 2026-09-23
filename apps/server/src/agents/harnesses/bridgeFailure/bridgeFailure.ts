@@ -42,3 +42,15 @@ export async function recordBridgeFailure(options: {
 		print(`The bridge could not record that reason: ${failureReason(failure)}\n`);
 	});
 }
+
+// The last step of a bridge process that a person stopped. Without this event
+// the session page reads the run as one that finished its work.
+export async function recordBridgeStop(options: {
+	pendingWrites: Promise<unknown>;
+	observe: (event: HarnessEvent) => Promise<unknown>;
+}): Promise<void> {
+	await options.pendingWrites.catch(() => {});
+	await options.observe({ kind: "idle", outcome: "interrupted" }).catch((failure: unknown) => {
+		process.stderr.write(`The bridge could not record the stop: ${failureReason(failure)}\n`);
+	});
+}
