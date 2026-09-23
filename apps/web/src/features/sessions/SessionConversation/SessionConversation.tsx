@@ -1,7 +1,6 @@
-import { Play, Stop, Ticket } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import { type AgentRun, hasAssignedProcess, type Session, sessionStatus } from "@trellis/api";
-import { Avatar, ConfirmDialog, EmptyState, IconButton, Tooltip } from "@trellis/ui";
+import { Avatar, ConfirmDialog, EmptyState } from "@trellis/ui";
 import { type RefObject, useCallback, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../../agents/agentKindOf";
@@ -10,10 +9,9 @@ import { isAgentWorking } from "../../agents/isAgentWorking";
 import { NativeTerminal } from "../../agents/NativeTerminal";
 import { useWorkspaceSummary } from "../../agents/useWorkspaceSummary";
 import { PendingQuestions } from "../PendingQuestions";
-import { SessionActionsMenu } from "../SessionActionsMenu";
 import { SessionNameField } from "../SessionNameField";
 import { sessionStateLabel } from "../sessionStateLabel";
-import { SessionDetails } from "./components/SessionDetails";
+import { SessionBarActions } from "./components/SessionBarActions";
 import { SessionMeta } from "./components/SessionMeta";
 
 export function SessionConversation({
@@ -105,35 +103,18 @@ export function SessionConversation({
 					{native && <SessionMeta run={run} summary={summary} />}
 				</div>
 				<span className="text-xs text-fg-muted">{sessionStateLabel(run)}</span>
-				{native && run.workspaceId !== null && <SessionDetails run={run} summary={summary} />}
-				{onOpenTicket && run.ticketIdentifier && (
-					<Tooltip content={`Open ${run.ticketIdentifier}`}>
-						<IconButton label={`Open ${run.ticketIdentifier}`} icon={<Ticket />} onClick={onOpenTicket} />
-					</Tooltip>
-				)}
-				<Tooltip content={active ? (run.kind === "agent" ? "Remove assignment" : "Stop session") : "Resume session"}>
-					<IconButton
-						label={active ? (run.kind === "agent" ? "Remove assignment" : "Stop session") : "Resume session"}
-						icon={active ? <Stop /> : <Play />}
-						disabled={
-							readOnly ||
-							busy ||
-							run.runtime !== "native" ||
-							run.state === "starting" ||
-							(!active && !session && !run.terminalId)
-						}
-						onClick={() => {
-							if (active) setConfirmStop(true);
-							else start.mutate();
-						}}
-					/>
-				</Tooltip>
-				<SessionActionsMenu
+				<SessionBarActions
 					run={run}
 					session={session}
-					deleteDisabled={readOnly || busy}
-					onDeleted={onDeleted}
+					summary={summary}
+					active={active}
+					busy={busy}
+					readOnly={readOnly}
+					onOpenTicket={onOpenTicket}
+					onStart={() => start.mutate()}
+					onStop={() => setConfirmStop(true)}
 					onRename={session ? () => setRenaming(true) : undefined}
+					onDeleted={onDeleted}
 				/>
 			</div>
 			{run.switchedTo && (
