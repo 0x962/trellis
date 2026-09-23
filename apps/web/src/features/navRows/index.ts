@@ -1,1 +1,1 @@
-export { type NavRow, type NavTarget, navRows } from "./navRows";
+export { navRows, type NavRow, type NavTarget } from "./navRows";

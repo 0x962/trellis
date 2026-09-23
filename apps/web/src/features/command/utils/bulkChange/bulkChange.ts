@@ -1,4 +1,12 @@
-import type { EpicSummary, Label, LabelGroup, Priority, Status, TicketSummary, WaveSummary } from "@trellis/api";
+import type {
+	EpicSummary,
+	Label,
+	LabelGroup,
+	Priority,
+	Status,
+	TicketSummary,
+	WaveSummary,
+} from "@trellis/api";
 
 import { toggleLabel } from "../../../pickers/utils/toggleLabel";
 import type { BulkWrite } from "../../../table/hooks/useBulkWrite";
