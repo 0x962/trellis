@@ -143,9 +143,8 @@ export type FlowEdge = z.infer<typeof FlowEdgeSchema>;
 // `version` rises on every change to the flow or its graph.
 //
 // `projectKey` is the key of the project the flow belongs to, such as `TRL`.
-// `trellis ready` asks a pull request for the flows of its ticket's project.
-// A flow with `null` belongs to every project, and every pull request is
-// asked for it.
+// `trellis ready` does not accept a pull request until one flow of the
+// ticket's project has a run. A flow with `null` applies to every project.
 export const FlowSchema = z.object({
 	id: UlidSchema,
 	projectKey: KeySchema.nullable(),
@@ -166,8 +165,9 @@ export const FlowSummarySchema = FlowSchema.omit({ briefing: true }).extend({
 });
 export type FlowSummary = z.infer<typeof FlowSummarySchema>;
 
-// The project a flow belongs to, in the words every surface prints.
-export const flowScope = (flow: Pick<Flow, "projectKey">): string => flow.projectKey ?? "Every project";
+// The name of a flow's project. The web app and the CLI both print this
+// text, so the words agree.
+export const flowProjectLabel = (flow: Pick<Flow, "projectKey">): string => flow.projectKey ?? "Every project";
 
 // The sentence that says what a flow is for. A flow whose description is
 // empty falls back to its name, so every caller shows the same words.
@@ -202,7 +202,8 @@ export const FlowCreateInputSchema = z.strictObject({
 	name: FlowNameSchema,
 	slug: FlowSlugSchema.optional(),
 	description: FlowDescriptionSchema.optional(),
-	// An absent project gives a flow that belongs to every project.
+	// The root project of a tree. An absent project gives a flow that applies
+	// to every project.
 	project: ProjectRefStringSchema.optional(),
 });
 export type FlowCreateInput = z.input<typeof FlowCreateInputSchema>;
@@ -213,7 +214,8 @@ export const FlowUpdateInputSchema = z.strictObject({
 	slug: FlowSlugSchema.optional(),
 	description: FlowDescriptionSchema.optional(),
 	briefing: z.string().max(200_000).optional(),
-	// null gives the flow to every project; an absent field keeps its project.
+	// The root project of a tree. null makes the flow apply to every project,
+	// and an absent field keeps the project it has.
 	project: ProjectRefStringSchema.nullable().optional(),
 	// null clears the harness of the flow; an absent field keeps it.
 	harness: FlowHarnessSchema.nullable().optional(),
@@ -232,8 +234,9 @@ export const FlowSaveInputSchema = z.strictObject({
 });
 export type FlowSaveInput = z.input<typeof FlowSaveInputSchema>;
 
-// `ticket` keeps the flows of that ticket's project and the flows that
-// belong to every project. Without it the list holds every flow.
+// `ticket` keeps the flows that apply to that ticket's project: the flows of
+// the project, and the flows that name no project. Without it the list holds
+// every flow of the server.
 export const FlowListInputSchema = z.strictObject({ ticket: TicketRefStringSchema.optional() });
 export type FlowListInput = z.infer<typeof FlowListInputSchema>;
 

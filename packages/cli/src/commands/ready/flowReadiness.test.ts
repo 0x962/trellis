@@ -7,6 +7,7 @@ import {
 	flowRunMissingLines,
 	flowRunMissingSummary,
 	flowRunWaitingLines,
+	flowSkippedLines,
 	flowWaivedLines,
 } from "./flowReadiness.ts";
 
@@ -17,6 +18,7 @@ const readiness = (runs: FlowReadiness["runs"]): FlowReadiness => ({
 	flows: [flow("review", "Review", "Read the diff and report every fault."), flow("e2e", "End to end", "")],
 	runs,
 	waived: null,
+	skipped: null,
 	satisfied: runs.some((run) => run.status === "succeeded" || run.status === "waiting"),
 });
 
@@ -59,6 +61,7 @@ test("asks for nothing when the project holds no flow", async () => {
 		flows: [],
 		runs: [],
 		waived: null,
+		skipped: "no-flow",
 		satisfied: true,
 	});
 });
@@ -173,6 +176,16 @@ test("drops a sentence written about an older head", async () => {
 
 	expect(result.waived).toBeNull();
 	expect(result.satisfied).toBe(false);
+});
+
+test("says why it asked for no flow run", () => {
+	expect(flowSkippedLines({ ...readiness([]), skipped: "no-flow" })).toEqual([
+		"  No flow applies to the project of this pull request, so Trellis asked for no flow run.",
+	]);
+	expect(flowSkippedLines({ ...readiness([]), skipped: "no-ticket" })).toEqual([
+		"  No ticket links this pull request, so Trellis asked for no flow run.",
+	]);
+	expect(flowSkippedLines(readiness([]))).toEqual([]);
 });
 
 test("prints the agent's sentence for the person", () => {

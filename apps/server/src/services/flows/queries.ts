@@ -13,24 +13,22 @@ const summaryColumns = sql`f.id, p.key AS "projectKey", f.slug, f.name, f.descri
 // characters and a list draws none of it.
 const flowColumns = sql`${summaryColumns}, f.briefing`;
 
-const flowFrom = sql`FROM flows f LEFT JOIN projects p ON p.id = f.project_id`;
+const fromFlowsWithProject = sql`FROM flows f LEFT JOIN projects p ON p.id = f.project_id`;
 
-// A write returns the id, and this reads the written row back with the key
-// of its project.
 export const readFlow = async (tx: Tx, id: string): Promise<Flow> => {
-	const [flow] = await rows<Flow>(tx, sql`SELECT ${flowColumns} ${flowFrom} WHERE f.id = ${id}`);
+	const [flow] = await rows<Flow>(tx, sql`SELECT ${flowColumns} ${fromFlowsWithProject} WHERE f.id = ${id}`);
 	return flow!;
 };
 
-// The flows a project asks for: the flows of that project and the flows that
-// belong to every project. A null `rootId` lists every flow of the server.
+// The flows that apply to one project: its own flows, and the flows that
+// name no project. A null `rootId` lists every flow of the server.
 export const listFlows = (tx: Tx, rootId: string | null): Promise<FlowSummary[]> =>
 	rows<FlowSummary>(
 		tx,
 		sql`SELECT ${summaryColumns},
 			(SELECT count(*)::int FROM flow_nodes WHERE flow_nodes.flow_id = f.id) AS "nodeCount",
 			(SELECT count(*)::int FROM flow_edges WHERE flow_edges.flow_id = f.id) AS "edgeCount"
-			${flowFrom}
+			${fromFlowsWithProject}
 			WHERE ${rootId === null ? sql`true` : sql`f.project_id IS NULL OR f.project_id = ${rootId}`}
 			ORDER BY f.name, f.id`,
 	);
@@ -44,8 +42,8 @@ const edgeColumns = sql`id, from_node_id AS "fromNodeId", to_node_id AS "toNodeI
 // a ULID names the id.
 export const resolveFlow = async (tx: Tx, ref: string): Promise<Flow> => {
 	const [flow] = ulidPattern.test(ref.toUpperCase())
-		? await rows<Flow>(tx, sql`SELECT ${flowColumns} ${flowFrom} WHERE f.id = ${ref.toUpperCase()}`)
-		: await rows<Flow>(tx, sql`SELECT ${flowColumns} ${flowFrom} WHERE f.slug = ${ref.toLowerCase()}`);
+		? await rows<Flow>(tx, sql`SELECT ${flowColumns} ${fromFlowsWithProject} WHERE f.id = ${ref.toUpperCase()}`)
+		: await rows<Flow>(tx, sql`SELECT ${flowColumns} ${fromFlowsWithProject} WHERE f.slug = ${ref.toLowerCase()}`);
 	if (flow === undefined) throw fail("NOT_FOUND", { kind: "flow", ref });
 	return flow;
 };

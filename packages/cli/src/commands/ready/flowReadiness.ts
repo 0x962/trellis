@@ -15,6 +15,8 @@ export type FlowReadiness = {
 	// What the agent wrote when it said that no flow fits this change at this
 	// head. It answers the check in place of a run.
 	waived: string | null;
+	// Why the check asked for no flow run. null when it asked for one.
+	skipped: "no-ticket" | "no-flow" | null;
 	satisfied: boolean;
 };
 
@@ -34,9 +36,9 @@ export const flowReadiness = async (
 	ticket: string | null,
 	headSha: string,
 ): Promise<FlowReadiness> => {
-	if (ticket === null) return { flows: [], runs: [], waived: null, satisfied: true };
+	if (ticket === null) return { flows: [], runs: [], waived: null, skipped: "no-ticket", satisfied: true };
 	const flows = await client.flows.list({ ticket });
-	if (flows.length === 0) return { flows, runs: [], waived: null, satisfied: true };
+	if (flows.length === 0) return { flows, runs: [], waived: null, skipped: "no-flow", satisfied: true };
 	const [records, waiver] = await Promise.all([
 		client.flowExecutions.list({ ticket, headSha }),
 		client.pullRequests.readFlowWaiver({ id: ref.id }),
@@ -47,7 +49,7 @@ export const flowReadiness = async (
 		status: record.state.status,
 	}));
 	const waived = waiver !== null && waiver.headSha === headSha ? waiver.reason : null;
-	return { flows, runs, waived, satisfied: waived !== null || runs.some(answersTheCheck) };
+	return { flows, runs, waived, skipped: null, satisfied: waived !== null || runs.some(answersTheCheck) };
 };
 
 // The one sentence beside `MISSING  flow run`.
@@ -94,6 +96,17 @@ export const flowRunWaitingLines = ({ runs }: FlowReadiness): string[] =>
 	runs
 		.filter((run) => flowRunNeedsPerson(run.status))
 		.map((run) => `  The ${run.name} flow waits for you. Answer its open step in the Flows tab of the pull request.`);
+
+// The line `trellis ready` adds when it asked for no flow run at all. Every
+// other result of the check prints a line, so without this one the reader of
+// an agent's report cannot tell a project that holds no flow from a pull
+// request that lost its ticket.
+export const flowSkippedLines = ({ skipped }: FlowReadiness): string[] => {
+	if (skipped === "no-ticket") return ["  No ticket links this pull request, so Trellis asked for no flow run."];
+	if (skipped === "no-flow")
+		return ["  No flow applies to the project of this pull request, so Trellis asked for no flow run."];
+	return [];
+};
 
 // The line `trellis ready` adds when it passes on the agent's own sentence
 // instead of a run. The person reads the sentence in the agent's report.

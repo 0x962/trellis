@@ -7,6 +7,7 @@ import {
 	flowRunMissingLines,
 	flowRunMissingSummary,
 	flowRunWaitingLines,
+	flowSkippedLines,
 	flowWaivedLines,
 } from "./flowReadiness.ts";
 
@@ -44,7 +45,7 @@ export const pullRequestReadiness = async (
 	]);
 	const flows = checkFlows
 		? await flowReadiness(client, ref, head.ticket, head.sha)
-		: { flows: [], runs: [], waived: null, satisfied: true };
+		: { flows: [], runs: [], waived: null, skipped: null, satisfied: true };
 	const dataModelDiagramRequired =
 		head.pullRequest.files !== null && changesDataModels(changedFilePaths(head.pullRequest.files));
 	const hasDataModelDiagram =
@@ -116,6 +117,7 @@ export const pullRequestReadyText = (result: PullRequestReadiness): string => {
 			`#${number} is ready for review. It has ${parts}. Trellis marked it ready, and GitHub is ready for review.`,
 			...flowRunWaitingLines(result.flows),
 			...flowWaivedLines(result.flows),
+			...flowSkippedLines(result.flows),
 			"",
 		].join("\n");
 	}

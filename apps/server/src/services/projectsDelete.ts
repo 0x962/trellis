@@ -31,7 +31,16 @@ const remove = async (ctx: ServiceCtx, tx: Tx, input: ProjectDeleteInput): Promi
 	);
 	const tickets = counted[0]!.n;
 	const projects = subtree.length - 1;
-	if (!force && (tickets > 0 || projects > 0)) throw fail("PROJECT_NOT_EMPTY", { tickets, projects });
+	// The project delete cascades to `flows`, and a flow holds a briefing and
+	// a whole graph of steps that nothing else keeps. The count goes in the
+	// refusal, so a person reads what the delete takes with it.
+	const countedFlows = await rows<{ n: number }>(
+		tx,
+		sql`SELECT count(*)::int AS n FROM flows WHERE project_id = ANY(${scope})`,
+	);
+	const flows = countedFlows[0]!.n;
+	if (!force && (tickets > 0 || projects > 0 || flows > 0))
+		throw fail("PROJECT_NOT_EMPTY", { tickets, projects, flows });
 	const path = pathOf(ctx.cache, project.id);
 	// A ticket outside the subtree may name a deleted ticket as its parent,
 	// and the parent foreign key refuses the delete while it does.
@@ -67,6 +76,9 @@ const remove = async (ctx: ServiceCtx, tx: Tx, input: ProjectDeleteInput): Promi
 	}
 	await ctx.cache.rebuild(tx);
 	ctx.emit({ type: "project.deleted", id: project.id });
+	// `project.deleted` refreshes no flow list, so an open flows page would
+	// keep a card for a flow the cascade deleted.
+	if (flows > 0) ctx.emit({ type: "flows.changed", id: project.id });
 	return { deleted: path };
 };
 

@@ -19,10 +19,11 @@ import { projects } from "./projects.ts";
 // flow row or to any of its nodes and edges, so a client that saves with an
 // old version gets FLOW_VERSION_CONFLICT.
 //
-// `project_id` is the root project of a tree. `trellis ready` asks a pull
-// request for the flows of its ticket's root project. NULL means every
-// project: the flow answers for a pull request of any tree. The service
-// `flows.ts` writes the root id; no database rule checks it.
+// `project_id` is the root project of a tree, or NULL for a flow that
+// applies to every project. The service `flows.ts` writes the root id; no
+// database rule checks it. `flows_slug_unique` stays on the slug alone, so
+// one slug names one flow for the whole server: the route `/ai/flows/$slug`
+// and `resolveFlow` both read a slug with no project beside it.
 export const flows = pgTable(
 	"flows",
 	{

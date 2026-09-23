@@ -17,7 +17,7 @@ import { base } from "./base.ts";
 // `{flow}` is the ULID or the slug of a flow.
 export const flows = {
 	list: base
-		.route({ method: "GET", path: "/flows", summary: "List flows" })
+		.route({ method: "GET", path: "/flows", summary: "List flows, or the flows a ticket's project asks for" })
 		.input(FlowListInputSchema)
 		.output(z.array(FlowSummarySchema)),
 	get: base

@@ -7,7 +7,7 @@ import { requireActor, type ServiceCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { invalidInput } from "../../errors.ts";
-import { assertVersion, readDoc, resolveFlow } from "../flows/queries.ts";
+import { assertVersion, listFlows, readDoc, resolveFlow } from "../flows/queries.ts";
 import { assertProjectActive, resolveTicket } from "../refs.ts";
 import { get } from "./queries.ts";
 export async function start(ctx: ServiceCtx, tx: Tx, input: FlowExecutionStartInput) {
@@ -30,6 +30,13 @@ export async function start(ctx: ServiceCtx, tx: Tx, input: FlowExecutionStartIn
 	const resolved = await resolveFlow(tx, input.flow);
 	await tx.execute(sql`SELECT id FROM flows WHERE id=${resolved.id} FOR SHARE`);
 	const flow = await resolveFlow(tx, resolved.id);
+	// The check in `trellis ready` counts every run of the head, so a run of
+	// a flow of another project would answer it. The list of the ticket's
+	// project is the one statement of which flows apply, and this refuses
+	// every flow outside it.
+	const applies = await listFlows(tx, ticket.rootId);
+	if (!applies.some((candidate) => candidate.id === flow.id))
+		throw invalidInput("flow", "This flow belongs to another project.");
 	assertVersion(flow, input.expectedVersion);
 	const doc = await readDoc(tx, flow);
 	const issues = validateFlowGraph(doc, "run");

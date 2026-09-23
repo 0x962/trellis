@@ -157,8 +157,8 @@ export const errors = {
 	},
 	PROJECT_NOT_EMPTY: {
 		status: 409,
-		message: "The project holds tickets or sub-projects. Pass force to delete them too.",
-		data: z.object({ tickets: CountSchema, projects: CountSchema }),
+		message: "The project holds tickets, sub-projects, or flows. Pass force to delete them too.",
+		data: z.object({ tickets: CountSchema, projects: CountSchema, flows: CountSchema }),
 	},
 	PROJECT_ARCHIVED: {
 		status: 409,

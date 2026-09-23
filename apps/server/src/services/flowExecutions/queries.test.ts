@@ -7,7 +7,7 @@ import type { ServiceCtx } from "../../context.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import { get } from "./queries.ts";
 
-test("a stored flow execution without harness fields reads as current output", async () => {
+test("a stored flow execution without the harness fields or the project key reads as current output", async () => {
 	const db = await openTestDb();
 	const at = new Date("2026-09-21T00:00:00.000Z");
 	const flowId = ulid();
@@ -18,7 +18,8 @@ test("a stored flow execution without harness fields reads as current output", a
 	const execution = ulid();
 	const baseDoc = flowDoc([node(step, "agent", null)], []);
 	const doc = { ...baseDoc, flow: { ...baseDoc.flow, id: flowId } };
-	const { harness: _flowHarness, ...oldFlow } = doc.flow;
+	// A run stored before those fields existed holds neither in its snapshot.
+	const { harness: _flowHarness, projectKey: _projectKey, ...oldFlow } = doc.flow;
 	const oldDoc = { ...doc, flow: oldFlow, nodes: doc.nodes.map(({ harness: _nodeHarness, ...oldNode }) => oldNode) };
 	const state = {
 		version: 1,
@@ -80,6 +81,7 @@ test("a stored flow execution without harness fields reads as current output", a
 	const record = await db.transaction((tx) => get(ctx, tx, { id: execution }));
 
 	expect(record.doc.flow.harness).toBeNull();
+	expect(record.doc.flow.projectKey).toBeNull();
 	expect(record.doc.nodes[0]?.harness).toBeNull();
 	expect(FlowExecutionSchema.parse(record)).toEqual(record);
 	await db.$client.close();

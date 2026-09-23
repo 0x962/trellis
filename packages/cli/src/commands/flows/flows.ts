@@ -1,10 +1,10 @@
 import {
 	type FlowExecutionRecord,
 	type FlowSummary,
+	flowProjectLabel,
 	flowPurpose,
 	flowRunNeedsPerson,
 	flowRunWorks,
-	flowScope,
 } from "@trellis/api";
 import type { TrellisClient } from "@trellis/api/client";
 import { defineCommand } from "citty";
@@ -55,7 +55,7 @@ const list = defineCommand({
 			columns: [
 				{ name: "SLUG", value: (flow) => flow.slug },
 				{ name: "NAME", value: (flow) => flow.name },
-				{ name: "PROJECT", value: (flow) => flowScope(flow) },
+				{ name: "PROJECT", value: (flow) => flowProjectLabel(flow) },
 				{ name: "STEPS", value: (flow) => String(flow.nodeCount) },
 				{ name: "DESCRIPTION", value: (flow) => cell(flowPurpose(flow)) },
 			],
@@ -99,7 +99,7 @@ const run = defineCommand({
 		const minutes = context.args.timeout === undefined ? 60 : Number(context.args.timeout);
 		if (!Number.isFinite(minutes) || minutes <= 0) throw usageError("--timeout takes a number of minutes above zero");
 		const pr = await pullRequestForFlow(client, context.args.ref);
-		const flow = pickFlow(await client.flows.list({}), context.args.flow);
+		const flow = pickFlow(await client.flows.list({ ticket: pr.ticket }), context.args.flow);
 		const started = await client.flowExecutions.start({
 			flow: flow.slug,
 			ticket: pr.ticket,

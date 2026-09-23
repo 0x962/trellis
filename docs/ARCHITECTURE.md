@@ -1318,8 +1318,8 @@ Conventions shared by every workspace:
 
 `packages/api` holds the contract and no runtime dependency beyond zod and oRPC:
 `refs.ts`, `errors.ts`, `events.ts`, `query-keys.ts`, `client.ts`, `pair.ts`,
-`schemas/`, `contract/`, `agentLaunch/` (agent command variables),
-`instructions.ts` (the `AGENTS.md` block).
+`schemas/`, `contract/`, `agentLaunch/` (agent command variables).
+The `AGENTS.md` block lives in `packages/cli/src/instructions.md`.
 
 `apps/server` holds `index.ts` (boot), `config.ts`, `log.ts`, `app.ts`,
 `context.ts`, `db/` (worker, transport, client, migrate, schema, tables, enums,

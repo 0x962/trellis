@@ -7,9 +7,12 @@ import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import type { StoredExecution } from "./types.ts";
 
+// A snapshot stored before a field existed holds no such key, and every read
+// of a run goes through here, so the key comes back with the value a flow of
+// that age had.
 const normalizeDoc = (doc: FlowExecutionRecord["doc"]) => ({
 	...doc,
-	flow: { ...doc.flow, harness: doc.flow.harness ?? null },
+	flow: { ...doc.flow, harness: doc.flow.harness ?? null, projectKey: doc.flow.projectKey ?? null },
 	nodes: doc.nodes.map((node) => ({ ...node, harness: node.harness ?? null })),
 });
 

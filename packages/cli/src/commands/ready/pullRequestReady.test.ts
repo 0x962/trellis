@@ -13,7 +13,7 @@ const readiness = (
 ): PullRequestReadiness => ({
 	dataModelDiagramRequired,
 	pullRequest: { number: 131, url: "https://github.com/acme/trellis/pull/131", headSha: "abc123", isDraft: false },
-	flows: { flows: [], runs: [], waived: null, satisfied: true },
+	flows: { flows: [], runs: [], waived: null, skipped: null, satisfied: true },
 	missing,
 	ready: missing.length === 0,
 });
@@ -51,6 +51,7 @@ test("names each flow with the command that runs it when no flow ran", () => {
 		] as PullRequestReadiness["flows"]["flows"],
 		runs: [],
 		waived: null,
+		skipped: null,
 		satisfied: false,
 	};
 

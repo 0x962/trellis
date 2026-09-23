@@ -56,10 +56,10 @@ test("a flow stores the project it belongs to, and null for every project", asyn
 	expect(everywhere.projectKey).toBeNull();
 });
 
-test("a ref to a sub-project stores the root of that sub-project", async () => {
-	const flow = await run((tx) => create(ctx, tx, { name: "Web review", project: "ONE.web" }));
-
-	expect(flow.projectKey).toBe("ONE");
+test("a ref to a sub-project is refused, because a flow takes a root project", async () => {
+	await expect(run((tx) => create(ctx, tx, { name: "Web review", project: "ONE.web" }))).rejects.toThrow(
+		"A flow takes a root project",
+	);
 });
 
 test("a ticket asks for the flows of its project and for the flows of every project", async () => {
@@ -74,7 +74,7 @@ test("a ticket asks for the flows of its project and for the flows of every proj
 test("a list without a ticket holds every flow of the server", async () => {
 	const all = await run((tx) => list(ctx, tx, {}));
 
-	expect(slugs(all)).toEqual(["every-review", "one-review", "two-review", "web-review"]);
+	expect(slugs(all)).toEqual(["every-review", "one-review", "two-review"]);
 });
 
 test("an update gives a flow to one project, and null gives it back to every project", async () => {
