@@ -12,7 +12,8 @@ import { MuseSessionEvents } from "./mspEvents.ts";
 import { museControl } from "./museControl.ts";
 import { MuseQuestions } from "./museQuestions.ts";
 import { answerMuseRequest } from "./museRequests.ts";
-import { museTerminalHint, museTranscriptLine, readMuseTerminal, stopMuseTerminal } from "./museTerminal.ts";
+import { museTerminalHint, startMuseTerminalReader, stopMuseTerminalReader } from "./museTerminal.ts";
+import { museTranscriptLine } from "./museTranscript.ts";
 import { writeMuseQuotaError, writeMuseUsage } from "./museUsage.ts";
 import { uuid7 } from "./uuid7.ts";
 
@@ -206,9 +207,11 @@ async function start() {
 	await startTurn([launch.prompt]);
 	await firstPrompt;
 	print(museTerminalHint);
-	readMuseTerminal({
-		current: () => current,
-		interrupt: (turnId) => client!.request("turn/interrupt", { commandId: uuid7(), sessionId, turnId }),
+	startMuseTerminalReader({
+		interrupt: async () => {
+			if (!current.working || current.turnId === null) return;
+			await client!.request("turn/interrupt", { commandId: uuid7(), sessionId, turnId: current.turnId });
+		},
 		submit,
 		onFailure: reportFailure,
 	});
@@ -234,10 +237,10 @@ try {
 	process.exitCode = 1;
 } finally {
 	acceptingEvents = false;
-	// No later step of this block holds the terminal. A wait for the session
-	// host runs for up to five seconds, and the removal of the directory can
-	// throw, so the terminal goes back to the person first.
-	stopMuseTerminal();
+	// The steps below wait up to five seconds for the Muse host, and the
+	// removal of the directory can throw. This call runs first, so the
+	// keyboard works again in both cases.
+	stopMuseTerminalReader();
 	await usageQueue;
 	if (host.exitCode === null && host.signalCode === null) {
 		const exited = new Promise<void>((resolve) => host.once("exit", () => resolve()));
