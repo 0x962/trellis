@@ -37,6 +37,7 @@ Each page supplies its data and available actions. It does not choose new contro
 | Assigned ticket agent, provider, and agent work state | `ActorAvatar` with the shared `Avatar` | `apps/web/src/features/agents/ActorAvatar/ActorAvatar.tsx` |
 | Added and deleted lines of a workspace | `LineChanges` | `packages/ui/src/domain/LineChanges/LineChanges.tsx` |
 | Row actions | `Menu`, `IconButton`, `Tooltip` | `packages/ui/src/primitives/Menu/Menu.tsx` |
+| Edit a short value in place | `InlineEdit` | `packages/ui/src/primitives/InlineEdit/InlineEdit.tsx` |
 | Usage per day | `UsageChart` | `packages/ui/src/domain/UsageChart/UsageChart.tsx` |
 | Ranked slices of a whole | `RankedBars` | `packages/ui/src/domain/RankedBars/RankedBars.tsx` |
 | Composition of one total | `StackedBar` | `packages/ui/src/domain/StackedBar/StackedBar.tsx` |
@@ -46,6 +47,27 @@ Each page supplies its data and available actions. It does not choose new contro
 | Subscription quota meters | `QuotaWindows` | `packages/ui/src/domain/QuotaWindows/QuotaWindows.tsx` |
 | Flow run header | `FlowRunSummary` | `packages/ui/src/domain/FlowRunSummary/FlowRunSummary.tsx` |
 | Flow run steps | `FlowRunTree` | `packages/ui/src/domain/FlowRunTree/FlowRunTree.tsx` |
+
+## Edit a short value in place
+
+Use `InlineEdit` wherever a person renames a thing without leaving the page.
+It is the only in-place edit in the product, so a person meets the same rules on every screen.
+Do not hold the edit state by hand, and do not add a per-screen option to any rule below.
+
+1. Enter saves the typed value. Losing the focus also saves it.
+2. Escape cancels, and only Escape. The saved value comes back.
+3. An empty value, or a value of spaces alone, cancels. The field sends nothing.
+4. A value equal to the saved one closes the field. The field sends nothing.
+5. The new value waits for the server. The field takes no more typing until the server answers.
+6. A refusal keeps the field open with the typed value, draws the red border, takes the focus back, and names the reason.
+7. Enter and Escape give the focus to the value. A click outside leaves the focus where the person clicked.
+8. At rest the value is plain text at the size of the text beside it: no box, no pencil, no underline.
+9. Inside a row that is a link, the row is not drawn while the field is open, and no key press navigates.
+
+The screen owns the `editing` flag, because the Rename action that starts the edit sits in a row menu beside the value.
+The screen passes its own resting view as the children, and its own avatar as `leading` where a row has one.
+A form with more than one field is not an in-place edit. Use a sheet or a row editor for it.
+The gallery section Inline edit prints the same rules beside a live example.
 
 ## Pages in a sheet
 
