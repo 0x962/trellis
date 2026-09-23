@@ -5,6 +5,7 @@ import { localReviewState } from "../../db/queries/pullRequestRows.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { type ServiceCtx, type TicketRow, touchTicket, writeActivity } from "../support.ts";
+import { messageAuthor } from "./deliveryAuthor.ts";
 import { enqueueReviewDeliveries } from "./enqueueReviewDeliveries.ts";
 
 // A stored submission uses the verdict words of the public review schema.
@@ -56,7 +57,11 @@ export const recordSubmission = async (ctx: ServiceCtx, tx: Tx, input: Submissio
 		sql`INSERT INTO review_submissions (id, pr_id, request_id, actor, document, created_at)
 		VALUES (${id}, ${input.prId}, ${id}, ${ctx.actor.name}, ${JSON.stringify(document)}::jsonb, ${ctx.now()})`,
 	);
-	const recipients = await enqueueReviewDeliveries(tx, { reviewId: id, prId: input.prId });
+	const recipients = await enqueueReviewDeliveries(tx, {
+		reviewId: id,
+		prId: input.prId,
+		author: await messageAuthor(tx, ctx.actor),
+	});
 	const linked = await rows<TicketRow>(
 		tx,
 		sql`SELECT ticket.id, ticket.project_id, ticket.root_id, NULL AS archived_at
