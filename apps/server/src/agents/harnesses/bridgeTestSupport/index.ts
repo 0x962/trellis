@@ -1,5 +1,4 @@
 export {
-	eventArrived,
 	fakeRuntimeSocket,
 	type RuntimeAnswer,
 	scratchHome,

@@ -77,29 +77,14 @@ export function spawnBridge(options: {
 		stdout: "pipe",
 		stderr: "pipe",
 	});
-	// `script` gives the bridge one terminal for its standard output and its
-	// standard error stream, so a test that runs the bridge with a terminal
-	// reads both of them in `output`.
-	let output = "";
-	const reading = (async () => {
-		for await (const chunk of child.stdout) output += new TextDecoder().decode(chunk);
-	})();
+	// A full standard output pipe stops the bridge, so this call empties it.
+	const draining = child.stdout.pipeTo(new WritableStream());
 	return {
 		child,
 		async finish() {
 			const [exitCode, stderr] = await Promise.all([child.exited, new Response(child.stderr).text()]);
-			await reading;
-			return { exitCode, stderr, output };
+			await draining;
+			return { exitCode, stderr };
 		},
 	};
-}
-
-// A test acts while the bridge waits for the answer to that write.
-export async function eventArrived(observed: HarnessEvent[], kind: string) {
-	const deadline = Date.now() + 15000;
-	while (Date.now() < deadline) {
-		if (observed.some((event) => event.kind === kind)) return true;
-		await Bun.sleep(25);
-	}
-	return false;
 }

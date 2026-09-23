@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { startMuseTerminalReader, stopMuseTerminalReader } from "./museTerminal.ts";
 
 // The reader takes the standard input of the process, so this test puts a
-// stand-in terminal there and gives the real one back afterwards.
+// fake terminal there and gives the real one back afterwards.
 const realStdin = process.stdin;
 const realWrite = process.stdout.write.bind(process.stdout);
 afterEach(() => {

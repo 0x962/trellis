@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { HarnessEvent } from "@trellis/runtime-protocol";
 import {
-	eventArrived,
 	fakeRuntimeSocket,
 	type RuntimeAnswer,
 	scratchHome,
@@ -21,12 +20,24 @@ afterEach(async () => {
 
 const pathFromHere = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 
+// Returns true when `observed` holds an event of that kind, and false after 15
+// seconds. A test waits here, then acts while the bridge still waits for the
+// reply to that write.
+async function waitForEvent(observed: HarnessEvent[], kind: string) {
+	const deadline = Date.now() + 15000;
+	while (Date.now() < deadline) {
+		if (observed.some((event) => event.kind === kind)) return true;
+		await Bun.sleep(25);
+	}
+	return false;
+}
+
 async function startMuseBridge(
-	answer: (event: HarnessEvent) => RuntimeAnswer,
+	answerFor: (event: HarnessEvent) => RuntimeAnswer,
 	options: { withTerminal?: boolean; exitAfterPrompt?: boolean } = {},
 ) {
 	const home = await scratchHome(cleanups);
-	const runtime = await fakeRuntimeSocket(home, cleanups, answer, TIMEOUT_MESSAGE);
+	const runtime = await fakeRuntimeSocket(home, cleanups, answerFor, TIMEOUT_MESSAGE);
 	const executable = await writeExecutable(
 		join(home, "muse"),
 		`#!/bin/sh\nexec "${process.execPath}" "${pathFromHere("./museHostFixture.ts")}" "$@"\n`,
@@ -104,7 +115,7 @@ test("a Ctrl+C while the Muse bridge records a failure does not stop it", async 
 		refuse: event.kind === "message",
 		delayMs: event.kind === "error" ? 500 : undefined,
 	}));
-	expect(await eventArrived(bridge.observed, "error")).toBe(true);
+	expect(await waitForEvent(bridge.observed, "error")).toBe(true);
 	bridge.child.kill("SIGINT");
 	const run = await bridge.finish();
 	expect(bridge.observed.at(-1)).toMatchObject({ kind: "error", outcome: "failed", error: TIMEOUT_MESSAGE });
