@@ -37,9 +37,15 @@ export function BrowserPage({ url }: BrowserPageProps) {
 	// nothing on `goBack`, so the Back and Forward buttons count in steps
 	// from the page on screen, which the same webview answers correctly.
 	const [steps, setSteps] = useState({ back: false, forward: false });
+	// The copy takes the address from the `<webview>` at the moment of the
+	// press. `address` follows the navigation events, and a navigation that
+	// fails fires none of them, so it can name a page that the pane left. The
+	// element answers "" for about a second after the sheet opens, and the
+	// pane shows `url` for that second, so a press there copies `url`.
 	const copyLink = useCallback(() => {
-		void copyBrowserLink(address);
-	}, [address]);
+		const current = webview === null ? "" : webview.getURL();
+		void copyBrowserLink(current === "" ? url : current);
+	}, [webview, url]);
 	useHotkey("mod+shift+c", (event) => {
 		event.preventDefault();
 		copyLink();
@@ -62,9 +68,13 @@ export function BrowserPage({ url }: BrowserPageProps) {
 			setLoading(true);
 		};
 		const stopped = () => setLoading(false);
+		// A main frame that does not load fires this event and no
+		// `did-navigate`. The header reads the address here, so it names the
+		// address the element holds, which is the one a copy takes.
 		const failed = (event: Event) => {
 			const message = linkLoadError(event as LinkLoadFailure);
 			if (message !== null) {
+				setAddress(view.getURL());
 				setError(message);
 				setLoading(false);
 			}
