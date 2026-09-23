@@ -1,6 +1,5 @@
 import type { ProjectSummary } from "@trellis/api";
-
-import { ProjectKey } from "../../../shell/ProjectKey";
+import { ProjectKey } from "@trellis/ui";
 import type { PaletteRow } from "../../rows";
 
 // One row per project: the key badge, the name, then the muted path.
@@ -14,7 +13,7 @@ export const projectRows = (
 		value: value(project),
 		label: project.name,
 		sub: project.key,
-		leading: <ProjectKey projectKey={project.key} />,
+		leading: <ProjectKey projectKey={project.key} color={project.color} />,
 		keywords: [project.key, project.key, project.key],
 		run: run(project),
 	}));

@@ -10,6 +10,8 @@ const loop: StatisticsLoop = {
 	withPersonVerdict: 22,
 	threadsByPerson: 84,
 	threadsByAgent: 212,
+	readyToVerdictMs: 7_200_000,
+	readyToVerdictMeasured: 18,
 	bill: [
 		{
 			prId: "01M32TW0000000000000PR0001",
@@ -49,8 +51,15 @@ test("counts the pull requests he sent back and the ones he never read", () => {
 	expect(markup).toContain("8 merged with no verdict from you.");
 });
 
-test("draws the wait from ready to a verdict empty, because nothing records it", () => {
-	expect(render()).toContain("Not recorded.");
+test("prints the wait from ready to a verdict with the count it covers", () => {
+	const markup = render();
+
+	expect(markup).toContain("2h median.");
+	expect(markup).toContain("Over the 18 of 30 that carry both");
+});
+
+test("prints no wait while too few pull requests of the window carry both moments", () => {
+	expect(render({ readyToVerdictMeasured: 4 })).toContain("Not printed.");
 });
 
 test("draws no table while no thread of the window came from a person", () => {

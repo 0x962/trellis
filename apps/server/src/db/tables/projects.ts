@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { boolean, check, integer, pgTable, text, unique, uniqueIndex } from "drizzle-orm/pg-core";
-import { checkIn, REVIEWERS, STATUS_CATEGORIES } from "../enums.ts";
+import { checkIn, PROJECT_COLORS, REVIEWERS, STATUS_CATEGORIES } from "../enums.ts";
 import { at } from "./actors.ts";
 
 // Every project stands on its own. `key` is the prefix of every ticket
@@ -8,6 +8,9 @@ import { at } from "./actors.ts";
 // handed out. `slug` is the lower-case second name a client may type in
 // place of the key. The slugs `board` and `settings` are web routes under
 // a project URL, so no project takes them.
+// `color` is the name of one of the five color slots, and the index below
+// gives a slot to one project at a time. A project without a color holds
+// NULL, and any number of projects hold NULL.
 export const projects = pgTable(
 	"projects",
 	{
@@ -20,6 +23,7 @@ export const projects = pgTable(
 		ticketTemplate: text("ticket_template").notNull().default(""),
 		ticketCounter: integer("ticket_counter").notNull().default(0),
 		position: integer().notNull().default(0),
+		color: text(),
 		archivedAt: at("archived_at"),
 		createdAt: at("created_at").notNull(),
 		updatedAt: at("updated_at").notNull(),
@@ -31,6 +35,8 @@ export const projects = pgTable(
 			sql`${t.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND ${t.slug} NOT IN ('board', 'settings')`,
 		),
 		check("projects_name_check", sql`length(${t.name}) BETWEEN 1 AND 120`),
+		checkIn(t.color, PROJECT_COLORS),
+		uniqueIndex("projects_color_idx").on(t.color),
 	],
 );
 

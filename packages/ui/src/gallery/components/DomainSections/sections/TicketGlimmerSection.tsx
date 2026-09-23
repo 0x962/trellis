@@ -1,64 +1,91 @@
 import { Paperclip } from "@phosphor-icons/react";
 import { useState } from "react";
-import { PriorityIcon } from "../../../../domain/PriorityIcon";
+import { type Priority, PriorityIcon } from "../../../../domain/PriorityIcon";
 import { StatusIcon } from "../../../../domain/StatusIcon";
 import { TicketGlimmer } from "../../../../domain/TicketGlimmer";
+import { ticketCardFrame } from "../../../../domain/ticketCardFrame";
 import { Avatar } from "../../../../primitives/Avatar";
 import { Switch } from "../../../../primitives/Switch";
+import { cx } from "../../../../utils/cx";
 import { Section } from "../../Section";
+
+type Sample = {
+	id: string;
+	priority: Priority;
+	title: string;
+	subTicketsDone: number;
+	subTicketsTotal: number;
+	attachmentCount: number;
+	actor: { kind: "human" | "agent"; name: string };
+};
+
+const samples: Sample[] = [
+	{
+		id: "TRL-139",
+		priority: "high",
+		title: "We need to improve the working glimmer animation",
+		subTicketsDone: 1,
+		subTicketsTotal: 2,
+		attachmentCount: 2,
+		actor: { kind: "human", name: "Navid Khan" },
+	},
+	{
+		id: "TRL-24 → TRL-86",
+		priority: "medium",
+		title: "Keep working tickets visible at the top of each column",
+		subTicketsDone: 3,
+		subTicketsTotal: 4,
+		attachmentCount: 1,
+		actor: { kind: "agent", name: "claude-code" },
+	},
+	{
+		id: "TRL-140",
+		priority: "low",
+		title: "Review the board card details",
+		subTicketsDone: 0,
+		subTicketsTotal: 0,
+		attachmentCount: 0,
+		actor: { kind: "agent", name: "Codex agent" },
+	},
+];
 
 export function TicketGlimmerSection() {
 	const [glimmerActive, setGlimmerActive] = useState(true);
 	return (
 		<Section name="TicketGlimmer" note="active work; moving soap-film layers">
 			<Switch label="Agent working" checked={glimmerActive} onCheckedChange={setGlimmerActive} />
-			<div className="relative flex min-h-28 w-75 flex-col gap-1.5 rounded-md border border-border bg-surface p-3 text-base">
-				<TicketGlimmer active={glimmerActive} />
-				<div className="flex h-4 items-center justify-between gap-1.5">
-					<span className="font-mono text-xs text-fg-faint tabular">TRL-139</span>
-					<PriorityIcon priority="high" />
+			{samples.map((sample) => (
+				<div
+					key={sample.id}
+					className={cx(ticketCardFrame, "min-h-28 w-75 gap-1.5 border-border bg-surface text-base")}
+				>
+					<TicketGlimmer active={glimmerActive} />
+					<div className="flex h-4 items-center justify-between gap-1.5">
+						<span className="font-mono text-xs text-fg-faint tabular">{sample.id}</span>
+						<PriorityIcon priority={sample.priority} />
+					</div>
+					<p className="line-clamp-3 font-medium text-fg">{sample.title}</p>
+					<div className="mt-auto flex min-h-4 items-center gap-1.5 text-xs text-fg-faint tabular">
+						{sample.subTicketsTotal > 0 && (
+							<span className="inline-flex items-center gap-1">
+								<StatusIcon
+									category="started"
+									progress={sample.subTicketsDone / sample.subTicketsTotal}
+									label="Sub-ticket progress"
+								/>
+								{sample.subTicketsDone}/{sample.subTicketsTotal}
+							</span>
+						)}
+						{sample.attachmentCount > 0 && (
+							<span className="inline-flex items-center gap-1">
+								<Paperclip aria-hidden="true" className="size-3" />
+								{sample.attachmentCount}
+							</span>
+						)}
+						<Avatar kind={sample.actor.kind} name={sample.actor.name} className="ml-auto" />
+					</div>
 				</div>
-				<p className="line-clamp-3 font-medium text-fg">We need to improve the working glimmer animation</p>
-				<div className="mt-auto flex min-h-4 items-center gap-1.5 text-xs text-fg-faint tabular">
-					<span className="inline-flex items-center gap-1">
-						<StatusIcon category="started" progress={0.5} label="Sub-ticket progress" />
-						1/2
-					</span>
-					<span className="inline-flex items-center gap-1">
-						<Paperclip aria-hidden="true" className="size-3" />2
-					</span>
-					<Avatar kind="human" name="Navid Khan" className="ml-auto" />
-				</div>
-			</div>
-			<div className="relative flex min-h-28 w-75 flex-col gap-1.5 rounded-md border border-border bg-surface p-3 text-base">
-				<TicketGlimmer active={glimmerActive} />
-				<div className="flex h-4 items-center justify-between gap-1.5">
-					<span className="font-mono text-xs text-fg-faint tabular">TRL-24 → TRL-86</span>
-					<PriorityIcon priority="medium" />
-				</div>
-				<p className="line-clamp-3 font-medium text-fg">Keep working tickets visible at the top of each column</p>
-				<div className="mt-auto flex min-h-4 items-center gap-1.5 text-xs text-fg-faint tabular">
-					<span className="inline-flex items-center gap-1">
-						<StatusIcon category="started" progress={0.75} label="Sub-ticket progress" />
-						3/4
-					</span>
-					<span className="inline-flex items-center gap-1">
-						<Paperclip aria-hidden="true" className="size-3" />1
-					</span>
-					<Avatar kind="agent" name="claude-code" className="ml-auto" />
-				</div>
-			</div>
-			<div className="relative flex min-h-28 w-75 flex-col gap-1.5 rounded-md border border-border bg-surface p-3 text-base">
-				<TicketGlimmer active={glimmerActive} />
-				<div className="flex h-4 items-center justify-between gap-1.5">
-					<span className="font-mono text-xs text-fg-faint tabular">TRL-140</span>
-					<PriorityIcon priority="low" />
-				</div>
-				<p className="line-clamp-3 font-medium text-fg">Review the board card details</p>
-				<div className="mt-auto flex min-h-4 items-center gap-1.5 text-xs text-fg-faint tabular">
-					<Avatar kind="agent" name="Codex agent" className="ml-auto" />
-				</div>
-			</div>
+			))}
 		</Section>
 	);
 }
