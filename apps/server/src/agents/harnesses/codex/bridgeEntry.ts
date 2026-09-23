@@ -1,6 +1,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { watch } from "node:fs";
 import { chmod, mkdir, rm } from "node:fs/promises";
+import { homedir } from "node:os";
 import { dirname } from "node:path";
 import { createInterface } from "node:readline";
 import { fromHarnessModel } from "@trellis/api/models";
@@ -14,6 +15,7 @@ import { CodexAppServerClient } from "./appServerClient.ts";
 import { CodexAppServerEvents } from "./appServerEvents.ts";
 import { codexControl } from "./codexControl.ts";
 import { engineOptions } from "./engineOptions.ts";
+import { updateCheckOption } from "./updateCheckOption.ts";
 
 const env = z
 	.object({
@@ -174,7 +176,16 @@ async function start() {
 	});
 	await firstPrompt;
 
-	const args = ["--remote", `unix://${env.TRELLIS_CODEX_ENGINE_SOCKET}`, "resume", "--dangerously-bypass-hook-trust"];
+	// The codex app server never asks about a new version. The codex terminal
+	// asks at its start, so the setting of the person belongs on this command
+	// line and not on the command line of the engine.
+	const args = [
+		"--remote",
+		`unix://${env.TRELLIS_CODEX_ENGINE_SOCKET}`,
+		"resume",
+		"--dangerously-bypass-hook-trust",
+		...(await updateCheckOption(homedir())),
+	];
 	if (launch.model) args.push("--model", launch.model);
 	args.push("--", result.thread.id);
 	terminal = spawn(env.TRELLIS_CODEX_EXECUTABLE, args, { cwd: launch.cwd, env: process.env, stdio: "inherit" });
