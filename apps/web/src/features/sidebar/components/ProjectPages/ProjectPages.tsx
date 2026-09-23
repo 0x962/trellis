@@ -46,12 +46,7 @@ export const ProjectPages = memo(function ProjectPages({
 			>
 				<span className="sidebar-label">{row.label}</span>
 				{(row.activeAgentCount > 0 || row.trailing !== null) && (
-					<span
-						className={cx(
-							row.activeAgentCount > 0 && row.trailing !== null ? "sidebar-trailing-pair" : "sidebar-trailing",
-							"text-fg-faint",
-						)}
-					>
+					<span className="sidebar-trailing text-fg-faint">
 						{row.activeAgentCount > 0 && (
 							<ActivityDot label={activeAgentsLabel(row.activeAgentCount)} placement="inline" tone="metal" />
 						)}
@@ -76,7 +71,8 @@ export const ProjectPages = memo(function ProjectPages({
 						>
 							<span className="sidebar-label">More</span>
 							<span
-								className={cx(agentCountUnderMore > 0 ? "sidebar-trailing-pair" : "sidebar-trailing", "text-fg-faint")}
+								className="sidebar-trailing text-fg-faint"
+								data-marks={agentCountUnderMore > 0 ? "pair" : undefined}
 							>
 								{agentCountUnderMore > 0 && (
 									<ActivityDot

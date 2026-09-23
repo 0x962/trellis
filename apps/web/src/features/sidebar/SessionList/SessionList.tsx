@@ -2,21 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
 import { Button } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
+import { useSessionStatuses } from "../../agents/useSessionStatuses";
 import { SessionRow } from "../components/SessionRow";
-import { statusesBySessionId } from "./statusesBySessionId";
 
 export function SessionList() {
 	const { orpc, queryClient } = useApp();
 	const sessionsOptions = orpc.sessions.list.queryOptions({ input: {} });
 	const { data, failureCount } = useQuery(sessionsOptions);
-	// agentRuns.activity carries the runs of the sessions here and the runs of
-	// the ticket agents, which the dot on a project Sessions row counts. Both
-	// readers share this one query.
-	const { data: statuses } = useQuery({
-		...orpc.agentRuns.activity.queryOptions({ input: {} }),
-		refetchInterval: 2000,
-		select: statusesBySessionId,
-	});
+	const statuses = useSessionStatuses();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	if (data === undefined)
 		return (
@@ -47,7 +40,6 @@ export function SessionList() {
 								key={session.id}
 								session={session}
 								status={status}
-								workingCount={status === "working" ? 1 : 0}
 								active={pathname === `/sessions/${session.id}`}
 							/>
 						);
