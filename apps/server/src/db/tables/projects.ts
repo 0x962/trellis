@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { boolean, check, foreignKey, index, integer, pgTable, text, unique, uniqueIndex } from "drizzle-orm/pg-core";
-import { checkIn, REVIEWERS, STATUS_CATEGORIES } from "../enums.ts";
+import { checkIn, PROJECT_COLORS, REVIEWERS, STATUS_CATEGORIES } from "../enums.ts";
 import { at } from "./actors.ts";
 
 // A root has a key, its own id as root_id, and the ticket counter. A child
@@ -8,6 +8,9 @@ import { at } from "./actors.ts";
 // The slugs `board` and `settings` are web routes under a project path.
 // The UNIQUE NULLS NOT DISTINCT (parent_id, slug) constraint lives in the
 // migration 0002_constraints: drizzle-kit cannot render NULLS NOT DISTINCT.
+// `color` is the name of one of the five color slots, and the index below
+// gives a slot to one project at a time. A project without a color holds
+// NULL, and any number of projects hold NULL.
 export const projects = pgTable(
 	"projects",
 	{
@@ -21,6 +24,7 @@ export const projects = pgTable(
 		directory: text().notNull().default(""),
 		ticketTemplate: text("ticket_template").notNull().default(""),
 		ticketCounter: integer("ticket_counter").notNull().default(0),
+		color: text(),
 		position: integer().notNull().default(0),
 		archivedAt: at("archived_at"),
 		createdAt: at("created_at").notNull(),
@@ -39,6 +43,8 @@ export const projects = pgTable(
 		check("projects_root_has_key", sql`(${t.parentId} IS NULL) = (${t.key} IS NOT NULL)`),
 		check("projects_parent_not_self", sql`${t.parentId} <> ${t.id}`),
 		check("projects_counter_on_root", sql`${t.parentId} IS NULL OR ${t.ticketCounter} = 0`),
+		checkIn(t.color, PROJECT_COLORS),
+		uniqueIndex("projects_color_idx").on(t.color),
 		index("projects_root_id_idx").on(t.rootId),
 	],
 );
