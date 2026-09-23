@@ -6,7 +6,7 @@ export type ReadinessPart = "explanation" | "evidence" | "data-model-diagram";
 
 export type PullRequestReadiness = {
 	dataModelDiagramRequired: boolean;
-	pullRequest: { number: number; url: string; headSha: string };
+	pullRequest: { number: number; url: string; headSha: string; isDraft: boolean };
 	// The parts the pull request still needs, in the order an agent writes them.
 	missing: ReadinessPart[];
 	ready: boolean;
@@ -40,7 +40,12 @@ export const pullRequestReadiness = async (
 	];
 	return {
 		dataModelDiagramRequired,
-		pullRequest: { number: head.pullRequest.number, url: ref.url, headSha: head.sha },
+		pullRequest: {
+			number: head.pullRequest.number,
+			url: ref.url,
+			headSha: head.sha,
+			isDraft: head.pullRequest.isDraft,
+		},
 		missing,
 		ready: missing.length === 0,
 	};
@@ -70,7 +75,7 @@ const labelOf = (part: ReadinessPart): string => {
 export const pullRequestReadyText = ({ pullRequest, missing }: PullRequestReadiness): string => {
 	const { number } = pullRequest;
 	if (missing.length === 0)
-		return `#${number} is ready for review. It has the explanation and the evidence document. The person will now review it.\n`;
+		return `#${number} is ready for review. It has the explanation and the evidence document. Trellis marked it ready, and GitHub is ready for review.\n`;
 	const labelWidth = Math.max(...missing.map((part) => labelOf(part).length));
 	return [
 		`#${number} is not ready for review. Add each missing item, then run: trellis ready ${number}`,

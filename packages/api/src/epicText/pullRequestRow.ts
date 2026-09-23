@@ -15,8 +15,7 @@ const countWord = (count: number, singular: string, plural: string): string =>
 	`${count} ${count === 1 ? singular : plural}`;
 
 // Queued and draft are open states. A terminal state takes precedence over
-// either open-state flag. `isReviewDraft` reads the GitHub flag and the local
-// state, so the word agrees with the glyph on the web row.
+// either open-state flag, so the word agrees with the glyph on the web row.
 const stateWord = (pr: TicketPr): string => {
 	if (pr.state === "open" && pr.isQueued) return "queued";
 	return pr.state === "open" && isReviewDraft(pr) ? "draft" : pr.state;

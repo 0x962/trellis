@@ -52,6 +52,7 @@ const insertPullRequest = async (
 		draft?: boolean;
 		fetched?: boolean;
 		fetchError?: string;
+		localState?: "draft" | "ready";
 		openThread?: boolean;
 	} = {},
 ) => {
@@ -66,10 +67,10 @@ const insertPullRequest = async (
 				? "pass"
 				: "none";
 	await db.execute(sql`INSERT INTO pull_requests (
-		id, owner, repo, number, url, state, is_draft, checks, ci_state, fetched_at, fetch_error, created_at, updated_at
+		id, owner, repo, number, url, state, is_draft, local_state, checks, ci_state, fetched_at, fetch_error, created_at, updated_at
 	) VALUES (
 		${id}, 'acme', 'app', ${prNumber}, ${`https://github.com/acme/app/pull/${prNumber}`},
-		'open', ${options.draft ?? false}, ${JSON.stringify(checks)}::jsonb, ${ciState},
+		'open', ${options.draft ?? false}, ${options.localState ?? "ready"}, ${JSON.stringify(checks)}::jsonb, ${ciState},
 		${options.fetched === false ? null : "2026-09-18T10:00:00.000Z"}, ${options.fetchError ?? null},
 		'2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z'
 	)`);
@@ -140,7 +141,13 @@ test("a wave counts ready tickets and tickets that wait for the person", async (
 		(${releasedByCanceled.id}, ${canceled.id}, 'manual', '2026-09-18T10:02:00.000Z')`);
 	await insertPullRequest(readyReview.id, 1, { checks: [{ bucket: "pass" }] });
 	await insertPullRequest(readyReview.id, 2);
-	await insertPullRequest((await ticket(ctx, "Draft review", "surfaces", "in-progress")).id, 3, { draft: true });
+	await insertPullRequest((await ticket(ctx, "GitHub draft review", "surfaces", "in-progress")).id, 3, {
+		draft: true,
+	});
+	await insertPullRequest((await ticket(ctx, "Draft review", "surfaces", "in-progress")).id, 13, {
+		draft: true,
+		localState: "draft",
+	});
 	await insertPullRequest((await ticket(ctx, "Pending review", "surfaces", "in-progress")).id, 4, {
 		checks: [{ bucket: "pending" }],
 	});
@@ -162,10 +169,10 @@ test("a wave counts ready tickets and tickets that wait for the person", async (
 	});
 	const mixedReview = await ticket(ctx, "Mixed review", "surfaces", "in-progress");
 	await insertPullRequest(mixedReview.id, 11, { checks: [{ bucket: "pass" }] });
-	await insertPullRequest(mixedReview.id, 12, { draft: true });
+	await insertPullRequest(mixedReview.id, 12, { draft: true, localState: "draft" });
 	expect(await next(ctx)).toEqual([
 		["foundation", "done", 0, 0],
-		["surfaces", "open", 2, 2],
+		["surfaces", "open", 2, 3],
 		["integrate", "open", 0, 0],
 	]);
 });

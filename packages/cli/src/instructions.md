@@ -42,7 +42,8 @@ Prove the change. A pull request is ready for review when it has the explanation
 5. Bind every sentence to something checkable: a file and a line, a check result, a test name, or a number with
    its sha. Say when a sentence is a guess.
 6. Ask for review:  trellis ready <pr>
-   It checks both parts and marks the pull request ready for review. Until then the person sees a draft.
+   It checks both parts, marks the pull request ready in Trellis, and makes it ready for review on GitHub.
+   Until then the person sees a draft.
    Hand over:        trellis move KEY-42 human-review
 
 Labels say what a ticket is about. Read the set of the project: trellis labels list KEY

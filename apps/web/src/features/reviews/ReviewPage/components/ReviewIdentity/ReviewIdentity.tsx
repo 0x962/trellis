@@ -14,7 +14,7 @@ export type GithubPullRequest = {
 	baseRefName?: string;
 };
 
-// GitHub can mark a pull request as queued or draft while its state stays OPEN.
+// GitHub can mark a pull request as queued while its state stays OPEN.
 export const stateWord = (pullRequest: GithubPullRequest | undefined, isQueued = false) => {
 	if (isQueued) return "Queued";
 	if (pullRequest === undefined) return "Not fetched";
@@ -102,13 +102,7 @@ export function ReviewIdentity({
 				<span className="review-meta-marks">
 					<span data-bar-slot="glyph" className="review-meta-glyph">
 						{pullRequest !== undefined && (
-							<PrGlyph
-								state={glyphState}
-								isDraft={pullRequest.isDraft ?? false}
-								isQueued={isQueued}
-								localState={localState}
-								size="sm"
-							/>
+							<PrGlyph state={glyphState} isQueued={isQueued} localState={localState} size="sm" />
 						)}
 					</span>
 					<span data-bar-slot="conflict" className="review-meta-conflict">

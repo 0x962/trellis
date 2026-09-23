@@ -30,7 +30,7 @@ describe("pullRequestRowLine", () => {
 
 	test("names the pull request this one merges after", () => {
 		const pr = pullRequest({
-			isDraft: true,
+			localState: "draft",
 			stackedOn: { number: 55569, headRef: "nk/operator-routine-execution", ticketIdentifier: "OP-32" },
 			additions: 73,
 			deletions: 9,

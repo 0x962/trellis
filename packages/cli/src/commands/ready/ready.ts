@@ -30,15 +30,21 @@ export const readyResultOf = (tickets: TicketSummary[], workingTicketIds: Readon
 	};
 };
 
-// Exits 1 until the pull request has the explanation and the evidence
-// document. `trellis pr add` links a pull request but opens no review, so
-// this opens it the way `trellis summary write` does. When both parts exist,
-// it sets the local state to `ready`, and the person sees the pull request
-// as ready for review. A later push keeps that state.
+export const markPullRequestReady = async (
+	client: TrellisClient,
+	resolved: { id: string; url: string },
+	result: Awaited<ReturnType<typeof pullRequestReadiness>>,
+): Promise<void> => {
+	if (!result.ready) return;
+	if (result.pullRequest.isDraft)
+		await client.reviews.action({ pr: resolved.url, action: "ready", headSha: result.pullRequest.headSha });
+	await client.pullRequests.setLocalState({ id: resolved.id, localState: "ready" });
+};
+
 const pullRequestReady = async (ctx: CliContext, client: TrellisClient, ref: string): Promise<number> => {
 	const resolved = await resolvePullRequest(client, ref, true);
 	const result = await pullRequestReadiness(client, resolved);
-	if (result.ready) await client.pullRequests.setLocalState({ id: resolved.id, localState: "ready" });
+	await markPullRequestReady(client, resolved, result);
 	ctx.out.write(wantsJson(ctx) ? json(result) : pullRequestReadyText(result));
 	return result.ready ? 0 : 1;
 };
