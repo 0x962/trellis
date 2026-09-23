@@ -12,7 +12,7 @@ import { MuseSessionEvents } from "./mspEvents.ts";
 import { museControl } from "./museControl.ts";
 import { MuseQuestions } from "./museQuestions.ts";
 import { answerMuseRequest } from "./museRequests.ts";
-import { museTerminalHint, museTranscriptLine } from "./museTerminal.ts";
+import { museTerminalHint, museTranscriptLine, readMuseTerminal, stopMuseTerminal } from "./museTerminal.ts";
 import { writeMuseQuotaError, writeMuseUsage } from "./museUsage.ts";
 import { uuid7 } from "./uuid7.ts";
 
@@ -55,9 +55,7 @@ const host: ChildProcess = spawn(env.TRELLIS_MUSE_EXECUTABLE, ["serve", "--trust
 	env: process.env,
 	stdio: ["pipe", "pipe", "inherit"],
 });
-let stopNormally!: () => void;
 const terminated = new Promise<void>((resolve) => {
-	stopNormally = resolve;
 	process.once("SIGTERM", resolve);
 	process.once("SIGHUP", resolve);
 });
@@ -139,47 +137,6 @@ function record(event: HarnessEvent) {
 	eventQueue.catch(reportFailure);
 	if (!current.working) flushHeld();
 }
-const ESCAPE = "\u001b";
-const escapeSequence = new RegExp(`${ESCAPE}\\[[0-9;?]*[A-Za-z]`, "g");
-function readTerminal() {
-	// The terminal is in raw mode, so Ctrl+C reaches the bridge as a byte
-	// and never as a signal to the session host. Text collects until Enter
-	// and then starts a turn. A bracketed paste keeps its text only.
-	if (!process.stdin.isTTY) return;
-	process.stdin.setRawMode(true);
-	process.stdin.resume();
-	let line = "";
-	process.stdin.on("data", (chunk: Buffer) => {
-		const text = chunk
-			.toString()
-			.replaceAll(`${ESCAPE}[200~`, "")
-			.replaceAll(`${ESCAPE}[201~`, "")
-			.replace(escapeSequence, "");
-		for (const character of text) {
-			if (character === "\x03") {
-				line = "";
-				if (current.working && current.turnId !== null)
-					void client!
-						.request("turn/interrupt", { commandId: uuid7(), sessionId, turnId: current.turnId })
-						.catch(reportFailure);
-			} else if (character === "\r" || character === "\n") {
-				process.stdout.write("\n");
-				const prompt = line;
-				line = "";
-				if (prompt.trim() === "") continue;
-				void submit(prompt).catch(reportFailure);
-			} else if (character === "\x7f" || character === "\b") {
-				if (line.length > 0) {
-					line = line.slice(0, -1);
-					process.stdout.write("\b \b");
-				}
-			} else if (character >= " ") {
-				line += character;
-				process.stdout.write(character);
-			}
-		}
-	});
-}
 async function start() {
 	client = new MspClient(
 		host,
@@ -249,7 +206,12 @@ async function start() {
 	await startTurn([launch.prompt]);
 	await firstPrompt;
 	print(museTerminalHint);
-	readTerminal();
+	readMuseTerminal({
+		current: () => current,
+		interrupt: (turnId) => client!.request("turn/interrupt", { commandId: uuid7(), sessionId, turnId }),
+		submit,
+		onFailure: reportFailure,
+	});
 }
 try {
 	await Promise.race([start().then(() => terminated), observationFailed]);
@@ -272,6 +234,10 @@ try {
 	process.exitCode = 1;
 } finally {
 	acceptingEvents = false;
+	// No later step of this block holds the terminal. A wait for the session
+	// host runs for up to five seconds, and the removal of the directory can
+	// throw, so the terminal goes back to the person first.
+	stopMuseTerminal();
 	await usageQueue;
 	if (host.exitCode === null && host.signalCode === null) {
 		const exited = new Promise<void>((resolve) => host.once("exit", () => resolve()));
@@ -283,5 +249,4 @@ try {
 	}
 	control?.close();
 	await rm(directory, { recursive: true, force: true });
-	stopNormally();
 }

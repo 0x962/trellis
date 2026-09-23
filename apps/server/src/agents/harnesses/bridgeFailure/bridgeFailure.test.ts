@@ -64,8 +64,17 @@ async function writeExecutable(path: string, body: string) {
 	return path;
 }
 
-async function runBridge(entry: string, env: Record<string, string>, launch: Record<string, unknown>) {
-	const child = Bun.spawn([process.execPath, pathFromHere(entry), JSON.stringify(launch)], {
+// `script` gives the bridge a terminal on standard input. The Muse bridge
+// reads that terminal for a follow-up prompt, and the runtime starts the
+// bridge the same way.
+async function runBridge(
+	entry: string,
+	env: Record<string, string>,
+	launch: Record<string, unknown>,
+	withTerminal = false,
+) {
+	const command = [process.execPath, pathFromHere(entry), JSON.stringify(launch)];
+	const child = Bun.spawn(withTerminal ? ["script", "-q", "/dev/null", ...command] : command, {
 		env: { PATH: process.env.PATH ?? "", ...env },
 		stdout: "pipe",
 		stderr: "pipe",
@@ -74,7 +83,7 @@ async function runBridge(entry: string, env: Record<string, string>, launch: Rec
 	return { exitCode, stderr };
 }
 
-async function runMuseBridge(refuse: (event: HarnessEvent) => boolean) {
+async function runMuseBridge(refuse: (event: HarnessEvent) => boolean, options: { withTerminal?: boolean } = {}) {
 	const home = await scratchHome();
 	const runtime = await fakeRuntime(home, refuse);
 	const executable = await writeExecutable(
@@ -93,6 +102,7 @@ async function runMuseBridge(refuse: (event: HarnessEvent) => boolean) {
 			TRELLIS_TEST_MUSE_HOME: home,
 		},
 		{ cwd: home, prompt: "do the work" },
+		options.withTerminal,
 	);
 	return { ...run, observed: runtime.observed };
 }
@@ -110,6 +120,15 @@ test("the Muse bridge prints why it stopped when the runtime refuses that record
 	expect(run.stderr).toContain(`The bridge could not record that reason: ${TIMEOUT_MESSAGE}`);
 	expect(run.exitCode).toBe(1);
 });
+
+// The bridge waits up to 5000 ms for the Muse host to exit, which is the
+// default limit of a test. Without the release of the terminal the process
+// never exits, and this limit is what ends the test.
+test("the Muse bridge leaves the terminal it reads and exits", async () => {
+	const run = await runMuseBridge((event) => event.kind === "message", { withTerminal: true });
+	expect(run.observed.at(-1)).toMatchObject({ kind: "error", outcome: "failed" });
+	expect(run.exitCode).toBe(1);
+}, 20000);
 
 test("the Codex bridge records why it stopped when its engine gives no app server", async () => {
 	const home = await scratchHome();
