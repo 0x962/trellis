@@ -6,8 +6,8 @@ import * as labelGroups from "../services/labelGroups.ts";
 import * as labels from "../services/labels.ts";
 import * as tickets from "../services/tickets.ts";
 import { createCache } from "./cache.ts";
-import { type Db, openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
+import type { Db } from "./client.ts";
+import { openTestDb } from "./testDb.ts";
 import { type Tx, withTx } from "./tx.ts";
 
 // The labels of a ticket: the deltas of a write, the one label of a group at
@@ -45,8 +45,7 @@ const ticketRow = async (id: string) => {
 };
 
 beforeAll(async () => {
-	db = await openDb(":memory:");
-	await migrate(db);
+	db = await openTestDb();
 	await db.execute(sql`
 		INSERT INTO projects (id, key, slug, name, created_at, updated_at)
 		VALUES (${rootId}, 'TKL', 'tkl', 'Ticket labels', ${at}, ${at})

@@ -6,8 +6,8 @@ import * as labelGroups from "../services/labelGroups.ts";
 import { resolveLabel } from "../services/labelRefs.ts";
 import * as labels from "../services/labels.ts";
 import { createCache } from "./cache.ts";
-import { type Db, openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
+import type { Db } from "./client.ts";
+import { openTestDb } from "./testDb.ts";
 import { type Tx, withTx } from "./tx.ts";
 
 // The label services of one project. The project owns its labels and its
@@ -41,8 +41,7 @@ const run = async <T>(call: (ctx: ServiceCtx, tx: Tx) => Promise<T>) => {
 };
 
 beforeAll(async () => {
-	db = await openDb(":memory:");
-	await migrate(db);
+	db = await openTestDb();
 	await db.execute(sql`
 		INSERT INTO projects (id, key, slug, name, created_at, updated_at)
 		VALUES (${projectId}, 'TST', 'tst', 'Test', ${at}, ${at})

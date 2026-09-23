@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
-import { type Db, openDb } from "../client.ts";
-import { migrate } from "../migrate.ts";
+import type { Db } from "../client.ts";
+import { openTestDb } from "../testDb.ts";
 import { search } from "./search.ts";
 
 const at = new Date("2026-09-21T12:00:00.000Z");
@@ -31,8 +31,7 @@ const insertTicket = (id: string, rootId: string, statusId: string, number: numb
 	`);
 
 beforeAll(async () => {
-	db = await openDb(":memory:");
-	await migrate(db);
+	db = await openTestDb();
 	await insertProject(opId, "OP", "op", "Operator");
 	await insertProject(woId, "WO", "hardware-shop", "Hardware Shop");
 	await insertStatus(opStatusId, opId);

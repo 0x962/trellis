@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
-import { type Db, openDb } from "../client.ts";
-import { migrate } from "../migrate.ts";
+import type { Db } from "../client.ts";
+import { openTestDb } from "../testDb.ts";
 import { withTx } from "../tx.ts";
 import { timeline } from "./timeline.ts";
 
@@ -13,8 +13,7 @@ const at = "2026-09-17T12:00:00.000Z";
 let db: Db;
 
 beforeAll(async () => {
-	db = await openDb(":memory:");
-	await migrate(db);
+	db = await openTestDb();
 	await db.execute(sql`
 		INSERT INTO projects (id, key, slug, name, created_at, updated_at)
 		VALUES (${rootId}, 'TRL', 'trellis', 'Trellis', ${at}, ${at})
