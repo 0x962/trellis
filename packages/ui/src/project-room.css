@@ -9,30 +9,30 @@
  *
  * The three values: `--project-solid` fills the ground of the mark and
  * writes the key of the project; `--project-tint` is the color the ground of
- * a page takes 8 percent of; `--project-soft` is the ground of the key chip.
+ * a page takes a share of; `--project-soft` is the ground of the key chip.
  */
 [data-project-color="orange"] {
-	--project-solid: var(--project-orange);
+	--project-solid: var(--project-orange-solid);
 	--project-tint: var(--project-orange-tint);
 	--project-soft: var(--project-orange-soft);
 }
 [data-project-color="teal"] {
-	--project-solid: var(--project-teal);
+	--project-solid: var(--project-teal-solid);
 	--project-tint: var(--project-teal-tint);
 	--project-soft: var(--project-teal-soft);
 }
 [data-project-color="blue"] {
-	--project-solid: var(--project-blue);
+	--project-solid: var(--project-blue-solid);
 	--project-tint: var(--project-blue-tint);
 	--project-soft: var(--project-blue-soft);
 }
 [data-project-color="pink"] {
-	--project-solid: var(--project-pink);
+	--project-solid: var(--project-pink-solid);
 	--project-tint: var(--project-pink-tint);
 	--project-soft: var(--project-pink-soft);
 }
 [data-project-color="azure"] {
-	--project-solid: var(--project-azure);
+	--project-solid: var(--project-azure-solid);
 	--project-tint: var(--project-azure-tint);
 	--project-soft: var(--project-azure-soft);
 }
@@ -42,21 +42,19 @@
  * the trellis mark. The ground takes the color of the project, and the
  * strands take `--project-strand`, which flips per theme.
  *
- * Each rule starts at `.project-mark`, the wrapper that `ProjectMark`
- * draws. A mark that stands inside the room of another project keeps its own
- * color, because that mark carries its own wrapper and its own attribute.
+ * The rule starts at `.project-mark`, the wrapper that `ProjectMark` draws.
+ * A mark that stands inside the room of another project keeps its own color,
+ * because that mark carries its own wrapper and its own attribute.
  */
-.project-mark .agent-ground {
-	fill: var(--project-solid);
-}
 .project-mark .agent-mark[data-agent-kind="trellis"] {
+	--agent-ground: var(--project-solid);
 	--agent-stroke: var(--project-strand);
 	--agent-ink: var(--project-strand);
 }
 
 /*
  * The key chip of a project: the key in the color of the project, on the
- * soft ground of that color. `projectColors.test.ts` measures the text on
+ * soft ground of that color. `projectTokens.test.ts` measures the text on
  * the ground at 4.5:1 or better in both themes.
  */
 .project-chip {
@@ -65,14 +63,11 @@
 }
 
 /*
- * The ground of a page that belongs to a project. The ground of the pane
- * takes 8 percent of the color of the project.
- *
- * 8 percent is the mix that the sample measured: it costs every status color
- * the same fraction of its contrast, so no status starts to look like
- * another, and every status glyph still reads at 3:1 or better on every
- * project ground in both themes. `projectColors.test.ts` measures that.
- * A larger share breaks it.
+ * The ground of a page that belongs to a project. The share below costs
+ * every status color the same fraction of its contrast, so no status starts
+ * to look like another, and every status glyph still reads at 3:1 or better
+ * on every project ground in both themes. `projectTokens.test.ts` reads the
+ * share from this line and measures that. A larger share breaks it.
  */
 .project-room[data-project-color] {
 	background: color-mix(in srgb, var(--project-tint) 8%, var(--pane));

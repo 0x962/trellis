@@ -127,7 +127,7 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 								<td data-line="phone" colSpan={6}>
 									<Link to="/p/$" params={{ _splat: project.key }} className={phoneLinkClass}>
 										<span className="flex items-center gap-3">
-											<ProjectKey projectKey={project.key} />
+											<ProjectKey projectKey={project.key} color={project.color} />
 											<span className="flex-1" />
 											<span className="truncate text-xs text-fg-faint">{project.key}</span>
 										</span>
@@ -141,7 +141,7 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 							<tr key={project.id} className={rowClass}>
 								<td colSpan={2} className="pl-5">
 									<Link to="/p/$" params={{ _splat: project.key }} className={linkClass}>
-										<ProjectKey projectKey={project.key} />
+										<ProjectKey projectKey={project.key} color={project.color} />
 									</Link>
 								</td>
 								<td className="truncate pr-3 text-base">{highlight(project.name, q)}</td>

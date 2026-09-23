@@ -5,6 +5,7 @@ import { openTestDb } from "../db/testDb.ts";
 import type { Tx } from "../db/tx.ts";
 import { assertColorFree } from "./projectRows.ts";
 
+// `assertColorFree`, and the two rules of the database that stand behind it.
 // One database for the file. Every project of the file takes its own key, so
 // no test reads a row another test wrote.
 let db: Awaited<ReturnType<typeof openTestDb>>;

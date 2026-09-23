@@ -1,5 +1,7 @@
 import { createElement, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { useVirtualRows } from "../useVirtualRows";
+import { diffRowHeights, diffRowStyle } from "./diffRowHeights";
 import type { DiffAnchor } from "./ReviewDiff";
 import { type ReviewRow, reviewRowSize, rowAnnotations } from "./reviewRows";
 
@@ -32,7 +34,10 @@ function MeasuredAnnotation({
 	return <div ref={ref}>{children}</div>;
 }
 
-const measurable = (row: ReviewRow) => row.kind === "annotation" || rowAnnotations(row) > 0;
+// A row whose height the stylesheet does not pin: it wraps its own text, so
+// only the drawn row knows how tall it is. Every other row draws the height
+// that `diffRowHeights` states.
+const measurable = (row: ReviewRow) => row.kind === "annotation" || row.kind === "notice" || rowAnnotations(row) > 0;
 
 const anchorMatches = (row: ReviewRow, anchor: DiffAnchor) => {
 	if (row.kind === "unified")
@@ -64,9 +69,17 @@ export function VirtualDiffRows({
 	const onMeasure = useCallback((key: string, height: number) => {
 		setMeasured((current) => (current.get(key) === height ? current : new Map(current).set(key, height)));
 	}, []);
+	// A touch screen draws every button 44 px tall, which makes a code line 44
+	// px tall instead of 28. Both panes of the review read the same query:
+	// `GroupTree` sets its own row height from it.
+	const coarse = useMediaQuery("(pointer: coarse)");
+	const heights = useMemo(() => diffRowHeights(coarse), [coarse]);
 	const sizes = useMemo(
-		() => rows.map((row) => (measurable(row) ? (measured.get(row.key) ?? reviewRowSize(row)) : reviewRowSize(row))),
-		[rows, measured],
+		() =>
+			rows.map((row) =>
+				measurable(row) ? (measured.get(row.key) ?? reviewRowSize(row, heights)) : reviewRowSize(row, heights),
+			),
+		[rows, measured, heights],
 	);
 	const viewportRef = useRef<HTMLElement>(null);
 	const virtual = useVirtualRows(viewportRef, sizes);
@@ -89,7 +102,13 @@ export function VirtualDiffRows({
 	}, [rows, selectedFile, selectedAnchor, virtual.scrollToIndex]);
 	return createElement(
 		"diffs-container",
-		{ className: "review-code", "data-diff-type": mode, "data-theme": theme, ref: viewportRef },
+		{
+			className: "review-code",
+			"data-diff-type": mode,
+			"data-theme": theme,
+			ref: viewportRef,
+			style: diffRowStyle(coarse),
+		},
 		<div aria-hidden="true" style={{ height: virtual.before }} />,
 		...rows.slice(virtual.start, virtual.end).map((row) =>
 			measurable(row) ? (

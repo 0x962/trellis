@@ -8,29 +8,6 @@
 /* Tailwind emits only the classes it finds in scanned files. The primitives live in packages/ui, outside this root. */
 @source "../../../packages/ui/src";
 
-/*
- * The ground of the main pane. It holds the page. Light takes the surface
- * one step off the page ground, and dark takes the page ground itself.
- * Each block has to win on its own, as in tokens.css.
- */
-:root {
-	--pane: var(--surface);
-}
-
-@media (prefers-color-scheme: dark) {
-	:root:not([data-theme="light"]) {
-		--pane: var(--bg);
-	}
-}
-
-:root[data-theme="dark"] {
-	--pane: var(--bg);
-}
-
-@theme {
-	--color-pane: var(--pane);
-}
-
 html,
 body,
 #root {

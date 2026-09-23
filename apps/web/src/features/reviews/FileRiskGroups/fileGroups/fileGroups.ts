@@ -53,9 +53,3 @@ export function fileGroups(repo: string, files: ReadMarkFile[]): FileRiskGroup[]
 			.map(({ reasonRank: _rank, ...file }) => file),
 	}));
 }
-
-// The paths of every group, flattened. The file tree and the diff both draw
-// their files in this one order, so the row a person picks in the tree sits at
-// the same place in the diff.
-export const groupedPaths = (groups: FileRiskGroup[]): string[] =>
-	groups.flatMap((group) => group.files.map((file) => file.path));

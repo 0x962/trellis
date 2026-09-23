@@ -14,6 +14,7 @@ export { PrGlyphSection } from "./PrGlyphSection";
 export { PriorityIconSection } from "./PriorityIconSection";
 export { ProjectRoomSection } from "./ProjectRoomSection";
 export { ResourceListSection } from "./ResourceListSection";
+export { ReviewDiffSection } from "./ReviewDiffSection";
 export { ReviewStatusSummarySection } from "./ReviewStatusSummarySection";
 export { RunLineSection } from "./RunLineSection";
 export { StartControlsSection } from "./StartControlsSection";

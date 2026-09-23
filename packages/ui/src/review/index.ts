@@ -5,8 +5,11 @@ export { ChecksLine, type ChecksLineBucket, type ChecksLineCheck } from "./Check
 export { type FileRiskGroup, FileRiskGroups, fileCountLabel } from "./FileRiskGroups";
 export { insertBlock, ReviewCommentEditor } from "./ReviewCommentEditor";
 export { type ThreadPlacement, threadDiffLine } from "./ReviewDiff/carryThreads";
+export { type DiffFileGroup, type DiffGroupBand, groupRank } from "./ReviewDiff/diffGroups";
+export { type DiffRowHeights, diffRowHeights, diffRowStyle } from "./ReviewDiff/diffRowHeights";
 export { patchDigest } from "./ReviewDiff/patchDigest";
 export { type DiffAnchor, ReviewDiff, type ReviewDiffFile } from "./ReviewDiff/ReviewDiff";
+export { ReviewDiffSkeleton } from "./ReviewDiff/ReviewDiffSkeleton";
 export { ReviewStatus } from "./ReviewStatus/ReviewStatus";
 export { ReviewSuggestion, type ReviewSuggestionLine, type ReviewSuggestionState } from "./ReviewSuggestion";
 export { ReviewThreadCard } from "./ReviewThreadCard";
