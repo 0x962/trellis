@@ -78,8 +78,9 @@ export function useVirtualRows(viewportRef: RefObject<HTMLElement | null>, sizes
 		},
 		[goTo],
 	);
-	// This runs when the drawn heights change. A row whose height never
-	// settles stops moving the box after MAX_TRIES of them.
+	// `goTo` is a new function for every new set of heights, so this runs
+	// each time a drawn row corrects one. A row whose height never settles
+	// stops moving the box after MAX_TRIES of those corrections.
 	useEffect(() => {
 		const owed = target.current;
 		if (owed === null) return;
@@ -88,6 +89,6 @@ export function useVirtualRows(viewportRef: RefObject<HTMLElement | null>, sizes
 			return;
 		}
 		target.current = { index: owed.index, applied: goTo(owed.index), tries: owed.tries + 1 };
-	}, [goTo, layout, viewportRef]);
+	}, [goTo, viewportRef]);
 	return { ...visible, scrollToIndex };
 }
