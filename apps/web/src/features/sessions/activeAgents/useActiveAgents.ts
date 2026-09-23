@@ -1,20 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
 import { type AgentActivity, sessionStatus } from "@trellis/api";
 import { useApp } from "../../../lib/appContext";
-import { activeAgentCounts } from "./activeAgents";
+import { activeAgentCounts, type ProjectAgentCount } from "./activeAgents";
 
 const select = (entries: AgentActivity[]) =>
 	activeAgentCounts(entries.map(({ run }) => ({ projectId: run.projectId, status: sessionStatus(run) })));
 
-// Every project row in the sidebar calls this hook, and they all read the one
-// agentRuns.activity query, so the sidebar sends one request per interval
-// however many projects it draws.
-export function useActiveAgentCount(projectId: string): number {
+// One count per project that has an agent which starts, works or waits for an
+// answer. The sidebar calls this once and reads the count of each project row
+// out of the array, so it sends one request per interval however many
+// projects it draws.
+export function useActiveAgentCounts(): ProjectAgentCount[] {
 	const { orpc } = useApp();
 	const { data } = useQuery({
 		...orpc.agentRuns.activity.queryOptions({ input: {} }),
 		refetchInterval: 2000,
 		select,
 	});
-	return data?.find((row) => row.projectId === projectId)?.activeCount ?? 0;
+	return data ?? [];
 }
+
+export const activeAgentsOf = (counts: ProjectAgentCount[], projectId: string): number =>
+	counts.find((row) => row.projectId === projectId)?.activeCount ?? 0;

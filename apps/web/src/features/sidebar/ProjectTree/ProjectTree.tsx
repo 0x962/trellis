@@ -5,6 +5,7 @@ import { cx } from "@trellis/ui";
 import type { ReactNode } from "react";
 import { useApp } from "../../../lib/appContext";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
+import { activeAgentsOf, useActiveAgentCounts } from "../../sessions/activeAgents";
 import { ProjectListStatus } from "../components/ProjectListStatus";
 import { ProjectPages } from "../components/ProjectPages";
 import { TreeRow } from "../components/TreeRow";
@@ -21,6 +22,7 @@ export function ProjectTree() {
 	const projects = useQuery(sidebarProjectsQuery(orpc));
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const expandedProjects = useUiStore((state) => state.expandedProjects);
+	const activeAgents = useActiveAgentCounts();
 	const data = projects.data;
 	// `failureCount` counts the failed tries of the fetch that runs now. A
 	// Retry click starts a new fetch, so the placeholder rows come back.
@@ -57,7 +59,12 @@ export function ProjectTree() {
 				expanded && (
 					<li key={`${project.id}.subtree`}>
 						<ul className={cx("flex flex-col gap-0.5")}>
-							<ProjectPages project={project} depth={depth + 1} pathname={pathname} />
+							<ProjectPages
+								project={project}
+								depth={depth + 1}
+								pathname={pathname}
+								activeAgents={activeAgentsOf(activeAgents, project.id)}
+							/>
 							{level(project.id, depth + 1)}
 						</ul>
 					</li>

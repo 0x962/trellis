@@ -421,15 +421,44 @@ linked pull request before an actor moves a ticket to `human-review`. It
 refuses an agent and permits a human. The server does not apply this CLI guard
 in `tickets.move`.
 
-`pull_requests.local_state` is the review state that Trellis keeps for a pull
-request: `draft` or `ready`. A new link by an agent writes `draft`, and every
-other row starts as `ready`. `trellis ready <pr>` writes `ready` after its
-checks pass, through `pullRequests.setLocalState`. It also runs the GitHub
-ready action when the pull request needs that action. A person flips the state
-from the ⋯ menu of the pull request sheet. A poll or a push leaves the state as
-it is. `isReviewDraft` in `packages/api` reads `local_state`. The glyph, the
-turn, the Needs you inbox, the ticket filters and the wave counts read that
-rule, and `reviewDraftSql` is its SQL form.
+`pull_requests.local_state` records whether the agent asked the person to
+review a pull request: `not-ready` or `ready`. A new link by an agent writes
+`not-ready`, and every other row starts as `ready`. `trellis ready <pr>`
+writes `ready` after its checks pass, through `pullRequests.setLocalState`. It
+also runs the GitHub ready action when the pull request needs that action. A
+person flips the state from the ⋯ menu of the pull request sheet. A poll or a
+push leaves the state as it is.
+
+`pull_requests.ready_for_review_at` is the moment that state became `ready`,
+which is the moment the wait of the person started. `setLocalState` stamps it,
+clears it when the agent takes the ask back, and writes one
+`pr.ready_for_review` or `pr.not_ready_for_review` timeline row per linked
+ticket with the actor. A poll that finds a new head commit clears it, and so
+does `setHeadSha`, because the person then waits for nothing. The pull request
+payload carries it as `readyForReviewAt`.
+
+A pull request is ready for review, and its glyph draws green, only when every
+one of these holds: the agent asked for review, no check failed and none is
+pending, a flow run of the current head finished or the agent recorded why no
+flow fits, no review finding is open, the pull request merges cleanly, and the
+explanation of the current head and the evidence document exist. A flow is
+machine review and it asks the person nothing, so a flow run that stopped and
+waits counts as a run that did not finish. `reviewGaps`
+in `packages/api/src/reviewReady` is that rule. It takes the stored facts and
+answers with the parts that are missing, each with its plain words from
+`reviewGapText`. The wire carries the list as `reviewGaps` on a pull request
+row, on a ticket pull request row, on the PR badge of a ticket row and on a
+Diffs row, so the glyph, the turn, the Needs you inbox and the pull request
+sheet all read one answer. `notReadyForReviewSql` in
+`apps/server/src/db/queries/reviewReady.ts` is its SQL form, which the ticket
+filters and the wave counts use. Nothing in the rule reads the GitHub draft
+flag.
+
+A pull request goes back to not ready on its own. A new commit takes away the
+explanation of that commit and the flow run of that commit; a failed check, a
+new finding or a conflict adds its own missing part. It turns green again as
+soon as the facts hold, with no command from the agent, except for the parts
+only the agent writes.
 
 The web route `/reviews/<owner>/<repo>/<number>` renders the evidence document
 on its Overview tab, under the summary.
@@ -925,7 +954,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | waves | id PK, epic_id (CASCADE), root_id, slug (CHECK slug regex), name (CHECK trimmed, 1 to 120), position integer (CHECK >= 0), created_at, updated_at. UNIQUE (id, epic_id) and (epic_id, slug). FK (epic_id, root_id) CASCADE, so a wave stays in the root of its epic. Index (epic_id, position). The state of a wave is never stored. |
 | comments | id PK, ticket_id (CASCADE), body (1 to 200000), parent_id, resolved_at, actor_name, actor_kind, search tsvector GENERATED (body C), created_at, updated_at. No code reads or writes the table. It keeps the rows that ticket comments stored. |
 | attachments | id PK, ticket_id (CASCADE), filename (1 to 255, no `/`), mime, size (CHECK > 0), sha256 (CHECK hex 64), actor_name, actor_kind, created_at. FK to actors. Index (ticket_id) and (sha256). |
-| pull_requests | id PK, owner, repo (CHECK lowercase), number (CHECK > 0), url, title, state, is_draft, is_queued, head_ref, base_ref, review_state, merged_at, closed_at, checks jsonb (CHECK array), ci_state, content_hash, fetched_at, fetch_error, created_at, updated_at. UNIQUE (owner, repo, number). Index (state, ci_state). |
+| pull_requests | id PK, owner, repo (CHECK lowercase), number (CHECK > 0), url, title, state, is_draft, is_queued, local_state (CHECK not-ready, ready), ready_for_review_at, head_ref, base_ref, review_state, merged_at, closed_at, checks jsonb (CHECK array), ci_state, content_hash, fetched_at, fetch_error, created_at, updated_at. UNIQUE (owner, repo, number). Index (state, ci_state). |
 | ticket_pull_requests | ticket_id (CASCADE), pull_request_id (CASCADE), source (manual), actor_name, actor_kind, created_at. PK (ticket_id, pull_request_id). Index (pull_request_id). |
 | activity | id bigint IDENTITY PK, batch_id, root_id (CASCADE), project_id (CASCADE), ticket_id (CASCADE), actor_name, actor_kind, action, field, from_value, to_value, meta jsonb, created_at. FK to actors. CHECK `field <> 'description' OR (from_value IS NULL AND to_value IS NULL)`. Indexes (ticket_id, id), (ticket_id, created_at DESC, id DESC), (root_id, id), (project_id, id), (created_at). |
 | actors | name (CHECK 1 to 64, no `:`), kind (human, agent, or system), first_seen_at, last_seen_at. PK (name, kind). |
@@ -1062,7 +1091,7 @@ The filter grammar is identical in the API, the web URL, and the CLI flags.
 | wave | a WaveRef or `none` |
 | label | a list of LabelRef; a ticket that holds one of them stays; `none` in the list keeps a ticket with no label |
 | labelNot | a list of LabelRef; a ticket that holds one of them drops out |
-| pr | any, none, open, draft, queued, merged, closed |
+| pr | any, none, open, not-ready, queued, merged, closed |
 | ci | a list of pass, fail, pending, none |
 | actor | `kind:name` or `name`, matched against the last actor |
 | q | full text search with a prefix on the last token |
@@ -1244,7 +1273,8 @@ kinds:
   `conflict`.
 
 `unknown` sends nothing. A pull request that GitHub marks as a draft sends
-nothing. A local draft still sends, because its agent owns the branch. The
+nothing. A pull request that is not ready for review still sends, because its
+agent owns the branch. The
 merge kinds and the check kinds are two families: `decideNotice` reads only
 the check kinds, and a notice of one family never replaces a pending notice
 of the other. The pull request rows of the ticket page and the epic table,
@@ -1318,8 +1348,8 @@ Conventions shared by every workspace:
 
 `packages/api` holds the contract and no runtime dependency beyond zod and oRPC:
 `refs.ts`, `errors.ts`, `events.ts`, `query-keys.ts`, `client.ts`, `pair.ts`,
-`schemas/`, `contract/`, `agentLaunch/` (agent command variables),
-`instructions.ts` (the `AGENTS.md` block).
+`schemas/`, `contract/`, `agentLaunch/` (agent command variables).
+The `AGENTS.md` block lives in `packages/cli/src/instructions.md`.
 
 `apps/server` holds `index.ts` (boot), `config.ts`, `log.ts`, `app.ts`,
 `context.ts`, `db/` (worker, transport, client, migrate, schema, tables, enums,

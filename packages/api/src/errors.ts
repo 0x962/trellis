@@ -99,6 +99,11 @@ export const errors = {
 		message: "The key is immutable after the first ticket is numbered.",
 		data: z.undefined(),
 	},
+	FLOW_NOT_IN_PROJECT: {
+		status: 409,
+		message: "The flow belongs to another project.",
+		data: z.undefined(),
+	},
 	STATUS_NOT_IN_PROJECT: {
 		status: 409,
 		message: "The status is not in the ticket's effective status set.",
@@ -157,8 +162,8 @@ export const errors = {
 	},
 	PROJECT_NOT_EMPTY: {
 		status: 409,
-		message: "The project holds tickets or sub-projects. Pass force to delete them too.",
-		data: z.object({ tickets: CountSchema, projects: CountSchema }),
+		message: "The project holds tickets, sub-projects, or flows. Pass force to delete them too.",
+		data: z.object({ tickets: CountSchema, projects: CountSchema, flows: CountSchema }),
 	},
 	PROJECT_ARCHIVED: {
 		status: 409,

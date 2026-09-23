@@ -1,11 +1,42 @@
-import { type Flow, type FlowDoc, type FlowEdge, type FlowNode, ulidPattern } from "@trellis/api";
+import { type Flow, type FlowDoc, type FlowEdge, type FlowNode, type FlowSummary, ulidPattern } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 
-export const flowColumns = sql`id, slug, name, description, briefing, harness, version,
-	${iso(sql`created_at`)} AS "createdAt", ${iso(sql`updated_at`)} AS "updatedAt"`;
+// The key of a flow's project lives on the projects table, so every read of
+// a flow joins it. `p.key` is null for a flow that belongs to every project.
+const summaryColumns = sql`f.id, p.key AS "project", f.slug, f.name, f.description, f.harness, f.version,
+	${iso(sql`f.created_at`)} AS "createdAt", ${iso(sql`f.updated_at`)} AS "updatedAt"`;
+
+// A summary leaves the briefing out, because a briefing holds up to 200,000
+// characters and a list draws none of it.
+const flowColumns = sql`${summaryColumns}, f.briefing`;
+
+const fromFlowsLeftJoinProjects = sql`FROM flows f LEFT JOIN projects p ON p.id = f.project_id`;
+
+// A null `rootId` lists every flow of the server.
+export const listFlows = (tx: Tx, rootId: string | null): Promise<FlowSummary[]> =>
+	rows<FlowSummary>(
+		tx,
+		sql`SELECT ${summaryColumns},
+			(SELECT count(*)::int FROM flow_nodes WHERE flow_nodes.flow_id = f.id) AS "nodeCount",
+			(SELECT count(*)::int FROM flow_edges WHERE flow_edges.flow_id = f.id) AS "edgeCount"
+			${fromFlowsLeftJoinProjects}
+			WHERE ${rootId === null ? sql`true` : sql`f.project_id IS NULL OR f.project_id = ${rootId}`}
+			ORDER BY f.name, f.id`,
+	);
+
+// The project of one flow, for a caller that compares it with a ticket. The
+// read model carries the project key, and a comparison against a ticket
+// needs the id.
+export const flowProjectIdOf = async (tx: Tx, id: string): Promise<string | null> => {
+	const [row] = await rows<{ projectId: string | null }>(
+		tx,
+		sql`SELECT project_id AS "projectId" FROM flows WHERE id = ${id}`,
+	);
+	return row!.projectId;
+};
 
 const nodeColumns = sql`id, parent_id AS "parentId", kind, title, instruction,
 	parallel, minutes, max_rounds AS "maxRounds", harness, x, y, width, height`;
@@ -16,8 +47,8 @@ const edgeColumns = sql`id, from_node_id AS "fromNodeId", to_node_id AS "toNodeI
 // a ULID names the id.
 export const resolveFlow = async (tx: Tx, ref: string): Promise<Flow> => {
 	const [flow] = ulidPattern.test(ref.toUpperCase())
-		? await rows<Flow>(tx, sql`SELECT ${flowColumns} FROM flows WHERE id = ${ref.toUpperCase()}`)
-		: await rows<Flow>(tx, sql`SELECT ${flowColumns} FROM flows WHERE slug = ${ref.toLowerCase()}`);
+		? await rows<Flow>(tx, sql`SELECT ${flowColumns} ${fromFlowsLeftJoinProjects} WHERE f.id = ${ref.toUpperCase()}`)
+		: await rows<Flow>(tx, sql`SELECT ${flowColumns} ${fromFlowsLeftJoinProjects} WHERE f.slug = ${ref.toLowerCase()}`);
 	if (flow === undefined) throw fail("NOT_FOUND", { kind: "flow", ref });
 	return flow;
 };

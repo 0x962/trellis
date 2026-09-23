@@ -7,6 +7,9 @@ export type GroupHeaderLineProps = {
 	// The offset inside the virtual body.
 	top: number;
 	phone: boolean;
+	// True while the progress circle of the wave fills to full, because the
+	// last open ticket of the wave was marked done a moment ago.
+	filling: boolean;
 	// The wave controls of a table of one epic.
 	waves?: WaveHeaderOptions;
 	onToggleGroup: (key: string) => void;
@@ -21,6 +24,7 @@ export function GroupHeaderLine({
 	group,
 	top,
 	phone,
+	filling,
 	waves,
 	onToggleGroup,
 	onCreateInGroup,
@@ -36,6 +40,7 @@ export function GroupHeaderLine({
 			totalCount={group.totalCount}
 			forYou={group.forYou}
 			done={group.done}
+			filling={filling}
 			status={group.status}
 			category={group.category}
 			expanded={group.expanded}

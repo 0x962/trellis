@@ -21,9 +21,16 @@ export const pullRequests = pgTable(
 		state: text().notNull(),
 		isDraft: boolean("is_draft").notNull().default(false),
 		isQueued: boolean("is_queued").notNull().default(false),
-		// The review state that records whether the agent asked for review.
-		// The link of an agent writes `draft`; `trellis ready` writes `ready`.
+		// Whether the agent asked the person to review this pull request. The
+		// link of an agent writes `not-ready`; `trellis ready` writes `ready`.
+		// It is one part of being ready for review; `reviewGaps` in
+		// `packages/api` holds the whole rule.
 		localState: text("local_state").notNull().default("ready"),
+		// The moment the state became `ready`, which is the moment the wait of
+		// the person started. A new head commit clears it, because the person
+		// then waits for nothing. A row written before this column existed
+		// holds null.
+		readyForReviewAt: at("ready_for_review_at"),
 		reviewRetained: boolean("review_retained").notNull().default(false),
 		headSha: text("head_sha"),
 		headRef: text("head_ref").notNull().default(""),

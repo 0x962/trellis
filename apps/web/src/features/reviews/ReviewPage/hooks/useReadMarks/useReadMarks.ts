@@ -8,8 +8,8 @@ export type ReadMarksState = {
 };
 
 // The read marks of one pull request, held in `localStorage`. A mark records
-// the shape the file had at the mark, so a commit that changes the file drops
-// the mark and the person reads the file again.
+// the hash of the patch of that file, so a commit that changes one byte of the
+// file drops the mark and the person reads the file again.
 //
 // The file tree dims a read file and the diff shows its header alone, so the
 // review page owns this state and hands it to both panes.

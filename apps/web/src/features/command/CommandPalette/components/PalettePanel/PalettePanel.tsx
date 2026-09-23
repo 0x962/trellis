@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
 import type { Ticket } from "@trellis/api";
-import { Command, Kbd } from "@trellis/ui";
+import { CodeText, Command, Kbd } from "@trellis/ui";
 import { type KeyboardEvent, useEffect, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { projectRefOfPathname } from "../../../../../lib/projectPath";
@@ -221,7 +221,7 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 							open full search
 						</span>
 						<span className="ml-auto" title={`Type an ID such as ${hintKey}-12 to open the ticket`}>
-							Type an ID such as <span className="font-mono">{hintKey}-12</span> to open the ticket
+							Type an ID such as <CodeText>{hintKey}-12</CodeText> to open the ticket
 						</span>
 					</>
 				)}

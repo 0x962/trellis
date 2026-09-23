@@ -46,7 +46,6 @@ export function SessionList() {
 								key={session.id}
 								session={session}
 								status={run ? sessionStatus(run) : "unavailable"}
-								activityAt={run?.observation?.activity?.updatedAt ?? run?.updatedAt ?? session.updatedAt}
 								workingCount={run && sessionStatus(run) === "working" ? 1 : 0}
 								active={pathname === `/sessions/${session.id}`}
 							/>

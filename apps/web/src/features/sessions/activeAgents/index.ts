@@ -1,2 +1,2 @@
 export { activeAgentCounts, activeAgentsLabel, type ProjectAgentCount } from "./activeAgents";
-export { useActiveAgentCount } from "./useActiveAgents";
+export { activeAgentsOf, useActiveAgentCounts } from "./useActiveAgents";

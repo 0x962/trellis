@@ -2,7 +2,8 @@ import { z } from "zod";
 import { effortForHarness, HarnessEffortSchema } from "../harness/effort/effort.ts";
 import { HARNESS_DEFAULT_MODELS, HarnessPresetSchema } from "../harness/harness.ts";
 import { ModelIdSchema } from "../models/models.ts";
-import { CountSchema, IsoDateTimeSchema, slugPattern, UlidSchema } from "./primitives.ts";
+import { ProjectRefStringSchema, TicketRefStringSchema } from "../refs.ts";
+import { CountSchema, IsoDateTimeSchema, KeySchema, slugPattern, UlidSchema } from "./primitives.ts";
 
 // A flow is a graph of agent steps that trellis runs against a target, such
 // as a pull request. Each node is one step. Each edge sends the result of one
@@ -140,8 +141,13 @@ export type FlowEdge = z.infer<typeof FlowEdgeSchema>;
 // `briefing` is the text every agent of the flow reads before its own
 // instruction. `harness` is the harness of every step that names none.
 // `version` rises on every change to the flow or its graph.
+//
+// `project` is the key of the project the flow belongs to, such as `TRL`.
+// null makes the flow apply to every project. The write inputs take the same
+// field name, so a client can send back what it read.
 export const FlowSchema = z.object({
 	id: UlidSchema,
+	project: KeySchema.nullable(),
 	slug: z.string(),
 	name: z.string(),
 	description: z.string(),
@@ -158,6 +164,10 @@ export const FlowSummarySchema = FlowSchema.omit({ briefing: true }).extend({
 	edgeCount: CountSchema,
 });
 export type FlowSummary = z.infer<typeof FlowSummarySchema>;
+
+// The name of a flow's project. The web app and the CLI both print this
+// text, so the words agree.
+export const flowProjectLabel = (flow: Pick<Flow, "project">): string => flow.project ?? "Every project";
 
 // The sentence that says what a flow is for. A flow whose description is
 // empty falls back to its name, so every caller shows the same words.
@@ -192,6 +202,9 @@ export const FlowCreateInputSchema = z.strictObject({
 	name: FlowNameSchema,
 	slug: FlowSlugSchema.optional(),
 	description: FlowDescriptionSchema.optional(),
+	// The root project of a tree. An absent project gives a flow that applies
+	// to every project.
+	project: ProjectRefStringSchema.optional(),
 });
 export type FlowCreateInput = z.input<typeof FlowCreateInputSchema>;
 
@@ -201,6 +214,9 @@ export const FlowUpdateInputSchema = z.strictObject({
 	slug: FlowSlugSchema.optional(),
 	description: FlowDescriptionSchema.optional(),
 	briefing: z.string().max(200_000).optional(),
+	// The root project of a tree. null makes the flow apply to every project,
+	// and an absent field keeps the project it has.
+	project: ProjectRefStringSchema.nullable().optional(),
 	// null clears the harness of the flow; an absent field keeps it.
 	harness: FlowHarnessSchema.nullable().optional(),
 	expectedVersion: z.number().int().positive().optional(),
@@ -217,6 +233,17 @@ export const FlowSaveInputSchema = z.strictObject({
 	expectedVersion: z.number().int().positive().optional(),
 });
 export type FlowSaveInput = z.input<typeof FlowSaveInputSchema>;
+
+// Both keys name one project, and the list then holds the flows of that
+// project and the flows that name no project. `ticket` names the project of
+// that ticket, for a caller that holds a ticket and no project; `project`
+// wins when a caller sends both. With neither the list holds every flow of
+// the server.
+export const FlowListInputSchema = z.strictObject({
+	project: ProjectRefStringSchema.optional(),
+	ticket: TicketRefStringSchema.optional(),
+});
+export type FlowListInput = z.infer<typeof FlowListInputSchema>;
 
 export const FlowGetInputSchema = z.strictObject({ flow: FlowRefSchema });
 export const FlowDeleteInputSchema = z.strictObject({ flow: FlowRefSchema });
