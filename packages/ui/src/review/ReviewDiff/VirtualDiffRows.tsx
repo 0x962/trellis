@@ -1,9 +1,9 @@
 import { createElement, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
-import { useVirtualRows } from "../useVirtualRows";
-import { diffRowHeights, diffRowStyle } from "./diffRowHeights";
+import { diffRowSlots, diffRowStyle } from "./diffRowSlots";
 import type { DiffAnchor } from "./ReviewDiff";
 import { type ReviewRow, reviewRowSize, rowAnnotations } from "./reviewRows";
+import { useVirtualRows } from "./useVirtualRows";
 
 // A wrapper that reports the height of variable-height annotation content:
 // a file-level annotation row, or a line row with a thread or the composer
@@ -69,17 +69,18 @@ export function VirtualDiffRows({
 	const onMeasure = useCallback((key: string, height: number) => {
 		setMeasured((current) => (current.get(key) === height ? current : new Map(current).set(key, height)));
 	}, []);
-	// A touch screen draws every button 44 px tall, which makes a code line 44
-	// px tall instead of 28. Both panes of the review read the same query:
-	// `GroupTree` sets its own row height from it.
+	// Both panes of the review read the same two queries. `GroupTree` sets its
+	// own row height from the pointer, and `FileRiskGroups` its own header
+	// height from the width.
 	const coarse = useMediaQuery("(pointer: coarse)");
-	const heights = useMemo(() => diffRowHeights(coarse), [coarse]);
+	const phone = useMediaQuery("(max-width: 767px)");
+	const slots = useMemo(() => diffRowSlots(coarse, phone), [coarse, phone]);
 	const sizes = useMemo(
 		() =>
 			rows.map((row) =>
-				measurable(row) ? (measured.get(row.key) ?? reviewRowSize(row, heights)) : reviewRowSize(row, heights),
+				measurable(row) ? (measured.get(row.key) ?? reviewRowSize(row, slots)) : reviewRowSize(row, slots),
 			),
-		[rows, measured, heights],
+		[rows, measured, slots],
 	);
 	const viewportRef = useRef<HTMLElement>(null);
 	const virtual = useVirtualRows(viewportRef, sizes);

@@ -112,6 +112,11 @@
 	/* The ground of a group header, a well, and a row on hover. Light takes
 	   the page ground, and dark takes the surface one step off it. */
 	--band: var(--bg);
+	/* The same lift for a row that already carries a colour, such as the green
+	   of an added line in a diff. It is translucent, so it lays over that
+	   colour instead of hiding it. It follows the text colour, so one value
+	   serves both themes. */
+	--band-translucent: color-mix(in srgb, var(--fg) 6%, transparent);
 	/* The ground of the main pane. It holds the page. Light takes the
 	   surface one step off the page ground, and dark takes the page ground
 	   itself. `project-room.css` mixes the color of a project into it. */
@@ -275,6 +280,7 @@
 	--color-surface: var(--surface);
 	--color-elevated: var(--elevated);
 	--color-band: var(--band);
+	--color-band-translucent: var(--band-translucent);
 	--color-pane: var(--pane);
 	--color-border: var(--border);
 	--color-border-strong: var(--border-strong);
