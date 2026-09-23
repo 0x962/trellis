@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdir, realpath, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import type { AgentRun } from "@trellis/api";
 import { type ExecutionEnvironment, executionEnvironment } from "../../executionEnvironment";
@@ -45,6 +45,12 @@ const setWorkspaceBase = async (
 	await git("git", ["-C", workspace, "update-ref", workspaceBaseRef, base.revision], { env });
 };
 
+// The directory that holds one worktree per agent run, and the worktree of
+// one run inside it. Every reader of that layout calls these, so the layout
+// has one statement in the code.
+export const agentWorkspacesRoot = (home: string) => join(home, "agents");
+export const agentWorkspace = (home: string, runId: string) => join(agentWorkspacesRoot(home), runId, "work");
+
 export const nativeWorkspace = async (
 	home: string,
 	run: WorkspaceRun,
@@ -64,8 +70,8 @@ export const nativeWorkspace = async (
 		}
 		return run.workspaceId;
 	}
-	const destination = join(home, "agents", run.id, "work");
-	await mkdir(join(home, "agents", run.id), { recursive: true, mode: 0o700 });
+	const destination = agentWorkspace(home, run.id);
+	await mkdir(dirname(destination), { recursive: true, mode: 0o700 });
 	const env = await (deps.environment ?? executionEnvironment)();
 	const base = await sourceBase(source, env, git);
 	const branch = runBranch(run);

@@ -143,7 +143,7 @@ export const startNative = async (
 			await client.start(spec);
 			session = await client.inspect(terminalId);
 		} else {
-			const host = nativeHost(ctx.home, env, client);
+			const host = nativeHost(ctx.home, env, client, ctx.log);
 			const launch: HarnessStartInput = {
 				id: terminalId,
 				...(run.kind === "session" ? {} : { kind: "builder" }),
@@ -203,12 +203,15 @@ export const startNative = async (
 		}
 		launchedAt = session.startedAt;
 		const harness = launchedHarness(config.harness, session.agent?.model);
-		// `launched_at` is the moment the harness process started. Its distance
-		// from `created_at` is the wait a person sees between the start request
-		// and a working agent.
+		ctx.log("agent run launched", {
+			run: run.id,
+			ticket: run.ticketIdentifier,
+			harness: config.harness.preset,
+			waitMs: Date.parse(session.startedAt) - Date.parse(run.createdAt),
+		});
 		await ctx.newTx((tx) =>
 			tx.execute(
-				sql`UPDATE agent_runs SET workspace_id = ${workspaceId}, launched_at = ${session.startedAt}, harness = ${JSON.stringify(harness)}::jsonb, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = CASE WHEN ${session.status === "exited"} AND kind<>'agent' THEN ${ctx.now()}::timestamptz ELSE NULL END, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
+				sql`UPDATE agent_runs SET workspace_id = ${workspaceId}, launched_at = COALESCE(launched_at, ${session.startedAt}), harness = ${JSON.stringify(harness)}::jsonb, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = CASE WHEN ${session.status === "exited"} AND kind<>'agent' THEN ${ctx.now()}::timestamptz ELSE NULL END, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
 	} catch (error) {

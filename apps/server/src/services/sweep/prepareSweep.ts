@@ -4,6 +4,7 @@ import { readdir, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { sql } from "drizzle-orm";
+import { agentWorkspacesRoot } from "../../agents/native/workspace.ts";
 import { rows } from "../../db/queries/support.ts";
 import { executionEnvironment } from "../../executionEnvironment";
 import { readRuntimeSessions } from "../agentRuns/liveState.ts";
@@ -73,7 +74,7 @@ async function sweep(ctx: ServiceCtx): Promise<SweepResult> {
 	// that has a worktree to remove.
 	let env: NodeJS.ProcessEnv | undefined;
 	const gitEnv = async () => (env ??= await executionEnvironment());
-	const agents = join(ctx.home, "agents");
+	const agents = agentWorkspacesRoot(ctx.home);
 	for (const runId of await directories(agents)) {
 		const directory = join(agents, runId);
 		const names = await readdir(directory);

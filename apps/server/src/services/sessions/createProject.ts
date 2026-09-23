@@ -2,6 +2,7 @@ import { join } from "node:path";
 import type { Session, SessionCreateInput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import { agentWorkspace } from "../../agents/native/workspace.ts";
 import { rows } from "../../db/queries/support.ts";
 import { invalidInput } from "../../errors.ts";
 import { startNative } from "../agentRuns/nativeStart.ts";
@@ -51,7 +52,7 @@ export async function createProjectSession(
 		await tx.execute(
 			sql`UPDATE agent_runs SET instruction=${reservation.run.instruction} WHERE id=${reservation.run.id}`,
 		);
-		const directory = join(ctx.home, "agents", reservation.run.id, "work");
+		const directory = agentWorkspace(ctx.home, reservation.run.id);
 		const [session] = await rows<Session>(
 			tx,
 			sql`INSERT INTO sessions (id,name,directory,harness,run_id,created_at,updated_at)

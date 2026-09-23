@@ -21,9 +21,9 @@ export const agentRuns = pgTable(
 		ticketId: text("ticket_id").references(() => tickets.id, { onDelete: "set null" }),
 		ticketIdentifier: text("ticket_identifier"),
 		closedAt: at("closed_at"),
-		// The moment the harness process of the current attempt started. The
-		// difference to `created_at` is the time a person waits from the start
-		// request to a running agent.
+		// The moment the harness process of the first launch started. A resume
+		// and a retry leave it as it is. The difference to `created_at` is the
+		// time a person waits from the start request to a running agent.
 		launchedAt: at("launched_at"),
 		workspaceId: text("workspace_id"),
 		terminalId: text("terminal_id"),
