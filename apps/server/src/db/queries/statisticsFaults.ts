@@ -22,7 +22,7 @@ const groups = (from: SQL, key: SQL, age: SQL) => sql`
 	SELECT DISTINCT ON (${key})
 		${key} AS key,
 		count(*) OVER (PARTITION BY ${key})::int AS count,
-		root.key || '-' || ticket.number AS identifier,
+		proj.key || '-' || ticket.number AS identifier,
 		ticket.title,
 		${iso(age)} AS since
 	${from}
@@ -42,7 +42,7 @@ export const stuckReviewMessages = (tx: Tx) =>
 		groups(
 			sql`FROM review_deliveries delivery
 				LEFT JOIN tickets ticket ON ticket.id = delivery.ticket_id
-				LEFT JOIN projects root ON root.id = ticket.root_id
+				LEFT JOIN projects proj ON proj.id = ticket.project_id
 				WHERE delivery.state IN ('held', 'failed')`,
 			sql`delivery.state`,
 			sql`delivery.due_at`,
@@ -60,7 +60,7 @@ export const openFlowRuns = (tx: Tx) =>
 		groups(
 			sql`FROM flow_executions run
 				JOIN tickets ticket ON ticket.id = run.ticket_id
-				JOIN projects root ON root.id = ticket.root_id
+				JOIN projects proj ON proj.id = ticket.project_id
 				WHERE run.state->>'status' IN ('waiting', 'running')`,
 			sql`run.state->>'status'`,
 			sql`run.updated_at`,

@@ -78,6 +78,13 @@ export const StatisticsLoopSchema = z.object({
 	// a count that reads both counts each thread twice.
 	threadsByPerson: z.number().int().nonnegative(),
 	threadsByAgent: z.number().int().nonnegative(),
+	// The median wait from the moment a pull request became ready to the
+	// first verdict of a person on it, in milliseconds. It is null while no
+	// pull request of the window carries both moments.
+	readyToVerdictMs: z.number().nonnegative().nullable(),
+	// How many pull requests of the window carry both the ready stamp and a
+	// verdict after it. The median covers these and no other.
+	readyToVerdictMeasured: z.number().int().nonnegative(),
 	// The five pull requests of the window with the most threads from a
 	// person, most first.
 	bill: z.array(StatisticsBillRowSchema),
