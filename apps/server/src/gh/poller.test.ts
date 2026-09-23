@@ -17,8 +17,8 @@ const old = new Date("2026-09-19T10:00:00.000Z");
 
 beforeEach(async () => {
 	db = await openTestDb();
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${root}, ${root}, 'PLR', 'plr', 'Poller', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${root}, 'PLR', 'plr', 'Poller', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
 		VALUES ('dana', 'human', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses
@@ -39,8 +39,8 @@ test("a poller tick moves a ticket whose linked pull requests are already termin
 	const ticketId = ulid();
 	const prId = ulid();
 	await db.execute(sql`INSERT INTO tickets
-		(id, project_id, root_id, number, title, status_id, position, created_at, updated_at)
-		VALUES (${ticketId}, ${root}, ${root}, 1, 'Finish after merge', ${review}, 1, ${at}, ${at})`);
+		(id, project_id, number, title, status_id, position, created_at, updated_at)
+		VALUES (${ticketId}, ${root}, 1, 'Finish after merge', ${review}, 1, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO pull_requests
 		(id, owner, repo, number, url, state, is_draft, fetched_at, created_at, updated_at, merged_at)
 		VALUES (${prId}, 'acme', 'app', 8, 'https://github.com/acme/app/pull/8', 'merged', false, ${old}, ${old}, ${old}, ${old})`);

@@ -15,7 +15,7 @@ import {
 import { PriorityIcon, StatusIcon } from "@trellis/ui";
 import type { ReactNode } from "react";
 import { labelNames } from "../../../../lib/labelNames";
-import { projectSlashPath, rootKey } from "../../../../lib/projectPath";
+
 import { pageSheetActions } from "../../../../stores/pageSheetStore";
 import { composerActions } from "../../../composer";
 import { epicState } from "../../../table/utils/epicState";
@@ -74,7 +74,7 @@ export const ticketRows = (deps: RowDeps): PaletteRow[] => {
 	const subs: Record<string, string | undefined> = {
 		"ticket.status": ticket?.status.name,
 		"ticket.priority": ticket === undefined ? undefined : priorityLabels[ticket.priority],
-		"ticket.project": ticket === undefined ? undefined : projectSlashPath(ticket.project.path),
+		"ticket.project": ticket === undefined ? undefined : ticket.project.key,
 		"ticket.parent": ticket?.parent?.identifier,
 		"ticket.labels": ticket === undefined || ticket.labels.length === 0 ? undefined : labelNames(ticket.labels),
 		"ticket.copyId": identifier,
@@ -90,7 +90,6 @@ export const ticketRows = (deps: RowDeps): PaletteRow[] => {
 	const runs: Record<string, () => void> = {
 		"ticket.status": () => deps.openSubmenu({ kind: "status", tickets: [identifier], project: statusProject(deps) }),
 		"ticket.priority": () => deps.openSubmenu({ kind: "priority", tickets: [identifier] }),
-		"ticket.project": () => deps.openSubmenu({ kind: "project", tickets: [identifier] }),
 		"ticket.parent": () => deps.openSubmenu({ kind: "parent", tickets: [identifier], project: statusProject(deps) }),
 		"ticket.labels": () =>
 			deps.openSubmenu({
@@ -100,7 +99,7 @@ export const ticketRows = (deps: RowDeps): PaletteRow[] => {
 				checked: (ticket?.labels ?? []).map((label) => label.id),
 				mixed: [],
 			}),
-		"ticket.subTicket": run(deps, () => composerActions.open({ parent: identifier, project: ticket?.project.path })),
+		"ticket.subTicket": run(deps, () => composerActions.open({ parent: identifier, project: ticket?.project.key })),
 		"ticket.copyId": run(deps, () => void copyId(action, identifier)),
 		"ticket.copyBranch": run(deps, () => void copyBranch()),
 		"ticket.copyBrief": run(deps, () => void copyAgentBrief(action, identifier)),
@@ -152,9 +151,9 @@ export const selectionRows = (deps: RowDeps): PaletteRow[] => {
 	const identifiers = selection.map((row) => row.identifier);
 	// The statuses and the labels a submenu offers come from the project of
 	// the first selected row, and the epics come from the root of that
-	// project tree. A selection that spans two projects still writes a value
+	// project. A selection that spans two projects still writes a value
 	// that belongs to one of them.
-	const project = selection[0]!.project.path;
+	const project = selection[0]!.project.key;
 	const labels = labelStates(selection);
 	// A wave belongs to one epic. The Set wave row exists only when
 	// every selected ticket belongs to the same epic, and its submenu lists
@@ -172,13 +171,8 @@ export const selectionRows = (deps: RowDeps): PaletteRow[] => {
 				mixed: labels.some,
 				bulk: true,
 			}),
-		"selection.project": () => deps.openSubmenu({ kind: "project", tickets: identifiers, bulk: true }),
 		"selection.parent": () => deps.openSubmenu({ kind: "parent", tickets: identifiers, project, bulk: true }),
-		// The root project of a tree owns every epic of that tree. `rootKey`
-		// takes the key of the tree, so a row under a sub-project offers the
-		// same epics as a row under the root.
-		"selection.epic": () =>
-			deps.openSubmenu({ kind: "epic", tickets: identifiers, project: rootKey(project), bulk: true }),
+		"selection.epic": () => deps.openSubmenu({ kind: "epic", tickets: identifiers, project: project, bulk: true }),
 		"selection.wave": () => deps.openSubmenu({ kind: "wave", tickets: identifiers, epic: waveEpic!, bulk: true }),
 		"selection.copyIds": run(deps, () => void copyIds(action, identifiers)),
 		"selection.copyLinks": run(deps, () => void copyLinks(action, identifiers)),

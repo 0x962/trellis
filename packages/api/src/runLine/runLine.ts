@@ -21,9 +21,17 @@ export type RunLine = {
 	// What the agent does at this moment, while it works: the running tool
 	// with its target, or the text it wrote last. It is null in every other
 	// state, and a row that draws it then falls back to the last message.
-	activity: string | null;
+	activity: readonly RunLineSpan[] | null;
 	rawError: string | null;
 };
+
+export type RunLineSpan = {
+	key: string;
+	text: string;
+	kind: "text" | "code";
+};
+
+export const activityWords = (spans: readonly RunLineSpan[]) => spans.map((span) => span.text).join("");
 
 type RunState = Omit<RunLine, "activity">;
 
@@ -43,11 +51,19 @@ const lastMessageLine = (run: AgentRun): RunLine["lastMessage"] => {
 
 // The tool a working agent runs now, named with its target, or the text of
 // its last message while the agent writes.
-const workingActivity = (run: AgentRun): string | null => {
+const workingActivity = (run: AgentRun): readonly RunLineSpan[] | null => {
 	const observation = run.observation!;
 	const runningTool = observation.lastTool?.status === "running" ? observation.lastTool : null;
-	if (runningTool === null) return observation.lastMessage?.text ?? null;
-	return runningTool.target === null ? runningTool.name : `${runningTool.name} ${runningTool.target}`;
+	if (runningTool === null) {
+		const text = observation.lastMessage?.text ?? null;
+		return text === null ? null : [{ key: "message", text, kind: "text" }];
+	}
+	return runningTool.target === null
+		? [{ key: "tool-name", text: runningTool.name, kind: "text" }]
+		: [
+				{ key: "tool-name", text: `${runningTool.name} `, kind: "text" },
+				{ key: "tool-target", text: runningTool.target, kind: runningTool.targetKind! },
+			];
 };
 
 const executionServiceError = (error: string) =>

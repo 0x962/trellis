@@ -12,14 +12,14 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { requireActor, type ServiceCtx } from "../../context.ts";
 import { resourceBlobShasOfEpic } from "../../db/queries/epicResources.ts";
-import { rows, textArray } from "../../db/queries/support.ts";
+import { rows } from "../../db/queries/support.ts";
 import { epicSummaries } from "../../db/queries/ticketGet.ts";
 import { ticketSummaries } from "../../db/queries/ticketSummaries.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { record } from "../activity.ts";
 import { upsert } from "../actors.ts";
-import { assertProjectActive, pathOf, resolveProject } from "../refs.ts";
+import { assertProjectActive, resolveProject } from "../refs.ts";
 import { deriveSlug } from "../slug.ts";
 import { assertAgentMayDelete } from "../tickets/rules.ts";
 import { wavesOf } from "../waves/waves.ts";
@@ -41,29 +41,29 @@ const byId = async (tx: Tx, id: string) => {
 export const epicView = async (ctx: ServiceCtx, tx: Tx, id: string): Promise<Epic> => {
 	const row = await byId(tx, id);
 	return {
-		...toEpicSummary(row, pathOf(ctx.cache, row.project_id)),
+		...toEpicSummary(row),
 		waves: await wavesOf(tx, id),
 		tickets: await epicSummaries(tx, id),
 	};
 };
 
-// Two epics of one root never share a slug. The unique constraint holds the
-// same rule; this check turns the violation into DUPLICATE before the
+// Two epics of one project never share a slug. The unique constraint holds
+// the same rule; this check turns the violation into DUPLICATE before the
 // statement runs.
-const assertSlugFree = async (tx: Tx, rootId: string, slug: string, exceptId: string | null) => {
+const assertSlugFree = async (tx: Tx, projectId: string, slug: string, exceptId: string | null) => {
 	const taken = await rows<{ id: string }>(
 		tx,
-		sql`SELECT id FROM epics WHERE root_id = ${rootId} AND slug = ${slug} AND id IS DISTINCT FROM ${exceptId}`,
+		sql`SELECT id FROM epics WHERE project_id = ${projectId} AND slug = ${slug} AND id IS DISTINCT FROM ${exceptId}`,
 	);
 	if (taken.length > 0) throw fail("DUPLICATE", { field: "slug" });
 };
 
 // A slug derived from the name takes the lowest free numeric suffix, from 2,
-// when another epic of the root holds the plain form.
-const freeSlug = async (tx: Tx, rootId: string, base: string) => {
+// when another epic of the project holds the plain form.
+const freeSlug = async (tx: Tx, projectId: string, base: string) => {
 	const found = await rows<{ slug: string }>(
 		tx,
-		sql`SELECT slug FROM epics WHERE root_id = ${rootId} AND (slug = ${base} OR slug LIKE ${`${base}-%`})`,
+		sql`SELECT slug FROM epics WHERE project_id = ${projectId} AND (slug = ${base} OR slug LIKE ${`${base}-%`})`,
 	);
 	const taken = new Set(found.map((row) => row.slug));
 	if (!taken.has(base)) return base;
@@ -75,12 +75,8 @@ const freeSlug = async (tx: Tx, rootId: string, base: string) => {
 export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<EpicSummary[]> => {
 	const input = EpicListInputSchema.parse(rawInput);
 	const project = await resolveProject(ctx, tx, input.project);
-	const ids = ctx.cache.resolveSubtree(project.id);
-	const found = await rows<RawEpic>(
-		tx,
-		sql`${epicSelect} WHERE e.project_id = ANY(${textArray(ids)}) ORDER BY ${epicOrder}`,
-	);
-	return found.map((row) => toEpicSummary(row, pathOf(ctx.cache, row.project_id)));
+	const found = await rows<RawEpic>(tx, sql`${epicSelect} WHERE e.project_id = ${project.id} ORDER BY ${epicOrder}`);
+	return found.map(toEpicSummary);
 };
 
 export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<Epic> => {
@@ -96,15 +92,15 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	const actor = requireActor(ctx);
 	await upsert(ctx, tx, actor);
 	let slug: string;
-	if (input.slug === undefined) slug = await freeSlug(tx, project.rootId, deriveSlug(input.name));
+	if (input.slug === undefined) slug = await freeSlug(tx, project.id, deriveSlug(input.name));
 	else {
-		await assertSlugFree(tx, project.rootId, input.slug, null);
+		await assertSlugFree(tx, project.id, input.slug, null);
 		slug = input.slug;
 	}
 	const id = ulid();
 	await tx.execute(
-		sql`INSERT INTO epics (id, project_id, root_id, slug, name, description, actor_name, actor_kind, created_at, updated_at)
-			VALUES (${id}, ${project.id}, ${project.rootId}, ${slug}, ${input.name}, ${input.description ?? ""},
+		sql`INSERT INTO epics (id, project_id, slug, name, description, actor_name, actor_kind, created_at, updated_at)
+			VALUES (${id}, ${project.id}, ${slug}, ${input.name}, ${input.description ?? ""},
 				${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now})`,
 	);
 	ctx.emit({ type: "epics.changed", projectId: project.id, id });
@@ -119,7 +115,7 @@ export const update = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 	assertProjectActive(ctx, existing.project_id);
 	const actor = requireActor(ctx);
 	await upsert(ctx, tx, actor);
-	if (input.slug !== undefined) await assertSlugFree(tx, existing.root_id, input.slug, existing.id);
+	if (input.slug !== undefined) await assertSlugFree(tx, existing.project_id, input.slug, existing.id);
 	await tx.execute(
 		sql`UPDATE epics SET name = ${input.name ?? existing.name}, slug = ${input.slug ?? existing.slug},
 			description = ${input.description ?? existing.description},
@@ -170,7 +166,6 @@ export const remove = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 			left.push({ field: "wave", from, to: null, meta: { fromId: member.wave_id, toId: null } });
 		}
 		await record(ctx, tx, {
-			rootId: existing.root_id,
 			projectId: member.project_id,
 			ticketId: member.id,
 			action: "ticket.updated",

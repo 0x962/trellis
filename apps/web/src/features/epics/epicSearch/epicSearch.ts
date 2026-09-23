@@ -2,17 +2,14 @@ import { stringifySearchObject } from "../../../lib/searchParams";
 import { serializeSearch, stripDefaults, type View, viewDefaults, viewOf } from "../../filters/grammar";
 
 // The fields whose default on the epic page differs from the default of
-// every other list route. The epic page lists the tickets of every project
-// of the root when the URL names no scope, because an epic belongs to a
-// root and holds tickets of any project of that root. When the URL names no
-// group, the page groups by wave on every viewport. The keys stay in the
-// order of `searchParamOrder`.
+// every other list route. When the URL names no group, the page groups by
+// wave on every viewport.
 //
 // `phone` stays in the signature for callers that compute canonical URLs from
 // the current viewport.
-const pageDefaults = (_phone: boolean) => ({ group: "wave", scope: "subprojects" }) as const satisfies Partial<View>;
+const pageDefaults = (_phone: boolean) => ({ group: "wave" }) as const satisfies Partial<View>;
 type PageKey = keyof ReturnType<typeof pageDefaults>;
-const pageKeys: readonly PageKey[] = ["group", "scope"];
+const pageKeys: readonly PageKey[] = ["group"];
 
 // Writes one page field. The generic key ties the value type to the field,
 // which a plain indexed write over the union of the keys does not.
@@ -20,10 +17,10 @@ const setField = <K extends PageKey>(target: Partial<View>, key: K, value: View[
 	target[key] = value;
 };
 
-// `stripDefaults` drops `group=status` and `scope=self`, because they are
-// the defaults of the list routes. On the epic page each value is a choice:
-// without it the page takes its own default. This puts the value back when the raw URL
-// params name it, so the `/p/$` route can tell the two cases apart.
+// `stripDefaults` drops `group=status`, because it is the default of the
+// list routes. On the epic page the value is a choice: without it the page
+// takes its own default. This puts the value back when the raw URL params
+// name it, so the `/p/$` route can tell the two cases apart.
 export const keepEpicPageChoices = (raw: Record<string, unknown>, search: Partial<View>): Partial<View> => {
 	const kept: Partial<View> = { ...search };
 	for (const key of pageKeys) if (raw[key] === viewDefaults[key]) setField(kept, key, viewDefaults[key]);
@@ -60,9 +57,9 @@ export const epicUrlSearch = (page: Partial<View>, phone = false): Partial<View>
 // The query string of an epic page URL, with the leading `?`, or "" when
 // the search holds only page defaults. `search` is a URL search or a page
 // search. Every link to an epic page with a search goes through this,
-// because `serializeSearch` drops `group=status` and `scope=self`. It
-// leaves out the page defaults, so a link copied on a phone opens the same
-// grouping on a desktop.
+// because `serializeSearch` drops `group=status`. It leaves out the page
+// defaults, so a link copied on a phone opens the same grouping on a
+// desktop.
 export const epicQueryString = (search: Partial<View>): string =>
 	stringifySearchObject(epicUrlSearch(epicPageSearch(search, "")));
 
@@ -70,7 +67,7 @@ export const epicQueryString = (search: Partial<View>): string =>
 // `epicUrlSearch` writes. `searchStr` is the encoded query string, so an
 // ampersand inside a value is `%26` and the split on `&` is safe. The
 // params of `pageDefaults` are compared on their own, because
-// `serializeSearch` never writes `group=status` or `scope=self`.
+// `serializeSearch` never writes `group=status`.
 export const isCanonicalEpicSearch = (searchStr: string, search: Partial<View>, phone = false): boolean => {
 	const expected = epicUrlSearch(epicPageSearch(search, "", phone), phone);
 	const parts = searchStr

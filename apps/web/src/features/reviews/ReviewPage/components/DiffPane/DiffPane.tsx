@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import type { PrChangeType, ReviewRevision, ReviewThread } from "@trellis/api";
-import { type DiffAnchor, ReviewDiff } from "@trellis/ui/review";
+import { type DiffAnchor, ReviewDiff, type ReviewDiffFile, type ThreadPlacement } from "@trellis/ui/review";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useTheme } from "../../../../../lib/theme";
@@ -11,15 +11,18 @@ import { DiffToolbar } from "../DiffToolbar";
 export type DiffPaneProps = {
 	pr: string;
 	revision: ReviewRevision;
-	// The threads that belong to the revision on screen.
+	// Every thread of the pull request. The diff places each one: on the line
+	// it names, on the line its text moved to, or at the top of its file.
 	threads: ReviewThread[];
 	// The diff list scrolls to this path.
 	selectedFile: string;
 	selectedAnchor: DiffAnchor | null;
-	renderThread: (id: string) => ReactNode;
+	renderThread: (id: string, place: ThreadPlacement) => ReactNode;
 	// The changed files of the revision, as the patch reports them. The page
 	// gives them to `FileRiskGroups`.
 	onFiles: (files: ReadMarkFile[]) => void;
+	// The paths in the order the diff draws them, from the risk groups.
+	order: readonly string[];
 	// The paths the person marked read. A read file shows its header alone.
 	read: ReadonlySet<string>;
 	onRead: (path: string, read: boolean) => void;
@@ -39,6 +42,7 @@ export function DiffPane({
 	selectedAnchor,
 	renderThread,
 	onFiles,
+	order,
 	read,
 	onRead,
 }: DiffPaneProps) {
@@ -75,13 +79,15 @@ export function DiffPane({
 	// callback, so a new callback on every render would report the list on
 	// every render.
 	const reportFiles = useCallback(
-		(files: { path: string; type: string; additions: number; deletions: number }[]) =>
+		(files: ReviewDiffFile[]) =>
 			onFiles(
 				files.map((file) => ({
 					path: file.path,
 					change: file.type as PrChangeType,
 					additions: file.additions,
 					deletions: file.deletions,
+					binary: file.binary,
+					digest: file.digest,
 				})),
 			),
 		[onFiles],
@@ -129,6 +135,7 @@ export function DiffPane({
 					setComposerState({ anchor, lines });
 				}}
 				onFiles={reportFiles}
+				order={order}
 				viewed={read}
 				onViewed={onRead}
 			/>

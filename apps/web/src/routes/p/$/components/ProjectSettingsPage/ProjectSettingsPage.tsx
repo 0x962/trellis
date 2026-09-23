@@ -10,7 +10,7 @@ export type ProjectSettingsPageProps = {
 	section?: ProjectSettingsSectionId;
 };
 
-// ProjectSettingsPage uses section for direct routes that have no settings hash, such as /p/<project path>/notes.
+// ProjectSettingsPage uses section for direct routes that have no settings hash, such as /p/<KEY>/notes.
 export function ProjectSettingsPage({ project, section }: ProjectSettingsPageProps) {
 	return (
 		<>

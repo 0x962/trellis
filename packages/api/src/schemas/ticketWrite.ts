@@ -61,7 +61,7 @@ export const TicketOutcomeInputSchema = z.strictObject({
 export type TicketOutcomeInput = z.input<typeof TicketOutcomeInputSchema>;
 
 // `status` defaults to the project's default status; `description` to the
-// project's ticket template. `epic` names an epic of the same root.
+// project's ticket template. `epic` names an epic of the same project.
 // `after` names the tickets that the new ticket waits for.
 // `wave` names a wave of the same root and places the ticket in
 // the epic of that wave. With `epic` and `wave` together, the
@@ -127,7 +127,6 @@ export const TicketUpdateInputSchema = z.strictObject({
 	parent: TicketRefStringSchema.nullable().optional(),
 	epic: EpicRefStringSchema.nullable().optional(),
 	wave: WaveRefStringSchema.nullable().optional(),
-	project: ProjectRefStringSchema.optional(),
 	addLabels: LabelRefListSchema.optional(),
 	removeLabels: LabelRefListSchema.optional(),
 	expectedVersion: z.number().int().positive().optional(),
@@ -159,7 +158,6 @@ export const TicketUpdateManyInputSchema = z.strictObject({
 	tickets: TicketBatchSchema,
 	status: StatusRefStringSchema.optional(),
 	priority: PrioritySchema.optional(),
-	project: ProjectRefStringSchema.optional(),
 	parent: TicketRefStringSchema.nullable().optional(),
 	epic: EpicRefStringSchema.nullable().optional(),
 	wave: WaveRefStringSchema.nullable().optional(),

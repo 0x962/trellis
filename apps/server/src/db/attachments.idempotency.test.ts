@@ -6,15 +6,14 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { upload } from "../services/attachments.ts";
 import type { ServiceCtx } from "../services/support.ts";
-import { migrate } from "./migrate.ts";
 import { withTx } from "./tx.ts";
 
 const at = new Date("2026-09-17T06:00:00.000Z");
 
 describe("attachments.upload idempotency", () => {
 	test("one client attachment id creates one row across a repeated request", async () => {
-		const { openDb } = await import("./client.ts");
-		const db = await openDb(":memory:");
+		const { openTestDb } = await import("./testDb.ts");
+		const db = await openTestDb();
 		const home = mkdtempSync(join(tmpdir(), "trellis-attachment-idempotency-"));
 		const projectId = ulid();
 		const statusId = ulid();
@@ -42,18 +41,17 @@ describe("attachments.upload idempotency", () => {
 		mkdirSync(join(home, "attachments", "tmp"), { recursive: true });
 
 		try {
-			await migrate(db);
 			await db.execute(sql`
-				INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-				VALUES (${projectId}, ${projectId}, 'TST', 'test', 'Test', ${at}, ${at})
+				INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+				VALUES (${projectId}, 'TST', 'test', 'Test', ${at}, ${at})
 			`);
 			await db.execute(sql`
 				INSERT INTO statuses (id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
 				VALUES (${statusId}, ${projectId}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})
 			`);
 			await db.execute(sql`
-				INSERT INTO tickets (id, project_id, root_id, number, title, status_id, position, created_at, updated_at)
-				VALUES (${ticketId}, ${projectId}, ${projectId}, 1, 'Test', ${statusId}, 0, ${at}, ${at})
+				INSERT INTO tickets (id, project_id, number, title, status_id, position, created_at, updated_at)
+				VALUES (${ticketId}, ${projectId}, 1, 'Test', ${statusId}, 0, ${at}, ${at})
 			`);
 			const input = {
 				id: uploadId,
@@ -77,8 +75,8 @@ describe("attachments.upload idempotency", () => {
 	});
 
 	test("one client attachment id rejects different bytes", async () => {
-		const { openDb } = await import("./client.ts");
-		const db = await openDb(":memory:");
+		const { openTestDb } = await import("./testDb.ts");
+		const db = await openTestDb();
 		const home = mkdtempSync(join(tmpdir(), "trellis-attachment-idempotency-"));
 		const projectId = ulid();
 		const statusId = ulid();
@@ -106,18 +104,17 @@ describe("attachments.upload idempotency", () => {
 		mkdirSync(join(home, "attachments", "tmp"), { recursive: true });
 
 		try {
-			await migrate(db);
 			await db.execute(sql`
-				INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-				VALUES (${projectId}, ${projectId}, 'TST', 'test', 'Test', ${at}, ${at})
+				INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+				VALUES (${projectId}, 'TST', 'test', 'Test', ${at}, ${at})
 			`);
 			await db.execute(sql`
 				INSERT INTO statuses (id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
 				VALUES (${statusId}, ${projectId}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})
 			`);
 			await db.execute(sql`
-				INSERT INTO tickets (id, project_id, root_id, number, title, status_id, position, created_at, updated_at)
-				VALUES (${ticketId}, ${projectId}, ${projectId}, 1, 'Test', ${statusId}, 0, ${at}, ${at})
+				INSERT INTO tickets (id, project_id, number, title, status_id, position, created_at, updated_at)
+				VALUES (${ticketId}, ${projectId}, 1, 'Test', ${statusId}, 0, ${at}, ${at})
 			`);
 			const firstInput = {
 				id: uploadId,

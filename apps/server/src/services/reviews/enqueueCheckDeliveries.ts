@@ -9,12 +9,14 @@ import { recipientsOf } from "./enqueueReviewDeliveries.ts";
 // be sent, and `dispatchDeliveries` sends it. A ticket whose agent does not
 // run keeps the message in the state `held`, and the next run of that
 // ticket reads it. A pull request that no ticket links gets no notice row:
-// the person reads the checks on the page.
+// the person reads the checks on the page. A notice describes the pull
+// request and no agent writes it, so it has no author and it reaches every
+// ticket.
 export const enqueueCheckDeliveries = async (
 	tx: Tx,
 	input: { prId: string; headSha: string; kind: CheckNoticeKind; checks: NoticeCheck[]; at: Date },
 ) => {
-	const recipients = await recipientsOf(tx, { prId: input.prId });
+	const recipients = await recipientsOf(tx, { prId: input.prId, author: null });
 	if (recipients.length === 0) return recipients;
 	const noticeId = ulid();
 	await tx.execute(

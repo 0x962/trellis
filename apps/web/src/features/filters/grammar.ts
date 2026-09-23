@@ -16,7 +16,6 @@ import { searchParamOrder } from "../../lib/searchParams";
 import type { Density } from "../../stores/uiStore";
 
 export type Group = "none" | "status" | "priority" | "project" | "parent" | "epic" | "wave" | "turn" | "pr";
-export type Scope = "subprojects" | "self";
 
 // The list fields a chip can negate. `not` names the fields whose value
 // set carries the leading `!` in the URL.
@@ -61,7 +60,6 @@ export type View = {
 	// carries the field only for the Resources tab. Every other route
 	// drops it.
 	tab?: "resources";
-	scope: Scope;
 	density: Density;
 	limit: number;
 	not?: NegatableField[];
@@ -70,7 +68,6 @@ export type View = {
 export const viewDefaults = {
 	sort: "-updatedAt",
 	group: "status",
-	scope: "self",
 	density: "comfortable",
 	limit: 50,
 } as const satisfies Partial<View>;
@@ -92,7 +89,6 @@ const groups: ReadonlySet<string> = new Set([
 	"turn",
 	"pr",
 ]);
-const scopes: ReadonlySet<string> = new Set(["subprojects", "self"]);
 const densities: ReadonlySet<string> = new Set(["comfortable", "compact"]);
 
 // A raw search value: the string a URL carries, or the typed value a Link
@@ -189,7 +185,6 @@ export const parseSearch = (params: Record<string, unknown>): View => {
 		group: group ?? viewDefaults.group,
 		closed: raw.closed === "hide" ? "hide" : undefined,
 		tab: raw.tab === "resources" ? "resources" : undefined,
-		scope: oneOf<Scope>(raw.scope, scopes) ?? viewDefaults.scope,
 		density: oneOf<Density>(raw.density, densities) ?? viewDefaults.density,
 		limit: Number.isInteger(limit) && limit >= 1 && limit <= 200 ? limit : viewDefaults.limit,
 	};
@@ -285,7 +280,6 @@ export const toListQuery = (view: View, options: ListQueryOptions = {}): ListQue
 		created: toInstant(view.created, now),
 		completed: toInstant(view.completed, now),
 		sort: view.sort,
-		subprojects: view.scope === "self" ? false : undefined,
 		limit: view.limit === viewDefaults.limit ? undefined : view.limit,
 	};
 	for (const key of Object.keys(query) as (keyof ListQueryInput)[]) {

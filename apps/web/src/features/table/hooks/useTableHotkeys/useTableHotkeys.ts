@@ -123,7 +123,6 @@ export const useTableHotkeys = (controller: TableController) => {
 	useHotkey("s", useStableCallback(withFocused((id) => controller.openField(id, "status"))));
 	useHotkey("p", useStableCallback(withFocused((id) => controller.openField(id, "priority"))));
 	useHotkey("shift+p", useStableCallback(withFocused((id) => controller.openField(id, "parent"))));
-	useHotkey("m", useStableCallback(withFocused((id) => controller.openField(id, "project"))));
 	useHotkey("l", useStableCallback(withFocused((id) => controller.openField(id, "labels"))));
 	useHotkey("e", useStableCallback(withFocused((id) => controller.openField(id, "epic"))));
 	useHotkey("w", useStableCallback(withFocused((id) => controller.openField(id, "wave"))));

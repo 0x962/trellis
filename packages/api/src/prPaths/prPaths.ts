@@ -19,6 +19,19 @@ export const changedFilePaths = (files: ChangedFile[]): PrPath[] =>
 		removedLinesOnly: file.additions === 0 && file.deletions > 0,
 	}));
 
+// Why one path sits in the risk group. The words rank from the reason that
+// costs the most when it is wrong to the reason that costs the least.
+export const prRiskReasons = [
+	"secret",
+	"auth",
+	"migration",
+	"dependency",
+	"sharedType",
+	"publicApi",
+	"deletedTest",
+] as const;
+export type PrRiskReason = (typeof prRiskReasons)[number];
+
 export type PrPathFacts = {
 	risk: {
 		auth: PrRiskAnswer;
@@ -28,6 +41,9 @@ export type PrPathFacts = {
 		deletedTest: PrRiskAnswer;
 	};
 	groups: Record<string, PrPathGroup>;
+	// The reasons of each path, in the order of `prRiskReasons`. A path with no
+	// reason holds an empty list.
+	reasons: Record<string, PrRiskReason[]>;
 };
 
 type Rules = {
@@ -125,6 +141,9 @@ export function prPaths(repo: string, paths: PrPath[]): PrPathFacts {
 							: "behavior",
 		]),
 	);
+	const reasons = Object.fromEntries(
+		facts.map((fact): [string, PrRiskReason[]] => [fact.path, prRiskReasons.filter((reason) => fact[reason])]),
+	);
 	return {
 		risk: {
 			auth: yesNo(facts.some((fact) => fact.auth)),
@@ -134,5 +153,6 @@ export function prPaths(repo: string, paths: PrPath[]): PrPathFacts {
 			deletedTest: yesNo(facts.some((fact) => fact.deletedTest)),
 		},
 		groups,
+		reasons,
 	};
 }

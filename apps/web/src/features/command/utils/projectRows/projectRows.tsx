@@ -1,5 +1,5 @@
 import type { ProjectSummary } from "@trellis/api";
-import { projectSlashPath } from "../../../../lib/projectPath";
+
 import { ProjectKey } from "../../../shell/ProjectKey";
 import type { PaletteRow } from "../../rows";
 
@@ -13,8 +13,8 @@ export const projectRows = (
 	projects.map((project) => ({
 		value: value(project),
 		label: project.name,
-		sub: projectSlashPath(project.path),
+		sub: project.key,
 		leading: <ProjectKey projectKey={project.key} />,
-		keywords: [project.key, project.path, projectSlashPath(project.path)],
+		keywords: [project.key, project.key, project.key],
 		run: run(project),
 	}));

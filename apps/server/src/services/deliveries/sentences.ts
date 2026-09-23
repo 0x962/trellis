@@ -28,6 +28,11 @@ export const pullRequestEnded = "The pull request merged or closed before this m
 // the pull request has moved on by then.
 export const waitedTooLong = "No agent of this ticket ran within a day, so this message never left.";
 
+// The sentence for a message that the agent of its ticket wrote itself.
+// The agent reads its own comment on the review page, so Trellis does not
+// stop its work to repeat it.
+export const ownAuthor = "The agent of this ticket wrote this message, so Trellis did not send it back.";
+
 // The sentence for a message whose ticket holds a run that another program
 // started. Trellis writes into the terminal of a run that it starts
 // itself, so it cannot reach such an agent. The person reads the pull

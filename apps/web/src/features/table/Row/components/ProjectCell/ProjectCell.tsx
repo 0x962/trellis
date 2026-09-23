@@ -1,60 +1,15 @@
-import type { ProjectSummary } from "@trellis/api";
-import { Tooltip } from "@trellis/ui";
-import type { RefObject } from "react";
-import { projectSlashPath } from "../../../../../lib/projectPath";
-import { ProjectPicker } from "../../../../pickers/ProjectPicker";
 import { ProjectKey } from "../../../../shell/ProjectKey";
-import { cellButtonClass } from "../../cellButtonClass";
 
 export type ProjectCellProps = {
-	// The ticket's project ref, `CDE.web`. Its first segment is the key.
-	path: string;
-	// The viewed project ref, or undefined on /all.
+	// The key of the ticket's project.
+	projectKey: string;
+	// The key of the viewed project, or undefined on /all.
 	viewedProject?: string;
-	projects: readonly ProjectSummary[];
-	ticketRootIds: readonly string[];
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
-	onPick: (path: string) => void;
-	finalFocus: RefObject<HTMLElement | null>;
 };
 
-// The project of a row: the key and the last path segment ("CDE web"). In
-// a project scope every row shares the key, so the cell drops it, and the
-// viewed project itself reads as an empty cell. The Tooltip holds the full
-// path. A click or `m` opens the tree picker.
-export function ProjectCell({
-	path,
-	viewedProject,
-	projects,
-	ticketRootIds,
-	open,
-	onOpenChange,
-	onPick,
-	finalFocus,
-}: ProjectCellProps) {
-	const segments = path.split(".");
-	const inScope = viewedProject !== undefined;
-	const segment = path === viewedProject || segments.length === 1 ? "" : segments.at(-1)!;
-	return (
-		<Tooltip content={projectSlashPath(path)}>
-			<span className="inline-flex max-w-full min-w-0">
-				<ProjectPicker
-					projects={projects}
-					ticketRootIds={ticketRootIds}
-					value={path}
-					open={open}
-					onOpenChange={onOpenChange}
-					onPick={onPick}
-					finalFocus={finalFocus}
-					trigger={
-						<button type="button" aria-label={`Project: ${path}`} className={cellButtonClass}>
-							{!inScope && <ProjectKey projectKey={segments[0]!} />}
-							{segment !== "" && <span className="truncate text-sm text-fg-muted">{segment}</span>}
-						</button>
-					}
-				/>
-			</span>
-		</Tooltip>
-	);
+// The project of a row. Inside one project every row shares the key, so the
+// cell stays empty there.
+export function ProjectCell({ projectKey, viewedProject }: ProjectCellProps) {
+	if (viewedProject !== undefined) return null;
+	return <ProjectKey projectKey={projectKey} />;
 }

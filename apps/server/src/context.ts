@@ -21,8 +21,8 @@ export type RequestContext = {
 };
 
 // The request context plus the process state a service needs. `emit` is the
-// event collector of the open transaction. `cache` is the project tree with
-// the status sets. `actorCache` maps `kind:name` to the last instant the
+// event collector of the open transaction. `cache` holds every project and
+// every status set. `actorCache` maps `kind:name` to the last instant the
 // actor row was written. `dropBlobs` queues the blob files of these hashes
 // for removal after the commit. A file stays when an attachment, pull request
 // file, or epic resource row still names it. A rolled back transaction

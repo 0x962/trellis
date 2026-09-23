@@ -5,7 +5,7 @@ export type ProjectKeyProps = {
 	className?: string;
 };
 
-// A root project's key as a small mono tag: `CDE`.
+// A project key as a small mono tag: `CDE`.
 export function ProjectKey({ projectKey, className }: ProjectKeyProps) {
 	return (
 		<span

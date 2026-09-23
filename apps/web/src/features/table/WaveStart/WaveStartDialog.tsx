@@ -3,6 +3,7 @@ import { Dialog, StartControls, TicketId } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { LaunchFields } from "../../agents/LaunchFields";
+import { startedRunList, startWave } from "./startWave";
 import { startLabel, type WavePlan, wavePlan } from "./wavePlan";
 
 export type WaveStartDialogProps = {
@@ -60,19 +61,22 @@ function WaveStartForm({
 	const start = async () => {
 		setSent(plan);
 		setStarting(true);
-		const settled = await Promise.allSettled(
-			targets.map((ticket) =>
+		const started = await startWave(targets, {
+			start: (ticket) =>
 				client.agentRuns.start({ ticket: ticket.identifier, harness, requestId: `${batch}:${ticket.id}` }),
-			),
-		);
-		const next = { ...results };
-		settled.forEach((outcome, index) => {
-			next[targets[index]!.id] = outcome.status === "fulfilled" ? null : (outcome.reason as Error).message;
+			// The server answers with the run in the state `starting`, and the
+			// table reads `agentRuns.list { assigned: true }`. This write puts
+			// the agent on its ticket row as the call returns, and not at the
+			// next poll of that query up to 2 s later.
+			showRun: (run) =>
+				queryClient.setQueryData(orpc.agentRuns.list.queryOptions({ input: { assigned: true } }).queryKey, (current) =>
+					startedRunList(current, run),
+				),
+			report: (ticketId, error) => setResults((current) => ({ ...current, [ticketId]: error })),
 		});
-		setResults(next);
 		setStarting(false);
 		void queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
-		if (Object.values(next).every((error) => error === null)) onClose();
+		if (started) onClose();
 	};
 
 	return (

@@ -86,7 +86,7 @@ export function AgentMark({
 			<g className="agent-static">
 				<Artwork {...appearance} />
 			</g>
-			{mode !== "static" && (
+			{mode === "working" && (
 				<g className="agent-effect">
 					{artworkMotion && artwork}
 					<Glimmer id={id}>{artwork}</Glimmer>

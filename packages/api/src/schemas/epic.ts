@@ -2,7 +2,7 @@ import { z } from "zod";
 import { EpicRefStringSchema, ProjectRefStringSchema } from "../refs.ts";
 import { ActorRefSchema } from "./actor.ts";
 import { EpicCountsSchema, EpicStateSchema } from "./epicCounts.ts";
-import { booleanString, IsoDateTimeSchema, slugPattern, UlidSchema } from "./primitives.ts";
+import { booleanString, IsoDateTimeSchema, KeySchema, slugPattern, UlidSchema } from "./primitives.ts";
 import { TicketSummarySchema } from "./ticket.ts";
 import { WaveLinkSchema, WaveSummarySchema } from "./wave.ts";
 
@@ -11,8 +11,8 @@ export { type EpicLink, EpicLinkSchema } from "./epicLink.ts";
 
 // An epic groups the tickets that deliver one plan inside a project. Its
 // `description` holds the plan as markdown. An epic is its own record, not
-// a ticket. A ticket belongs to at most one epic, and the epic shares the
-// root project of the ticket. The state of an epic derives from its tickets
+// a ticket. A ticket belongs to at most one epic, and the epic sits in the
+// project of the ticket. The state of an epic derives from its tickets
 // and is never stored.
 
 export const EPIC_NAME_MAX = 120;
@@ -41,7 +41,7 @@ export const EpicSlugSchema = z
 export const EpicSummarySchema = z.object({
 	id: UlidSchema,
 	projectId: UlidSchema,
-	projectPath: z.string().min(1),
+	projectKey: KeySchema,
 	ref: z.string().min(1),
 	slug: EpicSlugSchema,
 	name: z.string().min(1),

@@ -26,7 +26,7 @@ export const projects = {
 		.output(ProjectSchema),
 	create: base
 		.errors(pickErrors(["DUPLICATE", "PROJECT_ARCHIVED"]))
-		.route({ method: "POST", path: "/projects", successStatus: 201, summary: "Create a root or a sub-project" })
+		.route({ method: "POST", path: "/projects", successStatus: 201, summary: "Create a project" })
 		.input(ProjectCreateInputSchema)
 		.output(ProjectSchema),
 	update: base
@@ -35,8 +35,8 @@ export const projects = {
 		.input(ProjectUpdateInputSchema)
 		.output(ProjectSchema),
 	move: base
-		.errors(pickErrors(["CROSS_ROOT_MOVE", "PARENT_CYCLE", "INVALID_ANCHOR", "DUPLICATE", "PROJECT_ARCHIVED"]))
-		.route({ method: "POST", path: "/projects/{project}/move", summary: "Re-parent or reorder a project" })
+		.errors(pickErrors(["INVALID_ANCHOR", "PROJECT_ARCHIVED"]))
+		.route({ method: "POST", path: "/projects/{project}/move", summary: "Reorder a project" })
 		.input(ProjectMoveInputSchema)
 		.output(ProjectSchema),
 	delete: base

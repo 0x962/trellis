@@ -31,7 +31,7 @@ const printLabel = (ctx: CliContext, label: Label, groups: LabelGroup[]): void =
 };
 
 const list = defineCommand({
-	meta: { name: "list", description: "List the labels of a project tree" },
+	meta: { name: "list", description: "List the labels of a project" },
 	args: { project },
 	async run(context) {
 		const ctx = contextOf(context);

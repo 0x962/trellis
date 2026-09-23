@@ -24,7 +24,7 @@ const sorts: Record<SortValue, Sort> = { updated: "-updatedAt", priority: "prior
 export const sortOf = (sort: SortValue): Sort => sorts[sort];
 
 export type ListQueryArgs = {
-	// The canonical project path, such as CDE.web.
+	// The canonical project ref, such as CDE.
 	project: string;
 	segment: Segment;
 	sort: SortValue;
@@ -37,7 +37,6 @@ export type ListQueryArgs = {
 // one spelling the server prints.
 export const listQueryInput = ({ project, segment, sort, cursor }: ListQueryArgs): ListQueryInput => ({
 	project: ProjectRefSchema.canonicalize(project),
-	subprojects: false,
 	category: categoryOf(segment),
 	sort: sortOf(sort),
 	limit: pageLimit,

@@ -6,12 +6,8 @@ import { TreeRow } from "./TreeRow";
 const project = {
 	id: "01M24SPHTX36AJ3VKTNZ263E7V",
 	key: "TRL",
-	path: "TRL",
-	parentId: null,
-	rootId: "01M24SPHTX36AJ3VKTNZ263E7V",
 	slug: "trellis",
 	name: "Trellis",
-	depth: 0,
 	position: 0,
 	openCount: 12,
 	openEpicCount: 3,
@@ -19,7 +15,7 @@ const project = {
 } satisfies ProjectSummary;
 
 test("the project row toggles collapse without a link or caret slot", () => {
-	const html = renderToStaticMarkup(<TreeRow project={project} depth={0} expanded={false} onToggle={() => {}} />);
+	const html = renderToStaticMarkup(<TreeRow project={project} expanded={false} onToggle={() => {}} />);
 
 	expect(html).toContain('<button type="button" aria-expanded="false"');
 	expect(html).toContain(">Trellis<");

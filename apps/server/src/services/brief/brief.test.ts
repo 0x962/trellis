@@ -15,7 +15,7 @@ const input = {
 	identifier: "OP-27",
 	title: "Bound the Operator message post",
 	description: "The post waits forever when the thread never answers.\n",
-	projectPath: "OP",
+	projectKey: "OP",
 	branch: "trellis/op-27-01m2s1scg7ppywezh4b5m8ez4y",
 	publicUrl: "http://127.0.0.1:4521",
 };
@@ -47,7 +47,8 @@ test("an assignment names the ticket, the branch, and the trellis commands", () 
 			"Work on the branch named above. Use the trellis CLI to report progress:",
 			"",
 			"- Start: trellis move OP-27 in-progress",
-			"- Link each pull request you open: trellis pr add OP-27 <url>. It starts as a draft.",
+			"- Open a normal pull request on GitHub and link it: trellis pr add OP-27 <url>.",
+			"  It waits in Trellis until you ask for review.",
 			"- When the work is complete and you want the person to review it, run: trellis ready <pr>",
 			'- Split the work: trellis sub OP-27 -t "..."',
 			"",
@@ -94,7 +95,7 @@ const member = (id: string, identifier: string, title: string, status: string, w
 const epic: Epic = {
 	id: "01J00000000000000000000010",
 	projectId: "01J00000000000000000000001",
-	projectPath: "OP",
+	projectKey: "OP",
 	ref: "OP/routine-runtime",
 	slug: "routine-runtime",
 	name: "Routine runtime",
@@ -236,8 +237,8 @@ test("the results section lists the done tickets of each earlier wave with their
 test("the brief prints a stable contract and the two evidence lines above the chain", async () => {
 	const db = await openTestDb();
 	const rootId = ulid();
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${rootId}, ${rootId}, 'BRF', 'brf', 'Brief', '2026-09-20T10:00:00Z', '2026-09-20T10:00:00Z')`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${rootId}, 'BRF', 'brf', 'Brief', '2026-09-20T10:00:00Z', '2026-09-20T10:00:00Z')`);
 	await db.execute(sql`INSERT INTO repos (id, project_id, owner, repo)
 		VALUES (${ulid()}, ${rootId}, 'example', 'trellis')`);
 	await db.execute(sql`INSERT INTO statuses

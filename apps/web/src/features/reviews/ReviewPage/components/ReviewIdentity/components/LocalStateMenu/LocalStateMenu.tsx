@@ -13,9 +13,9 @@ export type LocalStateMenuProps = {
 };
 
 export const localStateItem = (localState: LocalPrState): { label: string; next: LocalPrState } =>
-	localState === "draft"
-		? { label: "Mark ready for review", next: "ready" }
-		: { label: "Mark as draft", next: "draft" };
+	localState === "ready"
+		? { label: "Mark as not ready for review", next: "not-ready" }
+		: { label: "Ask for review", next: "ready" };
 
 // The ⋯ menu of the pull request sheet. The server event of the write
 // refetches every row, so the glyph on the epic page, the ticket page, the

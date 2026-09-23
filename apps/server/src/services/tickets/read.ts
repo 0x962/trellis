@@ -43,31 +43,26 @@ const statusIdsOf = async (ctx: ServiceCtx, tx: Tx, refs: string[], projectId: s
 	const candidates: StatusLike[] =
 		projectId === null
 			? await rows<StatusLike>(tx, sql`SELECT id, slug, name, category FROM statuses ORDER BY position, id`)
-			: ctx.cache.effectiveStatuses(projectId).statuses;
+			: ctx.cache.statusesOf(projectId);
 	const ids = refs.flatMap((raw) => {
 		const parsed = StatusRefSchema.safeParse(raw);
 		const found = parsed.success ? candidates.filter((status) => namesStatus(status, parsed.data)) : [];
 		if (found.length > 0) return found.map((status) => status.id);
 		if (projectId === null) throw invalidInput("status", `No status matches "${raw}".`);
-		throw fail("STATUS_NOT_IN_PROJECT", { valid: ctx.cache.effectiveStatuses(projectId).statuses.map(toSummary) });
+		throw fail("STATUS_NOT_IN_PROJECT", { valid: ctx.cache.statusesOf(projectId).map(toSummary) });
 	});
 	return [...new Set(ids)];
 };
 
-// The flat query grammar with every ref resolved to ids. `project` becomes
-// the subtree, or the one project when `subprojects` is false. The project
-// cache gives the subtree and the root with no statement. The root lets the
-// query use the partial indexes of tickets, which start with root_id.
+// The flat query grammar with every ref resolved to ids. One project id
+// lets the query use the partial indexes of tickets, which start with
+// project_id.
 const toFilter = async (ctx: ServiceCtx, tx: Tx, query: Query) => {
 	const filter: TicketFilter = {};
 	let projectId: string | null = null;
-	let rootId: string | null = null;
 	if (query.project !== undefined) {
-		const project = await resolveProject(ctx, tx, query.project);
-		projectId = project.id;
-		rootId = project.rootId;
-		filter.rootIds = [project.rootId];
-		filter.projectIds = query.subprojects ? ctx.cache.resolveSubtree(projectId) : [projectId];
+		projectId = (await resolveProject(ctx, tx, query.project)).id;
+		filter.projectIds = [projectId];
 	}
 	// The query string `status=` parses to an empty list. That list names no
 	// status, and the status statement needs one ref at least.
@@ -76,20 +71,19 @@ const toFilter = async (ctx: ServiceCtx, tx: Tx, query: Query) => {
 	if (query.category !== undefined) filter.categories = query.category;
 	if (query.reviewer !== undefined) filter.reviewer = query.reviewer;
 	if (query.priority !== undefined) filter.priority = query.priority;
-	// The root project of a tree owns its labels, so a label ref resolves
-	// inside the root of the project the query names. A query with no project
-	// reads every root, and a name there matches the label of that name in each
-	// of them. The value `none` names no label: it keeps the tickets that hold
-	// no label at all.
+	// A project owns its labels, so a label ref resolves inside the project
+	// the query names. A query with no project reads every project, and a name
+	// there matches the label of that name in each of them. The value `none`
+	// names no label: it keeps the tickets that hold no label at all.
 	if (query.label?.length === 0) throw invalidInput("label", "Name one label at least.");
 	if (query.label !== undefined) {
 		const refs = query.label.filter((ref) => ref !== "none");
 		if (refs.length < query.label.length) filter.noLabel = true;
-		if (refs.length > 0) filter.labelIds = await labelFilterIds(ctx, tx, refs, rootId);
+		if (refs.length > 0) filter.labelIds = await labelFilterIds(ctx, tx, refs, projectId);
 	}
 	if (query.labelNot?.length === 0) throw invalidInput("labelNot", "Name one label at least.");
 	if (query.labelNot?.includes("none")) throw invalidInput("labelNot", "Name a label. `none` has no meaning here.");
-	if (query.labelNot !== undefined) filter.labelNotIds = await labelFilterIds(ctx, tx, query.labelNot, rootId);
+	if (query.labelNot !== undefined) filter.labelNotIds = await labelFilterIds(ctx, tx, query.labelNot, projectId);
 	if (query.parent !== undefined) {
 		filter.parent = query.parent === "none" ? "none" : (await resolveTicket(ctx, tx, query.parent)).id;
 	}
@@ -111,11 +105,11 @@ const toFilter = async (ctx: ServiceCtx, tx: Tx, query: Query) => {
 	return { filter, projectId };
 };
 
-// The columns of a board or a count: the effective statuses of the project,
-// or every status when the query names no project. The project cache holds
-// every status set, so a project's columns cost no statement.
+// The columns of a board or a count: the statuses of the project, or every
+// status when the query names no project. The project cache holds every
+// status set, so a project's columns cost no statement.
 const columnStatusIds = async (ctx: ServiceCtx, tx: Tx, projectId: string | null) => {
-	if (projectId !== null) return ctx.cache.effectiveStatuses(projectId).statuses.map((status) => status.id);
+	if (projectId !== null) return ctx.cache.statusesOf(projectId).map((status) => status.id);
 	const found = await rows<{ id: string }>(tx, sql`SELECT id FROM statuses ORDER BY position, id`);
 	return found.map((row) => row.id);
 };

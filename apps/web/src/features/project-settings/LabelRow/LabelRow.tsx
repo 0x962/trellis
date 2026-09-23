@@ -8,10 +8,10 @@ import { LabelEditor } from "../LabelEditor";
 import { labelWriteMessage } from "../labelWriteMessage";
 
 export type LabelRowProps = {
-	// A project path. The root project of its tree owns the label.
+	// The key of the project that owns the label.
 	project: string;
 	label: Label;
-	// Every group of the project tree. The row menu offers each one that does
+	// Every group of the project. The row menu offers each one that does
 	// not already hold this label.
 	groups: readonly LabelGroup[];
 	// True sets the row one step in, under the heading of its group.

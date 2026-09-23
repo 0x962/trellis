@@ -27,7 +27,7 @@ export default defineCommand({
 		const ctx = contextOf(context);
 		const { args } = context;
 		const client = clientOf(ctx);
-		const project = args.project ?? (await client.tickets.get({ ticket: args.ticket })).project.path;
+		const project = args.project ?? (await client.tickets.get({ ticket: args.ticket })).project.key;
 		const ticket = await client.tickets.create(
 			compact({
 				project,

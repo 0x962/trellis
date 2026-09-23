@@ -34,7 +34,7 @@ Check `df -h /System/Volumes/Data` before a production build. A build needs at l
 
 ## Repository access
 
-Trellis automatically trusts configured project repositories and directories required by assigned work. Do not ask for a separate repository or directory trust approval. A subproject with no directory uses its nearest configured parent directory. Ask for a repository location only when neither project context nor an ancestor identifies it.
+Trellis automatically trusts configured project repositories and directories required by assigned work. Do not ask for a separate repository or directory trust approval. Ask for a repository location only when the project names none.
 
 ## Prose and comments
 

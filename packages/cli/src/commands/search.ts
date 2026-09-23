@@ -6,10 +6,10 @@ import { cell, heading, json, type ListSpec, printList, renderTable, ticketList 
 
 const projectHits: ListSpec<ProjectSummary> = {
 	columns: [
-		{ name: "path", value: (row) => row.path },
+		{ name: "key", value: (row) => row.key },
 		{ name: "name", value: (row) => cell(row.name) },
 	],
-	identifier: (row) => row.path,
+	identifier: (row) => row.key,
 };
 
 export default defineCommand({

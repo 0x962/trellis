@@ -66,7 +66,7 @@ const selectDue = async (tx: Tx, at: Date): Promise<Due[]> => {
 			decideConflictNotice(subject, conflictNotices),
 		].filter((decision) => decision !== null);
 		if (decisions.length === 0) continue;
-		if ((await recipientsOf(tx, { prId: subject.id })).length === 0) continue;
+		if ((await recipientsOf(tx, { prId: subject.id, author: null })).length === 0) continue;
 		for (const decision of decisions) due.push({ subject, decision });
 	}
 	return due;

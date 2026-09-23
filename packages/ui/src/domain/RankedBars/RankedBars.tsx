@@ -6,7 +6,7 @@ import { type ChartTone, chartBgClass } from "../chartTones";
 export type RankedBarRow = {
 	key: string;
 	label: string;
-	// A second line under the label: a ticket title, a project path.
+	// A second line under the label: a ticket title, a project key.
 	detail?: ReactNode;
 	value: number;
 	// The formatted value, printed at the right.

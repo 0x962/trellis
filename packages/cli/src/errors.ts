@@ -17,11 +17,10 @@ const exitCodes: Record<ErrorCode, number> = {
 	STATUS_NOT_IN_PROJECT: 4,
 	STATUS_IN_USE: 4,
 	LAST_STATUS: 4,
-	ROOT_STATUSES: 4,
 	STATUS_CATEGORY_IMMUTABLE: 4,
 	LABEL_AMBIGUOUS: 4,
 	LABEL_GROUP_CONFLICT: 4,
-	CROSS_ROOT_MOVE: 4,
+	CROSS_PROJECT_LINK: 4,
 	WAVE_OUTSIDE_EPIC: 4,
 	PARENT_CYCLE: 4,
 	DEPENDENCY_CYCLE: 4,
@@ -33,6 +32,7 @@ const exitCodes: Record<ErrorCode, number> = {
 	PR_HEAD_MOVED: 4,
 	VERSION_CONFLICT: 4,
 	FLOW_VERSION_CONFLICT: 4,
+	FLOW_NOT_IN_PROJECT: 4,
 	SESSION_ATTENTION_CHANGED: 4,
 	PAYLOAD_TOO_LARGE: 4,
 	GH_UNAVAILABLE: 6,
@@ -141,7 +141,7 @@ const detail = (code: string, message: string, data: Data): string => {
 		case "LABEL_GROUP_CONFLICT":
 			return `${message} ${data.count} tickets hold both labels.`;
 		case "PROJECT_NOT_EMPTY":
-			return `${message} It holds ${data.tickets} tickets and ${data.projects} sub-projects.`;
+			return `${message} It holds ${data.tickets} tickets and ${data.flows} flows.`;
 		case "DUPLICATE":
 			return `${message} Field: ${data.field}.`;
 		case "PAYLOAD_TOO_LARGE":

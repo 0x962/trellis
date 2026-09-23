@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { errorMessage } from "../../../lib/conflict";
 import { formatCount } from "../../../lib/format";
-import { epicHref, projectHref } from "../../../lib/projectPath";
+import { epicHref, projectHref } from "../../../lib/projectUrl";
 import { useUiStore } from "../../../stores/uiStore";
 import { ArchivedBanner } from "../../project-actions";
 import { PageTitle } from "../../shell/PageTitle";
@@ -32,7 +32,7 @@ const collapsedByDefault: readonly string[] = ["done"];
 // text and not as a grid.
 const skeletonWidths = ["w-2/5", "w-1/2", "w-[30%]", "w-[45%]"];
 
-// The epics of a project and its sub-projects: the Open group, then the
+// The epics of a project: the Open group, then the
 // Done group, one dense row per epic. The server orders the rows: open
 // first, then by the time of the last change.
 export function EpicsPage({ project }: EpicsPageProps) {
@@ -40,9 +40,9 @@ export function EpicsPage({ project }: EpicsPageProps) {
 	const navigate = useNavigate();
 	const density = useUiStore((state) => state.density);
 	const readOnly = project.archivedAt !== null;
-	const epicsOptions = orpc.epics.list.queryOptions({ input: { project: project.path } });
+	const epicsOptions = orpc.epics.list.queryOptions({ input: { project: project.key } });
 	const epics = useQuery(epicsOptions);
-	const routeKey = projectHref(project.path, "epics");
+	const routeKey = projectHref(project.key, "epics");
 	const { isCollapsed, toggle } = useCollapsedGroups(routeKey, collapsedByDefault);
 	const [editor, setEditor] = useState<{ epic?: EpicSummary } | null>(null);
 	const [deleting, setDeleting] = useState<EpicSummary | null>(null);
@@ -168,7 +168,7 @@ export function EpicsPage({ project }: EpicsPageProps) {
 					onClose={() => setEditor(null)}
 					// A new epic opens on its page, where the tickets join it.
 					onSaved={(saved) => {
-						if (editor.epic === undefined) void navigate({ href: epicHref(saved.projectPath, saved.slug) });
+						if (editor.epic === undefined) void navigate({ href: epicHref(saved.projectKey, saved.slug) });
 					}}
 				/>
 			)}

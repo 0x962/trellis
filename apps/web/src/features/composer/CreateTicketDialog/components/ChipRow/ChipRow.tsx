@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { useArchivedProjects } from "../../../../../hooks/useArchivedProjects";
 import { useApp } from "../../../../../lib/appContext";
 import { labelNames } from "../../../../../lib/labelNames";
-import { projectSlashPath } from "../../../../../lib/projectPath";
+
 import { EpicPicker } from "../../../../pickers/EpicPicker";
 import { LabelPicker } from "../../../../pickers/LabelPicker";
 import { PriorityPicker, priorityLabels } from "../../../../pickers/PriorityPicker";
@@ -82,8 +82,8 @@ const chip = ({ label, icon, children, unset = false, invalid = false, disabled 
 // The property chips under the description: project, status, priority,
 // parent, labels, and, for a ticket that joins an epic, the epic and the
 // wave. Each one opens the same picker the rail and the table
-// use. The labels of a tree belong to its root project, so the labels chip
-// waits for a project.
+// use. The labels belong to a project, so the labels chip waits for a
+// project.
 export function ChipRow({
 	project,
 	projectMissing,
@@ -107,9 +107,9 @@ export function ChipRow({
 	const { isArchived } = useArchivedProjects();
 	// An archived project takes no new ticket, so the picker leaves it out.
 	const projects = (useQuery(orpc.projects.list.queryOptions({ input: {} })).data ?? []).filter(
-		(entry) => !isArchived(entry.path),
+		(entry) => !isArchived(entry.key),
 	);
-	const projectName = project === undefined ? "Choose a project" : projectSlashPath(project);
+	const projectName = project === undefined ? "Choose a project" : project;
 	const parentName = parent?.identifier ?? parentRef;
 	// `epics.get` carries the epic name and the wave names of the chips.
 	const epicRecord = useQuery({

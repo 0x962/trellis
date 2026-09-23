@@ -73,7 +73,7 @@ export function Description({ ticket, onAttachFiles }: DescriptionProps) {
 	}, []);
 
 	// A ticket under an archived project takes no write, so `e` opens no editor.
-	const readOnly = useArchivedProjects().isArchived(ticket.project.path);
+	const readOnly = useArchivedProjects().isArchived(ticket.project.key);
 	useHotkey("e", (event) => {
 		if (readOnly) return;
 		event.preventDefault();

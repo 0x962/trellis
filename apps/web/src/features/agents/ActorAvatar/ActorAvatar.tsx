@@ -1,7 +1,7 @@
 import { Avatar } from "@trellis/ui";
 import { agentKindOf } from "../agentKindOf";
+import { agentMarkState } from "../agentMarkState";
 import { agentProfileOf } from "../agentProfileOf";
-import { isAgentWorking } from "../isAgentWorking";
 import { useAssignedRun } from "../useAssignedRun";
 
 // The agent run assigned to the ticket. Tickets do not belong to a person,
@@ -15,7 +15,7 @@ export function ActorAvatar({ ticketId }: { ticketId: string }) {
 			name={run.name}
 			agentKind={agentKindOf(run.kind)}
 			agentProfile={agentProfileOf(run.harness)}
-			state={isAgentWorking(run) ? "working" : "static"}
+			state={agentMarkState(run)}
 		/>
 	);
 }
