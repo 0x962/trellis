@@ -1,7 +1,6 @@
-import { Play, Stop, Ticket } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import { type AgentRun, hasAssignedProcess, type Session, sessionStatus } from "@trellis/api";
-import { Avatar, ConfirmDialog, EmptyState, IconButton, Tooltip } from "@trellis/ui";
+import { Avatar, ConfirmDialog, EmptyState } from "@trellis/ui";
 import { type RefObject, useCallback, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../../agents/agentKindOf";
@@ -10,10 +9,9 @@ import { isAgentWorking } from "../../agents/isAgentWorking";
 import { NativeTerminal } from "../../agents/NativeTerminal";
 import { useWorkspaceSummary } from "../../agents/useWorkspaceSummary";
 import { PendingQuestions } from "../PendingQuestions";
-import { SessionActionsMenu } from "../SessionActionsMenu";
-import { SessionNameField } from "../SessionNameField";
+import { SessionName } from "../SessionName";
 import { sessionStateLabel } from "../sessionStateLabel";
-import { SessionDetails } from "./components/SessionDetails";
+import { SessionBarActions } from "./components/SessionBarActions";
 import { SessionMeta } from "./components/SessionMeta";
 
 export function SessionConversation({
@@ -71,6 +69,17 @@ export function SessionConversation({
 	const busy = start.isPending || stop.isPending;
 	const error = start.error ?? stop.error;
 	const name = session?.name ?? run.ticketTitle ?? run.name;
+	const title = (
+		<h2
+			ref={heading}
+			tabIndex={-1}
+			title={name}
+			className="truncate rounded-sm text-sm font-medium tabular focus-visible:outline-2 focus-visible:outline-accent"
+			onDoubleClick={session ? () => setRenaming(true) : undefined}
+		>
+			{name}
+		</h2>
+	);
 	return (
 		<section aria-label={`${name} conversation`} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 			<div className="flex min-h-11 shrink-0 items-center gap-2 border-b border-border px-3">
@@ -84,56 +93,34 @@ export function SessionConversation({
 					className="size-7 shrink-0"
 				/>
 				<div className="flex min-w-0 flex-1 flex-col">
-					{session && renaming ? (
-						<SessionNameField
+					{session ? (
+						<SessionName
 							session={session}
-							className="max-w-80"
+							editing={renaming}
+							onEditingChange={setRenaming}
+							fieldClassName="max-w-80"
 							inputClassName="h-7 text-sm font-medium"
-							onCancel={() => setRenaming(false)}
-							onSaved={() => setRenaming(false)}
-						/>
-					) : (
-						<h2
-							ref={heading}
-							tabIndex={-1}
-							title={name}
-							className="truncate rounded-sm text-sm font-medium tabular focus-visible:outline-2 focus-visible:outline-accent"
 						>
-							{name}
-						</h2>
+							{title}
+						</SessionName>
+					) : (
+						title
 					)}
 					{native && <SessionMeta run={run} summary={summary} />}
 				</div>
 				<span className="text-xs text-fg-muted">{sessionStateLabel(run)}</span>
-				{native && run.workspaceId !== null && <SessionDetails run={run} summary={summary} />}
-				{onOpenTicket && run.ticketIdentifier && (
-					<Tooltip content={`Open ${run.ticketIdentifier}`}>
-						<IconButton label={`Open ${run.ticketIdentifier}`} icon={<Ticket />} onClick={onOpenTicket} />
-					</Tooltip>
-				)}
-				<Tooltip content={active ? (run.kind === "agent" ? "Remove assignment" : "Stop session") : "Resume session"}>
-					<IconButton
-						label={active ? (run.kind === "agent" ? "Remove assignment" : "Stop session") : "Resume session"}
-						icon={active ? <Stop /> : <Play />}
-						disabled={
-							readOnly ||
-							busy ||
-							run.runtime !== "native" ||
-							run.state === "starting" ||
-							(!active && !session && !run.terminalId)
-						}
-						onClick={() => {
-							if (active) setConfirmStop(true);
-							else start.mutate();
-						}}
-					/>
-				</Tooltip>
-				<SessionActionsMenu
+				<SessionBarActions
 					run={run}
 					session={session}
-					deleteDisabled={readOnly || busy}
-					onDeleted={onDeleted}
+					summary={summary}
+					active={active}
+					busy={busy}
+					readOnly={readOnly}
+					onOpenTicket={onOpenTicket}
+					onStart={() => start.mutate()}
+					onStop={() => setConfirmStop(true)}
 					onRename={session ? () => setRenaming(true) : undefined}
+					onDeleted={onDeleted}
 				/>
 			</div>
 			{run.switchedTo && (

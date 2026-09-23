@@ -7,6 +7,7 @@ import { SessionConversation } from "../../../../sessions/SessionConversation";
 import { PageSheet } from "../../../PageSheet";
 import { useShown } from "../../useShown";
 import { BrowserSheet } from "../BrowserSheet";
+import { SettingsSheet } from "../SettingsSheet";
 
 const sheetOpenMotionMs = () =>
 	Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--duration-peek"));
@@ -50,6 +51,7 @@ export function SessionSheet() {
 			{run !== null && (
 				<SessionConversation key={run.id} run={run} autoFocusTerminal autoFocusTerminalDelay={terminalFocusDelay} />
 			)}
+			<SettingsSheet at="session" />
 			<BrowserSheet at="session" />
 		</PageSheet>
 	);
