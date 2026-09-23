@@ -8,6 +8,7 @@ export { ChecksLineSection } from "./ChecksLineSection";
 export { FileRiskGroupsSection } from "./FileRiskGroupsSection";
 export { FlowRunSection } from "./FlowRunSection";
 export { LineChangesSection } from "./LineChangesSection";
+export { MergeConflictMarkSection } from "./MergeConflictMarkSection";
 export { PrGlyphSection } from "./PrGlyphSection";
 export { PriorityIconSection } from "./PriorityIconSection";
 export { ResourceListSection } from "./ResourceListSection";

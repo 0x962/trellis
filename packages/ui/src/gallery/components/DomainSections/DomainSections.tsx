@@ -9,6 +9,7 @@ import {
 	FileRiskGroupsSection,
 	FlowRunSection,
 	LineChangesSection,
+	MergeConflictMarkSection,
 	PrGlyphSection,
 	PriorityIconSection,
 	ResourceListSection,
@@ -33,6 +34,7 @@ export function DomainSections() {
 			<CheckConfettiSection />
 			<ChecksLineSection />
 			<PrGlyphSection />
+			<MergeConflictMarkSection />
 			<ActorChipSection />
 			<AgentProfileMarkSection />
 			<LineChangesSection />
