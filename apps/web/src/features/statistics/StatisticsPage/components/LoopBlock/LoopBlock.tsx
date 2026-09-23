@@ -3,13 +3,14 @@ import { PrGlyph } from "@trellis/ui";
 import { formatCount } from "../../../../../lib/format";
 import { SourceMark } from "../SourceMark";
 import { TicketCell } from "../TicketCell";
-import { rounds } from "./loopWords";
+import { readyToVerdict, rounds } from "./loopWords";
 
 const head = "px-2.5 py-1.5 text-left font-semibold text-fg-faint text-xs uppercase tracking-wide";
 const cell = "border-border border-t px-2.5 py-2 text-sm text-fg";
 
 export function LoopBlock({ loop }: { loop: StatisticsLoop }) {
 	const threads = loop.threadsByPerson + loop.threadsByAgent;
+	const wait = readyToVerdict(loop);
 	return (
 		<>
 			{loop.bill.length > 0 && (
@@ -67,9 +68,9 @@ export function LoopBlock({ loop }: { loop: StatisticsLoop }) {
 				</div>
 				<div className="flex items-baseline gap-2">
 					<dt className="text-fg-muted text-sm">Ready to your verdict</dt>
-					<dd className="flex items-baseline gap-2 text-fg-faint text-sm">
-						Not recorded. Nothing stamps the moment a pull request becomes ready, so the page prints no wait.
-						<SourceMark source="record" />
+					<dd className="flex items-baseline gap-2 text-fg text-sm tabular">
+						{wait.value} <span className="text-fg-faint">{wait.note}</span>
+						<SourceMark source="query" />
 					</dd>
 				</div>
 			</dl>

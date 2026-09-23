@@ -142,8 +142,8 @@ The rows of the epics list page use the `rowHeights`, the hover band, the cell t
 Block one lists every fault that no other screen reports: an agent run whose process is gone, a review message held or failed, and a flow run that waits or still runs.
 One row states one fault. It names the oldest case by ticket, counts the rest, and prints the age of that case. A fault with no case draws no row, and a page with no fault at all draws one line that says nothing is broken.
 Red marks a fault of the machine. Yellow marks the one fault a person clears, a held review message. Grey marks a flow run that still moves.
-Block two measures the review loop over the last 30 merged pull requests. It holds one table of the five changes that took the most review threads from the person, and three lines: the threads by author, the changes sent back and merged with no verdict, and the wait from ready to a verdict.
-Every figure carries a source mark: `today`, `query`, or `record`. `record` means no column holds the value, so the page prints no number for it. The page never estimates a figure.
+Block two measures the review loop over the last 30 merged pull requests. It holds one table of the five changes that took the most review threads from the person, and three lines: the threads by author, the changes sent back and merged with no verdict, and the median wait from ready to a verdict.
+Every figure carries a source mark: `today` or `query`. A figure that the rows cannot answer prints what is missing in place of a number, such as the wait over a window where too few pull requests carry the ready stamp. The page never estimates a figure.
 The page adds no second time window. At thirty merges a move of three is sampling, and the page cannot tell sampling from a change.
 
 ## Dense rows

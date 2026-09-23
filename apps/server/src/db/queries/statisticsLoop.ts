@@ -11,6 +11,8 @@ export type LoopTotals = {
 	withPersonVerdict: number;
 	threadsByPerson: number;
 	threadsByAgent: number;
+	readyToVerdictMs: number | null;
+	readyToVerdictMeasured: number;
 };
 
 // The newest merged pull requests, most recent first. The window is a count
@@ -40,6 +42,14 @@ const personSentBack = (prId: SQL) => sql`(
 // The counts of block two over one window of merged pull requests. Every
 // thread count reads `review_threads`. A submission document carries the
 // same threads inside it, so a count that reads both counts a thread twice.
+//
+// `readyToVerdictMs` is the median wait from the moment a pull request
+// became ready to the first verdict of a person on it. `pull_requests`
+// holds the start of that wait in `ready_for_review_at`, and a new head
+// commit clears it, so the stamp is the last moment the pull request asked
+// for a review. `readyToVerdictMeasured` says how many pull requests of the
+// window carry both the stamp and a verdict after it, which is the number
+// the median covers.
 export const loopTotals = async (tx: Tx, size: number): Promise<LoopTotals> => {
 	const [row] = await rows<LoopTotals>(
 		tx,
@@ -47,6 +57,18 @@ export const loopTotals = async (tx: Tx, size: number): Promise<LoopTotals> => {
 		verdicts AS (
 			SELECT ${personSentBack(sql`win.id`)} AS sent_back, ${personVerdicts(sql`win.id`)} AS given
 			FROM win
+		),
+		waits AS (
+			SELECT extract(epoch FROM (verdict.at - pr.ready_for_review_at)) * 1000 AS ms
+			FROM win
+			JOIN pull_requests pr ON pr.id = win.id
+			CROSS JOIN LATERAL (
+				SELECT min(submission.created_at) AS at
+				FROM review_submissions submission
+				WHERE submission.pr_id = win.id AND ${submissionByPerson(sql`submission`)}
+					AND submission.created_at >= pr.ready_for_review_at
+			) verdict
+			WHERE pr.ready_for_review_at IS NOT NULL AND verdict.at IS NOT NULL
 		),
 		threads AS (
 			SELECT
@@ -60,7 +82,9 @@ export const loopTotals = async (tx: Tx, size: number): Promise<LoopTotals> => {
 			(SELECT count(*) FROM verdicts WHERE sent_back > 0)::int AS "sentBack",
 			(SELECT count(*) FROM verdicts WHERE given > 0)::int AS "withPersonVerdict",
 			threads.by_person AS "threadsByPerson",
-			threads.by_agent AS "threadsByAgent"
+			threads.by_agent AS "threadsByAgent",
+			(SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY ms) FROM waits)::double precision AS "readyToVerdictMs",
+			(SELECT count(*) FROM waits)::int AS "readyToVerdictMeasured"
 		FROM threads`,
 	);
 	return row!;
@@ -82,10 +106,10 @@ export const loopBill = (tx: Tx, size: number, limit: number) =>
 		)
 		SELECT pr.id AS "prId",
 			(
-				SELECT root.key || '-' || ticket.number
+				SELECT proj.key || '-' || ticket.number
 				FROM ticket_pull_requests link
 				JOIN tickets ticket ON ticket.id = link.ticket_id
-				JOIN projects root ON root.id = ticket.project_id
+				JOIN projects proj ON proj.id = ticket.project_id
 				WHERE link.pull_request_id = pr.id
 				ORDER BY link.created_at ASC, ticket.id ASC
 				LIMIT 1
