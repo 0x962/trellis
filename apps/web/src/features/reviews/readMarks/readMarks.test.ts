@@ -1,15 +1,15 @@
 import { expect, test } from "bun:test";
-import {
-	fileShape,
-	isRead,
-	loadReadMarks,
-	type ReadMarkFile,
-	type ReadMarks,
-	saveReadMarks,
-	setReadMark,
-} from "./readMarks";
+import { patchDigest } from "@trellis/ui/review";
+import { isRead, loadReadMarks, type ReadMarkFile, type ReadMarks, saveReadMarks, setReadMark } from "./readMarks";
 
-const file: ReadMarkFile = { path: "apps/web/src/app.tsx", change: "change", additions: 12, deletions: 3 };
+const file: ReadMarkFile = {
+	path: "apps/web/src/app.tsx",
+	change: "change",
+	additions: 12,
+	deletions: 3,
+	binary: false,
+	digest: "1a2b3c",
+};
 
 const memoryStorage = (): Storage => {
 	const entries = new Map<string, string>();
@@ -44,27 +44,33 @@ test("the mark survives a revision that leaves the file alone", () => {
 	expect(isRead(marks, { ...file })).toBe(true);
 });
 
-test("the mark drops when the revision changes the line counts", () => {
+test("the mark drops when the revision changes the content of the file", () => {
 	const marks = setReadMark({}, file, true);
 
-	expect(isRead(marks, { ...file, additions: 13 })).toBe(false);
-	expect(isRead(marks, { ...file, deletions: 0 })).toBe(false);
+	expect(isRead(marks, { ...file, digest: "9f8e7d" })).toBe(false);
 });
 
-test("the mark drops when the revision changes how Git changed the file", () => {
-	const marks = setReadMark({}, file, true);
+// A rewrite that swaps one line for another line keeps the change word, the
+// added line count and the deleted line count. Only the patch text changes.
+test("the mark drops when a revision rewrites one line for another line", () => {
+	const before = `diff --git a/app.ts b/app.ts
+--- a/app.ts
++++ b/app.ts
+@@ -1,1 +1,1 @@
+-const limit = 10;
++const limit = 20;
+`;
+	const after = before.replace("+const limit = 20;", "+const limit = 30;");
+	const read = setReadMark({}, { ...file, digest: patchDigest(before) }, true);
 
-	expect(isRead(marks, { ...file, change: "new" })).toBe(false);
+	expect(isRead(read, { ...file, digest: patchDigest(before) })).toBe(true);
+	expect(isRead(read, { ...file, digest: patchDigest(after) })).toBe(false);
 });
 
 test("the mark of one file leaves another file unread", () => {
 	const marks = setReadMark({}, file, true);
 
 	expect(isRead(marks, { ...file, path: "apps/web/src/main.tsx" })).toBe(false);
-});
-
-test("the shape names the change and both line counts", () => {
-	expect(fileShape(file)).toBe("change:12:3");
 });
 
 test("a pull request with no stored marks loads an empty record", () => {

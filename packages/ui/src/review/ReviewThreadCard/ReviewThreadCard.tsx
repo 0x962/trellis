@@ -45,6 +45,14 @@ type Props = {
 	// it is not given.
 	canChange?: (id: string) => boolean;
 	actor?: string;
+	// The file and the line the thread points at, such as `src/app.ts:42`.
+	// The one line of a folded thread names it.
+	anchor?: string;
+	// Set when the file on screen holds the lines this thread was written
+	// against no more. `lines` is the text of those lines, and it is empty
+	// when Trellis kept the diff of that time no more. The card folds such a
+	// thread and prints those lines above it.
+	outdated?: { lines: string[] };
 };
 // The first line of a body, for the collapsed row of a resolved thread. A
 // body that opens with a suggestion block names the change instead.
@@ -52,6 +60,19 @@ const summaryOf = (body: string) => {
 	const first = body.split("\n")[0] ?? "";
 	return /^\s*(`{3,}|~{3,})\s*suggestion/i.test(first) ? "Suggested change" : first;
 };
+
+// The one line of a folded thread: why it is folded, who wrote it, the file
+// and the line it points at, and the words it opens with.
+const foldedLine = (thread: Props["thread"], anchor: string | undefined, outdated: boolean, body: string): string =>
+	[
+		outdated ? "Outdated" : null,
+		thread.status === "resolved" ? `Resolved by ${thread.resolvedBy}` : null,
+		thread.author,
+		anchor,
+		summaryOf(body),
+	]
+		.filter((part) => part !== null && part !== undefined && part !== "")
+		.join(" · ");
 
 export function ReviewThreadCard({
 	thread,
@@ -63,6 +84,8 @@ export function ReviewThreadCard({
 	onDelete,
 	canChange = () => true,
 	actor,
+	anchor,
+	outdated,
 }: Props) {
 	const root = useRef<HTMLElement>(null);
 	const replyInput = useRef<HTMLTextAreaElement>(null);
@@ -77,6 +100,10 @@ export function ReviewThreadCard({
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [expanded, setExpanded] = useState(false);
+	// A resolved thread and a thread the file on screen holds no more both
+	// open as one line, so neither takes the room of a thread the reader must
+	// still act on.
+	const folded = thread.status === "resolved" || outdated !== undefined;
 	const run = async (action: () => Promise<unknown>) => {
 		setBusy(true);
 		setError(null);
@@ -96,17 +123,23 @@ export function ReviewThreadCard({
 			id={`thread-${thread.id}`}
 			aria-label={`Thread by ${thread.author}`}
 		>
-			{thread.status === "resolved" && (
+			{folded && (
 				<button
 					type="button"
 					className="review-resolved"
 					aria-expanded={expanded}
 					onClick={() => setExpanded(!expanded)}
 				>
-					Resolved by {thread.resolvedBy} · {summaryOf(thread.body)}
+					{foldedLine(thread, anchor, outdated !== undefined, thread.body)}
 				</button>
 			)}
-			{(thread.status !== "resolved" || expanded) && (
+			{outdated !== undefined && outdated.lines.length > 0 && (
+				<figure className="review-thread-outdated">
+					<figcaption className="sr-only">The code this comment was written against</figcaption>
+					<pre>{outdated.lines.join("\n")}</pre>
+				</figure>
+			)}
+			{(!folded || expanded) && (
 				<>
 					{[thread, ...thread.replies].map((message) => (
 						<section className="review-message" key={message.id}>

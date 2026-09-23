@@ -313,6 +313,8 @@
 	--duration-peek: 240ms;
 	--duration-row: 160ms;
 	--duration-sweep: 200ms;
+	--duration-wave-fill: 380ms;
+	--delay-wave-fill: 320ms;
 	--duration-glimmer-enter: 15000ms;
 	--duration-glimmer-exit: 12500ms;
 	--duration-glimmer-opacity: 3500ms;
@@ -443,6 +445,59 @@
 }
 @utility confetti-arc {
 	animation: confetti-arc var(--confetti-run) linear both;
+}
+
+/*
+ * A ticket row that is marked done takes a green band across it. The band
+ * opens from the left edge of the row to its full width, and then it fades
+ * where it stands.
+ */
+@keyframes done-wash {
+	0% {
+		opacity: 0;
+		clip-path: inset(0 100% 0 0);
+	}
+	25% {
+		opacity: 1;
+	}
+	45% {
+		clip-path: inset(0 0 0 0);
+	}
+	100% {
+		opacity: 0;
+		clip-path: inset(0 0 0 0);
+	}
+}
+
+/*
+ * The band sets --done-wash-run on itself, so one number in TypeScript
+ * gives both the time of the animation and the time the caller keeps the
+ * band on the page.
+ */
+@utility done-wash {
+	animation: done-wash var(--done-wash-run) var(--ease-out) both;
+}
+
+/*
+ * The share of a started StatusIcon that the conic gradient draws, from 0
+ * to 1. A registered number animates; an unregistered custom property
+ * jumps from one value to the next.
+ */
+@property --status-progress {
+	syntax: "<number>";
+	inherits: false;
+	initial-value: 0;
+}
+
+/*
+ * The progress circle of a wave header fills to full when the last open
+ * ticket of the wave is marked done. The delay holds the fill while the
+ * green band crosses the row of that ticket.
+ */
+@utility wave-fill {
+	& [data-fill] {
+		transition: --status-progress var(--duration-wave-fill) var(--ease-out) var(--delay-wave-fill);
+	}
 }
 
 /* The pending segment of a check ribbon: a moving highlight over warning. */

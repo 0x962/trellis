@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { type Session, type SessionStatus, sessionStatusLabels } from "@trellis/api";
 import { Avatar, cx } from "@trellis/ui";
 import { lazy, Suspense, useState } from "react";
-import { compactRelativeTime } from "../../../../lib/format";
 import { agentProfileOf } from "../../../agents/agentProfileOf";
 import { SessionNameField } from "../../../sessions/SessionNameField";
 
@@ -11,14 +10,12 @@ const SessionRowActions = lazy(async () => ({ default: (await import("../../Sess
 export type SessionRowProps = {
 	session: Session;
 	status: SessionStatus;
-	activityAt: string;
 	workingCount?: number;
 	// True on the page of this session.
 	active: boolean;
 };
 
-export function SessionRow({ session, status, activityAt, workingCount = 0, active }: SessionRowProps) {
-	const activity = compactRelativeTime(activityAt);
+export function SessionRow({ session, status, workingCount = 0, active }: SessionRowProps) {
 	const [renaming, setRenaming] = useState(false);
 	return (
 		<li
@@ -70,14 +67,10 @@ export function SessionRow({ session, status, activityAt, workingCount = 0, acti
 						<span className="sr-only">{sessionStatusLabels[status]}: </span>
 						<span
 							data-slot="label"
-							title={`${session.name} · ${sessionStatusLabels[status]} · Last activity ${activity}`}
+							title={`${session.name} · ${sessionStatusLabels[status]}`}
 							className="sidebar-label"
 						>
 							{session.name}
-						</span>
-						<span className="shrink-0 px-1 text-xs text-fg-faint tabular">
-							<span className="sr-only">Last activity </span>
-							{activity}
 						</span>
 						<span data-slot="trailing" className="sidebar-trailing" aria-hidden="true" />
 					</Link>

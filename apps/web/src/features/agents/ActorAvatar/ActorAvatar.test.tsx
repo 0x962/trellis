@@ -67,6 +67,15 @@ describe("ActorAvatar", () => {
 		expect(render([])).toBe("");
 	});
 
+	test("marks an agent that starts apart from one that sits idle", () => {
+		const idle = { ...crispFjord, observation: null, processStatus: "exited" } as AgentRun;
+		const starting = { ...crispFjord, state: "starting", processStatus: null, observation: null } as AgentRun;
+
+		expect(render([idle])).not.toContain("animate-pulse-live");
+		expect(render([starting])).toContain("animate-pulse-live");
+		expect(render([starting])).toContain("crisp-fjord · agent · GPT-6 Astra · Max · starting");
+	});
+
 	test("draws the provider mark for an assigned agent run", () => {
 		const html = render([crispFjord]);
 

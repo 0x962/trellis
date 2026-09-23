@@ -1,4 +1,4 @@
-import type { CiState, TicketSummary } from "@trellis/api";
+import { type CiState, readyForReview, reviewReadyLabel, type TicketSummary } from "@trellis/api";
 import { type Check, CheckRibbon, cx, PrGlyph, Tooltip } from "@trellis/ui";
 import type { Density } from "../../../../../stores/uiStore";
 
@@ -35,7 +35,13 @@ const checksOf = (pr: PrCellProps["pr"]): Check[] => [
 export function PrCell({ pr, density }: PrCellProps) {
 	return (
 		<span className="inline-flex items-center gap-1.5">
-			<PrGlyph state={pr.state} isQueued={pr.isQueued} localState={pr.localState} size="sm" />
+			<PrGlyph
+				state={pr.state}
+				isQueued={pr.isQueued}
+				readyForReview={readyForReview(pr)}
+				reason={reviewReadyLabel(pr)}
+				size="sm"
+			/>
 			{density === "comfortable" ? (
 				<CheckRibbon checks={checksOf(pr)} size="mini" />
 			) : (

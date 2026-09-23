@@ -16,6 +16,9 @@ export type SelectItem<Value extends string> = {
 export type SelectProps<Value extends string> = {
 	// The accessible name of the trigger.
 	label: string;
+	// The id of the trigger. A `Field` passes it, so its `<label htmlFor>`
+	// reaches the trigger.
+	id?: string;
 	placeholder?: string;
 	items: readonly SelectItem<Value>[];
 	value: Value;
@@ -30,6 +33,7 @@ export type SelectProps<Value extends string> = {
 // opens under it and follows the arrow keys.
 export function Select<Value extends string>({
 	label,
+	id,
 	placeholder,
 	items,
 	value,
@@ -47,6 +51,7 @@ export function Select<Value extends string>({
 			disabled={disabled}
 		>
 			<BaseSelect.Trigger
+				id={id}
 				aria-label={label}
 				aria-disabled={disabled || undefined}
 				className={cx(

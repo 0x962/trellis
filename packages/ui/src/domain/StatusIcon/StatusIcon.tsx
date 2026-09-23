@@ -1,4 +1,5 @@
 import { CheckCircle, Circle, CircleDashed, XCircle } from "@phosphor-icons/react";
+import type { CSSProperties } from "react";
 import { Tooltip } from "../../primitives/Tooltip";
 import { cx } from "../../utils/cx";
 
@@ -86,7 +87,9 @@ function ReviewIcon({
 // shape, so adjacent review columns do not collapse into one grey ring.
 // Started is the ring with a disk inside that fills clockwise from twelve
 // o'clock by `progress`; a conic gradient draws the disk, because no icon
-// draws an arbitrary share.
+// draws an arbitrary share. The share sits in `--status-progress`, which
+// `tokens.css` registers as a number, so a caller such as the `wave-fill`
+// utility can transition the disk from one share to another.
 export function StatusIcon({
 	category,
 	reviewer = "human",
@@ -141,7 +144,12 @@ function mark({
 				<span
 					data-fill=""
 					className="absolute size-1/2 rounded-round"
-					style={{ backgroundImage: `conic-gradient(currentColor ${progress ?? 0.5}turn, transparent 0)` }}
+					style={
+						{
+							"--status-progress": progress ?? 0.5,
+							backgroundImage: "conic-gradient(currentColor calc(var(--status-progress) * 1turn), transparent 0)",
+						} as CSSProperties
+					}
 				/>
 			</span>
 		);

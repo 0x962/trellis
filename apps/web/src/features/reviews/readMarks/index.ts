@@ -1,9 +1,1 @@
-export {
-	fileShape,
-	isRead,
-	loadReadMarks,
-	type ReadMarkFile,
-	type ReadMarks,
-	saveReadMarks,
-	setReadMark,
-} from "./readMarks";
+export { isRead, loadReadMarks, type ReadMarkFile, type ReadMarks, saveReadMarks, setReadMark } from "./readMarks";

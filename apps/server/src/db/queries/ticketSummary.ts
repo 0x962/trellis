@@ -1,4 +1,12 @@
-import type { CiState, LocalPrState, PrState, ReviewState, StoredActorKind, TicketSummary } from "@trellis/api";
+import {
+	type CiState,
+	type LocalPrState,
+	type PrState,
+	type ReviewState,
+	readyForReview,
+	type StoredActorKind,
+	type TicketSummary,
+} from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { actorDisplayName } from "./actorDisplayName.ts";
 import { iso, pathsCte } from "./support.ts";
@@ -155,72 +163,79 @@ export const summaryJoins = sql`
 export const summaryStatement = (cte: SQL, extra: SQL, orderBy: SQL) =>
 	sql`WITH RECURSIVE ${pathsCte}, ${cte} SELECT ${summaryColumns} ${extra} ${summaryJoins} ORDER BY ${orderBy}`;
 
-export const toSummary = (row: SummaryRow): TicketSummary => ({
-	id: row.id,
-	identifier: row.identifier,
-	number: row.number,
-	title: row.title,
-	priority: row.priority,
-	status: {
-		id: row.status_id,
-		slug: row.status_slug,
-		name: row.status_name,
-		category: row.status_category,
-		reviewer: row.status_reviewer,
-		color: row.status_color,
-	},
-	project: { id: row.project_id, key: row.project_key, path: row.project_path },
-	parent: row.parent_id === null ? null : { id: row.parent_id, identifier: row.parent_identifier as string },
-	ancestors: row.ancestors ?? [],
-	epic:
-		row.epic_id === null
-			? null
-			: { id: row.epic_id, ref: `${row.project_key}/${row.epic_slug}`, name: row.epic_name as string },
-	// The wave of a ticket is a wave of the epic of that ticket, so
-	// the epic slug of the row is the middle segment of the wave ref.
-	wave:
-		row.wave_id === null
-			? null
-			: {
-					id: row.wave_id,
-					ref: `${row.project_key}/${row.epic_slug}/${row.wave_slug}`,
-					name: row.wave_name as string,
-				},
-	childCount: row.child_count,
-	childDoneCount: row.child_done_count,
-	attachmentCount: row.attachment_count,
-	labels: row.labels ?? [],
-	waitsOn: row.waits_on ?? [],
-	releases: row.releases ?? [],
-	ready: row.ready,
-	pr:
-		row.pr_state === null
-			? null
-			: {
-					state: row.pr_state,
-					isDraft: row.pr_is_draft as boolean,
-					isQueued: row.pr_is_queued as boolean,
-					localState: row.pr_local_state as LocalPrState,
-					ciState: row.pr_ci_state as CiState,
-					reviewState: row.pr_review_state as ReviewState,
-					pass: row.pr_pass as number,
-					fail: row.pr_fail as number,
-					pending: row.pr_pending as number,
-					reviews: row.pr_reviews as NonNullable<TicketSummary["pr"]>["reviews"],
-				},
-	prRows: toTicketPrRows(row.pr_rows),
-	lastActor:
-		row.last_actor_name === null
-			? null
-			: {
-					name: row.last_actor_name,
-					...(row.last_actor_display_name === null ? {} : { displayName: row.last_actor_display_name }),
-					kind: row.last_actor_kind as StoredActorKind,
-					at: row.last_actor_at as string,
-				},
-	position: row.position,
-	version: row.version,
-	createdAt: row.created_at,
-	updatedAt: row.updated_at,
-	completedAt: row.completed_at,
-});
+export const toSummary = (row: SummaryRow): TicketSummary => {
+	const prRows = toTicketPrRows(row.pr_rows);
+	return {
+		id: row.id,
+		identifier: row.identifier,
+		number: row.number,
+		title: row.title,
+		priority: row.priority,
+		status: {
+			id: row.status_id,
+			slug: row.status_slug,
+			name: row.status_name,
+			category: row.status_category,
+			reviewer: row.status_reviewer,
+			color: row.status_color,
+		},
+		project: { id: row.project_id, key: row.project_key, path: row.project_path },
+		parent: row.parent_id === null ? null : { id: row.parent_id, identifier: row.parent_identifier as string },
+		ancestors: row.ancestors ?? [],
+		epic:
+			row.epic_id === null
+				? null
+				: { id: row.epic_id, ref: `${row.project_key}/${row.epic_slug}`, name: row.epic_name as string },
+		// The wave of a ticket is a wave of the epic of that ticket, so
+		// the epic slug of the row is the middle segment of the wave ref.
+		wave:
+			row.wave_id === null
+				? null
+				: {
+						id: row.wave_id,
+						ref: `${row.project_key}/${row.epic_slug}/${row.wave_slug}`,
+						name: row.wave_name as string,
+					},
+		childCount: row.child_count,
+		childDoneCount: row.child_done_count,
+		attachmentCount: row.attachment_count,
+		labels: row.labels ?? [],
+		waitsOn: row.waits_on ?? [],
+		releases: row.releases ?? [],
+		ready: row.ready,
+		pr:
+			row.pr_state === null
+				? null
+				: {
+						// The badge stands for every linked pull request, so it
+						// carries what the first one that is not ready for review
+						// still needs.
+						reviewGaps: prRows.find((pullRequest) => !readyForReview(pullRequest))?.reviewGaps ?? [],
+						state: row.pr_state,
+						isDraft: row.pr_is_draft as boolean,
+						isQueued: row.pr_is_queued as boolean,
+						localState: row.pr_local_state as LocalPrState,
+						ciState: row.pr_ci_state as CiState,
+						reviewState: row.pr_review_state as ReviewState,
+						pass: row.pr_pass as number,
+						fail: row.pr_fail as number,
+						pending: row.pr_pending as number,
+						reviews: row.pr_reviews as NonNullable<TicketSummary["pr"]>["reviews"],
+					},
+		prRows,
+		lastActor:
+			row.last_actor_name === null
+				? null
+				: {
+						name: row.last_actor_name,
+						...(row.last_actor_display_name === null ? {} : { displayName: row.last_actor_display_name }),
+						kind: row.last_actor_kind as StoredActorKind,
+						at: row.last_actor_at as string,
+					},
+		position: row.position,
+		version: row.version,
+		createdAt: row.created_at,
+		updatedAt: row.updated_at,
+		completedAt: row.completed_at,
+	};
+};
