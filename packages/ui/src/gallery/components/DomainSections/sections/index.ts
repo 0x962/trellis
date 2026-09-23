@@ -9,6 +9,7 @@ export { DoneWashSection } from "./DoneWashSection";
 export { FileRiskGroupsSection } from "./FileRiskGroupsSection";
 export { FlowRunSection } from "./FlowRunSection";
 export { LineChangesSection } from "./LineChangesSection";
+export { MergeConflictMarkSection } from "./MergeConflictMarkSection";
 export { PrGlyphSection } from "./PrGlyphSection";
 export { PriorityIconSection } from "./PriorityIconSection";
 export { ProjectRoomSection } from "./ProjectRoomSection";

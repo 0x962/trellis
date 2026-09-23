@@ -1,4 +1,4 @@
-import { readyForReview, type Ticket } from "@trellis/api";
+import { askedForReview, readyForReview, type Ticket } from "@trellis/api";
 import { MergeConflictMark, PrGlyph, ReviewStateIcon, SectionHeader } from "@trellis/ui";
 import { tabularClass } from "../../../lib/format";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
@@ -35,7 +35,7 @@ export function PullRequestsSection({ ticket }: PullRequestsSectionProps) {
 							{pr.verdict !== null && (
 								<ReviewStateIcon
 									reviewState={pr.verdict}
-									notReady={!readyForReview(pr)}
+									notReady={!askedForReview(pr)}
 									label={verdictLabel(pr.verdict)}
 								/>
 							)}

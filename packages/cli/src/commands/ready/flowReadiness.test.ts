@@ -97,8 +97,6 @@ test("is satisfied by a run that succeeded", async () => {
 	expect((await flowReadiness(client, ref, "OP-74", "abc123")).satisfied).toBe(true);
 });
 
-// A flow is machine review. A run that stopped and waits did not finish, so
-// it answers nothing and the agent runs the flow again.
 test("is not satisfied by a run that stopped and waits", async () => {
 	const { client } = clientWith(
 		[flow("review", "Review", "")],

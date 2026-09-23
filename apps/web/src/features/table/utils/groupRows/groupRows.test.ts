@@ -179,7 +179,6 @@ describe("groupRows by turn", () => {
 		number: 7,
 		state: "open",
 		isDraft: false,
-		localState: "ready",
 		reviewGaps: [],
 		fail: 0,
 		pending: 0,
@@ -190,7 +189,7 @@ describe("groupRows by turn", () => {
 	});
 	const review = turnRow("review", { prRows: [open] });
 	const draft = turnRow("draft", {
-		prRows: [{ ...open, localState: "not-ready", reviewGaps: [{ kind: "not-asked", count: 1 }] }],
+		prRows: [{ ...open, reviewGaps: [{ kind: "not-asked", count: 1 }] }],
 	});
 	const blocked = turnRow("blocked", {
 		status: { category: "todo" } as TicketSummary["status"],
