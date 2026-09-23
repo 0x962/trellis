@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { ProjectSummary } from "@trellis/api";
-import { projectOfPath, roomColorOf, ticketOfPath } from "./projectRoom";
+import { projectOfPath, roomColorOf, ticketRefOfPath } from "./projectRoom";
 
 const project = (key: string, color: ProjectSummary["color"]): ProjectSummary => ({
 	id: key,
@@ -29,8 +29,8 @@ test("the slug of a project names it as well as its key", () => {
 });
 
 test("a ticket page stands in the room of the project of the ticket", () => {
-	expect(ticketOfPath("/t/TRL-386")).toBe("TRL-386");
-	expect(ticketOfPath("/p/TRL")).toBeNull();
+	expect(ticketRefOfPath("/t/TRL-386")).toBe("TRL-386");
+	expect(ticketRefOfPath("/p/TRL")).toBeNull();
 	expect(roomColorOf("/t/HBR-12", projects, "HBR")).toBe("teal");
 	expect(roomColorOf("/t/HBR-12", projects, null)).toBeNull();
 });

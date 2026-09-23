@@ -1,4 +1,3 @@
-import type { ProjectColor } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { type StatusRow, statusColumns, toStatus } from "./queries/effectiveStatuses.ts";
 import { iso, rows } from "./queries/support.ts";
@@ -10,7 +9,6 @@ export type CachedProject = {
 	slug: string;
 	name: string;
 	position: number;
-	color: ProjectColor | null;
 	archivedAt: string | null;
 };
 
@@ -20,7 +18,6 @@ type RawProject = {
 	slug: string;
 	name: string;
 	position: number;
-	color: ProjectColor | null;
 	archived_at: string | null;
 };
 
@@ -39,7 +36,7 @@ export const createCache = () => {
 	const rebuild = async (tx: Tx) => {
 		const projectRows = await rows<RawProject>(
 			tx,
-			sql`SELECT id, key, slug, name, position, color, ${iso(sql`archived_at`)} AS archived_at
+			sql`SELECT id, key, slug, name, position, ${iso(sql`archived_at`)} AS archived_at
 				FROM projects ORDER BY position, slug`,
 		);
 		const statusRows = await rows<Parameters<typeof toStatus>[0]>(
@@ -57,7 +54,6 @@ export const createCache = () => {
 				slug: row.slug,
 				name: row.name,
 				position: row.position,
-				color: row.color,
 				archivedAt: row.archived_at,
 			};
 			projects.set(project.id, project);

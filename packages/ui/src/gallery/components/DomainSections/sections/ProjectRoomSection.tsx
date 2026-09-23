@@ -9,16 +9,13 @@ import { Section } from "../../Section";
 
 const keys = { orange: "CNY", teal: "CVS", blue: "TRL", pink: "HBR", azure: "MSA" };
 
-// One room per color, and the room with no color last. Each room holds the
-// mark, the key chip, and the glyphs that carry a state: a passed check, a
-// pending one, a failed one, a merged pull request, a run at work, and the
-// silver dot that says a ticket waits for a person. The glyphs read on every
-// ground, which `projectColors.test.ts` measures.
+// The glyphs must read on every project ground. `projectTokens.test.ts`
+// measures that contrast.
 export function ProjectRoomSection() {
 	return (
 		<Section
-			name="ProjectMark"
-			note="one room per project color; the state glyphs on each ground"
+			name="ProjectRoom"
+			note="one room per project color, the plain room last; the state glyphs on each ground"
 			className="flex-col items-stretch"
 		>
 			{[...projectColors, null].map((color) => (

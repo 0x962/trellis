@@ -3,9 +3,7 @@ import type { ProjectColor } from "../projectColors";
 import { TrellisMark } from "../TrellisMark";
 
 export type ProjectMarkProps = {
-	// The color of the project, or `null` for a project that holds none.
 	color: ProjectColor | null;
-	label?: string;
 	className?: string;
 };
 
@@ -14,15 +12,13 @@ export type ProjectMarkProps = {
 //
 // A project that holds no color draws the plain mark with no ground, which
 // puts the strands on the ground of the page in the muted text color.
-export function ProjectMark({ color, label, className = "size-4" }: ProjectMarkProps) {
-	if (color === null) return <TrellisMark label={label} className={className} background={false} />;
+// The row, the chip or the link around the mark carries the name of the
+// project, so the mark itself stays hidden from a screen reader.
+export function ProjectMark({ color, className = "size-4" }: ProjectMarkProps) {
+	if (color === null) return <TrellisMark className={className} background={false} />;
 	return (
-		<span
-			aria-hidden={label === undefined}
-			className={cx("project-mark inline-flex", className)}
-			data-project-color={color}
-		>
-			<TrellisMark label={label} className="size-full" />
+		<span aria-hidden="true" className={cx("project-mark inline-flex", className)} data-project-color={color}>
+			<TrellisMark className="size-full" />
 		</span>
 	);
 }

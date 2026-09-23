@@ -4,26 +4,20 @@ import { ProjectMark } from "../ProjectMark";
 import { freeProjectColors, type ProjectColor, projectColorNames } from "../projectColors";
 
 export type ProjectColorFieldProps = {
-	// The color this project holds, or `null` for a project with none.
 	value: ProjectColor | null;
 	// The colors that the other projects hold. Those slots are gone.
 	taken: readonly ProjectColor[];
 	onValueChange: (value: ProjectColor | null) => void;
-	disabled?: boolean;
 };
 
-// "none" is the value of the item that gives the project no color.
 type Choice = ProjectColor | "none";
 
 const noneItem: SelectItem<Choice> = { value: "none", label: "No color", icon: <ProjectMark color={null} /> };
 
-// The color field of a project. The list holds the free colors and the color
-// of this project. A color that another project holds is not in the list,
-// because two projects never hold one color.
-//
-// Five colors are five slots. A sixth project reads the sentence below the
-// field, and it keeps the grey mark and the plain page ground.
-export function ProjectColorField({ value, taken, onValueChange, disabled = false }: ProjectColorFieldProps) {
+// The color field of a project. The list holds what `freeProjectColors`
+// gives back. A project that finds no free color reads the sentence under
+// the field, and it keeps the grey mark and the plain page ground.
+export function ProjectColorField({ value, taken, onValueChange }: ProjectColorFieldProps) {
 	const free = freeProjectColors(taken, value);
 	const items: SelectItem<Choice>[] = [
 		noneItem,
@@ -47,7 +41,7 @@ export function ProjectColorField({ value, taken, onValueChange, disabled = fals
 				label="Color"
 				items={items}
 				value={value ?? "none"}
-				disabled={disabled || free.length === 0}
+				disabled={free.length === 0}
 				onValueChange={(next) => onValueChange(next === "none" ? null : next)}
 				className="w-full"
 			/>

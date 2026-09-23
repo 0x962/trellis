@@ -6,7 +6,7 @@ import { GlobalHotkeys } from "../features/shell/GlobalHotkeys";
 import { LinkCapture } from "../features/shell/LinkCapture";
 import { linkButtonClass } from "../features/shell/linkButtonClass";
 import { MachinePressureBanner } from "../features/shell/MachinePressureBanner";
-import { useProjectRoom } from "../features/shell/ProjectRoom";
+import { useRoomColor } from "../features/shell/projectRoom";
 import { RouteError } from "../features/shell/RouteError";
 import { RouteProgress } from "../features/shell/RouteProgress";
 import { ShellFrame, ShellSidebar } from "../features/shell/ShellFrame";
@@ -64,7 +64,7 @@ function RootComponent() {
 	const desktopSetup = actor === null && canOpenDesktopSettingsBeforeSetup(desktop, pathname, location.hash);
 	// The pane stands in the room of the project the page belongs to. The
 	// sidebar stays on the plain ground, because it lists every project.
-	const room = useProjectRoom(pathname);
+	const room = useRoomColor(pathname);
 	useDocumentTitle();
 
 	if (bare(pathname) || desktopSetup) {
