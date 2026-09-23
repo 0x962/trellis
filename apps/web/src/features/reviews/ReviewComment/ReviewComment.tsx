@@ -8,6 +8,7 @@ import { useActor } from "../../../lib/actor";
 import { useApp } from "../../../lib/appContext";
 import { type ReviewApplyState, useReviewApply } from "../ReviewApply";
 import { ReviewBody } from "../ReviewBody";
+import { resolveThread, type ThreadList } from "./resolveThread";
 
 type SuggestionView = { state: ReviewSuggestionState; note?: ReactNode; actions?: ReactNode };
 
@@ -70,11 +71,19 @@ const suggestionView = (thread: ReviewThread, apply: ReviewApplyState | null): S
 // `place` says where the diff drew this thread. A thread the diff calls
 // outdated folds to one line, with the code it was written against above
 // it. The Findings section passes no place, because it draws no diff.
-export function ReviewComment({ thread, place }: { thread: ReviewThread; place?: ThreadPlacement }) {
+export function ReviewComment({ thread, pr, place }: { thread: ReviewThread; pr: string; place?: ThreadPlacement }) {
 	const { client, orpc, queryClient } = useApp();
 	const actor = useActor();
 	const apply = useReviewApply();
 	const invalid = () => queryClient.invalidateQueries({ queryKey: orpc.reviews.key() });
+	// The key of the one query that holds the comment threads of this pull
+	// request. `ReviewPage` opens it as `reviews.list` with `all: true`.
+	const threadsKey = orpc.reviews.list.queryKey({ input: { pr, all: true } });
+	const threads = {
+		read: () => queryClient.getQueryData<ThreadList>(threadsKey)!,
+		write: (list: ThreadList) => queryClient.setQueryData(threadsKey, list),
+		refetch: () => queryClient.invalidateQueries({ queryKey: threadsKey }),
+	};
 	const view = suggestionView(thread, apply);
 	return (
 		<ReviewThreadCard
@@ -104,10 +113,14 @@ export function ReviewComment({ thread, place }: { thread: ReviewThread; place?:
 				await client.reviews.reply({ id: thread.id, body });
 				await invalid();
 			}}
-			onResolve={async () => {
-				await client.reviews.resolve({ id: thread.id, resolved: thread.status !== "resolved" });
-				await invalid();
-			}}
+			onResolve={() =>
+				resolveThread(threads, client.reviews.resolve, {
+					id: thread.id,
+					resolved: thread.status !== "resolved",
+					by: actor?.name ?? null,
+					at: new Date().toISOString(),
+				})
+			}
 			onEdit={async (id, body, expectedVersion) => {
 				await client.reviews.edit({ id, body, expectedVersion });
 				await invalid();

@@ -77,3 +77,22 @@ test("an outdated thread whose old diff is gone still opens as one line", () => 
 	expect(html).toContain("Outdated");
 	expect(html).not.toContain("review-thread-outdated");
 });
+
+test("the one line of a resolved thread carries the reopen button", () => {
+	const html = render({ thread: { ...thread, status: "resolved", resolvedBy: "01M35RBM" } });
+
+	expect(html).toContain('aria-label="Reopen comment"');
+});
+
+test("the one line of an open outdated thread offers no reopen", () => {
+	const html = render({ outdated: { lines: [] } });
+
+	expect(html).not.toContain('aria-label="Reopen comment"');
+});
+
+test("a thread resolved a moment ago names no resolver until the server does", () => {
+	const html = render({ thread: { ...thread, status: "resolved", resolvedBy: null } });
+
+	expect(html).toContain("Resolved ·");
+	expect(html).not.toContain("Resolved by");
+});
