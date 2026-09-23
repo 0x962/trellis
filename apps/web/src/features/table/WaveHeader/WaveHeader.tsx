@@ -4,7 +4,7 @@ import type { KeyboardEvent } from "react";
 import type { WaveEditing } from "../hooks/useWaveEditing";
 import type { TableGroup } from "../utils/flattenGroups";
 import { WaveActions } from "./components/WaveActions";
-import { WaveNameField } from "./components/WaveNameField";
+import { WaveName } from "./components/WaveName";
 
 export type WaveHeaderOptions = {
 	editing: WaveEditing;
@@ -36,10 +36,7 @@ export const waveHeaderParts = (group: TableGroup, options: WaveHeaderOptions): 
 		}
 	};
 	return {
-		labelField:
-			editing.renamingId === wave.id ? (
-				<WaveNameField name={wave.name} onFinish={(name) => editing.finishRename(wave, name)} />
-			) : undefined,
+		labelField: editing.renamingId === wave.id ? <WaveName wave={wave} editing={editing} /> : undefined,
 		actions: (
 			<WaveActions
 				name={wave.name}

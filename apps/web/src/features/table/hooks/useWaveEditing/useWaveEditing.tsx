@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import type { TicketSummary, WaveSummary } from "@trellis/api";
-import { ConfirmDialog } from "@trellis/ui";
+import { ConfirmDialog, type InlineEditFocus } from "@trellis/ui";
 import { type ReactNode, useState } from "react";
 import { useApp } from "../../../../lib/appContext";
 import { failToast } from "../../../../lib/failToast";
@@ -27,9 +27,13 @@ export type WaveEditing = {
 	// The id of the wave whose header shows the name field, or null.
 	renamingId: string | null;
 	startRename: (waveId: string) => void;
-	// Closes the name field. A name that is not empty and differs from the
-	// stored name is saved.
-	finishRename: (wave: WaveSummary, name: string) => void;
+	// Sends the new name. It throws when the server refuses, so the name
+	// field stays open and prints the reason.
+	rename: (wave: WaveSummary, name: string) => Promise<void>;
+	// Closes the name field. `focus` is "value" when the person pressed Enter
+	// or Escape, and the collapse button that holds the name takes the focus
+	// back.
+	endRename: (waveId: string, focus: InlineEditFocus) => void;
 	// Moves a wave one place: -1 is up, 1 is down.
 	move: (waveId: string, step: -1 | 1) => void;
 	// Deletes a wave that holds no ticket at once, and asks first for a
@@ -42,13 +46,11 @@ export type WaveEditing = {
 
 type Write =
 	| { kind: "create"; name: string }
-	| { kind: "rename"; wave: WaveSummary; name: string }
 	| { kind: "reorder"; wave: WaveSummary; refs: string[] }
 	| { kind: "delete"; wave: WaveSummary };
 
 const failTitle = (write: Write) => {
 	if (write.kind === "create") return `${write.name} is not added.`;
-	if (write.kind === "rename") return `${write.wave.name} is not renamed.`;
 	if (write.kind === "reorder") return `${write.wave.name} did not move.`;
 	return `${write.wave.name} is not deleted.`;
 };
@@ -60,9 +62,11 @@ const focusHeader = (waveId: string) =>
 	document.querySelector<HTMLElement>(`[data-group="${waveId}"] button[aria-expanded]`)?.focus();
 
 // The wave writes of the epic page. Every write refetches the `epics`
-// queries, so the wave groups of the table follow. A delete and a rename
-// also refetch the tickets, because every ticket row of the wave prints
-// the wave name.
+// queries, so the wave groups of the table follow.
+//
+// The rename stands apart from the mutation below. `InlineEdit` owns the name
+// field, so a refused rename must reach the field as a rejected promise. The
+// field then stays open with the typed name and prints the reason.
 export function useWaveEditing({ epicRef, waves, tickets, assignedTicketIds }: WaveEditingOptions): WaveEditing {
 	const { client, orpc, queryClient } = useApp();
 	const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -72,17 +76,17 @@ export function useWaveEditing({ epicRef, waves, tickets, assignedTicketIds }: W
 	const write = useMutation({
 		mutationFn: async (input: Write): Promise<WaveSummary | null> => {
 			if (input.kind === "create") return client.waves.create({ epic: epicRef, name: input.name });
-			if (input.kind === "rename") return client.waves.update({ wave: input.wave.ref, name: input.name });
 			if (input.kind === "reorder") await client.waves.reorder({ epic: epicRef, waves: input.refs });
 			else await client.waves.delete({ wave: input.wave.ref });
 			return null;
 		},
 		onSuccess: async (_, input) => {
 			await queryClient.invalidateQueries({ queryKey: orpc.epics.key() });
-			if (input.kind === "delete" || input.kind === "rename") {
+			if (input.kind === "delete") {
+				// Every ticket row of the wave prints the wave name.
 				await queryClient.invalidateQueries({ queryKey: orpc.tickets.key() });
+				setDeleting(null);
 			}
-			if (input.kind === "delete") setDeleting(null);
 			if (input.kind === "reorder") {
 				focusHeader(input.wave.id);
 				setAnnouncement(
@@ -98,10 +102,16 @@ export function useWaveEditing({ epicRef, waves, tickets, assignedTicketIds }: W
 	const create = () =>
 		write.mutate({ kind: "create", name: nextWaveName(waves) }, { onSuccess: (wave) => setRenamingId(wave!.id) });
 
-	const finishRename = (wave: WaveSummary, name: string) => {
+	const rename = async (wave: WaveSummary, name: string) => {
+		await client.waves.update({ wave: wave.ref, name });
+		await queryClient.invalidateQueries({ queryKey: orpc.epics.key() });
+		// Every ticket row of the wave prints the wave name.
+		await queryClient.invalidateQueries({ queryKey: orpc.tickets.key() });
+	};
+
+	const endRename = (waveId: string, focus: InlineEditFocus) => {
 		setRenamingId(null);
-		const next = name.trim();
-		if (next !== "" && next !== wave.name) write.mutate({ kind: "rename", wave, name: next });
+		if (focus === "value") focusHeader(waveId);
 	};
 
 	const move = (waveId: string, step: -1 | 1) => {
@@ -140,7 +150,8 @@ export function useWaveEditing({ epicRef, waves, tickets, assignedTicketIds }: W
 		busy: write.isPending,
 		renamingId,
 		startRename: setRenamingId,
-		finishRename,
+		rename,
+		endRename,
 		move,
 		requestDelete,
 		element,

@@ -75,6 +75,25 @@ The screen passes its own resting view as the children, and its own avatar as `l
 Inside a row that is a link, the screen draws no row while the field is open, so no key press navigates.
 A form with more than one field is not an in-place edit. Use a sheet or a row editor for it.
 
+### Which shape an edit takes
+
+The product keeps two shapes. What the control changes picks the shape, not the page it stands on.
+
+- One short value of a record that exists: `InlineEdit`, in the row or the header that prints the value.
+- More than one field at once, or a record that does not exist yet: a row editor or a sheet, with Cancel and Save.
+
+| Edit | Shape | Reference |
+| --- | --- | --- |
+| Wave name | `InlineEdit` in the wave `GroupHeader` | `apps/web/src/features/table/WaveHeader/components/WaveName/WaveName.tsx` |
+| Label group name | `InlineEdit` in the heading band of the group | `apps/web/src/features/project-settings/LabelGroupRow/LabelGroupRow.tsx` |
+| Session name, attachment name | `InlineEdit` in the row | `apps/web/src/features/sessions/SessionName/SessionName.tsx` |
+| Label: name, color, description | Row editor under the label row | `apps/web/src/features/project-settings/LabelEditor/LabelEditor.tsx` |
+| Status: name, color, reviewer, description, default | Row editor under the status row | `apps/web/src/features/project-settings/StatusRow/components/StatusEditor/StatusEditor.tsx` |
+| Epic: name and plan | Sheet | `apps/web/src/features/epics/EpicSheet/EpicSheet.tsx` |
+| A new label, label group or status | Form with Cancel and Save | `apps/web/src/features/project-settings/StatusCreateForm/StatusCreateForm.tsx` |
+
+A document of the Resources tab of an epic keeps its own shape. Its title and its body save while the person types, so it is no in-place edit of one value.
+
 ## Pages in a sheet
 
 Use `PageSheet` to show a ticket or a pull request over the current page.
@@ -151,7 +170,7 @@ A long name gives way and the identifier stays. The drag preview draws the same 
 The epic page shows its tickets in the full-width `TicketTable` of the project table view. It has no page-specific row and no row menu of its own.
 Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, a New wave `IconButton`, an Add `IconButton` with the `Tooltip` Add tickets, and the `Menu` with Edit and Delete.
 Every wave of the epic draws a `GroupHeader`. A wave with no ticket shows one muted line, "No tickets in this wave.", and no Start wave.
-New wave adds `Wave <n>` at the end and opens its name as a field in the header, with the text selected. Enter or blur saves, Escape keeps the name.
+New wave adds `Wave <n>` at the end and opens its name as a field in the header. The field is the `InlineEdit` of the in-place edit, and the collapse button of the header takes the focus back after Enter and after Escape.
 A wave header holds Add tickets to this wave (a list-plus `IconButton` with the `TicketPicker`) and a Wave actions `Menu`: New ticket in this wave, Rename, Move up, Move down, and Delete wave. The menu shows the keys F2, Alt+Shift+Up, and Alt+Shift+Down, which work on a focused header.
 Delete wave asks first only when the wave holds tickets. The dialog names the tickets that move to No wave and the open agent runs among them.
 A ticket row drags into another wave group or into No wave. An accent outline marks the group that takes the drop. The `w` key is the keyboard path: it opens the wave picker of the focused row or of the selection.
