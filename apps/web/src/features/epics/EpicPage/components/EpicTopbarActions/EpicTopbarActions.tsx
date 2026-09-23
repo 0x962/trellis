@@ -1,7 +1,5 @@
-import { ChartBar, DotsThree, PencilSimple, Plus, RowsPlusBottom, Trash } from "@phosphor-icons/react";
+import { DotsThree, PencilSimple, Plus, RowsPlusBottom, Trash } from "@phosphor-icons/react";
 import type { TicketSummary } from "@trellis/api";
-import { Tooltip } from "@trellis/ui";
-import { pageSheetActions } from "../../../../../stores/pageSheetStore";
 import { TopbarActionButton, TopbarActionMenu } from "../../../../shell/Topbar";
 import type { WaveEditing } from "../../../../table/hooks/useWaveEditing";
 import { EpicCreateActions } from "../EpicCreateActions";
@@ -29,11 +27,11 @@ export type EpicTopbarActionsProps = {
 	onDelete: () => void;
 };
 
-// The four controls on the right of the epic top bar: Statistics, New wave,
-// Add tickets and the epic menu. The bar draws all four before the
-// `epics.get` read answers, each one disabled, so the loaded bar adds no
-// button and the pointer of a person who reaches for one of them lands on
-// the button that was there.
+// The three controls on the right of the epic top bar: New wave, Add
+// tickets and the epic menu. The bar draws all three before the `epics.get`
+// read answers, each one disabled, so the loaded bar adds no button and the
+// pointer of a person who reaches for one of them lands on the button that
+// was there.
 export function EpicTopbarActions({
 	project,
 	epic,
@@ -45,15 +43,6 @@ export function EpicTopbarActions({
 }: EpicTopbarActionsProps) {
 	return (
 		<>
-			<Tooltip content="Statistics">
-				<TopbarActionButton
-					data-bar-slot="statistics"
-					label="Statistics"
-					icon={<ChartBar />}
-					disabled={epic === null}
-					onClick={() => epic !== null && pageSheetActions.openStats(epic.ref)}
-				/>
-			</Tooltip>
 			{/* An archived project takes no ticket and no wave, so its bar
 			    carries neither button in either state. */}
 			{readOnly ? null : epic === null ? (

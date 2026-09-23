@@ -6,7 +6,7 @@ import { useApp } from "../../../lib/appContext";
 import { labelWriteMessage } from "../labelWriteMessage";
 
 export type LabelGroupFormProps = {
-	// A project path. The root project of its tree owns the group.
+	// The key of the project that owns the group.
 	project: string;
 	// The group this form renames. `null` creates a group.
 	group: LabelGroup | null;

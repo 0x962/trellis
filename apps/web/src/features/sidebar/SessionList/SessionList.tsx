@@ -9,8 +9,13 @@ export function SessionList() {
 	const { orpc, queryClient } = useApp();
 	const sessionsOptions = orpc.sessions.list.queryOptions({ input: {} });
 	const { data, failureCount } = useQuery(sessionsOptions);
-	const activity = useQuery({ ...orpc.sessions.activity.queryOptions({ input: {} }), refetchInterval: 2000 });
-	const runs = new Map(activity.data?.map((session) => [session.id, session.run]));
+	// agentRuns.activity carries the runs of the sessions here and the runs of
+	// the ticket agents, which the dot on a project Sessions row counts. Both
+	// readers share this one query.
+	const activity = useQuery({ ...orpc.agentRuns.activity.queryOptions({ input: {} }), refetchInterval: 2000 });
+	const runs = new Map(
+		activity.data?.flatMap((entry) => (entry.sessionId === null ? [] : [[entry.sessionId, entry.run] as const])),
+	);
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	if (data === undefined)
 		return (
@@ -41,7 +46,6 @@ export function SessionList() {
 								key={session.id}
 								session={session}
 								status={run ? sessionStatus(run) : "unavailable"}
-								activityAt={run?.observation?.activity?.updatedAt ?? run?.updatedAt ?? session.updatedAt}
 								workingCount={run && sessionStatus(run) === "working" ? 1 : 0}
 								active={pathname === `/sessions/${session.id}`}
 							/>

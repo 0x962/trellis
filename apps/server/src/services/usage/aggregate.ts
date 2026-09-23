@@ -21,7 +21,7 @@ export type UsageRun = {
 	name: string;
 	ticketIdentifier: string | null;
 	ticketTitle: string | null;
-	projectPath: string;
+	projectKey: string;
 	projectName: string;
 	accountName: string | null;
 	sessionId: string | null;
@@ -31,7 +31,7 @@ export type UsageRun = {
 // A project with the repository directory its agents work in. A session
 // that Trellis did not start joins the project whose directory holds its
 // cwd. An empty directory never matches.
-export type UsageProject = { path: string; name: string; directory: string };
+export type UsageProject = { key: string; name: string; directory: string };
 
 export type UsageReportInputs = {
 	entries: readonly CollectedEntry[];
@@ -89,11 +89,11 @@ const entryTokens = (entry: CollectedEntry) =>
 
 const isUnder = (path: string, prefix: string) => path === prefix || path.startsWith(`${prefix}/`);
 
-const projectHref = (path: string) => `/p/${path.split(".").join("/")}`;
+const projectHref = (key: string) => `/p/${key}`;
 
 type RowLabel = { label: string; detail: string | null; href: string | null; harness: UsageHarness | null };
 
-type Attribution = { run: UsageRun | null; project: { path: string; name: string } | null; other: string | null };
+type Attribution = { run: UsageRun | null; project: { key: string; name: string } | null; other: string | null };
 
 // Joins one entry to Trellis. The session id wins. A cwd inside the
 // worktree of a run comes next, then a cwd inside a project directory. A
@@ -106,13 +106,13 @@ function attribute(
 ): Attribution {
 	const bySession = runsBySession.get(entry.sessionId);
 	if (bySession)
-		return { run: bySession, project: { path: bySession.projectPath, name: bySession.projectName }, other: null };
+		return { run: bySession, project: { key: bySession.projectKey, name: bySession.projectName }, other: null };
 	if (entry.cwd === null) return { run: null, project: null, other: null };
 	const byWorkDir = runsByWorkDir.find((run) => isUnder(entry.cwd!, run.workDir));
 	if (byWorkDir)
-		return { run: byWorkDir, project: { path: byWorkDir.projectPath, name: byWorkDir.projectName }, other: null };
+		return { run: byWorkDir, project: { key: byWorkDir.projectKey, name: byWorkDir.projectName }, other: null };
 	const project = projectsByDirectory.find((candidate) => isUnder(entry.cwd!, candidate.directory));
-	if (project) return { run: null, project: { path: project.path, name: project.name }, other: null };
+	if (project) return { run: null, project: { key: project.key, name: project.name }, other: null };
 	return { run: null, project: null, other: basename(entry.cwd) };
 }
 
@@ -149,8 +149,8 @@ function groupKeys(
 		: { key: OUTSIDE, label: outside };
 	const projectRow = project
 		? {
-				key: `project:${project.path}`,
-				label: plain(project.name, project.path.split(".").join("/"), projectHref(project.path)),
+				key: `project:${project.key}`,
+				label: plain(project.name, project.key, projectHref(project.key)),
 			}
 		: other !== null
 			? { key: `other:${other}`, label: plain(other, "A directory outside every project", null) }
@@ -386,7 +386,7 @@ export function computeUsageReport(input: UsageReportInputs): UsageReport {
 					name: session.run.name,
 					ticketIdentifier: session.run.ticketIdentifier,
 					ticketTitle: session.run.ticketTitle,
-					projectPath: session.run.projectPath,
+					projectKey: session.run.projectKey,
 					account: session.run.accountName,
 				}
 			: null,

@@ -1,1 +1,1 @@
-export { moveToProject, setEpic, setLabel, setParent, setPriority, setStatus, setWave } from "./bulkChange";
+export { setEpic, setLabel, setParent, setPriority, setStatus, setWave } from "./bulkChange";

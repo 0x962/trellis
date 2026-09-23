@@ -207,8 +207,6 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "attachment.deleted":
 				enqueue([forTicket(["attachments", "list"], event.ticketId), ...ticketDetail(event.ticketId)]);
 				return;
-			// A sub-project lists the notes of its ancestors too, so every note
-			// list refetches.
 			case "notes.changed":
 				enqueue([family("notes")]);
 				return;

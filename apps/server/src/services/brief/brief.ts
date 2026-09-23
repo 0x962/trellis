@@ -7,7 +7,7 @@ import { ticketGet } from "../../db/queries/ticketGet.ts";
 import type { Tx } from "../../db/tx.ts";
 import { epicView } from "../epics/epics.ts";
 import { earlierResults, epicHeaderLine, epicLines, resultsLines, waveHeaderLine } from "../epics/text.ts";
-import { list as listFlows } from "../flows/flows.ts";
+import { listFlows } from "../flows/queries.ts";
 import { activeNotes } from "../notes/notes.ts";
 import { notesLines } from "../notes/text.ts";
 import { resolveTicket } from "../refs.ts";
@@ -58,7 +58,7 @@ const header = (ticket: Ticket, parentTitle: string | null, epic: Epic | null, p
 	const lines = [
 		`# ${ticket.identifier}: ${ticket.title}`,
 		"",
-		`- Project: ${ticket.project.path}`,
+		`- Project: ${ticket.project.key}`,
 		`- Status: ${ticket.status.name}`,
 		`- Priority: ${ticket.priority}`,
 		`- Labels: ${labelLine(ticket)}`,
@@ -103,7 +103,8 @@ const protocol = (identifier: string) => [
 	"Work on the branch named above. Use the trellis CLI to report progress:",
 	"",
 	`- Start: trellis move ${identifier} in-progress`,
-	`- Link each pull request you open: trellis pr add ${identifier} <url>. It starts as a draft.`,
+	`- Open a normal pull request on GitHub and link it: trellis pr add ${identifier} <url>.`,
+	"  It waits in Trellis until you ask for review.",
 	"- When the work is complete and you want the person to review it, run: trellis ready <pr>",
 	`- Split the work: trellis sub ${identifier} -t "..."`,
 	"",
@@ -153,7 +154,7 @@ export const assignmentInstruction = (input: {
 	identifier: string;
 	title: string;
 	description: string;
-	projectPath: string;
+	projectKey: string;
 	branch: string;
 	publicUrl: string;
 }) =>
@@ -161,7 +162,7 @@ export const assignmentInstruction = (input: {
 		[
 			`# ${input.identifier}: ${input.title}`,
 			"",
-			`- Project: ${input.projectPath}`,
+			`- Project: ${input.projectKey}`,
 			`- Branch: ${input.branch}`,
 			`- URL: ${input.publicUrl}/t/${input.identifier}`,
 		],
@@ -202,14 +203,14 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<B
 		["## Description", "", ticket.description],
 		contractLines(ticket.contract),
 		evidenceLines,
-		flowLines(await listFlows(ctx, tx, {})),
+		flowLines(await listFlows(tx, row.projectId)),
 		chainLines(ticket, waitsOn),
 		...(epic === null ? [] : epicLines(epic, ticket.id)),
 		results,
 		subTickets(ticket),
 		pullRequests(ticket),
 		attachments(ticket, ctx.publicUrl),
-		notesLines(await activeNotes(ctx, tx, { projectId: row.projectId, audience: "worker" }), ticket.project.path),
+		notesLines(await activeNotes(ctx, tx, { projectId: row.projectId, audience: "worker" }), ticket.project.key),
 		protocol(ticket.identifier),
 		reviewComments,
 	]).join("\n\n");

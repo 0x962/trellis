@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
-import { type Db, openDb } from "../client.ts";
-import { migrate } from "../migrate.ts";
+import type { Db } from "../client.ts";
+import { openTestDb } from "../testDb.ts";
 import { search } from "./search.ts";
 
 const at = new Date("2026-09-21T12:00:00.000Z");
@@ -14,8 +14,8 @@ let db: Db;
 
 const insertProject = (id: string, key: string, slug: string, name: string) =>
 	db.execute(sql`
-		INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${id}, ${id}, ${key}, ${slug}, ${name}, ${at}, ${at})
+		INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${id}, ${key}, ${slug}, ${name}, ${at}, ${at})
 	`);
 
 const insertStatus = (id: string, projectId: string) =>
@@ -26,13 +26,12 @@ const insertStatus = (id: string, projectId: string) =>
 
 const insertTicket = (id: string, rootId: string, statusId: string, number: number, title: string) =>
 	db.execute(sql`
-		INSERT INTO tickets (id, project_id, root_id, number, title, status_id, position, created_at, updated_at)
-		VALUES (${id}, ${rootId}, ${rootId}, ${number}, ${title}, ${statusId}, ${number}, ${at}, ${at})
+		INSERT INTO tickets (id, project_id, number, title, status_id, position, created_at, updated_at)
+		VALUES (${id}, ${rootId}, ${number}, ${title}, ${statusId}, ${number}, ${at}, ${at})
 	`);
 
 beforeAll(async () => {
-	db = await openDb(":memory:");
-	await migrate(db);
+	db = await openTestDb();
 	await insertProject(opId, "OP", "op", "Operator");
 	await insertProject(woId, "WO", "hardware-shop", "Hardware Shop");
 	await insertStatus(opStatusId, opId);
@@ -68,6 +67,6 @@ test("a project search matches a word prefix but not a word fragment", async () 
 	const prefix = await db.transaction((tx) => search(tx, { q: "hard" }));
 	const fragment = await db.transaction((tx) => search(tx, { q: "ware" }));
 
-	expect(prefix.projects.map((project) => project.path)).toEqual(["WO"]);
-	expect(fragment.projects.map((project) => project.path)).toEqual([]);
+	expect(prefix.projects.map((project) => project.key)).toEqual(["WO"]);
+	expect(fragment.projects.map((project) => project.key)).toEqual([]);
 });

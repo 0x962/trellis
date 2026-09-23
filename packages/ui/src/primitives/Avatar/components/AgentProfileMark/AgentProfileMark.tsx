@@ -18,7 +18,7 @@ export type AgentProfile = {
 const phaseOf = (id: string) => ([...id].reduce((value, char) => value + char.charCodeAt(0), 0) * 0.83) % 2;
 
 export function AgentProfileMark({ profile, state }: { profile: AgentProfile; state: AgentMarkState }) {
-	const working = state !== "static";
+	const working = state === "working";
 	const sweep = useRef<HTMLSpanElement>(null);
 	const id = useId();
 	useSweepWhileVisible(sweep, working);

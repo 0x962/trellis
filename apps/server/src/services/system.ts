@@ -167,7 +167,7 @@ const tableNames = async (tx: Tx) => {
 // What a reader needs and the columns do not carry: the ticket identifier a
 // person types, and the path that serves the bytes of an attachment.
 const EXTRA_COLUMNS: Record<string, SQL> = {
-	tickets: sql`, (SELECT p.key FROM projects p WHERE p.id = t.root_id) || '-' || t.number AS identifier`,
+	tickets: sql`, (SELECT p.key FROM projects p WHERE p.id = t.project_id) || '-' || t.number AS identifier`,
 	attachments: sql`, '/api/attachments/' || t.id || '/file' AS url`,
 };
 

@@ -21,13 +21,13 @@ import {
 // inside two groups make the ref ambiguous, and the caller must name the
 // group. A label group ref is a ULID or a group name.
 
-export type ResolveLabelInput = { rootId: string; ref: string };
+export type ResolveLabelInput = { projectId: string; ref: string };
 
 export const resolveLabel = async (_ctx: ServiceCtx, tx: Tx, input: ResolveLabelInput): Promise<LabelRow> => {
 	const parsed = LabelRefSchema.safeParse(input.ref);
 	if (!parsed.success) throw fail("NOT_FOUND", { kind: "label", ref: input.ref });
 	const ref = parsed.data;
-	if (ref.kind === "ulid") return labelById(tx, input.rootId, ref.id);
+	if (ref.kind === "ulid") return labelById(tx, input.projectId, ref.id);
 	const canonical = LabelRefSchema.canonicalize(input.ref);
 	const named =
 		ref.group === null
@@ -37,7 +37,7 @@ export const resolveLabel = async (_ctx: ServiceCtx, tx: Tx, input: ResolveLabel
 	const found = await rows<LabelRow>(
 		tx,
 		sql`SELECT ${labelColumns} ${labelFrom}
-			WHERE l.project_id = ${input.rootId} AND ${named}
+			WHERE l.project_id = ${input.projectId} AND ${named}
 			ORDER BY (l.group_id IS NOT NULL), lower(g.name), l.id`,
 	);
 	if (found.length === 0) throw fail("NOT_FOUND", { kind: "label", ref: canonical });
@@ -49,7 +49,7 @@ export const resolveLabel = async (_ctx: ServiceCtx, tx: Tx, input: ResolveLabel
 };
 
 // `field` is the input field the message names, such as `addLabels`.
-export type ResolveLabelsInput = { rootId: string; refs: readonly string[]; field: string };
+export type ResolveLabelsInput = { projectId: string; refs: readonly string[]; field: string };
 
 // The labels of one list, in the order the caller names them, without a
 // repeat. A ticket holds one label of a group at most, so two labels of one
@@ -57,7 +57,7 @@ export type ResolveLabelsInput = { rootId: string; refs: readonly string[]; fiel
 export const resolveLabels = async (ctx: ServiceCtx, tx: Tx, input: ResolveLabelsInput): Promise<LabelRow[]> => {
 	const found: LabelRow[] = [];
 	for (const ref of input.refs) {
-		const label = await resolveLabel(ctx, tx, { rootId: input.rootId, ref });
+		const label = await resolveLabel(ctx, tx, { projectId: input.projectId, ref });
 		if (found.some((other) => other.id === label.id)) continue;
 		const clash = found.find((other) => other.group_id !== null && other.group_id === label.group_id);
 		if (clash !== undefined) {
@@ -71,36 +71,37 @@ export const resolveLabels = async (ctx: ServiceCtx, tx: Tx, input: ResolveLabel
 	return found;
 };
 
-export type ResolveLabelGroupInput = { rootId: string; ref: string };
+export type ResolveLabelGroupInput = { projectId: string; ref: string };
 
 export const resolveLabelGroup = async (_ctx: ServiceCtx, tx: Tx, input: ResolveLabelGroupInput): Promise<GroupRow> => {
 	const parsed = LabelGroupRefSchema.safeParse(input.ref);
 	if (!parsed.success) throw fail("NOT_FOUND", { kind: "label group", ref: input.ref });
-	if (parsed.data.kind === "ulid") return groupById(tx, input.rootId, parsed.data.id);
+	if (parsed.data.kind === "ulid") return groupById(tx, input.projectId, parsed.data.id);
 	const canonical = LabelGroupRefSchema.canonicalize(input.ref);
 	const found = await rows<GroupRow>(
 		tx,
 		sql`SELECT ${groupColumns} FROM label_groups
-			WHERE project_id = ${input.rootId} AND lower(name) = ${parsed.data.name}`,
+			WHERE project_id = ${input.projectId} AND lower(name) = ${parsed.data.name}`,
 	);
 	if (found.length === 0) throw fail("NOT_FOUND", { kind: "label group", ref: canonical });
 	return found[0] as GroupRow;
 };
 
-// The label ids a list filter names. Inside one root a ref resolves as a
-// write ref does. With no root, which is a list across every project, a name
-// matches the label of that name in every root and a ULID matches one label.
+// The label ids a list filter names. Inside one project a ref resolves as a
+// write ref does. With no project, which is a list across every project, a
+// name matches the label of that name in every project and a ULID matches
+// one label.
 // A ref that names no label is refused, so a typo never reads as an empty filter.
 export const labelFilterIds = async (
 	ctx: ServiceCtx,
 	tx: Tx,
 	refs: readonly string[],
-	rootId: string | null,
+	projectId: string | null,
 ): Promise<string[]> => {
 	const ids: string[] = [];
 	for (const ref of refs) {
-		if (rootId !== null) {
-			ids.push((await resolveLabel(ctx, tx, { rootId, ref })).id);
+		if (projectId !== null) {
+			ids.push((await resolveLabel(ctx, tx, { projectId, ref })).id);
 			continue;
 		}
 		const parsed = LabelRefSchema.safeParse(ref);

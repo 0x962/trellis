@@ -25,9 +25,8 @@ export const LabelDescriptionSchema = z
 	.trim()
 	.max(255, "Enter a label description of 255 characters or less.");
 
-// The root project of a tree owns every label and every label group of the
-// tree, so `projectId` is the id of that root. `groupId` is null for a label
-// with no group. `ticketCount` is the number of tickets that hold the label.
+// A project owns its labels and its label groups, so `projectId` is the id
+// of that project. `groupId` is null for a label with no group. `ticketCount` is the number of tickets that hold the label.
 export const LabelSchema = z.object({
 	id: UlidSchema,
 	projectId: UlidSchema,

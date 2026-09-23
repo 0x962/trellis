@@ -64,7 +64,7 @@ export function SessionList({
 						label="New session"
 						icon={<Plus />}
 						disabled={project.archivedAt !== null}
-						onClick={() => sessionComposerActions.open(project.path)}
+						onClick={() => sessionComposerActions.open(project.key)}
 					/>
 				</Tooltip>
 			</div>
@@ -106,7 +106,7 @@ export function SessionList({
 										group="sessions"
 										searching={Boolean(search.trim())}
 										label="Sessions"
-										projectPath={project.path}
+										projectKey={project.key}
 										runs={groups.sessions}
 										sessionsByRunId={sessionsByRunId}
 										selectedId={selectedId}
@@ -119,7 +119,7 @@ export function SessionList({
 										group="ticketed"
 										searching={Boolean(search.trim())}
 										label="Ticketed"
-										projectPath={project.path}
+										projectKey={project.key}
 										runs={groups.ticketed}
 										sessionsByRunId={sessionsByRunId}
 										selectedId={selectedId}

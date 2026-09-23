@@ -66,6 +66,12 @@ export const reviewSubmissions = pgTable(
 // another travel in one message. It is also the moment the message joined
 // the queue, and `dispatchDeliveries` drops a message that waits a day.
 //
+// `author_name` and `author_kind` name the actor that wrote the message,
+// and `author_run_id` names the agent run that wrote it when Trellis
+// started that agent. A check notice and a merge notice have no author, so
+// all three stay null. `dispatchDeliveries` reads these three columns to
+// keep a message away from the agent that wrote it.
+//
 // The unique rule counts two null values as equal. A queued row holds no
 // run, so the rule allows one queued row per message and ticket. A row that
 // went to an agent holds that run and leaves the rule.
@@ -79,6 +85,9 @@ export const reviewDeliveries = pgTable(
 		checkNoticeId: text("check_notice_id").references(() => checkNotices.id, { onDelete: "cascade" }),
 		ticketId: text("ticket_id").references(() => tickets.id, { onDelete: "cascade" }),
 		runId: text("run_id").references(() => agentRuns.id, { onDelete: "set null" }),
+		authorName: text("author_name"),
+		authorKind: text("author_kind"),
+		authorRunId: text("author_run_id").references(() => agentRuns.id, { onDelete: "set null" }),
 		state: text().notNull().default("pending"),
 		error: text(),
 		readAt: at("read_at"),

@@ -9,11 +9,11 @@ import {
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { requireActor, type ServiceCtx } from "../../context.ts";
-import { rows, textArray } from "../../db/queries/support.ts";
+import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { upsert } from "../actors.ts";
-import { assertProjectActive, chainOf, pathOf, resolveProject } from "../refs.ts";
+import { assertProjectActive, resolveProject } from "../refs.ts";
 import { noteSelect, type RawNote, toNote } from "./rows.ts";
 
 // A note that is written on a project reaches that project and every
@@ -21,7 +21,7 @@ import { noteSelect, type RawNote, toNote } from "./rows.ts";
 // ancestor. Newest change first: the first note is the most recent state.
 
 const toNotes = (ctx: ServiceCtx, found: RawNote[]) =>
-	found.map((row) => toNote(row, pathOf(ctx.cache, row.project_id)));
+	found.map((row) => toNote(row, ctx.cache.get(row.project_id).key));
 
 const byId = async (tx: Tx, id: string) => {
 	const [row] = await rows<RawNote>(tx, sql`${noteSelect} WHERE n.id = ${id}`);
@@ -47,10 +47,9 @@ export const activeNotes = async (
 	tx: Tx,
 	input: { projectId: string; audience: Exclude<NoteAudience, "all"> },
 ): Promise<Note[]> => {
-	const ids = chainOf(ctx.cache, input.projectId).map((project) => project.id);
 	const found = await rows<RawNote>(
 		tx,
-		sql`${noteSelect} WHERE n.project_id = ANY(${textArray(ids)}) AND n.audience IN ('all', ${input.audience})
+		sql`${noteSelect} WHERE n.project_id = ${input.projectId} AND n.audience IN ('all', ${input.audience})
 			AND (n.expires_at IS NULL OR n.expires_at > ${ctx.now}) ORDER BY n.updated_at DESC, n.id DESC`,
 	);
 	return toNotes(ctx, found);
@@ -59,10 +58,9 @@ export const activeNotes = async (
 export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<Note[]> => {
 	const input = NoteListInputSchema.parse(rawInput);
 	const project = await resolveProject(ctx, tx, input.project);
-	const ids = chainOf(ctx.cache, project.id).map((item) => item.id);
 	const found = await rows<RawNote>(
 		tx,
-		sql`${noteSelect} WHERE n.project_id = ANY(${textArray(ids)})
+		sql`${noteSelect} WHERE n.project_id = ${project.id}
 			AND ${input.audience === undefined ? sql`true` : sql`n.audience IN ('all', ${input.audience})`}
 			AND ${input.includeExpired ? sql`true` : sql`(n.expires_at IS NULL OR n.expires_at > ${ctx.now})`}
 			ORDER BY n.updated_at DESC, n.id DESC`,
@@ -73,7 +71,7 @@ export const list = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<Note> => {
 	const input = NoteIdInputSchema.parse(rawInput);
 	const row = await byId(tx, input.id);
-	return toNote(row, pathOf(ctx.cache, row.project_id));
+	return toNote(row, ctx.cache.get(row.project_id).key);
 };
 
 export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<Note> => {
@@ -89,7 +87,7 @@ export const create = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 			VALUES (${id}, ${project.id}, ${input.title}, ${input.body}, ${input.audience}, ${input.expiresAt}, ${actor.name}, ${actor.kind}, ${ctx.now}, ${ctx.now})`,
 	);
 	ctx.emit({ type: "notes.changed", projectId: project.id });
-	return toNote(await byId(tx, id), pathOf(ctx.cache, project.id));
+	return toNote(await byId(tx, id), ctx.cache.get(project.id).key);
 };
 
 // A field that the input omits keeps its value. `expiresAt: null` clears the
@@ -108,7 +106,7 @@ export const update = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promis
 			actor_name = ${actor.name}, actor_kind = ${actor.kind}, updated_at = ${ctx.now} WHERE id = ${existing.id}`,
 	);
 	ctx.emit({ type: "notes.changed", projectId: existing.project_id });
-	return toNote(await byId(tx, existing.id), pathOf(ctx.cache, existing.project_id));
+	return toNote(await byId(tx, existing.id), ctx.cache.get(existing.project_id).key);
 };
 
 export const remove = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown) => {

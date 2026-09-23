@@ -5,6 +5,7 @@ export { type Check, type CheckBucket, CheckRibbon, type CheckRibbonProps } from
 export { CheckRing, type CheckRingCounts, type CheckRingProps } from "./domain/CheckRing";
 export { type ChartTone, otherTone, rankedTones } from "./domain/chartTones";
 export { DisplayPopover, type DisplayPopoverProps, type DisplaySortField } from "./domain/DisplayPopover";
+export { DoneWash, type DoneWashProps, doneWashMs, waveFillMs } from "./domain/DoneWash";
 export { FilterBar } from "./domain/FilterBar";
 export { FilterPopover, type FilterPopoverProps } from "./domain/FilterPopover";
 export { FlowDecisionContext } from "./domain/FlowDecisionContext";
@@ -32,14 +33,16 @@ export { LabelPill, type LabelPillProps } from "./domain/LabelPill";
 export { type LabelPillItem, LabelPills, type LabelPillsProps } from "./domain/LabelPills";
 export { LineChanges, type LineChangesProps, type LineChangesValue, lineChangesVisible } from "./domain/LineChanges";
 export { type LabelColor, labelColors } from "./domain/labelColors";
-export { MergeConflictMark, type MergeConflictMarkProps } from "./domain/MergeConflictMark";
 export {
-	type LocalPrState,
+	MergeConflictMark,
+	type MergeConflictMarkProps,
+	type MergeConflictMarkSize,
+} from "./domain/MergeConflictMark";
+export {
 	PrGlyph,
 	type PrGlyphProps,
 	type PrGlyphSize,
 	type PullRequestState,
-	prGlyphLook,
 } from "./domain/PrGlyph";
 export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/PriorityIcon";
 export { type ModelProvider, ProviderIcon, type ProviderIconProps } from "./domain/ProviderIcon";
@@ -93,6 +96,7 @@ export { useMediaQuery } from "./hooks/useMediaQuery";
 export { useReducedMotion } from "./hooks/useReducedMotion";
 export { type ResolvedTheme, setTheme, type ThemeMode, themeStorageKey, useTheme } from "./hooks/useTheme";
 export { ActivityDot, type ActivityDotProps } from "./primitives/ActivityDot";
+export type { AgentMarkState } from "./primitives/AgentMark";
 export { AttentionDot, type AttentionDotProps } from "./primitives/AttentionDot";
 export { type ActorKind, type AgentProfile, Avatar, type AvatarProps } from "./primitives/Avatar";
 export { Badge, type BadgeProps, type BadgeTone } from "./primitives/Badge";
@@ -115,6 +119,7 @@ export { ConfirmDialog, type ConfirmDialogProps } from "./primitives/ConfirmDial
 export { Dialog, type DialogProps } from "./primitives/Dialog";
 export { EmptyState, type EmptyStateProps } from "./primitives/EmptyState";
 export { EntityCard, type EntityCardProps } from "./primitives/EntityCard";
+export { Field, type FieldProps } from "./primitives/Field";
 export { IconButton, type IconButtonProps } from "./primitives/IconButton";
 export { Input, type InputProps } from "./primitives/Input";
 export { Kbd, type KbdProps } from "./primitives/Kbd";

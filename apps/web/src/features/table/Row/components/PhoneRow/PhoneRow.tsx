@@ -1,5 +1,5 @@
 import type { TicketSummary } from "@trellis/api";
-import { cx, StatusIcon } from "@trellis/ui";
+import { cx, DoneWash, StatusIcon } from "@trellis/ui";
 import type { KeyboardEvent, MouseEvent, ReactNode, Ref } from "react";
 import { compactRelativeTime } from "../../../../../lib/format";
 import { pageSheetActions } from "../../../../../stores/pageSheetStore";
@@ -32,6 +32,9 @@ export type PhoneRowProps = {
 	top?: number;
 	group?: string;
 	focused: boolean;
+	// True while the row plays the green wash of a ticket that was marked
+	// done a moment ago.
+	washing: boolean;
 	selected: boolean;
 	onFocus?: (id: string) => void;
 	onClick?: (id: string, event: MouseEvent) => void;
@@ -170,6 +173,7 @@ export function PhoneRow({
 	top,
 	group,
 	focused,
+	washing,
 	selected,
 	onFocus,
 	onClick,
@@ -213,6 +217,7 @@ export function PhoneRow({
 			onClick={(event) => onClick?.(ticket.id, event)}
 			onKeyDown={onKeyDown}
 		>
+			{washing && <DoneWash />}
 			<a
 				href={href}
 				tabIndex={-1}

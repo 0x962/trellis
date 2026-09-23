@@ -7,7 +7,9 @@ export type PullRequestReviewState = "none" | "review_required" | "approved" | "
 
 export type ReviewStateIconProps = {
 	reviewState: PullRequestReviewState;
-	isDraft: boolean;
+	// True while the agent has not asked for review. GitHub takes no review
+	// then, so the mark draws the idle look whatever the review state says.
+	notReady: boolean;
 	tooltip?: boolean;
 	focusable?: boolean;
 	// The words for this mark, in place of the GitHub review state words.
@@ -33,20 +35,21 @@ const keys: Record<PullRequestReviewState, keyof typeof looks> = {
 	none: "idle",
 };
 
-export const reviewStateLabel = (reviewState: PullRequestReviewState, isDraft: boolean) =>
-	looks[isDraft ? "idle" : keys[reviewState]].label;
+export const reviewStateLabel = (reviewState: PullRequestReviewState, notReady: boolean) =>
+	looks[notReady ? "idle" : keys[reviewState]].label;
 
 // The review state of one pull request uses a distinct icon and color. A
-// draft uses the idle icon because it does not accept a review. The
-// accessible name and the tooltip say the same words.
+// pull request whose agent has not asked for review uses the idle icon,
+// because it takes no review. The accessible name and the tooltip say the
+// same words.
 export function ReviewStateIcon({
 	reviewState,
-	isDraft,
+	notReady,
 	tooltip = true,
 	focusable = true,
 	label,
 }: ReviewStateIconProps) {
-	const key = isDraft ? "idle" : keys[reviewState];
+	const key = notReady ? "idle" : keys[reviewState];
 	const { tone, Icon } = looks[key];
 	const words = label ?? looks[key].label;
 	const icon = (

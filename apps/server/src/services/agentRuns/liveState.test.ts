@@ -17,7 +17,7 @@ const run: StoredRun = {
 	kind: "session",
 	instruction: "",
 	projectId: null,
-	projectPath: "",
+	projectKey: "",
 	ticketId: null,
 	ticketIdentifier: null,
 	ticketTitle: null,

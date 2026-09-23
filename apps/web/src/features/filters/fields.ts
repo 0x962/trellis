@@ -85,7 +85,7 @@ export const prLabels: Record<PrFilter, string> = {
 	any: "any",
 	none: "none",
 	open: "open",
-	draft: "draft",
+	"not-ready": "not ready",
 	queued: "queued",
 	merged: "merged",
 	closed: "closed",
@@ -116,7 +116,7 @@ export const opLabel = (field: FilterField, negated: boolean) => {
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
 // The name of one value, as the chip prints it. `labels` holds the labels of
-// the project tree the route shows, in the same way `statuses` holds its
+// the project the route shows, in the same way `statuses` holds its
 // statuses. `epics` holds the epics of the viewed project; an epic value the
 // list does not hold prints its ref. `waves` holds the waves of the
 // epic that the wave value names; a value the list does not hold prints

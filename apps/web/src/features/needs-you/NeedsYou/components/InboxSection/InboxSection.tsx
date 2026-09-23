@@ -97,7 +97,7 @@ export function InboxSection({
 							identifier={item.ticket.identifier}
 							title={item.ticket.title}
 							priority={item.ticket.priority}
-							project={item.ticket.project.path}
+							project={item.ticket.project.key}
 							status={<StatusIcon {...statusIconProps(item.ticket.status)} label={item.ticket.status.name} />}
 							age={compactRelativeTime(item.ticket.createdAt)}
 							createdAt={item.ticket.createdAt}

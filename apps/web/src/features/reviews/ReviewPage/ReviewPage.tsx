@@ -8,6 +8,7 @@ import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
 import { EvidenceDocument } from "../EvidenceDocument";
 import { FileRiskGroups } from "../FileRiskGroups";
+import { fileGroups, groupedPaths } from "../FileRiskGroups/fileGroups";
 import { FlowRuns } from "../FlowRuns";
 import { ApplySuggestionsDialog, ReviewApplyContext, type ReviewApplyState, ReviewBatchBar } from "../ReviewApply";
 import { ReviewChecks } from "../ReviewChecks/ReviewChecks";
@@ -65,6 +66,14 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	} = useReviewData(pr);
 	const [changedFiles, setChangedFiles] = useState<ReadMarkFile[]>([]);
 	const { read, setRead } = useReadMarks(pr, changedFiles);
+	const ref = reviewRef(pr);
+	// One order governs both panes of the Diff tab. The groups rank the files,
+	// the tree draws them in that rank, and the diff draws them in the same
+	// rank, so the row a person picks in the tree sits at the same place in the
+	// diff. The rank ignores the read marks, so a mark never re-sorts the diff
+	// under the pointer.
+	const groups = useMemo(() => fileGroups(ref.repo, changedFiles), [ref.repo, changedFiles]);
+	const fileOrder = useMemo(() => groupedPaths(groups), [groups]);
 	// `FilesDisclosure` hides the review details behind one control on a phone.
 	const phone = useMediaQuery("(max-width: 767px)");
 	const [pickedPath, setPickedPath] = useState("");
@@ -126,7 +135,6 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	const turnInput = ticket.data ?? prRow;
 	const agentWorks = run !== null && isAgentWorking(run);
 	const turn = turnInput ? turnOf(turnInput, agentWorks) : null;
-	const ref = reviewRef(pr);
 	// What the Flows tab needs to start a flow. One `gh pr view` answer carries
 	// both the ticket and the head commit, so either both are here or neither
 	// is.
@@ -272,8 +280,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 											) : (
 												<FileRiskGroups
 													pr={pr}
-													repo={ref.repo}
-													files={changedFiles}
+													groups={groups}
 													read={read}
 													selected={selectedPath}
 													onSelect={(path) => {
@@ -298,6 +305,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 													selectedAnchor={pickedAnchor}
 													renderThread={renderThread}
 													onFiles={setChangedFiles}
+													order={fileOrder}
 													read={read}
 													onRead={setRead}
 												/>

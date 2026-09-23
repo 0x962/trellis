@@ -17,7 +17,7 @@ const runOf = (fields: Partial<AgentRun> = {}) =>
 		harness: null,
 		instruction: "",
 		projectId: null,
-		projectPath: "",
+		projectKey: "",
 		ticketId: "ticket-a",
 		ticketIdentifier: "OP-32",
 		ticketTitle: null,
@@ -92,7 +92,20 @@ const workingLine = (
 	...fields,
 });
 
+// A run that Trellis accepted and the harness has not reported on yet. The
+// server answers `agentRuns.start` with a run in this shape.
+const starting = () => runOf({ state: "starting", processStatus: null, observation: null });
+
 describe("agentLineOf", () => {
+	test("says the agent starts while the run has no message and no activity", () => {
+		expect(agentLineOf(starting())).toEqual({
+			words: "crisp-fjord: starts",
+			asks: false,
+			working: false,
+			runId: "run",
+		});
+	});
+
 	test("prints the run name, a colon and the last message", () => {
 		expect(agentLineOf(speaking())).toEqual(workingLine("I rebased onto master."));
 	});
@@ -246,6 +259,12 @@ describe("agentLineOf", () => {
 });
 
 describe("agentLinesByTicket", () => {
+	test("keeps the line of a run that starts", () => {
+		expect(agentLinesByTicket([starting()])).toEqual({
+			"ticket-a": { words: "crisp-fjord: starts", asks: false, working: false, runId: "run" },
+		});
+	});
+
 	test("keys each line by the ticket of its run", () => {
 		expect(agentLinesByTicket([speaking()])).toEqual({
 			"ticket-a": workingLine("I rebased onto master."),

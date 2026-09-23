@@ -12,7 +12,6 @@ import { assertProjectActive } from "../refs.ts";
 type ContractField = "files" | "verify" | "reviewFocus";
 type EpicTicket = TicketContract & {
 	id: string;
-	rootId: string;
 	projectId: string;
 	identifier: string;
 	description: string;
@@ -87,10 +86,10 @@ export const importContract = async (
 	assertProjectActive(ctx, epic.project_id);
 	const tickets = await rows<EpicTicket>(
 		tx,
-		sql`SELECT t.id, t.root_id AS "rootId", t.project_id AS "projectId",
-			root.key || '-' || t.number AS identifier, t.description, t.result, t.files,
+		sql`SELECT t.id, t.project_id AS "projectId",
+			proj.key || '-' || t.number AS identifier, t.description, t.result, t.files,
 			t.leave_alone AS "leaveAlone", t.verify, t.review_focus AS "reviewFocus"
-			FROM tickets t JOIN projects root ON root.id = t.root_id
+			FROM tickets t JOIN projects proj ON proj.id = t.project_id
 			WHERE t.epic_id = ${epic.id} ORDER BY t.number`,
 	);
 
@@ -125,7 +124,6 @@ export const importContract = async (
 			version = version + 1, updated_at = ${ctx.now}
 			WHERE id = ${ticket.id}`);
 		await record(ctx, tx, {
-			rootId: ticket.rootId,
 			projectId: ticket.projectId,
 			ticketId: ticket.id,
 			action: "ticket.updated",

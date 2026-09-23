@@ -177,23 +177,7 @@ const rm = defineCommand({
 	},
 });
 
-const clear = defineCommand({
-	meta: { name: "clear", description: "Drop a sub-project's own set and inherit again" },
-	args: { project: { type: "positional", required: true, description: "Project ref" } },
-	async run(context) {
-		const ctx = contextOf(context);
-		const result = await clientOf(ctx).statuses.clear({ project: context.args.project });
-		printRecord(ctx.out, ctx.format, result, {
-			fields: [
-				{ name: "inheritedFrom", value: (row) => row.inheritedFrom },
-				{ name: "remapped", value: (row) => String(row.remapped) },
-			],
-			identifier: (row) => row.inheritedFrom,
-		});
-	},
-});
-
 export default defineCommand({
-	meta: { name: "statuses", description: "List, add, edit, remove, or clear statuses" },
-	subCommands: { list, add, edit, rm, clear },
+	meta: { name: "statuses", description: "List, add, edit, or remove statuses" },
+	subCommands: { list, add, edit, rm },
 });

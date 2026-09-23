@@ -23,9 +23,17 @@ const ticket = (id: string, entry: WaveSummary) =>
 		prRows: noPrs,
 		ready: false,
 	}) as TicketSummary;
-// The person reviews this pull request: it is open, it is no draft, every
-// check passed and no thread is open.
-const reviewPr = { number: 7, state: "open", isDraft: false, fail: 0, pending: 0, openThreads: 0 } as TicketPr;
+// The person reviews this pull request: it is open and it needs no part,
+// so `reviewGaps` is empty.
+const reviewPr = {
+	number: 7,
+	state: "open",
+	isDraft: false,
+	reviewGaps: [],
+	fail: 0,
+	pending: 0,
+	openThreads: 0,
+} as unknown as TicketPr;
 const question = (id: string, entry: WaveSummary) =>
 	({ ...ticket(id, entry), status: statusOf("human") }) as TicketSummary;
 const review = (id: string, entry: WaveSummary) => ({ ...ticket(id, entry), prRows: [reviewPr] }) as TicketSummary;

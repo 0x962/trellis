@@ -10,7 +10,7 @@ type NoteView = {
 };
 
 type NoteGroup = {
-	projectPath: string;
+	projectKey: string;
 	count: number;
 	notes: NoteView[];
 };
@@ -18,8 +18,8 @@ type NoteGroup = {
 const groupByProjectFromChildToRoot = <T extends { note: Note }>(notes: T[]) => {
 	const groups = new Map<string, T[]>();
 	for (const note of notes) {
-		const group = groups.get(note.note.projectPath);
-		if (group === undefined) groups.set(note.note.projectPath, [note]);
+		const group = groups.get(note.note.projectKey);
+		if (group === undefined) groups.set(note.note.projectKey, [note]);
 		else group.push(note);
 	}
 	return [...groups.entries()].sort(([a], [b]) => b.split(".").length - a.split(".").length);
@@ -50,13 +50,13 @@ export const buildNotePage = (orderedNotes: Note[], now: number, requestedPage: 
 	const start = index * NOTE_PAGE_SIZE;
 	const noteCountByProject = new Map<string, number>();
 	for (const note of orderedNotes) {
-		noteCountByProject.set(note.projectPath, (noteCountByProject.get(note.projectPath) ?? 0) + 1);
+		noteCountByProject.set(note.projectKey, (noteCountByProject.get(note.projectKey) ?? 0) + 1);
 	}
 	const visible = orderedNotes.slice(start, start + NOTE_PAGE_SIZE);
 	const groups: NoteGroup[] = groupByProjectFromChildToRoot(visible.map((note) => toNoteView(note, now))).map(
-		([projectPath, members]) => ({
-			projectPath,
-			count: noteCountByProject.get(projectPath)!,
+		([projectKey, members]) => ({
+			projectKey,
+			count: noteCountByProject.get(projectKey)!,
 			notes: members,
 		}),
 	);

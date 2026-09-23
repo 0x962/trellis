@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { ReadMarkFile } from "../readMarks/readMarks";
 import { FileRiskGroups } from "./FileRiskGroups";
+import { fileGroups } from "./fileGroups";
 
 const memoryStorage = (entries: Map<string, string>): Storage => ({
 	get length() {
@@ -20,19 +21,27 @@ globalThis.localStorage = memoryStorage(new Map());
 
 const pr = "0x962/trellis#161";
 
-const files: ReadMarkFile[] = [
-	{ path: "apps/server/drizzle/0083_waits.sql", change: "new", additions: 11, deletions: 0 },
-	{ path: "apps/web/src/features/reviews/ReviewPage/ReviewPage.tsx", change: "change", additions: 20, deletions: 4 },
-	{ path: "apps/web/src/features/reviews/ReviewPage/ReviewPage.test.tsx", change: "new", additions: 30, deletions: 0 },
-	{ path: "bun.lock", change: "change", additions: 2, deletions: 2 },
-];
+const file = (path: string, over: Partial<ReadMarkFile>): ReadMarkFile => ({
+	path,
+	change: "change",
+	additions: 0,
+	deletions: 0,
+	binary: false,
+	digest: path,
+	...over,
+});
+
+const groups = fileGroups("trellis", [
+	file("apps/server/drizzle/0083_waits.sql", { change: "new", additions: 11 }),
+	file("apps/web/src/features/reviews/ReviewPage/ReviewPage.tsx", { additions: 20, deletions: 4 }),
+	file("apps/web/src/features/reviews/ReviewPage/ReviewPage.test.tsx", { change: "new", additions: 30 }),
+	file("bun.lock", { additions: 2, deletions: 2 }),
+]);
 
 // The tree of each group loads from a chunk of its own, so a server render
 // draws the group headers and the placeholder of every open group.
 const render = (read: ReadonlySet<string> = new Set()) =>
-	renderToStaticMarkup(
-		<FileRiskGroups pr={pr} repo="trellis" files={files} read={read} selected="" onSelect={() => {}} />,
-	);
+	renderToStaticMarkup(<FileRiskGroups pr={pr} groups={groups} read={read} selected="" onSelect={() => {}} />);
 
 test("the four groups print in the order the reviewer reads them", () => {
 	const html = render();
