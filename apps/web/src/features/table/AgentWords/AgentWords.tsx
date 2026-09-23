@@ -1,4 +1,4 @@
-import { AttentionDot, cx, WorkingAgentText } from "@trellis/ui";
+import { AttentionDot, CodeText, cx, WorkingAgentText } from "@trellis/ui";
 import { ReadOnlyMarkdown } from "../../../components/ReadOnlyMarkdown";
 import type { TicketAgentLine } from "../utils/agentLines";
 
@@ -16,12 +16,17 @@ type AgentWordsProps = {
 	wrap?: boolean;
 };
 
-const agentText = (line: TicketAgentLine) =>
-	(line.parts ?? [{ text: line.words, code: false }]).map((part) => (
-		<span key={part.code ? "code" : "text"} className={part.code ? "font-mono" : undefined}>
-			{part.text}
-		</span>
-	));
+// The code part takes the mono font, and the rest keeps the text font.
+const wordSpans = (line: TicketAgentLine) => {
+	const [agent, activity, target] = line.parts;
+	return (
+		<>
+			{agent !== undefined && <span>{agent.text}</span>}
+			{activity !== undefined && (activity.code ? <CodeText>{activity.text}</CodeText> : <span>{activity.text}</span>)}
+			{target !== undefined && (target.code ? <CodeText>{target.text}</CodeText> : <span>{target.text}</span>)}
+		</>
+	);
+};
 
 // The dot and the words of one agent line. The epic table draws them on the
 // line under a ticket row or under a pull request line, and a phone row
@@ -36,9 +41,10 @@ const agentText = (line: TicketAgentLine) =>
 // phone row has one line of room, so it prints the raw text.
 //
 // While the run works, the words say what the agent does at this moment:
-// one tool call, or the text the agent writes now. Those words are plain
-// text on one line, because each tool call replaces them, and a line that
-// grew and shrank would move every row under it on each call. They take
+// one tool call, or the text the agent writes now. Those words do not
+// render as markdown and stay on one line, because each tool call replaces
+// them, and a line that grew and shrank would move every row under it on
+// each call. They take
 // `text-film`: the film colors of the ticket glimmer cross them without a
 // pause, one sweep every two seconds, which says the agent works now. The
 // sweep is CSS, and a person who asks for less motion reads the same words
@@ -52,7 +58,7 @@ export function AgentWords({ line, wrap = false, render }: AgentWordsProps) {
 				<span className="flex h-4 w-4 shrink-0 items-center justify-center">{dot}</span>
 				{line.working ? (
 					<WorkingAgentText tooltip={false} className="min-w-0 flex-1 truncate" title={line.words}>
-						{agentText(line)}
+						{wordSpans(line)}
 					</WorkingAgentText>
 				) : (
 					<span className={cx("min-w-0 flex-1", tone)}>
@@ -67,7 +73,7 @@ export function AgentWords({ line, wrap = false, render }: AgentWordsProps) {
 			{dot}
 			{line.working ? (
 				<WorkingAgentText tooltip={false} className="truncate" title={line.words}>
-					{agentText(line)}
+					{wordSpans(line)}
 				</WorkingAgentText>
 			) : (
 				<span className={cx("truncate", tone)} title={line.words}>

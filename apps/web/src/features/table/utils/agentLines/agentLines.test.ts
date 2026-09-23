@@ -66,19 +66,32 @@ const speaking = (name = "crisp-fjord") => {
 	return run;
 };
 
+const plainLine = (words: string, fields = {}) => ({
+	words,
+	parts: [{ text: words, code: false }],
+	...fields,
+});
+
+const workingLine = (activity: string, fields = {}) => ({
+	words: `crisp-fjord: ${activity}`,
+	parts: [
+		{ text: "crisp-fjord: ", code: false },
+		{ text: activity, code: false },
+	],
+	asks: false,
+	working: true,
+	runId: "run",
+	...fields,
+});
+
 describe("agentLineOf", () => {
 	test("prints the run name, a colon and the last message", () => {
-		expect(agentLineOf(speaking())).toEqual({
-			words: "crisp-fjord: I rebased onto master.",
-			asks: false,
-			working: true,
-			runId: "run",
-		});
+		expect(agentLineOf(speaking())).toEqual(workingLine("I rebased onto master."));
 	});
 
 	test("prints the question of the harness and marks the line as a request", () => {
 		expect(agentLineOf(asking())).toEqual({
-			words: "crisp-fjord asks: Which cap?",
+			...plainLine("crisp-fjord asks: Which cap?"),
 			asks: true,
 			working: false,
 			runId: "run",
@@ -92,7 +105,7 @@ describe("agentLineOf", () => {
 		];
 
 		expect(agentLineOf(run)).toEqual({
-			words: "crisp-fjord asks: Project name",
+			...plainLine("crisp-fjord asks: Project name"),
 			asks: true,
 			working: false,
 			runId: "run",
@@ -106,7 +119,7 @@ describe("agentLineOf", () => {
 		];
 
 		expect(agentLineOf(run)).toEqual({
-			words: "crisp-fjord asks to run: Bash",
+			...plainLine("crisp-fjord asks to run: Bash"),
 			asks: true,
 			working: false,
 			runId: "run",
@@ -124,7 +137,7 @@ describe("agentLineOf", () => {
 	});
 
 	test("says that a run works when it has no message and no request yet", () => {
-		expect(agentLineOf(runOf())).toEqual({ words: "crisp-fjord: works", asks: false, working: true, runId: "run" });
+		expect(agentLineOf(runOf())).toEqual(workingLine("works"));
 	});
 
 	test("a request wins over the last message", () => {
@@ -132,7 +145,7 @@ describe("agentLineOf", () => {
 		run.observation!.lastMessage = { text: "I rebased onto master.", at };
 
 		expect(agentLineOf(run)).toEqual({
-			words: "crisp-fjord asks: Which cap?",
+			...plainLine("crisp-fjord asks: Which cap?"),
 			asks: true,
 			working: false,
 			runId: "run",
@@ -152,7 +165,8 @@ describe("agentLineOf", () => {
 		expect(agentLineOf(run)).toEqual({
 			words: "crisp-fjord: Edit apps/web/src/app.css",
 			parts: [
-				{ text: "crisp-fjord: Edit ", code: false },
+				{ text: "crisp-fjord: ", code: false },
+				{ text: "Edit ", code: false },
 				{ text: "apps/web/src/app.css", code: true },
 			],
 			asks: false,
@@ -165,7 +179,7 @@ describe("agentLineOf", () => {
 		const run = speaking();
 		run.observation!.lastTool = { name: "TodoWrite", target: null, status: "running", startedAt: at, updatedAt: at };
 
-		expect(agentLineOf(run)).toEqual({ words: "crisp-fjord: TodoWrite", asks: false, working: true, runId: "run" });
+		expect(agentLineOf(run)).toEqual(workingLine("TodoWrite"));
 	});
 
 	test("takes the text the agent writes while no tool runs", () => {
@@ -178,12 +192,7 @@ describe("agentLineOf", () => {
 			updatedAt: at,
 		};
 
-		expect(agentLineOf(run)).toEqual({
-			words: "crisp-fjord: I rebased onto master.",
-			asks: false,
-			working: true,
-			runId: "run",
-		});
+		expect(agentLineOf(run)).toEqual(workingLine("I rebased onto master."));
 	});
 
 	test("settles on the last message with no shimmer when the turn ends", () => {
@@ -198,7 +207,7 @@ describe("agentLineOf", () => {
 		run.observation!.attention!.completion = { sequence: 2, at };
 
 		expect(agentLineOf(run)).toEqual({
-			words: "crisp-fjord: I rebased onto master.",
+			...plainLine("crisp-fjord: I rebased onto master."),
 			asks: false,
 			working: false,
 			runId: "run",
@@ -210,7 +219,7 @@ describe("agentLineOf", () => {
 		run.state = "stopped";
 
 		expect(agentLineOf(run)).toEqual({
-			words: "crisp-fjord: I rebased onto master.",
+			...plainLine("crisp-fjord: I rebased onto master."),
 			asks: false,
 			working: false,
 			runId: "run",
@@ -221,7 +230,7 @@ describe("agentLineOf", () => {
 describe("agentLinesByTicket", () => {
 	test("keys each line by the ticket of its run", () => {
 		expect(agentLinesByTicket([speaking()])).toEqual({
-			"ticket-a": { words: "crisp-fjord: I rebased onto master.", asks: false, working: true, runId: "run" },
+			"ticket-a": workingLine("I rebased onto master."),
 		});
 	});
 
@@ -250,7 +259,7 @@ describe("agentLinesByTicket", () => {
 		const lines = agentLinesByTicket([asking("amber-quarry"), speaking()]);
 
 		expect(lines["ticket-a"]).toEqual({
-			words: "amber-quarry asks: Which cap?",
+			...plainLine("amber-quarry asks: Which cap?"),
 			asks: true,
 			working: false,
 			runId: "run",
@@ -261,7 +270,7 @@ describe("agentLinesByTicket", () => {
 		const lines = agentLinesByTicket([speaking(), asking("amber-quarry")]);
 
 		expect(lines["ticket-a"]).toEqual({
-			words: "amber-quarry asks: Which cap?",
+			...plainLine("amber-quarry asks: Which cap?"),
 			asks: true,
 			working: false,
 			runId: "run",
@@ -285,14 +294,14 @@ describe("agentLinesByTicket", () => {
 	const stopped = (run: AgentRun) => ({ ...run, state: "stopped", processStatus: "exited" }) as AgentRun;
 
 	test("takes the run with the later activity, in either array order", () => {
-		const line = { words: "crisp-fjord: The retry passes.", asks: false, working: false, runId: "newer" };
+		const line = { ...plainLine("crisp-fjord: The retry passes."), asks: false, working: false, runId: "newer" };
 
 		expect(agentLinesByTicket([older(), newer()])["ticket-a"]).toEqual(line);
 		expect(agentLinesByTicket([newer(), older()])["ticket-a"]).toEqual(line);
 	});
 
 	test("takes a live run over a stopped run with a later message, in either array order", () => {
-		const line = { words: "amber-quarry: Pushed the first try.", asks: false, working: false, runId: "older" };
+		const line = { ...plainLine("amber-quarry: Pushed the first try."), asks: false, working: false, runId: "older" };
 
 		expect(agentLinesByTicket([older(), stopped(newer())])["ticket-a"]).toEqual(line);
 		expect(agentLinesByTicket([stopped(newer()), older()])["ticket-a"]).toEqual(line);

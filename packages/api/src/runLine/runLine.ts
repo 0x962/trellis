@@ -25,11 +25,17 @@ export type RunLine = {
 	rawError: string | null;
 };
 
-export type RunLineActivity = {
-	words: string;
-	verb: string | null;
-	codeSpan: string | null;
+export type RunLineSpan = {
+	text: string;
+	// True when the text is the target of a tool and the live agent line draws
+	// it in the code font.
+	code: boolean;
 };
+
+// What a working agent does now. The spans join into the full activity text.
+export type RunLineActivity = { spans: readonly RunLineSpan[] };
+
+export const activityWords = (activity: RunLineActivity) => activity.spans.map((span) => span.text).join("");
 
 type RunState = Omit<RunLine, "activity">;
 
@@ -53,12 +59,17 @@ const workingActivity = (run: AgentRun): RunLineActivity | null => {
 	const observation = run.observation!;
 	const runningTool = observation.lastTool?.status === "running" ? observation.lastTool : null;
 	if (runningTool === null) {
-		const words = observation.lastMessage?.text ?? null;
-		return words === null ? null : { words, verb: null, codeSpan: null };
+		const text = observation.lastMessage?.text ?? null;
+		return text === null ? null : { spans: [{ text, code: false }] };
 	}
 	return runningTool.target === null
-		? { words: runningTool.name, verb: runningTool.name, codeSpan: null }
-		: { words: `${runningTool.name} ${runningTool.target}`, verb: runningTool.name, codeSpan: runningTool.target };
+		? { spans: [{ text: runningTool.name, code: false }] }
+		: {
+				spans: [
+					{ text: `${runningTool.name} `, code: false },
+					{ text: runningTool.target, code: true },
+				],
+			};
 };
 
 const executionServiceError = (error: string) =>

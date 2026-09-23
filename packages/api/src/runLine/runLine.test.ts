@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import type { AgentRun } from "../schemas/agentRun.ts";
 import { at, session } from "../sessionStatus/fixture.ts";
-import { isAgentWorking, runLine } from "./runLine.ts";
+import { activityWords, isAgentWorking, runLine } from "./runLine.ts";
 
 const namedRun = () => {
 	const run = session().run;
@@ -48,16 +48,18 @@ test("marks the target of the running tool as code", () => {
 		updatedAt: at,
 	};
 	expect(runLine(run).activity).toEqual({
-		words: "Bash bun test apps/web",
-		verb: "Bash",
-		codeSpan: "bun test apps/web",
+		spans: [
+			{ text: "Bash ", code: false },
+			{ text: "bun test apps/web", code: true },
+		],
 	});
+	expect(activityWords(runLine(run).activity!)).toBe("Bash bun test apps/web");
 });
 
 test("says the text it writes while no tool runs", () => {
 	const run = namedRun();
 	run.observation!.lastMessage = { text: "I rebased the branch.", at };
-	expect(runLine(run).activity).toEqual({ words: "I rebased the branch.", verb: null, codeSpan: null });
+	expect(runLine(run).activity).toEqual({ spans: [{ text: "I rebased the branch.", code: false }] });
 });
 
 test("says nothing of its activity once the turn ends", () => {

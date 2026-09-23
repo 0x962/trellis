@@ -11,6 +11,15 @@ import { PhoneRow } from "./PhoneRow";
 const textOf = (html: string) => html.replace(/<[^>]*>/g, "");
 const visibleTextOf = (html: string) => textOf(html.replace(/<span class="sr-only">.*?<\/span>/g, ""));
 
+const agentLine = (words: string, fields: Partial<TicketAgentLine> = {}): TicketAgentLine => ({
+	words,
+	parts: [{ text: words, code: false }],
+	asks: false,
+	working: false,
+	runId: "run",
+	...fields,
+});
+
 const ticket = (fields: Partial<TicketSummary> = {}) =>
 	({
 		id: "t1",
@@ -80,6 +89,7 @@ describe("PhoneRow on the epic table", () => {
 	test("prints what the run says on line 2", () => {
 		const html = render(ticket(), "epic", {
 			words: "crisp-fjord: I rebased.",
+			parts: [{ text: "crisp-fjord: I rebased.", code: false }],
 			asks: false,
 			working: false,
 			runId: "run",
@@ -93,7 +103,8 @@ describe("PhoneRow on the epic table", () => {
 		const html = render(ticket(), "epic", {
 			words: "crisp-fjord: Shell bun test apps/web/src",
 			parts: [
-				{ text: "crisp-fjord: Shell ", code: false },
+				{ text: "crisp-fjord: ", code: false },
+				{ text: "Shell ", code: false },
 				{ text: "bun test apps/web/src", code: true },
 			],
 			asks: false,
@@ -107,12 +118,7 @@ describe("PhoneRow on the epic table", () => {
 	});
 
 	test("gives the words of the run a control of their own", () => {
-		const html = render(ticket(), "epic", {
-			words: "crisp-fjord: I rebased.",
-			asks: false,
-			working: false,
-			runId: "run",
-		});
+		const html = render(ticket(), "epic", agentLine("crisp-fjord: I rebased."));
 
 		expect(html).toContain('data-line="agent"');
 		expect(html).toContain("<button");
@@ -124,24 +130,14 @@ describe("PhoneRow on the epic table", () => {
 
 	test("hides line 2 while a done ticket is collapsed", () => {
 		const pr = prOf({ number: 57057, pass: 42 });
-		const html = render(
-			ticket({ prRows: [pr] }),
-			"epic",
-			{ words: "crisp-fjord: Done.", asks: false, working: false, runId: "run" },
-			"collapsed",
-		);
+		const html = render(ticket({ prRows: [pr] }), "epic", agentLine("crisp-fjord: Done."), "collapsed");
 
 		expect(html).not.toContain("data-line");
 		expect(html).toContain("Show details for OP-35");
 	});
 
 	test("shows line 2 while a done ticket is expanded", () => {
-		const html = render(
-			ticket(),
-			"epic",
-			{ words: "crisp-fjord: Done.", asks: false, working: false, runId: "run" },
-			"expanded",
-		);
+		const html = render(ticket(), "epic", agentLine("crisp-fjord: Done."), "expanded");
 
 		expect(html).toContain('data-line="agent"');
 		expect(html).toContain("Hide details for OP-35");

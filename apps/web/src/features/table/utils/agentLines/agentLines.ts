@@ -1,41 +1,19 @@
-import { type AgentRun, runLine } from "@trellis/api";
+import { type AgentRun, activityWords, type RunLineSpan, runLine } from "@trellis/api";
 
-export type TicketAgentLinePart = {
-	text: string;
-	code: boolean;
-};
-
-// The words of one agent line, and the dot it shows. `asks` is true while
-// the run waits for a person, which turns the words yellow and puts the dot
-// before them. `working` is true while the agent works, and the words then
-// say what it does at this moment: the line takes the shimmer and stays on
-// one line, and it settles on the last message when the turn ends. `runId`
+// The words of one agent line, and the dot it shows. `parts` cuts the same
+// text into pieces, and the pieces join back into `words`. `asks` is true
+// while the run waits for a person, which turns the words yellow and puts the
+// dot before them. `working` is true while the agent works, and the words
+// then say what it does at this moment: the line takes the shimmer and stays
+// on one line, and it settles on the last message when the turn ends. `runId`
 // is the run that speaks, which a click on the line opens in the session
 // sheet.
 export type TicketAgentLine = {
 	words: string;
-	parts?: readonly TicketAgentLinePart[];
+	parts: readonly RunLineSpan[];
 	asks: boolean;
 	working: boolean;
 	runId: string;
-};
-
-const textLine = (words: string) => ({ words });
-
-const workingLine = (run: AgentRun, line: ReturnType<typeof runLine>): Pick<TicketAgentLine, "words" | "parts"> => {
-	const activity = line.activity;
-	if (activity !== null && activity.verb !== null && activity.codeSpan !== null) {
-		const prefix = `${run.name}: ${activity.verb} `;
-		const words = `${prefix}${activity.codeSpan}`;
-		return {
-			words,
-			parts: [
-				{ text: prefix, code: false },
-				{ text: activity.codeSpan, code: true },
-			],
-		};
-	}
-	return textLine(`${run.name}: ${activity?.words ?? line.words}`);
 };
 
 // The words a ticket row shows on its own line, or null when the run has
@@ -58,12 +36,30 @@ const workingLine = (run: AgentRun, line: ReturnType<typeof runLine>): Pick<Tick
 export const agentLineOf = (run: AgentRun): TicketAgentLine | null => {
 	const line = runLine(run);
 	if (line.kind === "question" || line.kind === "permission" || line.kind === "elicitation") {
-		return { ...textLine(`${run.name} ${line.words}`), asks: true, working: false, runId: run.id };
+		const words = `${run.name} ${line.words}`;
+		return { words, parts: [{ text: words, code: false }], asks: true, working: false, runId: run.id };
 	}
-	if (line.kind === "works") return { ...workingLine(run, line), asks: false, working: true, runId: run.id };
-	return line.lastMessage === null
-		? null
-		: { ...textLine(line.lastMessage.words), asks: false, working: false, runId: run.id };
+	if (line.kind === "works") {
+		const prefix = `${run.name}: `;
+		const activity = line.activity;
+		const activityParts = activity?.spans ?? [{ text: line.words, code: false }];
+		const words = `${prefix}${activity === null ? line.words : activityWords(activity)}`;
+		return {
+			words,
+			parts: [{ text: prefix, code: false }, ...activityParts],
+			asks: false,
+			working: true,
+			runId: run.id,
+		};
+	}
+	if (line.lastMessage === null) return null;
+	return {
+		words: line.lastMessage.words,
+		parts: [{ text: line.lastMessage.words, code: false }],
+		asks: false,
+		working: false,
+		runId: run.id,
+	};
 };
 
 // The agent line of each ticket that holds an assigned agent run, keyed by
