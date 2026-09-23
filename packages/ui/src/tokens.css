@@ -332,6 +332,13 @@
 	--animate-shimmer: shimmer 1.4s linear infinite;
 	--animate-glimmer: glimmer 7s ease-in-out infinite;
 	--animate-glimmer-run: glimmer-run 2s linear infinite;
+	/*
+	 * The two halves of one piece of check-bar confetti. Each piece sets
+	 * --confetti-run, --confetti-drift and --confetti-turn on itself, and
+	 * CheckConfetti sets the start delay of both halves to the same number.
+	 */
+	--animate-confetti-drift: confetti-drift var(--confetti-run) linear both;
+	--animate-confetti-arc: confetti-arc var(--confetti-run) linear both;
 
 	/*
 	 * Skeleton lines use --pulse-scale through pulse-in-place to keep their
@@ -375,6 +382,42 @@
 		}
 		100% {
 			background-position: -50% 0;
+		}
+	}
+	/* A piece of check-bar confetti drifts sideways at a steady rate. */
+	@keyframes confetti-drift {
+		from {
+			transform: translateX(0);
+		}
+		to {
+			transform: translateX(var(--confetti-drift));
+		}
+	}
+	/*
+	 * The same piece rises 19 px, falls 22 px past its start, and turns as
+	 * it goes. The scaleX steps squeeze the piece to a quarter of its width
+	 * and back, which reads as a strip of paper that turns edge on.
+	 */
+	@keyframes confetti-arc {
+		0% {
+			transform: translateY(0) rotate(0deg) scaleX(1);
+			opacity: 0;
+		}
+		12% {
+			opacity: 1;
+		}
+		38% {
+			transform: translateY(-19px) rotate(calc(var(--confetti-turn) * 0.35)) scaleX(0.25);
+		}
+		70% {
+			transform: translateY(-5px) rotate(calc(var(--confetti-turn) * 0.7)) scaleX(1);
+		}
+		85% {
+			opacity: 1;
+		}
+		100% {
+			transform: translateY(22px) rotate(var(--confetti-turn)) scaleX(0.45);
+			opacity: 0;
 		}
 	}
 }
