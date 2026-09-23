@@ -19,7 +19,7 @@
    on the `.agent-mark` element itself: the color of the strands, the color of
    the letters, and the color of the square under them. A value set on an
    element above the mark does not reach it, because the declaration below
-   beats an inherited one. `project-room.css` writes such a rule. */
+   beats an inherited one. `project-color.css` writes such a rule. */
 .agent-mark {
 	overflow: visible;
 	--agent-stroke: var(--agent-mark);

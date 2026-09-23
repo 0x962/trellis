@@ -1,39 +1,32 @@
 /*
- * The room of a project.
+ * The color of a project.
  *
  * A project holds one of the five color names of `tokens.css`, and two
  * projects never hold one name. `data-project-color="<name>"` on an element
- * resolves the three values of that name for the element and for everything
- * inside it, so a page, a row, or one mark can stand in the room of one
- * project.
+ * resolves the two values of that name for the element and for everything
+ * inside it, so one mark or one key chip stands for one project.
  *
- * The three values: `--project-solid` fills the ground of the mark and
- * writes the key of the project; `--project-tint` is the color the ground of
- * a page takes a share of; `--project-soft` is the ground of the key chip.
+ * The two values: `--project-solid` fills the ground of the mark and writes
+ * the key of the project; `--project-soft` is the ground of the key chip.
  */
 [data-project-color="orange"] {
 	--project-solid: var(--project-orange-solid);
-	--project-tint: var(--project-orange-tint);
 	--project-soft: var(--project-orange-soft);
 }
 [data-project-color="teal"] {
 	--project-solid: var(--project-teal-solid);
-	--project-tint: var(--project-teal-tint);
 	--project-soft: var(--project-teal-soft);
 }
 [data-project-color="blue"] {
 	--project-solid: var(--project-blue-solid);
-	--project-tint: var(--project-blue-tint);
 	--project-soft: var(--project-blue-soft);
 }
 [data-project-color="pink"] {
 	--project-solid: var(--project-pink-solid);
-	--project-tint: var(--project-pink-tint);
 	--project-soft: var(--project-pink-soft);
 }
 [data-project-color="azure"] {
 	--project-solid: var(--project-azure-solid);
-	--project-tint: var(--project-azure-tint);
 	--project-soft: var(--project-azure-soft);
 }
 
@@ -59,15 +52,4 @@
 .project-chip {
 	background: var(--project-soft);
 	color: var(--project-solid);
-}
-
-/*
- * The ground of a page that belongs to a project. The share below costs
- * every status color the same fraction of its contrast, so no status starts
- * to look like another, and every status glyph still reads at 3:1 or better
- * on every project ground in both themes. `projectColors.test.ts` reads the
- * share from this line and measures that. A larger share breaks it.
- */
-.project-room[data-project-color] {
-	background: color-mix(in srgb, var(--project-tint) 8%, var(--pane));
 }

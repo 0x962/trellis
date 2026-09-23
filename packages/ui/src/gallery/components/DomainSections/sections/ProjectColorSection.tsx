@@ -9,21 +9,18 @@ import { Section } from "../../Section";
 
 const keys = { orange: "CNY", teal: "CVS", blue: "TRL", pink: "HBR", azure: "MSA" };
 
-// The glyphs must read on every project ground. `projectColors.test.ts`
-// measures that contrast.
-export function ProjectRoomSection() {
+// The mark and the key chip carry the color of a project, and every glyph
+// beside them stays on the plain ground. `projectColors.test.ts` measures the
+// contrast of the mark and of the key on its chip.
+export function ProjectColorSection() {
 	return (
 		<Section
-			name="ProjectRoom"
-			note="one room per project color, the plain room last; the state glyphs on each ground"
+			name="ProjectColor"
+			note="one row per project color, the plain one last; the state glyphs beside each mark"
 			className="flex-col items-stretch"
 		>
 			{[...projectColors, null].map((color) => (
-				<div
-					key={color ?? "none"}
-					data-project-color={color ?? undefined}
-					className="project-room flex flex-wrap items-center gap-4 rounded-md border border-border p-3"
-				>
+				<div key={color ?? "none"} className="flex flex-wrap items-center gap-4 rounded-md border border-border p-3">
 					<span className="inline-flex items-center gap-2">
 						<ProjectMark color={color} className="size-6" />
 						<ProjectMark color={color} className="size-4" />

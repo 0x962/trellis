@@ -18,7 +18,7 @@ test("the field shows the color of the project on its trigger", () => {
 
 	expect(html).toContain('data-project-color="blue"');
 	expect(html).toContain(">Blue<");
-	expect(html).toContain("The color tints the mark of the project");
+	expect(html).toContain("The color fills the mark of the project");
 	expect(html).not.toContain('aria-disabled="true"');
 });
 
