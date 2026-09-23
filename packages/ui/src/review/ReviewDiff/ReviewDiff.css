@@ -1,3 +1,5 @@
+/* `VirtualDiffRows` sets the `--review-diff-*-box` heights on this box, from
+   `diffRowSlots`. */
 .review-code {
 	display: block;
 	height: 100%;
@@ -8,10 +10,6 @@
 	--diffs-addition-color-override: var(--success);
 	--diffs-deletion-color-override: var(--danger);
 	--diffs-selection-color-override: var(--accent);
-	/* The tint of a hovered code line. It is translucent, so it lays over the
-	   green of an added line and the red of a deleted one instead of replacing
-	   them. `VirtualDiffRows` sets the `--review-diff-*-box` heights here. */
-	--review-diff-hover: color-mix(in srgb, var(--fg) 6%, transparent);
 }
 .review-diff-file-header {
 	display: flex;
@@ -49,7 +47,7 @@
 	color: var(--fg-faint);
 	font-family: var(--font-sans);
 	font-size: var(--text-xs);
-	font-weight: var(--font-weight-normal);
+	font-weight: normal;
 }
 .review-diff-file-controls {
 	display: flex;
@@ -62,27 +60,6 @@
 	font-family: var(--font-sans);
 	font-size: var(--text-xs);
 	color: var(--fg-muted);
-}
-/* The band that names the risk group of the files under it. The diff draws its
-   files in the order of the file tree, and the tree draws the same four
-   groups, so both panes name one order. */
-.review-diff-group {
-	display: flex;
-	align-items: center;
-	gap: calc(var(--spacing) * 2);
-	height: var(--review-diff-group-box);
-	padding-inline: calc(var(--spacing) * 5);
-	border-block: var(--border-width-hairline) solid var(--border);
-	background: var(--band);
-	font-size: var(--text-sm);
-}
-.review-diff-group-label {
-	font-weight: var(--font-weight-medium);
-	color: var(--fg-muted);
-}
-.review-diff-group-count {
-	color: var(--fg-faint);
-	font-variant-numeric: tabular-nums;
 }
 .review-diff-hunk-header,
 .review-diff-line,
@@ -113,8 +90,8 @@
 	font-size: var(--text-xs);
 	line-height: var(--text-xs--line-height);
 }
-/* The header draws one fixed height, and a wrapped line of specs would spill
-   over the rows above and below it. */
+/* The hunk header holds one line of text at a fixed height. Text on a second
+   line would cover the rows above and below it. */
 .review-diff-hunk-header > span:last-child {
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -142,10 +119,8 @@
 .review-diff-line[data-line-type="change-deletion"] {
 	background-color: color-mix(in srgb, var(--danger) 10%, transparent);
 }
-/* The tint paints over the line colour, so an added line stays green under the
-   pointer and a deleted line stays red. */
 .review-diff-line:not(.review-diff-line-empty):hover {
-	background-image: linear-gradient(var(--review-diff-hover), var(--review-diff-hover));
+	background-image: linear-gradient(var(--band-translucent), var(--band-translucent));
 }
 /* The row is a button, so a person who moves by keyboard must see where they
    are. The ring is drawn inside the row, because the scrolling box cuts off
@@ -179,8 +154,9 @@
 .review-diff-line:is(:hover, :focus-within) > button {
 	opacity: 1;
 }
-/* A touch screen has no pointer to hover with, so the button above would never
-   appear on a phone. The same escape holds the reveal of a group header open. */
+/* A touch screen has no pointer, so the hover rule above never runs and the
+   button stays invisible. `GroupHeader.tsx` uses the same media query for the
+   same reason. */
 @media (hover: none) {
 	.review-diff-line > button {
 		opacity: 1;
@@ -217,9 +193,6 @@
 		width: 100%;
 		min-width: 0;
 		overscroll-behavior-x: contain;
-	}
-	.review-diff-group {
-		padding-inline: calc(var(--spacing) * 4);
 	}
 	.review-diff-file-header,
 	.review-diff-hunk-header,
