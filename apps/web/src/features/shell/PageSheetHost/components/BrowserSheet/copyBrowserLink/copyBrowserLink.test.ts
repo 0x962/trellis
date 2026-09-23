@@ -25,3 +25,15 @@ test("shows an error and no confirmation when the clipboard refuses the link", a
 	expect(fail).toHaveBeenCalledWith("The link was not copied.");
 	expect(notify).not.toHaveBeenCalled();
 });
+
+test("shows the failure and writes nothing when the address is empty", async () => {
+	const writeText = mock(async () => {});
+	const notify = mock(() => {});
+	const fail = mock(() => {});
+
+	await copyBrowserLink("", { writeText, notify, fail });
+
+	expect(writeText).not.toHaveBeenCalled();
+	expect(fail).toHaveBeenCalledWith("The link was not copied.");
+	expect(notify).not.toHaveBeenCalled();
+});
