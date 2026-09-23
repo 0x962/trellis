@@ -1,14 +1,14 @@
 // The color names a project can hold. `tokens.css` holds the three values
 // of each name for each theme. The list is the option list of
 // `ProjectColorSchema` in @trellis/api: packages/ui never imports the api,
-// so the two lists stand side by side, and
+// so this file and the api file each hold the list, and
 // `apps/web/src/lib/projectColors.test.ts` compares them.
 export type ProjectColor = "orange" | "teal" | "blue" | "pink" | "azure";
 
 // A color field lists the colors in this order.
 export const projectColors: readonly ProjectColor[] = ["orange", "teal", "blue", "pink", "azure"];
 
-export const projectColorNames: Record<ProjectColor, string> = {
+export const projectColorLabels: Record<ProjectColor, string> = {
 	orange: "Orange",
 	teal: "Teal",
 	blue: "Blue",

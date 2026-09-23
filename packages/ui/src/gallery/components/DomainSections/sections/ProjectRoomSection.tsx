@@ -1,7 +1,7 @@
 import { PrGlyph } from "../../../../domain/PrGlyph";
 import { ProjectKey } from "../../../../domain/ProjectKey";
 import { ProjectMark } from "../../../../domain/ProjectMark";
-import { projectColorNames, projectColors } from "../../../../domain/projectColors";
+import { projectColorLabels, projectColors } from "../../../../domain/projectColors";
 import { StatusIcon } from "../../../../domain/StatusIcon";
 import { TicketId } from "../../../../domain/TicketId";
 import { ActivityDot } from "../../../../primitives/ActivityDot";
@@ -29,7 +29,7 @@ export function ProjectRoomSection() {
 						<ProjectMark color={color} className="size-4" />
 						<ProjectKey projectKey={keys[color ?? "blue"] ?? "TRL"} color={color} />
 					</span>
-					<span className="w-24 text-sm text-fg-muted">{color === null ? "No color" : projectColorNames[color]}</span>
+					<span className="w-24 text-sm text-fg-muted">{color === null ? "No color" : projectColorLabels[color]}</span>
 					<span className="inline-flex items-center gap-3">
 						<TicketId id={`${keys[color ?? "blue"] ?? "TRL"}-386`} />
 						<StatusIcon category="started" label="In Progress" />
