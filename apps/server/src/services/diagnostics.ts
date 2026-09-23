@@ -19,9 +19,11 @@ export const diagnostics = async (ctx: ServiceCtx): Promise<Diagnostics> => {
 	let sessions: RuntimeProcessStatus[] = [];
 	try {
 		const hello = await nativeClient(ctx.home).hello();
-		sessions = await nativeClient(ctx.home).list({
-			ids: runs.flatMap((run) => (run.terminalId === null ? [] : [run.terminalId])),
-		});
+		sessions = (
+			await nativeClient(ctx.home).list({
+				ids: runs.flatMap((run) => (run.terminalId === null ? [] : [run.terminalId])),
+			})
+		).sessions;
 		runtime = {
 			state: "running",
 			pid: hello.pid,

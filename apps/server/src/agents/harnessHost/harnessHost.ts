@@ -46,8 +46,11 @@ export class HarnessHost {
 	}
 	async startPrepared(id: string, timeoutMs?: number): Promise<HarnessStarted> {
 		const descriptor = await this.descriptor(id);
-		const exists = (await this.options.runtime.list({ ids: [id] })).length > 0;
-		return this.launchDescriptor(descriptor, timeoutMs, !exists);
+		const answer = await this.options.runtime.list({ ids: [id] });
+		// A short answer says nothing about this attempt. A start on an attempt
+		// that already runs would launch the command a second time.
+		if (!answer.complete) throw new Error(`The execution service did not answer whether attempt ${id} exists`);
+		return this.launchDescriptor(descriptor, timeoutMs, answer.sessions.length === 0);
 	}
 	private async launchDescriptor(
 		descriptor: HarnessDescriptor,

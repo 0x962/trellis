@@ -1,3 +1,4 @@
+import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { StringDecoder } from "node:string_decoder";
 import type {
 	HarnessEvent,
@@ -7,15 +8,46 @@ import type {
 } from "@trellis/runtime-protocol";
 import { SessionLog } from "./sessionLog.ts";
 
+// The state that the events up to `offset` produced. `offset` is a position
+// in the event log, so a load reads the events after it and reaches the same
+// state as a read of the whole log.
+type Checkpoint = {
+	offset: number;
+	sequence: number;
+	agent: RuntimeAgentMetadata | null;
+	activity: RuntimeProcessStatus["activity"];
+	tools: NonNullable<RuntimeAgentMetadata["lastTool"]>[];
+};
+
+// Holds the agent state that the provider event log describes: the model, the
+// session id, the tool that runs, the last message and the last error. The
+// constructor rebuilds that state by reading every event of the log again.
+// One agent writes megabytes of events, so `saveCheckpoint` writes the
+// rebuilt state to its own small file, and a later load reads that file
+// instead of the whole log.
 export class HarnessObservations {
 	readonly log: SessionLog;
+	// True when the constructor loaded the state from a checkpoint file.
+	readonly checkpointed: boolean;
 	agent: RuntimeAgentMetadata | null = null;
 	activity: RuntimeProcessStatus["activity"] = null;
 	private readonly tools = new Map<string, NonNullable<RuntimeAgentMetadata["lastTool"]>>();
 	private sequence = 0;
-	constructor(path: string) {
+	private readonly checkpointPath: string | undefined;
+	private readEnd = 0;
+	constructor(path: string, checkpointPath?: string) {
 		this.log = new SessionLog(path);
+		this.checkpointPath = checkpointPath;
 		let offset = 0;
+		this.checkpointed = checkpointPath !== undefined && existsSync(checkpointPath);
+		if (this.checkpointed) {
+			const saved = JSON.parse(readFileSync(checkpointPath!, "utf8")) as Checkpoint;
+			this.agent = saved.agent;
+			this.activity = saved.activity;
+			this.sequence = saved.sequence;
+			for (const tool of saved.tools) this.tools.set(tool.id, tool);
+			offset = saved.offset;
+		}
 		let pending = "";
 		const decoder = new StringDecoder("utf8");
 		while (true) {
@@ -33,10 +65,29 @@ export class HarnessObservations {
 		}
 		pending += decoder.end();
 		if (pending !== "") throw new Error("The provider event log has an incomplete record");
+		this.readEnd = offset;
+	}
+	// Writes the rebuilt state beside the event log. A session whose process
+	// has gone never records another event, so the file stays correct.
+	saveCheckpoint() {
+		if (this.checkpointPath === undefined) return;
+		const checkpoint: Checkpoint = {
+			offset: this.readEnd,
+			sequence: this.sequence,
+			agent: this.agent,
+			activity: this.activity,
+			tools: [...this.tools.values()],
+		};
+		writeFileSync(`${this.checkpointPath}.tmp`, JSON.stringify(checkpoint), { mode: 0o600 });
+		renameSync(`${this.checkpointPath}.tmp`, this.checkpointPath);
 	}
 	append(event: HarnessEvent, observedAt: string): boolean {
 		const accepted = this.apply(event, observedAt);
-		this.log.append(Buffer.from(`${JSON.stringify({ observedAt, event })}\n`));
+		const line = Buffer.from(`${JSON.stringify({ observedAt, event })}\n`);
+		this.log.append(line);
+		// The checkpoint names the position this state covers, so the position
+		// moves with every event the log takes.
+		this.readEnd += line.length;
 		return accepted;
 	}
 	private apply(event: HarnessEvent, observedAt: string): boolean {

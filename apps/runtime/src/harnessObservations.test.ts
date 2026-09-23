@@ -9,11 +9,15 @@ const directories: string[] = [];
 afterEach(() => {
 	for (const path of directories.splice(0)) rmSync(path, { recursive: true, force: true });
 });
-const fixture = () => {
+const fixture = (checkpoint?: string) => {
 	const directory = mkdtempSync(join(tmpdir(), "trellis-attention-test-"));
 	directories.push(directory);
 	const path = join(directory, "events");
-	return { observations: new HarnessObservations(path), path };
+	return {
+		observations: new HarnessObservations(path, checkpoint && join(directory, checkpoint)),
+		path,
+		checkpointPath: checkpoint && join(directory, checkpoint),
+	};
 };
 const at = "2026-09-18T12:00:00.000Z";
 const request = { id: "q1", kind: "question" as const, title: "Choose a color", blocking: true };
@@ -139,4 +143,33 @@ test("the end of one parallel tool shows the newest tool that still runs", () =>
 	expect(state.agent!.lastTool).toMatchObject({ id: "rg", status: "completed" });
 	expect(state.agent!.tool).toBeNull();
 	expect(new HarnessObservations(path).agent).toEqual(state.agent);
+});
+
+test("a checkpoint answers for the events it covers, and later events still apply", () => {
+	const { observations: state, path, checkpointPath } = fixture("agent.json");
+	state.append({ kind: "session", sessionId: "provider-conversation", model: "opus" }, at);
+	state.append({ kind: "working", turnId: "turn-1" }, at);
+	state.append({ kind: "tool-start", turnId: "turn-1", tool: { id: "tool", name: "Bash" } }, at);
+	state.saveCheckpoint();
+	const loaded = new HarnessObservations(path, checkpointPath);
+	expect(loaded.checkpointed).toBe(true);
+	expect(loaded.agent).toEqual(state.agent);
+	expect(loaded.activity).toEqual(state.activity);
+	// The tool map of the checkpoint carries over, so the end of that tool
+	// leaves no tool running.
+	loaded.append({ kind: "tool-end", turnId: "turn-1", tool: { id: "tool", name: "Bash" } }, at);
+	expect(loaded.agent!.tool).toBe(null);
+	expect(loaded.agent!.lastTool!.status).toBe("completed");
+});
+
+test("a checkpoint written after more events covers those events too", () => {
+	const { observations: state, path, checkpointPath } = fixture("agent.json");
+	state.append({ kind: "working", turnId: "turn-1" }, at);
+	state.saveCheckpoint();
+	state.append({ kind: "message", message: { text: "Done" } }, at);
+	state.append({ kind: "idle", turnId: "turn-1", outcome: "completed" }, at);
+	state.saveCheckpoint();
+	const loaded = new HarnessObservations(path, checkpointPath);
+	expect(loaded.agent).toEqual(state.agent);
+	expect(loaded.agent!.attention!.sequence).toBe(state.agent!.attention!.sequence);
 });

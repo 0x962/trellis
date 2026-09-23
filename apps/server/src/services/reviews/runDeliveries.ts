@@ -5,8 +5,10 @@ import type { IoCtx } from "../support.ts";
 import { dispatchDeliveries } from "./dispatchDeliveries.ts";
 
 export async function prepare(ctx: IoCtx) {
-	const sessions = await nativeHost(ctx.home, undefined, await ensureNativeRuntime(ctx.home)).list();
-	await dispatchDeliveries(ctx, sessions);
+	// Only a session whose process runs takes a message, and a message whose
+	// session this answer leaves out waits for the next beat of this step.
+	const answer = await nativeHost(ctx.home, undefined, await ensureNativeRuntime(ctx.home)).list({ status: "running" });
+	await dispatchDeliveries(ctx, answer.sessions);
 	return {};
 }
 

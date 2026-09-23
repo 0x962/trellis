@@ -11,6 +11,6 @@ export function sessionResources(home: string, id: string) {
 		stderr: new SessionLog(files.stderr, true),
 		ledger: new InputLedger(files.input),
 		completion: new CompletionStore(files.results),
-		observations: new HarnessObservations(files.events),
+		observations: new HarnessObservations(files.events, files.agent),
 	};
 }

@@ -26,7 +26,11 @@ async function runtime(reply: (request: RuntimeRequest) => unknown) {
 			if (!buffer.includes("\n")) return;
 			const request = JSON.parse(buffer) as RuntimeRequest;
 			requests.push(request);
-			const response = JSON.stringify({ id: request.id, result: reply(request) });
+			const result = reply(request);
+			// A reply of undefined leaves the request open, so the caller reaches
+			// its own deadline with no answer.
+			if (result === undefined) return;
+			const response = JSON.stringify({ id: request.id, result });
 			socket.write(response.slice(0, 10));
 			setImmediate(() => socket.end(`${response.slice(10)}\n`));
 		});
@@ -74,21 +78,46 @@ test("list collects pages, preserves filters and continues after an empty page",
 		return { sessions: [last], nextCursor: null };
 	});
 	const input = { ids: ["first", "last"], status: "running" as const, hasError: false };
-	expect(await client.list(input)).toEqual([first, last]);
+	expect(await client.list(input)).toEqual({ sessions: [first, last], complete: true });
 	expect(requests.map((request) => request.method)).toEqual(["hello", "listPage", "listPage", "listPage"]);
+	// The limit of a page is the room the earlier pages left.
 	expect(requests.slice(1).map((request) => request.params)).toEqual([
-		input,
-		{ ...input, cursor: "r:daemon:1" },
-		{ ...input, cursor: "r:daemon:2" },
+		{ ...input, limit: 2 },
+		{ ...input, limit: 1, cursor: "r:daemon:1" },
+		{ ...input, limit: 1, cursor: "r:daemon:2" },
 	]);
 	await client.list({ ids: [] });
 	expect(requests.filter((request) => request.method === "hello")).toHaveLength(1);
 });
 
+test("a page that passes the deadline ends the read and marks it short", async () => {
+	const first = session("first");
+	const { client, requests } = await runtime((request) => {
+		if (request.method === "hello") return { capabilities: ["list-pages"] };
+		const { cursor } = request.params as { cursor?: string };
+		if (cursor === undefined) return { sessions: [first], nextCursor: "r:daemon:1" };
+		return undefined;
+	});
+	const slow = new RuntimeClient(client.socketPath, 200);
+	expect(await slow.list({})).toEqual({ sessions: [first], complete: false });
+	expect(requests.map((request) => request.method)).toEqual(["hello", "listPage", "listPage"]);
+});
+
+test("list stops at the limit the caller names", async () => {
+	const { client, requests } = await runtime((request) => {
+		if (request.method === "hello") return { capabilities: ["list-pages"] };
+		return { sessions: [session("one"), session("two")], nextCursor: "r:daemon:2" };
+	});
+	const answer = await client.list({ limit: 2 });
+	expect(answer.sessions.map((entry) => entry.id)).toEqual(["one", "two"]);
+	expect(answer.complete).toBe(true);
+	expect(requests.filter((request) => request.method === "listPage")).toHaveLength(1);
+});
+
 test("list uses the legacy method when hello omits paging support", async () => {
 	const legacy = { ...session("legacy"), result: { id: "message", text: "Retained output" } };
 	const { client, requests } = await runtime((request) => (request.method === "hello" ? {} : [legacy]));
-	expect(await client.list({ ids: ["legacy"] })).toEqual([legacy]);
+	expect(await client.list({ ids: ["legacy"] })).toEqual({ sessions: [legacy], complete: true });
 	expect(requests.map((request) => request.method)).toEqual(["hello", "list"]);
 	expect(requests[1]!.params).toEqual({ ids: ["legacy"] });
 });

@@ -118,13 +118,32 @@ export interface RuntimeListInput {
 	status?: SessionStatus;
 	activity?: "ready" | "working" | "idle";
 	hasError?: boolean;
+	// The most sessions the answer holds. `listLimit` states the number a
+	// caller gets when it names none.
+	limit?: number;
 }
+// The most sessions a read returns when the caller names no `ids` and no
+// `limit`. A machine runs tens of agent processes at once, so a caller that
+// wants the live ones never needs more than this.
+export const DEFAULT_LIST_LIMIT = 200;
+// A caller that names the session ids it wants gets every one of them: the
+// list of ids is already the bound. Every other caller gets DEFAULT_LIST_LIMIT.
+export const listLimit = (input: RuntimeListInput): number =>
+	input.limit ?? (input.ids === undefined ? DEFAULT_LIST_LIMIT : input.ids.length);
 export interface RuntimeListPageInput extends RuntimeListInput {
 	cursor?: string;
 }
 export interface RuntimeListPage {
 	sessions: RuntimeProcessStatus[];
 	nextCursor: string | null;
+}
+// The answer to a whole list read. The runtime hands back one page at a
+// time, and `complete` is false when a page did not answer inside its
+// deadline: the sessions are the pages that did answer, and the caller
+// cannot read a missing session as a session the runtime does not hold.
+export interface RuntimeSessionList {
+	sessions: RuntimeProcessStatus[];
+	complete: boolean;
 }
 export interface RuntimeProcessStatus extends RuntimeSession {
 	elapsedMs: number | null;

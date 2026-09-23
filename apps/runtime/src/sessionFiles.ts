@@ -13,6 +13,7 @@ export function sessionFiles(home: string, id: string) {
 		results: join(home, `${id}.results.jsonl`),
 		events: join(home, `${id}.events.json`),
 		eventsBytes: join(home, `${id}.events.json.bytes`),
+		agent: join(home, `${id}.agent.json`),
 	};
 }
 
@@ -26,4 +27,5 @@ export const sessionFileSuffixes = [
 	".results.jsonl",
 	".events.json",
 	".events.json.bytes",
+	".agent.json",
 ];
