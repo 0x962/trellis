@@ -1,5 +1,11 @@
 export type AgentMarkKind = "agent" | "trellis";
-export type AgentMarkState = "static" | "working";
+/*
+ * How a mark of an agent draws. `static` is a mark at rest. `starting` is a
+ * run that Trellis accepted while the harness has not reported anything yet:
+ * the mark dims and brightens in place. `working` is a run that does
+ * something now: the band of light crosses the mark.
+ */
+export type AgentMarkState = "static" | "starting" | "working";
 
 export const trellisLines = ["M13 8 24 19", "M19 24 8 13", "M8 19 19 8", "M24 13 13 24"];
 export const boxLines = ["M5 7H27", "M25 5V27", "M27 25H5", "M7 27V5"];

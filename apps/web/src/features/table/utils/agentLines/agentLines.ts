@@ -31,11 +31,18 @@ export type TicketAgentLine = {
 // the text of the message while the agent writes. The words change with
 // each tool call, so the line reads as live work. A run that works before
 // it runs a tool or writes a message says `crisp-fjord: works`.
+//
+// A run that Trellis accepted but the harness has not confirmed yet says
+// `crisp-fjord: starts`. It has no message and no activity, so without this
+// line the ticket row would say nothing between the click that starts the
+// agent and the first message, which can take a minute.
 export const agentLineOf = (run: AgentRun): TicketAgentLine | null => {
 	const line = runLine(run);
 	if (line.kind === "question" || line.kind === "permission" || line.kind === "elicitation") {
 		return { words: `${run.name} ${line.words}`, asks: true, working: false, runId: run.id };
 	}
+	if (line.kind === "starts")
+		return { words: `${run.name}: ${line.words}`, asks: false, working: false, runId: run.id };
 	if (line.kind === "works")
 		return { words: `${run.name}: ${line.activity ?? line.words}`, asks: false, working: true, runId: run.id };
 	return line.lastMessage === null
