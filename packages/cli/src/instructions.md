@@ -44,17 +44,20 @@ Prove the change. A pull request is ready for review when it has the explanation
 6. Run the flows that fit the change:  trellis flows list --ticket KEY-42
    A flow is a saved set of agent steps that Trellis runs against your pull request.
    A flow belongs to one project, or to every project. The list holds the flows your ticket asks for.
+   Run the flows when you believe the work is complete, before you ask for review.
    Pick every flow whose name and description fit what you changed.
    Start each one and wait for its result:  trellis flows run <pr> --flow <slug>
+   A flow run counts for the pull request. A later push keeps it.
+   A finding that a flow left stays open until you answer it, and an open finding holds the pull request back.
    When a flow run fails, fix the fault and run the flow again.
    When no flow fits your change, say so in one step. Write the reason in the evidence document, then record it:
    trellis ready <pr> --flow-does-not-apply "<reason>"
-   Trellis keeps that reason with the pull request for the current head, and the person reads it beside your change.
+   Trellis keeps that reason with the pull request, and the person reads it beside your change.
 7. Ask for review:  trellis ready <pr>
    It checks the parts and records that you asked for review.
    The pull request turns green for the person when every part holds: you asked for review, every check passed,
-   a flow run of this commit finished, every review finding is resolved, the pull request merges cleanly, and the
-   explanation and the evidence document are there. Until then the person sees it as not ready for review.
+   a flow run finished, every review finding is resolved, the pull request merges cleanly, and the explanation
+   and the evidence document are there. Until then the person sees it as not ready for review.
    Hand over:        trellis move KEY-42 human-review
 
 Labels say what a ticket is about. Read the set of the project: trellis labels list KEY
