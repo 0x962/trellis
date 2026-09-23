@@ -17,12 +17,12 @@ import { createProjectSession } from "./createProject.ts";
 import { createSessionRepository, sessionDirectoryNames } from "./directory.ts";
 import { launchSession } from "./launchSession";
 import { holdSession } from "./operation.ts";
-import { sessionColumns, sessionNames } from "./queries.ts";
-import { friendlySessionName, sessionSlug, uniqueSessionName } from "./sessionName.ts";
+import { sessionColumns, sessionDirectoryLeaves } from "./queries.ts";
+import { friendlySessionName, sessionSlug, uniqueDirectoryName } from "./sessionName.ts";
 
 export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput, start: typeof startNative = startNative) => {
-	const typed = input.name === undefined ? null : sessionSlug(input.name);
-	if (typed === "") throw invalidInput("name", "Use at least one letter or digit in the name.");
+	const typed = input.name === undefined ? null : input.name.trim();
+	if (typed === "") throw invalidInput("name", "Enter a name.");
 	const files = await prepareFiles(ctx, input.files);
 	const fingerprint = createHash("sha256")
 		.update(
@@ -49,11 +49,14 @@ export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput, start
 			if (!session) throw invalidInput("requestId", "This request created a deleted session. Use a new request ID.");
 			return { replay: true as const, session };
 		}
-		const name = uniqueSessionName(
-			typed ?? friendlySessionName(),
-			new Set([...diskNames, ...(await sessionNames(tx))]),
+		const name = typed ?? friendlySessionName();
+		// Two sessions may hold one name, so the folder name comes from the
+		// name and takes a number when that folder is already there.
+		const folder = uniqueDirectoryName(
+			sessionSlug(name) || friendlySessionName(),
+			new Set([...diskNames, ...(await sessionDirectoryLeaves(tx))]),
 		);
-		const directory = join(ctx.home, "sessions", name);
+		const directory = join(ctx.home, "sessions", folder);
 		await upsert(ctx.core, tx, ctx.actor);
 		const selected = await selectAccount(tx, {
 			accountId: input.accountId ?? null,
@@ -97,7 +100,7 @@ export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput, start
 		},
 		holdSession(ctx.home, reservation.run.id),
 		start,
-		() => createSessionRepository(ctx.home, reservation.session.name),
+		() => createSessionRepository(reservation.session.directory),
 	);
 	ctx.emit({ type: "sessions.changed", id: reservation.session.id });
 	ctx.emit({ type: "agent-runs.changed", id: reservation.run.id });

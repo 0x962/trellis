@@ -90,7 +90,7 @@ export const prepareStart = async (
 			},
 			release,
 			deps.start,
-			fresh ? () => prepareSessionRepository(ctx.home, session.name) : undefined,
+			fresh ? () => prepareSessionRepository(session.directory) : undefined,
 		);
 		launching = true;
 		ctx.emit({ type: "sessions.changed", id: session.id });

@@ -10,8 +10,7 @@ import type { IoCtx } from "../support.ts";
 import { attachmentPrompt, type prepareFiles } from "./attachments.ts";
 import { launchSession } from "./launchSession";
 import { holdSession } from "./operation.ts";
-import { sessionColumns, sessionNames } from "./queries.ts";
-import { uniqueSessionName } from "./sessionName.ts";
+import { sessionColumns } from "./queries.ts";
 
 export async function createProjectSession(
 	ctx: IoCtx,
@@ -34,7 +33,7 @@ export async function createProjectSession(
 			[],
 			{
 				session: {
-					name: uniqueSessionName(name, new Set(await sessionNames(tx))),
+					name,
 					instruction: input.prompt,
 					fingerprint,
 				},

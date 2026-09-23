@@ -23,6 +23,12 @@ export type SessionDetailsProps = {
 	summary: AgentWorkspaceSummary | undefined;
 };
 
+export type SessionDetailsTriggerProps = SessionDetailsProps & {
+	// The name of this control inside its bar, written onto the trigger as
+	// `data-bar-slot`, which `barSlots` reads.
+	barSlot?: string;
+};
+
 const startedFormat = new Intl.DateTimeFormat(undefined, {
 	month: "short",
 	day: "numeric",
@@ -151,16 +157,22 @@ function Details({ run, summary }: SessionDetailsProps) {
 // when. A popover on a desktop; a sheet on a phone, where a popover of
 // this width has no room. Focus lands on the list itself, so the first
 // copy button does not open its tooltip on a click of the button.
-export function SessionDetails({ run, summary }: SessionDetailsProps) {
+export function SessionDetails({ run, summary, barSlot }: SessionDetailsTriggerProps) {
 	const phone = useMediaQuery("(max-width: 767px)");
 	const [open, setOpen] = useState(false);
 	const list = useRef<HTMLDivElement>(null);
-	const trigger = <IconButton label="Session details" icon={<Info />} />;
+	const trigger = <IconButton data-bar-slot={barSlot} variant="default" label="Session details" icon={<Info />} />;
 	if (phone)
 		return (
 			<>
 				<Tooltip content="Session details">
-					<IconButton label="Session details" icon={<Info />} onClick={() => setOpen(true)} />
+					<IconButton
+						data-bar-slot={barSlot}
+						variant="default"
+						label="Session details"
+						icon={<Info />}
+						onClick={() => setOpen(true)}
+					/>
 				</Tooltip>
 				<Sheet open={open} title="Session details" onOpenChange={setOpen} titleClassName="text-sm font-medium">
 					<div className="px-4 py-2">

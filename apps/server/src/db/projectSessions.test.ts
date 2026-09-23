@@ -85,7 +85,7 @@ test("concurrent create requests launch once and bind the request to file bytes"
 	await expect(prepareCreate(ctx, { ...input, prompt: "Changed" }, start)).rejects.toThrow("different assignment");
 });
 
-test("concurrent names in one project retain distinct sessions", async () => {
+test("two sessions created at once in one project hold the typed name and separate workspaces", async () => {
 	const child = ulid();
 	const at = ctx.now();
 	await db.execute(
@@ -96,9 +96,23 @@ test("concurrent names in one project retain distinct sessions", async () => {
 	const sessions = await Promise.all([prepareCreate(ctx, input, start), prepareCreate(ctx, input, start)]);
 	await drainBackground();
 	const rows = await Promise.all(sessions.map(({ id }) => db.transaction((tx) => getSession(tx, id))));
-	expect(new Set(rows.map((row) => row.name)).size).toBe(2);
+	expect(rows.map((row) => row.name)).toEqual(["same-name", "same-name"]);
+	expect(new Set(rows.map((row) => row.id)).size).toBe(2);
+	expect(new Set(rows.map((row) => row.directory)).size).toBe(2);
 	expect(rows.every((row) => row.projectId === child)).toBe(true);
 	expect(await readFile(join(rows[0]!.directory, "source.txt"), "utf8")).toBe("original\n");
+});
+
+test("two scratch sessions hold one name in separate folders", async () => {
+	const first = await prepareCreate(ctx, { name: "principal", prompt: "Inspect", harness }, start);
+	const second = await prepareCreate(ctx, { name: "principal", prompt: "Inspect", harness }, start);
+	await drainBackground();
+	const rows = await Promise.all([first, second].map(({ id }) => db.transaction((tx) => getSession(tx, id))));
+	expect(rows.map((row) => row.name)).toEqual(["principal", "principal"]);
+	expect(rows.map((row) => row.directory)).toEqual([
+		join(home, "sessions", "principal"),
+		join(home, "sessions", "principal-2"),
+	]);
 });
 
 test("resume races keep one attempt, the workspace, effort, and conversation", async () => {

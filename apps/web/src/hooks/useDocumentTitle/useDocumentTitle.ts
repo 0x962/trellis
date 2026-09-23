@@ -6,6 +6,8 @@ import { parseProjectSplat } from "../../lib/projectUrl";
 // its own.
 const pageName = (pathname: string): string | null => {
 	if (pathname === "/needs-you") return "Needs you";
+	// The desktop app draws the settings at this URL before the first run.
+	// Every other visit opens the settings sheet and lands on another page.
 	if (pathname === "/settings") return "Settings";
 	if (pathname === "/search") return "Search";
 	if (pathname.startsWith("/p/")) {

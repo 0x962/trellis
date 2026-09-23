@@ -5,7 +5,7 @@ import { ActivityDot, cx } from "@trellis/ui";
 import { memo } from "react";
 import { uiActions, useUiStore } from "../../../../stores/uiStore";
 import { activeAgentsLabel } from "../../../agents/activeAgents";
-import { type ProjectPageRow, projectPageRows } from "./projectPageRows";
+import { hiddenAgentCount, type ProjectPageRow, projectPageRows } from "./projectPageRows";
 
 // A page row sits one step right of the project row, and a row the More row
 // holds sits one step further.
@@ -31,9 +31,7 @@ export const ProjectPages = memo(function ProjectPages({
 	// The row of the page on screen must stay on screen. A page that the More
 	// row holds therefore keeps More open, whatever the person stored.
 	const open = stored || more.some((row) => row.active);
-	// A shut More row hides the Sessions row, so the More row shows the dot of
-	// the rows under it until the person opens them.
-	const agentCountUnderMore = open ? 0 : more.reduce((total, row) => total + row.activeAgentCount, 0);
+	const agentCountUnderMore = open ? 0 : hiddenAgentCount(more);
 	const pageLink = (row: ProjectPageRow, inMore: boolean) => (
 		<li key={row.label}>
 			<Link

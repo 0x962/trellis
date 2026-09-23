@@ -6,9 +6,10 @@ export type EmptyStateProps = {
 	// A small picture above the title, pinned a little crooked like a print
 	// on a wall. It is decoration, so screen readers skip it. The page
 	// variant draws poster.jpg when this is not set, so every page-level
-	// state shows the same picture.
-	image?: string;
-	title?: string;
+	// state shows the same picture. `null` draws no picture: a block whose
+	// subject is a failure gives the words the top of the pane.
+	image?: string | null;
+	title?: ReactNode;
 	description?: ReactNode;
 	// A Button, shown under the description. A page-level action is md.
 	action?: ReactNode;
@@ -23,7 +24,7 @@ export type EmptyStateProps = {
 // starts at the left edge under a heading.
 export function EmptyState({ image, title, description, action, variant = "section", className }: EmptyStateProps) {
 	const page = variant === "page";
-	const picture = image ?? (page ? poster : undefined);
+	const picture = image === null ? undefined : (image ?? (page ? poster : undefined));
 	return (
 		<div
 			className={cx(

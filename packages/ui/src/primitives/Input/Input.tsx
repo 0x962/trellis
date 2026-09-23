@@ -26,7 +26,10 @@ export function Input({ label, hideLabel = false, invalid = false, className, ..
 					"h-8 w-full rounded-md border bg-surface px-2.5 text-base text-fg placeholder:text-fg-faint outline-none transition duration-hover ease-out",
 					"focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent-soft",
 					"disabled:opacity-50",
-					invalid ? "border-danger" : "border-border enabled:hover:border-border-strong",
+					// A field that holds a value the server refused keeps the red
+					// border while it has the focus, or the refusal is invisible to
+					// a person whose focus the field took back.
+					invalid ? "border-danger focus-visible:border-danger" : "border-border enabled:hover:border-border-strong",
 					className,
 				)}
 				{...props}

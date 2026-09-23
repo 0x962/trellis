@@ -37,6 +37,7 @@ Each page supplies its data and available actions. It does not choose new contro
 | Assigned ticket agent, provider, and agent work state | `ActorAvatar` with the shared `Avatar` | `apps/web/src/features/agents/ActorAvatar/ActorAvatar.tsx` |
 | Added and deleted lines of a workspace | `LineChanges` | `packages/ui/src/domain/LineChanges/LineChanges.tsx` |
 | Row actions | `Menu`, `IconButton`, `Tooltip` | `packages/ui/src/primitives/Menu/Menu.tsx` |
+| Edit a short value in place | `InlineEdit` | `packages/ui/src/primitives/InlineEdit/InlineEdit.tsx` |
 | Usage per day | `UsageChart` | `packages/ui/src/domain/UsageChart/UsageChart.tsx` |
 | Ranked slices of a whole | `RankedBars` | `packages/ui/src/domain/RankedBars/RankedBars.tsx` |
 | Composition of one total | `StackedBar` | `packages/ui/src/domain/StackedBar/StackedBar.tsx` |
@@ -46,6 +47,30 @@ Each page supplies its data and available actions. It does not choose new contro
 | Subscription quota meters | `QuotaWindows` | `packages/ui/src/domain/QuotaWindows/QuotaWindows.tsx` |
 | Flow run header | `FlowRunSummary` | `packages/ui/src/domain/FlowRunSummary/FlowRunSummary.tsx` |
 | Flow run steps | `FlowRunTree` | `packages/ui/src/domain/FlowRunTree/FlowRunTree.tsx` |
+| Anything that failed | `FailureState` | `packages/ui/src/domain/FailureState/FailureState.tsx` |
+
+## Edit a short value in place
+
+Use `InlineEdit` wherever a person renames a thing without leaving the page.
+It is the only in-place edit in the product, so a person meets the same rules on every screen.
+Do not hold the edit state by hand, and do not add a per-screen option to any rule below.
+The server stores the value as the person typed it. The component sends it that way, and it appends nothing.
+
+1. Enter saves the typed value. Losing the focus also saves it.
+2. Escape cancels, and only Escape. The saved value comes back, and Escape cancels an empty field too.
+3. An empty value, or a value of spaces alone, is refused. The field stays open and says "Enter a name.".
+4. A value equal to the saved one closes the field. The field sends nothing.
+5. The new value waits for the server. The field takes no more typing until the server answers.
+6. A refusal keeps the field open with the typed value, draws the red border, takes the focus back, and names the reason.
+   An empty value and a server that says no end the same way. The message is a toast, because a 32 px row has no room for a line under the field.
+7. Enter and Escape give the focus to the value. A click outside leaves the focus where the person clicked.
+8. At rest the value is plain text at the size of the text beside it: no box, no pencil, no underline.
+9. Inside a row that is a link, the row is not drawn while the field is open, and no key press navigates.
+
+The screen owns the `editing` flag, because the Rename action that starts the edit sits in a row menu beside the value.
+The screen passes its own resting view as the children, and its own avatar as `leading` where a row has one.
+A form with more than one field is not an in-place edit. Use a sheet or a row editor for it.
+The gallery section Inline edit prints the same rules beside a live example.
 
 ## Pages in a sheet
 
@@ -135,6 +160,20 @@ The plan and the resources take at most half of the page card, so the table keep
 The page of an archived project shows the `ArchivedBanner` of the project routes at the top of the page card. The pending page draws the same `Topbar` with the `FilterBar`, so the bar keeps its shape when the epic arrives.
 A row of the epics list page prints the current wave after the epic name in muted text: `<name> · <i> of <n>`.
 The rows of the epics list page use the `rowHeights`, the hover band, the cell text sizes, the tabular numbers, and the trailing `Menu` slot width of the ticket table `Row`.
+
+## Failures
+
+Every screen that reports a failure draws `FailureState`. It is the one shape, so a person reads the same block whatever broke. Its docstring holds these rules, and the gallery section prints them.
+
+The title says what happened in plain words. It never carries an exit code, an exception class, a process line or a file path.
+One line under the title says what trellis does about the failure: `recovery="retrying"` while trellis sends the request again, `recovery="waiting"` while trellis holds the page until the server answers, and nothing when trellis does nothing.
+A failure that recovers by itself clears itself. `RouteError` loads the route again when the live connection comes back, so a person who waits never presses Retry.
+The block carries one action, and at most two. `action` is the one that usually works, and it sits beside the words. A screen never puts the only way out in a bar somewhere else.
+`detail` holds the raw text a developer reads. A closed disclosure holds it under the action, the text stays selectable, and the title never shows it.
+The words carry no blame, no apology and no exclamation mark. Red marks one thing: the small sign beside the title.
+`variant="page"` fills a route or a pane and draws no picture. `variant="section"` sits inside a tab or a list.
+
+`EmptyState` stays the block for a list or a page that holds nothing. A state that is not a failure keeps it, such as a session that a person stopped.
 
 ## Statistics page
 
