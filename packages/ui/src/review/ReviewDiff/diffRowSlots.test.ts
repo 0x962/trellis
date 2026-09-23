@@ -1,9 +1,11 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { diffRowHeights, diffRowStyle } from "./diffRowHeights";
+import { diffRowSlots, diffRowStyle } from "./diffRowSlots";
 import { parseReviewFiles } from "./parseReviewFiles";
 import { type ReviewRow, reviewRowSize } from "./reviewRows";
 
+// `VirtualDiffRows` sets the CSS custom properties from `diffRowSlots`. These
+// tests check that the numbers and the stylesheet still agree.
 const patch = ["diff --git a/a.ts b/a.ts", "--- a/a.ts", "+++ b/a.ts", "@@ -1,1 +1,1 @@", "-one", "+two", ""].join(
 	"\n",
 );
@@ -18,39 +20,41 @@ const lineRow: ReviewRow = {
 
 const css = readFileSync(new URL("./ReviewDiff.css", import.meta.url), "utf8");
 
-// The stylesheet draws a row at the height the custom property carries, and
-// `VirtualDiffRows` sets that property from the same numbers `reviewRowSize`
-// counts. These tests hold the pair together: the first proves the numbers
-// agree, and the second proves the stylesheet reads them.
 test("a code line reports the height it draws, on a mouse and on a touch screen", () => {
-	expect(reviewRowSize(lineRow, diffRowHeights(false))).toBe(28);
+	expect(reviewRowSize(lineRow, diffRowSlots(false, false))).toBe(28);
 	expect(diffRowStyle(false)["--review-diff-line-box"]).toBe("28px");
-	expect(reviewRowSize(lineRow, diffRowHeights(true))).toBe(44);
+	expect(reviewRowSize(lineRow, diffRowSlots(true, false))).toBe(44);
 	expect(diffRowStyle(true)["--review-diff-line-box"]).toBe("44px");
 });
 
-test("every height the diff sets is a height the stylesheet draws", () => {
+test("every box the diff sets is a box the stylesheet draws", () => {
 	for (const name of Object.keys(diffRowStyle(false))) expect(css).toContain(`height: var(${name})`);
 });
 
-test("a file header carries the clear space above it, and a row of a group carries none", () => {
-	expect(diffRowHeights(false).file).toBe(48 + 16);
+// A slot holds the box plus the clear space around it, so the two numbers of a
+// file row differ by that space.
+test("a file row reserves 16 px more than its header draws", () => {
+	expect(diffRowSlots(false, false).file).toBe(48 + 16);
 	expect(diffRowStyle(false)["--review-diff-file-box"]).toBe("48px");
-	expect(diffRowHeights(false).group).toBe(32);
-	expect(diffRowStyle(false)["--review-diff-group-box"]).toBe("32px");
+	expect(diffRowSlots(false, false).end).toBe(16 + 16);
+	expect(diffRowStyle(false)["--review-diff-end-box"]).toBe("16px");
 });
 
-// A touch screen has no pointer that hovers, so the reveal of the Add line
-// comment button needs an escape or the button never appears on a phone.
+// The band of a risk group is a `GroupHeader`, and that component is taller on
+// a phone.
+test("the row of a group takes the height of a group header", () => {
+	expect(diffRowSlots(false, false).group).toBe(32);
+	expect(diffRowSlots(false, true).group).toBe(48);
+});
+
+// A touch screen cannot hover. Without the @media (hover: none) rule the
+// button keeps opacity: 0 on a phone.
 test("the Add line comment button shows on a screen that cannot hover", () => {
 	expect(css).toMatch(/@media \(hover: none\) \{\s*\.review-diff-line > button \{\s*opacity: 1;/);
 });
 
-// A hovered line keeps the green of an addition and the red of a deletion,
-// because the tint is a layer over the colour, and the row is a button, so it
-// draws a focus ring.
 test("hover lays a tint over the line colour, and focus draws a ring", () => {
-	expect(css).toContain("background-image: linear-gradient(var(--review-diff-hover), var(--review-diff-hover))");
+	expect(css).toContain("background-image: linear-gradient(var(--band-translucent), var(--band-translucent))");
 	expect(css).toMatch(/\.review-diff-line:focus-visible \{\s*outline: 2px solid var\(--accent\);/);
 	expect(css).not.toContain("outline: 0");
 });

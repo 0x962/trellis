@@ -7,8 +7,8 @@ export type DiffFileGroup = {
 	files: readonly { path: string; reasons: readonly string[] }[];
 };
 
-// The band the diff draws above the first file of a group.
-export type DiffGroupBand = { key: string; label: string; count: number };
+// What the diff prints in the group header above the first file of a group.
+export type DiffGroupHeader = { key: string; label: string; count: number };
 
 // Where each path sits in the order the groups give.
 export const groupRank = (groups: readonly DiffFileGroup[]): ReadonlyMap<string, number> => {
@@ -26,20 +26,20 @@ export const groupReasons = (groups: readonly DiffFileGroup[]): ReadonlyMap<stri
 	return reasons;
 };
 
-// The band of each group, keyed by the path of the first file of that group
+// The header of each group, keyed by the path of the first file of that group
 // that the diff draws. `shown` is the paths the diff draws, in order, so a
-// filter that hides the first file of a group moves the band to the next file
-// of the group, and a group with no file left draws no band. A path that no
-// group names gets no band, and it sits after every path a group names.
-export const groupBands = (
+// filter that hides the first file of a group moves the header to the next
+// file of the group, and a group with no file left gets no header. A path that
+// no group names gets no header, and it sits after every path a group names.
+export const groupHeaders = (
 	groups: readonly DiffFileGroup[],
 	shown: readonly string[],
-): ReadonlyMap<string, DiffGroupBand> => {
+): ReadonlyMap<string, DiffGroupHeader> => {
 	const drawn = new Set(shown);
-	const bands = new Map<string, DiffGroupBand>();
+	const headers = new Map<string, DiffGroupHeader>();
 	for (const group of groups) {
 		const paths = group.files.map((file) => file.path).filter((path) => drawn.has(path));
-		if (paths.length > 0) bands.set(paths[0]!, { key: group.key, label: group.label, count: paths.length });
+		if (paths.length > 0) headers.set(paths[0]!, { key: group.key, label: group.label, count: paths.length });
 	}
-	return bands;
+	return headers;
 };

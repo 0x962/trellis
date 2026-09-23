@@ -78,7 +78,6 @@ index 1c0d2f3..9ab8c7d 100644
 Binary files a/logo.png and b/logo.png differ
 `;
 
-// One risk group that holds the paths in the order the diff must draw them.
 const oneGroup = (paths: readonly string[]): DiffFileGroup[] => [
 	{ key: "risk", label: "Risk", files: paths.map((path) => ({ path, reasons: [] })) },
 ];

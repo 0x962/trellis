@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { type DiffFileGroup, groupBands, groupRank, groupReasons } from "./diffGroups";
+import { type DiffFileGroup, groupHeaders, groupRank, groupReasons } from "./diffGroups";
 
 const groups: DiffFileGroup[] = [
 	{
@@ -30,16 +30,16 @@ test("only a file with a reason gets one", () => {
 	]);
 });
 
-test("a band sits on the first file of its group and counts the files of that group", () => {
-	expect([...groupBands(groups, ["drizzle/0100_x.sql", "api/schemas/pr.ts", "web/page.tsx", "bun.lock"])]).toEqual([
+test("a header sits on the first file of its group and counts the files of that group", () => {
+	expect([...groupHeaders(groups, ["drizzle/0100_x.sql", "api/schemas/pr.ts", "web/page.tsx", "bun.lock"])]).toEqual([
 		["drizzle/0100_x.sql", { key: "risk", label: "Risk", count: 2 }],
 		["web/page.tsx", { key: "behavior", label: "Behavior", count: 1 }],
 		["bun.lock", { key: "noise", label: "Noise", count: 1 }],
 	]);
 });
 
-test("a filter moves the band to the first file left, and a group with none draws no band", () => {
-	expect([...groupBands(groups, ["api/schemas/pr.ts", "bun.lock"])]).toEqual([
+test("a filter moves the header to the first file left, and a group with none gets none", () => {
+	expect([...groupHeaders(groups, ["api/schemas/pr.ts", "bun.lock"])]).toEqual([
 		["api/schemas/pr.ts", { key: "risk", label: "Risk", count: 1 }],
 		["bun.lock", { key: "noise", label: "Noise", count: 1 }],
 	]);
