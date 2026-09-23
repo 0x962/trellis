@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import type { AgentRun } from "@trellis/api";
-import { agentLineOf, agentLinesByTicket } from "./agentLines";
+import type { AgentRun, RunLineSpan } from "@trellis/api";
+import { agentLineOf, agentLinesByTicket, type TicketAgentLine } from "./agentLines";
 
 const at = "2026-09-18T12:00:00.000Z";
+type RestingTicketAgentLine = Extract<TicketAgentLine, { working: false }>;
+type WorkingTicketAgentLine = Extract<TicketAgentLine, { working: true }>;
 
 // A run that works, with no message and no open request. Each test adds the
 // one field it reads.
@@ -66,17 +68,23 @@ const speaking = (name = "crisp-fjord") => {
 	return run;
 };
 
-const plainLine = (words: string, fields = {}) => ({
+const ticketAgentLine = (words: string, fields: Partial<RestingTicketAgentLine> = {}): RestingTicketAgentLine => ({
 	words,
-	parts: [{ text: words, code: false }],
+	asks: false,
+	working: false,
+	runId: "run",
 	...fields,
 });
 
-const workingLine = (activity: string, fields = {}) => ({
+const workingLine = (
+	activity: string,
+	key: RunLineSpan["key"] = "message",
+	fields: Partial<WorkingTicketAgentLine> = {},
+): WorkingTicketAgentLine => ({
 	words: `crisp-fjord: ${activity}`,
-	parts: [
-		{ text: "crisp-fjord: ", code: false },
-		{ text: activity, code: false },
+	spans: [
+		{ key: "agent", text: "crisp-fjord: ", kind: "text" },
+		{ key, text: activity, kind: "text" },
 	],
 	asks: false,
 	working: true,
@@ -91,7 +99,7 @@ describe("agentLineOf", () => {
 
 	test("prints the question of the harness and marks the line as a request", () => {
 		expect(agentLineOf(asking())).toEqual({
-			...plainLine("crisp-fjord asks: Which cap?"),
+			...ticketAgentLine("crisp-fjord asks: Which cap?"),
 			asks: true,
 			working: false,
 			runId: "run",
@@ -105,7 +113,7 @@ describe("agentLineOf", () => {
 		];
 
 		expect(agentLineOf(run)).toEqual({
-			...plainLine("crisp-fjord asks: Project name"),
+			...ticketAgentLine("crisp-fjord asks: Project name"),
 			asks: true,
 			working: false,
 			runId: "run",
@@ -119,7 +127,7 @@ describe("agentLineOf", () => {
 		];
 
 		expect(agentLineOf(run)).toEqual({
-			...plainLine("crisp-fjord asks to run: Bash"),
+			...ticketAgentLine("crisp-fjord asks to run: Bash"),
 			asks: true,
 			working: false,
 			runId: "run",
@@ -137,7 +145,7 @@ describe("agentLineOf", () => {
 	});
 
 	test("says that a run works when it has no message and no request yet", () => {
-		expect(agentLineOf(runOf())).toEqual(workingLine("works"));
+		expect(agentLineOf(runOf())).toEqual(workingLine("works", "state"));
 	});
 
 	test("a request wins over the last message", () => {
@@ -145,7 +153,7 @@ describe("agentLineOf", () => {
 		run.observation!.lastMessage = { text: "I rebased onto master.", at };
 
 		expect(agentLineOf(run)).toEqual({
-			...plainLine("crisp-fjord asks: Which cap?"),
+			...ticketAgentLine("crisp-fjord asks: Which cap?"),
 			asks: true,
 			working: false,
 			runId: "run",
@@ -157,6 +165,7 @@ describe("agentLineOf", () => {
 		run.observation!.lastTool = {
 			name: "Edit",
 			target: "apps/web/src/app.css",
+			targetKind: "code",
 			status: "running",
 			startedAt: at,
 			updatedAt: at,
@@ -164,10 +173,10 @@ describe("agentLineOf", () => {
 
 		expect(agentLineOf(run)).toEqual({
 			words: "crisp-fjord: Edit apps/web/src/app.css",
-			parts: [
-				{ text: "crisp-fjord: ", code: false },
-				{ text: "Edit ", code: false },
-				{ text: "apps/web/src/app.css", code: true },
+			spans: [
+				{ key: "agent", text: "crisp-fjord: ", kind: "text" },
+				{ key: "tool-name", text: "Edit ", kind: "text" },
+				{ key: "tool-target", text: "apps/web/src/app.css", kind: "code" },
 			],
 			asks: false,
 			working: true,
@@ -177,9 +186,16 @@ describe("agentLineOf", () => {
 
 	test("names the tool alone when the tool input holds no target", () => {
 		const run = speaking();
-		run.observation!.lastTool = { name: "TodoWrite", target: null, status: "running", startedAt: at, updatedAt: at };
+		run.observation!.lastTool = {
+			name: "TodoWrite",
+			target: null,
+			targetKind: null,
+			status: "running",
+			startedAt: at,
+			updatedAt: at,
+		};
 
-		expect(agentLineOf(run)).toEqual(workingLine("TodoWrite"));
+		expect(agentLineOf(run)).toEqual(workingLine("TodoWrite", "tool-name"));
 	});
 
 	test("takes the text the agent writes while no tool runs", () => {
@@ -187,6 +203,7 @@ describe("agentLineOf", () => {
 		run.observation!.lastTool = {
 			name: "Edit",
 			target: "apps/web/src/app.css",
+			targetKind: "code",
 			status: "completed",
 			startedAt: at,
 			updatedAt: at,
@@ -200,6 +217,7 @@ describe("agentLineOf", () => {
 		run.observation!.lastTool = {
 			name: "Edit",
 			target: "apps/web/src/app.css",
+			targetKind: "code",
 			status: "running",
 			startedAt: at,
 			updatedAt: at,
@@ -207,7 +225,7 @@ describe("agentLineOf", () => {
 		run.observation!.attention!.completion = { sequence: 2, at };
 
 		expect(agentLineOf(run)).toEqual({
-			...plainLine("crisp-fjord: I rebased onto master."),
+			...ticketAgentLine("crisp-fjord: I rebased onto master."),
 			asks: false,
 			working: false,
 			runId: "run",
@@ -219,7 +237,7 @@ describe("agentLineOf", () => {
 		run.state = "stopped";
 
 		expect(agentLineOf(run)).toEqual({
-			...plainLine("crisp-fjord: I rebased onto master."),
+			...ticketAgentLine("crisp-fjord: I rebased onto master."),
 			asks: false,
 			working: false,
 			runId: "run",
@@ -259,7 +277,7 @@ describe("agentLinesByTicket", () => {
 		const lines = agentLinesByTicket([asking("amber-quarry"), speaking()]);
 
 		expect(lines["ticket-a"]).toEqual({
-			...plainLine("amber-quarry asks: Which cap?"),
+			...ticketAgentLine("amber-quarry asks: Which cap?"),
 			asks: true,
 			working: false,
 			runId: "run",
@@ -270,7 +288,7 @@ describe("agentLinesByTicket", () => {
 		const lines = agentLinesByTicket([speaking(), asking("amber-quarry")]);
 
 		expect(lines["ticket-a"]).toEqual({
-			...plainLine("amber-quarry asks: Which cap?"),
+			...ticketAgentLine("amber-quarry asks: Which cap?"),
 			asks: true,
 			working: false,
 			runId: "run",
@@ -294,14 +312,14 @@ describe("agentLinesByTicket", () => {
 	const stopped = (run: AgentRun) => ({ ...run, state: "stopped", processStatus: "exited" }) as AgentRun;
 
 	test("takes the run with the later activity, in either array order", () => {
-		const line = { ...plainLine("crisp-fjord: The retry passes."), asks: false, working: false, runId: "newer" };
+		const line = ticketAgentLine("crisp-fjord: The retry passes.", { runId: "newer" });
 
 		expect(agentLinesByTicket([older(), newer()])["ticket-a"]).toEqual(line);
 		expect(agentLinesByTicket([newer(), older()])["ticket-a"]).toEqual(line);
 	});
 
 	test("takes a live run over a stopped run with a later message, in either array order", () => {
-		const line = { ...plainLine("amber-quarry: Pushed the first try."), asks: false, working: false, runId: "older" };
+		const line = ticketAgentLine("amber-quarry: Pushed the first try.", { runId: "older" });
 
 		expect(agentLinesByTicket([older(), stopped(newer())])["ticket-a"]).toEqual(line);
 		expect(agentLinesByTicket([stopped(newer()), older()])["ticket-a"]).toEqual(line);

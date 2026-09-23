@@ -21,21 +21,17 @@ export type RunLine = {
 	// What the agent does at this moment, while it works: the running tool
 	// with its target, or the text it wrote last. It is null in every other
 	// state, and a row that draws it then falls back to the last message.
-	activity: RunLineActivity | null;
+	activity: readonly RunLineSpan[] | null;
 	rawError: string | null;
 };
 
 export type RunLineSpan = {
+	key: string;
 	text: string;
-	// True when the text is the target of a tool and the live agent line draws
-	// it in the code font.
-	code: boolean;
+	kind: "text" | "code";
 };
 
-// What a working agent does now. The spans join into the full activity text.
-export type RunLineActivity = { spans: readonly RunLineSpan[] };
-
-export const activityWords = (activity: RunLineActivity) => activity.spans.map((span) => span.text).join("");
+export const activityWords = (spans: readonly RunLineSpan[]) => spans.map((span) => span.text).join("");
 
 type RunState = Omit<RunLine, "activity">;
 
@@ -55,21 +51,19 @@ const lastMessageLine = (run: AgentRun): RunLine["lastMessage"] => {
 
 // The tool a working agent runs now, named with its target, or the text of
 // its last message while the agent writes.
-const workingActivity = (run: AgentRun): RunLineActivity | null => {
+const workingActivity = (run: AgentRun): readonly RunLineSpan[] | null => {
 	const observation = run.observation!;
 	const runningTool = observation.lastTool?.status === "running" ? observation.lastTool : null;
 	if (runningTool === null) {
 		const text = observation.lastMessage?.text ?? null;
-		return text === null ? null : { spans: [{ text, code: false }] };
+		return text === null ? null : [{ key: "message", text, kind: "text" }];
 	}
 	return runningTool.target === null
-		? { spans: [{ text: runningTool.name, code: false }] }
-		: {
-				spans: [
-					{ text: `${runningTool.name} `, code: false },
-					{ text: runningTool.target, code: true },
-				],
-			};
+		? [{ key: "tool-name", text: runningTool.name, kind: "text" }]
+		: [
+				{ key: "tool-name", text: `${runningTool.name} `, kind: "text" },
+				{ key: "tool-target", text: runningTool.target, kind: runningTool.targetKind! },
+			];
 };
 
 const executionServiceError = (error: string) =>

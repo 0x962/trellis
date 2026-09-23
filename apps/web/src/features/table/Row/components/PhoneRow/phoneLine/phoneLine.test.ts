@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { TicketPr, TicketSummary } from "@trellis/api";
+import type { TicketAgentLine } from "../../../../utils/agentLines";
 import { phoneLineOf } from "./phoneLine";
 
 type Facts = Pick<TicketSummary, "prRows" | "waitsOn" | "ready" | "releases">;
@@ -22,9 +23,8 @@ const ticket = (facts: Partial<Facts> = {}): Facts => ({
 	...facts,
 });
 
-const asks = {
+const asks: TicketAgentLine = {
 	words: "crisp-fjord asks: Which cap?",
-	parts: [{ text: "crisp-fjord asks: Which cap?", code: false }],
 	asks: true,
 	working: false,
 	runId: "run",

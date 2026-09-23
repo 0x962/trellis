@@ -1,13 +1,10 @@
 import type { ReactNode } from "react";
 import { cx } from "../../utils/cx";
 
-export type CodeTextProps = {
-	children: ReactNode;
-	className?: string;
-};
+export type CodeTextProps = { children: ReactNode; className?: string };
 
-// Inline code text. It uses the mono face and inherits the surrounding text
-// size, color, line height, and background.
+// Inline code text. It changes the font only. The text size, the color, the
+// line height and the background come from the text around it.
 export function CodeText({ children, className }: CodeTextProps) {
-	return <span className={cx("font-mono", className)}>{children}</span>;
+	return <code className={cx("font-mono", className)}>{children}</code>;
 }

@@ -18,7 +18,7 @@ const recorded = (name: string) =>
 // target, or the message text.
 const words = (event: HarnessEvent) =>
 	event.tool
-		? [event.kind, event.tool.name, toolTarget(event.tool.input)].filter((part) => part !== null).join(" ")
+		? [event.kind, event.tool.name, toolTarget(event.tool.input)?.text].filter((part) => part !== undefined).join(" ")
 		: event.message
 			? `${event.kind}: ${event.message.text}`
 			: event.kind;

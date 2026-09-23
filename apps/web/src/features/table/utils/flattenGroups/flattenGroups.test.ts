@@ -15,7 +15,6 @@ const ticket = (id: string, prRows: TicketPr[] = [], category: TicketSummary["st
 
 const line = (words: string, asks = false): TicketAgentLine => ({
 	words,
-	parts: [{ text: words, code: false }],
 	asks,
 	working: false,
 	runId: "run",

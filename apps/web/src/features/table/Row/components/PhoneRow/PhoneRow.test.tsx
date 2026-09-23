@@ -6,14 +6,15 @@ import type { TicketAgentLine } from "../../../utils/agentLines";
 import type { TicketDisclosure } from "../../../utils/flattenGroups";
 import { PhoneRow } from "./PhoneRow";
 
+type RestingTicketAgentLine = Extract<TicketAgentLine, { working: false }>;
+
 // `renderToStaticMarkup` writes the text of each span with no separator, so
 // the words of one line run together. The test reads the words, not the gaps.
 const textOf = (html: string) => html.replace(/<[^>]*>/g, "");
 const visibleTextOf = (html: string) => textOf(html.replace(/<span class="sr-only">.*?<\/span>/g, ""));
 
-const agentLine = (words: string, fields: Partial<TicketAgentLine> = {}): TicketAgentLine => ({
+const ticketAgentLine = (words: string, fields: Partial<RestingTicketAgentLine> = {}): TicketAgentLine => ({
 	words,
-	parts: [{ text: words, code: false }],
 	asks: false,
 	working: false,
 	runId: "run",
@@ -89,7 +90,6 @@ describe("PhoneRow on the epic table", () => {
 	test("prints what the run says on line 2", () => {
 		const html = render(ticket(), "epic", {
 			words: "crisp-fjord: I rebased.",
-			parts: [{ text: "crisp-fjord: I rebased.", code: false }],
 			asks: false,
 			working: false,
 			runId: "run",
@@ -102,10 +102,10 @@ describe("PhoneRow on the epic table", () => {
 	test("draws a working command in the mono face on line 2", () => {
 		const html = render(ticket(), "epic", {
 			words: "crisp-fjord: Shell bun test apps/web/src",
-			parts: [
-				{ text: "crisp-fjord: ", code: false },
-				{ text: "Shell ", code: false },
-				{ text: "bun test apps/web/src", code: true },
+			spans: [
+				{ key: "agent", text: "crisp-fjord: ", kind: "text" },
+				{ key: "tool-name", text: "Shell ", kind: "text" },
+				{ key: "tool-target", text: "bun test apps/web/src", kind: "code" },
 			],
 			asks: false,
 			working: true,
@@ -113,12 +113,11 @@ describe("PhoneRow on the epic table", () => {
 		});
 		const line2 = html.split('data-line="agent"')[1]!;
 
-		expect(line2).toContain('<span class="font-mono">bun test apps/web/src</span>');
-		expect(line2).not.toContain("<code>");
+		expect(line2).toContain('<code class="font-mono">bun test apps/web/src</code>');
 	});
 
 	test("gives the words of the run a control of their own", () => {
-		const html = render(ticket(), "epic", agentLine("crisp-fjord: I rebased."));
+		const html = render(ticket(), "epic", ticketAgentLine("crisp-fjord: I rebased."));
 
 		expect(html).toContain('data-line="agent"');
 		expect(html).toContain("<button");
@@ -130,14 +129,14 @@ describe("PhoneRow on the epic table", () => {
 
 	test("hides line 2 while a done ticket is collapsed", () => {
 		const pr = prOf({ number: 57057, pass: 42 });
-		const html = render(ticket({ prRows: [pr] }), "epic", agentLine("crisp-fjord: Done."), "collapsed");
+		const html = render(ticket({ prRows: [pr] }), "epic", ticketAgentLine("crisp-fjord: Done."), "collapsed");
 
 		expect(html).not.toContain("data-line");
 		expect(html).toContain("Show details for OP-35");
 	});
 
 	test("shows line 2 while a done ticket is expanded", () => {
-		const html = render(ticket(), "epic", agentLine("crisp-fjord: Done."), "expanded");
+		const html = render(ticket(), "epic", ticketAgentLine("crisp-fjord: Done."), "expanded");
 
 		expect(html).toContain('data-line="agent"');
 		expect(html).toContain("Hide details for OP-35");

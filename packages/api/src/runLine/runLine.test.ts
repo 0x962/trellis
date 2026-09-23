@@ -24,6 +24,7 @@ test("works with the current tool and its start time", () => {
 	run.observation!.lastTool = {
 		name: "Edit",
 		target: "apps/web/src/app.css",
+		targetKind: "code",
 		status: "running",
 		startedAt: at,
 		updatedAt: at,
@@ -43,23 +44,38 @@ test("marks the target of the running tool as code", () => {
 	run.observation!.lastTool = {
 		name: "Bash",
 		target: "bun test apps/web",
+		targetKind: "code",
 		status: "running",
 		startedAt: at,
 		updatedAt: at,
 	};
-	expect(runLine(run).activity).toEqual({
-		spans: [
-			{ text: "Bash ", code: false },
-			{ text: "bun test apps/web", code: true },
-		],
-	});
+	expect(runLine(run).activity).toEqual([
+		{ key: "tool-name", text: "Bash ", kind: "text" },
+		{ key: "tool-target", text: "bun test apps/web", kind: "code" },
+	]);
 	expect(activityWords(runLine(run).activity!)).toBe("Bash bun test apps/web");
+});
+
+test("keeps a prose tool target in the text font", () => {
+	const run = namedRun();
+	run.observation!.lastTool = {
+		name: "Task",
+		target: "Review the diff for bugs",
+		targetKind: "text",
+		status: "running",
+		startedAt: at,
+		updatedAt: at,
+	};
+	expect(runLine(run).activity).toEqual([
+		{ key: "tool-name", text: "Task ", kind: "text" },
+		{ key: "tool-target", text: "Review the diff for bugs", kind: "text" },
+	]);
 });
 
 test("says the text it writes while no tool runs", () => {
 	const run = namedRun();
 	run.observation!.lastMessage = { text: "I rebased the branch.", at };
-	expect(runLine(run).activity).toEqual({ spans: [{ text: "I rebased the branch.", code: false }] });
+	expect(runLine(run).activity).toEqual([{ key: "message", text: "I rebased the branch.", kind: "text" }]);
 });
 
 test("says nothing of its activity once the turn ends", () => {
