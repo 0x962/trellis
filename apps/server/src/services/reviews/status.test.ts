@@ -60,10 +60,13 @@ afterAll(async () => {
 });
 
 test("review status sorts linked tickets by project key and ticket number", async () => {
-	const result = await db.transaction((tx) => status({} as ServiceCtx, tx, { pr, remote: { title: "GitHub title" } }));
+	const result = await db.transaction((tx) =>
+		status({} as ServiceCtx, tx, { pr, remote: { title: "GitHub title", headRefOid: "head-sha" } }),
+	);
 	expect(ReviewStatusSchema.parse(result)).toEqual(result);
 	expect(result).toMatchObject({
 		title: "GitHub title",
+		headRefOid: "head-sha",
 		isQueued: true,
 		ticket: { identifier: "AAA-7", title: "First project ticket" },
 		prRow: { number: 28, owner: "acme", repo: "app", pass: 1, fail: 1 },
@@ -83,7 +86,9 @@ test("review status sorts linked tickets by project key and ticket number", asyn
 });
 
 test("review status returns null row facts for an unlinked pull request", async () => {
-	const result = await db.transaction((tx) => status({} as ServiceCtx, tx, { pr: "acme/app#29", remote: {} }));
+	const result = await db.transaction((tx) =>
+		status({} as ServiceCtx, tx, { pr: "acme/app#29", remote: { headRefOid: "head-sha" } }),
+	);
 	expect(ReviewStatusSchema.parse(result)).toEqual(result);
-	expect(result).toEqual({ isQueued: false, ticket: null, prRow: null, checks: null });
+	expect(result).toEqual({ headRefOid: "head-sha", isQueued: false, ticket: null, prRow: null, checks: null });
 });

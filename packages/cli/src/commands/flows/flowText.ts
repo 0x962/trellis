@@ -1,11 +1,5 @@
-import type { FlowExecutionRecord, FlowSummary } from "@trellis/api";
+import { type FlowExecutionRecord, type FlowSummary, flowPurpose } from "@trellis/api";
 
-// The run advances no further on its own. It has ended, or it waits for a
-// person to answer one of its steps. `trellis flows run` stops watching at
-// that point, because no further wait changes the answer.
-export const flowRunStalled = (run: FlowExecutionRecord): boolean => run.state.status !== "running";
-
-// The command that starts one flow on one pull request.
 export const flowRunCommand = (slug: string, number: number): string => `trellis flows run ${number} --flow ${slug}`;
 
 // One indented line per flow: the slug, what the flow is for, and the
@@ -13,11 +7,10 @@ export const flowRunCommand = (slug: string, number: number): string => `trellis
 // column, so a flow with no description prints its name there instead.
 export const flowChoiceLines = (flows: FlowSummary[], number: number): string[] => {
 	const slugWidth = Math.max(...flows.map((flow) => flow.slug.length));
-	const purposeOf = (flow: FlowSummary) => (flow.description.trim() === "" ? flow.name : flow.description.trim());
-	const purposeWidth = Math.max(...flows.map((flow) => purposeOf(flow).length));
+	const purposeWidth = Math.max(...flows.map((flow) => flowPurpose(flow).length));
 	return flows.map(
 		(flow) =>
-			`    ${flow.slug.padEnd(slugWidth)}  ${purposeOf(flow).padEnd(purposeWidth)}  ${flowRunCommand(flow.slug, number)}`,
+			`    ${flow.slug.padEnd(slugWidth)}  ${flowPurpose(flow).padEnd(purposeWidth)}  ${flowRunCommand(flow.slug, number)}`,
 	);
 };
 
@@ -25,11 +18,11 @@ export const flowChoiceLines = (flows: FlowSummary[], number: number): string[] 
 // stopped instead of only that it stopped.
 const failedStep = (run: FlowExecutionRecord) => run.state.steps.find((step) => step.state === "failed");
 
-// The step that waits for a person to approve or reject it.
 const humanStep = (run: FlowExecutionRecord) => run.state.steps.find((step) => step.state === "waiting_human");
 
-const titleOf = (run: FlowExecutionRecord, nodeId: string) =>
-	run.doc.nodes.find((node) => node.id === nodeId)?.title ?? nodeId;
+// Every step of a run names a node of the run's own copy of the flow, so the
+// lookup always finds one.
+const titleOf = (run: FlowExecutionRecord, nodeId: string) => run.doc.nodes.find((node) => node.id === nodeId)!.title;
 
 // What `trellis flows run` prints when it stops watching a run. The flow
 // name comes from the run's own copy of the flow, so a renamed flow still

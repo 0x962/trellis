@@ -159,6 +159,11 @@ export const FlowSummarySchema = FlowSchema.omit({ briefing: true }).extend({
 });
 export type FlowSummary = z.infer<typeof FlowSummarySchema>;
 
+// The sentence that says what a flow is for. A flow whose description is
+// empty falls back to its name, so every caller shows the same words.
+export const flowPurpose = (flow: Pick<FlowSummary, "name" | "description">): string =>
+	flow.description.trim() === "" ? flow.name : flow.description.trim();
+
 export const FlowDocSchema = z.object({
 	flow: FlowSchema,
 	nodes: z.array(FlowNodeSchema),

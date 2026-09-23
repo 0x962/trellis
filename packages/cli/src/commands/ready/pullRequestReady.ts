@@ -1,7 +1,13 @@
 import { changedFilePaths, changesDataModels, hasMermaidErDiagram } from "@trellis/api";
 import type { TrellisClient } from "@trellis/api/client";
 import { currentHead, type PullRequestRef } from "../pullRequestRef.ts";
-import { type FlowReadiness, flowMissingLines, flowMissingSummary, flowReadiness } from "./flowReadiness.ts";
+import {
+	type FlowReadiness,
+	flowReadiness,
+	flowRunMissingLines,
+	flowRunMissingSummary,
+	flowRunWaitingLines,
+} from "./flowReadiness.ts";
 
 export type ReadinessPart = "explanation" | "evidence" | "data-model-diagram" | "flow-run";
 
@@ -22,12 +28,13 @@ export type PullRequestReadiness = {
 // head.
 //
 // `checkFlows` asks for a flow run of the current head as well. `trellis
-// ready` sets it for an agent. `trellis pr add` and the hand-over guard
-// leave it off, because a pull request has run nothing when it is linked.
+// ready` and the hand-over guard set it for an agent. `trellis pr add` leaves
+// it off, because a pull request has run nothing when it is linked. Every
+// caller states its answer, so a new one cannot take a silent default.
 export const pullRequestReadiness = async (
 	client: TrellisClient,
 	ref: PullRequestRef,
-	checkFlows = false,
+	{ checkFlows }: { checkFlows: boolean },
 ): Promise<PullRequestReadiness> => {
 	const head = await currentHead(client, ref);
 	const [summary, evidence] = await Promise.all([
@@ -67,10 +74,12 @@ export const pullRequestReadiness = async (
 export const pullRequestDraftText = (number: number): string =>
 	`#${number} is a draft. When the work is complete and you want the person to review it, run: trellis ready ${number}\n`;
 
-const commandOf = (result: PullRequestReadiness, part: ReadinessPart, number: number): string => {
+// The text the row prints after its label: the command that writes the part,
+// or the sentence that says what to do next.
+const nextStepOf = (result: PullRequestReadiness, part: ReadinessPart, number: number): string => {
 	if (part === "explanation") return `trellis summary write ${number} --headline "..." --why - --watch "..."`;
 	if (part === "evidence") return `trellis evidence write ${number} --body -`;
-	if (part === "flow-run") return flowMissingSummary(result.flows, number);
+	if (part === "flow-run") return flowRunMissingSummary(result.flows, number);
 	return "add a ```mermaid erDiagram``` block to the explanation or evidence document";
 };
 
@@ -83,7 +92,7 @@ const labelOf = (part: ReadinessPart): string => {
 // The flow part needs more than one command, so it carries its own lines
 // under its row. Every other part says all it needs in its row.
 const detailOf = (result: PullRequestReadiness, part: ReadinessPart, number: number): string[] =>
-	part === "flow-run" ? flowMissingLines(result.flows, number) : [];
+	part === "flow-run" ? flowRunMissingLines(result.flows, number) : [];
 
 // The text of `trellis ready <pr>` and of a refused `trellis pr add`. Each
 // missing part carries the one command that writes it. `trellis ready` marks
@@ -97,13 +106,17 @@ export const pullRequestReadyText = (result: PullRequestReadiness): string => {
 			result.flows.runs.length === 0
 				? "the explanation and the evidence document"
 				: "the explanation, the evidence document, and a flow run on this head";
-		return `#${number} is ready for review. It has ${parts}. The person will now review it.\n`;
+		return [
+			`#${number} is ready for review. It has ${parts}. The person will now review it.`,
+			...flowRunWaitingLines(result.flows),
+			"",
+		].join("\n");
 	}
 	const labelWidth = Math.max(...missing.map((part) => labelOf(part).length));
 	return [
 		`#${number} is not ready for review. Add each missing item, then run: trellis ready ${number}`,
 		...missing.flatMap((part) => [
-			`  MISSING  ${labelOf(part).padEnd(labelWidth)}  ${commandOf(result, part, number)}`,
+			`  MISSING  ${labelOf(part).padEnd(labelWidth)}  ${nextStepOf(result, part, number)}`,
 			...detailOf(result, part, number),
 		]),
 		"",

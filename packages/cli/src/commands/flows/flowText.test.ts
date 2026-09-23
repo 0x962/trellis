@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { FlowExecutionRecord } from "@trellis/api";
-import { flowRunStalled, flowRunText } from "./flowText.ts";
+import { flowRunText } from "./flowText.ts";
 
 type Step = FlowExecutionRecord["state"]["steps"][number];
 
@@ -19,12 +19,6 @@ const record = (status: string, steps: Step[], error: string | null = null): Flo
 		},
 		state: { status, error, steps },
 	}) as unknown as FlowExecutionRecord;
-
-test("only a run that still works is worth another wait", () => {
-	expect(flowRunStalled(record("running", []))).toBe(false);
-	expect(flowRunStalled(record("waiting", []))).toBe(true);
-	expect(flowRunStalled(record("succeeded", []))).toBe(true);
-});
 
 test("states the success in one sentence", () => {
 	expect(flowRunText(record("succeeded", []), 131)).toBe("The Review flow succeeded on #131.\n");

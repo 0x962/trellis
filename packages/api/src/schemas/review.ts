@@ -127,6 +127,9 @@ export const ReviewPrSchema = z.object({
 // `gh pr view` supplies the other fields, whose shape belongs to GitHub.
 // Keep this schema loose so each GitHub field passes through unchanged.
 export const ReviewStatusSchema = z.looseObject({
+	// `gh pr view` always answers with the head commit, and a failed call
+	// throws, so every status that reaches a caller carries it.
+	headRefOid: z.string(),
 	isQueued: z.boolean(),
 	ticket: z.object({ identifier: TicketIdentifierSchema, title: z.string() }).nullable(),
 	prRow: TicketPrSchema.nullable(),

@@ -37,8 +37,8 @@ export async function start(ctx: ServiceCtx, tx: Tx, input: FlowExecutionStartIn
 	const state = createFlowExecution(doc, ctx.now.getTime());
 	const [created] = await rows<{ id: string }>(
 		tx,
-		sql`INSERT INTO flow_executions (id,flow_id,ticket_id,project_id,actor_kind,actor_name,request_id,request,doc,state,revision,created_at,updated_at)
-	VALUES (${ulid()},${flow.id},${ticket.id},${ticket.projectId},${actor.kind},${actor.name},${input.requestId},${JSON.stringify(input)}::jsonb,${JSON.stringify(doc)}::jsonb,${JSON.stringify(state)}::jsonb,1,${ctx.now},${ctx.now}) ON CONFLICT (actor_kind,actor_name,request_id) DO NOTHING RETURNING id`,
+		sql`INSERT INTO flow_executions (id,flow_id,ticket_id,project_id,actor_kind,actor_name,request_id,request,head_sha,doc,state,revision,created_at,updated_at)
+	VALUES (${ulid()},${flow.id},${ticket.id},${ticket.projectId},${actor.kind},${actor.name},${input.requestId},${JSON.stringify(input)}::jsonb,${input.headSha ?? null},${JSON.stringify(doc)}::jsonb,${JSON.stringify(state)}::jsonb,1,${ctx.now},${ctx.now}) ON CONFLICT (actor_kind,actor_name,request_id) DO NOTHING RETURNING id`,
 	);
 	if (!created) return replay((await lookup())[0]!);
 	ctx.emit({ type: "flows.changed", id: flow.id });

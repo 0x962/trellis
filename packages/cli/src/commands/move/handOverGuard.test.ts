@@ -8,11 +8,15 @@ const linked = { id: "01M30HDWKZ17G62PJAFHZNED2J", number: 42, url: "https://git
 const clientWith = ({
 	evidence,
 	files = [],
+	flows = [],
+	runs = [],
 	pullRequestState = "open",
 	summaryHead,
 }: {
 	evidence: { body: string } | null;
 	files?: Array<{ path: string; change: "change"; additions: number; deletions: number }>;
+	flows?: Array<{ slug: string; name: string; description: string }>;
+	runs?: Array<{ slug: string; status: string }>;
 	pullRequestState?: "open" | "closed" | "merged";
 	summaryHead: { headline: string } | null;
 }): TrellisClient =>
@@ -35,7 +39,12 @@ const clientWith = ({
 			readEvidence: async () => evidence,
 			readSummaryHead: async () => (summaryHead === null ? null : { why: "Why.", watch: "nothing", ...summaryHead }),
 		},
-		reviews: { status: async () => ({ headRefOid: "head-sha" }) },
+		reviews: { status: async () => ({ headRefOid: "head-sha", ticket: { identifier: "KEY-42" } }) },
+		flows: { list: async () => flows },
+		flowExecutions: {
+			list: async () =>
+				runs.map((run) => ({ doc: { flow: { slug: run.slug, name: run.slug } }, state: { status: run.status } })),
+		},
 	}) as unknown as TrellisClient;
 
 test("allows another target without a readiness check", async () => {
@@ -129,4 +138,38 @@ test("allows an agent hand-over with the explanation and the evidence document",
 			"category:review",
 		),
 	).toBeNull();
+});
+
+test("refuses an agent hand-over with no flow run on the current head", async () => {
+	const client = clientWith({
+		evidence: { body: "Proof." },
+		summaryHead: { headline: "Add the guard." },
+		flows: [{ slug: "review", name: "Review", description: "Read the diff." }],
+	});
+
+	const refusal = await handOverGuard(client, "agent", "KEY-42", "human-review");
+
+	expect(refusal?.result.missing).toEqual(["flow-run"]);
+	expect(refusal?.blocksAgent).toBe(true);
+});
+
+test("allows a person hand-over while no flow ran", async () => {
+	const client = clientWith({
+		evidence: { body: "Proof." },
+		summaryHead: { headline: "Add the guard." },
+		flows: [{ slug: "review", name: "Review", description: "Read the diff." }],
+	});
+
+	expect(await handOverGuard(client, "human", "KEY-42", "human-review")).toBeNull();
+});
+
+test("allows an agent hand-over once a flow ran on the current head", async () => {
+	const client = clientWith({
+		evidence: { body: "Proof." },
+		summaryHead: { headline: "Add the guard." },
+		flows: [{ slug: "review", name: "Review", description: "Read the diff." }],
+		runs: [{ slug: "review", status: "succeeded" }],
+	});
+
+	expect(await handOverGuard(client, "agent", "KEY-42", "human-review")).toBeNull();
 });

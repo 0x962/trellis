@@ -1,0 +1,1 @@
+ALTER TABLE "flow_executions" ADD COLUMN "head_sha" text;

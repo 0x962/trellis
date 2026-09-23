@@ -47,15 +47,28 @@ export const FlowExecutionTaskSchema = z.object({
 	attemptId: z.string(),
 	resultId: z.string().nullable(),
 });
+// The three readings of `FlowExecutionStateSchema.status` that the product
+// needs. Every caller uses these, so no two surfaces answer the same status
+// differently.
+//
+// - `flowRunIsLive`: the run has not reached an end state.
+// - `flowRunNeedsPerson`: the run sits at a step that only a person answers.
+//   It makes no further progress until a person answers it in the Flows tab.
+// - `flowRunWorks`: the run moves on its own, so a later read can show a new
+//   state.
+export const flowRunIsLive = (status: string): boolean => status === "running" || status === "waiting";
+export const flowRunNeedsPerson = (status: string): boolean => status === "waiting";
+export const flowRunWorks = (status: string): boolean => status === "running";
+
 export const FlowExecutionSchema = z.object({
 	id: UlidSchema,
 	flowId: UlidSchema,
 	ticketId: UlidSchema,
 	projectId: UlidSchema,
 	revision: z.number().int().positive(),
-	// The commit the caller named when it started the run. `trellis ready`
-	// asks for a run of the commit the pull request now points at, so a run
-	// that names no commit answers no pull request.
+	// The commit the caller named when the run started. It is null when the
+	// caller named none. `trellis ready` accepts a run only when this commit
+	// is the current head of the pull request.
 	headSha: z.string().nullable(),
 	doc: FlowDocSchema,
 	state: FlowExecutionStateSchema,
@@ -66,7 +79,7 @@ export const FlowExecutionSchema = z.object({
 export const FlowExecutionStartInputSchema = z.strictObject({
 	flow: FlowRefSchema,
 	ticket: z.string().min(1),
-	// The head commit of the pull request this run answers.
+	// The current head commit of the pull request. The run stores it.
 	headSha: z.string().min(1).max(64).optional(),
 	requestId: z.uuid(),
 	expectedVersion: z.number().int().positive(),
@@ -75,6 +88,8 @@ export const FlowExecutionGetInputSchema = z.strictObject({ id: UlidSchema });
 export const FlowExecutionListInputSchema = z.strictObject({
 	flow: FlowRefSchema.optional(),
 	ticket: z.string().min(1).optional(),
+	// Keeps only the runs that stored this commit as their head.
+	headSha: z.string().min(1).max(64).optional(),
 });
 export const FlowExecutionDecisionInputSchema = z.strictObject({
 	id: UlidSchema,

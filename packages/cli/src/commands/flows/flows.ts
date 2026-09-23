@@ -1,4 +1,10 @@
-import type { FlowExecutionRecord, FlowSummary } from "@trellis/api";
+import {
+	type FlowExecutionRecord,
+	type FlowSummary,
+	flowPurpose,
+	flowRunNeedsPerson,
+	flowRunWorks,
+} from "@trellis/api";
 import type { TrellisClient } from "@trellis/api/client";
 import { defineCommand } from "citty";
 import { clientOf } from "../../client.ts";
@@ -6,14 +12,14 @@ import { type CliContext, contextOf, wantsJson } from "../../context.ts";
 import { notFound, usageError } from "../../errors.ts";
 import { cell, json, printList, timeCell } from "../../output.ts";
 import { currentHead, resolvePullRequest } from "../pullRequestRef.ts";
-import { flowRunStalled, flowRunText } from "./flowText.ts";
+import { flowRunText } from "./flowText.ts";
 
 const ref = { type: "positional", required: true, description: "Pull request number, URL, or owner/repo#123" } as const;
 
-// The pull request a flow runs against, with the ticket that links it and
-// the commit it points at now. A flow runs against a ticket, so a pull
-// request that no ticket links can start none.
-const flowTarget = async (client: TrellisClient, input: string) => {
+// The pull request a flow runs against: the ticket that links it, the commit
+// it points at now, and its number. A flow runs against a ticket. If no
+// ticket links the pull request, this function stops with an error.
+const pullRequestForFlow = async (client: TrellisClient, input: string) => {
 	const resolved = await resolvePullRequest(client, input, true);
 	const head = await currentHead(client, resolved);
 	if (head.ticket === null)
@@ -44,15 +50,16 @@ const list = defineCommand({
 				{ name: "SLUG", value: (flow) => flow.slug },
 				{ name: "NAME", value: (flow) => flow.name },
 				{ name: "STEPS", value: (flow) => String(flow.nodeCount) },
-				{ name: "DESCRIPTION", value: (flow) => cell(flow.description) },
+				{ name: "DESCRIPTION", value: (flow) => cell(flowPurpose(flow)) },
 			],
 		});
 	},
 });
 
-// Reads the run every `pollMs` until the run advances no further on its own,
-// or `deadline` passes.
 const pollMs = 5000;
+
+// Reads the run every `pollMs` until it advances no further on its own, or
+// until `deadline` passes.
 const watch = async (
 	ctx: CliContext,
 	client: TrellisClient,
@@ -60,7 +67,7 @@ const watch = async (
 	deadline: number,
 ): Promise<FlowExecutionRecord> => {
 	let latest = run;
-	while (!flowRunStalled(latest) && ctx.deps.now().getTime() < deadline) {
+	while (flowRunWorks(latest.state.status) && ctx.deps.now().getTime() < deadline) {
 		await ctx.deps.sleep(pollMs);
 		latest = await client.flowExecutions.get({ id: latest.id });
 	}
@@ -84,26 +91,29 @@ const run = defineCommand({
 		const client = clientOf(ctx);
 		const minutes = context.args.timeout === undefined ? 60 : Number(context.args.timeout);
 		if (!Number.isFinite(minutes) || minutes <= 0) throw usageError("--timeout takes a number of minutes above zero");
-		const target = await flowTarget(client, context.args.ref);
+		const pr = await pullRequestForFlow(client, context.args.ref);
 		const flow = pickFlow(await client.flows.list({}), context.args.flow);
 		const started = await client.flowExecutions.start({
 			flow: flow.slug,
-			ticket: target.ticket,
-			headSha: target.headSha,
+			ticket: pr.ticket,
+			headSha: pr.headSha,
 			requestId: crypto.randomUUID(),
 			expectedVersion: flow.version,
 		});
+		// The start line prints before the wait. A wait can outlive the agent's
+		// own time limit, and the agent still needs the run id to poll the run
+		// and to name it in the evidence document.
+		if (!wantsJson(ctx))
+			ctx.out.write(`Started the ${flow.name} flow on #${pr.number} at head ${pr.headSha}. Run ${started.id}\n`);
 		const deadline = ctx.deps.now().getTime() + minutes * 60_000;
 		const finished = context.args.wait ? await watch(ctx, client, started, deadline) : started;
-		if (wantsJson(ctx)) {
-			ctx.out.write(json(finished));
-		} else {
-			ctx.out.write(
-				`Started the ${flow.name} flow on #${target.number} at head ${target.headSha}. Run ${finished.id}\n`,
-			);
-			ctx.out.write(flowRunText(finished, target.number));
-		}
-		return finished.state.status === "succeeded" || !context.args.wait ? 0 : 1;
+		if (wantsJson(ctx)) ctx.out.write(json(finished));
+		else ctx.out.write(flowRunText(finished, pr.number));
+		// A run that waits for a person did every agent step it had. The agent
+		// has nothing left to do, so the command succeeds and the message says
+		// who must answer next.
+		const status = finished.state.status;
+		return !context.args.wait || status === "succeeded" || flowRunNeedsPerson(status) ? 0 : 1;
 	},
 });
 
@@ -113,8 +123,8 @@ const runs = defineCommand({
 	async run(context) {
 		const ctx = contextOf(context);
 		const client = clientOf(ctx);
-		const target = await flowTarget(client, context.args.ref);
-		const found = await client.flowExecutions.list({ ticket: target.ticket });
+		const pr = await pullRequestForFlow(client, context.args.ref);
+		const found = await client.flowExecutions.list({ ticket: pr.ticket });
 		printList(ctx.out, ctx.format, found, {
 			identifier: (record) => record.id,
 			columns: [

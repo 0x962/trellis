@@ -9,7 +9,10 @@ const statusMatches = (status: Ticket["status"], ref: string) => {
 	return status.slug === lower || status.id === ref.toUpperCase() || status.name.toLowerCase() === lower;
 };
 
-// Both actors receive the same missing parts. blocksAgent stops only an agent from the hand-over.
+// Both actors receive the same missing parts. blocksAgent stops only an agent
+// from the hand-over. The hand-over is the moment the agent asks the person to
+// review, so an agent must have run a flow by then, the same way `trellis
+// ready` asks for one.
 export const handOverGuard = async (
 	client: TrellisClient,
 	actorKind: ActorKind,
@@ -21,7 +24,7 @@ export const handOverGuard = async (
 	const status = statuses.find((candidate) => statusMatches(candidate, statusRef));
 	if (status?.slug !== "human-review") return null;
 	for (const linked of ticket.prs.filter((pullRequest) => pullRequest.state === "open")) {
-		const result = await pullRequestReadiness(client, linked);
+		const result = await pullRequestReadiness(client, linked, { checkFlows: actorKind === "agent" });
 		if (!result.ready) return { result, blocksAgent: actorKind === "agent" };
 	}
 	return null;

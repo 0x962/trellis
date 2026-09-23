@@ -53,7 +53,7 @@ const add = defineCommand({
 			ctx.err.write(`warning: gh could not read the pull request: ${row.fetchError}\n`);
 			return 6;
 		}
-		const result = await pullRequestReadiness(client, row);
+		const result = await pullRequestReadiness(client, row, { checkFlows: false });
 		if (result.ready) {
 			if (row.localState === "draft" && !wantsJson(ctx)) ctx.out.write(`\n${pullRequestDraftText(row.number)}`);
 			return 0;

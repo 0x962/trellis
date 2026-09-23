@@ -10,7 +10,7 @@ export function StartFlowDialog({
 	onClose,
 }: {
 	ticket: string;
-	headSha: string | null;
+	headSha: string;
 	onClose: () => void;
 }) {
 	const { client, orpc, queryClient } = useApp();
@@ -24,7 +24,7 @@ export function StartFlowDialog({
 			client.flowExecutions.start({
 				flow: selectedFlowId,
 				ticket,
-				...(headSha === null ? {} : { headSha }),
+				headSha,
 				requestId,
 				expectedVersion: flow!.version,
 			}),

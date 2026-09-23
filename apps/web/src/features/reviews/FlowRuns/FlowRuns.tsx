@@ -1,12 +1,11 @@
 import { Play } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
+import { flowRunIsLive } from "@trellis/api";
 import { EmptyState, IconButton, SectionHeader, Skeleton, Tooltip } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { FlowRun } from "./components/FlowRun";
 import { StartFlowDialog } from "./components/StartFlowDialog";
-
-const isLive = (status: string) => status === "running" || status === "waiting";
 
 // The flow runs of the ticket that owns the pull request, newest first. A
 // live run and the newest run open with their steps. An older run opens on
@@ -15,7 +14,7 @@ const isLive = (status: string) => status === "running" || status === "waiting";
 //
 // `headSha` is the commit the pull request points at now. A run stores it, so
 // `trellis ready` can tell a run of this commit from a run of an older one.
-export function FlowRuns({ ticket, headSha }: { ticket: string; headSha: string | null }) {
+export function FlowRuns({ ticket, headSha }: { ticket: string; headSha: string }) {
 	const { orpc } = useApp();
 	const [start, setStart] = useState(false);
 	// The runs whose open state differs from the default.
@@ -28,7 +27,7 @@ export function FlowRuns({ ticket, headSha }: { ticket: string; headSha: string 
 			else next.add(id);
 			return next;
 		});
-	const anyLive = executions.data?.some((execution) => isLive(execution.state.status)) ?? false;
+	const anyLive = executions.data?.some((execution) => flowRunIsLive(execution.state.status)) ?? false;
 	return (
 		<section aria-label="Flows" className="flex flex-col gap-4">
 			<SectionHeader
@@ -52,7 +51,7 @@ export function FlowRuns({ ticket, headSha }: { ticket: string; headSha: string 
 			) : (
 				<div className="flex flex-col gap-6">
 					{executions.data.map((execution, index) => {
-						const open = isLive(execution.state.status) || index === 0;
+						const open = flowRunIsLive(execution.state.status) || index === 0;
 						return (
 							<FlowRun
 								key={execution.id}
