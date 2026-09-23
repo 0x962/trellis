@@ -72,7 +72,12 @@ try {
 	assert.equal(inspectProcess(parent.pid!).kind, "missing");
 	assert.equal(inspectProcess(childPid).kind, "missing");
 	store.closeWatchers();
-	restored = new SessionStore(home, "restart", { retentionMs: 0, maxExitedRecords: 0 });
+	restored = new SessionStore(home, "restart", {
+		retentionMs: 0,
+		maxExitedRecords: 0,
+		maxExitedBytes: 0,
+		maxResumableRecords: 500,
+	});
 	assert.equal(restored.inspect(parent.id).agent!.sessionId, "provider-conversation");
 	assert.equal(restored.inspect(parent.id).result!.text, "Saved answer");
 } finally {

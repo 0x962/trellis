@@ -96,8 +96,10 @@ export class SessionStore {
 		}
 		for (const [id, entry] of this.records.entries()) {
 			if (entry.sequence <= position) continue;
-			if (entry.final && (input.status === "running" || input.status === "unknown" || input.activity !== undefined))
-				continue;
+			// A session whose exit is confirmed costs a file read, so a read
+			// passes it over unless the caller asked for exits by name. A caller
+			// that wants one exited session names it under `ids`.
+			if (entry.final && input.status !== "exited") continue;
 			const session = this.inspect(id);
 			yield { session: matchesProcessFilters(session, input) ? session : null, cursor: `${prefix}${entry.sequence}` };
 		}

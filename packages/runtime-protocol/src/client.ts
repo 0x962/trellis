@@ -3,14 +3,17 @@ import { Socket } from "node:net";
 import {
 	type HarnessEvent,
 	type LaunchSpec,
+	listLimit,
 	RUNTIME_PROTOCOL_VERSION,
 	type RuntimeExpectedTurn,
 	type RuntimeListInput,
+	type RuntimeListPage,
 	type RuntimeListPageInput,
 	type RuntimeMethod,
 	type RuntimeMethods,
 	type RuntimeProcessStatus,
 	type RuntimeResponse,
+	type RuntimeSessionList,
 	type RuntimeStream,
 } from "./index.ts";
 import { subscribeOutput } from "./subscribeOutput.ts";
@@ -36,7 +39,11 @@ export class RuntimeClient {
 			};
 			socket.setEncoding("utf8");
 			socket.setTimeout(this.timeoutMs, () =>
-				fail(new Error(`Runtime ${method} response is unknown: request timed out`)),
+				fail(
+					Object.assign(new Error(`Runtime ${method} response is unknown: request timed out`), {
+						code: "RUNTIME_TIMEOUT",
+					}),
+				),
 			);
 			socket.once("error", fail);
 			socket.once("close", () => {
@@ -114,17 +121,27 @@ export class RuntimeClient {
 		this.capabilities = hello.capabilities ?? [];
 		return hello;
 	}
-	async list(input: RuntimeListInput = {}) {
+	// Reads the sessions one page at a time and stops at the limit of the
+	// input. A page that passes `timeoutMs` ends the read: `complete` is then
+	// false, and the sessions are the ones the earlier pages carried.
+	async list(input: RuntimeListInput = {}): Promise<RuntimeSessionList> {
 		if (this.capabilities === undefined) await this.hello();
-		if (!this.capabilities!.includes("list-pages")) return this.call("list", input);
+		if (!this.capabilities!.includes("list-pages")) return { sessions: await this.call("list", input), complete: true };
+		const limit = listLimit(input);
 		const sessions: RuntimeProcessStatus[] = [];
 		let cursor: string | undefined;
 		do {
-			const page = await this.listPage({ ...input, cursor });
+			let page: RuntimeListPage;
+			try {
+				page = await this.listPage({ ...input, limit: limit - sessions.length, cursor });
+			} catch (error) {
+				if ((error as { code?: string }).code !== "RUNTIME_TIMEOUT") throw error;
+				return { sessions, complete: false };
+			}
 			for (const session of page.sessions) sessions.push(session);
 			cursor = page.nextCursor ?? undefined;
-		} while (cursor !== undefined);
-		return sessions;
+		} while (cursor !== undefined && sessions.length < limit);
+		return { sessions, complete: true };
 	}
 	listPage(input: RuntimeListPageInput = {}) {
 		return this.call("listPage", input);

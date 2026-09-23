@@ -68,6 +68,11 @@ export function validateRequest(value: unknown): RuntimeRequest {
 				throw new Error("Unknown process activity filter");
 			if (params.hasError !== undefined && typeof params.hasError !== "boolean")
 				throw new Error("The process error filter must be a boolean");
+			if (
+				params.limit !== undefined &&
+				(typeof params.limit !== "number" || !Number.isSafeInteger(params.limit) || params.limit < 1)
+			)
+				throw new Error("A list limit must be a whole number of at least 1");
 			break;
 		case "hasMessage":
 			if (typeof params.messageId !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.messageId))
