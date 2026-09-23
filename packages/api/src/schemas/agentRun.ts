@@ -110,13 +110,13 @@ export const AgentRunListInputSchema = z.strictObject({
 	project: z.string().optional(),
 	ids: z.array(z.string().min(1)).max(200).optional(),
 	assigned: z.boolean().optional(),
-	windowHours: z
+	windowHours: z.coerce
 		.number()
 		.int()
 		.min(1)
 		.max(24 * 365)
 		.default(AGENT_RUN_LIST_WINDOW_HOURS),
-	limit: z.number().int().min(1).max(AGENT_RUN_LIST_MAX_LIMIT).default(AGENT_RUN_LIST_LIMIT),
+	limit: z.coerce.number().int().min(1).max(AGENT_RUN_LIST_MAX_LIMIT).default(AGENT_RUN_LIST_LIMIT),
 });
 export type AgentRunListInput = z.infer<typeof AgentRunListInputSchema>;
 
