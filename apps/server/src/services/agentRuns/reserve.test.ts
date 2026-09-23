@@ -17,15 +17,15 @@ const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
 beforeAll(async () => {
 	db = await openTestDb();
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${rootId}, ${rootId}, 'RTY', 'retry', 'Retry', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${rootId}, 'RTY', 'retry', 'Retry', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses
 		(id, project_id, name, slug, category, color, position, is_default, created_at, updated_at) VALUES
 		(${ulid()}, ${rootId}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at}),
 		(${doneStatus}, ${rootId}, 'Done', 'done', 'done', 'fg-muted', 1, false, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO tickets
-		(id, project_id, root_id, number, title, status_id, position, completed_at, created_at, updated_at)
-		VALUES (${ticketId}, ${rootId}, ${rootId}, 1, 'Done ticket', ${doneStatus}, 0, ${at}, ${at}, ${at})`);
+		(id, project_id, number, title, status_id, position, completed_at, created_at, updated_at)
+		VALUES (${ticketId}, ${rootId}, 1, 'Done ticket', ${doneStatus}, 0, ${at}, ${at}, ${at})`);
 	const cache = createCache();
 	await run((tx) => cache.rebuild(tx));
 	ctx = {

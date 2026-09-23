@@ -34,7 +34,7 @@ test("project sessions and ticket agents use the same isolated workspace primiti
 	const session = await db.transaction((tx) => getSession(tx, result.id));
 	const run = await db.transaction((tx) => getRun(tx, session.runId));
 	expect(session.projectId).toBe(projectId);
-	expect(session.projectPath).toBe("TST");
+	expect(session.projectKey).toBe("TST");
 	expect(run.kind).toBe("session");
 	expect(session.harness).toEqual(harness);
 	expect(run.harness).toEqual(harness);
@@ -82,14 +82,14 @@ test("concurrent create requests launch once and bind the request to file bytes"
 	await expect(prepareCreate(ctx, { ...input, prompt: "Changed" }, start)).rejects.toThrow("different assignment");
 });
 
-test("concurrent names and project inheritance retain distinct sessions", async () => {
+test("concurrent names in one project retain distinct sessions", async () => {
 	const child = ulid();
 	const at = ctx.now();
 	await db.execute(
-		sql`INSERT INTO projects (id,parent_id,root_id,slug,name,created_at,updated_at) VALUES (${child},${projectId},${projectId},'child','Child',${at},${at})`,
+		sql`INSERT INTO projects (id,key,slug,name,directory,created_at,updated_at) VALUES (${child},'CHD','child','Child',${repo},${at},${at})`,
 	);
 	await db.transaction((tx) => ctx.core.cache.rebuild(tx));
-	const input = { project: "TST.child", name: "same-name", prompt: "Inspect", harness };
+	const input = { project: "CHD", name: "same-name", prompt: "Inspect", harness };
 	const sessions = await Promise.all([prepareCreate(ctx, input, start), prepareCreate(ctx, input, start)]);
 	await drainBackground();
 	const rows = await Promise.all(sessions.map(({ id }) => db.transaction((tx) => getSession(tx, id))));

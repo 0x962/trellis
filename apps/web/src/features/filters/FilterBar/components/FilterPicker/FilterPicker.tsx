@@ -3,7 +3,6 @@ import type { Actor, CiState, EpicSummary, PrFilter, Priority, StatusSummary } f
 import { type CommandItem, FilterPopover, StatusIcon } from "@trellis/ui";
 import { type ReactElement, useEffect, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
-import { rootKey } from "../../../../../lib/projectPath";
 import { epicItems } from "../../../../pickers/EpicPicker";
 import { useEpicWaves } from "../../../../pickers/hooks/useEpicWaves";
 import { priorityItems } from "../../../../pickers/PriorityPicker";
@@ -23,21 +22,13 @@ import type { View } from "../../../grammar";
 import { type FilterLabel, labelValueGroups } from "../../../labelValues";
 import { presets } from "../../../presets";
 
-// The picker shows the fields first, then the values of one field. `scope`
-// is not a filter field: it is the reach of the list, which a project route
-// alone can change, so it takes its own stage.
-export type PickerStage = { kind: "fields" } | { kind: "values"; field: FilterField } | { kind: "scope" };
-
-const scopeField = "scope:field";
-const scopeValues = [
-	{ id: "subprojects", label: "This and all sub-projects" },
-	{ id: "self", label: "This project only" },
-] as const;
+// The picker shows the fields first, then the values of one field.
+export type PickerStage = { kind: "fields" } | { kind: "values"; field: FilterField };
 
 export type FilterPickerProps = {
 	view: View;
 	statuses: readonly StatusSummary[];
-	// The labels of the project tree the route shows, already in row order.
+	// The labels of the project the route shows, already in row order.
 	labels: readonly FilterLabel[];
 	// The project ref of the route. /all offers the project field.
 	project?: string;
@@ -100,7 +91,7 @@ export function FilterPicker({
 	// viewed project. /all has no project, so it offers neither field.
 	const epics =
 		useQuery({
-			...orpc.epics.list.queryOptions({ input: { project: project === undefined ? "" : rootKey(project) } }),
+			...orpc.epics.list.queryOptions({ input: { project: project === undefined ? "" : project } }),
 			enabled:
 				open && project !== undefined && stage.kind === "values" && (stage.field === "epic" || stage.field === "wave"),
 		}).data ?? [];
@@ -110,7 +101,7 @@ export function FilterPicker({
 	const dependencyTickets =
 		useQuery({
 			...orpc.search.query.queryOptions({
-				input: { q: ticketQuery, project: project === undefined ? undefined : rootKey(project), limit: 10 },
+				input: { q: ticketQuery, project: project === undefined ? undefined : project, limit: 10 },
 			}),
 			enabled: waitsOnStage && ticketQuery !== "",
 		}).data?.tickets ?? [];
@@ -118,10 +109,6 @@ export function FilterPicker({
 	const close = () => onOpenChange(false);
 
 	const pickField = (id: string) => {
-		if (id === scopeField) {
-			onStageChange({ kind: "scope" });
-			return;
-		}
 		const preset = presets.find((entry) => presetId(entry.label) === id);
 		if (preset !== undefined) {
 			onChange({ ...view, ...preset.view });
@@ -137,16 +124,14 @@ export function FilterPicker({
 		if (!multiValue.includes(field)) close();
 	};
 
-	const scopeLabel = scopeValues.find((entry) => entry.id === view.scope)?.label ?? scopeValues[0].label;
 	const fieldItems: CommandItem[] = [
-		...(project === undefined ? [] : [{ id: scopeField, label: `Projects: ${scopeLabel}` }]),
 		...presets.map((preset) => ({ id: presetId(preset.label), label: preset.label })),
 		...pickerFields
 			.filter((field) => !hiddenFields.includes(field))
 			.filter((field) => field !== "project" || project === undefined)
-			// The root project of a tree owns its labels, its epics, and their
-			// waves. A route without a project reads no one tree, so it offers
-			// no Label field, no Epic field, and no Wave field.
+			// A project owns its labels, its epics, and their waves. A route
+			// without a project reads no one project, so it offers no Label
+			// field, no Epic field, and no Wave field.
 			.filter((field) => (field !== "label" && field !== "epic" && field !== "wave") || project !== undefined)
 			.map((field) => ({ id: field, label: fieldLabels[field] })),
 	];
@@ -163,25 +148,17 @@ export function FilterPicker({
 				: waveStage
 					? waveGroups(epicWaves, { current: view.wave })
 					: [];
-	const items =
-		stage.kind === "scope"
-			? scopeValues.map((entry) => ({ id: entry.id, label: entry.label, checked: view.scope === entry.id }))
-			: waitsOnStage
-				? dependencyTickets.map((ticket) => ({
-						id: ticket.identifier,
-						label: ticket.identifier,
-						current: view.waitsOn === ticket.identifier,
-						icon: <StatusIcon category={ticket.status.category} reviewer={ticket.status.reviewer ?? undefined} />,
-						children: <span className="truncate text-fg-muted">{ticket.title}</span>,
-					}))
-				: stage.kind === "values" && !sectioned
-					? valueItems(stage.field, view, projects, actors, epics)
-					: fieldItems;
-
-	const pickScope = (id: string) => {
-		onChange({ ...view, scope: id as View["scope"] });
-		close();
-	};
+	const items = waitsOnStage
+		? dependencyTickets.map((ticket) => ({
+				id: ticket.identifier,
+				label: ticket.identifier,
+				current: view.waitsOn === ticket.identifier,
+				icon: <StatusIcon category={ticket.status.category} reviewer={ticket.status.reviewer ?? undefined} />,
+				children: <span className="truncate text-fg-muted">{ticket.title}</span>,
+			}))
+		: stage.kind === "values" && !sectioned
+			? valueItems(stage.field, view, projects, actors, epics)
+			: fieldItems;
 
 	return (
 		<FilterPopover
@@ -189,24 +166,14 @@ export function FilterPicker({
 			open={open}
 			onOpenChange={onOpenChange}
 			stage={stage.kind === "values" ? stage.field : stage.kind}
-			label={
-				stage.kind === "values"
-					? `Search ${fieldLabels[stage.field]} values`
-					: stage.kind === "scope"
-						? "Search the reach of the list"
-						: "Search fields"
-			}
-			placeholder={
-				stage.kind === "values" ? fieldLabels[stage.field] : stage.kind === "scope" ? "Projects" : "Filter by"
-			}
+			label={stage.kind === "values" ? `Search ${fieldLabels[stage.field]} values` : "Search fields"}
+			placeholder={stage.kind === "values" ? fieldLabels[stage.field] : "Filter by"}
 			items={sectioned ? [] : items}
 			groups={groups}
 			filter={waitsOnStage ? false : undefined}
 			onSearchChange={waitsOnStage ? setTicketSearch : undefined}
 			empty={waitsOnStage && ticketQuery === "" ? "Type to search." : undefined}
-			onSelect={(id) =>
-				stage.kind === "values" ? pickValue(stage.field, id) : stage.kind === "scope" ? pickScope(id) : pickField(id)
-			}
+			onSelect={(id) => (stage.kind === "values" ? pickValue(stage.field, id) : pickField(id))}
 		/>
 	);
 }

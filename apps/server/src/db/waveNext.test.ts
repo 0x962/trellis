@@ -105,8 +105,8 @@ const next = async (ctx: ServiceCtx) => {
 beforeAll(async () => {
 	db = await openDb(":memory:");
 	await migrate(db);
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${tst}, ${tst}, 'TST', 'tst', 'TST', '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${tst}, 'TST', 'tst', 'TST', '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
 	await insertStatus("Todo", "todo", "todo", null, 0);
 	await insertStatus("In Progress", "in-progress", "started", null, 1);
 	await insertStatus("Human Review", "human-review", "review", "human", 2);

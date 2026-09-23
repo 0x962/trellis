@@ -13,12 +13,8 @@ import { ProjectPages } from "./ProjectPages";
 const project = {
 	id: "01M24SPHTX36AJ3VKTNZ263E7V",
 	key: "TRL",
-	path: "TRL",
-	parentId: null,
-	rootId: "01M24SPHTX36AJ3VKTNZ263E7V",
 	slug: "trellis",
 	name: "Trellis",
-	depth: 0,
 	position: 0,
 	openCount: 12,
 	openEpicCount: 3,
@@ -31,7 +27,7 @@ const render = async (pathname: string, activeAgentCount = 0) => {
 	const rootRoute = createRootRoute({
 		component: () => (
 			<ul>
-				<ProjectPages project={project} depth={1} pathname={pathname} activeAgentCount={activeAgentCount} />
+				<ProjectPages project={project} pathname={pathname} activeAgentCount={activeAgentCount} />
 			</ul>
 		),
 	});
@@ -96,7 +92,7 @@ test("the rows under More indent one step past the rows above them", async () =>
 test("only the Epics row prints a count", async () => {
 	const html = await render("/p/TRL");
 
-	const counts = [...html.matchAll(/<span class="sidebar-trailing text-fg-faint">([^<]*)<\/span>/g)];
+	const counts = [...html.matchAll(/<span class="sidebar-trailing gap-1 text-fg-faint">([^<]*)<\/span>/g)];
 
 	expect(counts.map((match) => match[1])).toEqual(["3"]);
 });

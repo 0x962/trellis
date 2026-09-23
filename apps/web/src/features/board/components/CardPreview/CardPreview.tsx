@@ -35,7 +35,7 @@ export function CardPreview({
 			<div
 				ref={surfaceRef}
 				style={{ transformOrigin: `${frame.offsetX}px ${frame.offsetY}px` }}
-				className="flex min-h-19 flex-col gap-1.5 rounded-md border-x border-b border-border-strong bg-elevated p-3 shadow-kanban-drag transition-transform duration-row ease-out motion-reduce:transition-none"
+				className="flex min-h-19 flex-col gap-1.5 rounded-md border border-border-strong bg-elevated p-3 shadow-lg transition-transform duration-row ease-out motion-reduce:transition-none"
 			>
 				<CardContent
 					ticket={ticket}

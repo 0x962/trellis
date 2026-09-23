@@ -7,7 +7,7 @@ import {
 	type TicketSummary,
 	type WaveLink,
 } from "@trellis/api";
-import { projectSlashPath } from "../../../../lib/projectPath";
+
 import type { Group } from "../../../filters/grammar";
 import { turnBucketOf, type WorkingTicketIds } from "../turnGroups";
 
@@ -139,7 +139,7 @@ const bucketOf = (row: TicketSummary, options: GroupOptions): Bucket => {
 				rank: priorityRank[row.priority],
 			};
 		case "project":
-			return { key: row.project.path, label: projectLabel(row.project.path, options.project), rank: row.project.path };
+			return { key: row.project.key, label: projectLabel(row.project.key, options.project), rank: row.project.key };
 		case "parent":
 			return row.parent === null
 				? { key: "none", label: "No parent", rank: "~" }
@@ -174,8 +174,8 @@ const bucketOf = (row: TicketSummary, options: GroupOptions): Bucket => {
 // `CDE.web.auth` under `CDE` reads `web/auth`; the viewed project itself
 // reads its own path.
 export const projectLabel = (path: string, viewed?: string) => {
-	if (viewed === undefined || path === viewed) return projectSlashPath(path);
-	return projectSlashPath(path.slice(viewed.length + 1));
+	if (viewed === undefined || path === viewed) return path;
+	return path.slice(viewed.length + 1);
 };
 
 // The groups of a row set in display order, each sorted by `rowRank` and

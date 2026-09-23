@@ -38,17 +38,17 @@ beforeAll(async () => {
 	db = await openTestDb();
 	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
 		VALUES (${actor.name}, ${actor.kind}, ${now}, ${now})`);
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${projectId}, ${projectId}, 'TRL', 'trl', 'Trellis', ${now}, ${now})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${projectId}, 'TRL', 'trl', 'Trellis', ${now}, ${now})`);
 	await db.execute(sql`INSERT INTO statuses (
 		id, project_id, name, slug, category, color, position, is_default, created_at, updated_at
 	) VALUES (${statusId}, ${projectId}, 'Todo', 'todo', 'todo', 'gray', 0, true, ${now}, ${now})`);
 	await db.execute(sql`INSERT INTO epics (
-		id, project_id, root_id, slug, name, actor_name, actor_kind, created_at, updated_at
-	) VALUES (${epicId}, ${projectId}, ${projectId}, 'resources', 'Resources', ${actor.name}, ${actor.kind}, ${now}, ${now})`);
+		id, project_id, slug, name, actor_name, actor_kind, created_at, updated_at
+	) VALUES (${epicId}, ${projectId}, 'resources', 'Resources', ${actor.name}, ${actor.kind}, ${now}, ${now})`);
 	await db.execute(sql`INSERT INTO tickets (
-		id, project_id, root_id, number, title, status_id, epic_id, position, created_at, updated_at
-	) VALUES (${ticketId}, ${projectId}, ${projectId}, 196, 'Add resources', ${statusId}, ${epicId}, 1024, ${now}, ${now})`);
+		id, project_id, number, title, status_id, epic_id, position, created_at, updated_at
+	) VALUES (${ticketId}, ${projectId}, 196, 'Add resources', ${statusId}, ${epicId}, 1024, ${now}, ${now})`);
 	const cache = createCache();
 	await inTx(cache.rebuild);
 	const core = {

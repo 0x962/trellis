@@ -3,7 +3,7 @@ import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { ActivityDot, IconButton, Kbd, Tooltip } from "@trellis/ui";
 import { useApp } from "../../../../../lib/appContext";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
-import { projectRefOfPathname } from "../../../../../lib/projectPath";
+import { projectRefOfPathname } from "../../../../../lib/projectUrl";
 import { uiActions } from "../../../../../stores/uiStore";
 import { type NavTarget, navRows } from "../../../../navRows";
 import { useNeedsYouSummary } from "../../../../needs-you/useNeedsYou";
@@ -29,11 +29,11 @@ export type SidebarBodyProps = {
 };
 
 // The sidebar holds the optional collapse button, the fixed destinations, the
-// sessions, the project tree, and the actor footer. The desktop aside and the
+// sessions, the project list, and the actor footer. The desktop aside and the
 // phone sheet both draw it. The phone sheet closes in its own way, so it has
 // no collapse button.
 //
-// The sessions and the project tree share the one region that scrolls and
+// The sessions and the project list share the one region that scrolls and
 // takes the spare height. Every fixed destination sits above it, so none of
 // them moves when the region grows.
 //

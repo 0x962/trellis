@@ -7,18 +7,12 @@ import {
 	selectValueOfProjectKey,
 } from "./flowProject.ts";
 
-// A root project holds its own id in `rootId`, which is the rule the flows
-// service states. An archived project carries a date in `archivedAt`.
-const project = (path: string, rootId: string, archivedAt: string | null = null): ProjectSummary =>
-	({ id: path, path, rootId, archivedAt }) as ProjectSummary;
+// An archived project carries a date in `archivedAt`.
+const project = (key: string, archivedAt: string | null = null): ProjectSummary =>
+	({ id: key, key, archivedAt }) as ProjectSummary;
 
-test("the list holds every project first, then one item per root project", () => {
-	const projects = [
-		project("TRL", "TRL"),
-		project("TRL.web", "TRL"),
-		project("OP", "OP"),
-		project("OLD", "OLD", "2026-09-01T00:00:00.000Z"),
-	];
+test("the list holds every project first, then one item per active project", () => {
+	const projects = [project("TRL"), project("OP"), project("OLD", "2026-09-01T00:00:00.000Z")];
 
 	expect(flowProjectItems(projects)).toEqual([
 		{ value: everyProjectValue, label: "Every project" },

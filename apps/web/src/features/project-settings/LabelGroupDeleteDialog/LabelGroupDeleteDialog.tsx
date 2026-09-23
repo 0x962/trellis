@@ -6,7 +6,7 @@ import { formatCount } from "../../../lib/format";
 import { labelWriteMessage } from "../labelWriteMessage";
 
 export type LabelGroupDeleteDialogProps = {
-	// A project path. The root project of its tree owns the group.
+	// The key of the project that owns the group.
 	project: string;
 	// The group to delete. The dialog stays closed while this is null.
 	group: LabelGroup | null;

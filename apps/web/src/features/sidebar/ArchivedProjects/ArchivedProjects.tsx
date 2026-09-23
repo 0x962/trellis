@@ -32,11 +32,10 @@ export function ArchivedProjects() {
 			{open && (
 				<ul className="sidebar-project-tree flex flex-col gap-0.5">
 					{data.flatMap((project) => [
-						<TreeRow key={project.id} project={project} depth={1} archived />,
+						<TreeRow key={project.id} project={project} archived />,
 						<ProjectPages
 							key={`${project.id}.pages`}
 							project={project}
-							depth={2}
 							pathname={pathname}
 							activeAgentCount={activeAgentCountOf(agentCountsByProject, project.id)}
 						/>,

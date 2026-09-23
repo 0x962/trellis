@@ -34,8 +34,8 @@ beforeAll(async () => {
 	db = await openTestDb();
 	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
 		VALUES ('Test', 'human', ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${root}, ${root}, 'TST', 'tst', 'Test', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${root}, 'TST', 'tst', 'Test', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses (
 		id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at
 	) VALUES
@@ -45,22 +45,22 @@ beforeAll(async () => {
 		(${doneStatus}, ${root}, 'Done', 'done', 'done', NULL, 'success', 3, false, ${at}, ${at}),
 		(${canceledStatus}, ${root}, 'Canceled', 'canceled', 'canceled', NULL, 'fg-muted', 4, false, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO epics (
-		id, project_id, root_id, slug, name, description, actor_name, actor_kind, created_at, updated_at
-	) VALUES (${epic}, ${root}, ${root}, 'plan', 'Plan', '', 'Test', 'human', ${at}, ${at})`);
+		id, project_id, slug, name, description, actor_name, actor_kind, created_at, updated_at
+	) VALUES (${epic}, ${root}, 'plan', 'Plan', '', 'Test', 'human', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO tickets (
-		id, project_id, root_id, number, title, description, status_id, epic_id, position, created_at, updated_at
+		id, project_id, number, title, description, status_id, epic_id, position, created_at, updated_at
 	) VALUES
-		(${tickets[0]}, ${root}, ${root}, 1, 'Done blocker', '', ${doneStatus}, ${epic}, 0, ${at}, ${at}),
-		(${tickets[1]}, ${root}, ${root}, 2, 'Open review', '', ${reviewStatus}, ${epic}, 1, ${at}, ${at}),
-		(${tickets[2]}, ${root}, ${root}, 3, 'Human review without options', '', ${reviewStatus}, ${epic}, 2, ${at}, ${at}),
-		(${tickets[3]}, ${root}, ${root}, 4, 'Subject', '', ${todoStatus}, ${epic}, 3, ${at}, ${at}),
-		(${tickets[4]}, ${root}, ${root}, 5, 'Released ticket', '', ${todoStatus}, ${epic}, 4, ${at}, ${at}),
-		(${tickets[5]}, ${root}, ${root}, 6, 'Indirect ticket', '', ${todoStatus}, ${epic}, 5, ${at}, ${at}),
-		(${tickets[6]}, ${root}, ${root}, 7, 'Ready ticket', '', ${todoStatus}, ${epic}, 6, ${at}, ${at}),
-		(${tickets[7]}, ${root}, ${root}, 8, 'Ready without dependencies', '', ${todoStatus}, ${epic}, 7, ${at}, ${at}),
-		(${tickets[8]}, ${root}, ${root}, 9, 'Started without dependencies', '', ${startedStatus}, ${epic}, 8, ${at}, ${at}),
-		(${tickets[9]}, ${root}, ${root}, 10, 'Outside the epic', '', ${todoStatus}, NULL, 9, ${at}, ${at}),
-		(${tickets[10]}, ${root}, ${root}, 11, 'Canceled blocker', '', ${canceledStatus}, ${epic}, 10, ${at}, ${at})`);
+		(${tickets[0]}, ${root}, 1, 'Done blocker', '', ${doneStatus}, ${epic}, 0, ${at}, ${at}),
+		(${tickets[1]}, ${root}, 2, 'Open review', '', ${reviewStatus}, ${epic}, 1, ${at}, ${at}),
+		(${tickets[2]}, ${root}, 3, 'Human review without options', '', ${reviewStatus}, ${epic}, 2, ${at}, ${at}),
+		(${tickets[3]}, ${root}, 4, 'Subject', '', ${todoStatus}, ${epic}, 3, ${at}, ${at}),
+		(${tickets[4]}, ${root}, 5, 'Released ticket', '', ${todoStatus}, ${epic}, 4, ${at}, ${at}),
+		(${tickets[5]}, ${root}, 6, 'Indirect ticket', '', ${todoStatus}, ${epic}, 5, ${at}, ${at}),
+		(${tickets[6]}, ${root}, 7, 'Ready ticket', '', ${todoStatus}, ${epic}, 6, ${at}, ${at}),
+		(${tickets[7]}, ${root}, 8, 'Ready without dependencies', '', ${todoStatus}, ${epic}, 7, ${at}, ${at}),
+		(${tickets[8]}, ${root}, 9, 'Started without dependencies', '', ${startedStatus}, ${epic}, 8, ${at}, ${at}),
+		(${tickets[9]}, ${root}, 10, 'Outside the epic', '', ${todoStatus}, NULL, 9, ${at}, ${at}),
+		(${tickets[10]}, ${root}, 11, 'Canceled blocker', '', ${canceledStatus}, ${epic}, 10, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO ticket_deps (ticket_id, depends_on_id, source, created_at) VALUES
 		(${tickets[1]}, ${tickets[8]}, 'manual', ${at}),
 		(${tickets[3]}, ${tickets[0]}, 'manual', ${at}),

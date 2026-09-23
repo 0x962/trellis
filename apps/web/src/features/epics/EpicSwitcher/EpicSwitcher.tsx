@@ -4,7 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Command, Kbd, Popover } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
-import { epicSplat, projectHref, rootKey } from "../../../lib/projectPath";
+import { epicSplat, projectHref } from "../../../lib/projectUrl";
 import { allEpicsId, epicSwitcherItems, epicSwitchSearch } from "./epicSwitcherItems";
 
 export type EpicSwitcherProps = {
@@ -18,7 +18,7 @@ export type EpicSwitcherProps = {
 };
 
 // The epic name in the top bar, as a button that opens a search of the
-// other epics of the root project. The caret is always drawn, so the name
+// other epics of the project. The caret is always drawn, so the name
 // reads as a control before the pointer reaches it. A pick opens that epic
 // on the same tab; the All epics row opens the Epics list. `g e` clicks the
 // button through `data-epic-switcher` (see `useGlobalHotkeys`).
@@ -27,7 +27,7 @@ export function EpicSwitcher({ project, epicRef, name, tab }: EpicSwitcherProps)
 	const navigate = useNavigate();
 	const [open, setOpen] = useState(false);
 	const input = useRef<HTMLInputElement>(null);
-	const list = useQuery({ ...orpc.epics.list.queryOptions({ input: { project: rootKey(project) } }), enabled: open });
+	const list = useQuery({ ...orpc.epics.list.queryOptions({ input: { project: project } }), enabled: open });
 
 	const pick = (id: string) => {
 		setOpen(false);

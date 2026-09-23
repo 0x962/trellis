@@ -35,7 +35,7 @@ export const NoteBodySchema = z
 export const NoteSchema = z.object({
 	id: UlidSchema,
 	projectId: UlidSchema,
-	projectPath: z.string().min(1),
+	projectKey: z.string().min(1),
 	title: z.string(),
 	body: z.string(),
 	audience: NoteAudienceSchema,

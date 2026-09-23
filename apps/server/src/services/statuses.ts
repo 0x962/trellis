@@ -11,33 +11,25 @@ import {
 	assertFreeName,
 	emitStatusesChanged,
 	insertStatus,
-	materialize,
-	ownedStatuses,
 	renumber,
 	statusActivity,
 	statusById,
 } from "./statusSet.ts";
 
-export { clear, delete } from "./statusesDelete.ts";
-export { remapScope } from "./statusRemap.ts";
+export { delete } from "./statusesDelete.ts";
 export { applyStatusTransition } from "./statusTransition.ts";
 
-// Statuses belong to a project. A root owns its set. A sub-project inherits
-// the nearest owner's set until it creates a status of its own. That first
-// create copies the set onto the sub-project. Every edit lands on the
-// owner's row, and `statuses.changed` names the owner whose set changed.
+// Every project owns its set of statuses, and `statuses.changed` names the
+// project whose set changed.
 
 export type StatusReorderInput = { project: string; statuses: string[] };
 
 // Appends at the next position, or at `position` with the set renumbered.
 export const create = async (ctx: ServiceCtx, tx: Tx, input: StatusCreateInput): Promise<Status> => {
 	const project = await resolveMutableProject(ctx, tx, input.project);
-	const effective = ctx.cache.effectiveStatuses(project.id);
+	const own = ctx.cache.statusesOf(project.id);
 	const slug = deriveSlug(input.name);
-	assertFreeName(effective.statuses, input.name, slug);
-	const inherits = effective.ownerId !== project.id;
-	if (inherits) await materialize(ctx, tx, project.id);
-	const own = inherits ? await ownedStatuses(tx, project.id) : effective.statuses;
+	assertFreeName(own, input.name, slug);
 	const isDefault = input.isDefault ?? false;
 	if (isDefault) {
 		await tx.execute(sql`UPDATE statuses SET is_default = false WHERE project_id = ${project.id} AND is_default`);
@@ -68,8 +60,8 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: StatusCreateInput):
 	return statusById(ctx, project.id, id);
 };
 
-// Edits the owner's row. `category` never changes; `isDefault: true` moves
-// the one default onto this status; a reviewer needs a review status.
+// `category` never changes; `isDefault: true` moves the one default onto
+// this status; a reviewer needs a review status.
 export const update = async (ctx: ServiceCtx, tx: Tx, input: StatusUpdateInput): Promise<Status> => {
 	if ("category" in input) throw fail("STATUS_CATEGORY_IMMUTABLE");
 	const project = await resolveMutableProject(ctx, tx, input.project);
@@ -77,11 +69,10 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: StatusUpdateInput):
 	if (input.reviewer !== undefined && status.category !== "review") {
 		throw invalidInput("reviewer", "Only a review status carries a reviewer.");
 	}
-	const owner = status.projectId;
 	const { sets, changes, field } = changeSet();
 	if (input.name !== undefined && input.name !== status.name) {
 		const slug = deriveSlug(input.name);
-		const others = ctx.cache.effectiveStatuses(owner).statuses.filter((other) => other.id !== status.id);
+		const others = ctx.cache.statusesOf(project.id).filter((other) => other.id !== status.id);
 		assertFreeName(others, input.name, slug);
 		sets.push(sql`slug = ${slug}`);
 		field("name", status.name, input.name, sql`name = ${input.name}`);
@@ -90,45 +81,42 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: StatusUpdateInput):
 	field("color", status.color, input.color, sql`color = ${input.color}`);
 	field("reviewer", status.reviewer, input.reviewer, sql`reviewer = ${input.reviewer}`);
 	if (input.isDefault === true && !status.isDefault) {
-		await tx.execute(sql`UPDATE statuses SET is_default = false WHERE project_id = ${owner} AND is_default`);
+		await tx.execute(sql`UPDATE statuses SET is_default = false WHERE project_id = ${project.id} AND is_default`);
 		field("isDefault", false, true, sql`is_default = true`);
 	}
 	if (changes.length === 0) return status;
 	await tx.execute(
 		sql`UPDATE statuses SET ${sql.join(sets, sql`, `)}, updated_at = ${ctx.now} WHERE id = ${status.id}`,
 	);
-	await statusActivity(ctx, tx, owner, "status.updated", changes);
+	await statusActivity(ctx, tx, project.id, "status.updated", changes);
 	await ctx.cache.rebuild(tx);
-	emitStatusesChanged(ctx, owner);
-	return statusById(ctx, owner, status.id);
+	emitStatusesChanged(ctx, project.id);
+	return statusById(ctx, project.id, status.id);
 };
 
-// Takes the whole effective set in the new order and writes the positions
-// 0 to n minus 1 on the owner's rows.
+// Takes the whole set in the new order and writes the positions 0 to n
+// minus 1 on its rows.
 export const reorder = async (ctx: ServiceCtx, tx: Tx, input: StatusReorderInput): Promise<StatusListOutput> => {
 	const project = await resolveMutableProject(ctx, tx, input.project);
-	const effective = ctx.cache.effectiveStatuses(project.id);
+	const before = ctx.cache.statusesOf(project.id);
 	const ids: string[] = [];
 	for (const ref of input.statuses) {
 		ids.push((await resolveStatus(ctx, tx, { projectId: project.id, status: ref })).id);
 	}
-	if (ids.length !== effective.statuses.length || new Set(ids).size !== ids.length) {
-		throw fail("STATUS_NOT_IN_PROJECT", { valid: effective.statuses.map(toSummary) });
+	if (ids.length !== before.length || new Set(ids).size !== ids.length) {
+		throw fail("STATUS_NOT_IN_PROJECT", { valid: before.map(toSummary) });
 	}
 	await renumber(tx, ids);
-	await statusActivity(ctx, tx, effective.ownerId, "statuses.reordered", [
-		{ field: "order", from: null, to: null, meta: { from: effective.statuses.map((status) => status.id), to: ids } },
+	await statusActivity(ctx, tx, project.id, "statuses.reordered", [
+		{ field: "order", from: null, to: null, meta: { from: before.map((status) => status.id), to: ids } },
 	]);
 	await ctx.cache.rebuild(tx);
-	emitStatusesChanged(ctx, effective.ownerId);
-	const after = ctx.cache.effectiveStatuses(project.id);
-	return { statuses: after.statuses, inheritedFrom: after.ownerId === project.id ? null : after.ownerId };
+	emitStatusesChanged(ctx, project.id);
+	return { statuses: ctx.cache.statusesOf(project.id) };
 };
 
-// The set a project works with: its own, or the owner's, with the owner
-// named when it is another project.
+// The set of one project, in position order.
 export const list = async (ctx: ServiceCtx, tx: Tx, input: { project: string }): Promise<StatusListOutput> => {
 	const project = await resolveProject(ctx, tx, input.project);
-	const effective = ctx.cache.effectiveStatuses(project.id);
-	return { statuses: effective.statuses, inheritedFrom: effective.ownerId === project.id ? null : effective.ownerId };
+	return { statuses: ctx.cache.statusesOf(project.id) };
 };

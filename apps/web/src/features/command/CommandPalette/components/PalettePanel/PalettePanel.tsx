@@ -4,7 +4,7 @@ import type { Ticket } from "@trellis/api";
 import { CodeText, Command, Kbd } from "@trellis/ui";
 import { type KeyboardEvent, useEffect, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
-import { projectRefOfPathname } from "../../../../../lib/projectPath";
+import { projectRefOfPathname } from "../../../../../lib/projectUrl";
 import { currentPlatform, formatShortcut } from "../../../../../lib/shortcuts";
 import type { BulkWrite } from "../../../../table/hooks/useBulkWrite";
 import { commandActions, useCommandStore } from "../../../commandStore";
@@ -143,12 +143,10 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 		}
 	}
 
-	// The footer hint names a root key that exists: the key of the ticket in
-	// context, then the root of the route's project, then the first root.
+	// The footer hint names a key that exists: the key of the ticket in
+	// context, then the route's project, then the first project.
 	const hintKey =
-		identifier?.split("-")[0] ??
-		deps.routeProject?.split(".")[0] ??
-		projects.filter((row) => row.depth === 0).sort((a, b) => a.position - b.position)[0]!.key;
+		identifier?.split("-")[0] ?? deps.routeProject ?? [...projects].sort((a, b) => a.position - b.position)[0]!.key;
 
 	const named = groups
 		.filter((group) => group.id !== "results")

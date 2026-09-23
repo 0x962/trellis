@@ -16,7 +16,7 @@ const linkedTickets = (p: SQL) => sql`SELECT pr_link.ticket_id
 const someFlowApplies = (p: SQL) => sql`EXISTS (
 	SELECT 1 FROM flows flow
 	JOIN tickets ticket ON ticket.id IN (${linkedTickets(p)})
-	WHERE ${flowAppliesToProject(sql`flow`, sql`ticket.root_id`)}
+	WHERE ${flowAppliesToProject(sql`flow`, sql`ticket.project_id`)}
 )`;
 
 // True when nothing is owed for a flow: no flow applies to the project of

@@ -7,7 +7,7 @@ export const kindShows = (id: ColumnId, kind: TableKind) => (columnOwner[id] ?? 
 
 // The visibility of every column on a route: the defaults, then the
 // stored choices, then the columns this kind of table owns. The project
-// column shows when the scope holds sub-projects.
+// column shows when the route reads more than one project.
 export const columnVisibility = (
 	stored: Record<string, boolean> | undefined,
 	showProject: boolean,

@@ -1,11 +1,11 @@
 import type { ProjectSummary } from "@trellis/api";
 import { formatCount } from "../../../../lib/format";
-import { projectRefOfPathname } from "../../../../lib/projectPath";
+import { projectRefOfPathname } from "../../../../lib/projectUrl";
 
 export type ProjectPageRow = {
 	label: string;
-	// The end of the project path that the row opens. The Tickets row owns
-	// the bare project path, so its suffix is the empty string.
+	// The end of the project URL that the row opens. The Tickets row owns the
+	// bare project URL, so its suffix is the empty string.
 	suffix: string;
 	// True when the page on screen is this page of this project.
 	active: boolean;
@@ -28,8 +28,8 @@ export type ProjectPageRows = {
 // the rows the More row holds. `pathname` is the page on screen, and one row
 // at most is active.
 export const projectPageRows = (project: ProjectSummary, pathname: string, activeAgentCount = 0): ProjectPageRows => {
-	const current = projectRefOfPathname(pathname) === project.path;
-	// The settings page and its /notes section end the project path too. The
+	const current = projectRefOfPathname(pathname) === project.key;
+	// The settings page and its /notes section end the project URL too. The
 	// project's row menu (ProjectRowActions) opens both, and neither has a
 	// row here, so both turn the Tickets row off.
 	const settings = pathname.endsWith("/settings") || pathname.endsWith("/notes");

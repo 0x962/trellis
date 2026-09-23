@@ -31,7 +31,7 @@ export function WaveRow({ ticket, epic }: WaveRowProps) {
 	const { write } = useTicketWrite(ticket.identifier);
 	const open = usePickerStore((state) => state.open);
 	const setOpen = usePickerStore((state) => state.setOpen);
-	const readOnly = useArchivedProjects().isArchived(ticket.project.path);
+	const readOnly = useArchivedProjects().isArchived(ticket.project.key);
 
 	const pick = async (wave: WaveSummary | null) => {
 		setOpen(null);

@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import type { EpicSummary } from "@trellis/api";
 import { cx, Menu, StackedBar } from "@trellis/ui";
 import { compactRelativeTime } from "../../../../../lib/format";
-import { epicSplat } from "../../../../../lib/projectPath";
+import { epicSplat } from "../../../../../lib/projectUrl";
 import type { Density } from "../../../../../stores/uiStore";
 import { rowHeights } from "../../../../table/rowHeights";
 import { epicProgressLabel, epicSegments } from "../../../epicBar";

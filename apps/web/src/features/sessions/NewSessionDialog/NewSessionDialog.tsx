@@ -48,7 +48,7 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 			if (session.projectId)
 				await navigate({
 					to: "/sessions/project/$project",
-					params: { project: session.projectPath },
+					params: { project: session.projectKey },
 					hash: session.runId,
 				});
 			else await navigate({ to: "/sessions/$id", params: { id: session.id } });
@@ -108,7 +108,7 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 							{ value: "none", label: "No project" },
 							...(projects.data ?? [])
 								.filter((project) => project.archivedAt === null)
-								.map((project) => ({ value: project.path, label: project.path })),
+								.map((project) => ({ value: project.key, label: project.key })),
 						]}
 						onValueChange={(project) => change({ project: project === "none" ? "" : project })}
 					/>

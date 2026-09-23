@@ -1,7 +1,7 @@
 import { realScheduler, type Scheduler } from "@trellis/api";
 import { isTextEntry, useHotkey } from "@trellis/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { parseProjectSplat, projectHref } from "./projectPath";
+import { parseProjectSplat, projectHref } from "./projectUrl";
 import { toggleSidebarOnce } from "./sidebarHotkey";
 import { toggleTheme } from "./theme";
 

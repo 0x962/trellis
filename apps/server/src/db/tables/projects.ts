@@ -1,21 +1,19 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, foreignKey, index, integer, pgTable, text, unique, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, check, integer, pgTable, text, unique, uniqueIndex } from "drizzle-orm/pg-core";
 import { checkIn, REVIEWERS, STATUS_CATEGORIES } from "../enums.ts";
 import { at } from "./actors.ts";
 
-// A root has a key, its own id as root_id, and the ticket counter. A child
-// has a parent in the same root, a slug, no key, and a counter of zero.
-// The slugs `board` and `settings` are web routes under a project path.
-// The UNIQUE NULLS NOT DISTINCT (parent_id, slug) constraint lives in the
-// migration 0002_constraints: drizzle-kit cannot render NULLS NOT DISTINCT.
+// Every project stands on its own. `key` is the prefix of every ticket
+// identifier of the project, and `ticket_counter` is the last number it
+// handed out. `slug` is the lower-case second name a client may type in
+// place of the key. The slugs `board` and `settings` are web routes under
+// a project URL, so no project takes them.
 export const projects = pgTable(
 	"projects",
 	{
 		id: text().primaryKey(),
-		parentId: text("parent_id"),
-		rootId: text("root_id").notNull(),
-		key: text().unique(),
-		slug: text().notNull(),
+		key: text().notNull().unique(),
+		slug: text().notNull().unique(),
 		name: text().notNull(),
 		description: text().notNull().default(""),
 		directory: text().notNull().default(""),
@@ -27,19 +25,12 @@ export const projects = pgTable(
 		updatedAt: at("updated_at").notNull(),
 	},
 	(t) => [
-		unique("projects_id_root_id_unique").on(t.id, t.rootId),
-		foreignKey({ name: "projects_parent_fk", columns: [t.parentId, t.rootId], foreignColumns: [t.id, t.rootId] }),
 		check("projects_key_check", sql`${t.key} ~ '^[A-Z][A-Z0-9]{1,9}$'`),
 		check(
 			"projects_slug_check",
 			sql`${t.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND ${t.slug} NOT IN ('board', 'settings')`,
 		),
 		check("projects_name_check", sql`length(${t.name}) BETWEEN 1 AND 120`),
-		check("projects_root_is_self", sql`(${t.parentId} IS NULL) = (${t.rootId} = ${t.id})`),
-		check("projects_root_has_key", sql`(${t.parentId} IS NULL) = (${t.key} IS NOT NULL)`),
-		check("projects_parent_not_self", sql`${t.parentId} <> ${t.id}`),
-		check("projects_counter_on_root", sql`${t.parentId} IS NULL OR ${t.ticketCounter} = 0`),
-		index("projects_root_id_idx").on(t.rootId),
 	],
 );
 

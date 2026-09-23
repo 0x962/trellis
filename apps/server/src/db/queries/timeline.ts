@@ -15,7 +15,6 @@ type RawItem = {
 	actor_display_name: string | null;
 	created_at: string;
 	batch_id: string;
-	root_id: string;
 	project_id: string;
 	action: string;
 	field: string | null;
@@ -29,7 +28,7 @@ type RawItem = {
 // reads or writes, so the stream leaves them out.
 const stream = (ticketId: string) => sql`
 	SELECT a.id, a.ticket_id, a.actor_name, a.actor_kind, r.name AS actor_display_name, a.created_at,
-		a.batch_id, a.root_id, a.project_id, a.action, a.field, a.from_value, a.to_value, a.meta
+		a.batch_id, a.project_id, a.action, a.field, a.from_value, a.to_value, a.meta
 	FROM activity a LEFT JOIN agent_runs r ON a.actor_kind = 'agent' AND r.id = a.actor_name
 	WHERE a.ticket_id = ${ticketId}
 		AND a.field IS DISTINCT FROM 'position'
@@ -64,7 +63,6 @@ const toItem = (row: RawItem): TimelineItem => ({
 	kind: "activity",
 	id: Number(row.id),
 	batchId: row.batch_id,
-	rootId: row.root_id,
 	projectId: row.project_id,
 	ticketId: row.ticket_id,
 	actor: {
@@ -88,7 +86,7 @@ export const timeline = async (tx: Tx, input: TimelineInput): Promise<TimelineLi
 	const found = await rows<RawItem>(
 		tx,
 		sql`SELECT id, ticket_id, actor_name, actor_kind, actor_display_name, ${iso(sql`created_at`)} AS created_at,
-			batch_id, root_id, project_id, action, field, from_value, to_value, meta
+			batch_id, project_id, action, field, from_value, to_value, meta
 		FROM (${stream(input.ticketId)}) stream
 		WHERE ${start}
 		ORDER BY created_at DESC, id DESC

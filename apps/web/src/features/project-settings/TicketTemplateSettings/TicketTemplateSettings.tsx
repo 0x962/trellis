@@ -9,7 +9,7 @@ export function TicketTemplateSettings({ project }: { project: Project }) {
 	const { client, queryClient } = useApp();
 	const [template, setTemplate] = useState(project.ticketTemplate);
 	const mutation = useMutation({
-		mutationFn: () => client.projects.update({ project: project.path, ticketTemplate: template }),
+		mutationFn: () => client.projects.update({ project: project.key, ticketTemplate: template }),
 		onSuccess: () => queryClient.invalidateQueries(),
 	});
 	const save = (event: FormEvent) => {
