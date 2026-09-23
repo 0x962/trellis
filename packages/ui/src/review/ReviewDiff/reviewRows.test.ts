@@ -36,10 +36,10 @@ const contents = (gaps: [number, GapReveal][], full = false): ReadonlyMap<string
 	new Map([["file.ts", { oldLines: fileLines, newLines: fileLines, full, gaps: new Map(gaps) }]]);
 
 const noPlaces = new Map();
-const noBands = new Map();
+const noHeaders = new Map();
 
 const rowsOf = (source: string, expanded: ReadonlyMap<string, ExpandedFile> = new Map()) =>
-	buildReviewRows(parseReviewFiles(source), "unified", [], noPlaces, null, expanded, true, new Set(), noBands);
+	buildReviewRows(parseReviewFiles(source), "unified", [], noPlaces, null, expanded, true, new Set(), noHeaders);
 
 // One word per row: `@@` for a row between two hunks, with the lines it
 // still hides, and the line number of each line the diff draws.
@@ -168,7 +168,7 @@ test("a file with no expand service has no control", () => {
 		new Map(),
 		false,
 		new Set(),
-		noBands,
+		noHeaders,
 	);
 	expect(gaps(rows)).toEqual([]);
 });
@@ -194,7 +194,7 @@ test("a thread on a line of an open gap sits on that line", () => {
 		new Map(),
 		true,
 		new Set(),
-		noBands,
+		noHeaders,
 	);
 	expect(shut.find((row) => row.kind === "annotation")?.annotations).toEqual(["t1"]);
 	const expanded = contents([[1, { top: 20, bottom: 0 }]]);
@@ -207,7 +207,7 @@ test("a thread on a line of an open gap sits on that line", () => {
 		expanded,
 		true,
 		new Set(),
-		noBands,
+		noHeaders,
 	);
 	expect(open.find((row) => row.kind === "annotation")).toBeUndefined();
 	const line = open.filter((row) => row.kind === "unified").find((row) => row.line.newLine === 10);
@@ -235,7 +235,7 @@ const readFiles = parseReviewFiles(readPatch);
 const nothingExpanded = new Map();
 
 const readRowsOf = (viewed: string[]) =>
-	buildReviewRows(readFiles, "unified", [], noPlaces, null, nothingExpanded, false, new Set(viewed), noBands);
+	buildReviewRows(readFiles, "unified", [], noPlaces, null, nothingExpanded, false, new Set(viewed), noHeaders);
 
 const kindsOf = (viewed: string[], name: string) =>
 	readRowsOf(viewed)

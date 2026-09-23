@@ -1,1 +1,1 @@
-export { collapsedDefaults, fileGroups, groupOrder } from "./fileGroups";
+export { collapsedDefaults, fileGroups } from "./fileGroups";

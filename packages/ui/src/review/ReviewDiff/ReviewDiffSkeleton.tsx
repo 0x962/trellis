@@ -1,8 +1,7 @@
 import { Skeleton } from "../../primitives/Skeleton";
 
-// What the diff pane draws in place of the diff while the revision loads. It
-// takes the shape of the toolbar and the code under it, so little moves when
-// the revision arrives.
+// It takes the shape of the toolbar and the code under it, so little moves
+// when the revision arrives.
 export function ReviewDiffSkeleton() {
 	return (
 		<div className="review-diff-window" aria-hidden="true">

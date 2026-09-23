@@ -1,6 +1,6 @@
 import type { ThreadPlacement } from "./carryThreads";
-import type { DiffGroupBand } from "./diffGroups";
-import type { DiffRowHeights } from "./diffRowHeights";
+import type { DiffGroupHeader } from "./diffGroups";
+import type { DiffRowSlots } from "./diffRowSlots";
 import { lineAnnotations } from "./lineAnnotations";
 import type { ReviewFile, ReviewHunk } from "./parseReviewFiles";
 import type { DiffAnchor, DiffThread } from "./ReviewDiff";
@@ -50,7 +50,7 @@ export type GapControls = {
 };
 
 export type ReviewRow =
-	| { kind: "group"; key: string; band: DiffGroupBand }
+	| { kind: "group"; key: string; header: DiffGroupHeader }
 	| { kind: "file"; key: string; file: ReviewFile }
 	| { kind: "hunk"; key: string; file: ReviewFile; specs: string | null; gap: GapControls | null }
 	| { kind: "unified"; key: string; file: ReviewFile; line: ReviewDiffLine; annotations: string[] }
@@ -232,12 +232,12 @@ export function buildReviewRows(
 	expanded: ReadonlyMap<string, ExpandedFile>,
 	expandable: boolean,
 	viewed: ReadonlySet<string>,
-	bands: ReadonlyMap<string, DiffGroupBand>,
+	headers: ReadonlyMap<string, DiffGroupHeader>,
 ) {
 	const rows: ReviewRow[] = [];
 	for (const file of files) {
-		const band = bands.get(file.name);
-		if (band !== undefined) rows.push({ kind: "group", key: `${band.key}:group`, band });
+		const header = headers.get(file.name);
+		if (header !== undefined) rows.push({ kind: "group", key: `${header.key}:group`, header });
 		rows.push({ kind: "file", key: `${file.name}:file`, file });
 		// A file the person marked read keeps its header and loses every other
 		// row, so the files that are left sit close together.
@@ -333,23 +333,23 @@ export const rowAnnotations = (row: ReviewRow) =>
 			? Math.max(row.oldAnnotations.length, row.newAnnotations.length)
 			: 0;
 
-// The height a row of a comment thread, of the composer, or of the notice of a
-// binary file starts from. Each of those wraps its own text, so each reports
-// its real height once it draws.
-const MEASURED_ROW_GUESS = 120;
+// A comment thread and the comment composer each wrap their own text, so each
+// one starts from this guess and reports its real height once it draws.
+const THREAD_GUESS = 120;
 
-// The height in pixels a row takes. `heights` comes from `diffRowHeights`, and
-// the stylesheet draws each of these rows at the same number, so the height
-// this returns is the height the row draws. A row that holds a comment thread
-// or the composer is the one exception: it starts from a guess and reports its
-// real height once it draws.
-export const reviewRowSize = (row: ReviewRow, heights: DiffRowHeights) => {
-	if (row.kind === "group") return heights.group;
-	if (row.kind === "file") return heights.file;
-	if (row.kind === "hunk") return heights.hunk;
-	if (row.kind === "end") return heights.end;
-	if (row.kind === "annotation" || row.kind === "notice") return MEASURED_ROW_GUESS;
-	return heights.line + MEASURED_ROW_GUESS * rowAnnotations(row);
+// The notice of a binary file holds one sentence at 8 px of padding above and
+// below, with a 1 px border under it. It wraps on a narrow screen, so it too
+// reports its real height once it draws.
+const NOTICE_GUESS = 40;
+
+export const reviewRowSize = (row: ReviewRow, slots: DiffRowSlots) => {
+	if (row.kind === "group") return slots.group;
+	if (row.kind === "file") return slots.file;
+	if (row.kind === "hunk") return slots.hunk;
+	if (row.kind === "end") return slots.end;
+	if (row.kind === "notice") return NOTICE_GUESS;
+	if (row.kind === "annotation") return THREAD_GUESS;
+	return slots.line + THREAD_GUESS * rowAnnotations(row);
 };
 
 // The text of the lines from `startLine` to `line` on the side of the

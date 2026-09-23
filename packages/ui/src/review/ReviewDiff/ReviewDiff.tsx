@@ -1,5 +1,7 @@
 import { ArrowLineDown, ArrowLineUp, ArrowsInLineVertical, ArrowsOutLineVertical } from "@phosphor-icons/react";
 import { type ReactElement, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { GroupHeader } from "../../domain/GroupHeader";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { Checkbox } from "../../primitives/Checkbox";
 import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
@@ -7,7 +9,7 @@ import { Tooltip } from "../../primitives/Tooltip";
 import { fileCountLabel } from "../FileRiskGroups";
 import { placeThreads, type ThreadPlacement } from "./carryThreads";
 import { DiffLine } from "./DiffLine";
-import { type DiffFileGroup, groupBands, groupRank, groupReasons } from "./diffGroups";
+import { type DiffFileGroup, groupHeaders, groupRank, groupReasons } from "./diffGroups";
 import { loadReviewFileContents } from "./loadReviewFileContents";
 import { parseReviewFiles, type ReviewFile } from "./parseReviewFiles";
 import {
@@ -124,6 +126,7 @@ export function ReviewDiff({
 	viewed = nothingViewed,
 	onViewed,
 }: Props) {
+	const phone = useMediaQuery("(max-width: 767px)");
 	const files = useMemo(() => parseReviewFiles(patch), [patch]);
 	const metadata = useMemo(
 		() =>
@@ -147,9 +150,9 @@ export function ReviewDiff({
 			.sort((left, right) => left.rank - right.rank)
 			.map((entry) => entry.file);
 	}, [files, filter, groups]);
-	const bands = useMemo(
+	const headers = useMemo(
 		() =>
-			groupBands(
+			groupHeaders(
 				groups,
 				shown.map((file) => file.name),
 			),
@@ -162,8 +165,8 @@ export function ReviewDiff({
 		[shown, expanded, threads, revisionId],
 	);
 	const rows = useMemo(
-		() => buildReviewRows(shown, mode, threads, places, composer, expanded, loadFile !== undefined, viewed, bands),
-		[shown, mode, threads, places, composer, expanded, loadFile, viewed, bands],
+		() => buildReviewRows(shown, mode, threads, places, composer, expanded, loadFile !== undefined, viewed, headers),
+		[shown, mode, threads, places, composer, expanded, loadFile, viewed, headers],
 	);
 	const selection = useRef<DiffAnchor | undefined>(undefined);
 	const pointer = useRef<DiffAnchor | undefined>(undefined);
@@ -243,15 +246,17 @@ export function ReviewDiff({
 		</div>
 	);
 	const renderRow = (row: ReviewRow) => {
-		// The diff draws its files in the risk order of the file tree. The band
-		// names the group the files under it belong to, so the reader of the diff
-		// reads the order instead of guessing it from a gap.
+		// The file tree beside the diff draws the same four groups with the same
+		// component, so both panes of the review look alike.
 		if (row.kind === "group")
 			return (
-				<div className="review-diff-group" data-group={row.band.key}>
-					<span className="review-diff-group-label">{row.band.label}</span>
-					<span className="review-diff-group-count">{fileCountLabel(row.band.count)}</span>
-				</div>
+				<GroupHeader
+					group={row.header.key}
+					label={row.header.label}
+					count={fileCountLabel(row.header.count)}
+					collapsible={false}
+					phone={phone}
+				/>
 			);
 		if (row.kind === "file") {
 			const isExpanded = expanded.get(row.file.name)?.full === true;
@@ -260,9 +265,8 @@ export function ReviewDiff({
 			return (
 				<header className="review-diff-file-header" data-file-path={row.file.name} data-viewed={isViewed}>
 					<span className="review-diff-file-name">{fileLabel(row.file)}</span>
-					{/* Why the file sits in its group, such as "migration". The file
-					    tree puts the same words in the hover text of its row, which a
-					    touch screen never opens. */}
+					{/* The file tree puts the same words in the hover text of its row,
+					    which a touch screen never opens. */}
 					{why && <span className="review-diff-file-reasons">{why.join(" · ")}</span>}
 					<div className="review-diff-file-controls">
 						{onViewed && (

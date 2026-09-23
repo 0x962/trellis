@@ -17,8 +17,13 @@ export type GroupHeaderProps = {
 	// of a wave while the person renames it. The collapse button then holds
 	// the chevron and the icon alone.
 	labelField?: ReactNode;
-	expanded: boolean;
-	onToggle: () => void;
+	// A band that only names its group. It draws no chevron and no collapse
+	// control, because nothing on the page opens or shuts it. The diff of a
+	// review draws one above the first file of each risk group, and the file
+	// tree beside it draws the collapsing kind for the same groups.
+	collapsible?: boolean;
+	expanded?: boolean;
+	onToggle?: () => void;
 	onCreate?: () => void;
 	// Opens the Start wave dialog of a wave group.
 	onStart?: () => void;
@@ -54,7 +59,8 @@ export function GroupHeader({
 	showCount,
 	icon,
 	labelField,
-	expanded,
+	collapsible = true,
+	expanded = true,
 	onToggle,
 	onCreate,
 	onStart,
@@ -85,25 +91,37 @@ export function GroupHeader({
 				top === undefined ? (sticky ? "sticky top-0 z-10" : "relative") : "absolute top-0 left-0",
 			)}
 		>
-			<button
-				type="button"
-				onClick={onToggle}
-				aria-expanded={expanded}
-				aria-controls={controls}
-				aria-label={labelField === undefined ? undefined : label}
-				onKeyDown={onKeyDown}
-				className={cx(
-					"-ml-1 inline-flex h-7 min-w-7 items-center gap-2 rounded-md px-1 font-medium text-fg-muted transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11 pointer-coarse:min-w-11",
-					appearance === "sidebar" ? "text-xs" : "text-sm",
-				)}
-			>
-				<Chevron aria-hidden="true" className="size-3 shrink-0 text-fg-faint" />
-				{icon}
-				{/* The box is a fixed height, and a button centers its text, so a
-				    name that wraps prints centered lines that spill over the rows
-				    above and below. One line with an ellipsis holds the box. */}
-				{labelField === undefined && <span className="truncate">{label}</span>}
-			</button>
+			{collapsible ? (
+				<button
+					type="button"
+					onClick={onToggle}
+					aria-expanded={expanded}
+					aria-controls={controls}
+					aria-label={labelField === undefined ? undefined : label}
+					onKeyDown={onKeyDown}
+					className={cx(
+						"-ml-1 inline-flex h-7 min-w-7 items-center gap-2 rounded-md px-1 font-medium text-fg-muted transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11 pointer-coarse:min-w-11",
+						appearance === "sidebar" ? "text-xs" : "text-sm",
+					)}
+				>
+					<Chevron aria-hidden="true" className="size-3 shrink-0 text-fg-faint" />
+					{icon}
+					{/* The box is a fixed height, and a button centers its text, so a
+					    name that wraps prints centered lines that spill over the rows
+					    above and below. One line with an ellipsis holds the box. */}
+					{labelField === undefined && <span className="truncate">{label}</span>}
+				</button>
+			) : (
+				<span
+					className={cx(
+						"inline-flex items-center gap-2 font-medium text-fg-muted",
+						appearance === "sidebar" ? "text-xs" : "text-sm",
+					)}
+				>
+					{icon}
+					<span className="truncate">{label}</span>
+				</span>
+			)}
 			{labelField}
 			<span
 				data-count=""
@@ -112,7 +130,7 @@ export function GroupHeader({
 				{count}
 			</span>
 			<span className="ml-auto flex shrink-0 items-center gap-1">
-				{!expanded && appearance === "band" && (
+				{collapsible && !expanded && appearance === "band" && (
 					<button
 						type="button"
 						onClick={onToggle}
