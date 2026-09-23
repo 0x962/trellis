@@ -1,6 +1,6 @@
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import type { ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
-import { cx, useMediaQuery } from "@trellis/ui";
+import { CheckConfetti, cx, useMediaQuery } from "@trellis/ui";
 import {
 	type MouseEvent,
 	type RefObject,
@@ -25,6 +25,7 @@ import { EmptyWaveLine } from "../EmptyWaveLine";
 import { GroupHeaderLine } from "../GroupHeaderLine";
 import { ShowMoreRow, showMoreHeight } from "../ShowMoreRow";
 import { TableSkeleton } from "../TableSkeleton";
+import { useCheckConfetti } from "./useCheckConfetti";
 import { useLineMotion } from "./useLineMotion";
 import { useWaveDrop } from "./useWaveDrop";
 
@@ -65,6 +66,12 @@ export type TableBodyProps = {
 	// its last row, so that row can scroll clear of the bar.
 	bottomRoom: boolean;
 };
+
+// The box of a `CheckRibbon` of size `wide`, which is the bar a pull
+// request row draws at its right end. The confetti layer sits over that box,
+// 20 px in from the right edge of the row, the same inset the row's `pr-5`
+// gives the bar.
+const ribbonHeight = 12;
 
 const heightOf = (item: TableItem, rowHeight: number, headerHeight: number) => {
 	if (item.kind === "header") return headerHeight;
@@ -146,6 +153,7 @@ export function TableBody({
 	});
 
 	useLineMotion(body, items);
+	const confetti = useCheckConfetti(items);
 
 	const drop = useWaveDrop(items, selection.selected, virtualizer.measurementsCache, (ids, group) =>
 		waves?.onDrop(ids, group),
@@ -279,6 +287,21 @@ export function TableBody({
 								onEditingChange={onEditingChange}
 								onChange={onRowChange}
 							/>
+						);
+					})}
+					{confetti.map((prId) => {
+						const index = items.findIndex((item) => item.kind === "pr" && item.pr.id === prId);
+						const start = index === -1 ? undefined : virtualizer.measurementsCache[index]?.start;
+						if (start === undefined) return null;
+						return (
+							<div
+								key={prId}
+								aria-hidden="true"
+								style={{ top: `${start + (prRowHeight - ribbonHeight) / 2}px` }}
+								className="pointer-events-none absolute right-5 z-10 h-3 w-48"
+							>
+								<CheckConfetti />
+							</div>
 						);
 					})}
 					{drop.frame !== null && (
