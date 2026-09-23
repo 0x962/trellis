@@ -2,16 +2,47 @@ import { useQuery } from "@tanstack/react-query";
 import { Button, cx, SectionHeader, Skeleton, UsageChart } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
-import { formatBytes, formatPercent, formatSampleTime, formatUptime } from "./formatSystemUsage";
+import { formatBytes } from "../../../../../lib/format";
+import { formatPercent, formatSampleTime, formatUptime } from "./formatSystemUsage";
 import { memoryPressureLevel } from "./memoryPressure";
 import { ProcessTable } from "./ProcessTable";
+
+const USAGE_POLL_MS = 2_000;
+const PROCESS_POLL_MS = 15_000;
 
 export function SystemUsage() {
 	const { orpc } = useApp();
 	const [selectedSample, setSelectedSample] = useState<string | null>(null);
-	const usage = useQuery({ ...orpc.system.usage.queryOptions({}), refetchInterval: 2_000 });
+	const usage = useQuery({ ...orpc.system.usage.queryOptions({}), refetchInterval: USAGE_POLL_MS });
+	// /bin/ps walks the whole process table, which costs about a second against
+	// the two thousand processes of a busy Mac. This read runs far apart, so the
+	// page does not add to the load that it reports.
+	const processes = useQuery({ ...orpc.system.processes.queryOptions({}), refetchInterval: PROCESS_POLL_MS });
 
-	if (usage.isPending) {
+	const failure = usage.error ?? processes.error;
+	if (failure !== null) {
+		return (
+			<div
+				role="alert"
+				className="mt-5 flex max-w-7xl items-center justify-between gap-3 rounded-lg border border-border p-4"
+			>
+				<p className="text-sm text-danger">Unable to read system usage. {failure.message}</p>
+				<Button
+					disabled={usage.isFetching || processes.isFetching}
+					onClick={() => {
+						void usage.refetch();
+						void processes.refetch();
+					}}
+				>
+					Retry
+				</Button>
+			</div>
+		);
+	}
+
+	const data = usage.data;
+	const processData = processes.data;
+	if (data === undefined || processData === undefined) {
 		return (
 			<div role="status" aria-label="Load system usage" className="flex max-w-7xl flex-col gap-3 pt-5">
 				<span className="sr-only">Load system usage</span>
@@ -22,23 +53,8 @@ export function SystemUsage() {
 		);
 	}
 
-	if (usage.isError) {
-		return (
-			<div
-				role="alert"
-				className="mt-5 flex max-w-7xl items-center justify-between gap-3 rounded-lg border border-border p-4"
-			>
-				<p className="text-sm text-danger">Unable to read system usage. {usage.error.message}</p>
-				<Button disabled={usage.isFetching} onClick={() => void usage.refetch()}>
-					Retry
-				</Button>
-			</div>
-		);
-	}
-
-	const data = usage.data;
 	const times = data.history.map((sample) => sample.at);
-	const memoryPressure = memoryPressureLevel(data.memoryPercent);
+	const memoryPressure = memoryPressureLevel(data.memoryLevel);
 	return (
 		<div className="flex max-w-7xl flex-col gap-8 pt-5">
 			<section
@@ -51,7 +67,7 @@ export function SystemUsage() {
 					<dd className="mt-1 text-xs text-fg-faint">{data.cpuCount} logical cores</dd>
 				</dl>
 				<dl className="rounded-lg border border-border p-4">
-					<dt className="text-sm text-fg-muted">Memory pressure</dt>
+					<dt className="text-sm text-fg-muted">Memory</dt>
 					<dd className={cx("mt-1 text-2xl font-semibold tabular", memoryPressure.textClass)}>
 						{formatPercent(data.memoryPercent)}
 					</dd>
@@ -69,7 +85,7 @@ export function SystemUsage() {
 				</dl>
 				<dl className="rounded-lg border border-border p-4">
 					<dt className="text-sm text-fg-muted">Processes</dt>
-					<dd className="mt-1 text-2xl font-semibold text-fg tabular">{data.processCount}</dd>
+					<dd className="mt-1 text-2xl font-semibold text-fg tabular">{processData.processCount}</dd>
 					<dd className="mt-1 text-xs text-fg-faint tabular">Uptime {formatUptime(data.uptimeSeconds)}</dd>
 				</dl>
 			</section>
@@ -98,16 +114,16 @@ export function SystemUsage() {
 						/>
 					</div>
 					<div className="rounded-lg border border-border p-4">
-						<h3 className="mb-4 text-sm font-medium text-fg">Memory pressure history</h3>
+						<h3 className="mb-4 text-sm font-medium text-fg">Memory history</h3>
 						<UsageChart
-							label="Recent memory pressure"
+							label="Recent memory use"
 							days={times}
 							series={[
 								{
 									key: "memory",
-									label: "Memory pressure",
+									label: "Memory",
 									tone: memoryPressure.tone,
-									tones: data.history.map((sample) => memoryPressureLevel(sample.memoryPercent).tone),
+									tones: data.history.map((sample) => memoryPressureLevel(sample.memoryLevel).tone),
 									values: data.history.map((sample) => sample.memoryPercent),
 								},
 							]}
@@ -125,7 +141,7 @@ export function SystemUsage() {
 				</p>
 			</section>
 
-			<ProcessTable processes={data.processes} />
+			<ProcessTable processes={processData.processes} />
 		</div>
 	);
 }

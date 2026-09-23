@@ -66,7 +66,7 @@ import * as statuses from "./statuses.ts";
 import type { IoCtx, PrepareCtx } from "./support.ts";
 import { prepareSweep } from "./sweep/prepareSweep.ts";
 import * as system from "./system.ts";
-import { prepareSystemUsage } from "./systemUsage";
+import { prepareMachinePressure, prepareSystemProcesses, prepareSystemUsage } from "./systemUsage";
 import * as tickets from "./tickets.ts";
 import * as timeline from "./timeline.ts";
 import { prepareAccounts as prepareUsageAccounts } from "./usage/accounts.ts";
@@ -303,6 +303,8 @@ export const services = {
 	"settings.set": core("mutation", settings.set),
 	"system.health": io("read", system.health),
 	"system.usage": prepared("read", prepareSystemUsage, agentTerminal.result),
+	"system.processes": prepared("read", prepareSystemProcesses, agentTerminal.result),
+	"system.pressure": prepared("read", prepareMachinePressure, agentTerminal.result),
 	"system.snapshot": io("mutation", system.snapshot),
 	"system.export": { family: "io", kind: "read", stream: system.exportNdjson } as ServiceEntry,
 } satisfies Record<string, ServiceEntry>;

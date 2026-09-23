@@ -1,1 +1,2 @@
-export { prepareSystemUsage } from "./systemUsage.ts";
+export { prepareMachinePressure } from "./machinePressure.ts";
+export { prepareSystemProcesses, prepareSystemUsage } from "./systemUsage.ts";

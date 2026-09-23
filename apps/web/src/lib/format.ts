@@ -41,3 +41,14 @@ export const compactRelativeTime = (iso: string, now = new Date()) => {
 
 // Digits grouped in the browser locale: 1,234.
 export const formatCount = (count: number) => new Intl.NumberFormat().format(count);
+
+const byteUnits = ["B", "KB", "MB", "GB", "TB"] as const;
+
+// A byte count in the largest unit that keeps it above 1: 512 B, 1.5 MB,
+// 24 GB. A value of 10 or more drops the decimal, so the width stays steady.
+export const formatBytes = (bytes: number) => {
+	if (bytes === 0) return "0 B";
+	const unit = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), byteUnits.length - 1);
+	const value = bytes / 1024 ** unit;
+	return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: value >= 10 ? 0 : 1 }).format(value)} ${byteUnits[unit]}`;
+};
