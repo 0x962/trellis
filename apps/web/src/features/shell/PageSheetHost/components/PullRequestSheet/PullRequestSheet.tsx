@@ -6,6 +6,7 @@ import { initialReviewTab } from "../../../../reviews/ReviewPage/reviewTab";
 import { PageSheet } from "../../../PageSheet";
 import { useShown } from "../../useShown";
 import { BrowserSheet } from "../BrowserSheet";
+import { ProjectSettingsSheet } from "../ProjectSettingsSheet";
 import { SettingsSheet } from "../SettingsSheet";
 
 export type PullRequestSheetProps = {
@@ -68,6 +69,7 @@ export function PullRequestSheet({ ticket }: PullRequestSheetProps) {
 				/>
 			)}
 			<SettingsSheet at="pullRequest" />
+			<ProjectSettingsSheet at="pullRequest" />
 			<BrowserSheet at="pullRequest" />
 		</PageSheet>
 	);

@@ -2,7 +2,15 @@ import { beforeEach, expect, test } from "bun:test";
 import { pageSheetActions, usePageSheetStore } from "../../../stores/pageSheetStore";
 import { settingsBehind, settingsEntry } from "./settingsUrl";
 
-const closed = { ticket: null, pr: null, session: null, settings: null, browser: null, reviewTab: null };
+const closed = {
+	ticket: null,
+	pr: null,
+	session: null,
+	settings: null,
+	projectSettings: null,
+	browser: null,
+	reviewTab: null,
+};
 
 beforeEach(() => {
 	usePageSheetStore.setState(closed);

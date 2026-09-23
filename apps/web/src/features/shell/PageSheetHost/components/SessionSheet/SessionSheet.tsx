@@ -7,6 +7,7 @@ import { SessionConversation } from "../../../../sessions/SessionConversation";
 import { PageSheet } from "../../../PageSheet";
 import { useShown } from "../../useShown";
 import { BrowserSheet } from "../BrowserSheet";
+import { ProjectSettingsSheet } from "../ProjectSettingsSheet";
 import { SettingsSheet } from "../SettingsSheet";
 
 const sheetOpenMotionMs = () =>
@@ -52,6 +53,7 @@ export function SessionSheet() {
 				<SessionConversation key={run.id} run={run} autoFocusTerminal autoFocusTerminalDelay={terminalFocusDelay} />
 			)}
 			<SettingsSheet at="session" />
+			<ProjectSettingsSheet at="session" />
 			<BrowserSheet at="session" />
 		</PageSheet>
 	);
