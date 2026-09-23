@@ -1,4 +1,4 @@
-import type { Project, ProjectColor, ProjectSummary, Repo } from "@trellis/api";
+import { type Project, type ProjectColor, ProjectColorSchema, type ProjectSummary, type Repo } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, splitList } from "../context.ts";
@@ -63,7 +63,7 @@ const create = defineCommand({
 		description: { type: "string", description: "Description" },
 		color: {
 			type: "string",
-			description: "Color: orange, teal, blue, pink, or azure. A free one at random by default",
+			description: `Color: one of ${ProjectColorSchema.options.join(", ")}. A free one at random by default`,
 		},
 	},
 	async run(context) {

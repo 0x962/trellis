@@ -5,16 +5,26 @@ import { projectColorLabels, projectColors } from "../../../../domain/projectCol
 import { StatusIcon } from "../../../../domain/StatusIcon";
 import { TicketId } from "../../../../domain/TicketId";
 import { ActivityDot } from "../../../../primitives/ActivityDot";
+import { CheckStatusIcon } from "../../../../review/CheckStatusIcon";
 import { Section } from "../../Section";
 
-const keys = { orange: "CNY", teal: "CVS", blue: "TRL", pink: "HBR", azure: "MSA" };
+// A chip and a ticket id need a project key. The gallery has no projects, so
+// every row carries one key and the name of the color stands beside it.
+const sampleKey = "TRL";
 
-// `projectColors.test.ts` measures the contrast of the mark, and of the key on its chip.
+// Every project color on the two places that carry it, the mark and the key
+// chip, beside the glyphs of state that a row of that project also carries: a
+// failed check, a passed check, and the silver dot that says the work waits
+// for a person. Red sits next to the red of the failed check, gold next to the
+// yellow of the in-progress mark, and green next to the green of the passed
+// check. A reader tells the two apart by the slot each one sits in, not by the
+// hue: the first two slots of a row name the project, and the rest name the
+// state. `projectColors.test.ts` measures every value against its bar.
 export function ProjectColorSection() {
 	return (
 		<Section
 			name="ProjectColor"
-			note="one row per project color, the plain one last; the state glyphs beside each mark"
+			note="the mark and the key chip in every project color, the plain project last; the state glyphs beside each one"
 			className="flex-col items-stretch"
 		>
 			{[...projectColors, null].map((color) => (
@@ -22,13 +32,15 @@ export function ProjectColorSection() {
 					<span className="inline-flex items-center gap-2">
 						<ProjectMark color={color} className="size-6" />
 						<ProjectMark color={color} className="size-4" />
-						<ProjectKey projectKey={keys[color ?? "blue"] ?? "TRL"} color={color} />
+						<ProjectKey projectKey={sampleKey} color={color} />
 					</span>
 					<span className="w-24 text-sm text-fg-muted">{color === null ? "No color" : projectColorLabels[color]}</span>
 					<span className="inline-flex items-center gap-3">
-						<TicketId id={`${keys[color ?? "blue"] ?? "TRL"}-386`} />
+						<TicketId id={`${sampleKey}-386`} />
 						<StatusIcon category="started" label="In Progress" />
 						<StatusIcon category="done" label="Done" />
+						<CheckStatusIcon status="failed" />
+						<CheckStatusIcon status="success" />
 						<PrGlyph state="open" isQueued={false} readyForReview />
 						<PrGlyph state="closed" isQueued={false} readyForReview />
 						<PrGlyph state="merged" isQueued={false} readyForReview />

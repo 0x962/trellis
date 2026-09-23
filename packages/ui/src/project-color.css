@@ -1,7 +1,7 @@
 /*
  * The color of a project.
  *
- * A project holds one of the five color names of `tokens.css`, and two
+ * A project holds one of the 25 color names of `tokens.css`, and two
  * projects never hold one name. `data-project-color="<name>"` on an element
  * resolves the two values of that name for the element and for everything
  * inside it, so one mark or one key chip stands for one project.
@@ -9,25 +9,105 @@
  * The two values: `--project-solid` fills the ground of the mark and writes
  * the key of the project; `--project-soft` is the ground of the key chip.
  */
+[data-project-color="red"] {
+	--project-solid: var(--project-red-solid);
+	--project-soft: var(--project-red-soft);
+}
+[data-project-color="brick"] {
+	--project-solid: var(--project-brick-solid);
+	--project-soft: var(--project-brick-soft);
+}
+[data-project-color="rust"] {
+	--project-solid: var(--project-rust-solid);
+	--project-soft: var(--project-rust-soft);
+}
 [data-project-color="orange"] {
 	--project-solid: var(--project-orange-solid);
 	--project-soft: var(--project-orange-soft);
+}
+[data-project-color="amber"] {
+	--project-solid: var(--project-amber-solid);
+	--project-soft: var(--project-amber-soft);
+}
+[data-project-color="gold"] {
+	--project-solid: var(--project-gold-solid);
+	--project-soft: var(--project-gold-soft);
+}
+[data-project-color="olive"] {
+	--project-solid: var(--project-olive-solid);
+	--project-soft: var(--project-olive-soft);
+}
+[data-project-color="moss"] {
+	--project-solid: var(--project-moss-solid);
+	--project-soft: var(--project-moss-soft);
+}
+[data-project-color="fern"] {
+	--project-solid: var(--project-fern-solid);
+	--project-soft: var(--project-fern-soft);
+}
+[data-project-color="green"] {
+	--project-solid: var(--project-green-solid);
+	--project-soft: var(--project-green-soft);
+}
+[data-project-color="emerald"] {
+	--project-solid: var(--project-emerald-solid);
+	--project-soft: var(--project-emerald-soft);
+}
+[data-project-color="jade"] {
+	--project-solid: var(--project-jade-solid);
+	--project-soft: var(--project-jade-soft);
+}
+[data-project-color="pine"] {
+	--project-solid: var(--project-pine-solid);
+	--project-soft: var(--project-pine-soft);
 }
 [data-project-color="teal"] {
 	--project-solid: var(--project-teal-solid);
 	--project-soft: var(--project-teal-soft);
 }
+[data-project-color="cyan"] {
+	--project-solid: var(--project-cyan-solid);
+	--project-soft: var(--project-cyan-soft);
+}
+[data-project-color="azure"] {
+	--project-solid: var(--project-azure-solid);
+	--project-soft: var(--project-azure-soft);
+}
+[data-project-color="cobalt"] {
+	--project-solid: var(--project-cobalt-solid);
+	--project-soft: var(--project-cobalt-soft);
+}
 [data-project-color="blue"] {
 	--project-solid: var(--project-blue-solid);
 	--project-soft: var(--project-blue-soft);
+}
+[data-project-color="indigo"] {
+	--project-solid: var(--project-indigo-solid);
+	--project-soft: var(--project-indigo-soft);
+}
+[data-project-color="violet"] {
+	--project-solid: var(--project-violet-solid);
+	--project-soft: var(--project-violet-soft);
+}
+[data-project-color="purple"] {
+	--project-solid: var(--project-purple-solid);
+	--project-soft: var(--project-purple-soft);
+}
+[data-project-color="orchid"] {
+	--project-solid: var(--project-orchid-solid);
+	--project-soft: var(--project-orchid-soft);
 }
 [data-project-color="pink"] {
 	--project-solid: var(--project-pink-solid);
 	--project-soft: var(--project-pink-soft);
 }
-[data-project-color="azure"] {
-	--project-solid: var(--project-azure-solid);
-	--project-soft: var(--project-azure-soft);
+[data-project-color="rose"] {
+	--project-solid: var(--project-rose-solid);
+	--project-soft: var(--project-rose-soft);
+}
+[data-project-color="crimson"] {
+	--project-solid: var(--project-crimson-solid);
+	--project-soft: var(--project-crimson-soft);
 }
 
 /*

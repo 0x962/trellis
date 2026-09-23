@@ -94,7 +94,7 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 	if (input.color !== undefined && input.color !== null) await assertColorFree(tx, input.color, project.id);
 	// A project in the archive holds no slot, so another project can take the
 	// color it held. A project that comes back to a color another project now
-	// holds takes a free color at random, and null when the five slots are full.
+	// holds takes a free color at random, and null when every slot is full.
 	const regained =
 		restored && input.color === undefined && row.color !== null && !(await colorFree(tx, row.color, project.id))
 			? await freeColor(tx, project.id)

@@ -1,7 +1,9 @@
 import { expect, test } from "bun:test";
-import { projectColors } from "./projectColors";
+import { projectColorLabels, projectColors } from "./projectColors";
+import { rampAt } from "./projectPalette";
 
 const css = await Bun.file(new URL("../tokens.css", import.meta.url)).text();
+const bindingCss = await Bun.file(new URL("../project-color.css", import.meta.url)).text();
 
 // The bar of WCAG 1.4.11 for a graphical object, and the bar of 1.4.3 for
 // text.
@@ -10,25 +12,16 @@ const textBar = 4.5;
 
 // The blocks of tokens.css: the bare `:root` holds the light palette, and
 // `:root[data-theme="dark"]` holds the dark one. The media block above it
-// repeats the dark values, and the test below compares the two.
-// A value is a hex value or one `var()` that names another token of the same
-// block, such as `--project-teal-solid: var(--label-teal)`. The block
-// resolves the link of a project token, and it drops a link of another token,
-// such as `--shadow-lg`, which names a value this test never reads.
+// repeats the dark values, and the test below compares the two. This reader
+// takes the hex values of a block and drops a value written as a `var()`,
+// because no project token is written that way.
 const block = (selector: string) => {
 	const start = css.indexOf(selector);
 	const body = css.slice(start, css.indexOf("\n}", start));
 	const values = new Map<string, string>();
-	const links = new Map<string, string>();
-	for (const match of body.matchAll(/(--[a-z0-9-]+): (#[0-9A-Fa-f]{6}|var\(--[a-z0-9-]+\));/g)) {
+	for (const match of body.matchAll(/(--[a-z0-9-]+): (#[0-9A-Fa-f]{6});/g)) {
 		const [, name, value] = match as unknown as [string, string, string];
-		if (value.startsWith("#")) values.set(name, value);
-		else if (name.startsWith("--project-")) links.set(name, value.slice("var(".length, -1));
-	}
-	for (const [name, target] of links) {
-		const value = values.get(target);
-		expect(value, `${name} reads ${target}, which holds no value in this block`).toBeString();
-		values.set(name, value!);
+		values.set(name, value);
 	}
 	return values;
 };
@@ -55,6 +48,26 @@ const ratio = (one: string, two: string) => {
 	return (high + 0.05) / (low + 0.05);
 };
 
+test("the list holds 25 names, each one once, and each one with a label", () => {
+	expect(projectColors).toHaveLength(25);
+	expect(new Set(projectColors).size).toBe(25);
+	for (const color of projectColors) {
+		expect(projectColorLabels[color]).toBeString();
+	}
+});
+
+// `projectPalette.ts` is the recipe, and `tokens.css` is its output. A hand
+// written value fails here.
+test("every value of tokens.css comes from the recipe", () => {
+	for (const theme of ["light", "dark"] as const) {
+		for (const [index, color] of projectColors.entries()) {
+			const ramp = rampAt(index, theme);
+			expect(themes[theme].get(`--project-${color}-solid`)).toBe(ramp.solid);
+			expect(themes[theme].get(`--project-${color}-soft`)).toBe(ramp.soft);
+		}
+	}
+});
+
 test("every project color holds its two values in both themes", () => {
 	for (const color of projectColors) {
 		for (const theme of ["light", "dark"] as const) {
@@ -71,6 +84,23 @@ test("every project color holds its two values in both themes", () => {
 	expect(mediaDark.get("--project-strand")).toBe("#0A0A0A");
 });
 
+// The rule of a name is what puts the two values of that name on a mark or a
+// chip, so a name with no rule draws nothing.
+test("project-color.css binds every name to its two values", () => {
+	for (const color of projectColors) {
+		expect(bindingCss).toContain(
+			[
+				`[data-project-color="${color}"] {`,
+				`\t--project-solid: var(--project-${color}-solid);`,
+				`\t--project-soft: var(--project-${color}-soft);`,
+				"}",
+			].join("\n"),
+		);
+	}
+});
+
+// A project color draws the mark of a project and its key chip. Nothing else
+// on a page carries it, so these three bars are every place a person meets it.
 test("the ground of every project mark reads on the page and on the surface", () => {
 	for (const theme of ["light", "dark"] as const) {
 		for (const color of projectColors) {
