@@ -2,12 +2,6 @@ export const museTerminalHint = "Type a message and press Enter to send it. Pres
 
 const ESCAPE = "\u001b";
 const escapeSequence = new RegExp(`${ESCAPE}\\[[0-9;?]*[A-Za-z]`, "g");
-// The bridge can fail while `start` still waits for Muse. `stopMuseTerminalReader`
-// then runs before `startMuseTerminalReader`. `stopped` makes that late
-// `startMuseTerminalReader` call do nothing. A reader that starts after the stop
-// keeps the bridge process alive.
-let stopped = false;
-
 // Starts a reader of the terminal of the bridge, for a follow-up prompt. The
 // reader stays until `stopMuseTerminalReader` runs. The terminal is in raw
 // mode, so Ctrl+C reaches the bridge as a byte and never as a signal to the
@@ -18,7 +12,7 @@ export function startMuseTerminalReader(options: {
 	submit: (prompt: string) => Promise<unknown>;
 	onFailure: (error: unknown) => void;
 }) {
-	if (stopped || !process.stdin.isTTY) return;
+	if (!process.stdin.isTTY) return;
 	process.stdin.setRawMode(true);
 	process.stdin.resume();
 	let line = "";
@@ -52,7 +46,6 @@ export function startMuseTerminalReader(options: {
 }
 
 export function stopMuseTerminalReader() {
-	stopped = true;
 	if (!process.stdin.isTTY) return;
 	process.stdin.setRawMode(false);
 	process.stdin.pause();
