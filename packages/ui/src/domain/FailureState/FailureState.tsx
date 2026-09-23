@@ -82,10 +82,14 @@ export function FailureState({
 			image={null}
 			className={className}
 			title={
-				<span className="flex items-center gap-2">
+				<span className="flex items-start gap-2">
+					{/* The mark sits on the first line of a title that wraps, not in
+					    the middle of the block. The top margin is half the space
+					    the line box leaves around the mark: (28 - 20) / 2 at the
+					    page size, and (20 - 16) / 2 at the section size. */}
 					<WarningCircle
 						aria-hidden="true"
-						className={page ? "size-5 shrink-0 text-danger" : "size-4 shrink-0 text-danger"}
+						className={page ? "mt-1 size-5 shrink-0 text-danger" : "mt-0.5 size-4 shrink-0 text-danger"}
 					/>
 					{title}
 				</span>

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { errorMessage } from "../../../../../lib/conflict";
 import { NotFoundState } from "../../../../shell/NotFoundState";
 import { PageTitle } from "../../../../shell/PageTitle";
+import { failureKind, isConnectionFailure, RouteError } from "../../../../shell/RouteError";
 import { Topbar } from "../../../../shell/Topbar";
 
 export type EpicLoadErrorProps = {
@@ -27,6 +28,8 @@ export function EpicLoadError({ epicRef, slug, parent, error, onRetry }: EpicLoa
 			</Topbar>
 			{notFound ? (
 				<NotFoundState ref={epicRef} />
+			) : isConnectionFailure(failureKind(error)) ? (
+				<RouteError error={error} />
 			) : (
 				<FailureState
 					variant="page"

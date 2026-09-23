@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { failureRecovered, shownFailure } from "./routeFailure";
+import { failureRecovered, isConnectionFailure, shownFailure } from "./routeFailure";
 
 describe("shownFailure", () => {
 	test("reads a missing route file as a new build while the connection is live", () => {
@@ -36,5 +36,17 @@ describe("failureRecovered", () => {
 		expect(failureRecovered("refused", "live", "down")).toBe(false);
 		expect(failureRecovered("chunk", "live", "down")).toBe(false);
 		expect(failureRecovered("other", "live", "down")).toBe(false);
+	});
+});
+
+describe("isConnectionFailure", () => {
+	test("hands a connection failure to the route error", () => {
+		expect(isConnectionFailure("offline")).toBe(true);
+		expect(isConnectionFailure("refused")).toBe(true);
+		expect(isConnectionFailure("chunk")).toBe(true);
+	});
+
+	test("leaves a failure of the page itself with the page", () => {
+		expect(isConnectionFailure("other")).toBe(false);
 	});
 });

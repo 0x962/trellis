@@ -3,6 +3,7 @@ import { createFileRoute, type ErrorComponentProps, useRouter } from "@tanstack/
 import { TicketRefStringSchema } from "@trellis/api";
 import { Button, FailureState } from "@trellis/ui";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
+import { failureKind, isConnectionFailure, RouteError } from "../../../features/shell/RouteError";
 import { TicketView } from "../../../features/ticket/TicketView";
 import type { AppContext } from "../../../lib/appContext";
 
@@ -31,6 +32,7 @@ function TicketError({ error }: ErrorComponentProps) {
 		const { ref } = error.data as { ref: string };
 		return <NotFoundState ref={ref} searchFor={ref} />;
 	}
+	if (isConnectionFailure(failureKind(error))) return <RouteError error={error} />;
 	return (
 		<FailureState
 			variant="page"

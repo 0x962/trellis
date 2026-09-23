@@ -4,6 +4,7 @@ import { UlidSchema } from "@trellis/api";
 import { Button, FailureState } from "@trellis/ui";
 import { SessionPage } from "../features/sessions/SessionPage";
 import { NotFoundState } from "../features/shell/NotFoundState";
+import { failureKind, isConnectionFailure, RouteError } from "../features/shell/RouteError";
 import type { AppContext } from "../lib/appContext";
 
 const sessionOptions = (context: AppContext, id: string) => context.orpc.sessions.get.queryOptions({ input: { id } });
@@ -28,6 +29,7 @@ function SessionError({ error }: ErrorComponentProps) {
 		const { ref } = error.data as { ref: string };
 		return <NotFoundState ref={ref} />;
 	}
+	if (isConnectionFailure(failureKind(error))) return <RouteError error={error} />;
 	return (
 		<FailureState
 			variant="page"

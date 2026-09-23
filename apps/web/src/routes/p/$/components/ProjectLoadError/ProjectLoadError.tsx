@@ -1,5 +1,6 @@
 import { useParams, useRouter } from "@tanstack/react-router";
 import { Button, FailureState } from "@trellis/ui";
+import { failureKind, isConnectionFailure, RouteError } from "../../../../../features/shell/RouteError";
 import { parseProjectSplat } from "../../../../../lib/projectUrl";
 
 export type ProjectLoadErrorProps = {
@@ -13,6 +14,7 @@ export function ProjectLoadError({ error }: ProjectLoadErrorProps) {
 	const params = useParams({ strict: false });
 	const router = useRouter();
 	const { ref } = parseProjectSplat(params._splat ?? "");
+	if (isConnectionFailure(failureKind(error))) return <RouteError error={error} />;
 	return (
 		<FailureState
 			variant="page"

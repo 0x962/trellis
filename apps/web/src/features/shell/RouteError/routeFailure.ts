@@ -13,3 +13,9 @@ export const shownFailure = (failure: FailureKind, status: LiveStatus): FailureK
 // the server never presses Retry.
 export const failureRecovered = (shown: FailureKind, status: LiveStatus, before: LiveStatus) =>
 	shown === "offline" && status === "live" && before !== "live";
+
+// True when the failure is about the connection to the server and not
+// about the thing the page names. A page that names a ticket or a project
+// hands such a failure to `RouteError`, so the person reads one sentence
+// about the server instead of a sentence per page.
+export const isConnectionFailure = (failure: FailureKind) => failure !== "other";
