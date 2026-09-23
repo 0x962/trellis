@@ -11,7 +11,13 @@ import {
 	type StoredActorKind,
 } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
-import { flowAnsweredSql, hasEvidenceSql, hasExplanationSql, openFindingsSql } from "./reviewReady.ts";
+import {
+	flowAnsweredSql,
+	hasEvidenceSql,
+	hasExplanationSql,
+	openFindingsSql,
+	reviewReadyFacts,
+} from "./reviewReady.ts";
 import { iso } from "./support.ts";
 
 export type PullRequestRow = {
@@ -114,17 +120,18 @@ export const toPullRequest = (row: PullRequestRow): PullRequest => ({
 	isQueued: row.is_queued,
 	localState: row.local_state,
 	readyForReviewAt: row.ready_for_review_at,
-	reviewGaps: reviewGaps({
-		state: row.state,
-		localState: row.local_state,
-		failedChecks: row.checks.filter((check) => check.bucket === "fail" || check.bucket === "cancel").length,
-		pendingChecks: row.checks.filter((check) => check.bucket === "pending").length,
-		hasExplanation: row.has_explanation,
-		hasEvidence: row.has_evidence,
-		flowAnswered: row.flow_answered,
-		openFindings: row.open_findings,
-		mergeable: row.mergeable,
-	}),
+	reviewGaps: reviewGaps(
+		reviewReadyFacts({
+			state: row.state,
+			localState: row.local_state,
+			checks: row.checks,
+			openFindings: row.open_findings,
+			hasExplanation: row.has_explanation,
+			hasEvidence: row.has_evidence,
+			flowAnswered: row.flow_answered,
+			mergeable: row.mergeable,
+		}),
+	),
 	headRef: row.head_ref,
 	baseRef: row.base_ref,
 	mergeable: row.mergeable,

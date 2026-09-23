@@ -11,7 +11,6 @@ import { ActorRefSchema } from "./actor.ts";
 import { AttachmentSchema } from "./attachment.ts";
 import {
 	CiStateSchema,
-	LocalPrStateSchema,
 	PrioritySchema,
 	PrStateSchema,
 	ReviewerSchema,
@@ -45,19 +44,16 @@ const PrReviewSchema = z.object({
 	// True while the agent has not asked for review. GitHub accepts no
 	// review then, so the mark draws the idle look.
 	notReady: z.boolean(),
-	localState: LocalPrStateSchema,
 });
 
 // The PR badge on a row: the pull request and review states that need the
 // most work, the check counts behind the ribbon, and the approval state of
-// each linked pull request. `localState` is `not-ready` when the agent has
-// not asked for review on some linked pull request. `reviewGaps` holds what
-// the first linked pull request that is not ready for review still needs.
+// each linked pull request. `reviewGaps` holds what the first linked pull
+// request that is not ready for review still needs.
 const PrBadgeSchema = z.object({
 	state: PrStateSchema,
 	isDraft: z.boolean().default(false),
 	isQueued: z.boolean(),
-	localState: LocalPrStateSchema,
 	reviewGaps: z.array(ReviewGapSchema),
 	ciState: CiStateSchema,
 	reviewState: ReviewStateSchema,
@@ -170,6 +166,12 @@ export type Sort = z.infer<typeof SortSchema>;
 export const PrFilterSchema = z.enum(["any", "none", "open", "not-ready", "queued", "merged", "closed"]);
 export type PrFilter = z.infer<typeof PrFilterSchema>;
 
+// `not-ready` was called `draft` until the review readiness rule landed. A
+// saved link, a bookmark and an older CLI still send the old word, so the
+// query accepts it and reads it as the new one. Every answer carries
+// `not-ready`.
+export const PrFilterInputSchema = z.preprocess((value) => (value === "draft" ? "not-ready" : value), PrFilterSchema);
+
 // The last actor filter: `kind:name` or a bare `name`.
 const ActorFilterSchema = z.string().regex(/^(?:(?:human|agent):)?[\x20-\x39\x3B-\x7E]{1,64}$/);
 
@@ -199,7 +201,7 @@ export const ListQuerySchema = z.strictObject({
 	epic: z.union([z.literal("none"), EpicRefStringSchema]).optional(),
 	// `none` keeps the tickets outside every wave.
 	wave: z.union([z.literal("none"), WaveRefStringSchema]).optional(),
-	pr: PrFilterSchema.optional(),
+	pr: PrFilterInputSchema.optional(),
 	ci: commaList(CiStateSchema).optional(),
 	actor: ActorFilterSchema.optional(),
 	q: z.string().optional(),

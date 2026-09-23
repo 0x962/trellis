@@ -1,7 +1,7 @@
 import { type PrState, type ReviewPrSchema, type ReviewReadyFacts, reviewGaps } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import type { z } from "zod";
-import { flowAnsweredSql, hasEvidenceSql, hasExplanationSql } from "../../db/queries/reviewReady.ts";
+import { flowAnsweredSql, hasEvidenceSql, hasExplanationSql, reviewReadyFacts } from "../../db/queries/reviewReady.ts";
 import { iso, rows, textArray } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
 import { chainOf, resolveProject } from "../refs";
@@ -46,17 +46,18 @@ export async function prs(ctx: IoCtx, tx: Tx, input: { project?: string }) {
 	);
 	return found.map(({ hasExplanation, hasEvidence, flowAnswered, mergeable, ...row }) => ({
 		...row,
-		reviewGaps: reviewGaps({
-			state: row.state as PrState,
-			localState: row.localState,
-			failedChecks: row.checks.filter((check) => check.bucket === "fail" || check.bucket === "cancel").length,
-			pendingChecks: row.checks.filter((check) => check.bucket === "pending").length,
-			hasExplanation,
-			hasEvidence,
-			flowAnswered,
-			openFindings: row.open,
-			mergeable,
-		}),
+		reviewGaps: reviewGaps(
+			reviewReadyFacts({
+				state: row.state as PrState,
+				localState: row.localState,
+				checks: row.checks,
+				openFindings: row.open,
+				hasExplanation,
+				hasEvidence,
+				flowAnswered,
+				mergeable,
+			}),
+		),
 	}));
 }
 

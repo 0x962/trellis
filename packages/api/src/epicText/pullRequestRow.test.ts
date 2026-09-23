@@ -12,7 +12,6 @@ const pullRequest = (fields: Partial<TicketPr> = {}): TicketPr => {
 		state: "open",
 		isDraft: false,
 		isQueued: false,
-		localState: "ready",
 		additions: 311,
 		deletions: 12,
 		changedFiles: 6,
@@ -28,24 +27,23 @@ const pullRequest = (fields: Partial<TicketPr> = {}): TicketPr => {
 	} as TicketPr;
 	return {
 		...row,
-		reviewGaps: reviewGaps({
-			state: row.state,
-			localState: row.localState,
-			failedChecks: row.fail,
-			pendingChecks: row.pending,
-			hasExplanation: true,
-			hasEvidence: true,
-			flowAnswered: true,
-			openFindings: row.openThreads,
-			mergeable: row.mergeable,
-		}),
+		reviewGaps:
+			fields.reviewGaps ??
+			reviewGaps({
+				state: row.state,
+				localState: "ready",
+				failedChecks: row.fail,
+				pendingChecks: row.pending,
+				hasExplanation: true,
+				hasEvidence: true,
+				flowAnswered: true,
+				openFindings: row.openThreads,
+				mergeable: row.mergeable,
+			}),
 	};
 };
 
 describe("pullRequestRowLine", () => {
-	// A failed check is one of the parts that keep a pull request from being
-	// ready for review, so the word says so and the counts that follow say
-	// which part it is.
 	test("prints the state, the size, the checks and the turn", () => {
 		expect(pullRequestRowLine(pullRequest())).toBe(
 			"#57080  not ready · +311 −12 · 6 files · 1 failed · 6 pending · 47 passed · agent",
@@ -54,7 +52,7 @@ describe("pullRequestRowLine", () => {
 
 	test("names the pull request this one merges after", () => {
 		const pr = pullRequest({
-			localState: "not-ready",
+			reviewGaps: [{ kind: "not-asked", count: 1 }],
 			stackedOn: { number: 55569, headRef: "nk/operator-routine-execution", ticketIdentifier: "OP-32" },
 			additions: 73,
 			deletions: 9,

@@ -33,8 +33,7 @@ type OcticonProps = { className?: string; "aria-hidden"?: "true" };
 type Look = { label: string; tone: string; Icon: ComponentType<OcticonProps> };
 
 // The shapes and the colors match GitHub, so a state reads the same in both
-// products. The open shape in green means the person can review the pull
-// request now. The grey shape means a part is still missing.
+// products.
 const looks = {
 	open: { label: "Ready for review", tone: "text-success", Icon: GitPullRequestIcon },
 	"not-ready": {
@@ -49,9 +48,7 @@ const looks = {
 
 type PrGlyphLook = keyof typeof looks;
 
-// The queued mark and the not-ready mark apply only while the pull request
-// is open.
-export const prGlyphLook = (state: PullRequestState, isQueued: boolean, readyForReview: boolean): PrGlyphLook => {
+const prGlyphLook = (state: PullRequestState, isQueued: boolean, readyForReview: boolean): PrGlyphLook => {
 	if (state !== "open") return state;
 	if (isQueued) return "queued";
 	return readyForReview ? "open" : "not-ready";

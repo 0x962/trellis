@@ -18,7 +18,6 @@ const pr = (fields: Partial<Ticket["prRows"][number]> = {}) =>
 		state: "open",
 		isDraft: false,
 		isQueued: false,
-		localState: "ready",
 		reviewGaps: [],
 		verdict: null,
 		...fields,
