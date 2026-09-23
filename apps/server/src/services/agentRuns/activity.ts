@@ -4,13 +4,14 @@ import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import type { IoCtx } from "../support.ts";
 import { observeRuns } from "./liveState.ts";
-import { listColumns, type StoredRun } from "./queries.ts";
+import { storedColumns } from "./queries.ts";
+import type { StoredRun } from "./types.ts";
 
 export const activityRows = (tx: Tx) =>
 	rows<StoredRun & { activitySessionId: string | null }>(
 		tx,
 		sql`
-		SELECT ${listColumns}, (SELECT id FROM sessions WHERE run_id=agent_runs.id) AS "activitySessionId"
+		SELECT ${storedColumns}, (SELECT id FROM sessions WHERE run_id=agent_runs.id) AS "activitySessionId"
 		FROM agent_runs WHERE kind <> 'flow' AND runtime='native' AND terminal_id IS NOT NULL AND
 		(closed_at IS NULL OR id IN (SELECT run_id FROM sessions)) AND
 		(ticket_identifier IS NOT NULL OR id IN (SELECT run_id FROM sessions))`,

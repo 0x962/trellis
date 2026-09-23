@@ -6,7 +6,7 @@ import type { ServiceCtx } from "../../context.ts";
 import { createCache } from "../../db/cache.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import type { Tx } from "../../db/tx.ts";
-import { list } from "./agentRuns.ts";
+import { list } from "./list.ts";
 import { projectRun } from "./liveState.ts";
 import { getRun, openAgentRuns } from "./queries.ts";
 
@@ -16,8 +16,6 @@ const projectId = ulid();
 const agentProjectId = ulid();
 const now = new Date("2026-09-23T12:00:00.000Z");
 const hoursAgo = (hours: number) => new Date(now.getTime() - hours * 3_600_000).toISOString();
-// Every run below is closed unless the row says otherwise, so the window is
-// the only rule that decides whether the list keeps it.
 const openRun = ulid();
 const openAgent = ulid();
 const oldOpenAgent = ulid();
@@ -60,17 +58,24 @@ afterAll(async () => db.$client.close());
 
 test("the list keeps the open runs and the runs that started inside the window", async () => {
 	const rows = await listRuns({ project: projectId });
-	expect(rows.map((row) => row.id)).toEqual([freshRun, openRun]);
+	expect(rows.map((row) => row.id)).toEqual([openRun, freshRun]);
 });
 
 test("a wider window reaches the runs that closed before it", async () => {
 	const rows = await listRuns({ project: projectId, windowHours: 168 });
-	expect(rows.map((row) => row.id)).toEqual([freshRun, oldRun, olderRun, openRun]);
+	expect(rows.map((row) => row.id)).toEqual([openRun, freshRun, oldRun, olderRun]);
 });
 
-test("the limit cuts the answer to the newest rows", async () => {
+// An open run is older than a day of closed runs, so a sort by age alone
+// would drop the live agent that the session list must draw.
+test("the limit drops the oldest closed run and keeps the open run", async () => {
 	const rows = await listRuns({ project: projectId, windowHours: 168, limit: 2 });
-	expect(rows.map((row) => row.id)).toEqual([freshRun, oldRun]);
+	expect(rows.map((row) => row.id)).toEqual([openRun, freshRun]);
+});
+
+test("the limit keeps every open run before it takes any closed run", async () => {
+	const rows = await listRuns({ project: projectId, windowHours: 168, limit: 1 });
+	expect(rows.map((row) => row.id)).toEqual([openRun]);
 });
 
 test("a run named by its id comes back whatever its age", async () => {
@@ -89,8 +94,7 @@ test("a run read with its instruction loses it before it leaves the server", asy
 	expect(projectRun(stored, [])).not.toHaveProperty("instruction");
 });
 
-// `needsYou` and the statistics faults read this set to decide something.
-// The statistics fault names the oldest run of the set, so a bound that
+// The statistics fault names the oldest run of this set, so a bound that
 // drops the oldest rows would change the answer it gives.
 test("the open agent runs carry no bound and no window", async () => {
 	const rows = await run(openAgentRuns);

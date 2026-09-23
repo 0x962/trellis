@@ -36,6 +36,5 @@ export function sessionGroups<T extends GroupableRun>(
 	return {
 		sessions: matches.filter((run) => run.ticketId === null),
 		ticketed: matches.filter((run) => run.ticketId !== null),
-		historyCount: runs.filter(isHistoricalSession).length,
 	};
 }

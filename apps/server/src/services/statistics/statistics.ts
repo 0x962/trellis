@@ -2,7 +2,7 @@ import { type AgentRun, STATISTICS_WINDOW, type Statistics } from "@trellis/api"
 import { openFlowRuns, stuckReviewMessages } from "../../db/queries/statisticsFaults.ts";
 import { loopBill, loopTotals } from "../../db/queries/statisticsLoop.ts";
 import type { Tx } from "../../db/tx.ts";
-import * as agentRuns from "../agentRuns/agentRuns.ts";
+import * as agentRuns from "../agentRuns.ts";
 import type { IoCtx, PrepareCtx } from "../support.ts";
 import { deadRuns, faults } from "./faults.ts";
 

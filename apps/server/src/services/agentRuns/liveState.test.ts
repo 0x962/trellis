@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { AgentRunSchema } from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { projectRun } from "./liveState.ts";
-import type { StoredRun } from "./queries.ts";
+import type { StoredRun } from "./types.ts";
 
 const started = "2026-09-18T12:00:00.000Z";
 const updated = "2026-09-18T12:00:01.000Z";

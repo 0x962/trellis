@@ -90,24 +90,19 @@ export const AgentRunRetryInputSchema = z.strictObject({
 	requestId: z.string().min(1).max(200),
 });
 export type AgentRunRetryInput = z.infer<typeof AgentRunRetryInputSchema>;
-// The list keeps an open run, which is a run that a ticket or a session
-// still holds, and a closed run that started inside the window. The
-// machine closes about 1000 runs a day and keeps every one of them, so a
-// list without a bound grows without end. One day of history answers the
-// question the session list and the agent table ask: what runs now, and
-// what ran today.
+// A run stays in the list while a ticket or a session holds it. A closed run
+// stays for this many hours after it started. This host closes about 1000 runs
+// a day, so a list with no bound grows without end.
 export const AGENT_RUN_LIST_WINDOW_HOURS = 24;
-// The newest rows the list answers with. 200 rows fill the session list
-// and the CLI table many times over, and they cost about 250 kB.
-export const AGENT_RUN_LIST_LIMIT = 200;
+// 200 rows fill the session list and the CLI table. They cost about 250 kB.
+export const AGENT_RUN_LIST_DEFAULT_LIMIT = 200;
 // The largest answer the list gives.
 export const AGENT_RUN_LIST_MAX_LIMIT = 1000;
-// The window the session list asks for when a person presses its history
-// button. A month covers the runs a person looks back for by name, and the
-// host keeps the rows far longer than that.
+// The window behind the history button of the session list.
 export const AGENT_RUN_HISTORY_WINDOW_HOURS = 24 * 30;
-// `ids` and `ticket` are bounds of their own, so the window does not apply
-// to them. A caller that names a run by its ID reads that run at any age.
+// `ids` and `ticket` are bounds of their own, so `windowHours` does not apply
+// to them. A caller that names a run by its ID reads that run at any age. The
+// sort puts the open runs first, so `limit` only drops closed history.
 export const AgentRunListInputSchema = z.strictObject({
 	ticket: z.string().optional(),
 	project: z.string().optional(),
@@ -119,7 +114,7 @@ export const AgentRunListInputSchema = z.strictObject({
 		.min(1)
 		.max(24 * 365)
 		.default(AGENT_RUN_LIST_WINDOW_HOURS),
-	limit: z.coerce.number().int().min(1).max(AGENT_RUN_LIST_MAX_LIMIT).default(AGENT_RUN_LIST_LIMIT),
+	limit: z.coerce.number().int().min(1).max(AGENT_RUN_LIST_MAX_LIMIT).default(AGENT_RUN_LIST_DEFAULT_LIMIT),
 });
 export type AgentRunListInput = z.infer<typeof AgentRunListInputSchema>;
 

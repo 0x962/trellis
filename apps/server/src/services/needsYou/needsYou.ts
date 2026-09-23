@@ -10,7 +10,7 @@ import { type ServiceCtx as CoreCtx, requireActor } from "../../context.ts";
 import { ticketSummaries } from "../../db/queries/ticketSummaries.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail, invalidInput } from "../../errors.ts";
-import * as agentRuns from "../agentRuns/agentRuns.ts";
+import * as agentRuns from "../agentRuns.ts";
 import type { IoCtx, PrepareCtx } from "../support.ts";
 import { type Candidate, candidates } from "./candidates.ts";
 

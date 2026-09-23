@@ -6,7 +6,7 @@ import { sql } from "drizzle-orm";
 import { ensureNativeRuntime, nativeClient } from "../../agents/native/connection.ts";
 import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { ServiceCtx } from "../support.ts";
-import type { StoredRun } from "./queries.ts";
+import type { StoredRun } from "./types.ts";
 
 const stopFailure = (run: StoredRun, message: string) =>
 	new ORPCError("RUNNER_UNAVAILABLE", {

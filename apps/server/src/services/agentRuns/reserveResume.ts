@@ -11,7 +11,8 @@ import type { StoredExecution } from "../flowExecutions/types.ts";
 import { getAccount } from "../harnessAccounts/queries.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { projectRow } from "../projectRows.ts";
-import { columns, type LaunchRun } from "./queries.ts";
+import { launchColumns } from "./queries.ts";
+import type { LaunchRun } from "./types.ts";
 
 export type ResumeSession = {
 	runId: string;
@@ -26,7 +27,10 @@ export type ResumeSession = {
 
 export async function reserveResume(ctx: ServiceCtx, tx: Tx, session: ResumeSession, reserve: boolean) {
 	if (session.harness === "custom") return null;
-	const [run] = await rows<LaunchRun>(tx, sql`SELECT ${columns} FROM agent_runs WHERE id=${session.runId} FOR UPDATE`);
+	const [run] = await rows<LaunchRun>(
+		tx,
+		sql`SELECT ${launchColumns} FROM agent_runs WHERE id=${session.runId} FOR UPDATE`,
+	);
 	if (
 		!run ||
 		(run.projectId === null && run.kind !== "session") ||

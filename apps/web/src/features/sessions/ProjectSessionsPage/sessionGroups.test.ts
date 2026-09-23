@@ -25,7 +25,6 @@ test("history hides old assignments without hiding a selected deep link", () => 
 	const runs = [run("current"), run("old", { assigned: false }), run("done", { ticketStatusCategory: "done" })];
 	const groups = sessionGroups(runs, { search: "", history: false, selectedId: "old" });
 	expect(groups.ticketed.map((item) => item.id)).toEqual(["current", "old"]);
-	expect(groups.historyCount).toBe(2);
 	expect(sessionGroups(runs, { search: "", history: true }).ticketed).toHaveLength(3);
 });
 

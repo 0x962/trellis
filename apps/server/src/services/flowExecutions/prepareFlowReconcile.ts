@@ -10,8 +10,9 @@ import { closeExitedAssignments } from "../agentRuns/closeExitedAssignments.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import { stopNative } from "../agentRuns/nativeLifecycle.ts";
 import { startNative } from "../agentRuns/nativeStart.ts";
-import { getRun, type LaunchRun } from "../agentRuns/queries.ts";
+import { getStoredRun } from "../agentRuns/queries.ts";
 import { readNativeHarness } from "../agentRuns/readNativeHarness.ts";
+import type { StoredRun } from "../agentRuns/types.ts";
 import { claimNext } from "./claimNext.ts";
 import { drainFlowStops } from "./drainFlowStops.ts";
 import { readExecution } from "./queries.ts";
@@ -25,8 +26,8 @@ type Claim = NonNullable<Awaited<ReturnType<typeof claimNext>>>;
 type Dependencies = {
 	// Resolves once the process exists, with the time the runtime started it.
 	start: (ctx: FlowCtx, claim: Claim) => Promise<{ launchedAt?: string } | undefined>;
-	observe: (ctx: FlowCtx, run: LaunchRun) => Promise<HarnessSnapshot | null>;
-	stop: (ctx: FlowCtx, run: LaunchRun) => Promise<unknown>;
+	observe: (ctx: FlowCtx, run: StoredRun) => Promise<HarnessSnapshot | null>;
+	stop: (ctx: FlowCtx, run: StoredRun) => Promise<unknown>;
 	// Delivers a message to the running worker of a run.
 	warn: (ctx: FlowCtx, input: { id: string; text: string; messageId: string }) => Promise<unknown>;
 };
@@ -53,7 +54,7 @@ async function reconcile(ctx: FlowCtx, deps: Dependencies) {
 		// waits for that, so it never blocks the loop on a receipt.
 		const readers = new Set<string>();
 		for (const task of tasks) {
-			const run = await ctx.newTx((tx) => getRun(tx, task.run_id));
+			const run = await ctx.newTx((tx) => getStoredRun(tx, task.run_id));
 			let snapshot: HarnessSnapshot | null;
 			try {
 				snapshot = await deps.observe(ctx, run);

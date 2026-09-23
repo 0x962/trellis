@@ -5,7 +5,7 @@ import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { ExecutionAttemptRecord } from "../assignments.ts";
 import type { ServiceCtx } from "../support.ts";
 import { launchState } from "./launchState";
-import type { StoredRun } from "./queries.ts";
+import type { StoredRun } from "./types.ts";
 
 type RuntimeSessionIndex = ReadonlyMap<string, RuntimeProcessStatus>;
 type ReadRuntimeSessions = (home: string, input: RuntimeListInput) => Promise<RuntimeProcessStatus[]>;

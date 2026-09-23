@@ -46,7 +46,7 @@ export function SessionList({
 			<div className="flex min-h-11 shrink-0 items-center gap-1 border-b border-border px-2">
 				<div className="min-w-0 flex-1">
 					<Input
-						label="Search all sessions"
+						label="Search the loaded sessions"
 						hideLabel
 						placeholder="Search sessions…"
 						value={search}
@@ -54,7 +54,7 @@ export function SessionList({
 						className="h-7 text-sm"
 					/>
 				</div>
-				<Tooltip content={history ? "Hide history" : `Show history (${groups.historyCount})`}>
+				<Tooltip content={history ? "Hide history" : "Show history"}>
 					<IconButton
 						variant="default"
 						label={history ? "Hide history" : "Show history"}
@@ -94,7 +94,7 @@ export function SessionList({
 					<>
 						{search.trim() && (
 							<p role="status" className="px-4 pb-1 text-xs text-fg-muted">
-								{groups.sessions.length + groups.ticketed.length} results across all sessions
+								{groups.sessions.length + groups.ticketed.length} results in {history ? "a month" : "the last day"}
 							</p>
 						)}
 						{groups.sessions.length + groups.ticketed.length === 0 ? (

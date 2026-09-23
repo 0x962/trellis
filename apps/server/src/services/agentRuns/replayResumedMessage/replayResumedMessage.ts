@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm";
 import { rows } from "../../../db/queries/support.ts";
 import { invalidInput } from "../../../errors.ts";
 import type { ServiceCtx } from "../../support.ts";
-import type { StoredRun } from "../queries.ts";
+import type { StoredRun } from "../types.ts";
 
 export async function replayResumedMessage(
 	ctx: ServiceCtx,

@@ -11,7 +11,8 @@ import { assertProjectActive } from "../refs.ts";
 import type { IoCtx } from "../support.ts";
 import { launchRun } from "./launchRun";
 import { startNative } from "./nativeStart.ts";
-import { getRun, type StoredRun } from "./queries.ts";
+import { getRun } from "./queries.ts";
+import type { StoredRun } from "./types.ts";
 
 type RuntimeStatus = Awaited<ReturnType<ReturnType<typeof nativeHost>["status"]>>;
 

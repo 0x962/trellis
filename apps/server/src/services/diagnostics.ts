@@ -4,7 +4,8 @@ import { RUNTIME_PROTOCOL_VERSION, type RuntimeProcessStatus } from "@trellis/ru
 import { sql } from "drizzle-orm";
 import { nativeClient } from "../agents/native/connection.ts";
 import { rows } from "../db/queries/support.ts";
-import { listColumns, type StoredRun } from "./agentRuns/queries.ts";
+import { storedColumns } from "./agentRuns/queries.ts";
+import type { StoredRun } from "./agentRuns/types.ts";
 import { projectUnresolvedAttempts } from "./agentRuns.ts";
 import type { ServiceCtx } from "./support.ts";
 
@@ -12,7 +13,7 @@ export const diagnostics = async (ctx: ServiceCtx): Promise<Diagnostics> => {
 	const runs = await ctx.newTx((tx) =>
 		rows<StoredRun>(
 			tx,
-			sql`SELECT ${listColumns} FROM agent_runs WHERE runtime='native' ORDER BY updated_at DESC LIMIT 100`,
+			sql`SELECT ${storedColumns} FROM agent_runs WHERE runtime='native' ORDER BY updated_at DESC LIMIT 100`,
 		),
 	);
 	let runtime: Diagnostics["runtime"];

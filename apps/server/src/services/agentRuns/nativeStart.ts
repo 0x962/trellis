@@ -22,7 +22,7 @@ import type { ServiceCtx } from "../support.ts";
 import { hostIsShuttingDown } from "./hostShutdown.ts";
 import { launchAllowed } from "./launchAllowed.ts";
 import { launchedHarness } from "./launchedHarness";
-import type { LaunchRun } from "./queries.ts";
+import type { LaunchRun } from "./types.ts";
 
 class MissingNativeSessionIdentity extends Error {}
 

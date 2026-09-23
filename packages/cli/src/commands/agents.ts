@@ -1,4 +1,4 @@
-import { AGENT_RUN_LIST_LIMIT, AGENT_RUN_LIST_WINDOW_HOURS, type AgentRun, HarnessSchema } from "@trellis/api";
+import { AGENT_RUN_LIST_DEFAULT_LIMIT, AGENT_RUN_LIST_WINDOW_HOURS, type AgentRun, HarnessSchema } from "@trellis/api";
 import { shortZonedDateTime } from "@trellis/api/time";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
@@ -44,7 +44,10 @@ const list = defineCommand({
 			type: "string",
 			description: `How many hours of closed agents to keep, on top of the open ones (default ${AGENT_RUN_LIST_WINDOW_HOURS})`,
 		},
-		limit: { type: "string", description: `How many agents to print at most (default ${AGENT_RUN_LIST_LIMIT})` },
+		limit: {
+			type: "string",
+			description: `How many agents to print at most (default ${AGENT_RUN_LIST_DEFAULT_LIMIT})`,
+		},
 	},
 	async run(context) {
 		const ctx = contextOf(context);

@@ -1,14 +1,15 @@
 import { sql } from "drizzle-orm";
 import { taskKey } from "../../agents/nativeFlow/taskKey.ts";
 import { rows } from "../../db/queries/support.ts";
-import { getRun, type LaunchRun } from "../agentRuns/queries.ts";
+import { getStoredRun } from "../agentRuns/queries.ts";
+import type { StoredRun } from "../agentRuns/types.ts";
 import { readExecution } from "./queries.ts";
 import { recordStopError } from "./recordStopError.ts";
 import type { FlowCtx } from "./types.ts";
 export async function drainFlowStops(
 	ctx: FlowCtx,
 	id: string,
-	stop: (ctx: FlowCtx, run: LaunchRun) => Promise<unknown>,
+	stop: (ctx: FlowCtx, run: StoredRun) => Promise<unknown>,
 ) {
 	const execution = await ctx.newTx((tx) => readExecution(tx, id));
 	const tasks = await ctx.newTx((tx) =>
@@ -21,7 +22,7 @@ export async function drainFlowStops(
 	for (const task of tasks) {
 		const step = execution.state.steps.find((step) => taskKey(step) === task.key);
 		if (task.result_id === null && !step?.needsStop && step?.state !== "failed") continue;
-		const run = await ctx.newTx((tx) => getRun(tx, task.run_id));
+		const run = await ctx.newTx((tx) => getStoredRun(tx, task.run_id));
 		if (run.terminalId !== task.attempt_id) {
 			const error = `Flow task ${task.key} no longer owns its recorded attempt`;
 			errors.push(error);

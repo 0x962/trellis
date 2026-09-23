@@ -3,13 +3,14 @@ import { rows } from "../../db/queries/support.ts";
 import { invalidInput } from "../../errors.ts";
 import type { ServiceCtx } from "../support.ts";
 import { refreshNative, stopNative } from "./nativeLifecycle.ts";
-import { getRun, listColumns, type StoredRun } from "./queries.ts";
+import { getRun, storedColumns } from "./queries.ts";
+import type { StoredRun } from "./types.ts";
 
 export const prepareStop = async (ctx: ServiceCtx, input: { id: string }) => {
 	const run = await ctx.newTx(async (tx) => {
 		const [run] = await rows<StoredRun>(
 			tx,
-			sql`UPDATE agent_runs SET closed_at=coalesce(closed_at,${ctx.now()}),updated_at=${ctx.now()} WHERE id=${input.id} AND runtime='native' RETURNING ${listColumns}`,
+			sql`UPDATE agent_runs SET closed_at=coalesce(closed_at,${ctx.now()}),updated_at=${ctx.now()} WHERE id=${input.id} AND runtime='native' RETURNING ${storedColumns}`,
 		);
 		if (run) return run;
 		await getRun(tx, input.id);

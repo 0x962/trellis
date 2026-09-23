@@ -1,4 +1,4 @@
-import type { LaunchRun } from "../../services/agentRuns/queries.ts";
+import type { LaunchRun } from "../../services/agentRuns/types.ts";
 import { launchPrompt } from "./launchPrompt.ts";
 import { expandLaunchTemplate } from "./template.ts";
 

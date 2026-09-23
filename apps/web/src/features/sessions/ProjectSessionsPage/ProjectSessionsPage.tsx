@@ -1,5 +1,5 @@
 import { List, Plus } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { AGENT_RUN_HISTORY_WINDOW_HOURS, AGENT_RUN_LIST_MAX_LIMIT, type Project } from "@trellis/api";
 import { Button, EmptyState, Sheet, Tooltip, useMediaQuery } from "@trellis/ui";
@@ -26,19 +26,22 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	const [history, setHistory] = useState(false);
 	const phone = useMediaQuery("(max-width: 767px)");
 	const hash = useRouterState({ select: (state) => state.location.hash });
-	// The list asks for what it draws. Closed runs sit behind the history
-	// button, and the page asks for a month of them only while that button is
-	// pressed. The two second timer runs on the short list. The history list
-	// holds a month of closed runs, which do not change, and the event stream
-	// still refreshes it when a run in it changes.
+	// Closed runs sit behind the history button, and the page asks for a month
+	// of them only while that button is pressed. The history query has no
+	// timer of its own, because a closed run does not change. Any run change
+	// still refetches it: `agent-runs.status` invalidates every agentRuns
+	// query, and a working agent emits that event every few seconds.
 	const runsOptions = orpc.agentRuns.list.queryOptions({
 		input: history
 			? { project: project.id, windowHours: AGENT_RUN_HISTORY_WINDOW_HOURS, limit: AGENT_RUN_LIST_MAX_LIMIT }
 			: { project: project.id },
 	});
 	const sessionsOptions = orpc.sessions.list.queryOptions({ input: {} });
+	// The history button changes the query key. Without the previous rows the
+	// list and the conversation pane would both empty while the month loads.
 	const runs = useQuery({
 		...runsOptions,
+		placeholderData: keepPreviousData,
 		refetchInterval: history ? false : 2000,
 	});
 	const sessions = useQuery(sessionsOptions);

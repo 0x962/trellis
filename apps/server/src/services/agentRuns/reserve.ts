@@ -14,7 +14,8 @@ import { assignmentInstruction } from "../brief.ts";
 import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive, resolveMutableProject, resolveTicket } from "../refs.ts";
-import { columns, type LaunchRun } from "./queries.ts";
+import { launchColumns } from "./queries.ts";
+import type { LaunchRun } from "./types.ts";
 
 type ReserveInput = {
 	harness?: unknown;
@@ -110,7 +111,7 @@ export const reserve = async (
 		tx,
 		sql`INSERT INTO agent_runs (id, name, harness, kind, instruction, project_id, project_key, ticket_id, ticket_identifier, runtime, closed_at, session_id, created_at, updated_at)
 		VALUES (${id}, ${name}, ${JSON.stringify(config.harness)}::jsonb, ${kind}, ${instruction}, ${project.id}, ${projectKey}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'native', NULL, ${sessionId}, ${ctx.now}, ${ctx.now})
-		ON CONFLICT (ticket_id) WHERE kind = 'agent' AND closed_at IS NULL DO NOTHING RETURNING ${columns}`,
+		ON CONFLICT (ticket_id) WHERE kind = 'agent' AND closed_at IS NULL DO NOTHING RETURNING ${launchColumns}`,
 	);
 	if (run === undefined) throw fail("DUPLICATE", { field: "active agent" });
 	const attempt = await reserveAttempt(ctx, tx, { runId: run.id });
