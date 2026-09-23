@@ -33,3 +33,10 @@ test("takes the width of its text when it draws nothing at the start alignment",
 
 	expect(html).not.toContain("min-w-16");
 });
+
+test("names a count that is still loading as not ready, even when a stale count draws", () => {
+	const html = renderToStaticMarkup(<LineChanges value={{ additions: 4, deletions: 1 }} pending />);
+
+	expect(html).toContain("+4");
+	expect(html).toContain("Line changes not ready");
+});

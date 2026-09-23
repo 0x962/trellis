@@ -13,17 +13,17 @@ export type LineChangesProps = {
 
 const digits = new Intl.NumberFormat();
 
-// The added and deleted line counts of a workspace: green plus, red minus,
-// tabular digits grouped by thousands. A count of zero is faint, so the
-// color marks a real change. While the counts are on their way, each side
-// shows an ellipsis. When the counts are not known and none is coming, the
-// component draws nothing and keeps the reserved width, so a row with counts
-// and a row without them line up.
+// The added and deleted line counts of a workspace. A count of zero is faint,
+// so the color marks a real change only. A null value with pending true means
+// the counts still load, and each side shows an ellipsis. A null value with
+// pending false means no count will arrive: the component draws nothing, but
+// it keeps the 64 px width, so a row with counts and a row without them stay
+// the same width.
 export function LineChanges({ value, pending, align = "end" }: LineChangesProps) {
-	const shape = cx("inline-flex shrink-0 items-center gap-1 tabular", align === "end" && "min-w-16 justify-end");
-	if (value === null && !pending) return <span aria-hidden="true" className={shape} />;
+	const boxClass = cx("inline-flex shrink-0 items-center gap-1 tabular", align === "end" && "min-w-16 justify-end");
+	if (value === null && !pending) return <span aria-hidden="true" className={boxClass} />;
 	const label =
-		value === null
+		value === null || pending
 			? "Line changes not ready"
 			: `${value.additions} ${value.additions === 1 ? "line" : "lines"} added, ${value.deletions} ${value.deletions === 1 ? "line" : "lines"} deleted`;
 	const side = (sign: string, count: number | undefined, tone: string) => (
@@ -33,7 +33,7 @@ export function LineChanges({ value, pending, align = "end" }: LineChangesProps)
 		</span>
 	);
 	return (
-		<span className={shape}>
+		<span className={boxClass}>
 			<span className="sr-only">{label}</span>
 			{side("+", value?.additions, "text-success")}
 			{side("−", value?.deletions, "text-danger")}
