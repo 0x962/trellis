@@ -6,7 +6,7 @@ const save = async () => {};
 
 test("at rest it draws the value and no text field", () => {
 	const html = renderToStaticMarkup(
-		<InlineEdit label="Session name" value="Old name" editing={false} onEditingChange={() => {}} onCommit={save}>
+		<InlineEdit label="Session name" value="Old name" editing={false} onEditingChange={() => {}} onSave={save}>
 			<h2 className="truncate text-sm font-medium">Old name</h2>
 		</InlineEdit>,
 	);
@@ -18,7 +18,7 @@ test("at rest it draws the value and no text field", () => {
 
 test("while editing it draws the text field with the saved value and hides the value at rest", () => {
 	const html = renderToStaticMarkup(
-		<InlineEdit label="Session name" value="Old name" editing onEditingChange={() => {}} onCommit={save}>
+		<InlineEdit label="Session name" value="Old name" editing onEditingChange={() => {}} onSave={save}>
 			<h2 className="truncate text-sm font-medium">Old name</h2>
 		</InlineEdit>,
 	);
@@ -30,7 +30,7 @@ test("while editing it draws the text field with the saved value and hides the v
 
 test("the label names the field for a screen reader and stays off the screen", () => {
 	const html = renderToStaticMarkup(
-		<InlineEdit label="Session name" value="Old name" editing onEditingChange={() => {}} onCommit={save} />,
+		<InlineEdit label="Session name" value="Old name" editing onEditingChange={() => {}} onSave={save} />,
 	);
 
 	expect(html).toContain("Session name");
@@ -41,7 +41,7 @@ test("the label names the field for a screen reader and stays off the screen", (
 // starts from the value and never from the top of the page.
 test("the box takes the focus by code and stays out of the tab order", () => {
 	const html = renderToStaticMarkup(
-		<InlineEdit label="Session name" value="Old name" editing={false} onEditingChange={() => {}} onCommit={save}>
+		<InlineEdit label="Session name" value="Old name" editing={false} onEditingChange={() => {}} onSave={save}>
 			<span>Old name</span>
 		</InlineEdit>,
 	);
@@ -56,7 +56,7 @@ test("the leading mark stands beside the field, so the row does not move sideway
 			value="Old name"
 			editing
 			onEditingChange={() => {}}
-			onCommit={save}
+			onSave={save}
 			leading={<span data-testid="avatar" />}
 		/>,
 	);
@@ -71,7 +71,7 @@ test("the leading mark is gone at rest, because the value at rest draws its own"
 			value="Old name"
 			editing={false}
 			onEditingChange={() => {}}
-			onCommit={save}
+			onSave={save}
 			leading={<span data-testid="avatar" />}
 		>
 			<span>Old name</span>
@@ -88,7 +88,7 @@ test("the field takes the type size of the value it covers", () => {
 			value="Old name"
 			editing
 			onEditingChange={() => {}}
-			onCommit={save}
+			onSave={save}
 			inputClassName="h-9 text-lg font-semibold"
 		/>,
 	);
