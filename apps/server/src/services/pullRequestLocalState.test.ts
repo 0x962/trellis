@@ -6,6 +6,8 @@ import { iso } from "../db/queries/support.ts";
 import { ticketSummaries } from "../db/queries/ticketSummaries.ts";
 import { openTestDb } from "../db/testDb.ts";
 import type { Tx } from "../db/tx.ts";
+import type { PullRequestRow } from "../gh/graphql.ts";
+import { upsertPullRequests } from "../gh/pollerWrite.ts";
 import { candidates } from "./needsYou/candidates.ts";
 import { setLocalState } from "./pullRequestLocalState.ts";
 import { link, setHeadSha } from "./pullRequests.ts";
@@ -21,13 +23,14 @@ let ticketNumber = 0;
 
 const root = ulid();
 const at = new Date("2026-09-22T10:00:00.000Z");
+const later = new Date("2026-09-22T16:00:00.000Z");
 const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
 // The fields of the service context that `link` and `setLocalState` read.
-const ctxOf = (actor: ActorRef) =>
+const ctxOf = (actor: ActorRef, now: Date = at) =>
 	({
 		actor,
-		now: () => at,
+		now: () => now,
 		emit: (event: { type: string }) => {
 			events.push(event);
 		},
@@ -202,14 +205,16 @@ test("a new head commit clears the moment the wait started", async () => {
 	expect(await readyAtOf(id)).toBeNull();
 });
 
-test("setLocalState to the stored state writes nothing and announces nothing", async () => {
+test("setLocalState to the stored state writes nothing once the moment stands", async () => {
 	const ticket = await newTicket("Ask twice");
 	const linked = await linkAs(person, ticket.identifier, 105);
+	await run((tx) => setLocalState(ctxOf(person), tx, { id: linked.id, localState: "ready" }));
 	events = [];
 
-	const same = await run((tx) => setLocalState(ctxOf(person), tx, { id: linked.id, localState: "ready" }));
+	const same = await run((tx) => setLocalState(ctxOf(person, later), tx, { id: linked.id, localState: "ready" }));
 
 	expect(same.localState).toBe("ready");
+	expect(same.readyForReviewAt).toBe(at.toISOString());
 	expect(events).toEqual([]);
 });
 
@@ -309,4 +314,74 @@ test("a flow of every project asks this pull request for a run", async () => {
 	const { ticket } = await readyPullRequest("Run the flow of every project", 114);
 
 	expect(await gapsOf(ticket.id)).toEqual(["flow-run"]);
+});
+
+// What gh answers for one pull request. The poller writes this row, so a
+// test drives the poll path with it. `contentHash` differs per call, so
+// every write counts as a change.
+const fetched = (number: number, headSha: string, state: "open" | "merged"): PullRequestRow => ({
+	owner: "acme",
+	repo: "app",
+	number,
+	additions: 1,
+	deletions: 1,
+	changedFiles: 1,
+	files: [],
+	url: `https://github.com/acme/app/pull/${number}`,
+	title: "Add the rule",
+	state,
+	isDraft: false,
+	isQueued: false,
+	headSha,
+	headRef: "fix",
+	baseRef: "main",
+	mergeable: "mergeable",
+	reviewState: "none",
+	mergedAt: state === "merged" ? later.toISOString() : null,
+	closedAt: null,
+	checks: [],
+	ciState: "none",
+	contentHash: ulid(),
+});
+
+const poll = (number: number, headSha: string, state: "open" | "merged" = "open") =>
+	run((tx) => upsertPullRequests(tx, later, [fetched(number, headSha, state)]));
+
+// The poller is the path that finds a push on its own, so it clears the
+// moment without anybody running a command.
+test("a poll that finds a new head commit clears the moment the wait started", async () => {
+	const { id } = await readyPullRequest("Poll after a push", 116);
+	await poll(116, "head116");
+
+	const kept = await readyAtOf(id);
+	await poll(116, "pushed116");
+
+	expect(kept).toBe(at.toISOString());
+	expect(await readyAtOf(id)).toBeNull();
+});
+
+// The wait ends at the merge, and the product measures how long it was, so
+// the merge leaves the moment it started.
+test("a merge leaves the moment the wait started", async () => {
+	const { id } = await readyPullRequest("Merge after the ask", 117);
+
+	await poll(117, "head117", "merged");
+
+	expect(await readyAtOf(id)).toBe(at.toISOString());
+});
+
+// A push clears the moment and leaves the stored state at `ready`, so the
+// next ask has no state to move. It stamps the new wait all the same.
+test("the ask after a push stamps the new wait and writes a second timeline row", async () => {
+	const { id } = await readyPullRequest("Ask again after a push", 115);
+	await run((tx) => setHeadSha(tx, { id, headSha: "pushed115" }));
+
+	const again = await run((tx) => setLocalState(ctxOf(agent, later), tx, { id, localState: "ready" }));
+
+	expect(again.localState).toBe("ready");
+	expect(again.readyForReviewAt).toBe(later.toISOString());
+	expect(await activityOf(id)).toEqual([
+		["pr.ready_for_review", "agent", "claude-code"],
+		["pr.ready_for_review", "agent", "claude-code"],
+	]);
 });
