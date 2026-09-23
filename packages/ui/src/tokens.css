@@ -19,8 +19,11 @@
  * data-theme block serves an explicit choice. Each block has to win on its
  * own.
  * Dark mode has no visible shadow, so each elevation shadow starts with a
- * 1 px strong-border ring. A surface that draws its own border takes
- * --shadow-lg-no-ring, because that ring would double the border.
+ * 1 px strong-border ring. --shadow-lg-no-ring is the lg drop shadow without
+ * that ring; --shadow-lg adds the ring to it. The drag preview of a board card
+ * takes the no-ring value, because it draws its own border and the ring would
+ * sit outside that border as a second line. No other step of the scale has a
+ * no-ring value yet.
  *
  * Biome does not format this file, so it preserves the palette source values.
  */
@@ -112,8 +115,8 @@
 	--scrim: rgba(0,0,0,.4);
 	--shadow-sm: 0 1px 2px rgba(0,0,0,.06);
 	--shadow-md: 0 4px 12px rgba(0,0,0,.10);
-	--shadow-lg: 0 12px 32px rgba(0,0,0,.16);
 	--shadow-lg-no-ring: 0 12px 32px rgba(0,0,0,.16);
+	--shadow-lg: var(--shadow-lg-no-ring);
 	--shadow-page-sheet: -1px 0 0 var(--border), -12px 0 28px rgba(0,0,0,.12);
 	/* Text on a saturated fill, such as a danger button or a selected row.
 	   The light accent is dark enough to carry white; the dark accent is the
@@ -182,8 +185,8 @@
 		--scrim: rgba(0,0,0,.6);
 		--shadow-sm: 0 0 0 1px var(--border-strong);
 		--shadow-md: 0 0 0 1px var(--border-strong), 0 4px 12px rgba(0,0,0,.4);
-		--shadow-lg: 0 0 0 1px var(--border-strong), 0 12px 32px rgba(0,0,0,.5);
 		--shadow-lg-no-ring: 0 12px 32px rgba(0,0,0,.5);
+		--shadow-lg: 0 0 0 1px var(--border-strong), var(--shadow-lg-no-ring);
 		--shadow-page-sheet: -1px 0 0 var(--border-strong), -12px 0 28px rgba(0,0,0,.5);
 		--on-accent: #0A0A0A;
 		color-scheme: dark;
@@ -247,8 +250,8 @@
 	--scrim: rgba(0,0,0,.6);
 	--shadow-sm: 0 0 0 1px var(--border-strong);
 	--shadow-md: 0 0 0 1px var(--border-strong), 0 4px 12px rgba(0,0,0,.4);
-	--shadow-lg: 0 0 0 1px var(--border-strong), 0 12px 32px rgba(0,0,0,.5);
 	--shadow-lg-no-ring: 0 12px 32px rgba(0,0,0,.5);
+	--shadow-lg: 0 0 0 1px var(--border-strong), var(--shadow-lg-no-ring);
 	--shadow-page-sheet: -1px 0 0 var(--border-strong), -12px 0 28px rgba(0,0,0,.5);
 	--on-accent: #0A0A0A;
 	color-scheme: dark;

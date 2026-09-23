@@ -53,8 +53,9 @@
 	overflow: hidden;
 	/* The glimmer covers the area inside the card border, so its corner is
 	   tighter than the card's own corner. `ticketCardFrame` works the value out
-	   from the radius and the border width of the card, and sets it here. */
-	border-radius: var(--glimmer-radius);
+	   from the radius and the border width of its card, and sets it here. The
+	   fallback carries a card that sets no value of its own. */
+	border-radius: var(--glimmer-radius, calc(var(--radius-md) - var(--border-width-hairline)));
 	filter: blur(12px) saturate(0.72);
 	opacity: 0;
 	pointer-events: none;
