@@ -55,7 +55,7 @@ Render the same page component as the route. Do not build a compact copy of the 
 The header adds the Open full page and Close buttons, and it shows them while the page loads.
 Read `usePageSheet` where a page must differ in a sheet, such as an action that returns to a list.
 
-`pageSheetStore` holds the sheet stack: one statistics sheet, or one ticket with one pull request over it.
+`pageSheetStore` holds the sheet stack: one ticket with one pull request over it.
 `PageSheetHost` mounts once in the root shell and draws the stack.
 Open a ticket with `pageSheetActions.openTicket`, and a pull request with `pageSheetActions.openPullRequest`.
 Give a ticket name in a list the `TicketLink` component: a plain click opens the sheet, and the href keeps the ticket page for a new tab.
@@ -121,7 +121,7 @@ A long name gives way and the identifier stays. The drag preview draws the same 
 ## Epic pages
 
 The epic page shows its tickets in the full-width `TicketTable` of the project table view. It has no page-specific row and no row menu of its own.
-Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, the Statistics `IconButton`, a New wave `IconButton`, an Add `IconButton` with the `Tooltip` Add tickets, and the `Menu` with Edit and Delete.
+Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, a New wave `IconButton`, an Add `IconButton` with the `Tooltip` Add tickets, and the `Menu` with Edit and Delete.
 Every wave of the epic draws a `GroupHeader`. A wave with no ticket shows one muted line, "No tickets in this wave.", and no Start wave.
 New wave adds `Wave <n>` at the end and opens its name as a field in the header, with the text selected. Enter or blur saves, Escape keeps the name.
 A wave header holds Add tickets to this wave (a list-plus `IconButton` with the `TicketPicker`) and a Wave actions `Menu`: New ticket in this wave, Rename, Move up, Move down, and Delete wave. The menu shows the keys F2, Alt+Shift+Up, and Alt+Shift+Down, which work on a focused header.
@@ -129,16 +129,22 @@ Delete wave asks first only when the wave holds tickets. The dialog names the ti
 A ticket row drags into another wave group or into No wave. An accent outline marks the group that takes the drop. The `w` key is the keyboard path: it opens the wave picker of the focused row or of the selection.
 An epic with no ticket and no wave shows an `EmptyState` with the same New wave and Add tickets `IconButton`s as the `Topbar`.
 The page fixes the `epic` filter. By default the table groups by wave and lists the root project with its sub-projects.
-The page opens with one line for the current wave: `Current: <name>`, then `<n> to start`, `<n> running`, and `<n> wait for you`.
-A count is a link that sets the table filters inside that wave: `category=todo` for to start, `reviewer=human` for wait for you. Running is plain text, because the filter grammar has no filter for a working agent.
-The Statistics button opens a `PageSheet` with the current line, the progress text, the `StackedBar`, and its legend.
-A count link in the sheet sets the table filters and closes the sheet.
-The page holds no progress bar or legend.
+The page holds no current line, no progress bar and no legend.
 The `SectionHeader` Plan collapses the description through its Show or Hide `Button`. `uiStore` keeps its collapsed state under `<route key>#plan`.
-The current line, the plan, and the resources take at most half of the page card, so the table keeps rows on screen.
+The plan and the resources take at most half of the page card, so the table keeps rows on screen.
 The page of an archived project shows the `ArchivedBanner` of the project routes at the top of the page card. The pending page draws the same `Topbar` with the `FilterBar`, so the bar keeps its shape when the epic arrives.
 A row of the epics list page prints the current wave after the epic name in muted text: `<name> · <i> of <n>`.
 The rows of the epics list page use the `rowHeights`, the hover band, the cell text sizes, the tabular numbers, and the trailing `Menu` slot width of the ticket table `Row`.
+
+## Statistics page
+
+`/statistics` is one system page in the sidebar nav rows. It holds two blocks, each one a `section` with a `SectionHeader`.
+Block one lists every fault that no other screen reports: an agent run whose process is gone, a review message held or failed, and a flow run that waits or still runs.
+One row states one fault. It names the oldest case by ticket, counts the rest, and prints the age of that case. A fault with no case draws no row, and a page with no fault at all draws one line that says nothing is broken.
+Red marks a fault of the machine. Yellow marks the one fault a person clears, a held review message. Grey marks a flow run that still moves.
+Block two measures the review loop over the last 30 merged pull requests. It holds one table of the five changes that took the most review threads from the person, and three lines: the threads by author, the changes sent back and merged with no verdict, and the wait from ready to a verdict.
+Every figure carries a source mark: `today`, `query`, or `record`. `record` means no column holds the value, so the page prints no number for it. The page never estimates a figure.
+The page adds no second time window. At thirty merges a move of three is sampling, and the page cannot tell sampling from a change.
 
 ## Dense rows
 
