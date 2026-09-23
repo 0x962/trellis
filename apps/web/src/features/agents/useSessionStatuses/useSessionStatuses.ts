@@ -1,15 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import type { SessionStatus } from "@trellis/api";
 import { useApp } from "../../../lib/appContext";
-import { statusesBySessionId } from "../sessionStatuses";
+import { agentActivityQuery } from "../agentActivityQuery";
+import { statusesBySessionId } from "../statusesBySessionId";
 
-// The status of every session that has a live run, by session id. The sidebar
-// session list reads it to draw each row.
+// useActiveAgentCounts asks React Query for the same key, so both hooks share
+// one fetch and one 2 second poll.
 export function useSessionStatuses(): Record<string, SessionStatus> | undefined {
-	const { data } = useQuery({
-		...useApp().orpc.agentRuns.activity.queryOptions({ input: {} }),
-		refetchInterval: 2000,
-		select: statusesBySessionId,
-	});
+	const { orpc } = useApp();
+	const { data } = useQuery({ ...agentActivityQuery(orpc), select: statusesBySessionId });
 	return data;
 }

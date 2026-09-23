@@ -22,7 +22,7 @@ export function ProjectTree() {
 	const projects = useQuery(sidebarProjectsQuery(orpc));
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const expandedProjects = useUiStore((state) => state.expandedProjects);
-	const countsByProject = useActiveAgentCounts();
+	const projectAgentCounts = useActiveAgentCounts();
 	const data = projects.data;
 	// `failureCount` counts the failed tries of the fetch that runs now. A
 	// Retry click starts a new fetch, so the placeholder rows come back.
@@ -54,7 +54,7 @@ export function ProjectTree() {
 									<ProjectPages
 										project={project}
 										pathname={pathname}
-										activeAgentCount={activeAgentCountOf(countsByProject, project.id)}
+										activeAgentCount={activeAgentCountOf(projectAgentCounts, project.id)}
 									/>
 								</ul>
 							</li>

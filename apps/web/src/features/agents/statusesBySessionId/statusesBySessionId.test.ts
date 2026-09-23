@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { AgentActivity, AgentRun } from "@trellis/api";
-import { statusesBySessionId } from "./sessionStatuses";
+import { statusesBySessionId } from "./statusesBySessionId";
 
 const run = (id: string): AgentRun => ({
 	id,
