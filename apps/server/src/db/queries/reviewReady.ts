@@ -20,18 +20,20 @@ const someFlowApplies = (p: SQL) => sql`EXISTS (
 	WHERE ${flowAppliesToProject(sql`flow`, sql`ticket.project_id`)}
 )`;
 
-// True when the flow check needs no run.
+// True when the flow check needs no run. One succeeded run answers for the
+// whole pull request: a later push keeps that answer, because a flow reviews
+// the change, and a second full review of the same change costs the same
+// again and tells the person nothing new.
 export const flowAnsweredSql = (p: SQL) => sql`(
 	NOT ${someFlowApplies(p)}
 	OR NOT EXISTS (${linkedTickets(p)})
 	OR EXISTS (
 		SELECT 1 FROM pr_flow_waivers waiver
-		WHERE waiver.pull_request_id = ${p}.id AND waiver.head_sha = ${p}.head_sha
+		WHERE waiver.pull_request_id = ${p}.id
 	)
 	OR EXISTS (
 		SELECT 1 FROM flow_executions execution
 		WHERE execution.ticket_id IN (${linkedTickets(p)})
-			AND execution.head_sha = ${p}.head_sha
 			AND execution.state->>'status' = 'succeeded'
 	)
 )`;

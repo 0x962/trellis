@@ -42,9 +42,10 @@ export const markPullRequestReady = async (
 	await client.pullRequests.setLocalState({ id: resolved.id, localState: "ready" });
 };
 
-// Stores the agent's own sentence for the commit the pull request points at
-// now. The flow check then takes that sentence in place of a run, and the
-// person reads it beside the change.
+// Stores the agent's own sentence about why no flow fits. The flow check then
+// takes that sentence in place of a run, and the person reads it beside the
+// change. The stored commit says which commit the agent looked at when it
+// wrote the sentence.
 const recordFlowDoesNotApply = async (client: TrellisClient, ref: PullRequestRef, reason: string): Promise<void> => {
 	const head = await currentHead(client, ref);
 	await client.pullRequests.writeFlowWaiver({ id: ref.id, headSha: head.sha, reason });
@@ -54,7 +55,7 @@ const recordFlowDoesNotApply = async (client: TrellisClient, ref: PullRequestRef
 // document. `trellis pr add` links a pull request but opens no review, so
 // this opens it the way `trellis summary write` does.
 //
-// An agent must also have run a flow on the current head when the server
+// An agent must also have run one flow for the pull request when the server
 // holds any flow, or have said with `--flow-does-not-apply` why no flow fits.
 // A person is never held back by that, so the check runs only for an agent.
 const pullRequestReady = async (

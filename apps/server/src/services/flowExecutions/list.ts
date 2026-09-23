@@ -11,7 +11,7 @@ export async function list(ctx: ServiceCtx, tx: Tx, input: FlowExecutionListInpu
 	const ticket = input.ticket === undefined ? null : await resolveTicket(ctx, tx, input.ticket);
 	const records = await rows<{ id: string }>(
 		tx,
-		sql`SELECT id FROM flow_executions WHERE ${flow === null ? sql`true` : sql`flow_id=${flow.id}`} AND ${ticket === null ? sql`true` : sql`ticket_id=${ticket.id}`} AND ${input.headSha === undefined ? sql`true` : sql`head_sha=${input.headSha}`} ORDER BY created_at DESC,id DESC LIMIT 100`,
+		sql`SELECT id FROM flow_executions WHERE ${flow === null ? sql`true` : sql`flow_id=${flow.id}`} AND ${ticket === null ? sql`true` : sql`ticket_id=${ticket.id}`} ORDER BY created_at DESC,id DESC LIMIT 100`,
 	);
 	const results = [];
 	for (const record of records) results.push(await get(ctx, tx, record));

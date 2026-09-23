@@ -59,7 +59,7 @@ test("names each flow with the command that runs it when no flow ran", () => {
 
 	expect(pullRequestReadyText(result)).toBe(
 		`#131 is not ready for review. Add each missing item, then run: trellis ready 131
-  MISSING  flow run  no flow ran on the current head
+  MISSING  flow run  no flow ran for this pull request
     Pick the flows that fit this change and run each one:
     review  Read the diff.  trellis flows run 131 --flow review
     A flow that does not fit this change is answered in one step. Write the reason in the
@@ -110,7 +110,9 @@ const clientWith = ({
 	files: Array<{ path: string; change: "change"; additions: number; deletions: number }> | null;
 	summaryHead: { headline: string; why: string; watch: string } | null;
 	flows?: Array<{ slug: string; name: string; description: string }>;
-	runs?: Array<{ slug: string; status: string }>;
+	// `headSha` is the commit the run read. A run of an older commit answers
+	// the check the same way a run of the current head does.
+	runs?: Array<{ slug: string; status: string; headSha?: string }>;
 }): TrellisClient =>
 	({
 		pullRequests: {
@@ -123,7 +125,11 @@ const clientWith = ({
 		flows: { list: async () => flows },
 		flowExecutions: {
 			list: async () =>
-				runs.map((run) => ({ doc: { flow: { slug: run.slug, name: run.slug } }, state: { status: run.status } })),
+				runs.map((run) => ({
+					doc: { flow: { slug: run.slug, name: run.slug } },
+					headSha: run.headSha ?? "abc123",
+					state: { status: run.status },
+				})),
 		},
 	}) as unknown as TrellisClient;
 
@@ -172,7 +178,7 @@ test("asks an agent for a flow run when the server holds a flow", async () => {
 	expect(result.missing).toEqual(["flow-run"]);
 });
 
-test("takes a succeeded run of the current head as the flow run", async () => {
+test("takes a succeeded run as the flow run", async () => {
 	const result = await pullRequestReadiness(
 		clientWith({
 			...written,
@@ -185,8 +191,25 @@ test("takes a succeeded run of the current head as the flow run", async () => {
 
 	expect(result.ready).toBe(true);
 	expect(pullRequestReadyText(result)).toBe(
-		"#131 is ready for review. It has the explanation, the evidence document, and a flow run on this head. Trellis marked it ready for review.\n",
+		"#131 is ready for review. It has the explanation, the evidence document, and a flow run. Trellis marked it ready for review.\n",
 	);
+});
+
+// One flow run answers for the whole pull request. The agent pushed three
+// more commits after the run, and Trellis asks for no second run.
+test("keeps the flow run after three later commits", async () => {
+	const result = await pullRequestReadiness(
+		clientWith({
+			...written,
+			flows: [{ slug: "review", name: "Review", description: "Read the diff." }],
+			runs: [{ slug: "review", status: "succeeded", headSha: "first1" }],
+		}),
+		{ id: "01M30HDWKZ17G62PJAFHZNED2J", url: "https://github.com/acme/trellis/pull/131" },
+		{ checkFlows: true },
+	);
+
+	expect(result.missing).toEqual([]);
+	expect(result.ready).toBe(true);
 });
 
 test("asks a caller that checks no flow for nothing new", async () => {

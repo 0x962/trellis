@@ -5,8 +5,9 @@ import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 const HeadShaSchema = z.string().min(1).max(64);
 
 // What an agent wrote when it said that no flow fits its change. `reason` is
-// the sentence a person reads beside the pull request. `headSha` names the
-// commit the sentence was written about, so a new push asks the agent again.
+// the sentence a person reads beside the pull request. It answers the flow
+// check from then on. `headSha` names the commit the agent looked at when it
+// wrote the sentence.
 export const PullRequestFlowWaiverSchema = z.object({
 	pullRequestId: UlidSchema,
 	headSha: HeadShaSchema,
