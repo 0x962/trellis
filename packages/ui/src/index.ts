@@ -42,7 +42,11 @@ export {
 	prGlyphLook,
 } from "./domain/PrGlyph";
 export { type Priority, PriorityIcon, type PriorityIconProps } from "./domain/PriorityIcon";
+export { ProjectColorField, type ProjectColorFieldProps } from "./domain/ProjectColorField";
+export { ProjectKey, type ProjectKeyProps } from "./domain/ProjectKey";
+export { ProjectMark, type ProjectMarkProps } from "./domain/ProjectMark";
 export { type ModelProvider, ProviderIcon, type ProviderIconProps } from "./domain/ProviderIcon";
+export { freeProjectColors, type ProjectColor, projectColorNames, projectColors } from "./domain/projectColors";
 export { type QuotaWindow, QuotaWindows, type QuotaWindowsProps, quotaFillClass } from "./domain/QuotaWindows";
 export { type RankedBarRow, RankedBars, type RankedBarsProps } from "./domain/RankedBars";
 export {

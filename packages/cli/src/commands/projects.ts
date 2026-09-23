@@ -1,4 +1,4 @@
-import type { Project, ProjectSummary, Repo } from "@trellis/api";
+import type { Project, ProjectColor, ProjectSummary, Repo } from "@trellis/api";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
 import { compact, contextOf, noneToNull, splitList } from "../context.ts";
@@ -8,6 +8,7 @@ const projectList: ListSpec<ProjectSummary> = {
 	columns: [
 		{ name: "path", value: (row) => row.path },
 		{ name: "name", value: (row) => cell(row.name) },
+		{ name: "color", value: (row) => cell(row.color) },
 		{ name: "open", value: (row) => String(row.openCount) },
 		{ name: "archived", value: (row) => cell(row.archivedAt) },
 	],
@@ -27,6 +28,7 @@ const projectRecord: RecordSpec<Project> = {
 		{ name: "repos", value: (row) => cell(row.repos.map(repoName).join(", ")) },
 		{ name: "statuses", value: (row) => cell(row.statuses.map((status) => status.slug).join(", ")) },
 		{ name: "statusesInheritedFrom", value: (row) => cell(row.statusesInheritedFrom) },
+		{ name: "color", value: (row) => cell(row.color) },
 		{ name: "open", value: (row) => String(row.openCount) },
 		{ name: "ticketCounter", value: (row) => String(row.ticketCounter) },
 		{ name: "archived", value: (row) => cell(row.archivedAt) },
@@ -62,12 +64,20 @@ const create = defineCommand({
 		name: { type: "string", required: true, description: "Name" },
 		slug: { type: "string", description: "Slug of a sub-project" },
 		description: { type: "string", description: "Description" },
+		color: { type: "string", description: "Color: orange, teal, blue, pink, or azure" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);
 		const { args } = context;
 		const project = await clientOf(ctx).projects.create(
-			compact({ key: args.key, parent: args.parent, name: args.name, slug: args.slug, description: args.description }),
+			compact({
+				key: args.key,
+				parent: args.parent,
+				name: args.name,
+				slug: args.slug,
+				description: args.description,
+				color: args.color as ProjectColor | undefined,
+			}),
 		);
 		printRecord(ctx.out, ctx.format, project, projectRecord);
 	},

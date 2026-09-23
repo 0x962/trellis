@@ -1,12 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { cx, Tooltip, TrellisMark } from "@trellis/ui";
+import { cx, type ProjectColor, ProjectMark, Tooltip } from "@trellis/ui";
 import { projectSlashPath } from "../../../lib/projectPath";
 
 export function ProjectBreadcrumb({
 	project,
 	showName = false,
 }: {
-	project: { path: string; name: string };
+	project: { path: string; name: string; color: ProjectColor | null };
 	showName?: boolean;
 }) {
 	return (
@@ -21,7 +21,7 @@ export function ProjectBreadcrumb({
 					showName ? "max-w-40" : "w-7 justify-center max-md:w-11 pointer-coarse:w-11",
 				)}
 			>
-				<TrellisMark className="size-6 shrink-0" />
+				<ProjectMark color={project.color} className="size-6 shrink-0" />
 				{showName && <span className="truncate text-sm font-medium">{project.name}</span>}
 			</Link>
 		</Tooltip>

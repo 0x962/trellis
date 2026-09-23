@@ -1,5 +1,5 @@
 import type { ProjectSummary } from "@trellis/api";
-import { cx, Tooltip, TrellisMark } from "@trellis/ui";
+import { cx, ProjectMark, Tooltip } from "@trellis/ui";
 import { type KeyboardEvent, lazy, Suspense } from "react";
 import { formatCount } from "../../../../lib/format";
 
@@ -49,7 +49,7 @@ export function TreeRow({ project, depth, archived = false, expanded, onToggle }
 			>
 				<Tooltip content="Project">
 					<span role="img" aria-label="Project" className="sidebar-leading text-fg-faint">
-						<TrellisMark className="size-6" background={false} />
+						<ProjectMark color={project.color} className="size-6" />
 					</span>
 				</Tooltip>
 				<span data-slot="label" title={project.name} className="sidebar-label">

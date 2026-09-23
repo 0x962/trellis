@@ -15,6 +15,7 @@ const project = {
 	position: 0,
 	openCount: 12,
 	openEpicCount: 3,
+	color: null,
 	archivedAt: null,
 } satisfies ProjectSummary;
 
@@ -27,4 +28,18 @@ test("the project row toggles collapse without a link or caret slot", () => {
 	expect(html).not.toContain("<a ");
 	expect(html).not.toContain("Collapse Trellis");
 	expect(html).not.toContain("Expand Trellis");
+});
+
+test("the row draws the mark of the project in the color of the project", () => {
+	const html = renderToStaticMarkup(<TreeRow project={{ ...project, color: "teal" }} depth={0} />);
+
+	expect(html).toContain('class="project-mark inline-flex size-6" data-project-color="teal"');
+	expect(html).toContain('class="agent-ground"');
+});
+
+test("a project with no color keeps the plain mark", () => {
+	const html = renderToStaticMarkup(<TreeRow project={project} depth={0} />);
+
+	expect(html).not.toContain("project-mark");
+	expect(html).toContain('data-background="false"');
 });

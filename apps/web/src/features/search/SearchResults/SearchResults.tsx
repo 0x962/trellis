@@ -1,11 +1,10 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { EmptyState, PriorityIcon, StatusIcon, useMediaQuery } from "@trellis/ui";
+import { EmptyState, PriorityIcon, ProjectKey, StatusIcon, useMediaQuery } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 import { compactRelativeTime, formatCount } from "../../../lib/format";
 import { projectSlashPath } from "../../../lib/projectPath";
 import type { View } from "../../filters/grammar";
-import { ProjectKey } from "../../shell/ProjectKey";
 import { TicketLink } from "../../shell/TicketLink";
 import { highlight } from "../utils/highlight";
 

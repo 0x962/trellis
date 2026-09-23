@@ -1,9 +1,8 @@
 import type { ProjectSummary } from "@trellis/api";
-import { Tooltip } from "@trellis/ui";
+import { ProjectKey, Tooltip } from "@trellis/ui";
 import type { RefObject } from "react";
 import { projectSlashPath } from "../../../../../lib/projectPath";
 import { ProjectPicker } from "../../../../pickers/ProjectPicker";
-import { ProjectKey } from "../../../../shell/ProjectKey";
 import { cellButtonClass } from "../../cellButtonClass";
 
 export type ProjectCellProps = {

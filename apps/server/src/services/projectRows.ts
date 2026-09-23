@@ -71,6 +71,17 @@ export const assertSlugFree = async (tx: Tx, parentId: string, slug: string, exc
 	if (found.length > 0) throw fail("DUPLICATE", { field: "slug" });
 };
 
+// One color belongs to one project, so a person always reads two projects
+// apart by their color. `exceptId` is the project that the caller writes, so
+// a project keeps the color it already holds.
+export const assertColorFree = async (tx: Tx, color: string, exceptId: string | null) => {
+	const found = await rows<{ id: string }>(
+		tx,
+		sql`SELECT id FROM projects WHERE color = ${color} AND id IS DISTINCT FROM ${exceptId}`,
+	);
+	if (found.length > 0) throw fail("DUPLICATE", { field: "color" });
+};
+
 export const assertKeyFree = async (tx: Tx, key: string) => {
 	const found = await rows<{ id: string }>(tx, sql`SELECT id FROM projects WHERE key = ${key}`);
 	if (found.length > 0) throw fail("DUPLICATE", { field: "key" });
@@ -108,6 +119,7 @@ export const projectView = async (ctx: ServiceCtx, tx: Tx, projectId: string): P
 			path: pathOf(ctx.cache, ancestor.id),
 			slug: ancestor.slug,
 			name: ancestor.name,
+			color: ancestor.color,
 		}));
 	const effective = ctx.cache.effectiveStatuses(projectId);
 	return {

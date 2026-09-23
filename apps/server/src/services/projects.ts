@@ -7,6 +7,7 @@ import type { Tx } from "../db/tx.ts";
 import { fail, invalidInput } from "../errors.ts";
 import { changeSet } from "./changeSet.ts";
 import {
+	assertColorFree,
 	assertKeyFree,
 	assertRootNameFree,
 	assertSlugFree,
@@ -53,10 +54,12 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput)
 	} else await assertSlugFree(tx, parent.id, slug, null);
 	const position = await nextPosition(tx, parent?.id ?? null);
 	const template = input.ticketTemplate ?? (parent === null ? DEFAULT_TICKET_TEMPLATE : "");
+	if (input.color !== undefined) await assertColorFree(tx, input.color, null);
 	await tx.execute(
-		sql`INSERT INTO projects (id, parent_id, root_id, key, slug, name, description, directory, ticket_template, ticket_counter, position, archived_at, created_at, updated_at)
+		sql`INSERT INTO projects (id, parent_id, root_id, key, slug, name, description, directory, ticket_template, ticket_counter, position, color, archived_at, created_at, updated_at)
 			VALUES (${id}, ${parent?.id ?? null}, ${parent?.rootId ?? id}, ${key}, ${slug}, ${input.name},
-				${input.description ?? ""}, ${input.directory ?? ""}, ${template}, 0, ${position}, NULL, ${ctx.now}, ${ctx.now})`,
+				${input.description ?? ""}, ${input.directory ?? ""}, ${template}, 0, ${position}, ${input.color ?? null},
+				NULL, ${ctx.now}, ${ctx.now})`,
 	);
 	if (parent === null) await seedRootStatuses(ctx, tx, id);
 	await ctx.cache.rebuild(tx);
@@ -100,6 +103,8 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 		sets.push(sql`slug = ${input.key.toLowerCase()}`);
 		field("key", project.key, input.key, sql`key = ${input.key}`);
 	}
+	if (input.color !== undefined && input.color !== null) await assertColorFree(tx, input.color, project.id);
+	field("color", row.color, input.color, sql`color = ${input.color}`);
 	if (input.archived !== undefined) {
 		const archived = row.archived_at !== null;
 		field("archived", archived, input.archived, sql`archived_at = ${input.archived ? ctx.now : null}`);

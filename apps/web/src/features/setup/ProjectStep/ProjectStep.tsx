@@ -1,4 +1,4 @@
-import { Button, Input, TicketId } from "@trellis/ui";
+import { Button, Input, type ProjectColor, ProjectColorField, TicketId } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
 import { suggestKey } from "../../../lib/projectKey";
 
@@ -8,7 +8,9 @@ export type ProjectStepProps = {
 	// The names of the root projects. A new root takes none of them, compared
 	// without case.
 	takenNames: readonly string[];
-	onCreate: (input: { key: string; name: string }) => Promise<void>;
+	// The colors the other projects hold. A new project takes a free one.
+	takenColors: readonly ProjectColor[];
+	onCreate: (input: { key: string; name: string; color: ProjectColor | null }) => Promise<void>;
 };
 
 // A key is 2 to 5 characters: a letter, then letters or digits.
@@ -17,8 +19,9 @@ const keyPattern = /^[A-Z][A-Z0-9]{1,4}$/;
 // Step 2 of the first run, and the form behind "New project" later. The key
 // follows the name until the person edits it. Every edit is validated live,
 // and a valid key shows the first ticket ID it gives.
-export function ProjectStep({ taken, takenNames, onCreate }: ProjectStepProps) {
+export function ProjectStep({ taken, takenNames, takenColors, onCreate }: ProjectStepProps) {
 	const [name, setName] = useState("");
+	const [color, setColor] = useState<ProjectColor | null>(null);
 	const [editedKey, setEditedKey] = useState<string | null>(null);
 	const [pending, setPending] = useState(false);
 	const trimmed = name.trim();
@@ -39,7 +42,7 @@ export function ProjectStep({ taken, takenNames, onCreate }: ProjectStepProps) {
 	const submit = async (event: FormEvent) => {
 		event.preventDefault();
 		setPending(true);
-		await onCreate({ key, name: trimmed });
+		await onCreate({ key, name: trimmed, color });
 	};
 
 	return (
@@ -85,6 +88,7 @@ export function ProjectStep({ taken, takenNames, onCreate }: ProjectStepProps) {
 					</p>
 				)}
 			</div>
+			<ProjectColorField value={color} taken={takenColors} onValueChange={setColor} />
 			<Button type="submit" variant="primary" size="md" kbd="↵" disabled={!ready} className="w-full">
 				Create
 			</Button>

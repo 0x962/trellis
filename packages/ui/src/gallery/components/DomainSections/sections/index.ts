@@ -11,6 +11,7 @@ export { FlowRunSection } from "./FlowRunSection";
 export { LineChangesSection } from "./LineChangesSection";
 export { PrGlyphSection } from "./PrGlyphSection";
 export { PriorityIconSection } from "./PriorityIconSection";
+export { ProjectRoomSection } from "./ProjectRoomSection";
 export { ResourceListSection } from "./ResourceListSection";
 export { ReviewStatusSummarySection } from "./ReviewStatusSummarySection";
 export { RunLineSection } from "./RunLineSection";

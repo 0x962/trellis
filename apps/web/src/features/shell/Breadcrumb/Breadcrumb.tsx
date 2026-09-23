@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
+import { ProjectKey } from "@trellis/ui";
 import { Fragment } from "react";
 import { projectSlashPath } from "../../../lib/projectPath";
-import { ProjectKey } from "../ProjectKey";
 
 export type BreadcrumbProps = {
 	// The API ref of the project: `CDE.web.auth`.
