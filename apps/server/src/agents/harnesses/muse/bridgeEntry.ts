@@ -4,8 +4,8 @@ import { dirname } from "node:path";
 import { fromHarnessModel } from "@trellis/api/models";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { z } from "zod";
-import { failureReason, recordBridgeFailure, recordBridgeStop } from "../bridgeFailure/index.ts";
-import { listenForStopSignals } from "../bridgeSignals/index.ts";
+import { failureReason, failureReporter, recordBridgeFailure } from "../bridgeFailure/index.ts";
+import { listenForStopSignals, recordBridgeStop } from "../bridgeSignals/index.ts";
 import { applyTurnActivity } from "../turnActivity/turnActivity.ts";
 import type { HarnessEvent } from "../types.ts";
 import { MspClient } from "./mspClient.ts";
@@ -57,25 +57,13 @@ const host: ChildProcess = spawn(env.TRELLIS_MUSE_EXECUTABLE, ["serve", "--trust
 	env: process.env,
 	stdio: ["pipe", "pipe", "inherit"],
 });
-const { terminated, stopSignal } = listenForStopSignals();
+const { terminated, receivedSignal } = listenForStopSignals();
 let eventQueue = Promise.resolve();
 let acceptingEvents = true;
-// The race below reads `observationFailed` one time. A second failure, or a
-// failure after a signal ended the race, reaches no reader, so its reason goes
-// to the standard error stream. The runtime keeps that stream with the
-// session.
-let reportFailure!: (error: unknown) => void;
-const observationFailed = new Promise<never>((_, reject) => {
-	let first = true;
-	reportFailure = (error: unknown) => {
-		if (first) {
-			first = false;
-			reject(error);
-			return;
-		}
-		process.stderr.write(`The bridge also failed: ${failureReason(error)}\n`);
-	};
-});
+const { observationFailed, reportFailure, closeReports } = failureReporter();
+// The reason that reached the session output already. The drain in the finally
+// block holds the same rejection, and one reason reads as one failure.
+let reportedReason: string | null = null;
 // `usageQueue` runs usage writes in notification order for this bridge.
 // `observedAtMs` lets `museUsage.ts` compare writes from other bridge processes.
 let usageQueue = Promise.resolve();
@@ -225,8 +213,8 @@ async function start() {
 		onFailure: reportFailure,
 	});
 	// A failure can stop the reader before this point, and
-	// `startMuseTerminalReader` then does nothing. The hint tells a person to
-	// type, so it prints only when a reader reads the terminal.
+	// `startMuseTerminalReader` then does nothing. Nothing reads the keyboard
+	// in that case, so a hint to type would be wrong.
 	if (readerStarted) print(museTerminalHint);
 }
 // `start()` waits for Muse for as long as Muse takes. A signal that arrives in
@@ -235,16 +223,23 @@ async function start() {
 try {
 	start().catch(reportFailure);
 	await Promise.race([terminated, observationFailed]);
-	if (stopSignal() === "SIGINT") {
+	closeReports();
+	// The stop path of the runtime sends SIGKILL, so a signal here comes from a
+	// person or from another program. Each one ends a run that did not finish
+	// its work.
+	if (receivedSignal() !== null) {
 		acceptingEvents = false;
-		await recordBridgeStop({
+		reportedReason = await recordBridgeStop({
 			pendingWrites: eventQueue,
 			observe: (event) => runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, event),
 		});
+		process.exitCode = 1;
 	}
 } catch (error) {
 	const observedAtMs = Date.now();
+	closeReports();
 	acceptingEvents = false;
+	reportedReason = failureReason(error);
 	// The steps below wait for the runtime, which answers a write in up to ten
 	// seconds. A live reader would echo each typed character in that time, and
 	// Enter would start a turn on a session host that stops a moment later.
@@ -272,9 +267,10 @@ try {
 	// Muse host, and the removal of the directory can throw.
 	stopMuseTerminalReader();
 	// A signal can end the run while a write of an event is open. The process
-	// exits after this block, so both chains settle first.
+	// exits after this block, so `eventQueue` and `usageQueue` settle first.
 	await eventQueue.catch((failure: unknown) => {
-		process.stderr.write(`The bridge lost an event write: ${failureReason(failure)}\n`);
+		const dropped = failureReason(failure);
+		if (dropped !== reportedReason) process.stderr.write(`The bridge lost an event write: ${dropped}\n`);
 	});
 	await usageQueue;
 	if (host.exitCode === null && host.signalCode === null) {

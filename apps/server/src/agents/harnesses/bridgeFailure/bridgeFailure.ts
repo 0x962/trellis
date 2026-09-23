@@ -43,14 +43,32 @@ export async function recordBridgeFailure(options: {
 	});
 }
 
-// The last step of a bridge process that a person stopped. Without this event
-// the session page reads the run as one that finished its work.
-export async function recordBridgeStop(options: {
-	pendingWrites: Promise<unknown>;
-	observe: (event: HarnessEvent) => Promise<unknown>;
-}): Promise<void> {
-	await options.pendingWrites.catch(() => {});
-	await options.observe({ kind: "idle", outcome: "interrupted" }).catch((failure: unknown) => {
-		process.stderr.write(`The bridge could not record the stop: ${failureReason(failure)}\n`);
+// The reader of a failure in a bridge. Only one reader takes the rejection of
+// `observationFailed`, so a second failure, or a failure after the race of the
+// bridge ends, reaches nobody. `closeReports` marks that end, and each failure
+// after it writes its reason to the standard error stream.
+export function failureReporter(): {
+	observationFailed: Promise<never>;
+	reportFailure: (error: unknown) => void;
+	closeReports: () => void;
+} {
+	let reject!: (error: unknown) => void;
+	const observationFailed = new Promise<never>((_, rejectFailure) => {
+		reject = rejectFailure;
 	});
+	let raceOpen = true;
+	return {
+		observationFailed,
+		reportFailure: (error: unknown) => {
+			if (raceOpen) {
+				raceOpen = false;
+				reject(error);
+				return;
+			}
+			process.stderr.write(`The bridge also failed: ${failureReason(error)}\n`);
+		},
+		closeReports: () => {
+			raceOpen = false;
+		},
+	};
 }

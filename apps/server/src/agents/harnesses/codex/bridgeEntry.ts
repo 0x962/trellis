@@ -6,8 +6,8 @@ import { createInterface } from "node:readline";
 import { fromHarnessModel } from "@trellis/api/models";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { z } from "zod";
-import { failureReason, recordBridgeFailure, recordBridgeStop } from "../bridgeFailure/index.ts";
-import { listenForStopSignals } from "../bridgeSignals/index.ts";
+import { failureReason, failureReporter, recordBridgeFailure } from "../bridgeFailure/index.ts";
+import { listenForStopSignals, recordBridgeStop } from "../bridgeSignals/index.ts";
 import { applyTurnActivity } from "../turnActivity/turnActivity.ts";
 import type { HarnessEvent } from "../types.ts";
 import { CodexAppServerClient } from "./appServerClient.ts";
@@ -81,25 +81,13 @@ const engineFailed = new Promise<never>((_, reject) => {
 	engine.once("error", reject);
 	engine.once("exit", (code, signal) => reject(new Error(`Codex engine exited: ${signal ?? code}`)));
 });
-const { terminated, stopSignal, stopNormally } = listenForStopSignals();
+const { terminated, receivedSignal, stopNormally } = listenForStopSignals();
 let eventQueue = Promise.resolve();
 let acceptingEvents = true;
-// The race below reads `observationFailed` one time. A second failure, or a
-// failure after a signal ended the race, reaches no reader, so its reason goes
-// to the standard error stream. The runtime keeps that stream with the
-// session.
-let reportFailure!: (error: unknown) => void;
-const observationFailed = new Promise<never>((_, reject) => {
-	let first = true;
-	reportFailure = (error: unknown) => {
-		if (first) {
-			first = false;
-			reject(error);
-			return;
-		}
-		process.stderr.write(`The bridge also failed: ${failureReason(error)}\n`);
-	};
-});
+const { observationFailed, reportFailure, closeReports } = failureReporter();
+// The reason that reached the session output already. The drain in the finally
+// block holds the same rejection, and one reason reads as one failure.
+let reportedReason: string | null = null;
 async function start() {
 	await socketReady;
 	let parser: CodexAppServerEvents | undefined;
@@ -202,15 +190,22 @@ async function start() {
 try {
 	start().catch(reportFailure);
 	await Promise.race([terminated, engineFailed, observationFailed]);
-	if (stopSignal() === "SIGINT") {
+	closeReports();
+	// The stop path of the runtime sends SIGKILL, so a signal here comes from a
+	// person or from another program. Each one ends a run that did not finish
+	// its work.
+	if (receivedSignal() !== null) {
 		acceptingEvents = false;
-		await recordBridgeStop({
+		reportedReason = await recordBridgeStop({
 			pendingWrites: eventQueue,
 			observe: (event) => runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, event),
 		});
+		process.exitCode = 1;
 	}
 } catch (error) {
+	closeReports();
 	acceptingEvents = false;
+	reportedReason = failureReason(error);
 	await recordBridgeFailure({
 		error,
 		pendingWrites: eventQueue,
@@ -220,9 +215,10 @@ try {
 } finally {
 	acceptingEvents = false;
 	// A signal can end the run while a write of an event is open. The process
-	// exits after this block, so the chain settles first.
+	// exits after this block, so `eventQueue` settles first.
 	await eventQueue.catch((failure: unknown) => {
-		process.stderr.write(`The bridge lost an event write: ${failureReason(failure)}\n`);
+		const dropped = failureReason(failure);
+		if (dropped !== reportedReason) process.stderr.write(`The bridge lost an event write: ${dropped}\n`);
 	});
 	await Promise.all(
 		[engine, ...(terminal ? [terminal] : [])].map(async (child) => {

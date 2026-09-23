@@ -1,1 +1,1 @@
-export { listenForStopSignals } from "./bridgeSignals.ts";
+export { listenForStopSignals, recordBridgeStop } from "./bridgeSignals.ts";

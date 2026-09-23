@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { fakeRuntimeSocket, scratchHome, spawnBridge, writeExecutable } from "../bridgeTestSupport/index.ts";
+import { fakeRuntimeSocket, scratchHome, spawnBridge, writeExecutable } from "../bridgeTestFixtures/index.ts";
 
 const cleanups: (() => Promise<unknown>)[] = [];
 afterEach(async () => {
@@ -14,8 +14,8 @@ test("the Codex bridge records why it stopped when its engine gives no app serve
 	const home = await scratchHome(cleanups);
 	const runtime = await fakeRuntimeSocket(home, cleanups, () => ({}), "refused");
 	const engine = join(home, "codex-engine");
-	// The stand-in writes a plain file where the app server socket belongs, so
-	// the bridge finds the path and then fails to speak to it.
+	// The fake engine writes a plain file where the app server socket belongs,
+	// so the bridge finds the path and then fails to speak to it.
 	const executable = await writeExecutable(
 		join(home, "codex"),
 		'#!/bin/sh\n: > "$TRELLIS_CODEX_ENGINE_SOCKET"\nsleep 30\n',
