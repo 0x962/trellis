@@ -4,7 +4,7 @@ import { defineCommand } from "citty";
 import { clientOf } from "../../client.ts";
 import { type CliContext, contextOf, wantsJson } from "../../context.ts";
 import { notFound, usageError } from "../../errors.ts";
-import { cell, json, printList } from "../../output.ts";
+import { cell, json, printList, timeCell } from "../../output.ts";
 import { currentHead, resolvePullRequest } from "../pullRequestRef.ts";
 import { flowRunEnded, flowRunText } from "./flowText.ts";
 
@@ -121,7 +121,7 @@ const runs = defineCommand({
 				{ name: "FLOW", value: (record) => record.doc.flow.name },
 				{ name: "STATUS", value: (record) => record.state.status },
 				{ name: "HEAD", value: (record) => cell(record.headSha) },
-				{ name: "STARTED", value: (record) => record.createdAt },
+				{ name: "STARTED", value: (record) => timeCell(record.createdAt) },
 			],
 		});
 	},
