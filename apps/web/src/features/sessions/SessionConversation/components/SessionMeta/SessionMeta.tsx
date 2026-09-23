@@ -1,6 +1,6 @@
 import { GitBranch } from "@phosphor-icons/react";
 import type { AgentRun, AgentWorkspaceSummary } from "@trellis/api";
-import { LineChanges, Skeleton } from "@trellis/ui";
+import { CodeText, LineChanges, Skeleton } from "@trellis/ui";
 import { formatCount } from "../../../../../lib/format";
 
 export type SessionMetaProps = {
@@ -37,7 +37,7 @@ export function SessionMeta({ run, summary }: SessionMetaProps) {
 				<span className="flex min-w-0 items-center gap-1 max-md:hidden">
 					<GitBranch aria-hidden="true" className="size-3 shrink-0" />
 					<span className="sr-only">Branch </span>
-					<span className="truncate font-mono">{summary.branch}</span>
+					<CodeText className="truncate">{summary.branch}</CodeText>
 				</span>
 			)}
 			{changed ? <LineChanges value={summary} pending={false} align="start" /> : <span>No changes</span>}

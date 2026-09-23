@@ -30,7 +30,7 @@ const crispFjord = {
 	kind: "agent",
 	instruction: "Work on TRL-281.",
 	projectId: "01M24SPHTX36AJ3VKTNZ263E7V",
-	projectPath: "TRL",
+	projectKey: "TRL",
 	ticketId: "01M334MED9Z2GKBXMB6MVTED50",
 	ticketIdentifier: "TRL-281",
 	ticketTitle: "Draw no agent avatar on a ticket that no agent holds",
@@ -65,6 +65,15 @@ const render = (runs: AgentRun[]) => {
 describe("ActorAvatar", () => {
 	test("draws no avatar when no agent run is assigned", () => {
 		expect(render([])).toBe("");
+	});
+
+	test("marks an agent that starts apart from one that sits idle", () => {
+		const idle = { ...crispFjord, observation: null, processStatus: "exited" } as AgentRun;
+		const starting = { ...crispFjord, state: "starting", processStatus: null, observation: null } as AgentRun;
+
+		expect(render([idle])).not.toContain("animate-pulse-live");
+		expect(render([starting])).toContain("animate-pulse-live");
+		expect(render([starting])).toContain("crisp-fjord · agent · GPT-6 Astra · Max · starting");
 	});
 
 	test("draws the provider mark for an assigned agent run", () => {

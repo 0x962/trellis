@@ -47,8 +47,8 @@ const ticketRow = async (id: string) => {
 beforeAll(async () => {
 	db = await openTestDb();
 	await db.execute(sql`
-		INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${rootId}, ${rootId}, 'TKL', 'tkl', 'Ticket labels', ${at}, ${at})
+		INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${rootId}, 'TKL', 'tkl', 'Ticket labels', ${at}, ${at})
 	`);
 	await db.execute(sql`
 		INSERT INTO statuses (id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)

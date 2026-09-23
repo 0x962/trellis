@@ -24,13 +24,11 @@ const styles = StyleSheet.create({
 });
 
 // The four rows under the title. The Status row and the Priority row are
-// 44 px buttons named by their label. The Project row shows the path, and
+// 44 px buttons named by their label. The Project row shows the key, and
 // the Parent row shows the identifier with the title and opens the parent.
 export function PropertyGrid({ ticket, parentTitle, onStatusPress, onPriorityPress }: PropertyGridProps) {
 	const palette = usePalette();
 	const { status, parent, project } = ticket;
-	const dot = project.path.indexOf(".");
-	const rest = dot === -1 ? "" : project.path.slice(dot);
 	return (
 		<View style={styles.grid}>
 			<View style={styles.row}>
@@ -56,7 +54,6 @@ export function PropertyGrid({ ticket, parentTitle, onStatusPress, onPriorityPre
 				<PropertyCell label="Project">
 					<Text numberOfLines={1} style={[styles.value, { color: palette.fg }]}>
 						{project.key}
-						<Text style={{ color: palette.fgMuted }}>{rest}</Text>
 					</Text>
 				</PropertyCell>
 				<PropertyCell

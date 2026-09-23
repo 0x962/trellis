@@ -51,7 +51,7 @@ export function BoardCard({
 	const showLineStats = ticket.status.category === "started";
 	const ref = useRef<HTMLLIElement>(null);
 	const pickup = useCallback((message: string) => announce(message), [announce]);
-	const readOnly = useArchivedProjects().isArchived(ticket.project.path);
+	const readOnly = useArchivedProjects().isArchived(ticket.project.key);
 	const { dragging, previewFrame, positionRef, surfaceRef } = useCardDnd(
 		ref,
 		{
@@ -83,7 +83,7 @@ export function BoardCard({
 			onFocus={onFocus}
 			onKeyDown={onKeyDown}
 			className={cx(
-				"relative flex min-h-19 shrink-0 cursor-grab flex-col gap-1.5 rounded-md border-x border-b bg-surface p-3 text-base shadow-none transition-[box-shadow,border-color] duration-hover ease-out hover:shadow-kanban-hover active:cursor-grabbing",
+				"relative flex min-h-19 shrink-0 cursor-grab flex-col gap-1.5 rounded-md border bg-surface p-3 text-base shadow-none transition-[box-shadow,border-color] duration-hover ease-out hover:border-border-strong hover:shadow-sm active:cursor-grabbing",
 				"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset",
 				"data-selected:bg-accent-soft data-selected:ring-2 data-selected:ring-accent data-selected:ring-inset",
 				dragging ? "border-dashed border-border-strong opacity-40" : "border-border",

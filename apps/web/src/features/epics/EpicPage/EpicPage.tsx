@@ -4,7 +4,7 @@ import type { AgentRun, Project, TicketSummary, WaveSummary } from "@trellis/api
 import { Tabs, useMediaQuery } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
-import { epicHref, projectHref, projectSlashPath, rootKey } from "../../../lib/projectPath";
+import { epicHref, projectHref } from "../../../lib/projectUrl";
 import { useUiStore } from "../../../stores/uiStore";
 import { FilterBar } from "../../filters/FilterBar";
 import { type View, viewOf } from "../../filters/grammar";
@@ -56,10 +56,9 @@ const breadcrumbLinkClass =
 // the documents and the files of the epic, with the epic description as the
 // first document. The Statistics sheet holds the counts of the epic. The
 // table search is the URL search with `epic` fixed to this epic, and it
-// groups by wave when the URL names no group. An epic belongs to a root and
-// holds tickets of any project of that root, so the table reads the root
-// with its sub-projects, and the rows match the counts of the epic and the
-// tickets that Add offers. The filter bar receives `epic` as a fixed filter,
+// groups by wave when the URL names no group. An epic belongs to one
+// project, so the rows match the counts of the epic and the tickets that Add
+// offers. The filter bar receives `epic` as a fixed filter,
 // so it draws no epic chip and "Copy as CLI" still names the epic. Add puts
 // a ticket of the project into the epic; the bulk bar of the table and the
 // rail of the ticket page take one out. Both are ticket writes, so the ticket
@@ -74,8 +73,8 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	const ref = `${project.key}/${slug}`;
 	const epic = useQuery(orpc.epics.get.queryOptions({ input: { epic: ref } }));
 	const readOnly = project.archivedAt !== null;
-	const routeKey = epicHref(project.path, slug);
-	const splat = `${projectSlashPath(project.path)}/epics/${slug}`;
+	const routeKey = epicHref(project.key, slug);
+	const splat = `${project.key}/epics/${slug}`;
 	const [editing, setEditing] = useState(false);
 	const [deleting, setDeleting] = useState(false);
 	// The assigned runs come from the query that the actor cell of every row
@@ -123,12 +122,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 			<span aria-hidden="true" className="text-fg-faint">
 				/
 			</span>
-			<Link
-				to="/p/$"
-				params={{ _splat: `${projectSlashPath(project.path)}/epics` }}
-				search={{}}
-				className={breadcrumbLinkClass}
-			>
+			<Link to="/p/$" params={{ _splat: `${project.key}/epics` }} search={{}} className={breadcrumbLinkClass}>
 				Epics
 			</Link>
 		</span>
@@ -149,7 +143,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 		setSearch({ ...tableSearch, tab: next === "resources" ? next : undefined });
 	const filterBar = (
 		<FilterBar
-			project={project.path}
+			project={project.key}
 			search={barSearch}
 			onSearchChange={setSearch}
 			statuses={project.statuses}
@@ -159,7 +153,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 				<DisplayPopover
 					routeKey={routeKey}
 					tableKind="epic"
-					showProject={full.scope !== "self"}
+					showProject={false}
 					epicFixed
 					search={barSearch}
 					onSearchChange={setSearch}
@@ -175,7 +169,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	// its caret and its height from the first paint. Until the epic answers
 	// it carries the slug from the URL, the only name the page knows.
 	const title = (epicRef: string, name: string) => (
-		<EpicSwitcher project={project.path} epicRef={epicRef} name={name} tab={tab} />
+		<EpicSwitcher project={project.key} epicRef={epicRef} name={name} tab={tab} />
 	);
 
 	if (epic.isPending) {
@@ -264,7 +258,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 								tab === "overview" ? (
 									<fieldset disabled={readOnly} className="contents">
 										<TicketTable
-											project={rootKey(project.path)}
+											project={project.key}
 											routeKey={routeKey}
 											tableKind="epic"
 											search={tableSearch}
@@ -307,7 +301,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 				epic={record}
 				open={deleting}
 				onOpenChange={setDeleting}
-				onDeleted={() => void navigate({ href: projectHref(project.path, "epics") })}
+				onDeleted={() => void navigate({ href: projectHref(project.key, "epics") })}
 			/>
 		</>
 	);

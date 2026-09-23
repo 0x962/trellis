@@ -28,7 +28,7 @@ export function SessionPage({ id }: { id: string }) {
 						<TopbarActionButton
 							label="New session"
 							icon={<Plus />}
-							onClick={() => sessionComposerActions.open(session.projectPath)}
+							onClick={() => sessionComposerActions.open(session.projectKey)}
 						/>
 					</Tooltip>
 				}

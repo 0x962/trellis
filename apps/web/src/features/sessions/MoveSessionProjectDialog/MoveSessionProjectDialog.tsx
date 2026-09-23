@@ -33,7 +33,7 @@ export function MoveSessionProjectDialog({ session, open, onOpenChange }: MoveSe
 	});
 	const items = [
 		{ id: noProject, label: "No project", current: session.projectId === null },
-		...projectItems(selectableProjects(projects.data ?? []), session.projectPath || undefined),
+		...projectItems(selectableProjects(projects.data ?? []), session.projectKey || undefined),
 	];
 	return (
 		<Dialog

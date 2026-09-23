@@ -111,7 +111,7 @@ const seed = async (checks: Check[], options: { withTicket?: boolean } = {}) => 
 	if (options.withTicket !== false) {
 		const ticket = await run((tx) => create(core, tx, { project: "CHK", title: `Fix ${number}` }));
 		await db.execute(sql`INSERT INTO agent_runs
-			(id, name, kind, instruction, project_path, ticket_id, ticket_identifier, terminal_id, created_at, updated_at)
+			(id, name, kind, instruction, project_key, ticket_id, ticket_identifier, terminal_id, created_at, updated_at)
 			VALUES (${runId}, 'crisp-fjord', 'agent', 'Build it', '/tmp/work', ${ticket.id}, ${ticket.identifier},
 				${`term-${runId}`}, ${t0}, ${t0})`);
 		await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
@@ -133,8 +133,8 @@ const deliveries = async (ticketId: string) =>
 
 beforeAll(async () => {
 	db = await openTestDb();
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${rootId}, ${rootId}, 'CHK', 'chk', 'Checks', ${t0}, ${t0})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${rootId}, 'CHK', 'chk', 'Checks', ${t0}, ${t0})`);
 	await db.execute(sql`INSERT INTO statuses
 		(id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at)
 		VALUES (${ulid()}, ${rootId}, 'Todo', 'todo', 'todo', NULL, 'fg-muted', 0, true, ${t0}, ${t0})`);
@@ -311,9 +311,9 @@ test("a conflict on a GitHub draft, a merged pull request, or one with no ticket
 	expect(await notices(orphan.prId)).toEqual([]);
 });
 
-test("a conflict on a pull request whose local state is draft still reaches the agent", async () => {
+test("a conflict on a pull request that is not ready for review still reaches the agent", async () => {
 	const pr = await seed([]);
-	await db.execute(sql`UPDATE pull_requests SET local_state = 'draft' WHERE id = ${pr.prId}`);
+	await db.execute(sql`UPDATE pull_requests SET local_state = 'not-ready' WHERE id = ${pr.prId}`);
 	await write(later(1000), row(pr.number, "aaa1111aaaa", [], "open", "conflicting"));
 
 	await noticeChecks(db, gh, later(1000));
@@ -376,7 +376,7 @@ test("a notice reaches the newest open run of the ticket, and never a closed one
 	await db.execute(sql`UPDATE agent_runs SET closed_at = ${later(500)} WHERE id = ${pr.runId}`);
 	const second = ulid();
 	await db.execute(sql`INSERT INTO agent_runs
-		(id, name, kind, instruction, project_path, ticket_id, terminal_id, created_at, updated_at)
+		(id, name, kind, instruction, project_key, ticket_id, terminal_id, created_at, updated_at)
 		VALUES (${second}, 'brisk-pine', 'agent', 'Build it', '/tmp/work', ${pr.ticketId}, ${`term-${second}`},
 			${later(600)}, ${later(600)})`);
 	await write(later(1000), row(pr.number, "aaa1111aaaa", [], "open", "conflicting"));

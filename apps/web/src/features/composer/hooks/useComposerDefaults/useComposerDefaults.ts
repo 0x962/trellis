@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
 import type { Priority, Status } from "@trellis/api";
 import { useApp } from "../../../../lib/appContext";
-import { projectRefOfPathname } from "../../../../lib/projectPath";
+import { projectRefOfPathname } from "../../../../lib/projectUrl";
 import { parseSearch, type View } from "../../../filters/grammar";
 import type { ComposerOptions } from "../../composerStore";
 

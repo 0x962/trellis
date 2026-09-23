@@ -1,7 +1,15 @@
-import type { CiState, LocalPrState, PrState, ReviewState, StoredActorKind, TicketSummary } from "@trellis/api";
+import {
+	type CiState,
+	type LocalPrState,
+	type PrState,
+	type ReviewState,
+	readyForReview,
+	type StoredActorKind,
+	type TicketSummary,
+} from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { actorDisplayName } from "./actorDisplayName.ts";
-import { iso, pathsCte } from "./support.ts";
+import { iso } from "./support.ts";
 import { type TicketPrRow, ticketPrColumns, ticketPrJoin, toTicketPrRows } from "./ticketPrs.ts";
 
 export type SummaryRow = {
@@ -18,7 +26,6 @@ export type SummaryRow = {
 	status_color: TicketSummary["status"]["color"];
 	project_id: string;
 	project_key: string;
-	project_path: string;
 	parent_id: string | null;
 	parent_identifier: string | null;
 	epic_id: string | null;
@@ -62,13 +69,13 @@ export type SummaryRow = {
 // page rows only, so a page of 50 never touches the counts of the rest.
 export const summaryColumns = sql`
 	t.id,
-	root.key || '-' || t.number AS identifier,
+	proj.key || '-' || t.number AS identifier,
 	t.number, t.title, t.priority,
 	s.id AS status_id, s.slug AS status_slug, s.name AS status_name,
 	s.category AS status_category, s.reviewer AS status_reviewer, s.color AS status_color,
-	t.project_id, root.key AS project_key, pp.path AS project_path,
+	t.project_id, proj.key AS project_key,
 	par.id AS parent_id,
-	CASE WHEN par.id IS NULL THEN NULL ELSE root.key || '-' || par.number END AS parent_identifier,
+	CASE WHEN par.id IS NULL THEN NULL ELSE proj.key || '-' || par.number END AS parent_identifier,
 	e.id AS epic_id, e.slug AS epic_slug, e.name AS epic_name,
 	m.id AS wave_id, m.slug AS wave_slug, m.name AS wave_name,
 	anc.identifiers AS ancestors,
@@ -92,8 +99,7 @@ export const summaryJoins = sql`
 	FROM page
 	JOIN tickets t ON t.id = page.id
 	JOIN statuses s ON s.id = t.status_id
-	JOIN projects root ON root.id = t.root_id
-	JOIN paths pp ON pp.id = t.project_id
+	JOIN projects proj ON proj.id = t.project_id
 	LEFT JOIN tickets par ON par.id = t.parent_id
 	LEFT JOIN epics e ON e.id = t.epic_id
 	LEFT JOIN waves m ON m.id = t.wave_id
@@ -111,7 +117,7 @@ export const summaryJoins = sql`
 		SELECT
 			jsonb_agg(
 				jsonb_build_object(
-					'identifier', waits_root.key || '-' || blocker.number,
+					'identifier', waits_project.key || '-' || blocker.number,
 					'title', blocker.title,
 					'status', blocker_status.category
 				) ORDER BY blocker.number, blocker.id
@@ -120,19 +126,19 @@ export const summaryJoins = sql`
 		FROM ticket_deps dependency
 		JOIN tickets blocker ON blocker.id = dependency.depends_on_id
 		JOIN statuses blocker_status ON blocker_status.id = blocker.status_id
-		JOIN projects waits_root ON waits_root.id = blocker.root_id
+		JOIN projects waits_project ON waits_project.id = blocker.project_id
 		WHERE dependency.ticket_id = t.id
 	) waits ON true
 	LEFT JOIN LATERAL (
 		SELECT jsonb_agg(
 			jsonb_build_object(
-				'identifier', releases_root.key || '-' || released.number,
+				'identifier', releases_project.key || '-' || released.number,
 				'title', released.title
 			) ORDER BY released.number, released.id
 		) AS items
 		FROM ticket_deps dependency
 		JOIN tickets released ON released.id = dependency.ticket_id
-		JOIN projects releases_root ON releases_root.id = released.root_id
+		JOIN projects releases_project ON releases_project.id = released.project_id
 		WHERE dependency.depends_on_id = t.id
 	) releases ON true
 	${ticketPrJoin}
@@ -143,7 +149,7 @@ export const summaryJoins = sql`
 			SELECT a.id, a.parent_id, a.number, chain.depth + 1
 			FROM tickets a JOIN chain ON a.id = chain.parent_id
 		)
-		SELECT array_agg(root.key || '-' || chain.number ORDER BY chain.depth DESC) AS identifiers FROM chain
+		SELECT array_agg(proj.key || '-' || chain.number ORDER BY chain.depth DESC) AS identifiers FROM chain
 	) anc ON true
 	LEFT JOIN LATERAL (
 		SELECT a.actor_name, a.actor_kind, a.created_at FROM activity a
@@ -153,74 +159,81 @@ export const summaryJoins = sql`
 // A whole statement: `cte` defines `page`, and `extra` adds columns of the
 // page (a window total, a sort key) to every summary row.
 export const summaryStatement = (cte: SQL, extra: SQL, orderBy: SQL) =>
-	sql`WITH RECURSIVE ${pathsCte}, ${cte} SELECT ${summaryColumns} ${extra} ${summaryJoins} ORDER BY ${orderBy}`;
+	sql`WITH RECURSIVE ${cte} SELECT ${summaryColumns} ${extra} ${summaryJoins} ORDER BY ${orderBy}`;
 
-export const toSummary = (row: SummaryRow): TicketSummary => ({
-	id: row.id,
-	identifier: row.identifier,
-	number: row.number,
-	title: row.title,
-	priority: row.priority,
-	status: {
-		id: row.status_id,
-		slug: row.status_slug,
-		name: row.status_name,
-		category: row.status_category,
-		reviewer: row.status_reviewer,
-		color: row.status_color,
-	},
-	project: { id: row.project_id, key: row.project_key, path: row.project_path },
-	parent: row.parent_id === null ? null : { id: row.parent_id, identifier: row.parent_identifier as string },
-	ancestors: row.ancestors ?? [],
-	epic:
-		row.epic_id === null
-			? null
-			: { id: row.epic_id, ref: `${row.project_key}/${row.epic_slug}`, name: row.epic_name as string },
-	// The wave of a ticket is a wave of the epic of that ticket, so
-	// the epic slug of the row is the middle segment of the wave ref.
-	wave:
-		row.wave_id === null
-			? null
-			: {
-					id: row.wave_id,
-					ref: `${row.project_key}/${row.epic_slug}/${row.wave_slug}`,
-					name: row.wave_name as string,
-				},
-	childCount: row.child_count,
-	childDoneCount: row.child_done_count,
-	attachmentCount: row.attachment_count,
-	labels: row.labels ?? [],
-	waitsOn: row.waits_on ?? [],
-	releases: row.releases ?? [],
-	ready: row.ready,
-	pr:
-		row.pr_state === null
-			? null
-			: {
-					state: row.pr_state,
-					isDraft: row.pr_is_draft as boolean,
-					isQueued: row.pr_is_queued as boolean,
-					localState: row.pr_local_state as LocalPrState,
-					ciState: row.pr_ci_state as CiState,
-					reviewState: row.pr_review_state as ReviewState,
-					pass: row.pr_pass as number,
-					fail: row.pr_fail as number,
-					pending: row.pr_pending as number,
-					reviews: row.pr_reviews as NonNullable<TicketSummary["pr"]>["reviews"],
-				},
-	prRows: toTicketPrRows(row.pr_rows),
-	lastActor:
-		row.last_actor_name === null
-			? null
-			: {
-					name: row.last_actor_name,
-					...(row.last_actor_display_name === null ? {} : { displayName: row.last_actor_display_name }),
-					kind: row.last_actor_kind as StoredActorKind,
-					at: row.last_actor_at as string,
-				},
-	position: row.position,
-	version: row.version,
-	createdAt: row.created_at,
-	updatedAt: row.updated_at,
-	completedAt: row.completed_at,
-});
+export const toSummary = (row: SummaryRow): TicketSummary => {
+	const prRows = toTicketPrRows(row.pr_rows);
+	return {
+		id: row.id,
+		identifier: row.identifier,
+		number: row.number,
+		title: row.title,
+		priority: row.priority,
+		status: {
+			id: row.status_id,
+			slug: row.status_slug,
+			name: row.status_name,
+			category: row.status_category,
+			reviewer: row.status_reviewer,
+			color: row.status_color,
+		},
+		project: { id: row.project_id, key: row.project_key },
+		parent: row.parent_id === null ? null : { id: row.parent_id, identifier: row.parent_identifier as string },
+		ancestors: row.ancestors ?? [],
+		epic:
+			row.epic_id === null
+				? null
+				: { id: row.epic_id, ref: `${row.project_key}/${row.epic_slug}`, name: row.epic_name as string },
+		// The wave of a ticket is a wave of the epic of that ticket, so
+		// the epic slug of the row is the middle segment of the wave ref.
+		wave:
+			row.wave_id === null
+				? null
+				: {
+						id: row.wave_id,
+						ref: `${row.project_key}/${row.epic_slug}/${row.wave_slug}`,
+						name: row.wave_name as string,
+					},
+		childCount: row.child_count,
+		childDoneCount: row.child_done_count,
+		attachmentCount: row.attachment_count,
+		labels: row.labels ?? [],
+		waitsOn: row.waits_on ?? [],
+		releases: row.releases ?? [],
+		ready: row.ready,
+		pr:
+			row.pr_state === null
+				? null
+				: {
+						// The badge stands for every linked pull request, so it
+						// carries what the first one that is not ready for review
+						// still needs.
+						reviewGaps: prRows.find((pullRequest) => !readyForReview(pullRequest))?.reviewGaps ?? [],
+						state: row.pr_state,
+						isDraft: row.pr_is_draft as boolean,
+						isQueued: row.pr_is_queued as boolean,
+						localState: row.pr_local_state as LocalPrState,
+						ciState: row.pr_ci_state as CiState,
+						reviewState: row.pr_review_state as ReviewState,
+						pass: row.pr_pass as number,
+						fail: row.pr_fail as number,
+						pending: row.pr_pending as number,
+						reviews: row.pr_reviews as NonNullable<TicketSummary["pr"]>["reviews"],
+					},
+		prRows,
+		lastActor:
+			row.last_actor_name === null
+				? null
+				: {
+						name: row.last_actor_name,
+						...(row.last_actor_display_name === null ? {} : { displayName: row.last_actor_display_name }),
+						kind: row.last_actor_kind as StoredActorKind,
+						at: row.last_actor_at as string,
+					},
+		position: row.position,
+		version: row.version,
+		createdAt: row.created_at,
+		updatedAt: row.updated_at,
+		completedAt: row.completed_at,
+	};
+};

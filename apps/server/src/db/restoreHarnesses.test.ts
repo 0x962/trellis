@@ -16,7 +16,7 @@ beforeAll(async () => {
 	db = await openTestDb();
 	for (const id of ["known", "unknown", "existing", "missing", "custom"]) {
 		await db.execute(
-			sql`INSERT INTO agent_runs (id,name,runtime,kind,instruction,project_path,terminal_id,harness,created_at,updated_at) VALUES (${id},${id},'native','agent','','TST',${id},${id === "existing" ? JSON.stringify(harness) : null}::jsonb,now(),now())`,
+			sql`INSERT INTO agent_runs (id,name,runtime,kind,instruction,project_key,terminal_id,harness,created_at,updated_at) VALUES (${id},${id},'native','agent','','TST',${id},${id === "existing" ? JSON.stringify(harness) : null}::jsonb,now(),now())`,
 		);
 		if (id === "missing") continue;
 		await mkdir(join(home, "harness-attempts", id), { recursive: true });

@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
-import { pathsCte, rows } from "../../db/queries/support.ts";
+import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import type { UsageProject, UsageRun } from "./aggregate.ts";
 import type { UsageAccountRow } from "./roots.ts";
@@ -21,7 +21,7 @@ export const listUsageRuns = async (tx: Tx, home: string, cutoff: Date): Promise
 	const result = await rows<RunRow>(
 		tx,
 		sql`SELECT r.id, r.kind, r.name, r.ticket_identifier AS "ticketIdentifier",
-			t.title AS "ticketTitle", r.project_path AS "projectPath", coalesce(p.name, r.project_path) AS "projectName",
+			t.title AS "ticketTitle", r.project_key AS "projectKey", coalesce(p.name, r.project_key) AS "projectName",
 			a.name AS "accountName", r.session_id AS "sessionId"
 		FROM agent_runs r
 		LEFT JOIN tickets t ON t.id = r.ticket_id
@@ -32,26 +32,10 @@ export const listUsageRuns = async (tx: Tx, home: string, cutoff: Date): Promise
 	return result.map((run) => ({ ...run, workDir: join(home, "agents", run.id, "work") }));
 };
 
-type ProjectRow = { id: string; parentId: string | null; path: string; name: string; directory: string };
+type ProjectRow = { id: string; key: string; name: string; directory: string };
 
-// Every project with its path and the repository directory its agents use.
-// A project with no directory of its own uses the nearest ancestor that
-// has one, which is the rule the agent launch applies.
+// Every project with its key and the repository directory its agents use.
 export const listUsageProjects = async (tx: Tx): Promise<UsageProject[]> => {
-	const result = await rows<ProjectRow>(
-		tx,
-		sql`WITH RECURSIVE ${pathsCte}
-		SELECT p.id, p.parent_id AS "parentId", pp.path, p.name, p.directory
-		FROM projects p JOIN paths pp ON pp.id = p.id`,
-	);
-	const byId = new Map(result.map((project) => [project.id, project]));
-	const resolve = (project: ProjectRow): string => {
-		let current: ProjectRow | undefined = project;
-		while (current) {
-			if (current.directory !== "") return current.directory;
-			current = current.parentId === null ? undefined : byId.get(current.parentId);
-		}
-		return "";
-	};
-	return result.map((project) => ({ path: project.path, name: project.name, directory: resolve(project) }));
+	const result = await rows<ProjectRow>(tx, sql`SELECT p.id, p.key, p.name, p.directory FROM projects p`);
+	return result.map((project) => ({ key: project.key, name: project.name, directory: project.directory }));
 };

@@ -44,7 +44,7 @@ const run = async <T>(call: (ctx: ServiceCtx, tx: Tx) => Promise<T>) => {
 const ticketRows = async (identifiers: string[]) => {
 	const found = await db.execute(
 		sql`SELECT 'TUM-' || t.number AS identifier, t.version, t.status_id, t.epic_id
-			FROM tickets t WHERE t.root_id = ${rootId} ORDER BY t.number`,
+			FROM tickets t WHERE t.project_id = ${rootId} ORDER BY t.number`,
 	);
 	return (found.rows as { identifier: string; version: number; status_id: string; epic_id: string | null }[]).filter(
 		(row) => identifiers.includes(row.identifier),
@@ -59,8 +59,8 @@ const seedTicket = (title: string) => run((ctx, tx) => tickets.create(ctx, tx, {
 beforeAll(async () => {
 	db = await openTestDb();
 	await db.execute(sql`
-		INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${rootId}, ${rootId}, 'TUM', 'tum', 'Update many', ${at}, ${at})
+		INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${rootId}, 'TUM', 'tum', 'Update many', ${at}, ${at})
 	`);
 	await db.execute(sql`
 		INSERT INTO statuses (id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
@@ -140,7 +140,7 @@ test("a ref that names no ticket rolls the whole batch back", async () => {
 	expect(row).toMatchObject({ version: 1, status_id: todoId });
 	const held = await db.execute(
 		sql`SELECT count(*)::int AS n FROM ticket_labels tl JOIN tickets t ON t.id = tl.ticket_id
-			WHERE t.root_id = ${rootId} AND t.number = 4`,
+			WHERE t.project_id = ${rootId} AND t.number = 4`,
 	);
 	expect(held.rows).toEqual([{ n: 0 }]);
 	expect(updatedEvents()).toEqual([]);

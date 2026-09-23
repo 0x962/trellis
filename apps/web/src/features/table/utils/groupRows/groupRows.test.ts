@@ -175,12 +175,23 @@ describe("groupRows with a row rank", () => {
 describe("groupRows by turn", () => {
 	const turnRow = (id: string, fields: Partial<TicketSummary>) =>
 		({ ...ticket(id, runtime, phase1), waitsOn: [], prRows: [], ready: false, ...fields }) as TicketSummary;
-	const open = { number: 7, state: "open", isDraft: false, fail: 0, pending: 0, openThreads: 0 } as TicketPr;
+	const open = {
+		number: 7,
+		state: "open",
+		isDraft: false,
+		localState: "ready",
+		reviewGaps: [],
+		fail: 0,
+		pending: 0,
+		openThreads: 0,
+	} as unknown as TicketPr;
 	const humanReview = turnRow("human-review", {
 		status: { category: "started", reviewer: "human" } as TicketSummary["status"],
 	});
 	const review = turnRow("review", { prRows: [open] });
-	const draft = turnRow("draft", { prRows: [{ ...open, localState: "draft" }] });
+	const draft = turnRow("draft", {
+		prRows: [{ ...open, localState: "not-ready", reviewGaps: [{ kind: "not-asked", count: 1 }] }],
+	});
 	const blocked = turnRow("blocked", {
 		status: { category: "todo" } as TicketSummary["status"],
 		waitsOn: [{ identifier: "OP-32" } as TicketSummary["waitsOn"][number]],

@@ -1,7 +1,7 @@
 import { Plus } from "@phosphor-icons/react";
 import { useRouterState } from "@tanstack/react-router";
 import { Tooltip } from "@trellis/ui";
-import { projectRefOfPathname } from "../../../lib/projectPath";
+import { projectRefOfPathname } from "../../../lib/projectUrl";
 import { composerActions } from "../../composer";
 import { TopbarActionButton } from "../Topbar";
 

@@ -40,7 +40,7 @@ export function BoardLabels({ ticket, onClose }: BoardLabelsProps) {
 
 	return (
 		<LabelPicker
-			project={ticket.project.path}
+			project={ticket.project.key}
 			checked={ticket.labels.map((entry) => entry.id)}
 			onToggle={(label, checked) => void toggle(label, checked)}
 			finalFocus={card}

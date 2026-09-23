@@ -16,8 +16,12 @@ export type FileRiskRow = {
 	change: FileChange;
 	additions: number;
 	deletions: number;
-	// True when the person marked the file read in the header of its diff.
-	read: boolean;
+	// True when Git stores the file as bytes. The row then prints the word
+	// Binary, because a binary file has no added line and no deleted line.
+	binary: boolean;
+	// Why the file sits in its group, in plain words, such as "migration". The
+	// row prints them after the path.
+	reasons: string[];
 };
 
 export type FileRiskGroup = {
@@ -28,6 +32,8 @@ export type FileRiskGroup = {
 
 export type FileRiskGroupsProps = {
 	groups: FileRiskGroup[];
+	// The paths the person marked read in the header of their diffs.
+	read: ReadonlySet<string>;
 	// The path whose diff the pane shows. An empty string selects no row.
 	selected: string;
 	onSelect: (path: string) => void;
@@ -46,14 +52,14 @@ const GroupTree = lazy(() => import("./GroupTree/GroupTree").then((module) => ({
 // A list of file groups, in the order the caller gives. Each group header
 // shows the file count and the sum of the added and deleted lines, and each
 // group holds the directory tree of its own files.
-export function FileRiskGroups({ groups, selected, onSelect, isCollapsed, onToggle }: FileRiskGroupsProps) {
+export function FileRiskGroups({ groups, read, selected, onSelect, isCollapsed, onToggle }: FileRiskGroupsProps) {
 	const id = useId();
 	const phone = useMediaQuery("(max-width: 767px)");
 	const totals = useMemo(() => {
 		const files = groups.flatMap((group) => group.files);
 		return {
 			files: files.length,
-			read: files.filter((file) => file.read).length,
+			read: files.filter((file) => read.has(file.path)).length,
 			perGroup: groups.map((group) => ({
 				label: fileCountLabel(group.files.length),
 				lines: {
@@ -62,7 +68,7 @@ export function FileRiskGroups({ groups, selected, onSelect, isCollapsed, onTogg
 				},
 			})),
 		};
-	}, [groups]);
+	}, [groups, read]);
 	return (
 		<div className="flex flex-col">
 			<header className="flex items-baseline justify-between gap-2 px-5 py-3 max-md:px-4">
@@ -110,7 +116,13 @@ export function FileRiskGroups({ groups, selected, onSelect, isCollapsed, onTogg
 							<div id={contentId} hidden={collapsed} className="px-3 pb-2 max-md:px-2">
 								{collapsed ? null : (
 									<Suspense fallback={<Skeleton lines={group.files.length} />}>
-										<GroupTree label={group.label} files={group.files} selected={selected} onSelect={onSelect} />
+										<GroupTree
+											label={group.label}
+											files={group.files}
+											read={read}
+											selected={selected}
+											onSelect={onSelect}
+										/>
 									</Suspense>
 								)}
 							</div>

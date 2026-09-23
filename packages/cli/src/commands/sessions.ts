@@ -9,7 +9,7 @@ const sessionRecord: RecordSpec<Session> = {
 	fields: [
 		{ name: "id", value: (row) => row.id },
 		{ name: "name", value: (row) => row.name },
-		{ name: "project", value: (row) => cell(row.projectPath) },
+		{ name: "project", value: (row) => cell(row.projectKey) },
 		{ name: "directory", value: (row) => row.directory },
 		{ name: "run", value: (row) => row.runId },
 		{ name: "created", value: (row) => row.createdAt },
@@ -25,7 +25,7 @@ const sessionList: ListSpec<SessionDetail> = {
 	columns: [
 		{ name: "id", value: (row) => row.id },
 		{ name: "name", value: (row) => row.name },
-		{ name: "project", value: (row) => cell(row.projectPath) },
+		{ name: "project", value: (row) => cell(row.projectKey) },
 		{ name: "state", value: (row) => sessionStatusLabels[sessionStatus(row.run)] },
 		{ name: "last activity", value: (row) => timeCell(activityAt(row)) },
 	],

@@ -11,7 +11,7 @@ const run: Parameters<typeof launchPrompt>[0]["run"] = {
 	kind: "agent",
 	instruction: "Do the work.",
 	projectId: "01M24QC2CGYW30994FKSNMTEVP",
-	projectPath: "OP",
+	projectKey: "OP",
 	ticketId: "01M24QC2CGYW30994FKSNMTEVQ",
 	ticketIdentifier: "OP-1",
 	ticketTitle: "Task",

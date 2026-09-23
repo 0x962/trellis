@@ -38,36 +38,11 @@ export const toStatus = (row: RawStatus): StatusRow => ({
 	updatedAt: row.updated_at,
 });
 
-// The chain from a project up to its root, nearest first. The tree has no
-// maximum depth. The schema refuses parent_id = id and nothing else, so the
-// CYCLE clause ends the walk when a planted cycle repeats a project.
-const chainCte = (projectId: string) => sql`chain AS (
-	SELECT id, parent_id, 0 AS depth FROM projects WHERE id = ${projectId}
-	UNION ALL
-	SELECT p.id, p.parent_id, chain.depth + 1
-	FROM projects p JOIN chain ON p.id = chain.parent_id
-) CYCLE id SET is_cycle USING cycle_path`;
-
-const ownerSelect = sql`SELECT chain.id FROM chain
-	WHERE EXISTS (SELECT 1 FROM statuses s WHERE s.project_id = chain.id)
-	ORDER BY chain.depth LIMIT 1`;
-
-// owner(P): the nearest ancestor-or-self of P that owns statuses. Null only
-// when no ancestor owns statuses, which the root seed rules out.
-export const ownerOf = async (tx: Tx, projectId: string) => {
-	const found = await rows<{ id: string }>(tx, sql`WITH RECURSIVE ${chainCte(projectId)} ${ownerSelect}`);
-	return found[0]?.id ?? null;
-};
-
-// The statuses a project works with: its own set, or the set of owner(P),
-// in position order.
-export const effectiveStatuses = async (tx: Tx, projectId: string) => {
+// The statuses of a project, in position order.
+export const projectStatuses = async (tx: Tx, projectId: string) => {
 	const found = await rows<RawStatus>(
 		tx,
-		sql`WITH RECURSIVE ${chainCte(projectId)}, owner AS (${ownerSelect})
-			SELECT ${statusColumns} FROM statuses s
-			WHERE s.project_id = (SELECT id FROM owner)
-			ORDER BY s.position, s.id`,
+		sql`SELECT ${statusColumns} FROM statuses s WHERE s.project_id = ${projectId} ORDER BY s.position, s.id`,
 	);
 	return found.map(toStatus);
 };

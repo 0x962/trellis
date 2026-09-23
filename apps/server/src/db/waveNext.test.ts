@@ -52,8 +52,12 @@ const insertPullRequest = async (
 		draft?: boolean;
 		fetched?: boolean;
 		fetchError?: string;
-		localState?: "draft" | "ready";
+		localState?: "not-ready" | "ready";
 		openThread?: boolean;
+		// The explanation of the current commit and the evidence document.
+		// `reviewGaps` asks for both, so a pull request holds them here
+		// unless a test takes them away.
+		parts?: boolean;
 	} = {},
 ) => {
 	const id = ulid();
@@ -66,14 +70,25 @@ const insertPullRequest = async (
 			: buckets.includes("pass")
 				? "pass"
 				: "none";
+	const headSha = `head-${prNumber}`;
 	await db.execute(sql`INSERT INTO pull_requests (
-		id, owner, repo, number, url, state, is_draft, local_state, checks, ci_state, fetched_at, fetch_error, created_at, updated_at
+		id, owner, repo, number, url, state, is_draft, local_state, head_sha, checks, ci_state, fetched_at, fetch_error, created_at, updated_at
 	) VALUES (
 		${id}, 'acme', 'app', ${prNumber}, ${`https://github.com/acme/app/pull/${prNumber}`},
-		'open', ${options.draft ?? false}, ${options.localState ?? "ready"}, ${JSON.stringify(checks)}::jsonb, ${ciState},
+		'open', ${options.draft ?? false}, ${options.localState ?? "ready"}, ${headSha}, ${JSON.stringify(checks)}::jsonb, ${ciState},
 		${options.fetched === false ? null : "2026-09-18T10:00:00.000Z"}, ${options.fetchError ?? null},
 		'2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z'
 	)`);
+	if (options.parts !== false) {
+		await db.execute(sql`INSERT INTO pr_summaries
+			(pull_request_id, head_sha, headline, why, watch, created_at, updated_at)
+			VALUES (${id}, ${headSha}, 'It changes the page.', 'The page was wrong.', 'nothing',
+				'2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
+		await db.execute(sql`INSERT INTO pr_evidence_documents
+			(pull_request_id, head_sha, body, actor_name, actor_kind, created_at, updated_at)
+			VALUES (${id}, ${headSha}, 'Proof.', 'Test', 'human',
+				'2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
+	}
 	await db.execute(sql`INSERT INTO ticket_pull_requests (
 		ticket_id, pull_request_id, source, actor_name, actor_kind, created_at
 	) VALUES (${ticketId}, ${id}, 'manual', 'Test', 'human', '2026-09-18T10:00:00.000Z')`);
@@ -89,8 +104,8 @@ const next = async (ctx: ServiceCtx) => {
 
 beforeAll(async () => {
 	db = await openTestDb();
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${tst}, ${tst}, 'TST', 'tst', 'TST', '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${tst}, 'TST', 'tst', 'TST', '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
 	await insertStatus("Todo", "todo", "todo", null, 0);
 	await insertStatus("In Progress", "in-progress", "started", null, 1);
 	await insertStatus("Human Review", "human-review", "review", "human", 2);
@@ -145,7 +160,7 @@ test("a wave counts ready tickets and tickets that wait for the person", async (
 	});
 	await insertPullRequest((await ticket(ctx, "Draft review", "surfaces", "in-progress")).id, 13, {
 		draft: true,
-		localState: "draft",
+		localState: "not-ready",
 	});
 	await insertPullRequest((await ticket(ctx, "Pending review", "surfaces", "in-progress")).id, 4, {
 		checks: [{ bucket: "pending" }],
@@ -168,7 +183,7 @@ test("a wave counts ready tickets and tickets that wait for the person", async (
 	});
 	const mixedReview = await ticket(ctx, "Mixed review", "surfaces", "in-progress");
 	await insertPullRequest(mixedReview.id, 11, { checks: [{ bucket: "pass" }] });
-	await insertPullRequest(mixedReview.id, 12, { draft: true, localState: "draft" });
+	await insertPullRequest(mixedReview.id, 12, { draft: true, localState: "not-ready" });
 	expect(await next(ctx)).toEqual([
 		["foundation", "done", 0, 0],
 		["surfaces", "open", 2, 3],

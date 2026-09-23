@@ -1,6 +1,6 @@
 import { useRouterState } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { parseProjectSplat } from "../../lib/projectPath";
+import { parseProjectSplat } from "../../lib/projectUrl";
 
 // The name of the page at `pathname`, or null for a page with no name of
 // its own.

@@ -15,7 +15,7 @@ import {
 	Tray,
 } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
-import { projectHref } from "../../../../lib/projectPath";
+import { projectHref } from "../../../../lib/projectUrl";
 import { toggleTheme } from "../../../../lib/theme";
 import { uiActions, useUiStore } from "../../../../stores/uiStore";
 import { composerActions } from "../../../composer";
@@ -30,7 +30,6 @@ import { routeDefaults } from "../routeDefaults";
 const icons: Record<string, ReactNode> = {
 	"create.ticket": <Plus />,
 	"create.project": <FolderPlus />,
-	"create.subProject": <FolderPlus />,
 	"goto.needsYou": <Tray />,
 	"goto.board": <SquaresFour />,
 	"goto.table": <Table />,
@@ -68,10 +67,6 @@ export const createRows = (deps: RowDeps): PaletteRow[] => {
 		"create.ticket": run(deps, () => composerActions.open(defaults)),
 		"create.project": run(deps, () => deps.action.navigate("/setup?step=project")),
 	};
-	if (deps.routeProject !== null) {
-		const project = deps.routeProject;
-		runs["create.subProject"] = run(deps, () => deps.action.navigate(projectHref(project, "settings")));
-	}
 	return rowsOf("create", runs);
 };
 
@@ -99,7 +94,7 @@ export const gotoProjectRows = (deps: RowDeps): PaletteRow[] =>
 	projectRows(
 		deps.projects,
 		(project) => `goto.project.${project.id}`,
-		(project) => run(deps, () => deps.action.navigate(projectHref(project.path, "table"))),
+		(project) => run(deps, () => deps.action.navigate(projectHref(project.key, "table"))),
 	);
 
 export const viewRows = (deps: RowDeps): PaletteRow[] => {

@@ -26,7 +26,6 @@ const flags: readonly Flag[] = [
 	{ key: "completed", flag: "--completed" },
 	{ key: "sort", flag: "--sort" },
 	{ key: "limit", flag: "--limit" },
-	{ key: "subprojects", flag: "--subprojects", boolean: true },
 ];
 
 const quote = (value: string) => (/[\s"]/.test(value) ? `"${value.replace(/"/g, '\\"')}"` : value);

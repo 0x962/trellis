@@ -5,13 +5,15 @@ import { Button, Input, Sheet, SheetBody, SheetFooter, Textarea } from "@trellis
 import { useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { LaunchFields } from "../../../../agents/LaunchFields";
+import { FlowProjectSelect } from "../../../FlowProjectSelect";
 import { flowHarnessOf, harnessOfFlow, sameFlowHarness } from "../../../flowHarness";
+import { projectRefOfSelectValue, selectValueOfProjectKey } from "../../../flowProject";
 
 type FlowSettingsSheetProps = { flow: Flow; onSaved: (flow: Flow) => void; onClose: () => void };
 
-// The name, the slug, the description, the briefing, and the harness of a
-// flow. Every agent of the flow reads the briefing before its own
-// instruction, and every step that names no harness launches with the
+// The project, the name, the slug, the description, the briefing, and the
+// harness of a flow. Every agent of the flow reads the briefing before its
+// own instruction, and every step that names no harness launches with the
 // harness of the flow.
 export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetProps) {
 	const { client, orpc, queryClient } = useApp();
@@ -21,11 +23,13 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 	const [slug, setSlug] = useState(flow.slug);
 	const [description, setDescription] = useState(flow.description);
 	const [briefing, setBriefing] = useState(flow.briefing);
+	const [project, setProject] = useState(selectValueOfProjectKey(flow.project));
 	const [harness, setHarness] = useState(harnessOfFlow(flow.harness));
 	const [confirmDelete, setConfirmDelete] = useState(false);
 	const slugValid = FlowSlugSchema.safeParse(slug).success;
 	const valid = name.trim() !== "" && slugValid;
 	const dirty =
+		project !== selectValueOfProjectKey(flow.project) ||
 		name !== flow.name ||
 		slug !== flow.slug ||
 		description !== flow.description ||
@@ -35,6 +39,7 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 		mutationFn: () =>
 			client.flows.update({
 				flow: flow.id,
+				project: projectRefOfSelectValue(project),
 				name,
 				slug,
 				description,
@@ -74,6 +79,12 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 				}}
 			>
 				<SheetBody>
+					<FlowProjectSelect
+						value={project}
+						disabled={pending}
+						hint="Trellis does not accept a pull request of this project until one flow of the project has a run."
+						onChange={setProject}
+					/>
 					<Input
 						ref={nameRef}
 						label="Name"

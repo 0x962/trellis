@@ -16,7 +16,6 @@ export type Change = {
 // `batchId` groups the rows of one mutation; a caller that writes several
 // tickets in one mutation passes the same id to every call.
 export type RecordInput = {
-	rootId: string;
 	projectId: string;
 	ticketId: string | null;
 	action: string;
@@ -47,8 +46,8 @@ export const record = async (ctx: ServiceCtx, tx: Tx, input: RecordInput) => {
 		};
 		const inserted = await rows<{ id: number }>(
 			tx,
-			sql`INSERT INTO activity (batch_id, root_id, project_id, ticket_id, actor_name, actor_kind, action, field, from_value, to_value, meta, created_at)
-				VALUES (${batchId}, ${input.rootId}, ${input.projectId}, ${input.ticketId}, ${actor.name}, ${actor.kind}, ${input.action},
+			sql`INSERT INTO activity (batch_id, project_id, ticket_id, actor_name, actor_kind, action, field, from_value, to_value, meta, created_at)
+				VALUES (${batchId}, ${input.projectId}, ${input.ticketId}, ${actor.name}, ${actor.kind}, ${input.action},
 					${change.field}, ${isDescription ? null : change.from}, ${isDescription ? null : change.to},
 					${JSON.stringify(meta)}::jsonb, ${ctx.now})
 				RETURNING id`,

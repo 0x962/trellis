@@ -3,7 +3,7 @@ import type { ProjectSummary } from "@trellis/api";
 import { toast } from "@trellis/ui";
 import { useApp } from "../../../../lib/appContext";
 
-type ProjectRef = Pick<ProjectSummary, "path" | "name">;
+type ProjectRef = Pick<ProjectSummary, "key" | "name">;
 
 // Archive, unarchive, and delete. The sidebar row menu, the project settings,
 // and the archived banner share them. A write the server refuses shows a
@@ -14,7 +14,7 @@ export const useProjectActions = () => {
 
 	const setArchived = async (project: ProjectRef, archived: boolean) => {
 		try {
-			await client.projects.update({ project: project.path, archived });
+			await client.projects.update({ project: project.key, archived });
 		} catch (error) {
 			toast.error(`Could not ${archived ? "archive" : "unarchive"} ${project.name}`, {
 				description: (error as Error).message,
@@ -29,7 +29,7 @@ export const useProjectActions = () => {
 	// asks the server for the deleted project. Returns true on a delete.
 	const remove = async (project: ProjectRef, force: boolean) => {
 		try {
-			await client.projects.delete(force ? { project: project.path, force: true } : { project: project.path });
+			await client.projects.delete(force ? { project: project.key, force: true } : { project: project.key });
 		} catch (error) {
 			toast.error(`Could not delete ${project.name}`, { description: (error as Error).message });
 			return false;

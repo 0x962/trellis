@@ -14,7 +14,6 @@ import type { EpicSummary, StatusSummary, WaveSummary } from "@trellis/api";
 import { Chip, LabelDot, PriorityIcon, StatusIcon } from "@trellis/ui";
 import type { ReactElement } from "react";
 import { useApp } from "../../../lib/appContext";
-import { rootKey } from "../../../lib/projectPath";
 import { useEpicWaves } from "../../pickers/hooks/useEpicWaves";
 import {
 	type FilterField,
@@ -33,7 +32,7 @@ export type FilterChipProps = {
 	field: FilterField;
 	view: View;
 	statuses: readonly StatusSummary[];
-	// The labels of the project tree the route shows. It is empty on a route
+	// The labels of the project the route shows. It is empty on a route
 	// with no project, where the Label field never gets a chip.
 	labels: readonly FilterLabel[];
 	// The project ref of the route. An epic chip names its epic from the
@@ -122,7 +121,7 @@ export function FilterChip({ field, view, statuses, labels, project, onChange, o
 	const actors = useQuery({ ...orpc.actors.list.queryOptions({ input: {} }), enabled: field === "actor" }).data ?? [];
 	const epics =
 		useQuery({
-			...orpc.epics.list.queryOptions({ input: { project: project === undefined ? "" : rootKey(project) } }),
+			...orpc.epics.list.queryOptions({ input: { project: project === undefined ? "" : project } }),
 			enabled: field === "epic" && project !== undefined,
 		}).data ?? [];
 	const values = valuesOf(view, field);

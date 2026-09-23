@@ -59,17 +59,17 @@ beforeAll(async () => {
 	db = await openTestDb();
 	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
 		VALUES ('Test', 'human', ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${root}, ${root}, 'TST', 'tst', 'Test', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${root}, 'TST', 'tst', 'Test', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses (
 		id, project_id, name, slug, category, color, position, is_default, created_at, updated_at
 	) VALUES (${status}, ${root}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO tickets (
-		id, project_id, root_id, number, title, status_id, position, created_at, updated_at
+		id, project_id, number, title, status_id, position, created_at, updated_at
 	) VALUES
-		(${ticket}, ${root}, ${root}, 1, 'Task', ${status}, 0, ${at}, ${at}),
-		(${emptyTicket}, ${root}, ${root}, 2, 'Empty task', ${status}, 1, ${at}, ${at}),
-		(${deletedTestTicket}, ${root}, ${root}, 4, 'Deleted test task', ${status}, 3, ${at}, ${at})`);
+		(${ticket}, ${root}, 1, 'Task', ${status}, 0, ${at}, ${at}),
+		(${emptyTicket}, ${root}, 2, 'Empty task', ${status}, 1, ${at}, ${at}),
+		(${deletedTestTicket}, ${root}, 4, 'Deleted test task', ${status}, 3, ${at}, ${at})`);
 
 	const first = await insertPull({
 		number: 1,
@@ -146,7 +146,7 @@ beforeAll(async () => {
 	}
 	const reviewerAttemptId = ulid();
 	await db.execute(sql`INSERT INTO agent_runs (
-		id, name, kind, instruction, project_id, project_path, ticket_id, ticket_identifier,
+		id, name, kind, instruction, project_id, project_key, ticket_id, ticket_identifier,
 		session_id, created_at, updated_at
 	) VALUES (
 		${reviewerRunId}, 'Code Reviewer', 'flow', 'Review the pull request.', ${root}, '/tmp/test', ${ticket},

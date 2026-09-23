@@ -47,7 +47,7 @@ const epicList: ListSpec<EpicSummary> = {
 		{ name: "state", value: (row) => row.state },
 		{ name: "progress", value: progress },
 		{ name: "name", value: (row) => cell(row.name) },
-		{ name: "project", value: (row) => row.projectPath },
+		{ name: "project", value: (row) => row.projectKey },
 		{ name: "updated", value: (row) => shortZonedDateTime(row.updatedAt) },
 	],
 	identifier: (row) => row.ref,
@@ -66,7 +66,7 @@ const epicRecord: RecordSpec<EpicSummary> = {
 		{ name: "id", value: (row) => row.id },
 		{ name: "name", value: (row) => cell(row.name) },
 		{ name: "slug", value: (row) => row.slug },
-		{ name: "project", value: (row) => row.projectPath },
+		{ name: "project", value: (row) => row.projectKey },
 		{ name: "state", value: (row) => row.state },
 		{ name: "progress", value: progress },
 		{ name: "counts", value: countsText },
@@ -83,7 +83,7 @@ const deletedRecord: RecordSpec<{ id: string }> = {
 };
 
 const list = defineCommand({
-	meta: { name: "list", description: "List the epics of a project and its sub-projects, open first" },
+	meta: { name: "list", description: "List the epics of a project, open first" },
 	args: { project: projectArg },
 	async run(context) {
 		const ctx = contextOf(context);
@@ -173,7 +173,7 @@ const create = defineCommand({
 	args: {
 		project: projectArg,
 		name: { type: "string", required: true, description: "Name, 1 to 120 characters" },
-		slug: { type: "string", description: "Slug, unique in the root project; derives from the name when absent" },
+		slug: { type: "string", description: "Slug, unique in the project; derives from the name when absent" },
 		description: { type: "string", description: "Markdown plan, or - for stdin" },
 	},
 	async run(context) {
