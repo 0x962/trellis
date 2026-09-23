@@ -31,7 +31,7 @@ export const tokens = {
 		bg: "#070707",
 		surface: "#111112",
 		elevated: "#1C1C1E",
-		border: "#242425",
+		border: "#1F1F21",
 		borderStrong: "#323234",
 		fg: "#E8E8EA",
 		fgMuted: "#BBBBBF",

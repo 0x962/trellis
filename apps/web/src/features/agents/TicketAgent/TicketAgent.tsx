@@ -30,7 +30,7 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 		onError: (error) => toast.error(error.message),
 	});
 	return (
-		<section aria-label="Agent assignment" className="flex flex-col border-t border-border pt-3 pb-1">
+		<section aria-label="Agent assignment" className="flex flex-col pt-3 pb-1">
 			{query.isPending ? (
 				<p role="status" className="text-sm text-fg-faint">
 					Load agents…

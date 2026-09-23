@@ -24,10 +24,7 @@ export function PropertiesRail({ ticket, variant }: PropertiesRailProps) {
 		);
 	}
 	return (
-		<aside
-			aria-label="Properties"
-			className="min-h-0 w-70 shrink-0 overflow-y-auto page-card border-l border-border px-4 py-3"
-		>
+		<aside aria-label="Properties" className="min-h-0 w-70 shrink-0 overflow-y-auto page-card px-4 py-3">
 			<dl className="flex flex-col gap-0.5">
 				<PickerRows ticket={ticket} />
 				{agent}
