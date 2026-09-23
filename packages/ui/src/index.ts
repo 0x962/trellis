@@ -5,6 +5,7 @@ export { type Check, type CheckBucket, CheckRibbon, type CheckRibbonProps } from
 export { CheckRing, type CheckRingCounts, type CheckRingProps } from "./domain/CheckRing";
 export { type ChartTone, otherTone, rankedTones } from "./domain/chartTones";
 export { DisplayPopover, type DisplayPopoverProps, type DisplaySortField } from "./domain/DisplayPopover";
+export { DoneWash, type DoneWashProps, doneWashMs, waveFillMs } from "./domain/DoneWash";
 export { FilterBar } from "./domain/FilterBar";
 export { FilterPopover, type FilterPopoverProps } from "./domain/FilterPopover";
 export { FlowDecisionContext } from "./domain/FlowDecisionContext";
@@ -99,6 +100,7 @@ export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from ".
 export { Checkbox, type CheckboxProps } from "./primitives/Checkbox";
 export { Chip, type ChipProps } from "./primitives/Chip";
 export { ChoiceGroup, type ChoiceGroupOption, type ChoiceGroupProps } from "./primitives/ChoiceGroup";
+export { CodeText, type CodeTextProps } from "./primitives/CodeText";
 export {
 	Command,
 	type CommandFieldProps,
@@ -113,6 +115,7 @@ export { ConfirmDialog, type ConfirmDialogProps } from "./primitives/ConfirmDial
 export { Dialog, type DialogProps } from "./primitives/Dialog";
 export { EmptyState, type EmptyStateProps } from "./primitives/EmptyState";
 export { EntityCard, type EntityCardProps } from "./primitives/EntityCard";
+export { Field, type FieldProps } from "./primitives/Field";
 export { IconButton, type IconButtonProps } from "./primitives/IconButton";
 export { Input, type InputProps } from "./primitives/Input";
 export { Kbd, type KbdProps } from "./primitives/Kbd";

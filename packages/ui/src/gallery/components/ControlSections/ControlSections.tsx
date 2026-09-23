@@ -4,6 +4,7 @@ import { LabelDot } from "../../../domain/LabelDot";
 import { type LabelColor, labelColors } from "../../../domain/labelColors";
 import { Button } from "../../../primitives/Button";
 import { Checkbox } from "../../../primitives/Checkbox";
+import { Field } from "../../../primitives/Field";
 import { IconButton } from "../../../primitives/IconButton";
 import { Input } from "../../../primitives/Input";
 import { Segmented } from "../../../primitives/Segmented";
@@ -115,6 +116,27 @@ export function ControlSections() {
 				<Select label="Priority" items={priorities} value={priority} onValueChange={setPriority} />
 				<Select label="Locked" items={priorities} value="low" onValueChange={() => {}} disabled />
 				<Select label="Label color" items={hues} value={hue} onValueChange={setHue} />
+			</Section>
+			<Section name="Field" note="a hint; an error hint; no hint; a hidden label" className="items-start">
+				<Field label="Project" hint="Trellis asks this project for a flow run.">
+					<Select label="Project" items={priorities} value={priority} onValueChange={setPriority} />
+				</Field>
+				<Field
+					label="Project"
+					hint={
+						<span role="alert" className="text-danger">
+							Could not load the projects.
+						</span>
+					}
+				>
+					<Select label="Project" items={priorities} value={priority} onValueChange={setPriority} />
+				</Field>
+				<Field label="Project">
+					<Select label="Project" items={priorities} value={priority} onValueChange={setPriority} />
+				</Field>
+				<Field label="Project" hideLabel>
+					<Select label="Project" items={priorities} value={priority} onValueChange={setPriority} />
+				</Field>
 			</Section>
 			<Section name="Checkbox" note="unchecked, checked, mixed, disabled">
 				<Checkbox label="Done" checked={done} onCheckedChange={setDone} />

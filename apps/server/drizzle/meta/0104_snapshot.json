@@ -1,5 +1,5 @@
 {
-  "id": "3d14c8d9-5fd5-4670-bfff-4a5884a2b9f3",
+  "id": "7f5451f4-8097-401e-ba79-70c02df50853",
   "prevId": "9ea2c130-49d2-4204-8611-53a787aaf20a",
   "version": "7",
   "dialect": "postgresql",
@@ -3804,12 +3804,6 @@
           "notNull": true,
           "default": "'ready'"
         },
-        "ready_for_review_at": {
-          "name": "ready_for_review_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
         "review_retained": {
           "name": "review_retained",
           "type": "boolean",
@@ -3974,7 +3968,7 @@
         },
         "pull_requests_local_state_check": {
           "name": "pull_requests_local_state_check",
-          "value": "\"pull_requests\".\"local_state\" IN ('not-ready', 'ready')"
+          "value": "\"pull_requests\".\"local_state\" IN ('draft', 'ready')"
         },
         "pull_requests_ci_state_check": {
           "name": "pull_requests_ci_state_check",
@@ -4256,6 +4250,24 @@
           "primaryKey": false,
           "notNull": false
         },
+        "author_name": {
+          "name": "author_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "author_kind": {
+          "name": "author_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "author_run_id": {
+          "name": "author_run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "state": {
           "name": "state",
           "type": "text",
@@ -4366,6 +4378,19 @@
           "tableTo": "agent_runs",
           "columnsFrom": [
             "run_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "review_deliveries_author_run_id_agent_runs_id_fk": {
+          "name": "review_deliveries_author_run_id_agent_runs_id_fk",
+          "tableFrom": "review_deliveries",
+          "tableTo": "agent_runs",
+          "columnsFrom": [
+            "author_run_id"
           ],
           "columnsTo": [
             "id"

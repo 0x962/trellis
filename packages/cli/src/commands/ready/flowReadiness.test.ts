@@ -6,6 +6,7 @@ import {
 	flowReadiness,
 	flowRunMissingLines,
 	flowRunMissingSummary,
+	flowSkippedLines,
 	flowWaivedLines,
 } from "./flowReadiness.ts";
 
@@ -16,6 +17,7 @@ const readiness = (runs: FlowReadiness["runs"]): FlowReadiness => ({
 	flows: [flow("review", "Review", "Read the diff and report every fault."), flow("e2e", "End to end", "")],
 	runs,
 	waived: null,
+	skipped: null,
 	satisfied: runs.some((run) => run.status === "succeeded"),
 });
 
@@ -29,8 +31,14 @@ const clientWith = (
 	waiver: { headSha: string; reason: string } | null = null,
 ) => {
 	const sent: unknown[] = [];
+	const asked: unknown[] = [];
 	const client = {
-		flows: { list: async () => flows },
+		flows: {
+			list: async (input: unknown) => {
+				asked.push(input);
+				return flows;
+			},
+		},
 		flowExecutions: {
 			list: async (input: unknown) => {
 				sent.push(input);
@@ -42,24 +50,34 @@ const clientWith = (
 		},
 		pullRequests: { readFlowWaiver: async () => waiver },
 	} as unknown as TrellisClient;
-	return { client, sent };
+	return { client, sent, asked };
 };
 
-test("asks for nothing when the server holds no flow", async () => {
+test("asks for nothing when the project holds no flow", async () => {
 	const { client } = clientWith([], []);
 
 	expect(await flowReadiness(client, ref, "OP-74", "abc123")).toEqual({
 		flows: [],
 		runs: [],
 		waived: null,
+		skipped: "no-flow",
 		satisfied: true,
 	});
 });
 
 test("asks for nothing when no ticket links the pull request", async () => {
-	const { client } = clientWith([flow("review", "Review", "")], []);
+	const { client, asked } = clientWith([flow("review", "Review", "")], []);
 
 	expect((await flowReadiness(client, ref, null, "abc123")).satisfied).toBe(true);
+	expect(asked).toEqual([]);
+});
+
+test("asks the server for the flows of the ticket's project only", async () => {
+	const { client, asked } = clientWith([flow("review", "Review", "")], []);
+
+	await flowReadiness(client, ref, "OP-74", "abc123");
+
+	expect(asked).toEqual([{ ticket: "OP-74" }]);
 });
 
 test("asks the server for the runs of the current head only", async () => {
@@ -162,6 +180,16 @@ test("drops a sentence written about an older head", async () => {
 
 	expect(result.waived).toBeNull();
 	expect(result.satisfied).toBe(false);
+});
+
+test("says why it asked for no flow run", () => {
+	expect(flowSkippedLines({ ...readiness([]), skipped: "no-flow" })).toEqual([
+		"  No flow applies to the project of this pull request, so Trellis asked for no flow run.",
+	]);
+	expect(flowSkippedLines({ ...readiness([]), skipped: "no-ticket" })).toEqual([
+		"  No ticket links this pull request, so Trellis asked for no flow run.",
+	]);
+	expect(flowSkippedLines(readiness([]))).toEqual([]);
 });
 
 test("prints the agent's sentence for the person", () => {

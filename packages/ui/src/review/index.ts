@@ -4,6 +4,7 @@ export { type CheckStatus, CheckStatusIcon } from "./CheckStatusIcon";
 export { ChecksLine, type ChecksLineBucket, type ChecksLineCheck } from "./ChecksLine";
 export { type FileRiskGroup, FileRiskGroups, fileCountLabel } from "./FileRiskGroups";
 export { insertBlock, ReviewCommentEditor } from "./ReviewCommentEditor";
+export { type ThreadPlacement, threadDiffLine } from "./ReviewDiff/carryThreads";
 export { type DiffAnchor, ReviewDiff } from "./ReviewDiff/ReviewDiff";
 export { ReviewStatus } from "./ReviewStatus/ReviewStatus";
 export { ReviewSuggestion, type ReviewSuggestionLine, type ReviewSuggestionState } from "./ReviewSuggestion";

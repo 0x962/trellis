@@ -7,13 +7,16 @@ import type { PullRequestRef } from "../pullRequestRef.ts";
 type CurrentHeadRun = { slug: string; name: string; status: string };
 
 export type FlowReadiness = {
-	// Every flow the server holds. If this list is empty, `trellis ready` asks
-	// for no flow run.
+	// The flows of the pull request's project, and the flows that belong to
+	// every project. If this list is empty, `trellis ready` asks for no flow
+	// run.
 	flows: FlowSummary[];
 	runs: CurrentHeadRun[];
 	// What the agent wrote when it said that no flow fits this change at this
 	// head. It answers the check in place of a run.
 	waived: string | null;
+	// Why the check asked for no flow run. null when it asked for one.
+	skipped: "no-ticket" | "no-flow" | null;
 	satisfied: boolean;
 };
 
@@ -22,27 +25,34 @@ export type FlowReadiness = {
 // so the pull request is not ready and the agent runs the flow again.
 const answersTheCheck = (run: CurrentHeadRun) => run.status === "succeeded";
 
-// A flow runs against a ticket. If no ticket links the pull request,
-// `trellis ready` asks for no flow run.
+// A flow runs against a ticket, and the ticket names the project whose flows
+// the check asks for. If no ticket links the pull request, `trellis ready`
+// asks for no flow run.
 export const flowReadiness = async (
 	client: TrellisClient,
 	ref: PullRequestRef,
 	ticket: string | null,
 	headSha: string,
 ): Promise<FlowReadiness> => {
-	const flows = await client.flows.list({});
-	if (flows.length === 0 || ticket === null) return { flows, runs: [], waived: null, satisfied: true };
+	if (ticket === null) return { flows: [], runs: [], waived: null, skipped: "no-ticket", satisfied: true };
+	const flows = await client.flows.list({ ticket });
+	if (flows.length === 0) return { flows, runs: [], waived: null, skipped: "no-flow", satisfied: true };
 	const [records, waiver] = await Promise.all([
 		client.flowExecutions.list({ ticket, headSha }),
 		client.pullRequests.readFlowWaiver({ id: ref.id }),
 	]);
-	const runs = records.map((record) => ({
-		slug: record.doc.flow.slug,
-		name: record.doc.flow.name,
-		status: record.state.status,
-	}));
+	// A run of a flow the project no longer asks for answers nothing. A flow
+	// that moved to another project leaves such runs behind.
+	const asked = new Set(flows.map((flow) => flow.slug));
+	const runs = records
+		.filter((record) => asked.has(record.doc.flow.slug))
+		.map((record) => ({
+			slug: record.doc.flow.slug,
+			name: record.doc.flow.name,
+			status: record.state.status,
+		}));
 	const waived = waiver !== null && waiver.headSha === headSha ? waiver.reason : null;
-	return { flows, runs, waived, satisfied: waived !== null || runs.some(answersTheCheck) };
+	return { flows, runs, waived, skipped: null, satisfied: waived !== null || runs.some(answersTheCheck) };
 };
 
 // The one sentence beside `MISSING  flow run`.
@@ -88,6 +98,17 @@ export const flowRunMissingLines = (readiness: FlowReadiness, number: number): s
 		]),
 		...notApplicableLines(number),
 	];
+};
+
+// The line `trellis ready` adds when it asked for no flow run at all. Every
+// other result of the check prints a line, so without this one the reader of
+// an agent's report cannot tell a project that holds no flow from a pull
+// request that lost its ticket.
+export const flowSkippedLines = ({ skipped }: FlowReadiness): string[] => {
+	if (skipped === "no-ticket") return ["  No ticket links this pull request, so Trellis asked for no flow run."];
+	if (skipped === "no-flow")
+		return ["  No flow applies to the project of this pull request, so Trellis asked for no flow run."];
+	return [];
 };
 
 // The line `trellis ready` adds when it passes on the agent's own sentence

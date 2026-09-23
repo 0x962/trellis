@@ -7,7 +7,7 @@ import { ticketGet } from "../../db/queries/ticketGet.ts";
 import type { Tx } from "../../db/tx.ts";
 import { epicView } from "../epics/epics.ts";
 import { earlierResults, epicHeaderLine, epicLines, resultsLines, waveHeaderLine } from "../epics/text.ts";
-import { list as listFlows } from "../flows/flows.ts";
+import { listFlows } from "../flows/queries.ts";
 import { activeNotes } from "../notes/notes.ts";
 import { notesLines } from "../notes/text.ts";
 import { resolveTicket } from "../refs.ts";
@@ -203,7 +203,7 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<B
 		["## Description", "", ticket.description],
 		contractLines(ticket.contract),
 		evidenceLines,
-		flowLines(await listFlows(ctx, tx, {})),
+		flowLines(await listFlows(tx, row.rootId)),
 		chainLines(ticket, waitsOn),
 		...(epic === null ? [] : epicLines(epic, ticket.id)),
 		results,

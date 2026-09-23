@@ -1,18 +1,15 @@
-import { type AgentRun, runLine } from "@trellis/api";
+import { type AgentRun, type RunLineSpan, runLine } from "@trellis/api";
 
-// The words of one agent line, and the dot it shows. `asks` is true while
-// the run waits for a person, which turns the words yellow and puts the dot
-// before them. `working` is true while the agent works, and the words then
-// say what it does at this moment: the line takes the shimmer and stays on
-// one line, and it settles on the last message when the turn ends. `runId`
-// is the run that speaks, which a click on the line opens in the session
-// sheet.
+// The words of one agent line, and the dot it shows. While the run works,
+// `spans` holds the same text, cut into pieces. `runLine` marks each piece
+// as code or text, so the row draws the command in the mono font and does
+// not guess with a pattern. The pieces join back into `words`, which the row
+// uses as the hover title.
 export type TicketAgentLine = {
 	words: string;
 	asks: boolean;
-	working: boolean;
 	runId: string;
-};
+} & ({ working: true; spans: readonly RunLineSpan[] } | { working: false });
 
 // The words a ticket row shows on its own line, or null when the run has
 // neither an open request nor a message.
@@ -34,13 +31,29 @@ export type TicketAgentLine = {
 export const agentLineOf = (run: AgentRun): TicketAgentLine | null => {
 	const line = runLine(run);
 	if (line.kind === "question" || line.kind === "permission" || line.kind === "elicitation") {
-		return { words: `${run.name} ${line.words}`, asks: true, working: false, runId: run.id };
+		const words = `${run.name} ${line.words}`;
+		return { words, asks: true, working: false, runId: run.id };
 	}
-	if (line.kind === "works")
-		return { words: `${run.name}: ${line.activity ?? line.words}`, asks: false, working: true, runId: run.id };
-	return line.lastMessage === null
-		? null
-		: { words: line.lastMessage.words, asks: false, working: false, runId: run.id };
+	if (line.kind === "works") {
+		const prefix = `${run.name}: `;
+		const activitySpans = line.activity ?? [{ key: "state", text: line.words, kind: "text" as const }];
+		const spans = [{ key: "agent", text: prefix, kind: "text" as const }, ...activitySpans];
+		const words = spans.map((span) => span.text).join("");
+		return {
+			words,
+			spans,
+			asks: false,
+			working: true,
+			runId: run.id,
+		};
+	}
+	if (line.lastMessage === null) return null;
+	return {
+		words: line.lastMessage.words,
+		asks: false,
+		working: false,
+		runId: run.id,
+	};
 };
 
 // The agent line of each ticket that holds an assigned agent run, keyed by
