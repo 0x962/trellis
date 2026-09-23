@@ -43,8 +43,9 @@ Prove the change. A pull request is ready for review when it has the explanation
    Write the document again after a push that changes what it shows.
 5. Bind every sentence to something checkable: a file and a line, a check result, a test name, or a number with
    its sha. Say when a sentence is a guess.
-6. Run the flows that fit the change:  trellis flows list
+6. Run the flows that fit the change:  trellis flows list --ticket ${key}-42
    A flow is a saved set of agent steps that Trellis runs against your pull request.
+   A flow belongs to one project, or to every project. The list holds the flows your ticket asks for.
    Pick every flow whose name and description fit what you changed.
    Start each one and wait for its result:  trellis flows run <pr> --flow <slug>
    When a flow run fails, fix the fault and run the flow again.

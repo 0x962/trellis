@@ -1,16 +1,19 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { type Flow, FlowSlugSchema } from "@trellis/api";
-import { Button, Input, Sheet, SheetBody, SheetFooter, Textarea } from "@trellis/ui";
+import { Button, Input, Select, Sheet, SheetBody, SheetFooter, Textarea } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { LaunchFields } from "../../../../agents/LaunchFields";
 import { flowHarnessOf, harnessOfFlow, sameFlowHarness } from "../../../flowHarness";
+import { flowProjectItems, flowProjectRef, flowProjectValue } from "../../../flowProject";
 
 type FlowSettingsSheetProps = { flow: Flow; onSaved: (flow: Flow) => void; onClose: () => void };
 
-// The name, the slug, the description, the briefing, and the harness of a
-// flow. Every agent of the flow reads the briefing before its own
+// The project, the name, the slug, the description, the briefing, and the
+// harness of a flow. `trellis ready` asks a pull request for the flows of
+// its ticket's project, so the project decides which pull requests this flow
+// answers for. Every agent of the flow reads the briefing before its own
 // instruction, and every step that names no harness launches with the
 // harness of the flow.
 export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetProps) {
@@ -21,11 +24,14 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 	const [slug, setSlug] = useState(flow.slug);
 	const [description, setDescription] = useState(flow.description);
 	const [briefing, setBriefing] = useState(flow.briefing);
+	const [project, setProject] = useState(flowProjectValue(flow.projectKey));
+	const projects = useQuery(orpc.projects.list.queryOptions({ input: {} }));
 	const [harness, setHarness] = useState(harnessOfFlow(flow.harness));
 	const [confirmDelete, setConfirmDelete] = useState(false);
 	const slugValid = FlowSlugSchema.safeParse(slug).success;
 	const valid = name.trim() !== "" && slugValid;
 	const dirty =
+		project !== flowProjectValue(flow.projectKey) ||
 		name !== flow.name ||
 		slug !== flow.slug ||
 		description !== flow.description ||
@@ -35,6 +41,7 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 		mutationFn: () =>
 			client.flows.update({
 				flow: flow.id,
+				project: flowProjectRef(project),
 				name,
 				slug,
 				description,
@@ -74,6 +81,19 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 				}}
 			>
 				<SheetBody>
+					<div className="flex min-w-0 flex-col gap-2">
+						<span className="text-sm text-fg-muted">Project</span>
+						<Select
+							label="Project"
+							value={project}
+							items={flowProjectItems(projects.data ?? [])}
+							disabled={pending}
+							onValueChange={setProject}
+						/>
+						<p className="text-xs text-fg-faint">
+							Trellis asks a pull request of this project for a run of this flow before it asks for a review.
+						</p>
+					</div>
 					<Input
 						ref={nameRef}
 						label="Name"

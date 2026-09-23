@@ -13,14 +13,21 @@ import {
 } from "drizzle-orm/pg-core";
 import { checkIn, FLOW_BRANCHES, FLOW_NODE_KINDS } from "../enums.ts";
 import { at } from "./actors.ts";
+import { projects } from "./projects.ts";
 
 // A flow is a graph of agent steps. `version` rises on every change to the
 // flow row or to any of its nodes and edges, so a client that saves with an
 // old version gets FLOW_VERSION_CONFLICT.
+//
+// `project_id` is the root project of a tree. `trellis ready` asks a pull
+// request for the flows of its ticket's root project. NULL means every
+// project: the flow answers for a pull request of any tree. The service
+// `flows.ts` writes the root id; no database rule checks it.
 export const flows = pgTable(
 	"flows",
 	{
 		id: text().primaryKey(),
+		projectId: text("project_id").references(() => projects.id, { onDelete: "cascade" }),
 		slug: text().notNull(),
 		name: text().notNull(),
 		description: text().notNull().default(""),
@@ -38,6 +45,7 @@ export const flows = pgTable(
 		check("flows_description_check", sql`length(${t.description}) <= 2000`),
 		check("flows_briefing_check", sql`length(${t.briefing}) <= 200000`),
 		check("flows_version_check", sql`${t.version} > 0`),
+		index("flows_project_id_idx").on(t.projectId),
 	],
 );
 

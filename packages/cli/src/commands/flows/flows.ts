@@ -4,6 +4,7 @@ import {
 	flowPurpose,
 	flowRunNeedsPerson,
 	flowRunWorks,
+	flowScope,
 } from "@trellis/api";
 import type { TrellisClient } from "@trellis/api/client";
 import { defineCommand } from "citty";
@@ -39,16 +40,22 @@ const pickFlow = (flows: FlowSummary[], input: string): FlowSummary => {
 };
 
 const list = defineCommand({
-	meta: { name: "list", description: "List the flows with the description that says what each one is for" },
-	args: {},
+	meta: { name: "list", description: "List the flows with the project and the description of each one" },
+	args: {
+		ticket: {
+			type: "string",
+			description: "Keep the flows of this ticket's project and the flows that belong to every project",
+		},
+	},
 	async run(context) {
 		const ctx = contextOf(context);
-		const flows = await clientOf(ctx).flows.list({});
+		const flows = await clientOf(ctx).flows.list({ ticket: context.args.ticket });
 		printList(ctx.out, ctx.format, flows, {
 			identifier: (flow) => flow.slug,
 			columns: [
 				{ name: "SLUG", value: (flow) => flow.slug },
 				{ name: "NAME", value: (flow) => flow.name },
+				{ name: "PROJECT", value: (flow) => flowScope(flow) },
 				{ name: "STEPS", value: (flow) => String(flow.nodeCount) },
 				{ name: "DESCRIPTION", value: (flow) => cell(flowPurpose(flow)) },
 			],

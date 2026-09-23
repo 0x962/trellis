@@ -1,17 +1,26 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { type Flow, type FlowCreateInput, FlowCreateInputSchema } from "@trellis/api";
-import { Button, Dialog, Input } from "@trellis/ui";
+import { Button, Dialog, Input, Select } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
+import { everyProject, flowProjectItems, flowProjectRef } from "../../../flowProject";
 
 type NewFlowDialogProps = { onClose: () => void; onCreated: (flow: Flow) => void };
 
-// The server takes a slug from the name, so the dialog asks for the name only.
+// The server takes a slug from the name, so the dialog asks for the name,
+// the description, and the project. `trellis ready` asks a pull request for
+// the flows of its ticket's project.
 export function NewFlowDialog({ onClose, onCreated }: NewFlowDialogProps) {
 	const { client, orpc, queryClient } = useApp();
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
-	const input = FlowCreateInputSchema.safeParse({ name, description });
+	const [project, setProject] = useState(everyProject);
+	const projects = useQuery(orpc.projects.list.queryOptions({ input: {} }));
+	const input = FlowCreateInputSchema.safeParse({
+		name,
+		description,
+		project: flowProjectRef(project) ?? undefined,
+	});
 	const create = useMutation({
 		mutationFn: (fields: FlowCreateInput) => client.flows.create(fields),
 		onSuccess: async (flow) => {
@@ -46,6 +55,16 @@ export function NewFlowDialog({ onClose, onCreated }: NewFlowDialogProps) {
 					value={description}
 					onChange={(event) => setDescription(event.target.value)}
 				/>
+				<div className="flex min-w-0 flex-col gap-2">
+					<span className="text-sm text-fg-muted">Project</span>
+					<Select
+						label="Project"
+						value={project}
+						items={flowProjectItems(projects.data ?? [])}
+						disabled={create.isPending}
+						onValueChange={setProject}
+					/>
+				</div>
 				{create.isError && (
 					<p role="alert" className="text-sm text-danger">
 						Could not create the flow. {create.error.message}

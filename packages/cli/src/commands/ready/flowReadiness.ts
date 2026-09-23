@@ -7,8 +7,9 @@ import type { PullRequestRef } from "../pullRequestRef.ts";
 type CurrentHeadRun = { slug: string; name: string; status: string };
 
 export type FlowReadiness = {
-	// Every flow the server holds. If this list is empty, `trellis ready` asks
-	// for no flow run.
+	// The flows of the pull request's project, and the flows that belong to
+	// every project. If this list is empty, `trellis ready` asks for no flow
+	// run.
 	flows: FlowSummary[];
 	runs: CurrentHeadRun[];
 	// What the agent wrote when it said that no flow fits this change at this
@@ -24,16 +25,18 @@ export type FlowReadiness = {
 // pull request during the review the agent is asking for.
 const answersTheCheck = (run: CurrentHeadRun) => run.status === "succeeded" || flowRunNeedsPerson(run.status);
 
-// A flow runs against a ticket. If no ticket links the pull request,
-// `trellis ready` asks for no flow run.
+// A flow runs against a ticket, and the ticket names the project whose flows
+// the check asks for. If no ticket links the pull request, `trellis ready`
+// asks for no flow run.
 export const flowReadiness = async (
 	client: TrellisClient,
 	ref: PullRequestRef,
 	ticket: string | null,
 	headSha: string,
 ): Promise<FlowReadiness> => {
-	const flows = await client.flows.list({});
-	if (flows.length === 0 || ticket === null) return { flows, runs: [], waived: null, satisfied: true };
+	if (ticket === null) return { flows: [], runs: [], waived: null, satisfied: true };
+	const flows = await client.flows.list({ ticket });
+	if (flows.length === 0) return { flows, runs: [], waived: null, satisfied: true };
 	const [records, waiver] = await Promise.all([
 		client.flowExecutions.list({ ticket, headSha }),
 		client.pullRequests.readFlowWaiver({ id: ref.id }),

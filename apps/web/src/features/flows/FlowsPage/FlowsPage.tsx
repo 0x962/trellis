@@ -1,7 +1,8 @@
 import { Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Button, EmptyState, EntityCard, Skeleton, Tooltip } from "@trellis/ui";
+import { flowScope } from "@trellis/api";
+import { Badge, Button, EmptyState, EntityCard, Skeleton, Tooltip } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { PageTitle } from "../../shell/PageTitle";
@@ -55,12 +56,14 @@ export function FlowsPage() {
 						) : (
 							<div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
 								{flows.data.map((flow) => (
-									<EntityCard
-										key={flow.id}
-										title={flow.name}
-										description={flow.description === "" ? "No description." : flow.description}
-										link={<Link to="/ai/flows/$slug" params={{ slug: flow.slug }} />}
-									/>
+									<div key={flow.id} className="flex flex-col gap-2">
+										<EntityCard
+											title={flow.name}
+											description={flow.description === "" ? "No description." : flow.description}
+											link={<Link to="/ai/flows/$slug" params={{ slug: flow.slug }} />}
+										/>
+										<Badge tone="neutral">{flowScope(flow)}</Badge>
+									</div>
 								))}
 							</div>
 						)}

@@ -15,9 +15,9 @@ export type ReadinessPart = "explanation" | "evidence" | "data-model-diagram" | 
 export type PullRequestReadiness = {
 	dataModelDiagramRequired: boolean;
 	pullRequest: { number: number; url: string; headSha: string; isDraft: boolean };
-	// The flows the server holds and the runs of the current head. `flows` is
-	// empty, and `satisfied` is true, whenever the caller asked for no flow
-	// check.
+	// The flows the pull request's project asks for, and the runs of the
+	// current head. `flows` is empty, and `satisfied` is true, whenever the
+	// caller asked for no flow check.
 	flows: FlowReadiness;
 	// The parts the pull request still needs, in the order an agent writes them.
 	missing: ReadinessPart[];
