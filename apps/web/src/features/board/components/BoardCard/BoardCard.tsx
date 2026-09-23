@@ -84,7 +84,7 @@ export function BoardCard({
 			onKeyDown={onKeyDown}
 			className={cx(
 				ticketCardFrame,
-				"min-h-19 shrink-0 cursor-grab gap-1.5 bg-surface text-base transition-colors duration-hover ease-out hover:border-border-strong active:cursor-grabbing",
+				"min-h-19 shrink-0 cursor-grab gap-1.5 bg-surface text-base transition-[border-color] duration-hover ease-out hover:border-border-strong active:cursor-grabbing",
 				"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset",
 				"data-selected:bg-accent-soft data-selected:ring-2 data-selected:ring-accent data-selected:ring-inset",
 				dragging ? "border-dashed border-border-strong opacity-40" : "border-border",
