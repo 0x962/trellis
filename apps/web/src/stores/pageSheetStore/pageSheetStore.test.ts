@@ -3,7 +3,15 @@ import { pageSheetActions, sheetParent, usePageSheetStore } from "./pageSheetSto
 
 const state = () => usePageSheetStore.getState();
 
-const empty = { ticket: null, pr: null, session: null, settings: null, browser: null, reviewTab: null };
+const empty = {
+	ticket: null,
+	pr: null,
+	session: null,
+	settings: null,
+	projectSettings: null,
+	browser: null,
+	reviewTab: null,
+};
 
 beforeEach(() => {
 	pageSheetActions.setRefreshBehindSheet(null);
@@ -121,12 +129,10 @@ test("the browser opens over the pull request and leaves the stack open", () => 
 	pageSheetActions.openBrowser("https://github.com/o/r/pull/7");
 
 	expect(state()).toEqual({
+		...empty,
 		ticket: "TRL-42",
 		pr: "https://github.com/o/r/pull/7",
-		session: null,
-		settings: null,
 		browser: "https://github.com/o/r/pull/7",
-		reviewTab: null,
 	});
 });
 
@@ -216,4 +222,46 @@ test("the browser stands over the topmost sheet", () => {
 	expect(sheetParent({ ...empty, ticket: "TRL-42" })).toBe("ticket");
 	expect(sheetParent({ ...empty, ticket: "TRL-42", pr: "https://github.com/o/r/pull/7" })).toBe("pullRequest");
 	expect(sheetParent({ ...empty, ticket: "TRL-42", session: "01M32TW0000000000000WRK001" })).toBe("session");
+});
+
+test("the settings of a project open over the ticket and leave it open", () => {
+	pageSheetActions.openTicket("TRL-42");
+	pageSheetActions.openProjectSettings({ project: "TRL", section: "notes" });
+
+	expect(state()).toEqual({ ...empty, ticket: "TRL-42", projectSettings: { project: "TRL", section: "notes" } });
+});
+
+test("another section keeps the settings of the project open", () => {
+	pageSheetActions.openProjectSettings({ project: "TRL", section: "" });
+	pageSheetActions.openProjectSettings({ project: "TRL", section: "labels" });
+
+	expect(state()).toEqual({ ...empty, projectSettings: { project: "TRL", section: "labels" } });
+});
+
+test("closing the settings of a project leaves the page behind it", () => {
+	let refreshes = 0;
+	pageSheetActions.setRefreshBehindSheet(() => refreshes++);
+	pageSheetActions.openProjectSettings({ project: "TRL", section: "" });
+	pageSheetActions.closeProjectSettings();
+
+	expect(refreshes).toBe(1);
+	expect(state()).toEqual(empty);
+});
+
+test("the settings of the app and the settings of a project close each other", () => {
+	pageSheetActions.openProjectSettings({ project: "TRL", section: "" });
+	pageSheetActions.openSettings("account");
+
+	expect(state()).toEqual({ ...empty, settings: "account" });
+
+	pageSheetActions.openProjectSettings({ project: "TRL", section: "" });
+
+	expect(state()).toEqual({ ...empty, projectSettings: { project: "TRL", section: "" } });
+});
+
+test("a ticket closes the settings of a project over it", () => {
+	pageSheetActions.openProjectSettings({ project: "TRL", section: "" });
+	pageSheetActions.openTicket("TRL-42");
+
+	expect(state()).toEqual({ ...empty, ticket: "TRL-42" });
 });

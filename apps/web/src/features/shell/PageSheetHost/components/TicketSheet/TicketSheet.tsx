@@ -4,6 +4,7 @@ import { TicketView } from "../../../../ticket/TicketView";
 import { PageSheet } from "../../../PageSheet";
 import { useShown } from "../../useShown";
 import { BrowserSheet } from "../BrowserSheet";
+import { ProjectSettingsSheet } from "../ProjectSettingsSheet";
 import { PullRequestSheet } from "../PullRequestSheet";
 import { SessionSheet } from "../SessionSheet";
 import { SettingsSheet } from "../SettingsSheet";
@@ -33,6 +34,7 @@ export function TicketSheet() {
 					<PullRequestSheet ticket={shown} />
 					<SessionSheet />
 					<SettingsSheet at="ticket" />
+					<ProjectSettingsSheet at="ticket" />
 					<BrowserSheet at="ticket" />
 				</>
 			)}

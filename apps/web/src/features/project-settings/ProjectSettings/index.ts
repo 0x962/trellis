@@ -1,1 +1,1 @@
-export { ProjectSettings, type ProjectSettingsSectionId } from "./ProjectSettings";
+export { ProjectSettings, type ProjectSettingsProps } from "./ProjectSettings";
