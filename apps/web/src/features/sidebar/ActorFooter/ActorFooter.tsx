@@ -7,8 +7,8 @@ import { useActor } from "../../../lib/actor";
 import { useApp } from "../../../lib/appContext";
 import { ghCopy } from "../../../lib/ghCopy";
 import { saveActorName } from "../../../lib/identity";
+import { opensSheet } from "../../../lib/opensSheet";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
-import { opensSheet } from "../../shell/TicketLink/opensSheet";
 
 // The bottom of the sidebar: who you are and the settings. The actor chip
 // opens a rename popover; Enter stores the new name on the server and in

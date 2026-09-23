@@ -139,6 +139,7 @@ export { SectionHeader, type SectionHeaderProps } from "./primitives/SectionHead
 export { Segmented, type SegmentedOption, type SegmentedProps } from "./primitives/Segmented";
 export { Select, type SelectItem, type SelectProps } from "./primitives/Select";
 export { Separator, type SeparatorProps } from "./primitives/Separator";
+export { SettingsNav, type SettingsNavItem, type SettingsNavProps } from "./primitives/SettingsNav";
 export { Sheet, type SheetProps } from "./primitives/Sheet";
 export { SheetBody } from "./primitives/SheetBody";
 export { SheetFooter } from "./primitives/SheetFooter";

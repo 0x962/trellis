@@ -9,6 +9,7 @@ import { IconButton } from "../../../primitives/IconButton";
 import { Input } from "../../../primitives/Input";
 import { Segmented } from "../../../primitives/Segmented";
 import { Select } from "../../../primitives/Select";
+import { SettingsNav } from "../../../primitives/SettingsNav";
 import { Switch } from "../../../primitives/Switch";
 import { Tabs } from "../../../primitives/Tabs";
 import { Textarea } from "../../../primitives/Textarea";
@@ -33,6 +34,7 @@ export function ControlSections() {
 	const [sound, setSound] = useState(true);
 	const [view, setView] = useState("Table");
 	const [tab, setTab] = useState("All");
+	const [section, setSection] = useState("account");
 	return (
 		<>
 			<Section name="Button" note="primary, default, quiet, danger, danger-soft; sm 28 px and md 32 px; icon and kbd">
@@ -160,6 +162,18 @@ export function ControlSections() {
 					]}
 					value={view}
 					onValueChange={setView}
+				/>
+			</Section>
+			<Section name="SettingsNav" note="the section list of a settings screen" className="items-start">
+				<SettingsNav
+					label="Settings"
+					items={[
+						{ id: "account", label: "Account" },
+						{ id: "notifications", label: "Notifications" },
+						{ id: "desktop", label: "Desktop" },
+					]}
+					selected={section}
+					onSelect={setSection}
 				/>
 			</Section>
 			<Section name="Tabs" note="the arrow keys skip a disabled tab" className="items-start">
