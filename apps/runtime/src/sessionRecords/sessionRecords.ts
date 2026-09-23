@@ -7,12 +7,14 @@ import type { SessionRecord } from "../sessionRecord.ts";
 import { sessionResources } from "../sessionResources.ts";
 
 type SavedRecord = {
+	retainForResume?: boolean;
 	session: RuntimeSession;
 	fingerprint: string | null;
 	identity?: string | null;
 	launch?: RuntimeProcessStatus["launch"];
 };
 type IndexEntry = {
+	retainForResume: boolean;
 	sequence: number;
 	final: boolean;
 	retainedAt: number;
@@ -54,8 +56,10 @@ export class SessionRecords {
 		session: RuntimeSession,
 		tokenHash = this.index.get(session.id)?.tokenHash ?? null,
 		activity = this.index.get(session.id)?.activity,
+		retainForResume = this.index.get(session.id)?.retainForResume ?? false,
 	) {
 		this.index.set(session.id, {
+			retainForResume,
 			sequence: this.index.get(session.id)?.sequence ?? ++this.sequence,
 			final: this.index.get(session.id)?.final === true || (session.status === "exited" && session.endedAt !== null),
 			retainedAt: Date.parse(session.endedAt ?? session.startedAt),
@@ -66,7 +70,7 @@ export class SessionRecords {
 	restore(recover: (record: SessionRecord) => void) {
 		for (const file of readdirSync(this.home).filter((file) => file.endsWith(".session.json"))) {
 			const saved = this.read(file.slice(0, -".session.json".length));
-			this.remember(saved.session);
+			this.remember(saved.session, null, undefined, saved.retainForResume);
 			if (saved.session.status === "exited" && saved.session.endedAt !== null) continue;
 			if (saved.session.status === "running") saved.session.status = "unknown";
 			const record = this.restoreRecord(saved);
@@ -78,7 +82,7 @@ export class SessionRecords {
 		return this.index.has(id);
 	}
 	set(id: string, record: SessionRecord) {
-		this.remember(record.session, record.tokenHash, record.activity);
+		this.remember(record.session, record.tokenHash, record.activity, record.retainForResume);
 		this.history.delete(id);
 		this.active.set(id, record);
 	}
@@ -119,7 +123,7 @@ export class SessionRecords {
 			!record.stderr.complete
 		)
 			return;
-		this.remember(record.session, record.tokenHash, record.activity);
+		this.remember(record.session, record.tokenHash, record.activity, record.retainForResume);
 		this.active.delete(record.session.id);
 		this.history.delete(record.session.id);
 	}
@@ -136,6 +140,7 @@ export class SessionRecords {
 			`${path}.tmp`,
 			JSON.stringify({
 				session: record.session,
+				retainForResume: record.retainForResume,
 				fingerprint: record.fingerprint,
 				identity: record.identity,
 				launch: record.launch,
@@ -143,7 +148,7 @@ export class SessionRecords {
 			{ mode: 0o600 },
 		);
 		renameSync(`${path}.tmp`, path);
-		this.remember(record.session, record.tokenHash, record.activity);
+		this.remember(record.session, record.tokenHash, record.activity, record.retainForResume);
 		for (const listener of record.listeners) listener();
 		this.release(record);
 	}
@@ -155,7 +160,7 @@ export class SessionRecords {
 	}
 	removeExpired(now: number, options: RetainOptions) {
 		const exited = [...this.index]
-			.filter(([id, entry]) => entry.final && !this.active.has(id))
+			.filter(([id, entry]) => entry.final && !entry.retainForResume && !this.active.has(id))
 			.map(([id, entry]) => ({ record: id, endedAt: entry.retainedAt }));
 		for (const id of exitedRecordsToRemove(exited, now, options)) {
 			this.index.delete(id);

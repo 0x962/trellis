@@ -13,6 +13,9 @@ export class InputLedger {
 		writeFileSync(`${this.path}.tmp`, JSON.stringify([...this.entries]), { mode: 0o600, flush: true });
 		renameSync(`${this.path}.tmp`, this.path);
 	}
+	hasUnacknowledgedMessages() {
+		return [...this.entries.values()].some((entry) => !entry.acknowledged);
+	}
 	acknowledgedMessageIds() {
 		return [...this.entries.values()].filter((entry) => entry.acknowledged).map((entry) => entry.messageId);
 	}

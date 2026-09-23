@@ -27,7 +27,8 @@ export const prepareDelete = async (
 		const previous = await deps.process(ctx, run.terminalId);
 		if (previous === null && run.terminalId !== null && run.closedAt === null)
 			throw invalidInput("id", "The prior launch is not confirmed. Inspect the agent before deletion.");
-		if (previous !== null && previous.status !== "exited") await deps.stop(ctx, run);
+		if (previous !== null && (previous.status !== "exited" || previous.stopReason === "idle"))
+			await deps.stop(ctx, run);
 		else if (run.closedAt === null)
 			await ctx.newTx((tx) =>
 				tx.execute(sql`UPDATE agent_runs SET closed_at = ${ctx.now()}, updated_at = ${ctx.now()} WHERE id = ${run.id}`),

@@ -67,6 +67,7 @@ export const startNative = async (
 	const previousTerminalId = resume ? (input.previousAttemptId ?? null) : null;
 	let launchSubmitted = false;
 	let launchedAt: string | undefined;
+	let retireIdleAttempt = false;
 	try {
 		if (input.deadlineAt !== undefined && input.deadlineAt <= Date.now())
 			throw new Error("The flow group deadline elapsed before launch");
@@ -160,6 +161,7 @@ export const startNative = async (
 				if (!input.previousAttemptId)
 					throw new Error("This assignment has no prior native attempt. Start a new session.");
 				const previous = await host.status(input.previousAttemptId);
+				retireIdleAttempt = previous.stopReason === "idle";
 				if (previous.status !== "exited")
 					throw new Error("Confirm the prior process stopped before you resume its session.");
 				if (
@@ -214,6 +216,7 @@ export const startNative = async (
 				sql`UPDATE agent_runs SET workspace_id = ${workspaceId}, launched_at = COALESCE(launched_at, ${session.startedAt}), harness = ${JSON.stringify(harness)}::jsonb, session_id = ${session.agent?.sessionId ?? (config.harness.preset === "custom" ? run.sessionId : null)}, closed_at = CASE WHEN ${session.status === "exited"} AND kind<>'agent' THEN ${ctx.now()}::timestamptz ELSE NULL END, error = ${session.agent?.error ?? session.error}, updated_at = ${ctx.now()} WHERE id = ${run.id} AND terminal_id = ${terminalId} AND closed_at IS NULL`,
 			),
 		);
+		if (retireIdleAttempt) await client.stop(previousTerminalId!);
 	} catch (error) {
 		await ctx.newTx((tx) =>
 			tx.execute(

@@ -154,3 +154,22 @@ test("the retention count removes cold history and protects subscribed records",
 	records.removeExpired(now, options);
 	expect([...records.entries()].map(([id]) => id)).toEqual(["count-0", "count-1"]);
 });
+
+test("keeps an idle conversation across restart and releases it after resume or explicit stop", () => {
+	const now = Date.now();
+	seed("idle", { stopReason: "idle", endedAt: new Date(now - 8 * day).toISOString() });
+	const records = restore();
+	const record = records.get("idle")!;
+	record.retainForResume = true;
+	records.save(record);
+	const restarted = restore();
+	restarted.removeExpired(now, { retentionMs: day, maxExitedRecords: 0 });
+	expect(restarted.has("idle")).toBe(true);
+	expect([...restarted.values()]).toHaveLength(0);
+	const stopped = restarted.get("idle")!;
+	expect(stopped.session.stopReason).toBe("idle");
+	stopped.retainForResume = false;
+	restarted.save(stopped);
+	restarted.removeExpired(now, { retentionMs: day, maxExitedRecords: 0 });
+	expect(restarted.has("idle")).toBe(false);
+});

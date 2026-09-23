@@ -19,10 +19,12 @@ export function launchSession(record: SessionRecord, spec: LaunchSpec, save: () 
 		clearTimeout(record.timer);
 		const finish = () => {
 			session.status = "exited";
-			session.exitCode = code;
+			session.exitCode = session.stopReason === "idle" ? 0 : code;
 			session.error =
 				(error === cleanupError ? null : error) ??
-				(code !== null && code !== 0 ? `Process ${spec.command} exited with code ${code}` : null);
+				(session.stopReason !== "idle" && code !== null && code !== 0
+					? `Process ${spec.command} exited with code ${code}`
+					: null);
 			session.endedAt = new Date().toISOString();
 			record.process = undefined;
 			save();
