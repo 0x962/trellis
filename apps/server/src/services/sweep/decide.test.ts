@@ -1,5 +1,11 @@
 import { expect, test } from "bun:test";
-import { attemptsToRemove, outputFilesToRemove, type SweepRun, workspaceRemovable } from "./decide.ts";
+import {
+	attemptsToRemove,
+	heldScratchNames,
+	outputFilesToRemove,
+	type SweepRun,
+	workspaceRemovable,
+} from "./decide.ts";
 
 const work = "/home/agents/01RUN/work";
 const run = (overrides: Partial<SweepRun> = {}): SweepRun => ({
@@ -82,4 +88,17 @@ test("an attempt that no run holds and that is old enough goes", () => {
 		{ id: "young", modifiedAt: now - hour / 2 },
 	];
 	expect(attemptsToRemove(attempts, new Set(["current"]), now, hour)).toEqual(["old"]);
+});
+
+test("an open file names the scratch directory that holds it, in both spellings of the root", () => {
+	const paths = [
+		"/private/var/folders/x/T/trellis-trl404/repo/node_modules/bun",
+		"/var/folders/x/T/trellis-wo47/runtime/runtime.sock",
+		"/var/folders/x/T/other-tool/data",
+		// The working directory of a process is the directory itself.
+		"/private/var/folders/x/T/trellis-wave",
+		"/Users/navid/projects/trellis/trellis-elsewhere/file",
+	];
+	const names = heldScratchNames(paths, ["/var/folders/x/T", "/private/var/folders/x/T"]);
+	expect([...names].sort()).toEqual(["trellis-trl404", "trellis-wave", "trellis-wo47"]);
 });

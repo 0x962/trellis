@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { afterAll, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -57,8 +57,16 @@ const busyRuntime = (): RuntimeClient =>
 		},
 	}) as unknown as RuntimeClient;
 
+// Every directory this file makes, so that a failed expectation in a test
+// body still leaves none behind.
+const made: string[] = [];
+afterAll(async () => {
+	for (const directory of made) await rm(directory, { recursive: true, force: true });
+});
+
 test("a harness that reports work without a provider session ends the launch at the limit", async () => {
 	const directory = await mkdtemp(join(tmpdir(), "trellis-harness-host-test-"));
+	made.push(directory);
 	const spec = { id: "attempt", command: "claude", args: [], cwd: "/tmp", env: {} };
 	await mkdir(join(directory, "attempt"), { recursive: true });
 	await writeFile(
@@ -85,7 +93,6 @@ test("a harness that reports work without a provider session ends the launch at 
 	// clock, so only the limit can end this wait.
 	expect(elapsed).toBeGreaterThanOrEqual(190);
 	expect(elapsed).toBeLessThan(1000);
-	await rm(directory, { recursive: true, force: true });
 });
 
 test("the wait without a limit still ends on the idle clock", async () => {

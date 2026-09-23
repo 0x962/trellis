@@ -39,9 +39,11 @@ beforeAll(async () => {
 		);
 	}
 });
+// The directory goes before the database closes, because a failed close
+// would otherwise leave it in the temporary directory.
 afterAll(async () => {
-	await db.$client.close();
 	await rm(home, { recursive: true, force: true });
+	await db.$client.close();
 });
 
 test("restore profiles from exact launch records without replacing existing or unknown data", async () => {

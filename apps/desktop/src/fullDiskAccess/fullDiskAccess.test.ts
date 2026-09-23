@@ -1,11 +1,24 @@
-import { expect, test } from "bun:test";
-import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
+import { afterAll, expect, test } from "bun:test";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { askForFullDiskAccess, fullDiskAccessPane, hasFullDiskAccess } from "./fullDiskAccess.ts";
 
+// Every directory this file makes, so that a failed expectation in a test
+// body still leaves none behind.
+const made: string[] = [];
+const newDirectory = (prefix: string) => {
+	const directory = mkdtempSync(join(tmpdir(), prefix));
+	made.push(directory);
+	return directory;
+};
+
+afterAll(() => {
+	for (const directory of made) rmSync(directory, { recursive: true, force: true });
+});
+
 const setup = (options: { granted: boolean; response?: number; checkbox?: boolean }) => {
-	const declinedFile = join(mkdtempSync(join(tmpdir(), "trellis-access-")), "declined");
+	const declinedFile = join(newDirectory("trellis-access-"), "declined");
 	const calls: string[] = [];
 	const input = {
 		granted: async () => options.granted,
@@ -50,6 +63,6 @@ test("does not ask when an earlier launch recorded the refusal", async () => {
 });
 
 test("raises an error other than the macOS refusal", async () => {
-	const home = mkdtempSync(join(tmpdir(), "trellis-home-"));
+	const home = newDirectory("trellis-home-");
 	await expect(hasFullDiskAccess(home)).rejects.toMatchObject({ code: "ENOENT" });
 });
