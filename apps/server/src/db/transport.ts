@@ -251,13 +251,11 @@ export const createInlineTransport = ({
 			// an hour. Its first tick runs before the port answers, so a home
 			// with a large backlog is swept in the background of the boot.
 			fileSweep = startNativeReconcile({
+				// One line per sweep holds the counts and the scratch bytes, so
+				// the log says that the sweep ran and what it took away.
 				tick: async () => {
 					const result = (await backgroundCall("system.sweep", {})) as SweepResult;
-					if (
-						result.removedWorkspaces.length + result.removedOutputFiles + result.removedAttempts > 0 ||
-						result.errors.length > 0
-					)
-						options.log("sweep agent files", result);
+					options.log("sweep agent files", result);
 				},
 				setTimer: clock.setTimer,
 				clearTimer: clock.clearTimer,

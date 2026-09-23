@@ -68,12 +68,14 @@ afterEach(() => {
 	interrupts = 0;
 	launches = 0;
 });
+// The directory goes before the database closes, because a failed close
+// would otherwise leave it in the temporary directory.
 afterAll(async () => {
 	status.mockRestore();
 	stop.mockRestore();
 	interrupt.mockRestore();
+	await rm(home, { recursive: true, force: true });
 	await db.$client.close();
-	await rm(home, { recursive: true });
 });
 
 async function fixture(harness: "claude" | "codex", working = false, exited = false) {

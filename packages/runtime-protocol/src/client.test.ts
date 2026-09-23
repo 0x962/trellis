@@ -36,10 +36,12 @@ async function runtime(reply: (request: RuntimeRequest) => unknown) {
 		});
 	});
 	await new Promise<void>((resolve) => server.listen(path, resolve));
+	// The directory goes first, so a socket that keeps the server open cannot
+	// leave the directory in the temporary directory.
 	cleanups.push(async () => {
+		await rm(home, { recursive: true, force: true });
 		for (const socket of sockets) socket.destroy();
 		await new Promise<void>((resolve) => server.close(() => resolve()));
-		await rm(home, { recursive: true });
 	});
 	return { client: new RuntimeClient(path), requests };
 }

@@ -1,11 +1,22 @@
-import { expect, test } from "bun:test";
+import { afterAll, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { claudeTrust } from "./claudeTrust.ts";
 
 const readState = async (home: string) => JSON.parse(await readFile(join(home, ".claude.json"), "utf8"));
-const newHome = async () => realpath(await mkdtemp(join(tmpdir(), "trellis-claude-trust-")));
+// Every home this file makes, so that a failed expectation in a test body
+// still leaves none behind.
+const homes: string[] = [];
+const newHome = async () => {
+	const home = await realpath(await mkdtemp(join(tmpdir(), "trellis-claude-trust-")));
+	homes.push(home);
+	return home;
+};
+
+afterAll(async () => {
+	for (const home of homes) await rm(home, { recursive: true, force: true });
+});
 
 test("the launches share a write, and the write drops the entry of a removed agent worktree", async () => {
 	const home = await newHome();
@@ -49,7 +60,6 @@ test("the launches share a write, and the write drops the entry of a removed age
 	expect(lines.every((line) => line.message === "claude trust written")).toBe(true);
 	expect(lines.reduce((total, line) => total + (line.fields!.trusted as number), 0)).toBe(5);
 	expect(lines.reduce((total, line) => total + (line.fields!.removed as number), 0)).toBe(1);
-	await rm(home, { recursive: true, force: true });
 });
 
 test("a directory outside the agents directory keeps its entry when it is gone", async () => {
@@ -64,7 +74,6 @@ test("a directory outside the agents directory keeps its entry when it is gone",
 	);
 	await claudeTrust(directory, { HOME: home }, agents);
 	expect((await readState(home)).projects[removed].hasTrustDialogAccepted).toBe(true);
-	await rm(home, { recursive: true, force: true });
 });
 
 test("a trusted directory writes nothing", async () => {
@@ -82,7 +91,6 @@ test("a trusted directory writes nothing", async () => {
 	);
 	await claudeTrust(directory, { HOME: home }, agents);
 	expect((await readState(home)).projects[gone].hasTrustDialogAccepted).toBe(true);
-	await rm(home, { recursive: true, force: true });
 });
 
 test("a symbolic link on the path of the agents directory keeps the removal working", async () => {
@@ -100,5 +108,4 @@ test("a symbolic link on the path of the agents directory keeps the removal work
 	const projects = (await readState(home)).projects;
 	expect(projects[gone]).toBeUndefined();
 	expect(projects[join(real, "RUN", "work")].hasTrustDialogAccepted).toBe(true);
-	await rm(home, { recursive: true, force: true });
 });

@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { readdir, rm, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { sql } from "drizzle-orm";
@@ -10,12 +11,16 @@ import { executionEnvironment } from "../../executionEnvironment";
 import { readRuntimeSessions } from "../agentRuns/liveState.ts";
 import type { ServiceCtx } from "../support.ts";
 import { attemptsToRemove, outputFilesToRemove, type SweepRun, workspaceRemovable } from "./decide.ts";
+import { openPaths } from "./openPaths.ts";
+import { type ScratchSweepResult, sweepScratch } from "./sweepScratch.ts";
 
 // The sweep removes the files of finished agent work from the data home:
 // the worktree of a run that is closed on a done or canceled ticket, the
 // terminal output files of earlier terminals, and the launch directory of
-// an attempt that no run holds any more. The runtime keeps its own session
-// records within a ceiling; this sweep covers the files the server writes.
+// an attempt that no run holds any more. It then removes the scratch
+// directories that the agents left in the temporary directory of the
+// person. The runtime keeps its own session records within a ceiling; this
+// sweep covers the files the server writes.
 //
 // A worktree goes through `git worktree remove` without `--force`, so git
 // refuses a worktree with a modified or untracked file, whatever the sweep
@@ -30,7 +35,7 @@ export const ATTEMPT_MIN_AGE_MS = 60 * 60 * 1000;
 
 const attemptName = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
-export type SweepResult = {
+export type SweepResult = ScratchSweepResult & {
 	removedWorkspaces: string[];
 	removedOutputFiles: number;
 	removedAttempts: number;
@@ -69,7 +74,14 @@ async function sweep(ctx: ServiceCtx): Promise<SweepResult> {
 		cwd: session.launch?.cwd ?? null,
 	}));
 	const byId = new Map(runs.map((run) => [run.id, run]));
-	const result: SweepResult = { removedWorkspaces: [], removedOutputFiles: 0, removedAttempts: 0, errors: [] };
+	const result: SweepResult = {
+		removedWorkspaces: [],
+		removedOutputFiles: 0,
+		removedAttempts: 0,
+		removedScratch: 0,
+		removedScratchBytes: 0,
+		errors: [],
+	};
 	// The login shell that gives git its PATH runs once, and only for a sweep
 	// that has a worktree to remove.
 	let env: NodeJS.ProcessEnv | undefined;
@@ -104,6 +116,11 @@ async function sweep(ctx: ServiceCtx): Promise<SweepResult> {
 		await rm(join(attemptsRoot, id), { recursive: true, force: true });
 		result.removedAttempts += 1;
 	}
+	// The scratch sweep comes last, so a failed read of the open files keeps
+	// the removals above.
+	const scratch = await sweepScratch(tmpdir(), ctx.now().getTime(), await openPaths());
+	result.removedScratch = scratch.removedScratch;
+	result.removedScratchBytes = scratch.removedScratchBytes;
 	return result;
 }
 

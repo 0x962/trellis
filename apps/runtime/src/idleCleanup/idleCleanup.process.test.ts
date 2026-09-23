@@ -1,11 +1,18 @@
-import { expect, test } from "bun:test";
+import { afterAll, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// The time limit of the test can end the test body, and the hook still
+// runs, so the home goes here.
+let home = "";
+afterAll(async () => {
+	if (home !== "") await rm(home, { recursive: true, force: true });
+});
+
 test("Node stops an idle process tree, rejects late input, and restores the conversation", async () => {
-	const home = await mkdtemp(join(tmpdir(), "trellis-idle-node-test-"));
+	home = await mkdtemp(join(tmpdir(), "trellis-idle-node-test-"));
 	let child: ReturnType<typeof Bun.spawn> | undefined;
 	try {
 		await mkdir(join(home, "node_modules"));
@@ -28,6 +35,5 @@ test("Node stops an idle process tree, rejects late input, and restores the conv
 	} finally {
 		child?.kill();
 		if (child) await child.exited;
-		await rm(home, { recursive: true, force: true });
 	}
 }, 15_000);

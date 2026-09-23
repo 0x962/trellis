@@ -21,6 +21,11 @@ export type RunningProcess = { id: string; cwd: string | null };
 // terminal id of the attempt.
 export type AttemptDirectory = { id: string; modifiedAt: number };
 
+// AGENTS.md tells an agent to put a scratch checkout or a temporary
+// directory under $TMPDIR with this prefix in the name, and to remove it
+// when the work ends.
+export const SCRATCH_PREFIX = "trellis-";
+
 const finishedCategories = new Set(["done", "canceled"]);
 
 const inside = (path: string, directory: string) => path === directory || path.startsWith(directory + sep);
@@ -72,3 +77,25 @@ export const attemptsToRemove = (
 	attempts
 		.filter((attempt) => !currentTerminals.has(attempt.id) && now - attempt.modifiedAt >= minAgeMs)
 		.map((attempt) => attempt.id);
+
+// The names of the scratch directories that a process on this computer
+// holds open. `openPaths` holds every path that a process has open, and
+// `roots` holds the spellings of the temporary directory that hold those
+// scratch directories. A path such as
+// `<root>/trellis-trl404-K4fb/repo/node_modules/x` names `trellis-trl404-K4fb`.
+//
+// macOS calls the temporary directory of a person `/var/folders/<id>/T`,
+// and `/var` is a symbolic link to `/private/var`. lsof prints a file under
+// `/private/var` and a socket under `/var`, so both spellings reach here
+// and one name can arrive through either.
+export const heldScratchNames = (openPaths: string[], roots: string[]) => {
+	const names = new Set<string>();
+	for (const path of openPaths) {
+		for (const root of roots) {
+			if (!path.startsWith(root + sep)) continue;
+			const name = path.slice(root.length + 1).split(sep)[0] ?? "";
+			if (name.startsWith(SCRATCH_PREFIX)) names.add(name);
+		}
+	}
+	return names;
+};

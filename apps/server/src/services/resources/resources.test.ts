@@ -84,9 +84,11 @@ beforeAll(async () => {
 	} as unknown as IoCtx;
 }, 30_000);
 
+// The directory goes before the database closes, because a failed close
+// would otherwise leave it in the temporary directory.
 afterAll(async () => {
+	await rm(home, { recursive: true, force: true });
 	await db.$client.close();
-	await rm(home, { recursive: true });
 });
 
 test("stores a doc without a blob", async () => {
