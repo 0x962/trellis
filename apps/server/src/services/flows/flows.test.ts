@@ -52,8 +52,8 @@ test("a flow stores the project it belongs to, and null for every project", asyn
 	const scoped = await run((tx) => create(ctx, tx, { name: "One review", project: "ONE" }));
 	const everywhere = await run((tx) => create(ctx, tx, { name: "Every review" }));
 
-	expect(scoped.projectKey).toBe("ONE");
-	expect(everywhere.projectKey).toBeNull();
+	expect(scoped.project).toBe("ONE");
+	expect(everywhere.project).toBeNull();
 });
 
 test("a ref to a sub-project is refused, because a flow takes a root project", async () => {
@@ -83,8 +83,8 @@ test("an update gives a flow to one project, and null gives it back to every pro
 	const scoped = await run((tx) => update(ctx, tx, { flow: flow.id, project: "TWO" }));
 	const everywhere = await run((tx) => update(ctx, tx, { flow: flow.id, project: null }));
 
-	expect(scoped.projectKey).toBe("TWO");
-	expect(everywhere.projectKey).toBeNull();
+	expect(scoped.project).toBe("TWO");
+	expect(everywhere.project).toBeNull();
 });
 
 test("an update that names no project keeps the project of the flow", async () => {
@@ -92,5 +92,5 @@ test("an update that names no project keeps the project of the flow", async () =
 
 	const renamed = await run((tx) => update(ctx, tx, { flow: flow.id, name: "Kept review, renamed" }));
 
-	expect(renamed.projectKey).toBe("ONE");
+	expect(renamed.project).toBe("ONE");
 });

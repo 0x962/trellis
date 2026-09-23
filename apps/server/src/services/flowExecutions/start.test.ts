@@ -58,5 +58,5 @@ test("a flow of another project cannot run on this ticket", async () => {
 				expectedVersion: flow.version,
 			}),
 		),
-	).rejects.toThrow("This flow belongs to another project.");
+	).rejects.toThrow("The flow belongs to another project.");
 });

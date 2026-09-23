@@ -20,8 +20,8 @@ import { projects } from "./projects.ts";
 // old version gets FLOW_VERSION_CONFLICT.
 //
 // `project_id` is the root project of a tree, or NULL for a flow that
-// applies to every project. The service `flows.ts` writes the root id; no
-// database rule checks it. `flows_slug_unique` stays on the slug alone, so
+// applies to every project. `apps/server/src/services/flows/flows.ts` writes
+// the root id; no database rule checks it. `flows_slug_unique` stays on the slug alone, so
 // one slug names one flow for the whole server: the route `/ai/flows/$slug`
 // and `resolveFlow` both read a slug with no project beside it.
 export const flows = pgTable(

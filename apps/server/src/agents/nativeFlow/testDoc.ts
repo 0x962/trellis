@@ -5,7 +5,7 @@ import type { FlowDoc, FlowEdge, FlowNode } from "@trellis/api";
 export const flowDoc = (nodes: FlowNode[], edges: FlowEdge[]): FlowDoc => ({
 	flow: {
 		id: "flow",
-		projectKey: null,
+		project: null,
 		slug: "review",
 		name: "Review",
 		description: "",

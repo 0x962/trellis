@@ -18,8 +18,9 @@ test("a stored flow execution without the harness fields or the project key read
 	const execution = ulid();
 	const baseDoc = flowDoc([node(step, "agent", null)], []);
 	const doc = { ...baseDoc, flow: { ...baseDoc.flow, id: flowId } };
-	// A run stored before those fields existed holds neither in its snapshot.
-	const { harness: _flowHarness, projectKey: _projectKey, ...oldFlow } = doc.flow;
+	// A run stored before the harness and project fields existed holds none of
+	// them in its snapshot: neither harness, nor the project of the flow.
+	const { harness: _flowHarness, project: _project, ...oldFlow } = doc.flow;
 	const oldDoc = { ...doc, flow: oldFlow, nodes: doc.nodes.map(({ harness: _nodeHarness, ...oldNode }) => oldNode) };
 	const state = {
 		version: 1,
@@ -81,7 +82,7 @@ test("a stored flow execution without the harness fields or the project key read
 	const record = await db.transaction((tx) => get(ctx, tx, { id: execution }));
 
 	expect(record.doc.flow.harness).toBeNull();
-	expect(record.doc.flow.projectKey).toBeNull();
+	expect(record.doc.flow.project).toBeNull();
 	expect(record.doc.nodes[0]?.harness).toBeNull();
 	expect(FlowExecutionSchema.parse(record)).toEqual(record);
 	await db.$client.close();

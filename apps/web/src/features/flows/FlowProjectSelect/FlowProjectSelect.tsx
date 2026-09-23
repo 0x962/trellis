@@ -1,8 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
 import { Field, Select } from "@trellis/ui";
 import type { ReactNode } from "react";
-import { useApp } from "../../../lib/appContext";
 import { flowProjectItems } from "../flowProject";
+import { useFlowProjects } from "./useFlowProjects";
 
 export type FlowProjectSelectProps = {
 	value: string;
@@ -18,8 +17,7 @@ export type FlowProjectSelectProps = {
 // to every project, so the select stays disabled until the list arrives, and
 // a failed load says so in place of the hint.
 export function FlowProjectSelect({ value, onChange, disabled = false, hint }: FlowProjectSelectProps) {
-	const { orpc } = useApp();
-	const projects = useQuery(orpc.projects.list.queryOptions({ input: {} }));
+	const projects = useFlowProjects();
 	const loaded = projects.data ?? [];
 	return (
 		<Field
@@ -39,6 +37,7 @@ export function FlowProjectSelect({ value, onChange, disabled = false, hint }: F
 				value={value}
 				items={flowProjectItems(loaded)}
 				disabled={disabled || loaded.length === 0}
+				className="h-8"
 				onValueChange={onChange}
 			/>
 		</Field>

@@ -23,13 +23,13 @@ export function FlowSettingsSheet({ flow, onSaved, onClose }: FlowSettingsSheetP
 	const [slug, setSlug] = useState(flow.slug);
 	const [description, setDescription] = useState(flow.description);
 	const [briefing, setBriefing] = useState(flow.briefing);
-	const [project, setProject] = useState(selectValueOfProjectKey(flow.projectKey));
+	const [project, setProject] = useState(selectValueOfProjectKey(flow.project));
 	const [harness, setHarness] = useState(harnessOfFlow(flow.harness));
 	const [confirmDelete, setConfirmDelete] = useState(false);
 	const slugValid = FlowSlugSchema.safeParse(slug).success;
 	const valid = name.trim() !== "" && slugValid;
 	const dirty =
-		project !== selectValueOfProjectKey(flow.projectKey) ||
+		project !== selectValueOfProjectKey(flow.project) ||
 		name !== flow.name ||
 		slug !== flow.slug ||
 		description !== flow.description ||

@@ -142,12 +142,12 @@ export type FlowEdge = z.infer<typeof FlowEdgeSchema>;
 // instruction. `harness` is the harness of every step that names none.
 // `version` rises on every change to the flow or its graph.
 //
-// `projectKey` is the key of the project the flow belongs to, such as `TRL`.
-// `trellis ready` does not accept a pull request until one flow of the
-// ticket's project has a run. A flow with `null` applies to every project.
+// `project` is the key of the project the flow belongs to, such as `TRL`.
+// null makes the flow apply to every project. The write inputs take the same
+// field name, so a client can send back what it read.
 export const FlowSchema = z.object({
 	id: UlidSchema,
-	projectKey: KeySchema.nullable(),
+	project: KeySchema.nullable(),
 	slug: z.string(),
 	name: z.string(),
 	description: z.string(),
@@ -167,7 +167,7 @@ export type FlowSummary = z.infer<typeof FlowSummarySchema>;
 
 // The name of a flow's project. The web app and the CLI both print this
 // text, so the words agree.
-export const flowProjectLabel = (flow: Pick<Flow, "projectKey">): string => flow.projectKey ?? "Every project";
+export const flowProjectLabel = (flow: Pick<Flow, "project">): string => flow.project ?? "Every project";
 
 // The sentence that says what a flow is for. A flow whose description is
 // empty falls back to its name, so every caller shows the same words.
@@ -234,10 +234,15 @@ export const FlowSaveInputSchema = z.strictObject({
 });
 export type FlowSaveInput = z.input<typeof FlowSaveInputSchema>;
 
-// `ticket` keeps the flows that apply to that ticket's project: the flows of
-// the project, and the flows that name no project. Without it the list holds
-// every flow of the server.
-export const FlowListInputSchema = z.strictObject({ ticket: TicketRefStringSchema.optional() });
+// Both keys name one project, and the list then holds the flows of that
+// project and the flows that name no project. `ticket` names the project of
+// that ticket, for a caller that holds a ticket and no project; `project`
+// wins when a caller sends both. With neither the list holds every flow of
+// the server.
+export const FlowListInputSchema = z.strictObject({
+	project: ProjectRefStringSchema.optional(),
+	ticket: TicketRefStringSchema.optional(),
+});
 export type FlowListInput = z.infer<typeof FlowListInputSchema>;
 
 export const FlowGetInputSchema = z.strictObject({ flow: FlowRefSchema });

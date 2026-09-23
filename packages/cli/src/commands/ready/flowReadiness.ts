@@ -43,11 +43,16 @@ export const flowReadiness = async (
 		client.flowExecutions.list({ ticket, headSha }),
 		client.pullRequests.readFlowWaiver({ id: ref.id }),
 	]);
-	const runs = records.map((record) => ({
-		slug: record.doc.flow.slug,
-		name: record.doc.flow.name,
-		status: record.state.status,
-	}));
+	// A run of a flow the project no longer asks for answers nothing. A flow
+	// that moved to another project leaves such runs behind.
+	const asked = new Set(flows.map((flow) => flow.slug));
+	const runs = records
+		.filter((record) => asked.has(record.doc.flow.slug))
+		.map((record) => ({
+			slug: record.doc.flow.slug,
+			name: record.doc.flow.name,
+			status: record.state.status,
+		}));
 	const waived = waiver !== null && waiver.headSha === headSha ? waiver.reason : null;
 	return { flows, runs, waived, skipped: null, satisfied: waived !== null || runs.some(answersTheCheck) };
 };

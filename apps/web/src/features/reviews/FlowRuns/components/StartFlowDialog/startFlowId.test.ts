@@ -4,7 +4,7 @@ import { startFlowId } from "./startFlowId";
 
 const flow = (id: string): FlowSummary => ({
 	id,
-	projectKey: null,
+	project: null,
 	slug: id,
 	name: id,
 	description: "",

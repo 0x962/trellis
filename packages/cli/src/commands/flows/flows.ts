@@ -42,14 +42,15 @@ const pickFlow = (flows: FlowSummary[], input: string): FlowSummary => {
 const list = defineCommand({
 	meta: { name: "list", description: "List the flows with the project and the description of each one" },
 	args: {
-		ticket: {
-			type: "string",
-			description: "Keep the flows of this ticket's project and the flows that belong to every project",
-		},
+		project: { type: "string", description: "Keep the flows of this project and the flows of every project" },
+		ticket: { type: "string", description: "The same, for the project of this ticket" },
 	},
 	async run(context) {
 		const ctx = contextOf(context);
-		const flows = await clientOf(ctx).flows.list({ ticket: context.args.ticket });
+		const flows = await clientOf(ctx).flows.list({
+			project: context.args.project,
+			ticket: context.args.ticket,
+		});
 		printList(ctx.out, ctx.format, flows, {
 			identifier: (flow) => flow.slug,
 			columns: [

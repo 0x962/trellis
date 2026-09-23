@@ -56,7 +56,7 @@ const step = (key: string, parentKey: string | null, fields: Partial<Step> = {})
 const doc: FlowExecutionRecord["doc"] = {
 	flow: {
 		id: "flow",
-		projectKey: null,
+		project: null,
 		slug: "review",
 		name: "Review",
 		description: "",
