@@ -1,5 +1,5 @@
 {
-  "id": "15d27a62-32c2-4a02-807c-319c10fe7b3a",
+  "id": "7f5451f4-8097-401e-ba79-70c02df50853",
   "prevId": "9ea2c130-49d2-4204-8611-53a787aaf20a",
   "version": "7",
   "dialect": "postgresql",
@@ -1369,12 +1369,6 @@
         },
         "closed_at": {
           "name": "closed_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "launched_at": {
-          "name": "launched_at",
           "type": "timestamp (3) with time zone",
           "primaryKey": false,
           "notNull": false
@@ -4256,6 +4250,24 @@
           "primaryKey": false,
           "notNull": false
         },
+        "author_name": {
+          "name": "author_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "author_kind": {
+          "name": "author_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "author_run_id": {
+          "name": "author_run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "state": {
           "name": "state",
           "type": "text",
@@ -4366,6 +4378,19 @@
           "tableTo": "agent_runs",
           "columnsFrom": [
             "run_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "review_deliveries_author_run_id_agent_runs_id_fk": {
+          "name": "review_deliveries_author_run_id_agent_runs_id_fk",
+          "tableFrom": "review_deliveries",
+          "tableTo": "agent_runs",
+          "columnsFrom": [
+            "author_run_id"
           ],
           "columnsTo": [
             "id"

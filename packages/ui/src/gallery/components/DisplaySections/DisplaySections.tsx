@@ -110,7 +110,7 @@ export function DisplaySections() {
 						className="size-8"
 					/>
 				</div>
-				{(["static", "working"] as const).map((state) => (
+				{(["static", "starting", "working"] as const).map((state) => (
 					<div key={state} className="flex flex-col gap-3 p-3">
 						<span className="text-xs text-fg-muted">{state}</span>
 						<div className="flex items-center gap-6">

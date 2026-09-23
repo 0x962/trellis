@@ -6,8 +6,8 @@ import { createFlowExecution } from "../../agents/nativeFlow/createFlowExecution
 import { requireActor, type ServiceCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
-import { invalidInput } from "../../errors.ts";
-import { assertVersion, readDoc, resolveFlow } from "../flows/queries.ts";
+import { fail, invalidInput } from "../../errors.ts";
+import { assertVersion, flowProjectIdOf, readDoc, resolveFlow } from "../flows/queries.ts";
 import { assertProjectActive, resolveTicket } from "../refs.ts";
 import { get } from "./queries.ts";
 export async function start(ctx: ServiceCtx, tx: Tx, input: FlowExecutionStartInput) {
@@ -30,6 +30,10 @@ export async function start(ctx: ServiceCtx, tx: Tx, input: FlowExecutionStartIn
 	const resolved = await resolveFlow(tx, input.flow);
 	await tx.execute(sql`SELECT id FROM flows WHERE id=${resolved.id} FOR SHARE`);
 	const flow = await resolveFlow(tx, resolved.id);
+	// The check in `trellis ready` counts every run of the head, so a run of
+	// a flow of another project would answer it.
+	const flowProjectId = await flowProjectIdOf(tx, flow.id);
+	if (flowProjectId !== null && flowProjectId !== ticket.rootId) throw fail("FLOW_NOT_IN_PROJECT");
 	assertVersion(flow, input.expectedVersion);
 	const doc = await readDoc(tx, flow);
 	const issues = validateFlowGraph(doc, "run");

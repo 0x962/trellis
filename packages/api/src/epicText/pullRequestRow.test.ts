@@ -1,13 +1,18 @@
 import { describe, expect, test } from "bun:test";
+import { reviewGaps } from "../reviewReady/reviewReady.ts";
 import type { TicketPr } from "../schemas/ticketPr.ts";
 import { pullRequestRowLine } from "./pullRequestRow.ts";
 
-const pullRequest = (fields: Partial<TicketPr> = {}): TicketPr =>
-	({
+// The server computes `reviewGaps` from the facts of the row, so the fixture
+// computes it the same way. The explanation, the evidence document and the
+// flow are there unless a test says otherwise.
+const pullRequest = (fields: Partial<TicketPr> = {}): TicketPr => {
+	const row = {
 		number: 57080,
 		state: "open",
 		isDraft: false,
 		isQueued: false,
+		localState: "ready",
 		additions: 311,
 		deletions: 12,
 		changedFiles: 6,
@@ -18,19 +23,38 @@ const pullRequest = (fields: Partial<TicketPr> = {}): TicketPr =>
 		openThreads: 0,
 		flowRuns: [],
 		stackedOn: null,
+		mergeable: "mergeable",
 		...fields,
-	}) as TicketPr;
+	} as TicketPr;
+	return {
+		...row,
+		reviewGaps: reviewGaps({
+			state: row.state,
+			localState: row.localState,
+			failedChecks: row.fail,
+			pendingChecks: row.pending,
+			hasExplanation: true,
+			hasEvidence: true,
+			flowAnswered: true,
+			openFindings: row.openThreads,
+			mergeable: row.mergeable,
+		}),
+	};
+};
 
 describe("pullRequestRowLine", () => {
+	// A failed check is one of the parts that keep a pull request from being
+	// ready for review, so the word says so and the counts that follow say
+	// which part it is.
 	test("prints the state, the size, the checks and the turn", () => {
 		expect(pullRequestRowLine(pullRequest())).toBe(
-			"#57080  open · +311 −12 · 6 files · 1 failed · 6 pending · 47 passed · agent",
+			"#57080  not ready · +311 −12 · 6 files · 1 failed · 6 pending · 47 passed · agent",
 		);
 	});
 
 	test("names the pull request this one merges after", () => {
 		const pr = pullRequest({
-			localState: "draft",
+			localState: "not-ready",
 			stackedOn: { number: 55569, headRef: "nk/operator-routine-execution", ticketIdentifier: "OP-32" },
 			additions: 73,
 			deletions: 9,
@@ -39,7 +63,7 @@ describe("pullRequestRowLine", () => {
 			fail: 0,
 			pending: 0,
 		});
-		expect(pullRequestRowLine(pr)).toBe("#57080  draft · stacked on #55569 · +73 −9 · 3 files · 9 passed · agent");
+		expect(pullRequestRowLine(pr)).toBe("#57080  not ready · stacked on #55569 · +73 −9 · 3 files · 9 passed · agent");
 	});
 
 	test("prints queued for a pull request in the merge queue", () => {
@@ -54,7 +78,7 @@ describe("pullRequestRowLine", () => {
 
 	test("gives the turn to GitHub while a check is pending", () => {
 		expect(pullRequestRowLine(pullRequest({ fail: 0 }))).toBe(
-			"#57080  open · +311 −12 · 6 files · 6 pending · 47 passed · github",
+			"#57080  not ready · +311 −12 · 6 files · 6 pending · 47 passed · github",
 		);
 	});
 
@@ -67,7 +91,7 @@ describe("pullRequestRowLine", () => {
 			],
 		});
 		expect(pullRequestRowLine(pr)).toBe(
-			"#57080  open · +311 −12 · 6 files · 1 failed · 6 pending · 47 passed · 1 comment · flow: passed · agent",
+			"#57080  not ready · +311 −12 · 6 files · 1 failed · 6 pending · 47 passed · 1 comment · flow: passed · agent",
 		);
 	});
 

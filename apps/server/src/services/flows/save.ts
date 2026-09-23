@@ -1,11 +1,11 @@
-import { type Flow, type FlowDoc, type FlowIssue, type FlowSaveInput, validateFlowGraph } from "@trellis/api";
+import { type FlowDoc, type FlowIssue, type FlowSaveInput, validateFlowGraph } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { requireActor, type ServiceCtx } from "../../context.ts";
 import { rows, textArray } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { upsert } from "../actors.ts";
-import { assertVersion, flowColumns, readDoc, resolveFlow } from "./queries.ts";
+import { assertVersion, readDoc, resolveFlow } from "./queries.ts";
 
 // The input path of the row an issue names, so a client can mark the node or
 // the edge. The issue keeps its flow code beside the message.
@@ -65,11 +65,8 @@ export const save = async (ctx: ServiceCtx, tx: Tx, input: FlowSaveInput): Promi
 					sql`, `,
 				)}`,
 		);
-	const [flow] = await rows<Flow>(
-		tx,
-		sql`UPDATE flows SET version = version + 1, updated_at = ${ctx.now} WHERE id = ${current.id} RETURNING ${flowColumns}`,
-	);
+	await tx.execute(sql`UPDATE flows SET version = version + 1, updated_at = ${ctx.now} WHERE id = ${current.id}`);
 	await upsert(ctx, tx, actor);
 	ctx.emit({ type: "flows.changed", id: current.id });
-	return readDoc(tx, flow!);
+	return readDoc(tx, await resolveFlow(tx, current.id));
 };

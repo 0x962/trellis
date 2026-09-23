@@ -1,1 +1,0 @@
-ALTER TABLE "agent_runs" ADD COLUMN "launched_at" timestamp (3) with time zone;

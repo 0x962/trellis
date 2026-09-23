@@ -123,13 +123,17 @@ export function projectRun(run: StoredRun, sessions: RuntimeProcessStatus[], hom
 			// and the one short line of `toolTarget` that says what the tool works on. The target changes only with
 			// the tool, and `updatedAt` changes with it, so the target adds no event to the session monitor.
 			lastTool: process.agent?.lastTool
-				? {
-						name: process.agent.lastTool.name,
-						target: toolTarget(process.agent.lastTool.input),
-						status: process.agent.lastTool.status,
-						startedAt: process.agent.lastTool.startedAt,
-						updatedAt: process.agent.lastTool.updatedAt,
-					}
+				? (() => {
+						const target = toolTarget(process.agent.lastTool.input);
+						return {
+							name: process.agent.lastTool.name,
+							target: target?.text ?? null,
+							targetKind: target?.kind ?? null,
+							status: process.agent.lastTool.status,
+							startedAt: process.agent.lastTool.startedAt,
+							updatedAt: process.agent.lastTool.updatedAt,
+						};
+					})()
 				: null,
 			outcome: process.agent?.outcome ?? null,
 			turnId: process.agent?.turnId ?? null,

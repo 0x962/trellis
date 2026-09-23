@@ -26,6 +26,7 @@ import { GroupHeaderLine } from "../GroupHeaderLine";
 import { ShowMoreRow, showMoreHeight } from "../ShowMoreRow";
 import { TableSkeleton } from "../TableSkeleton";
 import { useCheckConfetti } from "./useCheckConfetti";
+import { useDoneWash } from "./useDoneWash";
 import { useLineMotion } from "./useLineMotion";
 import { useWaveDrop } from "./useWaveDrop";
 
@@ -154,6 +155,7 @@ export function TableBody({
 
 	useLineMotion(body, items);
 	const confetti = useCheckConfetti(items);
+	const wash = useDoneWash(items);
 
 	const drop = useWaveDrop(items, selection.selected, virtualizer.measurementsCache, (ids, group) =>
 		waves?.onDrop(ids, group),
@@ -211,6 +213,7 @@ export function TableBody({
 									group={item.group}
 									top={virtual.start}
 									phone={phone}
+									filling={wash.waves.includes(item.group.key)}
 									waves={waves}
 									onToggleGroup={onToggleGroup}
 									onCreateInGroup={onCreateInGroup}
@@ -272,6 +275,7 @@ export function TableBody({
 								disclosure={item.disclosure}
 								hasChildLines={item.hasChildLines}
 								focused={ticket.id === focusedId}
+								washing={wash.tickets.includes(ticket.id)}
 								selected={selection.isSelected(ticket.id)}
 								selecting={selection.count > 0}
 								editing={editing?.id === ticket.id ? editing.field : null}

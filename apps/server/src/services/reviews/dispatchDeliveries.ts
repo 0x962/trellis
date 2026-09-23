@@ -11,6 +11,7 @@ import { launchState } from "../agentRuns/launchState";
 import { sendDeadline } from "../deliveries/sendDeadline.ts";
 import {
 	otherRuntime,
+	ownAuthor,
 	pullRequestEnded,
 	supersededCheck,
 	unconfirmedDelivery,
@@ -18,6 +19,7 @@ import {
 	waitingForRun,
 } from "../deliveries/sentences.ts";
 import type { IoCtx } from "../support.ts";
+import { storedAuthor, writtenBy } from "./deliveryAuthor.ts";
 import { type CommentNote, checkMessage, commentMessage, conflictMessage, reviewMessage } from "./deliveryMessage.ts";
 import { deliveryMessageId } from "./deliveryMessageId.ts";
 import { prOfDelivery } from "./deliveryPullRequest.ts";
@@ -176,6 +178,21 @@ const dropStaleCheckDeliveries = (tx: Tx) =>
 		RETURNING delivery.id`,
 	);
 
+// A message never returns to the agent that wrote it. The agent of a ticket
+// can change between the moment a comment joins the queue and the moment it
+// leaves, so this step reads the author of the message and the run that
+// holds the ticket now. `writtenBy` states when those two are one agent. A
+// check notice and a merge notice carry no author, so they always travel.
+const dropOwnAuthorDeliveries = (tx: Tx) =>
+	rows<{ id: string }>(
+		tx,
+		sql`UPDATE review_deliveries delivery SET state = 'failed', error = ${ownAuthor}
+		FROM agent_runs run
+		WHERE ${waiting} AND ${openAssignment(sql`run`, sql`delivery.ticket_id`)}
+			AND ${writtenBy(storedAuthor, sql`run`)}
+		RETURNING delivery.id`,
+	);
+
 // A message of a pull request that merged or closed has no reader, whatever
 // kind it is.
 const dropEndedPullRequestDeliveries = (tx: Tx) =>
@@ -310,6 +327,10 @@ export const dispatchDeliveries = async (
 			...(await drop(
 				(await dropStaleCheckDeliveries(tx)).map((row) => row.id),
 				supersededCheck,
+			)),
+			...(await drop(
+				(await dropOwnAuthorDeliveries(tx)).map((row) => row.id),
+				ownAuthor,
 			)),
 			...(await drop(
 				(await dropEndedPullRequestDeliveries(tx)).map((row) => row.id),

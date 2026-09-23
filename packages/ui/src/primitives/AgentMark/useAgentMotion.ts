@@ -10,7 +10,7 @@ export function useAgentMotion(
 	artworkMotion: boolean,
 ) {
 	useEffect(() => {
-		if (state === "static") return;
+		if (state !== "working") return;
 		const node = ref.current!;
 		const media = matchMedia("(prefers-reduced-motion: reduce)");
 		let visible = false;
