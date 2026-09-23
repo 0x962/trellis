@@ -13,7 +13,8 @@ export type SessionBarActionsProps = {
 	// True while the process of the run is assigned, which makes the play
 	// control a stop control.
 	active: boolean;
-	// True while a start or a stop still runs.
+	// True while a start or a stop still runs. The play control draws a
+	// turning ring in place of its icon and takes no second click.
 	busy: boolean;
 	readOnly: boolean;
 	onOpenTicket?: () => void;
@@ -71,9 +72,9 @@ export function SessionBarActions({
 					variant="primary"
 					label={playLabel}
 					icon={active ? <Stop /> : <Play />}
+					processing={busy}
 					disabled={
 						readOnly ||
-						busy ||
 						(active ? run.runtime !== "native" || run.state === "starting" : !canStartAgent(run, session !== undefined))
 					}
 					onClick={active ? onStop : onStart}

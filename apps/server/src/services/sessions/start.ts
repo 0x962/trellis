@@ -13,7 +13,8 @@ import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.
 import { assertProjectActive } from "../refs.ts";
 import type { IoCtx } from "../support.ts";
 import { prepareSessionRepository } from "./directory.ts";
-import { sessionOperation } from "./operation.ts";
+import { launchSession } from "./launchSession";
+import { holdSession } from "./operation.ts";
 import { sessionProcess } from "./process.ts";
 import { getSession, resolveSession } from "./queries.ts";
 
@@ -23,13 +24,19 @@ import { getSession, resolveSession } from "./queries.ts";
 // prompt as its first message. A session whose agent runs stays as it is. A
 // process the runtime cannot vouch for blocks the start, so two processes
 // never share one session directory.
+//
+// The call answers as soon as the database holds the new attempt. The harness
+// launch runs in the background, and the run reads as `starting` until the
+// harness confirms the provider session or the launch fails.
 export const prepareStart = async (
 	ctx: IoCtx,
 	input: { id: string },
 	deps = { process: sessionProcess, start: startNative, preset: nativePreset },
 ) => {
 	const session = await ctx.newTx((tx) => resolveSession(tx, input.id));
-	return sessionOperation(ctx.home, session.runId, async () => {
+	const release = holdSession(ctx.home, session.runId);
+	let launching = false;
+	try {
 		await ctx.newTx((tx) => getSession(tx, session.id));
 		const run = await ctx.newTx((tx) => getRun(tx, session.runId));
 		if (run.projectId) assertProjectActive(ctx.core, run.projectId);
@@ -39,7 +46,7 @@ export const prepareStart = async (
 		if (previous?.status === "running") return { id: session.id };
 		if (previous !== null && previous.status !== "exited")
 			throw invalidInput("id", "Stop the prior process and confirm it exited before you start the session again.");
-		if (run.projectId === null && run.terminalId === null) await prepareSessionRepository(session.directory);
+		const fresh = run.projectId === null && run.terminalId === null;
 		const resume =
 			previous?.status === "exited" &&
 			previous.agent?.sessionId != null &&
@@ -69,17 +76,27 @@ export const prepareStart = async (
 			);
 			return { run: updated!, config: selected.config, attempt };
 		});
+		launchSession(
+			ctx,
+			session.id,
+			{
+				run: reservation.run,
+				config: reservation.config,
+				resume,
+				previousAttemptId: resume ? run.terminalId : null,
+				previousAccountId: run.accountId ?? null,
+				attempt: reservation.attempt,
+				resumePrompt: resume ? "Continue this session in the same conversation and workspace." : undefined,
+			},
+			release,
+			deps.start,
+			fresh ? () => prepareSessionRepository(session.directory) : undefined,
+		);
+		launching = true;
 		ctx.emit({ type: "sessions.changed", id: session.id });
 		ctx.emit({ type: "agent-runs.changed", id: run.id });
-		await deps.start(ctx, {
-			run: reservation.run,
-			config: reservation.config,
-			resume,
-			previousAttemptId: resume ? run.terminalId : null,
-			previousAccountId: run.accountId ?? null,
-			attempt: reservation.attempt,
-			resumePrompt: resume ? "Continue this session in the same conversation and workspace." : undefined,
-		});
 		return { id: session.id };
-	});
+	} finally {
+		if (!launching) release();
+	}
 };
