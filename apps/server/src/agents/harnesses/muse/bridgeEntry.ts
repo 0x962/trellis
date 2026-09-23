@@ -56,9 +56,14 @@ const host: ChildProcess = spawn(env.TRELLIS_MUSE_EXECUTABLE, ["serve", "--trust
 	env: process.env,
 	stdio: ["pipe", "pipe", "inherit"],
 });
+// The bridge stops its terminal reader before it records a failure. The
+// terminal makes SIGINT again from that point, and a process with no listener
+// for it stops at once. This listener keeps the bridge alive long enough to
+// record the reason.
 const terminated = new Promise<void>((resolve) => {
 	process.once("SIGTERM", resolve);
 	process.once("SIGHUP", resolve);
+	process.once("SIGINT", resolve);
 });
 let eventQueue = Promise.resolve();
 let acceptingEvents = true;
@@ -241,9 +246,10 @@ try {
 	process.exitCode = 1;
 } finally {
 	acceptingEvents = false;
-	// A SIGTERM reaches this block with no catch block before it. The steps
-	// below wait up to five seconds for the Muse host, and the removal of the
-	// directory can throw, so the keyboard works again before them.
+	// SIGTERM, SIGHUP and SIGINT end the try block with no error, so the catch
+	// block does not run. This block is then the only one that gives the
+	// keyboard back. The steps below wait up to five seconds for the Muse
+	// host, and the removal of the directory can throw.
 	stopMuseTerminalReader();
 	await usageQueue;
 	if (host.exitCode === null && host.signalCode === null) {
