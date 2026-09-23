@@ -105,8 +105,8 @@ test("the Muse bridge records a failure that its start step does not see", async
 	expect(run.exitCode).toBe(1);
 }, 20000);
 
-// The failure path stops the terminal reader, and the terminal then makes
-// SIGINT from a Ctrl+C. Node stops a process with no listener for that signal,
+// The failure path stops the terminal reader, and the terminal then sends
+// SIGINT for a Ctrl+C. Node stops a process with no listener for that signal,
 // and the runtime write below takes 500 ms, so the reason would be lost.
 test("a Ctrl+C while the Muse bridge records a failure does not stop it", async () => {
 	// This bridge runs without a terminal, because `script` takes a signal for
