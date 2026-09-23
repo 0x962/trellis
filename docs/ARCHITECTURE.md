@@ -164,6 +164,7 @@ before another agent can take the ticket.
   The `category` of a status is immutable after creation.
 - `started_at` is set once, when a ticket leaves todo. `completed_at` is set when a ticket enters done or canceled, and cleared when it leaves.
 - Priority is none, urgent, high, medium, or low.
+- A project color is one of five names: orange, teal, blue, pink, and azure. One active project holds one name, and a project in the archive holds no name. A create with no color takes a free name at random, and it takes no color when the five names are taken.
 - A project owns its labels and its label groups.
 - A label takes one group or no group. A group is exclusive: a ticket holds one label of a group at most, so a second label of that group replaces the first one.
 - A label name is unique inside its group, or among the labels of the project that have no group, without regard to case. A name holds no comma and no slash, it is 1 to 80 characters, and it is never `none`.
@@ -937,7 +938,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 
 | table | columns and constraints |
 |---|---|
-| projects | id PK, key (NOT NULL, UNIQUE, CHECK regex), slug (NOT NULL, UNIQUE, CHECK slug regex, not `board` or `settings`), name (1 to 120), description, directory, ticket_template, ticket_counter, position, archived_at, created_at, updated_at. |
+| projects | id PK, key (NOT NULL, UNIQUE, CHECK regex), slug (NOT NULL, UNIQUE, CHECK slug regex, not `board` or `settings`), name (1 to 120), description, directory, ticket_template, ticket_counter, position, color (CHECK set), archived_at, created_at, updated_at. Partial UNIQUE (color) WHERE archived_at IS NULL. |
 | repos | id PK, project_id (CASCADE), owner, repo (both CHECK lowercase). UNIQUE (project_id, owner, repo). |
 | statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), reviewer (CHECK `(category = 'review') = (reviewer IS NOT NULL)`), color, position, is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
 | label_groups | id PK, project_id (CASCADE), name, created_at, updated_at. UNIQUE (project_id, lower(name)). CHECK name trimmed, 1 to 80, no `,`, no `/`, and not `none`. |

@@ -757,6 +757,13 @@
       "when": 1790152235929,
       "tag": "0110_project_color_active",
       "breakpoints": true
+    },
+    {
+      "idx": 111,
+      "version": "7",
+      "when": 1790182295480,
+      "tag": "0111_project_color_default",
+      "breakpoints": true
     }
   ]
 }
