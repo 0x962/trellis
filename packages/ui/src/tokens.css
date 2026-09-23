@@ -76,29 +76,22 @@
 	/* The five project colors. A project holds one name, and two projects
 	   never hold one name, so a person tells two projects apart by color
 	   alone. `--project-<name>-solid` fills the ground of the mark of the
-	   project and writes the text of its key chip. `--project-<name>-tint` is the
-	   color that the ground of a page of the project takes a share of, and
-	   `project-room.css` sets that share.
-	   `--project-<name>-soft` is the ground of the key chip.
+	   project and writes the text of its key chip. `--project-<name>-soft` is
+	   the ground of the key chip.
 	   Orange, teal, blue and pink hold the hue of the label token of that
 	   name. Azure holds hue 228 and the lightness of the label ramp, because
 	   the four label hues leave one open band. No project color is yellow,
 	   which marks the work that waits for a person, and none is violet,
 	   which marks a merged pull request. */
 	--project-orange-solid: #9D4700;
-	--project-orange-tint: var(--label-orange);
 	--project-orange-soft: #FFF0E8;
 	--project-teal-solid: #007276;
-	--project-teal-tint: var(--label-teal);
 	--project-teal-soft: #D2FDFF;
 	--project-blue-solid: #0061BF;
-	--project-blue-tint: var(--label-blue);
 	--project-blue-soft: #ECF4FF;
 	--project-pink-solid: #9F1B9A;
-	--project-pink-tint: var(--label-pink);
 	--project-pink-soft: #FFEDFD;
 	--project-azure-solid: #006D8F;
-	--project-azure-tint: #0092BD;
 	--project-azure-soft: #E5F7FF;
 	/* The four strands of a project mark, on the ground of that mark. A
 	   light ground carries white. A dark ground is bright, so there the
@@ -120,7 +113,7 @@
 	--band-translucent: color-mix(in srgb, var(--fg) 6%, transparent);
 	/* The ground of the main pane. It holds the page. Light takes the
 	   surface one step off the page ground, and dark takes the page ground
-	   itself. `project-room.css` mixes the color of a project into it. */
+	   itself. */
 	--pane: var(--surface);
 	--scrim: rgba(0,0,0,.4);
 	--shadow-sm: 0 1px 2px rgba(0,0,0,.06);
@@ -173,19 +166,14 @@
 		--label-purple: #C190F6;
 		--label-pink: #F691CC;
 		--project-orange-solid: var(--label-orange);
-		--project-orange-tint: var(--label-orange);
 		--project-orange-soft: #431800;
 		--project-teal-solid: var(--label-teal);
-		--project-teal-tint: var(--label-teal);
 		--project-teal-soft: #002D30;
 		--project-blue-solid: var(--label-blue);
-		--project-blue-tint: var(--label-blue);
 		--project-blue-soft: #05264C;
 		--project-pink-solid: var(--label-pink);
-		--project-pink-tint: var(--label-pink);
 		--project-pink-soft: #3B1539;
 		--project-azure-solid: #1AC7FF;
-		--project-azure-tint: #1AC7FF;
 		--project-azure-soft: #002B3C;
 		--project-strand: #0A0A0A;
 		--control: #1C1C1E;
@@ -239,19 +227,14 @@
 	--label-purple: #C190F6;
 	--label-pink: #F691CC;
 	--project-orange-solid: var(--label-orange);
-	--project-orange-tint: var(--label-orange);
 	--project-orange-soft: #431800;
 	--project-teal-solid: var(--label-teal);
-	--project-teal-tint: var(--label-teal);
 	--project-teal-soft: #002D30;
 	--project-blue-solid: var(--label-blue);
-	--project-blue-tint: var(--label-blue);
 	--project-blue-soft: #05264C;
 	--project-pink-solid: var(--label-pink);
-	--project-pink-tint: var(--label-pink);
 	--project-pink-soft: #3B1539;
 	--project-azure-solid: #1AC7FF;
-	--project-azure-tint: #1AC7FF;
 	--project-azure-soft: #002B3C;
 	--project-strand: #0A0A0A;
 	--control: #1C1C1E;
