@@ -3,7 +3,7 @@ import { terminalOutput } from "../terminalOutput";
 import { terminalResize } from "../terminalResize";
 import { terminalWebgl } from "../terminalWebgl";
 import { terminalWheel } from "../terminalWheel";
-import { terminalKeyEvent } from "./terminalKeyEvent";
+import { terminalKeys } from "./terminalKeys";
 import {
 	initialTerminalSnapshot,
 	type TerminalAppearance,
@@ -70,7 +70,7 @@ export async function createTerminalRuntime(
 			publish({ gap: true });
 		},
 	});
-	terminal.attachCustomKeyEventHandler((event) => terminalKeyEvent(event, () => view?.onLeave()));
+	terminal.attachCustomKeyEventHandler(terminalKeys(() => view?.onLeave()));
 	const data = terminal.onData((text) => {
 		const userInput = source.isUserInput(text);
 		if (snapshot.connection !== "open" || !snapshot.controllable || snapshot.error || view?.readOnly) return;
