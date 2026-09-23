@@ -51,9 +51,9 @@ test("each page of the project makes its own row active", () => {
 
 test("the Settings row and the Notes row open a sheet, and neither is ever active", () => {
 	const { more } = projectPageRows(project, "/p/TRL", 0);
-	const sheetRows = more.filter((row) => row.section !== null);
+	const sheetRows = more.filter((row) => row.settingsSection !== null);
 
-	expect(sheetRows.map((row) => [row.label, row.suffix, row.section, row.active])).toEqual([
+	expect(sheetRows.map((row) => [row.label, row.suffix, row.settingsSection, row.active])).toEqual([
 		["Settings", "/settings", "", false],
 		["Notes", "/notes", "notes", false],
 	]);
@@ -63,7 +63,7 @@ test("every row that opens a page names no section", () => {
 	const { top, more } = projectPageRows(project, "/p/TRL", 0);
 	const pageRows = [...top, ...more].filter((row) => row.label !== "Settings" && row.label !== "Notes");
 
-	expect(pageRows.every((row) => row.section === null)).toBe(true);
+	expect(pageRows.every((row) => row.settingsSection === null)).toBe(true);
 });
 
 test("a page of another project leaves every row off", () => {
