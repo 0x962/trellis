@@ -1,4 +1,3 @@
-import { join } from "node:path";
 import type { Session, SessionCreateInput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
