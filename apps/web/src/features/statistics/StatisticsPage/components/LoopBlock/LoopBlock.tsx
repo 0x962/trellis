@@ -29,7 +29,7 @@ export function LoopBlock({ loop }: { loop: StatisticsLoop }) {
 							{loop.bill.map((row) => (
 								<tr key={row.prId}>
 									<td className={`${cell} w-4 pr-0`}>
-										<PrGlyph state="merged" isQueued={false} localState="ready" size="sm" decorative />
+										<PrGlyph state="merged" isQueued={false} readyForReview size="sm" decorative />
 									</td>
 									<td className={`${cell} w-18`}>
 										<TicketCell identifier={row.ticket} />
