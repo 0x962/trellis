@@ -60,6 +60,7 @@ export type ReviewRow =
 			newAnnotations: string[];
 	  }
 	| { kind: "annotation"; key: string; file: ReviewFile; annotations: string[] }
+	| { kind: "notice"; key: string; file: ReviewFile; text: string }
 	| { kind: "end"; key: string; file: ReviewFile };
 
 const text = (value: string) => value.replace(/\r?\n$/, "");
@@ -224,6 +225,18 @@ export function buildReviewRows(
 			rows.push({ kind: "end", key: `${file.name}:end`, file });
 			continue;
 		}
+		// Git writes no line for a binary file. Without this row the file draws
+		// as a header over nothing, which reads as a file that changed nothing.
+		if (file.binary) {
+			rows.push({
+				kind: "notice",
+				key: `${file.name}:notice`,
+				file,
+				text: "Git stores this file as bytes, so the diff has no lines to show.",
+			});
+			rows.push({ kind: "end", key: `${file.name}:end`, file });
+			continue;
+		}
 		const fileSections = sections(file, expanded.get(file.name), expandable);
 		const drawn = new Set<string>();
 		for (const section of fileSections)
@@ -300,10 +313,17 @@ export const rowAnnotations = (row: ReviewRow) =>
 			? Math.max(row.oldAnnotations.length, row.newAnnotations.length)
 			: 0;
 
+// The height in pixels of each row kind that draws one fixed block of text.
+const fixedRowSize: Partial<Record<ReviewRow["kind"], number>> = {
+	file: 48,
+	annotation: 120,
+	notice: 40,
+	end: 16,
+};
+
 // The height estimate the virtual list starts from. A row with an
 // annotation reports its real height once it mounts.
-export const reviewRowSize = (row: ReviewRow) =>
-	row.kind === "file" ? 48 : row.kind === "annotation" ? 120 : row.kind === "end" ? 16 : 24 + 120 * rowAnnotations(row);
+export const reviewRowSize = (row: ReviewRow) => fixedRowSize[row.kind] ?? 24 + 120 * rowAnnotations(row);
 
 // The text of the lines from `startLine` to `line` on the side of the
 // anchor, or null when the view does not show one of them. A deletion has

@@ -37,7 +37,11 @@ type Props = {
 	// when the view does not show every line of the range.
 	onSelect: (anchor: DiffAnchor, lines: string[] | null) => void;
 	loadFile?: (path: string, side: "old" | "new") => Promise<string>;
-	onFiles: (files: { path: string; type: string; additions: number; deletions: number }[]) => void;
+	onFiles: (files: ReviewDiffFile[]) => void;
+	// The paths in the order the diff draws them, from the risk groups of the
+	// file tree. A path the list leaves out keeps its place in the patch, after
+	// every path the list names. An empty list keeps the patch order.
+	order?: readonly string[];
 	// The paths the person marked read. A read file shows its header alone.
 	viewed?: ReadonlySet<string>;
 	// Marks a file read or unread. The header draws the Viewed box only when
@@ -45,7 +49,21 @@ type Props = {
 	onViewed?: (path: string, viewed: boolean) => void;
 };
 
+// What `onFiles` reports about one changed file of the revision.
+export type ReviewDiffFile = {
+	path: string;
+	type: string;
+	additions: number;
+	deletions: number;
+	binary: boolean;
+	// The hash of the patch text of the file. The review page keys the read
+	// mark on it.
+	digest: string;
+};
+
 type SelectLine = (anchor: DiffAnchor, extend?: boolean) => void;
+
+const noOrder: readonly string[] = [];
 
 const orderedAnchor = (start: DiffAnchor, end: DiffAnchor): DiffAnchor => ({
 	path: start.path,
@@ -83,6 +101,7 @@ export function ReviewDiff({
 	onSelect,
 	onFiles,
 	loadFile,
+	order = noOrder,
 	viewed = nothingViewed,
 	onViewed,
 }: Props) {
@@ -94,14 +113,21 @@ export function ReviewDiff({
 				type: file.type,
 				additions: file.hunks.reduce((total, hunk) => total + hunk.additionLines, 0),
 				deletions: file.hunks.reduce((total, hunk) => total + hunk.deletionLines, 0),
+				binary: file.binary,
+				digest: file.digest,
 			})),
 		[files],
 	);
 	useEffect(() => onFiles(metadata), [metadata, onFiles]);
 	const shown = useMemo(() => {
 		const query = filter.toLowerCase();
-		return files.filter((file) => file.name.toLowerCase().includes(query));
-	}, [files, filter]);
+		const rank = new Map(order.map((path, index) => [path, index]));
+		return files
+			.filter((file) => file.name.toLowerCase().includes(query))
+			.map((file, index) => ({ file, rank: rank.get(file.name) ?? order.length + index }))
+			.sort((left, right) => left.rank - right.rank)
+			.map((entry) => entry.file);
+	}, [files, filter, order]);
 	const [expanded, setExpanded] = useState<ReadonlyMap<string, ExpandedFile>>(() => new Map());
 	const rows = useMemo(
 		() => buildReviewRows(shown, mode, threads, revisionId, composer, expanded, loadFile !== undefined, viewed),
@@ -230,6 +256,7 @@ export function ReviewDiff({
 			);
 		}
 		if (row.kind === "annotation") return <>{row.annotations.map(annotation)}</>;
+		if (row.kind === "notice") return <p className="review-diff-notice">{row.text}</p>;
 		if (row.kind === "end") return <div className="review-diff-file-end" />;
 		if (row.kind === "split")
 			return (
