@@ -52,12 +52,16 @@ test("an open pull request that is not ready for review draws the grey glyph", (
 	expect(html).toContain("Not ready for review");
 });
 
-test("the glyph names the first missing part", () => {
+// The caller passes the missing part alone, and the glyph puts its own words
+// in front of it. A caller that passed the whole sentence would print "Not
+// ready for review" two times.
+test("the glyph names the first missing part after its own words, one time", () => {
 	const html = renderToStaticMarkup(
 		<PrGlyph state="open" isQueued={false} readyForReview={false} reason="2 checks pending" />,
 	);
 
 	expect(html).toContain("Not ready for review: 2 checks pending");
+	expect(html).not.toContain("Not ready for review: Not ready for review");
 });
 
 test("a merged or closed pull request draws its state whatever it still needs", () => {

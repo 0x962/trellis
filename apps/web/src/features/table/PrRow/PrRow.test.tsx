@@ -8,7 +8,6 @@ import { prOf } from "./prOf";
 
 const textOf = (html: string) => html.replace(/<[^>]*>/g, "");
 
-// What a pull request needs while its agent has not asked for review.
 const notAsked = [{ kind: "not-asked" as const, count: 1 }];
 
 describe("PrRow", () => {

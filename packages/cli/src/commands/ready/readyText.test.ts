@@ -8,7 +8,6 @@ const pullRequest = (number: number, fields: Partial<TicketPr> = {}): TicketPr =
 		number,
 		state: "open",
 		isDraft: false,
-		localState: "ready",
 		reviewGaps: [],
 		fail: 0,
 		pending: 0,
@@ -49,7 +48,7 @@ test("prints the nonempty turn groups in fixed order", () => {
 			ticket("OP-34", { category: "todo", waitsOn: [startedBlocker] }),
 			ticket("OP-53", { category: "review", reviewer: "human" }),
 			ticket("OP-32", {
-				prRows: [pullRequest(55569, { localState: "not-ready", reviewGaps: [{ kind: "not-asked", count: 1 }] })],
+				prRows: [pullRequest(55569, { reviewGaps: [{ kind: "not-asked", count: 1 }] })],
 			}),
 			ticket("OP-41", { category: "todo", ready: true }),
 			ticket("OP-29", { category: "done" }),
@@ -78,7 +77,7 @@ test("uses a ticket identifier when a working run holds the turn", () => {
 	const result = readyResultOf(
 		[
 			ticket("OP-32", {
-				prRows: [pullRequest(55569, { localState: "not-ready", reviewGaps: [{ kind: "not-asked", count: 1 }] })],
+				prRows: [pullRequest(55569, { reviewGaps: [{ kind: "not-asked", count: 1 }] })],
 			}),
 		],
 		new Set(["OP-32"]),

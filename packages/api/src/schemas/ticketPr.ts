@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { LocalPrStateSchema, MergeableSchema, PrStateSchema } from "./enums.ts";
+import { MergeableSchema, PrStateSchema } from "./enums.ts";
 import { FlowExecutionStateSchema } from "./flowExecution.ts";
 import { CountSchema, UlidSchema } from "./primitives.ts";
 import { ReviewGapSchema } from "./reviewReady.ts";
@@ -19,7 +19,6 @@ export const TicketPrSchema = z.object({
 	state: PrStateSchema,
 	isDraft: z.boolean(),
 	isQueued: z.boolean(),
-	localState: LocalPrStateSchema,
 	// What this pull request still needs before the person reviews it, from
 	// `reviewGaps`. An empty list means ready for review.
 	reviewGaps: z.array(ReviewGapSchema),

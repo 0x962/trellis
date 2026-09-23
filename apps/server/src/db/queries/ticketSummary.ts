@@ -1,6 +1,5 @@
 import {
 	type CiState,
-	type LocalPrState,
 	type PrState,
 	type ReviewState,
 	readyForReview,
@@ -45,7 +44,6 @@ export type SummaryRow = {
 	pr_state: PrState | null;
 	pr_is_draft: boolean | null;
 	pr_is_queued: boolean | null;
-	pr_local_state: LocalPrState | null;
 	pr_ci_state: CiState | null;
 	pr_review_state: ReviewState | null;
 	pr_pass: number | null;
@@ -205,14 +203,13 @@ export const toSummary = (row: SummaryRow): TicketSummary => {
 			row.pr_state === null
 				? null
 				: {
-						// The badge stands for every linked pull request, so it
-						// carries what the first one that is not ready for review
-						// still needs.
+						// A ticket can link several pull requests. This row
+						// carries the gaps of the first linked pull request
+						// that is not ready for review.
 						reviewGaps: prRows.find((pullRequest) => !readyForReview(pullRequest))?.reviewGaps ?? [],
 						state: row.pr_state,
 						isDraft: row.pr_is_draft as boolean,
 						isQueued: row.pr_is_queued as boolean,
-						localState: row.pr_local_state as LocalPrState,
 						ciState: row.pr_ci_state as CiState,
 						reviewState: row.pr_review_state as ReviewState,
 						pass: row.pr_pass as number,
