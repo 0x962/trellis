@@ -37,7 +37,7 @@ const ticket = (
 		ready: fields.ready ?? false,
 	}) as TicketSummary;
 
-test("prints the nonempty turn groups in fixed order", () => {
+test("prints the nonempty groups in fixed order", () => {
 	const startedBlocker = {
 		identifier: "OP-32",
 		title: "Run the routines",
@@ -59,21 +59,21 @@ test("prints the nonempty turn groups in fixed order", () => {
 	expect(result).toEqual({
 		readyToStart: { count: 1, identifiers: ["OP-41"] },
 		groups: [
-			{ turn: "waits on a merge", label: "waits on a merge", count: 1, names: ["OP-34"] },
-			{ turn: "you", label: "your turn", count: 1, names: ["OP-53"] },
-			{ turn: "agent", label: "with an agent", count: 1, names: ["#55569"] },
+			{ waiting: "merge", label: "waits on a merge", count: 1, names: ["OP-34"] },
+			{ waiting: "you", label: "waits for you", count: 1, names: ["OP-53"] },
+			{ waiting: "agent", label: "with an agent", count: 1, names: ["#55569"] },
 		],
 	});
 	expect(readyText(result)).toBe(`1 ready to start
 
 waits on a merge        1   OP-34
-your turn               1   OP-53
+waits for you           1   OP-53
 with an agent           1   #55569
 `);
 	expect(readyText(result).split("\n").filter(Boolean)).toHaveLength(4);
 });
 
-test("uses a ticket identifier when a working run holds the turn", () => {
+test("uses a ticket identifier when a working run holds the ticket", () => {
 	const result = readyResultOf(
 		[
 			ticket("OP-32", {
@@ -82,5 +82,5 @@ test("uses a ticket identifier when a working run holds the turn", () => {
 		],
 		new Set(["OP-32"]),
 	);
-	expect(result.groups).toEqual([{ turn: "agent", label: "with an agent", count: 1, names: ["OP-32"] }]);
+	expect(result.groups).toEqual([{ waiting: "agent", label: "with an agent", count: 1, names: ["OP-32"] }]);
 });

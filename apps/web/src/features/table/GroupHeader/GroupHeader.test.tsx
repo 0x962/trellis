@@ -5,7 +5,14 @@ import { GroupHeader, phoneGroupHeaderHeight } from "./GroupHeader";
 
 const markup = (props: Partial<Parameters<typeof GroupHeader>[0]>) =>
 	renderToStaticMarkup(
-		<GroupHeader group="w06" label="Group by turn" count={6} expanded={true} onToggle={() => {}} {...props} />,
+		<GroupHeader
+			group="w06"
+			label="Group by what a row waits for"
+			count={6}
+			expanded={true}
+			onToggle={() => {}}
+			{...props}
+		/>,
 	);
 
 describe("GroupHeader count slot", () => {

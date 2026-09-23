@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { isAgentWorking, type ReviewSubmission, type ReviewThread, reviewRef, turnOf, verdictMark } from "@trellis/api";
+import { type ReviewSubmission, type ReviewThread, reviewRef, verdictMark } from "@trellis/api";
 import { EmptyState, Skeleton, type TabItem, Tabs, TicketId, useMediaQuery } from "@trellis/ui";
 import { type DiffAnchor, ReviewDiffSkeleton, type ThreadPlacement, threadDiffLine } from "@trellis/ui/review";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
@@ -23,7 +23,6 @@ import { FilesDisclosure } from "./components/FilesDisclosure";
 import { PaneBoundary } from "./components/PaneBoundary";
 import { type GithubPullRequest, ReviewIdentity } from "./components/ReviewIdentity";
 import { ReviewTreeSkeleton } from "./components/ReviewPageSkeleton";
-import { TurnLine } from "./components/TurnLine";
 import { useActiveThread } from "./hooks/useActiveThread";
 import { useReadMarks } from "./hooks/useReadMarks";
 import { useReviewData } from "./hooks/useReviewData";
@@ -53,7 +52,6 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	const {
 		revision,
 		status,
-		ticket,
 		run,
 		linkedPr,
 		summary,
@@ -123,17 +121,11 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	const headSha = revision?.headSha ?? "";
 	const allSubmissions = submissions.data ?? noSubmissions;
 	const summaryRow = summary.data ?? null;
-	const prRow = status.data?.prRow ?? null;
 	const metadata = useQuery({
 		...orpc.reviews.metadata.queryOptions({ input: { pr } }),
 		enabled: revision !== null || status.data?.isQueued === true,
 	});
 	const reviewMetadata = metadata.data as ReviewMetadata | undefined;
-	// The ticket row also knows the ticket status and its dependencies.
-	// `prRow` is the fallback for a pull request that no ticket links.
-	const turnInput = ticket.data ?? prRow;
-	const agentWorks = run !== null && isAgentWorking(run);
-	const turn = turnInput ? turnOf(turnInput, agentWorks) : null;
 	// What the Flows tab needs to start a flow. One `gh pr view` answer carries
 	// both the ticket and the head commit, so either both are here or neither
 	// is.
@@ -163,9 +155,6 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 								</Link>{" "}
 								{status.data.ticket.title}
 							</p>
-						)}
-						{turn !== null && (
-							<TurnLine turn={turn} prRow={prRow} mergedOn={linkedPr?.mergedAt?.slice(0, 10) ?? null} />
 						)}
 					</div>
 				</div>

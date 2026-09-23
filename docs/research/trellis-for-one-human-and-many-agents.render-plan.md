@@ -20,7 +20,7 @@ One entry per screen. Two renderers build in parallel. Neither renderer talks to
   - before: `~/.trellis/attachments/fa/fa629876f8c3a7ec361c05ba2c6d8f600a5ac19f70ef8b3123c474efa9e5013d`, copy to `assets/op27-send-pending.png`
   - after: `~/.trellis/attachments/ee/ee7278b0057fb46dd74472faea39ab33e6bb93bc18269b280f7c57ee1f1858eb`, copy to `assets/op27-send-timeout.png`
   - clip: `~/.trellis/attachments/a2/a218aac4f3fa3a1f6bc0b815ece1d9db78797b4acd84b872fc327a69f0a4567f`, copy to `assets/op27-send-timeout.gif`
-- The dependency graph, whose turn, and the run states are in `verdict.md` section 1.1. Use those tables. Do not recompute.
+- The dependency graph, what each pull request waits for, and the run states are in `verdict.md` section 1.1. Use those tables. Do not recompute.
 - Example values. The exports carry no pull request size, no file list, no sha, no live run state and no summary. Every such value on a screen is an example value. Wrap each one in `<span class="ex" title="example value">`. Style `.ex` with `border-bottom: 1px dotted var(--fg-faint)`. Put one line at the foot of every page, 12 px `--fg-faint`: `Sizes, file lists, shas, run states and summaries are example values. Every identifier, title, status, wave, pull request, check and attachment is from the OP exports.`
 
 ### 0.3 Look
@@ -50,7 +50,7 @@ One entry per screen. Two renderers build in parallel. Neither renderer talks to
 
 | Renderer | Screens |
 | --- | --- |
-| Renderer 1 | `epic-wave`, `epic-turn`, `epic-phone`, `epic-resources`, then `index` |
+| Renderer 1 | `epic-wave`, `epic-waiting`, `epic-phone`, `epic-resources`, then `index` |
 | Renderer 2 | `review-backend`, `review-frontend`, `ticket-blocked`, `ticket-review`, `cli` |
 
 `index.html` links the nine files by slug, in the order of this plan, one line each: the slug, then the verdict screen number, then one sentence of purpose. Renderer 1 writes it from this plan. It does not wait for renderer 2.
@@ -97,11 +97,11 @@ Clicks (as `title`): ticket row opens the ticket page in a sheet; pull request r
 
 Footer: the example-value line of 0.2.
 
-## 2. `epic-turn`
+## 2. `epic-waiting`
 
 Renderer 1. Desktop 1280 px. Verdict screen 2.
 
-The same topbar, band, `Plan` and `Resources` as `epic-wave`. The Group chip reads `Group: Turn`. The table renders the block in verdict screen 2, line for line, four groups: `Your turn 2`, `With an agent 5`, `Waits on a merge 13`, `Done 3` collapsed. `With GitHub` does not render.
+The same topbar, band, `Plan` and `Resources` as `epic-wave`. The Group chip reads `Group: Waiting`. The table renders the block in verdict screen 2, line for line, four groups: `Waits for you 2`, `With an agent 5`, `Waits on a merge 13`, `Done 3` collapsed. `With GitHub` does not render.
 
 Same columns, same row kinds, same marks, same clicks as `epic-wave`. Inside a group the rows sit in the order the verdict prints them.
 
@@ -111,7 +111,7 @@ Renderer 2. Desktop 1280 px, rendered as a page, not a sheet. Verdict screen 3. 
 
 Regions, top to bottom, each as a labelled block with a 12 px `--fg-faint` label:
 
-- A. Identity, five lines: `⊙ #57080  open      OP-43: Filter hotels by user membership` with `revision 2 of 2 ▾` right; `trellis/op-43-01m2w7bmdftr3kvv155vp2pnak  →  master`; `OP-43  Canary: A private Canary route that answers a user's properties`; `waits on nothing  ·  releases OP-44`; `crisp-fjord's turn. 1 check failed.`
+- A. Identity, four lines: `⊙ #57080  open      OP-43: Filter hotels by user membership` with `revision 2 of 2 ▾` right; `trellis/op-43-01m2w7bmdftr3kvv155vp2pnak  →  master`; `OP-43  Canary: A private Canary route that answers a user's properties`; `waits on nothing  ·  releases OP-44`
 - B. `READY TO MERGE` with `not yet` right, then nine label and value lines exactly as verdict screen 3 region B. Labels 12 px `--fg-faint` at a fixed 96 px width, mono. Values 13 px `--fg`. `failed`, and `yes` after `auth`, in `--danger`. Size, tests, base are example values.
 - C. Summary: headline 15 px, why 13 px two lines, `Watch this: ` in `--fg-muted` then the sentence. Text from verdict screen 3 region C. Example value (the agent has not written it).
 - D. `REVIEW FOCUS` with `0 of 2 held` right, two checkbox lines with the two sentences from OP-43's description.
@@ -127,7 +127,7 @@ Nothing moves. No agent card on this page.
 
 Renderer 2. Desktop 1280 px. Verdict screen 4. Pull request `#56930` of OP-27. Same regions as `review-backend`. Content that differs:
 
-- A. `⊙ #56930  open      OP-27 Bound Operator message posts` with `revision 1 of 1`; `trellis/op-27-01m2s1scg7ppywezh4b5m8ez4y  →  master`; `OP-27  Web: Bound the Operator message post, and end the wait on what the thread says`; `waits on nothing  ·  releases nothing`; `Your turn.`
+- A. `⊙ #56930  open      OP-27 Bound Operator message posts` with `revision 1 of 1`; `trellis/op-27-01m2s1scg7ppywezh4b5m8ez4y  →  master`; `OP-27  Web: Bound the Operator message post, and end the wait on what the thread says`; `waits on nothing  ·  releases nothing`
 - B. `READY TO MERGE  yes`, nine lines from verdict screen 4 region B. Every `no` under `risk` stays `--fg`.
 - C. The three-field summary from verdict screen 4 region C.
 - D. One line `The ticket names no review focus.` in `--fg-faint`.
@@ -213,9 +213,9 @@ Top to bottom:
 
 1. Header row: `‹`, `Routines E2E`, `⋯`. 44 px tall.
 2. Band: `Current: The run settles, and its state reaches the page` on two lines; `0 to start · 5 running · 2 for you`; the 6 px bar with `3 of 27` right. No legend.
-3. The table grouped by turn. Group header `▾ Your turn  2`, then two two-line rows of 56 px; group header `▾ With an agent  5`, then five rows; `▸ Waits on a merge  13`, `▸ Done  3` collapsed.
+3. The table grouped by what each row waits for. Group header `▾ Waits for you  2`, then two two-line rows of 56 px; group header `▾ With an agent  5`, then five rows; `▸ Waits on a merge  13`, `▸ Done  3` collapsed.
 
-Rows, line 1: status glyph, identifier, title cut with an ellipsis, then the agent card at the right edge. Line 2, 12 px `--fg-muted`, one of: the pull request glyph and number with `open` or `draft`, the checks in words and the turn; the agent's message; `waits on OP-32`; `releases n`.
+Rows, line 1: status glyph, identifier, title cut with an ellipsis, then the agent card at the right edge. Line 2, 12 px `--fg-muted`, one of: the pull request glyph and number with `open` or `draft`, the checks in words and what it waits for; the agent's message; `waits on OP-32`; `releases n`.
 
 | Row | Line 1 | Line 2 |
 | --- | --- | --- |

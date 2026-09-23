@@ -172,8 +172,8 @@ describe("groupRows with a row rank", () => {
 	});
 });
 
-describe("groupRows by turn", () => {
-	const turnRow = (id: string, fields: Partial<TicketSummary>) =>
+describe("groupRows by what a row waits for", () => {
+	const waitingRow = (id: string, fields: Partial<TicketSummary>) =>
 		({ ...ticket(id, runtime, phase1), waitsOn: [], prRows: [], ready: false, ...fields }) as TicketSummary;
 	const open = {
 		number: 7,
@@ -184,27 +184,27 @@ describe("groupRows by turn", () => {
 		pending: 0,
 		openThreads: 0,
 	} as unknown as TicketPr;
-	const humanReview = turnRow("human-review", {
+	const humanReview = waitingRow("human-review", {
 		status: { category: "started", reviewer: "human" } as TicketSummary["status"],
 	});
-	const review = turnRow("review", { prRows: [open] });
-	const draft = turnRow("draft", {
+	const review = waitingRow("review", { prRows: [open] });
+	const draft = waitingRow("draft", {
 		prRows: [{ ...open, reviewGaps: [{ kind: "not-asked", count: 1 }] }],
 	});
-	const blocked = turnRow("blocked", {
+	const blocked = waitingRow("blocked", {
 		status: { category: "todo" } as TicketSummary["status"],
 		waitsOn: [{ identifier: "OP-32" } as TicketSummary["waitsOn"][number]],
 	});
 
 	test("draws the groups in the fixed order and renders no empty group", () => {
-		const groups = groupRows([blocked, draft, review], { group: "turn", sort: "-updatedAt", statuses: [] });
+		const groups = groupRows([blocked, draft, review], { group: "waiting", sort: "-updatedAt", statuses: [] });
 
-		expect(groups.map((group) => group.label)).toEqual(["Your turn", "With an agent", "Waits on a merge"]);
-		expect(groups.map((group) => group.key)).toEqual(["you", "agent", "waits-on-a-merge"]);
+		expect(groups.map((group) => group.label)).toEqual(["Waits for you", "With an agent", "Waits on a merge"]);
+		expect(groups.map((group) => group.key)).toEqual(["you", "agent", "merge"]);
 	});
 
-	test("puts every row of one turn in one group", () => {
-		const groups = groupRows([humanReview, review], { group: "turn", sort: "-updatedAt", statuses: [] });
+	test("puts every row that waits for the person in one group", () => {
+		const groups = groupRows([humanReview, review], { group: "waiting", sort: "-updatedAt", statuses: [] });
 
 		expect(groups).toHaveLength(1);
 		expect(groups[0]!.rows.map((row) => row.id).sort()).toEqual(["human-review", "review"]);
@@ -212,7 +212,7 @@ describe("groupRows by turn", () => {
 
 	test("a working agent run moves a row to the agent group", () => {
 		const groups = groupRows([review], {
-			group: "turn",
+			group: "waiting",
 			sort: "-updatedAt",
 			statuses: [],
 			workingTicketIds: new Set(["review"]),

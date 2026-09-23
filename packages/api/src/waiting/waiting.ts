@@ -2,11 +2,16 @@ import { readyForReview } from "../reviewReady/reviewReady.ts";
 import type { TicketSummary } from "../schemas/ticket.ts";
 import type { TicketPr } from "../schemas/ticketPr.ts";
 
-export type Turn = "you" | "agent" | "github" | "ready" | "waits on a merge" | "done";
+// What a ticket or a pull request waits for. `you` means the person reads it
+// and answers. `agent` means an agent still has work on it. `github` means
+// only a check still runs. `ready` means nothing holds the ticket back and
+// anybody can start it. `merge` means another ticket must merge first.
+// `done` means the ticket is finished or canceled.
+export type Waiting = "you" | "agent" | "github" | "ready" | "merge" | "done";
 
-export type TurnRow = TicketSummary | TicketPr;
+export type WaitingRow = TicketSummary | TicketPr;
 
-const isTicket = (row: TurnRow): row is TicketSummary => "prRows" in row;
+const isTicket = (row: WaitingRow): row is TicketSummary => "prRows" in row;
 
 // Nobody can do anything about a check that still runs, so a pull request
 // that needs only that waits for GitHub. Every other missing part waits for
@@ -19,7 +24,7 @@ const waitsForGithub = (pullRequest: TicketPr): boolean =>
 const waitsForAgent = (pullRequest: TicketPr): boolean =>
 	pullRequest.state === "open" && !readyForReview(pullRequest) && !waitsForGithub(pullRequest);
 
-export function turnOf(row: TurnRow, hasWorkingRun: boolean): Turn {
+export function waitingFor(row: WaitingRow, hasWorkingRun: boolean): Waiting {
 	let ticket: TicketSummary | null;
 	let pullRequests: TicketPr[];
 	if (isTicket(row)) {
@@ -36,7 +41,7 @@ export function turnOf(row: TurnRow, hasWorkingRun: boolean): Turn {
 	if (pullRequests.some((pullRequest) => waitsForGithub(pullRequest))) return "github";
 	if (pullRequests.some((pullRequest) => pullRequest.state === "open" && readyForReview(pullRequest))) return "you";
 	if (ticket?.status.category === "todo" && ticket.ready) return "ready";
-	if (ticket?.status.category === "todo") return "waits on a merge";
+	if (ticket?.status.category === "todo") return "merge";
 	if (ticket === null) return "done";
 	return "agent";
 }

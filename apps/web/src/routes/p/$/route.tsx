@@ -87,14 +87,14 @@ export const Route = createFileRoute("/p/$")({
 			}
 			return;
 		}
-		// The turn of a row reads its pull requests, its dependencies and the
-		// agent run that works on it, which the epic page alone loads. An old
-		// link with `group=turn` on a board or a table drops the param, so
+		// What a row waits for reads its pull requests, its dependencies and
+		// the agent run that works on it, which the epic page alone loads. An
+		// old link with `group=waiting` on a board or a table drops the param, so
 		// the view takes its own default grouping. `tab` names a tab of the
 		// epic page, so a board or a table drops it too.
 		const { tab, ...withoutTab } = search;
 		const { group, ...withoutGroup } = withoutTab;
-		const listSearch = group === "turn" ? withoutGroup : tab !== undefined ? withoutTab : search;
+		const listSearch = group === "waiting" ? withoutGroup : tab !== undefined ? withoutTab : search;
 		if (listSearch !== search || !isCanonicalSearch(location.searchStr, listSearch)) {
 			throw redirect({ to: "/p/$", params: { _splat: splat }, search: stripDefaults(listSearch), replace: true });
 		}

@@ -5,7 +5,7 @@ import { useEpicWavesLoad } from "../../../pickers/hooks/useEpicWaves";
 import type { TableGroup } from "../../utils/flattenGroups";
 import { groupRows, type RowRank } from "../../utils/groupRows";
 import { closedSlugs } from "../../utils/listQuery";
-import { forYouCount, type WorkingTicketIds } from "../../utils/turnGroups";
+import { forYouCount, type WorkingTicketIds } from "../../utils/waitingGroups";
 import { waveMarks, withEmptyWaves } from "../../utils/waveGroups";
 import type { ClosedCategory, TableData } from "../useTableData";
 
@@ -17,10 +17,11 @@ export type TableGroupsOptions = {
 	// The rank of a row inside its group, ahead of the view's sort. The
 	// groups rebuild when its identity changes, so the caller memoizes it.
 	rowRank?: RowRank;
-	// The epic route passes it; the turn of a row and the `1 for you` count
-	// of a wave header read it. Null while the agent-run query of the route
-	// has not answered: the turn grouping then reports `loading`, because a
-	// row would land in the wrong group and move when the answer arrives.
+	// The epic route passes it; the Waiting grouping and the `1 for you`
+	// count of a wave header read it. Null while the agent-run query of the
+	// route has not answered: the Waiting grouping then reports `loading`,
+	// because a row would land in the wrong group and move when the answer
+	// arrives.
 	// Memoize it: a new identity regroups the rows.
 	workingTicketIds?: WorkingTicketIds | null;
 };
@@ -152,5 +153,5 @@ export const useTableGroups = ({
 		rowRank,
 		working,
 	]);
-	return { groups, loading: pending || (view.group === "turn" && workingTicketIds === null) };
+	return { groups, loading: pending || (view.group === "waiting" && workingTicketIds === null) };
 };

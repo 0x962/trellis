@@ -15,7 +15,7 @@ import type { z } from "zod";
 import { searchParamOrder } from "../../lib/searchParams";
 import type { Density } from "../../stores/uiStore";
 
-export type Group = "none" | "status" | "priority" | "project" | "parent" | "epic" | "wave" | "turn" | "pr";
+export type Group = "none" | "status" | "priority" | "project" | "parent" | "epic" | "wave" | "waiting" | "pr";
 
 // The list fields a chip can negate. `not` names the fields whose value
 // set carries the leading `!` in the URL.
@@ -86,7 +86,7 @@ const groups: ReadonlySet<string> = new Set([
 	"parent",
 	"epic",
 	"wave",
-	"turn",
+	"waiting",
 	"pr",
 ]);
 const densities: ReadonlySet<string> = new Set(["comfortable", "compact"]);

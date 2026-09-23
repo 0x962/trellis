@@ -2,7 +2,7 @@ import type { AgentRun, Epic, EpicSummary, WaveSummary } from "@trellis/api";
 import { formatCount } from "../../../lib/format";
 import { workingTargets } from "../../agents/workingTargets";
 import type { View } from "../../filters/grammar";
-import { forYouCount, type WorkingTicketIds } from "../../table/utils/turnGroups";
+import { forYouCount, type WorkingTicketIds } from "../../table/utils/waitingGroups";
 
 export type EpicNextCount = {
 	key: "toStart" | "running" | "waitsForYou";
@@ -44,7 +44,7 @@ export const epicRunningCount = (
 // What happens next in an epic: the current wave and its available counts.
 // Every ticket of one wave can start at the same time, so the open
 // tickets of the current wave are the next work. The server supplies
-// `toStart`. `waitsForYou` counts every ticket of the epic whose turn is
+// `toStart`. `waitsForYou` counts every ticket of the epic that waits for
 // the person. The wave group headers apply `forYouCount` to each wave, so
 // their counts add to the count here. This module is the one place in the
 // web that reads these values for the header band and the list row. The
@@ -58,9 +58,9 @@ export const epicRunningCount = (
 // replaces the wave, status, category, and reviewer filters. The to
 // start link lists the whole todo category of the wave, because the
 // filter grammar has no dependency-ready filter. The waits for you link
-// groups the table by turn, because no filter names a turn: the `Your turn`
-// group then holds the counted tickets. The running count has no link
-// because the grammar has no working-agent filter.
+// applies the Waiting grouping, because no filter names what a ticket waits
+// for: the `Waits for you` group then holds the counted tickets. The running
+// count has no link because the grammar has no working-agent filter.
 export const epicNext = (
 	epic: Pick<Epic, "currentWave" | "waves" | "tickets">,
 	running: number | null,
@@ -88,7 +88,7 @@ export const epicNext = (
 		counts.push({
 			key: "waitsForYou",
 			label: `${formatCount(waitsForYou)} ${waitsForYou === 1 ? "waits" : "wait"} for you`,
-			search: { ...base, group: "turn" },
+			search: { ...base, group: "waiting" },
 		});
 	}
 	return { wave, counts };

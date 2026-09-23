@@ -15,7 +15,7 @@ The three plans left eleven conflicts. This section names each one and the rulin
 | The run state words had three copies: S4 `runLine`, WEB-10 `agentLineText`, WEB-20 `runStateWords`. | T11 (S4) owns the words. T29 (WEB-10) and T39 (WEB-20) import `runLine` from `@trellis/api` and build no text module. |
 | S14 depended on WEB-12 and WEB-12 depended on S14. | T27 (S14) lands first and edits the two `epicNext` files. T41 (WEB-12) lands after it. |
 | The rename: S17 claimed 129 files, CLI ticket 2 claimed the nine CLI files, WEB-09 claimed the web labels. | T07 (WEB-09) renames the eight web labels in wave 1, so the person reads `Wave` on day one. T73 (S17) renames every identifier, the CLI files and the docs in wave 13, alone. CLI ticket 2 is folded into T73. |
-| `SRV-TURN` had no ticket in two plans. | `plan-server.md` added S18. It is T26. |
+| `SRV-WAITING` had no ticket in two plans. | `plan-server.md` added S18. It is T26. |
 | `SRV-RESOURCE` and `SRV-OUTCOME` had no ticket in any plan. | The outcome column joins T24 (S11), which already adds columns to `tickets`. A new ticket T51 builds `epic_resources`. Both are marked **added by the merge**. |
 | S11 and CLI ticket 13 both printed the contract in `brief.ts`. | T24 (S11) adds the fields and the write path only. T50 (CLI-13) owns every brief section. T24 drops `brief.ts` and `brief.test.ts`. |
 | S7 and S11 both edit `packages/api/src/schemas/ticket.ts` in one wave. | T10 (S6) puts the pull request row schema in its own file `packages/api/src/schemas/ticketPr.ts` and the lateral in `apps/server/src/db/queries/ticketPrs.ts`. T25 edits `ticketPr.ts`; T24 edits `ticket.ts`. |
@@ -40,9 +40,9 @@ Rules that hold for every ticket:
 | 1. Marks, motion, the first facts | T01 T02 T03 T04 T05 T06 T07 T08 | The size of every pull request in the store. The agent's last message on the wire. The Claude question text. The STE check and the path rules as pure modules. No violet. The word `Wave` on every label. The gallery ready for fourteen new sections. | 0082 (T01) |
 | 2. The review blocks and the epic band | T09 T10 T11 T12 T13 T14 T15 T16 T17 | The dependency table with its cycle check. Pull request rows on every ticket row. The run state words. The glimmer. The GitHub glyph. The band as three lines. In the gallery: the checks in words, the files by risk, the review focus list. | 0083 (T09) |
 | 3. Dependencies on the row, the conditions block | T18 T19 T20 T21 T22 T23 | `waitsOn[]`, `releases[]`, `ready` and `stackedOn` on every row. The real edges of Routines E2E imported. `trellis edit --after` and `trellis deps`. The pull request row under a ticket on the epic page. The conditions block in the gallery. | 0084 (T18) |
-| 4. The turn, the contract fields, the band counts | T24 T25 T26 T27 T28 T29 | The contract and the outcome on a ticket. The kind and the risk of every pull request. The turn of a row. The band counts from dependencies. The review status names its ticket. The agent line under a title on the epic page. | 0085 (T24) |
-| 5. The chain on the row and the ticket, the contract verbs | T30 T31 T32 T33 T34 T35 T36 T37 T38 T39 | The summary store with the STE refusal. The contracts of Routines E2E imported. `trellis contract`, `trellis outcome`, `trellis ready`. The `waits` and `releases` columns. The pull request row filled with size, checks, stack, flow and turn. The contract block, the chain block and the run line in the gallery. | 0086 (T30) |
-| 6. Group by turn, the evidence store, the epic in the terminal | T40 T41 T42 T43 T44 T45 | The evidence records and the floor. `Group by: Wave · Turn`. The change summary block. The start controls. `trellis summary write`. `trellis epics show` in the words of the epic page. | 0087 (T40) |
+| 4. What a row waits for, the contract fields, the band counts | T24 T25 T26 T27 T28 T29 | The contract and the outcome on a ticket. The kind and the risk of every pull request. What a row waits for. The band counts from dependencies. The review status names its ticket. The agent line under a title on the epic page. | 0085 (T24) |
+| 5. The chain on the row and the ticket, the contract verbs | T30 T31 T32 T33 T34 T35 T36 T37 T38 T39 | The summary store with the STE refusal. The contracts of Routines E2E imported. `trellis contract`, `trellis outcome`, `trellis ready`. The `waits` and `releases` columns. The pull request row filled with size, checks, stack, flow and what it waits for. The contract block, the chain block and the run line in the gallery. | 0086 (T30) |
+| 6. Group by waiting, the evidence store, the epic in the terminal | T40 T41 T42 T43 T44 T45 | The evidence records and the floor. `Group by: Wave · Waiting`. The change summary block. The start controls. `trellis summary write`. `trellis epics show` in the words of the epic page. | 0087 (T40) |
 | 7. Evidence on the page | T46 T47 T48 T49 T50 | The review that reaches a live run. The frontend evidence strip. The evidence word on the pull request row. `trellis evidence add`. The contract and the evidence owed in the brief. | none |
 | 8. The review page in one column, the resources store | T51 T52 T54 T55 T57 | The review page with nine regions. The backend evidence strip. `epic_resources`. `trellis evidence list`. The chain in the brief. | 0088 (T51) |
 | 9. The ticket page in one column, the verdict bar | T58 T59 T60 T61 T62 | The verdict bar with a live `Merge`. The ticket page as five clauses. The resource list in the gallery. `trellis evidence check`. `trellis resource`. | none |
@@ -744,7 +744,7 @@ Source: WEB-14.
 
 **Decision 1 sensitive.** Prose leaves `tests` and `ancestors` with no exact source; each reads `unknown`.
 
-### Wave 4. The turn, the contract fields, the band counts
+### Wave 4. What a row waits for, the contract fields, the band counts
 
 #### T24. Add the contract fields and the outcome to a ticket
 
@@ -800,25 +800,25 @@ Source: S7, the binding half.
 
 **New UI element.** None.
 
-#### T26. Turn a ticket row into the turn of its holder
+#### T26. Read what a ticket row waits for
 
 Source: S18.
 
-**Result.** One pure function `turnOf(row, workingRun)` in `packages/api` turns a `TicketSummary` into one of the five turns of screen 2 of the verdict.
+**Result.** One pure function `waitingFor(row, workingRun)` in `packages/api` turns a `TicketSummary` into one of the five groups of screen 2 of the verdict.
 
 **Touches.** `packages/api/src/index.ts` (one appended export line).
 
-**Creates.** `packages/api/src/turn/turn.ts`, `turn.test.ts`, `index.ts`.
+**Creates.** `packages/api/src/waiting/waiting.ts`, `waiting.test.ts`, `index.ts`.
 
-**The rules.** `you`: an open pull request that is not a draft, has no failed check and no open thread. `agent`: a draft, a failed check, an open thread, or a working run. `github`: not a draft, no failed check, one or more pending checks. `waits on a merge`: Todo and one or more unmet dependencies. `done`: category done. The function also answers the turn of one pull request row.
+**The rules.** `you`: an open pull request that is not a draft, has no failed check and no open thread. `agent`: a draft, a failed check, an open thread, or a working run. `github`: not a draft, no failed check, one or more pending checks. `merge`: Todo and one or more unmet dependencies. `done`: category done. The function also answers for one pull request row.
 
-**Leave alone.** `apps/server/**` (the turn is computed by the reader, never stored). `packages/cli/**`, `apps/web/**`.
+**Leave alone.** `apps/server/**` (the reader computes this, and nothing stores it). `packages/cli/**`, `apps/web/**`.
 
-**Verify.** `bun test packages/api/src/turn` · `bun scripts/check.ts`.
+**Verify.** `bun test packages/api/src/waiting` · `bun scripts/check.ts`.
 
-**Review focus.** The five turns are exclusive and the order of the tests decides a row that matches two. Fix the order in the module. One test per turn plus one test for a row that matches `you` and `agent` at once.
+**Review focus.** The five answers are exclusive and the order of the tests decides a row that matches two. Fix the order in the module. One test per answer plus one test for a row that matches `you` and `agent` at once.
 
-**Evidence.** Backend: summary, verify record, test proof one per turn, contract table of the exported function. No picture.
+**Evidence.** Backend: summary, verify record, test proof one per answer, contract table of the exported function. No picture.
 
 **Depends on.** T10, T19.
 
@@ -832,7 +832,7 @@ Source: S18.
 
 Source: S14. Lands before T41, which reads the new counts.
 
-**Result.** `toStart` counts the tickets that are ready by their dependencies, `waitsForYou` counts the rows whose turn is `you`, and `running` leaves the wire.
+**Result.** `toStart` counts the tickets that are ready by their dependencies, `waitsForYou` counts the rows that wait for `you`, and `running` leaves the wire.
 
 **Touches.** `apps/server/src/services/waves/rows.ts` (`running` at line 20, `hasOpenRun` at 31-35, `nextCounts` at 37-42, the column list at 47, `toWaveSummary` at 71), `packages/api/src/schemas/wave.ts` (the comment at 25-31, `running` at 42), `apps/server/src/db/waveNext.test.ts`, `apps/server/src/services/brief.test.ts` (the fixture at lines 130-131), `packages/cli/src/commands/waves.ts:26` (the count line; the file keeps its name until T73), `apps/web/src/features/epics/epicNext/epicNext.ts` (lines 6, 23, 48-52), `apps/web/src/features/epics/epicNext/epicNext.test.ts`.
 
@@ -1018,11 +1018,11 @@ Source: CLI ticket 9.
 
 **New UI element.** None.
 
-#### T34. Print the turn groups with trellis ready
+#### T34. Print the groups with trellis ready
 
 Source: CLI ticket 12.
 
-**Result.** `trellis ready OP --epic routines-e2e` prints the count line `0 ready to start`, then one line per turn group that holds a ticket, with the group name, its count and its identifiers, in the fixed order.
+**Result.** `trellis ready OP --epic routines-e2e` prints the count line `0 ready to start`, then one line per group that holds a ticket, with the group name, its count and its identifiers, in the fixed order.
 
 **Touches.** `packages/cli/src/verbs.ts` (one row, `ready`).
 
@@ -1032,7 +1032,7 @@ Source: CLI ticket 12.
 
 **Verify.** `bun test packages/cli/src/commands/ready` · `bun scripts/check.ts` · `trellis ready OP --epic routines-e2e` against a scratch server seeded with the OP epic; compare each count with section 1.1 of the verdict.
 
-**Review focus.** The turn comes from `turnOf` (T26). An empty group does not render: feed a set with an empty `with GitHub` group and confirm five lines, not six.
+**Review focus.** The group comes from `waitingFor` (T26). An empty group does not render: feed a set with an empty `with GitHub` group and confirm five lines, not six.
 
 **Evidence.** Backend: summary, verify record, test proof, contract table of the verb, its flags, the group order and the JSON shape. No picture.
 
@@ -1070,11 +1070,11 @@ Source: WEB-11.
 
 **New UI element.** None. Two columns on `Row`.
 
-#### T36. Fill the pull request row with the size, the stack, the flow and the turn
+#### T36. Fill the pull request row with the size, the stack, the flow and what it waits for
 
 Source: WEB-13, minus the evidence word (T48).
 
-**Result.** A pull request row reads `⊙ #57080 open · +311 −12 · 6 files · 1 failed · 6 pending · 47 passed · 0 threads · crisp-fjord`, a stacked pull request adds `stacked on #55569` after the state, and a flow adds `flow: Code Reviewer passed` before the turn.
+**Result.** A pull request row reads `⊙ #57080 open · +311 −12 · 6 files · 1 failed · 6 pending · 47 passed · 0 threads · crisp-fjord`, a stacked pull request adds `stacked on #55569` after the state, and a flow adds `flow: Code Reviewer passed` before the last fact.
 
 **Touches.** `apps/web/src/features/table/PrRow/PrRow.tsx`, `PrRow.test.tsx`.
 
@@ -1084,7 +1084,7 @@ Source: WEB-13, minus the evidence word (T48).
 
 **Verify.** `bun test apps/web/src/features/table/PrRow` · `bun scripts/check.ts` · the epic route with the seven real pull requests of the epic.
 
-**Review focus.** The turn prints `you` in `--fg`, the run name in `--fg-muted`, or `github`, from `turnOf` (T26). A cell whose data is missing drops out; it never prints a zero or a dash. `prRowText` leaves one slot for the evidence word that T48 fills.
+**Review focus.** The last fact prints `you` in `--fg`, the run name in `--fg-muted`, or `github`, from `waitingFor` (T26). A cell whose data is missing drops out; it never prints a zero or a dash. `prRowText` leaves one slot for the evidence word that T48 fills.
 
 **Evidence.** Frontend floor. Extra: the 390 px viewport.
 
@@ -1176,7 +1176,7 @@ Source: WEB-20, minus the words module (T11 owns the words).
 
 **New UI element.** `RunLine`.
 
-### Wave 6. Group by turn, the evidence store, the epic in the terminal
+### Wave 6. Group by waiting, the evidence store, the epic in the terminal
 
 #### T40. Add the evidence records of a pull request, and the evidence floor
 
@@ -1208,21 +1208,21 @@ Source: S15.
 
 **Decision 2 sensitive.** A capture service gives the `before` kind an actor of `service` and a service caller on the route. **Decision 3 sensitive.** This ticket owns the floor the refusal (T66) reads; the floor itself does not change.
 
-#### T41. Group the epic table by turn
+#### T41. Group the epic table by what each row waits for
 
 Source: WEB-12.
 
-**Result.** The Display popover offers `Group by: Wave · Turn`, Wave is the default on the desktop, the Turn grouping draws the six groups in fixed order with no empty group, and a group header prints `0 of 6 · 1 for you`.
+**Result.** The Display popover offers `Group by: Wave · Waiting`, Wave is the default on the desktop, the Waiting grouping draws the six groups in fixed order with no empty group, and a group header prints `0 of 6 · 1 for you`.
 
-**Touches.** `apps/web/src/features/filters/grammar.ts` (`Group` gains `turn`), `grammar.test.ts`, `apps/web/src/features/table/DisplayPopover/DisplayPopover.tsx`, `apps/web/src/features/table/utils/groupRows/groupRows.ts` (196 lines, one key), `groupRows.test.ts`, `apps/web/src/features/epics/EpicPage/components/EpicProgress/EpicProgress.tsx` (`2 wait for you` reads the turn), `apps/web/src/features/epics/epicNext/epicNext.ts`, `epicNext.test.ts`.
+**Touches.** `apps/web/src/features/filters/grammar.ts` (`Group` gains `waiting`), `grammar.test.ts`, `apps/web/src/features/table/DisplayPopover/DisplayPopover.tsx`, `apps/web/src/features/table/utils/groupRows/groupRows.ts` (196 lines, one key), `groupRows.test.ts`, `apps/web/src/features/epics/EpicPage/components/EpicProgress/EpicProgress.tsx` (`2 wait for you` reads it), `apps/web/src/features/epics/epicNext/epicNext.ts`, `epicNext.test.ts`.
 
-**Creates.** `apps/web/src/features/table/utils/turnGroups/turnGroups.ts`, `turnGroups.test.ts`, `index.ts`.
+**Creates.** `apps/web/src/features/table/utils/waitingGroups/waitingGroups.ts`, `waitingGroups.test.ts`, `index.ts`.
 
 **Leave alone.** `apps/web/src/features/table/utils/waveGroups`.
 
 **Verify.** `bun test apps/web/src/features/table` · `bun test apps/web/src/features/epics` · `bun test apps/web/src/features/filters` · `bun scripts/check.ts` · the epic route in both groupings.
 
-**Review focus.** A grouping is a function of the row (`turnOf`, T26), so it adds no row and no column. An empty group does not render. `2 wait for you` counts pull requests whose turn is `you`; the band and the group header must agree. An old bookmark with `group=turn` on a non-epic route falls back to the route default.
+**Review focus.** A grouping is a function of the row (`waitingFor`, T26), so it adds no row and no column. An empty group does not render. `2 wait for you` counts pull requests that wait for `you`; the band and the group header must agree. An old bookmark with `group=waiting` on a non-epic route falls back to the route default.
 
 **Evidence.** Frontend floor. Extra: the empty group case, the 390 px viewport.
 
@@ -1318,7 +1318,7 @@ Source: CLI ticket 5.
 
 Source: CLI ticket 14.
 
-**Result.** `trellis epics show OP/routines-e2e` prints the band line, the count line, one group header per wave with `0 of 6 · 1 for you`, the `waits` and `releases` cells on each ticket row, one pull request row per linked pull request, and the turn.
+**Result.** `trellis epics show OP/routines-e2e` prints the band line, the count line, one group header per wave with `0 of 6 · 1 for you`, the `waits` and `releases` cells on each ticket row, one pull request row per linked pull request, and what it waits for.
 
 **Touches.** `packages/api/src/index.ts` (append), `packages/cli/src/commands/epics.ts` (`renderEpic` at line 111, `renderTickets` at line 95), `packages/cli/src/commands/output.ts` (`ticketList.columns` at lines 146-156).
 
@@ -1340,7 +1340,7 @@ Source: CLI ticket 14.
 
 **New UI element.** None.
 
-**Decision 4 sensitive.** Turn on both puts the wave group behind a flag.
+**Decision 4 sensitive.** Waiting on both puts the wave group behind a flag.
 
 ### Wave 7. Evidence on the page
 
@@ -1542,11 +1542,11 @@ Source: WEB-17.
 
 Source: WEB-23.
 
-**Result.** `/reviews/$owner/$repo/$number` reads top to bottom: identity with the turn line, conditions, summary, review focus, evidence, checks, files by risk, threads, and the verdict bar; the tab strip leaves this page.
+**Result.** `/reviews/$owner/$repo/$number` reads top to bottom: identity, conditions, summary, review focus, evidence, checks, files by risk, threads, and the verdict bar; the tab strip leaves this page.
 
 **Touches.** `apps/web/src/features/reviews/ReviewPage/ReviewPage.tsx` (300 lines; the region bodies move into `ReviewPage/components/`), `apps/web/src/features/reviews/ReviewPage/hooks/useReviewNavigation/useReviewNavigation.ts` (the tab state leaves), `apps/web/src/features/reviews/ReviewPage/hooks/useReviewData/useReviewData.ts` (reads `ticket` and `prRow` from `reviews.status`, T28), `apps/web/src/features/reviews/ReviewHeader/ReviewHeader.tsx` (60 lines), `packages/ui/src/review/review.css`.
 
-**Creates.** `apps/web/src/features/reviews/ReviewPage/components/TurnLine/TurnLine.tsx` (one sentence, no new element), `TurnLine.test.tsx`, `index.ts`, `apps/web/src/features/reviews/ReviewPage/conditionsOf/conditionsOf.ts` (builds the `Conditions` object of T23), `conditionsOf.test.ts`.
+**Creates.** `apps/web/src/features/reviews/ReviewPage/conditionsOf/conditionsOf.ts` (builds the `Conditions` object of T23), `conditionsOf.test.ts`.
 
 **Leave alone.** `packages/ui/src/review/ReviewDiff`. `apps/web/src/features/reviews/ReviewSummary/**` and `ReviewDiscussion/**` (T63). `packages/ui/src/review/ReviewTabs` (T63 proves no caller remains).
 
@@ -1976,7 +1976,7 @@ Source: WEB-27.
 
 Source: WEB-28.
 
-**Result.** At 390 px the epic page defaults to the Turn grouping, each row is two lines of 56 px, every touch target is at least 44 px, and the band keeps its three lines with the legend hidden behind a tap.
+**Result.** At 390 px the epic page defaults to the Waiting grouping, each row is two lines of 56 px, every touch target is at least 44 px, and the band keeps its three lines with the legend hidden behind a tap.
 
 **Touches.** `apps/web/src/features/table/Row/components/PhoneRow/PhoneRow.tsx`, `apps/web/src/features/table/PrRow/PrRow.tsx`, `apps/web/src/features/table/AgentLine/AgentLine.tsx`, `apps/web/src/features/table/rowHeights.ts`, `apps/web/src/features/epics/EpicPage/EpicPage.tsx`, `apps/web/src/features/epics/EpicPage/components/EpicProgress/EpicProgress.tsx`, `apps/web/src/features/table/columns.tsx` (`narrowHidden` at line 103 gains `releases`).
 
@@ -2124,7 +2124,7 @@ One line per ticket: the paths it writes. An append file (section 0) is listed o
 **Wave 4**
 - T24: `apps/server/src/db/schema.ts` (tickets), `apps/server/src/services/tickets/contract.ts`, `contract.test.ts`, `outcome.ts`, `outcome.test.ts`, `apps/server/src/procedures/tickets.ts`, `packages/api/src/schemas/ticket.ts`, `ticketWrite.ts`, `apps/server/drizzle/0085_*`, +append `registry.ts`, `contract/tickets.ts`
 - T25: `packages/api/src/schemas/ticketPr.ts`, `apps/server/src/db/queries/ticketPrs.ts`, `apps/server/src/db/ticketPrs.test.ts`
-- T26: `packages/api/src/turn/**`, +append `packages/api/src/index.ts`
+- T26: `packages/api/src/waiting/**`, +append `packages/api/src/index.ts`
 - T27: `apps/server/src/services/waves/rows.ts`, `packages/api/src/schemas/wave.ts`, `apps/server/src/db/waveNext.test.ts`, `apps/server/src/services/brief.test.ts` (fixture lines 130-131 only), `packages/cli/src/commands/waves.ts:26`, `apps/web/src/features/epics/epicNext/**`
 - T28: `packages/api/src/schemas/review.ts`, the review status service under `apps/server/src/services/reviews/` and its test
 - T29: `flattenGroups.ts`, `rowHeights.ts`, `TableBody.tsx`, `apps/web/src/features/table/AgentLine/**`, `packages/ui/src/primitives/AttentionDot/**`, `sections/AttentionDot.tsx`, +append `packages/ui/src/index.ts`, `sections/index.ts`
@@ -2143,7 +2143,7 @@ One line per ticket: the paths it writes. An append file (section 0) is listed o
 
 **Wave 6**
 - T40: `apps/server/src/db/tables/prEvidence.ts`, `apps/server/src/db/schema.ts` (export), `apps/server/src/services/evidence/**`, `apps/server/src/procedures/pullRequests.ts`, `apps/server/src/db/queries/ticketPrs.ts`, `packages/api/src/schemas/evidence.ts`, `ticketPr.ts`, `packages/api/src/evidenceFloor/**`, `apps/server/drizzle/0087_*`, +append `registry.ts`, `contract/pullRequests.ts`, `packages/api/src/index.ts`
-- T41: `grammar.ts`, `grammar.test.ts`, `DisplayPopover.tsx`, `groupRows.ts`, `groupRows.test.ts`, `utils/turnGroups/**`, `EpicProgress.tsx`, `epicNext/**`
+- T41: `grammar.ts`, `grammar.test.ts`, `DisplayPopover.tsx`, `groupRows.ts`, `groupRows.test.ts`, `utils/waitingGroups/**`, `EpicProgress.tsx`, `epicNext/**`
 - T42: `apps/web/src/features/reviews/ChangeSummary/**`, `sections/ChangeSummary.tsx`, +append `sections/index.ts`
 - T43: `apps/web/src/features/ticket/StartControls/**`, `sections/StartControls.tsx`, +append `sections/index.ts`
 - T44: `packages/cli/src/commands/summary/**`, +append `verbs.ts`
@@ -2220,7 +2220,7 @@ Eight migrations. No wave holds two.
 | 1. The contract: fields or prose | fields, with a one-time import | T24 loses its contract half. T31 disappears. T32 keeps `contract show` as a parser. T17 shows a sentence it failed to parse. T23 prints `unknown` for `tests` and `ancestors`. T37 reads a parse result. T50 names what the parse missed. T61 warns when the parse finds no verify command. T74 describes a parser. |
 | 2. Who captures the before image | the agent | T40 gives the `before` kind an actor of `service`. T47 adds a `captured by Trellis` line and a re-capture control. T49 drops `--base`. T67 replaces the second worktree step with a service call. |
 | 3. May the CLI refuse the hand-over | yes | T66 becomes a warning and exit 0. T69 step 7 becomes a warning. T74 drops the sentence. T40 does not change. |
-| 4. Which grouping is the default on the desktop | Wave | T41 sets the desktop default. T71 sets the phone default; Turn on both makes it a one-line change. T45 puts the wave group behind a flag. T73 owns the word only. |
+| 4. Which grouping is the default on the desktop | Wave | T41 sets the desktop default. T71 sets the phone default; Waiting on both makes it a one-line change. T45 puts the wave group behind a flag. T73 owns the word only. |
 
 ## 7. The new UI elements that need approval
 
@@ -2232,7 +2232,7 @@ Eight migrations. No wave holds two.
 | `ChecksLine` | T15 | `CheckRing` draws three arcs and a glyph for one rollup. Rule 6 rejects it. |
 | `FileRiskGroups` | T16 | `ReviewFiles` lists by path with counts; nothing orders by risk, collapses noise or keeps a read mark. |
 | `ReviewFocusList` | T17 | `SubTickets` counts tickets with a progress bar; a focus item is a sentence marked per revision. |
-| `PrRow` | T22 | `Row` with the 72 px `pr` column cannot hold the glyph, number, state, size, checks, threads, evidence and turn. |
+| `PrRow` | T22 | `Row` with the 72 px `pr` column cannot hold the glyph, number, state, size, checks, threads, evidence and what it waits for. |
 | `ConditionsBlock` | T23 | `PropertyRow` holds one label and one value; nine conditions need one order, one label width and one readiness word. |
 | `AgentLine` | T29 | `Row` is one line at a fixed height; the message needs a 24 px second line only when one exists. |
 | `AttentionDot` | T29 | `Badge` carries a word; `StatusIcon` carries a status; neither is a 6 px dot that means a human is needed. |
@@ -2247,7 +2247,7 @@ Eight migrations. No wave holds two.
 
 One question, not an element: T58 rebuilds the merge, send back and comment controls as one fixed bottom bar in the shape of `ReviewBatchBar`. If Navid reads it as a new element, it joins this list as `VerdictBar`.
 
-Changes to existing elements, no approval needed: `columns.tsx` gains `waits` and `releases` (T35); `rowHeights.ts` and `flattenGroups.ts` gain two row kinds (T22, T29); `DisplayPopover` gains `Group by: Wave · Turn` (T41); `GroupHeader` count slot takes text (T41); `epicBar.ts` and the Agent Review glyph move from `agent` to `accent` (T08); the agent card gains the glimmer and drops the violet stop (T12, T08).
+Changes to existing elements, no approval needed: `columns.tsx` gains `waits` and `releases` (T35); `rowHeights.ts` and `flattenGroups.ts` gain two row kinds (T22, T29); `DisplayPopover` gains `Group by: Wave · Waiting` (T41); `GroupHeader` count slot takes text (T41); `epicBar.ts` and the Agent Review glyph move from `agent` to `accent` (T08); the agent card gains the glimmer and drops the violet stop (T12, T08).
 
 ## 8. Totals
 

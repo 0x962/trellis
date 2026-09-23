@@ -48,13 +48,13 @@ export const closedInput = (
 };
 
 // True when the table draws the Done and Canceled rows inside the groups of
-// the view, not in groups of their own: the wave and the turn grouping
+// the view, not in groups of their own: the wave and the Waiting grouping
 // of one epic. A finished wave then keeps its group, an open wave
-// shows its done rows, and the turn grouping fills its Done group. One epic
+// shows its done rows, and the Waiting grouping fills its Done group. One epic
 // bounds the row count; a wave grouping over every epic of a project
 // keeps the open rows alone.
 export const hasInlineClosed = (view: View) =>
-	(view.group === "wave" || view.group === "turn") &&
+	(view.group === "wave" || view.group === "waiting") &&
 	view.epic !== undefined &&
 	view.epic !== "none" &&
 	view.closed !== "hide" &&

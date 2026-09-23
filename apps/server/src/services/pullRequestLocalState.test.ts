@@ -156,7 +156,7 @@ test("a second link of the same pull request keeps the state that trellis ready 
 	expect(again.localState).toBe("ready");
 });
 
-test("setLocalState writes the state, announces the update and changes the turn", async () => {
+test("setLocalState writes the state, announces the update and moves the inbox item", async () => {
 	const ticket = await newTicket("Ask for review");
 	const linked = await linkAs(agent, ticket.identifier, 104);
 	await writeParts(linked.id, "head104");
