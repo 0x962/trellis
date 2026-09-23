@@ -9,9 +9,7 @@ import { Section } from "../../Section";
 
 const keys = { orange: "CNY", teal: "CVS", blue: "TRL", pink: "HBR", azure: "MSA" };
 
-// The mark and the key chip carry the color of a project, and every glyph
-// beside them stays on the plain ground. `projectColors.test.ts` measures the
-// contrast of the mark and of the key on its chip.
+// `projectColors.test.ts` measures the contrast of the mark, and of the key on its chip.
 export function ProjectColorSection() {
 	return (
 		<Section
