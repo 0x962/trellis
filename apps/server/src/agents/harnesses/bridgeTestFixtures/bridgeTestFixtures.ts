@@ -2,7 +2,8 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createServer, type Socket } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { HarnessEvent, RuntimeRequest } from "@trellis/runtime-protocol";
+import type { RuntimeRequest } from "@trellis/runtime-protocol";
+import type { HarnessEvent } from "../types.ts";
 
 export type RuntimeAnswer = { refuse?: boolean; delayMs?: number };
 

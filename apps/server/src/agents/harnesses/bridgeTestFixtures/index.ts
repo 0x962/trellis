@@ -4,4 +4,4 @@ export {
 	scratchHome,
 	spawnBridge,
 	writeExecutable,
-} from "./bridgeTestSupport.ts";
+} from "./bridgeTestFixtures.ts";
