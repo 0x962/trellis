@@ -238,14 +238,26 @@ test("another section keeps the settings of the project open", () => {
 	expect(state()).toEqual({ ...empty, projectSettings: { project: "TRL", section: "labels" } });
 });
 
-test("closing the settings of a project leaves the page behind it", () => {
+test("closing the settings of a project asks GitHub about no pull request", () => {
 	let refreshes = 0;
 	pageSheetActions.setRefreshBehindSheet(() => refreshes++);
 	pageSheetActions.openProjectSettings({ project: "TRL", section: "" });
 	pageSheetActions.closeProjectSettings();
 
-	expect(refreshes).toBe(1);
+	expect(refreshes).toBe(0);
 	expect(state()).toEqual(empty);
+});
+
+test("the same project and section keep the subject the sheet already holds", () => {
+	pageSheetActions.openProjectSettings({ project: "TRL", section: "labels" });
+	const first = state().projectSettings;
+	pageSheetActions.openProjectSettings({ project: "TRL", section: "labels" });
+
+	expect(state().projectSettings).toBe(first);
+
+	pageSheetActions.openProjectSettings({ project: "TRL", section: "notes" });
+
+	expect(state().projectSettings).not.toBe(first);
 });
 
 test("the settings of the app and the settings of a project close each other", () => {

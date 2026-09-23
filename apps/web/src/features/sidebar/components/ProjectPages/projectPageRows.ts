@@ -17,9 +17,8 @@ export type ProjectPageRow = {
 	// count; every other row holds 0.
 	activeAgentCount: number;
 	// The section of the project settings sheet the row opens, or null when
-	// the row opens a page. The Settings row and the Notes row keep the
-	// href of their suffix, so a click with a modifier key opens a tab.
-	section: ProjectSettingsSectionId | null;
+	// the row opens a page.
+	settingsSection: ProjectSettingsSectionId | null;
 };
 
 export type ProjectPageRows = {
@@ -58,7 +57,7 @@ export const projectPageRows = (
 				// The count of open epics of this project alone.
 				trailing: project.openEpicCount > 0 ? formatCount(project.openEpicCount) : null,
 				activeAgentCount: 0,
-				section: null,
+				settingsSection: null,
 			},
 			{
 				label: "Sessions",
@@ -66,7 +65,7 @@ export const projectPageRows = (
 				active: current && sessions,
 				trailing: null,
 				activeAgentCount,
-				section: null,
+				settingsSection: null,
 			},
 		],
 		more: [
@@ -76,7 +75,7 @@ export const projectPageRows = (
 				active: current && !diffs && !epics && !sessions,
 				trailing: null,
 				activeAgentCount: 0,
-				section: null,
+				settingsSection: null,
 			},
 			{
 				label: "Diffs",
@@ -84,10 +83,24 @@ export const projectPageRows = (
 				active: current && diffs,
 				trailing: null,
 				activeAgentCount: 0,
-				section: null,
+				settingsSection: null,
 			},
-			{ label: "Settings", suffix: "/settings", active: false, trailing: null, activeAgentCount: 0, section: "" },
-			{ label: "Notes", suffix: "/notes", active: false, trailing: null, activeAgentCount: 0, section: "notes" },
+			{
+				label: "Settings",
+				suffix: "/settings",
+				active: false,
+				trailing: null,
+				activeAgentCount: 0,
+				settingsSection: "",
+			},
+			{
+				label: "Notes",
+				suffix: "/notes",
+				active: false,
+				trailing: null,
+				activeAgentCount: 0,
+				settingsSection: "notes",
+			},
 		],
 	};
 };

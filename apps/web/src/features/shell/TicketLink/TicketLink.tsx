@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
+import { opensSheet } from "../../../lib/opensSheet";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
-import { opensSheet } from "./opensSheet";
 
 export type TicketLinkProps = {
 	// The canonical identifier, `TRL-42`.

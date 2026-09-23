@@ -1,5 +1,1 @@
-export {
-	type ProjectSettingsSectionId,
-	projectSettingsSection,
-	projectSettingsSections,
-} from "./projectSettingsUrl";
+export { type ProjectSettingsSectionId, projectSettingsSection } from "./projectSettingsUrl";

@@ -1,25 +1,32 @@
 import type { Project } from "@trellis/api";
+import { SettingsNav } from "@trellis/ui";
 import type { ReactNode } from "react";
 
 import { NotesSettings } from "../../notes/NotesSettings";
 import { LabelSettings } from "../LabelSettings";
 import { ProjectGeneralSettings } from "../ProjectGeneralSettings";
 import { ProjectLifecycle } from "../ProjectLifecycle";
-import { type ProjectSettingsSectionId, projectSettingsSections } from "../projectSettingsUrl";
+import type { ProjectSettingsSectionId } from "../projectSettingsUrl";
 import { StatusSettings } from "../StatusSettings";
 import { TicketTemplateSettings } from "../TicketTemplateSettings";
 
+const sections: readonly { id: ProjectSettingsSectionId; label: string }[] = [
+	{ id: "", label: "General" },
+	{ id: "notes", label: "Notes" },
+	{ id: "template", label: "Ticket template" },
+	{ id: "statuses", label: "Statuses" },
+	{ id: "labels", label: "Labels" },
+	{ id: "archive", label: "Danger Zone" },
+];
+
 export type ProjectSettingsProps = {
 	project: Project;
-	// The section the nav marks and the content shows.
 	section: ProjectSettingsSectionId;
 	onSectionChange: (section: ProjectSettingsSectionId) => void;
 };
 
-// The settings of one project. `ProjectSettingsSheet` draws this view in a
-// sheet over the page a person is on, and holds the section it shows. The
-// nav is a set of buttons: the URL belongs to the page under the sheet, so
-// it cannot carry the section.
+// The settings of one project. The caller holds the section, because the
+// URL belongs to the page under the sheet that draws this view.
 export function ProjectSettings({ project, section, onSectionChange }: ProjectSettingsProps) {
 	return (
 		<ProjectSettingsContent key={project.id} project={project} section={section} onSectionChange={onSectionChange} />
@@ -45,25 +52,14 @@ function ProjectSettingsContent({ project, section, onSectionChange }: ProjectSe
 	};
 	return (
 		<div className="project-settings-layout">
-			<nav aria-label="Project settings" className="project-settings-nav">
-				<p className="project-settings-nav-title">Project settings</p>
-				<ul className="project-settings-nav-list">
-					{projectSettingsSections.map(({ id, label }) => (
-						<li key={id}>
-							<button
-								type="button"
-								aria-current={section === id ? "page" : undefined}
-								className="project-settings-nav-link"
-								onClick={() => onSectionChange(id)}
-							>
-								{label}
-							</button>
-						</li>
-					))}
-				</ul>
-			</nav>
+			<SettingsNav
+				label="Project settings"
+				items={sections}
+				selected={section}
+				onSelect={(id) => onSectionChange(id as ProjectSettingsSectionId)}
+			/>
 			<div className="project-settings-content">
-				{projectSettingsSections.map(({ id }) => {
+				{sections.map(({ id }) => {
 					const content = contentFor(id);
 					if (content === null) return null;
 					return (

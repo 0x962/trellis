@@ -3,10 +3,10 @@ import { Link } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
 import { ActivityDot, cx } from "@trellis/ui";
 import { type MouseEvent, memo } from "react";
+import { opensSheet } from "../../../../lib/opensSheet";
 import { pageSheetActions } from "../../../../stores/pageSheetStore";
 import { uiActions, useUiStore } from "../../../../stores/uiStore";
 import { activeAgentsLabel } from "../../../agents/activeAgents";
-import { opensSheet } from "../../../shell/TicketLink/opensSheet";
 import { hiddenAgentCount, type ProjectPageRow, projectPageRows } from "./projectPageRows";
 
 // A page row sits one step right of the project row, and a row the More row
@@ -36,9 +36,11 @@ export const ProjectPages = memo(function ProjectPages({
 	const agentCountUnderMore = open ? 0 : hiddenAgentCount(more);
 	// The Settings row and the Notes row open a sheet. Each one keeps the
 	// href of its page, so a middle click or a click with a modifier key
-	// opens that page in a tab.
+	// opens that page in a tab. `preload` is off on those rows: a preload
+	// runs `beforeLoad` of the project route, which opens the sheet, so a
+	// hover alone would open it.
 	const openSheet = (row: ProjectPageRow) => {
-		const section = row.section;
+		const section = row.settingsSection;
 		if (section === null) return undefined;
 		return (event: MouseEvent<HTMLAnchorElement>) => {
 			if (!opensSheet(event)) return;
@@ -53,6 +55,7 @@ export const ProjectPages = memo(function ProjectPages({
 				to={row.suffix === "/sessions" ? "/sessions/project/$project" : "/p/$"}
 				params={row.suffix === "/sessions" ? { project: project.key } : { _splat: `${project.key}${row.suffix}` }}
 				activeOptions={{ exact: true, includeSearch: false }}
+				preload={row.settingsSection === null ? undefined : false}
 				onClick={openSheet(row)}
 				aria-current={row.active ? "page" : undefined}
 				className={rowClass(inMore, row.active)}

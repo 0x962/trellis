@@ -1,6 +1,6 @@
 export {
 	type PageSheetState,
-	type ProjectSettingsTarget,
+	type ProjectSettingsSubject,
 	pageSheetActions,
 	type SheetParent,
 	sheetParent,

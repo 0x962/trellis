@@ -1,3 +1,4 @@
+import { SettingsNav } from "@trellis/ui";
 import type { ReactNode } from "react";
 import { useActor } from "../../../lib/actor";
 import { type DesktopBridge, type DesktopSettingsBridge, desktopSettingsBridge } from "../../../lib/desktopBridge";
@@ -68,23 +69,12 @@ export function SettingsView({ section, onSectionChange }: SettingsViewProps) {
 				<PageTitle title="Settings" />
 			</Topbar>
 			<div className="page-card project-settings-layout">
-				<nav aria-label="Settings" className="project-settings-nav">
-					<p className="project-settings-nav-title">Settings</p>
-					<ul className="project-settings-nav-list">
-						{pages.map(({ id, title }) => (
-							<li key={id}>
-								<button
-									type="button"
-									aria-current={selected === id ? "page" : undefined}
-									className="project-settings-nav-link"
-									onClick={() => onSectionChange(id)}
-								>
-									{title}
-								</button>
-							</li>
-						))}
-					</ul>
-				</nav>
+				<SettingsNav
+					label="Settings"
+					items={pages.map(({ id, title }) => ({ id, label: title }))}
+					selected={selected}
+					onSelect={(id) => onSectionChange(id as SettingsSectionId)}
+				/>
 				<div className="project-settings-content">
 					{pages.map(({ id, title, hint, rows }) => (
 						<div key={id} hidden={selected !== id} className="project-settings-page">

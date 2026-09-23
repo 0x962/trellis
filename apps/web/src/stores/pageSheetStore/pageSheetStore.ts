@@ -5,9 +5,8 @@ import type { SettingsSectionId } from "../../features/settings/settingsUrl";
 
 type RefreshBehindSheet = () => void;
 
-// The project settings sheet shows one section of one project. `project` is
-// the API ref of that project, `TRL`.
-export type ProjectSettingsTarget = { project: string; section: ProjectSettingsSectionId };
+// `project` is the API ref of a project, `TRL`.
+export type ProjectSettingsSubject = { project: string; section: ProjectSettingsSectionId };
 
 export type PageSheetState = {
 	// The ticket identifier in the ticket sheet, `TRL-42`, or null while no
@@ -24,7 +23,7 @@ export type PageSheetState = {
 	settings: SettingsSectionId | null;
 	// The project and the section the project settings sheet shows, or null
 	// while that sheet is closed.
-	projectSettings: ProjectSettingsTarget | null;
+	projectSettings: ProjectSettingsSubject | null;
 	// The address the in-app browser sheet shows, or null while the browser
 	// sheet is closed.
 	browser: string | null;
@@ -65,6 +64,9 @@ export const usePageSheetStore = create<PageSheetState>()(() => ({
 
 let refreshBehindSheet: RefreshBehindSheet | null = null;
 
+const sameSubject = (current: ProjectSettingsSubject | null, next: ProjectSettingsSubject) =>
+	current !== null && current.project === next.project && current.section === next.section ? current : next;
+
 const sheetCount = (state: PageSheetState) =>
 	[state.ticket, state.pr, state.session, state.settings, state.projectSettings, state.browser].filter(
 		(value) => value !== null,
@@ -101,13 +103,19 @@ export const pageSheetActions = {
 	// same action moves the sheet to another section, which opens no sheet
 	// and closes none.
 	openSettings: (settings: SettingsSectionId) => setSheetState({ settings, projectSettings: null, browser: null }),
-	// The settings of one project open over every other sheet and leave them
-	// all open. The same action moves the sheet to another section of the
-	// same project, which opens no sheet and closes none. The settings of the
-	// app and the settings of a project take the same place in the stack, so
-	// each one closes the other.
-	openProjectSettings: (projectSettings: ProjectSettingsTarget) =>
-		setSheetState({ projectSettings, settings: null, browser: null }),
+	// The same stack rules as `openSettings`. The settings of the app and
+	// the settings of a project take the same place in the stack, so each
+	// one closes the other.
+	//
+	// The sheet keeps the subject object while the project and the section
+	// stay the same. A new object would tell every reader of this field that
+	// the sheet changed, and the whole settings view would draw again.
+	openProjectSettings: (subject: ProjectSettingsSubject) =>
+		setSheetState({
+			projectSettings: sameSubject(usePageSheetStore.getState().projectSettings, subject),
+			settings: null,
+			browser: null,
+		}),
 	// A web page opens over every other sheet and leaves them all open.
 	openBrowser: (browser: string) => setSheetState({ browser }),
 	closeTicket: () =>
@@ -115,7 +123,11 @@ export const pageSheetActions = {
 	closePullRequest: () => setSheetState({ pr: null, browser: null }),
 	closeSession: () => setSheetState({ session: null, browser: null }),
 	closeSettings: () => setSheetState({ settings: null }),
-	closeProjectSettings: () => setSheetState({ projectSettings: null }),
+	// The settings of a project change the labels, the statuses, the ticket
+	// template, and the notes. None of them changes a pull request, and
+	// `refreshBehindSheet` asks GitHub about every open pull request on
+	// screen, so this write skips it.
+	closeProjectSettings: () => usePageSheetStore.setState({ projectSettings: null }),
 	closeBrowser: () => setSheetState({ browser: null }),
 	returnToTicket: () => setSheetState({ pr: null, session: null, browser: null }),
 	returnToPullRequest: () => setSheetState({ browser: null }),

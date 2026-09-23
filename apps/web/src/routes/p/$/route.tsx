@@ -71,9 +71,9 @@ export const Route = createFileRoute("/p/$")({
 		if (withoutBoard !== splat) {
 			throw redirect({ to: "/p/$", params: { _splat: withoutBoard }, search, replace: true });
 		}
-		// The settings of a project are a sheet. `/p/<KEY>/settings` and
-		// `/p/<KEY>/notes` open that sheet over the tickets of the project, and
-		// closing it leaves the person there.
+		// A sheet has no URL of its own. The settings URL and the notes URL
+		// of a project open the sheet, then redirect to the tickets of that
+		// project.
 		const { ref, view } = parseProjectSplat(splat);
 		if (view === "settings" || view === "notes") {
 			pageSheetActions.openProjectSettings({ project: ref, section: projectSettingsSection(view, location.hash) });
