@@ -4,12 +4,18 @@ export { type CheckStatus, CheckStatusIcon } from "./CheckStatusIcon";
 export { ChecksLine, type ChecksLineBucket, type ChecksLineCheck } from "./ChecksLine";
 export { type FileRiskGroup, FileRiskGroups, fileCountLabel } from "./FileRiskGroups";
 export { insertBlock, ReviewCommentEditor } from "./ReviewCommentEditor";
-export { type ThreadPlacement, threadDiffLine } from "./ReviewDiff/carryThreads";
-export { type DiffFileGroup, type DiffGroupBand, groupRank } from "./ReviewDiff/diffGroups";
-export { type DiffRowHeights, diffRowHeights, diffRowStyle } from "./ReviewDiff/diffRowHeights";
-export { patchDigest } from "./ReviewDiff/patchDigest";
-export { type DiffAnchor, ReviewDiff, type ReviewDiffFile } from "./ReviewDiff/ReviewDiff";
-export { ReviewDiffSkeleton } from "./ReviewDiff/ReviewDiffSkeleton";
+export {
+	type DiffAnchor,
+	type DiffFileGroup,
+	type DiffGroupHeader,
+	groupRank,
+	patchDigest,
+	ReviewDiff,
+	type ReviewDiffFile,
+	ReviewDiffSkeleton,
+	type ThreadPlacement,
+	threadDiffLine,
+} from "./ReviewDiff";
 export { ReviewStatus } from "./ReviewStatus/ReviewStatus";
 export { ReviewSuggestion, type ReviewSuggestionLine, type ReviewSuggestionState } from "./ReviewSuggestion";
 export { ReviewThreadCard } from "./ReviewThreadCard";

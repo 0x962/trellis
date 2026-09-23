@@ -4,7 +4,7 @@ import type { ReadMarkFile } from "../../readMarks/readMarks";
 
 // Noise starts collapsed, so its line count stays on screen and its tree stays
 // out of the way.
-export const groupOrder: ReadonlyArray<{ key: PrPathGroup; label: string; expanded: boolean }> = [
+const groupOrder: ReadonlyArray<{ key: PrPathGroup; label: string; expanded: boolean }> = [
 	{ key: "risk", label: "Risk", expanded: true },
 	{ key: "behavior", label: "Behavior", expanded: true },
 	{ key: "tests", label: "Tests", expanded: true },

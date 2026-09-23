@@ -27,7 +27,11 @@ export type ProjectPageRows = {
 // The sidebar rows of one project, split into the rows it always shows and
 // the rows the More row holds. `pathname` is the page on screen, and one row
 // at most is active.
-export const projectPageRows = (project: ProjectSummary, pathname: string, activeAgentCount = 0): ProjectPageRows => {
+export const projectPageRows = (
+	project: ProjectSummary,
+	pathname: string,
+	activeAgentCount: number,
+): ProjectPageRows => {
 	const current = projectRefOfPathname(pathname) === project.key;
 	// The settings page and its /notes section end the project URL too. The
 	// project's row menu (ProjectRowActions) opens both, and neither has a
