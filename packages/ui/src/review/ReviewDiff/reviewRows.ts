@@ -1,3 +1,4 @@
+import type { ThreadPlacement } from "./carryThreads";
 import { lineAnnotations } from "./lineAnnotations";
 import type { ReviewFile, ReviewHunk } from "./parseReviewFiles";
 import type { DiffAnchor, DiffThread } from "./ReviewDiff";
@@ -205,11 +206,24 @@ const sections = (file: ReviewFile, contents: ExpandedFile | undefined, expandab
 
 const annotationKey = (side: "old" | "new", line: number) => `${side}:${line}`;
 
+// The text of every line the diff draws for one file, by side and line
+// number. A thread written against an earlier revision searches this text
+// for the lines it was written against.
+export const drawnLineText = (file: ReviewFile, contents: ExpandedFile | undefined) => {
+	const text = { old: new Map<number, string>(), new: new Map<number, string>() };
+	for (const section of sections(file, contents, true))
+		for (const line of section.lines) {
+			if (line.oldLine !== undefined) text.old.set(line.oldLine, line.text);
+			if (line.newLine !== undefined) text.new.set(line.newLine, line.text);
+		}
+	return text;
+};
+
 export function buildReviewRows(
 	files: ReviewFile[],
 	mode: "split" | "unified",
 	threads: DiffThread[],
-	revisionId: string,
+	places: ReadonlyMap<string, ThreadPlacement>,
 	composer: DiffAnchor | null,
 	expanded: ReadonlyMap<string, ExpandedFile>,
 	expandable: boolean,
@@ -232,7 +246,7 @@ export function buildReviewRows(
 				if (line.newLine !== undefined) drawn.add(annotationKey("new", line.newLine));
 			}
 		const annotations = new Map<string, string[]>();
-		for (const annotation of lineAnnotations(file, threads, revisionId, composer, (side, line) =>
+		for (const annotation of lineAnnotations(file, threads, places, composer, (side, line) =>
 			drawn.has(annotationKey(side, line)),
 		)) {
 			const side = annotation.side === "deletions" ? "old" : "new";

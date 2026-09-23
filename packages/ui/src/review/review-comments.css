@@ -93,6 +93,19 @@
 	color: var(--fg-muted);
 	font-size: 12px;
 }
+.review-thread-outdated {
+	margin: 0;
+	padding: 8px 16px 12px;
+	background: var(--surface);
+	color: var(--fg-muted);
+}
+.review-thread-outdated pre {
+	overflow-x: auto;
+	font-family: var(--font-mono);
+	font-size: 12px;
+	line-height: 20px;
+	white-space: pre;
+}
 .review-form {
 	padding: 24px;
 	display: flex;

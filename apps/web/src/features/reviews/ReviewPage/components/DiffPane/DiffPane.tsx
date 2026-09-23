@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import type { PrChangeType, ReviewRevision, ReviewThread } from "@trellis/api";
-import { type DiffAnchor, ReviewDiff } from "@trellis/ui/review";
+import { type DiffAnchor, ReviewDiff, type ThreadPlacement } from "@trellis/ui/review";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useTheme } from "../../../../../lib/theme";
@@ -11,12 +11,13 @@ import { DiffToolbar } from "../DiffToolbar";
 export type DiffPaneProps = {
 	pr: string;
 	revision: ReviewRevision;
-	// The threads that belong to the revision on screen.
+	// Every thread of the pull request. The diff places each one: on the line
+	// it names, on the line its text moved to, or at the top of its file.
 	threads: ReviewThread[];
 	// The diff list scrolls to this path.
 	selectedFile: string;
 	selectedAnchor: DiffAnchor | null;
-	renderThread: (id: string) => ReactNode;
+	renderThread: (id: string, place: ThreadPlacement) => ReactNode;
 	// The changed files of the revision, as the patch reports them. The page
 	// gives them to `FileRiskGroups`.
 	onFiles: (files: ReadMarkFile[]) => void;

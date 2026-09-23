@@ -4,6 +4,7 @@ import { Checkbox } from "../../primitives/Checkbox";
 import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
+import { placeThreads, type ThreadPlacement } from "./carryThreads";
 import { DiffLine } from "./DiffLine";
 import { loadReviewFileContents } from "./loadReviewFileContents";
 import { parseReviewFiles, type ReviewFile } from "./parseReviewFiles";
@@ -19,7 +20,16 @@ import { VirtualDiffRows } from "./VirtualDiffRows";
 import "./ReviewDiff.css";
 
 export type DiffAnchor = { path: string; side: "old" | "new"; line: number; startLine: number };
-export type DiffThread = DiffAnchor & { id: string; version: number; updatedAt: string; revisionId: string | null };
+export type DiffThread = DiffAnchor & {
+	id: string;
+	version: number;
+	updatedAt: string;
+	revisionId: string | null;
+	// The text of the lines the thread was written against, for a thread on
+	// an earlier revision. The diff searches the file on screen for this text
+	// to find the lines again.
+	anchorLines?: string[] | null;
+};
 
 type Props = {
 	patch: string;
@@ -30,7 +40,9 @@ type Props = {
 	selectedFile?: string;
 	selectedAnchor?: DiffAnchor | null;
 	filter?: string;
-	renderThread: (id: string) => ReactNode;
+	// `place` says where the diff draws the thread: on the line it names, on
+	// the line its text moved to, or at the top of its file as outdated.
+	renderThread: (id: string, place: ThreadPlacement) => ReactNode;
 	composer?: DiffAnchor | null;
 	renderComposer?: () => ReactNode;
 	// `lines` is the text of the selected lines, for a suggestion, or null
@@ -103,9 +115,13 @@ export function ReviewDiff({
 		return files.filter((file) => file.name.toLowerCase().includes(query));
 	}, [files, filter]);
 	const [expanded, setExpanded] = useState<ReadonlyMap<string, ExpandedFile>>(() => new Map());
+	const places = useMemo(
+		() => placeThreads(shown, expanded, threads, revisionId),
+		[shown, expanded, threads, revisionId],
+	);
 	const rows = useMemo(
-		() => buildReviewRows(shown, mode, threads, revisionId, composer, expanded, loadFile !== undefined, viewed),
-		[shown, mode, threads, revisionId, composer, expanded, loadFile, viewed],
+		() => buildReviewRows(shown, mode, threads, places, composer, expanded, loadFile !== undefined, viewed),
+		[shown, mode, threads, places, composer, expanded, loadFile, viewed],
 	);
 	const selection = useRef<DiffAnchor | undefined>(undefined);
 	const pointer = useRef<DiffAnchor | undefined>(undefined);
@@ -179,7 +195,9 @@ export function ReviewDiff({
 	};
 	const annotation = (metadata: string) => (
 		<div className="review-diff-annotation" key={metadata}>
-			{metadata === "composer" ? renderComposer?.() : renderThread(metadata)}
+			{metadata === "composer"
+				? renderComposer?.()
+				: renderThread(metadata, places.get(metadata) ?? { kind: "outdated" })}
 		</div>
 	);
 	const renderRow = (row: ReviewRow) => {

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { isAgentWorking, type ReviewSubmission, type ReviewThread, reviewRef, turnOf, verdictMark } from "@trellis/api";
 import { EmptyState, Skeleton, type TabItem, Tabs, TicketId, useMediaQuery } from "@trellis/ui";
-import type { DiffAnchor } from "@trellis/ui/review";
+import { type DiffAnchor, type ThreadPlacement, threadDiffLine } from "@trellis/ui/review";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
@@ -12,6 +12,7 @@ import { FlowRuns } from "../FlowRuns";
 import { ApplySuggestionsDialog, ReviewApplyContext, type ReviewApplyState, ReviewBatchBar } from "../ReviewApply";
 import { ReviewChecks } from "../ReviewChecks/ReviewChecks";
 import { ReviewComment } from "../ReviewComment/ReviewComment";
+import { ReviewFindings } from "../ReviewFindings";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
 import { type ReviewMetadata, ReviewStack } from "../ReviewStack/ReviewStack";
 import type { ReadMarkFile } from "../readMarks/readMarks";
@@ -70,19 +71,16 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	const [pickedAnchor, setPickedAnchor] = useState<DiffAnchor | null>(null);
 	const [batch, setBatch] = useState<ReadonlySet<string>>(() => new Set());
 	const [applying, setApplying] = useState<string[] | null>(null);
-	// The diff shows the threads of the revision on screen, plus the threads
-	// that name no revision. The CLI wrote those before the pull request had
-	// one, and their lines refer to the diff of that time.
+	// The diff shows every thread of the pull request, whichever revision it
+	// names. `ReviewDiff` searches the file on screen for the lines a thread
+	// of an earlier revision was written against, and draws the thread at the
+	// top of its file when the file holds those lines no more.
 	const allThreads = threads.data?.items ?? noThreads;
-	const revisionThreads = useMemo(
-		() => allThreads.filter((thread) => thread.revisionId === null || thread.revisionId === revision?.id),
-		[allThreads, revision?.id],
-	);
 	const threadsById = useMemo(() => new Map(allThreads.map((thread) => [thread.id, thread])), [allThreads]);
 	const renderThread = useCallback(
-		(id: string) => {
+		(id: string, place: ThreadPlacement) => {
 			const thread = threadsById.get(id)!;
-			return <ReviewComment key={thread.id} thread={thread} />;
+			return <ReviewComment key={thread.id} thread={thread} place={place} />;
 		},
 		[threadsById],
 	);
@@ -209,6 +207,23 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 										<>
 											{linkedPr !== null && <ChangeSummary summary={summaryRow} headSha={headSha} />}
 											{linkedPr !== null && <EvidenceDocument evidence={evidence.data ?? null} />}
+											<ReviewFindings
+												threads={allThreads}
+												revisionId={revision?.id ?? null}
+												onOpen={(thread) => {
+													// A thread of an earlier revision names a line of a diff
+													// that this page does not draw, so the link asks the
+													// patch on screen where that thread went. No line means
+													// the diff draws the thread at the top of its file, and
+													// the link goes to that file.
+													const line = revision === null ? null : threadDiffLine(revision.patch, thread, revision.id);
+													setPickedPath(line === null ? thread.path : "");
+													setPickedAnchor(
+														line === null ? null : { path: thread.path, side: thread.side, line, startLine: line },
+													);
+													onTabChange("diff");
+												}}
+											/>
 										</>
 									)}
 								</div>
@@ -259,7 +274,10 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 													selected={selectedPath}
 													onSelect={(path) => {
 														setPickedPath(path);
-														setPickedAnchor(null);
+														// The tree reports the file of the anchor back as a
+														// choice of its own. A choice of another file drops
+														// the anchor; the echo of this one keeps it.
+														setPickedAnchor((current) => (current?.path === path ? current : null));
 													}}
 												/>
 											)}
@@ -271,7 +289,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 												<DiffPane
 													pr={pr}
 													revision={revision}
-													threads={revisionThreads}
+													threads={allThreads}
 													selectedFile={selectedPath}
 													selectedAnchor={pickedAnchor}
 													renderThread={renderThread}
