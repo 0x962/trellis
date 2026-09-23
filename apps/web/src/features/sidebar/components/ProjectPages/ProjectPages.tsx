@@ -2,6 +2,7 @@ import { CaretDown, CaretRight } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
 import { ActivityDot, cx } from "@trellis/ui";
+import { memo } from "react";
 import { uiActions, useUiStore } from "../../../../stores/uiStore";
 import { activeAgentsLabel } from "../../../agents/activeAgents";
 import { type ProjectPageRow, projectPageRows } from "./projectPageRows";
@@ -15,7 +16,7 @@ const rowClass = (inMore: boolean, active: boolean) =>
 		active && "sidebar-selected font-medium",
 	);
 
-export function ProjectPages({
+export const ProjectPages = memo(function ProjectPages({
 	project,
 	pathname,
 	activeAgentCount,
@@ -45,7 +46,12 @@ export function ProjectPages({
 			>
 				<span className="sidebar-label">{row.label}</span>
 				{(row.activeAgentCount > 0 || row.trailing !== null) && (
-					<span className="sidebar-trailing gap-1 text-fg-faint">
+					<span
+						className={cx(
+							row.activeAgentCount > 0 && row.trailing !== null ? "sidebar-trailing-pair" : "sidebar-trailing",
+							"text-fg-faint",
+						)}
+					>
 						{row.activeAgentCount > 0 && (
 							<ActivityDot label={activeAgentsLabel(row.activeAgentCount)} placement="inline" tone="metal" />
 						)}
@@ -69,7 +75,9 @@ export function ProjectPages({
 							className={cx(rowClass(false, false), "w-full text-left active:bg-elevated")}
 						>
 							<span className="sidebar-label">More</span>
-							<span className="sidebar-trailing gap-1 text-fg-faint">
+							<span
+								className={cx(agentCountUnderMore > 0 ? "sidebar-trailing-pair" : "sidebar-trailing", "text-fg-faint")}
+							>
 								{agentCountUnderMore > 0 && (
 									<ActivityDot
 										label={activeAgentsLabel(agentCountUnderMore)}
@@ -89,4 +97,4 @@ export function ProjectPages({
 			</nav>
 		</li>
 	);
-}
+});
