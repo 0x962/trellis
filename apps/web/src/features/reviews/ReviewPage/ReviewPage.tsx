@@ -2,13 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { isAgentWorking, type ReviewSubmission, type ReviewThread, reviewRef, turnOf, verdictMark } from "@trellis/api";
 import { EmptyState, Skeleton, type TabItem, Tabs, TicketId, useMediaQuery } from "@trellis/ui";
-import { type DiffAnchor, type ThreadPlacement, threadDiffLine } from "@trellis/ui/review";
+import { type DiffAnchor, ReviewDiffSkeleton, type ThreadPlacement, threadDiffLine } from "@trellis/ui/review";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
 import { EvidenceDocument } from "../EvidenceDocument";
 import { FileRiskGroups } from "../FileRiskGroups";
-import { fileGroups, groupedPaths } from "../FileRiskGroups/fileGroups";
+import { fileGroups } from "../FileRiskGroups/fileGroups";
 import { FlowRuns } from "../FlowRuns";
 import { ApplySuggestionsDialog, ReviewApplyContext, type ReviewApplyState, ReviewBatchBar } from "../ReviewApply";
 import { ReviewChecks } from "../ReviewChecks/ReviewChecks";
@@ -22,7 +22,7 @@ import { DiffPane } from "./components/DiffPane";
 import { FilesDisclosure } from "./components/FilesDisclosure";
 import { PaneBoundary } from "./components/PaneBoundary";
 import { type GithubPullRequest, ReviewIdentity } from "./components/ReviewIdentity";
-import { ReviewDiffSkeleton, ReviewTreeSkeleton } from "./components/ReviewPageSkeleton";
+import { ReviewTreeSkeleton } from "./components/ReviewPageSkeleton";
 import { TurnLine } from "./components/TurnLine";
 import { useActiveThread } from "./hooks/useActiveThread";
 import { useReadMarks } from "./hooks/useReadMarks";
@@ -73,7 +73,6 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	// diff. The rank ignores the read marks, so a mark never re-sorts the diff
 	// under the pointer.
 	const groups = useMemo(() => fileGroups(ref.repo, changedFiles), [ref.repo, changedFiles]);
-	const fileOrder = useMemo(() => groupedPaths(groups), [groups]);
 	// `FilesDisclosure` hides the review details behind one control on a phone.
 	const phone = useMediaQuery("(max-width: 767px)");
 	const [pickedPath, setPickedPath] = useState("");
@@ -305,7 +304,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 													selectedAnchor={pickedAnchor}
 													renderThread={renderThread}
 													onFiles={setChangedFiles}
-													order={fileOrder}
+													groups={groups}
 													read={read}
 													onRead={setRead}
 												/>

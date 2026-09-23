@@ -14,6 +14,7 @@ import {
 	PrGlyphSection,
 	PriorityIconSection,
 	ResourceListSection,
+	ReviewDiffSection,
 	ReviewStatusSummarySection,
 	RunLineSection,
 	StartControlsSection,
@@ -45,6 +46,7 @@ export function DomainSections() {
 			<TrellisMarkSection />
 			<FlowRunSection />
 			<FileRiskGroupsSection />
+			<ReviewDiffSection />
 			<RunLineSection />
 			<ChangeSummarySection />
 			<StartControlsSection />

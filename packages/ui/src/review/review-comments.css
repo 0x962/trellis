@@ -1,5 +1,5 @@
 .review-thread {
-	border: 0.5px solid var(--border);
+	border: var(--border-width-hairline) solid var(--border);
 	border-radius: var(--radius-md);
 	background: var(--bg);
 	font-family: var(--font-sans);
@@ -11,7 +11,7 @@
 }
 .review-message {
 	padding: 16px;
-	border-bottom: 0.5px solid var(--border);
+	border-bottom: var(--border-width-hairline) solid var(--border);
 }
 .review-message:last-child {
 	border-bottom: 0;
@@ -89,7 +89,7 @@
 	flex: 1;
 	min-height: 36px;
 	padding: 8px 10px;
-	border: 0.5px solid var(--border);
+	border: var(--border-width-hairline) solid var(--border);
 	border-radius: var(--radius-sm);
 	background: var(--bg);
 	font-size: 13px;
@@ -154,7 +154,7 @@
 .review-form .review-form-actions {
 	margin-top: 4px;
 	padding-top: 20px;
-	border-top: 0.5px solid var(--border);
+	border-top: var(--border-width-hairline) solid var(--border);
 }
 .review-thread-location {
 	display: flex;
@@ -182,7 +182,7 @@
 	gap: 16px;
 }
 .review-disclosure {
-	border-top: 0.5px solid var(--border);
+	border-top: var(--border-width-hairline) solid var(--border);
 	padding-top: 16px;
 }
 .review-disclosure > summary {
@@ -291,7 +291,7 @@
 	gap: 4px 12px;
 	min-height: 72px;
 	padding: 12px 14px;
-	border: 0.5px solid var(--border);
+	border: var(--border-width-hairline) solid var(--border);
 	border-radius: var(--radius-md);
 	background: var(--surface);
 	transition-property: border-color, background-color;
@@ -415,7 +415,7 @@
 }
 .review-submit-form header {
 	padding: 16px;
-	border-bottom: 0.5px solid var(--border);
+	border-bottom: var(--border-width-hairline) solid var(--border);
 }
 .review-submit-form h3 {
 	font-size: 14px;
@@ -444,7 +444,7 @@
 	justify-content: space-between;
 	gap: 12px;
 	padding: 12px 16px;
-	border-top: 0.5px solid var(--border);
+	border-top: var(--border-width-hairline) solid var(--border);
 	color: var(--fg-muted);
 	font-size: 11px;
 	font-variant-numeric: tabular-nums;
@@ -465,7 +465,7 @@
 	flex-direction: column;
 	gap: 2px;
 	padding: 10px 12px;
-	border-bottom: 0.5px solid var(--border);
+	border-bottom: var(--border-width-hairline) solid var(--border);
 	font-size: 12px;
 }
 .review-reviewer-teams-label {
@@ -505,7 +505,7 @@
 }
 .review-suggestion {
 	margin: 8px 0;
-	border: 0.5px solid var(--border);
+	border: var(--border-width-hairline) solid var(--border);
 	border-radius: var(--radius-sm);
 	background: var(--bg);
 	overflow: hidden;
@@ -515,7 +515,7 @@
 	align-items: center;
 	gap: 8px;
 	padding: 6px 12px;
-	border-bottom: 0.5px solid var(--border);
+	border-bottom: var(--border-width-hairline) solid var(--border);
 	background: var(--surface);
 	font-size: 12px;
 	font-weight: 600;
@@ -569,7 +569,7 @@
 	align-items: center;
 	gap: 4px;
 	padding: 6px 8px 6px 12px;
-	border-top: 0.5px solid var(--border);
+	border-top: var(--border-width-hairline) solid var(--border);
 	background: var(--surface);
 }
 .review-suggestion-note {

@@ -4,8 +4,10 @@ import { Checkbox } from "../../primitives/Checkbox";
 import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
+import { fileCountLabel } from "../FileRiskGroups";
 import { placeThreads, type ThreadPlacement } from "./carryThreads";
 import { DiffLine } from "./DiffLine";
+import { type DiffFileGroup, groupBands, groupRank, groupReasons } from "./diffGroups";
 import { loadReviewFileContents } from "./loadReviewFileContents";
 import { parseReviewFiles, type ReviewFile } from "./parseReviewFiles";
 import {
@@ -50,10 +52,12 @@ type Props = {
 	onSelect: (anchor: DiffAnchor, lines: string[] | null) => void;
 	loadFile?: (path: string, side: "old" | "new") => Promise<string>;
 	onFiles: (files: ReviewDiffFile[]) => void;
-	// The paths in the order the diff draws them, from the risk groups of the
-	// file tree. A path the list leaves out keeps its place in the patch, after
-	// every path the list names. An empty list keeps the patch order.
-	order?: readonly string[];
+	// The risk groups of the file tree. They set the order the diff draws its
+	// files in, they give the band that stands above the first file of each
+	// group, and they give the words that say why a file sits in its group. A
+	// path no group names keeps its place in the patch, after every path a
+	// group names. An empty list keeps the patch order and draws no band.
+	groups?: readonly DiffFileGroup[];
 	// The paths the person marked read. A read file shows its header alone.
 	viewed?: ReadonlySet<string>;
 	// Marks a file read or unread. The header draws the Viewed box only when
@@ -75,7 +79,7 @@ export type ReviewDiffFile = {
 
 type SelectLine = (anchor: DiffAnchor, extend?: boolean) => void;
 
-const noOrder: readonly string[] = [];
+const noGroups: readonly DiffFileGroup[] = [];
 
 const orderedAnchor = (start: DiffAnchor, end: DiffAnchor): DiffAnchor => ({
 	path: start.path,
@@ -113,7 +117,7 @@ export function ReviewDiff({
 	onSelect,
 	onFiles,
 	loadFile,
-	order = noOrder,
+	groups = noGroups,
 	viewed = nothingViewed,
 	onViewed,
 }: Props) {
@@ -133,21 +137,30 @@ export function ReviewDiff({
 	useEffect(() => onFiles(metadata), [metadata, onFiles]);
 	const shown = useMemo(() => {
 		const query = filter.toLowerCase();
-		const rank = new Map(order.map((path, index) => [path, index]));
+		const rank = groupRank(groups);
 		return files
 			.filter((file) => file.name.toLowerCase().includes(query))
-			.map((file, index) => ({ file, rank: rank.get(file.name) ?? order.length + index }))
+			.map((file, index) => ({ file, rank: rank.get(file.name) ?? rank.size + index }))
 			.sort((left, right) => left.rank - right.rank)
 			.map((entry) => entry.file);
-	}, [files, filter, order]);
+	}, [files, filter, groups]);
+	const bands = useMemo(
+		() =>
+			groupBands(
+				groups,
+				shown.map((file) => file.name),
+			),
+		[groups, shown],
+	);
+	const reasons = useMemo(() => groupReasons(groups), [groups]);
 	const [expanded, setExpanded] = useState<ReadonlyMap<string, ExpandedFile>>(() => new Map());
 	const places = useMemo(
 		() => placeThreads(shown, expanded, threads, revisionId),
 		[shown, expanded, threads, revisionId],
 	);
 	const rows = useMemo(
-		() => buildReviewRows(shown, mode, threads, places, composer, expanded, loadFile !== undefined, viewed),
-		[shown, mode, threads, places, composer, expanded, loadFile, viewed],
+		() => buildReviewRows(shown, mode, threads, places, composer, expanded, loadFile !== undefined, viewed, bands),
+		[shown, mode, threads, places, composer, expanded, loadFile, viewed, bands],
 	);
 	const selection = useRef<DiffAnchor | undefined>(undefined);
 	const pointer = useRef<DiffAnchor | undefined>(undefined);
@@ -227,12 +240,27 @@ export function ReviewDiff({
 		</div>
 	);
 	const renderRow = (row: ReviewRow) => {
+		// The diff draws its files in the risk order of the file tree. The band
+		// names the group the files under it belong to, so the reader of the diff
+		// reads the order instead of guessing it from a gap.
+		if (row.kind === "group")
+			return (
+				<div className="review-diff-group" data-group={row.band.key}>
+					<span className="review-diff-group-label">{row.band.label}</span>
+					<span className="review-diff-group-count">{fileCountLabel(row.band.count)}</span>
+				</div>
+			);
 		if (row.kind === "file") {
 			const isExpanded = expanded.get(row.file.name)?.full === true;
 			const isViewed = viewed.has(row.file.name);
+			const why = reasons.get(row.file.name);
 			return (
 				<header className="review-diff-file-header" data-file-path={row.file.name} data-viewed={isViewed}>
 					<span className="review-diff-file-name">{fileLabel(row.file)}</span>
+					{/* Why the file sits in its group, such as "migration". The file
+					    tree puts the same words in the hover text of its row, which a
+					    touch screen never opens. */}
+					{why && <span className="review-diff-file-reasons">{why.join(" · ")}</span>}
 					<div className="review-diff-file-controls">
 						{onViewed && (
 							<Checkbox
