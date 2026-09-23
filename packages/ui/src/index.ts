@@ -100,6 +100,7 @@ export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from ".
 export { Checkbox, type CheckboxProps } from "./primitives/Checkbox";
 export { Chip, type ChipProps } from "./primitives/Chip";
 export { ChoiceGroup, type ChoiceGroupOption, type ChoiceGroupProps } from "./primitives/ChoiceGroup";
+export { CodeText, type CodeTextProps } from "./primitives/CodeText";
 export {
 	Command,
 	type CommandFieldProps,
