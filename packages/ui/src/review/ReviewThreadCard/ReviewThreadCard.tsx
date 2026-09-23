@@ -117,6 +117,8 @@ export function ReviewThreadCard({
 	// Set when an action removed the control the person was standing on, so
 	// the effect below moves focus to the control that replaced it.
 	const moveFocus = useRef(false);
+	// True while the mouse pointer sits inside this card.
+	const pointerInside = useRef(false);
 	// A resolved thread and a thread the file on screen holds no more both
 	// open as one line, so neither takes the room of a thread the reader must
 	// still act on.
@@ -135,10 +137,12 @@ export function ReviewThreadCard({
 	};
 	// Resolves the thread, or reopens it. The card draws the new status
 	// before `onResolve` answers, so the only wait is the network, and a
-	// second click while the first call is out does nothing.
+	// second click while the first call is out does nothing. The button that
+	// waits for the call stays focusable, so the browser does not drop the
+	// reader onto the page body the moment they press it.
 	const toggleResolved = () => {
 		if (resolving) return;
-		if (root.current?.matches(":hover") === true) setHoldOpen(true);
+		if (pointerInside.current) setHoldOpen(true);
 		moveFocus.current = true;
 		setResolving(true);
 		setError(null);
@@ -162,7 +166,11 @@ export function ReviewThreadCard({
 			className="review-thread"
 			id={`thread-${thread.id}`}
 			aria-label={`Thread by ${thread.author}`}
+			onPointerEnter={() => {
+				pointerInside.current = true;
+			}}
 			onPointerLeave={() => {
+				pointerInside.current = false;
 				if (!holdOpen) return;
 				moveFocus.current = root.current?.contains(document.activeElement) === true;
 				setHoldOpen(false);
@@ -185,6 +193,7 @@ export function ReviewThreadCard({
 								label="Reopen comment"
 								icon={<ArrowCounterClockwise />}
 								disabled={resolving}
+								focusableWhenDisabled
 								onClick={toggleResolved}
 							/>
 						</Tooltip>
@@ -318,6 +327,7 @@ export function ReviewThreadCard({
 								label={thread.status === "resolved" ? "Reopen comment" : "Resolve comment"}
 								icon={thread.status === "resolved" ? <ArrowCounterClockwise /> : <Check />}
 								disabled={resolving}
+								focusableWhenDisabled
 								onClick={toggleResolved}
 							/>
 						</Tooltip>
