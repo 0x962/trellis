@@ -2,3 +2,9 @@
 # isolated linker makes one copy of Expo for each peer set.
 [install]
 linker = "hoisted"
+
+# `scripts/testPreload.ts` builds the tar of the migrated database that every
+# server test starts from. bun runs it before a test file, so the build ends
+# before the first setup hook starts.
+[test]
+preload = ["./scripts/testPreload.ts"]

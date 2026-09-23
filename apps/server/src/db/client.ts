@@ -32,10 +32,9 @@ PgDatabase.prototype.execute = function execute(query) {
 // server sits at its 350 MB budget after a first boot; 8 MB keeps it about
 // 7 MB under. The operating system file cache still holds the data files,
 // so the 10k perf suite keeps its latency budgets at 8 MB.
-// `loadDataDir` is a tar of a PGlite data directory, as `dumpDataDir`
-// writes it. PGlite unpacks the tar into the data directory and starts on
-// it, so it builds no new database of its own. `openTestDb` starts every
-// test database from one such tar.
+// `loadDataDir` is a tar of a PGlite data directory, as `dumpDataDir` writes
+// it. PGlite unpacks the tar into the data directory and starts on it, so it
+// builds no new database of its own.
 export const openDb = async (dataDir: string, loadDataDir?: Blob) => {
 	const client = await PGlite.create({
 		dataDir: dataDir === ":memory:" ? "memory://" : dataDir,
