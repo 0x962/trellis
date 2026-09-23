@@ -6,8 +6,7 @@ const activeStatuses: SessionStatus[] = ["starting", "working", "needs-input"];
 export type ProjectAgentCount = { projectId: string; activeCount: number };
 
 // The Sessions page of a project lists the runs that carry the id of that
-// project, and a run of a subproject stays on the page of the subproject. So a
-// run counts for the one project its projectId names, and for no ancestor.
+// project, so a run counts for the one project its projectId names.
 // The rows are sorted by project id, so two fetches with the same counts build
 // the same array. React Query compares the new array with the last one and
 // keeps the last one, so a project row redraws only when its own count changes.
