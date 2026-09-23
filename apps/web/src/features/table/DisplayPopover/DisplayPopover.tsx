@@ -37,7 +37,7 @@ const groups = [
 	{ value: "parent", label: "Parent" },
 	{ value: "epic", label: "Epic" },
 	{ value: "wave", label: "Wave" },
-	{ value: "turn", label: "Turn" },
+	{ value: "waiting", label: "Waiting" },
 	{ value: "pr", label: "PR" },
 ] as const;
 
@@ -73,14 +73,14 @@ export function DisplayPopover({
 	const hideable = columnOrder.filter(
 		(id) => !alwaysVisible.includes(id) && !(epicFixed && id === "epic") && kindShows(id, tableKind),
 	);
-	// Only the epic route loads what the turn of a row reads, so only that
-	// route offers the Turn entry. It offers no Epic entry, because every
+	// Only the epic route loads what the Waiting grouping of a row reads, so
+	// only that route offers the Waiting entry. It offers no Epic entry, because every
 	// row there holds the same epic.
-	const groupItems = groups.filter((entry) => (epicFixed ? entry.value !== "epic" : entry.value !== "turn"));
+	const groupItems = groups.filter((entry) => (epicFixed ? entry.value !== "epic" : entry.value !== "waiting"));
 	// The table shows the Done and Canceled rows under the status grouping,
-	// and under the wave and turn groupings of one epic.
+	// and under the wave and Waiting groupings of one epic.
 	const oneEpic = epicFixed || (search.epic !== undefined && search.epic !== "none");
-	const showsClosed = group === "status" || ((group === "wave" || group === "turn") && oneEpic);
+	const showsClosed = group === "status" || ((group === "wave" || group === "waiting") && oneEpic);
 	const descending = sort.startsWith("-");
 	const field = sortFields.find((entry) => entry.value === sort.replace(/^-/, "")) ?? sortFields[1];
 

@@ -1,14 +1,14 @@
 import { readyForReview } from "../reviewReady/reviewReady.ts";
 import type { TicketPr } from "../schemas/ticketPr.ts";
-import { turnOf } from "../turn/turn.ts";
+import { waitingFor } from "../waiting/waiting.ts";
 import { factSeparator, groupSeparator } from "./separators.ts";
 
 // One pull request of a ticket, with the review facts that `trellis epics show`
 // gives an agent. The web row shows the title and opens the review sheet for these facts.
 //
 // The page names the agent that works on a pull request. `epics.get` answers
-// with no run, so `turnOf` reads false for a working run here and the turn
-// of such a pull request is the word `agent`.
+// with no run, so `waitingFor` reads false for a working run here, and such a
+// pull request prints the word `agent`.
 
 // A count and the noun it counts: "6 files", "1 file".
 const countWord = (count: number, singular: string, plural: string): string =>
@@ -69,11 +69,11 @@ const flowFacts = (pr: TicketPr): string[] => {
 	return newest === undefined ? [] : [`flow: ${flowWords[newest.status]}`];
 };
 
-// Who acts next on the pull request. A merged or closed pull request leaves
-// nobody to act, so it prints no turn.
-const turnFacts = (pr: TicketPr): string[] => {
-	const turn = turnOf(pr, false);
-	return turn === "done" ? [] : [turn];
+// What the pull request waits for. A merged or closed pull request waits for
+// nobody, so it prints no fact.
+const waitingFacts = (pr: TicketPr): string[] => {
+	const waiting = waitingFor(pr, false);
+	return waiting === "done" ? [] : [waiting];
 };
 
 const factGroups: ReadonlyArray<(pr: TicketPr) => string[]> = [
@@ -82,7 +82,7 @@ const factGroups: ReadonlyArray<(pr: TicketPr) => string[]> = [
 	checkFacts,
 	threadFacts,
 	flowFacts,
-	turnFacts,
+	waitingFacts,
 ];
 
 export const pullRequestRowLine = (pr: TicketPr): string =>

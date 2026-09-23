@@ -136,7 +136,7 @@ One word for one meaning through this document:
 | summary | The text an agent writes on a pull request: headline, why, watch. |
 | evidence | The files and records that prove a pull request works. |
 | condition | One computed merge fact on the review page. |
-| turn | Who moves next: `you`, an agent, or `github`. |
+| waiting | What a ticket or a pull request waits for: `you`, an agent, or `github`. |
 | run | One agent attempt on a ticket. |
 
 ---
@@ -170,9 +170,9 @@ Two facts fall out of the graph, and no design saw both.
 1. No Todo ticket is ready to start. The band prints `0 to start`. The board waits on him and on the agents, not on a free slot.
 2. `#57057` of OP-35 is open, not a draft, and all its checks pass. Its ancestor OP-34 is Todo and has no pull request. The review page prints `ancestors  OP-34 not merged, no pull request`. He decides what that means.
 
-Whose turn, per open pull request:
+What each open pull request waits for:
 
-| Pull request | Ticket | State | Checks | Turn | Why |
+| Pull request | Ticket | State | Checks | Waits for | Why |
 | --- | --- | --- | --- | --- | --- |
 | #56930 | OP-27 | open | 37 passed · 35 skipped | you | not a draft, no failed check, no open thread |
 | #57057 | OP-35 | open | 42 passed · 57 skipped | you | the same |
@@ -191,7 +191,7 @@ So the day holds 2 items for him: 2 reviews. It holds 5 items with agents. The l
 | Step | What he does | Where | Cost |
 | --- | --- | --- | --- |
 | 1 | He opens the epic. He reads the band: `Current: The run settles...`, `0 to start · 5 running · 2 wait for you`. | Epic page | 10 s |
-| 2 | He switches the grouping to Turn. The `Your turn` group lists 2 rows, sorted by what each releases. | Epic page, group by turn | 5 s |
+| 2 | He switches the grouping to Waiting. The `Waits for you` group lists 2 rows, sorted by what each releases. | Epic page, group by waiting | 5 s |
 | 3 | He opens `#57057`. He reads the conditions. `ancestors  OP-34 not merged, no pull request`. He decides: review it now and hold the merge, or send it back with one thread. | Review page | 1 to 15 min |
 | 4 | He opens `#56930`. Conditions read `READY TO MERGE  yes`. He plays the clip once, reads the two focus items, opens the one risk file, merges. | Review page | 5 to 10 min |
 | 5 | He returns to the epic. `#55569` is still a draft. He opens the session of `crisp-fjord` on OP-32 and asks what holds it. | Session sheet | 2 min |
@@ -239,7 +239,7 @@ done 3 · review 9 · todo 15
 ```
 
 - Line 1: `Current: ` in `--fg-muted`, then the name of the first wave that is not done, in `--fg`.
-- Line 2: `0 to start` links to the filter `category=todo, ready=true`. `5 running` is plain text, the filter grammar has no filter for a working agent. `2 wait for you` links to the filter `turn=you`. The count is pull requests whose turn is `you`: #56930, #57057.
+- Line 2: `0 to start` links to the filter `category=todo, ready=true`. `5 running` is plain text, the filter grammar has no filter for a working agent. `2 wait for you` links to the grouping `group=waiting`. The count is pull requests that wait for `you`: #56930, #57057.
 - Line 3: the existing `StackedBar`, 6 px. Segments: done `--success`, review `--accent`, started `--warning`, todo `--fg-faint`. The review segment leaves the `agent` tone.
 - Line 4: the legend, `--fg-faint`, zero buckets dropped.
 - `StackedBarList` is removed from the band. Six bars plus one is a lot.
@@ -280,7 +280,7 @@ The pull request row, 32 px, indented 24 px under the title column:
 ⊙ #57080  open  ·  +311 −12 · 6 files  ·  1 failed · 6 pending · 47 passed  ·  0 threads  ·  no evidence  ·  crisp-fjord
 ```
 
-Cells in order: the GitHub glyph, the number, `open` or `draft` or `merged`, the size (example value), the checks in words with zero buckets dropped and `failed` in `--danger`, the open thread count when above zero, the evidence word (`no evidence`, `evidence 3 of 5`, `evidence complete`), then the turn: `you` in `--fg`, or the run name in `--fg-muted`, or `github`. A stacked pull request adds `stacked on #55569` after the state. Flow runs, when one exists, add `flow: Code Reviewer passed` before the turn.
+Cells in order: the GitHub glyph, the number, `open` or `draft` or `merged`, the size (example value), the checks in words with zero buckets dropped and `failed` in `--danger`, the open thread count when above zero, the evidence word (`no evidence`, `evidence 3 of 5`, `evidence complete`), then what the pull request waits for: `you` in `--fg`, or the run name in `--fg-muted`, or `github`. A stacked pull request adds `stacked on #55569` after the state. Flow runs, when one exists, add `flow: Code Reviewer passed` before that word.
 
 The rows of wave 2 and wave 3, in the real state. Sizes and run states are example values.
 
@@ -317,7 +317,7 @@ The rows of wave 2 and wave 3, in the real state. Sizes and run states are examp
 
 Rows inside a group keep `epicRowRank`: what waits for him first, then what he can start, then the rest, and inside each rank the `releases` count descending.
 
-The group header keeps the existing `GroupHeader`: the label, the `Current` badge on the first wave that is not done, and the count slot as text: `0 of 6 · 1 for you`. `1 for you` counts the rows of the group whose turn is `you`.
+The group header keeps the existing `GroupHeader`: the label, the `Current` badge on the first wave that is not done, and the count slot as text: `0 of 6 · 1 for you`. `1 for you` counts the rows of the group that wait for `you`.
 
 Yellow appears on this screen in two places only: the Human Review glyph and an `asks` line.
 
@@ -337,16 +337,16 @@ Yellow appears on this screen in two places only: the Human Review glyph and an 
 | a group label | collapses the group |
 | `c` | creates a ticket in that wave |
 
-### Screen 2. The epic page, grouped by turn
+### Screen 2. The epic page, grouped by what each row waits for
 
-**Route.** The same page. The `DisplayPopover` gains `Group by: Wave · Turn`. Wave is the default.
+**Route.** The same page. The `DisplayPopover` gains `Group by: Wave · Waiting`. Wave is the default.
 
 **Purpose.** Answer "what do I do first" in one read. The groups are who moves next. Inside a group, rows sort by what they release, descending.
 
 Five groups, fixed order. An empty group does not render.
 
 ```
-▾  Your turn                                                                    2
+▾  Waits for you                                                                2
    ◐ OP-35  Service: A run whose webhook never came is closed          OP-34      1      ⟨A⟩  3h
      ⊙ #57057  open · +140 −20 · 5 files · 42 passed · no evidence · you
    ◐ OP-27  Web: Bound the Operator message post, and end the wait on what the thread says  ⟨A⟩  1d
@@ -385,9 +385,9 @@ Five groups, fixed order. An empty group does not render.
 
 The group `With GitHub` holds a pull request whose checks are pending and none failed. It is empty today, so it does not render.
 
-The rules of the turn:
+The rules of the grouping:
 
-| Turn | Condition |
+| Group | Condition |
 | --- | --- |
 | you | an open pull request that is not a draft, has no failed check and no open thread |
 | an agent | a draft; or a failed check; or an open thread; or a run of the ticket is working |
@@ -410,10 +410,7 @@ The same rows, the same columns, the same clicks as screen 1. No new element. A 
 trellis/op-43-01m2w7bmdftr3kvv155vp2pnak  →  master
 OP-43  Canary: A private Canary route that answers a user's properties
 waits on nothing  ·  releases OP-44
-crisp-fjord's turn. 1 check failed.
 ```
-
-The last line is the turn in words. Its forms: `Your turn.`, `crisp-fjord's turn. <reason>.`, `GitHub's turn. 6 checks pending.`, `Merged 2026-09-18.`
 
 The revision selector, right, defaults to the whole change on a first read, and to `showing 1 → 2, the part you have not read` on a return.
 
@@ -546,7 +543,6 @@ The same regions. Only the content that differs is shown.
 trellis/op-27-01m2s1scg7ppywezh4b5m8ez4y  →  master
 OP-27  Web: Bound the Operator message post, and end the wait on what the thread says
 waits on nothing  ·  releases nothing
-Your turn.
 ```
 
 **Region B.**
@@ -753,7 +749,7 @@ What an agent and he read in the terminal. Output is JSON when stdout is not a t
 0 ready to start
 
 waits on a merge       13   OP-34 OP-50 OP-38 OP-44 OP-42 OP-36 OP-41 OP-46 OP-47 OP-48 OP-49 OP-51 OP-54
-your turn               2   #57057 #56930
+waits for you           2   #57057 #56930
 with an agent           5   #55569 #57078 #57080 #57055 #57079
 ```
 
@@ -861,7 +857,7 @@ Width 390 px. Two-line rows of 56 px. Every touch target at least 44 px.
 │ 0 to start · 5 running · 2 for you     │
 │ ████░░░░░░░░░░░░░░░░░░   3 of 27       │
 ├────────────────────────────────────────┤
-│ ▾ Your turn                        2   │
+│ ▾ Waits for you                    2   │
 │                                        │
 │ ◐ OP-35  Service: A run whose webh…    │
 │   ⊙ #57057 open · 42 passed · you      │
@@ -881,9 +877,9 @@ Width 390 px. Two-line rows of 56 px. Every touch target at least 44 px.
 
 Rules on the phone:
 
-- The phone defaults to the Turn grouping. The Display control still offers Wave.
+- The phone defaults to the Waiting grouping. The Display control still offers Wave.
 - Line 1 holds the status glyph, the identifier, the title cut with an ellipsis, then the agent card.
-- Line 2 holds one of: the agent's message, the pull request glyph and number with the checks in words and the turn, `waits on OP-32`, or `releases n`. Size, files and evidence counts drop first.
+- Line 2 holds one of: the agent's message, the pull request glyph and number with the checks in words and what it waits for, `waits on OP-32`, or `releases n`. Size, files and evidence counts drop first.
 - The band keeps its three lines. The legend of the bar is hidden. A tap opens it.
 - A tap on a row opens the ticket as a full page. A tap on a pull request line opens the review page as a full page with regions A, B, C, D and E, and one control named `Files` for the rest. He does not read a diff on a phone.
 - The verdict bar on a phone holds `Send back` and `Comment only`. It holds no `Merge`. A merge into an enterprise repository needs the desk.
@@ -918,7 +914,7 @@ Four rules hold the table.
 3. `failed` and `lost` share one red dot. The words beside it carry the difference.
 4. The message and the question render under the ticket title, after the run's name, on a second line, only when one exists. No row says `said:`.
 
-Derived states, not harness signals, named so nobody mistakes them for one: `ready` (every ticket this one waits on is done), `waits on OP-32` (an unmet dependency), `your turn` (section 2, screen 2), `READY TO MERGE yes` (every condition met). None of them starts anything.
+Derived states, not harness signals, named so nobody mistakes them for one: `ready` (every ticket this one waits on is done), `waits on OP-32` (an unmet dependency), `waits for you` (section 2, screen 2), `READY TO MERGE yes` (every condition met). None of them starts anything.
 
 ---
 
@@ -1069,7 +1065,7 @@ The contract sits above the proof. The proof sits above the process. He reads do
 
 | New element | Where | Nearest canonical element, and why it fails |
 | --- | --- | --- |
-| `PrRow` | epic table, under a ticket | `Row` with the `pr` column at 72 px. The column cannot hold the glyph, the number, the state, the size, the checks in words, the threads, the evidence word and the turn. A wider column would break every other route that shows the table. `PrRow` is a second row kind of 32 px in the same virtualized list. |
+| `PrRow` | epic table, under a ticket | `Row` with the `pr` column at 72 px. The column cannot hold the glyph, the number, the state, the size, the checks in words, the threads, the evidence word and what it waits for. A wider column would break every other route that shows the table. `PrRow` is a second row kind of 32 px in the same virtualized list. |
 | `AgentLine` | epic table, under a ticket title | `Row` has one line at 36 px, and the table has fixed heights per density. The last message needs a second line only when one exists. `AgentLine` is a 24 px row kind that renders only then, so heights stay fixed per kind. |
 | `ChecksLine` | `PrRow`, the pull request card, region F | `CheckRing` draws three arcs and a glyph for one rollup. Rule 6 rejects it. `ChecksLine` prints `1 failed · 6 pending · 47 passed` and names each failing and pending check with its workflow. |
 | `ConditionsBlock` | review page region B, short form on the pull request card | `PropertyRow` holds one label and one value. Nine conditions as nine rows share no fixed order, no fixed label width and no readiness word. `ReviewSummary` mixes computed facts with GitHub text. The block fixes the nine labels, their order and the word after `READY TO MERGE`. |
@@ -1087,7 +1083,7 @@ Changes to existing elements, no new element:
 
 - `columns.tsx` gains `waits` at 110 px and `releases` at 40 px on the epic route, and drops the status name to the glyph on that route.
 - `rowHeights.ts` gains heights for the two new row kinds.
-- `DisplayPopover` gains `Group by: Wave · Turn` on the epic route.
+- `DisplayPopover` gains `Group by: Wave · Waiting` on the epic route.
 - `GroupHeader` count slot takes `0 of 6 · 1 for you` as text.
 - `epicBar.ts:13` moves the review segment from `agent` to `accent`. The `Agent Review` status glyph moves from `agent` to `accent`. Rule 5.
 - The 18 px agent card keeps `--animate-glimmer` and drops the `--film-violet` stop from its gradient.
@@ -1114,10 +1110,10 @@ Server and CLI work behind the elements:
 | Design | What it proposed | Ruling | Why |
 | --- | --- | --- | --- |
 | B, C | `Approve and merge` disabled on a failed check, an open thread or an unmerged stack | overruled | Rule 1. No gate blocks him. The button stays live and the unmet conditions print as one line. He reads them and decides. |
-| C | `Next move` phrases replace the status column: `Review #57078`, `Fix checks`, `Blocked by OP-32` | overruled, half taken | Nine phrases is a vocabulary to learn, and a phrase per row is a lot to read across 27 rows. The Turn grouping carries the same fact once per group, and the `waits` cell carries the blocker. The status glyph stays. |
+| C | `Next move` phrases replace the status column: `Review #57078`, `Fix checks`, `Blocked by OP-32` | overruled, half taken | Nine phrases is a vocabulary to learn, and a phrase per row is a lot to read across 27 rows. The Waiting grouping carries the same fact once per group, and the `waits` cell carries the blocker. The status glyph stays. |
 | B | a `▲` triangle as the human-needed mark | overruled | A 6 px dot is legible at row size and needs no decoding. The same dot marks an `asks` line. One glyph, one color, one meaning. |
-| B | `Group by chain`, one group per path through the graph | overruled | A path is not unique in a graph with joins. OP-33 sits on two paths. The Turn grouping answers "what first" and the `waits` cell answers "after what" without a chain name to invent. |
-| A | the landing order view: `LANDS NOW`, `LANDS AFTER ONE MERGE`, `LANDS LATER` | folded | Its facts live in the Turn grouping. `Waits on a merge` sorts by depth, and the `waits` cell shows the first blocker. |
+| B | `Group by chain`, one group per path through the graph | overruled | A path is not unique in a graph with joins. OP-33 sits on two paths. The Waiting grouping answers "what first" and the `waits` cell answers "after what" without a chain name to invent. |
+| A | the landing order view: `LANDS NOW`, `LANDS AFTER ONE MERGE`, `LANDS LATER` | folded | Its facts live in the Waiting grouping. `Waits on a merge` sorts by depth, and the `waits` cell shows the first blocker. |
 | A | a 56 px `ChangeRow` with an eight-fact readiness line on every pull request ticket | overruled | Rule 12. The row grew past what a glance reads. The pull request becomes its own 32 px row with fewer facts, and the review page holds the rest. |
 | A, B, C | the agent-written text is the `brief` | overruled | `trellis brief` and `brief.ts` already mean the markdown the agent starts from. One word, one meaning. The pull request text is the `summary`. |
 | B, C | the ticket page keeps tabs: Plan and Agent, or Contract, Agent, Flows | overruled | One column, read top to bottom. The session opens from the run line in a `PageSheet`. A flow is one line on the pull request card. |
@@ -1135,4 +1131,4 @@ Server and CLI work behind the elements:
 
 3. **May the CLI refuse the agent's hand-over?** `trellis move KEY-42 human-review` refuses while the evidence floor is missing. It never refuses you. A required field gets filled and an optional heading does not. The risk is an agent that loops on a refusal. I recommend the refusal, with the missing list printed each time.
 
-4. **Which grouping is the default on the desktop?** Wave says what you intend to start together. Turn says what you do first. The design defaults to Wave on the desktop and Turn on the phone. Say if you want Turn on both.
+4. **Which grouping is the default on the desktop?** Wave says what you intend to start together. Waiting says what you do first. The design defaults to Wave on the desktop and Waiting on the phone. Say if you want Waiting on both.

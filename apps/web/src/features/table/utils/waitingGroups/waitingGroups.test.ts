@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { TicketPr, TicketSummary } from "@trellis/api";
-import { forYouCount, rowTurn, turnBucketOf } from "./turnGroups";
+import { forYouCount, rowWaiting, waitingBucketOf } from "./waitingGroups";
 
 const pullRequest = (fields: Partial<TicketPr> = {}): TicketPr =>
 	({
@@ -50,14 +50,14 @@ const merge = ticket("merge", {
 });
 const shipped = ticket("shipped", { category: "done" });
 
-describe("turnBucketOf", () => {
+describe("waitingBucketOf", () => {
 	test("names and ranks the six groups in display order", () => {
 		const rows = [shipped, merge, checks, draft, start, humanReview];
 
-		const marks = rows.map((row) => turnBucketOf(row)).sort((a, b) => a.rank - b.rank);
+		const marks = rows.map((row) => waitingBucketOf(row)).sort((a, b) => a.rank - b.rank);
 
 		expect(marks.map((mark) => mark.label)).toEqual([
-			"Your turn",
+			"Waits for you",
 			"Ready to start",
 			"With an agent",
 			"With GitHub",
@@ -66,21 +66,21 @@ describe("turnBucketOf", () => {
 		]);
 	});
 
-	test("writes a key with a dash for each space", () => {
-		expect(turnBucketOf(merge).key).toBe("waits-on-a-merge");
-		expect(turnBucketOf(shipped).key).toBe("done");
+	test("writes the key of a group", () => {
+		expect(waitingBucketOf(merge).key).toBe("merge");
+		expect(waitingBucketOf(shipped).key).toBe("done");
 	});
 
-	test("gives a ticket whose agent run works to the agent", () => {
-		expect(turnBucketOf(review, new Set(["review"])).label).toBe("With an agent");
-		expect(turnBucketOf(start, new Set(["start"])).label).toBe("With an agent");
+	test("a ticket whose agent run works waits for the agent", () => {
+		expect(waitingBucketOf(review, new Set(["review"])).label).toBe("With an agent");
+		expect(waitingBucketOf(start, new Set(["start"])).label).toBe("With an agent");
 	});
 });
 
-describe("rowTurn", () => {
-	test("reads the turn of a row with no working run", () => {
-		expect(rowTurn(review)).toBe("you");
-		expect(rowTurn(start)).toBe("ready");
+describe("rowWaiting", () => {
+	test("reads what a row with no working run waits for", () => {
+		expect(rowWaiting(review)).toBe("you");
+		expect(rowWaiting(start)).toBe("ready");
 	});
 });
 

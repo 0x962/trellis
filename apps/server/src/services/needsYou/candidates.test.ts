@@ -64,7 +64,7 @@ afterAll(async () => {
 	await db.$client.close();
 });
 
-test("lists every ticket whose turn is the person", async () => {
+test("lists every ticket that waits for the person", async () => {
 	const found = await db.transaction((tx) => candidates(tx, "Test"));
 
 	expect(
@@ -75,7 +75,7 @@ test("lists every ticket whose turn is the person", async () => {
 	).toEqual(["TST-1", "TST-2", "TST-3"]);
 });
 
-test("applies working-run precedence from turnOf", async () => {
+test("drops a ticket whose agent run works", async () => {
 	const found = await db.transaction((tx) =>
 		candidates(tx, "Test", new Set([humanReviewTicket, readyPullRequestTicket])),
 	);

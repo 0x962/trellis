@@ -73,6 +73,9 @@ export function ReviewIdentity({
 }: ReviewIdentityProps) {
 	const ref = reviewRef(pr);
 	const localState = linkedPr?.localState ?? "ready";
+	// Every part the pull request still needs before the person reviews it.
+	// The glyph draws the ready mark from the count and names the first part
+	// in its tooltip.
 	const gaps = linkedPr === null ? [] : linkedPr.reviewGaps;
 	const glyphState = pullRequest?.state === "MERGED" ? "merged" : pullRequest?.state === "CLOSED" ? "closed" : "open";
 	const stateBadge = <Badge tone={stateTone(pullRequest, isQueued)}>{stateWord(pullRequest, isQueued)}</Badge>;
@@ -137,19 +140,6 @@ export function ReviewIdentity({
 				    header, so the position ends the row. */}
 				{isQueued && <span className="review-queue-position">{queuePositionText(mergeQueuePosition)}</span>}
 			</div>
-			{/* Every part the pull request still needs. The glyph names the
-			    first one, and this list names all of them, so the person sees
-			    what the agent still owes without opening another tab. */}
-			{gaps.length > 0 && (
-				<div className="review-not-ready">
-					<span className="review-not-ready-title">Not ready for review</span>
-					<ul>
-						{gaps.map((gap) => (
-							<li key={gap.kind}>{reviewGapText(gap)}</li>
-						))}
-					</ul>
-				</div>
-			)}
 		</div>
 	);
 }

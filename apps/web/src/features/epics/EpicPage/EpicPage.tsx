@@ -86,9 +86,10 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	});
 	const assignedRuns = assignedRunsQuery.data;
 	const assigned = useMemo(() => assignedTicketIds(assignedRuns ?? noRuns), [assignedRuns]);
-	// A Set, because the turn of each row tests membership. Null until the
-	// query succeeds: an empty set would read a ticket whose agent works as
-	// the turn of the person, and the row would move when the answer lands.
+	// A Set, because each row tests membership. Null until the query
+	// succeeds: an empty set would read a ticket whose agent works as a
+	// ticket that waits for the person, and the row would move when the
+	// answer lands.
 	const workingTicketIds = useMemo(
 		() => (assignedRunsQuery.status === "success" ? new Set(epicWorkingTicketIds(assignedRuns ?? noRuns)) : null),
 		[assignedRunsQuery.status, assignedRuns],

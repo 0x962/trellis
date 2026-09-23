@@ -19,9 +19,9 @@ export type GroupHeaderProps = Omit<SharedProps, "count" | "showCount" | "icon" 
 	// The counts that set the progress circle before a wave title.
 	completedCount?: number;
 	totalCount?: number;
-	// The rows of the group whose turn is the person. The count slot prints
+	// The rows of the group that wait for the person. The count slot prints
 	// it after the count, `0/6 · 1 for you`. Undefined on a table that does
-	// not read the turn of a row, and 0 prints nothing.
+	// not read what a row waits for, and 0 prints nothing.
 	forYou?: number;
 	// True when the wave progress circle is complete.
 	done?: boolean;

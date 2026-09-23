@@ -128,7 +128,6 @@ export const useReviewData = (pr: string) => {
 		revision,
 		setRevision,
 		status,
-		ticket,
 		run,
 		linkedPr,
 		summary,

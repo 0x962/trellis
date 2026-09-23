@@ -451,7 +451,7 @@ in `packages/api/src/reviewReady` is that rule. It takes the stored facts and
 answers with the parts that are missing, each with its plain words from
 `reviewGapText`. The wire carries the list as `reviewGaps` on a pull request
 row, on a ticket pull request row, on the PR badge of a ticket row and on a
-Diffs row, so the glyph, the turn, the Needs you inbox and the pull request
+Diffs row, so the glyph, the Waiting grouping, the Needs you inbox and the pull request
 sheet all read one answer. `notReadyForReviewSql` in
 `apps/server/src/db/queries/reviewReady.ts` is its SQL form, which the ticket
 filters and the wave counts use. Nothing in the rule reads the GitHub draft

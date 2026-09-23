@@ -60,7 +60,7 @@ export type TicketTableProps = {
 	// an entry is followed by one agent line. Memoize it: a new identity
 	// rebuilds every line of the list.
 	agentLines?: Readonly<Record<string, TicketAgentLine>>;
-	// The epic route passes it, because the turn of a row reads it. Memoize
+	// The epic route passes it, because what a row waits for reads it. Memoize
 	// it: a new identity regroups the rows.
 	workingTicketIds?: TableGroupsOptions["workingTicketIds"];
 	// The ids of the tickets that hold an open agent run. The epic route
