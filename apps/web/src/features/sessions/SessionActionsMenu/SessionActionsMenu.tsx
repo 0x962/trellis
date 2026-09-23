@@ -1,6 +1,6 @@
 import { DotsThree, FolderSimple, PencilSimple, Trash, UserSwitch } from "@phosphor-icons/react";
 import type { AgentRun, Session } from "@trellis/api";
-import { IconButton, Menu, type MenuItem } from "@trellis/ui";
+import { type ButtonVariant, IconButton, Menu, type MenuItem } from "@trellis/ui";
 import { useState } from "react";
 import { DeleteSessionDialog } from "../DeleteSessionDialog";
 import { MoveSessionProjectDialog } from "../MoveSessionProjectDialog";
@@ -10,6 +10,13 @@ export type SessionActionsMenuProps = {
 	session?: Session;
 	run?: AgentRun;
 	size?: "xs" | "sm" | "md";
+	// The look of the trigger. A bar passes "default", so the trigger draws
+	// the same disk as the other controls of that bar. A row leaves it at
+	// "quiet", so the trigger stays flat until the pointer reaches it.
+	variant?: ButtonVariant;
+	// The name of this control inside its bar, written onto the trigger as
+	// `data-bar-slot`, which `barSlots` reads.
+	barSlot?: string;
 	deleteDisabled?: boolean;
 	onDeleted?: () => void;
 	onRename?: () => void;
@@ -19,6 +26,8 @@ export function SessionActionsMenu({
 	session,
 	run,
 	size = "sm",
+	variant = "quiet",
+	barSlot,
 	deleteDisabled = false,
 	onDeleted,
 	onRename,
@@ -61,7 +70,15 @@ export function SessionActionsMenu({
 			<Menu
 				label={`Actions for ${name}`}
 				items={items}
-				trigger={<IconButton size={size} label={`Actions for ${name}`} icon={<DotsThree />} />}
+				trigger={
+					<IconButton
+						data-bar-slot={barSlot}
+						size={size}
+						variant={variant}
+						label={`Actions for ${name}`}
+						icon={<DotsThree />}
+					/>
+				}
 			/>
 			{session && <MoveSessionProjectDialog session={session} open={moveOpen} onOpenChange={setMoveOpen} />}
 			{session && (
