@@ -6,8 +6,8 @@ import * as epics from "../services/epics/epics.ts";
 import * as labels from "../services/labels.ts";
 import * as tickets from "../services/tickets.ts";
 import { createCache } from "./cache.ts";
-import { type Db, openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
+import type { Db } from "./client.ts";
+import { openTestDb } from "./testDb.ts";
 import { type Tx, withTx } from "./tx.ts";
 
 // `tickets.updateMany` and `tickets.deleteMany`: one batch id for the whole
@@ -57,8 +57,7 @@ const updatedEvents = () => emitted.filter((event) => event.type === "ticket.upd
 const seedTicket = (title: string) => run((ctx, tx) => tickets.create(ctx, tx, { project: "TUM", title }));
 
 beforeAll(async () => {
-	db = await openDb(":memory:");
-	await migrate(db);
+	db = await openTestDb();
 	await db.execute(sql`
 		INSERT INTO projects (id, key, slug, name, created_at, updated_at)
 		VALUES (${rootId}, 'TUM', 'tum', 'Update many', ${at}, ${at})

@@ -4,8 +4,8 @@ import { ulid } from "ulid";
 import type { ServiceCtx } from "../context.ts";
 import { list } from "../services/tickets/read.ts";
 import { createCache, type ProjectCache } from "./cache.ts";
-import { type Db, openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
+import type { Db } from "./client.ts";
+import { openTestDb } from "./testDb.ts";
 
 // One root TST with one status, one epic `TST/plan` with the wave
 // `TST/plan/phase-1`, and three tickets: TST-1 in the wave, TST-2
@@ -23,8 +23,7 @@ const insertTicket = (number: number, status: string, epicId: string | null, wav
 		VALUES (${ulid()}, ${tst}, ${number}, ${`Ticket ${number}`}, ${status}, ${epicId}, ${waveId}, ${number}, ${at}, ${at})`);
 
 beforeAll(async () => {
-	db = await openDb(":memory:");
-	await migrate(db);
+	db = await openTestDb();
 	await db.execute(
 		sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at) VALUES ('Test', 'human', ${at}, ${at})`,
 	);
