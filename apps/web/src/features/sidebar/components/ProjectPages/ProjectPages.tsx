@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
-import { cx } from "@trellis/ui";
+import { ActivityDot, cx } from "@trellis/ui";
 import { formatCount } from "../../../../lib/format";
 import { projectRefOfPathname, projectSlashPath } from "../../../../lib/projectPath";
+import { activeAgentsLabel, useActiveAgentCount } from "../../../sessions/activeAgents";
 
 const indent = ["pl-8", "pl-8", "pl-11", "pl-14", "pl-17"] as const;
 
@@ -24,6 +25,9 @@ export function ProjectPages({
 	// The epics list and the page of one epic, `/epics/<slug>`.
 	const epics = pathname.endsWith("/epics") || pathname.includes("/epics/");
 	const sessions = pathname.startsWith("/sessions/project/");
+	// The dot on the Sessions row counts the agents of this project that start,
+	// work or wait for an answer.
+	const activeAgents = useActiveAgentCount(project.id);
 	return (
 		<li>
 			<nav aria-label={`${project.name} pages`}>
@@ -43,7 +47,15 @@ export function ProjectPages({
 							trailing: project.openEpicCount > 0 ? formatCount(project.openEpicCount) : null,
 						},
 						{ label: "Diffs", suffix: "/diffs", active: current && diffs, trailing: null },
-						{ label: "Sessions", suffix: "/sessions", active: current && sessions, trailing: null },
+						{
+							label: "Sessions",
+							suffix: "/sessions",
+							active: current && sessions,
+							trailing:
+								activeAgents > 0 ? (
+									<ActivityDot label={activeAgentsLabel(activeAgents)} placement="inline" tone="metal" />
+								) : null,
+						},
 					].map(({ label, suffix, active, trailing }) => (
 						<li key={label}>
 							<Link
