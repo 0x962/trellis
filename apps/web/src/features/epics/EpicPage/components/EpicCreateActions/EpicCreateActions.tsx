@@ -21,6 +21,7 @@ export function EpicCreateActions({ project, exclude, waveEditing, onAddTicket }
 		<>
 			<Tooltip content="New wave">
 				<TopbarActionButton
+					data-bar-slot="new-wave"
 					label="New wave"
 					icon={<RowsPlusBottom />}
 					disabled={waveEditing.busy}
@@ -37,7 +38,7 @@ export function EpicCreateActions({ project, exclude, waveEditing, onAddTicket }
 				onPick={(ticket) => {
 					if (ticket !== null) onAddTicket(ticket);
 				}}
-				trigger={<TopbarActionButton label="Add tickets" icon={<Plus />} />}
+				trigger={<TopbarActionButton data-bar-slot="add-tickets" label="Add tickets" icon={<Plus />} />}
 			/>
 		</>
 	);

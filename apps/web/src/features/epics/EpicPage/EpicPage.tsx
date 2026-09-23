@@ -1,12 +1,10 @@
-import { ChartBar, PencilSimple, Trash } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { AgentRun, Project, TicketSummary, WaveSummary } from "@trellis/api";
-import { Tabs, Tooltip, useMediaQuery } from "@trellis/ui";
+import { Tabs, useMediaQuery } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { epicHref, projectHref, projectSlashPath, rootKey } from "../../../lib/projectPath";
-import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { useUiStore } from "../../../stores/uiStore";
 import { FilterBar } from "../../filters/FilterBar";
 import { type View, viewOf } from "../../filters/grammar";
@@ -14,7 +12,7 @@ import { hasFilters } from "../../filters/labels";
 import { ArchivedBanner } from "../../project-actions";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
-import { Topbar, TopbarActionButton, TopbarActionMenu } from "../../shell/Topbar";
+import { Topbar } from "../../shell/Topbar";
 import { DisplayPopover } from "../../table/DisplayPopover";
 import { useTicketMutations } from "../../table/hooks/useTicketMutations";
 import { useWaveEditing } from "../../table/hooks/useWaveEditing";
@@ -31,6 +29,7 @@ import { EpicCreateActions } from "./components/EpicCreateActions";
 import { EpicEmptyState } from "./components/EpicEmptyState";
 import { EpicLoadError } from "./components/EpicLoadError";
 import { EpicResources } from "./components/EpicResources";
+import { EpicTopbarActions } from "./components/EpicTopbarActions";
 
 export type EpicPageProps = {
 	project: Project;
@@ -172,12 +171,30 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 		/>
 	);
 	const titleParent = phone ? undefined : parent;
+	// The switcher is the title in both states, so the title keeps its box,
+	// its caret and its height from the first paint. Until the epic answers
+	// it carries the slug from the URL, the only name the page knows.
+	const title = (epicRef: string, name: string) => (
+		<EpicSwitcher project={project.path} epicRef={epicRef} name={name} tab={tab} />
+	);
 
 	if (epic.isPending) {
 		return (
 			<>
-				<Topbar>
-					<PageTitle parent={titleParent} title={slug} />
+				<Topbar
+					actions={
+						<EpicTopbarActions
+							project={project.key}
+							epic={null}
+							readOnly={readOnly}
+							waveEditing={waveEditing}
+							onAddTicket={() => {}}
+							onEdit={() => setEditing(true)}
+							onDelete={() => setDeleting(true)}
+						/>
+					}
+				>
+					<PageTitle parent={titleParent} title={title(ref, slug)} />
 					{filterBar}
 				</Topbar>
 				<div className="page-card flex flex-1 flex-col overflow-hidden">
@@ -217,36 +234,18 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 		<>
 			<Topbar
 				actions={
-					<>
-						<Tooltip content="Statistics">
-							<TopbarActionButton
-								label="Statistics"
-								icon={<ChartBar />}
-								onClick={() => pageSheetActions.openStats(record.ref)}
-							/>
-						</Tooltip>
-						{createActions}
-						<TopbarActionMenu
-							label={`Actions for ${record.name}`}
-							triggerTooltip="Epic actions"
-							items={[
-								{ label: "Edit", icon: <PencilSimple />, disabled: readOnly, onSelect: () => setEditing(true) },
-								{
-									label: "Delete…",
-									icon: <Trash />,
-									danger: true,
-									disabled: readOnly,
-									onSelect: () => setDeleting(true),
-								},
-							]}
-						/>
-					</>
+					<EpicTopbarActions
+						project={project.key}
+						epic={{ ref: record.ref, name: record.name, identifiers }}
+						readOnly={readOnly}
+						waveEditing={waveEditing}
+						onAddTicket={(ticket) => void addTicket(ticket, record.ref)}
+						onEdit={() => setEditing(true)}
+						onDelete={() => setDeleting(true)}
+					/>
 				}
 			>
-				<PageTitle
-					parent={titleParent}
-					title={<EpicSwitcher project={project.path} epicRef={record.ref} name={record.name} tab={tab} />}
-				/>
+				<PageTitle parent={titleParent} title={title(record.ref, record.name)} />
 				{filterBar}
 			</Topbar>
 			<div className="page-card flex flex-1 flex-col overflow-hidden">
