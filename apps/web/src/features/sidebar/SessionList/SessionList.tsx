@@ -1,9 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
-import { sessionStatus } from "@trellis/api";
+import { type AgentActivity, type SessionStatus, sessionStatus } from "@trellis/api";
 import { Button } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 import { SessionRow } from "../components/SessionRow";
+
+// The status of each session, by session id. agentRuns.activity also carries
+// every ticket agent run, and those change often, so the rows here read this
+// small object instead of the answer itself. A status changes rarely, so React
+// Query keeps the last object and the rows below redraw on a status change
+// alone.
+const sessionStatuses = (entries: AgentActivity[]): Record<string, SessionStatus> =>
+	Object.fromEntries(
+		entries.flatMap((entry) =>
+			entry.sessionId === null ? [] : [[entry.sessionId, sessionStatus(entry.run)] as const],
+		),
+	);
 
 export function SessionList() {
 	const { orpc, queryClient } = useApp();
@@ -12,10 +24,11 @@ export function SessionList() {
 	// agentRuns.activity carries the runs of the sessions here and the runs of
 	// the ticket agents, which the dot on a project Sessions row counts. Both
 	// readers share this one query.
-	const activity = useQuery({ ...orpc.agentRuns.activity.queryOptions({ input: {} }), refetchInterval: 2000 });
-	const runs = new Map(
-		activity.data?.flatMap((entry) => (entry.sessionId === null ? [] : [[entry.sessionId, entry.run] as const])),
-	);
+	const { data: statuses } = useQuery({
+		...orpc.agentRuns.activity.queryOptions({ input: {} }),
+		refetchInterval: 2000,
+		select: sessionStatuses,
+	});
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	if (data === undefined)
 		return (
@@ -40,13 +53,13 @@ export function SessionList() {
 				{data
 					.filter((session) => session.projectId === null)
 					.map((session) => {
-						const run = runs.get(session.id);
+						const status = statuses?.[session.id] ?? "unavailable";
 						return (
 							<SessionRow
 								key={session.id}
 								session={session}
-								status={run ? sessionStatus(run) : "unavailable"}
-								workingCount={run && sessionStatus(run) === "working" ? 1 : 0}
+								status={status}
+								workingCount={status === "working" ? 1 : 0}
 								active={pathname === `/sessions/${session.id}`}
 							/>
 						);

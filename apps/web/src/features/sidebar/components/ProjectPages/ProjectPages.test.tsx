@@ -24,11 +24,11 @@ const project = {
 
 // A `Link` reads the router, so the rows need one. This router holds the two
 // routes the rows open and starts on the page under test.
-const render = async (pathname: string, activeAgents = 0) => {
+const render = async (pathname: string, activeAgentCount = 0) => {
 	const rootRoute = createRootRoute({
 		component: () => (
 			<ul>
-				<ProjectPages project={project} pathname={pathname} activeAgents={activeAgents} />
+				<ProjectPages project={project} pathname={pathname} activeAgentCount={activeAgentCount} />
 			</ul>
 		),
 	});
@@ -93,24 +93,24 @@ test("the rows under More indent one step past the rows above them", async () =>
 test("only the Epics row prints a count", async () => {
 	const html = await render("/p/TRL");
 
-	const counts = [...html.matchAll(/<span class="sidebar-trailing text-fg-faint">([^<]*)<\/span>/g)];
+	const counts = [...html.matchAll(/<span class="sidebar-trailing gap-1 text-fg-faint">([^<]*)<\/span>/g)];
 
 	expect(counts.map((match) => match[1])).toEqual(["3"]);
 });
 
-test("the Sessions row wears a dot while agents of the project are active", async () => {
+test("the Sessions row shows a dot while agents of the project are active", async () => {
 	const html = await render("/sessions/project/TRL", 2);
 
 	expect(html).toContain('aria-label="2 agents are active"');
 });
 
-test("the More row wears the dot while it hides the Sessions row", async () => {
+test("the More row shows the dot while it hides the Sessions row", async () => {
 	const html = await render("/p/TRL/epics", 1);
 
 	expect(html).toContain('aria-expanded="false"');
 	expect(html).toContain('aria-label="1 agent is active"');
 });
 
-test("no row wears a dot while no agent of the project is active", async () => {
+test("no row shows a dot while no agent of the project is active", async () => {
 	expect(await render("/sessions/project/TRL")).not.toContain("is active");
 });
