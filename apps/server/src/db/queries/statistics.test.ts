@@ -58,20 +58,20 @@ beforeAll(async () => {
 	db = await openTestDb();
 	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
 		VALUES ('Navid', 'human', ${at}, ${at}), ('Scout', 'agent', ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${root}, ${root}, 'TST', 'tst', 'Test', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${root}, 'TST', 'tst', 'Test', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses (
 		id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at
 	) VALUES (${status}, ${root}, 'In Progress', 'in-progress', 'started', NULL, 'fg-muted', 0, true, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO tickets (
-		id, project_id, root_id, number, title, status_id, position, created_at, updated_at
+		id, project_id, number, title, status_id, position, created_at, updated_at
 	) VALUES
-		(${heldTicket}, ${root}, ${root}, 1, 'Held message', ${status}, 0, ${at}, ${at}),
-		(${failedTicket}, ${root}, ${root}, 2, 'Failed message', ${status}, 1, ${at}, ${at}),
-		(${waitingTicket}, ${root}, ${root}, 3, 'Waiting flow', ${status}, 2, ${at}, ${at}),
-		(${runningTicket}, ${root}, ${root}, 4, 'Running flow', ${status}, 3, ${at}, ${at}),
-		(${readTicket}, ${root}, ${root}, 5, 'The change he read', ${status}, 4, ${at}, ${at}),
-		(${quietTicket}, ${root}, ${root}, 6, 'The change he did not read', ${status}, 5, ${at}, ${at})`);
+		(${heldTicket}, ${root}, 1, 'Held message', ${status}, 0, ${at}, ${at}),
+		(${failedTicket}, ${root}, 2, 'Failed message', ${status}, 1, ${at}, ${at}),
+		(${waitingTicket}, ${root}, 3, 'Waiting flow', ${status}, 2, ${at}, ${at}),
+		(${runningTicket}, ${root}, 4, 'Running flow', ${status}, 3, ${at}, ${at}),
+		(${readTicket}, ${root}, 5, 'The change he read', ${status}, 4, ${at}, ${at}),
+		(${quietTicket}, ${root}, 6, 'The change he did not read', ${status}, 5, ${at}, ${at})`);
 
 	await addDelivery("held", heldTicket, "2026-09-19T12:00:00.000Z");
 	await addDelivery("held", heldTicket, "2026-09-19T18:00:00.000Z");

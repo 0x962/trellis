@@ -85,7 +85,7 @@ export const loopBill = (tx: Tx, size: number, limit: number) =>
 				SELECT root.key || '-' || ticket.number
 				FROM ticket_pull_requests link
 				JOIN tickets ticket ON ticket.id = link.ticket_id
-				JOIN projects root ON root.id = ticket.root_id
+				JOIN projects root ON root.id = ticket.project_id
 				WHERE link.pull_request_id = pr.id
 				ORDER BY link.created_at ASC, ticket.id ASC
 				LIMIT 1
