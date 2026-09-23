@@ -23,6 +23,7 @@ export function SessionConversation({
 	autoFocusTerminalDelay = 0,
 	onDeleted,
 	onOpenTicket,
+	onLeaveTerminal,
 	headingRef,
 }: {
 	run: AgentRun;
@@ -32,6 +33,11 @@ export function SessionConversation({
 	autoFocusTerminalDelay?: number;
 	onDeleted?: () => void;
 	onOpenTicket?: () => void;
+	// What the terminal does when a person presses Escape two times, or
+	// Control+]. The session sheet passes the action that closes the sheet.
+	// Without it the focus moves to the name of the session above the
+	// terminal.
+	onLeaveTerminal?: () => void;
 	headingRef?: RefObject<HTMLHeadingElement | null>;
 }) {
 	const { client, orpc, queryClient } = useApp();
@@ -39,7 +45,8 @@ export function SessionConversation({
 	const [renaming, setRenaming] = useState(false);
 	const localHeading = useRef<HTMLHeadingElement>(null);
 	const headingElement = headingRef ?? localHeading;
-	const leaveTerminal = useCallback(() => headingElement.current?.focus(), [headingElement]);
+	const focusHeading = useCallback(() => headingElement.current?.focus(), [headingElement]);
+	const leaveTerminal = onLeaveTerminal ?? focusHeading;
 	const active = hasAssignedProcess(run);
 	const refresh = () =>
 		Promise.all([

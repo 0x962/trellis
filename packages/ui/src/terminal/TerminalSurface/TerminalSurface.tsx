@@ -2,6 +2,7 @@ import { ArrowClockwise } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
+import { Kbd } from "../../primitives/Kbd";
 import { Tooltip } from "../../primitives/Tooltip";
 import "@xterm/xterm/css/xterm.css";
 import "../terminal.css";
@@ -126,7 +127,9 @@ export function TerminalSurface({
 	return (
 		<div className="terminal-surface" data-layout={layout}>
 			<div className="terminal-toolbar">
-				<p className="terminal-hint">Press Escape two times or Control+] to leave the terminal.</p>
+				<p className="terminal-hint">
+					Press <Kbd>Esc</Kbd> two times or <Kbd>Control</Kbd> <Kbd>]</Kbd> to leave the terminal.
+				</p>
 				{snapshot.error && (
 					<Tooltip content="Reconnect terminal">
 						<IconButton
