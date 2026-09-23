@@ -18,6 +18,14 @@ export type AvatarProps = {
 	focusable?: boolean;
 };
 
+// What the screen reader adds to the name of an agent for each drawing
+// state. A mark at rest adds nothing.
+const stateWords: Record<AgentMarkState, string> = {
+	static: "",
+	starting: " · starting",
+	working: " · working",
+};
+
 // "Dana Lee" gives DL; "dana" gives D.
 const initials = (name: string) =>
 	name
@@ -37,7 +45,7 @@ export function Avatar({
 	tooltip = true,
 	focusable = true,
 }: AvatarProps) {
-	const agentLabel = `${name} · agent${agentProfile ? ` · ${agentProfile.model}${agentProfile.effort ? ` · ${agentProfile.effort}` : ""}` : ""}${state === "static" ? "" : " · working"}`;
+	const agentLabel = `${name} · agent${agentProfile ? ` · ${agentProfile.model}${agentProfile.effort ? ` · ${agentProfile.effort}` : ""}` : ""}${stateWords[state]}`;
 	const label = kind === "agent" ? `${agentLabel}${status ? ` · ${status.replaceAll("-", " ")}` : ""}` : name;
 	// The initials use a span because `profile-metal` paints a film and lifts
 	// only its child span above the film.
@@ -49,6 +57,11 @@ export function Avatar({
 			className={cx(
 				"group/avatar relative inline-grid size-4.5 shrink-0 place-items-center rounded-round select-none hover:z-30",
 				kind === "human" && "profile-metal text-initials font-semibold",
+				// A starting run has nothing to report yet, so the whole mark
+				// dims and brightens in place. A person who asks for less
+				// motion gets the dimmed mark and no movement, which still
+				// reads apart from a mark at rest.
+				state === "starting" && "animate-pulse-live pulse-in-place motion-reduce:animate-none motion-reduce:opacity-60",
 				className,
 			)}
 		>
