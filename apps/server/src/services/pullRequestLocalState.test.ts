@@ -37,8 +37,8 @@ const newTicket = async (title: string) => {
 	ticketNumber += 1;
 	const id = ulid();
 	await db.execute(sql`INSERT INTO tickets
-		(id, project_id, root_id, number, title, status_id, position, created_at, updated_at)
-		VALUES (${id}, ${root}, ${root}, ${ticketNumber}, ${title}, ${status}, ${ticketNumber}, ${at}, ${at})`);
+		(id, project_id, number, title, status_id, position, created_at, updated_at)
+		VALUES (${id}, ${root}, ${ticketNumber}, ${title}, ${status}, ${ticketNumber}, ${at}, ${at})`);
 	return { id, identifier: `LOC-${ticketNumber}` };
 };
 

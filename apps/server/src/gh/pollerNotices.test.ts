@@ -20,7 +20,7 @@ import type { GhRunner } from "./run.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 let core: ServiceCtx;
-const rootId = ulid();
+const projectId = ulid();
 const t0 = new Date("2026-09-21T10:00:00Z");
 const later = (ms: number) => new Date(t0.getTime() + ms);
 const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
@@ -134,10 +134,10 @@ const deliveries = async (ticketId: string) =>
 beforeAll(async () => {
 	db = await openTestDb();
 	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
-		VALUES (${rootId}, 'CHK', 'chk', 'Checks', ${t0}, ${t0})`);
+		VALUES (${projectId}, 'CHK', 'chk', 'Checks', ${t0}, ${t0})`);
 	await db.execute(sql`INSERT INTO statuses
 		(id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at)
-		VALUES (${ulid()}, ${rootId}, 'Todo', 'todo', 'todo', NULL, 'fg-muted', 0, true, ${t0}, ${t0})`);
+		VALUES (${ulid()}, ${projectId}, 'Todo', 'todo', 'todo', NULL, 'fg-muted', 0, true, ${t0}, ${t0})`);
 	const cache = createCache();
 	await run((tx) => cache.rebuild(tx));
 	core = {

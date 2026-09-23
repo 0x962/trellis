@@ -15,7 +15,7 @@ import { type Tx, withTx } from "./tx.ts";
 // every ticket of the call back.
 
 const at = new Date("2026-09-18T12:00:00.000Z");
-const rootId = "01J00000000000000000000030";
+const projectId = "01J00000000000000000000030";
 const todoId = "01J00000000000000000000031";
 const doneId = "01J00000000000000000000032";
 
@@ -44,7 +44,7 @@ const run = async <T>(call: (ctx: ServiceCtx, tx: Tx) => Promise<T>) => {
 const ticketRows = async (identifiers: string[]) => {
 	const found = await db.execute(
 		sql`SELECT 'TUM-' || t.number AS identifier, t.version, t.status_id, t.epic_id
-			FROM tickets t WHERE t.project_id = ${rootId} ORDER BY t.number`,
+			FROM tickets t WHERE t.project_id = ${projectId} ORDER BY t.number`,
 	);
 	return (found.rows as { identifier: string; version: number; status_id: string; epic_id: string | null }[]).filter(
 		(row) => identifiers.includes(row.identifier),
@@ -61,12 +61,12 @@ beforeAll(async () => {
 	await migrate(db);
 	await db.execute(sql`
 		INSERT INTO projects (id, key, slug, name, created_at, updated_at)
-		VALUES (${rootId}, 'TUM', 'tum', 'Update many', ${at}, ${at})
+		VALUES (${projectId}, 'TUM', 'tum', 'Update many', ${at}, ${at})
 	`);
 	await db.execute(sql`
 		INSERT INTO statuses (id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
-		VALUES (${todoId}, ${rootId}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at}),
-			(${doneId}, ${rootId}, 'Done', 'done', 'done', 'fg-muted', 1, false, ${at}, ${at})
+		VALUES (${todoId}, ${projectId}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at}),
+			(${doneId}, ${projectId}, 'Done', 'done', 'done', 'fg-muted', 1, false, ${at}, ${at})
 	`);
 	cache = createCache();
 	await withTx(db, (tx) => cache.rebuild(tx));
@@ -141,7 +141,7 @@ test("a ref that names no ticket rolls the whole batch back", async () => {
 	expect(row).toMatchObject({ version: 1, status_id: todoId });
 	const held = await db.execute(
 		sql`SELECT count(*)::int AS n FROM ticket_labels tl JOIN tickets t ON t.id = tl.ticket_id
-			WHERE t.project_id = ${rootId} AND t.number = 4`,
+			WHERE t.project_id = ${projectId} AND t.number = 4`,
 	);
 	expect(held.rows).toEqual([{ n: 0 }]);
 	expect(updatedEvents()).toEqual([]);
