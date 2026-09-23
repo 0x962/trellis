@@ -6,17 +6,17 @@
 	@apply min-w-0 flex-1 truncate;
 }
 
-/* The end of a row: the count, the key hint, the activity dot or the open
-   arrow. It ends its item rather than centring it, so every row of the
-   sidebar, and the resource row of an epic, stops its item at one distance
-   from the row edge. */
+/* The end of a row: the count, the key hint, the activity dot or the caret.
+   The right padding keeps the last item at the same distance from the row
+   edge on every row. */
 @utility sidebar-trailing {
 	@apply flex w-6 shrink-0 items-center justify-end pr-1.5 text-xs tabular pointer-coarse:w-11 pointer-coarse:pr-4;
 }
 
-/* The More row shows the activity dot and the open arrow together, so it needs
-   more width. The right padding stays the same as sidebar-trailing, which keeps
-   the last item at one distance from the row edge on every row. */
+/* The More row shows the activity dot and the caret together, so it needs more
+   width. The right padding stays the same as sidebar-trailing, which keeps the
+   caret at the same distance from the row edge as the item of every other
+   row. */
 .sidebar-trailing[data-dot-and-caret] {
 	@apply w-10 gap-1 pointer-coarse:w-15;
 }
