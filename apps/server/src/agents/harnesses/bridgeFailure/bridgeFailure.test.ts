@@ -121,10 +121,11 @@ test("the Muse bridge prints why it stopped when the runtime refuses that record
 	expect(run.exitCode).toBe(1);
 });
 
-// The bridge waits up to 5000 ms for the Muse host to exit, which is the
-// default limit of a test. Without the release of the terminal the process
-// never exits, and this limit is what ends the test.
-test("the Muse bridge leaves the terminal it reads and exits", async () => {
+// The bridge waits up to 5000 ms for the Muse host to exit, so the default
+// test limit of 5000 ms is too short for a pass. This test therefore sets
+// 20000 ms. If the bridge keeps its terminal reader, the process never exits,
+// and the 20000 ms limit fails the test.
+test("the Muse bridge stops its terminal reader and exits", async () => {
 	const run = await runMuseBridge((event) => event.kind === "message", { withTerminal: true });
 	expect(run.observed.at(-1)).toMatchObject({ kind: "error", outcome: "failed" });
 	expect(run.exitCode).toBe(1);

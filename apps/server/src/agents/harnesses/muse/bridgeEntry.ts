@@ -12,7 +12,8 @@ import { MuseSessionEvents } from "./mspEvents.ts";
 import { museControl } from "./museControl.ts";
 import { MuseQuestions } from "./museQuestions.ts";
 import { answerMuseRequest } from "./museRequests.ts";
-import { museTerminalHint, museTranscriptLine, readMuseTerminal, stopMuseTerminal } from "./museTerminal.ts";
+import { museTerminalHint, startMuseTerminalReader, stopMuseTerminalReader } from "./museTerminal.ts";
+import { museTranscriptLine } from "./museTranscript.ts";
 import { writeMuseQuotaError, writeMuseUsage } from "./museUsage.ts";
 import { uuid7 } from "./uuid7.ts";
 
@@ -206,9 +207,11 @@ async function start() {
 	await startTurn([launch.prompt]);
 	await firstPrompt;
 	print(museTerminalHint);
-	readMuseTerminal({
-		current: () => current,
-		interrupt: (turnId) => client!.request("turn/interrupt", { commandId: uuid7(), sessionId, turnId }),
+	startMuseTerminalReader({
+		interrupt: async () => {
+			if (!current.working || current.turnId === null) return;
+			await client!.request("turn/interrupt", { commandId: uuid7(), sessionId, turnId: current.turnId });
+		},
 		submit,
 		onFailure: reportFailure,
 	});
@@ -218,6 +221,10 @@ try {
 } catch (error) {
 	const observedAtMs = Date.now();
 	acceptingEvents = false;
+	// The steps below wait for the runtime, which answers a write in up to ten
+	// seconds. A live reader would echo each typed character in that time, and
+	// Enter would start a turn on a session host that stops a moment later.
+	stopMuseTerminalReader();
 	const usageHome = museHome;
 	// `queueUsage` sends a rejected write to `reportFailure`, and that call
 	// changes nothing here, because the promise it rejects is already
@@ -234,10 +241,10 @@ try {
 	process.exitCode = 1;
 } finally {
 	acceptingEvents = false;
-	// No later step of this block holds the terminal. A wait for the session
-	// host runs for up to five seconds, and the removal of the directory can
-	// throw, so the terminal goes back to the person first.
-	stopMuseTerminal();
+	// A SIGTERM reaches this block with no catch block before it. The steps
+	// below wait up to five seconds for the Muse host, and the removal of the
+	// directory can throw, so the keyboard works again before them.
+	stopMuseTerminalReader();
 	await usageQueue;
 	if (host.exitCode === null && host.signalCode === null) {
 		const exited = new Promise<void>((resolve) => host.once("exit", () => resolve()));
