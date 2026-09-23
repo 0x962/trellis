@@ -17,6 +17,9 @@ const targetKeys = [
 	"query",
 	"description",
 ];
+const codeTargetKeys = new Set(targetKeys.slice(0, 7));
+
+export type ToolTarget = { text: string; kind: "text" | "code" };
 
 const oneLine = (text: string) => text.split("\n", 1)[0]!.trim();
 
@@ -27,7 +30,7 @@ const shorten = (text: string) => (text.length <= maxLength ? text : `${text.sli
 // file, so the target takes the first line of the first key it finds and
 // cuts it to `maxLength` characters. It is null for an input that names no
 // target, and the caller then shows the tool name alone.
-export const toolTarget = (input: unknown): string | null => {
+export const toolTarget = (input: unknown): ToolTarget | null => {
 	if (typeof input !== "object" || input === null) return null;
 	const fields = input as Record<string, unknown>;
 	for (const key of targetKeys) {
@@ -36,7 +39,7 @@ export const toolTarget = (input: unknown): string | null => {
 		const words = Array.isArray(value) && value.every((part) => typeof part === "string") ? value.join(" ") : text;
 		if (words === null) continue;
 		const line = oneLine(words);
-		if (line !== "") return shorten(line);
+		if (line !== "") return { text: shorten(line), kind: codeTargetKeys.has(key) ? "code" : "text" };
 	}
 	return null;
 };

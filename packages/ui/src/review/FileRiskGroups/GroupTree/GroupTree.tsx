@@ -10,6 +10,8 @@ export type GroupTreeProps = {
 	// tree for a screen reader.
 	label: string;
 	files: FileRiskRow[];
+	// The paths the person marked read in the header of their diffs.
+	read: ReadonlySet<string>;
 	// The path whose diff the pane shows. An empty string selects no row.
 	selected: string;
 	onSelect: (path: string) => void;
@@ -19,8 +21,8 @@ export type GroupTreeProps = {
 // read takes the `ignored` status, and `GroupTree.css` paints that status
 // with the faint foreground. A read file therefore sits back from the files
 // that the person still must read.
-const statusOf = (file: FileRiskRow): GitStatusEntry["status"] => {
-	if (file.read) return "ignored";
+const statusOf = (file: FileRiskRow, read: boolean): GitStatusEntry["status"] => {
+	if (read) return "ignored";
 	if (file.change === "new") return "added";
 	if (file.change === "deleted") return "deleted";
 	if (file.change === "change") return "modified";
@@ -33,11 +35,23 @@ const lineWords = (count: number, word: string) => `${count} ${count === 1 ? wor
 // The added and deleted line counts at the right edge of a row. The tree
 // draws plain text, so this repeats the shape of `LineChanges` instead of
 // rendering it. A count of zero is faint, so the colour marks a real change.
-const lineCounts = (file: FileRiskRow) => {
-	const tone = (count: number, token: string) => (file.read || count === 0 ? "var(--fg-faint)" : `var(--${token})`);
+const lineCounts = (file: FileRiskRow, read: boolean) => {
+	// The hover text of every row names the reasons the file sits in its group,
+	// such as "migration, shared type". The row itself has width for the counts
+	// alone.
+	const why = file.reasons.length === 0 ? "" : `${file.reasons.join(", ")}. `;
+	// Git writes no line for a binary file, so a count of zero added lines and
+	// zero deleted lines would say that the file changed nothing.
+	if (file.binary)
+		return {
+			text: "binary",
+			title: `${why}Git stores this file as bytes, so the diff has no lines.`,
+			parts: [{ text: "binary", color: "var(--fg-faint)" }],
+		};
+	const tone = (count: number, token: string) => (read || count === 0 ? "var(--fg-faint)" : `var(--${token})`);
 	return {
 		text: `+${digits.format(file.additions)} −${digits.format(file.deletions)}`,
-		title: `${lineWords(file.additions, "line")} added, ${lineWords(file.deletions, "line")} deleted`,
+		title: `${why}${lineWords(file.additions, "line")} added, ${lineWords(file.deletions, "line")} deleted.`,
 		parts: [
 			{ text: `+${digits.format(file.additions)}`, color: tone(file.additions, "success") },
 			{ text: ` −${digits.format(file.deletions)}`, color: tone(file.deletions, "danger") },
@@ -52,12 +66,12 @@ const lineCounts = (file: FileRiskRow) => {
 // The pane that stacks the groups owns the scroll bar, so this tree must draw
 // every row it has. The tree fills the height of the box around it, and the
 // effect below sets that height to the height of the rows the tree shows.
-export function GroupTree({ label, files, selected, onSelect }: GroupTreeProps) {
+export function GroupTree({ label, files, read, selected, onSelect }: GroupTreeProps) {
 	const coarse = useMediaQuery("(pointer: coarse)");
 	// The tree builds its model once. This box holds the newest files and the
 	// newest callback, so a model callback never reads a past render.
-	const current = useRef({ files, onSelect });
-	current.current = { files, onSelect };
+	const current = useRef({ files, read, onSelect });
+	current.current = { files, read, onSelect };
 	const [height, setHeight] = useState(0);
 	const { model } = useFileTree({
 		paths: files.map((file) => file.path),
@@ -71,7 +85,7 @@ export function GroupTree({ label, files, selected, onSelect }: GroupTreeProps) 
 		},
 		renderRowDecoration: ({ item }) => {
 			const file = current.current.files.find((entry) => entry.path === item.path);
-			return file === undefined ? null : lineCounts(file);
+			return file === undefined ? null : lineCounts(file, current.current.read.has(file.path));
 		},
 	});
 	// A path holds no newline, so this one string changes only when the set of
@@ -82,8 +96,8 @@ export function GroupTree({ label, files, selected, onSelect }: GroupTreeProps) 
 		model.resetPaths(paths === "" ? [] : paths.split("\n"));
 	}, [paths, model]);
 	useEffect(() => {
-		model.setGitStatus(files.map((file) => ({ path: file.path, status: statusOf(file) })));
-	}, [files, model]);
+		model.setGitStatus(files.map((file) => ({ path: file.path, status: statusOf(file, read.has(file.path)) })));
+	}, [files, read, model]);
 	useEffect(() => {
 		const measure = () => setHeight(model.getVisibleCount() * model.getItemHeight());
 		measure();

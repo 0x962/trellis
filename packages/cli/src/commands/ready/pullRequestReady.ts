@@ -7,6 +7,7 @@ import {
 	flowRunMissingLines,
 	flowRunMissingSummary,
 	flowRunWaitingLines,
+	flowSkippedLines,
 	flowWaivedLines,
 } from "./flowReadiness.ts";
 
@@ -15,9 +16,9 @@ export type ReadinessPart = "explanation" | "evidence" | "data-model-diagram" | 
 export type PullRequestReadiness = {
 	dataModelDiagramRequired: boolean;
 	pullRequest: { number: number; url: string; headSha: string; isDraft: boolean };
-	// The flows the server holds and the runs of the current head. `flows` is
-	// empty, and `satisfied` is true, whenever the caller asked for no flow
-	// check.
+	// The flows the pull request's project asks for, and the runs of the
+	// current head. `flows` is empty, and `satisfied` is true, whenever the
+	// caller asked for no flow check.
 	flows: FlowReadiness;
 	// The parts the pull request still needs, in the order an agent writes them.
 	missing: ReadinessPart[];
@@ -44,7 +45,7 @@ export const pullRequestReadiness = async (
 	]);
 	const flows = checkFlows
 		? await flowReadiness(client, ref, head.ticket, head.sha)
-		: { flows: [], runs: [], waived: null, satisfied: true };
+		: { flows: [], runs: [], waived: null, skipped: null, satisfied: true };
 	const dataModelDiagramRequired =
 		head.pullRequest.files !== null && changesDataModels(changedFilePaths(head.pullRequest.files));
 	const hasDataModelDiagram =
@@ -116,6 +117,7 @@ export const pullRequestReadyText = (result: PullRequestReadiness): string => {
 			`#${number} is ready for review. It has ${parts}. Trellis marked it ready, and GitHub is ready for review.`,
 			...flowRunWaitingLines(result.flows),
 			...flowWaivedLines(result.flows),
+			...flowSkippedLines(result.flows),
 			"",
 		].join("\n");
 	}

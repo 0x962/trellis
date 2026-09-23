@@ -16,6 +16,9 @@ export type UiData = {
 	expandedTickets: Record<string, string[]>;
 	// A project row is expanded unless this holds `false` for its id.
 	expandedProjects: Record<string, boolean>;
+	// The More row under a project shows the pages it holds only when this
+	// holds `true` for the project id.
+	expandedProjectMore: Record<string, boolean>;
 	// The table columns a route hides or shows: `{"/p/CDE": {updated: false}}`.
 	columnVisibility: Record<string, Record<string, boolean>>;
 };
@@ -29,6 +32,7 @@ export type UiState = UiData & {
 	setSidebarCollapsed: (collapsed: boolean) => void;
 	setDensity: (density: Density) => void;
 	toggleProject: (id: string) => void;
+	toggleProjectMore: (id: string) => void;
 	// `defaults` names the groups a route collapses before its first toggle.
 	toggleGroup: (route: string, group: string, defaults?: string[]) => void;
 	toggleTicketExpanded: (route: string, ticketId: string) => void;
@@ -42,6 +46,7 @@ const defaults: UiData = {
 	collapsedGroups: {},
 	expandedTickets: {},
 	expandedProjects: {},
+	expandedProjectMore: {},
 	columnVisibility: {},
 };
 
@@ -57,6 +62,11 @@ const updates = {
 		(id: string) =>
 		(state: UiData): Partial<UiData> => ({
 			expandedProjects: { ...state.expandedProjects, [id]: !(state.expandedProjects[id] ?? true) },
+		}),
+	toggleProjectMore:
+		(id: string) =>
+		(state: UiData): Partial<UiData> => ({
+			expandedProjectMore: { ...state.expandedProjectMore, [id]: !(state.expandedProjectMore[id] ?? false) },
 		}),
 	toggleGroup:
 		(route: string, group: string, defaults: string[] = []) =>
@@ -128,6 +138,7 @@ export const createUiStore = () =>
 				setSidebarCollapsed: (collapsed) => set(updates.setSidebarCollapsed(collapsed)),
 				setDensity: (density) => set(updates.setDensity(density)),
 				toggleProject: (id) => set(updates.toggleProject(id)),
+				toggleProjectMore: (id) => set(updates.toggleProjectMore(id)),
 				toggleGroup: (route, group, defaults) => set(updates.toggleGroup(route, group, defaults)),
 				toggleTicketExpanded: (route, ticketId) => set(updates.toggleTicketExpanded(route, ticketId)),
 				setColumnVisible: (route, column, visible) => set(updates.setColumnVisible(route, column, visible)),
@@ -142,6 +153,7 @@ export const createUiStore = () =>
 					collapsedGroups: state.collapsedGroups,
 					expandedTickets: state.expandedTickets,
 					expandedProjects: state.expandedProjects,
+					expandedProjectMore: state.expandedProjectMore,
 					columnVisibility: state.columnVisibility,
 				}),
 			},
@@ -157,6 +169,7 @@ export const uiActions = {
 	setSidebarCollapsed: (collapsed: boolean) => useUiStore.setState(updates.setSidebarCollapsed(collapsed)),
 	setDensity: (density: Density) => useUiStore.setState(updates.setDensity(density)),
 	toggleProject: (id: string) => useUiStore.setState(updates.toggleProject(id)),
+	toggleProjectMore: (id: string) => useUiStore.setState(updates.toggleProjectMore(id)),
 	toggleGroup: (route: string, group: string, defaults?: string[]) =>
 		useUiStore.setState(updates.toggleGroup(route, group, defaults)),
 	toggleTicketExpanded: (route: string, ticketId: string) =>

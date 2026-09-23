@@ -12,11 +12,11 @@ type ProjectDeleteOutput = z.infer<typeof ProjectDeleteOutputSchema>;
 
 export type ProjectDeleteInput = { project: string; force?: boolean };
 
-// A hard delete. Without `force` the project holds no ticket. With `force`
-// every ticket goes too, and their comments, attachments, links, and
-// activity go with them through the foreign keys. A human deletes without
-// force; an agent needs force. The project leaves no activity row, because
-// its rows are gone with it.
+// A hard delete. Without `force` the project holds no ticket and no flow.
+// With `force` every ticket goes too, and their comments, attachments,
+// links, and activity go with them through the foreign keys. A human deletes
+// without force; an agent needs force. The project leaves no activity row,
+// because its rows are gone with it.
 const remove = async (ctx: ServiceCtx, tx: Tx, input: ProjectDeleteInput): Promise<ProjectDeleteOutput> => {
 	const project = await resolveMutableProject(ctx, tx, input.project);
 	const force = input.force ?? false;
@@ -27,7 +27,12 @@ const remove = async (ctx: ServiceCtx, tx: Tx, input: ProjectDeleteInput): Promi
 		sql`SELECT count(*)::int AS n FROM tickets WHERE project_id = ANY(${scope})`,
 	);
 	const tickets = counted[0]!.n;
-	if (!force && tickets > 0) throw fail("PROJECT_NOT_EMPTY", { tickets, projects: 0 });
+	// The project delete cascades to `flows`, and a flow holds a briefing and
+	// a whole graph of steps that nothing else keeps. The count goes in the
+	// refusal, so a person reads what the delete takes with it.
+	const deletedFlows = await rows<{ id: string }>(tx, sql`SELECT id FROM flows WHERE project_id = ANY(${scope})`);
+	const flows = deletedFlows.length;
+	if (!force && (tickets > 0 || flows > 0)) throw fail("PROJECT_NOT_EMPTY", { tickets, flows });
 	// The parent foreign key is RESTRICT, so one DELETE cannot remove a
 	// ticket and the ticket that names it as its parent. Clearing the links
 	// first lets the DELETE below take every row.
@@ -50,6 +55,10 @@ const remove = async (ctx: ServiceCtx, tx: Tx, input: ProjectDeleteInput): Promi
 	await tx.execute(sql`DELETE FROM projects WHERE id = ANY(${scope})`);
 	await ctx.cache.rebuild(tx);
 	ctx.emit({ type: "project.deleted", id: project.id });
+	// `project.deleted` refreshes no flow list, so an open flows page would
+	// keep a card for a flow the cascade deleted. `flows.changed` carries the
+	// id of one flow, so the delete emits one event per flow it took.
+	for (const flow of deletedFlows) ctx.emit({ type: "flows.changed", id: flow.id });
 	return { deleted: project.key };
 };
 

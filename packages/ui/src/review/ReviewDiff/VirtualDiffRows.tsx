@@ -79,9 +79,12 @@ export function VirtualDiffRows({
 			: selectedFile;
 		if (target === scrolledTo.current) return;
 		scrolledTo.current = target;
-		const index = selectedAnchor
-			? rows.findIndex((row) => anchorMatches(row, selectedAnchor))
-			: rows.findIndex((row) => row.kind === "file" && row.file.name === selectedFile);
+		const anchored = selectedAnchor ? rows.findIndex((row) => anchorMatches(row, selectedAnchor)) : -1;
+		// The diff draws a thread of an earlier revision on the line its text
+		// moved to, or at the top of its file, so the line the thread names can
+		// have no row at all. The list then goes to the header of the file.
+		const path = selectedAnchor?.path ?? selectedFile;
+		const index = anchored >= 0 ? anchored : rows.findIndex((row) => row.kind === "file" && row.file.name === path);
 		if (index >= 0) virtual.scrollToIndex(index);
 	}, [rows, selectedFile, selectedAnchor, virtual.scrollToIndex]);
 	return createElement(

@@ -89,20 +89,21 @@ export function NotesSettings({ project }: { project: Project }) {
 									{expanded && (
 										<div id={controls} className="grid grid-cols-1 gap-4 md:grid-cols-2">
 											{members.map(({ note, expired, audienceLabel }) => (
-												<div key={note.id} className="flex flex-col gap-2">
-													<EntityCard
-														title={note.title}
-														description={note.body}
-														editLabel={readOnly ? `Read ${note.title}` : `Edit ${note.title}`}
-														onEdit={() => setEditor({ note })}
-													/>
-													{(expired || note.audience !== "all") && (
-														<div className="flex gap-2">
-															{expired && <Badge tone="neutral">Expired</Badge>}
-															{note.audience !== "all" && <Badge tone="agent">{audienceLabel}</Badge>}
-														</div>
-													)}
-												</div>
+												<EntityCard
+													key={note.id}
+													title={note.title}
+													description={note.body}
+													badges={
+														expired || note.audience !== "all" ? (
+															<>
+																{expired && <Badge tone="neutral">Expired</Badge>}
+																{note.audience !== "all" && <Badge tone="agent">{audienceLabel}</Badge>}
+															</>
+														) : undefined
+													}
+													editLabel={readOnly ? `Read ${note.title}` : `Edit ${note.title}`}
+													onEdit={() => setEditor({ note })}
+												/>
 											))}
 										</div>
 									)}

@@ -1,7 +1,7 @@
 import { GitCommit, Minus, Stack } from "@phosphor-icons/react";
 import type { ReactionKeySchema, ReviewThread } from "@trellis/api";
 import { IconButton, Tooltip } from "@trellis/ui";
-import { type ReviewSuggestionState, ReviewThreadCard } from "@trellis/ui/review";
+import { type ReviewSuggestionState, ReviewThreadCard, type ThreadPlacement } from "@trellis/ui/review";
 import type { ReactNode } from "react";
 import type { z } from "zod";
 import { useActor } from "../../../lib/actor";
@@ -67,7 +67,10 @@ const suggestionView = (thread: ReviewThread, apply: ReviewApplyState | null): S
 	};
 };
 
-export function ReviewComment({ thread }: { thread: ReviewThread }) {
+// `place` says where the diff drew this thread. A thread the diff calls
+// outdated folds to one line, with the code it was written against above
+// it. The Findings section passes no place, because it draws no diff.
+export function ReviewComment({ thread, place }: { thread: ReviewThread; place?: ThreadPlacement }) {
 	const { client, orpc, queryClient } = useApp();
 	const actor = useActor();
 	const apply = useReviewApply();
@@ -77,6 +80,8 @@ export function ReviewComment({ thread }: { thread: ReviewThread }) {
 		<ReviewThreadCard
 			thread={thread}
 			actor={actor?.name}
+			anchor={`${thread.path}:${thread.line}`}
+			outdated={place?.kind === "outdated" ? { lines: thread.anchorLines ?? [] } : undefined}
 			renderBody={(body, message) =>
 				message.root ? (
 					<ReviewBody

@@ -1,5 +1,5 @@
 import type { EpicSummary, Label, Priority, StatusSummary, TicketSummary, WaveSummary } from "@trellis/api";
-import { cx, TicketId } from "@trellis/ui";
+import { cx, DoneWash, TicketId } from "@trellis/ui";
 import { type KeyboardEvent, type MouseEvent, memo, type ReactNode, useRef } from "react";
 import { compactRelativeTime } from "../../../lib/format";
 import type { Density } from "../../../stores/uiStore";
@@ -66,6 +66,9 @@ export type RowProps = {
 	// and its child lines read as one group.
 	hasChildLines?: boolean;
 	focused?: boolean;
+	// True while the row plays the green wash of a ticket that was marked
+	// done a moment ago.
+	washing?: boolean;
 	selected?: boolean;
 	// True while any row is selected.
 	selecting?: boolean;
@@ -106,6 +109,7 @@ export const Row = memo(function Row({
 	disclosure = null,
 	hasChildLines = false,
 	focused = false,
+	washing = false,
 	selected = false,
 	selecting = false,
 	editing = null,
@@ -224,6 +228,7 @@ export const Row = memo(function Row({
 				top={top}
 				group={group}
 				focused={focused}
+				washing={washing}
 				selected={selected}
 				onFocus={onFocus}
 				onClick={onClick}
@@ -256,7 +261,9 @@ export const Row = memo(function Row({
 				gridColumnsClass,
 				!hasChildLines && "border-b border-border",
 				density === "comfortable" ? "text-base" : "text-sm",
-				"before:absolute before:top-1 before:bottom-1 before:left-0 before:w-0.5 before:rounded-r-sm before:bg-accent before:opacity-0 before:content-['']",
+				// The focus bar keeps its own layer, because the green band of a done
+				// row covers the left edge of the row while it passes.
+				"before:absolute before:top-1 before:bottom-1 before:left-0 before:z-10 before:w-0.5 before:rounded-r-sm before:bg-accent before:opacity-0 before:content-['']",
 				"hover:bg-band data-focused:bg-accent-soft/60 data-focused:before:opacity-100 data-selected:bg-accent-soft",
 				top === undefined && "relative",
 			)}
@@ -267,6 +274,7 @@ export const Row = memo(function Row({
 			onDoubleClick={() => onOpen?.(ticket.id)}
 			onKeyDown={onKeyDown}
 		>
+			{washing && <DoneWash />}
 			<a
 				href={href}
 				tabIndex={-1}
