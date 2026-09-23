@@ -5,6 +5,7 @@ export { type Check, type CheckBucket, CheckRibbon, type CheckRibbonProps } from
 export { CheckRing, type CheckRingCounts, type CheckRingProps } from "./domain/CheckRing";
 export { type ChartTone, otherTone, rankedTones } from "./domain/chartTones";
 export { DisplayPopover, type DisplayPopoverProps, type DisplaySortField } from "./domain/DisplayPopover";
+export { DoneWash, type DoneWashProps, doneWashMs, waveFillMs } from "./domain/DoneWash";
 export { FilterBar } from "./domain/FilterBar";
 export { FilterPopover, type FilterPopoverProps } from "./domain/FilterPopover";
 export { FlowDecisionContext } from "./domain/FlowDecisionContext";
