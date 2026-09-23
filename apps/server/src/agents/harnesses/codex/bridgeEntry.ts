@@ -81,10 +81,19 @@ const engineFailed = new Promise<never>((_, reject) => {
 	engine.once("exit", (code, signal) => reject(new Error(`Codex engine exited: ${signal ?? code}`)));
 });
 let stopNormally!: () => void;
+// Each listener runs one time: a second press of Ctrl+C finds none, and Node
+// stops the bridge. Each listener writes its line to the session output,
+// because nothing else tells a person that the bridge took a signal.
 const terminated = new Promise<void>((resolve) => {
 	stopNormally = resolve;
-	process.once("SIGTERM", resolve);
-	process.once("SIGINT", resolve);
+	const stopOn = (signal: NodeJS.Signals, text: string) =>
+		process.once(signal, () => {
+			process.stderr.write(`${text}\n`);
+			resolve();
+		});
+	stopOn("SIGTERM", "The bridge received SIGTERM.");
+	stopOn("SIGHUP", "The bridge received SIGHUP.");
+	stopOn("SIGINT", "The bridge received Ctrl+C.");
 });
 let eventQueue = Promise.resolve();
 let acceptingEvents = true;
@@ -188,8 +197,11 @@ async function start() {
 		else stopNormally();
 	});
 }
+// `start()` waits for the Codex engine for as long as the engine takes. A
+// signal that arrives in that time ends the run here, and not after `start()`
+// returns.
 try {
-	await Promise.race([start().then(() => terminated), engineFailed, observationFailed]);
+	await Promise.race([start().then(() => terminated), terminated, engineFailed, observationFailed]);
 } catch (error) {
 	acceptingEvents = false;
 	await recordBridgeFailure({

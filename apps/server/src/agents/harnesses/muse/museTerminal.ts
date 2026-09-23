@@ -13,8 +13,8 @@ let stoppedForGood = false;
 // The terminal is in raw mode, so Ctrl+C reaches the bridge as a byte and
 // never as a signal to the session host. Text collects until Enter and then
 // starts a turn. A bracketed paste keeps its text only.
-// Answers whether the reader took the terminal. A caller prints its invitation
-// to type only after a reader takes it.
+// A caller prints its invitation to type only after a reader takes the
+// terminal.
 export function startMuseTerminalReader(options: {
 	interrupt: () => Promise<unknown>;
 	submit: (prompt: string) => Promise<unknown>;

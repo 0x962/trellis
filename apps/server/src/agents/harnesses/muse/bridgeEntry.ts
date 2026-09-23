@@ -57,18 +57,22 @@ const host: ChildProcess = spawn(env.TRELLIS_MUSE_EXECUTABLE, ["serve", "--trust
 	stdio: ["pipe", "pipe", "inherit"],
 });
 // `stopMuseTerminalReader` ends the raw mode of the terminal, and Ctrl+C then
-// makes SIGINT. Node stops a process that has no listener for SIGINT. The
-// failure path stops the reader before it records the reason, so the SIGINT
-// listener keeps the bridge alive until that record is written. A person who
-// presses Ctrl+C before the reader starts reads the line below, because
-// nothing else in the session says that the bridge took the signal.
+// makes SIGINT. Node stops a process that has no listener for SIGINT, and the
+// failure path stops the reader before it records the reason, so a listener
+// holds that press. Each listener runs one time: the second press finds none,
+// and Node stops the bridge. Each listener writes its line to the session
+// output, because nothing else tells a person that the bridge took a signal.
+let stopSignal: string | null = null;
 const terminated = new Promise<void>((resolve) => {
-	process.on("SIGTERM", resolve);
-	process.on("SIGHUP", resolve);
-	process.on("SIGINT", () => {
-		process.stderr.write("The bridge received Ctrl+C.\n");
-		resolve();
-	});
+	const stopOn = (signal: NodeJS.Signals, text: string) =>
+		process.once(signal, () => {
+			stopSignal = signal;
+			process.stderr.write(`${text}\n`);
+			resolve();
+		});
+	stopOn("SIGTERM", "The bridge received SIGTERM.");
+	stopOn("SIGHUP", "The bridge received SIGHUP.");
+	stopOn("SIGINT", "The bridge received Ctrl+C.");
 });
 let eventQueue = Promise.resolve();
 let acceptingEvents = true;
@@ -216,7 +220,7 @@ async function start() {
 	});
 	await startTurn([launch.prompt]);
 	await firstPrompt;
-	const reading = startMuseTerminalReader({
+	const readerStarted = startMuseTerminalReader({
 		interrupt: async () => {
 			if (!current.working || current.turnId === null) return;
 			await client!.request("turn/interrupt", { commandId: uuid7(), sessionId, turnId: current.turnId });
@@ -224,14 +228,27 @@ async function start() {
 		submit,
 		onFailure: reportFailure,
 	});
-	// A failure can stop the reader before this point, and then the reader does
-	// not start. The hint invites a prompt, so it follows the start.
-	if (reading) print(museTerminalHint);
+	// A failure can stop the reader before this point, and
+	// `startMuseTerminalReader` then does nothing. The hint tells a person to
+	// type, so it prints only when a reader reads the terminal.
+	if (readerStarted) print(museTerminalHint);
 }
-// `terminated` sits in the race on its own, because `start` waits for Muse for
-// as long as Muse takes. A signal that arrives in that time ends the run here.
+// `start()` waits for Muse for as long as Muse takes. A signal that arrives in
+// that time ends the run here, and not after `start()` returns. A rejection of
+// `start()` reaches this race through `reportFailure`.
 try {
-	await Promise.race([start().then(() => terminated), terminated, observationFailed]);
+	start().catch(reportFailure);
+	await Promise.race([terminated, observationFailed]);
+	// A person who presses Ctrl+C stopped this run. Without this record the
+	// session page reads the same as a run that finished its work.
+	if (stopSignal === "SIGINT") {
+		acceptingEvents = false;
+		await runtime
+			.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, { kind: "idle", outcome: "interrupted" })
+			.catch((failure: unknown) => {
+				process.stderr.write(`The bridge could not record the stop: ${failureReason(failure)}\n`);
+			});
+	}
 } catch (error) {
 	const observedAtMs = Date.now();
 	acceptingEvents = false;

@@ -74,22 +74,29 @@ export function spawnBridge(options: {
 	const command = [process.execPath, options.entry, JSON.stringify(options.launch)];
 	const child = Bun.spawn(options.withTerminal ? ["script", "-q", "/dev/null", ...command] : command, {
 		env: { PATH: process.env.PATH ?? "", ...options.env },
-		stdout: "ignore",
+		stdout: "pipe",
 		stderr: "pipe",
 	});
+	// `script` gives the bridge one terminal for its standard output and its
+	// standard error stream, so a test that runs the bridge with a terminal
+	// reads both of them in `output`.
+	let output = "";
+	const reading = (async () => {
+		for await (const chunk of child.stdout) output += new TextDecoder().decode(chunk);
+	})();
 	return {
 		child,
 		async finish() {
 			const [exitCode, stderr] = await Promise.all([child.exited, new Response(child.stderr).text()]);
-			return { exitCode, stderr };
+			await reading;
+			return { exitCode, stderr, output };
 		},
 	};
 }
 
-// Waits until the runtime socket holds an event of `kind`, so a test can act
-// while the bridge waits for the answer to that write.
-export async function waitForEvent(observed: HarnessEvent[], kind: string, limitMs = 15000) {
-	const deadline = Date.now() + limitMs;
+// A test acts while the bridge waits for the answer to that write.
+export async function eventArrived(observed: HarnessEvent[], kind: string) {
+	const deadline = Date.now() + 15000;
 	while (Date.now() < deadline) {
 		if (observed.some((event) => event.kind === kind)) return true;
 		await Bun.sleep(25);
