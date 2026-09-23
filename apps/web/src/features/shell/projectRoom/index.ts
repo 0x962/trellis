@@ -1,0 +1,1 @@
+export { useRoomColor } from "./useRoomColor";

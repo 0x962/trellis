@@ -5,9 +5,8 @@ import type { ProjectColor } from "@trellis/ui";
 // pane takes 8 percent of the color of the project. These functions say which
 // project a path belongs to, and which color that page ground takes.
 
-// The ticket identifier of a `/t/...` path, such as `TRL-386`. Another path
-// has none.
-export const ticketOfPath = (pathname: string): string | null => {
+// The ticket ref of a `/t/...` path, such as `TRL-386`. Another path has none.
+export const ticketRefOfPath = (pathname: string): string | null => {
 	if (!pathname.startsWith("/t/")) return null;
 	const [identifier] = pathname.slice("/t/".length).split("/");
 	return identifier === undefined || identifier === "" ? null : identifier;

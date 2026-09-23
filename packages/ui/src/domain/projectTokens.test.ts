@@ -9,17 +9,29 @@ const graphicBar = 3;
 const textBar = 4.5;
 
 // The share of the project color that the ground of a project page takes.
-// `project-room.css` writes the same share.
-const tintShare = 0.08;
+// `project-room.css` holds the number, and this test reads it from there.
+const roomCss = await Bun.file(new URL("../project-room.css", import.meta.url)).text();
+const tintShare = Number(roomCss.match(/var\(--project-tint\) (\d+)%/)![1]!) / 100;
 
 // The blocks of tokens.css: the bare `:root` holds the light palette, and
 // `:root[data-theme="dark"]` holds the dark one. The media block above it
 // repeats the dark values, and the test below compares the two.
+// A value is a hex value or one `var()` that names another token of the same
+// block, such as `--project-teal-tint: var(--label-teal)`.
 const block = (selector: string) => {
 	const start = css.indexOf(selector);
 	const body = css.slice(start, css.indexOf("\n}", start));
 	const values = new Map<string, string>();
-	for (const match of body.matchAll(/(--[a-z0-9-]+): (#[0-9A-Fa-f]{6});/g)) values.set(match[1]!, match[2]!);
+	const links = new Map<string, string>();
+	for (const match of body.matchAll(/(--[a-z0-9-]+): (#[0-9A-Fa-f]{6}|var\(--[a-z0-9-]+\));/g)) {
+		const [, name, value] = match as unknown as [string, string, string];
+		if (value.startsWith("#")) values.set(name, value);
+		else links.set(name, value.slice("var(".length, -1));
+	}
+	for (const [name, target] of links) {
+		const value = values.get(target);
+		if (value !== undefined) values.set(name, value);
+	}
 	return values;
 };
 const themes = {
@@ -68,11 +80,11 @@ const statusValue = (theme: "light" | "dark", name: string) => themes[theme].get
 test("every project color holds its three values in both themes", () => {
 	for (const color of projectColors) {
 		for (const theme of ["light", "dark"] as const) {
-			for (const suffix of ["", "-tint", "-soft"]) {
+			for (const suffix of ["-solid", "-tint", "-soft"]) {
 				expect(themes[theme].get(`--project-${color}${suffix}`)).toMatch(/^#[0-9A-F]{6}$/);
 			}
 		}
-		expect(mediaDark.get(`--project-${color}`)).toBe(themes.dark.get(`--project-${color}`)!);
+		expect(mediaDark.get(`--project-${color}-solid`)).toBe(themes.dark.get(`--project-${color}-solid`)!);
 		expect(mediaDark.get(`--project-${color}-soft`)).toBe(themes.dark.get(`--project-${color}-soft`)!);
 	}
 	expect(themes.light.get("--project-strand")).toBe("#FFFFFF");
@@ -83,7 +95,7 @@ test("every project color holds its three values in both themes", () => {
 test("the ground of every project mark reads on the page and on the surface", () => {
 	for (const theme of ["light", "dark"] as const) {
 		for (const color of projectColors) {
-			const solid = themes[theme].get(`--project-${color}`)!;
+			const solid = themes[theme].get(`--project-${color}-solid`)!;
 			expect(ratio(solid, themes[theme].get("--bg")!)).toBeGreaterThanOrEqual(graphicBar);
 			expect(ratio(solid, themes[theme].get("--surface")!)).toBeGreaterThanOrEqual(graphicBar);
 			expect(ratio(solid, themes[theme].get("--elevated")!)).toBeGreaterThanOrEqual(graphicBar);
@@ -95,7 +107,7 @@ test("the four strands read on the ground of every project mark", () => {
 	for (const theme of ["light", "dark"] as const) {
 		const strand = themes[theme].get("--project-strand")!;
 		for (const color of projectColors) {
-			expect(ratio(strand, themes[theme].get(`--project-${color}`)!)).toBeGreaterThanOrEqual(graphicBar);
+			expect(ratio(strand, themes[theme].get(`--project-${color}-solid`)!)).toBeGreaterThanOrEqual(graphicBar);
 		}
 	}
 });
@@ -103,7 +115,7 @@ test("the four strands read on the ground of every project mark", () => {
 test("the key of a project reads as text on its own chip", () => {
 	for (const theme of ["light", "dark"] as const) {
 		for (const color of projectColors) {
-			const solid = themes[theme].get(`--project-${color}`)!;
+			const solid = themes[theme].get(`--project-${color}-solid`)!;
 			const soft = themes[theme].get(`--project-${color}-soft`)!;
 			expect(ratio(solid, soft)).toBeGreaterThanOrEqual(textBar);
 		}

@@ -16,6 +16,10 @@
 	overflow: visible;
 	--agent-stroke: var(--agent-mark);
 	--agent-ink: var(--agent-mark-ink);
+	/* The three knobs of a mark: the strand, the letters, and the square
+	   under them. A caller sets one of them on the mark or on any element
+	   above it. */
+	--agent-ground: #161617;
 }
 .agent-mark[data-agent-kind="trellis"] {
 	--agent-stroke: #c4c4c4;
@@ -26,7 +30,7 @@
 	--agent-ink: var(--fg-muted);
 }
 .agent-ground {
-	fill: #161617;
+	fill: var(--agent-ground);
 }
 .agent-mark path {
 	fill: none;
