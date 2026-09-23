@@ -5,16 +5,13 @@ import { flowProjectLabel, type ProjectSummary } from "@trellis/api";
 // can take this value.
 export const everyProjectValue = "every";
 
-// The items of the project select. A flow belongs to the root project of a
-// tree, which is the rule `resolveRootProjectId` in
-// `apps/server/src/services/flows/flows.ts` states, so the list holds one
-// item per root and no sub-project. An archived project takes no new work,
-// so it holds no item either. `path` of a root is its key, such as `TRL`.
+// The items of the project select, one per project. An archived project
+// takes no new work, so it holds no item.
 export const flowProjectItems = (projects: ProjectSummary[]) => [
 	{ value: everyProjectValue, label: flowProjectLabel({ project: null }) },
 	...projects
-		.filter((project) => project.id === project.rootId && project.archivedAt === null)
-		.map((project) => ({ value: project.path, label: project.path })),
+		.filter((project) => project.archivedAt === null)
+		.map((project) => ({ value: project.key, label: project.key })),
 ];
 
 export const selectValueOfProjectKey = (projectKey: string | null): string => projectKey ?? everyProjectValue;

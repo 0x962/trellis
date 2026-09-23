@@ -12,7 +12,7 @@ export type SubmenuGroupProps = {
 
 // The values one submenu offers. The five lists it can need come from the
 // server: the statuses of a project, the tickets a parent is picked from,
-// the labels of a project tree, the epics of a project tree, and the
+// the labels of a project, the epics of a project, and the
 // waves of an epic. A query that is off never sends its placeholder
 // input.
 export function SubmenuGroup({ submenu, deps }: SubmenuGroupProps) {

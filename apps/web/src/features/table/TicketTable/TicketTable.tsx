@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useTable } from "@tanstack/react-table";
 import type { TicketSummary, WaveSummary } from "@trellis/api";
@@ -110,12 +109,7 @@ export function TicketTable({
 	const [startKey, setStartKey] = useState<string | null>(null);
 	const [startOpen, setStartOpen] = useState(false);
 
-	const projectQuery = useQuery({
-		...orpc.projects.get.queryOptions({ input: { project: project ?? "" } }),
-		enabled: project !== undefined,
-	});
-	const projects = useQuery(orpc.projects.list.queryOptions({ input: {} })).data ?? [];
-	const showProject = project === undefined || ((projectQuery.data?.children.length ?? 0) > 0 && view.scope !== "self");
+	const showProject = project === undefined;
 
 	const statuses = useScopeStatuses(project);
 	const labelGroups = useScopeLabels(project).groups;
@@ -182,18 +176,9 @@ export function TicketTable({
 		if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
 	});
 
-	const applyChange = useApplyChange(mutations, bulk, projects, labelGroups);
+	const applyChange = useApplyChange(mutations, bulk, labelGroups);
 
 	const selectedTickets = () => selection.selected.map((id) => byId.get(id)!);
-	const projectRootIds = new Map(projects.map((project) => [project.id, project.rootId]));
-	const ticketRootIds = [
-		...new Set(
-			selectedTickets()
-				.map((ticket) => projectRootIds.get(ticket.project.id))
-				.filter((id): id is string => id !== undefined),
-		),
-	];
-
 	// How the selected tickets hold each label: `all` draws a check, `some`
 	// draws a minus. A pick on a check removes the label everywhere, and a
 	// pick on a minus adds it everywhere.
@@ -325,7 +310,7 @@ export function TicketTable({
 	// An epic whose waves hold no ticket draws the wave headers in place of
 	// the empty state.
 	const noGroups = !groupsLoading && groups.length === 0;
-	if (data.total === 0 && noGroups && project !== undefined && projectQuery.data?.parentId === null) {
+	if (data.total === 0 && noGroups && project !== undefined) {
 		return (
 			emptyState ?? <TableEmpty project={project} filtered={hasFilters(search)} q={view.q} onCreate={() => openNew()} />
 		);
@@ -353,7 +338,6 @@ export function TicketTable({
 				density={density}
 				project={project}
 				statuses={data.statuses}
-				projects={projects}
 				loading={data.loading || groupsLoading}
 				rowCount={ids.length}
 				focusedId={focusedId}
@@ -384,8 +368,6 @@ export function TicketTable({
 				open={selection.count > 0}
 				count={selection.count}
 				statuses={data.statuses}
-				projects={projects}
-				ticketRootIds={ticketRootIds}
 				project={project}
 				labelIds={labels.all}
 				mixedLabelIds={labels.some}
@@ -395,7 +377,6 @@ export function TicketTable({
 				onLabel={(label, checked) => void applyChange(selectedTickets(), { label, checked }, "selection")}
 				onStatus={(status) => void applyChange(selectedTickets(), { status }, "selection")}
 				onPriority={(priority) => void applyChange(selectedTickets(), { priority }, "selection")}
-				onProject={(ref) => void applyChange(selectedTickets(), { project: ref }, "selection")}
 				onParent={(parent) => void applyChange(selectedTickets(), { parent }, "selection")}
 				onEpic={(epic) => void applyChange(selectedTickets(), { epic }, "selection")}
 				onWave={(picked) => void applyChange(selectedTickets(), { wave: picked }, "selection")}

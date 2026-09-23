@@ -21,7 +21,6 @@ export const setOutcome = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Pr
 	await tx.execute(sql`UPDATE tickets SET outcome = ${input.outcome}, version = version + 1, updated_at = ${ctx.now}
 		WHERE id = ${target.id}`);
 	await record(ctx, tx, {
-		rootId: target.rootId,
 		projectId: target.projectId,
 		ticketId: target.id,
 		action: "ticket.updated",

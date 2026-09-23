@@ -14,7 +14,7 @@ export type PaletteRow = {
 	// row carries its identifier, so a test and a person read the same name.
 	value: string;
 	label: string;
-	// Muted text after the label: the current status, a project path.
+	// Muted text after the label: the current status, a project key.
 	sub?: string;
 	mono?: boolean;
 	// Faint mono text before the label, such as a ticket ID.
@@ -48,7 +48,6 @@ export type PaletteGroup = {
 export type Submenu =
 	| { kind: "status"; tickets: string[]; project: string; bulk?: true }
 	| { kind: "priority"; tickets: string[]; bulk?: true }
-	| { kind: "project"; tickets: string[]; bulk?: true }
 	| { kind: "parent"; tickets: string[]; project: string; bulk?: true }
 	| { kind: "epic"; tickets: string[]; project: string; bulk?: true }
 	// `epic` is the ref of the epic every ticket of the submenu belongs to.
@@ -99,7 +98,6 @@ export const priorityLabels = {
 } as const;
 
 // The project a status list comes from: the ticket's project, then the
-// route's, then the first project. A status is named by its slug, and the
-// projects of one root share their slugs.
+// route's, then the first project.
 export const statusProject = (deps: RowDeps): string =>
-	deps.ticket?.project.path ?? deps.routeProject ?? deps.projects[0]?.path ?? "";
+	deps.ticket?.project.key ?? deps.routeProject ?? deps.projects[0]?.key ?? "";

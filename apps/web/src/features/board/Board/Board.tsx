@@ -105,8 +105,8 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 			// A drop, a bracket key, and the status picker all end here. The
 			// server refuses a move of a ticket under an archived project, so
 			// none is sent.
-			if (isArchived(move.ticket.project.path)) {
-				const message = notice(move.ticket.project.path);
+			if (isArchived(move.ticket.project.key)) {
+				const message = notice(move.ticket.project.key);
 				announce(message);
 				toast.error(message);
 				return;

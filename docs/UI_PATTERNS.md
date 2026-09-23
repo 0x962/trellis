@@ -128,7 +128,7 @@ A wave header holds Add tickets to this wave (a list-plus `IconButton` with the 
 Delete wave asks first only when the wave holds tickets. The dialog names the tickets that move to No wave and the open agent runs among them.
 A ticket row drags into another wave group or into No wave. An accent outline marks the group that takes the drop. The `w` key is the keyboard path: it opens the wave picker of the focused row or of the selection.
 An epic with no ticket and no wave shows an `EmptyState` with the same New wave and Add tickets `IconButton`s as the `Topbar`.
-The page fixes the `epic` filter. By default the table groups by wave and lists the root project with its sub-projects.
+The page fixes the `epic` filter. By default the table groups by wave.
 The page opens with one line for the current wave: `Current: <name>`, then `<n> to start`, `<n> running`, and `<n> wait for you`.
 A count is a link that sets the table filters inside that wave: `category=todo` for to start, `reviewer=human` for wait for you. Running is plain text, because the filter grammar has no filter for a working agent.
 The Statistics button opens a `PageSheet` with the current line, the progress text, the `StackedBar`, and its legend.

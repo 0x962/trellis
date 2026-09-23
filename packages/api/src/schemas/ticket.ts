@@ -178,7 +178,6 @@ const ActorFilterSchema = z.string().regex(/^(?:(?:human|agent):)?[\x20-\x39\x3B
 // Timestamps are "after" bounds.
 export const ListQuerySchema = z.strictObject({
 	project: ProjectRefStringSchema.optional(),
-	subprojects: booleanString.default(true),
 	status: commaList(StatusRefStringSchema).optional(),
 	category: commaList(StatusCategorySchema).optional(),
 	reviewer: ReviewerSchema.optional(),
@@ -186,8 +185,8 @@ export const ListQuerySchema = z.strictObject({
 	// `label` keeps a ticket that holds one or more of these labels. The value
 	// `none` in it keeps a ticket that holds no label. `labelNot` keeps a
 	// ticket that holds none of these labels. With `project` set, a ref names a
-	// label of that project tree. With no project, a name matches the label of
-	// that name in every tree.
+	// label of that project. With no project, a name matches the label of that
+	// name in every project.
 	label: commaList(LabelRefStringSchema).optional(),
 	labelNot: commaList(LabelRefStringSchema).optional(),
 	parent: z.union([z.literal("none"), TicketRefStringSchema]).optional(),

@@ -41,8 +41,8 @@ export const importDependencies = async (
 	assertProjectActive(ctx, epic.project_id);
 	const tickets = await rows<EpicTicket>(
 		tx,
-		sql`SELECT t.id, root.key || '-' || t.number AS identifier, t.description
-			FROM tickets t JOIN projects root ON root.id = t.root_id
+		sql`SELECT t.id, proj.key || '-' || t.number AS identifier, t.description
+			FROM tickets t JOIN projects proj ON proj.id = t.project_id
 			WHERE t.epic_id = ${epic.id} ORDER BY t.number`,
 	);
 	const byIdentifier = new Map(tickets.map((ticket) => [ticket.identifier, ticket]));

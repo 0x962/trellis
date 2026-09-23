@@ -17,21 +17,21 @@ const at = "2026-09-21T10:00:00.000Z";
 
 beforeAll(async () => {
 	db = await openTestDb();
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${root}, ${root}, 'TST', 'tst', 'Test', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${root}, 'TST', 'tst', 'Test', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses
 		(id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
 		VALUES
 		(${todo}, ${root}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at}),
 		(${done}, ${root}, 'Done', 'done', 'done', 'success', 1, false, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO tickets
-		(id, project_id, root_id, number, title, status_id, position, created_at, updated_at)
+		(id, project_id, number, title, status_id, position, created_at, updated_at)
 		VALUES
-		(${ticketIds[0]}, ${root}, ${root}, 1, 'Done dependency', ${done}, 1, ${at}, ${at}),
-		(${ticketIds[1]}, ${root}, ${root}, 2, 'Open dependency', ${todo}, 2, ${at}, ${at}),
-		(${ticketIds[2]}, ${root}, ${root}, 3, 'Waits on both', ${todo}, 3, ${at}, ${at}),
-		(${ticketIds[3]}, ${root}, ${root}, 4, 'Waits on done', ${todo}, 4, ${at}, ${at}),
-		(${ticketIds[4]}, ${root}, ${root}, 5, 'Waits on nothing', ${todo}, 5, ${at}, ${at})`);
+		(${ticketIds[0]}, ${root}, 1, 'Done dependency', ${done}, 1, ${at}, ${at}),
+		(${ticketIds[1]}, ${root}, 2, 'Open dependency', ${todo}, 2, ${at}, ${at}),
+		(${ticketIds[2]}, ${root}, 3, 'Waits on both', ${todo}, 3, ${at}, ${at}),
+		(${ticketIds[3]}, ${root}, 4, 'Waits on done', ${todo}, 4, ${at}, ${at}),
+		(${ticketIds[4]}, ${root}, 5, 'Waits on nothing', ${todo}, 5, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO ticket_deps (ticket_id, depends_on_id, source, created_at)
 		VALUES
 		(${ticketIds[2]}, ${ticketIds[0]}, 'manual', ${at}),

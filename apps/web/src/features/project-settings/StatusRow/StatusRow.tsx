@@ -13,7 +13,6 @@ export type StatusRowProps = {
 	count: number;
 	ticketCount: number;
 	expanded: boolean;
-	readOnly?: boolean;
 	onChanged: () => Promise<void>;
 	onEdit: () => void;
 	onCancel: () => void;
@@ -39,7 +38,6 @@ export function StatusRow({
 	count,
 	ticketCount,
 	expanded,
-	readOnly = false,
 	onChanged,
 	onEdit,
 	onCancel,
@@ -96,24 +94,20 @@ export function StatusRow({
 	return (
 		<li className="status-row">
 			<div className="status-row-summary">
-				{readOnly ? (
-					<div className="status-row-summary-button">{summary}</div>
-				) : (
-					<button
-						type="button"
-						className="status-row-summary-button"
-						aria-label={`Edit ${status.name}`}
-						aria-expanded={expanded}
-						aria-controls={expanded ? editorId : undefined}
-						onClick={onEdit}
-					>
-						{summary}
-					</button>
-				)}
+				<button
+					type="button"
+					className="status-row-summary-button"
+					aria-label={`Edit ${status.name}`}
+					aria-expanded={expanded}
+					aria-controls={expanded ? editorId : undefined}
+					onClick={onEdit}
+				>
+					{summary}
+				</button>
 				<span className="status-row-count">
 					{formatCount(ticketCount)} {ticketCount === 1 ? "ticket" : "tickets"}
 				</span>
-				{!readOnly && <Menu label={`Actions for ${status.name}`} items={menuItems} />}
+				<Menu label={`Actions for ${status.name}`} items={menuItems} />
 			</div>
 			{expanded && (
 				<div id={editorId}>

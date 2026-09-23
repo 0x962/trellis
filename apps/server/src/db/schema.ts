@@ -45,15 +45,15 @@ export * from "./tables/waves.ts";
 // NOT DISTINCT constraint on projects, the generated tsvector columns on
 // tickets and comments, and the trigram index on tickets.title.
 
-// root_id repeats the project's root so the composite foreign keys keep a
-// ticket, its project, and its parent inside one root. The status foreign
-// key accepts any status; the owner rule is checked in the service. Each
-// foreign key is RESTRICT: the delete of a row a ticket still points at
-// fails at once, inside the statement that deletes it. The epic foreign
-// key is the exception: an epic delete sets `epic_id` NULL on its tickets.
-// The same-root rule for `epic_id` is a service rule, because a composite
-// foreign key cannot SET NULL one column alone. The wave foreign key
-// sets `wave_id` NULL in the same way, and the service holds the rule
+// A ticket is numbered inside its project, so (project_id, number) gives it
+// the identifier KEY-n. The status foreign key accepts any status; the
+// owner rule is checked in the service. Each foreign key is RESTRICT: the
+// delete of a row a ticket still points at fails at once, inside the
+// statement that deletes it. The epic foreign key is the exception: an
+// epic delete sets `epic_id` NULL on its tickets. The rule that the epic
+// belongs to the project of the ticket is a service rule, because a
+// composite foreign key cannot SET NULL one column alone. The wave foreign
+// key sets `wave_id` NULL in the same way, and the service holds the rule
 // that the wave belongs to the epic of the ticket.
 // The generated column `search` (title at weight A, description at weight
 // B) and its GIN index live in the migration 0002_constraints, because
@@ -64,8 +64,9 @@ export const tickets = pgTable(
 	"tickets",
 	{
 		id: text().primaryKey(),
-		projectId: text("project_id").notNull(),
-		rootId: text("root_id").notNull(),
+		projectId: text("project_id")
+			.notNull()
+			.references(() => projects.id, { onDelete: "restrict" }),
 		number: integer().notNull(),
 		title: text().notNull(),
 		description: text().notNull().default(""),
@@ -90,17 +91,12 @@ export const tickets = pgTable(
 		updatedAt: at("updated_at").notNull(),
 	},
 	(t) => [
-		unique("tickets_root_id_number_unique").on(t.rootId, t.number),
-		unique("tickets_id_root_id_unique").on(t.id, t.rootId),
-		foreignKey({
-			name: "tickets_project_fk",
-			columns: [t.projectId, t.rootId],
-			foreignColumns: [projects.id, projects.rootId],
-		}).onDelete("restrict"),
+		unique("tickets_project_id_number_unique").on(t.projectId, t.number),
+		unique("tickets_id_project_id_unique").on(t.id, t.projectId),
 		foreignKey({
 			name: "tickets_parent_fk",
-			columns: [t.parentId, t.rootId],
-			foreignColumns: [t.id, t.rootId],
+			columns: [t.parentId, t.projectId],
+			foreignColumns: [t.id, t.projectId],
 		}).onDelete("restrict"),
 		foreignKey({
 			name: "tickets_epic_fk",
@@ -125,25 +121,24 @@ export const tickets = pgTable(
 		checkIn(t.priority, PRIORITIES),
 		index("tickets_project_id_status_id_position_idx").on(t.projectId, t.statusId, t.position),
 		// The `position` sort reads a status in (position, id) order and
-		// filters it by project and root. Every column it reads is in this
-		// index, so it is read from the index alone, with no table row.
-		index("tickets_status_id_position_id_idx").on(t.statusId, t.position, t.id, t.projectId, t.rootId),
+		// filters it by project. Every column it reads is in this index, so
+		// it is read from the index alone, with no table row.
+		index("tickets_status_id_position_id_idx").on(t.statusId, t.position, t.id, t.projectId),
 		// A board column reads its tickets in (updated_at desc, id desc) order
-		// and filters them by project and root. Every column it reads is in
-		// this index, so the column is read from the index alone.
+		// and filters them by project. Every column it reads is in this index,
+		// so the column is read from the index alone.
 		index("tickets_status_id_updated_at_id_idx").on(
 			t.statusId,
 			t.updatedAt.desc().nullsFirst(),
 			t.id.desc().nullsFirst(),
 			t.projectId,
-			t.rootId,
 		),
 		index("tickets_parent_id_idx").on(t.parentId),
 		index("tickets_epic_id_idx").on(t.epicId),
 		index("tickets_wave_id_idx").on(t.waveId),
-		index("tickets_open_idx").on(t.rootId, t.updatedAt.desc().nullsFirst()).where(sql`${t.completedAt} IS NULL`),
+		index("tickets_open_idx").on(t.projectId, t.updatedAt.desc().nullsFirst()).where(sql`${t.completedAt} IS NULL`),
 		index("tickets_completed_idx")
-			.on(t.rootId, t.completedAt.desc().nullsFirst())
+			.on(t.projectId, t.completedAt.desc().nullsFirst())
 			.where(sql`${t.completedAt} IS NOT NULL`),
 	],
 );
@@ -242,9 +237,6 @@ export const activity = pgTable(
 	{
 		id: bigint({ mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
 		batchId: text("batch_id").notNull(),
-		rootId: text("root_id")
-			.notNull()
-			.references(() => projects.id, { onDelete: "cascade" }),
 		projectId: text("project_id")
 			.notNull()
 			.references(() => projects.id, { onDelete: "cascade" }),
@@ -271,7 +263,6 @@ export const activity = pgTable(
 			t.createdAt.desc().nullsFirst(),
 			t.id.desc().nullsFirst(),
 		),
-		index("activity_root_id_id_idx").on(t.rootId, t.id),
 		index("activity_project_id_id_idx").on(t.projectId, t.id),
 		index("activity_created_at_idx").on(t.createdAt),
 	],

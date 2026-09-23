@@ -1,30 +1,19 @@
 import { X } from "@phosphor-icons/react";
-import type {
-	EpicSummary,
-	Label,
-	Priority,
-	ProjectSummary,
-	StatusSummary,
-	TicketSummary,
-	WaveSummary,
-} from "@trellis/api";
+import type { EpicSummary, Label, Priority, StatusSummary, TicketSummary, WaveSummary } from "@trellis/api";
 import { Button, cx, IconButton, Kbd, Tooltip, useReducedMotion } from "@trellis/ui";
 import { type ReactElement, useEffect, useRef, useState } from "react";
 import { formatCount } from "../../../lib/format";
-import { rootKey } from "../../../lib/projectPath";
 import { EpicPicker } from "../../pickers/EpicPicker";
 import { LabelPicker } from "../../pickers/LabelPicker";
 import { PriorityPicker } from "../../pickers/PriorityPicker";
-import { ProjectPicker } from "../../pickers/ProjectPicker";
 import { StatusPicker } from "../../pickers/StatusPicker";
 import { TicketPicker } from "../../pickers/TicketPicker";
 import { WavePicker } from "../../pickers/WavePicker";
 
 // One control of the bar that opens a list of values. A table key opens one
 // of them: `s` opens "status", `p` opens "priority", `l` opens "labels",
-// `m` opens "project", `shift+p` opens "parent", `e` opens "epic", and `w`
-// opens "wave".
-export type BulkPicker = "status" | "priority" | "labels" | "project" | "parent" | "epic" | "wave";
+// `shift+p` opens "parent", `e` opens "epic", and `w` opens "wave".
+export type BulkPicker = "status" | "priority" | "labels" | "parent" | "epic" | "wave";
 
 export type BulkBarProps = {
 	// True while a selection exists. The bar stays mounted for its exit
@@ -32,11 +21,9 @@ export type BulkBarProps = {
 	open: boolean;
 	count: number;
 	statuses: readonly StatusSummary[];
-	projects: readonly ProjectSummary[];
-	ticketRootIds: readonly string[];
-	// The project ref the parent search stays inside. The root project of that
-	// tree owns the labels and the epics, so a route without a project offers
-	// no Labels control and no Set epic.
+	// The project ref the parent search stays inside. That project owns the
+	// labels and the epics, so a route without a project offers no Labels
+	// control and no Set epic.
 	project?: string;
 	// The ids of the labels every selected ticket holds. The picker draws
 	// each one with a check, and a pick on it removes the label everywhere.
@@ -60,7 +47,6 @@ export type BulkBarProps = {
 	onLabel: (label: Label, checked: boolean) => void;
 	onStatus: (status: StatusSummary) => void;
 	onPriority: (priority: Priority) => void;
-	onProject: (path: string) => void;
 	onParent: (ticket: TicketSummary | null) => void;
 	onEpic: (epic: EpicSummary | null) => void;
 	// The ref of the wave every selected ticket holds. It is undefined
@@ -117,8 +103,6 @@ export function BulkBar({
 	open,
 	count,
 	statuses,
-	projects,
-	ticketRootIds,
 	project,
 	labelIds,
 	mixedLabelIds,
@@ -129,7 +113,6 @@ export function BulkBar({
 	onLabel,
 	onStatus,
 	onPriority,
-	onProject,
 	onParent,
 	onEpic,
 	waveRef,
@@ -214,19 +197,6 @@ export function BulkBar({
 					/>,
 				)}
 			{withKey(
-				"Move to project",
-				"m",
-				<ProjectPicker
-					projects={projects}
-					ticketRootIds={ticketRootIds}
-					onPick={onProject}
-					open={openPicker === "project"}
-					onOpenChange={opener("project")}
-					side="top"
-					trigger={<Button size="sm">Move to project</Button>}
-				/>,
-			)}
-			{withKey(
 				"Set parent",
 				"⇧P",
 				<TicketPicker
@@ -243,7 +213,7 @@ export function BulkBar({
 					"Set epic",
 					"e",
 					<EpicPicker
-						project={rootKey(project)}
+						project={project}
 						value={epicRef}
 						mixed={epicMixed}
 						onPick={onEpic}

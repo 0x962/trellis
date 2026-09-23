@@ -6,7 +6,7 @@ import { useApp } from "../../../lib/appContext";
 import { labelWriteMessage } from "../labelWriteMessage";
 
 export type LabelEditorProps = {
-	// A project path. The root project of its tree owns the label.
+	// The key of the project that owns the label.
 	project: string;
 	// The label this form changes. `null` creates a label.
 	label: Label | null;
@@ -30,7 +30,7 @@ const hueNames: Record<LabelColor, string> = {
 };
 
 // "Auto" sends no color, and the server takes a hue that no other label of
-// the project tree uses.
+// the project uses.
 type ColorChoice = LabelColor | "auto";
 
 const hueItems: SelectItem<ColorChoice>[] = labelColors.map((hue) => ({

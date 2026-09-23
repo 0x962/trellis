@@ -123,11 +123,11 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 						SELECT jsonb_build_object(
 							'number', stacked.number,
 							'headRef', stacked.head_ref,
-							'ticketIdentifier', stacked_root.key || '-' || stacked_ticket.number
+							'ticketIdentifier', stacked_project.key || '-' || stacked_ticket.number
 						)
 						FROM ticket_pull_requests stacked_link
 						JOIN tickets stacked_ticket ON stacked_ticket.id = stacked_link.ticket_id
-						JOIN projects stacked_root ON stacked_root.id = stacked_ticket.root_id
+						JOIN projects stacked_project ON stacked_project.id = stacked_ticket.project_id
 						JOIN pull_requests stacked ON stacked.id = stacked_link.pull_request_id
 						WHERE t.epic_id IS NOT NULL
 							AND stacked_ticket.epic_id = t.epic_id

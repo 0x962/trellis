@@ -6,7 +6,6 @@ import type { Tx } from "../tx.ts";
 import { tsquery } from "./fts.ts";
 import {
 	type ProjectSummaryRow,
-	projectCtes,
 	projectSummaryColumns,
 	projectSummaryJoins,
 	toProjectSummary,
@@ -58,8 +57,8 @@ type IdentifierArgs = { key: SQL; number: SQL; q: SQL; limit: SQL; scope: Scope 
 // directly.
 const identifierPage = ({ key, number, q, limit, scope }: IdentifierArgs) => sql`
 	exact AS (
-		SELECT t.id FROM tickets t JOIN projects root ON root.id = t.root_id
-		WHERE root.key = ${key} AND t.number = ${number} AND ${scope("t")}
+		SELECT t.id FROM tickets t JOIN projects proj ON proj.id = t.project_id
+		WHERE proj.key = ${key} AND t.number = ${number} AND ${scope("t")}
 	), query AS (SELECT websearch_to_tsquery('english', ${q}) AS ts), hits AS (${textHits(scope)}), ranked AS (
 		SELECT id, row_number() OVER (ORDER BY max(rank) DESC, id DESC) AS rn
 		FROM hits WHERE id NOT IN (SELECT id FROM exact)
@@ -149,11 +148,10 @@ const projectsMatching = async (tx: Tx, q: string, projectIds: readonly string[]
 		);
 	const found = await rows<ProjectSummaryRow>(
 		tx,
-		sql`WITH RECURSIVE ${projectCtes}
-			SELECT ${projectSummaryColumns} ${projectSummaryJoins}
+		sql`SELECT ${projectSummaryColumns} ${projectSummaryJoins}
 			WHERE ((${matches(sql`p.key`)}) OR (${matches(sql`p.slug`)}) OR (${matches(sql`p.name`)}))
 				AND ${projectIds ? sql`p.id = ANY(${textArray(projectIds)})` : sql`true`}
-			ORDER BY pp.path
+			ORDER BY p.position, p.slug
 			LIMIT ${limit}`,
 	);
 	return found.map(toProjectSummary);

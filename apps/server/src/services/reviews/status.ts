@@ -29,21 +29,21 @@ export async function status(_ctx: ServiceCtx, tx: Tx, input: PreparedStatus) {
 	}>(
 		tx,
 		sql`
-			SELECT root.key || '-' || t.number AS identifier, t.title,
+			SELECT proj.key || '-' || t.number AS identifier, t.title,
 				ticket_pr.pull_requests AS ticket_pr_rows
 			FROM (
 				SELECT t.*, requested_pr.id AS requested_pr_id
 				FROM ticket_pull_requests requested_link
 				JOIN pull_requests requested_pr ON requested_pr.id = requested_link.pull_request_id
 				JOIN tickets t ON t.id = requested_link.ticket_id
-				JOIN projects root ON root.id = t.root_id
+				JOIN projects proj ON proj.id = t.project_id
 				WHERE requested_pr.owner = ${ref.owner}
 					AND requested_pr.repo = ${ref.repo}
 					AND requested_pr.number = ${ref.number}
-				ORDER BY root.key, t.number, t.id
+				ORDER BY proj.key, t.number, t.id
 				LIMIT 1
 			) t
-			JOIN projects root ON root.id = t.root_id
+			JOIN projects proj ON proj.id = t.project_id
 			${requestedTicketPrJoin}
 		`,
 	);

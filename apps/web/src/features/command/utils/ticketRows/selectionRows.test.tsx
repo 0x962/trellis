@@ -3,12 +3,12 @@ import type { TicketLabel, TicketSummary } from "@trellis/api";
 import type { PaletteRow, RowDeps, Submenu } from "../../rows";
 import { selectionRows } from "./ticketRows";
 
-const row = (identifier: string, labels: TicketLabel[] = [], path = "op"): TicketSummary =>
+const row = (identifier: string, labels: TicketLabel[] = []): TicketSummary =>
 	({
 		id: identifier.toLowerCase(),
 		identifier,
 		title: identifier,
-		project: { id: "p1", key: "OP", path },
+		project: { id: "p1", key: "OP" },
 		labels,
 		version: 1,
 	}) as unknown as TicketSummary;
@@ -66,7 +66,6 @@ describe("selectionRows", () => {
 			"selection.status",
 			"selection.priority",
 			"selection.labels",
-			"selection.project",
 			"selection.parent",
 			"selection.epic",
 			"selection.copyIds",
@@ -81,20 +80,14 @@ describe("selectionRows", () => {
 		const { rows, record } = build([row("OP-1"), row("OP-2"), row("OP-3")]);
 		rowOf(rows, "selection.status").run();
 		rowOf(rows, "selection.epic").run();
-		expect(record.opened[0]).toEqual({ kind: "status", tickets: ["OP-1", "OP-2", "OP-3"], project: "op", bulk: true });
-		expect(record.opened[1]).toEqual({ kind: "epic", tickets: ["OP-1", "OP-2", "OP-3"], project: "op", bulk: true });
+		expect(record.opened[0]).toEqual({ kind: "status", tickets: ["OP-1", "OP-2", "OP-3"], project: "OP", bulk: true });
+		expect(record.opened[1]).toEqual({ kind: "epic", tickets: ["OP-1", "OP-2", "OP-3"], project: "OP", bulk: true });
 	});
 
 	test("marks the submenu of a selection of one ticket as a bulk write", () => {
 		const { rows, record } = build([row("OP-1")]);
 		rowOf(rows, "selection.priority").run();
 		expect(record.opened[0]).toEqual({ kind: "priority", tickets: ["OP-1"], bulk: true });
-	});
-
-	test("offers the epics of the root project for a row under a sub-project", () => {
-		const { rows, record } = build([row("OP-9", [], "op.web")]);
-		rowOf(rows, "selection.epic").run();
-		expect(record.opened[0]).toEqual({ kind: "epic", tickets: ["OP-9"], project: "op", bulk: true });
 	});
 
 	test("deletes every selected row through the bulk path", () => {

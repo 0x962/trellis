@@ -63,7 +63,7 @@ export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput, start
 		const instruction = await attachmentPrompt(ctx.home, runId, input.prompt, files);
 		const [run] = await rows<StoredRun>(
 			tx,
-			sql`INSERT INTO agent_runs (id, name, account_id, runtime, harness, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, workspace_id, session_id, created_at, updated_at)
+			sql`INSERT INTO agent_runs (id, name, account_id, runtime, harness, kind, instruction, project_id, project_key, ticket_id, ticket_identifier, workspace_id, session_id, created_at, updated_at)
 			VALUES (${runId}, ${name}, ${selected.accountId}, 'native', ${JSON.stringify(selected.config.harness)}::jsonb, 'session', ${instruction}, NULL, '', NULL, NULL, ${directory}, ${selected.config.harness.preset === "custom" ? randomUUID() : null}, ${ctx.now()}, ${ctx.now()})
 			RETURNING ${columns}`,
 		);

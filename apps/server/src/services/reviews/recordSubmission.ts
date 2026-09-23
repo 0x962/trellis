@@ -64,7 +64,7 @@ export const recordSubmission = async (ctx: ServiceCtx, tx: Tx, input: Submissio
 	});
 	const linked = await rows<TicketRow>(
 		tx,
-		sql`SELECT ticket.id, ticket.project_id, ticket.root_id, NULL AS archived_at
+		sql`SELECT ticket.id, ticket.project_id, NULL AS archived_at
 			FROM ticket_pull_requests link
 			JOIN tickets ticket ON ticket.id = link.ticket_id
 			WHERE link.pull_request_id = ${input.prId}

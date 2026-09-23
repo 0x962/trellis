@@ -6,7 +6,7 @@ export const projects = os.projects.router({
 	get: os.projects.get.handler(({ context, input }) => call(context, "projects.get", input)),
 	create: os.projects.create.handler(async ({ context, input }) => {
 		const project = await call<Project>(context, "projects.create", input);
-		setLocation(context, `/api/projects/${project.path}`);
+		setLocation(context, `/api/projects/${project.key}`);
 		return project;
 	}),
 	update: os.projects.update.handler(({ context, input }) => call(context, "projects.update", input)),

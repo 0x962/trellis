@@ -33,7 +33,7 @@ export async function start(ctx: ServiceCtx, tx: Tx, input: FlowExecutionStartIn
 	// The check in `trellis ready` counts every run of the head, so a run of
 	// a flow of another project would answer it.
 	const flowProjectId = await flowProjectIdOf(tx, flow.id);
-	if (flowProjectId !== null && flowProjectId !== ticket.rootId) throw fail("FLOW_NOT_IN_PROJECT");
+	if (flowProjectId !== null && flowProjectId !== ticket.projectId) throw fail("FLOW_NOT_IN_PROJECT");
 	assertVersion(flow, input.expectedVersion);
 	const doc = await readDoc(tx, flow);
 	const issues = validateFlowGraph(doc, "run");

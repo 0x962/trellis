@@ -47,11 +47,11 @@ beforeAll(async () => {
 	db = await openTestDb();
 	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
 		VALUES (${agent.name}, ${agent.kind}, ${now}, ${now})`);
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${projectId}, ${projectId}, 'TRL', 'trl', 'Trellis', ${now}, ${now})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${projectId}, 'TRL', 'trl', 'Trellis', ${now}, ${now})`);
 	await db.execute(sql`INSERT INTO epics (
-		id, project_id, root_id, slug, name, actor_name, actor_kind, created_at, updated_at
-	) VALUES (${epicId}, ${projectId}, ${projectId}, 'comments', 'Comments', ${agent.name}, ${agent.kind}, ${now}, ${now})`);
+		id, project_id, slug, name, actor_name, actor_kind, created_at, updated_at
+	) VALUES (${epicId}, ${projectId}, 'comments', 'Comments', ${agent.name}, ${agent.kind}, ${now}, ${now})`);
 	cache = createCache();
 	await inTx(cache.rebuild);
 	asHuman = contextOf(human);

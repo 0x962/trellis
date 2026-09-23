@@ -15,9 +15,7 @@ import { failToast } from "../../../../lib/failToast";
 import { insertRow, patchRows, readRow } from "../../utils/cacheRows";
 
 // The fields a table edit changes on a row before the server answers.
-export type RowPatch = Partial<
-	Pick<TicketSummary, "status" | "priority" | "project" | "parent" | "epic" | "wave" | "labels">
->;
+export type RowPatch = Partial<Pick<TicketSummary, "status" | "priority" | "parent" | "epic" | "wave" | "labels">>;
 
 // The patch of one write. A label toggle reads the row it changes, because
 // the new label set depends on the labels that row holds now.
@@ -76,9 +74,9 @@ export const useTicketMutations = (): TicketMutations => {
 		// project. A search result list holds such tickets, so every
 		// write checks its rows first. It sends nothing and names the project.
 		const refused = (tickets: readonly TicketSummary[]) => {
-			const archived = tickets.find((ticket) => isArchived(ticket.project.path));
+			const archived = tickets.find((ticket) => isArchived(ticket.project.key));
 			if (archived === undefined) return false;
-			toast.error(notice(archived.project.path), { duration: 6000 });
+			toast.error(notice(archived.project.key), { duration: 6000 });
 			return true;
 		};
 

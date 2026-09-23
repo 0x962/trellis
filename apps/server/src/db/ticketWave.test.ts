@@ -5,13 +5,12 @@ import { ulid } from "ulid";
 import type { ServiceCtx } from "../context.ts";
 import { get as getBrief } from "../services/brief.ts";
 import { create as createEpic, get as getEpic, remove as removeEpic } from "../services/epics/epics.ts";
-import { delete as deleteProject } from "../services/projectsDelete.ts";
 import { create as createTicket } from "../services/tickets/create.ts";
 import { updateMany, update as updateTicket } from "../services/tickets/update.ts";
 import { create } from "../services/waves/waves.ts";
 import { createCache, type ProjectCache } from "./cache.ts";
-import { type Db, openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
+import type { Db } from "./client.ts";
+import { openTestDb } from "./testDb.ts";
 import type { Tx } from "./tx.ts";
 
 // One root TST with a todo and a done status, and a second root OTH. The
@@ -26,8 +25,8 @@ const events: TrellisEvent[] = [];
 const human: ActorRef = { name: "Test", kind: "human" };
 
 const insertProject = (id: string, key: string) =>
-	db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${id}, ${id}, ${key}, ${key.toLowerCase()}, ${key}, '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
+	db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${id}, ${key}, ${key.toLowerCase()}, ${key}, '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
 
 const insertStatus = (root: string, name: string, slug: string, category: string, position: number) =>
 	db.execute(sql`INSERT INTO statuses (id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at)
@@ -55,7 +54,7 @@ const placements = async () => {
 	const found = await db.execute(
 		sql`SELECT 'TST-' || t.number AS identifier, e.slug AS epic, m.slug AS wave
 			FROM tickets t LEFT JOIN epics e ON e.id = t.epic_id LEFT JOIN waves m ON m.id = t.wave_id
-			WHERE t.root_id = ${tst} ORDER BY t.number`,
+			WHERE t.project_id = ${tst} ORDER BY t.number`,
 	);
 	return found.rows;
 };
@@ -63,8 +62,7 @@ const placements = async () => {
 let planId: string;
 
 beforeAll(async () => {
-	db = await openDb(":memory:");
-	await migrate(db);
+	db = await openTestDb();
 	await insertProject(tst, "TST");
 	await insertProject(oth, "OTH");
 	await insertStatus(tst, "Todo", "todo", "todo", 0);
@@ -158,7 +156,7 @@ test("an epic beside a wave must be the epic of that wave", async () => {
 	).rejects.toMatchObject({ code: "WAVE_OUTSIDE_EPIC" });
 	await expect(
 		run((tx) => createTicket(ctx, tx, { project: "OTH", title: "Stray", wave: "TST/plan/phase-2" })),
-	).rejects.toMatchObject({ code: "CROSS_ROOT_MOVE" });
+	).rejects.toMatchObject({ code: "CROSS_PROJECT_LINK" });
 	const same = await run((tx) =>
 		updateTicket(ctx, tx, { ticket: "TST-1", epic: "TST/plan", wave: "TST/plan/phase-3" }),
 	);
@@ -213,22 +211,5 @@ test("an epic delete detaches a ticket that holds a wave of the epic", async () 
 	).toEqual([
 		["TST-1", ["epic", "wave"]],
 		["TST-2", ["epic"]],
-	]);
-});
-
-test("a project delete detaches a ticket of another project that holds a wave of a deleted epic", async () => {
-	const ctx = ctxAt("2026-09-18T10:09:00.000Z");
-	const sub = ulid();
-	await db.execute(sql`INSERT INTO projects (id, parent_id, root_id, slug, name, position, created_at, updated_at)
-		VALUES (${sub}, ${tst}, ${tst}, 'sub', 'Sub', 0, '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
-	await db.transaction((tx) => cache.rebuild(tx));
-	await run((tx) => createEpic(ctx, tx, { project: "TST.sub", name: "Sub plan" }));
-	await run((tx) => create(ctx, tx, { epic: "TST/sub-plan", name: "Phase 1" }));
-	const placed = await run((tx) => updateTicket(ctx, tx, { ticket: "TST-1", wave: "TST/sub-plan/phase-1" }));
-	expect(placed.wave?.ref).toBe("TST/sub-plan/phase-1");
-	await run((tx) => deleteProject(ctx, tx, { project: "TST.sub", force: true }));
-	expect(await placements()).toEqual([
-		{ identifier: "TST-1", epic: null, wave: null },
-		{ identifier: "TST-2", epic: null, wave: null },
 	]);
 });

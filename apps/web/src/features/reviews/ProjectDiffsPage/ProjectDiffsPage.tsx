@@ -27,17 +27,17 @@ const checkWords = (checks: readonly Check[]) => {
 
 // The pull requests of one project, grouped by repository. The Linked
 // source lists what Trellis holds for the project: a pull request linked
-// to a ticket of the project or one of its sub-projects, or kept for a
+// to a ticket of the project, or kept for a
 // review in a repository of the project or one of its ancestors. The My
 // open PRs source asks GitHub for the open pull requests of the signed-in
 // user in those repositories.
 export function ProjectDiffsPage({ project }: { project: Project }) {
 	const { client, orpc, queryClient } = useApp();
 	const navigate = useNavigate();
-	const prsOptions = orpc.reviews.prs.queryOptions({ input: { project: project.path } });
+	const prsOptions = orpc.reviews.prs.queryOptions({ input: { project: project.key } });
 	const prs = useQuery(prsOptions);
 	const [source, setSource] = useState<"local" | "mine">("local");
-	const mineOptions = orpc.reviews.mine.queryOptions({ input: { project: project.path } });
+	const mineOptions = orpc.reviews.mine.queryOptions({ input: { project: project.key } });
 	const mine = useQuery({
 		...mineOptions,
 		enabled: source === "mine",
@@ -47,7 +47,7 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 	const [filter, setFilter] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
-	const reviewSearch = { project: project.path };
+	const reviewSearch = { project: project.key };
 	const open = async () => {
 		setBusy(true);
 		setError(null);

@@ -13,7 +13,7 @@ import { recordRequest, replayRequest } from "../assignments/requests.ts";
 import { assignmentInstruction } from "../brief.ts";
 import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
-import { assertProjectActive, pathOf, resolveMutableProject, resolveTicket } from "../refs.ts";
+import { assertProjectActive, resolveMutableProject, resolveTicket } from "../refs.ts";
 import { columns, type StoredRun } from "./queries.ts";
 
 type ReserveInput = {
@@ -73,7 +73,7 @@ export const reserve = async (
 		);
 		if (assigned.length > 0) throw fail("DUPLICATE", { field: "active agent assignment on this ticket" });
 	}
-	const projectPath = pathOf(ctx.cache, project.id);
+	const projectKey = ctx.cache.get(project.id).key;
 	await upsert(ctx, tx, actor);
 	const selected = await selectAccount(tx, {
 		accountId: input.accountId,
@@ -100,7 +100,7 @@ export const reserve = async (
 			identifier: ticket!.identifier,
 			title: ticket!.title,
 			description: ticket!.description,
-			projectPath,
+			projectKey,
 			branch: runBranch({ id, kind, ticketIdentifier: ticket!.identifier }),
 			publicUrl: ctx.publicUrl,
 		});
@@ -108,8 +108,8 @@ export const reserve = async (
 	// already holds an open agent run for this ticket.
 	const [run] = await rows<StoredRun>(
 		tx,
-		sql`INSERT INTO agent_runs (id, name, harness, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, runtime, closed_at, session_id, created_at, updated_at)
-		VALUES (${id}, ${name}, ${JSON.stringify(config.harness)}::jsonb, ${kind}, ${instruction}, ${project.id}, ${projectPath}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'native', NULL, ${sessionId}, ${ctx.now}, ${ctx.now})
+		sql`INSERT INTO agent_runs (id, name, harness, kind, instruction, project_id, project_key, ticket_id, ticket_identifier, runtime, closed_at, session_id, created_at, updated_at)
+		VALUES (${id}, ${name}, ${JSON.stringify(config.harness)}::jsonb, ${kind}, ${instruction}, ${project.id}, ${projectKey}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'native', NULL, ${sessionId}, ${ctx.now}, ${ctx.now})
 		ON CONFLICT DO NOTHING RETURNING ${columns}`,
 	);
 	if (run === undefined) throw fail("DUPLICATE", { field: "active agent" });
