@@ -269,11 +269,12 @@ test("a conflict with the base branch takes a ready pull request back", async ()
 
 // A flow is machine review. A run of the current commit that succeeded
 // answers the check, and so does the agent's own sentence when no flow fits.
-test("a flow on the server asks for a run of the current commit", async () => {
+test("a flow of the project asks for a run of the current commit", async () => {
 	const { ticket, id } = await readyPullRequest("Run the flow", 110);
 
-	await db.execute(sql`INSERT INTO flows (id, slug, name, description, created_at, updated_at)
-		VALUES (${ulid()}, 'review', 'Review', 'Read the diff.', ${at}, ${at})`);
+	await db.execute(sql`DELETE FROM flows`);
+	await db.execute(sql`INSERT INTO flows (id, project_id, slug, name, description, created_at, updated_at)
+		VALUES (${ulid()}, ${root}, 'review', 'Review', 'Read the diff.', ${at}, ${at})`);
 	const noRun = await gapsOf(ticket.id);
 
 	await db.execute(sql`INSERT INTO pr_flow_waivers
@@ -282,4 +283,30 @@ test("a flow on the server asks for a run of the current commit", async () => {
 
 	expect(noRun).toEqual(["flow-run"]);
 	expect(await gapsOf(ticket.id)).toEqual([]);
+});
+
+// A flow belongs to one root project, or to every project. A flow of another
+// project asks this pull request for nothing, and `trellis ready` answers the
+// same, so the glyph cannot go grey with a part the agent can never supply.
+test("a flow of another project asks this pull request for nothing", async () => {
+	await db.execute(sql`DELETE FROM flows`);
+	const other = ulid();
+	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
+		VALUES (${other}, ${other}, 'OTH', 'oth', 'Other', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO flows (id, project_id, slug, name, description, created_at, updated_at)
+		VALUES (${ulid()}, ${other}, 'other-review', 'Other review', 'Read the diff.', ${at}, ${at})`);
+
+	const { ticket } = await readyPullRequest("Ignore another project's flow", 113);
+
+	expect(await gapsOf(ticket.id)).toEqual([]);
+});
+
+test("a flow of every project asks this pull request for a run", async () => {
+	await db.execute(sql`DELETE FROM flows`);
+	await db.execute(sql`INSERT INTO flows (id, project_id, slug, name, description, created_at, updated_at)
+		VALUES (${ulid()}, NULL, 'every-project', 'Every project', 'Read the diff.', ${at}, ${at})`);
+
+	const { ticket } = await readyPullRequest("Run the flow of every project", 114);
+
+	expect(await gapsOf(ticket.id)).toEqual(["flow-run"]);
 });

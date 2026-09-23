@@ -1,5 +1,6 @@
 import { type Flow, type FlowDoc, type FlowEdge, type FlowNode, type FlowSummary, ulidPattern } from "@trellis/api";
 import { sql } from "drizzle-orm";
+import { flowAppliesToProject } from "../../db/queries/flowScope.ts";
 import { iso, rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
@@ -23,7 +24,7 @@ export const listFlows = (tx: Tx, rootId: string | null): Promise<FlowSummary[]>
 			(SELECT count(*)::int FROM flow_nodes WHERE flow_nodes.flow_id = f.id) AS "nodeCount",
 			(SELECT count(*)::int FROM flow_edges WHERE flow_edges.flow_id = f.id) AS "edgeCount"
 			${fromFlowsLeftJoinProjects}
-			WHERE ${rootId === null ? sql`true` : sql`f.project_id IS NULL OR f.project_id = ${rootId}`}
+			WHERE ${rootId === null ? sql`true` : flowAppliesToProject(sql`f`, sql`${rootId}`)}
 			ORDER BY f.name, f.id`,
 	);
 

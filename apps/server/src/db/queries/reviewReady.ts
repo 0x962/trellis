@@ -1,4 +1,5 @@
 import { type SQL, sql } from "drizzle-orm";
+import { flowAppliesToProject } from "./flowScope.ts";
 
 // The facts that `reviewGaps` in `packages/api` reads, in SQL. `p` is the
 // alias of the `pull_requests` row in the caller's query.
@@ -8,12 +9,22 @@ import { type SQL, sql } from "drizzle-orm";
 const linkedTickets = (p: SQL) => sql`SELECT pr_link.ticket_id
 	FROM ticket_pull_requests pr_link WHERE pr_link.pull_request_id = ${p}.id`;
 
-// True when nothing is owed for a flow: the server keeps no flow at all, no
-// ticket links the pull request, the agent wrote why no flow fits this
-// commit, or a run of this commit succeeded. A flow is machine review, so a
-// run that stopped and waits answers nothing: it did not finish.
+// True when some flow applies to the project of a ticket that links this
+// pull request. A flow belongs to one root project, or to every project, and
+// `flowAppliesToProject` is the one rule for that. `trellis ready` asks the
+// flows service the same question, so both answer alike.
+const someFlowApplies = (p: SQL) => sql`EXISTS (
+	SELECT 1 FROM flows flow
+	JOIN tickets ticket ON ticket.id IN (${linkedTickets(p)})
+	WHERE ${flowAppliesToProject(sql`flow`, sql`ticket.root_id`)}
+)`;
+
+// True when nothing is owed for a flow: no flow applies to the project of
+// this pull request, no ticket links it, the agent wrote why no flow fits
+// this commit, or a run of this commit succeeded. A flow is machine review,
+// so a run that stopped and waits answers nothing: it did not finish.
 export const flowAnsweredSql = (p: SQL) => sql`(
-	NOT EXISTS (SELECT 1 FROM flows)
+	NOT ${someFlowApplies(p)}
 	OR NOT EXISTS (${linkedTickets(p)})
 	OR EXISTS (
 		SELECT 1 FROM pr_flow_waivers waiver
