@@ -39,8 +39,8 @@ test("gives a review-ready pull request to you", () => {
 	expect(turnOf(pullRequest(), false)).toBe("you");
 });
 
-test("gives a draft pull request to the agent", () => {
-	expect(turnOf(pullRequest({ isDraft: true }), false)).toBe("agent");
+test("gives a pull request to you when the Trellis state is ready", () => {
+	expect(turnOf(pullRequest({ isDraft: true }), false)).toBe("you");
 });
 
 test("gives a pull request to the agent until the agent marks it ready", () => {
@@ -48,8 +48,8 @@ test("gives a pull request to the agent until the agent marks it ready", () => {
 	expect(turnOf(ticket({ prRows: [pullRequest({ localState: "draft" })] }), false)).toBe("agent");
 });
 
-test("gives a ticket with a draft pull request to the agent", () => {
-	expect(turnOf(ticket({ prRows: [pullRequest({ isDraft: true })] }), false)).toBe("agent");
+test("gives a ticket with a ready pull request to you", () => {
+	expect(turnOf(ticket({ prRows: [pullRequest({ isDraft: true })] }), false)).toBe("you");
 });
 
 test("gives a pull request with pending checks to GitHub", () => {

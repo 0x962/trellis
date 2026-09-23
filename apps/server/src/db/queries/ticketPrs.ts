@@ -57,7 +57,7 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 			jsonb_agg(
 				jsonb_build_object(
 					'owner', p.owner, 'repo', p.repo, 'number', p.number,
-					'reviewState', ${verdictState}, 'isDraft', p.is_draft, 'localState', p.local_state
+					'reviewState', ${verdictState}, 'isDraft', p.local_state = 'draft', 'localState', p.local_state
 				) ORDER BY link.created_at, p.id
 			) AS reviews,
 			jsonb_agg(

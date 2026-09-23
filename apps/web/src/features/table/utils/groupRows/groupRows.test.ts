@@ -180,7 +180,7 @@ describe("groupRows by turn", () => {
 		status: { category: "started", reviewer: "human" } as TicketSummary["status"],
 	});
 	const review = turnRow("review", { prRows: [open] });
-	const draft = turnRow("draft", { prRows: [{ ...open, isDraft: true }] });
+	const draft = turnRow("draft", { prRows: [{ ...open, localState: "draft" }] });
 	const blocked = turnRow("blocked", {
 		status: { category: "todo" } as TicketSummary["status"],
 		waitsOn: [{ identifier: "OP-32" } as TicketSummary["waitsOn"][number]],

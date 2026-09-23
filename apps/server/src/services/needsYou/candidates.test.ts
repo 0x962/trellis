@@ -11,15 +11,16 @@ const humanReviewStatus = ulid();
 const at = new Date("2026-09-21T12:00:00.000Z");
 const humanReviewTicket = ulid();
 const readyPullRequestTicket = ulid();
+const githubDraftReadyPullRequestTicket = ulid();
 const draftPullRequestTicket = ulid();
 
-const addPullRequest = async (ticketId: string, number: number, draft: boolean) => {
+const addPullRequest = async (ticketId: string, number: number, draft: boolean, localState = "ready") => {
 	const id = ulid();
 	await db.execute(sql`INSERT INTO pull_requests (
-		id, owner, repo, number, url, state, is_draft, review_state, checks, ci_state, created_at, updated_at
+		id, owner, repo, number, url, state, is_draft, local_state, review_state, checks, ci_state, created_at, updated_at
 	) VALUES (
 		${id}, 'acme', 'app', ${number}, ${`https://github.com/acme/app/pull/${number}`},
-		'open', ${draft}, 'review_required', '[]', 'pass', ${at}, ${at}
+		'open', ${draft}, ${localState}, 'review_required', '[]', 'pass', ${at}, ${at}
 	)`);
 	await db.execute(sql`INSERT INTO ticket_pull_requests (
 		ticket_id, pull_request_id, source, actor_name, actor_kind, created_at
@@ -42,9 +43,11 @@ beforeAll(async () => {
 	) VALUES
 		(${humanReviewTicket}, ${root}, ${root}, 1, 'Answer the question', ${humanReviewStatus}, 0, ${at}, ${at}),
 		(${readyPullRequestTicket}, ${root}, ${root}, 2, 'Review the pull request', ${startedStatus}, 1, ${at}, ${at}),
-		(${draftPullRequestTicket}, ${root}, ${root}, 3, 'Finish the draft', ${startedStatus}, 2, ${at}, ${at})`);
+		(${githubDraftReadyPullRequestTicket}, ${root}, ${root}, 3, 'Review the GitHub draft', ${startedStatus}, 2, ${at}, ${at}),
+		(${draftPullRequestTicket}, ${root}, ${root}, 4, 'Finish the draft', ${startedStatus}, 3, ${at}, ${at})`);
 	await addPullRequest(readyPullRequestTicket, 2, false);
-	await addPullRequest(draftPullRequestTicket, 3, true);
+	await addPullRequest(githubDraftReadyPullRequestTicket, 3, true);
+	await addPullRequest(draftPullRequestTicket, 4, true, "draft");
 });
 
 afterAll(async () => {
@@ -59,7 +62,7 @@ test("lists every ticket whose turn is the person", async () => {
 			.filter((item) => item.section === "review")
 			.map((item) => item.identifier)
 			.sort(),
-	).toEqual(["TST-1", "TST-2"]);
+	).toEqual(["TST-1", "TST-2", "TST-3"]);
 });
 
 test("applies working-run precedence from turnOf", async () => {
@@ -67,5 +70,10 @@ test("applies working-run precedence from turnOf", async () => {
 		candidates(tx, "Test", new Set([humanReviewTicket, readyPullRequestTicket])),
 	);
 
-	expect(found.filter((item) => item.section === "review").map((item) => item.identifier)).toEqual(["TST-1"]);
+	expect(
+		found
+			.filter((item) => item.section === "review")
+			.map((item) => item.identifier)
+			.sort(),
+	).toEqual(["TST-1", "TST-3"]);
 });

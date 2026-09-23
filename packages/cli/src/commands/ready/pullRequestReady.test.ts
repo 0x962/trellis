@@ -12,7 +12,7 @@ const readiness = (
 	dataModelDiagramRequired = false,
 ): PullRequestReadiness => ({
 	dataModelDiagramRequired,
-	pullRequest: { number: 131, url: "https://github.com/acme/trellis/pull/131", headSha: "abc123" },
+	pullRequest: { number: 131, url: "https://github.com/acme/trellis/pull/131", headSha: "abc123", isDraft: false },
 	missing,
 	ready: missing.length === 0,
 });
@@ -44,7 +44,7 @@ test("names the missing data model diagram and tells the agent how to add it", (
 
 test("says the pull request is ready when both parts exist", () => {
 	expect(pullRequestReadyText(readiness([]))).toBe(
-		"#131 is ready for review. It has the explanation and the evidence document. The person will now review it.\n",
+		"#131 is ready for review. It has the explanation and the evidence document. Trellis marked it ready, and GitHub is ready for review.\n",
 	);
 });
 
@@ -65,7 +65,7 @@ const clientWith = ({
 }): TrellisClient =>
 	({
 		pullRequests: {
-			refresh: async () => ({ number: 131, files }),
+			refresh: async () => ({ number: 131, files, isDraft: false }),
 			readEvidence: async () => evidence,
 			readSummaryHead: async () => summaryHead,
 		},
