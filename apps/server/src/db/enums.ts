@@ -9,6 +9,7 @@ import {
 	NoteAudienceSchema,
 	PrioritySchema,
 	PrLinkSourceSchema,
+	ProjectColorSchema,
 	PrStateSchema,
 	ReviewerSchema,
 	ReviewStateSchema,
@@ -28,6 +29,7 @@ export const PR_STATES = PrStateSchema.options;
 export const CI_STATES = CiStateSchema.options;
 export const COLOR_TOKENS = ColorTokenSchema.options;
 export const LABEL_COLORS = LabelColorSchema.options;
+export const PROJECT_COLORS = ProjectColorSchema.options;
 export const REVIEW_STATES = ReviewStateSchema.options;
 export const PR_LINK_SOURCES = PrLinkSourceSchema.options;
 export const LOCAL_PR_STATES = LocalPrStateSchema.options;

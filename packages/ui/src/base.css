@@ -3,6 +3,7 @@
 @import "./sidebar.css";
 @import "./page.css";
 @import "./project-settings.css";
+@import "./project-room.css";
 
 /*
  * The base layer of every trellis surface. The web app and the gallery

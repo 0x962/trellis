@@ -58,6 +58,17 @@ export const assertSlugFree = async (tx: Tx, slug: string, exceptId: string | nu
 	if (found.length > 0) throw fail("DUPLICATE", { field: "slug" });
 };
 
+// One color belongs to one project, so a person always reads two projects
+// apart by their color. `exceptId` is the project that the caller writes, so
+// a project keeps the color it already holds.
+export const assertColorFree = async (tx: Tx, color: string, exceptId: string | null) => {
+	const found = await rows<{ id: string }>(
+		tx,
+		sql`SELECT id FROM projects WHERE color = ${color} AND id IS DISTINCT FROM ${exceptId}`,
+	);
+	if (found.length > 0) throw fail("DUPLICATE", { field: "color" });
+};
+
 export const assertKeyFree = async (tx: Tx, key: string) => {
 	const found = await rows<{ id: string }>(tx, sql`SELECT id FROM projects WHERE key = ${key}`);
 	if (found.length > 0) throw fail("DUPLICATE", { field: "key" });

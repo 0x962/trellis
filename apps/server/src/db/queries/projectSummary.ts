@@ -10,6 +10,7 @@ export type ProjectSummaryRow = {
 	position: number;
 	open_count: number;
 	open_epic_count: number;
+	color: ProjectSummary["color"];
 	archived_at: string | null;
 };
 
@@ -18,7 +19,7 @@ export type ProjectSummaryRow = {
 // is open: an epic with no ticket, or with one ticket at least whose status
 // is not done and not canceled.
 export const projectSummaryColumns = sql`
-	p.id, p.key, p.slug, p.name, p.position,
+	p.id, p.key, p.slug, p.name, p.position, p.color,
 	(SELECT count(*)::int FROM tickets t
 		WHERE t.project_id = p.id AND t.completed_at IS NULL) AS open_count,
 	(SELECT count(*)::int FROM epics e
@@ -39,5 +40,6 @@ export const toProjectSummary = (row: ProjectSummaryRow): ProjectSummary => ({
 	position: row.position,
 	openCount: row.open_count,
 	openEpicCount: row.open_epic_count,
+	color: row.color,
 	archivedAt: row.archived_at,
 });
