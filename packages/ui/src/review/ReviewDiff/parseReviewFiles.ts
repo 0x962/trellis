@@ -1,3 +1,5 @@
+import { patchDigest } from "./patchDigest";
+
 export type ReviewHunkContent =
 	| { type: "context"; lines: number; deletionLineIndex: number; additionLineIndex: number }
 	| { type: "change"; deletions: number; additions: number; deletionLineIndex: number; additionLineIndex: number };
@@ -19,6 +21,11 @@ export type ReviewFile = {
 	name: string;
 	prevName?: string;
 	type: "change" | "new" | "deleted" | "rename-pure" | "rename-changed";
+	// True when Git stores the file as bytes. Git writes no line for a binary
+	// file, so the file has no hunk and both line counts are zero.
+	binary: boolean;
+	// The hash of the patch text of this file. `patchDigest` explains it.
+	digest: string;
 	deletionLines: string[];
 	additionLines: string[];
 	hunks: ReviewHunk[];
@@ -95,6 +102,8 @@ const parseFile = (source: string): ReviewFile => {
 	const file: ReviewFile = {
 		name,
 		...(added ? {} : { prevName: renamedFrom ?? oldPath ?? fallbackOldPath }),
+		binary: headers.some((line) => line.startsWith("Binary files ") || line === "GIT binary patch"),
+		digest: patchDigest(source),
 		type: added
 			? "new"
 			: deleted

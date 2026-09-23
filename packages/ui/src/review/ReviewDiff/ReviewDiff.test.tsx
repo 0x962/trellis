@@ -69,3 +69,57 @@ test("a diff that reads the file draws the expand controls, and one that does no
 	expect(render(async () => "")).toContain('aria-label="Expand down"');
 	expect(render()).not.toContain('aria-label="Expand down"');
 });
+
+// GitHub writes this one line in place of the hunks of a file that holds
+// bytes. The file then has no added line and no deleted line.
+const binaryPatch = `diff --git a/logo.png b/logo.png
+index 1c0d2f3..9ab8c7d 100644
+Binary files a/logo.png and b/logo.png differ
+`;
+
+const renderPatch = (source: string, order?: readonly string[]) =>
+	renderToStaticMarkup(
+		<ReviewDiff
+			patch={source}
+			revisionId="r"
+			threads={[]}
+			mode="split"
+			theme="light"
+			renderThread={() => null}
+			onSelect={() => {}}
+			onFiles={() => {}}
+			order={order}
+		/>,
+	);
+
+test("a binary file says that the diff has no lines to show", () => {
+	expect(renderPatch(binaryPatch)).toContain("Git stores this file as bytes, so the diff has no lines to show.");
+});
+
+test("a text file draws no such notice", () => {
+	expect(renderPatch(patch)).not.toContain("Git stores this file as bytes");
+});
+
+test("the order prop decides which file the diff draws first", () => {
+	const html = renderPatch(patch, ["deleted.ts", "added.ts", "changed.ts"]);
+
+	const at = (path: string) => html.indexOf(`data-file-path="${path}"`);
+	expect(at("deleted.ts")).toBeLessThan(at("added.ts"));
+	expect(at("added.ts")).toBeLessThan(at("changed.ts"));
+});
+
+test("a path the order leaves out keeps its patch place, after every named path", () => {
+	const html = renderPatch(patch, ["deleted.ts"]);
+
+	const at = (path: string) => html.indexOf(`data-file-path="${path}"`);
+	expect(at("deleted.ts")).toBeLessThan(at("changed.ts"));
+	expect(at("changed.ts")).toBeLessThan(at("added.ts"));
+});
+
+test("no order keeps the patch order", () => {
+	const html = renderPatch(patch);
+
+	const at = (path: string) => html.indexOf(`data-file-path="${path}"`);
+	expect(at("changed.ts")).toBeLessThan(at("added.ts"));
+	expect(at("added.ts")).toBeLessThan(at("deleted.ts"));
+});
