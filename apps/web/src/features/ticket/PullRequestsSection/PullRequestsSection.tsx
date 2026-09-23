@@ -22,14 +22,7 @@ export function PullRequestsSection({ ticket }: PullRequestsSectionProps) {
 				{ticket.prRows.map((pr) => (
 					<li key={pr.id}>
 						<button type="button" className={rowClass} onClick={() => pageSheetActions.openPullRequest(pr.url)}>
-							<PrGlyph
-								state={pr.state}
-								isDraft={pr.isDraft}
-								isQueued={pr.isQueued}
-								localState={pr.localState}
-								size="sm"
-								decorative
-							/>
+							<PrGlyph state={pr.state} isQueued={pr.isQueued} localState={pr.localState} size="sm" decorative />
 							<span className={`w-14 shrink-0 text-fg-muted ${tabularClass}`}>#{pr.number}</span>
 							<span className="min-w-0 flex-1 truncate">{pr.title}</span>
 							{pr.state === "open" && pr.mergeable === "conflicting" && <MergeConflictMark baseRef={pr.baseRef} />}

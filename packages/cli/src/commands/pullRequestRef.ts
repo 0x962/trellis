@@ -43,8 +43,8 @@ export const resolvePullRequest = async (
 export const currentHead = async (
 	client: TrellisClient,
 	ref: PullRequestRef,
-): Promise<{ sha: string; pullRequest: PullRequest }> => {
+): Promise<{ sha: string; ticket: string | null; pullRequest: PullRequest }> => {
 	const pullRequest = await client.pullRequests.refresh({ id: ref.id });
 	const status = await client.reviews.status({ pr: ref.url });
-	return { sha: status.headRefOid as string, pullRequest };
+	return { sha: status.headRefOid, ticket: status.ticket?.identifier ?? null, pullRequest };
 };

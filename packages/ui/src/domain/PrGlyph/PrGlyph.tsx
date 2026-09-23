@@ -13,13 +13,11 @@ export type PullRequestState = "open" | "closed" | "merged";
 
 export type PrGlyphSize = "sm" | "md";
 
-// The review state that Trellis keeps apart from the GitHub draft flag. An
-// agent's pull request stays `draft` until the agent asks for review.
+// The review state that records whether the agent asked for review.
 export type LocalPrState = "draft" | "ready";
 
 export type PrGlyphProps = {
 	state: PullRequestState;
-	isDraft: boolean;
 	isQueued: boolean;
 	localState: LocalPrState;
 	size?: PrGlyphSize;
@@ -33,12 +31,10 @@ type OcticonProps = { className?: string; "aria-hidden"?: "true" };
 type Look = { label: string; tone: string; Icon: ComponentType<OcticonProps> };
 
 // The shapes and the colors match GitHub, so a state reads the same in both
-// products. A local draft draws the GitHub draft shape, and its words say
-// that the agent has not asked for review.
+// products. The draft shape means the agent has not asked for review.
 const looks = {
 	open: { label: "Ready for review", tone: "text-success", Icon: GitPullRequestIcon },
-	draft: { label: "Pull request draft", tone: "text-fg-muted", Icon: GitPullRequestDraftIcon },
-	localDraft: {
+	draft: {
 		label: "Draft: the agent has not asked for review",
 		tone: "text-fg-muted",
 		Icon: GitPullRequestDraftIcon,
@@ -50,19 +46,11 @@ const looks = {
 
 type PrGlyphLook = keyof typeof looks;
 
-// GitHub shows the draft and queued marks only while the pull request is
-// open. An open pull request draws the green open glyph only when GitHub and
-// the local state both say ready.
-export const prGlyphLook = (
-	state: PullRequestState,
-	isDraft: boolean,
-	isQueued: boolean,
-	localState: LocalPrState,
-): PrGlyphLook => {
+// Queued and draft marks apply only while the pull request is open.
+export const prGlyphLook = (state: PullRequestState, isQueued: boolean, localState: LocalPrState): PrGlyphLook => {
 	if (state !== "open") return state;
 	if (isQueued) return "queued";
-	if (isDraft) return "draft";
-	return localState === "draft" ? "localDraft" : "open";
+	return localState === "draft" ? "draft" : "open";
 };
 
 // A table row is 32 px tall and holds the small glyph. A pull request row has
@@ -76,7 +64,6 @@ const iconSizes: Record<PrGlyphSize, string> = { sm: "size-4", md: "size-4" };
 // the only signal.
 export function PrGlyph({
 	state,
-	isDraft,
 	isQueued,
 	localState,
 	size = "md",
@@ -84,7 +71,7 @@ export function PrGlyph({
 	focusable = true,
 	decorative = false,
 }: PrGlyphProps) {
-	const key = prGlyphLook(state, isDraft, isQueued, localState);
+	const key = prGlyphLook(state, isQueued, localState);
 	const { label, tone, Icon } = looks[key];
 	if (decorative) {
 		return (

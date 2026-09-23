@@ -35,7 +35,7 @@ const checksOf = (pr: PrCellProps["pr"]): Check[] => [
 export function PrCell({ pr, density }: PrCellProps) {
 	return (
 		<span className="inline-flex items-center gap-1.5">
-			<PrGlyph state={pr.state} isDraft={pr.isDraft} isQueued={pr.isQueued} localState={pr.localState} size="sm" />
+			<PrGlyph state={pr.state} isQueued={pr.isQueued} localState={pr.localState} size="sm" />
 			{density === "comfortable" ? (
 				<CheckRibbon checks={checksOf(pr)} size="mini" />
 			) : (

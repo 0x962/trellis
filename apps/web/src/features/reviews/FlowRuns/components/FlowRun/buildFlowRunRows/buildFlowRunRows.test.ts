@@ -93,6 +93,7 @@ const record = (steps: Step[], tasks: FlowExecutionRecord["tasks"] = []): FlowEx
 	ticketId: "ticket",
 	projectId: "project",
 	revision: 3,
+	headSha: null,
 	doc,
 	state: {
 		version: 1,

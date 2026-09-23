@@ -37,7 +37,7 @@ const ticket = (
 const humanReview = ticket("human-review", { reviewer: "human" });
 const review = ticket("review", { prRows: [pullRequest()] });
 const start = ticket("start", { category: "todo", ready: true });
-const draft = ticket("draft", { prRows: [pullRequest({ isDraft: true })] });
+const draft = ticket("draft", { prRows: [pullRequest({ localState: "draft" })] });
 const checks = ticket("checks", { prRows: [pullRequest({ pending: 3 })] });
 const merge = ticket("merge", {
 	category: "todo",

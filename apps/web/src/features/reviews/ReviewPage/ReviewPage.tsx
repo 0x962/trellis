@@ -127,7 +127,11 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	const agentWorks = run !== null && isAgentWorking(run);
 	const turn = turnInput ? turnOf(turnInput, agentWorks) : null;
 	const ref = reviewRef(pr);
-	const ticketIdentifier = status.data?.ticket?.identifier ?? "";
+	// What the Flows tab needs to start a flow. One `gh pr view` answer carries
+	// both the ticket and the head commit, so either both are here or neither
+	// is.
+	const flowTarget =
+		status.data?.ticket == null ? null : { ticket: status.data.ticket.identifier, headSha: status.data.headRefOid };
 	return (
 		<ReviewApplyContext.Provider value={applyState}>
 			<div className="review-page">
@@ -245,13 +249,13 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 								<div className="review-blocks">
 									{/* A flow runs against a ticket, so a pull request that no
 									    ticket links can hold no flow run. */}
-									{ticketIdentifier === "" ? (
+									{flowTarget === null ? (
 										<EmptyState
 											title="No flow runs"
 											description="No ticket links this pull request, and a flow runs against a ticket."
 										/>
 									) : (
-										<FlowRuns ticket={ticketIdentifier} />
+										<FlowRuns ticket={flowTarget.ticket} headSha={flowTarget.headSha} />
 									)}
 								</div>
 							),
@@ -322,6 +326,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 							ticket={status.data?.ticket?.identifier ?? null}
 							run={run}
 							submissions={allSubmissions}
+							submissionsFetched={submissions.isFetched}
 							onDone={refreshAll}
 						/>
 					)}

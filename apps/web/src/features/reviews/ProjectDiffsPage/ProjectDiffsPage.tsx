@@ -77,7 +77,7 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 					id: pr.url,
 					title: pr.title,
 					repository: pr.repository.nameWithOwner,
-					state: pr.isDraft ? "DRAFT" : "OPEN",
+					state: "OPEN",
 					isDraft: pr.isDraft,
 					isQueued: false,
 					localState: "ready" as const,
@@ -200,12 +200,7 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 														</span>
 													</Tooltip>
 												)}
-												<ReviewStatus
-													state={pr.state}
-													isDraft={pr.isDraft}
-													isQueued={pr.isQueued}
-													localState={pr.localState}
-												/>
+												<ReviewStatus state={pr.state} isQueued={pr.isQueued} localState={pr.localState} />
 												<ArrowRight className="review-row-arrow" aria-hidden="true" />
 											</Link>
 										);

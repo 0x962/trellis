@@ -84,16 +84,16 @@ describe("PrRow", () => {
 
 	test("the glyph carries the draft, queued, and merged states", () => {
 		const draft = renderToStaticMarkup(
-			<PrRow pr={prOf({ isDraft: true })} top={0} last={false} hasChildLines={false} />,
+			<PrRow pr={prOf({ localState: "draft" })} top={0} last={false} hasChildLines={false} />,
 		);
 		const queued = renderToStaticMarkup(
 			<PrRow pr={prOf({ isQueued: true })} top={0} last={false} hasChildLines={false} />,
 		);
 		const merged = renderToStaticMarkup(
-			<PrRow pr={prOf({ state: "merged", isDraft: true })} top={0} last={false} hasChildLines={false} />,
+			<PrRow pr={prOf({ state: "merged", localState: "draft" })} top={0} last={false} hasChildLines={false} />,
 		);
 
-		expect(draft).toContain("Pull request draft");
+		expect(draft).toContain("Draft: the agent has not asked for review");
 		expect(queued).toContain("Pull request queued");
 		expect(merged).toContain("Pull request merged");
 	});
@@ -103,7 +103,7 @@ describe("PrRow", () => {
 			<PrRow pr={prOf({ localState: "draft" })} top={0} last={false} hasChildLines={false} />,
 		);
 
-		expect(html).toContain('data-pr-glyph="localDraft"');
+		expect(html).toContain('data-pr-glyph="draft"');
 		expect(html).toContain("Draft: the agent has not asked for review");
 	});
 

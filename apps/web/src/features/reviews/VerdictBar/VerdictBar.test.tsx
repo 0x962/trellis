@@ -28,7 +28,12 @@ const submission = (facts: Partial<ReviewSubmission>): ReviewSubmission => ({
 	...facts,
 });
 
-const render = (props: { ticket: string | null; run: AgentRun | null; submissions?: ReviewSubmission[] }) =>
+const render = (props: {
+	ticket: string | null;
+	run: AgentRun | null;
+	submissions?: ReviewSubmission[];
+	submissionsFetched?: boolean;
+}) =>
 	renderToStaticMarkup(
 		<AppProvider value={app}>
 			<QueryClientProvider client={queryClient}>
@@ -38,6 +43,7 @@ const render = (props: { ticket: string | null; run: AgentRun | null; submission
 					ticket={props.ticket}
 					run={props.run}
 					submissions={props.submissions ?? []}
+					submissionsFetched={props.submissionsFetched ?? true}
 					onDone={() => {}}
 				/>
 			</QueryClientProvider>
@@ -116,4 +122,22 @@ test("a comment shows as the last note and keeps every verdict", () => {
 	expect(html).toContain("You commented");
 	expect(html).toMatch(/<button[^>]*aria-label="Approve"/);
 	expect(html).not.toMatch(/aria-label="Change verdict"/);
+});
+
+test("the card waits for the submissions read", () => {
+	const waiting = render({ ticket: "TRL-370", run: crispFjord, submissionsFetched: false });
+
+	expect(waiting).toBe("");
+});
+
+test("a verdict the person already gave never replaces a button under the pointer", () => {
+	// The card is drawn once, with the buttons the answer calls for. Drawn
+	// before the answer it would offer Approve and Request changes, and the
+	// answer below would put Change verdict where Request changes was.
+	const waiting = render({ ticket: "TRL-370", run: crispFjord, submissionsFetched: false });
+	const answered = render({ ticket: "TRL-370", run: crispFjord, submissions: [submission({})] });
+
+	expect(waiting).not.toContain("data-verdict-action");
+	expect(answered).toMatch(/<button[^>]*aria-label="Change verdict"/);
+	expect(answered).not.toContain('data-verdict-action="request_changes"');
 });
