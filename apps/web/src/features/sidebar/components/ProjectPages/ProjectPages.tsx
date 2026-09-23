@@ -1,8 +1,9 @@
 import { CaretDown, CaretRight } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
-import { cx } from "@trellis/ui";
+import { ActivityDot, cx } from "@trellis/ui";
 import { uiActions, useUiStore } from "../../../../stores/uiStore";
+import { activeAgentsLabel } from "../../../sessions/activeAgents";
 import { type ProjectPageRow, projectPageRows } from "./projectPageRows";
 
 // A page row sits one step right of the project row, and a row the More row
@@ -14,12 +15,25 @@ const rowClass = (inMore: boolean, active: boolean) =>
 		active && "sidebar-selected font-medium",
 	);
 
-export function ProjectPages({ project, pathname }: { project: ProjectSummary; pathname: string }) {
-	const { top, more } = projectPageRows(project, pathname);
+export function ProjectPages({
+	project,
+	pathname,
+	activeAgents = 0,
+}: {
+	project: ProjectSummary;
+	pathname: string;
+	// How many agents of this project start, work or wait for an answer. The
+	// Sessions row wears a dot while the number is above zero.
+	activeAgents?: number;
+}) {
+	const { top, more } = projectPageRows(project, pathname, activeAgents);
 	const stored = useUiStore((state) => state.expandedProjectMore[project.id] ?? false);
 	// The row of the page on screen must stay on screen. A page that the More
 	// row holds therefore keeps More open, whatever the person stored.
 	const open = stored || more.some((row) => row.active);
+	// A shut More row hides the Sessions row, so the More row wears the dot of
+	// the rows under it until the person opens them.
+	const hiddenAgents = open ? 0 : more.reduce((total, row) => total + row.activeAgents, 0);
 	const pageLink = (row: ProjectPageRow, inMore: boolean) => (
 		<li key={row.label}>
 			<Link
@@ -33,6 +47,11 @@ export function ProjectPages({ project, pathname }: { project: ProjectSummary; p
 				className={rowClass(inMore, row.active)}
 			>
 				<span className="sidebar-label">{row.label}</span>
+				{row.activeAgents > 0 && (
+					<span className="sidebar-trailing">
+						<ActivityDot label={activeAgentsLabel(row.activeAgents)} placement="inline" tone="metal" />
+					</span>
+				)}
 				{row.trailing !== null && <span className="sidebar-trailing text-fg-faint">{row.trailing}</span>}
 			</Link>
 		</li>
@@ -51,6 +70,16 @@ export function ProjectPages({ project, pathname }: { project: ProjectSummary; p
 							className={cx(rowClass(false, false), "w-full text-left active:bg-elevated")}
 						>
 							<span className="sidebar-label">More</span>
+							{hiddenAgents > 0 && (
+								<span className="sidebar-trailing">
+									<ActivityDot
+										label={activeAgentsLabel(hiddenAgents)}
+										placement="inline"
+										tone="metal"
+										focusable={false}
+									/>
+								</span>
+							)}
 							<span aria-hidden="true" className="sidebar-trailing text-fg-faint *:size-3">
 								{open ? <CaretDown /> : <CaretRight />}
 							</span>

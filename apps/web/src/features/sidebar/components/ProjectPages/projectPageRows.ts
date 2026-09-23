@@ -12,6 +12,10 @@ export type ProjectPageRow = {
 	// The text at the right edge of the row, or null when the row prints
 	// none.
 	trailing: string | null;
+	// How many agents of this project the row stands for that start, work or
+	// wait for an answer. Only the Sessions row counts any; every other row
+	// holds 0.
+	activeAgents: number;
 };
 
 export type ProjectPageRows = {
@@ -23,8 +27,9 @@ export type ProjectPageRows = {
 
 // The sidebar rows of one project, split into the rows it always shows and
 // the rows the More row holds. `pathname` is the page on screen, and one row
-// at most is active.
-export const projectPageRows = (project: ProjectSummary, pathname: string): ProjectPageRows => {
+// at most is active. `activeAgents` is the number of agents of this project
+// that start, work or wait for an answer.
+export const projectPageRows = (project: ProjectSummary, pathname: string, activeAgents = 0): ProjectPageRows => {
 	const current = projectRefOfPathname(pathname) === project.key;
 	// The settings page and its /notes section end the project URL too. The
 	// project's row menu (ProjectRowActions) opens both, and neither has a
@@ -42,8 +47,9 @@ export const projectPageRows = (project: ProjectSummary, pathname: string): Proj
 				active: current && epics,
 				// The count of open epics of this project alone.
 				trailing: project.openEpicCount > 0 ? formatCount(project.openEpicCount) : null,
+				activeAgents: 0,
 			},
-			{ label: "Diffs", suffix: "/diffs", active: current && diffs, trailing: null },
+			{ label: "Diffs", suffix: "/diffs", active: current && diffs, trailing: null, activeAgents: 0 },
 		],
 		more: [
 			{
@@ -51,8 +57,9 @@ export const projectPageRows = (project: ProjectSummary, pathname: string): Proj
 				suffix: "",
 				active: current && !settings && !diffs && !epics && !sessions,
 				trailing: null,
+				activeAgents: 0,
 			},
-			{ label: "Sessions", suffix: "/sessions", active: current && sessions, trailing: null },
+			{ label: "Sessions", suffix: "/sessions", active: current && sessions, trailing: null, activeAgents },
 		],
 	};
 };

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { type ReviewReadyFacts, readyForReview, reviewGaps, reviewGapText, reviewReadyLabel } from "./reviewReady.ts";
+import { firstReviewGapText, type ReviewReadyFacts, readyForReview, reviewGaps, reviewGapText } from "./reviewReady.ts";
 
 // A pull request that holds every part. Each test takes this away one fact
 // at a time, which is what happens to a real pull request after a push, a
@@ -21,7 +21,7 @@ const kinds = (facts: Partial<ReviewReadyFacts>) => reviewGaps({ ...ready, ...fa
 test("a pull request with every part is ready for review", () => {
 	expect(reviewGaps(ready)).toEqual([]);
 	expect(readyForReview({ reviewGaps: reviewGaps(ready) })).toBe(true);
-	expect(reviewReadyLabel({ reviewGaps: reviewGaps(ready) })).toBe("Ready for review");
+	expect(firstReviewGapText({ reviewGaps: reviewGaps(ready) })).toBeNull();
 });
 
 test("each missing part takes the pull request back to not ready", () => {
@@ -67,7 +67,7 @@ test("the words count what is missing", () => {
 	expect(reviewGapText({ kind: "conflict", count: 1 })).toBe("the pull request conflicts with its base branch");
 });
 
-test("the glyph label names the first missing part", () => {
+test("the glyph reads the first missing part", () => {
 	const gaps = reviewGaps({ ...ready, pendingChecks: 2, openFindings: 1 });
-	expect(reviewReadyLabel({ reviewGaps: gaps })).toBe("Not ready for review: 2 checks pending");
+	expect(firstReviewGapText({ reviewGaps: gaps })).toBe("2 checks pending");
 });

@@ -10,14 +10,14 @@ import {
 const readiness = (
 	missing: PullRequestReadiness["missing"],
 	dataModelDiagramRequired = false,
-	waitingOn: PullRequestReadiness["waitingOn"] = [],
+	storedGaps: PullRequestReadiness["storedGaps"] = [],
 ): PullRequestReadiness => ({
 	dataModelDiagramRequired,
 	pullRequest: { number: 131, url: "https://github.com/acme/trellis/pull/131", headSha: "abc123", isDraft: false },
 	flows: { flows: [], runs: [], waived: null, skipped: null, satisfied: true },
 	missing,
 	ready: missing.length === 0,
-	waitingOn,
+	storedGaps,
 });
 
 test("names each missing part with its command", () => {
@@ -101,8 +101,12 @@ const clientWith = ({
 	summaryHead,
 	flows = [],
 	runs = [],
+	evidenceHead = "abc123",
 }: {
 	evidence: { body: string } | null;
+	// The commit the stored evidence document proves. It matches the head the
+	// test uses unless a test states an older one.
+	evidenceHead?: string;
 	files: Array<{ path: string; change: "change"; additions: number; deletions: number }> | null;
 	summaryHead: { headline: string; why: string; watch: string } | null;
 	flows?: Array<{ slug: string; name: string; description: string }>;
@@ -111,7 +115,7 @@ const clientWith = ({
 	({
 		pullRequests: {
 			refresh: async () => ({ number: 131, files, isDraft: false, reviewGaps: [{ kind: "not-asked", count: 1 }] }),
-			readEvidence: async () => evidence,
+			readEvidence: async () => (evidence === null ? null : { ...evidence, headSha: evidenceHead }),
 			readFlowWaiver: async () => null,
 			readSummaryHead: async () => summaryHead,
 		},
@@ -195,8 +199,18 @@ test("asks a caller that checks no flow for nothing new", async () => {
 	expect(result.ready).toBe(true);
 });
 
-// A flow is machine review. A run that stopped and waits did not finish, so
-// the pull request is not ready and the agent runs the flow again.
+// The evidence document names the commit it proves. A push takes it away the
+// way it takes the explanation away.
+test("asks for the evidence document again after a push", async () => {
+	const result = await pullRequestReadiness(
+		clientWith({ ...written, evidenceHead: "older" }),
+		{ id: "01M30HDWKZ17G62PJAFHZNED2J", url: "https://github.com/acme/trellis/pull/131" },
+		{ checkFlows: false },
+	);
+
+	expect(result.missing).toEqual(["evidence"]);
+});
+
 test("refuses a run that stopped and waits", async () => {
 	const result = await pullRequestReadiness(
 		clientWith({

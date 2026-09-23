@@ -108,9 +108,12 @@ export const PullRequestIdInputSchema = z.strictObject({
 	id: UlidSchema,
 });
 
+// `not-ready` was called `draft` until the review readiness rule landed. The
+// body accepts the old word and stores the new one, so an older CLI and a
+// script keep working. Every answer carries `not-ready`.
 export const PullRequestSetLocalStateInputSchema = z.strictObject({
 	id: UlidSchema,
-	localState: LocalPrStateSchema,
+	localState: z.preprocess((value) => (value === "draft" ? "not-ready" : value), LocalPrStateSchema),
 });
 
 export const PullRequestResolveInputSchema = z.strictObject({

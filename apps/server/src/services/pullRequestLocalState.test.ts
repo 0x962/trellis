@@ -233,7 +233,9 @@ test("a failed check takes a ready pull request back, and a pass brings it again
 	expect(await inboxOf()).toContain(ticket.identifier);
 });
 
-test("a new commit takes the explanation away until the agent writes it again", async () => {
+// The explanation and the evidence document both name the commit they cover,
+// so a push takes both away and the agent writes both again.
+test("a new commit takes the explanation and the evidence away until the agent writes them again", async () => {
 	const { ticket, id } = await readyPullRequest("Write the explanation again", 107);
 
 	await db.execute(sql`UPDATE pull_requests SET head_sha = 'newsha' WHERE id = ${id}`);
@@ -241,8 +243,12 @@ test("a new commit takes the explanation away until the agent writes it again", 
 
 	await db.execute(sql`INSERT INTO pr_summaries (pull_request_id, head_sha, headline, why, watch, created_at, updated_at)
 		VALUES (${id}, 'newsha', 'It adds the rule.', 'The glyph lied.', 'nothing', ${at}, ${at})`);
+	const explained = await gapsOf(ticket.id);
 
-	expect(pushed).toEqual(["explanation"]);
+	await db.execute(sql`UPDATE pr_evidence_documents SET head_sha = 'newsha' WHERE pull_request_id = ${id}`);
+
+	expect(pushed).toEqual(["explanation", "evidence"]);
+	expect(explained).toEqual(["evidence"]);
 	expect(await gapsOf(ticket.id)).toEqual([]);
 });
 
@@ -272,8 +278,6 @@ test("a conflict with the base branch takes a ready pull request back", async ()
 	expect(await gapsOf(ticket.id)).toEqual([]);
 });
 
-// A flow is machine review. A run of the current commit that succeeded
-// answers the check, and so does the agent's own sentence when no flow fits.
 test("a flow of the project asks for a run of the current commit", async () => {
 	const { ticket, id } = await readyPullRequest("Run the flow", 110);
 
