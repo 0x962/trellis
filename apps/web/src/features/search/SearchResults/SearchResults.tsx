@@ -108,7 +108,7 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 								<td className="truncate pr-3 text-base">{highlight(ticket.title, q)}</td>
 								<td className="w-40 pr-3" title={ticket.project.key}>
 									<span className="flex min-w-0 items-center gap-1.5">
-										<ProjectKey projectKey={segments[0]!} />
+										<ProjectKey projectKey={segments[0]!} color={null} />
 										{segments.length > 1 && <span className="truncate text-sm text-fg-muted">{segments.at(-1)}</span>}
 									</span>
 								</td>

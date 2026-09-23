@@ -1,25 +1,30 @@
 :root {
 	--agent-mark: #646468;
 	--agent-mark-ink: #646468;
+	--agent-mark-ground: #161617;
 }
 :root[data-theme="dark"] {
 	--agent-mark: #c4c4c4;
 	--agent-mark-ink: #c4c4c4;
+	--agent-mark-ground: #161617;
 }
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme="light"]) {
 		--agent-mark: #c4c4c4;
 		--agent-mark-ink: #c4c4c4;
+		--agent-mark-ground: #161617;
 	}
 }
+/* A rule that draws a mark in another color sets one of these three values
+   on the `.agent-mark` element itself: the color of the strands, the color of
+   the letters, and the color of the square under them. A value set on an
+   element above the mark does not reach it, because the declaration below
+   beats an inherited one. `project-room.css` writes such a rule. */
 .agent-mark {
 	overflow: visible;
 	--agent-stroke: var(--agent-mark);
 	--agent-ink: var(--agent-mark-ink);
-	/* The three knobs of a mark: the strand, the letters, and the square
-	   under them. A caller sets one of them on the mark or on any element
-	   above it. */
-	--agent-ground: #161617;
+	--agent-ground: var(--agent-mark-ground);
 }
 .agent-mark[data-agent-kind="trellis"] {
 	--agent-stroke: #c4c4c4;

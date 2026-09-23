@@ -38,13 +38,12 @@
 }
 
 /*
- * The mark of a project. The four strands keep the shape and the width of
- * the trellis mark. The ground takes the color of the project, and the
- * strands take `--project-strand`, which flips per theme.
+ * The mark of a project. `--project-strand` flips per theme, so the four
+ * strands read on the ground of the mark in light and in dark.
  *
  * The rule starts at `.project-mark`, the wrapper that `ProjectMark` draws.
- * A mark that stands inside the room of another project keeps its own color,
- * because that mark carries its own wrapper and its own attribute.
+ * A mark inside an element of another project keeps its own color, because
+ * that mark carries its own wrapper and its own attribute.
  */
 .project-mark .agent-mark[data-agent-kind="trellis"] {
 	--agent-ground: var(--project-solid);

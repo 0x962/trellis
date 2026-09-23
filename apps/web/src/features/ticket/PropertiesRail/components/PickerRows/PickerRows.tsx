@@ -169,7 +169,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 			<LabelsRow ticket={ticket} />
 			<PropertyRow compact label="Project">
 				<span className="inline-flex h-7 items-center">
-					<ProjectKey projectKey={ticket.project.key} />
+					<ProjectKey projectKey={ticket.project.key} color={null} />
 				</span>
 			</PropertyRow>
 			<PropertyRow compact label="Parent">

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { ProjectSummary } from "@trellis/api";
-import { projectOfPath, roomColorOf, ticketRefOfPath } from "./projectRoom";
+import { roomColorOfPath, ticketRefOfPath } from "./projectRoom";
 
 const project = (key: string, color: ProjectSummary["color"]): ProjectSummary => ({
 	id: key,
@@ -16,28 +16,36 @@ const project = (key: string, color: ProjectSummary["color"]): ProjectSummary =>
 
 const projects = [project("TRL", "blue"), project("HBR", "teal"), project("CNY", null)];
 
-test("a project path names its project, and a view segment changes nothing", () => {
-	expect(projectOfPath("/p/TRL", projects, null)?.key).toBe("TRL");
-	expect(projectOfPath("/p/TRL/table", projects, null)?.key).toBe("TRL");
-	expect(projectOfPath("/p/TRL/settings", projects, null)?.key).toBe("TRL");
-	expect(projectOfPath("/p/TRL/epics/the-epic", projects, null)?.key).toBe("TRL");
+test("a project path takes the color of its project, and a view segment changes nothing", () => {
+	expect(roomColorOfPath("/p/TRL", projects, null)).toBe("blue");
+	expect(roomColorOfPath("/p/TRL/table", projects, null)).toBe("blue");
+	expect(roomColorOfPath("/p/TRL/settings", projects, null)).toBe("blue");
+	expect(roomColorOfPath("/p/TRL/epics/the-epic", projects, null)).toBe("blue");
 });
 
 test("the slug of a project names it as well as its key", () => {
-	expect(projectOfPath("/p/trl", projects, null)?.key).toBe("TRL");
-	expect(projectOfPath("/p/hbr/table", projects, null)?.key).toBe("HBR");
+	expect(roomColorOfPath("/p/trl", projects, null)).toBe("blue");
+	expect(roomColorOfPath("/p/hbr/table", projects, null)).toBe("teal");
+});
+
+// `projectRefOfPathname` holds the rule, so the sessions page of a project
+// stands in the room of that project, and a path with too many segments names
+// no project.
+test("the room follows the one rule that reads a project out of a path", () => {
+	expect(roomColorOfPath("/sessions/project/HBR", projects, null)).toBe("teal");
+	expect(roomColorOfPath("/p/TRL/web/auth", projects, null)).toBeNull();
 });
 
 test("a ticket page stands in the room of the project of the ticket", () => {
 	expect(ticketRefOfPath("/t/TRL-386")).toBe("TRL-386");
 	expect(ticketRefOfPath("/p/TRL")).toBeNull();
-	expect(roomColorOf("/t/HBR-12", projects, "HBR")).toBe("teal");
-	expect(roomColorOf("/t/HBR-12", projects, null)).toBeNull();
+	expect(roomColorOfPath("/t/HBR-12", projects, "HBR")).toBe("teal");
+	expect(roomColorOfPath("/t/HBR-12", projects, null)).toBeNull();
 });
 
 test("a page of no project, and a project with no color, leave the pane plain", () => {
-	expect(roomColorOf("/needs-you", projects, null)).toBeNull();
-	expect(roomColorOf("/p/CNY", projects, null)).toBeNull();
-	expect(roomColorOf("/p/NOPE", projects, null)).toBeNull();
-	expect(roomColorOf("/p/TRL", projects, null)).toBe("blue");
+	expect(roomColorOfPath("/needs-you", projects, null)).toBeNull();
+	expect(roomColorOfPath("/p/CNY", projects, null)).toBeNull();
+	expect(roomColorOfPath("/p/NOPE", projects, null)).toBeNull();
+	expect(roomColorOfPath("/p/TRL", projects, null)).toBe("blue");
 });
