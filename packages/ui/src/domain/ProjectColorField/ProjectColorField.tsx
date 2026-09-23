@@ -14,8 +14,8 @@ type Choice = ProjectColor | "none";
 
 const noneItem: SelectItem<Choice> = { value: "none", label: "No color", icon: <ProjectMark color={null} /> };
 
-// The color field of a project. A project that finds no free color reads the
-// sentence under the field, and it keeps the grey mark and the grey key
+// The color field of a project. If no color is free, the field shows a
+// sentence under it, and the project keeps a grey mark and a grey key
 // chip.
 export function ProjectColorField({ value, taken, onValueChange }: ProjectColorFieldProps) {
 	const free = freeProjectColors(taken, value);
