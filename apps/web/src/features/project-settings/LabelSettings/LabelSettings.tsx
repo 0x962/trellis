@@ -8,6 +8,7 @@ import { errorMessage } from "../../../lib/conflict";
 import { LabelDeleteDialog } from "../LabelDeleteDialog";
 import { LabelGroupDeleteDialog } from "../LabelGroupDeleteDialog";
 import { LabelGroupForm } from "../LabelGroupForm";
+import { labelWriteMessage } from "../labelWriteMessage";
 import { SettingsSection } from "../SettingsSection";
 import { LabelList } from "./components/LabelList";
 import { labelEntries } from "./utils/labelEntries";
@@ -25,12 +26,14 @@ const skeletonRows = [0, 1, 2, 3];
 // The labels page of the project settings. A project owns its labels and
 // its label groups.
 export function LabelSettings({ project }: LabelSettingsProps) {
-	const { orpc, queryClient } = useApp();
+	const { client, orpc, queryClient } = useApp();
 	const query = useQuery(orpc.labels.list.queryOptions({ input: { project: project.key } }));
 	const [search, setSearch] = useState("");
 	const [creating, setCreating] = useState<{ groupId: string | null } | null>(null);
 	const [editing, setEditing] = useState<string | null>(null);
-	const [groupForm, setGroupForm] = useState<LabelGroup | "new" | null>(null);
+	const [creatingGroup, setCreatingGroup] = useState(false);
+	// The id of the group whose name stands as a text field, or null.
+	const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
 	const [deletingLabel, setDeletingLabel] = useState<Label | null>(null);
 	const [deletingGroup, setDeletingGroup] = useState<LabelGroup | null>(null);
 	const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
@@ -60,7 +63,7 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 	};
 	const openCreate = (groupId: string | null) => {
 		setEditing(null);
-		setGroupForm(null);
+		setCreatingGroup(false);
 		setCreating({ groupId });
 		if (groupId !== null) expandGroup(groupId);
 	};
@@ -69,20 +72,29 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 		if (groupId === null) newLabelRef.current?.focus();
 		else groupMenus.current.get(groupId)?.focus();
 	};
-	const openGroupForm = (group: LabelGroup | "new") => {
+	const openCreateGroup = () => {
 		setCreating(null);
 		setEditing(null);
-		setGroupForm(group);
+		setCreatingGroup(true);
 	};
-	const closeGroupForm = (group: LabelGroup | null) => {
-		setGroupForm(null);
-		if (group === null) newGroupRef.current?.focus();
-		else groupMenus.current.get(group.id)?.focus();
+	const closeCreateGroup = () => {
+		setCreatingGroup(false);
+		newGroupRef.current?.focus();
 	};
 	const openEdit = (labelId: string) => {
 		setCreating(null);
-		setGroupForm(null);
+		setCreatingGroup(false);
 		setEditing(labelId);
+	};
+	// `InlineEdit` keeps the field open and prints this message, so the write
+	// throws the sentence the server gave.
+	const renameGroup = async (group: LabelGroup, name: string) => {
+		try {
+			await client.labelGroups.update({ project: project.key, group: group.id, name });
+		} catch (error) {
+			throw new Error(labelWriteMessage(error));
+		}
+		await refresh();
 	};
 
 	if (query.error !== null) {
@@ -121,7 +133,7 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 
 	const { labels, groups } = query.data;
 	const entries = labelEntries(labels, groups, search);
-	const nothingYet = labels.length === 0 && groups.length === 0 && creating === null && groupForm === null;
+	const nothingYet = labels.length === 0 && groups.length === 0 && creating === null && !creatingGroup;
 	const noMatch = entries.length === 0 && creating === null;
 
 	return (
@@ -131,13 +143,7 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 			actions={
 				<div className="flex items-center gap-2">
 					<Tooltip content="New group">
-						<IconButton
-							ref={newGroupRef}
-							size="md"
-							label="New group"
-							icon={<FolderPlus />}
-							onClick={() => openGroupForm("new")}
-						/>
+						<IconButton ref={newGroupRef} size="md" label="New group" icon={<FolderPlus />} onClick={openCreateGroup} />
 					</Tooltip>
 					<Tooltip content="New label">
 						<IconButton
@@ -163,9 +169,7 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 					/>
 				</div>
 			)}
-			{groupForm === "new" && (
-				<LabelGroupForm project={project.key} group={null} onChanged={refresh} onCancel={() => closeGroupForm(null)} />
-			)}
+			{creatingGroup && <LabelGroupForm project={project.key} onChanged={refresh} onCancel={closeCreateGroup} />}
 			{nothingYet ? (
 				<EmptyState
 					title="No label yet"
@@ -181,7 +185,7 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 					groups={groups}
 					creating={creating}
 					editing={editing}
-					renaming={groupForm === "new" ? null : groupForm}
+					renamingGroupId={renamingGroupId}
 					collapsed={collapsed}
 					onGroupMenu={(groupId, node) => {
 						if (node === null) groupMenus.current.delete(groupId);
@@ -193,8 +197,8 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 					onCancelEdit={() => setEditing(null)}
 					onCloseCreate={closeCreate}
 					onNewLabel={openCreate}
-					onRename={openGroupForm}
-					onCloseRename={closeGroupForm}
+					onRenamingChange={(group, renaming) => setRenamingGroupId(renaming ? group.id : null)}
+					onRenameGroup={renameGroup}
 					onDeleteLabel={setDeletingLabel}
 					onDeleteGroup={setDeletingGroup}
 				/>

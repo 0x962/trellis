@@ -14,7 +14,12 @@ export type InlineEditProps = {
 	// it, because the Rename action that starts the edit sits in a row menu
 	// outside this component.
 	editing: boolean;
-	onEditingChange: (editing: boolean) => void;
+	// Runs with false when the edit ends. `focus` is "value" after Enter and
+	// after Escape, and "none" after a lost focus. A screen whose resting
+	// value is drawn by another component, such as the name inside the
+	// collapse button of a wave header, reads `focus` and gives that
+	// component the focus back.
+	onEditingChange: (editing: boolean, focus: InlineEditFocus) => void;
 	// Sends the new value to the server. It must reject when the server
 	// refuses, because a refusal keeps the field open.
 	onSave: (value: string) => Promise<void>;
@@ -110,8 +115,11 @@ export function InlineEdit({
 	const close = (focus: InlineEditFocus) => {
 		editEnded.current = true;
 		setSaving(false);
-		onEditingChange(false);
+		// The box takes the focus before `onEditingChange` runs. A screen that
+		// draws the resting value itself gives the focus to that value inside
+		// `onEditingChange`, and the last call wins.
 		if (focus === "value") box.current?.focus();
+		onEditingChange(false, focus);
 	};
 
 	const endEdit = async (event: InlineEditEvent) => {

@@ -126,7 +126,7 @@ export { EmptyState, type EmptyStateProps } from "./primitives/EmptyState";
 export { EntityCard, type EntityCardProps } from "./primitives/EntityCard";
 export { Field, type FieldProps } from "./primitives/Field";
 export { IconButton, type IconButtonProps } from "./primitives/IconButton";
-export { InlineEdit, type InlineEditProps } from "./primitives/InlineEdit";
+export { InlineEdit, type InlineEditFocus, type InlineEditProps } from "./primitives/InlineEdit";
 export { Input, type InputProps } from "./primitives/Input";
 export { Kbd, type KbdProps } from "./primitives/Kbd";
 export { Menu, type MenuGroup, type MenuItem, type MenuProps } from "./primitives/Menu";
