@@ -14,10 +14,17 @@ test("a tab that draws without an error shows its own content", () => {
 	expect(renderToStaticMarkup(<PaneBoundary tab="diff">{<p>diff</p>}</PaneBoundary>)).toBe("<p>diff</p>");
 });
 
-test("a tab that throws shows the error message and a retry button", () => {
+test("a tab that throws says so in plain words and offers a retry", () => {
 	const html = caught(new Error("Invalid hunk line counts in values.yaml"));
-	expect(html).toContain("This tab did not load");
-	expect(html).toContain("Invalid hunk line counts in values.yaml");
+	expect(html).toContain("This tab did not draw");
 	expect(html).toContain("Retry");
 	expect(html).not.toContain("<p>diff</p>");
+});
+
+test("a tab that throws keeps the thrown message behind the disclosure", () => {
+	const html = caught(new Error("Invalid hunk line counts in values.yaml"));
+	const message = html.indexOf("Invalid hunk line counts in values.yaml");
+
+	expect(message).toBeGreaterThan(html.indexOf("</h3>"));
+	expect(html).toContain("Details</summary>");
 });

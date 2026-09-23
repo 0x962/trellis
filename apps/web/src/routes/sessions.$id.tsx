@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/client";
-import { createFileRoute, type ErrorComponentProps } from "@tanstack/react-router";
+import { createFileRoute, type ErrorComponentProps, useRouter } from "@tanstack/react-router";
 import { UlidSchema } from "@trellis/api";
-import { EmptyState } from "@trellis/ui";
+import { Button, FailureState } from "@trellis/ui";
 import { SessionPage } from "../features/sessions/SessionPage";
 import { NotFoundState } from "../features/shell/NotFoundState";
 import type { AppContext } from "../lib/appContext";
@@ -23,16 +23,22 @@ function SessionRoute() {
 }
 
 function SessionError({ error }: ErrorComponentProps) {
+	const router = useRouter();
 	if (error instanceof ORPCError && error.code === "NOT_FOUND") {
 		const { ref } = error.data as { ref: string };
 		return <NotFoundState ref={ref} />;
 	}
 	return (
-		<EmptyState
+		<FailureState
 			variant="page"
 			className="page-card"
-			title="The session did not load."
-			description={error instanceof Error ? error.message : String(error)}
+			title="This session did not load"
+			detail={error instanceof Error ? error.message : String(error)}
+			action={
+				<Button size="md" onClick={() => void router.invalidate()}>
+					Retry
+				</Button>
+			}
 		/>
 	);
 }

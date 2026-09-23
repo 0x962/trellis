@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/client";
-import { Button, EmptyState } from "@trellis/ui";
+import { Button, FailureState } from "@trellis/ui";
 import type { ReactNode } from "react";
 import { errorMessage } from "../../../../../lib/conflict";
 import { NotFoundState } from "../../../../shell/NotFoundState";
@@ -28,11 +28,11 @@ export function EpicLoadError({ epicRef, slug, parent, error, onRetry }: EpicLoa
 			{notFound ? (
 				<NotFoundState ref={epicRef} />
 			) : (
-				<EmptyState
+				<FailureState
 					variant="page"
 					className="page-card"
-					title={`${epicRef} did not load.`}
-					description={errorMessage(error)}
+					title={`${epicRef} did not load`}
+					detail={errorMessage(error)}
 					action={
 						<Button size="md" onClick={onRetry}>
 							Retry

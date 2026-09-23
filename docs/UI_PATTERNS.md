@@ -46,6 +46,7 @@ Each page supplies its data and available actions. It does not choose new contro
 | Subscription quota meters | `QuotaWindows` | `packages/ui/src/domain/QuotaWindows/QuotaWindows.tsx` |
 | Flow run header | `FlowRunSummary` | `packages/ui/src/domain/FlowRunSummary/FlowRunSummary.tsx` |
 | Flow run steps | `FlowRunTree` | `packages/ui/src/domain/FlowRunTree/FlowRunTree.tsx` |
+| Anything that failed | `FailureState` | `packages/ui/src/domain/FailureState/FailureState.tsx` |
 
 ## Pages in a sheet
 
@@ -135,6 +136,20 @@ The plan and the resources take at most half of the page card, so the table keep
 The page of an archived project shows the `ArchivedBanner` of the project routes at the top of the page card. The pending page draws the same `Topbar` with the `FilterBar`, so the bar keeps its shape when the epic arrives.
 A row of the epics list page prints the current wave after the epic name in muted text: `<name> · <i> of <n>`.
 The rows of the epics list page use the `rowHeights`, the hover band, the cell text sizes, the tabular numbers, and the trailing `Menu` slot width of the ticket table `Row`.
+
+## Failures
+
+Every screen that reports a failure draws `FailureState`. It is the one shape, so a person reads the same block whatever broke. Its docstring holds these rules, and the gallery section prints them.
+
+The title says what happened in plain words. It never carries an exit code, an exception class, a process line or a file path.
+One line under the title says what trellis does about the failure: `recovery="retrying"` while trellis sends the request again, `recovery="waiting"` while trellis holds the page until the server answers, and nothing when trellis does nothing.
+A failure that recovers by itself clears itself. `RouteError` loads the route again when the live connection comes back, so a person who waits never presses Retry.
+The block carries one action, and at most two. `action` is the one that usually works, and it sits beside the words. A screen never puts the only way out in a bar somewhere else.
+`detail` holds the raw text a developer reads. A closed disclosure holds it under the action, the text stays selectable, and the title never shows it.
+The words carry no blame, no apology and no exclamation mark. Red marks one thing: the small sign beside the title.
+`variant="page"` fills a route or a pane and draws no picture. `variant="section"` sits inside a tab or a list.
+
+`EmptyState` stays the block for a list or a page that holds nothing. A state that is not a failure keeps it, such as a session that a person stopped.
 
 ## Statistics page
 

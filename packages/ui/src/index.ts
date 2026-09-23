@@ -6,6 +6,7 @@ export { CheckRing, type CheckRingCounts, type CheckRingProps } from "./domain/C
 export { type ChartTone, otherTone, rankedTones } from "./domain/chartTones";
 export { DisplayPopover, type DisplayPopoverProps, type DisplaySortField } from "./domain/DisplayPopover";
 export { DoneWash, type DoneWashProps, doneWashMs, waveFillMs } from "./domain/DoneWash";
+export { type FailureRecovery, FailureState, type FailureStateProps } from "./domain/FailureState";
 export { FilterBar } from "./domain/FilterBar";
 export { FilterPopover, type FilterPopoverProps } from "./domain/FilterPopover";
 export { FlowDecisionContext } from "./domain/FlowDecisionContext";
