@@ -1,4 +1,4 @@
-import { type CiState, readyForReview, reviewReadyLabel, type TicketSummary } from "@trellis/api";
+import { type CiState, firstReviewGapText, readyForReview, type TicketSummary } from "@trellis/api";
 import { type Check, CheckRibbon, cx, PrGlyph, Tooltip } from "@trellis/ui";
 import type { Density } from "../../../../../stores/uiStore";
 
@@ -39,7 +39,7 @@ export function PrCell({ pr, density }: PrCellProps) {
 				state={pr.state}
 				isQueued={pr.isQueued}
 				readyForReview={readyForReview(pr)}
-				reason={reviewReadyLabel(pr)}
+				reason={firstReviewGapText(pr)}
 				size="sm"
 			/>
 			{density === "comfortable" ? (

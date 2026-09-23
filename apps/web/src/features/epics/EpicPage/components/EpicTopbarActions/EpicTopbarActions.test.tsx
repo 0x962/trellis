@@ -46,8 +46,8 @@ const render = (epic: EpicTopbarEpic | null, readOnly = false) =>
 		</AppProvider>,
 	);
 
-test("the bar draws its four controls before the epic arrives", () => {
-	expect(barSlots(render(null))).toEqual(["statistics", "new-wave", "add-tickets", "epic-actions"]);
+test("the bar draws its three controls before the epic arrives", () => {
+	expect(barSlots(render(null))).toEqual(["new-wave", "add-tickets", "epic-actions"]);
 });
 
 test("the epic fills the bar and moves no control", () => {
@@ -57,12 +57,12 @@ test("the epic fills the bar and moves no control", () => {
 test("every control of the waiting bar is disabled", () => {
 	const waiting = render(null);
 
-	expect(waiting.match(/<button/g)?.length).toBe(4);
-	expect(waiting.match(/ disabled=""/g)?.length).toBe(4);
+	expect(waiting.match(/<button/g)?.length).toBe(3);
+	expect(waiting.match(/ disabled=""/g)?.length).toBe(3);
 	expect(render(openEpic)).not.toContain(' disabled=""');
 });
 
-test("an archived project carries the same two controls in both states", () => {
-	expect(barSlots(render(null, true))).toEqual(["statistics", "epic-actions"]);
-	expect(barSlots(render(openEpic, true))).toEqual(["statistics", "epic-actions"]);
+test("an archived project carries the same one control in both states", () => {
+	expect(barSlots(render(null, true))).toEqual(["epic-actions"]);
+	expect(barSlots(render(openEpic, true))).toEqual(["epic-actions"]);
 });

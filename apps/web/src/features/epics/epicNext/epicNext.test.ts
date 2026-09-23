@@ -29,7 +29,6 @@ const reviewPr = {
 	number: 7,
 	state: "open",
 	isDraft: false,
-	localState: "ready",
 	reviewGaps: [],
 	fail: 0,
 	pending: 0,
