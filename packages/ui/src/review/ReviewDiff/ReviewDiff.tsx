@@ -88,7 +88,10 @@ const orderedAnchor = (start: DiffAnchor, end: DiffAnchor): DiffAnchor => ({
 	line: Math.max(start.line, end.line),
 });
 
-const fileLabel = (file: ReviewFile) => (file.prevName ? `${file.prevName} → ${file.name}` : file.name);
+// A file that Git did not rename carries the same path on both sides, and the
+// arrow would then print that one path twice.
+const fileLabel = (file: ReviewFile) =>
+	file.prevName !== undefined && file.prevName !== file.name ? `${file.prevName} → ${file.name}` : file.name;
 
 // The words of a row that sits between two hunks: the hunk specs of the
 // patch, and how many lines the gap above the hunk still hides. The row

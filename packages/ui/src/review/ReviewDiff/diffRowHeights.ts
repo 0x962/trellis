@@ -29,10 +29,10 @@ const FILE_GAP = 16;
 // of padding and a 1 px border, above and below.
 const fileBox = (coarse: boolean) => (coarse ? 44 + 16 + 2 : 48);
 
-// A hunk header holds the expand controls inside a 1 px border, above and
-// below. On a mouse the controls are 24 px and the text sets the height
-// instead, at 24 px.
-const hunkBox = (coarse: boolean) => (coarse ? 44 + 2 : 24 + 2);
+// Every box here is a border box, so a 1 px border above and below eats into
+// the number. A hunk header holds the expand controls, which are 24 px on a
+// mouse and 44 px on a touch screen, so a touch screen needs 44 + 2.
+const hunkBox = (coarse: boolean) => (coarse ? 44 + 2 : 24);
 
 // A code line holds the Add line comment button, which is an `IconButton` at
 // size `sm`.

@@ -1,24 +1,26 @@
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import type { DiffFileGroup } from "../../../../review/ReviewDiff/diffGroups";
 import { type DiffAnchor, ReviewDiff } from "../../../../review/ReviewDiff/ReviewDiff";
 import { ReviewDiffSkeleton } from "../../../../review/ReviewDiff/ReviewDiffSkeleton";
 import { ReviewThreadCard } from "../../../../review/ReviewThreadCard/ReviewThreadCard";
 import { Section } from "../../Section";
 
-// One changed file with a hunk of 24 lines, so the box scrolls and the reader
+// One changed file with a hunk of 21 lines, so the box scrolls and the reader
 // sees the height of a code line against the height of a file header. The
 // second file is deleted, and the third is a lock file, which puts one file in
 // each of three risk groups.
-const body = Array.from({ length: 18 }, (_, index) => ` const step${index + 1} = steps[${index}];`).join("\n");
+const context = (from: number, count: number) =>
+	Array.from({ length: count }, (_, index) => ` const step${from + index} = steps[${from + index - 1}];`);
 const patch = [
 	"diff --git a/apps/server/drizzle/0104_review_rows.sql b/apps/server/drizzle/0104_review_rows.sql",
 	"--- a/apps/server/drizzle/0104_review_rows.sql",
 	"+++ b/apps/server/drizzle/0104_review_rows.sql",
-	"@@ -1,21 +1,22 @@ the rows of a review",
-	body,
+	"@@ -1,20 +1,21 @@ the rows of a review",
+	...context(1, 4),
 	"-ALTER TABLE review_rows ADD COLUMN height integer;",
 	"+ALTER TABLE review_rows ADD COLUMN height integer NOT NULL DEFAULT 28;",
 	"+ALTER TABLE review_rows ADD COLUMN coarse_height integer NOT NULL DEFAULT 44;",
+	...context(5, 14),
 	" COMMIT;",
 	"diff --git a/packages/api/src/time.test.ts b/packages/api/src/time.test.ts",
 	"deleted file mode 100644",
@@ -101,10 +103,14 @@ const diffThreads = [
 	},
 ];
 
-const box = "h-120 w-full overflow-hidden rounded-md border border-border bg-bg";
-
-function Diff({ children }: { children: React.ReactNode }) {
-	return <div className={box}>{children}</div>;
+// The review page gives the diff a column of its own height, and the diff
+// fills it, so the box here is a column too.
+function Diff({ height, children }: { height: string; children: ReactNode }) {
+	return (
+		<div className={`flex w-full flex-col overflow-hidden rounded-md border border-border bg-bg ${height}`}>
+			{children}
+		</div>
+	);
 }
 
 export function ReviewDiffSection() {
@@ -116,7 +122,7 @@ export function ReviewDiffSection() {
 				note="three risk groups, each named above its first file; an added line green and a deleted line red; a thread open, one resolved, and one outdated at the top of its file; bun.lock marked read"
 				className="block"
 			>
-				<Diff>
+				<Diff height="h-120">
 					<ReviewDiff
 						patch={patch}
 						revisionId="r"
@@ -150,7 +156,7 @@ export function ReviewDiffSection() {
 				</Diff>
 			</Section>
 			<Section name="ReviewDiff empty" note="a revision that changes no text" className="block">
-				<Diff>
+				<Diff height="h-64">
 					<ReviewDiff
 						patch=""
 						revisionId="r"
@@ -164,7 +170,7 @@ export function ReviewDiffSection() {
 				</Diff>
 			</Section>
 			<Section name="ReviewDiff loading" note="the shape the pane holds while the revision loads" className="block">
-				<Diff>
+				<Diff height="h-96">
 					<ReviewDiffSkeleton />
 				</Diff>
 			</Section>

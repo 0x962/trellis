@@ -20,7 +20,7 @@ const css = readFileSync(new URL("./ReviewDiff.css", import.meta.url), "utf8");
 
 // The stylesheet draws a row at the height the custom property carries, and
 // `VirtualDiffRows` sets that property from the same numbers `reviewRowSize`
-// counts. These two tests hold the pair together: the first proves the numbers
+// counts. These tests hold the pair together: the first proves the numbers
 // agree, and the second proves the stylesheet reads them.
 test("a code line reports the height it draws, on a mouse and on a touch screen", () => {
 	expect(reviewRowSize(lineRow, diffRowHeights(false))).toBe(28);
@@ -38,4 +38,19 @@ test("a file header carries the clear space above it, and a row of a group carri
 	expect(diffRowStyle(false)["--review-diff-file-box"]).toBe("48px");
 	expect(diffRowHeights(false).group).toBe(32);
 	expect(diffRowStyle(false)["--review-diff-group-box"]).toBe("32px");
+});
+
+// A touch screen has no pointer that hovers, so the reveal of the Add line
+// comment button needs an escape or the button never appears on a phone.
+test("the Add line comment button shows on a screen that cannot hover", () => {
+	expect(css).toMatch(/@media \(hover: none\) \{\s*\.review-diff-line > button \{\s*opacity: 1;/);
+});
+
+// A hovered line keeps the green of an addition and the red of a deletion,
+// because the tint is a layer over the colour, and the row is a button, so it
+// draws a focus ring.
+test("hover lays a tint over the line colour, and focus draws a ring", () => {
+	expect(css).toContain("background-image: linear-gradient(var(--review-diff-hover), var(--review-diff-hover))");
+	expect(css).toMatch(/\.review-diff-line:focus-visible \{\s*outline: 2px solid var\(--accent\);/);
+	expect(css).not.toContain("outline: 0");
 });

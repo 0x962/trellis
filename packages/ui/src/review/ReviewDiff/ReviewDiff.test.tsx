@@ -143,3 +143,10 @@ test("the diff names each risk group above its first file, and says why a file s
 	expect(html.indexOf('data-group="risk"')).toBeLessThan(html.indexOf('data-file-path="deleted.ts"'));
 	expect(html.indexOf('data-file-path="deleted.ts"')).toBeLessThan(html.indexOf('data-group="tests"'));
 });
+
+test("a file header prints one path when Git did not rename the file", () => {
+	const html = renderPatch(patch);
+
+	expect(html).toContain("changed.ts");
+	expect(html).not.toContain("changed.ts → changed.ts");
+});
