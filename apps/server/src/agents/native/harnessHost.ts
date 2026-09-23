@@ -12,6 +12,7 @@ export const nativeHost = (
 	new HarnessHost({
 		runtime,
 		directory: join(home, "harness-attempts"),
+		agents: join(home, "agents"),
 		env,
 		bun: process.execPath,
 		observationTimeoutMs: 60000,

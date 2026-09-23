@@ -41,7 +41,6 @@ export const reserve = async (
 	const project = await resolveMutableProject(ctx, tx, ticket?.projectId ?? input.project!);
 	const kind = options?.session ? "session" : options?.flow ? "flow" : "agent";
 	const name = options?.session?.name ?? options?.flow?.name ?? "Agent";
-	await tx.execute(sql`SELECT id FROM projects WHERE id = ${project.id} FOR UPDATE`);
 	const request = {
 		requestId: input.requestId,
 		target: {
@@ -64,6 +63,10 @@ export const reserve = async (
 	if (input.harness) config = { ...config, harness: HarnessSchema.parse(input.harness), accountId: null };
 	if (kind === "agent") {
 		if (ticket!.completedAt !== null) throw invalidInput("ticket", "Reopen the ticket before an agent starts.");
+		// A ticket carries one open agent run. The index
+		// `agent_runs_active_ticket_idx` holds that rule, and the INSERT below
+		// answers DUPLICATE when a run of another caller already holds the
+		// ticket. This read answers DUPLICATE before the work of a reservation.
 		const assigned = await rows(
 			tx,
 			sql`SELECT id FROM agent_runs WHERE ticket_id=${ticket!.id} AND kind='agent' AND closed_at IS NULL LIMIT 1`,
@@ -101,6 +104,8 @@ export const reserve = async (
 			branch: runBranch({ id, kind, ticketIdentifier: ticket!.identifier }),
 			publicUrl: ctx.publicUrl,
 		});
+	// `ON CONFLICT DO NOTHING` returns no row when `agent_runs_active_ticket_idx`
+	// already holds an open agent run for this ticket.
 	const [run] = await rows<StoredRun>(
 		tx,
 		sql`INSERT INTO agent_runs (id, name, harness, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, runtime, closed_at, session_id, created_at, updated_at)
