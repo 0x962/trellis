@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { TicketRefStringSchema } from "@trellis/api";
 import type { ProjectColor } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
-import { roomColorOf, ticketRefOfPath } from "./projectRoom";
+import { roomColorOfPath, ticketRefOfPath } from "./projectRoom";
 
 // The color of the room the person stands in. The project list is in the
 // cache already, because the sidebar and the command palette read it. A
@@ -15,7 +15,7 @@ import { roomColorOf, ticketRefOfPath } from "./projectRoom";
 export const useRoomColor = (pathname: string): ProjectColor | null => {
 	const { orpc } = useApp();
 	const ref = TicketRefStringSchema.safeParse(ticketRefOfPath(pathname) ?? "");
-	const ticketProject = useQuery({
+	const ticketProjectKey = useQuery({
 		...orpc.tickets.get.queryOptions({ input: { ticket: ref.success ? ref.data : "" } }),
 		enabled: ref.success,
 		select: (ticket) => ticket.project.key,
@@ -23,7 +23,7 @@ export const useRoomColor = (pathname: string): ProjectColor | null => {
 	return (
 		useQuery({
 			...orpc.projects.list.queryOptions({ input: {} }),
-			select: (projects) => roomColorOf(pathname, projects, ticketProject ?? null),
+			select: (projects) => roomColorOfPath(pathname, projects, ticketProjectKey ?? null),
 		}).data ?? null
 	);
 };

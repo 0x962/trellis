@@ -3,15 +3,12 @@ import type { ProjectColor } from "../projectColors";
 
 export type ProjectKeyProps = {
 	projectKey: string;
-	// The color of the project. The chip then carries that color: the key
-	// stands in the color on the soft ground of it. A project with `null`
-	// keeps the grey chip.
-	color?: ProjectColor | null;
+	color: ProjectColor | null;
 	className?: string;
 };
 
-// A root project's key as a small mono tag: `CDE`.
-export function ProjectKey({ projectKey, color = null, className }: ProjectKeyProps) {
+// The key of a project as a small mono tag: `CDE`.
+export function ProjectKey({ projectKey, color, className }: ProjectKeyProps) {
 	return (
 		<span
 			data-project-color={color ?? undefined}

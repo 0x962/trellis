@@ -44,7 +44,7 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: ProjectCreateInput)
 	await assertKeyFree(tx, input.key);
 	await assertSlugFree(tx, slug, null);
 	await assertNameFree(tx, input.name, null);
-	if (input.color !== undefined) await assertColorFree(tx, input.color, null);
+	if (input.color !== undefined && input.color !== null) await assertColorFree(tx, input.color, null);
 	const position = await nextPosition(tx);
 	await tx.execute(
 		sql`INSERT INTO projects (id, key, slug, name, description, directory, ticket_template, ticket_counter, position, color, archived_at, created_at, updated_at)

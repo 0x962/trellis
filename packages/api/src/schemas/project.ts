@@ -74,7 +74,8 @@ export const ProjectCreateInputSchema = z.strictObject({
 	name: ProjectNameSchema,
 	description: z.string().optional(),
 	ticketTemplate: z.string().optional(),
-	color: ProjectColorSchema.optional(),
+	// `null` gives the project no color, as it does on an update.
+	color: ProjectColorSchema.nullable().optional(),
 });
 export type ProjectCreateInput = z.input<typeof ProjectCreateInputSchema>;
 

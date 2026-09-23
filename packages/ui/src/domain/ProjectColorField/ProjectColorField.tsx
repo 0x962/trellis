@@ -1,7 +1,7 @@
 import { Field } from "../../primitives/Field";
 import { Select, type SelectItem } from "../../primitives/Select";
 import { ProjectMark } from "../ProjectMark";
-import { freeProjectColors, type ProjectColor, projectColorNames } from "../projectColors";
+import { freeProjectColors, type ProjectColor, projectColorLabels } from "../projectColors";
 
 export type ProjectColorFieldProps = {
 	value: ProjectColor | null;
@@ -14,16 +14,16 @@ type Choice = ProjectColor | "none";
 
 const noneItem: SelectItem<Choice> = { value: "none", label: "No color", icon: <ProjectMark color={null} /> };
 
-// The color field of a project. The list holds what `freeProjectColors`
-// gives back. A project that finds no free color reads the sentence under
-// the field, and it keeps the grey mark and the plain page ground.
+// The color field of a project. A project that finds no free color reads the
+// sentence under the field, and it keeps the grey mark and the plain page
+// ground.
 export function ProjectColorField({ value, taken, onValueChange }: ProjectColorFieldProps) {
 	const free = freeProjectColors(taken, value);
 	const items: SelectItem<Choice>[] = [
 		noneItem,
 		...free.map((color) => ({
 			value: color,
-			label: projectColorNames[color],
+			label: projectColorLabels[color],
 			icon: <ProjectMark color={color} />,
 		})),
 	];

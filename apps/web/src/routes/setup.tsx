@@ -37,11 +37,7 @@ function SetupPage() {
 	const identity = useSuspenseQuery(orpc.actors.default.queryOptions({})).data;
 
 	const create = async (input: { key: string; name: string; color: ProjectColor | null }) => {
-		await client.projects.create({
-			key: input.key,
-			name: input.name,
-			...(input.color === null ? {} : { color: input.color }),
-		});
+		await client.projects.create({ key: input.key, name: input.name, color: input.color });
 		await queryClient.invalidateQueries({ queryKey: orpc.projects.list.key() });
 		await navigate({ to: "/p/$", params: { _splat: input.key } });
 	};
