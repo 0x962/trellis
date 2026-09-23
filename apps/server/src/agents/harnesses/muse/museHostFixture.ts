@@ -1,10 +1,10 @@
 import { createInterface } from "node:readline";
 
 // A fake `muse serve` for the bridge tests. It answers the Muse Session
-// Protocol requests that the bridge sends while it starts. After the first
-// turn starts, it sends the receipt of the prompt and one agent message. The
-// bridge reports both to the runtime, so a test runtime that refuses the
-// agent message makes the event chain of the bridge reject.
+// Protocol requests that the bridge sends while it starts. The bridge
+// reports the prompt receipt and the agent message to the runtime, so a
+// test runtime that refuses the agent message makes the event chain of
+// the bridge reject.
 const sessionId = "session-under-test";
 const turnId = "turn-under-test";
 const write = (message: unknown) => process.stdout.write(`${JSON.stringify(message)}\n`);
