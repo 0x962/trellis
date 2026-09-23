@@ -15,6 +15,7 @@ import {
 	PriorityIconSection,
 	ProjectRoomSection,
 	ResourceListSection,
+	ReviewDiffSection,
 	ReviewStatusSummarySection,
 	RunLineSection,
 	StartControlsSection,
@@ -47,6 +48,7 @@ export function DomainSections() {
 			<ProjectRoomSection />
 			<FlowRunSection />
 			<FileRiskGroupsSection />
+			<ReviewDiffSection />
 			<RunLineSection />
 			<ChangeSummarySection />
 			<StartControlsSection />
