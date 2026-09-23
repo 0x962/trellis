@@ -93,7 +93,7 @@ test("the rows under More indent one step past the rows above them", async () =>
 test("only the Epics row prints a count", async () => {
 	const html = await render("/p/TRL");
 
-	const counts = [...html.matchAll(/<span class="sidebar-trailing gap-1 text-fg-faint">([^<]*)<\/span>/g)];
+	const counts = [...html.matchAll(/<span class="[^"]*sidebar-trailing[^"]*">([^<]*)<\/span>/g)];
 
 	expect(counts.map((match) => match[1])).toEqual(["3"]);
 });
