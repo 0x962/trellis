@@ -1,9 +1,9 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { EmptyState, PriorityIcon, ProjectKey, StatusIcon, useMediaQuery } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 import { compactRelativeTime, formatCount } from "../../../lib/format";
-
+import { projectColorsByKey } from "../../../lib/projectChipColor";
 import type { View } from "../../filters/grammar";
 import { TicketLink } from "../../shell/TicketLink";
 import { highlight } from "../utils/highlight";
@@ -36,6 +36,12 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 	const { tickets, projects } = useSuspenseQuery(
 		orpc.search.query.queryOptions({ input: { q, rankProject: filters.rankProject } }),
 	).data;
+	// A ticket row carries the key of its project and no color, so the chip of
+	// that row reads the color out of the project list.
+	const colors = useQuery({
+		...orpc.projects.list.queryOptions({ input: {} }),
+		select: projectColorsByKey,
+	}).data;
 	const visibleTickets = tickets.filter(
 		(ticket) => filters.priority === undefined || filters.priority.includes(ticket.priority),
 	);
@@ -108,7 +114,7 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 								<td className="truncate pr-3 text-base">{highlight(ticket.title, q)}</td>
 								<td className="w-40 pr-3" title={ticket.project.key}>
 									<span className="flex min-w-0 items-center gap-1.5">
-										<ProjectKey projectKey={segments[0]!} color={null} />
+										<ProjectKey projectKey={segments[0]!} color={colors?.[segments[0]!] ?? null} />
 										{segments.length > 1 && <span className="truncate text-sm text-fg-muted">{segments.at(-1)}</span>}
 									</span>
 								</td>

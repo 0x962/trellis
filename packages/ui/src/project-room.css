@@ -53,7 +53,7 @@
 
 /*
  * The key chip of a project: the key in the color of the project, on the
- * soft ground of that color. `projectTokens.test.ts` measures the text on
+ * soft ground of that color. `projectColors.test.ts` measures the text on
  * the ground at 4.5:1 or better in both themes.
  */
 .project-chip {
@@ -65,7 +65,7 @@
  * The ground of a page that belongs to a project. The share below costs
  * every status color the same fraction of its contrast, so no status starts
  * to look like another, and every status glyph still reads at 3:1 or better
- * on every project ground in both themes. `projectTokens.test.ts` reads the
+ * on every project ground in both themes. `projectColors.test.ts` reads the
  * share from this line and measures that. A larger share breaks it.
  */
 .project-room[data-project-color] {
