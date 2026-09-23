@@ -10,7 +10,7 @@ afterEach(() => {
 	process.stdout.write = realWrite;
 });
 
-function fakeTerminal() {
+function standInTerminal() {
 	const rawModes: boolean[] = [];
 	let paused = false;
 	let typed: ((chunk: Buffer) => void) | undefined;
@@ -49,7 +49,7 @@ function fakeTerminal() {
 // `stopMuseTerminalReader` sets a flag that stays for the life of the process.
 // One test therefore checks the start, the stop, and a second start in order.
 test("the reader takes the terminal, gives it back, and takes it no second time", () => {
-	const terminal = fakeTerminal();
+	const terminal = standInTerminal();
 	const prompts: string[] = [];
 	let interrupts = 0;
 	const options = {
@@ -77,7 +77,7 @@ test("the reader takes the terminal, gives it back, and takes it no second time"
 	// The bridge can stop the reader while `start()` in `bridgeEntry.ts` still
 	// waits for Muse, and `start()` reaches the reader after that. A reader
 	// that starts then holds the bridge process alive.
-	const second = fakeTerminal();
+	const second = standInTerminal();
 	expect(startMuseTerminalReader(options)).toBe(false);
 	expect(second.hasReader()).toBe(false);
 	expect(second.rawModes).toEqual([]);
