@@ -9,4 +9,4 @@ export { patchDigest } from "./ReviewDiff/patchDigest";
 export { type DiffAnchor, ReviewDiff, type ReviewDiffFile } from "./ReviewDiff/ReviewDiff";
 export { ReviewStatus } from "./ReviewStatus/ReviewStatus";
 export { ReviewSuggestion, type ReviewSuggestionLine, type ReviewSuggestionState } from "./ReviewSuggestion";
-export { ReviewThreadCard } from "./ReviewThreadCard/ReviewThreadCard";
+export { ReviewThreadCard } from "./ReviewThreadCard";
