@@ -1,6 +1,6 @@
 import { createInterface } from "node:readline";
 
-// A fake `muse serve` for the bridge tests. It answers the Muse Session
+// A stand-in for `muse serve` in the bridge tests. It answers the Muse Session
 // Protocol requests that the bridge sends while it starts. The bridge
 // reports the prompt receipt and the agent message to the runtime, so a
 // test runtime that refuses the agent message makes the event chain of
