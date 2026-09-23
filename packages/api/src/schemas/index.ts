@@ -10,6 +10,7 @@ export * from "./epic.ts";
 export * from "./evidence.ts";
 export * from "./flow.ts";
 export * from "./flowExecution.ts";
+export * from "./flowWaiver.ts";
 export * from "./harnessAccount.ts";
 export * from "./label.ts";
 export * from "./needsYou.ts";

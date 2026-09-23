@@ -1,7 +1,7 @@
 import { ArrowsClockwise, FlowArrow, Stop } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import type { FlowExecutionRecord } from "@trellis/api";
+import { type FlowExecutionRecord, flowRunIsLive } from "@trellis/api";
 import { Avatar, ConfirmDialog, FlowRunSummary, FlowRunTree, IconButton, Tooltip, toast } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
@@ -26,6 +26,7 @@ export function FlowRun({
 	expanded,
 	onToggle,
 	canStart,
+	headSha,
 }: {
 	execution: FlowExecutionRecord;
 	ticket: string;
@@ -33,10 +34,12 @@ export function FlowRun({
 	onToggle: () => void;
 	// No run of the ticket is live, so this one can run again.
 	canStart: boolean;
+	// The commit the pull request points at now, which a new run stores.
+	headSha: string;
 }) {
 	const { client, orpc, queryClient } = useApp();
 	const { doc, state } = execution;
-	const live = state.status === "running" || state.status === "waiting";
+	const live = flowRunIsLive(state.status);
 	const now = useClock(live);
 	const runs = useQuery(orpc.agentRuns.list.queryOptions({ input: { ticket } }));
 	const rows = useMemo(() => buildFlowRunRows(execution), [execution]);
@@ -63,6 +66,7 @@ export function FlowRun({
 			return client.flowExecutions.start({
 				flow: execution.flowId,
 				ticket,
+				headSha,
 				requestId: crypto.randomUUID(),
 				expectedVersion: current.flow.version,
 			});

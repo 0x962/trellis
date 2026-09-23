@@ -24,7 +24,7 @@ export const readExecution = async (tx: Tx, id: string, lock = false) => {
 export const get = async (_ctx: ServiceCtx, tx: Tx, input: { id: string }): Promise<FlowExecutionRecord> => {
 	const [record] = await rows<Omit<FlowExecutionRecord, "tasks">>(
 		tx,
-		sql`SELECT id,flow_id AS "flowId",ticket_id AS "ticketId",project_id AS "projectId",revision,doc,state,${iso(sql`created_at`)} AS "createdAt",${iso(sql`updated_at`)} AS "updatedAt" FROM flow_executions WHERE id=${input.id}`,
+		sql`SELECT id,flow_id AS "flowId",ticket_id AS "ticketId",project_id AS "projectId",revision,head_sha AS "headSha",doc,state,${iso(sql`created_at`)} AS "createdAt",${iso(sql`updated_at`)} AS "updatedAt" FROM flow_executions WHERE id=${input.id}`,
 	);
 	if (!record) throw fail("NOT_FOUND", { kind: "flow execution", ref: input.id });
 	const tasks = await rows<FlowExecutionRecord["tasks"][number]>(
