@@ -8,7 +8,7 @@ test("throws seven pieces, each with its own drift, turn and start delay", () =>
 
 	expect(html.split("data-confetti-piece").length - 1).toBe(7);
 	expect(html).toContain("left:14px");
-	expect(html).toContain("--confetti-drift:-24px");
+	expect(html).toContain("--confetti-across:-24px");
 	expect(html).toContain("--confetti-turn:-286deg");
 	expect(html).toContain("animation-delay:0ms");
 	expect(html).toContain("animation-delay:156ms");

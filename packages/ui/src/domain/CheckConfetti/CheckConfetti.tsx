@@ -32,10 +32,10 @@ export function CheckConfetti({ className }: CheckConfettiProps) {
 							left: `${piece.x}px`,
 							animationDelay: `${index * confettiStepMs}ms`,
 							"--confetti-run": `${confettiPieceMs}ms`,
-							"--confetti-drift": `${piece.dx}px`,
+							"--confetti-across": `${piece.dx}px`,
 						} as CSSProperties
 					}
-					className="absolute top-px block animate-confetti-drift"
+					className="absolute top-px block confetti-drift motion-reduce:animate-none"
 				>
 					<i
 						style={
@@ -46,7 +46,7 @@ export function CheckConfetti({ className }: CheckConfettiProps) {
 								background: `var(${piece.ink})`,
 							} as CSSProperties
 						}
-						className="block h-2 w-[3px] animate-confetti-arc rounded-[1px]"
+						className="block h-2 w-[3px] confetti-arc rounded-[1px] motion-reduce:animate-none"
 					/>
 				</span>
 			))}
