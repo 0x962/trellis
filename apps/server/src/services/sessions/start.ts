@@ -39,7 +39,7 @@ export const prepareStart = async (
 		if (previous?.status === "running") return { id: session.id };
 		if (previous !== null && previous.status !== "exited")
 			throw invalidInput("id", "Stop the prior process and confirm it exited before you start the session again.");
-		if (run.projectId === null && run.terminalId === null) await prepareSessionRepository(ctx.home, session.name);
+		if (run.projectId === null && run.terminalId === null) await prepareSessionRepository(session.directory);
 		const resume =
 			previous?.status === "exited" &&
 			previous.agent?.sessionId != null &&

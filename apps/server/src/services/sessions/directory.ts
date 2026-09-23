@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { mkdir, readdir, rm } from "node:fs/promises";
-import { join, resolve, sep } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import { executionEnvironment } from "../../executionEnvironment";
 
@@ -45,17 +45,17 @@ const initializeRepository = async (directory: string) => {
 	return directory;
 };
 
-export const createSessionRepository = async (home: string, name: string) => {
-	const directory = join(sessionsRoot(home), name);
-	await mkdir(sessionsRoot(home), { recursive: true, mode: 0o700 });
+// `directory` is the path stored on the session row. It never changes, so a
+// rename leaves the files where they are.
+export const createSessionRepository = async (directory: string) => {
+	await mkdir(dirname(directory), { recursive: true, mode: 0o700 });
 	await mkdir(directory, { mode: 0o700 });
 	return initializeRepository(directory);
 };
 
 // A failed first launch can leave the directory or Git metadata incomplete.
 // Repeated initialization preserves files and creates a commit only when Git has no history.
-export const prepareSessionRepository = async (home: string, name: string) => {
-	const directory = join(sessionsRoot(home), name);
+export const prepareSessionRepository = async (directory: string) => {
 	await mkdir(directory, { recursive: true, mode: 0o700 });
 	return initializeRepository(directory);
 };
