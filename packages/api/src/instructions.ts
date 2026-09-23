@@ -8,7 +8,7 @@ Inside Claude Code, every command runs as \`agent:claude-code\`. Elsewhere, set 
 1. Pick work:        trellis list --project ${key} --status todo
 2. Read the ticket:  trellis brief ${key}-42
 3. Start:            trellis move ${key}-42 in-progress
-4. Put the identifier in the branch name, for example ${key}-42-dark-mode. Link the PR to the ticket: trellis pr add ${key}-42 <url>. It starts as a draft.
+4. Put the identifier in the branch name, for example ${key}-42-dark-mode. Open a normal pull request on GitHub, then link it to the ticket: trellis pr add ${key}-42 <url>. It waits in Trellis until you ask for review.
 5. Split work:       trellis sub ${key}-42 -t "Write tests"
 6. Finish coding:    trellis move ${key}-42 agent-review
 7. When the agent review passes: trellis move ${key}-42 human-review
@@ -52,8 +52,10 @@ Prove the change. A pull request is ready for review when it has the explanation
    trellis ready <pr> --flow-does-not-apply "<reason>"
    Trellis keeps that reason with the pull request for the current head, and the person reads it beside your change.
 7. Ask for review:  trellis ready <pr>
-   It checks the parts, marks the pull request ready in Trellis, and makes it ready for review on GitHub.
-   Until then the person sees a draft.
+   It checks the parts and records that you asked for review.
+   The pull request turns green for the person when every part holds: you asked for review, every check passed,
+   a flow run of this commit finished, every review finding is resolved, the pull request merges cleanly, and the
+   explanation and the evidence document are there. Until then the person sees it as not ready for review.
    Hand over:        trellis move ${key}-42 human-review
 
 Labels say what a ticket is about. Read the set of the project: trellis labels list ${key}

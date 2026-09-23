@@ -1,4 +1,4 @@
-import { type FlowSummary, flowRunNeedsPerson, flowRunWorks } from "@trellis/api";
+import { type FlowSummary, flowRunWorks } from "@trellis/api";
 import type { TrellisClient } from "@trellis/api/client";
 import { flowChoiceLines, flowRunCommand } from "../flows/flowText.ts";
 import type { PullRequestRef } from "../pullRequestRef.ts";
@@ -17,12 +17,10 @@ export type FlowReadiness = {
 	satisfied: boolean;
 };
 
-// A run that reached its last agent step and now waits for a person answers
-// the check. Every agent step of that run passed, and only a person can move
-// it, so a block here would hold the agent and the person against each other:
-// the agent would wait for the run, and the person opens the Flows tab of the
-// pull request during the review the agent is asking for.
-const answersTheCheck = (run: CurrentHeadRun) => run.status === "succeeded" || flowRunNeedsPerson(run.status);
+// A flow is machine review, and it asks the person nothing. Only a run that
+// finished answers the check. A run that stopped and waits did not finish,
+// so the pull request is not ready and the agent runs the flow again.
+const answersTheCheck = (run: CurrentHeadRun) => run.status === "succeeded";
 
 // A flow runs against a ticket. If no ticket links the pull request,
 // `trellis ready` asks for no flow run.
@@ -52,7 +50,7 @@ export const flowRunMissingSummary = ({ runs }: FlowReadiness, number: number): 
 	if (runs.length === 0) return "no flow ran on the current head";
 	if (runs.some((run) => flowRunWorks(run.status)))
 		return `a flow still works. Wait for it, then run: trellis ready ${number}`;
-	return "every flow run on the current head ended without success";
+	return "no flow run on the current head finished";
 };
 
 // The last line of the block: the way out for a change that no flow fits.
@@ -63,9 +61,16 @@ const notApplicableLines = (number: number): string[] => [
 	`      trellis ready ${number} --flow-does-not-apply "<reason>"`,
 ];
 
+// How one run that did not finish reads in its line.
+const endWord = (status: string): string => {
+	if (status === "canceled") return "was canceled";
+	if (status === "waiting") return "stopped and did not finish";
+	return "failed";
+};
+
 // The lines under `MISSING  flow run`. With no run they name each flow the
-// agent could pick and the command that starts it. With a run that ended
-// without success they name that run and both ways out of it.
+// agent could pick and the command that starts it. With a run that did not
+// finish they name that run and both ways out of it.
 export const flowRunMissingLines = (readiness: FlowReadiness, number: number): string[] => {
 	const { flows, runs } = readiness;
 	if (runs.length === 0)
@@ -78,19 +83,12 @@ export const flowRunMissingLines = (readiness: FlowReadiness, number: number): s
 		return runs.filter((run) => flowRunWorks(run.status)).map((run) => `    The ${run.name} flow is still at work.`);
 	return [
 		...runs.flatMap((run) => [
-			`    The ${run.name} flow ${run.status === "canceled" ? "was canceled" : "failed"}. Fix the fault and run it again:`,
+			`    The ${run.name} flow ${endWord(run.status)}. Fix the fault and run it again:`,
 			`      ${flowRunCommand(run.slug, number)}`,
 		]),
 		...notApplicableLines(number),
 	];
 };
-
-// The line `trellis ready` adds when it passes on a run that waits for a
-// person. The person reads it in the agent's report and knows what to answer.
-export const flowRunWaitingLines = ({ runs }: FlowReadiness): string[] =>
-	runs
-		.filter((run) => flowRunNeedsPerson(run.status))
-		.map((run) => `  The ${run.name} flow waits for you. Answer its open step in the Flows tab of the pull request.`);
 
 // The line `trellis ready` adds when it passes on the agent's own sentence
 // instead of a run. The person reads the sentence in the agent's report.

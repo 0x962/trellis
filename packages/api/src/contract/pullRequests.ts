@@ -57,7 +57,7 @@ export const pullRequests = {
 		.route({
 			method: "PUT",
 			path: "/prs/{id}/local-state",
-			summary: "Mark a pull request as a draft or ready for review",
+			summary: "Record whether the agent asked the person to review a pull request",
 		})
 		.input(PullRequestSetLocalStateInputSchema)
 		.output(PullRequestSchema),

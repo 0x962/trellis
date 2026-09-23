@@ -1,6 +1,6 @@
 import type { EpicCounts, WaveSummary } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
-import { reviewDraftSql } from "../../db/queries/pullRequestRows.ts";
+import { notReadyForReviewSql } from "../../db/queries/reviewReady.ts";
 import { iso } from "../../db/queries/support.ts";
 import { stateOf, ticketCounts, toCounts } from "../epics/rows.ts";
 
@@ -28,34 +28,23 @@ export type RawWave = EpicCounts & {
 export const waveRefOf = (row: { root_key: string; epic_slug: string; slug: string }) =>
 	`${row.root_key}/${row.epic_slug}/${row.slug}`;
 
-const hasOpenThread = sql`EXISTS (
-	SELECT 1 FROM review_threads thread
-	WHERE thread.pr_id = pull_request.id AND thread.document->>'status' = 'open'
-)`;
-
 const hasLinkedPullRequest = (condition: SQL) => sql`EXISTS (
 	SELECT 1 FROM ticket_pull_requests link
 	JOIN pull_requests pull_request ON pull_request.id = link.pull_request_id
 	WHERE link.ticket_id = t.id AND ${condition}
 )`;
 
-const hasAgentPullRequest = hasLinkedPullRequest(sql`
-	pull_request.state = 'open' AND (
-		${reviewDraftSql(sql`pull_request`)} OR pull_request.ci_state = 'fail' OR ${hasOpenThread}
-	)
-`);
-
-const hasGithubPullRequest = hasLinkedPullRequest(sql`
-	pull_request.state = 'open' AND NOT ${reviewDraftSql(sql`pull_request`)} AND pull_request.ci_state = 'pending'
-`);
+// An open pull request that is not ready for review waits for its agent,
+// and one that is ready waits for the person. `notReadyForReviewSql` is the
+// SQL form of the `reviewGaps` rule in `packages/api`, so this count and the
+// turn of a row answer alike.
+const hasPullRequestNotReady = hasLinkedPullRequest(notReadyForReviewSql(sql`pull_request`));
 
 const hasReadyPullRequest = hasLinkedPullRequest(sql`
 	pull_request.fetched_at IS NOT NULL
 	AND pull_request.fetch_error IS NULL
 	AND pull_request.state = 'open'
-	AND NOT ${reviewDraftSql(sql`pull_request`)}
-	AND pull_request.ci_state IN ('none', 'pass')
-	AND NOT ${hasOpenThread}
+	AND NOT ${notReadyForReviewSql(sql`pull_request`)}
 `);
 
 // The counts that tell the person what is next in a wave. A todo ticket
@@ -74,11 +63,7 @@ const nextCounts = sql`,
 				s.category NOT IN ('done', 'canceled')
 				AND (
 					s.reviewer = 'human'
-					OR (
-						NOT ${hasAgentPullRequest}
-						AND NOT ${hasGithubPullRequest}
-						AND ${hasReadyPullRequest}
-					)
+					OR (NOT ${hasPullRequestNotReady} AND ${hasReadyPullRequest})
 				)
 			))::int AS waits_for_you`;
 

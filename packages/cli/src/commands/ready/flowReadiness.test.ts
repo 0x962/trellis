@@ -6,7 +6,6 @@ import {
 	flowReadiness,
 	flowRunMissingLines,
 	flowRunMissingSummary,
-	flowRunWaitingLines,
 	flowWaivedLines,
 } from "./flowReadiness.ts";
 
@@ -17,7 +16,7 @@ const readiness = (runs: FlowReadiness["runs"]): FlowReadiness => ({
 	flows: [flow("review", "Review", "Read the diff and report every fault."), flow("e2e", "End to end", "")],
 	runs,
 	waived: null,
-	satisfied: runs.some((run) => run.status === "succeeded" || run.status === "waiting"),
+	satisfied: runs.some((run) => run.status === "succeeded"),
 });
 
 // Records the list input, so a test can state that the head filter reaches
@@ -80,13 +79,15 @@ test("is satisfied by a run that succeeded", async () => {
 	expect((await flowReadiness(client, ref, "OP-74", "abc123")).satisfied).toBe(true);
 });
 
-test("is satisfied by a run that waits for a person", async () => {
+// A flow is machine review. A run that stopped and waits did not finish, so
+// it answers nothing and the agent runs the flow again.
+test("is not satisfied by a run that stopped and waits", async () => {
 	const { client } = clientWith(
 		[flow("review", "Review", "")],
 		[{ slug: "review", name: "Review", status: "waiting" }],
 	);
 
-	expect((await flowReadiness(client, ref, "OP-74", "abc123")).satisfied).toBe(true);
+	expect((await flowReadiness(client, ref, "OP-74", "abc123")).satisfied).toBe(false);
 });
 
 test("is not satisfied by a run that failed", async () => {
@@ -119,7 +120,7 @@ test("tells the agent to wait only while a run works on its own", () => {
 test("names the failed run and both ways out of it", () => {
 	const state = readiness([{ slug: "review", name: "Review", status: "failed" }]);
 
-	expect(flowRunMissingSummary(state, 131)).toBe("every flow run on the current head ended without success");
+	expect(flowRunMissingSummary(state, 131)).toBe("no flow run on the current head finished");
 	expect(flowRunMissingLines(state, 131)).toEqual([
 		"    The Review flow failed. Fix the fault and run it again:",
 		"      trellis flows run 131 --flow review",
@@ -129,14 +130,17 @@ test("names the failed run and both ways out of it", () => {
 	]);
 });
 
-test("tells the person which flow waits for them", () => {
-	expect(flowRunWaitingLines(readiness([{ slug: "review", name: "Review", status: "waiting" }]))).toEqual([
-		"  The Review flow waits for you. Answer its open step in the Flows tab of the pull request.",
-	]);
-});
+test("names a run that stopped and tells the agent to run the flow again", () => {
+	const state = readiness([{ slug: "review", name: "Review", status: "waiting" }]);
 
-test("says nothing to the person when no run waits", () => {
-	expect(flowRunWaitingLines(readiness([{ slug: "review", name: "Review", status: "succeeded" }]))).toEqual([]);
+	expect(flowRunMissingSummary(state, 131)).toBe("no flow run on the current head finished");
+	expect(flowRunMissingLines(state, 131)).toEqual([
+		"    The Review flow stopped and did not finish. Fix the fault and run it again:",
+		"      trellis flows run 131 --flow review",
+		"    A flow that does not fit this change is answered in one step. Write the reason in the",
+		"    evidence document, then record it here:",
+		'      trellis ready 131 --flow-does-not-apply "<reason>"',
+	]);
 });
 
 test("takes the agent's own sentence in place of a run", async () => {

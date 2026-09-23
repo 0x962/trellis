@@ -2,6 +2,7 @@ import { z } from "zod";
 import { CiStateSchema, LocalPrStateSchema } from "./enums";
 import { booleanString, IsoDateTimeSchema, UlidSchema } from "./primitives";
 import { CheckSchema, PullRequestSchema } from "./pullRequest";
+import { ReviewGapSchema } from "./reviewReady.ts";
 import { TicketIdentifierSchema } from "./ticket";
 import { TicketPrSchema } from "./ticketPr";
 
@@ -118,6 +119,9 @@ export const ReviewPrSchema = z.object({
 	isDraft: z.boolean(),
 	isQueued: z.boolean(),
 	localState: LocalPrStateSchema,
+	// What this pull request still needs before the person reviews it, from
+	// `reviewGaps`. An empty list means ready for review.
+	reviewGaps: z.array(ReviewGapSchema),
 	checks: z.array(CheckSchema),
 	ciState: CiStateSchema,
 	open: z.number().int(),

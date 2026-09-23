@@ -172,8 +172,8 @@ describe("the order of a ticket's pull requests", () => {
 		expect(numbersOf(items)).toEqual([11, 12, 13]);
 	});
 
-	test("counts a draft and a queued pull request as open", () => {
-		const draft = { ...prIn(11, "open"), localState: "draft" } as TicketPr;
+	test("counts a pull request that is not ready and a queued one as open", () => {
+		const draft = { ...prIn(11, "open"), localState: "not-ready" } as TicketPr;
 		const queued = { ...prIn(12, "open"), isQueued: true } as TicketPr;
 		const prs = [prIn(13, "merged"), draft, queued];
 

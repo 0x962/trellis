@@ -2,20 +2,22 @@ import { expect, test } from "bun:test";
 import type { TrellisClient } from "@trellis/api/client";
 import {
 	type PullRequestReadiness,
-	pullRequestDraftText,
 	pullRequestReadiness,
 	pullRequestReadyText,
+	pullRequestWaitingText,
 } from "./pullRequestReady.ts";
 
 const readiness = (
 	missing: PullRequestReadiness["missing"],
 	dataModelDiagramRequired = false,
+	waitingOn: PullRequestReadiness["waitingOn"] = [],
 ): PullRequestReadiness => ({
 	dataModelDiagramRequired,
 	pullRequest: { number: 131, url: "https://github.com/acme/trellis/pull/131", headSha: "abc123", isDraft: false },
 	flows: { flows: [], runs: [], waived: null, satisfied: true },
 	missing,
 	ready: missing.length === 0,
+	waitingOn,
 });
 
 test("names each missing part with its command", () => {
@@ -68,13 +70,27 @@ test("names each flow with the command that runs it when no flow ran", () => {
 
 test("says the pull request is ready when both parts exist", () => {
 	expect(pullRequestReadyText(readiness([]))).toBe(
-		"#131 is ready for review. It has the explanation and the evidence document. Trellis marked it ready, and GitHub is ready for review.\n",
+		"#131 is ready for review. It has the explanation and the evidence document. Trellis marked it ready for review.\n",
 	);
 });
 
-test("tells the agent that a linked pull request is a draft until trellis ready", () => {
-	expect(pullRequestDraftText(131)).toBe(
-		"#131 is a draft. When the work is complete and you want the person to review it, run: trellis ready 131\n",
+test("names what the pull request still waits for after the agent asked for review", () => {
+	const result = readiness([], false, [
+		{ kind: "checks-pending", count: 2 },
+		{ kind: "findings", count: 1 },
+	]);
+
+	expect(pullRequestReadyText(result)).toBe(
+		`#131 is not ready for review yet. It has the explanation and the evidence document, and Trellis recorded that you asked for review. It turns green for the person when this is true as well:
+  MISSING  2 checks pending
+  MISSING  1 review finding open
+`,
+	);
+});
+
+test("tells the agent that a linked pull request waits until trellis ready", () => {
+	expect(pullRequestWaitingText(131)).toBe(
+		"#131 waits in Trellis. When the work is complete and you want the person to review it, run: trellis ready 131\n",
 	);
 });
 
@@ -93,7 +109,7 @@ const clientWith = ({
 }): TrellisClient =>
 	({
 		pullRequests: {
-			refresh: async () => ({ number: 131, files, isDraft: false }),
+			refresh: async () => ({ number: 131, files, isDraft: false, reviewGaps: [{ kind: "not-asked", count: 1 }] }),
 			readEvidence: async () => evidence,
 			readFlowWaiver: async () => null,
 			readSummaryHead: async () => summaryHead,
@@ -164,7 +180,7 @@ test("takes a succeeded run of the current head as the flow run", async () => {
 
 	expect(result.ready).toBe(true);
 	expect(pullRequestReadyText(result)).toBe(
-		"#131 is ready for review. It has the explanation, the evidence document, and a flow run on this head. Trellis marked it ready, and GitHub is ready for review.\n",
+		"#131 is ready for review. It has the explanation, the evidence document, and a flow run on this head. Trellis marked it ready for review.\n",
 	);
 });
 
@@ -178,7 +194,9 @@ test("asks a caller that checks no flow for nothing new", async () => {
 	expect(result.ready).toBe(true);
 });
 
-test("passes on a run that waits for a person, and says who must answer", async () => {
+// A flow is machine review. A run that stopped and waits did not finish, so
+// the pull request is not ready and the agent runs the flow again.
+test("refuses a run that stopped and waits", async () => {
 	const result = await pullRequestReadiness(
 		clientWith({
 			...written,
@@ -189,10 +207,6 @@ test("passes on a run that waits for a person, and says who must answer", async 
 		{ checkFlows: true },
 	);
 
-	expect(result.ready).toBe(true);
-	expect(pullRequestReadyText(result)).toBe(
-		`#131 is ready for review. It has the explanation, the evidence document, and a flow run on this head. Trellis marked it ready, and GitHub is ready for review.
-  The review flow waits for you. Answer its open step in the Flows tab of the pull request.
-`,
-	);
+	expect(result.ready).toBe(false);
+	expect(result.missing).toEqual(["flow-run"]);
 });

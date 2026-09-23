@@ -7,11 +7,12 @@ const readiness = (isDraft: boolean): PullRequestReadiness => ({
 	dataModelDiagramRequired: false,
 	pullRequest: { number: 131, url: "https://github.com/acme/trellis/pull/131", headSha: "abc123", isDraft },
 	flows: { flows: [], runs: [], waived: null, satisfied: true },
+	waitingOn: [],
 	missing: [],
 	ready: true,
 });
 
-test("takes a draft pull request out of draft before it writes the Trellis ready state", async () => {
+test("clears the GitHub draft flag before it records that the agent asked for review", async () => {
 	const calls: string[] = [];
 	const client = {
 		reviews: {

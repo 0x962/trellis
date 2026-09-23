@@ -34,7 +34,6 @@ export { LineChanges, type LineChangesProps, type LineChangesValue, lineChangesV
 export { type LabelColor, labelColors } from "./domain/labelColors";
 export { MergeConflictMark, type MergeConflictMarkProps } from "./domain/MergeConflictMark";
 export {
-	type LocalPrState,
 	PrGlyph,
 	type PrGlyphProps,
 	type PrGlyphSize,
