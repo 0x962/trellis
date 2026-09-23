@@ -17,8 +17,8 @@ const at = "2026-09-22T10:00:00Z";
 const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
 const addProject = async (id: string, key: string, slug: string) => {
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${id}, ${id}, ${key}, ${slug}, ${slug}, ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${id}, ${key}, ${slug}, ${slug}, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses
 		(id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
 		VALUES (${ulid()}, ${id}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})`);

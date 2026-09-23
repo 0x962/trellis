@@ -3,7 +3,7 @@ const letters = (name: string) => name.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
 const maxLength = 5;
 
-// A key for a new root project: the first letter of each word, upper-case,
+// A key for a new project: the first letter of each word, upper-case,
 // 2 to 5 characters. One word takes its first two letters. A taken key
 // grows by the next letters of the name until it is free; at five letters
 // it takes a digit instead.

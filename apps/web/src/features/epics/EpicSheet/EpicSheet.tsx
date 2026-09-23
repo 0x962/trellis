@@ -29,7 +29,7 @@ export function EpicSheet({ project, epic, onClose, onSaved }: EpicSheetProps) {
 	const nameRef = useRef<HTMLInputElement>(null);
 	const [name, setName] = useState(epic?.name ?? "");
 	const [description, setDescription] = useState(epic?.description ?? "");
-	const input = EpicCreateInputSchema.safeParse({ project: project.path, name, description });
+	const input = EpicCreateInputSchema.safeParse({ project: project.key, name, description });
 	const save = useMutation({
 		mutationFn: (fields: EpicCreateInput) =>
 			epic === undefined
@@ -64,7 +64,7 @@ export function EpicSheet({ project, epic, onClose, onSaved }: EpicSheetProps) {
 			>
 				<SheetBody>
 					<p className="text-sm text-fg-muted">
-						An epic groups the tickets of one plan in {project.path}. Every agent of a ticket in the epic reads the
+						An epic groups the tickets of one plan in {project.key}. Every agent of a ticket in the epic reads the
 						description through its brief.
 					</p>
 					<Input

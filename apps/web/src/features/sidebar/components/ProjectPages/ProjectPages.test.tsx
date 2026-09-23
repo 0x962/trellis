@@ -13,12 +13,8 @@ import { ProjectPages } from "./ProjectPages";
 const project = {
 	id: "01M24SPHTX36AJ3VKTNZ263E7V",
 	key: "TRL",
-	path: "TRL",
-	parentId: null,
-	rootId: "01M24SPHTX36AJ3VKTNZ263E7V",
 	slug: "trellis",
 	name: "Trellis",
-	depth: 0,
 	position: 0,
 	openCount: 12,
 	openEpicCount: 3,
@@ -32,7 +28,7 @@ const render = async (pathname: string) => {
 	const rootRoute = createRootRoute({
 		component: () => (
 			<ul>
-				<ProjectPages project={project} depth={1} pathname={pathname} />
+				<ProjectPages project={project} pathname={pathname} />
 			</ul>
 		),
 	});

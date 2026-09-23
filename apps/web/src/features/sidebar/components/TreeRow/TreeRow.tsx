@@ -7,18 +7,14 @@ const ProjectRowActions = lazy(async () => ({ default: (await import("../../Proj
 
 export type TreeRowProps = {
 	project: ProjectSummary;
-	// Each level indents the row 12 px.
-	depth: number;
 	// An archived row uses faint text.
 	archived?: boolean;
 	expanded?: boolean;
 	onToggle?: () => void;
 };
 
-const indent = ["pl-2", "pl-5", "pl-8", "pl-11"] as const;
-
 // The trailing slot reserves space for the project menu on hover and focus.
-export function TreeRow({ project, depth, archived = false, expanded, onToggle }: TreeRowProps) {
+export function TreeRow({ project, archived = false, expanded, onToggle }: TreeRowProps) {
 	const hasDisclosure = expanded !== undefined && onToggle !== undefined;
 	const count = project.openCount > 0 ? formatCount(project.openCount) : null;
 	const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
@@ -36,7 +32,7 @@ export function TreeRow({ project, depth, archived = false, expanded, onToggle }
 		<li
 			className={cx(
 				"group/row sidebar-row relative text-sm hover:bg-elevated",
-				indent[Math.min(depth, indent.length - 1)],
+				"pl-2",
 				archived ? "text-fg-faint" : "font-medium text-fg",
 			)}
 		>

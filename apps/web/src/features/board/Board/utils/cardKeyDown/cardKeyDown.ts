@@ -129,11 +129,6 @@ export const cardKeyDown =
 			openOne(event.shiftKey ? "parent" : "priority");
 			return;
 		}
-		if (key === "m" && !mod) {
-			event.preventDefault();
-			openOne("project");
-			return;
-		}
 		if (key === "e" && !mod) {
 			event.preventDefault();
 			openOne("epic");

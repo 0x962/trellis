@@ -22,12 +22,11 @@ const searchFrom = 8;
 
 const skeletonRows = [0, 1, 2, 3];
 
-// The labels page of the project settings. The root project of a tree owns
-// the labels and the label groups, so every project of the tree shows and
-// edits the one set of its root.
+// The labels page of the project settings. A project owns its labels and
+// its label groups.
 export function LabelSettings({ project }: LabelSettingsProps) {
 	const { orpc, queryClient } = useApp();
-	const query = useQuery(orpc.labels.list.queryOptions({ input: { project: project.path } }));
+	const query = useQuery(orpc.labels.list.queryOptions({ input: { project: project.key } }));
 	const [search, setSearch] = useState("");
 	const [creating, setCreating] = useState<{ groupId: string | null } | null>(null);
 	const [editing, setEditing] = useState<string | null>(null);
@@ -40,11 +39,6 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 	// The menu trigger of each group, by group id. A form that a group menu
 	// opens gives the focus back to the trigger it came from.
 	const groupMenus = useRef(new Map<string, HTMLButtonElement>());
-
-	const hint =
-		project.parentId === null
-			? "A label marks a ticket for search and for filters."
-			: `Every project under ${project.ancestors.find((entry) => entry.id === project.rootId)!.name} shares these labels.`;
 
 	const refresh = async () => {
 		await queryClient.invalidateQueries({ queryKey: orpc.labels.list.key() });
@@ -93,7 +87,7 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 
 	if (query.error !== null) {
 		return (
-			<SettingsSection title="Labels" hint={hint}>
+			<SettingsSection title="Labels" hint="A label marks a ticket for search and for filters.">
 				<div role="alert">
 					<EmptyState
 						title="The labels did not load."
@@ -107,7 +101,7 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 
 	if (query.data === undefined) {
 		return (
-			<SettingsSection title="Labels" hint={hint}>
+			<SettingsSection title="Labels" hint="A label marks a ticket for search and for filters.">
 				<div role="status" className="status-group">
 					<span className="sr-only">Load the labels</span>
 					<ul className="status-group-list">
@@ -133,7 +127,7 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 	return (
 		<SettingsSection
 			title="Labels"
-			hint={hint}
+			hint="A label marks a ticket for search and for filters."
 			actions={
 				<div className="flex items-center gap-2">
 					<Tooltip content="New group">
@@ -170,7 +164,7 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 				</div>
 			)}
 			{groupForm === "new" && (
-				<LabelGroupForm project={project.path} group={null} onChanged={refresh} onCancel={() => closeGroupForm(null)} />
+				<LabelGroupForm project={project.key} group={null} onChanged={refresh} onCancel={() => closeGroupForm(null)} />
 			)}
 			{nothingYet ? (
 				<EmptyState
@@ -182,7 +176,7 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 				<EmptyState title="No label matches" description="Change the search text." />
 			) : (
 				<LabelList
-					project={project.path}
+					project={project.key}
 					entries={entries}
 					groups={groups}
 					creating={creating}
@@ -206,13 +200,13 @@ export function LabelSettings({ project }: LabelSettingsProps) {
 				/>
 			)}
 			<LabelDeleteDialog
-				project={project.path}
+				project={project.key}
 				label={deletingLabel}
 				onDeleted={refresh}
 				onClose={() => setDeletingLabel(null)}
 			/>
 			<LabelGroupDeleteDialog
-				project={project.path}
+				project={project.key}
 				group={deletingGroup}
 				labels={labels.filter((label) => label.groupId === deletingGroup?.id)}
 				onDeleted={refresh}

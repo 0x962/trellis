@@ -8,7 +8,7 @@ import { linkScope } from "./pullRequestScope.ts";
 import { announcePullRequestUpdate } from "./pullRequests.ts";
 import { type ServiceCtx, type TicketRow, writeActivity } from "./support.ts";
 
-type TimelineTicket = Pick<TicketRow, "id" | "project_id" | "root_id">;
+type TimelineTicket = Pick<TicketRow, "id" | "project_id">;
 
 export type SetLocalStateInput = { id: string; localState: LocalPrState };
 
@@ -20,7 +20,7 @@ const writeTimeline = async (ctx: ServiceCtx, tx: Tx, input: { id: string; local
 	if (scope.ticketIds.length === 0) return;
 	const tickets = await rows<TimelineTicket>(
 		tx,
-		sql`SELECT id, project_id, root_id FROM tickets WHERE id = ANY(${textArray(scope.ticketIds)})`,
+		sql`SELECT id, project_id FROM tickets WHERE id = ANY(${textArray(scope.ticketIds)})`,
 	);
 	for (const ticket of tickets)
 		await writeActivity(ctx, tx, {
@@ -42,11 +42,17 @@ const writeTimeline = async (ctx: ServiceCtx, tx: Tx, input: { id: string; local
 // can say how long a pull request has waited. The poller clears it when a
 // new head commit lands.
 //
+// A push leaves the stored state at `ready` and clears that moment, so an
+// ask for `ready` stamps the new wait even when the stored state does not
+// move. A merge leaves the moment, because the wait it measures is the one
+// the merge ended.
+//
 // The update event bumps the version of every linked ticket, so each open
 // page reads the new glyph.
 export const setLocalState = async (ctx: ServiceCtx, tx: Tx, input: SetLocalStateInput): Promise<PullRequest> => {
 	const row = await findPullRequestRow(tx, input.id);
-	if (row.local_state === input.localState) return toPullRequest(row);
+	const asksAgain = input.localState === "ready" && row.ready_for_review_at === null;
+	if (row.local_state === input.localState && !asksAgain) return toPullRequest(row);
 	const at = ctx.now();
 	await tx.execute(sql`UPDATE pull_requests
 		SET local_state = ${input.localState},

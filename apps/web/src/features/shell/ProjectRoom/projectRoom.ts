@@ -15,28 +15,23 @@ export const ticketOfPath = (pathname: string): string | null => {
 
 // The project of a path, or `null` when the path names none.
 //
-// A `/p/...` path keeps slashes where the project ref keeps dots, and it can
-// end in a view segment such as `settings` or `epics/<slug>`. The longest
-// prefix of the segments that names a project in the list is the project of
-// the page, so a view segment needs no list of its own here.
+// A `/p/...` path starts with the key or the slug of the project, and the
+// segments after it name a view, such as `settings` or `epics/<slug>`.
 //
 // A `/t/...` path carries the ticket identifier, and `ticketProject` is the
-// project ref of that ticket, which the caller reads from the ticket.
+// key of the project of that ticket, which the caller reads from the ticket.
 export const projectOfPath = (
 	pathname: string,
 	projects: readonly ProjectSummary[],
 	ticketProject: string | null,
 ): ProjectSummary | null => {
-	const byRef = (ref: string) => projects.find((project) => project.path.toLowerCase() === ref.toLowerCase()) ?? null;
+	const byRef = (ref: string) =>
+		projects.find((project) => project.key.toLowerCase() === ref.toLowerCase() || project.slug === ref.toLowerCase()) ??
+		null;
 	if (pathname.startsWith("/t/")) return ticketProject === null ? null : byRef(ticketProject);
 	if (!pathname.startsWith("/p/")) return null;
-	const segments = pathname.slice("/p/".length).split("/").filter(Boolean);
-	let found: ProjectSummary | null = null;
-	for (let length = 1; length <= segments.length; length += 1) {
-		const project = byRef(segments.slice(0, length).join("."));
-		if (project !== null) found = project;
-	}
-	return found;
+	const [first] = pathname.slice("/p/".length).split("/").filter(Boolean);
+	return first === undefined ? null : byRef(first);
 };
 
 // The color of the room of a path. A path that names no project, and a

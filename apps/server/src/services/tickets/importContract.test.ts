@@ -19,8 +19,8 @@ const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
 beforeAll(async () => {
 	db = await openTestDb();
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${rootId}, ${rootId}, 'CON', 'con', 'Contract', '2026-09-20T10:00:00Z', '2026-09-20T10:00:00Z')`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${rootId}, 'CON', 'con', 'Contract', '2026-09-20T10:00:00Z', '2026-09-20T10:00:00Z')`);
 	await db.execute(sql`INSERT INTO statuses
 		(id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
 		VALUES (${ulid()}, ${rootId}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true,

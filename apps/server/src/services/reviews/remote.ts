@@ -9,7 +9,7 @@ import { rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
 import { invalidInput } from "../../errors";
 import { fetchPullRequests, type PullRequestRow as GithubPullRequestRow, withQueueState } from "../../gh/graphql";
-import { effectiveRepos } from "../projectsRepos";
+import { projectRepos } from "../projectsRepos";
 import { recordAction } from "../pullRequestAction";
 import { fail, type IoCtx, type PrepareCtx, type ServiceCtx } from "../support";
 import { parseRef, readThreads } from "./queries";
@@ -138,7 +138,7 @@ export const actionResult = async (ctx: IoCtx, tx: Tx, input: PreparedAction) =>
 // own, so the search does not run.
 export async function mine(ctx: IoCtx & PrepareCtx, input: { project?: string }) {
 	const project = input.project;
-	const repos = project === undefined ? [] : await ctx.newTx((tx) => effectiveRepos(ctx.core, tx, { project }));
+	const repos = project === undefined ? [] : await ctx.newTx((tx) => projectRepos(ctx.core, tx, { project }));
 	if (project !== undefined && repos.length === 0) return [];
 	return ghJson<
 		{

@@ -119,11 +119,6 @@ export const errors = {
 		message: "A project keeps at least one status.",
 		data: z.undefined(),
 	},
-	ROOT_STATUSES: {
-		status: 409,
-		message: "A root project owns its statuses and cannot clear them.",
-		data: z.undefined(),
-	},
 	STATUS_CATEGORY_IMMUTABLE: {
 		status: 409,
 		message: "The category of a status is immutable.",
@@ -144,15 +139,15 @@ export const errors = {
 			"Tickets hold this label and another label of the group. Remove one of the two labels from each of those tickets first.",
 		data: z.object({ count: CountSchema }),
 	},
-	CROSS_ROOT_MOVE: {
+	CROSS_PROJECT_LINK: {
 		status: 409,
 		message:
-			"A ticket, a parent, an epic, or a project cannot move to another root. Create the ticket or project again in the other root.",
+			"A parent ticket, an epic, and a wave belong to the project of the ticket. Name one of that project instead.",
 		data: z.undefined(),
 	},
 	PARENT_CYCLE: {
 		status: 409,
-		message: "A ticket or a project cannot be its own ancestor.",
+		message: "A ticket cannot be its own ancestor.",
 		data: z.undefined(),
 	},
 	DEPENDENCY_CYCLE: {
@@ -162,8 +157,8 @@ export const errors = {
 	},
 	PROJECT_NOT_EMPTY: {
 		status: 409,
-		message: "The project holds tickets, sub-projects, or flows. Pass force to delete them too.",
-		data: z.object({ tickets: CountSchema, projects: CountSchema, flows: CountSchema }),
+		message: "The project holds tickets or flows. Pass force to delete them too.",
+		data: z.object({ tickets: CountSchema, flows: CountSchema }),
 	},
 	PROJECT_ARCHIVED: {
 		status: 409,

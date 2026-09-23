@@ -1,6 +1,4 @@
-import { ORPCError } from "@orpc/client";
 import { PencilSimple } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { EpicLink, EpicSummary, Priority, Status, Ticket } from "@trellis/api";
 import {
@@ -14,14 +12,12 @@ import {
 	Tooltip,
 	useHotkey,
 } from "@trellis/ui";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useArchivedProjects } from "../../../../../hooks/useArchivedProjects";
-import { useApp } from "../../../../../lib/appContext";
 import { failToast } from "../../../../../lib/failToast";
-import { epicSplat, projectSlashPath } from "../../../../../lib/projectPath";
+import { epicSplat } from "../../../../../lib/projectUrl";
 import { EpicPicker } from "../../../../pickers/EpicPicker";
 import { PriorityPicker, priorityLabels } from "../../../../pickers/PriorityPicker";
-import { ProjectPicker } from "../../../../pickers/ProjectPicker";
 import { StatusPicker } from "../../../../pickers/StatusPicker";
 import { TicketPicker } from "../../../../pickers/TicketPicker";
 import { useStatuses } from "../../../hooks/useStatuses";
@@ -50,24 +46,19 @@ const summaryOf = (status: Status) => ({
 });
 
 // The rows a person changes through a picker. Each pick paints at once and
-// rolls back with a toast on failure. A refused project move shows its reason inside the
-// picker. The s, p, l, Shift+P, and m keys open the pickers from anywhere
-// on the page. The status picker lists the effective statuses of the
-// ticket's project. `LabelsRow` holds the labels row and its write. The epic
-// value links to the epic page, so its picker opens from the pencil beside it.
-// `WaveRow` follows the epic row while the ticket has an epic.
+// rolls back with a toast on failure. The s, p, l, and Shift+P keys open the
+// pickers from anywhere on the page. The status picker lists the statuses of
+// the ticket's project. `LabelsRow` holds the labels row and its write. The
+// epic value links to the epic page, so its picker opens from the pencil
+// beside it. `WaveRow` follows the epic row while the ticket has an epic.
 export function PickerRows({ ticket }: PickerRowsProps) {
-	const { orpc } = useApp();
 	const { write } = useTicketWrite(ticket.identifier);
-	const statuses = useStatuses(ticket.project.path);
-	const projects = useQuery(orpc.projects.list.queryOptions({ input: {} })).data ?? [];
-	const ticketRootId = projects.find((entry) => entry.id === ticket.project.id)?.rootId;
+	const statuses = useStatuses(ticket.project.key);
 	const open = usePickerStore((state) => state.open);
 	const setOpen = usePickerStore((state) => state.setOpen);
-	const [projectError, setProjectError] = useState<string | null>(null);
 
 	// A ticket under an archived project takes no write, so its keys open no picker.
-	const readOnly = useArchivedProjects().isArchived(ticket.project.path);
+	const readOnly = useArchivedProjects().isArchived(ticket.project.key);
 	const openByKey = (kind: PickerKind) => () => {
 		if (!readOnly) setOpen(kind);
 	};
@@ -76,7 +67,6 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 	useHotkey("s", openByKey("status"));
 	useHotkey("p", openByKey("priority"));
 	useHotkey("shift+p", openByKey("parent"));
-	useHotkey("m", openByKey("project"));
 	useHotkey("l", openByKey("labels"));
 
 	const openChange = (kind: PickerKind) => (next: boolean) => setOpen(next ? kind : null);
@@ -103,29 +93,6 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 				`The priority of ${ticket.identifier} did not change to ${priorityLabels[priority]}.`,
 				error,
 				() => void pickPriority(priority),
-			);
-		}
-	};
-
-	// The picker stays open through the write, so a refusal shows inside it.
-	const pickProject = async (path: string) => {
-		const project = projects.find((entry) => entry.path === path)!;
-		setProjectError(null);
-		try {
-			await write((client) => client.tickets.update({ ticket: ticket.identifier, project: project.path }), {
-				optimistic: (row) => ({ ...row, project: { id: project.id, key: project.key, path: project.path } }),
-			});
-			setOpen(null);
-		} catch (error) {
-			if (error instanceof ORPCError && error.code === "CROSS_ROOT_MOVE") {
-				setProjectError(error.message);
-				return;
-			}
-			setOpen(null);
-			failToast(
-				`${ticket.identifier} did not move to ${projectSlashPath(project.path)}.`,
-				error,
-				() => void pickProject(path),
 			);
 		}
 	};
@@ -201,27 +168,9 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 			</PropertyRow>
 			<LabelsRow ticket={ticket} />
 			<PropertyRow compact label="Project">
-				<ProjectPicker
-					trigger={
-						<Button variant="quiet" className={triggerClass}>
-							<span className="inline-flex items-center gap-1.5">
-								<ProjectKey projectKey={ticket.project.key} />
-								<span className="truncate text-sm">{ticket.project.path.split(".").slice(1).join("/")}</span>
-							</span>
-						</Button>
-					}
-					projects={projects}
-					ticketRootIds={ticketRootId === undefined ? [] : [ticketRootId]}
-					value={ticket.project.path}
-					onPick={(path) => void pickProject(path)}
-					open={open === "project"}
-					onOpenChange={(next) => {
-						if (!next) setProjectError(null);
-						openChange("project")(next);
-					}}
-					error={projectError}
-					keepOpenOnPick
-				/>
+				<span className="inline-flex h-7 items-center">
+					<ProjectKey projectKey={ticket.project.key} />
+				</span>
 			</PropertyRow>
 			<PropertyRow compact label="Parent">
 				<TicketPicker

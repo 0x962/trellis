@@ -41,30 +41,30 @@ const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
 beforeAll(async () => {
 	db = await openTestDb();
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at) VALUES
-		(${rootId}, ${rootId}, 'SCP', 'scope', 'Scope', ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO projects (id, parent_id, root_id, slug, name, created_at, updated_at) VALUES
-		(${childId}, ${rootId}, ${rootId}, 'child', 'Child', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at) VALUES
+		(${rootId}, 'SCP', 'scope', 'Scope', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at) VALUES
+		(${childId}, 'CHD', 'child', 'Child', ${at}, ${at})`);
 	const statusId = ulid();
 	await db.execute(sql`INSERT INTO statuses
 		(id, project_id, name, slug, category, color, position, is_default, created_at, updated_at) VALUES
 		(${statusId}, ${rootId}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO tickets
-		(id, project_id, root_id, number, title, status_id, position, created_at, updated_at) VALUES
-		(${rootTicketId}, ${rootId}, ${rootId}, 1, 'Root task', ${statusId}, 0, ${at}, ${at}),
-		(${childTicketId}, ${childId}, ${rootId}, 2, 'Child task', ${statusId}, 0, ${at}, ${at})`);
+		(id, project_id, number, title, status_id, position, created_at, updated_at) VALUES
+		(${rootTicketId}, ${rootId}, 1, 'Root task', ${statusId}, 0, ${at}, ${at}),
+		(${childTicketId}, ${childId}, 1, 'Child task', ${statusId}, 0, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO agent_runs
-		(id, name, kind, instruction, project_id, project_path, ticket_id, ticket_identifier, created_at, updated_at) VALUES
+		(id, name, kind, instruction, project_id, project_key, ticket_id, ticket_identifier, created_at, updated_at) VALUES
 		(${rootSessionId}, 'root-session', 'session', 'Root', ${rootId}, 'SCP', NULL, NULL, ${at}, ${at}),
-		(${childSessionId}, 'child-session', 'session', 'Child', ${childId}, 'SCP.child', NULL, NULL, ${at}, ${at}),
+		(${childSessionId}, 'child-session', 'session', 'Child', ${childId}, 'CHD', NULL, NULL, ${at}, ${at}),
 		(${moveSessionId}, 'move-session', 'session', 'Move', ${rootId}, 'SCP', NULL, NULL, ${at}, ${at}),
-		(${detachSessionId}, 'detach-session', 'session', 'Detach', ${childId}, 'SCP.child', NULL, NULL, ${at}, ${at}),
+		(${detachSessionId}, 'detach-session', 'session', 'Detach', ${childId}, 'CHD', NULL, NULL, ${at}, ${at}),
 		(${nameMoveSessionId}, 'name-move-session', 'session', 'Name move', ${rootId}, 'SCP', NULL, NULL, ${at}, ${at}),
 		(${runMoveSessionId}, 'run-move-session', 'session', 'Run move', ${rootId}, 'SCP', NULL, NULL, ${at}, ${at}),
 		(${ambiguityRunId}, 'ambiguous-run', 'session', 'Ambiguous run', ${rootId}, 'SCP', NULL, NULL, ${at}, ${at}),
 		(${ambiguityOtherRunId}, 'ambiguous-row', 'session', 'Ambiguous row', ${rootId}, 'SCP', NULL, NULL, ${at}, ${at}),
-		(${rootTicketRunId}, 'root-ticket', 'agent', 'Root ticket', ${childId}, 'SCP.child', ${rootTicketId}, 'SCP-1', ${at}, ${at}),
-		(${childTicketRunId}, 'child-ticket', 'agent', 'Child ticket', ${rootId}, 'SCP', ${childTicketId}, 'SCP-2', ${at}, ${at})`);
+		(${rootTicketRunId}, 'root-ticket', 'agent', 'Root ticket', ${childId}, 'CHD', ${rootTicketId}, 'SCP-1', ${at}, ${at}),
+		(${childTicketRunId}, 'child-ticket', 'agent', 'Child ticket', ${rootId}, 'SCP', ${childTicketId}, 'CHD-1', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO sessions (id, name, directory, harness, run_id, created_at, updated_at) VALUES
 		(${rootSessionRowId}, 'root-session', '/tmp/root-session', '{"preset":"claude"}'::jsonb, ${rootSessionId}, ${at}, ${at}),
 		(${childSessionRowId}, 'child-session', '/tmp/child-session', '{"preset":"claude"}'::jsonb, ${childSessionId}, ${at}, ${at}),
@@ -110,32 +110,32 @@ test("a project lists its sessions and the runs of its current tickets", async (
 });
 
 test("a bare session moves to another project", async () => {
-	const moved = await run((tx) => move(ctx, tx, { id: moveSessionRowId, project: "SCP.child" }));
+	const moved = await run((tx) => move(ctx, tx, { id: moveSessionRowId, project: "CHD" }));
 	expect(moved.projectId).toBe(childId);
-	expect(moved.projectPath).toBe("SCP.child");
+	expect(moved.projectKey).toBe("CHD");
 	const saved = await run((tx) => getSession(tx, moveSessionRowId));
 	expect(saved.projectId).toBe(childId);
-	expect(saved.projectPath).toBe("SCP.child");
+	expect(saved.projectKey).toBe("CHD");
 });
 
 test("a bare session clears its project", async () => {
 	const moved = await run((tx) => move(ctx, tx, { id: detachSessionRowId, project: null }));
 	expect(moved.projectId).toBeNull();
-	expect(moved.projectPath).toBe("");
+	expect(moved.projectKey).toBe("");
 });
 
 test("a bare session moves by name", async () => {
-	const moved = await run((tx) => move(ctx, tx, { id: "name-move-session", project: "SCP.child" }));
+	const moved = await run((tx) => move(ctx, tx, { id: "name-move-session", project: "CHD" }));
 	expect(moved.id).toBe(nameMoveSessionRowId);
 	expect(moved.projectId).toBe(childId);
-	expect(moved.projectPath).toBe("SCP.child");
+	expect(moved.projectKey).toBe("CHD");
 });
 
 test("a bare session moves by agent run id", async () => {
-	const moved = await run((tx) => move(ctx, tx, { id: runMoveSessionId, project: "SCP.child" }));
+	const moved = await run((tx) => move(ctx, tx, { id: runMoveSessionId, project: "CHD" }));
 	expect(moved.id).toBe(runMoveSessionRowId);
 	expect(moved.projectId).toBe(childId);
-	expect(moved.projectPath).toBe("SCP.child");
+	expect(moved.projectKey).toBe("CHD");
 });
 
 test("a session rename updates the session and its agent run", async () => {
@@ -166,7 +166,7 @@ test("a session rename needs a letter or digit", async () => {
 
 test("an ambiguous session ref lists the matching ids", async () => {
 	const matches = [ambiguitySessionRowId, ambiguitySessionRef].sort().join(", ");
-	await expect(run((tx) => move(ctx, tx, { id: ambiguitySessionRef, project: "SCP.child" }))).rejects.toThrow(
+	await expect(run((tx) => move(ctx, tx, { id: ambiguitySessionRef, project: "CHD" }))).rejects.toThrow(
 		`More than one session matches ${ambiguitySessionRef}. Matching ids: ${matches}.`,
 	);
 });

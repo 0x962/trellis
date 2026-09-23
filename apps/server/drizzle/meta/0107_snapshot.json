@@ -1,5 +1,5 @@
 {
-  "id": "6aa98592-359e-47e8-b099-3624e10d8300",
+  "id": "2a6caeb2-e215-4f0d-b1a6-485c009cf237",
   "prevId": "7ae7d4f1-324a-49b0-9242-772e8be94d08",
   "version": "7",
   "dialect": "postgresql",
@@ -27,12 +27,6 @@
         },
         "batch_id": {
           "name": "batch_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "root_id": {
-          "name": "root_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -148,27 +142,6 @@
           "method": "btree",
           "with": {}
         },
-        "activity_root_id_id_idx": {
-          "name": "activity_root_id_id_idx",
-          "columns": [
-            {
-              "expression": "root_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "activity_project_id_id_idx": {
           "name": "activity_project_id_id_idx",
           "columns": [
@@ -207,19 +180,6 @@
         }
       },
       "foreignKeys": {
-        "activity_root_id_projects_id_fk": {
-          "name": "activity_root_id_projects_id_fk",
-          "tableFrom": "activity",
-          "tableTo": "projects",
-          "columnsFrom": [
-            "root_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "activity_project_id_projects_id_fk": {
           "name": "activity_project_id_projects_id_fk",
           "tableFrom": "activity",
@@ -735,12 +695,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "root_id": {
-          "name": "root_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "number": {
           "name": "number",
           "type": "integer",
@@ -925,12 +879,6 @@
               "isExpression": false,
               "asc": true,
               "nulls": "last"
-            },
-            {
-              "expression": "root_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
             }
           ],
           "isUnique": false,
@@ -961,12 +909,6 @@
             },
             {
               "expression": "project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "root_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1026,7 +968,7 @@
           "name": "tickets_open_idx",
           "columns": [
             {
-              "expression": "root_id",
+              "expression": "project_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1048,7 +990,7 @@
           "name": "tickets_completed_idx",
           "columns": [
             {
-              "expression": "root_id",
+              "expression": "project_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1068,6 +1010,19 @@
         }
       },
       "foreignKeys": {
+        "tickets_project_id_projects_id_fk": {
+          "name": "tickets_project_id_projects_id_fk",
+          "tableFrom": "tickets",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
         "tickets_status_id_statuses_id_fk": {
           "name": "tickets_status_id_statuses_id_fk",
           "tableFrom": "tickets",
@@ -1081,32 +1036,17 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "tickets_project_fk": {
-          "name": "tickets_project_fk",
-          "tableFrom": "tickets",
-          "tableTo": "projects",
-          "columnsFrom": [
-            "project_id",
-            "root_id"
-          ],
-          "columnsTo": [
-            "id",
-            "root_id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
         "tickets_parent_fk": {
           "name": "tickets_parent_fk",
           "tableFrom": "tickets",
           "tableTo": "tickets",
           "columnsFrom": [
             "parent_id",
-            "root_id"
+            "project_id"
           ],
           "columnsTo": [
             "id",
-            "root_id"
+            "project_id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
@@ -1140,20 +1080,20 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "tickets_root_id_number_unique": {
-          "name": "tickets_root_id_number_unique",
+        "tickets_project_id_number_unique": {
+          "name": "tickets_project_id_number_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "root_id",
+            "project_id",
             "number"
           ]
         },
-        "tickets_id_root_id_unique": {
-          "name": "tickets_id_root_id_unique",
+        "tickets_id_project_id_unique": {
+          "name": "tickets_id_project_id_unique",
           "nullsNotDistinct": false,
           "columns": [
             "id",
-            "root_id"
+            "project_id"
           ]
         }
       },
@@ -1349,8 +1289,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "project_path": {
-          "name": "project_path",
+        "project_key": {
+          "name": "project_key",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -1839,12 +1779,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "root_id": {
-          "name": "root_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "slug": {
           "name": "slug",
           "type": "text",
@@ -1934,38 +1868,15 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
-        },
-        "epics_project_fk": {
-          "name": "epics_project_fk",
-          "tableFrom": "epics",
-          "tableTo": "projects",
-          "columnsFrom": [
-            "project_id",
-            "root_id"
-          ],
-          "columnsTo": [
-            "id",
-            "root_id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "epics_id_root_id_unique": {
-          "name": "epics_id_root_id_unique",
+        "epics_project_id_slug_unique": {
+          "name": "epics_project_id_slug_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "id",
-            "root_id"
-          ]
-        },
-        "epics_root_id_slug_unique": {
-          "name": "epics_root_id_slug_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "root_id",
+            "project_id",
             "slug"
           ]
         }
@@ -3276,23 +3187,11 @@
           "primaryKey": true,
           "notNull": true
         },
-        "parent_id": {
-          "name": "parent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "root_id": {
-          "name": "root_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "key": {
           "name": "key",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "slug": {
           "name": "slug",
@@ -3334,12 +3233,6 @@
           "notNull": true,
           "default": 0
         },
-        "color": {
-          "name": "color",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "position": {
           "name": "position",
           "type": "integer",
@@ -3366,55 +3259,8 @@
           "notNull": true
         }
       },
-      "indexes": {
-        "projects_color_idx": {
-          "name": "projects_color_idx",
-          "columns": [
-            {
-              "expression": "color",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "projects_root_id_idx": {
-          "name": "projects_root_id_idx",
-          "columns": [
-            {
-              "expression": "root_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "projects_parent_fk": {
-          "name": "projects_parent_fk",
-          "tableFrom": "projects",
-          "tableTo": "projects",
-          "columnsFrom": [
-            "parent_id",
-            "root_id"
-          ],
-          "columnsTo": [
-            "id",
-            "root_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
+      "indexes": {},
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "projects_key_unique": {
@@ -3424,12 +3270,11 @@
             "key"
           ]
         },
-        "projects_id_root_id_unique": {
-          "name": "projects_id_root_id_unique",
+        "projects_slug_unique": {
+          "name": "projects_slug_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "id",
-            "root_id"
+            "slug"
           ]
         }
       },
@@ -3446,26 +3291,6 @@
         "projects_name_check": {
           "name": "projects_name_check",
           "value": "length(\"projects\".\"name\") BETWEEN 1 AND 120"
-        },
-        "projects_root_is_self": {
-          "name": "projects_root_is_self",
-          "value": "(\"projects\".\"parent_id\" IS NULL) = (\"projects\".\"root_id\" = \"projects\".\"id\")"
-        },
-        "projects_root_has_key": {
-          "name": "projects_root_has_key",
-          "value": "(\"projects\".\"parent_id\" IS NULL) = (\"projects\".\"key\" IS NOT NULL)"
-        },
-        "projects_parent_not_self": {
-          "name": "projects_parent_not_self",
-          "value": "\"projects\".\"parent_id\" <> \"projects\".\"id\""
-        },
-        "projects_counter_on_root": {
-          "name": "projects_counter_on_root",
-          "value": "\"projects\".\"parent_id\" IS NULL OR \"projects\".\"ticket_counter\" = 0"
-        },
-        "projects_color_check": {
-          "name": "projects_color_check",
-          "value": "\"projects\".\"color\" IN ('orange', 'teal', 'blue', 'pink', 'azure')"
         }
       },
       "isRLSEnabled": false
@@ -4929,12 +4754,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "root_id": {
-          "name": "root_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "slug": {
           "name": "slug",
           "type": "text",
@@ -5002,33 +4821,10 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
-        },
-        "waves_epic_fk": {
-          "name": "waves_epic_fk",
-          "tableFrom": "waves",
-          "tableTo": "epics",
-          "columnsFrom": [
-            "epic_id",
-            "root_id"
-          ],
-          "columnsTo": [
-            "id",
-            "root_id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "waves_id_epic_id_unique": {
-          "name": "waves_id_epic_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "id",
-            "epic_id"
-          ]
-        },
         "waves_epic_id_slug_unique": {
           "name": "waves_epic_id_slug_unique",
           "nullsNotDistinct": false,

@@ -33,7 +33,7 @@ export const launchCommand = (input: {
 		actor,
 		trellisUrl: url,
 		directory: input.directory ?? "",
-		project: run.projectPath,
+		project: run.projectKey,
 		ticket: run.ticketIdentifier ?? "",
 		instruction: run.instruction,
 	});

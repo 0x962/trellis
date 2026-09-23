@@ -22,10 +22,10 @@ export const noteSelect = sql`SELECT n.id, n.project_id, n.title, n.body, n.audi
 	${iso(sql`n.created_at`)} AS created_at, ${iso(sql`n.updated_at`)} AS updated_at
 	FROM notes n LEFT JOIN agent_runs r ON n.actor_kind = 'agent' AND r.id = n.actor_name`;
 
-export const toNote = (row: RawNote, projectPath: string): Note => ({
+export const toNote = (row: RawNote, projectKey: string): Note => ({
 	id: row.id,
 	projectId: row.project_id,
-	projectPath,
+	projectKey,
 	title: row.title,
 	body: row.body,
 	audience: row.audience,

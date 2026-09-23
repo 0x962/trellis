@@ -6,7 +6,7 @@ import { fail, invalidInput } from "../../errors.ts";
 
 export const sessionColumns = sql`id, name, directory, harness, run_id AS "runId",
 	(SELECT project_id FROM agent_runs WHERE agent_runs.id = sessions.run_id) AS "projectId",
-	(SELECT project_path FROM agent_runs WHERE agent_runs.id = sessions.run_id) AS "projectPath",
+	(SELECT project_key FROM agent_runs WHERE agent_runs.id = sessions.run_id) AS "projectKey",
 	${iso(sql`created_at`)} AS "createdAt", ${iso(sql`updated_at`)} AS "updatedAt"`;
 
 export const resolveSession = async (tx: Tx, ref: string) => {

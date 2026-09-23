@@ -95,10 +95,10 @@ export const useBulkWrite = (options?: BulkWriteOptions): BulkWrite => {
 		// The server refuses a write to a ticket under an archived project.
 		// The rest of the selection still changes, and the toast counts the
 		// tickets that stay as they are.
-		const archived = rows.filter((row) => isArchived(row.project.path));
-		const writable = rows.filter((row) => !isArchived(row.project.path));
+		const archived = rows.filter((row) => isArchived(row.project.key));
+		const writable = rows.filter((row) => !isArchived(row.project.key));
 		if (writable.length === 0) {
-			if (archived.length > 0) toast.error(notice(archived[0]!.project.path), { duration: 6000 });
+			if (archived.length > 0) toast.error(notice(archived[0]!.project.key), { duration: 6000 });
 			return;
 		}
 		if (writable.length > confirmAbove) {

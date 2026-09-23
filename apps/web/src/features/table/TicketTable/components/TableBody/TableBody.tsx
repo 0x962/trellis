@@ -1,5 +1,5 @@
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
-import type { ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
+import type { StatusSummary, TicketSummary } from "@trellis/api";
 import { CheckConfetti, cx, useMediaQuery } from "@trellis/ui";
 import {
 	type MouseEvent,
@@ -38,7 +38,6 @@ export type TableBodyProps = {
 	density: Density;
 	project?: string;
 	statuses: readonly StatusSummary[];
-	projects: readonly ProjectSummary[];
 	loading: boolean;
 	// The ticket rows of the list, for `aria-rowcount`.
 	rowCount: number;
@@ -92,7 +91,6 @@ export function TableBody({
 	density,
 	project,
 	statuses,
-	projects,
 	loading,
 	rowCount,
 	focusedId,
@@ -280,7 +278,6 @@ export function TableBody({
 								selecting={selection.count > 0}
 								editing={editing?.id === ticket.id ? editing.field : null}
 								statuses={statuses}
-								projects={projects}
 								onFocus={(id) => {
 									if (pendingFocus.current === null) onFocusRow(id);
 								}}

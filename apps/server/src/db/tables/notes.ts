@@ -4,8 +4,8 @@ import { checkIn, NOTE_AUDIENCES } from "../enums.ts";
 import { actorColumns, actorFk, at } from "./actors.ts";
 import { projects } from "./projects.ts";
 
-// A note belongs to one project and reaches every agent of that project and
-// its sub-projects at start. The actor columns name the last writer. A note
+// A note belongs to one project and reaches every agent of that project at
+// start. The actor columns name the last writer. A note
 // with `expires_at` in the past stays in the table and leaves every read,
 // so a note about a passing state needs no delete.
 export const notes = pgTable(

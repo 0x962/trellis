@@ -12,7 +12,7 @@ export function TicketGlimmerSection() {
 	return (
 		<Section name="TicketGlimmer" note="active work; moving soap-film layers">
 			<Switch label="Agent working" checked={glimmerActive} onCheckedChange={setGlimmerActive} />
-			<div className="relative flex min-h-28 w-75 flex-col gap-1.5 rounded-md border-x border-b border-border bg-surface p-3 text-base">
+			<div className="relative flex min-h-28 w-75 flex-col gap-1.5 rounded-md border border-border bg-surface p-3 text-base">
 				<TicketGlimmer active={glimmerActive} />
 				<div className="flex h-4 items-center justify-between gap-1.5">
 					<span className="font-mono text-xs text-fg-faint tabular">TRL-139</span>
@@ -30,7 +30,7 @@ export function TicketGlimmerSection() {
 					<Avatar kind="human" name="Navid Khan" className="ml-auto" />
 				</div>
 			</div>
-			<div className="relative flex min-h-28 w-75 flex-col gap-1.5 rounded-md border-x border-b border-border bg-surface p-3 text-base">
+			<div className="relative flex min-h-28 w-75 flex-col gap-1.5 rounded-md border border-border bg-surface p-3 text-base">
 				<TicketGlimmer active={glimmerActive} />
 				<div className="flex h-4 items-center justify-between gap-1.5">
 					<span className="font-mono text-xs text-fg-faint tabular">TRL-24 → TRL-86</span>
@@ -48,7 +48,7 @@ export function TicketGlimmerSection() {
 					<Avatar kind="agent" name="claude-code" className="ml-auto" />
 				</div>
 			</div>
-			<div className="relative flex min-h-28 w-75 flex-col gap-1.5 rounded-md border-x border-b border-border bg-surface p-3 text-base">
+			<div className="relative flex min-h-28 w-75 flex-col gap-1.5 rounded-md border border-border bg-surface p-3 text-base">
 				<TicketGlimmer active={glimmerActive} />
 				<div className="flex h-4 items-center justify-between gap-1.5">
 					<span className="font-mono text-xs text-fg-faint tabular">TRL-140</span>

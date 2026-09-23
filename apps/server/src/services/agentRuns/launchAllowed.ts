@@ -13,12 +13,7 @@ export async function launchAllowed(
 		tx,
 		sql`SELECT (
   r.closed_at IS NULL AND r.terminal_id=${input.terminalId}
-  AND NOT EXISTS (
-   WITH RECURSIVE ancestors AS (
-    SELECT id,parent_id,archived_at FROM projects WHERE id=r.project_id
-    UNION ALL SELECT p.id,p.parent_id,p.archived_at FROM projects p JOIN ancestors a ON p.id=a.parent_id
-   ) SELECT 1 FROM ancestors WHERE archived_at IS NOT NULL
-  )
+  AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.id=r.project_id AND p.archived_at IS NOT NULL)
  ) AS allowed FROM agent_runs r WHERE r.id=${input.runId}`,
 	);
 	return run?.allowed === true;

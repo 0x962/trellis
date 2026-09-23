@@ -1,10 +1,8 @@
-import type { ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
+import type { StatusSummary, TicketSummary } from "@trellis/api";
 import type { RefObject } from "react";
-import { rootKey } from "../../../../../lib/projectPath";
 import { EpicPicker } from "../../../../pickers/EpicPicker";
 import { LabelPicker } from "../../../../pickers/LabelPicker";
 import { PriorityPicker } from "../../../../pickers/PriorityPicker";
-import { ProjectPicker } from "../../../../pickers/ProjectPicker";
 import { StatusPicker } from "../../../../pickers/StatusPicker";
 import { TicketPicker } from "../../../../pickers/TicketPicker";
 import { WavePicker } from "../../../../pickers/WavePicker";
@@ -17,9 +15,6 @@ export type HiddenPickersProps = {
 	columns: readonly string[];
 	editing: EditField | null;
 	statuses: readonly StatusSummary[];
-	projects: readonly ProjectSummary[];
-	// The root project ids the ticket can move inside.
-	ticketRootIds: string[];
 	// The row element, which takes the focus back when a picker closes.
 	finalFocus: RefObject<HTMLElement | null>;
 	onEditingChange: (field: EditField) => (open: boolean) => void;
@@ -35,16 +30,14 @@ const anchor = (label: string) => (
 // The pickers a key opens for a field whose column the table hides. The
 // parent field and the epic field have no editable cell, so their pickers
 // always live here. The epic cell of a row is a link to the epic page, and
-// the epic list belongs to the root project of the ticket. The wave field
-// lists the waves of the epic of the ticket, so a ticket outside every epic
-// opens no wave picker.
+// the epic list belongs to the project of the ticket. The wave field lists
+// the waves of the epic of the ticket, so a ticket outside every epic opens
+// no wave picker.
 export function HiddenPickers({
 	ticket,
 	columns,
 	editing,
 	statuses,
-	projects,
-	ticketRootIds,
 	finalFocus,
 	onEditingChange,
 	onChange,
@@ -72,21 +65,9 @@ export function HiddenPickers({
 					trigger={anchor("Priority")}
 				/>
 			)}
-			{editing === "project" && !columns.includes("project") && (
-				<ProjectPicker
-					projects={projects}
-					ticketRootIds={ticketRootIds}
-					value={ticket.project.path}
-					open
-					onOpenChange={onEditingChange("project")}
-					onPick={(project) => onChange({ project })}
-					finalFocus={finalFocus}
-					trigger={anchor("Project")}
-				/>
-			)}
 			{editing === "labels" && !columns.includes("labels") && (
 				<LabelPicker
-					project={ticket.project.path}
+					project={ticket.project.key}
 					checked={ticket.labels.map((label) => label.id)}
 					open
 					onOpenChange={onEditingChange("labels")}
@@ -97,7 +78,7 @@ export function HiddenPickers({
 			)}
 			{editing === "epic" && (
 				<EpicPicker
-					project={rootKey(ticket.project.path)}
+					project={ticket.project.key}
 					value={ticket.epic?.ref}
 					open
 					onOpenChange={onEditingChange("epic")}

@@ -1,6 +1,6 @@
-import type { LabelGroup, ProjectSummary, StatusSummary, TicketSummary } from "@trellis/api";
+import type { LabelGroup, StatusSummary, TicketSummary } from "@trellis/api";
 import { useStableCallback } from "../../../../hooks/useStableCallback";
-import { projectSlashPath } from "../../../../lib/projectPath";
+
 import { priorityLabels } from "../../../pickers/PriorityPicker";
 import { toggleLabel } from "../../../pickers/utils/toggleLabel";
 import type { RowChange } from "../../Row";
@@ -33,12 +33,7 @@ export type ChangeSource = "selection" | "row";
 // Done". `groups` names the label groups of the route, which decide the
 // label a new label of a group replaces. The callback identity is stable
 // across renders.
-export const useApplyChange = (
-	mutations: Mutations,
-	bulk: BulkWrite,
-	projects: readonly ProjectSummary[],
-	groups: readonly LabelGroup[],
-) =>
+export const useApplyChange = (mutations: Mutations, bulk: BulkWrite, groups: readonly LabelGroup[]) =>
 	useStableCallback((targets: readonly TicketSummary[], change: RowChange, source: ChangeSource) => {
 		if (targets.length === 0) return;
 		const many = source === "selection";
@@ -68,15 +63,6 @@ export const useApplyChange = (
 			return many
 				? bulk.update(targets, fields, words, { row, verb })
 				: mutations.update(targets[0]!, fields, row, verb, { expectVersion: false });
-		}
-		if ("project" in change) {
-			const target = projects.find((entry) => entry.path === change.project);
-			const path = projectSlashPath(change.project);
-			const row = target === undefined ? {} : { project: { id: target.id, key: target.key, path: target.path } };
-			const verb: Verb = (subject) => `${subject} did not move to ${path}.`;
-			return many
-				? bulk.update(targets, { project: change.project }, `Move to the project ${path}`, { row, verb })
-				: mutations.update(targets[0]!, { project: change.project }, row, verb);
 		}
 		if ("parent" in change) {
 			const parent = change.parent === null ? null : { id: change.parent.id, identifier: change.parent.identifier };

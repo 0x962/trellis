@@ -16,5 +16,5 @@ export const useProjectRoom = (pathname: string): ProjectColor | null => {
 		...orpc.tickets.get.queryOptions({ input: { ticket: identifier.success ? identifier.data : "" } }),
 		enabled: identifier.success,
 	}).data;
-	return roomColorOf(pathname, projects ?? [], ticket?.project.path ?? null);
+	return roomColorOf(pathname, projects ?? [], ticket?.project.key ?? null);
 };

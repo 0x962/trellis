@@ -15,10 +15,7 @@ export function BoardSkeleton() {
 					</div>
 					<div className="flex flex-col gap-2 p-1">
 						{cards.map((card) => (
-							<div
-								key={card}
-								className="flex h-19 flex-col gap-2 rounded-md border-x border-b border-border bg-band p-3"
-							>
+							<div key={card} className="flex h-19 flex-col gap-2 rounded-md border border-border bg-band p-3">
 								<Skeleton width="w-12" />
 								<Skeleton width="w-3/4" />
 							</div>

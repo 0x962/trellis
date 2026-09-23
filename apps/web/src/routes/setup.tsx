@@ -35,7 +35,6 @@ function SetupPage() {
 	const actor = useActor();
 	const projects = useSuspenseQuery(orpc.projects.list.queryOptions({ input: {} })).data;
 	const identity = useSuspenseQuery(orpc.actors.default.queryOptions({})).data;
-	const roots = projects.filter((project) => project.parentId === null);
 
 	const create = async (input: { key: string; name: string; color: ProjectColor | null }) => {
 		await client.projects.create({
@@ -62,7 +61,7 @@ function SetupPage() {
 				) : (
 					<ProjectStep
 						taken={projects.map((project) => project.key)}
-						takenNames={roots.map((project) => project.name)}
+						takenNames={projects.map((project) => project.name)}
 						takenColors={takenColors(projects)}
 						onCreate={create}
 					/>

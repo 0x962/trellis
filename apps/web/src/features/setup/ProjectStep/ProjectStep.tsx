@@ -5,7 +5,7 @@ import { suggestKey } from "../../../lib/projectKey";
 export type ProjectStepProps = {
 	// The keys already in use.
 	taken: readonly string[];
-	// The names of the root projects. A new root takes none of them, compared
+	// The names already in use. A new project takes none of them, compared
 	// without case.
 	takenNames: readonly string[];
 	// The colors the other projects hold. A new project takes a free one.
@@ -52,7 +52,7 @@ export function ProjectStep({ taken, takenNames, takenColors, onCreate }: Projec
 					{taken.length === 0 ? "Create your first project" : "New project"}
 				</h1>
 				<p className="text-sm text-fg-muted">
-					A project has a key. Each ticket ID in the project and its sub-projects starts with that key.
+					A project has a key. Each ticket ID of the project starts with that key.
 				</p>
 			</div>
 			<div className="flex flex-col gap-1">

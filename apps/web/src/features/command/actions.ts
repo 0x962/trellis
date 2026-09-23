@@ -54,9 +54,6 @@ export const changeStatus = async (context: ActionContext, ticket: string, statu
 export const setPriority = async (context: ActionContext, ticket: string, priority: Priority): Promise<void> =>
 	write(context, "The priority did not change.", () => context.client.tickets.update({ ticket, priority }));
 
-export const moveToProject = async (context: ActionContext, ticket: string, project: string): Promise<void> =>
-	write(context, "The ticket did not move.", () => context.client.tickets.update({ ticket, project }));
-
 export const setParent = async (context: ActionContext, ticket: string, parent: string | null): Promise<void> =>
 	write(context, "The parent did not change.", () => context.client.tickets.update({ ticket, parent }));
 

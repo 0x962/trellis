@@ -1,19 +1,18 @@
 import { Link } from "@tanstack/react-router";
 import { cx, type ProjectColor, ProjectMark, Tooltip } from "@trellis/ui";
-import { projectSlashPath } from "../../../lib/projectPath";
 
 export function ProjectBreadcrumb({
 	project,
 	showName = false,
 }: {
-	project: { path: string; name: string; color: ProjectColor | null };
+	project: { key: string; name: string; color: ProjectColor | null };
 	showName?: boolean;
 }) {
 	return (
 		<Tooltip content={project.name}>
 			<Link
 				to="/p/$"
-				params={{ _splat: projectSlashPath(project.path) }}
+				params={{ _splat: project.key }}
 				search={{}}
 				aria-label={project.name}
 				className={cx(

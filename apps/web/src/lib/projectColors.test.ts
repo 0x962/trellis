@@ -6,12 +6,8 @@ import { takenColors } from "./projectColors";
 const project = (id: string, color: ProjectSummary["color"]): ProjectSummary => ({
 	id,
 	key: "TRL",
-	path: "TRL",
-	parentId: null,
-	rootId: id,
-	slug: "trellis",
+	slug: "trl",
 	name: id,
-	depth: 0,
 	position: 0,
 	openCount: 0,
 	openEpicCount: 0,

@@ -64,7 +64,7 @@ export function TicketView({ identifier }: TicketViewProps) {
 	}
 	if (query.data === undefined) return <TicketSkeleton />;
 	const ticket = query.data;
-	const readOnly = isArchived(ticket.project.path);
+	const readOnly = isArchived(ticket.project.key);
 
 	// The server refuses every write to a ticket under an archived project.
 	// The disabled fieldset and the edit keys enforce `readOnly`.
@@ -115,7 +115,7 @@ export function TicketView({ identifier }: TicketViewProps) {
 				<div {...drop.handlers} className="relative flex h-full min-h-0 flex-1 flex-col">
 					{readOnly && (
 						<p className="flex h-9 shrink-0 items-center bg-warning-soft px-5 text-sm font-medium text-warning max-md:px-4">
-							{notice(ticket.project.path)}
+							{notice(ticket.project.key)}
 						</p>
 					)}
 					{page}
