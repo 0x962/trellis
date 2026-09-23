@@ -1,14 +1,14 @@
 import { afterEach, expect, test } from "bun:test";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { HarnessEvent } from "@trellis/runtime-protocol";
 import {
 	fakeRuntimeSocket,
 	type RuntimeAnswer,
 	scratchHome,
 	spawnBridge,
 	writeExecutable,
-} from "../bridgeTestSupport/index.ts";
+} from "../bridgeTestFixtures/index.ts";
+import type { HarnessEvent } from "../types.ts";
 
 // A bridge that stops must say why, and it must exit. These tests run the real
 // Muse bridge against a runtime socket that the test controls.
