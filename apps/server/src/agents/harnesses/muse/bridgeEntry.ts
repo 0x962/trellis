@@ -56,14 +56,19 @@ const host: ChildProcess = spawn(env.TRELLIS_MUSE_EXECUTABLE, ["serve", "--trust
 	env: process.env,
 	stdio: ["pipe", "pipe", "inherit"],
 });
-// The bridge stops its terminal reader before it records a failure. The
-// terminal makes SIGINT again from that point, and a process with no listener
-// for it stops at once. This listener keeps the bridge alive long enough to
-// record the reason.
+// `stopMuseTerminalReader` ends the raw mode of the terminal, and Ctrl+C then
+// makes SIGINT. Node stops a process that has no listener for SIGINT. The
+// failure path stops the reader before it records the reason, so the SIGINT
+// listener keeps the bridge alive until that record is written. A person who
+// presses Ctrl+C before the reader starts reads the line below, because
+// nothing else in the session says that the bridge took the signal.
 const terminated = new Promise<void>((resolve) => {
-	process.once("SIGTERM", resolve);
-	process.once("SIGHUP", resolve);
-	process.once("SIGINT", resolve);
+	process.on("SIGTERM", resolve);
+	process.on("SIGHUP", resolve);
+	process.on("SIGINT", () => {
+		process.stderr.write("The bridge received Ctrl+C.\n");
+		resolve();
+	});
 });
 let eventQueue = Promise.resolve();
 let acceptingEvents = true;
@@ -211,8 +216,7 @@ async function start() {
 	});
 	await startTurn([launch.prompt]);
 	await firstPrompt;
-	print(museTerminalHint);
-	startMuseTerminalReader({
+	const reading = startMuseTerminalReader({
 		interrupt: async () => {
 			if (!current.working || current.turnId === null) return;
 			await client!.request("turn/interrupt", { commandId: uuid7(), sessionId, turnId: current.turnId });
@@ -220,9 +224,14 @@ async function start() {
 		submit,
 		onFailure: reportFailure,
 	});
+	// A failure can stop the reader before this point, and then the reader does
+	// not start. The hint invites a prompt, so it follows the start.
+	if (reading) print(museTerminalHint);
 }
+// `terminated` sits in the race on its own, because `start` waits for Muse for
+// as long as Muse takes. A signal that arrives in that time ends the run here.
 try {
-	await Promise.race([start().then(() => terminated), observationFailed]);
+	await Promise.race([start().then(() => terminated), terminated, observationFailed]);
 } catch (error) {
 	const observedAtMs = Date.now();
 	acceptingEvents = false;
@@ -247,9 +256,10 @@ try {
 } finally {
 	acceptingEvents = false;
 	// SIGTERM, SIGHUP and SIGINT end the try block with no error, so the catch
-	// block does not run. This block is then the only one that gives the
-	// keyboard back. The steps below wait up to five seconds for the Muse
-	// host, and the removal of the directory can throw.
+	// block does not run. This block is then the only one that calls
+	// `stopMuseTerminalReader`, which ends the raw mode of the terminal. That
+	// call is first because the steps below wait up to five seconds for the
+	// Muse host, and the removal of the directory can throw.
 	stopMuseTerminalReader();
 	await usageQueue;
 	if (host.exitCode === null && host.signalCode === null) {

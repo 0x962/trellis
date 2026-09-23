@@ -46,8 +46,8 @@ function fakeTerminal() {
 	};
 }
 
-// `stopMuseTerminalReader` holds a stop for the life of the process, so this
-// test walks the whole life of one reader in order.
+// `stopMuseTerminalReader` sets a flag that stays for the life of the process.
+// One test therefore checks the start, the stop, and a second start in order.
 test("the reader takes the terminal, gives it back, and takes it no second time", () => {
 	const terminal = fakeTerminal();
 	const prompts: string[] = [];
@@ -62,7 +62,7 @@ test("the reader takes the terminal, gives it back, and takes it no second time"
 		onFailure: () => {},
 	};
 
-	startMuseTerminalReader(options);
+	expect(startMuseTerminalReader(options)).toBe(true);
 	expect(terminal.rawModes).toEqual([true]);
 	terminal.type("hello\r");
 	terminal.type("\x03");
@@ -74,11 +74,11 @@ test("the reader takes the terminal, gives it back, and takes it no second time"
 	expect(terminal.rawModes).toEqual([true, false]);
 	expect(terminal.isPaused()).toBe(true);
 
-	// The bridge can stop the reader while `start` still waits for Muse, and
-	// `start` reaches the reader after that. A reader that starts then holds
-	// the bridge process alive.
+	// The bridge can stop the reader while `start()` in `bridgeEntry.ts` still
+	// waits for Muse, and `start()` reaches the reader after that. A reader
+	// that starts then holds the bridge process alive.
 	const second = fakeTerminal();
-	startMuseTerminalReader(options);
+	expect(startMuseTerminalReader(options)).toBe(false);
 	expect(second.hasReader()).toBe(false);
 	expect(second.rawModes).toEqual([]);
 });

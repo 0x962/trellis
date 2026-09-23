@@ -2,7 +2,14 @@ import { afterEach, expect, test } from "bun:test";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { HarnessEvent } from "@trellis/runtime-protocol";
-import { fakeRuntimeSocket, type RuntimeAnswer, scratchHome, spawnBridge, writeExecutable } from "../bridgeHarness.ts";
+import {
+	fakeRuntimeSocket,
+	type RuntimeAnswer,
+	scratchHome,
+	spawnBridge,
+	waitForEvent,
+	writeExecutable,
+} from "../bridgeTestSupport/index.ts";
 
 // A bridge that stops must say why, and it must exit. These tests run the real
 // Muse bridge against a runtime socket that the test controls.
@@ -71,8 +78,8 @@ test("the Muse bridge stops its terminal reader and exits", async () => {
 }, 20000);
 
 // The Muse host stops here while the write of the prompt event is in flight.
-// The bridge then fails for a reason that its `start` step does not see, and
-// the event chain of the bridge holds no rejection.
+// The bridge then fails for a reason that `start()` in `bridgeEntry.ts` does
+// not see, and the event chain of the bridge holds no rejection.
 test("the Muse bridge records a failure that its start step does not see", async () => {
 	const bridge = await startMuseBridge((event) => ({ delayMs: event.kind === "prompt" ? 300 : undefined }), {
 		withTerminal: true,
@@ -84,5 +91,20 @@ test("the Muse bridge records a failure that its start step does not see", async
 		outcome: "failed",
 		error: "Muse session host exited: 0",
 	});
+	expect(run.exitCode).toBe(1);
+}, 20000);
+
+// The failure path stops the terminal reader, and the terminal then makes
+// SIGINT from a Ctrl+C. Node stops a process with no listener for that signal,
+// and the runtime write below takes 500 ms, so the reason would be lost.
+test("a Ctrl+C while the Muse bridge records a failure does not stop it", async () => {
+	const bridge = await startMuseBridge((event) => ({
+		refuse: event.kind === "message",
+		delayMs: event.kind === "error" ? 500 : undefined,
+	}));
+	expect(await waitForEvent(bridge.observed, "error")).toBe(true);
+	bridge.child.kill("SIGINT");
+	const run = await bridge.finish();
+	expect(bridge.observed.at(-1)).toMatchObject({ kind: "error", outcome: "failed", error: TIMEOUT_MESSAGE });
 	expect(run.exitCode).toBe(1);
 }, 20000);

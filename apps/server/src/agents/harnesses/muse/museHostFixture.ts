@@ -1,4 +1,3 @@
-import { appendFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 
 // A fake `muse serve` for the bridge tests. It answers the Muse Session
@@ -7,15 +6,11 @@ import { createInterface } from "node:readline";
 // test runtime that refuses the agent message makes the event chain of
 // the bridge reject.
 //
-// `TRELLIS_TEST_TURN_LOG` names a file that takes one line per `turn/start`.
-// A test that types into the terminal of the bridge counts those lines.
-//
 // `TRELLIS_TEST_EXIT_AFTER_PROMPT` makes this host stop after it sends the
 // prompt receipt. The bridge then fails from the closed host while its write
 // of the prompt event is still in flight.
 const sessionId = "session-under-test";
 const turnId = "turn-under-test";
-const turnLog = process.env.TRELLIS_TEST_TURN_LOG;
 const exitAfterPrompt = process.env.TRELLIS_TEST_EXIT_AFTER_PROMPT === "1";
 const write = (message: unknown) => process.stdout.write(`${JSON.stringify(message)}\n`);
 const notify = (method: string, params: unknown) => write({ jsonrpc: "2.0", method, params });
@@ -39,13 +34,17 @@ lines.on("line", (line) => {
 	if (message.method === "view/subscribe") write({ jsonrpc: "2.0", id: message.id, result: {} });
 	if (message.method === "turn/start") {
 		turns += 1;
-		if (turnLog !== undefined) appendFileSync(turnLog, `${turns}\n`);
 		write({ jsonrpc: "2.0", id: message.id, result: { turnId, disposition: "started" } });
-		notify(
-			"item/completed",
-			item(`user-${turns}`, "userMessage", { commandId: message.params?.commandId, text: "do the work" }),
-		);
-		if (exitAfterPrompt) process.exit(0);
+		const prompt = item(`user-${turns}`, "userMessage", { commandId: message.params?.commandId, text: "do the work" });
+		// The exit waits for the write, because a process that stops with a
+		// write in flight drops it, and the bridge then never sees the prompt.
+		if (exitAfterPrompt) {
+			process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", method: "item/completed", params: prompt })}\n`, () =>
+				process.exit(0),
+			);
+			return;
+		}
+		notify("item/completed", prompt);
 		notify("item/completed", item("agent-1", "agentMessage", { text: "The work is done." }));
 	}
 });
