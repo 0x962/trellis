@@ -41,20 +41,20 @@ beforeAll(async () => {
 	db = await openTestDb();
 	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
 		VALUES ('Test', 'human', ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${root}, ${root}, 'TST', 'tst', 'Test', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${root}, 'TST', 'tst', 'Test', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses (
 		id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at
 	) VALUES
 		(${startedStatus}, ${root}, 'In Progress', 'in-progress', 'started', NULL, 'fg-muted', 0, true, ${at}, ${at}),
 		(${humanReviewStatus}, ${root}, 'Human Review', 'human-review', 'review', 'human', 'fg-muted', 1, false, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO tickets (
-		id, project_id, root_id, number, title, status_id, position, created_at, updated_at
+		id, project_id, number, title, status_id, position, created_at, updated_at
 	) VALUES
-		(${humanReviewTicket}, ${root}, ${root}, 1, 'Answer the question', ${humanReviewStatus}, 0, ${at}, ${at}),
-		(${readyPullRequestTicket}, ${root}, ${root}, 2, 'Review the pull request', ${startedStatus}, 1, ${at}, ${at}),
-		(${githubDraftReadyPullRequestTicket}, ${root}, ${root}, 3, 'Review the GitHub draft', ${startedStatus}, 2, ${at}, ${at}),
-		(${notReadyPullRequestTicket}, ${root}, ${root}, 4, 'Ask for review', ${startedStatus}, 3, ${at}, ${at})`);
+		(${humanReviewTicket}, ${root}, 1, 'Answer the question', ${humanReviewStatus}, 0, ${at}, ${at}),
+		(${readyPullRequestTicket}, ${root}, 2, 'Review the pull request', ${startedStatus}, 1, ${at}, ${at}),
+		(${githubDraftReadyPullRequestTicket}, ${root}, 3, 'Review the GitHub draft', ${startedStatus}, 2, ${at}, ${at}),
+		(${notReadyPullRequestTicket}, ${root}, 4, 'Ask for review', ${startedStatus}, 3, ${at}, ${at})`);
 	await addPullRequest(readyPullRequestTicket, 2, false);
 	await addPullRequest(githubDraftReadyPullRequestTicket, 3, true);
 	await addPullRequest(notReadyPullRequestTicket, 4, true, "not-ready");

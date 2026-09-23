@@ -28,7 +28,6 @@ export type PaletteItemDef = {
 export const paletteItems: readonly PaletteItemDef[] = [
 	{ id: "ticket.status", label: "Change status", section: "ticket", shortcutId: "listStatus", submenu: true },
 	{ id: "ticket.priority", label: "Set priority", section: "ticket", shortcutId: "listPriority", submenu: true },
-	{ id: "ticket.project", label: "Move to project", section: "ticket", shortcutId: "listProject", submenu: true },
 	{ id: "ticket.parent", label: "Set parent", section: "ticket", shortcutId: "listParent", submenu: true },
 	{ id: "ticket.labels", label: "Set labels", section: "ticket", shortcutId: "ticketLabels", submenu: true },
 	{ id: "ticket.subTicket", label: "New sub-ticket", section: "ticket" },
@@ -41,7 +40,6 @@ export const paletteItems: readonly PaletteItemDef[] = [
 	{ id: "selection.status", label: "Change status", section: "selection", shortcutId: "listStatus", submenu: true },
 	{ id: "selection.priority", label: "Set priority", section: "selection", shortcutId: "listPriority", submenu: true },
 	{ id: "selection.labels", label: "Set labels", section: "selection", shortcutId: "listLabels", submenu: true },
-	{ id: "selection.project", label: "Move to project", section: "selection", shortcutId: "listProject", submenu: true },
 	{ id: "selection.parent", label: "Set parent", section: "selection", shortcutId: "listParent", submenu: true },
 	{ id: "selection.epic", label: "Set epic", section: "selection", shortcutId: "listEpic", submenu: true },
 	{ id: "selection.wave", label: "Set wave", section: "selection", submenu: true },
@@ -52,7 +50,6 @@ export const paletteItems: readonly PaletteItemDef[] = [
 	{ id: "selection.clear", label: "Clear selection", section: "selection", shortcutId: "escape" },
 	{ id: "create.ticket", label: "New ticket", section: "create", shortcutId: "create" },
 	{ id: "create.project", label: "New project", section: "create" },
-	{ id: "create.subProject", label: "New sub-project", section: "create" },
 	{ id: "goto.needsYou", label: "Needs you", section: "goto", shortcutId: "gotoNeedsYou" },
 	{ id: "goto.board", label: "Board", section: "goto", shortcutId: "gotoBoard" },
 	{ id: "goto.table", label: "Table", section: "goto", shortcutId: "gotoTable" },

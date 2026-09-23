@@ -30,7 +30,6 @@ export const setContract = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): P
 		review_focus = ${JSON.stringify(input.reviewFocus)}::jsonb, version = version + 1, updated_at = ${ctx.now}
 		WHERE id = ${target.id}`);
 	await record(ctx, tx, {
-		rootId: target.rootId,
 		projectId: target.projectId,
 		ticketId: target.id,
 		action: "ticket.updated",

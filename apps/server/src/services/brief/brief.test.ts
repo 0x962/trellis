@@ -15,7 +15,7 @@ const input = {
 	identifier: "OP-27",
 	title: "Bound the Operator message post",
 	description: "The post waits forever when the thread never answers.\n",
-	projectPath: "OP",
+	projectKey: "OP",
 	branch: "trellis/op-27-01m2s1scg7ppywezh4b5m8ez4y",
 	publicUrl: "http://127.0.0.1:4521",
 };
@@ -95,7 +95,7 @@ const member = (id: string, identifier: string, title: string, status: string, w
 const epic: Epic = {
 	id: "01J00000000000000000000010",
 	projectId: "01J00000000000000000000001",
-	projectPath: "OP",
+	projectKey: "OP",
 	ref: "OP/routine-runtime",
 	slug: "routine-runtime",
 	name: "Routine runtime",
@@ -237,8 +237,8 @@ test("the results section lists the done tickets of each earlier wave with their
 test("the brief prints a stable contract and the two evidence lines above the chain", async () => {
 	const db = await openTestDb();
 	const rootId = ulid();
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${rootId}, ${rootId}, 'BRF', 'brf', 'Brief', '2026-09-20T10:00:00Z', '2026-09-20T10:00:00Z')`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${rootId}, 'BRF', 'brf', 'Brief', '2026-09-20T10:00:00Z', '2026-09-20T10:00:00Z')`);
 	await db.execute(sql`INSERT INTO repos (id, project_id, owner, repo)
 		VALUES (${ulid()}, ${rootId}, 'example', 'trellis')`);
 	await db.execute(sql`INSERT INTO statuses

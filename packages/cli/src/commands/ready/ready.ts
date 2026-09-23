@@ -81,7 +81,7 @@ export default defineCommand({
 		ref: {
 			type: "positional",
 			required: true,
-			description: "Pull request number, URL, or owner/repo#123; with --epic, the root project ref, such as OP",
+			description: "Pull request number, URL, or owner/repo#123; with --epic, the project ref, such as OP",
 		},
 		epic: { type: "string", description: "Epic slug, such as routines-e2e" },
 		"flow-does-not-apply": {

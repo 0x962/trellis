@@ -3,12 +3,11 @@ import type {
 	Label,
 	LabelGroup,
 	Priority,
-	ProjectSummary,
 	Status,
 	TicketSummary,
 	WaveSummary,
 } from "@trellis/api";
-import { projectSlashPath } from "../../../../lib/projectPath";
+
 import { toggleLabel } from "../../../pickers/utils/toggleLabel";
 import type { BulkWrite } from "../../../table/hooks/useBulkWrite";
 import { priorityLabels } from "../../rows";
@@ -43,18 +42,6 @@ export const setPriority = (bulk: BulkWrite, rows: readonly TicketSummary[], pri
 		row: { priority },
 		verb: (subject) => `The priority of ${subject} did not change to ${priorityLabels[priority]}.`,
 	});
-
-export const moveToProject = (
-	bulk: BulkWrite,
-	rows: readonly TicketSummary[],
-	project: ProjectSummary,
-): Promise<void> => {
-	const path = projectSlashPath(project.path);
-	return bulk.update(rows, { project: project.path }, `Move to ${path}`, {
-		row: { project: { id: project.id, key: project.key, path: project.path } },
-		verb: (subject) => `${subject} did not move to ${path}.`,
-	});
-};
 
 export const setParent = (
 	bulk: BulkWrite,

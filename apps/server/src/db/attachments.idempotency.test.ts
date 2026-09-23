@@ -44,16 +44,16 @@ describe("attachments.upload idempotency", () => {
 		try {
 			await migrate(db);
 			await db.execute(sql`
-				INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-				VALUES (${projectId}, ${projectId}, 'TST', 'test', 'Test', ${at}, ${at})
+				INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+				VALUES (${projectId}, 'TST', 'test', 'Test', ${at}, ${at})
 			`);
 			await db.execute(sql`
 				INSERT INTO statuses (id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
 				VALUES (${statusId}, ${projectId}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})
 			`);
 			await db.execute(sql`
-				INSERT INTO tickets (id, project_id, root_id, number, title, status_id, position, created_at, updated_at)
-				VALUES (${ticketId}, ${projectId}, ${projectId}, 1, 'Test', ${statusId}, 0, ${at}, ${at})
+				INSERT INTO tickets (id, project_id, number, title, status_id, position, created_at, updated_at)
+				VALUES (${ticketId}, ${projectId}, 1, 'Test', ${statusId}, 0, ${at}, ${at})
 			`);
 			const input = {
 				id: uploadId,
@@ -108,16 +108,16 @@ describe("attachments.upload idempotency", () => {
 		try {
 			await migrate(db);
 			await db.execute(sql`
-				INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-				VALUES (${projectId}, ${projectId}, 'TST', 'test', 'Test', ${at}, ${at})
+				INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+				VALUES (${projectId}, 'TST', 'test', 'Test', ${at}, ${at})
 			`);
 			await db.execute(sql`
 				INSERT INTO statuses (id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
 				VALUES (${statusId}, ${projectId}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})
 			`);
 			await db.execute(sql`
-				INSERT INTO tickets (id, project_id, root_id, number, title, status_id, position, created_at, updated_at)
-				VALUES (${ticketId}, ${projectId}, ${projectId}, 1, 'Test', ${statusId}, 0, ${at}, ${at})
+				INSERT INTO tickets (id, project_id, number, title, status_id, position, created_at, updated_at)
+				VALUES (${ticketId}, ${projectId}, 1, 'Test', ${statusId}, 0, ${at}, ${at})
 			`);
 			const firstInput = {
 				id: uploadId,

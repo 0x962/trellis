@@ -24,10 +24,10 @@ const factsOf = (tx: Tx, ids: string[]) =>
 		sql`SELECT delivery.id, pr.id AS "prId", pr.url,
 			coalesce(notice.kind, CASE WHEN delivery.review_id IS NULL THEN 'comment' ELSE 'review' END) AS kind,
 			notice.head_sha AS "headSha",
-			root.key || '-' || ticket.number AS ticket
+			proj.key || '-' || ticket.number AS ticket
 		FROM review_deliveries delivery
 		JOIN tickets ticket ON ticket.id = delivery.ticket_id
-		JOIN projects root ON root.id = ticket.root_id
+		JOIN projects proj ON proj.id = ticket.project_id
 		JOIN pull_requests pr ON pr.id = ${prOfDelivery}
 		LEFT JOIN check_notices notice ON notice.id = delivery.check_notice_id
 		WHERE delivery.id IN (${sql.join(

@@ -25,8 +25,8 @@ import { base } from "./base";
 const id = z.object({ id: z.string().min(1) });
 const pr = z.object({ pr: ReviewRefSchema });
 // A project narrows a list to the pull requests of that project: the ones
-// linked to a ticket of the project or one of its sub-projects, and the
-// ones in a repository of the project or one of its ancestors.
+// linked to a ticket of the project, and the ones in a repository of the
+// project.
 const project = z.object({ project: ProjectRefStringSchema.optional() });
 export const reviews = {
 	status: base

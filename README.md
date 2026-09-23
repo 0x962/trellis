@@ -87,7 +87,7 @@ trellis list --project TRL --json
 ### The pages
 
 `/` sends you to Needs you. The sidebar holds Needs you, Search, Flows, Loops,
-Usage, the sessions, and the project tree. Each project lists its Tickets,
+Usage, the sessions, and the project list. Each project lists its Tickets,
 Diffs, and Sessions pages. The three-dots menu of a project opens its
 Settings page.
 A session is a scratch git repository with one agent, outside every project.
@@ -98,7 +98,6 @@ The New session button in the sidebar starts one from a prompt.
 | `/needs-you` | Needs you: the page title over an empty body |
 | `/p/TRL` | The board of a project, which is the view a project opens in |
 | `/p/TRL/table` | The table of the same project |
-| `/p/TRL/web/auth` | The board of the sub-project `auth` under `web` |
 | `/p/TRL/diffs` | The pull requests of a project |
 | `/p/TRL/settings` | The settings of a project |
 | `/t/TRL-42` | One ticket |
@@ -108,10 +107,10 @@ The New session button in the sidebar starts one from a prompt.
 | `/settings` | The settings |
 | `/setup` | The first visit, and the new project step |
 
-The URL keeps slashes between project segments, and the API ref joins the same
-segments with dots: the page `/p/TRL/web/auth` reads the project `TRL.web.auth`.
-A link that ends in `/board` still opens the board, with the segment dropped.
-`board`, `settings`, `notes`, and `diffs` are reserved, so no sub-project takes one of those slugs.
+A project URL names one project by its key or by its slug, and one view at
+most. A link that ends in `/board` still opens the board, with the segment
+dropped. `board`, `settings`, `notes`, and `diffs` are reserved, so no project
+takes one of those slugs.
 
 Press `g b` for the board and `g t` for the table. The view switch in the topbar
 does the same.
@@ -261,8 +260,7 @@ Global flags: `--json`, `--jsonl`, `--quiet`, `--as`, `--url`, and `--no-color`.
 | `trellis statuses add` | Add a status. |
 | `trellis statuses edit` | Edit a status. |
 | `trellis statuses rm` | Remove a status. |
-| `trellis statuses clear` | Clear inherited statuses. |
-| `trellis labels list` | List the labels and the label groups of a project tree. |
+| `trellis labels list` | List the labels and the label groups of a project. |
 | `trellis labels add` | Add a label. `--group`, `--color`, and `--description` set its fields. |
 | `trellis labels edit` | Edit a label. `--group` moves it, and `--no-group` takes it out of its group. |
 | `trellis labels rm` | Delete a label and take it off every ticket. |

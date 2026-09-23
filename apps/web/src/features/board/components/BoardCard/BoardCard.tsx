@@ -51,7 +51,7 @@ export function BoardCard({
 	const showLineStats = ticket.status.category === "started";
 	const ref = useRef<HTMLLIElement>(null);
 	const pickup = useCallback((message: string) => announce(message), [announce]);
-	const readOnly = useArchivedProjects().isArchived(ticket.project.path);
+	const readOnly = useArchivedProjects().isArchived(ticket.project.key);
 	const { dragging, previewFrame, positionRef, surfaceRef } = useCardDnd(
 		ref,
 		{

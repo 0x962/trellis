@@ -13,10 +13,8 @@ import { projects } from "./projects.ts";
 const nameRule = (name: AnyPgColumn): SQL =>
 	sql`${name} = btrim(${name}) AND length(${name}) BETWEEN 1 AND 80 AND position(',' IN ${name}) = 0 AND position('/' IN ${name}) = 0 AND lower(${name}) <> 'none'`;
 
-// `project_id` is the root project of a tree. The root owns every label group
-// of the tree, and every project of the tree reads the same groups. The
-// services `labelGroups.ts` and `labels.ts` write the root id; no database
-// rule checks it. A group name is unique in its root without regard to case.
+// A project owns its label groups. A group name is unique in its project
+// without regard to case.
 export const labelGroups = pgTable(
 	"label_groups",
 	{
@@ -34,12 +32,12 @@ export const labelGroups = pgTable(
 	],
 );
 
-// `project_id` is the root project of a tree, as for `label_groups`.
-// `group_id` is NULL for a label with no group. A label name is unique among
-// the labels of its group, or among the labels of the root that have no
-// group, without regard to case. The service `labels.ts` also keeps a label
-// with no group and a group of the same root from the same name, which two
-// tables cannot state in one index.
+// A project owns its labels, as for `label_groups`. `group_id` is NULL for a
+// label with no group. A label name is unique among the labels of its group,
+// or among the labels of the project that have no group, without regard to
+// case. The service `labels.ts` also keeps a label with no group and a group
+// of the same project from the same name, which two tables cannot state in
+// one index.
 export const labels = pgTable(
 	"labels",
 	{

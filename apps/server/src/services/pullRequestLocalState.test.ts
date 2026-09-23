@@ -48,8 +48,8 @@ const newTicket = async (title: string) => {
 beforeAll(async () => {
 	db = await openTestDb();
 	status = ulid();
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${root}, ${root}, 'LOC', 'loc', 'Local', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${root}, 'LOC', 'loc', 'Local', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses
 		(id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at)
 		VALUES (${status}, ${root}, 'In Progress', 'in-progress', 'started', NULL, 'accent', 0, true, ${at}, ${at})`);

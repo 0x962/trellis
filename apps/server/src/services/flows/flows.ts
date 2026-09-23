@@ -4,30 +4,24 @@ import { ulid } from "ulid";
 import { requireActor, type ServiceCtx } from "../../context.ts";
 import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
-import { invalidInput } from "../../errors.ts";
 import { upsert } from "../actors.ts";
 import { resolveProject, resolveTicket } from "../refs.ts";
 import { deriveSlug } from "../slug.ts";
 import { assertSlugFree, assertVersion, listFlows, readDoc, resolveFlow } from "./queries.ts";
 
-// A flow belongs to the root project of a tree. A ref to a sub-project names
-// a narrower scope than a flow can hold, so it is refused here instead of
-// widened to the root without a word.
-const resolveRootProjectId = async (
+// A flow belongs to one project, or to none.
+const resolveFlowProjectId = async (
 	ctx: ServiceCtx,
 	tx: Tx,
 	ref: string | null | undefined,
 ): Promise<string | null> => {
 	if (ref === null || ref === undefined) return null;
-	const project = await resolveProject(ctx, tx, ref);
-	if (project.id !== project.rootId)
-		throw invalidInput("project", "A flow takes a root project, such as TRL, and not a sub-project.");
-	return project.id;
+	return (await resolveProject(ctx, tx, ref)).id;
 };
 
 export const list = async (ctx: ServiceCtx, tx: Tx, input: FlowListInput): Promise<FlowSummary[]> => {
-	if (input.project !== undefined) return listFlows(tx, (await resolveProject(ctx, tx, input.project)).rootId);
-	if (input.ticket !== undefined) return listFlows(tx, (await resolveTicket(ctx, tx, input.ticket)).rootId);
+	if (input.project !== undefined) return listFlows(tx, (await resolveProject(ctx, tx, input.project)).id);
+	if (input.ticket !== undefined) return listFlows(tx, (await resolveTicket(ctx, tx, input.ticket)).projectId);
 	return listFlows(tx, null);
 };
 
@@ -52,7 +46,7 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: FlowCreateInput): P
 	const actor = requireActor(ctx);
 	if (input.slug !== undefined) await assertSlugFree(tx, input.slug);
 	const slug = input.slug ?? (await freeSlug(tx, input.name));
-	const projectId = await resolveRootProjectId(ctx, tx, input.project);
+	const projectId = await resolveFlowProjectId(ctx, tx, input.project);
 	await upsert(ctx, tx, actor);
 	const id = ulid();
 	await tx.execute(
@@ -68,7 +62,7 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: FlowUpdateInput): P
 	const current = await resolveFlow(tx, input.flow);
 	assertVersion(current, input.expectedVersion);
 	if (input.slug !== undefined && input.slug !== current.slug) await assertSlugFree(tx, input.slug);
-	const projectId = await resolveRootProjectId(ctx, tx, input.project);
+	const projectId = await resolveFlowProjectId(ctx, tx, input.project);
 	await upsert(ctx, tx, actor);
 	await tx.execute(
 		sql`UPDATE flows SET name = COALESCE(${input.name ?? null}, name), slug = COALESCE(${input.slug ?? null}, slug),

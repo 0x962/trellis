@@ -8,7 +8,7 @@ import { linkScope } from "./pullRequestScope.ts";
 import { announcePullRequestUpdate } from "./pullRequests.ts";
 import { type ServiceCtx, type TicketRow, writeActivity } from "./support.ts";
 
-type TimelineTicket = Pick<TicketRow, "id" | "project_id" | "root_id">;
+type TimelineTicket = Pick<TicketRow, "id" | "project_id">;
 
 export type SetLocalStateInput = { id: string; localState: LocalPrState };
 

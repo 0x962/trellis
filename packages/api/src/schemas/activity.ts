@@ -17,7 +17,6 @@ export const activityActions = {
 export const ActivitySchema = z.object({
 	id: z.number().int().positive(),
 	batchId: UlidSchema,
-	rootId: UlidSchema,
 	projectId: UlidSchema,
 	ticketId: UlidSchema.nullable(),
 	actor: ActorRefSchema,
