@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ProjectRefStringSchema } from "../refs.ts";
+import { ProjectColorSchema } from "./enums.ts";
 import { booleanString, CountSchema, IsoDateTimeSchema, KeySchema, SlugSchema, UlidSchema } from "./primitives.ts";
 import { StatusSchema } from "./status.ts";
 
@@ -18,12 +19,16 @@ export type ProjectLink = z.infer<typeof ProjectLinkSchema>;
 
 // One row of the project list. `position` gives the display order.
 // `openEpicCount` counts the epics of this project whose state is open.
+// `color` is the color a person gave this project. It tints the mark of the
+// project and the ground of every page of the project. A project with `null`
+// keeps the grey mark and the plain ground.
 export const ProjectSummarySchema = ProjectLinkSchema.extend({
 	slug: SlugSchema,
 	name: ProjectNameSchema,
 	position: z.number().int(),
 	openCount: CountSchema,
 	openEpicCount: CountSchema,
+	color: ProjectColorSchema.nullable(),
 	archivedAt: IsoDateTimeSchema.nullable(),
 });
 export type ProjectSummary = z.infer<typeof ProjectSummarySchema>;
@@ -69,6 +74,7 @@ export const ProjectCreateInputSchema = z.strictObject({
 	name: ProjectNameSchema,
 	description: z.string().optional(),
 	ticketTemplate: z.string().optional(),
+	color: ProjectColorSchema.optional(),
 });
 export type ProjectCreateInput = z.input<typeof ProjectCreateInputSchema>;
 
@@ -81,6 +87,8 @@ export const ProjectUpdateInputSchema = z.strictObject({
 	name: ProjectNameSchema.optional(),
 	description: z.string().optional(),
 	ticketTemplate: z.string().optional(),
+	// `null` frees the color slot of the project for another project.
+	color: ProjectColorSchema.nullable().optional(),
 	archived: z.boolean().optional(),
 });
 export type ProjectUpdateInput = z.input<typeof ProjectUpdateInputSchema>;

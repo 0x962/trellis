@@ -1,7 +1,15 @@
 import { z } from "zod";
 import { pickErrors } from "../errors.ts";
 import { DiagnosticsSchema } from "../schemas/diagnostics.ts";
-import { BackupOutputSchema, GhStatusSchema, HealthSchema, SystemUsageSchema } from "../schemas/system.ts";
+import {
+	BackupOutputSchema,
+	GhStatusSchema,
+	HealthSchema,
+	MachinePressureInputSchema,
+	MachinePressureSchema,
+	SystemProcessesSchema,
+	SystemUsageSchema,
+} from "../schemas/system.ts";
 import { base } from "./base.ts";
 
 export const system = {
@@ -18,6 +26,13 @@ export const system = {
 		.output(z.string().nullable()),
 	health: base.route({ method: "GET", path: "/health", summary: "Read server health" }).output(HealthSchema),
 	usage: base.route({ method: "GET", path: "/system/usage", summary: "Read system usage" }).output(SystemUsageSchema),
+	processes: base
+		.route({ method: "GET", path: "/system/processes", summary: "List every process of the computer" })
+		.output(SystemProcessesSchema),
+	pressure: base
+		.route({ method: "GET", path: "/system/pressure", summary: "Read the memory pressure of the computer" })
+		.input(MachinePressureInputSchema)
+		.output(MachinePressureSchema),
 	gh: base.route({ method: "GET", path: "/gh", summary: "Read the gh state" }).output(GhStatusSchema),
 	checkGh: base
 		.route({ method: "POST", path: "/gh/check", summary: "Run gh auth status and read the new gh state" })

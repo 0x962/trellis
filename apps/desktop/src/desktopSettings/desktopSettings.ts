@@ -13,6 +13,11 @@ export const desktopActions = [
 ] as const;
 export type DesktopAction = (typeof desktopActions)[number];
 
+// NSProcessInfo publishes these five thermal states, and Electron returns them
+// from powerMonitor.getCurrentThermalState. Apple states that the system
+// reduces performance at "serious" and at "critical".
+export type ThermalState = "unknown" | "nominal" | "fair" | "serious" | "critical";
+
 export type DesktopStatus = {
 	packaged: boolean;
 	dataDirectory: string;

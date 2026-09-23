@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { TrellisWordmark } from "@trellis/ui";
+import { type ProjectColor, TrellisWordmark } from "@trellis/ui";
 import { NameStep } from "../features/setup/NameStep";
 import { ProjectStep } from "../features/setup/ProjectStep";
 import { StepDots } from "../features/setup/StepDots";
@@ -8,6 +8,7 @@ import { useActor } from "../lib/actor";
 import { useApp } from "../lib/appContext";
 import { loadEntry } from "../lib/entryGate";
 import { resolveActor } from "../lib/identity";
+import { takenColors } from "../lib/projectColors";
 
 type SetupSearch = { step?: "project" };
 
@@ -35,8 +36,12 @@ function SetupPage() {
 	const projects = useSuspenseQuery(orpc.projects.list.queryOptions({ input: {} })).data;
 	const identity = useSuspenseQuery(orpc.actors.default.queryOptions({})).data;
 
-	const create = async (input: { key: string; name: string }) => {
-		await client.projects.create(input);
+	const create = async (input: { key: string; name: string; color: ProjectColor | null }) => {
+		await client.projects.create({
+			key: input.key,
+			name: input.name,
+			...(input.color === null ? {} : { color: input.color }),
+		});
 		await queryClient.invalidateQueries({ queryKey: orpc.projects.list.key() });
 		await navigate({ to: "/p/$", params: { _splat: input.key } });
 	};
@@ -57,6 +62,7 @@ function SetupPage() {
 					<ProjectStep
 						taken={projects.map((project) => project.key)}
 						takenNames={projects.map((project) => project.name)}
+						takenColors={takenColors(projects)}
 						onCreate={create}
 					/>
 				)}

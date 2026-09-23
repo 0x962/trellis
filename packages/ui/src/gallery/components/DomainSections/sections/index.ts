@@ -12,6 +12,7 @@ export { LineChangesSection } from "./LineChangesSection";
 export { MergeConflictMarkSection } from "./MergeConflictMarkSection";
 export { PrGlyphSection } from "./PrGlyphSection";
 export { PriorityIconSection } from "./PriorityIconSection";
+export { ProjectRoomSection } from "./ProjectRoomSection";
 export { ResourceListSection } from "./ResourceListSection";
 export { ReviewStatusSummarySection } from "./ReviewStatusSummarySection";
 export { RunLineSection } from "./RunLineSection";
