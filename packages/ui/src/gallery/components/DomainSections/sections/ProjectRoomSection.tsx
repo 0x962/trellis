@@ -9,7 +9,7 @@ import { Section } from "../../Section";
 
 const keys = { orange: "CNY", teal: "CVS", blue: "TRL", pink: "HBR", azure: "MSA" };
 
-// The glyphs must read on every project ground. `projectTokens.test.ts`
+// The glyphs must read on every project ground. `projectColors.test.ts`
 // measures that contrast.
 export function ProjectRoomSection() {
 	return (

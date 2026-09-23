@@ -58,13 +58,14 @@ export const assertSlugFree = async (tx: Tx, slug: string, exceptId: string | nu
 	if (found.length > 0) throw fail("DUPLICATE", { field: "slug" });
 };
 
-// One color belongs to one project, so a person always reads two projects
-// apart by their color. `exceptId` is the project that the caller writes, so
-// a project keeps the color it already holds.
+// One color belongs to one active project, so a person always reads two
+// projects apart by their color. An archived project does not hold its color,
+// as it does not hold its name. `exceptId` is the project that the caller
+// writes, so a project keeps the color it already holds.
 export const assertColorFree = async (tx: Tx, color: string, exceptId: string | null) => {
 	const found = await rows<{ id: string }>(
 		tx,
-		sql`SELECT id FROM projects WHERE color = ${color} AND id IS DISTINCT FROM ${exceptId}`,
+		sql`SELECT id FROM projects WHERE color = ${color} AND archived_at IS NULL AND id IS DISTINCT FROM ${exceptId}`,
 	);
 	if (found.length > 0) throw fail("DUPLICATE", { field: "color" });
 };
