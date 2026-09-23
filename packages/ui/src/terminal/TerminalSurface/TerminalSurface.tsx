@@ -111,8 +111,18 @@ export function TerminalSurface({
 			lease.release();
 		};
 	}, [identity, createTransport, stopped, ended]);
+	// The buffer of a terminal ends with its process, so this block names
+	// the state and leaves the control that starts a new process to the
+	// screen around it.
 	if (stopped || ended)
-		return <EmptyState title="Agent not running" variant={layout === "fill" ? "page" : "section"} />;
+		return (
+			<EmptyState
+				image={null}
+				title="The agent is not running"
+				description="The output of the last run ended with its process."
+				variant={layout === "fill" ? "page" : "section"}
+			/>
+		);
 	return (
 		<div className="terminal-surface" data-layout={layout}>
 			<div className="terminal-toolbar">

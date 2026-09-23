@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { Topbar, TopbarActionButton } from "../../shell/Topbar";
 import { SessionConversation } from "../SessionConversation";
-import { SessionNameField } from "../SessionNameField";
+import { SessionName } from "../SessionName";
 import { sessionComposerActions } from "../sessionComposerStore";
 
 export function SessionPage({ id }: { id: string }) {
@@ -33,24 +33,20 @@ export function SessionPage({ id }: { id: string }) {
 					</Tooltip>
 				}
 			>
-				{renamingTitle ? (
-					<SessionNameField
-						session={session}
-						inputClassName="h-9 text-lg font-semibold max-md:text-md"
-						onCancel={() => setRenamingTitle(false)}
-						onSaved={() => setRenamingTitle(false)}
-					/>
-				) : (
-					<div className="flex min-w-0 items-center gap-2">
-						<h1
-							title={session.name}
-							className="truncate text-lg font-semibold text-fg"
-							onDoubleClick={() => setRenamingTitle(true)}
-						>
-							{session.name}
-						</h1>
-					</div>
-				)}
+				<SessionName
+					session={session}
+					editing={renamingTitle}
+					onEditingChange={setRenamingTitle}
+					inputClassName="h-9 text-lg font-semibold max-md:text-md"
+				>
+					<h1
+						title={session.name}
+						className="truncate text-lg font-semibold text-fg"
+						onDoubleClick={() => setRenamingTitle(true)}
+					>
+						{session.name}
+					</h1>
+				</SessionName>
 			</Topbar>
 			<div className="page-card flex min-h-0 flex-1 overflow-hidden">
 				<SessionConversation

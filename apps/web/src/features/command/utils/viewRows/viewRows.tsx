@@ -17,6 +17,7 @@ import {
 import type { ReactNode } from "react";
 import { projectHref } from "../../../../lib/projectUrl";
 import { toggleTheme } from "../../../../lib/theme";
+import { pageSheetActions } from "../../../../stores/pageSheetStore";
 import { uiActions, useUiStore } from "../../../../stores/uiStore";
 import { composerActions } from "../../../composer";
 import { itemsOfSection } from "../../items";
@@ -77,7 +78,7 @@ export const gotoRows = (deps: RowDeps): PaletteRow[] => {
 	const runs: Record<string, () => void> = {
 		"goto.needsYou": run(deps, () => deps.action.navigate("/needs-you")),
 		"goto.usage": run(deps, () => deps.action.navigate("/usage")),
-		"goto.settings": run(deps, () => deps.action.navigate("/settings")),
+		"goto.settings": run(deps, () => pageSheetActions.openSettings("account")),
 		"goto.project": () => deps.openSubmenu({ kind: "goto" }),
 	};
 	const project = deps.routeProject;

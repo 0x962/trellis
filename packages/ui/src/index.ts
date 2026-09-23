@@ -6,6 +6,7 @@ export { CheckRing, type CheckRingCounts, type CheckRingProps } from "./domain/C
 export { type ChartTone, otherTone, rankedTones } from "./domain/chartTones";
 export { DisplayPopover, type DisplayPopoverProps, type DisplaySortField } from "./domain/DisplayPopover";
 export { DoneWash, type DoneWashProps, doneWashMs, waveFillMs } from "./domain/DoneWash";
+export { type FailureRecovery, FailureState, type FailureStateProps } from "./domain/FailureState";
 export { FilterBar } from "./domain/FilterBar";
 export { FilterPopover, type FilterPopoverProps } from "./domain/FilterPopover";
 export { FlowDecisionContext } from "./domain/FlowDecisionContext";
@@ -125,6 +126,16 @@ export { EmptyState, type EmptyStateProps } from "./primitives/EmptyState";
 export { EntityCard, type EntityCardProps } from "./primitives/EntityCard";
 export { Field, type FieldProps } from "./primitives/Field";
 export { IconButton, type IconButtonProps } from "./primitives/IconButton";
+export {
+	InlineEdit,
+	type InlineEditAction,
+	type InlineEditEvent,
+	type InlineEditFocus,
+	type InlineEditOutcome,
+	type InlineEditProps,
+	inlineEditAction,
+	runInlineEdit,
+} from "./primitives/InlineEdit";
 export { Input, type InputProps } from "./primitives/Input";
 export { Kbd, type KbdProps } from "./primitives/Kbd";
 export { Menu, type MenuGroup, type MenuItem, type MenuProps } from "./primitives/Menu";

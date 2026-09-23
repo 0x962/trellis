@@ -4,6 +4,7 @@ import { dirname } from "node:path";
 import { fromHarnessModel } from "@trellis/api/models";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { z } from "zod";
+import { failureReason, recordBridgeFailure } from "../bridgeFailure/bridgeFailure.ts";
 import { applyTurnActivity } from "../turnActivity/turnActivity.ts";
 import type { HarnessEvent } from "../types.ts";
 import { MspClient } from "./mspClient.ts";
@@ -255,14 +256,12 @@ try {
 } catch (error) {
 	const observedAtMs = Date.now();
 	acceptingEvents = false;
-	await eventQueue;
 	const usageHome = museHome;
-	if (usageHome !== undefined) queueUsage(() => writeMuseQuotaError(usageHome, (error as Error).message, observedAtMs));
-	await usageQueue;
-	await runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, {
-		kind: "error",
-		outcome: "failed",
-		error: (error as Error).message,
+	if (usageHome !== undefined) queueUsage(() => writeMuseQuotaError(usageHome, failureReason(error), observedAtMs));
+	await recordBridgeFailure({
+		error,
+		queued: Promise.all([eventQueue, usageQueue]),
+		observe: (event) => runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, event),
 	});
 	process.exitCode = 1;
 } finally {

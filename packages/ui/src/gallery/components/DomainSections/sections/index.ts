@@ -6,6 +6,7 @@ export { CheckConfettiSection } from "./CheckConfettiSection";
 export { CheckRibbonSection } from "./CheckRibbonSection";
 export { ChecksLineSection } from "./ChecksLineSection";
 export { DoneWashSection } from "./DoneWashSection";
+export { FailureStateSection } from "./FailureStateSection";
 export { FileRiskGroupsSection } from "./FileRiskGroupsSection";
 export { FlowRunSection } from "./FlowRunSection";
 export { LineChangesSection } from "./LineChangesSection";

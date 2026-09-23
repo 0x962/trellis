@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { EmptyState } from "@trellis/ui";
+import { FailureState } from "@trellis/ui";
 import { linkButtonClass } from "../linkButtonClass";
 
 export type NotFoundStateProps = {
@@ -13,11 +13,11 @@ export type NotFoundStateProps = {
 // exist.
 export function NotFoundState({ ref, searchFor }: NotFoundStateProps) {
 	return (
-		<EmptyState
+		<FailureState
 			variant="page"
 			className="page-card"
 			title={`${ref} does not exist`}
-			description="Make sure that the URL has no typo. This page also shows for a deleted ticket or project."
+			description="The URL may hold a typo. A ticket or a project that somebody deleted shows this page too."
 			action={
 				searchFor === undefined ? (
 					<Link to="/needs-you" className={linkButtonClass}>

@@ -1,4 +1,4 @@
-import { Button, EmptyState } from "@trellis/ui";
+import { Button, FailureState } from "@trellis/ui";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
 export type PaneBoundaryProps = {
@@ -27,9 +27,10 @@ export class PaneBoundary extends Component<PaneBoundaryProps, PaneBoundaryState
 	render() {
 		if (this.state.error === null) return this.props.children;
 		return (
-			<EmptyState
-				title="This tab did not load"
-				description={this.state.error.message}
+			<FailureState
+				title="This tab did not draw"
+				description="The rest of the review still works."
+				detail={this.state.error.message}
 				action={
 					<Button size="md" onClick={() => this.setState({ error: null })}>
 						Retry
