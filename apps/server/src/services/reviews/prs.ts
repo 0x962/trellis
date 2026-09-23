@@ -1,6 +1,7 @@
-import type { ReviewPrSchema } from "@trellis/api";
+import { type PrState, type ReviewPrSchema, type ReviewReadyFacts, reviewGaps } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import type { z } from "zod";
+import { flowAnsweredSql, hasEvidenceSql, hasExplanationSql } from "../../db/queries/reviewReady.ts";
 import { iso, rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
 import { resolveProject } from "../refs";
@@ -27,13 +28,35 @@ const projectClause = async (ctx: IoCtx, tx: Tx, ref: string): Promise<SQL> => {
 // project: every pull request of that project, retained or not.
 export async function prs(ctx: IoCtx, tx: Tx, input: { project?: string }) {
 	const where = input.project === undefined ? sql`p.review_retained` : await projectClause(ctx, tx, input.project);
-	return rows<z.infer<typeof ReviewPrSchema>>(
+	const found = await rows<z.infer<typeof ReviewPrSchema> & ReviewPrFacts>(
 		tx,
-		sql`SELECT p.id, p.url, p.owner, p.repo, p.number, p.title, p.state,
+		sql`SELECT p.id, p.url, p.owner, p.repo, p.number, p.title, p.state, p.mergeable,
 		p.is_draft AS "isDraft", p.is_queued AS "isQueued", p.local_state AS "localState", p.checks, p.ci_state AS "ciState",
+		${hasExplanationSql(sql`p`)} AS "hasExplanation",
+		${hasEvidenceSql(sql`p`)} AS "hasEvidence",
+		${flowAnsweredSql(sql`p`)} AS "flowAnswered",
 		(SELECT count(*)::int FROM review_threads t WHERE t.pr_id = p.id AND t.document->>'status' = 'open') AS open,
 		(SELECT count(*)::int FROM review_threads t WHERE t.pr_id = p.id AND t.document->>'status' = 'resolved') AS resolved,
 		${iso(sql`COALESCE((SELECT max(t.updated_at) FROM review_threads t WHERE t.pr_id = p.id), p.updated_at)`)} AS "updatedAt"
 		FROM pull_requests p WHERE ${where} ORDER BY "updatedAt" DESC`,
 	);
+	return found.map(({ hasExplanation, hasEvidence, flowAnswered, mergeable, ...row }) => ({
+		...row,
+		reviewGaps: reviewGaps({
+			state: row.state as PrState,
+			localState: row.localState,
+			failedChecks: row.checks.filter((check) => check.bucket === "fail" || check.bucket === "cancel").length,
+			pendingChecks: row.checks.filter((check) => check.bucket === "pending").length,
+			hasExplanation,
+			hasEvidence,
+			flowAnswered,
+			openFindings: row.open,
+			mergeable,
+		}),
+	}));
 }
+
+// The facts that `reviewGaps` reads and that no field of `ReviewPrSchema`
+// carries. `open` is the count of open review threads, which is the count of
+// findings the rule reads.
+type ReviewPrFacts = Pick<ReviewReadyFacts, "hasExplanation" | "hasEvidence" | "flowAnswered" | "mergeable">;

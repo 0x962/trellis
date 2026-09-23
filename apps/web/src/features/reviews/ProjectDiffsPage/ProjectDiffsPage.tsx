@@ -1,7 +1,7 @@
 import { ArrowRight, ArrowsClockwise, Plus, TextAlignLeft } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { type Check, isReviewDraft, type Project, reviewRef } from "@trellis/api";
+import { type Check, type Project, readyForReview, reviewRef } from "@trellis/api";
 import { Button, CheckRibbon, EmptyState, Input, Segmented, Sheet, Tooltip } from "@trellis/ui";
 import { ReviewStatus } from "@trellis/ui/review";
 import { useState } from "react";
@@ -70,7 +70,7 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 			? (prs.data ?? []).map((pr) => ({
 					...pr,
 					repository: `${pr.owner}/${pr.repo}`,
-					state: pr.isQueued ? "QUEUED" : pr.state === "open" && isReviewDraft(pr) ? "DRAFT" : pr.state,
+					state: pr.isQueued ? "QUEUED" : pr.state === "open" && !readyForReview(pr) ? "NOT READY" : pr.state,
 				}))
 			: (mine.data ?? []).map((pr) => ({
 					...reviewRef(pr.url),
@@ -80,7 +80,7 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 					state: "OPEN",
 					isDraft: pr.isDraft,
 					isQueued: false,
-					localState: "ready" as const,
+					reviewGaps: [],
 					checks: [],
 					ciState: "none" as const,
 					open: 0,
@@ -200,7 +200,7 @@ export function ProjectDiffsPage({ project }: { project: Project }) {
 														</span>
 													</Tooltip>
 												)}
-												<ReviewStatus state={pr.state} isQueued={pr.isQueued} localState={pr.localState} />
+												<ReviewStatus state={pr.state} isQueued={pr.isQueued} readyForReview={readyForReview(pr)} />
 												<ArrowRight className="review-row-arrow" aria-hidden="true" />
 											</Link>
 										);

@@ -5,7 +5,7 @@ import { UlidSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { type Db, openDb } from "./client.ts";
 
-// Migration 0104 turns the project tree into a flat list. The fixture holds
+// Migration 0107 turns the project tree into a flat list. The fixture holds
 // one tree two levels deep whose tickets sit in the deepest project, a
 // second tree whose child answers to the same key as the first tree's child,
 // and statuses that only the roots own.
@@ -23,8 +23,8 @@ const apply = async (db: Db, names: string[]) => {
 	for (const name of names) await db.$client.exec(readFileSync(join(migrationsDir, name), "utf8"));
 };
 
-const before = migrationFiles().filter((name) => index(name) < 104);
-const only104 = migrationFiles().filter((name) => index(name) === 104);
+const before = migrationFiles().filter((name) => index(name) < 107);
+const only107 = migrationFiles().filter((name) => index(name) === 107);
 
 // WO holds the key and two levels below it: `WO.shop` and `WO.shop.parts`.
 // Every ticket of the tree sits in `parts`. AC holds one child that also
@@ -61,11 +61,11 @@ const migrated = async () => {
 	const db = await openDb(":memory:");
 	await apply(db, before);
 	await seed(db);
-	await apply(db, only104);
+	await apply(db, only107);
 	return db;
 };
 
-test("migration 0104 moves the key to the project that holds the tickets", async () => {
+test("migration 0107 moves the key to the project that holds the tickets", async () => {
 	const db = await migrated();
 	try {
 		const projects = await db.execute(
@@ -83,7 +83,7 @@ test("migration 0104 moves the key to the project that holds the tickets", async
 	}
 }, 120_000);
 
-test("migration 0104 keeps every ticket identifier and moves the epic with the key", async () => {
+test("migration 0107 keeps every ticket identifier and moves the epic with the key", async () => {
 	const db = await migrated();
 	try {
 		const tickets = await db.execute(sql`
@@ -106,7 +106,7 @@ test("migration 0104 keeps every ticket identifier and moves the epic with the k
 	}
 }, 120_000);
 
-test("migration 0104 copies the inherited statuses and the inherited repositories", async () => {
+test("migration 0107 copies the inherited statuses and the inherited repositories", async () => {
 	const db = await migrated();
 	try {
 		const statuses = await db.execute(sql`
@@ -142,7 +142,7 @@ test("migration 0104 copies the inherited statuses and the inherited repositorie
 	}
 }, 120_000);
 
-test("migration 0104 stops when two projects of one tree hold tickets", async () => {
+test("migration 0107 stops when two projects of one tree hold tickets", async () => {
 	const db = await openDb(":memory:");
 	try {
 		await apply(db, before);
@@ -151,7 +151,7 @@ test("migration 0104 stops when two projects of one tree hold tickets", async ()
 			INSERT INTO tickets (id, project_id, root_id, number, title, status_id, position, created_at, updated_at)
 			VALUES ('t3', 'shop', 'wo', 3, 'Three', 'wo-todo', 2, now(), now());
 		`);
-		await expect(apply(db, only104)).rejects.toThrow("Two projects of one tree hold tickets");
+		await expect(apply(db, only107)).rejects.toThrow("Two projects of one tree hold tickets");
 	} finally {
 		await db.$client.close();
 	}

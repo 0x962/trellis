@@ -35,7 +35,7 @@ const clientWith = ({
 			}),
 		},
 		pullRequests: {
-			refresh: async () => ({ number: linked.number, files }),
+			refresh: async () => ({ number: linked.number, files, reviewGaps: [{ kind: "not-asked", count: 1 }] }),
 			readEvidence: async () => evidence,
 			readFlowWaiver: async () => null,
 			readSummaryHead: async () => (summaryHead === null ? null : { why: "Why.", watch: "nothing", ...summaryHead }),

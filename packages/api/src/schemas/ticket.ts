@@ -23,6 +23,7 @@ import { TicketLabelSchema } from "./label.ts";
 import { booleanString, CountSchema, commaList, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 import { ProjectLinkSchema } from "./project.ts";
 import { LinkedPullRequestSchema } from "./pullRequest.ts";
+import { ReviewGapSchema } from "./reviewReady.ts";
 import { StatusSummarySchema } from "./status.ts";
 import { TicketPrSchema } from "./ticketPr.ts";
 import { WaveLinkSchema } from "./wave.ts";
@@ -41,19 +42,23 @@ const PrReviewSchema = z.object({
 	repo: z.string().min(1),
 	number: z.number().int().positive(),
 	reviewState: ReviewStateSchema,
-	isDraft: z.boolean(),
+	// True while the agent has not asked for review. GitHub accepts no
+	// review then, so the mark draws the idle look.
+	notReady: z.boolean(),
 	localState: LocalPrStateSchema,
 });
 
 // The PR badge on a row: the pull request and review states that need the
 // most work, the check counts behind the ribbon, and the approval state of
-// each linked pull request. `localState` is `draft` when any linked pull
-// request is a local draft.
+// each linked pull request. `localState` is `not-ready` when the agent has
+// not asked for review on some linked pull request. `reviewGaps` holds what
+// the first linked pull request that is not ready for review still needs.
 const PrBadgeSchema = z.object({
 	state: PrStateSchema,
 	isDraft: z.boolean().default(false),
 	isQueued: z.boolean(),
 	localState: LocalPrStateSchema,
+	reviewGaps: z.array(ReviewGapSchema),
 	ciState: CiStateSchema,
 	reviewState: ReviewStateSchema,
 	pass: CountSchema,
@@ -162,7 +167,7 @@ export const SortSchema = z.enum([
 ]);
 export type Sort = z.infer<typeof SortSchema>;
 
-export const PrFilterSchema = z.enum(["any", "none", "open", "draft", "queued", "merged", "closed"]);
+export const PrFilterSchema = z.enum(["any", "none", "open", "not-ready", "queued", "merged", "closed"]);
 export type PrFilter = z.infer<typeof PrFilterSchema>;
 
 // The last actor filter: `kind:name` or a bare `name`.

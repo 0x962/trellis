@@ -39,10 +39,17 @@ export const prValues = (at: Date, row: PullRequestRow) => sql`(
 
 // `checks_changed_at` moves only when the checks or the head commit differ,
 // because the check notice detector counts the quiet time from it.
+//
+// A new head commit clears `ready_for_review_at`. The explanation the agent
+// wrote covers the old commit, so the person waits for nothing until the
+// agent asks again, and the stored moment would measure a wait that ended.
 export const PR_UPDATE_SET = sql.raw(`
 	checks_changed_at = CASE
 		WHEN pull_requests.checks IS DISTINCT FROM EXCLUDED.checks OR pull_requests.head_sha IS DISTINCT FROM EXCLUDED.head_sha
 		THEN EXCLUDED.updated_at ELSE pull_requests.checks_changed_at END,
+	ready_for_review_at = CASE
+		WHEN pull_requests.head_sha IS DISTINCT FROM EXCLUDED.head_sha
+		THEN NULL ELSE pull_requests.ready_for_review_at END,
 	additions = EXCLUDED.additions, deletions = EXCLUDED.deletions, changed_files = EXCLUDED.changed_files,
 	files = EXCLUDED.files,
 	url = EXCLUDED.url, title = EXCLUDED.title, state = EXCLUDED.state, is_draft = EXCLUDED.is_draft,
