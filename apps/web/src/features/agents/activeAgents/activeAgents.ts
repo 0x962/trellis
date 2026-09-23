@@ -1,8 +1,6 @@
 import type { SessionStatus } from "@trellis/api";
 
-// An agent is active while it can still move on its own or while it waits for
-// an answer from the person: it starts up, it works, or it asks a question. An
-// idle, finished, failed or unreachable agent is not active.
+// An agent that waits for an answer stays active, because the person must still act on it.
 const activeStatuses: SessionStatus[] = ["starting", "working", "needs-input"];
 
 export type ProjectAgentCount = { projectId: string; activeCount: number };
@@ -10,9 +8,9 @@ export type ProjectAgentCount = { projectId: string; activeCount: number };
 // The Sessions page of a project lists the runs that carry the id of that
 // project, and a run of a subproject stays on the page of the subproject. So a
 // run counts for the one project its projectId names, and for no ancestor.
-// The rows come back sorted by project id, which keeps the array of one set of
-// counts equal to the array before it, so a project row redraws only when its
-// own count changes.
+// The rows are sorted by project id, so two fetches with the same counts build
+// the same array. React Query compares the new array with the last one and
+// keeps the last one, so a project row redraws only when its own count changes.
 export function activeAgentCounts(runs: { projectId: string | null; status: SessionStatus }[]): ProjectAgentCount[] {
 	const counts = new Map<string, number>();
 	for (const run of runs) {
@@ -25,3 +23,6 @@ export function activeAgentCounts(runs: { projectId: string | null; status: Sess
 }
 
 export const activeAgentsLabel = (count: number) => (count === 1 ? "1 agent is active" : `${count} agents are active`);
+
+export const activeAgentCountOf = (counts: ProjectAgentCount[], projectId: string): number =>
+	counts.find((row) => row.projectId === projectId)?.activeCount ?? 0;

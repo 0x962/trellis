@@ -4,7 +4,7 @@ import type { ProjectSummary } from "@trellis/api";
 import { ActivityDot, cx } from "@trellis/ui";
 import { projectSlashPath } from "../../../../lib/projectPath";
 import { uiActions, useUiStore } from "../../../../stores/uiStore";
-import { activeAgentsLabel } from "../../../sessions/activeAgents";
+import { activeAgentsLabel } from "../../../agents/activeAgents";
 import { type ProjectPageRow, projectPageRows } from "./projectPageRows";
 
 const indent = ["pl-8", "pl-8", "pl-11", "pl-14", "pl-17"] as const;
@@ -20,23 +20,22 @@ export function ProjectPages({
 	project,
 	depth,
 	pathname,
-	activeAgents = 0,
+	activeAgentCount = 0,
 }: {
 	project: ProjectSummary;
 	depth: number;
 	pathname: string;
-	// How many agents of this project start, work or wait for an answer. The
-	// Sessions row wears a dot while the number is above zero.
-	activeAgents?: number;
+	// The Sessions row shows a dot while the number is above zero.
+	activeAgentCount?: number;
 }) {
-	const { top, more } = projectPageRows(project, pathname, activeAgents);
+	const { top, more } = projectPageRows(project, pathname, activeAgentCount);
 	const stored = useUiStore((state) => state.expandedProjectMore[project.id] ?? false);
 	// The row of the page on screen must stay on screen. A page that the More
 	// row holds therefore keeps More open, whatever the person stored.
 	const open = stored || more.some((row) => row.active);
-	// A shut More row hides the Sessions row, so the More row wears the dot of
+	// A shut More row hides the Sessions row, so the More row shows the dot of
 	// the rows under it until the person opens them.
-	const hiddenAgents = open ? 0 : more.reduce((total, row) => total + row.activeAgents, 0);
+	const agentCountUnderMore = open ? 0 : more.reduce((total, row) => total + row.activeAgentCount, 0);
 	const pageLink = (row: ProjectPageRow, rowDepth: number) => (
 		<li key={row.label}>
 			<Link
@@ -52,12 +51,14 @@ export function ProjectPages({
 				className={rowClass(rowDepth, row.active)}
 			>
 				<span className="sidebar-label">{row.label}</span>
-				{row.activeAgents > 0 && (
-					<span className="sidebar-trailing">
-						<ActivityDot label={activeAgentsLabel(row.activeAgents)} placement="inline" tone="metal" />
+				{(row.activeAgentCount > 0 || row.trailing !== null) && (
+					<span className="sidebar-trailing gap-1 text-fg-faint">
+						{row.activeAgentCount > 0 && (
+							<ActivityDot label={activeAgentsLabel(row.activeAgentCount)} placement="inline" tone="metal" />
+						)}
+						{row.trailing}
 					</span>
 				)}
-				{row.trailing !== null && <span className="sidebar-trailing text-fg-faint">{row.trailing}</span>}
 			</Link>
 		</li>
 	);
@@ -75,18 +76,18 @@ export function ProjectPages({
 							className={cx(rowClass(depth, false), "w-full text-left active:bg-elevated")}
 						>
 							<span className="sidebar-label">More</span>
-							{hiddenAgents > 0 && (
-								<span className="sidebar-trailing">
+							<span className="sidebar-trailing gap-1 text-fg-faint">
+								{agentCountUnderMore > 0 && (
 									<ActivityDot
-										label={activeAgentsLabel(hiddenAgents)}
+										label={activeAgentsLabel(agentCountUnderMore)}
 										placement="inline"
 										tone="metal"
 										focusable={false}
 									/>
+								)}
+								<span aria-hidden="true" className="*:size-3">
+									{open ? <CaretDown /> : <CaretRight />}
 								</span>
-							)}
-							<span aria-hidden="true" className="sidebar-trailing text-fg-faint *:size-3">
-								{open ? <CaretDown /> : <CaretRight />}
 							</span>
 						</button>
 						{open && <ul className="flex flex-col">{more.map((row) => pageLink(row, depth + 1))}</ul>}
