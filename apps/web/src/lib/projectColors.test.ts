@@ -27,3 +27,9 @@ test("a project does not hold its own color against itself", () => {
 	expect(takenColors(projects)).toEqual(["blue", "teal"]);
 	expect(takenColors(projects, "one")).toEqual(["teal"]);
 });
+
+test("an archived project holds no color slot", () => {
+	const archived = { ...project("four", "pink"), archivedAt: "2026-09-23T10:00:00.000Z" };
+
+	expect(takenColors([project("one", "blue"), archived])).toEqual(["blue"]);
+});

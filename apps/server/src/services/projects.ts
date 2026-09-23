@@ -86,7 +86,8 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: ProjectUpdateInput)
 		sets.push(sql`slug = ${input.key.toLowerCase()}`);
 		field("key", project.key, input.key, sql`key = ${input.key}`);
 	}
-	if (input.color !== undefined && input.color !== null) await assertColorFree(tx, input.color, project.id);
+	const color = input.color === undefined ? row.color : input.color;
+	if (color !== null && (input.color !== undefined || restored)) await assertColorFree(tx, color, project.id);
 	field("color", row.color, input.color, sql`color = ${input.color}`);
 	if (input.archived !== undefined) {
 		const archived = row.archived_at !== null;

@@ -9,8 +9,9 @@ import { at } from "./actors.ts";
 // place of the key. The slugs `board` and `settings` are web routes under
 // a project URL, so no project takes them.
 // `color` is the name of one of the five color slots, and the index below
-// gives a slot to one project at a time. A project without a color holds
-// NULL, and any number of projects hold NULL.
+// gives a slot to one active project at a time. A project without a color
+// holds NULL, and any number of projects hold NULL. An archived project
+// holds no slot, as it holds no name.
 export const projects = pgTable(
 	"projects",
 	{
@@ -36,7 +37,7 @@ export const projects = pgTable(
 		),
 		check("projects_name_check", sql`length(${t.name}) BETWEEN 1 AND 120`),
 		checkIn(t.color, PROJECT_COLORS),
-		uniqueIndex("projects_color_idx").on(t.color),
+		uniqueIndex("projects_color_idx").on(t.color).where(sql`${t.archivedAt} IS NULL`),
 	],
 );
 

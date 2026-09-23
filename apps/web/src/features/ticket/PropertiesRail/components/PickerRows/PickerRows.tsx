@@ -14,6 +14,7 @@ import {
 } from "@trellis/ui";
 import { useEffect } from "react";
 import { useArchivedProjects } from "../../../../../hooks/useArchivedProjects";
+import { useProjectColor } from "../../../../../hooks/useProjectColor";
 import { failToast } from "../../../../../lib/failToast";
 import { epicSplat } from "../../../../../lib/projectUrl";
 import { EpicPicker } from "../../../../pickers/EpicPicker";
@@ -52,6 +53,7 @@ const summaryOf = (status: Status) => ({
 // epic value links to the epic page, so its picker opens from the pencil
 // beside it. `WaveRow` follows the epic row while the ticket has an epic.
 export function PickerRows({ ticket }: PickerRowsProps) {
+	const projectColor = useProjectColor(ticket.project.key);
 	const { write } = useTicketWrite(ticket.identifier);
 	const statuses = useStatuses(ticket.project.key);
 	const open = usePickerStore((state) => state.open);
@@ -169,7 +171,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 			<LabelsRow ticket={ticket} />
 			<PropertyRow compact label="Project">
 				<span className="inline-flex h-7 items-center">
-					<ProjectKey projectKey={ticket.project.key} color={null} />
+					<ProjectKey projectKey={ticket.project.key} color={projectColor} />
 				</span>
 			</PropertyRow>
 			<PropertyRow compact label="Parent">

@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { TicketRefStringSchema } from "@trellis/api";
 import type { ProjectColor } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
-import { roomColorOfPath, ticketRefOfPath } from "./projectRoom";
+import { ticketRefOfPathname } from "../../../lib/ticketUrl";
+import { roomColorOfPath } from "./projectRoom";
 
 // The color of the room the person stands in. The project list is in the
 // cache already, because the sidebar and the command palette read it. A
@@ -14,7 +15,7 @@ import { roomColorOfPath, ticketRefOfPath } from "./projectRoom";
 // would redraw the whole app on every event that touches that row.
 export const useRoomColor = (pathname: string): ProjectColor | null => {
 	const { orpc } = useApp();
-	const ref = TicketRefStringSchema.safeParse(ticketRefOfPath(pathname) ?? "");
+	const ref = TicketRefStringSchema.safeParse(ticketRefOfPathname(pathname) ?? "");
 	const ticketProjectKey = useQuery({
 		...orpc.tickets.get.queryOptions({ input: { ticket: ref.success ? ref.data : "" } }),
 		enabled: ref.success,

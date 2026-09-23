@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
-import { projectColors } from "../projectColors";
+import { projectColors } from "./projectColors";
 
-const css = await Bun.file(new URL("../../tokens.css", import.meta.url)).text();
+const css = await Bun.file(new URL("../tokens.css", import.meta.url)).text();
 
 // The bar of WCAG 1.4.11 for a graphical object, and the bar of 1.4.3 for
 // text.
@@ -10,7 +10,7 @@ const textBar = 4.5;
 
 // The share of the project color that the ground of a project page takes.
 // `project-room.css` holds the number, and this test reads it from there.
-const roomCss = await Bun.file(new URL("../../project-room.css", import.meta.url)).text();
+const roomCss = await Bun.file(new URL("../project-room.css", import.meta.url)).text();
 const tintShare = Number(roomCss.match(/var\(--project-tint\) (\d+)%/)![1]!) / 100;
 
 // The blocks of tokens.css: the bare `:root` holds the light palette, and
@@ -87,8 +87,9 @@ test("every project color holds its three values in both themes", () => {
 				expect(themes[theme].get(`--project-${color}${suffix}`)).toMatch(/^#[0-9A-F]{6}$/);
 			}
 		}
-		expect(mediaDark.get(`--project-${color}-solid`)).toBe(themes.dark.get(`--project-${color}-solid`)!);
-		expect(mediaDark.get(`--project-${color}-soft`)).toBe(themes.dark.get(`--project-${color}-soft`)!);
+		for (const suffix of ["-solid", "-tint", "-soft"]) {
+			expect(mediaDark.get(`--project-${color}${suffix}`)).toBe(themes.dark.get(`--project-${color}${suffix}`)!);
+		}
 	}
 	expect(themes.light.get("--project-strand")).toBe("#FFFFFF");
 	expect(themes.dark.get("--project-strand")).toBe("#0A0A0A");

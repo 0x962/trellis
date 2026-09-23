@@ -1,13 +1,11 @@
 import { Lock } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import type { Project } from "@trellis/api";
 import { Button, Input, type ProjectColor, ProjectColorField, Textarea } from "@trellis/ui";
 import { type FormEvent, useId, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { takenColors } from "../../../lib/projectColors";
-
-const noColors: readonly ProjectColor[] = [];
 
 export type ProjectDetailsFormProps = {
 	project: Project;
@@ -28,14 +26,13 @@ export function ProjectDetailsForm({ project }: ProjectDetailsFormProps) {
 	const [description, setDescription] = useState(project.description);
 	const [color, setColor] = useState<ProjectColor | null>(project.color);
 	const [message, setMessage] = useState<string | null>(null);
-	// The query gives back the color names alone. The project list refetches
-	// after every ticket move, and a result that held the rows would redraw
-	// the form and rebuild the list of the color field each time.
-	const taken =
-		useQuery({
-			...orpc.projects.list.queryOptions({ input: {} }),
-			select: (projects) => takenColors(projects, project.id),
-		}).data ?? noColors;
+	// The project list refetches after every ticket move. `select` cuts the
+	// result down to the color names, so the form redraws only when a color
+	// changes.
+	const taken = useSuspenseQuery({
+		...orpc.projects.list.queryOptions({ input: {} }),
+		select: (projects) => takenColors(projects, project.id),
+	}).data;
 	const locked = project.ticketCounter > 0;
 
 	const save = async (event: FormEvent) => {

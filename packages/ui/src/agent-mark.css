@@ -1,18 +1,18 @@
 :root {
 	--agent-mark: #646468;
 	--agent-mark-ink: #646468;
+	/* The square under the strands. It is one value for both themes, as the
+	   app icon is. */
 	--agent-mark-ground: #161617;
 }
 :root[data-theme="dark"] {
 	--agent-mark: #c4c4c4;
 	--agent-mark-ink: #c4c4c4;
-	--agent-mark-ground: #161617;
 }
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme="light"]) {
 		--agent-mark: #c4c4c4;
 		--agent-mark-ink: #c4c4c4;
-		--agent-mark-ground: #161617;
 	}
 }
 /* A rule that draws a mark in another color sets one of these three values

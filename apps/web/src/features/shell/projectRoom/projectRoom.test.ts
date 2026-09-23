@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { ProjectSummary } from "@trellis/api";
-import { roomColorOfPath, ticketRefOfPath } from "./projectRoom";
+import { roomColorOfPath } from "./projectRoom";
 
 const project = (key: string, color: ProjectSummary["color"]): ProjectSummary => ({
 	id: key,
@@ -36,9 +36,7 @@ test("the room follows the one rule that reads a project out of a path", () => {
 	expect(roomColorOfPath("/p/TRL/web/auth", projects, null)).toBeNull();
 });
 
-test("a ticket page stands in the room of the project of the ticket", () => {
-	expect(ticketRefOfPath("/t/TRL-386")).toBe("TRL-386");
-	expect(ticketRefOfPath("/p/TRL")).toBeNull();
+test("a ticket page takes the color of the project of the ticket", () => {
 	expect(roomColorOfPath("/t/HBR-12", projects, "HBR")).toBe("teal");
 	expect(roomColorOfPath("/t/HBR-12", projects, null)).toBeNull();
 });
