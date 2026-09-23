@@ -17,6 +17,7 @@ import { resourceComments } from "./resourceComments.ts";
 import { resources } from "./resources.ts";
 import { reviews } from "./reviews";
 import { sessions } from "./sessions.ts";
+import { statistics } from "./statistics.ts";
 import { statuses } from "./statuses.ts";
 import { system } from "./system.ts";
 import { tickets } from "./tickets.ts";
@@ -39,6 +40,7 @@ export const router = os.router({
 	labels,
 	labelGroups,
 	projects,
+	statistics,
 	statuses,
 	tickets,
 	timeline,

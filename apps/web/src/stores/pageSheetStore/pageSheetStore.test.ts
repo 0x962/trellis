@@ -3,7 +3,7 @@ import { browserParent, pageSheetActions, usePageSheetStore } from "./pageSheetS
 
 const state = () => usePageSheetStore.getState();
 
-const empty = { ticket: null, pr: null, session: null, stats: null, browser: null, reviewTab: null };
+const empty = { ticket: null, pr: null, session: null, browser: null, reviewTab: null };
 
 beforeEach(() => {
 	pageSheetActions.setRefreshBehindSheet(null);
@@ -84,14 +84,6 @@ test("another ticket closes the pull request of the ticket before it", () => {
 	expect(state()).toEqual({ ...empty, ticket: "TRL-43" });
 });
 
-test("statistics opens as the only sheet", () => {
-	pageSheetActions.openTicket("TRL-42");
-	pageSheetActions.openPullRequest("https://github.com/o/r/pull/7");
-	pageSheetActions.openStats("TRL/runtime");
-
-	expect(state()).toEqual({ ...empty, stats: "TRL/runtime" });
-});
-
 test("a session opens over the ticket and leaves it open", () => {
 	pageSheetActions.openTicket("TRL-42");
 	pageSheetActions.openSession("01M32TW0000000000000WRK001");
@@ -132,7 +124,6 @@ test("the browser opens over the pull request and leaves the stack open", () => 
 		ticket: "TRL-42",
 		pr: "https://github.com/o/r/pull/7",
 		session: null,
-		stats: null,
 		browser: "https://github.com/o/r/pull/7",
 		reviewTab: null,
 	});
@@ -185,5 +176,4 @@ test("the browser stands over the topmost sheet", () => {
 	expect(browserParent({ ...empty, ticket: "TRL-42" })).toBe("ticket");
 	expect(browserParent({ ...empty, ticket: "TRL-42", pr: "https://github.com/o/r/pull/7" })).toBe("pullRequest");
 	expect(browserParent({ ...empty, ticket: "TRL-42", session: "01M32TW0000000000000WRK001" })).toBe("session");
-	expect(browserParent({ ...empty, stats: "TRL/runtime" })).toBe("stats");
 });

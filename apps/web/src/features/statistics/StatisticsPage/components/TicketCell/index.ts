@@ -1,0 +1,1 @@
+export { TicketCell } from "./TicketCell";

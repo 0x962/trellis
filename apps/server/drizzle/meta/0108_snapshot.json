@@ -1,5 +1,5 @@
 {
-  "id": "e9c13747-da43-437b-a400-0f00efd37e65",
+  "id": "7e95c923-8f54-4b06-b3fa-3eb3f10f7908",
   "prevId": "2a6caeb2-e215-4f0d-b1a6-485c009cf237",
   "version": "7",
   "dialect": "postgresql",
@@ -1309,6 +1309,12 @@
         },
         "closed_at": {
           "name": "closed_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "launched_at": {
+          "name": "launched_at",
           "type": "timestamp (3) with time zone",
           "primaryKey": false,
           "notNull": false
@@ -3240,12 +3246,6 @@
           "notNull": true,
           "default": 0
         },
-        "color": {
-          "name": "color",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "archived_at": {
           "name": "archived_at",
           "type": "timestamp (3) with time zone",
@@ -3265,23 +3265,7 @@
           "notNull": true
         }
       },
-      "indexes": {
-        "projects_color_idx": {
-          "name": "projects_color_idx",
-          "columns": [
-            {
-              "expression": "color",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
@@ -3313,10 +3297,6 @@
         "projects_name_check": {
           "name": "projects_name_check",
           "value": "length(\"projects\".\"name\") BETWEEN 1 AND 120"
-        },
-        "projects_color_check": {
-          "name": "projects_color_check",
-          "value": "\"projects\".\"color\" IN ('orange', 'teal', 'blue', 'pink', 'azure')"
         }
       },
       "isRLSEnabled": false
