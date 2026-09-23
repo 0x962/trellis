@@ -25,7 +25,7 @@ test("the project row toggles collapse without a link or caret slot", () => {
 	expect(html).not.toContain("Expand Trellis");
 });
 
-test("the project row shows no ticket count", () => {
+test("the project row keeps an empty trailing slot and no ticket count", () => {
 	const html = renderToStaticMarkup(<TreeRow project={project} />);
 
 	expect(html).not.toContain(">12<");

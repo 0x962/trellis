@@ -30,7 +30,6 @@ const styles = StyleSheet.create({
 	name: { flex: 1, fontSize: tokens.text.md, lineHeight: tokens.leading.md },
 });
 
-// One project: the key badge and the name.
 export function ProjectRow({ project, onPress }: ProjectRowProps) {
 	const palette = usePalette();
 	return (
