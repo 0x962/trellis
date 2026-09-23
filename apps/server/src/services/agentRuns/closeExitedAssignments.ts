@@ -3,10 +3,8 @@ import { rows, textArray } from "../../db/queries/support.ts";
 import type { ServiceCtx } from "../support.ts";
 import { readRuntimeSessions } from "./liveState.ts";
 
-// Closes every open manager, flow, and session run whose process exited,
-// and returns the exited sessions of every open native run. The runtime
-// read names the terminals of the open runs, so the reply stays small
-// however many exited records the runtime retains.
+// Idle expiry preserves assignments so a follow-up can resume the saved conversation.
+// The runtime query selects only open runs to keep the response bounded.
 export async function closeExitedAssignments(ctx: ServiceCtx, read = readRuntimeSessions) {
 	const open = await ctx.newTx((tx) =>
 		rows<{ terminal_id: string }>(
@@ -21,7 +19,7 @@ export async function closeExitedAssignments(ctx: ServiceCtx, read = readRuntime
 		tx.execute(
 			sql`UPDATE agent_runs SET closed_at = ${ctx.now()} WHERE runtime = 'native' AND closed_at IS NULL
 			AND kind <> 'agent'
-			AND terminal_id = ANY(${textArray(exited.map((session) => session.id))})`,
+			AND terminal_id = ANY(${textArray(exited.filter((session) => session.stopReason !== "idle").map((session) => session.id))})`,
 		),
 	);
 	return exited;

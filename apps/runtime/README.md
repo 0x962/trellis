@@ -17,7 +17,7 @@ The manifest contains the protocol version, daemon identifier, PID, start time, 
 
 ## Protocol
 
-Import `RuntimeClient` from `@trellis/runtime-protocol/client`. Each call opens one socket connection. Requests and responses use newline-delimited JSON with protocol version 5.
+Import `RuntimeClient` from `@trellis/runtime-protocol/client`. Each call opens one socket connection. Requests and responses use newline-delimited JSON with protocol version 12.
 
 | Method | Input | Result |
 | --- | --- | --- |
@@ -43,7 +43,11 @@ A child can close standard input while it remains active. A failed write returns
 
 Input calls have no automatic resend. The host must preserve an unknown input result until its harness can establish receipt.
 
-The runtime retains the record and the output files of an exited session for 7 days after the exit, and then removes them. A `list` result omits a removed session. An `inspect` or `output` call for a removed session returns `SESSION_NOT_FOUND`.
+The runtime checks owned agents every 30 seconds. It stops a process tree after more than five idle minutes when the provider reports idle and has a saved conversation. Active tools, pending questions, unacknowledged messages, and recent human input prevent this stop. Terminal responses and window resizes do not extend the clock.
+
+Idle expiry records `stopReason: "idle"` and preserves the saved conversation on disk for resume. New input receives `SESSION_IDLE_STOPPED` before delivery. The host resumes the conversation for a new message and releases the prior record after the new attempt starts. Explicit stop and session deletion also release the record.
+
+The runtime retains other exited records and their output files for up to seven days, with a limit of 500 records. A `list` result omits a removed session. An `inspect` or `output` call for a removed session returns `SESSION_NOT_FOUND`.
 
 `running` describes a process. It does not establish agent readiness, a current turn, or useful output. After a runtime crash, prior active sessions become `unknown`. Their recorded identifiers cannot create replacement processes.
 

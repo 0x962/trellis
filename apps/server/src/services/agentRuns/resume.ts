@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fromHarnessModel, HarnessSchema, supportsModel } from "@trellis/api";
@@ -13,11 +13,13 @@ import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive } from "../refs.ts";
 import { sessionOperation } from "../sessions/operation.ts";
-import type { IoCtx } from "../support.ts";
+import type { IoCtx, ServiceCtx } from "../support.ts";
 import { assertResumeTicket } from "./assertResumeTicket.ts";
 import { startNative } from "./nativeStart.ts";
 import { getRun } from "./queries.ts";
 import { reserveResume } from "./reserveResume.ts";
+
+export type ResumeCtx = ServiceCtx & Pick<IoCtx, "core" | "localUrl">;
 
 type Input = {
 	id: string;
@@ -26,16 +28,20 @@ type Input = {
 	expectedTerminalId: string;
 	requestId: string;
 	confirmInterrupt?: boolean;
+	prompt?: string;
+	requireAssigned?: boolean;
 };
 export const prepareResume = (
-	ctx: IoCtx,
+	ctx: ResumeCtx,
 	input: Input,
 	start: typeof startNative = startNative,
 	switchRunning = false,
 ) => sessionOperation(ctx.home, input.id, () => resume(ctx, input, start, switchRunning));
 
-async function resume(ctx: IoCtx, input: Input, start: typeof startNative, switchRunning: boolean) {
+async function resume(ctx: ResumeCtx, input: Input, start: typeof startNative, switchRunning: boolean) {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
+	if (input.requireAssigned && run.closedAt !== null)
+		throw invalidInput("id", "This assignment closed before the message could resume it.");
 	await ctx.newTx((tx) => assertResumeTicket(tx, run));
 	if (run.runtime !== "native" || (!run.projectId && run.kind !== "session"))
 		throw invalidInput("id", "This assignment has no resumable native session.");
@@ -46,6 +52,8 @@ async function resume(ctx: IoCtx, input: Input, start: typeof startNative, switc
 		accountId: input.accountId ?? null,
 		resumeRunId: run.id,
 		previousAttemptId: input.expectedTerminalId,
+		sessionFingerprint:
+			input.prompt === undefined ? undefined : createHash("sha256").update(input.prompt).digest("hex"),
 	};
 	const request = { requestId: input.requestId, target };
 	const replay = await ctx.newTx((tx) => replayRequest(ctx.core, tx, request));
@@ -112,6 +120,8 @@ async function resume(ctx: IoCtx, input: Input, start: typeof startNative, switc
 		if (replay) return { replay: true as const, run: replay };
 		if (run.projectId) assertProjectActive(ctx.core, run.projectId);
 		const current = await getRun(tx, input.id);
+		if (input.requireAssigned && current.closedAt !== null)
+			throw invalidInput("id", "This assignment closed before the message could resume it.");
 		await assertResumeTicket(tx, current);
 		if (current.terminalId !== input.expectedTerminalId)
 			throw invalidInput("expectedTerminalId", "Another call already replaced this attempt.");
@@ -151,7 +161,11 @@ async function resume(ctx: IoCtx, input: Input, start: typeof startNative, switc
 			true,
 		);
 		if (!reserved) throw invalidInput("id", "This assignment or flow no longer permits a resume.");
-		await recordRequest(ctx.core, tx, { ...request, runId: run.id });
+		await recordRequest(ctx.core, tx, {
+			...request,
+			target: { ...target, ...(input.prompt === undefined ? {} : { resumeMessageAttemptId: reserved.attempt!.id }) },
+			runId: run.id,
+		});
 		return { replay: false as const, ...reserved };
 	});
 	if (reservation.replay) return { id: reservation.run.id };
@@ -163,12 +177,13 @@ async function resume(ctx: IoCtx, input: Input, start: typeof startNative, switc
 		previousAttemptId: input.expectedTerminalId,
 		previousAccountId: run.accountId ?? null,
 		resumePrompt:
-			run.kind === "session"
+			input.prompt ??
+			(run.kind === "session"
 				? "Continue this session in the same conversation and workspace."
 				: JSON.stringify({
 						type: "trellis.assignment.resumed",
 						runId: run.id,
 						previousAttemptId: input.expectedTerminalId,
-					}),
+					})),
 	});
 }

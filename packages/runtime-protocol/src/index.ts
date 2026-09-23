@@ -1,4 +1,4 @@
-export const RUNTIME_PROTOCOL_VERSION = 11;
+export const RUNTIME_PROTOCOL_VERSION = 12;
 export type HarnessInputRequest = {
 	id: string;
 	kind: "question" | "permission" | "elicitation";
@@ -94,6 +94,7 @@ export interface LaunchSpec {
 	rows?: number;
 }
 export interface RuntimeSession {
+	stopReason?: "idle";
 	id: string;
 	daemonId: string;
 	pid: number | null;
