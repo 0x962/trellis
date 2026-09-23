@@ -4,7 +4,7 @@ import { dirname } from "node:path";
 import { fromHarnessModel } from "@trellis/api/models";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { z } from "zod";
-import { failureReason, recordBridgeFailure } from "../bridgeFailure/bridgeFailure.ts";
+import { failureReason, recordBridgeFailure } from "../bridgeFailure/index.ts";
 import { applyTurnActivity } from "../turnActivity/turnActivity.ts";
 import type { HarnessEvent } from "../types.ts";
 import { MspClient } from "./mspClient.ts";
@@ -257,10 +257,16 @@ try {
 	const observedAtMs = Date.now();
 	acceptingEvents = false;
 	const usageHome = museHome;
-	if (usageHome !== undefined) queueUsage(() => writeMuseQuotaError(usageHome, failureReason(error), observedAtMs));
+	// `queueUsage` sends a rejected write to `reportFailure`, and that call
+	// changes nothing here, because the promise it rejects is already
+	// rejected. The quota write therefore runs on its own line.
+	if (usageHome !== undefined)
+		await writeMuseQuotaError(usageHome, failureReason(error), observedAtMs).catch((failure: unknown) => {
+			process.stderr.write(`The bridge could not record the quota error: ${failureReason(failure)}\n`);
+		});
 	await recordBridgeFailure({
 		error,
-		queued: Promise.all([eventQueue, usageQueue]),
+		pendingWrites: eventQueue,
 		observe: (event) => runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, event),
 	});
 	process.exitCode = 1;

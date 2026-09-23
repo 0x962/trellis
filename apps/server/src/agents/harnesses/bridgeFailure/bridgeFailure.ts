@@ -11,31 +11,32 @@ export function failureReason(error: unknown): string {
 	return String(error);
 }
 
-// The last step of a bridge process that stopped for a reason. The reason
-// reaches the runtime as an error event, and the session page reads it from
-// there. Without this event the session page shows the exit code of the
-// bridge process and nothing else.
+// The last step of a bridge process that stopped. The reason reaches the
+// runtime as an error event, and the session page reads it from there.
+// Without this event the page shows only the exit code of the process.
 //
-// A bridge sends each harness event to the runtime through a chain of
-// promises, and one rejected write in that chain is what stops the bridge.
-// `queued` is that chain, so `queued` has often rejected already. This
-// function drops that rejection, because an await on a rejected promise
-// throws out of the catch block of the caller, and the error event below
-// never reaches the runtime. The reason the bridge stopped is `error`.
+// `pendingWrites` is the promise chain that sends harness events to the
+// runtime. A rejected write in that chain is what stops a bridge, so
+// `pendingWrites` has often rejected already. This function catches that
+// rejection. An await on a rejected promise throws, and then the error event
+// below never runs. A bridge can also stop for another reason while a write
+// rejects, so a rejection with other words than `error` reaches the standard
+// error stream.
 //
-// This function throws nothing. The caller sets the exit code of the process
-// after it, and a runtime that refuses the error event must not stop that.
-// The reason then goes to the standard error stream of the bridge, which the
-// runtime keeps with the session.
+// The caller sets the exit code after this function. A runtime that refuses
+// the error event must not stop that. The reason then also goes to the
+// standard error stream, which the runtime keeps with the session.
 export async function recordBridgeFailure(options: {
 	error: unknown;
-	queued: Promise<unknown>;
+	pendingWrites: Promise<unknown>;
 	observe: (event: HarnessEvent) => Promise<unknown>;
-	print?: (text: string) => void;
 }): Promise<void> {
-	const print = options.print ?? ((text: string) => void process.stderr.write(text));
+	const print = (text: string) => void process.stderr.write(text);
 	const reason = failureReason(options.error);
-	await options.queued.catch(() => {});
+	await options.pendingWrites.catch((failure: unknown) => {
+		const dropped = failureReason(failure);
+		if (dropped !== reason) print(`An earlier event write failed: ${dropped}\n`);
+	});
 	print(`The bridge stopped: ${reason}\n`);
 	await options.observe({ kind: "error", outcome: "failed", error: reason }).catch((failure: unknown) => {
 		print(`The bridge could not record that reason: ${failureReason(failure)}\n`);
