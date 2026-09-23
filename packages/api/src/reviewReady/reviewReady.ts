@@ -5,10 +5,10 @@ import type { LocalPrState, Mergeable, PrState } from "../schemas/enums.ts";
 // tables, and this file turns them into the list of what is still missing.
 //
 // `flowAnswered` is true when a flow run of the commit the pull request
-// points at now succeeded, when the agent wrote why no flow fits that
-// commit, or when the server holds no flow at all. A flow is machine
-// review and it asks the person nothing, so a run that stopped and waits
-// counts as a run that did not finish.
+// points at now has the status "succeeded", when the agent wrote why no flow
+// fits that commit, or when no flow applies to the project. A flow run asks
+// the person nothing, so a run with the status "waiting" did not finish and
+// answers nothing.
 export type ReviewReadyFacts = {
 	state: PrState;
 	localState: LocalPrState;
@@ -58,10 +58,15 @@ export const reviewGaps = (facts: ReviewReadyFacts): ReviewGap[] => {
 	];
 };
 
-// What every surface calls a pull request that holds all of it. The wire
-// carries the gaps, so a caller with a row and no facts reads this instead of
-// computing the rule again.
+// The server puts the gaps in the row it sends, so a caller that holds a row
+// does not compute the rule again.
 export const readyForReview = (pr: { reviewGaps: ReviewGap[] }): boolean => pr.reviewGaps.length === 0;
+
+// True while the agent has not run `trellis ready`. GitHub takes no review
+// then. This is one part of the rule, not the whole of it: a pull request
+// the agent did ask to review can still wait for a check or a finding.
+export const askedForReview = (pr: { reviewGaps: ReviewGap[] }): boolean =>
+	!pr.reviewGaps.some((gap) => gap.kind === "not-asked");
 
 const checkWord = (count: number) => (count === 1 ? "check" : "checks");
 
@@ -78,10 +83,10 @@ export const reviewGapText = (gap: ReviewGap): string => {
 	return "the pull request conflicts with its base branch";
 };
 
-// The sentence a person reads on the glyph. A ready pull request says so in
-// three words. A pull request that is not ready names the first part it
-// still needs, because one line of a tooltip holds one reason.
-export const reviewReadyLabel = (pr: { reviewGaps: ReviewGap[] }): string => {
+// The first part a pull request still needs, in plain words, or null when it
+// needs none. One line of a tooltip holds one part, and the caller that draws
+// the glyph puts "Not ready for review" in front of it.
+export const firstReviewGapText = (pr: { reviewGaps: ReviewGap[] }): string | null => {
 	const first = pr.reviewGaps[0];
-	return first === undefined ? "Ready for review" : `Not ready for review: ${reviewGapText(first)}`;
+	return first === undefined ? null : reviewGapText(first);
 };

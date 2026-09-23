@@ -22,17 +22,17 @@ export type PullRequestReadiness = {
 	// The parts the pull request still needs, in the order an agent writes them.
 	missing: ReadinessPart[];
 	ready: boolean;
-	// What the pull request still needs from somebody other than this agent
-	// right now: a check that runs, a finding nobody resolved, a conflict
-	// with the base branch. `reviewGaps` in `packages/api` builds the list,
-	// and the glyph the person sees reads the same one. The agent asking for
-	// review is left out, because this command does that.
-	waitingOn: ReviewGap[];
+	// What the server says the pull request still needs, from `reviewGaps` in
+	// `packages/api`, which is the list the glyph reads. The agent asking for
+	// review is left out, because this command does that. `missing` above is
+	// this command's own read of the parts the agent writes, and it carries
+	// the command that writes each one.
+	storedGaps: ReviewGap[];
 };
 
-// The explanation must match the current head, because `trellis summary
-// write` states what that head changes. The evidence document counts at any
-// head.
+// The explanation and the evidence document must both name the current head.
+// `trellis summary write` states what that head changes, and the evidence
+// document shows that head working, so a push takes both away.
 //
 // `checkFlows` asks for a flow run of the current head as well. `trellis
 // ready` and the hand-over guard set it for an agent. `trellis pr add` leaves
@@ -60,15 +60,15 @@ export const pullRequestReadiness = async (
 					...(evidence === null ? [] : [evidence.body]),
 				])
 			: false;
-	const waitingOn = head.pullRequest.reviewGaps.filter((gap) => gap.kind !== "not-asked");
+	const storedGaps = head.pullRequest.reviewGaps.filter((gap) => gap.kind !== "not-asked");
 	const missing = [
 		...(summary === null ? (["explanation"] as const) : []),
-		...(evidence === null ? (["evidence"] as const) : []),
+		...(evidence === null || evidence.headSha !== head.sha ? (["evidence"] as const) : []),
 		...(dataModelDiagramRequired && !hasDataModelDiagram ? (["data-model-diagram"] as const) : []),
 		...(flows.satisfied ? [] : (["flow-run"] as const)),
 	];
 	return {
-		waitingOn,
+		storedGaps,
 		dataModelDiagramRequired,
 		pullRequest: {
 			number: head.pullRequest.number,
@@ -113,7 +113,7 @@ const detailOf = (result: PullRequestReadiness, part: ReadinessPart, number: num
 // the pull request ready for review only when nothing is missing, so the
 // ready text tells the agent that the person reviews it next.
 export const pullRequestReadyText = (result: PullRequestReadiness): string => {
-	const { pullRequest, missing, waitingOn } = result;
+	const { pullRequest, missing, storedGaps } = result;
 	const { number } = pullRequest;
 	if (missing.length === 0) {
 		const parts =
@@ -121,12 +121,12 @@ export const pullRequestReadyText = (result: PullRequestReadiness): string => {
 				? "the explanation and the evidence document"
 				: "the explanation, the evidence document, and a flow run on this head";
 		const head =
-			waitingOn.length === 0
+			storedGaps.length === 0
 				? `#${number} is ready for review. It has ${parts}. Trellis marked it ready for review.`
 				: `#${number} is not ready for review yet. It has ${parts}, and Trellis recorded that you asked for review. It turns green for the person when this is true as well:`;
 		return [
 			head,
-			...waitingOn.map((gap) => `  MISSING  ${reviewGapText(gap)}`),
+			...storedGaps.map((gap) => `  MISSING  ${reviewGapText(gap)}`),
 			...flowWaivedLines(result.flows),
 			...flowSkippedLines(result.flows),
 			"",

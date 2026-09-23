@@ -20,9 +20,7 @@ export type FlowReadiness = {
 	satisfied: boolean;
 };
 
-// A flow is machine review, and it asks the person nothing. Only a run that
-// finished answers the check. A run that stopped and waits did not finish,
-// so the pull request is not ready and the agent runs the flow again.
+// `reviewGaps` in `packages/api` states this rule for every surface.
 const answersTheCheck = (run: CurrentHeadRun) => run.status === "succeeded";
 
 // A flow runs against a ticket, and the ticket names the project whose flows
@@ -71,7 +69,6 @@ const notApplicableLines = (number: number): string[] => [
 	`      trellis ready ${number} --flow-does-not-apply "<reason>"`,
 ];
 
-// How one run that did not finish reads in its line.
 const endWord = (status: string): string => {
 	if (status === "canceled") return "was canceled";
 	if (status === "waiting") return "stopped and did not finish";
