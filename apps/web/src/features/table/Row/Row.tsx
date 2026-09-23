@@ -7,7 +7,7 @@ import type {
 	TicketSummary,
 	WaveSummary,
 } from "@trellis/api";
-import { cx, TicketId } from "@trellis/ui";
+import { cx, DoneWash, TicketId } from "@trellis/ui";
 import { type KeyboardEvent, type MouseEvent, memo, type ReactNode, useRef } from "react";
 import { compactRelativeTime } from "../../../lib/format";
 import type { Density } from "../../../stores/uiStore";
@@ -75,6 +75,9 @@ export type RowProps = {
 	// and its child lines read as one group.
 	hasChildLines?: boolean;
 	focused?: boolean;
+	// True while the row plays the green wash of a ticket that was marked
+	// done a moment ago.
+	washing?: boolean;
 	selected?: boolean;
 	// True while any row is selected.
 	selecting?: boolean;
@@ -117,6 +120,7 @@ export const Row = memo(function Row({
 	disclosure = null,
 	hasChildLines = false,
 	focused = false,
+	washing = false,
 	selected = false,
 	selecting = false,
 	editing = null,
@@ -249,6 +253,7 @@ export const Row = memo(function Row({
 				top={top}
 				group={group}
 				focused={focused}
+				washing={washing}
 				selected={selected}
 				onFocus={onFocus}
 				onClick={onClick}
@@ -292,6 +297,7 @@ export const Row = memo(function Row({
 			onDoubleClick={() => onOpen?.(ticket.id)}
 			onKeyDown={onKeyDown}
 		>
+			{washing && <DoneWash />}
 			<a
 				href={href}
 				tabIndex={-1}

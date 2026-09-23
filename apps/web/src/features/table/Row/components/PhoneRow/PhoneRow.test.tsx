@@ -37,6 +37,7 @@ const render = (
 	layout: "epic" | "list",
 	agentLine: TicketAgentLine | null = null,
 	disclosure: TicketDisclosure = null,
+	washing = false,
 ) =>
 	renderToStaticMarkup(
 		<PhoneRow
@@ -48,6 +49,7 @@ const render = (
 			agentLine={agentLine}
 			disclosure={disclosure}
 			focused={false}
+			washing={washing}
 			selected={false}
 			href="/t/OP-35"
 		/>,
@@ -137,5 +139,12 @@ describe("PhoneRow on another list", () => {
 
 		expect(html).toContain('data-column="priority"');
 		expect(html).toContain('data-line="title"');
+	});
+});
+
+describe("the green wash of a row that is marked done", () => {
+	test("draws the band inside the row only while the row plays", () => {
+		expect(render(ticket(), "epic")).not.toContain("data-done-wash");
+		expect(render(ticket(), "epic", null, null, true)).toContain("data-done-wash");
 	});
 });

@@ -25,6 +25,11 @@ export type GroupHeaderProps = Omit<SharedProps, "count" | "showCount" | "icon" 
 	forYou?: number;
 	// True when the wave progress circle is complete.
 	done?: boolean;
+	// True for the time the wave progress circle takes to fill to full,
+	// because the last open ticket of the wave was marked done a moment
+	// ago. The header keeps the circle over the done mark for that time, so
+	// the disk has a share to grow from.
+	filling?: boolean;
 	status?: StatusSummary;
 	category?: StatusCategory;
 };
@@ -39,13 +44,14 @@ export function GroupHeader({
 	status,
 	category,
 	done,
+	filling = false,
 	...props
 }: GroupHeaderProps) {
 	const parts = [countLabel ?? formatCount(count)];
 	if (forYou !== undefined && forYou > 0) parts.push(`${formatCount(forYou)} for you`);
 	const icon =
 		(completedCount !== undefined && totalCount !== undefined
-			? progressIcon(completedCount, totalCount, done === true)
+			? progressIcon(completedCount, totalCount, done === true, filling)
 			: undefined) ??
 		(category === undefined ? undefined : (
 			<StatusIcon {...(status === undefined ? { category } : statusIconProps(status))} />
