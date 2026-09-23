@@ -25,7 +25,7 @@ test("one Escape reaches the process and never reaches the page", () => {
 	expect(leave).not.toHaveBeenCalled();
 });
 
-test("a second Escape inside the pair window leaves the terminal and reaches the page", () => {
+test("a second Escape inside the pair window leaves the terminal and never reaches the page", () => {
 	const leave = mock(() => {});
 	const keys = terminalKeys(leave);
 
@@ -33,7 +33,7 @@ test("a second Escape inside the pair window leaves the terminal and reaches the
 	const second = keyEvent({ timeStamp: escapePairMs });
 
 	expect(keys(second)).toBe(false);
-	expect(second.stopPropagation).not.toHaveBeenCalled();
+	expect(second.stopPropagation).toHaveBeenCalledTimes(1);
 	expect(leave).toHaveBeenCalledTimes(1);
 });
 
@@ -59,7 +59,7 @@ test("the keyup of the leaving press repeats the answer of its keydown", () => {
 	const release = keyEvent({ timeStamp: 210, type: "keyup" });
 
 	expect(keys(release)).toBe(false);
-	expect(release.stopPropagation).not.toHaveBeenCalled();
+	expect(release.stopPropagation).toHaveBeenCalledTimes(1);
 	expect(leave).toHaveBeenCalledTimes(1);
 });
 

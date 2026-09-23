@@ -50,7 +50,13 @@ export function SessionSheet() {
 				<EmptyState variant="page" title="The session is gone" description="Trellis holds no run with this id." />
 			)}
 			{run !== null && (
-				<SessionConversation key={run.id} run={run} autoFocusTerminal autoFocusTerminalDelay={terminalFocusDelay} />
+				<SessionConversation
+					key={run.id}
+					run={run}
+					autoFocusTerminal
+					autoFocusTerminalDelay={terminalFocusDelay}
+					onLeaveTerminal={pageSheetActions.closeSession}
+				/>
 			)}
 			<SettingsSheet at="session" />
 			<ProjectSettingsSheet at="session" />
