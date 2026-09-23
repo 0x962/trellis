@@ -89,6 +89,23 @@ describe("PhoneRow on the epic table", () => {
 		expect(textOf(html)).toContain("crisp-fjord: I rebased.");
 	});
 
+	test("draws a working command in the mono face on line 2", () => {
+		const html = render(ticket(), "epic", {
+			words: "crisp-fjord: Shell bun test apps/web/src",
+			parts: [
+				{ text: "crisp-fjord: Shell ", code: false },
+				{ text: "bun test apps/web/src", code: true },
+			],
+			asks: false,
+			working: true,
+			runId: "run",
+		});
+		const line2 = html.split('data-line="agent"')[1]!;
+
+		expect(line2).toContain('<span class="font-mono">bun test apps/web/src</span>');
+		expect(line2).not.toContain("<code>");
+	});
+
 	test("gives the words of the run a control of their own", () => {
 		const html = render(ticket(), "epic", {
 			words: "crisp-fjord: I rebased.",

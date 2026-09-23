@@ -151,6 +151,10 @@ describe("agentLineOf", () => {
 
 		expect(agentLineOf(run)).toEqual({
 			words: "crisp-fjord: Edit apps/web/src/app.css",
+			parts: [
+				{ text: "crisp-fjord: Edit ", code: false },
+				{ text: "apps/web/src/app.css", code: true },
+			],
 			asks: false,
 			working: true,
 			runId: "run",

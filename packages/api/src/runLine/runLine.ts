@@ -21,8 +21,14 @@ export type RunLine = {
 	// What the agent does at this moment, while it works: the running tool
 	// with its target, or the text it wrote last. It is null in every other
 	// state, and a row that draws it then falls back to the last message.
-	activity: string | null;
+	activity: RunLineActivity | null;
 	rawError: string | null;
+};
+
+export type RunLineActivity = {
+	words: string;
+	verb: string | null;
+	codeSpan: string | null;
 };
 
 type RunState = Omit<RunLine, "activity">;
@@ -43,11 +49,16 @@ const lastMessageLine = (run: AgentRun): RunLine["lastMessage"] => {
 
 // The tool a working agent runs now, named with its target, or the text of
 // its last message while the agent writes.
-const workingActivity = (run: AgentRun): string | null => {
+const workingActivity = (run: AgentRun): RunLineActivity | null => {
 	const observation = run.observation!;
 	const runningTool = observation.lastTool?.status === "running" ? observation.lastTool : null;
-	if (runningTool === null) return observation.lastMessage?.text ?? null;
-	return runningTool.target === null ? runningTool.name : `${runningTool.name} ${runningTool.target}`;
+	if (runningTool === null) {
+		const words = observation.lastMessage?.text ?? null;
+		return words === null ? null : { words, verb: null, codeSpan: null };
+	}
+	return runningTool.target === null
+		? { words: runningTool.name, verb: runningTool.name, codeSpan: null }
+		: { words: `${runningTool.name} ${runningTool.target}`, verb: runningTool.name, codeSpan: runningTool.target };
 };
 
 const executionServiceError = (error: string) =>

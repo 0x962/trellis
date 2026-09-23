@@ -207,7 +207,16 @@ describe("AgentLine", () => {
 	test("shimmers the words of a run that works and keeps them on one line", () => {
 		const html = renderToStaticMarkup(
 			<AgentLine
-				line={{ words: "crisp-fjord: Edit apps/web/src/app.css", asks: false, working: true, runId: "run" }}
+				line={{
+					words: "crisp-fjord: Edit apps/web/src/app.css",
+					parts: [
+						{ text: "crisp-fjord: Edit ", code: false },
+						{ text: "apps/web/src/app.css", code: true },
+					],
+					asks: false,
+					working: true,
+					runId: "run",
+				}}
 				top={0}
 				last
 				depth={1}
@@ -219,6 +228,31 @@ describe("AgentLine", () => {
 		expect(html).toContain("text-film");
 		expect(html).toContain("truncate");
 		expect(html).toContain('data-agent-line="working"');
+	});
+
+	test("draws the code part of a working line in the mono face", () => {
+		const html = renderToStaticMarkup(
+			<AgentLine
+				line={{
+					words: "crisp-fjord: Shell bun test apps/web/src",
+					parts: [
+						{ text: "crisp-fjord: Shell ", code: false },
+						{ text: "bun test apps/web/src", code: true },
+					],
+					asks: false,
+					working: true,
+					runId: "run",
+				}}
+				top={0}
+				last
+				depth={1}
+				render={render}
+			/>,
+		);
+
+		expect(html).toContain("<span>crisp-fjord: Shell </span>");
+		expect(html).toContain('<span class="font-mono">bun test apps/web/src</span>');
+		expect(html).not.toContain("<code>");
 	});
 
 	test("drops the shimmer and renders markdown when the run ends its turn", () => {

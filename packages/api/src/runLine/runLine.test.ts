@@ -38,7 +38,7 @@ test("works without a current tool", () => {
 	expect(runLine(run)).toMatchObject({ kind: "works", words: "works", since: at });
 });
 
-test("says the tool it runs now and what that tool works on", () => {
+test("marks the target of the running tool as code", () => {
 	const run = namedRun();
 	run.observation!.lastTool = {
 		name: "Bash",
@@ -47,13 +47,17 @@ test("says the tool it runs now and what that tool works on", () => {
 		startedAt: at,
 		updatedAt: at,
 	};
-	expect(runLine(run).activity).toBe("Bash bun test apps/web");
+	expect(runLine(run).activity).toEqual({
+		words: "Bash bun test apps/web",
+		verb: "Bash",
+		codeSpan: "bun test apps/web",
+	});
 });
 
 test("says the text it writes while no tool runs", () => {
 	const run = namedRun();
 	run.observation!.lastMessage = { text: "I rebased the branch.", at };
-	expect(runLine(run).activity).toBe("I rebased the branch.");
+	expect(runLine(run).activity).toEqual({ words: "I rebased the branch.", verb: null, codeSpan: null });
 });
 
 test("says nothing of its activity once the turn ends", () => {

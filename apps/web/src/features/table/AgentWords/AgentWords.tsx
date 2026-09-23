@@ -16,6 +16,13 @@ type AgentWordsProps = {
 	wrap?: boolean;
 };
 
+const agentText = (line: TicketAgentLine) =>
+	(line.parts ?? [{ text: line.words, code: false }]).map((part) => (
+		<span key={`${part.code ? "code" : "text"}:${part.text}`} className={part.code ? "font-mono" : undefined}>
+			{part.text}
+		</span>
+	));
+
 // The dot and the words of one agent line. The epic table draws them on the
 // line under a ticket row or under a pull request line, and a phone row
 // draws them on its second line.
@@ -45,7 +52,7 @@ export function AgentWords({ line, wrap = false, render }: AgentWordsProps) {
 				<span className="flex h-4 w-4 shrink-0 items-center justify-center">{dot}</span>
 				{line.working ? (
 					<WorkingAgentText tooltip={false} className="min-w-0 flex-1 truncate" title={line.words}>
-						{line.words}
+						{agentText(line)}
 					</WorkingAgentText>
 				) : (
 					<span className={cx("min-w-0 flex-1", tone)}>
@@ -60,7 +67,7 @@ export function AgentWords({ line, wrap = false, render }: AgentWordsProps) {
 			{dot}
 			{line.working ? (
 				<WorkingAgentText tooltip={false} className="truncate" title={line.words}>
-					{line.words}
+					{agentText(line)}
 				</WorkingAgentText>
 			) : (
 				<span className={cx("truncate", tone)} title={line.words}>
