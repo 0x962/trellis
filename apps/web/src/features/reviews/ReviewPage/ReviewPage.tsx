@@ -89,9 +89,9 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	const renderThread = useCallback(
 		(id: string, place: ThreadPlacement) => {
 			const thread = threadsById.get(id)!;
-			return <ReviewComment key={thread.id} thread={thread} place={place} />;
+			return <ReviewComment key={thread.id} thread={thread} pr={pr} place={place} />;
 		},
-		[threadsById],
+		[threadsById, pr],
 	);
 	const statusMatchesRevision =
 		revision !== null && status.data?.headRefOid === revision.headSha && status.data?.baseRefOid === revision.baseSha;
