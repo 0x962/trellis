@@ -15,7 +15,7 @@ import type { DueRow } from "./pollerDue.ts";
 
 // A ticket that links one pull request, with the project columns an
 // activity row needs.
-type LinkRow = { pull_request_id: string; ticket_id: string; root_id: string; project_id: string };
+type LinkRow = { pull_request_id: string; ticket_id: string; project_id: string };
 
 // The stored row of a pull request and the answer gh gave for it.
 export type Polled = { stored: DueRow; row: PullRequestRow };
@@ -39,10 +39,17 @@ export const prValues = (at: Date, row: PullRequestRow) => sql`(
 
 // `checks_changed_at` moves only when the checks or the head commit differ,
 // because the check notice detector counts the quiet time from it.
+//
+// A new head commit clears `ready_for_review_at`. The explanation the agent
+// wrote covers the old commit, so the person waits for nothing until the
+// agent asks again, and the stored moment would measure a wait that ended.
 export const PR_UPDATE_SET = sql.raw(`
 	checks_changed_at = CASE
 		WHEN pull_requests.checks IS DISTINCT FROM EXCLUDED.checks OR pull_requests.head_sha IS DISTINCT FROM EXCLUDED.head_sha
 		THEN EXCLUDED.updated_at ELSE pull_requests.checks_changed_at END,
+	ready_for_review_at = CASE
+		WHEN pull_requests.head_sha IS DISTINCT FROM EXCLUDED.head_sha
+		THEN NULL ELSE pull_requests.ready_for_review_at END,
 	additions = EXCLUDED.additions, deletions = EXCLUDED.deletions, changed_files = EXCLUDED.changed_files,
 	files = EXCLUDED.files,
 	url = EXCLUDED.url, title = EXCLUDED.title, state = EXCLUDED.state, is_draft = EXCLUDED.is_draft,
@@ -88,7 +95,7 @@ export const linkedTickets = (tx: Tx, prIds: string[]) =>
 	rows<LinkRow>(
 		tx,
 		sql`
-			SELECT l.pull_request_id, t.id AS ticket_id, t.root_id, t.project_id
+			SELECT l.pull_request_id, t.id AS ticket_id, t.project_id
 			FROM ticket_pull_requests l JOIN tickets t ON t.id = l.ticket_id
 			WHERE l.pull_request_id = ANY(${textArray(prIds)})
 			ORDER BY l.created_at, t.id
@@ -112,7 +119,7 @@ const activityValues = (at: Date, entry: Polled, links: LinkRow[]) => {
 	});
 	return ticketsOf(links, entry.stored.id).map(
 		(link) => sql`(
-			${batchId}, ${link.root_id}, ${link.project_id}, ${link.ticket_id},
+			${batchId}, ${link.project_id}, ${link.ticket_id},
 			${SYSTEM_ACTOR.name}, ${SYSTEM_ACTOR.kind}, 'pr.state_changed', ${meta}::jsonb, ${at}
 		)`,
 	);
@@ -125,7 +132,7 @@ const writeStateChanges = async (tx: Tx, at: Date, changed: Polled[], links: Lin
 	if (values.length === 0) return;
 	await touchSystemActor(tx, at);
 	await tx.execute(sql`
-		INSERT INTO activity (batch_id, root_id, project_id, ticket_id, actor_name, actor_kind, action, meta, created_at)
+		INSERT INTO activity (batch_id, project_id, ticket_id, actor_name, actor_kind, action, meta, created_at)
 		VALUES ${joined(values)}
 	`);
 };

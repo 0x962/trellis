@@ -1,20 +1,32 @@
-import { Confetti, Eye, Heart, Question, Rocket, Smiley, ThumbsDown, ThumbsUp } from "@phosphor-icons/react";
+import { Smiley } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import { IconButton } from "../../primitives/IconButton";
 import { Popover } from "../../primitives/Popover";
 import { Tooltip } from "../../primitives/Tooltip";
 
 type Reaction = { reaction: string; author: string; kind: string };
+
+// GitHub stores a reaction under a name such as "+1" or "hooray". The emoji is
+// the picture GitHub draws for that name. The name is the value trellis sends
+// back to GitHub, so it never changes when the picture does.
 const choices = [
-	{ value: "+1", label: "Agree", icon: ThumbsUp },
-	{ value: "-1", label: "Disagree", icon: ThumbsDown },
-	{ value: "laugh", label: "Laugh", icon: Smiley },
-	{ value: "hooray", label: "Celebrate", icon: Confetti },
-	{ value: "confused", label: "Confused", icon: Question },
-	{ value: "heart", label: "Love", icon: Heart },
-	{ value: "rocket", label: "Launch", icon: Rocket },
-	{ value: "eyes", label: "Seen", icon: Eye },
+	{ value: "+1", label: "Agree", emoji: "\u{1F44D}" },
+	{ value: "-1", label: "Disagree", emoji: "\u{1F44E}" },
+	{ value: "laugh", label: "Laugh", emoji: "\u{1F604}" },
+	{ value: "hooray", label: "Celebrate", emoji: "\u{1F389}" },
+	{ value: "confused", label: "Confused", emoji: "\u{1F615}" },
+	{ value: "heart", label: "Love", emoji: "\u{2764}\u{FE0F}" },
+	{ value: "rocket", label: "Launch", emoji: "\u{1F680}" },
+	{ value: "eyes", label: "Seen", emoji: "\u{1F440}" },
 ];
+
+// IconButton draws whatever it is given inside a 14 px square and hides it from
+// a screen reader, so the reader says the button label instead of the name of
+// the emoji. The font is the one the operating system keeps for emoji, and the
+// character is in the file, so the app draws it with no network request.
+function ReactionEmoji({ emoji }: { emoji: string }) {
+	return <span className="review-reaction-emoji">{emoji}</span>;
+}
 export function ReviewReactions({
 	reactions,
 	actor,
@@ -51,7 +63,7 @@ export function ReviewReactions({
 							<Tooltip content={`${c.label}: ${members.map((r) => r.author).join(", ")}`}>
 								<IconButton
 									label={`${c.label} (${members.length})`}
-									icon={<c.icon />}
+									icon={<ReactionEmoji emoji={c.emoji} />}
 									pressed={active}
 									disabled={busy}
 									onClick={() => {
@@ -76,7 +88,7 @@ export function ReviewReactions({
 						<Tooltip key={c.value} content={c.label}>
 							<IconButton
 								label={c.label}
-								icon={<c.icon />}
+								icon={<ReactionEmoji emoji={c.emoji} />}
 								pressed={reactions.some((r) => r.reaction === c.value && r.author === actor)}
 								disabled={busy}
 								onClick={() => {

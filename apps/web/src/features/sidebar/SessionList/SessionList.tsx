@@ -1,16 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
-import { sessionStatus } from "@trellis/api";
 import { Button } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
+import { useSessionStatuses } from "../../agents/useSessionStatuses";
 import { SessionRow } from "../components/SessionRow";
 
 export function SessionList() {
 	const { orpc, queryClient } = useApp();
 	const sessionsOptions = orpc.sessions.list.queryOptions({ input: {} });
 	const { data, failureCount } = useQuery(sessionsOptions);
-	const activity = useQuery({ ...orpc.sessions.activity.queryOptions({ input: {} }), refetchInterval: 2000 });
-	const runs = new Map(activity.data?.map((session) => [session.id, session.run]));
+	const statuses = useSessionStatuses();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	if (data === undefined)
 		return (
@@ -35,14 +34,12 @@ export function SessionList() {
 				{data
 					.filter((session) => session.projectId === null)
 					.map((session) => {
-						const run = runs.get(session.id);
+						const status = statuses?.[session.id] ?? "unavailable";
 						return (
 							<SessionRow
 								key={session.id}
 								session={session}
-								status={run ? sessionStatus(run) : "unavailable"}
-								activityAt={run?.observation?.activity?.updatedAt ?? run?.updatedAt ?? session.updatedAt}
-								workingCount={run && sessionStatus(run) === "working" ? 1 : 0}
+								status={status}
 								active={pathname === `/sessions/${session.id}`}
 							/>
 						);

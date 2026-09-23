@@ -24,8 +24,8 @@ const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
 beforeEach(async () => {
 	db = await openTestDb();
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${root}, ${root}, 'MRG', 'mrg', 'Merge', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${root}, 'MRG', 'mrg', 'Merge', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
 		VALUES ('dana', 'human', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses
@@ -58,8 +58,8 @@ const ticket = async (number: number, status = review) => {
 	const id = ulid();
 	const completedAt = status === done || status === canceled ? at : null;
 	await db.execute(sql`INSERT INTO tickets
-		(id, project_id, root_id, number, title, status_id, position, completed_at, created_at, updated_at)
-		VALUES (${id}, ${root}, ${root}, ${number}, ${`Ticket ${number}`}, ${status}, ${number}, ${completedAt}, ${at}, ${at})`);
+		(id, project_id, number, title, status_id, position, completed_at, created_at, updated_at)
+		VALUES (${id}, ${root}, ${number}, ${`Ticket ${number}`}, ${status}, ${number}, ${completedAt}, ${at}, ${at})`);
 	return id;
 };
 

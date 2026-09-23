@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { placeThreads } from "./carryThreads";
 import { parseReviewFiles } from "./parseReviewFiles";
 import { buildReviewRows, type ExpandedFile, type GapReveal, type ReviewRow } from "./reviewRows";
 
@@ -34,8 +35,11 @@ const fileLines = Array.from({ length: 100 }, (_, index) => `line ${index + 1}`)
 const contents = (gaps: [number, GapReveal][], full = false): ReadonlyMap<string, ExpandedFile> =>
 	new Map([["file.ts", { oldLines: fileLines, newLines: fileLines, full, gaps: new Map(gaps) }]]);
 
+const noPlaces = new Map();
+const noBands = new Map();
+
 const rowsOf = (source: string, expanded: ReadonlyMap<string, ExpandedFile> = new Map()) =>
-	buildReviewRows(parseReviewFiles(source), "unified", [], "r", null, expanded, true, new Set());
+	buildReviewRows(parseReviewFiles(source), "unified", [], noPlaces, null, expanded, true, new Set(), noBands);
 
 // One word per row: `@@` for a row between two hunks, with the lines it
 // still hides, and the line number of each line the diff draws.
@@ -155,7 +159,17 @@ test("an added file has no gap and no control", () => {
 });
 
 test("a file with no expand service has no control", () => {
-	const rows = buildReviewRows(parseReviewFiles(patch), "unified", [], "r", null, new Map(), false, new Set());
+	const rows = buildReviewRows(
+		parseReviewFiles(patch),
+		"unified",
+		[],
+		noPlaces,
+		null,
+		new Map(),
+		false,
+		new Set(),
+		noBands,
+	);
 	expect(gaps(rows)).toEqual([]);
 });
 
@@ -170,17 +184,30 @@ test("a thread on a line of an open gap sits on that line", () => {
 		updatedAt: "",
 		revisionId: "r",
 	};
-	const shut = buildReviewRows(parseReviewFiles(patch), "unified", [thread], "r", null, new Map(), true, new Set());
-	expect(shut.find((row) => row.kind === "annotation")?.annotations).toEqual(["t1"]);
-	const open = buildReviewRows(
-		parseReviewFiles(patch),
+	const files = parseReviewFiles(patch);
+	const shut = buildReviewRows(
+		files,
 		"unified",
 		[thread],
-		"r",
+		placeThreads(files, new Map(), [thread], "r"),
 		null,
-		contents([[1, { top: 20, bottom: 0 }]]),
+		new Map(),
 		true,
 		new Set(),
+		noBands,
+	);
+	expect(shut.find((row) => row.kind === "annotation")?.annotations).toEqual(["t1"]);
+	const expanded = contents([[1, { top: 20, bottom: 0 }]]);
+	const open = buildReviewRows(
+		files,
+		"unified",
+		[thread],
+		placeThreads(files, expanded, [thread], "r"),
+		null,
+		expanded,
+		true,
+		new Set(),
+		noBands,
 	);
 	expect(open.find((row) => row.kind === "annotation")).toBeUndefined();
 	const line = open.filter((row) => row.kind === "unified").find((row) => row.line.newLine === 10);
@@ -208,11 +235,11 @@ const readFiles = parseReviewFiles(readPatch);
 const nothingExpanded = new Map();
 
 const readRowsOf = (viewed: string[]) =>
-	buildReviewRows(readFiles, "unified", [], "revision", null, nothingExpanded, false, new Set(viewed));
+	buildReviewRows(readFiles, "unified", [], noPlaces, null, nothingExpanded, false, new Set(viewed), noBands);
 
 const kindsOf = (viewed: string[], name: string) =>
 	readRowsOf(viewed)
-		.filter((row) => row.file.name === name)
+		.filter((row) => row.kind !== "group" && row.file.name === name)
 		.map((row) => row.kind);
 
 test("a file that nobody marked read keeps its hunk and its lines", () => {

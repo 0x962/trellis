@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { PrGlyph } from "./PrGlyph";
 
 test("an open pull request draws the open glyph in the success color", () => {
-	const html = renderToStaticMarkup(<PrGlyph state="open" isQueued={false} localState="ready" />);
+	const html = renderToStaticMarkup(<PrGlyph state="open" isQueued={false} readyForReview />);
 
 	expect(html).toContain('data-pr-glyph="open"');
 	expect(html).toContain("text-success");
@@ -11,7 +11,7 @@ test("an open pull request draws the open glyph in the success color", () => {
 });
 
 test("a queued pull request draws GitHub's merge queue glyph in the warning color", () => {
-	const html = renderToStaticMarkup(<PrGlyph state="open" isQueued localState="ready" />);
+	const html = renderToStaticMarkup(<PrGlyph state="open" isQueued readyForReview />);
 
 	expect(html).toContain('data-pr-glyph="queued"');
 	expect(html).toContain("text-warning");
@@ -19,7 +19,7 @@ test("a queued pull request draws GitHub's merge queue glyph in the warning colo
 });
 
 test("a merged pull request draws the merged glyph in the agent color", () => {
-	const html = renderToStaticMarkup(<PrGlyph state="merged" isQueued={false} localState="ready" />);
+	const html = renderToStaticMarkup(<PrGlyph state="merged" isQueued={false} readyForReview />);
 
 	expect(html).toContain('data-pr-glyph="merged"');
 	expect(html).toContain("text-agent");
@@ -27,7 +27,7 @@ test("a merged pull request draws the merged glyph in the agent color", () => {
 });
 
 test("a closed pull request draws the closed glyph in the danger color", () => {
-	const html = renderToStaticMarkup(<PrGlyph state="closed" isQueued={false} localState="ready" />);
+	const html = renderToStaticMarkup(<PrGlyph state="closed" isQueued={false} readyForReview />);
 
 	expect(html).toContain('data-pr-glyph="closed"');
 	expect(html).toContain("text-danger");
@@ -35,8 +35,8 @@ test("a closed pull request draws the closed glyph in the danger color", () => {
 });
 
 test("the small glyph and the medium glyph draw the same state", () => {
-	const small = renderToStaticMarkup(<PrGlyph state="open" isQueued={false} localState="ready" size="sm" />);
-	const medium = renderToStaticMarkup(<PrGlyph state="open" isQueued={false} localState="ready" size="md" />);
+	const small = renderToStaticMarkup(<PrGlyph state="open" isQueued={false} readyForReview size="sm" />);
+	const medium = renderToStaticMarkup(<PrGlyph state="open" isQueued={false} readyForReview size="md" />);
 
 	expect(small).toContain("size-4");
 	expect(medium).toContain("size-4");
@@ -44,17 +44,29 @@ test("the small glyph and the medium glyph draw the same state", () => {
 	expect(medium).toContain('data-pr-glyph="open"');
 });
 
-test("an open pull request that the agent has not marked ready draws the draft glyph", () => {
-	const html = renderToStaticMarkup(<PrGlyph state="open" isQueued={false} localState="draft" />);
+test("an open pull request that is not ready for review draws the grey glyph", () => {
+	const html = renderToStaticMarkup(<PrGlyph state="open" isQueued={false} readyForReview={false} />);
 
-	expect(html).toContain('data-pr-glyph="draft"');
+	expect(html).toContain('data-pr-glyph="not-ready"');
 	expect(html).toContain("text-fg-muted");
-	expect(html).toContain("Draft: the agent has not asked for review");
+	expect(html).toContain("Not ready for review");
 });
 
-test("a merged or closed pull request draws its state whatever the local state", () => {
-	const merged = renderToStaticMarkup(<PrGlyph state="merged" isQueued={false} localState="draft" />);
-	const closed = renderToStaticMarkup(<PrGlyph state="closed" isQueued={false} localState="draft" />);
+// The caller passes the missing part alone, and the glyph puts its own words
+// in front of it. A caller that passed the whole sentence would print "Not
+// ready for review" two times.
+test("the glyph names the first missing part after its own words, one time", () => {
+	const html = renderToStaticMarkup(
+		<PrGlyph state="open" isQueued={false} readyForReview={false} reason="2 checks pending" />,
+	);
+
+	expect(html).toContain("Not ready for review: 2 checks pending");
+	expect(html).not.toContain("Not ready for review: Not ready for review");
+});
+
+test("a merged or closed pull request draws its state whatever it still needs", () => {
+	const merged = renderToStaticMarkup(<PrGlyph state="merged" isQueued={false} readyForReview={false} />);
+	const closed = renderToStaticMarkup(<PrGlyph state="closed" isQueued={false} readyForReview={false} />);
 
 	expect(merged).toContain('data-pr-glyph="merged"');
 	expect(closed).toContain('data-pr-glyph="closed"');

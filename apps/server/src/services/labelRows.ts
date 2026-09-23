@@ -6,8 +6,8 @@ import type { Tx } from "../db/tx.ts";
 import { fail } from "../errors.ts";
 
 // The row reads and the name rules that `labels.ts`, `labelGroups.ts`, and
-// `labelRefs.ts` share. The root project of a tree owns every label and every
-// label group of the tree, so every statement here takes the id of that root.
+// `labelRefs.ts` share. A project owns its labels and its label groups, so
+// every statement here takes the id of that project.
 // Every list is in name order, without regard to case.
 
 export type LabelRow = {
@@ -67,53 +67,53 @@ export const toGroup = (row: GroupRow): LabelGroup => ({
 export const labelText = (row: { name: string; group_name: string | null }) =>
 	row.group_name === null ? row.name : `${row.group_name}/${row.name}`;
 
-export const labelsOfRoot = (tx: Tx, rootId: string) =>
+export const labelsOfProject = (tx: Tx, projectId: string) =>
 	rows<LabelRow>(
 		tx,
-		sql`SELECT ${labelColumns} ${labelFrom} WHERE l.project_id = ${rootId} ORDER BY lower(l.name), l.id`,
+		sql`SELECT ${labelColumns} ${labelFrom} WHERE l.project_id = ${projectId} ORDER BY lower(l.name), l.id`,
 	);
 
-export const groupsOfRoot = (tx: Tx, rootId: string) =>
+export const groupsOfProject = (tx: Tx, projectId: string) =>
 	rows<GroupRow>(
 		tx,
-		sql`SELECT ${groupColumns} FROM label_groups WHERE project_id = ${rootId} ORDER BY lower(name), id`,
+		sql`SELECT ${groupColumns} FROM label_groups WHERE project_id = ${projectId} ORDER BY lower(name), id`,
 	);
 
-export const labelById = async (tx: Tx, rootId: string, id: string) => {
+export const labelById = async (tx: Tx, projectId: string, id: string) => {
 	const found = await rows<LabelRow>(
 		tx,
-		sql`SELECT ${labelColumns} ${labelFrom} WHERE l.id = ${id} AND l.project_id = ${rootId}`,
+		sql`SELECT ${labelColumns} ${labelFrom} WHERE l.id = ${id} AND l.project_id = ${projectId}`,
 	);
 	if (found.length === 0) throw fail("NOT_FOUND", { kind: "label", ref: id });
 	return found[0] as LabelRow;
 };
 
-export const groupById = async (tx: Tx, rootId: string, id: string) => {
+export const groupById = async (tx: Tx, projectId: string, id: string) => {
 	const found = await rows<GroupRow>(
 		tx,
-		sql`SELECT ${groupColumns} FROM label_groups WHERE id = ${id} AND project_id = ${rootId}`,
+		sql`SELECT ${groupColumns} FROM label_groups WHERE id = ${id} AND project_id = ${projectId}`,
 	);
 	if (found.length === 0) throw fail("NOT_FOUND", { kind: "label group", ref: id });
 	return found[0] as GroupRow;
 };
 
-// A label with no group and a label group of one root share one namespace,
+// A label with no group and a label group of one project share one namespace,
 // because the ref `bug` names either one. `except` names the row the caller
 // creates or renames, so a row never collides with itself.
 export const assertTopLevelNameFree = async (
 	tx: Tx,
-	rootId: string,
+	projectId: string,
 	name: string,
 	except: { labelId?: string; groupId?: string },
 ) => {
 	const found = await rows<{ id: string }>(
 		tx,
 		sql`SELECT id FROM labels
-			WHERE project_id = ${rootId} AND group_id IS NULL AND lower(name) = lower(${name})
+			WHERE project_id = ${projectId} AND group_id IS NULL AND lower(name) = lower(${name})
 				AND id IS DISTINCT FROM ${except.labelId ?? null}
 			UNION ALL
 			SELECT id FROM label_groups
-			WHERE project_id = ${rootId} AND lower(name) = lower(${name})
+			WHERE project_id = ${projectId} AND lower(name) = lower(${name})
 				AND id IS DISTINCT FROM ${except.groupId ?? null}`,
 	);
 	if (found.length > 0) throw fail("DUPLICATE", { field: "name" });
@@ -143,12 +143,12 @@ const AUTO_COLORS = [
 	"gray",
 ] as const satisfies readonly LabelColor[];
 
-// The first hue that no label of the root uses. When every hue is in use, the
+// The first hue that no label of the project uses. When every hue is in use, the
 // hue with the fewest labels, and the first hue of the order on a tie.
-export const autoColor = async (tx: Tx, rootId: string): Promise<LabelColor> => {
+export const autoColor = async (tx: Tx, projectId: string): Promise<LabelColor> => {
 	const used = await rows<{ color: LabelColor; count: number }>(
 		tx,
-		sql`SELECT color, count(*)::int AS count FROM labels WHERE project_id = ${rootId} GROUP BY color`,
+		sql`SELECT color, count(*)::int AS count FROM labels WHERE project_id = ${projectId} GROUP BY color`,
 	);
 	const counts = new Map(used.map((row) => [row.color, row.count]));
 	let best: LabelColor = AUTO_COLORS[0];
@@ -164,8 +164,8 @@ export const autoColor = async (tx: Tx, rootId: string): Promise<LabelColor> => 
 	return best;
 };
 
-// Every label write and every label group write tells the clients of the root
+// Every label write and every label group write tells the clients of the project
 // to read the labels again. A ticket row carries the name and the color of
 // each of its labels, so a rename and a recolor reach the tickets this way.
-export const emitLabelsChanged = (ctx: ServiceCtx, rootId: string) =>
-	ctx.emit({ type: "labels.changed", projectId: rootId });
+export const emitLabelsChanged = (ctx: ServiceCtx, projectId: string) =>
+	ctx.emit({ type: "labels.changed", projectId: projectId });

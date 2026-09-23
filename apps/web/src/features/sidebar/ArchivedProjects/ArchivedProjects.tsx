@@ -4,6 +4,8 @@ import { useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { formatCount } from "../../../lib/format";
+import { activeAgentCountOf } from "../../agents/activeAgents";
+import { useActiveAgentCounts } from "../../agents/useActiveAgentCounts";
 import { ProjectPages } from "../components/ProjectPages";
 import { TreeRow } from "../components/TreeRow";
 
@@ -12,6 +14,7 @@ export function ArchivedProjects() {
 	const { data } = useQuery(orpc.projects.list.queryOptions({ input: { archived: true } }));
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const [open, setOpen] = useState(false);
+	const projectAgentCounts = useActiveAgentCounts();
 	if (data === undefined || data.length === 0) return null;
 	return (
 		<nav aria-label="Archived projects" className="pt-1">
@@ -30,8 +33,13 @@ export function ArchivedProjects() {
 			{open && (
 				<ul className="sidebar-project-tree flex flex-col gap-0.5">
 					{data.flatMap((project) => [
-						<TreeRow key={project.id} project={project} depth={1} archived />,
-						<ProjectPages key={`${project.id}.pages`} project={project} depth={2} pathname={pathname} />,
+						<TreeRow key={project.id} project={project} archived />,
+						<ProjectPages
+							key={`${project.id}.pages`}
+							project={project}
+							pathname={pathname}
+							activeAgentCount={activeAgentCountOf(projectAgentCounts, project.id)}
+						/>,
 					])}
 				</ul>
 			)}

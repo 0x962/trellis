@@ -12,28 +12,18 @@ import {
 const validated = (raw: Record<string, unknown>) => keepEpicPageChoices(raw, stripDefaults(parseSearch(raw)));
 
 describe("epicSearch", () => {
-	test("a URL with no group and no scope gives the page defaults and the fixed epic", () => {
+	test("a URL with no group gives the page defaults and the fixed epic", () => {
 		const page = epicPageSearch(validated({ priority: "high" }), "OP/routine-runtime");
 		expect(page).toEqual({
 			priority: ["high"],
 			epic: "OP/routine-runtime",
 			group: "wave",
-			scope: "subprojects",
 		});
 	});
 
-	test("scope=self stays a choice of the epic page", () => {
-		const search = validated({ scope: "self" });
-		expect(search).toEqual({ scope: "self" });
-		expect(epicPageSearch(search, "OP/routine-runtime").scope).toBe("self");
-		expect(epicQueryString(search)).toBe("?scope=self");
-		expect(isCanonicalEpicSearch("?group=status&scope=self", validated({ group: "status", scope: "self" }))).toBe(true);
-		expect(isCanonicalEpicSearch("?scope=subprojects", validated({ scope: "subprojects" }))).toBe(false);
-	});
-
 	test("the query string of a link writes the status group and leaves out the page defaults", () => {
-		expect(epicQueryString({ group: "status", scope: "subprojects" })).toBe("?group=status");
-		expect(epicQueryString({ group: "wave", scope: "subprojects", priority: ["high"] })).toBe("?priority=high");
+		expect(epicQueryString({ group: "status" })).toBe("?group=status");
+		expect(epicQueryString({ group: "wave", priority: ["high"] })).toBe("?priority=high");
 		expect(epicQueryString({})).toBe("");
 	});
 
@@ -44,16 +34,14 @@ describe("epicSearch", () => {
 	});
 
 	test("the URL omits the epic and the wave group, and writes the status group", () => {
-		const scope = "subprojects";
-		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "wave", scope, sort: "-updatedAt" })).toEqual({});
-		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "status", scope })).toEqual({ group: "status" });
-		// The filter bar strips `group=status` and `scope=self` before it reports a change.
+		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "wave", sort: "-updatedAt" })).toEqual({});
+		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "status" })).toEqual({ group: "status" });
+		// The filter bar strips `group=status` before it reports a change.
 		expect(epicUrlSearch({ epic: "OP/routine-runtime", priority: ["high"] })).toEqual({
 			priority: ["high"],
 			group: "status",
-			scope: "self",
 		});
-		expect(epicUrlSearch({ group: "priority", scope })).toEqual({ group: "priority" });
+		expect(epicUrlSearch({ group: "priority" })).toEqual({ group: "priority" });
 	});
 
 	test("the canonical check accepts what epicUrlSearch writes", () => {
@@ -88,11 +76,8 @@ describe("epicSearch on a phone", () => {
 	});
 
 	test("the URL omits the wave group and writes the turn group", () => {
-		const scope = "subprojects";
-		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "wave", scope }, phone)).toEqual({});
-		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "turn", scope }, phone)).toEqual({
-			group: "turn",
-		});
+		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "wave" }, phone)).toEqual({});
+		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "turn" }, phone)).toEqual({ group: "turn" });
 	});
 
 	test("the canonical check refuses the wave group and keeps the turn group", () => {

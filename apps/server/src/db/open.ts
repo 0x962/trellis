@@ -4,6 +4,7 @@ import { initCluster } from "./initCluster.ts";
 import { migrate } from "./migrate.ts";
 import { allResourceBlobShas } from "./queries/epicResources.ts";
 import { allPrFileBlobShas } from "./queries/prFiles.ts";
+import { prepareSearch } from "./queries/search.ts";
 
 // Opens the database of a data home and brings its schema up to date.
 // `applied` is the number of migrations this open ran. `liveShas` are the
@@ -13,6 +14,7 @@ export const openDatabase = async (dataDir: string) => {
 	await initCluster(dataDir);
 	const db = await openDb(dataDir);
 	const applied = await migrate(db);
+	await prepareSearch(db);
 	const liveShas = async () => {
 		const found = await db.execute(sql`SELECT sha256 FROM attachments`);
 		const prFiles = await db.transaction(allPrFileBlobShas);

@@ -7,7 +7,7 @@ import { cellButtonClass } from "../../cellButtonClass";
 export type LabelsCellProps = {
 	labels: readonly TicketLabel[];
 	// The path of the project that holds the ticket. The picker reads the
-	// labels of that project tree.
+	// labels of that project.
 	project: string;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;

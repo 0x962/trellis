@@ -1,5 +1,5 @@
 .review-thread {
-	border: 0.5px solid var(--border);
+	border: var(--border-width-hairline) solid var(--border);
 	border-radius: var(--radius-md);
 	background: var(--bg);
 	font-family: var(--font-sans);
@@ -11,7 +11,7 @@
 }
 .review-message {
 	padding: 16px;
-	border-bottom: 0.5px solid var(--border);
+	border-bottom: var(--border-width-hairline) solid var(--border);
 }
 .review-message:last-child {
 	border-bottom: 0;
@@ -62,6 +62,16 @@
 	font-size: 11px;
 	font-variant-numeric: tabular-nums;
 }
+/* IconButton puts its child in a 14 px square. An emoji glyph is taller than
+   its font size, so 12 px keeps the character inside that square and the
+   button stays 28 px tall. */
+.review-reaction-emoji {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 12px;
+	line-height: 1;
+}
 .review-reaction-picker {
 	display: grid;
 	grid-template-columns: repeat(4, 32px);
@@ -79,19 +89,42 @@
 	flex: 1;
 	min-height: 36px;
 	padding: 8px 10px;
-	border: 0.5px solid var(--border);
+	border: var(--border-width-hairline) solid var(--border);
 	border-radius: var(--radius-sm);
 	background: var(--bg);
 	font-size: 13px;
 	line-height: 20px;
 	resize: vertical;
 }
+.review-folded {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding-inline-end: 8px;
+}
 .review-resolved {
+	flex: 1;
+	min-width: 0;
 	padding: 12px 16px;
-	width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 	text-align: start;
 	color: var(--fg-muted);
 	font-size: 12px;
+}
+.review-thread-outdated {
+	margin: 0;
+	padding: 8px 16px 12px;
+	background: var(--surface);
+	color: var(--fg-muted);
+}
+.review-thread-outdated pre {
+	overflow-x: auto;
+	font-family: var(--font-mono);
+	font-size: 12px;
+	line-height: 20px;
+	white-space: pre;
 }
 .review-form {
 	padding: 24px;
@@ -121,7 +154,7 @@
 .review-form .review-form-actions {
 	margin-top: 4px;
 	padding-top: 20px;
-	border-top: 0.5px solid var(--border);
+	border-top: var(--border-width-hairline) solid var(--border);
 }
 .review-thread-location {
 	display: flex;
@@ -149,7 +182,7 @@
 	gap: 16px;
 }
 .review-disclosure {
-	border-top: 0.5px solid var(--border);
+	border-top: var(--border-width-hairline) solid var(--border);
 	padding-top: 16px;
 }
 .review-disclosure > summary {
@@ -258,7 +291,7 @@
 	gap: 4px 12px;
 	min-height: 72px;
 	padding: 12px 14px;
-	border: 0.5px solid var(--border);
+	border: var(--border-width-hairline) solid var(--border);
 	border-radius: var(--radius-md);
 	background: var(--surface);
 	transition-property: border-color, background-color;
@@ -382,7 +415,7 @@
 }
 .review-submit-form header {
 	padding: 16px;
-	border-bottom: 0.5px solid var(--border);
+	border-bottom: var(--border-width-hairline) solid var(--border);
 }
 .review-submit-form h3 {
 	font-size: 14px;
@@ -411,7 +444,7 @@
 	justify-content: space-between;
 	gap: 12px;
 	padding: 12px 16px;
-	border-top: 0.5px solid var(--border);
+	border-top: var(--border-width-hairline) solid var(--border);
 	color: var(--fg-muted);
 	font-size: 11px;
 	font-variant-numeric: tabular-nums;
@@ -432,7 +465,7 @@
 	flex-direction: column;
 	gap: 2px;
 	padding: 10px 12px;
-	border-bottom: 0.5px solid var(--border);
+	border-bottom: var(--border-width-hairline) solid var(--border);
 	font-size: 12px;
 }
 .review-reviewer-teams-label {
@@ -472,7 +505,7 @@
 }
 .review-suggestion {
 	margin: 8px 0;
-	border: 0.5px solid var(--border);
+	border: var(--border-width-hairline) solid var(--border);
 	border-radius: var(--radius-sm);
 	background: var(--bg);
 	overflow: hidden;
@@ -482,7 +515,7 @@
 	align-items: center;
 	gap: 8px;
 	padding: 6px 12px;
-	border-bottom: 0.5px solid var(--border);
+	border-bottom: var(--border-width-hairline) solid var(--border);
 	background: var(--surface);
 	font-size: 12px;
 	font-weight: 600;
@@ -536,7 +569,7 @@
 	align-items: center;
 	gap: 4px;
 	padding: 6px 8px 6px 12px;
-	border-top: 0.5px solid var(--border);
+	border-top: var(--border-width-hairline) solid var(--border);
 	background: var(--surface);
 }
 .review-suggestion-note {

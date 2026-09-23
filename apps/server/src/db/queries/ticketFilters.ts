@@ -1,13 +1,11 @@
 import type { CiState, PrFilter, Priority, Reviewer, StatusCategory } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { tsquery } from "./fts.ts";
-import { reviewDraftSql } from "./pullRequestRows.ts";
+import { notReadyForReviewSql } from "./reviewReady.ts";
 import { ciRank, textArray } from "./support.ts";
 
 // The flat filter grammar of tickets.list, with every ref already resolved
-// to an id. `rootIds` holds the roots of `projectIds`. The caller reads
-// them from the project cache. The partial indexes of tickets start with
-// root_id. `parent` is a ticket id or `none` for top-level tickets. `epic`
+// to an id. `parent` is a ticket id or `none` for top-level tickets. `epic`
 // is an epic id or `none` for the tickets outside every epic. `wave`
 // is a wave id or `none` for the tickets outside every wave.
 // `waitsOn` is the id of one dependency. `blocked` tests for an open
@@ -15,7 +13,6 @@ import { ciRank, textArray } from "./support.ts";
 // `actor` is `kind:name` or a bare name and matches the last actor.
 // `updated`, `created`, and `completed` are ISO "after" bounds.
 export type TicketFilter = {
-	rootIds?: readonly string[];
 	projectIds?: readonly string[];
 	statusIds?: readonly string[];
 	categories?: readonly StatusCategory[];
@@ -73,9 +70,9 @@ const prClause = (pr: PrFilter): SQL => {
 		case "none":
 			return sql`NOT ${linked(sql`true`)}`;
 		case "open":
-			return linked(sql`p.state = 'open' AND NOT ${reviewDraftSql(sql`p`)} AND NOT p.is_queued`);
-		case "draft":
-			return linked(sql`p.state = 'open' AND ${reviewDraftSql(sql`p`)}`);
+			return linked(sql`p.state = 'open' AND NOT ${notReadyForReviewSql(sql`p`)} AND NOT p.is_queued`);
+		case "not-ready":
+			return linked(sql`${notReadyForReviewSql(sql`p`)}`);
 		case "queued":
 			return linked(sql`p.state = 'open' AND p.is_queued`);
 		default:
@@ -100,11 +97,12 @@ const actorClause = (actor: string) => {
 	) last WHERE last.actor_name = ${name} AND ${kindTest})`;
 };
 
-// The planner walks a partial index in its key order only under `root_id =`.
-// Under `root_id = ANY(...)` it reads every open ticket of the root and sorts
-// them, even for one root. So one root gets the equality.
-const rootClause = (rootIds: readonly string[]) =>
-	rootIds.length === 1 ? sql`t.root_id = ${rootIds[0]}` : sql`t.root_id = ANY(${textArray(rootIds)})`;
+// The planner walks a partial index in its key order only under
+// `project_id =`. Under `project_id = ANY(...)` it reads every open ticket
+// of the project and sorts them, even for one project. So one project gets
+// the equality.
+const projectClause = (projectIds: readonly string[]) =>
+	projectIds.length === 1 ? sql`t.project_id = ${projectIds[0]}` : sql`t.project_id = ANY(${textArray(projectIds)})`;
 
 // The ticket's status, for the category and reviewer clauses.
 const statusWhere = (test: SQL) => sql`EXISTS (SELECT 1 FROM statuses fs WHERE fs.id = t.status_id AND ${test})`;
@@ -120,8 +118,7 @@ const OPEN_CATEGORIES: readonly StatusCategory[] = ["todo", "started", "review"]
 // index in updated_at order.
 export const filterWhere = (filter: TicketFilter): SQL => {
 	const clauses: SQL[] = [sql`true`];
-	if (filter.rootIds) clauses.push(rootClause(filter.rootIds));
-	if (filter.projectIds) clauses.push(sql`t.project_id = ANY(${textArray(filter.projectIds)})`);
+	if (filter.projectIds) clauses.push(projectClause(filter.projectIds));
 	if (filter.statusIds) clauses.push(sql`t.status_id = ANY(${textArray(filter.statusIds)})`);
 	if (filter.categories) {
 		clauses.push(statusWhere(sql`fs.category = ANY(${textArray(filter.categories)})`));
@@ -154,7 +151,6 @@ export const filterWhere = (filter: TicketFilter): SQL => {
 
 // The filter fields in a fixed order, for the hash a cursor is bound to.
 export const filterKey = (filter: TicketFilter) => [
-	filter.rootIds ?? null,
 	filter.projectIds ?? null,
 	filter.statusIds ?? null,
 	filter.categories ?? null,

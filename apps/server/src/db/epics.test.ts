@@ -7,8 +7,8 @@ import { create, get, list, remove, update } from "../services/epics/epics.ts";
 import { create as createTicket } from "../services/tickets/create.ts";
 import { update as updateTicket } from "../services/tickets/update.ts";
 import { createCache, type ProjectCache } from "./cache.ts";
-import { type Db, openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
+import type { Db } from "./client.ts";
+import { openTestDb } from "./testDb.ts";
 import type { Tx } from "./tx.ts";
 
 // One root TST with the five seeded categories, and a second root OTH. The
@@ -24,8 +24,8 @@ const human: ActorRef = { name: "Test", kind: "human" };
 const agent: ActorRef = { name: "01J00000000000000000000000", kind: "agent" };
 
 const insertProject = (id: string, key: string) =>
-	db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${id}, ${id}, ${key}, ${key.toLowerCase()}, ${key}, '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
+	db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${id}, ${key}, ${key.toLowerCase()}, ${key}, '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
 
 // The statuses table requires a reviewer on a `review` status and forbids one on every other category.
 const insertStatus = async (root: string, name: string, slug: string, category: string, position: number) => {
@@ -54,8 +54,7 @@ const ctxAt = (now: string, actor: ActorRef = human): ServiceCtx => ({
 const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
 beforeAll(async () => {
-	db = await openDb(":memory:");
-	await migrate(db);
+	db = await openTestDb();
 	await insertProject(tst, "TST");
 	await insertProject(oth, "OTH");
 	statuses.todo = await insertStatus(tst, "Todo", "todo", "todo", 0);
@@ -78,7 +77,7 @@ test("create derives the slug from the name and suffixes a taken derived slug", 
 	expect(first).toMatchObject({
 		slug: "routine-runtime",
 		ref: "TST/routine-runtime",
-		projectPath: "TST",
+		projectKey: "TST",
 		state: "open",
 		counts: { total: 0, todo: 0, started: 0, review: 0, done: 0, canceled: 0 },
 		tickets: [],
@@ -130,10 +129,10 @@ test("a ticket cannot join an epic of another root", async () => {
 	const ctx = ctxAt("2026-09-18T10:04:00.000Z");
 	await expect(
 		run((tx) => createTicket(ctx, tx, { project: "TST", title: "Stray", epic: "OTH/routine-runtime" })),
-	).rejects.toMatchObject({ code: "CROSS_ROOT_MOVE" });
+	).rejects.toMatchObject({ code: "CROSS_PROJECT_LINK" });
 	await expect(
 		run((tx) => updateTicket(ctx, tx, { ticket: "TST-1", epic: "OTH/routine-runtime" })),
-	).rejects.toMatchObject({ code: "CROSS_ROOT_MOVE" });
+	).rejects.toMatchObject({ code: "CROSS_PROJECT_LINK" });
 });
 
 test("a ticket epic change records the field epic with both refs", async () => {
@@ -174,7 +173,7 @@ test("delete needs force for an agent, then detaches every ticket with activity 
 	events.length = 0;
 	const removed = await run((tx) => remove(asAgent, tx, { epic: "TST/routine-runtime", force: true }));
 	const detached = await db.execute(
-		sql`SELECT 'TST-' || number AS identifier, epic_id FROM tickets WHERE root_id = ${tst} ORDER BY number`,
+		sql`SELECT 'TST-' || number AS identifier, epic_id FROM tickets WHERE project_id = ${tst} ORDER BY number`,
 	);
 	expect(detached.rows).toEqual([
 		{ identifier: "TST-1", epic_id: null },

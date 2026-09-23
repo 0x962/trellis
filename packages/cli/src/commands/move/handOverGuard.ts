@@ -20,7 +20,7 @@ export const handOverGuard = async (
 	statusRef: string,
 ): Promise<{ result: PullRequestReadiness; blocksAgent: boolean } | null> => {
 	const ticket = await client.tickets.get({ ticket: ticketRef });
-	const { statuses } = await client.statuses.list({ project: ticket.project.path });
+	const { statuses } = await client.statuses.list({ project: ticket.project.key });
 	const status = statuses.find((candidate) => statusMatches(candidate, statusRef));
 	if (status?.slug !== "human-review") return null;
 	for (const linked of ticket.prs.filter((pullRequest) => pullRequest.state === "open")) {

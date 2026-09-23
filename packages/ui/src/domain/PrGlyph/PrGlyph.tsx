@@ -13,13 +13,15 @@ export type PullRequestState = "open" | "closed" | "merged";
 
 export type PrGlyphSize = "sm" | "md";
 
-// The review state that records whether the agent asked for review.
-export type LocalPrState = "draft" | "ready";
-
 export type PrGlyphProps = {
 	state: PullRequestState;
 	isQueued: boolean;
-	localState: LocalPrState;
+	// True when the pull request holds every part the person needs before
+	// they review it. The caller computes it with `readyForReview`.
+	readyForReview: boolean;
+	// Why it is not ready, in plain words, such as "2 checks pending". The
+	// tooltip and the accessible name say it. A ready pull request has none.
+	reason?: string | null;
 	size?: PrGlyphSize;
 	tooltip?: boolean;
 	focusable?: boolean;
@@ -31,11 +33,11 @@ type OcticonProps = { className?: string; "aria-hidden"?: "true" };
 type Look = { label: string; tone: string; Icon: ComponentType<OcticonProps> };
 
 // The shapes and the colors match GitHub, so a state reads the same in both
-// products. The draft shape means the agent has not asked for review.
+// products.
 const looks = {
 	open: { label: "Ready for review", tone: "text-success", Icon: GitPullRequestIcon },
-	draft: {
-		label: "Draft: the agent has not asked for review",
+	"not-ready": {
+		label: "Not ready for review",
 		tone: "text-fg-muted",
 		Icon: GitPullRequestDraftIcon,
 	},
@@ -46,11 +48,10 @@ const looks = {
 
 type PrGlyphLook = keyof typeof looks;
 
-// Queued and draft marks apply only while the pull request is open.
-export const prGlyphLook = (state: PullRequestState, isQueued: boolean, localState: LocalPrState): PrGlyphLook => {
+const prGlyphLook = (state: PullRequestState, isQueued: boolean, readyForReview: boolean): PrGlyphLook => {
 	if (state !== "open") return state;
 	if (isQueued) return "queued";
-	return localState === "draft" ? "draft" : "open";
+	return readyForReview ? "open" : "not-ready";
 };
 
 // A table row is 32 px tall and holds the small glyph. A pull request row has
@@ -65,14 +66,16 @@ const iconSizes: Record<PrGlyphSize, string> = { sm: "size-4", md: "size-4" };
 export function PrGlyph({
 	state,
 	isQueued,
-	localState,
+	readyForReview,
+	reason = null,
 	size = "md",
 	tooltip = true,
 	focusable = true,
 	decorative = false,
 }: PrGlyphProps) {
-	const key = prGlyphLook(state, isQueued, localState);
-	const { label, tone, Icon } = looks[key];
+	const key = prGlyphLook(state, isQueued, readyForReview);
+	const { tone, Icon } = looks[key];
+	const label = key === "not-ready" && reason !== null ? `${looks[key].label}: ${reason}` : looks[key].label;
 	if (decorative) {
 		return (
 			<span

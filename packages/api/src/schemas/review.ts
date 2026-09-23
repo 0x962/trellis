@@ -2,6 +2,7 @@ import { z } from "zod";
 import { CiStateSchema, LocalPrStateSchema } from "./enums";
 import { booleanString, IsoDateTimeSchema, UlidSchema } from "./primitives";
 import { CheckSchema, PullRequestSchema } from "./pullRequest";
+import { ReviewGapSchema } from "./reviewReady.ts";
 import { TicketIdentifierSchema } from "./ticket";
 import { TicketPrSchema } from "./ticketPr";
 
@@ -64,6 +65,15 @@ export const ReviewThreadSchema = ReviewReplySchema.extend({
 	replies: z.array(ReviewReplySchema),
 	// Absent on a thread written before suggestions existed.
 	suggestion: ReviewSuggestionSchema.nullable().optional(),
+	// The text of the lines this thread points at, read from the patch of
+	// the revision named in `revisionId`. The review page holds the patch of
+	// the newest revision, so it reads those lines itself and the server
+	// leaves this field out for them. A thread on an earlier revision points
+	// at line numbers of a patch the page never loads: the page searches the
+	// current file for this text to find the lines again, and draws this text
+	// as the old code when the current file no longer holds it. Null when the
+	// patch of that revision shows one of the lines no more.
+	anchorLines: z.array(z.string()).nullish(),
 });
 export type ReviewThread = z.infer<typeof ReviewThreadSchema>;
 export type ReviewReply = z.infer<typeof ReviewReplySchema>;
@@ -118,6 +128,9 @@ export const ReviewPrSchema = z.object({
 	isDraft: z.boolean(),
 	isQueued: z.boolean(),
 	localState: LocalPrStateSchema,
+	// What this pull request still needs before the person reviews it, from
+	// `reviewGaps`. An empty list means ready for review.
+	reviewGaps: z.array(ReviewGapSchema),
 	checks: z.array(CheckSchema),
 	ciState: CiStateSchema,
 	open: z.number().int(),

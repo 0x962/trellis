@@ -9,6 +9,9 @@ type DriftControl = {
 	cancel: () => void;
 };
 
+// The coloured layer a ticket card draws while an agent works on it. Give the
+// parent element `ticketCardFrame`: it sets `--glimmer-radius`, and this layer
+// reads that value for its corner.
 export function TicketGlimmer({ active }: { active: boolean }) {
 	const ref = useRef<HTMLSpanElement>(null);
 	const id = useId();

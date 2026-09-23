@@ -2,9 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
 import { cx } from "@trellis/ui";
-import type { ReactNode } from "react";
 import { useApp } from "../../../lib/appContext";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
+import { activeAgentCountOf } from "../../agents/activeAgents";
+import { useActiveAgentCounts } from "../../agents/useActiveAgentCounts";
 import { ProjectListStatus } from "../components/ProjectListStatus";
 import { ProjectPages } from "../components/ProjectPages";
 import { TreeRow } from "../components/TreeRow";
@@ -21,6 +22,7 @@ export function ProjectTree() {
 	const projects = useQuery(sidebarProjectsQuery(orpc));
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const expandedProjects = useUiStore((state) => state.expandedProjects);
+	const projectAgentCounts = useActiveAgentCounts();
 	const data = projects.data;
 	// `failureCount` counts the failed tries of the fetch that runs now. A
 	// Retry click starts a new fetch, so the placeholder rows come back.
@@ -34,40 +36,32 @@ export function ProjectTree() {
 			</nav>
 		);
 
-	const children = new Map<string | null, ProjectSummary[]>();
-	for (const project of data) {
-		const list = children.get(project.parentId) ?? [];
-		list.push(project);
-		children.set(project.parentId, list);
-	}
-	const level = (parentId: string | null, depth: number): ReactNode[] =>
-		(children.get(parentId) ?? []).sort(byPosition).flatMap((project) => {
-			const expanded = expandedProjects[project.id] ?? true;
-			const row = (
-				<TreeRow
-					key={project.id}
-					project={project}
-					depth={depth}
-					expanded={expanded}
-					onToggle={() => uiActions.toggleProject(project.id)}
-				/>
-			);
-			return [
-				row,
-				expanded && (
-					<li key={`${project.id}.subtree`}>
-						<ul className={cx("flex flex-col gap-0.5")}>
-							<ProjectPages project={project} depth={depth + 1} pathname={pathname} />
-							{level(project.id, depth + 1)}
-						</ul>
-					</li>
-				),
-			];
-		});
-
 	return (
 		<nav aria-label="Projects" data-project-tree="">
-			<ul className="sidebar-project-tree flex flex-col gap-0.5">{level(null, 0)}</ul>
+			<ul className="sidebar-project-tree flex flex-col gap-0.5">
+				{[...data].sort(byPosition).flatMap((project) => {
+					const expanded = expandedProjects[project.id] ?? true;
+					return [
+						<TreeRow
+							key={project.id}
+							project={project}
+							expanded={expanded}
+							onToggle={() => uiActions.toggleProject(project.id)}
+						/>,
+						expanded && (
+							<li key={`${project.id}.pages`}>
+								<ul className={cx("flex flex-col gap-0.5")}>
+									<ProjectPages
+										project={project}
+										pathname={pathname}
+										activeAgentCount={activeAgentCountOf(projectAgentCounts, project.id)}
+									/>
+								</ul>
+							</li>
+						),
+					];
+				})}
+			</ul>
 		</nav>
 	);
 }

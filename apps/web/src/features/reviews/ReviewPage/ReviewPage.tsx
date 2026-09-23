@@ -2,16 +2,18 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { isAgentWorking, type ReviewSubmission, type ReviewThread, reviewRef, turnOf, verdictMark } from "@trellis/api";
 import { EmptyState, Skeleton, type TabItem, Tabs, TicketId, useMediaQuery } from "@trellis/ui";
-import type { DiffAnchor } from "@trellis/ui/review";
+import { type DiffAnchor, ReviewDiffSkeleton, type ThreadPlacement, threadDiffLine } from "@trellis/ui/review";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ChangeSummary } from "../ChangeSummary";
 import { EvidenceDocument } from "../EvidenceDocument";
 import { FileRiskGroups } from "../FileRiskGroups";
+import { fileGroups } from "../FileRiskGroups/fileGroups";
 import { FlowRuns } from "../FlowRuns";
 import { ApplySuggestionsDialog, ReviewApplyContext, type ReviewApplyState, ReviewBatchBar } from "../ReviewApply";
 import { ReviewChecks } from "../ReviewChecks/ReviewChecks";
 import { ReviewComment } from "../ReviewComment/ReviewComment";
+import { ReviewFindings } from "../ReviewFindings";
 import { ReviewHeader } from "../ReviewHeader/ReviewHeader";
 import { type ReviewMetadata, ReviewStack } from "../ReviewStack/ReviewStack";
 import type { ReadMarkFile } from "../readMarks/readMarks";
@@ -20,7 +22,7 @@ import { DiffPane } from "./components/DiffPane";
 import { FilesDisclosure } from "./components/FilesDisclosure";
 import { PaneBoundary } from "./components/PaneBoundary";
 import { type GithubPullRequest, ReviewIdentity } from "./components/ReviewIdentity";
-import { ReviewDiffSkeleton, ReviewTreeSkeleton } from "./components/ReviewPageSkeleton";
+import { ReviewTreeSkeleton } from "./components/ReviewPageSkeleton";
 import { TurnLine } from "./components/TurnLine";
 import { useActiveThread } from "./hooks/useActiveThread";
 import { useReadMarks } from "./hooks/useReadMarks";
@@ -64,27 +66,31 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	} = useReviewData(pr);
 	const [changedFiles, setChangedFiles] = useState<ReadMarkFile[]>([]);
 	const { read, setRead } = useReadMarks(pr, changedFiles);
+	const ref = reviewRef(pr);
+	// One order governs both panes of the Diff tab. The groups rank the files,
+	// the tree draws them in that rank, and the diff draws them in the same
+	// rank, so the row a person picks in the tree sits at the same place in the
+	// diff. The rank ignores the read marks, so a mark never re-sorts the diff
+	// under the pointer.
+	const groups = useMemo(() => fileGroups(ref.repo, changedFiles), [ref.repo, changedFiles]);
 	// `FilesDisclosure` hides the review details behind one control on a phone.
 	const phone = useMediaQuery("(max-width: 767px)");
 	const [pickedPath, setPickedPath] = useState("");
 	const [pickedAnchor, setPickedAnchor] = useState<DiffAnchor | null>(null);
 	const [batch, setBatch] = useState<ReadonlySet<string>>(() => new Set());
 	const [applying, setApplying] = useState<string[] | null>(null);
-	// The diff shows the threads of the revision on screen, plus the threads
-	// that name no revision. The CLI wrote those before the pull request had
-	// one, and their lines refer to the diff of that time.
+	// The diff shows every thread of the pull request, whichever revision it
+	// names. `ReviewDiff` searches the file on screen for the lines a thread
+	// of an earlier revision was written against, and draws the thread at the
+	// top of its file when the file holds those lines no more.
 	const allThreads = threads.data?.items ?? noThreads;
-	const revisionThreads = useMemo(
-		() => allThreads.filter((thread) => thread.revisionId === null || thread.revisionId === revision?.id),
-		[allThreads, revision?.id],
-	);
 	const threadsById = useMemo(() => new Map(allThreads.map((thread) => [thread.id, thread])), [allThreads]);
 	const renderThread = useCallback(
-		(id: string) => {
+		(id: string, place: ThreadPlacement) => {
 			const thread = threadsById.get(id)!;
-			return <ReviewComment key={thread.id} thread={thread} />;
+			return <ReviewComment key={thread.id} thread={thread} pr={pr} place={place} />;
 		},
-		[threadsById],
+		[threadsById, pr],
 	);
 	const statusMatchesRevision =
 		revision !== null && status.data?.headRefOid === revision.headSha && status.data?.baseRefOid === revision.baseSha;
@@ -128,7 +134,6 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	const turnInput = ticket.data ?? prRow;
 	const agentWorks = run !== null && isAgentWorking(run);
 	const turn = turnInput ? turnOf(turnInput, agentWorks) : null;
-	const ref = reviewRef(pr);
 	// What the Flows tab needs to start a flow. One `gh pr view` answer carries
 	// both the ticket and the head commit, so either both are here or neither
 	// is.
@@ -213,6 +218,23 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 										<>
 											{linkedPr !== null && <ChangeSummary summary={summaryRow} headSha={headSha} />}
 											{linkedPr !== null && <EvidenceDocument evidence={evidence.data ?? null} />}
+											<ReviewFindings
+												threads={allThreads}
+												revisionId={revision?.id ?? null}
+												onOpen={(thread) => {
+													// A thread of an earlier revision names a line of a diff
+													// that this page does not draw, so the link asks the
+													// patch on screen where that thread went. No line means
+													// the diff draws the thread at the top of its file, and
+													// the link goes to that file.
+													const line = revision === null ? null : threadDiffLine(revision.patch, thread, revision.id);
+													setPickedPath(line === null ? thread.path : "");
+													setPickedAnchor(
+														line === null ? null : { path: thread.path, side: thread.side, line, startLine: line },
+													);
+													onTabChange("diff");
+												}}
+											/>
 										</>
 									)}
 								</div>
@@ -257,13 +279,15 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 											) : (
 												<FileRiskGroups
 													pr={pr}
-													repo={ref.repo}
-													files={changedFiles}
+													groups={groups}
 													read={read}
 													selected={selectedPath}
 													onSelect={(path) => {
 														setPickedPath(path);
-														setPickedAnchor(null);
+														// The tree reports the file of the anchor back as a
+														// choice of its own. A choice of another file drops
+														// the anchor; the echo of this one keeps it.
+														setPickedAnchor((current) => (current?.path === path ? current : null));
 													}}
 												/>
 											)}
@@ -275,11 +299,12 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 												<DiffPane
 													pr={pr}
 													revision={revision}
-													threads={revisionThreads}
+													threads={allThreads}
 													selectedFile={selectedPath}
 													selectedAnchor={pickedAnchor}
 													renderThread={renderThread}
 													onFiles={setChangedFiles}
+													groups={groups}
 													read={read}
 													onRead={setRead}
 												/>

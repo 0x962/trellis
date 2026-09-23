@@ -65,7 +65,7 @@ describe("computeUsageReport", () => {
 			name: "Agent",
 			ticketIdentifier: null,
 			ticketTitle: null,
-			projectPath: "TRL",
+			projectKey: "TRL",
 			projectName: "Trellis",
 			accountName: null,
 			sessionId: "old-run",

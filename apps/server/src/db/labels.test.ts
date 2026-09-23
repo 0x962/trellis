@@ -6,16 +6,15 @@ import * as labelGroups from "../services/labelGroups.ts";
 import { resolveLabel } from "../services/labelRefs.ts";
 import * as labels from "../services/labels.ts";
 import { createCache } from "./cache.ts";
-import { type Db, openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
+import type { Db } from "./client.ts";
+import { openTestDb } from "./testDb.ts";
 import { type Tx, withTx } from "./tx.ts";
 
-// The label services of a project tree. The root project owns the labels, so
-// a call from the sub-project `TST.web` reads and writes the labels of `TST`.
+// The label services of one project. The project owns its labels and its
+// label groups.
 
 const at = new Date("2026-09-18T12:00:00.000Z");
-const rootId = "01J00000000000000000000010";
-const subId = "01J00000000000000000000011";
+const projectId = "01J00000000000000000000010";
 const statusId = "01J00000000000000000000012";
 
 let db: Db;
@@ -42,19 +41,14 @@ const run = async <T>(call: (ctx: ServiceCtx, tx: Tx) => Promise<T>) => {
 };
 
 beforeAll(async () => {
-	db = await openDb(":memory:");
-	await migrate(db);
+	db = await openTestDb();
 	await db.execute(sql`
-		INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${rootId}, ${rootId}, 'TST', 'tst', 'Test', ${at}, ${at})
-	`);
-	await db.execute(sql`
-		INSERT INTO projects (id, parent_id, root_id, slug, name, position, created_at, updated_at)
-		VALUES (${subId}, ${rootId}, ${rootId}, 'web', 'Web', 0, ${at}, ${at})
+		INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${projectId}, 'TST', 'tst', 'Test', ${at}, ${at})
 	`);
 	await db.execute(sql`
 		INSERT INTO statuses (id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
-		VALUES (${statusId}, ${rootId}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})
+		VALUES (${statusId}, ${projectId}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})
 	`);
 	cache = createCache();
 	await withTx(db, (tx) => cache.rebuild(tx));
@@ -64,22 +58,22 @@ afterAll(async () => {
 	await db.$client.close();
 });
 
-test("a create from a sub-project writes the label on the root and takes the first free hue", async () => {
-	const bug = await run((ctx, tx) => labels.create(ctx, tx, { project: "TST.web", name: "bug" }));
+test("a create writes the label on the project and takes the first free hue", async () => {
+	const bug = await run((ctx, tx) => labels.create(ctx, tx, { project: "TST", name: "bug" }));
 	const chore = await run((ctx, tx) => labels.create(ctx, tx, { project: "TST", name: "chore" }));
 
-	expect(bug.projectId).toBe(rootId);
+	expect(bug.projectId).toBe(projectId);
 	expect(bug.groupId).toBeNull();
 	expect([bug.color, chore.color]).toEqual(["red", "orange"]);
 	expect(bug.ticketCount).toBe(0);
-	expect(events.at(-1)).toEqual({ type: "labels.changed", projectId: rootId });
+	expect(events.at(-1)).toEqual({ type: "labels.changed", projectId: projectId });
 	const activity = await db.execute(
 		sql`SELECT action, to_value FROM activity WHERE action = 'label.created' ORDER BY id`,
 	);
 	expect(activity.rows[0]).toEqual({ action: "label.created", to_value: "bug" });
 });
 
-test("a label with no group and a label group of one root cannot share a name", async () => {
+test("a label with no group and a label group of one project cannot share a name", async () => {
 	await run((ctx, tx) => labelGroups.create(ctx, tx, { project: "TST", name: "Type" }));
 
 	await expect(run((ctx, tx) => labels.create(ctx, tx, { project: "TST", name: "type" }))).rejects.toThrow();
@@ -96,7 +90,7 @@ test("a bare ref answers the label with no group, and two grouped labels of one 
 		resolveLabel(
 			ctxOf(() => undefined),
 			tx,
-			{ rootId, ref: "bug" },
+			{ projectId, ref: "bug" },
 		),
 	);
 	expect(bare.result.group_id).toBeNull();
@@ -104,7 +98,7 @@ test("a bare ref answers the label with no group, and two grouped labels of one 
 		resolveLabel(
 			ctxOf(() => undefined),
 			tx,
-			{ rootId, ref: "type/bug" },
+			{ projectId, ref: "type/bug" },
 		),
 	);
 	expect(grouped.result.id).toBe(typeBug.id);
@@ -113,7 +107,7 @@ test("a bare ref answers the label with no group, and two grouped labels of one 
 		resolveLabel(
 			ctxOf(() => undefined),
 			tx,
-			{ rootId, ref: "bug" },
+			{ projectId, ref: "bug" },
 		),
 	);
 	await withTx(db, (tx) =>
@@ -128,7 +122,7 @@ test("a bare ref answers the label with no group, and two grouped labels of one 
 			resolveLabel(
 				ctxOf(() => undefined),
 				tx,
-				{ rootId, ref: "bug" },
+				{ projectId, ref: "bug" },
 			),
 		),
 	).rejects.toThrow();
@@ -137,14 +131,14 @@ test("a bare ref answers the label with no group, and two grouped labels of one 
 			resolveLabel(
 				ctxOf(() => undefined),
 				tx,
-				{ rootId, ref: "nothing" },
+				{ projectId, ref: "nothing" },
 			),
 		),
 	).rejects.toThrow();
 });
 
-test("labels.list returns the groups and the labels of the root in name order", async () => {
-	const listed = await run((ctx, tx) => labels.list(ctx, tx, { project: "TST.web" }));
+test("labels.list returns the groups and the labels of the project in name order", async () => {
+	const listed = await run((ctx, tx) => labels.list(ctx, tx, { project: "TST" }));
 
 	expect(listed.groups.map((group) => group.name)).toEqual(["Area", "Type"]);
 	expect(listed.labels.map((label) => label.name)).toEqual(["bug", "bug", "chore"]);

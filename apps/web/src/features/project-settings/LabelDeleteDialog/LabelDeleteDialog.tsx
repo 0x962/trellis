@@ -6,7 +6,7 @@ import { formatCount } from "../../../lib/format";
 import { labelWriteMessage } from "../labelWriteMessage";
 
 export type LabelDeleteDialogProps = {
-	// A project path. The root project of its tree owns the label.
+	// The key of the project that owns the label.
 	project: string;
 	// The label to delete. The dialog stays closed while this is null.
 	label: Label | null;

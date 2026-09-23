@@ -8,6 +8,8 @@ import { prOf } from "./prOf";
 
 const textOf = (html: string) => html.replace(/<[^>]*>/g, "");
 
+const notAsked = [{ kind: "not-asked" as const, count: 1 }];
+
 describe("PrRow", () => {
 	test("prints only the number and title beside the state glyph", () => {
 		const pr = prOf({
@@ -82,29 +84,34 @@ describe("PrRow", () => {
 		expect(html).toContain('aria-label="56 checks: 1 failed, 6 pending, 47 passed, 2 skipped"');
 	});
 
-	test("the glyph carries the draft, queued, and merged states", () => {
-		const draft = renderToStaticMarkup(
-			<PrRow pr={prOf({ localState: "draft" })} top={0} last={false} hasChildLines={false} />,
+	test("the glyph carries the not-ready, queued, and merged states", () => {
+		const notReady = renderToStaticMarkup(
+			<PrRow pr={prOf({ reviewGaps: notAsked })} top={0} last={false} hasChildLines={false} />,
 		);
 		const queued = renderToStaticMarkup(
 			<PrRow pr={prOf({ isQueued: true })} top={0} last={false} hasChildLines={false} />,
 		);
 		const merged = renderToStaticMarkup(
-			<PrRow pr={prOf({ state: "merged", localState: "draft" })} top={0} last={false} hasChildLines={false} />,
+			<PrRow pr={prOf({ state: "merged" })} top={0} last={false} hasChildLines={false} />,
 		);
 
-		expect(draft).toContain("Draft: the agent has not asked for review");
+		expect(notReady).toContain("Not ready for review");
 		expect(queued).toContain("Pull request queued");
 		expect(merged).toContain("Pull request merged");
 	});
 
-	test("an open pull request that the agent has not marked ready draws the draft glyph", () => {
+	test("an open pull request that is not ready draws the grey glyph and names the reason", () => {
 		const html = renderToStaticMarkup(
-			<PrRow pr={prOf({ localState: "draft" })} top={0} last={false} hasChildLines={false} />,
+			<PrRow
+				pr={prOf({ reviewGaps: [{ kind: "checks-pending", count: 2 }] })}
+				top={0}
+				last={false}
+				hasChildLines={false}
+			/>,
 		);
 
-		expect(html).toContain('data-pr-glyph="draft"');
-		expect(html).toContain("Draft: the agent has not asked for review");
+		expect(html).toContain('data-pr-glyph="not-ready"');
+		expect(html).toContain("Not ready for review: 2 checks pending");
 	});
 
 	test("takes the height and offset that the virtual list reserves", () => {

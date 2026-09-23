@@ -13,7 +13,7 @@ export const SessionSchema = z.object({
 	id: UlidSchema,
 	name: SessionNameSchema,
 	projectId: UlidSchema.nullable(),
-	projectPath: z.string(),
+	projectKey: z.string(),
 	directory: z.string(),
 	harness: HarnessSchema,
 	runId: UlidSchema,

@@ -1,4 +1,4 @@
-import type { Project, ProjectSummary, Ticket } from "@trellis/api";
+import type { Project, Ticket } from "@trellis/api";
 import { EventIdSchema, parseEventId, UlidSchema } from "@trellis/api";
 import type { Context } from "hono";
 import { API_VERSION, type RequestContext } from "../context.ts";
@@ -71,11 +71,8 @@ export const createEventsRoute = ({ bus, runtime, transport, clock }: EventsRout
 		if (types !== undefined) filter.types = types.split(",");
 		const project = c.req.query("project");
 		if (project !== undefined) {
-			const root = (await transport.call("projects.get", readCtx(c), { project })) as Project;
-			const all = (await transport.call("projects.list", readCtx(c), {})) as ProjectSummary[];
-			filter.projectIds = all
-				.filter((item) => item.path === root.path || item.path.startsWith(`${root.path}.`))
-				.map((item) => item.id);
+			const row = (await transport.call("projects.get", readCtx(c), { project })) as Project;
+			filter.projectIds = [row.id];
 		}
 		const ticket = c.req.query("ticket");
 		if (ticket !== undefined) {

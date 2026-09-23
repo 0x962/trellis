@@ -5,19 +5,18 @@ import { join } from "node:path";
 import { HarnessSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { restoreHarnesses } from "../services/agentRuns/restoreHarnesses.ts";
-import { type Db, openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
+import type { Db } from "./client.ts";
+import { openTestDb } from "./testDb.ts";
 
 let db: Db;
 let home: string;
 const harness = HarnessSchema.parse({ preset: "codex", model: "openai/gpt-5.6-sol", effort: "high" });
 beforeAll(async () => {
 	home = await mkdtemp(join(tmpdir(), "trellis-restore-harness-"));
-	db = await openDb(":memory:");
-	await migrate(db);
+	db = await openTestDb();
 	for (const id of ["known", "unknown", "existing", "missing", "custom"]) {
 		await db.execute(
-			sql`INSERT INTO agent_runs (id,name,runtime,kind,instruction,project_path,terminal_id,harness,created_at,updated_at) VALUES (${id},${id},'native','agent','','TST',${id},${id === "existing" ? JSON.stringify(harness) : null}::jsonb,now(),now())`,
+			sql`INSERT INTO agent_runs (id,name,runtime,kind,instruction,project_key,terminal_id,harness,created_at,updated_at) VALUES (${id},${id},'native','agent','','TST',${id},${id === "existing" ? JSON.stringify(harness) : null}::jsonb,now(),now())`,
 		);
 		if (id === "missing") continue;
 		await mkdir(join(home, "harness-attempts", id), { recursive: true });

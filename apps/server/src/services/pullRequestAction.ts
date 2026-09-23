@@ -29,7 +29,7 @@ export const recordAction = async (
 	const linked = await rows<TicketRow>(
 		tx,
 		sql`
-			SELECT t.id, t.project_id, t.root_id, NULL AS archived_at
+			SELECT t.id, t.project_id, NULL AS archived_at
 			FROM ticket_pull_requests l JOIN tickets t ON t.id = l.ticket_id
 			WHERE l.pull_request_id = ${fresh.id}
 			ORDER BY l.created_at, t.id

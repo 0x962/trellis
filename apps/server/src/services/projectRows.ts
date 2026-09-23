@@ -1,9 +1,8 @@
-import { type Project, type ProjectSummary, reservedSlugs } from "@trellis/api";
+import { type Project, reservedSlugs } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { ServiceCtx } from "../context.ts";
 import {
 	type ProjectSummaryRow,
-	projectCtes,
 	projectSummaryColumns,
 	projectSummaryJoins,
 	toProjectSummary,
@@ -13,7 +12,7 @@ import type { Tx } from "../db/tx.ts";
 import { fail } from "../errors.ts";
 import { type Change, record } from "./activity.ts";
 import { repoRows } from "./projectsRepos.ts";
-import { chainOf, pathOf, resolveProject } from "./refs.ts";
+import { resolveProject } from "./refs.ts";
 
 // The row reads and the small writes the project services share. Every
 // read goes to the database, so a view built at the end of a mutation shows
@@ -34,41 +33,40 @@ const projectColumns = sql`${projectSummaryColumns}, p.description, p.directory,
 export const projectRow = async (tx: Tx, projectId: string) => {
 	const found = await rows<ProjectRow>(
 		tx,
-		sql`WITH RECURSIVE ${projectCtes} SELECT ${projectColumns} ${projectSummaryJoins} WHERE p.id = ${projectId}`,
+		sql`SELECT ${projectColumns} ${projectSummaryJoins} WHERE p.id = ${projectId}`,
 	);
 	return found[0]!;
 };
 
-// The children of a project in display order.
-export const childSummaries = async (tx: Tx, parentId: string): Promise<ProjectSummary[]> => {
-	const found = await rows<ProjectSummaryRow>(
-		tx,
-		sql`WITH RECURSIVE ${projectCtes} SELECT ${projectSummaryColumns} ${projectSummaryJoins}
-			WHERE p.parent_id = ${parentId} ORDER BY p.position, p.slug`,
-	);
-	return found.map(toProjectSummary);
-};
-
-// The ids of the projects under `parentId` (the roots when null), in display
-// order, without `exceptId`.
-export const siblingIds = async (tx: Tx, parentId: string | null, exceptId: string) => {
+// The ids of every project in display order, without `exceptId`.
+export const siblingIds = async (tx: Tx, exceptId: string) => {
 	const found = await rows<{ id: string }>(
 		tx,
-		sql`SELECT id FROM projects WHERE parent_id IS NOT DISTINCT FROM ${parentId} AND id <> ${exceptId}
-			ORDER BY position, slug`,
+		sql`SELECT id FROM projects WHERE id <> ${exceptId} ORDER BY position, slug`,
 	);
 	return found.map((row) => row.id);
 };
 
-// A slug is one path segment under its parent, so two children of one parent
-// never share one. The web routes `board` and `settings` are never a slug.
-export const assertSlugFree = async (tx: Tx, parentId: string, slug: string, exceptId: string | null) => {
+// A slug names one project, so two projects never share one. The web routes
+// `board` and `settings` are never a slug.
+export const assertSlugFree = async (tx: Tx, slug: string, exceptId: string | null) => {
 	if (reservedSlugs.has(slug)) throw fail("DUPLICATE", { field: "slug" });
 	const found = await rows<{ id: string }>(
 		tx,
-		sql`SELECT id FROM projects WHERE parent_id = ${parentId} AND slug = ${slug} AND id IS DISTINCT FROM ${exceptId}`,
+		sql`SELECT id FROM projects WHERE slug = ${slug} AND id IS DISTINCT FROM ${exceptId}`,
 	);
 	if (found.length > 0) throw fail("DUPLICATE", { field: "slug" });
+};
+
+// One color belongs to one project, so a person always reads two projects
+// apart by their color. `exceptId` is the project that the caller writes, so
+// a project keeps the color it already holds.
+export const assertColorFree = async (tx: Tx, color: string, exceptId: string | null) => {
+	const found = await rows<{ id: string }>(
+		tx,
+		sql`SELECT id FROM projects WHERE color = ${color} AND id IS DISTINCT FROM ${exceptId}`,
+	);
+	if (found.length > 0) throw fail("DUPLICATE", { field: "color" });
 };
 
 export const assertKeyFree = async (tx: Tx, key: string) => {
@@ -76,40 +74,28 @@ export const assertKeyFree = async (tx: Tx, key: string) => {
 	if (found.length > 0) throw fail("DUPLICATE", { field: "key" });
 };
 
-// Two active root projects never share a name, compared without letter case.
-// An archived root does not hold its name. `exceptId` is the root that the
-// caller renames or restores, so a root never collides with its own name.
-export const assertRootNameFree = async (tx: Tx, name: string, exceptId: string | null) => {
+// Two active projects never share a name, compared without letter case.
+// An archived project does not hold its name. `exceptId` is the project that
+// the caller renames or restores, so a project never collides with its own
+// name.
+export const assertNameFree = async (tx: Tx, name: string, exceptId: string | null) => {
 	const found = await rows<{ id: string }>(
 		tx,
-		sql`SELECT id FROM projects WHERE parent_id IS NULL AND archived_at IS NULL
+		sql`SELECT id FROM projects WHERE archived_at IS NULL
 			AND lower(name) = lower(${name}) AND id IS DISTINCT FROM ${exceptId}`,
 	);
 	if (found.length > 0) throw fail("DUPLICATE", { field: "name" });
 };
 
-// One project-level activity batch: `ticket_id` null, the project and its root.
+// One project-level activity batch: `ticket_id` null and the project.
 export const projectActivity = (ctx: ServiceCtx, tx: Tx, projectId: string, action: string, changes: Change[]) =>
-	record(ctx, tx, { rootId: ctx.cache.get(projectId).rootId, projectId, ticketId: null, action, changes });
+	record(ctx, tx, { projectId, ticketId: null, action, changes });
 
-// The full project of the contract: the summary, its own fields, the
-// ancestors nearest last, the children, and the repos. `statuses` is the
-// effective set, and `statusesInheritedFrom` names the owner it comes from.
+// The full project of the contract: the summary, its own fields, its repos,
+// and its statuses.
 export const projectView = async (ctx: ServiceCtx, tx: Tx, projectId: string): Promise<Project> => {
 	const row = await projectRow(tx, projectId);
-	const children = await childSummaries(tx, projectId);
-	const repos = await repoRows(tx, [projectId]);
-	const ancestors = chainOf(ctx.cache, projectId)
-		.slice(1)
-		.reverse()
-		.map((ancestor) => ({
-			id: ancestor.id,
-			key: row.key,
-			path: pathOf(ctx.cache, ancestor.id),
-			slug: ancestor.slug,
-			name: ancestor.name,
-		}));
-	const effective = ctx.cache.effectiveStatuses(projectId);
+	const repos = await repoRows(tx, projectId);
 	return {
 		...toProjectSummary(row),
 		description: row.description,
@@ -118,11 +104,8 @@ export const projectView = async (ctx: ServiceCtx, tx: Tx, projectId: string): P
 		ticketCounter: row.ticket_counter,
 		createdAt: row.created_at,
 		updatedAt: row.updated_at,
-		ancestors,
-		children,
 		repos,
-		statuses: effective.statuses,
-		statusesInheritedFrom: effective.ownerId === projectId ? null : effective.ownerId,
+		statuses: ctx.cache.statusesOf(projectId),
 	};
 };
 

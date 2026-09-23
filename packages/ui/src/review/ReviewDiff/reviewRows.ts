@@ -1,3 +1,6 @@
+import type { ThreadPlacement } from "./carryThreads";
+import type { DiffGroupBand } from "./diffGroups";
+import type { DiffRowHeights } from "./diffRowHeights";
 import { lineAnnotations } from "./lineAnnotations";
 import type { ReviewFile, ReviewHunk } from "./parseReviewFiles";
 import type { DiffAnchor, DiffThread } from "./ReviewDiff";
@@ -47,6 +50,7 @@ export type GapControls = {
 };
 
 export type ReviewRow =
+	| { kind: "group"; key: string; band: DiffGroupBand }
 	| { kind: "file"; key: string; file: ReviewFile }
 	| { kind: "hunk"; key: string; file: ReviewFile; specs: string | null; gap: GapControls | null }
 	| { kind: "unified"; key: string; file: ReviewFile; line: ReviewDiffLine; annotations: string[] }
@@ -60,6 +64,7 @@ export type ReviewRow =
 			newAnnotations: string[];
 	  }
 	| { kind: "annotation"; key: string; file: ReviewFile; annotations: string[] }
+	| { kind: "notice"; key: string; file: ReviewFile; text: string }
 	| { kind: "end"; key: string; file: ReviewFile };
 
 const text = (value: string) => value.replace(/\r?\n$/, "");
@@ -205,22 +210,50 @@ const sections = (file: ReviewFile, contents: ExpandedFile | undefined, expandab
 
 const annotationKey = (side: "old" | "new", line: number) => `${side}:${line}`;
 
+// The text of every line the diff draws for one file, by side and line
+// number. A thread written against an earlier revision searches this text
+// for the lines it was written against.
+export const drawnLineText = (file: ReviewFile, contents: ExpandedFile | undefined) => {
+	const text = { old: new Map<number, string>(), new: new Map<number, string>() };
+	for (const section of sections(file, contents, true))
+		for (const line of section.lines) {
+			if (line.oldLine !== undefined) text.old.set(line.oldLine, line.text);
+			if (line.newLine !== undefined) text.new.set(line.newLine, line.text);
+		}
+	return text;
+};
+
 export function buildReviewRows(
 	files: ReviewFile[],
 	mode: "split" | "unified",
 	threads: DiffThread[],
-	revisionId: string,
+	places: ReadonlyMap<string, ThreadPlacement>,
 	composer: DiffAnchor | null,
 	expanded: ReadonlyMap<string, ExpandedFile>,
 	expandable: boolean,
 	viewed: ReadonlySet<string>,
+	bands: ReadonlyMap<string, DiffGroupBand>,
 ) {
 	const rows: ReviewRow[] = [];
 	for (const file of files) {
+		const band = bands.get(file.name);
+		if (band !== undefined) rows.push({ kind: "group", key: `${band.key}:group`, band });
 		rows.push({ kind: "file", key: `${file.name}:file`, file });
 		// A file the person marked read keeps its header and loses every other
 		// row, so the files that are left sit close together.
 		if (viewed.has(file.name)) {
+			rows.push({ kind: "end", key: `${file.name}:end`, file });
+			continue;
+		}
+		// Git writes no line for a binary file. Without this row the file draws
+		// as a header over nothing, which reads as a file that changed nothing.
+		if (file.binary) {
+			rows.push({
+				kind: "notice",
+				key: `${file.name}:notice`,
+				file,
+				text: "Git stores this file as bytes, so the diff has no lines to show.",
+			});
 			rows.push({ kind: "end", key: `${file.name}:end`, file });
 			continue;
 		}
@@ -232,7 +265,7 @@ export function buildReviewRows(
 				if (line.newLine !== undefined) drawn.add(annotationKey("new", line.newLine));
 			}
 		const annotations = new Map<string, string[]>();
-		for (const annotation of lineAnnotations(file, threads, revisionId, composer, (side, line) =>
+		for (const annotation of lineAnnotations(file, threads, places, composer, (side, line) =>
 			drawn.has(annotationKey(side, line)),
 		)) {
 			const side = annotation.side === "deletions" ? "old" : "new";
@@ -300,10 +333,24 @@ export const rowAnnotations = (row: ReviewRow) =>
 			? Math.max(row.oldAnnotations.length, row.newAnnotations.length)
 			: 0;
 
-// The height estimate the virtual list starts from. A row with an
-// annotation reports its real height once it mounts.
-export const reviewRowSize = (row: ReviewRow) =>
-	row.kind === "file" ? 48 : row.kind === "annotation" ? 120 : row.kind === "end" ? 16 : 24 + 120 * rowAnnotations(row);
+// The height a row of a comment thread, of the composer, or of the notice of a
+// binary file starts from. Each of those wraps its own text, so each reports
+// its real height once it draws.
+const MEASURED_ROW_GUESS = 120;
+
+// The height in pixels a row takes. `heights` comes from `diffRowHeights`, and
+// the stylesheet draws each of these rows at the same number, so the height
+// this returns is the height the row draws. A row that holds a comment thread
+// or the composer is the one exception: it starts from a guess and reports its
+// real height once it draws.
+export const reviewRowSize = (row: ReviewRow, heights: DiffRowHeights) => {
+	if (row.kind === "group") return heights.group;
+	if (row.kind === "file") return heights.file;
+	if (row.kind === "hunk") return heights.hunk;
+	if (row.kind === "end") return heights.end;
+	if (row.kind === "annotation" || row.kind === "notice") return MEASURED_ROW_GUESS;
+	return heights.line + MEASURED_ROW_GUESS * rowAnnotations(row);
+};
 
 // The text of the lines from `startLine` to `line` on the side of the
 // anchor, or null when the view does not show one of them. A deletion has

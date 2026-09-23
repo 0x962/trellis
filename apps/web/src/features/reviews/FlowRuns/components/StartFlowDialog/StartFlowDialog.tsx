@@ -16,7 +16,9 @@ export function StartFlowDialog({
 	const { client, orpc, queryClient } = useApp();
 	const [flowId, setFlowId] = useState("");
 	const [requestId, setRequestId] = useState(() => crypto.randomUUID());
-	const flows = useQuery(orpc.flows.list.queryOptions({ input: {} }));
+	// The ticket keeps the flows of its project, so the dialog offers no flow
+	// that `flowExecutions.start` would refuse.
+	const flows = useQuery(orpc.flows.list.queryOptions({ input: { ticket } }));
 	const selectedFlowId = startFlowId(flows.data ?? [], flowId);
 	const flow = flows.data?.find((flow) => flow.id === selectedFlowId);
 	const start = useMutation({

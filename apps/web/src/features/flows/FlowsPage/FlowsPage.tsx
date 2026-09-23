@@ -1,7 +1,8 @@
 import { Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Button, EmptyState, EntityCard, Skeleton, Tooltip } from "@trellis/ui";
+import { flowProjectLabel } from "@trellis/api";
+import { Badge, Button, EmptyState, EntityCard, Skeleton, Tooltip } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { PageTitle } from "../../shell/PageTitle";
@@ -59,6 +60,7 @@ export function FlowsPage() {
 										key={flow.id}
 										title={flow.name}
 										description={flow.description === "" ? "No description." : flow.description}
+										badges={<Badge tone="neutral">{flowProjectLabel(flow)}</Badge>}
 										link={<Link to="/ai/flows/$slug" params={{ slug: flow.slug }} />}
 									/>
 								))}

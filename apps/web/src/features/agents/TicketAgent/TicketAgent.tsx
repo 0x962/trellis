@@ -4,8 +4,8 @@ import { Avatar, Button, ConfirmDialog, IconButton, Tooltip, toast } from "@trel
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { agentKindOf } from "../agentKindOf";
+import { agentMarkState } from "../agentMarkState";
 import { agentProfileOf } from "../agentProfileOf";
-import { isAgentWorking } from "../isAgentWorking";
 import { modelFamily } from "../ModelPicker";
 import { AgentAssignmentDialog } from "./components/AgentAssignmentDialog";
 
@@ -50,7 +50,7 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 							name={assigned.name}
 							agentKind={agentKindOf(assigned.kind)}
 							agentProfile={profile}
-							state={isAgentWorking(assigned) ? "working" : "static"}
+							state={agentMarkState(assigned)}
 						/>
 						<span className="truncate">{label}</span>
 						{assigned.state === "failed" && <span className="text-xs text-danger">failed</span>}

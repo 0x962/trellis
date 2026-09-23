@@ -8,7 +8,7 @@ import { pickerListClass } from "../pickerListClass";
 import { isCreateRow, labelRows } from "../utils/labelRows";
 
 export type LabelPickerProps = {
-	// A project path. The picker reads the labels of its root through useLabels.
+	// A project key. The picker reads the labels of that project through useLabels.
 	project: string;
 	// The ids of the labels drawn as checked. A bulk picker puts a label here
 	// when every ticket it writes to holds that label.

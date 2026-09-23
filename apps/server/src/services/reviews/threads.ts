@@ -5,6 +5,7 @@ import { rows } from "../../db/queries/support";
 import type { Tx } from "../../db/tx";
 import { invalidInput } from "../../errors";
 import type { ServiceCtx } from "../support";
+import { withAnchorLines } from "./anchorLines";
 import { enqueueCommentDeliveries } from "./enqueueCommentDeliveries";
 import { assertRevision, changed, ensurePr, findPr, readThread, writeThread } from "./queries";
 import { revision } from "./revision";
@@ -78,15 +79,20 @@ export async function list(
 		sql`SELECT document FROM review_threads WHERE pr_id = ${pr.id} AND (${input.all} OR document->>'status' = 'open') ORDER BY updated_at, id LIMIT ${input.limit} OFFSET ${input.offset}`,
 	);
 	return {
-		items: await withDeliveries(
+		items: await withAnchorLines(
 			tx,
-			found.map((r) => r.document),
+			pr.id,
+			await withDeliveries(
+				tx,
+				found.map((r) => r.document),
+			),
 		),
 		...counts!,
 	};
 }
 export async function thread(_ctx: ServiceCtx, tx: Tx, input: { id: string }) {
-	const [found] = await withDeliveries(tx, [await readThread(tx, input.id)]);
+	const doc = await readThread(tx, input.id);
+	const [found] = await withAnchorLines(tx, doc.prId, await withDeliveries(tx, [doc]));
 	return found!;
 }
 export async function reply(ctx: ServiceCtx, tx: Tx, input: { id: string; body: string }) {

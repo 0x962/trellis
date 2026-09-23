@@ -17,10 +17,14 @@ export const agentRuns = pgTable(
 		kind: text().notNull(),
 		instruction: text().notNull(),
 		projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
-		projectPath: text("project_path").notNull(),
+		projectKey: text("project_key").notNull(),
 		ticketId: text("ticket_id").references(() => tickets.id, { onDelete: "set null" }),
 		ticketIdentifier: text("ticket_identifier"),
 		closedAt: at("closed_at"),
+		// The moment the harness process of the current attempt started. The
+		// difference to `created_at` is the time a person waits from the start
+		// request to a running agent.
+		launchedAt: at("launched_at"),
 		workspaceId: text("workspace_id"),
 		terminalId: text("terminal_id"),
 		url: text(),

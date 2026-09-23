@@ -21,7 +21,7 @@ export const epics = {
 		.route({
 			method: "GET",
 			path: "/epics",
-			summary: "List the epics of a project and its sub-projects, open first",
+			summary: "List the epics of a project, open first",
 		})
 		.input(EpicListInputSchema)
 		.output(z.array(EpicSummarySchema)),

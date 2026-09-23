@@ -4,7 +4,10 @@ import { Checkbox } from "../../primitives/Checkbox";
 import { EmptyState } from "../../primitives/EmptyState";
 import { IconButton } from "../../primitives/IconButton";
 import { Tooltip } from "../../primitives/Tooltip";
+import { fileCountLabel } from "../FileRiskGroups";
+import { placeThreads, type ThreadPlacement } from "./carryThreads";
 import { DiffLine } from "./DiffLine";
+import { type DiffFileGroup, groupBands, groupRank, groupReasons } from "./diffGroups";
 import { loadReviewFileContents } from "./loadReviewFileContents";
 import { parseReviewFiles, type ReviewFile } from "./parseReviewFiles";
 import {
@@ -19,7 +22,16 @@ import { VirtualDiffRows } from "./VirtualDiffRows";
 import "./ReviewDiff.css";
 
 export type DiffAnchor = { path: string; side: "old" | "new"; line: number; startLine: number };
-export type DiffThread = DiffAnchor & { id: string; version: number; updatedAt: string; revisionId: string | null };
+export type DiffThread = DiffAnchor & {
+	id: string;
+	version: number;
+	updatedAt: string;
+	revisionId: string | null;
+	// The text of the lines the thread was written against, for a thread on
+	// an earlier revision. The diff searches the file on screen for this text
+	// to find the lines again.
+	anchorLines?: string[] | null;
+};
 
 type Props = {
 	patch: string;
@@ -30,14 +42,22 @@ type Props = {
 	selectedFile?: string;
 	selectedAnchor?: DiffAnchor | null;
 	filter?: string;
-	renderThread: (id: string) => ReactNode;
+	// `place` says where the diff draws the thread: on the line it names, on
+	// the line its text moved to, or at the top of its file as outdated.
+	renderThread: (id: string, place: ThreadPlacement) => ReactNode;
 	composer?: DiffAnchor | null;
 	renderComposer?: () => ReactNode;
 	// `lines` is the text of the selected lines, for a suggestion, or null
 	// when the view does not show every line of the range.
 	onSelect: (anchor: DiffAnchor, lines: string[] | null) => void;
 	loadFile?: (path: string, side: "old" | "new") => Promise<string>;
-	onFiles: (files: { path: string; type: string; additions: number; deletions: number }[]) => void;
+	onFiles: (files: ReviewDiffFile[]) => void;
+	// The risk groups of the file tree. They set the order the diff draws its
+	// files in, they give the band that stands above the first file of each
+	// group, and they give the words that say why a file sits in its group. A
+	// path no group names keeps its place in the patch, after every path a
+	// group names. An empty list keeps the patch order and draws no band.
+	groups?: readonly DiffFileGroup[];
 	// The paths the person marked read. A read file shows its header alone.
 	viewed?: ReadonlySet<string>;
 	// Marks a file read or unread. The header draws the Viewed box only when
@@ -45,7 +65,21 @@ type Props = {
 	onViewed?: (path: string, viewed: boolean) => void;
 };
 
+// What `onFiles` reports about one changed file of the revision.
+export type ReviewDiffFile = {
+	path: string;
+	type: string;
+	additions: number;
+	deletions: number;
+	binary: boolean;
+	// The hash of the patch text of the file. The review page keys the read
+	// mark on it.
+	digest: string;
+};
+
 type SelectLine = (anchor: DiffAnchor, extend?: boolean) => void;
+
+const noGroups: readonly DiffFileGroup[] = [];
 
 const orderedAnchor = (start: DiffAnchor, end: DiffAnchor): DiffAnchor => ({
 	path: start.path,
@@ -54,7 +88,10 @@ const orderedAnchor = (start: DiffAnchor, end: DiffAnchor): DiffAnchor => ({
 	line: Math.max(start.line, end.line),
 });
 
-const fileLabel = (file: ReviewFile) => (file.prevName ? `${file.prevName} → ${file.name}` : file.name);
+// A file that Git did not rename carries the same path on both sides, and the
+// arrow would then print that one path twice.
+const fileLabel = (file: ReviewFile) =>
+	file.prevName !== undefined && file.prevName !== file.name ? `${file.prevName} → ${file.name}` : file.name;
 
 // The words of a row that sits between two hunks: the hunk specs of the
 // patch, and how many lines the gap above the hunk still hides. The row
@@ -83,6 +120,7 @@ export function ReviewDiff({
 	onSelect,
 	onFiles,
 	loadFile,
+	groups = noGroups,
 	viewed = nothingViewed,
 	onViewed,
 }: Props) {
@@ -94,18 +132,38 @@ export function ReviewDiff({
 				type: file.type,
 				additions: file.hunks.reduce((total, hunk) => total + hunk.additionLines, 0),
 				deletions: file.hunks.reduce((total, hunk) => total + hunk.deletionLines, 0),
+				binary: file.binary,
+				digest: file.digest,
 			})),
 		[files],
 	);
 	useEffect(() => onFiles(metadata), [metadata, onFiles]);
 	const shown = useMemo(() => {
 		const query = filter.toLowerCase();
-		return files.filter((file) => file.name.toLowerCase().includes(query));
-	}, [files, filter]);
+		const rank = groupRank(groups);
+		return files
+			.filter((file) => file.name.toLowerCase().includes(query))
+			.map((file, index) => ({ file, rank: rank.get(file.name) ?? rank.size + index }))
+			.sort((left, right) => left.rank - right.rank)
+			.map((entry) => entry.file);
+	}, [files, filter, groups]);
+	const bands = useMemo(
+		() =>
+			groupBands(
+				groups,
+				shown.map((file) => file.name),
+			),
+		[groups, shown],
+	);
+	const reasons = useMemo(() => groupReasons(groups), [groups]);
 	const [expanded, setExpanded] = useState<ReadonlyMap<string, ExpandedFile>>(() => new Map());
+	const places = useMemo(
+		() => placeThreads(shown, expanded, threads, revisionId),
+		[shown, expanded, threads, revisionId],
+	);
 	const rows = useMemo(
-		() => buildReviewRows(shown, mode, threads, revisionId, composer, expanded, loadFile !== undefined, viewed),
-		[shown, mode, threads, revisionId, composer, expanded, loadFile, viewed],
+		() => buildReviewRows(shown, mode, threads, places, composer, expanded, loadFile !== undefined, viewed, bands),
+		[shown, mode, threads, places, composer, expanded, loadFile, viewed, bands],
 	);
 	const selection = useRef<DiffAnchor | undefined>(undefined);
 	const pointer = useRef<DiffAnchor | undefined>(undefined);
@@ -179,16 +237,33 @@ export function ReviewDiff({
 	};
 	const annotation = (metadata: string) => (
 		<div className="review-diff-annotation" key={metadata}>
-			{metadata === "composer" ? renderComposer?.() : renderThread(metadata)}
+			{metadata === "composer"
+				? renderComposer?.()
+				: renderThread(metadata, places.get(metadata) ?? { kind: "outdated" })}
 		</div>
 	);
 	const renderRow = (row: ReviewRow) => {
+		// The diff draws its files in the risk order of the file tree. The band
+		// names the group the files under it belong to, so the reader of the diff
+		// reads the order instead of guessing it from a gap.
+		if (row.kind === "group")
+			return (
+				<div className="review-diff-group" data-group={row.band.key}>
+					<span className="review-diff-group-label">{row.band.label}</span>
+					<span className="review-diff-group-count">{fileCountLabel(row.band.count)}</span>
+				</div>
+			);
 		if (row.kind === "file") {
 			const isExpanded = expanded.get(row.file.name)?.full === true;
 			const isViewed = viewed.has(row.file.name);
+			const why = reasons.get(row.file.name);
 			return (
 				<header className="review-diff-file-header" data-file-path={row.file.name} data-viewed={isViewed}>
 					<span className="review-diff-file-name">{fileLabel(row.file)}</span>
+					{/* Why the file sits in its group, such as "migration". The file
+					    tree puts the same words in the hover text of its row, which a
+					    touch screen never opens. */}
+					{why && <span className="review-diff-file-reasons">{why.join(" · ")}</span>}
 					<div className="review-diff-file-controls">
 						{onViewed && (
 							<Checkbox
@@ -230,6 +305,7 @@ export function ReviewDiff({
 			);
 		}
 		if (row.kind === "annotation") return <>{row.annotations.map(annotation)}</>;
+		if (row.kind === "notice") return <p className="review-diff-notice">{row.text}</p>;
 		if (row.kind === "end") return <div className="review-diff-file-end" />;
 		if (row.kind === "split")
 			return (

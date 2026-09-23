@@ -1,11 +1,10 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { EmptyState, PriorityIcon, StatusIcon, useMediaQuery } from "@trellis/ui";
+import { EmptyState, PriorityIcon, ProjectKey, StatusIcon, useMediaQuery } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 import { compactRelativeTime, formatCount } from "../../../lib/format";
-import { projectSlashPath } from "../../../lib/projectPath";
+
 import type { View } from "../../filters/grammar";
-import { ProjectKey } from "../../shell/ProjectKey";
 import { TicketLink } from "../../shell/TicketLink";
 import { highlight } from "../utils/highlight";
 
@@ -67,7 +66,7 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 			>
 				<tbody>
 					{visibleTickets.map((ticket) => {
-						const segments = ticket.project.path.split(".");
+						const segments = ticket.project.key.split(".");
 						if (phone) {
 							return (
 								<tr key={ticket.id} className={phoneRowClass}>
@@ -107,7 +106,7 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 									</TicketLink>
 								</td>
 								<td className="truncate pr-3 text-base">{highlight(ticket.title, q)}</td>
-								<td className="w-40 pr-3" title={projectSlashPath(ticket.project.path)}>
+								<td className="w-40 pr-3" title={ticket.project.key}>
 									<span className="flex min-w-0 items-center gap-1.5">
 										<ProjectKey projectKey={segments[0]!} />
 										{segments.length > 1 && <span className="truncate text-sm text-fg-muted">{segments.at(-1)}</span>}
@@ -126,11 +125,11 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 						phone ? (
 							<tr key={project.id} className={phoneRowClass}>
 								<td data-line="phone" colSpan={6}>
-									<Link to="/p/$" params={{ _splat: projectSlashPath(project.path) }} className={phoneLinkClass}>
+									<Link to="/p/$" params={{ _splat: project.key }} className={phoneLinkClass}>
 										<span className="flex items-center gap-3">
-											<ProjectKey projectKey={project.key} />
+											<ProjectKey projectKey={project.key} color={project.color} />
 											<span className="flex-1" />
-											<span className="truncate text-xs text-fg-faint">{projectSlashPath(project.path)}</span>
+											<span className="truncate text-xs text-fg-faint">{project.key}</span>
 										</span>
 										<span data-line="title" className="truncate text-sm">
 											{highlight(project.name, q)}
@@ -141,13 +140,13 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 						) : (
 							<tr key={project.id} className={rowClass}>
 								<td colSpan={2} className="pl-5">
-									<Link to="/p/$" params={{ _splat: projectSlashPath(project.path) }} className={linkClass}>
-										<ProjectKey projectKey={project.key} />
+									<Link to="/p/$" params={{ _splat: project.key }} className={linkClass}>
+										<ProjectKey projectKey={project.key} color={project.color} />
 									</Link>
 								</td>
 								<td className="truncate pr-3 text-base">{highlight(project.name, q)}</td>
 								<td colSpan={3} className="pr-5 text-xs text-fg-faint">
-									{projectSlashPath(project.path)}
+									{project.key}
 								</td>
 							</tr>
 						),

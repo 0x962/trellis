@@ -2,6 +2,7 @@ import { ArrowClockwise, Copy, PencilSimple, SignIn, Star, Trash } from "@phosph
 import type { HarnessAccount, UsageAccount, UsageGroupRow, UsageMetric } from "@trellis/api";
 import {
 	Button,
+	CodeText,
 	Dialog,
 	IconButton,
 	ProviderIcon,
@@ -178,9 +179,9 @@ export function UsageAccountCard({
 						{statusLabel[account.quota.status]}. Run this command on this machine, then refresh.
 					</p>
 					<div className="flex min-w-0 items-start gap-2">
-						<code className="min-w-0 flex-1 whitespace-pre-wrap break-all rounded-sm bg-elevated px-2 py-1 font-mono text-xs text-fg">
+						<CodeText className="min-w-0 flex-1 whitespace-pre-wrap break-all rounded-sm bg-elevated px-2 py-1 text-xs text-fg">
 							{account.loginCommand}
-						</code>
+						</CodeText>
 						<Tooltip content="Copy login command">
 							<IconButton
 								label={`Copy the login command of ${account.name}`}
@@ -196,7 +197,7 @@ export function UsageAccountCard({
 					{account.quota.detail ? ` · ${account.quota.detail}` : ""}
 				</p>
 			)}
-			<p className="break-all font-mono text-xs text-fg-faint">{account.profilePath}</p>
+			<CodeText className="break-all text-xs text-fg-faint">{account.profilePath}</CodeText>
 			<Dialog
 				open={login}
 				onOpenChange={setLogin}

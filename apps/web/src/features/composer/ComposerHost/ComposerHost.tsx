@@ -2,7 +2,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { toast } from "@trellis/ui";
 import { lazy, Suspense, useEffect } from "react";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
-import { projectRefOfPathname } from "../../../lib/projectPath";
+import { projectRefOfPathname } from "../../../lib/projectUrl";
 import { composerActions, useComposerStore } from "../composerStore";
 
 // The dialog is a lazy chunk: the shell pays for it on the first open.

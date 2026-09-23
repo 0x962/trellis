@@ -11,7 +11,6 @@ import { ActorRefSchema } from "./actor.ts";
 import { AttachmentSchema } from "./attachment.ts";
 import {
 	CiStateSchema,
-	LocalPrStateSchema,
 	PrioritySchema,
 	PrStateSchema,
 	ReviewerSchema,
@@ -23,6 +22,7 @@ import { TicketLabelSchema } from "./label.ts";
 import { booleanString, CountSchema, commaList, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 import { ProjectLinkSchema } from "./project.ts";
 import { LinkedPullRequestSchema } from "./pullRequest.ts";
+import { ReviewGapSchema } from "./reviewReady.ts";
 import { StatusSummarySchema } from "./status.ts";
 import { TicketPrSchema } from "./ticketPr.ts";
 import { WaveLinkSchema } from "./wave.ts";
@@ -41,19 +41,20 @@ const PrReviewSchema = z.object({
 	repo: z.string().min(1),
 	number: z.number().int().positive(),
 	reviewState: ReviewStateSchema,
-	isDraft: z.boolean(),
-	localState: LocalPrStateSchema,
+	// True while the agent has not asked for review. GitHub accepts no
+	// review then, so the mark draws the idle look.
+	notReady: z.boolean(),
 });
 
 // The PR badge on a row: the pull request and review states that need the
 // most work, the check counts behind the ribbon, and the approval state of
-// each linked pull request. `localState` is `draft` when any linked pull
-// request is a local draft.
+// each linked pull request. `reviewGaps` holds what the first linked pull
+// request that is not ready for review still needs.
 const PrBadgeSchema = z.object({
 	state: PrStateSchema,
 	isDraft: z.boolean().default(false),
 	isQueued: z.boolean(),
-	localState: LocalPrStateSchema,
+	reviewGaps: z.array(ReviewGapSchema),
 	ciState: CiStateSchema,
 	reviewState: ReviewStateSchema,
 	pass: CountSchema,
@@ -162,8 +163,14 @@ export const SortSchema = z.enum([
 ]);
 export type Sort = z.infer<typeof SortSchema>;
 
-export const PrFilterSchema = z.enum(["any", "none", "open", "draft", "queued", "merged", "closed"]);
+export const PrFilterSchema = z.enum(["any", "none", "open", "not-ready", "queued", "merged", "closed"]);
 export type PrFilter = z.infer<typeof PrFilterSchema>;
+
+// `not-ready` was called `draft` until the review readiness rule landed. A
+// saved link, a bookmark and an older CLI still send the old word, so the
+// query accepts it and reads it as the new one. Every answer carries
+// `not-ready`.
+export const PrFilterInputSchema = z.preprocess((value) => (value === "draft" ? "not-ready" : value), PrFilterSchema);
 
 // The last actor filter: `kind:name` or a bare `name`.
 const ActorFilterSchema = z.string().regex(/^(?:(?:human|agent):)?[\x20-\x39\x3B-\x7E]{1,64}$/);
@@ -173,7 +180,6 @@ const ActorFilterSchema = z.string().regex(/^(?:(?:human|agent):)?[\x20-\x39\x3B
 // Timestamps are "after" bounds.
 export const ListQuerySchema = z.strictObject({
 	project: ProjectRefStringSchema.optional(),
-	subprojects: booleanString.default(true),
 	status: commaList(StatusRefStringSchema).optional(),
 	category: commaList(StatusCategorySchema).optional(),
 	reviewer: ReviewerSchema.optional(),
@@ -181,8 +187,8 @@ export const ListQuerySchema = z.strictObject({
 	// `label` keeps a ticket that holds one or more of these labels. The value
 	// `none` in it keeps a ticket that holds no label. `labelNot` keeps a
 	// ticket that holds none of these labels. With `project` set, a ref names a
-	// label of that project tree. With no project, a name matches the label of
-	// that name in every tree.
+	// label of that project. With no project, a name matches the label of that
+	// name in every project.
 	label: commaList(LabelRefStringSchema).optional(),
 	labelNot: commaList(LabelRefStringSchema).optional(),
 	parent: z.union([z.literal("none"), TicketRefStringSchema]).optional(),
@@ -194,7 +200,7 @@ export const ListQuerySchema = z.strictObject({
 	epic: z.union([z.literal("none"), EpicRefStringSchema]).optional(),
 	// `none` keeps the tickets outside every wave.
 	wave: z.union([z.literal("none"), WaveRefStringSchema]).optional(),
-	pr: PrFilterSchema.optional(),
+	pr: PrFilterInputSchema.optional(),
 	ci: commaList(CiStateSchema).optional(),
 	actor: ActorFilterSchema.optional(),
 	q: z.string().optional(),

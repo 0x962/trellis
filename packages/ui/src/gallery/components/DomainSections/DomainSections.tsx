@@ -6,12 +6,16 @@ import {
 	CheckConfettiSection,
 	CheckRibbonSection,
 	ChecksLineSection,
+	DoneWashSection,
 	FileRiskGroupsSection,
 	FlowRunSection,
 	LineChangesSection,
+	MergeConflictMarkSection,
 	PrGlyphSection,
 	PriorityIconSection,
+	ProjectRoomSection,
 	ResourceListSection,
+	ReviewDiffSection,
 	ReviewStatusSummarySection,
 	RunLineSection,
 	StartControlsSection,
@@ -31,16 +35,20 @@ export function DomainSections() {
 			<ReviewStatusSummarySection />
 			<CheckRibbonSection />
 			<CheckConfettiSection />
+			<DoneWashSection />
 			<ChecksLineSection />
 			<PrGlyphSection />
+			<MergeConflictMarkSection />
 			<ActorChipSection />
 			<AgentProfileMarkSection />
 			<LineChangesSection />
 			<TicketIdSection />
 			<TicketGlimmerSection />
 			<TrellisMarkSection />
+			<ProjectRoomSection />
 			<FlowRunSection />
 			<FileRiskGroupsSection />
+			<ReviewDiffSection />
 			<RunLineSection />
 			<ChangeSummarySection />
 			<StartControlsSection />
