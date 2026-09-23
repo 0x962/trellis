@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
+import { groupRank } from "@trellis/ui/review";
 import type { ReadMarkFile } from "../../readMarks/readMarks";
-import { collapsedDefaults, fileGroups, groupedPaths } from "./fileGroups";
+import { collapsedDefaults, fileGroups } from "./fileGroups";
 
 const file = (path: string, over: Partial<ReadMarkFile> = {}): ReadMarkFile => ({
 	path,
@@ -72,8 +73,8 @@ test("the risk group puts the file with the strongest reason first", () => {
 	]);
 });
 
-test("the flattened paths run group by group, so the diff draws the same order", () => {
-	expect(groupedPaths(fileGroups("trellis", files))).toEqual([
+test("the diff ranks the paths group by group, so both panes draw one order", () => {
+	expect([...groupRank(fileGroups("trellis", files)).keys()]).toEqual([
 		"apps/server/drizzle/0083_waits.sql",
 		"apps/web/src/features/reviews/ReviewPage/ReviewPage.tsx",
 		"apps/web/src/features/reviews/ReviewPage/ReviewPage.test.tsx",

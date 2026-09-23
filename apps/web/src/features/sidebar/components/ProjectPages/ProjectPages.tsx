@@ -72,7 +72,7 @@ export const ProjectPages = memo(function ProjectPages({
 							<span className="sidebar-label">More</span>
 							<span
 								className="sidebar-trailing text-fg-faint"
-								data-marks={agentCountUnderMore > 0 ? "pair" : undefined}
+								data-dot-and-caret={agentCountUnderMore > 0 ? "" : undefined}
 							>
 								{agentCountUnderMore > 0 && (
 									<ActivityDot

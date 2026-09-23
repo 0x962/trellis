@@ -1,6 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
 import type { PrChangeType, ReviewRevision, ReviewThread } from "@trellis/api";
-import { type DiffAnchor, ReviewDiff, type ReviewDiffFile, type ThreadPlacement } from "@trellis/ui/review";
+import {
+	type DiffAnchor,
+	type FileRiskGroup,
+	ReviewDiff,
+	type ReviewDiffFile,
+	type ThreadPlacement,
+} from "@trellis/ui/review";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useTheme } from "../../../../../lib/theme";
@@ -21,8 +27,9 @@ export type DiffPaneProps = {
 	// The changed files of the revision, as the patch reports them. The page
 	// gives them to `FileRiskGroups`.
 	onFiles: (files: ReadMarkFile[]) => void;
-	// The paths in the order the diff draws them, from the risk groups.
-	order: readonly string[];
+	// The risk groups of the file tree. They set the order the diff draws its
+	// files in, and the band it draws above each group.
+	groups: FileRiskGroup[];
 	// The paths the person marked read. A read file shows its header alone.
 	read: ReadonlySet<string>;
 	onRead: (path: string, read: boolean) => void;
@@ -42,7 +49,7 @@ export function DiffPane({
 	selectedAnchor,
 	renderThread,
 	onFiles,
-	order,
+	groups,
 	read,
 	onRead,
 }: DiffPaneProps) {
@@ -135,7 +142,7 @@ export function DiffPane({
 					setComposerState({ anchor, lines });
 				}}
 				onFiles={reportFiles}
-				order={order}
+				groups={groups}
 				viewed={read}
 				onViewed={onRead}
 			/>

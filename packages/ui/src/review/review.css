@@ -182,7 +182,7 @@
 	gap: 16px;
 	min-height: 52px;
 	padding: 10px 20px;
-	border-bottom: 0.5px solid var(--border);
+	border-bottom: var(--border-width-hairline) solid var(--border);
 }
 .review-diff-toolbar {
 	justify-content: flex-end;
@@ -222,7 +222,7 @@
 .review-notice {
 	margin: 8px 28px;
 	padding: 10px 12px;
-	border: 0.5px solid var(--border);
+	border: var(--border-width-hairline) solid var(--border);
 	border-radius: var(--radius-sm);
 	background: var(--surface);
 	color: var(--fg-muted);
@@ -270,7 +270,7 @@ button.review-notice:hover {
 .review-identity {
 	display: flex;
 	flex-direction: column;
-	border-bottom: 0.5px solid var(--border);
+	border-bottom: var(--border-width-hairline) solid var(--border);
 	background: var(--bg);
 }
 /* The band takes the width of the sheet, so the title, the ticket, the file
@@ -367,7 +367,7 @@ button.review-notice:hover {
 	width: var(--review-tree-width);
 	flex-shrink: 0;
 	overflow-y: auto;
-	border-right: 0.5px solid var(--border);
+	border-right: var(--border-width-hairline) solid var(--border);
 	background: var(--bg);
 }
 .review-diff-pane {
@@ -492,7 +492,7 @@ button.review-notice:hover {
 		width: 100%;
 		max-width: 100%;
 		height: min(80vh, 560px);
-		border-top: 0.5px solid var(--border);
+		border-top: var(--border-width-hairline) solid var(--border);
 	}
 	/* A phone scrolls the whole body, so the body carries the clearance that
 	   the facts box and the diff box carry at desktop width. */
@@ -501,16 +501,8 @@ button.review-notice:hover {
 	}
 }
 
-.review-page input,
-.review-page textarea {
-	border-width: 0.5px;
-}
 .review-comment-editor textarea:focus-visible {
 	box-shadow: none;
 	outline: 1px solid var(--accent);
 	outline-offset: 1px;
-}
-
-.review-page [role="tablist"] {
-	border-bottom-width: 0.5px;
 }
