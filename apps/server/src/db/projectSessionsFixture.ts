@@ -11,8 +11,8 @@ import { nativeWorkspace } from "../agents/native/workspace.ts";
 import type { startNative } from "../services/agentRuns/nativeStart.ts";
 import type { IoCtx } from "../services/support.ts";
 import { createCache } from "./cache.ts";
-import { type Db, openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
+import type { Db } from "./client.ts";
+import { openTestDb } from "./testDb.ts";
 
 const exec = promisify(execFile);
 let db: Db;
@@ -48,8 +48,7 @@ beforeAll(async () => {
 	await writeFile(join(repo, "source.txt"), "original\n");
 	await git(repo, "add", ".");
 	await git(repo, "-c", "user.name=Test", "-c", "user.email=test@localhost", "commit", "-qm", "Base");
-	db = await openDb(":memory:");
-	await migrate(db);
+	db = await openTestDb();
 	const at = new Date();
 	const statusId = ulid();
 	await db.execute(sql`INSERT INTO projects (id,root_id,key,slug,name,directory,created_at,updated_at)

@@ -7,8 +7,8 @@ import { create, get, list, remove, update } from "../services/epics/epics.ts";
 import { create as createTicket } from "../services/tickets/create.ts";
 import { update as updateTicket } from "../services/tickets/update.ts";
 import { createCache, type ProjectCache } from "./cache.ts";
-import { type Db, openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
+import type { Db } from "./client.ts";
+import { openTestDb } from "./testDb.ts";
 import type { Tx } from "./tx.ts";
 
 // One root TST with the five seeded categories, and a second root OTH. The
@@ -54,8 +54,7 @@ const ctxAt = (now: string, actor: ActorRef = human): ServiceCtx => ({
 const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
 beforeAll(async () => {
-	db = await openDb(":memory:");
-	await migrate(db);
+	db = await openTestDb();
 	await insertProject(tst, "TST");
 	await insertProject(oth, "OTH");
 	statuses.todo = await insertStatus(tst, "Todo", "todo", "todo", 0);

@@ -2,9 +2,9 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { type ChangedFile, TicketSummarySchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
-import { type Db, openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
+import type { Db } from "./client.ts";
 import { ticketSummary } from "./queries/ticketGet.ts";
+import { openTestDb } from "./testDb.ts";
 
 let db: Db;
 const root = ulid();
@@ -56,8 +56,7 @@ const insertPull = async ({
 };
 
 beforeAll(async () => {
-	db = await openDb(":memory:");
-	await migrate(db);
+	db = await openTestDb();
 	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
 		VALUES ('Test', 'human', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)

@@ -10,8 +10,8 @@ import { create as createTicket } from "../services/tickets/create.ts";
 import { updateMany, update as updateTicket } from "../services/tickets/update.ts";
 import { create } from "../services/waves/waves.ts";
 import { createCache, type ProjectCache } from "./cache.ts";
-import { type Db, openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
+import type { Db } from "./client.ts";
+import { openTestDb } from "./testDb.ts";
 import type { Tx } from "./tx.ts";
 
 // One root TST with a todo and a done status, and a second root OTH. The
@@ -63,8 +63,7 @@ const placements = async () => {
 let planId: string;
 
 beforeAll(async () => {
-	db = await openDb(":memory:");
-	await migrate(db);
+	db = await openTestDb();
 	await insertProject(tst, "TST");
 	await insertProject(oth, "OTH");
 	await insertStatus(tst, "Todo", "todo", "todo", 0);

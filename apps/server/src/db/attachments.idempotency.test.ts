@@ -6,15 +6,14 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { upload } from "../services/attachments.ts";
 import type { ServiceCtx } from "../services/support.ts";
-import { migrate } from "./migrate.ts";
 import { withTx } from "./tx.ts";
 
 const at = new Date("2026-09-17T06:00:00.000Z");
 
 describe("attachments.upload idempotency", () => {
 	test("one client attachment id creates one row across a repeated request", async () => {
-		const { openDb } = await import("./client.ts");
-		const db = await openDb(":memory:");
+		const { openTestDb } = await import("./testDb.ts");
+		const db = await openTestDb();
 		const home = mkdtempSync(join(tmpdir(), "trellis-attachment-idempotency-"));
 		const projectId = ulid();
 		const statusId = ulid();
@@ -42,7 +41,6 @@ describe("attachments.upload idempotency", () => {
 		mkdirSync(join(home, "attachments", "tmp"), { recursive: true });
 
 		try {
-			await migrate(db);
 			await db.execute(sql`
 				INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
 				VALUES (${projectId}, ${projectId}, 'TST', 'test', 'Test', ${at}, ${at})
@@ -77,8 +75,8 @@ describe("attachments.upload idempotency", () => {
 	});
 
 	test("one client attachment id rejects different bytes", async () => {
-		const { openDb } = await import("./client.ts");
-		const db = await openDb(":memory:");
+		const { openTestDb } = await import("./testDb.ts");
+		const db = await openTestDb();
 		const home = mkdtempSync(join(tmpdir(), "trellis-attachment-idempotency-"));
 		const projectId = ulid();
 		const statusId = ulid();
@@ -106,7 +104,6 @@ describe("attachments.upload idempotency", () => {
 		mkdirSync(join(home, "attachments", "tmp"), { recursive: true });
 
 		try {
-			await migrate(db);
 			await db.execute(sql`
 				INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
 				VALUES (${projectId}, ${projectId}, 'TST', 'test', 'Test', ${at}, ${at})

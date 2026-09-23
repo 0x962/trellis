@@ -5,8 +5,8 @@ import { ulid } from "ulid";
 import { prs } from "../services/reviews/prs.ts";
 import type { IoCtx } from "../services/support.ts";
 import { createCache } from "./cache.ts";
-import { type Db, openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
+import type { Db } from "./client.ts";
+import { openTestDb } from "./testDb.ts";
 
 // Two roots. TST has the repository acme/app and a sub-project web. The
 // ticket TST-1 sits in web and links the pull request `linked`. The pull
@@ -60,8 +60,7 @@ const link = (ticket: string, pull: string) =>
 		VALUES (${ticket}, ${pull}, 'manual', 'Test', 'human', ${at})`);
 
 beforeAll(async () => {
-	db = await openDb(":memory:");
-	await migrate(db);
+	db = await openTestDb();
 	await db.execute(
 		sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at) VALUES ('Test', 'human', ${at}, ${at})`,
 	);

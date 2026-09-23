@@ -10,8 +10,8 @@ import { move } from "../services/tickets/move.ts";
 import { setOutcome } from "../services/tickets/outcome.ts";
 import { create as createWave } from "../services/waves/waves.ts";
 import { createCache, type ProjectCache } from "./cache.ts";
-import { type Db, openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
+import type { Db } from "./client.ts";
+import { openTestDb } from "./testDb.ts";
 import type { Tx } from "./tx.ts";
 
 // One root TST with a todo status, a started status, a human review status,
@@ -88,8 +88,7 @@ const next = async (ctx: ServiceCtx) => {
 };
 
 beforeAll(async () => {
-	db = await openDb(":memory:");
-	await migrate(db);
+	db = await openTestDb();
 	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
 		VALUES (${tst}, ${tst}, 'TST', 'tst', 'TST', '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
 	await insertStatus("Todo", "todo", "todo", null, 0);
