@@ -1,4 +1,11 @@
-import type { AgentRun, AgentRunListInput, AgentRunStartInput, TicketGetInputSchema } from "@trellis/api";
+import {
+	AGENT_RUN_LIST_MAX_LIMIT,
+	AGENT_RUN_LIST_WINDOW_HOURS,
+	type AgentRun,
+	type AgentRunListInput,
+	type AgentRunStartInput,
+	type TicketGetInputSchema,
+} from "@trellis/api";
 import type { RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import { sql } from "drizzle-orm";
 import type { z } from "zod";
@@ -14,7 +21,7 @@ import { launchRun } from "./launchRun";
 import { launchState } from "./launchState";
 import { observeRuns, observeTicketMetrics, projectRun } from "./liveState.ts";
 import { startNative } from "./nativeStart.ts";
-import { columns, getRun, type StoredRun } from "./queries.ts";
+import { getRun, listColumns, type StoredRun } from "./queries.ts";
 import { reserve } from "./reserve.ts";
 import { aggregateTicketMetrics } from "./ticketMetrics.ts";
 
@@ -24,16 +31,25 @@ type Ctx = ServiceCtx & { core: CoreCtx; localUrl: string };
 const ticketRuns = (_ctx: CoreCtx, tx: Tx, ticketId: string, projectId: string | null) =>
 	rows<StoredRun>(
 		tx,
-		sql`SELECT ${columns} FROM agent_runs WHERE ticket_id = ${ticketId} AND
+		sql`SELECT ${listColumns} FROM agent_runs WHERE ticket_id = ${ticketId} AND
 		${projectId === null ? sql`true` : sql`project_id = ${projectId}`} ORDER BY created_at DESC, id DESC`,
 	);
+
+// The window keeps every open run and every run that started inside
+// `windowHours`. A caller that names `ids` or `ticket` already asks for a
+// bounded set, so the window would only hide a row that caller asked for.
+const withinWindow = (input: AgentRunListInput, ticketId: string | null, now: Date) => {
+	if (input.ids !== undefined || ticketId !== null) return sql`true`;
+	const start = new Date(now.getTime() - input.windowHours * 3_600_000);
+	return sql`(closed_at IS NULL OR created_at >= ${start})`;
+};
 
 export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 	const ticket = input.ticket === undefined ? null : await resolveTicket(ctx, tx, input.ticket);
 	const project = input.project === undefined ? null : await resolveProject(ctx, tx, input.project);
 	return rows<StoredRun>(
 		tx,
-		sql`SELECT ${columns} FROM agent_runs WHERE
+		sql`SELECT ${listColumns} FROM agent_runs WHERE
 		${
 			project === null
 				? sql`true`
@@ -51,8 +67,9 @@ export const list = async (ctx: CoreCtx, tx: Tx, input: AgentRunListInput) => {
 							sql`, `,
 						)})`
 		} AND
-		${input.assigned === undefined ? sql`true` : input.assigned ? sql`closed_at IS NULL` : sql`closed_at IS NOT NULL`}
-		ORDER BY created_at DESC, id DESC`,
+		${input.assigned === undefined ? sql`true` : input.assigned ? sql`closed_at IS NULL` : sql`closed_at IS NOT NULL`} AND
+		${withinWindow(input, ticket === null ? null : ticket.id, ctx.now)}
+		ORDER BY created_at DESC, id DESC LIMIT ${input.limit}`,
 	);
 };
 
@@ -64,6 +81,16 @@ export const projectUnresolvedAttempts = (runs: StoredRun[], sessions: RuntimePr
 
 export const prepareList = async (ctx: Ctx, input: AgentRunListInput) =>
 	observeRuns(ctx, await ctx.newTx((tx) => list(ctx.core, tx, input)));
+
+// Every run that a ticket or a session still holds. The list route caps how
+// many rows it answers with, and a reader of the open set must see all of
+// them, so this asks for the largest answer the list gives.
+export const prepareOpenRuns = (ctx: Ctx) =>
+	prepareList(ctx, {
+		assigned: true,
+		windowHours: AGENT_RUN_LIST_WINDOW_HOURS,
+		limit: AGENT_RUN_LIST_MAX_LIMIT,
+	});
 
 export const observeResult = async (ctx: Ctx, input: { id: string }) =>
 	(await observeRuns(ctx, [await ctx.newTx((tx) => getRun(tx, input.id))]))[0]!;

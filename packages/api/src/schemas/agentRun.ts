@@ -16,7 +16,6 @@ export const AgentRunSchema = z.object({
 	runtime: z.enum(["native", "superset", "tmux", "commands"]),
 	harness: HarnessSchema.nullable(),
 	kind: AgentRunKindSchema,
-	instruction: z.string(),
 	projectId: UlidSchema.nullable(),
 	projectKey: z.string(),
 	ticketId: UlidSchema.nullable(),
@@ -91,11 +90,33 @@ export const AgentRunRetryInputSchema = z.strictObject({
 	requestId: z.string().min(1).max(200),
 });
 export type AgentRunRetryInput = z.infer<typeof AgentRunRetryInputSchema>;
+// The list keeps an open run, which is a run that a ticket or a session
+// still holds, and a closed run that started inside the window. The
+// machine closes about 1000 runs a day and keeps every one of them, so a
+// list without a bound grows without end. One day of history answers the
+// question the session list and the agent table ask: what runs now, and
+// what ran today.
+export const AGENT_RUN_LIST_WINDOW_HOURS = 24;
+// The newest rows the list answers with. 200 rows fill the session list
+// and the CLI table many times over, and they cost about 250 kB.
+export const AGENT_RUN_LIST_LIMIT = 200;
+// The largest answer the list gives. A reader that must see every open run
+// asks for this many, because the host runs far fewer agents at once.
+export const AGENT_RUN_LIST_MAX_LIMIT = 1000;
+// `ids` and `ticket` are bounds of their own, so the window does not apply
+// to them. A caller that names a run by its ID reads that run at any age.
 export const AgentRunListInputSchema = z.strictObject({
 	ticket: z.string().optional(),
 	project: z.string().optional(),
 	ids: z.array(z.string().min(1)).max(200).optional(),
 	assigned: z.boolean().optional(),
+	windowHours: z
+		.number()
+		.int()
+		.min(1)
+		.max(24 * 365)
+		.default(AGENT_RUN_LIST_WINDOW_HOURS),
+	limit: z.number().int().min(1).max(AGENT_RUN_LIST_MAX_LIMIT).default(AGENT_RUN_LIST_LIMIT),
 });
 export type AgentRunListInput = z.infer<typeof AgentRunListInputSchema>;
 

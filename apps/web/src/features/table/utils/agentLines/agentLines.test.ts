@@ -15,7 +15,6 @@ const runOf = (fields: Partial<AgentRun> = {}) =>
 		kind: "agent",
 		runtime: "native",
 		harness: null,
-		instruction: "",
 		projectId: null,
 		projectKey: "",
 		ticketId: "ticket-a",

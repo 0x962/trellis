@@ -7,7 +7,7 @@ import { rows } from "../../db/queries/support.ts";
 import { invalidInput } from "../../errors.ts";
 import { upsert } from "../actors.ts";
 import { startNative } from "../agentRuns/nativeStart.ts";
-import { columns, type StoredRun } from "../agentRuns/queries.ts";
+import { columns, type LaunchRun } from "../agentRuns/queries.ts";
 import { reserveAttempt } from "../assignments/attempts.ts";
 import { recordRequest, replayRequest } from "../assignments/requests.ts";
 import { selectAccount } from "../harnessAccounts/selectAccount.ts";
@@ -61,7 +61,7 @@ export const prepareCreate = async (ctx: IoCtx, input: SessionCreateInput, start
 		});
 		const runId = ulid();
 		const instruction = await attachmentPrompt(ctx.home, runId, input.prompt, files);
-		const [run] = await rows<StoredRun>(
+		const [run] = await rows<LaunchRun>(
 			tx,
 			sql`INSERT INTO agent_runs (id, name, account_id, runtime, harness, kind, instruction, project_id, project_key, ticket_id, ticket_identifier, workspace_id, session_id, created_at, updated_at)
 			VALUES (${runId}, ${name}, ${selected.accountId}, 'native', ${JSON.stringify(selected.config.harness)}::jsonb, 'session', ${instruction}, NULL, '', NULL, NULL, ${directory}, ${selected.config.harness.preset === "custom" ? randomUUID() : null}, ${ctx.now()}, ${ctx.now()})

@@ -77,7 +77,9 @@ export function executionMetrics(attemptIds: string[], sessions: RuntimeSessionI
 
 export function projectRun(run: StoredRun, sessions: RuntimeProcessStatus[], home?: string): AgentRun {
 	const process = sessions.find((session) => session.id === run.terminalId);
-	const { closedAt: _closedAt, ...metadata } = run;
+	// `AgentRun` carries no prompt. A launch reads the row with its
+	// instruction, so this drops that text before the row leaves the server.
+	const { closedAt: _closedAt, instruction: _instruction, ...metadata } = run;
 	if (!process && home !== undefined && run.terminalId !== null && launchState.has(home, run.terminalId))
 		return {
 			...metadata,

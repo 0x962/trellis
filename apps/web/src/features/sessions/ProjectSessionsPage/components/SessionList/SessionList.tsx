@@ -17,6 +17,8 @@ export function SessionList({
 	onRetry,
 	onSelect,
 	onConversation,
+	history,
+	onHistoryChange,
 }: {
 	project: Project;
 	runs: AgentRun[];
@@ -28,9 +30,10 @@ export function SessionList({
 	onRetry: () => void;
 	onSelect: (id: string) => void;
 	onConversation: () => void;
+	history: boolean;
+	onHistoryChange: (history: boolean) => void;
 }) {
 	const [search, setSearch] = useState("");
-	const [history, setHistory] = useState(false);
 	const groups = sessionGroups(runs, { search, history, selectedId });
 	const sessionsByRunId = new Map(sessions.map((session) => [session.runId, session]));
 	return (
@@ -56,7 +59,7 @@ export function SessionList({
 						label={history ? "Hide history" : "Show history"}
 						icon={<ClockCounterClockwise />}
 						pressed={history}
-						onClick={() => setHistory(!history)}
+						onClick={() => onHistoryChange(!history)}
 					/>
 				</Tooltip>
 				<Tooltip content="New session">

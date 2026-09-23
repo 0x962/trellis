@@ -28,7 +28,6 @@ const crispFjord = {
 	runtime: "native",
 	harness: HarnessSchema.parse({ preset: "codex", model: "openai/gpt-6-astra", effort: "max" }),
 	kind: "agent",
-	instruction: "Work on TRL-281.",
 	projectId: "01M24SPHTX36AJ3VKTNZ263E7V",
 	projectKey: "TRL",
 	ticketId: "01M334MED9Z2GKBXMB6MVTED50",
