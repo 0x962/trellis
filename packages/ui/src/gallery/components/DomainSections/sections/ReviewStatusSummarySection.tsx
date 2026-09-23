@@ -3,16 +3,16 @@ import { Section } from "../../Section";
 
 const reviews: PullRequestReviewStatus[] = (
 	[
-		{ reviewState: "none", isDraft: false },
-		{ reviewState: "review_required", isDraft: false },
-		{ reviewState: "changes_requested", isDraft: false },
-		{ reviewState: "approved", isDraft: false },
-		{ reviewState: "approved", isDraft: false },
-		{ reviewState: "approved", isDraft: false },
-		{ reviewState: "review_required", isDraft: false },
-		{ reviewState: "changes_requested", isDraft: false },
-		{ reviewState: "none", isDraft: true },
-		{ reviewState: "approved", isDraft: false },
+		{ reviewState: "none", notReady: false },
+		{ reviewState: "review_required", notReady: false },
+		{ reviewState: "changes_requested", notReady: false },
+		{ reviewState: "approved", notReady: false },
+		{ reviewState: "approved", notReady: false },
+		{ reviewState: "approved", notReady: false },
+		{ reviewState: "review_required", notReady: false },
+		{ reviewState: "changes_requested", notReady: false },
+		{ reviewState: "none", notReady: true },
+		{ reviewState: "approved", notReady: false },
 	] as const
 ).map((review, index) => ({ ...review, owner: "0x962", repo: "trellis", number: 100 + index }));
 

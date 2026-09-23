@@ -11,6 +11,7 @@ import {
 	ReviewStateSchema,
 } from "./enums.ts";
 import { CountSchema, IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
+import { ReviewGapSchema } from "./reviewReady.ts";
 
 export const MAX_CHANGED_FILES = 100;
 
@@ -55,6 +56,12 @@ export const PullRequestSchema = z.object({
 	isDraft: z.boolean(),
 	isQueued: z.boolean(),
 	localState: LocalPrStateSchema,
+	// What this pull request still needs before the person reviews it, from
+	// `reviewGaps`. An empty list means ready for review.
+	reviewGaps: z.array(ReviewGapSchema),
+	// When the agent asked the person to review this pull request. A new head
+	// commit clears it, so it measures one wait and not the sum of several.
+	readyForReviewAt: IsoDateTimeSchema.nullable(),
 	headRef: z.string(),
 	baseRef: z.string(),
 	mergeable: MergeableSchema,

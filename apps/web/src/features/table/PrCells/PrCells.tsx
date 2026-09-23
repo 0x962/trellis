@@ -1,4 +1,4 @@
-import type { TicketPr } from "@trellis/api";
+import { readyForReview, reviewReadyLabel, type TicketPr } from "@trellis/api";
 import { cx, MergeConflictMark, PrGlyph, ReviewStateIcon } from "@trellis/ui";
 import { tabularClass } from "../../../lib/format";
 import type { PrRowCell } from "../PrRow/prRowText";
@@ -19,7 +19,13 @@ const verdictWords = { approved: "You approved this commit", changes_requested: 
 export function PrCells({ pr, cells }: { pr: TicketPr; cells: readonly PrRowCell[] }) {
 	return (
 		<>
-			<PrGlyph state={pr.state} isQueued={pr.isQueued} localState={pr.localState} size="sm" />
+			<PrGlyph
+				state={pr.state}
+				isQueued={pr.isQueued}
+				readyForReview={readyForReview(pr)}
+				reason={reviewReadyLabel(pr)}
+				size="sm"
+			/>
 			<span className={cx("w-14 shrink-0 text-fg", tabularClass)}>#{pr.number}</span>
 			{cells.map((cell) => (
 				<span key={cell.key} title={cell.text} className="min-w-0 flex-1 truncate text-fg">
@@ -27,7 +33,7 @@ export function PrCells({ pr, cells }: { pr: TicketPr; cells: readonly PrRowCell
 				</span>
 			))}
 			{pr.state === "open" && pr.mergeable === "conflicting" && <MergeConflictMark baseRef={pr.baseRef} />}
-			{pr.verdict && <ReviewStateIcon reviewState={pr.verdict} isDraft={false} label={verdictWords[pr.verdict]} />}
+			{pr.verdict && <ReviewStateIcon reviewState={pr.verdict} notReady={false} label={verdictWords[pr.verdict]} />}
 		</>
 	);
 }

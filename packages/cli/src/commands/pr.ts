@@ -5,7 +5,7 @@ import { contextOf, wantsJson } from "../context.ts";
 import { pullRequestNotReady } from "../errors.ts";
 import { cell, json, printList, printRecord, type RecordSpec, timeCell } from "../output.ts";
 import { deletedRecord } from "./delete.ts";
-import { pullRequestDraftText, pullRequestReadiness, pullRequestReadyText } from "./ready/pullRequestReady.ts";
+import { pullRequestReadiness, pullRequestReadyText, pullRequestWaitingText } from "./ready/pullRequestReady.ts";
 import { prList } from "./show.ts";
 
 const prRecord: RecordSpec<PullRequest> = {
@@ -33,8 +33,8 @@ const prRecord: RecordSpec<PullRequest> = {
 // evidence document when one is missing. An agent then gets exit 1; a person
 // keeps exit 0. The link stays in both cases, so the agent writes the missing
 // part and runs `trellis ready` on the same pull request. A link by an agent
-// stores the pull request as a draft, so the verb names `trellis ready` as
-// the step that asks the person for review.
+// stores the pull request as not ready for review, so the verb names
+// `trellis ready` as the step that asks the person for review.
 const add = defineCommand({
 	meta: { name: "add", description: "Link a pull request by URL" },
 	args: {
@@ -55,7 +55,7 @@ const add = defineCommand({
 		}
 		const result = await pullRequestReadiness(client, row, { checkFlows: false });
 		if (result.ready) {
-			if (row.localState === "draft" && !wantsJson(ctx)) ctx.out.write(`\n${pullRequestDraftText(row.number)}`);
+			if (row.localState !== "ready" && !wantsJson(ctx)) ctx.out.write(`\n${pullRequestWaitingText(row.number)}`);
 			return 0;
 		}
 		ctx.out.write(wantsJson(ctx) ? json(result) : `\n${pullRequestReadyText(result)}`);

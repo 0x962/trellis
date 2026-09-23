@@ -1,4 +1,4 @@
-import { type LinkedPullRequest, type ReviewRevision, reviewRef } from "@trellis/api";
+import { type LinkedPullRequest, type ReviewRevision, reviewGapText, reviewRef } from "@trellis/api";
 import { Badge, type BadgeTone, MergeConflictMark, PrGlyph, Tooltip } from "@trellis/ui";
 import { ReviewHeaderActions } from "../../../ReviewHeaderActions";
 import { LocalStateMenu } from "./components/LocalStateMenu";
@@ -53,8 +53,9 @@ export type ReviewIdentityProps = {
 	revision: ReviewRevision | null;
 	pullRequest: GithubPullRequest | undefined;
 	isQueued: boolean;
-	// The Trellis row of the pull request when a ticket links it. It holds the
-	// local review state. A pull request that no ticket links reads as ready.
+	// The Trellis row of the pull request when a ticket links it. It holds
+	// what the pull request still needs before the person reviews it. A pull
+	// request that no ticket links reads as ready for review.
 	linkedPr: LinkedPullRequest | null;
 	mergeQueuePosition?: number | null;
 	onAction: () => void;
@@ -72,6 +73,7 @@ export function ReviewIdentity({
 }: ReviewIdentityProps) {
 	const ref = reviewRef(pr);
 	const localState = linkedPr?.localState ?? "ready";
+	const gaps = linkedPr === null ? [] : linkedPr.reviewGaps;
 	const glyphState = pullRequest?.state === "MERGED" ? "merged" : pullRequest?.state === "CLOSED" ? "closed" : "open";
 	const stateBadge = <Badge tone={stateTone(pullRequest, isQueued)}>{stateWord(pullRequest, isQueued)}</Badge>;
 	return (
@@ -102,7 +104,13 @@ export function ReviewIdentity({
 				<span className="review-meta-marks">
 					<span data-bar-slot="glyph" className="review-meta-glyph">
 						{pullRequest !== undefined && (
-							<PrGlyph state={glyphState} isQueued={isQueued} localState={localState} size="sm" />
+							<PrGlyph
+								state={glyphState}
+								isQueued={isQueued}
+								readyForReview={gaps.length === 0}
+								reason={gaps[0] === undefined ? null : reviewGapText(gaps[0])}
+								size="sm"
+							/>
 						)}
 					</span>
 					<span data-bar-slot="conflict" className="review-meta-conflict">
@@ -129,6 +137,19 @@ export function ReviewIdentity({
 				    header, so the position ends the row. */}
 				{isQueued && <span className="review-queue-position">{queuePositionText(mergeQueuePosition)}</span>}
 			</div>
+			{/* Every part the pull request still needs. The glyph names the
+			    first one, and this list names all of them, so the person sees
+			    what the agent still owes without opening another tab. */}
+			{gaps.length > 0 && (
+				<div className="review-not-ready">
+					<span className="review-not-ready-title">Not ready for review</span>
+					<ul>
+						{gaps.map((gap) => (
+							<li key={gap.kind}>{reviewGapText(gap)}</li>
+						))}
+					</ul>
+				</div>
+			)}
 		</div>
 	);
 }

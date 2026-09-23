@@ -311,9 +311,9 @@ test("a conflict on a GitHub draft, a merged pull request, or one with no ticket
 	expect(await notices(orphan.prId)).toEqual([]);
 });
 
-test("a conflict on a pull request whose local state is draft still reaches the agent", async () => {
+test("a conflict on a pull request that is not ready for review still reaches the agent", async () => {
 	const pr = await seed([]);
-	await db.execute(sql`UPDATE pull_requests SET local_state = 'draft' WHERE id = ${pr.prId}`);
+	await db.execute(sql`UPDATE pull_requests SET local_state = 'not-ready' WHERE id = ${pr.prId}`);
 	await write(later(1000), row(pr.number, "aaa1111aaaa", [], "open", "conflicting"));
 
 	await noticeChecks(db, gh, later(1000));

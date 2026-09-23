@@ -10,6 +10,8 @@ const pullRequest = (fields: Partial<TicketPr> = {}): TicketPr =>
 		url: "https://github.com/acme/app/pull/42",
 		state: "open",
 		isDraft: false,
+		localState: "ready",
+		reviewGaps: [],
 		fail: 0,
 		pending: 0,
 		openThreads: 0,
@@ -37,8 +39,12 @@ const ticket = (
 const humanReview = ticket("human-review", { reviewer: "human" });
 const review = ticket("review", { prRows: [pullRequest()] });
 const start = ticket("start", { category: "todo", ready: true });
-const draft = ticket("draft", { prRows: [pullRequest({ localState: "draft" })] });
-const checks = ticket("checks", { prRows: [pullRequest({ pending: 3 })] });
+const draft = ticket("draft", {
+	prRows: [pullRequest({ localState: "not-ready", reviewGaps: [{ kind: "not-asked", count: 1 }] })],
+});
+const checks = ticket("checks", {
+	prRows: [pullRequest({ pending: 3, reviewGaps: [{ kind: "checks-pending", count: 3 }] })],
+});
 const merge = ticket("merge", {
 	category: "todo",
 	waitsOn: [{ identifier: "OP-32" } as TicketSummary["waitsOn"][number]],

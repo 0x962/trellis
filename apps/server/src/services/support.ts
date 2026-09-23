@@ -124,7 +124,9 @@ export const touchTicket = (tx: Tx, input: { id: string; at: Date; versionStep: 
 	`);
 
 export type ActivityInput = {
-	ticket: TicketRow;
+	// A timeline row names the ticket and the projects it sits in. The
+	// archive state of the ticket belongs to the caller, not to the row.
+	ticket: Pick<TicketRow, "id" | "project_id" | "root_id">;
 	action: string;
 	meta: Record<string, unknown>;
 	at: Date;
