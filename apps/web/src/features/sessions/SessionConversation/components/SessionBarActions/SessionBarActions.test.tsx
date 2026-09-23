@@ -29,7 +29,6 @@ const run = {
 	runtime: "native",
 	harness: HarnessSchema.parse({ preset: "codex", model: "openai/gpt-6-astra", effort: "max" }),
 	kind: "session",
-	instruction: "Work on TRL-407.",
 	projectId: "01M24SPHTX36AJ3VKTNZ263E7V",
 	projectKey: "TRL",
 	ticketId: "01M334MED9Z2GKBXMB6MVTED50",
