@@ -117,7 +117,7 @@ export function ReviewThreadCard({
 	// Set when an action removed the control the person was standing on, so
 	// the effect below moves focus to the control that replaced it.
 	const moveFocus = useRef(false);
-	// True while the mouse pointer sits inside this card.
+	// A ref, not state: the card must not draw again when the pointer enters or leaves.
 	const pointerInside = useRef(false);
 	// A resolved thread and a thread the file on screen holds no more both
 	// open as one line, so neither takes the room of a thread the reader must
@@ -137,9 +137,7 @@ export function ReviewThreadCard({
 	};
 	// Resolves the thread, or reopens it. The card draws the new status
 	// before `onResolve` answers, so the only wait is the network, and a
-	// second click while the first call is out does nothing. The button that
-	// waits for the call stays focusable, so the browser does not drop the
-	// reader onto the page body the moment they press it.
+	// second click while the first call is out does nothing.
 	const toggleResolved = () => {
 		if (resolving) return;
 		if (pointerInside.current) setHoldOpen(true);
@@ -193,6 +191,7 @@ export function ReviewThreadCard({
 								label="Reopen comment"
 								icon={<ArrowCounterClockwise />}
 								disabled={resolving}
+								// The button stays in the tab order while the call is out, so focus stays on it.
 								focusableWhenDisabled
 								onClick={toggleResolved}
 							/>
@@ -327,6 +326,7 @@ export function ReviewThreadCard({
 								label={thread.status === "resolved" ? "Reopen comment" : "Resolve comment"}
 								icon={thread.status === "resolved" ? <ArrowCounterClockwise /> : <Check />}
 								disabled={resolving}
+								// The button stays in the tab order while the call is out, so focus stays on it.
 								focusableWhenDisabled
 								onClick={toggleResolved}
 							/>
