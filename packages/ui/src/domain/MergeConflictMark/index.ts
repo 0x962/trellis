@@ -1,1 +1,1 @@
-export { MergeConflictMark, type MergeConflictMarkProps } from "./MergeConflictMark";
+export { MergeConflictMark, type MergeConflictMarkProps, type MergeConflictMarkSize } from "./MergeConflictMark";

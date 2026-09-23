@@ -1271,9 +1271,9 @@ agent owns the branch. The
 merge kinds and the check kinds are two families: `decideNotice` reads only
 the check kinds, and a notice of one family never replaces a pending notice
 of the other. The pull request rows of the ticket page and the epic table,
-and the review header, draw `MergeConflictMark` (packages/ui): the Octicons
-alert triangle in the warning colour, with the tooltip "Merge conflict with
-<base branch>".
+and the review header, draw `MergeConflictMark` (packages/ui): the Phosphor
+`ArrowsSplit` glyph, one stem that forks into two arrows, in the warning
+colour, with the tooltip "Merge conflict with <base branch>".
 
 ## Attachments
 
