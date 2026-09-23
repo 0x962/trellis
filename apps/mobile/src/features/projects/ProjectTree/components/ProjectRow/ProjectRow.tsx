@@ -28,11 +28,8 @@ const styles = StyleSheet.create({
 		overflow: "hidden",
 	},
 	name: { flex: 1, fontSize: tokens.text.md, lineHeight: tokens.leading.md },
-	count: { fontSize: tokens.text.sm, lineHeight: tokens.leading.sm, fontVariant: ["tabular-nums"] },
 });
 
-// One project: the key badge, the name, and how many of its tickets are
-// open.
 export function ProjectRow({ project, onPress }: ProjectRowProps) {
 	const palette = usePalette();
 	return (
@@ -47,7 +44,6 @@ export function ProjectRow({ project, onPress }: ProjectRowProps) {
 				<Text numberOfLines={1} style={[styles.name, { color: palette.fg }]}>
 					{project.name}
 				</Text>
-				<Text style={[styles.count, { color: palette.fgFaint }]}>{project.openCount}</Text>
 			</View>
 		</Pressable>
 	);

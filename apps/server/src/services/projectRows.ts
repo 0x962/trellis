@@ -1,4 +1,4 @@
-import { type Project, reservedSlugs } from "@trellis/api";
+import { type Project, type ProjectColor, reservedSlugs } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import type { ServiceCtx } from "../context.ts";
 import {
@@ -11,6 +11,7 @@ import { iso, rows } from "../db/queries/support.ts";
 import type { Tx } from "../db/tx.ts";
 import { fail } from "../errors.ts";
 import { type Change, record } from "./activity.ts";
+import { pickColor } from "./projectColor.ts";
 import { repoRows } from "./projectsRepos.ts";
 import { resolveProject } from "./refs.ts";
 
@@ -62,12 +63,28 @@ export const assertSlugFree = async (tx: Tx, slug: string, exceptId: string | nu
 // projects apart by their color. An archived project does not hold its color,
 // as it does not hold its name. `exceptId` is the project that the caller
 // writes, so a project keeps the color it already holds.
-export const assertColorFree = async (tx: Tx, color: string, exceptId: string | null) => {
+export const colorFree = async (tx: Tx, color: string, exceptId: string | null) => {
 	const found = await rows<{ id: string }>(
 		tx,
 		sql`SELECT id FROM projects WHERE color = ${color} AND archived_at IS NULL AND id IS DISTINCT FROM ${exceptId}`,
 	);
-	if (found.length > 0) throw fail("DUPLICATE", { field: "color" });
+	return found.length === 0;
+};
+
+export const assertColorFree = async (tx: Tx, color: string, exceptId: string | null) => {
+	if (!(await colorFree(tx, color, exceptId))) throw fail("DUPLICATE", { field: "color" });
+};
+
+// The color a project takes when a person names none. It reads the colors of
+// the active projects, and `exceptId` is the project that the caller writes,
+// so a project does not block its own slot. The answer is null when every
+// slot is taken.
+export const freeColor = async (tx: Tx, exceptId: string | null): Promise<ProjectColor | null> => {
+	const found = await rows<{ color: ProjectColor | null }>(
+		tx,
+		sql`SELECT color FROM projects WHERE archived_at IS NULL AND id IS DISTINCT FROM ${exceptId}`,
+	);
+	return pickColor(found.map((row) => row.color));
 };
 
 export const assertKeyFree = async (tx: Tx, key: string) => {

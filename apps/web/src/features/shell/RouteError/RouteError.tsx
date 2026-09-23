@@ -39,7 +39,7 @@ export function RouteError({ error }: RouteErrorProps) {
 				title="Trellis has a new version on the server"
 				description="This page needs the files of the new version."
 				action={
-					<Button size="md" onClick={() => window.location.reload()}>
+					<Button variant="primary" size="md" onClick={() => window.location.reload()}>
 						Reload
 					</Button>
 				}
@@ -59,7 +59,7 @@ export function RouteError({ error }: RouteErrorProps) {
 				}
 				detail={message}
 				action={
-					<Button size="md" onClick={() => void router.invalidate()}>
+					<Button variant="primary" size="md" onClick={() => void router.invalidate()}>
 						Retry
 					</Button>
 				}
@@ -79,7 +79,11 @@ export function RouteError({ error }: RouteErrorProps) {
 				recovery="waiting"
 				detail={message}
 				action={
-					<Button size="md" onClick={() => (failure === "chunk" ? window.location.reload() : void router.invalidate())}>
+					<Button
+						variant="primary"
+						size="md"
+						onClick={() => (failure === "chunk" ? window.location.reload() : void router.invalidate())}
+					>
 						Retry
 					</Button>
 				}
@@ -92,7 +96,7 @@ export function RouteError({ error }: RouteErrorProps) {
 			title="This page did not load"
 			detail={message}
 			action={
-				<Button size="md" onClick={() => void router.invalidate()}>
+				<Button variant="primary" size="md" onClick={() => void router.invalidate()}>
 					Retry
 				</Button>
 			}

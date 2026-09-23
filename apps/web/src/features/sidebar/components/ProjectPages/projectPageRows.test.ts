@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { ProjectSummary } from "@trellis/api";
-import { projectPageRows } from "./projectPageRows";
+import { hiddenAgentCount, projectPageRows } from "./projectPageRows";
 
 const project = {
 	id: "01M24SPHTX36AJ3VKTNZ263E7V",
@@ -21,11 +21,11 @@ const activeLabel = (pathname: string) => {
 	return [...top, ...more].find((row) => row.active)?.label ?? null;
 };
 
-test("Epics and Diffs stand under the project, and More holds Tickets and Sessions", () => {
+test("Epics and Sessions stand under the project, and More holds Tickets and Diffs", () => {
 	const { top, more } = projectPageRows(project, "/p/TRL", 0);
 
-	expect(labels(top)).toEqual(["Epics", "Diffs"]);
-	expect(labels(more)).toEqual(["Tickets", "Sessions"]);
+	expect(labels(top)).toEqual(["Epics", "Sessions"]);
+	expect(labels(more)).toEqual(["Tickets", "Diffs"]);
 });
 
 test("only the Epics row prints a count", () => {
@@ -62,12 +62,19 @@ test("a page of another project leaves every row off", () => {
 test("the Sessions row carries the count of the active agents, and no other row does", () => {
 	const { top, more } = projectPageRows(project, "/p/TRL", 2);
 
-	expect(top.map((row) => row.activeAgentCount)).toEqual([0, 0]);
-	expect(more.map((row) => row.activeAgentCount)).toEqual([0, 2]);
+	expect(top.map((row) => row.activeAgentCount)).toEqual([0, 2]);
+	expect(more.map((row) => row.activeAgentCount)).toEqual([0, 0]);
 });
 
 test("a project with no active agent counts none", () => {
-	const { more } = projectPageRows(project, "/p/TRL", 0);
+	const { top } = projectPageRows(project, "/p/TRL", 0);
 
-	expect(more.map((row) => row.activeAgentCount)).toEqual([0, 0]);
+	expect(top.map((row) => row.activeAgentCount)).toEqual([0, 0]);
+});
+
+test("the shut More row counts the agents of the rows it hides", () => {
+	const { more } = projectPageRows(project, "/p/TRL", 2);
+
+	expect(hiddenAgentCount(more)).toBe(0);
+	expect(hiddenAgentCount([...more, { ...more[0]!, label: "Runs", activeAgentCount: 3 }])).toBe(3);
 });

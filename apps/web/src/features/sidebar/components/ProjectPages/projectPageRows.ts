@@ -24,6 +24,12 @@ export type ProjectPageRows = {
 	more: ProjectPageRow[];
 };
 
+// How many active agents the shut More row stands for. The More row shows one
+// dot for the rows it hides, so a person sees a working agent without opening
+// it. No row under More carries a count today, so this adds up to zero.
+export const hiddenAgentCount = (more: ProjectPageRow[]) =>
+	more.reduce((total, row) => total + row.activeAgentCount, 0);
+
 // The sidebar rows of one project, split into the rows it always shows and
 // the rows the More row holds. `pathname` is the page on screen, and one row
 // at most is active.
@@ -51,7 +57,7 @@ export const projectPageRows = (
 				trailing: project.openEpicCount > 0 ? formatCount(project.openEpicCount) : null,
 				activeAgentCount: 0,
 			},
-			{ label: "Diffs", suffix: "/diffs", active: current && diffs, trailing: null, activeAgentCount: 0 },
+			{ label: "Sessions", suffix: "/sessions", active: current && sessions, trailing: null, activeAgentCount },
 		],
 		more: [
 			{
@@ -61,7 +67,7 @@ export const projectPageRows = (
 				trailing: null,
 				activeAgentCount: 0,
 			},
-			{ label: "Sessions", suffix: "/sessions", active: current && sessions, trailing: null, activeAgentCount },
+			{ label: "Diffs", suffix: "/diffs", active: current && diffs, trailing: null, activeAgentCount: 0 },
 		],
 	};
 };

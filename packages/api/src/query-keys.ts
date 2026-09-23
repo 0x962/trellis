@@ -64,8 +64,9 @@ type TicketEvent = Extract<TrellisEvent, { type: "ticket.created" | "ticket.upda
 // A ticket change with the event kind the cache reacts to.
 type HeldChange = TicketChange & { created: boolean };
 
-// The projects list carries `openCount`, and no
-// project event follows a ticket change. So it refetches with the lists.
+// A ticket change alters `openEpicCount` on a project row, which the sidebar
+// draws beside Epics. The server sends no project event for that change, so
+// the projects list refetches together with the ticket lists named below.
 const membershipMatchers = [
 	family("tickets", "list"),
 	family("tickets", "board"),

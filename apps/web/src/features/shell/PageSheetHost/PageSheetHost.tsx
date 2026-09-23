@@ -5,11 +5,12 @@ import { refreshBehindSheet } from "../../../stores/pageSheetStore/refreshBehind
 import { BrowserSheet } from "./components/BrowserSheet";
 import { PullRequestSheet } from "./components/PullRequestSheet";
 import { SessionSheet } from "./components/SessionSheet";
+import { SettingsSheet } from "./components/SettingsSheet";
 import { TicketSheet } from "./components/TicketSheet";
 
 // The root shell mounts this sheet stack once. It opens one ticket with a
-// pull request or a session over it. The in-app browser stands over every
-// one of them.
+// pull request or a session over it. The settings and the in-app browser
+// stand over every one of them.
 //
 // A pull request or a session that opens from a ticket renders inside
 // `TicketSheet`, because Base UI reads the stack from the React tree. One
@@ -28,6 +29,7 @@ export function PageSheetHost() {
 			<TicketSheet />
 			{ticket === null && <PullRequestSheet />}
 			{ticket === null && <SessionSheet />}
+			<SettingsSheet at="page" />
 			<BrowserSheet at="page" />
 		</>
 	);

@@ -1,7 +1,6 @@
 import type { ProjectSummary } from "@trellis/api";
 import { cx, ProjectMark, Tooltip } from "@trellis/ui";
 import { type KeyboardEvent, lazy, Suspense } from "react";
-import { formatCount } from "../../../../lib/format";
 
 const ProjectRowActions = lazy(async () => ({ default: (await import("../../ProjectRowActions")).ProjectRowActions }));
 
@@ -16,7 +15,6 @@ export type TreeRowProps = {
 // The trailing slot reserves space for the project menu on hover and focus.
 export function TreeRow({ project, archived = false, expanded, onToggle }: TreeRowProps) {
 	const hasDisclosure = expanded !== undefined && onToggle !== undefined;
-	const count = project.openCount > 0 ? formatCount(project.openCount) : null;
 	const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
 		if (!hasDisclosure) return;
 		if (event.key === "ArrowLeft" && expanded) {
@@ -51,9 +49,7 @@ export function TreeRow({ project, archived = false, expanded, onToggle }: TreeR
 				<span data-slot="label" title={project.name} className="sidebar-label">
 					{project.name}
 				</span>
-				<span data-slot="trailing" className="sidebar-trailing text-fg-faint">
-					{count}
-				</span>
+				<span data-slot="trailing" className="sidebar-trailing" aria-hidden="true" />
 			</button>
 			<span
 				data-slot="menu"
