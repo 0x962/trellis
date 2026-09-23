@@ -64,8 +64,17 @@ async function writeExecutable(path: string, body: string) {
 	return path;
 }
 
-async function runBridge(entry: string, env: Record<string, string>, launch: Record<string, unknown>) {
-	const child = Bun.spawn([process.execPath, pathFromHere(entry), JSON.stringify(launch)], {
+// `terminal` runs the bridge under `script`, which gives it a terminal on its
+// standard input. The Muse bridge reads that terminal for a follow-up prompt,
+// and the runtime starts it the same way.
+async function runBridge(
+	entry: string,
+	env: Record<string, string>,
+	launch: Record<string, unknown>,
+	terminal = false,
+) {
+	const command = [process.execPath, pathFromHere(entry), JSON.stringify(launch)];
+	const child = Bun.spawn(terminal ? ["script", "-q", "/dev/null", ...command] : command, {
 		env: { PATH: process.env.PATH ?? "", ...env },
 		stdout: "pipe",
 		stderr: "pipe",
@@ -74,7 +83,7 @@ async function runBridge(entry: string, env: Record<string, string>, launch: Rec
 	return { exitCode, stderr };
 }
 
-async function runMuseBridge(refuse: (event: HarnessEvent) => boolean) {
+async function runMuseBridge(refuse: (event: HarnessEvent) => boolean, terminal = false) {
 	const home = await scratchHome();
 	const runtime = await fakeRuntime(home, refuse);
 	const executable = await writeExecutable(
@@ -93,6 +102,7 @@ async function runMuseBridge(refuse: (event: HarnessEvent) => boolean) {
 			TRELLIS_TEST_MUSE_HOME: home,
 		},
 		{ cwd: home, prompt: "do the work" },
+		terminal,
 	);
 	return { ...run, observed: runtime.observed };
 }
@@ -108,6 +118,12 @@ test("the Muse bridge prints why it stopped when the runtime refuses that record
 	const run = await runMuseBridge((event) => event.kind === "message" || event.kind === "error");
 	expect(run.stderr).toContain(`The bridge stopped: ${TIMEOUT_MESSAGE}`);
 	expect(run.stderr).toContain(`The bridge could not record that reason: ${TIMEOUT_MESSAGE}`);
+	expect(run.exitCode).toBe(1);
+});
+
+test("the Muse bridge leaves the terminal it reads and exits", async () => {
+	const run = await runMuseBridge((event) => event.kind === "message", true);
+	expect(run.observed.at(-1)).toMatchObject({ kind: "error", outcome: "failed" });
 	expect(run.exitCode).toBe(1);
 });
 
