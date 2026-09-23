@@ -286,7 +286,9 @@ export const Row = memo(function Row({
 				gridColumnsClass,
 				!hasChildLines && "border-b border-border",
 				density === "comfortable" ? "text-base" : "text-sm",
-				"before:absolute before:top-1 before:bottom-1 before:left-0 before:w-0.5 before:rounded-r-sm before:bg-accent before:opacity-0 before:content-['']",
+				// The focus bar keeps its own layer, because the green band of a done
+				// row covers the left edge of the row while it passes.
+				"before:absolute before:top-1 before:bottom-1 before:left-0 before:z-10 before:w-0.5 before:rounded-r-sm before:bg-accent before:opacity-0 before:content-['']",
 				"hover:bg-band data-focused:bg-accent-soft/60 data-focused:before:opacity-100 data-selected:bg-accent-soft",
 				top === undefined && "relative",
 			)}
