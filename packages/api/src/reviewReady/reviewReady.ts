@@ -4,11 +4,11 @@ import type { LocalPrState, Mergeable, PrState } from "../schemas/enums.ts";
 // field is a stored fact, never a judgment: the server reads them from its
 // tables, and this file turns them into the list of what is still missing.
 //
-// `flowAnswered` is true when a flow run of the commit the pull request
-// points at now has the status "succeeded", when the agent wrote why no flow
-// fits that commit, or when no flow applies to the project. A flow run asks
-// the person nothing, so a run with the status "waiting" did not finish and
-// answers nothing.
+// `flowAnswered` is true when a flow run of this pull request has the status
+// "succeeded", when the agent wrote why no flow fits the change, or when no
+// flow applies to the project. One run answers for the whole pull request,
+// and a later push keeps that answer. A flow run asks the person nothing, so
+// a run with the status "waiting" did not finish and answers nothing.
 export type ReviewReadyFacts = {
 	state: PrState;
 	localState: LocalPrState;
@@ -76,7 +76,7 @@ export const reviewGapText = (gap: ReviewGap): string => {
 	if (gap.kind === "not-asked") return "the agent has not asked for review";
 	if (gap.kind === "explanation") return "no explanation for this commit";
 	if (gap.kind === "evidence") return "no evidence document";
-	if (gap.kind === "flow-run") return "no flow finished on this commit";
+	if (gap.kind === "flow-run") return "no flow run finished for this pull request";
 	if (gap.kind === "checks-failed") return `${gap.count} ${checkWord(gap.count)} failed`;
 	if (gap.kind === "checks-pending") return `${gap.count} ${checkWord(gap.count)} pending`;
 	if (gap.kind === "findings") return `${gap.count} review ${gap.count === 1 ? "finding" : "findings"} open`;

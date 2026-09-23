@@ -21,8 +21,7 @@ const readiness = (runs: FlowReadiness["runs"]): FlowReadiness => ({
 	satisfied: runs.some((run) => run.status === "succeeded"),
 });
 
-// Records the list input, so a test can state that the head filter reaches
-// the server instead of the client.
+// The pull request every test reads.
 const ref = { id: "01M30HDWKZ17G62PJAFHZNED2J", url: "https://github.com/acme/trellis/pull/131" };
 
 const clientWith = (
@@ -56,7 +55,7 @@ const clientWith = (
 test("asks for nothing when the project holds no flow", async () => {
 	const { client } = clientWith([], []);
 
-	expect(await flowReadiness(client, ref, "OP-74", "abc123")).toEqual({
+	expect(await flowReadiness(client, ref, "OP-74")).toEqual({
 		flows: [],
 		runs: [],
 		waived: null,
@@ -68,24 +67,24 @@ test("asks for nothing when the project holds no flow", async () => {
 test("asks for nothing when no ticket links the pull request", async () => {
 	const { client, asked } = clientWith([flow("review", "Review", "")], []);
 
-	expect((await flowReadiness(client, ref, null, "abc123")).satisfied).toBe(true);
+	expect((await flowReadiness(client, ref, null)).satisfied).toBe(true);
 	expect(asked).toEqual([]);
 });
 
 test("asks the server for the flows of the ticket's project only", async () => {
 	const { client, asked } = clientWith([flow("review", "Review", "")], []);
 
-	await flowReadiness(client, ref, "OP-74", "abc123");
+	await flowReadiness(client, ref, "OP-74");
 
 	expect(asked).toEqual([{ ticket: "OP-74" }]);
 });
 
-test("asks the server for the runs of the current head only", async () => {
+test("asks the server for every run of the ticket", async () => {
 	const { client, sent } = clientWith([flow("review", "Review", "")], []);
 
-	await flowReadiness(client, ref, "OP-74", "abc123");
+	await flowReadiness(client, ref, "OP-74");
 
-	expect(sent).toEqual([{ ticket: "OP-74", headSha: "abc123" }]);
+	expect(sent).toEqual([{ ticket: "OP-74" }]);
 });
 
 test("is satisfied by a run that succeeded", async () => {
@@ -94,7 +93,7 @@ test("is satisfied by a run that succeeded", async () => {
 		[{ slug: "review", name: "Review", status: "succeeded" }],
 	);
 
-	expect((await flowReadiness(client, ref, "OP-74", "abc123")).satisfied).toBe(true);
+	expect((await flowReadiness(client, ref, "OP-74")).satisfied).toBe(true);
 });
 
 test("is not satisfied by a run that stopped and waits", async () => {
@@ -103,19 +102,19 @@ test("is not satisfied by a run that stopped and waits", async () => {
 		[{ slug: "review", name: "Review", status: "waiting" }],
 	);
 
-	expect((await flowReadiness(client, ref, "OP-74", "abc123")).satisfied).toBe(false);
+	expect((await flowReadiness(client, ref, "OP-74")).satisfied).toBe(false);
 });
 
 test("is not satisfied by a run that failed", async () => {
 	const { client } = clientWith([flow("review", "Review", "")], [{ slug: "review", name: "Review", status: "failed" }]);
 
-	expect((await flowReadiness(client, ref, "OP-74", "abc123")).satisfied).toBe(false);
+	expect((await flowReadiness(client, ref, "OP-74")).satisfied).toBe(false);
 });
 
 test("names every flow and its command when no flow ran", () => {
 	const state = readiness([]);
 
-	expect(flowRunMissingSummary(state, 131)).toBe("no flow ran on the current head");
+	expect(flowRunMissingSummary(state, 131)).toBe("no flow ran for this pull request");
 	expect(flowRunMissingLines(state, 131)).toEqual([
 		"    Pick the flows that fit this change and run each one:",
 		"    review  Read the diff and report every fault.  trellis flows run 131 --flow review",
@@ -136,7 +135,7 @@ test("tells the agent to wait only while a run works on its own", () => {
 test("names the failed run and both ways out of it", () => {
 	const state = readiness([{ slug: "review", name: "Review", status: "failed" }]);
 
-	expect(flowRunMissingSummary(state, 131)).toBe("no flow run on the current head finished");
+	expect(flowRunMissingSummary(state, 131)).toBe("no flow run finished");
 	expect(flowRunMissingLines(state, 131)).toEqual([
 		"    The Review flow failed. Fix the fault and run it again:",
 		"      trellis flows run 131 --flow review",
@@ -149,7 +148,7 @@ test("names the failed run and both ways out of it", () => {
 test("names a run that stopped and tells the agent to run the flow again", () => {
 	const state = readiness([{ slug: "review", name: "Review", status: "waiting" }]);
 
-	expect(flowRunMissingSummary(state, 131)).toBe("no flow run on the current head finished");
+	expect(flowRunMissingSummary(state, 131)).toBe("no flow run finished");
 	expect(flowRunMissingLines(state, 131)).toEqual([
 		"    The Review flow stopped and did not finish. Fix the fault and run it again:",
 		"      trellis flows run 131 --flow review",
@@ -165,19 +164,19 @@ test("takes the agent's own sentence in place of a run", async () => {
 		reason: "This change edits only the README.",
 	});
 
-	const result = await flowReadiness(client, ref, "OP-74", "abc123");
+	const result = await flowReadiness(client, ref, "OP-74");
 
 	expect(result.waived).toBe("This change edits only the README.");
 	expect(result.satisfied).toBe(true);
 });
 
-test("drops a sentence written about an older head", async () => {
+test("keeps the sentence after a push", async () => {
 	const { client } = clientWith([flow("review", "Review", "")], [], { headSha: "older1", reason: "Docs only." });
 
-	const result = await flowReadiness(client, ref, "OP-74", "abc123");
+	const result = await flowReadiness(client, ref, "OP-74");
 
-	expect(result.waived).toBeNull();
-	expect(result.satisfied).toBe(false);
+	expect(result.waived).toBe("Docs only.");
+	expect(result.satisfied).toBe(true);
 });
 
 test("says why it asked for no flow run", () => {

@@ -41,9 +41,9 @@ const toWaiver = (row: WaiverRow): PullRequestFlowWaiver => ({
 	updatedAt: row.updated_at,
 });
 
-// The newest sentence the pull request carries, at any head. `trellis ready`
-// compares its head with the head GitHub reports now. Two heads written in
-// the same moment break the tie on the row that was created last.
+// The newest sentence the pull request carries, at any head. It answers the
+// flow check of `trellis ready`. Two heads written in the same moment break
+// the tie on the row that was created last.
 export const read = async (_ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<PullRequestFlowWaiver | null> => {
 	const input = PullRequestIdInputSchema.parse(rawInput);
 	const pullRequest = await findPullRequestRow(tx, input.id);

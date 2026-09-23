@@ -62,7 +62,7 @@ test("the words count what is missing", () => {
 	expect(reviewGapText({ kind: "findings", count: 1 })).toBe("1 review finding open");
 	expect(reviewGapText({ kind: "evidence", count: 1 })).toBe("no evidence document");
 	expect(reviewGapText({ kind: "explanation", count: 1 })).toBe("no explanation for this commit");
-	expect(reviewGapText({ kind: "flow-run", count: 1 })).toBe("no flow finished on this commit");
+	expect(reviewGapText({ kind: "flow-run", count: 1 })).toBe("no flow run finished for this pull request");
 	expect(reviewGapText({ kind: "not-asked", count: 1 })).toBe("the agent has not asked for review");
 	expect(reviewGapText({ kind: "conflict", count: 1 })).toBe("the pull request conflicts with its base branch");
 });

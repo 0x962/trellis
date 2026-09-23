@@ -15,9 +15,9 @@ export type ReadinessPart = "explanation" | "evidence" | "data-model-diagram" | 
 export type PullRequestReadiness = {
 	dataModelDiagramRequired: boolean;
 	pullRequest: { number: number; url: string; headSha: string; isDraft: boolean };
-	// The flows the pull request's project asks for, and the runs of the
-	// current head. `flows` is empty, and `satisfied` is true, whenever the
-	// caller asked for no flow check.
+	// The flows the pull request's project asks for, and the runs the pull
+	// request already holds. `flows` is empty, and `satisfied` is true,
+	// whenever the caller asked for no flow check.
 	flows: FlowReadiness;
 	// The parts the pull request still needs, in the order an agent writes them.
 	missing: ReadinessPart[];
@@ -34,7 +34,7 @@ export type PullRequestReadiness = {
 // `trellis summary write` states what that head changes, and the evidence
 // document shows that head working, so a push takes both away.
 //
-// `checkFlows` asks for a flow run of the current head as well. `trellis
+// `checkFlows` asks for one flow run of the pull request as well. `trellis
 // ready` and the hand-over guard set it for an agent. `trellis pr add` leaves
 // it off, because a pull request has run nothing when it is linked. Every
 // caller states its answer, so a new one cannot take a silent default.
@@ -49,7 +49,7 @@ export const pullRequestReadiness = async (
 		client.pullRequests.readEvidence({ id: ref.id }),
 	]);
 	const flows = checkFlows
-		? await flowReadiness(client, ref, head.ticket, head.sha)
+		? await flowReadiness(client, ref, head.ticket)
 		: { flows: [], runs: [], waived: null, skipped: null, satisfied: true };
 	const dataModelDiagramRequired =
 		head.pullRequest.files !== null && changesDataModels(changedFilePaths(head.pullRequest.files));
@@ -119,7 +119,7 @@ export const pullRequestReadyText = (result: PullRequestReadiness): string => {
 		const parts =
 			result.flows.runs.length === 0
 				? "the explanation and the evidence document"
-				: "the explanation, the evidence document, and a flow run on this head";
+				: "the explanation, the evidence document, and a flow run";
 		const head =
 			storedGaps.length === 0
 				? `#${number} is ready for review. It has ${parts}. Trellis marked it ready for review.`

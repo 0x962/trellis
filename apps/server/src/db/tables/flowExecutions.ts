@@ -17,9 +17,10 @@ export const flowExecutions = pgTable(
 		actorName: text("actor_name").notNull(),
 		requestId: text("request_id").notNull(),
 		request: jsonb().notNull(),
-		// The commit the caller named as the head of the pull request the run
-		// answers. It is null for a run started before this column existed, and
-		// for a run started with no pull request.
+		// The commit the caller named as the head of the pull request when the
+		// run started. It says which code the run read. It is null for a run
+		// started before this column existed, and for a run started with no
+		// pull request.
 		headSha: text("head_sha"),
 		doc: jsonb().notNull(),
 		state: jsonb().notNull(),

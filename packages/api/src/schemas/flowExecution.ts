@@ -67,8 +67,8 @@ export const FlowExecutionSchema = z.object({
 	projectId: UlidSchema,
 	revision: z.number().int().positive(),
 	// The commit the caller named when the run started. It is null when the
-	// caller named none. `trellis ready` accepts a run only when this commit
-	// is the current head of the pull request.
+	// caller named none. It says which code the run read, and `trellis flows
+	// list` prints it.
 	headSha: z.string().nullable(),
 	doc: FlowDocSchema,
 	state: FlowExecutionStateSchema,
@@ -88,8 +88,6 @@ export const FlowExecutionGetInputSchema = z.strictObject({ id: UlidSchema });
 export const FlowExecutionListInputSchema = z.strictObject({
 	flow: FlowRefSchema.optional(),
 	ticket: z.string().min(1).optional(),
-	// Keeps only the runs that stored this commit as their head.
-	headSha: z.string().min(1).max(64).optional(),
 });
 export const FlowExecutionDecisionInputSchema = z.strictObject({
 	id: UlidSchema,

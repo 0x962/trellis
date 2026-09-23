@@ -12,8 +12,8 @@ import { StartFlowDialog } from "./components/StartFlowDialog";
 // its name. The list refreshes on the flows.changed event of the live
 // connection.
 //
-// `headSha` is the commit the pull request points at now. A run stores it, so
-// `trellis ready` can tell a run of this commit from a run of an older one.
+// `headSha` is the commit the pull request points at now. A run started from
+// this page stores it, and the run then says which code it read.
 export function FlowRuns({ ticket, headSha }: { ticket: string; headSha: string }) {
 	const { orpc } = useApp();
 	const [start, setStart] = useState(false);
