@@ -132,22 +132,6 @@
 	width: 14px;
 	height: 14px;
 }
-/* The parts the pull request still needs, under the state row. The glyph
-   beside the title names the first one; this block names every one. */
-.review-not-ready {
-	margin-top: 10px;
-	color: var(--fg-muted);
-	font-size: 12px;
-}
-.review-not-ready-title {
-	font-weight: 600;
-	color: var(--fg);
-}
-.review-not-ready ul {
-	margin-top: 4px;
-	padding-left: 16px;
-	list-style: disc;
-}
 .review-queue-position {
 	display: inline-flex;
 	height: 20px;
@@ -291,9 +275,6 @@ button.review-notice:hover {
 }
 .review-ticket-line {
 	color: var(--fg-muted);
-}
-.review-turn-line {
-	color: var(--fg);
 }
 /* Under the identity band the review page is four tabs. Overview, Checks and
    Flows each hold one column of blocks, and the Diff panel holds two panes:

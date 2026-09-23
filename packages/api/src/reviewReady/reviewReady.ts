@@ -39,7 +39,7 @@ export type ReviewGap = { kind: ReviewGapKind; count: number };
 const one = (kind: ReviewGapKind): ReviewGap => ({ kind, count: 1 });
 
 // The one rule that decides whether a pull request is ready for review. The
-// glyph, the turn of a ticket, the Needs you inbox, the pull request sheet
+// glyph, the Waiting grouping, the Needs you inbox, the pull request sheet
 // and `trellis ready` all answer from this list, so they never disagree.
 //
 // A closed or merged pull request needs nothing: its glyph already says

@@ -1,4 +1,4 @@
-import { isAgentWorking, type TicketSummary, type Turn, turnOf } from "@trellis/api";
+import { isAgentWorking, type TicketSummary, type Waiting, waitingFor } from "@trellis/api";
 import type { TrellisClient } from "@trellis/api/client";
 import { defineCommand } from "citty";
 import { clientOf } from "../../client.ts";
@@ -9,21 +9,21 @@ import { currentHead, type PullRequestRef, resolvePullRequest } from "../pullReq
 import { pullRequestReadiness, pullRequestReadyText } from "./pullRequestReady.ts";
 import { type ReadyResult, readyGroupOrder, readyText } from "./readyText.ts";
 
-const nameFor = (ticket: TicketSummary, turn: Turn, hasWorkingRun: boolean): string => {
+const nameFor = (ticket: TicketSummary, waiting: Waiting, hasWorkingRun: boolean): string => {
 	if (hasWorkingRun || ticket.status.reviewer === "human") return ticket.identifier;
-	const pullRequest = ticket.prRows.find((row) => turnOf(row, false) === turn);
+	const pullRequest = ticket.prRows.find((row) => waitingFor(row, false) === waiting);
 	return pullRequest === undefined ? ticket.identifier : `#${pullRequest.number}`;
 };
 
 export const readyResultOf = (tickets: TicketSummary[], workingTicketIds: ReadonlySet<string>): ReadyResult => {
-	const readyToStart = tickets.filter((ticket) => turnOf(ticket, workingTicketIds.has(ticket.id)) === "ready");
-	const groups = readyGroupOrder.flatMap(({ turn, label }) => {
+	const readyToStart = tickets.filter((ticket) => waitingFor(ticket, workingTicketIds.has(ticket.id)) === "ready");
+	const groups = readyGroupOrder.flatMap(({ waiting, label }) => {
 		const names = tickets.flatMap((ticket) => {
 			const hasWorkingRun = workingTicketIds.has(ticket.id);
-			const ticketTurn = turnOf(ticket, hasWorkingRun);
-			return ticketTurn === turn ? [nameFor(ticket, ticketTurn, hasWorkingRun)] : [];
+			const ticketWaiting = waitingFor(ticket, hasWorkingRun);
+			return ticketWaiting === waiting ? [nameFor(ticket, ticketWaiting, hasWorkingRun)] : [];
 		});
-		return names.length === 0 ? [] : [{ turn, label, count: names.length, names }];
+		return names.length === 0 ? [] : [{ waiting, label, count: names.length, names }];
 	});
 	return {
 		readyToStart: { count: readyToStart.length, identifiers: readyToStart.map((ticket) => ticket.identifier) },
@@ -76,7 +76,10 @@ const pullRequestReady = async (
 };
 
 export default defineCommand({
-	meta: { name: "ready", description: "Check a pull request for review, or show who holds each ticket of an epic" },
+	meta: {
+		name: "ready",
+		description: "Check a pull request for review, or show what each ticket of an epic waits for",
+	},
 	args: {
 		ref: {
 			type: "positional",

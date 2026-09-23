@@ -107,9 +107,9 @@ describe("wave", () => {
 		expect(serializeSearch(view)).toBe("group=wave");
 	});
 
-	test("reads the turn grouping and writes it back", () => {
-		expect(parseSearch({ group: "turn" }).group).toBe("turn");
-		expect(serializeSearch(viewOf({ group: "turn" }))).toBe("group=turn");
+	test("reads the Waiting grouping and writes it back", () => {
+		expect(parseSearch({ group: "waiting" }).group).toBe("waiting");
+		expect(serializeSearch(viewOf({ group: "waiting" }))).toBe("group=waiting");
 	});
 
 	test("drops a grouping the grammar does not name", () => {

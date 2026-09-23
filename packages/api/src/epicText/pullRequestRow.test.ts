@@ -44,7 +44,7 @@ const pullRequest = (fields: Partial<TicketPr> = {}): TicketPr => {
 };
 
 describe("pullRequestRowLine", () => {
-	test("prints the state, the size, the checks and the turn", () => {
+	test("prints the state, the size, the checks and what the pull request waits for", () => {
 		expect(pullRequestRowLine(pullRequest())).toBe(
 			"#57080  not ready · +311 −12 · 6 files · 1 failed · 6 pending · 47 passed · agent",
 		);
@@ -68,13 +68,13 @@ describe("pullRequestRowLine", () => {
 		expect(pullRequestRowLine(pullRequest({ isQueued: true }))).toStartWith("#57080  queued ·");
 	});
 
-	test("gives the turn to the person when every check passed and no comment is open", () => {
+	test("waits for the person when every check passed and no comment is open", () => {
 		expect(
 			pullRequestRowLine(pullRequest({ fail: 0, pending: 0, changedFiles: 7, additions: 186, deletions: 44 })),
 		).toBe("#57080  open · +186 −44 · 7 files · 47 passed · you");
 	});
 
-	test("gives the turn to GitHub while a check is pending", () => {
+	test("waits for GitHub while a check is pending", () => {
 		expect(pullRequestRowLine(pullRequest({ fail: 0 }))).toBe(
 			"#57080  not ready · +311 −12 · 6 files · 6 pending · 47 passed · github",
 		);

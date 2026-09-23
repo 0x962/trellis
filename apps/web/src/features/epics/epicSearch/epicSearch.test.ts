@@ -72,16 +72,16 @@ describe("epicSearch on a phone", () => {
 
 	test("a URL with no group groups by wave", () => {
 		expect(epicPageSearch(validated({}), "OP/routine-runtime", phone).group).toBe("wave");
-		expect(epicPageSearch(validated({ group: "turn" }), "OP/routine-runtime", phone).group).toBe("turn");
+		expect(epicPageSearch(validated({ group: "waiting" }), "OP/routine-runtime", phone).group).toBe("waiting");
 	});
 
-	test("the URL omits the wave group and writes the turn group", () => {
+	test("the URL omits the wave group and writes the Waiting group", () => {
 		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "wave" }, phone)).toEqual({});
-		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "turn" }, phone)).toEqual({ group: "turn" });
+		expect(epicUrlSearch({ epic: "OP/routine-runtime", group: "waiting" }, phone)).toEqual({ group: "waiting" });
 	});
 
-	test("the canonical check refuses the wave group and keeps the turn group", () => {
+	test("the canonical check refuses the wave group and keeps the Waiting group", () => {
 		expect(isCanonicalEpicSearch("?group=wave", validated({ group: "wave" }), phone)).toBe(false);
-		expect(isCanonicalEpicSearch("?group=turn", validated({ group: "turn" }), phone)).toBe(true);
+		expect(isCanonicalEpicSearch("?group=waiting", validated({ group: "waiting" }), phone)).toBe(true);
 	});
 });

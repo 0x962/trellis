@@ -1,4 +1,4 @@
-import { turnOf } from "@trellis/api";
+import { waitingFor } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { iso, rows } from "../../db/queries/support.ts";
 import { ticketSummaries } from "../../db/queries/ticketSummaries.ts";
@@ -18,13 +18,16 @@ export type Candidate = {
 	identifier: string;
 };
 
-// The inbox of a person holds one item per ticket whose turn is theirs: its
-// status waits for a human reviewer, or it links an open pull request, and
-// no agent works on it (`turnOf` answers "you"). The item id names the last
-// status change, so a move to a new status starts a new item that no earlier
-// snooze or ignore covers. An item leaves the inbox when the ticket moves to
-// the done or the canceled category, when an agent starts to work on it, or
-// when its turn passes to somebody else.
+// The inbox of a person holds one item per ticket that waits for them. The
+// SQL below collects every ticket that is not done and not canceled and that
+// either waits for a human reviewer or links an open pull request.
+// `waitingFor` then keeps the ticket only while it still waits for the
+// person: it drops a ticket whose agent run works, and it drops a ticket
+// whose pull request still needs the agent or still runs a check. The item id
+// names the last status change, so a move to a new status starts a new item
+// that no earlier snooze or ignore covers. An item leaves the inbox when the
+// ticket moves to the done or the canceled category, when an agent starts to
+// work on it, or when it starts to wait for somebody else.
 export const candidates = async (
 	tx: Tx,
 	actor: string,
@@ -63,6 +66,6 @@ export const candidates = async (
 		).map((ticket) => [ticket.id, ticket]),
 	);
 	return found.filter(
-		(item) => turnOf(reviewTickets.get(item.ticketId)!, workingTicketIds.has(item.ticketId)) === "you",
+		(item) => waitingFor(reviewTickets.get(item.ticketId)!, workingTicketIds.has(item.ticketId)) === "you",
 	);
 };

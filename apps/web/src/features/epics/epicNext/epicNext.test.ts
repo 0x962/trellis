@@ -12,7 +12,7 @@ const statusOf = (reviewer: TicketSummary["status"]["reviewer"]) =>
 	({ category: "started", reviewer }) as TicketSummary["status"];
 const noWaits: TicketSummary["waitsOn"] = [];
 const noPrs: TicketSummary["prRows"] = [];
-// A ticket whose turn is the agent, so a test that counts the tickets of
+// A ticket that waits for the agent, so a test that counts the tickets of
 // the person adds its own rows.
 const ticket = (id: string, entry: WaveSummary) =>
 	({
@@ -78,13 +78,13 @@ describe("epicNext", () => {
 		expect(epicNext(waiting, 2, {}, new Set(["review"]))?.counts[2]?.label).toBe("2 wait for you");
 	});
 
-	test("links to start inside the wave, groups wait for you by turn, and gives running no link", () => {
+	test("links to start inside the wave, groups wait for you by Waiting, and gives running no link", () => {
 		const next = epicNext(epic, 2, {}, noWorking);
 
 		expect(next?.counts.map((count) => count.search)).toEqual([
 			{ wave: surfaces.ref, category: ["todo"] },
 			null,
-			{ group: "turn" },
+			{ group: "waiting" },
 		]);
 	});
 
@@ -109,7 +109,7 @@ describe("epicNext", () => {
 			epic: "OP/routine-runtime",
 			priority: ["high"],
 			not: ["priority"],
-			group: "turn",
+			group: "waiting",
 		});
 	});
 

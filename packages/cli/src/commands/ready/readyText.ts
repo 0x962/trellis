@@ -1,14 +1,14 @@
-import type { Turn } from "@trellis/api";
+import type { Waiting } from "@trellis/api";
 
 export const readyGroupOrder = [
-	{ turn: "waits on a merge", label: "waits on a merge" },
-	{ turn: "you", label: "your turn" },
-	{ turn: "agent", label: "with an agent" },
-	{ turn: "github", label: "with GitHub" },
-] as const satisfies readonly { turn: Turn; label: string }[];
+	{ waiting: "merge", label: "waits on a merge" },
+	{ waiting: "you", label: "waits for you" },
+	{ waiting: "agent", label: "with an agent" },
+	{ waiting: "github", label: "with GitHub" },
+] as const satisfies readonly { waiting: Waiting; label: string }[];
 
 type ReadyGroup = {
-	turn: (typeof readyGroupOrder)[number]["turn"];
+	waiting: (typeof readyGroupOrder)[number]["waiting"];
 	label: string;
 	count: number;
 	names: string[];
