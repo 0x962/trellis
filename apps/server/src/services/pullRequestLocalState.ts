@@ -20,7 +20,7 @@ const writeTimeline = async (ctx: ServiceCtx, tx: Tx, input: { id: string; local
 	if (scope.ticketIds.length === 0) return;
 	const tickets = await rows<TimelineTicket>(
 		tx,
-		sql`SELECT id, project_id, root_id FROM tickets WHERE id = ANY(${textArray(scope.ticketIds)})`,
+		sql`SELECT id, project_id FROM tickets WHERE id = ANY(${textArray(scope.ticketIds)})`,
 	);
 	for (const ticket of tickets)
 		await writeActivity(ctx, tx, {

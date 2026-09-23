@@ -40,8 +40,8 @@ const newTicket = async (title: string) => {
 	ticketNumber += 1;
 	const id = ulid();
 	await db.execute(sql`INSERT INTO tickets
-		(id, project_id, root_id, number, title, status_id, position, created_at, updated_at)
-		VALUES (${id}, ${root}, ${root}, ${ticketNumber}, ${title}, ${status}, ${ticketNumber}, ${at}, ${at})`);
+		(id, project_id, number, title, status_id, position, created_at, updated_at)
+		VALUES (${id}, ${root}, ${ticketNumber}, ${title}, ${status}, ${ticketNumber}, ${at}, ${at})`);
 	return { id, identifier: `LOC-${ticketNumber}` };
 };
 
@@ -296,8 +296,8 @@ test("a flow of the project asks for a run of the current commit", async () => {
 test("a flow of another project asks this pull request for nothing", async () => {
 	await db.execute(sql`DELETE FROM flows`);
 	const other = ulid();
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${other}, ${other}, 'OTH', 'oth', 'Other', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${other}, 'OTH', 'oth', 'Other', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO flows (id, project_id, slug, name, description, created_at, updated_at)
 		VALUES (${ulid()}, ${other}, 'other-review', 'Other review', 'Read the diff.', ${at}, ${at})`);
 
