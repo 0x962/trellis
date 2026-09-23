@@ -10,12 +10,11 @@ const SessionRowActions = lazy(async () => ({ default: (await import("../../Sess
 export type SessionRowProps = {
 	session: Session;
 	status: SessionStatus;
-	workingCount?: number;
 	// True on the page of this session.
 	active: boolean;
 };
 
-export const SessionRow = memo(function SessionRow({ session, status, workingCount = 0, active }: SessionRowProps) {
+export const SessionRow = memo(function SessionRow({ session, status, active }: SessionRowProps) {
 	const [renaming, setRenaming] = useState(false);
 	return (
 		<li
@@ -32,7 +31,7 @@ export const SessionRow = memo(function SessionRow({ session, status, workingCou
 							name={session.name}
 							agentKind="agent"
 							agentProfile={agentProfileOf(session.harness)}
-							state={workingCount > 0 ? "working" : "static"}
+							state={status === "working" ? "working" : "static"}
 							status={status}
 							className="size-5"
 						/>
@@ -59,7 +58,7 @@ export const SessionRow = memo(function SessionRow({ session, status, workingCou
 								name={session.name}
 								agentKind="agent"
 								agentProfile={agentProfileOf(session.harness)}
-								state={workingCount > 0 ? "working" : "static"}
+								state={status === "working" ? "working" : "static"}
 								status={status}
 								className="size-5"
 							/>

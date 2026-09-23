@@ -7,9 +7,9 @@ export type ProjectAgentCount = { projectId: string; activeCount: number };
 
 // The Sessions page of a project lists the runs that carry the id of that
 // project, so a run counts for the one project its projectId names.
-// The returned array is sorted by project id, so two answers with the same
-// counts build an equal array. React Query keeps the earlier array, and the
-// sidebar redraws only when a count somewhere changes.
+// The array is sorted by project id, so two fetches with the same counts build
+// arrays that are equal item by item. React Query keeps the array from the
+// first fetch, and a project row redraws only when its own count changes.
 export function activeAgentCounts(runs: { projectId: string | null; status: SessionStatus }[]): ProjectAgentCount[] {
 	const counts = new Map<string, number>();
 	for (const run of runs) {
