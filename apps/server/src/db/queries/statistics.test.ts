@@ -68,8 +68,8 @@ beforeAll(async () => {
 	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
 		VALUES (${root}, 'TST', 'tst', 'Test', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses (
-		id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at
-	) VALUES (${status}, ${root}, 'In Progress', 'in-progress', 'started', NULL, 'fg-muted', 0, true, ${at}, ${at})`);
+		id, project_id, name, slug, category, color, position, is_default, created_at, updated_at
+	) VALUES (${status}, ${root}, 'In Progress', 'in-progress', 'started', 'fg-muted', 0, true, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO tickets (
 		id, project_id, number, title, status_id, position, created_at, updated_at
 	) VALUES

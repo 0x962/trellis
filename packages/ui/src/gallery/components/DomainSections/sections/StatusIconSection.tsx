@@ -3,7 +3,7 @@ import { Section } from "../../Section";
 
 export function StatusIconSection() {
 	return (
-		<Section name="StatusIcon" note="by category; review by reviewer; started by progress">
+		<Section name="StatusIcon" note="by category; review by mark shape; started by progress">
 			<span className="inline-flex items-center gap-2 text-sm">
 				<StatusIcon category="todo" /> Todo
 			</span>
@@ -20,10 +20,10 @@ export function StatusIconSection() {
 				<StatusIcon category="started" progress={1} /> 5/5 done
 			</span>
 			<span className="inline-flex items-center gap-2 text-sm">
-				<StatusIcon category="review" reviewer="agent" /> Agent Review
+				<StatusIcon category="review" /> Review
 			</span>
 			<span className="inline-flex items-center gap-2 text-sm">
-				<StatusIcon category="review" reviewer="human" /> Human Review
+				<StatusIcon category="review" reviewShape="queue" /> Deploy Queue
 			</span>
 			<span className="inline-flex items-center gap-2 text-sm">
 				<StatusIcon category="done" /> Done

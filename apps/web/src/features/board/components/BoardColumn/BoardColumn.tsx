@@ -66,7 +66,6 @@ export function BoardColumn({
 	const open = visibleCards(column, { collapsed: false, showAllDone });
 	const count = column.category === "done" && !showAllDone ? open.length : column.count;
 	const dropIndex = over === null ? null : workingGroupInsertIndex(visible, over.ticketId, workingTicketIds);
-	const reviewer = column.statuses[0]?.reviewer ?? undefined;
 
 	if (collapsed) {
 		return (
@@ -83,7 +82,7 @@ export function BoardColumn({
 			>
 				<li role="none" className="contents">
 					<IconButton label={`Expand ${column.name}`} icon={<CaretRight />} size="xs" onClick={onToggle} />
-					<StatusIcon category={column.category} reviewer={reviewer} />
+					<StatusIcon category={column.category} />
 					<span className="mt-2 [writing-mode:vertical-rl] text-sm font-medium text-fg-muted">
 						{column.name} <span className="tabular">{count}</span>
 					</span>
@@ -100,7 +99,7 @@ export function BoardColumn({
 			className={cx("flex min-h-0 shrink-0 snap-start flex-col rounded-lg", well && "bg-band")}
 		>
 			<header className="flex h-9 shrink-0 items-center gap-2 px-2 text-fg pointer-coarse:h-12">
-				<StatusIcon category={column.category} reviewer={reviewer} />
+				<StatusIcon category={column.category} />
 				<h2 className="min-w-0 truncate text-base font-medium">{column.name}</h2>
 				<span className="text-sm tabular text-fg-faint">{count}</span>
 			</header>

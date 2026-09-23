@@ -9,10 +9,6 @@ export type Priority = z.infer<typeof PrioritySchema>;
 export const StatusCategorySchema = z.enum(["todo", "started", "review", "done", "canceled"]);
 export type StatusCategory = z.infer<typeof StatusCategorySchema>;
 
-// Who reviews a ticket in a `review` status. Only a review status carries a reviewer.
-export const ReviewerSchema = z.enum(["human", "agent"]);
-export type Reviewer = z.infer<typeof ReviewerSchema>;
-
 // The kinds a client may send in `x-trellis-actor`. `system` is the poller's
 // own kind: the header rejects it, and stored rows carry it.
 export const ActorKindSchema = z.enum(["human", "agent"]);

@@ -79,11 +79,7 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 									<td data-line="phone" colSpan={6}>
 										<TicketLink identifier={ticket.identifier} className={phoneLinkClass}>
 											<span className="flex items-center gap-3">
-												<StatusIcon
-													category={ticket.status.category}
-													reviewer={ticket.status.reviewer ?? undefined}
-													label={ticket.status.name}
-												/>
+												<StatusIcon category={ticket.status.category} label={ticket.status.name} />
 												<span className="font-mono text-sm text-fg-faint tabular">{ticket.identifier}</span>
 												<span className="flex-1" />
 												<PriorityIcon priority={ticket.priority} />
@@ -100,11 +96,7 @@ export function SearchResults({ q, filters = {} }: SearchResultsProps) {
 						return (
 							<tr key={ticket.id} className={rowClass}>
 								<td className="w-9 pl-5">
-									<StatusIcon
-										category={ticket.status.category}
-										reviewer={ticket.status.reviewer ?? undefined}
-										label={ticket.status.name}
-									/>
+									<StatusIcon category={ticket.status.category} label={ticket.status.name} />
 								</td>
 								<td className="w-20">
 									<TicketLink identifier={ticket.identifier} className={linkClass}>

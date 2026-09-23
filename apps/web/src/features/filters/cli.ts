@@ -8,7 +8,6 @@ const flags: readonly Flag[] = [
 	{ key: "project", flag: "--project" },
 	{ key: "status", flag: "--status", list: true },
 	{ key: "category", flag: "--category", list: true },
-	{ key: "reviewer", flag: "--reviewer" },
 	{ key: "priority", flag: "--priority", list: true },
 	{ key: "label", flag: "--label", list: true },
 	{ key: "labelNot", flag: "--label-not", list: true },

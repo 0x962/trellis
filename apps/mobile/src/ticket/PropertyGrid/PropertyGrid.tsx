@@ -35,7 +35,6 @@ export function PropertyGrid({ ticket, parentTitle, onStatusPress, onPriorityPre
 				<PropertyCell label="Status" onPress={onStatusPress}>
 					<StatusIcon
 						category={status.category}
-						reviewer={status.reviewer ?? undefined}
 						progress={ticket.childCount === 0 ? undefined : ticket.childDoneCount / ticket.childCount}
 						label={`Status: ${status.name}`}
 					/>

@@ -20,7 +20,7 @@ export type Candidate = {
 
 // The inbox of a person holds one item per ticket that waits for them. The
 // SQL below collects every ticket that is not done and not canceled and that
-// either waits for a human reviewer or links an open pull request.
+// is either in the review category or links an open pull request.
 // `waitingFor` then keeps the ticket only while it still waits for the
 // person: it drops a ticket whose agent run works, and it drops a ticket
 // whose pull request still needs the agent or still runs a check. The item id
@@ -42,7 +42,7 @@ export const candidates = async (
 			FROM tickets t JOIN statuses s ON s.id=t.status_id
 			LEFT JOIN LATERAL (SELECT id, created_at FROM activity WHERE ticket_id=t.id AND field='status' ORDER BY id DESC LIMIT 1) a ON true
 			WHERE s.category NOT IN ('done', 'canceled') AND (
-				s.reviewer='human' OR EXISTS (
+				s.category='review' OR EXISTS (
 					SELECT 1 FROM ticket_pull_requests link
 					JOIN pull_requests pull_request ON pull_request.id=link.pull_request_id
 					WHERE link.ticket_id=t.id AND pull_request.state='open'

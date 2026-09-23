@@ -18,7 +18,7 @@ export const resultRows = (tickets: TicketSummary[], deps: RowDeps): PaletteRow[
 		value: ticket.identifier,
 		label: ticket.title,
 		prefix: ticket.identifier,
-		icon: <StatusIcon category={ticket.status.category} reviewer={ticket.status.reviewer ?? "human"} />,
+		icon: <StatusIcon category={ticket.status.category} />,
 		keywords: [ticket.identifier],
 		run: openTicket(deps, ticket.identifier),
 	}));

@@ -40,8 +40,8 @@ export const statusesQuery = (client: TrellisClient, projectRef: string): Query<
 // The ticket as the screen shows it before the server answers a status or a
 // priority change. The version stays, so the response outranks the patch.
 export const withStatus = (ticket: Ticket, status: Status): Ticket => {
-	const { id, slug, name, category, reviewer, color } = status;
-	return { ...ticket, status: { id, slug, name, category, reviewer, color } };
+	const { id, slug, name, category, color } = status;
+	return { ...ticket, status: { id, slug, name, category, color } };
 };
 
 export const withPriority = (ticket: Ticket, priority: Priority): Ticket => ({ ...ticket, priority });

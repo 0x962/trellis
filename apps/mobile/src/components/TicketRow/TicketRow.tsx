@@ -32,12 +32,7 @@ export function TicketRow({ ticket, onPress, testID = "ticket-row" }: TicketRowP
 			leading={
 				<>
 					<PriorityIcon priority={ticket.priority} />
-					<StatusIcon
-						category={status.category}
-						reviewer={status.reviewer ?? "human"}
-						progress={progressOf(ticket)}
-						label={status.name}
-					/>
+					<StatusIcon category={status.category} progress={progressOf(ticket)} label={status.name} />
 				</>
 			}
 			meta={

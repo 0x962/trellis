@@ -61,7 +61,7 @@ const nextCounts = sql`,
 			(count(*) FILTER (WHERE
 				s.category NOT IN ('done', 'canceled')
 				AND (
-					s.reviewer = 'human'
+					s.category = 'review'
 					OR (NOT ${hasPullRequestNotReady} AND ${hasReadyPullRequest})
 				)
 			))::int AS waits_for_you`;

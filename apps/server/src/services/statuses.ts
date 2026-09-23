@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { ServiceCtx } from "../context.ts";
 import type { Tx } from "../db/tx.ts";
-import { fail, invalidInput } from "../errors.ts";
+import { fail } from "../errors.ts";
 import { changeSet } from "./changeSet.ts";
 import { resolveMutableProject, resolveProject, resolveStatus, toSummary } from "./refs.ts";
 import { deriveSlug } from "./slug.ts";
@@ -42,7 +42,6 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: StatusCreateInput):
 		description: input.description ?? "",
 		slug,
 		category: input.category,
-		reviewer: input.reviewer ?? null,
 		color: input.color ?? "fg",
 		position: own.length,
 		isDefault,
@@ -61,14 +60,11 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: StatusCreateInput):
 };
 
 // `category` never changes; `isDefault: true` moves the one default onto
-// this status; a reviewer needs a review status.
+// this status.
 export const update = async (ctx: ServiceCtx, tx: Tx, input: StatusUpdateInput): Promise<Status> => {
 	if ("category" in input) throw fail("STATUS_CATEGORY_IMMUTABLE");
 	const project = await resolveMutableProject(ctx, tx, input.project);
 	const status = await resolveStatus(ctx, tx, { projectId: project.id, status: input.status });
-	if (input.reviewer !== undefined && status.category !== "review") {
-		throw invalidInput("reviewer", "Only a review status carries a reviewer.");
-	}
 	const { sets, changes, field } = changeSet();
 	if (input.name !== undefined && input.name !== status.name) {
 		const slug = deriveSlug(input.name);
@@ -79,7 +75,6 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: StatusUpdateInput):
 	}
 	field("description", status.description, input.description, sql`description = ${input.description}`);
 	field("color", status.color, input.color, sql`color = ${input.color}`);
-	field("reviewer", status.reviewer, input.reviewer, sql`reviewer = ${input.reviewer}`);
 	if (input.isDefault === true && !status.isDefault) {
 		await tx.execute(sql`UPDATE statuses SET is_default = false WHERE project_id = ${project.id} AND is_default`);
 		field("isDefault", false, true, sql`is_default = true`);

@@ -21,7 +21,6 @@ export type SummaryRow = {
 	status_slug: string;
 	status_name: string;
 	status_category: TicketSummary["status"]["category"];
-	status_reviewer: TicketSummary["status"]["reviewer"];
 	status_color: TicketSummary["status"]["color"];
 	project_id: string;
 	project_key: string;
@@ -70,7 +69,7 @@ export const summaryColumns = sql`
 	proj.key || '-' || t.number AS identifier,
 	t.number, t.title, t.priority,
 	s.id AS status_id, s.slug AS status_slug, s.name AS status_name,
-	s.category AS status_category, s.reviewer AS status_reviewer, s.color AS status_color,
+	s.category AS status_category, s.color AS status_color,
 	t.project_id, proj.key AS project_key,
 	par.id AS parent_id,
 	CASE WHEN par.id IS NULL THEN NULL ELSE proj.key || '-' || par.number END AS parent_identifier,
@@ -172,7 +171,6 @@ export const toSummary = (row: SummaryRow): TicketSummary => {
 			slug: row.status_slug,
 			name: row.status_name,
 			category: row.status_category,
-			reviewer: row.status_reviewer,
 			color: row.status_color,
 		},
 		project: { id: row.project_id, key: row.project_key },

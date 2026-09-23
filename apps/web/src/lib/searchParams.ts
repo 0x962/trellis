@@ -16,7 +16,6 @@ export const searchParamOrder = [
 	"project",
 	"status",
 	"category",
-	"reviewer",
 	"priority",
 	"label",
 	"parent",

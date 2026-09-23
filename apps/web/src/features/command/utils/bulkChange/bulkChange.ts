@@ -1,12 +1,4 @@
-import type {
-	EpicSummary,
-	Label,
-	LabelGroup,
-	Priority,
-	Status,
-	TicketSummary,
-	WaveSummary,
-} from "@trellis/api";
+import type { EpicSummary, Label, LabelGroup, Priority, Status, TicketSummary, WaveSummary } from "@trellis/api";
 
 import { toggleLabel } from "../../../pickers/utils/toggleLabel";
 import type { BulkWrite } from "../../../table/hooks/useBulkWrite";
@@ -30,7 +22,6 @@ export const setStatus = (bulk: BulkWrite, rows: readonly TicketSummary[], statu
 				slug: status.slug,
 				name: status.name,
 				category: status.category,
-				reviewer: status.reviewer,
 				color: status.color,
 			},
 		},

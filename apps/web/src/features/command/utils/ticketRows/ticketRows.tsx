@@ -134,9 +134,7 @@ export const ticketRows = (deps: RowDeps): PaletteRow[] => {
 const iconOf = (id: string, deps: RowDeps): ReactNode => {
 	const { ticket } = deps;
 	if (id === "ticket.status") {
-		return ticket === undefined ? undefined : (
-			<StatusIcon category={ticket.status.category} reviewer={ticket.status.reviewer ?? "human"} />
-		);
+		return ticket === undefined ? undefined : <StatusIcon category={ticket.status.category} />;
 	}
 	if (id === "ticket.priority") return ticket === undefined ? undefined : <PriorityIcon priority={ticket.priority} />;
 	return icons[id];

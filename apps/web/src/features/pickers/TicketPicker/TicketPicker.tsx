@@ -95,7 +95,7 @@ export function TicketPicker({
 			current: onToggle === undefined && ticket.identifier === value,
 			checked:
 				onToggle === undefined ? undefined : (isChecked?.(ticket) ?? checked?.includes(ticket.identifier) ?? false),
-			icon: <StatusIcon category={ticket.status.category} reviewer={ticket.status.reviewer ?? undefined} />,
+			icon: <StatusIcon category={ticket.status.category} />,
 			children: <span className="truncate text-fg-muted">{ticket.title}</span>,
 		})),
 		...(onToggle === undefined && empty && value !== undefined ? [{ id: value, label: value, current: true }] : []),

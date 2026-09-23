@@ -140,10 +140,7 @@ export function ChipRow({
 					onPick={onStatus}
 					trigger={chip({
 						label: `Status: ${status?.name ?? "None"}`,
-						icon:
-							status === undefined ? undefined : (
-								<StatusIcon category={status.category} reviewer={status.reviewer ?? undefined} />
-							),
+						icon: status === undefined ? undefined : <StatusIcon category={status.category} />,
 						disabled: statuses.length === 0,
 						children: status?.name ?? "Status",
 					})}

@@ -17,11 +17,11 @@ beforeAll(async () => {
 	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
 		VALUES (${root}, 'OP', 'op', 'Operator', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses
-		(id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at)
+		(id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
 		VALUES
-		(${todo}, ${root}, 'Todo', 'todo', 'todo', NULL, 'fg-muted', 0, true, ${at}, ${at}),
-		(${review}, ${root}, 'Human Review', 'human-review', 'review', 'human', 'warning', 1, false, ${at}, ${at}),
-		(${done}, ${root}, 'Done', 'done', 'done', NULL, 'success', 2, false, ${at}, ${at})`);
+		(${todo}, ${root}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at}),
+		(${review}, ${root}, 'Human Review', 'human-review', 'review', 'warning', 1, false, ${at}, ${at}),
+		(${done}, ${root}, 'Done', 'done', 'done', 'success', 2, false, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO tickets
 		(id, project_id, number, title, description, status_id, outcome, position, created_at, updated_at)
 		VALUES

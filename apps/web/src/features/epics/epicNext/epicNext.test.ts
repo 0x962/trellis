@@ -8,8 +8,7 @@ const wave = (slug: string, toStart: number) =>
 const foundation = wave("foundation", 0);
 const surfaces = wave("surfaces", 3);
 const link = (entry: WaveSummary) => ({ id: entry.id, ref: entry.ref, name: entry.name });
-const statusOf = (reviewer: TicketSummary["status"]["reviewer"]) =>
-	({ category: "started", reviewer }) as TicketSummary["status"];
+const statusOf = (category: TicketSummary["status"]["category"]) => ({ category }) as TicketSummary["status"];
 const noWaits: TicketSummary["waitsOn"] = [];
 const noPrs: TicketSummary["prRows"] = [];
 // A ticket that waits for the agent, so a test that counts the tickets of
@@ -18,7 +17,7 @@ const ticket = (id: string, entry: WaveSummary) =>
 	({
 		id,
 		wave: link(entry),
-		status: statusOf(null),
+		status: statusOf("started"),
 		waitsOn: noWaits,
 		prRows: noPrs,
 		ready: false,
@@ -35,7 +34,7 @@ const reviewPr = {
 	openThreads: 0,
 } as unknown as TicketPr;
 const question = (id: string, entry: WaveSummary) =>
-	({ ...ticket(id, entry), status: statusOf("human") }) as TicketSummary;
+	({ ...ticket(id, entry), status: statusOf("review") }) as TicketSummary;
 const review = (id: string, entry: WaveSummary) => ({ ...ticket(id, entry), prRows: [reviewPr] }) as TicketSummary;
 const noWorking: ReadonlySet<string> = new Set();
 const run = (ticketId: string, activity: "working" | "idle" = "working", kind: AgentRun["kind"] = "agent") =>
@@ -98,7 +97,6 @@ describe("epicNext", () => {
 				priority: ["high"],
 				status: ["in-progress"],
 				category: ["started"],
-				reviewer: "agent",
 				wave: foundation.ref,
 				not: ["status", "priority"],
 			},
