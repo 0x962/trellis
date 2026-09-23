@@ -1,6 +1,7 @@
 import { Archive, DownloadSimple, File, FileText, FileXls } from "@phosphor-icons/react";
 import type { Attachment } from "@trellis/api";
-import type { ReactElement } from "react";
+import { InlineEdit } from "@trellis/ui";
+import { type ReactElement, useState } from "react";
 import { relativeTime } from "../../../../../lib/format";
 import { ActorChip } from "../../../../agents/ActorChip";
 import { formatBytes } from "../../../utils/formatBytes";
@@ -23,6 +24,7 @@ const fileIcon = (attachment: Attachment): { name: string; icon: ReactElement } 
 // actor, the time, a download link, and the row menu.
 export function AttachmentRow({ attachment, onDelete, onRename }: AttachmentRowProps) {
 	const type = fileIcon(attachment);
+	const [renaming, setRenaming] = useState(false);
 	return (
 		<div
 			data-attachment-row=""
@@ -35,7 +37,22 @@ export function AttachmentRow({ attachment, onDelete, onRename }: AttachmentRowP
 			>
 				{type.icon}
 			</span>
-			<span className="min-w-0 flex-1 truncate text-sm font-medium text-fg">{attachment.filename}</span>
+			{onRename === undefined ? (
+				<span className="min-w-0 flex-1 truncate text-sm font-medium text-fg">{attachment.filename}</span>
+			) : (
+				<InlineEdit
+					label={`Rename ${attachment.filename}`}
+					value={attachment.filename}
+					editing={renaming}
+					onEditingChange={setRenaming}
+					onSave={onRename}
+					errorTitle={`${attachment.filename} kept its name.`}
+					className="min-w-0 flex-1"
+					inputClassName="h-7 text-sm font-medium"
+				>
+					<span className="block min-w-0 truncate text-sm font-medium text-fg">{attachment.filename}</span>
+				</InlineEdit>
+			)}
 			<span className="text-sm text-fg-muted tabular">{formatBytes(attachment.size)}</span>
 			<ActorChip actor={attachment.actor} />
 			<time dateTime={attachment.createdAt} className="text-sm text-fg-muted tabular">
@@ -50,7 +67,7 @@ export function AttachmentRow({ attachment, onDelete, onRename }: AttachmentRowP
 				<DownloadSimple aria-hidden="true" className="size-3.5" />
 			</a>
 			{onDelete !== undefined && onRename !== undefined && (
-				<AttachmentActions attachment={attachment} onDelete={onDelete} onRename={onRename} />
+				<AttachmentActions attachment={attachment} onDelete={onDelete} onRename={() => setRenaming(true)} />
 			)}
 		</div>
 	);

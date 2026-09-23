@@ -3,26 +3,20 @@ import { InlineEdit } from "@trellis/ui";
 import type { ReactNode } from "react";
 import { useApp } from "../../../lib/appContext";
 
+// `InlineEditProps` in `packages/ui` states what each field below means.
 export type SessionNameProps = {
 	session: Session;
-	// True while the name is a text field. The screen owns it, because the
-	// Rename action that starts the edit sits in a row menu.
 	editing: boolean;
 	onEditingChange: (editing: boolean) => void;
-	// The avatar of the session. It stands beside the text field, so the row
-	// does not move sideways when the field opens.
 	leading?: ReactNode;
 	className?: string;
 	fieldClassName?: string;
 	inputClassName?: string;
-	// The name at rest: the row, the heading or the plain text that the field
-	// covers while the edit runs.
 	children?: ReactNode;
 };
 
-// The session name in the four places that show it: the sidebar row, the
-// sessions page group, the session conversation and the session page. It binds
-// the rename call to `InlineEdit`, which holds every rule of the edit.
+// Binds the session rename call to `InlineEdit`, which holds every rule of
+// the edit.
 export function SessionName({
 	session,
 	editing,
@@ -48,7 +42,7 @@ export function SessionName({
 			value={session.name}
 			editing={editing}
 			onEditingChange={onEditingChange}
-			onCommit={rename}
+			onSave={rename}
 			errorTitle="The session name did not change."
 			leading={leading}
 			className={className}

@@ -3,8 +3,9 @@ export {
 	type InlineEditAction,
 	type InlineEditEvent,
 	type InlineEditFocus,
+	type InlineEditOptions,
 	type InlineEditOutcome,
-	type InlineEditRun,
 	inlineEditAction,
+	inlineEditRules,
 	runInlineEdit,
 } from "./inlineEditRules";
