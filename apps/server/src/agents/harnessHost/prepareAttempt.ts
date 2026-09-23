@@ -54,7 +54,7 @@ export async function prepareAttempt(
 	const hookCommand = `${quote(options.bun)} ${quote(fileURLToPath(new URL("./hook.ts", import.meta.url)))}`;
 	const configDirectory = await mkdtemp(join(directory, "config-"));
 	const cwd = input.cwd;
-	if (input.harness === "claude") await claudeTrust(cwd, env, options.agents);
+	if (input.harness === "claude") await claudeTrust(cwd, env, options.agentsDirectory, options.log);
 	const common = {
 		env,
 		cwd,

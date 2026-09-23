@@ -63,10 +63,8 @@ export const reserve = async (
 	if (input.harness) config = { ...config, harness: HarnessSchema.parse(input.harness), accountId: null };
 	if (kind === "agent") {
 		if (ticket!.completedAt !== null) throw invalidInput("ticket", "Reopen the ticket before an agent starts.");
-		// A ticket carries one open agent run. The index
-		// `agent_runs_active_ticket_idx` holds that rule, and the INSERT below
-		// answers DUPLICATE when a run of another caller already holds the
-		// ticket. This read answers DUPLICATE before the work of a reservation.
+		// This read gives the DUPLICATE error early, before the reservation
+		// does its work. The INSERT below applies the rule.
 		const assigned = await rows(
 			tx,
 			sql`SELECT id FROM agent_runs WHERE ticket_id=${ticket!.id} AND kind='agent' AND closed_at IS NULL LIMIT 1`,
@@ -104,13 +102,15 @@ export const reserve = async (
 			branch: runBranch({ id, kind, ticketIdentifier: ticket!.identifier }),
 			publicUrl: ctx.publicUrl,
 		});
-	// `ON CONFLICT DO NOTHING` returns no row when `agent_runs_active_ticket_idx`
-	// already holds an open agent run for this ticket.
+	// `ON CONFLICT` returns no row when `agent_runs_active_ticket_idx` already
+	// has an open agent run for this ticket. A ticket can have only one. The
+	// target names that index, so a violation of another constraint throws its
+	// own error instead of reading as a duplicate agent.
 	const [run] = await rows<StoredRun>(
 		tx,
 		sql`INSERT INTO agent_runs (id, name, harness, kind, instruction, project_id, project_key, ticket_id, ticket_identifier, runtime, closed_at, session_id, created_at, updated_at)
 		VALUES (${id}, ${name}, ${JSON.stringify(config.harness)}::jsonb, ${kind}, ${instruction}, ${project.id}, ${projectKey}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'native', NULL, ${sessionId}, ${ctx.now}, ${ctx.now})
-		ON CONFLICT DO NOTHING RETURNING ${columns}`,
+		ON CONFLICT (ticket_id) WHERE kind = 'agent' AND closed_at IS NULL DO NOTHING RETURNING ${columns}`,
 	);
 	if (run === undefined) throw fail("DUPLICATE", { field: "active agent" });
 	const attempt = await reserveAttempt(ctx, tx, { runId: run.id });
