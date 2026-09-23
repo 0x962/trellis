@@ -53,6 +53,10 @@ export const FlowExecutionSchema = z.object({
 	ticketId: UlidSchema,
 	projectId: UlidSchema,
 	revision: z.number().int().positive(),
+	// The commit the caller named when it started the run. `trellis ready`
+	// asks for a run of the commit the pull request now points at, so a run
+	// that names no commit answers no pull request.
+	headSha: z.string().nullable(),
 	doc: FlowDocSchema,
 	state: FlowExecutionStateSchema,
 	tasks: z.array(FlowExecutionTaskSchema),
@@ -62,6 +66,8 @@ export const FlowExecutionSchema = z.object({
 export const FlowExecutionStartInputSchema = z.strictObject({
 	flow: FlowRefSchema,
 	ticket: z.string().min(1),
+	// The head commit of the pull request this run answers.
+	headSha: z.string().min(1).max(64).optional(),
 	requestId: z.uuid(),
 	expectedVersion: z.number().int().positive(),
 });

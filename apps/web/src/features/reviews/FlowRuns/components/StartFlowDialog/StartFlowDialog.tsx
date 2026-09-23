@@ -4,7 +4,15 @@ import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { startFlowId } from "./startFlowId";
 
-export function StartFlowDialog({ ticket, onClose }: { ticket: string; onClose: () => void }) {
+export function StartFlowDialog({
+	ticket,
+	headSha,
+	onClose,
+}: {
+	ticket: string;
+	headSha: string | null;
+	onClose: () => void;
+}) {
 	const { client, orpc, queryClient } = useApp();
 	const [flowId, setFlowId] = useState("");
 	const [requestId, setRequestId] = useState(() => crypto.randomUUID());
@@ -16,6 +24,7 @@ export function StartFlowDialog({ ticket, onClose }: { ticket: string; onClose: 
 			client.flowExecutions.start({
 				flow: selectedFlowId,
 				ticket,
+				...(headSha === null ? {} : { headSha }),
 				requestId,
 				expectedVersion: flow!.version,
 			}),

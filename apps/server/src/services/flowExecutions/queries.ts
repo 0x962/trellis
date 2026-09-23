@@ -21,10 +21,14 @@ export const readExecution = async (tx: Tx, id: string, lock = false) => {
 	if (!row) throw fail("NOT_FOUND", { kind: "flow execution", ref: id });
 	return { ...row, doc: normalizeDoc(row.doc) };
 };
+// `flow_executions.request` holds the whole input of `flowExecutions.start`,
+// so the head commit the caller named reads back out of that column and needs
+// no column of its own. A run started before that input field existed, or one
+// started with no pull request, reads null.
 export const get = async (_ctx: ServiceCtx, tx: Tx, input: { id: string }): Promise<FlowExecutionRecord> => {
 	const [record] = await rows<Omit<FlowExecutionRecord, "tasks">>(
 		tx,
-		sql`SELECT id,flow_id AS "flowId",ticket_id AS "ticketId",project_id AS "projectId",revision,doc,state,${iso(sql`created_at`)} AS "createdAt",${iso(sql`updated_at`)} AS "updatedAt" FROM flow_executions WHERE id=${input.id}`,
+		sql`SELECT id,flow_id AS "flowId",ticket_id AS "ticketId",project_id AS "projectId",revision,request->>'headSha' AS "headSha",doc,state,${iso(sql`created_at`)} AS "createdAt",${iso(sql`updated_at`)} AS "updatedAt" FROM flow_executions WHERE id=${input.id}`,
 	);
 	if (!record) throw fail("NOT_FOUND", { kind: "flow execution", ref: input.id });
 	const tasks = await rows<FlowExecutionRecord["tasks"][number]>(

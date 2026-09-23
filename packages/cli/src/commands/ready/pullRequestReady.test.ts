@@ -13,6 +13,7 @@ const readiness = (
 ): PullRequestReadiness => ({
 	dataModelDiagramRequired,
 	pullRequest: { number: 131, url: "https://github.com/acme/trellis/pull/131", headSha: "abc123" },
+	flows: { flows: [], runs: [], satisfied: true },
 	missing,
 	ready: missing.length === 0,
 });
@@ -42,6 +43,25 @@ test("names the missing data model diagram and tells the agent how to add it", (
 	);
 });
 
+test("names each flow with the command that runs it when no flow ran", () => {
+	const result = readiness(["flow-run"]);
+	result.flows = {
+		flows: [
+			{ slug: "review", name: "Review", description: "Read the diff." },
+		] as PullRequestReadiness["flows"]["flows"],
+		runs: [],
+		satisfied: false,
+	};
+
+	expect(pullRequestReadyText(result)).toBe(
+		`#131 is not ready for review. Add each missing item, then run: trellis ready 131
+  MISSING  flow run  no flow ran on the current head
+    Pick the flows that fit this change and run each one:
+    review  Read the diff.  trellis flows run 131 --flow review
+`,
+	);
+});
+
 test("says the pull request is ready when both parts exist", () => {
 	expect(pullRequestReadyText(readiness([]))).toBe(
 		"#131 is ready for review. It has the explanation and the evidence document. The person will now review it.\n",
@@ -58,10 +78,14 @@ const clientWith = ({
 	evidence,
 	files,
 	summaryHead,
+	flows = [],
+	runs = [],
 }: {
 	evidence: { body: string } | null;
 	files: Array<{ path: string; change: "change"; additions: number; deletions: number }> | null;
 	summaryHead: { headline: string; why: string; watch: string } | null;
+	flows?: Array<{ slug: string; name: string; description: string }>;
+	runs?: Array<{ headSha: string; slug: string; status: string }>;
 }): TrellisClient =>
 	({
 		pullRequests: {
@@ -69,7 +93,16 @@ const clientWith = ({
 			readEvidence: async () => evidence,
 			readSummaryHead: async () => summaryHead,
 		},
-		reviews: { status: async () => ({ headRefOid: "abc123" }) },
+		reviews: { status: async () => ({ headRefOid: "abc123", ticket: { identifier: "OP-74" } }) },
+		flows: { list: async () => flows },
+		flowExecutions: {
+			list: async () =>
+				runs.map((run) => ({
+					headSha: run.headSha,
+					doc: { flow: { slug: run.slug, name: run.slug } },
+					state: { status: run.status },
+				})),
+		},
 	}) as unknown as TrellisClient;
 
 test("requires an ER diagram when the pull request changes a data model", async () => {
@@ -93,6 +126,48 @@ test("accepts an ER diagram in the explanation or the evidence document", async 
 			files: [{ path: "backend/operator/models.py", change: "change", additions: 8, deletions: 0 }],
 			summaryHead: { headline: "Add briefings.", why: "The table stores them.", watch: "backend/operator/models.py" },
 		}),
+		{ id: "01M30HDWKZ17G62PJAFHZNED2J", url: "https://github.com/acme/trellis/pull/131" },
+	);
+
+	expect(result.ready).toBe(true);
+});
+
+const written = {
+	evidence: { body: "Proof." },
+	files: [{ path: "docs/README.md", change: "change" as const, additions: 1, deletions: 0 }],
+	summaryHead: { headline: "Add the step.", why: "The agent skipped it.", watch: "nothing" },
+};
+
+test("asks an agent for a flow run when the server holds a flow", async () => {
+	const result = await pullRequestReadiness(
+		clientWith({ ...written, flows: [{ slug: "review", name: "Review", description: "Read the diff." }] }),
+		{ id: "01M30HDWKZ17G62PJAFHZNED2J", url: "https://github.com/acme/trellis/pull/131" },
+		true,
+	);
+
+	expect(result.missing).toEqual(["flow-run"]);
+});
+
+test("takes a succeeded run of the current head as the flow run", async () => {
+	const result = await pullRequestReadiness(
+		clientWith({
+			...written,
+			flows: [{ slug: "review", name: "Review", description: "Read the diff." }],
+			runs: [{ headSha: "abc123", slug: "review", status: "succeeded" }],
+		}),
+		{ id: "01M30HDWKZ17G62PJAFHZNED2J", url: "https://github.com/acme/trellis/pull/131" },
+		true,
+	);
+
+	expect(result.ready).toBe(true);
+	expect(pullRequestReadyText(result)).toBe(
+		"#131 is ready for review. It has the explanation, the evidence document, and a flow run on this head. The person will now review it.\n",
+	);
+});
+
+test("asks a caller that checks no flow for nothing new", async () => {
+	const result = await pullRequestReadiness(
+		clientWith({ ...written, flows: [{ slug: "review", name: "Review", description: "Read the diff." }] }),
 		{ id: "01M30HDWKZ17G62PJAFHZNED2J", url: "https://github.com/acme/trellis/pull/131" },
 	);
 

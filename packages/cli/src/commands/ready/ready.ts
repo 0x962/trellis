@@ -35,9 +35,13 @@ export const readyResultOf = (tickets: TicketSummary[], workingTicketIds: Readon
 // this opens it the way `trellis summary write` does. When both parts exist,
 // it sets the local state to `ready`, and the person sees the pull request
 // as ready for review. A later push keeps that state.
+//
+// An agent must also have run a flow on the current head when the server
+// holds any flow. A person is never held back by that, so the check runs
+// only for an agent.
 const pullRequestReady = async (ctx: CliContext, client: TrellisClient, ref: string): Promise<number> => {
 	const resolved = await resolvePullRequest(client, ref, true);
-	const result = await pullRequestReadiness(client, resolved);
+	const result = await pullRequestReadiness(client, resolved, ctx.actor().kind === "agent");
 	if (result.ready) await client.pullRequests.setLocalState({ id: resolved.id, localState: "ready" });
 	ctx.out.write(wantsJson(ctx) ? json(result) : pullRequestReadyText(result));
 	return result.ready ? 0 : 1;

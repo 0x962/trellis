@@ -41,8 +41,13 @@ Prove the change. A pull request is ready for review when it has the explanation
    Write the document again after a push that changes what it shows.
 5. Bind every sentence to something checkable: a file and a line, a check result, a test name, or a number with
    its sha. Say when a sentence is a guess.
-6. Ask for review:  trellis ready <pr>
-   It checks both parts and marks the pull request ready for review. Until then the person sees a draft.
+6. Run the flows that fit the change:  trellis flows list
+   A flow is a saved set of agent steps that Trellis runs against your pull request.
+   Pick every flow whose name and description fit what you changed.
+   Start each one and wait for its result:  trellis flows run <pr> --flow <slug>
+   When a flow run fails, fix the fault and run the flow again, or write in the evidence document why the flow does not apply.
+7. Ask for review:  trellis ready <pr>
+   It checks the parts and marks the pull request ready for review. Until then the person sees a draft.
    Hand over:        trellis move KEY-42 human-review
 
 Labels say what a ticket is about. Read the set of the project: trellis labels list KEY

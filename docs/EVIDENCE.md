@@ -25,4 +25,6 @@ Run the product from your own worktree, on your own port, with your own data hom
 
 `trellis pr add` and `trellis ready <pr>` check each linked pull request for the explanation of its current head and for the evidence document. While one is missing, they print it with the command that writes it, and they exit with code 1 for an agent. `trellis move <ticket> human-review` applies the same check to each open pull request of the ticket.
 
+`trellis ready <pr>` also asks an agent for a flow run. A flow is a saved set of agent steps that Trellis runs against a pull request. List the flows with `trellis flows list`, pick every flow that fits the change, and start each one with `trellis flows run <pr> --flow <slug>`. The command waits for the result. While no flow run of the current head has succeeded, `trellis ready` names the flows with the command that starts each, and it exits with code 1 for an agent. A server that holds no flow asks for no run.
+
 Run `trellis ready <pr>` before you hand over.

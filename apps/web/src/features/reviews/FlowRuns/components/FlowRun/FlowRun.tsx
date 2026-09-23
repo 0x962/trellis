@@ -26,6 +26,7 @@ export function FlowRun({
 	expanded,
 	onToggle,
 	canStart,
+	headSha,
 }: {
 	execution: FlowExecutionRecord;
 	ticket: string;
@@ -33,6 +34,8 @@ export function FlowRun({
 	onToggle: () => void;
 	// No run of the ticket is live, so this one can run again.
 	canStart: boolean;
+	// The commit the pull request points at now, which a new run stores.
+	headSha: string | null;
 }) {
 	const { client, orpc, queryClient } = useApp();
 	const { doc, state } = execution;
@@ -63,6 +66,7 @@ export function FlowRun({
 			return client.flowExecutions.start({
 				flow: execution.flowId,
 				ticket,
+				...(headSha === null ? {} : { headSha }),
 				requestId: crypto.randomUUID(),
 				expectedVersion: current.flow.version,
 			});

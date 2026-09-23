@@ -236,7 +236,10 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 											description="No ticket links this pull request, and a flow runs against a ticket."
 										/>
 									) : (
-										<FlowRuns ticket={ticketIdentifier} />
+										<FlowRuns
+											ticket={ticketIdentifier}
+											headSha={(status.data?.headRefOid as string | undefined) ?? null}
+										/>
 									)}
 								</div>
 							),

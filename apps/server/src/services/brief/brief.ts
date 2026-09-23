@@ -7,12 +7,14 @@ import { ticketGet } from "../../db/queries/ticketGet.ts";
 import type { Tx } from "../../db/tx.ts";
 import { epicView } from "../epics/epics.ts";
 import { earlierResults, epicHeaderLine, epicLines, resultsLines, waveHeaderLine } from "../epics/text.ts";
+import { list as listFlows } from "../flows/flows.ts";
 import { activeNotes } from "../notes/notes.ts";
 import { notesLines } from "../notes/text.ts";
 import { resolveTicket } from "../refs.ts";
 import { chainLines } from "./chainLines.ts";
 import { contractLines } from "./contractLines.ts";
 import { evidenceLines } from "./evidenceLines.ts";
+import { flowLines } from "./flowLines.ts";
 
 // The markdown an agent starts from. The layout is fixed and every list
 // keeps a stable order, so two reads of the same state give the same bytes
@@ -200,6 +202,7 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<B
 		["## Description", "", ticket.description],
 		contractLines(ticket.contract),
 		evidenceLines,
+		flowLines(await listFlows(ctx, tx, {})),
 		chainLines(ticket, waitsOn),
 		...(epic === null ? [] : epicLines(epic, ticket.id)),
 		results,

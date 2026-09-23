@@ -93,6 +93,7 @@ export const handOverRefused = (ticket: string) =>
 
 const partWords: Record<ReadinessPart, string> = {
 	"data-model-diagram": "the data model diagram",
+	"flow-run": "a flow run on the current head",
 	evidence: "the evidence document",
 	explanation: "the explanation",
 };

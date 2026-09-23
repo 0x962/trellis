@@ -40,11 +40,14 @@ export const resolvePullRequest = async (
 	return { id: opened.id, url: opened.url };
 };
 
+// `ticket` is the identifier of the ticket that links the pull request, and
+// null when no ticket links it. A flow runs against a ticket, so a caller
+// that starts a flow needs it.
 export const currentHead = async (
 	client: TrellisClient,
 	ref: PullRequestRef,
-): Promise<{ sha: string; pullRequest: PullRequest }> => {
+): Promise<{ sha: string; ticket: string | null; pullRequest: PullRequest }> => {
 	const pullRequest = await client.pullRequests.refresh({ id: ref.id });
 	const status = await client.reviews.status({ pr: ref.url });
-	return { sha: status.headRefOid as string, pullRequest };
+	return { sha: status.headRefOid as string, ticket: status.ticket?.identifier ?? null, pullRequest };
 };

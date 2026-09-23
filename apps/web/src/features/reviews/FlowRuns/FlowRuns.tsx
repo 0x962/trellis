@@ -12,7 +12,10 @@ const isLive = (status: string) => status === "running" || status === "waiting";
 // live run and the newest run open with their steps. An older run opens on
 // its name. The list refreshes on the flows.changed event of the live
 // connection.
-export function FlowRuns({ ticket }: { ticket: string }) {
+//
+// `headSha` is the commit the pull request points at now. A run stores it, so
+// `trellis ready` can tell a run of this commit from a run of an older one.
+export function FlowRuns({ ticket, headSha }: { ticket: string; headSha: string | null }) {
 	const { orpc } = useApp();
 	const [start, setStart] = useState(false);
 	// The runs whose open state differs from the default.
@@ -58,12 +61,13 @@ export function FlowRuns({ ticket }: { ticket: string }) {
 								expanded={toggled.has(execution.id) ? !open : open}
 								onToggle={() => toggle(execution.id)}
 								canStart={!anyLive}
+								headSha={headSha}
 							/>
 						);
 					})}
 				</div>
 			)}
-			{start && <StartFlowDialog ticket={ticket} onClose={() => setStart(false)} />}
+			{start && <StartFlowDialog ticket={ticket} headSha={headSha} onClose={() => setStart(false)} />}
 		</section>
 	);
 }
