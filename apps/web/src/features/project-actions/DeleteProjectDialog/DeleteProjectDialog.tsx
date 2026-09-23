@@ -7,26 +7,24 @@ import { formatCount } from "../../../lib/format";
 import { useProjectActions } from "../hooks/useProjectActions";
 
 export type DeleteProjectDialogProps = {
-	project: Pick<ProjectSummary, "path" | "key" | "name">;
+	project: Pick<ProjectSummary, "key" | "name">;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 };
 
 const ticketCount = (count: number) => `${formatCount(count)} ${count === 1 ? "ticket" : "tickets"}`;
 
-// A delete of the project and everything under it. The server refuses a
-// delete of a project with tickets or sub-projects unless the request sends
-// `force`, and a forced delete cannot be undone. So the dialog counts the
-// tickets first, and with tickets it waits for the typed project key.
+// A delete of the project and every ticket in it. The server refuses a
+// delete of a project with tickets unless the request sends `force`, and a
+// forced delete cannot be undone. So the dialog counts the tickets first,
+// and with tickets it waits for the typed project key.
 export function DeleteProjectDialog({ project, open, onOpenChange }: DeleteProjectDialogProps) {
 	const { orpc } = useApp();
 	const { remove } = useProjectActions();
 	const [typed, setTyped] = useState("");
 	const [pending, setPending] = useState(false);
-	const counts = useQuery({ ...orpc.tickets.counts.queryOptions({ input: { project: project.path } }), enabled: open });
-	const projects = useQuery(orpc.projects.list.queryOptions({ input: {} })).data ?? [];
+	const counts = useQuery({ ...orpc.tickets.counts.queryOptions({ input: { project: project.key } }), enabled: open });
 	const tickets = counts.data?.total;
-	const hasSubprojects = projects.some((row) => row.path.startsWith(`${project.path}.`));
 	const needsKey = tickets !== undefined && tickets > 0;
 	const ready = tickets !== undefined && (!needsKey || typed === project.key) && !pending;
 
@@ -37,7 +35,7 @@ export function DeleteProjectDialog({ project, open, onOpenChange }: DeleteProje
 
 	const confirm = async () => {
 		setPending(true);
-		const deleted = await remove(project, needsKey || hasSubprojects);
+		const deleted = await remove(project, needsKey);
 		setPending(false);
 		if (deleted) close(false);
 	};
@@ -46,8 +44,8 @@ export function DeleteProjectDialog({ project, open, onOpenChange }: DeleteProje
 		tickets === undefined
 			? "Counting the tickets…"
 			: tickets === 0
-				? `${project.path} holds no tickets. You cannot undo a delete.`
-				: `This deletes ${project.path}, its ${ticketCount(tickets)}, and every sub-project. You cannot undo a delete.`;
+				? `${project.key} holds no tickets. You cannot undo a delete.`
+				: `This deletes ${project.key} and its ${ticketCount(tickets)}. You cannot undo a delete.`;
 
 	return (
 		<Dialog open={open} onOpenChange={close} title={`Delete ${project.name}?`} description={description}>

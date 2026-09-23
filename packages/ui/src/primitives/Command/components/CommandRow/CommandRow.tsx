@@ -12,7 +12,7 @@ export type CommandRowProps = {
 	label: string;
 	// Extra words the filter matches, beside the value and the label.
 	keywords?: string[];
-	// Muted text after the label: the current status, a project path, a
+	// Muted text after the label: the current status, a project key, a
 	// command to paste.
 	sub?: string;
 	// Draws the sub in faint mono, for a ticket ID.

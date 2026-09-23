@@ -65,37 +65,26 @@ export const fail = (code: ErrorCode, data?: unknown) =>
 
 export const notFound = (kind: string, ref: string) => fail("NOT_FOUND", { kind, ref });
 
-// A ticket with the project it sits in. `archived_at` is the newest archive
-// stamp on that project and its ancestors, so it is set when the project or
-// any ancestor is archived. Every write refuses such a ticket.
+// A ticket with the project it sits in. `archived_at` is the archive stamp
+// of that project. Every write refuses a ticket of an archived project.
 export type TicketRow = {
 	id: string;
 	project_id: string;
-	root_id: string;
 	archived_at: string | null;
 };
 
 // Accepts a ULID or the `KEY-n` identifier. The number lives on the ticket
-// and the key on the root project, so the identifier form joins both. The
-// recursive query walks from the ticket's project up the parent links.
+// and the key on its project, so the identifier form joins both.
 export const resolveTicket = async (tx: Tx, ref: string): Promise<TicketRow> => {
 	const parsed = TicketRefSchema.parse(ref);
 	const match =
-		parsed.kind === "ulid" ? sql`t.id = ${parsed.id}` : sql`root.key = ${parsed.key} AND t.number = ${parsed.number}`;
+		parsed.kind === "ulid" ? sql`t.id = ${parsed.id}` : sql`proj.key = ${parsed.key} AND t.number = ${parsed.number}`;
 	const [row] = await rows<TicketRow>(
 		tx,
 		sql`
-			SELECT t.id, t.project_id, t.root_id, chain.archived_at
+			SELECT t.id, t.project_id, proj.archived_at
 			FROM tickets t
-			JOIN projects root ON root.id = t.root_id
-			CROSS JOIN LATERAL (
-				WITH RECURSIVE up AS (
-					SELECT p.id, p.parent_id, p.archived_at FROM projects p WHERE p.id = t.project_id
-					UNION ALL
-					SELECT p.id, p.parent_id, p.archived_at FROM projects p JOIN up ON p.id = up.parent_id
-				)
-				SELECT max(up.archived_at) AS archived_at FROM up
-			) chain
+			JOIN projects proj ON proj.id = t.project_id
 			WHERE ${match}
 		`,
 	);
@@ -135,9 +124,9 @@ export type ActivityInput = {
 export const writeActivity = async (ctx: ServiceCtx, tx: Tx, input: ActivityInput) => {
 	await touchActor(tx, ctx.actor, input.at);
 	await tx.execute(sql`
-		INSERT INTO activity (batch_id, root_id, project_id, ticket_id, actor_name, actor_kind, action, meta, created_at)
+		INSERT INTO activity (batch_id, project_id, ticket_id, actor_name, actor_kind, action, meta, created_at)
 		VALUES (
-			${ulid()}, ${input.ticket.root_id}, ${input.ticket.project_id}, ${input.ticket.id},
+			${ulid()}, ${input.ticket.project_id}, ${input.ticket.id},
 			${ctx.actor.name}, ${ctx.actor.kind}, ${input.action}, ${input.meta}, ${input.at}
 		)
 	`);

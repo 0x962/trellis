@@ -8,23 +8,23 @@ import { type LabelDeltaInput, type LabelPlan, planLabelDeltas } from "./labels.
 // TRL reads each label ref one time.
 
 export type ChangePlanner = {
-	labels: (rootId: string) => Promise<LabelPlan>;
+	labels: (projectId: string) => Promise<LabelPlan>;
 };
 
 // Runs `read` the first time a root arrives and answers from the map after
 // that. The map holds the promise, so two tickets of one root never start
 // two reads of the same row.
-const perRoot = <T>(read: (rootId: string) => Promise<T>) => {
+const perProject = <T>(read: (projectId: string) => Promise<T>) => {
 	const known = new Map<string, Promise<T>>();
-	return (rootId: string) => {
-		const answered = known.get(rootId);
+	return (projectId: string) => {
+		const answered = known.get(projectId);
 		if (answered !== undefined) return answered;
-		const pending = read(rootId);
-		known.set(rootId, pending);
+		const pending = read(projectId);
+		known.set(projectId, pending);
 		return pending;
 	};
 };
 
 export const changePlanner = (ctx: ServiceCtx, tx: Tx, input: LabelDeltaInput): ChangePlanner => ({
-	labels: perRoot((rootId) => planLabelDeltas(ctx, tx, rootId, input)),
+	labels: perProject((projectId) => planLabelDeltas(ctx, tx, projectId, input)),
 });

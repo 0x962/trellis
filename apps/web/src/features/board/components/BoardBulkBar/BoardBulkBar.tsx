@@ -8,8 +8,8 @@ import type { BoardBulk } from "../../hooks/useBoardBulk";
 export type BoardBulkBarProps = {
 	// The selected cards. The bar counts them and every control writes to them.
 	rows: readonly TicketSummary[];
-	// The project ref of the route. The root of that tree owns the labels and
-	// the epics, so a board without a project offers no Labels, no Set epic, and
+	// The project ref of the route. That project owns the labels and the
+	// epics, so a board without a project offers no Labels, no Set epic, and
 	// no Set wave.
 	project?: string;
 	bulk: BoardBulk;
@@ -20,10 +20,6 @@ export type BoardBulkBarProps = {
 // the ticket table, over the cards selected in one board column.
 export function BoardBulkBar({ rows, project, bulk, onClear }: BoardBulkBarProps) {
 	const statuses = useScopeStatuses(project);
-	const rootOfProject = new Map(bulk.projects.map((entry) => [entry.id, entry.rootId]));
-	const ticketRootIds = [
-		...new Set(rows.map((row) => rootOfProject.get(row.project.id)).filter((id): id is string => id !== undefined)),
-	];
 	// How the selected cards hold each label: `all` draws a check, `some`
 	// draws a minus. A pick on a check removes the label everywhere, and a
 	// pick on a minus adds it everywhere.
@@ -38,8 +34,6 @@ export function BoardBulkBar({ rows, project, bulk, onClear }: BoardBulkBarProps
 				open={rows.length > 0}
 				count={rows.length}
 				statuses={statuses}
-				projects={bulk.projects}
-				ticketRootIds={ticketRootIds}
 				project={project}
 				labelIds={labels.all}
 				mixedLabelIds={labels.some}
@@ -49,7 +43,6 @@ export function BoardBulkBar({ rows, project, bulk, onClear }: BoardBulkBarProps
 				onLabel={bulk.label}
 				onStatus={bulk.status}
 				onPriority={bulk.priority}
-				onProject={bulk.project}
 				onParent={bulk.parent}
 				onEpic={bulk.epic}
 				onWave={bulk.wave}

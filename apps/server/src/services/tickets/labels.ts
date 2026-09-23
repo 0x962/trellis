@@ -35,8 +35,8 @@ export type LabelDeltaInput = { addLabels?: readonly string[]; removeLabels?: re
 
 // The labels one write adds and the labels it removes, already read from the
 // database. `null` says the write names no label, so the ticket keeps the
-// labels it holds. A ref resolves inside one root, so one plan serves every
-// ticket of that root.
+// labels it holds. A ref resolves inside one project, so one plan serves
+// every ticket of that project.
 export type LabelPlan = { adds: LabelRow[]; removes: LabelRow[] } | null;
 
 const heldLabels = (tx: Tx, ticketId: string) =>
@@ -65,25 +65,25 @@ const insertRows = (tx: Tx, ticketId: string, labelIds: readonly string[], now: 
 		)}`,
 	);
 
-// Reads the labels `input` names once for the tickets of `rootId`. A batch of
+// Reads the labels `input` names once for the tickets of `projectId`. A batch of
 // 200 tickets therefore reads each label ref one time.
 export const planLabelDeltas = async (
 	ctx: ServiceCtx,
 	tx: Tx,
-	rootId: string,
+	projectId: string,
 	input: LabelDeltaInput,
 ): Promise<LabelPlan> => {
 	if (input.addLabels === undefined && input.removeLabels === undefined) return null;
 	const adds =
 		input.addLabels === undefined
 			? []
-			: await resolveLabels(ctx, tx, { rootId, refs: input.addLabels, field: "addLabels" });
+			: await resolveLabels(ctx, tx, { projectId, refs: input.addLabels, field: "addLabels" });
 	// A label named in both lists stays as it was: the add wins and the remove
 	// is dropped, so the write changes nothing for it.
 	const removes = (
 		input.removeLabels === undefined
 			? []
-			: await resolveLabels(ctx, tx, { rootId, refs: input.removeLabels, field: "removeLabels" })
+			: await resolveLabels(ctx, tx, { projectId, refs: input.removeLabels, field: "removeLabels" })
 	).filter((label) => !adds.some((added) => added.id === label.id));
 	return { adds, removes };
 };
@@ -151,9 +151,9 @@ export const applyLabelPlan = async (
 export const createTicketLabels = async (
 	ctx: ServiceCtx,
 	tx: Tx,
-	input: { ticketId: string; rootId: string; refs: readonly string[] },
+	input: { ticketId: string; projectId: string; refs: readonly string[] },
 ): Promise<number> => {
-	const labels = await resolveLabels(ctx, tx, { rootId: input.rootId, refs: input.refs, field: "labels" });
+	const labels = await resolveLabels(ctx, tx, { projectId: input.projectId, refs: input.refs, field: "labels" });
 	if (labels.length === 0) return 0;
 	await insertRows(
 		tx,

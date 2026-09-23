@@ -34,7 +34,6 @@ const deleteOne = async (ctx: ServiceCtx, tx: Tx, batchId: string, row: TicketRo
 			WHERE NOT p.review_retained AND NOT EXISTS (SELECT 1 FROM ticket_pull_requests l WHERE l.pull_request_id = p.id)`,
 	);
 	await record(ctx, tx, {
-		rootId: row.rootId,
 		projectId: row.projectId,
 		ticketId: null,
 		action: "ticket.deleted",

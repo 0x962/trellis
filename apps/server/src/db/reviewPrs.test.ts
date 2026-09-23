@@ -8,24 +8,23 @@ import { createCache } from "./cache.ts";
 import { type Db, openDb } from "./client.ts";
 import { migrate } from "./migrate.ts";
 
-// Two roots. TST has the repository acme/app and a sub-project web. The
-// ticket TST-1 sits in web and links the pull request `linked`. The pull
-// request `retained` is kept for review in acme/app and links no ticket.
-// OTH has no repository; its ticket OTH-1 links `other`, and `elsewhere` is
-// kept for review in a repository no project has.
+// Two projects. TST has the repository acme/app, and its ticket TST-1 links
+// the pull request `linked`. The pull request `retained` is kept for review
+// in acme/app and links no ticket. OTH has no repository; its ticket OTH-1
+// links `other`, and `elsewhere` is kept for review in a repository no
+// project has.
 let db: Db;
 let ctx: IoCtx;
 const at = new Date("2026-09-17T10:00:00.000Z");
 const tst = ulid();
-const web = ulid();
 const oth = ulid();
 const pulls = { linked: ulid(), retained: ulid(), other: ulid(), elsewhere: ulid() };
 
-const insertProject = (id: string, root: string, parent: string | null, key: string | null, slug: string) =>
-	db.execute(sql`INSERT INTO projects (id, root_id, parent_id, key, slug, name, created_at, updated_at)
-		VALUES (${id}, ${root}, ${parent}, ${key}, ${slug}, ${slug}, ${at}, ${at})`);
+const insertProject = (id: string, key: string, slug: string) =>
+	db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${id}, ${key}, ${slug}, ${slug}, ${at}, ${at})`);
 
-// The one status of a root. Every ticket of the root takes it.
+// The one status of a project. Every ticket of the project takes it.
 const insertStatus = async (root: string) => {
 	const id = ulid();
 	await db.execute(sql`INSERT INTO statuses (id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
@@ -33,9 +32,9 @@ const insertStatus = async (root: string) => {
 	return id;
 };
 
-const insertTicket = (id: string, project: string, root: string, status: string, number: number) =>
-	db.execute(sql`INSERT INTO tickets (id, project_id, root_id, number, title, status_id, position, created_at, updated_at)
-		VALUES (${id}, ${project}, ${root}, ${number}, 'Task', ${status}, 0, ${at}, ${at})`);
+const insertTicket = (id: string, project: string, status: string, number: number) =>
+	db.execute(sql`INSERT INTO tickets (id, project_id, number, title, status_id, position, created_at, updated_at)
+		VALUES (${id}, ${project}, ${number}, 'Task', ${status}, 0, ${at}, ${at})`);
 
 const ciStateOf = (checks: readonly { bucket: string }[]) => {
 	if (checks.some((check) => check.bucket === "fail" || check.bucket === "cancel")) return "fail";
@@ -65,14 +64,13 @@ beforeAll(async () => {
 	await db.execute(
 		sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at) VALUES ('Test', 'human', ${at}, ${at})`,
 	);
-	await insertProject(tst, tst, null, "TST", "tst");
-	await insertProject(web, tst, tst, null, "web");
-	await insertProject(oth, oth, null, "OTH", "oth");
+	await insertProject(tst, "TST", "tst");
+	await insertProject(oth, "OTH", "oth");
 	await db.execute(sql`INSERT INTO repos (id, project_id, owner, repo) VALUES (${ulid()}, ${tst}, 'acme', 'app')`);
 	const tst1 = ulid();
 	const oth1 = ulid();
-	await insertTicket(tst1, web, tst, await insertStatus(tst), 1);
-	await insertTicket(oth1, oth, oth, await insertStatus(oth), 1);
+	await insertTicket(tst1, tst, await insertStatus(tst), 1);
+	await insertTicket(oth1, oth, await insertStatus(oth), 1);
 	await insertPull(pulls.linked, "acme", "app", 1, false, [
 		{
 			name: "lint",
@@ -137,10 +135,6 @@ const idsOf = (project?: string) =>
 
 test("a project lists the pull requests of its tickets and its repositories", async () => {
 	expect(await idsOf("TST")).toEqual([pulls.linked, pulls.retained].sort());
-});
-
-test("a sub-project inherits the repositories of its ancestors", async () => {
-	expect(await idsOf("TST.web")).toEqual([pulls.linked, pulls.retained].sort());
 });
 
 test("a project without a repository lists the pull requests of its tickets only", async () => {

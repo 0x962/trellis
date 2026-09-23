@@ -13,7 +13,7 @@ export const Route = createFileRoute("/t/$identifier")({
 	loader: async ({ context, params }) => {
 		const ticket = await context.queryClient.ensureQueryData(ticketOptions(context, params.identifier));
 		await context.queryClient.ensureQueryData(
-			context.orpc.projects.get.queryOptions({ input: { project: ticket.project.path } }),
+			context.orpc.projects.get.queryOptions({ input: { project: ticket.project.key } }),
 		);
 	},
 	component: TicketPage,

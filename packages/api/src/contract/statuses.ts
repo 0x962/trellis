@@ -1,7 +1,5 @@
 import { pickErrors } from "../errors.ts";
 import {
-	StatusClearInputSchema,
-	StatusClearOutputSchema,
 	StatusCreateInputSchema,
 	StatusDeleteInputSchema,
 	StatusDeleteOutputSchema,
@@ -24,7 +22,7 @@ export const statuses = {
 			method: "POST",
 			path: "/projects/{project}/statuses",
 			successStatus: 201,
-			summary: "Add a status; a sub-project takes its own copy of the set",
+			summary: "Add a status",
 		})
 		.input(StatusCreateInputSchema)
 		.output(StatusSchema),
@@ -43,13 +41,4 @@ export const statuses = {
 		.route({ method: "DELETE", path: "/projects/{project}/statuses/{status}", summary: "Delete a status" })
 		.input(StatusDeleteInputSchema)
 		.output(StatusDeleteOutputSchema),
-	clear: base
-		.errors(pickErrors(["ROOT_STATUSES", "PROJECT_ARCHIVED"]))
-		.route({
-			method: "DELETE",
-			path: "/projects/{project}/statuses",
-			summary: "Drop a sub-project's own set and inherit again",
-		})
-		.input(StatusClearInputSchema)
-		.output(StatusClearOutputSchema),
 };

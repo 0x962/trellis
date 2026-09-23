@@ -56,7 +56,7 @@ export function SubTickets({ ticket }: SubTicketsProps) {
 						variant="quiet"
 						size="sm"
 						icon={<Plus />}
-						onClick={() => composerActions.open({ project: ticket.project.path, parent: ticket.identifier })}
+						onClick={() => composerActions.open({ project: ticket.project.key, parent: ticket.identifier })}
 					>
 						Add
 					</Button>

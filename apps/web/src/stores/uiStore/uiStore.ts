@@ -114,7 +114,7 @@ const browserStorage = {
 };
 
 // The renderer-local preferences: the sidebar, density, table expansion,
-// project tree expansion, and visible columns. Every change writes to
+// project expansion, and visible columns. Every change writes to
 // browser storage when the browser permits it. A new store reads the stored
 // state at creation.
 export const createUiStore = () =>

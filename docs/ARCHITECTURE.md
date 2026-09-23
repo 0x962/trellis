@@ -155,22 +155,20 @@ A ticket has at most one open ticket-agent assignment. A status change
 does not replace or close that assignment. A person must remove the assignment
 before another agent can take the ticket.
 
-- Projects form a tree. A root has a key (`^[A-Z][A-Z0-9]{1,9}$`) and a ticket counter. Tickets are `KEY-n` across the whole tree.
+- Every project stands on its own. It has a key (`^[A-Z][A-Z0-9]{1,9}$`), a slug, and a ticket counter. Tickets are `KEY-n`.
 - Ticket numbers are never reused. A delete leaves a gap. A key is immutable once the counter is above zero (`KEY_LOCKED`).
-- Nothing moves across roots: no ticket, no parent, no sub-project (`CROSS_ROOT_MOVE`). A ticket or a project cannot be its own ancestor (`PARENT_CYCLE`).
-- Statuses belong to a project. A root starts with Todo (todo, default), In Progress (started), Agent Review (review, agent reviewer), Human Review (review, human reviewer), Done (done), and Canceled (canceled).
-- A sub-project inherits the status set of the nearest ancestor until it creates its own set. The owner of a project is the nearest ancestor or self that owns statuses.
-- Invariant: `tickets.status_id` belongs to the owner of `tickets.project_id`. The function `remapScope` restores the invariant after a first-status create, a clear, a re-parent, and a project move.
-- The remap matches on name and category first, then on the lowest-position status of the same category, then on the default status of the owner.
+- A parent ticket, an epic, and a wave belong to the project of the ticket (`CROSS_PROJECT_LINK`). A ticket cannot be its own ancestor (`PARENT_CYCLE`).
+- Statuses belong to a project. A new project starts with Todo (todo, default), In Progress (started), Agent Review (review, agent reviewer), Human Review (review, human reviewer), Done (done), and Canceled (canceled).
+- Invariant: `tickets.status_id` belongs to `tickets.project_id`.
 - Every status-to-status move is legal.
   The `category` of a status is immutable after creation.
 - `started_at` is set once, when a ticket leaves todo. `completed_at` is set when a ticket enters done or canceled, and cleared when it leaves.
 - Priority is none, urgent, high, medium, or low.
-- The root project of a tree owns every label and every label group of the tree. Every project of the tree reads and writes the one set.
+- A project owns its labels and its label groups.
 - A label takes one group or no group. A group is exclusive: a ticket holds one label of a group at most, so a second label of that group replaces the first one.
-- A label name is unique inside its group, or among the labels of the root that have no group, without regard to case. A name holds no comma and no slash, it is 1 to 80 characters, and it is never `none`.
+- A label name is unique inside its group, or among the labels of the project that have no group, without regard to case. A name holds no comma and no slash, it is 1 to 80 characters, and it is never `none`.
 - A label ref is a ULID, a name, or `group/name`. A bare name takes the label with no group first, then the one label of that name in a group. Two grouped labels of that name are `LABEL_AMBIGUOUS`.
-- A label color is one of nine hues: gray, red, orange, yellow, green, teal, blue, purple, and pink. A create with no color takes a hue that no label of the root uses.
+- A label color is one of nine hues: gray, red, orange, yellow, green, teal, blue, purple, and pink. A create with no color takes a hue that no label of the project uses.
 - A label delete is a hard delete. It takes the label off every ticket, and it leaves `tickets.version` and `tickets.updated_at` as they are.
 - Every non-GET request sends the header `x-trellis-actor: <human|agent>:<name>`. The name is printable ASCII without a colon, 1 to 64 characters.
 - A missing header is `ACTOR_REQUIRED` and a malformed one is `ACTOR_INVALID`. A GET ignores the header. The header rejects the kind `system`, which trellis reserves for `system:trellis`.
@@ -180,9 +178,9 @@ before another agent can take the ticket.
 - `tickets.version` rises on every row change. `update` and `move` accept `expectedVersion` or the header `If-Match`. A mismatch is `VERSION_CONFLICT` (412) with the current row.
 - `updated_at` moves only on user-visible activity: a ticket field, an attachment, or a pull request link. A reorder, a remap, and a poller CI change raise `version` only.
 - A delete is a hard delete. A ticket delete nulls the `parent_id` of its children, then cascades comments, attachments, pull request links, and activity. The blob collector then removes unused files.
-- A project delete needs an empty subtree or `force`.
+- A project delete needs a project with no ticket, or `force`.
 - An epic groups the tickets that deliver one plan inside a project. It is its own record with a name, a slug, and a markdown description that holds the plan. An epic is never a ticket.
-- A ticket belongs to at most one epic (`tickets.epic_id`). The epic and the ticket share one root (`CROSS_ROOT_MOVE`). A ticket in an epic can sit in any project of that root.
+- A ticket belongs to at most one epic (`tickets.epic_id`). The epic and the ticket sit in one project (`CROSS_PROJECT_LINK`).
 - An epic stores no state. Its counts by status category come from its tickets. Its state is `done` when it has at least one ticket and every ticket is done or canceled. Otherwise it is `open`, so an epic with no ticket is open.
 - An epic delete sets `epic_id` and `wave_id` NULL on its tickets, raises their `version`, records field `epic` for each ticket, records field `wave` for a ticket that held one, and emits `ticket.updated` for each. An agent needs `force` (`AGENT_CANNOT_DELETE`). A project delete cascades its epics.
 - A wave is one ordered phase of an epic. It is its own record with a name, a slug, and a position. A wave belongs to one epic, and an epic delete cascades its waves.
@@ -198,22 +196,21 @@ A note is titled markdown on one project. Agents read project notes through
 the notes API and ticket briefs. `notes` holds one row per
 note with its `audience` (`all` or `worker`), an optional
 `expires_at`, and the actor of the last write. A read collects the notes of
-the project and of every ancestor, newest change first, and drops an expired
-note. A title is unique in its project without case; a repeated title is
+the project, newest change first, and drops an expired note. A title is unique in its project without case; a repeated title is
 `DUPLICATE`. A human and an agent can create, update, and delete a note. An
 archived project serves reads and refuses writes. A project delete cascades
 to its notes.
 
 The API is `notes.list`, `notes.get`, `notes.create`, `notes.update`, and
 `notes.delete`. The event `notes.changed` names the owning project and
-invalidates every note query. The CLI verb is `trellis notes`, and the web route is `/p/<project path>/notes`.
+invalidates every note query. The CLI verb is `trellis notes`, and the web route is `/p/<KEY>/notes`.
 Repository instructions describe note behavior. The ticket brief carries note content.
 
 ### Epics
 
-`epics` holds one row per epic: `project_id`, `root_id`, `slug`, `name`,
+`epics` holds one row per epic: `project_id`, `slug`, `name`,
 `description`, and the actor of the last write. An EpicRef is a ULID or
-`KEY/slug`, such as `OP/routine-runtime`. Two epics of one root never share a
+`KEY/slug`, such as `OP/routine-runtime`. Two epics of one project never share a
 slug; a taken slug is `DUPLICATE` with field `slug`. A create without `slug`
 derives one from `name`, and a derived slug that collides takes the lowest free
 numeric suffix from `-2`. An archived project serves reads and refuses every
@@ -221,7 +218,8 @@ epic write (`PROJECT_ARCHIVED`).
 
 A ticket joins an epic through `epic` on `tickets.create`, `tickets.update`,
 and `tickets.updateMany`; `null` clears it. The service resolves the ref,
-checks the root, and checks `PROJECT_ARCHIVED` on the project of the epic. A
+checks that the epic sits in the project of the ticket, and checks
+`PROJECT_ARCHIVED` on that project. A
 change of `epic` records field `epic` with the epic refs as `from_value` and
 `to_value` and the ids in `meta.fromId` and `meta.toId`. `TicketSummary`
 carries `epic` as `{id, ref, name}` or `null`.
@@ -253,11 +251,11 @@ description; an agent reads the epic through `trellis brief`.
 The CLI verb is `trellis epics` with `list`, `show`, `create`, `edit`, `add`,
 `remove`, and `delete`. `--epic <ref>` joins `create`, `sub`, and `edit`
 (`--epic none` clears), and `--epic <ref|none>` joins `list`. The web routes
-are `/p/<project path>/epics` and `/p/<project path>/epics/<slug>`.
+are `/p/<KEY>/epics` and `/p/<KEY>/epics/<slug>`.
 
 ### Waves
 
-`waves` holds one row per wave: `epic_id`, `root_id`, `slug`, `name`,
+`waves` holds one row per wave: `epic_id`, `slug`, `name`,
 and `position`. A lower position comes first. A WaveRef is a ULID or
 `KEY/epic-slug/wave-slug`, such as `OP/routine-runtime/phase-1`. Two
 waves of one epic never share a slug; a taken slug is `DUPLICATE` with
@@ -271,8 +269,9 @@ epics (`PROJECT_ARCHIVED`).
 
 A ticket joins a wave through `wave` on `tickets.create`,
 `tickets.update`, and `tickets.updateMany`; `null` clears it, and the ticket
-stays in its epic. The service resolves the ref, checks the root
-(`CROSS_ROOT_MOVE`), and checks `PROJECT_ARCHIVED` on the project of the epic.
+stays in its epic. The service resolves the ref, checks that the epic of the
+wave sits in the project of the ticket (`CROSS_PROJECT_LINK`), and checks
+`PROJECT_ARCHIVED` on that project.
 `resolvePlacement` in `apps/server/src/services/tickets/placement.ts` holds the
 two write rules, and `updateMany` applies them per ticket. A `wave` value
 alone never fails with `WAVE_OUTSIDE_EPIC`, because it sets the epic. A
@@ -310,8 +309,8 @@ edge for a pair. Both foreign keys cascade on ticket deletion. `source` is
 `manual`, `parsed`, or `derived`. A check refuses an edge from a ticket to
 itself.
 
-Every dependency belongs to one project root. A manual write resolves every
-ticket before it changes an edge. It refuses a cross-root edge and a cycle. A
+Every dependency belongs to one project. A manual write resolves every
+ticket before it changes an edge. It refuses a cross-project edge and a cycle. A
 cycle error names the path from the target ticket back to itself. A repeated
 manual write changes a parsed or derived edge to manual.
 
@@ -478,7 +477,7 @@ change emits `resource-comments.changed`. The CLI verbs are `trellis resource
 comments <resource> [--all]`, `reply <thread> --body`, `resolve <thread>`, and
 `reopen <thread>`. Trellis sends no document comment to an agent run.
 
-The web route `/p/<project path>/epics/<slug>` shows all epic resources in a
+The web route `/p/<KEY>/epics/<slug>` shows all epic resources in a
 section that starts closed. A document opens in an editor. On desktop, a link
 opens in the in-app browser and an image opens in a sheet. Other browsers open
 links and images in a new tab. A file downloads from its blob URL.
@@ -553,7 +552,7 @@ Read [the review guide](reviews.md) for commands and review behavior.
 ### Agent runs
 
 An agent run stores its name, kind, and instruction at launch. A ticket agent names one ticket.
-The row retains the project path and ticket identifier so its history remains readable.
+The row retains the project key and ticket identifier so its history remains readable.
 
 `agentRuns` exposes start, resume, stop, refresh, send, output, session inspection, terminal input, and terminal resize operations.
 `GET /api/agent-runs/:id/terminal/stream` pushes terminal bytes and inspected process status through an authenticated SSE connection.
@@ -585,7 +584,6 @@ The CLI exposes `agents start --model`, `agents resume --model`, and `agents mod
 The session API can inspect the observed model through `agentRuns.session` with `include: ["model"]`.
 
 Project settings store the repository directory.
-A project can inherit its repository directory from its ancestors.
 
 Statuses do not store agent settings. A ticket transition does not change its agent assignment.
 An agent restart preserves the workspace and resumes a compatible provider conversation.
@@ -808,15 +806,12 @@ The terminal passes Escape to page navigation and keeps modified keys as termina
 A direct entry with no previous app page returns to Needs you with a replacement
 entry. Back at the initial Needs you or setup page leaves the page in place.
 
-`/p/$` takes one splat, `[key, ...slugs, view?]`. The URL keeps slashes and the
-API ref joins the same segments with dots, so `/p/CDE/web/auth` reads
-`CDE.web.auth`. The last segment is a view only when it is a reserved slug:
-`table`, `settings`, `notes`, `diffs`, `epics`, or `board`. The last two
-segments `epics/<slug>` open one epic when a project segment precedes them;
-`/p/EPICS/<sub>` is a sub-project of the root `EPICS`. `SlugSchema` refuses `board`,
-`settings`, `notes`, `diffs`, and `epics`, and a `CHECK` on `projects.slug`
-refuses `board` and `settings`, so a sub-project never takes one of those
-names.
+`/p/$` takes one splat, `[ref, view?]`. `ref` is the key or the slug of one
+project. The second segment is a view only when it is a reserved slug:
+`table`, `settings`, `notes`, `diffs`, `epics`, or `board`. The segments
+`epics/<slug>` open one epic. `SlugSchema` refuses `board`, `settings`,
+`notes`, `diffs`, and `epics`, and a `CHECK` on `projects.slug` refuses
+`board` and `settings`, so no project takes one of those names.
 
 The board uses the bare project URL. An older link
 that ends in `/board` redirects to the same path with the segment dropped.
@@ -841,8 +836,8 @@ Project settings hold the repository directory and repository selection.
 They write `projects.directory` and the project repositories.
 
 The sidebar holds the workspace row, Needs you, Search, Flows, Usage,
-the sessions, the project tree, and the actor footer.
-The sessions and the project tree share the one region that scrolls, so the fixed
+the sessions, the project list, and the actor footer.
+The sessions and the project list share the one region that scrolls, so the fixed
 links keep their place at any height.
 The global Sessions section lists sessions without a project. Its New session button opens a dialog with project, harness, model, effort, and account choices.
 The dialog accepts a prompt, files, and an optional name. A project also has a Sessions page with a secondary sidebar for all its agents.
@@ -857,21 +852,20 @@ Each session row opens its conversation. The conversation controls can stop, res
 Each project row shows the Trellis mark and project name. Tickets, Epics, Diffs, and Sessions appear below it.
 The Epics row prints `openEpicCount` when it is above zero. The Tickets row is off on the epics pages.
 The row menu of a project opens its Settings page.
-The Diffs page at `/p/<path>/diffs` lists the pull requests of the project: the ones linked to a ticket of the
-project or one of its sub-projects, and the ones kept for a review in a repository of the project or one of its
-ancestors. Its second source lists the open pull requests of the signed-in GitHub user in those repositories.
-The selected state follows the current page for root, nested, and archived projects.
-The Epics page at `/p/<path>/epics` lists the epics of the project and its sub-projects in two groups, Open and
+The Diffs page at `/p/<KEY>/diffs` lists the pull requests of the project: the ones linked to a ticket of the
+project, and the ones kept for a review in a repository of the project. Its second source lists the open pull
+requests of the signed-in GitHub user in those repositories.
+The selected state follows the current page for an active and for an archived project.
+The Epics page at `/p/<KEY>/epics` lists the epics of the project in two groups, Open and
 Done, each with its count. A row prints the name, a `StackedBar` of the counts by category, `done/total`, the
 updated time, and a row menu. The rows use the row heights, the hover band, and the cell text sizes of the
 ticket table `Row`.
-`/p/<path>/epics/<slug>` shows one epic. Its `Topbar` holds the breadcrumb, the `FilterBar` chips, the Display
+`/p/<KEY>/epics/<slug>` shows one epic. Its `Topbar` holds the breadcrumb, the `FilterBar` chips, the Display
 `IconButton`, the New wave `IconButton`, the Add tickets `IconButton`, and the `Menu` with Edit and Delete. The page fixes the `epic`
 filter through the `fixed` prop of the `FilterBar`: the bar draws no epic chip, the filter picker offers no
-Epic field and lists the waves of this epic alone, and Copy as CLI writes `--epic`. The table reads the
-root project with its sub-projects (`scope` default `subprojects`), because an epic holds tickets of any
-project of its root. Every link to the page writes its query through `epicQueryString`, so `group=status` and
-`scope=self` stay in the URL. Add tickets opens the `TicketPicker` of the project and
+Epic field and lists the waves of this epic alone, and Copy as CLI writes `--epic`. Every link to the page
+writes its query through `epicQueryString`, so `group=status` stays in the URL. Add tickets opens the
+`TicketPicker` of the project and
 writes `tickets.updateMany { epic }`.
 A header band below the `Topbar` prints the state `Badge`, `<done> of <total - canceled> done`, the `StackedBar`
 of the epic with its legend, and one `StackedBar` line per wave in position order with its name and
@@ -914,27 +908,27 @@ are no triggers. Every rule is a constraint or a service function that takes
 
 | table | columns and constraints |
 |---|---|
-| projects | id PK, parent_id, root_id, key (UNIQUE, CHECK regex), slug (CHECK slug regex, not `board` or `settings`), name (1 to 120), description, directory, ticket_template, ticket_counter, position, archived_at, created_at, updated_at. UNIQUE (id, root_id). FK (parent_id, root_id). UNIQUE NULLS NOT DISTINCT (parent_id, slug). CHECK `(parent_id IS NULL) = (root_id = id)`, `(parent_id IS NULL) = (key IS NOT NULL)`, `parent_id <> id`, `parent_id IS NULL OR ticket_counter = 0`. Index (root_id). |
-| repos | id PK, project_id (CASCADE), owner, repo (both CHECK lowercase). UNIQUE (project_id, owner, repo). The effective repos of a project are its own plus those of its ancestors. |
+| projects | id PK, key (NOT NULL, UNIQUE, CHECK regex), slug (NOT NULL, UNIQUE, CHECK slug regex, not `board` or `settings`), name (1 to 120), description, directory, ticket_template, ticket_counter, position, archived_at, created_at, updated_at. |
+| repos | id PK, project_id (CASCADE), owner, repo (both CHECK lowercase). UNIQUE (project_id, owner, repo). |
 | statuses | id PK, project_id (CASCADE), name (1 to 40), description (CHECK <= 2000), slug, category (CHECK set), reviewer (CHECK `(category = 'review') = (reviewer IS NOT NULL)`), color, position, is_default, created_at, updated_at. UNIQUE (project_id, name) and (project_id, slug). Partial UNIQUE (project_id) WHERE is_default. |
-| label_groups | id PK, project_id (CASCADE, the root of the tree), name, created_at, updated_at. UNIQUE (project_id, lower(name)). CHECK name trimmed, 1 to 80, no `,`, no `/`, and not `none`. |
-| labels | id PK, project_id (CASCADE, the root of the tree), group_id (FK label_groups CASCADE, NULL for a label with no group), name, color (CHECK set), description (CHECK <= 255, default `''`), created_at, updated_at. Partial UNIQUE (group_id, lower(name)) WHERE group_id IS NOT NULL and (project_id, lower(name)) WHERE group_id IS NULL. The same name CHECK as label_groups. Index (project_id). |
+| label_groups | id PK, project_id (CASCADE), name, created_at, updated_at. UNIQUE (project_id, lower(name)). CHECK name trimmed, 1 to 80, no `,`, no `/`, and not `none`. |
+| labels | id PK, project_id (CASCADE), group_id (FK label_groups CASCADE, NULL for a label with no group), name, color (CHECK set), description (CHECK <= 255, default `''`), created_at, updated_at. Partial UNIQUE (group_id, lower(name)) WHERE group_id IS NOT NULL and (project_id, lower(name)) WHERE group_id IS NULL. The same name CHECK as label_groups. Index (project_id). |
 | ticket_labels | ticket_id (CASCADE), label_id (CASCADE), created_at. PK (ticket_id, label_id). Index (label_id). |
-| tickets | id PK, project_id, root_id, number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, epic_id (FK epics SET NULL), wave_id (FK waves SET NULL; CHECK `tickets_wave_needs_epic`: a row with a wave has an epic), position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (root_id, number) and (id, root_id). FK (project_id, root_id) RESTRICT and FK (parent_id, root_id) RESTRICT. Indexes (project_id, status_id, position), (status_id, position, id, project_id, root_id), (parent_id), (epic_id), (wave_id), partial (root_id, updated_at DESC) WHERE completed_at IS NULL, partial (root_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
-| epics | id PK, project_id (CASCADE), root_id, slug (CHECK slug regex), name (CHECK trimmed, 1 to 120), description (CHECK <= 200000), actor_name, actor_kind, created_at, updated_at. FK to actors. UNIQUE (id, root_id) and (root_id, slug). FK (project_id, root_id) CASCADE, so an epic stays in the root of its project. Index (project_id). The state of an epic is never stored. |
-| waves | id PK, epic_id (CASCADE), root_id, slug (CHECK slug regex), name (CHECK trimmed, 1 to 120), position integer (CHECK >= 0), created_at, updated_at. UNIQUE (id, epic_id) and (epic_id, slug). FK (epic_id, root_id) CASCADE, so a wave stays in the root of its epic. Index (epic_id, position). The state of a wave is never stored. |
+| tickets | id PK, project_id (FK projects RESTRICT), number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, epic_id (FK epics SET NULL), wave_id (FK waves SET NULL; CHECK `tickets_wave_needs_epic`: a row with a wave has an epic), position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (project_id, number) and (id, project_id). FK (parent_id, project_id) RESTRICT, so a parent ticket sits in the project of its child. Indexes (project_id, status_id, position), (status_id, position, id, project_id), (parent_id), (epic_id), (wave_id), partial (project_id, updated_at DESC) WHERE completed_at IS NULL, partial (project_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
+| epics | id PK, project_id (CASCADE), slug (CHECK slug regex), name (CHECK trimmed, 1 to 120), description (CHECK <= 200000), actor_name, actor_kind, created_at, updated_at. FK to actors. UNIQUE (project_id, slug). Index (project_id). The state of an epic is never stored. |
+| waves | id PK, epic_id (CASCADE), slug (CHECK slug regex), name (CHECK trimmed, 1 to 120), position integer (CHECK >= 0), created_at, updated_at. UNIQUE (epic_id, slug). Index (epic_id, position). The state of a wave is never stored. |
 | comments | id PK, ticket_id (CASCADE), body (1 to 200000), parent_id, resolved_at, actor_name, actor_kind, search tsvector GENERATED (body C), created_at, updated_at. No code reads or writes the table. It keeps the rows that ticket comments stored. |
 | attachments | id PK, ticket_id (CASCADE), filename (1 to 255, no `/`), mime, size (CHECK > 0), sha256 (CHECK hex 64), actor_name, actor_kind, created_at. FK to actors. Index (ticket_id) and (sha256). |
 | pull_requests | id PK, owner, repo (CHECK lowercase), number (CHECK > 0), url, title, state, is_draft, is_queued, head_ref, base_ref, review_state, merged_at, closed_at, checks jsonb (CHECK array), ci_state, content_hash, fetched_at, fetch_error, created_at, updated_at. UNIQUE (owner, repo, number). Index (state, ci_state). |
 | ticket_pull_requests | ticket_id (CASCADE), pull_request_id (CASCADE), source (manual), actor_name, actor_kind, created_at. PK (ticket_id, pull_request_id). Index (pull_request_id). |
-| activity | id bigint IDENTITY PK, batch_id, root_id (CASCADE), project_id (CASCADE), ticket_id (CASCADE), actor_name, actor_kind, action, field, from_value, to_value, meta jsonb, created_at. FK to actors. CHECK `field <> 'description' OR (from_value IS NULL AND to_value IS NULL)`. Indexes (ticket_id, id), (ticket_id, created_at DESC, id DESC), (root_id, id), (project_id, id), (created_at). |
+| activity | id bigint IDENTITY PK, batch_id, project_id (CASCADE), ticket_id (CASCADE), actor_name, actor_kind, action, field, from_value, to_value, meta jsonb, created_at. FK to actors. CHECK `field <> 'description' OR (from_value IS NULL AND to_value IS NULL)`. Indexes (ticket_id, id), (ticket_id, created_at DESC, id DESC), (project_id, id), (created_at). |
 | actors | name (CHECK 1 to 64, no `:`), kind (human, agent, or system), first_seen_at, last_seen_at. PK (name, kind). |
 | settings | key PK, value jsonb, updated_at. |
 | flows | id PK, slug (UNIQUE, CHECK slug regex, 64 at most), name (1 to 120), description (CHECK <= 2000), briefing (CHECK <= 200000), harness (jsonb, NULL means claude), version (CHECK > 0), created_at, updated_at. |
 | flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title (0 to 120), instruction (CHECK <= 200000), parallel (boolean, group only), minutes (optional, group only, 1 to 1440), harness (jsonb, agent, gate, or loop only; NULL takes the flow's), max_rounds (CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`, 1 to 50), x, y, width, height (CHECK >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Index (flow_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
 | harness_accounts | id PK, name, harness, profile_path, is_default, archived_at, created_at, updated_at. Partial UNIQUE (harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. |
-| agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), harness jsonb, kind (CHECK agent, flow, or session), instruction, project_id (SET NULL), project_path, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial UNIQUE (ticket_id) WHERE `kind = 'agent'` and `closed_at IS NULL`. Index (created_at). |
+| agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), harness jsonb, kind (CHECK agent, flow, or session), instruction, project_id (SET NULL), project_key, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial UNIQUE (ticket_id) WHERE `kind = 'agent'` and `closed_at IS NULL`. Index (created_at). |
 | sessions | id PK, name (UNIQUE, CHECK lowercase letters, digits, and dashes, 1 to 40), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), created_at, updated_at. The run has the kind `session`, an optional project, and no ticket. |
 
 The `id` column of `activity` is the cursor and the sort key of every activity
@@ -944,7 +938,7 @@ mutating transaction upserts its actor first, and a worker cache flushes
 `last_seen_at` every 30 seconds.
 
 Numbering runs in one transaction. The server raises `ticket_counter` on the
-root with `UPDATE ... RETURNING`, then inserts the ticket. A test asserts that 50
+project with `UPDATE ... RETURNING`, then inserts the ticket. A test asserts that 50
 concurrent creates give 50 consecutive numbers.
 
 The kanban position of a new card is the maximum plus 1024. A move takes the
@@ -983,30 +977,29 @@ returns one canonical spelling.
 
 | procedure | route | notes |
 |---|---|---|
-| projects.list | GET /api/projects | flat list with path, depth, open count, and open epic count |
-| projects.get | GET /api/projects/{project} | ancestors, children, repos, effective statuses, ticket template |
-| projects.create | POST /api/projects | 201 and `Location`; a root needs a key, a child rejects one |
-| projects.update | PATCH /api/projects/{project} | name, slug, description, ticket template, archived |
-| projects.move | POST /api/projects/{project}/move | parent, after, before |
-| projects.delete | DELETE /api/projects/{project} | `force` deletes a non-empty subtree |
-| projects.repos | GET /api/projects/{project}/repos | the repos of the project and of every project above it |
+| projects.list | GET /api/projects | the list in display order, each with its key, slug, open count, and open epic count |
+| projects.get | GET /api/projects/{project} | repos, statuses, ticket template |
+| projects.create | POST /api/projects | 201 and `Location`; the body names a key |
+| projects.update | PATCH /api/projects/{project} | name, key, description, ticket template, archived |
+| projects.move | POST /api/projects/{project}/move | after, before |
+| projects.delete | DELETE /api/projects/{project} | `force` deletes a project that holds tickets |
+| projects.repos | GET /api/projects/{project}/repos | the repos of the project |
 | projects.setRepos | PUT /api/projects/{project}/repos | full replace, idempotent |
 | statuses.list, create, update, reorder | GET, POST /api/projects/{project}/statuses; PATCH .../{status}; PUT .../order | the category is immutable |
 | statuses.delete | DELETE /api/projects/{project}/statuses/{status} | `moveTo` moves the tickets first |
-| statuses.clear | DELETE /api/projects/{project}/statuses | sub-projects only |
-| labels.list | GET /api/projects/{project}/labels | the groups and the labels of the tree, each in name order; every label carries its ticket count |
+| labels.list | GET /api/projects/{project}/labels | the groups and the labels of the project, each in name order; every label carries its ticket count |
 | labels.create, update, delete | POST /api/projects/{project}/labels; PATCH, DELETE .../{label} | `{label}` is the label ULID; a body names a group by ULID or by name |
 | labelGroups.create, update, delete | POST /api/projects/{project}/label-groups; PATCH, DELETE .../{group} | delete takes `labels=ungroup` or `labels=delete` |
 | tickets.list | GET /api/tickets | the shared filter grammar; `{items, nextCursor}` and no total |
 | tickets.counts | GET /api/tickets/counts | the same filters; `{total, byStatus}` |
 | tickets.board | GET /api/tickets/board | one query; each column carries a count and its first 100 cards |
 | tickets.get | GET /api/tickets/{ticket} | the full ticket with project, status, parent, children, prs, attachments |
-| tickets.create | POST /api/tickets | 201 and `Location`; `epic` joins an epic of the same root; `wave` joins a wave and its epic |
+| tickets.create | POST /api/tickets | 201 and `Location`; `epic` joins an epic of the same project; `wave` joins a wave and its epic |
 | tickets.update | PATCH /api/tickets/{ticket} | `If-Match` maps to `expectedVersion`; `epic: null` clears the epic and the wave; `wave: null` clears the wave |
 | tickets.move | POST /api/tickets/{ticket}/move | status, after, before; an anchor must be in the target column |
 | tickets.updateMany, deleteMany | POST /api/tickets/update-many, delete-many | up to 200 refs in one transaction; `epic` and `wave` follow the rules of `tickets.update` per ticket; two refs with the same canonical spelling are refused, and a ULID and a `KEY-n` of one ticket are two spellings |
 | tickets.delete | DELETE /api/tickets/{ticket} | `force` overrides the agent policy |
-| epics.list | GET /api/epics?project=KEY | the epics of the project and its sub-projects; open first, then done, then by updated desc |
+| epics.list | GET /api/epics?project=KEY | the epics of the project; open first, then done, then by updated desc |
 | epics.get | GET /api/epics/{epic} | the summary, its waves in position order, and its tickets in number order; `{epic}` takes `KEY/slug` with its slash |
 | epics.create | POST /api/epics | 201 and `Location`; `slug` derives from `name` when absent |
 | epics.update | PATCH /api/epics/{epic} | name, slug, description |
@@ -1050,7 +1043,7 @@ The filter grammar is identical in the API, the web URL, and the CLI flags.
 
 | param | values |
 |---|---|
-| project | a ProjectRef; `subprojects=false` narrows to that project |
+| project | a ProjectRef |
 | status | a list of StatusRef |
 | category | a list of todo, started, review, done, canceled |
 | reviewer | human or agent |
@@ -1084,7 +1077,7 @@ ACTOR_REQUIRED 400, ACTOR_INVALID 400, INVALID_CURSOR 400, INVALID_PR_URL 400,
 WAVE_OUTSIDE_EPIC 400,
 AGENT_CANNOT_DELETE 403, NOT_FOUND 404, DUPLICATE
 409, KEY_LOCKED 409, STATUS_NOT_IN_PROJECT 409, STATUS_IN_USE 409, LAST_STATUS
-409, ROOT_STATUSES 409, STATUS_CATEGORY_IMMUTABLE 409, CROSS_ROOT_MOVE 409,
+409, STATUS_CATEGORY_IMMUTABLE 409, CROSS_PROJECT_LINK 409,
 PARENT_CYCLE 409, PROJECT_NOT_EMPTY 409, PROJECT_ARCHIVED 409,
 LABEL_AMBIGUOUS 409, LABEL_GROUP_CONFLICT 409,
 INVALID_ANCHOR 409,
@@ -1304,7 +1297,7 @@ A search request carries a client id, and a newer request drops a superseded one
 before it runs. Lists carry `TicketSummary` and never the description. The board
 and the counts replace a total and a large limit. Events patch first and carry a
 version. The poller batches its GraphQL query. The indexes are trimmed and
-partial. An in-memory cache holds the project tree.
+partial. An in-memory cache holds every project and every status set.
 
 ## Code organization
 

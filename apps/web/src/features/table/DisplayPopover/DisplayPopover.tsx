@@ -11,7 +11,7 @@ export type DisplayPopoverProps = {
 	// The kind of table the route draws. The popover offers the columns of
 	// that kind alone.
 	tableKind?: TableKind;
-	// True when the scope holds sub-projects: the project column then shows.
+	// True when the route reads more than one project: the project column then shows.
 	showProject: boolean;
 	// True when the route fixes the epic, as the epic page does. Every row
 	// then holds the same epic, so the popover offers no Epic group and no

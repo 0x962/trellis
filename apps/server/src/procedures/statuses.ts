@@ -11,5 +11,4 @@ export const statuses = os.statuses.router({
 	update: os.statuses.update.handler(({ context, input }) => call(context, "statuses.update", input)),
 	reorder: os.statuses.reorder.handler(({ context, input }) => call(context, "statuses.reorder", input)),
 	delete: os.statuses.delete.handler(({ context, input }) => call(context, "statuses.delete", input)),
-	clear: os.statuses.clear.handler(({ context, input }) => call(context, "statuses.clear", input)),
 });

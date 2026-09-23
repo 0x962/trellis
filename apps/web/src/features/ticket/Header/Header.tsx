@@ -30,7 +30,7 @@ const claims = (event: KeyboardEvent) => {
 export function Header({ ticket, readOnly }: HeaderProps) {
 	const { back } = useBackNavigation();
 	const { orpc } = useApp();
-	const project = useSuspenseQuery(orpc.projects.get.queryOptions({ input: { project: ticket.project.path } })).data;
+	const project = useSuspenseQuery(orpc.projects.get.queryOptions({ input: { project: ticket.project.key } })).data;
 	const phone = useMediaQuery("(max-width: 767px)");
 	const inSheet = usePageSheet() !== null;
 	const branch = branchName(ticket.identifier, titleSlug(ticket.title));

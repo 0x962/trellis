@@ -1,6 +1,5 @@
 import { sql, TransactionRollbackError } from "drizzle-orm";
 import { type ServiceCtx, SYSTEM_ACTOR } from "../context.ts";
-import { chainOf } from "../services/refs.ts";
 import * as tickets from "../services/tickets.ts";
 import type { ProjectCache } from "./cache.ts";
 import type { Db } from "./client.ts";
@@ -28,9 +27,7 @@ export const warmWrites = async (db: Db, cache: ProjectCache) => {
 			JOIN projects p ON p.id = t.project_id
 			WHERE p.archived_at IS NULL LIMIT ${CANDIDATES}`,
 	);
-	const ticket = (found.rows as Candidate[]).find((row) =>
-		chainOf(cache, row.project_id).every((project) => project.archivedAt === null),
-	);
+	const ticket = (found.rows as Candidate[])[0];
 	if (ticket === undefined) return;
 	const ctx: ServiceCtx = {
 		actor: SYSTEM_ACTOR,

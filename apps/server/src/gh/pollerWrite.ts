@@ -15,7 +15,7 @@ import type { DueRow } from "./pollerDue.ts";
 
 // A ticket that links one pull request, with the project columns an
 // activity row needs.
-type LinkRow = { pull_request_id: string; ticket_id: string; root_id: string; project_id: string };
+type LinkRow = { pull_request_id: string; ticket_id: string; project_id: string };
 
 // The stored row of a pull request and the answer gh gave for it.
 export type Polled = { stored: DueRow; row: PullRequestRow };
@@ -88,7 +88,7 @@ export const linkedTickets = (tx: Tx, prIds: string[]) =>
 	rows<LinkRow>(
 		tx,
 		sql`
-			SELECT l.pull_request_id, t.id AS ticket_id, t.root_id, t.project_id
+			SELECT l.pull_request_id, t.id AS ticket_id, t.project_id
 			FROM ticket_pull_requests l JOIN tickets t ON t.id = l.ticket_id
 			WHERE l.pull_request_id = ANY(${textArray(prIds)})
 			ORDER BY l.created_at, t.id
@@ -112,7 +112,7 @@ const activityValues = (at: Date, entry: Polled, links: LinkRow[]) => {
 	});
 	return ticketsOf(links, entry.stored.id).map(
 		(link) => sql`(
-			${batchId}, ${link.root_id}, ${link.project_id}, ${link.ticket_id},
+			${batchId}, ${link.project_id}, ${link.ticket_id},
 			${SYSTEM_ACTOR.name}, ${SYSTEM_ACTOR.kind}, 'pr.state_changed', ${meta}::jsonb, ${at}
 		)`,
 	);
@@ -125,7 +125,7 @@ const writeStateChanges = async (tx: Tx, at: Date, changed: Polled[], links: Lin
 	if (values.length === 0) return;
 	await touchSystemActor(tx, at);
 	await tx.execute(sql`
-		INSERT INTO activity (batch_id, root_id, project_id, ticket_id, actor_name, actor_kind, action, meta, created_at)
+		INSERT INTO activity (batch_id, project_id, ticket_id, actor_name, actor_kind, action, meta, created_at)
 		VALUES ${joined(values)}
 	`);
 };

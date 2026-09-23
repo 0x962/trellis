@@ -33,7 +33,7 @@ import { base } from "./base.ts";
 const writeErrors = pickErrors([
 	"PROJECT_ARCHIVED",
 	"STATUS_NOT_IN_PROJECT",
-	"CROSS_ROOT_MOVE",
+	"CROSS_PROJECT_LINK",
 	"WAVE_OUTSIDE_EPIC",
 	"PARENT_CYCLE",
 	"LABEL_AMBIGUOUS",

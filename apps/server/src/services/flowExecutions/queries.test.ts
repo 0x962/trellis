@@ -50,14 +50,14 @@ test("a stored flow execution without harness fields reads as current output", a
 	await db.execute(
 		sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at) VALUES ('Test', 'human', ${at}, ${at})`,
 	);
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${project}, ${project}, 'TST', 'tst', 'Test', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${project}, 'TST', 'tst', 'Test', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses (
 		id, project_id, name, slug, category, color, position, is_default, created_at, updated_at
 	) VALUES (${status}, ${project}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO tickets (
-		id, project_id, root_id, number, title, status_id, position, created_at, updated_at
-	) VALUES (${ticket}, ${project}, ${project}, 1, 'Task', ${status}, 0, ${at}, ${at})`);
+		id, project_id, number, title, status_id, position, created_at, updated_at
+	) VALUES (${ticket}, ${project}, 1, 'Task', ${status}, 0, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO flow_executions (
 		id, flow_id, ticket_id, project_id, actor_kind, actor_name, request_id,
 		request, doc, state, revision, created_at, updated_at

@@ -58,7 +58,7 @@ const header = (ticket: Ticket, parentTitle: string | null, epic: Epic | null, p
 	const lines = [
 		`# ${ticket.identifier}: ${ticket.title}`,
 		"",
-		`- Project: ${ticket.project.path}`,
+		`- Project: ${ticket.project.key}`,
 		`- Status: ${ticket.status.name}`,
 		`- Priority: ${ticket.priority}`,
 		`- Labels: ${labelLine(ticket)}`,
@@ -153,7 +153,7 @@ export const assignmentInstruction = (input: {
 	identifier: string;
 	title: string;
 	description: string;
-	projectPath: string;
+	projectKey: string;
 	branch: string;
 	publicUrl: string;
 }) =>
@@ -161,7 +161,7 @@ export const assignmentInstruction = (input: {
 		[
 			`# ${input.identifier}: ${input.title}`,
 			"",
-			`- Project: ${input.projectPath}`,
+			`- Project: ${input.projectKey}`,
 			`- Branch: ${input.branch}`,
 			`- URL: ${input.publicUrl}/t/${input.identifier}`,
 		],
@@ -209,7 +209,7 @@ export const get = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<B
 		subTickets(ticket),
 		pullRequests(ticket),
 		attachments(ticket, ctx.publicUrl),
-		notesLines(await activeNotes(ctx, tx, { projectId: row.projectId, audience: "worker" }), ticket.project.path),
+		notesLines(await activeNotes(ctx, tx, { projectId: row.projectId, audience: "worker" }), ticket.project.key),
 		protocol(ticket.identifier),
 		reviewComments,
 	]).join("\n\n");

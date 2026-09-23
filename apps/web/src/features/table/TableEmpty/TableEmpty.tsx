@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Button, EmptyState } from "@trellis/ui";
-import { projectSlashPath } from "../../../lib/projectPath";
+
 import { CliLine } from "../../shell/CliLine";
 
 export type TableEmptyProps = {
@@ -28,7 +28,7 @@ export function TableEmpty({ project, filtered, q, onCreate }: TableEmptyProps) 
 				description="Clear the filters to see every ticket."
 				variant="page"
 				action={
-					<Link to="/p/$" params={{ _splat: projectSlashPath(project) }} search={{}} className={linkClass}>
+					<Link to="/p/$" params={{ _splat: project }} search={{}} className={linkClass}>
 						Clear filters
 					</Link>
 				}

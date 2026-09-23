@@ -9,10 +9,9 @@ export type ScopeLabels = {
 
 const none: ScopeLabels = { labels: [], groups: [] };
 
-// The labels and the label groups a route can filter by. The root project of
-// a tree owns them, so any project path of that tree returns the same lists.
-// A route without a project, such as the search page, has no one tree to read,
-// so it sends no request and both lists stay empty.
+// The labels and the label groups a route can filter by. A project owns
+// them. A route without a project, such as the search page, reads no one
+// project, so it sends no request and both lists stay empty.
 export const useScopeLabels = (project: string | undefined): ScopeLabels => {
 	const { orpc } = useApp();
 	const query = useQuery({

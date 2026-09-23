@@ -52,12 +52,12 @@ beforeAll(async () => {
 	await migrate(db);
 	const at = new Date();
 	const statusId = ulid();
-	await db.execute(sql`INSERT INTO projects (id,root_id,key,slug,name,directory,created_at,updated_at)
- VALUES (${projectId},${projectId},'TST','test','Test',${repo},${at},${at})`);
+	await db.execute(sql`INSERT INTO projects (id,key,slug,name,directory,created_at,updated_at)
+ VALUES (${projectId},'TST','test','Test',${repo},${at},${at})`);
 	await db.execute(sql`INSERT INTO statuses (id,project_id,name,slug,category,color,position,is_default,created_at,updated_at)
  VALUES (${statusId},${projectId},'Todo','todo','todo','fg-muted',0,true,${at},${at})`);
-	await db.execute(sql`INSERT INTO tickets (id,project_id,root_id,number,title,status_id,position,created_at,updated_at)
- VALUES (${ticketId},${projectId},${projectId},1,'Task',${statusId},0,${at},${at})`);
+	await db.execute(sql`INSERT INTO tickets (id,project_id,number,title,status_id,position,created_at,updated_at)
+ VALUES (${ticketId},${projectId},1,'Task',${statusId},0,${at},${at})`);
 	const cache = createCache();
 	await db.transaction((tx) => cache.rebuild(tx));
 	const actor = { name: "Test", kind: "human" as const };

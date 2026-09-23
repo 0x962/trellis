@@ -2,21 +2,11 @@ import { Link } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
 import { cx } from "@trellis/ui";
 import { formatCount } from "../../../../lib/format";
-import { projectRefOfPathname, projectSlashPath } from "../../../../lib/projectPath";
+import { projectRefOfPathname } from "../../../../lib/projectUrl";
 
-const indent = ["pl-8", "pl-8", "pl-11", "pl-14", "pl-17"] as const;
-
-export function ProjectPages({
-	project,
-	depth,
-	pathname,
-}: {
-	project: ProjectSummary;
-	depth: number;
-	pathname: string;
-}) {
-	const current = projectRefOfPathname(pathname) === project.path;
-	// The Tickets row owns the bare project path, so every other page of the
+export function ProjectPages({ project, pathname }: { project: ProjectSummary; pathname: string }) {
+	const current = projectRefOfPathname(pathname) === project.key;
+	// The Tickets row owns the bare project URL, so every other page of the
 	// project turns it off. That includes the settings page and its /notes
 	// section, which the project's row menu (ProjectRowActions) opens.
 	const settings = pathname.endsWith("/settings") || pathname.endsWith("/notes");
@@ -49,16 +39,12 @@ export function ProjectPages({
 							<Link
 								data-project-page=""
 								to={suffix === "/sessions" ? "/sessions/project/$project" : "/p/$"}
-								params={
-									suffix === "/sessions"
-										? { project: project.path }
-										: { _splat: `${projectSlashPath(project.path)}${suffix}` }
-								}
+								params={suffix === "/sessions" ? { project: project.key } : { _splat: `${project.key}${suffix}` }}
 								activeOptions={{ exact: true, includeSearch: false }}
 								aria-current={active ? "page" : undefined}
 								className={cx(
 									"sidebar-row text-sm text-fg-muted hover:bg-elevated hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
-									indent[Math.min(depth, indent.length - 1)],
+									"pl-8",
 									active && "sidebar-selected font-medium",
 								)}
 							>

@@ -57,7 +57,7 @@ const running = (terminalId: string) =>
 
 const startRun = (id: string, ticketId: string, identifier: string) =>
 	db.execute(sql`INSERT INTO agent_runs
-		(id, name, kind, instruction, project_path, ticket_id, ticket_identifier, terminal_id, created_at, updated_at)
+		(id, name, kind, instruction, project_key, ticket_id, ticket_identifier, terminal_id, created_at, updated_at)
 		VALUES (${id}, 'crisp-fjord', 'agent', 'Build it', '/tmp/work', ${ticketId}, ${identifier},
 			${`term-${id}`}, ${at}, ${at})`);
 
@@ -133,8 +133,8 @@ const deliveryOf = async (ticketId: string) => {
 
 beforeAll(async () => {
 	db = await openTestDb();
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${rootId}, ${rootId}, 'DSP', 'dsp', 'Dispatch', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${rootId}, 'DSP', 'dsp', 'Dispatch', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses
 		(id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at)
 		VALUES (${ulid()}, ${rootId}, 'Todo', 'todo', 'todo', NULL, 'fg-muted', 0, true, ${at}, ${at}),

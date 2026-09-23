@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
 import { failToast } from "../../../../../lib/failToast";
-import { projectHref } from "../../../../../lib/projectPath";
+import { projectHref } from "../../../../../lib/projectUrl";
 import { usePageSheet } from "../../../../shell/PageSheet";
 import { TopbarActionMenu } from "../../../../shell/Topbar";
 import { branchName, titleSlug } from "../../../PropertiesRail/utils/branchName";
@@ -34,7 +34,7 @@ export function MoreMenu({ ticket }: MoreMenuProps) {
 			setConfirming(false);
 			await queryClient.invalidateQueries();
 			if (sheet !== null) sheet.close();
-			else void router.navigate({ href: projectHref(ticket.project.path), replace: true });
+			else void router.navigate({ href: projectHref(ticket.project.key), replace: true });
 		} catch (error) {
 			failToast(`${ticket.identifier} is not deleted.`, error, () => void remove());
 		}
@@ -50,7 +50,6 @@ export function MoreMenu({ ticket }: MoreMenuProps) {
 					{ label: "Copy branch name", onSelect: () => void copyText(branch, "Copied the branch name") },
 					{ label: "Copy link", onSelect: () => void copyText(ticketLink(ticket.identifier), "Copied the link") },
 					{ label: "Set labels", onSelect: () => openPicker("labels") },
-					{ label: "Move to project", onSelect: () => openPicker("project") },
 					{ label: "Set parent", onSelect: () => openPicker("parent") },
 					{ label: "Set dependencies", onSelect: () => openPicker("dependencies") },
 					{ label: "Delete", onSelect: () => setConfirming(true), danger: true },

@@ -60,7 +60,6 @@ export const move = async (ctx: ServiceCtx, tx: Tx, rawInput: unknown): Promise<
 		changes.push({ field: "position", from: String(row.position), to: String(position) });
 	}
 	await record(ctx, tx, {
-		rootId: row.rootId,
 		projectId: row.projectId,
 		ticketId: row.id,
 		action: "ticket.updated",

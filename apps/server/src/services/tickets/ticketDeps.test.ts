@@ -29,8 +29,8 @@ const ctxAt = (now: string): ServiceCtx => ({
 const run = <T>(fn: (tx: Tx) => Promise<T>) => db.transaction(fn);
 
 const insertRoot = async (id: string, key: string) => {
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${id}, ${id}, ${key}, ${key.toLowerCase()}, ${key}, '2026-09-20T10:00:00.000Z', '2026-09-20T10:00:00.000Z')`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${id}, ${key}, ${key.toLowerCase()}, ${key}, '2026-09-20T10:00:00.000Z', '2026-09-20T10:00:00.000Z')`);
 	await db.execute(sql`INSERT INTO statuses
 		(id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at)
 		VALUES (${ulid()}, ${id}, 'Todo', 'todo', 'todo', NULL, 'fg-muted', 0, true,

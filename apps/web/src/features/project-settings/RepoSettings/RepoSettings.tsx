@@ -15,7 +15,7 @@ export function RepoSettings({ project }: RepoSettingsProps) {
 
 	const save = async (repos: { owner: string; repo: string }[]) => {
 		try {
-			await client.projects.setRepos({ project: project.path, repos });
+			await client.projects.setRepos({ project: project.key, repos });
 			setMessage(null);
 			await queryClient.invalidateQueries();
 		} catch (error) {

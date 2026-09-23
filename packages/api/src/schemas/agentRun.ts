@@ -18,7 +18,7 @@ export const AgentRunSchema = z.object({
 	kind: AgentRunKindSchema,
 	instruction: z.string(),
 	projectId: UlidSchema.nullable(),
-	projectPath: z.string(),
+	projectKey: z.string(),
 	ticketId: UlidSchema.nullable(),
 	ticketIdentifier: z.string().nullable(),
 	ticketTitle: z.string().nullable(),

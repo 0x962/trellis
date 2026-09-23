@@ -22,7 +22,7 @@ type PlacementInput = { epic?: string | null | undefined; wave?: string | null |
 
 const noWave = { waveId: null, waveRef: null };
 
-// The placement a ticket of `rootId` has after a write that holds `input`.
+// The placement a ticket of `projectId` has after a write that holds `input`.
 // A `wave` value places the ticket in the epic of that wave, so
 // one call places a ticket. An `epic` value beside it must name that same
 // epic (WAVE_OUTSIDE_EPIC). An `epic` value that differs from the
@@ -31,26 +31,26 @@ const noWave = { waveId: null, waveRef: null };
 export const resolvePlacement = async (
 	ctx: ServiceCtx,
 	tx: Tx,
-	rootId: string,
+	projectId: string,
 	current: Placement,
 	input: PlacementInput,
 ): Promise<Placement> => {
 	if (typeof input.wave === "string") {
-		const wave = await resolveWaveForTicket(ctx, tx, rootId, input.wave);
+		const wave = await resolveWaveForTicket(ctx, tx, projectId, input.wave);
 		if (input.epic !== undefined) {
-			const named = input.epic === null ? null : await resolveEpicForTicket(ctx, tx, rootId, input.epic);
+			const named = input.epic === null ? null : await resolveEpicForTicket(ctx, tx, projectId, input.epic);
 			if (named?.id !== wave.epic_id) throw fail("WAVE_OUTSIDE_EPIC");
 		}
 		return {
 			epicId: wave.epic_id,
-			epicRef: epicRefOf({ root_key: wave.root_key, slug: wave.epic_slug }),
+			epicRef: epicRefOf({ project_key: wave.project_key, slug: wave.epic_slug }),
 			waveId: wave.id,
 			waveRef: waveRefOf(wave),
 		};
 	}
 	let next = current;
 	if (input.epic !== undefined) {
-		const epic = input.epic === null ? null : await resolveEpicForTicket(ctx, tx, rootId, input.epic);
+		const epic = input.epic === null ? null : await resolveEpicForTicket(ctx, tx, projectId, input.epic);
 		if ((epic?.id ?? null) !== current.epicId) {
 			next = { epicId: epic?.id ?? null, epicRef: epic === null ? null : epicRefOf(epic), ...noWave };
 		}

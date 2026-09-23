@@ -19,8 +19,8 @@ const wave = ulid();
 const at = "2026-09-18T10:00:00.000Z";
 
 const insertTicket = (number: number, status: string, epicId: string | null, waveId: string | null) =>
-	db.execute(sql`INSERT INTO tickets (id, project_id, root_id, number, title, status_id, epic_id, wave_id, position, created_at, updated_at)
-		VALUES (${ulid()}, ${tst}, ${tst}, ${number}, ${`Ticket ${number}`}, ${status}, ${epicId}, ${waveId}, ${number}, ${at}, ${at})`);
+	db.execute(sql`INSERT INTO tickets (id, project_id, number, title, status_id, epic_id, wave_id, position, created_at, updated_at)
+		VALUES (${ulid()}, ${tst}, ${number}, ${`Ticket ${number}`}, ${status}, ${epicId}, ${waveId}, ${number}, ${at}, ${at})`);
 
 beforeAll(async () => {
 	db = await openDb(":memory:");
@@ -28,15 +28,15 @@ beforeAll(async () => {
 	await db.execute(
 		sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at) VALUES ('Test', 'human', ${at}, ${at})`,
 	);
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${tst}, ${tst}, 'TST', 'tst', 'Test', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${tst}, 'TST', 'tst', 'Test', ${at}, ${at})`);
 	const status = ulid();
 	await db.execute(sql`INSERT INTO statuses (id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
 		VALUES (${status}, ${tst}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO epics (id, project_id, root_id, slug, name, description, actor_name, actor_kind, created_at, updated_at)
-		VALUES (${epic}, ${tst}, ${tst}, 'plan', 'Plan', '', 'Test', 'human', ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO waves (id, epic_id, root_id, slug, name, position, created_at, updated_at)
-		VALUES (${wave}, ${epic}, ${tst}, 'phase-1', 'Phase 1', 0, ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO epics (id, project_id, slug, name, description, actor_name, actor_kind, created_at, updated_at)
+		VALUES (${epic}, ${tst}, 'plan', 'Plan', '', 'Test', 'human', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO waves (id, epic_id, slug, name, position, created_at, updated_at)
+		VALUES (${wave}, ${epic}, 'phase-1', 'Phase 1', 0, ${at}, ${at})`);
 	await insertTicket(1, status, epic, wave);
 	await insertTicket(2, status, null, null);
 	await insertTicket(3, status, epic, null);
@@ -92,6 +92,6 @@ test("a wave ref that names no wave is NOT_FOUND", async () => {
 
 test("the database refuses a ticket with a wave and no epic", async () => {
 	await expect(
-		db.execute(sql`UPDATE tickets SET epic_id = NULL WHERE root_id = ${tst} AND number = 1`),
+		db.execute(sql`UPDATE tickets SET epic_id = NULL WHERE project_id = ${tst} AND number = 1`),
 	).rejects.toThrow("tickets_wave_needs_epic");
 });

@@ -12,7 +12,7 @@ export function NotesSettings({ project }: { project: Project }) {
 	const { orpc } = useApp();
 	const readOnly = project.archivedAt !== null;
 	const notes = useQuery(
-		orpc.notes.list.queryOptions({ input: { project: project.path, includeExpired: true }, retry: false }),
+		orpc.notes.list.queryOptions({ input: { project: project.key, includeExpired: true }, retry: false }),
 	);
 	const [editor, setEditor] = useState<{ note?: Note } | null>(null);
 	const [requestedPage, setRequestedPage] = useState(0);
@@ -66,22 +66,22 @@ export function NotesSettings({ project }: { project: Project }) {
 					/>
 				) : (
 					<div className="flex flex-col gap-8">
-						{notePage.groups.map(({ projectPath, count, notes: members }) => {
-							const expanded = !collapsedGroups.has(projectPath);
-							const controls = `notes-${project.id}-${encodeURIComponent(projectPath)}`;
+						{notePage.groups.map(({ projectKey, count, notes: members }) => {
+							const expanded = !collapsedGroups.has(projectKey);
+							const controls = `notes-${project.id}-${encodeURIComponent(projectKey)}`;
 							return (
-								<section key={projectPath} aria-label={`Notes of ${projectPath}`} className="flex flex-col gap-3">
+								<section key={projectKey} aria-label={`Notes of ${projectKey}`} className="flex flex-col gap-3">
 									<GroupHeader
-										group={projectPath}
-										label={projectPath}
+										group={projectKey}
+										label={projectKey}
 										count={count}
 										expanded={expanded}
 										controls={controls}
 										onToggle={() =>
 											setCollapsedGroups((current) => {
 												const next = new Set(current);
-												if (expanded) next.add(projectPath);
-												else next.delete(projectPath);
+												if (expanded) next.add(projectKey);
+												else next.delete(projectKey);
 												return next;
 											})
 										}
