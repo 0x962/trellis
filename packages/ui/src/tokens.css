@@ -403,6 +403,57 @@
 	transition-duration: var(--duration-sweep);
 }
 
+/* A piece of check-bar confetti drifts sideways at a steady rate. */
+@keyframes confetti-drift {
+	from {
+		transform: translateX(0);
+	}
+	to {
+		transform: translateX(var(--confetti-across));
+	}
+}
+/*
+ * The same piece rises 19 px, falls 22 px past its start, and turns as
+ * it goes. The scaleX steps squeeze the piece to a quarter of its width
+ * and back, which reads as a strip of paper that turns edge on.
+ */
+@keyframes confetti-arc {
+	0% {
+		transform: translateY(0) rotate(0deg) scaleX(1);
+		opacity: 0;
+	}
+	12% {
+		opacity: 1;
+	}
+	38% {
+		transform: translateY(-19px) rotate(calc(var(--confetti-turn) * 0.35)) scaleX(0.25);
+	}
+	70% {
+		transform: translateY(-5px) rotate(calc(var(--confetti-turn) * 0.7)) scaleX(1);
+	}
+	85% {
+		opacity: 1;
+	}
+	100% {
+		transform: translateY(22px) rotate(var(--confetti-turn)) scaleX(0.45);
+		opacity: 0;
+	}
+}
+
+/*
+ * The two halves of one piece of check-bar confetti. Each piece sets
+ * --confetti-run, --confetti-across and --confetti-turn on itself, so the
+ * animation lives in a utility and not in an --animate-* theme token: a
+ * theme token holds one value for the whole page, and a var() in it that
+ * the page root does not define makes the token invalid everywhere.
+ */
+@utility confetti-drift {
+	animation: confetti-drift var(--confetti-run) linear both;
+}
+@utility confetti-arc {
+	animation: confetti-arc var(--confetti-run) linear both;
+}
+
 /* The pending segment of a check ribbon: a moving highlight over warning. */
 @utility ribbon-shimmer {
 	background-image: linear-gradient(90deg, transparent, color-mix(in srgb, var(--warning), var(--bg) 28%), transparent);

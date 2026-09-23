@@ -3,6 +3,7 @@ import {
 	AgentProfileMarkSection,
 	AttentionDotSection,
 	ChangeSummarySection,
+	CheckConfettiSection,
 	CheckRibbonSection,
 	ChecksLineSection,
 	FileRiskGroupsSection,
@@ -29,6 +30,7 @@ export function DomainSections() {
 			<AttentionDotSection />
 			<ReviewStatusSummarySection />
 			<CheckRibbonSection />
+			<CheckConfettiSection />
 			<ChecksLineSection />
 			<PrGlyphSection />
 			<ActorChipSection />
