@@ -53,13 +53,15 @@ Each page supplies its data and available actions. It does not choose new contro
 Use `InlineEdit` wherever a person renames a thing without leaving the page.
 It is the only in-place edit in the product, so a person meets the same rules on every screen.
 Do not hold the edit state by hand, and do not add a per-screen option to any rule below.
+The server stores the value as the person typed it. The component sends it that way, and it appends nothing.
 
 1. Enter saves the typed value. Losing the focus also saves it.
-2. Escape cancels, and only Escape. The saved value comes back.
-3. An empty value, or a value of spaces alone, cancels. The field sends nothing.
+2. Escape cancels, and only Escape. The saved value comes back, and Escape cancels an empty field too.
+3. An empty value, or a value of spaces alone, is refused. The field stays open and says "Enter a name.".
 4. A value equal to the saved one closes the field. The field sends nothing.
 5. The new value waits for the server. The field takes no more typing until the server answers.
 6. A refusal keeps the field open with the typed value, draws the red border, takes the focus back, and names the reason.
+   An empty value and a server that says no end the same way. The message is a toast, because a 32 px row has no room for a line under the field.
 7. Enter and Escape give the focus to the value. A click outside leaves the focus where the person clicked.
 8. At rest the value is plain text at the size of the text beside it: no box, no pencil, no underline.
 9. Inside a row that is a link, the row is not drawn while the field is open, and no key press navigates.

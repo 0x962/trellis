@@ -33,13 +33,19 @@ test("no other key ends the edit", () => {
 	}
 });
 
-test("an empty value closes the field and sends nothing", () => {
-	expect(inlineEditAction(enter, "", "Old name")).toEqual({ kind: "close", focus: "value" });
-	expect(inlineEditAction(blur, "", "Old name")).toEqual({ kind: "close", focus: "none" });
+test("an empty value is refused and the field stays open", () => {
+	expect(inlineEditAction(enter, "", "Old name")).toEqual({ kind: "empty" });
+	expect(inlineEditAction(blur, "", "Old name")).toEqual({ kind: "empty" });
 });
 
-test("a value of spaces alone closes the field and sends nothing", () => {
-	expect(inlineEditAction(enter, "   ", "Old name")).toEqual({ kind: "close", focus: "value" });
+test("a value of spaces alone is refused and the field stays open", () => {
+	expect(inlineEditAction(enter, "   ", "Old name")).toEqual({ kind: "empty" });
+});
+
+// Escape is the way out of an empty field, so a person who cleared the name
+// is never held in it.
+test("Escape cancels an empty field", () => {
+	expect(inlineEditAction(escapeKey, "", "Old name")).toEqual({ kind: "close", focus: "value" });
 });
 
 test("a value equal to the saved one closes the field and sends nothing", () => {
@@ -92,14 +98,22 @@ test("Escape sends nothing to the server", async () => {
 	expect(outcome).toEqual({ kind: "closed", focus: "value" });
 });
 
-test("an empty value sends nothing to the server", async () => {
+test("an empty value sends nothing to the server and says what to do", async () => {
 	const sent: string[] = [];
 	const outcome = await runInlineEdit(enter, "  ", "Old name", async (next) => {
 		sent.push(next);
 	});
 
 	expect(sent).toEqual([]);
-	expect(outcome).toEqual({ kind: "closed", focus: "value" });
+	expect(outcome).toEqual({ kind: "refused", value: "  ", message: "Enter a name." });
+});
+
+// The server refuses an empty name with the same sentence, so a person reads
+// the same words whichever side answers.
+test("an empty value takes the words the caller gives it", async () => {
+	const outcome = await runInlineEdit(blur, "", "Old name", accepts, { emptyMessage: "Enter a title." });
+
+	expect(outcome).toEqual({ kind: "refused", value: "", message: "Enter a title." });
 });
 
 test("a refusal keeps the typed value and names the reason", async () => {
@@ -121,9 +135,9 @@ test("the field shuts to more typing before the server call, and only then", asy
 		async () => {
 			order.push("commit");
 		},
-		() => order.push("saving"),
+		{ onSaving: () => order.push("saving") },
 	);
-	await runInlineEdit(escapeKey, "New name", "Old name", accepts, () => order.push("saving"));
+	await runInlineEdit(escapeKey, "New name", "Old name", accepts, { onSaving: () => order.push("saving") });
 
 	expect(order).toEqual(["saving", "commit"]);
 });

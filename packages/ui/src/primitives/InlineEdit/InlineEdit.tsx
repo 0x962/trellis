@@ -21,6 +21,9 @@ export type InlineEditProps = {
 	// The first line of the message a refusal shows, such as "The session name
 	// did not change."
 	errorTitle?: string;
+	// What an empty value says. The default is the sentence the server uses
+	// when it refuses an empty name.
+	emptyMessage?: string;
 	// A mark that stands left of the text field, such as the avatar of the row.
 	// It keeps the row from moving sideways when the field opens.
 	leading?: ReactNode;
@@ -48,15 +51,18 @@ export type InlineEditProps = {
  * 1. Enter saves the typed value. Losing the focus also saves it. A person who
  *    types a name and clicks away keeps the name.
  * 2. Escape cancels, and only Escape. The saved value comes back.
- * 3. An empty value, or a value of spaces alone, cancels. The field sends
- *    nothing.
+ * 3. An empty value, or a value of spaces alone, is refused. The field stays
+ *    open and says "Enter a name.", and it sends nothing. Escape still
+ *    cancels an empty field, so a person is never held in it.
  * 4. A value equal to the saved one closes the field. The field sends nothing.
  * 5. The new value waits for the server. The field stays open and takes no
  *    more typing until the server answers, and the screen shows the new value
  *    after the server accepts it.
  * 6. When the server refuses, the field stays open, keeps the typed value,
  *    draws the red border and takes the focus back. A message names the
- *    reason.
+ *    reason. An empty value ends the same way, so a person reads one kind of
+ *    message. The message is a toast, because a row 32 px tall has no room
+ *    for a line of text under the field.
  * 7. After Enter and after Escape the focus goes to the box that holds the
  *    value, so the next Tab starts from the value. After a click outside, the
  *    focus stays where the person clicked.
@@ -75,6 +81,7 @@ export function InlineEdit({
 	onEditingChange,
 	onCommit,
 	errorTitle = "The server refused the new value.",
+	emptyMessage = "Enter a name.",
 	leading,
 	className,
 	fieldClassName,
@@ -83,7 +90,9 @@ export function InlineEdit({
 }: InlineEditProps) {
 	const [draft, setDraft] = useState(value);
 	const [saving, setSaving] = useState(false);
-	const [refused, setRefused] = useState(false);
+	// Counts the refusals of this edit. A count, and not a flag, makes the
+	// effect below run again when the same value is refused a second time.
+	const [refusals, setRefusals] = useState(0);
 	const box = useRef<HTMLDivElement>(null);
 	const field = useRef<HTMLInputElement>(null);
 	// True from the first moment of an ending until the field closes. The text
@@ -99,11 +108,18 @@ export function InlineEdit({
 		if (!editing) return;
 		setDraft(value);
 		setSaving(false);
-		setRefused(false);
+		setRefusals(0);
 		ending.current = false;
 		field.current?.focus();
 		field.current?.select();
 	}, [editing]);
+
+	// The text field is disabled while the server answers, and a disabled field
+	// takes no focus. The focus therefore waits for the redraw that enables the
+	// field again.
+	useEffect(() => {
+		if (refusals > 0) field.current?.focus();
+	}, [refusals]);
 
 	const close = (focus: InlineEditFocus) => {
 		ending.current = true;
@@ -114,16 +130,18 @@ export function InlineEdit({
 
 	const end = async (event: InlineEditEvent) => {
 		if (ending.current) return;
-		const outcome = await runInlineEdit(event, draft, value, onCommit, () => {
-			ending.current = true;
-			setSaving(true);
+		const outcome = await runInlineEdit(event, draft, value, onCommit, {
+			onSaving: () => {
+				ending.current = true;
+				setSaving(true);
+			},
+			emptyMessage,
 		});
 		if (outcome.kind === "typing") return;
 		if (outcome.kind === "refused") {
 			ending.current = false;
 			setSaving(false);
-			setRefused(true);
-			field.current?.focus();
+			setRefusals((count) => count + 1);
 			toast.error(errorTitle, { description: outcome.message });
 			return;
 		}
@@ -159,11 +177,11 @@ export function InlineEdit({
 							hideLabel
 							value={draft}
 							disabled={saving}
-							invalid={refused}
+							invalid={refusals > 0}
 							className={cx("min-w-0", inputClassName)}
 							onChange={(event) => {
 								setDraft(event.target.value);
-								setRefused(false);
+								setRefusals(0);
 							}}
 							onKeyDown={keyDown}
 							onBlur={() => void end({ kind: "blur" })}

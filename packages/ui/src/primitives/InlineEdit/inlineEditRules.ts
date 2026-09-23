@@ -12,51 +12,66 @@ export type InlineEditFocus = "value" | "none";
 
 // What the field does next.
 // "save" sends `value` to the server. "close" shuts the field and sends
-// nothing. "type" lets the key press put a character in the field.
+// nothing. "empty" holds the field open, because a value of spaces alone is
+// not a name. "type" lets the key press put a character in the field.
 export type InlineEditAction =
 	| { kind: "save"; value: string; focus: InlineEditFocus }
 	| { kind: "close"; focus: InlineEditFocus }
+	| { kind: "empty" }
 	| { kind: "type" };
 
 // `draft` is the text in the field. `saved` is the value the record holds.
 //
-// Enter and a lost focus both save. Escape alone cancels. An empty draft and
-// a draft equal to the saved value close the field and send nothing; spaces at
-// the two ends never make a new value, so both sides lose them first.
+// Enter and a lost focus both save. Escape alone cancels, and it cancels an
+// empty field too, so a person is never held in the field. An empty draft is
+// refused. A draft equal to the saved value closes the field and sends
+// nothing; spaces at the two ends never make a new value, so both sides lose
+// them first.
 export function inlineEditAction(event: InlineEditEvent, draft: string, saved: string): InlineEditAction {
 	if (event.kind === "key") {
 		if (event.key === "Escape") return { kind: "close", focus: "value" };
 		if (event.key !== "Enter") return { kind: "type" };
 	}
-	const focus: InlineEditFocus = event.kind === "blur" ? "none" : "value";
 	const next = draft.trim();
-	if (next === "" || next === saved.trim()) return { kind: "close", focus };
+	if (next === "") return { kind: "empty" };
+	const focus: InlineEditFocus = event.kind === "blur" ? "none" : "value";
+	if (next === saved.trim()) return { kind: "close", focus };
 	return { kind: "save", value: next, focus };
 }
 
 // What one ending of an edit did.
 // "typing" means the key press was not an ending. "closed" means the field
 // shut and sent nothing. "saved" means the server took the new value.
-// "refused" means the server rejected it, so the field stays open with the
-// typed value and `message` says why.
+// "refused" means the value was rejected, so the field stays open with the
+// typed value and `message` says why. An empty value and a server that says
+// no both end this way, so a person reads one kind of message.
 export type InlineEditOutcome =
 	| { kind: "typing" }
 	| { kind: "closed"; focus: InlineEditFocus }
 	| { kind: "saved"; value: string; focus: InlineEditFocus }
 	| { kind: "refused"; value: string; message: string };
 
+export type InlineEditRun = {
+	// Runs in the moment before `commit` starts, so the caller can shut the
+	// field to more typing.
+	onSaving?: () => void;
+	// What an empty value says. The server refuses an empty name with the same
+	// words, so a person reads them whichever way the field ends.
+	emptyMessage?: string;
+};
+
 // Runs one ending of an in-place edit. `commit` sends the value to the server
-// and rejects when the server refuses it. `onSaving` runs in the moment before
-// `commit` starts, so the caller can shut the field to more typing.
+// and rejects when the server refuses it.
 export async function runInlineEdit(
 	event: InlineEditEvent,
 	draft: string,
 	saved: string,
 	commit: (value: string) => Promise<void>,
-	onSaving: () => void = () => {},
+	{ onSaving = () => {}, emptyMessage = "Enter a name." }: InlineEditRun = {},
 ): Promise<InlineEditOutcome> {
 	const action = inlineEditAction(event, draft, saved);
 	if (action.kind === "type") return { kind: "typing" };
+	if (action.kind === "empty") return { kind: "refused", value: draft, message: emptyMessage };
 	if (action.kind === "close") return { kind: "closed", focus: action.focus };
 	onSaving();
 	try {

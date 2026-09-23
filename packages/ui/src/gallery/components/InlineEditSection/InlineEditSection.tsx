@@ -9,8 +9,8 @@ import { Section } from "../Section";
 // words.
 const rules = [
 	"Enter saves the typed value. Losing the focus also saves it.",
-	"Escape cancels, and only Escape. The saved value comes back.",
-	"An empty value, or a value of spaces alone, cancels. The field sends nothing.",
+	"Escape cancels, and only Escape. The saved value comes back, and Escape cancels an empty field too.",
+	'An empty value, or a value of spaces alone, is refused. The field stays open and says "Enter a name.".',
 	"A value equal to the saved one closes the field. The field sends nothing.",
 	"The new value waits for the server. The field takes no more typing until the server answers.",
 	"A refusal keeps the field open with the typed value, draws the red border, takes the focus back, and names the reason.",
@@ -87,7 +87,10 @@ export function InlineEditSection() {
 					</div>
 				</div>
 				<div className="flex flex-col gap-2">
-					<p className="text-sm text-fg-muted">A server that refuses. The field keeps the typed value.</p>
+					<p className="text-sm text-fg-muted">
+						A server that refuses. The field keeps the typed value. Clear the field and press Enter to read the empty
+						message.
+					</p>
 					<div className="flex w-72 items-center gap-1">
 						<InlineEdit
 							label="Taken name"
@@ -95,7 +98,7 @@ export function InlineEditSection() {
 							editing={editingRefusal}
 							onEditingChange={setEditingRefusal}
 							onCommit={async () => {
-								throw new Error("A session with this name already exists.");
+								throw new Error("Too big: expected string to have <=60 characters");
 							}}
 							errorTitle="The name did not change."
 							className="min-w-0 flex-1"
