@@ -109,8 +109,13 @@ test("the More row shows the dot while it hides the Sessions row", async () => {
 
 	expect(html).toContain('aria-expanded="false"');
 	expect(html).toContain('aria-label="1 agent is active"');
+	// The CSS of the wide slot reads this attribute, so the two names must agree.
+	expect(html).toContain('data-dot-and-caret=""');
 });
 
 test("no row shows a dot while no agent of the project is active", async () => {
-	expect(await render("/sessions/project/TRL")).not.toContain("is active");
+	const html = await render("/sessions/project/TRL");
+
+	expect(html).not.toContain("is active");
+	expect(html).not.toContain("data-dot-and-caret");
 });

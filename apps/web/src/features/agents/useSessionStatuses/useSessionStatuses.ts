@@ -4,8 +4,7 @@ import { useApp } from "../../../lib/appContext";
 import { agentActivityQuery } from "../agentActivityQuery";
 import { statusesBySessionId } from "../statusesBySessionId";
 
-// useActiveAgentCounts asks React Query for the same key, so both hooks share
-// one fetch and one 2 second poll.
+// The key of each entry is the session id.
 export function useSessionStatuses(): Record<string, SessionStatus> | undefined {
 	const { orpc } = useApp();
 	const { data } = useQuery({ ...agentActivityQuery(orpc), select: statusesBySessionId });
