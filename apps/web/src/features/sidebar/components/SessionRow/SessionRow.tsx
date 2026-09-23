@@ -42,10 +42,11 @@ export const SessionRow = memo(function SessionRow({ session, status, active }: 
 				fieldClassName="h-8 gap-1 pointer-coarse:h-11"
 				inputClassName="h-7 text-sm"
 				leading={
-					// The avatar is 20 px and `sidebar-leading` is 16 px wide, so the
-					// mark overflows its box and the text field would cover the
-					// overflow. The negative margin and the 20 px box put the avatar
-					// on the same centre as the one in the link below.
+					// The avatar is 20 px and the `sidebar-leading` box is 16 px, so
+					// the avatar runs over the edge of that box and the text field
+					// would cover the part that runs over. The negative margin and
+					// the 20 px box hold the avatar on the same centre as the avatar
+					// in the link below.
 					<span aria-hidden="true" className="-ml-0.5 flex size-5 shrink-0 items-center justify-center">
 						{avatar}
 					</span>

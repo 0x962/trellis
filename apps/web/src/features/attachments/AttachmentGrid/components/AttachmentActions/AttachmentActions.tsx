@@ -1,30 +1,23 @@
 import { DotsThree } from "@phosphor-icons/react";
 import type { Attachment } from "@trellis/api";
-import { ConfirmDialog, IconButton, InlineEdit, Menu, writeClipboard } from "@trellis/ui";
+import { ConfirmDialog, IconButton, Menu, writeClipboard } from "@trellis/ui";
 import { useState } from "react";
 import { attachmentMarkdown } from "../../../utils/attachmentMarkdown";
 
 export type AttachmentActionsProps = {
 	attachment: Attachment;
 	onDelete: () => Promise<void>;
-	onRename: (name: string) => Promise<void>;
+	// Opens the rename field. The field itself sits on the file name, which is
+	// somewhere else on the screen, so the surface owns it.
+	onRename: () => void;
 	triggerClassName?: string;
 };
 
 export function AttachmentActions({ attachment, onDelete, onRename, triggerClassName }: AttachmentActionsProps) {
-	const [renaming, setRenaming] = useState(false);
 	const [confirming, setConfirming] = useState(false);
 
 	return (
 		<div className="flex min-w-0 items-center gap-1">
-			<InlineEdit
-				label={`Rename ${attachment.filename}`}
-				value={attachment.filename}
-				editing={renaming}
-				onEditingChange={setRenaming}
-				onCommit={onRename}
-				errorTitle={`${attachment.filename} kept its name.`}
-			/>
 			<Menu
 				label={`Actions for ${attachment.filename}`}
 				trigger={
@@ -35,7 +28,7 @@ export function AttachmentActions({ attachment, onDelete, onRename, triggerClass
 						label: "Copy markdown link",
 						onSelect: () => void writeClipboard(attachmentMarkdown(attachment)),
 					},
-					{ label: "Rename", onSelect: () => setRenaming(true) },
+					{ label: "Rename", onSelect: onRename },
 					{ label: "Delete", danger: true, onSelect: () => setConfirming(true) },
 				]}
 			/>

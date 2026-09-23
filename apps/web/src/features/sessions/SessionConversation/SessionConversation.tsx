@@ -38,8 +38,8 @@ export function SessionConversation({
 	const [confirmStop, setConfirmStop] = useState(false);
 	const [renaming, setRenaming] = useState(false);
 	const localHeading = useRef<HTMLHeadingElement>(null);
-	const heading = headingRef ?? localHeading;
-	const leaveTerminal = useCallback(() => heading.current?.focus(), [heading]);
+	const headingElement = headingRef ?? localHeading;
+	const leaveTerminal = useCallback(() => headingElement.current?.focus(), [headingElement]);
 	const active = hasAssignedProcess(run);
 	const refresh = () =>
 		Promise.all([
@@ -71,9 +71,9 @@ export function SessionConversation({
 	const summary = useWorkspaceSummary(run, { focus: true }).data;
 	const busy = start.isPending || stop.isPending;
 	const name = session?.name ?? run.ticketTitle ?? run.name;
-	const title = (
+	const heading = (
 		<h2
-			ref={heading}
+			ref={headingElement}
 			tabIndex={-1}
 			title={name}
 			className="truncate rounded-sm text-sm font-medium tabular focus-visible:outline-2 focus-visible:outline-accent"
@@ -110,10 +110,10 @@ export function SessionConversation({
 							fieldClassName="max-w-80"
 							inputClassName="h-7 text-sm font-medium"
 						>
-							{title}
+							{heading}
 						</SessionName>
 					) : (
-						title
+						heading
 					)}
 					{native && <SessionMeta run={run} summary={summary} />}
 				</div>

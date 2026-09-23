@@ -54,23 +54,26 @@ Each page supplies its data and available actions. It does not choose new contro
 Use `InlineEdit` wherever a person renames a thing without leaving the page.
 It is the only in-place edit in the product, so a person meets the same rules on every screen.
 Do not hold the edit state by hand, and do not add a per-screen option to any rule below.
-The server stores the value as the person typed it. The component sends it that way, and it appends nothing.
+The component removes the spaces at the two ends of the value and sends the rest.
 
 1. Enter saves the typed value. Losing the focus also saves it.
-2. Escape cancels, and only Escape. The saved value comes back, and Escape cancels an empty field too.
-3. An empty value, or a value of spaces alone, is refused. The field stays open and says "Enter a name.".
-4. A value equal to the saved one closes the field. The field sends nothing.
-5. The new value waits for the server. The field takes no more typing until the server answers.
-6. A refusal keeps the field open with the typed value, draws the red border, takes the focus back, and names the reason.
-   An empty value and a server that says no end the same way. The message is a toast, because a 32 px row has no room for a line under the field.
-7. Enter and Escape give the focus to the value. A click outside leaves the focus where the person clicked.
-8. At rest the value is plain text at the size of the text beside it: no box, no pencil, no underline.
-9. Inside a row that is a link, the row is not drawn while the field is open, and no key press navigates.
+2. Escape cancels, and only Escape. The saved value comes back.
+3. An empty value that a person sends with Enter is refused. The field stays open and says "Enter a name.".
+4. An empty value that loses the focus cancels, so nobody is held in a field that a phone keyboard cannot leave.
+5. A value equal to the saved one closes the field. The field sends nothing.
+6. The new value waits for the server. The field takes no more typing until the server answers.
+7. A refusal keeps the field open with the typed value, draws the red border, takes the focus back, and names the reason.
+8. Enter and Escape give the focus to the value. A click outside leaves the focus where the person clicked.
+9. At rest the value is plain text at the size of the text beside it: no box, no pencil, no underline.
 
+The list above is `inlineEditRules` in `packages/ui/src/primitives/InlineEdit/inlineEditRules.ts`.
+The gallery section Inline edit draws the same list beside a live example, and a test fails when this page and that list differ.
+
+A refusal speaks through a toast, because a row 32 px tall has no room for a line of text under the field.
 The screen owns the `editing` flag, because the Rename action that starts the edit sits in a row menu beside the value.
 The screen passes its own resting view as the children, and its own avatar as `leading` where a row has one.
+Inside a row that is a link, the screen draws no row while the field is open, so no key press navigates.
 A form with more than one field is not an in-place edit. Use a sheet or a row editor for it.
-The gallery section Inline edit prints the same rules beside a live example.
 
 ## Pages in a sheet
 

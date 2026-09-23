@@ -126,8 +126,8 @@ export function SessionGroup({
 									<SessionName
 										session={session}
 										editing={renaming}
-										onEditingChange={(next) => setRenamingId(next ? session.id : null)}
-										fieldClassName="min-h-11 gap-2 px-2 py-1.5"
+										onEditingChange={(open) => setRenamingId(open ? session.id : null)}
+										fieldClassName="sidebar-item-box"
 										inputClassName="h-7 text-sm"
 										leading={
 											<span aria-hidden="true" className="flex shrink-0">

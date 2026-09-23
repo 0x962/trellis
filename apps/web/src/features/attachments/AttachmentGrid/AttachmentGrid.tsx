@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Attachment } from "@trellis/api";
-import { Dialog, EmptyState, SectionHeader } from "@trellis/ui";
+import { Dialog, EmptyState, InlineEdit, SectionHeader } from "@trellis/ui";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { failToast } from "../../../lib/failToast";
@@ -36,6 +36,8 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 	const ownUploads = useUploads(ticket);
 	const uploadManager = uploads ?? ownUploads;
 	const [active, setActive] = useState<number | null>(null);
+	// The id of the thumbnail whose rename field is open.
+	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const focusTimers = useRef<unknown[]>([]);
 
 	const attachments = list ?? [];
@@ -148,10 +150,25 @@ export function AttachmentGrid({ ticket, initialAttachments, uploads }: Attachme
 									<AttachmentActions
 										attachment={attachment}
 										onDelete={() => remove(attachment)}
-										onRename={(name) => rename(attachment, name)}
+										onRename={() => setRenamingId(attachment.id)}
 										triggerClassName="h-24 max-h-7"
 									/>
 								</div>
+								{/* The tile shows no file name, so the field lies over its
+								    bottom edge while the edit runs. At rest the box holds
+								    the name for a screen reader and draws nothing. */}
+								<InlineEdit
+									label={`Rename ${attachment.filename}`}
+									value={attachment.filename}
+									editing={renamingId === attachment.id}
+									onEditingChange={(open) => setRenamingId(open ? attachment.id : null)}
+									onSave={(name) => rename(attachment, name)}
+									errorTitle={`${attachment.filename} kept its name.`}
+									className="absolute inset-x-1 bottom-1"
+									inputClassName="h-7 text-xs"
+								>
+									<span className="sr-only">{attachment.filename}</span>
+								</InlineEdit>
 							</div>
 						))}
 					</div>

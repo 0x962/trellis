@@ -12,8 +12,8 @@ import { Select } from "../../../primitives/Select";
 import { Switch } from "../../../primitives/Switch";
 import { Tabs } from "../../../primitives/Tabs";
 import { Textarea } from "../../../primitives/Textarea";
-import { InlineEditSection } from "../InlineEditSection";
 import { Section } from "../Section";
+import { InlineEditSection } from "./sections";
 
 const sizes = ["sm", "md"] as const;
 
