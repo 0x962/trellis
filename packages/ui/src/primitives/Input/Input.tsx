@@ -26,7 +26,11 @@ export function Input({ label, hideLabel = false, invalid = false, className, ..
 					"h-8 w-full rounded-md border bg-surface px-2.5 text-base text-fg placeholder:text-fg-faint outline-none transition duration-hover ease-out",
 					"focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent-soft",
 					"disabled:opacity-50",
-					invalid ? "border-danger" : "border-border enabled:hover:border-border-strong",
+					// A field that holds a refused value often has the focus, because
+					// the screen puts it back there. Without this rule the focus
+					// border replaces the danger border at that moment, and the
+					// person sees no sign of the refusal.
+					invalid ? "border-danger focus-visible:border-danger" : "border-border enabled:hover:border-border-strong",
 					className,
 				)}
 				{...props}

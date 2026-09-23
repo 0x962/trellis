@@ -4,7 +4,7 @@ import { RUNTIME_PROTOCOL_VERSION, type RuntimeProcessStatus } from "@trellis/ru
 import { sql } from "drizzle-orm";
 import { nativeClient } from "../agents/native/connection.ts";
 import { rows } from "../db/queries/support.ts";
-import { columns, type StoredRun } from "./agentRuns/queries.ts";
+import { listColumns, type StoredRun } from "./agentRuns/queries.ts";
 import { projectUnresolvedAttempts } from "./agentRuns.ts";
 import type { ServiceCtx } from "./support.ts";
 
@@ -12,16 +12,18 @@ export const diagnostics = async (ctx: ServiceCtx): Promise<Diagnostics> => {
 	const runs = await ctx.newTx((tx) =>
 		rows<StoredRun>(
 			tx,
-			sql`SELECT ${columns} FROM agent_runs WHERE runtime='native' ORDER BY updated_at DESC LIMIT 100`,
+			sql`SELECT ${listColumns} FROM agent_runs WHERE runtime='native' ORDER BY updated_at DESC LIMIT 100`,
 		),
 	);
 	let runtime: Diagnostics["runtime"];
 	let sessions: RuntimeProcessStatus[] = [];
 	try {
 		const hello = await nativeClient(ctx.home).hello();
-		sessions = await nativeClient(ctx.home).list({
-			ids: runs.flatMap((run) => (run.terminalId === null ? [] : [run.terminalId])),
-		});
+		sessions = (
+			await nativeClient(ctx.home).list({
+				ids: runs.flatMap((run) => (run.terminalId === null ? [] : [run.terminalId])),
+			})
+		).sessions;
 		runtime = {
 			state: "running",
 			pid: hello.pid,

@@ -70,7 +70,7 @@ export const refreshNative = async (
 ) => {
 	if (run.terminalId !== null) {
 		const process = await inspect(run.terminalId);
-		if (process.status === "exited")
+		if (process.status === "exited" && process.stopReason !== "idle")
 			await ctx.newTx((tx) =>
 				tx.execute(
 					sql`UPDATE agent_runs SET closed_at = coalesce(closed_at, ${ctx.now()}) WHERE id = ${run.id} AND terminal_id = ${run.terminalId}

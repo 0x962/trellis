@@ -1,7 +1,13 @@
 import { create } from "zustand";
+import type { ProjectSettingsSectionId } from "../../features/project-settings";
 import type { ReviewTab } from "../../features/reviews/ReviewPage/reviewTab";
+import type { SettingsSectionId } from "../../features/settings/settingsUrl";
 
 type RefreshBehindSheet = () => void;
+
+// The project settings sheet shows one section of one project. `project` is
+// the API ref of that project, `TRL`.
+export type ProjectSettingsTarget = { project: string; section: ProjectSettingsSectionId };
 
 export type PageSheetState = {
 	// The ticket identifier in the ticket sheet, `TRL-42`, or null while no
@@ -13,6 +19,12 @@ export type PageSheetState = {
 	// The id of the agent run in the session sheet, or null while no session
 	// sheet is open.
 	session: string | null;
+	// The section the settings sheet shows, or null while the settings sheet
+	// is closed.
+	settings: SettingsSectionId | null;
+	// The project and the section the project settings sheet shows, or null
+	// while that sheet is closed.
+	projectSettings: ProjectSettingsTarget | null;
 	// The address the in-app browser sheet shows, or null while the browser
 	// sheet is closed.
 	browser: string | null;
@@ -20,30 +32,33 @@ export type PageSheetState = {
 	reviewTab: ReviewTab | null;
 };
 
-// The sheet that the in-app browser stands over. `PageSheetHost`, the ticket
-// sheet, the review sheet, and the session sheet each draw a `BrowserSheet`
-// and name their own place here. The one whose name matches draws the
-// browser; the others draw nothing.
-export type BrowserParent = "pullRequest" | "session" | "ticket" | "page";
+// The sheet that the settings sheet, the project settings sheet, and the
+// in-app browser sheet stand over. `PageSheetHost`, the ticket sheet, the
+// review sheet, and the session sheet each draw a `SettingsSheet`, a
+// `ProjectSettingsSheet`, and a `BrowserSheet`, and name their own place
+// here. The one whose name matches draws the sheet; the others draw nothing.
+export type SheetParent = "pullRequest" | "session" | "ticket" | "page";
 
-// Base UI reads the dialog stack from the React tree, so the browser sheet
-// has to render inside the sheet it stands over. Every action that opens or
-// closes another sheet also closes the browser, so this answer never changes
-// while the browser is open.
-export const browserParent = (state: PageSheetState): BrowserParent => {
+// Base UI reads the dialog stack from the React tree, so a sheet that
+// belongs to no page has to render inside the sheet it stands over. Opening
+// the settings closes the browser, and opening a ticket closes the
+// settings, so this answer never changes while either one is open.
+export const sheetParent = (state: PageSheetState): SheetParent => {
 	if (state.pr !== null) return "pullRequest";
 	if (state.session !== null) return "session";
 	if (state.ticket !== null) return "ticket";
 	return "page";
 };
 
-// `PageSheetHost` draws the ticket, pull request, session, or browser sheet
-// that this store holds. One store owns the stack, so two components cannot
-// open sibling sheets that both respond to Escape.
+// `PageSheetHost` draws the ticket, pull request, session, settings,
+// project settings, or browser sheet that this store holds. One store owns the stack, so two
+// components cannot open sibling sheets that both respond to Escape.
 export const usePageSheetStore = create<PageSheetState>()(() => ({
 	ticket: null,
 	pr: null,
 	session: null,
+	settings: null,
+	projectSettings: null,
 	browser: null,
 	reviewTab: null,
 }));
@@ -51,7 +66,9 @@ export const usePageSheetStore = create<PageSheetState>()(() => ({
 let refreshBehindSheet: RefreshBehindSheet | null = null;
 
 const sheetCount = (state: PageSheetState) =>
-	[state.ticket, state.pr, state.session, state.browser].filter((value) => value !== null).length;
+	[state.ticket, state.pr, state.session, state.settings, state.projectSettings, state.browser].filter(
+		(value) => value !== null,
+	).length;
 
 const setSheetState = (next: Partial<PageSheetState>) => {
 	let shouldRefresh = false;
@@ -69,8 +86,10 @@ export const pageSheetActions = {
 	},
 	setReviewTab: (reviewTab: ReviewTab) => usePageSheetStore.setState({ reviewTab }),
 	// A ticket starts a new stack. The review and the session of the ticket
-	// before it close with it.
-	openTicket: (ticket: string) => setSheetState({ ticket, pr: null, session: null, browser: null }),
+	// before it close with it, and so does the settings sheet, which a
+	// person can open from the command palette over any ticket.
+	openTicket: (ticket: string) =>
+		setSheetState({ ticket, pr: null, session: null, settings: null, projectSettings: null, browser: null }),
 	// A pull request opens over the ticket sheet, or alone when no ticket
 	// sheet is open. One sheet stands over a ticket, so the session of that
 	// ticket closes.
@@ -78,11 +97,25 @@ export const pageSheetActions = {
 	// The session of one agent run opens over the ticket sheet, or alone
 	// when no ticket sheet is open.
 	openSession: (session: string) => setSheetState({ session, pr: null, browser: null }),
+	// The settings open over every other sheet and leave them all open. The
+	// same action moves the sheet to another section, which opens no sheet
+	// and closes none.
+	openSettings: (settings: SettingsSectionId) => setSheetState({ settings, projectSettings: null, browser: null }),
+	// The settings of one project open over every other sheet and leave them
+	// all open. The same action moves the sheet to another section of the
+	// same project, which opens no sheet and closes none. The settings of the
+	// app and the settings of a project take the same place in the stack, so
+	// each one closes the other.
+	openProjectSettings: (projectSettings: ProjectSettingsTarget) =>
+		setSheetState({ projectSettings, settings: null, browser: null }),
 	// A web page opens over every other sheet and leaves them all open.
 	openBrowser: (browser: string) => setSheetState({ browser }),
-	closeTicket: () => setSheetState({ ticket: null, pr: null, session: null, browser: null }),
+	closeTicket: () =>
+		setSheetState({ ticket: null, pr: null, session: null, settings: null, projectSettings: null, browser: null }),
 	closePullRequest: () => setSheetState({ pr: null, browser: null }),
 	closeSession: () => setSheetState({ session: null, browser: null }),
+	closeSettings: () => setSheetState({ settings: null }),
+	closeProjectSettings: () => setSheetState({ projectSettings: null }),
 	closeBrowser: () => setSheetState({ browser: null }),
 	returnToTicket: () => setSheetState({ pr: null, session: null, browser: null }),
 	returnToPullRequest: () => setSheetState({ browser: null }),

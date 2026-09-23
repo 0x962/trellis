@@ -1,7 +1,9 @@
 import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
-import { type ReactElement, type ReactNode, useId, useState } from "react";
+import { type ReactElement, type ReactNode, useEffect, useId, useState } from "react";
+import { flushSync } from "react-dom";
 import { cx } from "../../utils/cx";
 import { popupMotion } from "../../utils/popupMotion";
+import { closeTooltipOnEscape } from "./closeOnEscape";
 
 export type TooltipProps = {
 	content: ReactNode;
@@ -33,6 +35,7 @@ export function Tooltip({
 	const [localOpen, setLocalOpen] = useState(false);
 	const shown = open ?? localOpen;
 	const setShown = onOpenChange ?? setLocalOpen;
+	useCloseOnEscape(shown, setShown);
 	return (
 		<BaseTooltip.Root open={shown} onOpenChange={setShown}>
 			<BaseTooltip.Trigger render={children} delay={delay} aria-describedby={shown ? id : undefined} />
@@ -60,4 +63,18 @@ export function Tooltip({
 			</BaseTooltip.Portal>
 		</BaseTooltip.Root>
 	);
+}
+
+// Escape closes an open tooltip, and the dialog or the page under it answers
+// the same key press.
+//
+// A dialog such as `PageSheet` moves the focus to a button when it opens, and
+// Base UI opens the tooltip of that button on the focus. `flushSync` takes the
+// tooltip off the page inside the key press that closes it, so Base UI finds
+// no tooltip when it reads that press and closes the dialog on it.
+function useCloseOnEscape(shown: boolean, setShown: (open: boolean) => void) {
+	useEffect(() => {
+		if (!shown) return;
+		return closeTooltipOnEscape(document, () => flushSync(() => setShown(false)));
+	}, [shown, setShown]);
 }

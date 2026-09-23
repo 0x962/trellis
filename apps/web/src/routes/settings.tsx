@@ -1,112 +1,34 @@
-import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
-import type { ReactNode } from "react";
-import { ActorNameField } from "../features/settings/ActorNameField";
-import { DesktopSettings } from "../features/settings/DesktopSettings";
-import { NotificationSettings } from "../features/settings/NotificationSettings";
-import { ThemeField } from "../features/settings/ThemeField";
-import { PageTitle } from "../features/shell/PageTitle";
-import { Topbar } from "../features/shell/Topbar";
-import { readActor, useActor } from "../lib/actor";
-import {
-	canOpenDesktopSettingsBeforeSetup,
-	type DesktopBridge,
-	type DesktopSettingsBridge,
-	desktopSettingsBridge,
-} from "../lib/desktopBridge";
+import { createFileRoute, redirect, useLocation } from "@tanstack/react-router";
+import { useState } from "react";
+import { SettingsView } from "../features/settings/SettingsView";
+import { settingsBehind, settingsEntry } from "../features/settings/settingsUrl";
+import { readActor } from "../lib/actor";
+import { canOpenDesktopSettingsBeforeSetup, type DesktopBridge } from "../lib/desktopBridge";
+import { pageSheetActions } from "../stores/pageSheetStore";
 
-export const Route = createFileRoute("/settings")({
-	loader: ({ context, location }) => {
-		const desktop = (window as Window & { trellisDesktop?: Partial<DesktopBridge> }).trellisDesktop;
-		if (readActor() === null && canOpenDesktopSettingsBeforeSetup(desktop, location.pathname, location.hash)) return;
-		return context.queryClient.ensureQueryData(context.orpc.settings.get.queryOptions({}));
-	},
-	component: SettingsPage,
-});
-
-type SettingsSection = {
-	id: string;
-	title: string;
-	hint: string;
-	rows: ReactNode;
+const beforeSetup = (pathname: string, hash: string) => {
+	const desktop = (window as Window & { trellisDesktop?: Partial<DesktopBridge> }).trellisDesktop;
+	return readActor() === null && canOpenDesktopSettingsBeforeSetup(desktop, pathname, hash);
 };
 
-const sections: SettingsSection[] = [
-	{
-		id: "notifications",
-		title: "Notifications",
-		hint: "Choose alerts for session questions, completed turns, and failures.",
-		rows: <NotificationSettings />,
+// The settings URL. The settings are a sheet now, so this route opens that
+// sheet over `settingsBehind` and hands the person a page to stay on when
+// they close it. The desktop app before the first run is the one case that
+// still draws a page here, because that run mounts no sheet stack.
+export const Route = createFileRoute("/settings")({
+	beforeLoad: ({ location }) => {
+		const entry = settingsEntry(location.hash, beforeSetup(location.pathname, location.hash));
+		if (entry.draw === "page") return;
+		pageSheetActions.openSettings(entry.section);
+		throw redirect({ to: settingsBehind, replace: true });
 	},
-	{
-		id: "account",
-		title: "Account",
-		hint: "Set your name and choose how trellis looks.",
-		rows: (
-			<>
-				<ActorNameField />
-				<ThemeField />
-			</>
-		),
-	},
-];
-
-const desktopSection = (bridge: DesktopSettingsBridge): SettingsSection => ({
-	id: "desktop",
-	title: "Desktop",
-	hint: "Choose the data directory and whether Trellis opens at login.",
-	rows: <DesktopSettings bridge={bridge} />,
+	component: SettingsBeforeSetup,
 });
 
-function SettingsPage() {
+// The desktop settings while the person has no name yet. The nav holds the
+// one desktop section, so the state below only ever holds that section.
+function SettingsBeforeSetup() {
 	const hash = useLocation({ select: (location) => location.hash });
-	const actor = useActor();
-	const bridge = desktopSettingsBridge((window as Window & { trellisDesktop?: Partial<DesktopBridge> }).trellisDesktop);
-	const pages = bridge ? (actor === null ? [desktopSection(bridge)] : [...sections, desktopSection(bridge)]) : sections;
-	const selected = pages.some((section) => section.id === hash) ? hash : "account";
-	return (
-		<>
-			<Topbar>
-				<PageTitle title="Settings" />
-			</Topbar>
-			<div className="page-card project-settings-layout">
-				<nav aria-label="Settings" className="project-settings-nav">
-					<p className="project-settings-nav-title">Settings</p>
-					<ul className="project-settings-nav-list">
-						{pages.map(({ id, title }) => (
-							<li key={id}>
-								<Link
-									to="/settings"
-									search={{}}
-									hash={id === "account" ? "" : id}
-									hashScrollIntoView={false}
-									activeOptions={{ exact: true, includeHash: true }}
-									aria-current={selected === id ? "page" : undefined}
-									className="project-settings-nav-link"
-								>
-									{title}
-								</Link>
-							</li>
-						))}
-					</ul>
-				</nav>
-				<div className="project-settings-content">
-					{pages.map(({ id, title, hint, rows }) => (
-						<div key={id} hidden={selected !== id} className="project-settings-page">
-							<section aria-label={title} className="project-settings-section">
-								<header className="project-settings-heading">
-									<div className="min-w-0">
-										<h2 className="text-xl font-semibold text-fg">{title}</h2>
-										<p className="mt-2 text-base leading-relaxed text-fg-muted text-pretty">{hint}</p>
-									</div>
-								</header>
-								<div className="project-settings-fields">
-									<div className="flex flex-col divide-y divide-border">{rows}</div>
-								</div>
-							</section>
-						</div>
-					))}
-				</div>
-			</div>
-		</>
-	);
+	const [section, setSection] = useState(settingsEntry(hash, true).section);
+	return <SettingsView section={section} onSectionChange={setSection} />;
 }

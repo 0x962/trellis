@@ -113,10 +113,13 @@ const agentMutation = (prepare: Prepare) =>
 		agentRuns.finish,
 	);
 
+// A session mutation that launches a harness answers before the launch ends,
+// so it reads the accepted state. `sessions.accepted` reports `starting` for a
+// launch that still runs, in place of a runtime read that finds no process.
 const sessionMutation = (prepare: Prepare) =>
 	prepared(
 		"mutation",
-		async (ctx, input) => sessions.observe(ctx, (await prepare(ctx, input)) as { id: string }),
+		async (ctx, input) => sessions.accepted(ctx, (await prepare(ctx, input)) as { id: string }),
 		sessions.finish,
 	);
 

@@ -3,6 +3,7 @@ import { type ComponentProps, cloneElement, type ReactElement } from "react";
 import { cx } from "../../utils/cx";
 import { hitArea } from "../../utils/hitArea";
 import { type ButtonVariant, buttonVariants, disabledLook, pressedLook } from "../Button/variants";
+import { Spinner } from "../Spinner";
 
 export type IconButtonSize = "xs" | "sm" | "md";
 
@@ -15,6 +16,11 @@ export type IconButtonProps = Omit<ComponentProps<typeof BaseButton>, "children"
 	// Set only on a toggle. The button reports the state through
 	// aria-pressed, and while it is on it takes the accent ring and fill.
 	pressed?: boolean;
+	// True while the action the button started still runs. A turning ring
+	// takes the icon slot, and the button takes no second click. The ring and
+	// the icon are both 14 px, so the button keeps its place and its size. Set
+	// it for every action that reaches the server, such as Resume session.
+	processing?: boolean;
 	variant?: ButtonVariant;
 };
 
@@ -36,6 +42,7 @@ export function IconButton({
 	icon,
 	size = "sm",
 	pressed,
+	processing = false,
 	variant = "quiet",
 	className,
 	...props
@@ -44,6 +51,7 @@ export function IconButton({
 		<BaseButton
 			aria-label={label}
 			aria-pressed={pressed}
+			aria-busy={processing || undefined}
 			className={cx(
 				"inline-flex shrink-0 items-center justify-center rounded-round border select-none transition duration-hover ease-out",
 				"focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
@@ -53,9 +61,14 @@ export function IconButton({
 				className,
 			)}
 			{...props}
+			disabled={props.disabled === true || processing}
 		>
 			<span aria-hidden="true" className="inline-flex size-3.5 shrink-0 *:size-full">
-				{cloneElement(icon as ReactElement<{ "aria-hidden"?: boolean }>, { "aria-hidden": true })}
+				{processing ? (
+					<Spinner />
+				) : (
+					cloneElement(icon as ReactElement<{ "aria-hidden"?: boolean }>, { "aria-hidden": true })
+				)}
 			</span>
 		</BaseButton>
 	);

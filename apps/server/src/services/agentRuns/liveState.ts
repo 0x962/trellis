@@ -1,6 +1,6 @@
 import { ORPCError } from "@orpc/server";
 import { type AgentRun, errors, type TicketMetrics, toolTarget } from "@trellis/api";
-import type { RuntimeListInput, RuntimeProcessStatus } from "@trellis/runtime-protocol";
+import type { RuntimeListInput, RuntimeProcessStatus, RuntimeSessionList } from "@trellis/runtime-protocol";
 import { nativeHost } from "../../agents/native/harnessHost.ts";
 import type { ExecutionAttemptRecord } from "../assignments.ts";
 import type { ServiceCtx } from "../support.ts";
@@ -13,9 +13,16 @@ type ReadRuntimeSessions = (home: string, input: RuntimeListInput) => Promise<Ru
 const indexRuntimeSessions = (sessions: RuntimeProcessStatus[]): RuntimeSessionIndex =>
 	new Map(sessions.map((session) => [session.id, session]));
 
+// A session the answer leaves out becomes a run with no live record, so a
+// read that did not finish must not pass for a read that found nothing.
+const requireComplete = (answer: RuntimeSessionList): RuntimeProcessStatus[] => {
+	if (!answer.complete) throw new Error("The execution service answered part of the session list before its deadline");
+	return answer.sessions;
+};
+
 export async function readRuntimeSessions(home: string, input: RuntimeListInput = {}): Promise<RuntimeProcessStatus[]> {
 	try {
-		return await nativeHost(home).list(input);
+		return requireComplete(await nativeHost(home).list(input));
 	} catch (error) {
 		if (["ENOENT", "ECONNREFUSED"].includes((error as NodeJS.ErrnoException).code ?? "")) return [];
 		throw error;
@@ -28,7 +35,7 @@ export async function readRuntimeSessionsRequired(
 	input: RuntimeListInput,
 ): Promise<RuntimeProcessStatus[]> {
 	try {
-		return await nativeHost(home).list(input);
+		return requireComplete(await nativeHost(home).list(input));
 	} catch (error) {
 		throw new ORPCError("RUNNER_UNAVAILABLE", {
 			defined: true,
@@ -77,7 +84,9 @@ export function executionMetrics(attemptIds: string[], sessions: RuntimeSessionI
 
 export function projectRun(run: StoredRun, sessions: RuntimeProcessStatus[], home?: string): AgentRun {
 	const process = sessions.find((session) => session.id === run.terminalId);
-	const { closedAt: _closedAt, ...metadata } = run;
+	// `AgentRun` carries no prompt. A launch reads the row with its
+	// instruction, so this drops that text before the row leaves the server.
+	const { closedAt: _closedAt, instruction: _instruction, ...metadata } = run;
 	if (!process && home !== undefined && run.terminalId !== null && launchState.has(home, run.terminalId))
 		return {
 			...metadata,

@@ -37,6 +37,7 @@ Each page supplies its data and available actions. It does not choose new contro
 | Assigned ticket agent, provider, and agent work state | `ActorAvatar` with the shared `Avatar` | `apps/web/src/features/agents/ActorAvatar/ActorAvatar.tsx` |
 | Added and deleted lines of a workspace | `LineChanges` | `packages/ui/src/domain/LineChanges/LineChanges.tsx` |
 | Row actions | `Menu`, `IconButton`, `Tooltip` | `packages/ui/src/primitives/Menu/Menu.tsx` |
+| Edit a short value in place | `InlineEdit` | `packages/ui/src/primitives/InlineEdit/InlineEdit.tsx` |
 | Usage per day | `UsageChart` | `packages/ui/src/domain/UsageChart/UsageChart.tsx` |
 | Ranked slices of a whole | `RankedBars` | `packages/ui/src/domain/RankedBars/RankedBars.tsx` |
 | Composition of one total | `StackedBar` | `packages/ui/src/domain/StackedBar/StackedBar.tsx` |
@@ -46,6 +47,52 @@ Each page supplies its data and available actions. It does not choose new contro
 | Subscription quota meters | `QuotaWindows` | `packages/ui/src/domain/QuotaWindows/QuotaWindows.tsx` |
 | Flow run header | `FlowRunSummary` | `packages/ui/src/domain/FlowRunSummary/FlowRunSummary.tsx` |
 | Flow run steps | `FlowRunTree` | `packages/ui/src/domain/FlowRunTree/FlowRunTree.tsx` |
+| Anything that failed | `FailureState` | `packages/ui/src/domain/FailureState/FailureState.tsx` |
+
+## Edit a short value in place
+
+Use `InlineEdit` wherever a person renames a thing without leaving the page.
+It is the only in-place edit in the product, so a person meets the same rules on every screen.
+Do not hold the edit state by hand, and do not add a per-screen option to any rule below.
+The component removes the spaces at the two ends of the value and sends the rest.
+
+1. Enter saves the typed value. Losing the focus also saves it.
+2. Escape cancels, and only Escape. The saved value comes back.
+3. An empty value that a person sends with Enter is refused. The field stays open and says "Enter a name.".
+4. An empty value that loses the focus cancels, so nobody is held in a field that a phone keyboard cannot leave.
+5. A value equal to the saved one closes the field. The field sends nothing.
+6. The new value waits for the server. The field takes no more typing until the server answers.
+7. A refusal keeps the field open with the typed value, draws the red border, takes the focus back, and names the reason.
+8. Enter and Escape give the focus to the value. A click outside leaves the focus where the person clicked.
+9. At rest the value is plain text at the size of the text beside it: no box, no pencil, no underline.
+
+The list above is `inlineEditRules` in `packages/ui/src/primitives/InlineEdit/inlineEditRules.ts`.
+The gallery section Inline edit draws the same list beside a live example, and a test fails when this page and that list differ.
+
+A refusal speaks through a toast, because a row 32 px tall has no room for a line of text under the field.
+The screen owns the `editing` flag, because the Rename action that starts the edit sits in a row menu beside the value.
+The screen passes its own resting view as the children, and its own avatar as `leading` where a row has one.
+Inside a row that is a link, the screen draws no row while the field is open, so no key press navigates.
+A form with more than one field is not an in-place edit. Use a sheet or a row editor for it.
+
+### Which shape an edit takes
+
+The product keeps two shapes. What the control changes picks the shape, not the page it stands on.
+
+- One short value of a record that exists: `InlineEdit`, in the row or the header that prints the value.
+- More than one field at once, or a record that does not exist yet: a row editor or a sheet, with Cancel and Save.
+
+| Edit | Shape | Reference |
+| --- | --- | --- |
+| Wave name | `InlineEdit` in the wave `GroupHeader` | `apps/web/src/features/table/WaveHeader/components/WaveName/WaveName.tsx` |
+| Label group name | `InlineEdit` in the heading band of the group | `apps/web/src/features/project-settings/LabelGroupRow/LabelGroupRow.tsx` |
+| Session name, attachment name | `InlineEdit` in the row | `apps/web/src/features/sessions/SessionName/SessionName.tsx` |
+| Label: name, color, description | Row editor under the label row | `apps/web/src/features/project-settings/LabelEditor/LabelEditor.tsx` |
+| Status: name, color, reviewer, description, default | Row editor under the status row | `apps/web/src/features/project-settings/StatusRow/components/StatusEditor/StatusEditor.tsx` |
+| Epic: name and plan | Sheet | `apps/web/src/features/epics/EpicSheet/EpicSheet.tsx` |
+| A new label, label group or status | Form with Cancel and Save | `apps/web/src/features/project-settings/StatusCreateForm/StatusCreateForm.tsx` |
+
+A document of the Resources tab of an epic keeps its own shape. Its title and its body save while the person types, so it is no in-place edit of one value.
 
 ## Pages in a sheet
 
@@ -123,7 +170,7 @@ A long name gives way and the identifier stays. The drag preview draws the same 
 The epic page shows its tickets in the full-width `TicketTable` of the project table view. It has no page-specific row and no row menu of its own.
 Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, a New wave `IconButton`, an Add `IconButton` with the `Tooltip` Add tickets, and the `Menu` with Edit and Delete.
 Every wave of the epic draws a `GroupHeader`. A wave with no ticket shows one muted line, "No tickets in this wave.", and no Start wave.
-New wave adds `Wave <n>` at the end and opens its name as a field in the header, with the text selected. Enter or blur saves, Escape keeps the name.
+New wave adds `Wave <n>` at the end and opens its name as a field in the header. The field is the `InlineEdit` of the in-place edit, and the collapse button of the header takes the focus back after Enter and after Escape.
 A wave header holds Add tickets to this wave (a list-plus `IconButton` with the `TicketPicker`) and a Wave actions `Menu`: New ticket in this wave, Rename, Move up, Move down, and Delete wave. The menu shows the keys F2, Alt+Shift+Up, and Alt+Shift+Down, which work on a focused header.
 Delete wave asks first only when the wave holds tickets. The dialog names the tickets that move to No wave and the open agent runs among them.
 A ticket row drags into another wave group or into No wave. An accent outline marks the group that takes the drop. The `w` key is the keyboard path: it opens the wave picker of the focused row or of the selection.
@@ -135,6 +182,20 @@ The plan and the resources take at most half of the page card, so the table keep
 The page of an archived project shows the `ArchivedBanner` of the project routes at the top of the page card. The pending page draws the same `Topbar` with the `FilterBar`, so the bar keeps its shape when the epic arrives.
 A row of the epics list page prints the current wave after the epic name in muted text: `<name> · <i> of <n>`.
 The rows of the epics list page use the `rowHeights`, the hover band, the cell text sizes, the tabular numbers, and the trailing `Menu` slot width of the ticket table `Row`.
+
+## Failures
+
+Every screen that reports a failure draws `FailureState`. It is the one shape, so a person reads the same block whatever broke. Its docstring holds these rules, and the gallery section prints them.
+
+The title says what happened in plain words. It never carries an exit code, an exception class, a process line or a file path.
+One line under the title says what trellis does about the failure: `recovery="retrying"` while trellis sends the request again, `recovery="waiting"` while trellis holds the page until the server answers, and nothing when trellis does nothing.
+A failure that recovers by itself clears itself. `RouteError` loads the route again when the live connection comes back, so a person who waits never presses Retry.
+The block carries one action, and at most two. `action` is the one that usually works, and it sits beside the words. A screen never puts the only way out in a bar somewhere else.
+`detail` holds the raw text a developer reads. A closed disclosure holds it under the action, the text stays selectable, and the title never shows it.
+The words carry no blame, no apology and no exclamation mark. Red marks one thing: the small sign beside the title.
+`variant="page"` fills a route or a pane and draws no picture. `variant="section"` sits inside a tab or a list.
+
+`EmptyState` stays the block for a list or a page that holds nothing. A state that is not a failure keeps it, such as a session that a person stopped.
 
 ## Statistics page
 

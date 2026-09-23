@@ -14,6 +14,7 @@ import { isCanonicalSearch } from "../../../features/filters/canonical";
 import { FilterBar } from "../../../features/filters/FilterBar";
 import { parseSearch, stripDefaults, toCountsQuery, type View, viewOf } from "../../../features/filters/grammar";
 import { ArchivedBanner } from "../../../features/project-actions";
+import { projectSettingsSection } from "../../../features/project-settings";
 import { ListFooter } from "../../../features/shell/ListFooter";
 import { NewTicketButton } from "../../../features/shell/NewTicketButton";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
@@ -29,11 +30,8 @@ import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { useUiStore } from "../../../stores/uiStore";
 import { ProjectLoadError } from "./components/ProjectLoadError";
 
-// The settings screen, the diffs screen, and the epic screens load in their
-// own chunks, so the list views never pay for them.
-const ProjectSettingsPage = lazy(async () => ({
-	default: (await import("./components/ProjectSettingsPage")).ProjectSettingsPage,
-}));
+// The diffs screen and the epic screens load in their own chunks, so the
+// list views never pay for them.
 const ProjectDiffsPage = lazy(async () => ({
 	default: (await import("../../../features/reviews/ProjectDiffsPage")).ProjectDiffsPage,
 }));
@@ -73,7 +71,15 @@ export const Route = createFileRoute("/p/$")({
 		if (withoutBoard !== splat) {
 			throw redirect({ to: "/p/$", params: { _splat: withoutBoard }, search, replace: true });
 		}
-		if (parseProjectSplat(splat).view === "epic") {
+		// The settings of a project are a sheet. `/p/<KEY>/settings` and
+		// `/p/<KEY>/notes` open that sheet over the tickets of the project, and
+		// closing it leaves the person there.
+		const { ref, view } = parseProjectSplat(splat);
+		if (view === "settings" || view === "notes") {
+			pageSheetActions.openProjectSettings({ project: ref, section: projectSettingsSection(view, location.hash) });
+			throw redirect({ to: "/p/$", params: { _splat: ref }, search, replace: true });
+		}
+		if (view === "epic") {
 			const phone = window.matchMedia("(max-width: 767px)").matches;
 			if (!isCanonicalEpicSearch(location.searchStr, search, phone)) {
 				const canonical = epicUrlSearch(epicPageSearch(search, "", phone), phone);
@@ -124,19 +130,6 @@ function ProjectPage() {
 	// The loader fills this cache entry, so the board footer reads it on the first paint.
 	const counts = useQuery(countsOptions(context, ref, search, project.statuses)).data;
 
-	if (view === "settings" || view === "notes") {
-		return (
-			<Suspense
-				fallback={
-					<div className="flex min-h-0 flex-1 items-center justify-center text-sm text-fg-muted">
-						{view === "notes" ? "Load notes…" : "Load settings…"}
-					</div>
-				}
-			>
-				<ProjectSettingsPage project={project} section={view === "notes" ? "notes" : undefined} />
-			</Suspense>
-		);
-	}
 	if (view === "diffs") {
 		return (
 			<Suspense
@@ -180,6 +173,10 @@ function ProjectPage() {
 		});
 
 	const archived = project.archivedAt !== null;
+	// `beforeLoad` redirects the settings URL and the notes URL of a project
+	// to the tickets of that project, and the branches above answer the diffs
+	// view and the epic views. The view left here is the board or the table.
+	const listView: ListView = view === "table" ? "table" : "board";
 
 	// The server refuses every write to an archived project. The disabled
 	// fieldset disables every control in the table and the board; the filters
@@ -189,7 +186,7 @@ function ProjectPage() {
 			<Topbar actions={<NewTicketButton />}>
 				<PageTitle title={project.name} />
 				<FilterBar
-					lead={<ViewSwitch value={view} onChange={switchView} />}
+					lead={<ViewSwitch value={listView} onChange={switchView} />}
 					project={ref}
 					search={search}
 					onSearchChange={setSearch}
@@ -210,7 +207,7 @@ function ProjectPage() {
 			<div className="page-card flex flex-1 flex-col overflow-hidden">
 				{archived && <ArchivedBanner project={project} />}
 				<fieldset disabled={archived} className="contents">
-					{view === "board" ? (
+					{listView === "board" ? (
 						<>
 							<div className="flex min-h-0 flex-1 flex-col">
 								<Board

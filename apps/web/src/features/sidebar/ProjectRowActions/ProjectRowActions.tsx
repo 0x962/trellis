@@ -1,9 +1,9 @@
 import { BoxArrowUp, DotsThree, Gear, Plus, Trash } from "@phosphor-icons/react";
-import { useNavigate } from "@tanstack/react-router";
 import type { ProjectSummary } from "@trellis/api";
 import { IconButton, Menu, type MenuItem } from "@trellis/ui";
 import { useState } from "react";
 
+import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { composerActions } from "../../composer";
 import { DeleteProjectDialog, useProjectActions } from "../../project-actions";
 
@@ -13,10 +13,9 @@ export type ProjectRowActionsProps = {
 
 // The row menu of a project in the sidebar: a 24 px button that fits the
 // row's trailing slot. An open project offers a new ticket and its settings
-// page; archive and delete live on that page. An archived project takes no
+// sheet; archive and delete live in that sheet. An archived project takes no
 // new ticket, so its menu offers unarchive, settings, and delete.
 export function ProjectRowActions({ project }: ProjectRowActionsProps) {
-	const navigate = useNavigate();
 	const { setArchived } = useProjectActions();
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const archived = project.archivedAt !== null;
@@ -24,13 +23,7 @@ export function ProjectRowActions({ project }: ProjectRowActionsProps) {
 	const settings: MenuItem = {
 		label: "Settings",
 		icon: <Gear />,
-		onSelect: () => {
-			void navigate({
-				to: "/p/$",
-				params: { _splat: `${project.key}/settings` },
-				search: {},
-			});
-		},
+		onSelect: () => pageSheetActions.openProjectSettings({ project: project.key, section: "" }),
 	};
 	const remove: MenuItem = { label: "Delete…", icon: <Trash />, danger: true, onSelect: () => setDeleteOpen(true) };
 	const items: MenuItem[] = archived

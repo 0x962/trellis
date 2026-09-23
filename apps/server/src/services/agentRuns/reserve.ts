@@ -14,7 +14,7 @@ import { assignmentInstruction } from "../brief.ts";
 import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
 import { assertProjectActive, resolveMutableProject, resolveTicket } from "../refs.ts";
-import { columns, type StoredRun } from "./queries.ts";
+import { columns, type LaunchRun } from "./queries.ts";
 
 type ReserveInput = {
 	harness?: unknown;
@@ -106,7 +106,7 @@ export const reserve = async (
 	// has an open agent run for this ticket. A ticket can have only one. The
 	// target names that index, so a violation of another constraint throws its
 	// own error instead of reading as a duplicate agent.
-	const [run] = await rows<StoredRun>(
+	const [run] = await rows<LaunchRun>(
 		tx,
 		sql`INSERT INTO agent_runs (id, name, harness, kind, instruction, project_id, project_key, ticket_id, ticket_identifier, runtime, closed_at, session_id, created_at, updated_at)
 		VALUES (${id}, ${name}, ${JSON.stringify(config.harness)}::jsonb, ${kind}, ${instruction}, ${project.id}, ${projectKey}, ${ticket?.id ?? null}, ${ticket?.identifier ?? null}, 'native', NULL, ${sessionId}, ${ctx.now}, ${ctx.now})

@@ -1,4 +1,4 @@
-import type { AgentRun } from "@trellis/api";
+import type { LaunchRun } from "../../services/agentRuns/queries.ts";
 import { launchPrompt } from "./launchPrompt.ts";
 import { expandLaunchTemplate } from "./template.ts";
 
@@ -8,7 +8,7 @@ export const resumeText =
 	"trellis: your session resumed after a pause. Read the project, its tickets, and its agents again before you act.";
 
 export const launchCommand = (input: {
-	run: Omit<AgentRun, "assigned" | "state" | "processStatus" | "observation">;
+	run: LaunchRun;
 	url: string;
 	directory?: string;
 	resume?: boolean;

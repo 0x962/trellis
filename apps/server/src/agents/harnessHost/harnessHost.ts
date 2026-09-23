@@ -46,8 +46,11 @@ export class HarnessHost {
 	}
 	async startPrepared(id: string, timeoutMs?: number): Promise<HarnessStarted> {
 		const descriptor = await this.descriptor(id);
-		const exists = (await this.options.runtime.list({ ids: [id] })).length > 0;
-		return this.launchDescriptor(descriptor, timeoutMs, !exists);
+		const answer = await this.options.runtime.list({ ids: [id] });
+		// A short answer says nothing about this attempt. A start on an attempt
+		// that already runs would launch the command a second time.
+		if (!answer.complete) throw new Error(`The execution service did not answer whether attempt ${id} exists`);
+		return this.launchDescriptor(descriptor, timeoutMs, answer.sessions.length === 0);
 	}
 	private async launchDescriptor(
 		descriptor: HarnessDescriptor,
@@ -56,14 +59,16 @@ export class HarnessHost {
 	): Promise<HarnessStarted> {
 		const { spec, harness, sessionId, prompt } = descriptor;
 		if (start) await this.options.runtime.start(timeoutMs === undefined ? spec : { ...spec, timeoutMs });
+		const limitMs = this.options.confirmationLimitMs;
 		if (harness === "opencode" && sessionId !== undefined) {
-			const current = await this.waitFor(spec.id, (state) => state.agent?.sessionId === sessionId);
+			const current = await this.waitFor(spec.id, (state) => state.agent?.sessionId === sessionId, { limitMs });
 			if (!current.acknowledgedMessageIds.includes(spec.id))
 				await sendNativePrompt(this.options, descriptor, sessionId, spec.id, `trellis-message:${spec.id}\n${prompt}`);
 		}
 		const process = await this.waitFor(
 			spec.id,
 			(state) => state.agent?.sessionId != null && state.acknowledgedMessageIds.includes(spec.id),
+			{ limitMs },
 		);
 		if (sessionId !== undefined && process.agent?.sessionId !== sessionId)
 			throw new Error(
@@ -72,16 +77,30 @@ export class HarnessHost {
 		return { process };
 	}
 
+	// Waits until one session event of the attempt `id` satisfies `matches`.
+	// Two clocks end the wait. `observationTimeoutMs` measures the gap between
+	// two reports of the harness, and each report restarts it.
+	// `options.limitMs` measures the whole wait and no report extends it, so a
+	// harness that reports work forever without the awaited state still ends
+	// the wait.
 	async waitFor(
 		id: string,
 		matches: (session: RuntimeProcessStatus) => boolean,
-		options: { rejectAgentError?: boolean } = {},
+		options: { rejectAgentError?: boolean; limitMs?: number } = {},
 	): Promise<RuntimeProcessStatus> {
 		const timeoutMs = this.options.observationTimeoutMs ?? 15000;
 		const controller = new AbortController();
 		const signal = controller.signal;
 		let lastProgressAt = Date.now();
+		let overLimit = false;
 		let timer = setTimeout(() => controller.abort(), timeoutMs);
+		const limit =
+			options.limitMs === undefined
+				? undefined
+				: setTimeout(() => {
+						overLimit = true;
+						controller.abort();
+					}, options.limitMs);
 		try {
 			for await (const event of this.options.runtime.subscribeSession(id, signal)) {
 				if (event.type !== "session") continue;
@@ -108,12 +127,15 @@ export class HarnessHost {
 			if (!signal.aborted) throw error;
 			throw Object.assign(
 				new Error(
-					`Harness attempt ${id} made no observed progress for ${timeoutMs} ms while waiting for provider confirmation. Inspect its terminal and provider events. Stop the attempt before you send again.`,
+					overLimit
+						? `Harness attempt ${id} did not reach the awaited state within ${options.limitMs} ms. Inspect its terminal and provider events. Stop the attempt before you send again.`
+						: `Harness attempt ${id} made no observed progress for ${timeoutMs} ms while waiting for provider confirmation. Inspect its terminal and provider events. Stop the attempt before you send again.`,
 				),
 				{ code: "HARNESS_OBSERVATION_TIMEOUT" },
 			);
 		} finally {
 			clearTimeout(timer);
+			clearTimeout(limit);
 		}
 		throw new Error(`Harness attempt ${id} closed before the requested provider observation`);
 	}

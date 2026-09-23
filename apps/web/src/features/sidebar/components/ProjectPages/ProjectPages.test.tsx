@@ -47,8 +47,8 @@ const render = async (pathname: string, activeAgentCount = 0) => {
 
 const labels = (html: string) => [...html.matchAll(/class="sidebar-label">([^<]*)</g)].map((match) => match[1]);
 
-test("the project shows Epics, then Diffs, then More", async () => {
-	expect(labels(await render("/p/TRL/epics"))).toEqual(["Epics", "Diffs", "More"]);
+test("the project shows Epics, then Sessions, then More", async () => {
+	expect(labels(await render("/p/TRL/epics"))).toEqual(["Epics", "Sessions", "More"]);
 });
 
 test("More is shut on a page it does not hold", async () => {
@@ -56,14 +56,14 @@ test("More is shut on a page it does not hold", async () => {
 
 	expect(html).toContain('aria-expanded="false"');
 	expect(labels(html)).not.toContain("Tickets");
-	expect(labels(html)).not.toContain("Sessions");
+	expect(labels(html)).not.toContain("Diffs");
 });
 
-test("a project whose current page is Sessions renders with More open", async () => {
+test("a project whose current page is Sessions renders with More shut", async () => {
 	const html = await render("/sessions/project/TRL");
 
-	expect(html).toContain('aria-expanded="true"');
-	expect(labels(html)).toEqual(["Epics", "Diffs", "More", "Tickets", "Sessions"]);
+	expect(html).toContain('aria-expanded="false"');
+	expect(labels(html)).toEqual(["Epics", "Sessions", "More"]);
 	const sessions = html.match(/<a [^>]*>(?=<span class="sidebar-label">Sessions<)/)?.[0] ?? "";
 
 	expect(sessions).toContain('href="/sessions/project/TRL"');
@@ -71,10 +71,31 @@ test("a project whose current page is Sessions renders with More open", async ()
 	expect(sessions).toContain("sidebar-selected");
 });
 
+test("a project whose current page is Diffs renders with More open", async () => {
+	const html = await render("/p/TRL/diffs");
+
+	expect(html).toContain('aria-expanded="true"');
+	expect(labels(html)).toEqual(["Epics", "Sessions", "More", "Tickets", "Diffs", "Settings", "Notes"]);
+	const diffs = html.match(/<a [^>]*>(?=<span class="sidebar-label">Diffs<)/)?.[0] ?? "";
+
+	expect(diffs).toContain('href="/p/TRL/diffs"');
+	expect(diffs).toContain('aria-current="page"');
+	expect(diffs).toContain("sidebar-selected");
+});
+
 test("a project whose current page is Tickets renders with More open", async () => {
 	const html = await render("/p/TRL");
 
-	expect(labels(html)).toEqual(["Epics", "Diffs", "More", "Tickets", "Sessions"]);
+	expect(labels(html)).toEqual(["Epics", "Sessions", "More", "Tickets", "Diffs", "Settings", "Notes"]);
+});
+
+test("the Settings row and the Notes row keep the href of their page", async () => {
+	const html = await render("/p/TRL");
+	const hrefOf = (label: string) =>
+		html.match(new RegExp(`href="([^"]*)"[^>]*><span class="sidebar-label">${label}<`))?.[1] ?? null;
+
+	expect(hrefOf("Settings")).toBe("/p/TRL/settings");
+	expect(hrefOf("Notes")).toBe("/p/TRL/notes");
 });
 
 test("the rows under More indent one step past the rows above them", async () => {
@@ -84,10 +105,12 @@ test("the rows under More indent one step past the rows above them", async () =>
 		null;
 
 	expect(indentOf("Epics")).toBe("pl-8");
-	expect(indentOf("Diffs")).toBe("pl-8");
+	expect(indentOf("Sessions")).toBe("pl-8");
 	expect(indentOf("More")).toBe("pl-8");
 	expect(indentOf("Tickets")).toBe("pl-11");
-	expect(indentOf("Sessions")).toBe("pl-11");
+	expect(indentOf("Diffs")).toBe("pl-11");
+	expect(indentOf("Settings")).toBe("pl-11");
+	expect(indentOf("Notes")).toBe("pl-11");
 });
 
 test("only the Epics row prints a count", async () => {
@@ -104,13 +127,16 @@ test("the Sessions row shows a dot while agents of the project are active", asyn
 	expect(html).toContain('aria-label="2 agents are active"');
 });
 
-test("the More row shows the dot while it hides the Sessions row", async () => {
+test("the Sessions row shows its dot on a page that keeps More shut", async () => {
 	const html = await render("/p/TRL/epics", 1);
 
 	expect(html).toContain('aria-expanded="false"');
-	expect(html).toContain('aria-label="1 agent is active"');
-	// The CSS of the wide slot reads this attribute, so the two names must agree.
-	expect(html).toContain('data-dot-and-caret=""');
+	const sessions = html.match(/<a [^>]*>(?=<span class="sidebar-label">Sessions<)/s)?.index ?? -1;
+	const dot = html.indexOf('aria-label="1 agent is active"');
+
+	expect(dot).toBeGreaterThan(sessions);
+	// No row under More carries a count, so the More row draws no dot of its own.
+	expect(html).not.toContain("data-dot-and-caret");
 });
 
 test("no row shows a dot while no agent of the project is active", async () => {

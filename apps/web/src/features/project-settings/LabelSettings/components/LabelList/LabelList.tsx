@@ -1,6 +1,5 @@
 import type { Label, LabelGroup } from "@trellis/api";
 import { LabelEditor } from "../../../LabelEditor";
-import { LabelGroupForm } from "../../../LabelGroupForm";
 import { LabelGroupRow } from "../../../LabelGroupRow";
 import { LabelRow } from "../../../LabelRow";
 import type { LabelEntry } from "../../utils/labelEntries";
@@ -18,8 +17,8 @@ export type LabelListProps = {
 	creating: { groupId: string | null } | null;
 	// The id of the label whose editor is open.
 	editing: string | null;
-	// The group whose rename form is open.
-	renaming: LabelGroup | null;
+	// The id of the group whose name stands as a text field.
+	renamingGroupId: string | null;
 	// The ids of the groups that show no label.
 	collapsed: ReadonlySet<string>;
 	// Takes the menu trigger of one group, so the page can give the focus
@@ -31,8 +30,9 @@ export type LabelListProps = {
 	onCancelEdit: () => void;
 	onCloseCreate: (groupId: string | null) => void;
 	onNewLabel: (groupId: string) => void;
-	onRename: (group: LabelGroup) => void;
-	onCloseRename: (group: LabelGroup) => void;
+	onRenamingChange: (group: LabelGroup, renaming: boolean) => void;
+	// Sends the new name of a group. It throws when the server refuses.
+	onRenameGroup: (group: LabelGroup, name: string) => Promise<void>;
 	onDeleteLabel: (label: Label) => void;
 	onDeleteGroup: (group: LabelGroup) => void;
 };
@@ -45,7 +45,7 @@ export function LabelList({
 	groups,
 	creating,
 	editing,
-	renaming,
+	renamingGroupId,
 	collapsed,
 	onGroupMenu,
 	onChanged,
@@ -54,8 +54,8 @@ export function LabelList({
 	onCancelEdit,
 	onCloseCreate,
 	onNewLabel,
-	onRename,
-	onCloseRename,
+	onRenamingChange,
+	onRenameGroup,
 	onDeleteLabel,
 	onDeleteGroup,
 }: LabelListProps) {
@@ -101,20 +101,14 @@ export function LabelList({
 							group={group}
 							labelCount={entry.labels.length}
 							expanded={open}
+							renaming={renamingGroupId === group.id}
 							menuRef={(node) => onGroupMenu(group.id, node)}
 							onToggle={() => onToggleGroup(group.id)}
-							onRename={() => onRename(group)}
+							onRenamingChange={(next) => onRenamingChange(group, next)}
+							onRename={(name) => onRenameGroup(group, name)}
 							onNewLabel={() => onNewLabel(group.id)}
 							onDelete={() => onDeleteGroup(group)}
 						>
-							{renaming?.id === group.id && (
-								<LabelGroupForm
-									project={project}
-									group={group}
-									onChanged={onChanged}
-									onCancel={() => onCloseRename(group)}
-								/>
-							)}
 							{open && entry.labels.length === 0 && !adding && (
 								<p className="label-group-empty">No label in this group.</p>
 							)}

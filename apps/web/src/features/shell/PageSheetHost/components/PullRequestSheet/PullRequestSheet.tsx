@@ -6,6 +6,8 @@ import { initialReviewTab } from "../../../../reviews/ReviewPage/reviewTab";
 import { PageSheet } from "../../../PageSheet";
 import { useShown } from "../../useShown";
 import { BrowserSheet } from "../BrowserSheet";
+import { ProjectSettingsSheet } from "../ProjectSettingsSheet";
+import { SettingsSheet } from "../SettingsSheet";
 
 export type PullRequestSheetProps = {
 	// The identifier of the ticket in the sheet under this one. A pull
@@ -66,6 +68,8 @@ export function PullRequestSheet({ ticket }: PullRequestSheetProps) {
 					onTabChange={pageSheetActions.setReviewTab}
 				/>
 			)}
+			<SettingsSheet at="pullRequest" />
+			<ProjectSettingsSheet at="pullRequest" />
 			<BrowserSheet at="pullRequest" />
 		</PageSheet>
 	);

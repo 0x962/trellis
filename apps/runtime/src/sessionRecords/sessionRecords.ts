@@ -1,18 +1,20 @@
-import { readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { RuntimeProcessStatus, RuntimeSession } from "@trellis/runtime-protocol";
-import { exitedRecordsToRemove, type RetainOptions } from "../retainExited.ts";
+import { exitedRecordsToRemove, type RetainOptions, resumableRecordsToRemove } from "../retainExited.ts";
 import { sessionFileSuffixes, sessionFiles } from "../sessionFiles.ts";
 import type { SessionRecord } from "../sessionRecord.ts";
 import { sessionResources } from "../sessionResources.ts";
 
 type SavedRecord = {
+	retainForResume?: boolean;
 	session: RuntimeSession;
 	fingerprint: string | null;
 	identity?: string | null;
 	launch?: RuntimeProcessStatus["launch"];
 };
 type IndexEntry = {
+	retainForResume: boolean;
 	sequence: number;
 	final: boolean;
 	retainedAt: number;
@@ -48,14 +50,20 @@ export class SessionRecords {
 		};
 		const activity = this.index.get(saved.session.id)?.activity;
 		record.activity = activity === undefined ? record.observations.activity : activity;
+		// A session the runtime confirmed as exited before this file existed
+		// gets the file on this read, so the next read skips its event log.
+		if (this.index.get(saved.session.id)?.final && !record.observations.checkpointed)
+			record.observations.saveCheckpoint();
 		return record;
 	}
 	private remember(
 		session: RuntimeSession,
 		tokenHash = this.index.get(session.id)?.tokenHash ?? null,
 		activity = this.index.get(session.id)?.activity,
+		retainForResume = this.index.get(session.id)?.retainForResume ?? false,
 	) {
 		this.index.set(session.id, {
+			retainForResume,
 			sequence: this.index.get(session.id)?.sequence ?? ++this.sequence,
 			final: this.index.get(session.id)?.final === true || (session.status === "exited" && session.endedAt !== null),
 			retainedAt: Date.parse(session.endedAt ?? session.startedAt),
@@ -66,7 +74,7 @@ export class SessionRecords {
 	restore(recover: (record: SessionRecord) => void) {
 		for (const file of readdirSync(this.home).filter((file) => file.endsWith(".session.json"))) {
 			const saved = this.read(file.slice(0, -".session.json".length));
-			this.remember(saved.session);
+			this.remember(saved.session, null, undefined, saved.retainForResume);
 			if (saved.session.status === "exited" && saved.session.endedAt !== null) continue;
 			if (saved.session.status === "running") saved.session.status = "unknown";
 			const record = this.restoreRecord(saved);
@@ -78,7 +86,7 @@ export class SessionRecords {
 		return this.index.has(id);
 	}
 	set(id: string, record: SessionRecord) {
-		this.remember(record.session, record.tokenHash, record.activity);
+		this.remember(record.session, record.tokenHash, record.activity, record.retainForResume);
 		this.history.delete(id);
 		this.active.set(id, record);
 	}
@@ -119,7 +127,12 @@ export class SessionRecords {
 			!record.stderr.complete
 		)
 			return;
-		this.remember(record.session, record.tokenHash, record.activity);
+		// The record leaves memory here, and its exit is confirmed, so it
+		// records no further event. The state its event log produced goes to
+		// its own file now, and every later read of this session loads that
+		// file instead of the whole log.
+		record.observations.saveCheckpoint();
+		this.remember(record.session, record.tokenHash, record.activity, record.retainForResume);
 		this.active.delete(record.session.id);
 		this.history.delete(record.session.id);
 	}
@@ -136,6 +149,7 @@ export class SessionRecords {
 			`${path}.tmp`,
 			JSON.stringify({
 				session: record.session,
+				retainForResume: record.retainForResume,
 				fingerprint: record.fingerprint,
 				identity: record.identity,
 				launch: record.launch,
@@ -143,7 +157,7 @@ export class SessionRecords {
 			{ mode: 0o600 },
 		);
 		renameSync(`${path}.tmp`, path);
-		this.remember(record.session, record.tokenHash, record.activity);
+		this.remember(record.session, record.tokenHash, record.activity, record.retainForResume);
 		for (const listener of record.listeners) listener();
 		this.release(record);
 	}
@@ -153,15 +167,32 @@ export class SessionRecords {
 	entries() {
 		return this.index.entries();
 	}
-	removeExpired(now: number, options: RetainOptions) {
-		const exited = [...this.index]
-			.filter(([id, entry]) => entry.final && !this.active.has(id))
-			.map(([id, entry]) => ({ record: id, endedAt: entry.retainedAt }));
-		for (const id of exitedRecordsToRemove(exited, now, options)) {
-			this.index.delete(id);
-			this.history.delete(id);
-			for (const path of Object.values(sessionFiles(this.home, id))) rmSync(path, { force: true });
+	// The bytes of every file of one session. A file the session never wrote
+	// is absent, and an absent file counts as nothing.
+	private sessionBytes(id: string) {
+		let bytes = 0;
+		for (const path of Object.values(sessionFiles(this.home, id))) {
+			const size = statSync(path, { throwIfNoEntry: false })?.size;
+			if (size !== undefined) bytes += size;
 		}
+		return bytes;
+	}
+	private remove(id: string) {
+		this.index.delete(id);
+		this.history.delete(id);
+		for (const path of Object.values(sessionFiles(this.home, id))) rmSync(path, { force: true });
+	}
+	removeExpired(now: number, options: RetainOptions) {
+		const candidates = [...this.index].filter(([id, entry]) => entry.final && !this.active.has(id));
+		const entryOf = ([id, entry]: (typeof candidates)[number]) => ({
+			record: id,
+			endedAt: entry.retainedAt,
+			bytes: this.sessionBytes(id),
+		});
+		const exited = candidates.filter(([, entry]) => !entry.retainForResume).map(entryOf);
+		const resumable = candidates.filter(([, entry]) => entry.retainForResume).map(entryOf);
+		for (const id of exitedRecordsToRemove(exited, now, options)) this.remove(id);
+		for (const id of resumableRecordsToRemove(resumable, options)) this.remove(id);
 	}
 	removeOrphanFiles() {
 		for (const file of readdirSync(this.home)) {

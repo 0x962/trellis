@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { createConnection, createServer, type Socket } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { RuntimeListPageInput, RuntimeProcessStatus } from "@trellis/runtime-protocol";
+import { DEFAULT_LIST_LIMIT, type RuntimeListPageInput, type RuntimeProcessStatus } from "@trellis/runtime-protocol";
 import type { SessionStore } from "../sessionStore";
 import { writeSessionList } from "./writeSessionList";
 
@@ -15,6 +15,7 @@ afterEach(async () => {
 async function connection(
 	entries: () => Generator<{ session: RuntimeProcessStatus | null; cursor: string }>,
 	paged: boolean,
+	input: RuntimeListPageInput = {},
 ) {
 	const home = await mkdtemp(join(tmpdir(), "trellis-page-"));
 	const path = join(home, "s");
@@ -25,7 +26,7 @@ async function connection(
 		socket.once("close", () => sockets.delete(socket));
 		socket.on("error", () => socket.destroy());
 		const store = { entries } as unknown as SessionStore;
-		void writeSessionList(socket, store, "request", {} as RuntimeListPageInput, paged).then(completed.resolve, () => {
+		void writeSessionList(socket, store, "request", input, paged).then(completed.resolve, () => {
 			socket.destroy();
 			completed.resolve();
 		});
@@ -108,4 +109,28 @@ test("disconnect stops a filtered legacy scan", async () => {
 	client.once("data", () => client.destroy());
 	await completed;
 	expect(inspected).toBeLessThan(10_000);
+});
+
+test("a page stops at the limit of the request and names no next cursor", async () => {
+	const { client } = await connection(
+		function* () {
+			for (let index = 0; index < 100; index++)
+				yield { session: status(String(index)), cursor: `r:daemon:${index + 1}` };
+		},
+		true,
+		{ limit: 3 },
+	);
+	const response = (await receive(client)) as {
+		result: { sessions: RuntimeProcessStatus[]; nextCursor: string | null };
+	};
+	expect(response.result.sessions.map((session) => session.id)).toEqual(["0", "1", "2"]);
+	expect(response.result.nextCursor).toBe(null);
+});
+
+test("a caller that names no limit gets at most the default", async () => {
+	const { client } = await connection(function* () {
+		for (let index = 0; index < 400; index++) yield { session: status(String(index)), cursor: `r:daemon:${index + 1}` };
+	}, false);
+	const response = (await receive(client)) as { result: RuntimeProcessStatus[] };
+	expect(response.result).toHaveLength(DEFAULT_LIST_LIMIT);
 });

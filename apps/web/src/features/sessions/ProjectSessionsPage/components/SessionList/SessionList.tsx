@@ -17,6 +17,8 @@ export function SessionList({
 	onRetry,
 	onSelect,
 	onConversation,
+	history,
+	onHistoryChange,
 }: {
 	project: Project;
 	runs: AgentRun[];
@@ -28,9 +30,10 @@ export function SessionList({
 	onRetry: () => void;
 	onSelect: (id: string) => void;
 	onConversation: () => void;
+	history: boolean;
+	onHistoryChange: (history: boolean) => void;
 }) {
 	const [search, setSearch] = useState("");
-	const [history, setHistory] = useState(false);
 	const groups = sessionGroups(runs, { search, history, selectedId });
 	const sessionsByRunId = new Map(sessions.map((session) => [session.runId, session]));
 	return (
@@ -53,14 +56,16 @@ export function SessionList({
 				</div>
 				<Tooltip content={history ? "Hide history" : `Show history (${groups.historyCount})`}>
 					<IconButton
+						variant="default"
 						label={history ? "Hide history" : "Show history"}
 						icon={<ClockCounterClockwise />}
 						pressed={history}
-						onClick={() => setHistory(!history)}
+						onClick={() => onHistoryChange(!history)}
 					/>
 				</Tooltip>
 				<Tooltip content="New session">
 					<IconButton
+						variant="default"
 						label="New session"
 						icon={<Plus />}
 						disabled={project.archivedAt !== null}
@@ -77,9 +82,7 @@ export function SessionList({
 				{failed && (
 					<div role="status" className="flex items-center justify-between gap-3 px-4 py-2 text-sm text-fg-muted">
 						<span>Could not load sessions</span>
-						<Button variant="quiet" onClick={onRetry}>
-							Retry
-						</Button>
+						<Button onClick={onRetry}>Retry</Button>
 					</div>
 				)}
 				{error && !failed && (

@@ -7,7 +7,7 @@ import { agentKindOf } from "../../../../agents/agentKindOf";
 import { agentProfileOf } from "../../../../agents/agentProfileOf";
 import { isAgentWorking } from "../../../../agents/isAgentWorking";
 import { SessionActionsMenu } from "../../../SessionActionsMenu";
-import { SessionNameField } from "../../../SessionNameField";
+import { SessionName } from "../../../SessionName";
 import { sessionStateLabel } from "../../../sessionStateLabel";
 import { isHistoricalSession } from "../../isHistoricalSession";
 import { RunLineChanges } from "./components/RunLineChanges";
@@ -77,66 +77,66 @@ export function SessionGroup({
 						const session = sessionsByRunId.get(run.id);
 						const name = run.ticketIdentifier ?? session?.name ?? run.name;
 						const renaming = session !== undefined && renamingId === session.id;
+						const avatar = (
+							<Avatar
+								kind="agent"
+								name={name}
+								agentKind={agentKindOf(run.kind)}
+								agentProfile={agentProfileOf(run.harness)}
+								state={isAgentWorking(run) ? "working" : "static"}
+								status={sessionStatus(run)}
+								className="size-5"
+							/>
+						);
+						const row = (
+							<button
+								ref={run.id === selectedId ? selectedButton : undefined}
+								type="button"
+								title={`${name}${run.ticketTitle ? ` · ${run.ticketTitle}` : ""} · ${state} · ${new Date(run.createdAt).toLocaleString()}`}
+								aria-current={selectedId === run.id ? "page" : undefined}
+								className="sidebar-item"
+								onClick={() => onSelect(run.id)}
+							>
+								<span aria-hidden="true" className="flex shrink-0">
+									{avatar}
+								</span>
+								<span className="min-w-0 flex-1">
+									<span className="flex items-center gap-2">
+										<span className="min-w-0 flex-1 truncate font-medium tabular">{name}</span>
+										{needsAttention && <span className="shrink-0 text-xs font-normal text-fg-muted">{state}</span>}
+									</span>
+									<span className="flex items-center gap-2 text-xs text-fg-muted tabular">
+										<span className="min-w-0 flex-1 truncate">
+											{historical
+												? dateFormat.format(new Date(run.createdAt))
+												: (run.ticketTitle ?? dateFormat.format(new Date(run.createdAt)))}
+										</span>
+										{run.runtime === "native" && run.workspaceId !== null && (
+											<RunLineChanges run={run} enabled={!collapsed} />
+										)}
+									</span>
+								</span>
+							</button>
+						);
 						return (
 							<li key={run.id} className="group/row relative">
-								{renaming ? (
-									<div className="sidebar-item">
-										<span aria-hidden="true" className="flex shrink-0">
-											<Avatar
-												kind="agent"
-												name={name}
-												agentKind={agentKindOf(run.kind)}
-												agentProfile={agentProfileOf(run.harness)}
-												state={isAgentWorking(run) ? "working" : "static"}
-												status={sessionStatus(run)}
-												className="size-5"
-											/>
-										</span>
-										<SessionNameField
-											session={session}
-											className="min-w-0 flex-1 pr-8"
-											inputClassName="h-7 text-sm"
-											onCancel={() => setRenamingId(null)}
-											onSaved={() => setRenamingId(null)}
-										/>
-									</div>
+								{session === undefined ? (
+									row
 								) : (
-									<button
-										ref={run.id === selectedId ? selectedButton : undefined}
-										type="button"
-										title={`${name}${run.ticketTitle ? ` · ${run.ticketTitle}` : ""} · ${state} · ${new Date(run.createdAt).toLocaleString()}`}
-										aria-current={selectedId === run.id ? "page" : undefined}
-										className="sidebar-item"
-										onClick={() => onSelect(run.id)}
+									<SessionName
+										session={session}
+										editing={renaming}
+										onEditingChange={(open) => setRenamingId(open ? session.id : null)}
+										fieldClassName="sidebar-item-box"
+										inputClassName="h-7 text-sm"
+										leading={
+											<span aria-hidden="true" className="flex shrink-0">
+												{avatar}
+											</span>
+										}
 									>
-										<span aria-hidden="true" className="flex shrink-0">
-											<Avatar
-												kind="agent"
-												name={name}
-												agentKind={agentKindOf(run.kind)}
-												agentProfile={agentProfileOf(run.harness)}
-												state={isAgentWorking(run) ? "working" : "static"}
-												status={sessionStatus(run)}
-												className="size-5"
-											/>
-										</span>
-										<span className="min-w-0 flex-1">
-											<span className="flex items-center gap-2">
-												<span className="min-w-0 flex-1 truncate font-medium tabular">{name}</span>
-												{needsAttention && <span className="shrink-0 text-xs font-normal text-fg-muted">{state}</span>}
-											</span>
-											<span className="flex items-center gap-2 text-xs text-fg-muted tabular">
-												<span className="min-w-0 flex-1 truncate">
-													{historical
-														? dateFormat.format(new Date(run.createdAt))
-														: (run.ticketTitle ?? dateFormat.format(new Date(run.createdAt)))}
-												</span>
-												{run.runtime === "native" && run.workspaceId !== null && (
-													<RunLineChanges run={run} enabled={!collapsed} />
-												)}
-											</span>
-										</span>
-									</button>
+										{row}
+									</SessionName>
 								)}
 								{session !== undefined && !renaming && (
 									<span

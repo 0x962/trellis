@@ -3,7 +3,7 @@ import { projectColorLabels, projectColors } from "./projectColors";
 import { rampAt } from "./projectPalette";
 
 const css = await Bun.file(new URL("../tokens.css", import.meta.url)).text();
-const bindingCss = await Bun.file(new URL("../project-room.css", import.meta.url)).text();
+const bindingCss = await Bun.file(new URL("../project-color.css", import.meta.url)).text();
 
 // The bar of WCAG 1.4.11 for a graphical object, and the bar of 1.4.3 for
 // text.
@@ -86,7 +86,7 @@ test("every project color holds its two values in both themes", () => {
 
 // The rule of a name is what puts the two values of that name on a mark or a
 // chip, so a name with no rule draws nothing.
-test("project-room.css binds every name to its two values", () => {
+test("project-color.css binds every name to its two values", () => {
 	for (const color of projectColors) {
 		expect(bindingCss).toContain(
 			[

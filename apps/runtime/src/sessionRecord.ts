@@ -19,6 +19,8 @@ export type SessionRecord = {
 	ledger: InputLedger;
 	observations: HarnessObservations;
 	completion: CompletionStore;
+	lastInputAt?: number;
+	retainForResume?: boolean;
 	process?: ProcessHandle;
 	timer?: ReturnType<typeof setTimeout>;
 	stopped: Promise<Error | undefined>;

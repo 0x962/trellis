@@ -1,4 +1,3 @@
-import type { LabelGroup } from "@trellis/api";
 import { LabelGroupNameSchema } from "@trellis/api";
 import { Button, Input } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
@@ -8,21 +7,18 @@ import { labelWriteMessage } from "../labelWriteMessage";
 export type LabelGroupFormProps = {
 	// The key of the project that owns the group.
 	project: string;
-	// The group this form renames. `null` creates a group.
-	group: LabelGroup | null;
 	onChanged: () => Promise<void>;
 	onCancel: () => void;
 };
 
-// The one-field form that creates a label group and the one that renames it.
-// A new group stands above the list, and a rename stands under the heading of
-// the group it changes.
-export function LabelGroupForm({ project, group, onChanged, onCancel }: LabelGroupFormProps) {
+// The form that creates a label group. It stands above the list. A group
+// that exists takes its new name in the heading band, through the name field
+// of `LabelGroupRow`.
+export function LabelGroupForm({ project, onChanged, onCancel }: LabelGroupFormProps) {
 	const { client } = useApp();
-	const [name, setName] = useState(group?.name ?? "");
+	const [name, setName] = useState("");
 	const [message, setMessage] = useState<string | null>(null);
 	const [saving, setSaving] = useState(false);
-	const title = group === null ? "New group" : `Rename ${group.name}`;
 
 	const save = async (event: FormEvent) => {
 		event.preventDefault();
@@ -33,11 +29,7 @@ export function LabelGroupForm({ project, group, onChanged, onCancel }: LabelGro
 		}
 		setSaving(true);
 		try {
-			if (group === null) {
-				await client.labelGroups.create({ project, name: parsed.data });
-			} else {
-				await client.labelGroups.update({ project, group: group.id, name: parsed.data });
-			}
+			await client.labelGroups.create({ project, name: parsed.data });
 			await onChanged();
 			onCancel();
 		} catch (error) {
@@ -47,11 +39,7 @@ export function LabelGroupForm({ project, group, onChanged, onCancel }: LabelGro
 	};
 
 	return (
-		<form
-			aria-label={title}
-			className={group === null ? "status-create-form" : "status-row-editor"}
-			onSubmit={(event) => void save(event)}
-		>
+		<form aria-label="New group" className="status-create-form" onSubmit={(event) => void save(event)}>
 			<Input
 				label="Group name"
 				value={name}

@@ -6,6 +6,7 @@ import { createInterface } from "node:readline";
 import { fromHarnessModel } from "@trellis/api/models";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { z } from "zod";
+import { recordBridgeFailure } from "../bridgeFailure/index.ts";
 import { applyTurnActivity } from "../turnActivity/turnActivity.ts";
 import type { HarnessEvent } from "../types.ts";
 import { CodexAppServerClient } from "./appServerClient.ts";
@@ -191,11 +192,10 @@ try {
 	await Promise.race([start().then(() => terminated), engineFailed, observationFailed]);
 } catch (error) {
 	acceptingEvents = false;
-	await eventQueue;
-	await runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, {
-		kind: "error",
-		outcome: "failed",
-		error: (error as Error).message,
+	await recordBridgeFailure({
+		error,
+		pendingWrites: eventQueue,
+		observe: (event) => runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, event),
 	});
 	process.exitCode = 1;
 } finally {

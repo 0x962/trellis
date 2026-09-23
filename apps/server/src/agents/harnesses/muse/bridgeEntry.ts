@@ -4,6 +4,7 @@ import { dirname } from "node:path";
 import { fromHarnessModel } from "@trellis/api/models";
 import { RuntimeClient } from "@trellis/runtime-protocol/client";
 import { z } from "zod";
+import { failureReason, recordBridgeFailure } from "../bridgeFailure/index.ts";
 import { applyTurnActivity } from "../turnActivity/turnActivity.ts";
 import type { HarnessEvent } from "../types.ts";
 import { MspClient } from "./mspClient.ts";
@@ -11,7 +12,8 @@ import { MuseSessionEvents } from "./mspEvents.ts";
 import { museControl } from "./museControl.ts";
 import { MuseQuestions } from "./museQuestions.ts";
 import { answerMuseRequest } from "./museRequests.ts";
-import { museTerminalHint, museTranscriptLine } from "./museTerminal.ts";
+import { museTerminalHint, startMuseTerminalReader, stopMuseTerminalReader } from "./museTerminal.ts";
+import { museTranscriptLine } from "./museTranscript.ts";
 import { writeMuseQuotaError, writeMuseUsage } from "./museUsage.ts";
 import { uuid7 } from "./uuid7.ts";
 
@@ -54,11 +56,14 @@ const host: ChildProcess = spawn(env.TRELLIS_MUSE_EXECUTABLE, ["serve", "--trust
 	env: process.env,
 	stdio: ["pipe", "pipe", "inherit"],
 });
-let stopNormally!: () => void;
+// The bridge stops its terminal reader before it records a failure. The
+// terminal makes SIGINT again from that point, and a process with no listener
+// for it stops at once. This listener keeps the bridge alive long enough to
+// record the reason.
 const terminated = new Promise<void>((resolve) => {
-	stopNormally = resolve;
 	process.once("SIGTERM", resolve);
 	process.once("SIGHUP", resolve);
+	process.once("SIGINT", resolve);
 });
 let eventQueue = Promise.resolve();
 let acceptingEvents = true;
@@ -138,47 +143,6 @@ function record(event: HarnessEvent) {
 	eventQueue.catch(reportFailure);
 	if (!current.working) flushHeld();
 }
-const ESCAPE = "\u001b";
-const escapeSequence = new RegExp(`${ESCAPE}\\[[0-9;?]*[A-Za-z]`, "g");
-function readTerminal() {
-	// The terminal is in raw mode, so Ctrl+C reaches the bridge as a byte
-	// and never as a signal to the session host. Text collects until Enter
-	// and then starts a turn. A bracketed paste keeps its text only.
-	if (!process.stdin.isTTY) return;
-	process.stdin.setRawMode(true);
-	process.stdin.resume();
-	let line = "";
-	process.stdin.on("data", (chunk: Buffer) => {
-		const text = chunk
-			.toString()
-			.replaceAll(`${ESCAPE}[200~`, "")
-			.replaceAll(`${ESCAPE}[201~`, "")
-			.replace(escapeSequence, "");
-		for (const character of text) {
-			if (character === "\x03") {
-				line = "";
-				if (current.working && current.turnId !== null)
-					void client!
-						.request("turn/interrupt", { commandId: uuid7(), sessionId, turnId: current.turnId })
-						.catch(reportFailure);
-			} else if (character === "\r" || character === "\n") {
-				process.stdout.write("\n");
-				const prompt = line;
-				line = "";
-				if (prompt.trim() === "") continue;
-				void submit(prompt).catch(reportFailure);
-			} else if (character === "\x7f" || character === "\b") {
-				if (line.length > 0) {
-					line = line.slice(0, -1);
-					process.stdout.write("\b \b");
-				}
-			} else if (character >= " ") {
-				line += character;
-				process.stdout.write(character);
-			}
-		}
-	});
-}
 async function start() {
 	client = new MspClient(
 		host,
@@ -248,25 +212,45 @@ async function start() {
 	await startTurn([launch.prompt]);
 	await firstPrompt;
 	print(museTerminalHint);
-	readTerminal();
+	startMuseTerminalReader({
+		interrupt: async () => {
+			if (!current.working || current.turnId === null) return;
+			await client!.request("turn/interrupt", { commandId: uuid7(), sessionId, turnId: current.turnId });
+		},
+		submit,
+		onFailure: reportFailure,
+	});
 }
 try {
 	await Promise.race([start().then(() => terminated), observationFailed]);
 } catch (error) {
 	const observedAtMs = Date.now();
 	acceptingEvents = false;
-	await eventQueue;
+	// The steps below wait for the runtime, which answers a write in up to ten
+	// seconds. A live reader would echo each typed character in that time, and
+	// Enter would start a turn on a session host that stops a moment later.
+	stopMuseTerminalReader();
 	const usageHome = museHome;
-	if (usageHome !== undefined) queueUsage(() => writeMuseQuotaError(usageHome, (error as Error).message, observedAtMs));
-	await usageQueue;
-	await runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, {
-		kind: "error",
-		outcome: "failed",
-		error: (error as Error).message,
+	// `queueUsage` sends a rejected write to `reportFailure`, and that call
+	// changes nothing here, because the promise it rejects is already
+	// rejected. The quota write therefore runs on its own line.
+	if (usageHome !== undefined)
+		await writeMuseQuotaError(usageHome, failureReason(error), observedAtMs).catch((failure: unknown) => {
+			process.stderr.write(`The bridge could not record the quota error: ${failureReason(failure)}\n`);
+		});
+	await recordBridgeFailure({
+		error,
+		pendingWrites: eventQueue,
+		observe: (event) => runtime.observe(env.TRELLIS_ATTEMPT_ID, env.TRELLIS_ATTEMPT_TOKEN, event),
 	});
 	process.exitCode = 1;
 } finally {
 	acceptingEvents = false;
+	// SIGTERM, SIGHUP and SIGINT end the try block with no error, so the catch
+	// block does not run. This block is then the only one that gives the
+	// keyboard back. The steps below wait up to five seconds for the Muse
+	// host, and the removal of the directory can throw.
+	stopMuseTerminalReader();
 	await usageQueue;
 	if (host.exitCode === null && host.signalCode === null) {
 		const exited = new Promise<void>((resolve) => host.once("exit", () => resolve()));
@@ -278,5 +262,4 @@ try {
 	}
 	control?.close();
 	await rm(directory, { recursive: true, force: true });
-	stopNormally();
 }

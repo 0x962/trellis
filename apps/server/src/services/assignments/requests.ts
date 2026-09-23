@@ -13,6 +13,7 @@ type Target = {
 	resumeRunId?: string;
 	previousAttemptId?: string;
 	sessionFingerprint?: string;
+	resumeMessageAttemptId?: string;
 };
 type Request = { requestId: string | undefined; target: Target };
 

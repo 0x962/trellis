@@ -10,7 +10,7 @@ import { closeExitedAssignments } from "../agentRuns/closeExitedAssignments.ts";
 import { prepareSend } from "../agentRuns/communication.ts";
 import { stopNative } from "../agentRuns/nativeLifecycle.ts";
 import { startNative } from "../agentRuns/nativeStart.ts";
-import { getRun, type StoredRun } from "../agentRuns/queries.ts";
+import { getRun, type LaunchRun } from "../agentRuns/queries.ts";
 import { readNativeHarness } from "../agentRuns/readNativeHarness.ts";
 import { claimNext } from "./claimNext.ts";
 import { drainFlowStops } from "./drainFlowStops.ts";
@@ -25,8 +25,8 @@ type Claim = NonNullable<Awaited<ReturnType<typeof claimNext>>>;
 type Dependencies = {
 	// Resolves once the process exists, with the time the runtime started it.
 	start: (ctx: FlowCtx, claim: Claim) => Promise<{ launchedAt?: string } | undefined>;
-	observe: (ctx: FlowCtx, run: StoredRun) => Promise<HarnessSnapshot | null>;
-	stop: (ctx: FlowCtx, run: StoredRun) => Promise<unknown>;
+	observe: (ctx: FlowCtx, run: LaunchRun) => Promise<HarnessSnapshot | null>;
+	stop: (ctx: FlowCtx, run: LaunchRun) => Promise<unknown>;
 	// Delivers a message to the running worker of a run.
 	warn: (ctx: FlowCtx, input: { id: string; text: string; messageId: string }) => Promise<unknown>;
 };

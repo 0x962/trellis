@@ -13,6 +13,9 @@ import type { ServiceCtx } from "../support.ts";
 import { historicalOutput } from "./history/historicalOutput.ts";
 import { nativeOutput } from "./nativeLifecycle.ts";
 import { getRun } from "./queries.ts";
+import { replayResumedMessage } from "./replayResumedMessage";
+import type { ResumeCtx } from "./resume.ts";
+import { resumeIdleSession } from "./resumeIdleSession";
 import { assertSendTarget, type SendTarget } from "./sendTarget.ts";
 import { waitForReceipt } from "./waitForReceipt.ts";
 
@@ -25,15 +28,17 @@ const runtimeUnavailable = (cause: unknown) =>
 	});
 
 export const prepareSend = async (
-	ctx: ServiceCtx,
+	ctx: ResumeCtx,
 	input: { id: string; text: string; messageId?: string; interrupt?: boolean; idleForMs?: number } & SendTarget,
 	deps: {
 		client: Pick<RuntimeClient, "inspect" | "deliver" | "subscribeSession">;
 		host: Pick<HarnessHost, "send" | "interrupt">;
 		preset: (id: string) => Promise<HarnessPreset>;
+		resume?: typeof resumeIdleSession;
 	} = { client: nativeClient(ctx.home), host: nativeHost(ctx.home), preset: (id) => nativePreset(ctx.home, id) },
 ) => {
 	const run = await ctx.newTx((tx) => getRun(tx, input.id));
+	if (await replayResumedMessage(ctx, run, input, deps.client)) return { id: run.id };
 	assertSendTarget(run, input);
 	if (run.closedAt !== null)
 		throw invalidInput("id", "This assignment is closed. Start a new attempt before sending a message.");
@@ -43,8 +48,21 @@ export const prepareSend = async (
 	const preset = await deps.preset(run.terminalId);
 	if (input.interrupt && preset === "custom")
 		throw invalidInput("interrupt", "Use the custom terminal controls to interrupt its process.");
+	const messageId = input.messageId ?? randomUUID();
+	const resumeIdle = async () => {
+		if (input.idleForMs !== undefined) return { id: run.id, skipped: true };
+		const latest = await client.inspect(run.terminalId!);
+		if (latest.acknowledgedMessageIds.includes(messageId)) return { id: run.id };
+		return (deps.resume ?? resumeIdleSession)(ctx, {
+			id: run.id,
+			terminalId: run.terminalId!,
+			text: input.text,
+			messageId,
+		});
+	};
 	try {
 		const session = await client.inspect(run.terminalId);
+		if (session.stopReason === "idle") return await resumeIdle();
 		if (session.status !== "running" || !session.controllable)
 			throw new Error("The execution service cannot control this agent process.");
 		const idleBefore =
@@ -59,7 +77,6 @@ export const prepareSend = async (
 						activityAt: session.activity!.updatedAt,
 						idleBefore,
 					};
-		const messageId = input.messageId ?? randomUUID();
 		if (preset === "custom") {
 			const data = Buffer.from(`\x1b[200~${input.text}\x1b[201~\r`).toString("base64");
 			const sent = await client.deliver(run.terminalId, messageId, data, expected);
@@ -72,6 +89,7 @@ export const prepareSend = async (
 			await host.send(run.terminalId, input.text, messageId, expected);
 		}
 	} catch (cause) {
+		if ((cause as { code?: string }).code === "SESSION_IDLE_STOPPED") return resumeIdle();
 		if (input.idleForMs !== undefined && (cause as { code?: string }).code === "RUNTIME_TURN_CHANGED")
 			return { id: run.id, skipped: true };
 		throw runtimeUnavailable(cause);

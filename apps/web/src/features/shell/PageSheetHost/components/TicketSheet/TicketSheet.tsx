@@ -4,8 +4,10 @@ import { TicketView } from "../../../../ticket/TicketView";
 import { PageSheet } from "../../../PageSheet";
 import { useShown } from "../../useShown";
 import { BrowserSheet } from "../BrowserSheet";
+import { ProjectSettingsSheet } from "../ProjectSettingsSheet";
 import { PullRequestSheet } from "../PullRequestSheet";
 import { SessionSheet } from "../SessionSheet";
+import { SettingsSheet } from "../SettingsSheet";
 
 // One ticket, as the whole ticket page in a sheet over the list that opened
 // it. The review sheet and the session sheet render inside this sheet: Base
@@ -31,6 +33,8 @@ export function TicketSheet() {
 					<TicketView key={shown} identifier={shown} />
 					<PullRequestSheet ticket={shown} />
 					<SessionSheet />
+					<SettingsSheet at="ticket" />
+					<ProjectSettingsSheet at="ticket" />
 					<BrowserSheet at="ticket" />
 				</>
 			)}

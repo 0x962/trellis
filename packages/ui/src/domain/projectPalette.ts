@@ -126,7 +126,7 @@ export const tokenLines = (theme: "light" | "dark") =>
 		})
 		.join("\n");
 
-// The `project-room.css` rules that bind one name to its two values.
+// The `project-color.css` rules that bind one name to its two values.
 export const bindingLines = () =>
 	projectColors
 		.map((name) =>
@@ -147,5 +147,5 @@ export const bindingLines = () =>
 if (import.meta.main) {
 	console.log(`/* tokens.css, the :root block */\n${tokenLines("light")}`);
 	console.log(`\n/* tokens.css, both dark blocks */\n${tokenLines("dark")}`);
-	console.log(`\n/* project-room.css */\n${bindingLines()}`);
+	console.log(`\n/* project-color.css */\n${bindingLines()}`);
 }

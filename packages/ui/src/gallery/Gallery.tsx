@@ -1,5 +1,6 @@
 import { type ThemeMode, useTheme } from "../hooks/useTheme";
 import { Segmented } from "../primitives/Segmented";
+import { Toaster } from "../primitives/Toast";
 import { CompositionSection } from "./components/CompositionSection";
 import { ControlSections } from "./components/ControlSections";
 import { DisplaySections } from "./components/DisplaySections";
@@ -33,6 +34,7 @@ export function Gallery() {
 				<DomainSections />
 				<CompositionSection />
 			</main>
+			<Toaster />
 		</div>
 	);
 }

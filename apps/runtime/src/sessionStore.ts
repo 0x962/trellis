@@ -10,9 +10,12 @@ import type {
 	RuntimeSession,
 	RuntimeStream,
 } from "@trellis/runtime-protocol";
+import { acceptSessionInput } from "./acceptSessionInput";
 import { assertExpectedTurn } from "./assertExpectedTurn.ts";
 import { authenticateSession } from "./authenticateSession.ts";
+import { canceledSession } from "./canceledSession";
 import { fingerprintLaunch } from "./fingerprintLaunch.ts";
+import { expireIdleSessions } from "./idleCleanup";
 import { inspectSessionRecord } from "./inspectSessionRecord.ts";
 import { launchSession } from "./launchSession";
 import { matchesProcessFilters } from "./matchesProcessFilters.ts";
@@ -27,16 +30,14 @@ import { sessionResources } from "./sessionResources.ts";
 import { stopAttempt } from "./stopAttempt.ts";
 import { watchRecoveredSession } from "./watchRecoveredSession.ts";
 
-// A host reads the output of an exited session after the exit, for example
-// when it stores the transcript of a stopped agent. The record and its files
-// stay for the retention after the exit, and at most `maxExitedRecords` of
-// them stay at any time. The sweep runs at boot, after every exit, and once
-// an hour for the records whose retention ends while nothing exits.
+// Resume requires the saved provider identity and launch directory. Idle exits stay
+// on disk until a successful resume or explicit stop releases their records.
 const sweepIntervalMs = 60 * 60 * 1000;
 
 export class SessionStore {
 	private readonly records: SessionRecords;
 	private readonly exits = new ProcessExitWatcher();
+	private readonly idleSweeper: ReturnType<typeof setInterval>;
 	private readonly sweeper: ReturnType<typeof setInterval>;
 	constructor(
 		private readonly home: string,
@@ -53,6 +54,11 @@ export class SessionStore {
 		this.records.removeOrphanFiles();
 		this.sweeper = setInterval(() => this.sweep(), sweepIntervalMs);
 		this.sweeper.unref();
+		this.idleSweeper = setInterval(() => this.expireIdle(), 30_000);
+		this.idleSweeper.unref();
+	}
+	expireIdle(now = Date.now()) {
+		expireIdleSessions(this.records.values(), (record) => this.save(record), now);
 	}
 	private sweep(now = Date.now()) {
 		for (const record of this.records.values()) {
@@ -90,8 +96,10 @@ export class SessionStore {
 		}
 		for (const [id, entry] of this.records.entries()) {
 			if (entry.sequence <= position) continue;
-			if (entry.final && (input.status === "running" || input.status === "unknown" || input.activity !== undefined))
-				continue;
+			// A session whose exit is confirmed costs a file read, so a read
+			// passes it over unless the caller asked for exits by name. A caller
+			// that wants one exited session names it under `ids`.
+			if (entry.final && input.status !== "exited") continue;
 			const session = this.inspect(id);
 			yield { session: matchesProcessFilters(session, input) ? session : null, cursor: `${prefix}${entry.sequence}` };
 		}
@@ -194,20 +202,24 @@ export class SessionStore {
 		);
 		return this.inspect(spec.id);
 	}
-	async input(id: string, data: string, expected?: RuntimeExpectedTurn) {
+	async input(id: string, data: string, expected?: RuntimeExpectedTurn, userInput = true) {
 		const record = this.get(id);
 		assertExpectedTurn(record, expected);
-		return this.inputBytes(id, Buffer.from(data, "base64"));
+		return this.inputBytes(id, Buffer.from(data, "base64"), userInput);
 	}
-	async inputBytes(id: string, data: Buffer, _userInput?: boolean) {
+	async inputBytes(id: string, data: Buffer, userInput = true) {
 		const record = this.get(id);
 		if (!record.process) throw new Error(`Session ${id} is ${record.session.status}`);
+		acceptSessionInput(record, userInput);
 		await record.process.input(data);
 		return null;
 	}
 	async deliver(id: string, messageId: string, data: string, expected?: RuntimeExpectedTurn) {
 		const record = this.get(id);
-		if (!record.ledger.has(messageId)) assertExpectedTurn(record, expected);
+		if (!record.ledger.has(messageId)) {
+			assertExpectedTurn(record, expected);
+			acceptSessionInput(record);
+		}
 		const unpin = this.records.pin(record);
 		try {
 			return await record.ledger.deliver(messageId, data, () => this.input(id, data));
@@ -223,34 +235,15 @@ export class SessionStore {
 	}
 	async stop(id: string) {
 		if (!this.records.has(id)) {
-			const now = new Date().toISOString();
-			const record: Record = {
-				session: {
-					id,
-					daemonId: this.daemonId,
-					pid: null,
-					mode: "stdio",
-					status: "exited",
-					startedAt: now,
-					endedAt: now,
-					exitCode: null,
-					error: "Canceled before launch",
-				},
-				fingerprint: null,
-				identity: null,
-				launch: null,
-				listeners: new Set(),
-				watchedPids: new Set(),
-				tokenHash: null,
-				activity: null,
-				...sessionResources(this.home, id),
-				stopped: Promise.resolve(undefined),
-				resolveStop: () => {},
-			};
+			const record = canceledSession(this.home, this.daemonId, id);
 			this.records.set(id, record);
 			this.save(record);
 		}
 		const record = this.get(id);
+		if (record.retainForResume) {
+			record.retainForResume = false;
+			this.save(record);
+		}
 		if (record.process) {
 			const stopped = record.stopped;
 			record.process.stop();
@@ -277,6 +270,7 @@ export class SessionStore {
 	}
 	closeWatchers() {
 		clearInterval(this.sweeper);
+		clearInterval(this.idleSweeper);
 		this.exits.close();
 	}
 	async stopAll() {

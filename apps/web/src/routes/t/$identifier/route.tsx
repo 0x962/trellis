@@ -1,8 +1,9 @@
 import { ORPCError } from "@orpc/client";
-import { createFileRoute, type ErrorComponentProps } from "@tanstack/react-router";
+import { createFileRoute, type ErrorComponentProps, useRouter } from "@tanstack/react-router";
 import { TicketRefStringSchema } from "@trellis/api";
-import { EmptyState } from "@trellis/ui";
+import { Button, FailureState } from "@trellis/ui";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
+import { failureKind, isConnectionFailure, RouteError } from "../../../features/shell/RouteError";
 import { TicketView } from "../../../features/ticket/TicketView";
 import type { AppContext } from "../../../lib/appContext";
 
@@ -26,16 +27,23 @@ function TicketPage() {
 }
 
 function TicketError({ error }: ErrorComponentProps) {
+	const router = useRouter();
 	if (error instanceof ORPCError && error.code === "NOT_FOUND") {
 		const { ref } = error.data as { ref: string };
 		return <NotFoundState ref={ref} searchFor={ref} />;
 	}
+	if (isConnectionFailure(failureKind(error))) return <RouteError error={error} />;
 	return (
-		<EmptyState
+		<FailureState
 			variant="page"
 			className="page-card"
-			title="The ticket did not load."
-			description={error instanceof Error ? error.message : String(error)}
+			title="This ticket did not load"
+			detail={error instanceof Error ? error.message : String(error)}
+			action={
+				<Button size="md" onClick={() => void router.invalidate()}>
+					Retry
+				</Button>
+			}
 		/>
 	);
 }

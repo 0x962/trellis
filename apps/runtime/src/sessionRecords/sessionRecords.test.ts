@@ -3,6 +3,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { RuntimeSession } from "@trellis/runtime-protocol";
+import type { RetainOptions } from "../retainExited.ts";
 import { sessionFiles } from "../sessionFiles.ts";
 import { SessionRecords } from "./sessionRecords.ts";
 
@@ -41,6 +42,13 @@ const restore = () => {
 	records.restore(() => {});
 	return records;
 };
+const retain = (overrides: Partial<RetainOptions>): RetainOptions => ({
+	retentionMs: 7 * day,
+	maxExitedRecords: 500,
+	maxExitedBytes: Number.MAX_SAFE_INTEGER,
+	maxResumableRecords: 500,
+	...overrides,
+});
 
 test("restores exited history without resources or rewritten session files", () => {
 	for (let index = 0; index < 40; index++) seed(`exit-${index}`);
@@ -106,11 +114,11 @@ test("keeps seven-day history and protects subscribed old attempts", () => {
 	const listener = () => {};
 	old.listeners.add(listener);
 	records.retain(old);
-	records.removeExpired(now, { retentionMs: 7 * day, maxExitedRecords: 500 });
+	records.removeExpired(now, retain({}));
 	expect(records.has("old")).toBe(true);
 	old.listeners.delete(listener);
 	records.release(old);
-	records.removeExpired(now, { retentionMs: 7 * day, maxExitedRecords: 500 });
+	records.removeExpired(now, retain({}));
 	expect(records.has("old")).toBe(false);
 	expect(existsSync(sessionFiles(home, "old").session)).toBe(false);
 	expect(records.has("recent")).toBe(true);
@@ -145,7 +153,7 @@ test("the retention count removes cold history and protects subscribed records",
 	const listener = () => {};
 	subscribed.listeners.add(listener);
 	records.retain(subscribed);
-	const options = { retentionMs: 7 * day, maxExitedRecords: 2 };
+	const options = retain({ maxExitedRecords: 2 });
 	records.removeExpired(now, options);
 	expect([...records.entries()].map(([id]) => id)).toEqual(["count-0", "count-1", "count-3"]);
 	expect(existsSync(sessionFiles(home, "count-2").session)).toBe(false);
@@ -153,4 +161,66 @@ test("the retention count removes cold history and protects subscribed records",
 	records.release(subscribed);
 	records.removeExpired(now, options);
 	expect([...records.entries()].map(([id]) => id)).toEqual(["count-0", "count-1"]);
+});
+
+test("keeps an idle conversation across restart and releases it after resume or explicit stop", () => {
+	const now = Date.now();
+	seed("idle", { stopReason: "idle", endedAt: new Date(now - 8 * day).toISOString() });
+	const records = restore();
+	const record = records.get("idle")!;
+	record.retainForResume = true;
+	records.save(record);
+	const restarted = restore();
+	restarted.removeExpired(now, retain({ retentionMs: day, maxExitedRecords: 0 }));
+	expect(restarted.has("idle")).toBe(true);
+	expect([...restarted.values()]).toHaveLength(0);
+	const stopped = restarted.get("idle")!;
+	expect(stopped.session.stopReason).toBe("idle");
+	stopped.retainForResume = false;
+	restarted.save(stopped);
+	restarted.removeExpired(now, retain({ retentionMs: day, maxExitedRecords: 0 }));
+	expect(restarted.has("idle")).toBe(false);
+});
+
+test("the newest idle conversations stay and the older ones leave", () => {
+	const now = Date.now();
+	for (let index = 0; index < 4; index++)
+		seed(`idle-${index}`, { stopReason: "idle", endedAt: new Date(now - (index + 1) * day).toISOString() });
+	const records = restore();
+	for (let index = 0; index < 4; index++) {
+		const record = records.get(`idle-${index}`)!;
+		record.retainForResume = true;
+		records.save(record);
+	}
+	const reopened = restore();
+	reopened.removeExpired(now, retain({ retentionMs: day, maxExitedRecords: 0, maxResumableRecords: 2 }));
+	expect([...reopened.entries()].map(([id]) => id).sort()).toEqual(["idle-0", "idle-1"]);
+	expect(existsSync(sessionFiles(home, "idle-2").session)).toBe(false);
+});
+
+test("the oldest exits leave when their files pass the byte budget", () => {
+	const now = Date.now();
+	for (const id of ["small", "large"]) seed(id, { endedAt: new Date(now - day).toISOString() });
+	writeFileSync(sessionFiles(home, "large").outputBytes, Buffer.alloc(4096));
+	const records = restore();
+	records.removeExpired(now, retain({ maxExitedBytes: 2048 }));
+	expect(records.has("large")).toBe(false);
+	expect(records.has("small")).toBe(true);
+});
+
+test("a finalized exit answers from its saved agent state after its event log is gone", () => {
+	seed("done", { status: "running", endedAt: null });
+	const records = restore();
+	const record = records.get("done")!;
+	record.observations.append(
+		{ kind: "session", sessionId: "provider-conversation", model: "opus" },
+		new Date().toISOString(),
+	);
+	record.session.status = "exited";
+	record.session.endedAt = new Date().toISOString();
+	records.save(record);
+	records.finalize(record);
+	records.release(record);
+	rmSync(sessionFiles(home, "done").eventsBytes, { force: true });
+	expect(records.get("done")!.observations.agent!.sessionId).toBe("provider-conversation");
 });

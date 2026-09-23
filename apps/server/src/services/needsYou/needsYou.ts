@@ -17,7 +17,7 @@ import { type Candidate, candidates } from "./candidates.ts";
 type Prepared<T> = { input: T; workingTicketIds: string[] };
 
 const workingTicketIds = async (ctx: IoCtx & PrepareCtx): Promise<string[]> => {
-	const runs = await agentRuns.prepareList(ctx, { assigned: true });
+	const runs = await agentRuns.prepareOpenRuns(ctx);
 	return runs.flatMap((run) =>
 		run.kind === "agent" && run.ticketId !== null && isAgentWorking(run) ? [run.ticketId] : [],
 	);

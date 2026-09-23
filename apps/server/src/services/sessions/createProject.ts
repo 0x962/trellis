@@ -9,8 +9,8 @@ import { reserve } from "../agentRuns/reserve.ts";
 import type { IoCtx } from "../support.ts";
 import { attachmentPrompt, type prepareFiles } from "./attachments.ts";
 import { launchSession } from "./launchSession";
-import { sessionColumns, sessionNames } from "./queries.ts";
-import { uniqueSessionName } from "./sessionName.ts";
+import { holdSession } from "./operation.ts";
+import { sessionColumns } from "./queries.ts";
 
 export async function createProjectSession(
 	ctx: IoCtx,
@@ -33,7 +33,7 @@ export async function createProjectSession(
 			[],
 			{
 				session: {
-					name: uniqueSessionName(name, new Set(await sessionNames(tx))),
+					name,
 					instruction: input.prompt,
 					fingerprint,
 				},
@@ -60,7 +60,7 @@ export async function createProjectSession(
 		return { ...reservation, session: session! };
 	});
 	if (reservation.replay) return { id: reservation.session.id };
-	launchSession(ctx, reservation.session.id, reservation, start);
+	launchSession(ctx, reservation.session.id, reservation, holdSession(ctx.home, reservation.run.id), start);
 	ctx.emit({ type: "sessions.changed", id: reservation.session.id });
 	ctx.emit({ type: "agent-runs.changed", id: reservation.run.id });
 	return { id: reservation.session.id };

@@ -9,7 +9,6 @@ const run = (id: string): AgentRun => ({
 	runtime: "native",
 	harness: null,
 	kind: "session",
-	instruction: "",
 	switchedTo: null,
 	projectId: null,
 	projectKey: "",
