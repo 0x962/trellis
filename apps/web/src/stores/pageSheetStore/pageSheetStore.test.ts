@@ -1,9 +1,9 @@
 import { beforeEach, expect, test } from "bun:test";
-import { browserParent, pageSheetActions, usePageSheetStore } from "./pageSheetStore";
+import { pageSheetActions, sheetParent, usePageSheetStore } from "./pageSheetStore";
 
 const state = () => usePageSheetStore.getState();
 
-const empty = { ticket: null, pr: null, session: null, browser: null, reviewTab: null };
+const empty = { ticket: null, pr: null, session: null, settings: null, browser: null, reviewTab: null };
 
 beforeEach(() => {
 	pageSheetActions.setRefreshBehindSheet(null);
@@ -124,6 +124,7 @@ test("the browser opens over the pull request and leaves the stack open", () => 
 		ticket: "TRL-42",
 		pr: "https://github.com/o/r/pull/7",
 		session: null,
+		settings: null,
 		browser: "https://github.com/o/r/pull/7",
 		reviewTab: null,
 	});
@@ -171,9 +172,48 @@ test("another sheet closes the browser", () => {
 	expect(state()).toEqual({ ...empty, ticket: "TRL-42" });
 });
 
+test("the settings open over the ticket and leave it open", () => {
+	pageSheetActions.openTicket("TRL-42");
+	pageSheetActions.openSettings("account");
+
+	expect(state()).toEqual({ ...empty, ticket: "TRL-42", settings: "account" });
+});
+
+test("closing the settings leaves the page behind it and the ticket open", () => {
+	let refreshes = 0;
+	pageSheetActions.setRefreshBehindSheet(() => refreshes++);
+	pageSheetActions.openTicket("TRL-42");
+	pageSheetActions.openSettings("account");
+	pageSheetActions.closeSettings();
+
+	expect(refreshes).toBe(1);
+	expect(state()).toEqual({ ...empty, ticket: "TRL-42" });
+});
+
+test("another section keeps the settings open", () => {
+	pageSheetActions.openSettings("account");
+	pageSheetActions.openSettings("notifications");
+
+	expect(state()).toEqual({ ...empty, settings: "notifications" });
+});
+
+test("a ticket closes the settings over it", () => {
+	pageSheetActions.openSettings("account");
+	pageSheetActions.openTicket("TRL-42");
+
+	expect(state()).toEqual({ ...empty, ticket: "TRL-42" });
+});
+
+test("the settings close the browser under them", () => {
+	pageSheetActions.openBrowser("https://trellis.dev");
+	pageSheetActions.openSettings("account");
+
+	expect(state()).toEqual({ ...empty, settings: "account" });
+});
+
 test("the browser stands over the topmost sheet", () => {
-	expect(browserParent(empty)).toBe("page");
-	expect(browserParent({ ...empty, ticket: "TRL-42" })).toBe("ticket");
-	expect(browserParent({ ...empty, ticket: "TRL-42", pr: "https://github.com/o/r/pull/7" })).toBe("pullRequest");
-	expect(browserParent({ ...empty, ticket: "TRL-42", session: "01M32TW0000000000000WRK001" })).toBe("session");
+	expect(sheetParent(empty)).toBe("page");
+	expect(sheetParent({ ...empty, ticket: "TRL-42" })).toBe("ticket");
+	expect(sheetParent({ ...empty, ticket: "TRL-42", pr: "https://github.com/o/r/pull/7" })).toBe("pullRequest");
+	expect(sheetParent({ ...empty, ticket: "TRL-42", session: "01M32TW0000000000000WRK001" })).toBe("session");
 });

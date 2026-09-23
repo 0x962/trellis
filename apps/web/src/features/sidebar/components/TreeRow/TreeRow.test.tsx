@@ -20,10 +20,16 @@ test("the project row toggles collapse without a link or caret slot", () => {
 
 	expect(html).toContain('<button type="button" aria-expanded="false"');
 	expect(html).toContain(">Trellis<");
-	expect(html).toContain(">12<");
 	expect(html).not.toContain("<a ");
 	expect(html).not.toContain("Collapse Trellis");
 	expect(html).not.toContain("Expand Trellis");
+});
+
+test("the project row keeps an empty trailing slot and no ticket count", () => {
+	const html = renderToStaticMarkup(<TreeRow project={project} />);
+
+	expect(html).not.toContain(">12<");
+	expect(html).toContain('<span data-slot="trailing" class="sidebar-trailing" aria-hidden="true">');
 });
 
 test("the row draws the mark of the project in the color of the project", () => {

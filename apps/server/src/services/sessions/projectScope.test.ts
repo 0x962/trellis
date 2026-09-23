@@ -26,6 +26,8 @@ const moveSessionId = ulid();
 const detachSessionId = ulid();
 const nameMoveSessionId = ulid();
 const runMoveSessionId = ulid();
+const duplicateOneRunId = ulid();
+const duplicateTwoRunId = ulid();
 const ambiguityRunId = ulid();
 const ambiguityOtherRunId = ulid();
 const rootSessionRowId = ulid();
@@ -34,6 +36,8 @@ const moveSessionRowId = ulid();
 const detachSessionRowId = ulid();
 const nameMoveSessionRowId = ulid();
 const runMoveSessionRowId = ulid();
+const duplicateOneRowId = ulid();
+const duplicateTwoRowId = ulid();
 const ambiguitySessionRowId = ulid();
 const ambiguitySessionRef = ambiguityRunId;
 const ticketSessionRowId = ulid();
@@ -64,6 +68,8 @@ beforeAll(async () => {
 		(${detachSessionId}, 'detach-session', 'session', 'Detach', ${childId}, 'CHD', NULL, NULL, ${at}, ${at}),
 		(${nameMoveSessionId}, 'name-move-session', 'session', 'Name move', ${rootId}, 'SCP', NULL, NULL, ${at}, ${at}),
 		(${runMoveSessionId}, 'run-move-session', 'session', 'Run move', ${rootId}, 'SCP', NULL, NULL, ${at}, ${at}),
+		(${duplicateOneRunId}, 'duplicate-one', 'session', 'Duplicate one', ${rootId}, 'SCP', NULL, NULL, ${at}, ${at}),
+		(${duplicateTwoRunId}, 'duplicate-two', 'session', 'Duplicate two', ${rootId}, 'SCP', NULL, NULL, ${at}, ${at}),
 		(${ambiguityRunId}, 'ambiguous-run', 'session', 'Ambiguous run', ${rootId}, 'SCP', NULL, NULL, ${at}, ${at}),
 		(${ambiguityOtherRunId}, 'ambiguous-row', 'session', 'Ambiguous row', ${rootId}, 'SCP', NULL, NULL, ${at}, ${at}),
 		(${rootTicketRunId}, 'root-ticket', 'agent', 'Root ticket', ${childId}, 'CHD', ${rootTicketId}, 'SCP-1', ${at}, ${at}),
@@ -75,6 +81,8 @@ beforeAll(async () => {
 		(${detachSessionRowId}, 'detach-session', '/tmp/detach-session', '{"preset":"claude"}'::jsonb, ${detachSessionId}, ${at}, ${at}),
 		(${nameMoveSessionRowId}, 'name-move-session', '/tmp/name-move-session', '{"preset":"claude"}'::jsonb, ${nameMoveSessionId}, ${at}, ${at}),
 		(${runMoveSessionRowId}, 'run-move-session', '/tmp/run-move-session', '{"preset":"claude"}'::jsonb, ${runMoveSessionId}, ${at}, ${at}),
+		(${duplicateOneRowId}, 'duplicate-one', '/tmp/duplicate-one', '{"preset":"claude"}'::jsonb, ${duplicateOneRunId}, ${at}, ${at}),
+		(${duplicateTwoRowId}, 'duplicate-two', '/tmp/duplicate-two', '{"preset":"claude"}'::jsonb, ${duplicateTwoRunId}, ${at}, ${at}),
 		(${ambiguitySessionRowId}, 'ambiguous-run', '/tmp/ambiguous-run', '{"preset":"claude"}'::jsonb, ${ambiguityRunId}, ${at}, ${at}),
 		(${ambiguitySessionRef}, 'ambiguous-row', '/tmp/ambiguous-row', '{"preset":"claude"}'::jsonb, ${ambiguityOtherRunId}, ${at}, ${at}),
 		(${ticketSessionRowId}, 'root-ticket', '/tmp/root-ticket', '{"preset":"claude"}'::jsonb, ${rootTicketRunId}, ${at}, ${at})`);
@@ -106,6 +114,8 @@ test("a project lists its sessions and the runs of its current tickets", async (
 			runMoveSessionId,
 			ambiguityRunId,
 			ambiguityOtherRunId,
+			duplicateOneRunId,
+			duplicateTwoRunId,
 			rootTicketRunId,
 		].sort(),
 	);
@@ -141,30 +151,40 @@ test("a bare session moves by agent run id", async () => {
 	expect(moved.projectKey).toBe("CHD");
 });
 
-test("a session rename updates the session and its agent run", async () => {
+test("a session rename stores the typed text in the session and its agent run", async () => {
 	const renamed = await run((tx) => rename(ctx, tx, { id: rootSessionRowId, name: "  Display Name  " }));
-	expect(renamed.name).toBe("display-name");
-	expect((await run((tx) => getSession(tx, rootSessionRowId))).name).toBe("display-name");
-	expect((await run((tx) => getRun(tx, rootSessionId))).name).toBe("display-name");
+	expect(renamed.name).toBe("Display Name");
+	expect((await run((tx) => getSession(tx, rootSessionRowId))).name).toBe("Display Name");
+	expect((await run((tx) => getRun(tx, rootSessionId))).name).toBe("Display Name");
 });
 
 test("a session renames by agent run id", async () => {
 	const renamed = await run((tx) => rename(ctx, tx, { id: runMoveSessionId, name: "run renamed" }));
 	expect(renamed.id).toBe(runMoveSessionRowId);
-	expect(renamed.name).toBe("run-renamed");
+	expect(renamed.name).toBe("run renamed");
 });
 
-test("a session rename rejects a duplicate name", async () => {
-	await expect(run((tx) => rename(ctx, tx, { id: childSessionRowId, name: "ambiguous run" }))).rejects.toMatchObject({
-		code: "DUPLICATE",
-		data: { field: "name" },
-	});
+test("two sessions hold one name", async () => {
+	await run((tx) => rename(ctx, tx, { id: duplicateOneRowId, name: "principal" }));
+	await run((tx) => rename(ctx, tx, { id: duplicateTwoRowId, name: "principal" }));
+	expect((await run((tx) => getSession(tx, duplicateOneRowId))).name).toBe("principal");
+	expect((await run((tx) => getSession(tx, duplicateTwoRowId))).name).toBe("principal");
 });
 
-test("a session rename needs a letter or digit", async () => {
-	await expect(run((tx) => rename(ctx, tx, { id: childSessionRowId, name: " --- " }))).rejects.toThrow(
-		"Use at least one letter or digit in the name.",
+test("a name that fits two sessions lists the matching ids", async () => {
+	const matches = [duplicateOneRowId, duplicateTwoRowId].sort().join(", ");
+	await expect(run((tx) => rename(ctx, tx, { id: "principal", name: "again" }))).rejects.toThrow(
+		`More than one session matches principal. Matching ids: ${matches}.`,
 	);
+});
+
+test("a session rename keeps the punctuation a person typed", async () => {
+	const renamed = await run((tx) => rename(ctx, tx, { id: childSessionRowId, name: " --- " }));
+	expect(renamed.name).toBe("---");
+});
+
+test("a session rename refuses an empty name", async () => {
+	await expect(run((tx) => rename(ctx, tx, { id: childSessionRowId, name: "   " }))).rejects.toThrow("Enter a name.");
 });
 
 test("an ambiguous session ref lists the matching ids", async () => {

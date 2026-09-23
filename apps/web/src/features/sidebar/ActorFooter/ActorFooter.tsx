@@ -1,6 +1,5 @@
 import { GearSix } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { ActorHeaderSchema } from "@trellis/api";
 import { Avatar, Button, IconButton, Input, Popover, Tooltip, toast } from "@trellis/ui";
 import { type FormEvent, useId, useState } from "react";
@@ -8,10 +7,14 @@ import { useActor } from "../../../lib/actor";
 import { useApp } from "../../../lib/appContext";
 import { ghCopy } from "../../../lib/ghCopy";
 import { saveActorName } from "../../../lib/identity";
+import { pageSheetActions } from "../../../stores/pageSheetStore";
+import { opensSheet } from "../../shell/TicketLink/opensSheet";
 
 // The bottom of the sidebar: who you are and the settings. The actor chip
 // opens a rename popover; Enter stores the new name on the server and in
-// this browser.
+// this browser. The gear opens the settings sheet over the page the person
+// is on, and its href is the settings URL, so a click with a modifier key
+// still opens the settings in a tab of its own.
 //
 // PR states and checks need gh. While gh does not answer as a signed-in
 // user, the Settings link carries a warning dot, and its description says
@@ -81,7 +84,16 @@ export function ActorFooter({ collapsed = false }: { collapsed?: boolean }) {
 							icon={<GearSix data-icon="gear-six" />}
 							nativeButton={false}
 							aria-describedby={ghWarning ? warningId : undefined}
-							render={<Link to="/settings" />}
+							render={
+								<a
+									href="/settings"
+									onClick={(event) => {
+										if (!opensSheet(event)) return;
+										event.preventDefault();
+										pageSheetActions.openSettings("account");
+									}}
+								/>
+							}
 						/>
 					</Tooltip>
 					{ghWarning && (

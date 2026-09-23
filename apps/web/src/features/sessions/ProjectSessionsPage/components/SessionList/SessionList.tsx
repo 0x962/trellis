@@ -56,6 +56,7 @@ export function SessionList({
 				</div>
 				<Tooltip content={history ? "Hide history" : `Show history (${groups.historyCount})`}>
 					<IconButton
+						variant="default"
 						label={history ? "Hide history" : "Show history"}
 						icon={<ClockCounterClockwise />}
 						pressed={history}
@@ -64,6 +65,7 @@ export function SessionList({
 				</Tooltip>
 				<Tooltip content="New session">
 					<IconButton
+						variant="default"
 						label="New session"
 						icon={<Plus />}
 						disabled={project.archivedAt !== null}
@@ -80,9 +82,7 @@ export function SessionList({
 				{failed && (
 					<div role="status" className="flex items-center justify-between gap-3 px-4 py-2 text-sm text-fg-muted">
 						<span>Could not load sessions</span>
-						<Button variant="quiet" onClick={onRetry}>
-							Retry
-						</Button>
+						<Button onClick={onRetry}>Retry</Button>
 					</div>
 				)}
 				{error && !failed && (

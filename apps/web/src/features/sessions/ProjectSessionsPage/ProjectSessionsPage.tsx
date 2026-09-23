@@ -133,7 +133,7 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 						variant="page"
 						title="Could not load sessions"
 						action={
-							<Button size="md" onClick={retrySessions}>
+							<Button variant="primary" size="md" onClick={retrySessions}>
 								Retry
 							</Button>
 						}

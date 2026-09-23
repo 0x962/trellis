@@ -22,10 +22,9 @@ export const sessions = pgTable(
 		updatedAt: at("updated_at").notNull(),
 	},
 	(t) => [
-		// The name is the display name: lowercase letters, digits, and
-		// dashes, 1 to 40 characters, with no dash at either end.
-		check("sessions_name_check", sql`${t.name} ~ '^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$'`),
-		unique("sessions_name_unique").on(t.name),
+		// The name is what a person typed, with the spaces around it
+		// removed, 1 to 60 characters. Two sessions may hold one name.
+		check("sessions_name_check", sql`${t.name} = btrim(${t.name}) AND char_length(${t.name}) BETWEEN 1 AND 60`),
 		unique("sessions_run_id_unique").on(t.runId),
 	],
 );

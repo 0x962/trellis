@@ -1,7 +1,7 @@
 import { DotsThree } from "@phosphor-icons/react";
 import type { Attachment } from "@trellis/api";
-import { ConfirmDialog, IconButton, Input, Menu, writeClipboard } from "@trellis/ui";
-import { type KeyboardEvent, useEffect, useRef, useState } from "react";
+import { ConfirmDialog, IconButton, InlineEdit, Menu, writeClipboard } from "@trellis/ui";
+import { useState } from "react";
 import { attachmentMarkdown } from "../../../utils/attachmentMarkdown";
 
 export type AttachmentActionsProps = {
@@ -12,58 +12,23 @@ export type AttachmentActionsProps = {
 };
 
 export function AttachmentActions({ attachment, onDelete, onRename, triggerClassName }: AttachmentActionsProps) {
-	const trigger = useRef<HTMLButtonElement>(null);
-	const field = useRef<HTMLInputElement>(null);
 	const [renaming, setRenaming] = useState(false);
 	const [confirming, setConfirming] = useState(false);
-	const [name, setName] = useState(attachment.filename);
-
-	useEffect(() => {
-		if (!renaming) return;
-		field.current!.focus();
-		field.current!.select();
-	}, [renaming]);
-
-	const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-		if (event.key === "Escape") {
-			event.preventDefault();
-			event.stopPropagation();
-			setRenaming(false);
-			trigger.current!.focus();
-			return;
-		}
-		if (event.key !== "Enter") return;
-		event.preventDefault();
-		void (async () => {
-			await onRename(name);
-			// A rename deletes this attachment, so its row can unmount before
-			// `onRename` resolves. The trigger is then gone and takes no focus.
-			setRenaming(false);
-			trigger.current?.focus();
-		})();
-	};
 
 	return (
 		<div className="flex min-w-0 items-center gap-1">
-			{renaming && (
-				<Input
-					ref={field}
-					label={`Rename ${attachment.filename}`}
-					hideLabel
-					value={name}
-					onChange={(event) => setName(event.target.value)}
-					onKeyDown={onKeyDown}
-				/>
-			)}
+			<InlineEdit
+				label={`Rename ${attachment.filename}`}
+				value={attachment.filename}
+				editing={renaming}
+				onEditingChange={setRenaming}
+				onCommit={onRename}
+				errorTitle={`${attachment.filename} kept its name.`}
+			/>
 			<Menu
 				label={`Actions for ${attachment.filename}`}
 				trigger={
-					<IconButton
-						ref={trigger}
-						label={`Actions for ${attachment.filename}`}
-						icon={<DotsThree />}
-						className={triggerClassName}
-					/>
+					<IconButton label={`Actions for ${attachment.filename}`} icon={<DotsThree />} className={triggerClassName} />
 				}
 				items={[
 					{
