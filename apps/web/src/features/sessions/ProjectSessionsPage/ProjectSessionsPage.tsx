@@ -23,13 +23,21 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	const conversationHeading = useRef<HTMLHeadingElement>(null);
 	const returnToConversation = useRef(false);
 	const [listOpen, setListOpen] = useState(false);
+	const [history, setHistory] = useState(false);
 	const phone = useMediaQuery("(max-width: 767px)");
 	const hash = useRouterState({ select: (state) => state.location.hash });
-	const runsOptions = orpc.agentRuns.list.queryOptions({ input: { project: project.id } });
+	// The list asks for what it draws. Closed runs sit behind the history
+	// button, and the page asks for a month of them only while that button is
+	// pressed. The two second timer runs on the short list. The history list
+	// holds a month of closed runs, which do not change, and the event stream
+	// still refreshes it when a run in it changes.
+	const runsOptions = orpc.agentRuns.list.queryOptions({
+		input: history ? { project: project.id, windowHours: 24 * 30, limit: 1000 } : { project: project.id },
+	});
 	const sessionsOptions = orpc.sessions.list.queryOptions({ input: {} });
 	const runs = useQuery({
 		...runsOptions,
-		refetchInterval: 2000,
+		refetchInterval: history ? false : 2000,
 	});
 	const sessions = useQuery(sessionsOptions);
 	const sessionsFailed =
@@ -66,6 +74,8 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 				setListOpen(false);
 				if (!phone) conversationHeading.current?.focus();
 			}}
+			history={history}
+			onHistoryChange={setHistory}
 		/>
 	);
 	return (

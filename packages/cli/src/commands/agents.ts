@@ -1,4 +1,4 @@
-import { type AgentRun, HarnessSchema } from "@trellis/api";
+import { AGENT_RUN_LIST_LIMIT, AGENT_RUN_LIST_WINDOW_HOURS, type AgentRun, HarnessSchema } from "@trellis/api";
 import { shortZonedDateTime } from "@trellis/api/time";
 import { defineCommand } from "citty";
 import { clientOf } from "../client.ts";
@@ -40,11 +40,23 @@ const list = defineCommand({
 	args: {
 		ticket: { type: "string", description: "Keep the agents of this ticket" },
 		project: { type: "string", description: "Keep the agents of this project" },
+		"window-hours": {
+			type: "string",
+			description: `How many hours of closed agents to keep, on top of the open ones (default ${AGENT_RUN_LIST_WINDOW_HOURS})`,
+		},
+		limit: { type: "string", description: `How many agents to print at most (default ${AGENT_RUN_LIST_LIMIT})` },
 	},
 	async run(context) {
 		const ctx = contextOf(context);
 		const { args } = context;
-		const rows = await clientOf(ctx).agentRuns.list(compact({ ticket: args.ticket, project: args.project }));
+		const rows = await clientOf(ctx).agentRuns.list(
+			compact({
+				ticket: args.ticket,
+				project: args.project,
+				windowHours: args["window-hours"] === undefined ? undefined : Number(args["window-hours"]),
+				limit: args.limit === undefined ? undefined : Number(args.limit),
+			}),
+		);
 		printList(ctx.out, ctx.format, rows, agentList);
 	},
 });

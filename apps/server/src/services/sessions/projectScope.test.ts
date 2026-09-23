@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
+import { AgentRunListInputSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { ServiceCtx } from "../../context.ts";
@@ -10,6 +11,8 @@ import { getRun } from "../agentRuns/queries.ts";
 import { move } from "./move.ts";
 import { getSession } from "./queries.ts";
 import { rename } from "./rename.ts";
+
+const listInput = (input: { project: string }) => AgentRunListInputSchema.parse(input);
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 let ctx: ServiceCtx;
@@ -101,8 +104,8 @@ beforeAll(async () => {
 afterAll(async () => db.$client.close());
 
 test("a project lists its sessions and the runs of its current tickets", async () => {
-	const rootRuns = await run((tx) => list(ctx, tx, { project: rootId }));
-	const childRuns = await run((tx) => list(ctx, tx, { project: childId }));
+	const rootRuns = await run((tx) => list(ctx, tx, listInput({ project: rootId })));
+	const childRuns = await run((tx) => list(ctx, tx, listInput({ project: childId })));
 	expect(rootRuns.map(({ id }) => id).sort()).toEqual(
 		[
 			rootSessionId,

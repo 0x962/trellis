@@ -6,7 +6,7 @@ import { rows } from "../../db/queries/support.ts";
 import { invalidInput } from "../../errors.ts";
 import { upsert } from "../actors.ts";
 import { startNative } from "../agentRuns/nativeStart.ts";
-import { columns, getRun, type StoredRun } from "../agentRuns/queries.ts";
+import { columns, getRun, type LaunchRun } from "../agentRuns/queries.ts";
 import { reserveAttempt } from "../assignments/attempts.ts";
 import { selectAccount } from "../harnessAccounts/selectAccount.ts";
 import { projectLaunchConfig } from "../projectLaunchConfig/projectLaunchConfig.ts";
@@ -68,7 +68,7 @@ export const prepareStart = async (
 				useDefault: !resume,
 			});
 			const attempt = await reserveAttempt(ctx.core, tx, { runId: run.id });
-			const [updated] = await rows<StoredRun>(
+			const [updated] = await rows<LaunchRun>(
 				tx,
 				sql`UPDATE agent_runs SET closed_at = NULL, error = NULL, session_lost = false, terminal_id = ${attempt.id}, account_id = ${selected.accountId}, harness = ${JSON.stringify(selected.config.harness)}::jsonb,
 			session_id = ${resume ? run.sessionId : session.harness.preset === "custom" ? randomUUID() : null}, updated_at = ${ctx.now()}

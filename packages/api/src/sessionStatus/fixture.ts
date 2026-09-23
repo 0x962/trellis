@@ -17,7 +17,6 @@ export const session = (): SessionDetail => ({
 		runtime: "native",
 		kind: "session",
 		harness: HarnessSchema.parse({ preset: "codex" }),
-		instruction: "",
 		projectId: null,
 		projectKey: "",
 		ticketId: null,
