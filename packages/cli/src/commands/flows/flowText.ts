@@ -1,10 +1,9 @@
 import type { FlowExecutionRecord, FlowSummary } from "@trellis/api";
 
-// A flow run that has reached its end. `succeeded` is the only end state
-// that answers `trellis ready`.
-const endStates = new Set(["succeeded", "failed", "canceled"]);
-
-export const flowRunEnded = (run: FlowExecutionRecord): boolean => endStates.has(run.state.status);
+// The run advances no further on its own. It has ended, or it waits for a
+// person to answer one of its steps. `trellis flows run` stops watching at
+// that point, because no further wait changes the answer.
+export const flowRunStalled = (run: FlowExecutionRecord): boolean => run.state.status !== "running";
 
 // The command that starts one flow on one pull request.
 export const flowRunCommand = (slug: string, number: number): string => `trellis flows run ${number} --flow ${slug}`;

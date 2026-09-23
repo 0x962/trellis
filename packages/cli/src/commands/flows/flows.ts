@@ -6,7 +6,7 @@ import { type CliContext, contextOf, wantsJson } from "../../context.ts";
 import { notFound, usageError } from "../../errors.ts";
 import { cell, json, printList, timeCell } from "../../output.ts";
 import { currentHead, resolvePullRequest } from "../pullRequestRef.ts";
-import { flowRunEnded, flowRunText } from "./flowText.ts";
+import { flowRunStalled, flowRunText } from "./flowText.ts";
 
 const ref = { type: "positional", required: true, description: "Pull request number, URL, or owner/repo#123" } as const;
 
@@ -50,7 +50,8 @@ const list = defineCommand({
 	},
 });
 
-// Reads the run every `pollMs` until it ends or `deadline` passes.
+// Reads the run every `pollMs` until the run advances no further on its own,
+// or `deadline` passes.
 const pollMs = 5000;
 const watch = async (
 	ctx: CliContext,
@@ -59,7 +60,7 @@ const watch = async (
 	deadline: number,
 ): Promise<FlowExecutionRecord> => {
 	let latest = run;
-	while (!flowRunEnded(latest) && ctx.deps.now().getTime() < deadline) {
+	while (!flowRunStalled(latest) && ctx.deps.now().getTime() < deadline) {
 		await ctx.deps.sleep(pollMs);
 		latest = await client.flowExecutions.get({ id: latest.id });
 	}
