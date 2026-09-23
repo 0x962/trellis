@@ -25,7 +25,6 @@ export default defineCommand({
 	meta: { name: "list", description: "List tickets by the shared filter grammar" },
 	args: {
 		project: { type: "string", description: "Project ref" },
-		subprojects: { type: "string", valueHint: "true|false", description: "false narrows to that project" },
 		status: { type: "string", description: "Status refs, comma-separated" },
 		category: { type: "string", description: "Categories, comma-separated" },
 		reviewer: { type: "enum", options: ["human", "agent"], description: "Reviewer of a review status" },
@@ -39,7 +38,7 @@ export default defineCommand({
 		"label-not": { type: "string", description: "Label refs, comma-separated; a ticket that holds one drops out" },
 		pr: {
 			type: "enum",
-			options: ["any", "none", "open", "draft", "queued", "merged", "closed"],
+			options: ["any", "none", "open", "not-ready", "queued", "merged", "closed"],
 			description: "PR state",
 		},
 		ci: { type: "string", description: "CI states, comma-separated" },
@@ -67,7 +66,6 @@ export default defineCommand({
 		const want = args.all === true ? Number.POSITIVE_INFINITY : Number(args.limit);
 		const query: ListQueryInput = compact({
 			project: args.project,
-			subprojects: args.subprojects === undefined ? undefined : args.subprojects !== "false",
 			status: splitList(args.status),
 			category: splitList(args.category) as StatusCategory[] | undefined,
 			reviewer: args.reviewer,

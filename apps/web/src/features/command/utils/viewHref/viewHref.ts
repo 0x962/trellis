@@ -1,4 +1,4 @@
-import { isEpicPathname } from "../../../../lib/projectPath";
+import { isEpicPathname } from "../../../../lib/projectUrl";
 import { epicQueryString, keepEpicPageChoices } from "../../../epics/epicSearch";
 import { parseSearch, serializeSearch, stripDefaults, viewOf } from "../../../filters/grammar";
 

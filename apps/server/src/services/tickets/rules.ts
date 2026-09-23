@@ -1,4 +1,4 @@
-import type { Status, StatusCategory } from "@trellis/api";
+import type { StatusCategory } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { requireActor, type ServiceCtx } from "../../context.ts";
 import { ticketGet } from "../../db/queries/ticketGet.ts";
@@ -28,15 +28,4 @@ export const stampColumns = (category: StatusCategory, now: Date) => {
 	return sql`started_at = ${started}, completed_at = ${completed}`;
 };
 
-// The status a ticket takes in another status set: the status of the same
-// name and category, else the lowest-position status of the same category,
-// else the set's default. `target` is in position order.
-export const remapStatus = (target: Status[], current: Status): Status => {
-	const byName = target.find((status) => status.name === current.name && status.category === current.category);
-	if (byName !== undefined) return byName;
-	const byCategory = target.find((status) => status.category === current.category);
-	if (byCategory !== undefined) return byCategory;
-	return target.find((status) => status.isDefault) as Status;
-};
-
-export const outsideRoot = (row: TicketRow, rootId: string) => row.rootId !== rootId;
+export const outsideProject = (row: TicketRow, projectId: string) => row.projectId !== projectId;

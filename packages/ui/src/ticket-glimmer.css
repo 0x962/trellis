@@ -38,6 +38,7 @@
 	inherits: false;
 	initial-value: 0%;
 }
+/* The glimmer is the coloured layer a ticket card draws while an agent works on it. */
 .ticket-glimmer {
 	--glimmer-vapor-1: 0%;
 	--glimmer-vapor-2: 0%;
@@ -50,7 +51,10 @@
 	position: absolute;
 	inset: 0;
 	overflow: hidden;
-	border-radius: inherit;
+	/* The glimmer covers the area inside the card border, so its corner is
+	   tighter than the card's own corner. `ticketCardFrame` works the value out
+	   from the radius and the border width of the card, and sets it here. */
+	border-radius: var(--glimmer-radius);
 	filter: blur(12px) saturate(0.72);
 	opacity: 0;
 	pointer-events: none;

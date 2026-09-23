@@ -10,14 +10,13 @@ import {
 } from "../schemas/label.ts";
 import { base } from "./base.ts";
 
-// The root project of a tree owns the labels of the tree. `{project}` is any
-// project of that tree. `{label}` is the label ULID.
+// A project owns its labels. `{label}` is the label ULID.
 export const labels = {
 	list: base
 		.route({
 			method: "GET",
 			path: "/projects/{project}/labels",
-			summary: "List the labels and the label groups of a project tree",
+			summary: "List the labels and the label groups of a project",
 		})
 		.input(LabelListInputSchema)
 		.output(LabelListOutputSchema),

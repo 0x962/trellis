@@ -51,9 +51,16 @@
 .review-diff-hunk-header,
 .review-diff-line,
 .review-diff-annotation,
+.review-diff-notice,
 .review-diff-split-row {
 	margin-inline: calc(var(--spacing) * 4);
 	border-inline: var(--border-width-hairline) solid var(--border);
+}
+.review-diff-notice {
+	padding: calc(var(--spacing) * 2) calc(var(--spacing) * 4);
+	border-block-end: var(--border-width-hairline) solid var(--border);
+	color: var(--fg-muted);
+	font-size: var(--text-sm);
 }
 .review-diff-hunk-header {
 	display: grid;

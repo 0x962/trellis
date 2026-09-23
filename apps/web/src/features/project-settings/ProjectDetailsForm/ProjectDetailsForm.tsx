@@ -1,10 +1,11 @@
 import { Lock } from "@phosphor-icons/react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import type { Project } from "@trellis/api";
-import { Button, Input, Textarea } from "@trellis/ui";
+import { Button, Input, type ProjectColor, ProjectColorField, Textarea } from "@trellis/ui";
 import { type FormEvent, useId, useState } from "react";
 import { useApp } from "../../../lib/appContext";
-import { projectSlashPath } from "../../../lib/projectPath";
+import { takenColors } from "../../../lib/projectColors";
 
 export type ProjectDetailsFormProps = {
 	project: Project;
@@ -16,61 +17,52 @@ const keyLockedHint = (key: string) =>
 	`Ticket IDs start with ${key}. The key cannot change after the project has a ticket.`;
 
 export function ProjectDetailsForm({ project }: ProjectDetailsFormProps) {
-	const { client, queryClient } = useApp();
+	const { client, orpc, queryClient } = useApp();
 	const navigate = useNavigate();
 	const noticeId = useId();
 	const headingId = useId();
 	const [name, setName] = useState(project.name);
-	const [slug, setSlug] = useState(project.slug);
+	const [key, setKey] = useState(project.key);
 	const [description, setDescription] = useState(project.description);
+	const [color, setColor] = useState<ProjectColor | null>(project.color);
 	const [message, setMessage] = useState<string | null>(null);
+	const projects = useQuery(orpc.projects.list.queryOptions({ input: {} })).data ?? [];
+	const locked = project.ticketCounter > 0;
 
 	const save = async (event: FormEvent) => {
 		event.preventDefault();
 		try {
 			const stored = await client.projects.update({
-				project: project.path,
+				project: project.key,
 				name: name.trim(),
-				...(project.parentId === null ? {} : { slug }),
+				...(locked ? {} : { key: key.trim().toUpperCase() }),
 				description,
+				color,
 			});
 			setMessage("Project saved.");
 			await queryClient.invalidateQueries();
-			if (stored.path !== project.path) {
-				await navigate({
-					to: "/p/$",
-					params: { _splat: `${projectSlashPath(stored.path)}/settings` },
-					replace: true,
-				});
+			if (stored.key !== project.key) {
+				await navigate({ to: "/p/$", params: { _splat: `${stored.key}/settings` }, replace: true });
 			}
 		} catch (error) {
 			setMessage((error as Error).message);
 		}
 	};
 
-	const locked = project.ticketCounter > 0;
 	return (
 		<form onSubmit={(event) => void save(event)} aria-labelledby={headingId} className="project-settings-group">
 			<h3 id={headingId} className="project-settings-group-title">
 				Project details
 			</h3>
-			<div className="grid gap-4 sm:grid-cols-2">
-				<Input label="Project name" value={name} onChange={(event) => setName(event.target.value)} />
-				<Input
-					label="Slug"
-					value={slug}
-					readOnly={project.parentId === null}
-					disabled={project.parentId === null}
-					onChange={(event) => setSlug(event.target.value)}
-				/>
-			</div>
+			<Input label="Project name" value={name} onChange={(event) => setName(event.target.value)} />
 			<Input
 				label="Key"
-				value={project.key}
-				readOnly
-				disabled
+				value={key}
+				readOnly={locked}
+				disabled={locked}
 				aria-describedby={locked ? noticeId : undefined}
 				className="max-w-28 uppercase"
+				onChange={(event) => setKey(event.target.value)}
 			/>
 			{locked && (
 				<p id={noticeId} className="flex items-center gap-1.5 text-sm text-fg-muted">
@@ -78,6 +70,7 @@ export function ProjectDetailsForm({ project }: ProjectDetailsFormProps) {
 					{keyLockedHint(project.key)}
 				</p>
 			)}
+			<ProjectColorField value={color} taken={takenColors(projects, project.id)} onValueChange={setColor} />
 			<Textarea
 				label="Description"
 				rows={3}

@@ -49,16 +49,6 @@ export const prStateRank = (column: SQL) => sql`array_position(${literalArray(PR
 export const reviewStateRank = (column: SQL) =>
 	sql`array_position(${literalArray(REVIEW_STATE_WORST_FIRST)}, ${column})`;
 
-// The dotted path of every project (`CDE.web.auth`) and its depth. The tree
-// has no maximum depth. The schema refuses parent_id = id and nothing else,
-// so the CYCLE clause ends the walk when a planted cycle repeats a project.
-export const pathsCte = sql`paths AS (
-	SELECT id, key AS path, 0 AS depth FROM projects WHERE parent_id IS NULL
-	UNION ALL
-	SELECT p.id, paths.path || '.' || p.slug, paths.depth + 1
-	FROM projects p JOIN paths ON p.parent_id = paths.id
-) CYCLE id SET is_cycle USING cycle_path`;
-
 export const rows = async <T>(tx: Tx, query: SQL) => {
 	const result = await tx.execute(query);
 	return result.rows as T[];

@@ -17,7 +17,7 @@ const run: StoredRun = {
 	kind: "session",
 	instruction: "",
 	projectId: null,
-	projectPath: "",
+	projectKey: "",
 	ticketId: null,
 	ticketIdentifier: null,
 	ticketTitle: null,
@@ -81,6 +81,7 @@ test("projectRun forwards the last message and the last tool as its name, its ta
 	expect(projected.observation?.lastTool).toEqual({
 		name: "Read",
 		target: "apps/web/src/app.css",
+		targetKind: "code",
 		status: "completed",
 		startedAt: started,
 		updatedAt: updated,

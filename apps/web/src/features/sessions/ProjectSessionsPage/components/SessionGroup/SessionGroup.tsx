@@ -22,7 +22,7 @@ const dateFormat = new Intl.DateTimeFormat(undefined, {
 export function SessionGroup({
 	group,
 	label,
-	projectPath,
+	projectKey,
 	runs,
 	sessionsByRunId,
 	selectedId,
@@ -31,7 +31,7 @@ export function SessionGroup({
 }: {
 	group: string;
 	label: string;
-	projectPath: string;
+	projectKey: string;
 	runs: AgentRun[];
 	sessionsByRunId: Map<string, Session>;
 	selectedId?: string;
@@ -39,7 +39,7 @@ export function SessionGroup({
 	searching?: boolean;
 }) {
 	const contentId = useId();
-	const routeKey = `/sessions/project/${projectPath}`;
+	const routeKey = `/sessions/project/${projectKey}`;
 	const collapsed = useUiStore((state) => state.collapsedGroups[routeKey]?.includes(group) ?? false);
 	const phone = useMediaQuery("(max-width: 767px)");
 	const [limit, setLimit] = useState(30);

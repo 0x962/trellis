@@ -107,3 +107,36 @@ describe("mermaid ER diagrams", () => {
 		expect(hasMermaidErDiagram(["```mermaid\nflowchart LR\n  a --> b\n```", "erDiagram"])).toBe(false);
 	});
 });
+
+describe("per-path reasons", () => {
+	test("names every rule one path matches, strongest first", () => {
+		const paths = [file("backend/canary/api/private/auth/tokens.py")];
+
+		expect(prPaths("canary", paths).reasons["backend/canary/api/private/auth/tokens.py"]).toEqual([
+			"secret",
+			"auth",
+			"publicApi",
+		]);
+	});
+
+	test("gives a path that matches no rule an empty list", () => {
+		expect(prPaths("trellis", [file("apps/web/src/lib/theme.ts")]).reasons["apps/web/src/lib/theme.ts"]).toEqual([]);
+	});
+
+	test("names a deleted test", () => {
+		const paths = changedFilePaths([
+			{ path: "packages/api/src/time.test.ts", change: "deleted", additions: 0, deletions: 4 },
+		]);
+
+		expect(prPaths("trellis", paths).reasons["packages/api/src/time.test.ts"]).toEqual(["deletedTest"]);
+	});
+
+	test("gives a reason list to every path it was given", () => {
+		const paths = [file("bun.lock"), file("apps/server/drizzle/0091_briefings.sql")];
+
+		expect(Object.keys(prPaths("trellis", paths).reasons)).toEqual([
+			"bun.lock",
+			"apps/server/drizzle/0091_briefings.sql",
+		]);
+	});
+});

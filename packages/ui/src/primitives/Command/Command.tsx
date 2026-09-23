@@ -22,7 +22,7 @@ export type CommandItem = {
 	label: string;
 	// Extra words the filter matches, beside the id and the label.
 	keywords?: string[];
-	// Short muted text after the label, such as a project path. It is drawn by
+	// Short muted text after the label, such as a project key. It is drawn by
 	// CSS, so the option's text stays the label alone.
 	hint?: string;
 	// A lucide icon or a domain mark, shown at 16 px before the label.

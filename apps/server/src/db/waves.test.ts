@@ -7,8 +7,8 @@ import { create as createEpic, get as getEpic } from "../services/epics/epics.ts
 import { create as createTicket } from "../services/tickets/create.ts";
 import { create, remove, reorder, update } from "../services/waves/waves.ts";
 import { createCache, type ProjectCache } from "./cache.ts";
-import { type Db, openDb } from "./client.ts";
-import { migrate } from "./migrate.ts";
+import type { Db } from "./client.ts";
+import { openTestDb } from "./testDb.ts";
 import type { Tx } from "./tx.ts";
 
 // One root TST with a todo and a done status. The epic TST/plan holds the
@@ -23,8 +23,8 @@ const human: ActorRef = { name: "Test", kind: "human" };
 const agent: ActorRef = { name: "01J00000000000000000000000", kind: "agent" };
 
 const insertProject = (id: string, key: string) =>
-	db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${id}, ${id}, ${key}, ${key.toLowerCase()}, ${key}, '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
+	db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${id}, ${key}, ${key.toLowerCase()}, ${key}, '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
 
 const insertStatus = (root: string, name: string, slug: string, category: string, position: number) =>
 	db.execute(sql`INSERT INTO statuses (id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at)
@@ -52,7 +52,7 @@ const placements = async () => {
 	const found = await db.execute(
 		sql`SELECT 'TST-' || t.number AS identifier, e.slug AS epic, m.slug AS wave
 			FROM tickets t LEFT JOIN epics e ON e.id = t.epic_id LEFT JOIN waves m ON m.id = t.wave_id
-			WHERE t.root_id = ${tst} ORDER BY t.number`,
+			WHERE t.project_id = ${tst} ORDER BY t.number`,
 	);
 	return found.rows;
 };
@@ -60,8 +60,7 @@ const placements = async () => {
 let planId: string;
 
 beforeAll(async () => {
-	db = await openDb(":memory:");
-	await migrate(db);
+	db = await openTestDb();
 	await insertProject(tst, "TST");
 	await insertProject(oth, "OTH");
 	await insertStatus(tst, "Todo", "todo", "todo", 0);
@@ -162,14 +161,14 @@ test("delete needs force for an agent, then detaches every ticket with activity 
 	const ctx = ctxAt("2026-09-18T10:06:00.000Z");
 	await run((tx) => createTicket(ctx, tx, { project: "TST", title: "Step 1", wave: "TST/plan/phase-2" }));
 	await run((tx) => createTicket(ctx, tx, { project: "TST", title: "Step 2", wave: "TST/plan/phase-2" }));
-	const before = await db.execute(sql`SELECT number, version FROM tickets WHERE root_id = ${tst} ORDER BY number`);
+	const before = await db.execute(sql`SELECT number, version FROM tickets WHERE project_id = ${tst} ORDER BY number`);
 	events.length = 0;
 	const removed = await run((tx) => remove(asAgent, tx, { wave: "TST/plan/phase-2", force: true }));
 	expect(await placements()).toEqual([
 		{ identifier: "TST-1", epic: "plan", wave: null },
 		{ identifier: "TST-2", epic: "plan", wave: null },
 	]);
-	const after = await db.execute(sql`SELECT number, version FROM tickets WHERE root_id = ${tst} ORDER BY number`);
+	const after = await db.execute(sql`SELECT number, version FROM tickets WHERE project_id = ${tst} ORDER BY number`);
 	expect(after.rows.map((row) => Number(row.version))).toEqual(before.rows.map((row) => Number(row.version) + 1));
 	const activity = await db.execute(
 		sql`SELECT from_value, to_value, count(*)::int AS n FROM activity

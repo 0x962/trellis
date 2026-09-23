@@ -89,7 +89,7 @@ async function fixture(harness: "claude" | "codex", working = false, exited = fa
 		(${accountId},'Next account',${harness},${join(home, accountId)},${at},${at}),
 		(${oldAccountId},'Old account',${harness},${join(home, oldAccountId)},${at},${at})`);
 	await db.execute(sql`INSERT INTO agent_runs
-		(id,name,kind,instruction,project_path,harness,account_id,terminal_id,session_id,workspace_id,closed_at,created_at,updated_at)
+		(id,name,kind,instruction,project_key,harness,account_id,terminal_id,session_id,workspace_id,closed_at,created_at,updated_at)
 		VALUES (${id},'switch-test','session','Remember the secret','',${JSON.stringify({ preset: harness })}::jsonb,
 		${oldAccountId},${terminalId},${sessionId},${workspace},${exited ? at : null},${at},${at})`);
 	let processStatus = exited ? "exited" : "running";
@@ -175,8 +175,8 @@ for (const harness of ["claude", "codex"] as const) {
 test("preserves the workspace of a session in a project without a directory", async () => {
 	const f = await fixture("claude");
 	const projectId = ulid();
-	await db.execute(sql`INSERT INTO projects (id,root_id,key,slug,name,created_at,updated_at)
-		VALUES (${projectId},${projectId},'QA','qa','QA',${at},${at})`);
+	await db.execute(sql`INSERT INTO projects (id,key,slug,name,created_at,updated_at)
+		VALUES (${projectId},'QA','qa','QA',${at},${at})`);
 	await db.execute(sql`UPDATE agent_runs SET project_id=${projectId} WHERE id=${f.id}`);
 	await db.transaction((tx) => ctx.core.cache.rebuild(tx));
 	await prepareSwitchAccount(ctx, f.input, f.start);

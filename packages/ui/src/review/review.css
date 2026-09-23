@@ -132,6 +132,22 @@
 	width: 14px;
 	height: 14px;
 }
+/* The parts the pull request still needs, under the state row. The glyph
+   beside the title names the first one; this block names every one. */
+.review-not-ready {
+	margin-top: 10px;
+	color: var(--fg-muted);
+	font-size: 12px;
+}
+.review-not-ready-title {
+	font-weight: 600;
+	color: var(--fg);
+}
+.review-not-ready ul {
+	margin-top: 4px;
+	padding-left: 16px;
+	list-style: disc;
+}
 .review-queue-position {
 	display: inline-flex;
 	height: 20px;

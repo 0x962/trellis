@@ -8,7 +8,7 @@ export type PullRequestReviewStatus = {
 	repo: string;
 	number: number;
 	reviewState: PullRequestReviewState;
-	isDraft: boolean;
+	notReady: boolean;
 };
 
 export type ReviewStatusSummaryProps = {
@@ -27,7 +27,7 @@ export function ReviewStatusSummary({ reviews, className }: ReviewStatusSummaryP
 		<span className={cx("inline-flex shrink-0 items-center gap-0.5", className)}>
 			<span className="sr-only">{reviews.length} pull request approval statuses</span>
 			{visible.map((review) => (
-				<ReviewStateIcon key={reference(review)} reviewState={review.reviewState} isDraft={review.isDraft} />
+				<ReviewStateIcon key={reference(review)} reviewState={review.reviewState} notReady={review.notReady} />
 			))}
 			{hidden > 0 && (
 				<Tooltip
@@ -37,7 +37,7 @@ export function ReviewStatusSummary({ reviews, className }: ReviewStatusSummaryP
 							{reviews.map((review) => (
 								<span key={reference(review)} className="flex items-center justify-between gap-4">
 									<span className="truncate font-mono text-fg tabular">{reference(review)}</span>
-									<span className="shrink-0">{reviewStateLabel(review.reviewState, review.isDraft)}</span>
+									<span className="shrink-0">{reviewStateLabel(review.reviewState, review.notReady)}</span>
 								</span>
 							))}
 						</span>

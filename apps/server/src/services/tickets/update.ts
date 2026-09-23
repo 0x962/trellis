@@ -10,7 +10,6 @@ import { type SQL, sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { z } from "zod";
 import type { ServiceCtx } from "../../context.ts";
-import { effectiveStatuses } from "../../db/queries/effectiveStatuses.ts";
 import { statusById } from "../../db/queries/statusById.ts";
 import { rows } from "../../db/queries/support.ts";
 import { ticketGet } from "../../db/queries/ticketGet.ts";
@@ -18,11 +17,11 @@ import { ticketSummaries } from "../../db/queries/ticketSummaries.ts";
 import type { Tx } from "../../db/tx.ts";
 import { fail } from "../../errors.ts";
 import { record } from "../activity.ts";
-import { assertProjectActive, pathOf, resolveProject, resolveStatus, resolveTicket, type TicketRow } from "../refs.ts";
+import { assertProjectActive, resolveStatus, resolveTicket, type TicketRow } from "../refs.ts";
 import { applyLabelPlan } from "./labels.ts";
 import { placementChanges, resolvePlacement } from "./placement.ts";
 import { type ChangePlanner, changePlanner } from "./plan.ts";
-import { assertVersion, outsideRoot, remapStatus, stampColumns } from "./rules.ts";
+import { assertVersion, outsideProject, stampColumns } from "./rules.ts";
 
 // The fields `update` and `updateMany` share. A ref is a canonical string;
 // `parent: null` clears the parent, `epic: null` clears the epic, and
@@ -35,7 +34,6 @@ type ChangeInput = {
 	parent?: string | null;
 	epic?: string | null;
 	wave?: string | null;
-	project?: string;
 	addLabels?: readonly string[];
 	removeLabels?: readonly string[];
 };
@@ -56,11 +54,11 @@ type FieldChange = {
 // ticket gets no activity row and no event.
 type Applied = { id: string; fields: string[] };
 
-// A parent must sit in the same root and must not be the ticket or one of
-// its descendants. The walk down the children stops at depth 64.
+// A parent must sit in the same project and must not be the ticket or one
+// of its descendants. The walk down the children stops at depth 64.
 const resolveParent = async (ctx: ServiceCtx, tx: Tx, row: TicketRow, ref: string) => {
 	const parent = await resolveTicket(ctx, tx, ref);
-	if (outsideRoot(parent, row.rootId)) throw fail("CROSS_ROOT_MOVE");
+	if (outsideProject(parent, row.projectId)) throw fail("CROSS_PROJECT_LINK");
 	if (parent.id === row.id) throw fail("PARENT_CYCLE");
 	const below = await rows<{ id: string }>(
 		tx,
@@ -75,35 +73,13 @@ const resolveParent = async (ctx: ServiceCtx, tx: Tx, row: TicketRow, ref: strin
 	return parent;
 };
 
-// A write that names neither `status` nor `project` leaves the status of the
-// ticket alone, so it reads no status row.
-const projectAndStatusChanges = async (ctx: ServiceCtx, tx: Tx, row: TicketRow, input: ChangeInput) => {
-	if (input.status === undefined && input.project === undefined) return [];
+// A write that names no `status` leaves the status of the ticket alone, so
+// it reads no status row.
+const statusChanges = async (ctx: ServiceCtx, tx: Tx, row: TicketRow, input: ChangeInput) => {
+	if (input.status === undefined) return [];
 	const changes: FieldChange[] = [];
-	let projectId = row.projectId;
-	if (input.project !== undefined) {
-		const project = await resolveProject(ctx, tx, input.project);
-		if (project.id !== row.projectId) {
-			if (project.rootId !== row.rootId) throw fail("CROSS_ROOT_MOVE");
-			assertProjectActive(ctx, project.id);
-			projectId = project.id;
-			changes.push({
-				field: "project",
-				from: pathOf(ctx.cache, row.projectId),
-				to: pathOf(ctx.cache, project.id),
-				meta: { fromId: row.projectId, toId: project.id },
-				set: sql`project_id = ${project.id}`,
-			});
-		}
-	}
 	const current = await statusById(tx, row.statusId);
-	let next = current;
-	if (input.status !== undefined) {
-		next = await resolveStatus(ctx, tx, { projectId, status: input.status });
-	} else if (projectId !== row.projectId) {
-		const target = await effectiveStatuses(tx, projectId);
-		if (!target.some((status) => status.id === current.id)) next = remapStatus(target, current);
-	}
+	const next = await resolveStatus(ctx, tx, { projectId: row.projectId, status: input.status });
 	if (next.id !== current.id) {
 		changes.push({
 			field: "status",
@@ -155,9 +131,9 @@ const applyChanges = async (
 			});
 		}
 	}
-	changes.push(...placementChanges(row, await resolvePlacement(ctx, tx, row.rootId, row, input)));
-	changes.push(...(await projectAndStatusChanges(ctx, tx, row, input)));
-	changes.push(...(await applyLabelPlan(ctx, tx, row, await planner.labels(row.rootId))));
+	changes.push(...placementChanges(row, await resolvePlacement(ctx, tx, row.projectId, row, input)));
+	changes.push(...(await statusChanges(ctx, tx, row, input)));
+	changes.push(...(await applyLabelPlan(ctx, tx, row, await planner.labels(row.projectId))));
 	if (changes.length === 0) return { id: row.id, fields: [] };
 
 	// A write that changes labels alone has no column to set, and it still
@@ -169,7 +145,6 @@ const applyChanges = async (
 			WHERE id = ${row.id}`,
 	);
 	await record(ctx, tx, {
-		rootId: row.rootId,
 		projectId: row.projectId,
 		ticketId: row.id,
 		action: "ticket.updated",

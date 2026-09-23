@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ProjectRefStringSchema, reviewRef, TicketRefStringSchema } from "@trellis/api";
 import { ReviewPage } from "../features/reviews/ReviewPage/ReviewPage";
 import { initialReviewTab, type ReviewTab, reviewTabOf } from "../features/reviews/ReviewPage/reviewTab";
-import { projectSlashPath } from "../lib/projectPath";
+
 import { pageSheetActions, usePageSheetStore } from "../stores/pageSheetStore";
 
 // `project` names the project whose Diffs page opened the review, so the
@@ -37,7 +37,7 @@ function Page() {
 				{ticket}
 			</Link>
 		) : project === undefined ? undefined : (
-			<Link to="/p/$" params={{ _splat: `${projectSlashPath(project)}/diffs` }} search={{}}>
+			<Link to="/p/$" params={{ _splat: `${project}/diffs` }} search={{}}>
 				Diffs
 			</Link>
 		);

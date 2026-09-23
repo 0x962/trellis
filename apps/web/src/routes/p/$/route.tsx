@@ -18,14 +18,13 @@ import { ListFooter } from "../../../features/shell/ListFooter";
 import { NewTicketButton } from "../../../features/shell/NewTicketButton";
 import { NotFoundState } from "../../../features/shell/NotFoundState";
 import { PageTitle } from "../../../features/shell/PageTitle";
-import { ProjectBreadcrumb } from "../../../features/shell/ProjectBreadcrumb";
 import { Topbar } from "../../../features/shell/Topbar";
 import { type ListView, ViewSwitch } from "../../../features/shell/ViewSwitch";
 import { DisplayPopover } from "../../../features/table/DisplayPopover";
 import { ListPending } from "../../../features/table/ListPending";
 import { TicketTable } from "../../../features/table/TicketTable";
 import { type AppContext, useApp } from "../../../lib/appContext";
-import { parseProjectSplat, projectHref, projectSlashPath } from "../../../lib/projectPath";
+import { parseProjectSplat, projectHref } from "../../../lib/projectUrl";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { useUiStore } from "../../../stores/uiStore";
 import { ProjectLoadError } from "./components/ProjectLoadError";
@@ -62,7 +61,6 @@ const countsOptions = (context: AppContext, ref: string, search: Partial<View>, 
 // omits the default view.
 export const Route = createFileRoute("/p/$")({
 	// The epic page groups by wave when the URL names no group, and lists
-	// the sub-projects when the URL names no scope.
 	// So `group=status` and `scope=self` are choices there, and the validated
 	// search keeps them. On every other view `beforeLoad` redirects them away
 	// as written defaults.
@@ -177,7 +175,7 @@ function ProjectPage() {
 	const switchView = (next: ListView) =>
 		navigate({
 			to: "/p/$",
-			params: { _splat: `${projectSlashPath(ref)}${next === "table" ? "/table" : ""}` },
+			params: { _splat: `${ref}${next === "table" ? "/table" : ""}` },
 			search,
 		});
 
@@ -189,10 +187,7 @@ function ProjectPage() {
 	return (
 		<>
 			<Topbar actions={<NewTicketButton />}>
-				<PageTitle
-					parent={project.ancestors.length > 0 ? <ProjectBreadcrumb project={project.ancestors.at(-1)!} /> : undefined}
-					title={project.name}
-				/>
+				<PageTitle title={project.name} />
 				<FilterBar
 					lead={<ViewSwitch value={view} onChange={switchView} />}
 					project={ref}
@@ -202,7 +197,7 @@ function ProjectPage() {
 					actions={
 						<DisplayPopover
 							routeKey={routeKey}
-							showProject={project.children.length > 0 && full.scope !== "self"}
+							showProject={false}
 							search={search}
 							onSearchChange={setSearch}
 							density={search.density ?? storedDensity}
@@ -243,7 +238,7 @@ function ProjectPending() {
 	return <ListPending view={view === "board" ? "board" : "table"} />;
 }
 
-// A splat that is not a project path.
+// A splat that names no project.
 function ProjectMissing() {
 	const params = useParams({ strict: false });
 	return <NotFoundState ref={params._splat ?? ""} />;

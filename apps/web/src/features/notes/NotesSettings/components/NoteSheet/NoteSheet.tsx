@@ -8,7 +8,7 @@ import {
 	NoteCreateInputSchema,
 	type Project,
 } from "@trellis/api";
-import { Button, Input, Select, Sheet, SheetBody, SheetFooter, Textarea } from "@trellis/ui";
+import { Button, Field, Input, Select, Sheet, SheetBody, SheetFooter, Textarea } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { noteAudiences } from "./audiences";
@@ -34,7 +34,7 @@ export function NoteSheet({ project, note, readOnly = false, onClose }: NoteShee
 	const [expires, setExpires] = useState(toLocalInput(note?.expiresAt ?? null));
 	const [confirmDelete, setConfirmDelete] = useState(false);
 	const input = NoteCreateInputSchema.safeParse({
-		project: project.path,
+		project: project.key,
 		title,
 		body,
 		audience,
@@ -79,9 +79,7 @@ export function NoteSheet({ project, note, readOnly = false, onClose }: NoteShee
 				}}
 			>
 				<SheetBody>
-					<p className="text-sm text-fg-muted">
-						Every agent of {project.path} and its sub-projects reads this note when it starts.
-					</p>
+					<p className="text-sm text-fg-muted">Every agent of {project.key} reads this note when it starts.</p>
 					<Input
 						ref={titleRef}
 						label="Title"
@@ -93,8 +91,7 @@ export function NoteSheet({ project, note, readOnly = false, onClose }: NoteShee
 						onChange={(event) => setTitle(event.target.value)}
 						className="pointer-coarse:h-11"
 					/>
-					<div className="flex flex-col items-start gap-2">
-						<span className="text-sm text-fg-muted">Audience</span>
+					<Field label="Audience" hint={noteAudiences.find((item) => item.value === audience)!.description}>
 						<Select
 							label="Audience"
 							items={noteAudiences}
@@ -103,10 +100,7 @@ export function NoteSheet({ project, note, readOnly = false, onClose }: NoteShee
 							disabled={readOnly || pending}
 							className="w-full pointer-coarse:h-11"
 						/>
-						<p className="text-xs text-fg-faint">
-							{noteAudiences.find((item) => item.value === audience)!.description}
-						</p>
-					</div>
+					</Field>
 					<Textarea
 						label="Body"
 						required

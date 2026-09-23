@@ -1,4 +1,4 @@
-import { epicRefOfPathname, projectRefOfPathname } from "../../../../lib/projectPath";
+import { epicRefOfPathname, projectRefOfPathname } from "../../../../lib/projectUrl";
 import type { ComposerOptions } from "../../../composer";
 import { parseSearch } from "../../../filters/grammar";
 

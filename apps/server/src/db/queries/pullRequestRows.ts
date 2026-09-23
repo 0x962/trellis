@@ -1,15 +1,23 @@
-import type {
-	ChangedFile,
-	Check,
-	CiState,
-	LinkedPullRequest,
-	LocalPrState,
-	Mergeable,
-	PrState,
-	PullRequest,
-	StoredActorKind,
+import {
+	type ChangedFile,
+	type Check,
+	type CiState,
+	type LinkedPullRequest,
+	type LocalPrState,
+	type Mergeable,
+	type PrState,
+	type PullRequest,
+	reviewGaps,
+	type StoredActorKind,
 } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
+import {
+	flowAnsweredSql,
+	hasEvidenceSql,
+	hasExplanationSql,
+	openFindingsSql,
+	reviewReadyFacts,
+} from "./reviewReady.ts";
 import { iso } from "./support.ts";
 
 export type PullRequestRow = {
@@ -27,6 +35,12 @@ export type PullRequestRow = {
 	is_draft: boolean;
 	is_queued: boolean;
 	local_state: LocalPrState;
+	ready_for_review_at: string | null;
+	// The facts of `reviewGaps` that no other column of this row carries.
+	has_explanation: boolean;
+	has_evidence: boolean;
+	flow_answered: boolean;
+	open_findings: number;
 	head_ref: string;
 	base_ref: string;
 	mergeable: Mergeable;
@@ -63,10 +77,6 @@ export const localReviewState = (prId: SQL) => sql`COALESCE((
 	LIMIT 1
 ), 'none')`;
 
-// The SQL form of `isReviewDraft` in packages/api for the pull request
-// alias `pr`.
-export const reviewDraftSql = (pr: SQL) => sql`${pr}.local_state = 'draft'`;
-
 // The head commit of the revision that a `review_submissions` row names.
 export const submissionHeadSha = (submission: SQL) => sql`(
 	SELECT revision.head_sha FROM review_revisions revision
@@ -81,7 +91,13 @@ export const submissionByPerson = (submission: SQL) => sql`EXISTS (
 
 export const pullRequestColumns = sql`
 	p.id, p.owner, p.repo, p.number, p.additions, p.deletions, p.changed_files, p.files,
-	p.url, p.title, p.state, p.is_draft, p.is_queued, p.local_state, p.head_ref, p.base_ref, p.mergeable,
+	p.url, p.title, p.state, p.is_draft, p.is_queued, p.local_state,
+	${iso(sql`p.ready_for_review_at`)} AS ready_for_review_at,
+	${hasExplanationSql(sql`p`)} AS has_explanation,
+	${hasEvidenceSql(sql`p`)} AS has_evidence,
+	${flowAnsweredSql(sql`p`)} AS flow_answered,
+	${openFindingsSql(sql`p`)}::int AS open_findings,
+	p.head_ref, p.base_ref, p.mergeable,
 	${localReviewState(sql`p.id`)} AS review_state,
 	${iso(sql`p.merged_at`)} AS merged_at, ${iso(sql`p.closed_at`)} AS closed_at, p.checks, p.ci_state,
 	p.content_hash, ${iso(sql`p.fetched_at`)} AS fetched_at, p.fetch_error,
@@ -103,6 +119,19 @@ export const toPullRequest = (row: PullRequestRow): PullRequest => ({
 	isDraft: row.is_draft,
 	isQueued: row.is_queued,
 	localState: row.local_state,
+	readyForReviewAt: row.ready_for_review_at,
+	reviewGaps: reviewGaps(
+		reviewReadyFacts({
+			state: row.state,
+			localState: row.local_state,
+			checks: row.checks,
+			openFindings: row.open_findings,
+			hasExplanation: row.has_explanation,
+			hasEvidence: row.has_evidence,
+			flowAnswered: row.flow_answered,
+			mergeable: row.mergeable,
+		}),
+	),
 	headRef: row.head_ref,
 	baseRef: row.base_ref,
 	mergeable: row.mergeable,

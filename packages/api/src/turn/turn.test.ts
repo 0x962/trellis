@@ -3,6 +3,8 @@ import type { TicketSummary } from "../schemas/ticket.ts";
 import type { TicketPr } from "../schemas/ticketPr.ts";
 import { turnOf } from "./turn.ts";
 
+// The row carries the gaps the server computed, so a test states them the
+// way a row does.
 const pullRequest = (fields: Partial<TicketPr> = {}): TicketPr =>
 	({
 		number: 42,
@@ -11,7 +13,7 @@ const pullRequest = (fields: Partial<TicketPr> = {}): TicketPr =>
 		url: "https://github.com/acme/app/pull/42",
 		state: "open",
 		isDraft: false,
-		localState: "ready",
+		reviewGaps: [],
 		fail: 0,
 		pending: 0,
 		openThreads: 0,
@@ -43,17 +45,30 @@ test("gives a pull request to you when the Trellis state is ready", () => {
 	expect(turnOf(pullRequest({ isDraft: true }), false)).toBe("you");
 });
 
-test("gives a pull request to the agent until the agent marks it ready", () => {
-	expect(turnOf(pullRequest({ localState: "draft" }), false)).toBe("agent");
-	expect(turnOf(ticket({ prRows: [pullRequest({ localState: "draft" })] }), false)).toBe("agent");
+test("gives a pull request to the agent until the agent asks for review", () => {
+	const gaps: TicketPr["reviewGaps"] = [{ kind: "not-asked", count: 1 }];
+	expect(turnOf(pullRequest({ reviewGaps: gaps }), false)).toBe("agent");
+	expect(turnOf(ticket({ prRows: [pullRequest({ reviewGaps: gaps })] }), false)).toBe("agent");
+});
+
+test("gives a pull request with an open finding to the agent", () => {
+	expect(turnOf(pullRequest({ reviewGaps: [{ kind: "findings", count: 2 }] }), false)).toBe("agent");
+});
+
+test("gives a pull request that waits for a check and a finding to the agent", () => {
+	const gaps: TicketPr["reviewGaps"] = [
+		{ kind: "checks-pending", count: 1 },
+		{ kind: "findings", count: 1 },
+	];
+	expect(turnOf(pullRequest({ reviewGaps: gaps }), false)).toBe("agent");
 });
 
 test("gives a ticket with a ready pull request to you", () => {
 	expect(turnOf(ticket({ prRows: [pullRequest({ isDraft: true })] }), false)).toBe("you");
 });
 
-test("gives a pull request with pending checks to GitHub", () => {
-	expect(turnOf(pullRequest({ pending: 1 }), false)).toBe("github");
+test("gives a pull request that waits only for a check to GitHub", () => {
+	expect(turnOf(pullRequest({ pending: 1, reviewGaps: [{ kind: "checks-pending", count: 1 }] }), false)).toBe("github");
 });
 
 test("returns ready for a Todo ticket with no unmet dependency", () => {

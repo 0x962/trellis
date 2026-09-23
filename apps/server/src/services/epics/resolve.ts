@@ -15,18 +15,19 @@ export const resolveEpic = async (_ctx: ServiceCtx, tx: Tx, ref: string): Promis
 	const where =
 		parsed.data.kind === "ulid"
 			? sql`e.id = ${parsed.data.id}`
-			: sql`root.key = ${parsed.data.key} AND e.slug = ${parsed.data.slug}`;
+			: sql`proj.key = ${parsed.data.key} AND e.slug = ${parsed.data.slug}`;
 	const found = await rows<RawEpic>(tx, sql`${epicSelect} WHERE ${where}`);
 	if (found.length === 0) throw fail("NOT_FOUND", { kind: "epic", ref: canonical });
 	return found[0]!;
 };
 
-// The epic a ticket of `rootId` can join. The epic sits in the same root,
-// and the project of the epic accepts a mutation. The foreign key on
-// `tickets.epic_id` cannot hold the root rule alone, so the service holds it.
-export const resolveEpicForTicket = async (ctx: ServiceCtx, tx: Tx, rootId: string, ref: string) => {
+// The epic a ticket of `projectId` can join. The epic sits in the same
+// project, and that project accepts a mutation. The foreign key on
+// `tickets.epic_id` cannot hold the project rule alone, so the service
+// holds it.
+export const resolveEpicForTicket = async (ctx: ServiceCtx, tx: Tx, projectId: string, ref: string) => {
 	const epic = await resolveEpic(ctx, tx, ref);
-	if (epic.root_id !== rootId) throw fail("CROSS_ROOT_MOVE");
+	if (epic.project_id !== projectId) throw fail("CROSS_PROJECT_LINK");
 	assertProjectActive(ctx, epic.project_id);
 	return epic;
 };

@@ -7,7 +7,7 @@ import type { ServiceCtx } from "../../context.ts";
 import { openTestDb } from "../../db/testDb.ts";
 import { get } from "./queries.ts";
 
-test("a stored flow execution without harness fields reads as current output", async () => {
+test("a stored flow execution without the harness fields or the project key reads as current output", async () => {
 	const db = await openTestDb();
 	const at = new Date("2026-09-21T00:00:00.000Z");
 	const flowId = ulid();
@@ -18,7 +18,9 @@ test("a stored flow execution without harness fields reads as current output", a
 	const execution = ulid();
 	const baseDoc = flowDoc([node(step, "agent", null)], []);
 	const doc = { ...baseDoc, flow: { ...baseDoc.flow, id: flowId } };
-	const { harness: _flowHarness, ...oldFlow } = doc.flow;
+	// A run stored before the harness and project fields existed holds none of
+	// them in its snapshot: neither harness, nor the project of the flow.
+	const { harness: _flowHarness, project: _project, ...oldFlow } = doc.flow;
 	const oldDoc = { ...doc, flow: oldFlow, nodes: doc.nodes.map(({ harness: _nodeHarness, ...oldNode }) => oldNode) };
 	const state = {
 		version: 1,
@@ -50,14 +52,14 @@ test("a stored flow execution without harness fields reads as current output", a
 	await db.execute(
 		sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at) VALUES ('Test', 'human', ${at}, ${at})`,
 	);
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${project}, ${project}, 'TST', 'tst', 'Test', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${project}, 'TST', 'tst', 'Test', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses (
 		id, project_id, name, slug, category, color, position, is_default, created_at, updated_at
 	) VALUES (${status}, ${project}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO tickets (
-		id, project_id, root_id, number, title, status_id, position, created_at, updated_at
-	) VALUES (${ticket}, ${project}, ${project}, 1, 'Task', ${status}, 0, ${at}, ${at})`);
+		id, project_id, number, title, status_id, position, created_at, updated_at
+	) VALUES (${ticket}, ${project}, 1, 'Task', ${status}, 0, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO flow_executions (
 		id, flow_id, ticket_id, project_id, actor_kind, actor_name, request_id,
 		request, doc, state, revision, created_at, updated_at
@@ -80,6 +82,7 @@ test("a stored flow execution without harness fields reads as current output", a
 	const record = await db.transaction((tx) => get(ctx, tx, { id: execution }));
 
 	expect(record.doc.flow.harness).toBeNull();
+	expect(record.doc.flow.project).toBeNull();
 	expect(record.doc.nodes[0]?.harness).toBeNull();
 	expect(FlowExecutionSchema.parse(record)).toEqual(record);
 	await db.$client.close();

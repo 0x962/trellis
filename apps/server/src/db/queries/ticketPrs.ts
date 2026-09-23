@@ -1,6 +1,15 @@
-import { CheckBucketSchema, type TicketPr, TicketPrSchema, type VerdictFacts, verdictMark } from "@trellis/api";
+import {
+	CheckBucketSchema,
+	type ReviewReadyFacts,
+	reviewGaps,
+	type TicketPr,
+	TicketPrSchema,
+	type VerdictFacts,
+	verdictMark,
+} from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { localReviewState, submissionByPerson, submissionHeadSha } from "./pullRequestRows.ts";
+import { flowAnsweredSql, hasEvidenceSql, hasExplanationSql } from "./reviewReady.ts";
 import { ciRank, prStateRank, reviewStateRank } from "./support.ts";
 
 // `ticketPrJoin` reads links for the caller's ticket alias `t`. It adds the PR badge and `prRows`.
@@ -26,16 +35,34 @@ const pendingCheck = sql`check_row.value->>'bucket' = ${PENDING}`;
 const skippedCheck = sql`check_row.value->>'bucket' = ${SKIPPED}`;
 const verdictState = localReviewState(sql`p.id`);
 
-export type TicketPrRow = Omit<TicketPr, "verdict"> & {
-	submissions: VerdictFacts[];
-};
+// The row carries the facts that `reviewGaps` reads, and the gaps are
+// computed here so that one rule answers for every surface.
+export type TicketPrRow = Omit<TicketPr, "verdict" | "reviewGaps"> &
+	Pick<ReviewReadyFacts, "localState" | "hasExplanation" | "hasEvidence" | "flowAnswered"> & {
+		submissions: VerdictFacts[];
+	};
 
 export const toTicketPrRows = (rows: TicketPrRow[] | null): TicketPr[] =>
-	(rows ?? []).map(({ submissions, ...fields }) => ({ ...fields, verdict: verdictMark(submissions) }));
+	(rows ?? []).map(({ submissions, localState, hasExplanation, hasEvidence, flowAnswered, ...fields }) => ({
+		...fields,
+		verdict: verdictMark(submissions),
+		// The lateral counts the checks already, so the facts take those
+		// counts instead of the check list.
+		reviewGaps: reviewGaps({
+			state: fields.state,
+			localState,
+			failedChecks: fields.fail,
+			pendingChecks: fields.pending,
+			hasExplanation,
+			hasEvidence,
+			flowAnswered,
+			openFindings: fields.openThreads,
+			mergeable: fields.mergeable,
+		}),
+	}));
 
 export const ticketPrColumns = sql`
 	ticket_pr.state AS pr_state, ticket_pr.is_draft AS pr_is_draft, ticket_pr.is_queued AS pr_is_queued,
-	ticket_pr.local_state AS pr_local_state,
 	ticket_pr.ci_state AS pr_ci_state, ticket_pr.review_state AS pr_review_state,
 	ticket_pr.pass AS pr_pass, ticket_pr.fail AS pr_fail, ticket_pr.pending AS pr_pending,
 	ticket_pr.reviews AS pr_reviews, ticket_pr.pull_requests AS pr_rows`;
@@ -48,7 +75,6 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 			(array_agg(p.state ORDER BY ${prStateRank(sql`p.state`)}))[1] AS state,
 			bool_or(p.is_draft) AS is_draft,
 			bool_or(p.is_queued) AS is_queued,
-			CASE WHEN bool_or(p.local_state = 'draft') THEN 'draft' ELSE 'ready' END AS local_state,
 			(array_agg(p.ci_state ORDER BY ${ciRank(sql`p.ci_state`)}))[1] AS ci_state,
 			(array_agg(${verdictState} ORDER BY ${reviewStateRank(verdictState)}))[1] AS review_state,
 			sum(check_counts.pass)::int AS pass,
@@ -57,7 +83,7 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 			jsonb_agg(
 				jsonb_build_object(
 					'owner', p.owner, 'repo', p.repo, 'number', p.number,
-					'reviewState', ${verdictState}, 'isDraft', p.local_state = 'draft', 'localState', p.local_state
+					'reviewState', ${verdictState}, 'notReady', p.local_state <> 'ready'
 				) ORDER BY link.created_at, p.id
 			) AS reviews,
 			jsonb_agg(
@@ -89,16 +115,19 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 						WHERE thread.pr_id = p.id AND thread.document->>'status' = 'open'
 					),
 					'flowRuns', flow_runs.items,
+					'hasExplanation', ${hasExplanationSql(sql`p`)},
+					'hasEvidence', ${hasEvidenceSql(sql`p`)},
+					'flowAnswered', ${flowAnsweredSql(sql`p`)},
 					'baseRef', p.base_ref, 'headRef', p.head_ref, 'mergeable', p.mergeable,
 					'stackedOn', (
 						SELECT jsonb_build_object(
 							'number', stacked.number,
 							'headRef', stacked.head_ref,
-							'ticketIdentifier', stacked_root.key || '-' || stacked_ticket.number
+							'ticketIdentifier', stacked_project.key || '-' || stacked_ticket.number
 						)
 						FROM ticket_pull_requests stacked_link
 						JOIN tickets stacked_ticket ON stacked_ticket.id = stacked_link.ticket_id
-						JOIN projects stacked_root ON stacked_root.id = stacked_ticket.root_id
+						JOIN projects stacked_project ON stacked_project.id = stacked_ticket.project_id
 						JOIN pull_requests stacked ON stacked.id = stacked_link.pull_request_id
 						WHERE t.epic_id IS NOT NULL
 							AND stacked_ticket.epic_id = t.epic_id

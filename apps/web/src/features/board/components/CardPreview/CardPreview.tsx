@@ -1,4 +1,5 @@
 import type { TicketSummary } from "@trellis/api";
+import { cx, ticketCardFrame } from "@trellis/ui";
 import type { RefObject } from "react";
 import type { DragPreviewFrame } from "../../dragPreview";
 import { CardContent, type CardContentProps } from "../CardContent";
@@ -35,7 +36,10 @@ export function CardPreview({
 			<div
 				ref={surfaceRef}
 				style={{ transformOrigin: `${frame.offsetX}px ${frame.offsetY}px` }}
-				className="flex min-h-19 flex-col gap-1.5 rounded-md border-x border-b border-border-strong bg-elevated p-3 shadow-kanban-drag transition-transform duration-row ease-out motion-reduce:transition-none"
+				className={cx(
+					ticketCardFrame,
+					"min-h-19 gap-1.5 border-border-strong bg-elevated shadow-lg-no-ring transition-transform duration-row ease-out motion-reduce:transition-none",
+				)}
 			>
 				<CardContent
 					ticket={ticket}

@@ -1,7 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import type { Project } from "@trellis/api";
 import type { ReactNode } from "react";
-import { projectSlashPath } from "../../../lib/projectPath";
+
 import { NotesSettings } from "../../notes/NotesSettings";
 import { LabelSettings } from "../LabelSettings";
 import { ProjectGeneralSettings } from "../ProjectGeneralSettings";
@@ -57,7 +57,7 @@ function ProjectSettingsContent({ project, section }: ProjectSettingsProps) {
 						<li key={id}>
 							<Link
 								to="/p/$"
-								params={{ _splat: `${projectSlashPath(project.path)}/settings` }}
+								params={{ _splat: `${project.key}/settings` }}
 								search={{}}
 								hash={id}
 								hashScrollIntoView={false}

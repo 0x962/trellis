@@ -18,7 +18,7 @@ export const AgentRunSchema = z.object({
 	kind: AgentRunKindSchema,
 	instruction: z.string(),
 	projectId: UlidSchema.nullable(),
-	projectPath: z.string(),
+	projectKey: z.string(),
 	ticketId: UlidSchema.nullable(),
 	ticketIdentifier: z.string().nullable(),
 	ticketTitle: z.string().nullable(),
@@ -42,6 +42,7 @@ export const AgentRunSchema = z.object({
 					// path of an edit, the command of a shell call, the address of a
 					// fetch. It is null when the tool input names none of these.
 					target: z.string().nullable(),
+					targetKind: z.enum(["text", "code"]).nullable(),
 					status: z.enum(["running", "completed", "failed"]),
 					startedAt: z.string().nullable(),
 					updatedAt: z.string(),

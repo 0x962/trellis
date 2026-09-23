@@ -1,5 +1,5 @@
 import { effortForHarness, HARNESS_DEFAULT_MODELS, HARNESS_PRESETS, type Harness } from "@trellis/api";
-import { cx, Select } from "@trellis/ui";
+import { cx, Field, Select } from "@trellis/ui";
 import { ModelPicker } from "../ModelPicker";
 
 const presets = [
@@ -42,8 +42,7 @@ export function LaunchFields({
 	];
 	return (
 		<>
-			<div className={cx("flex min-w-0 flex-col gap-2", compact && "max-w-full")}>
-				<span className={cx("text-sm text-fg-muted", compact && "sr-only")}>Harness</span>
+			<Field label="Harness" hideLabel={compact} className={compact ? "max-w-full" : undefined}>
 				<Select
 					label="Harness"
 					value={harness?.preset ?? "default"}
@@ -54,7 +53,7 @@ export function LaunchFields({
 						else if (preset !== "custom") change({ preset, ...HARNESS_PRESETS[preset] });
 					}}
 				/>
-			</div>
+			</Field>
 			{harness !== null && harness.preset !== "custom" && (
 				<div className={cx("flex min-w-0 flex-col gap-2", compact && "max-w-full")}>
 					<span className={cx("text-sm text-fg-muted", compact && "sr-only")}>Model</span>
@@ -69,8 +68,7 @@ export function LaunchFields({
 				</div>
 			)}
 			{harness !== null && effort && (
-				<div className={cx("flex min-w-0 flex-col gap-2", compact && "max-w-full")}>
-					<span className={cx("text-sm text-fg-muted", compact && "sr-only")}>{effort.label}</span>
+				<Field label={effort.label} hideLabel={compact} className={compact ? "max-w-full" : undefined}>
 					<Select
 						label={effort.label}
 						value={harness.effort ?? "default"}
@@ -80,7 +78,7 @@ export function LaunchFields({
 							change({ ...harness, effort: value === "default" ? undefined : (value as Harness["effort"]) })
 						}
 					/>
-				</div>
+				</Field>
 			)}
 		</>
 	);

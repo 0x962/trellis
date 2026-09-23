@@ -12,7 +12,7 @@ import { base } from "./base.ts";
 export const flowExecutions = {
 	start: base
 		.route({ method: "POST", path: "/flow-executions", summary: "Start a native flow for a ticket" })
-		.errors(pickErrors(["DUPLICATE", "FLOW_VERSION_CONFLICT"]))
+		.errors(pickErrors(["DUPLICATE", "FLOW_VERSION_CONFLICT", "FLOW_NOT_IN_PROJECT"]))
 		.input(FlowExecutionStartInputSchema)
 		.output(FlowExecutionSchema),
 	get: base

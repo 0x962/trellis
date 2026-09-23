@@ -6,6 +6,7 @@ import {
 	FlowDeleteOutputSchema,
 	FlowDocSchema,
 	FlowGetInputSchema,
+	FlowListInputSchema,
 	FlowSaveInputSchema,
 	FlowSchema,
 	FlowSummarySchema,
@@ -16,8 +17,8 @@ import { base } from "./base.ts";
 // `{flow}` is the ULID or the slug of a flow.
 export const flows = {
 	list: base
-		.route({ method: "GET", path: "/flows", summary: "List flows" })
-		.input(z.strictObject({}))
+		.route({ method: "GET", path: "/flows", summary: "List flows, or the flows a ticket's project asks for" })
+		.input(FlowListInputSchema)
 		.output(z.array(FlowSummarySchema)),
 	get: base
 		.route({ method: "GET", path: "/flows/{flow}", summary: "Read a flow with its nodes and edges" })
@@ -29,7 +30,11 @@ export const flows = {
 		.input(FlowCreateInputSchema)
 		.output(FlowSchema),
 	update: base
-		.route({ method: "PATCH", path: "/flows/{flow}", summary: "Update the name, slug, description, or briefing" })
+		.route({
+			method: "PATCH",
+			path: "/flows/{flow}",
+			summary: "Update the project, name, slug, description, or briefing",
+		})
 		.errors(pickErrors(["DUPLICATE", "FLOW_VERSION_CONFLICT"]))
 		.input(FlowUpdateInputSchema)
 		.output(FlowSchema),

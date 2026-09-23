@@ -62,6 +62,7 @@ import { rename as renameSession } from "./sessions/rename.ts";
 import * as sessions from "./sessions/sessions.ts";
 import { prepareStart as startSession } from "./sessions/start.ts";
 import * as settings from "./settings.ts";
+import * as statistics from "./statistics/statistics.ts";
 import * as statuses from "./statuses.ts";
 import type { IoCtx, PrepareCtx } from "./support.ts";
 import { prepareSweep } from "./sweep/prepareSweep.ts";
@@ -222,14 +223,13 @@ export const services = {
 	"projects.update": core("mutation", projects.update),
 	"projects.move": core("mutation", projects.move),
 	"projects.delete": core("mutation", projects.delete),
-	"projects.repos": core("read", projects.effectiveRepos),
+	"projects.repos": core("read", projects.projectRepos),
 	"projects.setRepos": core("mutation", projects.setRepos),
 	"statuses.list": core("read", statuses.list),
 	"statuses.create": core("mutation", statuses.create),
 	"statuses.update": core("mutation", statuses.update),
 	"statuses.reorder": core("mutation", statuses.reorder),
 	"statuses.delete": core("mutation", statuses.delete),
-	"statuses.clear": core("mutation", statuses.clear),
 	"tickets.list": core("read", tickets.list),
 	"tickets.counts": core("read", tickets.counts),
 	"tickets.board": core("read", tickets.board),
@@ -246,6 +246,7 @@ export const services = {
 	"tickets.setContract": core("mutation", tickets.setContract),
 	"tickets.setOutcome": core("mutation", tickets.setOutcome),
 	"timeline.list": core("read", timeline.list),
+	"statistics.get": prepared("read", statistics.prepare, statistics.get),
 	"needsYou.list": prepared("read", needsYou.prepareList, needsYou.list),
 	"needsYou.summary": prepared("read", needsYou.prepareSummary, needsYou.summary),
 	"needsYou.update": prepared("mutation", needsYou.prepareUpdate, needsYou.update),

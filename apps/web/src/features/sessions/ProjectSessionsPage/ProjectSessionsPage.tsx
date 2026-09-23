@@ -47,7 +47,7 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 	const open = (id: string) => {
 		returnToConversation.current = true;
 		setListOpen(false);
-		return navigate({ to: "/sessions/project/$project", params: { project: project.path }, hash: id });
+		return navigate({ to: "/sessions/project/$project", params: { project: project.key }, hash: id });
 	};
 	const sessionList = (
 		<SessionList
@@ -91,7 +91,7 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 									label="New session"
 									icon={<Plus />}
 									disabled={project.archivedAt !== null}
-									onClick={() => sessionComposerActions.open(project.path)}
+									onClick={() => sessionComposerActions.open(project.key)}
 								/>
 							</Tooltip>
 						)}

@@ -1,11 +1,10 @@
 import { ArrowBendUpLeft, Flag, Stack } from "@phosphor-icons/react";
 import type { EpicSummary, Label, LabelGroup, Status, TicketSummary, WaveSummary } from "@trellis/api";
 import { LabelDot, PriorityIcon, StatusIcon } from "@trellis/ui";
-import { changeStatus, moveToProject, setEpic, setLabel, setParent, setPriority } from "../../actions";
+import { changeStatus, setEpic, setLabel, setParent, setPriority } from "../../actions";
 import type { PaletteRow, RowDeps, Submenu } from "../../rows";
 import { priorityLabels } from "../../rows";
 import * as bulk from "../bulkChange";
-import { projectRows } from "../projectRows";
 import { viewHref } from "../viewHref";
 import { gotoProjectRows } from "../viewRows";
 
@@ -17,7 +16,6 @@ import { gotoProjectRows } from "../viewRows";
 export const submenuHeadings: Record<Submenu["kind"], string> = {
 	status: "Change status",
 	priority: "Set priority",
-	project: "Move to project",
 	parent: "Set parent",
 	epic: "Set epic",
 	wave: "Set wave",
@@ -32,10 +30,10 @@ export type SubmenuData = {
 	statuses: Status[];
 	// The tickets a parent can be picked from.
 	tickets: TicketSummary[];
-	// The labels of the project tree, and the groups that name them.
+	// The labels of the project, and the groups that name them.
 	labels: Label[];
 	labelGroups: LabelGroup[];
-	// The epics of the project tree.
+	// The epics of the project.
 	epics: EpicSummary[];
 	// The waves of the epic of a wave submenu, in position order.
 	waves: readonly WaveSummary[];
@@ -104,19 +102,6 @@ export const submenuRows = (submenu: Submenu, deps: RowDeps, data: SubmenuData):
 				() => void bulk.setPriority(deps.bulk, selection, priority as keyof typeof priorityLabels),
 			),
 		}));
-	}
-	if (submenu.kind === "project") {
-		return projectRows(
-			deps.projects,
-			(project) => `project.${project.id}`,
-			(project) =>
-				writeTickets(
-					deps,
-					submenu,
-					() => void moveToProject(action, submenu.tickets[0]!, project.path),
-					() => void bulk.moveToProject(deps.bulk, selection, project),
-				),
-		);
 	}
 	if (submenu.kind === "labels") {
 		return data.labels.map((label) => {
