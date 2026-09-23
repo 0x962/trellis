@@ -1,7 +1,8 @@
 import type { SystemProcess } from "@trellis/api";
 import { Button, DisplayPopover, EmptyState, FilterBar, Input } from "@trellis/ui";
 import { useMemo, useState } from "react";
-import { formatBytes, formatPercent, formatUptime } from "./formatSystemUsage";
+import { formatBytes } from "../../../../../lib/format";
+import { formatPercent, formatUptime } from "./formatSystemUsage";
 
 type ProcessSort = "cpu" | "memory" | "name" | "pid" | "time";
 

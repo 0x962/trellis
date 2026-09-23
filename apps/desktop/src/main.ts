@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { app, BrowserWindow, dialog, type IpcMainInvokeEvent, Menu, shell } from "electron";
+import { app, BrowserWindow, dialog, type IpcMainInvokeEvent, Menu, powerMonitor, shell } from "electron";
 import { activateHostRelease } from "./activateHostRelease/activateHostRelease.ts";
 import { appMenu } from "./appMenu/appMenu.ts";
 import { chooseDataHome } from "./chooseDataHome/chooseDataHome.ts";
@@ -261,6 +261,12 @@ else {
 				updateStatus: desktopUpdateStatus,
 				requirePackaged,
 				action: (action) => desktopActions[action](),
+			});
+			// powerMonitor is available only after the ready event. macOS raises
+			// this event when the thermal state changes, so the renderer needs no
+			// timer to learn that the system reduces performance.
+			powerMonitor.on("thermal-state-change", (state) => {
+				window?.webContents.send("trellis:thermal-state", state);
 			});
 			await connect(progress.show);
 			if (!host) return;

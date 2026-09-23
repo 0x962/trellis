@@ -1,9 +1,11 @@
 import { Lock } from "@phosphor-icons/react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import type { Project } from "@trellis/api";
-import { Button, Input, Textarea } from "@trellis/ui";
+import { Button, Input, type ProjectColor, ProjectColorField, Textarea } from "@trellis/ui";
 import { type FormEvent, useId, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { takenColors } from "../../../lib/projectColors";
 
 export type ProjectDetailsFormProps = {
 	project: Project;
@@ -15,14 +17,16 @@ const keyLockedHint = (key: string) =>
 	`Ticket IDs start with ${key}. The key cannot change after the project has a ticket.`;
 
 export function ProjectDetailsForm({ project }: ProjectDetailsFormProps) {
-	const { client, queryClient } = useApp();
+	const { client, orpc, queryClient } = useApp();
 	const navigate = useNavigate();
 	const noticeId = useId();
 	const headingId = useId();
 	const [name, setName] = useState(project.name);
 	const [key, setKey] = useState(project.key);
 	const [description, setDescription] = useState(project.description);
+	const [color, setColor] = useState<ProjectColor | null>(project.color);
 	const [message, setMessage] = useState<string | null>(null);
+	const projects = useQuery(orpc.projects.list.queryOptions({ input: {} })).data ?? [];
 	const locked = project.ticketCounter > 0;
 
 	const save = async (event: FormEvent) => {
@@ -33,6 +37,7 @@ export function ProjectDetailsForm({ project }: ProjectDetailsFormProps) {
 				name: name.trim(),
 				...(locked ? {} : { key: key.trim().toUpperCase() }),
 				description,
+				color,
 			});
 			setMessage("Project saved.");
 			await queryClient.invalidateQueries();
@@ -65,6 +70,7 @@ export function ProjectDetailsForm({ project }: ProjectDetailsFormProps) {
 					{keyLockedHint(project.key)}
 				</p>
 			)}
+			<ProjectColorField value={color} taken={takenColors(projects, project.id)} onValueChange={setColor} />
 			<Textarea
 				label="Description"
 				rows={3}

@@ -89,3 +89,12 @@ export type ColorToken = z.infer<typeof ColorTokenSchema>;
 // never carries a raw color value. A color picker lists the hues in this order.
 export const LabelColorSchema = z.enum(["gray", "red", "orange", "yellow", "green", "teal", "blue", "purple", "pink"]);
 export type LabelColor = z.infer<typeof LabelColorSchema>;
+
+// The color names a project may take. packages/ui holds one
+// `--project-<name>` token set per name, with a light and a dark value, so
+// the wire never carries a raw color value. Two projects never hold one
+// name, so the five names are five slots. Yellow marks the work that waits
+// for a person and violet marks a merged pull request, so no project takes
+// either hue. A color picker lists the names in this order.
+export const ProjectColorSchema = z.enum(["orange", "teal", "blue", "pink", "azure"]);
+export type ProjectColor = z.infer<typeof ProjectColorSchema>;

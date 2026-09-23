@@ -33,13 +33,20 @@ const addFlowRun = async (ticketId: string, status: string, updatedAt: string) =
 		${JSON.stringify({ status })}, 1, ${at}, ${new Date(updatedAt)}
 	)`);
 
-const addPullRequest = async (id: string, ticketId: string, number: number, mergedAt: string) => {
+const addPullRequest = async (
+	id: string,
+	ticketId: string,
+	number: number,
+	mergedAt: string,
+	readyAt: string | null = null,
+) => {
 	await db.execute(sql`INSERT INTO pull_requests (
 		id, owner, repo, number, url, title, state, local_state, review_state, checks, ci_state,
-		merged_at, created_at, updated_at
+		merged_at, ready_for_review_at, created_at, updated_at
 	) VALUES (
 		${id}, 'acme', 'app', ${number}, ${`https://github.com/acme/app/pull/${number}`},
-		${`Change ${number}`}, 'merged', 'ready', 'approved', '[]', 'pass', ${new Date(mergedAt)}, ${at}, ${at}
+		${`Change ${number}`}, 'merged', 'ready', 'approved', '[]', 'pass', ${new Date(mergedAt)},
+		${readyAt === null ? null : new Date(readyAt)}, ${at}, ${at}
 	)`);
 	await db.execute(sql`INSERT INTO ticket_pull_requests (
 		ticket_id, pull_request_id, source, actor_name, actor_kind, created_at
@@ -50,28 +57,28 @@ const addThread = async (prId: string, kind: string) =>
 	db.execute(sql`INSERT INTO review_threads (id, pr_id, document, updated_at)
 		VALUES (${ulid()}, ${prId}, ${JSON.stringify({ kind })}::jsonb, ${at})`);
 
-const addSubmission = async (prId: string, actor: string, verdict: string) =>
+const addSubmission = async (prId: string, actor: string, verdict: string, createdAt = at.toISOString()) =>
 	db.execute(sql`INSERT INTO review_submissions (id, pr_id, request_id, actor, document, created_at)
-		VALUES (${ulid()}, ${prId}, ${ulid()}, ${actor}, ${JSON.stringify({ verdict })}::jsonb, ${at})`);
+		VALUES (${ulid()}, ${prId}, ${ulid()}, ${actor}, ${JSON.stringify({ verdict })}::jsonb, ${new Date(createdAt)})`);
 
 beforeAll(async () => {
 	db = await openTestDb();
 	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
 		VALUES ('Navid', 'human', ${at}, ${at}), ('Scout', 'agent', ${at}, ${at})`);
-	await db.execute(sql`INSERT INTO projects (id, root_id, key, slug, name, created_at, updated_at)
-		VALUES (${root}, ${root}, 'TST', 'tst', 'Test', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
+		VALUES (${root}, 'TST', 'tst', 'Test', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses (
 		id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at
 	) VALUES (${status}, ${root}, 'In Progress', 'in-progress', 'started', NULL, 'fg-muted', 0, true, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO tickets (
-		id, project_id, root_id, number, title, status_id, position, created_at, updated_at
+		id, project_id, number, title, status_id, position, created_at, updated_at
 	) VALUES
-		(${heldTicket}, ${root}, ${root}, 1, 'Held message', ${status}, 0, ${at}, ${at}),
-		(${failedTicket}, ${root}, ${root}, 2, 'Failed message', ${status}, 1, ${at}, ${at}),
-		(${waitingTicket}, ${root}, ${root}, 3, 'Waiting flow', ${status}, 2, ${at}, ${at}),
-		(${runningTicket}, ${root}, ${root}, 4, 'Running flow', ${status}, 3, ${at}, ${at}),
-		(${readTicket}, ${root}, ${root}, 5, 'The change he read', ${status}, 4, ${at}, ${at}),
-		(${quietTicket}, ${root}, ${root}, 6, 'The change he did not read', ${status}, 5, ${at}, ${at})`);
+		(${heldTicket}, ${root}, 1, 'Held message', ${status}, 0, ${at}, ${at}),
+		(${failedTicket}, ${root}, 2, 'Failed message', ${status}, 1, ${at}, ${at}),
+		(${waitingTicket}, ${root}, 3, 'Waiting flow', ${status}, 2, ${at}, ${at}),
+		(${runningTicket}, ${root}, 4, 'Running flow', ${status}, 3, ${at}, ${at}),
+		(${readTicket}, ${root}, 5, 'The change he read', ${status}, 4, ${at}, ${at}),
+		(${quietTicket}, ${root}, 6, 'The change he did not read', ${status}, 5, ${at}, ${at})`);
 
 	await addDelivery("held", heldTicket, "2026-09-19T12:00:00.000Z");
 	await addDelivery("held", heldTicket, "2026-09-19T18:00:00.000Z");
@@ -85,14 +92,16 @@ beforeAll(async () => {
 	await addFlowRun(runningTicket, "running", "2026-09-19T06:00:00.000Z");
 	await addFlowRun(waitingTicket, "succeeded", "2026-09-15T06:00:00.000Z");
 
-	await addPullRequest(readPr, readTicket, 11, "2026-09-19T09:00:00.000Z");
+	// The read pull request became ready two hours before the first verdict
+	// of the person. The quiet one carries no stamp.
+	await addPullRequest(readPr, readTicket, 11, "2026-09-19T09:00:00.000Z", "2026-09-19T06:00:00.000Z");
 	await addPullRequest(quietPr, quietTicket, 12, "2026-09-20T09:00:00.000Z");
 	await addThread(readPr, "human");
 	await addThread(readPr, "human");
 	await addThread(readPr, "agent");
 	await addThread(quietPr, "agent");
-	await addSubmission(readPr, "Navid", "changes_requested");
-	await addSubmission(readPr, "Navid", "approved");
+	await addSubmission(readPr, "Navid", "changes_requested", "2026-09-19T08:00:00.000Z");
+	await addSubmission(readPr, "Navid", "approved", "2026-09-19T08:30:00.000Z");
 	// An agent submits a review from the CLI. Block two counts no agent
 	// verdict.
 	await addSubmission(quietPr, "Scout", "changes_requested");
@@ -130,6 +139,8 @@ test("counts the loop over the window of merged pull requests", async () => {
 		withPersonVerdict: 1,
 		threadsByPerson: 2,
 		threadsByAgent: 2,
+		readyToVerdictMs: 2 * 60 * 60 * 1000,
+		readyToVerdictMeasured: 1,
 	});
 });
 
@@ -139,6 +150,15 @@ test("holds the window to the newest merged pull requests", async () => {
 	expect(totals.merged).toBe(1);
 	expect(totals.oldestMergedAt).toBe("2026-09-20T09:00:00.000Z");
 	expect(totals.threadsByPerson).toBe(0);
+});
+
+test("measures the wait from ready to a verdict over the rows that carry both", async () => {
+	// The newest merged pull request carries no ready stamp, so the window of
+	// one holds nothing to measure.
+	const totals = await db.transaction((tx) => loopTotals(tx, 1));
+
+	expect(totals.readyToVerdictMs).toBeNull();
+	expect(totals.readyToVerdictMeasured).toBe(0);
 });
 
 test("names the pull requests that took the threads of a person", async () => {

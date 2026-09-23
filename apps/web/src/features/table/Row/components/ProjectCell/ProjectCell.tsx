@@ -1,4 +1,4 @@
-import { ProjectKey } from "../../../../shell/ProjectKey";
+import { ProjectKey } from "@trellis/ui";
 
 export type ProjectCellProps = {
 	// The key of the ticket's project.

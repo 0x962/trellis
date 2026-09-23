@@ -1,36 +1,14 @@
-import { ArrowCounterClockwise, ArrowUp, Check, Copy, PencilSimple, Trash } from "@phosphor-icons/react";
+import { ArrowCounterClockwise } from "@phosphor-icons/react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { Button } from "../../primitives/Button";
 import { IconButton } from "../../primitives/IconButton";
-import { Textarea } from "../../primitives/Textarea";
 import { Tooltip } from "../../primitives/Tooltip";
-import { writeClipboard } from "../../utils/writeClipboard";
-import { ReviewReactions } from "../ReviewReactions/ReviewReactions";
+import { foldedLine, isCollapsible } from "./foldedLine";
+import { ThreadMessage } from "./ThreadMessage";
+import { ThreadReplyForm } from "./ThreadReplyForm";
+import type { Edit, Message, Thread } from "./thread";
 
-type Message = {
-	id: string;
-	author: string;
-	kind: string;
-	session: string | null;
-	body: string;
-	createdAt: string;
-	version: number;
-	reactions: { reaction: string; author: string; kind: string }[];
-	// How far this message got on its way to the agents of the pull request.
-	// A message that Trellis sends to no agent holds nothing here.
-	delivery?: { state: string; error: string | null } | null;
-};
-// The word a reader sees for each state of a send to an agent.
-const deliveryWords: Record<string, string> = {
-	pending: "sending",
-	sending: "sending",
-	held: "waits for an agent",
-	sent: "sent",
-	failed: "failed",
-	unknown: "not confirmed",
-};
 type Props = {
-	thread: Message & { replies: Message[]; status: string; resolvedBy: string | null };
+	thread: Thread;
 	// `root` is true for the first message, the one that carries the anchor
 	// and any suggestion the thread applies.
 	renderBody: (body: string, message: { id: string; root: boolean }) => ReactNode;
@@ -54,31 +32,6 @@ type Props = {
 	// thread and prints those lines above it.
 	outdated?: { lines: string[] };
 };
-// The first line of a body, for the collapsed row of a resolved thread. A
-// body that opens with a suggestion block names the change instead.
-const summaryOf = (body: string) => {
-	const first = body.split("\n")[0] ?? "";
-	return /^\s*(`{3,}|~{3,})\s*suggestion/i.test(first) ? "Suggested change" : first;
-};
-
-// The one line of a folded thread: why it is folded, who wrote it, the file
-// and the line it points at, and the words it opens with. `resolvedBy` is
-// null for the moment between the click and the server's answer, because
-// only the server writes the name of the person who resolved the thread.
-const foldedLine = (thread: Props["thread"], anchor: string | undefined, outdated: boolean, body: string): string =>
-	[
-		outdated ? "Outdated" : null,
-		thread.status === "resolved"
-			? thread.resolvedBy === null
-				? "Resolved"
-				: `Resolved by ${thread.resolvedBy}`
-			: null,
-		thread.author,
-		anchor,
-		summaryOf(body),
-	]
-		.filter((part) => part !== null && part !== undefined && part !== "")
-		.join(" · ");
 
 export function ReviewThreadCard({
 	thread,
@@ -94,7 +47,6 @@ export function ReviewThreadCard({
 	outdated,
 }: Props) {
 	const root = useRef<HTMLElement>(null);
-	const replyInput = useRef<HTMLTextAreaElement>(null);
 	const foldedReopen = useRef<HTMLButtonElement>(null);
 	const formResolve = useRef<HTMLButtonElement>(null);
 	const draftKey = `trellis.review.reply:${actor}:${thread.id}`;
@@ -104,7 +56,7 @@ export function ReviewThreadCard({
 		if (body) localStorage.setItem(draftKey, body);
 		else localStorage.removeItem(draftKey);
 	};
-	const [edit, setEdit] = useState<{ id: string; body: string; version: number } | null>(null);
+	const [edit, setEdit] = useState<Edit | null>(null);
 	const [busy, setBusy] = useState(false);
 	const [resolving, setResolving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -117,11 +69,9 @@ export function ReviewThreadCard({
 	// Set when an action removed the control the person was standing on, so
 	// the effect below moves focus to the control that replaced it.
 	const moveFocus = useRef(false);
-	// A resolved thread and a thread the file on screen holds no more both
-	// open as one line, so neither takes the room of a thread the reader must
-	// still act on.
-	const collapsible = thread.status === "resolved" || outdated !== undefined;
-	const folded = collapsible && !holdOpen;
+	// A ref, not state: the card must not draw again when the pointer enters or leaves.
+	const pointerInside = useRef(false);
+	const folded = isCollapsible(thread.status, outdated !== undefined) && !holdOpen;
 	const run = async (action: () => Promise<unknown>) => {
 		setBusy(true);
 		setError(null);
@@ -138,7 +88,7 @@ export function ReviewThreadCard({
 	// second click while the first call is out does nothing.
 	const toggleResolved = () => {
 		if (resolving) return;
-		if (root.current?.matches(":hover") === true) setHoldOpen(true);
+		if (pointerInside.current) setHoldOpen(true);
 		moveFocus.current = true;
 		setResolving(true);
 		setError(null);
@@ -155,6 +105,22 @@ export function ReviewThreadCard({
 		moveFocus.current = false;
 		(foldedReopen.current ?? formResolve.current)?.focus({ preventScroll: true });
 	});
+	// A finger and a pen leave the card at the end of the tap, before the
+	// click, so `onPointerLeave` cannot tell a held card when to fold. The
+	// next press outside the card does it. The press that starts the hold is
+	// inside the card, and this listener is added after it, so the hold
+	// survives its own tap. Focus stays where the press sends it, because the
+	// press is the reader going somewhere else.
+	useEffect(() => {
+		if (!holdOpen) return;
+		const foldOnOutsidePress = (event: PointerEvent) => {
+			if (root.current?.contains(event.target as Node) === true) return;
+			setHoldOpen(false);
+		};
+		document.addEventListener("pointerdown", foldOnOutsidePress, true);
+		return () => document.removeEventListener("pointerdown", foldOnOutsidePress, true);
+	}, [holdOpen]);
+	const messages: Message[] = [thread, ...thread.replies];
 	return (
 		<article
 			ref={root}
@@ -162,7 +128,16 @@ export function ReviewThreadCard({
 			className="review-thread"
 			id={`thread-${thread.id}`}
 			aria-label={`Thread by ${thread.author}`}
-			onPointerLeave={() => {
+			onPointerEnter={() => {
+				pointerInside.current = true;
+			}}
+			onPointerLeave={(event) => {
+				// A mouse leaves the card when the reader moves it away. A
+				// finger and a pen leave it at the end of every tap, which says
+				// nothing about where the reader is, so the effect above folds a
+				// held card for them.
+				if (event.pointerType !== "mouse") return;
+				pointerInside.current = false;
 				if (!holdOpen) return;
 				moveFocus.current = root.current?.contains(document.activeElement) === true;
 				setHoldOpen(false);
@@ -185,6 +160,8 @@ export function ReviewThreadCard({
 								label="Reopen comment"
 								icon={<ArrowCounterClockwise />}
 								disabled={resolving}
+								// The button stays in the tab order while the call is out, so focus stays on it.
+								focusableWhenDisabled
 								onClick={toggleResolved}
 							/>
 						</Tooltip>
@@ -199,129 +176,34 @@ export function ReviewThreadCard({
 			)}
 			{(!folded || expanded) && (
 				<>
-					{[thread, ...thread.replies].map((message) => (
-						<section className="review-message" key={message.id}>
-							<header>
-								<strong>{message.author}</strong>
-								<span className="review-meta">
-									{message.kind} · {new Date(message.createdAt).toLocaleDateString()}
-								</span>
-								{message.delivery && (
-									<span
-										className="review-delivery"
-										data-state={message.delivery.state}
-										title={message.delivery.error ?? undefined}
-									>
-										{deliveryWords[message.delivery.state]}
-									</span>
-								)}
-								{message.session && (
-									<Tooltip content={`Copy session ${message.session}`}>
-										<IconButton
-											className="review-message-action"
-											label="Copy session"
-											icon={<Copy />}
-											onClick={() => void writeClipboard(message.session!)}
-										/>
-									</Tooltip>
-								)}
-								{canChange(message.id) && (
-									<Tooltip content="Edit message">
-										<IconButton
-											className="review-message-action"
-											label="Edit message"
-											icon={<PencilSimple />}
-											disabled={busy}
-											onClick={() => setEdit({ id: message.id, body: message.body, version: message.version })}
-										/>
-									</Tooltip>
-								)}
-								{onDelete !== undefined && canChange(message.id) && (
-									<Tooltip content={message.id === thread.id ? "Delete thread" : "Delete message"}>
-										<IconButton
-											className="review-message-action"
-											label={message.id === thread.id ? "Delete thread" : "Delete message"}
-											icon={<Trash />}
-											disabled={busy}
-											onClick={() => void run(() => onDelete(message.id))}
-										/>
-									</Tooltip>
-								)}
-							</header>
-							{edit?.id === message.id ? (
-								<form
-									onSubmit={(e) => {
-										e.preventDefault();
-										void run(async () => {
-											await onEdit(edit.id, edit.body, edit.version);
-											setEdit(null);
-										});
-									}}
-								>
-									<Textarea
-										label="Edit message"
-										value={edit.body}
-										onChange={(e) => setEdit({ ...edit, body: e.target.value })}
-									/>
-									<div className="review-form-actions">
-										<Button type="button" onClick={() => setEdit(null)}>
-											Cancel
-										</Button>
-										<Button type="submit" disabled={busy || !edit.body.trim()}>
-											Save
-										</Button>
-									</div>
-								</form>
-							) : (
-								renderBody(message.body, { id: message.id, root: message.id === thread.id })
-							)}
-							{onReaction !== undefined && (
-								<ReviewReactions
-									reactions={message.reactions}
-									actor={actor}
-									busy={busy}
-									onReaction={(reaction, remove) => void run(() => onReaction(message.id, reaction, remove))}
-								/>
-							)}
-						</section>
-					))}
-					<form
-						className="review-reply"
-						onSubmit={(e) => {
-							e.preventDefault();
-							void run(async () => {
-								await onReply(reply);
-								setReply("");
-								replyInput.current?.focus({ preventScroll: true });
-							});
-						}}
-					>
-						<textarea
-							ref={replyInput}
-							aria-label="Reply"
-							placeholder="Leave a reply…"
-							value={reply}
-							onChange={(e) => setReply(e.target.value)}
-							onKeyDown={(e) => {
-								if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && reply.trim() && !busy) {
-									e.preventDefault();
-									e.currentTarget.form?.requestSubmit();
-								}
-							}}
+					{messages.map((message) => (
+						<ThreadMessage
+							key={message.id}
+							message={message}
+							root={message.id === thread.id}
+							renderBody={renderBody}
+							busy={busy}
+							canChange={canChange(message.id)}
+							actor={actor}
+							edit={edit}
+							setEdit={setEdit}
+							run={run}
+							onEdit={onEdit}
+							onDelete={onDelete}
+							onReaction={onReaction}
 						/>
-						<Tooltip content="Post reply">
-							<IconButton type="submit" label="Post reply" icon={<ArrowUp />} disabled={busy || !reply.trim()} />
-						</Tooltip>
-						<Tooltip content={thread.status === "resolved" ? "Reopen comment" : "Resolve comment"}>
-							<IconButton
-								ref={formResolve}
-								label={thread.status === "resolved" ? "Reopen comment" : "Resolve comment"}
-								icon={thread.status === "resolved" ? <ArrowCounterClockwise /> : <Check />}
-								disabled={resolving}
-								onClick={toggleResolved}
-							/>
-						</Tooltip>
-					</form>
+					))}
+					<ThreadReplyForm
+						reply={reply}
+						setReply={setReply}
+						busy={busy}
+						resolving={resolving}
+						resolved={thread.status === "resolved"}
+						onReply={onReply}
+						run={run}
+						toggleResolved={toggleResolved}
+						resolveRef={formResolve}
+					/>
 				</>
 			)}
 			{error && (
