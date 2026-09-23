@@ -5,13 +5,12 @@ import { cx } from "../../utils/cx";
 
 export type StatusCategory = "todo" | "started" | "review" | "done" | "canceled";
 export type StatusColor = "fg" | "fg-muted" | "fg-faint" | "accent" | "agent" | "success" | "warning" | "danger";
-export type ReviewShape = "human" | "agent" | "queue";
+export type ReviewShape = "human" | "queue";
 
 export type StatusIconProps = {
 	category: StatusCategory;
-	// For the review category: who reviews.
-	reviewer?: "human" | "agent";
-	// For the review category: the mark shape.
+	// For the review category: the mark shape. Without it the mark is the
+	// dashed ring.
 	reviewShape?: ReviewShape;
 	// The status color token. Without it the category supplies the color.
 	color?: StatusColor;
@@ -65,20 +64,12 @@ function ReviewIcon({
 	if (shape === "human") {
 		return <CircleDashed {...shared} weight="regular" className={cx(baseClass, color, className)} />;
 	}
-	if (shape === "queue") {
-		return (
-			<span {...shared} className={cx("inline-grid place-items-center", baseClass, color, className)}>
-				<span className="flex h-3.5 w-4 flex-col justify-center gap-px rounded-[2px] border border-current px-px">
-					<i className="block h-px rounded-hairline bg-current" />
-					<i className="block h-px rounded-hairline bg-current" />
-				</span>
-			</span>
-		);
-	}
 	return (
-		<span {...shared} className={cx("relative inline-grid place-items-center", baseClass, color, className)}>
-			<span className="block size-3 rotate-45 rounded-[2px] border border-current bg-current/15" />
-			<span className="absolute size-1 rounded-round bg-current" />
+		<span {...shared} className={cx("inline-grid place-items-center", baseClass, color, className)}>
+			<span className="flex h-3.5 w-4 flex-col justify-center gap-px rounded-[2px] border border-current px-px">
+				<i className="block h-px rounded-hairline bg-current" />
+				<i className="block h-px rounded-hairline bg-current" />
+			</span>
 		</span>
 	);
 }
@@ -92,8 +83,7 @@ function ReviewIcon({
 // utility can transition the disk from one share to another.
 export function StatusIcon({
 	category,
-	reviewer = "human",
-	reviewShape,
+	reviewShape = "human",
 	color,
 	progress,
 	label,
@@ -102,18 +92,16 @@ export function StatusIcon({
 	className,
 }: StatusIconProps) {
 	const tone = color === undefined ? colors[category] : colorClasses[color];
-	const shape = reviewShape ?? reviewer;
 	const shared = {
 		"data-category": category,
-		"data-reviewer": category === "review" ? reviewer : undefined,
 		"data-color": color,
-		"data-review-shape": category === "review" ? shape : undefined,
+		"data-review-shape": category === "review" ? reviewShape : undefined,
 		role: label ? "img" : undefined,
 		"aria-label": label,
 		"aria-hidden": label ? undefined : ("true" as const),
 		tabIndex: label && tooltip && focusable ? 0 : undefined,
 	};
-	const icon = mark({ category, shape, tone, progress, shared, className });
+	const icon = mark({ category, shape: reviewShape, tone, progress, shared, className });
 	return label === undefined || !tooltip ? icon : <Tooltip content={label}>{icon}</Tooltip>;
 }
 

@@ -7,7 +7,6 @@ const status = (fields: Partial<StatusSummary>): StatusSummary => ({
 	slug: "agent-review",
 	name: "Agent Review",
 	category: "review",
-	reviewer: "agent",
 	color: "agent",
 	...fields,
 });
@@ -19,12 +18,16 @@ test("deploy queue uses its own review mark shape", () => {
 	});
 });
 
-test("reviewer statuses keep their reviewer mark shape", () => {
-	expect(statusIconProps(status({ slug: "agent-review", reviewer: "agent" }))).toMatchObject({
-		reviewShape: "agent",
-	});
-	expect(statusIconProps(status({ slug: "human-review", reviewer: "human", color: "warning" }))).toMatchObject({
+test("every other review status draws the dashed ring", () => {
+	expect(statusIconProps(status({ slug: "agent-review" }))).toMatchObject({ reviewShape: "human" });
+	expect(statusIconProps(status({ slug: "human-review", color: "warning" }))).toMatchObject({
 		reviewShape: "human",
 		color: "warning",
+	});
+});
+
+test("a status outside the review category has no mark shape", () => {
+	expect(statusIconProps(status({ slug: "todo", category: "todo", color: "fg-muted" }))).toMatchObject({
+		reviewShape: undefined,
 	});
 });

@@ -80,7 +80,7 @@ export const submenuRows = (submenu: Submenu, deps: RowDeps, data: SubmenuData):
 		return data.statuses.map((status) => ({
 			value: `status.${status.id}`,
 			label: status.name,
-			icon: <StatusIcon category={status.category} reviewer={status.reviewer ?? "human"} />,
+			icon: <StatusIcon category={status.category} />,
 			keywords: [status.slug],
 			run: writeTickets(
 				deps,

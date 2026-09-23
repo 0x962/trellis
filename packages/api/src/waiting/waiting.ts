@@ -36,7 +36,7 @@ export function waitingFor(row: WaitingRow, hasWorkingRun: boolean): Waiting {
 	}
 
 	if (ticket?.status.category === "done" || ticket?.status.category === "canceled") return "done";
-	if (ticket?.status.reviewer === "human") return "you";
+	if (ticket?.status.category === "review") return "you";
 	if (hasWorkingRun || pullRequests.some((pullRequest) => waitsForAgent(pullRequest))) return "agent";
 	if (pullRequests.some((pullRequest) => waitsForGithub(pullRequest))) return "github";
 	if (pullRequests.some((pullRequest) => pullRequest.state === "open" && readyForReview(pullRequest))) return "you";

@@ -19,7 +19,6 @@ const ticket = (
 	identifier: string,
 	fields: {
 		category?: TicketSummary["status"]["category"];
-		reviewer?: TicketSummary["status"]["reviewer"];
 		waitsOn?: TicketSummary["waitsOn"];
 		prRows?: TicketPr[];
 		ready?: boolean;
@@ -30,7 +29,6 @@ const ticket = (
 		identifier,
 		status: {
 			category: fields.category ?? "started",
-			reviewer: fields.reviewer ?? null,
 		},
 		waitsOn: fields.waitsOn ?? [],
 		prRows: fields.prRows ?? [],
@@ -46,7 +44,7 @@ test("prints the nonempty groups in fixed order", () => {
 	const result = readyResultOf(
 		[
 			ticket("OP-34", { category: "todo", waitsOn: [startedBlocker] }),
-			ticket("OP-53", { category: "review", reviewer: "human" }),
+			ticket("OP-53", { category: "review" }),
 			ticket("OP-32", {
 				prRows: [pullRequest(55569, { reviewGaps: [{ kind: "not-asked", count: 1 }] })],
 			}),

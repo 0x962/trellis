@@ -185,7 +185,7 @@ describe("groupRows by what a row waits for", () => {
 		openThreads: 0,
 	} as unknown as TicketPr;
 	const humanReview = waitingRow("human-review", {
-		status: { category: "started", reviewer: "human" } as TicketSummary["status"],
+		status: { category: "review" } as TicketSummary["status"],
 	});
 	const review = waitingRow("review", { prRows: [open] });
 	const draft = waitingRow("draft", {

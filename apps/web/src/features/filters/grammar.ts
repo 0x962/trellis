@@ -6,7 +6,6 @@ import {
 	PrFilterSchema,
 	PrioritySchema,
 	ProjectRefStringSchema,
-	ReviewerSchema,
 	SortSchema,
 	StatusCategorySchema,
 	StatusRefStringSchema,
@@ -33,7 +32,6 @@ export type View = {
 	// `type/feature` for a label of a group. The value `none` stands for a
 	// ticket with no label at all.
 	label?: string[];
-	reviewer?: z.infer<typeof ReviewerSchema>;
 	priority?: z.infer<typeof PrioritySchema>[];
 	parent?: string;
 	waitsOn?: string;
@@ -166,7 +164,6 @@ export const parseSearch = (params: Record<string, unknown>): View => {
 		project: single(raw.project, ProjectRefStringSchema),
 		status: list(raw.status, StatusRefStringSchema),
 		category: list(raw.category, StatusCategorySchema),
-		reviewer: single(raw.reviewer, ReviewerSchema),
 		priority: list(raw.priority, PrioritySchema),
 		label: list(raw.label, LabelRefStringSchema),
 		parent: single(raw.parent, ListQuerySchema.shape.parent),
@@ -260,7 +257,6 @@ export const toListQuery = (view: View, options: ListQueryOptions = {}): ListQue
 		project: isNegated(view, "project") ? undefined : view.project,
 		status: view.status !== undefined && isNegated(view, "status") ? complement(statusSlugs, view.status) : view.status,
 		category: view.category,
-		reviewer: view.reviewer,
 		priority:
 			view.priority !== undefined && isNegated(view, "priority")
 				? complement(PrioritySchema.options, view.priority)

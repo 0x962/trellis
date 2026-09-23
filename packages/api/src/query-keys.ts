@@ -246,7 +246,7 @@ export const createEventApplier = (queryClient: QueryClient, options: { schedule
 			case "labels.changed":
 				enqueue([family("labels"), family("tickets"), family("search"), family("needsYou")]);
 				return;
-			// A status rename or a reviewer change alters the `status` inside
+			// A status rename or a color change alters the `status` inside
 			// every cached summary. No ticket row changes, so no ticket event
 			// follows. A project rename alters
 			// `project.path` the same way. So every query that holds a summary

@@ -1,4 +1,4 @@
-import type { ColorToken, Reviewer } from "@trellis/api";
+import type { ColorToken } from "@trellis/api";
 import { Button, Checkbox, Input, Select, Textarea } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
@@ -15,11 +15,6 @@ const colors: { value: ColorToken; label: string }[] = [
 	{ value: "danger", label: "Danger" },
 ];
 
-const reviewers: { value: Reviewer; label: string }[] = [
-	{ value: "agent", label: "Agent" },
-	{ value: "human", label: "Human" },
-];
-
 type StatusEditorProps = Pick<StatusRowProps, "project" | "status" | "onChanged" | "onCancel">;
 
 export function StatusEditor({ project, status, onChanged, onCancel }: StatusEditorProps) {
@@ -27,7 +22,6 @@ export function StatusEditor({ project, status, onChanged, onCancel }: StatusEdi
 	const [name, setName] = useState(status.name);
 	const [description, setDescription] = useState(status.description);
 	const [color, setColor] = useState<ColorToken>(status.color);
-	const [reviewer, setReviewer] = useState<Reviewer>(status.reviewer ?? "agent");
 	const [isDefault, setIsDefault] = useState(status.isDefault);
 	const [message, setMessage] = useState<string | null>(null);
 
@@ -44,7 +38,6 @@ export function StatusEditor({ project, status, onChanged, onCancel }: StatusEdi
 				name: name.trim(),
 				description,
 				color,
-				...(status.category === "review" ? { reviewer } : {}),
 				isDefault,
 			});
 			setMessage(null);
@@ -77,20 +70,6 @@ export function StatusEditor({ project, status, onChanged, onCancel }: StatusEdi
 						className="h-8"
 					/>
 				</div>
-				{status.category === "review" && (
-					<div className="status-row-field">
-						<span aria-hidden="true" className="status-row-field-label">
-							Reviewer
-						</span>
-						<Select
-							label={`Reviewer for ${status.name}`}
-							items={reviewers}
-							value={reviewer}
-							onValueChange={setReviewer}
-							className="h-8"
-						/>
-					</div>
-				)}
 			</div>
 			<Textarea
 				label="Description"

@@ -27,12 +27,10 @@ const insertProject = (id: string, key: string) =>
 	db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
 		VALUES (${id}, ${key}, ${key.toLowerCase()}, ${key}, '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
 
-// The statuses table requires a reviewer on a `review` status and forbids one on every other category.
 const insertStatus = async (root: string, name: string, slug: string, category: string, position: number) => {
 	const id = ulid();
-	const reviewer = category === "review" ? "agent" : null;
-	await db.execute(sql`INSERT INTO statuses (id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at)
-		VALUES (${id}, ${root}, ${name}, ${slug}, ${category}, ${reviewer}, 'fg-muted', ${position}, ${position === 0}, '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
+	await db.execute(sql`INSERT INTO statuses (id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
+		VALUES (${id}, ${root}, ${name}, ${slug}, ${category}, 'fg-muted', ${position}, ${position === 0}, '2026-09-18T10:00:00.000Z', '2026-09-18T10:00:00.000Z')`);
 	return id;
 };
 

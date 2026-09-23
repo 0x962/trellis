@@ -55,7 +55,7 @@ export const epicRunningCount = (
 // ticket whose agent works waits for the agent and not for the person.
 //
 // Each link keeps the other filters and the display fields of `search`, and
-// replaces the wave, status, category, and reviewer filters. The to
+// replaces the wave, status, and category filters. The to
 // start link lists the whole todo category of the wave, because the
 // filter grammar has no dependency-ready filter. The waits for you link
 // applies the Waiting grouping, because no filter names what a ticket waits
@@ -69,7 +69,7 @@ export const epicNext = (
 ): EpicNext | null => {
 	const wave = currentWave(epic);
 	if (wave === undefined) return null;
-	const { status, category, reviewer, wave: _wave, not, ...rest } = search;
+	const { status, category, wave: _wave, not, ...rest } = search;
 	const kept = not?.filter((field) => field !== "status");
 	const base: Partial<View> = {
 		...rest,

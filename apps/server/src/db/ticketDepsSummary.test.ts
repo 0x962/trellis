@@ -37,13 +37,13 @@ beforeAll(async () => {
 	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
 		VALUES (${root}, 'TST', 'tst', 'Test', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses (
-		id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at
+		id, project_id, name, slug, category, color, position, is_default, created_at, updated_at
 	) VALUES
-		(${todoStatus}, ${root}, 'Todo', 'todo', 'todo', NULL, 'fg-muted', 0, true, ${at}, ${at}),
-		(${startedStatus}, ${root}, 'In Progress', 'in-progress', 'started', NULL, 'accent', 1, false, ${at}, ${at}),
-		(${reviewStatus}, ${root}, 'Human Review', 'human-review', 'review', 'human', 'warning', 2, false, ${at}, ${at}),
-		(${doneStatus}, ${root}, 'Done', 'done', 'done', NULL, 'success', 3, false, ${at}, ${at}),
-		(${canceledStatus}, ${root}, 'Canceled', 'canceled', 'canceled', NULL, 'fg-muted', 4, false, ${at}, ${at})`);
+		(${todoStatus}, ${root}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at}),
+		(${startedStatus}, ${root}, 'In Progress', 'in-progress', 'started', 'accent', 1, false, ${at}, ${at}),
+		(${reviewStatus}, ${root}, 'Human Review', 'human-review', 'review', 'warning', 2, false, ${at}, ${at}),
+		(${doneStatus}, ${root}, 'Done', 'done', 'done', 'success', 3, false, ${at}, ${at}),
+		(${canceledStatus}, ${root}, 'Canceled', 'canceled', 'canceled', 'fg-muted', 4, false, ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO epics (
 		id, project_id, slug, name, description, actor_name, actor_kind, created_at, updated_at
 	) VALUES (${epic}, ${root}, 'plan', 'Plan', '', 'Test', 'human', ${at}, ${at})`);

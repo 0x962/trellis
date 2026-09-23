@@ -49,13 +49,7 @@ export function SubTickets({ tickets }: SubTicketsProps) {
 					key={child.id}
 					id={child.identifier}
 					title={child.title}
-					leading={
-						<StatusIcon
-							category={child.status.category}
-							reviewer={child.status.reviewer ?? undefined}
-							label={`Status: ${child.status.name}`}
-						/>
-					}
+					leading={<StatusIcon category={child.status.category} label={`Status: ${child.status.name}`} />}
 					onPress={() => router.push(`/ticket/${child.identifier}`)}
 				/>
 			))}

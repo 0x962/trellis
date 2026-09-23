@@ -153,7 +153,7 @@ export function FilterPicker({
 				id: ticket.identifier,
 				label: ticket.identifier,
 				current: view.waitsOn === ticket.identifier,
-				icon: <StatusIcon category={ticket.status.category} reviewer={ticket.status.reviewer ?? undefined} />,
+				icon: <StatusIcon category={ticket.status.category} />,
 				children: <span className="truncate text-fg-muted">{ticket.title}</span>,
 			}))
 		: stage.kind === "values" && !sectioned

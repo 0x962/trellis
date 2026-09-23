@@ -50,7 +50,7 @@ export function CompositionSection() {
 					<Badge icon={<TextAlignLeft />}>4</Badge>
 				</span>
 				<span className="inline-flex w-37.5 items-center gap-2 whitespace-nowrap">
-					<StatusIcon category="review" reviewer="human" />
+					<StatusIcon category="review" />
 					Human Review
 				</span>
 				<span className="inline-flex w-27 items-center gap-1.5 text-fg-muted">

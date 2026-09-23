@@ -20,7 +20,6 @@ export const sortLabel = (sort: Sort): string => {
 export const filterKeys = [
 	"status",
 	"category",
-	"reviewer",
 	"priority",
 	"label",
 	"parent",

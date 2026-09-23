@@ -31,7 +31,6 @@ const ticket = (fields: Partial<TicketSummary> = {}) =>
 			slug: "human-review",
 			name: "Human Review",
 			category: "review",
-			reviewer: "human",
 			color: "warning",
 		},
 		updatedAt: "2026-09-20T12:00:00.000Z",

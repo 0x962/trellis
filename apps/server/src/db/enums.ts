@@ -11,7 +11,6 @@ import {
 	PrLinkSourceSchema,
 	ProjectColorSchema,
 	PrStateSchema,
-	ReviewerSchema,
 	ReviewStateSchema,
 	StatusCategorySchema,
 	StoredActorKindSchema,
@@ -23,7 +22,6 @@ import { check, type PgColumn } from "drizzle-orm/pg-core";
 // api enum, so the CHECK on a column and the schema on the wire agree.
 export const PRIORITIES = PrioritySchema.options;
 export const STATUS_CATEGORIES = StatusCategorySchema.options;
-export const REVIEWERS = ReviewerSchema.options;
 export const STORED_ACTOR_KINDS = StoredActorKindSchema.options;
 export const PR_STATES = PrStateSchema.options;
 export const CI_STATES = CiStateSchema.options;

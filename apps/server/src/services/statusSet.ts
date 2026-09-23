@@ -25,23 +25,21 @@ export type StatusInsert = Omit<Status, "createdAt" | "updatedAt">;
 
 export const insertStatus = (ctx: ServiceCtx, tx: Tx, status: StatusInsert) =>
 	tx.execute(
-		sql`INSERT INTO statuses (id, project_id, name, description, slug, category, reviewer, color, position, is_default, created_at, updated_at)
+		sql`INSERT INTO statuses (id, project_id, name, description, slug, category, color, position, is_default, created_at, updated_at)
 			VALUES (${status.id}, ${status.projectId}, ${status.name}, ${status.description}, ${status.slug}, ${status.category},
-				${status.reviewer}, ${status.color}, ${status.position}, ${status.isDefault}, ${ctx.now}, ${ctx.now})`,
+				${status.color}, ${status.position}, ${status.isDefault}, ${ctx.now}, ${ctx.now})`,
 	);
 
-// The set every project starts with, in position order. Todo is the default;
-// the two review statuses name who reviews. Each description tells the
-// user what the status means. The migration
+// The set every project starts with, in position order. Todo is the default.
+// Each description tells the user what the status means. The migration
 // 0006_status_descriptions writes the same texts onto the statuses of a
 // database that existed before the descriptions, so a text change here
 // needs a new data migration for existing projects.
-const STATUS_SEED: Array<Pick<Status, "name" | "description" | "category" | "reviewer" | "color" | "isDefault">> = [
+const STATUS_SEED: Array<Pick<Status, "name" | "description" | "category" | "color" | "isDefault">> = [
 	{
 		name: "Todo",
 		description: "Work has not started.",
 		category: "todo",
-		reviewer: null,
 		color: "fg-muted",
 		isDefault: true,
 	},
@@ -49,7 +47,6 @@ const STATUS_SEED: Array<Pick<Status, "name" | "description" | "category" | "rev
 		name: "In Progress",
 		description: "Work is in progress.",
 		category: "started",
-		reviewer: null,
 		color: "accent",
 		isDefault: false,
 	},
@@ -57,7 +54,6 @@ const STATUS_SEED: Array<Pick<Status, "name" | "description" | "category" | "rev
 		name: "Agent Review",
 		description: "An agent reviews the work.",
 		category: "review",
-		reviewer: "agent",
 		color: "agent",
 		isDefault: false,
 	},
@@ -65,7 +61,6 @@ const STATUS_SEED: Array<Pick<Status, "name" | "description" | "category" | "rev
 		name: "Human Review",
 		description: "A person reviews the work.",
 		category: "review",
-		reviewer: "human",
 		color: "warning",
 		isDefault: false,
 	},
@@ -73,7 +68,6 @@ const STATUS_SEED: Array<Pick<Status, "name" | "description" | "category" | "rev
 		name: "Done",
 		description: "Work is complete.",
 		category: "done",
-		reviewer: null,
 		color: "success",
 		isDefault: false,
 	},
@@ -81,7 +75,6 @@ const STATUS_SEED: Array<Pick<Status, "name" | "description" | "category" | "rev
 		name: "Canceled",
 		description: "Work will not continue.",
 		category: "canceled",
-		reviewer: null,
 		color: "fg-faint",
 		isDefault: false,
 	},

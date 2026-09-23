@@ -22,11 +22,11 @@ beforeEach(async () => {
 	await db.execute(sql`INSERT INTO actors (name, kind, first_seen_at, last_seen_at)
 		VALUES ('dana', 'human', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO statuses
-		(id, project_id, name, slug, category, reviewer, color, position, is_default, created_at, updated_at)
+		(id, project_id, name, slug, category, color, position, is_default, created_at, updated_at)
 		VALUES
-		(${ulid()}, ${root}, 'Todo', 'todo', 'todo', NULL, 'fg-muted', 0, true, ${at}, ${at}),
-		(${review}, ${root}, 'Agent Review', 'agent-review', 'review', 'agent', 'agent', 1, false, ${at}, ${at}),
-		(${done}, ${root}, 'Done', 'done', 'done', NULL, 'success', 2, false, ${at}, ${at})`);
+		(${ulid()}, ${root}, 'Todo', 'todo', 'todo', 'fg-muted', 0, true, ${at}, ${at}),
+		(${review}, ${root}, 'Agent Review', 'agent-review', 'review', 'agent', 1, false, ${at}, ${at}),
+		(${done}, ${root}, 'Done', 'done', 'done', 'success', 2, false, ${at}, ${at})`);
 	cache = createCache();
 	await db.transaction((tx) => cache.rebuild(tx));
 });

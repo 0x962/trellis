@@ -69,7 +69,6 @@ const toFilter = async (ctx: ServiceCtx, tx: Tx, query: Query) => {
 	if (query.status?.length === 0) throw invalidInput("status", "Name one status at least.");
 	if (query.status !== undefined) filter.statusIds = await statusIdsOf(ctx, tx, query.status, projectId);
 	if (query.category !== undefined) filter.categories = query.category;
-	if (query.reviewer !== undefined) filter.reviewer = query.reviewer;
 	if (query.priority !== undefined) filter.priority = query.priority;
 	// A project owns its labels, so a label ref resolves inside the project
 	// the query names. A query with no project reads every project, and a name

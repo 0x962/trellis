@@ -42,7 +42,6 @@ const summaryOf = (status: Status) => ({
 	slug: status.slug,
 	name: status.name,
 	category: status.category,
-	reviewer: status.reviewer,
 	color: status.color,
 });
 
@@ -140,7 +139,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 					trigger={
 						<Button variant="quiet" className={triggerClass}>
 							<span className="inline-flex items-center gap-1.5">
-								<StatusIcon category={ticket.status.category} reviewer={ticket.status.reviewer ?? undefined} />
+								<StatusIcon category={ticket.status.category} />
 								{ticket.status.name}
 							</span>
 						</Button>
