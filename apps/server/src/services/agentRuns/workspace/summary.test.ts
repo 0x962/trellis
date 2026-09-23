@@ -92,7 +92,7 @@ describe("workspace summary", () => {
 
 	test("counts a scratch repository from its first commit", async () => {
 		const root = await createRoot();
-		const workspace = await createSessionRepository(root, "scratch");
+		const workspace = await createSessionRepository(join(root, "sessions", "scratch"));
 		await writeFile(join(workspace, "draft.txt"), "one\ntwo\n");
 		await git(workspace, ["add", "draft.txt"]);
 		await commit(workspace, "draft");
@@ -134,7 +134,7 @@ describe("workspace summary", () => {
 
 	test("shares one read between two calls for the same workspace", async () => {
 		const root = await createRoot();
-		const workspace = await createSessionRepository(root, "scratch");
+		const workspace = await createSessionRepository(join(root, "sessions", "scratch"));
 		const [first, second] = await Promise.all([
 			summarizeWorkspace({ runId: run.id, workspace, scratch: true }),
 			summarizeWorkspace({ runId: run.id, workspace, scratch: true }),

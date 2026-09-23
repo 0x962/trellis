@@ -3,10 +3,9 @@ import { HarnessSchema } from "../harness/harness.ts";
 import { AgentRunSchema } from "./agentRun.ts";
 import { IsoDateTimeSchema, UlidSchema } from "./primitives.ts";
 
-// Scratch repositories use the session name as their directory name.
-export const SessionNameSchema = z
-	.string()
-	.regex(/^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$/, "Use lowercase letters, digits, and dashes, 1 to 40 characters.");
+// The name a person gave the session, or the generated name of a session
+// nobody named. Two sessions may hold one name.
+export const SessionNameSchema = z.string().trim().min(1, "Enter a name.").max(60);
 
 // The run owns the conversation, process attempts, and workspace.
 export const SessionSchema = z.object({
@@ -31,15 +30,9 @@ export const SessionCreateInputSchema = z
 		project: z.string().min(1).optional(),
 		requestId: z.string().uuid().optional(),
 		files: z.array(z.file()).max(20).optional(),
-		name: z
-			.string()
-			.trim()
-			.min(1)
-			.max(60)
-			.optional()
-			.describe(
-				"The session name. The server lowercases it and keeps letters, digits, and dashes. Omit it for a generated name.",
-			),
+		name: SessionNameSchema.optional().describe(
+			"The session name, stored as it is typed. Omit it for a generated name.",
+		),
 		prompt: z.string().trim().max(20000).describe("The initial prompt sent to the agent."),
 		harness: HarnessSchema.optional().describe("The agent program, model, and effort. Sessions default to Claude."),
 		accountId: UlidSchema.optional().describe("Configured harness account from harnessAccounts.list."),
@@ -63,7 +56,7 @@ export type SessionMoveInput = z.infer<typeof SessionMoveInputSchema>;
 export const SessionRenameInputSchema = z
 	.strictObject({
 		id: SessionRefSchema,
-		name: z.string().trim().min(1).max(60),
+		name: SessionNameSchema,
 	})
 	.describe("Rename a session.");
 export type SessionRenameInput = z.infer<typeof SessionRenameInputSchema>;

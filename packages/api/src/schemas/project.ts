@@ -19,9 +19,10 @@ export type ProjectLink = z.infer<typeof ProjectLinkSchema>;
 
 // One row of the project list. `position` gives the display order.
 // `openEpicCount` counts the epics of this project whose state is open.
-// `color` is the color a person gave this project. It tints the mark of the
-// project and the ground of every page of the project. A project with `null`
-// keeps the grey mark and the plain ground.
+// `color` is the color this project holds. It tints the mark of the project
+// and the ground of every page of the project. A project takes a color when
+// it is created, and a project with `null` keeps the grey mark and the plain
+// ground.
 export const ProjectSummarySchema = ProjectLinkSchema.extend({
 	slug: SlugSchema,
 	name: ProjectNameSchema,
@@ -74,7 +75,8 @@ export const ProjectCreateInputSchema = z.strictObject({
 	name: ProjectNameSchema,
 	description: z.string().optional(),
 	ticketTemplate: z.string().optional(),
-	// An absent field and `null` both give the project no color.
+	// An absent field and `null` both take a color that no active project
+	// holds, at random. The project holds no color when the five are taken.
 	color: ProjectColorSchema.nullable().optional(),
 });
 export type ProjectCreateInput = z.input<typeof ProjectCreateInputSchema>;
