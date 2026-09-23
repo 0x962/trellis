@@ -10,6 +10,7 @@ import { launchState } from "../agentRuns/launchState";
 import { sendDeadline } from "../deliveries/sendDeadline.ts";
 import {
 	otherRuntime,
+	ownAuthor,
 	pullRequestEnded,
 	unconfirmedDelivery,
 	waitedTooLong,
@@ -40,12 +41,14 @@ const timingOutSend = ((..._args: unknown[]) => sendDeadline(new Promise(() => {
 // A sent comment emits `reviews.changed`, so the review page reads the new
 // state of that comment.
 const events: Record<string, unknown>[] = [];
+// Every line the dispatcher writes, so a test reads why a message stopped.
+const logs: { message: string; fields: Record<string, unknown> }[] = [];
 const ctx = () =>
 	({
 		home: "/tmp/trellis-dispatch",
 		newTx: run,
 		emit: (event: never) => events.push(event),
-		log: () => undefined,
+		log: (message: string, fields: Record<string, unknown>) => logs.push({ message, fields }),
 	}) as unknown as IoCtx;
 
 // Each seeded pull request needs its own number, because the table holds one
@@ -55,10 +58,10 @@ let prNumber = 900;
 const running = (terminalId: string) =>
 	[{ id: terminalId, status: "running", controllable: true }] as unknown as RuntimeProcessStatus[];
 
-const startRun = (id: string, ticketId: string, identifier: string) =>
+const startRun = (id: string, ticketId: string, identifier: string, name = "crisp-fjord", kind = "agent") =>
 	db.execute(sql`INSERT INTO agent_runs
 		(id, name, kind, instruction, project_path, ticket_id, ticket_identifier, terminal_id, created_at, updated_at)
-		VALUES (${id}, 'crisp-fjord', 'agent', 'Build it', '/tmp/work', ${ticketId}, ${identifier},
+		VALUES (${id}, ${name}, ${kind}, 'Build it', '/tmp/work', ${ticketId}, ${identifier},
 			${`term-${id}`}, ${at}, ${at})`);
 
 // A pull request of one ticket, one running agent on that ticket, and a
@@ -157,11 +160,9 @@ beforeAll(async () => {
 
 // `recordSubmission` reads the actor and the clock of a service call, which
 // the transaction context of this suite does not carry.
-const serviceCtx = {
-	actor: { kind: "human", name: "dana" },
-	now: () => new Date(at),
-	emit: () => {},
-} as never;
+const submissionCtx = (actor: { kind: "human" | "agent"; name: string }) =>
+	({ actor, now: () => new Date(at), emit: () => {} }) as never;
+const serviceCtx = submissionCtx({ kind: "human", name: "dana" });
 
 afterAll(async () => db.$client.close());
 
@@ -404,30 +405,153 @@ test("a comment another agent writes travels to the ticket agent", async () => {
 	]);
 });
 
-test("a comment the ticket agent writes does not travel back to itself", async () => {
-	sent.length = 0;
-	const ticket = await run((tx) => create(core, tx, { project: "DSP", title: "Do not echo self review" }));
-	const runId = ulid();
-	await startRun(runId, ticket.id, ticket.identifier);
+// One ticket and one pull request that the ticket links. Each test of the
+// author rule starts the agent runs it needs.
+const seedTicketPr = async (title: string) => {
+	const ticket = await run((tx) => create(core, tx, { project: "DSP", title }));
 	const prId = ulid();
 	const url = `https://github.com/o/r/pull/${++prNumber}`;
-	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, created_at, updated_at)
-		VALUES (${prId}, 'o', 'r', ${prNumber}, ${url}, 'open', ${at}, ${at})`);
+	await db.execute(sql`INSERT INTO pull_requests (id, owner, repo, number, url, state, head_sha, created_at, updated_at)
+		VALUES (${prId}, 'o', 'r', ${prNumber}, ${url}, 'open', 'seed-head', ${at}, ${at})`);
 	await db.execute(sql`INSERT INTO ticket_pull_requests (ticket_id, pull_request_id, source, actor_name, actor_kind, created_at)
 		VALUES (${ticket.id}, ${prId}, 'manual', 'dana', 'human', ${at})`);
+	return { ticket, prId, url };
+};
 
-	await run((tx) =>
-		add(threadCtx({ kind: "agent", name: runId }), tx, {
-			pr: url,
-			path: "apps/server/src/db/tx.ts",
-			line: 3,
-			body: "I already wrote this.",
-		}),
-	);
-	const queued = await db.execute(sql`SELECT id FROM review_deliveries WHERE ticket_id = ${ticket.id}`);
+const note = (url: string, body: string) => ({ pr: url, path: "apps/server/src/db/tx.ts", line: 3, body });
+
+const deliveriesOf = async (ticketId: string) =>
+	(await db.execute(sql`SELECT state, error FROM review_deliveries WHERE ticket_id = ${ticketId} ORDER BY id`)).rows;
+
+test("a comment the ticket agent writes under the identifier of its run does not travel back", async () => {
+	sent.length = 0;
+	const seed = await seedTicketPr("Do not echo the run identifier");
+	const runId = ulid();
+	await startRun(runId, seed.ticket.id, seed.ticket.identifier);
+
+	await run((tx) => add(threadCtx({ kind: "agent", name: runId }), tx, note(seed.url, "I already wrote this.")));
 	await dispatchDeliveries(ctx(), running(`term-${runId}`), send, preset);
 
-	expect(queued.rows).toEqual([]);
+	expect(await deliveriesOf(seed.ticket.id)).toEqual([]);
+	expect(sent).toEqual([]);
+});
+
+test("a comment the ticket agent writes under its own name does not travel back", async () => {
+	sent.length = 0;
+	const seed = await seedTicketPr("Do not echo the agent name");
+	const runId = ulid();
+	await startRun(runId, seed.ticket.id, seed.ticket.identifier);
+
+	await run((tx) => add(threadCtx({ kind: "agent", name: "crisp-fjord" }), tx, note(seed.url, "My own note.")));
+	await dispatchDeliveries(ctx(), running(`term-${runId}`), send, preset);
+
+	expect(await deliveriesOf(seed.ticket.id)).toEqual([]);
+	expect(sent).toEqual([]);
+});
+
+test("a reply the ticket agent writes does not travel back to itself", async () => {
+	sent.length = 0;
+	const seed = await seedTicketPr("Do not echo the reply");
+	const runId = ulid();
+	await startRun(runId, seed.ticket.id, seed.ticket.identifier);
+	const thread = await run((tx) =>
+		add(threadCtx({ kind: "human", name: "dana" }), tx, note(seed.url, "Name the count.")),
+	);
+	await dispatchDeliveries(ctx(), running(`term-${runId}`), send, preset);
+	expect(sent).toHaveLength(1);
+	sent.length = 0;
+
+	await run((tx) =>
+		reply(threadCtx({ kind: "agent", name: "crisp-fjord" }), tx, { id: thread.id, body: "The header holds it now." }),
+	);
+	await dispatchDeliveries(ctx(), running(`term-${runId}`), send, preset);
+
+	expect(sent).toEqual([]);
+	expect(await deliveriesOf(seed.ticket.id)).toEqual([{ state: "sent", error: null }]);
+});
+
+test("a comment of a flow node on the same ticket reaches the agent of the ticket", async () => {
+	sent.length = 0;
+	const seed = await seedTicketPr("Read the flow finding");
+	const runId = ulid();
+	const flowRunId = ulid();
+	await startRun(runId, seed.ticket.id, seed.ticket.identifier);
+	await startRun(flowRunId, seed.ticket.id, seed.ticket.identifier, "code-reviewer", "flow");
+
+	await run((tx) =>
+		add(threadCtx({ kind: "agent", name: flowRunId }), tx, note(seed.url, "The service takes tx first.")),
+	);
+	await dispatchDeliveries(ctx(), running(`term-${runId}`), send, preset);
+
+	expect(sent).toHaveLength(1);
+	expect(sent[0]!.text).toContain("The service takes tx first.");
+	expect(await deliveriesOf(seed.ticket.id)).toEqual([{ state: "sent", error: null }]);
+});
+
+test("the agent of a new run reads no comment that the earlier run of its ticket wrote", async () => {
+	sent.length = 0;
+	logs.length = 0;
+	const seed = await seedTicketPr("Do not echo after a restart");
+	const first = ulid();
+	await startRun(first, seed.ticket.id, seed.ticket.identifier);
+	// The run of the agent closes, and the agent writes its last comment. No
+	// run holds the ticket then, so the comment joins the queue.
+	await db.execute(sql`UPDATE agent_runs SET closed_at = ${at} WHERE id = ${first}`);
+	await run((tx) =>
+		add(threadCtx({ kind: "agent", name: first }), tx, note(seed.url, "I wrote this before the stop.")),
+	);
+	expect(await deliveriesOf(seed.ticket.id)).toEqual([{ state: "pending", error: null }]);
+
+	// The person starts the same agent again on the same ticket. The new run
+	// is the same agent, so the comment never leaves.
+	const second = ulid();
+	await startRun(second, seed.ticket.id, seed.ticket.identifier);
+	await dispatchDeliveries(ctx(), running(`term-${second}`), send, preset);
+
+	expect(sent).toEqual([]);
+	expect(await deliveriesOf(seed.ticket.id)).toEqual([{ state: "failed", error: ownAuthor }]);
+	expect(logs.filter((line) => line.message === "delivery dropped" && line.fields.reason === ownAuthor)).toHaveLength(
+		1,
+	);
+});
+
+test("a comment of another agent reaches the new run of the ticket", async () => {
+	sent.length = 0;
+	const seed = await seedTicketPr("Read the note after a restart");
+	const first = ulid();
+	await startRun(first, seed.ticket.id, seed.ticket.identifier);
+	await db.execute(sql`UPDATE agent_runs SET closed_at = ${at} WHERE id = ${first}`);
+	await run((tx) => add(threadCtx({ kind: "agent", name: "code-reviewer" }), tx, note(seed.url, "Split the file.")));
+
+	const second = ulid();
+	await startRun(second, seed.ticket.id, seed.ticket.identifier);
+	await dispatchDeliveries(ctx(), running(`term-${second}`), send, preset);
+
+	expect(sent).toHaveLength(1);
+	expect(sent[0]!.text).toContain("Split the file.");
+});
+
+test("a verdict the ticket agent submits does not travel back to itself", async () => {
+	sent.length = 0;
+	const seed = await seedTicketPr("Do not echo the verdict");
+	const runId = ulid();
+	await startRun(runId, seed.ticket.id, seed.ticket.identifier);
+
+	const stored = await run((tx) =>
+		recordSubmission(submissionCtx({ kind: "agent", name: runId }), tx, {
+			prId: seed.prId,
+			verdict: "comment",
+			url: seed.url,
+			author: runId,
+			body: "I reviewed my own change.",
+			revisionId: null,
+			threads: [],
+		}),
+	);
+	await dispatchDeliveries(ctx(), running(`term-${runId}`), send, preset);
+
+	expect(stored.recipients).toEqual([]);
+	expect(await deliveriesOf(seed.ticket.id)).toEqual([]);
 	expect(sent).toEqual([]);
 });
 

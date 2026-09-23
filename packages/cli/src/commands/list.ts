@@ -39,7 +39,7 @@ export default defineCommand({
 		"label-not": { type: "string", description: "Label refs, comma-separated; a ticket that holds one drops out" },
 		pr: {
 			type: "enum",
-			options: ["any", "none", "open", "draft", "queued", "merged", "closed"],
+			options: ["any", "none", "open", "not-ready", "queued", "merged", "closed"],
 			description: "PR state",
 		},
 		ci: { type: "string", description: "CI states, comma-separated" },

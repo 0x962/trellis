@@ -6,6 +6,7 @@ import {
 	CheckConfettiSection,
 	CheckRibbonSection,
 	ChecksLineSection,
+	DoneWashSection,
 	FileRiskGroupsSection,
 	FlowRunSection,
 	LineChangesSection,
@@ -31,6 +32,7 @@ export function DomainSections() {
 			<ReviewStatusSummarySection />
 			<CheckRibbonSection />
 			<CheckConfettiSection />
+			<DoneWashSection />
 			<ChecksLineSection />
 			<PrGlyphSection />
 			<ActorChipSection />

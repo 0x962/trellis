@@ -1,5 +1,4 @@
 export {
-	type LocalPrState,
 	PrGlyph,
 	type PrGlyphProps,
 	type PrGlyphSize,

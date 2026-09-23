@@ -43,9 +43,9 @@ import { completeMergedPullRequestTickets } from "./tickets/completeMergedPullRe
 
 // One pull request is one row, whatever number of tickets link it. The link
 // row carries the actor who linked it. A new link by an agent sets the local
-// state to `draft`, so the person sees the pull request as a draft until the
-// agent runs `trellis ready`. A link by a person keeps the stored state,
-// which starts as `ready`.
+// state to `not-ready`, so the pull request waits in Trellis until the agent
+// runs `trellis ready`. A link by a person keeps the stored state, which
+// starts as `ready`.
 // pull_requests.review_retained keeps the PR after its last ticket link leaves.
 //
 // prepareLink and prepareRefresh read one pull request through the same gh
@@ -59,8 +59,15 @@ export { parsePullRequestUrl };
 
 // The caller verifies `headSha` with GitHub before this transaction starts.
 // This update stores that verified SHA before the caller writes head-specific data.
+//
+// A new head commit clears `ready_for_review_at`, the moment the wait of the
+// person started, because the person waits for nothing until the agent asks
+// again for the new commit.
 export const setHeadSha = (tx: Tx, input: { id: string; headSha: string }) =>
-	tx.execute(sql`UPDATE pull_requests SET head_sha = ${input.headSha} WHERE id = ${input.id}`);
+	tx.execute(sql`UPDATE pull_requests
+		SET head_sha = ${input.headSha},
+			ready_for_review_at = CASE WHEN head_sha IS DISTINCT FROM ${input.headSha} THEN NULL ELSE ready_for_review_at END
+		WHERE id = ${input.id}`);
 
 export const announcePullRequestUpdate = async (ctx: ServiceCtx, tx: Tx, row: PullRequestRow) => {
 	const scope = await linkScope(tx, row.id);
@@ -161,7 +168,7 @@ export const link = async (ctx: ServiceCtx, tx: Tx, input: PreparedLink): Promis
 		RETURNING ${iso(sql`created_at`)} AS linked_at
 	`);
 	if (created.rows.length > 0 && ctx.actor.kind === "agent")
-		await tx.execute(sql`UPDATE pull_requests SET local_state = 'draft' WHERE id = ${stored!.id}`);
+		await tx.execute(sql`UPDATE pull_requests SET local_state = 'not-ready' WHERE id = ${stored!.id}`);
 	if (created.rows.length > 0) await announceLink(ctx, tx, { ticket, row: stored!, at });
 	const [linked] = await rows<LinkedPullRequestRow & { linked_at: string }>(
 		tx,

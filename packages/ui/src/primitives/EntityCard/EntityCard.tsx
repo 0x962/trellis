@@ -1,16 +1,19 @@
 import { PencilSimple } from "@phosphor-icons/react";
-import { type ComponentProps, cloneElement, type ReactElement } from "react";
+import { type ComponentProps, cloneElement, type ReactElement, type ReactNode } from "react";
 import { IconButton } from "../IconButton";
 
 export type EntityCardProps = {
 	title: string;
 	description: string;
+	// Badges under the description, inside the card. A badge takes no click,
+	// so the link overlay of the title can cover it.
+	badges?: ReactNode;
 } & (
 	| { link: ReactElement<ComponentProps<"a">>; onEdit?: never; editLabel?: never }
 	| { link?: never; onEdit: () => void; editLabel?: string }
 );
 
-export function EntityCard({ title, description, onEdit, editLabel, link }: EntityCardProps) {
+export function EntityCard({ title, description, badges, onEdit, editLabel, link }: EntityCardProps) {
 	return (
 		<article
 			aria-label={title}
@@ -31,6 +34,7 @@ export function EntityCard({ title, description, onEdit, editLabel, link }: Enti
 			<p className="line-clamp-4 min-h-20 whitespace-pre-wrap break-words text-sm leading-5 text-fg-muted">
 				{description}
 			</p>
+			{badges !== undefined && <div className="flex flex-wrap gap-2">{badges}</div>}
 		</article>
 	);
 }

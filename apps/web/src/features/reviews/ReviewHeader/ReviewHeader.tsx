@@ -43,7 +43,7 @@ export function ReviewHeader({ pr, revision, parent, verdict }: Props) {
 	return (
 		<Topbar>
 			<PageTitle parent={parent} title={`${ref.repo} #${ref.number}`} />
-			{verdict && <ReviewStateIcon reviewState={verdict} isDraft={false} />}
+			{verdict && <ReviewStateIcon reviewState={verdict} notReady={false} />}
 		</Topbar>
 	);
 }

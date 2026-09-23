@@ -1,22 +1,35 @@
-import type { Flow, FlowCreateInput, FlowSummary, FlowUpdateInput } from "@trellis/api";
+import type { Flow, FlowCreateInput, FlowListInput, FlowSummary, FlowUpdateInput } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { requireActor, type ServiceCtx } from "../../context.ts";
-import { iso, rows } from "../../db/queries/support.ts";
+import { rows } from "../../db/queries/support.ts";
 import type { Tx } from "../../db/tx.ts";
+import { invalidInput } from "../../errors.ts";
 import { upsert } from "../actors.ts";
+import { resolveProject, resolveTicket } from "../refs.ts";
 import { deriveSlug } from "../slug.ts";
-import { assertSlugFree, assertVersion, flowColumns, readDoc, resolveFlow } from "./queries.ts";
+import { assertSlugFree, assertVersion, listFlows, readDoc, resolveFlow } from "./queries.ts";
 
-export const list = (_ctx: ServiceCtx, tx: Tx, _input: Record<string, never>): Promise<FlowSummary[]> =>
-	rows<FlowSummary>(
-		tx,
-		sql`SELECT id, slug, name, description, harness, version,
-			${iso(sql`created_at`)} AS "createdAt", ${iso(sql`updated_at`)} AS "updatedAt",
-			(SELECT count(*)::int FROM flow_nodes WHERE flow_nodes.flow_id = flows.id) AS "nodeCount",
-			(SELECT count(*)::int FROM flow_edges WHERE flow_edges.flow_id = flows.id) AS "edgeCount"
-			FROM flows ORDER BY name, id`,
-	);
+// A flow belongs to the root project of a tree. A ref to a sub-project names
+// a narrower scope than a flow can hold, so it is refused here instead of
+// widened to the root without a word.
+const resolveRootProjectId = async (
+	ctx: ServiceCtx,
+	tx: Tx,
+	ref: string | null | undefined,
+): Promise<string | null> => {
+	if (ref === null || ref === undefined) return null;
+	const project = await resolveProject(ctx, tx, ref);
+	if (project.id !== project.rootId)
+		throw invalidInput("project", "A flow takes a root project, such as TRL, and not a sub-project.");
+	return project.id;
+};
+
+export const list = async (ctx: ServiceCtx, tx: Tx, input: FlowListInput): Promise<FlowSummary[]> => {
+	if (input.project !== undefined) return listFlows(tx, (await resolveProject(ctx, tx, input.project)).rootId);
+	if (input.ticket !== undefined) return listFlows(tx, (await resolveTicket(ctx, tx, input.ticket)).rootId);
+	return listFlows(tx, null);
+};
 
 export const get = async (_ctx: ServiceCtx, tx: Tx, input: { flow: string }) =>
 	readDoc(tx, await resolveFlow(tx, input.flow));
@@ -39,15 +52,15 @@ export const create = async (ctx: ServiceCtx, tx: Tx, input: FlowCreateInput): P
 	const actor = requireActor(ctx);
 	if (input.slug !== undefined) await assertSlugFree(tx, input.slug);
 	const slug = input.slug ?? (await freeSlug(tx, input.name));
+	const projectId = await resolveRootProjectId(ctx, tx, input.project);
 	await upsert(ctx, tx, actor);
-	const [flow] = await rows<Flow>(
-		tx,
-		sql`INSERT INTO flows (id, slug, name, description, created_at, updated_at)
-			VALUES (${ulid()}, ${slug}, ${input.name}, ${input.description ?? ""}, ${ctx.now}, ${ctx.now})
-			RETURNING ${flowColumns}`,
+	const id = ulid();
+	await tx.execute(
+		sql`INSERT INTO flows (id, project_id, slug, name, description, created_at, updated_at)
+			VALUES (${id}, ${projectId}, ${slug}, ${input.name}, ${input.description ?? ""}, ${ctx.now}, ${ctx.now})`,
 	);
-	ctx.emit({ type: "flows.changed", id: flow!.id });
-	return flow!;
+	ctx.emit({ type: "flows.changed", id });
+	return resolveFlow(tx, id);
 };
 
 export const update = async (ctx: ServiceCtx, tx: Tx, input: FlowUpdateInput): Promise<Flow> => {
@@ -55,18 +68,19 @@ export const update = async (ctx: ServiceCtx, tx: Tx, input: FlowUpdateInput): P
 	const current = await resolveFlow(tx, input.flow);
 	assertVersion(current, input.expectedVersion);
 	if (input.slug !== undefined && input.slug !== current.slug) await assertSlugFree(tx, input.slug);
+	const projectId = await resolveRootProjectId(ctx, tx, input.project);
 	await upsert(ctx, tx, actor);
-	const [flow] = await rows<Flow>(
-		tx,
+	await tx.execute(
 		sql`UPDATE flows SET name = COALESCE(${input.name ?? null}, name), slug = COALESCE(${input.slug ?? null}, slug),
 			description = COALESCE(${input.description ?? null}, description),
 			briefing = COALESCE(${input.briefing ?? null}, briefing),
+			project_id = CASE WHEN ${input.project === undefined} THEN project_id ELSE ${projectId}::text END,
 			harness = CASE WHEN ${input.harness === undefined} THEN harness ELSE ${input.harness ? JSON.stringify(input.harness) : null}::jsonb END,
 			version = version + 1, updated_at = ${ctx.now}
-			WHERE id = ${current.id} RETURNING ${flowColumns}`,
+			WHERE id = ${current.id}`,
 	);
 	ctx.emit({ type: "flows.changed", id: current.id });
-	return flow!;
+	return resolveFlow(tx, current.id);
 };
 
 // The delete cascades to every node and edge of the flow.

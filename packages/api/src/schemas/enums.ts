@@ -41,10 +41,11 @@ export type ReviewState = z.infer<typeof ReviewStateSchema>;
 export const PrLinkSourceSchema = z.enum(["manual"]);
 export type PrLinkSource = z.infer<typeof PrLinkSourceSchema>;
 
-// The review state that Trellis keeps for a pull request. A pull request
-// that an agent links starts as `draft`, and `trellis ready` sets `ready`
-// when the agent asks the person for review.
-export const LocalPrStateSchema = z.enum(["draft", "ready"]);
+// Whether the agent asked the person to review a pull request. A pull
+// request that an agent links starts as `not-ready`, and `trellis ready`
+// writes `ready` when the agent asks for review. The agent asking is one
+// part of being ready for review; `reviewGaps` holds the whole rule.
+export const LocalPrStateSchema = z.enum(["not-ready", "ready"]);
 export type LocalPrState = z.infer<typeof LocalPrStateSchema>;
 
 // Whether GitHub can merge the head of a pull request into its base branch.

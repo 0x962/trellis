@@ -1,6 +1,6 @@
 import { FolderOpen, FolderUser } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { IconButton, Switch, Tooltip, toast } from "@trellis/ui";
+import { CodeText, IconButton, Switch, Tooltip, toast } from "@trellis/ui";
 import { type ReactElement, useCallback, useEffect } from "react";
 import { type DesktopAction, type DesktopSettingsBridge, desktopErrorMessage } from "../../../lib/desktopBridge";
 import { SettingsRow } from "../SettingsRow";
@@ -55,7 +55,7 @@ export function DesktopSettings({ bridge }: { bridge: DesktopSettingsBridge }) {
 	return (
 		<>
 			<SettingsRow label="Data directory" hint="Trellis keeps its database and host logs in this folder.">
-				<p className="font-mono text-sm break-all text-fg">{dataDirectory}</p>
+				<CodeText className="break-all text-sm text-fg">{dataDirectory}</CodeText>
 				<div className="flex items-center gap-2">
 					{button("Show data directory", "showDataDirectory", <FolderOpen />)}
 					{button("Choose data directory", "chooseDataDirectory", <FolderUser />, { packagedOnly: true })}

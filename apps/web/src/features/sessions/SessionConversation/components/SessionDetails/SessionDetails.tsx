@@ -1,7 +1,17 @@
 import { Copy, Info } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import type { AgentRun, AgentWorkspaceSummary } from "@trellis/api";
-import { IconButton, LineChanges, Popover, PropertyRow, Sheet, Skeleton, Tooltip, useMediaQuery } from "@trellis/ui";
+import {
+	CodeText,
+	IconButton,
+	LineChanges,
+	Popover,
+	PropertyRow,
+	Sheet,
+	Skeleton,
+	Tooltip,
+	useMediaQuery,
+} from "@trellis/ui";
 import { useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { copyText } from "../../../../../lib/clipboard";
@@ -28,7 +38,7 @@ const plural = (count: number, word: string) => `${formatCount(count)} ${word}${
 function Copyable({ value, label, message }: { value: string; label: string; message: string }) {
 	return (
 		<>
-			<span className="min-w-0 flex-1 break-all font-mono text-sm">{value}</span>
+			<CodeText className="min-w-0 flex-1 break-all text-sm">{value}</CodeText>
 			<Tooltip content={label}>
 				<IconButton
 					size="xs"
@@ -91,7 +101,7 @@ function Details({ run, summary }: SessionDetailsProps) {
 								<Pending />
 							) : (
 								<>
-									<span className="truncate font-mono text-sm">{ready.base}</span>
+									<CodeText className="truncate text-sm">{ready.base}</CodeText>
 									{commits.length > 0 && (
 										<span className="shrink-0 text-sm text-fg-muted tabular">{commits.join(", ")}</span>
 									)}
