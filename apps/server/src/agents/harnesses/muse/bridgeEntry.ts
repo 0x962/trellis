@@ -283,5 +283,12 @@ try {
 	}
 	control?.close();
 	await rm(directory, { recursive: true, force: true });
+	// `readTerminal` puts the terminal in raw mode and reads it for a
+	// follow-up prompt. That reader holds the event loop of this process
+	// open, so the process releases the terminal here and can then exit.
+	if (process.stdin.isTTY) {
+		process.stdin.setRawMode(false);
+		process.stdin.pause();
+	}
 	stopNormally();
 }
