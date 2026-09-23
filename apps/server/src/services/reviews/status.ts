@@ -7,7 +7,7 @@ import type { PrepareCtx, ServiceCtx } from "../support";
 import { parseRef } from "./queries.ts";
 import { status as remoteStatus } from "./revision.ts";
 
-export type PreparedStatus = { pr: string; remote: Record<string, unknown> };
+export type PreparedStatus = { pr: string; remote: Record<string, unknown> & { headRefOid: string } };
 
 export async function prepare(ctx: PrepareCtx, input: { pr: string }): Promise<PreparedStatus> {
 	return { pr: input.pr, remote: await remoteStatus(ctx, input) };

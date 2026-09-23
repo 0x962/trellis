@@ -105,14 +105,7 @@ function ChildRow({ child, onOpen }: { child: TicketSummary; onOpen: () => void 
 				{pr !== null && (
 					<Tooltip content={prLabel(pr)}>
 						<span role="img" aria-label={prLabel(pr)} className="inline-flex items-center gap-1 text-fg-muted">
-							<PrGlyph
-								state={pr.state}
-								isDraft={pr.isDraft}
-								isQueued={pr.isQueued}
-								localState={pr.localState}
-								size="sm"
-								decorative
-							/>
+							<PrGlyph state={pr.state} isQueued={pr.isQueued} localState={pr.localState} size="sm" decorative />
 							<CheckRibbon size="mini" checks={badgeChecks(pr)} decorative />
 						</span>
 					</Tooltip>

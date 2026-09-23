@@ -20,10 +20,17 @@ export function TopbarActionButton(props: TopbarActionButtonProps) {
 
 export type TopbarActionMenuProps = Omit<MenuProps, "trigger"> & {
 	icon?: ReactElement;
+	// The name of this control inside its bar, written onto the trigger as
+	// `data-bar-slot`. A test reads the names of a bar in order and proves
+	// that the bar puts the same controls in the same places before and
+	// after its data arrives.
+	barSlot?: string;
 };
 
-export function TopbarActionMenu({ icon = <DotsThree />, label, ...props }: TopbarActionMenuProps) {
-	return <Menu label={label} trigger={<TopbarActionButton label={label} icon={icon} />} {...props} />;
+export function TopbarActionMenu({ icon = <DotsThree />, label, barSlot, ...props }: TopbarActionMenuProps) {
+	return (
+		<Menu label={label} trigger={<TopbarActionButton data-bar-slot={barSlot} label={label} icon={icon} />} {...props} />
+	);
 }
 
 export function Topbar({ children, actions }: TopbarProps) {

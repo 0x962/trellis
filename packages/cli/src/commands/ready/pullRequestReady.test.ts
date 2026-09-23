@@ -12,7 +12,7 @@ const readiness = (
 	dataModelDiagramRequired = false,
 ): PullRequestReadiness => ({
 	dataModelDiagramRequired,
-	pullRequest: { number: 131, url: "https://github.com/acme/trellis/pull/131", headSha: "abc123" },
+	pullRequest: { number: 131, url: "https://github.com/acme/trellis/pull/131", headSha: "abc123", isDraft: false },
 	flows: { flows: [], runs: [], satisfied: true },
 	missing,
 	ready: missing.length === 0,
@@ -64,7 +64,7 @@ test("names each flow with the command that runs it when no flow ran", () => {
 
 test("says the pull request is ready when both parts exist", () => {
 	expect(pullRequestReadyText(readiness([]))).toBe(
-		"#131 is ready for review. It has the explanation and the evidence document. The person will now review it.\n",
+		"#131 is ready for review. It has the explanation and the evidence document. Trellis marked it ready, and GitHub is ready for review.\n",
 	);
 });
 
@@ -89,7 +89,7 @@ const clientWith = ({
 }): TrellisClient =>
 	({
 		pullRequests: {
-			refresh: async () => ({ number: 131, files }),
+			refresh: async () => ({ number: 131, files, isDraft: false }),
 			readEvidence: async () => evidence,
 			readSummaryHead: async () => summaryHead,
 		},
@@ -159,7 +159,7 @@ test("takes a succeeded run of the current head as the flow run", async () => {
 
 	expect(result.ready).toBe(true);
 	expect(pullRequestReadyText(result)).toBe(
-		"#131 is ready for review. It has the explanation, the evidence document, and a flow run on this head. The person will now review it.\n",
+		"#131 is ready for review. It has the explanation, the evidence document, and a flow run on this head. Trellis marked it ready, and GitHub is ready for review.\n",
 	);
 });
 
@@ -186,7 +186,7 @@ test("passes on a run that waits for a person, and says who must answer", async 
 
 	expect(result.ready).toBe(true);
 	expect(pullRequestReadyText(result)).toBe(
-		`#131 is ready for review. It has the explanation, the evidence document, and a flow run on this head. The person will now review it.
+		`#131 is ready for review. It has the explanation, the evidence document, and a flow run on this head. Trellis marked it ready, and GitHub is ready for review.
   The review flow waits for you. Answer its open step in the Flows tab of the pull request.
 `,
 	);

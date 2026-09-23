@@ -12,8 +12,6 @@ export type LocalStateMenuProps = {
 	localState: LocalPrState;
 };
 
-// The item that flips the local review state of an open pull request. The
-// state lives in Trellis only, so GitHub keeps its own draft flag.
 export const localStateItem = (localState: LocalPrState): { label: string; next: LocalPrState } =>
 	localState === "draft"
 		? { label: "Mark ready for review", next: "ready" }

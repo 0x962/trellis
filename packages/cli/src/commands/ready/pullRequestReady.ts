@@ -13,7 +13,7 @@ export type ReadinessPart = "explanation" | "evidence" | "data-model-diagram" | 
 
 export type PullRequestReadiness = {
 	dataModelDiagramRequired: boolean;
-	pullRequest: { number: number; url: string; headSha: string };
+	pullRequest: { number: number; url: string; headSha: string; isDraft: boolean };
 	// The flows the server holds and the runs of the current head. `flows` is
 	// empty, and `satisfied` is true, whenever the caller asked for no flow
 	// check.
@@ -61,7 +61,12 @@ export const pullRequestReadiness = async (
 	];
 	return {
 		dataModelDiagramRequired,
-		pullRequest: { number: head.pullRequest.number, url: ref.url, headSha: head.sha },
+		pullRequest: {
+			number: head.pullRequest.number,
+			url: ref.url,
+			headSha: head.sha,
+			isDraft: head.pullRequest.isDraft,
+		},
 		flows,
 		missing,
 		ready: missing.length === 0,
@@ -107,7 +112,7 @@ export const pullRequestReadyText = (result: PullRequestReadiness): string => {
 				? "the explanation and the evidence document"
 				: "the explanation, the evidence document, and a flow run on this head";
 		return [
-			`#${number} is ready for review. It has ${parts}. The person will now review it.`,
+			`#${number} is ready for review. It has ${parts}. Trellis marked it ready, and GitHub is ready for review.`,
 			...flowRunWaitingLines(result.flows),
 			"",
 		].join("\n");

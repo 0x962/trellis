@@ -46,7 +46,7 @@ test("prints the nonempty turn groups in fixed order", () => {
 		[
 			ticket("OP-34", { category: "todo", waitsOn: [startedBlocker] }),
 			ticket("OP-53", { category: "review", reviewer: "human" }),
-			ticket("OP-32", { prRows: [pullRequest(55569, { isDraft: true })] }),
+			ticket("OP-32", { prRows: [pullRequest(55569, { localState: "draft" })] }),
 			ticket("OP-41", { category: "todo", ready: true }),
 			ticket("OP-29", { category: "done" }),
 		],
@@ -72,7 +72,7 @@ with an agent           1   #55569
 
 test("uses a ticket identifier when a working run holds the turn", () => {
 	const result = readyResultOf(
-		[ticket("OP-32", { prRows: [pullRequest(55569, { isDraft: true })] })],
+		[ticket("OP-32", { prRows: [pullRequest(55569, { localState: "draft" })] })],
 		new Set(["OP-32"]),
 	);
 	expect(result.groups).toEqual([{ turn: "agent", label: "with an agent", count: 1, names: ["OP-32"] }]);

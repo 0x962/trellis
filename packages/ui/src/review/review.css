@@ -45,9 +45,11 @@
 .review-heading {
 	padding: 24px 28px 20px;
 }
+/* The buttons sit beside the first line of the title. A long title wraps to
+   a second line when it arrives, and the buttons keep the height they had. */
 .review-heading-title {
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	justify-content: space-between;
 	gap: 16px;
 }
@@ -56,11 +58,30 @@
 }
 .review-header-actions {
 	display: flex;
+	flex: none;
 	align-items: center;
 	justify-content: flex-end;
-	flex-wrap: wrap;
 	gap: 6px;
-	min-width: 0;
+}
+/* One box per button of the row. The box is the size of an IconButton at
+   size sm: 28 px, and 44 px where the pointer is coarse, which is the size
+   the hit area gives that same button. Every box is drawn at the first
+   paint. The GitHub button waits for the stored revision and the ... menu
+   waits for the ticket, so each one arrives into a box that already holds
+   its place, and neither one moves the other. */
+.review-header-slot {
+	display: flex;
+	width: 28px;
+	height: 28px;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+}
+@media (pointer: coarse) {
+	.review-header-slot {
+		width: 44px;
+		height: 44px;
+	}
 }
 .review-heading h2 {
 	font-size: 20px;
@@ -83,6 +104,33 @@
 	align-items: center;
 	gap: 6px;
 	min-width: 0;
+}
+/* The two marks that open the row. Each one keeps its box from the first
+   paint: 16 px for the pull request glyph, the size PrGlyph draws at size
+   sm, and 14 px for the merge conflict triangle. The GitHub poll fills the
+   glyph and the ticket answer fills the triangle, and the state word, the
+   branch and the queue position stay where they were drawn. The triangle is
+   a link, so its box must hold still even while it is empty. */
+.review-meta-marks {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	gap: 6px;
+}
+.review-meta-glyph,
+.review-meta-conflict {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+}
+.review-meta-glyph {
+	width: 16px;
+	height: 16px;
+}
+.review-meta-conflict {
+	width: 14px;
+	height: 14px;
 }
 .review-queue-position {
 	display: inline-flex;

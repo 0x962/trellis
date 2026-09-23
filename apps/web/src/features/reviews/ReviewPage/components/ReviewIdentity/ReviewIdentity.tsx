@@ -14,7 +14,7 @@ export type GithubPullRequest = {
 	baseRefName?: string;
 };
 
-// GitHub can mark a pull request as queued or draft while its state stays OPEN.
+// GitHub can mark a pull request as queued while its state stays OPEN.
 export const stateWord = (pullRequest: GithubPullRequest | undefined, isQueued = false) => {
 	if (isQueued) return "Queued";
 	if (pullRequest === undefined) return "Not fetched";
@@ -78,43 +78,56 @@ export function ReviewIdentity({
 		<div className="review-heading">
 			<div className="review-heading-title">
 				<h2>{pullRequest?.title ?? `${ref.owner}/${ref.repo} #${ref.number}`}</h2>
+				{/* One box per button, both drawn at the first paint. The GitHub
+				    button appears when the stored revision arrives and the ...
+				    menu appears when the ticket arrives, seconds apart. Each one
+				    fills the box that waited for it, so neither one moves. */}
 				<div className="review-header-actions">
-					{revision && <ReviewHeaderActions pr={pr} revision={revision} onDone={onAction} />}
-					{linkedPr !== null && pullRequest?.state === "OPEN" && (
-						<LocalStateMenu id={linkedPr.id} number={linkedPr.number} localState={localState} />
-					)}
+					<div data-bar-slot="github" className="review-header-slot">
+						{revision && <ReviewHeaderActions pr={pr} revision={revision} onDone={onAction} />}
+					</div>
+					<div data-bar-slot="local-state" className="review-header-slot">
+						{linkedPr !== null && pullRequest?.state === "OPEN" && (
+							<LocalStateMenu id={linkedPr.id} number={linkedPr.number} localState={localState} />
+						)}
+					</div>
 				</div>
 			</div>
+			{/* The row is ordered by the moment each fact arrives. The two marks
+			    open it and keep their boxes from the first paint. The state
+			    word, the branch and the queue position follow in the order the
+			    reads answer, so a later answer appends to the row and moves
+			    nothing that was drawn before it. */}
 			<div className="review-heading-meta">
-				{pullRequest !== undefined && (
-					<PrGlyph
-						state={glyphState}
-						isDraft={pullRequest.isDraft ?? false}
-						isQueued={isQueued}
-						localState={localState}
-						size="sm"
-					/>
-				)}
+				<span className="review-meta-marks">
+					<span data-bar-slot="glyph" className="review-meta-glyph">
+						{pullRequest !== undefined && (
+							<PrGlyph state={glyphState} isQueued={isQueued} localState={localState} size="sm" />
+						)}
+					</span>
+					<span data-bar-slot="conflict" className="review-meta-conflict">
+						{hasConflict(pullRequest, linkedPr) && (
+							<a className="inline-flex" href={`${pr}/conflicts`} target="_blank" rel="noreferrer">
+								<MergeConflictMark baseRef={linkedPr?.baseRef ?? pullRequest?.baseRefName ?? ""} />
+							</a>
+						)}
+					</span>
+				</span>
 				{isQueued ? (
 					<Tooltip content={queueTooltipText(mergeQueuePosition)}>
-						<span className="review-state-group">
-							{stateBadge}
-							<span className="review-queue-position">{queuePositionText(mergeQueuePosition)}</span>
-						</span>
+						<span className="review-state-group">{stateBadge}</span>
 					</Tooltip>
 				) : (
 					stateBadge
-				)}
-				{hasConflict(pullRequest, linkedPr) && (
-					<a className="inline-flex" href={`${pr}/conflicts`} target="_blank" rel="noreferrer">
-						<MergeConflictMark baseRef={linkedPr?.baseRef ?? pullRequest?.baseRefName ?? ""} />
-					</a>
 				)}
 				{pullRequest?.headRefName && (
 					<span className="review-branch" title={`${pullRequest.headRefName} → ${pullRequest.baseRefName}`}>
 						{pullRequest.headRefName} <span aria-hidden="true">→</span> {pullRequest.baseRefName}
 					</span>
 				)}
+				{/* The merge queue read answers after every other read of the
+				    header, so the position ends the row. */}
+				{isQueued && <span className="review-queue-position">{queuePositionText(mergeQueuePosition)}</span>}
 			</div>
 		</div>
 	);

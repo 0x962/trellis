@@ -64,8 +64,8 @@ export const localReviewState = (prId: SQL) => sql`COALESCE((
 ), 'none')`;
 
 // The SQL form of `isReviewDraft` in packages/api for the pull request
-// alias `pr`: GitHub marks it as a draft, or its local state is `draft`.
-export const reviewDraftSql = (pr: SQL) => sql`(${pr}.is_draft OR ${pr}.local_state = 'draft')`;
+// alias `pr`.
+export const reviewDraftSql = (pr: SQL) => sql`${pr}.local_state = 'draft'`;
 
 // The head commit of the revision that a `review_submissions` row names.
 export const submissionHeadSha = (submission: SQL) => sql`(

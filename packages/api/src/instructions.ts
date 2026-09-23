@@ -49,7 +49,8 @@ Prove the change. A pull request is ready for review when it has the explanation
    Start each one and wait for its result:  trellis flows run <pr> --flow <slug>
    When a flow run fails, fix the fault and run the flow again, or write in the evidence document why the flow does not apply.
 7. Ask for review:  trellis ready <pr>
-   It checks the parts and marks the pull request ready for review. Until then the person sees a draft.
+   It checks the parts, marks the pull request ready in Trellis, and makes it ready for review on GitHub.
+   Until then the person sees a draft.
    Hand over:        trellis move ${key}-42 human-review
 
 Labels say what a ticket is about. Read the set of the project: trellis labels list ${key}

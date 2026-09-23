@@ -48,7 +48,7 @@ const PrReviewSchema = z.object({
 // The PR badge on a row: the pull request and review states that need the
 // most work, the check counts behind the ribbon, and the approval state of
 // each linked pull request. `localState` is `draft` when any linked pull
-// request is a local draft, the way `isDraft` folds the GitHub flag.
+// request is a local draft.
 const PrBadgeSchema = z.object({
 	state: PrStateSchema,
 	isDraft: z.boolean().default(false),

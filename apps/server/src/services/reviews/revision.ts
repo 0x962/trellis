@@ -90,9 +90,11 @@ const suggestionMoves = async (
 	}
 	return { reanchor, outdated };
 };
+// `fields` names headRefOid, and ghJson throws when the call fails, so every
+// answer that reaches a caller carries the head commit.
 export async function status(ctx: PrepareCtx, input: { pr: string }) {
 	const ref = parseRef(input.pr);
-	return ghJson<Record<string, unknown>>(ctx, ["pr", "view", ref.url, "--json", fields]);
+	return ghJson<Record<string, unknown> & { headRefOid: string }>(ctx, ["pr", "view", ref.url, "--json", fields]);
 }
 // GitHub answers `compare/<base head>...<pull request head>` with the commit
 // that both branches share. The old side of the diff reads files at that commit.
