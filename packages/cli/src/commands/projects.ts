@@ -61,7 +61,10 @@ const create = defineCommand({
 		key: { type: "string", required: true, description: "Key of the project, KEY" },
 		name: { type: "string", required: true, description: "Name" },
 		description: { type: "string", description: "Description" },
-		color: { type: "string", description: "Color: orange, teal, blue, pink, or azure" },
+		color: {
+			type: "string",
+			description: "Color: orange, teal, blue, pink, or azure. A free one at random by default",
+		},
 	},
 	async run(context) {
 		const ctx = contextOf(context);
